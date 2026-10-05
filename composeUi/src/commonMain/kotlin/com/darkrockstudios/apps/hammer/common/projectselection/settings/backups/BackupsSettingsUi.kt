@@ -9,6 +9,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
@@ -59,6 +60,7 @@ fun BackupsSettingsUi(
 			},
 			hint = "1–${GlobalSettings.MAX_BACKUPS}",
 			imeAction = ImeAction.Done,
+			keyboardType = KeyboardType.Number,
 			error = if (isMaxBackupsError) {
 				Res.string.settings_server_max_backups_error.get(GlobalSettings.MAX_BACKUPS)
 			} else {

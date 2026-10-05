@@ -11,6 +11,7 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponen
 interface SceneMetadataPanel : HammerComponent, TagSuggesting {
 	val state: Value<State>
 
+	fun onSceneItemChanged(sceneItem: SceneItem)
 	fun updateOutline(text: String)
 	fun updateNotes(text: String)
 	fun updateDraftName(text: String)

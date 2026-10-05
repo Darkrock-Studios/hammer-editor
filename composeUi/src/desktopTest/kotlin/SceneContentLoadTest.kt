@@ -1,12 +1,13 @@
 import com.darkrockstudios.apps.hammer.common.compose.ComposeRichText
+import com.darkrockstudios.apps.hammer.common.compose.markdown.HammerMarkdownConfiguration
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneContent
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor.loadSceneContent
 import com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor.sceneDiffText
-import com.darkrockstudios.texteditor.markdown.MarkdownConfiguration
 import com.darkrockstudios.texteditor.markdown.MarkdownExtension
+import com.darkrockstudios.texteditor.markdown.withMarkdown
 import com.darkrockstudios.texteditor.richstyle.HorizontalRuleSpanStyle
 import com.darkrockstudios.texteditor.state.TextEditorState
 import io.mockk.mockk
@@ -33,7 +34,7 @@ class SceneContentLoadTest {
 
 	private fun TestScope.newEditor(): MarkdownExtension {
 		val state = TextEditorState(scope = this, measurer = mockk(relaxed = true))
-		return MarkdownExtension(state, MarkdownConfiguration.DEFAULT)
+		return state.withMarkdown(HammerMarkdownConfiguration)
 	}
 
 	private fun MarkdownExtension.horizontalRuleLines(): List<Int> =

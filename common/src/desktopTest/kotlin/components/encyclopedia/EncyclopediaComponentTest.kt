@@ -18,6 +18,7 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScop
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -57,6 +58,7 @@ class EncyclopediaComponentTest : ComponentTest() {
 
 		encyclopediaService = mockk(relaxed = true)
 		every { encyclopediaService.entryListFlow } returns MutableStateFlow(emptyList<EntryDef>())
+		every { encyclopediaService.entryChangedFlow } returns MutableSharedFlow()
 		every { encyclopediaService.loadEntry(any<EntryDef>()) } returns EntryContainer(entryContent)
 		every { encyclopediaService.findEntryImagePath(any()) } returns null
 		every { encyclopediaService.findEntryImageExtension(any()) } returns null
@@ -218,5 +220,38 @@ class EncyclopediaComponentTest : ComponentTest() {
 		val destination = assertIs<Encyclopedia.Destination.ViewEntryDestination>(comp.stack.value.active.instance)
 		assertEquals(entryDef, destination.component.state.value.entryDef)
 		assertEquals(3, comp.stack.value.items.size)
+	}
+
+	@Test
+	fun `discardUnsaved ends an in-progress entry edit`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.showViewEntry(entryDef)
+		advanceUntilIdle()
+
+		val destination = assertIs<Encyclopedia.Destination.ViewEntryDestination>(comp.stack.value.active.instance)
+		destination.component.startNameEdit()
+		destination.component.startTextEdit()
+		assertEquals(setOf(CloseConfirm.Encyclopedia), comp.shouldConfirmClose())
+
+		comp.discardUnsaved(CloseConfirm.Encyclopedia)
+
+		assertEquals(emptySet(), comp.shouldConfirmClose())
+	}
+
+	@Test
+	fun `discardUnsaved pops an open create entry screen`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.showCreateEntry()
+		advanceUntilIdle()
+
+		comp.discardUnsaved(CloseConfirm.Encyclopedia)
+		advanceUntilIdle()
+
+		assertIs<Encyclopedia.Destination.BrowseEntriesDestination>(comp.stack.value.active.instance)
+		assertEquals(emptySet(), comp.shouldConfirmClose())
 	}
 }

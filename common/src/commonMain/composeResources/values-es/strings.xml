@@ -22,6 +22,7 @@
 	<string name="confirm_dialog_negative">No</string>
 	<string name="expand">Expandir</string>
 	<string name="collapse">Contraer</string>
+	<string name="markdown_format_bar_text_size">Text size</string>
 	<string name="markdown_format_bar_decrease_text_size">Reducir el tamaño del texto</string>
 	<string name="markdown_format_bar_increase_text_size">Aumentar el tamaño del texto</string>
 	<string name="markdown_format_bar_reset_text_size">Restablecer el tamaño del texto</string>

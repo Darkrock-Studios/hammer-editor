@@ -5,6 +5,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.arkivanov.decompose.value.MutableValue
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.scenemetadata.SceneMetadataPanel
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
+import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
@@ -53,6 +54,8 @@ private fun previewComponent(
 			dismissedRefs = dismissedRefs,
 		)
 	)
+
+	override fun onSceneItemChanged(sceneItem: SceneItem) {}
 
 	override fun updateOutline(text: String) {}
 	override fun updateNotes(text: String) {}

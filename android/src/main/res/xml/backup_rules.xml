@@ -3,4 +3,5 @@
 	<exclude domain="file" path="HammerProjects/server.json"/>
 	<exclude domain="file" path="HammerProjects/sync.json"/>
 	<exclude domain="file" path="HammerProjects/.backups"/>
+	<exclude domain="sharedpref" path="hammer_auth_tokens.xml"/>
 </full-backup-content>

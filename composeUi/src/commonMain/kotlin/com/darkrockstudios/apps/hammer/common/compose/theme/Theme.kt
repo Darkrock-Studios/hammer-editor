@@ -6,9 +6,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.darkrockstudios.apps.hammer.common.compose.ProvideMarkdownConfig
+import com.darkrockstudios.apps.hammer.common.compose.ProvideRichTextStyles
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
 
 
 val LightColors = lightColorScheme(
@@ -84,6 +87,15 @@ fun resolveColorScheme(useDarkTheme: Boolean): ColorScheme {
 	}
 }
 
+val LocalOledBlack = staticCompositionLocalOf { false }
+
+fun ColorScheme.withOledBlack(): ColorScheme = copy(
+	background = Color.Black,
+	surface = Color.Black,
+	surfaceDim = Color.Black,
+	surfaceContainerLowest = Color.Black,
+)
+
 // Manuscript shape system — every M3 component reads square corners by
 // default. Per-component rounding (e.g. chart bars) is opted in
 // explicitly. See designsystem/DESIGN_README.md.
@@ -103,19 +115,24 @@ fun AppTheme(
 	getOverrideColorScheme: ((Boolean) -> ColorScheme?)? = null,
 	content: @Composable () -> Unit
 ) {
-	val colors = remember(useDarkTheme) {
-		getOverrideColorScheme?.invoke(useDarkTheme) ?: resolveColorScheme(useDarkTheme)
+	val oledBlack = useDarkTheme && settings.uiTheme == UiTheme.OledBlack
+	val colors = remember(useDarkTheme, oledBlack) {
+		val base = getOverrideColorScheme?.invoke(useDarkTheme) ?: resolveColorScheme(useDarkTheme)
+		if (oledBlack) base.withOledBlack() else base
 	}
 
 	val extendedColors = if (useDarkTheme) DarkHammerColors else LightHammerColors
 
-	CompositionLocalProvider(LocalHammerColors provides extendedColors) {
+	CompositionLocalProvider(
+		LocalHammerColors provides extendedColors,
+		LocalOledBlack provides oledBlack,
+	) {
 		MaterialTheme(
 			colorScheme = colors,
 			shapes = HammerShapes,
 			typography = hammerTypography(),
 		) {
-			ProvideMarkdownConfig(isDark = useDarkTheme, settings = settings) {
+			ProvideRichTextStyles(isDark = useDarkTheme, settings = settings) {
 				content()
 			}
 		}

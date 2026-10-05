@@ -62,8 +62,7 @@ fi
 echo "→ Building Hammer for the Mac App Store (build #$BUILD_NUMBER)"
 
 ./gradlew --stop
-./gradlew :desktop:packageReleasePkg -Pchannel=mac-app-store \
-	-PmacOsAppStoreRelease=true \
+./gradlew :desktop:packageReleasePkg -Pchannel=mac-app-store -Pformat=pkg \
 	-PbuildNumber="$BUILD_NUMBER" \
 	--no-daemon
 

@@ -3,16 +3,19 @@ package com.darkrockstudios.apps.hammer.common.compose.markdowneditor
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.text
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.style.TextIndent
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.darkrockstudios.apps.hammer.common.compose.LocalMarkdownConfig
+import com.darkrockstudios.apps.hammer.common.compose.LocalEditorTextStyle
+import com.darkrockstudios.apps.hammer.common.compose.LocalRichTextStyles
+import com.darkrockstudios.apps.hammer.common.compose.markdown.HammerMarkdownConfiguration
+import com.darkrockstudios.apps.hammer.common.compose.withParagraphIndent
 import com.darkrockstudios.texteditor.RichTextView
 import com.darkrockstudios.texteditor.markdown.withMarkdown
 import com.darkrockstudios.texteditor.rememberTextEditorStyle
@@ -25,27 +28,43 @@ import com.darkrockstudios.texteditor.state.rememberTextEditorState
  *
  * The raw [markdown] is exposed via semantics so test matchers (`onNodeWithText`,
  * `assertTextSatisfies`) can read it; the Canvas-based render itself has no semantic text.
+ *
+ * [importDuringComposition] parses the first text in composition instead of a frame later,
+ * so the view has its real height on the first frame. A lazy list cannot scroll past a row
+ * that is still empty.
+ *
+ * [isSelectable] lets the user select and copy text.
  */
 @Composable
 fun MarkdownView(
 	markdown: String,
 	modifier: Modifier = Modifier,
 	contentPadding: PaddingValues = PaddingValues(0.dp),
+	importDuringComposition: Boolean = false,
+	isSelectable: Boolean = false,
 ) {
-	val markdownConfig = LocalMarkdownConfig.current
+	val richTextStyles = LocalRichTextStyles.current
 	val state = rememberTextEditorState()
-	val markdownExtension = remember(state) { state.withMarkdown(markdownConfig) }
+	var imported by remember(state) { mutableStateOf(if (importDuringComposition) markdown else null) }
+	val markdownExtension = remember(state) {
+		state.richTextStyles = richTextStyles
+		state.withMarkdown(HammerMarkdownConfiguration).apply {
+			if (importDuringComposition) importMarkdown(markdown)
+		}
+	}
 	LaunchedEffect(markdownExtension, markdown) {
-		markdownExtension.importMarkdown(markdown)
+		if (imported != markdown) {
+			markdownExtension.importMarkdown(markdown)
+			imported = markdown
+		}
 	}
 	RichTextView(
 		state = state,
 		modifier = modifier.semantics { text = AnnotatedString(markdown) },
 		contentPadding = contentPadding,
+		isSelectable = isSelectable,
 		style = rememberTextEditorStyle(
-			textStyle = TextStyle.Default.copy(
-				textIndent = TextIndent(firstLine = 24.sp)
-			)
+			textStyle = LocalEditorTextStyle.current.withParagraphIndent()
 		)
 	)
 }

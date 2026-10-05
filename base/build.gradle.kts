@@ -1,4 +1,5 @@
-import com.darkrockstudios.build.resolveDistributionChannel
+import com.darkrockstudios.build.distributionChannel
+import com.darkrockstudios.build.packageFormat
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -78,12 +79,8 @@ buildConfig {
 	buildConfigField("String", "APP_VERSION", "\"${libs.versions.app.get()}\"")
 	buildConfigField("String", "DATA_VERSION", "\"${libs.versions.data.version.get()}\"")
 
-	// Mirrors the F-Droid detection in settings.gradle.kts so a plain F-Droid build reports its
-	// channel without every call site having to pass -Pchannel too.
-	val isFDroid = project.findProperty("fdroid")?.toString()?.isNotEmpty() == true ||
-		System.getenv("FDROID_BUILD") != null
-	val channel = resolveDistributionChannel(project.findProperty("channel")?.toString(), isFDroid)
-	buildConfigField("String", "CHANNEL", "\"${channel.token}\"")
+	buildConfigField("String", "CHANNEL", "\"${project.distributionChannel().token}\"")
+	buildConfigField("String", "PACKAGE_FORMAT", "\"${project.packageFormat().token}\"")
 }
 
 val GIT_TASK_NAME = "install-git-hooks"

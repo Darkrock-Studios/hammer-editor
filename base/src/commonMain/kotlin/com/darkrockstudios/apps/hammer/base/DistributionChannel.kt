@@ -37,5 +37,9 @@ enum class DistributionChannel(val token: String, val displayName: String) {
 		 */
 		val current: DistributionChannel =
 			entries.firstOrNull { it.token == BuildMetadata.CHANNEL } ?: DEV
+
+		/** The sandboxed, App Review facing desktop build. */
+		val isMacAppStore: Boolean
+			get() = current == MAC_APP_STORE
 	}
 }

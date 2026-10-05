@@ -60,7 +60,11 @@ fun ProjectThemeOverride(
 	}
 
 	val parentIsDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
-	val derived = remember(theme, parentIsDark) { theme.toColorScheme(parentIsDark) }
+	val oledBlack = LocalOledBlack.current
+	val derived = remember(theme, parentIsDark, oledBlack) {
+		val scheme = theme.toColorScheme(parentIsDark)
+		if (oledBlack) scheme?.withOledBlack() else scheme
+	}
 
 	if (derived == null) {
 		content()

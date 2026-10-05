@@ -16,7 +16,8 @@
 	<string name="create_sceneitem_dialog_create_button">Crear</string>
 	<string name="create_sceneitem_dialog_dismiss_button">Cancelar</string>
 	<string name="scene_list_outline_overview_title">Esquema de la historia</string>
-	<string name="scene_list_outline_overview_button">Vista del esquema</string>
+	<string name="scene_list_outline_button">Esquema</string>
+	<string name="scene_list_reader_button">Read</string>
 	<string name="scene_list_outline_overview_none">&lt;sin esquema&gt;</string>
 	<string name="scene_list_outline_dismiss">Descartar</string>
 	<string name="scene_list_outline_overview_eyebrow">Manuscrito</string>

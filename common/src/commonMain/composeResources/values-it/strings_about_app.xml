@@ -2,7 +2,7 @@
 <resources>
 	<string name="about_description">Uno strumento semplice per costruire storie.</string>
 	<string name="about_studio_header">Studio</string>
-	<string name="about_community_studio_attribution">Hammer is made by Dark Rock Studios, alongside a family of other privacy-respecting, open source apps.</string>
+	<string name="about_community_studio_attribution">Hammer è realizzato da Dark Rock Studios, insieme a una famiglia di altre app open source che rispettano la privacy.</string>
 	<string name="about_community_header">Community</string>
 	<string name="about_community_discord_link">Discord</string>
 	<string name="about_community_reddit_link">Reddit</string>
@@ -10,9 +10,20 @@
 	<string name="about_attribution_header">Attribuzione</string>
 	<string name="about_attribution_libraries_button">Librerie</string>
 	<string name="about_attribution_studio_button">Dark Rock Studios</string>
-	<string name="about_version_changes_button">Changes</string>
-	<string name="about_version_github_button">GitHub Release</string>
-	<string name="changelog_dialog_title">What's New</string>
+	<string name="about_version_changes_button">Modifiche</string>
+	<string name="about_version_github_button">Rilascio su GitHub</string>
+	<string name="about_update_check_button">Check for Updates</string>
+	<string name="about_update_checking">Checking for updates&#8230;</string>
+	<string name="about_update_up_to_date">Hammer is up to date.</string>
+	<string name="about_update_available">Hammer %1$s is available.</string>
+	<string name="about_update_install_button">Update to %1$s</string>
+	<string name="about_update_downloading">Downloading Hammer %1$s (%2$s)</string>
+	<string name="about_update_installing">Installing Hammer %1$s. Hammer will restart.</string>
+	<string name="about_update_failed">Could not update to %1$s: %2$s</string>
+	<string name="about_update_retry_button">Retry</string>
+	<string name="about_update_later_button">Later</string>
+	<string name="about_update_quit_notice">Hammer will quit to install the update, then reopen.</string>
+	<string name="changelog_dialog_title">Novità</string>
 	<string name="update_dialog_release_notes_section">Note di rilascio</string>
 	<string name="update_dialog_release_notes_empty">Nessuna nota di rilascio fornita.</string>
 	<string name="update_dialog_open_release_button">Apri la versione</string>
@@ -21,9 +32,9 @@
 	<string name="about_logs_export_button">Esporta i log</string>
 	<string name="about_logs_no_logs">Nessun file di log trovato</string>
 	<string name="about_logs_open_tooltip">Apri la cartella dei log</string>
-	<string name="about_logs_export_success">Logs exported.</string>
-	<string name="about_logs_export_failed">Could not export the logs. See the log directory.</string>
-	<string name="about_logs_copy_diagnostics_button">Copy Diagnostics</string>
-	<string name="about_logs_copy_diagnostics_success">Diagnostics copied to the clipboard.</string>
-	<string name="about_logs_copy_diagnostics_failed">Could not copy the diagnostics.</string>
+	<string name="about_logs_export_success">Log esportati.</string>
+	<string name="about_logs_export_failed">Impossibile esportare i log. Controlla la cartella dei log.</string>
+	<string name="about_logs_copy_diagnostics_button">Copia diagnostica</string>
+	<string name="about_logs_copy_diagnostics_success">Diagnostica copiata negli appunti.</string>
+	<string name="about_logs_copy_diagnostics_failed">Impossibile copiare la diagnostica.</string>
 </resources>

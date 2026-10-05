@@ -12,7 +12,6 @@ import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.UpdateSource
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneContentRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.findById
@@ -21,7 +20,6 @@ import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import io.github.aakira.napier.Napier
-import kotlinx.coroutines.delay
 
 class ClientSceneSynchronizer(
 	projectDef: ProjectDef,
@@ -76,9 +74,8 @@ class ClientSceneSynchronizer(
 		)
 	}
 
-	override suspend fun prepareForSync() {
-		sceneEditorService.storeAllBuffers()
-	}
+	/** Unsaved buffers are left alone: whether they join the project is the user's call, not sync's. */
+	override suspend fun prepareForSync() = Unit
 
 	override suspend fun ownsEntity(id: Int): Boolean {
 		return sceneEditorRepository.getSceneItemFromId(id) != null
@@ -183,7 +180,7 @@ class ClientSceneSynchronizer(
 			val content = SceneContent(sceneItem, serverEntity.content)
 			if (sceneEditorRepository.storeSceneMarkdownRaw(content, scenePath)) {
 				val updatedMetadata = mergeServerMetadata(serverEntity)
-				sceneEditorService.storeMetadata(updatedMetadata, serverEntity.id)
+				sceneEditorService.storeMetadata(updatedMetadata, serverEntity.id, UpdateSource.Sync)
 
 				// Finally, log our success, and update the running apps data
 				onLog(syncLogI(strRes.get(Res.string.sync_scene_downloading, id), projectDef))
@@ -293,7 +290,7 @@ class ClientSceneSynchronizer(
 				sceneEditorRepository.storeSceneMarkdownRaw(content, scenePath)
 
 				val updatedMetadata = mergeServerMetadata(serverEntity)
-				sceneEditorService.storeMetadata(updatedMetadata, serverEntity.id)
+				sceneEditorService.storeMetadata(updatedMetadata, serverEntity.id, UpdateSource.Sync)
 			}
 		} else {
 			// Scene doesn't exist locally at all - create it directly in archive
@@ -326,9 +323,12 @@ class ClientSceneSynchronizer(
 	// Those fields are hashed, so backfill them with the project's creation time: the resulting
 	// hash divergence from the server drives the heal upload in [EntityTransferOperation] that
 	// enriches the server's copy, converging both sides on a non-null value.
-	private fun mergeServerMetadata(serverEntity: ApiProjectEntity.SceneEntity): SceneMetadata {
+	// The draft name is never synced, so the local one is carried over.
+	private suspend fun mergeServerMetadata(serverEntity: ApiProjectEntity.SceneEntity): SceneMetadata {
 		val projectCreated = projectMetadataDatasource.loadMetadata(projectDef).info.created
+		val local = sceneEditorService.loadSceneMetadata(serverEntity.id)
 		return SceneMetadata(
+			currentDraftName = local.currentDraftName,
 			notes = serverEntity.notes,
 			outline = serverEntity.outline,
 			confirmedReferences = serverEntity.confirmedReferences,
@@ -353,12 +353,7 @@ class ClientSceneSynchronizer(
 	override suspend fun finalizeSync() {
 		sceneEditorRepository.rationalizeTree()
 		sceneEditorRepository.cleanupSceneOrder()
-
-		// Wait for buffers to propagate before we save them
-		delay(SceneContentRepository.BUFFER_COOL_DOWN * 0.25)
-
 		sceneEditorRepository.forceSceneListReload()
-		sceneEditorService.storeAllBuffers()
 	}
 
 	override fun getEntityType() = EntityType.Scene

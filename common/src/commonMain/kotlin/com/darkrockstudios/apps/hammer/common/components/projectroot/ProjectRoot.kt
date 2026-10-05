@@ -29,6 +29,9 @@ interface ProjectRoot : AppCloseManager, HammerComponent, BackHandlerOwner {
 	val modalRouterState: Value<ChildSlot<ProjectRootModalRouter.Config, ModalDestination>>
 	val closeRequestHandlers: Value<Set<CloseConfirm>>
 	val backEnabled: Value<Boolean>
+
+	/** Observable form of [hasUnsavedBuffers]. */
+	val unsavedBuffers: Value<Boolean>
 	val projectTheme: Value<ProjectThemeState>
 	val navRailState: Value<NavRailState>
 
@@ -46,7 +49,10 @@ interface ProjectRoot : AppCloseManager, HammerComponent, BackHandlerOwner {
 
 	fun showProjectSync()
 
-	/** Opens the sync modal only when this project is linked to a server. */
+	/**
+	 * Gated sync entry point for server-linked projects: unsaved scenes and entity edits are
+	 * confirmed through [closeRequestHandlers] first, then the sync modal opens.
+	 */
 	fun startProjectSync()
 	fun dismissProjectSync()
 
@@ -67,6 +73,8 @@ interface ProjectRoot : AppCloseManager, HammerComponent, BackHandlerOwner {
 		}
 
 		override fun shouldConfirmClose() = component.shouldConfirmClose()
+
+		override fun discardUnsaved(item: CloseConfirm) = component.discardUnsaved(item)
 
 		data class EditorDestination(override val component: StoryEditor) : Destination<StoryEditor>()
 
@@ -114,4 +122,7 @@ interface ProjectRoot : AppCloseManager, HammerComponent, BackHandlerOwner {
 	fun closeRequestDealtWith(item: CloseConfirm)
 	fun requestClose()
 	fun cancelCloseRequest()
+
+	/** Drops the unsaved work behind [item] so a following sync or close cannot persist it. */
+	suspend fun discardUnsaved(item: CloseConfirm)
 }

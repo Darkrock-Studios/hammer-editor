@@ -9,6 +9,7 @@
 	<string name="settings_theme_label">Tema dell’interfaccia</string>
 	<string name="settings_theme_light">CHIARO</string>
 	<string name="settings_theme_dark">SCURO</string>
+	<string name="settings_theme_oled_black">OLED</string>
 	<string name="settings_theme_followsystem">SISTEMA</string>
 	<string name="settings_initial_screen_label">Schermata iniziale del progetto</string>
 	<string name="settings_initial_screen_home">Home</string>
@@ -55,6 +56,8 @@
 	<string name="merge_projects_replace_confirm_title">Delete all local projects?</string>
 	<string name="merge_projects_replace_confirm_message">This permanently deletes every project on this device and replaces them with the projects from the server. This cannot be undone.</string>
 	<string name="merge_projects_replace_confirm_button">Delete and Replace</string>
+	<string name="settings_automatic_update_checks">Check for updates automatically</string>
+	<string name="settings_automatic_update_checks_hint">Looks for a new release on GitHub shortly after launch and every few hours. Nothing is downloaded or installed until you choose to update.</string>
 	<string name="settings_platform_settings_title">Impostazioni della piattaforma</string>
 	<string name="settings_platform_settings_empty">Nessuna impostazione specifica della piattaforma.</string>
 	<string name="settings_keep_screen_on">Tieni lo schermo acceso</string>
@@ -83,6 +86,7 @@
 	<string name="backup_manager_error_load_backups">Impossibile caricare i backup: %1$s</string>
 	<string name="backup_manager_error_load_project_backups">Impossibile caricare i backup del progetto: %1$s</string>
 	<string name="backup_manager_error_delete_backup">Impossibile eliminare il backup: %1$s</string>
+	<string name="backup_manager_error_restore_backup">Failed to restore backup: %1$s</string>
 	<string name="backup_restore_dialog_title">Ripristina backup</string>
 	<string name="backup_restore_dialog_message">Attenzione: ripristinare questo backup sostituirà completamente il contenuto attuale del progetto. Tutti i file esistenti verranno eliminati e sostituiti con i dati del backup. Questa azione non può essere annullata.</string>
 	<string name="backup_restore_dialog_confirm">Ripristina</string>

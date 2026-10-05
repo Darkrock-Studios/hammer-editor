@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.common.components.ToastMessage
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.SceneEditor
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.scenemetadata.SceneMetadataPanel
 import com.darkrockstudios.apps.hammer.common.compose.rememberRootSnackbarHostState
+import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.Msg
 import com.darkrockstudios.apps.hammer.common.data.PlatformRichText
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -78,6 +79,7 @@ private fun fakeComponent() = object : SceneEditor {
 	override var lastForceUpdate = MutableValue(0L)
 	override val sceneMetadataComponent = object : SceneMetadataPanel {
 		override val state = MutableValue(SceneMetadataPanel.State(fakeSceneItem()))
+		override fun onSceneItemChanged(sceneItem: SceneItem) {}
 		override fun updateOutline(text: String) {}
 		override fun updateNotes(text: String) {}
 		override fun updateDraftName(text: String) {}
@@ -133,4 +135,5 @@ private fun fakeComponent() = object : SceneEditor {
 	override fun setEditorMaxWidth(width: Float) {}
 	override fun resetEditorMaxWidth() {}
 	override fun enterFocusMode() {}
+	override fun readScene() {}
 }

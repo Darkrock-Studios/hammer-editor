@@ -165,7 +165,7 @@ class ProjectHomeComponentTest : ComponentTest() {
 	private fun newComponent() = ProjectHomeComponent(
 		componentContext = context,
 		projectDef = projectDef,
-		showProjectSync = { syncShown = true },
+		requestProjectSync = { syncShown = true },
 		onShowGlobalSearch = { globalSearchShown = true },
 		onShowGlobalSearchForTag = { searchedTag = it },
 		onShowScene = { shownScene = it },

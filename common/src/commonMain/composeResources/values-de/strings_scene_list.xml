@@ -16,7 +16,8 @@
 	<string name="create_sceneitem_dialog_create_button">Erstellen</string>
 	<string name="create_sceneitem_dialog_dismiss_button">Abbrechen</string>
 	<string name="scene_list_outline_overview_title">Gliederung</string>
-	<string name="scene_list_outline_overview_button">Gliederungsübersicht</string>
+	<string name="scene_list_outline_button">Gliederung</string>
+	<string name="scene_list_reader_button">Read</string>
 	<string name="scene_list_outline_overview_none">&lt;keine Gliederung&gt;</string>
 	<string name="scene_list_outline_dismiss">Schließen</string>
 	<string name="scene_list_outline_overview_eyebrow">Manuskript</string>

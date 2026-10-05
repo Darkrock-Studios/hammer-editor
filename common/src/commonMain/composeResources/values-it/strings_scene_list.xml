@@ -16,7 +16,8 @@
 	<string name="create_sceneitem_dialog_create_button">Crea</string>
 	<string name="create_sceneitem_dialog_dismiss_button">Annulla</string>
 	<string name="scene_list_outline_overview_title">Scaletta della storia</string>
-	<string name="scene_list_outline_overview_button">Panoramica della scaletta</string>
+	<string name="scene_list_outline_button">Scaletta</string>
+	<string name="scene_list_reader_button">Read</string>
 	<string name="scene_list_outline_overview_none">&lt;nessuna scaletta&gt;</string>
 	<string name="scene_list_outline_dismiss">Ignora</string>
 	<string name="scene_list_outline_overview_eyebrow">Manoscritto</string>

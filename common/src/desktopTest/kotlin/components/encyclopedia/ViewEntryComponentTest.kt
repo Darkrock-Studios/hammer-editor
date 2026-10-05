@@ -25,6 +25,7 @@ import org.koin.dsl.module
 import repositories.encyclopedia.fakeEntry
 import utils.BaseTest
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -163,5 +164,38 @@ class ViewEntryComponentTest : BaseTest() {
 		assertEquals(origDef, comp.state.value.entryDef)
 		assertNull(comp.state.value.content)
 		coVerify(exactly = 0) { backfillEntryReferences(any()) }
+	}
+
+	@Test
+	fun `Discard edit leaves every edit mode without saving`() = runTest {
+		val proj = getProject1Def()
+		val entry = fakeEntry()
+		every { encyclopediaService.findEntryImagePath(any()) } returns null
+		every { encyclopediaService.findEntryImageExtension(any()) } returns null
+		coEvery { encyclopediaService.calculateEntryImageHash(any(), any()) } returns null
+		coEvery { encyclopediaService.loadEntry(entryDef = any()) } returns EntryContainer(entry)
+
+		val comp = ViewEntryComponent(
+			componentContext = context,
+			entryDef = entry.toDef(proj),
+			addMenu = {},
+			removeMenu = {},
+			closeEntry = {},
+			showScene = {},
+			onShowGlobalSearchForTag = {},
+		)
+		comp.startNameEdit()
+		comp.startTextEdit()
+		comp.confirmClose()
+
+		comp.discardEdit()
+		advanceUntilIdle()
+
+		assertFalse(comp.state.value.editName)
+		assertFalse(comp.state.value.editText)
+		assertFalse(comp.state.value.confirmClose)
+		coVerify(exactly = 0) {
+			encyclopediaService.updateEntry(any(), any(), any(), any(), any(), any())
+		}
 	}
 }

@@ -65,19 +65,26 @@ class EncyclopediaComponent(
 	}
 
 	override fun shouldConfirmClose(): Set<CloseConfirm> {
-		val unsaved = when (val destination = stack.value.active.instance) {
-			is Encyclopedia.Destination.CreateEntryDestination -> true
-			is Encyclopedia.Destination.ViewEntryDestination -> {
-				destination.component.state.value.editName || destination.component.state.value.editText
-			}
+		val unsaved = stack.value.items.any { isUnsaved(it.instance) }
+		return if (unsaved) setOf(CloseConfirm.Encyclopedia) else emptySet()
+	}
 
-			else -> false
+	private fun isUnsaved(destination: Encyclopedia.Destination) = when (destination) {
+		is Encyclopedia.Destination.CreateEntryDestination -> true
+		is Encyclopedia.Destination.ViewEntryDestination -> isEditing(destination.component)
+		else -> false
+	}
+
+	private fun isEditing(entry: ViewEntry) = entry.state.value.let { it.editName || it.editText }
+
+	override fun discardUnsaved(item: CloseConfirm) {
+		if (item != CloseConfirm.Encyclopedia) return
+		stack.value.items.forEach { child ->
+			val view = child.instance as? Encyclopedia.Destination.ViewEntryDestination ?: return@forEach
+			if (isEditing(view.component)) view.component.discardEdit()
 		}
-
-		return if (unsaved) {
-			setOf(CloseConfirm.Encyclopedia)
-		} else {
-			emptySet()
+		if (stack.value.active.instance is Encyclopedia.Destination.CreateEntryDestination) {
+			navigation.pop()
 		}
 	}
 

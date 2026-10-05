@@ -376,6 +376,23 @@ class SceneEditorServiceTest : BaseTest() {
 	}
 
 	@Test
+	fun `Discard-all-buffers reverts every dirty buffer`() = runTest(mainTestDispatcher) {
+		val service = initializedService()
+		val sceneOne = service.getSceneItemFromId(1)!!
+		val sceneThree = service.getSceneItemFromId(3)!!
+
+		service.onContentChanged(SceneContent(sceneOne, "Unsaved 1"), UpdateSource.Editor)
+		service.onContentChanged(SceneContent(sceneThree, "Unsaved 3"), UpdateSource.Editor)
+		advanceUntilIdle()
+		assertTrue(service.hasDirtyBuffers())
+
+		service.discardAllBuffers()
+
+		assertFalse(service.hasDirtyBuffers())
+		assertEquals("Content of scene id 3", service.getSceneBuffer(sceneThree)?.content?.markdown)
+	}
+
+	@Test
 	fun `Discard scene buffer reverts to on-disk content`() = runTest(mainTestDispatcher) {
 		val service = initializedService()
 		val scene = service.getSceneItemFromId(3)!!
@@ -466,7 +483,7 @@ class SceneEditorServiceTest : BaseTest() {
 		val updated = service.loadSceneMetadata(sceneId).copy(notes = "flow notes")
 
 		// metadataUpdateFlow has no replay, so subscribe before storing.
-		val received = mutableListOf<Pair<Int, SceneMetadata>>()
+		val received = mutableListOf<SceneMetadataUpdate>()
 		val job = scope.launch { service.metadataUpdateFlow.collect { received.add(it) } }
 		advanceUntilIdle()
 
@@ -474,7 +491,7 @@ class SceneEditorServiceTest : BaseTest() {
 		advanceUntilIdle()
 		job.cancelAndJoin()
 
-		assertTrue(received.any { it.first == sceneId && it.second.notes == "flow notes" })
+		assertTrue(received.any { it.sceneId == sceneId && it.metadata.notes == "flow notes" })
 	}
 
 	// endregion

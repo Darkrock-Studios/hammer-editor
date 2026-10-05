@@ -59,6 +59,9 @@ interface ViewEntry : TagSuggesting {
 	fun startTextEdit()
 	fun finishNameEdit()
 	fun finishTextEdit()
+
+	/** Leaves name and text edit mode without saving; the UI reseeds its fields from [State.content]. */
+	fun discardEdit()
 	fun confirmClose()
 	fun dismissConfirmClose()
 	fun removeTag(tag: String)

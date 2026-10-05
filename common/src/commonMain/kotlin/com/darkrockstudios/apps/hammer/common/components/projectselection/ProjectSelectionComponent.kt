@@ -17,6 +17,8 @@ import com.darkrockstudios.apps.hammer.common.data.ExampleProjectRepository
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.base.RELEASES_LATEST_URL
+import com.darkrockstudios.apps.hammer.common.data.appupdate.AppUpdateState
+import com.darkrockstudios.apps.hammer.common.data.appupdate.AppUpdater
 import com.darkrockstudios.apps.hammer.common.data.changelog.Changelog
 import com.darkrockstudios.apps.hammer.common.data.changelog.ChangelogRepository
 import com.darkrockstudios.apps.hammer.common.util.UrlLauncher
@@ -33,6 +35,7 @@ class ProjectSelectionComponent(
 	private val urlLauncher: UrlLauncher by inject()
 	private val settingsRepository: GlobalSettingsStore by inject()
 	private val changelogRepository: ChangelogRepository by inject()
+	private val appUpdater: AppUpdater by inject()
 
 	private val navigation = StackNavigation<ProjectSelection.Config>()
 	override val stack = childStack(
@@ -51,9 +54,20 @@ class ProjectSelectionComponent(
 	private val _changelog = MutableValue(ProjectSelection.ChangelogState())
 	override val changelog: Value<ProjectSelection.ChangelogState> = _changelog
 
+	private val _appUpdate = MutableValue<AppUpdateState>(appUpdater.state.value)
+	override val appUpdate: Value<AppUpdateState> = _appUpdate
+
 	init {
 		if (exampleProjectRepository.shouldInstallFirstTime()) {
 			exampleProjectRepository.install()
+		}
+
+		scope.launch {
+			appUpdater.state.collect { update ->
+				withContext(dispatcherMain) {
+					_appUpdate.update { update }
+				}
+			}
 		}
 
 		scope.launch {
@@ -106,6 +120,14 @@ class ProjectSelectionComponent(
 	override fun dismissChangelog() {
 		_changelog.update { it.copy(visible = false) }
 		scope.launch { changelogRepository.markSeen() }
+	}
+
+	override fun updateApp() {
+		appUpdater.update()
+	}
+
+	override fun dismissUpdate() {
+		appUpdater.dismiss()
 	}
 
 	private fun createChild(

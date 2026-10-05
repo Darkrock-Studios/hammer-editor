@@ -56,6 +56,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -200,11 +201,12 @@ internal fun ViewEntryUi(
 	val screen = LocalScreenCharacteristic.current
 	val isCompact = screen.windowWidthClass == WindowWidthSizeClass.Compact
 
-	LaunchedEffect(state.content) {
+	LaunchedEffect(state.content, state.editName, state.editText) {
 		val loaded = state.content ?: return@LaunchedEffect
 		// Once the fields hold the entry, an open edit owns them: re-seeding would discard
 		// unsaved text. Until then they must be filled even if the edit started first,
-		// otherwise a save writes an empty entry.
+		// otherwise a save writes an empty entry. Leaving edit mode reseeds, which is what
+		// makes a discard from outside this screen drop the typed text.
 		if (seeded && (state.editName || state.editText)) return@LaunchedEffect
 		entryNameText = loaded.name
 		entryText = loaded.text
@@ -1283,6 +1285,8 @@ private fun TagAddDialog(
 				label = Res.string.encyclopedia_create_entry_tags_label.get(),
 				value = newTagsText,
 				onValueChange = { newTagsText = it },
+				capitalization = KeyboardCapitalization.None,
+				autoCorrectEnabled = false,
 			)
 			HdTagSuggestionStrip(
 				suggestions = suggestions,

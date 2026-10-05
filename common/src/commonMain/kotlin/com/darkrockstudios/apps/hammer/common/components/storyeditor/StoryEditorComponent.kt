@@ -46,6 +46,7 @@ class StoryEditorComponent(
 	private val detailsRouter =
 		DetailsRouter(
 			componentContext = this,
+			projectDef = projectDef,
 			selectedSceneItem = selectedSceneItemFlow,
 			addMenu = addMenu,
 			closeDetails = ::closeDetails,
@@ -61,7 +62,9 @@ class StoryEditorComponent(
 			projectDef = projectDef,
 			selectedSceneItem = selectedSceneItemFlow,
 			onSceneSelected = ::onSceneSelected,
-			showOutlineOverview = ::showOutlineOverview
+			openSceneEditor = ::showScene,
+			showOutlineOverview = ::showOutlineOverview,
+			showReaderMode = { showReader(null) },
 		)
 
 	private val dialogNavigation = SlotNavigation<StoryEditor.DialogConfig>()
@@ -122,18 +125,31 @@ class StoryEditorComponent(
 		detailsRouter.closeScene()
 	}
 
+	// While the reader is open the scene list is its table of contents.
 	private fun onSceneSelected(sceneItem: SceneItem) {
-		detailsRouter.showScene(sceneItem)
+		if (detailsRouter.activeReader() != null) {
+			showReader(sceneItem)
+		} else {
+			showScene(sceneItem)
+		}
+	}
 
+	override fun showScene(sceneItem: SceneItem) {
+		detailsRouter.showScene(sceneItem)
+		showDetailsPane()
+	}
+
+	override fun showReader(sceneItem: SceneItem?) {
+		detailsRouter.showReader(sceneItem)
+		showDetailsPane()
+	}
+
+	private fun showDetailsPane() {
 		if (isMultiPaneMode()) {
 			listRouter.show()
 		} else {
 			listRouter.moveToBackStack()
 		}
-	}
-
-	override fun showScene(sceneItem: SceneItem) {
-		onSceneSelected(sceneItem)
 	}
 
 	override fun setMultiPane(isMultiPane: Boolean) {
@@ -212,6 +228,7 @@ class StoryEditorComponent(
 				is DetailsRouter.Config.DraftCompare -> config.sceneDef
 				is DetailsRouter.Config.DraftsList -> config.sceneDef
 				is DetailsRouter.Config.SceneEditor -> config.sceneDef
+				is DetailsRouter.Config.Reader -> null
 				DetailsRouter.Config.None -> null
 			}
 

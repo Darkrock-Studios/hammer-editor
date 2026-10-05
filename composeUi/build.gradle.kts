@@ -8,7 +8,7 @@ plugins {
 	alias(libs.plugins.android.kotlin.multiplatform.library)
 	alias(libs.plugins.jetbrains.kover)
 	//alias(libs.plugins.compose.report.generator)
-	id("ee.schimke.composeai.preview") version "0.16.44"
+	id("ee.schimke.composeai.preview") version "2.34.0"
 }
 
 group = "com.darkrockstudios.apps.hammer.composeui"
@@ -95,6 +95,7 @@ kotlin {
 				implementation(libs.aboutlibraries.core)
 				implementation(libs.aboutlibraries.compose)
 				implementation(libs.compose.texteditor)
+				implementation(libs.compose.texteditor.markdown)
 				implementation(libs.compose.texteditor.find)
 				implementation(libs.compose.texteditor.spellcheck)
 				implementation(libs.platform.spellcheckerkt)

@@ -12,6 +12,17 @@
 	<string name="about_attribution_studio_button">Dark Rock Studios</string>
 	<string name="about_version_changes_button">Changes</string>
 	<string name="about_version_github_button">GitHub Release</string>
+	<string name="about_update_check_button">Check for Updates</string>
+	<string name="about_update_checking">Checking for updates&#8230;</string>
+	<string name="about_update_up_to_date">Hammer is up to date.</string>
+	<string name="about_update_available">Hammer %1$s is available.</string>
+	<string name="about_update_install_button">Update to %1$s</string>
+	<string name="about_update_downloading">Downloading Hammer %1$s (%2$s)</string>
+	<string name="about_update_installing">Installing Hammer %1$s. Hammer will restart.</string>
+	<string name="about_update_failed">Could not update to %1$s: %2$s</string>
+	<string name="about_update_retry_button">Retry</string>
+	<string name="about_update_later_button">Later</string>
+	<string name="about_update_quit_notice">Hammer will quit to install the update, then reopen.</string>
 	<string name="changelog_dialog_title">What's New</string>
 	<string name="update_dialog_release_notes_section">Versionshinweise</string>
 	<string name="update_dialog_release_notes_empty">Keine Versionshinweise vorhanden.</string>

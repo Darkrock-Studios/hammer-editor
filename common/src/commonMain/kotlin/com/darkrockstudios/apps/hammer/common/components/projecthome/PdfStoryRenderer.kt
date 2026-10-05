@@ -1,15 +1,23 @@
 package com.darkrockstudios.apps.hammer.common.components.projecthome
 
+import com.conamobile.pdfkmp.PdfDocument
+import com.conamobile.pdfkmp.defaultPdfDriverFactory
 import com.conamobile.pdfkmp.geometry.Padding
+import com.conamobile.pdfkmp.geometry.PageSize
 import com.conamobile.pdfkmp.layout.PageBreakStrategy
+import com.conamobile.pdfkmp.metadata.PdfMetadata
 import com.conamobile.pdfkmp.pdf
 import com.conamobile.pdfkmp.style.PdfColor
 import com.conamobile.pdfkmp.unit.dp
 import com.conamobile.pdfkmp.unit.sp
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
+import com.darkrockstudios.apps.hammer.common.data.ExportOptions
 import okio.BufferedSink
 
 private fun chapterAnchorId(index: Int): String = "chapter-$index"
+
+internal val STORY_PAGE_SIZE = PageSize.A4
+internal val STORY_PAGE_PADDING = Padding.symmetric(horizontal = 56.dp, vertical = 64.dp)
 
 /**
  * Renders the story as a PDF mirroring the EPUB layout: a title page, a clickable table of contents,
@@ -24,17 +32,38 @@ fun writeStoryAsPdf(
 	projectData: ProjectData,
 	chapters: List<StoryChapter>,
 	strings: ExportStrings,
+	options: ExportOptions = ExportOptions(),
 ) {
+	sink.write(buildStoryPdf(projectName, projectData, chapters, strings, options).toByteArray())
+}
+
+internal fun buildStoryPdf(
+	projectName: String,
+	projectData: ProjectData,
+	chapters: List<StoryChapter>,
+	strings: ExportStrings,
+	options: ExportOptions = ExportOptions(),
+): PdfDocument {
 	val authorName = projectData.authorName?.takeIf { it.isNotBlank() }
 	val effective = chapters.ifEmpty { listOf(StoryChapter(projectName, "")) }
 	val primary = projectData.theme?.primary?.let(::argbHexToPdfColor)
 	val secondary = projectData.theme?.secondary?.let(::argbHexToPdfColor)
 	val proseColors = ProseColors(primary = primary, secondary = secondary)
 
-	val document = pdf {
+	val contentWidth = STORY_PAGE_SIZE.width.value - STORY_PAGE_PADDING.left.value - STORY_PAGE_PADDING.right.value
+	val measuringDriver = defaultPdfDriverFactory().create(PdfMetadata(), emptyList())
+	val prose = try {
+		effective.map {
+			prepareProse(it.markdown, proseColors, measuringDriver.fontMetrics, contentWidth, options.keepBlankLines)
+		}
+	} finally {
+		measuringDriver.close()
+	}
+
+	return pdf {
 		// Bottom/side margins so text doesn't run to the page edge; Slice lets long bodies flow
 		// onto new pages at line boundaries instead of being clipped at the bottom.
-		defaultPagePadding = Padding.symmetric(horizontal = 56.dp, vertical = 64.dp)
+		defaultPagePadding = STORY_PAGE_PADDING
 		defaultPageBreakStrategy = PageBreakStrategy.Slice
 
 		metadata {
@@ -43,7 +72,7 @@ fun writeStoryAsPdf(
 		}
 
 		// Title page — accent rule under the title mirrors the EPUB's title-page hr.
-		page {
+		page(STORY_PAGE_SIZE) {
 			text(projectName) {
 				fontSize = 36.sp
 				bold = true
@@ -60,7 +89,7 @@ fun writeStoryAsPdf(
 		}
 
 		// Contents page — each row links to the matching chapter's anchor below.
-		page {
+		page(STORY_PAGE_SIZE) {
 			text(strings.contentsTitle) {
 				fontSize = 26.sp
 				bold = true
@@ -70,7 +99,7 @@ fun writeStoryAsPdf(
 			column(spacing = 6.dp) {
 				effective.forEachIndexed { index, chapter ->
 					linkToAnchor(chapterAnchorId(index)) {
-						text("${index + 1}. ${chapter.name}") {
+						text(chapterTitle(index, chapter, options.numberChapters)) {
 							primary?.let { color = it }
 						}
 					}
@@ -82,23 +111,21 @@ fun writeStoryAsPdf(
 		// in a chapter name render verbatim; Slice keeps it on the same page as the body that follows.
 		// bookmark drives the reader's outline panel; anchor is the jump target for the contents page.
 		effective.forEachIndexed { index, chapter ->
-			page {
+			page(STORY_PAGE_SIZE) {
 				bookmark(chapter.name)
 				anchor(chapterAnchorId(index))
-				text("${index + 1}. ${chapter.name}") {
+				text(chapterTitle(index, chapter, options.numberChapters)) {
 					fontSize = 22.sp
 					bold = true
 					primary?.let { color = it }
 				}
 				if (chapter.markdown.isNotBlank()) {
 					spacer(height = 14.dp)
-					proseMarkdown(chapter.markdown, proseColors)
+					proseMarkdown(prose[index], proseColors)
 				}
 			}
 		}
 	}
-
-	sink.write(document.toByteArray())
 }
 
 /** Project themes store colors as ARGB hex (`#FFRRGGBB`, sometimes `#RRGGBB`); null for anything else. */

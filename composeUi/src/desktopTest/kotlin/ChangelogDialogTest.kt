@@ -9,6 +9,7 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.backhandler.BackHandler
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
+import com.darkrockstudios.apps.hammer.common.data.appupdate.AppUpdateState
 import com.darkrockstudios.apps.hammer.common.preview.globalSettingsPreview
 import com.darkrockstudios.apps.hammer.common.projectselection.ChangelogDialog
 import io.mockk.mockk
@@ -27,10 +28,14 @@ class ChangelogDialogTest {
 		var openReleaseCount = 0
 
 		override val changelog: Value<ProjectSelection.ChangelogState> = MutableValue(state)
+		override val appUpdate: Value<AppUpdateState> = MutableValue(AppUpdateState.Unsupported)
 
 		override fun dismissChangelog() {
 			dismissCount++
 		}
+
+		override fun updateApp() = Unit
+		override fun dismissUpdate() = Unit
 
 		override fun openLatestRelease() {
 			openReleaseCount++

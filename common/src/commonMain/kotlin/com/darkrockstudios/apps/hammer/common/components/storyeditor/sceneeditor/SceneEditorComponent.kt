@@ -39,6 +39,7 @@ class SceneEditorComponent(
 	private val closeSceneEditor: () -> Unit,
 	private val showDraftsList: (SceneItem) -> Unit,
 	private val showFocusMode: (SceneItem) -> Unit,
+	private val showReader: (SceneItem) -> Unit,
 	showEntry: (EntryDef) -> Unit,
 	showGlobalSearchForTag: (String) -> Unit,
 ) : ProjectComponentBase(originalSceneItem.projectDef, componentContext),
@@ -117,6 +118,7 @@ class SceneEditorComponent(
 					sceneItem = newSceneItem.value
 				)
 			}
+			sceneMetadataComponent.onSceneItemChanged(newSceneItem.value)
 		} else {
 			Napier.e("Scene ${sceneDef.id} no longer exists in the tree, this are probably going to break.")
 		}
@@ -283,6 +285,15 @@ class SceneEditorComponent(
 			enterFocusMode()
 		}
 
+		val readItem = MenuItemDescriptor(
+			"scene-editor-read",
+			Res.string.scene_editor_menu_item_read,
+			""
+		) {
+			Napier.i("Read scene")
+			readScene()
+		}
+
 		val menuItems = setOf(
 			renameItem,
 			saveItem,
@@ -293,6 +304,7 @@ class SceneEditorComponent(
 			saveDraftItem,
 			metadataItem,
 			focusModeItem,
+			readItem,
 			closeItem,
 		)
 		val menu = MenuDescriptor(
@@ -490,6 +502,10 @@ class SceneEditorComponent(
 
 	override fun enterFocusMode() {
 		showFocusMode(sceneDef)
+	}
+
+	override fun readScene() {
+		showReader(sceneDef)
 	}
 
 	override fun addWordToDictionary(word: String) {

@@ -1,3 +1,5 @@
+import com.darkrockstudios.build.DistributionChannel
+import com.darkrockstudios.build.distributionChannel
 import com.darkrockstudios.build.registerLinuxDistributionTasks
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import java.util.zip.ZipFile
@@ -16,9 +18,8 @@ plugins {
 group = "com.darkrockstudios.apps.hammer.desktop"
 version = libs.versions.app.get()
 
-// -PmacOsAppStoreRelease=true -PbuildNumber=N enables App Store packaging.
-val isAppStoreRelease: Boolean =
-	(project.findProperty("macOsAppStoreRelease") as String?)?.toBoolean() ?: false
+// -Pchannel=mac-app-store -PbuildNumber=N enables App Store packaging.
+val isAppStoreRelease: Boolean = project.distributionChannel() == DistributionChannel.MAC_APP_STORE
 val macBuildNumber: String =
 	(project.findProperty("buildNumber") as String?) ?: "1"
 
@@ -66,6 +67,7 @@ kotlin {
 				implementation(libs.nucleus.launcher.windows)
 				implementation(libs.nucleus.launcher.linux)
 				implementation(libs.nucleus.launcher.macos)
+				implementation(libs.nucleus.updater.runtime)
 			}
 		}
 		val jvmTest by getting {
@@ -111,6 +113,10 @@ compose.desktop {
 				menuGroup = "Hammer"
 				shortcut = true
 				console = false
+				// Thar be dragons: this is the MSI UpgradeCode every installed copy carries. jpackage
+				// derived it from vendor + name; it is pinned so a renamed package or an added vendor
+				// can never make a new MSI install beside the old one instead of over it.
+				upgradeUuid = "BA26F056-C16C-38AF-BD48-C993BEAFBE7A"
 
 				iconFile.set(project.file("icons/windows.ico"))
 			}
@@ -154,7 +160,6 @@ compose.desktop {
 		}
 		jvmArgs("-Dcompose.application.configure.swing.globals=false")
 		if (isAppStoreRelease) {
-			jvmArgs("-Dhammer.app.store=true")
 			// Load libjnidispatch.jnilib from Contents/app/resources/, never extract.
 			jvmArgs("-Djna.nounpack=true", "-Djna.nosys=true")
 			// Lets Nucleus' System.loadLibrary find our pre-bundled signed dylibs

@@ -161,7 +161,9 @@ private fun applySort(projects: List<ProjectData>, mode: ProjectsSortMode): List
 fun ProjectListUi(
 	component: ProjectsList,
 	rootSnackbar: RootSnackbarHostState,
-	modifier: Modifier = Modifier
+	modifier: Modifier = Modifier,
+	/** A slip laid under the masthead, given the page's inset; composes nothing when there is no notice. */
+	notice: @Composable (Modifier) -> Unit = {},
 ) {
 	// Cut at WindowWidthSizeClass.Compact (600dp) rather than the project-wide
 	// 720dp `isWide` so portrait tablets keep the desktop masthead instead of
@@ -222,6 +224,8 @@ fun ProjectListUi(
 		)
 
 		HdFolioDivider()
+
+		notice(Modifier.padding(start = horizontalPadding, end = horizontalPadding, top = 12.dp, bottom = 12.dp))
 
 		AnimatedVisibility(visible = showSearchBar) {
 			SearchStrip(

@@ -1,10 +1,16 @@
 package com.darkrockstudios.apps.hammer.desktop
 
+import com.darkrockstudios.apps.hammer.base.DistributionChannel
+import com.darkrockstudios.apps.hammer.base.PackageFormat
 import com.darkrockstudios.apps.hammer.common.HostOs
-import com.darkrockstudios.apps.hammer.common.IS_APP_STORE
+import com.darkrockstudios.apps.hammer.common.data.appupdate.AppUpdater
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.APP_SCOPE
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_IO
+import com.darkrockstudios.apps.hammer.common.getInDevelopmentMode
 import com.darkrockstudios.apps.hammer.common.hostOs
+import com.darkrockstudios.apps.hammer.desktop.update.GlobalSettingsUpdatePreferences
+import com.darkrockstudios.apps.hammer.desktop.update.createAppUpdater
 import com.darkrockstudios.apps.hammer.common.sandbox.NoopSandboxFileAccess
 import com.darkrockstudios.apps.hammer.common.sandbox.SandboxFileAccess
 import com.darkrockstudios.apps.hammer.desktop.sandbox.MacOsBookmarks
@@ -34,10 +40,20 @@ val desktopModule: Module = module {
 		}
 	}
 	single<SandboxFileAccess> {
-		if (IS_APP_STORE && MacOsBookmarks.isAvailable) {
+		if (DistributionChannel.isMacAppStore && MacOsBookmarks.isAvailable) {
 			MacOsSandboxFileAccess(get())
 		} else {
 			NoopSandboxFileAccess
 		}
+	}
+	single<AppUpdater> {
+		createAppUpdater(
+			channel = DistributionChannel.current,
+			format = PackageFormat.current,
+			devMode = getInDevelopmentMode(),
+			preferences = GlobalSettingsUpdatePreferences(get()),
+			appScope = get(named(APP_SCOPE)),
+			ioDispatcher = get(named(DISPATCHER_IO)),
+		)
 	}
 }

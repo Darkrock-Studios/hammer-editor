@@ -19,3 +19,7 @@ Seus dados podem ser sincronizados entre aparelhos, permitindo que você trabalh
 Sincronização Opcional e Auto-hospedada
 
 Você pode instalar o cliente e usá-lo em um dispositivo, ou instalar o servidor e sincronizar seus dados com outros dispositivos.
+
+Wear OS companion
+
+Capture notes and story ideas from your wrist with the Wear OS app, then pick them up on your other devices. Dictate or type a quick note and file it under a project. Add the Capture tile to start a note or story idea in a single tap, or put the Hammer complication on your watch face to open a new note. The watch app syncs through your Hammer sync server.

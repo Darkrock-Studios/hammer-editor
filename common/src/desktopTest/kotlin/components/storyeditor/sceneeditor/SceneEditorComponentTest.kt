@@ -59,6 +59,7 @@ class SceneEditorComponentTest : ComponentTest() {
 
 	private var closeCount = 0
 	private var focusShownFor: SceneItem? = null
+	private var readerShownFor: SceneItem? = null
 	private val addedMenus = mutableListOf<MenuDescriptor>()
 	private val removedMenuIds = mutableListOf<String>()
 
@@ -114,6 +115,7 @@ class SceneEditorComponentTest : ComponentTest() {
 
 		closeCount = 0
 		focusShownFor = null
+		readerShownFor = null
 		addedMenus.clear()
 		removedMenuIds.clear()
 	}
@@ -126,6 +128,7 @@ class SceneEditorComponentTest : ComponentTest() {
 		closeSceneEditor = { closeCount++ },
 		showDraftsList = {},
 		showFocusMode = { focusShownFor = it },
+		showReader = { readerShownFor = it },
 		showEntry = {},
 		showGlobalSearchForTag = {},
 	)
@@ -465,6 +468,14 @@ class SceneEditorComponentTest : ComponentTest() {
 	}
 
 	@Test
+	fun `readScene forwards the scene to the parent`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+
+		comp.readScene()
+		assertEquals(sceneItem, readerShownFor)
+	}
+
+	@Test
 	fun `closeEditor invokes the parent callback`() = runTest(mainTestDispatcher) {
 		val comp = newComponent()
 
@@ -529,6 +540,7 @@ class SceneEditorComponentTest : ComponentTest() {
 		sceneTreeCallback.captured.invoke(SceneSummary(treeOf(renamed), persistentSetOf()))
 
 		assertEquals("Renamed Externally", comp.state.value.sceneItem.name)
+		assertEquals("Renamed Externally", comp.sceneMetadataComponent.state.value.sceneItem.name)
 	}
 
 	@Test

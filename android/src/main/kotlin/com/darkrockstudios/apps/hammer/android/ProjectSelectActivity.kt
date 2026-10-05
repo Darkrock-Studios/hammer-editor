@@ -14,6 +14,7 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.ExperimentalComposeApi
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.arkivanov.decompose.retainedComponent
@@ -43,6 +44,7 @@ class ProjectSelectActivity : AppCompatActivity() {
 	private var settingsUpdateJob: Job? = null
 
 	override fun onCreate(savedInstanceState: Bundle?) {
+		installSplashScreen()
 		super.onCreate(savedInstanceState)
 		enableEdgeToEdge()
 
@@ -61,7 +63,7 @@ class ProjectSelectActivity : AppCompatActivity() {
 			val settingsState by globalSettings.subscribeAsState()
 			val isDark = when (settingsState.uiTheme) {
 				UiTheme.Light -> false
-				UiTheme.Dark -> true
+				UiTheme.Dark, UiTheme.OledBlack -> true
 				UiTheme.FollowSystem -> isSystemInDarkTheme()
 			}
 

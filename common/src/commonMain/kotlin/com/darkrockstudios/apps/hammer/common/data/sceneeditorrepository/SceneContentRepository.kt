@@ -165,7 +165,7 @@ class SceneContentRepository(
 			.toPersistentSet()
 	}
 
-	private fun getDirtyBufferScenes(): List<SceneItem> = sceneBuffersLock.withLock {
+	fun getDirtyBufferScenes(): List<SceneItem> = sceneBuffersLock.withLock {
 		sceneBuffers.filter { it.value.dirty }.map { it.value.content.scene }
 	}
 
@@ -216,18 +216,18 @@ class SceneContentRepository(
 	 * Drops the in-memory buffer + temp file and reloads from disk. Returns the reloaded buffer
 	 * (so the caller can re-establish a writing baseline), or null if nothing was buffered.
 	 */
-	fun discardBuffer(sceneItem: SceneItem, scenePath: HPath): SceneBuffer? {
+	fun discardBuffer(sceneItem: SceneItem, scenePath: HPath): SceneBuffer? =
+		if (dropBuffer(sceneItem)) loadBuffer(sceneItem, scenePath) else null
+
+	/** Drops the in-memory buffer + temp file without reloading. Returns whether one was buffered. */
+	fun dropBuffer(sceneItem: SceneItem): Boolean {
 		val wasPresent = sceneBuffersLock.withLock {
 			val removed = sceneBuffers.remove(sceneItem.id) != null
 			if (removed) _dirtyBufferIds.value = getDirtyBufferIds()
 			removed
 		}
-		return if (wasPresent) {
-			clearTempScene(sceneItem)
-			loadBuffer(sceneItem, scenePath)
-		} else {
-			null
-		}
+		if (wasPresent) clearTempScene(sceneItem)
+		return wasPresent
 	}
 
 	/** Stores all currently-dirty buffers to disk via [persist], one per dirty scene. */
@@ -268,10 +268,12 @@ class SceneContentRepository(
 			} ?: Napier.w("Timed out waiting for temp scene saves on close; forcing shutdown.")
 		}
 		editorScope.cancel("Editor Closed")
-		// During a proper shutdown, we clear any remaining temp buffers that haven't been saved yet
-		sceneDatasource.getSceneTempBufferContents().forEach {
-			clearTempScene(it.scene)
-		}
+		// Thar be dragons: a scope can close without the user choosing Save or Discard, and a dirty
+		// buffer's temp file is the only durable copy of that work. Only clean buffers are cleared.
+		val dirtyIds = getDirtyBufferIds()
+		sceneDatasource.getSceneTempBufferContents()
+			.filterNot { it.scene.id in dirtyIds }
+			.forEach { clearTempScene(it.scene) }
 		Napier.i("SceneContentRepository Closed.")
 	}
 

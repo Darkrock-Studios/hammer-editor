@@ -109,7 +109,7 @@ class ProjectRootActivity : AppCompatActivity() {
 				val settingsState by globalSettings.subscribeAsState()
 				val isDark = when (settingsState.uiTheme) {
 					UiTheme.Light -> false
-					UiTheme.Dark -> true
+					UiTheme.Dark, UiTheme.OledBlack -> true
 					UiTheme.FollowSystem -> isSystemInDarkTheme()
 				}
 
@@ -220,7 +220,8 @@ class ProjectRootActivity : AppCompatActivity() {
 
 		// Only intercept back when at Home AND there's potential unsaved work to confirm
 		// Otherwise, let Android's default back behavior close the activity
-		BackHandler(enabled = backEnabled && (component.hasUnsavedBuffers() || shouldConfirmClose.isNotEmpty())) {
+		val unsavedBuffers by component.unsavedBuffers.subscribeAsState()
+		BackHandler(enabled = backEnabled && (unsavedBuffers || shouldConfirmClose.isNotEmpty())) {
 			component.requestClose()
 		}
 

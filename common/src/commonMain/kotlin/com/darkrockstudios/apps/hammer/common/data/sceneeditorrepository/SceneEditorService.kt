@@ -118,6 +118,8 @@ class SceneEditorService(
 			statisticsRepository.markDirty()
 			referenceIndexRepository.markSceneDeleted(scene.id)
 			writingSessionTracker.forgetBaseline(scene.id)
+			// A leftover temp file would attach itself to a later scene that reuses this id.
+			sceneContentRepository.dropBuffer(scene)
 		}
 		return deleted
 	}
@@ -148,9 +150,14 @@ class SceneEditorService(
 	/**
 	 * Orchestrates a scene-metadata write: mark the scene's current identity for sync, persist
 	 * via [SceneMetadataRepository], then apply the reference-index delta if the confirmed set
-	 * changed. The repo handles only the pure persist + flow emission.
+	 * changed. The repo handles only the pure persist + flow emission. A write applying server
+	 * state ([UpdateSource.Sync]) is not a local change, so it is not marked.
 	 */
-	suspend fun storeMetadata(metadata: SceneMetadata, sceneId: Int) {
+	suspend fun storeMetadata(
+		metadata: SceneMetadata,
+		sceneId: Int,
+		source: UpdateSource = UpdateSource.Editor,
+	) {
 		// A flush can arrive after the scene was deleted (e.g. the metadata panel's save on
 		// destroy). Nothing to persist for a scene that no longer exists.
 		val scene = sceneEditorRepository.getSceneItemFromIdIncludingArchived(sceneId)
@@ -158,8 +165,8 @@ class SceneEditorService(
 
 		val previous = sceneMetadataRepository.loadRawMetadata(sceneId)
 
-		sceneEditorRepository.markSceneForSynchronization(scene)
-		sceneMetadataRepository.storeMetadata(metadata, sceneId)
+		if (source != UpdateSource.Sync) sceneEditorRepository.markSceneForSynchronization(scene)
+		sceneMetadataRepository.storeMetadata(metadata, sceneId, source)
 
 		val previousConfirmed = previous?.confirmedReferences.orEmpty()
 		val newConfirmed = metadata.confirmedReferences
@@ -183,9 +190,21 @@ class SceneEditorService(
 			return false
 		}
 
+		// Outside the active tree an archived scene still has its file; a deleted one has nowhere to save.
+		val scenePath = if (sceneEditorRepository.getSceneItemFromId(sceneItem.id) != null) {
+			sceneEditorRepository.resolveSceneContentPath(sceneItem)
+		} else {
+			sceneEditorRepository.resolveScenePathFromFilesystemIncludingArchived(sceneItem.id)
+		}
+		if (scenePath == null) {
+			Napier.w { "Dropping buffer for scene ${sceneItem.id}, it no longer exists" }
+			sceneContentRepository.dropBuffer(sceneItem)
+			writingSessionTracker.forgetBaseline(sceneItem.id)
+			return false
+		}
+
 		sceneEditorRepository.markSceneForSynchronization(sceneItem)
 
-		val scenePath = sceneEditorRepository.resolveSceneContentPath(sceneItem)
 		val success = sceneContentRepository.persistBuffer(buffer, scenePath)
 
 		if (success) {
@@ -208,11 +227,22 @@ class SceneEditorService(
 	}
 
 	fun discardSceneBuffer(sceneDef: SceneItem) {
+		// An archived or deleted scene has no active path to reload from.
+		if (sceneEditorRepository.getSceneItemFromId(sceneDef.id) == null) {
+			sceneContentRepository.dropBuffer(sceneDef)
+			writingSessionTracker.forgetBaseline(sceneDef.id)
+			return
+		}
 		val scenePath = sceneEditorRepository.resolveSceneContentPath(sceneDef)
 		val reloaded = sceneContentRepository.discardBuffer(sceneDef, scenePath)
 		if (reloaded != null) {
 			writingSessionTracker.rememberBaseline(sceneDef.id, reloaded.content.coerceMarkdown())
 		}
+	}
+
+	/** Reverts every dirty buffer to its on-disk content. */
+	fun discardAllBuffers() {
+		sceneContentRepository.getDirtyBufferScenes().forEach { discardSceneBuffer(it) }
 	}
 
 	fun onContentChanged(content: SceneContent, source: UpdateSource) =
@@ -239,7 +269,7 @@ class SceneEditorService(
 	) { tree, dirtyBufferIds -> SceneSummary(tree, dirtyBufferIds) }
 		.shareIn(serviceScope, SharingStarted.Eagerly, replay = 1)
 
-	val metadataUpdateFlow: SharedFlow<Pair<Int, SceneMetadata>>
+	val metadataUpdateFlow: SharedFlow<SceneMetadataUpdate>
 		get() = sceneMetadataRepository.metadataUpdateFlow
 
 	fun getSceneSummaries(): SceneSummary = SceneSummary(
@@ -308,6 +338,15 @@ class SceneEditorService(
 
 	suspend fun loadSceneMetadata(sceneId: Int): SceneMetadata =
 		sceneMetadataRepository.loadSceneMetadata(sceneId)
+
+	/**
+	 * The scene's live text (unsaved buffer first, then disk) with no caching and no
+	 * writing-session baseline. Call off the main thread.
+	 */
+	fun getCurrentSceneContentOrNull(sceneItem: SceneItem): String? =
+		runCatching { sceneContentRepository.getCurrentSceneContent(sceneItem) }
+			.onFailure { Napier.w(it) { "Failed to read content for scene: ${sceneItem.id}" } }
+			.getOrNull()
 
 	fun loadSceneMarkdownRaw(sceneItem: SceneItem, scenePath: HPath? = null): String =
 		if (scenePath != null) {

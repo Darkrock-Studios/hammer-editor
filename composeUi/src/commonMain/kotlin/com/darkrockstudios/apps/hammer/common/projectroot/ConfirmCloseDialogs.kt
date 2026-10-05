@@ -39,7 +39,10 @@ fun ConfirmUnsavedScenesDialog(
 			}
 		},
 		onDiscard = {
-			component.closeRequestDealtWith(CloseConfirm.Scenes)
+			scope.launch {
+				component.discardUnsaved(CloseConfirm.Scenes)
+				component.closeRequestDealtWith(CloseConfirm.Scenes)
+			}
 		},
 		onCancel = {
 			component.cancelCloseRequest()
@@ -48,7 +51,7 @@ fun ConfirmUnsavedScenesDialog(
 }
 
 @Composable
-fun ConfirmCloseUnsavedEncyclopediaDialog(component: ProjectRoot) {
+fun ConfirmCloseUnsavedEncyclopediaDialog(component: ProjectRoot, scope: CoroutineScope) {
 	SimpleConfirm(
 		title = Res.string.unsaved_encyclopedia_dialog_title.get(),
 		message = Res.string.unsaved_encyclopedia_dialog_message.get(),
@@ -58,12 +61,15 @@ fun ConfirmCloseUnsavedEncyclopediaDialog(component: ProjectRoot) {
 			component.cancelCloseRequest()
 		}
 	) {
-		component.closeRequestDealtWith(CloseConfirm.Encyclopedia)
+		scope.launch {
+			component.discardUnsaved(CloseConfirm.Encyclopedia)
+			component.closeRequestDealtWith(CloseConfirm.Encyclopedia)
+		}
 	}
 }
 
 @Composable
-fun ConfirmCloseUnsavedNotesDialog(component: ProjectRoot) {
+fun ConfirmCloseUnsavedNotesDialog(component: ProjectRoot, scope: CoroutineScope) {
 	SimpleConfirm(
 		title = Res.string.unsaved_notes_dialog_title.get(),
 		message = Res.string.unsaved_notes_dialog_message.get(),
@@ -73,12 +79,15 @@ fun ConfirmCloseUnsavedNotesDialog(component: ProjectRoot) {
 			component.cancelCloseRequest()
 		}
 	) {
-		component.closeRequestDealtWith(CloseConfirm.Notes)
+		scope.launch {
+			component.discardUnsaved(CloseConfirm.Notes)
+			component.closeRequestDealtWith(CloseConfirm.Notes)
+		}
 	}
 }
 
 @Composable
-fun ConfirmCloseUnsavedTimelineDialog(component: ProjectRoot) {
+fun ConfirmCloseUnsavedTimelineDialog(component: ProjectRoot, scope: CoroutineScope) {
 	SimpleConfirm(
 		title = Res.string.unsaved_timeline_dialog_title.get(),
 		message = Res.string.unsaved_timeline_dialog_message.get(),
@@ -88,6 +97,9 @@ fun ConfirmCloseUnsavedTimelineDialog(component: ProjectRoot) {
 			component.cancelCloseRequest()
 		}
 	) {
-		component.closeRequestDealtWith(CloseConfirm.Timeline)
+		scope.launch {
+			component.discardUnsaved(CloseConfirm.Timeline)
+			component.closeRequestDealtWith(CloseConfirm.Timeline)
+		}
 	}
 }

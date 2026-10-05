@@ -69,7 +69,7 @@ class WearPairingActivity : ComponentActivity(), KoinComponent {
 		setContent {
 			val isDark = when (settings.uiTheme) {
 				UiTheme.Light -> false
-				UiTheme.Dark -> true
+				UiTheme.Dark, UiTheme.OledBlack -> true
 				UiTheme.FollowSystem -> isSystemInDarkTheme()
 			}
 

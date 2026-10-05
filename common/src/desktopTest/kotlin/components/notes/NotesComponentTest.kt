@@ -47,7 +47,7 @@ class NotesComponentTest : ComponentTest() {
 		super.setup()
 
 		notesRepository = mockk(relaxed = true)
-		every { notesRepository.notesListFlow } returns MutableStateFlow(emptyList<NoteContainer>())
+		every { notesRepository.notesListFlow } returns MutableStateFlow(listOf(NoteContainer(note)))
 		every { notesRepository.findNoteForId(any()) } returns note
 
 		tagIndexService = mockk(relaxed = true)
@@ -189,5 +189,76 @@ class NotesComponentTest : ComponentTest() {
 		advanceUntilIdle()
 
 		assertTrue(shouldCloseUpdates > baseline)
+	}
+
+	@Test
+	fun `discardUnsaved reverts a dirty note edit`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.showViewNote(1)
+		advanceUntilIdle()
+
+		val destination = assertIs<Notes.Destination.ViewNoteDestination>(comp.stack.value.active.instance)
+		destination.component.beginEdit()
+		destination.component.onContentChanged("changed body")
+		advanceUntilIdle()
+
+		comp.discardUnsaved(CloseConfirm.Notes)
+		advanceUntilIdle()
+
+		assertEquals(emptySet(), comp.shouldConfirmClose())
+		assertEquals(note.content, destination.component.noteText.value)
+	}
+
+	@Test
+	fun `discardUnsaved pops an open create note screen`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.showCreateNote()
+		advanceUntilIdle()
+
+		comp.discardUnsaved(CloseConfirm.Notes)
+		advanceUntilIdle()
+
+		assertIs<Notes.Destination.BrowseNotesDestination>(comp.stack.value.active.instance)
+		assertEquals(emptySet(), comp.shouldConfirmClose())
+	}
+
+	@Test
+	fun `discardUnsaved clears a dirty note edit beneath a create screen`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.showViewNote(1)
+		advanceUntilIdle()
+		val view = assertIs<Notes.Destination.ViewNoteDestination>(comp.stack.value.active.instance)
+		view.component.beginEdit()
+		view.component.onContentChanged("changed body")
+		comp.showCreateNote()
+		advanceUntilIdle()
+		assertEquals(setOf(CloseConfirm.Notes), comp.shouldConfirmClose())
+
+		comp.discardUnsaved(CloseConfirm.Notes)
+		advanceUntilIdle()
+
+		assertIs<Notes.Destination.ViewNoteDestination>(comp.stack.value.active.instance)
+		assertFalse(view.component.state.value.isEditing)
+		assertEquals(emptySet(), comp.shouldConfirmClose())
+	}
+
+	@Test
+	fun `discardUnsaved ignores other confirmation types`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.showCreateNote()
+		advanceUntilIdle()
+
+		comp.discardUnsaved(CloseConfirm.Scenes)
+		advanceUntilIdle()
+
+		assertIs<Notes.Destination.CreateNoteDestination>(comp.stack.value.active.instance)
 	}
 }

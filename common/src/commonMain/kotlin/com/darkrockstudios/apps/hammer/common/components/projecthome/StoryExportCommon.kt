@@ -16,12 +16,15 @@ data class ExportStrings(
 // Shared layout vocabulary mirrored across the EPUB / DOCX / RTF / PDF exporters. Keeping these in one
 // place is what lets the "mirrored" exports actually stay in step when the layout is tuned.
 
-/** Prose and monospace font faces shared by the DOCX and RTF exporters. */
-internal const val EXPORT_BODY_FONT = "Georgia"
+/** Monospace font face shared by the DOCX and RTF exporters. */
 internal const val EXPORT_MONO_FONT = "Consolas"
 
 /** Heading 1..6 sizes in half-points, shared by the DOCX and RTF exporters. */
 internal val HEADING_HALF_POINTS = listOf(48, 36, 32, 28, 26, 24)
+
+/** The chapter title as it appears in headings and the Contents page. */
+internal fun chapterTitle(index: Int, chapter: StoryChapter, numbered: Boolean): String =
+	if (numbered) "${index + 1}. ${chapter.name}" else chapter.name
 
 /** Bookmark / anchor name for the chapter at [index], the target of its Contents link. */
 internal fun chapterBookmark(index: Int): String = "chapter${index + 1}"

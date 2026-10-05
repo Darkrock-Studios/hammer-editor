@@ -70,7 +70,7 @@ class BackfillEntryReferencesUseCaseTest : BaseTest() {
 		val storedById = mutableMapOf<Int, SceneMetadata>()
 		val metaSlot = slot<SceneMetadata>()
 		val idSlot = slot<Int>()
-		coEvery { sceneEditor.storeMetadata(capture(metaSlot), capture(idSlot)) } answers {
+		coEvery { sceneEditor.storeMetadata(capture(metaSlot), capture(idSlot), any()) } answers {
 			storedById[idSlot.captured] = metaSlot.captured
 		}
 
@@ -97,7 +97,7 @@ class BackfillEntryReferencesUseCaseTest : BaseTest() {
 			coEvery { referenceIndexService.findScenesMatchingEntry(id, listOf(name)) } returns listOf(10)
 			coEvery { sceneEditor.loadSceneMetadata(10) } returns SceneMetadata()
 			val metaSlot = slot<SceneMetadata>()
-			coEvery { sceneEditor.storeMetadata(capture(metaSlot), 10) } just Runs
+			coEvery { sceneEditor.storeMetadata(capture(metaSlot), 10, any()) } just Runs
 
 			useCase(entry)
 
@@ -125,7 +125,7 @@ class BackfillEntryReferencesUseCaseTest : BaseTest() {
 		makeUseCase(config).invoke(placeEntry)
 
 		coVerify(exactly = 0) { referenceIndexService.findScenesMatchingEntry(any(), any()) }
-		coVerify(exactly = 0) { sceneEditor.storeMetadata(any(), any()) }
+		coVerify(exactly = 0) { sceneEditor.storeMetadata(any(), any(), any()) }
 	}
 
 	@Test
@@ -137,7 +137,7 @@ class BackfillEntryReferencesUseCaseTest : BaseTest() {
 
 		useCase(entry)
 
-		coVerify(exactly = 0) { sceneEditor.storeMetadata(any(), any()) }
+		coVerify(exactly = 0) { sceneEditor.storeMetadata(any(), any(), any()) }
 	}
 
 	@Test
@@ -170,7 +170,7 @@ class BackfillEntryReferencesUseCaseTest : BaseTest() {
 
 		useCase(entry)
 
-		coVerify(exactly = 0) { sceneEditor.storeMetadata(any(), any()) }
+		coVerify(exactly = 0) { sceneEditor.storeMetadata(any(), any(), any()) }
 	}
 
 	@Test
@@ -184,6 +184,6 @@ class BackfillEntryReferencesUseCaseTest : BaseTest() {
 
 		useCase(entry)
 
-		coVerify(exactly = 0) { sceneEditor.storeMetadata(any(), any()) }
+		coVerify(exactly = 0) { sceneEditor.storeMetadata(any(), any(), any()) }
 	}
 }

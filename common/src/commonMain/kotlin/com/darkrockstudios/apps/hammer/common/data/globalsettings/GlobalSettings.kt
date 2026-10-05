@@ -31,6 +31,8 @@ data class GlobalSettings(
 	 */
 	val editorMaxWidth: Float = DEFAULT_EDITOR_WIDTH,
 	val enableDndInFocusMode: Boolean = false,
+	val readerFontSize: Float = DEFAULT_FONT_SIZE,
+	val readerShowSceneHeadings: Boolean = false,
 	/**
 	 * Whether the scene metadata panel is visible on wide layouts. UI state,
 	 * not really a user "preference" — lives here because we don't have a
@@ -54,6 +56,10 @@ data class GlobalSettings(
 	val deviceLabel: String? = null,
 	val initialProjectScreen: InitialProjectScreen = InitialProjectScreen.Home,
 	val lastSeenChangelogVersion: String? = null,
+	/** Whether the self-updating desktop builds look for a new release on a schedule. */
+	val automaticUpdateChecks: Boolean = true,
+	/** The release the user chose "Later" on; the banner stays hidden until a newer one appears. */
+	val dismissedUpdateVersion: String? = null,
 ) {
 	companion object {
 
@@ -91,6 +97,7 @@ data class SpellCheckerSettings(
 enum class UiTheme {
 	Light,
 	Dark,
+	OledBlack,
 	FollowSystem
 }
 

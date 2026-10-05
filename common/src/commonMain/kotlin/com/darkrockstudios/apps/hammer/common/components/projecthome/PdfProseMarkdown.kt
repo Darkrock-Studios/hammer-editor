@@ -6,9 +6,15 @@ import com.darkrockstudios.apps.hammer.common.data.search.unescapeMarkdown
 import com.conamobile.pdfkmp.dsl.TextScope
 import com.conamobile.pdfkmp.geometry.Padding
 import com.conamobile.pdfkmp.layout.BoxAlignment
+import com.conamobile.pdfkmp.layout.RichLine
 import com.conamobile.pdfkmp.layout.VerticalAlignment
+import com.conamobile.pdfkmp.layout.layoutRichText
+import com.conamobile.pdfkmp.node.Span
+import com.conamobile.pdfkmp.render.FontMetrics
 import com.conamobile.pdfkmp.style.BorderSides
 import com.conamobile.pdfkmp.style.BorderStroke
+import com.conamobile.pdfkmp.style.CornerRadius
+import com.conamobile.pdfkmp.style.FontStyle
 import com.conamobile.pdfkmp.style.FontWeight
 import com.conamobile.pdfkmp.style.PdfColor
 import com.conamobile.pdfkmp.style.TableBorder
@@ -36,6 +42,122 @@ internal data class ProseColors(
 }
 
 /**
+ * Parsed prose with its text already wrapped into lines. pdfkmp cannot split a rich-text
+ * paragraph, a row or a decorated container across pages, so each wrapped line is laid out as
+ * its own node and page breaks fall between lines.
+ *
+ * @property layouts parallel to [blocks]; null for a block that needs no measuring.
+ */
+internal class PreparedProse(
+	val blocks: List<ProseBlock>,
+	val layouts: List<ProseLayout?>,
+)
+
+/** The measured part of one [ProseBlock]. */
+internal sealed interface ProseLayout {
+	data class Paragraph(val lines: List<RichLine>) : ProseLayout
+
+	/** One list of lines per list item. */
+	data class Listing(val items: List<List<RichLine>>) : ProseLayout
+
+	/** One list of lines per quoted paragraph. */
+	data class Quote(val paragraphs: List<List<RichLine>>) : ProseLayout
+
+	/** @property width the widest code line, so every line's background spans the same width. */
+	data class Code(val width: Float) : ProseLayout
+
+	/** Body rows of wrapped cells. A source row too tall for a page arrives as several rows. */
+	data class Table(val rows: List<List<List<RichLine>>>) : ProseLayout
+}
+
+/**
+ * Parses [markdown] and wraps its text to [width], the width of the container
+ * [proseMarkdown] will render into.
+ */
+internal fun prepareProse(
+	markdown: String,
+	colors: ProseColors,
+	metrics: FontMetrics,
+	width: Float,
+	keepBlankLines: Boolean = true,
+): PreparedProse {
+	fun wrap(
+		spans: List<ProseSpan>,
+		style: TextStyle,
+		lineWidth: Float,
+		lineHeight: Sp = style.lineHeight,
+		indent: Boolean = false,
+	): List<RichLine> {
+		val styled = spans.map { Span(it.text, style.withFlags(it, colors)) }.toMutableList()
+		if (indent) {
+			// Each line is laid out again on its own, where an indent in the first word's style
+			// is one token with that word; measure it as one here too.
+			val first = styled.firstOrNull()
+			if (first != null && first.style == style) {
+				styled[0] = first.copy(text = FIRST_LINE_INDENT + first.text)
+			} else {
+				styled.add(0, Span(FIRST_LINE_INDENT, style))
+			}
+		}
+		val measured = layoutRichText(styled, lineWidth, style.align, lineHeight, metrics)
+		// A line laid out alone would resolve its direction from its own first strong character.
+		return measured.lines.map { line ->
+			line.copy(
+				segments = line.segments.map {
+					it.copy(style = it.style.copy(direction = measured.resolvedDirection))
+				},
+			)
+		}
+	}
+
+	val blocks = parseProseMarkdown(markdown, keepBlankLines)
+	val layouts = blocks.map { block ->
+		when (block) {
+			is ProseBlock.Paragraph ->
+				if (block.isStandaloneLink) null
+				else ProseLayout.Paragraph(wrap(block.spans, BODY_STYLE, width, indent = true))
+
+			is ProseBlock.Listing -> {
+				val textWidth = width - block.markerWidth.value
+				ProseLayout.Listing(block.items.map { wrap(it.spans, BODY_STYLE, textWidth) })
+			}
+
+			is ProseBlock.Quote -> {
+				val textWidth = width - QUOTE_INSET_LEFT.value - QUOTE_INSET_RIGHT.value - QUOTE_BAR_WIDTH.value
+				ProseLayout.Quote(block.paragraphs.map { wrap(it, QUOTE_STYLE, textWidth) })
+			}
+
+			is ProseBlock.CodeBlock -> {
+				val widest = block.lines.maxOf { metrics.measure(it, CODE_STYLE).width }
+				ProseLayout.Code(widest.coerceAtMost(width - CODE_PADDING.value * 2))
+			}
+
+			is ProseBlock.Table -> {
+				val cellWidth = width / block.columnCount - TABLE_CELL_PADDING.value * 2 - TABLE_CELL_SLACK
+				ProseLayout.Table(
+					block.rows.flatMap { row ->
+						val cells = List(block.columnCount) { column ->
+							wrap(row.getOrElse(column) { emptyList() }, BODY_STYLE, cellWidth, lineHeight = Sp.Zero)
+						}
+						val tallest = cells.maxOf { it.size }
+						if (tallest <= MAX_TABLE_ROW_LINES) {
+							listOf(cells)
+						} else {
+							List((tallest + SPLIT_TABLE_ROW_LINES - 1) / SPLIT_TABLE_ROW_LINES) { part ->
+								cells.map { it.drop(part * SPLIT_TABLE_ROW_LINES).take(SPLIT_TABLE_ROW_LINES) }
+							}
+						}
+					},
+				)
+			}
+
+			else -> null
+		}
+	}
+	return PreparedProse(blocks, layouts)
+}
+
+/**
  * Renders markdown prose into a PDF container with book typography: every paragraph gets
  * a first-line indent, and consecutive paragraphs run without a blank line between them —
  * the indent is the separator.
@@ -44,10 +166,10 @@ internal data class ProseColors(
  * `~~strikethrough~~` and pipe tables work) instead of pdfkmp's markdown module, whose
  * layout offers no paragraph indent control.
  */
-internal fun ContainerScope.proseMarkdown(markdown: String, colors: ProseColors = ProseColors()) {
-	val blocks = parseProseMarkdown(markdown)
+internal fun ContainerScope.proseMarkdown(prose: PreparedProse, colors: ProseColors = ProseColors()) {
+	val blocks = prose.blocks
 	if (blocks.isEmpty()) return
-	val base = TextStyle(lineHeight = Sp(TextStyle().fontSize.value * BODY_LEADING))
+	val base = BODY_STYLE
 	column {
 		blocks.forEachIndexed { index, block ->
 			if (index > 0) {
@@ -59,15 +181,16 @@ internal fun ContainerScope.proseMarkdown(markdown: String, colors: ProseColors 
 					else -> spacer(height = BLOCK_SPACING)
 				}
 			}
+			val layout = prose.layouts[index]
 			when (block) {
-				is ProseBlock.Paragraph -> renderParagraph(block.spans, base, colors)
+				is ProseBlock.Paragraph -> renderParagraph(block, layout as ProseLayout.Paragraph?, colors)
 				ProseBlock.Blank -> spacer(height = Dp(TextStyle().fontSize.value * BODY_LEADING))
 				is ProseBlock.Heading -> renderHeading(block, base, colors)
-				is ProseBlock.Listing -> renderListing(block, base, colors)
-				is ProseBlock.Quote -> renderQuote(block, base, colors)
-				is ProseBlock.CodeBlock -> renderCode(block, base)
+				is ProseBlock.Listing -> renderListing(block, layout as ProseLayout.Listing)
+				is ProseBlock.Quote -> renderQuote(layout as ProseLayout.Quote)
+				is ProseBlock.CodeBlock -> renderCode(block, layout as ProseLayout.Code)
 				ProseBlock.Rule -> divider()
-				is ProseBlock.Table -> renderTable(block, base, colors)
+				is ProseBlock.Table -> renderTable(block, layout as ProseLayout.Table, base, colors)
 			}
 		}
 	}
@@ -117,11 +240,30 @@ internal sealed interface ProseBlock {
  * Prose keeps the shape the author gave it, which is what the editor shows them: every newline
  * starts a new [ProseBlock.Paragraph] and every blank line becomes a [ProseBlock.Blank]. CommonMark
  * would reflow both away, turning a page of dialogue into one packed block.
+ *
+ * With [keepBlankLines] off a lone blank line is dropped, leaving paragraphs to run together, and a
+ * run of two or more is reduced to one: the break between passages or scenes.
  */
-internal fun parseProseMarkdown(markdown: String): List<ProseBlock> {
+internal fun parseProseMarkdown(markdown: String, keepBlankLines: Boolean = true): List<ProseBlock> {
 	val source = ProseHtml.normalizeLineEndings(markdown)
 	val root = MarkdownParser(GFMFlavourDescriptor()).buildMarkdownTreeFromString(source)
-	return ProseWalker(source).blocks(root)
+	val blocks = ProseWalker(source).blocks(root)
+	return if (keepBlankLines) blocks else blocks.withoutParagraphGaps()
+}
+
+private fun List<ProseBlock>.withoutParagraphGaps(): List<ProseBlock> {
+	val out = mutableListOf<ProseBlock>()
+	var blanks = 0
+	for (block in this) {
+		if (block == ProseBlock.Blank) {
+			blanks++
+			continue
+		}
+		if (blanks >= 2) out += ProseBlock.Blank
+		blanks = 0
+		out += block
+	}
+	return out
 }
 
 /** True for the block kinds that make up running prose, as opposed to a structural block. */
@@ -506,12 +648,86 @@ private val CODE_BACKGROUND = PdfColor(0.95f, 0.95f, 0.95f)
 private const val BODY_LEADING = 1.5f
 private const val HEADING_LEADING = 1.25f
 
-private fun ContainerScope.renderParagraph(spans: List<ProseSpan>, base: TextStyle, colors: ProseColors) {
-	// A paragraph that is exactly one link renders through the clickable link DSL
-	// (flush — it reads as a block element, not prose); links inside running text
-	// are styled but not clickable (no per-span link areas).
-	val onlyLink = spans.singleOrNull()?.takeIf { it.link != null }
-	if (onlyLink != null) {
+private val BODY_STYLE = TextStyle(lineHeight = Sp(TextStyle().fontSize.value * BODY_LEADING))
+private val QUOTE_STYLE = BODY_STYLE.copy(color = PdfColor.Gray)
+
+/** No bundled monospace face; code is approximated with a smaller size on a grey card. */
+private val CODE_STYLE = TextStyle(fontSize = Sp(TextStyle().fontSize.value * 0.9f))
+
+/** Lines of a paragraph kept on one page at either side of a page break. */
+private const val MIN_LINES_AT_BREAK = 2
+
+private val ITEM_SPACING = Dp(4f)
+private val QUOTE_INSET_LEFT = Dp(12f)
+private val QUOTE_INSET_RIGHT = Dp(4f)
+private val QUOTE_INSET_VERTICAL = Dp(4f)
+private val QUOTE_BAR_WIDTH = Dp(3f)
+private val CODE_PADDING = Dp(12f)
+private val CODE_CORNER = Dp(4f)
+private val TABLE_CELL_PADDING = Dp(8f)
+
+/** Shaved off the wrap width of a cell so table rules never push a wrapped line onto two. */
+private const val TABLE_CELL_SLACK = 2f
+
+/** Tallest a table row may grow before it is split into rows of [SPLIT_TABLE_ROW_LINES]. */
+private const val MAX_TABLE_ROW_LINES = 30
+
+/** Short enough that the split rows pack a page without leaving much of it empty. */
+private const val SPLIT_TABLE_ROW_LINES = 8
+
+/**
+ * A paragraph that is exactly one link renders through the clickable link DSL (flush: it reads
+ * as a block element, not prose); links inside running text are styled but not clickable.
+ */
+private val ProseBlock.Paragraph.isStandaloneLink: Boolean
+	get() = spans.singleOrNull()?.link != null
+
+private val ProseBlock.Listing.markerWidth: Dp
+	get() = if (ordered) Dp(20f) else Dp(16f)
+
+private val ProseBlock.CodeBlock.lines: List<String>
+	get() = code.split("\n").map { it.ifEmpty { " " } }
+
+private val ProseBlock.Table.columnCount: Int
+	get() = header.size.coerceAtLeast(1)
+
+/**
+ * Lays out [count] lines one node each, holding the first and last [MIN_LINES_AT_BREAK]
+ * together so a page break strands neither.
+ */
+private fun ContainerScope.breakableLines(count: Int, line: ContainerScope.(Int) -> Unit) {
+	if (count == 0) return
+	if (count < MIN_LINES_AT_BREAK * 2) {
+		keepTogether { repeat(count) { line(it) } }
+		return
+	}
+	keepTogether { for (i in 0 until MIN_LINES_AT_BREAK) line(i) }
+	for (i in MIN_LINES_AT_BREAK until count - MIN_LINES_AT_BREAK) line(i)
+	keepTogether { for (i in count - MIN_LINES_AT_BREAK until count) line(i) }
+}
+
+/** One already-wrapped line. */
+private fun ContainerScope.proseLine(line: RichLine, lineHeight: Sp = BODY_STYLE.lineHeight) {
+	if (line.segments.isEmpty()) {
+		spacer(height = Dp(line.height))
+		return
+	}
+	richText {
+		this.lineHeight = lineHeight
+		for (segment in line.segments) {
+			defaultSpanStyle = segment.style
+			span(segment.text)
+		}
+	}
+}
+
+private fun ContainerScope.renderParagraph(
+	block: ProseBlock.Paragraph,
+	layout: ProseLayout.Paragraph?,
+	colors: ProseColors,
+) {
+	if (layout == null) {
+		val onlyLink = block.spans.single()
 		link(onlyLink.link!!) {
 			text(onlyLink.text) {
 				color = colors.link
@@ -523,12 +739,7 @@ private fun ContainerScope.renderParagraph(spans: List<ProseSpan>, base: TextSty
 		}
 		return
 	}
-	richText {
-		defaultSpanStyle = base
-		lineHeight = base.lineHeight
-		span(FIRST_LINE_INDENT)
-		for (s in spans) span(s.text) { applyFlags(s, colors) }
-	}
+	breakableLines(layout.lines.size) { proseLine(layout.lines[it]) }
 }
 
 private fun ContainerScope.renderHeading(block: ProseBlock.Heading, base: TextStyle, colors: ProseColors) {
@@ -550,64 +761,85 @@ private fun ContainerScope.renderHeading(block: ProseBlock.Heading, base: TextSt
 	}
 }
 
-private fun ContainerScope.renderListing(block: ProseBlock.Listing, base: TextStyle, colors: ProseColors) {
-	column(spacing = Dp(4f)) {
-		block.items.forEachIndexed { index, item ->
-			val marker = if (block.ordered) "${index + 1}." else "•"
+private fun ContainerScope.renderListing(block: ProseBlock.Listing, layout: ProseLayout.Listing) {
+	layout.items.forEachIndexed { index, lines ->
+		if (index > 0) spacer(height = ITEM_SPACING)
+		val marker = if (block.ordered) "${index + 1}." else "•"
+		breakableLines(lines.size) { lineIndex ->
 			row(verticalAlignment = VerticalAlignment.Top) {
-				box(width = if (block.ordered) Dp(20f) else Dp(16f)) {
-					aligned(BoxAlignment.TopStart) {
-						text(marker) { color = base.color }
+				box(width = block.markerWidth) {
+					if (lineIndex == 0) {
+						aligned(BoxAlignment.TopStart) {
+							text(marker) { color = BODY_STYLE.color }
+						}
 					}
 				}
-				weighted(1f) {
-					richText {
-						defaultSpanStyle = base
-						lineHeight = base.lineHeight
-						for (s in item.spans) span(s.text) { applyFlags(s, colors) }
-					}
-				}
+				weighted(1f) { proseLine(lines[lineIndex]) }
 			}
 		}
 	}
 }
 
-private fun ContainerScope.renderQuote(block: ProseBlock.Quote, base: TextStyle, colors: ProseColors) {
-	column(
-		padding = Padding(left = Dp(12f), top = Dp(4f), right = Dp(4f), bottom = Dp(4f)),
-		borderEach = BorderSides(
-			left = BorderStroke(width = Dp(3f), color = PdfColor.LightGray),
-		),
-		spacing = Dp(4f),
-	) {
-		val quoteStyle = base.copy(color = PdfColor.Gray)
-		for (paragraph in block.paragraphs) {
-			richText {
-				defaultSpanStyle = quoteStyle
-				lineHeight = base.lineHeight
-				for (s in paragraph) span(s.text) { applyFlags(s, colors) }
+private fun ContainerScope.renderQuote(layout: ProseLayout.Quote) {
+	val startsParagraph = layout.paragraphs.flatMap { lines -> lines.indices.map { it == 0 } }
+	val lines = layout.paragraphs.flatten()
+	breakableLines(lines.size) { index ->
+		// The bar is drawn per line; the gaps between paragraphs are padding so it runs unbroken.
+		column(
+			padding = Padding(
+				left = QUOTE_INSET_LEFT,
+				top = if (startsParagraph[index]) QUOTE_INSET_VERTICAL else Dp.Zero,
+				right = QUOTE_INSET_RIGHT,
+				bottom = if (index == lines.lastIndex) QUOTE_INSET_VERTICAL else Dp.Zero,
+			),
+			borderEach = BorderSides(
+				left = BorderStroke(width = QUOTE_BAR_WIDTH, color = PdfColor.LightGray),
+			),
+		) {
+			proseLine(lines[index])
+		}
+	}
+}
+
+private fun ContainerScope.renderCode(block: ProseBlock.CodeBlock, layout: ProseLayout.Code) {
+	val lines = block.lines
+	lines.forEachIndexed { index, line ->
+		val first = index == 0
+		val last = index == lines.lastIndex
+		column(
+			background = CODE_BACKGROUND,
+			cornerRadiusEach = CornerRadius(
+				topLeft = if (first) CODE_CORNER else Dp.Zero,
+				topRight = if (first) CODE_CORNER else Dp.Zero,
+				bottomLeft = if (last) CODE_CORNER else Dp.Zero,
+				bottomRight = if (last) CODE_CORNER else Dp.Zero,
+			),
+			padding = Padding(
+				left = CODE_PADDING,
+				top = if (first) CODE_PADDING else Dp.Zero,
+				right = CODE_PADDING,
+				bottom = if (last) CODE_PADDING else Dp.Zero,
+			),
+		) {
+			spacer(width = Dp(layout.width))
+			text(line) {
+				fontSize = CODE_STYLE.fontSize
+				color = CODE_STYLE.color
 			}
 		}
 	}
 }
 
-private fun ContainerScope.renderCode(block: ProseBlock.CodeBlock, base: TextStyle) {
-	// No bundled monospace face; approximate with a smaller size on a grey card.
-	card(background = CODE_BACKGROUND, cornerRadius = Dp(4f)) {
-		for (line in block.code.split("\n")) {
-			text(line.ifEmpty { " " }) {
-				fontSize = Sp(base.fontSize.value * 0.9f)
-				color = base.color
-			}
-		}
-	}
-}
-
-private fun ContainerScope.renderTable(block: ProseBlock.Table, base: TextStyle, colors: ProseColors) {
-	val columnCount = block.header.size.coerceAtLeast(1)
+private fun ContainerScope.renderTable(
+	block: ProseBlock.Table,
+	layout: ProseLayout.Table,
+	base: TextStyle,
+	colors: ProseColors,
+) {
 	table(
-		columns = List(columnCount) { TableColumn.Weight(1f) },
+		columns = List(block.columnCount) { TableColumn.Weight(1f) },
 		border = TableBorder(),
+		cellPadding = Padding.all(TABLE_CELL_PADDING),
 	) {
 		header {
 			for (cellSpans in block.header) {
@@ -619,20 +851,26 @@ private fun ContainerScope.renderTable(block: ProseBlock.Table, base: TextStyle,
 				}
 			}
 		}
-		for (bodyRow in block.rows) {
+		for (bodyRow in layout.rows) {
 			row {
-				for (cellSpans in bodyRow.take(columnCount) + List((columnCount - bodyRow.size).coerceAtLeast(0)) { emptyList() }) {
+				for (lines in bodyRow) {
 					cell {
-						richText {
-							defaultSpanStyle = base
-							for (s in cellSpans) span(s.text) { applyFlags(s, colors) }
-						}
+						lines.forEach { proseLine(it, lineHeight = Sp.Zero) }
 					}
 				}
 			}
 		}
 	}
 }
+
+private fun TextStyle.withFlags(s: ProseSpan, colors: ProseColors): TextStyle = copy(
+	fontWeight = if (s.bold) FontWeight.Bold else fontWeight,
+	fontStyle = if (s.italic) FontStyle.Italic else fontStyle,
+	strikethrough = strikethrough || s.strikethrough,
+	fontSize = if (s.code) Sp(fontSize.value * 0.9f) else fontSize,
+	color = if (s.link != null) colors.link else color,
+	underline = underline || s.link != null,
+)
 
 private fun TextScope.applyFlags(s: ProseSpan, colors: ProseColors) {
 	if (s.bold) bold = true

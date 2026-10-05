@@ -57,6 +57,11 @@ class EncyclopediaRepository(
 	)
 	val entryContentChangedFlow: SharedFlow<Unit> = _entryContentChangedFlow
 
+	private val _entryChangedFlow = MutableSharedFlow<Int>(extraBufferCapacity = 64)
+
+	/** Emits the id of each entry that was created, updated or deleted. */
+	val entryChangedFlow: SharedFlow<Int> = _entryChangedFlow
+
 	private suspend fun updateEntries(entries: List<EntryDef>) {
 		_entryListFlow.emit(entries)
 	}
@@ -100,6 +105,7 @@ class EncyclopediaRepository(
 		)
 
 		_entryContentChangedFlow.emit(Unit)
+		_entryChangedFlow.emit(oldEntryDef.id)
 		return EntryResult(container, EntryError.NONE)
 	}
 
@@ -189,6 +195,7 @@ class EncyclopediaRepository(
 		if (forceId == null) markForSynchronization(newDef)
 
 		_entryContentChangedFlow.emit(Unit)
+		_entryChangedFlow.emit(newId)
 		return EntryResult(container, EntryError.NONE)
 	}
 
@@ -196,6 +203,7 @@ class EncyclopediaRepository(
 		datasource.deleteEntry(entryDef)
 		syncJournal.recordIdDeletion(entryDef.id)
 		_entryContentChangedFlow.emit(Unit)
+		_entryChangedFlow.emit(entryDef.id)
 		return true
 	}
 

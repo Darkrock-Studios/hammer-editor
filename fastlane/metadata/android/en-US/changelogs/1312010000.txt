@@ -1,0 +1,15 @@
+New
+- Reader Mode: read your story as prose, a chapter at a time
+- Export options: chapter numbering, font, blank lines
+- OLED black theme
+- Turkish translation
+- Text editor 3.0
+
+Fixes
+- Unsaved scene edits could be lost when the app closed in the background
+- Restoring a backup could make the project disappear
+- Discarded scenes were still saved and uploaded by sync
+- PDF export cut off lines at page breaks
+
+Full changelog:
+https://github.com/Darkrock-Studios/hammer-editor/releases/tag/v3.12.0

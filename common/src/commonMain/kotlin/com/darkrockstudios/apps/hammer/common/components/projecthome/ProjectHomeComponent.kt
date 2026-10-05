@@ -39,7 +39,7 @@ import kotlin.time.Clock
 class ProjectHomeComponent(
 	componentContext: ComponentContext,
 	projectDef: ProjectDef,
-	private val showProjectSync: () -> Unit,
+	private val requestProjectSync: () -> Unit,
 	private val onShowGlobalSearch: () -> Unit,
 	private val onShowGlobalSearchForTag: (String) -> Unit,
 	private val onShowScene: (SceneItem) -> Unit,
@@ -179,7 +179,7 @@ class ProjectHomeComponent(
 		_state.getAndUpdate { it.copy(isExporting = true) }
 	}
 
-	override fun startProjectSync() = showProjectSync()
+	override fun startProjectSync() = requestProjectSync()
 
 	override fun showGlobalSearch() = onShowGlobalSearch()
 

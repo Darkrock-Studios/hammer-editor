@@ -8,13 +8,13 @@ import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.backup_manager_error_delete_backup
 import com.darkrockstudios.apps.hammer.backup_manager_error_load_backups
 import com.darkrockstudios.apps.hammer.backup_manager_error_load_project_backups
+import com.darkrockstudios.apps.hammer.backup_manager_error_restore_backup
 import com.darkrockstudios.apps.hammer.common.components.SavableComponent
 import com.darkrockstudios.apps.hammer.common.data.ClientMessage
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.BackupManagerService
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupDef
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupRepository
-import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
@@ -27,7 +27,6 @@ class BackupManagerComponent(
 ) : BackupManager, KoinComponent, SavableComponent<BackupManager.State>(componentContext) {
 
 	private val backupRepository by inject<ProjectBackupRepository>()
-	private val projectsRepository by inject<ProjectsRepository>()
 	private val strRes: StrRes by inject()
 	private val backupManagerService by inject<BackupManagerService>()
 
@@ -44,15 +43,8 @@ class BackupManagerComponent(
 			_state.update { it.copy(isLoading = true, error = null) }
 
 			try {
-				val projects = withContext(dispatcherIo) {
-					projectsRepository.getProjects()
-				}
-
-				// Get projects that have backups
 				val projectsWithBackups = withContext(dispatcherIo) {
-					projects.filter { projectDef ->
-						backupRepository.getBackups(projectDef).isNotEmpty()
-					}
+					backupRepository.getBackedUpProjects()
 				}
 
 				val projectNames = projectsWithBackups
@@ -121,7 +113,7 @@ class BackupManagerComponent(
 	override fun selectProject(projectName: String) {
 		scope.launch {
 			val projectDef = withContext(dispatcherIo) {
-				projectsRepository.getProjects().find { it.name == projectName }
+				backupRepository.getBackedUpProjects().find { it.name == projectName }
 			}
 
 			withContext(dispatcherMain) {
@@ -165,7 +157,19 @@ class BackupManagerComponent(
 
 	override fun restoreBackup(backup: ProjectBackupDef) {
 		scope.launch {
-			backupRepository.restoreBackup(backup, backup.projectDef.path)
+			val restored = withContext(dispatcherIo) {
+				backupRepository.restoreBackup(backup, backup.projectDef.path)
+			}
+
+			if (restored.not()) {
+				val errorMsg = ClientMessage.Resource(Res.string.backup_manager_error_restore_backup, backup.path.name)
+				val errorText = errorMsg.text(strRes)
+				withContext(dispatcherMain) {
+					_state.update {
+						it.copy(error = errorText)
+					}
+				}
+			}
 		}
 	}
 

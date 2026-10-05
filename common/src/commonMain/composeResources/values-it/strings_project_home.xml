@@ -78,6 +78,10 @@
 	<string name="project_home_export_format_rtf">RTF (.rtf)</string>
 	<string name="project_home_export_cancel">Annulla</string>
 	<string name="project_home_export_execute">Esporta</string>
+	<string name="project_home_export_number_chapters_label">Number chapter titles</string>
+	<string name="project_home_export_font_label">Font</string>
+	<string name="project_home_export_blank_lines_label">Keep blank lines between paragraphs</string>
+	<string name="project_home_export_blank_lines_hint">Turn off if you separate paragraphs with a blank line and do not want empty paragraphs in the export. Scene breaks and runs of two or more blank lines are kept.</string>
 	<string name="project_home_export_limit_scenes_label">Limit to specific scenes</string>
 	<string name="project_home_export_limit_scenes_hint">Only the selected scenes will be included in the export</string>
 	<string name="project_home_export_scenes_label">Scene</string>
@@ -115,7 +119,7 @@
 	<string name="project_home_import_large_scene_label">Large scene</string>
 	<string name="project_home_import_large_scene_one">One scene holds %1$s words, so chapter detection probably missed your chapter titles. Try another detection setting.</string>
 	<string name="project_home_import_large_scene_many">%1$d scenes hold %2$s words or more, so chapter detection probably missed some chapter titles. Try another detection setting.</string>
-	<string name="project_home_import_scene_word_count">%1$s W</string>
+	<string name="project_home_import_scene_word_count">%1$s P</string>
 	<string name="project_home_import_cancel">Annulla</string>
 	<string name="project_home_import_execute">Importa</string>
 	<string name="project_home_action_settings_button">Impostazioni</string>
