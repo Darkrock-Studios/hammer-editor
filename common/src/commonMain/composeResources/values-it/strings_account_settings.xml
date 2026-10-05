@@ -84,6 +84,7 @@
 	<string name="backup_manager_error_load_backups">Impossibile caricare i backup: %1$s</string>
 	<string name="backup_manager_error_load_project_backups">Impossibile caricare i backup del progetto: %1$s</string>
 	<string name="backup_manager_error_delete_backup">Impossibile eliminare il backup: %1$s</string>
+	<string name="backup_manager_error_restore_backup">Failed to restore backup: %1$s</string>
 	<string name="backup_restore_dialog_title">Ripristina backup</string>
 	<string name="backup_restore_dialog_message">Attenzione: ripristinare questo backup sostituirà completamente il contenuto attuale del progetto. Tutti i file esistenti verranno eliminati e sostituiti con i dati del backup. Questa azione non può essere annullata.</string>
 	<string name="backup_restore_dialog_confirm">Ripristina</string>
