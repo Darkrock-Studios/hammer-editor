@@ -56,6 +56,8 @@
 	<string name="merge_projects_replace_confirm_title">Delete all local projects?</string>
 	<string name="merge_projects_replace_confirm_message">This permanently deletes every project on this device and replaces them with the projects from the server. This cannot be undone.</string>
 	<string name="merge_projects_replace_confirm_button">Delete and Replace</string>
+	<string name="settings_automatic_update_checks">Check for updates automatically</string>
+	<string name="settings_automatic_update_checks_hint">Looks for a new release on GitHub shortly after launch and every few hours. Nothing is downloaded or installed until you choose to update.</string>
 	<string name="settings_platform_settings_title">Plattform-Einstellungen</string>
 	<string name="settings_platform_settings_empty">Keine plattformspezifischen Einstellungen.</string>
 	<string name="settings_keep_screen_on">Bildschirm nicht ausschalten</string>
