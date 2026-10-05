@@ -72,7 +72,7 @@ jobs:
           timeout_minutes: 30
           max_attempts: 3
           shell: pwsh
-          command: ./gradlew :desktop:packageReleaseMsi -Pchannel=github
+          command: ./gradlew :desktop:packageReleaseMsi -Pchannel=github -Pformat=msi
 
       - name: Rename MSI Artifact
         shell: cmd
@@ -104,7 +104,7 @@ jobs:
           timeout_minutes: 30
           max_attempts: 3
           shell: pwsh
-          command: ./gradlew :desktop:packageReleaseExe -Pchannel=github
+          command: ./gradlew :desktop:packageReleaseExe -Pchannel=github -Pformat=exe
 
       - name: Rename EXE Artifact
         shell: cmd
@@ -129,6 +129,17 @@ jobs:
           endlocal
 
           echo Successfully renamed file to "hammer.exe"
+
+      - name: Write update digests
+        shell: pwsh
+        run: ./gradlew writeAssetDigests "-PassetFiles=desktop/build/installers/main-release/msi/hammer.msi,desktop/build/installers/main-release/exe/hammer.exe"
+
+      - name: Upload update digests
+        uses: actions/upload-artifact@v7
+        with:
+          name: update-digests-windows
+          path: desktop/build/installers/main-release/*/hammer.*.sha512
+          if-no-files-found: error
 
       - name: Create Release
         uses: ncipollo/release-action@339a81892b84b4eeb0f6e744e4574d79d0d9b8dd # v1.21.0
@@ -192,7 +203,7 @@ jobs:
         with:
           timeout_minutes: 30
           max_attempts: 3
-          command: ./gradlew :desktop:packageReleaseDeb -Pchannel=github
+          command: ./gradlew :desktop:packageReleaseDeb -Pchannel=github -Pformat=deb
 
       - name: Rename DEB Artifact
         run: |
@@ -216,7 +227,7 @@ jobs:
         with:
           timeout_minutes: 30
           max_attempts: 3
-          command: ./gradlew :desktop:packageReleaseRpm -Pchannel=github
+          command: ./gradlew :desktop:packageReleaseRpm -Pchannel=github -Pformat=rpm
 
       - name: Rename RPM Artifact
         run: |
@@ -240,7 +251,17 @@ jobs:
         with:
           timeout_minutes: 30
           max_attempts: 3
-          command: ./gradlew buildDistAppImage -Pchannel=appimage
+          command: ./gradlew buildDistAppImage -Pchannel=appimage -Pformat=appimage
+
+      - name: Write update digests
+        run: ./gradlew writeAssetDigests "-PassetFiles=desktop/build/installers/main-release/deb/hammer.deb,desktop/build/installers/main-release/rpm/hammer.rpm,desktop/build/installers/main-release/appimage/hammer.AppImage"
+
+      - name: Upload update digests
+        uses: actions/upload-artifact@v7
+        with:
+          name: update-digests-linux
+          path: desktop/build/installers/main-release/*/hammer.*.sha512
+          if-no-files-found: error
 
       - name: Create Release
         uses: ncipollo/release-action@339a81892b84b4eeb0f6e744e4574d79d0d9b8dd # v1.21.0
@@ -283,7 +304,7 @@ jobs:
         with:
           timeout_minutes: 30
           max_attempts: 3
-          command: ./gradlew :desktop:packageReleaseDmg -Pchannel=github
+          command: ./gradlew :desktop:packageReleaseDmg -Pchannel=github -Pformat=dmg
 
       - name: Rename DMG Artifact
         run: |
@@ -307,7 +328,7 @@ jobs:
         with:
           timeout_minutes: 30
           max_attempts: 3
-          command: ./gradlew :desktop:packageReleasePkg -Pchannel=github
+          command: ./gradlew :desktop:packageReleasePkg -Pchannel=github -Pformat=pkg
 
       - name: Rename PKG Artifact
         run: |
@@ -327,6 +348,16 @@ jobs:
           echo "File renamed successfully."
           echo "Contents of pkg directory:"
           ls -la
+
+      - name: Write update digests
+        run: ./gradlew writeAssetDigests "-PassetFiles=desktop/build/installers/main-release/dmg/hammer.dmg,desktop/build/installers/main-release/pkg/hammer.pkg"
+
+      - name: Upload update digests
+        uses: actions/upload-artifact@v7
+        with:
+          name: update-digests-macos
+          path: desktop/build/installers/main-release/*/hammer.*.sha512
+          if-no-files-found: error
 
       - name: Create Release
         uses: ncipollo/release-action@339a81892b84b4eeb0f6e744e4574d79d0d9b8dd # v1.21.0
@@ -593,6 +624,47 @@ jobs:
 
       - name: Fetch tags
         run: git fetch --depth=1 origin +refs/tags/*:refs/tags/*
+
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Gradle caching
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      # The desktop updater reads latest*.yml from the release. Each platform job hashed
+      # the installer it attached and handed the digest over as a workflow artifact, so
+      # nothing is downloaded back and no release lookup is needed. Attached before the
+      # draft flips, so a published release never exists without them.
+      - name: Collect update digests
+        uses: actions/download-artifact@v7
+        with:
+          pattern: update-digests-*
+          merge-multiple: true
+          path: ${{ runner.temp }}/update-digests
+
+      - name: Write update metadata
+        run: ./gradlew writeUpdateMetadata "-PreleaseDigestsDir=${{ runner.temp }}/update-digests" --no-daemon
+
+      - name: Attach update metadata
+        uses: ncipollo/release-action@339a81892b84b4eeb0f6e744e4574d79d0d9b8dd # v1.21.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          draft: true
+          prerelease: true
+          artifactErrorsFailBuild: true
+          allowUpdates: true
+          artifacts: "${{ github.workspace }}/build/update-metadata/latest.yml,${{ github.workspace }}/build/update-metadata/latest-mac.yml,${{ github.workspace }}/build/update-metadata/latest-linux.yml"
 
       - name: Get last tag message
         run: |

@@ -360,6 +360,7 @@ nucleus_decorated_window_material3 = { module = "dev.nucleusframework:nucleus.de
 nucleus_launcher_windows = { module = "dev.nucleusframework:nucleus.launcher-windows", version.ref = "nucleus" }
 nucleus_launcher_linux = { module = "dev.nucleusframework:nucleus.launcher-linux", version.ref = "nucleus" }
 nucleus_launcher_macos = { module = "dev.nucleusframework:nucleus.launcher-macos", version.ref = "nucleus" }
+nucleus_updater_runtime = { module = "dev.nucleusframework:nucleus.updater-runtime", version.ref = "nucleus" }
 
 [plugins]
 kotlin_multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
