@@ -9,6 +9,7 @@
 	<string name="settings_theme_label">Farbschema</string>
 	<string name="settings_theme_light">HELL</string>
 	<string name="settings_theme_dark">DUNKEL</string>
+	<string name="settings_theme_oled_black">OLED</string>
 	<string name="settings_theme_followsystem">SYSTEM</string>
 	<string name="settings_initial_screen_label">Anfangsbildschirm des Projekts</string>
 	<string name="settings_initial_screen_home">Startseite</string>
