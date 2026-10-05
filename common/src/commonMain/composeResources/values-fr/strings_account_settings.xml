@@ -84,6 +84,7 @@
 	<string name="backup_manager_error_load_backups">Échec du chargement des sauvegardes : %1$s</string>
 	<string name="backup_manager_error_load_project_backups">Échec du chargement des sauvegardes du projet : %1$s</string>
 	<string name="backup_manager_error_delete_backup">Échec de la suppression de la sauvegarde : %1$s</string>
+	<string name="backup_manager_error_restore_backup">Failed to restore backup: %1$s</string>
 	<string name="backup_restore_dialog_title">Restaurer la sauvegarde</string>
 	<string name="backup_restore_dialog_message">Avertissement : la restauration de cette sauvegarde remplacera entièrement le contenu actuel du projet. Tous les fichiers existants seront supprimés et remplacés par les données de la sauvegarde. Cette action est irréversible.</string>
 	<string name="backup_restore_dialog_confirm">Restaurer</string>
