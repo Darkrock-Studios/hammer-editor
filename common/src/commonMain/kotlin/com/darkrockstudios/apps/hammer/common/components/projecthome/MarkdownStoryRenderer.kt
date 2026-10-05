@@ -7,12 +7,13 @@ fun writeStoryAsMarkdown(
 	projectName: String,
 	chapters: List<StoryChapter>,
 	treatTopLevelAsChapters: Boolean,
+	numberChapters: Boolean = false,
 ) {
 	sink.writeUtf8("# $projectName\n\n")
 
 	chapters.forEachIndexed { index, chapter ->
 		if (treatTopLevelAsChapters) {
-			sink.writeUtf8("\n## ${index + 1}. ${chapter.name}\n\n")
+			sink.writeUtf8("\n## ${chapterTitle(index, chapter, numberChapters)}\n\n")
 		} else if (index > 0) {
 			sink.writeUtf8("\n\n")
 		}

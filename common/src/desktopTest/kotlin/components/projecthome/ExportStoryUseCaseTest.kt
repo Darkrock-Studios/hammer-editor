@@ -56,7 +56,7 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 	)
 
 	@Test
-	fun `markdown export renders project title, numbered chapters, and group children`() = runTest {
+	fun `markdown export renders project title, chapters, and group children`() = runTest {
 		initRepo()
 
 		val exportPath = useCase().execute(
@@ -277,6 +277,43 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 	}
 
 	@Test
+	fun `markdown chapter headings are numbered on request`() = runTest {
+		initRepo()
+
+		val exportPath = useCase().execute(
+			exportDir = projectPath,
+			options = ExportOptions(
+				format = ExportFormat.Markdown,
+				treatTopLevelAsChapters = true,
+				numberChapters = true,
+			),
+		)
+
+		val text = ffs.read(exportPath.toOkioPath()) { readByteArray() }.decodeToString()
+		assertTrue("## 1. Scene ID 1" in text, text)
+		assertTrue("## 2. Chapter ID 2" in text, text)
+	}
+
+	@Test
+	fun `scene breaks survive when blank lines are skipped`() = runTest {
+		initRepo()
+		storedProjectData = StoredProjectData(data = ProjectData(authorName = "Test Author"))
+
+		val exportPath = useCase().execute(
+			exportDir = projectPath,
+			options = ExportOptions(
+				format = ExportFormat.Rtf,
+				keepBlankLines = false,
+				sceneIds = setOf(3, 4),
+			),
+		)
+
+		val rtf = ffs.read(exportPath.toOkioPath()) { readByteArray() }.decodeToString()
+		// \fi360 opens a body paragraph: the two scenes and the break between them.
+		assertEquals(3, Regex("""\\fi360""").findAll(rtf).count(), rtf)
+	}
+
+	@Test
 	fun `scene filter drops chapters with no selected scenes`() = runTest {
 		initRepo()
 
@@ -294,7 +331,7 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 			# Test Project 1
 
 
-			## 1. Scene ID 6
+			## Scene ID 6
 
 			Content of scene id 6
 		""".trimIndent()
@@ -388,11 +425,11 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 			# Test Project 1
 
 
-			## 1. Scene ID 1
+			## Scene ID 1
 
 			Content of scene id 1
 
-			## 2. Chapter ID 2
+			## Chapter ID 2
 
 			Content of scene id 4
 		""".trimIndent()
@@ -401,11 +438,11 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 			# Test Project 1
 
 
-			## 1. Scene ID 1
+			## Scene ID 1
 
 			Content of scene id 1
 
-			## 2. Chapter ID 2
+			## Chapter ID 2
 
 			Content of scene id 3
 
@@ -413,11 +450,11 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 
 			Content of scene id 5
 
-			## 3. Scene ID 6
+			## Scene ID 6
 
 			Content of scene id 6
 
-			## 4. Scene ID 7
+			## Scene ID 7
 
 			Content of scene id 7
 		""".trimIndent()
