@@ -14,6 +14,7 @@ import okio.FileSystem
 import okio.IOException
 import okio.Path
 import okio.Path.Companion.toPath
+import okio.ForwardingFileSystem
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
@@ -420,6 +421,55 @@ class ProjectBackupRepositoryTest {
 		writeBackupFile("Deleted", Instant.parse("2025-12-27T10:00:00Z"))
 
 		assertEquals(listOf(kept, deleted), realRepo().getBackedUpProjects())
+	}
+
+	@Test
+	fun `getBackedUpProjects lists a missing project once when it has legacy and current backups`() {
+		every { projectsRepository.getProjectsDirectory() } returns "/projects".toPath().toHPath()
+
+		val deleted = ProjectDef("My Story", "/projects/My Story".toPath().toHPath())
+		every { projectsRepository.getProjects(any()) } returns emptyList()
+		every { projectsRepository.getProjectDefinition("My Story") } returns deleted
+
+		val legacy = writeBackupFile("My Story", Instant.parse("2025-12-26T10:00:00Z"))
+		fileSystem.write(legacy.parent!! / "My Story-2025-12-27T100000Z.zip") { writeUtf8("zip") }
+
+		assertEquals(listOf(deleted), realRepo().getBackedUpProjects())
+	}
+
+	@Test
+	fun `restoreBackup leaves the project untouched when it cannot be replaced`() = runTest {
+		every { clock.now() } returns Instant.parse("2025-12-28T16:29:00Z")
+		every { projectsRepository.getProjectsDirectory() } returns "/projects".toPath().toHPath()
+		every { projectsRepository.getProjectDirectory("Test Project") } returns
+			"/projects/Test Project".toPath().toHPath()
+		every { globalSettingsStore.globalSettings } returns
+			GlobalSettings(projectsDirectory = "/projects", maxBackups = 5)
+
+		val projectDir = "/projects/Test Project".toPath()
+		fileSystem.createDirectories(projectDir)
+		fileSystem.write(projectDir / "project.toml") { writeUtf8("original") }
+
+		val repo = realRepo()
+		val projectDef = ProjectDef("Test Project", projectDir.toHPath())
+		val backupDef = repo.createBackup(projectDef)
+		assertNotNull(backupDef)
+
+		fileSystem.write(projectDir / "project.toml") { writeUtf8("changed") }
+		fileSystem.write(projectDir / "notes.md") { writeUtf8("newer work") }
+
+		val failingSwap = object : ForwardingFileSystem(fileSystem) {
+			override fun atomicMove(source: Path, target: Path) {
+				if (target == projectDir && "new" in source.segments) throw IOException("locked")
+				super.atomicMove(source, target)
+			}
+		}
+		val failingRepo = ProjectBackupRepository(failingSwap, projectsRepository, globalSettingsStore, clock)
+
+		assertFalse(failingRepo.restoreBackup(backupDef, projectDef.path))
+
+		assertEquals("changed", fileSystem.read(projectDir / "project.toml") { readUtf8() })
+		assertEquals("newer work", fileSystem.read(projectDir / "notes.md") { readUtf8() })
 	}
 
 	@Test
