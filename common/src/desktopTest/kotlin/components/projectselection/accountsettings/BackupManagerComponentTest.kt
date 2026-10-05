@@ -5,9 +5,9 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.BackupManagerService
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupDef
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupRepository
-import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.util.StrRes
+import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
@@ -30,12 +30,10 @@ import kotlin.time.Instant
 class BackupManagerComponentTest : ComponentTest() {
 
 	private lateinit var backupRepository: ProjectBackupRepository
-	private lateinit var projectsRepository: ProjectsRepository
 	private lateinit var backupManagerService: BackupManagerService
 
 	private val projAlpha = ProjectDef("Alpha", HPath("/projects/Alpha", "Alpha", false))
 	private val projZulu = ProjectDef("Zulu", HPath("/projects/Zulu", "Zulu", false))
-	private val projNoBackups = ProjectDef("NoBackups", HPath("/projects/NoBackups", "NoBackups", false))
 
 	private val alphaOld = backup(projAlpha, "alpha-old.zip", at = 100)
 	private val alphaNew = backup(projAlpha, "alpha-new.zip", at = 200)
@@ -56,17 +54,14 @@ class BackupManagerComponentTest : ComponentTest() {
 		alphaBackups = listOf(alphaOld, alphaNew)
 
 		backupRepository = mockk(relaxed = true)
-		projectsRepository = mockk(relaxed = true)
 		backupManagerService = mockk(relaxed = true)
 
-		every { projectsRepository.getProjects() } returns listOf(projAlpha, projZulu, projNoBackups)
+		every { backupRepository.getBackedUpProjects() } returns listOf(projAlpha, projZulu)
 		every { backupRepository.getBackups(projAlpha) } answers { alphaBackups }
 		every { backupRepository.getBackups(projZulu) } returns listOf(zuluBackup)
-		every { backupRepository.getBackups(projNoBackups) } returns emptyList()
 
 		setupKoin(module {
 			single { backupRepository }
-			single { projectsRepository }
 			single { backupManagerService }
 			single<StrRes> { TestStrRes() }
 		})
@@ -99,7 +94,7 @@ class BackupManagerComponentTest : ComponentTest() {
 
 	@Test
 	fun `a failure while loading projects surfaces an error`() = runTest(mainTestDispatcher) {
-		every { projectsRepository.getProjects() } throws RuntimeException("disk exploded")
+		every { backupRepository.getBackedUpProjects() } throws RuntimeException("disk exploded")
 
 		val comp = newComponent()
 		context.resume()
@@ -166,6 +161,20 @@ class BackupManagerComponentTest : ComponentTest() {
 		advanceUntilIdle()
 
 		coVerify(exactly = 1) { backupRepository.restoreBackup(alphaNew, projAlpha.path) }
+	}
+
+	@Test
+	fun `a failed restore surfaces an error`() = runTest(mainTestDispatcher) {
+		coEvery { backupRepository.restoreBackup(any(), any()) } returns false
+
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		comp.restoreBackup(alphaNew)
+		advanceUntilIdle()
+
+		assertNotNull(comp.state.value.error)
 	}
 
 	@Test

@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.projectbackup
 
+import com.darkrockstudios.apps.hammer.base.validate.validateProjectName
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
@@ -10,6 +11,8 @@ import com.darkrockstudios.apps.hammer.common.util.format
 import com.darkrockstudios.apps.hammer.common.util.zip.unzipToDirectory
 import com.darkrockstudios.apps.hammer.common.util.zip.zipDirectory
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.datetime.*
 import okio.FileNotFoundException
 import okio.FileSystem
@@ -25,6 +28,8 @@ open class ProjectBackupRepository(
 	protected val globalSettingsStore: GlobalSettingsStore,
 	protected val clock: Clock
 ) : KoinComponent {
+
+	private val restoreLock = Mutex()
 
 	fun getBackupsDirectory(): HPath {
 		val dir = (projectsRepository.getProjectsDirectory().toOkioPath() / BACKUP_DIRECTORY)
@@ -175,21 +180,90 @@ open class ProjectBackupRepository(
 	}
 
 	open suspend fun restoreBackup(backupDef: ProjectBackupDef, targetDir: HPath): Boolean {
-		return try {
-			val targetOkioPath = targetDir.toOkioPath()
-			fileSystem.deleteRecursively(targetOkioPath)
-			fileSystem.createDirectories(targetOkioPath)
+		val targetOkioPath = targetDir.toOkioPath()
+		val staging = getBackupsDirectory().toOkioPath() / RESTORE_STAGING_DIRECTORY
+		val extracted = staging / "new"
+		val displaced = staging / "old"
 
-			unzipToDirectory(
-				fileSystem = fileSystem,
-				zipPath = backupDef.path.toOkioPath(),
-				destinationDirectory = targetOkioPath
-			)
-			true
-		} catch (e: Exception) {
-			Napier.e("Failed to restore backup: ${backupDef.path.name}", e)
-			false
+		return restoreLock.withLock {
+			try {
+				fileSystem.deleteRecursively(staging)
+				fileSystem.createDirectories(extracted)
+
+				unzipToDirectory(
+					fileSystem = fileSystem,
+					zipPath = backupDef.path.toOkioPath(),
+					destinationDirectory = extracted
+				)
+
+				swapIntoPlace(archiveRoot(extracted), targetOkioPath, displaced)
+				true
+			} catch (e: Exception) {
+				Napier.e("Failed to restore backup: ${backupDef.path.name}", e)
+				false
+			} finally {
+				try {
+					fileSystem.deleteRecursively(staging)
+				} catch (e: IOException) {
+					Napier.w("Failed to clean up restore staging directory", e)
+				}
+			}
 		}
+	}
+
+	// The current project is moved aside, not deleted, so it can be put back if the swap fails.
+	private fun swapIntoPlace(restored: Path, target: Path, displaced: Path) {
+		val hadExisting = fileSystem.exists(target)
+		if (hadExisting) {
+			fileSystem.atomicMove(target, displaced)
+		} else {
+			target.parent?.let { fileSystem.createDirectories(it) }
+		}
+
+		try {
+			fileSystem.atomicMove(restored, target)
+		} catch (e: IOException) {
+			if (hadExisting) fileSystem.atomicMove(displaced, target)
+			throw e
+		}
+	}
+
+	// Backup archives hold the project inside a single directory named after the project.
+	private fun archiveRoot(extracted: Path): Path {
+		val onlyChild = fileSystem.list(extracted).singleOrNull() ?: return extracted
+		return if (fileSystem.metadata(onlyChild).isDirectory) onlyChild else extracted
+	}
+
+	/**
+	 * Every project that has at least one backup, including projects that no longer exist on
+	 * disk, so a deleted project can still be restored from its backups.
+	 */
+	fun getBackedUpProjects(): List<ProjectDef> {
+		val backupKeys = fileSystem.list(getBackupsDirectory().toOkioPath())
+			.mapNotNull { FILE_NAME_PATTERN.matchEntire(it.name)?.groups?.get(1)?.value }
+			.toSet()
+
+		val projects = projectsRepository.getProjects()
+		val existing = projects.filter { project ->
+			backupKeysForProject(project.name).any { it in backupKeys }
+		}
+
+		val claimedKeys = projects.flatMap { backupKeysForProject(it.name) }.toSet()
+		val missingNames = (backupKeys - claimedKeys)
+			.map { ProjectsRepository.decodeFromFilename(it) }
+			.filter { validateProjectName(it) }
+			.distinct()
+
+		// A legacy-named backup belongs to the project whose current name also has backups.
+		val legacyAliases = missingNames
+			.filter { legacyBackupName(it) != it }
+			.map { legacyBackupName(it) }
+			.toSet()
+		val missing = missingNames
+			.filterNot { it in legacyAliases }
+			.map { projectsRepository.getProjectDefinition(it) }
+
+		return existing + missing
 	}
 
 	private fun localDateTime(dateTimeStr: String): LocalDateTime {
@@ -213,6 +287,7 @@ open class ProjectBackupRepository(
 
 	companion object {
 		const val BACKUP_DIRECTORY = ".backups"
+		private const val RESTORE_STAGING_DIRECTORY = ".restore"
 		val FILE_NAME_PATTERN = Regex("^(.+)-(\\d{4}-\\d{2}-\\d{2}T\\d+Z)\\.zip$")
 		val DATE_PATTERN = Regex("^(\\d{4})-(\\d{2})-(\\d{2})T(\\d{2})(\\d{2})(\\d{2})Z$")
 	}
