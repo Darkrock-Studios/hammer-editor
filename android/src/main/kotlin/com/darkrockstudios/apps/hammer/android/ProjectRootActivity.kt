@@ -109,7 +109,7 @@ class ProjectRootActivity : AppCompatActivity() {
 				val settingsState by globalSettings.subscribeAsState()
 				val isDark = when (settingsState.uiTheme) {
 					UiTheme.Light -> false
-					UiTheme.Dark -> true
+					UiTheme.Dark, UiTheme.OledBlack -> true
 					UiTheme.FollowSystem -> isSystemInDarkTheme()
 				}
 

@@ -93,6 +93,7 @@ data class SpellCheckerSettings(
 enum class UiTheme {
 	Light,
 	Dark,
+	OledBlack,
 	FollowSystem
 }
 
