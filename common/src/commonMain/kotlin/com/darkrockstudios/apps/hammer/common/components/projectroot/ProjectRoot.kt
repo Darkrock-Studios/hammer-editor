@@ -121,5 +121,5 @@ interface ProjectRoot : AppCloseManager, HammerComponent, BackHandlerOwner {
 	fun cancelCloseRequest()
 
 	/** Drops the unsaved work behind [item] so a following sync or close cannot persist it. */
-	fun discardUnsaved(item: CloseConfirm)
+	suspend fun discardUnsaved(item: CloseConfirm)
 }

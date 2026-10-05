@@ -12,7 +12,6 @@ import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.UpdateSource
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneContentRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.findById
@@ -21,7 +20,6 @@ import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import io.github.aakira.napier.Napier
-import kotlinx.coroutines.delay
 
 class ClientSceneSynchronizer(
 	projectDef: ProjectDef,
@@ -76,9 +74,8 @@ class ClientSceneSynchronizer(
 		)
 	}
 
-	override suspend fun prepareForSync() {
-		sceneEditorService.storeAllBuffers()
-	}
+	/** Unsaved buffers are left alone: whether they join the project is the user's call, not sync's. */
+	override suspend fun prepareForSync() = Unit
 
 	override suspend fun ownsEntity(id: Int): Boolean {
 		return sceneEditorRepository.getSceneItemFromId(id) != null
@@ -353,12 +350,7 @@ class ClientSceneSynchronizer(
 	override suspend fun finalizeSync() {
 		sceneEditorRepository.rationalizeTree()
 		sceneEditorRepository.cleanupSceneOrder()
-
-		// Wait for buffers to propagate before we save them
-		delay(SceneContentRepository.BUFFER_COOL_DOWN * 0.25)
-
 		sceneEditorRepository.forceSceneListReload()
-		sceneEditorService.storeAllBuffers()
 	}
 
 	override fun getEntityType() = EntityType.Scene

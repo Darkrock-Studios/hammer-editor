@@ -366,6 +366,16 @@ class SceneSynchronizerTest : BaseTest() {
 	}
 
 	@Test
+	fun `prepare and finalize never persist unsaved buffers`() = runTest {
+		val sync = defaultSceneSynchronizer()
+
+		sync.prepareForSync()
+		sync.finalizeSync()
+
+		coVerify(exactly = 0) { sceneEditorService.storeAllBuffers() }
+	}
+
+	@Test
 	fun `ownsEntity - includes archived scenes`() = runTest {
 		////////////////////
 		// Setup

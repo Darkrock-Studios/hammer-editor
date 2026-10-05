@@ -227,6 +227,28 @@ class NotesComponentTest : ComponentTest() {
 	}
 
 	@Test
+	fun `discardUnsaved clears a dirty note edit beneath a create screen`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.showViewNote(1)
+		advanceUntilIdle()
+		val view = assertIs<Notes.Destination.ViewNoteDestination>(comp.stack.value.active.instance)
+		view.component.beginEdit()
+		view.component.onContentChanged("changed body")
+		comp.showCreateNote()
+		advanceUntilIdle()
+		assertEquals(setOf(CloseConfirm.Notes), comp.shouldConfirmClose())
+
+		comp.discardUnsaved(CloseConfirm.Notes)
+		advanceUntilIdle()
+
+		assertIs<Notes.Destination.ViewNoteDestination>(comp.stack.value.active.instance)
+		assertFalse(view.component.state.value.isEditing)
+		assertEquals(emptySet(), comp.shouldConfirmClose())
+	}
+
+	@Test
 	fun `discardUnsaved ignores other confirmation types`() = runTest(mainTestDispatcher) {
 		val comp = newComponent()
 		context.resume()

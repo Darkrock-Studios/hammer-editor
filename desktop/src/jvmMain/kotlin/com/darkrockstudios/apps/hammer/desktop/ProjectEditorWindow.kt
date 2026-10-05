@@ -174,9 +174,11 @@ internal fun NucleusApplicationScope.ProjectEditorWindow(
 						confirmCloseUnsavedNotesDialog(closeRequest) { result, closeType ->
 							when (result) {
 								ConfirmCloseResult.SaveAll -> error("Unhandled close type: $closeType")
-								ConfirmCloseResult.Discard -> {
+								ConfirmCloseResult.Discard -> scope.launch {
 									component.discardUnsaved(CloseConfirm.Notes)
-									component.closeRequestDealtWith(CloseConfirm.Notes)
+									withContext(mainDispatcher) {
+										component.closeRequestDealtWith(CloseConfirm.Notes)
+									}
 								}
 								ConfirmCloseResult.Cancel -> cancelClose()
 							}
@@ -187,9 +189,11 @@ internal fun NucleusApplicationScope.ProjectEditorWindow(
 						confirmCloseUnsavedEncyclopediaDialog(closeRequest) { result, closeType ->
 							when (result) {
 								ConfirmCloseResult.SaveAll -> error("Unhandled close type: $closeType")
-								ConfirmCloseResult.Discard -> {
+								ConfirmCloseResult.Discard -> scope.launch {
 									component.discardUnsaved(CloseConfirm.Encyclopedia)
-									component.closeRequestDealtWith(CloseConfirm.Encyclopedia)
+									withContext(mainDispatcher) {
+										component.closeRequestDealtWith(CloseConfirm.Encyclopedia)
+									}
 								}
 								ConfirmCloseResult.Cancel -> cancelClose()
 							}
@@ -200,9 +204,11 @@ internal fun NucleusApplicationScope.ProjectEditorWindow(
 						confirmCloseUnsavedTimelineDialog(closeRequest) { result, closeType ->
 							when (result) {
 								ConfirmCloseResult.SaveAll -> error("Unhandled close type: $closeType")
-								ConfirmCloseResult.Discard -> {
+								ConfirmCloseResult.Discard -> scope.launch {
 									component.discardUnsaved(CloseConfirm.Timeline)
-									component.closeRequestDealtWith(CloseConfirm.Timeline)
+									withContext(mainDispatcher) {
+										component.closeRequestDealtWith(CloseConfirm.Timeline)
+									}
 								}
 								ConfirmCloseResult.Cancel -> cancelClose()
 							}

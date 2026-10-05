@@ -332,6 +332,44 @@ class ProjectRootComponentTest : ComponentTest() {
 	}
 
 	@Test
+	fun `Home sync action goes through the gate`() = runTest(mainTestDispatcher) {
+		every { syncJournal.isServerSynchronized() } returns true
+		every { sceneEditor.hasDirtyBuffers() } returns true
+
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		val home = assertIs<ProjectRoot.Destination.HomeDestination>(comp.routerState.value.active.instance)
+		home.component.startProjectSync()
+		advanceUntilIdle()
+
+		assertEquals(listOf(CloseConfirm.Scenes, CloseConfirm.Sync), comp.closeRequestHandlers.value.toList())
+		assertIs<ProjectRoot.ModalDestination.None>(comp.modalRouterState.value.child?.instance)
+	}
+
+	@Test
+	fun `startProjectSync leaves a pending close request alone`() = runTest(mainTestDispatcher) {
+		every { syncJournal.isServerSynchronized() } returns true
+		every { sceneEditor.hasDirtyBuffers() } returns true
+		coEvery { syncJournal.shouldAutoSync() } returns false
+
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		comp.requestClose()
+		advanceUntilIdle()
+		val pending = comp.closeRequestHandlers.value
+
+		comp.startProjectSync()
+		advanceUntilIdle()
+
+		assertEquals(pending, comp.closeRequestHandlers.value)
+		assertTrue(CloseConfirm.Complete in comp.closeRequestHandlers.value)
+	}
+
+	@Test
 	fun `Sync dialog closing clears a pending sync request`() = runTest(mainTestDispatcher) {
 		every { syncJournal.isServerSynchronized() } returns true
 		every { sceneEditor.hasDirtyBuffers() } returns false

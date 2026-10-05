@@ -93,7 +93,7 @@ class ProjectRootComponent(
 		addMenu,
 		removeMenu,
 		::updateCloseConfirmRequirement,
-		::showProjectSync,
+		::startProjectSync,
 		::showGlobalSearch,
 		::showGlobalSearchForTag,
 		::showFocusMode,
@@ -236,6 +236,7 @@ class ProjectRootComponent(
 
 	override fun startProjectSync() {
 		if (!syncJournal.isServerSynchronized()) return
+		if (_closeRequestHandlers.value.isNotEmpty()) return
 		val list = unsavedConfirmations()
 		list.add(CloseConfirm.Sync)
 		_closeRequestHandlers.update { list }
@@ -355,12 +356,12 @@ class ProjectRootComponent(
 		_closeRequestHandlers.update { emptySet() }
 	}
 
-	override fun discardUnsaved(item: CloseConfirm) {
+	override suspend fun discardUnsaved(item: CloseConfirm) {
 		when (item) {
-			CloseConfirm.Scenes -> sceneEditor.discardAllBuffers()
+			CloseConfirm.Scenes -> withContext(dispatcherDefault) { sceneEditor.discardAllBuffers() }
 			CloseConfirm.Notes,
 			CloseConfirm.Encyclopedia,
-			CloseConfirm.Timeline -> router.discardUnsaved(item)
+			CloseConfirm.Timeline -> withContext(dispatcherMain) { router.discardUnsaved(item) }
 
 			CloseConfirm.Sync,
 			CloseConfirm.Complete -> Unit

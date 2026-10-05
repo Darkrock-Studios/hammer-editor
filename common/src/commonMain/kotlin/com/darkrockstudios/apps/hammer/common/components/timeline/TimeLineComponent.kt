@@ -115,28 +115,24 @@ class TimeLineComponent(
 	}
 
 	override fun shouldConfirmClose(): Set<CloseConfirm> {
-		val unsaved = when (val destination = stack.value.active.instance) {
-			is TimeLine.Destination.CreateEventDestination -> true
-			is TimeLine.Destination.ViewEventDestination -> {
-				destination.component.isEditingAndDirty()
-			}
+		val unsaved = stack.value.items.any { isUnsaved(it.instance) }
+		return if (unsaved) setOf(CloseConfirm.Timeline) else emptySet()
+	}
 
-			else -> false
-		}
-
-		return if (unsaved) {
-			setOf(CloseConfirm.Timeline)
-		} else {
-			emptySet()
-		}
+	private fun isUnsaved(destination: TimeLine.Destination) = when (destination) {
+		is TimeLine.Destination.CreateEventDestination -> true
+		is TimeLine.Destination.ViewEventDestination -> destination.component.isEditingAndDirty()
+		else -> false
 	}
 
 	override fun discardUnsaved(item: CloseConfirm) {
 		if (item != CloseConfirm.Timeline) return
-		when (val destination = stack.value.active.instance) {
-			is TimeLine.Destination.CreateEventDestination -> navigation.pop()
-			is TimeLine.Destination.ViewEventDestination -> destination.component.discardEdit()
-			else -> Unit
+		stack.value.items.forEach { child ->
+			val view = child.instance as? TimeLine.Destination.ViewEventDestination ?: return@forEach
+			if (view.component.state.value.isEditing) view.component.discardEdit()
+		}
+		if (stack.value.active.instance is TimeLine.Destination.CreateEventDestination) {
+			navigation.pop()
 		}
 	}
 
