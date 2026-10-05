@@ -1,7 +1,7 @@
 package com.darkrockstudios.apps.hammer.desktop
 
+import com.darkrockstudios.apps.hammer.base.DistributionChannel
 import com.darkrockstudios.apps.hammer.common.HostOs
-import com.darkrockstudios.apps.hammer.common.IS_APP_STORE
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_IO
 import com.darkrockstudios.apps.hammer.common.hostOs
@@ -34,7 +34,7 @@ val desktopModule: Module = module {
 		}
 	}
 	single<SandboxFileAccess> {
-		if (IS_APP_STORE && MacOsBookmarks.isAvailable) {
+		if (DistributionChannel.isMacAppStore && MacOsBookmarks.isAvailable) {
 			MacOsSandboxFileAccess(get())
 		} else {
 			NoopSandboxFileAccess

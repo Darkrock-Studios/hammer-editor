@@ -1,3 +1,5 @@
+import com.darkrockstudios.build.DistributionChannel
+import com.darkrockstudios.build.distributionChannel
 import com.darkrockstudios.build.registerLinuxDistributionTasks
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import java.util.zip.ZipFile
@@ -16,9 +18,8 @@ plugins {
 group = "com.darkrockstudios.apps.hammer.desktop"
 version = libs.versions.app.get()
 
-// -PmacOsAppStoreRelease=true -PbuildNumber=N enables App Store packaging.
-val isAppStoreRelease: Boolean =
-	(project.findProperty("macOsAppStoreRelease") as String?)?.toBoolean() ?: false
+// -Pchannel=mac-app-store -PbuildNumber=N enables App Store packaging.
+val isAppStoreRelease: Boolean = project.distributionChannel() == DistributionChannel.MAC_APP_STORE
 val macBuildNumber: String =
 	(project.findProperty("buildNumber") as String?) ?: "1"
 
@@ -154,7 +155,6 @@ compose.desktop {
 		}
 		jvmArgs("-Dcompose.application.configure.swing.globals=false")
 		if (isAppStoreRelease) {
-			jvmArgs("-Dhammer.app.store=true")
 			// Load libjnidispatch.jnilib from Contents/app/resources/, never extract.
 			jvmArgs("-Djna.nounpack=true", "-Djna.nosys=true")
 			// Lets Nucleus' System.loadLibrary find our pre-bundled signed dylibs

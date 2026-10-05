@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.desktop.sandbox
 
-import com.darkrockstudios.apps.hammer.common.IS_APP_STORE
+import com.darkrockstudios.apps.hammer.base.DistributionChannel
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.GlobalSettingsDatasource
 import io.github.aakira.napier.Napier
 import org.koin.java.KoinJavaComponent.getKoin
@@ -33,7 +33,7 @@ object SandboxStartup {
 	private fun str(key: String): String = SandboxStrings.get(key)
 
 	fun ensureProjectsDirAccess() {
-		if (!IS_APP_STORE) return
+		if (!DistributionChannel.isMacAppStore) return
 		if (!MacOsBookmarks.isAvailable) {
 			Napier.w("App Store flavor but bookmark dylib unavailable — projects-dir access likely to fail")
 			return

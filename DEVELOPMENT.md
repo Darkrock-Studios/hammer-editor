@@ -174,6 +174,11 @@ enum on purpose: every channel-conditional branch is a greppable `when` on the t
 Capability flags (`canSelfUpdate`, `isSandboxed`, …) can be introduced later, from real
 duplication rather than a guess at the axes.
 
+The build side reads the same token through `Project.distributionChannel()` in buildSrc:
+`desktop/build.gradle.kts` derives its Mac App Store packaging mode (`isAppStoreRelease`:
+sandbox entitlements, provisioning profiles, signing) from `-Pchannel=mac-app-store`. Together
+with `-PbuildNumber=N`, that is everything `build-appstore.sh` passes.
+
 Note that every branch compiles into every build, so a store-forbidden code path is
 physically present in a store binary even when unreachable. If a store ever objects to
 presence rather than behaviour, promote that one case to a real source set rather than
