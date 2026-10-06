@@ -66,22 +66,29 @@ fun parseAssetDigest(name: String, line: String): UpdateAsset {
 }
 
 /**
- * Builds every metadata file from the digest sidecars in [digestsDir], keyed by file name. A
- * required installer with no sidecar fails loudly: a yml that omits it would silently leave
- * that format with no update path.
+ * Builds every metadata file from the digest sidecars anywhere under [digestsDir], keyed by file
+ * name: upload-artifact keeps each installer's format subdirectory. A required installer with no
+ * sidecar fails loudly: a yml that omits it would silently leave that format with no update path.
  */
-fun updateMetadataFiles(digestsDir: File, version: String, releaseDate: String): Map<String, String> =
-	UPDATE_METADATA_FILES.mapValues { (metadataFile, names) ->
+fun updateMetadataFiles(digestsDir: File, version: String, releaseDate: String): Map<String, String> {
+	val sidecars = digestsDir.walk()
+		.filter { it.isFile && it.name.endsWith(DIGEST_SUFFIX) }
+		.groupBy { it.name }
+		.mapValues { (name, found) ->
+			found.singleOrNull() ?: error("$digestsDir has more than one $name: $found")
+		}
+	return UPDATE_METADATA_FILES.mapValues { (metadataFile, names) ->
 		val assets = names.mapNotNull { name ->
-			val sidecar = digestsDir.resolve(name + DIGEST_SUFFIX)
+			val sidecar = sidecars[name + DIGEST_SUFFIX]
 			when {
-				sidecar.isFile -> parseAssetDigest(name, sidecar.readText())
+				sidecar != null -> parseAssetDigest(name, sidecar.readText())
 				name in OPTIONAL_ASSETS -> null
-				else -> error("$metadataFile needs ${sidecar.name}, but $digestsDir has no such file")
+				else -> error("$metadataFile needs $name$DIGEST_SUFFIX, but $digestsDir has no such file")
 			}
 		}
 		renderUpdateMetadata(version, releaseDate, assets)
 	}
+}
 
 /**
  * Registers the two halves of the update metadata:
