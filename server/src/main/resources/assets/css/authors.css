@@ -314,15 +314,19 @@
 .pagination-button:hover:not(.pagination-button--disabled) {
 	border-color: var(--accent);
 	color: var(--accent);
+	background: var(--paper-white);
 	transform: translateY(-2px);
 	box-shadow: var(--shadow-md);
 }
 
-.pagination-button--disabled {
+.pagination-button--disabled,
+.pagination-button--disabled:hover {
 	color: var(--neutral-400);
 	border-color: var(--neutral-200);
 	background: var(--neutral-50);
 	cursor: not-allowed;
+	transform: none;
+	box-shadow: none;
 }
 
 .pagination-info {
