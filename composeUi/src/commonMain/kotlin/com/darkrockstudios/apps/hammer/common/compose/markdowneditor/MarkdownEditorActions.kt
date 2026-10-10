@@ -11,6 +11,7 @@ import com.darkrockstudios.texteditor.state.toggleBlockquote
 import com.darkrockstudios.texteditor.state.toggleBulletList
 import com.darkrockstudios.texteditor.state.toggleHeader
 import com.darkrockstudios.texteditor.state.toggleOrderedList
+import com.darkrockstudios.texteditor.state.toggleTaskList
 
 internal fun insertHorizontalRule(state: TextEditorState) {
 	// A table cell holds inline text alone, and a rule would break the table apart.
@@ -77,6 +78,10 @@ internal fun toggleBulletList(state: TextEditorState) {
 
 internal fun toggleOrderedList(state: TextEditorState) {
 	state.toggleOrderedList(selectedLines(state))
+}
+
+internal fun toggleTaskList(state: TextEditorState) {
+	state.toggleTaskList(selectedLines(state))
 }
 
 internal val HEADER_CYCLE_LEVELS = 1..3

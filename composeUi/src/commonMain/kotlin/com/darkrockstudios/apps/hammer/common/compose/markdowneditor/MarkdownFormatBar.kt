@@ -14,14 +14,18 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
+import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.material.icons.filled.FormatListNumbered
 import androidx.compose.material.icons.filled.FormatQuote
+import androidx.compose.material.icons.filled.Highlight
 import androidx.compose.material.icons.filled.HorizontalRule
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.TableChart
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -41,6 +45,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.PopupProperties
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.compose.LocalEditorTextStyle
 import com.darkrockstudios.apps.hammer.common.compose.boldShortcutModifier
@@ -63,6 +68,7 @@ import com.darkrockstudios.apps.hammer.markdown_format_bar_bullet_list
 import com.darkrockstudios.apps.hammer.markdown_format_bar_decrease_text_size
 import com.darkrockstudios.apps.hammer.markdown_format_bar_find_replace
 import com.darkrockstudios.apps.hammer.markdown_format_bar_heading
+import com.darkrockstudios.apps.hammer.markdown_format_bar_highlight
 import com.darkrockstudios.apps.hammer.markdown_format_bar_horizontal_rule
 import com.darkrockstudios.apps.hammer.markdown_format_bar_increase_text_size
 import com.darkrockstudios.apps.hammer.markdown_format_bar_italic
@@ -71,6 +77,20 @@ import com.darkrockstudios.apps.hammer.markdown_format_bar_redo
 import com.darkrockstudios.apps.hammer.markdown_format_bar_reset_text_size
 import com.darkrockstudios.apps.hammer.markdown_format_bar_text_size
 import com.darkrockstudios.apps.hammer.markdown_format_bar_strikethrough
+import com.darkrockstudios.apps.hammer.markdown_format_bar_table
+import com.darkrockstudios.apps.hammer.markdown_format_bar_table_align_center
+import com.darkrockstudios.apps.hammer.markdown_format_bar_table_align_left
+import com.darkrockstudios.apps.hammer.markdown_format_bar_table_align_right
+import com.darkrockstudios.apps.hammer.markdown_format_bar_table_column_left
+import com.darkrockstudios.apps.hammer.markdown_format_bar_table_column_right
+import com.darkrockstudios.apps.hammer.markdown_format_bar_table_delete
+import com.darkrockstudios.apps.hammer.markdown_format_bar_table_delete_column
+import com.darkrockstudios.apps.hammer.markdown_format_bar_table_delete_row
+import com.darkrockstudios.apps.hammer.markdown_format_bar_table_insert
+import com.darkrockstudios.apps.hammer.markdown_format_bar_table_row_above
+import com.darkrockstudios.apps.hammer.markdown_format_bar_table_row_below
+import com.darkrockstudios.apps.hammer.markdown_format_bar_table_to_text
+import com.darkrockstudios.apps.hammer.markdown_format_bar_task_list
 import com.darkrockstudios.apps.hammer.markdown_format_bar_undo
 import com.darkrockstudios.apps.hammer.more_menu_button
 import com.darkrockstudios.texteditor.TextEditorRange
@@ -78,19 +98,36 @@ import com.darkrockstudios.texteditor.markdown.MarkdownExtension
 import com.darkrockstudios.texteditor.richstyle.BlockquoteSpanStyle
 import com.darkrockstudios.texteditor.richstyle.BulletListSpanStyle
 import com.darkrockstudios.texteditor.richstyle.OrderedListSpanStyle
+import com.darkrockstudios.texteditor.richstyle.TableAlignment
 import com.darkrockstudios.texteditor.state.TextEditorState
+import com.darkrockstudios.texteditor.state.convertTableToText
+import com.darkrockstudios.texteditor.state.deleteTable
+import com.darkrockstudios.texteditor.state.deleteTableColumn
+import com.darkrockstudios.texteditor.state.deleteTableRow
 import com.darkrockstudios.texteditor.state.getRichSpansAtPosition
 import com.darkrockstudios.texteditor.state.getRichSpansInRange
 import com.darkrockstudios.texteditor.state.hasStyleThroughout
 import com.darkrockstudios.texteditor.state.headerLevel
+import com.darkrockstudios.texteditor.state.insertTable
+import com.darkrockstudios.texteditor.state.insertTableColumn
+import com.darkrockstudios.texteditor.state.insertTableRow
 import com.darkrockstudios.texteditor.state.isInlineOnlyLine
+import com.darkrockstudios.texteditor.state.isTask
 import com.darkrockstudios.texteditor.state.isTableCell
+import com.darkrockstudios.texteditor.state.setTableColumnAlignment
+import com.darkrockstudios.texteditor.state.tableCellAt
 import com.darkrockstudios.texteditor.state.toggleSpanStyle
 
+/**
+ * The editor's format bar. [extended] adds highlight, task lists and tables, which the
+ * exporters don't render as Hammer shows them: for text that is never exported (notes,
+ * entries, ideas, events), not scenes.
+ */
 @Composable
 fun MarkdownFormatBar(
 	markdownState: MarkdownExtension,
 	modifier: Modifier = Modifier.fillMaxWidth(),
+	extended: Boolean = false,
 	decreaseTextSize: (() -> Unit)? = null,
 	increaseTextSize: (() -> Unit)? = null,
 	resetTextSize: (() -> Unit)? = null,
@@ -99,10 +136,13 @@ fun MarkdownFormatBar(
 	var isBoldActive by remember { mutableStateOf(false) }
 	var isItalicActive by remember { mutableStateOf(false) }
 	var isStrikethroughActive by remember { mutableStateOf(false) }
+	var isHighlightActive by remember { mutableStateOf(false) }
+	var isTaskActive by remember { mutableStateOf(false) }
 	var isBlockquoteActive by remember { mutableStateOf(false) }
 	var isBulletListActive by remember { mutableStateOf(false) }
 	var isOrderedListActive by remember { mutableStateOf(false) }
 	var currentHeaderLevel by remember { mutableStateOf(0) }
+	var tableLine by remember { mutableStateOf<Int?>(null) }
 	var blocksRefused by remember { mutableStateOf(false) }
 	var ruleRefused by remember { mutableStateOf(false) }
 
@@ -111,6 +151,8 @@ fun MarkdownFormatBar(
 	// A table cell holds inline text alone: no list, heading or rule goes on it, and a rule
 	// would break a table a selection reaches into.
 	fun readCaretLine(line: Int, selection: TextEditorRange?) {
+		tableLine = line.takeIf { state.isTableCell(it) }
+		isTaskActive = state.isTask(line)
 		blocksRefused = state.isInlineOnlyLine(line)
 		ruleRefused = blocksRefused || selection != null && (state.isTableCell(selection.start.line) || state.isTableCell(selection.end.line))
 	}
@@ -133,6 +175,7 @@ fun MarkdownFormatBar(
 			isBoldActive = isActive(state.richTextStyles.boldStyle)
 			isItalicActive = isActive(state.richTextStyles.italicStyle)
 			isStrikethroughActive = isActive(state.richTextStyles.strikethroughStyle)
+			isHighlightActive = isActive(state.richTextStyles.highlightStyle)
 			isBlockquoteActive = richSpans.any { it.style === BlockquoteSpanStyle }
 			isBulletListActive = richSpans.any { it.style is BulletListSpanStyle }
 			isOrderedListActive = richSpans.any { it.style is OrderedListSpanStyle }
@@ -144,7 +187,7 @@ fun MarkdownFormatBar(
 	LaunchedEffect(Unit) {
 		state.editOperations.collect {
 			reconcileHorizontalRules(state)
-			// An edit can make the caret's line a table cell without moving the caret.
+			// A table edit can leave the caret where it was.
 			readCaretLine(state.cursorPosition.line, state.selector.selection)
 		}
 	}
@@ -165,10 +208,14 @@ fun MarkdownFormatBar(
 				isBoldActive = isBoldActive,
 				isItalicActive = isItalicActive,
 				isStrikethroughActive = isStrikethroughActive,
+				isHighlightActive = isHighlightActive,
+				isTaskActive = isTaskActive,
+				extended = extended,
 				isBlockquoteActive = isBlockquoteActive,
 				isBulletListActive = isBulletListActive,
 				isOrderedListActive = isOrderedListActive,
 				currentHeaderLevel = currentHeaderLevel,
+				tableLine = tableLine,
 				blocksRefused = blocksRefused,
 				ruleRefused = ruleRefused,
 			)
@@ -199,10 +246,14 @@ private fun RowScope.FormatButtons(
 	isBoldActive: Boolean,
 	isItalicActive: Boolean,
 	isStrikethroughActive: Boolean,
+	isHighlightActive: Boolean,
+	isTaskActive: Boolean,
+	extended: Boolean,
 	isBlockquoteActive: Boolean,
 	isBulletListActive: Boolean,
 	isOrderedListActive: Boolean,
 	currentHeaderLevel: Int,
+	tableLine: Int?,
 	blocksRefused: Boolean,
 	ruleRefused: Boolean,
 ) {
@@ -235,6 +286,16 @@ private fun RowScope.FormatButtons(
 			active = isStrikethroughActive,
 		) {
 			state.toggleSpanStyle(state.richTextStyles.strikethroughStyle)
+		}
+	}
+	if (extended) {
+		EditorTooltip(Res.string.markdown_format_bar_highlight.get()) {
+			EditorAction(
+				icon = Icons.Default.Highlight,
+				active = isHighlightActive,
+			) {
+				state.toggleSpanStyle(state.richTextStyles.highlightStyle)
+			}
 		}
 	}
 	EditorTooltip(Res.string.markdown_format_bar_heading.get()) {
@@ -273,6 +334,17 @@ private fun RowScope.FormatButtons(
 			toggleOrderedList(state)
 		}
 	}
+	if (extended) {
+		EditorTooltip(Res.string.markdown_format_bar_task_list.get()) {
+			EditorAction(
+				icon = Icons.Default.Checklist,
+				active = isTaskActive,
+				enabled = !blocksRefused,
+			) {
+				toggleTaskList(state)
+			}
+		}
+	}
 	EditorTooltip(Res.string.markdown_format_bar_horizontal_rule.get()) {
 		EditorAction(
 			icon = Icons.Default.HorizontalRule,
@@ -280,6 +352,54 @@ private fun RowScope.FormatButtons(
 			enabled = !ruleRefused,
 		) {
 			insertHorizontalRule(state)
+		}
+	}
+	if (extended) TableMenu(state, tableLine)
+}
+
+/**
+ * The table button: off a table it inserts one; in a table it adds and removes rows
+ * and columns, aligns the caret's column, or turns the table back into text.
+ */
+@Composable
+private fun TableMenu(state: TextEditorState, tableLine: Int?) {
+	var open by remember { mutableStateOf(false) }
+	Box {
+		EditorTooltip(Res.string.markdown_format_bar_table.get()) {
+			EditorAction(
+				icon = Icons.Default.TableChart,
+				active = tableLine != null,
+			) {
+				open = true
+			}
+		}
+		// Not focusable, so the editor keeps focus and typing goes on in the table.
+		DropdownMenu(expanded = open, onDismissRequest = { open = false }, properties = PopupProperties(focusable = false)) {
+			@Composable
+			fun item(label: String, action: () -> Unit) = DropdownMenuItem(text = { Text(label) }, onClick = {
+				open = false
+				action()
+			})
+			val line = tableLine
+			if (line == null) {
+				item(Res.string.markdown_format_bar_table_insert.get(2, 2)) { state.insertTable(rows = 2, columns = 2) }
+				item(Res.string.markdown_format_bar_table_insert.get(3, 3)) { state.insertTable(rows = 3, columns = 3) }
+			} else {
+				val column = state.tableCellAt(line)?.column ?: 0
+				item(Res.string.markdown_format_bar_table_row_above.get()) { state.insertTableRow(line, below = false) }
+				item(Res.string.markdown_format_bar_table_row_below.get()) { state.insertTableRow(line, below = true) }
+				item(Res.string.markdown_format_bar_table_column_left.get()) { state.insertTableColumn(line, after = false) }
+				item(Res.string.markdown_format_bar_table_column_right.get()) { state.insertTableColumn(line, after = true) }
+				HorizontalDivider()
+				item(Res.string.markdown_format_bar_table_align_left.get()) { state.setTableColumnAlignment(line, column, TableAlignment.LEFT) }
+				item(Res.string.markdown_format_bar_table_align_center.get()) { state.setTableColumnAlignment(line, column, TableAlignment.CENTER) }
+				item(Res.string.markdown_format_bar_table_align_right.get()) { state.setTableColumnAlignment(line, column, TableAlignment.RIGHT) }
+				HorizontalDivider()
+				item(Res.string.markdown_format_bar_table_delete_row.get()) { state.deleteTableRow(line) }
+				item(Res.string.markdown_format_bar_table_delete_column.get()) { state.deleteTableColumn(line) }
+				item(Res.string.markdown_format_bar_table_to_text.get()) { state.convertTableToText(line) }
+				item(Res.string.markdown_format_bar_table_delete.get()) { state.deleteTable(line) }
+			}
 		}
 	}
 }
