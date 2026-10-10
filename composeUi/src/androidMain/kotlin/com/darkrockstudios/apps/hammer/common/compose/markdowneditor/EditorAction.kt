@@ -17,16 +17,17 @@ import org.jetbrains.compose.resources.ExperimentalResourceApi
 internal actual fun EditorAction(
 	icon: ImageVector,
 	active: Boolean,
+	enabled: Boolean,
 	onClick: () -> Unit
 ) {
 
 	val painter = rememberVectorPainter(icon)
 
-	IconButton(onClick = onClick) {
+	IconButton(onClick = onClick, enabled = enabled) {
 		Icon(
 			modifier = Modifier.size(24.dp),
 			painter = painter,
-			tint = if (active) MaterialTheme.colorScheme.inversePrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+			tint = editorActionColor(active, enabled),
 			contentDescription = null
 		)
 	}
@@ -36,13 +37,14 @@ internal actual fun EditorAction(
 internal actual fun EditorTextAction(
 	label: String,
 	active: Boolean,
+	enabled: Boolean,
 	onClick: () -> Unit,
 ) {
-	IconButton(onClick = onClick) {
+	IconButton(onClick = onClick, enabled = enabled) {
 		Text(
 			text = label,
 			style = MaterialTheme.typography.labelLarge,
-			color = if (active) MaterialTheme.colorScheme.inversePrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+			color = editorActionColor(active, enabled),
 		)
 	}
 }

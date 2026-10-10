@@ -73,14 +73,19 @@ import com.darkrockstudios.apps.hammer.markdown_format_bar_text_size
 import com.darkrockstudios.apps.hammer.markdown_format_bar_strikethrough
 import com.darkrockstudios.apps.hammer.markdown_format_bar_undo
 import com.darkrockstudios.apps.hammer.more_menu_button
+import com.darkrockstudios.texteditor.TextEditorRange
 import com.darkrockstudios.texteditor.markdown.MarkdownExtension
+import com.darkrockstudios.texteditor.richstyle.BlockquoteSpanStyle
 import com.darkrockstudios.texteditor.richstyle.BulletListSpanStyle
 import com.darkrockstudios.texteditor.richstyle.OrderedListSpanStyle
 import com.darkrockstudios.texteditor.state.TextEditorState
 import com.darkrockstudios.texteditor.state.getRichSpansAtPosition
 import com.darkrockstudios.texteditor.state.getRichSpansInRange
-import com.darkrockstudios.texteditor.state.getSpanStylesInRange
+import com.darkrockstudios.texteditor.state.hasStyleThroughout
 import com.darkrockstudios.texteditor.state.headerLevel
+import com.darkrockstudios.texteditor.state.isInlineOnlyLine
+import com.darkrockstudios.texteditor.state.isTableCell
+import com.darkrockstudios.texteditor.state.toggleSpanStyle
 
 @Composable
 fun MarkdownFormatBar(
@@ -98,34 +103,50 @@ fun MarkdownFormatBar(
 	var isBulletListActive by remember { mutableStateOf(false) }
 	var isOrderedListActive by remember { mutableStateOf(false) }
 	var currentHeaderLevel by remember { mutableStateOf(0) }
+	var blocksRefused by remember { mutableStateOf(false) }
+	var ruleRefused by remember { mutableStateOf(false) }
 
 	val state = remember(markdownState) { markdownState.editorState }
 
+	// A table cell holds inline text alone: no list, heading or rule goes on it, and a rule
+	// would break a table a selection reaches into.
+	fun readCaretLine(line: Int, selection: TextEditorRange?) {
+		blocksRefused = state.isInlineOnlyLine(line)
+		ruleRefused = blocksRefused || selection != null && (state.isTableCell(selection.start.line) || state.isTableCell(selection.end.line))
+	}
+
 	LaunchedEffect(Unit) {
 		state.cursorDataFlow.collect { (position, cursorStyles, selection) ->
-			val styles = if (selection != null) {
-				state.getSpanStylesInRange(selection)
-			} else {
-				cursorStyles
-			}
+			// Active exactly when the toggle would remove the style.
+			fun isActive(style: SpanStyle) =
+				if (selection != null && selection.start != selection.end) {
+					state.hasStyleThroughout(selection, style)
+				} else {
+					style in cursorStyles
+				}
 			val richSpans = if (selection != null) {
 				state.getRichSpansInRange(selection)
 			} else {
 				state.getRichSpansAtPosition(position)
 			}
 
-			isBoldActive = styles.contains(state.richTextStyles.boldStyle)
-			isItalicActive = styles.contains(state.richTextStyles.italicStyle)
-			isStrikethroughActive = styles.contains(state.richTextStyles.strikethroughStyle)
-			isBlockquoteActive = styles.contains(state.richTextStyles.blockquoteStyle)
-			isBulletListActive = richSpans.any { it.style === BulletListSpanStyle }
-			isOrderedListActive = richSpans.any { it.style === OrderedListSpanStyle }
+			isBoldActive = isActive(state.richTextStyles.boldStyle)
+			isItalicActive = isActive(state.richTextStyles.italicStyle)
+			isStrikethroughActive = isActive(state.richTextStyles.strikethroughStyle)
+			isBlockquoteActive = richSpans.any { it.style === BlockquoteSpanStyle }
+			isBulletListActive = richSpans.any { it.style is BulletListSpanStyle }
+			isOrderedListActive = richSpans.any { it.style is OrderedListSpanStyle }
 			currentHeaderLevel = state.headerLevel(selection?.start?.line ?: position.line) ?: 0
+			readCaretLine(position.line, selection)
 		}
 	}
 
 	LaunchedEffect(Unit) {
-		state.editOperations.collect { reconcileHorizontalRules(state) }
+		state.editOperations.collect {
+			reconcileHorizontalRules(state)
+			// An edit can make the caret's line a table cell without moving the caret.
+			readCaretLine(state.cursorPosition.line, state.selector.selection)
+		}
 	}
 
 	val showOverflow = decreaseTextSize != null || increaseTextSize != null ||
@@ -148,6 +169,8 @@ fun MarkdownFormatBar(
 				isBulletListActive = isBulletListActive,
 				isOrderedListActive = isOrderedListActive,
 				currentHeaderLevel = currentHeaderLevel,
+				blocksRefused = blocksRefused,
+				ruleRefused = ruleRefused,
 			)
 
 			if (compact) {
@@ -180,13 +203,15 @@ private fun RowScope.FormatButtons(
 	isBulletListActive: Boolean,
 	isOrderedListActive: Boolean,
 	currentHeaderLevel: Int,
+	blocksRefused: Boolean,
+	ruleRefused: Boolean,
 ) {
 	EditorTooltip("${Res.string.markdown_format_bar_bold.get()} (${shortcutHint("B")})") {
 		EditorAction(
 			icon = EditorIcons.IconBold,
 			active = isBoldActive,
 		) {
-			toggleStyle(state, state.richTextStyles.boldStyle)
+			state.toggleSpanStyle(state.richTextStyles.boldStyle)
 		}
 	}
 	EditorTooltip("${Res.string.markdown_format_bar_italic.get()} (${shortcutHint("I")})") {
@@ -194,7 +219,7 @@ private fun RowScope.FormatButtons(
 			icon = EditorIcons.IconItalic,
 			active = isItalicActive,
 		) {
-			toggleStyle(state, state.richTextStyles.italicStyle)
+			state.toggleSpanStyle(state.richTextStyles.italicStyle)
 		}
 	}
 	EditorTooltip(
@@ -209,13 +234,14 @@ private fun RowScope.FormatButtons(
 			icon = EditorIcons.IconStrikethrough,
 			active = isStrikethroughActive,
 		) {
-			toggleStyle(state, state.richTextStyles.strikethroughStyle)
+			state.toggleSpanStyle(state.richTextStyles.strikethroughStyle)
 		}
 	}
 	EditorTooltip(Res.string.markdown_format_bar_heading.get()) {
 		EditorTextAction(
 			label = if (currentHeaderLevel == 0) "H" else "H$currentHeaderLevel",
 			active = currentHeaderLevel != 0,
+			enabled = !blocksRefused,
 		) {
 			cycleHeader(state, currentHeaderLevel)
 		}
@@ -224,14 +250,16 @@ private fun RowScope.FormatButtons(
 		EditorAction(
 			icon = Icons.Default.FormatQuote,
 			active = isBlockquoteActive,
+			enabled = !blocksRefused,
 		) {
-			toggleStyle(state, state.richTextStyles.blockquoteStyle)
+			toggleBlockquote(state)
 		}
 	}
 	EditorTooltip(Res.string.markdown_format_bar_bullet_list.get()) {
 		EditorAction(
 			icon = Icons.AutoMirrored.Filled.FormatListBulleted,
 			active = isBulletListActive,
+			enabled = !blocksRefused,
 		) {
 			toggleBulletList(state)
 		}
@@ -240,6 +268,7 @@ private fun RowScope.FormatButtons(
 		EditorAction(
 			icon = Icons.Default.FormatListNumbered,
 			active = isOrderedListActive,
+			enabled = !blocksRefused,
 		) {
 			toggleOrderedList(state)
 		}
@@ -248,6 +277,7 @@ private fun RowScope.FormatButtons(
 		EditorAction(
 			icon = Icons.Default.HorizontalRule,
 			active = false,
+			enabled = !ruleRefused,
 		) {
 			insertHorizontalRule(state)
 		}
@@ -281,7 +311,8 @@ private fun HistoryAndOverflow(
 	EditorTooltip(Res.string.markdown_format_bar_undo.get()) {
 		EditorAction(
 			icon = EditorIcons.IconUndo,
-			active = state.canUndo
+			active = false,
+			enabled = state.canUndo,
 		) {
 			state.undo()
 		}
@@ -289,7 +320,8 @@ private fun HistoryAndOverflow(
 	EditorTooltip(Res.string.markdown_format_bar_redo.get()) {
 		EditorAction(
 			icon = EditorIcons.IconRedo,
-			active = state.canRedo
+			active = false,
+			enabled = state.canRedo,
 		) {
 			state.redo()
 		}
@@ -395,34 +427,7 @@ private fun TextSizeMenuRow(
 fun Modifier.markdownFormatShortcuts(markdownExtension: MarkdownExtension): Modifier {
 	val state = markdownExtension.editorState
 	return this
-		.boldShortcutModifier { toggleStyle(state, state.richTextStyles.boldStyle) }
-		.italicShortcutModifier { toggleStyle(state, state.richTextStyles.italicStyle) }
-		.strikethroughShortcutModifier { toggleStyle(state, state.richTextStyles.strikethroughStyle) }
-}
-
-/**
- * Toggles [spanStyle] over the current selection, or at the cursor when there is
- * no selection. The active state is read synchronously from the editor so this is
- * safe to call from a keyboard shortcut as well as a toolbar button.
- */
-private fun toggleStyle(
-	state: TextEditorState,
-	spanStyle: SpanStyle,
-) {
-	val selection = state.selector.selection
-	if (selection != null) {
-		val isActive = state.getSpanStylesInRange(selection).contains(spanStyle)
-		if (isActive) {
-			state.removeStyleSpan(selection, spanStyle)
-		} else {
-			state.addStyleSpan(selection, spanStyle)
-		}
-	} else {
-		val isActive = state.cursor.styles.contains(spanStyle)
-		if (isActive) {
-			state.cursor.removeStyle(spanStyle)
-		} else {
-			state.cursor.addStyle(spanStyle)
-		}
-	}
+		.boldShortcutModifier { state.toggleSpanStyle(state.richTextStyles.boldStyle) }
+		.italicShortcutModifier { state.toggleSpanStyle(state.richTextStyles.italicStyle) }
+		.strikethroughShortcutModifier { state.toggleSpanStyle(state.richTextStyles.strikethroughStyle) }
 }

@@ -22,19 +22,20 @@ import com.darkrockstudios.apps.hammer.common.compose.Ui
 internal actual fun EditorAction(
 	icon: ImageVector,
 	active: Boolean,
+	enabled: Boolean,
 	onClick: () -> Unit
 ) {
 	val painter = rememberVectorPainter(icon)
 
 	Box(
 		modifier = Modifier
-			.onClick { onClick() }
+			.onClick(enabled = enabled) { onClick() }
 			.padding(Ui.Padding.L)
 	) {
 		Icon(
 			modifier = Modifier.size(24.dp),
 			painter = painter,
-			tint = if (active) MaterialTheme.colorScheme.inversePrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+			tint = editorActionColor(active, enabled),
 			contentDescription = null
 		)
 	}
@@ -45,11 +46,12 @@ internal actual fun EditorAction(
 internal actual fun EditorTextAction(
 	label: String,
 	active: Boolean,
+	enabled: Boolean,
 	onClick: () -> Unit,
 ) {
 	Box(
 		modifier = Modifier
-			.onClick { onClick() }
+			.onClick(enabled = enabled) { onClick() }
 			.padding(Ui.Padding.L)
 			.defaultMinSize(minWidth = 24.dp, minHeight = 24.dp),
 		contentAlignment = Alignment.Center,
@@ -57,7 +59,7 @@ internal actual fun EditorTextAction(
 		Text(
 			text = label,
 			style = MaterialTheme.typography.labelLarge,
-			color = if (active) MaterialTheme.colorScheme.inversePrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+			color = editorActionColor(active, enabled),
 		)
 	}
 }
