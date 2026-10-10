@@ -87,7 +87,7 @@ fun MarkdownEditField(
 		}
 	) {
 		if (enabled && showFormatBar) {
-			MarkdownFormatBar(markdownState = markdownExtension)
+			MarkdownFormatBar(markdownState = markdownExtension, extended = true)
 		}
 		SpellCheckingTextEditor(
 			state = textEditorState,
