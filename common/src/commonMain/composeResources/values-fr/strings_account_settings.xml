@@ -37,10 +37,10 @@
 	<string name="settings_remove_server_dialog_message">Voulez-vous vraiment supprimer le serveur ?</string>
 	<string name="settings_server_setup_title">Configurer le serveur</string>
 	<string name="settings_server_setup_url_hint">URL du serveur : hammer.ink</string>
-	<string name="settings_server_setup_insecure_warning">Plain HTTP: your email, password and writing travel unencrypted. Only use this on a network you trust.</string>
+	<string name="settings_server_setup_insecure_warning">HTTP en clair : votre email, mot de passe et vos écrits non chiffrés. Utilisez cela uniquement sur un réseau de confiance.</string>
 	<string name="settings_server_setup_email_hint">E-mail : utilisateur@exemple.com</string>
 	<string name="settings_server_setup_password_hint">Mot de passe</string>
-	<string name="settings_server_setup_password_requirements">%1$d-%2$d characters</string>
+	<string name="settings_server_setup_password_requirements">%1$d-%2$d personnages</string>
 	<string name="settings_server_setup_password_show">Afficher le mot de passe</string>
 	<string name="settings_server_setup_password_hide">Masquer le mot de passe</string>
 	<string name="settings_server_setup_login_button">Se connecter</string>
@@ -53,11 +53,11 @@
 	<string name="merge_projects_explain_merge">Hammer fera correspondre vos projets locaux aux projets déjà présents sur le serveur. Les projets qui n'existent que sur le serveur seront téléchargés, et les projets présents en local seront téléversés sur le serveur.</string>
 	<string name="merge_projects_explain_replace">Tous vos projets locaux seront supprimés et remplacés par ceux présents sur le serveur.</string>
 	<string name="merge_projects_continue_button">Continuer</string>
-	<string name="merge_projects_replace_confirm_title">Delete all local projects?</string>
-	<string name="merge_projects_replace_confirm_message">This permanently deletes every project on this device and replaces them with the projects from the server. This cannot be undone.</string>
-	<string name="merge_projects_replace_confirm_button">Delete and Replace</string>
-	<string name="settings_automatic_update_checks">Check for updates automatically</string>
-	<string name="settings_automatic_update_checks_hint">Looks for a new release on GitHub shortly after launch and every few hours. Nothing is downloaded or installed until you choose to update.</string>
+	<string name="merge_projects_replace_confirm_title">Supprimer tous les projets locaux ?</string>
+	<string name="merge_projects_replace_confirm_message">Cela supprime de façon permanente tous les projets de cet appareil et les remplacera avec les projets présents sur le serveur. Cette action ne peut pas être annulé.</string>
+	<string name="merge_projects_replace_confirm_button">Supprimer et remplacer</string>
+	<string name="settings_automatic_update_checks">Vérifier automatiquement les mises à jour</string>
+	<string name="settings_automatic_update_checks_hint">Recherche les nouvelles versions sur GitHub peu après le lancement et toutes les heures. Rien n'est téléchargé ou installé sans votre intervention.</string>
 	<string name="settings_platform_settings_title">Paramètres de la plateforme</string>
 	<string name="settings_platform_settings_empty">Aucun paramètre spécifique à la plateforme.</string>
 	<string name="settings_keep_screen_on">Garder l'écran allumé</string>
@@ -74,8 +74,8 @@
 	<string name="settings_spellcheck_notice">Si cela pose problème, désactivez-la simplement.</string>
 	<string name="settings_spellcheck_enable">Activer la correction orthographique</string>
 	<string name="settings_spellcheck_in_focus_enable">Activer en mode concentration</string>
-	<string name="settings_spellcheck_encyclopedia_enable">Learn encyclopedia names</string>
-	<string name="settings_spellcheck_encyclopedia_enable_hint">Entry names and aliases won&#8217;t be marked as misspelled while their project is open</string>
+	<string name="settings_spellcheck_encyclopedia_enable">Apprendre les noms de l'encyclopédie</string>
+	<string name="settings_spellcheck_encyclopedia_enable_hint">Les noms d'entrés et les alias ne seront pas marqués comme mal orthographiés pendant que leur projet est ouvert</string>
 	<string name="settings_spellcheck_dictionary">Dictionnaire</string>
 	<string name="settings_spellcheck_dictionary_android_info_title">Langue de correction orthographique</string>
 	<string name="settings_spellcheck_dictionary_android_info_message">Sur Android, la langue de correction orthographique est choisie par votre appareil, pas par l'application. Pour la modifier, changez les langues de votre système et de votre clavier dans les paramètres Android.</string>
@@ -86,7 +86,7 @@
 	<string name="backup_manager_error_load_backups">Échec du chargement des sauvegardes : %1$s</string>
 	<string name="backup_manager_error_load_project_backups">Échec du chargement des sauvegardes du projet : %1$s</string>
 	<string name="backup_manager_error_delete_backup">Échec de la suppression de la sauvegarde : %1$s</string>
-	<string name="backup_manager_error_restore_backup">Failed to restore backup: %1$s</string>
+	<string name="backup_manager_error_restore_backup">Échec de la suppression de la sauvegarde : %1$s</string>
 	<string name="backup_restore_dialog_title">Restaurer la sauvegarde</string>
 	<string name="backup_restore_dialog_message">Avertissement : la restauration de cette sauvegarde remplacera entièrement le contenu actuel du projet. Tous les fichiers existants seront supprimés et remplacés par les données de la sauvegarde. Cette action est irréversible.</string>
 	<string name="backup_restore_dialog_confirm">Restaurer</string>
@@ -127,5 +127,5 @@
 	<string name="server_error_dns">Serveur introuvable. Vérifiez l'adresse du serveur et votre connexion Internet.</string>
 	<string name="server_error_connection_generic">Erreur réseau lors de la connexion à %1$s. Vérifiez votre connexion et réessayez.</string>
 	<string name="server_error_tls">Impossible d'établir une connection sécurisée à %1$s. Hammer se connecte uniquement via HTTPS, le serveur a besoin de son propre certificat TLS ou d'un proxy inverse qui lui en fournit un</string>
-	<string name="server_error_network_unavailable">Hammer could not open a network connection on this device, so the request never reached the server. Security software, a VPN, or a firewall may be blocking it.</string>
+	<string name="server_error_network_unavailable">Hammer ne peut pas établir une connexion réseau sur cet appareil, la requête ne peut donc pas atteindre le serveur. Un système de sécurité, un VPN ou un pare-feu peuvent être la source du problème.</string>
 </resources>

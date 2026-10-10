@@ -1,4 +1,4 @@
-Rejoignez notre Discord pour signaler les bugs ! https://discord.gg/GTmgjZcupk
+Rejoignez notre serveur Discord pour signaler les bugs ! https://discord.gg/GTmgjZcupk
 
 Multiplateforme
 
@@ -20,6 +20,6 @@ Synchronisation optionnelle et auto-hébergée
 
 La synchronisation est entièrement optionnelle, vous pouvez installer le client et l'utiliser sur votre appareil sans aucune action supplémentaire, ou vous pouvez installer un serveur pour la synchronisation entre vos appareils.
 
-Wear OS companion
+Wear OS compagnon
 
-Capture notes and story ideas from your wrist with the Wear OS app, then pick them up on your other devices. Dictate or type a quick note and file it under a project. Add the Capture tile to start a note or story idea in a single tap, or put the Hammer complication on your watch face to open a new note. The watch app syncs through your Hammer sync server.
+Capturer des notes et des idées pour vos histoires depuis votre poignet sur l'application Wear OS, puis récupérez-les sur vos autres appareils. Dictez ou écrivez une note rapide et assignez-la à l'un de vos projets Ajoutez la tuile « Capture » pour commencer une note ou une idée d'histoire d'une simple pression, ou placez la complication « Hammer » sur votre cadran pour ouvrir une nouvelle note. L'application sur votre montre se synchronise à travers votre serveur de synchronisation Hammer.
