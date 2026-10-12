@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectIdChangeListener
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataDatasource
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
@@ -89,6 +90,21 @@ class ProjectsRepositoryIdTest : ProjectsRepositoryBaseTest() {
 		repo.addProjectIdChangeListener { _, _, _ -> notified = true }
 
 		repo.setProjectId(proj2Def, project2Id)
+
+		assertFalse(notified)
+	}
+
+	@Test
+	fun `A removed listener is not told about later id changes`() = scope.runTest {
+		val proj2Def = getProjectDef(PROJECT_2_NAME)
+		createProject(ffs, PROJECT_2_NAME)
+		val repo = projectsRepository()
+		var notified = false
+		val listener = ProjectIdChangeListener { _, _, _ -> notified = true }
+		repo.addProjectIdChangeListener(listener)
+		repo.removeProjectIdChangeListener(listener)
+
+		repo.setProjectId(proj2Def, ProjectId("test-id"))
 
 		assertFalse(notified)
 	}

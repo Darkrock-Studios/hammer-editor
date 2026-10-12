@@ -124,7 +124,7 @@ class DefaultSyncCoordinatorTest {
 	fun `a subscription re-keyed during account sync still admits the project`() = runTest(dispatcher) {
 		subscriptions.setSubscribed(ProjectId("minted-on-the-watch"), true)
 		accountSync.behaviour = {
-			subscriptions.onProjectIdChanged(ProjectId("minted-on-the-watch"), ProjectId("a"), oldIdStillHeld = false)
+			subscriptions.onProjectIdChanged(ProjectId("minted-on-the-watch"), ProjectId("a"))
 			successResult()
 		}
 

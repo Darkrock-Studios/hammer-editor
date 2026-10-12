@@ -167,8 +167,10 @@ server project's `ProjectId` but no entities. Syncing content is opt-in per proj
   `GlobalSettings` field because that file is shared by every platform.
 - A project whose ID changes (adopting a server project by name, or a re-mint) keeps its
   subscription and last capture target: `ProjectsRepository.setProjectId` notifies its ID change
-  listeners before returning, and the watch re-keys both. The sync filter reads subscriptions when
-  it runs, after account sync, so a project adopted during that sync is still synced.
+  listeners before returning, and the watch re-keys both. A re-minted duplicate is a new project
+  and starts unsubscribed; the original keeps the ID and the subscription. The sync filter reads
+  subscriptions when it runs, after account sync, so a project adopted during that sync is still
+  synced.
 - Only subscribed projects are passed to the sync use case. The change probe keeps repeat
   syncs to a single request when nothing changed.
 - A subscribed project's first sync pulls every entity, one request each. That is acceptable for

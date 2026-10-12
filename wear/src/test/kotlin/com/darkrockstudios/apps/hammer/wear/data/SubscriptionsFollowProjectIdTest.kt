@@ -48,7 +48,7 @@ class SubscriptionsFollowProjectIdTest : WearTestBase() {
 	}
 
 	@Test
-	fun `a re-minted duplicate is subscribed alongside the project that kept the id`() = runTest(dispatcher) {
+	fun `a re-minted duplicate starts unsubscribed and the original keeps its subscription`() = runTest(dispatcher) {
 		projects.create("Alpha", projectId = "shared")
 		projects.create("Alpha copy", projectId = "shared")
 		subscriptions.setSubscribed(ProjectId("shared"), true)
@@ -58,7 +58,7 @@ class SubscriptionsFollowProjectIdTest : WearTestBase() {
 
 		val ids = projects.repository.getProjects().map { projects.repository.getProjectId(it) }.toSet()
 		assertEquals(2, ids.size)
-		assertEquals(ids, subscriptions.currentSubscriptions())
+		assertEquals(setOf(ProjectId("shared")), subscriptions.currentSubscriptions())
 		assertEquals(ProjectId("shared"), subscriptions.lastCaptureProjectId())
 	}
 }

@@ -30,19 +30,20 @@ class SubscribedProjectsRepository(
 		datasource.setLastCaptureProjectId(projectId.id)
 	}
 
-	/**
-	 * Keeps the subscription and last capture target on a project whose id changed. When another
-	 * local project still holds [oldId] (a duplicate re-minted at startup), both stay subscribed and
-	 * the last capture target stays on the holder of [oldId].
-	 */
-	suspend fun onProjectIdChanged(oldId: ProjectId, newId: ProjectId, oldIdStillHeld: Boolean) {
-		datasource.replaceProjectId(oldId.id, newId.id, keepOld = oldIdStillHeld)
+	/** Moves the subscription and last capture target from [oldId] to [newId]. */
+	suspend fun onProjectIdChanged(oldId: ProjectId, newId: ProjectId) {
+		datasource.replaceProjectId(oldId.id, newId.id)
 	}
 
-	/** Re-keys this repository whenever [projectsRepository] changes a project's id. */
+	/**
+	 * Re-keys this repository whenever [projectsRepository] changes a project's id. When another
+	 * local project still holds the old id, the one changing is a copy given a new identity (a
+	 * duplicate re-minted at startup, or a restored backup of another project): what the user chose
+	 * stays with the holder, and the copy starts unsubscribed like any new project.
+	 */
 	fun followProjectIdChanges(projectsRepository: ProjectsRepository) {
 		projectsRepository.addProjectIdChangeListener { _, oldId, newId ->
-			onProjectIdChanged(oldId, newId, oldIdStillHeld = projectsRepository.findProject(oldId) != null)
+			if (projectsRepository.findProject(oldId) == null) onProjectIdChanged(oldId, newId)
 		}
 	}
 
