@@ -338,24 +338,48 @@ extract.
 ```mermaid
 flowchart TD
     Routes["fa:fa-desktop Routes"]
+    UseCases["fa:fa-puzzle-piece Use Case Layer"]
+    Services["fa:fa-server Service Layer"]
     Repositories["fa:fa-database Repository Layer"]
     Datasources["fa:fa-database Datasource Layer"]
 
     %% Edge connections between nodes
+    Routes --> UseCases
+    Routes --> Services
     Routes --> Repositories
+    UseCases --> Services
+    UseCases --> Repositories
+    Services --> Repositories
+    Services --> Datasources
     Repositories --> Datasources
 
     %% Styling for layers
     style Routes fill:#33AB00, stroke:#338800, color:#FFFFFF
+    style UseCases fill:#119900, stroke:#117700, color:#FFFFFF
+    style Services fill:#FF3D00, stroke:#FF3D00, color:#FFFFFF
     style Repositories fill:#DD2C00, stroke:#DD2C00, color:#FFFFFF
     style Datasources fill:#6666FC, stroke:#1111AA, color:#FFFFFF
 ```
 
+The mandatory spine is `Datasource → Repository → Routes`. Services and Use Cases are optional,
+added only when needed, following the same decision rules as the client.
+
 ### Server Routes
-These are the HTTP handlers that define the various endpoints. They unmarshal data from HTTP requests, call into Repositories, and then marshal data back into HTTP responses.
+These are the HTTP handlers that define the various endpoints. They unmarshal data from HTTP requests, call into Use Cases, Services, or Repositories, and then marshal data back into HTTP responses. Routes never reference Datasources directly.
+
+### Server Use Cases — stateless, optional
+A single named operation composed from the layers below. The stateless counterpart of a Service.
+May reference Services, Repositories, and Datasources.
+
+### Server Services — stateful, optional
+Sit above Repositories and combine the layers below them: several Repositories (and Datasources)
+coordinated behind one stateful component. Think of a Service as a stateful Use Case. As on the
+client, a Service may not reference another Service, and nothing below a Service may reference one.
 
 ### Server Repositories
-These use stateful and responsible for transforming, validating, and caching data from the Datasources, and vending it to the layers above.
+These use stateful and responsible for transforming, validating, and caching data from the Datasources, and vending it to the layers above. A Repository may not reference another Repository.
 
 ### Server Datasource
 Stateless classes for accessing Data.
+
+The server rules are enforced by `ServerLayerTest` in `:architectureTests`.
