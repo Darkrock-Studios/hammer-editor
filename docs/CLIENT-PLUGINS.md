@@ -2,42 +2,54 @@
 
 Design note for extending the Hammer client (desktop, Android, iOS) with plugins,
 and for exposing the same API as a command line interface and an MCP server.
-Status: proposal, nothing implemented yet. The server already has an equivalent
-plugin seam (`server/.../plugin/ServerPlugin.kt`); this mirrors it where the
-shapes match.
+Status: rollout steps 1 to 9, 11, and Android's half of 12 are built; the rest is a proposal. The server has its own plugin
+seam (`server/.../plugin/ServerPlugin.kt`) for the hammer.ink overlay; the
+client does not follow it (see below).
+
+A client plugin is a sandboxed WebAssembly module installed from a package,
+which anyone can write. Plugins do not add operations: the operation API is
+Hammer's own, and a plugin is one more caller of it. Hammer's own plugins live
+in the `hammer-plugins` repository, next to this one, built on the kits in
+`hammer-plugin-sdk`; `hammer-plugin-development` holds the same few plugins in
+six languages, for comparing them.
+
+**Compiled-in plugins, explored and dropped.** The first design also had
+compiled-in plugins: Kotlin modules registered in the build, with Koin modules,
+operations of their own, project lifecycle hooks, and a Compose UI half. The
+plain text exporter, the style report, and the MCP server were built that way
+first. Once runtime plugins could do the same jobs, compiled-in ones added
+nothing a core feature or a runtime plugin could not, and each of the three
+moved to a runtime plugin, checked against the compiled-in version before it
+was removed. A feature that needs Kotlin and Koin belongs in core.
 
 ## Scope
 
 **Now: headless plugins.** A plugin that adds behavior without adding a feature
-surface. It may still contribute a settings pane (and later, project actions);
-that does not make it a UI plugin. Examples: a grammar checker, an exporter, a backup target,
-a statistics collector.
+surface: export formats, actions, CLI commands, and a settings form the
+host renders. Examples: an exporter, a style report, an MCP server, and later a
+grammar checker.
 
-**Now: one API, several front ends.** The operations plugins use (list projects,
-read a scene, write a scene, link an entry) are defined once, and the same
-definitions are exposed to in-process plugins and a CLI. MCP is not core: it is
-one of the first plugins, built on the CLI (see [MCP plugin](#mcp-plugin)). The
-CLI also
-runs sync, so any machine that can run the JVM can be a headless sync client.
+**Now: one API, several front ends.** The operations (list projects, read a
+scene, write a scene, link an entry) are defined once and exposed to the CLI
+and to plugins. MCP is not core: it is a plugin, built on plugin commands (see
+[MCP plugin](#mcp-plugin)). The CLI also runs sync, so any machine that can
+run the JVM can be a headless sync client.
 
 **Later: feature plugins.** A plugin that adds a whole new kind of thing, with its
 own data type, screen, sync, and search integration (brainstorming cards, say).
 Out of scope for this note. The only requirement is that nothing here makes it
 impossible. See [Keeping the door open](#keeping-the-door-open).
 
-**Not planned: runtime-loaded code.** Only the JVM can load jars at runtime;
-Android and iOS cannot. Plugins compile into the app.
-
 ## Architecture
 
 ```
-            in-process plugins       hammer <command>        hammer mcp
-                    |                       |              (MCP plugin's
-                    |                  CLI adapter          CLI command)
-                    |                       \                     /
-                    |                        running app? --yes--> forward over local socket
-                    |                             | no                    |
-                    v                             v                       v
+          runtime plugins (Wasm)       hammer <command>        hammer mcp
+                    |                        |              (a plugin's
+                    |                   CLI adapter          CLI command)
+                    |                        \                    /
+                    |                         running app? --yes--> forward over local socket
+                    |                              | no                    |
+                    v                              v                       v
                +---------------------------------------------------------------+
                |                Operation registry (:operations)               |
                +---------------------------------------------------------------+
@@ -45,10 +57,10 @@ Android and iOS cannot. Plugins compile into the app.
                                 repositories, services, Koin
 ```
 
-Compile-time plugins are how an overlay repo or fork adds behavior (the
-hammer.ink server plugin is the existing example). External tools never load
-code into Hammer; they call operations through the CLI, or through a plugin's
-CLI command such as `hammer mcp`.
+External tools call operations through the CLI, or through a plugin's CLI
+command such as `hammer mcp`. The only code loaded at runtime is sandboxed
+WebAssembly, and it reaches Hammer only through operations, within the grants
+the user approved (see [Runtime plugins](#runtime-plugins-wasm)).
 
 ## Modules
 
@@ -56,53 +68,26 @@ New code goes in a new `:operations` module between `:common` and
 `:composeUi`, rather than growing `:common`.
 
 ```
-:base <- :common <- :operations <- :plugins:plaintext <- :composeUi <- :android, :desktop
-                         ^
-                         +---- :plugins:mcp <---------------------------------- :desktop
+:base <- :common <- :operations <- :plugins:wasmhost <- :composeUi <- :android, :desktop
 ```
 
 | Module | Holds |
 | --- | --- |
-| `:common` | Same role as today. Gains only extension points (below) and pluggable export |
-| `:operations` | `Operation`, `OperationRegistry`, the core operations, `ClientPlugin`, `PluginRegistry`, `ProjectPluginContext`, `PluginSettingsDatasource` |
-| `:composeUi` | `PluginUi`, `PluginUiRegistry`, `installedPlugins()` and `installedPluginUis()`, the Plugins section of Settings, and the UI halves of in-tree plugins |
-| `:desktop` | The CLI adapter and `Dispatcher`, socket forwarding, the writer lock, `installedDesktopPlugins()` |
-| `:plugins:plaintext` | The data half of the [plain text plugin](#plain-text-exporter-plaintext). All platforms, depends on `:operations` |
-| `:plugins:mcp` | The MCP plugin. JVM only, depends on `:operations` and the MCP Kotlin SDK |
-
-**Why registration lives in `:composeUi`.** A plugin module depends on
-`:operations`, so `:operations` cannot list it. A plugin's UI half needs
-`:composeUi`'s design system, so it cannot sit above `:composeUi` either, and
-`:composeUi` is also what the iOS framework is built from. So a cross-platform
-plugin is split: its data half is its own module below `:composeUi`, and its UI
-half lives in `:composeUi` next to the registration files.
+| `:common` | Same role as today. Gains only pluggable export (below) |
+| `:operations` | `Operation`, `OperationRegistry`, the core operations, `ClientPlugin`, `PluginRegistry`, `PluginSettingsDatasource` |
+| `:plugins:wasmhost` | The [runtime plugin](#runtime-plugins-wasm) host: chasm, the package loader, `RuntimePlugins`, and `WasmPlugin`. All platforms |
+| `:composeUi` | `PluginUiRegistry`, the Plugins section of Settings, and the plugins' actions: their menu items, and the runner that asks for their input and shows their progress and results |
+| `:desktop` | The CLI adapter and `Dispatcher`, socket forwarding, the writer lock |
 
 `:wear` depends only on `:common` and gets no plugins.
 
-`:operations` targets the same platforms as `:common` (Android, desktop JVM,
-iOS), because in-process plugins run everywhere.
+`:operations` and the host target the same platforms as `:common` (Android,
+desktop JVM, iOS), because the host is common code.
 
-**`:common` does not know about plugins.** It exposes extension points as
-contributions collected from Koin, and `:operations` installs each plugin's
-contributions into them:
-
-- **Exporters.** `StoryExporterRegistry` always holds the built-in formats and
-  adds every `StoryExporter` bound in Koin. `PluginRegistry` binds each plugin's
-  `exporters()`, after checking each format id carries the plugin's prefix. Text
-  diagnostics providers work the same way.
-- **Project lifecycle.** `openProjectScope` and `closeProjectScope` notify
-  every `ProjectLifecycleListener` bound in Koin when a project is opened for
-  editing and when that session closes. Every platform already opens and
-  closes projects through these, and temporary scopes (sync, import) are not
-  reported. `PluginRegistry` binds a listener that builds each plugin's
-  `ProjectPluginContext`, calls its hooks, and holds the contexts for lookup.
-
-This keeps the dependency arrows pointing one way, and `:common` stays testable
-with no plugin code present.
-
-**iOS.** Koin starts in `:common`'s iOS source set, but it is called from
-`HammerAppInit` in `:composeUi`, which already passes extra modules. That is
-where iOS picks up `installedPlugins()`, from the same module.
+**`:common` does not know about plugins.** Its one extension point is export:
+`StoryExporterRegistry` always holds the built-in formats, then asks each
+`ExporterSource` bound in Koin for more on every lookup. `PluginRegistry` is
+one, so plugin formats come and go as plugins do.
 
 **The v2 rule, partly enforced.** `:operations` declares no dependency on
 Compose resources, Napier, or Decompose. Napier and Decompose still reach it
@@ -118,31 +103,52 @@ An operation is a named, typed unit of the public API.
 package com.darkrockstudios.apps.hammer.operations
 
 interface Operation<I, O> {
-	/** Dotted, e.g. `scene.read`. Plugin operations are prefixed with the plugin id. */
+	/** Dotted, e.g. `scene.read`. */
 	val name: String
-	/** English. Used for CLI help and agent tool descriptions. */
+	/** English. Used for CLI help and by plugins that describe operations to others. */
 	val description: String
 	val input: KSerializer<I>
 	val output: KSerializer<O>
 	val access: Access
-	/** Safe to offer to automated agents. Opt-in; the registry rejects Destructive operations that set it. */
-	val agentVisible: Boolean get() = false
+	val scope: OperationScope
+	/** Overridden only when valid values are known at runtime, such as `project.export`'s formats. */
+	fun inputSchema(): JsonObject = jsonSchema(input.descriptor)
 
 	suspend fun run(context: OperationContext, input: I): O
 }
 
 enum class Access { Read, Write, Destructive }
 
+/** What an operation reaches into. A plugin can be granted every Read or Write operation in a scope at once. */
+enum class OperationScope { Content, Account }
+
 class OperationContext(
-	/** Resolves a project and opens its Koin scope for the duration of the call. */
 	val projects: ProjectResolver,
+	/** For operations built on other operations. */
+	val operations: OperationRegistry,
 )
+
+interface ProjectResolver {
+	/** By name or server project id. */
+	fun resolve(project: String): ProjectDef
+	/** Opens the project's Koin scope for [block] if it is not already open. */
+	suspend fun <T> withProject(project: String, block: suspend (OpenProject) -> T): T
+}
 ```
 
-`OperationRegistry` holds core operations plus any contributed by plugins, and
-is the single place every front end dispatches through. Project-scoped
+Most operations are written with the `operation<I, O>(name, description, access)
+{ ... }` builder. Errors the caller caused are `OperationException`s with a kind
+(`NotFound`, `InvalidInput`); anything else thrown is a bug. `dispatch(name,
+JsonElement)` is what front ends call: unknown input fields, missing fields, and
+wrong types are `InvalidInput`. Binary content is base64 in JSON.
+
+`OperationRegistry` holds the core operations, and is the single place every
+front end dispatches through; plugins do not add to it. Project-scoped
 operations open the scope via the existing `temporaryProjectTask` helper when the
 project is not already open, so they work the same in the app and headless.
+A temporary scope neither restores nor discards unsaved edits left by a crashed
+editor session; only an editor does. Operations on a project that is not open
+therefore read the saved text.
 
 The full list is in [Operation catalog](#operation-catalog).
 
@@ -173,10 +179,16 @@ Conventions:
   server project id.
 - Entity ids are the project's own ids, which are stable across sync.
 - Body text (scene, note, entry, timeline event, idea) is read from stdin on the
-  CLI.
+  CLI. An update replaces the body, so the body is required there too; the
+  other fields keep their value when left out. An optional body would leave
+  `hammer note update --tags x` waiting on stdin.
 - **Read** operations change nothing. **Write** operations change content.
   **Destructive** operations delete or overwrite in a way a draft cannot undo;
-  the CLI requires `--confirm` and they are never agent-visible.
+  the CLI requires `--confirm`, and a plugin only gets one by naming it.
+- Each operation declares its **scope**: `content` (projects and everything in
+  them) or `account` (credentials and the sync server). Nothing in the
+  operation API knows about agents; a plugin that serves them, like the MCP
+  plugin, offers what its grants allow.
 - Operations whose input or output is a file (import, export, entry images)
   carry the bytes. The CLI maps them to `--in FILE` and `--out FILE`, or to
   stdin and stdout.
@@ -191,8 +203,8 @@ Conventions:
 | `project.list` | Read | Name, server project id, word count, last modified |
 | `project.info` | Read | Metadata, statistics, sync linkage |
 | `project.create` | Write | |
-| `project.rename` | Write | |
-| `project.delete` | Destructive | |
+| `project.rename` | Write | Refused while the project is open, and while the app runs (not forwarded) |
+| `project.delete` | Destructive | Refused while the project is open, and while the app runs (not forwarded) |
 | `project.export` | Read | Format id and scene subset as in `ExportOptions`; returns the file's bytes |
 | `export.formats` | Read | Available export formats: id, file extension, MIME type |
 | `project.import` | Write | Format and split options as in `ImportOptions`, plus the file's bytes |
@@ -205,6 +217,7 @@ Conventions:
 | --- | --- | --- |
 | `scene.tree` | Read | Nested groups and scenes: ids, names, order, word counts |
 | `scene.read` | Read | Markdown plus metadata |
+| `scene.read.many` | Read | Story-order scenes (all, a group's, or by id) with markdown, metadata, and group path, paged by `maxWords` with an `after` cursor; leaves out archived scenes |
 | `scene.write` | Write | Replaces the text; `mode` is required, see below |
 | `scene.append` | Write | Appends to the live text; for capture devices and scripts |
 | `scene.create` | Write | Parent, name, position, scene or group |
@@ -225,8 +238,22 @@ Conventions:
 `scene.write` has no default mode. `mode: draft` saves the new text as a named
 draft and leaves the scene alone. `mode: live` replaces the scene text through
 the same service the editor uses, so an open editor sees the change instead of
-clobbering it. The MCP plugin offers only `draft` unless its "Allow live edits"
-setting is on.
+clobbering it. It first saves the text it replaces, including an open editor's
+unsaved edits, as a draft named "Before external edit", so a live write is
+undoable and stays a Write. Edits the editor typed but had not yet debounced
+into its buffer are dropped rather than landing on top. Neither a live write nor
+`scene.append` credits the writer's activity. Both refuse archived scenes, and
+scenes with unsaved edits left by a session that did not close, since saving
+would discard them; opening the project in Hammer restores those first.
+
+`draft.apply` replaces the text the same way, backup draft included. Deleting
+or archiving a scene drops its in-memory buffer, so an editor's save-all cannot
+recreate it; archiving saves the buffer first.
+
+Input that edits scene text in place is marked `@LiveEdit`: the whole input of
+`scene.append` and `draft.apply`, and `scene.write`'s `live` mode. The schema carries it as
+`x-hammer-live`, so a client can tell an edit a writer reviews from one that
+lands in place.
 
 ### Notes, encyclopedia, timeline
 
@@ -237,7 +264,7 @@ setting is on.
 | `note.create` | Write | |
 | `note.update` | Write | |
 | `note.delete` | Destructive | |
-| `entry.list` | Read | Optional type and tag filters |
+| `entry.list` | Read | Each entry's aliases; optional type and tag filters |
 | `entry.read` | Read | Text, type, tags, whether it has an image, referencing scenes |
 | `entry.create` | Write | |
 | `entry.update` | Write | |
@@ -306,73 +333,74 @@ when the list is generated, and `export.formats` returns the same set.
 | `sync.status` | Read | Per project: linked or not, last sync, count of locally changed entities |
 | `sync.run` | Write | See [Headless sync](#headless-sync) |
 
-None of these are agent-visible.
+These are the `account` scope, so a plugin granted `content:read` and
+`content:write`, such as the MCP plugin, cannot reach them.
 
 ### Deliberately excluded
 
 - **Account creation and terms acceptance** stay in the GUI.
 - **Server admin** is the server's web UI.
-- **Global settings** are not exposed. Plugin settings may be, as plugin
-  operations.
+- **Global settings** are not exposed, nor are plugin settings.
 - **Reference confirmation** is an editor interaction, not an API.
 - **Partial scene edits** (`scene.patch`, find and replace within a scene) are
   likely wanted by agents but wait until full-text writes have settled.
 
-## Plugin interfaces
-
-Two interfaces, paired by `id` and registered separately. The data half lives in
-`:operations`, and its signature uses no Compose types, Compose resources included,
-so it can move into a UI-free core module later (see
-[Native CLI](#native-cli)). The UI half lives in `:composeUi` and owns
-everything user-facing: name, settings pane, labels.
+## Plugin interface
 
 ### `ClientPlugin` (`:operations`)
+
+What the rest of Hammer sees of a plugin. `WasmPlugin` is the one
+implementation; the interface keeps `:operations`, `:common`, and the UI free
+of the host.
 
 ```kotlin
 package com.darkrockstudios.apps.hammer.operations.plugin
 
 interface ClientPlugin {
-	/** Stable, lowercase, directory-safe. Keys settings, storage, menu ids, operation names. */
+	/** Stable, lowercase, directory-safe. Keys this plugin's settings file. */
 	val id: String
+	val name: String? get() = null
 
-	/** Koin definitions, installed alongside mainModule. May declare scope<ProjectDefScope> entries. */
-	fun koinModule(): Module? = null
+	/** Export formats this plugin adds, each prefixed with the plugin id, e.g. `smf.docx`. */
+	fun exporters(): List<StoryExporter> = emptyList()
 
-	/** Contributed to the registry, so they appear in the CLI and to agents too. */
-	fun operations(): List<Operation<*, *>> = emptyList()
+	/** Typed settings the host renders as a form. See Declared settings. */
+	fun settings(): List<SettingDeclaration> = emptyList()
 
-	/** Extra top-level CLI commands, e.g. `hammer mcp`. Desktop only; ignored elsewhere. */
+	/** Extra top-level CLI commands, such as `hammer mcp`. Desktop only. */
 	fun cliCommands(): List<CliCommand> = emptyList()
 
-	/** Runs in every process, headless included, before any operation. Must not assume a UI. */
-	fun onAppStart(appScope: CoroutineScope) {}
+	/** Items added to the menus of a project's screens. */
+	fun actions(): List<PluginAction> = emptyList()
 
-	/** UI only: called when a project window opens and closes. Operations must not depend on these. */
-	fun onProjectOpened(project: ProjectPluginContext) {}
-	fun onProjectClosed(project: ProjectPluginContext) {}
-
-	// Optional capabilities, one getter each, null when not provided.
-	// Added as each is needed; these are the expected near-term ones.
-	fun textDiagnostics(): TextDiagnosticsProvider? = null
-	fun exporters(): List<StoryExporter> = emptyList()
+	/** Checks the editor runs over the text being written, such as grammar. */
+	fun textDiagnostics(): List<TextDiagnosticsProvider> = emptyList()
 }
 
-class ProjectPluginContext(
+class PluginAction(
 	val pluginId: String,
-	val projectDef: ProjectDef,
-	val projectScope: Scope,
-	/** Cancelled when the project closes. */
-	val coroutineScope: CoroutineScope,
-) {
-	/** `<project>/.plugins/<pluginId>/`, created on first call. Included in backups, never synced. */
-	fun dataDirectory(): HPath
-}
-```
+	val name: String,
+	val label: String,
+	/** The screens whose menus it is in: project, scene, note, entry, event. */
+	val places: Set<ActionPlace>,
+	/** What the user fills in first: a setting-like value, or scenes picked from the tree. */
+	val fields: List<ActionField>,
+	/** Message, document, or interactive. */
+	val output: ActionOutput,
+	/** Runs off the main thread with the project, place, item, input, and pressed button, reporting progress as it goes. */
+	val run: suspend (ActionCall) -> ActionReply,
+)
 
-Plugins call operations through the registry as the supported API. Koin stays
-available as an escape hatch, as it is on the server.
+class TextDiagnosticsProvider(
+	val label: String,
+	/** Whether it gets every paragraph of the scene each time, rather than only changed ones. */
+	val wholeScene: Boolean = false,
+	/** The issues in each paragraph, as UTF-16 ranges plus a message, fixes, and severity. */
+	val diagnose: suspend (TextDiagnosticsRequest) -> List<List<TextDiagnostic>>,
+)
 
-```kotlin
+class TextDiagnosticsRequest(val paragraphs: List<String>, val language: String?, val project: String)
+
 interface CliCommand {
 	val name: String
 	val help: String
@@ -388,14 +416,9 @@ interface Dispatcher {
 }
 ```
 
-A plugin's CLI command is for protocols and long-running tools, not for
-exposing plugin features; plugin features are operations, which already get a
-generated subcommand.
-
-Capabilities follow the server pattern (`allowedUsersSource()`): a getter per
-capability rather than marker interfaces, nullable for one-per-plugin
-capabilities and a list where a plugin may contribute several. The registry
-collects them in one pass and the plugin author sees every hook in one place.
+Plugins have no lifecycle hooks and no Koin access. Everything a plugin adds is
+looked up while the app runs, which is what lets plugins be installed, enabled,
+disabled, and uninstalled without a restart.
 
 ### Exporters
 
@@ -407,6 +430,8 @@ interface StoryExporter {
 	val formatId: String
 	val fileExtension: String
 	val mimeType: String
+	/** Shown in the export dialog; the built-in formats' labels are localized in `:composeUi` instead. */
+	val label: String? get() = null
 	/** False only for formats that ignore project data (Markdown today), which skips loading it. */
 	val needsProjectData: Boolean get() = true
 
@@ -437,156 +462,156 @@ lifted from them rather than invented. What changes:
   render dispatch in `ExportStoryUseCase`, the Android MIME type in
   `ExportDirectoryPicker`, the format list and labels in `ExportOptionsDialog`)
   read from a `StoryExporterRegistry` in `:common` instead, which mirrors the
-  existing `StoryImporterRegistry` and adds contributed formats from Koin (see
-  [Modules](#modules)). It lists the built-in formats first, in their menu
-  order, then contributed ones by id.
+  existing `StoryImporterRegistry` (see [Modules](#modules)). It lists the
+  built-in formats first, in their menu order, then plugin ones by id.
 - **All five built-in formats become `StoryExporter`s**, with ids `epub`,
   `docx`, `rtf`, `pdf`, and `markdown`, so built-in and plugin formats take the
   same path.
 - **Export moves to the data layer.** `ExportStoryUseCase` and the renderers
   move from `components/projecthome` to `data/export`, next to the importers,
   where operations and a future core module can reach them.
-- **Labels come from the UI half.** Built-in labels stay in `:composeUi`.
-  A plugin's labels come from `PluginUi.exportFormatLabels()`. A format with no
-  label shows its file extension in upper case. The Android save picker takes
-  the exporter's MIME type, and the desktop one its extension.
+- **Labels.** Built-in labels stay localized in `:composeUi`. A plugin format
+  shows its manifest label, or its file extension in upper case. The Android
+  save picker takes the exporter's MIME type, and the desktop one its extension.
 
 Importers could follow the same pattern (`ImportFormat` is the same kind of
 closed enum). Not in v1.
 
-### `PluginUi` (`:composeUi`)
+### The registry and the UI
 
-```kotlin
-package com.darkrockstudios.apps.hammer.common.compose.plugin
+`PluginRegistry` (`:operations`) holds the active plugins as a `StateFlow`.
+`RuntimePlugins.activate` adds the enabled ones at startup, in the app and in
+each CLI process alike, and from then on applies every install, enable,
+disable, and uninstall to it at once. A plugin is checked as it is added: a
+valid id, prefixed export formats, valid settings, and no CLI command another
+plugin has or that shadows an operation. One that fails is refused with nothing
+changed. A replaced plugin gets a new settings store for its own declarations.
 
-interface PluginUi {
-	/** Matches a registered ClientPlugin's id. */
-	val id: String
-	val name: StringResource
+`PluginUiRegistry` (`:composeUi`) follows the registry:
 
-	/** Display names for the export formats this plugin contributes, keyed by format id. */
-	fun exportFormatLabels(): Map<String, StringResource> = emptyMap()
+- **Settings.** The Plugins section of Settings lists installed plugins, each
+  with an enable toggle, Uninstall, and, when it has declared settings or CLI
+  commands, a Settings button that opens them in a dialog: the declared form,
+  then how to run each command.
+- **Project actions.** A plugin's actions appear in the project home's
+  overflow menu. The home screen's component runs one in the app's scope, off
+  the main thread, so a plugin needs no UI state of its own. What it returns
+  is toasted, or, for an action declaring `output = "document"`, shown as
+  markdown in a result dialog; a failure is toasted.
+- **Result dialog.** Shows an action's document, titled with the action's
+  label, with Copy and Save as note. Hammer runs both, so saving needs no
+  permission from the plugin. A document longer than a note allows is saved cut
+  at a line break, ending in "…", and the toast says so.
 
-	/** Shown under the plugin's name in the Plugins section of Settings. Null for no pane. */
-	val settingsPane: (@Composable ColumnScope.() -> Unit)? get() = null
-}
-```
+- **Text diagnostics.** The scene editor and focus mode run every active
+  plugin's checks, underlining what they find: a mistake with a wavy blue
+  line, apart from spell check's red, and a suggestion, such as a style
+  issue, with a quieter dotted gold one. A right-click or tap on an underline
+  shows its message and fixes; picking a fix replaces the text. The editor
+  library does the work (`TextDiagnosticsState` in ComposeTextEditor's
+  spellcheck module): it keeps results by paragraph text, so after an edit
+  only changed paragraphs go to a check, and each underline carries its
+  diagnostic, so it moves with the text. A check whose issues depend on other
+  paragraphs, such as a word echoed a paragraph later, declares scene scope
+  and gets every paragraph on every check instead; the library runs it
+  through `TextDiagnosticsChecker.checkText`. A change to a checking plugin's
+  settings checks the whole text again. The plugins get the editor's text,
+  markdown already rendered away, the project's language, and the project's
+  name, so a check can read the project through operations it has permission
+  for, such as the encyclopedia's names.
 
-The settings pane is a nullable property rather than a function so Settings can
-tell which plugins have one. The Plugins section only appears when at least one
-does, so a build with no plugins looks exactly as it does today.
-
-**No project menus yet.** `MenuDescriptor` and the `addMenu` callback look like
-a menu slot, but every platform passes a no-op: menu items now render inside
-each screen. A project-level action slot therefore needs a real in-UI home
-(most likely the project root's overflow or navigation rail). It is added when
-the style report needs it.
-
-The settings pane and labels for contributed ids are deliberately the only UI
-hooks for now.
-Future slots (project navigation destination, scene editor toolbar action,
-dialogs) are added here when a plugin needs them, not speculatively.
-
-### Registration
-
-```kotlin
-// composeUi/.../compose/plugin/InstalledPlugins.kt
-fun installedPlugins(): List<ClientPlugin> = listOf(PlainTextPlugin)
-fun installedPluginUis(): List<PluginUi> = listOf(PlainTextPluginUi)
-```
-
-Same rule as the server file: registering is activating, there is no separate
-enabled flag in the registry. A plugin that wants a user-facing on/off switch
-keeps that in its own settings and honors it itself. A plugin with a UI half is
-registered in both lists.
-
-Each app entry point (`desktop/.../Main.kt`, `HammerApplication`, and
-`HammerAppInit` on iOS) accepts a plugin list defaulting to `installedPlugins()`,
-so tests can supply fakes the way `EndToEndTest` does for the server. The desktop and
-Android entry points take a `PluginUi` list the same way.
-
-**Platform-specific plugins.** `installedPlugins()` is for plugins that run on
-every platform. A plugin that only builds for one platform, like the MCP plugin,
-is registered in that platform's own file, and the entry point appends it:
-
-```kotlin
-// desktop/.../plugin/InstalledDesktopPlugins.kt
-fun installedDesktopPlugins(): List<ClientPlugin> = listOf(McpPlugin)
-```
-
-Android and iOS get the same kind of file when a plugin first needs one.
-
-Plugins are cross-platform by default. Only a plugin built on something a
-platform lacks, such as a local MCP server or a CLI command, is registered per
-platform. No supported-platforms field is needed while plugins are compiled in:
-the module's targets and the registration file already say where it runs. A
-plugin manager screen or runtime loading would need one.
-
-`PluginRegistry` (`:operations`) holds the plugin list. It collects Koin modules
-and operations at startup, and binds each plugin's capabilities into `:common`'s
-extension points. `PluginUiRegistry` (`:composeUi`) holds the UI list,
-pairs each entry with its plugin by id, and logs a warning for a UI half whose
-plugin is not registered. The Plugins section of Settings reads it.
-
-## Lifecycle
-
-- **Process start.** Registry built before Koin starts (plugins may inject in
-  their hooks, so anything they construct must be lazy). Plugin modules
-  installed with the main modules. `onAppStart` runs after Koin is up and data
-  migration has run, and receives the Koin-bound `APP_SCOPE`. This is the same in the app and in headless runs, so a
-  plugin's operations see the same initialized state either way. Each headless
-  call starts its own Koin application (see [Concurrency](#concurrency)), so
-  `onAppStart` runs per call and must be cheap.
-- **Project open.** `openProjectScope`, when opening for editing, notifies the
-  `ProjectLifecycleListener`s. The plugin listener builds each plugin's
-  `ProjectPluginContext` and calls `onProjectOpened`.
-- **Project close.** `closeProjectScope` counts editors per project (Android
-  can show one project in two tasks), so the close event and the Koin scope
-  close happen when the last editor closes. The listeners are notified first.
-  Each plugin gets `onProjectClosed`, then the shared context coroutine scope is
-  cancelled and joined, with a short timeout, so no plugin work outlives the
-  Koin scope.
-- **Hooks are synchronous.** They run on the caller's thread, often the UI
-  thread, so they stay quick and launch real work into the scope they are given.
-- **Failures are contained.** A throwing hook is logged and skipped; it cannot
-  stop a project opening or closing, or keep other plugins from running.
-- **Project-scoped operations** never rely on the project hooks. Headless runs
-  do not open projects in the UI sense, so any per-project plugin state an
-  operation needs must be reachable lazily through the Koin project scope.
-
-Plugins never see the Decompose stack or the root router config.
+These are the only UI slots for now. Future ones (a scene editor toolbar
+action) are added when a plugin needs them, not speculatively.
 
 ## CLI
 
 The CLI is the normal desktop binary with subcommands, not a separate target.
 Every package format (Flatpak, Snap, MSIX, the Mac bundle) already ships one
-launcher, and a second target would double that work. The existing Clikt parser
-in `DesktopLaunchArgs.kt` gains subcommands; with no subcommand the app launches
-as today.
+launcher, and a second target would double that work. A first argument that
+does not start with `-` is a CLI call (`Cli`); anything else launches the app as
+today, parsed by the Clikt command in `DesktopLaunchArgs.kt`. The CLI parses its
+own arguments, since every command and option comes from an operation's schema
+at runtime.
 
 ```
 hammer project list
 hammer scene read --project "My Novel" --id 12
 hammer scene write --project "My Novel" --id 12 < revised.md
-hammer mcp        # contributed by the MCP plugin
+hammer mcp        # the MCP plugin's command
 ```
 
-- Subcommands are generated from the operation registry. Each input field
-  becomes an option; a text field marked as the body reads from stdin.
-- Output is the operation's output type as JSON.
+- Subcommands are generated from the operation registry: `scene.meta.read` is
+  `hammer scene meta read`. Each input field becomes a kebab-case option typed
+  by its schema; list fields repeat the option, booleans may omit `true`, and
+  `--json` passes the whole input instead. A body text field, such as
+  `scene.write`'s `markdown`, is read from stdin when not given. `hammer help` lists everything,
+  and `--help` after a command lists its options.
+- Output is the operation's output type as JSON. `--out FILE` writes an
+  output's one binary field (an export's bytes) to a file and prints the rest,
+  and `--out -` writes the bytes alone to stdout. `--in FILE` (or `--in -`)
+  fills an input's one binary field, such as an entry image, the same way.
+- `--dev` before the command, as in `hammer --dev project list`, uses
+  development data, as it does for the app, and so reaches a `--dev` window.
+- Destructive operations need `--confirm`; without it the CLI refuses before
+  starting Hammer.
+- Exit codes: 0 success, 1 failure, 3 not logged in or login rejected, 4 not
+  found, 5 another Hammer process holds the writer lock, and 64 (sysexits'
+  EX_USAGE) for usage errors and invalid input. An operation can report partial
+  failure through `Operation.exitCode`: `sync.run` returns 2 when a project needs
+  resolution.
+- A field marked `@FromStdin` is read from stdin when not given as an option; a
+  secret one (the login password) is never accepted as an option, and can also
+  come from an environment variable (`HAMMER_PASSWORD`).
 - Plugin `cliCommands()` are added alongside the generated subcommands. A plugin
   command cannot shadow a generated one.
 - With a subcommand, `main` starts Koin without opening a window, runs the
-  command, and exits. `:common` has no Compose UI usage, so this is feasible;
-  string resources and the data migrator need confirming without a window.
+  command, and exits (`HeadlessSession`). Logs go only to the log file. Tried
+  against real data: the data migrator, string resources, and export all work
+  without a window, and a call takes about 1.5 seconds including JVM start.
 - JVM startup plus Koin init is on the order of a second per call on a desktop,
   several on a Pi Zero. Deferred to v2: `hammer batch`, one process reading
   operations as JSON lines on stdin and writing one JSON result line per
   operation to stdout. It is a few lines on top of `Dispatcher`, the same loop
   the MCP plugin runs with MCP framing.
-- Getting `hammer` onto PATH differs per package: Flatpak needs a `flatpak run`
-  wrapper, MSIX needs an app execution alias, the Mac bundle needs a symlink or
-  documented path.
+- Getting `hammer` onto PATH differs per package; see
+  [Getting onto PATH](#getting-onto-path).
+
+### Getting onto PATH
+
+Desktop Settings has a Command line section. It shows the launcher, the
+command an MCP client or script runs (`cliLauncher()`), and, where Hammer can,
+a button that adds a `hammer` command to PATH, or updates or removes it:
+
+| Package | `hammer` comes from |
+| --- | --- |
+| Snap | The package: the app is `hammer-editor` in `/snap/bin`. A `hammer` alias needs a Snap Store request |
+| Flatpak | A script in `~/.local/bin` running `flatpak run studio.darkrock.hammer`; `--filesystem=home` lets the app write it |
+| AppImage | A script in `~/.local/bin` running the `.AppImage` file (`$APPIMAGE`), since the mounted image moves each run |
+| deb, rpm | A script in `~/.local/bin` running `/opt/hammer/bin/hammer`. jpackage's post-install scripts are not reachable through Compose Desktop |
+| Mac DMG, pkg | A script in `/usr/local/bin`, written through macOS's own administrator prompt when that directory is not writable |
+| Mac App Store | The sandbox keeps the app from writing it, so Settings shows a command to paste into Terminal |
+| Windows MSI, EXE | `hammer.cmd` in `%LOCALAPPDATA%\Hammer\bin` running `hammer-cli.exe`, with that folder added to the user's own PATH |
+| Microsoft Store | An app execution alias, `hammer.exe`, on a second, hidden app entry for `hammer-cli.exe` |
+
+Each script carries a marker line, so Hammer only ever replaces or removes its
+own; a `hammer` someone else put there is left alone. In a `--dev` window, the
+full command shown in Settings and in plugin dialogs ends in `--dev`, so what
+is set up from it reaches that window; the PATH script never does. On Linux, Settings says
+when the script's directory is not on PATH yet.
+
+**Windows needs a console launcher.** jpackage gives the app one launcher,
+`hammer.exe`, built as a GUI program, which a terminal does not wait for and
+whose output it never shows. The build adds `hammer-cli.exe` beside it: the
+same binary with its PE subsystem set to console, as `editbin
+/SUBSYSTEM:CONSOLE` would, plus its own copy of `app/hammer.cfg`, since the
+launcher finds its config by its own name (`addWindowsConsoleLauncher` in
+`buildSrc`). The installers and the MSIX are built from that app image. Store
+apps cannot be run from their install folder, so the alias is also what MCP
+clients use there. Not yet run on Windows: the console launcher, the alias, and
+the PATH change (PowerShell writing `HKCU\Environment` and broadcasting
+`WM_SETTINGCHANGE`) need one check there before release. `hammer.cmd` is read
+in the OEM code page, so an install path with non-ASCII characters breaks it,
+and uninstalling Hammer leaves the script and PATH entry behind.
 
 ## Concurrency
 
@@ -612,15 +637,31 @@ is left behind. Every CLI call tries the socket first. If the app answers, the
 CLI sends the operation name and input, the app runs it against its live state,
 and the CLI prints the result. If nothing answers, the CLI takes the writer lock
 and runs the operation in-process. If the lock is held but the socket does not
-answer, the app is running with "Allow external tools" off, and the CLI fails
-with a message saying so.
+answer, the app could not open it, and the CLI fails saying Hammer is running.
 
-**Multiple app instances.** The desktop app currently runs with
-`enableSingleInstance = false`, so several can start. Under this design a second
-instance cannot take the writer lock. It forwards its launch arguments (for
-example, a project to open) to the first over the socket and exits, which makes
-the app effectively single-instance. Why single-instance is off today (possibly
-a Nucleus or Tao backend constraint) needs checking before this lands.
+Forwarding is always on; there is no setting for it. Anything that can reach
+the socket runs as the same user, who could edit the project files directly, and
+the socket's directory is theirs alone. What an agent may do is decided where it
+is installed: the MCP plugin's granted operations and its settings.
+Refusing while the app is open would only push tools to wait for it to close,
+or to edit files under it.
+
+**Multiple app instances.** A second launch of the app finds the writer lock
+held by the app, hands its launch arguments to the first over the socket, and
+exits, so the app is effectively single-instance. The first comes to the front
+and acts on them as its own: a `--project` (with any `--scene`, `--note`,
+`--entry`, or `--timeline-event`) opens that project, going straight there if it
+is already open, or first closing the open one the usual way, with its
+unsaved-changes prompts; declining the prompt drops the request. A launch that
+cannot hand off (no answer, or a
+CLI call holding the lock) starts its own window without the lock, as before.
+Windows jump-list items, which relaunch the executable, go through the same
+path, as do the Linux quicklist and macOS Dock menu in-process.
+
+Nucleus's own single-instance mode (`enableSingleInstance`) stays off: its lock
+lives in the temp directory under one app id, so a `--dev` window and a normal
+one would block each other, and it hands over only a deep-link URI, not launch
+flags. The writer lock and socket are already per config directory.
 
 **No state between calls.** Each headless call, including each dispatch from a
 long-running plugin command like `hammer mcp`, starts Koin, runs, and stops it.
@@ -640,33 +681,48 @@ single process.
 
 ## MCP plugin
 
-MCP is a plugin, not core, and one of the first built. The core only provides
-the CLI, `Dispatcher`, and the `cliCommands()` capability; everything
-MCP-specific lives in `:plugins:mcp`.
+MCP is a runtime plugin, in hammer-plugins' `mcp`, written in
+Kotlin/Wasm. The host provides only generic pieces: plugin commands, scope
+grants, and `ops.list` filtered to the grants.
 
-`hammer mcp` speaks MCP over stdio, which every MCP client supports, and the
-agent launches it as a child process. It builds its tool list from
-`Dispatcher.operations()`, keeping only agent-visible ones, and sends each tool
-call through `Dispatcher.dispatch`. So it works against the running app's live
+Its manifest requests `content:read`, then by name the writes that organize a
+project and the deletes of everything inside one, and declares a `mcp` command. An MCP client launches `hammer mcp` as a child process and
+speaks JSON-RPC over stdio, one message per line; the host hands each line to
+the plugin (see [Commands](#commands)). The plugin answers `initialize`,
+`ping`, `tools/list`, and `tools/call`, and ignores notifications.
+
+Its tools are what `ops.list` returns it, which is exactly what it may call,
+less `ops.list` itself: `tools/list` already describes each tool, and only it
+reflects the plugin's settings.
+Tool names replace the operation's dots with underscores (`scene_read`), since
+some clients reject dots. A failed call, including one refused because Hammer
+is busy, is a tool error the agent can read, not a protocol error. Every call
+goes through the CLI's `Dispatcher`, so it works against the running app's live
 state or, with no app running, directly against the files. No network port and
 no token management.
 
-| Exercises | How |
-| --- | --- |
-| `cliCommands()` capability | Contributes `mcp` |
-| Plugin as API consumer | Tool list and every call go through `Dispatcher` |
-| Plugin in its own module | `:plugins:mcp`, with its own `Res` for strings |
-| Platform-specific registration | Registered in `installedDesktopPlugins()`, since the SDK has no iOS or Android target |
-| Global plugin settings | "Enable MCP" and "Allow live edits" in `plugins/mcp.toml` |
-| UI half | Settings pane with both toggles and the config snippet to paste into an agent |
+**No prose.** Hammer's stance on AI is a tool for the writer, not a
+replacement, so the plugin requests no operation that writes a scene's text:
+not `scene.write`, `scene.append`, `draft.apply`, or `project.import`. An agent
+can read the whole story and help around it, with the encyclopedia, timeline,
+notes, outlines, and structure, but the prose stays the writer's. This is a
+stance rather than a lock: projects are markdown on disk, and the CLI still
+writes scenes for the writer's own scripts.
 
-**Off until enabled.** "Enable MCP" defaults to off, and `hammer mcp` exits with
-a message pointing to the setting. Many writers will not want agent access at
-all. For a distribution that shouldn't ship it, removing one registration line
-removes it entirely.
+**Settings.** Two settings, both off by default, gate what it does request.
+"Let AI agents make changes" offers the writes: creating, renaming, moving, and
+archiving scenes, scene outlines and tags, drafts as snapshots, notes,
+encyclopedia entries and their images, the timeline, ideas, projects, and
+backups. "Let AI agents delete things" offers the deletes, with MCP's
+`destructiveHint`, so a client can warn before running one; `project.delete` is
+never requested. While a setting is off, its tools are not tools at all.
+Granting by name at install, the setting, and the client's own prompt before a
+tool call stand in for the CLI's `--confirm`. Settings are read for every
+message, so turning one off applies to a running server; tools a setting adds
+appear once the client lists tools again, which most do on reconnecting.
 
-"Allow external tools" still gates forwarding to the running app, for the CLI
-and the MCP plugin alike.
+Installing and enabling the plugin is what turns MCP on. Settings shows the
+command line to give an MCP client.
 
 ## Headless sync
 
@@ -686,14 +742,20 @@ hammer sync run --project "My Novel" --on-conflict server
   plus that call; no refactor needed.
 - **Conflicts.** `--on-conflict abort|local|server`, default `abort`. Abort is
   what bulk sync already does: the project stops, is reported as needing
-  resolution, and other projects continue. Idea conflicts follow the same flag.
-- **Output.** Sync log lines go to stderr. A JSON summary with each project's
-  outcome goes to stdout.
+  resolution, and other projects continue. `local` and `server` apply to idea
+  conflicts only, for now: `SyncAccountUseCase` always stops a conflicted
+  project, and resolving one headless needs the project sync to accept a
+  choice instead of aborting.
+- **Output.** A JSON summary with each project's outcome, and the sync log
+  lines, goes to stdout. (Streaming the log to stderr as it happens needs a
+  progress channel operations do not have yet.)
 - **Exit codes.** 0 all synced, 1 failure, 2 at least one project needs
-  resolution, 3 unauthorized (run `account login` again). These map from
+  resolution, 3 unauthorized (run `account login` again).
+- **Login** takes the server, email, and password (from stdin). A server that
+  asks for terms acceptance or a sign-in code is refused with a message to log
+  in from the app once, since both stay in the GUI. These map from
   `ProjectSyncOutcome`: `Failed` is 1, `NeedsResolution` is 2, and `Success`,
-  `Unchanged`, `NotOnServer`, and `Skipped` are 0, with `NotOnServer` logged as
-  a warning. `onUnauthorized` gives 3.
+  `Unchanged`, and `Skipped` are 0. `onUnauthorized` gives 3.
 - **Credentials.** The desktop token store is an AES-encrypted file keyed on
   the user name and home directory. It needs no keyring or desktop session, so it
   works on a bare Linux box.
@@ -715,52 +777,138 @@ lands in v2 (see [CLI](#cli)).
 
 Plugins do not add fields to `GlobalSettings`. Each gets its own file in the
 settings directory, `plugins/<id>.toml`, read and written through a
-`PluginSettingsDatasource` that takes the plugin's serializable settings type
-and replaces the file atomically, so an interrupted write cannot reset it.
-(It is a datasource by name because `:common`'s architecture rule keeps raw TOML
-I/O in datasource files.) This
-keeps plugin schemas out of the core settings migrations and lets an overlay
-plugin change its settings shape without touching upstream files.
+`PluginSettingsDatasource` that replaces the file atomically, so an interrupted
+write cannot reset it. (It is a datasource by name because `:common`'s
+architecture rule keeps raw TOML I/O in datasource files.) This keeps plugin
+schemas out of the core settings migrations.
 
-Per-project plugin state goes in `<project>/.plugins/<id>/`. That directory is
-included in backups for free (backups zip the project directory) and ignored by
-sync for free (sync is entity-based, it never walks the directory). Rename and
-move work because it lives inside the project.
+Plugins have no storage of their own beyond settings; see
+[Gaps](#gaps-these-expose).
+
+### Declared settings
+
+A plugin's settings are a handful of typed values, which it declares in its
+package's `settings.toml`; the host renders the form, since a module cannot
+supply Compose UI.
+
+A declaration is a list of typed fields:
+
+```toml
+[[setting]]
+key = "scene_break"
+type = "choice"
+label = "Scene break"
+default = "hash"
+options = [
+	{ value = "hash", label = "#" },
+	{ value = "asterisks", label = "* * *" },
+	{ value = "blank", label = "Blank line" },
+]
+
+[[setting]]
+key = "chapter_headings"
+type = "bool"
+label = "Chapter headings"
+hint = "Only when top-level scenes are exported as chapters."
+default = true
+
+[[setting]]
+key = "min_length"
+type = "int"
+label = "Shortest word counted"
+default = 3
+min = 1
+max = 20
+```
+
+- **Types.** `bool` (toggle), `int` with optional `min` and `max`, `string`
+  with optional `multiline`, and `choice` (dropdown). More types are added when
+  a plugin needs one. There is no secret type: plugin settings are plain TOML,
+  so credentials do not belong in them.
+- **Where it lives.** `settings.toml` in the package, parsed into
+  `SettingDeclaration`s (`:operations`, no Compose types).
+- **Storage.** Values go in the plugin's existing `plugins/<id>.toml`, one key
+  per setting. On load, each value is checked against its declaration; a
+  missing, mistyped, or out-of-range value falls back to its default, and keys
+  no longer declared are dropped on the next write.
+- **Reading values.** A plugin receives its current settings as JSON with
+  every call, so it never needs a host call to read them. A command reads them
+  afresh for each line, so a change applies to a running `hammer mcp`.
+- **Rendering.** `:composeUi` turns a declaration into Hd components: a toggle
+  row, a number field, a text field, or a dropdown, in the plugin's settings
+  dialog. Labels are plain strings in the declaration.
+- **Access.** `PluginRegistry.settings(pluginId)` is the plugin's
+  `DeclaredSettingsStore`: current values as a `StateFlow<JsonObject>`,
+  `decode(serializer)` into the plugin's own class, and `set(key, value)`,
+  which ignores undeclared keys and invalid values.
 
 ## Strings
 
-`PluginUi.name` and the format labels take `StringResource`, which is
-module-agnostic. An in-tree or overlay plugin's UI half adds
-`values/<id>-strings.xml` under `:composeUi`'s own `composeResources`, which
-generates a `Res` separate from the app's (the app's strings stay in `:common`).
-Crowdin picks those files up too. A plugin in its own Gradle module uses its
-own `Res`. Either way the plugin owns its strings.
+Hammer's own words around plugins (Run, Cancel, the install dialog) are string
+resources, translated with the rest of the app. A plugin's own words come in
+two kinds, each translated by the plugin's author:
 
-Operation descriptions are plain English strings. They are read by agents and
-shown in CLI help, neither of which is localized today.
+- **Declared words.** The manifest's name, description, and labels, command
+  help, and `settings.toml`'s labels, hints, and option labels. A package may carry
+  translations of them in `locales/<tag>.toml`, one file per language, keyed
+  as the manifest keys them:
+
+  ```toml
+  name = "Générateur de noms"
+  description = "Propose des noms dans un style choisi."
+
+  [actions.names]
+  label = "Générer des noms"
+
+  [actions.names.fields.style]
+  label = "Style"
+  options = { everyday = "Anglais courant", norse = "Nordique" }
+
+  [settings.greeting]
+  label = "Salutation"
+
+  [exporters."names.txt"]
+  label = "Noms (TXT)"
+  ```
+
+  Hammer reads them when it loads the plugin, and for the install dialog, and
+  takes each string from the most specific file for the UI's language (`fr-CA`,
+  then `fr`), falling back to the manifest's. Ids, keys, and values never
+  change. Install refuses a file that does not parse or is not named for a
+  language tag.
+- **Replies.** Messages, documents, and check messages a plugin writes at run
+  time. Every call carries `locale`, the UI's BCP 47 tag, so the plugin can
+  write them in the user's language. It is not the project's `language`, which
+  says what the story is written in: a French writer may write in English.
+
+The UI's language is the system's, as for the rest of Hammer, so a plugin's
+declared words are chosen once, when it loads. Operation descriptions are plain
+English strings: they are read by agents and shown in CLI help, neither of which
+is localized today.
 
 ## Example plugins
 
-Two plugins to build against v1, alongside the [MCP plugin](#mcp-plugin),
-chosen so that between them they exercise most of the seam. All three are real
-features, not test fixtures.
+Real features rather than test fixtures, chosen so that between them they
+exercise every slot: the plain text exporter, the style report, the name
+generator, the simple grammar check, and the [MCP plugin](#mcp-plugin).
 
 ### Plain text exporter (`plaintext`)
 
-Built. Exports a story as plain text for pasting into submission forms, which
-want text with their own conventions for scene breaks and italics. Settings:
-scene break marker (`#`, `* * *`, or a blank line), italics (underscores,
-asterisks, or removed), paragraphs (blank line between, or indented), and
-chapter headings. Formatting comes from `:common`'s public prose parser, so it
-reads markdown the same way the built-in formats do.
+Built, as a runtime plugin in C: `plaintext` in the `hammer-plugins`
+repository, an 8 KB package. Exports a story as plain text for pasting into
+submission forms, which want text with their own conventions for scene breaks
+and italics. Settings: scene break marker (`#`, `* * *`, or a blank line),
+italics (underscores, asterisks, or removed), paragraphs (blank line between,
+or indented), and chapter headings.
 
 | Exercises | How |
 | --- | --- |
-| Exporter capability | `exporters()` returns one exporter, format id `plaintext.txt` |
-| Global plugin settings | `plugins/plaintext.toml`, through a small store the exporter reads at render time |
-| UI half | Settings pane and `exportFormatLabels()`, with strings in `:composeUi`'s own `Res` |
-| Split module | Data half in `:plugins:plaintext`, UI half in `:composeUi` |
-| Operations for free | `hammer project export --format plaintext.txt`, and export through the MCP plugin, with no plugin code |
+| Exporter capability | The manifest declares one exporter, format id `plaintext.txt`, with `input = "prose"` |
+| Declared settings | Three choices and a toggle in `settings.toml`, kept in `plugins/plaintext.toml` as before, so saved choices carry over |
+| Operations for free | `hammer project export --format plaintext.txt`, and export through MCP, with no plugin code |
+
+A fresh install of Hammer has no plain text export until the plugin is
+installed.
 
 **Manuscript format moves into core.** Standard Manuscript Format (12 point
 Times or Courier, double spacing, a surname, title, and page number header, a
@@ -772,33 +920,182 @@ the page-one contact block comes from.
 
 ### Style report (`style`)
 
-Adds a `style.report` operation (Read, agent-visible): per-scene readability,
-adverb density, dialogue ratio, and repeated words and phrases.
+Built, as a runtime plugin in C: `style` in `hammer-plugins`, a 72 KB
+package. A "Style report" item in the project menu reports, per scene and for
+the whole story or the scenes chosen, reading ease, adverbs and filter words
+per thousand words, the share of dialogue, and repeated words and phrases, and
+shows it in the result dialog, from which it can be saved as a note.
+
+It reads the project's language through `project.info` and counts by that
+language's rules and word lists, in `resources/<language>/`:
+
+| Language | Reading ease | Adverbs | Dialogue |
+| --- | --- | --- | --- |
+| English | Flesch, with Flesch–Kincaid grade | "-ly" | Double quotes, curly single quotes |
+| French | Kandel–Moles | "-ment" | Guillemets, curly double quotes, lines opening with a dash |
+| German | Amstad | None, as German marks no adverbs | „ “, guillemets either way round, curly double quotes |
+| Spanish | Szigriszt-Pazos | "-mente" | Guillemets, curly double quotes, lines opening with a dash |
+| Italian | Gulpease | "-mente" | Guillemets, curly double quotes, lines opening with a dash |
+| Ukrainian | None | None | Guillemets, „ “, lines opening with a dash |
+
+Syllables are counted as vowel groups in each language's vowels. French and
+Italian split words at an apostrophe, so "l'homme" counts "homme". On a line
+opening with a dash, each later dash moves between speech and narration:
+"—Ven —dijo ella—. Ya." Filter words are verbs of seeing, feeling, and knowing
+("felt", "saw", "realized"; "sentit", "fühlte", "sintió", "sentì", "відчув")
+that put a character between the reader and the scene. The French, Spanish,
+and Italian lists of words ending in "-ment" or "-mente" that are not adverbs
+("moment", "comente") are made from the LibreOffice dictionaries by
+`tools/not-adverbs.py`. A project in a language without lists, or with none,
+gets its words, sentences, and dialogue, and a note that the rest needs lists.
+
+The report is written in the UI's language, from the request's `locale`, in
+English, French, German, Spanish, Italian, or Ukrainian; `locales/` translates
+its labels and settings. Its settings turn filter words and the section for
+each scene on and off, and set how often a word must come up in a scene or in
+the story to be listed as a repeat, and how long each list is.
 
 | Exercises | How |
 | --- | --- |
-| Plugin operations | `operations()` returns `style.report`; it appears in the CLI and as an MCP tool |
-| Headless parity | Word lists load in `onAppStart`, which runs headless too, so results match |
-| Plugin as API consumer | Reads through `scene.tree` and `scene.read`. A "Style report" project action writes the report to a note through `note.create` |
-| Project actions | The first user of the project action slot, which it adds (see [`PluginUi`](#pluginui-composeui)) |
-| Per-project storage | Per-scene results cached in `<project>/.plugins/style/`, keyed by content hash |
+| Actions | The manifest declares one action with document output and a `scenes` field; the host asks which scenes, calls the module's `action` export, shows its progress scene by scene, and shows the markdown it returns |
+| Plugin as API consumer | Reads through `project.info`, `scene.tree`, and `scene.read`, the three operations it asks for by name, and nothing else: saving is the user's choice, in the dialog |
+| A full-book job in C | Counts in the module's own hash maps and arenas, reused scene to scene, so a novel fits the 64 MiB memory cap |
+| The plugin cache | Keeps each scene's counts under a hash of its text, its language, and its lists, so a run counts only scenes that changed |
+| Resources | Each language's common words, words with its adverb ending that are not adverbs, filter words, and titles, read at the start of each run |
+| Translations | Its report and progress in the UI's language, with that language's plurals and decimal comma, and `locales/*.toml` for its labels |
 
-It depends on `note.create`, so it lands after write operations.
+The whole story's figures are the sum of its scenes' counts, so they need no
+second pass. Its repeated phrases are those repeated within a scene. On a
+300,000-word book a first run takes about 7
+seconds and a run with nothing changed about 1, the reading of every scene
+that remains.
+
+### Simple grammar (`simple-grammar`)
+
+Built, as a runtime plugin in C: `simple-grammar` in `hammer-plugins`, a
+48 KB package. Underlines slips that a spell checker passes, since every word
+in them is a real one, in English, French, German, Spanish, Italian, and
+Ukrainian. Its settings turn groups of rules on and off:
+
+| Group | Default | Rules |
+| --- | --- | --- |
+| Word mistakes | On | Repeated words, mixed-up words and phrases ("could of", "your welcome", "sneak peak"; "quelque soit"; "seid wann", "das selbe"; "a sido", "de el"; "un amica", "c'è la faccio"; "приймати участь"), and each language's own: "a" and "an" and "better then" in English, elision in French ("le arbre" for "l'arbre") |
+| Verb agreement | On | A pronoun with a verb form that does not agree ("they was", "il sont", "wir hat", "ellos está", "loro ha", "вона був"), but not after a word that makes it right: the subjunctive ("if he were"), a subject of several ("you and I are"), an auxiliary ("does he have"), or a preposition ("para él son"). Pronouns that are objects too, such as "you", "it", "nous", and "sie", are left out, and so is speech |
+| Agreement in dialogue | Off | Verb agreement in speech too: quotes, and paragraphs that open with a dash |
+| Punctuation and capitalization | On | A lower-case "i" in English, spacing around punctuation, French's space before a colon, doubled marks (",,", ".." but not an ellipsis), unmatched parentheses, and a sentence starting in lower case |
+| Dialogue | On | `"Wait." she said` wants a comma and `"Wait," She said` lower case, in English; in every language a quote run into the next word wants a space, and one a comma follows drops its full stop (`„Warte.“, sagte sie`) |
+| Wordy phrases | Off | "in order to" for "to", "dans le but de" for "pour", "zum jetzigen Zeitpunkt" for "jetzt" |
+| Redundant phrases | Off | "free gift" for "gift", "monter en haut" for "monter", "subir arriba" for "subir" |
+| Repeated marks | Off | "!!" and "?!?" |
+| Long sentences | Off | More than a set number of words, 40 unless changed |
+
+The rules flag only what they are sure of ("had had" and "nous nous" pass, "a"
+and "an" are left alone before words starting with "h" or "u", French elision
+before an "h", and "better then." at the end of a sentence is the time). Its
+word and phrase lists are resources, in `resources/<language>/`, read once and
+kept for as long as projects in that language are checked; a project in a
+language with no lists gets nothing. A phrase's first word matches in either
+case and the rest as written, so "de el" passes "de El Salvador" and German
+keeps its nouns' capitals. A new language is a folder of lists, and gets every
+rule but English's and French's own, with curly quotes unless the plugin's
+table of quotation marks says otherwise; German's are „ and “, and French,
+Spanish, Italian, and Ukrainian's guillemets. A sentence may go on in lower
+case after "?" and "!" ("alas! either"). Case is known for Latin and Cyrillic
+letters. Fixes use curly apostrophes where the paragraph does. Its messages
+are in the UI's language, from the request's `locale`, when that is one of the
+six, and English otherwise; its name, description, and settings are translated
+in `locales/`, as any package's are. Every rule is
+one pass over a paragraph with small tables, and a word passes over the
+phrases of a list whose first word it is not in one step: 40 paragraphs of 74
+words take about 110 ms under chasm with every group on, against 25 to 30 ms a paragraph for Harper grammar.
+
+| Exercises | How |
+| --- | --- |
+| Text diagnostics | The manifest declares one check; the host calls the module's `diagnose` export with changed paragraphs and underlines what it returns |
+| Declared settings | Seven toggles and a number in `settings.toml`, read from the request |
+| Offsets across the boundary | Byte offsets from C, turned into the editor's UTF-16 ranges by the host |
+| The C kit | `hammer_diagnose.h` reads the request and writes the reply, so the plugin is its rules; `hammer_test.h` tests them natively |
+| Resources | Its lists, one folder per language, copied into a static buffer on first use |
+| Translations | `locales/<tag>.toml` for its words in Settings, and a table of its own messages picked by the request's `locale` |
+
+### Name generator (`name-generator`)
+
+Built, as a runtime plugin in C: `name-generator` in `hammer-plugins`. A
+"Generate names" item on Project Home and encyclopedia entries asks for a
+style (everyday English, Norse, or Elvish), feminine, masculine, or either
+given names, how many, and whether with surnames, and lists them with a button
+for each that adds it to the encyclopedia as a person. It asks for
+`entry.create` and nothing else.
+
+| Exercises | How |
+| --- | --- |
+| Action fields | Two choices, a number, and a toggle, asked for before it runs |
+| Interactive output | A button per name; pressing one calls the action again, which adds the entry and replies with the list, that name marked. "More names" is a footer button, replying with a new list |
+| State across calls | The list's seed rides in the button ids, so each call rebuilds the same names; `random_get` seeds the first |
+| Resources | Each style is a JSON file of word lists and name templates in `resources/styles/`, read the first time it is used and kept with `hammer_alloc_keep` |
+
+### Harper grammar (`harper-grammar`)
+
+Built, as a runtime plugin in Rust: `harper-grammar` in
+`hammer-plugins`, on [Harper](https://github.com/Automattic/harper), with
+Harper's spell check turned off. English only; the project's language picks
+the dialect (American, British, Canadian, Australian, or Indian). Its settings
+turn off whole categories (grammar, word choice, punctuation and
+capitalization, style), which group Harper's finer kinds of lint, and long
+sentences on their own. Style lints come back as suggestions. A long
+sentence's lint is kept apart when overlapping lints are pared down, since it
+covers the whole sentence and would hide every other issue in it. Harper's
+rules can be switched on and off by name but take no parameters, so the
+40-word limit for a long sentence is fixed.
+
+Harper builds its dictionary and rules on start-up, which takes 36 seconds
+under chasm (0.6 natively) and about 140 MB of memory. So the build runs that
+start-up under Wizer and ships the result: a 104 MB module, 18 MB zipped,
+declaring `limits.memory = 256`. Loading it takes about 1.5 seconds and a
+paragraph about 0.4. It loads in a 352 MB JVM heap, not in 320: the host
+rewrites the module's limits into one exactly sized copy, without copying the
+sections it leaves alone, and lets go of the original as soon as that is done,
+which leaves chasm's decoded copy of the data and the module's memory. About
+90 MB stays. Short of that heap, the check fails and the text goes unmarked.
+Android's app heap may still be too small; untried there.
+
+### Name checker (`name-checker`)
+
+Built, as a runtime plugin in Rust: `name-checker` in `hammer-plugins`, a
+300 KB module with a word list for each language it checks as resources:
+English (SCOWL's American and British lists), French, German, Spanish,
+Italian, and Ukrainian. It reads the encyclopedia's names and aliases through
+`entry.list` on every check, so it follows edits to the encyclopedia.
+
+| Exercises | How |
+| --- | --- |
+| The project in a check | The diagnose request's `project` lets the check read the encyclopedia |
+| A check and a report in one plugin | A `[[diagnostics]]` check and a document action share the name rules |
+| Resources | A word list per language, read the first time a project in it is checked, and kept |
+| Translations | `locales/<tag>.toml` for its labels, and its messages and report in the UI's language, counts with that language's plural forms |
+
+As the text is written, it underlines a word one edit from a name (two for a
+name of eight letters or more), a swap of neighbours counting as one, and a
+name written in lower case, offering the name as the fix; a plural ("the
+Grangers") counts as the name. Only names the word
+list does not know take part, so a name that is also a word ("Grace",
+"Harry") is left to spell check, and a word is never taken for a misspelled
+name. So it checks only projects in a language it has a list for. With the encyclopedia's names fed to
+spell check, a slip also gets spell check's own underline.
+
+The Names report, from the project menu, lists each entry's mentions (by
+name, alias, or a word of its name that is unique to it), the scenes they are
+in, and where it first appears; entries never mentioned; likely misspellings
+of names; and capitalised words the word list does not know, seen mid-sentence
+and more than once, that have no entry.
 
 ### Gaps these expose
 
 - **No content-change events.** A plugin that wants to react to edits (live
-  stats, a background linter) has nothing to subscribe to. The style report
-  avoids needing one by keying its cache on content hashes. The likely shape is
-  a `changes` flow on `ProjectPluginContext`, built on `SceneEditorService`'s
-  existing scene update subscriptions. Deferred until a plugin needs it.
-- **No project action slot.** Menu contributions are a no-op on every platform,
-  so the style report brings the first real in-UI action slot with it.
-- **No dialog or panel slot.** The style report writes a note because there is
-  nowhere to show a result. A result dialog is the most likely next UI slot.
-- **No per-project settings pane.** Plugin settings are global. Per-project
-  settings would need a slot on the project settings screen. Neither example
-  plugin needs one yet.
+  stats, a background linter) has nothing to subscribe to. Deferred until a
+  plugin needs it.
+- **No per-project settings.** Plugin settings are global. Neither example
+  plugin needs per-project ones yet.
 
 ## Keeping the door open
 
@@ -814,18 +1111,483 @@ A feature plugin needs a new entity type. Today that means touching every one of
 None of that is generalized in this proposal. The rules that keep it possible
 later are:
 
-1. Nothing in `ClientPlugin`, `PluginUi`, `ProjectPluginContext`, or the
-   operation API references any of the types above.
+1. Nothing in `ClientPlugin` or the operation API references any of the types
+   above.
 2. Plugin ids are stable and match the server plugin id convention, so a future
    feature plugin can be one id with a client half and a `ServerPlugin` half.
-3. Plugin lifecycle is already project-scoped, so registering project-scoped
-   repositories needs no new hook.
-4. Per-project plugin storage is explicitly *not* synced. Owning synced entities
-   becomes a separate, opt-in capability (`entityOwner()` or similar) when the
-   entity model is opened up, rather than something plugins fall into by writing
-   files.
-5. A feature plugin's operations register the same way as any other, so its data
-   type is scriptable and agent-accessible the day it ships.
+3. Any per-plugin storage is explicitly *not* synced. Owning synced entities
+   becomes a separate, opt-in capability when the entity model is opened up,
+   rather than something plugins fall into by storing data.
+
+## Runtime plugins (WASM)
+
+Runtime plugins let anyone write a plugin and let users install it, by running
+WebAssembly in a sandbox. `WasmPlugin` presents each as a `ClientPlugin`.
+
+### Runtime
+
+[chasm](https://github.com/CharlieTap/chasm), a WebAssembly interpreter written
+in Kotlin Multiplatform, MIT and Apache licensed. It is published for JVM,
+Android, iOS, macOS, Linux, and Windows, so one host in `commonMain` covers
+every target with no native libraries to package. It never generates code at
+runtime, which iOS forbids. It supports Wasm 3.0 plus GC, exception handling,
+and typed function references (what Kotlin/Wasm output needs), and WASI
+Preview 1 through a companion library. It does not support SIMD or Memory64.
+
+### Languages
+
+Plugins are supported in three languages: Kotlin/Wasm, for the most comfortable
+way to write one (a kit with typed requests, a `hammer.plugin` Gradle plugin that
+does the build, and unit tests on the JVM against a fake Hammer); Rust, for
+speed (about half C's speed on a whole-book report, where Kotlin runs at about
+a fifth); and C, the fastest and smallest, written by hand with native unit
+tests. Zig, AssemblyScript, and Go (through TinyGo) were tried too.
+hammer-plugin-development's `LANGUAGES.md` compares them all. Kotlin/Wasm's objects live in
+chasm's guest heap rather than the module's linear memory, so that heap has a cap
+of its own: 1 GiB, or half the JVM's heap if that is less, beyond which a call
+fails with "ran out of memory". chasm frees a call's garbage when the call returns
+(its collector that runs during a call corrupts live objects in 2.0.0), so a call
+holds all it allocates: the Kotlin style report on a 300,000-word novel needs
+768 MiB. The heap never gives pages back, so a plugin left holding more than 64 MiB
+after a call is dropped and loaded afresh when next used. The cap needs the JVM:
+on iOS the heap is uncapped.
+
+Rust has a kit of its own in `hammer-plugin-sdk` (`rust/hammer`): Hammer's
+imports, operations, and the cache, the `diagnose` request and reply types,
+character to byte offsets, an optional `getrandom` backend on the host's
+`random_get`, panics reported as the call's error, and an allocator that
+zeroes freed memory. Its `tools/finish.py` strips what crates written for
+the browser leave behind (wasm-bindgen's exports, and a trap in place of any of
+its imports still reachable) and fails the build if the module imports
+anything Hammer does not offer. A plugin whose start-up is slow can run it at
+build time under [Wizer](https://github.com/bytecodealliance/wizer), which
+saves the memory start-up leaves into the module; the zeroing allocator keeps
+what start-up threw away out of it.
+
+### Package
+
+A `.hammerplugin` file is a zip holding `manifest.toml`, `plugin.wasm`, and,
+if the plugin has them, a [`settings.toml`](#declared-settings),
+translations in `locales/`, and [resources](#resources) in `resources/`.
+
+```toml
+id = "wordfreq"               # lowercase, directory-safe
+name = "Word Frequency"
+version = "1.0.0"
+api = 1                       # host API version the plugin was built against
+description = "Counts how often each word appears, as a spreadsheet."  # optional, up to 1,000 characters; links are clickable
+languages = ["en"]            # optional: the project languages it works with
+
+[permissions]
+operations = ["project.info", "scene.tree", "scene.read"]
+
+[[exporters]]
+format = "wordfreq.csv"       # prefixed with the id
+extension = "csv"
+mime = "text/csv"
+label = "Word frequency (CSV)"
+
+[[actions]]                   # optional; see Actions
+name = "report"
+label = "Word frequency report"
+output = "document"           # message (default), document, or interactive
+places = ["project", "scene"] # where its menu item is; project by default
+
+[[actions.field]]             # optional; asked for before it runs
+key = "scenes"
+type = "scenes"               # bool, int, string, choice, as settings are, or scenes
+label = "Scenes"
+multiple = true
+
+[[commands]]                  # optional; see Commands
+name = "wordfreq"
+help = "Counts words in stdin."
+
+[limits]                      # optional
+memory = 64                   # MiB of linear memory, 1 to 1024; 64 by default
+```
+
+The install dialog, and the Info button beside each installed plugin, show its
+description, version, package size, `languages`, the languages its
+`locales/` translate it into, what it may use, and what it adds. `languages`
+is only shown: a project in another language still gets the plugin's checks
+and actions, which decide for themselves what to do with it. A description's links, bare
+`https://` URLs or `[label](https://...)`, can be clicked; nothing else in it
+is formatted.
+
+A module may be as large as its memory limit plus 32 MiB, since a
+pre-initialized module carries its memory's data. The install dialog says when
+a plugin asks for more memory than the default.
+
+Each `permissions.operations` entry is an operation's name, or a scope with
+`read` or `write`, such as `content:read`, which covers every operation of
+that scope and access. A scope never covers a Destructive operation; a plugin
+that needs one names it.
+
+There is no platforms field: a WASM module runs anywhere the host does.
+Labels are plain strings in the manifest; see [Strings](#strings) for
+translating them.
+
+### Calling convention
+
+Everything crosses the boundary as JSON in the plugin's linear memory, so the
+host needs no knowledge of plugin types:
+
+- **Plugin to host:** one import that dispatches an operation, plus logging.
+  This is the [`Dispatcher`](#clientplugin-operations) call, so a runtime plugin
+  reaches exactly the API an in-process plugin or the CLI does.
+- **Host to plugin:** exports for each capability: render an export, run one of
+  the plugin's own operations, describe itself.
+
+**Decision for the spike: Extism compatibility.** Extism already publishes
+plugin libraries for C, Rust, Go, Zig, JavaScript, AssemblyScript, .NET, and
+Haskell, with documentation. Since anyone can write plugins, adopting its
+convention gives authors that head start. The cost is implementing Extism's
+host side on chasm; its Java SDK does the same on the Chicory runtime and is
+the reference. If the port proves too large, the fallback is a small
+convention of our own (allocate, call, dispatch, log) plus a C header.
+
+**Settled by the spike.** Extism's convention it is. The host implements the
+`extism:host/env` functions natively (`ExtismKernel`) rather than running
+Extism's kernel module, which would cost a second interpreted call for every
+eight bytes a plugin copies. The Hammer-specific parts:
+
+- `extism:host/user` `hammer_dispatch(request) -> reply`. The request is
+  `{"operation": "...", "input": {...}}`; the reply is `{"output": ...}` or
+  `{"error": {"kind": "...", "message": "..."}}`, with the kinds of
+  `OperationException`, `PermissionDenied`, and `Failed` for anything else,
+  such as Hammer being busy. A reply never has another key, so a kit may
+  take a large output's text as it is, without parsing it. The host answers
+  `ops.list` itself, listing only the operations the plugin may call, so it
+  works even while Hammer is busy.
+- Every export's input also has `locale`, the UI's BCP 47 tag or null; see
+  [Strings](#strings).
+- An `export` function renders every export format the manifest declares. Its
+  input is `{"format", "projectName", "language", "topLevelAsChapters",
+  "chapters": [{"name", "scenes": [markdown], "prose": []}], "settings": {...}}`,
+  the last holding every declared setting's current value, and its output is
+  the file's bytes. An exporter whose manifest entry sets `input = "prose"`
+  gets each scene in `prose` instead of `scenes`: the host's own parse of its
+  markdown, the one the built-in formats render from, as blocks (`paragraph`,
+  `blank`, `heading`, `list`, `quote`, `code`, `rule`, `table`) of styled
+  spans. A plugin then needs no markdown parser, and reads text exactly as the
+  built-in formats do. The C kit's `hammer_json.h` reads either form.
+- A function fails by returning non-zero or by trapping. Either way, the
+  message it set with `error_set` is what the user sees, if it set one:
+  AssemblyScript's `abort` sets one and then traps.
+- HTTP imports exist, as Extism plugins expect them, and always fail. The only
+  WASI imports provided are `random_get` and `clock_time_get`, which Kotlin/Wasm
+  and kotlinx.serialization need and which grant no access to anything; a
+  module importing any other WASI function does not load.
+- `extism:host/user` `hammer_cache_get(key) -> value` and
+  `hammer_cache_set(key, value)`: the plugin's [cache](#cache). A get returns
+  0 for a key with no value; a set with 0, or an empty value, removes the key.
+- `extism:host/user` `hammer_resource(name) -> bytes`: a file from the
+  package's [resources](#resources), by its path under `resources/`, or 0
+  when there is none by that name.
+- An `action` export runs an action the manifest declares; see
+  [Actions](#actions). Its input is `{"action", "project", "settings", "input",
+  "context": {"place", "id"}, "button"}`, and its output is shown when it
+  finishes, as the action's `output` says.
+- `extism:host/user` `hammer_progress(report)`: how far an action has got,
+  `{"fraction": 0.5, "message": "Scene 3 of 6"}`, either key optional. The
+  host shows it while the action runs. Once the user has stopped the run, the
+  report traps, ending the action there, though stopping interrupts the module
+  anyway. Outside an action it does nothing.
+- A `diagnose` export runs a text diagnostics check the manifest declares
+  under `[[diagnostics]]` (`name`, `label`, and `scope`: `paragraph`, the
+  default, for only the paragraphs whose text the check has not seen, or
+  `scene`, for every paragraph of the scene each time, blank ones included).
+  Its input is `{"diagnostics", "paragraphs": [text], "language", "project",
+  "settings"}`, `language` a BCP 47 tag or null and `project` the project's
+  name, and its output `{"diagnostics": [{"paragraph", "start", "end",
+  "message", "fixes": [...], "severity"}]}`, `start` and `end` UTF-8 byte
+  offsets into the paragraph, which is how C and Rust index text. A fix is its
+  replacement, shown to the user as itself, or `{"replacement", "label"}`
+  where the replacement alone would not say what it does, such as removing a
+  word. `severity` is `error`, the default, or `suggestion`, marked more
+  quietly. The host converts the offsets,
+  and drops an issue whose paragraph does not exist or whose offsets fall past
+  the end or inside a character. A module that fails, or replies with nothing,
+  leaves the text unmarked.
+- `_initialize`, or else `__wasm_call_ctors`, runs once after instantiation, as
+  in other Extism hosts.
+
+### Cache
+
+Each plugin has a key-value cache of bytes, for work worth keeping between
+runs, such as the style report's per-scene counts. It is one store per plugin,
+not per project: a plugin that wants per-project entries puts the project in
+the key, and one keyed by content, as the style report is, shares entries
+across projects for free.
+
+It lives in the platform cache directory (`<cache>/plugins/<id>/`), one file
+per key named for the key's SHA-256, so it is never synced or backed up and the
+OS may clear it. Keys are at most 1 KiB and values at most 1 MiB; a larger one
+traps the call. Past 32 MiB for a plugin, the host drops the oldest written
+entries down to three quarters of that. Installing a plugin again or
+uninstalling it clears its cache, since a new version may keep different
+values under the same keys. A call still running on the old version can write
+after the clear, so plugins put a format version in their keys. Everything about it is best effort: a failed read
+is a miss and a failed write is dropped. A CLI command and the app may use one
+plugin's cache at once; each write is atomic, and the last one wins.
+
+### Resources
+
+A package's `resources/` holds files the plugin reads at run time, such as
+dictionaries and word lists, so they need not be compiled into the module. At
+most 1,000 files and 64 MiB in all, checked whenever the package is read. A
+plugin reads one with `hammer_resource`, which reads it out of the package then
+and hands the plugin all its bytes, so a file the plugin reads has to fit its
+memory, and one it uses often is worth keeping rather than reading again: a C
+plugin keeps its with `hammer_alloc_keep`. Each read also takes the file's size
+from the 256 MiB a call has for passing data to and from Hammer, until the call
+ends. Only files under `resources/` can be read, and an empty one reads as
+missing.
+
+### Actions
+
+A manifest's `[[actions]]` add items to the overflow menus of the screens in
+their `places`: `project` (Project Home, the default), `scene` (the scene
+editor), `note`, `entry`, and `event` (a timeline event). Choosing one asks
+for its fields, if it has any, then calls the module's `action` export with
+the project, the screen and the id of the item it shows (null on Project
+Home), and the values given:
+
+```json
+{"action": "names", "project": "Storm", "settings": {...},
+ "input": {"count": 8, "scenes": [3, 7]},
+ "context": {"place": "entry", "id": 12}, "button": null}
+```
+
+- **Fields.** `[[actions.field]]` tables take the settings types (`bool`,
+  `int`, `string` with `multiline`, `choice`), validated as settings are, and
+  `scenes`: a button opening the scene tree to pick from, the pick shown in
+  brief beside it. A `scenes` field with `multiple` (the default) sends a list
+  of ids, and without it one id or null; `required` keeps Run disabled until
+  something is picked. The dialog remembers the values given each action for
+  as long as the project is open.
+- **Output.** `message` is a brief line. `document` is markdown in a dialog
+  the user can copy or save as a note. `interactive` is JSON, `{"markdown",
+  "buttons": [{"id", "label", "footer"}], "message"}`: the markdown is shown
+  with the plugin's buttons under it, and pressing one calls the action again
+  with the same input and context and the button's id as `button`. A button
+  with `"footer": true` sits in the dialog's footer, beside Copy and Save as
+  note, for one that acts on the whole reply rather than an item in it. A reply with
+  markdown updates the dialog; one without closes it; a message is shown
+  either way. The plugin carries any state between calls in its button ids,
+  as the name generator does with its seed.
+- **Progress.** A run that takes a moment shows a dialog with a Stop button,
+  and a bar and a line the plugin sets through `hammer_progress`; without
+  reports the bar is indeterminate. Stop ends the wait and the plugin at once.
+- **One at a time.** Each project window runs one action at a time. A failure
+  shows a short message; the log has the rest.
+
+### Commands
+
+A manifest's `[[commands]]` add top-level CLI commands, desktop only. For
+`hammer <name> [args]`, the host reads standard input a line at a time and
+calls the module's `command` export with `{"command", "args", "settings",
+"line"}`, `settings` read afresh from the plugin's settings file each time. A
+non-empty output is written to standard output as one line; the loop ends at
+the end of input. The module never touches stdio itself, and its dispatches go
+through the CLI's `Dispatcher`, forwarded to the running app or run headless.
+Only a plugin the user installed and enabled runs, and only when its command is
+invoked. A command may not shadow `help` or an operation's first word, and a
+plugin adding a command another already has does not load. If the module
+cannot load, the command exits with an error rather than reading input.
+
+### Host
+
+A new `:plugins:wasmhost` module, depending on `:operations` and chasm:
+
+- **Loader.** `RuntimePlugins` keeps packages in `<config>/plugins/packages/`,
+  each plugin's enabled flag and granted operations in
+  `<config>/plugins/_runtime-plugins.toml`, and caches under `<cache>/plugins/` (plugin ids cannot start with `_`,
+  so no plugin's settings file collides with it). At startup `activate` wraps
+  each enabled package in a `WasmPlugin` and adds it to the registry. A package
+  that fails to read, or clashes with another plugin, is logged and skipped; it
+  never stops the app starting.
+- **Install.** Reads the package, checks the manifest, the settings
+  declarations, and export format prefixes, and instantiates the module once,
+  which checks its imports and runs its initializer. Only then is it copied in.
+  Installing a package with an installed id replaces it. Install, enable,
+  disable, and uninstall apply at once, and one the registry would refuse,
+  such as a command clash, is refused before anything changes.
+- **Hot plugins.** Everything a plugin adds is looked up live (see
+  [The registry and the UI](#the-registry-and-the-ui)), so changes need no
+  restart. An export already running on a removed plugin finishes on its old
+  instance.
+- **`WasmPlugin`** implements `ClientPlugin`. Its exporters, commands, and
+  actions come from the manifest and call the module.
+- **Execution.** `WasmPlugin.call` runs the module on the IO dispatcher, never
+  the UI thread. Export rendering, already on a background dispatcher, calls it
+  blocking. An operation the module dispatches blocks its thread until done.
+- **Stopping a runaway module.** Each module runs in a chasm store that meters
+  fuel: a check at every function entry and loop iteration takes a unit, and
+  the call traps when none are left. The host sets the budget before each call;
+  instantiation and the module's initializer get one of their own. chasm does
+  not bound memory, so the host rewrites the binary before loading it
+  (`ModuleLimiter`) to cap linear memory (the manifest's `limits.memory`,
+  64 MiB by default) and tables (100,000 entries), and rejects shared or 64-bit
+  memories. A module cannot call itself again from inside a call. The store is
+  interruptible too: cancelling the coroutine waiting on a call, such as a
+  stopped action or a text check the editor no longer wants, interrupts the
+  module at its next function entry or loop iteration, or once the host
+  function it is in returns. chasm makes one check for both, so it adds little.
+
+Plugins stay headless. A module cannot supply Compose UI, so its settings are
+[declared](#declared-settings) in `settings.toml` and the host renders the form.
+
+### Trust
+
+Plugins are untrusted code:
+
+- **No ambient access.** No WASI filesystem, sockets, environment, or
+  arguments: only randomness and clocks. Everything goes through operations, which
+  carry content and never file paths.
+- **Permissions checked on every call.** The host's dispatch refuses any
+  operation no grant covers that the manifest requested and the user granted.
+  Reads and changes are shown separately at install, scope grants described in
+  words, along with any commands the plugin adds. Accepting the install
+  prompt grants everything the manifest lists; a replaced package's grants are
+  those of the new manifest, since the user just approved them.
+- **Install and removal in Settings.** The Plugins section has install from
+  file, enable and disable, and uninstall, with the permission prompt at
+  install.
+- **Signing** is of the [plugin index](#plugin-index), not of packages: the
+  signed index pins each package's hash. A package installed from a file is
+  unsigned.
+
+### Plugin index
+
+A public, curated list of plugins the app can browse and install from. It holds
+listings, not packages.
+
+**Submitting.** A plugin gets one file in a `hammer-plugin-index` repository,
+added by pull request. `hammer-plugins` stays the first-party plugins' source
+and is the index's first submitter, attaching each package to a GitHub release.
+
+```toml
+# plugins/style.toml
+id = "style"
+name = "Style Report"
+summary = "Sentence length, adverbs, and repeated words, per scene."
+source = "https://github.com/Wavesonics/hammer-plugins/tree/main/style"
+license = "MIT"
+maintainers = ["Wavesonics"]
+
+[[releases]]
+version = "1.2.0"
+url = "https://github.com/Wavesonics/hammer-plugins/releases/download/style-1.2.0/style.hammerplugin"
+sha256 = "9f2c..."
+```
+
+Packages stay where their authors host them: a `.wasm` is not reviewable in a
+diff, and the pinned hash keeps an author from swapping one after review. A
+listing needs a public source link.
+
+**Checks on each pull request.** CI downloads each new release and checks:
+
+- Its hash, and that it passes the install checks the app runs, through a
+  `hammer plugin check <file>` command authors can run too.
+- Its id is the listing's, its version is above the last, and its `api` is one
+  a released app supports.
+- For an existing listing, the pull request's author is one of its
+  `maintainers`.
+
+**Review.** Plugins have no ambient access (see [Trust](#trust)), so a plugin
+cannot send anything anywhere; review asks whether it could damage a project
+and whether it does what it says. A person approves new listings, releases that
+request more permissions than the last, and any Destructive operation. Other releases merge
+once the checks pass.
+
+**Publishing.** On merge, CI builds `index.json` and publishes it, with its
+signature, at a fixed URL on a Hammer domain, so hosting can move. Permissions,
+commands, actions, and exporters in it are read from each package's manifest,
+never from the listing, so a listing cannot misstate what a plugin requests.
+
+**Signing.** CI signs `index.json` with an Ed25519 key held as a repository
+secret; the app ships the public keys it accepts, and a rotation ships in an app
+release. The app refuses an index whose signature fails, and one generated
+before the newest it has seen, so an old index cannot be replayed to hide an
+update. The signature covers the index and the index pins every package hash,
+so packages need no signatures of their own.
+
+**In the app.** The Plugins section of Settings gets a Browse tab. It fetches
+the index only when opened, or when checking installed plugins for updates,
+lists the releases whose `api` the app supports, and installs one by
+downloading it, checking its hash, and passing it to the usual install and its
+permission prompt. An update that requests more asks again, as any
+[replaced package](#trust) does. Install from file stays for plugins outside
+the index.
+
+**Later.** Verified builds: CI builds a release from source at a pinned commit
+and marks the listing when the result matches the package. It needs a toolchain
+per language, so it is a mark, not a requirement. A browse page on hammer.ink
+can read the same `index.json`.
+
+### Spike results
+
+Desktop JVM, warm, chasm 2.0.0:
+
+| Measure | Result |
+| --- | --- |
+| Tight loop, 20M iterations | 358 ms bare, 738 ms with fuel checks written into the module; on chasm 2.1.0, 375 ms bare and 450 ms with its own fuel |
+| 557 KB of text (100k words) through a WAT plugin, two host calls per byte | 63 ms |
+
+The same two jobs in C and Kotlin/Wasm, on that text. The Kotlin production
+build is optimized by binaryen; the development build is not:
+
+| Job | C | Kotlin production | Kotlin development |
+| --- | --- | --- | --- |
+| Upper-case it | 35 ms | 680 ms | 1.8 s |
+| Word count export of it | 121 ms | 1.95 s | 4.5 s |
+| Load the module (after the first, which warms chasm itself) | under 25 ms | 25 to 135 ms | 0.4 to 0.5 s |
+| Module size | 1 to 4 KB | 12 to 325 KB | 0.6 to 1.9 MB |
+
+- **Kotlin/Wasm works** on the same host, `wasmWasi` target, with
+  `@WasmImport` for the Extism functions and only `random_get` and
+  `clock_time_get` from WASI. Optimized, it is 15 to 20 times slower than C
+  here: part is doing more (Unicode case rules, kotlinx.serialization), most is
+  its GC-heavy standard library under an interpreter. Fine for occasional jobs;
+  C, Rust, Zig, or AssemblyScript suit exports that run over a whole book.
+  Plugin authors should ship the production build.
+- **C works freestanding.** Extism's C PDK compiles with no libc
+  (`--target=wasm32-unknown-unknown -nostdlib`), so a C plugin imports nothing
+  but Extism and Hammer functions. `hammer.h` supplies the `memset`, `memcpy`,
+  and `strlen` clang emits calls to even then.
+- **Fuel costs about 20% in tight loops** with chasm's own metering, where
+  checks written into the module cost 2x. A cheaper scheme charges a basic
+  block's instruction count once per block instead of one unit per loop pass;
+  it is not needed yet.
+- **Plugin kit.** Authors get `hammer.h` on top of Extism's `extism-pdk.h`: the
+  dispatch import, `hammer_call(operation, input_json)`, and the API version.
+  Beside it, `hammer_json.h` reads JSON, `hammer_out.h` writes output,
+  `hammer_text.h` finds words, `hammer_action.h` reads an action's request and
+  writes an interactive reply, and `hammer_diagnose.h` does a `diagnose`
+  export's reading and writing, leaving a checker only its rules;
+  `hammer_progress` reports a long action's progress. With
+  `HAMMER_NATIVE`, a plugin builds for the machine instead, and `hammer_test.h`
+  unit tests it there. Typed C structs for operation inputs and outputs can
+  later be generated from `ops.list`'s schemas.
+
+The plugin kits live in a separate `hammer-plugin-sdk` repository, next to this
+one, with Hammer's own plugins in `hammer-plugins` and the language comparisons in
+`hammer-plugin-development`. The host's test fixtures are WAT, in
+`:plugins:wasmhost`'s `src/desktopTest/wat`, whose `build.sh` writes the compiled
+fixtures (a few hundred bytes each) into its test resources, so this repo's tests
+do not need those checkouts.
+
+### Platforms
+
+The host is common code, so enabling a platform is a registration change: the
+platform's entry point calls the loader. Desktop comes first. Android follows
+with no new host code. Play's rule against downloaded code exempts code run in
+an interpreter, which covers installing from the [plugin index](#plugin-index);
+confirm before shipping the Browse tab there. iOS can run it technically; whether App Review accepts
+installable plugins is a policy question to settle before shipping it there,
+not an architecture one.
 
 ## Cost to `:common`
 
@@ -834,16 +1596,18 @@ Most new code lives outside `:common`: in `:operations`, `:composeUi`,
 
 | Change | Size | Justified without plugins? |
 | --- | --- | --- |
-| `openProjectScope` and `closeProjectScope` notify Koin-bound `ProjectLifecycleListener`s | A few lines | No. The one piece of pure plugin plumbing |
 | `closeProjectScope` counts editors, closing the scope when the last one closes | A few lines | Yes. Two Android tasks on one project otherwise close the scope under each other |
 | One string, `settings_plugins_header` | Trivial | No, but it is where all UI strings live |
+| `StoryExporterRegistry` asks Koin-bound `ExporterSource`s on each lookup | A few lines | No. The one piece of pure plugin plumbing |
 | `ExportFormat` enum becomes `StoryExporterRegistry`; export moves from `components/projecthome` to the data layer | Moderate | Partly. Export logic is in the wrong layer today |
 | The prose markdown parser moves out of `PdfProseMarkdown.kt` into a public `ProseMarkdown.kt` | Small | Yes. DOCX and RTF already use it, and it had nothing to do with PDF |
 | `StoryChapter` keeps its scenes separate, with `markdown` joining them | Small | Yes. Manuscript format needs scene breaks too |
 | A draft-save method that takes text, not only the current scene content | Small | No, but it is a natural addition |
+| Detail screens' overflow menus take extra items, and the project root hosts `PluginActionHost`, which runs actions and shows their dialogs | Small | No. Plugin actions appear on every screen that shows an item |
 
 Headless sync needs no `:common` change: the sync-all orchestration already
-lives in the data layer as `SyncAccountUseCase`.
+lives in the data layer as `SyncAccountUseCase`. Neither do runtime plugins:
+they reach `:common` only through operations.
 
 **Hidden costs.** Two assumptions could push fixes into `:common`, and both
 come from running it with no UI:
@@ -852,10 +1616,12 @@ come from running it with no UI:
   run without a window.
 - **Koin restart per call.** Stopping and restarting the global context only
   works if project and app scopes shut down cleanly. A repository that leaves a
-  coroutine running or holds static state would need fixing.
+  coroutine running or holds static state would need fixing. `TimeLineRepository`
+  was one, and now cancels its scope when the project scope closes.
 
-Spike both before step 4: start Koin headless, run a few read operations,
-stop and restart it in a loop, and watch for leaks and failures.
+Both were spiked before step 5: `HeadlessRestartTest` starts the real Koin
+graph five times, runs migration and read operations each time, and fails on
+any work that outlives a stop. It passes, at about 0.2 seconds per warm cycle.
 
 **Guardrail.** Every step's `:common` changes must make sense without plugins,
 or be listed in the table above. Anything else gets flagged in review, and the
@@ -863,41 +1629,68 @@ design is revisited rather than `:common` bent to fit.
 
 ## Rollout
 
-1. **Seam.** The `:operations` module, `:common`'s extension points
-   (`ProjectLifecycleListener` and Koin-collected contributions), `ClientPlugin`,
-   `PluginUi`, `ProjectPluginContext`, both registries, both registration files,
-   `PluginSettingsDatasource`, the `.plugins` directory, the Plugins section of Settings,
-   and entry-point wiring. Proven by a test-only fake plugin.
+1. **Seam.** The `:operations` module, `ClientPlugin`, the registries,
+   `PluginSettingsDatasource`, the Plugins section of Settings, and entry-point
+   wiring. (Built first for compiled-in plugins, since dropped.)
 2. **Pluggable export.** Move export into the data layer, replace the
    `ExportFormat` enum with `StoryExporterRegistry`, port the five built-in
    formats, then ship the [plain text exporter](#plain-text-exporter-plaintext)
-   as the first real plugin.
+   as the first real plugin, now a runtime one.
 3. **Operation registry and read operations.** Registry, `OperationContext`,
    the Read operations from the catalog, including `project.export` and
    `export.formats`. Tested directly, no front end yet.
-4. **Headless CLI.** Preceded by the headless spike in
-   [Cost to `:common`](#cost-to-common). Subcommands generated from the
-   registry, `Dispatcher`,
-   the `cliCommands()` capability, per-call Koin startup, the writer lock (held
-   by the app for its lifetime too).
-5. **[MCP plugin](#mcp-plugin).** `:plugins:mcp`, desktop-only registration,
-   settings pane. Read-only at this point, and refuses while the app is running
-   until forwarding lands.
-6. **Headless sync.** The account and sync operations, with `sync.run` as a
-   CLI listener over `SyncAccountUseCase`. Refuses while the app is running.
-7. **Forwarding.** Local socket in the app, "Allow external tools" setting, CLI
-   prefers the running app, second app instances hand off to the first.
-8. **Write operations.** `scene.write` and `scene.append` first, then the rest.
-   Deliberately after forwarding, so live writes always go through the app when
-   it is up. Then the [style report](#style-report-style) plugin.
-9. **Text diagnostics.** Define `TextDiagnosticsProvider` (text in, ranges plus
-   messages plus fixes out) and add a grammar plugin against it. Migrate spell
-   check onto the same interface only if the editor integration gets simpler for
-   it; spell check is wired deep into editor decorations and is not a cheap
-   first proof.
+4. **Runtime plugin spike.** Done; see [Spike results](#spike-results).
+   `:plugins:wasmhost` holds the Extism host on chasm, module limits, the
+   manifest, and `WasmPlugin`.
+5. **Headless CLI.** Built: subcommands generated from the registry,
+   `Dispatcher`, the `cliCommands()` capability, per-call Koin startup, and the
+   writer lock, which the app takes at startup and holds for its lifetime. The
+   holder writes `writer.owner` beside the lock, so nobody waits on the app,
+   while a CLI call waits briefly for another to finish. A second app window
+   that cannot take the lock runs without, as before; forwarding (step 8) is
+   what makes the app single-instance. [Getting `hammer` onto
+   PATH](#getting-onto-path) is a Settings button on each package format that
+   allows it.
+6. **[MCP plugin](#mcp-plugin).** Built, as a runtime plugin on plugin
+   commands and scope grants.
+7. **Headless sync.** Built: `account.status`, `account.login`,
+   `account.logout`, `sync.status`, and `sync.run` over `SyncAccountUseCase`.
+   Refuses while the app is running, through the writer lock. Tested with fakes
+   only so far, not against a live server.
+8. **Forwarding.** Built: the app listens on
+   `run/hammer.sock` in the config directory (`run/` is owner-only) while it
+   holds the writer lock, refuses account and sync operations since it runs
+   those itself, and the CLI and MCP try the socket before running headless. A second app launch hands its arguments to the first window and
+   exits (see [Multiple app instances](#concurrency)).
+9. **Write operations.** Built: every write operation in the catalog, the MCP
+   plugin's settings, and the CLI's `--confirm` and `--in`. Project
+   create, rename, and delete go through `ProjectsService`, shared with the
+   projects list, so they queue for account sync the same way. Deliberately
+   after forwarding, so live writes always go through the app when it is up.
+   Then the [style report](#style-report-style) plugin, now a runtime one with
+   the project action slot it needed.
+   Then the plugin [cache](#cache), so a style report counts only changed
+   scenes, and the result dialog, where the style report now appears.
+10. **Text diagnostics.** Built: `TextDiagnosticsProvider`, the `diagnose`
+   export, and a diagnostics layer in the editor library, with the
+   [simple grammar](#simple-grammar-simple-grammar) plugin against it. Spell check stays separate:
+   it loads suggestions only when a word is clicked and re-checks single words,
+   where diagnostics carry their fixes up front and re-check whole paragraphs.
+   Moving it over waits until diagnostics can load fixes on demand.
+11. **Runtime plugins on desktop.** Built. Plugins from the `hammer-plugins`
+    repository compile, package, install without a restart, read their
+    declared settings, and call back into Hammer. Compiled-in plugins are gone.
+12. **Runtime plugins on Android**, then an iOS decision. Android is built:
+    registration only, through the same `RuntimePlugins.inConfigDirectory`
+    as desktop. iOS needs only the same line in `HammerAppInit`, once App
+    Review's stance on installable plugins is settled.
+13. **[Plugin index](#plugin-index).** `hammer plugin check`, then the
+    `hammer-plugin-index` repository with its checks and signed `index.json`,
+    with the first-party plugins as its first listings, then the Browse tab and
+    update checks.
 
-Steps 1 and 2 restructure existing code, and step 7 changes app startup
-(single-instance hand-off). The rest are additive. Step 8 is where the
+Steps 1 and 2 restructure existing code, and step 8 changes app startup
+(single-instance hand-off). The rest are additive. Step 9 is where the
 concurrency design gets tested for real.
 
 ## v2
@@ -906,6 +1699,28 @@ concurrency design gets tested for real.
 
 `hammer batch`, described under [CLI](#cli). One process, operations in as
 JSON lines, results out as JSON lines.
+
+### Sync backends
+
+Could a plugin sync projects through Google Drive (or Dropbox, WebDAV, a git
+remote) instead of a Hammer server? Not with this design, but it can be added:
+
+- **A sync capability.** Today sync is `SyncAccountUseCase` talking to the
+  Hammer server's API. A plugin backend needs a `syncBackend()` capability
+  that the sync use case calls instead: push and pull whole entities, list what
+  changed since a marker. The entity journal and conflict handling stay in
+  core; only the transport is the plugin's.
+- **Core first.** A Drive backend needs OAuth (a browser sign-in and token
+  refresh), HTTP, background scheduling, and a place for tokens, all of which
+  core Kotlin has. It would start in core once the capability exists.
+- **Plugins need more host.** An HTTP permission limited to hosts the
+  manifest names (Extism's `http_request` already fits), an OAuth flow the
+  host runs on the plugin's behalf, and secret storage, since declared settings
+  are plain TOML and have no secret type. All three are worth doing only once a
+  real backend needs them.
+- **No shared server semantics.** Drive has no server-side merge, so the
+  backend would store a journal alongside the files and resolve conflicts
+  client-side, as sync already does for the Hammer server's reported changes.
 
 ### Native CLI
 
@@ -924,8 +1739,8 @@ a Pi Zero.
 | platform-spellcheckerkt, pdfkmp | Spell check, PDF export | Excluded from the native build |
 
 The Ktor client uses the curl engine on Linux, which requires libcurl on the
-target system. The MCP Kotlin SDK also publishes Linux native targets, so the
-MCP plugin can come along.
+target system. chasm publishes Linux native targets too, so plugins, the MCP
+plugin included, can come along.
 
 **The obstacle is module structure.** A native CLI module cannot depend on
 `:common` as it is, because that would require all of `:common`'s shared code,

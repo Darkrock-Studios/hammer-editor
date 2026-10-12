@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectDeep
 import com.github.ajalt.clikt.core.CliktError
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 
@@ -62,9 +63,22 @@ class DesktopLaunchArgsTest {
 	}
 
 	@Test
+	fun `an unknown argument is described`() {
+		val error = assertThrows<CliktError> { parseDesktopLaunchArgs(arrayOf("--bogus")) }
+		assertTrue("--bogus" in describeLaunchArgsError(error))
+	}
+
+	@Test
 	fun `target without project is rejected`() {
 		assertThrows<CliktError> {
 			parseDesktopLaunchArgs(arrayOf("--scene", "1"))
 		}
+	}
+
+	@Test
+	fun `a handed-over launch parses without exiting`() {
+		assertEquals(ProjectDeepLink.Note(7), parseHandedOffLaunchArgs(listOf("--project", "Novel", "--note", "7"))?.deepLink)
+		assertNull(parseHandedOffLaunchArgs(listOf("--help")))
+		assertNull(parseHandedOffLaunchArgs(listOf("--scene", "3")))
 	}
 }

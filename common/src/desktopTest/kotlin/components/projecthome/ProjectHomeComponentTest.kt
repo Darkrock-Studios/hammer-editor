@@ -39,6 +39,7 @@ import com.darkrockstudios.apps.hammer.common.data.tagindex.TaggedEntityRef
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TaggedEntityType
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.APP_SCOPE
 import com.darkrockstudios.apps.hammer.project_home_action_backup_toast_failure
 import com.darkrockstudios.apps.hammer.project_home_action_backup_toast_success
 import com.darkrockstudios.libs.platformspellchecker.PlatformSpellCheckerFactory
@@ -46,7 +47,9 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -56,6 +59,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.koin.core.qualifier.named
 import org.koin.dsl.module
 import utils.ComponentTest
 import kotlin.test.assertEquals
@@ -147,6 +151,7 @@ class ProjectHomeComponentTest : ComponentTest() {
 			single { StoryExporterRegistry(emptyList()) }
 			single { projectBackupService }
 			single<AccountTagService> { mockk(relaxed = true) }
+			single(named(APP_SCOPE)) { CoroutineScope(SupervisorJob()) }
 			single<PlatformSpellCheckerFactory> {
 				mockk { every { availableLocales() } returns emptyList() }
 			}

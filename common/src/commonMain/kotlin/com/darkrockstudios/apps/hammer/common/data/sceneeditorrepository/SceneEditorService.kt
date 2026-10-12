@@ -84,11 +84,14 @@ class SceneEditorService(
 	 * Project-open entry point: loads the scene tree, then starts the content (autosave) and
 	 * metadata engines, in order.
 	 */
-	suspend fun initialize() {
+	suspend fun initialize(restoreUnsavedEdits: Boolean = true) {
 		sceneEditorRepository.initializeSceneEditor()
-		sceneContentRepository.initialize()
+		sceneContentRepository.initialize(restoreUnsavedEdits)
 		sceneMetadataRepository.initialize()
 	}
+
+	/** Restores unsaved edits left by a previous session, for a scope opened without them. */
+	fun restoreUnsavedEdits() = sceneContentRepository.restoreTempBuffers()
 
 	suspend fun createScene(
 		parent: SceneItem?,
@@ -115,6 +118,7 @@ class SceneEditorService(
 	suspend fun deleteScene(scene: SceneItem): Boolean {
 		val deleted = sceneEditorRepository.deleteScene(scene)
 		if (deleted) {
+			sceneContentRepository.forgetBuffer(scene)
 			statisticsRepository.markDirty()
 			referenceIndexRepository.markSceneDeleted(scene.id)
 			writingSessionTracker.forgetBaseline(scene.id)
@@ -138,9 +142,14 @@ class SceneEditorService(
 
 	suspend fun moveScene(moveRequest: MoveRequest) = sceneEditorRepository.moveScene(moveRequest)
 
+	/** Saves the scene's unsaved edits first, so they are archived with it. */
 	suspend fun archiveScene(scene: SceneItem): Boolean {
+		if (sceneContentRepository.hasDirtyBuffer(scene.id) && !storeSceneBuffer(scene)) return false
 		val archived = sceneEditorRepository.archiveScene(scene)
-		if (archived) statisticsRepository.markDirty()
+		if (archived) {
+			sceneContentRepository.forgetBuffer(scene)
+			statisticsRepository.markDirty()
+		}
 		return archived
 	}
 
@@ -348,6 +357,8 @@ class SceneEditorService(
 	fun hasDirtyBuffers(): Boolean = sceneContentRepository.hasDirtyBuffers()
 
 	fun hasDirtyBuffer(sceneId: Int): Boolean = sceneContentRepository.hasDirtyBuffer(sceneId)
+
+	fun hasUnrestoredEdits(sceneItem: SceneItem): Boolean = sceneContentRepository.hasUnrestoredEdits(sceneItem)
 
 	suspend fun getMetadata(): ProjectMetadata = sceneMetadataRepository.getMetadata()
 

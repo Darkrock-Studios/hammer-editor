@@ -71,6 +71,10 @@ suspend fun KoinComponent.temporaryProjectTask(projectDef: ProjectDef, block: su
 	}
 }
 
+/** Whether [projectDef]'s scope is open, for an editor or a temporary task such as a sync. */
+fun isProjectOpen(projectDef: ProjectDef): Boolean =
+	getKoin().getScopeOrNull(ProjectDefScope(projectDef).scopeId) != null
+
 fun createProjectScope(projectDef: ProjectDef): Scope {
 	val alreadyCreated = getKoin().getScopeOrNull(ProjectDefScope(projectDef).scopeId) != null
 	if (alreadyCreated) error("Scope was already created")
@@ -91,7 +95,7 @@ suspend fun openProjectScope(projectDef: ProjectDef, temporary: Boolean = false)
 	if (needsInit) {
 		initializeProjectScope(projectDef, temporary)
 	} else if (!temporary && markOpenedForEditing(scopeId)) {
-		onOpenedForEditing(projectDef, projScope)
+		onOpenedForEditing(projScope)
 	}
 
 	return projScope
@@ -103,7 +107,8 @@ suspend fun initializeProjectScope(projectDef: ProjectDef, temporary: Boolean = 
 		// Creates the service (activating its autosave side-effect subscription from project open)
 		// and runs the scene-editor init sequence: tree, then content (autosave), then metadata.
 		val sceneEditorService: SceneEditorService = projScope.get()
-		sceneEditorService.initialize()
+		// Unsaved edits belong to editors; a temporary scope must neither restore nor discard them.
+		sceneEditorService.initialize(restoreUnsavedEdits = !temporary)
 
 		val timeLineRepository: TimeLineRepository = projScope.get { parametersOf(projectDef) }
 		timeLineRepository.initialize()
@@ -111,26 +116,14 @@ suspend fun initializeProjectScope(projectDef: ProjectDef, temporary: Boolean = 
 		// Skipped for temporary scopes (background sync, import): loading session words
 		// there only churns the shared checker while the sync rewrites entries.
 		if (!temporary && markOpenedForEditing(defScope.scopeId)) {
-			onOpenedForEditing(projectDef, projScope)
+			onOpenedForEditing(projScope)
 		}
 	} ?: throw IllegalStateException("No scope found for $projectDef")
 }
 
-private fun onOpenedForEditing(projectDef: ProjectDef, projScope: Scope) {
+private fun onOpenedForEditing(projScope: Scope) {
+	projScope.get<SceneEditorService>().restoreUnsavedEdits()
 	projScope.get<ProjectSpellCheckService>().initialize()
-	notifyLifecycleListeners(projectDef) { it.onProjectOpened(projectDef, projScope) }
-}
-
-// A misbehaving listener must not be able to stop a project opening or closing.
-@Suppress("TooGenericExceptionCaught")
-private fun notifyLifecycleListeners(projectDef: ProjectDef, event: (ProjectLifecycleListener) -> Unit) {
-	getKoin().getAll<ProjectLifecycleListener>().forEach { listener ->
-		try {
-			event(listener)
-		} catch (e: Exception) {
-			Napier.e(e) { "Project lifecycle listener failed for ${projectDef.name}" }
-		}
-	}
 }
 
 /** Counts an editor on [scopeId]; returns true for the first one. */
@@ -149,9 +142,6 @@ fun closeProjectScope(projectScope: Scope, projectDef: ProjectDef) {
 	}[scopeId] ?: 0
 
 	if (editors > 1) return
-	if (editors == 1) {
-		notifyLifecycleListeners(projectDef) { it.onProjectClosed(projectDef) }
-	}
 	projectScope.close()
 }
 

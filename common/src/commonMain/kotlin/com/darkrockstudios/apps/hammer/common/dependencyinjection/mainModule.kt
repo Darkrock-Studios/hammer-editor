@@ -49,6 +49,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDataso
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsService
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.ProjectStatisticsCacheReader
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
@@ -265,6 +266,7 @@ val mainModule = module {
 	single<GroupSyncPhase>()
 	single<ProjectAttributeSyncPhase>()
 	single<ClientAccountSynchronizer>()
+	single<ProjectsService>()
 
 	single<ProjectBackupService>()
 
@@ -281,7 +283,7 @@ val mainModule = module {
 
 	single { StoryImporterRegistry(listOf(MarkdownStoryImporter(), RtfStoryImporter())) }
 	// Plugins contribute formats by binding StoryExporters; the built-in ones are always present.
-	single { StoryExporterRegistry(getAll()) }
+	single { StoryExporterRegistry(getAll(), getAll()) }
 
 	scope<ProjectDefScope> {
 		scoped<ProjectDef> { checkNotNull(getSource<ProjectDefScope>()).projectDef }
