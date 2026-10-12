@@ -11,7 +11,6 @@ import com.darkrockstudios.apps.hammer.common.data.migrator.PROJECT_DATA_VERSION
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.FetchLocalDataOperation
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.MissingProjectIdException
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.SyncOperationException
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientNoteSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientSceneSynchronizer
@@ -82,7 +81,7 @@ class FetchLocalDataOperationTest : BaseTest() {
 	fun `Golden Path`() = runTest {
 		val op = createOperation(getProjectDef(PROJECT_2_NAME))
 
-		coEvery { projectMetadataDatasource.loadMetadata(any()) } returns metadata
+		coEvery { projectMetadataDatasource.loadProjectId(any()) } returns projId
 		coEvery { syncJournal.loadSyncData() } returns projectData
 
 		mockSynchronizers.synchronizers.forEach { synchronizer ->
@@ -162,7 +161,7 @@ class FetchLocalDataOperationTest : BaseTest() {
 			syncedHashes = mapOf(2 to "already-recorded-2"),
 		)
 
-		coEvery { projectMetadataDatasource.loadMetadata(any()) } returns metadata
+		coEvery { projectMetadataDatasource.loadProjectId(any()) } returns projId
 		coEvery { syncJournal.loadSyncData() } returns existing
 
 		mockSynchronizers.synchronizers.forEach { synchronizer ->
@@ -199,7 +198,7 @@ class FetchLocalDataOperationTest : BaseTest() {
 	fun `Handle Failure`() = runTest {
 		val op = createOperation(getProjectDef(PROJECT_2_NAME))
 
-		coEvery { projectMetadataDatasource.loadMetadata(any()) } answers {
+		coEvery { projectMetadataDatasource.loadProjectId(any()) } answers {
 			throw Exception("Fail the test")
 		}
 
@@ -221,38 +220,4 @@ class FetchLocalDataOperationTest : BaseTest() {
 		assertIs<SyncOperationException>(result.exception)
 	}
 
-	@Test
-	fun `Missing Server Project ID returns MissingProjectIdException`() = runTest {
-		val op = createOperation(getProjectDef(PROJECT_2_NAME))
-
-		// Create metadata without serverProjectId
-		val metadataWithoutServerId = ProjectMetadata(
-			info = Info(
-				created = Instant.fromEpochSeconds(123456),
-				lastAccessed = null,
-				dataVersion = PROJECT_DATA_VERSION,
-				serverProjectId = null // No server project ID
-			)
-		)
-
-		coEvery { projectMetadataDatasource.loadMetadata(any()) } returns metadataWithoutServerId
-
-		val onProgress = mockk<suspend (Float, SyncLogMessage?) -> Unit>(relaxed = true)
-		val onLog = mockk<OnSyncLog>(relaxed = true)
-		val onConflict = mockk<EntityConflictHandler<ApiProjectEntity>>(relaxed = true)
-		val onComplete = mockk<suspend (Boolean) -> Unit>(relaxed = true)
-
-		val initialState = InitialSyncOperationState(false)
-		val result = op.execute(
-			state = initialState,
-			onProgress = onProgress,
-			onLog = onLog,
-			onConflict = onConflict,
-			onComplete = onComplete,
-		)
-
-		// Should fail with MissingProjectIdException instead of throwing
-		assertFalse(isSuccess(result))
-		assertIs<MissingProjectIdException>(result.exception)
-	}
 }

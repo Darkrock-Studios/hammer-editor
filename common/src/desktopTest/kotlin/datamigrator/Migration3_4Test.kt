@@ -1,10 +1,17 @@
 package datamigrator
 
+import PROJECT_1_NAME
+import com.darkrockstudios.apps.hammer.base.ProjectId
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.migrator.Migration3_4
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
+import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
+import createProject
+import getProject1Def
 import okio.Path
 import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
@@ -13,6 +20,7 @@ import org.junit.jupiter.api.Test
 import utils.BaseTest
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
 
 class Migration3_4Test : BaseTest() {
 
@@ -34,13 +42,78 @@ class Migration3_4Test : BaseTest() {
 		projDef = ProjectDef(name = "Test Project", path = projectPath.toHPath())
 	}
 
+	private val metadataPath: Path
+		get() = projDef.path.toOkioPath() / ProjectMetadata.FILENAME
+
+	private val toml = createTomlSerializer()
+
+	private fun metadataDatasource() = ProjectMetadataDatasource(ffs, toml)
+
+	private fun migration() = Migration3_4(ffs, toml, metadataDatasource())
+
 	private fun read(path: Path): String = ffs.read(path) { readUtf8() }
+
+	private fun writeMetadata(infoLines: String) {
+		ffs.write(metadataPath) {
+			writeUtf8("[info]\ncreated = 2022-12-30T07:08:02.691261600Z\ndataVersion = 3\n$infoLines")
+		}
+	}
+
+	@Test
+	fun `seeds the project id from the legacy server project id`() {
+		writeMetadata("serverProjectId = \"$SERVER_ID\"\n")
+
+		migration().migrate(projDef)
+
+		assertEquals(ProjectId(SERVER_ID), metadataDatasource().loadMetadata(projDef).info.projectId)
+		assertFalse(read(metadataPath).contains("serverProjectId"))
+		assertEquals(3, metadataDatasource().loadMetadata(projDef).info.dataVersion)
+	}
+
+	@Test
+	fun `Test Project 1 keeps its server id as its project id`() {
+		createProject(ffs, PROJECT_1_NAME)
+		val def = getProject1Def()
+
+		migration().migrate(def)
+
+		assertEquals(ProjectId(SERVER_ID), metadataDatasource().loadProjectId(def))
+	}
+
+	@Test
+	fun `mints a project id when there is none`() {
+		writeMetadata("")
+
+		migration().migrate(projDef)
+
+		assertNotNull(metadataDatasource().loadMetadata(projDef).info.projectId)
+	}
+
+	@Test
+	fun `keeps an existing project id over the legacy server id`() {
+		writeMetadata("projectId = \"$PROJECT_ID\"\nserverProjectId = \"$SERVER_ID\"\n")
+
+		migration().migrate(projDef)
+
+		assertEquals(ProjectId(PROJECT_ID), metadataDatasource().loadMetadata(projDef).info.projectId)
+	}
+
+	@Test
+	fun `a second run keeps the seeded project id`() {
+		writeMetadata("")
+
+		migration().migrate(projDef)
+		val first = metadataDatasource().loadMetadata(projDef).info.projectId
+		migration().migrate(projDef)
+
+		assertEquals(first, metadataDatasource().loadMetadata(projDef).info.projectId)
+	}
 
 	@Test
 	fun `renames project_data toml to project_settings toml`() {
 		ffs.write(legacyPath) { writeUtf8(LEGACY_CONTENT) }
 
-		Migration3_4(ffs).migrate(projDef)
+		migration().migrate(projDef)
 
 		assertFalse(ffs.exists(legacyPath))
 		assertEquals(LEGACY_CONTENT, read(settingsPath))
@@ -51,7 +124,7 @@ class Migration3_4Test : BaseTest() {
 		ffs.write(legacyPath) { writeUtf8(LEGACY_CONTENT) }
 		ffs.write(settingsPath) { writeUtf8(CURRENT_CONTENT) }
 
-		Migration3_4(ffs).migrate(projDef)
+		migration().migrate(projDef)
 
 		assertEquals(LEGACY_CONTENT, read(legacyPath))
 		assertEquals(CURRENT_CONTENT, read(settingsPath))
@@ -59,7 +132,7 @@ class Migration3_4Test : BaseTest() {
 
 	@Test
 	fun `no-op when neither file exists`() {
-		Migration3_4(ffs).migrate(projDef)
+		migration().migrate(projDef)
 
 		assertFalse(ffs.exists(legacyPath))
 		assertFalse(ffs.exists(settingsPath))
@@ -69,14 +142,16 @@ class Migration3_4Test : BaseTest() {
 	fun `second run is a no-op`() {
 		ffs.write(legacyPath) { writeUtf8(LEGACY_CONTENT) }
 
-		Migration3_4(ffs).migrate(projDef)
-		Migration3_4(ffs).migrate(projDef)
+		migration().migrate(projDef)
+		migration().migrate(projDef)
 
 		assertFalse(ffs.exists(legacyPath))
 		assertEquals(LEGACY_CONTENT, read(settingsPath))
 	}
 
 	private companion object {
+		const val SERVER_ID = "5f1d7446-1f08-4909-a81e-cdc7470a2f63"
+		const val PROJECT_ID = "0b6c1d2e-3f40-4a5b-8c6d-7e8f9a0b1c2d"
 		const val LEGACY_CONTENT = "[data]\nauthorName = \"Legacy\"\n"
 		const val CURRENT_CONTENT = "[data]\nauthorName = \"Current\"\n"
 	}

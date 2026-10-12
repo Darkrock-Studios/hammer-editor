@@ -15,7 +15,6 @@ data class ProjectsSynchronizationData(
 	val deletedProjects: Set<ProjectId>,
 	val projectsToDelete: Set<ProjectId>,
 	val projectsToRename: Set<RenamedProject>,
-	val projectsToCreate: Set<String>,
 )
 
 @Serializable

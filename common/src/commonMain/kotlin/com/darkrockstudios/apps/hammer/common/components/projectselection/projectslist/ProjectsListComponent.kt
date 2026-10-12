@@ -278,9 +278,6 @@ class ProjectsListComponent(
 	override fun createProject(projectName: String) {
 		val result = projectsRepository.createProject(projectName, seedDefaultLanguage = true)
 		if (isSuccess(result)) {
-			if (projectsSynchronizer.isServerSynchronized()) {
-				projectsSynchronizer.createProject(projectName)
-			}
 			Napier.i("Project created: $projectName")
 			loadProjectList()
 			hideCreate()
@@ -294,20 +291,12 @@ class ProjectsListComponent(
 	}
 
 	override fun deleteProject(projectDef: ProjectDef) {
-		val projectId = projectsRepository.getProjectId(projectDef)
-		val syncedProject = if (projectId != null) {
-			SyncedProjectDefinition(projectDef, projectId)
-		} else {
-			null
-		}
+		val syncedProject = SyncedProjectDefinition(projectDef, projectsRepository.getProjectId(projectDef))
 
 		if (projectsRepository.deleteProject(projectDef)) {
 			Napier.i("Project deleted: ${projectDef.name}")
-			if (syncedProject != null) {
-				projectsSynchronizer.deleteProject(syncedProject)
-			} else if (projectsSynchronizer.isServerSynchronized()) {
-				projectsSynchronizer.deleteUnsyncedProject(projectDef.name)
-			}
+			// Queued even when it never synced: account sync drops ids the server never knew.
+			projectsSynchronizer.deleteProject(syncedProject)
 
 			loadProjectList()
 		}
@@ -317,9 +306,7 @@ class ProjectsListComponent(
 		val projectId = projectsRepository.getProjectId(projectDef)
 		if (projectsRepository.renameProject(projectDef, newName).isSuccess) {
 			Napier.i("Project renamed: ${projectDef.name}")
-			if (projectId != null) {
-				projectsSynchronizer.renameProject(projectId, newName)
-			}
+			projectsSynchronizer.renameProject(projectId, newName)
 
 			loadProjectList()
 		} else {
@@ -480,10 +467,6 @@ class ProjectsListComponent(
 		}
 		val newDef = result.data
 
-		if (projectsSynchronizer.isServerSynchronized()) {
-			projectsSynchronizer.createProject(projectName)
-		}
-
 		_state.getAndUpdate {
 			it.copy(
 				showImportDialog = false,
@@ -539,7 +522,6 @@ class ProjectsListComponent(
 				ProjectSyncOutcome.Failed ->
 					syncProgressStatus(projectDef.name, ProjectsList.Status.Failed)
 
-				ProjectSyncOutcome.NotOnServer,
 				ProjectSyncOutcome.Skipped ->
 					syncProgressStatus(projectDef.name, ProjectsList.Status.Pending)
 			}

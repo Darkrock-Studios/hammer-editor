@@ -55,7 +55,7 @@ class ClientProjectSynchronizerTest : BaseTest() {
 	private lateinit var prepareForSyncOperation: PrepareForSyncOperation
 
 	@MockK
-	private lateinit var ensureProjectIdOperation: EnsureProjectIdOperation
+	private lateinit var ensureProjectOnServerOperation: EnsureProjectOnServerOperation
 
 	@MockK
 	private lateinit var fetchLocalDataOperation: FetchLocalDataOperation
@@ -104,7 +104,7 @@ class ClientProjectSynchronizerTest : BaseTest() {
 				addSynchronizers(mockSynchronizers)
 
 				factory { prepareForSyncOperation }
-				factory { ensureProjectIdOperation }
+				factory { ensureProjectOnServerOperation }
 				factory { fetchLocalDataOperation }
 				factory { fetchServerDataOperation }
 				factory { collateIdsOperation }
@@ -147,7 +147,7 @@ class ClientProjectSynchronizerTest : BaseTest() {
 			)
 		} returns result
 		coEvery {
-			ensureProjectIdOperation.execute(
+			ensureProjectOnServerOperation.execute(
 				any(),
 				any(),
 				any(),
@@ -217,7 +217,7 @@ class ClientProjectSynchronizerTest : BaseTest() {
 		assertTrue(success)
 
 		coVerify(exactly = 1) { prepareForSyncOperation.execute(any(), any(), any(), any(), any()) }
-		coVerify(exactly = 1) { ensureProjectIdOperation.execute(any(), any(), any(), any(), any()) }
+		coVerify(exactly = 1) { ensureProjectOnServerOperation.execute(any(), any(), any(), any(), any()) }
 		coVerify(exactly = 1) { fetchLocalDataOperation.execute(any(), any(), any(), any(), any()) }
 		coVerify(exactly = 1) {
 			fetchServerDataOperation.execute(
@@ -250,7 +250,7 @@ class ClientProjectSynchronizerTest : BaseTest() {
 	fun `Sync fails on Backup Operation`() = runTest {
 		val syncer = createProjectSync(getProjectDef(PROJECT_2_NAME))
 
-		coEvery { projectMetadataDatasource.requireProjectId(any()) } returns ProjectId("project-id")
+		coEvery { projectMetadataDatasource.loadProjectId(any()) } returns ProjectId("project-id")
 
 		val result = CResult.success(mockk<SyncOperationState>(relaxed = true))
 		val failure = CResult.failure<SyncOperationState>(Exception("Test failure"))
@@ -264,7 +264,7 @@ class ClientProjectSynchronizerTest : BaseTest() {
 			)
 		} returns result
 		coEvery {
-			ensureProjectIdOperation.execute(
+			ensureProjectOnServerOperation.execute(
 				any(),
 				any(),
 				any(),
@@ -334,7 +334,7 @@ class ClientProjectSynchronizerTest : BaseTest() {
 		assertFalse(success)
 
 		coVerify(exactly = 1) { prepareForSyncOperation.execute(any(), any(), any(), any(), any()) }
-		coVerify(exactly = 1) { ensureProjectIdOperation.execute(any(), any(), any(), any(), any()) }
+		coVerify(exactly = 1) { ensureProjectOnServerOperation.execute(any(), any(), any(), any(), any()) }
 		coVerify(exactly = 1) { fetchLocalDataOperation.execute(any(), any(), any(), any(), any()) }
 		coVerify(exactly = 1) {
 			fetchServerDataOperation.execute(
@@ -367,7 +367,7 @@ class ClientProjectSynchronizerTest : BaseTest() {
 	fun `Sync fails with 401 Unauthorized and calls onUnauthorized`() = runTest {
 		val syncer = createProjectSync(getProjectDef(PROJECT_2_NAME))
 
-		coEvery { projectMetadataDatasource.requireProjectId(any()) } returns ProjectId("project-id")
+		coEvery { projectMetadataDatasource.loadProjectId(any()) } returns ProjectId("project-id")
 
 		val result = CResult.success(mockk<SyncOperationState>(relaxed = true))
 		val unauthorizedFailure = CResult.failure<SyncOperationState>(
@@ -390,7 +390,7 @@ class ClientProjectSynchronizerTest : BaseTest() {
 			)
 		} returns result
 		coEvery {
-			ensureProjectIdOperation.execute(
+			ensureProjectOnServerOperation.execute(
 				any(),
 				any(),
 				any(),
@@ -461,7 +461,7 @@ class ClientProjectSynchronizerTest : BaseTest() {
 		assertFalse(success)
 
 		coVerify(exactly = 1) { prepareForSyncOperation.execute(any(), any(), any(), any(), any()) }
-		coVerify(exactly = 1) { ensureProjectIdOperation.execute(any(), any(), any(), any(), any()) }
+		coVerify(exactly = 1) { ensureProjectOnServerOperation.execute(any(), any(), any(), any(), any()) }
 		coVerify(exactly = 1) { fetchLocalDataOperation.execute(any(), any(), any(), any(), any()) }
 		coVerify(exactly = 1) {
 			fetchServerDataOperation.execute(

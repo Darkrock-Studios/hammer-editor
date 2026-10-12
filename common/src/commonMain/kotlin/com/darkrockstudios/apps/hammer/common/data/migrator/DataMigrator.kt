@@ -52,6 +52,8 @@ open class DataMigrator(
 		} else {
 			Napier.d("No projects need migration. Skipping.")
 		}
+
+		projectsRepository.resolveDuplicateProjectIds()
 	}
 
 	private suspend fun runGlobalMigrations() {
@@ -75,6 +77,14 @@ open class DataMigrator(
 
 		projects.forEach { projectData ->
 			migrateProject(projectData, migrators)
+		}
+	}
+
+	/** Brings one project up to the current data version, e.g. one just restored from a backup. */
+	fun migrateProject(projectDef: ProjectDef) {
+		val metadata = projectMetadataDatasource.loadMetadata(projectDef)
+		if (metadata.info.dataVersion < latestProjectDataVersion) {
+			migrateProject(ProjectData(projectDef, metadata), getMigrators())
 		}
 	}
 

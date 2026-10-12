@@ -157,6 +157,8 @@ class DataMigratorTest : BaseTest() {
 		runBlocking { migrator.handleDataMigration() }
 
 		verify(exactly = 0) { mockMigrator.migrate(any()) }
+		// Copied project folders are caught even when nothing needs migrating.
+		coVerify(exactly = 1) { projectsRepository.resolveDuplicateProjectIds() }
 
 		confirmVerified(mockMigrator)
 	}

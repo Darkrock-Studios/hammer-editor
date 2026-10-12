@@ -195,7 +195,7 @@ class TestProjects {
 		val projectDef = result.data
 		if (serverId != null) {
 			metadataDatasource.updateMetadata(projectDef) {
-				it.copy(info = it.info.copy(serverProjectId = ProjectId(serverId)))
+				it.copy(info = it.info.copy(projectId = ProjectId(serverId)))
 			}
 		}
 		return projectDef

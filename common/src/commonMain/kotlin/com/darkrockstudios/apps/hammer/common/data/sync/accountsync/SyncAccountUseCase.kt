@@ -41,9 +41,6 @@ enum class ProjectSyncOutcome {
 	NeedsResolution,
 	Failed,
 
-	/** Account sync has not assigned this project a server ID yet. */
-	NotOnServer,
-
 	/** Excluded by the caller's project filter. */
 	Skipped,
 }
@@ -170,20 +167,14 @@ class SyncAccountUseCase(
 		projectFilter: (SyncedProjectDefinition) -> Boolean,
 	): Candidate {
 		// The project can be deleted concurrently.
-		val metadata = try {
-			projectMetadataDatasource.loadMetadata(projectDef)
+		val projectId = try {
+			projectMetadataDatasource.loadProjectId(projectDef)
 		} catch (e: IOException) {
 			Napier.w("Failed to load metadata for '${projectDef.name}'", e)
 			return Candidate.Settled(ProjectSyncOutcome.Failed)
 		}
 
-		val serverProjectId = metadata.info.serverProjectId
-		if (serverProjectId == null) {
-			Napier.w { "Skipping project sync for '${projectDef.name}' - no server project ID yet" }
-			return Candidate.Settled(ProjectSyncOutcome.NotOnServer)
-		}
-
-		val synced = SyncedProjectDefinition(projectDef, serverProjectId)
+		val synced = SyncedProjectDefinition(projectDef, projectId)
 		return if (projectFilter(synced)) {
 			Candidate.ToSync(synced)
 		} else {

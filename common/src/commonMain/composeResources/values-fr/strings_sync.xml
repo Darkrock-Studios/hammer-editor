@@ -116,9 +116,7 @@
 	<string name="sync_log_account_project_rename_client_from_server_failure">Échec du renommage du projet depuis le serveur : %1$s</string>
 	<string name="sync_log_account_project_create_server_success">Projet créé sur le serveur : %1$s</string>
 	<string name="sync_log_account_project_create_server_failure">Échec de la création du projet sur le serveur : %1$s</string>
-	<string name="sync_log_account_project_id_save_failure">Projet a été créé sur le serveur, mais n'a pas pu sauvegarder son ID localement : %1$s</string>
 	<string name="sync_log_account_project_create_client">Projet local créé : %1$s</string>
-	<string name="sync_log_account_project_create_client_local">Définition de l'ID serveur du projet local : %1$s</string>
 	<string name="sync_log_account_project_create_local_failure">Impossible de créer un projet local depuis le serveur : %1$s</string>
 	<string name="sync_log_account_project_create_client_name_taken">Projet du serveur %1$s ignoré : un projet local possédant ce nom est déjà synchronisé depuis un autre serveur</string>
 	<string name="sync_log_begin_account">Synchronisation du compte…</string>
@@ -129,7 +127,6 @@
 	<string name="sync_log_project_failed">Échec de la synchronisation : %1$s</string>
 	<string name="sync_log_project_conflict">Il y a un conflit dans le projet : %1$s. Ouvrez ce projet et synchronisez pour le résoudre.</string>
 	<string name="sync_log_client_data_computed">Données d'entité client calculées</string>
-	<string name="sync_log_project_id_stale">Le serveur n'a plus ce projet. Il sera recréé lors de la prochaine synchronisation.</string>
 	<string name="sync_log_server_data_loaded">Données du serveur reçues</string>
 	<string name="sync_log_client_data_loaded">Données client chargées</string>
 	<string name="sync_log_backup_made">Sauvegarde locale effectuée : %1$s</string>

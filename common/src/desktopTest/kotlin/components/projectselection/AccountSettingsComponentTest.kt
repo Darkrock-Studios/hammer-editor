@@ -19,6 +19,9 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.SpellCheckerSettings
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ClientAccountSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectSynchronizationData
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataDatasource
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.getDefaultRootDocumentDirectory
 import com.darkrockstudios.apps.hammer.common.util.StrRes
@@ -50,6 +53,7 @@ import org.koin.dsl.module
 import org.koin.test.get
 import utils.BaseTest
 import kotlin.time.Clock
+import kotlin.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class AccountSettingsComponentTest : BaseTest() {
@@ -64,6 +68,7 @@ class AccountSettingsComponentTest : BaseTest() {
 	private lateinit var serverSettingsUpdates: MutableSharedFlow<ServerSettings?>
 	private lateinit var accountUseCase: AccountUseCase
 	private lateinit var projectsRepository: ProjectsRepository
+	private lateinit var accountSynchronizer: ClientAccountSynchronizer
 
 	/** Set by a test to interleave an action with the post-success wipe. */
 	private var onFirstDelete: (() -> Unit)? = null
@@ -106,6 +111,7 @@ class AccountSettingsComponentTest : BaseTest() {
 		every { spellCheckerFactory.availableLocales() } returns emptyList()
 
 		accountUseCase = mockk(relaxed = true)
+		accountSynchronizer = mockk(relaxed = true)
 
 		val testModule = module {
 			single<FileSystem> { hookedFs }
@@ -126,6 +132,7 @@ class AccountSettingsComponentTest : BaseTest() {
 				FakeExampleProjectRepository(globalSettingsStore, hookedFs, toml, get())
 			} bind ExampleProjectRepository::class
 			single { accountUseCase } bind AccountUseCase::class
+			single { accountSynchronizer } bind ClientAccountSynchronizer::class
 			single { mockk<StrRes>(relaxed = true) } bind StrRes::class
 			single { spellCheckerFactory }
 			factory { mockk<PlatformSettings>(relaxed = true) } bind PlatformSettings::class
@@ -231,32 +238,48 @@ class AccountSettingsComponentTest : BaseTest() {
 		assertFalse(component.state.value.syncAutoCloseDialog)
 	}
 
+	private val syncedAt = Instant.fromEpochSeconds(1_000_000)
+
+	private fun writeJournal(projectName: String) {
+		val journal = ProjectSynchronizationData(
+			lastId = 3,
+			newIds = emptyList(),
+			lastSync = syncedAt,
+			dirty = emptyList(),
+			deletedIds = emptySet(),
+			syncedHashes = mapOf(1 to "hash-on-the-old-server"),
+		)
+		ffs.write(projectsDir / projectName / SyncDataDatasource.SYNC_FILE_NAME) {
+			writeUtf8(createJsonSerializer().encodeToString(journal))
+		}
+	}
+
+	private fun journalLastSync(projectName: String): Instant =
+		ffs.read(projectsDir / projectName / SyncDataDatasource.SYNC_FILE_NAME) {
+			createJsonSerializer().decodeFromString<ProjectSynchronizationData>(readUtf8()).lastSync
+		}
+
 	@Test
-	fun `Creating a new account clears stale server project IDs`() = runTest {
+	fun `Creating a new account resets sync state but keeps project ids`() = runTest {
 		seedProject(PROJECT_A)
-		seedProject(PROJECT_B)
 		setupSucceeds()
 
 		val component = newComponent()
 		advanceUntilIdle()
-		projectsRepository.setProjectId(
-			projectsRepository.getProjectDefinition(PROJECT_A),
-			ProjectId("stale-a"),
-		)
-		projectsRepository.setProjectId(
-			projectsRepository.getProjectDefinition(PROJECT_B),
-			ProjectId("stale-b"),
-		)
+		val projectA = projectsRepository.getProjectDefinition(PROJECT_A)
+		projectsRepository.setProjectId(projectA, ProjectId("id-a"))
+		writeJournal(PROJECT_A)
 
 		component.createAccount()
 		advanceUntilIdle()
 
-		assertNull(projectsRepository.getProjectId(projectsRepository.getProjectDefinition(PROJECT_A)))
-		assertNull(projectsRepository.getProjectId(projectsRepository.getProjectDefinition(PROJECT_B)))
+		assertEquals(ProjectId("id-a"), projectsRepository.getProjectId(projectA))
+		assertEquals(Instant.DISTANT_PAST, journalLastSync(PROJECT_A))
+		verify(exactly = 1) { accountSynchronizer.deleteSyncData() }
 	}
 
 	@Test
-	fun `Logging in to an existing account leaves server project IDs untouched`() = runTest {
+	fun `Logging in to a different server resets sync state but keeps project ids`() = runTest {
 		seedProject(PROJECT_A)
 		setupSucceeds()
 
@@ -264,6 +287,7 @@ class AccountSettingsComponentTest : BaseTest() {
 		advanceUntilIdle()
 		val projectA = projectsRepository.getProjectDefinition(PROJECT_A)
 		projectsRepository.setProjectId(projectA, ProjectId("keep-me"))
+		writeJournal(PROJECT_A)
 
 		component.logIn()
 		advanceUntilIdle()
@@ -271,6 +295,46 @@ class AccountSettingsComponentTest : BaseTest() {
 		advanceUntilIdle()
 
 		assertEquals(ProjectId("keep-me"), projectsRepository.getProjectId(projectA))
+		assertEquals(Instant.DISTANT_PAST, journalLastSync(PROJECT_A))
+		verify(exactly = 1) { accountSynchronizer.deleteSyncData() }
+	}
+
+	@Test
+	fun `Re-authenticating against the configured server keeps sync state`() = runTest {
+		seedProject(PROJECT_A)
+		setupSucceeds()
+		serverSettingsUpdates.emit(
+			ServerSettings(
+				url = "example.com",
+				email = "writer@example.com",
+				userId = 1L,
+				bearerToken = null,
+				refreshToken = null,
+			)
+		)
+
+		val component = newComponent()
+		advanceUntilIdle()
+		writeJournal(PROJECT_A)
+		component.logIn()
+		advanceUntilIdle()
+
+		assertEquals(syncedAt, journalLastSync(PROJECT_A))
+		verify(exactly = 0) { accountSynchronizer.deleteSyncData() }
+	}
+
+	@Test
+	fun `Removing the server resets sync state`() = runTest {
+		seedProject(PROJECT_A)
+
+		val component = newComponent()
+		advanceUntilIdle()
+		writeJournal(PROJECT_A)
+		component.removeServer()
+		advanceUntilIdle()
+
+		assertEquals(Instant.DISTANT_PAST, journalLastSync(PROJECT_A))
+		verify(exactly = 1) { accountSynchronizer.deleteSyncData() }
 	}
 
 	@Test

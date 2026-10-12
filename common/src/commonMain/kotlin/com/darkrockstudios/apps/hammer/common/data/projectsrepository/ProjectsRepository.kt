@@ -24,6 +24,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRe
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository.Companion.encodeForFilename
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository.Companion.sanitizeFileName
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository.Companion.validateFileName
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.clearProjectSyncBaseline
 import com.darkrockstudios.apps.hammer.common.data.toMsg
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
@@ -98,21 +99,49 @@ class ProjectsRepository(
 		getProjectsDirectory()
 	}
 
-	suspend fun removeProjectId(projectDef: ProjectDef) {
-		clearSyncBaseline(projectDef)
-		projectsMetadataDatasource.updateMetadata(projectDef) {
-			it.copy(info = it.info.copy(serverProjectId = null))
-		}
-	}
-
+	/**
+	 * Gives the project a different identity: adopting a server project's id, or re-minting one
+	 * that collides. The old sync baseline described the old id, so it goes when the id changes.
+	 */
 	suspend fun setProjectId(projectDef: ProjectDef, projectId: ProjectId) {
 		if (getProjectId(projectDef) != projectId) {
 			clearSyncBaseline(projectDef)
 		}
 		projectsMetadataDatasource.updateMetadata(projectDef) {
-			it.copy(info = it.info.copy(serverProjectId = projectId))
+			it.copy(info = it.info.copy(projectId = projectId))
 		}
 	}
+
+	/** For a move to a different server: every project keeps its id but re-uploads everything. */
+	suspend fun clearAllSyncBaselines() {
+		getProjects().forEach { clearSyncBaseline(it) }
+	}
+
+	/**
+	 * Re-mints all but one holder of any id shared by several projects, as happens when a project
+	 * folder is copied. The holder with a sync journal keeps the id (it is the one the server knows),
+	 * else the earliest created.
+	 */
+	suspend fun resolveDuplicateProjectIds() {
+		val byId = getProjects().groupBy { projectsMetadataDatasource.loadProjectId(it) }
+		byId.filterValues { it.size > 1 }.forEach { (projectId, holders) ->
+			val keeper = holders.minWith(
+				compareBy<ProjectDef> { !hasSyncJournal(it) }
+					.thenBy { projectsMetadataDatasource.loadMetadata(it).info.created }
+			)
+			holders.filter { it != keeper }.forEach { duplicate ->
+				val newId = ProjectId.randomUUID()
+				Napier.w(
+					"Project '${duplicate.name}' shared id ${projectId.id} with '${keeper.name}', " +
+						"assigned ${newId.id}"
+				)
+				setProjectId(duplicate, newId)
+			}
+		}
+	}
+
+	private fun hasSyncJournal(projectDef: ProjectDef): Boolean =
+		fileSystem.exists(projectDef.path.toOkioPath() / SyncDataDatasource.SYNC_FILE_NAME)
 
 	/**
 	 * The entity journal and `lastSyncedHash` record what one specific server already confirmed.
@@ -121,11 +150,11 @@ class ProjectsRepository(
 	 * `ProjectDataSyncOperation` fast-forwards the local copy to the new server's empty one.
 	 * The user's data is untouched — only the baseline goes, so the next sync uploads everything.
 	 *
-	 * Runs before the id is written: the two are separate files, so a failure or crash between them
+	 * [setProjectId] runs this before the id is written: the two are separate files, so a failure or crash between them
 	 * must leave a project that still points at the old server rather than one pointing at the new
 	 * server with the old server's baseline, which is the corrupt state this exists to prevent.
 	 */
-	private suspend fun clearSyncBaseline(projectDef: ProjectDef) {
+	suspend fun clearSyncBaseline(projectDef: ProjectDef) {
 		clearProjectSyncBaseline(projectDef, fileSystem, json)
 
 		// An open project serves project data from ProjectDataRepository's cache, so clearing only
@@ -140,10 +169,8 @@ class ProjectsRepository(
 		}
 	}
 
-	fun getProjectId(projectDef: ProjectDef): ProjectId? {
-		val metadata = projectsMetadataDatasource.loadMetadata(projectDef)
-		return metadata.info.serverProjectId
-	}
+	fun getProjectId(projectDef: ProjectDef): ProjectId =
+		projectsMetadataDatasource.loadProjectId(projectDef)
 
 	fun findProject(projectId: ProjectId): ProjectDef? {
 		val allProjects = getProjects()
@@ -203,9 +230,14 @@ class ProjectsRepository(
 	 * [seedDefaultLanguage] must be false when materializing a project that already exists
 	 * on the server (account sync): a fresh local shell has to keep the never-synced
 	 * ProjectData baseline (empty data, null lastSyncedHash), or the first project sync
-	 * reads the seed as a phantom local edit and raises a spurious conflict.
+	 * reads the seed as a phantom local edit and raises a spurious conflict. That case also passes
+	 * the server project's [projectId].
 	 */
-	fun createProject(projectName: String, seedDefaultLanguage: Boolean): CResult<ProjectDef> {
+	fun createProject(
+		projectName: String,
+		seedDefaultLanguage: Boolean,
+		projectId: ProjectId = ProjectId.randomUUID(),
+	): CResult<ProjectDef> {
 		val strippedName = projectName.trim()
 		val result = validateFileName(strippedName)
 		return if (isSuccess(result)) {
@@ -225,7 +257,8 @@ class ProjectsRepository(
 					info = Info(
 						created = Clock.System.now(),
 						lastAccessed = Clock.System.now(),
-						dataVersion = PROJECT_DATA_VERSION
+						dataVersion = PROJECT_DATA_VERSION,
+						projectId = projectId,
 					)
 				)
 				projectsMetadataDatasource.saveMetadata(metadata, newDef)
@@ -293,7 +326,7 @@ class ProjectsRepository(
 
 	/**
 	 * Drops a project's content but keeps the directory and its [ProjectMetadata.FILENAME], so the
-	 * project stays listed and keeps its server id. The sync and project data files go with the
+	 * project stays listed and keeps its project id. The sync and project data files go with the
 	 * content, so a later re-download starts from nothing rather than from a baseline claiming the
 	 * content is already present.
 	 */

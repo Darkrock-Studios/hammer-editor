@@ -84,19 +84,26 @@ class ServerProjectsApi(
 		)
 	}
 
+	/**
+	 * Idempotent on [projectId]. The response names a different id when the account already holds
+	 * a project called [projectName]; a 409 carries `ApiErrorCode.PROJECT_DELETED` or
+	 * `ApiErrorCode.PROJECT_ID_TAKEN`.
+	 */
 	suspend fun createProject(
 		projectName: String,
+		projectId: ProjectId,
 		syncId: String,
 	): Result<CreateProjectResponse> {
-		return postWithLegacyGetFallback(
+		return post(
 			path = "/api/projects/$userId/create",
+			parse = { it.body() },
 			builder = {
 				headers {
 					append(HEADER_SYNC_ID, syncId)
 				}
 				parameter("projectName", projectName)
+				parameter("projectId", projectId.id)
 			},
-			parse = { it.body() },
 		)
 	}
 }

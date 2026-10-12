@@ -116,9 +116,7 @@
 	<string name="sync_log_account_project_rename_client_from_server_failure">Не вдалося перейменувати проєкт із сервера: %1$s</string>
 	<string name="sync_log_account_project_create_server_success">Проєкт створено на сервері: %1$s</string>
 	<string name="sync_log_account_project_create_server_failure">Не вдалося створити проєкт на сервері: %1$s</string>
-	<string name="sync_log_account_project_id_save_failure">Project created on server, but failed to save its ID locally: %1$s</string>
 	<string name="sync_log_account_project_create_client">Локальний проєкт створено: %1$s</string>
-	<string name="sync_log_account_project_create_client_local">Встановлення ID сервера для локального проєкту: %1$s</string>
 	<string name="sync_log_account_project_create_local_failure">Failed to create local project from server: %1$s</string>
 	<string name="sync_log_account_project_create_client_name_taken">Skipped server project %1$s: a local project of that name already syncs with a different server project</string>
 	<string name="sync_log_begin_account">Синхронізація облікового запису…</string>
@@ -129,7 +127,6 @@
 	<string name="sync_log_project_failed">Синхронізацію не вдалося: %1$s</string>
 	<string name="sync_log_project_conflict">У проєкті є конфлікт: %1$s. Відкрийте цей проєкт і синхронізуйте, щоб вирішити його.</string>
 	<string name="sync_log_client_data_computed">Дані сутностей клієнта обчислено</string>
-	<string name="sync_log_project_id_stale">The server no longer has this project. It will be recreated the next time you sync.</string>
 	<string name="sync_log_server_data_loaded">Дані сервера отримано</string>
 	<string name="sync_log_client_data_loaded">Дані клієнта завантажено</string>
 	<string name="sync_log_backup_made">Локальну резервну копію створено: %1$s</string>

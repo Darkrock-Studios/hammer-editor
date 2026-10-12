@@ -124,16 +124,14 @@ class SyncAccountUseCaseTest : BaseTest() {
 		strRes = TestStrRes(),
 	)
 
-	private fun localProject(name: String, serverId: String? = null): ProjectDef {
-		val result = projectsRepository.createProject(name, seedDefaultLanguage = false)
+	private fun localProject(name: String, projectId: String = name.lowercase()): ProjectDef {
+		val result = projectsRepository.createProject(
+			name,
+			seedDefaultLanguage = false,
+			projectId = ProjectId(projectId),
+		)
 		if (!isSuccess(result)) error("Failed to create $name")
-		val def = result.data
-		if (serverId != null) {
-			metadataDatasource.updateMetadata(def) {
-				it.copy(info = it.info.copy(serverProjectId = ProjectId(serverId)))
-			}
-		}
-		return def
+		return result.data
 	}
 
 	private fun projectSyncReturns(name: String, success: Boolean): ClientProjectSynchronizer {
@@ -193,13 +191,14 @@ class SyncAccountUseCaseTest : BaseTest() {
 	}
 
 	@Test
-	fun `a project without a server id is reported but not synced`() = runTest {
+	fun `a project that has never synced is synced too`() = runTest {
 		localProject("Draft")
+		projectSyncReturns("Draft", true)
 
 		val result = useCase().execute(listener)
 
 		assertTrue(result.allSuccess)
-		assertEquals(ProjectSyncOutcome.NotOnServer, result.projects["Draft"])
+		assertEquals(ProjectSyncOutcome.Success, result.projects["Draft"])
 	}
 
 	@Test

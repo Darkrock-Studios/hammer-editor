@@ -146,18 +146,20 @@ class ProjectsRepositorySyncBaselineTest : ProjectsRepositoryBaseTest() {
 	}
 
 	@Test
-	fun `Removing a project id clears its sync baseline`() = scope.runTest {
+	fun `Clearing all sync baselines resets each project but keeps its id`() = scope.runTest {
 		createProject(ffs, PROJECT_1_NAME)
-		seedBaseline()
 		val repo = projectsRepository()
+		val projectId = repo.getProjectId(projectDef)
+		seedBaseline()
 
-		// removeServer() and create-account both clear ids; whatever the project is uploaded to
-		// next has never seen it.
-		repo.removeProjectId(projectDef)
+		// A server change: whatever the project is uploaded to next has never seen it.
+		repo.clearAllSyncBaselines()
 
 		assertEquals(emptyMap(), readJournal().syncedHashes)
+		assertEquals(Instant.DISTANT_PAST, readJournal().lastSync)
 		assertNull(storedProjectData().lastSyncedHash)
 		assertEquals(ProjectData(authorName = "Author"), storedProjectData().data)
+		assertEquals(projectId, repo.getProjectId(projectDef))
 	}
 
 	@Test

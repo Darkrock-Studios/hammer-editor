@@ -30,11 +30,7 @@ class FetchLocalDataOperation(
 		return try {
 			state as InitialSyncOperationState
 
-			val metadata = projectMetadataDatasource.loadMetadata(projectDef)
-			val serverProjectId = metadata.info.serverProjectId
-			if (serverProjectId == null) {
-				return CResult.failure(MissingProjectIdException(projectDef.name))
-			}
+			val serverProjectId = projectMetadataDatasource.loadProjectId(projectDef)
 
 			val loadedSyncData = syncJournal.loadSyncData()
 			val entityState = if (state.onlyNew) {
@@ -108,5 +104,3 @@ class FetchLocalDataOperation(
 }
 
 open class SyncOperationException(message: String? = null, cause: Throwable? = null) : Exception(message, cause)
-class MissingProjectIdException(projectName: String) :
-	SyncOperationException("Server project ID missing for: $projectName")

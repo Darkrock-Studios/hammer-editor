@@ -10,7 +10,7 @@ import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.BackupOperation
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.CollateIdsOperation
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.EnsureProjectIdOperation
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.EnsureProjectOnServerOperation
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.EntityDeleteOperation
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.EntityTransferOperation
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.FetchLocalDataOperation
@@ -50,7 +50,7 @@ class ClientProjectSynchronizer(
 
 	private val operations = listOf(
 		projectScope.get<PrepareForSyncOperation>(),
-		projectScope.get<EnsureProjectIdOperation>(),
+		projectScope.get<EnsureProjectOnServerOperation>(),
 		projectScope.get<FetchLocalDataOperation>(),
 		projectScope.get<FetchServerDataOperation>(),
 		projectScope.get<CollateIdsOperation>(),
@@ -167,7 +167,7 @@ class ClientProjectSynchronizer(
 		try {
 			val syncId = syncJournal.loadSyncData().currentSyncId
 				?: throw IllegalStateException("No sync ID")
-			val serverProjectId = projectMetadataDatasource.requireProjectId(projectDef)
+			val serverProjectId = projectMetadataDatasource.loadProjectId(projectDef)
 
 			val endSyncResult = serverProjectApi.endProjectSync(
 				globalSettingsStore.userIdOrThrow(),

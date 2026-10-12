@@ -77,11 +77,12 @@ import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.ClientIdeasSyn
 import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.IdeasSyncDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntitySynchronizers
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectCreateResolver
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournalDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.BackupOperation
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.CollateIdsOperation
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.EnsureProjectIdOperation
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.EnsureProjectOnServerOperation
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.EntityDeleteOperation
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.EntityTransferOperation
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.FetchLocalDataOperation
@@ -255,6 +256,7 @@ val mainModule = module {
 	single(NetworkJsonQualifier) { createNetworkJsonSerializer() }
 
 	single<ClientIdeasSynchronizer>()
+	single<ProjectCreateResolver>()
 	single<ClientAccountSynchronizer>()
 
 	single<ProjectBackupService>()
@@ -349,7 +351,7 @@ val mainModule = module {
 		scoped<ClientSceneDraftSynchronizer>()
 
 		factory<PrepareForSyncOperation>()
-		factory<EnsureProjectIdOperation>()
+		factory<EnsureProjectOnServerOperation>()
 		factory<FetchLocalDataOperation>()
 		factory<FetchServerDataOperation>()
 		factory<CollateIdsOperation>()

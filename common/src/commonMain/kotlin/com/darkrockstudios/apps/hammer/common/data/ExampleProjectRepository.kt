@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.base.http.writingactivity.DeviceLog
 import com.darkrockstudios.apps.hammer.base.http.writingactivity.WritingSession
 import com.darkrockstudios.apps.hammer.common.data.ExampleProjectRepository.Companion.EXAMPLE_DAYS
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.writeDeviceLog
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
@@ -16,6 +17,7 @@ import okio.FileSystem
 import okio.Path
 import okio.Path.Companion.toPath
 import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import org.koin.core.module.Module
 import kotlin.random.Random
 import kotlin.time.Clock
@@ -33,6 +35,7 @@ abstract class ExampleProjectRepository(
 ) : KoinComponent {
 	protected val dispatcherMain by injectMainDispatcher()
 	protected val dispatcherDefault by injectDefaultDispatcher()
+	private val projectsRepository: ProjectsRepository by inject()
 	private val scope = CoroutineScope(dispatcherDefault)
 
 	fun shouldInstallFirstTime(): Boolean =
@@ -48,8 +51,12 @@ abstract class ExampleProjectRepository(
 	fun install() {
 		removeExampleProject()
 		platformInstall()
+		// The bundled project.toml carries no id, so every install mints its own.
+		val example = projectsRepository.findProject(PROJECT_NAME)
+		example?.let { projectsRepository.getProjectId(it) }
 
 		scope.launch {
+			if (example != null) projectsRepository.resolveDuplicateProjectIds()
 			fabricateExampleActivity()
 			globalSettingsStore.updateSettings {
 				it.copy(

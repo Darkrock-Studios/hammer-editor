@@ -116,24 +116,53 @@ class ServerProjectsApiLegacyFallbackTest : BaseTest() {
 	}
 
 	@Test
-	fun `delete and rename and create fall back to GET against a legacy server`() = runTest {
+	fun `delete and rename fall back to GET against a legacy server`() = runTest {
 		val engine = legacyServer()
 		val api = createApi(engine)
 
 		assertTrue(api.deleteProject(ProjectId("uuid-1"), "sync-1").isSuccess)
 		assertTrue(api.renameProject(ProjectId("uuid-1"), "sync-1", "New Name").isSuccess)
-		val created = api.createProject("New Project", "sync-1")
-		assertTrue(created.isSuccess)
-		assertEquals(ProjectId("uuid-created"), created.getOrThrow().projectId)
 
 		assertEquals(
-			listOf(
-				HttpMethod.Post, HttpMethod.Get,
-				HttpMethod.Post, HttpMethod.Get,
-				HttpMethod.Post, HttpMethod.Get,
-			),
+			listOf(HttpMethod.Post, HttpMethod.Get, HttpMethod.Post, HttpMethod.Get),
 			engine.requestHistory.map { it.method },
 		)
+	}
+
+	@Test
+	fun `create sends the client's project id in a single POST`() = runTest {
+		val engine = MockEngine { request ->
+			if (request.method == HttpMethod.Post) {
+				respond(
+					content = json.encodeToString(
+						CreateProjectResponse(ProjectId("uuid-local"), alreadyExisted = false)
+					),
+					status = HttpStatusCode.OK,
+					headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+				)
+			} else {
+				respond("", HttpStatusCode.NotFound)
+			}
+		}
+		val api = createApi(engine)
+
+		val created = api.createProject("New Project", ProjectId("uuid-local"), "sync-1")
+
+		assertTrue(created.isSuccess)
+		assertEquals(ProjectId("uuid-local"), created.getOrThrow().projectId)
+		val request = engine.requestHistory.single()
+		assertEquals(HttpMethod.Post, request.method)
+		assertEquals("uuid-local", request.url.parameters["projectId"])
+		assertEquals("New Project", request.url.parameters["projectName"])
+	}
+
+	@Test
+	fun `create does not fall back to GET`() = runTest {
+		val engine = legacyServer()
+		val api = createApi(engine)
+
+		assertTrue(api.createProject("New Project", ProjectId("uuid-local"), "sync-1").isFailure)
+		assertEquals(listOf(HttpMethod.Post), engine.requestHistory.map { it.method })
 	}
 
 	@Test

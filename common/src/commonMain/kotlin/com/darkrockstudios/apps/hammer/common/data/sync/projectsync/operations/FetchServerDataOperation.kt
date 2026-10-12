@@ -1,17 +1,17 @@
 package com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations
 
 import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
+import com.darkrockstudios.apps.hammer.base.http.ProjectSynchronizationBegan
 import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
-import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
 import com.darkrockstudios.apps.hammer.common.server.HttpFailureException
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import com.darkrockstudios.apps.hammer.common.util.StrRes
-import com.darkrockstudios.apps.hammer.sync_log_project_id_stale
 import com.darkrockstudios.apps.hammer.sync_log_server_data_loaded
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.flow.first
@@ -20,8 +20,9 @@ class FetchServerDataOperation(
 	projectDef: ProjectDef,
 	private val globalSettingsStore: GlobalSettingsStore,
 	private val serverProjectApi: ServerProjectApi,
-	private val projectMetadataDatasource: ProjectMetadataDatasource,
+	private val projectCreateResolver: ProjectCreateResolver,
 	private val projectsRepository: ProjectsRepository,
+	private val syncJournal: SyncJournal,
 	private val strRes: StrRes,
 ) : SyncOperation(projectDef) {
 
@@ -35,19 +36,25 @@ class FetchServerDataOperation(
 
 		state as FetchLocalDataState
 
-		val metadata = projectMetadataDatasource.loadMetadata(projectDef)
-		val serverProjectId = metadata.info.serverProjectId
-			?: error("Server project ID missing for: ${projectDef.name}")
+		var result = beginSync(state, state.serverProjectId)
 
-		val serverSyncDataResult =
-			serverProjectApi.beginProjectSync(
-				userId(),
-				serverProjectId,
-				state.entityState,
-				state.onlyNew
-			)
+		// 410: the server has no record of this id (it lost the project, or never had it). Create it
+		// under the local id and try once more.
+		val firstFailure = result.exceptionOrNull()
+		if (firstFailure is HttpFailureException && firstFailure.statusCode == HttpStatusCode.Gone) {
+			val outcome = projectCreateResolver.createInOwnSession(projectDef)
+			logCreateOutcome(outcome, projectDef, strRes, onLog)?.let { return CResult.failure(it) }
+			outcome as ServerCreateOutcome.Created
 
-		return if (serverSyncDataResult.isSuccess) {
+			// Whatever the journal says the server confirmed, this server project does not hold it.
+			projectsRepository.clearSyncBaseline(projectDef)
+			state.clientSyncData = syncJournal.loadSyncData()
+			state.serverProjectId = outcome.projectId
+
+			result = beginSync(state, outcome.projectId)
+		}
+
+		return if (result.isSuccess) {
 			onProgress(
 				0.1f,
 				syncLogI(strRes.get(Res.string.sync_log_server_data_loaded), projectDef)
@@ -55,25 +62,20 @@ class FetchServerDataOperation(
 
 			val fetchServerDataStateState = FetchServerDataState.fromFetchLocalDataState(
 				state,
-				serverSyncDataResult.getOrThrow()
+				result.getOrThrow()
 			)
 
 			CResult.success(fetchServerDataStateState)
 		} else {
-			val exception =
-				serverSyncDataResult.exceptionOrNull() ?: IllegalStateException("No exception")
-
-			// 410 means the server has no record of this id, so it can never succeed. Drop it and
-			// EnsureProjectIdOperation creates the project fresh next sync, instead of this
-			// failing forever.
-			if (exception is HttpFailureException && exception.statusCode == HttpStatusCode.Gone) {
-				projectsRepository.removeProjectId(projectDef)
-				onLog(syncLogW(strRes.get(Res.string.sync_log_project_id_stale), projectDef))
-			}
-
-			CResult.failure(exception)
+			CResult.failure(result.exceptionOrNull() ?: IllegalStateException("No exception"))
 		}
 	}
+
+	private suspend fun beginSync(
+		state: FetchLocalDataState,
+		projectId: ProjectId,
+	): Result<ProjectSynchronizationBegan> =
+		serverProjectApi.beginProjectSync(userId(), projectId, state.entityState, state.onlyNew)
 
 	private suspend fun userId(): Long {
 		return globalSettingsStore.serverSettingsUpdates.first()?.userId

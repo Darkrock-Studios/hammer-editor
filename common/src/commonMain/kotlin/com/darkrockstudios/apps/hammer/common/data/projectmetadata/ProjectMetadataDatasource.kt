@@ -14,6 +14,11 @@ import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
 import kotlin.time.Clock
 
+/**
+ * Owns `project.toml`, the file that marks a directory as a project. It holds only regenerable
+ * metadata, so any reader may heal or recreate it: losing it costs the project its identity (a
+ * fresh [ProjectId]), never its content.
+ */
 class ProjectMetadataDatasource(
 	private val fileSystem: FileSystem,
 	private val toml: Toml
@@ -22,6 +27,10 @@ class ProjectMetadataDatasource(
 		return (projectDef.path.toOkioPath() / ProjectMetadata.FILENAME).toHPath()
 	}
 
+	/**
+	 * A plain read: a present file is returned as is, even without a [Info.projectId], because the
+	 * migrator must see legacy state before anything heals it. Use [loadProjectId] for the id.
+	 */
 	fun loadMetadata(projectDef: ProjectDef): ProjectMetadata {
 		val path = getMetadataPath(projectDef).toOkioPath()
 
@@ -42,6 +51,8 @@ class ProjectMetadataDatasource(
 		val metadataText = toml.encodeToString<ProjectMetadata>(metadata)
 
 		fileSystem.write(path, false) {
+			writeUtf8(FILE_HEADER)
+			writeUtf8("\n")
 			writeUtf8(metadataText)
 		}
 	}
@@ -61,7 +72,8 @@ class ProjectMetadataDatasource(
 				created = Clock.System.now(),
 				lastAccessed = Clock.System.now(),
 				// We don't know the version, start at 0 so all migrators will run
-				dataVersion = 0
+				dataVersion = 0,
+				projectId = ProjectId.randomUUID(),
 			)
 		)
 
@@ -70,11 +82,19 @@ class ProjectMetadataDatasource(
 		return newMetadata
 	}
 
-	fun loadProjectId(projectDef: ProjectDef): ProjectId? {
-		return loadMetadata(projectDef).info.serverProjectId
+	/** The project's id, minting and saving a new one if the file has none. */
+	fun loadProjectId(projectDef: ProjectDef): ProjectId {
+		val metadata = loadMetadata(projectDef)
+		metadata.info.projectId?.let { return it }
+
+		val minted = ProjectId.randomUUID()
+		Napier.w("Project '${projectDef.name}' had no project id, assigned ${minted.id}")
+		saveMetadata(metadata.copy(info = metadata.info.copy(projectId = minted)), projectDef)
+		return minted
 	}
 
-	fun requireProjectId(projectDef: ProjectDef): ProjectId {
-		return loadProjectId(projectDef) ?: error("Project has no server project id")
+	companion object {
+		const val FILE_HEADER =
+			"# Hammer project metadata. Managed by Hammer: edits here may be overwritten or discarded."
 	}
 }

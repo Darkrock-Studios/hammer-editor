@@ -1,8 +1,11 @@
 package com.darkrockstudios.apps.hammer.common.data.projectbackup
 
+import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.validate.validateProjectName
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
@@ -26,7 +29,8 @@ open class ProjectBackupService(
 	protected val fileSystem: FileSystem,
 	protected val projectsRepository: ProjectsRepository,
 	protected val globalSettingsStore: GlobalSettingsStore,
-	protected val clock: Clock
+	protected val clock: Clock,
+	private val dataMigrator: DataMigrator,
 ) : KoinComponent {
 
 	private val restoreLock = Mutex()
@@ -179,8 +183,15 @@ open class ProjectBackupService(
 		}
 	}
 
+	/**
+	 * Replaces the project at [targetDir] with the backup's content, migrated to the current data
+	 * version. The restored project keeps the identity of the project it replaces, or gets a fresh
+	 * one when there is none: the backup's own id may since have been deleted on the server, and a
+	 * deleted id can never be created again.
+	 */
 	open suspend fun restoreBackup(backupDef: ProjectBackupDef, targetDir: HPath): Boolean {
 		val targetOkioPath = targetDir.toOkioPath()
+		val targetDef = ProjectDef(backupDef.projectDef.name, targetDir)
 		val staging = getBackupsDirectory().toOkioPath() / RESTORE_STAGING_DIRECTORY
 		val extracted = staging / "new"
 		val displaced = staging / "old"
@@ -190,6 +201,12 @@ open class ProjectBackupService(
 				fileSystem.deleteRecursively(staging)
 				fileSystem.createDirectories(extracted)
 
+				val liveId = if (fileSystem.exists(targetOkioPath / ProjectMetadata.FILENAME)) {
+					projectsRepository.getProjectId(targetDef)
+				} else {
+					null
+				}
+
 				unzipToDirectory(
 					fileSystem = fileSystem,
 					zipPath = backupDef.path.toOkioPath(),
@@ -197,6 +214,7 @@ open class ProjectBackupService(
 				)
 
 				swapIntoPlace(archiveRoot(extracted), targetOkioPath, displaced)
+				adoptIdentity(targetDef, liveId)
 				true
 			} catch (e: Exception) {
 				Napier.e("Failed to restore backup: ${backupDef.path.name}", e)
@@ -208,6 +226,18 @@ open class ProjectBackupService(
 					Napier.w("Failed to clean up restore staging directory", e)
 				}
 			}
+		}
+	}
+
+	// The content is already in place, so a failure here is logged rather than reported as a failed
+	// restore.
+	@Suppress("TooGenericExceptionCaught")
+	private suspend fun adoptIdentity(targetDef: ProjectDef, liveId: ProjectId?) {
+		try {
+			dataMigrator.migrateProject(targetDef)
+			projectsRepository.setProjectId(targetDef, liveId ?: ProjectId.randomUUID())
+		} catch (e: Exception) {
+			Napier.e("Restored '${targetDef.name}' but failed to migrate it or set its project id", e)
 		}
 	}
 
