@@ -3,7 +3,7 @@ package architecture
 import org.junit.jupiter.api.Test
 
 private fun isDatasource(name: String) =
-	name.endsWith("Datasource") || name.endsWith("DataSource") || name.endsWith("Dao")
+	name.endsWith("Datasource") || name.endsWith("Dao")
 
 private fun isRepository(name: String) = name.endsWith("Repository")
 
@@ -13,7 +13,7 @@ private fun isUseCase(name: String) = name.endsWith("UseCase")
 
 /** Enforces the server dependency rules from docs/ARCHITECTURE.md. */
 class ServerLayerTest {
-	private val scope by lazy { scopeOf("server/src/main") }
+	private val scope by lazy { serverScope() }
 	private val dependencies by lazy { scope.dependencies() }
 
 	@Test

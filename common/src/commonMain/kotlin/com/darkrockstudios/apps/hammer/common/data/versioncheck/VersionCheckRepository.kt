@@ -14,7 +14,7 @@ import kotlinx.atomicfu.locks.withLock
  * changelog is baked in at release time precisely so startup never calls GitHub.
  */
 class VersionCheckRepository(
-	private val dataSource: VersionCheckDataSource,
+	private val dataSource: VersionCheckDatasource,
 ) {
 	private val lock = reentrantLock()
 	private var cached: VersionCheckResult? = null

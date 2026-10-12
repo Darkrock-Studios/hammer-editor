@@ -7,11 +7,11 @@ private enum class ClientLayer {
 	DATASOURCE, FOUNDATION, REPOSITORY, SERVICE, USE_CASE, COMPONENT
 }
 
-private val foundation = setOf("IdAllocator", "SyncJournal", "GlobalSettingsStore")
+internal val foundation = setOf("IdAllocator", "SyncJournal", "GlobalSettingsStore")
 
 private fun layerOf(name: String): ClientLayer? = when {
 	name in foundation -> FOUNDATION
-	name.endsWith("Datasource") || name.endsWith("DataSource") -> DATASOURCE
+	name.endsWith("Datasource") -> DATASOURCE
 	name.endsWith("Repository") -> REPOSITORY
 	name.endsWith("Service") -> SERVICE
 	name.endsWith("UseCase") -> USE_CASE
@@ -25,15 +25,7 @@ private fun layerOf(name: String): ClientLayer? = when {
  * by class name suffix because the code is packaged by feature, not by layer.
  */
 class ClientLayerTest {
-	private val dependencies by lazy {
-		scopeOf(
-			"common/src/commonMain",
-			"common/src/androidMain",
-			"common/src/desktopMain",
-			"common/src/iosMain",
-			"common/src/jvmMain",
-		).dependencies()
-	}
+	private val dependencies by lazy { clientScope().dependencies() }
 
 	private fun violations(from: ClientLayer, vararg forbidden: ClientLayer): List<Dependency> =
 		dependencies.filter { layerOf(it.owner) == from && layerOf(it.target) in forbidden }

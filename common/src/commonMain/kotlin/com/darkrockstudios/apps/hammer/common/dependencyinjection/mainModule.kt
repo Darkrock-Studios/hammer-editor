@@ -100,8 +100,8 @@ import com.darkrockstudios.apps.hammer.common.data.tagindex.BuildTagIndexUseCase
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndexService
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineDatasource
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
-import com.darkrockstudios.apps.hammer.common.data.versioncheck.GithubVersionCheckDataSource
-import com.darkrockstudios.apps.hammer.common.data.versioncheck.VersionCheckDataSource
+import com.darkrockstudios.apps.hammer.common.data.versioncheck.GithubVersionCheckDatasource
+import com.darkrockstudios.apps.hammer.common.data.versioncheck.VersionCheckDatasource
 import com.darkrockstudios.apps.hammer.common.data.versioncheck.VersionCheckRepository
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingActivityDatasource
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingActivityRepository
@@ -214,9 +214,9 @@ val mainModule = module {
 
 	// Only the protocol mismatch dialog checks GitHub, and only once the user has already
 	// connected to a sync server. Nothing on the app-load path may use this.
-	single<GithubVersionCheckDataSource> {
-		GithubVersionCheckDataSource(http = get(), json = get(NetworkJsonQualifier))
-	} bind VersionCheckDataSource::class
+	single<GithubVersionCheckDatasource> {
+		GithubVersionCheckDatasource(http = get(), json = get(NetworkJsonQualifier))
+	} bind VersionCheckDatasource::class
 	single<VersionCheckRepository>()
 
 	single<ResourceChangelogDatasource>() bind ChangelogDatasource::class

@@ -27,7 +27,7 @@ import com.darkrockstudios.apps.hammer.common.data.protocolmismatch.ProtocolMism
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ClientAccountSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.SyncAccountUseCase
 import com.darkrockstudios.apps.hammer.common.data.toMsg
-import com.darkrockstudios.apps.hammer.common.data.versioncheck.VersionCheckDataSource
+import com.darkrockstudios.apps.hammer.common.data.versioncheck.VersionCheckDatasource
 import com.darkrockstudios.apps.hammer.common.data.versioncheck.VersionCheckRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -142,7 +142,7 @@ class ProjectsListComponentTest : ComponentTest() {
 				)
 			}
 			single<UrlLauncher> { mockk(relaxed = true) }
-			single<VersionCheckDataSource> { mockk(relaxed = true) }
+			single<VersionCheckDatasource> { mockk(relaxed = true) }
 			single { VersionCheckRepository(get()) }
 		})
 

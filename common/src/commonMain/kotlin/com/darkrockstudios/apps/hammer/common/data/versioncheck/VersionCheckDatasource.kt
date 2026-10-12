@@ -1,5 +1,5 @@
 package com.darkrockstudios.apps.hammer.common.data.versioncheck
 
-interface VersionCheckDataSource {
+interface VersionCheckDatasource {
 	suspend fun fetchLatestRelease(): GithubReleaseInfo?
 }

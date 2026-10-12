@@ -21,6 +21,16 @@ fun scopeOf(vararg relativePaths: String): KoScope {
 		.reduce { acc, scope -> acc + scope }
 }
 
+fun clientScope(): KoScope = scopeOf(
+	"common/src/commonMain",
+	"common/src/androidMain",
+	"common/src/desktopMain",
+	"common/src/iosMain",
+	"common/src/jvmMain",
+)
+
+fun serverScope(): KoScope = scopeOf("server/src/main")
+
 /** A dependency one class declares on another. */
 data class Dependency(val owner: String, val target: String, val lazy: Boolean) {
 	override fun toString() = "$owner -> $target"
@@ -56,8 +66,11 @@ fun KoScope.dependencies(): List<Dependency> = classes(includeNested = true).fla
  * Fails on any violation missing from [baseline], and on any [baseline] entry that is
  * no longer a violation, so the baseline can only shrink.
  */
-fun assertNoViolations(rule: String, violations: List<Dependency>, baseline: Set<String> = emptySet()) {
-	val found = violations.map { it.toString() }.toSortedSet()
+fun assertNoViolations(rule: String, violations: List<Dependency>, baseline: Set<String> = emptySet()) =
+	assertNoViolations(rule, violations.map { it.toString() }.toSet(), baseline)
+
+fun assertNoViolations(rule: String, violations: Set<String>, baseline: Set<String> = emptySet()) {
+	val found = violations.toSortedSet()
 	val new = found - baseline
 	val stale = baseline - found
 
