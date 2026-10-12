@@ -8,7 +8,7 @@
 	<string name="wear_pairing_decline">Refuser</string>
 	<string name="wear_pairing_close">Fermer</string>
 	<string name="wear_pairing_toast_success">Montre appairée</string>
-	<string name="wear_pairing_toast_failure">La montre n'a pas pu être appairée</string>
+	<string name="wear_pairing_toast_failure">La montre n\'a pas pu être appairée</string>
 	<string name="wear_pairing_channel_name">Appairage de la montre</string>
 	<string name="wear_pairing_notification_title">Appairez votre montre</string>
 	<string name="wear_pairing_notification_text">Tapoter pour que votre montre se synchronise avec votre compte Hammer</string>
