@@ -7,6 +7,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 internal expect fun EditorAction(
 	icon: ImageVector,
 	active: Boolean,
+	enabled: Boolean = true,
 	onClick: () -> Unit,
 )
 
@@ -14,5 +15,6 @@ internal expect fun EditorAction(
 internal expect fun EditorTextAction(
 	label: String,
 	active: Boolean,
+	enabled: Boolean = true,
 	onClick: () -> Unit,
 )

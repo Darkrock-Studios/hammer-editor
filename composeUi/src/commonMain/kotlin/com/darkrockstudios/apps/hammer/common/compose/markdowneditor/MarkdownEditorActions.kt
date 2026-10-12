@@ -6,11 +6,17 @@ import com.darkrockstudios.texteditor.richstyle.HR_PLACEHOLDER
 import com.darkrockstudios.texteditor.richstyle.HorizontalRuleSpanStyle
 import com.darkrockstudios.texteditor.state.TextEditorState
 import com.darkrockstudios.texteditor.state.headerLevel
+import com.darkrockstudios.texteditor.state.isTableCell
+import com.darkrockstudios.texteditor.state.toggleBlockquote
 import com.darkrockstudios.texteditor.state.toggleBulletList
 import com.darkrockstudios.texteditor.state.toggleHeader
 import com.darkrockstudios.texteditor.state.toggleOrderedList
 
 internal fun insertHorizontalRule(state: TextEditorState) {
+	// A table cell holds inline text alone, and a rule would break the table apart.
+	val selection = state.selector.selection
+	val touched = selection?.let { listOf(it.start.line, it.end.line) } ?: listOf(state.cursorPosition.line)
+	if (touched.any { state.isTableCell(it) }) return
 	state.insertNewlineAtCursor()
 	val hrLine = state.cursorPosition.line
 	state.insertStringAtCursor(HR_PLACEHOLDER)
@@ -59,6 +65,10 @@ private fun selectedLines(state: TextEditorState): IntRange {
 	} else {
 		state.cursorPosition.line..state.cursorPosition.line
 	}
+}
+
+internal fun toggleBlockquote(state: TextEditorState) {
+	state.toggleBlockquote(selectedLines(state))
 }
 
 internal fun toggleBulletList(state: TextEditorState) {
