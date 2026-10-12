@@ -9,6 +9,10 @@ files:
     translation: /common/src/commonMain/composeResources/values-%android_code%/%original_file_name%
     translate_attributes: 0
     content_segmentation: 0
+  - source: /composeUi/src/commonMain/composeResources/values/*.xml
+    translation: /composeUi/src/commonMain/composeResources/values-%android_code%/%original_file_name%
+    translate_attributes: 0
+    content_segmentation: 0
   - source: /android/src/main/res/values/strings*.xml
     translation: /android/src/main/res/values-%android_code%/%original_file_name%
     translate_attributes: 0
