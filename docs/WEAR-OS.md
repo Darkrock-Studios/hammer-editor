@@ -163,7 +163,7 @@ Account sync creates a local directory for every server project, with metadata a
 project ID but no entities. Syncing content is opt-in per project:
 
 - The watch keeps its subscribed projects in a wear-owned DataStore (`WearPrefsDatasource`, the
-  only writer), keyed by server `ProjectId` so a rename does not drop a subscription. It is not a
+  only writer), keyed by `ProjectId` so a rename does not drop a subscription. It is not a
   `GlobalSettings` field because that file is shared by every platform.
 - Only subscribed projects are passed to the sync use case. The change probe keeps repeat
   syncs to a single request when nothing changed.
