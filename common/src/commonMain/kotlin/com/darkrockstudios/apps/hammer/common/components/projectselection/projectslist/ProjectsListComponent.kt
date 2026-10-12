@@ -7,13 +7,12 @@ import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.ComponentToaster
 import com.darkrockstudios.apps.hammer.common.components.ComponentToasterImpl
 import com.darkrockstudios.apps.hammer.common.components.SavableComponent
-import com.darkrockstudios.apps.hammer.common.components.projecthome.ImportStoryUseCase
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectData
 import com.darkrockstudios.apps.hammer.common.components.savableState
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
+import com.darkrockstudios.apps.hammer.common.components.projecthome.ImportStoryUseCase
 import com.darkrockstudios.apps.hammer.common.data.ImportOptions
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.SyncedProjectDefinition
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.importer.ImportPreview
 import com.darkrockstudios.apps.hammer.common.data.importer.StoryImporterRegistry
@@ -22,6 +21,8 @@ import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataConfli
 import com.darkrockstudios.apps.hammer.common.data.projectdata.readStoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsService
+import com.darkrockstudios.apps.hammer.common.data.temporaryProjectTask
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.ProjectStatisticsCacheReader
 import com.darkrockstudios.apps.hammer.base.http.storyideas.StoryIdea
 import com.darkrockstudios.apps.hammer.common.data.protocolmismatch.ProtocolMismatchRepository
@@ -34,7 +35,6 @@ import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessa
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncAccLogE
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncAccLogI
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncAccLogW
-import com.darkrockstudios.apps.hammer.common.data.temporaryProjectTask
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
@@ -83,6 +83,7 @@ class ProjectsListComponent(
 	private val globalSettingsStore: GlobalSettingsStore by inject()
 	private val projectsRepository: ProjectsRepository by inject()
 	private val projectsSynchronizer: ClientAccountSynchronizer by inject()
+	private val projectsService: ProjectsService by inject()
 	private val syncAccountUseCase: SyncAccountUseCase by inject()
 	private val protocolMismatchRepository: ProtocolMismatchRepository by inject()
 	private val networkConnectivity: NetworkConnectivity by inject()
@@ -276,11 +277,8 @@ class ProjectsListComponent(
 	}
 
 	override fun createProject(projectName: String) {
-		val result = projectsRepository.createProject(projectName, seedDefaultLanguage = true)
+		val result = projectsService.createProject(projectName)
 		if (isSuccess(result)) {
-			if (projectsSynchronizer.isServerSynchronized()) {
-				projectsSynchronizer.createProject(projectName)
-			}
 			Napier.i("Project created: $projectName")
 			loadProjectList()
 			hideCreate()
@@ -294,33 +292,15 @@ class ProjectsListComponent(
 	}
 
 	override fun deleteProject(projectDef: ProjectDef) {
-		val projectId = projectsRepository.getProjectId(projectDef)
-		val syncedProject = if (projectId != null) {
-			SyncedProjectDefinition(projectDef, projectId)
-		} else {
-			null
-		}
-
-		if (projectsRepository.deleteProject(projectDef)) {
+		if (projectsService.deleteProject(projectDef)) {
 			Napier.i("Project deleted: ${projectDef.name}")
-			if (syncedProject != null) {
-				projectsSynchronizer.deleteProject(syncedProject)
-			} else if (projectsSynchronizer.isServerSynchronized()) {
-				projectsSynchronizer.deleteUnsyncedProject(projectDef.name)
-			}
-
 			loadProjectList()
 		}
 	}
 
 	override fun renameProject(projectDef: ProjectDef, newName: String) {
-		val projectId = projectsRepository.getProjectId(projectDef)
-		if (projectsRepository.renameProject(projectDef, newName).isSuccess) {
+		if (projectsService.renameProject(projectDef, newName).isSuccess) {
 			Napier.i("Project renamed: ${projectDef.name}")
-			if (projectId != null) {
-				projectsSynchronizer.renameProject(projectId, newName)
-			}
-
 			loadProjectList()
 		} else {
 			Napier.e("Failed to rename Project: ${projectDef.name} to '$newName'")
@@ -472,17 +452,13 @@ class ProjectsListComponent(
 			return
 		}
 
-		val result = projectsRepository.createProject(projectName, seedDefaultLanguage = true)
+		val result = projectsService.createProject(projectName)
 		if (!isSuccess(result)) {
 			result.displayMessage?.let { msg -> showToast(scope, msg) }
 			Napier.e("Import: failed to create project '$projectName'")
 			return
 		}
 		val newDef = result.data
-
-		if (projectsSynchronizer.isServerSynchronized()) {
-			projectsSynchronizer.createProject(projectName)
-		}
 
 		_state.getAndUpdate {
 			it.copy(

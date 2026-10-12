@@ -38,6 +38,8 @@ import com.darkrockstudios.apps.hammer.common.compose.HeaderUi
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarColumn
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
+import com.darkrockstudios.apps.hammer.common.compose.plugin.PluginActionMenuItems
+import com.darkrockstudios.apps.hammer.operations.plugin.ActionPlace
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
@@ -1380,6 +1382,8 @@ private fun ProjectHomeMenu(
 					},
 				)
 			}
+
+			PluginActionMenuItems(ActionPlace.Project, itemId = null, onChosen = { expanded = false })
 
 			HorizontalDivider()
 			DropdownMenuItem(

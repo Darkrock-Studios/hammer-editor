@@ -22,6 +22,7 @@ import com.darkrockstudios.apps.hammer.common.data.importer.StoryImporter
 import com.darkrockstudios.apps.hammer.common.data.importer.StoryImporterRegistry
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsService
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.ProjectStatisticsCacheReader
 import com.darkrockstudios.apps.hammer.common.data.protocolmismatch.ProtocolMismatchRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ClientAccountSynchronizer
@@ -127,6 +128,7 @@ class ProjectsListComponentTest : ComponentTest() {
 			single { globalSettingsStore }
 			single { projectsRepository }
 			single { synchronizer }
+			single { ProjectsService(get(), get()) }
 			single { networkConnectivity }
 			single { metadataDatasource }
 			single { statsReader }

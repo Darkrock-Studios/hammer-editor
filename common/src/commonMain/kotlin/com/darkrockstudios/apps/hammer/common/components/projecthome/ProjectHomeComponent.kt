@@ -83,6 +83,7 @@ class ProjectHomeComponent(
 	// it is dialog-session bookkeeping, not something the UI renders.
 	private var exportOptionsBeforeDialog: ExportOptions? = null
 
+
 	override fun beginProjectExport() {
 		_state.getAndUpdate {
 			// A scene limit from a previous export would silently narrow this one.
@@ -367,3 +368,4 @@ class ProjectHomeComponent(
 
 	override fun onBack() = contentRouter.onBack()
 }
+
