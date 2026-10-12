@@ -57,7 +57,10 @@ same way (`ProjectCreateResolver`):
   repeating it after a lost response is safe.
 - **Same name, different ID:** the account already has a live project with that name, so the server
   answers with that project's ID (`alreadyExisted = true`) and the client adopts it. Adopting an ID
-  clears the project's sync baseline, which described a different server project.
+  clears the project's sync baseline, which described a different server project. If another local
+  project already holds that ID (it was renamed away from this name and the rename has not reached
+  the server), the client does not adopt it: the create counts as failed and is retried on a later
+  sync, after the rename lands.
 - **`409` with `project_id_taken`:** another account holds the ID. The client mints a fresh one and
   retries once.
 - **`409` with `project_deleted`:** the ID is tombstoned on this account. The client does not retry,

@@ -29,6 +29,7 @@ import com.darkrockstudios.apps.hammer.common.server.ServerProjectsApi
 import com.darkrockstudios.apps.hammer.common.util.NetworkConnectivity
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.sync_log_account_project_adopt_conflict
 import com.darkrockstudios.apps.hammer.sync_log_account_project_create_local_failure
 import com.darkrockstudios.apps.hammer.sync_log_account_project_create_server_failure
 import com.darkrockstudios.apps.hammer.sync_log_account_project_create_server_success
@@ -148,6 +149,7 @@ class ClientAccountSynchronizerTest {
 		every { globalSettingsStore.globalSettings } returns GlobalSettings(projectsDirectory = "/projects")
 		every { globalSettingsStore.serverSettings } returns serverSettings(userId = 1)
 		every { projectsRepository.getProjectsDirectory() } returns HPath("/projects", "projects", true)
+		every { projectsRepository.findProject(any<ProjectId>()) } returns null
 
 		coEvery { serverProjectsApi.beginProjectsSync() } returns Result.success(emptyServerResponse())
 		coEvery { serverProjectsApi.endProjectsSync(any()) } returns Result.success("ok")
@@ -477,6 +479,33 @@ class ClientAccountSynchronizerTest {
 
 		assertTrue(result)
 		coVerify { projectsRepository.setProjectId(def, serverId) }
+	}
+
+	@Test
+	fun `syncProjects does not adopt a server id another local project holds`() = runTest {
+		writeSyncData(emptySyncData())
+		val def = projectDef("Foo")
+		val renamed = projectDef("Bar")
+		val localId = ProjectId.randomUUID()
+		val renamedId = ProjectId.randomUUID()
+
+		// "Bar" was renamed from "Foo" here, but the server still has it as "Foo", so it answers the
+		// new "Foo" with Bar's id.
+		every { projectsRepository.getProjects(any()) } returns listOf(def)
+		every { projectsRepository.getProjectId(def) } returns localId
+		every { projectsRepository.findProject(renamedId) } returns renamed
+		coEvery { serverProjectsApi.createProject("Foo", localId, "sync-1") } returns
+			Result.success(CreateProjectResponse(renamedId, alreadyExisted = true))
+
+		val strRes = RecordingStrRes()
+		val result = createSynchronizer(strRes).syncProjects(onLog = {}, onUnauthorized = {})
+
+		assertTrue(result)
+		coVerify(exactly = 0) { projectsRepository.setProjectId(any(), any()) }
+		val logged = strRes.calls.single { it.first == Res.string.sync_log_account_project_adopt_conflict }
+		assertEquals(listOf<Any>("Foo", "Bar"), logged.second)
+		val resources = strRes.calls.map { it.first }
+		assertFalse(resources.contains(Res.string.sync_log_account_project_create_server_success))
 	}
 
 	@Test

@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
 import com.darkrockstudios.apps.hammer.common.util.StrRes
+import com.darkrockstudios.apps.hammer.sync_log_account_project_adopt_conflict
 import com.darkrockstudios.apps.hammer.sync_log_account_project_create_server_failure
 import com.darkrockstudios.apps.hammer.sync_log_account_project_create_server_success
 import com.darkrockstudios.apps.hammer.sync_log_account_project_deleted_elsewhere
@@ -74,6 +75,16 @@ internal suspend fun logCreateOutcome(
 		ProjectDeletedElsewhereException(projectDef.name)
 	}
 
+	is ServerCreateOutcome.AdoptConflict -> {
+		val message = strRes.get(
+			Res.string.sync_log_account_project_adopt_conflict,
+			projectDef.name,
+			outcome.heldBy.name,
+		)
+		onLog(syncLogW(message, projectDef))
+		ProjectAdoptConflictException(projectDef.name, outcome.heldBy.name)
+	}
+
 	is ServerCreateOutcome.Failed -> {
 		onLog(
 			syncLogE(
@@ -87,3 +98,6 @@ internal suspend fun logCreateOutcome(
 
 class ProjectDeletedElsewhereException(projectName: String) :
 	SyncOperationException("Project was deleted on another device: $projectName")
+
+class ProjectAdoptConflictException(projectName: String, heldBy: String) :
+	SyncOperationException("Server project matching $projectName by name is held by $heldBy")

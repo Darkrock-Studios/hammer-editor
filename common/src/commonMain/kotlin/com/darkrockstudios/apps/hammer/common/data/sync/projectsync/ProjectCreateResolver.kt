@@ -23,6 +23,13 @@ sealed interface ServerCreateOutcome {
 		val reminted: Boolean,
 	) : ServerCreateOutcome
 
+	/**
+	 * The server matched the project by name to a server project another local project, [heldBy],
+	 * already syncs with: usually a rename of [heldBy] that has not reached the server yet. Nothing
+	 * was adopted; the create is retried on a later sync.
+	 */
+	data class AdoptConflict(val heldBy: ProjectDef) : ServerCreateOutcome
+
 	/** This account deleted the project; its id is tombstoned and can never be created again. */
 	data object DeletedElsewhere : ServerCreateOutcome
 
@@ -31,8 +38,9 @@ sealed interface ServerCreateOutcome {
 
 /**
  * Creates a local project on the server under its own id, shared by account sync and project sync
- * so both resolve the server's answers the same way: a same-name project on the account is adopted,
- * an id held by another account is re-minted once, and a tombstoned id is reported, not retried.
+ * so both resolve the server's answers the same way: a same-name project on the account is adopted
+ * unless another local project already holds its id, an id held by another account is re-minted
+ * once, and a tombstoned id is reported, not retried.
  */
 class ProjectCreateResolver(
 	private val serverProjectsApi: ServerProjectsApi,
@@ -53,6 +61,15 @@ class ProjectCreateResolver(
 				error == null -> {
 					val response = result.getOrThrow()
 					if (response.projectId != projectId) {
+						// Adopting would leave two local projects sharing an id.
+						val holder = projectsRepository.findProject(response.projectId)
+						if (holder != null && holder.name != projectDef.name) {
+							Napier.w(
+								"'${projectDef.name}' not adopting server project ${response.projectId.id}: " +
+									"'${holder.name}' holds it"
+							)
+							return ServerCreateOutcome.AdoptConflict(holder)
+						}
 						Napier.i("'${projectDef.name}' adopted server project ${response.projectId.id}")
 						projectsRepository.setProjectId(projectDef, response.projectId)
 					}

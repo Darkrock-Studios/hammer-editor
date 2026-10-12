@@ -599,6 +599,16 @@ class ClientAccountSynchronizer(
 					)
 				)
 
+				is ServerCreateOutcome.AdoptConflict -> onLog(
+					syncAccLogW(
+						strRes.get(
+							Res.string.sync_log_account_project_adopt_conflict,
+							projectName,
+							outcome.heldBy.name,
+						)
+					)
+				)
+
 				is ServerCreateOutcome.Failed -> {
 					Napier.e("Failed to create project on server: $projectName", outcome.error)
 					onLog(

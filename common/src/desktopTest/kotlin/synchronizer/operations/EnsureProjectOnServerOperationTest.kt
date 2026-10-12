@@ -1,5 +1,6 @@
 package synchronizer.operations
 
+import PROJECT_1_NAME
 import PROJECT_2_NAME
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.ApiErrorCode
@@ -16,6 +17,7 @@ import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogLevel
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessage
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncOperationState
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.EnsureProjectOnServerOperation
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.ProjectAdoptConflictException
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.ProjectDeletedElsewhereException
 import com.darkrockstudios.apps.hammer.common.server.HttpFailureException
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectsApi
@@ -55,6 +57,7 @@ class EnsureProjectOnServerOperationTest : BaseTest() {
 		logs.clear()
 
 		every { projectsRepository.getProjectId(projectDef) } returns localId
+		every { projectsRepository.findProject(any<ProjectId>()) } returns null
 		coEvery { syncDataDatasource.loadSyncDataOrNull() } returns null
 		coEvery { serverProjectsApi.beginProjectsSync() } returns
 			Result.success(BeginProjectsSyncResponse(syncId, emptySet(), emptySet()))
@@ -127,6 +130,23 @@ class EnsureProjectOnServerOperationTest : BaseTest() {
 
 		assertTrue(isSuccess(result))
 		coVerify { projectsRepository.setProjectId(projectDef, serverId) }
+	}
+
+	@Test
+	fun `A same-named server project another local project holds is not adopted`() = runTest {
+		val heldId = ProjectId("held-id")
+		val holder = getProjectDef(PROJECT_1_NAME)
+		every { projectsRepository.findProject(heldId) } returns holder
+		coEvery { serverProjectsApi.createProject(projectDef.name, localId, syncId) } returns
+			Result.success(CreateProjectResponse(heldId, alreadyExisted = true))
+
+		val result = execute()
+
+		assertFalse(isSuccess(result))
+		assertIs<ProjectAdoptConflictException>(result.exception)
+		assertTrue(logs.any { it.level == SyncLogLevel.WARN })
+		coVerify(exactly = 0) { projectsRepository.setProjectId(any(), any()) }
+		coVerify { serverProjectsApi.endProjectsSync(syncId) }
 	}
 
 	@Test
