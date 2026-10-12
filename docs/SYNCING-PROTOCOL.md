@@ -46,7 +46,7 @@ each local ID against the `begin_sync` response:
   different server (or one whose database has since been reset). The client creates it on the
   server under the same ID.
 
-Liveness is judged against the raw `begin_sync` response. A project the client has queued for
+The classification uses the raw `begin_sync` response. A project the client has queued for
 deletion is filtered out of the working copy of that list, but it is still known to the server, and
 judging it against the filtered list would recreate what the user just deleted.
 
@@ -146,7 +146,7 @@ sequenceDiagram
 			deactivate Server
 			activate Client
 			Note left of Server: projectId differs from the request<br/>when a same-name project is adopted
-			alt Missing parameter or header, or malformed projectId
+			alt Missing parameter or header, malformed projectId, or invalid syncId
 				Server -->> Client: 400 Bad Request
 			else Invalid project name
 				Server -->> Client: 406 Not Acceptable
@@ -757,8 +757,8 @@ flowchart TD
 
 `EnsureProjectOnServer` only acts on a project that has never synced (no `sync.json`, or one with no
 recorded `lastSync`). It runs the idempotent create under the project's ID in an account sync
-session of its own; account sync has normally created the project already, so this usually costs
-one round trip. A project that has synced before skips it: a server that lost the project answers
+session of its own; account sync has normally created the project already, so the create usually
+just confirms it. A project that has synced before skips it: a server that lost the project answers
 `begin_sync` with `410`, which `FetchServerData` handles (see
 [Unknown project](#unknown-project-410-gone)).
 

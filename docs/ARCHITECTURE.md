@@ -274,7 +274,7 @@ cannot read.
 - **User data** is what the app cannot rebuild: `project_settings.toml`, scenes, notes,
   encyclopedia entries, timeline events, drafts and backups. The app tolerates any of it being
   missing but never destroys it. A `project_settings.toml` that cannot be parsed is moved aside to
-  `project_settings.toml.corrupt-<timestamp>` and the project opens with default settings; the
+  `project_settings.toml.corrupt-<epochMillis>` and the project opens with default settings; the
   bad copy is kept, not overwritten.
 
 **`project.toml` is the marker that makes a directory a project.** `ProjectsRepository.getProjects`
@@ -298,9 +298,10 @@ a project by this ID, so a rename does not break them. The ID heals rather than 
   live at the target, never the ID stored in the backup, so a restore cannot resurrect a project
   that was deleted on the server.
 
-A lost or corrupt `project.toml` therefore comes back with a new identity: widgets and watch
-subscriptions no longer find the project, and the server sees it as new (or matches it to its
-project of the same name). That is the accepted cost of keeping the file regenerable.
+A corrupt `project.toml`, or a lost one once recreated, therefore comes back with a new identity:
+widgets and watch subscriptions no longer find the project, and the server sees it as new unless
+account sync matches it by name to a server project and adopts that ID. That is the accepted cost
+of keeping the file regenerable.
 
 **Header comments.** Both TOML files start with a comment line, rewritten on every save, that tells
 a user who opens the file which tier it is in. `project.toml` says it is managed by Hammer and that
