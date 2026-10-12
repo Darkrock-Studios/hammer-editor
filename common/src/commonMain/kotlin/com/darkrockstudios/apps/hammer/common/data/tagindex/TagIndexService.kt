@@ -68,11 +68,10 @@ class TagIndexService(
 		}
 	}
 
-	fun getRankedTags(limit: Int = Int.MAX_VALUE): List<TagCount> =
-		_tagIndex.value.tagToEntities.toRankedTagCounts(limit) { it.size }
+	fun getRankedTags(limit: Int = Int.MAX_VALUE): List<TagCount> = _tagIndex.value.rankedTags(limit)
 
 	fun getRankedTags(type: TaggedEntityType, limit: Int = Int.MAX_VALUE): List<TagCount> =
-		_tagIndex.value.countsByType[type].orEmpty().toRankedTagCounts(limit) { it }
+		_tagIndex.value.rankedTags(type, limit)
 
 	fun getEntitiesWithTag(tag: String): Set<TaggedEntityRef> =
 		_tagIndex.value.tagToEntities[tag].orEmpty()
@@ -84,14 +83,6 @@ class TagIndexService(
 			.filterKeys { it.startsWith(needle, ignoreCase = true) }
 			.toRankedTagCounts(limit) { it.size }
 	}
-
-	private inline fun <V> Map<String, V>.toRankedTagCounts(
-		limit: Int,
-		countOf: (V) -> Int,
-	): List<TagCount> =
-		map { TagCount(it.key, countOf(it.value)) }
-			.sortedWith(compareByDescending<TagCount> { it.count }.thenBy { it.tag })
-			.take(limit)
 
 	@Suppress("TooGenericExceptionCaught") // Background rebuild must not crash on any failure
 	private suspend fun rebuild() {

@@ -326,6 +326,21 @@ class SceneContentRepositoryTest : BaseTest() {
 	}
 
 	@Test
+	fun `A scope that did not restore temp buffers leaves them on disk`() = runTest(mainTestDispatcher) {
+		val projDef = getProject1Def()
+		createProject(ffs, PROJECT_1_NAME)
+
+		createStack(projDef)
+		writeTempBuffer(1)
+
+		service.initialize(restoreUnsavedEdits = false)
+		assertFalse(contentRepo.hasDirtyBuffer(1))
+
+		contentRepo.onScopeClose(mockk())
+		assertTrue(ffs.exists(getTempBufferPath(1)))
+	}
+
+	@Test
 	fun `Discard Dirty buffer`() = runTest(mainTestDispatcher) {
 		val sceneId = 1
 		val projDef = getProject1Def()
@@ -378,7 +393,7 @@ class SceneContentRepositoryTest : BaseTest() {
 		writeTempBuffer(3)
 
 		service.initialize()
-		assertTrue(service.archiveScene(SceneItem(projDef, SceneItem.Type.Scene, 1, "Scene ID 1", 0)))
+		assertTrue(repo.archiveScene(SceneItem(projDef, SceneItem.Type.Scene, 1, "Scene ID 1", 0)))
 		assertTrue(contentRepo.hasDirtyBuffer(1))
 
 		service.discardAllBuffers()

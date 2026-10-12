@@ -1,31 +1,108 @@
 package com.darkrockstudios.apps.hammer.common.compose.plugin
 
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.text.font.FontFamily
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.composeui.resources.Res
+import com.darkrockstudios.apps.hammer.composeui.resources.plugin_command_run
+import com.darkrockstudios.apps.hammer.operations.plugin.ActionPlace
+import com.darkrockstudios.apps.hammer.operations.plugin.ClientPlugin
+import com.darkrockstudios.apps.hammer.operations.plugin.PluginAction
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
-import io.github.aakira.napier.Napier
-import org.jetbrains.compose.resources.StringResource
+import com.darkrockstudios.apps.hammer.operations.plugin.TextDiagnosticsProvider
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import org.koin.dsl.module
 
-class PluginSettingsPane(val name: StringResource, val content: @Composable ColumnScope.() -> Unit)
+class PluginSettingsPane(
+	val pluginId: String,
+	val name: String,
+	val content: @Composable ColumnScope.() -> Unit,
+)
 
-/** The registered plugin UI halves whose plugin is also registered. */
-class PluginUiRegistry(uis: List<PluginUi>, pluginRegistry: PluginRegistry) {
-	val uis: List<PluginUi> = run {
-		val pluginIds = pluginRegistry.plugins.map { it.id }.toSet()
-		val (paired, orphaned) = uis.partition { it.id in pluginIds }
-		orphaned.forEach { Napier.w { "Plugin UI '${it.id}' has no registered plugin; ignoring it" } }
-		paired
+/**
+ * What active plugins show in the UI, following them as they are added and removed. [cliLauncher]
+ * runs `hammer` where there is a CLI, to show how to run plugins' commands.
+ */
+class PluginUiRegistry(
+	private val pluginRegistry: PluginRegistry,
+	private val cliLauncher: List<String>? = null,
+) {
+	/**
+	 * One per active plugin with declared settings or CLI commands to show: the declared form, then
+	 * how to run each command.
+	 */
+	@Composable
+	fun settingsPanes(): List<PluginSettingsPane> {
+		val plugins by pluginRegistry.active.collectAsState()
+		return remember(plugins) { plugins.mapNotNull(::settingsPane) }
 	}
 
-	val settingsPanes: List<PluginSettingsPane> =
-		this.uis.mapNotNull { ui -> ui.settingsPane?.let { PluginSettingsPane(ui.name, it) } }
+	/** Every active plugin's actions for the menu of the screen at [place]. */
+	@Composable
+	fun actions(place: ActionPlace): List<PluginAction> {
+		val plugins by pluginRegistry.active.collectAsState()
+		return remember(plugins, place) { plugins.flatMap { it.actions() }.filter { place in it.places } }
+	}
 
-	val exportFormatLabels: Map<String, StringResource> = this.uis.fold(emptyMap()) { labels, ui ->
-		labels + ui.exportFormatLabels()
+	/**
+	 * Every active plugin's checks for the text being written, made anew whenever one of those plugins'
+	 * settings changes: the checks read them, so the editor must check its text again.
+	 */
+	@OptIn(ExperimentalCoroutinesApi::class)
+	fun textDiagnosticsFlow(): Flow<List<TextDiagnosticsProvider>> = pluginRegistry.active.flatMapLatest { plugins ->
+		val checking = plugins.filter { it.textDiagnostics().isNotEmpty() }
+		val settings = checking.mapNotNull { pluginRegistry.settings(it.id)?.values }
+		val changes = if (settings.isEmpty()) flowOf(Unit) else combine(settings) {}
+		changes.map { checking.flatMap { it.textDiagnostics() } }
+	}
+
+	/** [textDiagnosticsFlow] as state: null until it has the plugins' checks. */
+	@Composable
+	fun textDiagnostics(): List<TextDiagnosticsProvider>? {
+		val flow = remember { textDiagnosticsFlow() }
+		return flow.collectAsState(initial = null).value
+	}
+
+	private fun settingsPane(plugin: ClientPlugin): PluginSettingsPane? {
+		val commands = if (cliLauncher != null) plugin.cliCommands() else emptyList()
+		if (plugin.settings().isEmpty() && commands.isEmpty()) return null
+		return PluginSettingsPane(pluginId = plugin.id, name = plugin.name ?: plugin.id) {
+			if (plugin.settings().isNotEmpty()) DeclaredSettings(plugin)
+			commands.forEach { command ->
+				Text(Res.string.plugin_command_run.get(command.help), style = MaterialTheme.typography.bodyMedium)
+				SelectionContainer {
+					Text(
+						text = (cliLauncher.orEmpty() + command.name).joinToString(" ", transform = ::shellQuoted),
+						style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+					)
+				}
+			}
+		}
+	}
+
+	@Composable
+	private fun ColumnScope.DeclaredSettings(plugin: ClientPlugin) {
+		val store = pluginRegistry.settings(plugin.id) ?: return
+		val values by store.values.collectAsState()
+		DeclaredSettingsForm(declarations = store.declarations, values = values, onChange = store::set)
 	}
 }
 
-fun pluginUiModule(uis: List<PluginUi>) = module {
-	single { PluginUiRegistry(uis, get()) }
+internal fun shellQuoted(word: String): String =
+	if (word.all { it.isLetterOrDigit() || it in "/._-" }) word else "'" + word.replace("'", "'\\''") + "'"
+
+fun pluginUiModule(cliLauncher: List<String>? = null) = module {
+	single { PluginUiRegistry(get(), cliLauncher) }
 }
