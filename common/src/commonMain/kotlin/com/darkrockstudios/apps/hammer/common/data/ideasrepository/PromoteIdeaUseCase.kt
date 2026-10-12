@@ -21,7 +21,7 @@ import kotlin.time.Clock
 /**
  * "Create project from idea": creates a new project named from the idea, seeds the idea's
  * content (and tags) as the project's first Note, copies the idea's tags onto the project
- * itself (`project_data.toml`), and stamps the idea as promoted.
+ * itself (`project_settings.toml`), and stamps the idea as promoted.
  *
  * The idea itself keeps no reference to the created project — a name or id link would go
  * stale on rename/delete. Only the `promoted` timestamp records that it happened.

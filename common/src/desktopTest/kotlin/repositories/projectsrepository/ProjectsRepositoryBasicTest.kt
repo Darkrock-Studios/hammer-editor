@@ -5,6 +5,7 @@ import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.Pr
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectDefinition
 import com.darkrockstudios.apps.hammer.common.data.isFailure
+import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectdata.loadStoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectCreationFailedException
@@ -211,14 +212,14 @@ class ProjectsRepositoryBasicTest : ProjectsRepositoryBaseTest() {
 	}
 
 	@Test
-	fun `Create Project without seeding leaves no project_data file`() = scope.runTest {
+	fun `Create Project without seeding leaves no project settings file`() = scope.runTest {
 		val repo = projectsRepository()
 
 		val projectName = projectNames[0]
 		assertTrue(repo.createProject(projectName, seedDefaultLanguage = false).isSuccess)
 
 		// Server-materialized shells must keep the never-synced baseline: no file at all.
-		assertFalse(ffs.exists(getProjectsDirectory().div(projectName).div("project_data.toml")))
+		assertFalse(ffs.exists(getProjectsDirectory().div(projectName).div(ProjectDataDatasource.FILENAME)))
 	}
 
 	@Test

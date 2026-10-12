@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.base.http.projectdata.WordCountGoal
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectdata.StoredProjectData
+import com.darkrockstudios.apps.hammer.common.data.projectdata.readStoredProjectData
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import kotlinx.coroutines.test.runTest
@@ -16,7 +17,9 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import utils.BaseTest
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class ProjectDataDatasourceTest : BaseTest() {
 
@@ -86,8 +89,70 @@ class ProjectDataDatasourceTest : BaseTest() {
 	fun `file lives in project root`() {
 		val path = datasource.getPath()
 		assertEquals(
-			"/projects/Test Project/project_data.toml",
+			"/projects/Test Project/project_settings.toml",
 			path.toString().replace('\\', '/'),
 		)
 	}
+
+	@Test
+	fun `saved file starts with the header line`() = runTest {
+		datasource.save(StoredProjectData(ProjectData(authorName = "Pat")))
+
+		val text = fileSystem.read(datasource.getPath()) { readUtf8() }
+		assertTrue(text.startsWith(ProjectDataDatasource.FILE_HEADER + "\n"), text)
+	}
+
+	@Test
+	fun `hand-written file with the header loads`() = runTest {
+		fileSystem.write(datasource.getPath()) {
+			writeUtf8(
+				"""
+				|${ProjectDataDatasource.FILE_HEADER}
+				|lastSyncedHash = "h"
+				|
+				|[data]
+				|authorName = "Hand"
+				|
+				""".trimMargin()
+			)
+		}
+
+		val loaded = datasource.load()
+		assertEquals(StoredProjectData(ProjectData(authorName = "Hand"), "h"), loaded)
+
+		datasource.save(loaded)
+		assertEquals(loaded, datasource.load())
+	}
+
+	@Test
+	fun `corrupt file is moved aside and not overwritten by the next save`() = runTest {
+		val corrupt = "[data\nauthorName = \"Broken"
+		fileSystem.write(datasource.getPath()) { writeUtf8(corrupt) }
+
+		assertEquals(StoredProjectData(), datasource.load())
+
+		val asideFiles = corruptCopies()
+		assertEquals(1, asideFiles.size)
+		assertEquals(corrupt, fileSystem.read(asideFiles.single()) { readUtf8() })
+		assertFalse(fileSystem.exists(datasource.getPath()))
+
+		val fresh = StoredProjectData(ProjectData(authorName = "Fresh"))
+		datasource.save(fresh)
+
+		assertEquals(fresh, datasource.load())
+		assertEquals(corrupt, fileSystem.read(corruptCopies().single()) { readUtf8() })
+	}
+
+	@Test
+	fun `scope-less read moves a corrupt file aside`() {
+		fileSystem.write(datasource.getPath()) { writeUtf8("data = 12") }
+
+		assertEquals(StoredProjectData(), readStoredProjectData(projectDef, fileSystem, toml))
+
+		assertEquals(1, corruptCopies().size)
+		assertFalse(fileSystem.exists(datasource.getPath()))
+	}
+
+	private fun corruptCopies() = fileSystem.list("/projects/Test Project".toPath())
+		.filter { it.name.startsWith(ProjectDataDatasource.CORRUPT_PREFIX) }
 }

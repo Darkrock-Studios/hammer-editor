@@ -167,7 +167,7 @@ class ProjectsRepositorySyncBaselineTest : ProjectsRepositoryBaseTest() {
 
 		repo.setProjectId(projectDef, ProjectId("first-ever-id"))
 
-		// No journal is fabricated, and no project_data.toml is written just to hold a null.
+		// No journal is fabricated, and no project_settings.toml is written just to hold a null.
 		assertFalse(ffs.exists(syncJournalPath()))
 		assertFalse(ffs.exists(projectDef.path.toOkioPath() / ProjectDataDatasource.FILENAME))
 	}

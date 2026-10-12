@@ -36,7 +36,7 @@ import kotlin.time.Clock
 
 /**
  * Classical-style: real ideas on a [FakeFileSystem] via a real [IdeasRepository], real
- * `project_data.toml` files; only [ProjectsRepository] (a directory-scanner over global
+ * `project_settings.toml` files; only [ProjectsRepository] (a directory-scanner over global
  * settings) is mocked to supply the project defs.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -180,7 +180,7 @@ class AccountTagServiceTest : BaseTest() {
 	}
 
 	@Test
-	fun `Tolerates a project with no project_data toml`() = runTest {
+	fun `Tolerates a project with no project settings file`() = runTest {
 		advanceUntilIdle()
 		val bare = ProjectDef(name = "Bare", path = "/projects/Bare".toPath().toHPath())
 		ffs.createDirectories("/projects/Bare".toPath())

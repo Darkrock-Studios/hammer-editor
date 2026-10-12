@@ -250,8 +250,8 @@ ViewModels/Components and renders them.
    `fileSystem.writeToml`/`readToml` — it uses or adds a **scope-less helper in the datasource's
    own file** (pattern: `loadStoredProjectData`/`saveStoredProjectData` in
    `ProjectDataDatasource.kt`). A second inline writer forks the format and clobbers sibling
-   fields on write: two independent writers of `project_data.toml` once each erased the other's
-   field. Enforced by `PersistedFormatOwnershipTest` in `:architectureTests`.
+   fields on write: two independent writers of the project settings file once each erased the
+   other's field. Enforced by `PersistedFormatOwnershipTest` in `:architectureTests`.
 
 ### Enforcement
 
