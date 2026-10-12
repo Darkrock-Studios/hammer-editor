@@ -123,4 +123,21 @@ class ProjectsRepositoryCreateProjectTest : ProjectsRepositoryBaseTest() {
 			assertIs<ProjectIdTakenException>((result as ServerResult.Failure).exception)
 		}
 	}
+
+	@Test
+	fun `Create Project, losing the insert to a concurrent retry of the same create is idempotent`() = runTest {
+		val created = ProjectDefinition(projectName, projectId)
+		coEvery { projectEntityDatasource.getProject(userId, projectId) } returnsMany listOf(null, created)
+		coEvery {
+			projectEntityDatasource.createProject(userId, projectName, projectId)
+		} throws ProjectIdTakenException(projectId)
+
+		createProjectsRepository().apply {
+			val result = createProject(userId, syncId, projectName, projectId)
+
+			assertTrue(isSuccess(result))
+			assertEquals(created, result.data.project)
+			assertTrue(result.data.alreadyExisted)
+		}
+	}
 }

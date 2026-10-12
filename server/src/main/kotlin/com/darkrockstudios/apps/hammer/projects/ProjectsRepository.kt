@@ -221,7 +221,10 @@ class ProjectsRepository(
 			val created = projectEntityDatasource.createProject(userId, projectName, projectId)
 			SResult.success(ProjectCreatedResult(project = created, alreadyExisted = false))
 		} catch (e: ProjectIdTakenException) {
-			SResult.failure(e)
+			// A concurrent retry of this same create can win the insert; that is still idempotent.
+			projectEntityDatasource.getProject(userId, projectId)
+				?.let { SResult.success(ProjectCreatedResult(project = it, alreadyExisted = true)) }
+				?: SResult.failure(e)
 		}
 	}
 
