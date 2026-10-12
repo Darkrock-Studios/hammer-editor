@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test
 import org.koin.dsl.module
 import utils.BaseTest
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
@@ -72,6 +73,19 @@ class ProjectEditorScopeUtilsTest : BaseTest() {
 
 		verify(exactly = 1) { spellCheckService.initialize() }
 		closeProjectScope(assertNotNull(scopeOrNull()), projectDef)
+		closeProjectScope(assertNotNull(scopeOrNull()), projectDef)
+	}
+
+	@Test
+	fun `the scope stays open until every editor has closed it`() = runTest {
+		openProjectScope(projectDef)
+		openProjectScope(projectDef)
+
+		closeProjectScope(assertNotNull(scopeOrNull()), projectDef)
+		assertFalse(assertNotNull(scopeOrNull()).closed)
+
+		closeProjectScope(assertNotNull(scopeOrNull()), projectDef)
+		assertNull(scopeOrNull())
 	}
 
 	@Test

@@ -3,12 +3,13 @@ package components.projecthome
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.http.projectdata.WordCountGoal
 import com.darkrockstudios.apps.hammer.common.components.ToastMessage
-import com.darkrockstudios.apps.hammer.common.components.projecthome.ExportStoryUseCase
+import com.darkrockstudios.apps.hammer.common.data.export.ExportStoryUseCase
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectHome
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectHomeComponent
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.Info
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
-import com.darkrockstudios.apps.hammer.common.data.ExportFormat
+import com.darkrockstudios.apps.hammer.common.data.export.BuiltInExportFormat
+import com.darkrockstudios.apps.hammer.common.data.export.StoryExporterRegistry
 import com.darkrockstudios.apps.hammer.common.data.ExportOptions
 import com.darkrockstudios.apps.hammer.common.data.ExportableScene
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
@@ -143,6 +144,7 @@ class ProjectHomeComponentTest : ComponentTest() {
 
 		setupComponentKoin(module {
 			single { globalSettingsStore }
+			single { StoryExporterRegistry(emptyList()) }
 			single { projectBackupService }
 			single<AccountTagService> { mockk(relaxed = true) }
 			single<PlatformSpellCheckerFactory> {
@@ -263,7 +265,7 @@ class ProjectHomeComponentTest : ComponentTest() {
 		comp.beginProjectExport()
 		assertTrue(comp.state.value.showExportDialog)
 
-		val options = ExportOptions(treatTopLevelAsChapters = false, format = ExportFormat.Pdf)
+		val options = ExportOptions(treatTopLevelAsChapters = false, format = BuiltInExportFormat.PDF)
 		comp.confirmExportDialog(options)
 		assertEquals(options, comp.state.value.exportOptions)
 		assertTrue(comp.state.value.showExportFilePicker)
@@ -308,6 +310,20 @@ class ProjectHomeComponentTest : ComponentTest() {
 	}
 
 	@Test
+	fun `beginProjectExport replaces a format that is no longer registered`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+
+		comp.beginProjectExport()
+		comp.updateExportOptions(ExportOptions(format = "removed.fmt"))
+		comp.confirmExportDialog(comp.state.value.exportOptions)
+		comp.endProjectExport()
+
+		comp.beginProjectExport()
+		assertEquals(BuiltInExportFormat.EPUB, comp.state.value.exportOptions.format)
+	}
+
+	@Test
 	fun `updateExportOptions persists in-dialog edits in component state`() = runTest(mainTestDispatcher) {
 		val comp = newComponent()
 		context.resume()
@@ -315,7 +331,7 @@ class ProjectHomeComponentTest : ComponentTest() {
 		comp.beginProjectExport()
 		val edited = ExportOptions(
 			treatTopLevelAsChapters = false,
-			format = ExportFormat.Pdf,
+			format = BuiltInExportFormat.PDF,
 			sceneIds = setOf(3, 4),
 		)
 		comp.updateExportOptions(edited)
@@ -326,7 +342,7 @@ class ProjectHomeComponentTest : ComponentTest() {
 
 	@Test
 	fun `confirmExportDialog carries the scene filter through to the use case`() = runTest(mainTestDispatcher) {
-		val options = ExportOptions(format = ExportFormat.Markdown, sceneIds = setOf(3, 6))
+		val options = ExportOptions(format = BuiltInExportFormat.MARKDOWN, sceneIds = setOf(3, 6))
 		val exported = HPath("/out/Test.md", "Test.md", true)
 		coEvery { exportStoryUseCase.execute(any(), any()) } returns exported
 
@@ -353,7 +369,7 @@ class ProjectHomeComponentTest : ComponentTest() {
 		advanceUntilIdle()
 		assertTrue(comp.state.value.exportableScenes.isNotEmpty())
 
-		comp.updateExportOptions(ExportOptions(treatTopLevelAsChapters = false, format = ExportFormat.Pdf))
+		comp.updateExportOptions(ExportOptions(treatTopLevelAsChapters = false, format = BuiltInExportFormat.PDF))
 		comp.cancelExportDialog()
 		// The snapshot survives until the close animation finishes, no mid-animation flash.
 		assertTrue(comp.state.value.exportableScenes.isNotEmpty())
@@ -369,7 +385,7 @@ class ProjectHomeComponentTest : ComponentTest() {
 		context.resume()
 
 		comp.beginProjectExport()
-		val confirmed = ExportOptions(format = ExportFormat.Rtf, sceneIds = setOf(3))
+		val confirmed = ExportOptions(format = BuiltInExportFormat.RTF, sceneIds = setOf(3))
 		comp.updateExportOptions(confirmed)
 		comp.confirmExportDialog(confirmed)
 		comp.endProjectExport()
@@ -380,7 +396,7 @@ class ProjectHomeComponentTest : ComponentTest() {
 
 	@Test
 	fun `exportProject delegates to the use case and resets export state`() = runTest(mainTestDispatcher) {
-		val options = ExportOptions(format = ExportFormat.Markdown)
+		val options = ExportOptions(format = BuiltInExportFormat.MARKDOWN)
 		val exported = HPath("/out/Test.md", "Test.md", true)
 		coEvery { exportStoryUseCase.execute(any(), any()) } returns exported
 
@@ -424,8 +440,8 @@ class ProjectHomeComponentTest : ComponentTest() {
 		val comp = newComponent()
 		context.resume()
 
-		assertEquals("Test.epub", comp.getExportStoryFileName(ExportFormat.Epub))
-		assertEquals("Test.docx", comp.getExportStoryFileName(ExportFormat.Docx))
+		assertEquals("Test.epub", comp.getExportStoryFileName(BuiltInExportFormat.EPUB))
+		assertEquals("Test.docx", comp.getExportStoryFileName(BuiltInExportFormat.DOCX))
 	}
 
 	@Test
