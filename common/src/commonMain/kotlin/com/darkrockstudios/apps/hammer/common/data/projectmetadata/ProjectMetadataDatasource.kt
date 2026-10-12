@@ -9,9 +9,11 @@ import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import io.github.aakira.napier.Napier
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
+import okio.Path
 import kotlin.time.Clock
 
 /**
@@ -28,20 +30,34 @@ class ProjectMetadataDatasource(
 	}
 
 	/**
-	 * A plain read: a present file is returned as is, even without a [Info.projectId], because the
-	 * migrator must see legacy state before anything heals it. Use [loadProjectId] for the id.
+	 * Does not mint: a file without a [Info.projectId] is returned without one. Use [loadProjectId]
+	 * for the id.
 	 */
 	fun loadMetadata(projectDef: ProjectDef): ProjectMetadata {
 		val path = getMetadataPath(projectDef).toOkioPath()
 
-		return fileSystem.readTomlOrNull<ProjectMetadata>(path, toml) { e ->
+		val metadata = fileSystem.readTomlOrNull<ProjectMetadata>(path, toml) { e ->
 			Napier.e("Failed to load project metadata: ${path.toHPath().path}", e)
 		} ?: run {
 			// Missing or corrupt (tomlkt throws beyond SerializationException): drop the
 			// bad file and start fresh so migrators re-run instead of crashing the load.
 			fileSystem.delete(path, false)
-			createNewMetadata(projectDef)
+			return createNewMetadata(projectDef)
 		}
+
+		return if (metadata.info.projectId == null) withLegacyServerId(metadata, path) else metadata
+	}
+
+	/**
+	 * A file from before data version 4 holds the id the server assigned as `serverProjectId`, which
+	 * the current model does not have. Reading it as the [Info.projectId] carries it through any save
+	 * before Migration3_4 runs (the migrator's own version stamps included), which would otherwise
+	 * drop it and leave a fresh id to be minted in its place.
+	 */
+	private fun withLegacyServerId(metadata: ProjectMetadata, path: Path): ProjectMetadata {
+		val legacyId = fileSystem.readTomlOrNull<LegacyMetadata>(path, toml)?.info?.serverProjectId
+			?: return metadata
+		return metadata.copy(info = metadata.info.copy(projectId = legacyId))
 	}
 
 	fun saveMetadata(metadata: ProjectMetadata, projectDef: ProjectDef) {
@@ -92,6 +108,12 @@ class ProjectMetadataDatasource(
 		saveMetadata(metadata.copy(info = metadata.info.copy(projectId = minted)), projectDef)
 		return minted
 	}
+
+	@Serializable
+	private data class LegacyMetadata(val info: LegacyInfo = LegacyInfo())
+
+	@Serializable
+	private data class LegacyInfo(val serverProjectId: ProjectId? = null)
 
 	companion object {
 		const val FILE_HEADER =

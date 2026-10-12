@@ -3,6 +3,7 @@ package repositories.projectsrepository
 import PROJECT_1_NAME
 import PROJECT_2_NAME
 import com.darkrockstudios.apps.hammer.base.ProjectId
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataDatasource
@@ -34,8 +35,10 @@ class ProjectsRepositoryIdTest : ProjectsRepositoryBaseTest() {
 	@Test
 	fun `Get Project ID heals a project without one`() = scope.runTest {
 		val proj1Def = getProjectDef(PROJECT_1_NAME)
-		// Test Project 1 predates project ids (it only has the legacy serverProjectId).
 		createProject(ffs, PROJECT_1_NAME)
+		ffs.write(proj1Def.path.toOkioPath() / ProjectMetadata.FILENAME) {
+			writeUtf8("[info]\ncreated = 2022-12-30T07:08:02.691261600Z\ndataVersion = 4\n")
+		}
 
 		val repo = projectsRepository()
 		val healed = repo.getProjectId(proj1Def)

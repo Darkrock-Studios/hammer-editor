@@ -262,7 +262,7 @@ abstract class RoundTripTestBase : EndToEndTest(), KoinTest {
 	 * Opens a second device on the same server project as [primary], which must have synced at least
 	 * once so the server project exists. The second device gets its own local project dir
 	 * ([localName], which must differ from the first device's name) but binds to the same server
-	 * project — the realistic "two devices, one account, one project" setup.
+	 * project: the realistic "two devices, one account, one project" setup.
 	 */
 	protected suspend fun secondDeviceFor(primary: HeadlessClient, localName: String): HeadlessClient {
 		val sharedId = get<ProjectMetadataDatasource>().loadProjectId(primary.projectDef)

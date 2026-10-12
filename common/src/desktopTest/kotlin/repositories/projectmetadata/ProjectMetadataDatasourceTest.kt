@@ -18,6 +18,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import utils.BaseTest
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlin.time.Instant
@@ -53,9 +54,10 @@ class ProjectMetadataDatasourceTest : BaseTest() {
 				created = Instant.parse("2022-12-30T07:08:02.691261600Z"),
 				lastAccessed = Instant.parse("2024-06-28T05:09:10.649054300Z"),
 				dataVersion = 1,
+				// Test Project 1 predates project ids: its legacy serverProjectId is read as the id.
+				projectId = ProjectId("5f1d7446-1f08-4909-a81e-cdc7470a2f63"),
 			)
 		)
-		// A plain read: the legacy serverProjectId is left for Migration3_4, not healed here.
 		assertEquals(expectedMetadata, metadata)
 	}
 
@@ -71,13 +73,39 @@ class ProjectMetadataDatasourceTest : BaseTest() {
 	@Test
 	fun `loadProjectId mints and persists an id when the file has none`() {
 		createProject(fileSystem, PROJECT_1_NAME)
+		val path = projectMetadataDatasource.getMetadataPath(getProject1Def()).toOkioPath()
+		fileSystem.write(path) {
+			writeUtf8(
+				"[info]\ncreated = 2022-12-30T07:08:02.691261600Z\n" +
+					"lastAccessed = 2024-06-28T05:09:10.649054300Z\ndataVersion = 4\n"
+			)
+		}
 
 		val minted = projectMetadataDatasource.loadProjectId(getProject1Def())
 
 		assertEquals(minted, projectMetadataDatasource.loadMetadata(getProject1Def()).info.projectId)
 		assertEquals(minted, projectMetadataDatasource.loadProjectId(getProject1Def()))
 		// The rest of the metadata survives the heal.
-		assertEquals(1, projectMetadataDatasource.loadMetadata(getProject1Def()).info.dataVersion)
+		val info = projectMetadataDatasource.loadMetadata(getProject1Def()).info
+		assertEquals(4, info.dataVersion)
+		assertEquals(Instant.parse("2022-12-30T07:08:02.691261600Z"), info.created)
+		assertEquals(Instant.parse("2024-06-28T05:09:10.649054300Z"), info.lastAccessed)
+	}
+
+	@Test
+	fun `A legacy serverProjectId survives a save before migration`() {
+		createProject(fileSystem, PROJECT_1_NAME)
+
+		projectMetadataDatasource.updateMetadata(getProject1Def()) {
+			it.copy(info = it.info.copy(dataVersion = 2))
+		}
+
+		val path = projectMetadataDatasource.getMetadataPath(getProject1Def()).toOkioPath()
+		assertFalse(fileSystem.read(path) { readUtf8() }.contains("serverProjectId"))
+		assertEquals(
+			ProjectId("5f1d7446-1f08-4909-a81e-cdc7470a2f63"),
+			projectMetadataDatasource.loadProjectId(getProject1Def())
+		)
 	}
 
 	@Test

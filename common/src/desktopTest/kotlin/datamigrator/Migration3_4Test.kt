@@ -4,6 +4,8 @@ import PROJECT_1_NAME
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
+import com.darkrockstudios.apps.hammer.common.data.migrator.Migration
 import com.darkrockstudios.apps.hammer.common.data.migrator.Migration3_4
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
@@ -12,6 +14,7 @@ import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import createProject
 import getProject1Def
+import io.mockk.mockk
 import okio.Path
 import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
@@ -49,7 +52,7 @@ class Migration3_4Test : BaseTest() {
 
 	private fun metadataDatasource() = ProjectMetadataDatasource(ffs, toml)
 
-	private fun migration() = Migration3_4(ffs, toml, metadataDatasource())
+	private fun migration() = Migration3_4(ffs, metadataDatasource())
 
 	private fun read(path: Path): String = ffs.read(path) { readUtf8() }
 
@@ -78,6 +81,33 @@ class Migration3_4Test : BaseTest() {
 		migration().migrate(def)
 
 		assertEquals(ProjectId(SERVER_ID), metadataDatasource().loadProjectId(def))
+	}
+
+	@Test
+	fun `a project migrated from before version 3 keeps its server id`() {
+		ffs.write(metadataPath) {
+			writeUtf8(
+				"[info]\ncreated = 2022-12-30T07:08:02.691261600Z\ndataVersion = 1\n" +
+					"serverProjectId = \"$SERVER_ID\"\n"
+			)
+		}
+		// The earlier steps rewrite project.toml (the version stamp) before Migration3_4 runs.
+		val noOp = { version: Int ->
+			object : Migration {
+				override val toVersion = version
+				override fun migrate(projectDef: ProjectDef) {}
+			}
+		}
+		val migrator = object : DataMigrator(mockk(relaxed = true), mockk(relaxed = true), metadataDatasource()) {
+			override fun getMigrators(): Map<Int, Migration> =
+				mapOf(2 to noOp(2), 3 to noOp(3), 4 to migration())
+		}
+
+		migrator.migrateProject(projDef)
+
+		assertEquals(4, metadataDatasource().loadMetadata(projDef).info.dataVersion)
+		assertEquals(ProjectId(SERVER_ID), metadataDatasource().loadProjectId(projDef))
+		assertFalse(read(metadataPath).contains("serverProjectId"))
 	}
 
 	@Test

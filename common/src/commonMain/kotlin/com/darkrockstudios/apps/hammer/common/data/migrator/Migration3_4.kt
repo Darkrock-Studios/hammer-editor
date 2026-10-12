@@ -1,15 +1,11 @@
 package com.darkrockstudios.apps.hammer.common.data.migrator
 
 import com.darkrockstudios.apps.hammer.base.ProjectId
-import com.darkrockstudios.apps.hammer.base.http.readTomlOrNull
-import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import io.github.aakira.napier.Napier
-import kotlinx.serialization.Serializable
-import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
 
 /**
@@ -19,7 +15,6 @@ import okio.FileSystem
  */
 class Migration3_4(
 	private val fileSystem: FileSystem,
-	private val toml: Toml,
 	private val projectMetadataDatasource: ProjectMetadataDatasource,
 ) : Migration {
 	override val toVersion: Int = 4
@@ -33,16 +28,12 @@ class Migration3_4(
 		Napier.i("Migration3_4 for '${projectDef.name}' complete.")
 	}
 
+	// loadMetadata reads a legacy serverProjectId as the projectId; the save writes it as projectId
+	// and drops serverProjectId from the file.
 	private fun seedProjectId(projectDef: ProjectDef) {
-		val path = projectDef.path.toOkioPath() / ProjectMetadata.FILENAME
-		val legacy = fileSystem.readTomlOrNull<LegacyMetadata>(path, toml) { e ->
-			Napier.w("Migration3_4: could not read ${ProjectMetadata.FILENAME} in '${projectDef.name}'", e)
-		}?.info
-
-		val projectId = legacy?.projectId ?: legacy?.serverProjectId ?: ProjectId.randomUUID()
-		// The save writes the current format, which drops serverProjectId from the file.
 		projectMetadataDatasource.updateMetadata(projectDef) {
-			it.copy(info = it.info.copy(projectId = projectId))
+			if (it.info.projectId != null) it
+			else it.copy(info = it.info.copy(projectId = ProjectId.randomUUID()))
 		}
 	}
 
@@ -64,17 +55,6 @@ class Migration3_4(
 
 		fileSystem.atomicMove(legacy, current)
 	}
-
-	@Serializable
-	private data class LegacyMetadata(
-		val info: LegacyInfo = LegacyInfo(),
-	)
-
-	@Serializable
-	private data class LegacyInfo(
-		val projectId: ProjectId? = null,
-		val serverProjectId: ProjectId? = null,
-	)
 
 	companion object {
 		const val LEGACY_PROJECT_SETTINGS_FILENAME = "project_data.toml"

@@ -69,7 +69,7 @@ class HeadlessClient private constructor(
 	companion object {
 		/**
 		 * @param serverProjectId when set, the local project is created with this existing server
-		 * project's id instead of a freshly minted one — i.e. a second device opening a project
+		 * project's id instead of a freshly minted one, i.e. a second device opening a project
 		 * that already lives on the server. The local project name must differ from the first device's
 		 * (they share one on-disk projects root) but both resolve to the same server project.
 		 */

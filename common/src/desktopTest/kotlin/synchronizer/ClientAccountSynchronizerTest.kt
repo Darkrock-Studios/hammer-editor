@@ -573,6 +573,25 @@ class ClientAccountSynchronizerTest {
 	}
 
 	@Test
+	fun `syncProjects does not recreate a project whose id the server tombstoned`() = runTest {
+		val id = ProjectId.randomUUID()
+		val def = projectDef("TombstonedNovel")
+		// Already recorded as deleted, so deleteLocalProjects does not act on it again; the folder is
+		// still on disk (put back by a file-sync tool, or a local delete that failed).
+		writeSyncData(emptySyncData().copy(deletedProjects = setOf(id)))
+		coEvery { serverProjectsApi.beginProjectsSync() } returns
+			Result.success(emptyServerResponse().copy(deletedProjects = setOf(id)))
+		every { projectsRepository.getProjects(any()) } returns listOf(def)
+		every { projectsRepository.getProjectId(def) } returns id
+
+		val result = createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
+
+		assertTrue(result)
+		coVerify(exactly = 0) { serverProjectsApi.createProject(any(), any(), any()) }
+		coVerify(exactly = 0) { projectsRepository.setProjectId(any(), any()) }
+	}
+
+	@Test
 	fun `syncProjects does not recreate a project whose cached id the server still lists`() = runTest {
 		writeSyncData(emptySyncData())
 		val id = ProjectId.randomUUID()

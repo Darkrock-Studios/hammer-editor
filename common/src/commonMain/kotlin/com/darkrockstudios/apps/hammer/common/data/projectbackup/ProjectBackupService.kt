@@ -230,14 +230,19 @@ open class ProjectBackupService(
 	}
 
 	// The content is already in place, so a failure here is logged rather than reported as a failed
-	// restore.
+	// restore. The id is set even when the migration fails: startup retries the migration, which
+	// keeps an id already present.
 	@Suppress("TooGenericExceptionCaught")
 	private suspend fun adoptIdentity(targetDef: ProjectDef, liveId: ProjectId?) {
 		try {
 			dataMigrator.migrateProject(targetDef)
+		} catch (e: Exception) {
+			Napier.e("Restored '${targetDef.name}' but failed to migrate it", e)
+		}
+		try {
 			projectsRepository.setProjectId(targetDef, liveId ?: ProjectId.randomUUID())
 		} catch (e: Exception) {
-			Napier.e("Restored '${targetDef.name}' but failed to migrate it or set its project id", e)
+			Napier.e("Restored '${targetDef.name}' but failed to set its project id", e)
 		}
 	}
 

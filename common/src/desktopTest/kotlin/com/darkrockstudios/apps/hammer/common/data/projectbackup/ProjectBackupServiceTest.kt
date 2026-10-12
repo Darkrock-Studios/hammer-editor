@@ -450,6 +450,30 @@ class ProjectBackupServiceTest {
 	}
 
 	@Test
+	fun `restoreBackup keeps the live project's id when the migration fails`() = runTest {
+		every { clock.now() } returns Instant.parse("2025-12-28T16:29:00Z")
+		every { projectsRepository.getProjectsDirectory() } returns "/projects".toPath().toHPath()
+		every { projectsRepository.getProjectDirectory("Test Project") } returns
+			"/projects/Test Project".toPath().toHPath()
+		every { globalSettingsStore.globalSettings } returns
+			GlobalSettings(projectsDirectory = "/projects", maxBackups = 5)
+		every { dataMigrator.migrateProject(any()) } throws IllegalStateException("migration failed")
+
+		val projectDir = "/projects/Test Project".toPath()
+		fileSystem.createDirectories(projectDir)
+		fileSystem.write(projectDir / "project.toml") { writeUtf8("[info]") }
+
+		val repo = realRepo()
+		val projectDef = ProjectDef("Test Project", projectDir.toHPath())
+		val backupDef = repo.createBackup(projectDef)
+		assertNotNull(backupDef)
+
+		assertTrue(repo.restoreBackup(backupDef, projectDef.path))
+
+		coVerify { projectsRepository.setProjectId(projectDef, liveId) }
+	}
+
+	@Test
 	fun `restoreBackup gives a fresh id when no live project is replaced`() = runTest {
 		every { clock.now() } returns Instant.parse("2025-12-28T16:29:00Z")
 		every { projectsRepository.getProjectsDirectory() } returns "/projects".toPath().toHPath()
