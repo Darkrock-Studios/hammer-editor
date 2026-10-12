@@ -45,6 +45,11 @@ class FakeWearPrefsDatasource : WearPrefsDatasource {
 		lastCapture.value = projectId
 	}
 
+	override suspend fun replaceProjectId(oldId: String, newId: String, keepOld: Boolean) {
+		if (oldId in ids.value) ids.value = if (keepOld) ids.value + newId else ids.value - oldId + newId
+		if (!keepOld && lastCapture.value == oldId) lastCapture.value = newId
+	}
+
 	override suspend fun clear() {
 		ids.value = emptySet()
 		lastCapture.value = null
@@ -134,6 +139,9 @@ class FailingUnsubscribeDatasource : WearPrefsDatasource {
 
 	override suspend fun setLastCaptureProjectId(projectId: String) =
 		delegate.setLastCaptureProjectId(projectId)
+
+	override suspend fun replaceProjectId(oldId: String, newId: String, keepOld: Boolean) =
+		delegate.replaceProjectId(oldId, newId, keepOld)
 
 	override suspend fun clear() = delegate.clear()
 }

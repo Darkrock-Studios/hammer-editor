@@ -87,7 +87,7 @@ class SyncAccountUseCase(
 
 	suspend fun execute(
 		listener: SyncAccountListener,
-		projectFilter: (SyncedProjectDefinition) -> Boolean = { true },
+		projectFilter: suspend (SyncedProjectDefinition) -> Boolean = { true },
 	): SyncAccountResult {
 		val initialProjects = projectsRepository.getProjects()
 		listener.onProjectsDiscovered(initialProjects)
@@ -162,9 +162,9 @@ class SyncAccountUseCase(
 		data class ToSync(val synced: SyncedProjectDefinition) : Candidate
 	}
 
-	private fun classify(
+	private suspend fun classify(
 		projectDef: ProjectDef,
-		projectFilter: (SyncedProjectDefinition) -> Boolean,
+		projectFilter: suspend (SyncedProjectDefinition) -> Boolean,
 	): Candidate {
 		// The project can be deleted concurrently.
 		val projectId = try {

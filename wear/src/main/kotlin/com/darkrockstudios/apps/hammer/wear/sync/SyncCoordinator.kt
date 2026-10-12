@@ -28,7 +28,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 fun interface AccountSync {
 	suspend fun run(
 		listener: SyncAccountListener,
-		projectFilter: (SyncedProjectDefinition) -> Boolean,
+		projectFilter: suspend (SyncedProjectDefinition) -> Boolean,
 	): SyncAccountResult
 }
 
@@ -88,10 +88,13 @@ class DefaultSyncCoordinator(
 		if (!mutex.tryLock()) return SyncRunResult.Busy
 
 		try {
-			val subscribed = subscriptions.currentSubscriptions()
 			_status.value = SyncStatus(running = true, trigger = trigger)
 
-			val result = accountSync.run(listener) { synced -> synced.projectId in subscribed }
+			// Read when filtering, not before: account sync can change a project's id, and the
+			// subscription is re-keyed to follow it.
+			val result = accountSync.run(listener) { synced ->
+				synced.projectId in subscriptions.currentSubscriptions()
+			}
 
 			_status.update { it.copy(running = false, lastResult = result) }
 			return SyncRunResult.Completed(result)

@@ -50,7 +50,7 @@ class DefaultSyncCoordinatorTest {
 		refreshToken = "refresh",
 	)
 
-	/** Reports which candidates the filter admits, then runs [behaviour] against the listener. */
+	/** Runs [behaviour] against the listener, then records which candidates the filter admits. */
 	private inner class FakeAccountSync : AccountSync {
 		var runs = 0
 		var admitted: List<String> = emptyList()
@@ -58,11 +58,13 @@ class DefaultSyncCoordinatorTest {
 
 		override suspend fun run(
 			listener: SyncAccountListener,
-			projectFilter: (SyncedProjectDefinition) -> Boolean,
+			projectFilter: suspend (SyncedProjectDefinition) -> Boolean,
 		): SyncAccountResult {
 			runs++
-			admitted = candidates.filter(projectFilter).map { it.projectDef.name }
-			return behaviour(listener)
+			// Like the real sync: the account phase runs before projects are filtered.
+			val result = behaviour(listener)
+			admitted = candidates.filter { projectFilter(it) }.map { it.projectDef.name }
+			return result
 		}
 	}
 
@@ -116,6 +118,19 @@ class DefaultSyncCoordinatorTest {
 		coordinator.sync(SyncTrigger.Manual)
 
 		assertEquals(listOf("Beta"), accountSync.admitted)
+	}
+
+	@Test
+	fun `a subscription re-keyed during account sync still admits the project`() = runTest(dispatcher) {
+		subscriptions.setSubscribed(ProjectId("minted-on-the-watch"), true)
+		accountSync.behaviour = {
+			subscriptions.onProjectIdChanged(ProjectId("minted-on-the-watch"), ProjectId("a"), oldIdStillHeld = false)
+			successResult()
+		}
+
+		coordinator.sync(SyncTrigger.Manual)
+
+		assertEquals(listOf("Alpha"), accountSync.admitted)
 	}
 
 	@Test

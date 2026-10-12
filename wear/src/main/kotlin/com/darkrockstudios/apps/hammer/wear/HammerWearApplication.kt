@@ -3,12 +3,14 @@ package com.darkrockstudios.apps.hammer.wear
 import android.app.Application
 import com.darkrockstudios.apps.hammer.common.FileLogger
 import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.NapierLogger
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.appModule
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.mainModule
 import com.darkrockstudios.apps.hammer.common.installGlobalExceptionHandler
 import com.darkrockstudios.apps.hammer.common.logStartupBanner
 import com.darkrockstudios.apps.hammer.common.setInternalDirectories
+import com.darkrockstudios.apps.hammer.wear.data.SubscribedProjectsRepository
 import com.darkrockstudios.apps.hammer.wear.dependencyinjection.wearModule
 import com.darkrockstudios.apps.hammer.wear.sync.SyncScheduler
 import io.github.aakira.napier.Napier
@@ -42,6 +44,10 @@ class HammerWearApplication : Application() {
 				wearModule,
 			)
 		}
+
+		// Before migration, which can re-mint a duplicated project id.
+		getKoin().get<SubscribedProjectsRepository>(SubscribedProjectsRepository::class)
+			.followProjectIdChanges(getKoin().get(ProjectsRepository::class))
 
 		runBlocking { getKoin().get<DataMigrator>(DataMigrator::class).handleDataMigration() }
 

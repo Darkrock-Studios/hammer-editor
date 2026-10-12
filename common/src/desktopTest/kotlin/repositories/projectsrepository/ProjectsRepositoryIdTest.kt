@@ -16,6 +16,7 @@ import kotlinx.coroutines.test.runTest
 import okio.Path
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.days
@@ -58,6 +59,54 @@ class ProjectsRepositoryIdTest : ProjectsRepositoryBaseTest() {
 
 		assertEquals(projectId, repo.getProjectId(proj2Def))
 		assertEquals(proj2Def.name, repo.findProject(projectId)?.name)
+	}
+
+	@Test
+	fun `Set Project ID tells listeners the old and new id once it is stored`() = scope.runTest {
+		val proj2Def = getProjectDef(PROJECT_2_NAME)
+		val newId = ProjectId("test-id")
+		createProject(ffs, PROJECT_2_NAME)
+		val repo = projectsRepository()
+		val changes = mutableListOf<Triple<String, ProjectId, ProjectId>>()
+		var storedWhenNotified: ProjectId? = null
+		repo.addProjectIdChangeListener { def, oldId, id ->
+			storedWhenNotified = repo.getProjectId(def)
+			changes += Triple(def.name, oldId, id)
+		}
+
+		repo.setProjectId(proj2Def, newId)
+
+		assertEquals(listOf(Triple(proj2Def.name, project2Id, newId)), changes)
+		assertEquals(newId, storedWhenNotified)
+	}
+
+	@Test
+	fun `Set Project ID to the id it already has notifies nobody`() = scope.runTest {
+		val proj2Def = getProjectDef(PROJECT_2_NAME)
+		createProject(ffs, PROJECT_2_NAME)
+		val repo = projectsRepository()
+		var notified = false
+		repo.addProjectIdChangeListener { _, _, _ -> notified = true }
+
+		repo.setProjectId(proj2Def, project2Id)
+
+		assertFalse(notified)
+	}
+
+	@Test
+	fun `A failing listener does not fail the id change`() = scope.runTest {
+		val proj2Def = getProjectDef(PROJECT_2_NAME)
+		val newId = ProjectId("test-id")
+		createProject(ffs, PROJECT_2_NAME)
+		val repo = projectsRepository()
+		var laterListenerRan = false
+		repo.addProjectIdChangeListener { _, _, _ -> error("listener broke") }
+		repo.addProjectIdChangeListener { _, _, _ -> laterListenerRan = true }
+
+		repo.setProjectId(proj2Def, newId)
+
+		assertEquals(newId, repo.getProjectId(proj2Def))
+		assertTrue(laterListenerRan)
 	}
 
 	@Test

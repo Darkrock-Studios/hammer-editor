@@ -165,6 +165,10 @@ server project's `ProjectId` but no entities. Syncing content is opt-in per proj
 - The watch keeps its subscribed projects in a wear-owned DataStore (`WearPrefsDatasource`, the
   only writer), keyed by `ProjectId` so a rename does not drop a subscription. It is not a
   `GlobalSettings` field because that file is shared by every platform.
+- A project whose ID changes (adopting a server project by name, or a re-mint) keeps its
+  subscription and last capture target: `ProjectsRepository.setProjectId` notifies its ID change
+  listeners before returning, and the watch re-keys both. The sync filter reads subscriptions when
+  it runs, after account sync, so a project adopted during that sync is still synced.
 - Only subscribed projects are passed to the sync use case. The change probe keeps repeat
   syncs to a single request when nothing changed.
 - A subscribed project's first sync pulls every entity, one request each. That is acceptable for

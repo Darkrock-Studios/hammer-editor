@@ -39,6 +39,9 @@ import com.darkrockstudios.apps.hammer.create_project_error_invalid_characters
 import com.darkrockstudios.apps.hammer.create_project_error_null_filename
 import com.darkrockstudios.apps.hammer.create_project_error_too_long
 import io.github.aakira.napier.Napier
+import kotlinx.atomicfu.locks.reentrantLock
+import kotlinx.atomicfu.locks.withLock
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
@@ -54,6 +57,11 @@ import org.koin.core.qualifier.named
 import kotlin.coroutines.CoroutineContext
 import kotlin.time.Clock
 
+/** Told when a project's id changes; see [ProjectsRepository.addProjectIdChangeListener]. */
+fun interface ProjectIdChangeListener {
+	suspend fun onProjectIdChanged(projectDef: ProjectDef, oldId: ProjectId, newId: ProjectId)
+}
+
 class ProjectsRepository(
 	private val fileSystem: FileSystem,
 	globalSettingsStore: GlobalSettingsStore,
@@ -67,6 +75,9 @@ class ProjectsRepository(
 	private val projectsScope = CoroutineScope(dispatcherDefault)
 
 	private var globalSettings = globalSettingsStore.globalSettings
+
+	private val idChangeListenersLock = reentrantLock()
+	private var idChangeListeners: List<ProjectIdChangeListener> = emptyList()
 
 	init {
 		watchSettings(globalSettingsStore)
@@ -104,11 +115,40 @@ class ProjectsRepository(
 	 * that collides. The old sync baseline described the old id, so it goes when the id changes.
 	 */
 	suspend fun setProjectId(projectDef: ProjectDef, projectId: ProjectId) {
-		if (getProjectId(projectDef) != projectId) {
-			clearSyncBaseline(projectDef)
-		}
+		val oldId = getProjectId(projectDef)
+		if (oldId == projectId) return
+
+		clearSyncBaseline(projectDef)
 		projectsMetadataDatasource.updateMetadata(projectDef) {
 			it.copy(info = it.info.copy(projectId = projectId))
+		}
+		notifyProjectIdChanged(projectDef, oldId, projectId)
+	}
+
+	/**
+	 * [listener] runs inside [setProjectId], after the new id is persisted and before it returns,
+	 * so anything keyed by project id is re-keyed before the caller acts on the new id.
+	 */
+	fun addProjectIdChangeListener(listener: ProjectIdChangeListener) {
+		idChangeListenersLock.withLock { idChangeListeners = idChangeListeners + listener }
+	}
+
+	fun removeProjectIdChangeListener(listener: ProjectIdChangeListener) {
+		idChangeListenersLock.withLock { idChangeListeners = idChangeListeners - listener }
+	}
+
+	// The id is already persisted, so a failing listener must not fail the identity change.
+	@Suppress("TooGenericExceptionCaught")
+	private suspend fun notifyProjectIdChanged(projectDef: ProjectDef, oldId: ProjectId, newId: ProjectId) {
+		val listeners = idChangeListenersLock.withLock { idChangeListeners }
+		listeners.forEach { listener ->
+			try {
+				listener.onProjectIdChanged(projectDef, oldId, newId)
+			} catch (e: CancellationException) {
+				throw e
+			} catch (e: Exception) {
+				Napier.e("Project id change listener failed for '${projectDef.name}'", e)
+			}
 		}
 	}
 

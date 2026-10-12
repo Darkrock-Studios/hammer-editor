@@ -17,6 +17,9 @@ interface WearPrefsDatasource {
 
 	suspend fun setSubscribed(projectId: String, subscribed: Boolean)
 	suspend fun setLastCaptureProjectId(projectId: String)
+
+	/** Points what refers to [oldId] at [newId] in one write; [keepOld] subscribes both. */
+	suspend fun replaceProjectId(oldId: String, newId: String, keepOld: Boolean)
 	suspend fun clear()
 }
 
@@ -44,6 +47,18 @@ private class DataStoreWearPrefsDatasource(
 
 	override suspend fun setLastCaptureProjectId(projectId: String) {
 		dataStore.edit { prefs -> prefs[LAST_CAPTURE_PROJECT_ID] = projectId }
+	}
+
+	override suspend fun replaceProjectId(oldId: String, newId: String, keepOld: Boolean) {
+		dataStore.edit { prefs ->
+			val subscribed = prefs[SUBSCRIBED_PROJECT_IDS] ?: emptySet()
+			if (oldId in subscribed) {
+				prefs[SUBSCRIBED_PROJECT_IDS] = if (keepOld) subscribed + newId else subscribed - oldId + newId
+			}
+			if (!keepOld && prefs[LAST_CAPTURE_PROJECT_ID] == oldId) {
+				prefs[LAST_CAPTURE_PROJECT_ID] = newId
+			}
+		}
 	}
 
 	override suspend fun clear() {

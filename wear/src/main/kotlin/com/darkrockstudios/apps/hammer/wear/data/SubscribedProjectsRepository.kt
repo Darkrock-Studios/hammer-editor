@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.wear.data
 
 import com.darkrockstudios.apps.hammer.base.ProjectId
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -27,6 +28,22 @@ class SubscribedProjectsRepository(
 
 	suspend fun setLastCaptureProject(projectId: ProjectId) {
 		datasource.setLastCaptureProjectId(projectId.id)
+	}
+
+	/**
+	 * Keeps the subscription and last capture target on a project whose id changed. When another
+	 * local project still holds [oldId] (a duplicate re-minted at startup), both stay subscribed and
+	 * the last capture target stays on the holder of [oldId].
+	 */
+	suspend fun onProjectIdChanged(oldId: ProjectId, newId: ProjectId, oldIdStillHeld: Boolean) {
+		datasource.replaceProjectId(oldId.id, newId.id, keepOld = oldIdStillHeld)
+	}
+
+	/** Re-keys this repository whenever [projectsRepository] changes a project's id. */
+	fun followProjectIdChanges(projectsRepository: ProjectsRepository) {
+		projectsRepository.addProjectIdChangeListener { _, oldId, newId ->
+			onProjectIdChanged(oldId, newId, oldIdStillHeld = projectsRepository.findProject(oldId) != null)
+		}
 	}
 
 	suspend fun clear() {
