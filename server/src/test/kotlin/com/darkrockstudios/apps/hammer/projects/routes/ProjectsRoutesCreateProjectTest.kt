@@ -1,10 +1,15 @@
 package com.darkrockstudios.apps.hammer.projects.routes
 
 import com.darkrockstudios.apps.hammer.base.ProjectId
+import com.darkrockstudios.apps.hammer.base.http.ApiErrorCode
 import com.darkrockstudios.apps.hammer.base.http.CreateProjectResponse
 import com.darkrockstudios.apps.hammer.base.http.HEADER_SYNC_ID
+import com.darkrockstudios.apps.hammer.base.http.HttpResponseError
+import com.darkrockstudios.apps.hammer.project.InvalidProjectName
 import com.darkrockstudios.apps.hammer.project.InvalidSyncIdException
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
+import com.darkrockstudios.apps.hammer.project.ProjectDeletedException
+import com.darkrockstudios.apps.hammer.project.ProjectIdTakenException
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository.ProjectCreatedResult
 import com.darkrockstudios.apps.hammer.utilities.SResult
 import io.ktor.client.request.*
@@ -21,110 +26,153 @@ import kotlin.test.assertTrue
 
 class ProjectsRoutesCreateProjectTest : ProjectsRoutesBaseTest() {
 
+	private val projectName = "TestProject"
+	private val projectId = ProjectId("2b1f3c4d-5e6f-4a1b-8c2d-3e4f5a6b7c8d")
+	private val syncId = "syncId-test"
+	private val userId = 0L
+
+	private fun ApplicationTestBuilder.authorize() {
+		coEvery { accountsRepository.checkToken(userId, BEARER_TOKEN) } returns SResult.success(0L)
+		defaultApplication()
+	}
+
+	private suspend fun ApplicationTestBuilder.postCreate(
+		query: String = "projectName=$projectName&projectId=${projectId.id}",
+		withSyncId: Boolean = true,
+	): HttpResponse = client.post("api/projects/0/create?$query") {
+		header("Authorization", "Bearer $BEARER_TOKEN")
+		if (withSyncId) header(HEADER_SYNC_ID, syncId)
+	}
+
+	private fun stubResult(result: SResult<ProjectCreatedResult>) {
+		coEvery {
+			projectsRepository.createProject(userId, syncId, projectName, projectId)
+		} returns result
+	}
+
 	@Test
 	fun `Projects - Create Project - Success`() = testApplication {
-		val projectName = "TestProject"
-		val projectId = ProjectId("uuid-1")
-		val syncId = "syncId-test"
-		val userId = 0L
-
-		coEvery { accountsRepository.checkToken(userId, BEARER_TOKEN) } returns SResult.success(0L)
-		coEvery {
-			projectsRepository.createProject(
-				userId = userId,
-				syncId = syncId,
-				projectName = projectName,
-			)
-		} returns SResult.success(
-			ProjectCreatedResult(
-				project = ProjectDefinition(projectName, projectId),
-				alreadyExisted = false
-			)
+		stubResult(
+			SResult.success(ProjectCreatedResult(ProjectDefinition(projectName, projectId), alreadyExisted = false))
 		)
+		authorize()
 
-		defaultApplication()
-
-		client.get("api/projects/0/create?projectName=TestProject") {
-			header("Authorization", "Bearer $BEARER_TOKEN")
-			header(HEADER_SYNC_ID, syncId)
-		}.apply {
+		postCreate().apply {
 			assertTrue(status.isSuccess())
-
 			val response = Json.decodeFromString<CreateProjectResponse>(bodyAsText())
 			assertEquals(projectId, response.projectId)
 			assertFalse(response.alreadyExisted)
-
-			coVerify {
-				projectsRepository.createProject(
-					userId = userId,
-					syncId = syncId,
-					projectName = projectName,
-				)
-			}
+			coVerify { projectsRepository.createProject(userId, syncId, projectName, projectId) }
 		}
 	}
 
 	@Test
-	fun `Projects - Create Project - Invalid Request`() = testApplication {
-		coEvery { accountsRepository.checkToken(any(), any()) } returns SResult.success(0L)
+	fun `Projects - Create Project - Upper case id is canonicalized`() = testApplication {
+		stubResult(
+			SResult.success(ProjectCreatedResult(ProjectDefinition(projectName, projectId), alreadyExisted = false))
+		)
+		authorize()
 
-		defaultApplication()
+		postCreate(query = "projectName=$projectName&projectId=${projectId.id.uppercase()}").apply {
+			assertTrue(status.isSuccess())
+			coVerify { projectsRepository.createProject(userId, syncId, projectName, projectId) }
+		}
+	}
 
-		client.get("api/projects/0/create?projectName=TestProject") {
+	@Test
+	fun `Projects - Create Project - GET is not routed`() = testApplication {
+		authorize()
+
+		client.get("api/projects/0/create?projectName=$projectName&projectId=${projectId.id}") {
 			header("Authorization", "Bearer $BEARER_TOKEN")
+			header(HEADER_SYNC_ID, syncId)
 		}.apply {
+			assertFalse(status.isSuccess())
+			coVerify(exactly = 0) { projectsRepository.createProject(any(), any(), any(), any()) }
+		}
+	}
+
+	@Test
+	fun `Projects - Create Project - Missing projectId`() = testApplication {
+		authorize()
+
+		postCreate(query = "projectName=$projectName").apply {
 			assertEquals(HttpStatusCode.BadRequest, status)
+			coVerify(exactly = 0) { projectsRepository.createProject(any(), any(), any(), any()) }
+		}
+	}
+
+	@Test
+	fun `Projects - Create Project - Malformed projectId`() = testApplication {
+		authorize()
+
+		postCreate(query = "projectName=$projectName&projectId=not-a-uuid").apply {
+			assertEquals(HttpStatusCode.BadRequest, status)
+			coVerify(exactly = 0) { projectsRepository.createProject(any(), any(), any(), any()) }
+		}
+	}
+
+	@Test
+	fun `Projects - Create Project - Missing sync id`() = testApplication {
+		authorize()
+
+		postCreate(withSyncId = false).apply {
+			assertEquals(HttpStatusCode.BadRequest, status)
+			coVerify(exactly = 0) { projectsRepository.createProject(any(), any(), any(), any()) }
 		}
 	}
 
 	@Test
 	fun `Projects - Create Project - Failure - Bad SyncId`() = testApplication {
-		val projectName = "TestProject"
-		val syncId = "syncId-test"
-		val userId = 0L
+		stubResult(SResult.failure(InvalidSyncIdException()))
+		authorize()
 
-		coEvery { accountsRepository.checkToken(userId, BEARER_TOKEN) } returns SResult.success(0L)
-		coEvery {
-			projectsRepository.createProject(
-				userId = userId,
-				syncId = syncId,
-				projectName = projectName,
-			)
-		} returns SResult.failure(InvalidSyncIdException())
-
-		defaultApplication()
-
-		client.get("api/projects/0/create?projectName=TestProject") {
-			header("Authorization", "Bearer $BEARER_TOKEN")
-			header(HEADER_SYNC_ID, syncId)
-		}.apply {
+		postCreate().apply {
 			assertEquals(HttpStatusCode.BadRequest, status)
 		}
 	}
 
 	@Test
+	fun `Projects - Create Project - Failure - Invalid name`() = testApplication {
+		stubResult(SResult.failure(InvalidProjectName(projectName)))
+		authorize()
+
+		postCreate().apply {
+			assertEquals(HttpStatusCode.NotAcceptable, status)
+		}
+	}
+
+	@Test
+	fun `Projects - Create Project - Failure - Deleted`() = testApplication {
+		stubResult(SResult.failure(ProjectDeletedException(projectId)))
+		authorize()
+
+		postCreate().apply {
+			assertEquals(HttpStatusCode.Conflict, status)
+			val error = Json.decodeFromString<HttpResponseError>(bodyAsText())
+			assertEquals(ApiErrorCode.PROJECT_DELETED, error.errorCode)
+		}
+	}
+
+	@Test
+	fun `Projects - Create Project - Failure - Id taken`() = testApplication {
+		stubResult(SResult.failure(ProjectIdTakenException(projectId)))
+		authorize()
+
+		postCreate().apply {
+			assertEquals(HttpStatusCode.Conflict, status)
+			val error = Json.decodeFromString<HttpResponseError>(bodyAsText())
+			assertEquals(ApiErrorCode.PROJECT_ID_TAKEN, error.errorCode)
+		}
+	}
+
+	@Test
 	fun `Projects - Create Project - Failure - Repository Exception`() = testApplication {
-		val projectName = "TestProject"
-		val syncId = "syncId-test"
-		val userId = 0L
+		stubResult(SResult.failure(Exception()))
+		authorize()
 
-		coEvery { accountsRepository.checkToken(userId, BEARER_TOKEN) } returns SResult.success(0L)
-		coEvery {
-			projectsRepository.createProject(
-				userId = userId,
-				syncId = syncId,
-				projectName = projectName,
-			)
-		} returns SResult.failure(Exception())
-
-		defaultApplication()
-
-		client.get("api/projects/0/create?projectName=TestProject") {
-			header("Authorization", "Bearer $BEARER_TOKEN")
-			header(HEADER_SYNC_ID, syncId)
-		}.apply {
+		postCreate().apply {
 			assertEquals(HttpStatusCode.InternalServerError, status)
 		}
 	}
 }
-

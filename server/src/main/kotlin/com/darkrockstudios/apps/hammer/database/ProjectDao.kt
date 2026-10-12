@@ -4,9 +4,11 @@ import com.darkrockstudios.apps.hammer.GetProjectsWithSyncDate
 import com.darkrockstudios.apps.hammer.Project
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
+import com.darkrockstudios.apps.hammer.project.ProjectIdTakenException
 import com.darkrockstudios.apps.hammer.utilities.injectIoDispatcher
 import kotlinx.coroutines.withContext
 import org.koin.core.component.KoinComponent
+import org.postgresql.util.PSQLException
 import java.sql.SQLException
 import kotlin.time.Instant
 
@@ -16,6 +18,14 @@ private const val SQLSTATE_UNIQUE_VIOLATION = "23505"
 private fun SQLException.isUniqueViolation(): Boolean =
 	generateSequence(this as Throwable) { it.cause }
 		.any { it is SQLException && it.sqlState == SQLSTATE_UNIQUE_VIOLATION }
+
+private fun SQLException.violatedConstraint(): String? =
+	generateSequence(this as Throwable) { it.cause }
+		.filterIsInstance<PSQLException>()
+		.firstNotNullOfOrNull { it.serverErrorMessage?.constraint }
+
+// Global, not per user: public share URLs resolve a project by uuid alone.
+private const val PROJECT_UUID_UNIQUE = "project_uuid_unique"
 
 class ProjectDao(
 	database: Database,
@@ -48,22 +58,23 @@ class ProjectDao(
 			queries.getMostRecentSyncForUser(userId).executeAsOneOrNull()?.last_sync
 		}
 
-	@Suppress("TooGenericExceptionCaught") // any insert failure means create did not succeed
+	/** @throws ProjectIdTakenException when any account already holds [uuid]. */
 	suspend fun createProject(
 		userId: Long,
 		uuid: ProjectId,
 		projectName: String
-	): Boolean = withContext(ioDispatcher) {
-		return@withContext try {
+	): Unit = withContext(ioDispatcher) {
+		try {
 			queries.createProject(
 				userId = userId,
 				name = projectName,
 				uuid = uuid.id,
 			)
-			true
-		} catch (e: Exception) {
-			println(e.message)
-			false
+		} catch (e: SQLException) {
+			if (e.isUniqueViolation() && e.violatedConstraint() == PROJECT_UUID_UNIQUE) {
+				throw ProjectIdTakenException(uuid)
+			}
+			throw e
 		}
 	}
 

@@ -34,4 +34,8 @@ object ApiErrorCode {
 	const val PASSWORD_INVALID = "password_invalid" // nosemgrep: generic.secrets.gitleaks.hashicorp-tf-password.hashicorp-tf-password
 	const val NOT_WHITELISTED = "not_whitelisted"
 	const val TOKEN_INVALID = "token_invalid"
+	/** Create refused: this account deleted a project with that id, and tombstones stay dead. */
+	const val PROJECT_DELETED = "project_deleted"
+	/** Create refused: another account already owns a project with that id. */
+	const val PROJECT_ID_TAKEN = "project_id_taken"
 }

@@ -190,10 +190,15 @@ class ProjectsRepository(
 		}
 	}
 
+	/**
+	 * Idempotent on [projectId]. When the account already has a project named [projectName] under a
+	 * different id, that project is returned so the client adopts its id.
+	 */
 	suspend fun createProject(
 		userId: Long,
 		syncId: String,
-		projectName: String
+		projectName: String,
+		projectId: ProjectId,
 	): SResult<ProjectCreatedResult> {
 		if (syncSessionManager.validateSyncId(userId, syncId).not())
 			return SResult.failure(InvalidSyncIdException())
@@ -201,17 +206,23 @@ class ProjectsRepository(
 		if (validateProjectName(projectName).not())
 			return SResult.failure(InvalidProjectName(projectName))
 
-		val existingProject = projectEntityDatasource.findProjectByName(userId, projectName)
-		val projectDef =
-			existingProject ?: projectEntityDatasource.createProject(userId, projectName)
-		val alreadyExists = (existingProject != null)
+		projectEntityDatasource.getProject(userId, projectId)?.let { existing ->
+			return SResult.success(ProjectCreatedResult(project = existing, alreadyExisted = true))
+		}
 
-		return SResult.success(
-			ProjectCreatedResult(
-				project = projectDef,
-				alreadyExisted = alreadyExists
-			)
-		)
+		if (projectId in getDeletedProjects(userId))
+			return SResult.failure(ProjectDeletedException(projectId))
+
+		projectEntityDatasource.findProjectByName(userId, projectName)?.let { sameName ->
+			return SResult.success(ProjectCreatedResult(project = sameName, alreadyExisted = true))
+		}
+
+		return try {
+			val created = projectEntityDatasource.createProject(userId, projectName, projectId)
+			SResult.success(ProjectCreatedResult(project = created, alreadyExisted = false))
+		} catch (e: ProjectIdTakenException) {
+			SResult.failure(e)
+		}
 	}
 
 	suspend fun renameProject(

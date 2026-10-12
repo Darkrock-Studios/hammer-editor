@@ -49,22 +49,19 @@ class ProjectEntityDatabaseDatasource(
 		)
 	}
 
-	override suspend fun createProject(userId: Long, projectName: String): ProjectDefinition {
-		val existingProject = projectDao.findProjectData(userId = userId, projectName = projectName)
-		val uuid = if (existingProject == null) {
-			val newUuid = ProjectId.randomUUID()
-			projectDao.createProject(
-				userId = userId,
-				uuid = newUuid,
-				projectName = projectName,
-			)
-			newUuid
-		} else {
-			ProjectId(existingProject.uuid)
-		}
+	override suspend fun createProject(
+		userId: Long,
+		projectName: String,
+		projectId: ProjectId,
+	): ProjectDefinition {
+		projectDao.createProject(
+			userId = userId,
+			uuid = projectId,
+			projectName = projectName,
+		)
 		return ProjectDefinition(
 			name = projectName,
-			uuid = uuid,
+			uuid = projectId,
 		)
 	}
 

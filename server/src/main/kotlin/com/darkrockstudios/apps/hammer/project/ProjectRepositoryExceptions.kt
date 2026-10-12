@@ -32,3 +32,9 @@ class InvalidProjectName(val name: String) :
 
 class ProjectNameTaken(val name: String) :
 	Exception("This account already has a project named: $name")
+
+class ProjectDeletedException(val projectId: ProjectId) :
+	Exception("Project $projectId was deleted from this account")
+
+class ProjectIdTakenException(val projectId: ProjectId) :
+	Exception("Project id $projectId is already in use")
