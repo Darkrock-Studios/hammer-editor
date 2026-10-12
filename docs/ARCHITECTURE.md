@@ -271,11 +271,11 @@ cannot read.
   `dataVersion`, `projectId`), each project's `sync.json`, and the account-level `sync.json` at the
   projects root. Any reader may heal or recreate it, and a corrupt file is replaced with fresh
   state. Losing it costs at most the project's identity and sync state, never content.
-- **User data** is what the app cannot rebuild: `project_settings.toml`, scenes, notes,
-  encyclopedia entries, timeline events, drafts and backups. The app tolerates any of it being
-  missing but never destroys it. A `project_settings.toml` that cannot be parsed is moved aside to
-  `project_settings.toml.corrupt-<epochMillis>` and the project opens with default settings; the
-  bad copy is kept, not overwritten.
+- **User data** is what the app cannot rebuild: `settings.toml`, scenes, notes, encyclopedia
+  entries, timeline events, drafts and backups. The app tolerates any of it being missing but never
+  destroys it. A `settings.toml` that cannot be parsed is moved aside to
+  `settings.toml.corrupt-<epochMillis>` and the project opens with default settings; the bad copy
+  is kept, not overwritten.
 
 **`project.toml` is the marker that makes a directory a project.** `ProjectsRepository.getProjects`
 lists only directories that hold one, and the project picker, the data migrator, both sync levels
@@ -305,8 +305,8 @@ of keeping the file regenerable.
 
 **Header comments.** Both TOML files start with a comment line, rewritten on every save, that tells
 a user who opens the file which tier it is in. `project.toml` says it is managed by Hammer and that
-edits may be overwritten or discarded. `project_settings.toml` says the user may edit it but must
-keep it valid TOML, or Hammer will set it aside. Readers ignore comments.
+edits may be overwritten or discarded. `settings.toml` says the user may edit it but must keep it
+valid TOML, or Hammer will set it aside. Readers ignore comments.
 
 **Adding a file.** If the app can rebuild it, it is metadata and belongs in `project.toml` or a
 sibling cache the app owns. Otherwise it is user data: it gets its own file and its own owning Data

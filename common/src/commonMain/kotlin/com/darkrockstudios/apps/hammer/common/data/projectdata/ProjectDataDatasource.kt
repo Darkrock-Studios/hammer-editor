@@ -19,10 +19,10 @@ import okio.Path
 import kotlin.time.Clock
 
 /**
- * Owns `project_settings.toml`: user data (author, theme, goals, tags, language) that is synced
+ * Owns `settings.toml`: user data (author, theme, goals, tags, language) that is synced
  * and that the app cannot rebuild. It is kept apart from `project.toml`, which holds local,
  * regenerable metadata that any reader may heal or recreate. User data is never replaced with
- * defaults: an unreadable file is moved aside to `project_settings.toml.corrupt-<epochMillis>`.
+ * defaults: an unreadable file is moved aside to `settings.toml.corrupt-<epochMillis>`.
  */
 class ProjectDataDatasource(
 	private val fileSystem: FileSystem,
@@ -44,7 +44,7 @@ class ProjectDataDatasource(
 	}
 
 	companion object {
-		const val FILENAME = "project_settings.toml"
+		const val FILENAME = "settings.toml"
 		const val CORRUPT_PREFIX = "$FILENAME.corrupt-"
 		const val FILE_HEADER =
 			"# Hammer project settings. You may edit this file; keep it valid TOML or Hammer will set it aside."
@@ -59,7 +59,7 @@ data class StoredProjectData(
 )
 
 /**
- * Reads `project_settings.toml` for [projectDef] off the IO dispatcher without
+ * Reads `settings.toml` for [projectDef] off the IO dispatcher without
  * opening a per-project Koin scope. Returns `StoredProjectData()` defaults
  * when the file is missing or unreadable so callers don't need to handle
  * I/O errors themselves.
@@ -119,7 +119,7 @@ private fun setAsideUnreadable(
 }
 
 /**
- * The single writer for `project_settings.toml`. [ProjectDataDatasource.save] delegates here;
+ * The single writer for `settings.toml`. [ProjectDataDatasource.save] delegates here;
  * scope-less callers (project creation, before a per-project Koin scope exists) use it
  * directly so the on-disk format has exactly one owner.
  */

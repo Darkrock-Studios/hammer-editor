@@ -241,7 +241,7 @@ class ProjectsListComponent(
 	}
 
 	/**
-	 * Reads `project_settings.toml` (author, theme, word-count goal) via the datasource's
+	 * Reads `settings.toml` (author, theme, word-count goal) via the datasource's
 	 * scope-less helper — the projects list previews many projects and a full
 	 * per-project Koin scope per row would be wasteful. Blocking variant because
 	 * [loadProjectList]'s parallelMap workers are not a coroutine context.

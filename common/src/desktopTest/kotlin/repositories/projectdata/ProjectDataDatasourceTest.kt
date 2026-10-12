@@ -93,7 +93,7 @@ class ProjectDataDatasourceTest : BaseTest() {
 	fun `file lives in project root`() {
 		val path = datasource.getPath()
 		assertEquals(
-			"/projects/Test Project/project_settings.toml",
+			"/projects/Test Project/settings.toml",
 			path.toString().replace('\\', '/'),
 		)
 	}

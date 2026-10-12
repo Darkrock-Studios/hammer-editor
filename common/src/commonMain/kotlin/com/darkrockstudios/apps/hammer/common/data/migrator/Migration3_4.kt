@@ -11,7 +11,7 @@ import okio.FileSystem
 /**
  * Gives the project a client-owned [ProjectId], seeded from the id the server used to assign
  * (`serverProjectId`) so an already-synced project keeps its server identity, and renames the
- * project settings file from `project_data.toml` to `project_settings.toml`.
+ * project settings file from `project_data.toml` to `settings.toml`.
  */
 class Migration3_4(
 	private val fileSystem: FileSystem,

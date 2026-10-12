@@ -16,7 +16,7 @@ import kotlin.coroutines.CoroutineContext
 
 /**
  * Account-level tag vocabulary: the tags used on story ideas and on projects themselves
- * (`project_settings.toml`), ranked by how often they are used. Ideas and projects share one
+ * (`settings.toml`), ranked by how often they are used. Ideas and projects share one
  * vocabulary — promoting an idea copies its tags onto the created project — so both tag
  * fields suggest from here. In-project *entity* tags are a separate per-project domain,
  * indexed by [TagIndexService].

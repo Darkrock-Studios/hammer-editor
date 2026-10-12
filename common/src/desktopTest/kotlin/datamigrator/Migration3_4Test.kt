@@ -140,7 +140,7 @@ class Migration3_4Test : BaseTest() {
 	}
 
 	@Test
-	fun `renames project_data toml to project_settings toml`() {
+	fun `renames project_data toml to settings toml`() {
 		ffs.write(legacyPath) { writeUtf8(LEGACY_CONTENT) }
 
 		migration().migrate(projDef)

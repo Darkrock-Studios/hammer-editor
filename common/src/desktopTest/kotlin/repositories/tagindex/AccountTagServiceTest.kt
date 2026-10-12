@@ -36,7 +36,7 @@ import kotlin.time.Clock
 
 /**
  * Classical-style: real ideas on a [FakeFileSystem] via a real [IdeasRepository], real
- * `project_settings.toml` files; only [ProjectsRepository] (a directory-scanner over global
+ * `settings.toml` files; only [ProjectsRepository] (a directory-scanner over global
  * settings) is mocked to supply the project defs.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
