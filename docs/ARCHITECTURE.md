@@ -261,6 +261,57 @@ suffix (`Datasource`, `Repository`, `Service`, `UseCase`, `Component`), so a cla
 layer's suffix to be covered. Known violations are listed in a per-rule baseline in the tests;
 remove an entry when you fix it, never add one to get a build passing.
 
+## Persisted data tiers
+
+Hammer keeps its own metadata minimal and optional: nothing a writer wrote depends on it. Every
+persisted file belongs to one of two tiers, and the tier decides what the app may do with a file it
+cannot read.
+
+- **Metadata** is what the app can regenerate: `project.toml` (`created`, `lastAccessed`,
+  `dataVersion`, `projectId`), each project's `sync.json`, and the account-level `sync.json` at the
+  projects root. Any reader may heal or recreate it, and a corrupt file is replaced with fresh
+  state. Losing it costs at most the project's identity and sync state, never content.
+- **User data** is what the app cannot rebuild: `project_settings.toml`, scenes, notes,
+  encyclopedia entries, timeline events, drafts and backups. The app tolerates any of it being
+  missing but never destroys it. A `project_settings.toml` that cannot be parsed is moved aside to
+  `project_settings.toml.corrupt-<timestamp>` and the project opens with default settings; the
+  bad copy is kept, not overwritten.
+
+**`project.toml` is the marker that makes a directory a project.** `ProjectsRepository.getProjects`
+lists only directories that hold one, and the project picker, the data migrator, both sync levels
+and the Wear OS project list all enumerate projects through it. Deleting the file therefore hides
+the project, content intact, until a `project.toml` exists there again.
+
+**Project identity.** Every project has a `projectId`, a UUID the client mints at creation whether
+or not a sync server is configured. The server does not issue IDs: the create request carries the
+client's ID and the server stores the project under it (see
+[SYNCING-PROTOCOL.md](SYNCING-PROTOCOL.md#project-ids)). Widgets and Wear OS subscriptions refer to
+a project by this ID, so a rename does not break them. The ID heals rather than fails:
+
+- A file without one (a hand edit, or a recreated file) gets one minted on read
+  (`ProjectMetadataDatasource.loadProjectId`). A pre-4 file's `serverProjectId` is read as its ID,
+  and `Migration3_4` writes it back as `projectId`.
+- Projects sharing an ID (a copied folder) are resolved at startup by
+  `ProjectsRepository.resolveDuplicateProjectIds`: one keeps it (a copy with a `sync.json` first,
+  then the earliest created) and the rest are re-minted.
+- Restoring a backup keeps the ID of the project it replaces, or mints a fresh one when none is
+  live at the target, never the ID stored in the backup, so a restore cannot resurrect a project
+  that was deleted on the server.
+
+A lost or corrupt `project.toml` therefore comes back with a new identity: widgets and watch
+subscriptions no longer find the project, and the server sees it as new (or matches it to its
+project of the same name). That is the accepted cost of keeping the file regenerable.
+
+**Header comments.** Both TOML files start with a comment line, rewritten on every save, that tells
+a user who opens the file which tier it is in. `project.toml` says it is managed by Hammer and that
+edits may be overwritten or discarded. `project_settings.toml` says the user may edit it but must
+keep it valid TOML, or Hammer will set it aside. Readers ignore comments.
+
+**Adding a file.** If the app can rebuild it, it is metadata and belongs in `project.toml` or a
+sibling cache the app owns. Otherwise it is user data: it gets its own file and its own owning Data
+Source ([hard constraint 7](#dependency-rules-hard-constraints)), tolerates being missing, and is
+set aside rather than replaced when it cannot be parsed.
+
 ## DI conventions
 
 - **Stateless components** (Data Sources, Use Cases) are **factory-produced**: a new instance each

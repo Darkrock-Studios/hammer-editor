@@ -20,38 +20,59 @@ Before any project level syncing is done, we must first do an Account level sync
 
 This will handle creating, deleting, and renaming projects, to bring the client and server into
 parity with each other.
-Additionally, it will find or create a `projectId` for the client's local projects. These are the
-key to being able to sync a local project with the server.
+Every local project already has a `projectId`, minted by the client when the project was created
+(see [Persisted data tiers](ARCHITECTURE.md#persisted-data-tiers)). Account sync creates each local
+project the server does not know under that same `projectId`, which is then the key to syncing the
+project with the server.
 
 ### Phase ordering
 
 The phases run **delete, then rename, then create**, and the order is load-bearing. A project name is
-unique per account server-side, so a rename or a creation that takes the name of a project the same
-session is about to delete is rejected until the delete has freed it. Renaming a project onto a name
-another live project still holds answers `409 Conflict`.
+unique per account server-side, so until the delete has freed the name of a project the same session
+is about to delete, a rename onto it is rejected and a creation under it adopts the doomed project.
+Renaming a project onto a name another live project still holds answers `409 Conflict`.
 
-### Stale project IDs
+### Project IDs
 
-A local project caches the `projectId` it was assigned, so a client that last synced against a
-different server (or one whose database has since been reset) holds IDs that server never issued.
-Account sync therefore treats a cached ID the server neither lists in `begin_sync` nor reports in
-`deletedProjects` as **dead**, and recreates the project as though it had no ID at all.
+A project's `projectId` belongs to the client: it is minted locally when the project is created and
+sent with the create request, and the server stores the project under it. Account sync classifies
+each local ID against the `begin_sync` response:
+
+- **Listed in `projects`:** the server has the project; nothing to create.
+- **Listed in `deletedProjects`:** the ID is tombstoned. A tombstone records a real server-side
+  delete and is permanent: the server refuses to create that ID again, and the delete phase removes
+  the local project.
+- **In neither:** the server has never seen the ID. The project is new, or it last synced against a
+  different server (or one whose database has since been reset). The client creates it on the
+  server under the same ID.
 
 Liveness is judged against the raw `begin_sync` response. A project the client has queued for
 deletion is filtered out of the working copy of that list, but it is still known to the server, and
-judging it against the filtered list would recreate what the user just deleted. A tombstoned ID is
-likewise not dead: it means a real server-side delete, which propagates as a local deletion instead.
+judging it against the filtered list would recreate what the user just deleted.
 
-Replacing an ID strands anything else queued against the old one, so the queues are withdrawn
-rather than retried:
+The create answers settle which ID the project keeps. Account sync and project sync resolve them the
+same way (`ProjectCreateResolver`):
 
-- A **rename** queued against an ID the server does not know is dropped without being sent. The
-  server cannot rename an ID it never issued, so retrying only logs an error every session;
-  recreation already covers it, because the project is created under its current local name. A
-  rename queued against a **tombstoned** ID is dropped for the same reason: the delete phase has
-  already removed the project locally, and the server has nothing left to rename.
-- A **creation** queued for a name with no local project is dropped. The project was deleted before
-  it ever reached the server, so creating it would push an empty project out to every device.
+- **Created, or already present under that ID:** the ID stands. The create is idempotent, so
+  repeating it after a lost response is safe.
+- **Same name, different ID:** the account already has a live project with that name, so the server
+  answers with that project's ID (`alreadyExisted = true`) and the client adopts it. Adopting an ID
+  clears the project's sync baseline, which described a different server project.
+- **`409` with `project_id_taken`:** another account holds the ID. The client mints a fresh one and
+  retries once.
+- **`409` with `project_deleted`:** the ID is tombstoned on this account. The client does not retry,
+  and logs that the project was deleted elsewhere.
+
+Queued renames and deletes name a project by ID, so one the server cannot act on is dropped without
+being sent rather than retried every session:
+
+- A **rename** queued against an ID the server does not know is dropped. Creation already covers it,
+  because the project is created under its current local name. A rename queued against a
+  **tombstoned** ID is dropped for the same reason: the delete phase has already removed the project
+  locally, and the server has nothing left to rename.
+- A **delete** queued against an ID the server does not know is dropped. The project was deleted
+  before it ever reached the server, and a tombstone for its ID would only refuse a later create of
+  that ID.
 
 Any given user account may only have one sync in progress at a time. Attempting to start a sync when
 one is already in progress will result in a failure to begin the sync (`400 Bad Request`).
@@ -62,9 +83,11 @@ also be **reclaimed by the same install** that owns it (identified server-side f
 token), so a crashed account sync doesn't lock that device out until expiry. A different install
 must wait for the live session to expire.
 
-All account endpoints use `POST`. They were historically `GET`, so the server still routes the
-`GET` form for legacy clients, and the client retries a `POST` that answers 404/405 as a `GET`
-for servers that predate the move. Parameters are unchanged either way (query params + headers).
+All account endpoints use `POST`. `begin_sync`, `end_sync`, `delete` and `rename` were historically
+`GET`, so the server still routes their `GET` form for legacy clients, and the client retries a
+`POST` that answers 404/405 as a `GET` for servers that predate the move. Parameters are unchanged
+either way (query params + headers). `create` is `POST` only: a server that predates client-minted
+IDs cannot honour its `projectId`.
 
 ```mermaid
 sequenceDiagram
@@ -118,12 +141,17 @@ sequenceDiagram
 			Client ->> Server: POST /api/projects/{userId}/create
 			deactivate Client
 			activate Server
-			Note right of Client: bearer token <br/> syncId <br/> projectName (query param)
+			Note right of Client: bearer token <br/> syncId <br/> projectName, projectId (query params)
 			Server -->> Client: 200 OK (projectId, alreadyExisted)
 			deactivate Server
 			activate Client
-			alt Creation fails
-				Server -->> Client: 4XX Bad Request
+			Note left of Server: projectId differs from the request<br/>when a same-name project is adopted
+			alt Missing parameter or header, or malformed projectId
+				Server -->> Client: 400 Bad Request
+			else Invalid project name
+				Server -->> Client: 406 Not Acceptable
+			else ID tombstoned or held by another account
+				Server -->> Client: 409 Conflict (errorCode project_deleted or project_id_taken)
 			end
 		end
 	end
@@ -370,11 +398,14 @@ The distinction matters: `download_entity` maps a `404` to "entity deleted on th
 an entity it doesn't already hold, silently marks it deleted. A project-level `404` would therefore
 make a client abandon undownloaded entities when a project vanishes mid-sync.
 
-`410` is terminal for that ID: retrying can never succeed. On receiving it from `begin_sync` the
-client discards the cached `projectId`, which drops the project back to the never-synced state, and
-the next sync recreates it on the server. Without that the project would fail every sync forever,
-because the only other repair path (account sync, above) is not run when syncing a single project
-from inside the project itself.
+Retrying `begin_sync` alone can never succeed, so on receiving `410` from it the client runs the
+same create-or-confirm as account sync (`ProjectCreateResolver`, see
+[Project IDs](#project-ids)) under its local ID, in an account sync session of its own. It then
+clears the project's sync baseline, since that described a server project which no longer holds
+it, and retries `begin_sync` once with the ID the create settled on. If the create answers
+`project_deleted`, the sync fails with a "deleted elsewhere" log instead. Without this repair the
+project would fail every sync, because account sync (above) is not run when syncing a single
+project from inside the project itself.
 
 You may however have `syncID`s for multiple different projects simultaneously.
 
@@ -711,7 +742,7 @@ Beyond the network side of the Protocol, the Client is doing a bit of work to en
 
 ```mermaid
 flowchart TD
-    A[PrepareForSync] --> EP[EnsureProjectId]
+    A[PrepareForSync] --> EP[EnsureProjectOnServer]
     EP --> B[FetchLocalData]
     B --> C[FetchServerData]
     C --> D[CollateIds]
@@ -723,6 +754,13 @@ flowchart TD
     H --> W[WritingActivitySync]
     W --> I[FinalizeSync]
 ```
+
+`EnsureProjectOnServer` only acts on a project that has never synced (no `sync.json`, or one with no
+recorded `lastSync`). It runs the idempotent create under the project's ID in an account sync
+session of its own; account sync has normally created the project already, so this usually costs
+one round trip. A project that has synced before skips it: a server that lost the project answers
+`begin_sync` with `410`, which `FetchServerData` handles (see
+[Unknown project](#unknown-project-410-gone)).
 
 ## Terminology
 

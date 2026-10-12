@@ -159,8 +159,8 @@ triggers the prompt.
 
 ## Projects on the watch
 
-Account sync creates a local directory for every server project, with metadata and a server
-project ID but no entities. Syncing content is opt-in per project:
+Account sync creates a local directory for every server project, with metadata carrying the
+server project's `ProjectId` but no entities. Syncing content is opt-in per project:
 
 - The watch keeps its subscribed projects in a wear-owned DataStore (`WearPrefsDatasource`, the
   only writer), keyed by `ProjectId` so a rename does not drop a subscription. It is not a
