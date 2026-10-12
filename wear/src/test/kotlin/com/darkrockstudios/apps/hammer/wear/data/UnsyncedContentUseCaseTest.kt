@@ -33,7 +33,7 @@ class UnsyncedContentUseCaseTest : WearTestBase() {
 
 	@Test
 	fun `a watch holding nothing outstanding reports empty`() = runTest(dispatcher) {
-		projects.create("Alpha", serverId = "a")
+		projects.create("Alpha", projectId = "a")
 		subscriptions.setSubscribed(ProjectId("a"), true)
 
 		val pending = useCase.pending()
@@ -44,7 +44,7 @@ class UnsyncedContentUseCaseTest : WearTestBase() {
 
 	@Test
 	fun `notes and ideas are counted together`() = runTest(dispatcher) {
-		projects.create("Alpha", serverId = "a")
+		projects.create("Alpha", projectId = "a")
 		subscriptions.setSubscribed(ProjectId("a"), true)
 		source.pendingByProject["Alpha"] = 2
 		source.pendingIdeas = 3
@@ -58,8 +58,8 @@ class UnsyncedContentUseCaseTest : WearTestBase() {
 
 	@Test
 	fun `projects that are not on the watch are not counted`() = runTest(dispatcher) {
-		projects.create("Alpha", serverId = "a")
-		projects.create("Beta", serverId = "b")
+		projects.create("Alpha", projectId = "a")
+		projects.create("Beta", projectId = "b")
 		subscriptions.setSubscribed(ProjectId("a"), true)
 		// Beta holds no content on the watch, so a stale count for it must not be reported.
 		source.pendingByProject["Beta"] = 9
@@ -71,8 +71,8 @@ class UnsyncedContentUseCaseTest : WearTestBase() {
 
 	@Test
 	fun `a project with nothing outstanding is left out of the breakdown`() = runTest(dispatcher) {
-		projects.create("Alpha", serverId = "a")
-		projects.create("Beta", serverId = "b")
+		projects.create("Alpha", projectId = "a")
+		projects.create("Beta", projectId = "b")
 		subscriptions.setSubscribed(ProjectId("a"), true)
 		subscriptions.setSubscribed(ProjectId("b"), true)
 		source.pendingByProject["Beta"] = 1

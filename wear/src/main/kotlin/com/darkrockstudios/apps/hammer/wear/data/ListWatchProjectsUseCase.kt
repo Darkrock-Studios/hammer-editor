@@ -5,13 +5,10 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import okio.IOException
 
-/**
- * A project as the watch sees it. [projectId] is null until account sync has registered the
- * project with the server, and such a project cannot be subscribed to yet.
- */
+/** A project as the watch sees it. */
 data class WatchProject(
 	val projectDef: ProjectDef,
-	val projectId: ProjectId?,
+	val projectId: ProjectId,
 	val subscribed: Boolean,
 )
 
@@ -32,7 +29,7 @@ class ListWatchProjectsUseCase(
 				WatchProject(
 					projectDef = projectDef,
 					projectId = projectId,
-					subscribed = projectId != null && projectId in subscribed,
+					subscribed = projectId in subscribed,
 				)
 			}
 			.sortedBy { it.projectDef.name.lowercase() }

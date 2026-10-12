@@ -145,10 +145,9 @@ private fun ManualSignInBusyPreview() {
 }
 
 private val previewRows = listOf(
-	WearProjects.ProjectRow(name = "The Lighthouse", canSubscribe = true, subscribed = true, outcome = ProjectSyncOutcome.Success),
-	WearProjects.ProjectRow(name = "Salt Roads", canSubscribe = true, subscribed = true, progress = 0.4f),
-	WearProjects.ProjectRow(name = "Short Stories", canSubscribe = true, subscribed = false),
-	WearProjects.ProjectRow(name = "New Draft", canSubscribe = false, subscribed = false),
+	WearProjects.ProjectRow(name = "The Lighthouse", subscribed = true, outcome = ProjectSyncOutcome.Success),
+	WearProjects.ProjectRow(name = "Salt Roads", subscribed = true, progress = 0.4f),
+	WearProjects.ProjectRow(name = "Short Stories", subscribed = false),
 )
 
 @Composable

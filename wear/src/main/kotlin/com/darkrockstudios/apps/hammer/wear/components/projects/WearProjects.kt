@@ -46,10 +46,8 @@ interface WearProjects {
 		}
 	}
 
-	/** [canSubscribe] is false until account sync has registered the project with the server. */
 	data class ProjectRow(
 		val name: String,
-		val canSubscribe: Boolean,
 		val subscribed: Boolean,
 		val unsubscribing: Boolean = false,
 		val progress: Float? = null,

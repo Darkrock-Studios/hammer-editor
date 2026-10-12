@@ -172,7 +172,7 @@ class FakeSyncCoordinator : SyncCoordinator {
 class TestProjects {
 	val fileSystem = FakeFileSystem().apply { createDirectories("/projects".toPath()) }
 	private val toml = createTomlSerializer()
-	val metadataDatasource = ProjectMetadataDatasource(fileSystem, toml)
+	private val metadataDatasource = ProjectMetadataDatasource(fileSystem, toml)
 	val repository: ProjectsRepository
 
 	init {
@@ -189,16 +189,14 @@ class TestProjects {
 		)
 	}
 
-	fun create(name: String, serverId: String? = null): ProjectDef {
-		val result = repository.createProject(name, seedDefaultLanguage = false)
-		if (!isSuccess(result)) error("Failed to create $name")
-		val projectDef = result.data
-		if (serverId != null) {
-			metadataDatasource.updateMetadata(projectDef) {
-				it.copy(info = it.info.copy(projectId = ProjectId(serverId)))
-			}
+	fun create(name: String, projectId: String? = null): ProjectDef {
+		val result = if (projectId != null) {
+			repository.createProject(name, seedDefaultLanguage = false, projectId = ProjectId(projectId))
+		} else {
+			repository.createProject(name, seedDefaultLanguage = false)
 		}
-		return projectDef
+		if (!isSuccess(result)) error("Failed to create $name")
+		return result.data
 	}
 }
 

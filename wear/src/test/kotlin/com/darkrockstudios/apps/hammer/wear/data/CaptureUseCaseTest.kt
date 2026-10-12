@@ -45,7 +45,7 @@ class CaptureUseCaseTest : WearTestBase() {
 
 	@Test
 	fun `a dictated note is saved and pushed to the server`() = runTest(dispatcher) {
-		val projectDef = projects.create("Alpha", serverId = "a")
+		val projectDef = projects.create("Alpha", projectId = "a")
 		unsynced.pendingIdeas = 2
 
 		val result = useCase.capture(CaptureTarget.Note(projectDef), "  salt on the stairs  ")
@@ -113,7 +113,7 @@ class CaptureUseCaseTest : WearTestBase() {
 
 	@Test
 	fun `a count that cannot be read never affects the capture`() = runTest(dispatcher) {
-		val projectDef = projects.create("Alpha", serverId = ProjectId("a").id)
+		val projectDef = projects.create("Alpha", projectId = ProjectId("a").id)
 		unsynced.failWith = IllegalStateException("no journal")
 
 		val result = useCase.capture(CaptureTarget.Note(projectDef), "a line worth keeping")

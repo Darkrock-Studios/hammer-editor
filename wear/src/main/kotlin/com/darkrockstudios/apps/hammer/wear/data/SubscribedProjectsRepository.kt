@@ -6,8 +6,9 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 /**
- * The projects whose content is kept on the watch. Keyed by server id so a rename on another
- * device does not drop the subscription.
+ * The projects whose content is kept on the watch. Keyed by project id so a rename on another
+ * device does not drop the subscription. A project the server does not have yet can still be
+ * subscribed; it syncs once account sync has created it there.
  */
 class SubscribedProjectsRepository(
 	private val datasource: WearPrefsDatasource,

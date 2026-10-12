@@ -211,7 +211,7 @@ private fun ProjectsContent(
 				SwitchButton(
 					checked = row.subscribed,
 					onCheckedChange = { onToggleSubscription(row.name) },
-					enabled = row.canSubscribe && !row.unsubscribing,
+					enabled = !row.unsubscribing,
 					modifier = Modifier.listButton(this, spec),
 					transformation = SurfaceTransformation(spec),
 					label = { Text(row.name, maxLines = 1) },
@@ -293,7 +293,6 @@ private fun SignOutWarningContent(
 private fun projectStatus(row: WearProjects.ProjectRow): String {
 	val progress = row.progress
 	return when {
-		!row.canSubscribe -> stringResource(R.string.project_status_not_on_server)
 		row.unsubscribing -> stringResource(R.string.project_status_unsubscribing)
 		row.outcome == null && progress != null ->
 			stringResource(R.string.project_status_syncing, (progress * 100).roundToInt())
