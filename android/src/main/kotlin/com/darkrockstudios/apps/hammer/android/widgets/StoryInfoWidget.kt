@@ -19,6 +19,7 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import com.darkrockstudios.apps.hammer.android.ProjectRootActivity
 import com.darkrockstudios.apps.hammer.android.R
+import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.projectdata.WordCountGoal
 import com.darkrockstudios.apps.hammer.common.data.projectdata.loadStoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
@@ -55,27 +56,24 @@ class StoryInfoWidget : GlanceAppWidget() {
 		val widgetId = GlanceAppWidgetManager(context).getAppWidgetId(id)
 		provideContent {
 			val data by context.widgetConfigDataStore.data.collectAsState(initial = null)
-			val projectName = remember(data) { data?.getWidgetConfig(widgetId).orEmpty() }
+			val projectId = remember(data) { data?.getWidgetConfig(widgetId) }
 			val accentHex = remember(data) { data?.getWidgetAccent(widgetId) }
-			val info by produceState<StoryInfo?>(initialValue = null, projectName, accentHex) {
-				value = if (projectName.isBlank()) {
-					null
-				} else {
-					withContext(Dispatchers.IO) { loadStoryInfo(projectName, accentHex) }
-				}
+			val info by produceState<StoryInfo?>(initialValue = null, projectId, accentHex) {
+				value = projectId?.let { withContext(Dispatchers.IO) { loadStoryInfo(it, accentHex) } }
 			}
-			StoryInfoContent(projectName, info)
+			StoryInfoContent(configured = projectId != null, info = info)
 		}
 	}
 
 	override suspend fun providePreview(context: Context, widgetCategory: Int) {
 		provideContent {
-			StoryInfoContent(projectName = SAMPLE_STORY.name, info = SAMPLE_STORY)
+			StoryInfoContent(configured = true, info = SAMPLE_STORY)
 		}
 	}
 }
 
 private val SAMPLE_STORY = StoryInfo(
+	projectId = ProjectId("sample-apophis"),
 	name = "Apophis",
 	accentHex = "#5A66B5",
 	authorName = "M. Reyes",
@@ -95,6 +93,7 @@ class StoryInfoWidgetReceiver : GlanceAppWidgetReceiver() {
 
 @Immutable
 private data class StoryInfo(
+	val projectId: ProjectId,
 	val name: String,
 	val accentHex: String?,
 	val authorName: String?,
@@ -108,14 +107,14 @@ private data class StoryInfo(
 	val lastEditedSceneName: String?,
 )
 
-private suspend fun loadStoryInfo(name: String, accentHex: String?): StoryInfo? {
+private suspend fun loadStoryInfo(projectId: ProjectId, accentHex: String?): StoryInfo? {
 	val koin = getKoin()
 	val projects = koin.get<ProjectsRepository>()
 	val statsReader = koin.get<ProjectStatisticsCacheReader>()
 	val fs = koin.get<FileSystem>()
 	val toml = koin.get<Toml>()
 
-	val def = runCatching { projects.getProjectDefinition(name) }.getOrNull() ?: return null
+	val def = runCatching { projects.findProject(projectId) }.getOrNull() ?: return null
 	val stats = statsReader.loadStatistics(def)
 	val storedData = runCatching { loadStoredProjectData(def, fs, toml).data }.getOrNull()
 
@@ -128,6 +127,7 @@ private suspend fun loadStoryInfo(name: String, accentHex: String?): StoryInfo? 
 	}
 
 	return StoryInfo(
+		projectId = projectId,
 		name = def.name,
 		accentHex = accentHex ?: storedData?.theme?.primary,
 		authorName = storedData?.authorName?.takeIf { it.isNotBlank() },
@@ -143,9 +143,9 @@ private suspend fun loadStoryInfo(name: String, accentHex: String?): StoryInfo? 
 }
 
 @Composable
-private fun StoryInfoContent(projectName: String, info: StoryInfo?) {
+private fun StoryInfoContent(configured: Boolean, info: StoryInfo?) {
 	val size = LocalSize.current
-	if (projectName.isBlank()) {
+	if (!configured) {
 		UnconfiguredCard()
 		return
 	}
@@ -231,7 +231,7 @@ private fun StoryInfoFullUi(
 			.appWidgetBackground()
 			.cornerRadius(20.dp)
 			.background(widgetColor { it.surfaceContainerLow })
-			.clickable(openStoryAction(info.name)),
+			.clickable(openStoryAction(info.projectId)),
 	) {
 		Column(modifier = GlanceModifier.fillMaxSize()) {
 			Box(
@@ -396,7 +396,7 @@ private fun StoryInfoFullUi(
 					if (info.lastEditedSceneId != null && info.lastEditedSceneName != null) {
 						ContinueSceneRow(
 							sceneName = info.lastEditedSceneName,
-							onClick = continueSceneAction(info.name, info.lastEditedSceneId),
+							onClick = continueSceneAction(info.projectId, info.lastEditedSceneId),
 						)
 					}
 					WidgetHairline(color = widgetColor { it.rule })
@@ -404,7 +404,7 @@ private fun StoryInfoFullUi(
 						ActionTile(
 							label = ctx.getString(R.string.story_info_widget_action_open),
 							glyph = "↗",
-							onClick = openStoryAction(info.name),
+							onClick = openStoryAction(info.projectId),
 							modifier = GlanceModifier.defaultWeight().fillMaxHeight(),
 						)
 						Box(
@@ -416,7 +416,7 @@ private fun StoryInfoFullUi(
 						ActionTile(
 							label = ctx.getString(R.string.story_info_widget_action_note),
 							glyph = "＋",
-							onClick = addStoryNoteAction(info.name),
+							onClick = addStoryNoteAction(info.projectId),
 							modifier = GlanceModifier.defaultWeight().fillMaxHeight(),
 						)
 					}
@@ -503,7 +503,7 @@ private fun StoryInfoStripUi(info: StoryInfo) {
 			.appWidgetBackground()
 			.cornerRadius(20.dp)
 			.background(widgetColor { it.surfaceContainerLow })
-			.clickable(openStoryAction(info.name)),
+			.clickable(openStoryAction(info.projectId)),
 	) {
 		Row(modifier = GlanceModifier.fillMaxSize()) {
 			Box(
@@ -595,7 +595,7 @@ private fun StoryInfoStripUi(info: StoryInfo) {
 				modifier = GlanceModifier
 					.width(56.dp)
 					.fillMaxHeight()
-					.clickable(openStoryAction(info.name)),
+					.clickable(openStoryAction(info.projectId)),
 				verticalAlignment = Alignment.Vertical.CenterVertically,
 				horizontalAlignment = Alignment.Horizontal.CenterHorizontally,
 			) {
@@ -616,25 +616,25 @@ private fun StoryInfoStripUi(info: StoryInfo) {
 	}
 }
 
-private const val ACTION_KEY_STORY_PROJECT = "story_project_name"
+private const val ACTION_KEY_STORY_PROJECT = "story_project_id"
 private const val ACTION_KEY_STORY_SCENE_ID = "story_scene_id"
-private val StoryProjectNameKey = ActionParameters.Key<String>(ACTION_KEY_STORY_PROJECT)
+private val StoryProjectIdKey = ActionParameters.Key<String>(ACTION_KEY_STORY_PROJECT)
 private val StorySceneIdKey = ActionParameters.Key<Int>(ACTION_KEY_STORY_SCENE_ID)
 
-private fun openStoryAction(name: String): Action =
+private fun openStoryAction(projectId: ProjectId): Action =
 	actionRunCallback<OpenStoryClickAction>(
-		actionParametersOf(StoryProjectNameKey to name),
+		actionParametersOf(StoryProjectIdKey to projectId.id),
 	)
 
-private fun addStoryNoteAction(name: String): Action =
+private fun addStoryNoteAction(projectId: ProjectId): Action =
 	actionRunCallback<AddStoryNoteClickAction>(
-		actionParametersOf(StoryProjectNameKey to name),
+		actionParametersOf(StoryProjectIdKey to projectId.id),
 	)
 
-private fun continueSceneAction(name: String, sceneId: Int): Action =
+private fun continueSceneAction(projectId: ProjectId, sceneId: Int): Action =
 	actionRunCallback<ContinueSceneClickAction>(
 		actionParametersOf(
-			StoryProjectNameKey to name,
+			StoryProjectIdKey to projectId.id,
 			StorySceneIdKey to sceneId,
 		),
 	)
@@ -645,11 +645,9 @@ class OpenStoryClickAction : ActionCallback {
 		glanceId: GlanceId,
 		parameters: ActionParameters,
 	) {
-		val name = parameters[StoryProjectNameKey].orEmpty()
-		if (name.isBlank()) return
-		val def = getKoin().get<ProjectsRepository>().getProjectDefinition(name)
+		val def = findWidgetProject(parameters[StoryProjectIdKey]) ?: return
 
-		Napier.d { "Story Info widget tapped: `$name`" }
+		Napier.d { "Story Info widget tapped: `${def.name}`" }
 
 		val intent = ProjectRootActivity.createIntent(context, def)
 			.setFlags(FLAG_ACTIVITY_NEW_TASK)
@@ -663,12 +661,10 @@ class ContinueSceneClickAction : ActionCallback {
 		glanceId: GlanceId,
 		parameters: ActionParameters,
 	) {
-		val name = parameters[StoryProjectNameKey].orEmpty()
 		val sceneId = parameters[StorySceneIdKey] ?: return
-		if (name.isBlank()) return
-		val def = getKoin().get<ProjectsRepository>().getProjectDefinition(name)
+		val def = findWidgetProject(parameters[StoryProjectIdKey]) ?: return
 
-		Napier.d { "Story Info widget continue tapped: `$name` scene $sceneId" }
+		Napier.d { "Story Info widget continue tapped: `${def.name}` scene $sceneId" }
 
 		val intent = ProjectRootActivity.createIntent(context, def, deepLinkSceneId = sceneId)
 			.setFlags(FLAG_ACTIVITY_NEW_TASK)
@@ -682,13 +678,13 @@ class AddStoryNoteClickAction : ActionCallback {
 		glanceId: GlanceId,
 		parameters: ActionParameters,
 	) {
-		val name = parameters[StoryProjectNameKey].orEmpty()
+		val projectId = parameters[StoryProjectIdKey].orEmpty()
 
-		Napier.d { "Story Info widget add-note tapped: `$name`" }
+		Napier.d { "Story Info widget add-note tapped: `$projectId`" }
 
 		val intent = Intent(context, AddNoteActivity::class.java)
 			.setFlags(FLAG_ACTIVITY_NEW_TASK)
-			.putExtra(AddNoteActivity.EXTRA_PROJECT_NAME, name)
+			.putExtra(AddNoteActivity.EXTRA_PROJECT_ID, projectId)
 		context.startActivity(intent)
 	}
 }

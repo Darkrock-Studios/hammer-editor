@@ -30,6 +30,7 @@ import androidx.work.WorkManager
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.arkivanov.decompose.value.MutableValue
 import com.darkrockstudios.apps.hammer.android.R
+import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
 import com.darkrockstudios.apps.hammer.common.compose.serializableStateSaver
@@ -62,8 +63,7 @@ class AddNoteActivity : ComponentActivity(), KoinComponent {
 		setFinishOnTouchOutside(false)
 		window.setBackgroundDrawableResource(android.R.color.transparent)
 
-		val projectNameExtra = intent.extras?.getString(EXTRA_PROJECT_NAME)
-		val projectName = if (projectNameExtra.isNullOrBlank()) null else projectNameExtra
+		val projectId = intent.extras?.getString(EXTRA_PROJECT_ID)?.ifBlank { null }?.let(::ProjectId)
 
 		val projects = projectsRepository.getProjects().map { projectDef ->
 			val metadata = projectsMetadataRepository.loadMetadata(projectDef)
@@ -78,9 +78,9 @@ class AddNoteActivity : ComponentActivity(), KoinComponent {
 			).show()
 			finish()
 		} else {
-			val preselectedProject = projects.find { projectDef -> projectDef.name == projectName }
-			if (projectName != null && preselectedProject == null) {
-				val text = getString(R.string.note_widget_dialog_failure_bad_project, projectName)
+			val preselectedProject = projectId?.let { projectsRepository.findProject(it) }
+			if (projectId != null && preselectedProject == null) {
+				val text = getString(R.string.note_widget_dialog_failure_bad_project, projectId.id)
 				Toast.makeText(this, text, Toast.LENGTH_LONG).show()
 				finish()
 			}
@@ -131,7 +131,7 @@ class AddNoteActivity : ComponentActivity(), KoinComponent {
 					) {
 						if (!confirmCancel) {
 							AddNoteDialog(
-								projectName = projectName,
+								projectName = preselectedProject?.name,
 								projects = projects,
 								preselectedProject = preselectedProject,
 								noteText = noteText,
@@ -174,7 +174,7 @@ class AddNoteActivity : ComponentActivity(), KoinComponent {
 	}
 
 	companion object {
-		const val EXTRA_PROJECT_NAME = "project_name"
+		const val EXTRA_PROJECT_ID = "project_id"
 	}
 }
 

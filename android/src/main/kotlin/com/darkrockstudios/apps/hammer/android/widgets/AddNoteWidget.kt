@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.Intent.FLAG_ACTIVITY_NEW_TASK
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -35,6 +36,7 @@ import androidx.glance.layout.width
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
+import com.darkrockstudios.apps.hammer.base.ProjectId
 import io.github.aakira.napier.Napier
 
 class AddNoteWidget : GlanceAppWidget() {
@@ -44,13 +46,17 @@ class AddNoteWidget : GlanceAppWidget() {
 		provideContent {
 			val widgetId = remember { glanceAppWidgetManager.getAppWidgetId(id) }
 			val data by context.widgetConfigDataStore.data.collectAsState(initial = null)
-			val projectName = remember(data) { data?.getWidgetConfig(widgetId) }
+			val projectId = remember(data) { data?.getWidgetConfig(widgetId) }
 			val accentHex = remember(data) { data?.getWidgetAccent(widgetId) }
+			val projectName by produceState<String?>(initialValue = null, projectId) {
+				value = findWidgetProject(projectId?.id)?.name
+			}
 
 			AddNoteWidgetContent(
+				anyProject = projectId == null,
 				projectName = projectName,
 				accentHex = accentHex,
-				onClick = getAddNoteActionCallback(projectName),
+				onClick = getAddNoteActionCallback(projectId),
 			)
 		}
 	}
@@ -58,6 +64,7 @@ class AddNoteWidget : GlanceAppWidget() {
 	override suspend fun providePreview(context: Context, widgetCategory: Int) {
 		provideContent {
 			AddNoteWidgetContent(
+				anyProject = false,
 				projectName = "Apophis",
 				accentHex = "#5A66B5",
 				onClick = getAddNoteActionCallback(null),
@@ -65,23 +72,28 @@ class AddNoteWidget : GlanceAppWidget() {
 		}
 	}
 
-	private fun getAddNoteActionCallback(projectName: String?): Action {
+	private fun getAddNoteActionCallback(projectId: ProjectId?): Action {
 		return actionRunCallback<AddNoteClickAction>(
-			actionParametersOf(AddNoteActionParameterKey to (projectName ?: ""))
+			actionParametersOf(AddNoteActionParameterKey to (projectId?.id ?: ""))
 		)
 	}
 }
 
 @androidx.compose.runtime.Composable
 private fun AddNoteWidgetContent(
+	anyProject: Boolean,
 	projectName: String?,
 	accentHex: String?,
 	onClick: Action,
 ) {
 	val accent = remember(accentHex) { parseAccent(accentHex) }
 	val num = remember(projectName) { stableProjectNumber(projectName) }
-	val header = remember(projectName, num) {
-		if (projectName.isNullOrBlank()) "§ $num · ANY" else "§ $num · $projectName"
+	val header = remember(anyProject, projectName, num) {
+		when {
+			anyProject -> "§ $num · ANY"
+			projectName.isNullOrBlank() -> "§ $num · …"
+			else -> "§ $num · $projectName"
+		}
 	}
 
 	Box(
@@ -148,8 +160,8 @@ private fun AddNoteWidgetContent(
 	}
 }
 
-private const val ACTION_KEY_PROJECT_NAME = "project_name"
-private val AddNoteActionParameterKey = ActionParameters.Key<String>(ACTION_KEY_PROJECT_NAME)
+private const val ACTION_KEY_PROJECT_ID = "project_id"
+private val AddNoteActionParameterKey = ActionParameters.Key<String>(ACTION_KEY_PROJECT_ID)
 
 class AddNoteWidgetReceiver : GlanceAppWidgetReceiver() {
 	override val glanceAppWidget: GlanceAppWidget = AddNoteWidget()
@@ -161,13 +173,13 @@ class AddNoteClickAction : ActionCallback {
 		glanceId: GlanceId,
 		parameters: ActionParameters
 	) {
-		val projectName = parameters[AddNoteActionParameterKey]
+		val projectId = parameters[AddNoteActionParameterKey]
 
-		Napier.d { "Add Note widget tapped for project: `$projectName`" }
+		Napier.d { "Add Note widget tapped for project: `$projectId`" }
 
 		val intent = Intent(context, AddNoteActivity::class.java)
 			.setFlags(FLAG_ACTIVITY_NEW_TASK)
-			.putExtra(AddNoteActivity.EXTRA_PROJECT_NAME, projectName)
+			.putExtra(AddNoteActivity.EXTRA_PROJECT_ID, projectId)
 		context.startActivity(intent)
 	}
 }
