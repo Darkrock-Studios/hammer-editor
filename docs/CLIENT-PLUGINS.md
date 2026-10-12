@@ -1542,14 +1542,14 @@ build is optimized by binaryen; the development build is not:
 
 | Job | C | Kotlin production | Kotlin development |
 | --- | --- | --- | --- |
-| Upper-case it | 35 ms | 680 ms | 1.8 s |
-| Word count export of it | 121 ms | 1.95 s | 4.5 s |
+| Upper-case it | 23 ms | 350 ms | 1.8 s |
+| Word frequency export of it | 77 ms | 945 ms | 4.5 s |
 | Load the module (after the first, which warms chasm itself) | under 25 ms | 25 to 135 ms | 0.4 to 0.5 s |
 | Module size | 1 to 4 KB | 12 to 325 KB | 0.6 to 1.9 MB |
 
 - **Kotlin/Wasm works** on the same host, `wasmWasi` target, with
   `@WasmImport` for the Extism functions and only `random_get` and
-  `clock_time_get` from WASI. Optimized, it is 15 to 20 times slower than C
+  `clock_time_get` from WASI. Optimized, it is 12 to 15 times slower than C
   here: part is doing more (Unicode case rules, kotlinx.serialization), most is
   its GC-heavy standard library under an interpreter. Fine for occasional jobs;
   C, Rust, Zig, or AssemblyScript suit exports that run over a whole book.
