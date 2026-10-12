@@ -74,8 +74,9 @@ suspend fun loadStoredProjectData(
 
 /**
  * Blocking twin of [loadStoredProjectData] for callers that already own their threading (parallel
- * mappers, IO-dispatched code). An existing file that can't be read is moved aside before the
- * defaults are returned, so the next save can't overwrite it.
+ * mappers, IO-dispatched code). An existing file that can't be decoded is moved aside before the
+ * defaults are returned, so the next save can't overwrite it. An I/O failure leaves the file in
+ * place: it may be locked or briefly inaccessible rather than damaged.
  */
 fun readStoredProjectData(
 	projectDef: ProjectDef,
@@ -89,7 +90,11 @@ fun readStoredProjectData(
 	val stored = fileSystem.readTomlOrNull<StoredProjectData>(path, toml) { e -> failure = e }
 	if (stored != null) return stored
 
-	setAsideUnreadable(projectDef, fileSystem, path, failure)
+	if (failure is IOException) {
+		Napier.e("Failed to read ${ProjectDataDatasource.FILENAME}: $path", failure)
+	} else {
+		setAsideUnreadable(projectDef, fileSystem, path, failure)
+	}
 	return StoredProjectData()
 }
 
@@ -99,8 +104,12 @@ private fun setAsideUnreadable(
 	path: Path,
 	cause: Throwable?,
 ) {
-	val millis = Clock.System.now().toEpochMilliseconds()
-	val target = projectDef.path.toOkioPath() / "${ProjectDataDatasource.CORRUPT_PREFIX}$millis"
+	val dir = projectDef.path.toOkioPath()
+	val baseName = "${ProjectDataDatasource.CORRUPT_PREFIX}${Clock.System.now().toEpochMilliseconds()}"
+	// atomicMove replaces an existing target, so never reuse the name of an earlier copy.
+	var target = dir / baseName
+	var suffix = 1
+	while (fileSystem.exists(target)) target = dir / "$baseName-${suffix++}"
 	try {
 		fileSystem.atomicMove(path, target)
 		Napier.e("Unreadable ${ProjectDataDatasource.FILENAME} moved aside: $path -> $target", cause)

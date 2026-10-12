@@ -11,7 +11,11 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSeri
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import kotlinx.coroutines.test.runTest
 import net.peanuuutz.tomlkt.Toml
+import okio.ForwardingFileSystem
+import okio.IOException
+import okio.Path
 import okio.Path.Companion.toPath
+import okio.Source
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -151,6 +155,31 @@ class ProjectDataDatasourceTest : BaseTest() {
 
 		assertEquals(1, corruptCopies().size)
 		assertFalse(fileSystem.exists(datasource.getPath()))
+	}
+
+	@Test
+	fun `each corrupt file gets its own aside copy`() {
+		fileSystem.write(datasource.getPath()) { writeUtf8("first = [") }
+		readStoredProjectData(projectDef, fileSystem, toml)
+		fileSystem.write(datasource.getPath()) { writeUtf8("second = [") }
+		readStoredProjectData(projectDef, fileSystem, toml)
+
+		val contents = corruptCopies().map { fileSystem.read(it) { readUtf8() } }.toSet()
+		assertEquals(setOf("first = [", "second = ["), contents)
+	}
+
+	@Test
+	fun `read failure leaves the file in place`() {
+		val original = "[data]\nauthorName = \"Locked\"\n"
+		fileSystem.write(datasource.getPath()) { writeUtf8(original) }
+		val failingReads = object : ForwardingFileSystem(fileSystem) {
+			override fun source(file: Path): Source = throw IOException("locked: $file")
+		}
+
+		assertEquals(StoredProjectData(), readStoredProjectData(projectDef, failingReads, toml))
+
+		assertTrue(corruptCopies().isEmpty())
+		assertEquals(original, fileSystem.read(datasource.getPath()) { readUtf8() })
 	}
 
 	private fun corruptCopies() = fileSystem.list("/projects/Test Project".toPath())
