@@ -19,6 +19,9 @@ exclude_paths:
     - '**/src/desktopTest/**'
     - '**/src/androidTest/**'
     - '**/src/iosTest/**'
+    # The JS unit tests have no ESLint config of their own; Codacy's ESLint run
+    # aborts on the directory instead of skipping it.
+    - 'server/src/jsTest/**'
 
     # SQL test fixtures — historical schema snapshots and seed data, not authored
     # SQL. T-SQL linter rules (set-nocount, schema-qualify, etc.) don't apply.
