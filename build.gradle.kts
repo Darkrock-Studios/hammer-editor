@@ -95,6 +95,8 @@ plugins {
 dependencies {
 	//kover(project(":base"))
 	kover(project(":common"))
+	kover(project(":operations"))
+	kover(project(":plugins:plaintext"))
 	kover(project(":server"))
 }
 

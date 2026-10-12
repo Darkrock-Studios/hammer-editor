@@ -68,6 +68,8 @@ kotlin {
 		val commonMain by getting {
 			dependencies {
 				api(project(":common"))
+				api(project(":operations"))
+				implementation(project(":plugins:plaintext"))
 				api(libs.jetbrains.compose.runtime)
 				api(libs.jetbrains.compose.components.resources)
 				api(libs.jetbrains.compose.ui.tooling.preview)
@@ -133,6 +135,11 @@ kotlin {
 			}
 		}
 	}
+}
+
+// Strings for the UI halves of in-tree plugins. The app's own strings live in :common.
+compose.resources {
+	packageOfResClass = "com.darkrockstudios.apps.hammer.composeui.resources"
 }
 
 composeCompiler {
