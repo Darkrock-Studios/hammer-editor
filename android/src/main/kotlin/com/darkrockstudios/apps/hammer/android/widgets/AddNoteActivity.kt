@@ -65,10 +65,11 @@ class AddNoteActivity : ComponentActivity(), KoinComponent {
 
 		val projectId = intent.extras?.getString(EXTRA_PROJECT_ID)?.ifBlank { null }?.let(::ProjectId)
 
-		val projects = projectsRepository.getProjects().map { projectDef ->
+		val projectsWithMetadata = projectsRepository.getProjects().map { projectDef ->
 			val metadata = projectsMetadataRepository.loadMetadata(projectDef)
 			Pair(projectDef, metadata)
-		}.sortedByDescending { it.second.info.lastAccessed }.map { it.first }
+		}.sortedByDescending { it.second.info.lastAccessed }
+		val projects = projectsWithMetadata.map { it.first }
 
 		if (projects.isEmpty()) {
 			Toast.makeText(
@@ -78,11 +79,16 @@ class AddNoteActivity : ComponentActivity(), KoinComponent {
 			).show()
 			finish()
 		} else {
-			val preselectedProject = projectId?.let { projectsRepository.findProject(it) }
+			// Same result as findProject (a missing id would heal to a fresh one that can't match)
+			// without reading every project.toml again.
+			val preselectedProject = projectId?.let { id ->
+				projectsWithMetadata.find { it.second.info.projectId == id }?.first
+			}
 			if (projectId != null && preselectedProject == null) {
 				val text = getString(R.string.note_widget_dialog_failure_bad_project, projectId.id)
 				Toast.makeText(this, text, Toast.LENGTH_LONG).show()
 				finish()
+				return
 			}
 
 			setContent {
@@ -158,7 +164,7 @@ class AddNoteActivity : ComponentActivity(), KoinComponent {
 
 	private fun saveNote(project: ProjectDef, note: String) {
 		val data = Data.Builder()
-		data.putString(AddNoteWorker.DATA_PROJECT_NAME, project.name)
+		data.putString(AddNoteWorker.DATA_PROJECT_ID, projectsRepository.getProjectId(project).id)
 		data.putString(AddNoteWorker.DATA_NOTE_TEXT, note)
 
 		val request = OneTimeWorkRequestBuilder<AddNoteWorker>()

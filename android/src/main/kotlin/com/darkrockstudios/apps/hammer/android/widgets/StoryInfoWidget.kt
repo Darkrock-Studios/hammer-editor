@@ -58,16 +58,19 @@ class StoryInfoWidget : GlanceAppWidget() {
 			val data by context.widgetConfigDataStore.data.collectAsState(initial = null)
 			val projectId = remember(data) { data?.getWidgetConfig(widgetId) }
 			val accentHex = remember(data) { data?.getWidgetAccent(widgetId) }
-			val info by produceState<StoryInfo?>(initialValue = null, projectId, accentHex) {
-				value = projectId?.let { withContext(Dispatchers.IO) { loadStoryInfo(it, accentHex) } }
+			val configLoaded = data != null
+			val state by produceState<StoryInfoState>(StoryInfoState.Loading, configLoaded, projectId, accentHex) {
+				if (!configLoaded) return@produceState
+				val info = projectId?.let { withContext(Dispatchers.IO) { loadStoryInfo(it, accentHex) } }
+				value = if (info != null) StoryInfoState.Loaded(info) else StoryInfoState.Missing
 			}
-			StoryInfoContent(configured = projectId != null, info = info)
+			StoryInfoContent(state)
 		}
 	}
 
 	override suspend fun providePreview(context: Context, widgetCategory: Int) {
 		provideContent {
-			StoryInfoContent(configured = true, info = SAMPLE_STORY)
+			StoryInfoContent(StoryInfoState.Loaded(SAMPLE_STORY))
 		}
 	}
 }
@@ -89,6 +92,13 @@ private val SAMPLE_STORY = StoryInfo(
 
 class StoryInfoWidgetReceiver : GlanceAppWidgetReceiver() {
 	override val glanceAppWidget: GlanceAppWidget = StoryInfoWidget()
+}
+
+private sealed interface StoryInfoState {
+	data object Loading : StoryInfoState
+	/** Not configured, or the configured project no longer exists. */
+	data object Missing : StoryInfoState
+	data class Loaded(val info: StoryInfo) : StoryInfoState
 }
 
 @Immutable
@@ -143,15 +153,12 @@ private suspend fun loadStoryInfo(projectId: ProjectId, accentHex: String?): Sto
 }
 
 @Composable
-private fun StoryInfoContent(configured: Boolean, info: StoryInfo?) {
+private fun StoryInfoContent(state: StoryInfoState) {
 	val size = LocalSize.current
-	if (!configured) {
-		UnconfiguredCard()
-		return
-	}
-	if (info == null) {
-		LoadingCard()
-		return
+	val info = when (state) {
+		StoryInfoState.Loading -> return LoadingCard()
+		StoryInfoState.Missing -> return UnconfiguredCard()
+		is StoryInfoState.Loaded -> state.info
 	}
 
 	val isStrip = size.height < 110.dp
