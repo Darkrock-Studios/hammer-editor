@@ -826,3 +826,7 @@ Clearing the baselines instead would be wrong here: a null `original hash` lets 
 overwrite the server unchecked.
 A backup from before the project's first sync has no journal; restored over the synced project it
 gets an empty flagged one, so every Entity is baselined on its local hash.
+
+The flag covers edits, not deletions. An Entity deleted on the server after the backup was taken
+is still deleted locally by the next sync; a restore recovers content the server still knows about,
+it does not undo deletions made elsewhere.

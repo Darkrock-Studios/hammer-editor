@@ -299,7 +299,8 @@ a project by this ID, so a rename does not break them. The ID heals rather than 
   that was deleted on the server. Either way the backup's sync journal describes the server as it
   was at backup time, so the restore flags the project for a full conflict check and drops
   `lastSyncedHash`: wherever the server changed since the backup, the next sync raises a conflict
-  instead of letting either copy silently win.
+  instead of letting either copy silently win. Deletions made on the server after the backup still
+  apply; a restore does not undo them.
 
 A corrupt `project.toml`, or a lost one once recreated, therefore comes back with a new identity:
 widgets and watch subscriptions no longer find the project, and the server sees it as new unless
