@@ -241,7 +241,15 @@ ViewModels/Components and renders them.
    own file** (pattern: `loadStoredProjectData`/`saveStoredProjectData` in
    `ProjectDataDatasource.kt`). A second inline writer forks the format and clobbers sibling
    fields on write: two independent writers of `project_data.toml` once each erased the other's
-   field. Enforced by `PersistedFormatOwnershipTest` in `common/src/desktopTest`.
+   field. Enforced by `PersistedFormatOwnershipTest` in `:architectureTests`.
+
+### Enforcement
+
+These rules are checked by the Konsist tests in the `:architectureTests` module
+(`./gradlew :architectureTests:test`, also run in CI). The tests identify a layer by class name
+suffix (`Datasource`, `Repository`, `Service`, `UseCase`, `Component`), so a class must carry its
+layer's suffix to be covered. Known violations are listed in a per-rule baseline in the tests;
+remove an entry when you fix it, never add one to get a build passing.
 
 ## DI conventions
 
