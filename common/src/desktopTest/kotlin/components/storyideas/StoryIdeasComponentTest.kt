@@ -25,6 +25,7 @@ import kotlinx.coroutines.test.runTest
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.koin.core.context.GlobalContext
 import org.koin.dsl.bind
 import org.koin.dsl.module
 import utils.projectsDirectoryOf
@@ -309,6 +310,64 @@ class StoryIdeasComponentTest : ComponentTest() {
 		assertEquals(StoryIdeas.SaveResult.Failed(IdeaError.EMPTY), result)
 		assertTrue(comp.state.value.ideas.isEmpty())
 		assertIs<StoryIdeas.Editor.Create>(comp.state.value.editor, "A rejected idea keeps the editor open")
+	}
+
+	@Test
+	fun `An idea that vanishes while being viewed closes the editor`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.writeIdea(content = "soon gone")
+		advanceUntilIdle()
+		val idea = comp.state.value.ideas.single()
+		comp.editIdea(idea.id)
+
+		// Removed behind the component's back, as a sync or a projects directory change would
+		GlobalContext.get().get<IdeasRepository>().deleteIdea(idea.id)
+		advanceUntilIdle()
+
+		assertNull(comp.state.value.editor)
+	}
+
+	@Test
+	fun `Unsaved edits to an idea that vanishes carry over as a new idea`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.writeIdea(content = "v1")
+		advanceUntilIdle()
+		val idea = comp.state.value.ideas.single()
+		comp.editIdea(idea.id)
+		comp.beginEdit()
+		comp.updateContent("v2, not saved yet")
+
+		GlobalContext.get().get<IdeasRepository>().deleteIdea(idea.id)
+		advanceUntilIdle()
+
+		assertIs<StoryIdeas.Editor.Create>(comp.state.value.editor)
+		assertEquals("v2, not saved yet", comp.state.value.draft?.content)
+
+		assertEquals(StoryIdeas.SaveResult.Created, comp.saveDraft())
+		advanceUntilIdle()
+		assertEquals("v2, not saved yet", comp.state.value.ideas.single().content)
+	}
+
+	@Test
+	fun `Deleting the idea being edited closes the editor`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.writeIdea(content = "delete me")
+		advanceUntilIdle()
+		val idea = comp.state.value.ideas.single()
+		comp.editIdea(idea.id)
+		comp.beginEdit()
+
+		comp.deleteIdea(idea.id)
+		advanceUntilIdle()
+
+		assertNull(comp.state.value.editor)
+		assertTrue(comp.state.value.ideas.isEmpty())
 	}
 
 	@Test
