@@ -22,7 +22,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupDef
-import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupRepository
+import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupService
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.EntryAppearance
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.ProjectStatistics
@@ -68,7 +68,7 @@ import kotlin.time.Instant
 class ProjectHomeComponentTest : ComponentTest() {
 
 	private lateinit var globalSettingsStore: GlobalSettingsStore
-	private lateinit var projectBackupRepository: ProjectBackupRepository
+	private lateinit var projectBackupService: ProjectBackupService
 	private lateinit var sceneEditor: SceneEditorService
 	private lateinit var exportStoryUseCase: ExportStoryUseCase
 	private lateinit var encyclopediaService: EncyclopediaService
@@ -109,7 +109,7 @@ class ProjectHomeComponentTest : ComponentTest() {
 		every { globalSettingsStore.globalSettingsUpdates } returns MutableSharedFlow()
 		every { globalSettingsStore.serverSettings } returns null
 
-		projectBackupRepository = mockk()
+		projectBackupService = mockk()
 
 		sceneEditor = mockk()
 		coEvery { sceneEditor.getMetadata() } returns ProjectMetadata(
@@ -142,7 +142,7 @@ class ProjectHomeComponentTest : ComponentTest() {
 
 		setupComponentKoin(module {
 			single { globalSettingsStore }
-			single { projectBackupRepository }
+			single { projectBackupService }
 			single<AccountTagService> { mockk(relaxed = true) }
 			single<PlatformSpellCheckerFactory> {
 				mockk { every { availableLocales() } returns emptyList() }
@@ -433,8 +433,8 @@ class ProjectHomeComponentTest : ComponentTest() {
 			projectDef = projectDef,
 			date = Instant.parse("2026-07-01T00:00:00Z"),
 		)
-		every { projectBackupRepository.supportsBackup() } returns true
-		coEvery { projectBackupRepository.createBackup(projectDef) } returns backup
+		every { projectBackupService.supportsBackup() } returns true
+		coEvery { projectBackupService.createBackup(projectDef) } returns backup
 
 		val comp = newComponent()
 		context.resume()
@@ -461,7 +461,7 @@ class ProjectHomeComponentTest : ComponentTest() {
 
 	@Test
 	fun `Failed backup passes null to the callback and toasts failure`() = runTest(mainTestDispatcher) {
-		coEvery { projectBackupRepository.createBackup(projectDef) } returns null
+		coEvery { projectBackupService.createBackup(projectDef) } returns null
 
 		val comp = newComponent()
 		context.resume()

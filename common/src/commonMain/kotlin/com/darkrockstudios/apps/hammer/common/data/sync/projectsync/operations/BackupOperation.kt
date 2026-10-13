@@ -5,7 +5,7 @@ import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
-import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupRepository
+import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupService
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.apps.hammer.sync_log_backup_made
@@ -13,7 +13,7 @@ import com.darkrockstudios.apps.hammer.sync_log_backup_made
 class BackupOperation(
 	projectDef: ProjectDef,
 	private val globalSettingsStore: GlobalSettingsStore,
-	private val backupRepository: ProjectBackupRepository,
+	private val backupService: ProjectBackupService,
 	private val strRes: StrRes,
 ) : SyncOperation(projectDef) {
 	override suspend fun execute(
@@ -25,9 +25,9 @@ class BackupOperation(
 	): CResult<SyncOperationState> {
 		if (
 			globalSettingsStore.globalSettings.automaticBackups &&
-			backupRepository.supportsBackup()
+			backupService.supportsBackup()
 		) {
-			val backupDef = backupRepository.createBackup(projectDef)
+			val backupDef = backupService.createBackup(projectDef)
 
 			if (backupDef != null) {
 				onProgress(

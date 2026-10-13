@@ -40,7 +40,7 @@ import com.darkrockstudios.apps.hammer.common.data.importer.RtfStoryImporter
 import com.darkrockstudios.apps.hammer.common.data.importer.StoryImporterRegistry
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesDatasource
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
-import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupRepository
+import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupService
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataConflictBroker
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
@@ -252,7 +252,7 @@ val mainModule = module {
 	single<ClientIdeasSynchronizer>()
 	single<ClientAccountSynchronizer>()
 
-	single<ProjectBackupRepository>()
+	single<ProjectBackupService>()
 
 	single<ProjectMetadataDatasource>()
 

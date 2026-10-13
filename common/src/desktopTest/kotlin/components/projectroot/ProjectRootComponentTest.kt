@@ -15,7 +15,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.InitialProjectScreen
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
-import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupRepository
+import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupService
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsService
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataConflictBroker
@@ -115,7 +115,7 @@ class ProjectRootComponentTest : ComponentTest() {
 		setupComponentKoin(module {
 			single<CoroutineScope>(named(APP_SCOPE)) { scope }
 			single { globalSettingsStore }
-			single<ProjectBackupRepository> { mockk(relaxed = true) }
+			single<ProjectBackupService> { mockk(relaxed = true) }
 			single { spellCheckRepository }
 			single<FocusModeService> { mockk(relaxed = true) }
 			single<UrlLauncher> { mockk(relaxed = true) }

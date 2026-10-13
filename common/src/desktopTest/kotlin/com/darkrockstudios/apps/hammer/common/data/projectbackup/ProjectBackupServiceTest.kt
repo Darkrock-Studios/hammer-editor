@@ -26,7 +26,7 @@ import kotlin.time.Clock
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 
-class ProjectBackupRepositoryTest {
+class ProjectBackupServiceTest {
 
 	private class MutableClock(var instant: Instant) : Clock {
 		override fun now(): Instant = instant
@@ -38,12 +38,12 @@ class ProjectBackupRepositoryTest {
 	private val globalSettingsStore = mockk<GlobalSettingsStore>()
 	private val clock = mockk<Clock>()
 
-	private class TestRepo(
+	private class TestService(
 		fileSystem: FileSystem,
 		projectsRepository: ProjectsRepository,
 		globalSettingsStore: GlobalSettingsStore,
 		clock: Clock
-	) : ProjectBackupRepository(fileSystem, projectsRepository, globalSettingsStore, clock) {
+	) : ProjectBackupService(fileSystem, projectsRepository, globalSettingsStore, clock) {
 		override fun supportsBackup(): Boolean = true
 		override suspend fun createBackup(projectDef: ProjectDef): ProjectBackupDef? = null
 		override suspend fun restoreBackup(backupDef: ProjectBackupDef, targetDir: HPath): Boolean = true
@@ -59,8 +59,8 @@ class ProjectBackupRepositoryTest {
 		every { projectsRepository.getProjectsDirectory() } returns "/projects".toPath().toHPath()
 
 		val projectDef = ProjectDef("Test Project", "/projects/Test Project".toPath().toHPath())
-		val repo = TestRepo(fileSystem, projectsRepository, globalSettingsStore, clock)
-		val backupDef = repo.testCreateNewProjectBackupDef(projectDef)
+		val service = TestService(fileSystem, projectsRepository, globalSettingsStore, clock)
+		val backupDef = service.testCreateNewProjectBackupDef(projectDef)
 
 		val filename = backupDef.path.name
 		assertEquals("Test Project-2025-12-28T162900Z.zip", filename)
@@ -77,8 +77,8 @@ class ProjectBackupRepositoryTest {
 		every { projectsRepository.getProjectDirectory("Test Project") } returns "/projects/Test Project".toPath()
 			.toHPath()
 
-		val repo = TestRepo(fileSystem, projectsRepository, globalSettingsStore, clock)
-		val backups = repo.getBackups(projectDef)
+		val service = TestService(fileSystem, projectsRepository, globalSettingsStore, clock)
+		val backups = service.getBackups(projectDef)
 
 		assertEquals(1, backups.size)
 		val backupDef = backups[0]
@@ -99,7 +99,7 @@ class ProjectBackupRepositoryTest {
 			Instant.parse("2026-06-20T08:00:00Z"),
 		)
 
-		val backups = realRepo().getBackups(ProjectDef(name, "/projects/$name".toPath().toHPath()))
+		val backups = realService().getBackups(ProjectDef(name, "/projects/$name".toPath().toHPath()))
 
 		assertEquals(1, backups.size)
 		assertEquals(name, backups.first().projectDef.name)
@@ -121,12 +121,12 @@ class ProjectBackupRepositoryTest {
 		fileSystem.write(projectDir / "scene.txt") { writeUtf8("once upon a time") }
 
 		val projectDef = ProjectDef(name, projectDir.toHPath())
-		val backupDef = realRepo().createBackup(projectDef)
+		val backupDef = realService().createBackup(projectDef)
 
 		assertNotNull(backupDef)
 		val filename = backupDef.path.name
 		assertFalse(filename.contains(':'), "Backup filename must not contain OS-forbidden chars: $filename")
-		assertEquals(1, realRepo().getBackups(projectDef).size)
+		assertEquals(1, realService().getBackups(projectDef).size)
 	}
 
 	@Test
@@ -138,14 +138,14 @@ class ProjectBackupRepositoryTest {
 
 		writeBackupFile(name, Instant.parse("2026-06-20T08:00:00Z"))
 
-		val backups = realRepo().getBackups(ProjectDef(name, "/projects/$name".toPath().toHPath()))
+		val backups = realService().getBackups(ProjectDef(name, "/projects/$name".toPath().toHPath()))
 
 		assertEquals(1, backups.size)
 		assertEquals(name, backups.first().projectDef.name)
 	}
 
-	private fun realRepo() =
-		ProjectBackupRepository(fileSystem, projectsRepository, globalSettingsStore, clock)
+	private fun realService() =
+		ProjectBackupService(fileSystem, projectsRepository, globalSettingsStore, clock)
 
 	private fun writeBackupFile(projectName: String, instant: Instant): Path {
 		val backupName = projectName.replace(" ", "_")
@@ -181,7 +181,7 @@ class ProjectBackupRepositoryTest {
 		writeBackupFile("Other Project", Instant.parse("2025-12-28T17:00:00Z"))
 
 		val target = ProjectDef("Test Project", "/projects/Test Project".toPath().toHPath())
-		val backups = realRepo().getBackupsForProject(target)
+		val backups = realService().getBackupsForProject(target)
 
 		assertEquals(1, backups.size)
 		assertEquals("Test Project", backups.first().projectDef.name)
@@ -194,9 +194,9 @@ class ProjectBackupRepositoryTest {
 			"/projects/Test Project".toPath().toHPath()
 
 		val path = writeBackupFile("Test Project", Instant.parse("2025-12-28T16:29:00Z"))
-		val backups = realRepo().getBackups(ProjectDef("Test Project", "/projects/Test Project".toPath().toHPath()))
+		val backups = realService().getBackups(ProjectDef("Test Project", "/projects/Test Project".toPath().toHPath()))
 
-		realRepo().deleteBackup(backups.first())
+		realService().deleteBackup(backups.first())
 
 		assertFalse(fileSystem.exists(path))
 	}
@@ -211,7 +211,7 @@ class ProjectBackupRepositoryTest {
 			date = Instant.parse("2025-12-28T16:29:00Z"),
 		)
 
-		realRepo().deleteBackup(missing)
+		realService().deleteBackup(missing)
 	}
 
 	@Test
@@ -229,7 +229,7 @@ class ProjectBackupRepositoryTest {
 			date = Instant.parse("2025-12-28T16:29:00Z"),
 		)
 
-		assertFailsWith<IOException> { realRepo().deleteBackup(backup) }
+		assertFailsWith<IOException> { realService().deleteBackup(backup) }
 	}
 
 	@Test
@@ -244,7 +244,7 @@ class ProjectBackupRepositoryTest {
 		val middle = writeBackupFile("Test Project", Instant.parse("2025-12-27T10:00:00Z"))
 		val newest = writeBackupFile("Test Project", Instant.parse("2025-12-28T10:00:00Z"))
 
-		realRepo().cullBackups(ProjectDef("Test Project", "/projects/Test Project".toPath().toHPath()))
+		realService().cullBackups(ProjectDef("Test Project", "/projects/Test Project".toPath().toHPath()))
 
 		assertFalse(fileSystem.exists(oldest))
 		assertTrue(fileSystem.exists(middle))
@@ -264,7 +264,7 @@ class ProjectBackupRepositoryTest {
 		fileSystem.write(projectDir / "scene.txt") { writeUtf8("once upon a time") }
 
 		val projectDef = ProjectDef("Test Project", projectDir.toHPath())
-		val repo = realRepo()
+		val service = realService()
 
 		// Simulate several syncs, each creating a backup a minute apart.
 		val base = Instant.parse("2026-06-20T09:00:00Z")
@@ -273,10 +273,10 @@ class ProjectBackupRepositoryTest {
 			val now = base.plus(i.minutes)
 			fsClock.instant = now
 			every { clock.now() } returns now
-			repo.createBackup(projectDef)?.let { created.add(it) }
+			service.createBackup(projectDef)?.let { created.add(it) }
 		}
 
-		val remaining = repo.getBackups(projectDef).map { it.path.name }.toSet()
+		val remaining = service.getBackups(projectDef).map { it.path.name }.toSet()
 		val newestThree = created.takeLast(3).map { it.path.name }.toSet()
 
 		assertEquals(3, remaining.size)
@@ -301,7 +301,7 @@ class ProjectBackupRepositoryTest {
 		val newer = writeBackupFile("Alice In Wonderland", Instant.parse("2026-06-20T08:01:56Z"))
 		val newest = writeBackupFile("Alice In Wonderland", Instant.parse("2026-06-20T08:02:53Z"))
 
-		realRepo().cullBackups(ProjectDef("Alice In Wonderland", "/projects/Alice In Wonderland".toPath().toHPath()))
+		realService().cullBackups(ProjectDef("Alice In Wonderland", "/projects/Alice In Wonderland".toPath().toHPath()))
 
 		assertFalse(fileSystem.exists(legacy))
 		assertFalse(fileSystem.exists(older))
@@ -320,7 +320,7 @@ class ProjectBackupRepositoryTest {
 		val a = writeBackupFile("Test Project", Instant.parse("2025-12-26T10:00:00Z"))
 		val b = writeBackupFile("Test Project", Instant.parse("2025-12-27T10:00:00Z"))
 
-		realRepo().cullBackups(ProjectDef("Test Project", "/projects/Test Project".toPath().toHPath()))
+		realService().cullBackups(ProjectDef("Test Project", "/projects/Test Project".toPath().toHPath()))
 
 		assertTrue(fileSystem.exists(a))
 		assertTrue(fileSystem.exists(b))
@@ -340,14 +340,14 @@ class ProjectBackupRepositoryTest {
 		fileSystem.write(projectDir / "scene.txt") { writeUtf8("once upon a time") }
 
 		val projectDef = ProjectDef("Test Project", projectDir.toHPath())
-		val repo = realRepo()
-		val backupDef = repo.createBackup(projectDef)
+		val service = realService()
+		val backupDef = service.createBackup(projectDef)
 
 		assertNotNull(backupDef)
 		assertTrue(fileSystem.exists(backupDef.path.toOkioPath()))
 		assertEquals(
 			listOf(backupDef.path.name),
-			repo.getBackups(projectDef).map { it.path.name },
+			service.getBackups(projectDef).map { it.path.name },
 			"The new backup should be recorded for the project",
 		)
 	}
@@ -365,12 +365,12 @@ class ProjectBackupRepositoryTest {
 		fileSystem.createDirectories(projectDir)
 		fileSystem.write(projectDir / "scene.txt") { writeUtf8("once upon a time") }
 
-		val repo = realRepo()
-		val backupDef = repo.createBackup(ProjectDef("Test Project", projectDir.toHPath()))
+		val service = realService()
+		val backupDef = service.createBackup(ProjectDef("Test Project", projectDir.toHPath()))
 		assertNotNull(backupDef)
 
 		val target = "/restored".toPath()
-		val restored = repo.restoreBackup(backupDef, target.toHPath())
+		val restored = service.restoreBackup(backupDef, target.toHPath())
 
 		assertTrue(restored)
 		val restoredScene = fileSystem.listRecursively(target).firstOrNull { it.name == "scene.txt" }
@@ -392,14 +392,14 @@ class ProjectBackupRepositoryTest {
 		fileSystem.write(projectDir / "project.toml") { writeUtf8("original") }
 		fileSystem.write(projectDir / "scenes" / "scene.md") { writeUtf8("once upon a time") }
 
-		val repo = realRepo()
+		val service = realService()
 		val projectDef = ProjectDef("Test Project", projectDir.toHPath())
-		val backupDef = repo.createBackup(projectDef)
+		val backupDef = service.createBackup(projectDef)
 		assertNotNull(backupDef)
 
 		fileSystem.write(projectDir / "project.toml") { writeUtf8("changed") }
 
-		assertTrue(repo.restoreBackup(backupDef, projectDef.path))
+		assertTrue(service.restoreBackup(backupDef, projectDef.path))
 
 		assertEquals("original", fileSystem.read(projectDir / "project.toml") { readUtf8() })
 		assertEquals("once upon a time", fileSystem.read(projectDir / "scenes" / "scene.md") { readUtf8() })
@@ -420,7 +420,7 @@ class ProjectBackupRepositoryTest {
 		writeBackupFile("Deleted", Instant.parse("2025-12-26T10:00:00Z"))
 		writeBackupFile("Deleted", Instant.parse("2025-12-27T10:00:00Z"))
 
-		assertEquals(listOf(kept, deleted), realRepo().getBackedUpProjects())
+		assertEquals(listOf(kept, deleted), realService().getBackedUpProjects())
 	}
 
 	@Test
@@ -434,7 +434,7 @@ class ProjectBackupRepositoryTest {
 		val legacy = writeBackupFile("My Story", Instant.parse("2025-12-26T10:00:00Z"))
 		fileSystem.write(legacy.parent!! / "My Story-2025-12-27T100000Z.zip") { writeUtf8("zip") }
 
-		assertEquals(listOf(deleted), realRepo().getBackedUpProjects())
+		assertEquals(listOf(deleted), realService().getBackedUpProjects())
 	}
 
 	@Test
@@ -450,9 +450,9 @@ class ProjectBackupRepositoryTest {
 		fileSystem.createDirectories(projectDir)
 		fileSystem.write(projectDir / "project.toml") { writeUtf8("original") }
 
-		val repo = realRepo()
+		val service = realService()
 		val projectDef = ProjectDef("Test Project", projectDir.toHPath())
-		val backupDef = repo.createBackup(projectDef)
+		val backupDef = service.createBackup(projectDef)
 		assertNotNull(backupDef)
 
 		fileSystem.write(projectDir / "project.toml") { writeUtf8("changed") }
@@ -464,9 +464,9 @@ class ProjectBackupRepositoryTest {
 				super.atomicMove(source, target)
 			}
 		}
-		val failingRepo = ProjectBackupRepository(failingSwap, projectsRepository, globalSettingsStore, clock)
+		val failingService = ProjectBackupService(failingSwap, projectsRepository, globalSettingsStore, clock)
 
-		assertFalse(failingRepo.restoreBackup(backupDef, projectDef.path))
+		assertFalse(failingService.restoreBackup(backupDef, projectDef.path))
 
 		assertEquals("changed", fileSystem.read(projectDir / "project.toml") { readUtf8() })
 		assertEquals("newer work", fileSystem.read(projectDir / "notes.md") { readUtf8() })
@@ -482,6 +482,6 @@ class ProjectBackupRepositoryTest {
 			date = Instant.parse("2025-12-28T16:29:00Z"),
 		)
 
-		assertFalse(realRepo().restoreBackup(missing, "/restored".toPath().toHPath()))
+		assertFalse(realService().restoreBackup(missing, "/restored".toPath().toHPath()))
 	}
 }

@@ -22,7 +22,7 @@ import org.koin.core.component.KoinComponent
 import kotlin.time.Clock
 import kotlin.time.Instant
 
-open class ProjectBackupRepository(
+open class ProjectBackupService(
 	protected val fileSystem: FileSystem,
 	protected val projectsRepository: ProjectsRepository,
 	protected val globalSettingsStore: GlobalSettingsStore,

@@ -51,7 +51,6 @@ class ClientLayerTest {
 		"A Repository may only reference Data Sources and Foundation primitives, never another Repository",
 		edges(REPOSITORY, REPOSITORY, SERVICE, USE_CASE, COMPONENT),
 		baseline = setOf(
-			"ProjectBackupRepository -> ProjectsRepository",
 			"ProjectSpellCheckRepository -> ProjectDataRepository",
 			"ProjectSpellCheckRepository -> SpellCheckRepository",
 			"ProjectsRepository -> ProjectDataRepository",
