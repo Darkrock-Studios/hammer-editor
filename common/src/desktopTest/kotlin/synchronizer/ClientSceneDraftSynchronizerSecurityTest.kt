@@ -8,7 +8,6 @@ import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftsDatasource
 import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneContentRepository
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogLevel
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessage
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientSceneDraftSynchronizer
@@ -69,8 +68,7 @@ class ClientSceneDraftSynchronizerSecurityTest : BaseTest() {
 		ffs = FakeFileSystem()
 		createProject(ffs, PROJECT_2_NAME)
 
-		val sceneDatasource = SceneDatasource(projectDef, ffs)
-		datasource = SceneDraftsDatasource(ffs, sceneDatasource)
+		datasource = SceneDraftsDatasource(projectDef, ffs)
 
 		setupKoin(module {
 			single { idAllocator }

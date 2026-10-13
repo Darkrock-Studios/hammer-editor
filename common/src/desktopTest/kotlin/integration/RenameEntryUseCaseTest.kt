@@ -79,7 +79,7 @@ class RenameEntryUseCaseTest : BaseIntegrationTest() {
 		drafts = SceneDraftRepository(
 			projectDef,
 			sceneContentRepository,
-			SceneDraftsDatasource(ffs, sceneDatasource),
+			SceneDraftsDatasource(projectDef, ffs),
 			Clock.System,
 		)
 		backupRepository = mockk()

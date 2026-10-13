@@ -121,6 +121,10 @@ stores, etc.). A data source holds **no state** and contains **no business logic
 combine or call other
 data sources. Factory-produced (a fresh instance per use).
 
+When one Data Source needs to know where another keeps its files, it calls a companion function
+on the owning Data Source (pattern: `SceneDatasource.getSceneDirectory(projectDef, fileSystem)`)
+instead of taking an instance of it. Keep those companions to paths, filenames, and ID parsing.
+
 ### Foundation primitives — stateful, cross-cutting
 
 A small, **fixed** set of stateful primitives the entire data layer is built on. Unlike a

@@ -37,8 +37,6 @@ class ClientLayerTest {
 		baseline = setOf(
 			"IdeasDatasource -> GlobalSettingsStore",
 			"IdeasSyncDatasource -> IdeasDatasource",
-			"SceneDraftIdDatasource -> SceneDraftsDatasource",
-			"SceneDraftsDatasource -> SceneDatasource",
 			"SyncDataDatasource -> IdAllocator",
 		),
 	)

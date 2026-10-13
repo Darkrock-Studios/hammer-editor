@@ -11,7 +11,6 @@ import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftsDatasource
 import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneContentRepository
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import createProject
@@ -40,7 +39,6 @@ class SceneDraftRepositoryTest : BaseTest() {
 	private lateinit var ffs: FakeFileSystem
 	private lateinit var toml: Toml
 	private lateinit var datasource: SceneDraftsDatasource
-	private lateinit var sceneDatasource: SceneDatasource
 	private lateinit var idAllocator: IdAllocator
 	private lateinit var clock: Clock
 
@@ -65,8 +63,7 @@ class SceneDraftRepositoryTest : BaseTest() {
 	}
 
 	private fun createRepository(): SceneDraftRepository {
-		sceneDatasource = SceneDatasource(projectDef, ffs)
-		datasource = SceneDraftsDatasource(ffs, sceneDatasource)
+		datasource = SceneDraftsDatasource(projectDef, ffs)
 		return SceneDraftRepository(projectDef, sceneContentRepository, datasource, clock)
 	}
 
