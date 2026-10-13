@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.base.http.createNetworkJsonSerializer
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ExportStoryUseCase
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ImportStoryUseCase
+import com.darkrockstudios.apps.hammer.common.data.ProjectsDirectory
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.account.AccountReauthUseCase
 import com.darkrockstudios.apps.hammer.common.data.account.AccountUseCase
@@ -130,6 +131,7 @@ import kotlinx.serialization.json.Json
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
 import okio.Path
+import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import okio.Path.Companion.toPath
 import org.koin.core.qualifier.named
 import org.koin.dsl.bind
@@ -236,6 +238,10 @@ val mainModule = module {
 	single<ProjectsRepository>()
 
 	single<StoryIdeaCodec>()
+	single<ProjectsDirectory> {
+		val settingsStore = get<GlobalSettingsStore>()
+		ProjectsDirectory { settingsStore.globalSettings.projectsDirectory.toPath().toHPath() }
+	}
 	single<IdeasDatasource>()
 	single<IdeasSyncDatasource>()
 	single<IdeasRepository>()

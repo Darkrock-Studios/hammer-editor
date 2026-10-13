@@ -16,6 +16,7 @@ import kotlinx.coroutines.test.runTest
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import utils.projectsDirectoryOf
 import utils.BaseTest
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -36,8 +37,8 @@ class IdeasSyncDatasourceTest : BaseTest() {
 		every { globalSettingsStore.globalSettings } returns GlobalSettings(projectsDirectory = "/projects")
 		setupKoin()
 
-		val ideasDatasource = IdeasDatasource(ffs, StoryIdeaCodec(createTomlSerializer()), globalSettingsStore)
-		datasource = IdeasSyncDatasource(ffs, createJsonSerializer(), ideasDatasource)
+		val ideasDatasource = IdeasDatasource(ffs, StoryIdeaCodec(createTomlSerializer()), projectsDirectoryOf(globalSettingsStore))
+		datasource = IdeasSyncDatasource(ffs, createJsonSerializer(), projectsDirectoryOf(globalSettingsStore))
 	}
 
 	@Test

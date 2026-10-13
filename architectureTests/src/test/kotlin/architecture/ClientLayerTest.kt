@@ -34,10 +34,6 @@ class ClientLayerTest {
 	fun `data sources reference no other layer`() = assertNoViolations(
 		"A Data Source may not reference any architecture layer, including other Data Sources",
 		edges(DATASOURCE, *ClientLayer.entries.toTypedArray()),
-		baseline = setOf(
-			"IdeasDatasource -> GlobalSettingsStore",
-			"IdeasSyncDatasource -> IdeasDatasource",
-		),
 	)
 
 	@Test

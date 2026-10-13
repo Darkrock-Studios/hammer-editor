@@ -27,6 +27,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.koin.dsl.bind
 import org.koin.dsl.module
+import utils.projectsDirectoryOf
 import utils.ComponentTest
 import utils.TestComponentContext
 import kotlin.test.assertEquals
@@ -56,8 +57,8 @@ class StoryIdeasComponentTest : ComponentTest() {
 		setupKoin(module {
 			single {
 				val toml = createTomlSerializer()
-				val datasource = IdeasDatasource(ffs, StoryIdeaCodec(toml), globalSettingsStore)
-				val syncDatasource = IdeasSyncDatasource(ffs, createJsonSerializer(), datasource)
+				val datasource = IdeasDatasource(ffs, StoryIdeaCodec(toml), projectsDirectoryOf(globalSettingsStore))
+				val syncDatasource = IdeasSyncDatasource(ffs, createJsonSerializer(), projectsDirectoryOf(globalSettingsStore))
 				IdeasRepository(datasource, syncDatasource, globalSettingsStore, Clock.System)
 			} bind IdeasRepository::class
 			single {

@@ -29,6 +29,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
+import utils.projectsDirectoryOf
 import utils.BaseTest
 import java.util.stream.Stream
 import kotlin.test.assertEquals
@@ -71,8 +72,8 @@ class IdeasRepositoryTest : BaseTest() {
 	}
 
 	private fun createRepository(): IdeasRepository {
-		datasource = IdeasDatasource(ffs, StoryIdeaCodec(createTomlSerializer()), globalSettingsStore)
-		syncDatasource = IdeasSyncDatasource(ffs, createJsonSerializer(), datasource)
+		datasource = IdeasDatasource(ffs, StoryIdeaCodec(createTomlSerializer()), projectsDirectoryOf(globalSettingsStore))
+		syncDatasource = IdeasSyncDatasource(ffs, createJsonSerializer(), projectsDirectoryOf(globalSettingsStore))
 		return IdeasRepository(datasource, syncDatasource, globalSettingsStore, clock)
 	}
 
@@ -84,7 +85,7 @@ class IdeasRepositoryTest : BaseTest() {
 
 	@Test
 	fun `Ideas on disk load on init`() = runTest {
-		datasource = IdeasDatasource(ffs, StoryIdeaCodec(createTomlSerializer()), globalSettingsStore)
+		datasource = IdeasDatasource(ffs, StoryIdeaCodec(createTomlSerializer()), projectsDirectoryOf(globalSettingsStore))
 		val existing = StoryIdea(
 			id = IdeaId.randomUUID(),
 			created = clock.now(),
@@ -95,7 +96,7 @@ class IdeasRepositoryTest : BaseTest() {
 
 		val repo = IdeasRepository(
 			datasource,
-			IdeasSyncDatasource(ffs, createJsonSerializer(), datasource),
+			IdeasSyncDatasource(ffs, createJsonSerializer(), projectsDirectoryOf(globalSettingsStore)),
 			globalSettingsStore,
 			clock,
 		)

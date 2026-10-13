@@ -125,6 +125,10 @@ When one Data Source needs to know where another keeps its files, it calls a com
 on the owning Data Source (pattern: `SceneDatasource.getSceneDirectory(projectDef, fileSystem)`)
 instead of taking an instance of it. Keep those companions to paths, filenames, and ID parsing.
 
+A Data Source gets the location it works in as a value, never by asking a higher layer. A
+project-scoped one takes a `ProjectDef`. An account-level one, which lives outside any project,
+takes a `ProjectsDirectory` and reads it on every use, because the user can change it at runtime.
+
 ### Foundation primitives — stateful, cross-cutting
 
 A small, **fixed** set of stateful primitives the entire data layer is built on. Unlike a

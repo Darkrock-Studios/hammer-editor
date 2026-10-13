@@ -28,6 +28,7 @@ import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import utils.projectsDirectoryOf
 import utils.BaseTest
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -62,10 +63,10 @@ class AccountTagServiceTest : BaseTest() {
 		projectsRepository = mockk()
 		every { projectsRepository.getProjects() } returns emptyList()
 
-		val ideasDatasource = IdeasDatasource(ffs, StoryIdeaCodec(toml), globalSettingsStore)
+		val ideasDatasource = IdeasDatasource(ffs, StoryIdeaCodec(toml), projectsDirectoryOf(globalSettingsStore))
 		ideasRepository = IdeasRepository(
 			ideasDatasource = ideasDatasource,
-			ideasSyncDatasource = IdeasSyncDatasource(ffs, createJsonSerializer(), ideasDatasource),
+			ideasSyncDatasource = IdeasSyncDatasource(ffs, createJsonSerializer(), projectsDirectoryOf(globalSettingsStore)),
 			globalSettingsStore = globalSettingsStore,
 			clock = Clock.System,
 		)

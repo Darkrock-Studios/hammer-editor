@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.data.sync.ideassync
 
 import com.darkrockstudios.apps.hammer.base.IdeaId
+import com.darkrockstudios.apps.hammer.common.data.ProjectsDirectory
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeasDatasource
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcherNow
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -23,12 +24,14 @@ import org.koin.core.component.KoinComponent
 class IdeasSyncDatasource(
 	private val fileSystem: FileSystem,
 	private val json: Json,
-	private val ideasDatasource: IdeasDatasource,
+	private val projectsDirectory: ProjectsDirectory,
 ) : KoinComponent {
 	private val ioDispatcher = injectIoDispatcherNow()
 
-	fun getSyncDataPath(): HPath =
-		(ideasDatasource.getIdeasDirectory().toOkioPath() / SYNC_FILE_NAME).toHPath()
+	fun getSyncDataPath(): HPath {
+		val ideasDir = IdeasDatasource.getIdeasDirectory(projectsDirectory.current(), fileSystem)
+		return (ideasDir.toOkioPath() / SYNC_FILE_NAME).toHPath()
+	}
 
 	suspend fun hasSynced(): Boolean = withContext(ioDispatcher) {
 		fileSystem.exists(getSyncDataPath().toOkioPath())
