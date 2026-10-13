@@ -27,13 +27,13 @@ private fun layerOf(name: String): ClientLayer? = when {
 class ClientLayerTest {
 	private val dependencies by lazy { clientScope().dependencies() }
 
-	private fun violations(from: ClientLayer, vararg forbidden: ClientLayer): List<Dependency> =
+	private fun edges(from: ClientLayer, vararg forbidden: ClientLayer): List<Dependency> =
 		dependencies.filter { layerOf(it.owner) == from && layerOf(it.target) in forbidden }
 
 	@Test
 	fun `data sources reference no other layer`() = assertNoViolations(
 		"A Data Source may not reference any architecture layer, including other Data Sources",
-		violations(DATASOURCE, *ClientLayer.entries.toTypedArray()),
+		edges(DATASOURCE, *ClientLayer.entries.toTypedArray()),
 		baseline = setOf(
 			"IdeasDatasource -> GlobalSettingsStore",
 			"IdeasSyncDatasource -> IdeasDatasource",
@@ -47,13 +47,13 @@ class ClientLayerTest {
 	@Test
 	fun `foundation primitives never reference upward`() = assertNoViolations(
 		"A Foundation primitive may only reference Data Sources and other Foundation primitives",
-		violations(FOUNDATION, REPOSITORY, SERVICE, USE_CASE, COMPONENT),
+		edges(FOUNDATION, REPOSITORY, SERVICE, USE_CASE, COMPONENT),
 	)
 
 	@Test
 	fun `repositories reference only data sources and foundation`() = assertNoViolations(
 		"A Repository may only reference Data Sources and Foundation primitives, never another Repository",
-		violations(REPOSITORY, REPOSITORY, SERVICE, USE_CASE, COMPONENT),
+		edges(REPOSITORY, REPOSITORY, SERVICE, USE_CASE, COMPONENT),
 		baseline = setOf(
 			"ProjectBackupRepository -> ProjectsRepository",
 			"ProjectSpellCheckRepository -> ProjectDataRepository",
@@ -66,7 +66,7 @@ class ClientLayerTest {
 	@Test
 	fun `services never reference siblings or upward`() = assertNoViolations(
 		"A Service may only reference Repositories, Foundation primitives and Data Sources",
-		violations(SERVICE, SERVICE, USE_CASE, COMPONENT),
+		edges(SERVICE, SERVICE, USE_CASE, COMPONENT),
 		baseline = setOf(
 			"BackupManagerService -> AndroidShareService",
 			"StatisticsService -> ReferenceIndexService",
@@ -77,25 +77,26 @@ class ClientLayerTest {
 	@Test
 	fun `use cases never reference components`() = assertNoViolations(
 		"A Use Case may not reference a Component",
-		violations(USE_CASE, COMPONENT),
+		edges(USE_CASE, COMPONENT),
+	)
+
+	// A lazily injected edge is the sanctioned way to break an unavoidable cycle, so it is not counted.
+	@Test
+	fun `use case graph is acyclic`() = assertNoViolations(
+		"Use Cases may reference each other but must not form a cycle",
+		findCycles(edges(USE_CASE, USE_CASE).filterNot { it.lazy }),
 	)
 
 	@Test
-	fun `use cases inject sibling use cases lazily`() = assertNoViolations(
-		"A Use Case must take another Use Case lazily (Lazy<T>, a () -> T lambda, or by inject())",
-		violations(USE_CASE, USE_CASE).filterNot { it.lazy },
-		baseline = setOf(
-			"AutoConfirmReferencesUseCase -> ScrubInvalidReferencesUseCase",
-			"BackfillEntryReferencesUseCase -> ScrubInvalidReferencesUseCase",
-			"CleanupReferencesOnEntryDeleteUseCase -> ScrubInvalidReferencesUseCase",
-			"RenameEntryUseCase -> BackfillEntryReferencesUseCase",
-		),
+	fun `foundation graph is acyclic`() = assertNoViolations(
+		"Foundation primitives may reference each other but must not form a cycle",
+		findCycles(edges(FOUNDATION, FOUNDATION)),
 	)
 
 	@Test
 	fun `components never reference data sources`() = assertNoViolations(
 		"A Component may not reference a Data Source, go through a Repository",
-		violations(COMPONENT, DATASOURCE),
+		edges(COMPONENT, DATASOURCE),
 		baseline = setOf(
 			"ProjectsListComponent -> ProjectMetadataDatasource",
 		),

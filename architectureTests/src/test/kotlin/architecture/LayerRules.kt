@@ -62,6 +62,27 @@ fun KoScope.dependencies(): List<Dependency> = classes(includeNested = true).fla
 		.distinct()
 }
 
+/** Every cycle in the graph formed by [edges], each written as `A -> B -> A` starting at its first name alphabetically. */
+fun findCycles(edges: List<Dependency>): Set<String> {
+	val graph = edges.groupBy({ it.owner }, { it.target })
+	val cycles = sortedSetOf<String>()
+
+	fun visit(node: String, path: List<String>) {
+		val start = path.indexOf(node)
+		if (start >= 0) {
+			val cycle = path.subList(start, path.size)
+			val first = cycle.indexOf(cycle.min())
+			val rotated = cycle.drop(first) + cycle.take(first)
+			cycles += (rotated + rotated.first()).joinToString(" -> ")
+			return
+		}
+		graph[node].orEmpty().forEach { visit(it, path + node) }
+	}
+
+	graph.keys.forEach { visit(it, emptyList()) }
+	return cycles
+}
+
 /**
  * Fails on any violation missing from [baseline], and on any [baseline] entry that is
  * no longer a violation, so the baseline can only shrink.

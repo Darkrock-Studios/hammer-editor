@@ -104,7 +104,7 @@ depend on it, you do not add to it casually.
 | Foundation  | Stateful  | Scoped singleton      | Data Sources, other Foundation primitives (acyclic)                        | Fixed set |
 | Repository  | Stateful  | Scoped singleton      | Data Sources, Foundation                                                   | Yes       |
 | Service     | Stateful  | Scoped singleton      | Repositories, Foundation, Data Sources                                     | No        |
-| Use Case    | Stateless | Factory (new per use) | Services, Repositories, Foundation, Data Sources, other Use Cases (lazily) | No        |
+| Use Case    | Stateless | Factory (new per use) | Services, Repositories, Foundation, Data Sources, other Use Cases (acyclic) | No        |
 | ViewModel   | —         | Per screen/owner      | Use Cases, Services, Repositories, Foundation                              | Yes       |
 
 > **ViewModel / Component naming.** This project calls the highest layer a **Component** (Decompose
@@ -220,11 +220,10 @@ ViewModels/Components and renders them.
 3. **Sibling exception — stateless layers only.** Use Cases (stateless) *may* reference other Use
    Cases. Repositories
    and Services (stateful) **may not** reference siblings under any circumstances.
-4. **Lazy injection for sibling Use Cases.** When one Use Case depends on another, inject it
-   lazily — a `Provider<T>`, a
-   factory, or a `() -> T` lambda — never the constructed instance directly. Statelessness alone
-   does **not** prevent a
-   construction cycle; lazy resolution is what breaks it.
+4. **The Use Case graph is acyclic.** A Use Case may take another Use Case directly, as long as
+   the Use Cases never form a cycle. Statelessness alone does **not** prevent a construction
+   cycle. If a cycle is truly unavoidable, break it by injecting one edge lazily (`Lazy<T>` or a
+   `() -> T` lambda); that should be rare, and usually means the logic wants restructuring.
 5. **ViewModels never touch Data Sources.** Always go through a Repository (or a Service/Use Case
    above it).
 6. **Foundation primitives are a shared lower tier, not siblings.** Depending on `IdAllocator`,
