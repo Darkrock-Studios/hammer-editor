@@ -36,10 +36,10 @@ data class Dependency(val owner: String, val target: String, val lazy: Boolean) 
 	override fun toString() = "$owner -> $target"
 }
 
-private val typeName = Regex("""\b[A-Z]\w*""")
+internal val typeName = Regex("""\b[A-Z]\w*""")
 private val lazyWrapper = Regex("""^(Lazy|Provider)<|^\(\)\s*->""")
 private val interfaceDelegate = Regex("""\bby\s+(\w+)\b(?!\s*[(<.])""")
-private val comment = Regex("""/\*.*?\*/|//[^\n]*""", RegexOption.DOT_MATCHES_ALL)
+internal val comment = Regex("""/\*.*?\*/|//[^\n]*""", RegexOption.DOT_MATCHES_ALL)
 private val koinLookup = Regex("""\b(?:get|getOrNull|\w*[iI]nject\w*)<([^()]+?)>\s*\(""")
 
 /**

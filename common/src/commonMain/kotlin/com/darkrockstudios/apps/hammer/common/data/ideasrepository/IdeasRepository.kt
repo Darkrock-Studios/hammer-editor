@@ -12,7 +12,6 @@ import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -21,6 +20,7 @@ import kotlinx.coroutines.sync.withLock
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.koin.core.qualifier.named
+import kotlin.concurrent.Volatile
 import kotlin.coroutines.CoroutineContext
 import kotlin.time.Clock
 
@@ -50,23 +50,27 @@ class IdeasRepository(
 	)
 	val ideasFlow: SharedFlow<List<StoryIdea>> = _ideasFlow
 
+	// The projects directory the ideas in memory were read from
+	@Volatile
+	private var loadedFrom = globalSettingsStore.globalSettings.projectsDirectory
+
 	init {
 		loadIdeas()
 
 		// Ideas live under the projects directory, so pointing the app at a different one
-		// means a different set of ideas. The first value is the directory just loaded from.
+		// means a different set of ideas.
 		ideasScope.launch {
 			globalSettingsStore.globalSettingsUpdates
 				.map { it.projectsDirectory }
 				.distinctUntilChanged()
-				.drop(1)
-				.collect { loadIdeas() }
+				.collect { directory -> if (directory != loadedFrom) loadIdeas() }
 		}
 	}
 
 	fun loadIdeas(onLoaded: (() -> Unit)? = null) {
 		ideasScope.launch {
 			ideasLock.withLock {
+				loadedFrom = globalSettingsStore.globalSettings.projectsDirectory
 				updateIdeas(ideasDatasource.loadIdeas())
 			}
 			onLoaded?.invoke()

@@ -11,6 +11,8 @@ private fun isService(name: String) = name.endsWith("Service")
 
 private fun isUseCase(name: String) = name.endsWith("UseCase")
 
+private val routeFunction = Regex("""\bfun\s+Route\.""")
+
 /** Enforces the server dependency rules from docs/ARCHITECTURE.md. */
 class ServerLayerTest {
 	private val scope by lazy { serverScope() }
@@ -45,16 +47,25 @@ class ServerLayerTest {
 		),
 	)
 
+	// Route handlers are extension functions on Route, in files of any name. The whole file is
+	// searched because some name a Data Source by its qualified name, with no import.
 	@Test
 	fun `routes never reference data sources`() = assertNoViolations(
 		"Server Routes may not reference a Data Source, go through a Repository",
 		scope.files
-			.filter { it.name.endsWith("Routes") }
+			.filter { routeFunction.containsMatchIn(it.text) }
 			.flatMap { file ->
-				file.imports
-					.map { it.name.substringAfterLast('.') }
+				typeName.findAll(file.text.replace(comment, ""))
+					.map { it.value }
 					.filter(::isDatasource)
+					.distinct()
 					.map { Dependency(file.name, it, lazy = false) }
 			},
+		baseline = setOf(
+			"Frontend -> ProjectDao",
+			"PublicStoryPage -> ProjectDao",
+			"ReviewFrontend -> ProjectDao",
+			"StoryPage -> ProjectDao",
+		),
 	)
 }
