@@ -290,7 +290,7 @@ a project by this ID, so a rename does not break them. The ID heals rather than 
 
 - A file without one (a hand edit, or a recreated file) gets one minted on read
   (`ProjectMetadataDatasource.loadProjectId`). A pre-4 file's `serverProjectId` is read as its ID,
-  and `Migration3_4` writes it back as `projectId`.
+  and the data version 4 migration writes it back as `projectId`.
 - Projects sharing an ID (a copied folder) are resolved at startup by
   `ProjectsRepository.resolveDuplicateProjectIds`: one keeps it (a copy with a `sync.json` first,
   then the earliest created) and the rest are re-minted.
