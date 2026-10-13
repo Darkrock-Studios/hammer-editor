@@ -1,10 +1,11 @@
 package com.darkrockstudios.apps.hammer.frontend
 
 import com.darkrockstudios.apps.hammer.ServerConfig
-import com.darkrockstudios.apps.hammer.account.AccountDeletionService
+import com.darkrockstudios.apps.hammer.account.AccountDeletionUseCase
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.account.BioService
 import com.darkrockstudios.apps.hammer.account.PenNameService
+import com.darkrockstudios.apps.hammer.account.ReleasePenNameUseCase
 import com.darkrockstudios.apps.hammer.account.PenNameService.PenNameResult
 import com.darkrockstudios.apps.hammer.frontend.data.UserSession
 import com.darkrockstudios.apps.hammer.frontend.utils.ProjectName
@@ -45,8 +46,9 @@ fun Route.dashboardPage(
 	projectsRepository: ProjectsRepository,
 	accountsRepository: AccountsRepository,
 	penNameService: PenNameService,
+	releasePenName: ReleasePenNameUseCase,
 	bioService: BioService,
-	accountDeletionService: AccountDeletionService,
+	accountDeletionUseCase: AccountDeletionUseCase,
 	serverConfig: ServerConfig,
 	markdownRenderer: MarkdownRenderer
 ) {
@@ -130,7 +132,7 @@ fun Route.dashboardPage(
 			hx.delete("/penname") {
 				val session = call.sessions.requireUser()
 
-				penNameService.releasePenName(session.userId)
+				releasePenName(session.userId)
 
 				respondToast(call.msg("penname_toast_released"), Toast.Success)
 			}
@@ -331,7 +333,7 @@ fun Route.dashboardPage(
 					return@post
 				}
 
-				val result = accountDeletionService.softDelete(session.userId)
+				val result = accountDeletionUseCase.softDelete(session.userId)
 				if (isSuccess(result)) {
 					call.sessions.clear<UserSession>()
 					call.response.header(HxResponseHeaders.Redirect, "/")

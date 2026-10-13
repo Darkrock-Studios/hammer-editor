@@ -132,12 +132,13 @@ class AccountRoutesTest : BaseTest() {
 			single { json }
 			single { passwordResetRepository }
 			single { mockk<RequestPasswordResetUseCase>() }
+			single { mockk<ReleasePenNameUseCase>() }
 			single { bioService }
 			single { markdownRenderer }
 			single { mockk<com.darkrockstudios.apps.hammer.review.ReviewRepository>(relaxed = true) }
 			single { mockk<com.darkrockstudios.apps.hammer.storyideas.ServerIdeasRepository>(relaxed = true) }
 			single { mockk<com.darkrockstudios.apps.hammer.database.ProjectDao>(relaxed = true) }
-			single { mockk<AccountDeletionService>(relaxed = true) }
+			single { mockk<AccountDeletionUseCase>(relaxed = true) }
 			single { mockk<TermsOfServiceRepository>(relaxed = true) }
 		}
 	}

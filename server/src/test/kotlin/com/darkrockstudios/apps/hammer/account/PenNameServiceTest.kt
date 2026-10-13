@@ -1,7 +1,6 @@
 package com.darkrockstudios.apps.hammer.account
 
 import com.darkrockstudios.apps.hammer.account.PenNameService.PenNameResult
-import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import io.mockk.MockKAnnotations
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -19,9 +18,6 @@ class PenNameServiceTest {
 	@MockK
 	private lateinit var accountsRepository: AccountsRepository
 
-	@MockK
-	private lateinit var projectAccessRepository: ProjectAccessRepository
-
 	private lateinit var service: PenNameService
 
 	private val userId = 1L
@@ -29,7 +25,7 @@ class PenNameServiceTest {
 	@BeforeEach
 	fun setup() {
 		MockKAnnotations.init(this, relaxUnitFun = true)
-		service = PenNameService(accountsRepository, projectAccessRepository)
+		service = PenNameService(accountsRepository)
 	}
 
 	@Nested
@@ -102,18 +98,6 @@ class PenNameServiceTest {
 			assertEquals(PenNameResult.NOT_AVAILABLE, result)
 			coVerify { accountsRepository.isPenNameAvailable(penName, userId) }
 			coVerify(exactly = 0) { accountsRepository.updatePenName(any(), any()) }
-		}
-	}
-
-	@Nested
-	inner class ReleasePenName {
-
-		@Test
-		fun `releasePenName - Clears pen name and deletes all access`() = runTest {
-			service.releasePenName(userId)
-
-			coVerify { accountsRepository.updatePenName(userId, null) }
-			coVerify { projectAccessRepository.deleteAllAccessForUser(userId) }
 		}
 	}
 

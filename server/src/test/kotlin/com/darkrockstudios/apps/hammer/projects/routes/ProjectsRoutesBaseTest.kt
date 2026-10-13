@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.projects.routes
 
+import com.darkrockstudios.apps.hammer.account.ReleasePenNameUseCase
 import com.darkrockstudios.apps.hammer.account.RequestPasswordResetUseCase
 import com.darkrockstudios.apps.hammer.account.AccountsComponent
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
@@ -115,11 +116,12 @@ abstract class ProjectsRoutesBaseTest : BaseTest() {
 			single { json }
 			single { passwordResetRepository }
 			single { mockk<RequestPasswordResetUseCase>() }
+			single { mockk<ReleasePenNameUseCase>() }
 			single { markdownRenderer }
 			single { mockk<com.darkrockstudios.apps.hammer.review.ReviewRepository>(relaxed = true) }
 			single { mockk<com.darkrockstudios.apps.hammer.storyideas.ServerIdeasRepository>(relaxed = true) }
 			single { mockk<com.darkrockstudios.apps.hammer.database.ProjectDao>(relaxed = true) }
-			single { mockk<com.darkrockstudios.apps.hammer.account.AccountDeletionService>(relaxed = true) }
+			single { mockk<com.darkrockstudios.apps.hammer.account.AccountDeletionUseCase>(relaxed = true) }
 			single { mockk<com.darkrockstudios.apps.hammer.account.TermsOfServiceRepository>(relaxed = true) }
 		}
 	}

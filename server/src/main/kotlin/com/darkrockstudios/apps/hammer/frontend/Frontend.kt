@@ -2,12 +2,13 @@ package com.darkrockstudios.apps.hammer.frontend
 
 import com.darkrockstudios.apps.hammer.ExtraLink
 import com.darkrockstudios.apps.hammer.ServerConfig
-import com.darkrockstudios.apps.hammer.account.AccountDeletionService
+import com.darkrockstudios.apps.hammer.account.AccountDeletionUseCase
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.account.BioService
 import com.darkrockstudios.apps.hammer.account.PasswordResetRepository
 import com.darkrockstudios.apps.hammer.account.RequestPasswordResetUseCase
 import com.darkrockstudios.apps.hammer.account.PenNameService
+import com.darkrockstudios.apps.hammer.account.ReleasePenNameUseCase
 import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
@@ -90,8 +91,9 @@ fun Route.frontend() {
 	val storyRendererService: StoryRendererService by inject()
 	val projectAccessRepository: ProjectAccessRepository by inject()
 	val penNameService: PenNameService by inject()
+	val releasePenName: ReleasePenNameUseCase by inject()
 	val bioService: BioService by inject()
-	val accountDeletionService: AccountDeletionService by inject()
+	val accountDeletionUseCase: AccountDeletionUseCase by inject()
 	val serverConfig: ServerConfig by inject()
 	val passwordResetRepository: PasswordResetRepository by inject()
 	val requestPasswordReset: RequestPasswordResetUseCase by inject()
@@ -145,8 +147,9 @@ fun Route.frontend() {
 		projectsRepository,
 		accountsRepository,
 		penNameService,
+		releasePenName,
 		bioService,
-		accountDeletionService,
+		accountDeletionUseCase,
 		serverConfig,
 		markdownRenderer,
 	)
@@ -195,7 +198,7 @@ fun Route.frontend() {
 		configRepository,
 		accountsRepository,
 		projectsRepository,
-		accountDeletionService,
+		accountDeletionUseCase,
 		serverConfig,
 		emailService,
 		metricsRepository,

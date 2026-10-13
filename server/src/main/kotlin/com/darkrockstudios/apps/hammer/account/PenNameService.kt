@@ -1,10 +1,7 @@
 package com.darkrockstudios.apps.hammer.account
 
-import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
-
 class PenNameService(
 	private val accountsRepository: AccountsRepository,
-	private val projectAccessRepository: ProjectAccessRepository
 ) {
 	suspend fun setPenName(userId: Long, penName: String): PenNameResult {
 		val validationResult = validatePenName(penName)
@@ -20,11 +17,6 @@ class PenNameService(
 
 		accountsRepository.updatePenName(userId, trimmedName)
 		return PenNameResult.VALID
-	}
-
-	suspend fun releasePenName(userId: Long) {
-		accountsRepository.updatePenName(userId, null)
-		projectAccessRepository.deleteAllAccessForUser(userId)
 	}
 
 	suspend fun isPenNameAvailable(penName: String, excludeUserId: Long? = null): Boolean {

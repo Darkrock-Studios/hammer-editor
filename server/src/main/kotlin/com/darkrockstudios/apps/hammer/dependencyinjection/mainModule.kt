@@ -3,13 +3,14 @@ package com.darkrockstudios.apps.hammer.dependencyinjection
 import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.StorageMode
 import com.darkrockstudios.apps.hammer.account.AccountDeletionJob
-import com.darkrockstudios.apps.hammer.account.AccountDeletionService
+import com.darkrockstudios.apps.hammer.account.AccountDeletionUseCase
 import com.darkrockstudios.apps.hammer.account.AccountsComponent
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.account.BioService
 import com.darkrockstudios.apps.hammer.account.PasswordResetRepository
 import com.darkrockstudios.apps.hammer.account.RequestPasswordResetUseCase
 import com.darkrockstudios.apps.hammer.account.PenNameService
+import com.darkrockstudios.apps.hammer.account.ReleasePenNameUseCase
 import com.darkrockstudios.apps.hammer.account.PrivacyPolicyRepository
 import com.darkrockstudios.apps.hammer.account.TermsOfServiceRepository
 import com.darkrockstudios.apps.hammer.account.TokenMaintenanceJob
@@ -241,12 +242,13 @@ fun mainModule(
 	// Explicit ctor: renderCache defaults to null, which the constructor DSL would honor over injection.
 	single { StoryRendererService(get(), get(), get()) }
 	single<PenNameService>()
+	factory<ReleasePenNameUseCase>()
 	single<BioService>()
 	// Explicit ctor: the two sync managers are named qualifiers.
-	single {
-		AccountDeletionService(
+	factory {
+		AccountDeletionUseCase(
 			accountsRepository = get(),
-			projectAccessRepository = get(),
+			releasePenName = get(),
 			whiteListRepository = get(),
 			userDataPurgeDao = get(),
 			projectsSyncManager = get(named(PROJECTS_SYNC_MANAGER)),

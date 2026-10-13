@@ -24,13 +24,16 @@ import kotlin.test.assertTrue
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
 
-class AccountDeletionServiceTest {
+class AccountDeletionUseCaseTest {
 
 	@MockK
 	private lateinit var accountsRepository: AccountsRepository
 
 	@MockK
 	private lateinit var projectAccessRepository: ProjectAccessRepository
+
+	// The real use case over the mocked repositories, so the release is verified by its effects
+	private val releasePenName by lazy { ReleasePenNameUseCase(accountsRepository, projectAccessRepository) }
 
 	@MockK
 	private lateinit var whiteListRepository: WhiteListRepository
@@ -45,7 +48,7 @@ class AccountDeletionServiceTest {
 	private lateinit var projectSyncManager: SyncSessionManager<ProjectSyncKey, ProjectSynchronizationSession>
 
 	private lateinit var clock: TestClock
-	private lateinit var service: AccountDeletionService
+	private lateinit var useCase: AccountDeletionUseCase
 
 	private val userId = 1L
 	private val email = "writer@example.com"
@@ -72,9 +75,9 @@ class AccountDeletionServiceTest {
 	fun setup() {
 		MockKAnnotations.init(this, relaxUnitFun = true)
 		clock = TestClock(Clock.System)
-		service = AccountDeletionService(
+		useCase = AccountDeletionUseCase(
 			accountsRepository = accountsRepository,
-			projectAccessRepository = projectAccessRepository,
+			releasePenName = releasePenName,
 			whiteListRepository = whiteListRepository,
 			userDataPurgeDao = userDataPurgeDao,
 			projectsSyncManager = projectsSyncManager,
@@ -91,7 +94,7 @@ class AccountDeletionServiceTest {
 		coEvery { accountsRepository.getAccountOrNull(userId) } returns
 			account() andThen account(deletedAt = clock.now())
 
-		val result = service.softDelete(userId)
+		val result = useCase.softDelete(userId)
 
 		assertTrue(isSuccess(result))
 		coVerifyOrder {
@@ -109,7 +112,7 @@ class AccountDeletionServiceTest {
 	fun `softDelete - missing account fails`() = runTest {
 		coEvery { accountsRepository.getAccountOrNull(userId) } returns null
 
-		val result = service.softDelete(userId)
+		val result = useCase.softDelete(userId)
 
 		assertTrue(result.isFailure)
 		coVerify(exactly = 0) { accountsRepository.markDeleted(any(), any()) }
@@ -120,7 +123,7 @@ class AccountDeletionServiceTest {
 		coEvery { accountsRepository.getAccountOrNull(userId) } returns
 			account(deletedAt = clock.now() - 1.days)
 
-		val result = service.softDelete(userId)
+		val result = useCase.softDelete(userId)
 
 		assertTrue(isSuccess(result))
 		coVerify { accountsRepository.updatePenName(userId, null) }
@@ -133,7 +136,7 @@ class AccountDeletionServiceTest {
 		coEvery { accountsRepository.getAccountOrNull(userId) } returns
 			account() andThen account(deletedAt = null)
 
-		val result = service.softDelete(userId)
+		val result = useCase.softDelete(userId)
 
 		assertTrue(result.isFailure)
 		coVerify(exactly = 0) { accountsRepository.forceLogout(any()) }
@@ -144,7 +147,7 @@ class AccountDeletionServiceTest {
 	fun `softDelete - admin accounts can never be deleted`() = runTest {
 		coEvery { accountsRepository.getAccountOrNull(userId) } returns account(isAdmin = true)
 
-		val result = service.softDelete(userId)
+		val result = useCase.softDelete(userId)
 
 		assertTrue(result.isFailure)
 		coVerify(exactly = 0) { accountsRepository.markDeleted(any(), any()) }
@@ -156,7 +159,7 @@ class AccountDeletionServiceTest {
 		coEvery { accountsRepository.getAccountOrNull(userId) } returns
 			account(deletedAt = clock.now() - 1.days)
 
-		assertTrue(service.restore(userId))
+		assertTrue(useCase.restore(userId))
 		coVerify { accountsRepository.restoreDeleted(userId) }
 	}
 
@@ -164,7 +167,7 @@ class AccountDeletionServiceTest {
 	fun `restore - missing account returns false`() = runTest {
 		coEvery { accountsRepository.getAccountOrNull(userId) } returns null
 
-		assertFalse(service.restore(userId))
+		assertFalse(useCase.restore(userId))
 		coVerify(exactly = 0) { accountsRepository.restoreDeleted(any()) }
 	}
 
@@ -174,7 +177,7 @@ class AccountDeletionServiceTest {
 			account(deletedAt = clock.now() - 31.days)
 		coEvery { userDataPurgeDao.purgeUserData(userId) } returns true
 
-		service.hardDelete(userId)
+		useCase.hardDelete(userId)
 
 		coVerify { userDataPurgeDao.purgeUserData(userId) }
 		coVerify { whiteListRepository.removeFromWhiteList(email) }
@@ -184,7 +187,7 @@ class AccountDeletionServiceTest {
 	fun `hardDelete - missing account is a no-op`() = runTest {
 		coEvery { accountsRepository.getAccountOrNull(userId) } returns null
 
-		service.hardDelete(userId)
+		useCase.hardDelete(userId)
 
 		coVerify(exactly = 0) { userDataPurgeDao.purgeUserData(any()) }
 		coVerify(exactly = 0) { whiteListRepository.removeFromWhiteList(any()) }
@@ -194,7 +197,7 @@ class AccountDeletionServiceTest {
 	fun `hardDelete - account restored since the job snapshot is left alone`() = runTest {
 		coEvery { accountsRepository.getAccountOrNull(userId) } returns account(deletedAt = null)
 
-		service.hardDelete(userId)
+		useCase.hardDelete(userId)
 
 		coVerify(exactly = 0) { userDataPurgeDao.purgeUserData(any()) }
 		coVerify(exactly = 0) { whiteListRepository.removeFromWhiteList(any()) }
@@ -206,7 +209,7 @@ class AccountDeletionServiceTest {
 			account(deletedAt = clock.now() - 31.days)
 		coEvery { userDataPurgeDao.purgeUserData(userId) } returns false
 
-		service.hardDelete(userId)
+		useCase.hardDelete(userId)
 
 		coVerify(exactly = 0) { whiteListRepository.removeFromWhiteList(any()) }
 	}
