@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.account
 
-class PenNameService(
+class PenNameUseCase(
 	private val accountsRepository: AccountsRepository,
 ) {
 	suspend fun setPenName(userId: Long, penName: String): PenNameResult {

@@ -6,7 +6,7 @@ import com.darkrockstudios.apps.hammer.account.AccountsComponent
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.account.BioService
 import com.darkrockstudios.apps.hammer.account.PasswordResetRepository
-import com.darkrockstudios.apps.hammer.account.PenNameService
+import com.darkrockstudios.apps.hammer.account.PenNameUseCase
 import com.darkrockstudios.apps.hammer.admin.AdminComponent
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.admin.ServerConfigKey
@@ -65,7 +65,7 @@ class ApplicationTest : BaseTest() {
 	@MockK
 	protected lateinit var passwordResetRepository: PasswordResetRepository
 	@MockK
-	private lateinit var penNameService: PenNameService
+	private lateinit var penNameUseCase: PenNameUseCase
 
 	@MockK
 	private lateinit var bioService: BioService
@@ -94,7 +94,7 @@ class ApplicationTest : BaseTest() {
 			single { whiteListRepository }
 			single { configRepository }
 			single { storyRendererService }
-			single { penNameService }
+			single { penNameUseCase }
 			single { passwordResetRepository }
 			single { mockk<RequestPasswordResetUseCase>() }
 			single { mockk<ReleasePenNameUseCase>() }

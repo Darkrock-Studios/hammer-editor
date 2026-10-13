@@ -6,7 +6,7 @@ import com.darkrockstudios.apps.hammer.account.AccountsComponent
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.account.BioService
 import com.darkrockstudios.apps.hammer.account.PasswordResetRepository
-import com.darkrockstudios.apps.hammer.account.PenNameService
+import com.darkrockstudios.apps.hammer.account.PenNameUseCase
 import com.darkrockstudios.apps.hammer.admin.AdminComponent
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
@@ -70,7 +70,7 @@ abstract class ProjectsRoutesBaseTest : BaseTest() {
 	protected lateinit var storyRendererService: StoryRendererService
 
 	@MockK(relaxed = true)
-	protected lateinit var penNameService: PenNameService
+	protected lateinit var penNameUseCase: PenNameUseCase
 
 	@MockK(relaxed = true)
 	protected lateinit var bioService: BioService
@@ -111,7 +111,7 @@ abstract class ProjectsRoutesBaseTest : BaseTest() {
 			single { adminComponent }
 			single { configRepository }
 			single { storyRendererService }
-			single { penNameService }
+			single { penNameUseCase }
 			single { bioService }
 			single { json }
 			single { passwordResetRepository }

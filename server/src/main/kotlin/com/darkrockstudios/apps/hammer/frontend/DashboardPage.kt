@@ -4,9 +4,9 @@ import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.account.AccountDeletionUseCase
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.account.BioService
-import com.darkrockstudios.apps.hammer.account.PenNameService
+import com.darkrockstudios.apps.hammer.account.PenNameUseCase
 import com.darkrockstudios.apps.hammer.account.ReleasePenNameUseCase
-import com.darkrockstudios.apps.hammer.account.PenNameService.PenNameResult
+import com.darkrockstudios.apps.hammer.account.PenNameUseCase.PenNameResult
 import com.darkrockstudios.apps.hammer.frontend.data.UserSession
 import com.darkrockstudios.apps.hammer.frontend.utils.ProjectName
 import com.darkrockstudios.apps.hammer.frontend.utils.Toast
@@ -45,7 +45,7 @@ import kotlin.math.ceil
 fun Route.dashboardPage(
 	projectsRepository: ProjectsRepository,
 	accountsRepository: AccountsRepository,
-	penNameService: PenNameService,
+	penNameUseCase: PenNameUseCase,
 	releasePenName: ReleasePenNameUseCase,
 	bioService: BioService,
 	accountDeletionUseCase: AccountDeletionUseCase,
@@ -108,7 +108,7 @@ fun Route.dashboardPage(
 					return@post
 				}
 
-				when (val result = penNameService.setPenName(session.userId, newPenName)) {
+				when (val result = penNameUseCase.setPenName(session.userId, newPenName)) {
 					PenNameResult.VALID -> {
 						call.response.header(HxResponseHeaders.Trigger, "penNameUpdated")
 						respondHtmlWithToast(
@@ -155,10 +155,10 @@ fun Route.dashboardPage(
 					return@get
 				}
 
-				val validationResult = penNameService.validatePenName(penName)
+				val validationResult = penNameUseCase.validatePenName(penName)
 				val isValid = validationResult == PenNameResult.VALID
 				val isAvailable = if (isValid) {
-					penNameService.isPenNameAvailable(penName, session.userId)
+					penNameUseCase.isPenNameAvailable(penName, session.userId)
 				} else {
 					false
 				}
@@ -427,8 +427,8 @@ private suspend fun getProjectsModel(
 private suspend fun penNameResultToMessage(call: ApplicationCall, result: PenNameResult): String {
 	return when (result) {
 		PenNameResult.VALID -> call.msg("penname_validation_valid")
-		PenNameResult.TOO_SHORT -> call.msg("penname_validation_too_short", PenNameService.MIN_PEN_NAME_LENGTH)
-		PenNameResult.TOO_LONG -> call.msg("penname_validation_too_long", PenNameService.MAX_PEN_NAME_LENGTH)
+		PenNameResult.TOO_SHORT -> call.msg("penname_validation_too_short", PenNameUseCase.MIN_PEN_NAME_LENGTH)
+		PenNameResult.TOO_LONG -> call.msg("penname_validation_too_long", PenNameUseCase.MAX_PEN_NAME_LENGTH)
 		PenNameResult.INVALID_CHARACTERS -> call.msg("penname_validation_invalid_chars")
 		PenNameResult.NOT_AVAILABLE -> call.msg("penname_validation_taken")
 	}

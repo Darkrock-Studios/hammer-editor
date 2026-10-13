@@ -89,7 +89,7 @@ class AccountRoutesTest : BaseTest() {
 	private lateinit var storyRendererService: StoryRendererService
 
 	@MockK
-	private lateinit var penNameService: PenNameService
+	private lateinit var penNameUseCase: PenNameUseCase
 
 	@MockK
 	private lateinit var passwordResetRepository: PasswordResetRepository
@@ -128,7 +128,7 @@ class AccountRoutesTest : BaseTest() {
 			single { whiteListRepository }
 			single { configRepository }
 			single { storyRendererService }
-			single { penNameService }
+			single { penNameUseCase }
 			single { json }
 			single { passwordResetRepository }
 			single { mockk<RequestPasswordResetUseCase>() }

@@ -7,7 +7,7 @@ import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.account.BioService
 import com.darkrockstudios.apps.hammer.account.PasswordResetRepository
 import com.darkrockstudios.apps.hammer.account.RequestPasswordResetUseCase
-import com.darkrockstudios.apps.hammer.account.PenNameService
+import com.darkrockstudios.apps.hammer.account.PenNameUseCase
 import com.darkrockstudios.apps.hammer.account.ReleasePenNameUseCase
 import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
@@ -90,7 +90,7 @@ fun Route.frontend() {
 	val projectsRepository: ProjectsRepository by inject()
 	val storyRendererService: StoryRendererService by inject()
 	val projectAccessRepository: ProjectAccessRepository by inject()
-	val penNameService: PenNameService by inject()
+	val penNameUseCase: PenNameUseCase by inject()
 	val releasePenName: ReleasePenNameUseCase by inject()
 	val bioService: BioService by inject()
 	val accountDeletionUseCase: AccountDeletionUseCase by inject()
@@ -146,7 +146,7 @@ fun Route.frontend() {
 	dashboardPage(
 		projectsRepository,
 		accountsRepository,
-		penNameService,
+		penNameUseCase,
 		releasePenName,
 		bioService,
 		accountDeletionUseCase,
