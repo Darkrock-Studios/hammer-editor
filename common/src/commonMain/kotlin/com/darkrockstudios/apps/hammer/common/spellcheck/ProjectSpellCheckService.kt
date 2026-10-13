@@ -108,6 +108,8 @@ class ProjectSpellCheckService(
 
 	/** Starts watching for words to load; called from initializeProjectScope on project open. */
 	fun initialize() {
+		// Resolved here, while the project scope is known to be open, not inside the coroutine
+		val encyclopediaRepository = encyclopediaRepository
 		serviceScope.launch {
 			// Entries are only re-read when one changes or the feature toggles; a user word
 			// edit unions into the cached set without touching the encyclopedia on disk.

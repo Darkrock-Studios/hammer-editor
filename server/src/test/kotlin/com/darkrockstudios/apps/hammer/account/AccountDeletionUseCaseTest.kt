@@ -102,8 +102,8 @@ class AccountDeletionUseCaseTest {
 			accountsRepository.forceLogout(email)
 			projectsSyncManager.terminateSession(userId)
 			projectSyncManager.terminateSessions(any())
-			accountsRepository.updatePenName(userId, null)
 			projectAccessRepository.deleteAllAccessForUser(userId)
+			accountsRepository.updatePenName(userId, null)
 			accountsRepository.updateCommunityMember(userId, false)
 		}
 	}

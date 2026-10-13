@@ -197,6 +197,9 @@ SignInWithBiometrics"). Use cases hold no state. They may combine repositories, 
 accessed through those,
 and other use cases.
 
+A Use Case implements one task. It may expose several operations when they all serve that task
+(`AccountDeletionUseCase` has soft delete, restore, and hard delete).
+
 > Only add a Use Case when there is real stateless logic or composition to hold. Do **not** create a
 > Use Case that
 > merely forwards one call to one repository — let the consumer call the repository directly
@@ -379,8 +382,9 @@ added only when needed, following the same decision rules as the client.
 These are the HTTP handlers that define the various endpoints. They unmarshal data from HTTP requests, call into Use Cases, Services, or Repositories, and then marshal data back into HTTP responses. Routes never reference Datasources directly.
 
 ### Server Use Cases: stateless, optional
-A single named operation composed from the layers below. The stateless counterpart of a Service.
-May reference Services, Repositories, and Datasources.
+One named task composed from the layers below, with as many operations as that task needs. The
+stateless counterpart of a Service. May reference Services, Repositories, Datasources, and other
+Use Cases.
 
 ### Server Services: stateful, optional
 Sit above Repositories and combine the layers below them: several Repositories (and Datasources)
