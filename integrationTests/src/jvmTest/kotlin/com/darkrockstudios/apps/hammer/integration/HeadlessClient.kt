@@ -66,6 +66,14 @@ class HeadlessClient private constructor(
 		scope.close()
 	}
 
+	/** Closes this client's project scope and opens a fresh one, as after its files were replaced. */
+	suspend fun reopen(): HeadlessClient {
+		close()
+		val anchor = object : KoinComponent {}
+		val scope = with(anchor) { openProjectScope(projectDef) }
+		return HeadlessClient(projectDef, scope)
+	}
+
 	companion object {
 		/**
 		 * @param serverProjectId when set, the local project is created with this existing server

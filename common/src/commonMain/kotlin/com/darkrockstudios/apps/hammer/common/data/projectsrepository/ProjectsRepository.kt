@@ -26,6 +26,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRe
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository.Companion.validateFileName
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.clearProjectSyncBaseline
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.markProjectRestored
 import com.darkrockstudios.apps.hammer.common.data.toMsg
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
@@ -192,7 +193,23 @@ class ProjectsRepository(
 	 */
 	suspend fun clearSyncBaseline(projectDef: ProjectDef) {
 		clearProjectSyncBaseline(projectDef, fileSystem, json)
+		clearProjectDataBaseline(projectDef)
+	}
 
+	/**
+	 * For a project whose files were just replaced by a backup, so its journal and `lastSyncedHash`
+	 * describe the server as it was at backup time. The next sync must conflict-check the restored
+	 * content against the server rather than let either side silently overwrite the other. The
+	 * journal is flagged for that (see [markProjectRestored]); without a `lastSyncedHash`, project
+	 * data uploads against a null baseline, which the server answers with a conflict whenever its
+	 * copy differs. Restored default project data is the exception: it takes the server's copy.
+	 */
+	suspend fun resetSyncStateAfterRestore(projectDef: ProjectDef) {
+		markProjectRestored(projectDef, fileSystem, json)
+		clearProjectDataBaseline(projectDef)
+	}
+
+	private suspend fun clearProjectDataBaseline(projectDef: ProjectDef) {
 		// An open project serves project data from ProjectDataRepository's cache, so clearing only
 		// the file would leave the stale hash live (and get it written straight back out).
 		val openProject = getKoin()

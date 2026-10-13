@@ -101,6 +101,38 @@ fun clearProjectSyncBaseline(projectDef: ProjectDef, fileSystem: FileSystem, jso
 }
 
 /**
+ * Flags a project just restored from a backup for a full conflict check on its next sync (see
+ * [ProjectSynchronizationData.verifyAllEntities]). The confirmed hashes and dirty baselines are
+ * kept: they are what makes the server raise a conflict when it changed since the backup, whereas
+ * a null baseline would let the restored copy overwrite it unchecked. The cached project hash is
+ * dropped so the pre-sync probe cannot skip the project.
+ *
+ * No-op when the journal doesn't exist. A corrupt journal is deleted, as in [clearProjectSyncBaseline].
+ */
+// Corrupt sync data recovers by deleting it; not an error to surface.
+@Suppress("SwallowedException")
+fun markProjectRestored(projectDef: ProjectDef, fileSystem: FileSystem, json: Json) {
+	val path = projectDef.path.toOkioPath() / SyncDataDatasource.SYNC_FILE_NAME
+	if (!fileSystem.exists(path)) return
+
+	val current = try {
+		fileSystem.read(path) { json.decodeFromString<ProjectSynchronizationData>(readUtf8()) }
+	} catch (e: SerializationException) {
+		fileSystem.delete(path)
+		return
+	}
+
+	val marked = current.copy(
+		currentSyncId = null,
+		cachedProjectHash = null,
+		verifyAllEntities = true,
+	)
+	if (marked == current) return
+
+	fileSystem.write(path) { writeUtf8(json.encodeToString(marked)) }
+}
+
+/**
  * The entities a project has written but not yet had accepted by the server: new ones plus changed
  * ones. Read without a project scope, because callers that only need the number must not pay for
  * opening the whole project.

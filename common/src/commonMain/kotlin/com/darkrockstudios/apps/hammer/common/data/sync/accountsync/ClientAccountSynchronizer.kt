@@ -189,6 +189,8 @@ class ClientAccountSynchronizer(
 				val syncData = loadProjectSyncData(synced.projectDef) ?: continue
 				if (syncData.hashAlgoVersion != ProjectContentHasher.ALGO_VERSION) continue
 				val cachedHash = syncData.cachedProjectHash ?: continue
+				// A lite sync can cache a hash without running the restore check; it must still run.
+				if (syncData.verifyAllEntities) continue
 
 				val entityWorkPending = syncData.dirty.isNotEmpty() || syncData.newIds.isNotEmpty()
 				val projectDataDirty = isProjectDataDirty(synced.projectDef)

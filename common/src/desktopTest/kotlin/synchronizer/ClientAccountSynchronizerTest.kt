@@ -22,6 +22,7 @@ import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectCreat
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectSynchronizationData
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectsSynchronizationData
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.RenamedProject
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.markProjectRestored
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.server.HttpFailureException
@@ -233,6 +234,35 @@ class ClientAccountSynchronizerTest {
 		val def = projectDef("Delta")
 		val projectId = ProjectId("uuid-delta")
 		writeProjectSyncData(def, cleanProjectSyncData(hash = null))
+
+		val result = createSynchronizer()
+			.probeUnchangedProjects(listOf(SyncedProjectDefinition(def, projectId)))
+
+		assertTrue(result.isEmpty())
+		coVerify(exactly = 0) { serverProjectsApi.probeProjectChanges(any()) }
+	}
+
+	@Test
+	fun `probe does not skip a project restored from a backup`() = runTest {
+		val def = projectDef("Theta")
+		val projectId = ProjectId("uuid-theta")
+		// The backup's journal was clean and cached a hash that may still match the server.
+		writeProjectSyncData(def, cleanProjectSyncData(hash = "theta-hash"))
+
+		markProjectRestored(def, ffs, json)
+
+		val result = createSynchronizer()
+			.probeUnchangedProjects(listOf(SyncedProjectDefinition(def, projectId)))
+
+		assertTrue(result.isEmpty(), "the restored project must get a full sync to be conflict-checked")
+		coVerify(exactly = 0) { serverProjectsApi.probeProjectChanges(any()) }
+	}
+
+	@Test
+	fun `probe does not skip a restored project that a lite sync re-cached`() = runTest {
+		val def = projectDef("Iota")
+		val projectId = ProjectId("uuid-iota")
+		writeProjectSyncData(def, cleanProjectSyncData(hash = "iota-hash").copy(verifyAllEntities = true))
 
 		val result = createSynchronizer()
 			.probeUnchangedProjects(listOf(SyncedProjectDefinition(def, projectId)))

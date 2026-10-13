@@ -194,6 +194,98 @@ class FetchLocalDataOperationTest : BaseTest() {
 		)
 	}
 
+	private fun stubSceneHashes(vararg ids: Int) {
+		mockSynchronizers.synchronizers.forEach { synchronizer ->
+			when (synchronizer) {
+				is ClientSceneSynchronizer ->
+					coEvery { synchronizer.hashEntities(any()) } returns produceEntityHashSet(*ids)
+
+				else -> coEvery { synchronizer.hashEntities(any()) } returns emptySet()
+			}
+		}
+	}
+
+	@Test
+	fun `A restored project marks every entity dirty against its best known baseline`() = runTest {
+		val op = createOperation(getProjectDef(PROJECT_2_NAME))
+
+		val restored = ProjectSynchronizationData(
+			lastId = 5,
+			newIds = listOf(5),
+			lastSync = Instant.fromEpochSeconds(123456),
+			dirty = listOf(EntityOriginalState(1, "old-hash-1"), EntityOriginalState(4, null)),
+			deletedIds = emptySet(),
+			syncedHashes = mapOf(1 to "confirmed-1", 2 to "confirmed-2"),
+			verifyAllEntities = true,
+		)
+		coEvery { projectMetadataDatasource.loadProjectId(any()) } returns projId
+		coEvery { syncJournal.loadSyncData() } returns restored
+		stubSceneHashes(1, 2, 3, 4)
+
+		val result = op.execute(
+			state = InitialSyncOperationState(false),
+			onProgress = mockk(relaxed = true),
+			onLog = mockk(relaxed = true),
+			onConflict = mockk(relaxed = true),
+			onComplete = mockk(relaxed = true),
+		)
+
+		assertTrue(isSuccess(result))
+		val data = result.data
+		assertIs<FetchLocalDataState>(data)
+		// Dirty means uploaded rather than replaced by the server's copy; the baseline means the
+		// server conflict-checks that upload. The new id (5) uploads as new regardless.
+		val expected = restored.copy(
+			dirty = listOf(
+				EntityOriginalState(1, "old-hash-1"),
+				EntityOriginalState(4, null),
+				EntityOriginalState(2, "confirmed-2"),
+				EntityOriginalState(3, "hash-3"),
+			),
+			syncedHashes = mapOf(
+				1 to "confirmed-1",
+				2 to "confirmed-2",
+				3 to "hash-3",
+				4 to "hash-4",
+			),
+			verifyAllEntities = false,
+		)
+		assertEquals(expected, data.clientSyncData)
+		coVerify { syncJournal.saveSyncData(expected) }
+	}
+
+	@Test
+	fun `A lite sync leaves a restored project's check for the next full sync`() = runTest {
+		val op = createOperation(getProjectDef(PROJECT_2_NAME))
+
+		val restored = ProjectSynchronizationData(
+			lastId = 3,
+			newIds = emptyList(),
+			lastSync = Instant.fromEpochSeconds(123456),
+			dirty = emptyList(),
+			deletedIds = emptySet(),
+			syncedHashes = mapOf(1 to "confirmed-1"),
+			verifyAllEntities = true,
+		)
+		coEvery { projectMetadataDatasource.loadProjectId(any()) } returns projId
+		coEvery { syncJournal.loadSyncData() } returns restored
+		stubSceneHashes(1, 2, 3)
+
+		val result = op.execute(
+			state = InitialSyncOperationState(true),
+			onProgress = mockk(relaxed = true),
+			onLog = mockk(relaxed = true),
+			onConflict = mockk(relaxed = true),
+			onComplete = mockk(relaxed = true),
+		)
+
+		assertTrue(isSuccess(result))
+		val data = result.data
+		assertIs<FetchLocalDataState>(data)
+		assertEquals(restored, data.clientSyncData)
+		coVerify(exactly = 0) { syncJournal.saveSyncData(any()) }
+	}
+
 	@Test
 	fun `Handle Failure`() = runTest {
 		val op = createOperation(getProjectDef(PROJECT_2_NAME))

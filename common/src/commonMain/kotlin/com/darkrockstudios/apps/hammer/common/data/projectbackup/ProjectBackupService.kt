@@ -229,9 +229,17 @@ open class ProjectBackupService(
 		}
 	}
 
-	// The content is already in place, so a failure here is logged rather than reported as a failed
-	// restore. The id is set even when the migration fails: startup retries the migration, which
-	// keeps an id already present.
+	/**
+	 * Settles a restored project's identity and sync state. A restored project is never treated as
+	 * in sync with the server: its sync state is the backup's, describing the server at backup time,
+	 * so the next sync conflict-checks every entity and the project data against the server instead
+	 * of letting either side silently overwrite the other. This holds whether or not the id changed.
+	 * A backup with no sync journal predates the project's first sync, and syncs as such.
+	 *
+	 * The content is already in place, so a failure here is logged rather than reported as a failed
+	 * restore. The id is set even when the migration fails: startup retries the migration, which
+	 * keeps an id already present.
+	 */
 	@Suppress("TooGenericExceptionCaught")
 	private suspend fun adoptIdentity(targetDef: ProjectDef, liveId: ProjectId?) {
 		try {
@@ -243,6 +251,11 @@ open class ProjectBackupService(
 			projectsRepository.setProjectId(targetDef, liveId ?: ProjectId.randomUUID())
 		} catch (e: Exception) {
 			Napier.e("Restored '${targetDef.name}' but failed to set its project id", e)
+		}
+		try {
+			projectsRepository.resetSyncStateAfterRestore(targetDef)
+		} catch (e: Exception) {
+			Napier.e("Restored '${targetDef.name}' but failed to reset its sync state", e)
 		}
 	}
 

@@ -815,3 +815,12 @@ transfer. If a baseline is absent the server cannot conflict-check and accepts t
 project whose sync data predates this scheme backfills a baseline for every in-sync Entity on its
 first sync (the local hash, which equals the server's for an agreed Entity) before any upload relies
 on it.
+
+A project restored from a backup carries the backup's journal, which describes the server as it was
+then: an Entity it lists as clean would download the server's newer copy over the restored one
+without a conflict. The restore therefore flags the journal (`verifyAllEntities`), and the next
+full sync marks every local Entity dirty against its best known baseline (the confirmed hash, else
+the dirty entry's, else the local hash). Every Entity the server changed since the backup then
+conflicts; those it did not are left out of the update sequence and the dirty entry is dropped.
+Clearing the baselines instead would be wrong here: a null `original hash` lets the restored copy
+overwrite the server unchecked.

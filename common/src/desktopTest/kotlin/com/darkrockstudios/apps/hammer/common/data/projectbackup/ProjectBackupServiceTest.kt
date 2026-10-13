@@ -53,6 +53,7 @@ class ProjectBackupServiceTest {
 	init {
 		every { projectsRepository.getProjectId(any()) } returns liveId
 		coEvery { projectsRepository.setProjectId(any(), any()) } just Runs
+		coEvery { projectsRepository.resetSyncStateAfterRestore(any()) } just Runs
 	}
 
 	private class TestService(
@@ -499,6 +500,86 @@ class ProjectBackupServiceTest {
 		coVerify { projectsRepository.setProjectId(projectDef, capture(assigned)) }
 		verify(exactly = 0) { projectsRepository.getProjectId(any()) }
 		assertNotEquals(liveId, assigned.captured)
+	}
+
+	@Test
+	fun `restoreBackup over the live project resets its sync state once the id is settled`() = runTest {
+		every { clock.now() } returns Instant.parse("2025-12-28T16:29:00Z")
+		every { projectsRepository.getProjectsDirectory() } returns "/projects".toPath().toHPath()
+		every { projectsRepository.getProjectDirectory("Test Project") } returns
+			"/projects/Test Project".toPath().toHPath()
+		every { globalSettingsStore.globalSettings } returns
+			GlobalSettings(projectsDirectory = "/projects", maxBackups = 5)
+
+		val projectDir = "/projects/Test Project".toPath()
+		fileSystem.createDirectories(projectDir)
+		fileSystem.write(projectDir / "project.toml") { writeUtf8("[info]") }
+
+		val repo = realRepo()
+		val projectDef = ProjectDef("Test Project", projectDir.toHPath())
+		val backupDef = repo.createBackup(projectDef)
+		assertNotNull(backupDef)
+
+		assertTrue(repo.restoreBackup(backupDef, projectDef.path))
+
+		// The id is unchanged, so setProjectId clears nothing; the reset must still run, and on the
+		// migrated files.
+		coVerifyOrder {
+			dataMigrator.migrateProject(projectDef)
+			projectsRepository.setProjectId(projectDef, liveId)
+			projectsRepository.resetSyncStateAfterRestore(projectDef)
+		}
+	}
+
+	@Test
+	fun `restoreBackup resets the sync state when no live project is replaced`() = runTest {
+		every { clock.now() } returns Instant.parse("2025-12-28T16:29:00Z")
+		every { projectsRepository.getProjectsDirectory() } returns "/projects".toPath().toHPath()
+		every { projectsRepository.getProjectDirectory("Test Project") } returns
+			"/projects/Test Project".toPath().toHPath()
+		every { globalSettingsStore.globalSettings } returns
+			GlobalSettings(projectsDirectory = "/projects", maxBackups = 5)
+
+		val projectDir = "/projects/Test Project".toPath()
+		fileSystem.createDirectories(projectDir)
+		fileSystem.write(projectDir / "project.toml") { writeUtf8("[info]") }
+
+		val repo = realRepo()
+		val projectDef = ProjectDef("Test Project", projectDir.toHPath())
+		val backupDef = repo.createBackup(projectDef)
+		assertNotNull(backupDef)
+		fileSystem.deleteRecursively(projectDir)
+
+		assertTrue(repo.restoreBackup(backupDef, projectDef.path))
+
+		coVerifyOrder {
+			projectsRepository.setProjectId(projectDef, any())
+			projectsRepository.resetSyncStateAfterRestore(projectDef)
+		}
+	}
+
+	@Test
+	fun `restoreBackup succeeds when resetting the sync state fails`() = runTest {
+		every { clock.now() } returns Instant.parse("2025-12-28T16:29:00Z")
+		every { projectsRepository.getProjectsDirectory() } returns "/projects".toPath().toHPath()
+		every { projectsRepository.getProjectDirectory("Test Project") } returns
+			"/projects/Test Project".toPath().toHPath()
+		every { globalSettingsStore.globalSettings } returns
+			GlobalSettings(projectsDirectory = "/projects", maxBackups = 5)
+		coEvery { projectsRepository.resetSyncStateAfterRestore(any()) } throws IOException("disk full")
+
+		val projectDir = "/projects/Test Project".toPath()
+		fileSystem.createDirectories(projectDir)
+		fileSystem.write(projectDir / "project.toml") { writeUtf8("original") }
+
+		val repo = realRepo()
+		val projectDef = ProjectDef("Test Project", projectDir.toHPath())
+		val backupDef = repo.createBackup(projectDef)
+		assertNotNull(backupDef)
+		fileSystem.write(projectDir / "project.toml") { writeUtf8("changed") }
+
+		assertTrue(repo.restoreBackup(backupDef, projectDef.path), "the content is already in place")
+		assertEquals("original", fileSystem.read(projectDir / "project.toml") { readUtf8() })
 	}
 
 	@Test
