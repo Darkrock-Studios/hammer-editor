@@ -35,7 +35,6 @@ class ServerLayerTest {
 	fun `services never reference siblings or upward`() = assertNoViolations(
 		"A server Service may only reference Repositories and Data Sources",
 		dependencies.filter { isService(it.owner) && (isService(it.target) || isUseCase(it.target)) },
-		baseline = setOf("AccountDeletionService -> PenNameService"),
 	)
 
 	@Test
@@ -58,8 +57,5 @@ class ServerLayerTest {
 					.filter(::isDatasource)
 					.map { Dependency(file.name, it, lazy = false) }
 			},
-		baseline = setOf(
-			"StoryKudosRoutes -> ProjectDao",
-		),
 	)
 }

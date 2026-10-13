@@ -182,7 +182,6 @@ fun Route.frontend() {
 		accountsRepository,
 		projectsRepository,
 		projectAccessRepository,
-		projectDao,
 		storyKudosRepository,
 	)
 	if (serverConfig.richLinkPreviews) {

@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.kudos
 
 import com.darkrockstudios.apps.hammer.database.AccountDao
+import com.darkrockstudios.apps.hammer.database.ProjectDao
 import com.darkrockstudios.apps.hammer.database.StoryKudosDao
 import com.darkrockstudios.apps.hammer.database.UserDataPurgeDao
 import com.darkrockstudios.apps.hammer.e2e.util.SharedPostgresTestDatabase
@@ -41,7 +42,7 @@ class StoryKudosRepositoryTest : BaseTest() {
 		setupKoin()
 
 		accountDao = AccountDao(db)
-		repo = StoryKudosRepository(StoryKudosDao(db))
+		repo = StoryKudosRepository(StoryKudosDao(db), ProjectDao(db))
 
 		readers.clear()
 		authorId = createAccount("author@example.com")

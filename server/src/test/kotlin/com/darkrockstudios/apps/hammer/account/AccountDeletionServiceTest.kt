@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.Account
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.database.UserDataPurgeDao
 import com.darkrockstudios.apps.hammer.project.ProjectSyncKey
+import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.project.ProjectSynchronizationSession
 import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
@@ -29,7 +30,7 @@ class AccountDeletionServiceTest {
 	private lateinit var accountsRepository: AccountsRepository
 
 	@MockK
-	private lateinit var penNameService: PenNameService
+	private lateinit var projectAccessRepository: ProjectAccessRepository
 
 	@MockK
 	private lateinit var whiteListRepository: WhiteListRepository
@@ -73,7 +74,7 @@ class AccountDeletionServiceTest {
 		clock = TestClock(Clock.System)
 		service = AccountDeletionService(
 			accountsRepository = accountsRepository,
-			penNameService = penNameService,
+			projectAccessRepository = projectAccessRepository,
 			whiteListRepository = whiteListRepository,
 			userDataPurgeDao = userDataPurgeDao,
 			projectsSyncManager = projectsSyncManager,
@@ -98,7 +99,8 @@ class AccountDeletionServiceTest {
 			accountsRepository.forceLogout(email)
 			projectsSyncManager.terminateSession(userId)
 			projectSyncManager.terminateSessions(any())
-			penNameService.releasePenName(userId)
+			accountsRepository.updatePenName(userId, null)
+			projectAccessRepository.deleteAllAccessForUser(userId)
 			accountsRepository.updateCommunityMember(userId, false)
 		}
 	}
@@ -121,7 +123,8 @@ class AccountDeletionServiceTest {
 		val result = service.softDelete(userId)
 
 		assertTrue(isSuccess(result))
-		coVerify { penNameService.releasePenName(userId) }
+		coVerify { accountsRepository.updatePenName(userId, null) }
+		coVerify { projectAccessRepository.deleteAllAccessForUser(userId) }
 		coVerify { accountsRepository.forceLogout(email) }
 	}
 
@@ -134,7 +137,7 @@ class AccountDeletionServiceTest {
 
 		assertTrue(result.isFailure)
 		coVerify(exactly = 0) { accountsRepository.forceLogout(any()) }
-		coVerify(exactly = 0) { penNameService.releasePenName(any()) }
+		coVerify(exactly = 0) { accountsRepository.updatePenName(any(), any()) }
 	}
 
 	@Test
@@ -145,7 +148,7 @@ class AccountDeletionServiceTest {
 
 		assertTrue(result.isFailure)
 		coVerify(exactly = 0) { accountsRepository.markDeleted(any(), any()) }
-		coVerify(exactly = 0) { penNameService.releasePenName(any()) }
+		coVerify(exactly = 0) { accountsRepository.updatePenName(any(), any()) }
 	}
 
 	@Test

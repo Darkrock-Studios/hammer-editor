@@ -245,7 +245,7 @@ fun mainModule(
 	single {
 		AccountDeletionService(
 			accountsRepository = get(),
-			penNameService = get(),
+			projectAccessRepository = get(),
 			whiteListRepository = get(),
 			userDataPurgeDao = get(),
 			projectsSyncManager = get(named(PROJECTS_SYNC_MANAGER)),

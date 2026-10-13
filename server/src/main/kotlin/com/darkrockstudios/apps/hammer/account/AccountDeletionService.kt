@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.Account
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.database.UserDataPurgeDao
 import com.darkrockstudios.apps.hammer.project.ProjectSyncKey
+import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.project.ProjectSynchronizationSession
 import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
@@ -21,7 +22,7 @@ import kotlin.time.Instant
  */
 class AccountDeletionService(
 	private val accountsRepository: AccountsRepository,
-	private val penNameService: PenNameService,
+	private val projectAccessRepository: ProjectAccessRepository,
 	private val whiteListRepository: WhiteListRepository,
 	private val userDataPurgeDao: UserDataPurgeDao,
 	private val projectsSyncManager: SyncSessionManager<Long, ProjectsSynchronizationSession>,
@@ -67,7 +68,9 @@ class AccountDeletionService(
 		accountsRepository.forceLogout(account.email)
 		projectsSyncManager.terminateSession(userId)
 		projectSyncManager.terminateSessions { it.userId == userId }
-		penNameService.releasePenName(userId)
+		// Releases the pen name, as PenNameService.releasePenName does
+		accountsRepository.updatePenName(userId, null)
+		projectAccessRepository.deleteAllAccessForUser(userId)
 		accountsRepository.updateCommunityMember(userId, false)
 
 		return SResult.success(Unit)
