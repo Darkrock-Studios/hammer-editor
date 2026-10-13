@@ -7,10 +7,10 @@ import io.github.aakira.napier.Napier
 import java.io.File
 
 /**
- * Service for sharing files on Android using FileProvider and share intents.
+ * Data Source for sharing files on Android using FileProvider and share intents.
  * Can be used to share any file from the app (backups, exports, documents, etc.)
  */
-class AndroidShareService(private val context: Context) {
+class AndroidShareDatasource(private val context: Context) {
 
 	/**
 	 * Share a file using Android's share sheet.

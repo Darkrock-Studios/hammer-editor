@@ -38,6 +38,7 @@ data class Dependency(val owner: String, val target: String, val lazy: Boolean) 
 
 private val typeName = Regex("""\b[A-Z]\w*""")
 private val lazyWrapper = Regex("""^(Lazy|Provider)<|^\(\)\s*->""")
+private val interfaceDelegate = Regex("""\bby\s+(\w+)\b(?!\s*[(<.])""")
 private val koinLookup = Regex("""\b(?:get|getOrNull|\w*[iI]nject\w*)<([^()]+?)>\s*\(""")
 
 /**
@@ -45,11 +46,16 @@ private val koinLookup = Regex("""\b(?:get|getOrNull|\w*[iI]nject\w*)<([^()]+?)>
  * property, or resolves from Koin in its body (`get<T>()`, `inject<T>()`).
  */
 fun KoScope.dependencies(): List<Dependency> = classes(includeNested = true).flatMap { cls ->
+	// A decorator (`class X(private val delegate: Y) : Iface by delegate`) wraps its own
+	// layer by design, so the wrapped instance is not counted as a dependency.
+	val delegates = interfaceDelegate.findAll(cls.text.substringBefore('{')).map { it.groupValues[1] }.toSet()
+
 	val constructorTypes = cls.constructors
 		.flatMap { it.parameters }
+		.filterNot { it.name in delegates }
 		.map { it.type.text to lazyWrapper.containsMatchIn(it.type.text) }
 
-	val propertyTypes = cls.properties(includeNested = false).mapNotNull { prop ->
+	val propertyTypes = cls.properties(includeNested = false).filterNot { it.name in delegates }.mapNotNull { prop ->
 		val declared = prop.type?.text ?: return@mapNotNull null
 		declared to (prop.hasDelegate() || lazyWrapper.containsMatchIn(declared))
 	}

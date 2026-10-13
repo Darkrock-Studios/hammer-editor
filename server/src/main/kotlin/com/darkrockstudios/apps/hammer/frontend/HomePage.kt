@@ -5,7 +5,7 @@ import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.frontend.utils.canonicalUrl
 import com.darkrockstudios.apps.hammer.frontend.utils.msg
 import com.darkrockstudios.apps.hammer.frontend.utils.webSiteJsonLd
-import com.darkrockstudios.apps.hammer.utilities.MarkdownService
+import com.darkrockstudios.apps.hammer.utilities.MarkdownRenderer
 import com.darkrockstudios.apps.hammer.plugin.NoticeSlot
 import com.darkrockstudios.apps.hammer.plugin.putAllowedUsersNotice
 import io.ktor.server.mustache.*
@@ -38,14 +38,14 @@ private const val IOS_APP_STORE_ID = "6770841038"
 
 fun Route.homePage(
 	configRepository: ConfigRepository,
-	markdownService: MarkdownService,
+	markdownRenderer: MarkdownRenderer,
 ) {
 	route("/") {
 		get {
 			val model = call.withDefaults()
 			model["page_stylesheet"] = "/assets/css/home.css"
 			model["preloadImages"] = MASTHEAD_PRELOADS
-			val serverMessageHtml = markdownService.markdownToSafeHtml(
+			val serverMessageHtml = markdownRenderer.markdownToSafeHtml(
 				configRepository.get(AdminServerConfig.SERVER_MESSAGE)
 			)
 			val contactEmail = configRepository.get(AdminServerConfig.CONTACT_EMAIL)

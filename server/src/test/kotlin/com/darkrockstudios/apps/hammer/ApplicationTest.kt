@@ -18,7 +18,7 @@ import com.darkrockstudios.apps.hammer.project.ServerWritingActivityRepository
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.story.StoryRendererService
-import com.darkrockstudios.apps.hammer.utilities.MarkdownService
+import com.darkrockstudios.apps.hammer.utilities.MarkdownRenderer
 import com.darkrockstudios.apps.hammer.utils.BaseTest
 import com.darkrockstudios.apps.hammer.utils.setupKtorTestKoin
 import io.ktor.client.request.get
@@ -69,7 +69,7 @@ class ApplicationTest : BaseTest() {
 	private lateinit var bioService: BioService
 
 	@MockK
-	private lateinit var markdownService: MarkdownService
+	private lateinit var markdownRenderer: MarkdownRenderer
 
 	private lateinit var testModule: org.koin.core.module.Module
 
@@ -95,7 +95,7 @@ class ApplicationTest : BaseTest() {
 			single { penNameService }
 			single { passwordResetRepository }
 			single { bioService }
-			single { markdownService }
+			single { markdownRenderer }
 			single { mockk<com.darkrockstudios.apps.hammer.review.ReviewRepository>(relaxed = true) }
 			single { mockk<com.darkrockstudios.apps.hammer.storyideas.ServerIdeasRepository>(relaxed = true) }
 			single { mockk<com.darkrockstudios.apps.hammer.database.ProjectDao>(relaxed = true) }

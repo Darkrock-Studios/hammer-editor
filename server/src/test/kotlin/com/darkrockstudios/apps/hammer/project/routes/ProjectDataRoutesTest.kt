@@ -31,7 +31,7 @@ import com.darkrockstudios.apps.hammer.project.ServerWritingActivityRepository
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.story.StoryRendererService
-import com.darkrockstudios.apps.hammer.utilities.MarkdownService
+import com.darkrockstudios.apps.hammer.utilities.MarkdownRenderer
 import com.darkrockstudios.apps.hammer.utilities.SResult
 import com.darkrockstudios.apps.hammer.utils.BaseTest
 import com.darkrockstudios.apps.hammer.utils.setupKtorTestKoin
@@ -76,7 +76,7 @@ class ProjectDataRoutesTest : BaseTest() {
 	@MockK(relaxed = true) private lateinit var penNameService: PenNameService
 	@MockK(relaxed = true) private lateinit var bioService: BioService
 	@MockK(relaxed = true) private lateinit var passwordResetRepository: PasswordResetRepository
-	@MockK(relaxed = true) private lateinit var markdownService: MarkdownService
+	@MockK(relaxed = true) private lateinit var markdownRenderer: MarkdownRenderer
 
 	private val json: Json = Json { ignoreUnknownKeys = true }
 	private lateinit var testModule: org.koin.core.module.Module
@@ -123,7 +123,7 @@ class ProjectDataRoutesTest : BaseTest() {
 			single { penNameService }
 			single { bioService }
 			single { passwordResetRepository }
-			single { markdownService }
+			single { markdownRenderer }
 			single { mockk<com.darkrockstudios.apps.hammer.review.ReviewRepository>(relaxed = true) }
 			single { mockk<com.darkrockstudios.apps.hammer.storyideas.ServerIdeasRepository>(relaxed = true) }
 			single { mockk<com.darkrockstudios.apps.hammer.database.ProjectDao>(relaxed = true) }

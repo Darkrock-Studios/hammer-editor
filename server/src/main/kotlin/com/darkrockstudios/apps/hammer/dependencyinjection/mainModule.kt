@@ -106,7 +106,7 @@ import com.darkrockstudios.apps.hammer.storyideas.ServerIdeasRepository
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
 import com.darkrockstudios.apps.hammer.utilities.DiskCache
 import com.darkrockstudios.apps.hammer.utilities.DiskCachePruneJob
-import com.darkrockstudios.apps.hammer.utilities.MarkdownService
+import com.darkrockstudios.apps.hammer.utilities.MarkdownRenderer
 import com.darkrockstudios.apps.hammer.utilities.ServerSecretManager
 import com.darkrockstudios.apps.hammer.utilities.SystemTouchableFileSystem
 import com.darkrockstudios.apps.hammer.utilities.TokenHasher
@@ -257,7 +257,7 @@ fun mainModule(
 	single<ReviewRepository>()
 
 	single<ServerSecretManager>()
-	single<MarkdownService>()
+	single<MarkdownRenderer>()
 	single { KeyringCodec(get(), get()) }
 	single<ServerSecretProvider> { buildSecretProvider(get<ServerConfig>().secret, get()) }
 	single {

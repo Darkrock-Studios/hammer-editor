@@ -30,7 +30,7 @@ import com.darkrockstudios.apps.hammer.review.ReviewSuggestionStatus
 import com.darkrockstudios.apps.hammer.review.ReviewSuggestionType
 import com.darkrockstudios.apps.hammer.story.SceneHierarchyResult
 import com.darkrockstudios.apps.hammer.story.StoryRendererService
-import com.darkrockstudios.apps.hammer.utilities.MarkdownService
+import com.darkrockstudios.apps.hammer.utilities.MarkdownRenderer
 import com.darkrockstudios.apps.hammer.utilities.ServerResult
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
@@ -62,7 +62,7 @@ fun Route.reviewFrontend(
 	storyRendererService: StoryRendererService,
 	accountsRepository: AccountsRepository,
 	projectDao: ProjectDao,
-	markdownService: MarkdownService,
+	markdownRenderer: MarkdownRenderer,
 	reviewInviteMailer: ReviewInviteMailer?,
 	reviewSubmittedMailer: ReviewSubmittedMailer?,
 	clock: Clock,

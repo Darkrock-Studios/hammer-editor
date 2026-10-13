@@ -18,7 +18,7 @@ import com.darkrockstudios.apps.hammer.frontend.utils.respondHtmlWithToast
 import com.darkrockstudios.apps.hammer.frontend.utils.respondTemplateWithToast
 import com.darkrockstudios.apps.hammer.frontend.utils.respondToast
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
-import com.darkrockstudios.apps.hammer.utilities.MarkdownService
+import com.darkrockstudios.apps.hammer.utilities.MarkdownRenderer
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
 import io.ktor.htmx.HxResponseHeaders
 import io.ktor.http.ContentType
@@ -48,7 +48,7 @@ fun Route.dashboardPage(
 	bioService: BioService,
 	accountDeletionService: AccountDeletionService,
 	serverConfig: ServerConfig,
-	markdownService: MarkdownService
+	markdownRenderer: MarkdownRenderer
 ) {
 	authenticatedOnly {
 		route("/dashboard") {
@@ -61,7 +61,7 @@ fun Route.dashboardPage(
 				val penNameUrl = account.pen_name?.let { ProjectName.penNameForUrl(it) }
 
 				// Parse bio markdown to sanitized HTML
-				val bioHtml = account.bio?.let { markdownService.markdownToSafeHtml(it) }
+				val bioHtml = account.bio?.let { markdownRenderer.markdownToSafeHtml(it) }
 
 				val model = call.withDefaults(
 					mapOf(
@@ -199,7 +199,7 @@ fun Route.dashboardPage(
 					BioService.BioResult.VALID -> {
 						// Re-render the bio section with updated data
 						val updatedAccount = accountsRepository.getAccount(session.userId)
-						val bioHtml = updatedAccount.bio?.let { markdownService.markdownToSafeHtml(it) }
+						val bioHtml = updatedAccount.bio?.let { markdownRenderer.markdownToSafeHtml(it) }
 
 						val model = call.withDefaults(
 							mapOf(

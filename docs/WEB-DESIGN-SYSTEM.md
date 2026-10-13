@@ -515,7 +515,7 @@ h3 {
 
 ### Story Prose
 
-`.story-content` (in `story.css`) styles the sanitized HTML that `MarkdownService` produces from an
+`.story-content` (in `story.css`) styles the sanitized HTML that `MarkdownRenderer` produces from an
 author's scenes. It is the one place where the page renders text the site did not write, so every
 element markdown can emit has a rule:
 
@@ -534,7 +534,7 @@ element markdown can emit has a rule:
 | `code`       | Courier; a tinted pill when it sits inline in a paragraph or list item          |
 | `a`          | Accent-colored, underlined with a softened amber rule                           |
 
-`br` needs no rule: it is the break `MarkdownService` emits for each blank line between two
+`br` needs no rule: it is the break `MarkdownRenderer` emits for each blank line between two
 paragraphs, and it inherits the prose line height.
 
 Prose is laid out as the author typed it, which is what they see in the editor: every newline in a

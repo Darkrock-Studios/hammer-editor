@@ -20,7 +20,7 @@ import java.util.regex.Pattern
  * content: CommonMark has no strikethrough, so `~~struck~~` reached the page as
  * literal tildes.
  */
-class MarkdownService {
+class MarkdownRenderer {
 	private val markdownFlavour = GFMFlavourDescriptor()
 	private val markdownParser = MarkdownParser(markdownFlavour)
 

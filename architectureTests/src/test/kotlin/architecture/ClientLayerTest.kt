@@ -37,7 +37,6 @@ class ClientLayerTest {
 		baseline = setOf(
 			"IdeasDatasource -> GlobalSettingsStore",
 			"IdeasSyncDatasource -> IdeasDatasource",
-			"IosRebasingGlobalSettingsDatasource -> GlobalSettingsFilesystemDatasource",
 			"SceneDraftIdDatasource -> SceneDraftsDatasource",
 			"SceneDraftsDatasource -> SceneDatasource",
 			"SyncDataDatasource -> IdAllocator",
@@ -68,7 +67,6 @@ class ClientLayerTest {
 		"A Service may only reference Repositories, Foundation primitives and Data Sources",
 		edges(SERVICE, SERVICE, USE_CASE, COMPONENT),
 		baseline = setOf(
-			"BackupManagerService -> AndroidShareService",
 			"StatisticsService -> ReferenceIndexService",
 			"TagIndexService -> BuildTagIndexUseCase",
 		),

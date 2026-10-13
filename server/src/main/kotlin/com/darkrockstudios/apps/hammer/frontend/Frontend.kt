@@ -47,7 +47,7 @@ import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
 import com.darkrockstudios.apps.hammer.secret.KeyringManager
 import com.darkrockstudios.apps.hammer.story.StoryRendererService
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
-import com.darkrockstudios.apps.hammer.utilities.MarkdownService
+import com.darkrockstudios.apps.hammer.utilities.MarkdownRenderer
 import com.darkrockstudios.apps.hammer.utilities.ServerSecretManager
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
@@ -93,7 +93,7 @@ fun Route.frontend() {
 	val accountDeletionService: AccountDeletionService by inject()
 	val serverConfig: ServerConfig by inject()
 	val passwordResetRepository: PasswordResetRepository by inject()
-	val markdownService: MarkdownService by inject()
+	val markdownRenderer: MarkdownRenderer by inject()
 	val reviewRepository: com.darkrockstudios.apps.hammer.review.ReviewRepository by inject()
 	val projectDao: com.darkrockstudios.apps.hammer.database.ProjectDao by inject()
 	val metricsRepository: MetricsRepository by inject()
@@ -124,8 +124,8 @@ fun Route.frontend() {
 	robotsRoutes()
 	sitemapRoutes(serverConfig, accountsRepository, projectAccessRepository, configRepository)
 	setupPage(serverConfig)
-	homePage(configRepository, markdownService)
-	aboutPage(configRepository, serverConfig, accountsRepository, projectAccessRepository, markdownService)
+	homePage(configRepository, markdownRenderer)
+	aboutPage(configRepository, serverConfig, accountsRepository, projectAccessRepository, markdownRenderer)
 	termsOfServicePage()
 	privacyPolicyPage()
 	localeRoutes()
@@ -146,7 +146,7 @@ fun Route.frontend() {
 		bioService,
 		accountDeletionService,
 		serverConfig,
-		markdownService,
+		markdownRenderer,
 	)
 	storyPage(
 		storyRendererService,
@@ -162,12 +162,12 @@ fun Route.frontend() {
 		storyRendererService = storyRendererService,
 		accountsRepository = accountsRepository,
 		projectDao = projectDao,
-		markdownService = markdownService,
+		markdownRenderer = markdownRenderer,
 		reviewInviteMailer = emailService?.let { com.darkrockstudios.apps.hammer.review.ReviewInviteMailer(it) },
 		reviewSubmittedMailer = emailService?.let { com.darkrockstudios.apps.hammer.review.ReviewSubmittedMailer(it) },
 		clock = clock,
 	)
-	authorPage(accountsRepository, projectAccessRepository, markdownService, serverConfig)
+	authorPage(accountsRepository, projectAccessRepository, markdownRenderer, serverConfig)
 	publicStoryPage(
 		storyRendererService,
 		projectAccessRepository,

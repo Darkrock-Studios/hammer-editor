@@ -36,7 +36,7 @@ actual val platformModule = module {
 	} bind PlatformSettings::class
 	single<PlatformSpellCheckerFactory>()
 	factory<FocusModeService>()
-	single<AndroidShareService>()
+	single<AndroidShareDatasource>()
 	single<BackupManagerService>()
 	single<GlobalSettingsDatasource> { get<GlobalSettingsFilesystemDatasource>() }
 	single<AppUpdater> { NoOpAppUpdater }
