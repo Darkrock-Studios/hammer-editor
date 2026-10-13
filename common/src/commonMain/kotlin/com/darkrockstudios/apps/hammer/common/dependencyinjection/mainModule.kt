@@ -121,9 +121,8 @@ import com.darkrockstudios.apps.hammer.common.server.ServerIdeasApi
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectsApi
 import com.darkrockstudios.apps.hammer.common.server.WritingActivityApi
-import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectDictionaryService
 import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectDictionaryUseCase
-import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectSpellCheckRepository
+import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectSpellCheckService
 import com.darkrockstudios.apps.hammer.common.spellcheck.SpellCheckRepository
 import com.russhwolf.settings.Settings
 import io.ktor.client.HttpClient
@@ -319,8 +318,7 @@ val mainModule = module {
 		scoped<ProjectDataDatasource>()
 		scoped<ProjectDataRepository>()
 		scoped<ProjectDataConflictBroker>()
-		scoped<ProjectSpellCheckRepository>()
-		scoped<ProjectDictionaryService>()
+		scoped<ProjectSpellCheckService>()
 		factory<ProjectDictionaryUseCase>()
 
 		scoped<ReferenceIndexDatasource>()

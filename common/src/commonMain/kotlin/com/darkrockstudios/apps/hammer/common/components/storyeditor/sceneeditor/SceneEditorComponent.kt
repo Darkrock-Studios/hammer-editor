@@ -23,7 +23,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRe
 import com.darkrockstudios.apps.hammer.common.data.references.AutoConfirmReferencesUseCase
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectDictionaryUseCase
-import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectSpellCheckRepository
+import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectSpellCheckService
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -51,7 +51,7 @@ class SceneEditorComponent(
 	private val draftsRepository: SceneDraftRepository by projectInject()
 	private val autoConfirmReferences: AutoConfirmReferencesUseCase by projectInject()
 
-	private val spellCheckRepository: ProjectSpellCheckRepository by projectInject()
+	private val spellCheckService: ProjectSpellCheckService by projectInject()
 	private val projectDictionary: ProjectDictionaryUseCase by projectInject()
 
 	private val _state = MutableValue(
@@ -104,7 +104,7 @@ class SceneEditorComponent(
 		}
 
 		scope.launch {
-			spellCheckRepository.dictionaryFlow.collect { dictionary ->
+			spellCheckService.dictionaryFlow.collect { dictionary ->
 				_state.update { it.copy(spellChecker = dictionary) }
 			}
 		}

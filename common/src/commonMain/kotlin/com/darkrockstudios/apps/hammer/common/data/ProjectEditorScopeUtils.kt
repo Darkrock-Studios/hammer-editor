@@ -3,7 +3,7 @@ package com.darkrockstudios.apps.hammer.common.data
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
-import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectDictionaryService
+import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectSpellCheckService
 import io.github.aakira.napier.Napier
 import kotlinx.atomicfu.atomic
 import kotlinx.atomicfu.getAndUpdate
@@ -118,7 +118,7 @@ suspend fun initializeProjectScope(projectDef: ProjectDef, temporary: Boolean = 
 }
 
 private fun initializeEditorServices(projScope: Scope) {
-	projScope.get<ProjectDictionaryService>().initialize()
+	projScope.get<ProjectSpellCheckService>().initialize()
 }
 
 /** Returns true the first time [scopeId] is marked. */

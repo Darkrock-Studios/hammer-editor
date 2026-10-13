@@ -9,7 +9,7 @@ import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteCont
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndex
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndexService
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
-import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectSpellCheckRepository
+import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectSpellCheckService
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -58,7 +58,7 @@ class NotesComponentTest : ComponentTest() {
 				scoped { notesRepository }
 				scoped { tagIndexService }
 			}
-			single<ProjectSpellCheckRepository> {
+			single<ProjectSpellCheckService> {
 				mockk(relaxed = true) {
 					every { spellCheckAllowed } returns emptyFlow()
 				}

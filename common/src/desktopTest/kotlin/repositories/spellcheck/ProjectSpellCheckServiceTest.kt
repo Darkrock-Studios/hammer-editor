@@ -15,7 +15,7 @@ import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournalD
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
-import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectSpellCheckRepository
+import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectSpellCheckService
 import com.darkrockstudios.apps.hammer.common.spellcheck.SpellCheckRepository
 import com.darkrockstudios.apps.hammer.common.util.Locale
 import com.darkrockstudios.libs.platformspellchecker.PlatformSpellChecker
@@ -36,11 +36,11 @@ import kotlin.test.assertEquals
 import kotlin.test.assertSame
 
 /**
- * Classical-style: a real [ProjectSpellCheckRepository] over a real [SpellCheckRepository],
+ * Classical-style: a real [ProjectSpellCheckService] over a real [SpellCheckRepository],
  * [GlobalSettingsStore] and [ProjectDataRepository] (FakeFileSystem-backed). Only the
  * platform spell checker factory and settings persistence are mocked.
  */
-class ProjectSpellCheckRepositoryTest : BaseTest() {
+class ProjectSpellCheckServiceTest : BaseTest() {
 
 	private val projectDef = ProjectDef(
 		name = "Test Project",
@@ -91,11 +91,12 @@ class ProjectSpellCheckRepositoryTest : BaseTest() {
 		return GlobalSettingsStore(globalSettingsDatasource, serverSettingsDatasource)
 	}
 
-	private fun repository(store: GlobalSettingsStore) = ProjectSpellCheckRepository(
+	private fun repository(store: GlobalSettingsStore) = ProjectSpellCheckService(
 		spellCheckRepository = SpellCheckRepository(store, factory),
 		globalSettingsStore = store,
 		projectDataRepository = projectDataRepository,
 		projectDef = projectDef,
+		encyclopediaRepository = mockk(relaxed = true),
 	)
 
 	@Test

@@ -13,7 +13,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectDictionaryUseCase
-import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectSpellCheckRepository
+import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectSpellCheckService
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -29,7 +29,7 @@ class FocusModeComponent(
 ) : ProjectComponentBase(projectDef, componentContext), FocusMode {
 
 	private val settingsRepository: GlobalSettingsStore by inject()
-	private val spellCheckRepository: ProjectSpellCheckRepository by projectInject()
+	private val spellCheckService: ProjectSpellCheckService by projectInject()
 	private val projectDictionary: ProjectDictionaryUseCase by projectInject()
 	private val focusModeService: FocusModeService by inject()
 	private val sceneEditor: SceneEditorService by projectInject()
@@ -166,7 +166,7 @@ class FocusModeComponent(
 		}
 
 		scope.launch {
-			spellCheckRepository.dictionaryFlow.collect { dictionary ->
+			spellCheckService.dictionaryFlow.collect { dictionary ->
 				_state.update { it.copy(spellChecker = dictionary) }
 			}
 		}

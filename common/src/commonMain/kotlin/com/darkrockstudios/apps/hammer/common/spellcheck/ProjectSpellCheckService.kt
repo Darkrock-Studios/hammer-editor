@@ -3,9 +3,13 @@ package com.darkrockstudios.apps.hammer.common.spellcheck
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectDefaultDispatcher
+import com.darkrockstudios.libs.platformspellchecker.PlatformSpellChecker
 import io.github.aakira.napier.Napier
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -15,8 +19,11 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.isActive
@@ -24,22 +31,25 @@ import kotlinx.coroutines.launch
 import org.koin.core.component.KoinComponent
 import org.koin.core.scope.Scope
 import org.koin.core.scope.ScopeCallback
-import kotlin.time.Duration.Companion.milliseconds
 
 /**
- * Feeds the project's user dictionary words, plus its Encyclopedia entry names and
- * aliases, to the spell checker as session words for the lifetime of the project
- * scope. Gated on spell check being enabled; the encyclopedia half is further gated
- * on the global feature setting and the project's own toggle, all live-reactive.
+ * Project-aware spell check. It is a view of the global [SpellCheckRepository] in which the
+ * dictionary is withheld (null) while the project's declared language doesn't leniently match
+ * the user's spell-check dictionary locale; an unset project language never gates.
+ *
+ * Once [initialize]d it also feeds the project's user dictionary words, plus its Encyclopedia
+ * entry names and aliases, to the spell checker as session words for the lifetime of the
+ * project scope. That is gated on spell check being enabled; the encyclopedia half is further
+ * gated on the global feature setting and the project's own toggle, all live-reactive.
  */
 @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
-class ProjectDictionaryService(
-	private val projectDef: ProjectDef,
-	private val encyclopediaRepository: EncyclopediaRepository,
-	private val projectSpellCheckRepository: ProjectSpellCheckRepository,
+class ProjectSpellCheckService(
+	val projectDef: ProjectDef,
 	private val spellCheckRepository: SpellCheckRepository,
+	globalSettingsStore: GlobalSettingsStore,
+	private val projectDataRepository: ProjectDataRepository,
+	private val encyclopediaRepository: EncyclopediaRepository,
 ) : ScopeCallback, ProjectScoped, KoinComponent {
-
 	override val projectScope = ProjectDefScope(projectDef)
 
 	private val dispatcherDefault by injectDefaultDispatcher()
@@ -49,22 +59,66 @@ class ProjectDictionaryService(
 		projectScope.scope.registerCallback(this)
 	}
 
+	/** True while the project language allows the current dictionary locale. */
+	val spellCheckAllowed: Flow<Boolean> = combine(
+		globalSettingsStore.globalSettingsUpdates,
+		projectDataRepository.state,
+	) { settings, stored ->
+		isSpellCheckAllowedForProject(stored?.data?.language, settings.spellCheckSettings.locale)
+	}
+		.onStart { projectDataRepository.load() }
+		.distinctUntilChanged()
+
+	/** [SpellCheckRepository.dictionaryFlow] gated on [spellCheckAllowed]. */
+	val dictionaryFlow: Flow<PlatformSpellChecker?> = combine(
+		spellCheckRepository.dictionaryFlow,
+		spellCheckAllowed,
+	) { checker, allowed ->
+		if (allowed) checker else null
+	}.distinctUntilChanged()
+
+	/** The global spell-check master switch. */
+	val spellCheckEnabled: Flow<Boolean> = globalSettingsStore.globalSettingsUpdates
+		.map { it.spellCheckSettings.enabled }
+		.distinctUntilChanged()
+
+	/**
+	 * True while encyclopedia names feed the spell-check session dictionary:
+	 * the global setting AND this project's own toggle. Gates the feature's
+	 * per-entry UI as well as the word loading itself.
+	 */
+	val encyclopediaDictionaryEnabled: Flow<Boolean> = combine(
+		globalSettingsStore.globalSettingsUpdates,
+		projectDataRepository.state,
+	) { settings, stored ->
+		settings.spellCheckSettings.includeEncyclopediaNames &&
+			(stored?.data?.encyclopediaDictionary ?: true)
+	}
+		.onStart { projectDataRepository.load() }
+		.distinctUntilChanged()
+
+	/** The project's user-added dictionary words. Cleaned on read: the stored set may come from sync. */
+	val userDictionaryWords: Flow<Set<String>> = projectDataRepository.state
+		.map { stored -> normalizeStoredDictionaryWords(stored?.data?.dictionaryWords ?: emptySet()) }
+		.onStart { projectDataRepository.load() }
+		.distinctUntilChanged()
+
 	/** Starts watching for words to load; called from initializeProjectScope on project open. */
 	fun initialize() {
 		serviceScope.launch {
 			// Entries are only re-read when one changes or the feature toggles; a user word
 			// edit unions into the cached set without touching the encyclopedia on disk.
 			val encyclopediaWords = combine(
-				projectSpellCheckRepository.encyclopediaDictionaryEnabled,
+				encyclopediaDictionaryEnabled,
 				encyclopediaRepository.entryContentChangedFlow.onStart { emit(Unit) },
 			) { enabled, _ -> enabled }
 				.debounce(REBUILD_DEBOUNCE)
 				.mapLatest { enabled -> if (enabled) loadEncyclopediaWords() else emptySet() }
 
 			combine(
-				projectSpellCheckRepository.spellCheckEnabled,
+				spellCheckEnabled,
 				encyclopediaWords,
-				projectSpellCheckRepository.userDictionaryWords,
+				userDictionaryWords,
 			) { spellCheckOn, encyclopedia, userWords ->
 				// Both the exact spelling and the tokenized form go in: the tokenizer lowercases,
 				// which is what the encyclopedia path relies on, but a mixed-case word like
@@ -103,13 +157,13 @@ class ProjectDictionaryService(
 		} catch (e: CancellationException) {
 			throw e
 		} catch (t: Throwable) {
-			Napier.e("ProjectDictionaryService encyclopedia reload failed", t)
+			Napier.e("ProjectSpellCheckService encyclopedia reload failed", t)
 			return emptySet()
 		}
 	}
 
 	override fun onScopeClose(scope: Scope) {
-		serviceScope.cancel("ProjectDictionaryService closed")
+		serviceScope.cancel("ProjectSpellCheckService closed")
 		spellCheckRepository.clearSessionWords(projectDef)
 	}
 

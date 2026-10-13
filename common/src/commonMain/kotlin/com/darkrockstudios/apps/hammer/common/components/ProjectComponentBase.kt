@@ -7,7 +7,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndexService
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagSuggesting
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
-import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectSpellCheckRepository
+import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectSpellCheckService
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -18,7 +18,7 @@ abstract class ProjectComponentBase(
 	override val projectScope = ProjectDefScope(projectDef)
 
 	private val tagIndexService: TagIndexService by projectInject()
-	private val projectSpellCheck: ProjectSpellCheckRepository by projectInject()
+	private val projectSpellCheck: ProjectSpellCheckService by projectInject()
 
 	override fun suggestTags(prefix: String, limit: Int): List<String> =
 		tagIndexService.suggest(prefix, limit).map { it.tag }

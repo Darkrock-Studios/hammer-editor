@@ -13,7 +13,7 @@ import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEv
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
-import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectSpellCheckRepository
+import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectSpellCheckService
 import io.mockk.*
 import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.emptyFlow
@@ -121,7 +121,7 @@ abstract class TimeLineTestBase : BaseTest() {
 				scoped { timelineRepo } bind TimeLineRepository::class
 				scoped { idRepo } bind IdAllocator::class
 			}
-			single<ProjectSpellCheckRepository> {
+			single<ProjectSpellCheckService> {
 				mockk(relaxed = true) {
 					every { spellCheckAllowed } returns emptyFlow()
 				}

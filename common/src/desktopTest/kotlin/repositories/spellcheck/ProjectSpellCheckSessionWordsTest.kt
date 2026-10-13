@@ -17,8 +17,7 @@ import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.ExternalFileIo
-import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectDictionaryService
-import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectSpellCheckRepository
+import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectSpellCheckService
 import com.darkrockstudios.apps.hammer.common.spellcheck.SpellCheckRepository
 import com.darkrockstudios.apps.hammer.common.util.Locale
 import com.darkrockstudios.libs.platformspellchecker.PlatformSpellChecker
@@ -45,12 +44,12 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 /**
- * Classical-style: a real [ProjectDictionaryService] over a real [EncyclopediaRepository],
+ * Classical-style: a real [ProjectSpellCheckService] over a real [EncyclopediaRepository],
  * [ProjectDataRepository], [GlobalSettingsStore] and [SpellCheckRepository] (FakeFileSystem-backed).
  * Only the platform spell checker factory and settings/sync persistence are mocked.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-class ProjectDictionaryServiceTest : BaseTest() {
+class ProjectSpellCheckSessionWordsTest : BaseTest() {
 
 	private val projectDef = getProjectDef(PROJECT_EMPTY_NAME)
 
@@ -137,16 +136,12 @@ class ProjectDictionaryServiceTest : BaseTest() {
 		spellCheckRepository = SpellCheckRepository(globalSettingsStore, factory)
 	}
 
-	private fun createService() = ProjectDictionaryService(
+	private fun createService() = ProjectSpellCheckService(
 		projectDef = projectDef,
-		encyclopediaRepository = encyclopediaRepository,
-		projectSpellCheckRepository = ProjectSpellCheckRepository(
-			spellCheckRepository = spellCheckRepository,
-			globalSettingsStore = globalSettingsStore,
-			projectDataRepository = projectDataRepository,
-			projectDef = projectDef,
-		),
 		spellCheckRepository = spellCheckRepository,
+		globalSettingsStore = globalSettingsStore,
+		projectDataRepository = projectDataRepository,
+		encyclopediaRepository = encyclopediaRepository,
 	).also { it.initialize() }
 
 	private suspend fun createEntry(
