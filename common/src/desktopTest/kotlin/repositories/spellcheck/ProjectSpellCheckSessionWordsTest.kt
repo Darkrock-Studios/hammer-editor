@@ -108,6 +108,7 @@ class ProjectSpellCheckSessionWordsTest : BaseTest() {
 			scope<ProjectDefScope> {
 				scoped { projectDef }
 				scoped { syncJournalDatasource }
+				scoped { encyclopediaRepository }
 			}
 		})
 
@@ -141,7 +142,6 @@ class ProjectSpellCheckSessionWordsTest : BaseTest() {
 		spellCheckRepository = spellCheckRepository,
 		globalSettingsStore = globalSettingsStore,
 		projectDataRepository = projectDataRepository,
-		encyclopediaRepository = encyclopediaRepository,
 	).also { it.initialize() }
 
 	private suspend fun createEntry(

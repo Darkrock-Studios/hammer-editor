@@ -96,7 +96,6 @@ class ProjectSpellCheckServiceTest : BaseTest() {
 		globalSettingsStore = store,
 		projectDataRepository = projectDataRepository,
 		projectDef = projectDef,
-		encyclopediaRepository = mockk(relaxed = true),
 	)
 
 	@Test

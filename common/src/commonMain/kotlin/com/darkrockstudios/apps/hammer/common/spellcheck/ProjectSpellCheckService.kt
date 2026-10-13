@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectDefaultDispatcher
@@ -48,9 +49,11 @@ class ProjectSpellCheckService(
 	private val spellCheckRepository: SpellCheckRepository,
 	globalSettingsStore: GlobalSettingsStore,
 	private val projectDataRepository: ProjectDataRepository,
-	private val encyclopediaRepository: EncyclopediaRepository,
 ) : ScopeCallback, ProjectScoped, KoinComponent {
 	override val projectScope = ProjectDefScope(projectDef)
+
+	// Lazy so consumers that only read the flows don't construct the encyclopedia.
+	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
 
 	private val dispatcherDefault by injectDefaultDispatcher()
 	private val serviceScope = CoroutineScope(dispatcherDefault)
