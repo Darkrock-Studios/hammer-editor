@@ -16,18 +16,7 @@ class IdAllocator(private val projectDef: ProjectDef) : ProjectScoped {
 	override val projectScope = ProjectDefScope(projectDef)
 	private val syncJournal: SyncJournal by projectInject()
 
-	private val idDatasources: Set<IdDatasource> by lazy {
-		EntityType.entries
-			.map { entityType ->
-				when (entityType) {
-					EntityType.Scene -> projectScope.get<SceneIdDatasource>()
-					EntityType.Note -> projectScope.get<NotesIdDatasource>()
-					EntityType.TimelineEvent -> projectScope.get<TimeLineEventIdDatasource>()
-					EntityType.EncyclopediaEntry -> projectScope.get<EncyclopediaIdDatasource>()
-					EntityType.SceneDraft -> projectScope.get<SceneDraftIdDatasource>()
-				}
-			}.toSet()
-	}
+	private val idDatasources: Set<IdDatasource> by lazy { getIdSources(projectScope) }
 
 	private val mutex = reentrantLock()
 
@@ -38,12 +27,7 @@ class IdAllocator(private val projectDef: ProjectDef) : ProjectScoped {
 
 	suspend fun findNextId() {
 		mutex.withLock {
-			var lastId = -1
-
-			idDatasources.forEach { handler ->
-				val highestId = handler.findHighestId(projectDef)
-				lastId = max(lastId, highestId)
-			}
+			var lastId = computeMaxId(projectDef, idDatasources)
 
 			if (syncJournal.isServerSynchronized()) {
 				syncJournal.deletedIds().maxOrNull()?.let { maxDeletedId ->
@@ -75,6 +59,37 @@ class IdAllocator(private val projectDef: ProjectDef) : ProjectScoped {
 	}
 
 	companion object {
-		const val FIRST_ID = 1
+		/**
+		 * Every entity ID the project has on disk. Resolves the ID Data Sources from the
+		 * project's Koin scope, so that scope must be open.
+		 */
+		fun findEntityIds(projectDef: ProjectDef): Set<Int> =
+			getIdSources(projectDef).flatMapTo(mutableSetOf()) { it.findIds(projectDef) }
+
+		/**
+		 * The highest entity ID the project has on disk, or -1 if it has none. Stateless: it
+		 * knows nothing of IDs that were claimed and then deleted, see [SyncJournal.deletedIds].
+		 */
+		private fun computeMaxId(projectDef: ProjectDef, idDatasources: Set<IdDatasource>): Int {
+			return idDatasources.maxOfOrNull { it.findHighestId(projectDef) } ?: -1
+		}
+
+		private fun getIdSources(projectDef: ProjectDef): Set<IdDatasource> {
+			val projectScope = ProjectDefScope(projectDef)
+			return getIdSources(projectScope)
+		}
+
+		private fun getIdSources(projectScope: ProjectDefScope): Set<IdDatasource> {
+			return EntityType.entries
+				.map { entityType ->
+					when (entityType) {
+						EntityType.Scene -> projectScope.get<SceneIdDatasource>()
+						EntityType.Note -> projectScope.get<NotesIdDatasource>()
+						EntityType.TimelineEvent -> projectScope.get<TimeLineEventIdDatasource>()
+						EntityType.EncyclopediaEntry -> projectScope.get<EncyclopediaIdDatasource>()
+						EntityType.SceneDraft -> projectScope.get<SceneDraftIdDatasource>()
+					}
+				}.toSet()
+		}
 	}
 }

@@ -76,7 +76,7 @@ import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.ClientIdeasSyn
 import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.IdeasSyncDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntitySynchronizers
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataDatasource
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournalDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.BackupOperation
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.CollateIdsOperation
@@ -336,7 +336,7 @@ val mainModule = module {
 		scoped<CleanupReferencesOnEntryDeleteUseCase>()
 		scoped<SceneMetadataReferenceRemapper>() bind ReferenceRemapper::class
 
-		scoped<SyncDataDatasource>()
+		scoped<SyncJournalDatasource>()
 
 		scoped<ClientSceneSynchronizer>()
 		scoped<ClientNoteSynchronizer>()

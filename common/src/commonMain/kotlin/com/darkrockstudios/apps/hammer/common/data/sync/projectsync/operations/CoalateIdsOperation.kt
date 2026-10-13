@@ -11,7 +11,7 @@ import com.darkrockstudios.apps.hammer.sync_log_client_data_loaded
 class CollateIdsOperation(
 	projectDef: ProjectDef,
 	private val strRes: StrRes,
-	private val syncDataDatasource: SyncDataDatasource,
+	private val syncJournalDatasource: SyncJournalDatasource,
 ) : SyncOperation(projectDef) {
 	override suspend fun execute(
 		state: SyncOperationState,
@@ -28,7 +28,7 @@ class CollateIdsOperation(
 		state.clientSyncData =
 			state.clientSyncData.copy(currentSyncId = state.serverSyncData.syncId)
 		state.apply {
-			syncDataDatasource.saveSyncData(clientSyncData)
+			syncJournalDatasource.saveSyncData(clientSyncData)
 
 			val combinedDeletions = serverSyncData.deletedIds + clientSyncData.deletedIds
 			val serverDeletedIds =

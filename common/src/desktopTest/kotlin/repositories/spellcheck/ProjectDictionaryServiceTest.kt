@@ -12,7 +12,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.Ser
 import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataDatasource
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournalDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
@@ -104,11 +104,11 @@ class ProjectDictionaryServiceTest : BaseTest() {
 		every { syncJournal.isServerSynchronized() } returns false
 		coEvery { idAllocator.claimNextId() } answers { nextId++ }
 
-		val syncDataDatasource = mockk<SyncDataDatasource>(relaxed = true)
+		val syncJournalDatasource = mockk<SyncJournalDatasource>(relaxed = true)
 		setupKoin(module {
 			scope<ProjectDefScope> {
 				scoped { projectDef }
-				scoped { syncDataDatasource }
+				scoped { syncJournalDatasource }
 			}
 		})
 

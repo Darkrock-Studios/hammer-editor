@@ -9,10 +9,9 @@ class TimeLineEventIdDatasource(
 	private val fileSystem: FileSystem,
 	private val toml: Toml
 ) : IdDatasource {
-	override fun findHighestId(projectDef: ProjectDef): Int {
+	override fun findIds(projectDef: ProjectDef): Set<Int> {
 		val filePath = TimeLineDatasource.getTimelineFilePath(projectDef)
 		val timeline = TimeLineDatasource.loadTimeline(filePath, fileSystem, toml)
-		val maxId = timeline.events.maxOfOrNull { it.id }
-		return maxId ?: -1
+		return timeline.events.map { it.id }.toSet()
 	}
 }

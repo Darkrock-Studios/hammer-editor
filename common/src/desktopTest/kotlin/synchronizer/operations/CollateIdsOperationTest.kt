@@ -23,7 +23,7 @@ import kotlin.test.assertTrue
 class CollateIdsOperationTest : BaseTest() {
 
 	@MockK(relaxed = true)
-	private lateinit var syncDataDatasource: SyncDataDatasource
+	private lateinit var syncJournalDatasource: SyncJournalDatasource
 
 	private lateinit var strRes: TestStrRes
 
@@ -39,7 +39,7 @@ class CollateIdsOperationTest : BaseTest() {
 		return CollateIdsOperation(
 			projectDef = projectDef,
 			strRes = strRes,
-			syncDataDatasource = syncDataDatasource,
+			syncJournalDatasource = syncJournalDatasource,
 		)
 	}
 
@@ -74,7 +74,7 @@ class CollateIdsOperationTest : BaseTest() {
 
 		// The in-progress sync id must be stamped and persisted so an interrupted sync can recover.
 		assertEquals(beganResponse.syncId, data.clientSyncData.currentSyncId)
-		coVerify { syncDataDatasource.saveSyncData(projectData.copy(currentSyncId = beganResponse.syncId)) }
+		coVerify { syncJournalDatasource.saveSyncData(projectData.copy(currentSyncId = beganResponse.syncId)) }
 
 		data.collatedIds.apply {
 			assertEquals(setOf(7, 8, 9), combinedDeletions)

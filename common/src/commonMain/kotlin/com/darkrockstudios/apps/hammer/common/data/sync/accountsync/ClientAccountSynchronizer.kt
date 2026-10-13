@@ -240,7 +240,7 @@ class ClientAccountSynchronizer(
 	@Suppress("TooGenericExceptionCaught", "SwallowedException")
 	private suspend fun loadProjectSyncData(projectDef: ProjectDef): ProjectSynchronizationData? =
 		withContext(Dispatchers.IO) {
-			val path = projectDef.path.toOkioPath() / SyncDataDatasource.SYNC_FILE_NAME
+			val path = projectDef.path.toOkioPath() / SyncJournalDatasource.SYNC_FILE_NAME
 			if (!fileSystem.exists(path)) return@withContext null
 			try {
 				fileSystem.read(path) { json.decodeFromString<ProjectSynchronizationData>(readUtf8()) }

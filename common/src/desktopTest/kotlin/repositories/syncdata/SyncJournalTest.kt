@@ -1,16 +1,17 @@
 package repositories.syncdata
 
-import PROJECT_1_NAME
+import PROJECT_EMPTY_NAME
 import PROJECT_2_NAME
-import com.darkrockstudios.apps.hammer.base.http.EntityType
 import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.base.http.readJson
 import com.darkrockstudios.apps.hammer.base.http.writeJson
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
-import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
+import com.darkrockstudios.apps.hammer.common.data.id.datasources.*
+import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataDatasource.Companion.SYNC_FILE_NAME
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournalDatasource.Companion.SYNC_FILE_NAME
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.util.NetworkConnectivity
 import createProject
@@ -28,6 +29,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
+import org.koin.dsl.module
 import utils.BaseTest
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -37,13 +39,7 @@ class SyncJournalTest : BaseTest() {
 
 	lateinit var ffs: FakeFileSystem
 	lateinit var json: Json
-	lateinit var datasource: SyncDataDatasource
-
-	@MockK
-	lateinit var idAllocator: IdAllocator
-
-	@MockK
-	lateinit var entitySynchronizers: EntitySynchronizers
+	lateinit var datasource: SyncJournalDatasource
 
 	@MockK
 	lateinit var globalSettingsStore: GlobalSettingsStore
@@ -61,14 +57,22 @@ class SyncJournalTest : BaseTest() {
 	}
 
 	private fun createRepository(projectDef: ProjectDef): SyncJournal {
-		datasource = SyncDataDatasource(
+		// A missing journal is rebuilt from the entities on disk, found through the project scope
+		setupKoin(module {
+			single { SceneIdDatasource(ffs) }
+			single { NotesIdDatasource(ffs) }
+			single { EncyclopediaIdDatasource(ffs) }
+			single { TimeLineEventIdDatasource(ffs, createTomlSerializer()) }
+			single { SceneDraftIdDatasource(ffs) }
+		})
+
+		datasource = SyncJournalDatasource(
 			projectDef = projectDef,
 			fileSystem = ffs,
 			json = json,
-			idAllocator = idAllocator,
-			entitySynchronizers = entitySynchronizers,
 		)
 		return SyncJournal(
+			projectDef = projectDef,
 			globalSettingsStore = globalSettingsStore,
 			networkConnectivity = networkConnectivity,
 			datasource = datasource,
@@ -91,21 +95,20 @@ class SyncJournalTest : BaseTest() {
 		assertFalse(repo.isServerSynchronized())
 	}
 
+	private fun writeNote(projectDef: ProjectDef, id: Int) {
+		val path = NotesDatasource.getNotePath(id, projectDef, ffs).toOkioPath()
+		ffs.createDirectories(path.parent!!)
+		ffs.write(path) { writeUtf8("") }
+	}
+
 	@Test
 	fun `Create new sync data with missing IDs`() = runTest {
-		createProject(ffs, PROJECT_1_NAME)
-		val projectDef = getProject1Def()
+		createProject(ffs, PROJECT_EMPTY_NAME)
+		val projectDef = getProjectDef(PROJECT_EMPTY_NAME)
+		writeNote(projectDef, 1)
+		writeNote(projectDef, 3)
 
 		every { globalSettingsStore.serverSettings } returns null
-		every { idAllocator.peekLastId() } returns 4
-		val idSlot = slot<Int>()
-		coEvery { entitySynchronizers.findEntityType(capture(idSlot)) } answers {
-			when (idSlot.captured) {
-				1 -> EntityType.Note
-				3 -> EntityType.Scene
-				else -> null
-			}
-		}
 
 		val repo = createRepository(projectDef)
 		val path = syncPath(projectDef)
@@ -120,14 +123,51 @@ class SyncJournalTest : BaseTest() {
 		assertEquals(
 			ProjectSynchronizationData(
 				currentSyncId = null,
-				lastId = 4,
+				lastId = 3,
 				newIds = emptyList(),
 				lastSync = Instant.DISTANT_PAST,
 				dirty = emptyList(),
-				deletedIds = setOf(2, 4)
+				deletedIds = setOf(2)
 			),
 			loadedData
 		)
+	}
+
+	@Test
+	fun `Deleting the newest entity with no journal still records its ID`() = runTest {
+		createProject(ffs, PROJECT_EMPTY_NAME)
+		val projectDef = getProjectDef(PROJECT_EMPTY_NAME)
+		writeNote(projectDef, 1)
+		writeNote(projectDef, 3)
+
+		every { globalSettingsStore.isServerSynchronized() } returns true
+
+		val repo = createRepository(projectDef)
+		// Entity 5 was the newest and is already gone from disk
+		repo.recordIdDeletion(5)
+
+		val loadedData = ffs.readJson<ProjectSynchronizationData>(syncPath(projectDef), json)!!
+		assertEquals(5, loadedData.lastId)
+		assertEquals(setOf(2, 4, 5), loadedData.deletedIds)
+	}
+
+	@Test
+	fun `Claiming an ID with no journal counts every earlier ID as used`() = runTest {
+		createProject(ffs, PROJECT_EMPTY_NAME)
+		val projectDef = getProjectDef(PROJECT_EMPTY_NAME)
+		writeNote(projectDef, 1)
+		writeNote(projectDef, 3)
+
+		every { globalSettingsStore.isServerSynchronized() } returns true
+
+		val repo = createRepository(projectDef)
+		// IDs 4 and 5 were claimed and deleted before the journal existed
+		repo.recordNewId(6)
+
+		val loadedData = ffs.readJson<ProjectSynchronizationData>(syncPath(projectDef), json)!!
+		assertEquals(5, loadedData.lastId)
+		assertEquals(listOf(6), loadedData.newIds)
+		assertEquals(setOf(2, 4, 5), loadedData.deletedIds)
 	}
 
 	@Test
@@ -136,8 +176,6 @@ class SyncJournalTest : BaseTest() {
 		val projectDef = getProjectDef(PROJECT_2_NAME)
 
 		every { globalSettingsStore.serverSettings } returns null
-		every { idAllocator.peekLastId() } returns 4
-		coEvery { entitySynchronizers.findEntityType(any()) } returns null
 
 		val repo = createRepository(projectDef)
 		val path = syncPath(projectDef)
@@ -258,7 +296,6 @@ class SyncJournalTest : BaseTest() {
 		createProject(ffs, PROJECT_2_NAME)
 		val projectDef = getProjectDef(PROJECT_2_NAME)
 		writeDirtyData(syncPath(projectDef))
-		every { idAllocator.peekLastId() } returns 25
 		every { globalSettingsStore.serverIsSetup() } returns false
 		every { globalSettingsStore.globalSettings.automaticSyncing } returns true
 		coEvery { networkConnectivity.hasActiveConnection() } returns true
@@ -292,7 +329,7 @@ class SyncJournalTest : BaseTest() {
 		repo.recordSyncedHash(1, "confirmed-hash")
 		repo.markEntityAsDirty(1)
 
-		val loadedData = ffs.readJson<ProjectSynchronizationData>(syncPath(projectDef), json)
+		val loadedData = ffs.readJson<ProjectSynchronizationData>(syncPath(projectDef), json)!!
 		assertEquals(
 			listOf(EntityOriginalState(1, "confirmed-hash")),
 			loadedData?.dirty
@@ -310,7 +347,7 @@ class SyncJournalTest : BaseTest() {
 		// null and the server will accept the upload without a conflict check.
 		repo.markEntityAsDirty(1)
 
-		val loadedData = ffs.readJson<ProjectSynchronizationData>(syncPath(projectDef), json)
+		val loadedData = ffs.readJson<ProjectSynchronizationData>(syncPath(projectDef), json)!!
 		assertEquals(
 			listOf(EntityOriginalState(1, null)),
 			loadedData?.dirty
@@ -330,7 +367,7 @@ class SyncJournalTest : BaseTest() {
 		repo.recordNewId(newId1)
 		repo.recordNewId(newId2)
 
-		val loadedData = ffs.readJson<ProjectSynchronizationData>(syncPath(projectDef), json)
+		val loadedData = ffs.readJson<ProjectSynchronizationData>(syncPath(projectDef), json)!!
 		assertEquals(
 			listOf(newId1, newId2),
 			loadedData?.newIds
@@ -350,7 +387,7 @@ class SyncJournalTest : BaseTest() {
 		repo.recordIdDeletion(newId1)
 		repo.recordIdDeletion(newId2)
 
-		val loadedData = ffs.readJson<ProjectSynchronizationData>(syncPath(projectDef), json)
+		val loadedData = ffs.readJson<ProjectSynchronizationData>(syncPath(projectDef), json)!!
 		assertEquals(
 			setOf(24, 25, newId1, newId2),
 			loadedData?.deletedIds
@@ -381,7 +418,7 @@ class SyncJournalTest : BaseTest() {
 
 		repo.recordIdDeletion(26)
 
-		val loadedData = ffs.readJson<ProjectSynchronizationData>(syncPath(projectDef), json)
+		val loadedData = ffs.readJson<ProjectSynchronizationData>(syncPath(projectDef), json)!!
 		assertEquals(emptyList<Int>(), loadedData?.newIds)
 		assertFalse(loadedData?.deletedIds?.contains(26) ?: true)
 	}
@@ -425,7 +462,7 @@ class SyncJournalTest : BaseTest() {
 		)
 		repo.saveSyncData(newData)
 
-		val loadedData = ffs.readJson<ProjectSynchronizationData>(syncPath(projectDef), json)
+		val loadedData = ffs.readJson<ProjectSynchronizationData>(syncPath(projectDef), json)!!
 		assertEquals(
 			newData,
 			loadedData
@@ -441,7 +478,7 @@ class SyncJournalTest : BaseTest() {
 
 		val deletedIds = repo.deletedIds()
 
-		val loadedData = ffs.readJson<ProjectSynchronizationData>(syncPath(projectDef), json)
+		val loadedData = ffs.readJson<ProjectSynchronizationData>(syncPath(projectDef), json)!!
 		assertEquals(
 			loadedData?.deletedIds,
 			deletedIds

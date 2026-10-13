@@ -11,7 +11,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.Ser
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
 import com.darkrockstudios.apps.hammer.common.data.projectdata.StoredProjectData
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataDatasource
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournalDatasource
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
@@ -71,11 +71,11 @@ class ProjectSpellCheckRepositoryTest : BaseTest() {
 		fileSystem = FakeFileSystem()
 		fileSystem.createDirectories("/projects/Test Project".toPath())
 
-		val syncDataDatasource = mockk<SyncDataDatasource>(relaxed = true)
+		val syncJournalDatasource = mockk<SyncJournalDatasource>(relaxed = true)
 		setupKoin(module {
 			scope<ProjectDefScope> {
 				scoped { projectDef }
-				scoped { syncDataDatasource }
+				scoped { syncJournalDatasource }
 			}
 		})
 

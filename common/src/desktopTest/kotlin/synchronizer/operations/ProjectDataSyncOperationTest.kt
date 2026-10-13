@@ -15,7 +15,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDataso
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
 import com.darkrockstudios.apps.hammer.common.data.projectdata.StoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.IdConflictResolutionState
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataDatasource
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournalDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessage
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.ProjectDataSyncOperation
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
@@ -56,7 +56,7 @@ class ProjectDataSyncOperationTest : BaseTest() {
 	private lateinit var globalSettingsStore: GlobalSettingsStore
 
 	@MockK(relaxed = true)
-	private lateinit var syncDataDatasource: SyncDataDatasource
+	private lateinit var syncJournalDatasource: SyncJournalDatasource
 
 	private lateinit var fileSystem: FakeFileSystem
 	private lateinit var toml: Toml
@@ -78,7 +78,7 @@ class ProjectDataSyncOperationTest : BaseTest() {
 		setupKoin(module {
 			scope<ProjectDefScope> {
 				scoped { projectDef }
-				scoped { syncDataDatasource }
+				scoped { syncJournalDatasource }
 			}
 		})
 

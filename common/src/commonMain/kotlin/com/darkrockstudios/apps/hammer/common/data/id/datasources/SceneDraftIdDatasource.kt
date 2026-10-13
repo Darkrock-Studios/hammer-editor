@@ -8,13 +8,13 @@ import okio.FileSystem
 class SceneDraftIdDatasource(
 	private val fileSystem: FileSystem
 ) : IdDatasource {
-	override fun findHighestId(projectDef: ProjectDef): Int {
+	override fun findIds(projectDef: ProjectDef): Set<Int> {
 		val draftsDir = SceneDraftsDatasource.getDraftsDirectory(projectDef, fileSystem).toOkioPath()
-		val maxId: Int = fileSystem.list(draftsDir)
+		return fileSystem.list(draftsDir)
 			.filter { sceneDir -> sceneDir.name.toIntOrNull() != null }
 			.flatMap { sceneDir -> fileSystem.list(sceneDir) }
 			.mapNotNull { path -> SceneDraftsDatasource.parseDraftFileName(path.name) }
-			.maxOfOrNull { it.id } ?: -1
-		return maxId
+			.map { it.id }
+			.toSet()
 	}
 }

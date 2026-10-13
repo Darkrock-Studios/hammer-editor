@@ -9,14 +9,12 @@ import okio.FileSystem
 class NotesIdDatasource(
 	private val fileSystem: FileSystem
 ) : IdDatasource {
-	override fun findHighestId(projectDef: ProjectDef): Int {
+	override fun findIds(projectDef: ProjectDef): Set<Int> {
 		val notesDir = NotesDatasource.getNotesDirectory(projectDef, fileSystem).toOkioPath()
 
-		val maxId: Int = fileSystem.listRecursively(notesDir)
-			.filterNotePathsOkio().maxOfOrNull { path ->
-				NotesDatasource.getNoteIdFromFilename(path.name)
-			} ?: -1
-
-		return maxId
+		return fileSystem.listRecursively(notesDir)
+			.filterNotePathsOkio()
+			.map { path -> NotesDatasource.getNoteIdFromFilename(path.name) }
+			.toSet()
 	}
 }
