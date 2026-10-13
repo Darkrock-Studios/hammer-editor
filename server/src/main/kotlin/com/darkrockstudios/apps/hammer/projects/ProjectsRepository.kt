@@ -217,15 +217,14 @@ class ProjectsRepository(
 			return SResult.success(ProjectCreatedResult(project = sameName, alreadyExisted = true))
 		}
 
-		return try {
-			val created = projectEntityDatasource.createProject(userId, projectName, projectId)
-			SResult.success(ProjectCreatedResult(project = created, alreadyExisted = false))
-		} catch (e: ProjectIdTakenException) {
-			// A concurrent retry of this same create can win the insert; that is still idempotent.
-			projectEntityDatasource.getProject(userId, projectId)
-				?.let { SResult.success(ProjectCreatedResult(project = it, alreadyExisted = true)) }
-				?: SResult.failure(e)
+		projectEntityDatasource.createProject(userId, projectName, projectId)?.let { created ->
+			return SResult.success(ProjectCreatedResult(project = created, alreadyExisted = false))
 		}
+
+		// A concurrent retry of this same create can win the insert; that is still idempotent.
+		return projectEntityDatasource.getProject(userId, projectId)
+			?.let { SResult.success(ProjectCreatedResult(project = it, alreadyExisted = true)) }
+			?: SResult.failure(ProjectIdTakenException(projectId))
 	}
 
 	suspend fun renameProject(

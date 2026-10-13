@@ -113,9 +113,7 @@ class ProjectsRepositoryCreateProjectTest : ProjectsRepositoryBaseTest() {
 
 	@Test
 	fun `Create Project, id held by another account is refused`() = runTest {
-		coEvery {
-			projectEntityDatasource.createProject(userId, projectName, projectId)
-		} throws ProjectIdTakenException(projectId)
+		coEvery { projectEntityDatasource.createProject(userId, projectName, projectId) } returns null
 
 		createProjectsRepository().apply {
 			val result = createProject(userId, syncId, projectName, projectId)
@@ -128,9 +126,7 @@ class ProjectsRepositoryCreateProjectTest : ProjectsRepositoryBaseTest() {
 	fun `Create Project, losing the insert to a concurrent retry of the same create is idempotent`() = runTest {
 		val created = ProjectDefinition(projectName, projectId)
 		coEvery { projectEntityDatasource.getProject(userId, projectId) } returnsMany listOf(null, created)
-		coEvery {
-			projectEntityDatasource.createProject(userId, projectName, projectId)
-		} throws ProjectIdTakenException(projectId)
+		coEvery { projectEntityDatasource.createProject(userId, projectName, projectId) } returns null
 
 		createProjectsRepository().apply {
 			val result = createProject(userId, syncId, projectName, projectId)

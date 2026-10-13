@@ -52,11 +52,9 @@ abstract class ExampleProjectRepository(
 		removeExampleProject()
 		platformInstall()
 		// The bundled project.toml carries no id, so every install mints its own.
-		val example = projectsRepository.findProject(PROJECT_NAME)
-		example?.let { projectsRepository.getProjectId(it) }
+		projectsRepository.findProject(PROJECT_NAME)?.let { projectsRepository.getProjectId(it) }
 
 		scope.launch {
-			if (example != null) projectsRepository.resolveDuplicateProjectIds()
 			fabricateExampleActivity()
 			globalSettingsStore.updateSettings {
 				it.copy(

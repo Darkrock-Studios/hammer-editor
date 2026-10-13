@@ -4,10 +4,8 @@ import android.content.Context
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.darkrockstudios.apps.hammer.android.isInternetConnected
-import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
-import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.data.temporaryProjectTask
@@ -15,7 +13,6 @@ import io.github.aakira.napier.Napier
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import org.koin.core.parameter.parametersOf
 
 class AddNoteWorker(
@@ -24,13 +21,11 @@ class AddNoteWorker(
 ) :
 	CoroutineWorker(context, workerParams), KoinComponent {
 
-	private val projectsRepository: ProjectsRepository by inject()
-
 	override suspend fun doWork(): Result {
 		val projectId = workerParams.inputData.getString(DATA_PROJECT_ID)
 		val noteText = workerParams.inputData.getString(DATA_NOTE_TEXT)
 
-		val projectDef = projectId?.ifBlank { null }?.let { projectsRepository.findProject(ProjectId(it)) }
+		val projectDef = findWidgetProject(projectId)
 
 		if (projectDef == null) {
 			Napier.e("Project not found: $projectId")

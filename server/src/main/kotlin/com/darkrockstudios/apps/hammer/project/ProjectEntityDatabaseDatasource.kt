@@ -53,16 +53,13 @@ class ProjectEntityDatabaseDatasource(
 		userId: Long,
 		projectName: String,
 		projectId: ProjectId,
-	): ProjectDefinition {
-		projectDao.createProject(
+	): ProjectDefinition? {
+		val inserted = projectDao.createProject(
 			userId = userId,
 			uuid = projectId,
 			projectName = projectName,
 		)
-		return ProjectDefinition(
-			name = projectName,
-			uuid = projectId,
-		)
+		return if (inserted) ProjectDefinition(name = projectName, uuid = projectId) else null
 	}
 
 	override suspend fun deleteProject(userId: Long, projectId: ProjectId): SResult<Unit> {

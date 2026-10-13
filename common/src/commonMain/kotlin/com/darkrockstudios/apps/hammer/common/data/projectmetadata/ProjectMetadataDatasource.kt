@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.common.data.projectmetadata
 
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.readTomlOrNull
+import com.darkrockstudios.apps.hammer.base.http.writeToml
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.Info
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -10,7 +11,6 @@ import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import io.github.aakira.napier.Napier
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
 import okio.Path
@@ -61,16 +61,7 @@ class ProjectMetadataDatasource(
 	}
 
 	fun saveMetadata(metadata: ProjectMetadata, projectDef: ProjectDef) {
-
-		val path = getMetadataPath(projectDef).toOkioPath()
-
-		val metadataText = toml.encodeToString<ProjectMetadata>(metadata)
-
-		fileSystem.write(path, false) {
-			writeUtf8(FILE_HEADER)
-			writeUtf8("\n")
-			writeUtf8(metadataText)
-		}
+		fileSystem.writeToml(getMetadataPath(projectDef).toOkioPath(), toml, metadata, header = FILE_HEADER)
 	}
 
 	fun updateMetadata(

@@ -101,9 +101,14 @@ inline fun <reified T : Any> FileSystem.readTomlOrNull(
 	}
 }
 
-inline fun <reified T> FileSystem.writeToml(path: Path, toml: Toml, obj: T) {
+/** [header], when given, is written on its own line above the encoded body. */
+inline fun <reified T> FileSystem.writeToml(path: Path, toml: Toml, obj: T, header: String? = null) {
+	val body = toml.encodeToString<T>(obj)
 	write(path) {
-		val jsonStr = toml.encodeToString<T>(obj)
-		writeUtf8(jsonStr)
+		if (header != null) {
+			writeUtf8(header)
+			writeUtf8("\n")
+		}
+		writeUtf8(body)
 	}
 }

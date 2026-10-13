@@ -24,6 +24,7 @@ import utils.BaseTest
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 class Migration3_4Test : BaseTest() {
 
@@ -56,6 +57,11 @@ class Migration3_4Test : BaseTest() {
 
 	private fun read(path: Path): String = ffs.read(path) { readUtf8() }
 
+	private fun migrator(vararg migrations: Pair<Int, Migration>) =
+		object : DataMigrator(mockk(relaxed = true), mockk(relaxed = true), metadataDatasource()) {
+			override fun getMigrators(): Map<Int, Migration> = migrations.toMap()
+		}
+
 	private fun writeMetadata(infoLines: String) {
 		ffs.write(metadataPath) {
 			writeUtf8("[info]\ncreated = 2022-12-30T07:08:02.691261600Z\ndataVersion = 3\n$infoLines")
@@ -66,11 +72,11 @@ class Migration3_4Test : BaseTest() {
 	fun `seeds the project id from the legacy server project id`() {
 		writeMetadata("serverProjectId = \"$SERVER_ID\"\n")
 
-		migration().migrate(projDef)
+		migrator(4 to migration()).migrateProject(projDef)
 
 		assertEquals(ProjectId(SERVER_ID), metadataDatasource().loadMetadata(projDef).info.projectId)
+		assertTrue(read(metadataPath).contains("projectId = \"$SERVER_ID\""))
 		assertFalse(read(metadataPath).contains("serverProjectId"))
-		assertEquals(3, metadataDatasource().loadMetadata(projDef).info.dataVersion)
 	}
 
 	@Test
@@ -98,12 +104,7 @@ class Migration3_4Test : BaseTest() {
 				override fun migrate(projectDef: ProjectDef) {}
 			}
 		}
-		val migrator = object : DataMigrator(mockk(relaxed = true), mockk(relaxed = true), metadataDatasource()) {
-			override fun getMigrators(): Map<Int, Migration> =
-				mapOf(2 to noOp(2), 3 to noOp(3), 4 to migration())
-		}
-
-		migrator.migrateProject(projDef)
+		migrator(2 to noOp(2), 3 to noOp(3), 4 to migration()).migrateProject(projDef)
 
 		assertEquals(4, metadataDatasource().loadMetadata(projDef).info.dataVersion)
 		assertEquals(ProjectId(SERVER_ID), metadataDatasource().loadProjectId(projDef))

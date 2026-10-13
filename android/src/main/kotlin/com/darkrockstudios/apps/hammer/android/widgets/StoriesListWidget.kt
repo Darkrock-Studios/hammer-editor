@@ -65,17 +65,16 @@ class StoriesListWidget : GlanceAppWidget() {
 }
 
 private val SAMPLE_ROWS = listOf(
-	StoryRow(projectId = ProjectId("sample-apophis"), name = "Apophis", path = "p/apophis", accentHex = "#5A66B5", words = 81402, lastAccessed = null),
-	StoryRow(projectId = ProjectId("sample-alice"), name = "Alice In Wonderland", path = "p/alice", accentHex = "#B65648", words = 26890, lastAccessed = null),
-	StoryRow(projectId = ProjectId("sample-pilgrim"), name = "The Pilgrimage", path = "p/pilgrim", accentHex = "#6750A4", words = 54310, lastAccessed = null),
-	StoryRow(projectId = ProjectId("sample-longshore"), name = "Longshore Drift", path = "p/longshore", accentHex = "#5B8A58", words = 18204, lastAccessed = null),
+	StoryRow(projectId = ProjectId("sample-apophis"), name = "Apophis", accentHex = "#5A66B5", words = 81402, lastAccessed = null),
+	StoryRow(projectId = ProjectId("sample-alice"), name = "Alice In Wonderland", accentHex = "#B65648", words = 26890, lastAccessed = null),
+	StoryRow(projectId = ProjectId("sample-pilgrim"), name = "The Pilgrimage", accentHex = "#6750A4", words = 54310, lastAccessed = null),
+	StoryRow(projectId = ProjectId("sample-longshore"), name = "Longshore Drift", accentHex = "#5B8A58", words = 18204, lastAccessed = null),
 )
 
 @Immutable
 private data class StoryRow(
 	val projectId: ProjectId,
 	val name: String,
-	val path: String,
 	val accentHex: String?,
 	val words: Int?,
 	val lastAccessed: Instant?,
@@ -90,18 +89,17 @@ private suspend fun loadRows(): List<StoryRow> {
 	val toml = koin.get<Toml>()
 
 	return projects.getProjects().map { def ->
-		val lastAccessed = runCatching { meta.loadMetadata(def).info.lastAccessed }.getOrNull()
+		val info = runCatching { meta.loadMetadata(def).info }.getOrNull()
 		val accentHex = runCatching {
 			loadStoredProjectData(def, fs, toml).data.theme?.primary
 		}.getOrNull()
 		val words = stats.loadTotalWords(def)
 		StoryRow(
-			projectId = projects.getProjectId(def),
+			projectId = info?.projectId ?: projects.getProjectId(def),
 			name = def.name,
-			path = def.path.path,
 			accentHex = accentHex,
 			words = words,
-			lastAccessed = lastAccessed,
+			lastAccessed = info?.lastAccessed,
 		)
 	}.sortedByDescending { it.lastAccessed }
 }
@@ -160,7 +158,7 @@ private fun StoriesListWidgetContent(rows: List<StoryRow>) {
 					}
 				} else {
 					LazyColumn(modifier = GlanceModifier.fillMaxSize()) {
-						items(rows, itemId = { it.path.hashCode().toLong() }) { row ->
+						items(rows, itemId = { it.projectId.id.hashCode().toLong() }) { row ->
 							StoryRowUi(row)
 						}
 					}

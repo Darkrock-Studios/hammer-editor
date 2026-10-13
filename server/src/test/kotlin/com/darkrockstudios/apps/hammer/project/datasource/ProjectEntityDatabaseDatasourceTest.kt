@@ -149,10 +149,18 @@ class ProjectEntityDatabaseDatasourceTest : BaseTest() {
 		val datasource = createDatasource()
 		datasource.createProject(otherUserId, "Their Project", projectDef.uuid)
 
-		assertFailsWith<ProjectIdTakenException> {
-			datasource.createProject(userId, projectDef.name, projectDef.uuid)
-		}
+		assertNull(datasource.createProject(userId, projectDef.name, projectDef.uuid))
 		assertNull(datasource.findProjectByName(userId, projectDef.name))
+	}
+
+	@Test
+	fun `Create Project - repeating a create inserts nothing`() = runTest {
+		setupAccount(testDatabase)
+		val datasource = createDatasource()
+		datasource.createProject(userId, projectDef.name, projectDef.uuid)
+
+		assertNull(datasource.createProject(userId, projectDef.name, projectDef.uuid))
+		assertEquals(projectDef, datasource.getProject(userId, projectDef.uuid))
 	}
 
 	@Test

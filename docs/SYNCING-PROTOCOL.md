@@ -401,12 +401,15 @@ The distinction matters: `download_entity` maps a `404` to "entity deleted on th
 an entity it doesn't already hold, silently marks it deleted. A project-level `404` would therefore
 make a client abandon undownloaded entities when a project vanishes mid-sync.
 
-Retrying `begin_sync` alone can never succeed, so on receiving `410` from it the client runs the
-same create-or-confirm as account sync (`ProjectCreateResolver`, see
-[Project IDs](#project-ids)) under its local ID, in an account sync session of its own. It then
-clears the project's sync baseline, since that described a server project which no longer holds
-it, and retries `begin_sync` once with the ID the create settled on. If the create answers
-`project_deleted`, the sync fails with a "deleted elsewhere" log instead. Without this repair the
+This is also how a project that has never synced reaches the server: there is no separate
+pre-check, `begin_sync` is the probe. Retrying `begin_sync` alone can never succeed, so on
+receiving `410` from it the client runs the same create-or-confirm as account sync
+(`ProjectCreateResolver`, see [Project IDs](#project-ids)) under its local ID, in an account sync
+session of its own. A same-name server project may be adopted, or an ID another account holds
+re-minted, exactly as in account sync. The client then clears the project's sync baseline, since
+that described a server project which no longer holds it, and retries `begin_sync` once with the
+ID the create settled on. If the create answers `project_deleted`, refuses to adopt an ID another
+local project holds, or fails, the sync fails with a log saying so instead. Without this repair the
 project would fail every sync, because account sync (above) is not run when syncing a single
 project from inside the project itself.
 
@@ -745,8 +748,7 @@ Beyond the network side of the Protocol, the Client is doing a bit of work to en
 
 ```mermaid
 flowchart TD
-    A[PrepareForSync] --> EP[EnsureProjectOnServer]
-    EP --> B[FetchLocalData]
+    A[PrepareForSync] --> B[FetchLocalData]
     B --> C[FetchServerData]
     C --> D[CollateIds]
     D --> E[Backup]
@@ -758,12 +760,10 @@ flowchart TD
     W --> I[FinalizeSync]
 ```
 
-`EnsureProjectOnServer` only acts on a project that has never synced (no `sync.json`, or one with no
-recorded `lastSync`). It runs the idempotent create under the project's ID in an account sync
-session of its own; account sync has normally created the project already, so the create usually
-just confirms it. A project that has synced before skips it: a server that lost the project answers
-`begin_sync` with `410`, which `FetchServerData` handles (see
-[Unknown project](#unknown-project-410-gone)).
+A project the server does not hold under its ID, whether it never synced or the server lost it, is
+created from inside `FetchServerData`: `begin_sync` answers `410` and the client creates the
+project and retries once (see [Unknown project](#unknown-project-410-gone)). Account sync has
+normally created it already, so this path is rare.
 
 ## Terminology
 

@@ -12,6 +12,11 @@ import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
 import com.darkrockstudios.apps.hammer.common.server.HttpFailureException
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import com.darkrockstudios.apps.hammer.common.util.StrRes
+import com.darkrockstudios.apps.hammer.sync_log_account_project_adopt_conflict
+import com.darkrockstudios.apps.hammer.sync_log_account_project_create_server_failure
+import com.darkrockstudios.apps.hammer.sync_log_account_project_create_server_success
+import com.darkrockstudios.apps.hammer.sync_log_account_project_deleted_elsewhere
+import com.darkrockstudios.apps.hammer.sync_log_account_project_id_reminted
 import com.darkrockstudios.apps.hammer.sync_log_server_data_loaded
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.flow.first
@@ -82,3 +87,61 @@ class FetchServerDataOperation(
 			?: throw IllegalStateException("Server settings missing")
 	}
 }
+
+/**
+ * Logs a [ProjectCreateResolver] outcome for project sync. Returns the error to fail the sync
+ * with, or null when the project is on the server.
+ */
+internal suspend fun logCreateOutcome(
+	outcome: ServerCreateOutcome,
+	projectDef: ProjectDef,
+	strRes: StrRes,
+	onLog: OnSyncLog,
+): Throwable? = when (outcome) {
+	is ServerCreateOutcome.Created -> {
+		if (outcome.reminted) {
+			onLog(syncLogW(strRes.get(Res.string.sync_log_account_project_id_reminted, projectDef.name), projectDef))
+		}
+		if (!outcome.alreadyExisted) {
+			onLog(
+				syncLogI(
+					strRes.get(Res.string.sync_log_account_project_create_server_success, projectDef.name),
+					projectDef
+				)
+			)
+		}
+		null
+	}
+
+	ServerCreateOutcome.DeletedElsewhere -> {
+		val message = strRes.get(Res.string.sync_log_account_project_deleted_elsewhere, projectDef.name)
+		onLog(syncLogW(message, projectDef))
+		ProjectDeletedElsewhereException(projectDef.name)
+	}
+
+	is ServerCreateOutcome.AdoptConflict -> {
+		val message = strRes.get(
+			Res.string.sync_log_account_project_adopt_conflict,
+			projectDef.name,
+			outcome.heldBy.name,
+		)
+		onLog(syncLogW(message, projectDef))
+		ProjectAdoptConflictException(projectDef.name, outcome.heldBy.name)
+	}
+
+	is ServerCreateOutcome.Failed -> {
+		onLog(
+			syncLogE(
+				strRes.get(Res.string.sync_log_account_project_create_server_failure, projectDef.name),
+				projectDef
+			)
+		)
+		outcome.error
+	}
+}
+
+class ProjectDeletedElsewhereException(projectName: String) :
+	SyncOperationException("Project was deleted on another device: $projectName")
+
+class ProjectAdoptConflictException(projectName: String, heldBy: String) :
+	SyncOperationException("Server project matching $projectName by name is held by $heldBy")

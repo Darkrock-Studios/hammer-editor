@@ -137,7 +137,6 @@ class AddNoteActivity : ComponentActivity(), KoinComponent {
 					) {
 						if (!confirmCancel) {
 							AddNoteDialog(
-								projectName = preselectedProject?.name,
 								projects = projects,
 								preselectedProject = preselectedProject,
 								noteText = noteText,
@@ -146,7 +145,10 @@ class AddNoteActivity : ComponentActivity(), KoinComponent {
 								onCancel = tryCancel,
 								onSave = {
 									if (noteText.isNotBlank()) {
-										saveNote(preselectedProject ?: selectedProject, noteText)
+										val project = preselectedProject ?: selectedProject
+										val loadedId = projectsWithMetadata
+											.find { it.first == project }?.second?.info?.projectId
+										saveNote(loadedId ?: projectsRepository.getProjectId(project), noteText)
 									}
 								},
 							)
@@ -162,9 +164,9 @@ class AddNoteActivity : ComponentActivity(), KoinComponent {
 		}
 	}
 
-	private fun saveNote(project: ProjectDef, note: String) {
+	private fun saveNote(projectId: ProjectId, note: String) {
 		val data = Data.Builder()
-		data.putString(AddNoteWorker.DATA_PROJECT_ID, projectsRepository.getProjectId(project).id)
+		data.putString(AddNoteWorker.DATA_PROJECT_ID, projectId.id)
 		data.putString(AddNoteWorker.DATA_NOTE_TEXT, note)
 
 		val request = OneTimeWorkRequestBuilder<AddNoteWorker>()
@@ -186,7 +188,6 @@ class AddNoteActivity : ComponentActivity(), KoinComponent {
 
 @Composable
 private fun AddNoteDialog(
-	projectName: String?,
 	projects: List<ProjectDef>,
 	preselectedProject: ProjectDef?,
 	noteText: String,
@@ -207,7 +208,7 @@ private fun AddNoteDialog(
 		Column {
 			HdMasthead(
 				section = "ADD NOTE",
-				leadingMeta = if (projectName != null) listOf(projectName) else emptyList(),
+				leadingMeta = listOfNotNull(preselectedProject?.name),
 				trailing = { HdMastheadAction(label = "× CLOSE", onClick = onCancel) },
 			)
 			HdFolioDivider()

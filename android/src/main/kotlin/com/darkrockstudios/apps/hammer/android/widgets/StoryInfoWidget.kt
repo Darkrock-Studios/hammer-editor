@@ -22,7 +22,6 @@ import com.darkrockstudios.apps.hammer.android.R
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.projectdata.WordCountGoal
 import com.darkrockstudios.apps.hammer.common.data.projectdata.loadStoredProjectData
-import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.ProjectStatisticsCacheReader
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.deriveWritingStats
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.parseDailyWordTotals
@@ -119,12 +118,11 @@ private data class StoryInfo(
 
 private suspend fun loadStoryInfo(projectId: ProjectId, accentHex: String?): StoryInfo? {
 	val koin = getKoin()
-	val projects = koin.get<ProjectsRepository>()
 	val statsReader = koin.get<ProjectStatisticsCacheReader>()
 	val fs = koin.get<FileSystem>()
 	val toml = koin.get<Toml>()
 
-	val def = runCatching { projects.findProject(projectId) }.getOrNull() ?: return null
+	val def = findWidgetProject(projectId.id) ?: return null
 	val stats = statsReader.loadStatistics(def)
 	val storedData = runCatching { loadStoredProjectData(def, fs, toml).data }.getOrNull()
 

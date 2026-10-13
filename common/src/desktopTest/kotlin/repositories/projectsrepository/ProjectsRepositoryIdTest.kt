@@ -95,21 +95,6 @@ class ProjectsRepositoryIdTest : ProjectsRepositoryBaseTest() {
 	}
 
 	@Test
-	fun `A removed listener is not told about later id changes`() = scope.runTest {
-		val proj2Def = getProjectDef(PROJECT_2_NAME)
-		createProject(ffs, PROJECT_2_NAME)
-		val repo = projectsRepository()
-		var notified = false
-		val listener = ProjectIdChangeListener { _, _, _ -> notified = true }
-		repo.addProjectIdChangeListener(listener)
-		repo.removeProjectIdChangeListener(listener)
-
-		repo.setProjectId(proj2Def, ProjectId("test-id"))
-
-		assertFalse(notified)
-	}
-
-	@Test
 	fun `A failing listener does not fail the id change`() = scope.runTest {
 		val proj2Def = getProjectDef(PROJECT_2_NAME)
 		val newId = ProjectId("test-id")

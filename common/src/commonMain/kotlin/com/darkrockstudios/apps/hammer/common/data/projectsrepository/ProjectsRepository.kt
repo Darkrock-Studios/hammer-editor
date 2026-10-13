@@ -133,10 +133,6 @@ class ProjectsRepository(
 		idChangeListenersLock.withLock { idChangeListeners = idChangeListeners + listener }
 	}
 
-	fun removeProjectIdChangeListener(listener: ProjectIdChangeListener) {
-		idChangeListenersLock.withLock { idChangeListeners = idChangeListeners - listener }
-	}
-
 	// The id is already persisted, so a failing listener must not fail the identity change.
 	@Suppress("TooGenericExceptionCaught")
 	private suspend fun notifyProjectIdChanged(projectDef: ProjectDef, oldId: ProjectId, newId: ProjectId) {

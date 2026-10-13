@@ -53,9 +53,12 @@ insertProject:
 INSERT INTO project(user_id, name, uuid, last_sync, last_id)
 VALUES(:userId, :name, CAST(:uuid AS UUID), :lastSync, :lastId);
 
+-- uuid is unique across all accounts (public share URLs resolve a project by uuid alone), so a
+-- skipped insert may mean another account holds it.
 createProject:
 INSERT INTO project(user_id, name, uuid)
-VALUES(:userId, :name, CAST(:uuid AS UUID));
+VALUES(:userId, :name, CAST(:uuid AS UUID))
+ON CONFLICT (uuid) DO NOTHING;
 
 hasProjectById:
 SELECT EXISTS(SELECT 1 FROM project WHERE user_id = :userId AND uuid = CAST(:projectId AS UUID));

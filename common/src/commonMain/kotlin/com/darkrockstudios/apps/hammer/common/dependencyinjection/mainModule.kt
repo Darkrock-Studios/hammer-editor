@@ -82,7 +82,6 @@ import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournalD
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.BackupOperation
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.CollateIdsOperation
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.EnsureProjectOnServerOperation
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.EntityDeleteOperation
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.EntityTransferOperation
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.FetchLocalDataOperation
@@ -351,7 +350,6 @@ val mainModule = module {
 		scoped<ClientSceneDraftSynchronizer>()
 
 		factory<PrepareForSyncOperation>()
-		factory<EnsureProjectOnServerOperation>()
 		factory<FetchLocalDataOperation>()
 		factory<FetchServerDataOperation>()
 		factory<CollateIdsOperation>()

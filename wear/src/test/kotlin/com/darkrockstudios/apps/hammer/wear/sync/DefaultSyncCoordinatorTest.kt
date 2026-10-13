@@ -6,6 +6,8 @@ import com.darkrockstudios.apps.hammer.common.data.SyncedProjectDefinition
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectIdChangeListener
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ProjectSyncOutcome
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.SyncAccountListener
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.SyncAccountResult
@@ -16,7 +18,10 @@ import com.darkrockstudios.apps.hammer.wear.FakeWearPrefsDatasource
 import com.darkrockstudios.apps.hammer.wear.data.SubscribedProjectsRepository
 import io.mockk.coEvery
 import io.mockk.every
+import io.mockk.just
 import io.mockk.mockk
+import io.mockk.runs
+import io.mockk.slot
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.async
@@ -122,9 +127,14 @@ class DefaultSyncCoordinatorTest {
 
 	@Test
 	fun `a subscription re-keyed during account sync still admits the project`() = runTest(dispatcher) {
+		val projectsRepository = mockk<ProjectsRepository>()
+		val idChangeListener = slot<ProjectIdChangeListener>()
+		every { projectsRepository.addProjectIdChangeListener(capture(idChangeListener)) } just runs
+		every { projectsRepository.findProject(any<ProjectId>()) } returns null
+		subscriptions.followProjectIdChanges(projectsRepository)
 		subscriptions.setSubscribed(ProjectId("minted-on-the-watch"), true)
 		accountSync.behaviour = {
-			subscriptions.onProjectIdChanged(ProjectId("minted-on-the-watch"), ProjectId("a"))
+			idChangeListener.captured.onProjectIdChanged(alpha, ProjectId("minted-on-the-watch"), ProjectId("a"))
 			successResult()
 		}
 

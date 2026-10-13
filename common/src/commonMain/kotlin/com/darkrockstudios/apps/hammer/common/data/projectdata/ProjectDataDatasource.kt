@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.common.data.projectdata
 
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.base.http.readTomlOrNull
+import com.darkrockstudios.apps.hammer.base.http.writeToml
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
@@ -129,12 +130,12 @@ fun saveStoredProjectData(
 	toml: Toml,
 	stored: StoredProjectData,
 ) {
-	val body = toml.encodeToString(StoredProjectData.serializer(), stored)
-	fileSystem.write(projectDef.path.toOkioPath() / ProjectDataDatasource.FILENAME) {
-		writeUtf8(ProjectDataDatasource.FILE_HEADER)
-		writeUtf8("\n")
-		writeUtf8(body)
-	}
+	fileSystem.writeToml(
+		projectDef.path.toOkioPath() / ProjectDataDatasource.FILENAME,
+		toml,
+		stored,
+		header = ProjectDataDatasource.FILE_HEADER,
+	)
 }
 
 /**

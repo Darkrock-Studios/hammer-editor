@@ -22,19 +22,12 @@ class Migration3_4(
 	override fun migrate(projectDef: ProjectDef) {
 		Napier.i("Begin Migration3_4 for '${projectDef.name}'...")
 
-		seedProjectId(projectDef)
+		// A legacy serverProjectId reads as the projectId, and DataMigrator's version stamp persists
+		// it under that name; only a project with no id at all needs one minted here.
+		projectMetadataDatasource.loadProjectId(projectDef)
 		renameProjectSettings(projectDef)
 
 		Napier.i("Migration3_4 for '${projectDef.name}' complete.")
-	}
-
-	// loadMetadata reads a legacy serverProjectId as the projectId; the save writes it as projectId
-	// and drops serverProjectId from the file.
-	private fun seedProjectId(projectDef: ProjectDef) {
-		projectMetadataDatasource.updateMetadata(projectDef) {
-			if (it.info.projectId != null) it
-			else it.copy(info = it.info.copy(projectId = ProjectId.randomUUID()))
-		}
 	}
 
 	private fun renameProjectSettings(projectDef: ProjectDef) {
