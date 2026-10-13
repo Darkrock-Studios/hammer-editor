@@ -9,7 +9,8 @@ import java.util.*
 /**
  * Starts a password reset: creates the token and emails the reset link. Always returns
  * [PasswordResetResult.Success], whether or not the account exists, is rate limited, or the
- * email could be sent, so the response can't be used to find out which emails have accounts.
+ * email could be sent, so the response content doesn't show which emails have accounts.
+ * Response time still can: the email is sent inline, and only for a real account.
  */
 class RequestPasswordResetUseCase(
 	private val passwordResetRepository: PasswordResetRepository,

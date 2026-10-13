@@ -378,11 +378,11 @@ added only when needed, following the same decision rules as the client.
 ### Server Routes
 These are the HTTP handlers that define the various endpoints. They unmarshal data from HTTP requests, call into Use Cases, Services, or Repositories, and then marshal data back into HTTP responses. Routes never reference Datasources directly.
 
-### Server Use Cases — stateless, optional
+### Server Use Cases: stateless, optional
 A single named operation composed from the layers below. The stateless counterpart of a Service.
 May reference Services, Repositories, and Datasources.
 
-### Server Services — stateful, optional
+### Server Services: stateful, optional
 Sit above Repositories and combine the layers below them: several Repositories (and Datasources)
 coordinated behind one stateful component. Think of a Service as a stateful Use Case. As on the
 client, a Service may not reference another Service, and nothing below a Service may reference one.

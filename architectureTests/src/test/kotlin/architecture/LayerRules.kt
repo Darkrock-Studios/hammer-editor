@@ -39,6 +39,7 @@ data class Dependency(val owner: String, val target: String, val lazy: Boolean) 
 private val typeName = Regex("""\b[A-Z]\w*""")
 private val lazyWrapper = Regex("""^(Lazy|Provider)<|^\(\)\s*->""")
 private val interfaceDelegate = Regex("""\bby\s+(\w+)\b(?!\s*[(<.])""")
+private val comment = Regex("""/\*.*?\*/|//[^\n]*""", RegexOption.DOT_MATCHES_ALL)
 private val koinLookup = Regex("""\b(?:get|getOrNull|\w*[iI]nject\w*)<([^()]+?)>\s*\(""")
 
 /**
@@ -48,7 +49,10 @@ private val koinLookup = Regex("""\b(?:get|getOrNull|\w*[iI]nject\w*)<([^()]+?)>
 fun KoScope.dependencies(): List<Dependency> = classes(includeNested = true).flatMap { cls ->
 	// A decorator (`class X(private val delegate: Y) : Iface by delegate`) wraps its own
 	// layer by design, so the wrapped instance is not counted as a dependency.
-	val delegates = interfaceDelegate.findAll(cls.text.substringBefore('{')).map { it.groupValues[1] }.toSet()
+	// Comments are stripped first so prose like "owned by repository" in a KDoc can't exempt
+	// a parameter of that name.
+	val header = cls.text.replace(comment, "").substringBefore('{')
+	val delegates = interfaceDelegate.findAll(header).map { it.groupValues[1] }.toSet()
 
 	val constructorTypes = cls.constructors
 		.flatMap { it.parameters }
