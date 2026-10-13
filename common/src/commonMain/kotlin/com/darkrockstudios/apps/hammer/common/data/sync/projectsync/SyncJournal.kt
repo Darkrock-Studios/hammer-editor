@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.common.data.sync.projectsync
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcher
 import com.darkrockstudios.apps.hammer.common.util.NetworkConnectivity
 import kotlinx.coroutines.withContext
@@ -23,6 +24,8 @@ class SyncJournal(
 	private val datasource: SyncJournalDatasource,
 ) : KoinComponent {
 	private val ioDispatcher by injectIoDispatcher()
+
+	private val idDatasources = IdAllocator.getIdSources(ProjectDefScope(projectDef))
 
 	suspend fun needsSync(): Boolean {
 		loadSyncData().apply {
@@ -135,7 +138,7 @@ class SyncJournal(
 
 	private suspend fun buildSyncData(atLeastLastId: Int): ProjectSynchronizationData {
 		// Scans every entity's storage, and callers include the UI's close check
-		val entityIds = withContext(ioDispatcher) { IdAllocator.findEntityIds(projectDef) }
+		val entityIds = withContext(ioDispatcher) { IdAllocator.findEntityIds(projectDef, idDatasources) }
 		val lastId = max(entityIds.ids.maxOrNull() ?: 0, atLeastLastId)
 		// Recording a live entity as deleted would delete it on the server at the next sync,
 		// so with unreadable storage no deletions are inferred at all.

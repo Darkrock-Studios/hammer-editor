@@ -10,7 +10,6 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScop
 import kotlinx.atomicfu.locks.reentrantLock
 import kotlinx.atomicfu.locks.withLock
 import org.koin.core.component.get
-import org.koin.core.component.getScopeId
 import kotlin.math.max
 
 /** [complete] is false when some entity storage couldn't be read, so an absent ID proves nothing. */
@@ -63,26 +62,20 @@ class IdAllocator(private val projectDef: ProjectDef) : ProjectScoped {
 	}
 
 	companion object {
-		/**
-		 * Every entity ID the project has on disk. Resolves the ID Data Sources from the
-		 * project's Koin scope, so that scope must be open.
-		 */
-		fun findEntityIds(projectDef: ProjectDef): EntityIds {
-			val projectScope = ProjectDefScope(projectDef)
-			// Reading ProjectDefScope.scope creates the scope when it is missing, which would
-			// bring a closed project's scope back with nothing left to close it.
-			checkNotNull(projectScope.getKoin().getScopeOrNull(projectScope.getScopeId())) {
-				"Project scope is not open: ${projectDef.name}"
-			}
-
-			val idsBySource = getIdSources(projectScope).map { it.findIds(projectDef) }
+		/** Every entity ID the project has on disk. */
+		fun findEntityIds(projectDef: ProjectDef, idDatasources: Set<IdDatasource>): EntityIds {
+			val idsBySource = idDatasources.map { it.findIds(projectDef) }
 			return EntityIds(
 				ids = idsBySource.filterNotNull().flatten().toSet(),
 				complete = idsBySource.none { it == null },
 			)
 		}
 
-		private fun getIdSources(projectScope: ProjectDefScope): Set<IdDatasource> {
+		/**
+		 * Resolving these creates the project's Koin scope when it is missing, so only call
+		 * this while that scope is open and hold on to the result.
+		 */
+		fun getIdSources(projectScope: ProjectDefScope): Set<IdDatasource> {
 			return EntityType.entries
 				.map { entityType ->
 					when (entityType) {

@@ -7,7 +7,6 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.id.datasources.*
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
-import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import createProject
 import getProject1Def
@@ -22,12 +21,9 @@ import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.koin.core.component.getScopeId
 import org.koin.dsl.module
 import utils.BaseTest
 import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
-import kotlin.test.assertNull
 
 class IdAllocatorTest : BaseTest() {
 	private lateinit var ffs: FakeFileSystem
@@ -131,20 +127,5 @@ class IdAllocatorTest : BaseTest() {
 		idAllocator.findNextId()
 
 		assertEquals(24, idAllocator.claimNextId(), "Failed to find last entity ID")
-	}
-
-	@Test
-	fun `findEntityIds refuses a project whose scope is not open`() = runTest {
-		createProject(ffs, PROJECT_EMPTY_NAME)
-		val projectDef = getProjectDef(PROJECT_EMPTY_NAME)
-		setupForProject(projectDef)
-		val projectScope = ProjectDefScope(projectDef)
-
-		assertFailsWith<IllegalStateException> { IdAllocator.findEntityIds(projectDef) }
-
-		assertNull(
-			projectScope.getKoin().getScopeOrNull(projectScope.getScopeId()),
-			"The lookup must not create the scope",
-		)
 	}
 }

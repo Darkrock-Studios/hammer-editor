@@ -32,9 +32,11 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
+import org.koin.core.component.getScopeId
 import org.koin.dsl.module
 import utils.BaseTest
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Instant
 
@@ -68,9 +70,6 @@ class SyncJournalTest : BaseTest() {
 			single { TimeLineEventIdDatasource(ffs, createTomlSerializer()) }
 			single { SceneDraftIdDatasource(ffs) }
 		})
-		// Opens the project scope
-		ProjectDefScope(projectDef).scope
-
 		datasource = SyncJournalDatasource(
 			projectDef = projectDef,
 			fileSystem = ffs,
@@ -187,6 +186,23 @@ class SyncJournalTest : BaseTest() {
 		assertEquals(23, rebuilt.lastId)
 		assertEquals(emptySet(), rebuilt.deletedIds)
 		assertEquals(rebuilt, ffs.readJson<ProjectSynchronizationData>(syncPath(projectDef), json))
+	}
+
+	@Test
+	fun `A missing journal is still rebuilt after the project scope has closed`() = runTest {
+		createProject(ffs, PROJECT_2_NAME)
+		val projectDef = getProjectDef(PROJECT_2_NAME)
+		ffs.delete(syncPath(projectDef))
+
+		val repo = createRepository(projectDef)
+		val projectScope = ProjectDefScope(projectDef)
+		projectScope.scope.close()
+
+		assertEquals(23, repo.loadSyncData().lastId)
+		assertNull(
+			projectScope.getKoin().getScopeOrNull(projectScope.getScopeId()),
+			"The rebuild must not bring the closed scope back",
+		)
 	}
 
 	@Test
