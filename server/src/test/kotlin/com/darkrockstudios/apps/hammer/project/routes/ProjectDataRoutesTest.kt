@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.project.routes
 
+import com.darkrockstudios.apps.hammer.account.RequestPasswordResetUseCase
 import com.darkrockstudios.apps.hammer.account.AccountsComponent
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.account.BioService
@@ -123,6 +124,7 @@ class ProjectDataRoutesTest : BaseTest() {
 			single { penNameService }
 			single { bioService }
 			single { passwordResetRepository }
+			single { mockk<RequestPasswordResetUseCase>() }
 			single { markdownRenderer }
 			single { mockk<com.darkrockstudios.apps.hammer.review.ReviewRepository>(relaxed = true) }
 			single { mockk<com.darkrockstudios.apps.hammer.storyideas.ServerIdeasRepository>(relaxed = true) }

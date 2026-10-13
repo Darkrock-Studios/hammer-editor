@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.account.AccountsComponent
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.account.BioService
 import com.darkrockstudios.apps.hammer.account.PasswordResetRepository
+import com.darkrockstudios.apps.hammer.account.RequestPasswordResetUseCase
 import com.darkrockstudios.apps.hammer.account.PenNameService
 import com.darkrockstudios.apps.hammer.account.PrivacyPolicyRepository
 import com.darkrockstudios.apps.hammer.account.TermsOfServiceRepository
@@ -254,6 +255,7 @@ fun mainModule(
 		)
 	}
 	single<PasswordResetRepository>()
+	factory<RequestPasswordResetUseCase>()
 	single<ReviewRepository>()
 
 	single<ServerSecretManager>()

@@ -6,8 +6,6 @@ import com.darkrockstudios.apps.hammer.base.http.createTokenBase64
 import com.darkrockstudios.apps.hammer.database.AccountDao
 import com.darkrockstudios.apps.hammer.database.AuthTokenDao
 import com.darkrockstudios.apps.hammer.database.PasswordResetTokenDao
-import com.darkrockstudios.apps.hammer.email.EmailResult
-import com.darkrockstudios.apps.hammer.email.EmailService
 import com.darkrockstudios.apps.hammer.utilities.Argon2PasswordHasher
 import com.darkrockstudios.apps.hammer.utilities.isFailure
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
@@ -23,10 +21,9 @@ import org.junit.jupiter.api.Test
 import kotlin.io.encoding.Base64
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.minutes
-import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
-import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class PasswordResetRepositoryTest : BaseTest() {
@@ -34,14 +31,12 @@ class PasswordResetRepositoryTest : BaseTest() {
 	private lateinit var accountDao: AccountDao
 	private lateinit var passwordResetTokenDao: PasswordResetTokenDao
 	private lateinit var authTokenDao: AuthTokenDao
-	private lateinit var emailService: EmailService
 	private lateinit var clock: TestClock
 
 	private val b64: Base64 = createTokenBase64()
 
 	private val userId = 1L
 	private val email = "writer@example.com"
-	private val resetUrl: (String) -> String = { token -> "https://hammer.test/reset?token=$token" }
 
 	@BeforeEach
 	override fun setup() {
@@ -51,7 +46,6 @@ class PasswordResetRepositoryTest : BaseTest() {
 		accountDao = mockk(relaxed = true)
 		passwordResetTokenDao = mockk(relaxed = true)
 		authTokenDao = mockk(relaxed = true)
-		emailService = mockk()
 		setupKoin()
 		clock = TestClock(Clock.System)
 	}
@@ -60,7 +54,6 @@ class PasswordResetRepositoryTest : BaseTest() {
 		accountDao = accountDao,
 		passwordResetTokenDao = passwordResetTokenDao,
 		authTokenDao = authTokenDao,
-		emailService = emailService,
 		clock = clock,
 		base64 = b64,
 	)
@@ -94,69 +87,34 @@ class PasswordResetRepositoryTest : BaseTest() {
 	)
 
 	@Test
-	fun `requestPasswordReset for an unknown account succeeds without creating a token or email`() =
-		runTest {
-			coEvery { accountDao.findAccount(email) } returns null
+	fun `createResetToken for an unknown account stores nothing`() = runTest {
+		coEvery { accountDao.findAccount(email) } returns null
 
-			val result = repository().requestPasswordReset(email, resetUrl)
+		assertNull(repository().createResetToken(email))
 
-			assertIs<PasswordResetResult.Success>(result)
-			coVerify(exactly = 0) { passwordResetTokenDao.createToken(any(), any(), any()) }
-			coVerify(exactly = 0) { emailService.sendEmail(any(), any(), any(), any()) }
-		}
+		coVerify(exactly = 0) { passwordResetTokenDao.createToken(any(), any(), any()) }
+	}
 
 	@Test
-	fun `requestPasswordReset for a known account creates a token and sends an email`() = runTest {
+	fun `createResetToken for a known account stores and returns the token`() = runTest {
 		coEvery { accountDao.findAccount(email) } returns account()
 		coEvery { passwordResetTokenDao.getRecentTokenCount(userId, any()) } returns 0
-		coEvery { emailService.sendEmail(any(), any(), any(), any()) } returns EmailResult.Success
 
-		val result = repository().requestPasswordReset(email, resetUrl)
+		val token = repository().createResetToken(email)
 
-		assertIs<PasswordResetResult.Success>(result)
 		val storedToken = slot<String>()
-		val textBodies = mutableListOf<String?>()
 		coVerify(exactly = 1) { passwordResetTokenDao.createToken(userId, capture(storedToken), any()) }
-		coVerify(exactly = 1) { emailService.sendEmail(email, any(), any(), captureNullable(textBodies)) }
-		// The emailed link must carry the same token that was persisted. (The plain-text
-		// body embeds the link verbatim; the HTML body entity-escapes it.)
-		assertContains(assertNotNull(textBodies.single()), resetUrl(storedToken.captured))
+		assertEquals(storedToken.captured, token)
 	}
 
 	@Test
-	fun `requestPasswordReset sends no email when no trusted base url is available`() = runTest {
-		coEvery { accountDao.findAccount(email) } returns account()
-		coEvery { passwordResetTokenDao.getRecentTokenCount(userId, any()) } returns 0
-
-		val result = repository().requestPasswordReset(email) { null }
-
-		assertIs<PasswordResetResult.Success>(result)
-		coVerify(exactly = 0) { emailService.sendEmail(any(), any(), any(), any()) }
-	}
-
-	@Test
-	fun `requestPasswordReset past the rate limit succeeds silently without sending`() = runTest {
+	fun `createResetToken past the rate limit stores nothing`() = runTest {
 		coEvery { accountDao.findAccount(email) } returns account()
 		coEvery { passwordResetTokenDao.getRecentTokenCount(userId, any()) } returns 3
 
-		val result = repository().requestPasswordReset(email, resetUrl)
+		assertNull(repository().createResetToken(email))
 
-		assertIs<PasswordResetResult.Success>(result)
 		coVerify(exactly = 0) { passwordResetTokenDao.createToken(any(), any(), any()) }
-		coVerify(exactly = 0) { emailService.sendEmail(any(), any(), any(), any()) }
-	}
-
-	@Test
-	fun `requestPasswordReset still succeeds when the email fails to send`() = runTest {
-		coEvery { accountDao.findAccount(email) } returns account()
-		coEvery { passwordResetTokenDao.getRecentTokenCount(userId, any()) } returns 0
-		coEvery { emailService.sendEmail(any(), any(), any(), any()) } returns
-			EmailResult.Failure("smtp down")
-
-		val result = repository().requestPasswordReset(email, resetUrl)
-
-		assertIs<PasswordResetResult.Success>(result)
-		coVerify(exactly = 1) { passwordResetTokenDao.createToken(userId, any(), any()) }
 	}
 
 	@Test

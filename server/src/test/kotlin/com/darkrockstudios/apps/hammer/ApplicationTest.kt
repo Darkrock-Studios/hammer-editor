@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer
 
+import com.darkrockstudios.apps.hammer.account.RequestPasswordResetUseCase
 import com.darkrockstudios.apps.hammer.account.AccountsComponent
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.account.BioService
@@ -94,6 +95,7 @@ class ApplicationTest : BaseTest() {
 			single { storyRendererService }
 			single { penNameService }
 			single { passwordResetRepository }
+			single { mockk<RequestPasswordResetUseCase>() }
 			single { bioService }
 			single { markdownRenderer }
 			single { mockk<com.darkrockstudios.apps.hammer.review.ReviewRepository>(relaxed = true) }

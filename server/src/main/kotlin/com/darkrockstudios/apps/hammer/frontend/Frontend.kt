@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.account.AccountDeletionService
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.account.BioService
 import com.darkrockstudios.apps.hammer.account.PasswordResetRepository
+import com.darkrockstudios.apps.hammer.account.RequestPasswordResetUseCase
 import com.darkrockstudios.apps.hammer.account.PenNameService
 import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
@@ -93,6 +94,7 @@ fun Route.frontend() {
 	val accountDeletionService: AccountDeletionService by inject()
 	val serverConfig: ServerConfig by inject()
 	val passwordResetRepository: PasswordResetRepository by inject()
+	val requestPasswordReset: RequestPasswordResetUseCase by inject()
 	val markdownRenderer: MarkdownRenderer by inject()
 	val reviewRepository: com.darkrockstudios.apps.hammer.review.ReviewRepository by inject()
 	val projectDao: com.darkrockstudios.apps.hammer.database.ProjectDao by inject()
@@ -138,7 +140,7 @@ fun Route.frontend() {
 		configRepository,
 		securityRepository,
 	)
-	passwordResetRoutes(passwordResetRepository)
+	passwordResetRoutes(passwordResetRepository, requestPasswordReset)
 	dashboardPage(
 		projectsRepository,
 		accountsRepository,

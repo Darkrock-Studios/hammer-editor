@@ -28,7 +28,6 @@ class ServerLayerTest {
 	fun `repositories never reference upward`() = assertNoViolations(
 		"A server Repository may not reference a Service or Use Case",
 		dependencies.filter { isRepository(it.owner) && (isService(it.target) || isUseCase(it.target)) },
-		baseline = setOf("PasswordResetRepository -> EmailService"),
 	)
 
 	@Test

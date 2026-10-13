@@ -131,6 +131,7 @@ class AccountRoutesTest : BaseTest() {
 			single { penNameService }
 			single { json }
 			single { passwordResetRepository }
+			single { mockk<RequestPasswordResetUseCase>() }
 			single { bioService }
 			single { markdownRenderer }
 			single { mockk<com.darkrockstudios.apps.hammer.review.ReviewRepository>(relaxed = true) }
