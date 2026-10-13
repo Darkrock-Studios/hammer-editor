@@ -19,6 +19,7 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSeri
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -54,6 +55,7 @@ class AccountTagServiceTest : BaseTest() {
 
 		val globalSettingsStore = mockk<GlobalSettingsStore>()
 		every { globalSettingsStore.globalSettings } returns GlobalSettings(projectsDirectory = "/projects")
+		every { globalSettingsStore.globalSettingsUpdates } returns MutableSharedFlow()
 
 		setupKoin()
 
@@ -64,6 +66,7 @@ class AccountTagServiceTest : BaseTest() {
 		ideasRepository = IdeasRepository(
 			ideasDatasource = ideasDatasource,
 			ideasSyncDatasource = IdeasSyncDatasource(ffs, createJsonSerializer(), ideasDatasource),
+			globalSettingsStore = globalSettingsStore,
 			clock = Clock.System,
 		)
 		service = AccountTagService(ideasRepository, projectsRepository, ffs, toml)

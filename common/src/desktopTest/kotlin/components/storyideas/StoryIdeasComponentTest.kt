@@ -16,6 +16,7 @@ import com.darkrockstudios.apps.hammer.common.data.tagindex.AccountTagService
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -47,6 +48,7 @@ class StoryIdeasComponentTest : ComponentTest() {
 		ffs = FakeFileSystem()
 		val globalSettingsStore = mockk<GlobalSettingsStore>()
 		every { globalSettingsStore.globalSettings } returns GlobalSettings(projectsDirectory = "/projects")
+		every { globalSettingsStore.globalSettingsUpdates } returns MutableSharedFlow()
 
 		val projectsRepository = mockk<ProjectsRepository>()
 		every { projectsRepository.getProjects() } returns emptyList()
@@ -56,7 +58,7 @@ class StoryIdeasComponentTest : ComponentTest() {
 				val toml = createTomlSerializer()
 				val datasource = IdeasDatasource(ffs, StoryIdeaCodec(toml), globalSettingsStore)
 				val syncDatasource = IdeasSyncDatasource(ffs, createJsonSerializer(), datasource)
-				IdeasRepository(datasource, syncDatasource, Clock.System)
+				IdeasRepository(datasource, syncDatasource, globalSettingsStore, Clock.System)
 			} bind IdeasRepository::class
 			single {
 				AccountTagService(get(), projectsRepository, ffs, createTomlSerializer())

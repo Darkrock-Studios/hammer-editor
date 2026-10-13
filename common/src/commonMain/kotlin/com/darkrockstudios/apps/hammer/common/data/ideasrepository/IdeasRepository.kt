@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.common.data.ideasrepository
 import com.darkrockstudios.apps.hammer.base.IdeaId
 import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.base.http.storyideas.StoryIdea
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.IdeasSyncDatasource
 import com.darkrockstudios.apps.hammer.common.data.tagindex.cleanTags
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
@@ -10,7 +11,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -27,6 +31,7 @@ import kotlin.time.Clock
 class IdeasRepository(
 	private val ideasDatasource: IdeasDatasource,
 	private val ideasSyncDatasource: IdeasSyncDatasource,
+	private val globalSettingsStore: GlobalSettingsStore,
 	private val clock: Clock,
 ) : KoinComponent {
 
@@ -47,6 +52,16 @@ class IdeasRepository(
 
 	init {
 		loadIdeas()
+
+		// Ideas live under the projects directory, so pointing the app at a different one
+		// means a different set of ideas. The first value is the directory just loaded from.
+		ideasScope.launch {
+			globalSettingsStore.globalSettingsUpdates
+				.map { it.projectsDirectory }
+				.distinctUntilChanged()
+				.drop(1)
+				.collect { loadIdeas() }
+		}
 	}
 
 	fun loadIdeas(onLoaded: (() -> Unit)? = null) {
