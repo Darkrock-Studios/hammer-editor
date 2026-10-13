@@ -130,14 +130,21 @@ class SyncJournal(
 
 	private fun buildSyncData(atLeastLastId: Int): ProjectSynchronizationData {
 		val entityIds = IdAllocator.findEntityIds(projectDef)
-		val lastId = max(entityIds.maxOrNull() ?: 0, atLeastLastId)
+		val lastId = max(entityIds.ids.maxOrNull() ?: 0, atLeastLastId)
+		// Recording a live entity as deleted would delete it on the server at the next sync,
+		// so with unreadable storage no deletions are inferred at all.
+		val deletedIds = if (entityIds.complete) {
+			(1..lastId).filterNot { it in entityIds.ids }.toSet()
+		} else {
+			emptySet()
+		}
 
 		return ProjectSynchronizationData(
 			lastId = lastId,
 			newIds = emptyList(),
 			lastSync = Instant.DISTANT_PAST,
 			dirty = emptyList(),
-			deletedIds = (1..lastId).filterNot { it in entityIds }.toSet()
+			deletedIds = deletedIds
 		)
 	}
 	fun saveSyncData(syncData: ProjectSynchronizationData) = datasource.saveSyncData(syncData)

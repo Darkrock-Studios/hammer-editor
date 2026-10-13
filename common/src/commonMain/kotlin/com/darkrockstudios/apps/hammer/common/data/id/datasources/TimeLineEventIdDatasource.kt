@@ -9,9 +9,9 @@ class TimeLineEventIdDatasource(
 	private val fileSystem: FileSystem,
 	private val toml: Toml
 ) : IdDatasource {
-	override fun findIds(projectDef: ProjectDef): Set<Int> {
+	override fun findIds(projectDef: ProjectDef): Set<Int>? {
 		val filePath = TimeLineDatasource.getTimelineFilePath(projectDef)
-		val timeline = TimeLineDatasource.loadTimeline(filePath, fileSystem, toml)
-		return timeline.events.map { it.id }.toSet()
+		val timeline = TimeLineDatasource.loadTimelineOrNull(filePath, fileSystem, toml)
+		return timeline?.events?.map { it.id }?.toSet()
 	}
 }

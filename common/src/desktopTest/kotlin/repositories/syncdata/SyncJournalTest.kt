@@ -10,6 +10,8 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.id.datasources.*
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesDatasource
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineDatasource
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournalDatasource.Companion.SYNC_FILE_NAME
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
@@ -65,6 +67,8 @@ class SyncJournalTest : BaseTest() {
 			single { TimeLineEventIdDatasource(ffs, createTomlSerializer()) }
 			single { SceneDraftIdDatasource(ffs) }
 		})
+		// Opens the project scope
+		ProjectDefScope(projectDef).scope
 
 		datasource = SyncJournalDatasource(
 			projectDef = projectDef,
@@ -131,6 +135,27 @@ class SyncJournalTest : BaseTest() {
 			),
 			loadedData
 		)
+	}
+
+	@Test
+	fun `An unreadable timeline infers no deleted IDs`() = runTest {
+		createProject(ffs, PROJECT_EMPTY_NAME)
+		val projectDef = getProjectDef(PROJECT_EMPTY_NAME)
+		writeNote(projectDef, 1)
+		writeNote(projectDef, 3)
+		// ID 2 could be a timeline event that can no longer be read
+		val timelinePath = TimeLineDatasource.getTimelineFilePath(projectDef).toOkioPath()
+		ffs.createDirectories(timelinePath.parent!!)
+		ffs.write(timelinePath) { writeUtf8("not = [valid toml") }
+
+		every { globalSettingsStore.serverSettings } returns null
+
+		val repo = createRepository(projectDef)
+		assertTrue(repo.createSyncData())
+
+		val loadedData = ffs.readJson<ProjectSynchronizationData>(syncPath(projectDef), json)!!
+		assertEquals(3, loadedData.lastId)
+		assertEquals(emptySet(), loadedData.deletedIds)
 	}
 
 	@Test

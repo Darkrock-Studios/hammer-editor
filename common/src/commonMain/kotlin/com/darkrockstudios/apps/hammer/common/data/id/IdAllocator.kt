@@ -10,7 +10,11 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScop
 import kotlinx.atomicfu.locks.reentrantLock
 import kotlinx.atomicfu.locks.withLock
 import org.koin.core.component.get
+import org.koin.core.component.getScopeId
 import kotlin.math.max
+
+/** [complete] is false when some entity storage couldn't be read, so an absent ID proves nothing. */
+data class EntityIds(val ids: Set<Int>, val complete: Boolean)
 
 class IdAllocator(private val projectDef: ProjectDef) : ProjectScoped {
 	override val projectScope = ProjectDefScope(projectDef)
@@ -63,8 +67,13 @@ class IdAllocator(private val projectDef: ProjectDef) : ProjectScoped {
 		 * Every entity ID the project has on disk. Resolves the ID Data Sources from the
 		 * project's Koin scope, so that scope must be open.
 		 */
-		fun findEntityIds(projectDef: ProjectDef): Set<Int> =
-			getIdSources(projectDef).flatMapTo(mutableSetOf()) { it.findIds(projectDef) }
+		fun findEntityIds(projectDef: ProjectDef): EntityIds {
+			val idsBySource = getIdSources(projectDef).map { it.findIds(projectDef) }
+			return EntityIds(
+				ids = idsBySource.filterNotNull().flatten().toSet(),
+				complete = idsBySource.none { it == null },
+			)
+		}
 
 		/**
 		 * The highest entity ID the project has on disk, or -1 if it has none. Stateless: it
@@ -76,6 +85,11 @@ class IdAllocator(private val projectDef: ProjectDef) : ProjectScoped {
 
 		private fun getIdSources(projectDef: ProjectDef): Set<IdDatasource> {
 			val projectScope = ProjectDefScope(projectDef)
+			// Reading ProjectDefScope.scope creates the scope when it is missing, which would
+			// bring a closed project's scope back with nothing left to close it.
+			checkNotNull(projectScope.getKoin().getScopeOrNull(projectScope.getScopeId())) {
+				"Project scope is not open: ${projectDef.name}"
+			}
 			return getIdSources(projectScope)
 		}
 
