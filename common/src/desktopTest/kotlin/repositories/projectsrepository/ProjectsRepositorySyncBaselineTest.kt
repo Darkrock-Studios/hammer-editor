@@ -272,10 +272,30 @@ class ProjectsRepositorySyncBaselineTest : ProjectsRepositoryBaseTest() {
 	fun `Resetting a restored project that never synced fabricates no journal`() = scope.runTest {
 		createProject(ffs, PROJECT_1_NAME)
 
-		projectsRepository().resetSyncStateAfterRestore(projectDef)
+		projectsRepository().resetSyncStateAfterRestore(projectDef, serverKnowsProject = false)
 
 		assertFalse(ffs.exists(syncJournalPath()))
 	}
+
+	@Test
+	fun `Restoring a journal-less backup over a synced project flags a fresh journal`() =
+		scope.runTest {
+			createProject(ffs, PROJECT_1_NAME)
+			val repo = projectsRepository()
+			val backups = backupRepository(repo)
+			val backup = assertNotNull(backups.createBackup(projectDef))
+			seedBaseline()
+
+			assertTrue(backups.restoreBackup(backup, projectDef.path))
+
+			// A rebuilt journal would list every entity as clean, so the server's copy would win.
+			val journal = readJournal()
+			assertTrue(journal.verifyAllEntities)
+			assertEquals(emptyMap(), journal.syncedHashes)
+			assertEquals(emptyList(), journal.dirty)
+			assertEquals(emptyList(), journal.newIds)
+			assertEquals(emptySet(), journal.deletedIds)
+		}
 
 	@Test
 	fun `A corrupt journal is discarded so the next sync rebuilds it`() = scope.runTest {

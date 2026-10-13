@@ -107,27 +107,50 @@ fun clearProjectSyncBaseline(projectDef: ProjectDef, fileSystem: FileSystem, jso
  * a null baseline would let the restored copy overwrite it unchecked. The cached project hash is
  * dropped so the pre-sync probe cannot skip the project.
  *
- * No-op when the journal doesn't exist. A corrupt journal is deleted, as in [clearProjectSyncBaseline].
+ * A missing or corrupt journal is left for the next sync to rebuild, unless [serverKnowsProject]:
+ * a rebuilt journal lists every entity as clean, so the server's copy of each would silently replace
+ * the restored one. An empty flagged journal is written instead, baselining every entity on its
+ * local hash.
  */
 // Corrupt sync data recovers by deleting it; not an error to surface.
 @Suppress("SwallowedException")
-fun markProjectRestored(projectDef: ProjectDef, fileSystem: FileSystem, json: Json) {
+fun markProjectRestored(
+	projectDef: ProjectDef,
+	fileSystem: FileSystem,
+	json: Json,
+	serverKnowsProject: Boolean,
+) {
 	val path = projectDef.path.toOkioPath() / SyncDataDatasource.SYNC_FILE_NAME
-	if (!fileSystem.exists(path)) return
 
-	val current = try {
-		fileSystem.read(path) { json.decodeFromString<ProjectSynchronizationData>(readUtf8()) }
-	} catch (e: SerializationException) {
-		fileSystem.delete(path)
-		return
+	val existing = if (fileSystem.exists(path)) {
+		try {
+			fileSystem.read(path) { json.decodeFromString<ProjectSynchronizationData>(readUtf8()) }
+		} catch (e: SerializationException) {
+			fileSystem.delete(path)
+			null
+		}
+	} else {
+		null
 	}
+	val current = existing
+		?: if (serverKnowsProject) {
+			ProjectSynchronizationData(
+				lastId = 0,
+				newIds = emptyList(),
+				lastSync = Instant.DISTANT_PAST,
+				dirty = emptyList(),
+				deletedIds = emptySet(),
+			)
+		} else {
+			return
+		}
 
 	val marked = current.copy(
 		currentSyncId = null,
 		cachedProjectHash = null,
 		verifyAllEntities = true,
 	)
-	if (marked == current) return
+	if (marked == existing) return
 
 	fileSystem.write(path) { writeUtf8(json.encodeToString(marked)) }
 }

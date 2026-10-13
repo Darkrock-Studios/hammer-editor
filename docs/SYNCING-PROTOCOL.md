@@ -824,3 +824,5 @@ the dirty entry's, else the local hash). Every Entity the server changed since t
 conflicts; those it did not are left out of the update sequence and the dirty entry is dropped.
 Clearing the baselines instead would be wrong here: a null `original hash` lets the restored copy
 overwrite the server unchecked.
+A backup from before the project's first sync has no journal; restored over the synced project it
+gets an empty flagged one, so every Entity is baselined on its local hash.

@@ -3,10 +3,13 @@ package com.darkrockstudios.apps.hammer.integration.scenarios
 import com.darkrockstudios.apps.hammer.common.data.SceneContent
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupDef
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupRepository
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataDatasource
+import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.e2e.util.E2eTestData
 import com.darkrockstudios.apps.hammer.integration.HeadlessClient
 import com.darkrockstudios.apps.hammer.integration.RoundTripTestBase
 import kotlinx.coroutines.runBlocking
+import okio.FileSystem
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Timeout
 import org.koin.test.get
@@ -75,6 +78,30 @@ class RestoreBackupSyncTest : RoundTripTestBase() {
 
 		val restored = restore(client, backup)
 		assertTrue(restored.syncRecordingConflict(), "the restored edit must not silently overwrite the server")
+	}
+
+	@Test
+	@Timeout(value = 60)
+	fun `a backup from before the first sync conflicts with the newer server copy`() = runBlocking {
+		val project = "restore no journal"
+		val client = newClient(project)
+		val scene = assertNotNull(client.sceneEditor.createScene(parent = null, sceneName = "Scene"))
+		client.writeScene(scene.id, "backed up")
+		assertTrue(client.sync())
+
+		// Stand in for a backup taken before the project ever synced: it carries no journal.
+		val fileSystem = get<FileSystem>()
+		val journal = client.projectDef.path.toOkioPath() / SyncDataDatasource.SYNC_FILE_NAME
+		val aside = journal.parent!! / "sync.json.aside"
+		fileSystem.atomicMove(journal, aside)
+		val backup = assertNotNull(get<ProjectBackupRepository>().createBackup(client.projectDef))
+		fileSystem.atomicMove(aside, journal)
+
+		client.writeScene(scene.id, "after the backup")
+		assertTrue(client.sync())
+
+		val restored = restore(client, backup)
+		assertTrue(restored.syncRecordingConflict(), "the server's copy must not silently replace the restore")
 	}
 
 	@Test

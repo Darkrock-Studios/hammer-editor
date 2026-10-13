@@ -53,7 +53,7 @@ class ProjectBackupServiceTest {
 	init {
 		every { projectsRepository.getProjectId(any()) } returns liveId
 		coEvery { projectsRepository.setProjectId(any(), any()) } just Runs
-		coEvery { projectsRepository.resetSyncStateAfterRestore(any()) } just Runs
+		coEvery { projectsRepository.resetSyncStateAfterRestore(any(), any()) } just Runs
 	}
 
 	private class TestService(
@@ -527,7 +527,7 @@ class ProjectBackupServiceTest {
 		coVerifyOrder {
 			dataMigrator.migrateProject(projectDef)
 			projectsRepository.setProjectId(projectDef, liveId)
-			projectsRepository.resetSyncStateAfterRestore(projectDef)
+			projectsRepository.resetSyncStateAfterRestore(projectDef, serverKnowsProject = false)
 		}
 	}
 
@@ -554,7 +554,7 @@ class ProjectBackupServiceTest {
 
 		coVerifyOrder {
 			projectsRepository.setProjectId(projectDef, any())
-			projectsRepository.resetSyncStateAfterRestore(projectDef)
+			projectsRepository.resetSyncStateAfterRestore(projectDef, serverKnowsProject = false)
 		}
 	}
 
@@ -566,7 +566,7 @@ class ProjectBackupServiceTest {
 			"/projects/Test Project".toPath().toHPath()
 		every { globalSettingsStore.globalSettings } returns
 			GlobalSettings(projectsDirectory = "/projects", maxBackups = 5)
-		coEvery { projectsRepository.resetSyncStateAfterRestore(any()) } throws IOException("disk full")
+		coEvery { projectsRepository.resetSyncStateAfterRestore(any(), any()) } throws IOException("disk full")
 
 		val projectDir = "/projects/Test Project".toPath()
 		fileSystem.createDirectories(projectDir)

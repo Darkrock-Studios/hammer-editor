@@ -7,6 +7,7 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataDatasource
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
@@ -206,6 +207,8 @@ open class ProjectBackupService(
 				} else {
 					null
 				}
+				val liveSynced = liveId != null &&
+					fileSystem.exists(targetOkioPath / SyncDataDatasource.SYNC_FILE_NAME)
 
 				unzipToDirectory(
 					fileSystem = fileSystem,
@@ -214,7 +217,7 @@ open class ProjectBackupService(
 				)
 
 				swapIntoPlace(archiveRoot(extracted), targetOkioPath, displaced)
-				adoptIdentity(targetDef, liveId)
+				adoptIdentity(targetDef, liveId, liveSynced)
 				true
 			} catch (e: Exception) {
 				Napier.e("Failed to restore backup: ${backupDef.path.name}", e)
@@ -233,15 +236,15 @@ open class ProjectBackupService(
 	 * Settles a restored project's identity and sync state. A restored project is never treated as
 	 * in sync with the server: its sync state is the backup's, describing the server at backup time,
 	 * so the next sync conflict-checks every entity and the project data against the server instead
-	 * of letting either side silently overwrite the other. This holds whether or not the id changed.
-	 * A backup with no sync journal predates the project's first sync, and syncs as such.
+	 * of letting either side silently overwrite the other. This holds whether or not the id changed,
+	 * and when the backup predates the first sync of a live project it replaces ([liveSynced]).
 	 *
 	 * The content is already in place, so a failure here is logged rather than reported as a failed
 	 * restore. The id is set even when the migration fails: startup retries the migration, which
 	 * keeps an id already present.
 	 */
 	@Suppress("TooGenericExceptionCaught")
-	private suspend fun adoptIdentity(targetDef: ProjectDef, liveId: ProjectId?) {
+	private suspend fun adoptIdentity(targetDef: ProjectDef, liveId: ProjectId?, liveSynced: Boolean) {
 		try {
 			dataMigrator.migrateProject(targetDef)
 		} catch (e: Exception) {
@@ -253,7 +256,7 @@ open class ProjectBackupService(
 			Napier.e("Restored '${targetDef.name}' but failed to set its project id", e)
 		}
 		try {
-			projectsRepository.resetSyncStateAfterRestore(targetDef)
+			projectsRepository.resetSyncStateAfterRestore(targetDef, serverKnowsProject = liveSynced)
 		} catch (e: Exception) {
 			Napier.e("Restored '${targetDef.name}' but failed to reset its sync state", e)
 		}

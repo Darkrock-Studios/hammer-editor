@@ -203,9 +203,12 @@ class ProjectsRepository(
 	 * journal is flagged for that (see [markProjectRestored]); without a `lastSyncedHash`, project
 	 * data uploads against a null baseline, which the server answers with a conflict whenever its
 	 * copy differs. Restored default project data is the exception: it takes the server's copy.
+	 *
+	 * [serverKnowsProject] when the project kept an id it has synced under: a backup without a
+	 * journal then still gets one, flagged.
 	 */
-	suspend fun resetSyncStateAfterRestore(projectDef: ProjectDef) {
-		markProjectRestored(projectDef, fileSystem, json)
+	suspend fun resetSyncStateAfterRestore(projectDef: ProjectDef, serverKnowsProject: Boolean) {
+		markProjectRestored(projectDef, fileSystem, json, serverKnowsProject)
 		clearProjectDataBaseline(projectDef)
 	}
 

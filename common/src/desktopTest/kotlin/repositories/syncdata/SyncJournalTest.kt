@@ -621,6 +621,17 @@ class SyncJournalTest : BaseTest() {
 					deletedIds = emptySet()
 				), false
 			),
+			Arguments.of(
+				ProjectSynchronizationData(
+					currentSyncId = null,
+					lastId = 4,
+					newIds = emptyList(),
+					lastSync = Instant.DISTANT_PAST,
+					dirty = emptyList(),
+					deletedIds = emptySet(),
+					verifyAllEntities = true,
+				), true
+			),
 		)
 
 		private fun syncPath(projectDef: ProjectDef) = projectDef.path.toOkioPath() / SYNC_FILE_NAME

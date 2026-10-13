@@ -249,7 +249,7 @@ class ClientAccountSynchronizerTest {
 		// The backup's journal was clean and cached a hash that may still match the server.
 		writeProjectSyncData(def, cleanProjectSyncData(hash = "theta-hash"))
 
-		markProjectRestored(def, ffs, json)
+		markProjectRestored(def, ffs, json, serverKnowsProject = true)
 
 		val result = createSynchronizer()
 			.probeUnchangedProjects(listOf(SyncedProjectDefinition(def, projectId)))

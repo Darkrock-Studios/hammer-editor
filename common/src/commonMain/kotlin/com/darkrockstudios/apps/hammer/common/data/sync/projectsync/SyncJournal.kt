@@ -29,7 +29,7 @@ class SyncJournal(
 
 	suspend fun needsSync(): Boolean {
 		loadSyncData().apply {
-			return (dirty.isNotEmpty() || newIds.isNotEmpty())
+			return (dirty.isNotEmpty() || newIds.isNotEmpty() || verifyAllEntities)
 		}
 	}
 
