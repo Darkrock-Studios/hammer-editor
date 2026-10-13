@@ -10,6 +10,7 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.id.datasources.*
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesDatasource
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineDatasource
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
@@ -135,6 +136,57 @@ class SyncJournalTest : BaseTest() {
 			),
 			loadedData
 		)
+	}
+
+	// Test Project 2 holds IDs 1 to 23 with no gaps: scenes and scene groups, drafts, notes,
+	// timeline events and encyclopedia entries.
+	@Test
+	fun `Rebuilding finds every entity type`() = runTest {
+		createProject(ffs, PROJECT_2_NAME)
+		val projectDef = getProjectDef(PROJECT_2_NAME)
+		ffs.delete(syncPath(projectDef))
+
+		every { globalSettingsStore.serverSettings } returns null
+
+		val repo = createRepository(projectDef)
+		assertTrue(repo.createSyncData())
+
+		val loadedData = ffs.readJson<ProjectSynchronizationData>(syncPath(projectDef), json)!!
+		assertEquals(23, loadedData.lastId)
+		assertEquals(emptySet(), loadedData.deletedIds)
+	}
+
+	@Test
+	fun `Rebuilding counts archived scenes and reports real gaps`() = runTest {
+		createProject(ffs, PROJECT_2_NAME)
+		val projectDef = getProjectDef(PROJECT_2_NAME)
+		ffs.delete(syncPath(projectDef))
+		ffs.delete(NotesDatasource.getNotePath(13, projectDef, ffs).toOkioPath())
+		val archivedDir = SceneDatasource.getArchivedDirectory(projectDef, ffs).toOkioPath()
+		ffs.write(archivedDir / "Archived Scene-25.md") { writeUtf8("") }
+
+		every { globalSettingsStore.serverSettings } returns null
+
+		val repo = createRepository(projectDef)
+		assertTrue(repo.createSyncData())
+
+		val loadedData = ffs.readJson<ProjectSynchronizationData>(syncPath(projectDef), json)!!
+		assertEquals(25, loadedData.lastId)
+		assertEquals(setOf(13, 24), loadedData.deletedIds)
+	}
+
+	@Test
+	fun `A corrupt journal is rebuilt on load`() = runTest {
+		createProject(ffs, PROJECT_2_NAME)
+		val projectDef = getProjectDef(PROJECT_2_NAME)
+		ffs.write(syncPath(projectDef)) { writeUtf8("{ not json") }
+
+		val repo = createRepository(projectDef)
+		val rebuilt = repo.loadSyncData()
+
+		assertEquals(23, rebuilt.lastId)
+		assertEquals(emptySet(), rebuilt.deletedIds)
+		assertEquals(rebuilt, ffs.readJson<ProjectSynchronizationData>(syncPath(projectDef), json))
 	}
 
 	@Test

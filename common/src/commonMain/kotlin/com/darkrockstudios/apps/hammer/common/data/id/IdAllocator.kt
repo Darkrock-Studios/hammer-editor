@@ -31,7 +31,7 @@ class IdAllocator(private val projectDef: ProjectDef) : ProjectScoped {
 
 	suspend fun findNextId() {
 		mutex.withLock {
-			var lastId = computeMaxId(projectDef, idDatasources)
+			var lastId = idDatasources.maxOfOrNull { it.findHighestId(projectDef) } ?: -1
 
 			if (syncJournal.isServerSynchronized()) {
 				syncJournal.deletedIds().maxOrNull()?.let { maxDeletedId ->
@@ -68,29 +68,18 @@ class IdAllocator(private val projectDef: ProjectDef) : ProjectScoped {
 		 * project's Koin scope, so that scope must be open.
 		 */
 		fun findEntityIds(projectDef: ProjectDef): EntityIds {
-			val idsBySource = getIdSources(projectDef).map { it.findIds(projectDef) }
-			return EntityIds(
-				ids = idsBySource.filterNotNull().flatten().toSet(),
-				complete = idsBySource.none { it == null },
-			)
-		}
-
-		/**
-		 * The highest entity ID the project has on disk, or -1 if it has none. Stateless: it
-		 * knows nothing of IDs that were claimed and then deleted, see [SyncJournal.deletedIds].
-		 */
-		private fun computeMaxId(projectDef: ProjectDef, idDatasources: Set<IdDatasource>): Int {
-			return idDatasources.maxOfOrNull { it.findHighestId(projectDef) } ?: -1
-		}
-
-		private fun getIdSources(projectDef: ProjectDef): Set<IdDatasource> {
 			val projectScope = ProjectDefScope(projectDef)
 			// Reading ProjectDefScope.scope creates the scope when it is missing, which would
 			// bring a closed project's scope back with nothing left to close it.
 			checkNotNull(projectScope.getKoin().getScopeOrNull(projectScope.getScopeId())) {
 				"Project scope is not open: ${projectDef.name}"
 			}
-			return getIdSources(projectScope)
+
+			val idsBySource = getIdSources(projectScope).map { it.findIds(projectDef) }
+			return EntityIds(
+				ids = idsBySource.filterNotNull().flatten().toSet(),
+				complete = idsBySource.none { it == null },
+			)
 		}
 
 		private fun getIdSources(projectScope: ProjectDefScope): Set<IdDatasource> {
