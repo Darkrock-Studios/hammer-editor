@@ -973,6 +973,7 @@ class ClientAccountSynchronizerTest {
 		coVerify(exactly = 0) { serverProjectsApi.createProject(any(), any(), any()) }
 		coVerify { projectsRepository.setProjectId(def, serverId) }
 		coVerify(exactly = 0) { projectsRepository.setProjectId(def, duplicateId) }
+		coVerify(exactly = 0) { projectsRepository.adoptUnmarkedDirectory(any(), any(), any()) }
 	}
 
 	@Test
@@ -1004,6 +1005,7 @@ class ClientAccountSynchronizerTest {
 		// Adopting the orphan abandons the server project actually holding the manuscript.
 		coVerify(exactly = 0) { projectsRepository.setProjectId(def, orphanId) }
 		coVerify(exactly = 0) { serverProjectsApi.createProject(any(), any(), any()) }
+		coVerify(exactly = 0) { projectsRepository.adoptUnmarkedDirectory(any(), any(), any()) }
 	}
 
 	@Test

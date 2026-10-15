@@ -559,10 +559,12 @@ class ClientAccountSynchronizer(
 	}
 
 	/**
-	 * Adopts a directory named [localName] that has no project.toml under [serverId], treating it
-	 * like a restored backup. Returns false when there is no such directory.
+	 * Adopts the directory named [localName] under [serverId] if it has no project.toml, treating
+	 * it like a restored backup. Returns false when there is no such directory.
 	 *
-	 * A failed migration is logged rather than failing the sync: startup retries it.
+	 * A failed migration is logged rather than failing the sync: startup retries it, but does not
+	 * reset sync state again, so a pre-4 folder migrated only then keeps its stale `lastSyncedHash`
+	 * (its entities are still conflict-checked).
 	 */
 	@Suppress("TooGenericExceptionCaught")
 	private suspend fun adoptUnmarkedFolder(localName: String, serverId: ProjectId, onLog: OnSyncLog): Boolean {

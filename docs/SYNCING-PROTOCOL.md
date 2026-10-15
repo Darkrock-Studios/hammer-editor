@@ -60,12 +60,16 @@ same way (`ProjectCreateResolver`):
   clears the project's sync baseline, which described a different server project. If another local
   project already holds that ID (it was renamed away from this name and the rename has not reached
   the server), the client does not adopt it: the create counts as failed and is retried on a later
-  sync, after the rename lands. A local directory with the server project's name but no
-  `project.toml` is adopted under the server's ID and treated like a restored backup.
+  sync, after the rename lands.
 - **`409` with `project_id_taken`:** another account holds the ID. The client mints a fresh one and
   retries once.
 - **`409` with `project_deleted`:** the ID is tombstoned on this account. The client does not retry,
   and logs that the project was deleted elsewhere.
+
+A server project with no local counterpart is created locally under its ID, before any local
+project is uploaded. A local project with the same name adopts the server's ID instead, unless it is
+already bound to another live server project. So does a directory of that name with no
+`project.toml`, which is then treated like a restored backup.
 
 Queued renames and deletes name a project by ID, so one the server cannot act on is dropped without
 being sent rather than retried every session:
