@@ -56,7 +56,7 @@ class EntityDeleteOperation(
 	}
 
 	private suspend fun deleteEntityRemote(id: Int, syncId: String, onLog: OnSyncLog): Boolean {
-		val projectId = projectMetadataDatasource.requireProjectId(projectDef)
+		val projectId = projectMetadataDatasource.loadProjectId(projectDef)
 		val result = serverProjectApi.deleteId(projectId, id, syncId)
 		return if (result.isSuccess) {
 			onLog(syncLogI(strRes.get(Res.string.sync_log_entity_delete_success, id), projectDef))

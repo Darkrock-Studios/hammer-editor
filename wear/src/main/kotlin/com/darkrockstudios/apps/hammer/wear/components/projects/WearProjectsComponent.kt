@@ -4,7 +4,6 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.update
-import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.common.components.ComponentBase
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
@@ -99,11 +98,10 @@ class WearProjectsComponent(
 
 	override fun toggleSubscription(projectName: String) {
 		val project = watchProjects.find { it.projectDef.name == projectName } ?: return
-		val projectId = project.projectId ?: return
 
 		if (!project.subscribed) {
 			scope.launch {
-				subscriptions.setSubscribed(projectId, true)
+				subscriptions.setSubscribed(project.projectId, true)
 				syncCoordinator.requestSync(SyncTrigger.Manual)
 				reload()
 			}
@@ -115,7 +113,7 @@ class WearProjectsComponent(
 		notice = null
 		publish()
 		// Outlives the screen: abandoning a half-done unsubscribe would strand the subscription.
-		appScope.launch { unsubscribe(project, projectId) }
+		appScope.launch { unsubscribe(project) }
 	}
 
 	override fun syncNow() {
@@ -177,7 +175,7 @@ class WearProjectsComponent(
 	 * well as intact, because an unsubscribed project is filtered out of every later sync and its
 	 * writing would never get another chance to upload.
 	 */
-	private suspend fun unsubscribe(project: WatchProject, projectId: ProjectId) {
+	private suspend fun unsubscribe(project: WatchProject) {
 		val name = project.projectDef.name
 		// Distinct from a failure: telling someone to sync and retry is useless advice when the
 		// unsubscribe itself is what broke.
@@ -188,7 +186,7 @@ class WearProjectsComponent(
 
 			reason = syncCoordinator.runExclusive {
 				if (pendingIn(project) == 0) {
-					subscriptions.setSubscribed(projectId, false)
+					subscriptions.setSubscribed(project.projectId, false)
 					projectsRepository.deleteProjectContent(project.projectDef)
 					null
 				} else {
@@ -255,7 +253,6 @@ class WearProjectsComponent(
 			val progress = syncStatus.projects[name]?.takeIf { project.subscribed }
 			WearProjects.ProjectRow(
 				name = name,
-				canSubscribe = project.projectId != null,
 				subscribed = project.subscribed,
 				unsubscribing = name in unsubscribing,
 				progress = progress?.progress,

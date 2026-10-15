@@ -125,13 +125,54 @@ class ProjectEntityDatabaseDatasourceTest : BaseTest() {
 			.executeAsOneOrNull()
 		assertNull(result)
 
-		val created = datasource.createProject(userId, projectDef.name)
+		val created = datasource.createProject(userId, projectDef.name, projectDef.uuid)
+		assertEquals(projectDef, created)
 
 		result = testDatabase.serverDatabase.projectQueries
 			.findProjectByName(1, projectDef.name)
 			.executeAsOneOrNull()
 		assertNotNull(result)
-		assertEquals(created.uuid.id, result.uuid)
+		assertEquals(projectDef.uuid.id, result.uuid)
+	}
+
+	@Test
+	fun `Create Project - id held by another account`() = runTest {
+		setupAccount(testDatabase)
+		testDatabase.serverDatabase.accountQueries.createAccount(
+			email = "other@test.com",
+			password_hash = "hash",
+			cipher_secret = cipherSecretGenerator.generateToken(),
+			is_admin = false,
+		)
+		val otherUserId = testDatabase.serverDatabase.accountQueries
+			.findAccount("other@test.com").executeAsOne().id
+		val datasource = createDatasource()
+		datasource.createProject(otherUserId, "Their Project", projectDef.uuid)
+
+		assertNull(datasource.createProject(userId, projectDef.name, projectDef.uuid))
+		assertNull(datasource.findProjectByName(userId, projectDef.name))
+	}
+
+	@Test
+	fun `Create Project - repeating a create inserts nothing`() = runTest {
+		setupAccount(testDatabase)
+		val datasource = createDatasource()
+		datasource.createProject(userId, projectDef.name, projectDef.uuid)
+
+		assertNull(datasource.createProject(userId, projectDef.name, projectDef.uuid))
+		assertEquals(projectDef, datasource.getProject(userId, projectDef.uuid))
+	}
+
+	@Test
+	fun `Create Project - duplicate name is not an id clash`() = runTest {
+		setupAccount(testDatabase)
+		val datasource = createDatasource()
+		datasource.createProject(userId, projectDef.name, projectDef.uuid)
+
+		val failure = assertFails {
+			datasource.createProject(userId, projectDef.name, ProjectId("22222222-2222-2222-2222-222222222222"))
+		}
+		assertFalse(failure is ProjectIdTakenException)
 	}
 
 	@Test

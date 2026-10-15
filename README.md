@@ -52,7 +52,9 @@ designed from the ground up to be entirely local, no internet connection require
 
 Your data is yours. It's not stored in the cloud, or some opaque database. It is stored in simple, human readable files,
 just using files and folders to define the project structure. You can open your OSes file browser and take a look for
-your self. If this program went away today you would be able to easily interact with your data.
+your self. If this program went away today you would be able to easily interact with your data. Your settings and
+content are yours to edit, while each project's metadata file (`project.toml`) is managed by Hammer and may be
+overwritten.
 
 ## Intelligent Syncing between devices
 

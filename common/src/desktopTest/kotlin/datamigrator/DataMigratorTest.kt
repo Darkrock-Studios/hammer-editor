@@ -118,6 +118,7 @@ class DataMigratorTest : BaseTest() {
 			factory<Migration0_1> { mockMigrator }
 			factory<Migration1_2> { mockk(relaxed = true) }
 			factory<Migration2_3> { mockk(relaxed = true) }
+			factory<Migration3_4> { mockk(relaxed = true) }
 			factory<MigrateInstallIdToGlobal> { mockk(relaxed = true) }
 			factory<MigrateInlineAuthTokens> { mockk(relaxed = true) }
 		}
@@ -156,6 +157,8 @@ class DataMigratorTest : BaseTest() {
 		runBlocking { migrator.handleDataMigration() }
 
 		verify(exactly = 0) { mockMigrator.migrate(any()) }
+		// Copied project folders are caught even when nothing needs migrating.
+		coVerify(exactly = 1) { projectsRepository.resolveDuplicateProjectIds() }
 
 		confirmVerified(mockMigrator)
 	}
@@ -169,6 +172,7 @@ class DataMigratorTest : BaseTest() {
 			factory<Migration0_1> { mockMigrator }
 			factory<Migration1_2> { mockk(relaxed = true) }
 			factory<Migration2_3> { mockk(relaxed = true) }
+			factory<Migration3_4> { mockk(relaxed = true) }
 			factory<MigrateInstallIdToGlobal> { mockk(relaxed = true) }
 			factory<MigrateInlineAuthTokens> { mockk(relaxed = true) }
 		}

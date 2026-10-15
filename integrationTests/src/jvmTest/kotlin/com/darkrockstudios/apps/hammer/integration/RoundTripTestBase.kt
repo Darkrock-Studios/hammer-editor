@@ -258,15 +258,18 @@ abstract class RoundTripTestBase : EndToEndTest(), KoinTest {
 	protected suspend fun newClient(projectName: String): HeadlessClient =
 		HeadlessClient.create(projectName, makeServerSettings()).also { openClients += it }
 
+	/** [HeadlessClient.reopen], registered for teardown-close like [newClient]. */
+	protected suspend fun reopen(client: HeadlessClient): HeadlessClient =
+		client.reopen().also { openClients += it }
+
 	/**
 	 * Opens a second device on the same server project as [primary], which must have synced at least
-	 * once so its server project id exists. The second device gets its own local project dir
+	 * once so the server project exists. The second device gets its own local project dir
 	 * ([localName], which must differ from the first device's name) but binds to the same server
-	 * project — the realistic "two devices, one account, one project" setup.
+	 * project: the realistic "two devices, one account, one project" setup.
 	 */
 	protected suspend fun secondDeviceFor(primary: HeadlessClient, localName: String): HeadlessClient {
 		val sharedId = get<ProjectMetadataDatasource>().loadProjectId(primary.projectDef)
-			?: error("primary device has no server project id yet — sync it before opening a second device")
 		return HeadlessClient.create(localName, makeServerSettings(), serverProjectId = sharedId)
 			.also { openClients += it }
 	}

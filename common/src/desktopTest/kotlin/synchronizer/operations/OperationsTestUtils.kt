@@ -17,7 +17,7 @@ val metadata = ProjectMetadata(
 		created = Instant.fromEpochSeconds(123456),
 		lastAccessed = null,
 		dataVersion = PROJECT_DATA_VERSION,
-		serverProjectId = ProjectId("project-id")
+		projectId = ProjectId("project-id")
 	)
 )
 

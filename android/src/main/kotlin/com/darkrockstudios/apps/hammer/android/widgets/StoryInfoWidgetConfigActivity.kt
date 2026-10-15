@@ -123,9 +123,10 @@ class StoryInfoWidgetConfigActivity : ComponentActivity() {
 
 	private suspend fun save(widgetId: Int, projectDef: ProjectDef) {
 		val accentHex = loadStoredProjectData(projectDef, fileSystem, toml).data.theme?.primary
+		val projectId = projectsRepository.getProjectId(projectDef)
 
 		widgetConfigDataStore.updateData {
-			it.saveWidgetConfig(widgetId, projectDef, accentHex)
+			it.saveWidgetConfig(widgetId, projectId, accentHex)
 		}
 
 		val manager = GlanceAppWidgetManager(this)

@@ -222,7 +222,7 @@ class ProjectDataSyncOperationTest : BaseTest() {
 
 	@Test
 	fun `fresh sync with default local data adopts the server copy without uploading`() = runTest {
-		// Never synced on this device: no project_data.toml, so the repository hands back
+		// Never synced on this device: no settings.toml, so the repository hands back
 		// default ProjectData() with a null lastSyncedHash. The server already has settings.
 		val server = ProjectData(authorName = "Server Author")
 		coEvery { api.getProjectData(any(), any()) } returns

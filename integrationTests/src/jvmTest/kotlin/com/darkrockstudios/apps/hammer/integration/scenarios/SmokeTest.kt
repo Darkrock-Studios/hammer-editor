@@ -1,10 +1,13 @@
 package com.darkrockstudios.apps.hammer.integration.scenarios
 
+import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.integration.HeadlessClient
 import com.darkrockstudios.apps.hammer.integration.RoundTripTestBase
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Timeout
+import org.koin.test.get
+import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 /**
@@ -24,6 +27,7 @@ class SmokeTest : RoundTripTestBase() {
 		)
 
 		assertTrue(fileSystem.exists(client.projectPath), "Local project dir must exist before sync")
+		val localId = get<ProjectMetadataDatasource>().loadProjectId(client.projectDef)
 
 		val result = client.sync()
 
@@ -38,6 +42,13 @@ class SmokeTest : RoundTripTestBase() {
 			serverProjectCount == 1L,
 			"Server should have exactly one project after sync, got $serverProjectCount"
 		)
+
+		// The server creates the project under the id the client minted.
+		val serverProject = database().serverDatabase.projectQueries
+			.findProjectByName(userId, "smoke project")
+			.executeAsOne()
+		assertEquals(localId.id, serverProject.uuid.toString())
+		assertEquals(localId, get<ProjectMetadataDatasource>().loadProjectId(client.projectDef))
 
 		client.close()
 	}

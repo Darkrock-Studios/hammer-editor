@@ -7,8 +7,17 @@ import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRe
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
+import com.darkrockstudios.apps.hammer.base.ProjectId
+import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
+import io.mockk.Runs
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.coVerifyOrder
 import io.mockk.every
+import io.mockk.just
 import io.mockk.mockk
+import io.mockk.slot
+import io.mockk.verify
 import kotlinx.coroutines.test.runTest
 import okio.FileSystem
 import okio.IOException
@@ -20,6 +29,7 @@ import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlin.time.Clock
@@ -37,13 +47,21 @@ class ProjectBackupServiceTest {
 	private val projectsRepository = mockk<ProjectsRepository>()
 	private val globalSettingsStore = mockk<GlobalSettingsStore>()
 	private val clock = mockk<Clock>()
+	private val dataMigrator = mockk<DataMigrator>(relaxed = true)
+	private val liveId = ProjectId("live-project-id")
+
+	init {
+		every { projectsRepository.getProjectId(any()) } returns liveId
+		coEvery { projectsRepository.setProjectId(any(), any()) } just Runs
+		coEvery { projectsRepository.resetSyncStateAfterRestore(any(), any()) } just Runs
+	}
 
 	private class TestService(
 		fileSystem: FileSystem,
 		projectsRepository: ProjectsRepository,
 		globalSettingsStore: GlobalSettingsStore,
 		clock: Clock
-	) : ProjectBackupService(fileSystem, projectsRepository, globalSettingsStore, clock) {
+	) : ProjectBackupService(fileSystem, projectsRepository, globalSettingsStore, clock, mockk(relaxed = true)) {
 		override fun supportsBackup(): Boolean = true
 		override suspend fun createBackup(projectDef: ProjectDef): ProjectBackupDef? = null
 		override suspend fun restoreBackup(backupDef: ProjectBackupDef, targetDir: HPath): Boolean = true
@@ -145,7 +163,7 @@ class ProjectBackupServiceTest {
 	}
 
 	private fun realService() =
-		ProjectBackupService(fileSystem, projectsRepository, globalSettingsStore, clock)
+		ProjectBackupService(fileSystem, projectsRepository, globalSettingsStore, clock, dataMigrator)
 
 	private fun writeBackupFile(projectName: String, instant: Instant): Path {
 		val backupName = projectName.replace(" ", "_")
@@ -407,6 +425,164 @@ class ProjectBackupServiceTest {
 	}
 
 	@Test
+	fun `restoreBackup migrates the restored project and keeps the live project's id`() = runTest {
+		every { clock.now() } returns Instant.parse("2025-12-28T16:29:00Z")
+		every { projectsRepository.getProjectsDirectory() } returns "/projects".toPath().toHPath()
+		every { projectsRepository.getProjectDirectory("Test Project") } returns
+			"/projects/Test Project".toPath().toHPath()
+		every { globalSettingsStore.globalSettings } returns
+			GlobalSettings(projectsDirectory = "/projects", maxBackups = 5)
+
+		val projectDir = "/projects/Test Project".toPath()
+		fileSystem.createDirectories(projectDir)
+		fileSystem.write(projectDir / "project.toml") { writeUtf8("[info]") }
+
+		val service = realService()
+		val projectDef = ProjectDef("Test Project", projectDir.toHPath())
+		val backupDef = service.createBackup(projectDef)
+		assertNotNull(backupDef)
+
+		assertTrue(service.restoreBackup(backupDef, projectDef.path))
+
+		coVerifyOrder {
+			dataMigrator.migrateProject(projectDef)
+			projectsRepository.setProjectId(projectDef, liveId)
+		}
+	}
+
+	@Test
+	fun `restoreBackup keeps the live project's id when the migration fails`() = runTest {
+		every { clock.now() } returns Instant.parse("2025-12-28T16:29:00Z")
+		every { projectsRepository.getProjectsDirectory() } returns "/projects".toPath().toHPath()
+		every { projectsRepository.getProjectDirectory("Test Project") } returns
+			"/projects/Test Project".toPath().toHPath()
+		every { globalSettingsStore.globalSettings } returns
+			GlobalSettings(projectsDirectory = "/projects", maxBackups = 5)
+		every { dataMigrator.migrateProject(any()) } throws IllegalStateException("migration failed")
+
+		val projectDir = "/projects/Test Project".toPath()
+		fileSystem.createDirectories(projectDir)
+		fileSystem.write(projectDir / "project.toml") { writeUtf8("[info]") }
+
+		val service = realService()
+		val projectDef = ProjectDef("Test Project", projectDir.toHPath())
+		val backupDef = service.createBackup(projectDef)
+		assertNotNull(backupDef)
+
+		assertTrue(service.restoreBackup(backupDef, projectDef.path))
+
+		coVerify { projectsRepository.setProjectId(projectDef, liveId) }
+	}
+
+	@Test
+	fun `restoreBackup gives a fresh id when no live project is replaced`() = runTest {
+		every { clock.now() } returns Instant.parse("2025-12-28T16:29:00Z")
+		every { projectsRepository.getProjectsDirectory() } returns "/projects".toPath().toHPath()
+		every { projectsRepository.getProjectDirectory("Test Project") } returns
+			"/projects/Test Project".toPath().toHPath()
+		every { globalSettingsStore.globalSettings } returns
+			GlobalSettings(projectsDirectory = "/projects", maxBackups = 5)
+
+		val projectDir = "/projects/Test Project".toPath()
+		fileSystem.createDirectories(projectDir)
+		fileSystem.write(projectDir / "project.toml") { writeUtf8("[info]") }
+
+		val service = realService()
+		val projectDef = ProjectDef("Test Project", projectDir.toHPath())
+		val backupDef = service.createBackup(projectDef)
+		assertNotNull(backupDef)
+		fileSystem.deleteRecursively(projectDir)
+
+		assertTrue(service.restoreBackup(backupDef, projectDef.path))
+
+		// The backup's own id may be tombstoned on the server, and a tombstoned id stays dead.
+		val assigned = slot<ProjectId>()
+		coVerify { projectsRepository.setProjectId(projectDef, capture(assigned)) }
+		verify(exactly = 0) { projectsRepository.getProjectId(any()) }
+		assertNotEquals(liveId, assigned.captured)
+	}
+
+	@Test
+	fun `restoreBackup over the live project resets its sync state once the id is settled`() = runTest {
+		every { clock.now() } returns Instant.parse("2025-12-28T16:29:00Z")
+		every { projectsRepository.getProjectsDirectory() } returns "/projects".toPath().toHPath()
+		every { projectsRepository.getProjectDirectory("Test Project") } returns
+			"/projects/Test Project".toPath().toHPath()
+		every { globalSettingsStore.globalSettings } returns
+			GlobalSettings(projectsDirectory = "/projects", maxBackups = 5)
+
+		val projectDir = "/projects/Test Project".toPath()
+		fileSystem.createDirectories(projectDir)
+		fileSystem.write(projectDir / "project.toml") { writeUtf8("[info]") }
+
+		val service = realService()
+		val projectDef = ProjectDef("Test Project", projectDir.toHPath())
+		val backupDef = service.createBackup(projectDef)
+		assertNotNull(backupDef)
+
+		assertTrue(service.restoreBackup(backupDef, projectDef.path))
+
+		// The id is unchanged, so setProjectId clears nothing; the reset must still run, and on the
+		// migrated files.
+		coVerifyOrder {
+			dataMigrator.migrateProject(projectDef)
+			projectsRepository.setProjectId(projectDef, liveId)
+			projectsRepository.resetSyncStateAfterRestore(projectDef, serverKnowsProject = false)
+		}
+	}
+
+	@Test
+	fun `restoreBackup resets the sync state when no live project is replaced`() = runTest {
+		every { clock.now() } returns Instant.parse("2025-12-28T16:29:00Z")
+		every { projectsRepository.getProjectsDirectory() } returns "/projects".toPath().toHPath()
+		every { projectsRepository.getProjectDirectory("Test Project") } returns
+			"/projects/Test Project".toPath().toHPath()
+		every { globalSettingsStore.globalSettings } returns
+			GlobalSettings(projectsDirectory = "/projects", maxBackups = 5)
+
+		val projectDir = "/projects/Test Project".toPath()
+		fileSystem.createDirectories(projectDir)
+		fileSystem.write(projectDir / "project.toml") { writeUtf8("[info]") }
+
+		val service = realService()
+		val projectDef = ProjectDef("Test Project", projectDir.toHPath())
+		val backupDef = service.createBackup(projectDef)
+		assertNotNull(backupDef)
+		fileSystem.deleteRecursively(projectDir)
+
+		assertTrue(service.restoreBackup(backupDef, projectDef.path))
+
+		coVerifyOrder {
+			projectsRepository.setProjectId(projectDef, any())
+			projectsRepository.resetSyncStateAfterRestore(projectDef, serverKnowsProject = false)
+		}
+	}
+
+	@Test
+	fun `restoreBackup succeeds when resetting the sync state fails`() = runTest {
+		every { clock.now() } returns Instant.parse("2025-12-28T16:29:00Z")
+		every { projectsRepository.getProjectsDirectory() } returns "/projects".toPath().toHPath()
+		every { projectsRepository.getProjectDirectory("Test Project") } returns
+			"/projects/Test Project".toPath().toHPath()
+		every { globalSettingsStore.globalSettings } returns
+			GlobalSettings(projectsDirectory = "/projects", maxBackups = 5)
+		coEvery { projectsRepository.resetSyncStateAfterRestore(any(), any()) } throws IOException("disk full")
+
+		val projectDir = "/projects/Test Project".toPath()
+		fileSystem.createDirectories(projectDir)
+		fileSystem.write(projectDir / "project.toml") { writeUtf8("original") }
+
+		val service = realService()
+		val projectDef = ProjectDef("Test Project", projectDir.toHPath())
+		val backupDef = service.createBackup(projectDef)
+		assertNotNull(backupDef)
+		fileSystem.write(projectDir / "project.toml") { writeUtf8("changed") }
+
+		assertTrue(service.restoreBackup(backupDef, projectDef.path), "the content is already in place")
+		assertEquals("original", fileSystem.read(projectDir / "project.toml") { readUtf8() })
+	}
+
+	@Test
 	fun `getBackedUpProjects includes projects that no longer exist`() {
 		every { projectsRepository.getProjectsDirectory() } returns "/projects".toPath().toHPath()
 
@@ -464,7 +640,7 @@ class ProjectBackupServiceTest {
 				super.atomicMove(source, target)
 			}
 		}
-		val failingService = ProjectBackupService(failingSwap, projectsRepository, globalSettingsStore, clock)
+		val failingService = ProjectBackupService(failingSwap, projectsRepository, globalSettingsStore, clock, dataMigrator)
 
 		assertFalse(failingService.restoreBackup(backupDef, projectDef.path))
 

@@ -67,8 +67,8 @@ class CaptureComponentTest : WearTestBase() {
 
 	@Test
 	fun `a note defaults to the project last captured to`() = runTest(dispatcher) {
-		projects.create("Alpha", serverId = "a")
-		projects.create("Beta", serverId = "b")
+		projects.create("Alpha", projectId = "a")
+		projects.create("Beta", projectId = "b")
 		subscriptions.setSubscribed(ProjectId("a"), true)
 		subscriptions.setSubscribed(ProjectId("b"), true)
 		subscriptions.setLastCaptureProject(ProjectId("b"))
@@ -81,7 +81,7 @@ class CaptureComponentTest : WearTestBase() {
 
 	@Test
 	fun `a first capture falls back to the first project on the watch`() = runTest(dispatcher) {
-		projects.create("Alpha", serverId = "a")
+		projects.create("Alpha", projectId = "a")
 		subscriptions.setSubscribed(ProjectId("a"), true)
 
 		val component = newComponent(Capture.Mode.Note)
@@ -92,7 +92,7 @@ class CaptureComponentTest : WearTestBase() {
 	@Test
 	fun `projects that are not kept on the watch are not capture targets`() = runTest(dispatcher) {
 		// A note in an unsynced project would take id 1 and collide on every later sync.
-		projects.create("Alpha", serverId = "a")
+		projects.create("Alpha", projectId = "a")
 
 		val component = newComponent(Capture.Mode.Note)
 
@@ -113,7 +113,7 @@ class CaptureComponentTest : WearTestBase() {
 
 	@Test
 	fun `a note cannot be saved before its text arrives`() = runTest(dispatcher) {
-		projects.create("Alpha", serverId = "a")
+		projects.create("Alpha", projectId = "a")
 		subscriptions.setSubscribed(ProjectId("a"), true)
 
 		val component = newComponent(Capture.Mode.Note)
@@ -127,7 +127,7 @@ class CaptureComponentTest : WearTestBase() {
 
 	@Test
 	fun `saving a note writes it and reports what is waiting to sync`() = runTest(dispatcher) {
-		projects.create("Alpha", serverId = "a")
+		projects.create("Alpha", projectId = "a")
 		subscriptions.setSubscribed(ProjectId("a"), true)
 		unsynced.pendingByProject["Alpha"] = 4
 		val component = newComponent(Capture.Mode.Note)
@@ -168,8 +168,8 @@ class CaptureComponentTest : WearTestBase() {
 
 	@Test
 	fun `choosing a project remembers it for the next capture`() = runTest(dispatcher) {
-		projects.create("Alpha", serverId = "a")
-		projects.create("Beta", serverId = "b")
+		projects.create("Alpha", projectId = "a")
+		projects.create("Beta", projectId = "b")
 		subscriptions.setSubscribed(ProjectId("a"), true)
 		subscriptions.setSubscribed(ProjectId("b"), true)
 		val component = newComponent(Capture.Mode.Note)
@@ -234,8 +234,8 @@ class CaptureComponentTest : WearTestBase() {
 
 	@Test
 	fun `leaving the project picker keeps the current project`() = runTest(dispatcher) {
-		projects.create("Alpha", serverId = "a")
-		projects.create("Beta", serverId = "b")
+		projects.create("Alpha", projectId = "a")
+		projects.create("Beta", projectId = "b")
 		subscriptions.setSubscribed(ProjectId("a"), true)
 		subscriptions.setSubscribed(ProjectId("b"), true)
 		val component = newComponent(Capture.Mode.Note)
@@ -304,8 +304,8 @@ class CaptureComponentTest : WearTestBase() {
 
 	@Test
 	fun `the tile can send you straight to the project picker`() = runTest(dispatcher) {
-		projects.create("Alpha", serverId = "a")
-		projects.create("Beta", serverId = "b")
+		projects.create("Alpha", projectId = "a")
+		projects.create("Beta", projectId = "b")
 		subscriptions.setSubscribed(ProjectId("a"), true)
 		subscriptions.setSubscribed(ProjectId("b"), true)
 
@@ -316,7 +316,7 @@ class CaptureComponentTest : WearTestBase() {
 
 	@Test
 	fun `there is no picker to show when only one project is on the watch`() = runTest(dispatcher) {
-		projects.create("Alpha", serverId = "a")
+		projects.create("Alpha", projectId = "a")
 		subscriptions.setSubscribed(ProjectId("a"), true)
 
 		val component = newComponent(Capture.Mode.Note, startWithPicker = true)

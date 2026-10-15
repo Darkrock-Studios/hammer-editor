@@ -32,8 +32,8 @@ class CaptureTileStateUseCaseTest : WearTestBase() {
 
 	@Test
 	fun `the tile shows the project a note would go to and what is waiting`() = runTest(dispatcher) {
-		projects.create("Alpha", serverId = "a")
-		projects.create("Beta", serverId = "b")
+		projects.create("Alpha", projectId = "a")
+		projects.create("Beta", projectId = "b")
 		subscriptions.setSubscribed(ProjectId("a"), true)
 		subscriptions.setSubscribed(ProjectId("b"), true)
 		subscriptions.setLastCaptureProject(ProjectId("b"))
@@ -49,7 +49,7 @@ class CaptureTileStateUseCaseTest : WearTestBase() {
 	@Test
 	fun `a watch with no project kept on it names none`() = runTest(dispatcher) {
 		// The project exists but is not subscribed, so a note still has nowhere to go.
-		projects.create("Alpha", serverId = "a")
+		projects.create("Alpha", projectId = "a")
 
 		val state = useCase.load()
 
@@ -60,8 +60,8 @@ class CaptureTileStateUseCaseTest : WearTestBase() {
 	@Test
 	fun `the default falls back to the first project before anything has been captured`() =
 		runTest(dispatcher) {
-			projects.create("Alpha", serverId = "a")
-			projects.create("Beta", serverId = "b")
+			projects.create("Alpha", projectId = "a")
+			projects.create("Beta", projectId = "b")
 			subscriptions.setSubscribed(ProjectId("a"), true)
 			subscriptions.setSubscribed(ProjectId("b"), true)
 
@@ -70,7 +70,7 @@ class CaptureTileStateUseCaseTest : WearTestBase() {
 
 	@Test
 	fun `a project that is gone is not offered as a target`() = runTest(dispatcher) {
-		projects.create("Alpha", serverId = "a")
+		projects.create("Alpha", projectId = "a")
 		subscriptions.setSubscribed(ProjectId("a"), true)
 		// Unsubscribing elsewhere leaves the remembered id pointing at nothing on the watch.
 		subscriptions.setLastCaptureProject(ProjectId("gone"))

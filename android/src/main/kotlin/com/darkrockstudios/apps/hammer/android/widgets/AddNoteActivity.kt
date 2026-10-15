@@ -30,6 +30,7 @@ import androidx.work.WorkManager
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.arkivanov.decompose.value.MutableValue
 import com.darkrockstudios.apps.hammer.android.R
+import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
 import com.darkrockstudios.apps.hammer.common.compose.serializableStateSaver
@@ -62,13 +63,13 @@ class AddNoteActivity : ComponentActivity(), KoinComponent {
 		setFinishOnTouchOutside(false)
 		window.setBackgroundDrawableResource(android.R.color.transparent)
 
-		val projectNameExtra = intent.extras?.getString(EXTRA_PROJECT_NAME)
-		val projectName = if (projectNameExtra.isNullOrBlank()) null else projectNameExtra
+		val projectId = intent.extras?.getString(EXTRA_PROJECT_ID)?.ifBlank { null }?.let(::ProjectId)
 
-		val projects = projectsRepository.getProjects().map { projectDef ->
+		val projectsWithMetadata = projectsRepository.getProjects().map { projectDef ->
 			val metadata = projectsMetadataRepository.loadMetadata(projectDef)
 			Pair(projectDef, metadata)
-		}.sortedByDescending { it.second.info.lastAccessed }.map { it.first }
+		}.sortedByDescending { it.second.info.lastAccessed }
+		val projects = projectsWithMetadata.map { it.first }
 
 		if (projects.isEmpty()) {
 			Toast.makeText(
@@ -78,11 +79,16 @@ class AddNoteActivity : ComponentActivity(), KoinComponent {
 			).show()
 			finish()
 		} else {
-			val preselectedProject = projects.find { projectDef -> projectDef.name == projectName }
-			if (projectName != null && preselectedProject == null) {
-				val text = getString(R.string.note_widget_dialog_failure_bad_project, projectName)
+			// Same result as findProject (a missing id would heal to a fresh one that can't match)
+			// without reading every project.toml again.
+			val preselectedProject = projectId?.let { id ->
+				projectsWithMetadata.find { it.second.info.projectId == id }?.first
+			}
+			if (projectId != null && preselectedProject == null) {
+				val text = getString(R.string.note_widget_dialog_failure_bad_project, projectId.id)
 				Toast.makeText(this, text, Toast.LENGTH_LONG).show()
 				finish()
+				return
 			}
 
 			setContent {
@@ -131,7 +137,6 @@ class AddNoteActivity : ComponentActivity(), KoinComponent {
 					) {
 						if (!confirmCancel) {
 							AddNoteDialog(
-								projectName = projectName,
 								projects = projects,
 								preselectedProject = preselectedProject,
 								noteText = noteText,
@@ -140,7 +145,10 @@ class AddNoteActivity : ComponentActivity(), KoinComponent {
 								onCancel = tryCancel,
 								onSave = {
 									if (noteText.isNotBlank()) {
-										saveNote(preselectedProject ?: selectedProject, noteText)
+										val project = preselectedProject ?: selectedProject
+										val loadedId = projectsWithMetadata
+											.find { it.first == project }?.second?.info?.projectId
+										saveNote(loadedId ?: projectsRepository.getProjectId(project), noteText)
 									}
 								},
 							)
@@ -156,9 +164,9 @@ class AddNoteActivity : ComponentActivity(), KoinComponent {
 		}
 	}
 
-	private fun saveNote(project: ProjectDef, note: String) {
+	private fun saveNote(projectId: ProjectId, note: String) {
 		val data = Data.Builder()
-		data.putString(AddNoteWorker.DATA_PROJECT_NAME, project.name)
+		data.putString(AddNoteWorker.DATA_PROJECT_ID, projectId.id)
 		data.putString(AddNoteWorker.DATA_NOTE_TEXT, note)
 
 		val request = OneTimeWorkRequestBuilder<AddNoteWorker>()
@@ -174,13 +182,12 @@ class AddNoteActivity : ComponentActivity(), KoinComponent {
 	}
 
 	companion object {
-		const val EXTRA_PROJECT_NAME = "project_name"
+		const val EXTRA_PROJECT_ID = "project_id"
 	}
 }
 
 @Composable
 private fun AddNoteDialog(
-	projectName: String?,
 	projects: List<ProjectDef>,
 	preselectedProject: ProjectDef?,
 	noteText: String,
@@ -201,7 +208,7 @@ private fun AddNoteDialog(
 		Column {
 			HdMasthead(
 				section = "ADD NOTE",
-				leadingMeta = if (projectName != null) listOf(projectName) else emptyList(),
+				leadingMeta = listOfNotNull(preselectedProject?.name),
 				trailing = { HdMastheadAction(label = "× CLOSE", onClick = onCancel) },
 			)
 			HdFolioDivider()

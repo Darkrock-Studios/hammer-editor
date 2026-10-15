@@ -28,6 +28,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.isInsecureServerUrl
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.parseServerUrl
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ClientAccountSynchronizer
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.apps.hammer.server_setup_error_invalid_email
@@ -64,6 +65,7 @@ class AccountSettingsComponent(
 	private val exampleProjectRepository: ExampleProjectRepository by inject()
 	private val accountUseCase: AccountUseCase by inject()
 	private val projectsRepository: ProjectsRepository by inject()
+	private val accountSynchronizer: ClientAccountSynchronizer by inject()
 
 	private val backupManagerNavigation = SlotNavigation<BackupManagerConfig>()
 
@@ -214,13 +216,16 @@ class AccountSettingsComponent(
 
 	override suspend fun removeServer() {
 		globalSettingsStore.deleteServerSettings()
-		clearAllProjectIds()
+		resetSyncStateForServerChange()
 	}
 
-	private suspend fun clearAllProjectIds() {
-		projectsRepository.getProjects().forEach { projectDef ->
-			projectsRepository.removeProjectId(projectDef = projectDef)
-		}
+	/**
+	 * Sync baselines and the account queues record what one server confirmed. On any other server
+	 * they would make untouched projects read as already uploaded, so they go; project ids stay.
+	 */
+	private suspend fun resetSyncStateForServerChange() {
+		projectsRepository.clearAllSyncBaselines()
+		accountSynchronizer.deleteSyncData()
 	}
 
 	override suspend fun setAutomaticBackups(value: Boolean) {
@@ -472,10 +477,8 @@ class AccountSettingsComponent(
 					if (shouldRemoveLocalContent(pending)) {
 						withContext(dispatcherIo) { removeLocalContent() }
 					}
-					// A freshly created account holds no projects, so any serverProjectId from a
-					// previous server is stale and would make sync skip re-creating the project.
-					if (pending.create) {
-						clearAllProjectIds()
+					if (pending.create || !pending.sameServer) {
+						withContext(dispatcherIo) { resetSyncStateForServerChange() }
 					}
 					cleanUpServerSetup()
 					_state.getAndUpdate {

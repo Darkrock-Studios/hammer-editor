@@ -249,7 +249,7 @@ class EntityTransferOperation(
 		onLog: OnSyncLog
 	): CResult<Unit> {
 		val localEntityHash = entitySynchronizers.getLocalEntityHash(id)
-		val serverProjectId = projectMetadataDatasource.requireProjectId(projectDef)
+		val serverProjectId = projectMetadataDatasource.loadProjectId(projectDef)
 		val entityResponse = serverProjectApi.downloadEntity(
 			projectId = serverProjectId,
 			entityId = id,
@@ -461,7 +461,7 @@ class EntityTransferOperation(
 	}
 
 	private suspend fun deleteEntityRemote(id: Int, syncId: String, onLog: OnSyncLog): Boolean {
-		val projectId = projectMetadataDatasource.requireProjectId(projectDef)
+		val projectId = projectMetadataDatasource.loadProjectId(projectDef)
 		val result = serverProjectApi.deleteId(projectId, id, syncId)
 		return if (result.isSuccess) {
 			onLog(syncLogI(strRes.get(Res.string.sync_log_entity_delete_success, id), projectDef))

@@ -105,7 +105,7 @@ class ClientEncyclopediaSynchronizerTest : BaseTest() {
 		MockKAnnotations.init(this, relaxUnitFun = true)
 
 		every { syncJournal.isServerSynchronized() } returns false
-		every { projectMetadataDatasource.requireProjectId(projectDef) } returns ProjectId("server-project")
+		every { projectMetadataDatasource.loadProjectId(projectDef) } returns ProjectId("server-project")
 
 		fileSystem = FakeFileSystem()
 		toml = createTomlSerializer()

@@ -55,9 +55,7 @@ class CaptureComponent(
 	override fun selectProject(projectName: String) {
 		val target = targets.find { it.projectDef.name == projectName } ?: return
 		_state.update { it.copy(projectName = projectName, pickingProject = false) }
-		target.projectId?.let { projectId ->
-			appScope.launch { subscriptions.setLastCaptureProject(projectId) }
-		}
+		appScope.launch { subscriptions.setLastCaptureProject(target.projectId) }
 	}
 
 	override fun dismissProjectPicker() {

@@ -30,11 +30,7 @@ class FetchLocalDataOperation(
 		return try {
 			state as InitialSyncOperationState
 
-			val metadata = projectMetadataDatasource.loadMetadata(projectDef)
-			val serverProjectId = metadata.info.serverProjectId
-			if (serverProjectId == null) {
-				return CResult.failure(MissingProjectIdException(projectDef.name))
-			}
+			val serverProjectId = projectMetadataDatasource.loadProjectId(projectDef)
 
 			val loadedSyncData = syncJournal.loadSyncData()
 			val entityState = if (state.onlyNew) {
@@ -47,7 +43,12 @@ class FetchLocalDataOperation(
 			// uploads as null, which the server lets overwrite a concurrent edit unchecked. An
 			// empty syncedHashes map (an upgraded client) leaves entities exposed until backfilled.
 			val clientSyncData = if (entityState != null) {
-				val backfilled = backfillSyncedHashes(loadedSyncData, entityState)
+				val verified = if (loadedSyncData.verifyAllEntities) {
+					markAllForVerification(loadedSyncData, entityState)
+				} else {
+					loadedSyncData
+				}
+				val backfilled = backfillSyncedHashes(verified, entityState)
 				if (backfilled !== loadedSyncData) syncJournal.saveSyncData(backfilled)
 				backfilled
 			} else {
@@ -81,6 +82,35 @@ class FetchLocalDataOperation(
 		return ClientEntityState(entities)
 	}
 
+	/**
+	 * Every local entity becomes dirty, so the transfer uploads it instead of taking the server's
+	 * copy, and gets a baseline, so the server conflict-checks that upload. The baseline is the
+	 * server-confirmed hash when the journal has one, else the dirty entry's frozen one, else the
+	 * local hash, which conflicts whenever the server holds anything other than the restored copy. An
+	 * entity whose hash already matches the server's is left out of the transfer and its dirty
+	 * entry is dropped at finalize. New ids are not in [entityState]; they upload as new anyway.
+	 */
+	private fun markAllForVerification(
+		syncData: ProjectSynchronizationData,
+		entityState: ClientEntityState,
+	): ProjectSynchronizationData {
+		val dirtyById = syncData.dirty.associateBy { it.id }
+		val addedDirty = mutableListOf<EntityOriginalState>()
+		val addedBaselines = HashMap<Int, String>()
+		for (entity in entityState.entities) {
+			val baseline = syncData.syncedHashes[entity.id]
+				?: dirtyById[entity.id]?.originalHash
+				?: entity.hash
+			if (!syncData.syncedHashes.containsKey(entity.id)) addedBaselines[entity.id] = baseline
+			if (entity.id !in dirtyById) addedDirty += EntityOriginalState(entity.id, baseline)
+		}
+		return syncData.copy(
+			dirty = syncData.dirty + addedDirty,
+			syncedHashes = syncData.syncedHashes + addedBaselines,
+			verifyAllEntities = false,
+		)
+	}
+
 	private fun backfillSyncedHashes(
 		syncData: ProjectSynchronizationData,
 		entityState: ClientEntityState,
@@ -108,5 +138,3 @@ class FetchLocalDataOperation(
 }
 
 open class SyncOperationException(message: String? = null, cause: Throwable? = null) : Exception(message, cause)
-class MissingProjectIdException(projectName: String) :
-	SyncOperationException("Server project ID missing for: $projectName")

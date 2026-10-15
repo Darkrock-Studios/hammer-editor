@@ -4,9 +4,12 @@ import com.darkrockstudios.apps.hammer.base.http.writingactivity.DeviceLog
 import com.darkrockstudios.apps.hammer.base.http.writingactivity.WritingSession
 import com.darkrockstudios.apps.hammer.common.data.ExampleProjectRepository.Companion.EXAMPLE_DAYS
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.writeDeviceLog
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
+import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
+import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -16,6 +19,7 @@ import okio.FileSystem
 import okio.Path
 import okio.Path.Companion.toPath
 import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import org.koin.core.module.Module
 import kotlin.random.Random
 import kotlin.time.Clock
@@ -33,6 +37,7 @@ abstract class ExampleProjectRepository(
 ) : KoinComponent {
 	protected val dispatcherMain by injectMainDispatcher()
 	protected val dispatcherDefault by injectDefaultDispatcher()
+	private val projectMetadataDatasource: ProjectMetadataDatasource by inject()
 	private val scope = CoroutineScope(dispatcherDefault)
 
 	fun shouldInstallFirstTime(): Boolean =
@@ -48,6 +53,11 @@ abstract class ExampleProjectRepository(
 	fun install() {
 		removeExampleProject()
 		platformInstall()
+		// The bundled project.toml carries no id, so every install mints its own.
+		val exampleDef = ProjectDef(PROJECT_NAME, (projectsDir() / PROJECT_NAME).toHPath())
+		if (fileSystem.exists(projectMetadataDatasource.getMetadataPath(exampleDef).toOkioPath())) {
+			projectMetadataDatasource.loadProjectId(exampleDef)
+		}
 
 		scope.launch {
 			fabricateExampleActivity()

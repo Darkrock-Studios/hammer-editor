@@ -42,8 +42,8 @@ class ProjectsRepositoryFindTest : ProjectsRepositoryBaseTest() {
 
 	@Test
 	fun `Find Project By id, success`() = scope.runTest {
-		val proj1Id = ProjectId("5f1d7446-1f08-4909-a81e-cdc7470a2f63")
-		val proj1Def = getProjectDef(PROJECT_1_NAME)
+		val proj2Id = ProjectId("8c3f6a2e-4b1d-4e5a-9f7c-2d6b1a0e9c43")
+		val proj2Def = getProjectDef(PROJECT_2_NAME)
 
 		createProject(ffs, PROJECT_1_NAME)
 		createProject(ffs, PROJECT_2_NAME)
@@ -51,9 +51,9 @@ class ProjectsRepositoryFindTest : ProjectsRepositoryBaseTest() {
 
 		val repo = projectsRepository()
 
-		val projectDef = repo.findProject(proj1Id)
+		val projectDef = repo.findProject(proj2Id)
 
-		assertEquals(proj1Def, projectDef)
+		assertEquals(proj2Def, projectDef)
 	}
 
 	@Test

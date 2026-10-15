@@ -6,7 +6,6 @@ import androidx.work.WorkerParameters
 import com.darkrockstudios.apps.hammer.android.isInternetConnected
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
-import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.data.temporaryProjectTask
@@ -14,7 +13,6 @@ import io.github.aakira.napier.Napier
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import org.koin.core.parameter.parametersOf
 
 class AddNoteWorker(
@@ -23,16 +21,14 @@ class AddNoteWorker(
 ) :
 	CoroutineWorker(context, workerParams), KoinComponent {
 
-	private val projectsRepository: ProjectsRepository by inject()
-
 	override suspend fun doWork(): Result {
-		val projectName = workerParams.inputData.getString(DATA_PROJECT_NAME)
+		val projectId = workerParams.inputData.getString(DATA_PROJECT_ID)
 		val noteText = workerParams.inputData.getString(DATA_NOTE_TEXT)
 
-		val projectDef = projectsRepository.getProjects().find { it.name == projectName }
+		val projectDef = findWidgetProject(projectId)
 
 		if (projectDef == null) {
-			Napier.e("Project not found: $projectName")
+			Napier.e("Project not found: $projectId")
 			return Result.failure()
 		} else if (noteText == null || noteText.isBlank()) {
 			Napier.e("Note Text cannot be blank")
@@ -88,7 +84,7 @@ class AddNoteWorker(
 
 	companion object {
 		private val mutex = Mutex()
-		const val DATA_PROJECT_NAME = "project-name"
+		const val DATA_PROJECT_ID = "project-id"
 		const val DATA_NOTE_TEXT = "note-text"
 	}
 }

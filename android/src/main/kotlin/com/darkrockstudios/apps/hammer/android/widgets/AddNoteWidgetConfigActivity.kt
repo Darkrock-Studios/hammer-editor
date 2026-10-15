@@ -125,10 +125,11 @@ class AddNoteWidgetConfigActivity : ComponentActivity() {
 
 	private suspend fun save(widgetId: Int, projectDef: ProjectDef?) {
 		val accentHex = projectDef?.let { loadStoredProjectData(it, fileSystem, toml).data.theme?.primary }
+		val projectId = projectDef?.let { projectsRepository.getProjectId(it) }
 
 		widgetConfigDataStore.updateData {
 			// TODO apparently we are supposed to save the glanceId, but it's an opaque class so... 🤷‍♂️
-			it.saveWidgetConfig(widgetId, projectDef, accentHex)
+			it.saveWidgetConfig(widgetId, projectId, accentHex)
 		}
 
 		val manager = GlanceAppWidgetManager(this)

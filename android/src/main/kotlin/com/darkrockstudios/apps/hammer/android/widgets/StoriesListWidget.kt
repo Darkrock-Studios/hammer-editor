@@ -39,6 +39,7 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import com.darkrockstudios.apps.hammer.android.ProjectRootActivity
 import com.darkrockstudios.apps.hammer.android.ProjectSelectActivity
+import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.common.data.projectdata.loadStoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
@@ -64,16 +65,16 @@ class StoriesListWidget : GlanceAppWidget() {
 }
 
 private val SAMPLE_ROWS = listOf(
-	StoryRow(name = "Apophis", path = "p/apophis", accentHex = "#5A66B5", words = 81402, lastAccessed = null),
-	StoryRow(name = "Alice In Wonderland", path = "p/alice", accentHex = "#B65648", words = 26890, lastAccessed = null),
-	StoryRow(name = "The Pilgrimage", path = "p/pilgrim", accentHex = "#6750A4", words = 54310, lastAccessed = null),
-	StoryRow(name = "Longshore Drift", path = "p/longshore", accentHex = "#5B8A58", words = 18204, lastAccessed = null),
+	StoryRow(projectId = ProjectId("sample-apophis"), name = "Apophis", accentHex = "#5A66B5", words = 81402, lastAccessed = null),
+	StoryRow(projectId = ProjectId("sample-alice"), name = "Alice In Wonderland", accentHex = "#B65648", words = 26890, lastAccessed = null),
+	StoryRow(projectId = ProjectId("sample-pilgrim"), name = "The Pilgrimage", accentHex = "#6750A4", words = 54310, lastAccessed = null),
+	StoryRow(projectId = ProjectId("sample-longshore"), name = "Longshore Drift", accentHex = "#5B8A58", words = 18204, lastAccessed = null),
 )
 
 @Immutable
 private data class StoryRow(
+	val projectId: ProjectId,
 	val name: String,
-	val path: String,
 	val accentHex: String?,
 	val words: Int?,
 	val lastAccessed: Instant?,
@@ -88,17 +89,17 @@ private suspend fun loadRows(): List<StoryRow> {
 	val toml = koin.get<Toml>()
 
 	return projects.getProjects().map { def ->
-		val lastAccessed = runCatching { meta.loadMetadata(def).info.lastAccessed }.getOrNull()
+		val info = runCatching { meta.loadMetadata(def).info }.getOrNull()
 		val accentHex = runCatching {
 			loadStoredProjectData(def, fs, toml).data.theme?.primary
 		}.getOrNull()
 		val words = stats.loadTotalWords(def)
 		StoryRow(
+			projectId = info?.projectId ?: projects.getProjectId(def),
 			name = def.name,
-			path = def.path.path,
 			accentHex = accentHex,
 			words = words,
-			lastAccessed = lastAccessed,
+			lastAccessed = info?.lastAccessed,
 		)
 	}.sortedByDescending { it.lastAccessed }
 }
@@ -157,7 +158,7 @@ private fun StoriesListWidgetContent(rows: List<StoryRow>) {
 					}
 				} else {
 					LazyColumn(modifier = GlanceModifier.fillMaxSize()) {
-						items(rows, itemId = { it.path.hashCode().toLong() }) { row ->
+						items(rows, itemId = { it.projectId.id.hashCode().toLong() }) { row ->
 							StoryRowUi(row)
 						}
 					}
@@ -188,7 +189,7 @@ private fun StoryRowUi(row: StoryRow) {
 	Column(
 		modifier = GlanceModifier
 			.fillMaxWidth()
-			.clickable(openProjectAction(row.name)),
+			.clickable(openProjectAction(row.projectId)),
 	) {
 		Row(
 			modifier = GlanceModifier
@@ -242,12 +243,12 @@ private fun titleStyle(): TextStyle = TextStyle(
 	fontWeight = FontWeight.Medium,
 )
 
-private const val ACTION_KEY_OPEN_PROJECT_NAME = "open_project_name"
-private val OpenProjectNameKey = ActionParameters.Key<String>(ACTION_KEY_OPEN_PROJECT_NAME)
+private const val ACTION_KEY_OPEN_PROJECT_ID = "open_project_id"
+private val OpenProjectIdKey = ActionParameters.Key<String>(ACTION_KEY_OPEN_PROJECT_ID)
 
-private fun openProjectAction(projectName: String): Action =
+private fun openProjectAction(projectId: ProjectId): Action =
 	actionRunCallback<OpenProjectClickAction>(
-		actionParametersOf(OpenProjectNameKey to projectName),
+		actionParametersOf(OpenProjectIdKey to projectId.id),
 	)
 
 class StoriesListWidgetReceiver : GlanceAppWidgetReceiver() {
@@ -260,12 +261,9 @@ class OpenProjectClickAction : ActionCallback {
 		glanceId: GlanceId,
 		parameters: ActionParameters,
 	) {
-		val name = parameters[OpenProjectNameKey].orEmpty()
-		if (name.isBlank()) return
+		val def = findWidgetProject(parameters[OpenProjectIdKey]) ?: return
 
-		val def = getKoin().get<ProjectsRepository>().getProjectDefinition(name)
-
-		Napier.d { "Stories list widget tapped: `$name`" }
+		Napier.d { "Stories list widget tapped: `${def.name}`" }
 
 		val intent = ProjectRootActivity.createIntent(context, def)
 			.setFlags(FLAG_ACTIVITY_NEW_TASK)

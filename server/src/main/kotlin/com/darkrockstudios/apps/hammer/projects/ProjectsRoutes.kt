@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.projects
 
 import com.darkrockstudios.apps.hammer.base.ProjectId
+import com.darkrockstudios.apps.hammer.base.http.ApiErrorCode
 import com.darkrockstudios.apps.hammer.base.http.BeginProjectsSyncResponse
 import com.darkrockstudios.apps.hammer.base.http.CreateProjectResponse
 import com.darkrockstudios.apps.hammer.base.http.HEADER_SYNC_ID
@@ -14,6 +15,8 @@ import com.darkrockstudios.apps.hammer.project.InvalidProjectName
 import com.darkrockstudios.apps.hammer.project.InvalidSyncIdException
 import com.darkrockstudios.apps.hammer.monitoring.ActivityType
 import com.darkrockstudios.apps.hammer.monitoring.UserActivityCollector
+import com.darkrockstudios.apps.hammer.project.ProjectDeletedException
+import com.darkrockstudios.apps.hammer.project.ProjectIdTakenException
 import com.darkrockstudios.apps.hammer.project.ProjectNameTaken
 import com.darkrockstudios.apps.hammer.project.ProjectNotFound
 import com.darkrockstudios.apps.hammer.storyideas.ServerIdeasRepository
@@ -28,11 +31,14 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.koin.ktor.ext.get
+import kotlin.uuid.Uuid
 
 private const val ERROR_GENERIC = "Error"
 private const val ERR_KEY_INVALID_PROJECT_NAME = "api_project_rename_error_invalidname"
 private const val ERR_KEY_PROJECT_NAME_TAKEN = "api_project_rename_error_nametaken"
 private const val ERR_KEY_PROJECT_NOT_FOUND = "api_project_getproject_error_notfound"
+private const val ERR_KEY_PROJECT_CREATE_DELETED = "api_projects_create_error_deleted"
+private const val ERR_KEY_PROJECT_CREATE_ID_TAKEN = "api_projects_create_error_id_taken"
 
 /** Reads syncId from header, responding 400 "Missing Header" with a localized message if absent. */
 private suspend fun ApplicationCall.requireSyncIdFromHeader(): String? {
@@ -54,10 +60,52 @@ private suspend fun ApplicationCall.requireProjectIdFromPath(): ProjectId? {
 	return ProjectId(projectIdRaw)
 }
 
+/**
+ * Reads projectId from the query, responding 400 with a localized message if absent or not a UUID.
+ * The id is canonicalized so responses compare equal to what the database returns.
+ */
+private suspend fun ApplicationCall.requireProjectIdFromQuery(): ProjectId? {
+	val uuid = request.queryParameters["projectId"]?.let { raw ->
+		try {
+			Uuid.parse(raw)
+		} catch (_: IllegalArgumentException) {
+			null
+		}
+	}
+	if (uuid == null) {
+		respondMissingParameter(ERR_KEY_PROJECT_ID_MISSING)
+		return null
+	}
+	return ProjectId.fromUUID(uuid)
+}
+
 /** Handles common failure exceptions for sync-id-based operations. */
 private suspend fun ApplicationCall.respondSyncFailure(exception: Throwable?) {
 	when (exception) {
 		is InvalidSyncIdException -> respondBadRequest(ERROR_GENERIC, t(R(ERR_KEY_INVALID_SYNC_ID)))
+		is InvalidProjectName -> respond(
+			status = HttpStatusCode.NotAcceptable,
+			HttpResponseError(error = ERROR_GENERIC, displayMessage = t(R(ERR_KEY_INVALID_PROJECT_NAME))),
+		)
+
+		is ProjectDeletedException -> respond(
+			status = HttpStatusCode.Conflict,
+			HttpResponseError(
+				error = ERROR_GENERIC,
+				displayMessage = t(R(ERR_KEY_PROJECT_CREATE_DELETED)),
+				errorCode = ApiErrorCode.PROJECT_DELETED,
+			),
+		)
+
+		is ProjectIdTakenException -> respond(
+			status = HttpStatusCode.Conflict,
+			HttpResponseError(
+				error = ERROR_GENERIC,
+				displayMessage = t(R(ERR_KEY_PROJECT_CREATE_ID_TAKEN)),
+				errorCode = ApiErrorCode.PROJECT_ID_TAKEN,
+			),
+		)
+
 		else -> respond(
 			status = HttpStatusCode.InternalServerError,
 			HttpResponseError(
@@ -229,11 +277,6 @@ private suspend fun RoutingContext.handleRenameProject(projectsRepository: Proje
 
 private suspend fun RoutingContext.respondRenameFailure(exception: Throwable?) {
 	when (exception) {
-		is InvalidProjectName -> call.respond(
-			status = HttpStatusCode.NotAcceptable,
-			HttpResponseError(error = ERROR_GENERIC, displayMessage = call.t(R(ERR_KEY_INVALID_PROJECT_NAME))),
-		)
-
 		is ProjectNotFound -> call.respond(
 			status = HttpStatusCode.NotFound,
 			HttpResponseError(error = ERROR_GENERIC, displayMessage = call.t(R(ERR_KEY_PROJECT_NOT_FOUND))),
@@ -251,9 +294,6 @@ private suspend fun RoutingContext.respondRenameFailure(exception: Throwable?) {
 private fun Route.createProject() {
 	val projectsRepository: ProjectsRepository = get()
 
-	// POST is the preferred verb; GET remains for legacy clients.
-	// TODO Remove the legacy GET route at the next protocol version bump.
-	get("/create") { handleCreateProject(projectsRepository) }
 	post("/create") { handleCreateProject(projectsRepository) }
 }
 
@@ -264,9 +304,10 @@ private suspend fun RoutingContext.handleCreateProject(projectsRepository: Proje
 		call.respondMissingParameter(ERR_KEY_PROJECT_NAME_MISSING)
 		return
 	}
+	val projectId = call.requireProjectIdFromQuery() ?: return
 	val syncId = call.requireSyncIdFromHeader() ?: return
 
-	val result = projectsRepository.createProject(principal.id, syncId, projectName)
+	val result = projectsRepository.createProject(principal.id, syncId, projectName, projectId)
 	if (isSuccess(result)) {
 		val data = result.data
 		call.respond(CreateProjectResponse(data.project.uuid, data.alreadyExisted))

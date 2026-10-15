@@ -6,6 +6,8 @@ import com.darkrockstudios.apps.hammer.common.data.SyncedProjectDefinition
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectIdChangeListener
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ProjectSyncOutcome
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.SyncAccountListener
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.SyncAccountResult
@@ -16,7 +18,10 @@ import com.darkrockstudios.apps.hammer.wear.FakeWearPrefsDatasource
 import com.darkrockstudios.apps.hammer.wear.data.SubscribedProjectsRepository
 import io.mockk.coEvery
 import io.mockk.every
+import io.mockk.just
 import io.mockk.mockk
+import io.mockk.runs
+import io.mockk.slot
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.async
@@ -50,7 +55,7 @@ class DefaultSyncCoordinatorTest {
 		refreshToken = "refresh",
 	)
 
-	/** Reports which candidates the filter admits, then runs [behaviour] against the listener. */
+	/** Runs [behaviour] against the listener, then records which candidates the filter admits. */
 	private inner class FakeAccountSync : AccountSync {
 		var runs = 0
 		var admitted: List<String> = emptyList()
@@ -58,11 +63,13 @@ class DefaultSyncCoordinatorTest {
 
 		override suspend fun run(
 			listener: SyncAccountListener,
-			projectFilter: (SyncedProjectDefinition) -> Boolean,
+			projectFilter: suspend (SyncedProjectDefinition) -> Boolean,
 		): SyncAccountResult {
 			runs++
-			admitted = candidates.filter(projectFilter).map { it.projectDef.name }
-			return behaviour(listener)
+			// Like the real sync: the account phase runs before projects are filtered.
+			val result = behaviour(listener)
+			admitted = candidates.filter { projectFilter(it) }.map { it.projectDef.name }
+			return result
 		}
 	}
 
@@ -116,6 +123,24 @@ class DefaultSyncCoordinatorTest {
 		coordinator.sync(SyncTrigger.Manual)
 
 		assertEquals(listOf("Beta"), accountSync.admitted)
+	}
+
+	@Test
+	fun `a subscription re-keyed during account sync still admits the project`() = runTest(dispatcher) {
+		val projectsRepository = mockk<ProjectsRepository>()
+		val idChangeListener = slot<ProjectIdChangeListener>()
+		every { projectsRepository.addProjectIdChangeListener(capture(idChangeListener)) } just runs
+		every { projectsRepository.findProject(any<ProjectId>()) } returns null
+		subscriptions.followProjectIdChanges(projectsRepository)
+		subscriptions.setSubscribed(ProjectId("minted-on-the-watch"), true)
+		accountSync.behaviour = {
+			idChangeListener.captured.onProjectIdChanged(alpha, ProjectId("minted-on-the-watch"), ProjectId("a"))
+			successResult()
+		}
+
+		coordinator.sync(SyncTrigger.Manual)
+
+		assertEquals(listOf("Alpha"), accountSync.admitted)
 	}
 
 	@Test

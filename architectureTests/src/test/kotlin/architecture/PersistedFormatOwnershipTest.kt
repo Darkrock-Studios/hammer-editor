@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Test
  * Structural guard for the "one owner per persisted format" rule (ARCHITECTURE.md,
  * hard constraint 7): raw TOML file I/O may only appear inside a format's Data Source
  * file. A second inline writer forks the on-disk format and clobbers sibling fields on
- * write (a language-seed write and a tags write to `project_data.toml` once destroyed
+ * write (a language-seed write and a tags write to the project settings file once destroyed
  * each other exactly this way). Code that cannot reach a datasource instance must use
  * or add a scope-less helper in the datasource's own file, like
  * `loadStoredProjectData`/`saveStoredProjectData` in `ProjectDataDatasource.kt`.

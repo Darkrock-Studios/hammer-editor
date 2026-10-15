@@ -154,12 +154,12 @@ class ProjectsListComponentTest : ComponentTest() {
 		onProjectSelected = { selectedProject = it },
 	)
 
-	private fun metadata(lastAccessed: Instant, serverId: ProjectId? = null) =
+	private fun metadata(lastAccessed: Instant, projectId: ProjectId? = null) =
 		ProjectMetadata(
 			Info(
 				created = Instant.fromEpochSeconds(1),
 				lastAccessed = lastAccessed,
-				serverProjectId = serverId
+				projectId = projectId
 			)
 		)
 
@@ -188,38 +188,27 @@ class ProjectsListComponentTest : ComponentTest() {
 	// --- createProject -------------------------------------------------------
 
 	@Test
-	fun `createProject success on a synced account creates locally and on the server then clears the dialog`() =
+	fun `createProject success creates locally and clears the dialog without queueing a server create`() =
 		runTest(mainTestDispatcher) {
 			every { synchronizer.isServerSynchronized() } returns true
-			every { projectsRepository.createProject("Novel", any()) } returns CResult.success(projectDefA)
+			every { projectsRepository.createProject("Novel", any(), any()) } returns CResult.success(projectDefA)
 			val comp = newComponent()
 			comp.onProjectNameUpdate("Novel")
 
 			comp.createProject("Novel")
 			advanceUntilIdle()
 
-			verify { projectsRepository.createProject("Novel", any()) }
-			verify { synchronizer.createProject("Novel") }
+			verify { projectsRepository.createProject("Novel", any(), any()) }
+			// Account sync uploads every local id the server does not know; nothing is queued.
+			verify(exactly = 0) { synchronizer.deleteProject(any()) }
+			verify(exactly = 0) { synchronizer.renameProject(any(), any()) }
 			assertEquals("", comp.state.value.createDialogProjectName)
-		}
-
-	@Test
-	fun `createProject success on a non-synced account does not touch the synchronizer`() =
-		runTest(mainTestDispatcher) {
-			every { synchronizer.isServerSynchronized() } returns false
-			every { projectsRepository.createProject("Novel", any()) } returns CResult.success(projectDefA)
-			val comp = newComponent()
-
-			comp.createProject("Novel")
-			advanceUntilIdle()
-
-			verify(exactly = 0) { synchronizer.createProject(any()) }
 		}
 
 	@Test
 	fun `createProject failure leaves the dialog open and does not reload or sync`() =
 		runTest(mainTestDispatcher) {
-			every { projectsRepository.createProject("bad/name", any()) } returns
+			every { projectsRepository.createProject("bad/name", any(), any()) } returns
 				CResult.failure(error = "invalid", displayMessage = "Bad name".toMsg())
 			val comp = newComponent()
 			comp.onProjectNameUpdate("bad/name")
@@ -227,7 +216,6 @@ class ProjectsListComponentTest : ComponentTest() {
 			comp.createProject("bad/name")
 			advanceUntilIdle()
 
-			verify(exactly = 0) { synchronizer.createProject(any()) }
 			verify(exactly = 0) { projectsRepository.getProjects(any()) }
 			assertEquals("bad/name", comp.state.value.createDialogProjectName)
 		}
@@ -357,7 +345,7 @@ class ProjectsListComponentTest : ComponentTest() {
 	fun `confirmImportDialog leaves the dialog open and does not sync when project creation fails`() =
 		runTest(mainTestDispatcher) {
 			every { synchronizer.isServerSynchronized() } returns true
-			every { projectsRepository.createProject("Draft", any()) } returns
+			every { projectsRepository.createProject("Draft", any(), any()) } returns
 				CResult.failure(error = "exists", displayMessage = "Project already exists".toMsg())
 			val comp = newComponent()
 			comp.selectImportFile("Draft.md", "# One\n\nText\n\n# Two\n\nMore".encodeToByteArray())
@@ -366,14 +354,13 @@ class ProjectsListComponentTest : ComponentTest() {
 			advanceUntilIdle()
 
 			assertTrue(comp.state.value.showImportDialog)
-			verify(exactly = 0) { synchronizer.createProject(any()) }
 			verify(exactly = 0) { projectsRepository.getProjects(any()) }
 		}
 
 	// --- deleteProject -------------------------------------------------------
 
 	@Test
-	fun `deleteProject deletes locally and on the server when the project has an id`() =
+	fun `deleteProject deletes locally and queues the server delete by id`() =
 		runTest(mainTestDispatcher) {
 			every { projectsRepository.getProjectId(projectDefA) } returns ProjectId("server-id")
 			every { projectsRepository.deleteProject(projectDefA) } returns true
@@ -386,15 +373,16 @@ class ProjectsListComponentTest : ComponentTest() {
 		}
 
 	@Test
-	fun `deleteProject skips the server when the project has no id`() = runTest(mainTestDispatcher) {
-		every { projectsRepository.getProjectId(projectDefA) } returns null
+	fun `deleteProject queues the server delete even with no server configured`() = runTest(mainTestDispatcher) {
+		every { synchronizer.isServerSynchronized() } returns false
+		every { projectsRepository.getProjectId(projectDefA) } returns ProjectId("local-id")
 		every { projectsRepository.deleteProject(projectDefA) } returns true
 		val comp = newComponent()
 
 		comp.deleteProject(projectDefA)
 		advanceUntilIdle()
 
-		verify(exactly = 0) { synchronizer.deleteProject(any()) }
+		verify { synchronizer.deleteProject(SyncedProjectDefinition(projectDefA, ProjectId("local-id"))) }
 	}
 
 	@Test
@@ -413,7 +401,7 @@ class ProjectsListComponentTest : ComponentTest() {
 	// --- renameProject -------------------------------------------------------
 
 	@Test
-	fun `renameProject renames locally and on the server when the project has an id`() =
+	fun `renameProject renames locally and queues the server rename by id`() =
 		runTest(mainTestDispatcher) {
 			every { projectsRepository.getProjectId(projectDefA) } returns ProjectId("server-id")
 			every { projectsRepository.renameProject(projectDefA, "Beta") } returns CResult.success(projectDefA)
@@ -424,18 +412,6 @@ class ProjectsListComponentTest : ComponentTest() {
 
 			verify { synchronizer.renameProject(ProjectId("server-id"), "Beta") }
 		}
-
-	@Test
-	fun `renameProject skips the server when the project has no id`() = runTest(mainTestDispatcher) {
-		every { projectsRepository.getProjectId(projectDefA) } returns null
-		every { projectsRepository.renameProject(projectDefA, "Beta") } returns CResult.success(projectDefA)
-		val comp = newComponent()
-
-		comp.renameProject(projectDefA, "Beta")
-		advanceUntilIdle()
-
-		verify(exactly = 0) { synchronizer.renameProject(any(), any()) }
-	}
 
 	@Test
 	fun `renameProject failure does not sync or reload`() = runTest(mainTestDispatcher) {
@@ -558,7 +534,8 @@ class ProjectsListComponentTest : ComponentTest() {
 			every { synchronizer.isServerSynchronized() } returns true
 			every { projectsRepository.getProjects(any()) } returns listOf(projectDefA)
 			every { metadataDatasource.loadMetadata(projectDefA) } returns
-				metadata(Instant.fromEpochSeconds(1), serverId = ProjectId("server-id"))
+				metadata(Instant.fromEpochSeconds(1), projectId = ProjectId("server-id"))
+			every { metadataDatasource.loadProjectId(projectDefA) } returns ProjectId("server-id")
 			coEvery { synchronizer.syncProjects(any(), any(), any(), any()) } returns true
 			coEvery { synchronizer.probeUnchangedProjects(any()) } returns setOf(ProjectId("server-id"))
 			val comp = newComponent()

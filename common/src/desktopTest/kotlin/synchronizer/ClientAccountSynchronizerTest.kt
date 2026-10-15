@@ -13,13 +13,16 @@ import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectContentHasher
 import com.darkrockstudios.apps.hammer.base.http.writeToml
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectDataHasher
+import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectdata.StoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ClientAccountSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.ClientIdeasSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityOriginalState
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectCreateResolver
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectSynchronizationData
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectsSynchronizationData
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.RenamedProject
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.markProjectRestored
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.server.HttpFailureException
@@ -27,9 +30,12 @@ import com.darkrockstudios.apps.hammer.common.server.ServerProjectsApi
 import com.darkrockstudios.apps.hammer.common.util.NetworkConnectivity
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.sync_log_account_project_adopt_conflict
 import com.darkrockstudios.apps.hammer.sync_log_account_project_create_local_failure
+import com.darkrockstudios.apps.hammer.sync_log_account_project_create_server_failure
 import com.darkrockstudios.apps.hammer.sync_log_account_project_create_server_success
-import com.darkrockstudios.apps.hammer.sync_log_account_project_id_save_failure
+import com.darkrockstudios.apps.hammer.sync_log_account_project_deleted_elsewhere
+import com.darkrockstudios.apps.hammer.sync_log_account_project_id_reminted
 import org.jetbrains.compose.resources.StringResource
 import io.ktor.http.*
 import io.mockk.*
@@ -43,6 +49,7 @@ import org.junit.jupiter.api.Test
 import utils.TestStrRes
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 import kotlin.time.Instant
 
@@ -63,7 +70,6 @@ class ClientAccountSynchronizerTest {
 		deletedProjects = emptySet(),
 		projectsToDelete = emptySet(),
 		projectsToRename = emptySet(),
-		projectsToCreate = emptySet(),
 	)
 
 	private fun writeSyncData(data: ProjectsSynchronizationData) {
@@ -91,6 +97,11 @@ class ClientAccountSynchronizerTest {
 		refreshToken = null,
 	)
 
+	private fun conflict(errorCode: String) = HttpFailureException(
+		statusCode = HttpStatusCode.Conflict,
+		error = HttpResponseError(error = "Conflict", displayMessage = "nope", errorCode = errorCode),
+	)
+
 	private fun unauthorizedException() = HttpFailureException(
 		statusCode = HttpStatusCode.Unauthorized,
 		error = HttpResponseError(error = "Unauthorized", displayMessage = "nope"),
@@ -101,6 +112,7 @@ class ClientAccountSynchronizerTest {
 		globalSettingsStore = globalSettingsStore,
 		projectsRepository = projectsRepository,
 		serverProjectsApi = serverProjectsApi,
+		projectCreateResolver = ProjectCreateResolver(serverProjectsApi, projectsRepository),
 		ideasSynchronizer = ideasSynchronizer,
 		networkConnectivity = networkConnectivity,
 		json = json,
@@ -138,6 +150,7 @@ class ClientAccountSynchronizerTest {
 		every { globalSettingsStore.globalSettings } returns GlobalSettings(projectsDirectory = "/projects")
 		every { globalSettingsStore.serverSettings } returns serverSettings(userId = 1)
 		every { projectsRepository.getProjectsDirectory() } returns HPath("/projects", "projects", true)
+		every { projectsRepository.findProject(any<ProjectId>()) } returns null
 
 		coEvery { serverProjectsApi.beginProjectsSync() } returns Result.success(emptyServerResponse())
 		coEvery { serverProjectsApi.endProjectsSync(any()) } returns Result.success("ok")
@@ -162,7 +175,7 @@ class ClientAccountSynchronizerTest {
 	}
 
 	private fun writeProjectData(projectDef: ProjectDef, data: StoredProjectData) {
-		val path = projectDef.path.toOkioPath() / "project_data.toml"
+		val path = projectDef.path.toOkioPath() / ProjectDataDatasource.FILENAME
 		path.parent?.let { ffs.createDirectories(it) }
 		ffs.writeToml(path, Toml, data)
 	}
@@ -221,6 +234,35 @@ class ClientAccountSynchronizerTest {
 		val def = projectDef("Delta")
 		val projectId = ProjectId("uuid-delta")
 		writeProjectSyncData(def, cleanProjectSyncData(hash = null))
+
+		val result = createSynchronizer()
+			.probeUnchangedProjects(listOf(SyncedProjectDefinition(def, projectId)))
+
+		assertTrue(result.isEmpty())
+		coVerify(exactly = 0) { serverProjectsApi.probeProjectChanges(any()) }
+	}
+
+	@Test
+	fun `probe does not skip a project restored from a backup`() = runTest {
+		val def = projectDef("Theta")
+		val projectId = ProjectId("uuid-theta")
+		// The backup's journal was clean and cached a hash that may still match the server.
+		writeProjectSyncData(def, cleanProjectSyncData(hash = "theta-hash"))
+
+		markProjectRestored(def, ffs, json, serverKnowsProject = true)
+
+		val result = createSynchronizer()
+			.probeUnchangedProjects(listOf(SyncedProjectDefinition(def, projectId)))
+
+		assertTrue(result.isEmpty(), "the restored project must get a full sync to be conflict-checked")
+		coVerify(exactly = 0) { serverProjectsApi.probeProjectChanges(any()) }
+	}
+
+	@Test
+	fun `probe does not skip a restored project that a lite sync re-cached`() = runTest {
+		val def = projectDef("Iota")
+		val projectId = ProjectId("uuid-iota")
+		writeProjectSyncData(def, cleanProjectSyncData(hash = "iota-hash").copy(verifyAllEntities = true))
 
 		val result = createSynchronizer()
 			.probeUnchangedProjects(listOf(SyncedProjectDefinition(def, projectId)))
@@ -316,12 +358,12 @@ class ClientAccountSynchronizerTest {
 	}
 
 	@Test
-	fun `createProject queues a project name to be created`() {
-		writeSyncData(emptySyncData())
+	fun `deleteSyncData removes the account sync file`() {
+		writeSyncData(emptySyncData().copy(projectsToDelete = setOf(ProjectId.randomUUID())))
 
-		createSynchronizer().createProject("MyNovel")
+		createSynchronizer().deleteSyncData()
 
-		assertEquals(setOf("MyNovel"), readSyncData().projectsToCreate)
+		assertFalse(ffs.exists(syncFilePath))
 	}
 
 	@Test
@@ -347,21 +389,15 @@ class ClientAccountSynchronizerTest {
 	}
 
 	@Test
-	fun `deleteProject queues deletion and clears pending create and rename`() {
+	fun `deleteProject queues deletion and clears a pending rename`() {
 		val id = ProjectId.randomUUID()
 		val def = projectDef("MyNovel")
-		writeSyncData(
-			emptySyncData().copy(
-				projectsToCreate = setOf("MyNovel"),
-				projectsToRename = setOf(RenamedProject(id, "Renamed")),
-			)
-		)
+		writeSyncData(emptySyncData().copy(projectsToRename = setOf(RenamedProject(id, "Renamed"))))
 
 		createSynchronizer().deleteProject(SyncedProjectDefinition(def, id))
 
 		val result = readSyncData()
 		assertEquals(setOf(id), result.projectsToDelete)
-		assertFalse(result.projectsToCreate.contains("MyNovel"))
 		assertTrue(result.projectsToRename.isEmpty())
 	}
 
@@ -376,7 +412,7 @@ class ClientAccountSynchronizerTest {
 		)
 
 		// Any mutation forces a load+save cycle, which runs the migration scrub.
-		createSynchronizer().createProject("AnyProject")
+		createSynchronizer().renameProject(ProjectId.randomUUID(), "AnyProject")
 
 		val result = readSyncData()
 		assertEquals(setOf(validId), result.projectsToDelete)
@@ -393,7 +429,7 @@ class ClientAccountSynchronizerTest {
 		)
 
 		// Any mutation forces a load+save cycle, which runs the migration scrub.
-		createSynchronizer().createProject("AnyProject")
+		createSynchronizer().renameProject(ProjectId.randomUUID(), "AnyProject")
 
 		val result = readSyncData()
 		assertTrue(result.projectsToDelete.isEmpty())
@@ -439,69 +475,179 @@ class ClientAccountSynchronizerTest {
 	}
 
 	@Test
-	fun `syncProjects creates a local-only project on the server and saves its id`() = runTest {
+	fun `syncProjects creates a local-only project on the server under its own id`() = runTest {
 		writeSyncData(emptySyncData())
 		val def = projectDef("LocalNovel")
-		val newId = ProjectId.randomUUID()
+		val localId = ProjectId.randomUUID()
 
 		every { projectsRepository.getProjects(any()) } returns listOf(def)
-		every { projectsRepository.getProjectId(def) } returns null
-		every { projectsRepository.getProjectDefinition("LocalNovel") } returns def
-		coEvery { serverProjectsApi.createProject("LocalNovel", "sync-1") } returns
-			Result.success(CreateProjectResponse(newId, alreadyExisted = false))
+		every { projectsRepository.getProjectId(def) } returns localId
+		coEvery { serverProjectsApi.createProject("LocalNovel", localId, "sync-1") } returns
+			Result.success(CreateProjectResponse(localId, alreadyExisted = false))
 
 		val result = createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
 
 		assertTrue(result)
-		coVerify { serverProjectsApi.createProject("LocalNovel", "sync-1") }
-		coVerify { projectsRepository.setProjectId(def, newId) }
-		assertTrue(readSyncData().projectsToCreate.isEmpty())
+		coVerify { serverProjectsApi.createProject("LocalNovel", localId, "sync-1") }
+		coVerify(exactly = 0) { projectsRepository.setProjectId(any(), any()) }
 	}
 
 	@Test
-	fun `syncProjects keeps the queued creation and logs an id-save failure when saving the new id fails`() = runTest {
-		writeSyncData(emptySyncData().copy(projectsToCreate = setOf("LocalNovel")))
+	fun `syncProjects adopts the id the server answers a create with`() = runTest {
+		writeSyncData(emptySyncData())
 		val def = projectDef("LocalNovel")
-		val newId = ProjectId.randomUUID()
+		val localId = ProjectId.randomUUID()
+		val serverId = ProjectId.randomUUID()
 
+		// Another device created a same-named project after this sync's begin_sync snapshot.
 		every { projectsRepository.getProjects(any()) } returns listOf(def)
-		every { projectsRepository.getProjectId(def) } returns null
-		every { projectsRepository.getProjectDefinition("LocalNovel") } returns def
-		coEvery { serverProjectsApi.createProject("LocalNovel", "sync-1") } returns
-			Result.success(CreateProjectResponse(newId, alreadyExisted = false))
-		coEvery { projectsRepository.setProjectId(def, newId) } throws IllegalStateException("disk error")
+		every { projectsRepository.getProjectId(def) } returns localId
+		coEvery { serverProjectsApi.createProject("LocalNovel", localId, "sync-1") } returns
+			Result.success(CreateProjectResponse(serverId, alreadyExisted = true))
+
+		val result = createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
+
+		assertTrue(result)
+		coVerify { projectsRepository.setProjectId(def, serverId) }
+	}
+
+	@Test
+	fun `syncProjects does not adopt a server id another local project holds`() = runTest {
+		writeSyncData(emptySyncData())
+		val def = projectDef("Foo")
+		val renamed = projectDef("Bar")
+		val localId = ProjectId.randomUUID()
+		val renamedId = ProjectId.randomUUID()
+
+		// "Bar" was renamed from "Foo" here, but the server still has it as "Foo", so it answers the
+		// new "Foo" with Bar's id.
+		every { projectsRepository.getProjects(any()) } returns listOf(def)
+		every { projectsRepository.getProjectId(def) } returns localId
+		every { projectsRepository.findProject(renamedId) } returns renamed
+		coEvery { serverProjectsApi.createProject("Foo", localId, "sync-1") } returns
+			Result.success(CreateProjectResponse(renamedId, alreadyExisted = true))
 
 		val strRes = RecordingStrRes()
 		val result = createSynchronizer(strRes).syncProjects(onLog = {}, onUnauthorized = {})
 
 		assertTrue(result)
-		// The entry must survive so the next sync can retry saving the id.
-		assertEquals(setOf("LocalNovel"), readSyncData().projectsToCreate)
+		coVerify(exactly = 0) { projectsRepository.setProjectId(any(), any()) }
+		val logged = strRes.calls.single { it.first == Res.string.sync_log_account_project_adopt_conflict }
+		assertEquals(listOf<Any>("Foo", "Bar"), logged.second)
 		val resources = strRes.calls.map { it.first }
-		assertTrue(resources.contains(Res.string.sync_log_account_project_id_save_failure))
 		assertFalse(resources.contains(Res.string.sync_log_account_project_create_server_success))
+	}
+
+	@Test
+	fun `syncProjects re-mints an id another account holds and retries once`() = runTest {
+		writeSyncData(emptySyncData())
+		val def = projectDef("LocalNovel")
+		val takenId = ProjectId.randomUUID()
+		val reminted = slot<ProjectId>()
+
+		every { projectsRepository.getProjects(any()) } returns listOf(def)
+		every { projectsRepository.getProjectId(def) } returns takenId
+		coEvery { projectsRepository.setProjectId(def, capture(reminted)) } just Runs
+		var attempts = 0
+		coEvery { serverProjectsApi.createProject("LocalNovel", any(), "sync-1") } answers {
+			if (attempts++ == 0) {
+				Result.failure(conflict(ApiErrorCode.PROJECT_ID_TAKEN))
+			} else {
+				Result.success(CreateProjectResponse(reminted.captured, alreadyExisted = false))
+			}
+		}
+
+		val strRes = RecordingStrRes()
+		val result = createSynchronizer(strRes).syncProjects(onLog = {}, onUnauthorized = {})
+
+		assertTrue(result)
+		coVerify(exactly = 2) { serverProjectsApi.createProject("LocalNovel", any(), "sync-1") }
+		coVerify { serverProjectsApi.createProject("LocalNovel", reminted.captured, "sync-1") }
+		assertNotEquals(takenId, reminted.captured)
+		val resources = strRes.calls.map { it.first }
+		assertTrue(resources.contains(Res.string.sync_log_account_project_id_reminted))
+		assertTrue(resources.contains(Res.string.sync_log_account_project_create_server_success))
+	}
+
+	@Test
+	fun `syncProjects gives up after one re-mint`() = runTest {
+		writeSyncData(emptySyncData())
+		val def = projectDef("LocalNovel")
+
+		every { projectsRepository.getProjects(any()) } returns listOf(def)
+		every { projectsRepository.getProjectId(def) } returns ProjectId.randomUUID()
+		coEvery { serverProjectsApi.createProject("LocalNovel", any(), "sync-1") } returns
+			Result.failure(conflict(ApiErrorCode.PROJECT_ID_TAKEN))
+
+		val strRes = RecordingStrRes()
+		val result = createSynchronizer(strRes).syncProjects(onLog = {}, onUnauthorized = {})
+
+		assertTrue(result)
+		coVerify(exactly = 2) { serverProjectsApi.createProject("LocalNovel", any(), "sync-1") }
+		val resources = strRes.calls.map { it.first }
+		assertTrue(resources.contains(Res.string.sync_log_account_project_create_server_failure))
+	}
+
+	@Test
+	fun `syncProjects skips a project the account deleted elsewhere`() = runTest {
+		writeSyncData(emptySyncData())
+		val def = projectDef("LocalNovel")
+		val id = ProjectId.randomUUID()
+
+		every { projectsRepository.getProjects(any()) } returns listOf(def)
+		every { projectsRepository.getProjectId(def) } returns id
+		coEvery { serverProjectsApi.createProject("LocalNovel", id, "sync-1") } returns
+			Result.failure(conflict(ApiErrorCode.PROJECT_DELETED))
+
+		val strRes = RecordingStrRes()
+		val result = createSynchronizer(strRes).syncProjects(onLog = {}, onUnauthorized = {})
+
+		assertTrue(result)
+		// Tombstones stay dead: no re-mint, no retry.
+		coVerify(exactly = 1) { serverProjectsApi.createProject(any(), any(), any()) }
+		coVerify(exactly = 0) { projectsRepository.setProjectId(any(), any()) }
+		val logged = strRes.calls.single { it.first == Res.string.sync_log_account_project_deleted_elsewhere }
+		assertEquals(listOf<Any>("LocalNovel"), logged.second)
 	}
 
 	@Test
 	fun `syncProjects recreates a project whose cached id the server neither holds nor tombstoned`() = runTest {
 		writeSyncData(emptySyncData())
 		val staleId = ProjectId.randomUUID()
-		val freshId = ProjectId.randomUUID()
 		val def = projectDef("ResetServerNovel")
 
 		// The server has no record of this id at all: not a live project, not a tombstone.
 		// This is what a client sees after syncing against a different or since-reset server.
 		every { projectsRepository.getProjects(any()) } returns listOf(def)
 		every { projectsRepository.getProjectId(def) } returns staleId
-		every { projectsRepository.getProjectDefinition("ResetServerNovel") } returns def
-		coEvery { serverProjectsApi.createProject("ResetServerNovel", "sync-1") } returns
-			Result.success(CreateProjectResponse(freshId, alreadyExisted = false))
+		coEvery { serverProjectsApi.createProject("ResetServerNovel", staleId, "sync-1") } returns
+			Result.success(CreateProjectResponse(staleId, alreadyExisted = false))
 
 		val result = createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
 
 		assertTrue(result)
-		coVerify { serverProjectsApi.createProject("ResetServerNovel", "sync-1") }
-		coVerify { projectsRepository.setProjectId(def, freshId) }
+		// The id is the client's: the project is recreated under it, not re-identified.
+		coVerify { serverProjectsApi.createProject("ResetServerNovel", staleId, "sync-1") }
+		coVerify(exactly = 0) { projectsRepository.setProjectId(any(), any()) }
+	}
+
+	@Test
+	fun `syncProjects does not recreate a project whose id the server tombstoned`() = runTest {
+		val id = ProjectId.randomUUID()
+		val def = projectDef("TombstonedNovel")
+		// Already recorded as deleted, so deleteLocalProjects does not act on it again; the folder is
+		// still on disk (put back by a file-sync tool, or a local delete that failed).
+		writeSyncData(emptySyncData().copy(deletedProjects = setOf(id)))
+		coEvery { serverProjectsApi.beginProjectsSync() } returns
+			Result.success(emptyServerResponse().copy(deletedProjects = setOf(id)))
+		every { projectsRepository.getProjects(any()) } returns listOf(def)
+		every { projectsRepository.getProjectId(def) } returns id
+
+		val result = createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
+
+		assertTrue(result)
+		coVerify(exactly = 0) { serverProjectsApi.createProject(any(), any(), any()) }
+		coVerify(exactly = 0) { projectsRepository.setProjectId(any(), any()) }
 	}
 
 	@Test
@@ -519,7 +665,7 @@ class ClientAccountSynchronizerTest {
 		val result = createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
 
 		assertTrue(result)
-		coVerify(exactly = 0) { serverProjectsApi.createProject(any(), any()) }
+		coVerify(exactly = 0) { serverProjectsApi.createProject(any(), any(), any()) }
 	}
 
 	@Test
@@ -542,13 +688,16 @@ class ClientAccountSynchronizerTest {
 
 		assertTrue(result)
 		coVerify { serverProjectsApi.deleteProject(id, "sync-1") }
-		coVerify(exactly = 0) { serverProjectsApi.createProject(any(), any()) }
+		coVerify(exactly = 0) { serverProjectsApi.createProject(any(), any(), any()) }
 	}
 
 	@Test
 	fun `syncProjects deletes a server project this client marked for deletion`() = runTest {
 		val id = ProjectId.randomUUID()
 		writeSyncData(emptySyncData().copy(projectsToDelete = setOf(id)))
+		coEvery { serverProjectsApi.beginProjectsSync() } returns Result.success(
+			emptyServerResponse().copy(projects = setOf(ApiProjectDefinition("Doomed", id)))
+		)
 		every { projectsRepository.getProjects(any()) } returns emptyList()
 		coEvery { serverProjectsApi.deleteProject(id, "sync-1") } returns Result.success("ok")
 
@@ -559,6 +708,22 @@ class ClientAccountSynchronizerTest {
 		val sync = readSyncData()
 		assertTrue(sync.projectsToDelete.isEmpty())
 		assertEquals(setOf(id), sync.deletedProjects)
+	}
+
+	@Test
+	fun `syncProjects drops a queued deletion for an id the server never knew`() = runTest {
+		val id = ProjectId.randomUUID()
+		writeSyncData(emptySyncData().copy(projectsToDelete = setOf(id)))
+		every { projectsRepository.getProjects(any()) } returns emptyList()
+
+		val result = createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
+
+		assertTrue(result)
+		// Deleted before it ever synced: a tombstone would only refuse a later create of the id.
+		coVerify(exactly = 0) { serverProjectsApi.deleteProject(any(), any()) }
+		val sync = readSyncData()
+		assertTrue(sync.projectsToDelete.isEmpty())
+		assertTrue(sync.deletedProjects.isEmpty())
 	}
 
 	@Test
@@ -589,27 +754,6 @@ class ClientAccountSynchronizerTest {
 		// Attempting it would fail every session forever and log an error each time.
 		coVerify(exactly = 0) { serverProjectsApi.renameProject(any(), any(), any()) }
 		assertTrue(readSyncData().projectsToRename.isEmpty())
-	}
-
-	@Test
-	fun `syncProjects withdraws a queued creation whose local project is gone`() = runTest {
-		writeSyncData(emptySyncData().copy(projectsToCreate = setOf("DeletedBeforeSync")))
-		every { projectsRepository.getProjects(any()) } returns emptyList()
-
-		val result = createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
-
-		assertTrue(result)
-		coVerify(exactly = 0) { serverProjectsApi.createProject(any(), any()) }
-		assertTrue(readSyncData().projectsToCreate.isEmpty())
-	}
-
-	@Test
-	fun `deleteUnsyncedProject withdraws the queued creation`() {
-		writeSyncData(emptySyncData().copy(projectsToCreate = setOf("Draft", "Keeper")))
-
-		createSynchronizer().deleteUnsyncedProject("Draft")
-
-		assertEquals(setOf("Keeper"), readSyncData().projectsToCreate)
 	}
 
 	@Test
@@ -696,13 +840,13 @@ class ClientAccountSynchronizerTest {
 		coEvery { serverProjectsApi.deleteProject(id, "sync-1") } returns Result.success("ok")
 		every { projectsRepository.getProjects(any()) } returns emptyList()
 		every { projectsRepository.findProject(any<String>()) } returns null
-		every { projectsRepository.createProject(any(), any()) } returns CResult.success(projectDef("DeadNovel"))
+		every { projectsRepository.createProject(any(), any(), any()) } returns CResult.success(projectDef("DeadNovel"))
 
 		val result = createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
 
 		assertTrue(result)
 		coVerify { serverProjectsApi.deleteProject(id, "sync-1") }
-		coVerify(exactly = 0) { projectsRepository.createProject(any(), any()) }
+		coVerify(exactly = 0) { projectsRepository.createProject(any(), any(), any()) }
 		coVerify(exactly = 0) { projectsRepository.setProjectId(any(), any()) }
 	}
 
@@ -717,13 +861,13 @@ class ClientAccountSynchronizerTest {
 			Result.success(emptyServerResponse().copy(projects = setOf(serverProject)))
 		every { projectsRepository.getProjects(any()) } returns emptyList()
 		every { projectsRepository.findProject("ServerNovel") } returns null
-		every { projectsRepository.createProject("ServerNovel", any()) } returns CResult.success(createdDef)
+		every { projectsRepository.createProject("ServerNovel", any(), any()) } returns CResult.success(createdDef)
 
 		val result = createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
 
 		assertTrue(result)
-		coVerify { projectsRepository.createProject("ServerNovel", any()) }
-		coVerify { projectsRepository.setProjectId(createdDef, serverId) }
+		coVerify { projectsRepository.createProject("ServerNovel", false, serverId) }
+		coVerify(exactly = 0) { projectsRepository.setProjectId(any(), any()) }
 	}
 
 	@Test
@@ -736,7 +880,7 @@ class ClientAccountSynchronizerTest {
 			Result.success(emptyServerResponse().copy(projects = setOf(serverProject)))
 		every { projectsRepository.getProjects(any()) } returns emptyList()
 		every { projectsRepository.findProject("ServerNovel") } returns null
-		every { projectsRepository.createProject("ServerNovel", any()) } returns
+		every { projectsRepository.createProject("ServerNovel", any(), any()) } returns
 			CResult.failure(error = "creation failed")
 
 		val strRes = RecordingStrRes()
@@ -759,10 +903,9 @@ class ClientAccountSynchronizerTest {
 			emptyServerResponse().copy(projects = setOf(ApiProjectDefinition("MyNovel", serverId)))
 		)
 		every { projectsRepository.getProjects(any()) } returns listOf(def)
-		every { projectsRepository.getProjectId(def) } returns null
+		every { projectsRepository.getProjectId(def) } returns duplicateId
 		every { projectsRepository.findProject("MyNovel") } returns def
-		every { projectsRepository.getProjectDefinition("MyNovel") } returns def
-		coEvery { serverProjectsApi.createProject("MyNovel", "sync-1") } returns
+		coEvery { serverProjectsApi.createProject("MyNovel", any(), "sync-1") } returns
 			Result.success(CreateProjectResponse(duplicateId, alreadyExisted = false))
 
 		val result = createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
@@ -770,35 +913,9 @@ class ClientAccountSynchronizerTest {
 		assertTrue(result)
 		// Uploading first would leave an orphan second "MyNovel" on the server that every
 		// other device then downloads as an empty duplicate.
-		coVerify(exactly = 0) { serverProjectsApi.createProject(any(), any()) }
+		coVerify(exactly = 0) { serverProjectsApi.createProject(any(), any(), any()) }
 		coVerify { projectsRepository.setProjectId(def, serverId) }
 		coVerify(exactly = 0) { projectsRepository.setProjectId(def, duplicateId) }
-	}
-
-	@Test
-	fun `syncProjects withdraws a queued creation the server already holds under that name`() = runTest {
-		writeSyncData(emptySyncData().copy(projectsToCreate = setOf("MyNovel")))
-		val serverId = ProjectId.randomUUID()
-		val duplicateId = ProjectId.randomUUID()
-		val def = projectDef("MyNovel")
-
-		coEvery { serverProjectsApi.beginProjectsSync() } returns Result.success(
-			emptyServerResponse().copy(projects = setOf(ApiProjectDefinition("MyNovel", serverId)))
-		)
-		every { projectsRepository.getProjects(any()) } returns listOf(def)
-		every { projectsRepository.getProjectId(def) } returns null
-		every { projectsRepository.findProject("MyNovel") } returns def
-		every { projectsRepository.getProjectDefinition("MyNovel") } returns def
-		coEvery { serverProjectsApi.createProject("MyNovel", "sync-1") } returns
-			Result.success(CreateProjectResponse(duplicateId, alreadyExisted = false))
-
-		val result = createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
-
-		assertTrue(result)
-		coVerify(exactly = 0) { serverProjectsApi.createProject(any(), any()) }
-		coVerify { projectsRepository.setProjectId(def, serverId) }
-		// Left queued, it would try to duplicate the project again on every future sync.
-		assertTrue(readSyncData().projectsToCreate.isEmpty())
 	}
 
 	@Test
@@ -829,7 +946,7 @@ class ClientAccountSynchronizerTest {
 		assertTrue(result)
 		// Adopting the orphan abandons the server project actually holding the manuscript.
 		coVerify(exactly = 0) { projectsRepository.setProjectId(def, orphanId) }
-		coVerify(exactly = 0) { serverProjectsApi.createProject(any(), any()) }
+		coVerify(exactly = 0) { serverProjectsApi.createProject(any(), any(), any()) }
 	}
 
 	@Test
@@ -849,14 +966,14 @@ class ClientAccountSynchronizerTest {
 		)
 		every { projectsRepository.getProjects(any()) } returns emptyList()
 		every { projectsRepository.findProject("My Novel") } returnsMany listOf(null, createdDef)
-		every { projectsRepository.createProject("My Novel", any()) } returns CResult.success(createdDef)
+		every { projectsRepository.createProject("My Novel", any(), any()) } returns CResult.success(createdDef)
 		every { projectsRepository.getProjectId(createdDef) } returns firstId
 
 		val result = createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
 
 		assertTrue(result)
-		verify(exactly = 1) { projectsRepository.createProject("My Novel", any()) }
-		coVerify { projectsRepository.setProjectId(createdDef, firstId) }
+		verify(exactly = 1) { projectsRepository.createProject("My Novel", any(), any()) }
+		verify { projectsRepository.createProject("My Novel", false, firstId) }
 		// The second one would silently steal the only local project the first just claimed.
 		coVerify(exactly = 0) { projectsRepository.setProjectId(createdDef, secondId) }
 	}
@@ -874,13 +991,13 @@ class ClientAccountSynchronizerTest {
 			Result.success(emptyServerResponse().copy(projects = setOf(serverProject)))
 		every { projectsRepository.getProjects(any()) } returns emptyList()
 		every { projectsRepository.findProject(safeName) } returns null
-		every { projectsRepository.createProject(safeName, any()) } returns CResult.success(createdDef)
+		every { projectsRepository.createProject(safeName, any(), any()) } returns CResult.success(createdDef)
 
 		val result = createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
 
 		assertTrue(result)
-		coVerify { projectsRepository.createProject(safeName, any()) }
-		coVerify(exactly = 0) { projectsRepository.createProject(mangledName, any()) }
-		coVerify { projectsRepository.setProjectId(createdDef, serverId) }
+		coVerify { projectsRepository.createProject(safeName, any(), any()) }
+		coVerify(exactly = 0) { projectsRepository.createProject(mangledName, any(), any()) }
+		coVerify { projectsRepository.createProject(safeName, false, serverId) }
 	}
 }

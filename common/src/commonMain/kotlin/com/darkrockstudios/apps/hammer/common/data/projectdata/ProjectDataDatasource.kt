@@ -15,12 +15,15 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
+import okio.IOException
 import okio.Path
+import kotlin.time.Clock
 
 /**
- * Stored as a sibling of `project.toml` rather than merged into it because
- * `project.toml` holds local-only state (`lastAccessed`, `dataVersion`) we
- * don't sync.
+ * Owns `settings.toml`: user data (author, theme, goals, tags, language) that is synced
+ * and that the app cannot rebuild. It is kept apart from `project.toml`, which holds local,
+ * regenerable metadata that any reader may heal or recreate. User data is never replaced with
+ * defaults: an unreadable file is moved aside to `settings.toml.corrupt-<epochMillis>`.
  */
 class ProjectDataDatasource(
 	private val fileSystem: FileSystem,
@@ -34,11 +37,7 @@ class ProjectDataDatasource(
 	fun getPath(): Path = projectDef.path.toOkioPath() / FILENAME
 
 	suspend fun load(): StoredProjectData = withContext(dispatcherIo) {
-		val path = getPath()
-		if (!fileSystem.exists(path)) return@withContext StoredProjectData()
-		fileSystem.readTomlOrNull<StoredProjectData>(path, toml) { e ->
-			Napier.e("Failed to load project_data.toml: $path", e)
-		} ?: StoredProjectData()
+		readStoredProjectData(projectDef, fileSystem, toml)
 	}
 
 	suspend fun save(stored: StoredProjectData): Unit = withContext(dispatcherIo) {
@@ -46,7 +45,10 @@ class ProjectDataDatasource(
 	}
 
 	companion object {
-		const val FILENAME = "project_data.toml"
+		const val FILENAME = "settings.toml"
+		const val CORRUPT_PREFIX = "$FILENAME.corrupt-"
+		const val FILE_HEADER =
+			"# Hammer project settings. You may edit this file; keep it valid TOML or Hammer will set it aside."
 	}
 }
 
@@ -58,7 +60,7 @@ data class StoredProjectData(
 )
 
 /**
- * Reads `project_data.toml` for [projectDef] off the IO dispatcher without
+ * Reads `settings.toml` for [projectDef] off the IO dispatcher without
  * opening a per-project Koin scope. Returns `StoredProjectData()` defaults
  * when the file is missing or unreadable so callers don't need to handle
  * I/O errors themselves.
@@ -71,20 +73,54 @@ suspend fun loadStoredProjectData(
 	readStoredProjectData(projectDef, fileSystem, toml)
 }
 
-/** Blocking twin of [loadStoredProjectData] for callers that already own their threading (parallel mappers, IO-dispatched code). */
+/**
+ * Blocking twin of [loadStoredProjectData] for callers that already own their threading (parallel
+ * mappers, IO-dispatched code). An existing file that can't be decoded is moved aside before the
+ * defaults are returned, so the next save can't overwrite it. An I/O failure leaves the file in
+ * place: it may be locked or briefly inaccessible rather than damaged.
+ */
 fun readStoredProjectData(
 	projectDef: ProjectDef,
 	fileSystem: FileSystem,
 	toml: Toml,
 ): StoredProjectData {
 	val path = projectDef.path.toOkioPath() / ProjectDataDatasource.FILENAME
-	return fileSystem.readTomlOrNull<StoredProjectData>(path, toml) { e ->
-		Napier.d("No project_data.toml at $path (${e.message})")
-	} ?: StoredProjectData()
+	if (!fileSystem.exists(path)) return StoredProjectData()
+
+	var failure: Throwable? = null
+	val stored = fileSystem.readTomlOrNull<StoredProjectData>(path, toml) { e -> failure = e }
+	if (stored != null) return stored
+
+	if (failure is IOException) {
+		Napier.e("Failed to read ${ProjectDataDatasource.FILENAME}: $path", failure)
+	} else {
+		setAsideUnreadable(projectDef, fileSystem, path, failure)
+	}
+	return StoredProjectData()
+}
+
+private fun setAsideUnreadable(
+	projectDef: ProjectDef,
+	fileSystem: FileSystem,
+	path: Path,
+	cause: Throwable?,
+) {
+	val dir = projectDef.path.toOkioPath()
+	val baseName = "${ProjectDataDatasource.CORRUPT_PREFIX}${Clock.System.now().toEpochMilliseconds()}"
+	// atomicMove replaces an existing target, so never reuse the name of an earlier copy.
+	var target = dir / baseName
+	var suffix = 1
+	while (fileSystem.exists(target)) target = dir / "$baseName-${suffix++}"
+	try {
+		fileSystem.atomicMove(path, target)
+		Napier.e("Unreadable ${ProjectDataDatasource.FILENAME} moved aside: $path -> $target", cause)
+	} catch (e: IOException) {
+		Napier.e("Unreadable ${ProjectDataDatasource.FILENAME} could not be moved aside: $path", e)
+	}
 }
 
 /**
- * The single writer for `project_data.toml`. [ProjectDataDatasource.save] delegates here;
+ * The single writer for `settings.toml`. [ProjectDataDatasource.save] delegates here;
  * scope-less callers (project creation, before a per-project Koin scope exists) use it
  * directly so the on-disk format has exactly one owner.
  */
@@ -94,7 +130,12 @@ fun saveStoredProjectData(
 	toml: Toml,
 	stored: StoredProjectData,
 ) {
-	fileSystem.writeToml(projectDef.path.toOkioPath() / ProjectDataDatasource.FILENAME, toml, stored)
+	fileSystem.writeToml(
+		projectDef.path.toOkioPath() / ProjectDataDatasource.FILENAME,
+		toml,
+		stored,
+		header = ProjectDataDatasource.FILE_HEADER,
+	)
 }
 
 /**

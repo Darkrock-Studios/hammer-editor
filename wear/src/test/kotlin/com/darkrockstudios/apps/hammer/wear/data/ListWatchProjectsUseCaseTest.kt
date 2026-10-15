@@ -26,9 +26,9 @@ class ListWatchProjectsUseCaseTest : WearTestBase() {
 	}
 
 	@Test
-	fun `a project is subscribed only when its server id is`() = runTest(dispatcher) {
-		projects.create("Alpha", serverId = "a")
-		projects.create("Beta", serverId = "b")
+	fun `a project is subscribed only when its id is`() = runTest(dispatcher) {
+		projects.create("Alpha", projectId = "a")
+		projects.create("Beta", projectId = "b")
 		subscriptions.setSubscribed(ProjectId("a"), true)
 
 		val listed = useCase.list().associateBy { it.projectDef.name }
@@ -38,20 +38,23 @@ class ListWatchProjectsUseCaseTest : WearTestBase() {
 	}
 
 	@Test
-	fun `a project the server does not know yet has no id and is never subscribed`() = runTest(dispatcher) {
-		projects.create("Draft")
+	fun `a project the server does not know yet has its own id and can be subscribed`() = runTest(dispatcher) {
+		val projectDef = projects.create("Draft")
 
 		val draft = useCase.list().single()
-
-		assertEquals(null, draft.projectId)
+		assertEquals(projects.repository.getProjectId(projectDef), draft.projectId)
 		assertFalse(draft.subscribed)
+
+		subscriptions.setSubscribed(draft.projectId, true)
+
+		assertTrue(useCase.list().single().subscribed)
 	}
 
 	@Test
 	fun `projects are listed by name regardless of case`() = runTest(dispatcher) {
-		projects.create("beta", serverId = "b")
-		projects.create("Alpha", serverId = "a")
-		projects.create("Charlie", serverId = "c")
+		projects.create("beta", projectId = "b")
+		projects.create("Alpha", projectId = "a")
+		projects.create("Charlie", projectId = "c")
 
 		assertEquals(listOf("Alpha", "beta", "Charlie"), useCase.list().map { it.projectDef.name })
 	}

@@ -48,23 +48,17 @@ class ProjectDao(
 			queries.getMostRecentSyncForUser(userId).executeAsOneOrNull()?.last_sync
 		}
 
-	@Suppress("TooGenericExceptionCaught") // any insert failure means create did not succeed
+	/** False when nothing was inserted because some account, possibly this one, already holds [uuid]. */
 	suspend fun createProject(
 		userId: Long,
 		uuid: ProjectId,
 		projectName: String
 	): Boolean = withContext(ioDispatcher) {
-		return@withContext try {
-			queries.createProject(
-				userId = userId,
-				name = projectName,
-				uuid = uuid.id,
-			)
-			true
-		} catch (e: Exception) {
-			println(e.message)
-			false
-		}
+		queries.createProject(
+			userId = userId,
+			name = projectName,
+			uuid = uuid.id,
+		).value > 0
 	}
 
 	suspend fun hasProject(userId: Long, projectId: ProjectId): Boolean =

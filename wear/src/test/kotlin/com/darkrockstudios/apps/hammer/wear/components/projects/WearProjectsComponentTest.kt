@@ -88,14 +88,12 @@ class WearProjectsComponentTest : WearTestBase() {
 
 	@Test
 	fun `opening the screen lists projects and asks for the app-open sync`() = runTest(dispatcher) {
-		projects.create("Alpha", serverId = "a")
+		projects.create("Alpha", projectId = "a")
 		projects.create("Draft")
 
 		val component = newComponent()
 
 		assertEquals(listOf("Alpha", "Draft"), component.state.value.projects.map { it.name })
-		assertTrue(component.row("Alpha").canSubscribe)
-		assertFalse(component.row("Draft").canSubscribe)
 		assertEquals("writer@example.com", component.state.value.accountEmail)
 		assertEquals(1, coordinator.autoSyncRequests)
 	}
@@ -147,7 +145,7 @@ class WearProjectsComponentTest : WearTestBase() {
 
 	@Test
 	fun `subscribing to a project keeps it on the watch and syncs it`() = runTest(dispatcher) {
-		projects.create("Alpha", serverId = "a")
+		projects.create("Alpha", projectId = "a")
 		val component = newComponent()
 
 		component.toggleSubscription("Alpha")
@@ -160,7 +158,7 @@ class WearProjectsComponentTest : WearTestBase() {
 
 	@Test
 	fun `unsubscribing drops the content but leaves the project listed`() = runTest(dispatcher) {
-		val projectDef = projects.create("Alpha", serverId = "a")
+		val projectDef = projects.create("Alpha", projectId = "a")
 		val sceneDir = projectDef.path.toOkioPath() / "scenes"
 		projects.fileSystem.createDirectories(sceneDir)
 		projects.fileSystem.write(sceneDir / "1.md") { writeUtf8("a scene synced to the watch") }
@@ -173,14 +171,13 @@ class WearProjectsComponentTest : WearTestBase() {
 		assertFalse(projects.fileSystem.exists(sceneDir))
 		// The row has to survive, or the project cannot be subscribed to again without a sync first.
 		assertFalse(component.row("Alpha").subscribed)
-		assertTrue(component.row("Alpha").canSubscribe)
 		assertEquals(emptySet<ProjectId>(), subscriptions.currentSubscriptions())
 		assertEquals(emptyList<SyncTrigger>(), coordinator.requested)
 	}
 
 	@Test
 	fun `the list is not reported as empty until it has loaded`() = runTest(dispatcher) {
-		projects.create("Alpha", serverId = "a")
+		projects.create("Alpha", projectId = "a")
 
 		val component = newComponent(advanceToIdle = false)
 
@@ -193,20 +190,21 @@ class WearProjectsComponentTest : WearTestBase() {
 	}
 
 	@Test
-	fun `a project the server does not know yet cannot be subscribed`() = runTest(dispatcher) {
-		projects.create("Draft")
+	fun `a project the server does not know yet can be subscribed`() = runTest(dispatcher) {
+		val projectDef = projects.create("Draft")
 		val component = newComponent()
 
 		component.toggleSubscription("Draft")
 		scheduler.advanceUntilIdle()
 
-		assertFalse(component.row("Draft").subscribed)
-		assertEquals(emptySet<ProjectId>(), subscriptions.currentSubscriptions())
+		assertTrue(component.row("Draft").subscribed)
+		assertEquals(setOf(projects.repository.getProjectId(projectDef)), subscriptions.currentSubscriptions())
+		assertEquals(listOf(SyncTrigger.Manual), coordinator.requested)
 	}
 
 	@Test
 	fun `sync progress shows on the project row`() = runTest(dispatcher) {
-		projects.create("Alpha", serverId = "a")
+		projects.create("Alpha", projectId = "a")
 		subscriptions.setSubscribed(ProjectId("a"), true)
 		val component = newComponent()
 
@@ -219,8 +217,8 @@ class WearProjectsComponentTest : WearTestBase() {
 
 	@Test
 	fun `a project that is not on the watch does not report a sync it never attempted`() = runTest(dispatcher) {
-		projects.create("Alpha", serverId = "a")
-		projects.create("Beta", serverId = "b")
+		projects.create("Alpha", projectId = "a")
+		projects.create("Beta", projectId = "b")
 		subscriptions.setSubscribed(ProjectId("a"), true)
 		val component = newComponent()
 
@@ -239,12 +237,12 @@ class WearProjectsComponentTest : WearTestBase() {
 
 	@Test
 	fun `projects that arrive during a sync appear once it finishes`() = runTest(dispatcher) {
-		projects.create("Alpha", serverId = "a")
+		projects.create("Alpha", projectId = "a")
 		val component = newComponent()
 		coordinator.status.value = SyncStatus(running = true)
 		scheduler.advanceUntilIdle()
 
-		projects.create("Beta", serverId = "b")
+		projects.create("Beta", projectId = "b")
 		coordinator.status.value = SyncStatus(
 			running = false,
 			projects = mapOf("Beta" to ProjectSyncState(outcome = ProjectSyncOutcome.Skipped)),
@@ -268,7 +266,7 @@ class WearProjectsComponentTest : WearTestBase() {
 
 	@Test
 	fun `unsubscribing uploads first when the project has writing the server has not seen`() = runTest(dispatcher) {
-		val projectDef = projects.create("Alpha", serverId = "a")
+		val projectDef = projects.create("Alpha", projectId = "a")
 		val sceneDir = projectDef.path.toOkioPath() / "scenes"
 		projects.fileSystem.createDirectories(sceneDir)
 		subscriptions.setSubscribed(ProjectId("a"), true)
@@ -287,7 +285,7 @@ class WearProjectsComponentTest : WearTestBase() {
 
 	@Test
 	fun `unsubscribing keeps content and the subscription while writing is still unsynced`() = runTest(dispatcher) {
-		val projectDef = projects.create("Alpha", serverId = "a")
+		val projectDef = projects.create("Alpha", projectId = "a")
 		val sceneDir = projectDef.path.toOkioPath() / "scenes"
 		projects.fileSystem.createDirectories(sceneDir)
 		projects.fileSystem.write(sceneDir / "1.md") { writeUtf8("a note dictated on a run") }
@@ -311,7 +309,7 @@ class WearProjectsComponentTest : WearTestBase() {
 
 	@Test
 	fun `a count that cannot be read never authorises a delete`() = runTest(dispatcher) {
-		val projectDef = projects.create("Alpha", serverId = "a")
+		val projectDef = projects.create("Alpha", projectId = "a")
 		val sceneDir = projectDef.path.toOkioPath() / "scenes"
 		projects.fileSystem.createDirectories(sceneDir)
 		subscriptions.setSubscribed(ProjectId("a"), true)
@@ -331,7 +329,7 @@ class WearProjectsComponentTest : WearTestBase() {
 
 	@Test
 	fun `an unsubscribe that breaks is not reported as unsynced writing`() = runTest(dispatcher) {
-		projects.create("Alpha", serverId = "a")
+		projects.create("Alpha", projectId = "a")
 		// Nothing is pending, so the only thing left that can go wrong is the unsubscribe itself.
 		subscriptions = SubscribedProjectsRepository(FailingUnsubscribeDatasource())
 		subscriptions.setSubscribed(ProjectId("a"), true)
@@ -349,7 +347,7 @@ class WearProjectsComponentTest : WearTestBase() {
 
 	@Test
 	fun `dismissing the notice clears it`() = runTest(dispatcher) {
-		projects.create("Alpha", serverId = "a")
+		projects.create("Alpha", projectId = "a")
 		subscriptions.setSubscribed(ProjectId("a"), true)
 		unsynced.pendingByProject["Alpha"] = 1
 		val component = newComponent()
@@ -374,7 +372,7 @@ class WearProjectsComponentTest : WearTestBase() {
 
 	@Test
 	fun `signing out warns before wiping captures that have not synced`() = runTest(dispatcher) {
-		projects.create("Alpha", serverId = "a")
+		projects.create("Alpha", projectId = "a")
 		subscriptions.setSubscribed(ProjectId("a"), true)
 		unsynced.pendingByProject["Alpha"] = 2
 		unsynced.pendingIdeas = 1
@@ -415,7 +413,7 @@ class WearProjectsComponentTest : WearTestBase() {
 
 	@Test
 	fun `the sign out button reports that it is counting`() = runTest(dispatcher) {
-		projects.create("Alpha", serverId = "a")
+		projects.create("Alpha", projectId = "a")
 		subscriptions.setSubscribed(ProjectId("a"), true)
 		unsynced.pendingByProject["Alpha"] = 1
 		val component = newComponent()
@@ -432,7 +430,7 @@ class WearProjectsComponentTest : WearTestBase() {
 
 	@Test
 	fun `tapping sign out twice only counts once`() = runTest(dispatcher) {
-		projects.create("Alpha", serverId = "a")
+		projects.create("Alpha", projectId = "a")
 		subscriptions.setSubscribed(ProjectId("a"), true)
 		unsynced.pendingByProject["Alpha"] = 1
 		val component = newComponent()

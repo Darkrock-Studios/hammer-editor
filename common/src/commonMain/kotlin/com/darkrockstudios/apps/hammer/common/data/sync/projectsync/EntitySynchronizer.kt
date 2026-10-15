@@ -38,7 +38,7 @@ abstract class EntitySynchronizer<T : ApiProjectEntity>(
 	): Boolean {
 		Napier.d("Uploading Scene $id")
 
-		val serverProjectId = projectMetadataDatasource.requireProjectId(projectDef)
+		val serverProjectId = projectMetadataDatasource.loadProjectId(projectDef)
 
 		val entity = createEntityForId(id)
 		val result = serverProjectApi.uploadEntity(

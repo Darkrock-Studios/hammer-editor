@@ -66,10 +66,18 @@ class HeadlessClient private constructor(
 		scope.close()
 	}
 
+	/** Closes this client's project scope and opens a fresh one, as after its files were replaced. */
+	suspend fun reopen(): HeadlessClient {
+		close()
+		val anchor = object : KoinComponent {}
+		val scope = with(anchor) { openProjectScope(projectDef) }
+		return HeadlessClient(projectDef, scope)
+	}
+
 	companion object {
 		/**
-		 * @param serverProjectId when set, the local project is pre-bound to this existing server
-		 * project instead of minting a new one on first sync — i.e. a second device opening a project
+		 * @param serverProjectId when set, the local project is created with this existing server
+		 * project's id instead of a freshly minted one, i.e. a second device opening a project
 		 * that already lives on the server. The local project name must differ from the first device's
 		 * (they share one on-disk projects root) but both resolve to the same server project.
 		 */
@@ -87,13 +95,10 @@ class HeadlessClient private constructor(
 			val createResult = projectsRepository.createProject(
 				projectName,
 				seedDefaultLanguage = serverProjectId == null,
+				projectId = serverProjectId ?: ProjectId.randomUUID(),
 			)
 			check(isSuccess(createResult)) { "Failed to create local project: $createResult" }
 			val projectDef: ProjectDef = createResult.data
-
-			if (serverProjectId != null) {
-				projectsRepository.setProjectId(projectDef, serverProjectId)
-			}
 
 			// Persist server settings BEFORE opening the scope so the sync pipeline
 			// resolves an HttpClient that points at the test server.

@@ -5,11 +5,13 @@ import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.createProjectScope
+import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupService
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
 import com.darkrockstudios.apps.hammer.common.data.projectdata.StoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.projectdata.readStoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.projectdata.saveStoredProjectData
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityOriginalState
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectSynchronizationData
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournalDatasource
@@ -17,14 +19,19 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScop
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import createProject
 import getProjectDef
+import io.mockk.every
+import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import okio.Path
 import org.junit.jupiter.api.Test
 import org.koin.dsl.module
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.time.Clock
 import kotlin.time.Instant
 
 /**
@@ -146,18 +153,20 @@ class ProjectsRepositorySyncBaselineTest : ProjectsRepositoryBaseTest() {
 	}
 
 	@Test
-	fun `Removing a project id clears its sync baseline`() = scope.runTest {
+	fun `Clearing all sync baselines resets each project but keeps its id`() = scope.runTest {
 		createProject(ffs, PROJECT_1_NAME)
-		seedBaseline()
 		val repo = projectsRepository()
+		val projectId = repo.getProjectId(projectDef)
+		seedBaseline()
 
-		// removeServer() and create-account both clear ids; whatever the project is uploaded to
-		// next has never seen it.
-		repo.removeProjectId(projectDef)
+		// A server change: whatever the project is uploaded to next has never seen it.
+		repo.clearAllSyncBaselines()
 
 		assertEquals(emptyMap(), readJournal().syncedHashes)
+		assertEquals(Instant.DISTANT_PAST, readJournal().lastSync)
 		assertNull(storedProjectData().lastSyncedHash)
 		assertEquals(ProjectData(authorName = "Author"), storedProjectData().data)
+		assertEquals(projectId, repo.getProjectId(projectDef))
 	}
 
 	@Test
@@ -167,7 +176,7 @@ class ProjectsRepositorySyncBaselineTest : ProjectsRepositoryBaseTest() {
 
 		repo.setProjectId(projectDef, ProjectId("first-ever-id"))
 
-		// No journal is fabricated, and no project_data.toml is written just to hold a null.
+		// No journal is fabricated, and no settings.toml is written just to hold a null.
 		assertFalse(ffs.exists(syncJournalPath()))
 		assertFalse(ffs.exists(projectDef.path.toOkioPath() / ProjectDataDatasource.FILENAME))
 	}
@@ -201,6 +210,92 @@ class ProjectsRepositorySyncBaselineTest : ProjectsRepositoryBaseTest() {
 		)
 		return createProjectScope(projectDef).get()
 	}
+
+	private fun backupService(repo: ProjectsRepository): ProjectBackupService {
+		every { settings.maxBackups } returns 5
+		val clock = object : Clock {
+			override fun now(): Instant = Instant.parse("2025-12-28T16:29:00Z")
+		}
+		return ProjectBackupService(ffs, repo, settingsRepo, clock, mockk(relaxed = true))
+	}
+
+	@Test
+	fun `Restoring a backup over the same project flags it for a full conflict check`() =
+		scope.runTest {
+			createProject(ffs, PROJECT_1_NAME)
+			val repo = projectsRepository()
+			val projectId = repo.getProjectId(projectDef)
+			seedBaseline()
+			val backups = backupService(repo)
+			val backup = assertNotNull(backups.createBackup(projectDef))
+
+			assertTrue(backups.restoreBackup(backup, projectDef.path))
+
+			assertEquals(projectId, repo.getProjectId(projectDef))
+			val journal = readJournal()
+			assertTrue(journal.verifyAllEntities, "the next sync must conflict-check every entity")
+			assertNull(journal.cachedProjectHash, "the pre-sync probe must not skip the restored project")
+			assertNull(journal.currentSyncId)
+			// Null baselines would let the restored copy overwrite the server unchecked. The backup's
+			// confirmed hashes are what make a newer server copy raise a conflict.
+			assertEquals(seededJournal.syncedHashes, journal.syncedHashes)
+			assertEquals(seededJournal.dirty, journal.dirty)
+			assertNull(storedProjectData().lastSyncedHash, "restored project data must not fast-forward")
+			assertEquals(ProjectData(authorName = "Author"), storedProjectData().data)
+		}
+
+	@Test
+	fun `Restoring a backup where no project remains leaves no baseline from backup time`() =
+		scope.runTest {
+			createProject(ffs, PROJECT_1_NAME)
+			val repo = projectsRepository()
+			val backupId = repo.getProjectId(projectDef)
+			seedBaseline()
+			val backups = backupService(repo)
+			val backup = assertNotNull(backups.createBackup(projectDef))
+			ffs.deleteRecursively(projectDef.path.toOkioPath())
+
+			assertTrue(backups.restoreBackup(backup, projectDef.path))
+
+			// A fresh id is a new, empty server project: nothing there to conflict with.
+			assertNotEquals(backupId, repo.getProjectId(projectDef))
+			val journal = readJournal()
+			assertEquals(emptyMap(), journal.syncedHashes)
+			assertEquals(listOf(EntityOriginalState(5, originalHash = null)), journal.dirty)
+			assertEquals(Instant.DISTANT_PAST, journal.lastSync)
+			assertNull(journal.cachedProjectHash)
+			assertTrue(journal.verifyAllEntities)
+			assertNull(storedProjectData().lastSyncedHash)
+		}
+
+	@Test
+	fun `Resetting a restored project that never synced fabricates no journal`() = scope.runTest {
+		createProject(ffs, PROJECT_1_NAME)
+
+		projectsRepository().resetSyncStateAfterRestore(projectDef, serverKnowsProject = false)
+
+		assertFalse(ffs.exists(syncJournalPath()))
+	}
+
+	@Test
+	fun `Restoring a journal-less backup over a synced project flags a fresh journal`() =
+		scope.runTest {
+			createProject(ffs, PROJECT_1_NAME)
+			val repo = projectsRepository()
+			val backups = backupService(repo)
+			val backup = assertNotNull(backups.createBackup(projectDef))
+			seedBaseline()
+
+			assertTrue(backups.restoreBackup(backup, projectDef.path))
+
+			// A rebuilt journal would list every entity as clean, so the server's copy would win.
+			val journal = readJournal()
+			assertTrue(journal.verifyAllEntities)
+			assertEquals(emptyMap(), journal.syncedHashes)
+			assertEquals(emptyList(), journal.dirty)
+			assertEquals(emptyList(), journal.newIds)
+			assertEquals(emptySet(), journal.deletedIds)
+		}
 
 	@Test
 	fun `A corrupt journal is discarded so the next sync rebuilds it`() = scope.runTest {

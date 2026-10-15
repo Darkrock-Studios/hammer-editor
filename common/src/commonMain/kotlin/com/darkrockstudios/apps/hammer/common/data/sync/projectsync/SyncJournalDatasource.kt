@@ -101,6 +101,61 @@ fun clearProjectSyncBaseline(projectDef: ProjectDef, fileSystem: FileSystem, jso
 }
 
 /**
+ * Flags a project just restored from a backup for a full conflict check on its next sync (see
+ * [ProjectSynchronizationData.verifyAllEntities]). The confirmed hashes and dirty baselines are
+ * kept: they are what makes the server raise a conflict when it changed since the backup, whereas
+ * a null baseline would let the restored copy overwrite it unchecked. The cached project hash is
+ * dropped so the pre-sync probe cannot skip the project.
+ *
+ * A missing or corrupt journal is left for the next sync to rebuild, unless [serverKnowsProject]:
+ * a rebuilt journal lists every entity as clean, so the server's copy of each would silently replace
+ * the restored one. An empty flagged journal is written instead, baselining every entity on its
+ * local hash.
+ */
+// Corrupt sync data recovers by deleting it; not an error to surface.
+@Suppress("SwallowedException")
+fun markProjectRestored(
+	projectDef: ProjectDef,
+	fileSystem: FileSystem,
+	json: Json,
+	serverKnowsProject: Boolean,
+) {
+	val path = projectDef.path.toOkioPath() / SyncJournalDatasource.SYNC_FILE_NAME
+
+	val existing = if (fileSystem.exists(path)) {
+		try {
+			fileSystem.read(path) { json.decodeFromString<ProjectSynchronizationData>(readUtf8()) }
+		} catch (e: SerializationException) {
+			fileSystem.delete(path)
+			null
+		}
+	} else {
+		null
+	}
+	val current = existing
+		?: if (serverKnowsProject) {
+			ProjectSynchronizationData(
+				lastId = 0,
+				newIds = emptyList(),
+				lastSync = Instant.DISTANT_PAST,
+				dirty = emptyList(),
+				deletedIds = emptySet(),
+			)
+		} else {
+			return
+		}
+
+	val marked = current.copy(
+		currentSyncId = null,
+		cachedProjectHash = null,
+		verifyAllEntities = true,
+	)
+	if (marked == existing) return
+
+	fileSystem.write(path) { writeUtf8(json.encodeToString(marked)) }
+}
+
+/**
  * The entities a project has written but not yet had accepted by the server: new ones plus changed
  * ones. Read without a project scope, because callers that only need the number must not pay for
  * opening the whole project.

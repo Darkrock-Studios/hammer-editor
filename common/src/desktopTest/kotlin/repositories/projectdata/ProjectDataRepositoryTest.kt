@@ -134,13 +134,13 @@ class ProjectDataRepositoryTest : BaseTest() {
 	}
 
 	@Test
-	fun `pre-language project_data toml loads with null language`() = runTest {
+	fun `pre-language project settings toml loads with null language`() = runTest {
 		val legacyToml = """
 			|[data]
 			|authorName = "Legacy"
 			|
 		""".trimMargin()
-		fileSystem.write("/projects/Test Project/project_data.toml".toPath()) {
+		fileSystem.write(datasource.getPath()) {
 			writeUtf8(legacyToml)
 		}
 
@@ -150,14 +150,14 @@ class ProjectDataRepositoryTest : BaseTest() {
 	}
 
 	@Test
-	fun `pre-tags project_data toml loads with empty tags`() = runTest {
+	fun `pre-tags project settings toml loads with empty tags`() = runTest {
 		// A file written before the tags field existed.
 		val legacyToml = """
 			|[data]
 			|authorName = "Legacy"
 			|
 		""".trimMargin()
-		fileSystem.write("/projects/Test Project/project_data.toml".toPath()) {
+		fileSystem.write(datasource.getPath()) {
 			writeUtf8(legacyToml)
 		}
 

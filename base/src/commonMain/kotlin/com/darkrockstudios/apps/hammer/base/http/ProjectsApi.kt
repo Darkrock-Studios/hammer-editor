@@ -24,6 +24,7 @@ data class BeginProjectsSyncResponse(
 
 @Serializable
 data class CreateProjectResponse(
+	/** Differs from the requested id when the account already had a project with that name. */
 	val projectId: ProjectId,
 	val alreadyExisted: Boolean,
 )

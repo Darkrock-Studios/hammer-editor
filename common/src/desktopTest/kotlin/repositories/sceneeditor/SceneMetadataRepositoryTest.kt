@@ -149,7 +149,7 @@ class SceneMetadataRepositoryTest : BaseTest() {
 			info = Info(
 				created = Instant.parse("2022-01-01T00:00:00.000Z"),
 				dataVersion = 1,
-				serverProjectId = ProjectId("12345"),
+				projectId = ProjectId("12345"),
 			)
 		)
 		coEvery { projectMetadataDatasource.loadMetadata(any()) } returns projectMetadata
