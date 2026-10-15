@@ -12,6 +12,7 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SyncedProjectDefinition
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
+import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
 import com.darkrockstudios.apps.hammer.common.data.projectdata.loadStoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.ClientIdeasSynchronizer
@@ -44,6 +45,7 @@ class ClientAccountSynchronizer(
 	private val serverProjectsApi: ServerProjectsApi,
 	private val projectCreateResolver: ProjectCreateResolver,
 	private val ideasSynchronizer: ClientIdeasSynchronizer,
+	private val dataMigrator: DataMigrator,
 	private val networkConnectivity: NetworkConnectivity,
 	private val json: Json,
 	private val toml: Toml,
@@ -522,6 +524,8 @@ class ClientAccountSynchronizer(
 						)
 					)
 				)
+			} else if (adoptUnmarkedFolder(localName, serverProject.uuid, onLog)) {
+				claimedNames += localName
 			} else {
 				val createResult = projectsRepository.createProject(
 					localName,
@@ -552,6 +556,31 @@ class ClientAccountSynchronizer(
 			}
 		}
 		return claimedNames
+	}
+
+	/**
+	 * Adopts a directory named [localName] that has no project.toml under [serverId], treating it
+	 * like a restored backup. Returns false when there is no such directory.
+	 *
+	 * A failed migration is logged rather than failing the sync: startup retries it.
+	 */
+	@Suppress("TooGenericExceptionCaught")
+	private suspend fun adoptUnmarkedFolder(localName: String, serverId: ProjectId, onLog: OnSyncLog): Boolean {
+		val adopted = projectsRepository.adoptUnmarkedDirectory(localName, serverId, serverKnowsProject = true)
+			?: return false
+
+		try {
+			dataMigrator.migrateProject(adopted)
+		} catch (e: CancellationException) {
+			throw e
+		} catch (e: Exception) {
+			Napier.e("Adopted '${adopted.name}' but failed to migrate it", e)
+		}
+		// Migration3_4 can move a pre-4 settings file, stale sync baseline included, into place.
+		projectsRepository.resetSyncStateAfterRestore(adopted, serverKnowsProject = true)
+
+		onLog(syncAccLogI(strRes.get(Res.string.sync_log_account_project_adopt_folder, localName)))
+		return true
 	}
 
 	/**
