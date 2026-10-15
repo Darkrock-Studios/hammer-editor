@@ -164,6 +164,54 @@ class DataMigratorTest : BaseTest() {
 	}
 
 	@Test
+	fun `Handle Migration - Heals unmarked folders before the scan so they are migrated`() {
+		val testModule = module {
+			factory<MigrateInstallIdToGlobal> { mockk(relaxed = true) }
+			factory<MigrateInlineAuthTokens> { mockk(relaxed = true) }
+		}
+		setupKoin(testModule)
+
+		// The healed project is only listed once it has its project.toml back.
+		val healedDef = getProjectDef(PROJECT_1_NAME)
+		var healed = false
+		coEvery { projectsRepository.healUnmarkedProjectDirectories() } answers {
+			healed = true
+			listOf(healedDef)
+		}
+		every { projectsRepository.getProjects(any()) } answers {
+			if (healed) listOf(healedDef) else emptyList()
+		}
+		every { projectMetadataDatasource.loadMetadata(healedDef) } returns ProjectMetadata(
+			Info(
+				created = Clock.System.now(),
+				dataVersion = 0
+			)
+		)
+
+		val migration = spyk(object : Migration {
+			override val toVersion = 1
+			override fun migrate(projectDef: ProjectDef) {}
+		})
+		val migrator = object : DataMigrator(
+			globalSettingsStore = globalSettingsStore,
+			projectsRepository = projectsRepository,
+			projectMetadataDatasource = projectMetadataDatasource,
+		) {
+			override val latestProjectDataVersion = 1
+			override fun getMigrators(): Map<Int, Migration> = mapOf(1 to migration)
+		}
+
+		runBlocking { migrator.handleDataMigration() }
+
+		verify(exactly = 1) { migration.migrate(healedDef) }
+		coVerifyOrder {
+			projectsRepository.healUnmarkedProjectDirectories()
+			projectsRepository.getProjects(any())
+			migration.migrate(healedDef)
+		}
+	}
+
+	@Test
 	fun `Handle Migration - Migrate 1`() {
 		val mockMigrator = mockk<Migration0_1>()
 		every { mockMigrator.migrate(any()) } just Runs

@@ -46,6 +46,8 @@ open class DataMigrator(
 
 	suspend fun handleDataMigration() {
 		runGlobalMigrations()
+		// Healed projects start at data version 0, so they are migrated below.
+		projectsRepository.healUnmarkedProjectDirectories()
 
 		if (checkIfMigrationNeeded()) {
 			doMigration()
