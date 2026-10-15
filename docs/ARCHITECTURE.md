@@ -279,8 +279,12 @@ cannot read.
 
 **`project.toml` is the marker that makes a directory a project.** `ProjectsRepository.getProjects`
 lists only directories that hold one, and the project picker, the data migrator, both sync levels
-and the Wear OS project list all enumerate projects through it. Deleting the file therefore hides
-the project, content intact, until a `project.toml` exists there again.
+and the Wear OS project list all enumerate projects through it. A directory that loses the file is
+re-marked rather than hidden: at startup `ProjectsRepository.healUnmarkedProjectDirectories` gives
+a fresh `project.toml`, under a new ID, to every directory that holds Hammer content (scenes, notes,
+encyclopedia, timeline, `settings.toml` or `sync.json`) but no marker, and account sync adopts an
+unmarked directory whose name matches a server project under that project's ID. A directory with no
+recognizable content stays ignored.
 
 **Project identity.** Every project has a `projectId`, a UUID the client mints at creation whether
 or not a sync server is configured. The server does not issue IDs: the create request carries the
@@ -304,8 +308,9 @@ a project by this ID, so a rename does not break them. The ID heals rather than 
 
 A corrupt `project.toml`, or a lost one once recreated, therefore comes back with a new identity:
 widgets and watch subscriptions no longer find the project, and the server sees it as new unless
-account sync matches it by name to a server project and adopts that ID. That is the accepted cost
-of keeping the file regenerable.
+account sync matches it by name to a server project and adopts that ID. A healed or adopted
+folder's surviving `sync.json` may be stale, so the folder is flagged like a restored backup and its
+next sync conflict-checks every entity. That is the accepted cost of keeping the file regenerable.
 
 **Header comments.** Both TOML files start with a comment line, rewritten on every save, that tells
 a user who opens the file which tier it is in. `project.toml` says it is managed by Hammer and that

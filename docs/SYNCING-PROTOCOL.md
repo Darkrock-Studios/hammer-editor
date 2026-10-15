@@ -57,7 +57,8 @@ same way (`ProjectCreateResolver`):
   repeating it after a lost response is safe.
 - **Same name, different ID:** the account already has a live project with that name, so the server
   answers with that project's ID (`alreadyExisted = true`) and the client adopts it. Adopting an ID
-  clears the project's sync baseline, which described a different server project. If another local
+  clears the project's sync baseline, which described a different server project, except the entity
+  baselines of a project flagged for a full conflict check (see **Dirty Entity**). If another local
   project already holds that ID (it was renamed away from this name and the rename has not reached
   the server), the client does not adopt it: the create counts as failed and is retried on a later
   sync, after the rename lands.
@@ -65,6 +66,11 @@ same way (`ProjectCreateResolver`):
   retries once.
 - **`409` with `project_deleted`:** the ID is tombstoned on this account. The client does not retry,
   and logs that the project was deleted elsewhere.
+
+A server project with no local counterpart is created locally under its ID, before any local
+project is uploaded. A local project with the same name adopts the server's ID instead, unless it is
+already bound to another live server project. So does a directory of that name with no
+`project.toml`, which is then treated like a restored backup.
 
 Queued renames and deletes name a project by ID, so one the server cannot act on is dropped without
 being sent rather than retried every session:
@@ -823,7 +829,9 @@ full sync marks every local Entity dirty against its best known baseline (the co
 the dirty entry's, else the local hash). Every Entity the server changed since the backup then
 conflicts; those it did not are left out of the update sequence and the dirty entry is dropped.
 Clearing the baselines instead would be wrong here: a null `original hash` lets the restored copy
-overwrite the server unchecked.
+overwrite the server unchecked. So the flag stays set until that full sync completes, and adopting
+another server project's ID before then keeps the baselines: each either matches the adopted
+project's hash, which means identical content, or raises a conflict.
 A backup from before the project's first sync has no journal; restored over the synced project it
 gets an empty flagged one, so every Entity is baselined on its local hash.
 

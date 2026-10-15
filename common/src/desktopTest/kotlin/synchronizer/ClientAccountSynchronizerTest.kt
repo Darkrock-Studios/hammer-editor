@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.common.data.SyncedProjectDefinition
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
+import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectContentHasher
@@ -31,6 +32,7 @@ import com.darkrockstudios.apps.hammer.common.util.NetworkConnectivity
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.sync_log_account_project_adopt_conflict
+import com.darkrockstudios.apps.hammer.sync_log_account_project_adopt_folder
 import com.darkrockstudios.apps.hammer.sync_log_account_project_create_local_failure
 import com.darkrockstudios.apps.hammer.sync_log_account_project_create_server_failure
 import com.darkrockstudios.apps.hammer.sync_log_account_project_create_server_success
@@ -62,6 +64,7 @@ class ClientAccountSynchronizerTest {
 	private lateinit var serverProjectsApi: ServerProjectsApi
 	private lateinit var ideasSynchronizer: ClientIdeasSynchronizer
 	private lateinit var networkConnectivity: NetworkConnectivity
+	private lateinit var dataMigrator: DataMigrator
 
 	private val projectsDirPath = "/projects".toPath()
 	private val syncFilePath = projectsDirPath / "sync.json"
@@ -114,6 +117,7 @@ class ClientAccountSynchronizerTest {
 		serverProjectsApi = serverProjectsApi,
 		projectCreateResolver = ProjectCreateResolver(serverProjectsApi, projectsRepository),
 		ideasSynchronizer = ideasSynchronizer,
+		dataMigrator = dataMigrator,
 		networkConnectivity = networkConnectivity,
 		json = json,
 		toml = Toml,
@@ -146,11 +150,13 @@ class ClientAccountSynchronizerTest {
 		ideasSynchronizer = mockk()
 		coEvery { ideasSynchronizer.syncIdeas(any(), any(), any(), any()) } returns true
 		networkConnectivity = mockk()
+		dataMigrator = mockk(relaxed = true)
 
 		every { globalSettingsStore.globalSettings } returns GlobalSettings(projectsDirectory = "/projects")
 		every { globalSettingsStore.serverSettings } returns serverSettings(userId = 1)
 		every { projectsRepository.getProjectsDirectory() } returns HPath("/projects", "projects", true)
 		every { projectsRepository.findProject(any<ProjectId>()) } returns null
+		coEvery { projectsRepository.adoptUnmarkedDirectory(any(), any(), any()) } returns null
 
 		coEvery { serverProjectsApi.beginProjectsSync() } returns Result.success(emptyServerResponse())
 		coEvery { serverProjectsApi.endProjectsSync(any()) } returns Result.success("ok")
@@ -866,8 +872,59 @@ class ClientAccountSynchronizerTest {
 		val result = createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
 
 		assertTrue(result)
+		coVerify { projectsRepository.adoptUnmarkedDirectory("ServerNovel", serverId, true) }
 		coVerify { projectsRepository.createProject("ServerNovel", false, serverId) }
 		coVerify(exactly = 0) { projectsRepository.setProjectId(any(), any()) }
+		verify(exactly = 0) { dataMigrator.migrateProject(any()) }
+	}
+
+	@Test
+	fun `syncProjects adopts an unmarked local folder named like a new server project`() = runTest {
+		writeSyncData(emptySyncData())
+		val serverId = ProjectId.randomUUID()
+		val adoptedDef = projectDef("ServerNovel")
+
+		coEvery { serverProjectsApi.beginProjectsSync() } returns
+			Result.success(emptyServerResponse().copy(projects = setOf(ApiProjectDefinition("ServerNovel", serverId))))
+		every { projectsRepository.getProjects(any()) } returns emptyList()
+		every { projectsRepository.findProject("ServerNovel") } returns null
+		coEvery { projectsRepository.adoptUnmarkedDirectory("ServerNovel", serverId, true) } returns adoptedDef
+
+		val strRes = RecordingStrRes()
+		val result = createSynchronizer(strRes).syncProjects(onLog = {}, onUnauthorized = {})
+
+		assertTrue(result)
+		coVerify(exactly = 0) { projectsRepository.createProject(any(), any(), any()) }
+		coVerify(exactly = 0) { serverProjectsApi.createProject(any(), any(), any()) }
+		// Migration can move a stale pre-4 baseline into place, so the reset must follow it.
+		coVerifyOrder {
+			projectsRepository.adoptUnmarkedDirectory("ServerNovel", serverId, true)
+			dataMigrator.migrateProject(adoptedDef)
+			projectsRepository.resetSyncStateAfterRestore(adoptedDef, true)
+		}
+		val logged = strRes.calls.single { it.first == Res.string.sync_log_account_project_adopt_folder }
+		assertEquals(listOf<Any>("ServerNovel"), logged.second)
+	}
+
+	@Test
+	fun `syncProjects keeps an adopted folder when its migration fails`() = runTest {
+		writeSyncData(emptySyncData())
+		val serverId = ProjectId.randomUUID()
+		val adoptedDef = projectDef("ServerNovel")
+
+		coEvery { serverProjectsApi.beginProjectsSync() } returns
+			Result.success(emptyServerResponse().copy(projects = setOf(ApiProjectDefinition("ServerNovel", serverId))))
+		every { projectsRepository.getProjects(any()) } returns emptyList()
+		every { projectsRepository.findProject("ServerNovel") } returns null
+		coEvery { projectsRepository.adoptUnmarkedDirectory("ServerNovel", serverId, true) } returns adoptedDef
+		every { dataMigrator.migrateProject(adoptedDef) } throws IllegalStateException("bad data")
+
+		val result = createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
+
+		assertTrue(result)
+		coVerify { projectsRepository.resetSyncStateAfterRestore(adoptedDef, true) }
+		coVerify(exactly = 0) { projectsRepository.createProject(any(), any(), any()) }
+		coVerify(exactly = 0) { serverProjectsApi.createProject(any(), any(), any()) }
 	}
 
 	@Test
@@ -916,6 +973,7 @@ class ClientAccountSynchronizerTest {
 		coVerify(exactly = 0) { serverProjectsApi.createProject(any(), any(), any()) }
 		coVerify { projectsRepository.setProjectId(def, serverId) }
 		coVerify(exactly = 0) { projectsRepository.setProjectId(def, duplicateId) }
+		coVerify(exactly = 0) { projectsRepository.adoptUnmarkedDirectory(any(), any(), any()) }
 	}
 
 	@Test
@@ -947,6 +1005,7 @@ class ClientAccountSynchronizerTest {
 		// Adopting the orphan abandons the server project actually holding the manuscript.
 		coVerify(exactly = 0) { projectsRepository.setProjectId(def, orphanId) }
 		coVerify(exactly = 0) { serverProjectsApi.createProject(any(), any(), any()) }
+		coVerify(exactly = 0) { projectsRepository.adoptUnmarkedDirectory(any(), any(), any()) }
 	}
 
 	@Test

@@ -201,6 +201,21 @@ class ProjectMetadataDatasourceTest : BaseTest() {
 	}
 
 	@Test
+	fun `createMetadata writes a fresh file with the given id at data version 0`() {
+		createProject(fileSystem, PROJECT_1_NAME)
+		val projectId = ProjectId("adopted-id")
+
+		val created = projectMetadataDatasource.createMetadata(getProject1Def(), projectId)
+
+		val path = projectMetadataDatasource.getMetadataPath(getProject1Def()).toOkioPath()
+		val text = fileSystem.read(path) { readUtf8() }
+		assertTrue(text.startsWith(ProjectMetadataDatasource.FILE_HEADER + "\n"))
+		assertEquals(projectId, created.info.projectId)
+		assertEquals(0, created.info.dataVersion)
+		assertEquals(created, projectMetadataDatasource.loadMetadata(getProject1Def()))
+	}
+
+	@Test
 	fun `Update Project Metadata`() {
 		createProject(fileSystem, PROJECT_1_NAME)
 

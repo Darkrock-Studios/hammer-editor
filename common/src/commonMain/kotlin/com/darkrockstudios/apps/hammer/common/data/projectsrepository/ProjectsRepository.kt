@@ -11,9 +11,12 @@ import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.Pr
 import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.ClientMessage
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.migrator.PROJECT_DATA_VERSION
+import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesDatasource
+import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
 import com.darkrockstudios.apps.hammer.common.data.projectdata.StoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.projectdata.clearProjectDataSyncBaseline
@@ -24,9 +27,11 @@ import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRe
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository.Companion.encodeForFilename
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository.Companion.sanitizeFileName
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository.Companion.validateFileName
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournalDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.clearProjectSyncBaseline
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.markProjectRestored
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineDatasource
 import com.darkrockstudios.apps.hammer.common.data.toMsg
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
@@ -49,6 +54,7 @@ import kotlinx.serialization.json.Json
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
 import okio.IOException
+import okio.Path
 import okio.Path.Companion.toPath
 import org.jetbrains.compose.resources.StringResource
 import org.koin.core.component.KoinComponent
@@ -113,7 +119,8 @@ class ProjectsRepository(
 
 	/**
 	 * Gives the project a different identity: adopting a server project's id, or re-minting one
-	 * that collides. The old sync baseline described the old id, so it goes when the id changes.
+	 * that collides. The old sync baseline described the old id, so it goes when the id changes
+	 * (a journal flagged for verification keeps its conflict baselines, see [clearProjectSyncBaseline]).
 	 */
 	suspend fun setProjectId(projectDef: ProjectDef, projectId: ProjectId) {
 		val oldId = getProjectId(projectDef)
@@ -247,15 +254,61 @@ class ProjectsRepository(
 	 * A directory is considered a project only if it contains a [ProjectMetadata.FILENAME]
 	 * file and its (decoded) name is a valid project name.
 	 */
-	fun getProjects(projectsDir: HPath = getProjectsDirectory()): List<ProjectDef> {
-		val projPath = projectsDir.toOkioPath()
-		return fileSystem.list(projPath)
+	fun getProjects(projectsDir: HPath = getProjectsDirectory()): List<ProjectDef> =
+		listCandidateDirectories(projectsDir.toOkioPath()).filter {
+			fileSystem.metadataOrNull(it.path.toOkioPath() / ProjectMetadata.FILENAME)?.isRegularFile == true
+		}
+
+	/** Non-hidden directories whose decoded name is a valid project name, marked or not. */
+	private fun listCandidateDirectories(projectsDir: Path): List<ProjectDef> =
+		fileSystem.list(projectsDir)
 			.filter { it.name.startsWith('.').not() }
 			.filter { fileSystem.metadataOrNull(it)?.isDirectory == true }
-			.filter { fileSystem.metadataOrNull(it / ProjectMetadata.FILENAME)?.isRegularFile == true }
 			.map { path -> ProjectDef(decodeFromFilename(path.name), path.toHPath()) }
 			.filter { validateProjectName(it.name) }
+
+	/** True only when nothing exists at [ProjectMetadata.FILENAME], not even a directory or an unreadable file. */
+	private fun isUnmarked(projectDir: Path): Boolean =
+		fileSystem.metadataOrNull(projectDir / ProjectMetadata.FILENAME) == null
+
+	private fun hasProjectContent(projectDir: Path): Boolean =
+		projectContentMarkers.any { fileSystem.exists(projectDir / it) }
+
+	/**
+	 * Marks the existing directory for [projectName] as a project under [projectId], if it has no
+	 * [ProjectMetadata.FILENAME]. Any sync journal it holds may be stale, so it is reset like a
+	 * restored backup's (see [resetSyncStateAfterRestore]). Does not migrate: the caller does, then
+	 * resets again, since migration can move a pre-4 settings file's stale baseline into place.
+	 */
+	suspend fun adoptUnmarkedDirectory(
+		projectName: String,
+		projectId: ProjectId,
+		serverKnowsProject: Boolean,
+	): ProjectDef? = adoptUnmarkedDirectory(getProjectDefinition(projectName), projectId, serverKnowsProject)
+
+	private suspend fun adoptUnmarkedDirectory(
+		projectDef: ProjectDef,
+		projectId: ProjectId,
+		serverKnowsProject: Boolean,
+	): ProjectDef? {
+		val projectDir = projectDef.path.toOkioPath()
+		if (fileSystem.metadataOrNull(projectDir)?.isDirectory != true || !isUnmarked(projectDir)) return null
+
+		// Reset before marking, so a crash between the two leaves the folder unmarked and retried.
+		resetSyncStateAfterRestore(projectDef, serverKnowsProject)
+		projectsMetadataDatasource.createMetadata(projectDef, projectId)
+		Napier.w("Adopted unmarked project folder '${projectDef.name}' as ${projectId.id}")
+		return projectDef
 	}
+
+	/**
+	 * Re-marks every directory that lost its [ProjectMetadata.FILENAME] but still holds Hammer
+	 * content, each under a fresh id. Directories without such content stay ignored.
+	 */
+	suspend fun healUnmarkedProjectDirectories(): List<ProjectDef> =
+		listCandidateDirectories(getProjectsDirectory().toOkioPath())
+			.filter { isUnmarked(it.path.toOkioPath()) && hasProjectContent(it.path.toOkioPath()) }
+			.mapNotNull { adoptUnmarkedDirectory(it, ProjectId.randomUUID(), serverKnowsProject = false) }
 
 	/** Returns up to [limit] projects ordered by `metadata.info.lastAccessed` descending, optionally excluding [excludeCurrent]. Projects with unreadable metadata sort last. */
 	fun getRecentProjects(limit: Int, excludeCurrent: ProjectDef? = null): List<ProjectDef> =
@@ -424,6 +477,16 @@ class ProjectsRepository(
 		const val FILENAME_DELIMITER = ProjectNameValidator.FILENAME_DELIMITER
 
 		private val whitespaceCollapseRegex = Regex("""\s+""")
+
+		/** Entries that show a directory holds Hammer project content. */
+		private val projectContentMarkers = listOf(
+			SceneDatasource.SCENE_DIRECTORY,
+			NotesDatasource.NOTES_DIRECTORY,
+			EncyclopediaDatasource.ENCYCLOPEDIA_DIRECTORY,
+			TimeLineDatasource.TIMELINE_DIRECTORY,
+			ProjectDataDatasource.FILENAME,
+			SyncJournalDatasource.SYNC_FILE_NAME,
+		)
 
 		// Bidirectional map: user-typed OS-forbidden char -> visually similar safe Unicode.
 		// Filenames produced by encodeForFilename are safe on Windows/macOS/Linux/iOS.

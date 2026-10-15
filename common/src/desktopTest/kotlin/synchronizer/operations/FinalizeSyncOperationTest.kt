@@ -30,6 +30,7 @@ import utils.TestClock
 import utils.TestStrRes
 import utils.sharedFlow
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -172,5 +173,55 @@ class FinalizeSyncOperationTest : BaseTest() {
 			)
 			assertEquals(ProjectContentHasher.ALGO_VERSION, hashAlgoVersion)
 		}
+	}
+
+	private suspend fun finalizeFlaggedJournal(onlyNew: Boolean): ProjectSynchronizationData {
+		val op = createOperation(getProjectDef(PROJECT_2_NAME))
+		coEvery { globalSettingsStore.serverSettingsUpdates } returns sharedFlow {
+			emit(mockk<ServerSettings>().apply { every { userId } returns 1L })
+		}
+		mockSynchronizers.synchronizers.forEach { synchronizer ->
+			coEvery { synchronizer.finalizeSync() } just Runs
+			coEvery { synchronizer.hashEntities(any()) } returns emptySet()
+		}
+		coEvery { projectDataDatasource.load() } returns StoredProjectData()
+		val flagged = projectData.copy(verifyAllEntities = true)
+		coEvery { syncJournalDatasource.loadSyncDataOrNull() } returns flagged
+		coEvery {
+			serverProjectApi.endProjectSync(any(), any(), any(), any(), any())
+		} returns Result.success("ok")
+
+		val result = op.execute(
+			state = EntityTransferState(
+				onlyNew = onlyNew,
+				clientSyncData = flagged,
+				entityState = entityState,
+				serverProjectId = projId,
+				serverSyncData = beganResponse,
+				collatedIds = collatedIds,
+				maxId = 12,
+				newClientIds = listOf(12),
+				allSuccess = true,
+			),
+			onProgress = mockk(relaxed = true),
+			onLog = mockk(relaxed = true),
+			onConflict = mockk(relaxed = true),
+			onComplete = mockk(relaxed = true),
+		)
+		assertTrue(isSuccess(result))
+
+		val saved = slot<ProjectSynchronizationData>()
+		coVerify { syncJournalDatasource.saveSyncData(capture(saved)) }
+		return saved.captured
+	}
+
+	@Test
+	fun `A full sync clears the verification flag`() = runTest {
+		assertFalse(finalizeFlaggedJournal(onlyNew = false).verifyAllEntities)
+	}
+
+	@Test
+	fun `A lite sync leaves the verification flag for the next full sync`() = runTest {
+		assertTrue(finalizeFlaggedJournal(onlyNew = true).verifyAllEntities)
 	}
 }
