@@ -1,7 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.data.ideasrepository
 
 import com.darkrockstudios.apps.hammer.base.IdeaId
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.data.ProjectsDirectory
 import com.darkrockstudios.apps.hammer.base.http.storyideas.StoryIdea
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcherNow
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -12,7 +12,6 @@ import kotlinx.coroutines.withContext
 import okio.FileSystem
 import okio.IOException
 import okio.Path
-import okio.Path.Companion.toPath
 import org.koin.core.component.KoinComponent
 
 /**
@@ -23,18 +22,11 @@ import org.koin.core.component.KoinComponent
 class IdeasDatasource(
 	private val fileSystem: FileSystem,
 	private val codec: StoryIdeaCodec,
-	private val globalSettingsStore: GlobalSettingsStore,
+	private val projectsDirectory: ProjectsDirectory,
 ) : KoinComponent {
 	private val ioDispatcher = injectIoDispatcherNow()
 
-	fun getIdeasDirectory(): HPath {
-		val projectsDir = globalSettingsStore.globalSettings.projectsDirectory.toPath()
-		val ideasDir = projectsDir / IDEAS_DIRECTORY
-		if (!fileSystem.exists(ideasDir)) {
-			fileSystem.createDirectories(ideasDir)
-		}
-		return ideasDir.toHPath()
-	}
+	fun getIdeasDirectory(): HPath = getIdeasDirectory(projectsDirectory.current(), fileSystem)
 
 	fun getIdeaPath(id: IdeaId): HPath {
 		val dir = getIdeasDirectory().toOkioPath()
@@ -83,6 +75,14 @@ class IdeasDatasource(
 		const val IDEAS_DIRECTORY = ".ideas"
 		const val IDEAS_FILENAME_EXTENSION = ".md"
 		val IDEA_FILENAME_PATTERN = Regex("""idea-([0-9a-fA-F\-]{36})\.md""")
+
+		fun getIdeasDirectory(projectsDir: HPath, fileSystem: FileSystem): HPath {
+			val ideasDir = projectsDir.toOkioPath() / IDEAS_DIRECTORY
+			if (!fileSystem.exists(ideasDir)) {
+				fileSystem.createDirectories(ideasDir)
+			}
+			return ideasDir.toHPath()
+		}
 
 		fun getIdeaFilenameFromId(id: IdeaId): String {
 			return "idea-${id.id}$IDEAS_FILENAME_EXTENSION"

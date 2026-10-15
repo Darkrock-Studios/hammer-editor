@@ -33,6 +33,7 @@ import kotlinx.coroutines.test.runTest
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import utils.projectsDirectoryOf
 import utils.BaseTest
 import utils.TestStrRes
 import kotlin.test.assertEquals
@@ -78,8 +79,8 @@ class ClientIdeasSynchronizerTest : BaseTest() {
 		every { globalSettingsStore.globalSettings } returns GlobalSettings(projectsDirectory = "/projects")
 		setupKoin()
 
-		ideasDatasource = IdeasDatasource(ffs, StoryIdeaCodec(createTomlSerializer()), globalSettingsStore)
-		syncDatasource = IdeasSyncDatasource(ffs, createJsonSerializer(), ideasDatasource)
+		ideasDatasource = IdeasDatasource(ffs, StoryIdeaCodec(createTomlSerializer()), projectsDirectoryOf(globalSettingsStore))
+		syncDatasource = IdeasSyncDatasource(ffs, createJsonSerializer(), projectsDirectoryOf(globalSettingsStore))
 		ideasRepository = mockk(relaxed = true)
 		// Mirror the real content validation so the conflict-resolution guard behaves correctly.
 		every { ideasRepository.validateIdea(any(), any()) } answers {

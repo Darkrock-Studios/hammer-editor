@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.common.data.ideasrepository
 import com.darkrockstudios.apps.hammer.base.IdeaId
 import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.base.http.storyideas.StoryIdea
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.IdeasSyncDatasource
 import com.darkrockstudios.apps.hammer.common.data.tagindex.cleanTags
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
@@ -10,13 +11,16 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.koin.core.qualifier.named
+import kotlin.concurrent.Volatile
 import kotlin.coroutines.CoroutineContext
 import kotlin.time.Clock
 
@@ -27,6 +31,7 @@ import kotlin.time.Clock
 class IdeasRepository(
 	private val ideasDatasource: IdeasDatasource,
 	private val ideasSyncDatasource: IdeasSyncDatasource,
+	private val globalSettingsStore: GlobalSettingsStore,
 	private val clock: Clock,
 ) : KoinComponent {
 
@@ -45,13 +50,27 @@ class IdeasRepository(
 	)
 	val ideasFlow: SharedFlow<List<StoryIdea>> = _ideasFlow
 
+	// The projects directory the ideas in memory were read from
+	@Volatile
+	private var loadedFrom = globalSettingsStore.globalSettings.projectsDirectory
+
 	init {
 		loadIdeas()
+
+		// Ideas live under the projects directory, so pointing the app at a different one
+		// means a different set of ideas.
+		ideasScope.launch {
+			globalSettingsStore.globalSettingsUpdates
+				.map { it.projectsDirectory }
+				.distinctUntilChanged()
+				.collect { directory -> if (directory != loadedFrom) loadIdeas() }
+		}
 	}
 
 	fun loadIdeas(onLoaded: (() -> Unit)? = null) {
 		ideasScope.launch {
 			ideasLock.withLock {
+				loadedFrom = globalSettingsStore.globalSettings.projectsDirectory
 				updateIdeas(ideasDatasource.loadIdeas())
 			}
 			onLoaded?.invoke()

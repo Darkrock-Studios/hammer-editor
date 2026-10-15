@@ -21,7 +21,7 @@ import kotlin.time.Instant
 class AccountDeletionJobTest {
 
 	@MockK
-	private lateinit var accountDeletionService: AccountDeletionService
+	private lateinit var accountDeletionUseCase: AccountDeletionUseCase
 
 	private lateinit var clock: TestClock
 	private val logger = LoggerFactory.getLogger(AccountDeletionJobTest::class.java)
@@ -33,7 +33,7 @@ class AccountDeletionJobTest {
 	}
 
 	private fun createJob(retentionDays: Int = 30) = AccountDeletionJob(
-		accountDeletionService = accountDeletionService,
+		accountDeletionUseCase = accountDeletionUseCase,
 		serverConfig = ServerConfig(accountDeletion = AccountDeletionConfig(retentionDays = retentionDays)),
 		clock = clock,
 		logger = logger,
@@ -46,13 +46,13 @@ class AccountDeletionJobTest {
 			testAccount(userId = 1, deletedAt = clock.now() - 40.days),
 			testAccount(userId = 2, deletedAt = clock.now() - 31.days),
 		)
-		coEvery { accountDeletionService.findAccountsPastRetention(capture(cutoff)) } returns due
+		coEvery { accountDeletionUseCase.findAccountsPastRetention(capture(cutoff)) } returns due
 
 		createJob(retentionDays = 30).tick()
 
 		assertEquals(clock.now() - 30.days, cutoff.captured)
-		coVerify { accountDeletionService.hardDelete(1) }
-		coVerify { accountDeletionService.hardDelete(2) }
+		coVerify { accountDeletionUseCase.hardDelete(1) }
+		coVerify { accountDeletionUseCase.hardDelete(2) }
 	}
 
 	@Test
@@ -61,20 +61,20 @@ class AccountDeletionJobTest {
 			testAccount(userId = 1, deletedAt = clock.now() - 40.days),
 			testAccount(userId = 2, deletedAt = clock.now() - 31.days),
 		)
-		coEvery { accountDeletionService.findAccountsPastRetention(any()) } returns due
-		coEvery { accountDeletionService.hardDelete(1) } throws IllegalStateException("boom")
+		coEvery { accountDeletionUseCase.findAccountsPastRetention(any()) } returns due
+		coEvery { accountDeletionUseCase.hardDelete(1) } throws IllegalStateException("boom")
 
 		createJob().tick()
 
-		coVerify { accountDeletionService.hardDelete(2) }
+		coVerify { accountDeletionUseCase.hardDelete(2) }
 	}
 
 	@Test
 	fun `tick - nothing due is a no-op`() = runTest {
-		coEvery { accountDeletionService.findAccountsPastRetention(any()) } returns emptyList()
+		coEvery { accountDeletionUseCase.findAccountsPastRetention(any()) } returns emptyList()
 
 		createJob().tick()
 
-		coVerify(exactly = 0) { accountDeletionService.hardDelete(any()) }
+		coVerify(exactly = 0) { accountDeletionUseCase.hardDelete(any()) }
 	}
 }

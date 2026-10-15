@@ -57,32 +57,36 @@ class TimeLineDatasource(
 			return (getTimelineDir(projectDef).toOkioPath() / TIMELINE_FILENAME).toHPath()
 		}
 
-		@Suppress("SwallowedException") // Missing or corrupt file means an empty timeline
-		fun loadTimeline(hpath: HPath, fileSystem: FileSystem, toml: Toml): TimeLineContainer {
+		/** Missing or corrupt file means an empty timeline. */
+		fun loadTimeline(hpath: HPath, fileSystem: FileSystem, toml: Toml): TimeLineContainer =
+			loadTimelineOrNull(hpath, fileSystem, toml) ?: TimeLineContainer(emptyList())
+
+		/**
+		 * Null when the file exists but can't be decoded, for callers that must not mistake
+		 * an unreadable timeline for an empty one. A missing or blank file is an empty timeline.
+		 */
+		@Suppress("SwallowedException")
+		fun loadTimelineOrNull(hpath: HPath, fileSystem: FileSystem, toml: Toml): TimeLineContainer? {
 			val path = hpath.toOkioPath()
-			return if (fileSystem.exists(path)) {
-				try {
-					fileSystem.read(path) {
-						val timelineToml = readUtf8()
-						if (timelineToml.isNotBlank()) {
-							toml.decodeFromString(timelineToml)
-						} else {
-							TimeLineContainer(emptyList())
-						}
+			if (!fileSystem.exists(path)) return TimeLineContainer(emptyList())
+
+			return try {
+				fileSystem.read(path) {
+					val timelineToml = readUtf8()
+					if (timelineToml.isNotBlank()) {
+						toml.decodeFromString(timelineToml)
+					} else {
+						TimeLineContainer(emptyList())
 					}
-				} catch (e: FileNotFoundException) {
-					TimeLineContainer(emptyList())
-				} catch (e: SerializationException) {
-					TimeLineContainer(emptyList())
-				} catch (e: IllegalArgumentException) {
-					TimeLineContainer(emptyList())
-				} catch (e: IllegalStateException) {
-					TimeLineContainer(emptyList())
 				}
-			} else {
-				TimeLineContainer(
-					events = emptyList()
-				)
+			} catch (e: FileNotFoundException) {
+				TimeLineContainer(emptyList())
+			} catch (e: SerializationException) {
+				null
+			} catch (e: IllegalArgumentException) {
+				null
+			} catch (e: IllegalStateException) {
+				null
 			}
 		}
 	}

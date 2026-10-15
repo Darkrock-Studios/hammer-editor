@@ -5,7 +5,7 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
 import com.darkrockstudios.apps.hammer.common.data.projectdata.StoredProjectData
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataDatasource
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournalDatasource
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
@@ -25,7 +25,7 @@ import kotlin.test.assertNull
 
 /**
  * Classical-style: drives a real [ProjectDataRepository] over a real [ProjectDataDatasource]
- * backed by a [FakeFileSystem]. Only the sibling [SyncDataDatasource] (its own persistence
+ * backed by a [FakeFileSystem]. Only the sibling [SyncJournalDatasource] (its own persistence
  * concern) is mocked, so hash invalidation can be observed.
  */
 class ProjectDataRepositoryTest : BaseTest() {
@@ -36,7 +36,7 @@ class ProjectDataRepositoryTest : BaseTest() {
 	)
 
 	@MockK(relaxed = true)
-	private lateinit var syncDataDatasource: SyncDataDatasource
+	private lateinit var syncJournalDatasource: SyncJournalDatasource
 
 	private lateinit var fileSystem: FakeFileSystem
 	private lateinit var toml: Toml
@@ -55,7 +55,7 @@ class ProjectDataRepositoryTest : BaseTest() {
 		setupKoin(module {
 			scope<ProjectDefScope> {
 				scoped { projectDef }
-				scoped { syncDataDatasource }
+				scoped { syncJournalDatasource }
 			}
 		})
 
@@ -96,7 +96,7 @@ class ProjectDataRepositoryTest : BaseTest() {
 		// A user edit must not disturb the conflict baseline.
 		assertEquals("synced-hash", state?.lastSyncedHash)
 		assertEquals(StoredProjectData(ProjectData(authorName = "New"), "synced-hash"), datasource.load())
-		coVerify(exactly = 1) { syncDataDatasource.invalidateProjectHash() }
+		coVerify(exactly = 1) { syncJournalDatasource.invalidateProjectHash() }
 	}
 
 	@Test
@@ -107,7 +107,7 @@ class ProjectDataRepositoryTest : BaseTest() {
 		repository.updateData { it }
 
 		assertEquals("h", repository.state.value?.lastSyncedHash)
-		coVerify(exactly = 0) { syncDataDatasource.invalidateProjectHash() }
+		coVerify(exactly = 0) { syncJournalDatasource.invalidateProjectHash() }
 	}
 
 	@Test
@@ -119,7 +119,7 @@ class ProjectDataRepositoryTest : BaseTest() {
 		val onDisk = datasource.load()
 		assertEquals(setOf("fantasy", "draft"), onDisk.data.tags)
 		assertEquals("Pat", onDisk.data.authorName)
-		coVerify(exactly = 1) { syncDataDatasource.invalidateProjectHash() }
+		coVerify(exactly = 1) { syncJournalDatasource.invalidateProjectHash() }
 	}
 
 	@Test
@@ -182,7 +182,7 @@ class ProjectDataRepositoryTest : BaseTest() {
 			datasource.load(),
 		)
 		// Sync-driven updates never invalidate the project hash.
-		coVerify(exactly = 0) { syncDataDatasource.invalidateProjectHash() }
+		coVerify(exactly = 0) { syncJournalDatasource.invalidateProjectHash() }
 	}
 
 	@Test

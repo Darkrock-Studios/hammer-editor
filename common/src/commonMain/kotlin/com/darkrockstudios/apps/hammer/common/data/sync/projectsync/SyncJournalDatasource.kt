@@ -1,7 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.sync.projectsync
 
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
@@ -9,47 +8,31 @@ import okio.FileSystem
 import okio.Path
 import kotlin.time.Instant
 
-class SyncDataDatasource(
+/**
+ * Reads and writes a project's `sync.json`, the file behind [SyncJournal]. It never creates the
+ * file on its own: a missing or corrupt journal reads as null and [SyncJournal] rebuilds it.
+ */
+class SyncJournalDatasource(
 	private val projectDef: ProjectDef,
 	private val fileSystem: FileSystem,
 	private val json: Json,
-	private val idAllocator: IdAllocator,
-	private val entitySynchronizers: EntitySynchronizers
 ) {
+	// Corrupt sync data recovers by being rebuilt; not an error to surface.
+	@Suppress("SwallowedException")
 	suspend fun loadSyncDataOrNull(): ProjectSynchronizationData? {
 		val path = getSyncDataPath()
-		return if (fileSystem.exists(path)) {
-			loadSyncData()
-		} else {
-			null
-		}
-	}
+		if (!fileSystem.exists(path)) return null
 
-	// Corrupt sync data recovers by recreating it; not an error to surface.
-	@Suppress("SwallowedException")
-	suspend fun loadSyncData(): ProjectSynchronizationData {
-		val path = getSyncDataPath()
-		return if (fileSystem.exists(path)) {
-			fileSystem.read(path) {
-				val syncDataJson = readUtf8()
-				try {
-					json.decodeFromString(syncDataJson)
-				} catch (e: SerializationException) {
-					createAndSaveSyncData()
-				}
+		return fileSystem.read(path) {
+			try {
+				json.decodeFromString(readUtf8())
+			} catch (e: SerializationException) {
+				null
 			}
-		} else {
-			createAndSaveSyncData()
 		}
 	}
 
 	private fun getSyncDataPath(): Path = projectDef.path.toOkioPath() / SYNC_FILE_NAME
-
-	private suspend fun createAndSaveSyncData(): ProjectSynchronizationData {
-		val newData = createSyncData()
-		saveSyncData(newData)
-		return newData
-	}
 
 	fun saveSyncData(data: ProjectSynchronizationData) {
 		val path = getSyncDataPath()
@@ -70,28 +53,6 @@ class SyncDataDatasource(
 		saveSyncData(current.copy(cachedProjectHash = null))
 	}
 
-	suspend fun createSyncData(): ProjectSynchronizationData {
-		val lastId = idAllocator.peekLastId()
-
-		val missingIds = mutableSetOf<Int>()
-		for (id in 1..lastId) {
-			val entityType = entitySynchronizers.findEntityType(id)
-			if (entityType == null) {
-				missingIds.add(id)
-			}
-		}
-
-		val newData = ProjectSynchronizationData(
-			lastId = lastId,
-			newIds = emptyList(),
-			lastSync = Instant.DISTANT_PAST,
-			dirty = emptyList(),
-			deletedIds = missingIds
-		)
-
-		return newData
-	}
-
 	fun syncDataExists(): Boolean {
 		val path = getSyncDataPath()
 		return fileSystem.exists(path)
@@ -110,13 +71,13 @@ class SyncDataDatasource(
  * id but drop [EntityOriginalState.originalHash]: a baseline the old server confirmed would forge
  * a phantom conflict against the new one, while a null baseline uploads unconditionally.
  *
- * No-op when the journal doesn't exist. A corrupt journal is deleted so
- * [SyncDataDatasource.createSyncData] rebuilds it from local state, matching [loadSyncData].
+ * No-op when the journal doesn't exist. A corrupt journal is deleted so [SyncJournal] rebuilds
+ * it from local state.
  */
 // Corrupt sync data recovers by deleting it; not an error to surface.
 @Suppress("SwallowedException")
 fun clearProjectSyncBaseline(projectDef: ProjectDef, fileSystem: FileSystem, json: Json) {
-	val path = projectDef.path.toOkioPath() / SyncDataDatasource.SYNC_FILE_NAME
+	val path = projectDef.path.toOkioPath() / SyncJournalDatasource.SYNC_FILE_NAME
 	if (!fileSystem.exists(path)) return
 
 	val current = try {
@@ -149,7 +110,7 @@ fun clearProjectSyncBaseline(projectDef: ProjectDef, fileSystem: FileSystem, jso
  * safe to discard, and an unreadable journal is not evidence that it is.
  */
 fun loadPendingEntityCount(projectDef: ProjectDef, fileSystem: FileSystem, json: Json): Int {
-	val path = projectDef.path.toOkioPath() / SyncDataDatasource.SYNC_FILE_NAME
+	val path = projectDef.path.toOkioPath() / SyncJournalDatasource.SYNC_FILE_NAME
 	if (!fileSystem.exists(path)) return 0
 
 	val data = fileSystem.read(path) { json.decodeFromString<ProjectSynchronizationData>(readUtf8()) }

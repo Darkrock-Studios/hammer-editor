@@ -19,6 +19,7 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSeri
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -27,6 +28,7 @@ import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import utils.projectsDirectoryOf
 import utils.BaseTest
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -54,16 +56,18 @@ class AccountTagServiceTest : BaseTest() {
 
 		val globalSettingsStore = mockk<GlobalSettingsStore>()
 		every { globalSettingsStore.globalSettings } returns GlobalSettings(projectsDirectory = "/projects")
+		every { globalSettingsStore.globalSettingsUpdates } returns MutableSharedFlow()
 
 		setupKoin()
 
 		projectsRepository = mockk()
 		every { projectsRepository.getProjects() } returns emptyList()
 
-		val ideasDatasource = IdeasDatasource(ffs, StoryIdeaCodec(toml), globalSettingsStore)
+		val ideasDatasource = IdeasDatasource(ffs, StoryIdeaCodec(toml), projectsDirectoryOf(globalSettingsStore))
 		ideasRepository = IdeasRepository(
 			ideasDatasource = ideasDatasource,
-			ideasSyncDatasource = IdeasSyncDatasource(ffs, createJsonSerializer(), ideasDatasource),
+			ideasSyncDatasource = IdeasSyncDatasource(ffs, createJsonSerializer(), projectsDirectoryOf(globalSettingsStore)),
+			globalSettingsStore = globalSettingsStore,
 			clock = Clock.System,
 		)
 		service = AccountTagService(ideasRepository, projectsRepository, ffs, toml)

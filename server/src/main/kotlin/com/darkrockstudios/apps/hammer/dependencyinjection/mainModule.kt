@@ -3,12 +3,14 @@ package com.darkrockstudios.apps.hammer.dependencyinjection
 import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.StorageMode
 import com.darkrockstudios.apps.hammer.account.AccountDeletionJob
-import com.darkrockstudios.apps.hammer.account.AccountDeletionService
+import com.darkrockstudios.apps.hammer.account.AccountDeletionUseCase
 import com.darkrockstudios.apps.hammer.account.AccountsComponent
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.account.BioService
 import com.darkrockstudios.apps.hammer.account.PasswordResetRepository
-import com.darkrockstudios.apps.hammer.account.PenNameService
+import com.darkrockstudios.apps.hammer.account.RequestPasswordResetUseCase
+import com.darkrockstudios.apps.hammer.account.PenNameUseCase
+import com.darkrockstudios.apps.hammer.account.ReleasePenNameUseCase
 import com.darkrockstudios.apps.hammer.account.PrivacyPolicyRepository
 import com.darkrockstudios.apps.hammer.account.TermsOfServiceRepository
 import com.darkrockstudios.apps.hammer.account.TokenMaintenanceJob
@@ -106,7 +108,7 @@ import com.darkrockstudios.apps.hammer.storyideas.ServerIdeasRepository
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
 import com.darkrockstudios.apps.hammer.utilities.DiskCache
 import com.darkrockstudios.apps.hammer.utilities.DiskCachePruneJob
-import com.darkrockstudios.apps.hammer.utilities.MarkdownService
+import com.darkrockstudios.apps.hammer.utilities.MarkdownRenderer
 import com.darkrockstudios.apps.hammer.utilities.ServerSecretManager
 import com.darkrockstudios.apps.hammer.utilities.SystemTouchableFileSystem
 import com.darkrockstudios.apps.hammer.utilities.TokenHasher
@@ -239,13 +241,14 @@ fun mainModule(
 	single { DiskCachePruneJob(listOf(get<OgImageService>(), get<StoryRenderCache>()), get()) }
 	// Explicit ctor: renderCache defaults to null, which the constructor DSL would honor over injection.
 	single { StoryRendererService(get(), get(), get()) }
-	single<PenNameService>()
+	factory<PenNameUseCase>()
+	factory<ReleasePenNameUseCase>()
 	single<BioService>()
 	// Explicit ctor: the two sync managers are named qualifiers.
-	single {
-		AccountDeletionService(
+	factory {
+		AccountDeletionUseCase(
 			accountsRepository = get(),
-			penNameService = get(),
+			releasePenName = get(),
 			whiteListRepository = get(),
 			userDataPurgeDao = get(),
 			projectsSyncManager = get(named(PROJECTS_SYNC_MANAGER)),
@@ -254,10 +257,11 @@ fun mainModule(
 		)
 	}
 	single<PasswordResetRepository>()
+	factory<RequestPasswordResetUseCase>()
 	single<ReviewRepository>()
 
 	single<ServerSecretManager>()
-	single<MarkdownService>()
+	single<MarkdownRenderer>()
 	single { KeyringCodec(get(), get()) }
 	single<ServerSecretProvider> { buildSecretProvider(get<ServerConfig>().secret, get()) }
 	single {

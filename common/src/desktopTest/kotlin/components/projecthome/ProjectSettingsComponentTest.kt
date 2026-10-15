@@ -13,7 +13,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDataso
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
 import com.darkrockstudios.apps.hammer.common.data.projectdata.StoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataDatasource
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournalDatasource
 import com.darkrockstudios.apps.hammer.common.data.tagindex.AccountTagService
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
@@ -84,7 +84,7 @@ class ProjectSettingsComponentTest : ComponentTest() {
 			scope<ProjectDefScope> {
 				scoped { ProjectDataRepository(datasource, projectDef) }
 				scoped { ProjectDictionaryUseCase(get()) }
-				scoped<SyncDataDatasource> { mockk(relaxed = true) }
+				scoped<SyncJournalDatasource> { mockk(relaxed = true) }
 			}
 		})
 

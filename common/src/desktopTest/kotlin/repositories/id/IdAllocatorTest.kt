@@ -4,10 +4,8 @@ import PROJECT_1_NAME
 import PROJECT_2_NAME
 import PROJECT_EMPTY_NAME
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftsDatasource
 import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.id.datasources.*
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import createProject
@@ -54,8 +52,7 @@ class IdAllocatorTest : BaseTest() {
 	}
 
 	private fun setupForProject(projectDef: ProjectDef) {
-		val sceneDatasource = SceneDatasource(projectDef, ffs)
-		sceneDraftIdDatasource = SceneDraftIdDatasource(SceneDraftsDatasource(ffs, sceneDatasource))
+		sceneDraftIdDatasource = SceneDraftIdDatasource(ffs)
 
 		val testModule = module {
 			single { syncJournal }

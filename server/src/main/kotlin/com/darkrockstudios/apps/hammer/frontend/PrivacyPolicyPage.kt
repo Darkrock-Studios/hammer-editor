@@ -1,7 +1,7 @@
 package com.darkrockstudios.apps.hammer.frontend
 
 import com.darkrockstudios.apps.hammer.account.PrivacyPolicyRepository
-import com.darkrockstudios.apps.hammer.utilities.MarkdownService
+import com.darkrockstudios.apps.hammer.utilities.MarkdownRenderer
 import io.ktor.http.*
 import io.ktor.server.mustache.*
 import io.ktor.server.response.*
@@ -10,7 +10,7 @@ import org.koin.ktor.ext.inject
 
 fun Route.privacyPolicyPage() {
 	val privacyPolicyRepository: PrivacyPolicyRepository by inject()
-	val markdownService: MarkdownService by inject()
+	val markdownRenderer: MarkdownRenderer by inject()
 	route("/privacy") {
 		get {
 			val markdown = privacyPolicyRepository.text()
@@ -21,7 +21,7 @@ fun Route.privacyPolicyPage() {
 
 			val model = call.withDefaults()
 			model["page_stylesheet"] = "/assets/css/about.css"
-			model["privacyHtml"] = markdownService.markdownToSafeHtml(markdown)
+			model["privacyHtml"] = markdownRenderer.markdownToSafeHtml(markdown)
 
 			call.respond(MustacheContent("privacy.mustache", model))
 		}

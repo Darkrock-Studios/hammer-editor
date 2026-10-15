@@ -1,10 +1,12 @@
 package com.darkrockstudios.apps.hammer.project.routes
 
+import com.darkrockstudios.apps.hammer.account.ReleasePenNameUseCase
+import com.darkrockstudios.apps.hammer.account.RequestPasswordResetUseCase
 import com.darkrockstudios.apps.hammer.account.AccountsComponent
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.account.BioService
 import com.darkrockstudios.apps.hammer.account.PasswordResetRepository
-import com.darkrockstudios.apps.hammer.account.PenNameService
+import com.darkrockstudios.apps.hammer.account.PenNameUseCase
 import com.darkrockstudios.apps.hammer.admin.AdminComponent
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
@@ -31,7 +33,7 @@ import com.darkrockstudios.apps.hammer.project.ServerWritingActivityRepository
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.story.StoryRendererService
-import com.darkrockstudios.apps.hammer.utilities.MarkdownService
+import com.darkrockstudios.apps.hammer.utilities.MarkdownRenderer
 import com.darkrockstudios.apps.hammer.utilities.SResult
 import com.darkrockstudios.apps.hammer.utils.BaseTest
 import com.darkrockstudios.apps.hammer.utils.setupKtorTestKoin
@@ -73,10 +75,10 @@ class ProjectDataRoutesTest : BaseTest() {
 	@MockK(relaxed = true) private lateinit var configRepository: ConfigRepository
 	@MockK(relaxed = true)
 	private lateinit var storyRendererService: StoryRendererService
-	@MockK(relaxed = true) private lateinit var penNameService: PenNameService
+	@MockK(relaxed = true) private lateinit var penNameUseCase: PenNameUseCase
 	@MockK(relaxed = true) private lateinit var bioService: BioService
 	@MockK(relaxed = true) private lateinit var passwordResetRepository: PasswordResetRepository
-	@MockK(relaxed = true) private lateinit var markdownService: MarkdownService
+	@MockK(relaxed = true) private lateinit var markdownRenderer: MarkdownRenderer
 
 	private val json: Json = Json { ignoreUnknownKeys = true }
 	private lateinit var testModule: org.koin.core.module.Module
@@ -120,14 +122,16 @@ class ProjectDataRoutesTest : BaseTest() {
 			single { adminComponent }
 			single { configRepository }
 			single { storyRendererService }
-			single { penNameService }
+			single { penNameUseCase }
 			single { bioService }
 			single { passwordResetRepository }
-			single { markdownService }
+			single { mockk<RequestPasswordResetUseCase>() }
+			single { mockk<ReleasePenNameUseCase>() }
+			single { markdownRenderer }
 			single { mockk<com.darkrockstudios.apps.hammer.review.ReviewRepository>(relaxed = true) }
 			single { mockk<com.darkrockstudios.apps.hammer.storyideas.ServerIdeasRepository>(relaxed = true) }
 			single { mockk<com.darkrockstudios.apps.hammer.database.ProjectDao>(relaxed = true) }
-			single { mockk<com.darkrockstudios.apps.hammer.account.AccountDeletionService>(relaxed = true) }
+			single { mockk<com.darkrockstudios.apps.hammer.account.AccountDeletionUseCase>(relaxed = true) }
 			single { mockk<com.darkrockstudios.apps.hammer.account.TermsOfServiceRepository>(relaxed = true) }
 			single { json }
 		}

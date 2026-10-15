@@ -6,7 +6,7 @@ import com.darkrockstudios.apps.hammer.base.http.writeJson
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityOriginalState
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectSynchronizationData
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataDatasource.Companion.SYNC_FILE_NAME
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournalDatasource.Companion.SYNC_FILE_NAME
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.loadPendingEntityCount
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import createProject

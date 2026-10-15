@@ -27,6 +27,9 @@ jobs:
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
+      # Source-only checks, so they run first and fail fast.
+      - name: Run Architecture Tests
+        run: ./gradlew :architectureTests:test
       - name: Build with Gradle
         run: ./gradlew buildDebug
       # Compiles + packages the Android instrumented (androidTest) source set without a device.

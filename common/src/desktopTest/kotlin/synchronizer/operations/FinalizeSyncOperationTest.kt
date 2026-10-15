@@ -46,7 +46,7 @@ class FinalizeSyncOperationTest : BaseTest() {
 	private lateinit var serverProjectApi: ServerProjectApi
 
 	@MockK(relaxed = true)
-	private lateinit var syncDataDatasource: SyncDataDatasource
+	private lateinit var syncJournalDatasource: SyncJournalDatasource
 
 	@MockK(relaxed = true)
 	private lateinit var projectDataDatasource: ProjectDataDatasource
@@ -87,7 +87,7 @@ class FinalizeSyncOperationTest : BaseTest() {
 			entitySynchronizers = EntitySynchronizers(projectDef),
 			clock = clock,
 			globalSettingsStore = globalSettingsStore,
-			syncDataDatasource = syncDataDatasource,
+			syncJournalDatasource = syncJournalDatasource,
 			projectDataDatasource = projectDataDatasource,
 			idAllocator = idAllocator,
 		)
@@ -111,7 +111,7 @@ class FinalizeSyncOperationTest : BaseTest() {
 		coEvery { projectDataDatasource.load() } returns StoredProjectData()
 		// Per-entity synced hashes were written to disk during transfer; finalize must reload
 		// them and prune the deleted ids (7, 8) rather than clobber them with its snapshot.
-		coEvery { syncDataDatasource.loadSyncData() } returns projectData.copy(
+		coEvery { syncJournalDatasource.loadSyncDataOrNull() } returns projectData.copy(
 			syncedHashes = mapOf(1 to "h1", 7 to "h7", 8 to "h8", 10 to "h10")
 		)
 		coEvery {
@@ -156,7 +156,7 @@ class FinalizeSyncOperationTest : BaseTest() {
 		coVerify { onComplete(true) }
 
 		val saved = slot<ProjectSynchronizationData>()
-		coVerify { syncDataDatasource.saveSyncData(capture(saved)) }
+		coVerify { syncJournalDatasource.saveSyncData(capture(saved)) }
 		saved.captured.apply {
 			assertNull(currentSyncId)
 			assertEquals(12, lastId)

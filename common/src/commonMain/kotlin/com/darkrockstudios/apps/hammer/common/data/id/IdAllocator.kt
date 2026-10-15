@@ -12,22 +12,14 @@ import kotlinx.atomicfu.locks.withLock
 import org.koin.core.component.get
 import kotlin.math.max
 
+/** [complete] is false when some entity storage couldn't be read, so an absent ID proves nothing. */
+data class EntityIds(val ids: Set<Int>, val complete: Boolean)
+
 class IdAllocator(private val projectDef: ProjectDef) : ProjectScoped {
 	override val projectScope = ProjectDefScope(projectDef)
 	private val syncJournal: SyncJournal by projectInject()
 
-	private val idDatasources: Set<IdDatasource> by lazy {
-		EntityType.entries
-			.map { entityType ->
-				when (entityType) {
-					EntityType.Scene -> projectScope.get<SceneIdDatasource>()
-					EntityType.Note -> projectScope.get<NotesIdDatasource>()
-					EntityType.TimelineEvent -> projectScope.get<TimeLineEventIdDatasource>()
-					EntityType.EncyclopediaEntry -> projectScope.get<EncyclopediaIdDatasource>()
-					EntityType.SceneDraft -> projectScope.get<SceneDraftIdDatasource>()
-				}
-			}.toSet()
-	}
+	private val idDatasources: Set<IdDatasource> by lazy { getIdSources(projectScope) }
 
 	private val mutex = reentrantLock()
 
@@ -38,12 +30,7 @@ class IdAllocator(private val projectDef: ProjectDef) : ProjectScoped {
 
 	suspend fun findNextId() {
 		mutex.withLock {
-			var lastId = -1
-
-			idDatasources.forEach { handler ->
-				val highestId = handler.findHighestId(projectDef)
-				lastId = max(lastId, highestId)
-			}
+			var lastId = idDatasources.maxOfOrNull { it.findHighestId(projectDef) } ?: -1
 
 			if (syncJournal.isServerSynchronized()) {
 				syncJournal.deletedIds().maxOrNull()?.let { maxDeletedId ->
@@ -75,6 +62,30 @@ class IdAllocator(private val projectDef: ProjectDef) : ProjectScoped {
 	}
 
 	companion object {
-		const val FIRST_ID = 1
+		/** Every entity ID the project has on disk. */
+		fun findEntityIds(projectDef: ProjectDef, idDatasources: Set<IdDatasource>): EntityIds {
+			val idsBySource = idDatasources.map { it.findIds(projectDef) }
+			return EntityIds(
+				ids = idsBySource.filterNotNull().flatten().toSet(),
+				complete = idsBySource.none { it == null },
+			)
+		}
+
+		/**
+		 * Resolving these creates the project's Koin scope when it is missing, so only call
+		 * this while that scope is open and hold on to the result.
+		 */
+		fun getIdSources(projectScope: ProjectDefScope): Set<IdDatasource> {
+			return EntityType.entries
+				.map { entityType ->
+					when (entityType) {
+						EntityType.Scene -> projectScope.get<SceneIdDatasource>()
+						EntityType.Note -> projectScope.get<NotesIdDatasource>()
+						EntityType.TimelineEvent -> projectScope.get<TimeLineEventIdDatasource>()
+						EntityType.EncyclopediaEntry -> projectScope.get<EncyclopediaIdDatasource>()
+						EntityType.SceneDraft -> projectScope.get<SceneDraftIdDatasource>()
+					}
+				}.toSet()
+		}
 	}
 }

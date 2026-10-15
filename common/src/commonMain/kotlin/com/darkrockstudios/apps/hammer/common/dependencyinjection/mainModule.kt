@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.base.http.createNetworkJsonSerializer
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ExportStoryUseCase
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ImportStoryUseCase
+import com.darkrockstudios.apps.hammer.common.data.ProjectsDirectory
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.account.AccountReauthUseCase
 import com.darkrockstudios.apps.hammer.common.data.account.AccountUseCase
@@ -40,7 +41,7 @@ import com.darkrockstudios.apps.hammer.common.data.importer.RtfStoryImporter
 import com.darkrockstudios.apps.hammer.common.data.importer.StoryImporterRegistry
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesDatasource
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
-import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupRepository
+import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupService
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataConflictBroker
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
@@ -76,7 +77,7 @@ import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.ClientIdeasSyn
 import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.IdeasSyncDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntitySynchronizers
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataDatasource
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournalDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.BackupOperation
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.CollateIdsOperation
@@ -100,8 +101,8 @@ import com.darkrockstudios.apps.hammer.common.data.tagindex.BuildTagIndexUseCase
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndexService
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineDatasource
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
-import com.darkrockstudios.apps.hammer.common.data.versioncheck.GithubVersionCheckDataSource
-import com.darkrockstudios.apps.hammer.common.data.versioncheck.VersionCheckDataSource
+import com.darkrockstudios.apps.hammer.common.data.versioncheck.GithubVersionCheckDatasource
+import com.darkrockstudios.apps.hammer.common.data.versioncheck.VersionCheckDatasource
 import com.darkrockstudios.apps.hammer.common.data.versioncheck.VersionCheckRepository
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingActivityDatasource
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingActivityRepository
@@ -121,9 +122,8 @@ import com.darkrockstudios.apps.hammer.common.server.ServerIdeasApi
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectsApi
 import com.darkrockstudios.apps.hammer.common.server.WritingActivityApi
-import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectDictionaryService
 import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectDictionaryUseCase
-import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectSpellCheckRepository
+import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectSpellCheckService
 import com.darkrockstudios.apps.hammer.common.spellcheck.SpellCheckRepository
 import com.russhwolf.settings.Settings
 import io.ktor.client.HttpClient
@@ -131,6 +131,7 @@ import kotlinx.serialization.json.Json
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
 import okio.Path
+import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import okio.Path.Companion.toPath
 import org.koin.core.qualifier.named
 import org.koin.dsl.bind
@@ -214,9 +215,9 @@ val mainModule = module {
 
 	// Only the protocol mismatch dialog checks GitHub, and only once the user has already
 	// connected to a sync server. Nothing on the app-load path may use this.
-	single<GithubVersionCheckDataSource> {
-		GithubVersionCheckDataSource(http = get(), json = get(NetworkJsonQualifier))
-	} bind VersionCheckDataSource::class
+	single<GithubVersionCheckDatasource> {
+		GithubVersionCheckDatasource(http = get(), json = get(NetworkJsonQualifier))
+	} bind VersionCheckDatasource::class
 	single<VersionCheckRepository>()
 
 	single<ResourceChangelogDatasource>() bind ChangelogDatasource::class
@@ -237,6 +238,10 @@ val mainModule = module {
 	single<ProjectsRepository>()
 
 	single<StoryIdeaCodec>()
+	single<ProjectsDirectory> {
+		val settingsStore = get<GlobalSettingsStore>()
+		ProjectsDirectory { settingsStore.globalSettings.projectsDirectory.toPath().toHPath() }
+	}
 	single<IdeasDatasource>()
 	single<IdeasSyncDatasource>()
 	single<IdeasRepository>()
@@ -252,7 +257,7 @@ val mainModule = module {
 	single<ClientIdeasSynchronizer>()
 	single<ClientAccountSynchronizer>()
 
-	single<ProjectBackupRepository>()
+	single<ProjectBackupService>()
 
 	single<ProjectMetadataDatasource>()
 
@@ -319,8 +324,7 @@ val mainModule = module {
 		scoped<ProjectDataDatasource>()
 		scoped<ProjectDataRepository>()
 		scoped<ProjectDataConflictBroker>()
-		scoped<ProjectSpellCheckRepository>()
-		scoped<ProjectDictionaryService>()
+		scoped<ProjectSpellCheckService>()
 		factory<ProjectDictionaryUseCase>()
 
 		scoped<ReferenceIndexDatasource>()
@@ -336,7 +340,7 @@ val mainModule = module {
 		scoped<CleanupReferencesOnEntryDeleteUseCase>()
 		scoped<SceneMetadataReferenceRemapper>() bind ReferenceRemapper::class
 
-		scoped<SyncDataDatasource>()
+		scoped<SyncJournalDatasource>()
 
 		scoped<ClientSceneSynchronizer>()
 		scoped<ClientNoteSynchronizer>()

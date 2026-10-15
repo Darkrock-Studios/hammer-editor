@@ -9,15 +9,13 @@ import okio.FileSystem
 class EncyclopediaIdDatasource(
 	private val fileSystem: FileSystem
 ) : IdDatasource {
-	override fun findHighestId(projectDef: ProjectDef): Int {
+	override fun findIds(projectDef: ProjectDef): Set<Int> {
 		val dir =
 			EncyclopediaDatasource.getEncyclopediaDirectory(projectDef, fileSystem).toOkioPath()
 
-		val maxId: Int = fileSystem.listRecursively(dir)
-			.filterEntryPathsOkio().maxOfOrNull { path ->
-				EncyclopediaDatasource.getEntryIdFromFilename(path.name)
-			} ?: -1
-
-		return maxId
+		return fileSystem.listRecursively(dir)
+			.filterEntryPathsOkio()
+			.map { path -> EncyclopediaDatasource.getEntryIdFromFilename(path.name) }
+			.toSet()
 	}
 }

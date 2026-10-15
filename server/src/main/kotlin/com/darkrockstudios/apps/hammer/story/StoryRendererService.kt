@@ -7,13 +7,13 @@ import com.darkrockstudios.apps.hammer.base.http.EntityHash
 import com.darkrockstudios.apps.hammer.base.markdown.countWords
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.project.ProjectEntityDatasource
-import com.darkrockstudios.apps.hammer.utilities.MarkdownService
+import com.darkrockstudios.apps.hammer.utilities.MarkdownRenderer
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
 import kotlinx.serialization.Serializable
 
 class StoryRendererService(
 	private val projectEntityDatasource: ProjectEntityDatasource,
-	private val markdownService: MarkdownService,
+	private val markdownRenderer: MarkdownRenderer,
 	private val renderCache: StoryRenderCache? = null,
 ) {
 
@@ -53,7 +53,7 @@ class StoryRendererService(
 			}
 
 			val markdown = buildStoryMarkdown(projectDef.name, scenes)
-			val html = markdownService.markdownToSafeHtml(markdown, preserveLineBreaks = true)
+			val html = markdownRenderer.markdownToSafeHtml(markdown, preserveLineBreaks = true)
 
 			// Calculate total word count from scene content only (not group names)
 			val totalWordCount = scenes
@@ -360,7 +360,7 @@ class StoryRendererService(
 
 		// Build markdown and HTML for current page only
 		val pageMarkdown = buildPaginatedMarkdown(projectDef.name, currentPageScenes, currentPage == 1)
-		val pageHtml = markdownService.markdownToSafeHtml(pageMarkdown, preserveLineBreaks = true)
+		val pageHtml = markdownRenderer.markdownToSafeHtml(pageMarkdown, preserveLineBreaks = true)
 
 		return StoryRender(
 			result = PaginatedStoryExportResult(
@@ -609,7 +609,7 @@ class StoryRendererService(
 				buildGroupMarkdown(targetScene, scenesByParent)
 			}
 
-			val html = markdownService.markdownToSafeHtml(markdown, preserveLineBreaks = true)
+			val html = markdownRenderer.markdownToSafeHtml(markdown, preserveLineBreaks = true)
 
 			SingleSceneExportResult.Success(
 				projectName = projectDef.name,

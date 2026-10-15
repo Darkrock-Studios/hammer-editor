@@ -1,7 +1,6 @@
 package com.darkrockstudios.apps.hammer.frontend
 
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
-import com.darkrockstudios.apps.hammer.database.ProjectDao
 import com.darkrockstudios.apps.hammer.frontend.data.UserSession
 import com.darkrockstudios.apps.hammer.frontend.utils.Toast
 import com.darkrockstudios.apps.hammer.frontend.utils.lookUpStory
@@ -54,7 +53,6 @@ fun Route.storyKudosRoutes(
 	accountsRepository: AccountsRepository,
 	projectsRepository: ProjectsRepository,
 	projectAccessRepository: ProjectAccessRepository,
-	projectDao: ProjectDao,
 	storyKudosRepository: StoryKudosRepository,
 ) {
 	/** Only password-free public access qualifies; private shares never carry kudos. */
@@ -62,7 +60,7 @@ fun Route.storyKudosRoutes(
 		val resolved = lookUpStory(accountsRepository, projectsRepository, projectAccessRepository, password = null)
 			?.result
 		if (resolved !is PublicProjectResult.Success || !resolved.isPublic) return null
-		val projectId = projectDao.getProjectIdOrNull(resolved.userId, resolved.projectUuid) ?: return null
+		val projectId = storyKudosRepository.findProjectId(resolved.userId, resolved.projectUuid) ?: return null
 		return KudosStory(projectId = projectId, authorId = resolved.userId, authorPenName = resolved.penName)
 	}
 

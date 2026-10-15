@@ -22,7 +22,7 @@ import com.darkrockstudios.apps.hammer.project.ServerWritingActivityRepository
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.story.StoryRendererService
-import com.darkrockstudios.apps.hammer.utilities.MarkdownService
+import com.darkrockstudios.apps.hammer.utilities.MarkdownRenderer
 import com.darkrockstudios.apps.hammer.utilities.SResult
 import com.darkrockstudios.apps.hammer.utils.BaseTest
 import com.darkrockstudios.apps.hammer.utils.setupKtorTestKoin
@@ -89,7 +89,7 @@ class AccountRoutesTest : BaseTest() {
 	private lateinit var storyRendererService: StoryRendererService
 
 	@MockK
-	private lateinit var penNameService: PenNameService
+	private lateinit var penNameUseCase: PenNameUseCase
 
 	@MockK
 	private lateinit var passwordResetRepository: PasswordResetRepository
@@ -98,7 +98,7 @@ class AccountRoutesTest : BaseTest() {
 	private lateinit var bioService: BioService
 
 	@MockK
-	private lateinit var markdownService: MarkdownService
+	private lateinit var markdownRenderer: MarkdownRenderer
 
 	private lateinit var testModule: org.koin.core.module.Module
 
@@ -128,15 +128,17 @@ class AccountRoutesTest : BaseTest() {
 			single { whiteListRepository }
 			single { configRepository }
 			single { storyRendererService }
-			single { penNameService }
+			single { penNameUseCase }
 			single { json }
 			single { passwordResetRepository }
+			single { mockk<RequestPasswordResetUseCase>() }
+			single { mockk<ReleasePenNameUseCase>() }
 			single { bioService }
-			single { markdownService }
+			single { markdownRenderer }
 			single { mockk<com.darkrockstudios.apps.hammer.review.ReviewRepository>(relaxed = true) }
 			single { mockk<com.darkrockstudios.apps.hammer.storyideas.ServerIdeasRepository>(relaxed = true) }
 			single { mockk<com.darkrockstudios.apps.hammer.database.ProjectDao>(relaxed = true) }
-			single { mockk<AccountDeletionService>(relaxed = true) }
+			single { mockk<AccountDeletionUseCase>(relaxed = true) }
 			single { mockk<TermsOfServiceRepository>(relaxed = true) }
 		}
 	}

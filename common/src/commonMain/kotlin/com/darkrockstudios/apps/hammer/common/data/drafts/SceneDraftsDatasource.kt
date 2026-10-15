@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.common.data.drafts
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.validate.ProjectNameValidationResult
 import com.darkrockstudios.apps.hammer.base.validate.ProjectNameValidator
+import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneContent
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
@@ -18,8 +19,8 @@ import okio.Path
 import kotlin.time.Instant
 
 class SceneDraftsDatasource(
+	private val projectDef: ProjectDef,
 	private val fileSystem: FileSystem,
-	private val sceneDatasource: SceneDatasource
 ) {
 	/**
 	 * Where this draft lives on disk: the current `~`-delimited filename, or the pre-v3
@@ -207,14 +208,7 @@ class SceneDraftsDatasource(
 		}
 	}
 
-	fun getDraftsDirectory(): HPath {
-		val sceneDir = sceneDatasource.getSceneDirectory().toOkioPath()
-
-		val path: Path = sceneDir / DRAFTS_DIR
-		val directory = path.parent ?: error("Parent path null for Drafts directory: $path")
-		fileSystem.createDirectories(path)
-		return path.toHPath()
-	}
+	fun getDraftsDirectory(): HPath = getDraftsDirectory(projectDef, fileSystem)
 
 	private fun getSceneDraftsDirectory(sceneId: Int): HPath {
 		val draftsDir = getDraftsDirectory().toOkioPath()
@@ -234,6 +228,14 @@ class SceneDraftsDatasource(
 
 	companion object {
 		const val DRAFTS_DIR = ".drafts"
+
+		fun getDraftsDirectory(projectDef: ProjectDef, fileSystem: FileSystem): HPath {
+			val sceneDir = SceneDatasource.getSceneDirectory(projectDef, fileSystem).toOkioPath()
+
+			val path: Path = sceneDir / DRAFTS_DIR
+			fileSystem.createDirectories(path)
+			return path.toHPath()
+		}
 
 		// Draft format: sceneId~draftId~name~timestamp.md (delimiter changed from `-` to `~` in
 		// data v3). The name group accepts any char except path separators and the delimiter;

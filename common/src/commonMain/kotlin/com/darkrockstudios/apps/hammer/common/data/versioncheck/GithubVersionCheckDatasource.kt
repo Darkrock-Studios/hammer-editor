@@ -14,10 +14,10 @@ import kotlinx.serialization.json.Json
  * GitHub's web UI silently does the same, but the `/releases/latest` endpoint
  * doesn't, so otherwise users would see the page populated and our dialog empty.
  */
-class GithubVersionCheckDataSource(
+class GithubVersionCheckDatasource(
 	private val http: HttpClient,
 	private val json: Json,
-) : VersionCheckDataSource {
+) : VersionCheckDatasource {
 
 	private val apiBase: String = VERSION_CHECK_URL.substringBefore("/releases/latest")
 

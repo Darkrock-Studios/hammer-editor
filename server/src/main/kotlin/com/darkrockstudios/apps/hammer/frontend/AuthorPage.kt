@@ -8,7 +8,7 @@ import com.darkrockstudios.apps.hammer.frontend.utils.canonicalUrl
 import com.darkrockstudios.apps.hammer.frontend.utils.metaDescription
 import com.darkrockstudios.apps.hammer.frontend.utils.resolveByPenName
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
-import com.darkrockstudios.apps.hammer.utilities.MarkdownService
+import com.darkrockstudios.apps.hammer.utilities.MarkdownRenderer
 import io.ktor.http.*
 import io.ktor.server.mustache.*
 import io.ktor.server.response.*
@@ -20,7 +20,7 @@ import kotlin.time.toJavaInstant
 fun Route.authorPage(
 	accountsRepository: AccountsRepository,
 	projectAccessRepository: ProjectAccessRepository,
-	markdownService: MarkdownService,
+	markdownRenderer: MarkdownRenderer,
 	serverConfig: ServerConfig,
 ) {
 	route("/a/{penName}") {
@@ -48,7 +48,7 @@ fun Route.authorPage(
 			val stories = projectAccessRepository.getPublishedStoriesByPenName(penName)
 
 			// Render bio markdown to sanitized HTML
-			val bioHtml = account.bio?.let { markdownService.markdownToSafeHtml(it) }
+			val bioHtml = account.bio?.let { markdownRenderer.markdownToSafeHtml(it) }
 
 			// Format stories for the template
 			val dateFormatter = DateTimeFormatter.ofPattern("MMM d, yyyy")

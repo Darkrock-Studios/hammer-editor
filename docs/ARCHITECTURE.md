@@ -104,7 +104,7 @@ depend on it, you do not add to it casually.
 | Foundation  | Stateful  | Scoped singleton      | Data Sources, other Foundation primitives (acyclic)                        | Fixed set |
 | Repository  | Stateful  | Scoped singleton      | Data Sources, Foundation                                                   | Yes       |
 | Service     | Stateful  | Scoped singleton      | Repositories, Foundation, Data Sources                                     | No        |
-| Use Case    | Stateless | Factory (new per use) | Services, Repositories, Foundation, Data Sources, other Use Cases (lazily) | No        |
+| Use Case    | Stateless | Factory (new per use) | Services, Repositories, Foundation, Data Sources, other Use Cases (acyclic) | No        |
 | ViewModel   | —         | Per screen/owner      | Use Cases, Services, Repositories, Foundation                              | Yes       |
 
 > **ViewModel / Component naming.** This project calls the highest layer a **Component** (Decompose
@@ -120,6 +120,14 @@ camera, sensors, key
 stores, etc.). A data source holds **no state** and contains **no business logic**. It does not
 combine or call other
 data sources. Factory-produced (a fresh instance per use).
+
+When one Data Source needs to know where another keeps its files, it calls a companion function
+on the owning Data Source (pattern: `SceneDatasource.getSceneDirectory(projectDef, fileSystem)`)
+instead of taking an instance of it. Keep those companions to paths, filenames, and ID parsing.
+
+A Data Source gets the location it works in as a value, never by asking a higher layer. A
+project-scoped one takes a `ProjectDef`. An account-level one, which lives outside any project,
+takes a `ProjectsDirectory` and reads it on every use, because the user can change it at runtime.
 
 ### Foundation primitives — stateful, cross-cutting
 
@@ -193,6 +201,9 @@ SignInWithBiometrics"). Use cases hold no state. They may combine repositories, 
 accessed through those,
 and other use cases.
 
+A Use Case implements one task. It may expose several operations when they all serve that task
+(`AccountDeletionUseCase` has soft delete, restore, and hard delete).
+
 > Only add a Use Case when there is real stateless logic or composition to hold. Do **not** create a
 > Use Case that
 > merely forwards one call to one repository — let the consumer call the repository directly
@@ -220,11 +231,10 @@ ViewModels/Components and renders them.
 3. **Sibling exception — stateless layers only.** Use Cases (stateless) *may* reference other Use
    Cases. Repositories
    and Services (stateful) **may not** reference siblings under any circumstances.
-4. **Lazy injection for sibling Use Cases.** When one Use Case depends on another, inject it
-   lazily — a `Provider<T>`, a
-   factory, or a `() -> T` lambda — never the constructed instance directly. Statelessness alone
-   does **not** prevent a
-   construction cycle; lazy resolution is what breaks it.
+4. **The Use Case graph is acyclic.** A Use Case may take another Use Case directly, as long as
+   the Use Cases never form a cycle. Statelessness alone does **not** prevent a construction
+   cycle. If a cycle is truly unavoidable, break it by injecting one edge lazily (`Lazy<T>` or a
+   `() -> T` lambda); that should be rare, and usually means the logic wants restructuring.
 5. **ViewModels never touch Data Sources.** Always go through a Repository (or a Service/Use Case
    above it).
 6. **Foundation primitives are a shared lower tier, not siblings.** Depending on `IdAllocator`,
@@ -241,7 +251,15 @@ ViewModels/Components and renders them.
    own file** (pattern: `loadStoredProjectData`/`saveStoredProjectData` in
    `ProjectDataDatasource.kt`). A second inline writer forks the format and clobbers sibling
    fields on write: two independent writers of `project_data.toml` once each erased the other's
-   field. Enforced by `PersistedFormatOwnershipTest` in `common/src/desktopTest`.
+   field. Enforced by `PersistedFormatOwnershipTest` in `:architectureTests`.
+
+### Enforcement
+
+These rules are checked by the Konsist tests in the `:architectureTests` module
+(`./gradlew :architectureTests:test`, also run in CI). The tests identify a layer by class name
+suffix (`Datasource`, `Repository`, `Service`, `UseCase`, `Component`), so a class must carry its
+layer's suffix to be covered. Known violations are listed in a per-rule baseline in the tests;
+remove an entry when you fix it, never add one to get a build passing.
 
 ## DI conventions
 
@@ -338,24 +356,49 @@ extract.
 ```mermaid
 flowchart TD
     Routes["fa:fa-desktop Routes"]
+    UseCases["fa:fa-puzzle-piece Use Case Layer"]
+    Services["fa:fa-server Service Layer"]
     Repositories["fa:fa-database Repository Layer"]
     Datasources["fa:fa-database Datasource Layer"]
 
     %% Edge connections between nodes
+    Routes --> UseCases
+    Routes --> Services
     Routes --> Repositories
+    UseCases --> Services
+    UseCases --> Repositories
+    Services --> Repositories
+    Services --> Datasources
     Repositories --> Datasources
 
     %% Styling for layers
     style Routes fill:#33AB00, stroke:#338800, color:#FFFFFF
+    style UseCases fill:#119900, stroke:#117700, color:#FFFFFF
+    style Services fill:#FF3D00, stroke:#FF3D00, color:#FFFFFF
     style Repositories fill:#DD2C00, stroke:#DD2C00, color:#FFFFFF
     style Datasources fill:#6666FC, stroke:#1111AA, color:#FFFFFF
 ```
 
+The mandatory spine is `Datasource → Repository → Routes`. Services and Use Cases are optional,
+added only when needed, following the same decision rules as the client.
+
 ### Server Routes
-These are the HTTP handlers that define the various endpoints. They unmarshal data from HTTP requests, call into Repositories, and then marshal data back into HTTP responses.
+These are the HTTP handlers that define the various endpoints. They unmarshal data from HTTP requests, call into Use Cases, Services, or Repositories, and then marshal data back into HTTP responses. Routes never reference Datasources directly.
+
+### Server Use Cases: stateless, optional
+One named task composed from the layers below, with as many operations as that task needs. The
+stateless counterpart of a Service. May reference Services, Repositories, Datasources, and other
+Use Cases.
+
+### Server Services: stateful, optional
+Sit above Repositories and combine the layers below them: several Repositories (and Datasources)
+coordinated behind one stateful component. Think of a Service as a stateful Use Case. As on the
+client, a Service may not reference another Service, and nothing below a Service may reference one.
 
 ### Server Repositories
-These use stateful and responsible for transforming, validating, and caching data from the Datasources, and vending it to the layers above.
+These use stateful and responsible for transforming, validating, and caching data from the Datasources, and vending it to the layers above. A Repository may not reference another Repository.
 
 ### Server Datasource
 Stateless classes for accessing Data.
+
+The server rules are enforced by `ServerLayerTest` in `:architectureTests`.

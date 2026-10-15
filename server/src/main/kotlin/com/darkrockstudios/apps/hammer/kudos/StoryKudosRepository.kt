@@ -1,5 +1,7 @@
 package com.darkrockstudios.apps.hammer.kudos
 
+import com.darkrockstudios.apps.hammer.base.ProjectId
+import com.darkrockstudios.apps.hammer.database.ProjectDao
 import com.darkrockstudios.apps.hammer.database.StoryKudosDao
 
 sealed interface SetPicksResult {
@@ -31,7 +33,12 @@ data class KudosTally(
 
 class StoryKudosRepository(
 	private val storyKudosDao: StoryKudosDao,
+	private val projectDao: ProjectDao,
 ) {
+
+	/** The row ID kudos are keyed by, or null if the author has no such project. */
+	suspend fun findProjectId(authorId: Long, projectUuid: ProjectId): Long? =
+		projectDao.getProjectIdOrNull(authorId, projectUuid)
 
 	suspend fun picksFor(projectId: Long, userId: Long): Set<KudosKind> =
 		storyKudosDao.kindsForUser(projectId, userId).mapNotNullTo(mutableSetOf(), KudosKind::fromKey)

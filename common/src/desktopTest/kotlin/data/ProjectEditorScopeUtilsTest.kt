@@ -7,7 +7,7 @@ import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEd
 import com.darkrockstudios.apps.hammer.common.data.temporaryProjectTask
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
-import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectDictionaryService
+import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectSpellCheckService
 import getProjectDef
 import io.mockk.mockk
 import io.mockk.verify
@@ -23,18 +23,18 @@ import kotlin.test.assertNull
 class ProjectEditorScopeUtilsTest : BaseTest() {
 
 	private val projectDef = getProjectDef(PROJECT_EMPTY_NAME)
-	private lateinit var dictionaryService: ProjectDictionaryService
+	private lateinit var spellCheckService: ProjectSpellCheckService
 
 	@BeforeEach
 	override fun setup() {
 		super.setup()
-		dictionaryService = mockk(relaxed = true)
+		spellCheckService = mockk(relaxed = true)
 		setupKoin(module {
 			scope<ProjectDefScope> {
 				scoped { projectDef }
 				scoped<SceneEditorService> { mockk(relaxed = true) }
 				scoped<TimeLineRepository> { mockk(relaxed = true) }
-				scoped { dictionaryService }
+				scoped { spellCheckService }
 			}
 		})
 	}
@@ -45,7 +45,7 @@ class ProjectEditorScopeUtilsTest : BaseTest() {
 	fun `a temporary task alone never starts the editor services and closes its scope`() = runTest {
 		temporaryProjectTask(projectDef) {}
 
-		verify(exactly = 0) { dictionaryService.initialize() }
+		verify(exactly = 0) { spellCheckService.initialize() }
 		assertNull(scopeOrNull())
 	}
 
@@ -53,9 +53,9 @@ class ProjectEditorScopeUtilsTest : BaseTest() {
 	fun `opening for editing while a temporary task holds the scope starts the editor services and keeps the scope`() =
 		runTest {
 			temporaryProjectTask(projectDef) {
-				verify(exactly = 0) { dictionaryService.initialize() }
+				verify(exactly = 0) { spellCheckService.initialize() }
 				openProjectScope(projectDef)
-				verify(exactly = 1) { dictionaryService.initialize() }
+				verify(exactly = 1) { spellCheckService.initialize() }
 			}
 
 			val scope = assertNotNull(scopeOrNull())
@@ -67,7 +67,7 @@ class ProjectEditorScopeUtilsTest : BaseTest() {
 		openProjectScope(projectDef)
 		openProjectScope(projectDef)
 
-		verify(exactly = 1) { dictionaryService.initialize() }
+		verify(exactly = 1) { spellCheckService.initialize() }
 		closeProjectScope(assertNotNull(scopeOrNull()), projectDef)
 	}
 }

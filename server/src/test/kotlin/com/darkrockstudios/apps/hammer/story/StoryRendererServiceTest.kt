@@ -8,7 +8,7 @@ import com.darkrockstudios.apps.hammer.project.EntityDefinition
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.project.ProjectEntityDatasource
 import com.darkrockstudios.apps.hammer.utilities.FakeTouchableFileSystem
-import com.darkrockstudios.apps.hammer.utilities.MarkdownService
+import com.darkrockstudios.apps.hammer.utilities.MarkdownRenderer
 import com.darkrockstudios.apps.hammer.utilities.SResult
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -28,7 +28,7 @@ import kotlin.test.assertTrue
 class StoryRendererServiceTest {
 
 	private lateinit var datasource: ProjectEntityDatasource
-	private lateinit var markdownService: MarkdownService
+	private lateinit var markdownRenderer: MarkdownRenderer
 	private lateinit var service: StoryRendererService
 	private lateinit var cachingService: StoryRendererService
 
@@ -42,12 +42,12 @@ class StoryRendererServiceTest {
 	@BeforeEach
 	fun setup() {
 		datasource = mockk()
-		markdownService = MarkdownService()
-		service = StoryRendererService(datasource, markdownService)
+		markdownRenderer = MarkdownRenderer()
+		service = StoryRendererService(datasource, markdownRenderer)
 		cachingService =
 			StoryRendererService(
 				datasource,
-				markdownService,
+				markdownRenderer,
 				StoryRenderCache(fileSystem, cacheDir)
 			)
 	}

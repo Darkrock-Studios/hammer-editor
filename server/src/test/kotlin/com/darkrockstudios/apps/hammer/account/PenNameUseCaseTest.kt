@@ -1,7 +1,6 @@
 package com.darkrockstudios.apps.hammer.account
 
-import com.darkrockstudios.apps.hammer.account.PenNameService.PenNameResult
-import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
+import com.darkrockstudios.apps.hammer.account.PenNameUseCase.PenNameResult
 import io.mockk.MockKAnnotations
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -14,22 +13,19 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-class PenNameServiceTest {
+class PenNameUseCaseTest {
 
 	@MockK
 	private lateinit var accountsRepository: AccountsRepository
 
-	@MockK
-	private lateinit var projectAccessRepository: ProjectAccessRepository
-
-	private lateinit var service: PenNameService
+	private lateinit var useCase: PenNameUseCase
 
 	private val userId = 1L
 
 	@BeforeEach
 	fun setup() {
 		MockKAnnotations.init(this, relaxUnitFun = true)
-		service = PenNameService(accountsRepository, projectAccessRepository)
+		useCase = PenNameUseCase(accountsRepository)
 	}
 
 	@Nested
@@ -40,7 +36,7 @@ class PenNameServiceTest {
 			val penName = "ValidName"
 			coEvery { accountsRepository.isPenNameAvailable(penName, userId) } returns true
 
-			val result = service.setPenName(userId, penName)
+			val result = useCase.setPenName(userId, penName)
 
 			assertEquals(PenNameResult.VALID, result)
 			coVerify { accountsRepository.isPenNameAvailable(penName, userId) }
@@ -53,7 +49,7 @@ class PenNameServiceTest {
 			val trimmed = "ValidName"
 			coEvery { accountsRepository.isPenNameAvailable(trimmed, userId) } returns true
 
-			val result = service.setPenName(userId, penName)
+			val result = useCase.setPenName(userId, penName)
 
 			assertEquals(PenNameResult.VALID, result)
 			coVerify { accountsRepository.updatePenName(userId, trimmed) }
@@ -63,7 +59,7 @@ class PenNameServiceTest {
 		fun `setPenName - Too short`() = runTest {
 			val penName = "abc"
 
-			val result = service.setPenName(userId, penName)
+			val result = useCase.setPenName(userId, penName)
 
 			assertEquals(PenNameResult.TOO_SHORT, result)
 			coVerify(exactly = 0) { accountsRepository.isPenNameAvailable(any(), any()) }
@@ -72,9 +68,9 @@ class PenNameServiceTest {
 
 		@Test
 		fun `setPenName - Too long`() = runTest {
-			val penName = "a".repeat(PenNameService.MAX_PEN_NAME_LENGTH + 1)
+			val penName = "a".repeat(PenNameUseCase.MAX_PEN_NAME_LENGTH + 1)
 
-			val result = service.setPenName(userId, penName)
+			val result = useCase.setPenName(userId, penName)
 
 			assertEquals(PenNameResult.TOO_LONG, result)
 			coVerify(exactly = 0) { accountsRepository.isPenNameAvailable(any(), any()) }
@@ -85,7 +81,7 @@ class PenNameServiceTest {
 		fun `setPenName - Invalid characters`() = runTest {
 			val penName = "Name@123"
 
-			val result = service.setPenName(userId, penName)
+			val result = useCase.setPenName(userId, penName)
 
 			assertEquals(PenNameResult.INVALID_CHARACTERS, result)
 			coVerify(exactly = 0) { accountsRepository.isPenNameAvailable(any(), any()) }
@@ -97,23 +93,11 @@ class PenNameServiceTest {
 			val penName = "TakenName"
 			coEvery { accountsRepository.isPenNameAvailable(penName, userId) } returns false
 
-			val result = service.setPenName(userId, penName)
+			val result = useCase.setPenName(userId, penName)
 
 			assertEquals(PenNameResult.NOT_AVAILABLE, result)
 			coVerify { accountsRepository.isPenNameAvailable(penName, userId) }
 			coVerify(exactly = 0) { accountsRepository.updatePenName(any(), any()) }
-		}
-	}
-
-	@Nested
-	inner class ReleasePenName {
-
-		@Test
-		fun `releasePenName - Clears pen name and deletes all access`() = runTest {
-			service.releasePenName(userId)
-
-			coVerify { accountsRepository.updatePenName(userId, null) }
-			coVerify { projectAccessRepository.deleteAllAccessForUser(userId) }
 		}
 	}
 
@@ -125,7 +109,7 @@ class PenNameServiceTest {
 			val penName = "TestName"
 			coEvery { accountsRepository.isPenNameAvailable(penName, userId) } returns true
 
-			val result = service.isPenNameAvailable(penName, userId)
+			val result = useCase.isPenNameAvailable(penName, userId)
 
 			assertTrue(result)
 			coVerify { accountsRepository.isPenNameAvailable(penName, userId) }
@@ -136,7 +120,7 @@ class PenNameServiceTest {
 			val penName = "TakenName"
 			coEvery { accountsRepository.isPenNameAvailable(penName, null) } returns false
 
-			val result = service.isPenNameAvailable(penName)
+			val result = useCase.isPenNameAvailable(penName)
 
 			assertFalse(result)
 		}
@@ -147,79 +131,79 @@ class PenNameServiceTest {
 
 		@Test
 		fun `validatePenName - Valid simple name`() {
-			val result = service.validatePenName("Author")
+			val result = useCase.validatePenName("Author")
 			assertEquals(PenNameResult.VALID, result)
 		}
 
 		@Test
 		fun `validatePenName - Valid with spaces`() {
-			val result = service.validatePenName("John Smith")
+			val result = useCase.validatePenName("John Smith")
 			assertEquals(PenNameResult.VALID, result)
 		}
 
 		@Test
 		fun `validatePenName - Valid with hyphens`() {
-			val result = service.validatePenName("Mary-Jane")
+			val result = useCase.validatePenName("Mary-Jane")
 			assertEquals(PenNameResult.VALID, result)
 		}
 
 		@Test
 		fun `validatePenName - Valid with underscores`() {
-			val result = service.validatePenName("Cool_Writer")
+			val result = useCase.validatePenName("Cool_Writer")
 			assertEquals(PenNameResult.VALID, result)
 		}
 
 		@Test
 		fun `validatePenName - Valid with numbers`() {
-			val result = service.validatePenName("Author123")
+			val result = useCase.validatePenName("Author123")
 			assertEquals(PenNameResult.VALID, result)
 		}
 
 		@Test
 		fun `validatePenName - Valid Unicode characters`() {
-			val result = service.validatePenName("José García")
+			val result = useCase.validatePenName("José García")
 			assertEquals(PenNameResult.VALID, result)
 		}
 
 		@Test
 		fun `validatePenName - Valid Japanese characters`() {
-			val result = service.validatePenName("作家名前")
+			val result = useCase.validatePenName("作家名前")
 			assertEquals(PenNameResult.VALID, result)
 		}
 
 		@Test
 		fun `validatePenName - Valid at minimum length`() {
-			val result = service.validatePenName("a".repeat(PenNameService.MIN_PEN_NAME_LENGTH))
+			val result = useCase.validatePenName("a".repeat(PenNameUseCase.MIN_PEN_NAME_LENGTH))
 			assertEquals(PenNameResult.VALID, result)
 		}
 
 		@Test
 		fun `validatePenName - Valid at maximum length`() {
-			val result = service.validatePenName("a".repeat(PenNameService.MAX_PEN_NAME_LENGTH))
+			val result = useCase.validatePenName("a".repeat(PenNameUseCase.MAX_PEN_NAME_LENGTH))
 			assertEquals(PenNameResult.VALID, result)
 		}
 
 		@Test
 		fun `validatePenName - Too short`() {
-			val result = service.validatePenName("a".repeat(PenNameService.MIN_PEN_NAME_LENGTH - 1))
+			val result = useCase.validatePenName("a".repeat(PenNameUseCase.MIN_PEN_NAME_LENGTH - 1))
 			assertEquals(PenNameResult.TOO_SHORT, result)
 		}
 
 		@Test
 		fun `validatePenName - Too long`() {
-			val result = service.validatePenName("a".repeat(PenNameService.MAX_PEN_NAME_LENGTH + 1))
+			val result = useCase.validatePenName("a".repeat(PenNameUseCase.MAX_PEN_NAME_LENGTH + 1))
 			assertEquals(PenNameResult.TOO_LONG, result)
 		}
 
 		@Test
 		fun `validatePenName - Cannot start with number`() {
-			val result = service.validatePenName("123Author")
+			val result = useCase.validatePenName("123Author")
 			assertEquals(PenNameResult.INVALID_CHARACTERS, result)
 		}
 
 		@Test
 		fun `validatePenName - Cannot start with space`() {
-			val result = service.validatePenName(" Author")
+			val result = useCase.validatePenName(" Author")
 			assertEquals(
 				PenNameResult.VALID,
 				result
@@ -228,25 +212,25 @@ class PenNameServiceTest {
 
 		@Test
 		fun `validatePenName - Cannot contain special characters`() {
-			val result = service.validatePenName("Author@Name")
+			val result = useCase.validatePenName("Author@Name")
 			assertEquals(PenNameResult.INVALID_CHARACTERS, result)
 		}
 
 		@Test
 		fun `validatePenName - Cannot contain exclamation`() {
-			val result = service.validatePenName("Author!")
+			val result = useCase.validatePenName("Author!")
 			assertEquals(PenNameResult.INVALID_CHARACTERS, result)
 		}
 
 		@Test
 		fun `validatePenName - Cannot contain period`() {
-			val result = service.validatePenName("J.K. Rowling")
+			val result = useCase.validatePenName("J.K. Rowling")
 			assertEquals(PenNameResult.INVALID_CHARACTERS, result)
 		}
 
 		@Test
 		fun `validatePenName - Empty string after trim`() {
-			val result = service.validatePenName("   ")
+			val result = useCase.validatePenName("   ")
 			assertEquals(PenNameResult.TOO_SHORT, result)
 		}
 	}

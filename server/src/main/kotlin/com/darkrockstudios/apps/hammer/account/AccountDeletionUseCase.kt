@@ -19,9 +19,9 @@ import kotlin.time.Instant
  * operator can [restore] it; [AccountDeletionJob] calls [hardDelete] for accounts
  * past the window.
  */
-class AccountDeletionService(
+class AccountDeletionUseCase(
 	private val accountsRepository: AccountsRepository,
-	private val penNameService: PenNameService,
+	private val releasePenName: ReleasePenNameUseCase,
 	private val whiteListRepository: WhiteListRepository,
 	private val userDataPurgeDao: UserDataPurgeDao,
 	private val projectsSyncManager: SyncSessionManager<Long, ProjectsSynchronizationSession>,
@@ -67,7 +67,7 @@ class AccountDeletionService(
 		accountsRepository.forceLogout(account.email)
 		projectsSyncManager.terminateSession(userId)
 		projectSyncManager.terminateSessions { it.userId == userId }
-		penNameService.releasePenName(userId)
+		releasePenName(userId)
 		accountsRepository.updateCommunityMember(userId, false)
 
 		return SResult.success(Unit)

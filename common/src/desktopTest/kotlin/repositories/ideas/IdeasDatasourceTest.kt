@@ -15,6 +15,7 @@ import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import utils.projectsDirectoryOf
 import utils.BaseTest
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -37,7 +38,7 @@ class IdeasDatasourceTest : BaseTest() {
 		globalSettingsStore = mockk()
 		every { globalSettingsStore.globalSettings } returns GlobalSettings(projectsDirectory = "/projects")
 		setupKoin()
-		datasource = IdeasDatasource(ffs, codec, globalSettingsStore)
+		datasource = IdeasDatasource(ffs, codec, projectsDirectoryOf(globalSettingsStore))
 	}
 
 	private fun makeIdea(content: String, title: String? = null) = StoryIdea(

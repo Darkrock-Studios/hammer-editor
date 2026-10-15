@@ -1,11 +1,12 @@
 package com.darkrockstudios.apps.hammer.frontend
 
 import com.darkrockstudios.apps.hammer.ServerConfig
-import com.darkrockstudios.apps.hammer.account.AccountDeletionService
+import com.darkrockstudios.apps.hammer.account.AccountDeletionUseCase
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.account.BioService
-import com.darkrockstudios.apps.hammer.account.PenNameService
-import com.darkrockstudios.apps.hammer.account.PenNameService.PenNameResult
+import com.darkrockstudios.apps.hammer.account.PenNameUseCase
+import com.darkrockstudios.apps.hammer.account.ReleasePenNameUseCase
+import com.darkrockstudios.apps.hammer.account.PenNameUseCase.PenNameResult
 import com.darkrockstudios.apps.hammer.frontend.data.UserSession
 import com.darkrockstudios.apps.hammer.frontend.utils.ProjectName
 import com.darkrockstudios.apps.hammer.frontend.utils.Toast
@@ -18,7 +19,7 @@ import com.darkrockstudios.apps.hammer.frontend.utils.respondHtmlWithToast
 import com.darkrockstudios.apps.hammer.frontend.utils.respondTemplateWithToast
 import com.darkrockstudios.apps.hammer.frontend.utils.respondToast
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
-import com.darkrockstudios.apps.hammer.utilities.MarkdownService
+import com.darkrockstudios.apps.hammer.utilities.MarkdownRenderer
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
 import io.ktor.htmx.HxResponseHeaders
 import io.ktor.http.ContentType
@@ -44,11 +45,12 @@ import kotlin.math.ceil
 fun Route.dashboardPage(
 	projectsRepository: ProjectsRepository,
 	accountsRepository: AccountsRepository,
-	penNameService: PenNameService,
+	penNameUseCase: PenNameUseCase,
+	releasePenName: ReleasePenNameUseCase,
 	bioService: BioService,
-	accountDeletionService: AccountDeletionService,
+	accountDeletionUseCase: AccountDeletionUseCase,
 	serverConfig: ServerConfig,
-	markdownService: MarkdownService
+	markdownRenderer: MarkdownRenderer
 ) {
 	authenticatedOnly {
 		route("/dashboard") {
@@ -61,7 +63,7 @@ fun Route.dashboardPage(
 				val penNameUrl = account.pen_name?.let { ProjectName.penNameForUrl(it) }
 
 				// Parse bio markdown to sanitized HTML
-				val bioHtml = account.bio?.let { markdownService.markdownToSafeHtml(it) }
+				val bioHtml = account.bio?.let { markdownRenderer.markdownToSafeHtml(it) }
 
 				val model = call.withDefaults(
 					mapOf(
@@ -106,7 +108,7 @@ fun Route.dashboardPage(
 					return@post
 				}
 
-				when (val result = penNameService.setPenName(session.userId, newPenName)) {
+				when (val result = penNameUseCase.setPenName(session.userId, newPenName)) {
 					PenNameResult.VALID -> {
 						call.response.header(HxResponseHeaders.Trigger, "penNameUpdated")
 						respondHtmlWithToast(
@@ -130,7 +132,7 @@ fun Route.dashboardPage(
 			hx.delete("/penname") {
 				val session = call.sessions.requireUser()
 
-				penNameService.releasePenName(session.userId)
+				releasePenName(session.userId)
 
 				respondToast(call.msg("penname_toast_released"), Toast.Success)
 			}
@@ -153,10 +155,10 @@ fun Route.dashboardPage(
 					return@get
 				}
 
-				val validationResult = penNameService.validatePenName(penName)
+				val validationResult = penNameUseCase.validatePenName(penName)
 				val isValid = validationResult == PenNameResult.VALID
 				val isAvailable = if (isValid) {
-					penNameService.isPenNameAvailable(penName, session.userId)
+					penNameUseCase.isPenNameAvailable(penName, session.userId)
 				} else {
 					false
 				}
@@ -199,7 +201,7 @@ fun Route.dashboardPage(
 					BioService.BioResult.VALID -> {
 						// Re-render the bio section with updated data
 						val updatedAccount = accountsRepository.getAccount(session.userId)
-						val bioHtml = updatedAccount.bio?.let { markdownService.markdownToSafeHtml(it) }
+						val bioHtml = updatedAccount.bio?.let { markdownRenderer.markdownToSafeHtml(it) }
 
 						val model = call.withDefaults(
 							mapOf(
@@ -331,7 +333,7 @@ fun Route.dashboardPage(
 					return@post
 				}
 
-				val result = accountDeletionService.softDelete(session.userId)
+				val result = accountDeletionUseCase.softDelete(session.userId)
 				if (isSuccess(result)) {
 					call.sessions.clear<UserSession>()
 					call.response.header(HxResponseHeaders.Redirect, "/")
@@ -425,8 +427,8 @@ private suspend fun getProjectsModel(
 private suspend fun penNameResultToMessage(call: ApplicationCall, result: PenNameResult): String {
 	return when (result) {
 		PenNameResult.VALID -> call.msg("penname_validation_valid")
-		PenNameResult.TOO_SHORT -> call.msg("penname_validation_too_short", PenNameService.MIN_PEN_NAME_LENGTH)
-		PenNameResult.TOO_LONG -> call.msg("penname_validation_too_long", PenNameService.MAX_PEN_NAME_LENGTH)
+		PenNameResult.TOO_SHORT -> call.msg("penname_validation_too_short", PenNameUseCase.MIN_PEN_NAME_LENGTH)
+		PenNameResult.TOO_LONG -> call.msg("penname_validation_too_long", PenNameUseCase.MAX_PEN_NAME_LENGTH)
 		PenNameResult.INVALID_CHARACTERS -> call.msg("penname_validation_invalid_chars")
 		PenNameResult.NOT_AVAILABLE -> call.msg("penname_validation_taken")
 	}

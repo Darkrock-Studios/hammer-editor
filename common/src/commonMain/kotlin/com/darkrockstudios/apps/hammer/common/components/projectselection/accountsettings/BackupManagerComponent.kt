@@ -14,7 +14,7 @@ import com.darkrockstudios.apps.hammer.common.data.ClientMessage
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.BackupManagerService
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupDef
-import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupRepository
+import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupService
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
@@ -26,7 +26,7 @@ class BackupManagerComponent(
 	componentContext: ComponentContext,
 ) : BackupManager, KoinComponent, SavableComponent<BackupManager.State>(componentContext) {
 
-	private val backupRepository by inject<ProjectBackupRepository>()
+	private val backupService by inject<ProjectBackupService>()
 	private val strRes: StrRes by inject()
 	private val backupManagerService by inject<BackupManagerService>()
 
@@ -44,7 +44,7 @@ class BackupManagerComponent(
 
 			try {
 				val projectsWithBackups = withContext(dispatcherIo) {
-					backupRepository.getBackedUpProjects()
+					backupService.getBackedUpProjects()
 				}
 
 				val projectNames = projectsWithBackups
@@ -88,7 +88,7 @@ class BackupManagerComponent(
 		scope.launch {
 			try {
 				val backups = withContext(dispatcherIo) {
-					backupRepository.getBackups(projectDef)
+					backupService.getBackups(projectDef)
 						.sortedByDescending { it.date }
 				}
 
@@ -113,7 +113,7 @@ class BackupManagerComponent(
 	override fun selectProject(projectName: String) {
 		scope.launch {
 			val projectDef = withContext(dispatcherIo) {
-				backupRepository.getBackedUpProjects().find { it.name == projectName }
+				backupService.getBackedUpProjects().find { it.name == projectName }
 			}
 
 			withContext(dispatcherMain) {
@@ -136,7 +136,7 @@ class BackupManagerComponent(
 		scope.launch {
 			try {
 				withContext(dispatcherIo) {
-					backupRepository.deleteBackup(backup)
+					backupService.deleteBackup(backup)
 				}
 
 				// Reload backups for the current project
@@ -158,7 +158,7 @@ class BackupManagerComponent(
 	override fun restoreBackup(backup: ProjectBackupDef) {
 		scope.launch {
 			val restored = withContext(dispatcherIo) {
-				backupRepository.restoreBackup(backup, backup.projectDef.path)
+				backupService.restoreBackup(backup, backup.projectDef.path)
 			}
 
 			if (restored.not()) {

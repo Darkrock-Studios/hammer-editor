@@ -16,7 +16,7 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.rename.*
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesDatasource
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
-import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupRepository
+import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupService
 import com.darkrockstudios.apps.hammer.common.data.references.BackfillEntryReferencesUseCase
 import com.darkrockstudios.apps.hammer.common.data.references.WholeWordCaseSensitiveMatcher
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineDatasource
@@ -45,7 +45,7 @@ class RenameEntryUseCaseTest : BaseIntegrationTest() {
 	private lateinit var notesRepository: NotesRepository
 	private lateinit var timeLineRepository: TimeLineRepository
 	private lateinit var drafts: SceneDraftRepository
-	private lateinit var backupRepository: ProjectBackupRepository
+	private lateinit var backupService: ProjectBackupService
 	private lateinit var backfill: BackfillEntryReferencesUseCase
 	private lateinit var useCase: RenameEntryUseCase
 
@@ -79,12 +79,12 @@ class RenameEntryUseCaseTest : BaseIntegrationTest() {
 		drafts = SceneDraftRepository(
 			projectDef,
 			sceneContentRepository,
-			SceneDraftsDatasource(ffs, sceneDatasource),
+			SceneDraftsDatasource(projectDef, ffs),
 			Clock.System,
 		)
-		backupRepository = mockk()
-		every { backupRepository.supportsBackup() } returns true
-		coEvery { backupRepository.createBackup(any()) } returns mockk()
+		backupService = mockk()
+		every { backupService.supportsBackup() } returns true
+		coEvery { backupService.createBackup(any()) } returns mockk()
 		backfill = mockk(relaxed = true)
 		advanceUntilIdle()
 
@@ -97,7 +97,7 @@ class RenameEntryUseCaseTest : BaseIntegrationTest() {
 			drafts = drafts,
 			notesRepository = notesRepository,
 			timeLineRepository = timeLineRepository,
-			backupRepository = backupRepository,
+			backupService = backupService,
 			backfillEntryReferences = backfill,
 			matcher = WholeWordCaseSensitiveMatcher(),
 		)
@@ -300,7 +300,7 @@ class RenameEntryUseCaseTest : BaseIntegrationTest() {
 	@Test
 	fun `A failed backup changes nothing`() = runTest(mainTestDispatcher) {
 		createStack()
-		coEvery { backupRepository.createBackup(any()) } returns null
+		coEvery { backupService.createBackup(any()) } returns null
 		val preview = useCase.preview(request())
 
 		val result = applyDefaults(preview)

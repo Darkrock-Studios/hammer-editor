@@ -25,7 +25,7 @@ class FinalizeSyncOperation(
 	private val clock: Clock,
 	private val serverProjectApi: ServerProjectApi,
 	private val globalSettingsStore: GlobalSettingsStore,
-	private val syncDataDatasource: SyncDataDatasource,
+	private val syncJournalDatasource: SyncJournalDatasource,
 	private val projectDataDatasource: ProjectDataDatasource,
 	private val idAllocator: IdAllocator,
 ) : SyncOperation(projectDef) {
@@ -91,7 +91,7 @@ class FinalizeSyncOperation(
 					// dirty/newIds come from the in-memory state, which holds the id-conflict
 					// remapping. Prune deleted ids (incl. server-driven deletions that bypass
 					// recordIdDeletion) so stale baselines can't mis-fire if an id is reused.
-					val persistedSyncedHashes = syncDataDatasource.loadSyncData().syncedHashes -
+					val persistedSyncedHashes = syncJournalDatasource.loadSyncDataOrNull()?.syncedHashes.orEmpty() -
 						state.collatedIds.combinedDeletions
 					// Cache the project-wide hash of the now-reconciled local state so the next
 					// app open can probe-skip this project if nothing changed. Computed from the
@@ -108,7 +108,7 @@ class FinalizeSyncOperation(
 						cachedProjectHash = projectHash,
 						hashAlgoVersion = ProjectContentHasher.ALGO_VERSION,
 					)
-					syncDataDatasource.saveSyncData(finalSyncData)
+					syncJournalDatasource.saveSyncData(finalSyncData)
 				} else {
 					onLog(
 						syncLogE(

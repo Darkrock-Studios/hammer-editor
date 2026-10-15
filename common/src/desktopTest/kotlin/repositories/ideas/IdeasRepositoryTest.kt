@@ -21,6 +21,7 @@ import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.test.runTest
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.BeforeEach
@@ -28,6 +29,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
+import utils.projectsDirectoryOf
 import utils.BaseTest
 import java.util.stream.Stream
 import kotlin.test.assertEquals
@@ -42,6 +44,7 @@ class IdeasRepositoryTest : BaseTest() {
 
 	private lateinit var ffs: FakeFileSystem
 	private lateinit var globalSettingsStore: GlobalSettingsStore
+	private lateinit var settingsUpdates: MutableSharedFlow<GlobalSettings>
 	private lateinit var datasource: IdeasDatasource
 	private lateinit var syncDatasource: IdeasSyncDatasource
 	private lateinit var clock: FixedClock
@@ -55,15 +58,23 @@ class IdeasRepositoryTest : BaseTest() {
 		super.setup()
 		ffs = FakeFileSystem()
 		globalSettingsStore = mockk()
-		every { globalSettingsStore.globalSettings } returns GlobalSettings(projectsDirectory = "/projects")
+		settingsUpdates = MutableSharedFlow(replay = 1)
+		every { globalSettingsStore.globalSettingsUpdates } returns settingsUpdates
+		setProjectsDirectory("/projects")
 		clock = FixedClock(Instant.parse("2026-07-03T14:22:05Z"))
 		setupKoin()
 	}
 
+	private fun setProjectsDirectory(path: String) {
+		val settings = GlobalSettings(projectsDirectory = path)
+		every { globalSettingsStore.globalSettings } returns settings
+		settingsUpdates.tryEmit(settings)
+	}
+
 	private fun createRepository(): IdeasRepository {
-		datasource = IdeasDatasource(ffs, StoryIdeaCodec(createTomlSerializer()), globalSettingsStore)
-		syncDatasource = IdeasSyncDatasource(ffs, createJsonSerializer(), datasource)
-		return IdeasRepository(datasource, syncDatasource, clock)
+		datasource = IdeasDatasource(ffs, StoryIdeaCodec(createTomlSerializer()), projectsDirectoryOf(globalSettingsStore))
+		syncDatasource = IdeasSyncDatasource(ffs, createJsonSerializer(), projectsDirectoryOf(globalSettingsStore))
+		return IdeasRepository(datasource, syncDatasource, globalSettingsStore, clock)
 	}
 
 	private suspend fun IdeasRepository.createIdeaOrFail(content: String): StoryIdea {
@@ -74,7 +85,7 @@ class IdeasRepositoryTest : BaseTest() {
 
 	@Test
 	fun `Ideas on disk load on init`() = runTest {
-		datasource = IdeasDatasource(ffs, StoryIdeaCodec(createTomlSerializer()), globalSettingsStore)
+		datasource = IdeasDatasource(ffs, StoryIdeaCodec(createTomlSerializer()), projectsDirectoryOf(globalSettingsStore))
 		val existing = StoryIdea(
 			id = IdeaId.randomUUID(),
 			created = clock.now(),
@@ -83,10 +94,39 @@ class IdeasRepositoryTest : BaseTest() {
 		)
 		datasource.createIdea(existing)
 
-		val repo = IdeasRepository(datasource, IdeasSyncDatasource(ffs, createJsonSerializer(), datasource), clock)
+		val repo = IdeasRepository(
+			datasource,
+			IdeasSyncDatasource(ffs, createJsonSerializer(), projectsDirectoryOf(globalSettingsStore)),
+			globalSettingsStore,
+			clock,
+		)
 
 		repo.ideasFlow.test {
 			assertEquals(listOf(existing), awaitItem())
+		}
+	}
+
+	@Test
+	fun `Changing the projects directory reloads the ideas from the new one`() = runTest {
+		val repo = createRepository()
+		advanceUntilIdle()
+		val oldIdea = repo.createIdeaOrFail("Lives in the old directory")
+
+		// An idea already waiting in the directory the user is about to switch to
+		setProjectsDirectory("/elsewhere")
+		val newIdea = StoryIdea(
+			id = IdeaId.randomUUID(),
+			created = clock.now(),
+			updated = clock.now(),
+			content = "Lives in the new directory",
+		)
+		datasource.createIdea(newIdea)
+		advanceUntilIdle()
+
+		repo.ideasFlow.test {
+			val ideas = awaitItem()
+			assertEquals(listOf(newIdea), ideas)
+			assertTrue(oldIdea !in ideas)
 		}
 	}
 

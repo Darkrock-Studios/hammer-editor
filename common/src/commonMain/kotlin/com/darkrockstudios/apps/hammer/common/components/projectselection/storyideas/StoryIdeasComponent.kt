@@ -45,7 +45,7 @@ class StoryIdeasComponent(
 		scope.launch {
 			ideasRepository.ideasFlow.collect { ideas ->
 				withContext(dispatcherMain) {
-					_state.update { it.copy(ideas = ideas) }
+					_state.update { it.copy(ideas = ideas).withoutOrphanedEditor() }
 				}
 			}
 		}
@@ -175,6 +175,9 @@ class StoryIdeasComponent(
 	}
 
 	override suspend fun deleteIdea(id: IdeaId) {
+		// Closed first so the list update that follows doesn't treat this as an idea that
+		// vanished out from under an edit.
+		if ((_state.value.editor as? StoryIdeas.Editor.Edit)?.idea?.id == id) closeEditor()
 		ideasRepository.deleteIdea(id)
 	}
 
@@ -188,6 +191,22 @@ class StoryIdeasComponent(
 
 	override suspend fun promoteIdea(id: IdeaId): CResult<ProjectDef> {
 		return promoteIdeaUseCase(id)
+	}
+
+	/**
+	 * The idea open in the editor can vanish from the list without the user deleting it: a sync
+	 * removes it, or the projects directory changes. Unsaved edits carry over as a new idea so
+	 * the text isn't lost; a read-only view just closes.
+	 */
+	private fun StoryIdeas.State.withoutOrphanedEditor(): StoryIdeas.State {
+		val open = (editor as? StoryIdeas.Editor.Edit)?.idea ?: return this
+		if (ideas.any { it.id == open.id }) return this
+
+		return if (draft?.isEditing == true) {
+			copy(editor = StoryIdeas.Editor.Create)
+		} else {
+			copy(editor = null)
+		}
 	}
 
 	private fun isStillOpen(editor: StoryIdeas.Editor): Boolean {

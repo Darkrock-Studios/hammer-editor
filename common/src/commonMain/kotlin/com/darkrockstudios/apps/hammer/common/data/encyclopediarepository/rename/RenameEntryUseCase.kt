@@ -11,7 +11,7 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.globalsearch.SearchProjectUseCase
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NoteError
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
-import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupRepository
+import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupService
 import com.darkrockstudios.apps.hammer.common.data.references.BackfillEntryReferencesUseCase
 import com.darkrockstudios.apps.hammer.common.data.references.MatchKind
 import com.darkrockstudios.apps.hammer.common.data.references.MatchableEntry
@@ -42,7 +42,7 @@ class RenameEntryUseCase(
 	private val drafts: SceneDraftRepository,
 	private val notesRepository: NotesRepository,
 	private val timeLineRepository: TimeLineRepository,
-	private val backupRepository: ProjectBackupRepository,
+	private val backupService: ProjectBackupService,
 	private val backfillEntryReferences: BackfillEntryReferencesUseCase,
 	private val matcher: NameMatcher,
 ) {
@@ -153,7 +153,7 @@ class RenameEntryUseCase(
 			newName = newName,
 			newAliases = newAliases(request, newName),
 			items = items.sortedBy { it.key.place.ordinal },
-			backupSupported = backupRepository.supportsBackup(),
+			backupSupported = backupService.supportsBackup(),
 		)
 	}
 
@@ -174,8 +174,8 @@ class RenameEntryUseCase(
 		if (!check.canProceed) return failed(check.entryError)
 
 		var backupMade = false
-		if (backupRepository.supportsBackup()) {
-			backupMade = backupRepository.createBackup(projectDef) != null
+		if (backupService.supportsBackup()) {
+			backupMade = backupService.createBackup(projectDef) != null
 			if (!backupMade) return failed(EntryError.NONE, backupFailed = true)
 		}
 

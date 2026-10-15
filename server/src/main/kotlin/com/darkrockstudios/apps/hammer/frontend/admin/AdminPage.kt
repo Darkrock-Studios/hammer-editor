@@ -1,7 +1,7 @@
 package com.darkrockstudios.apps.hammer.frontend
 
 import com.darkrockstudios.apps.hammer.ServerConfig
-import com.darkrockstudios.apps.hammer.account.AccountDeletionService
+import com.darkrockstudios.apps.hammer.account.AccountDeletionUseCase
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.account.SortDirection
 import com.darkrockstudios.apps.hammer.account.UserSortField
@@ -33,7 +33,7 @@ fun Route.adminPage(
 	configRepository: ConfigRepository,
 	accountsRepository: AccountsRepository,
 	projectsRepository: ProjectsRepository,
-	accountDeletionService: AccountDeletionService,
+	accountDeletionUseCase: AccountDeletionUseCase,
 	serverConfig: ServerConfig,
 	emailService: EmailService?,
 	metricsRepository: com.darkrockstudios.apps.hammer.monitoring.MetricsRepository,
@@ -60,7 +60,7 @@ fun Route.adminPage(
 			adminUsersPage()
 			whiteListRoutes(whiteListRepository, clock)
 			serverSettingsRoutes(configRepository)
-			usersRoutes(accountsRepository, projectsRepository, accountDeletionService)
+			usersRoutes(accountsRepository, projectsRepository, accountDeletionUseCase)
 			if (emailFeatureEnabled && emailService != null) {
 				adminEmailPage(configRepository, emailService, serverConfig)
 				emailSettingsRoutes(configRepository, emailService)
@@ -148,7 +148,7 @@ private fun Route.adminUsersPage() {
 private fun Route.usersRoutes(
 	accountsRepository: AccountsRepository,
 	projectsRepository: ProjectsRepository,
-	accountDeletionService: AccountDeletionService,
+	accountDeletionUseCase: AccountDeletionUseCase,
 ) {
 	route("/users") {
 		usersFragment(accountsRepository, projectsRepository)
@@ -160,7 +160,7 @@ private fun Route.usersRoutes(
 				return@post
 			}
 
-			if (accountDeletionService.restore(userId)) {
+			if (accountDeletionUseCase.restore(userId)) {
 				call.response.header(HxResponseHeaders.Refresh, "true")
 				call.respond(io.ktor.http.HttpStatusCode.OK, "")
 			} else {

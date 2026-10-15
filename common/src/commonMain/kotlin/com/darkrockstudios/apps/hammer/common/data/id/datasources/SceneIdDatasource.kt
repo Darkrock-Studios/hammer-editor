@@ -9,25 +9,26 @@ import okio.FileSystem
 class SceneIdDatasource(
 	private val fileSystem: FileSystem
 ) : IdDatasource {
-	override fun findHighestId(projectDef: ProjectDef): Int {
+	override fun findIds(projectDef: ProjectDef): Set<Int> {
 		val sceneDir = SceneDatasource.getSceneDirectory(projectDef, fileSystem).toOkioPath()
 
-		// Get max from regular scenes (filterScenePathsOkio excludes archived)
-		val regularMaxId: Int = fileSystem.listRecursively(sceneDir)
-			.filterScenePathsOkio().maxOfOrNull { path ->
-				SceneDatasource.getSceneIdFromFilename(path.name)
-			} ?: -1
+		// filterScenePathsOkio excludes archived
+		val regularIds = fileSystem.listRecursively(sceneDir)
+			.filterScenePathsOkio()
+			.map { path -> SceneDatasource.getSceneIdFromFilename(path.name) }
+			.toSet()
 
-		// Also check archived scenes (supports both old and new filename formats)
+		// Archived scenes support both old and new filename formats
 		val archivedDir = SceneDatasource.getArchivedDirectory(projectDef, fileSystem).toOkioPath()
-		val archivedMaxId: Int = if (fileSystem.exists(archivedDir)) {
+		val archivedIds = if (fileSystem.exists(archivedDir)) {
 			fileSystem.list(archivedDir)
 				.filter { SceneDatasource.validateArchivedSceneFilename(it.name) }
-				.maxOfOrNull { SceneDatasource.getSceneIdFromFilename(it.name) } ?: -1
+				.map { SceneDatasource.getSceneIdFromFilename(it.name) }
+				.toSet()
 		} else {
-			-1
+			emptySet()
 		}
 
-		return maxOf(regularMaxId, archivedMaxId)
+		return regularIds + archivedIds
 	}
 }

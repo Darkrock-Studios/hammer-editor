@@ -1,10 +1,12 @@
 package com.darkrockstudios.apps.hammer.projects.routes
 
+import com.darkrockstudios.apps.hammer.account.ReleasePenNameUseCase
+import com.darkrockstudios.apps.hammer.account.RequestPasswordResetUseCase
 import com.darkrockstudios.apps.hammer.account.AccountsComponent
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.account.BioService
 import com.darkrockstudios.apps.hammer.account.PasswordResetRepository
-import com.darkrockstudios.apps.hammer.account.PenNameService
+import com.darkrockstudios.apps.hammer.account.PenNameUseCase
 import com.darkrockstudios.apps.hammer.admin.AdminComponent
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
@@ -18,7 +20,7 @@ import com.darkrockstudios.apps.hammer.project.ServerWritingActivityRepository
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.story.StoryRendererService
-import com.darkrockstudios.apps.hammer.utilities.MarkdownService
+import com.darkrockstudios.apps.hammer.utilities.MarkdownRenderer
 import com.darkrockstudios.apps.hammer.utils.BaseTest
 import com.darkrockstudios.apps.hammer.utils.setupKtorTestKoin
 import com.darkrockstudios.apps.hammer.utils.testAccount
@@ -68,7 +70,7 @@ abstract class ProjectsRoutesBaseTest : BaseTest() {
 	protected lateinit var storyRendererService: StoryRendererService
 
 	@MockK(relaxed = true)
-	protected lateinit var penNameService: PenNameService
+	protected lateinit var penNameUseCase: PenNameUseCase
 
 	@MockK(relaxed = true)
 	protected lateinit var bioService: BioService
@@ -80,7 +82,7 @@ abstract class ProjectsRoutesBaseTest : BaseTest() {
 	protected lateinit var json: Json
 
 	@MockK(relaxed = true)
-	protected lateinit var markdownService: MarkdownService
+	protected lateinit var markdownRenderer: MarkdownRenderer
 
 	protected lateinit var testModule: org.koin.core.module.Module
 
@@ -109,15 +111,17 @@ abstract class ProjectsRoutesBaseTest : BaseTest() {
 			single { adminComponent }
 			single { configRepository }
 			single { storyRendererService }
-			single { penNameService }
+			single { penNameUseCase }
 			single { bioService }
 			single { json }
 			single { passwordResetRepository }
-			single { markdownService }
+			single { mockk<RequestPasswordResetUseCase>() }
+			single { mockk<ReleasePenNameUseCase>() }
+			single { markdownRenderer }
 			single { mockk<com.darkrockstudios.apps.hammer.review.ReviewRepository>(relaxed = true) }
 			single { mockk<com.darkrockstudios.apps.hammer.storyideas.ServerIdeasRepository>(relaxed = true) }
 			single { mockk<com.darkrockstudios.apps.hammer.database.ProjectDao>(relaxed = true) }
-			single { mockk<com.darkrockstudios.apps.hammer.account.AccountDeletionService>(relaxed = true) }
+			single { mockk<com.darkrockstudios.apps.hammer.account.AccountDeletionUseCase>(relaxed = true) }
 			single { mockk<com.darkrockstudios.apps.hammer.account.TermsOfServiceRepository>(relaxed = true) }
 		}
 	}

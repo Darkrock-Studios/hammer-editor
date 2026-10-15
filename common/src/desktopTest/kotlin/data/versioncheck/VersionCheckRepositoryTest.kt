@@ -2,7 +2,7 @@ package data.versioncheck
 
 import com.darkrockstudios.apps.hammer.base.BuildMetadata
 import com.darkrockstudios.apps.hammer.common.data.versioncheck.GithubReleaseInfo
-import com.darkrockstudios.apps.hammer.common.data.versioncheck.VersionCheckDataSource
+import com.darkrockstudios.apps.hammer.common.data.versioncheck.VersionCheckDatasource
 import com.darkrockstudios.apps.hammer.common.data.versioncheck.VersionCheckRepository
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -22,7 +22,7 @@ class VersionCheckRepositoryTest {
 
 	@Test
 	fun `checkForUpdate flags new version when tag differs from current`() = runTest {
-		val dataSource = mockk<VersionCheckDataSource>()
+		val dataSource = mockk<VersionCheckDatasource>()
 		coEvery { dataSource.fetchLatestRelease() } returns release("v99.0.0")
 		val repo = VersionCheckRepository(dataSource)
 
@@ -34,7 +34,7 @@ class VersionCheckRepositoryTest {
 
 	@Test
 	fun `checkForUpdate reports no update when datasource returns null`() = runTest {
-		val dataSource = mockk<VersionCheckDataSource>()
+		val dataSource = mockk<VersionCheckDatasource>()
 		coEvery { dataSource.fetchLatestRelease() } returns null
 		val repo = VersionCheckRepository(dataSource)
 
@@ -46,7 +46,7 @@ class VersionCheckRepositoryTest {
 
 	@Test
 	fun `checkForUpdate reports no update when tag equals current version`() = runTest {
-		val dataSource = mockk<VersionCheckDataSource>()
+		val dataSource = mockk<VersionCheckDatasource>()
 		coEvery { dataSource.fetchLatestRelease() } returns release("v${BuildMetadata.APP_VERSION}")
 		val repo = VersionCheckRepository(dataSource)
 
@@ -57,7 +57,7 @@ class VersionCheckRepositoryTest {
 
 	@Test
 	fun `checkForUpdate caches result across calls`() = runTest {
-		val dataSource = mockk<VersionCheckDataSource>()
+		val dataSource = mockk<VersionCheckDatasource>()
 		coEvery { dataSource.fetchLatestRelease() } returns release("v99.0.0")
 		val repo = VersionCheckRepository(dataSource)
 
@@ -70,7 +70,7 @@ class VersionCheckRepositoryTest {
 
 	@Test
 	fun `checkForUpdate force re-fetches`() = runTest {
-		val dataSource = mockk<VersionCheckDataSource>()
+		val dataSource = mockk<VersionCheckDatasource>()
 		coEvery { dataSource.fetchLatestRelease() } returns release("v99.0.0")
 		val repo = VersionCheckRepository(dataSource)
 

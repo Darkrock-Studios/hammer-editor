@@ -86,6 +86,7 @@ lifecycle_process = "2.11.0"
 core_splashscreen = "1.2.0"
 
 mockk = "1.14.11"
+konsist = "0.18.1"
 
 tomlkt = "0.5.0"
 
@@ -210,6 +211,7 @@ essenty_lifecycle_coroutines = { group = "com.arkivanov.essenty", name = "lifecy
 orchestrator = { module = "androidx.test:orchestrator", version.ref = "orchestrator" }
 
 mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
+konsist = { group = "com.lemonappdev", name = "konsist", version.ref = "konsist" }
 
 androidx_runner = { module = "androidx.test:runner", version.ref = "androidx-runner" }
 androidx_datastore = { module = "androidx.datastore:datastore-preferences", version.ref = "androidx-datastore" }

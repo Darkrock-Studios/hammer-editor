@@ -5,7 +5,7 @@ import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
-import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupRepository
+import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupService
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.CollateIdsState
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityConflictHandler
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.OnSyncLog
@@ -31,7 +31,7 @@ class BackupOperationTest : BaseTest() {
 	private lateinit var globalSettingsStore: GlobalSettingsStore
 
 	@MockK(relaxed = true)
-	private lateinit var backupRepository: ProjectBackupRepository
+	private lateinit var backupService: ProjectBackupService
 
 	private lateinit var strRes: TestStrRes
 
@@ -48,15 +48,15 @@ class BackupOperationTest : BaseTest() {
 			projectDef = projectDef,
 			strRes = strRes,
 			globalSettingsStore = globalSettingsStore,
-			backupRepository = backupRepository,
+			backupService = backupService,
 		)
 	}
 
 	@Test
 	fun `Golden Path`() = runTest {
 		coEvery { globalSettingsStore.globalSettings.automaticBackups } returns true
-		coEvery { backupRepository.supportsBackup() } returns true
-		coEvery { backupRepository.createBackup(any()) } returns mockk(relaxed = true)
+		coEvery { backupService.supportsBackup() } returns true
+		coEvery { backupService.createBackup(any()) } returns mockk(relaxed = true)
 
 		val op = createOperation(getProjectDef(PROJECT_2_NAME))
 
@@ -85,14 +85,14 @@ class BackupOperationTest : BaseTest() {
 		assertTrue(isSuccess(result))
 		assertEquals(initialState, result.data)
 
-		coVerify(exactly = 1) { backupRepository.createBackup(getProjectDef(PROJECT_2_NAME)) }
+		coVerify(exactly = 1) { backupService.createBackup(getProjectDef(PROJECT_2_NAME)) }
 	}
 
 	@Test
 	fun `Backups disabled`() = runTest {
 		coEvery { globalSettingsStore.globalSettings.automaticBackups } returns false
-		coEvery { backupRepository.supportsBackup() } returns true
-		coEvery { backupRepository.createBackup(any()) } returns mockk(relaxed = true)
+		coEvery { backupService.supportsBackup() } returns true
+		coEvery { backupService.createBackup(any()) } returns mockk(relaxed = true)
 
 		val op = createOperation(getProjectDef(PROJECT_2_NAME))
 
@@ -121,14 +121,14 @@ class BackupOperationTest : BaseTest() {
 		assertTrue(isSuccess(result))
 		assertEquals(initialState, result.data)
 
-		coVerify(exactly = 0) { backupRepository.createBackup(getProjectDef(PROJECT_2_NAME)) }
+		coVerify(exactly = 0) { backupService.createBackup(getProjectDef(PROJECT_2_NAME)) }
 	}
 
 	@Test
 	fun `Platform does not support backups`() = runTest {
 		coEvery { globalSettingsStore.globalSettings.automaticBackups } returns true
-		coEvery { backupRepository.supportsBackup() } returns false
-		coEvery { backupRepository.createBackup(any()) } returns mockk(relaxed = true)
+		coEvery { backupService.supportsBackup() } returns false
+		coEvery { backupService.createBackup(any()) } returns mockk(relaxed = true)
 
 		val op = createOperation(getProjectDef(PROJECT_2_NAME))
 
@@ -157,6 +157,6 @@ class BackupOperationTest : BaseTest() {
 		assertTrue(isSuccess(result))
 		assertEquals(initialState, result.data)
 
-		coVerify(exactly = 0) { backupRepository.createBackup(getProjectDef(PROJECT_2_NAME)) }
+		coVerify(exactly = 0) { backupService.createBackup(getProjectDef(PROJECT_2_NAME)) }
 	}
 }

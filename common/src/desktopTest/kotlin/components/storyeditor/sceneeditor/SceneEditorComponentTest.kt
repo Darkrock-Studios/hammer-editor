@@ -14,7 +14,7 @@ import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEd
 import com.darkrockstudios.apps.hammer.common.data.tree.ImmutableTree
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeValue
 import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectDictionaryUseCase
-import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectSpellCheckRepository
+import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectSpellCheckService
 import com.darkrockstudios.libs.platformspellchecker.PlatformSpellChecker
 import io.mockk.*
 import kotlinx.collections.immutable.persistentListOf
@@ -46,7 +46,7 @@ class SceneEditorComponentTest : ComponentTest() {
 	private lateinit var sceneEditor: SceneEditorService
 	private lateinit var draftsRepository: SceneDraftRepository
 	private lateinit var autoConfirm: AutoConfirmReferencesUseCase
-	private lateinit var spellCheck: ProjectSpellCheckRepository
+	private lateinit var spellCheck: ProjectSpellCheckService
 	private lateinit var projectDictionary: ProjectDictionaryUseCase
 
 	private lateinit var settingsUpdates: MutableSharedFlow<GlobalSettings>
@@ -105,7 +105,7 @@ class SceneEditorComponentTest : ComponentTest() {
 
 		setupComponentKoin(module {
 			single<GlobalSettingsStore> { settingsStore }
-			single<ProjectSpellCheckRepository> { spellCheck }
+			single<ProjectSpellCheckService> { spellCheck }
 			single { projectDictionary }
 			single { sceneEditor } bind SceneEditorService::class
 			single { draftsRepository } bind SceneDraftRepository::class

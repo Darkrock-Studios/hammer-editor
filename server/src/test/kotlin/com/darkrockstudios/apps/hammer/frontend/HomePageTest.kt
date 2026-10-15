@@ -6,7 +6,7 @@ import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.frontend.data.UserSession
 import com.darkrockstudios.apps.hammer.plugins.configureLocalization
 import com.darkrockstudios.apps.hammer.plugins.configureTemplating
-import com.darkrockstudios.apps.hammer.utilities.MarkdownService
+import com.darkrockstudios.apps.hammer.utilities.MarkdownRenderer
 import com.darkrockstudios.apps.hammer.utils.BaseTest
 import com.darkrockstudios.apps.hammer.utils.setupKtorTestKoin
 import io.ktor.client.request.get
@@ -44,7 +44,7 @@ class HomePageTest : BaseTest() {
 				cookie<UserSession>(COOKIE_USER_SESSION)
 			}
 			routing {
-				homePage(configRepository, MarkdownService())
+				homePage(configRepository, MarkdownRenderer())
 			}
 		}
 	}

@@ -7,7 +7,7 @@ import com.darkrockstudios.apps.hammer.base.GITHUB_URL
 import com.darkrockstudios.apps.hammer.common.components.protocolmismatch.ProtocolMismatchComponent
 import com.darkrockstudios.apps.hammer.common.data.protocolmismatch.ProtocolMismatchInfo
 import com.darkrockstudios.apps.hammer.common.data.versioncheck.GithubReleaseInfo
-import com.darkrockstudios.apps.hammer.common.data.versioncheck.VersionCheckDataSource
+import com.darkrockstudios.apps.hammer.common.data.versioncheck.VersionCheckDatasource
 import com.darkrockstudios.apps.hammer.common.data.versioncheck.VersionCheckRepository
 import com.darkrockstudios.apps.hammer.common.util.UrlLauncher
 import com.darkrockstudios.apps.hammer.common.util.getAppVersionString
@@ -32,7 +32,7 @@ class ProtocolMismatchComponentTest : BaseTest() {
 
 	private lateinit var lifecycle: LifecycleRegistry
 	private lateinit var context: DefaultComponentContext
-	private lateinit var dataSource: VersionCheckDataSource
+	private lateinit var dataSource: VersionCheckDatasource
 	private lateinit var urlLauncher: UrlLauncher
 	private var dismissed = false
 
@@ -55,7 +55,7 @@ class ProtocolMismatchComponentTest : BaseTest() {
 
 		setupKoin(
 			module {
-				single { dataSource } bind VersionCheckDataSource::class
+				single { dataSource } bind VersionCheckDatasource::class
 				single { VersionCheckRepository(get()) }
 				single { urlLauncher } bind UrlLauncher::class
 			}

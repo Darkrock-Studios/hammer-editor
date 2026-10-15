@@ -8,7 +8,6 @@ import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftsDatasource
 import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.migrator.Migration2_3
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneContentRepository
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import createProject
 import getProjectDef
@@ -72,7 +71,7 @@ class SceneDraftNameTest : BaseTest() {
 
 	private fun createRepository(nextId: Int = 900): SceneDraftRepository {
 		coEvery { idAllocator.claimNextId() } returns nextId
-		datasource = SceneDraftsDatasource(ffs, SceneDatasource(projectDef, ffs))
+		datasource = SceneDraftsDatasource(projectDef, ffs)
 		return SceneDraftRepository(projectDef, sceneContentRepository, datasource, clock)
 	}
 

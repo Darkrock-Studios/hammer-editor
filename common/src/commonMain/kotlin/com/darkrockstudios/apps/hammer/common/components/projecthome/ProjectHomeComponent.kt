@@ -16,7 +16,7 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupDef
-import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupRepository
+import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupService
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.EntryAppearance
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsService
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.deriveWritingStats
@@ -51,7 +51,7 @@ class ProjectHomeComponent(
 	private val mainDispatcher by injectMainDispatcher()
 
 	private val globalSettingsStore: GlobalSettingsStore by inject()
-	private val projectBackupRepository: ProjectBackupRepository by inject()
+	private val projectBackupService: ProjectBackupService by inject()
 	private val sceneEditorRepository: SceneEditorService by projectInject()
 	private val exportStoryUseCase: ExportStoryUseCase by projectInject()
 	private val encyclopediaService: EncyclopediaService by projectInject()
@@ -202,11 +202,11 @@ class ProjectHomeComponent(
 		onShowEntry(def)
 	}
 
-	override fun supportsBackup(): Boolean = projectBackupRepository.supportsBackup()
+	override fun supportsBackup(): Boolean = projectBackupService.supportsBackup()
 
 	override fun createBackup(callback: (ProjectBackupDef?) -> Unit) {
 		scope.launch {
-			val backup = projectBackupRepository.createBackup(projectDef)
+			val backup = projectBackupService.createBackup(projectDef)
 
 			withContext(mainDispatcher) {
 				callback(backup)

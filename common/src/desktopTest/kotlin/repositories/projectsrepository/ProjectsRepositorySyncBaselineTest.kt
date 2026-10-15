@@ -12,7 +12,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectdata.readStoredProject
 import com.darkrockstudios.apps.hammer.common.data.projectdata.saveStoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityOriginalState
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectSynchronizationData
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataDatasource
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournalDatasource
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import createProject
@@ -39,7 +39,7 @@ class ProjectsRepositorySyncBaselineTest : ProjectsRepositoryBaseTest() {
 	private val projectDef = getProjectDef(PROJECT_1_NAME)
 
 	private fun syncJournalPath(): Path =
-		projectDef.path.toOkioPath() / SyncDataDatasource.SYNC_FILE_NAME
+		projectDef.path.toOkioPath() / SyncJournalDatasource.SYNC_FILE_NAME
 
 	private val seededJournal = ProjectSynchronizationData(
 		currentSyncId = "session-on-the-old-server",

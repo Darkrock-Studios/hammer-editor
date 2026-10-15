@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.frontend
 
 import com.darkrockstudios.apps.hammer.account.PasswordResetRepository
+import com.darkrockstudios.apps.hammer.account.RequestPasswordResetUseCase
 import com.darkrockstudios.apps.hammer.account.TokenValidationResult
 import com.darkrockstudios.apps.hammer.frontend.utils.msg
 import com.darkrockstudios.apps.hammer.frontend.utils.publicBaseUrl
@@ -11,13 +12,16 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 
-fun Route.passwordResetRoutes(passwordResetRepository: PasswordResetRepository) {
-	forgotPasswordPage(passwordResetRepository)
+fun Route.passwordResetRoutes(
+	passwordResetRepository: PasswordResetRepository,
+	requestPasswordReset: RequestPasswordResetUseCase,
+) {
+	forgotPasswordPage(requestPasswordReset)
 	resetPasswordPage(passwordResetRepository)
 }
 
 // GET /forgot-password - Display forgot password form
-private fun Route.forgotPasswordPage(passwordResetRepository: PasswordResetRepository) {
+private fun Route.forgotPasswordPage(requestPasswordReset: RequestPasswordResetUseCase) {
 	route("/forgot-password") {
 		get {
 			val model = mapOf(
@@ -40,7 +44,7 @@ private fun Route.forgotPasswordPage(passwordResetRepository: PasswordResetRepos
 			}
 
 			// Request password reset (always returns success to prevent enumeration)
-			passwordResetRepository.requestPasswordReset(email) { token ->
+			requestPasswordReset(email) { token ->
 				call.publicBaseUrl()?.let { base -> "$base/reset-password?token=$token" }
 			}
 

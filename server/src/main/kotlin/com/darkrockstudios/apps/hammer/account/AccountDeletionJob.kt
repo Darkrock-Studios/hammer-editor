@@ -14,7 +14,7 @@ import kotlin.time.Duration.Companion.hours
  * correctness.
  */
 class AccountDeletionJob(
-	private val accountDeletionService: AccountDeletionService,
+	private val accountDeletionUseCase: AccountDeletionUseCase,
 	private val serverConfig: ServerConfig,
 	private val clock: Clock,
 	logger: Logger,
@@ -22,10 +22,10 @@ class AccountDeletionJob(
 
 	override suspend fun tick() {
 		val cutoff = clock.now() - serverConfig.accountDeletion.retention
-		val dueAccounts = accountDeletionService.findAccountsPastRetention(cutoff)
+		val dueAccounts = accountDeletionUseCase.findAccountsPastRetention(cutoff)
 		for (account in dueAccounts) {
 			try {
-				accountDeletionService.hardDelete(account.id)
+				accountDeletionUseCase.hardDelete(account.id)
 				logger.info("Account past retention hard-deleted: ${account.id}")
 			} catch (e: CancellationException) {
 				throw e
