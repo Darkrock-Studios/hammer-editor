@@ -503,7 +503,7 @@ class ProjectBackupServiceTest {
 	}
 
 	@Test
-	fun `restoreBackup over the live project resets its sync state once the id is settled`() = runTest {
+	fun `restoreBackup over the live project resets its sync state on the migrated files`() = runTest {
 		every { clock.now() } returns Instant.parse("2025-12-28T16:29:00Z")
 		every { projectsRepository.getProjectsDirectory() } returns "/projects".toPath().toHPath()
 		every { projectsRepository.getProjectDirectory("Test Project") } returns
@@ -522,17 +522,16 @@ class ProjectBackupServiceTest {
 
 		assertTrue(service.restoreBackup(backupDef, projectDef.path))
 
-		// The id is unchanged, so setProjectId clears nothing; the reset must still run, and on the
-		// migrated files.
+		// The id is unchanged, so setProjectId clears nothing; the reset must still run.
 		coVerifyOrder {
 			dataMigrator.migrateProject(projectDef)
-			projectsRepository.setProjectId(projectDef, liveId)
 			projectsRepository.resetSyncStateAfterRestore(projectDef, serverKnowsProject = false)
+			projectsRepository.setProjectId(projectDef, liveId)
 		}
 	}
 
 	@Test
-	fun `restoreBackup resets the sync state when no live project is replaced`() = runTest {
+	fun `restoreBackup flags the sync state before giving a fresh id`() = runTest {
 		every { clock.now() } returns Instant.parse("2025-12-28T16:29:00Z")
 		every { projectsRepository.getProjectsDirectory() } returns "/projects".toPath().toHPath()
 		every { projectsRepository.getProjectDirectory("Test Project") } returns
@@ -552,9 +551,10 @@ class ProjectBackupServiceTest {
 
 		assertTrue(service.restoreBackup(backupDef, projectDef.path))
 
+		// A flagged journal keeps its conflict baselines through the id change.
 		coVerifyOrder {
-			projectsRepository.setProjectId(projectDef, any())
 			projectsRepository.resetSyncStateAfterRestore(projectDef, serverKnowsProject = false)
+			projectsRepository.setProjectId(projectDef, any())
 		}
 	}
 

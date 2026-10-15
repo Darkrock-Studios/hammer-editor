@@ -119,7 +119,8 @@ class ProjectsRepository(
 
 	/**
 	 * Gives the project a different identity: adopting a server project's id, or re-minting one
-	 * that collides. The old sync baseline described the old id, so it goes when the id changes.
+	 * that collides. The old sync baseline described the old id, so it goes when the id changes
+	 * (a journal flagged for verification keeps its conflict baselines, see [clearProjectSyncBaseline]).
 	 */
 	suspend fun setProjectId(projectDef: ProjectDef, projectId: ProjectId) {
 		val oldId = getProjectId(projectDef)

@@ -101,6 +101,28 @@ class ProjectsRepositorySyncBaselineTest : ProjectsRepositoryBaseTest() {
 		}
 
 	@Test
+	fun `Moving a project flagged for verification keeps its conflict baselines`() = scope.runTest {
+		createProject(ffs, PROJECT_1_NAME)
+		ffs.write(syncJournalPath()) {
+			writeUtf8(json.encodeToString(seededJournal.copy(verifyAllEntities = true)))
+		}
+		val repo = projectsRepository()
+
+		repo.setProjectId(projectDef, ProjectId("id-on-the-new-server"))
+
+		// Without them, the verification pass baselines each pending edit on its own local hash, and
+		// the server rejects the upload as a conflict.
+		val journal = readJournal()
+		assertTrue(journal.verifyAllEntities)
+		assertEquals(seededJournal.syncedHashes, journal.syncedHashes)
+		assertEquals(seededJournal.dirty, journal.dirty)
+		assertNull(journal.currentSyncId)
+		assertEquals(Instant.DISTANT_PAST, journal.lastSync)
+		assertNull(journal.cachedProjectHash)
+		assertEquals(0, journal.hashAlgoVersion)
+	}
+
+	@Test
 	fun `Moving a project keeps local work the new server has never seen`() = scope.runTest {
 		createProject(ffs, PROJECT_1_NAME)
 		seedBaseline()
@@ -245,7 +267,7 @@ class ProjectsRepositorySyncBaselineTest : ProjectsRepositoryBaseTest() {
 		}
 
 	@Test
-	fun `Restoring a backup where no project remains leaves no baseline from backup time`() =
+	fun `Restoring a backup under a fresh id keeps its conflict baselines`() =
 		scope.runTest {
 			createProject(ffs, PROJECT_1_NAME)
 			val repo = projectsRepository()
@@ -257,11 +279,12 @@ class ProjectsRepositorySyncBaselineTest : ProjectsRepositoryBaseTest() {
 
 			assertTrue(backups.restoreBackup(backup, projectDef.path))
 
-			// A fresh id is a new, empty server project: nothing there to conflict with.
+			// The server conflict-checks only entities it holds, so on a new, empty server project
+			// these baselines upload cleanly.
 			assertNotEquals(backupId, repo.getProjectId(projectDef))
 			val journal = readJournal()
-			assertEquals(emptyMap(), journal.syncedHashes)
-			assertEquals(listOf(EntityOriginalState(5, originalHash = null)), journal.dirty)
+			assertEquals(seededJournal.syncedHashes, journal.syncedHashes)
+			assertEquals(seededJournal.dirty, journal.dirty)
 			assertEquals(Instant.DISTANT_PAST, journal.lastSync)
 			assertNull(journal.cachedProjectHash)
 			assertTrue(journal.verifyAllEntities)

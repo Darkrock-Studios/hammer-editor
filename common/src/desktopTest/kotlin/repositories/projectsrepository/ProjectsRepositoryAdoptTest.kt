@@ -11,6 +11,7 @@ import com.darkrockstudios.apps.hammer.common.data.migrator.Migration3_4
 import com.darkrockstudios.apps.hammer.common.data.projectdata.readStoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityOriginalState
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectSynchronizationData
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournalDatasource
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
@@ -97,6 +98,37 @@ class ProjectsRepositoryAdoptTest : ProjectsRepositoryBaseTest() {
 			val healedJournal = readJournal(lost)
 			assertTrue(healedJournal.verifyAllEntities, "the journal may be stale, so every entity is checked")
 			assertEquals(journal.syncedHashes, healedJournal.syncedHashes)
+		}
+
+	@Test
+	fun `A healed folder keeps its pending edit's baseline when it adopts a server project's id`() =
+		scope.runTest {
+			val repo = projectsRepository()
+			val lost = createFolder("Synced Once", SceneDatasource.SCENE_DIRECTORY)
+			val journal = ProjectSynchronizationData(
+				currentSyncId = "stale-session",
+				lastId = 36,
+				newIds = emptyList(),
+				lastSync = Instant.fromEpochSeconds(1_000_000),
+				dirty = listOf(EntityOriginalState(36, "server-confirmed-hash")),
+				deletedIds = emptySet(),
+				syncedHashes = mapOf(36 to "server-confirmed-hash", 1 to "other-confirmed-hash"),
+				cachedProjectHash = "stale-project-hash",
+				hashAlgoVersion = 3,
+			)
+			ffs.write(journalPath(lost)) { writeUtf8(json.encodeToString(journal)) }
+			val healed = repo.healUnmarkedProjectDirectories().single()
+
+			repo.setProjectId(healed, ProjectId("server-project-id"))
+
+			// The pending edit must upload against the hash the server confirmed, not conflict.
+			val adoptedJournal = readJournal(healed)
+			assertTrue(adoptedJournal.verifyAllEntities)
+			assertEquals(journal.syncedHashes, adoptedJournal.syncedHashes)
+			assertEquals(journal.dirty, adoptedJournal.dirty)
+			assertNull(adoptedJournal.currentSyncId)
+			assertNull(adoptedJournal.cachedProjectHash)
+			assertEquals(0, adoptedJournal.hashAlgoVersion)
 		}
 
 	@Test

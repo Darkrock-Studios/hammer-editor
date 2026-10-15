@@ -250,15 +250,16 @@ open class ProjectBackupService(
 		} catch (e: Exception) {
 			Napier.e("Restored '${targetDef.name}' but failed to migrate it", e)
 		}
-		try {
-			projectsRepository.setProjectId(targetDef, liveId ?: ProjectId.randomUUID())
-		} catch (e: Exception) {
-			Napier.e("Restored '${targetDef.name}' but failed to set its project id", e)
-		}
+		// Flagged before the id is set, so an id change keeps the backup's conflict baselines.
 		try {
 			projectsRepository.resetSyncStateAfterRestore(targetDef, serverKnowsProject = liveSynced)
 		} catch (e: Exception) {
 			Napier.e("Restored '${targetDef.name}' but failed to reset its sync state", e)
+		}
+		try {
+			projectsRepository.setProjectId(targetDef, liveId ?: ProjectId.randomUUID())
+		} catch (e: Exception) {
+			Napier.e("Restored '${targetDef.name}' but failed to set its project id", e)
 		}
 	}
 
