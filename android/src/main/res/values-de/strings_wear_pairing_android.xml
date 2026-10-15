@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="wear_pairing_masthead">PAIR WATCH</string>
+	<string name="wear_pairing_title">Sign in %1$s to Hammer?</string>
+	<string name="wear_pairing_body">The watch will sync as %1$s with a session of its own. You can sign it out from the watch at any time.</string>
+	<string name="wear_pairing_not_signed_in">Sign in to a sync server on this phone first, then pair the watch again.</string>
+	<string name="wear_pairing_approve">Pair</string>
+	<string name="wear_pairing_decline">Ablehnen</string>
+	<string name="wear_pairing_close">Schließen</string>
+	<string name="wear_pairing_toast_success">Watch paired</string>
+	<string name="wear_pairing_toast_failure">The watch could not be paired</string>
+	<string name="wear_pairing_channel_name">Watch pairing</string>
+	<string name="wear_pairing_notification_title">Pair your watch</string>
+	<string name="wear_pairing_notification_text">Tap to let your watch sync with your Hammer account</string>
+</resources>
