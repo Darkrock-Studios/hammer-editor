@@ -164,7 +164,7 @@ class DataMigratorTest : BaseTest() {
 	}
 
 	@Test
-	fun `Handle Migration - Heals unmarked folders before the scan so they are migrated`() {
+	fun `Handle Migration - Heals unmarked folders before the scan and resets them after migrating`() {
 		val testModule = module {
 			factory<MigrateInstallIdToGlobal> { mockk(relaxed = true) }
 			factory<MigrateInlineAuthTokens> { mockk(relaxed = true) }
@@ -208,6 +208,7 @@ class DataMigratorTest : BaseTest() {
 			projectsRepository.healUnmarkedProjectDirectories()
 			projectsRepository.getProjects(any())
 			migration.migrate(healedDef)
+			projectsRepository.resetSyncStateAfterRestore(healedDef, serverKnowsProject = false)
 		}
 	}
 

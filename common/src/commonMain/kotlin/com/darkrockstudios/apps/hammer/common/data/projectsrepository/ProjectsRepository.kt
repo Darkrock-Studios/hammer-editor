@@ -276,20 +276,27 @@ class ProjectsRepository(
 	/**
 	 * Marks the existing directory for [projectName] as a project under [projectId], if it has no
 	 * [ProjectMetadata.FILENAME]. Any sync journal it holds may be stale, so it is reset like a
-	 * restored backup's (see [resetSyncStateAfterRestore]). Does not migrate: the caller does.
+	 * restored backup's (see [resetSyncStateAfterRestore]). Does not migrate: the caller does, then
+	 * resets again, since migration can move a pre-4 settings file's stale baseline into place.
 	 */
 	suspend fun adoptUnmarkedDirectory(
 		projectName: String,
 		projectId: ProjectId,
 		serverKnowsProject: Boolean,
+	): ProjectDef? = adoptUnmarkedDirectory(getProjectDefinition(projectName), projectId, serverKnowsProject)
+
+	private suspend fun adoptUnmarkedDirectory(
+		projectDef: ProjectDef,
+		projectId: ProjectId,
+		serverKnowsProject: Boolean,
 	): ProjectDef? {
-		val projectDir = getProjectDirectory(projectName).toOkioPath()
+		val projectDir = projectDef.path.toOkioPath()
 		if (fileSystem.metadataOrNull(projectDir)?.isDirectory != true || !isUnmarked(projectDir)) return null
 
-		val projectDef = ProjectDef(projectName, projectDir.toHPath())
-		projectsMetadataDatasource.createMetadata(projectDef, projectId)
+		// Reset before marking, so a crash between the two leaves the folder unmarked and retried.
 		resetSyncStateAfterRestore(projectDef, serverKnowsProject)
-		Napier.w("Adopted unmarked project folder '$projectName' as ${projectId.id}")
+		projectsMetadataDatasource.createMetadata(projectDef, projectId)
+		Napier.w("Adopted unmarked project folder '${projectDef.name}' as ${projectId.id}")
 		return projectDef
 	}
 
@@ -300,7 +307,7 @@ class ProjectsRepository(
 	suspend fun healUnmarkedProjectDirectories(): List<ProjectDef> =
 		listCandidateDirectories(getProjectsDirectory().toOkioPath())
 			.filter { isUnmarked(it.path.toOkioPath()) && hasProjectContent(it.path.toOkioPath()) }
-			.mapNotNull { adoptUnmarkedDirectory(it.name, ProjectId.randomUUID(), serverKnowsProject = false) }
+			.mapNotNull { adoptUnmarkedDirectory(it, ProjectId.randomUUID(), serverKnowsProject = false) }
 
 	/** Returns up to [limit] projects ordered by `metadata.info.lastAccessed` descending, optionally excluding [excludeCurrent]. Projects with unreadable metadata sort last. */
 	fun getRecentProjects(limit: Int, excludeCurrent: ProjectDef? = null): List<ProjectDef> =

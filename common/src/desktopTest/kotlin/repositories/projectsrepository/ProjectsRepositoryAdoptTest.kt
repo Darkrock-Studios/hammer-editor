@@ -4,12 +4,23 @@ import PROJECT_2_NAME
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
+import com.darkrockstudios.apps.hammer.common.data.migrator.GlobalMigration
+import com.darkrockstudios.apps.hammer.common.data.migrator.Migration
+import com.darkrockstudios.apps.hammer.common.data.migrator.Migration3_4
+import com.darkrockstudios.apps.hammer.common.data.projectdata.readStoredProjectData
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectSynchronizationData
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournalDatasource
+import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import createProject
 import getProjectDef
+import getProjectsDirectory
+import io.mockk.every
+import io.mockk.just
+import io.mockk.runs
 import kotlinx.coroutines.test.runTest
 import okio.Path
 import org.junit.jupiter.api.Test
@@ -38,6 +49,19 @@ class ProjectsRepositoryAdoptTest : ProjectsRepositoryBaseTest() {
 
 	private fun readJournal(def: ProjectDef): ProjectSynchronizationData =
 		ffs.read(journalPath(def)) { json.decodeFromString(readUtf8()) }
+
+	private fun migrator(repo: ProjectsRepository) =
+		object : DataMigrator(settingsRepo, repo, projectsMetaDatasource) {
+			override val latestProjectDataVersion = 4
+			override fun getGlobalMigrations(): List<GlobalMigration> = emptyList()
+			override fun getMigrators(): Map<Int, Migration> =
+				(1..3).associateWith { noOpMigration(it) } + (4 to Migration3_4(ffs, projectsMetaDatasource))
+		}
+
+	private fun noOpMigration(version: Int) = object : Migration {
+		override val toVersion = version
+		override fun migrate(projectDef: ProjectDef) {}
+	}
 
 	@Test
 	fun `Heal re-marks a folder that still holds scenes`() = scope.runTest {
@@ -98,6 +122,37 @@ class ProjectsRepositoryAdoptTest : ProjectsRepositoryBaseTest() {
 		}
 
 	@Test
+	fun `Heal adopts a folder at its listed path when its name would encode to another one`() =
+		scope.runTest {
+			val repo = projectsRepository()
+			val rawDir = getProjectsDirectory() / "What?"
+			ffs.createDirectories(rawDir / SceneDatasource.SCENE_DIRECTORY)
+
+			val healed = repo.healUnmarkedProjectDirectories()
+
+			assertEquals(listOf(ProjectDef("What?", rawDir.toHPath())), healed)
+			assertTrue(ffs.exists(rawDir / ProjectMetadata.FILENAME))
+			assertFalse(ffs.exists(repo.getProjectDirectory("What?").toOkioPath()))
+		}
+
+	@Test
+	fun `Startup heal clears a pre-4 settings baseline that migration moves into place`() = scope.runTest {
+		every { settingsRepo.reloadServerSettings() } just runs
+		val repo = projectsRepository()
+		val lost = createFolder("Old Project", SceneDatasource.SCENE_DIRECTORY)
+		ffs.write(dir(lost) / Migration3_4.LEGACY_PROJECT_SETTINGS_FILENAME) {
+			writeUtf8("lastSyncedHash = \"stale\"\n\n[data]\nauthorName = \"Pat\"\n")
+		}
+
+		migrator(repo).handleDataMigration()
+
+		val settings = readStoredProjectData(lost, ffs, toml)
+		assertEquals("Pat", settings.data.authorName)
+		assertNull(settings.lastSyncedHash, "a pre-4 baseline is as stale as the journal")
+		assertEquals(4, projectsMetaDatasource.loadMetadata(lost).info.dataVersion)
+	}
+
+	@Test
 	fun `Adopting an empty folder marks it with the given id and no journal`() = scope.runTest {
 		val repo = projectsRepository()
 		val folder = createFolder("Server Project")
@@ -133,6 +188,18 @@ class ProjectsRepositoryAdoptTest : ProjectsRepositoryBaseTest() {
 
 		assertNull(adopted)
 		assertEquals(project2Id, repo.getProjectId(getProjectDef(PROJECT_2_NAME)))
+	}
+
+	@Test
+	fun `Adopting a folder whose project toml is a directory does nothing`() = scope.runTest {
+		val repo = projectsRepository()
+		val folder = createFolder("Odd Marker", ProjectMetadata.FILENAME)
+
+		val adopted = repo.adoptUnmarkedDirectory("Odd Marker", ProjectId("server-id"), serverKnowsProject = true)
+
+		assertNull(adopted)
+		assertTrue(ffs.metadata(dir(folder) / ProjectMetadata.FILENAME).isDirectory)
+		assertFalse(ffs.exists(journalPath(folder)))
 	}
 
 	@Test

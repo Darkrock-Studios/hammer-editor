@@ -47,13 +47,17 @@ open class DataMigrator(
 	suspend fun handleDataMigration() {
 		runGlobalMigrations()
 		// Healed projects start at data version 0, so they are migrated below.
-		projectsRepository.healUnmarkedProjectDirectories()
+		val healed = projectsRepository.healUnmarkedProjectDirectories()
 
 		if (checkIfMigrationNeeded()) {
 			doMigration()
 		} else {
 			Napier.d("No projects need migration. Skipping.")
 		}
+
+		// Migration3_4 moves a pre-4 settings file, stale sync baseline included, into place only
+		// after the heal reset the project's sync state.
+		healed.forEach { projectsRepository.resetSyncStateAfterRestore(it, serverKnowsProject = false) }
 
 		projectsRepository.resolveDuplicateProjectIds()
 	}
