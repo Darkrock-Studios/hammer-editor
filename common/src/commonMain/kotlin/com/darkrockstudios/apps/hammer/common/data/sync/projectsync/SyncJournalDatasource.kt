@@ -120,7 +120,7 @@ fun markProjectRestored(
 	json: Json,
 	serverKnowsProject: Boolean,
 ) {
-	val path = projectDef.path.toOkioPath() / SyncDataDatasource.SYNC_FILE_NAME
+	val path = projectDef.path.toOkioPath() / SyncJournalDatasource.SYNC_FILE_NAME
 
 	val existing = if (fileSystem.exists(path)) {
 		try {

@@ -24,7 +24,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRe
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository.Companion.encodeForFilename
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository.Companion.sanitizeFileName
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository.Companion.validateFileName
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataDatasource
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournalDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.clearProjectSyncBaseline
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.markProjectRestored
 import com.darkrockstudios.apps.hammer.common.data.toMsg
@@ -178,7 +178,7 @@ class ProjectsRepository(
 	}
 
 	private fun hasSyncJournal(projectDef: ProjectDef): Boolean =
-		fileSystem.exists(projectDef.path.toOkioPath() / SyncDataDatasource.SYNC_FILE_NAME)
+		fileSystem.exists(projectDef.path.toOkioPath() / SyncJournalDatasource.SYNC_FILE_NAME)
 
 	/**
 	 * The entity journal and `lastSyncedHash` record what one specific server already confirmed.

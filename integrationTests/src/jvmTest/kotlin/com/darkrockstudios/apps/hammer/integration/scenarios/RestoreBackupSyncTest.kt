@@ -2,8 +2,8 @@ package com.darkrockstudios.apps.hammer.integration.scenarios
 
 import com.darkrockstudios.apps.hammer.common.data.SceneContent
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupDef
-import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupRepository
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataDatasource
+import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupService
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournalDatasource
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.e2e.util.E2eTestData
 import com.darkrockstudios.apps.hammer.integration.HeadlessClient
@@ -27,7 +27,7 @@ class RestoreBackupSyncTest : RoundTripTestBase() {
 
 	private suspend fun restore(client: HeadlessClient, backup: ProjectBackupDef): HeadlessClient {
 		client.close()
-		assertTrue(get<ProjectBackupRepository>().restoreBackup(backup, client.projectDef.path))
+		assertTrue(get<ProjectBackupService>().restoreBackup(backup, client.projectDef.path))
 		return reopen(client)
 	}
 
@@ -49,7 +49,7 @@ class RestoreBackupSyncTest : RoundTripTestBase() {
 		val scene = assertNotNull(client.sceneEditor.createScene(parent = null, sceneName = "Scene"))
 		client.writeScene(scene.id, "backed up")
 		assertTrue(client.sync())
-		val backup = assertNotNull(get<ProjectBackupRepository>().createBackup(client.projectDef))
+		val backup = assertNotNull(get<ProjectBackupService>().createBackup(client.projectDef))
 
 		// Work after the backup reaches the server.
 		client.writeScene(scene.id, "after the backup")
@@ -69,7 +69,7 @@ class RestoreBackupSyncTest : RoundTripTestBase() {
 		assertTrue(client.sync())
 
 		client.writeScene(scene.id, "unsynced edit in the backup")
-		val backup = assertNotNull(get<ProjectBackupRepository>().createBackup(client.projectDef))
+		val backup = assertNotNull(get<ProjectBackupService>().createBackup(client.projectDef))
 
 		mutateServerEntity(
 			requireNotNull(serverNumericProjectIdFor(project)),
@@ -91,10 +91,10 @@ class RestoreBackupSyncTest : RoundTripTestBase() {
 
 		// Stand in for a backup taken before the project ever synced: it carries no journal.
 		val fileSystem = get<FileSystem>()
-		val journal = client.projectDef.path.toOkioPath() / SyncDataDatasource.SYNC_FILE_NAME
+		val journal = client.projectDef.path.toOkioPath() / SyncJournalDatasource.SYNC_FILE_NAME
 		val aside = journal.parent!! / "sync.json.aside"
 		fileSystem.atomicMove(journal, aside)
-		val backup = assertNotNull(get<ProjectBackupRepository>().createBackup(client.projectDef))
+		val backup = assertNotNull(get<ProjectBackupService>().createBackup(client.projectDef))
 		fileSystem.atomicMove(aside, journal)
 
 		client.writeScene(scene.id, "after the backup")
@@ -112,7 +112,7 @@ class RestoreBackupSyncTest : RoundTripTestBase() {
 		val scene = assertNotNull(client.sceneEditor.createScene(parent = null, sceneName = "Scene"))
 		client.writeScene(scene.id, "backed up")
 		assertTrue(client.sync())
-		val backup = assertNotNull(get<ProjectBackupRepository>().createBackup(client.projectDef))
+		val backup = assertNotNull(get<ProjectBackupService>().createBackup(client.projectDef))
 
 		val restored = restore(client, backup)
 		assertTrue(restored.syncNoConflict())

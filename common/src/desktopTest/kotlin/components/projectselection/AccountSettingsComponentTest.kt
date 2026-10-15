@@ -21,7 +21,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetada
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ClientAccountSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectSynchronizationData
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataDatasource
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournalDatasource
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.getDefaultRootDocumentDirectory
 import com.darkrockstudios.apps.hammer.common.util.StrRes
@@ -249,13 +249,13 @@ class AccountSettingsComponentTest : BaseTest() {
 			deletedIds = emptySet(),
 			syncedHashes = mapOf(1 to "hash-on-the-old-server"),
 		)
-		ffs.write(projectsDir / projectName / SyncDataDatasource.SYNC_FILE_NAME) {
+		ffs.write(projectsDir / projectName / SyncJournalDatasource.SYNC_FILE_NAME) {
 			writeUtf8(createJsonSerializer().encodeToString(journal))
 		}
 	}
 
 	private fun journalLastSync(projectName: String): Instant =
-		ffs.read(projectsDir / projectName / SyncDataDatasource.SYNC_FILE_NAME) {
+		ffs.read(projectsDir / projectName / SyncJournalDatasource.SYNC_FILE_NAME) {
 			createJsonSerializer().decodeFromString<ProjectSynchronizationData>(readUtf8()).lastSync
 		}
 

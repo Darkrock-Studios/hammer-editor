@@ -7,7 +7,7 @@ import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.Pr
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectIdChangeListener
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataDatasource
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournalDatasource
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import createProject
@@ -138,7 +138,7 @@ class ProjectsRepositoryIdTest : ProjectsRepositoryBaseTest() {
 		val original = getProjectDef(PROJECT_2_NAME)
 		val copy = copyProject(original, "Test Project 2 copy")
 		// Only the original has synced, so it is the one the server knows by this id.
-		ffs.write(original.path.toOkioPath() / SyncDataDatasource.SYNC_FILE_NAME) { writeUtf8("{}") }
+		ffs.write(original.path.toOkioPath() / SyncJournalDatasource.SYNC_FILE_NAME) { writeUtf8("{}") }
 
 		val repo = projectsRepository()
 		repo.resolveDuplicateProjectIds()

@@ -7,7 +7,7 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataDatasource
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournalDatasource
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
@@ -208,7 +208,7 @@ open class ProjectBackupService(
 					null
 				}
 				val liveSynced = liveId != null &&
-					fileSystem.exists(targetOkioPath / SyncDataDatasource.SYNC_FILE_NAME)
+					fileSystem.exists(targetOkioPath / SyncJournalDatasource.SYNC_FILE_NAME)
 
 				unzipToDirectory(
 					fileSystem = fileSystem,

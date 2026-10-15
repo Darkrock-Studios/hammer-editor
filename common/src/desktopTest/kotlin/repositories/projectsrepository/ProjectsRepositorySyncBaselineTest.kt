@@ -5,7 +5,7 @@ import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.createProjectScope
-import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupRepository
+import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupService
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
 import com.darkrockstudios.apps.hammer.common.data.projectdata.StoredProjectData
@@ -211,12 +211,12 @@ class ProjectsRepositorySyncBaselineTest : ProjectsRepositoryBaseTest() {
 		return createProjectScope(projectDef).get()
 	}
 
-	private fun backupRepository(repo: ProjectsRepository): ProjectBackupRepository {
+	private fun backupService(repo: ProjectsRepository): ProjectBackupService {
 		every { settings.maxBackups } returns 5
 		val clock = object : Clock {
 			override fun now(): Instant = Instant.parse("2025-12-28T16:29:00Z")
 		}
-		return ProjectBackupRepository(ffs, repo, settingsRepo, clock, mockk(relaxed = true))
+		return ProjectBackupService(ffs, repo, settingsRepo, clock, mockk(relaxed = true))
 	}
 
 	@Test
@@ -226,7 +226,7 @@ class ProjectsRepositorySyncBaselineTest : ProjectsRepositoryBaseTest() {
 			val repo = projectsRepository()
 			val projectId = repo.getProjectId(projectDef)
 			seedBaseline()
-			val backups = backupRepository(repo)
+			val backups = backupService(repo)
 			val backup = assertNotNull(backups.createBackup(projectDef))
 
 			assertTrue(backups.restoreBackup(backup, projectDef.path))
@@ -251,7 +251,7 @@ class ProjectsRepositorySyncBaselineTest : ProjectsRepositoryBaseTest() {
 			val repo = projectsRepository()
 			val backupId = repo.getProjectId(projectDef)
 			seedBaseline()
-			val backups = backupRepository(repo)
+			val backups = backupService(repo)
 			val backup = assertNotNull(backups.createBackup(projectDef))
 			ffs.deleteRecursively(projectDef.path.toOkioPath())
 
@@ -282,7 +282,7 @@ class ProjectsRepositorySyncBaselineTest : ProjectsRepositoryBaseTest() {
 		scope.runTest {
 			createProject(ffs, PROJECT_1_NAME)
 			val repo = projectsRepository()
-			val backups = backupRepository(repo)
+			val backups = backupService(repo)
 			val backup = assertNotNull(backups.createBackup(projectDef))
 			seedBaseline()
 

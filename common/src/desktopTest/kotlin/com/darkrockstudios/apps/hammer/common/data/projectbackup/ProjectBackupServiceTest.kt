@@ -464,12 +464,12 @@ class ProjectBackupServiceTest {
 		fileSystem.createDirectories(projectDir)
 		fileSystem.write(projectDir / "project.toml") { writeUtf8("[info]") }
 
-		val repo = realRepo()
+		val service = realService()
 		val projectDef = ProjectDef("Test Project", projectDir.toHPath())
-		val backupDef = repo.createBackup(projectDef)
+		val backupDef = service.createBackup(projectDef)
 		assertNotNull(backupDef)
 
-		assertTrue(repo.restoreBackup(backupDef, projectDef.path))
+		assertTrue(service.restoreBackup(backupDef, projectDef.path))
 
 		coVerify { projectsRepository.setProjectId(projectDef, liveId) }
 	}
@@ -515,12 +515,12 @@ class ProjectBackupServiceTest {
 		fileSystem.createDirectories(projectDir)
 		fileSystem.write(projectDir / "project.toml") { writeUtf8("[info]") }
 
-		val repo = realRepo()
+		val service = realService()
 		val projectDef = ProjectDef("Test Project", projectDir.toHPath())
-		val backupDef = repo.createBackup(projectDef)
+		val backupDef = service.createBackup(projectDef)
 		assertNotNull(backupDef)
 
-		assertTrue(repo.restoreBackup(backupDef, projectDef.path))
+		assertTrue(service.restoreBackup(backupDef, projectDef.path))
 
 		// The id is unchanged, so setProjectId clears nothing; the reset must still run, and on the
 		// migrated files.
@@ -544,13 +544,13 @@ class ProjectBackupServiceTest {
 		fileSystem.createDirectories(projectDir)
 		fileSystem.write(projectDir / "project.toml") { writeUtf8("[info]") }
 
-		val repo = realRepo()
+		val service = realService()
 		val projectDef = ProjectDef("Test Project", projectDir.toHPath())
-		val backupDef = repo.createBackup(projectDef)
+		val backupDef = service.createBackup(projectDef)
 		assertNotNull(backupDef)
 		fileSystem.deleteRecursively(projectDir)
 
-		assertTrue(repo.restoreBackup(backupDef, projectDef.path))
+		assertTrue(service.restoreBackup(backupDef, projectDef.path))
 
 		coVerifyOrder {
 			projectsRepository.setProjectId(projectDef, any())
@@ -572,13 +572,13 @@ class ProjectBackupServiceTest {
 		fileSystem.createDirectories(projectDir)
 		fileSystem.write(projectDir / "project.toml") { writeUtf8("original") }
 
-		val repo = realRepo()
+		val service = realService()
 		val projectDef = ProjectDef("Test Project", projectDir.toHPath())
-		val backupDef = repo.createBackup(projectDef)
+		val backupDef = service.createBackup(projectDef)
 		assertNotNull(backupDef)
 		fileSystem.write(projectDir / "project.toml") { writeUtf8("changed") }
 
-		assertTrue(repo.restoreBackup(backupDef, projectDef.path), "the content is already in place")
+		assertTrue(service.restoreBackup(backupDef, projectDef.path), "the content is already in place")
 		assertEquals("original", fileSystem.read(projectDir / "project.toml") { readUtf8() })
 	}
 
