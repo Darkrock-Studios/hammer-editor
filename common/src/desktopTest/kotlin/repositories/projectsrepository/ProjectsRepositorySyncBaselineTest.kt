@@ -279,8 +279,8 @@ class ProjectsRepositorySyncBaselineTest : ProjectsRepositoryBaseTest() {
 
 			assertTrue(backups.restoreBackup(backup, projectDef.path))
 
-			// The server conflict-checks only entities it holds, so on a new, empty server project
-			// these baselines upload cleanly.
+			// A fresh id can still adopt a same-named server project, where these baselines raise its
+			// conflicts. A new, empty server project holds no entities to conflict-check against.
 			assertNotEquals(backupId, repo.getProjectId(projectDef))
 			val journal = readJournal()
 			assertEquals(seededJournal.syncedHashes, journal.syncedHashes)

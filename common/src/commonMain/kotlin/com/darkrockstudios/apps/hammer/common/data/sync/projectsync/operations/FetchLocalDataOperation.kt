@@ -89,6 +89,9 @@ class FetchLocalDataOperation(
 	 * local hash, which conflicts whenever the server holds anything other than the restored copy. An
 	 * entity whose hash already matches the server's is left out of the transfer and its dirty
 	 * entry is dropped at finalize. New ids are not in [entityState]; they upload as new anyway.
+	 *
+	 * The flag stays set until [FinalizeSyncOperation] completes the sync, so an id adopted during
+	 * the sync keeps these baselines (see [clearProjectSyncBaseline]).
 	 */
 	private fun markAllForVerification(
 		syncData: ProjectSynchronizationData,
@@ -107,7 +110,6 @@ class FetchLocalDataOperation(
 		return syncData.copy(
 			dirty = syncData.dirty + addedDirty,
 			syncedHashes = syncData.syncedHashes + addedBaselines,
-			verifyAllEntities = false,
 		)
 	}
 
