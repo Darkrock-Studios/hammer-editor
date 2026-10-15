@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="wear_pairing_masthead">ASSOCIA OROLOGIO</string>
+	<string name="wear_pairing_title">Accedere come %1$s su Hammer?</string>
+	<string name="wear_pairing_body">L’orologio si sincronizzerà come %1$s con una propria sessione. Puoi disconnetterlo dall’orologio in qualsiasi momento.</string>
+	<string name="wear_pairing_not_signed_in">Accedi prima a un server di sincronizzazione su questo telefono, poi associa nuovamente l’orologio.</string>
+	<string name="wear_pairing_approve">Associa</string>
+	<string name="wear_pairing_decline">Rifiuta</string>
+	<string name="wear_pairing_close">Chiudi</string>
+	<string name="wear_pairing_toast_success">Orologio associato</string>
+	<string name="wear_pairing_toast_failure">Impossibile associare l’orologio</string>
+	<string name="wear_pairing_channel_name">Associazione orologio</string>
+	<string name="wear_pairing_notification_title">Associa il tuo orologio</string>
+	<string name="wear_pairing_notification_text">Tocca per consentire all’orologio di sincronizzarsi con il tuo account Hammer</string>
+</resources>
