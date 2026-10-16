@@ -16,6 +16,8 @@ import java.security.SecureRandom
 import kotlin.io.encoding.Base64
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Instant
+import org.slf4j.LoggerFactory
 
 data class TotpEnrollment(
 	/** Base32, for typing into an authenticator by hand. */
@@ -23,11 +25,22 @@ data class TotpEnrollment(
 	val otpauthUri: String,
 )
 
+sealed interface CodeResult {
+	data object Verified : CodeResult
+	data object Invalid : CodeResult
+
+	/** Too many wrong codes; nothing is checked until [until]. */
+	data class Locked(val until: Instant) : CodeResult
+}
+
 sealed interface ChallengeResult {
 	data class Verified(val userId: Long) : ChallengeResult
 
 	/** The challenge is still open (unless that was its last attempt). */
 	data class InvalidCode(val userId: Long) : ChallengeResult
+
+	/** Too many wrong codes across the account's challenges; see [CodeResult.Locked]. */
+	data class Locked(val userId: Long, val until: Instant) : ChallengeResult
 
 	/** Unknown, expired, or out of attempts. */
 	data object Invalid : ChallengeResult
@@ -83,20 +96,49 @@ class MfaRepository(
 
 	suspend fun hasMfa(userId: Long): Boolean = totpDao.get(userId)?.confirmed == true
 
+	/** When the account is refusing codes, the instant that ends; null otherwise. */
+	suspend fun lockedUntil(userId: Long): Instant? =
+		totpDao.get(userId)?.takeIf { it.confirmed }?.locked_until?.takeIf { it > clock.now() }
+
 	suspend fun methods(userId: Long): List<String> =
 		if (hasMfa(userId)) listOf(MfaMethod.TOTP, MfaMethod.RECOVERY) else emptyList()
 
-	/** Checks a TOTP or recovery code, consuming it on success. */
-	suspend fun verifyCode(userId: Long, code: String): Boolean {
-		val totp = totpDao.get(userId)?.takeIf { it.confirmed } ?: return false
+	/**
+	 * Checks a TOTP or recovery code, consuming it on success. Wrong codes count against the
+	 * account as a whole, not just one challenge, so a stolen password cannot be turned into an
+	 * unbounded guess at the second factor.
+	 */
+	suspend fun verifyCode(userId: Long, code: String): CodeResult {
+		val totp = totpDao.get(userId)?.takeIf { it.confirmed } ?: return CodeResult.Invalid
+		val now = clock.now()
+		totp.locked_until?.takeIf { it > now }?.let { return CodeResult.Locked(it) }
+
 		val recovery = normalizeRecoveryCode(code)
-		return if (recovery.length == RECOVERY_CODE_LENGTH && recovery.all { it in RECOVERY_ALPHABET }) {
-			recoveryCodeDao.consume(userId, tokenHasher.hashTokenWithEveryKey(recovery), clock.now())
+		val verified = if (recovery.length == RECOVERY_CODE_LENGTH && recovery.all { it in RECOVERY_ALPHABET }) {
+			recoveryCodeDao.consume(userId, tokenHasher.hashTokenWithEveryKey(recovery), now)
 		} else {
-			val secret = decryptSecret(totp) ?: return false
-			val step = Totp.verify(secret, code, clock.now().epochSeconds, totp.last_step) ?: return false
-			totpDao.advanceLastStep(userId, step)
+			val secret = decryptSecret(totp) ?: return CodeResult.Invalid
+			val step = Totp.verify(secret, code, now.epochSeconds, lastStep = null) ?: return recordFailure(userId, now)
+			// A replay of a code already accepted is refused, but it was not a guess.
+			if (step <= totp.last_step || !totpDao.advanceLastStep(userId, step)) return CodeResult.Invalid
+			true
 		}
+
+		return if (verified) {
+			if (totp.failed_attempts > 0 || totp.locked_until != null) totpDao.clearFailures(userId)
+			CodeResult.Verified
+		} else {
+			recordFailure(userId, now)
+		}
+	}
+
+	private suspend fun recordFailure(userId: Long, now: Instant): CodeResult {
+		val failures = totpDao.recordFailure(userId, now, windowCutoff = now - FAILURE_WINDOW) ?: return CodeResult.Invalid
+		if (failures < MAX_FAILED_CODES) return CodeResult.Invalid
+		val until = now + LOCKOUT
+		totpDao.lock(userId, until)
+		log.warn("MFA locked for user $userId after $failures wrong codes, until $until")
+		return CodeResult.Locked(until)
 	}
 
 	suspend fun createChallenge(userId: Long, installId: String): MfaChallenge {
@@ -112,12 +154,17 @@ class MfaRepository(
 			clock.now(),
 			MAX_CHALLENGE_ATTEMPTS,
 		) ?: return ChallengeResult.Invalid
-		return if (verifyCode(challenge.user_id, code)) {
-			challengeDao.delete(challenge.id)
-			ChallengeResult.Verified(challenge.user_id)
-		} else {
-			if (challenge.attempts >= MAX_CHALLENGE_ATTEMPTS) challengeDao.delete(challenge.id)
-			ChallengeResult.InvalidCode(challenge.user_id)
+		return when (val result = verifyCode(challenge.user_id, code)) {
+			CodeResult.Verified -> {
+				challengeDao.delete(challenge.id)
+				ChallengeResult.Verified(challenge.user_id)
+			}
+
+			is CodeResult.Locked -> ChallengeResult.Locked(challenge.user_id, result.until)
+			CodeResult.Invalid -> {
+				if (challenge.attempts >= MAX_CHALLENGE_ATTEMPTS) challengeDao.delete(challenge.id)
+				ChallengeResult.InvalidCode(challenge.user_id)
+			}
 		}
 	}
 
@@ -151,8 +198,15 @@ class MfaRepository(
 	}
 
 	companion object {
+		private val log = LoggerFactory.getLogger(MfaRepository::class.java)
+
 		const val MAX_CHALLENGE_ATTEMPTS = 5
 		val CHALLENGE_LIFETIME = 5.minutes
+
+		/** Wrong codes per account within [FAILURE_WINDOW] before codes are refused for [LOCKOUT]. */
+		const val MAX_FAILED_CODES = 10
+		val FAILURE_WINDOW = 15.minutes
+		val LOCKOUT = 15.minutes
 		private const val CHALLENGE_TOKEN_BYTES = 32
 		private const val RECOVERY_CODE_COUNT = 8
 		private const val RECOVERY_CODE_LENGTH = 10

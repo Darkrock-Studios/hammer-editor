@@ -26,10 +26,13 @@ import kotlin.time.Clock
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
-/** A real [MfaRepository] over [database], with a settable clock. */
+/**
+ * A real [MfaRepository] over [database], with a settable clock. The clock starts on a whole
+ * second so instants read back from TIMESTAMPTZ (microseconds) compare equal to it.
+ */
 class MfaTestFixture(
 	database: Database,
-	start: Instant = Clock.System.now(),
+	start: Instant = Instant.fromEpochSeconds(Clock.System.now().epochSeconds),
 	tokenHmac: RoleKeys = RoleKeys("v1", mapOf("v1" to "token-key")),
 ) {
 	var now: Instant = start

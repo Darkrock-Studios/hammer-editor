@@ -20,6 +20,9 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.koin.ktor.ext.get
+import kotlin.math.ceil
+import kotlin.time.Clock
+import kotlin.time.DurationUnit
 
 fun Route.accountRoutes() {
 	route("/account") {
@@ -126,6 +129,7 @@ private fun Route.loginMfa() {
 		val email = when (result) {
 			is LoginResult.Success -> accountsRepository.getAccountOrNull(result.token.userId)?.email
 			is LoginResult.MfaCodeInvalid -> result.email
+			is LoginResult.MfaLocked -> result.email
 			is LoginResult.Failure, is LoginResult.MfaRequired -> null
 		}
 		securityRepository.recordLoginAttempt(
@@ -139,6 +143,7 @@ private fun Route.loginMfa() {
 }
 
 private suspend fun RoutingContext.respondLoginResult(result: LoginResult) {
+	val clock: Clock = call.application.get()
 	when (result) {
 		is LoginResult.Success -> call.respond(result.token)
 		is LoginResult.MfaRequired -> call.respond(
@@ -159,6 +164,19 @@ private suspend fun RoutingContext.respondLoginResult(result: LoginResult) {
 				errorCode = ApiErrorCode.MFA_CODE_INVALID,
 			),
 		)
+
+		// Same code as a wrong guess, so an older client shows it as one; the message says to wait.
+		is LoginResult.MfaLocked -> {
+			val minutes = ceil((result.until - clock.now()).toDouble(DurationUnit.MINUTES)).toLong().coerceAtLeast(1)
+			call.respond(
+				status = HttpStatusCode.Unauthorized,
+				message = HttpResponseError(
+					error = "Second factor locked",
+					displayMessage = call.t(R("api_accounts_login_mfa_locked"), minutes),
+					errorCode = ApiErrorCode.MFA_CODE_INVALID,
+				),
+			)
+		}
 
 		is LoginResult.Failure -> {
 			// A rejected whitelist isn't a credential problem, and answering 401 made it
