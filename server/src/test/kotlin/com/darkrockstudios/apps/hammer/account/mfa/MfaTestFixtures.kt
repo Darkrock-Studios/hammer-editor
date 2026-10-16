@@ -27,7 +27,11 @@ import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
 /** A real [MfaRepository] over [database], with a settable clock. */
-class MfaTestFixture(database: Database, start: Instant = Clock.System.now()) {
+class MfaTestFixture(
+	database: Database,
+	start: Instant = Clock.System.now(),
+	tokenHmac: RoleKeys = RoleKeys("v1", mapOf("v1" to "token-key")),
+) {
 	var now: Instant = start
 	val clock = object : Clock {
 		override fun now() = this@MfaTestFixture.now
@@ -40,7 +44,7 @@ class MfaTestFixture(database: Database, start: Instant = Clock.System.now()) {
 	private val keyringJson = codec.serialize(
 		Keyring(
 			content = RoleKeys("v1", mapOf("v1" to "content-key")),
-			tokenHmac = RoleKeys("v1", mapOf("v1" to "token-key")),
+			tokenHmac = tokenHmac,
 		)
 	)
 	private val keyringManager = KeyringManager(

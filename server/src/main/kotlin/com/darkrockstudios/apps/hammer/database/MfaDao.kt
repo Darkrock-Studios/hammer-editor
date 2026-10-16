@@ -55,8 +55,9 @@ class AccountRecoveryCodeDao(
 		}
 	}
 
-	suspend fun consume(userId: Long, codeHash: String, usedAt: Instant): Boolean = withContext(ioDispatcher) {
-		queries.consume(usedAt = usedAt, userId = userId, codeHash = codeHash).executeAsOneOrNull() != null
+	/** [codeHashes] are one code hashed under each key generation. */
+	suspend fun consume(userId: Long, codeHashes: List<String>, usedAt: Instant): Boolean = withContext(ioDispatcher) {
+		queries.consume(usedAt = usedAt, userId = userId, codeHashes = codeHashes).executeAsOneOrNull() != null
 	}
 
 	suspend fun countUnused(userId: Long): Long = withContext(ioDispatcher) {
