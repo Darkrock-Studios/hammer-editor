@@ -13,6 +13,8 @@ data class HttpResponseError(
 	 * error codes, or when the failure has no code worth branching on.
 	 */
 	val errorCode: String? = null,
+	/** Set with [ApiErrorCode.MFA_REQUIRED]. */
+	val mfa: MfaChallenge? = null,
 ) {
 	override fun toString() = displayMessage
 }
@@ -38,4 +40,8 @@ object ApiErrorCode {
 	const val PROJECT_DELETED = "project_deleted"
 	/** Create refused: another account already owns a project with that id. */
 	const val PROJECT_ID_TAKEN = "project_id_taken"
+	/** Password accepted; answer [HttpResponseError.mfa] to finish signing in. */
+	const val MFA_REQUIRED = "mfa_required"
+	/** Wrong, reused, or expired second-factor code, or an unknown challenge. */
+	const val MFA_CODE_INVALID = "mfa_code_invalid"
 }
