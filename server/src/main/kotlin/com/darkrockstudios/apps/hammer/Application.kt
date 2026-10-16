@@ -139,7 +139,7 @@ private fun runConvergeDryRun(config: ServerConfig): Int {
 		println(
 			"Convergence dry run: ${report.total} row(s) off target " +
 				"(${report.storyEntities} entities, ${report.reviewScenes} review scenes, " +
-				"${report.storyIdeas} ideas)."
+				"${report.storyIdeas} ideas, ${report.totpSecrets} TOTP secrets)."
 		)
 		if (report.overCapEntities.isEmpty()) {
 			println("No over-cap entities; convergence would complete.")
