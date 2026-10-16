@@ -63,6 +63,9 @@ class KeyringManager(
 	/** The active token-HMAC key, or null when no keyring is available. */
 	fun tokenHmacKeyOrNull(): String? = keyring?.tokenHmac?.activeKey()
 
+	/** Every token-HMAC generation still in the keyring, or null when no keyring is available. */
+	fun tokenHmacKeysOrNull(): List<String>? = keyring?.tokenHmac?.keys?.values?.toList()
+
 	/** Boot-time assertion that a content key exists; fails fast with guidance otherwise. */
 	fun requireContentKey() {
 		requireKeyring()

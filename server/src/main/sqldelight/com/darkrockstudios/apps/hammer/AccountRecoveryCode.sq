@@ -16,7 +16,11 @@ INSERT INTO account_recovery_code(user_id, code_hash) VALUES (?, ?);
 -- Single use: the WHERE makes a second consume of the same code match nothing.
 consume:
 UPDATE account_recovery_code SET used_at = :usedAt
-WHERE user_id = :userId AND code_hash = :codeHash AND used_at IS NULL
+WHERE id = (
+    SELECT id FROM account_recovery_code
+    WHERE user_id = :userId AND code_hash IN :codeHashes AND used_at IS NULL
+    LIMIT 1
+) AND used_at IS NULL
 RETURNING id;
 
 countUnused:

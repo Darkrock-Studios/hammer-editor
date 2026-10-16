@@ -70,12 +70,12 @@ class MfaDaoTest : BaseTest() {
 		val now = Clock.System.now()
 		recoveryDao.replaceAll(userId, listOf("a", "b"))
 
-		assertTrue(recoveryDao.consume(userId, "a", now))
-		assertFalse(recoveryDao.consume(userId, "a", now))
+		assertTrue(recoveryDao.consume(userId, listOf("a"), now))
+		assertFalse(recoveryDao.consume(userId, listOf("a"), now))
 		assertEquals(1L, recoveryDao.countUnused(userId))
 
 		recoveryDao.replaceAll(userId, listOf("c"))
-		assertFalse(recoveryDao.consume(userId, "b", now))
+		assertFalse(recoveryDao.consume(userId, listOf("b"), now))
 		assertEquals(1L, recoveryDao.countUnused(userId))
 	}
 

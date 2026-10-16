@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.account.mfa
 
 import com.darkrockstudios.apps.hammer.base.http.MfaMethod
 import com.darkrockstudios.apps.hammer.e2e.util.SharedPostgresTestDatabase
+import com.darkrockstudios.apps.hammer.secret.RoleKeys
 import com.darkrockstudios.apps.hammer.utils.BaseTest
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
@@ -20,6 +21,7 @@ import kotlin.time.Instant
 
 class MfaRepositoryTest : BaseTest() {
 
+	private lateinit var db: SharedPostgresTestDatabase
 	private lateinit var fixture: MfaTestFixture
 	private val repository get() = fixture.repository
 	private val totpDao get() = fixture.totpDao
@@ -36,7 +38,7 @@ class MfaRepositoryTest : BaseTest() {
 	override fun setup() {
 		super.setup()
 		setupKoin()
-		val db = SharedPostgresTestDatabase()
+		db = SharedPostgresTestDatabase()
 		db.initialize()
 		fixture = MfaTestFixture(db)
 	}
@@ -130,6 +132,19 @@ class MfaRepositoryTest : BaseTest() {
 		assertTrue(repository.verifyCode(userId, " ${code.uppercase().replace("-", "")} "))
 		assertFalse(repository.verifyCode(userId, code))
 		assertTrue(repository.verifyCode(userId, enrolled.recoveryCodes[1]))
+	}
+
+	@Test
+	fun `Recovery codes survive a token HMAC key rotation`() = runTest {
+		val (userId, enrolled) = enrolled()
+		val rotated = MfaTestFixture(
+			db,
+			now,
+			RoleKeys("v2", mapOf("v1" to "token-key", "v2" to "token-key-2")),
+		)
+
+		assertTrue(rotated.repository.verifyCode(userId, enrolled.recoveryCodes.first()))
+		assertFalse(rotated.repository.verifyCode(userId, enrolled.recoveryCodes.first()))
 	}
 
 	@Test

@@ -91,7 +91,7 @@ class MfaRepository(
 		val totp = totpDao.get(userId)?.takeIf { it.confirmed } ?: return false
 		val recovery = normalizeRecoveryCode(code)
 		return if (recovery.length == RECOVERY_CODE_LENGTH && recovery.all { it in RECOVERY_ALPHABET }) {
-			recoveryCodeDao.consume(userId, tokenHasher.hashToken(recovery), clock.now())
+			recoveryCodeDao.consume(userId, tokenHasher.hashTokenWithEveryKey(recovery), clock.now())
 		} else {
 			val secret = decryptSecret(totp) ?: return false
 			val step = Totp.verify(secret, code, clock.now().epochSeconds, totp.last_step) ?: return false

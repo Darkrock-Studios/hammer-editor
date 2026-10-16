@@ -8,7 +8,7 @@ import kotlin.time.Duration.Companion.hours
 /**
  * Periodically deletes auth credentials that can no longer be used: auth_token
  * rows whose refresh window has fully elapsed, consumed/expired password
- * reset tokens, and expired MFA login challenges. Pure housekeeping — an expired
+ * reset tokens, and expired MFA login challenges. Pure housekeeping: an expired
  * row is already rejected at auth time, so this only bounds table growth.
  */
 class TokenMaintenanceJob(
