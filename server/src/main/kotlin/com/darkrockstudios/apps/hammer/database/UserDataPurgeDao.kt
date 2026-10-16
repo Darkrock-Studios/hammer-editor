@@ -56,6 +56,9 @@ class UserDataPurgeDao(
 			db.userActivityQueries.deleteAllForUser(userId)
 			db.authTokenQueries.deleteByUserId(userId)
 			db.passwordResetTokenQueries.deleteAllForUser(userId)
+			db.mfaLoginChallengeQueries.deleteAllForUser(userId)
+			db.accountRecoveryCodeQueries.deleteAllForUser(userId)
+			db.accountTotpQueries.deleteAllForUser(userId)
 
 			// No-FK tables that would otherwise keep dangling references.
 			// login_attempt rows are keyed by lower-cased email rather than user id.

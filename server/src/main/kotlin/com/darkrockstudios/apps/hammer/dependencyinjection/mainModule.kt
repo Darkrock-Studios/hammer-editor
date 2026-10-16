@@ -31,6 +31,9 @@ import com.darkrockstudios.apps.hammer.database.EmbeddedPostgresDatabase
 import com.darkrockstudios.apps.hammer.database.ErrorLogDao
 import com.darkrockstudios.apps.hammer.database.LoginAttemptDao
 import com.darkrockstudios.apps.hammer.database.PasswordResetTokenDao
+import com.darkrockstudios.apps.hammer.database.AccountTotpDao
+import com.darkrockstudios.apps.hammer.database.AccountRecoveryCodeDao
+import com.darkrockstudios.apps.hammer.database.MfaLoginChallengeDao
 import com.darkrockstudios.apps.hammer.database.ProjectAccessDao
 import com.darkrockstudios.apps.hammer.database.ProjectDao
 import com.darkrockstudios.apps.hammer.database.ProjectDataDao
@@ -170,6 +173,9 @@ fun mainModule(
 	single<ServerConfigDao>()
 	single<ProjectAccessDao>()
 	single<PasswordResetTokenDao>()
+	single<AccountTotpDao>()
+	single<AccountRecoveryCodeDao>()
+	single<MfaLoginChallengeDao>()
 	single<ReviewRequestDao>()
 	single<ReviewSceneDao>()
 	single<ReviewSuggestionDao>()
