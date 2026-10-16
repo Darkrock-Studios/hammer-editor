@@ -1,15 +1,17 @@
 package com.darkrockstudios.apps.hammer.account
 
 import com.darkrockstudios.apps.hammer.Account
-import com.darkrockstudios.apps.hammer.ServerConfig
-import com.darkrockstudios.apps.hammer.admin.ConfigRepository
+import com.darkrockstudios.apps.hammer.account.mfa.MfaRepository
+import com.darkrockstudios.apps.hammer.account.mfa.MfaTestFixture
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
+import com.darkrockstudios.apps.hammer.base.http.MfaMethod
 import com.darkrockstudios.apps.hammer.base.http.Token
+import com.darkrockstudios.apps.hammer.e2e.util.SharedPostgresTestDatabase
+import com.darkrockstudios.apps.hammer.plugin.PluginRegistry
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.utilities.SResult
-import com.darkrockstudios.apps.hammer.utilities.isFailure
-import com.darkrockstudios.apps.hammer.utilities.isSuccess
-import com.darkrockstudios.apps.hammer.plugin.PluginRegistry
+import com.darkrockstudios.apps.hammer.utilities.ServerResult
+import com.darkrockstudios.apps.hammer.utils.BaseTest
 import io.mockk.MockKAnnotations
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -17,11 +19,15 @@ import io.mockk.impl.annotations.MockK
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import kotlin.random.Random
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
-class AccountsComponentLoginTest {
+class AccountsComponentLoginTest : BaseTest() {
 
 	@MockK
 	private lateinit var accountsRepository: AccountsRepository
@@ -33,12 +39,10 @@ class AccountsComponentLoginTest {
 	private lateinit var projectsRepository: ProjectsRepository
 
 	@MockK
-	private lateinit var configRepository: ConfigRepository
-
-	@MockK
 	private lateinit var termsOfServiceRepository: TermsOfServiceRepository
 
-	private val serverConfig = ServerConfig()
+	private lateinit var mfa: MfaTestFixture
+	private val mfaRepository: MfaRepository get() = mfa.repository
 
 	private val validEmail = "test@test.com"
 	private val validPassword = "qweasdZXC123"
@@ -64,83 +68,233 @@ class AccountsComponentLoginTest {
 	)
 
 	@BeforeEach
-	fun begin() {
+	override fun setup() {
+		super.setup()
 		MockKAnnotations.init(this, relaxUnitFun = true)
+		setupKoin()
+		val db = SharedPostgresTestDatabase()
+		db.initialize()
+		mfa = MfaTestFixture(db)
+	}
+
+	private fun component() = AccountsComponent(
+		accountsRepository,
+		whiteListRepository,
+		projectsRepository,
+		termsOfServiceRepository,
+		mfaRepository,
+		PluginRegistry(emptyList())
+	)
+
+	/** A real account row for MFA state, behind the mocked password check. */
+	private suspend fun mfaAccount(): Pair<Account, MfaTestFixture.Enrolled> {
+		val email = "login-${Random.nextLong()}@example.com"
+		val userId = mfa.newAccount(email)
+		val enrolled = mfa.enroll(userId)
+		val mfaAccount = account.copy(id = userId, email = email)
+		coEvery { whiteListRepository.isOnWhiteList(email) } returns true
+		coEvery { accountsRepository.findAccount(email) } returns mfaAccount
+		coEvery { accountsRepository.getAccountOrNull(userId) } returns mfaAccount
+		coEvery { accountsRepository.verifyPassword(email, validPassword) } returns SResult.success(mfaAccount)
+		coEvery { accountsRepository.issueToken(userId, any()) } returns token.copy(userId = userId)
+		return mfaAccount to enrolled
 	}
 
 	@Test
 	fun `Login - Success - Valid and on the allowed list`() = runTest {
 		coEvery { whiteListRepository.isOnWhiteList(validEmail) } returns true
 		coEvery { accountsRepository.findAccount(validEmail) } returns account
-		coEvery {
-			accountsRepository.login(
-				email = validEmail,
-				password = validPassword,
-				installId = installId
-			)
-		} returns SResult.success(token)
+		coEvery { accountsRepository.verifyPassword(validEmail, validPassword) } returns SResult.success(account)
+		coEvery { accountsRepository.issueToken(account.id, installId) } returns token
 
-		val comp = AccountsComponent(
-			accountsRepository,
-			whiteListRepository,
-			projectsRepository,
-			termsOfServiceRepository,
-			PluginRegistry(emptyList())
-		)
-		val result = comp.login(validEmail, validPassword, installId)
+		val result = component().login(validEmail, validPassword, installId)
 
-		assertTrue(isSuccess(result))
-		assertEquals(token, result.data)
+		assertEquals(LoginResult.Success(token), result)
 	}
 
 	@Test
 	fun `Login - Failure - Valid, but not on the allowed list`() = runTest {
 		coEvery { whiteListRepository.isOnWhiteList(validEmail) } returns false
 		coEvery { accountsRepository.findAccount(validEmail) } returns account
-		coEvery {
-			accountsRepository.login(
-				email = validEmail,
-				password = validPassword,
-				installId = installId
-			)
-		} returns SResult.success(token)
 
-		val comp = AccountsComponent(
-			accountsRepository,
-			whiteListRepository,
-			projectsRepository,
-			termsOfServiceRepository,
-			PluginRegistry(emptyList())
-		)
-		val result = comp.login(validEmail, validPassword, installId)
+		val result = component().login(validEmail, validPassword, installId)
 
-		assertTrue(isFailure(result))
-		// Rejection must short-circuit before login mints (and persists) a token.
-		coVerify(exactly = 0) { accountsRepository.login(any(), any(), any()) }
+		assertIs<LoginResult.Failure>(result)
+		// Rejection must short-circuit before a token is minted (and persisted).
+		coVerify(exactly = 0) { accountsRepository.verifyPassword(any(), any()) }
+		coVerify(exactly = 0) { accountsRepository.issueToken(any(), any()) }
 	}
 
 	@Test
 	fun `Login - Failure - Account not found`() = runTest {
 		coEvery { whiteListRepository.isOnWhiteList(validEmail) } returns true
 		coEvery { accountsRepository.findAccount(validEmail) } returns null
-		coEvery {
-			accountsRepository.login(
-				email = validEmail,
-				password = validPassword,
-				installId = installId
-			)
-		} returns SResult.failure("Account not found")
+		coEvery { accountsRepository.verifyPassword(validEmail, validPassword) } returns
+			SResult.failure("Account not found")
 
-		val comp = AccountsComponent(
-			accountsRepository,
-			whiteListRepository,
-			projectsRepository,
-			termsOfServiceRepository,
-			PluginRegistry(emptyList())
+		val result = component().login(validEmail, validPassword, installId)
+
+		assertIs<LoginResult.Failure>(result)
+	}
+
+	@Test
+	fun `Login - Failure - Bad Login`() = runTest {
+		coEvery { whiteListRepository.isOnWhiteList(validEmail) } returns true
+		coEvery { accountsRepository.findAccount(validEmail) } returns account
+		coEvery { accountsRepository.verifyPassword(validEmail, validPassword) } returns
+			SResult.failure("Incorrect password")
+
+		val result = component().login(validEmail, validPassword, installId)
+
+		assertIs<LoginResult.Failure>(result)
+		coVerify(exactly = 0) { accountsRepository.issueToken(any(), any()) }
+	}
+
+	@Test
+	fun `Login - MFA account without a code gets a challenge and no token`() = runTest {
+		val (mfaAccount, _) = mfaAccount()
+
+		val result = component().login(mfaAccount.email, validPassword, installId)
+
+		val required = assertIs<LoginResult.MfaRequired>(result)
+		assertEquals(listOf(MfaMethod.TOTP, MfaMethod.RECOVERY), required.challenge.methods)
+		coVerify(exactly = 0) { accountsRepository.issueToken(any(), any()) }
+	}
+
+	@Test
+	fun `Login - MFA account with a wrong password never gets a challenge`() = runTest {
+		val (mfaAccount, _) = mfaAccount()
+		coEvery { accountsRepository.verifyPassword(mfaAccount.email, "wrong") } returns
+			SResult.failure("Invalid credentials")
+
+		val result = component().login(mfaAccount.email, "wrong", installId)
+
+		assertIs<LoginResult.Failure>(result)
+	}
+
+	@Test
+	fun `Login MFA - challenge answered with TOTP issues a token and is consumed`() = runTest {
+		val (mfaAccount, enrolled) = mfaAccount()
+		val challenge = assertIs<LoginResult.MfaRequired>(component().login(mfaAccount.email, validPassword, installId))
+
+		val result = component().loginMfa(challenge.challenge.token, mfa.codeAt(enrolled.secret), installId)
+
+		assertEquals(LoginResult.Success(token.copy(userId = mfaAccount.id)), result)
+		coVerify(exactly = 1) { accountsRepository.issueToken(mfaAccount.id, installId) }
+
+		mfa.now += 30.seconds
+		val again = component().loginMfa(challenge.challenge.token, mfa.codeAt(enrolled.secret), installId)
+		assertEquals(LoginResult.MfaCodeInvalid(null), again)
+	}
+
+	@Test
+	fun `Login MFA - wrong code fails and names the account for the audit log`() = runTest {
+		val (mfaAccount, enrolled) = mfaAccount()
+		val challenge = assertIs<LoginResult.MfaRequired>(component().login(mfaAccount.email, validPassword, installId))
+
+		val result = component().loginMfa(challenge.challenge.token, mfa.codeAt(enrolled.secret, mfa.now + 5.minutes), installId)
+
+		assertEquals(LoginResult.MfaCodeInvalid(mfaAccount.email), result)
+		coVerify(exactly = 0) { accountsRepository.issueToken(any(), any()) }
+	}
+
+	@Test
+	fun `Login MFA - expired challenge fails`() = runTest {
+		val (mfaAccount, enrolled) = mfaAccount()
+		val challenge = assertIs<LoginResult.MfaRequired>(component().login(mfaAccount.email, validPassword, installId))
+
+		mfa.now += MfaRepository.CHALLENGE_LIFETIME + 1.seconds
+		val result = component().loginMfa(challenge.challenge.token, mfa.codeAt(enrolled.secret), installId)
+
+		assertEquals(LoginResult.MfaCodeInvalid(null), result)
+	}
+
+	@Test
+	fun `Login MFA - challenge closes after the attempt cap`() = runTest {
+		val (mfaAccount, enrolled) = mfaAccount()
+		val challenge = assertIs<LoginResult.MfaRequired>(component().login(mfaAccount.email, validPassword, installId))
+		val wrong = mfa.codeAt(enrolled.secret, mfa.now + 5.minutes)
+
+		repeat(MfaRepository.MAX_CHALLENGE_ATTEMPTS) {
+			assertEquals(LoginResult.MfaCodeInvalid(mfaAccount.email), component().loginMfa(challenge.challenge.token, wrong, installId))
+		}
+		val result = component().loginMfa(challenge.challenge.token, mfa.codeAt(enrolled.secret), installId)
+
+		assertEquals(LoginResult.MfaCodeInvalid(null), result)
+	}
+
+	@Test
+	fun `Login MFA - recovery code works once`() = runTest {
+		val (mfaAccount, enrolled) = mfaAccount()
+		val recovery = enrolled.recoveryCodes.first()
+
+		val first = assertIs<LoginResult.MfaRequired>(component().login(mfaAccount.email, validPassword, installId))
+		assertIs<LoginResult.Success>(component().loginMfa(first.challenge.token, recovery, installId))
+
+		val second = assertIs<LoginResult.MfaRequired>(component().login(mfaAccount.email, validPassword, installId))
+		assertEquals(
+			LoginResult.MfaCodeInvalid(mfaAccount.email),
+			component().loginMfa(second.challenge.token, recovery, installId)
 		)
-		val result = comp.login(validEmail, validPassword, installId)
+	}
 
-		assertTrue(isFailure(result))
+	@Test
+	fun `Login MFA - challenge is bound to the install that asked`() = runTest {
+		val (mfaAccount, enrolled) = mfaAccount()
+		val challenge = assertIs<LoginResult.MfaRequired>(component().login(mfaAccount.email, validPassword, installId))
+
+		val result = component().loginMfa(challenge.challenge.token, mfa.codeAt(enrolled.secret), "other-install")
+
+		assertEquals(LoginResult.MfaCodeInvalid(null), result)
+	}
+
+	@Test
+	fun `Login MFA - account soft-deleted after the challenge gets no token`() = runTest {
+		val (mfaAccount, enrolled) = mfaAccount()
+		val challenge = assertIs<LoginResult.MfaRequired>(component().login(mfaAccount.email, validPassword, installId))
+		coEvery { accountsRepository.getAccountOrNull(mfaAccount.id) } returns
+			mfaAccount.copy(deleted_at = Instant.parse("2026-07-01T00:00:00Z"))
+
+		val result = component().loginMfa(challenge.challenge.token, mfa.codeAt(enrolled.secret), installId)
+
+		assertIs<LoginResult.Failure>(result)
+		coVerify(exactly = 0) { accountsRepository.issueToken(any(), any()) }
+	}
+
+	@Test
+	fun `Login - inline TOTP code signs in without a challenge`() = runTest {
+		val (mfaAccount, enrolled) = mfaAccount()
+
+		val result = component().login(mfaAccount.email, validPassword, installId, code = mfa.codeAt(enrolled.secret))
+
+		assertEquals(LoginResult.Success(token.copy(userId = mfaAccount.id)), result)
+	}
+
+	@Test
+	fun `Login - inline wrong code fails`() = runTest {
+		val (mfaAccount, enrolled) = mfaAccount()
+
+		val result = component().login(
+			mfaAccount.email,
+			validPassword,
+			installId,
+			code = mfa.codeAt(enrolled.secret, mfa.now + 5.minutes),
+		)
+
+		assertEquals(LoginResult.MfaCodeInvalid(mfaAccount.email), result)
+		coVerify(exactly = 0) { accountsRepository.issueToken(any(), any()) }
+	}
+
+	@Test
+	fun `Login - inline code is ignored for an account without MFA`() = runTest {
+		coEvery { whiteListRepository.isOnWhiteList(validEmail) } returns true
+		coEvery { accountsRepository.findAccount(validEmail) } returns account
+		coEvery { accountsRepository.verifyPassword(validEmail, validPassword) } returns SResult.success(account)
+		coEvery { accountsRepository.issueToken(account.id, installId) } returns token
+
+		val result = component().login(validEmail, validPassword, installId, code = "123456")
+
+		assertEquals(LoginResult.Success(token), result)
 	}
 
 	@Test
@@ -150,17 +304,9 @@ class AccountsComponentLoginTest {
 		coEvery { accountsRepository.refreshToken(unknownUserId, installId, "bad-refresh") } returns
 			SResult.failure("No valid token")
 
-		val comp = AccountsComponent(
-			accountsRepository,
-			whiteListRepository,
-			projectsRepository,
-			termsOfServiceRepository,
-			PluginRegistry(emptyList())
-		)
+		val result = component().refreshToken(unknownUserId, installId, "bad-refresh")
 
-		val result = comp.refreshToken(unknownUserId, installId, "bad-refresh")
-
-		assertTrue(isFailure(result))
+		assertTrue(result.isFailure)
 	}
 
 	@Test
@@ -168,43 +314,11 @@ class AccountsComponentLoginTest {
 		coEvery { accountsRepository.getAccountOrNull(token.userId) } returns
 			account.copy(deleted_at = Instant.parse("2026-07-01T00:00:00Z"))
 
-		val comp = AccountsComponent(
-			accountsRepository,
-			whiteListRepository,
-			projectsRepository,
-			termsOfServiceRepository,
-			PluginRegistry(emptyList())
-		)
+		val result = component().refreshToken(token.userId, installId, "some-refresh")
 
-		val result = comp.refreshToken(token.userId, installId, "some-refresh")
-
-		assertTrue(isFailure(result))
-		assertEquals("Account pending deletion", result.error)
+		assertTrue(result.isFailure)
+		assertEquals("Account pending deletion", (result as ServerResult.Failure).error)
 		// The gate must short-circuit before a token could be refreshed.
 		coVerify(exactly = 0) { accountsRepository.refreshToken(any(), any(), any()) }
-	}
-
-	@Test
-	fun `Login - Failure - Bad Login`() = runTest {
-		coEvery { whiteListRepository.isOnWhiteList(validEmail) } returns true
-		coEvery { accountsRepository.findAccount(validEmail) } returns account
-		coEvery {
-			accountsRepository.login(
-				email = validEmail,
-				password = validPassword,
-				installId = installId
-			)
-		} returns SResult.failure("Incorrect password")
-
-		val comp = AccountsComponent(
-			accountsRepository,
-			whiteListRepository,
-			projectsRepository,
-			termsOfServiceRepository,
-			PluginRegistry(emptyList())
-		)
-		val result = comp.login(validEmail, validPassword, installId)
-
-		assertTrue(isFailure(result))
 	}
 }

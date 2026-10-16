@@ -21,7 +21,7 @@ VALUES (:userId, :installId, :tokenHash, :expires);
 -- cannot share an attempt.
 claimAttempt:
 UPDATE mfa_login_challenge SET attempts = attempts + 1
-WHERE token_hash = :tokenHash AND expires > :now AND attempts < :maxAttempts
+WHERE token_hash = :tokenHash AND install_id = :installId AND expires > :now AND attempts < :maxAttempts
 RETURNING *;
 
 deleteById:

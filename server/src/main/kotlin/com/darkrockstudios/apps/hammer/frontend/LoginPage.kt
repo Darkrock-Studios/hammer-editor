@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.frontend
 
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
+import com.darkrockstudios.apps.hammer.account.mfa.MfaRepository
 import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
@@ -26,8 +27,9 @@ fun Route.authRoutes(
 	whiteListRepository: WhiteListRepository,
 	configRepository: ConfigRepository,
 	securityRepository: SecurityRepository,
+	mfaRepository: MfaRepository,
 ) {
-	loginPage(accountsRepository, whiteListRepository, configRepository, securityRepository)
+	loginPage(accountsRepository, whiteListRepository, configRepository, securityRepository, mfaRepository)
 	logout()
 	unauthorized()
 }
@@ -37,6 +39,7 @@ private fun Route.loginPage(
 	whiteListRepository: WhiteListRepository,
 	configRepository: ConfigRepository,
 	securityRepository: SecurityRepository,
+	mfaRepository: MfaRepository,
 ) {
 	route("/login") {
 		get {
@@ -58,24 +61,24 @@ private fun Route.loginPage(
 				val email = params["email"] ?: ""
 				val password = params["password"] ?: ""
 
-				val result = accountsRepository.login(
-					email = email,
-					password = password,
-					installId = "web"
-				)
+				val result = accountsRepository.verifyPassword(email = email, password = password)
 				val session: UserSession?
 				val credentialsError: String?
-				if (isSuccess(result)) {
-					val token = result.data
+				if (!isSuccess(result)) {
+					session = null
+					credentialsError = result.displayMessageText(call) ?: "Login failed"
+				} else if (mfaRepository.hasMfa(result.data.id)) {
+					// Verification codes on the web arrive with the /login/verify page.
+					session = null
+					credentialsError = call.t(R("login_error_mfa_unsupported"))
+				} else {
+					val token = accountsRepository.issueToken(result.data.id, "web")
 					session = UserSession(
 						userId = token.userId,
 						username = email,
 						isAdmin = accountsRepository.isAdmin(token.userId)
 					)
 					credentialsError = null
-				} else {
-					session = null
-					credentialsError = result.displayMessageText(call) ?: "Login failed"
 				}
 
 				// A whitelist rejection is a denied sign-in, so it is audited as a failure

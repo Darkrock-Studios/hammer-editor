@@ -24,7 +24,7 @@ data class TotpEnrollment(
 )
 
 sealed interface ChallengeResult {
-	data class Verified(val userId: Long, val installId: String) : ChallengeResult
+	data class Verified(val userId: Long) : ChallengeResult
 
 	/** The challenge is still open (unless that was its last attempt). */
 	data class InvalidCode(val userId: Long) : ChallengeResult
@@ -105,12 +105,16 @@ class MfaRepository(
 		return MfaChallenge(token, methods(userId))
 	}
 
-	suspend fun verifyChallenge(token: String, code: String): ChallengeResult {
-		val challenge = challengeDao.claimAttempt(tokenHasher.hashToken(token), clock.now(), MAX_CHALLENGE_ATTEMPTS)
-			?: return ChallengeResult.Invalid
+	suspend fun verifyChallenge(token: String, installId: String, code: String): ChallengeResult {
+		val challenge = challengeDao.claimAttempt(
+			tokenHasher.hashToken(token),
+			installId,
+			clock.now(),
+			MAX_CHALLENGE_ATTEMPTS,
+		) ?: return ChallengeResult.Invalid
 		return if (verifyCode(challenge.user_id, code)) {
 			challengeDao.delete(challenge.id)
-			ChallengeResult.Verified(challenge.user_id, challenge.install_id)
+			ChallengeResult.Verified(challenge.user_id)
 		} else {
 			if (challenge.attempts >= MAX_CHALLENGE_ATTEMPTS) challengeDao.delete(challenge.id)
 			ChallengeResult.InvalidCode(challenge.user_id)
