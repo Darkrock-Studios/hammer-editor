@@ -26,6 +26,7 @@ fun Route.accountRoutes() {
 		rateLimit(RateLimitName(LOGIN_RATE_LIMIT)) {
 			createAccount()
 			login()
+			loginMfa()
 			authenticate(USER_AUTH) {
 				pairInstall()
 			}
@@ -81,39 +82,96 @@ private fun Route.login() {
 		val email = formParameters["email"].toString()
 		val password = formParameters["password"].toString()
 		val installId = formParameters["installId"].toString()
+		val code = formParameters["code"]?.takeIf { it.isNotBlank() }
 
-		val result = accountsComponent.login(email = email, password = password, installId = installId)
+		val result = accountsComponent.login(email = email, password = password, installId = installId, code = code)
 
+		// A correct password awaiting its second factor is neither a success nor a failure yet.
+		if (result !is LoginResult.MfaRequired) {
+			securityRepository.recordLoginAttempt(
+				email = email,
+				ipAddress = call.request.origin.remoteAddress,
+				success = result is LoginResult.Success,
+			)
+		}
+
+		respondLoginResult(result)
+	}
+}
+
+private fun Route.loginMfa() {
+	val accountsComponent: AccountsComponent = get()
+	val accountsRepository: AccountsRepository = get()
+	val securityRepository: SecurityRepository = get()
+
+	post("/login/mfa") {
+		val formParameters = call.receiveParameters()
+		val mfaToken = formParameters["mfaToken"]
+		val code = formParameters["code"]
+		val installId = formParameters["installId"]
+		if (mfaToken.isNullOrBlank() || code.isNullOrBlank() || installId.isNullOrBlank()) {
+			call.respond(
+				status = HttpStatusCode.BadRequest,
+				message = HttpResponseError(
+					error = "Missing mfaToken, code, or installId",
+					displayMessage = call.t(R("api_accounts_login_mfa_invalid")),
+					errorCode = ApiErrorCode.MFA_CODE_INVALID,
+				),
+			)
+			return@post
+		}
+
+		val result = accountsComponent.loginMfa(mfaToken = mfaToken, code = code, installId = installId)
+
+		val email = when (result) {
+			is LoginResult.Success -> accountsRepository.getAccountOrNull(result.token.userId)?.email
+			is LoginResult.MfaCodeInvalid -> result.email
+			is LoginResult.Failure, is LoginResult.MfaRequired -> null
+		}
 		securityRepository.recordLoginAttempt(
 			email = email,
 			ipAddress = call.request.origin.remoteAddress,
 			success = result is LoginResult.Success,
 		)
 
-		when (result) {
-			is LoginResult.Success -> call.respond(result.token)
-			is LoginResult.Failure -> {
-				// A rejected whitelist isn't a credential problem, and answering 401 made it
-				// indistinguishable from a wrong password in both the logs and the client.
-				val notWhitelisted = result.failure.exception is NotWhitelisted
-				val response = HttpResponseError(
-					error = "Failed to authenticate",
-					displayMessage = result.failure.displayMessageText(call, R("api_error_unknown")),
-					errorCode = if (notWhitelisted) ApiErrorCode.NOT_WHITELISTED
-					else ApiErrorCode.INVALID_CREDENTIALS,
-				)
-				val status = if (notWhitelisted) HttpStatusCode.Forbidden else HttpStatusCode.Unauthorized
-				call.respond(status = status, message = response)
-			}
+		respondLoginResult(result)
+	}
+}
 
-			is LoginResult.MfaRequired, is LoginResult.MfaCodeInvalid -> call.respond(
-				status = HttpStatusCode.Unauthorized,
-				message = HttpResponseError(
-					error = "Failed to authenticate",
-					displayMessage = call.t(R("api_error_unknown")),
-					errorCode = ApiErrorCode.INVALID_CREDENTIALS,
-				),
+private suspend fun RoutingContext.respondLoginResult(result: LoginResult) {
+	when (result) {
+		is LoginResult.Success -> call.respond(result.token)
+		is LoginResult.MfaRequired -> call.respond(
+			status = HttpStatusCode.Unauthorized,
+			message = HttpResponseError(
+				error = "Second factor required",
+				displayMessage = call.t(R("api_accounts_login_mfa_required")),
+				errorCode = ApiErrorCode.MFA_REQUIRED,
+				mfa = result.challenge,
+			),
+		)
+
+		is LoginResult.MfaCodeInvalid -> call.respond(
+			status = HttpStatusCode.Unauthorized,
+			message = HttpResponseError(
+				error = "Invalid second factor",
+				displayMessage = call.t(R("api_accounts_login_mfa_invalid")),
+				errorCode = ApiErrorCode.MFA_CODE_INVALID,
+			),
+		)
+
+		is LoginResult.Failure -> {
+			// A rejected whitelist isn't a credential problem, and answering 401 made it
+			// indistinguishable from a wrong password in both the logs and the client.
+			val notWhitelisted = result.failure.exception is NotWhitelisted
+			val response = HttpResponseError(
+				error = "Failed to authenticate",
+				displayMessage = result.failure.displayMessageText(call, R("api_error_unknown")),
+				errorCode = if (notWhitelisted) ApiErrorCode.NOT_WHITELISTED
+				else ApiErrorCode.INVALID_CREDENTIALS,
 			)
+			val status = if (notWhitelisted) HttpStatusCode.Forbidden else HttpStatusCode.Unauthorized
+			call.respond(status = status, message = response)
 		}
 	}
 }
