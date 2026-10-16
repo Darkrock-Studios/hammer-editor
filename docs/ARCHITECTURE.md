@@ -280,7 +280,14 @@ cannot read.
 **`project.toml` is the marker that makes a directory a project.** `ProjectsRepository.getProjects`
 lists only directories that hold one, and the project picker, the data migrator, both sync levels
 and the Wear OS project list all enumerate projects through it. Deleting the file therefore hides
-the project, content intact, until a `project.toml` exists there again.
+the project, content intact, until a `project.toml` exists there again. Account sync writes one
+when a server project has no local copy and a directory of its name exists without the file
+(`ProjectsRepository.adoptUnmarkedDirectory`), since creating the project there would otherwise fail
+on every sync. Only an empty directory or one holding Hammer project files is adopted, as the
+projects directory may be shared with unrelated folders. The directory takes the server project's
+ID, is migrated from data version 0 straight away, and is then treated like a restored backup: the
+next sync conflict-checks its content against the server's. Deletions made on the server still
+apply.
 
 **Project identity.** Every project has a `projectId`, a UUID the client mints at creation whether
 or not a sync server is configured. The server does not issue IDs: the create request carries the

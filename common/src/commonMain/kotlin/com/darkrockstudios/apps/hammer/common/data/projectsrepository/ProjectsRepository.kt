@@ -13,7 +13,11 @@ import com.darkrockstudios.apps.hammer.common.data.ClientMessage
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaDatasource
+import com.darkrockstudios.apps.hammer.common.data.migrator.Migration3_4
 import com.darkrockstudios.apps.hammer.common.data.migrator.PROJECT_DATA_VERSION
+import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesDatasource
+import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
 import com.darkrockstudios.apps.hammer.common.data.projectdata.StoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.projectdata.clearProjectDataSyncBaseline
@@ -24,6 +28,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRe
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository.Companion.encodeForFilename
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository.Companion.sanitizeFileName
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository.Companion.validateFileName
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournalDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.clearProjectSyncBaseline
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.markProjectRestored
@@ -346,6 +351,41 @@ class ProjectsRepository(
 		}
 	}
 
+	/**
+	 * Makes a project of the directory named [projectName] when it has lost its
+	 * [ProjectMetadata.FILENAME] and so is hidden from [getProjects], binding it to [projectId].
+	 * Returns null, writing nothing, when there is no such directory, it already has the file, or it
+	 * is neither empty nor recognizably a Hammer project (the projects directory may be shared with
+	 * unrelated folders).
+	 *
+	 * How the content relates to the server project is unknown, so its journal is flagged for a full
+	 * conflict check before the file makes it visible: a project listed without the flag would let
+	 * the server's copy of every entity replace the local one. `dataVersion` starts at 0, so the
+	 * caller must then run the data migrator and only after it [resetSyncStateAfterRestore], since a
+	 * pre-version-4 directory keeps its project data baseline in a file the migrator renames.
+	 */
+	fun adoptUnmarkedDirectory(projectName: String, projectId: ProjectId): ProjectDef? {
+		val projectDef = getProjectDefinition(projectName)
+		val projectDir = projectDef.path.toOkioPath()
+		if (fileSystem.metadataOrNull(projectDir)?.isDirectory != true) return null
+		val entries = fileSystem.list(projectDir).map { it.name }
+		if (ProjectMetadata.FILENAME in entries) return null
+		if (entries.isNotEmpty() && entries.none { it in hammerProjectEntries }) return null
+
+		markProjectRestored(projectDef, fileSystem, json, serverKnowsProject = true)
+		val metadata = ProjectMetadata(
+			info = Info(
+				created = Clock.System.now(),
+				lastAccessed = Clock.System.now(),
+				dataVersion = 0,
+				projectId = projectId,
+			)
+		)
+		projectsMetadataDatasource.saveMetadata(metadata, projectDef)
+
+		return projectDef
+	}
+
 	@Suppress("SwallowedException") // IOException maps to a typed failure result
 	fun renameProject(projectDef: ProjectDef, newName: String): CResult<ProjectDef> {
 		if (validateFileName(newName).isFailure) {
@@ -490,6 +530,16 @@ class ProjectsRepository(
 		}
 
 		const val RECOVERED_PROJECT_NAME = "Recovered Project"
+
+		/** Any of these, in any data version, marks a directory as a Hammer project's. */
+		private val hammerProjectEntries = setOf(
+			SceneDatasource.SCENE_DIRECTORY,
+			EncyclopediaDatasource.ENCYCLOPEDIA_DIRECTORY,
+			NotesDatasource.NOTES_DIRECTORY,
+			ProjectDataDatasource.FILENAME,
+			Migration3_4.LEGACY_PROJECT_SETTINGS_FILENAME,
+			SyncJournalDatasource.SYNC_FILE_NAME,
+		)
 
 		/**
 		 * Validates a project/scene name using the shared [ProjectNameValidator] and maps the

@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.common.data.SyncedProjectDefinition
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
+import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectContentHasher
@@ -31,6 +32,7 @@ import com.darkrockstudios.apps.hammer.common.util.NetworkConnectivity
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.sync_log_account_project_adopt_conflict
+import com.darkrockstudios.apps.hammer.sync_log_account_project_adopt_unmarked_folder
 import com.darkrockstudios.apps.hammer.sync_log_account_project_create_local_failure
 import com.darkrockstudios.apps.hammer.sync_log_account_project_create_server_failure
 import com.darkrockstudios.apps.hammer.sync_log_account_project_create_server_success
@@ -42,6 +44,7 @@ import io.mockk.*
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import net.peanuuutz.tomlkt.Toml
+import okio.IOException
 import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.BeforeEach
@@ -61,6 +64,7 @@ class ClientAccountSynchronizerTest {
 	private lateinit var projectsRepository: ProjectsRepository
 	private lateinit var serverProjectsApi: ServerProjectsApi
 	private lateinit var ideasSynchronizer: ClientIdeasSynchronizer
+	private lateinit var dataMigrator: DataMigrator
 	private lateinit var networkConnectivity: NetworkConnectivity
 
 	private val projectsDirPath = "/projects".toPath()
@@ -114,6 +118,7 @@ class ClientAccountSynchronizerTest {
 		serverProjectsApi = serverProjectsApi,
 		projectCreateResolver = ProjectCreateResolver(serverProjectsApi, projectsRepository),
 		ideasSynchronizer = ideasSynchronizer,
+		dataMigrator = dataMigrator,
 		networkConnectivity = networkConnectivity,
 		json = json,
 		toml = Toml,
@@ -146,11 +151,13 @@ class ClientAccountSynchronizerTest {
 		ideasSynchronizer = mockk()
 		coEvery { ideasSynchronizer.syncIdeas(any(), any(), any(), any()) } returns true
 		networkConnectivity = mockk()
+		dataMigrator = mockk(relaxed = true)
 
 		every { globalSettingsStore.globalSettings } returns GlobalSettings(projectsDirectory = "/projects")
 		every { globalSettingsStore.serverSettings } returns serverSettings(userId = 1)
 		every { projectsRepository.getProjectsDirectory() } returns HPath("/projects", "projects", true)
 		every { projectsRepository.findProject(any<ProjectId>()) } returns null
+		every { projectsRepository.adoptUnmarkedDirectory(any(), any()) } returns null
 
 		coEvery { serverProjectsApi.beginProjectsSync() } returns Result.success(emptyServerResponse())
 		coEvery { serverProjectsApi.endProjectsSync(any()) } returns Result.success("ok")
@@ -889,6 +896,112 @@ class ClientAccountSynchronizerTest {
 		assertTrue(result)
 		val logged = strRes.calls.single { it.first == Res.string.sync_log_account_project_create_local_failure }
 		assertEquals(listOf<Any>("ServerNovel"), logged.second)
+	}
+
+	@Test
+	fun `syncProjects adopts a folder that lost its project toml instead of failing to create it`() = runTest {
+		writeSyncData(emptySyncData())
+		val serverId = ProjectId.randomUUID()
+		val serverProject = ApiProjectDefinition(name = "ServerNovel", uuid = serverId)
+		val adoptedDef = projectDef("ServerNovel")
+
+		coEvery { serverProjectsApi.beginProjectsSync() } returns
+			Result.success(emptyServerResponse().copy(projects = setOf(serverProject)))
+		every { projectsRepository.getProjects(any()) } returns emptyList()
+		every { projectsRepository.findProject("ServerNovel") } returns null
+		every { projectsRepository.adoptUnmarkedDirectory("ServerNovel", serverId) } returns adoptedDef
+
+		val strRes = RecordingStrRes()
+		val result = createSynchronizer(strRes).syncProjects(onLog = {}, onUnauthorized = {})
+
+		assertTrue(result)
+		// The sync state is reset after migrating: a pre-version-4 folder keeps its project data
+		// baseline in a file the migration renames.
+		coVerifyOrder {
+			projectsRepository.adoptUnmarkedDirectory("ServerNovel", serverId)
+			dataMigrator.migrateProject(adoptedDef)
+			projectsRepository.resetSyncStateAfterRestore(adoptedDef, serverKnowsProject = true)
+		}
+		verify(exactly = 0) { projectsRepository.createProject(any(), any(), any()) }
+		coVerify(exactly = 0) { serverProjectsApi.createProject(any(), any(), any()) }
+		val logged = strRes.calls.single { it.first == Res.string.sync_log_account_project_adopt_unmarked_folder }
+		assertEquals(listOf<Any>("ServerNovel"), logged.second)
+		val resources = strRes.calls.map { it.first }
+		assertFalse(resources.contains(Res.string.sync_log_account_project_create_local_failure))
+	}
+
+	@Test
+	fun `syncProjects keeps an adopted folder when migrating it fails`() = runTest {
+		writeSyncData(emptySyncData())
+		val serverId = ProjectId.randomUUID()
+		val adoptedDef = projectDef("ServerNovel")
+
+		coEvery { serverProjectsApi.beginProjectsSync() } returns Result.success(
+			emptyServerResponse().copy(projects = setOf(ApiProjectDefinition("ServerNovel", serverId)))
+		)
+		every { projectsRepository.getProjects(any()) } returns emptyList()
+		every { projectsRepository.findProject("ServerNovel") } returns null
+		every { projectsRepository.adoptUnmarkedDirectory("ServerNovel", serverId) } returns adoptedDef
+		every { dataMigrator.migrateProject(adoptedDef) } throws IllegalStateException("migration broke")
+
+		val strRes = RecordingStrRes()
+		val result = createSynchronizer(strRes).syncProjects(onLog = {}, onUnauthorized = {})
+
+		assertTrue(result)
+		verify(exactly = 0) { projectsRepository.createProject(any(), any(), any()) }
+		coVerify { projectsRepository.resetSyncStateAfterRestore(adoptedDef, serverKnowsProject = true) }
+		assertTrue(strRes.calls.any { it.first == Res.string.sync_log_account_project_adopt_unmarked_folder })
+	}
+
+	@Test
+	fun `syncProjects logs a folder it cannot adopt and carries on with the rest`() = runTest {
+		writeSyncData(emptySyncData())
+		val brokenId = ProjectId.randomUUID()
+		val otherId = ProjectId.randomUUID()
+
+		coEvery { serverProjectsApi.beginProjectsSync() } returns Result.success(
+			emptyServerResponse().copy(
+				projects = setOf(
+					ApiProjectDefinition("Unwritable", brokenId),
+					ApiProjectDefinition("OtherNovel", otherId),
+				)
+			)
+		)
+		every { projectsRepository.getProjects(any()) } returns emptyList()
+		every { projectsRepository.findProject(any<String>()) } returns null
+		every { projectsRepository.adoptUnmarkedDirectory("Unwritable", brokenId) } throws
+			IOException("read-only folder")
+		every { projectsRepository.createProject("OtherNovel", any(), any()) } returns
+			CResult.success(projectDef("OtherNovel"))
+
+		val strRes = RecordingStrRes()
+		val result = createSynchronizer(strRes).syncProjects(onLog = {}, onUnauthorized = {})
+
+		assertTrue(result)
+		verify(exactly = 0) { projectsRepository.createProject("Unwritable", any(), any()) }
+		verify { projectsRepository.createProject("OtherNovel", false, otherId) }
+		val logged = strRes.calls.single { it.first == Res.string.sync_log_account_project_create_local_failure }
+		assertEquals(listOf<Any>("Unwritable"), logged.second)
+	}
+
+	@Test
+	fun `syncProjects never adopts a folder over a project it finds by name`() = runTest {
+		writeSyncData(emptySyncData())
+		val serverId = ProjectId.randomUUID()
+		val def = projectDef("MyNovel")
+
+		coEvery { serverProjectsApi.beginProjectsSync() } returns Result.success(
+			emptyServerResponse().copy(projects = setOf(ApiProjectDefinition("MyNovel", serverId)))
+		)
+		every { projectsRepository.getProjects(any()) } returns listOf(def)
+		every { projectsRepository.getProjectId(def) } returns ProjectId.randomUUID()
+		every { projectsRepository.findProject("MyNovel") } returns def
+
+		val result = createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
+
+		assertTrue(result)
+		verify(exactly = 0) { projectsRepository.adoptUnmarkedDirectory(any(), any()) }
+		coVerify { projectsRepository.setProjectId(def, serverId) }
 	}
 
 	@Test

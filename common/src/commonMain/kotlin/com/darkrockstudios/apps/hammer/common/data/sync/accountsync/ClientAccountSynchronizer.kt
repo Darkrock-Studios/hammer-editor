@@ -12,6 +12,7 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SyncedProjectDefinition
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
+import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
 import com.darkrockstudios.apps.hammer.common.data.projectdata.loadStoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.ClientIdeasSynchronizer
@@ -33,6 +34,7 @@ import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
+import okio.IOException
 import okio.Path
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.uuid.Uuid
@@ -44,6 +46,7 @@ class ClientAccountSynchronizer(
 	private val serverProjectsApi: ServerProjectsApi,
 	private val projectCreateResolver: ProjectCreateResolver,
 	private val ideasSynchronizer: ClientIdeasSynchronizer,
+	private val dataMigrator: DataMigrator,
 	private val networkConnectivity: NetworkConnectivity,
 	private val json: Json,
 	private val toml: Toml,
@@ -522,24 +525,24 @@ class ClientAccountSynchronizer(
 						)
 					)
 				)
-			} else {
-				val createResult = projectsRepository.createProject(
-					localName,
-					seedDefaultLanguage = false,
-					projectId = serverProject.uuid,
-				)
-				if (isSuccess(createResult)) {
-					val projectDef = createResult.data
-					claimedNames += projectDef.name
+				return@forEach
+			}
+
+			when (adoptUnmarkedDirectory(localName, serverProject.uuid)) {
+				Adoption.ADOPTED -> {
+					claimedNames += localName
 					onLog(
-						syncAccLogI(
+						syncAccLogW(
 							strRes.get(
-								Res.string.sync_log_account_project_create_client,
+								Res.string.sync_log_account_project_adopt_unmarked_folder,
 								localName
 							)
 						)
 					)
-				} else {
+					return@forEach
+				}
+
+				Adoption.FAILED -> {
 					onLog(
 						syncAccLogE(
 							strRes.get(
@@ -548,10 +551,74 @@ class ClientAccountSynchronizer(
 							)
 						)
 					)
+					return@forEach
 				}
+
+				Adoption.NONE -> Unit
+			}
+
+			val createResult = projectsRepository.createProject(
+				localName,
+				seedDefaultLanguage = false,
+				projectId = serverProject.uuid,
+			)
+			if (isSuccess(createResult)) {
+				val projectDef = createResult.data
+				claimedNames += projectDef.name
+				onLog(
+					syncAccLogI(
+						strRes.get(
+							Res.string.sync_log_account_project_create_client,
+							localName
+						)
+					)
+				)
+			} else {
+				onLog(
+					syncAccLogE(
+						strRes.get(
+							Res.string.sync_log_account_project_create_local_failure,
+							serverProject.name,
+						)
+					)
+				)
 			}
 		}
 		return claimedNames
+	}
+
+	private enum class Adoption { ADOPTED, FAILED, NONE }
+
+	/**
+	 * A directory that lost its `project.toml` is invisible to [ProjectsRepository.findProject] yet
+	 * blocks [ProjectsRepository.createProject], so without this the server project would fail to
+	 * materialize on every sync. The content is kept and conflict-checked on the next project sync.
+	 *
+	 * Once the directory is adopted, later failures are logged rather than undoing it, as in a backup
+	 * restore: startup retries the migration, and the journal is already flagged.
+	 */
+	@Suppress("TooGenericExceptionCaught")
+	private suspend fun adoptUnmarkedDirectory(localName: String, projectId: ProjectId): Adoption {
+		val projectDef = try {
+			projectsRepository.adoptUnmarkedDirectory(localName, projectId)
+		} catch (e: IOException) {
+			Napier.e("Failed to adopt the folder of '$localName'", e)
+			return Adoption.FAILED
+		} ?: return Adoption.NONE
+
+		try {
+			dataMigrator.migrateProject(projectDef)
+		} catch (e: Exception) {
+			Napier.e("Adopted '${projectDef.name}' but failed to migrate it", e)
+		}
+		try {
+			projectsRepository.resetSyncStateAfterRestore(projectDef, serverKnowsProject = true)
+		} catch (e: CancellationException) {
+			throw e
+		} catch (e: Exception) {
+			Napier.e("Adopted '${projectDef.name}' but failed to reset its sync state", e)
+		}
+		return Adoption.ADOPTED
 	}
 
 	/**
