@@ -7,11 +7,13 @@ import com.darkrockstudios.apps.hammer.base.http.TermsOfServiceChallenge
 import com.darkrockstudios.apps.hammer.base.http.Token
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.utilities.SResult
+import com.darkrockstudios.apps.hammer.account.mfa.MfaRepository
 import com.darkrockstudios.apps.hammer.plugin.PluginRegistry
 import io.mockk.MockKAnnotations
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
+import io.mockk.mockk
 import io.mockk.verify
 import io.mockk.impl.annotations.MockK
 import kotlinx.coroutines.test.runTest
@@ -53,6 +55,7 @@ class AccountsComponentCreateAccountTest {
 		whiteListRepository,
 		projectsRepository,
 		termsOfServiceRepository,
+		mockk<MfaRepository>(),
 		PluginRegistry(emptyList())
 	)
 

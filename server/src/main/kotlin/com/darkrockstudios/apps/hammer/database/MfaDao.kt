@@ -80,10 +80,18 @@ class MfaLoginChallengeDao(
 			queries.createChallenge(userId = userId, installId = installId, tokenHash = tokenHash, expires = expires)
 		}
 
-	/** Counts one attempt; null when the challenge is unknown, expired, or out of attempts. */
-	suspend fun claimAttempt(tokenHash: String, now: Instant, maxAttempts: Int): MfaLoginChallenge? =
+	/**
+	 * Counts one attempt; null when the challenge is unknown, issued to another install,
+	 * expired, or out of attempts.
+	 */
+	suspend fun claimAttempt(tokenHash: String, installId: String, now: Instant, maxAttempts: Int): MfaLoginChallenge? =
 		withContext(ioDispatcher) {
-			queries.claimAttempt(tokenHash = tokenHash, now = now, maxAttempts = maxAttempts).executeAsOneOrNull()
+			queries.claimAttempt(
+				tokenHash = tokenHash,
+				installId = installId,
+				now = now,
+				maxAttempts = maxAttempts,
+			).executeAsOneOrNull()
 		}
 
 	suspend fun delete(id: Long) = withContext(ioDispatcher) {

@@ -86,13 +86,13 @@ class MfaDaoTest : BaseTest() {
 		val hash = "challenge-${Random.nextLong()}"
 		challengeDao.create(userId, "install", hash, now + 5.minutes)
 
-		assertEquals(1, challengeDao.claimAttempt(hash, now, maxAttempts = 2)?.attempts)
-		assertEquals(2, challengeDao.claimAttempt(hash, now, maxAttempts = 2)?.attempts)
-		assertNull(challengeDao.claimAttempt(hash, now, maxAttempts = 2))
-		assertNull(challengeDao.claimAttempt("expired-$hash", now, maxAttempts = 5))
+		assertEquals(1, challengeDao.claimAttempt(hash, "install", now, maxAttempts = 2)?.attempts)
+		assertEquals(2, challengeDao.claimAttempt(hash, "install", now, maxAttempts = 2)?.attempts)
+		assertNull(challengeDao.claimAttempt(hash, "install", now, maxAttempts = 2))
+		assertNull(challengeDao.claimAttempt("expired-$hash", "install", now, maxAttempts = 5))
 
 		val expired = "expired-${Random.nextLong()}"
 		challengeDao.create(userId, "install", expired, now + 1.minutes)
-		assertNull(challengeDao.claimAttempt(expired, now + 2.minutes, maxAttempts = 5))
+		assertNull(challengeDao.claimAttempt(expired, "install", now + 2.minutes, maxAttempts = 5))
 	}
 }

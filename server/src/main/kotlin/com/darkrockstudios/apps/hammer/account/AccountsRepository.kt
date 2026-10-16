@@ -56,7 +56,7 @@ class AccountsRepository(
 	private val authTokenGenerator = SecureTokenGenerator(Token.LENGTH, base64)
 	private val cipherSaltGenerator = SecureTokenGenerator(CIPHER_SALT_LENGTH, base64)
 
-	private suspend fun createToken(userId: Long, installId: String): Token {
+	suspend fun issueToken(userId: Long, installId: String): Token {
 		val expires = clock.now() + tokenLifetime
 
 		val plainAuthToken = authTokenGenerator.generateToken()
@@ -139,7 +139,7 @@ class AccountsRepository(
 					isAdmin = isAdmin
 				)
 
-				val token = createToken(userId = userId, installId = installId)
+				val token = issueToken(userId = userId, installId = installId)
 
 				SResult.success(token)
 			}
@@ -164,7 +164,8 @@ class AccountsRepository(
 	// path so login spends comparable time whether or not the account exists.
 	private val decoyPasswordHash: String by lazy { hashPassword(DECOY_PASSWORD) }
 
-	suspend fun login(email: String, password: String, installId: String): SResult<Token> {
+	/** Checks credentials only; a second factor may still stand between this and [issueToken]. */
+	suspend fun verifyPassword(email: String, password: String): SResult<Account> {
 		val account = accountDao.findAccount(email)
 
 		val passwordValid = if (account != null) {
@@ -186,8 +187,7 @@ class AccountsRepository(
 					AccountPendingDeletion()
 				)
 			} else {
-				val token = createToken(account.id, installId)
-				SResult.success(token)
+				SResult.success(account)
 			}
 		} else {
 			// The response can't distinguish these two — that would let anyone
@@ -231,7 +231,7 @@ class AccountsRepository(
 			authToken.refresh == hashedRefreshToken &&
 			!authToken.isRefreshExpired(clock, refreshWindow)
 		) {
-			val newToken = createToken(userId, installId)
+			val newToken = issueToken(userId, installId)
 			SResult.success(newToken)
 		} else {
 			SResult.failure("No valid token not found", Msg.r("api_accounts_login_error_notoken"))
@@ -257,7 +257,7 @@ class AccountsRepository(
 				InvalidInstallId("Install id matches the caller")
 			)
 
-			else -> SResult.success(createToken(userId, installId))
+			else -> SResult.success(issueToken(userId, installId))
 		}
 	}
 

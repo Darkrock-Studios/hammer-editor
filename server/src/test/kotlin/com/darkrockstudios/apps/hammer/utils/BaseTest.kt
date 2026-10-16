@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.utils
 
+import com.darkrockstudios.apps.hammer.account.mfa.MfaRepository
 import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.dependencyinjection.DISPATCHER_DEFAULT
 import com.darkrockstudios.apps.hammer.dependencyinjection.DISPATCHER_IO
@@ -150,6 +151,7 @@ fun Application.setupKtorTestKoin(baseTest: BaseTest, vararg modules: Module) {
 				single<MetricsRepository> { mockk(relaxed = true) }
 				single<ErrorRepository> { mockk(relaxed = true) }
 				single<SecurityRepository> { mockk(relaxed = true) }
+				single<MfaRepository> { mockk(relaxed = true) }
 				single<UserActivityRepository> { mockk(relaxed = true) }
 				single<UserActivityCollector> { mockk(relaxed = true) }
 				single<StoryReaderRepository> { mockk(relaxed = true) }

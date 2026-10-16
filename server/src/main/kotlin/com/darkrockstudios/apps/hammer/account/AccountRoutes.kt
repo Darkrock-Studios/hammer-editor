@@ -87,24 +87,33 @@ private fun Route.login() {
 		securityRepository.recordLoginAttempt(
 			email = email,
 			ipAddress = call.request.origin.remoteAddress,
-			success = isSuccess(result),
+			success = result is LoginResult.Success,
 		)
 
-		if (isSuccess(result)) {
-			val authToken = result.data
-			call.respond(authToken)
-		} else {
-			// A rejected whitelist isn't a credential problem, and answering 401 made it
-			// indistinguishable from a wrong password in both the logs and the client.
-			val notWhitelisted = result.exception is NotWhitelisted
-			val response = HttpResponseError(
-				error = "Failed to authenticate",
-				displayMessage = result.displayMessageText(call, R("api_error_unknown")),
-				errorCode = if (notWhitelisted) ApiErrorCode.NOT_WHITELISTED
-				else ApiErrorCode.INVALID_CREDENTIALS,
+		when (result) {
+			is LoginResult.Success -> call.respond(result.token)
+			is LoginResult.Failure -> {
+				// A rejected whitelist isn't a credential problem, and answering 401 made it
+				// indistinguishable from a wrong password in both the logs and the client.
+				val notWhitelisted = result.failure.exception is NotWhitelisted
+				val response = HttpResponseError(
+					error = "Failed to authenticate",
+					displayMessage = result.failure.displayMessageText(call, R("api_error_unknown")),
+					errorCode = if (notWhitelisted) ApiErrorCode.NOT_WHITELISTED
+					else ApiErrorCode.INVALID_CREDENTIALS,
+				)
+				val status = if (notWhitelisted) HttpStatusCode.Forbidden else HttpStatusCode.Unauthorized
+				call.respond(status = status, message = response)
+			}
+
+			is LoginResult.MfaRequired, is LoginResult.MfaCodeInvalid -> call.respond(
+				status = HttpStatusCode.Unauthorized,
+				message = HttpResponseError(
+					error = "Failed to authenticate",
+					displayMessage = call.t(R("api_error_unknown")),
+					errorCode = ApiErrorCode.INVALID_CREDENTIALS,
+				),
 			)
-			val status = if (notWhitelisted) HttpStatusCode.Forbidden else HttpStatusCode.Unauthorized
-			call.respond(status = status, message = response)
 		}
 	}
 }
