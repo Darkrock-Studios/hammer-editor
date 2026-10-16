@@ -1,0 +1,38 @@
+import kotlin.time.Instant;
+
+-- secret is encrypted with the account's content encryptor; cipher names it for the registry.
+CREATE TABLE account_totp(
+    user_id BIGINT NOT NULL PRIMARY KEY,
+    secret TEXT NOT NULL,
+    cipher TEXT NOT NULL,
+    confirmed BOOLEAN NOT NULL DEFAULT FALSE,
+    last_step BIGINT NOT NULL DEFAULT 0,
+    created TIMESTAMPTZ AS Instant NOT NULL DEFAULT NOW(),
+    FOREIGN KEY(user_id) REFERENCES account(id) ON DELETE CASCADE
+);
+
+getByUserId:
+SELECT * FROM account_totp WHERE user_id = ?;
+
+deletePending:
+DELETE FROM account_totp WHERE user_id = ? AND confirmed = FALSE;
+
+-- Does nothing when a confirmed secret already exists.
+insertPending:
+INSERT INTO account_totp(user_id, secret, cipher)
+VALUES (:userId, :secret, :cipher)
+ON CONFLICT (user_id) DO NOTHING;
+
+confirm:
+UPDATE account_totp SET confirmed = TRUE, last_step = :step
+WHERE user_id = :userId AND confirmed = FALSE AND last_step < :step
+RETURNING user_id;
+
+-- Atomic replay guard: only one request can claim a given step.
+advanceLastStep:
+UPDATE account_totp SET last_step = :step
+WHERE user_id = :userId AND confirmed = TRUE AND last_step < :step
+RETURNING user_id;
+
+deleteAllForUser:
+DELETE FROM account_totp WHERE user_id = ?;

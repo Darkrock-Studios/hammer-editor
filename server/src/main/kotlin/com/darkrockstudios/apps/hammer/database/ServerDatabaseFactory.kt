@@ -2,12 +2,15 @@ package com.darkrockstudios.apps.hammer.database
 
 import app.cash.sqldelight.db.SqlDriver
 import com.darkrockstudios.apps.hammer.Account
+import com.darkrockstudios.apps.hammer.Account_recovery_code
+import com.darkrockstudios.apps.hammer.Account_totp
 import com.darkrockstudios.apps.hammer.Api_metric_bucket
 import com.darkrockstudios.apps.hammer.Auth_token
 import com.darkrockstudios.apps.hammer.Deleted_entity
 import com.darkrockstudios.apps.hammer.Deleted_project
 import com.darkrockstudios.apps.hammer.Error_log
 import com.darkrockstudios.apps.hammer.Login_attempt
+import com.darkrockstudios.apps.hammer.Mfa_login_challenge
 import com.darkrockstudios.apps.hammer.Password_reset_token
 import com.darkrockstudios.apps.hammer.Project
 import com.darkrockstudios.apps.hammer.Project_access
@@ -45,6 +48,15 @@ fun buildServerDatabase(driver: SqlDriver): ServerDatabase {
 		),
 		password_reset_tokenAdapter = Password_reset_token.Adapter(
 			createdAdapter = instant,
+			expiresAdapter = instant,
+		),
+		account_totpAdapter = Account_totp.Adapter(
+			createdAdapter = instant,
+		),
+		account_recovery_codeAdapter = Account_recovery_code.Adapter(
+			used_atAdapter = instant,
+		),
+		mfa_login_challengeAdapter = Mfa_login_challenge.Adapter(
 			expiresAdapter = instant,
 		),
 		projectAdapter = Project.Adapter(

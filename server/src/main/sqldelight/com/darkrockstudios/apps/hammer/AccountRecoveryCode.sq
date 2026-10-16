@@ -1,0 +1,26 @@
+import kotlin.time.Instant;
+
+CREATE TABLE account_recovery_code(
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    code_hash TEXT NOT NULL,
+    used_at TIMESTAMPTZ AS Instant,
+    FOREIGN KEY(user_id) REFERENCES account(id) ON DELETE CASCADE
+);
+
+CREATE INDEX account_recovery_code_user_idx ON account_recovery_code (user_id, code_hash);
+
+insertCode:
+INSERT INTO account_recovery_code(user_id, code_hash) VALUES (?, ?);
+
+-- Single use: the WHERE makes a second consume of the same code match nothing.
+consume:
+UPDATE account_recovery_code SET used_at = :usedAt
+WHERE user_id = :userId AND code_hash = :codeHash AND used_at IS NULL
+RETURNING id;
+
+countUnused:
+SELECT COUNT(*) FROM account_recovery_code WHERE user_id = ? AND used_at IS NULL;
+
+deleteAllForUser:
+DELETE FROM account_recovery_code WHERE user_id = ?;

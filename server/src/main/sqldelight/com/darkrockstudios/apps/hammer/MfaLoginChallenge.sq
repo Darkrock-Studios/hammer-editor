@@ -1,0 +1,34 @@
+import kotlin.time.Instant;
+
+CREATE TABLE mfa_login_challenge(
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    install_id TEXT NOT NULL,
+    token_hash TEXT NOT NULL UNIQUE,
+    attempts INTEGER NOT NULL DEFAULT 0,
+    expires TIMESTAMPTZ AS Instant NOT NULL,
+    FOREIGN KEY(user_id) REFERENCES account(id) ON DELETE CASCADE
+);
+
+CREATE INDEX mfa_login_challenge_user_idx ON mfa_login_challenge (user_id);
+CREATE INDEX mfa_login_challenge_expires_idx ON mfa_login_challenge (expires);
+
+createChallenge:
+INSERT INTO mfa_login_challenge(user_id, install_id, token_hash, expires)
+VALUES (:userId, :installId, :tokenHash, :expires);
+
+-- Counts the attempt and returns the row in one statement, so concurrent guesses
+-- cannot share an attempt.
+claimAttempt:
+UPDATE mfa_login_challenge SET attempts = attempts + 1
+WHERE token_hash = :tokenHash AND expires > :now AND attempts < :maxAttempts
+RETURNING *;
+
+deleteById:
+DELETE FROM mfa_login_challenge WHERE id = ?;
+
+deleteAllForUser:
+DELETE FROM mfa_login_challenge WHERE user_id = ?;
+
+deleteExpiredBefore:
+DELETE FROM mfa_login_challenge WHERE expires < :cutoff;
