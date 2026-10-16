@@ -10,8 +10,13 @@ import org.koin.core.component.KoinComponent
 
 class EncryptionConvergenceException(message: String) : IllegalStateException(message)
 
-data class ConvergenceReport(val storyEntities: Int, val reviewScenes: Int, val storyIdeas: Int) {
-	val total: Int get() = storyEntities + reviewScenes + storyIdeas
+data class ConvergenceReport(
+	val storyEntities: Int,
+	val reviewScenes: Int,
+	val storyIdeas: Int,
+	val totpSecrets: Int = 0,
+) {
+	val total: Int get() = storyEntities + reviewScenes + storyIdeas + totpSecrets
 }
 
 data class ConvergenceDryRun(
@@ -20,8 +25,9 @@ data class ConvergenceDryRun(
 	val storyIdeas: Long,
 	/** Rows that would exceed their size cap once encrypted; convergence would fail on these. */
 	val overCapEntities: List<String>,
+	val totpSecrets: Long = 0,
 ) {
-	val total: Long get() = storyEntities + reviewScenes + storyIdeas
+	val total: Long get() = storyEntities + reviewScenes + storyIdeas + totpSecrets
 }
 
 /**
@@ -47,12 +53,14 @@ class EncryptionConvergence(
 	private val story = database.serverDatabase.storyEntityQueries
 	private val review = database.serverDatabase.reviewSceneQueries
 	private val ideas = database.serverDatabase.storyIdeaQueries
+	private val totp = database.serverDatabase.accountTotpQueries
 
 	/** Rows not yet on [targetTag] — the completion signal; 0 means fully converged. */
 	suspend fun remaining(targetTag: String): Long = withContext(ioDispatcher) {
 		story.countForConvergence(targetTag).executeAsOne() +
 			review.countForConvergence(targetTag).executeAsOne() +
-			ideas.countForConvergence(targetTag).executeAsOne()
+			ideas.countForConvergence(targetTag).executeAsOne() +
+			totp.countForConvergence(targetTag).executeAsOne()
 	}
 
 	/**
@@ -98,7 +106,8 @@ class EncryptionConvergence(
 			offset += batch.size
 		}
 
-		ConvergenceDryRun(storyRemaining, reviewRemaining, ideasRemaining, overCap)
+		val totpRemaining = totp.countForConvergence(targetTag).executeAsOne()
+		ConvergenceDryRun(storyRemaining, reviewRemaining, ideasRemaining, overCap, totpRemaining)
 	}
 
 	private suspend fun secretFor(cache: MutableMap<Long, String>, userId: Long): String {
@@ -165,6 +174,19 @@ class EncryptionConvergence(
 			}
 		}
 
-		ConvergenceReport(storyCount, reviewCount, ideaCount)
+		var totpCount = 0
+		while (true) {
+			val batch = totp.selectForConvergence(targetTag, batchSize).executeAsList()
+			if (batch.isEmpty()) break
+			for (row in batch) {
+				val secret = secretFor(secrets, row.user_id)
+				val plain = registry.resolve(row.cipher).decrypt(row.secret, secret)
+				val reEncrypted = target.encrypt(plain, secret)
+				totp.updateSecretCipher(reEncrypted, targetTag, row.user_id, row.cipher, row.secret)
+				totpCount++
+			}
+		}
+
+		ConvergenceReport(storyCount, reviewCount, ideaCount, totpCount)
 	}
 }

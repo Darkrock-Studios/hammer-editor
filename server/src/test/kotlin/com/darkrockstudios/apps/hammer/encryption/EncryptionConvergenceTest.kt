@@ -150,6 +150,19 @@ class EncryptionConvergenceTest : BaseTest() {
 	}
 
 	@Test
+	fun `converges TOTP secrets too`() = runTest {
+		db().accountTotpQueries.insertPending(userId, aesV1.encrypt("BASE32SECRET", cipherSecret), aesV1.cipherName())
+
+		val report = convergence.converge(aesV2)
+
+		assertEquals(1, report.totpSecrets)
+		val row = db().accountTotpQueries.getByUserId(userId).executeAsOne()
+		assertEquals(aesV2.cipherName(), row.cipher)
+		assertEquals("BASE32SECRET", aesV2.decrypt(row.secret, cipherSecret))
+		assertEquals(listOf(aesV2.cipherName()), db().accountTotpQueries.distinctCiphers().executeAsList())
+	}
+
+	@Test
 	fun `a second run is a no-op`() = runTest {
 		insertPlaintextNullCipher(1, "alpha")
 		assertEquals(1, convergence.converge(aesV1).storyEntities)

@@ -36,3 +36,17 @@ RETURNING user_id;
 
 deleteAllForUser:
 DELETE FROM account_totp WHERE user_id = ?;
+
+distinctCiphers:
+SELECT DISTINCT cipher FROM account_totp;
+
+countForConvergence:
+SELECT COUNT(*) FROM account_totp WHERE cipher != :target;
+
+selectForConvergence:
+SELECT user_id, secret, cipher FROM account_totp WHERE cipher != :target LIMIT :batchLimit;
+
+-- Matches the old tag so a re-enrollment landing mid-convergence is not overwritten.
+updateSecretCipher:
+UPDATE account_totp SET secret = :secret, cipher = :cipher
+WHERE user_id = :userId AND cipher = :oldCipher AND secret = :oldSecret;
