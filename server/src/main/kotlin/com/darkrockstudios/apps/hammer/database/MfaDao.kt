@@ -34,6 +34,19 @@ class AccountTotpDao(
 		queries.advanceLastStep(step = step, userId = userId).executeAsOneOrNull() != null
 	}
 
+	/** The failure count after this one, or null when the account has no confirmed TOTP. */
+	suspend fun recordFailure(userId: Long, now: Instant, windowCutoff: Instant): Int? = withContext(ioDispatcher) {
+		queries.recordFailure(windowCutoff = windowCutoff, now = now, userId = userId).executeAsOneOrNull()
+	}
+
+	suspend fun lock(userId: Long, until: Instant) = withContext(ioDispatcher) {
+		queries.lock(until = until, userId = userId)
+	}
+
+	suspend fun clearFailures(userId: Long) = withContext(ioDispatcher) {
+		queries.clearFailures(userId)
+	}
+
 	suspend fun delete(userId: Long) = withContext(ioDispatcher) {
 		queries.deleteAllForUser(userId)
 	}

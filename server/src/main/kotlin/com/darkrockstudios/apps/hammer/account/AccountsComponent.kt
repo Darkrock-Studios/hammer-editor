@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.account
 
 import com.darkrockstudios.apps.hammer.Account
 import com.darkrockstudios.apps.hammer.account.mfa.ChallengeResult
+import com.darkrockstudios.apps.hammer.account.mfa.CodeResult
 import com.darkrockstudios.apps.hammer.account.mfa.MfaRepository
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.base.http.MfaChallenge
@@ -13,6 +14,7 @@ import com.darkrockstudios.apps.hammer.utilities.Msg
 import com.darkrockstudios.apps.hammer.utilities.SResult
 import com.darkrockstudios.apps.hammer.utilities.ServerResult
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
+import kotlin.time.Instant
 
 class AccountsComponent(
 	private val accountsRepository: AccountsRepository,
@@ -60,13 +62,17 @@ class AccountsComponent(
 		if (!isSuccess(verified)) return LoginResult.Failure((verified as ServerResult.Failure).retype())
 		val account = verified.data
 
-		return when {
-			!mfaRepository.hasMfa(account.id) -> LoginResult.Success(accountsRepository.issueToken(account.id, installId))
-			code == null -> LoginResult.MfaRequired(mfaRepository.createChallenge(account.id, installId))
-			mfaRepository.verifyCode(account.id, code) ->
-				LoginResult.Success(accountsRepository.issueToken(account.id, installId))
-
-			else -> LoginResult.MfaCodeInvalid(account.email)
+		if (!mfaRepository.hasMfa(account.id)) {
+			return LoginResult.Success(accountsRepository.issueToken(account.id, installId))
+		}
+		if (code == null) {
+			mfaRepository.lockedUntil(account.id)?.let { return LoginResult.MfaLocked(account.email, it) }
+			return LoginResult.MfaRequired(mfaRepository.createChallenge(account.id, installId))
+		}
+		return when (val result = mfaRepository.verifyCode(account.id, code)) {
+			CodeResult.Verified -> LoginResult.Success(accountsRepository.issueToken(account.id, installId))
+			CodeResult.Invalid -> LoginResult.MfaCodeInvalid(account.email)
+			is CodeResult.Locked -> LoginResult.MfaLocked(account.email, result.until)
 		}
 	}
 
@@ -75,6 +81,9 @@ class AccountsComponent(
 			ChallengeResult.Invalid -> return LoginResult.MfaCodeInvalid(null)
 			is ChallengeResult.InvalidCode ->
 				return LoginResult.MfaCodeInvalid(accountsRepository.getAccountOrNull(result.userId)?.email)
+
+			is ChallengeResult.Locked ->
+				return LoginResult.MfaLocked(accountsRepository.getAccountOrNull(result.userId)?.email, result.until)
 
 			is ChallengeResult.Verified -> result.userId
 		}
@@ -171,6 +180,9 @@ sealed interface LoginResult {
 
 	/** [email] is the account the code was for, when known, for the login audit. */
 	data class MfaCodeInvalid(val email: String?) : LoginResult
+
+	/** Too many wrong codes; the account takes no code until [until]. */
+	data class MfaLocked(val email: String?, val until: Instant) : LoginResult
 	data class Failure(val failure: ServerResult.Failure<Token>) : LoginResult
 }
 

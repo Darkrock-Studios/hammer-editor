@@ -67,6 +67,8 @@ import org.junit.jupiter.api.Test
 import org.koin.dsl.module
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlin.time.Clock
+import kotlin.time.Duration.Companion.minutes
 
 class AccountRoutesTest : BaseTest() {
 	@MockK
@@ -555,6 +557,21 @@ class AccountRoutesTest : BaseTest() {
 			assertEquals(HttpStatusCode.Unauthorized, status)
 			val body = Json.parseToJsonElement(bodyAsText()).jsonObject
 			assertEquals(ApiErrorCode.MFA_CODE_INVALID, body["errorCode"]?.jsonPrimitive?.content)
+		}
+		coVerify { securityRepository.recordLoginAttempt(EMAIL, any(), false) }
+	}
+
+	@Test
+	fun `Account - Login MFA - locked account is a 401 that says how long to wait`() = testApplication {
+		val until = Clock.System.now() + 10.minutes
+		coEvery { accountsComponent.loginMfa("challenge-token", "000000", INSTALL_ID) } returns LoginResult.MfaLocked(EMAIL, until)
+		setupApp()
+
+		makeLoginMfaCall("challenge-token", "000000").apply {
+			assertEquals(HttpStatusCode.Unauthorized, status)
+			val body = Json.parseToJsonElement(bodyAsText()).jsonObject
+			assertEquals(ApiErrorCode.MFA_CODE_INVALID, body["errorCode"]?.jsonPrimitive?.content)
+			assertTrue(body["displayMessage"]?.jsonPrimitive?.content.orEmpty().contains("10 minutes"))
 		}
 		coVerify { securityRepository.recordLoginAttempt(EMAIL, any(), false) }
 	}

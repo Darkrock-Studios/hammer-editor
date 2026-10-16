@@ -110,8 +110,8 @@ class MfaRepositoryTest : BaseTest() {
 		val (userId, enrolled) = enrolled()
 		val code = codeAt(enrolled.secret)
 
-		assertTrue(repository.verifyCode(userId, code))
-		assertFalse(repository.verifyCode(userId, code))
+		assertEquals(CodeResult.Verified, repository.verifyCode(userId, code))
+		assertEquals(CodeResult.Invalid, repository.verifyCode(userId, code))
 	}
 
 	@Test
@@ -121,7 +121,7 @@ class MfaRepositoryTest : BaseTest() {
 		val code = codeAt(enrollment.secret)
 		assertNotNull(repository.confirmTotp(userId, code))
 
-		assertFalse(repository.verifyCode(userId, code))
+		assertEquals(CodeResult.Invalid, repository.verifyCode(userId, code))
 	}
 
 	@Test
@@ -129,9 +129,9 @@ class MfaRepositoryTest : BaseTest() {
 		val (userId, enrolled) = enrolled()
 		val code = enrolled.recoveryCodes.first()
 
-		assertTrue(repository.verifyCode(userId, " ${code.uppercase().replace("-", "")} "))
-		assertFalse(repository.verifyCode(userId, code))
-		assertTrue(repository.verifyCode(userId, enrolled.recoveryCodes[1]))
+		assertEquals(CodeResult.Verified, repository.verifyCode(userId, " ${code.uppercase().replace("-", "")} "))
+		assertEquals(CodeResult.Invalid, repository.verifyCode(userId, code))
+		assertEquals(CodeResult.Verified, repository.verifyCode(userId, enrolled.recoveryCodes[1]))
 	}
 
 	@Test
@@ -143,8 +143,8 @@ class MfaRepositoryTest : BaseTest() {
 			RoleKeys("v2", mapOf("v1" to "token-key", "v2" to "token-key-2")),
 		)
 
-		assertTrue(rotated.repository.verifyCode(userId, enrolled.recoveryCodes.first()))
-		assertFalse(rotated.repository.verifyCode(userId, enrolled.recoveryCodes.first()))
+		assertEquals(CodeResult.Verified, rotated.repository.verifyCode(userId, enrolled.recoveryCodes.first()))
+		assertEquals(CodeResult.Invalid, rotated.repository.verifyCode(userId, enrolled.recoveryCodes.first()))
 	}
 
 	@Test
@@ -153,15 +153,15 @@ class MfaRepositoryTest : BaseTest() {
 
 		val fresh = repository.regenerateRecoveryCodes(userId)
 
-		assertFalse(repository.verifyCode(userId, enrolled.recoveryCodes.first()))
-		assertTrue(repository.verifyCode(userId, fresh.first()))
+		assertEquals(CodeResult.Invalid, repository.verifyCode(userId, enrolled.recoveryCodes.first()))
+		assertEquals(CodeResult.Verified, repository.verifyCode(userId, fresh.first()))
 	}
 
 	@Test
 	fun `Codes do not verify for an account without MFA`() = runTest {
 		val userId = newAccount()
 
-		assertFalse(repository.verifyCode(userId, "123456"))
+		assertEquals(CodeResult.Invalid, repository.verifyCode(userId, "123456"))
 	}
 
 	@Test
@@ -253,7 +253,7 @@ class MfaRepositoryTest : BaseTest() {
 		repository.disableTotp(userId)
 
 		assertFalse(repository.hasMfa(userId))
-		assertFalse(repository.verifyCode(userId, enrolled.recoveryCodes.first()))
+		assertEquals(CodeResult.Invalid, repository.verifyCode(userId, enrolled.recoveryCodes.first()))
 		assertNotNull(repository.beginTotp(userId))
 	}
 
@@ -265,7 +265,135 @@ class MfaRepositoryTest : BaseTest() {
 		repository.resetAll(userId)
 
 		assertFalse(repository.hasMfa(userId))
-		assertFalse(repository.verifyCode(userId, enrolled.recoveryCodes.first()))
+		assertEquals(CodeResult.Invalid, repository.verifyCode(userId, enrolled.recoveryCodes.first()))
 		assertEquals(ChallengeResult.Invalid, repository.verifyChallenge(challenge.token, "install-a", codeAt(enrolled.secret)))
+	}
+
+	private suspend fun failCodes(userId: Long, secret: String, times: Int) {
+		val wrong = codeAt(secret, now + 5.minutes)
+		repeat(times) { assertEquals(CodeResult.Invalid, repository.verifyCode(userId, wrong)) }
+	}
+
+	private suspend fun lockOut(userId: Long, secret: String) {
+		failCodes(userId, secret, MfaRepository.MAX_FAILED_CODES - 1)
+		assertEquals(CodeResult.Locked(now + MfaRepository.LOCKOUT), repository.verifyCode(userId, "000000"))
+	}
+
+	@Test
+	fun `The tenth wrong code in a window locks the account for fifteen minutes`() = runTest {
+		val (userId, enrolled) = enrolled()
+		failCodes(userId, enrolled.secret, MfaRepository.MAX_FAILED_CODES - 1)
+
+		val locked = repository.verifyCode(userId, codeAt(enrolled.secret, now + 5.minutes))
+
+		assertEquals(CodeResult.Locked(now + MfaRepository.LOCKOUT), locked)
+		assertEquals(CodeResult.Locked(now + MfaRepository.LOCKOUT), repository.verifyCode(userId, codeAt(enrolled.secret)))
+		assertEquals(CodeResult.Locked(now + MfaRepository.LOCKOUT), repository.verifyCode(userId, enrolled.recoveryCodes.first()))
+	}
+
+	@Test
+	fun `The lock lifts after fifteen minutes`() = runTest {
+		val (userId, enrolled) = enrolled()
+		lockOut(userId, enrolled.secret)
+
+		now += MfaRepository.LOCKOUT + 1.seconds
+
+		assertEquals(CodeResult.Verified, repository.verifyCode(userId, codeAt(enrolled.secret)))
+	}
+
+	@Test
+	fun `Failures outside the window do not count toward the lock`() = runTest {
+		val (userId, enrolled) = enrolled()
+		failCodes(userId, enrolled.secret, MfaRepository.MAX_FAILED_CODES - 1)
+
+		now += MfaRepository.FAILURE_WINDOW + 1.seconds
+		failCodes(userId, enrolled.secret, MfaRepository.MAX_FAILED_CODES - 1)
+
+		assertEquals(CodeResult.Verified, repository.verifyCode(userId, codeAt(enrolled.secret)))
+	}
+
+	@Test
+	fun `A correct code clears the failure count`() = runTest {
+		val (userId, enrolled) = enrolled()
+		failCodes(userId, enrolled.secret, MfaRepository.MAX_FAILED_CODES - 1)
+		assertEquals(CodeResult.Verified, repository.verifyCode(userId, codeAt(enrolled.secret)))
+		now += Totp.STEP_SECONDS.seconds
+
+		failCodes(userId, enrolled.secret, MfaRepository.MAX_FAILED_CODES - 1)
+
+		assertEquals(CodeResult.Verified, repository.verifyCode(userId, codeAt(enrolled.secret)))
+	}
+
+	@Test
+	fun `Wrong recovery codes count toward the lock`() = runTest {
+		val (userId, enrolled) = enrolled()
+
+		repeat(MfaRepository.MAX_FAILED_CODES - 1) {
+			assertEquals(CodeResult.Invalid, repository.verifyCode(userId, "aaaaa-aaaaa"))
+		}
+
+		assertEquals(CodeResult.Locked(now + MfaRepository.LOCKOUT), repository.verifyCode(userId, "aaaaa-aaaaa"))
+		assertEquals(CodeResult.Locked(now + MfaRepository.LOCKOUT), repository.verifyCode(userId, enrolled.recoveryCodes.first()))
+	}
+
+	@Test
+	fun `Challenges report the lock across every challenge for the account`() = runTest {
+		val (userId, enrolled) = enrolled()
+		failCodes(userId, enrolled.secret, MfaRepository.MAX_FAILED_CODES - 1)
+		val first = repository.createChallenge(userId, "install-a")
+
+		val locked = repository.verifyChallenge(first.token, "install-a", "bad")
+
+		assertEquals(ChallengeResult.Locked(userId, now + MfaRepository.LOCKOUT), locked)
+		val second = repository.createChallenge(userId, "install-b")
+		assertEquals(
+			ChallengeResult.Locked(userId, now + MfaRepository.LOCKOUT),
+			repository.verifyChallenge(second.token, "install-b", codeAt(enrolled.secret)),
+		)
+	}
+
+	@Test
+	fun `An account can be locked again after the lock lapses`() = runTest {
+		val (userId, enrolled) = enrolled()
+		lockOut(userId, enrolled.secret)
+		now += MfaRepository.LOCKOUT + 1.seconds
+
+		lockOut(userId, enrolled.secret)
+	}
+
+	@Test
+	fun `A replayed code is refused but does not count toward the lock`() = runTest {
+		val (userId, enrolled) = enrolled()
+		val code = codeAt(enrolled.secret)
+		assertEquals(CodeResult.Verified, repository.verifyCode(userId, code))
+		assertEquals(CodeResult.Invalid, repository.verifyCode(userId, code))
+
+		failCodes(userId, enrolled.secret, MfaRepository.MAX_FAILED_CODES - 1)
+
+		assertNull(repository.lockedUntil(userId))
+		assertEquals(CodeResult.Locked(now + MfaRepository.LOCKOUT), repository.verifyCode(userId, "000000"))
+	}
+
+	@Test
+	fun `Locked until reports an active lock only`() = runTest {
+		val (userId, enrolled) = enrolled()
+		assertNull(repository.lockedUntil(userId))
+		lockOut(userId, enrolled.secret)
+
+		assertEquals(now + MfaRepository.LOCKOUT, repository.lockedUntil(userId))
+		now += MfaRepository.LOCKOUT + 1.seconds
+		assertNull(repository.lockedUntil(userId))
+	}
+
+	@Test
+	fun `Reset lifts an active lock`() = runTest {
+		val (userId, enrolled) = enrolled()
+		lockOut(userId, enrolled.secret)
+
+		repository.resetAll(userId)
+		val again = fixture.enroll(userId)
+
+		assertNull(repository.lockedUntil(userId))
+		assertEquals(CodeResult.Verified, repository.verifyCode(userId, codeAt(again.secret)))
 	}
 }

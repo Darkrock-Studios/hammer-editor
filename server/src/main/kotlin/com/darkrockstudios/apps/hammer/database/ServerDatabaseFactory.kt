@@ -52,6 +52,8 @@ fun buildServerDatabase(driver: SqlDriver): ServerDatabase {
 		),
 		account_totpAdapter = Account_totp.Adapter(
 			createdAdapter = instant,
+			failure_window_startAdapter = instant,
+			locked_untilAdapter = instant,
 		),
 		account_recovery_codeAdapter = Account_recovery_code.Adapter(
 			used_atAdapter = instant,

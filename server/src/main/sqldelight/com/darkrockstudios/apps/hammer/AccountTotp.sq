@@ -8,6 +8,9 @@ CREATE TABLE account_totp(
     confirmed BOOLEAN NOT NULL DEFAULT FALSE,
     last_step BIGINT NOT NULL DEFAULT 0,
     created TIMESTAMPTZ AS Instant NOT NULL DEFAULT NOW(),
+    failed_attempts INTEGER NOT NULL DEFAULT 0,
+    failure_window_start TIMESTAMPTZ AS Instant,
+    locked_until TIMESTAMPTZ AS Instant,
     FOREIGN KEY(user_id) REFERENCES account(id) ON DELETE CASCADE
 );
 
@@ -33,6 +36,23 @@ advanceLastStep:
 UPDATE account_totp SET last_step = :step
 WHERE user_id = :userId AND confirmed = TRUE AND last_step < :step
 RETURNING user_id;
+
+-- Counts a wrong code, starting a fresh window when the current one began before
+-- :windowCutoff. One statement so concurrent guesses cannot share a count.
+recordFailure:
+UPDATE account_totp SET
+    failed_attempts = CASE WHEN failure_window_start IS NULL OR failure_window_start < :windowCutoff THEN 1 ELSE failed_attempts + 1 END,
+    failure_window_start = CASE WHEN failure_window_start IS NULL OR failure_window_start < :windowCutoff THEN :now ELSE failure_window_start END
+WHERE user_id = :userId AND confirmed = TRUE
+RETURNING failed_attempts;
+
+lock:
+UPDATE account_totp SET locked_until = :until, failed_attempts = 0, failure_window_start = NULL
+WHERE user_id = :userId;
+
+clearFailures:
+UPDATE account_totp SET failed_attempts = 0, failure_window_start = NULL, locked_until = NULL
+WHERE user_id = :userId;
 
 deleteAllForUser:
 DELETE FROM account_totp WHERE user_id = ?;

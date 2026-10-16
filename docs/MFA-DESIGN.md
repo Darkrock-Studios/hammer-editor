@@ -100,6 +100,12 @@ Challenges live five minutes, allow five attempts, and are purged by `TokenMaint
 failed code is recorded through `SecurityRepository.recordLoginAttempt` so the existing
 brute-force alerts cover it.
 
+Wrong codes also count against the account as a whole, across challenges and the inline path, so
+a stolen password cannot be turned into an unbounded guess at a six-digit code: ten failures
+within fifteen minutes refuse every code for fifteen minutes. The count and lock live on
+`account_totp`; a correct code clears them, and the admin reset lifts the lock. A replayed code
+that was already accepted is refused without counting as a guess.
+
 ### API
 
 - `POST /api/account/login` accepts an optional `code` form field (TOTP or recovery code) so a

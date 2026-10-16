@@ -286,6 +286,50 @@ class AccountsComponentLoginTest : BaseTest() {
 	}
 
 	@Test
+	fun `Login - the tenth wrong code locks the account and names it for the audit log`() = runTest {
+		val (mfaAccount, enrolled) = mfaAccount()
+		val wrong = mfa.codeAt(enrolled.secret, mfa.now + 5.minutes)
+		repeat(MfaRepository.MAX_FAILED_CODES - 1) {
+			assertEquals(LoginResult.MfaCodeInvalid(mfaAccount.email), component().login(mfaAccount.email, validPassword, installId, code = wrong))
+		}
+
+		val result = component().login(mfaAccount.email, validPassword, installId, code = wrong)
+
+		assertEquals(LoginResult.MfaLocked(mfaAccount.email, mfa.now + MfaRepository.LOCKOUT), result)
+		val correct = component().login(mfaAccount.email, validPassword, installId, code = mfa.codeAt(enrolled.secret))
+		assertEquals(LoginResult.MfaLocked(mfaAccount.email, mfa.now + MfaRepository.LOCKOUT), correct)
+		coVerify(exactly = 0) { accountsRepository.issueToken(any(), any()) }
+	}
+
+	@Test
+	fun `Login MFA - a challenge answered while locked reports the lock`() = runTest {
+		val (mfaAccount, enrolled) = mfaAccount()
+		val challenge = assertIs<LoginResult.MfaRequired>(component().login(mfaAccount.email, validPassword, installId))
+		val wrong = mfa.codeAt(enrolled.secret, mfa.now + 5.minutes)
+		repeat(MfaRepository.MAX_FAILED_CODES) {
+			component().login(mfaAccount.email, validPassword, installId, code = wrong)
+		}
+
+		val result = component().loginMfa(challenge.challenge.token, mfa.codeAt(enrolled.secret), installId)
+
+		assertEquals(LoginResult.MfaLocked(mfaAccount.email, mfa.now + MfaRepository.LOCKOUT), result)
+		coVerify(exactly = 0) { accountsRepository.issueToken(any(), any()) }
+	}
+
+	@Test
+	fun `Login - a locked account gets the lock instead of a challenge`() = runTest {
+		val (mfaAccount, enrolled) = mfaAccount()
+		val wrong = mfa.codeAt(enrolled.secret, mfa.now + 5.minutes)
+		repeat(MfaRepository.MAX_FAILED_CODES) {
+			component().login(mfaAccount.email, validPassword, installId, code = wrong)
+		}
+
+		val result = component().login(mfaAccount.email, validPassword, installId)
+
+		assertEquals(LoginResult.MfaLocked(mfaAccount.email, mfa.now + MfaRepository.LOCKOUT), result)
+	}
+
+	@Test
 	fun `Login - inline code is ignored for an account without MFA`() = runTest {
 		coEvery { whiteListRepository.isOnWhiteList(validEmail) } returns true
 		coEvery { accountsRepository.findAccount(validEmail) } returns account
