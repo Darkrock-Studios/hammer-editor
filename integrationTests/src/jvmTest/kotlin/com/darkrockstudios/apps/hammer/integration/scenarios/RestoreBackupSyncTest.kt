@@ -67,7 +67,7 @@ class RestoreBackupSyncTest : RoundTripTestBase() {
 	}
 
 	private fun localId(client: HeadlessClient): ProjectId =
-		get<ProjectMetadataDatasource>().loadProjectId(client.projectDef)
+		get<ProjectMetadataDatasource>().loadProjectId(client.projectDef.path)
 
 	private fun serverProjectId(name: String): ProjectId = ProjectId(
 		requireNotNull(database().serverDatabase.projectQueries.findProjectByName(userId, name).executeAsOneOrNull()).uuid

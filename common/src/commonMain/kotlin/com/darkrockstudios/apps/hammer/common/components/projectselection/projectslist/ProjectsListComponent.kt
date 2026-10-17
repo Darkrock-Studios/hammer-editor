@@ -630,8 +630,6 @@ class ProjectsListComponent(
 						)
 					}
 
-					loadProjectList()
-
 					if (allSuccess && globalSettingsStore.globalSettings.autoCloseSyncDialog) {
 						hideProjectsSync()
 					}
@@ -662,16 +660,16 @@ class ProjectsListComponent(
 							),
 						)
 					}
-
-					loadProjectList()
 				}
+			} finally {
+				// Also after a cancel: account sync may have changed ids before it stopped.
+				withContext(NonCancellable + mainDispatcher) { loadProjectList() }
 			}
 		}
 	}
 
 	override fun cancelProjectsSync() {
-		val canceledJob = syncProjectsJob
-		canceledJob?.cancel(CancellationException("User canceled sync"))
+		syncProjectsJob?.cancel(CancellationException("User canceled sync"))
 		syncProjectsJob = null
 
 		syncScope?.cancel(CancellationException("User canceled sync"))
@@ -698,10 +696,6 @@ class ProjectsListComponent(
 					)
 				}
 			}
-
-			// The listed defs' ids are stale if account sync changed any before it stopped.
-			canceledJob?.join()
-			loadProjectList()
 		}
 	}
 

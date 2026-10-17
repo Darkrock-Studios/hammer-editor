@@ -116,13 +116,10 @@ class SyncAccountUseCase(
 		listener.onProjectsDiscovered(projects)
 
 		val outcomes = mutableMapOf<String, ProjectSyncOutcome>()
-		val candidates = projects.filter { projectDef ->
-			val admitted = projectFilter(projectDef)
-			if (!admitted) {
-				outcomes[projectDef.name] = ProjectSyncOutcome.Skipped
-				listener.onProjectOutcome(projectDef, ProjectSyncOutcome.Skipped)
-			}
-			admitted
+		val (candidates, skipped) = projects.partition { projectFilter(it) }
+		skipped.forEach { projectDef ->
+			outcomes[projectDef.name] = ProjectSyncOutcome.Skipped
+			listener.onProjectOutcome(projectDef, ProjectSyncOutcome.Skipped)
 		}
 
 		val unchangedProjectIds = accountSynchronizer.probeUnchangedProjects(candidates)

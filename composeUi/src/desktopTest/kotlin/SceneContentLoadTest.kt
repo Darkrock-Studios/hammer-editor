@@ -1,10 +1,8 @@
-import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.common.compose.ComposeRichText
 import com.darkrockstudios.apps.hammer.common.compose.markdown.HammerMarkdownConfiguration
-import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneContent
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
-import com.darkrockstudios.apps.hammer.common.fileio.HPath
+import com.darkrockstudios.apps.hammer.common.preview.fakeProjectDef
 import com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor.loadSceneContent
 import com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor.sceneDiffText
 import com.darkrockstudios.texteditor.markdown.MarkdownExtension
@@ -20,14 +18,8 @@ import kotlin.test.assertNotEquals
 
 class SceneContentLoadTest {
 
-	private val projectDef = ProjectDef(
-		id = ProjectId("6f0b8e52-2a4c-4d1e-9b3a-7c5d1e2f3a40"),
-		name = "Test Project",
-		path = HPath(path = "/test", name = "Test Project", isAbsolute = true),
-	)
-
 	private val sceneItem = SceneItem(
-		projectDef = projectDef,
+		projectDef = fakeProjectDef(),
 		type = SceneItem.Type.Scene,
 		id = 1,
 		name = "Test Scene",

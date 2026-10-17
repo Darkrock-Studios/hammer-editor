@@ -65,7 +65,7 @@ class ProjectMetadataDatasourceTest : BaseTest() {
 	fun `loadProjectId returns the stored id`() {
 		createProject(fileSystem, PROJECT_2_NAME)
 
-		val projectId = projectMetadataDatasource.loadProjectId(getProjectDef(PROJECT_2_NAME))
+		val projectId = projectMetadataDatasource.loadProjectId(getProjectDef(PROJECT_2_NAME).path)
 
 		assertEquals(ProjectId("8c3f6a2e-4b1d-4e5a-9f7c-2d6b1a0e9c43"), projectId)
 	}
@@ -73,7 +73,7 @@ class ProjectMetadataDatasourceTest : BaseTest() {
 	@Test
 	fun `loadProjectId mints and persists an id when the file has none`() {
 		createProject(fileSystem, PROJECT_1_NAME)
-		val path = projectMetadataDatasource.getMetadataPath(getProject1Def()).toOkioPath()
+		val path = projectMetadataDatasource.getMetadataPath(getProject1Def().path).toOkioPath()
 		fileSystem.write(path) {
 			writeUtf8(
 				"[info]\ncreated = 2022-12-30T07:08:02.691261600Z\n" +
@@ -81,10 +81,10 @@ class ProjectMetadataDatasourceTest : BaseTest() {
 			)
 		}
 
-		val minted = projectMetadataDatasource.loadProjectId(getProject1Def())
+		val minted = projectMetadataDatasource.loadProjectId(getProject1Def().path)
 
 		assertEquals(minted, projectMetadataDatasource.loadMetadata(getProject1Def()).info.projectId)
-		assertEquals(minted, projectMetadataDatasource.loadProjectId(getProject1Def()))
+		assertEquals(minted, projectMetadataDatasource.loadProjectId(getProject1Def().path))
 		// The rest of the metadata survives the heal.
 		val info = projectMetadataDatasource.loadMetadata(getProject1Def()).info
 		assertEquals(4, info.dataVersion)
@@ -100,18 +100,18 @@ class ProjectMetadataDatasourceTest : BaseTest() {
 			it.copy(info = it.info.copy(dataVersion = 2))
 		}
 
-		val path = projectMetadataDatasource.getMetadataPath(getProject1Def()).toOkioPath()
+		val path = projectMetadataDatasource.getMetadataPath(getProject1Def().path).toOkioPath()
 		assertFalse(fileSystem.read(path) { readUtf8() }.contains("serverProjectId"))
 		assertEquals(
 			ProjectId("5f1d7446-1f08-4909-a81e-cdc7470a2f63"),
-			projectMetadataDatasource.loadProjectId(getProject1Def())
+			projectMetadataDatasource.loadProjectId(getProject1Def().path)
 		)
 	}
 
 	@Test
 	fun `Corrupt project metadata recovers instead of throwing`() {
 		createProject(fileSystem, PROJECT_1_NAME)
-		val path = projectMetadataDatasource.getMetadataPath(getProject1Def()).toOkioPath()
+		val path = projectMetadataDatasource.getMetadataPath(getProject1Def().path).toOkioPath()
 		// dataVersion is an Int; a non-numeric value throws NumberFormatException on decode,
 		// which is not a SerializationException. Loading must recover, not crash the project load.
 		fileSystem.write(path) {
@@ -129,25 +129,25 @@ class ProjectMetadataDatasourceTest : BaseTest() {
 		// Recreated fresh (dataVersion 0 so migrators re-run) rather than throwing.
 		assertEquals(0, metadata.info.dataVersion)
 		assertNotNull(metadata.info.projectId)
-		assertEquals(metadata.info.projectId, projectMetadataDatasource.loadProjectId(getProject1Def()))
+		assertEquals(metadata.info.projectId, projectMetadataDatasource.loadProjectId(getProject1Def().path))
 	}
 
 	@Test
 	fun `Missing project metadata is recreated with a fresh id`() {
 		createProject(fileSystem, PROJECT_1_NAME)
-		val path = projectMetadataDatasource.getMetadataPath(getProject1Def()).toOkioPath()
+		val path = projectMetadataDatasource.getMetadataPath(getProject1Def().path).toOkioPath()
 		fileSystem.delete(path)
 
-		val projectId = projectMetadataDatasource.loadProjectId(getProject1Def())
+		val projectId = projectMetadataDatasource.loadProjectId(getProject1Def().path)
 
 		assertTrue(fileSystem.exists(path))
-		assertEquals(projectId, projectMetadataDatasource.loadProjectId(getProject1Def()))
+		assertEquals(projectId, projectMetadataDatasource.loadProjectId(getProject1Def().path))
 	}
 
 	@Test
 	fun `Get Project Metadata Path`() {
 		createProject(fileSystem, PROJECT_1_NAME)
-		val path = projectMetadataDatasource.getMetadataPath(getProject1Def()).toOkioPath()
+		val path = projectMetadataDatasource.getMetadataPath(getProject1Def().path).toOkioPath()
 		assertTrue(path.segments.size >= 3)
 		path.segments.reversed().forEachIndexed { i, segment ->
 			when (i) {
@@ -175,7 +175,7 @@ class ProjectMetadataDatasourceTest : BaseTest() {
 			getProject1Def()
 		)
 
-		val path = projectMetadataDatasource.getMetadataPath(getProject1Def()).toOkioPath()
+		val path = projectMetadataDatasource.getMetadataPath(getProject1Def().path).toOkioPath()
 		val protectMetadata: ProjectMetadata = fileSystem.readToml(path, toml)
 
 		assertEquals(newMetadata, protectMetadata)
@@ -194,7 +194,7 @@ class ProjectMetadataDatasourceTest : BaseTest() {
 
 		projectMetadataDatasource.saveMetadata(metadata, getProject1Def())
 
-		val path = projectMetadataDatasource.getMetadataPath(getProject1Def()).toOkioPath()
+		val path = projectMetadataDatasource.getMetadataPath(getProject1Def().path).toOkioPath()
 		val text = fileSystem.read(path) { readUtf8() }
 		assertTrue(text.startsWith(ProjectMetadataDatasource.FILE_HEADER + "\n"))
 		assertEquals(metadata, projectMetadataDatasource.loadMetadata(getProject1Def()))
@@ -207,7 +207,7 @@ class ProjectMetadataDatasourceTest : BaseTest() {
 
 		val created = projectMetadataDatasource.createMetadata(getProject1Def(), projectId)
 
-		val path = projectMetadataDatasource.getMetadataPath(getProject1Def()).toOkioPath()
+		val path = projectMetadataDatasource.getMetadataPath(getProject1Def().path).toOkioPath()
 		val text = fileSystem.read(path) { readUtf8() }
 		assertTrue(text.startsWith(ProjectMetadataDatasource.FILE_HEADER + "\n"))
 		assertEquals(projectId, created.info.projectId)
@@ -225,7 +225,7 @@ class ProjectMetadataDatasourceTest : BaseTest() {
 			updatedMetadata
 		}
 
-		val path = projectMetadataDatasource.getMetadataPath(getProject1Def()).toOkioPath()
+		val path = projectMetadataDatasource.getMetadataPath(getProject1Def().path).toOkioPath()
 		val protectMetadata: ProjectMetadata = fileSystem.readToml(path, toml)
 
 		assertEquals(updatedMetadata, protectMetadata)

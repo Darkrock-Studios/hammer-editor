@@ -13,7 +13,6 @@ import com.darkrockstudios.apps.hammer.common.data.ClientMessage
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
-import com.darkrockstudios.apps.hammer.common.data.isProjectInUse as hasOpenProjectScope
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.migrator.Migration3_4
 import com.darkrockstudios.apps.hammer.common.data.migrator.PROJECT_DATA_VERSION
@@ -60,7 +59,6 @@ import okio.Path
 import okio.Path.Companion.toPath
 import org.jetbrains.compose.resources.StringResource
 import org.koin.core.component.KoinComponent
-import org.koin.core.component.getScopeId
 import org.koin.core.component.inject
 import org.koin.core.qualifier.named
 import kotlin.coroutines.CoroutineContext
@@ -124,12 +122,8 @@ class ProjectsRepository(
 	 * that collides. The old sync baseline described the old id, so it goes when the id changes
 	 * (a journal flagged for verification keeps its conflict baselines, see [clearProjectSyncBaseline]).
 	 *
-	 * Throws [ProjectInUseException] for a project in use (see [isProjectInUse]): its open scope
-	 * holds state under the old id. Callers check first and skip such a project; one opened after
-	 * the check still throws.
-	 *
-	 * The old id is read from disk rather than taken from [projectDef], so a stale def cannot skip
-	 * the write. Returns [projectDef] under [projectId].
+	 * Throws [ProjectInUseException] for a project in use: its open scope holds state under the old
+	 * id. The old id is read from disk, so a stale [projectDef] cannot skip the write.
 	 */
 	suspend fun setProjectId(projectDef: ProjectDef, projectId: ProjectId): ProjectDef {
 		val updated = projectDef.copy(id = projectId)
@@ -241,7 +235,7 @@ class ProjectsRepository(
 		// An open project serves project data from ProjectDataRepository's cache, so clearing only
 		// the file would leave the stale hash live (and get it written straight back out).
 		val openProject = getKoin()
-			.getScopeOrNull(ProjectDefScope(projectDef).getScopeId())
+			.getScopeOrNull(ProjectDefScope(projectDef).scopeId)
 			?.get<ProjectDataRepository>()
 		if (openProject != null) {
 			openProject.clearSyncBaseline()
@@ -250,19 +244,21 @@ class ProjectsRepository(
 		}
 	}
 
-	/** True while [projectDef] is open in an editor or a temporary task; its id and name are then fixed. */
-	fun isProjectInUse(projectDef: ProjectDef): Boolean = hasOpenProjectScope(projectDef)
+	/** True while the project is open in an editor or a temporary task; its id and name are then fixed. */
+	fun isProjectInUse(projectDir: HPath): Boolean =
+		getKoin().getScopeOrNull(ProjectDefScope.scopeIdFor(projectDir)) != null
 
-	/** [isProjectInUse] for the project at [projectDir], before its id is known. */
-	fun isProjectInUse(projectDir: HPath): Boolean = hasOpenProjectScope(projectDir)
+	fun isProjectInUse(projectDef: ProjectDef): Boolean = isProjectInUse(projectDef.path)
 
-	fun findProject(projectId: ProjectId): ProjectDef? = getProjects().find { it.id == projectId }
+	fun findProject(projectId: ProjectId): ProjectDef? =
+		markedCandidates(getProjectsDirectory().toOkioPath())
+			.mapNotNull { (name, dir) -> loadProjectDef(name, dir) }
+			.firstOrNull { it.id == projectId }
 
-	fun findProject(projectName: String): ProjectDef? {
-		val allProjects = getProjects()
-		val found = allProjects.find { project -> project.name == projectName }
-		return found
-	}
+	fun findProject(projectName: String): ProjectDef? =
+		markedCandidates(getProjectsDirectory().toOkioPath())
+			.filter { (name, _) -> name == projectName }
+			.firstNotNullOfOrNull { (name, dir) -> loadProjectDef(name, dir) }
 
 	/**
 	 * A directory is considered a project only if it contains a [ProjectMetadata.FILENAME]
@@ -271,16 +267,22 @@ class ProjectsRepository(
 	 * is built is left out.
 	 */
 	fun getProjects(projectsDir: HPath = getProjectsDirectory()): List<ProjectDef> =
-		listCandidateDirectories(projectsDir.toOkioPath())
+		markedCandidates(projectsDir.toOkioPath())
+			.mapNotNull { (name, dir) -> loadProjectDef(name, dir) }
+			.toList()
+
+	private fun markedCandidates(projectsDir: Path): Sequence<Pair<String, Path>> =
+		listCandidateDirectories(projectsDir).asSequence()
 			.filter { (_, dir) -> fileSystem.metadataOrNull(dir / ProjectMetadata.FILENAME)?.isRegularFile == true }
-			.mapNotNull { (name, dir) ->
-				try {
-					ProjectDef(projectsMetadataDatasource.loadProjectId(dir.toHPath()), name, dir.toHPath())
-				} catch (e: IOException) {
-					Napier.w("Skipped project '$name': could not read its ${ProjectMetadata.FILENAME}", e)
-					null
-				}
-			}
+
+	/** Null when its [ProjectMetadata.FILENAME] cannot be read, as when the project is deleted meanwhile. */
+	private fun loadProjectDef(name: String, dir: Path): ProjectDef? =
+		try {
+			ProjectDef(projectsMetadataDatasource.loadProjectId(dir.toHPath()), name, dir.toHPath())
+		} catch (e: IOException) {
+			Napier.w("Skipped project '$name': could not read its ${ProjectMetadata.FILENAME}", e)
+			null
+		}
 
 	/** Each non-hidden directory whose decoded name is a valid project name, marked or not, with that name. */
 	private fun listCandidateDirectories(projectsDir: Path): List<Pair<String, Path>> =

@@ -9,6 +9,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectInUseException
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectRenameFailed
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectContentHasher
@@ -39,6 +40,7 @@ import com.darkrockstudios.apps.hammer.sync_log_account_project_create_server_su
 import com.darkrockstudios.apps.hammer.sync_log_account_project_deleted_elsewhere
 import com.darkrockstudios.apps.hammer.sync_log_account_project_id_reminted
 import com.darkrockstudios.apps.hammer.sync_log_account_project_in_use
+import com.darkrockstudios.apps.hammer.sync_log_account_project_rename_client_from_server_failure
 import org.jetbrains.compose.resources.StringResource
 import io.ktor.http.*
 import io.mockk.*
@@ -1135,13 +1137,12 @@ class ClientAccountSynchronizerTest {
 		)
 		every { projectsRepository.getProjects(any()) } returns listOf(def)
 		every { projectsRepository.findProject("MyNovel") } returns def
-		every { projectsRepository.isProjectInUse(def) } returns true
+		coEvery { projectsRepository.setProjectId(def, serverId) } throws ProjectInUseException("MyNovel")
 
 		val strRes = RecordingStrRes()
 		val result = createSynchronizer(strRes).syncProjects(onLog = {}, onUnauthorized = {})
 
 		assertTrue(result)
-		coVerify(exactly = 0) { projectsRepository.setProjectId(any(), any()) }
 		// Still claimed by name, so it is not uploaded as a duplicate either.
 		coVerify(exactly = 0) { serverProjectsApi.createProject(any(), any(), any()) }
 		verify(exactly = 0) { projectsRepository.createProject(any(), any(), any()) }
@@ -1203,14 +1204,15 @@ class ClientAccountSynchronizerTest {
 			emptyServerResponse().copy(projects = setOf(ApiProjectDefinition("NewName", id)))
 		)
 		every { projectsRepository.getProjects(any()) } returns listOf(def)
-		every { projectsRepository.isProjectInUse(def) } returns true
+		every { projectsRepository.renameProject(def, "NewName") } returns
+			CResult.failure(ProjectRenameFailed(ProjectRenameFailed.Reason.ProjectInUse))
 
 		val strRes = RecordingStrRes()
 		val result = createSynchronizer(strRes).syncProjects(onLog = {}, onUnauthorized = {})
 
 		assertTrue(result)
-		verify(exactly = 0) { projectsRepository.renameProject(any(), any()) }
 		val logged = strRes.calls.single { it.first == Res.string.sync_log_account_project_in_use }
 		assertEquals(listOf<Any>("OldName"), logged.second)
+		assertTrue(strRes.calls.none { it.first == Res.string.sync_log_account_project_rename_client_from_server_failure })
 	}
 }

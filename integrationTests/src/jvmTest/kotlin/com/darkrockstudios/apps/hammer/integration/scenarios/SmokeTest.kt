@@ -48,7 +48,7 @@ class SmokeTest : RoundTripTestBase() {
 			.findProjectByName(userId, "smoke project")
 			.executeAsOne()
 		assertEquals(localId.id, serverProject.uuid.toString())
-		assertEquals(localId, get<ProjectMetadataDatasource>().loadProjectId(client.projectDef))
+		assertEquals(localId, get<ProjectMetadataDatasource>().loadProjectId(client.projectDef.path))
 
 		client.close()
 	}

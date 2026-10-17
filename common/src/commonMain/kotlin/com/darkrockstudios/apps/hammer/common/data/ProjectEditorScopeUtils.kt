@@ -3,7 +3,6 @@ package com.darkrockstudios.apps.hammer.common.data
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
-import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectSpellCheckService
 import io.github.aakira.napier.Napier
 import kotlinx.atomicfu.atomic
@@ -13,7 +12,6 @@ import kotlinx.atomicfu.locks.withLock
 import kotlinx.atomicfu.update
 import org.koin.core.Koin
 import org.koin.core.component.KoinComponent
-import org.koin.core.component.getScopeId
 import org.koin.core.parameter.parametersOf
 import org.koin.core.qualifier.TypeQualifier
 import org.koin.core.scope.Scope
@@ -40,7 +38,7 @@ private val editorScopes = atomic(emptySet<ScopeID>())
  * project is the ordinary case, not a rare one.
  */
 suspend fun KoinComponent.temporaryProjectTask(projectDef: ProjectDef, block: suspend (projectScope: Scope) -> Unit) {
-	val scopeId = ProjectDefScope(projectDef).getScopeId()
+	val scopeId = ProjectDefScope(projectDef).scopeId
 
 	temporaryScopeLock.withLock {
 		val users = temporaryScopeUsers[scopeId] ?: 0
@@ -73,26 +71,19 @@ suspend fun KoinComponent.temporaryProjectTask(projectDef: ProjectDef, block: su
 	}
 }
 
-/** True while [projectDef] has a project scope open, for an editor or a temporary task. */
-fun KoinComponent.isProjectInUse(projectDef: ProjectDef): Boolean = isProjectInUse(projectDef.path)
-
-/** [isProjectInUse] for the project at [projectDir], which need not exist. */
-fun KoinComponent.isProjectInUse(projectDir: HPath): Boolean =
-	getKoin().getScopeOrNull(ProjectDefScope.scopeIdFor(projectDir)) != null
-
 fun createProjectScope(projectDef: ProjectDef): Scope {
-	val alreadyCreated = getKoin().getScopeOrNull(ProjectDefScope(projectDef).getScopeId()) != null
+	val alreadyCreated = getKoin().getScopeOrNull(ProjectDefScope(projectDef).scopeId) != null
 	if (alreadyCreated) error("Scope was already created")
 
 	val defScope = ProjectDefScope(projectDef)
-	val projScope = getKoin().createScope<ProjectDefScope>(defScope.getScopeId(), source = defScope)
+	val projScope = getKoin().createScope<ProjectDefScope>(defScope.scopeId, source = defScope)
 
 	return projScope
 }
 
 suspend fun openProjectScope(projectDef: ProjectDef, temporary: Boolean = false): Scope {
 	val defScope = ProjectDefScope(projectDef)
-	val scopeId = defScope.getScopeId()
+	val scopeId = defScope.scopeId
 
 	val needsInit = getKoin().getScopeOrNull(scopeId) == null
 	val projScope = getKoin().getOrCreateScope<ProjectDefScope>(scopeId, source = defScope)
@@ -108,7 +99,7 @@ suspend fun openProjectScope(projectDef: ProjectDef, temporary: Boolean = false)
 
 suspend fun initializeProjectScope(projectDef: ProjectDef, temporary: Boolean = false) {
 	val defScope = ProjectDefScope(projectDef)
-	getKoin().getScopeOrNull(defScope.getScopeId())?.let { projScope ->
+	getKoin().getScopeOrNull(defScope.scopeId)?.let { projScope ->
 		// Creates the service (activating its autosave side-effect subscription from project open)
 		// and runs the scene-editor init sequence: tree, then content (autosave), then metadata.
 		val sceneEditorService: SceneEditorService = projScope.get()
@@ -119,7 +110,7 @@ suspend fun initializeProjectScope(projectDef: ProjectDef, temporary: Boolean = 
 
 		// Skipped for temporary scopes (background sync, import): loading session words
 		// there only churns the shared checker while the sync rewrites entries.
-		if (!temporary && markOpenedForEditing(defScope.getScopeId())) {
+		if (!temporary && markOpenedForEditing(defScope.scopeId)) {
 			initializeEditorServices(projScope)
 		}
 	} ?: throw IllegalStateException("No scope found for $projectDef")
@@ -137,7 +128,7 @@ private fun markOpenedForEditing(scopeId: ScopeID): Boolean {
 
 fun closeProjectScope(projectScope: Scope, projectDef: ProjectDef) {
 	Napier.d { "closeProjectScope: ${projectDef.name}" }
-	editorScopes.update { it - ProjectDefScope(projectDef).getScopeId() }
+	editorScopes.update { it - ProjectDefScope(projectDef).scopeId }
 	projectScope.close()
 }
 

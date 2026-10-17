@@ -3,6 +3,7 @@ package repositories.projectsrepository
 import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupService
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
@@ -22,6 +23,8 @@ import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import utils.BaseTest
+import kotlin.time.Clock
+import kotlin.time.Instant
 
 abstract class ProjectsRepositoryBaseTest : BaseTest() {
 	protected lateinit var ffs: FakeFileSystem
@@ -34,6 +37,14 @@ abstract class ProjectsRepositoryBaseTest : BaseTest() {
 
 	protected fun projectsRepository(fs: FileSystem = ffs) =
 		ProjectsRepository(fs, settingsRepo, projectsMetaDatasource, toml, json, deviceLocaleResolver)
+
+	protected fun backupService(repo: ProjectsRepository): ProjectBackupService {
+		every { settings.maxBackups } returns 5
+		val clock = object : Clock {
+			override fun now(): Instant = Instant.parse("2025-12-28T16:29:00Z")
+		}
+		return ProjectBackupService(ffs, repo, settingsRepo, clock, mockk(relaxed = true), projectsMetaDatasource)
+	}
 
 	@BeforeEach
 	override fun setup() {

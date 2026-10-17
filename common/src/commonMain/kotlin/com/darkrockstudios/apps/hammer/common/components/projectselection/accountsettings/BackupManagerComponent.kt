@@ -107,18 +107,13 @@ class BackupManagerComponent(
 	}
 
 	override fun selectProject(projectName: String) {
-		scope.launch {
-			withContext(dispatcherMain) {
-				_state.update {
-					it.copy(
-						selectedProject = projectName,
-						backupsForSelectedProject = emptyList()
-					)
-				}
-
-				loadBackupsForProject(projectName)
-			}
+		_state.update {
+			it.copy(
+				selectedProject = projectName,
+				backupsForSelectedProject = emptyList()
+			)
 		}
+		loadBackupsForProject(projectName)
 	}
 
 	override fun deleteBackup(backup: ProjectBackupDef) {

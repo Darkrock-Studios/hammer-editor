@@ -25,7 +25,7 @@ class ProjectMetadataDatasource(
 	private val fileSystem: FileSystem,
 	private val toml: Toml
 ) {
-	fun getMetadataPath(projectDef: ProjectDef): HPath = metadataPath(projectDef.path).toHPath()
+	fun getMetadataPath(projectDir: HPath): HPath = metadataPath(projectDir).toHPath()
 
 	private fun metadataPath(projectDir: HPath): Path = projectDir.toOkioPath() / ProjectMetadata.FILENAME
 
@@ -101,9 +101,6 @@ class ProjectMetadataDatasource(
 	}
 
 	/** The project's id, minting and saving a new one if the file has none. */
-	fun loadProjectId(projectDef: ProjectDef): ProjectId = loadProjectId(projectDef.path)
-
-	/** [loadProjectId] for a project directory that has no [ProjectDef] yet. */
 	fun loadProjectId(projectDir: HPath): ProjectId {
 		val metadata = loadMetadata(projectDir)
 		metadata.info.projectId?.let { return it }

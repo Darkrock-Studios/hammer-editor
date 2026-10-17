@@ -695,7 +695,7 @@ class ProjectBackupServiceTest {
 		}
 		assertEquals(BackupRestoreResult.Failed, realService(failingSwap).restoreBackup(backupDef, projectDef.path))
 
-		assertEquals(liveId, metadataDatasource.loadProjectId(projectDef))
+		assertEquals(liveId, metadataDatasource.loadProjectId(projectDef.path))
 		assertEquals("newer work", fileSystem.read(projectDir / "notes.md") { readUtf8() })
 	}
 

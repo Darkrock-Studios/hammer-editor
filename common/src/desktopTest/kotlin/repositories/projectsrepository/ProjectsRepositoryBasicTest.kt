@@ -190,7 +190,7 @@ class ProjectsRepositoryBasicTest : ProjectsRepositoryBaseTest() {
 
 		val newDef = ProjectDef(testProjectId(projectName), projectName, actualProjDir.toHPath())
 		val metadataDatasource = ProjectMetadataDatasource(ffs, toml)
-		val metadataPath = metadataDatasource.getMetadataPath(newDef)
+		val metadataPath = metadataDatasource.getMetadataPath(newDef.path)
 		assertTrue(
 			ffs.exists(metadataPath.toOkioPath()),
 			"createProject must write ${ProjectMetadata.FILENAME} immediately"

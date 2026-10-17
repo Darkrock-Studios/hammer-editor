@@ -34,7 +34,7 @@ import kotlin.test.assertTrue
 import kotlin.time.Instant
 
 class ProjectsRepositoryAdoptTest : ProjectsRepositoryBaseTest() {
-	private val project2Id = ProjectId("8c3f6a2e-4b1d-4e5a-9f7c-2d6b1a0e9c43")
+	private val project2Id = testProjectId(PROJECT_2_NAME)
 
 	private fun dir(def: ProjectDef): Path = def.path.toOkioPath()
 

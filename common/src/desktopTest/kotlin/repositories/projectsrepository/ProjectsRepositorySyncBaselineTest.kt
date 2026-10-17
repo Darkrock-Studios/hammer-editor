@@ -6,13 +6,11 @@ import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.createProjectScope
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.BackupRestoreResult
-import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupService
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
 import com.darkrockstudios.apps.hammer.common.data.projectdata.StoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.projectdata.readStoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.projectdata.saveStoredProjectData
-import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityOriginalState
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectSynchronizationData
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournalDatasource
@@ -20,8 +18,6 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScop
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import createProject
 import getProjectDef
-import io.mockk.every
-import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import listedProjectId
 import okio.Path
@@ -33,7 +29,6 @@ import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-import kotlin.time.Clock
 import kotlin.time.Instant
 
 /**
@@ -233,14 +228,6 @@ class ProjectsRepositorySyncBaselineTest : ProjectsRepositoryBaseTest() {
 			}
 		)
 		return createProjectScope(projectDef).get()
-	}
-
-	private fun backupService(repo: ProjectsRepository): ProjectBackupService {
-		every { settings.maxBackups } returns 5
-		val clock = object : Clock {
-			override fun now(): Instant = Instant.parse("2025-12-28T16:29:00Z")
-		}
-		return ProjectBackupService(ffs, repo, settingsRepo, clock, mockk(relaxed = true), projectsMetaDatasource)
 	}
 
 	@Test

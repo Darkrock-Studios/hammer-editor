@@ -47,11 +47,6 @@ sealed interface ServerCreateOutcome {
  * so both resolve the server's answers the same way: a same-name project on the account is adopted
  * unless another local project already holds its id, an id held by another account is re-minted
  * once, and a tombstoned id is reported, not retried.
- *
- * Only account sync, run from the project list, may change a project's id: project sync runs on a
- * project that is in use, whose open scope holds state under the old id. For project sync
- * ([createInOwnSession]) an adopt or re-mint is reported as [ServerCreateOutcome.NeedsAccountSync]
- * instead.
  */
 class ProjectCreateResolver(
 	private val serverProjectsApi: ServerProjectsApi,
@@ -97,12 +92,11 @@ class ProjectCreateResolver(
 					return ServerCreateOutcome.Created(response.alreadyExisted, reminted)
 				}
 
-				error.apiErrorCode() == ApiErrorCode.PROJECT_ID_TAKEN && !mayChangeId -> {
-					Napier.w("'${def.name}' id ${def.id.id} is taken on the server: needs account sync")
-					return ServerCreateOutcome.NeedsAccountSync
-				}
-
 				error.apiErrorCode() == ApiErrorCode.PROJECT_ID_TAKEN && !reminted -> {
+					if (!mayChangeId) {
+						Napier.w("'${def.name}' id ${def.id.id} is taken on the server: needs account sync")
+						return ServerCreateOutcome.NeedsAccountSync
+					}
 					val newId = ProjectId.randomUUID()
 					Napier.w("'${def.name}' id ${def.id.id} is taken on the server, re-minted ${newId.id}")
 					def = projectsRepository.setProjectId(def, newId)

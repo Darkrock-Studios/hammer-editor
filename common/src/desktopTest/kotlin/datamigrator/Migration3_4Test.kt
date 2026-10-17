@@ -87,7 +87,7 @@ class Migration3_4Test : BaseTest() {
 
 		migration().migrate(def)
 
-		assertEquals(ProjectId(SERVER_ID), metadataDatasource().loadProjectId(def))
+		assertEquals(ProjectId(SERVER_ID), metadataDatasource().loadProjectId(def.path))
 	}
 
 	@Test
@@ -108,7 +108,7 @@ class Migration3_4Test : BaseTest() {
 		migrator(2 to noOp(2), 3 to noOp(3), 4 to migration()).migrateProject(projDef)
 
 		assertEquals(4, metadataDatasource().loadMetadata(projDef).info.dataVersion)
-		assertEquals(ProjectId(SERVER_ID), metadataDatasource().loadProjectId(projDef))
+		assertEquals(ProjectId(SERVER_ID), metadataDatasource().loadProjectId(projDef.path))
 		assertFalse(read(metadataPath).contains("serverProjectId"))
 	}
 

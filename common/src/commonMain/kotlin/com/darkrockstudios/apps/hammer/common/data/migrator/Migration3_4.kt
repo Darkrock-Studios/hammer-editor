@@ -24,7 +24,7 @@ class Migration3_4(
 
 		// A legacy serverProjectId reads as the projectId, and DataMigrator's version stamp persists
 		// it under that name; only a project with no id at all needs one minted here.
-		projectMetadataDatasource.loadProjectId(projectDef)
+		projectMetadataDatasource.loadProjectId(projectDef.path)
 		renameProjectSettings(projectDef)
 
 		Napier.i("Migration3_4 for '${projectDef.name}' complete.")

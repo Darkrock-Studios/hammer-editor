@@ -32,8 +32,7 @@ import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.days
 
 class ProjectsRepositoryIdTest : ProjectsRepositoryBaseTest() {
-	private val project2Id = ProjectId("8c3f6a2e-4b1d-4e5a-9f7c-2d6b1a0e9c43")
-	private val legacyProject1Id = ProjectId("5f1d7446-1f08-4909-a81e-cdc7470a2f63")
+	private val project2Id = testProjectId(PROJECT_2_NAME)
 
 	@Test
 	fun `Get Projects reads each project's id from disk`() = scope.runTest {
@@ -43,7 +42,10 @@ class ProjectsRepositoryIdTest : ProjectsRepositoryBaseTest() {
 		val projects = projectsRepository().getProjects()
 
 		assertEquals(
-			mapOf(PROJECT_1_NAME to legacyProject1Id, PROJECT_2_NAME to project2Id),
+			mapOf(
+				PROJECT_1_NAME to ProjectId("5f1d7446-1f08-4909-a81e-cdc7470a2f63"),
+				PROJECT_2_NAME to ProjectId("8c3f6a2e-4b1d-4e5a-9f7c-2d6b1a0e9c43"),
+			),
 			projects.associate { it.name to it.id },
 		)
 	}
@@ -118,6 +120,24 @@ class ProjectsRepositoryIdTest : ProjectsRepositoryBaseTest() {
 		}
 
 		assertEquals(project2Id, repo.listedProjectId(proj2Def))
+	}
+
+	@Test
+	fun `A project is in use under any def for its path while its scope is open`() = scope.runTest {
+		val proj2Def = getProjectDef(PROJECT_2_NAME)
+		val reidentified = proj2Def.copy(id = ProjectId.randomUUID())
+		createProject(ffs, PROJECT_2_NAME)
+		val repo = projectsRepository()
+		val projectScope = createProjectScope(proj2Def)
+
+		try {
+			assertTrue(repo.isProjectInUse(reidentified))
+			assertTrue(repo.isProjectInUse(proj2Def.path))
+		} finally {
+			projectScope.close()
+		}
+
+		assertFalse(repo.isProjectInUse(proj2Def))
 	}
 
 	@Test

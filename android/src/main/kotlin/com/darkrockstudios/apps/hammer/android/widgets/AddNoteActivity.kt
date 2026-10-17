@@ -38,7 +38,6 @@ import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
-import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -48,7 +47,6 @@ private val DialogMaxWidth = 480.dp
 class AddNoteActivity : ComponentActivity(), KoinComponent {
 
 	private val projectsRepository: ProjectsRepository by inject()
-	private val projectsMetadataRepository: ProjectMetadataDatasource by inject()
 	private val globalSettingsStore: GlobalSettingsStore by inject()
 	private val globalSettings = MutableValue(globalSettingsStore.globalSettings)
 
@@ -65,10 +63,7 @@ class AddNoteActivity : ComponentActivity(), KoinComponent {
 
 		val projectId = intent.extras?.getString(EXTRA_PROJECT_ID)?.ifBlank { null }?.let(::ProjectId)
 
-		val projects = projectsRepository.getProjects()
-			.map { it to projectsMetadataRepository.loadMetadata(it).info.lastAccessed }
-			.sortedByDescending { (_, lastAccessed) -> lastAccessed }
-			.map { (projectDef, _) -> projectDef }
+		val projects = projectsRepository.getRecentProjects(Int.MAX_VALUE)
 
 		if (projects.isEmpty()) {
 			Toast.makeText(

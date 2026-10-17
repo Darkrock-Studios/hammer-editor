@@ -53,7 +53,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import org.koin.android.ext.android.inject
-import org.koin.core.component.getScopeId
 import org.koin.java.KoinJavaComponent.getKoin
 import kotlin.time.Clock
 
@@ -263,7 +262,7 @@ class ProjectRootViewModel : ViewModel() {
 
 	override fun onCleared() {
 		projectDef?.let {
-			closeProjectScope(getKoin().getScope(ProjectDefScope(it).getScopeId()), it)
+			closeProjectScope(getKoin().getScope(ProjectDefScope(it).scopeId), it)
 		}
 	}
 }

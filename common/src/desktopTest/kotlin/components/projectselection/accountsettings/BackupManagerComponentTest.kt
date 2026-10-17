@@ -18,11 +18,11 @@ import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
-import org.jetbrains.compose.resources.StringResource
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import utils.ComponentTest
 import org.koin.dsl.module
+import server.RecordingStrRes
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
@@ -34,6 +34,7 @@ class BackupManagerComponentTest : ComponentTest() {
 
 	private lateinit var backupService: ProjectBackupService
 	private lateinit var backupManagerService: BackupManagerService
+	private lateinit var strRes: RecordingStrRes
 
 	private val alphaOld = backup("Alpha", "alpha-old.zip", at = 100)
 	private val alphaNew = backup("Alpha", "alpha-new.zip", at = 200)
@@ -47,12 +48,6 @@ class BackupManagerComponentTest : ComponentTest() {
 		date = Instant.fromEpochSeconds(at),
 	)
 
-	// Echoes the resource key, so a test can tell which message is shown.
-	private class KeyStrRes : StrRes {
-		override suspend fun get(str: StringResource) = str.key
-		override suspend fun get(str: StringResource, vararg args: Any) = str.key
-	}
-
 	@BeforeEach
 	override fun setup() {
 		super.setup()
@@ -61,6 +56,7 @@ class BackupManagerComponentTest : ComponentTest() {
 
 		backupService = mockk(relaxed = true)
 		backupManagerService = mockk(relaxed = true)
+		strRes = RecordingStrRes()
 
 		every { backupService.getBackedUpProjects() } returns listOf("Alpha", "Zulu")
 		every { backupService.getBackups("Alpha") } answers { alphaBackups }
@@ -70,7 +66,7 @@ class BackupManagerComponentTest : ComponentTest() {
 		setupKoin(module {
 			single { backupService }
 			single { backupManagerService }
-			single<StrRes> { KeyStrRes() }
+			single<StrRes> { strRes }
 		})
 	}
 
@@ -180,7 +176,8 @@ class BackupManagerComponentTest : ComponentTest() {
 		comp.restoreBackup(alphaNew)
 		advanceUntilIdle()
 
-		assertEquals(Res.string.backup_manager_error_restore_backup.key, comp.state.value.error)
+		assertNotNull(comp.state.value.error)
+		assertEquals(listOf(Res.string.backup_manager_error_restore_backup), strRes.requested)
 	}
 
 	@Test
@@ -194,7 +191,8 @@ class BackupManagerComponentTest : ComponentTest() {
 		comp.restoreBackup(alphaNew)
 		advanceUntilIdle()
 
-		assertEquals(Res.string.backup_manager_error_restore_in_use.key, comp.state.value.error)
+		assertNotNull(comp.state.value.error)
+		assertEquals(listOf(Res.string.backup_manager_error_restore_in_use), strRes.requested)
 	}
 
 	@Test

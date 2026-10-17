@@ -2,7 +2,6 @@ package com.darkrockstudios.apps.hammer.common.data.projectbackup
 
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.validate.validateProjectName
-import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
@@ -197,9 +196,7 @@ open class ProjectBackupService(
 	 * one when there is none: the backup's own id may since have been deleted on the server, and a
 	 * deleted id can never be created again.
 	 *
-	 * A project in use is refused before anything is touched: its open scope holds the content and
-	 * id this would replace. One opened mid-restore is not caught; setting its id then fails and is
-	 * logged.
+	 * A project opened mid-restore is not caught: setting its id then fails and is logged.
 	 */
 	open suspend fun restoreBackup(backupDef: ProjectBackupDef, targetDir: HPath): BackupRestoreResult {
 		val targetOkioPath = targetDir.toOkioPath()
@@ -217,7 +214,7 @@ open class ProjectBackupService(
 				fileSystem.deleteRecursively(staging)
 				fileSystem.createDirectories(extracted)
 
-				val liveId = if (fileSystem.exists(targetOkioPath / ProjectMetadata.FILENAME)) {
+				val liveId = if (fileSystem.exists(projectMetadataDatasource.getMetadataPath(targetDir).toOkioPath())) {
 					projectMetadataDatasource.loadProjectId(targetDir)
 				} else {
 					null
