@@ -17,7 +17,6 @@ import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier
 import com.darkrockstudios.apps.hammer.e2e.util.EndToEndTest
 import com.darkrockstudios.apps.hammer.e2e.util.TestAccount
-import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ClientAccountSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntitySynchronizers
 import io.ktor.client.HttpClient
@@ -270,8 +269,7 @@ abstract class RoundTripTestBase : EndToEndTest(), KoinTest {
 	 * project: the realistic "two devices, one account, one project" setup.
 	 */
 	protected suspend fun secondDeviceFor(primary: HeadlessClient, localName: String): HeadlessClient {
-		val sharedId = get<ProjectMetadataDatasource>().loadProjectId(primary.projectDef)
-		return HeadlessClient.create(localName, makeServerSettings(), serverProjectId = sharedId)
+		return HeadlessClient.create(localName, makeServerSettings(), serverProjectId = primary.projectDef.id)
 			.also { openClients += it }
 	}
 

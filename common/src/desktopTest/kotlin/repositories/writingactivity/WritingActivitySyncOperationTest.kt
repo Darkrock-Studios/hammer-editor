@@ -87,7 +87,6 @@ class WritingActivitySyncOperationTest : BaseTest() {
 		onlyNew = false,
 		clientSyncData = projectData,
 		entityState = entityState,
-		serverProjectId = projId,
 		serverSyncData = beganResponse,
 		collatedIds = collatedIds,
 		maxId = 1,
@@ -121,7 +120,7 @@ class WritingActivitySyncOperationTest : BaseTest() {
 		coVerify {
 			api.uploadDeviceLog(
 				userId = userId,
-				projectId = projId,
+				projectId = projectDef.id,
 				deviceId = ownDeviceId,
 				log = DeviceLog(deviceLabel = deviceLabel, sessions = listOf(localOnlySession())),
 			)

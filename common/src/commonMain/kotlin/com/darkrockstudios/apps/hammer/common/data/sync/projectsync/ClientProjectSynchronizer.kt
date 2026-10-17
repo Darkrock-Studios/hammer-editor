@@ -7,7 +7,6 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
-import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.BackupOperation
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.CollateIdsOperation
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.EntityDeleteOperation
@@ -41,7 +40,6 @@ class ClientProjectSynchronizer(
 	private val strRes: StrRes,
 	private val syncJournal: SyncJournal,
 	private val globalSettingsStore: GlobalSettingsStore,
-	private val projectMetadataDatasource: ProjectMetadataDatasource,
 	private val serverProjectApi: ServerProjectApi,
 ) : ProjectScoped {
 
@@ -165,11 +163,10 @@ class ClientProjectSynchronizer(
 		try {
 			val syncId = syncJournal.loadSyncData().currentSyncId
 				?: throw IllegalStateException("No sync ID")
-			val serverProjectId = projectMetadataDatasource.loadProjectId(projectDef)
 
 			val endSyncResult = serverProjectApi.endProjectSync(
 				globalSettingsStore.userIdOrThrow(),
-				serverProjectId,
+				projectDef.id,
 				syncId,
 				null,
 				null

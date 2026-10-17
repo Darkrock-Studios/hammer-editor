@@ -3,9 +3,7 @@ package com.darkrockstudios.apps.hammer.common.data.sync.accountsync
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.http.storyideas.StoryIdea
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.SyncedProjectDefinition
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataConflictBroker
-import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.IdeaConflict
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer
@@ -29,7 +27,6 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.yield
-import okio.IOException
 import org.koin.core.component.KoinComponent
 import org.koin.core.parameter.parametersOf
 
@@ -81,13 +78,12 @@ interface SyncAccountListener {
 class SyncAccountUseCase(
 	private val projectsRepository: ProjectsRepository,
 	private val accountSynchronizer: ClientAccountSynchronizer,
-	private val projectMetadataDatasource: ProjectMetadataDatasource,
 	private val strRes: StrRes,
 ) : KoinComponent {
 
 	suspend fun execute(
 		listener: SyncAccountListener,
-		projectFilter: suspend (SyncedProjectDefinition) -> Boolean = { true },
+		projectFilter: suspend (ProjectDef) -> Boolean = { true },
 	): SyncAccountResult {
 		val initialProjects = projectsRepository.getProjects()
 		listener.onProjectsDiscovered(initialProjects)
@@ -120,24 +116,21 @@ class SyncAccountUseCase(
 		listener.onProjectsDiscovered(projects)
 
 		val outcomes = mutableMapOf<String, ProjectSyncOutcome>()
-		val candidates = projects.mapNotNull { projectDef ->
-			val outcome = classify(projectDef, projectFilter)
-			if (outcome is Candidate.Settled) {
-				outcomes[projectDef.name] = outcome.outcome
-				listener.onProjectOutcome(projectDef, outcome.outcome)
-				null
-			} else {
-				(outcome as Candidate.ToSync).synced
+		val candidates = projects.filter { projectDef ->
+			val admitted = projectFilter(projectDef)
+			if (!admitted) {
+				outcomes[projectDef.name] = ProjectSyncOutcome.Skipped
+				listener.onProjectOutcome(projectDef, ProjectSyncOutcome.Skipped)
 			}
+			admitted
 		}
 
 		val unchangedProjectIds = accountSynchronizer.probeUnchangedProjects(candidates)
 
 		val synced = coroutineScope {
-			candidates.map { synced ->
+			candidates.map { projectDef ->
 				async {
-					val projectDef = synced.projectDef
-					val outcome = if (synced.projectId in unchangedProjectIds) {
+					val outcome = if (projectDef.id in unchangedProjectIds) {
 						listener.onLog(syncLogI(strRes.get(Res.string.sync_log_project_unchanged), projectDef))
 						ProjectSyncOutcome.Unchanged
 					} else {
@@ -155,31 +148,6 @@ class SyncAccountUseCase(
 			ideasSuccess = ideasSuccess,
 			projects = outcomes,
 		)
-	}
-
-	private sealed interface Candidate {
-		data class Settled(val outcome: ProjectSyncOutcome) : Candidate
-		data class ToSync(val synced: SyncedProjectDefinition) : Candidate
-	}
-
-	private suspend fun classify(
-		projectDef: ProjectDef,
-		projectFilter: suspend (SyncedProjectDefinition) -> Boolean,
-	): Candidate {
-		// The project can be deleted concurrently.
-		val projectId = try {
-			projectMetadataDatasource.loadProjectId(projectDef)
-		} catch (e: IOException) {
-			Napier.w("Failed to load metadata for '${projectDef.name}'", e)
-			return Candidate.Settled(ProjectSyncOutcome.Failed)
-		}
-
-		val synced = SyncedProjectDefinition(projectDef, projectId)
-		return if (projectFilter(synced)) {
-			Candidate.ToSync(synced)
-		} else {
-			Candidate.Settled(ProjectSyncOutcome.Skipped)
-		}
 	}
 
 	private suspend fun syncProjectSafely(

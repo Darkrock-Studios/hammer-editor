@@ -27,7 +27,7 @@ class SmokeTest : RoundTripTestBase() {
 		)
 
 		assertTrue(fileSystem.exists(client.projectPath), "Local project dir must exist before sync")
-		val localId = get<ProjectMetadataDatasource>().loadProjectId(client.projectDef)
+		val localId = client.projectDef.id
 
 		val result = client.sync()
 

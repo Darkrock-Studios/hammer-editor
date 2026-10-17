@@ -2,7 +2,6 @@ package com.darkrockstudios.apps.hammer.wear.sync
 
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.SyncedProjectDefinition
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
@@ -42,10 +41,7 @@ class DefaultSyncCoordinatorTest {
 
 	private val alpha = ProjectDef(ProjectId("a"), "Alpha", HPath("/projects/Alpha", "Alpha", false))
 	private val beta = ProjectDef(ProjectId("b"), "Beta", HPath("/projects/Beta", "Beta", false))
-	private val candidates = listOf(
-		SyncedProjectDefinition(alpha, alpha.id),
-		SyncedProjectDefinition(beta, beta.id),
-	)
+	private val candidates = listOf(alpha, beta)
 
 	private val signedIn = ServerSettings(
 		url = "hammer.ink",
@@ -63,12 +59,12 @@ class DefaultSyncCoordinatorTest {
 
 		override suspend fun run(
 			listener: SyncAccountListener,
-			projectFilter: suspend (SyncedProjectDefinition) -> Boolean,
+			projectFilter: suspend (ProjectDef) -> Boolean,
 		): SyncAccountResult {
 			runs++
 			// Like the real sync: the account phase runs before projects are filtered.
 			val result = behaviour(listener)
-			admitted = candidates.filter { projectFilter(it) }.map { it.projectDef.name }
+			admitted = candidates.filter { projectFilter(it) }.map { it.name }
 			return result
 		}
 	}

@@ -18,6 +18,7 @@ import createProject
 import getProjectDef
 import getProjectsDirectory
 import kotlinx.coroutines.test.runTest
+import listedProjectId
 import okio.FileMetadata
 import okio.ForwardingFileSystem
 import okio.Path
@@ -33,30 +34,6 @@ import kotlin.time.Duration.Companion.days
 class ProjectsRepositoryIdTest : ProjectsRepositoryBaseTest() {
 	private val project2Id = ProjectId("8c3f6a2e-4b1d-4e5a-9f7c-2d6b1a0e9c43")
 	private val legacyProject1Id = ProjectId("5f1d7446-1f08-4909-a81e-cdc7470a2f63")
-
-	@Test
-	fun `Get Project ID`() = scope.runTest {
-		createProject(ffs, PROJECT_2_NAME)
-
-		val repo = projectsRepository()
-
-		assertEquals(project2Id, repo.getProjectId(getProjectDef(PROJECT_2_NAME)))
-	}
-
-	@Test
-	fun `Get Project ID heals a project without one`() = scope.runTest {
-		val proj1Def = getProjectDef(PROJECT_1_NAME)
-		createProject(ffs, PROJECT_1_NAME)
-		ffs.write(proj1Def.path.toOkioPath() / ProjectMetadata.FILENAME) {
-			writeUtf8("[info]\ncreated = 2022-12-30T07:08:02.691261600Z\ndataVersion = 4\n")
-		}
-
-		val repo = projectsRepository()
-		val healed = repo.getProjectId(proj1Def)
-
-		assertEquals(healed, repo.getProjectId(proj1Def))
-		assertEquals(healed, projectsMetaDatasource.loadMetadata(proj1Def).info.projectId)
-	}
 
 	@Test
 	fun `Get Projects reads each project's id from disk`() = scope.runTest {
@@ -123,7 +100,7 @@ class ProjectsRepositoryIdTest : ProjectsRepositoryBaseTest() {
 		val repo = projectsRepository()
 		repo.setProjectId(proj2Def, projectId)
 
-		assertEquals(projectId, repo.getProjectId(proj2Def))
+		assertEquals(projectId, repo.listedProjectId(proj2Def))
 		assertEquals(proj2Def.name, repo.findProject(projectId)?.name)
 	}
 
@@ -140,7 +117,7 @@ class ProjectsRepositoryIdTest : ProjectsRepositoryBaseTest() {
 			projectScope.close()
 		}
 
-		assertEquals(project2Id, repo.getProjectId(proj2Def))
+		assertEquals(project2Id, repo.listedProjectId(proj2Def))
 	}
 
 	@Test
@@ -152,7 +129,7 @@ class ProjectsRepositoryIdTest : ProjectsRepositoryBaseTest() {
 		val changes = mutableListOf<Triple<String, ProjectId, ProjectId>>()
 		var storedWhenNotified: ProjectId? = null
 		repo.addProjectIdChangeListener { def, oldId, id ->
-			storedWhenNotified = repo.getProjectId(def)
+			storedWhenNotified = repo.listedProjectId(def)
 			changes += Triple(def.name, oldId, id)
 		}
 
@@ -187,7 +164,7 @@ class ProjectsRepositoryIdTest : ProjectsRepositoryBaseTest() {
 
 		repo.setProjectId(proj2Def, newId)
 
-		assertEquals(newId, repo.getProjectId(proj2Def))
+		assertEquals(newId, repo.listedProjectId(proj2Def))
 		assertTrue(laterListenerRan)
 	}
 
@@ -199,7 +176,7 @@ class ProjectsRepositoryIdTest : ProjectsRepositoryBaseTest() {
 		val second = repo.createProject("Second", seedDefaultLanguage = false)
 
 		assertTrue(isSuccess(first) && isSuccess(second))
-		assertNotEquals(repo.getProjectId(first.data), repo.getProjectId(second.data))
+		assertNotEquals(repo.listedProjectId(first.data), repo.listedProjectId(second.data))
 	}
 
 	@Test
@@ -210,7 +187,7 @@ class ProjectsRepositoryIdTest : ProjectsRepositoryBaseTest() {
 		val result = repo.createProject("From Server", seedDefaultLanguage = false, projectId = projectId)
 
 		assertTrue(isSuccess(result))
-		assertEquals(projectId, repo.getProjectId(result.data))
+		assertEquals(projectId, repo.listedProjectId(result.data))
 	}
 
 	@Test
@@ -224,8 +201,8 @@ class ProjectsRepositoryIdTest : ProjectsRepositoryBaseTest() {
 		val repo = projectsRepository()
 		repo.resolveDuplicateProjectIds()
 
-		assertEquals(project2Id, repo.getProjectId(original))
-		assertNotEquals(project2Id, repo.getProjectId(copy))
+		assertEquals(project2Id, repo.listedProjectId(original))
+		assertNotEquals(project2Id, repo.listedProjectId(copy))
 	}
 
 	@Test
@@ -240,8 +217,8 @@ class ProjectsRepositoryIdTest : ProjectsRepositoryBaseTest() {
 		val repo = projectsRepository()
 		repo.resolveDuplicateProjectIds()
 
-		assertEquals(project2Id, repo.getProjectId(original))
-		assertNotEquals(project2Id, repo.getProjectId(copy))
+		assertEquals(project2Id, repo.listedProjectId(original))
+		assertNotEquals(project2Id, repo.listedProjectId(copy))
 	}
 
 	@Test
@@ -259,8 +236,8 @@ class ProjectsRepositoryIdTest : ProjectsRepositoryBaseTest() {
 			projectScope.close()
 		}
 
-		assertEquals(project2Id, repo.getProjectId(original))
-		assertEquals(project2Id, repo.getProjectId(copy))
+		assertEquals(project2Id, repo.listedProjectId(original))
+		assertEquals(project2Id, repo.listedProjectId(copy))
 	}
 
 	@Test
@@ -268,12 +245,12 @@ class ProjectsRepositoryIdTest : ProjectsRepositoryBaseTest() {
 		createProject(ffs, PROJECT_1_NAME)
 		createProject(ffs, PROJECT_2_NAME)
 		val repo = projectsRepository()
-		val project1Id = repo.getProjectId(getProjectDef(PROJECT_1_NAME))
+		val project1Id = repo.listedProjectId(getProjectDef(PROJECT_1_NAME))
 
 		repo.resolveDuplicateProjectIds()
 
-		assertEquals(project1Id, repo.getProjectId(getProjectDef(PROJECT_1_NAME)))
-		assertEquals(project2Id, repo.getProjectId(getProjectDef(PROJECT_2_NAME)))
+		assertEquals(project1Id, repo.listedProjectId(getProjectDef(PROJECT_1_NAME)))
+		assertEquals(project2Id, repo.listedProjectId(getProjectDef(PROJECT_2_NAME)))
 	}
 
 	private fun copyProject(source: ProjectDef, name: String): ProjectDef {

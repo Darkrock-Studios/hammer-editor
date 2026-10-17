@@ -56,7 +56,7 @@ class SubscriptionsFollowProjectIdTest : WearTestBase() {
 
 		projects.repository.resolveDuplicateProjectIds()
 
-		val ids = projects.repository.getProjects().map { projects.repository.getProjectId(it) }.toSet()
+		val ids = projects.repository.getProjects().map { it.id }.toSet()
 		assertEquals(2, ids.size)
 		assertEquals(setOf(ProjectId("shared")), subscriptions.currentSubscriptions())
 		assertEquals(ProjectId("shared"), subscriptions.lastCaptureProjectId())

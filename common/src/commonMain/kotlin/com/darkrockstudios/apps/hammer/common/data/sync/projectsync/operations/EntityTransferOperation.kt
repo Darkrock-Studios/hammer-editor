@@ -7,7 +7,6 @@ import com.darkrockstudios.apps.hammer.base.http.ProjectSynchronizationBegan
 import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.isFailure
-import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer.Companion.ENTITY_END
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer.Companion.ENTITY_START
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer.Companion.ENTITY_TOTAL
@@ -50,7 +49,6 @@ class EntityTransferOperation(
 	projectDef: ProjectDef,
 	private val strRes: StrRes,
 	private val entitySynchronizers: EntitySynchronizers,
-	private val projectMetadataDatasource: ProjectMetadataDatasource,
 	private val serverProjectApi: ServerProjectApi,
 	private val syncJournal: SyncJournal,
 ) : SyncOperation(projectDef) {
@@ -249,9 +247,8 @@ class EntityTransferOperation(
 		onLog: OnSyncLog
 	): CResult<Unit> {
 		val localEntityHash = entitySynchronizers.getLocalEntityHash(id)
-		val serverProjectId = projectMetadataDatasource.loadProjectId(projectDef)
 		val entityResponse = serverProjectApi.downloadEntity(
-			projectId = serverProjectId,
+			projectId = projectDef.id,
 			entityId = id,
 			syncId = syncId,
 			localHash = localEntityHash
@@ -461,8 +458,7 @@ class EntityTransferOperation(
 	}
 
 	private suspend fun deleteEntityRemote(id: Int, syncId: String, onLog: OnSyncLog): Boolean {
-		val projectId = projectMetadataDatasource.loadProjectId(projectDef)
-		val result = serverProjectApi.deleteId(projectId, id, syncId)
+		val result = serverProjectApi.deleteId(projectDef.id, id, syncId)
 		return if (result.isSuccess) {
 			onLog(syncLogI(strRes.get(Res.string.sync_log_entity_delete_success, id), projectDef))
 			true

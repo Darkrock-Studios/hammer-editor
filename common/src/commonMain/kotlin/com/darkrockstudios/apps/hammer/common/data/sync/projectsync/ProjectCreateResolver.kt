@@ -14,11 +14,11 @@ import kotlinx.coroutines.withContext
 
 sealed interface ServerCreateOutcome {
 	/**
-	 * The project is on the server as [projectId], which is now also its local id. [reminted] when
-	 * the original id belonged to another account and a fresh one was used instead.
+	 * The project is on the server under its local id, which may have just been changed to the
+	 * server's. [reminted] when the original id belonged to another account and a fresh one was
+	 * used instead.
 	 */
 	data class Created(
-		val projectId: ProjectId,
 		val alreadyExisted: Boolean,
 		val reminted: Boolean,
 	) : ServerCreateOutcome
@@ -66,47 +66,46 @@ class ProjectCreateResolver(
 		create(projectDef, syncId, mayChangeId = true)
 
 	private suspend fun create(projectDef: ProjectDef, syncId: String, mayChangeId: Boolean): ServerCreateOutcome {
-		var projectId = projectsRepository.getProjectId(projectDef)
+		var def = projectDef
 		var reminted = false
 		while (true) {
-			val result = serverProjectsApi.createProject(projectDef.name, projectId, syncId)
+			val result = serverProjectsApi.createProject(def.name, def.id, syncId)
 			val error = result.exceptionOrNull()
 			when {
 				error == null -> {
 					val response = result.getOrThrow()
-					if (response.projectId != projectId) {
+					if (response.projectId != def.id) {
 						// Adopting would leave two local projects sharing an id.
 						val holder = projectsRepository.findProject(response.projectId)
-						if (holder != null && holder.name != projectDef.name) {
+						if (holder != null && holder.name != def.name) {
 							Napier.w(
-								"'${projectDef.name}' not adopting server project ${response.projectId.id}: " +
+								"'${def.name}' not adopting server project ${response.projectId.id}: " +
 									"'${holder.name}' holds it"
 							)
 							return ServerCreateOutcome.AdoptConflict(holder)
 						}
 						if (!mayChangeId) {
 							Napier.w(
-								"'${projectDef.name}' matches server project ${response.projectId.id}: " +
+								"'${def.name}' matches server project ${response.projectId.id}: " +
 									"needs account sync"
 							)
 							return ServerCreateOutcome.NeedsAccountSync
 						}
-						Napier.i("'${projectDef.name}' adopted server project ${response.projectId.id}")
-						projectsRepository.setProjectId(projectDef, response.projectId)
+						Napier.i("'${def.name}' adopted server project ${response.projectId.id}")
+						projectsRepository.setProjectId(def, response.projectId)
 					}
-					return ServerCreateOutcome.Created(response.projectId, response.alreadyExisted, reminted)
+					return ServerCreateOutcome.Created(response.alreadyExisted, reminted)
 				}
 
 				error.apiErrorCode() == ApiErrorCode.PROJECT_ID_TAKEN && !mayChangeId -> {
-					Napier.w("'${projectDef.name}' id ${projectId.id} is taken on the server: needs account sync")
+					Napier.w("'${def.name}' id ${def.id.id} is taken on the server: needs account sync")
 					return ServerCreateOutcome.NeedsAccountSync
 				}
 
 				error.apiErrorCode() == ApiErrorCode.PROJECT_ID_TAKEN && !reminted -> {
 					val newId = ProjectId.randomUUID()
-					Napier.w("'${projectDef.name}' id ${projectId.id} is taken on the server, re-minted ${newId.id}")
-					projectsRepository.setProjectId(projectDef, newId)
-					projectId = newId
+					Napier.w("'${def.name}' id ${def.id.id} is taken on the server, re-minted ${newId.id}")
+					def = projectsRepository.setProjectId(def, newId)
 					reminted = true
 				}
 

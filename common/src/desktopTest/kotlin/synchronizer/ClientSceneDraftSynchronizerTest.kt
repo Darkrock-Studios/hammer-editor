@@ -5,7 +5,6 @@ import com.darkrockstudios.apps.hammer.base.http.EntityType
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.drafts.DraftDef
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
-import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogLevel
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessage
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientSceneDraftSynchronizer
@@ -36,9 +35,6 @@ class ClientSceneDraftSynchronizerTest : BaseTest() {
 	@MockK
 	private lateinit var serverProjectApi: ServerProjectApi
 
-	@MockK
-	private lateinit var projectMetadataDatasource: ProjectMetadataDatasource
-
 	@MockK(relaxed = true)
 	private lateinit var sceneDraftRepository: SceneDraftRepository
 
@@ -61,7 +57,6 @@ class ClientSceneDraftSynchronizerTest : BaseTest() {
 	private fun newSynchronizer() = ClientSceneDraftSynchronizer(
 		projectDef = projectDef,
 		serverProjectApi = serverProjectApi,
-		projectMetadataDatasource = projectMetadataDatasource,
 		strRes = strRes,
 	)
 

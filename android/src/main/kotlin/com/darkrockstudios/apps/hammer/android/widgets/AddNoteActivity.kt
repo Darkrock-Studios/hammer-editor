@@ -65,11 +65,10 @@ class AddNoteActivity : ComponentActivity(), KoinComponent {
 
 		val projectId = intent.extras?.getString(EXTRA_PROJECT_ID)?.ifBlank { null }?.let(::ProjectId)
 
-		val projectsWithMetadata = projectsRepository.getProjects().map { projectDef ->
-			val metadata = projectsMetadataRepository.loadMetadata(projectDef)
-			Pair(projectDef, metadata)
-		}.sortedByDescending { it.second.info.lastAccessed }
-		val projects = projectsWithMetadata.map { it.first }
+		val projects = projectsRepository.getProjects()
+			.map { it to projectsMetadataRepository.loadMetadata(it).info.lastAccessed }
+			.sortedByDescending { (_, lastAccessed) -> lastAccessed }
+			.map { (projectDef, _) -> projectDef }
 
 		if (projects.isEmpty()) {
 			Toast.makeText(
@@ -79,11 +78,7 @@ class AddNoteActivity : ComponentActivity(), KoinComponent {
 			).show()
 			finish()
 		} else {
-			// Same result as findProject (a missing id would heal to a fresh one that can't match)
-			// without reading every project.toml again.
-			val preselectedProject = projectId?.let { id ->
-				projectsWithMetadata.find { it.second.info.projectId == id }?.first
-			}
+			val preselectedProject = projectId?.let { id -> projects.find { it.id == id } }
 			if (projectId != null && preselectedProject == null) {
 				val text = getString(R.string.note_widget_dialog_failure_bad_project, projectId.id)
 				Toast.makeText(this, text, Toast.LENGTH_LONG).show()
@@ -145,10 +140,7 @@ class AddNoteActivity : ComponentActivity(), KoinComponent {
 								onCancel = tryCancel,
 								onSave = {
 									if (noteText.isNotBlank()) {
-										val project = preselectedProject ?: selectedProject
-										val loadedId = projectsWithMetadata
-											.find { it.first == project }?.second?.info?.projectId
-										saveNote(loadedId ?: projectsRepository.getProjectId(project), noteText)
+										saveNote((preselectedProject ?: selectedProject).id, noteText)
 									}
 								},
 							)

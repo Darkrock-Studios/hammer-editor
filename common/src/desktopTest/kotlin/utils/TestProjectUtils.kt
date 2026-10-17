@@ -3,6 +3,7 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.tree.NodeCoordinates
 import com.darkrockstudios.apps.hammer.common.data.tree.Tree
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
@@ -49,6 +50,10 @@ private val fixtureProjectIds = mapOf(
  */
 fun testProjectId(name: String): ProjectId =
 	ProjectId(fixtureProjectIds[name] ?: UUID.nameUUIDFromBytes(name.encodeToByteArray()).toString())
+
+/** The id a fresh listing reads for the project named like [projectDef]. */
+fun ProjectsRepository.listedProjectId(projectDef: ProjectDef): ProjectId =
+	checkNotNull(findProject(projectDef.name)) { "No project named ${projectDef.name}" }.id
 
 fun getProjectDef(name: String): ProjectDef {
 	val projectPath = getProjectsDirectory().div(name).toHPath()
