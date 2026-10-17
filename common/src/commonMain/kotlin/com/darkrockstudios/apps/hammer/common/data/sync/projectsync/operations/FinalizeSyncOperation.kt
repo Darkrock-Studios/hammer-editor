@@ -66,7 +66,7 @@ class FinalizeSyncOperation(
 
 		val endSyncResult = serverProjectApi.endProjectSync(
 			userId(),
-			state.serverProjectId,
+			projectDef.id,
 			state.serverSyncData.syncId,
 			newLastId,
 			syncFinishedAt,

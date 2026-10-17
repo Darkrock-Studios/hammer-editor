@@ -13,7 +13,6 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.Encycl
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.projectInject
-import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceRemapper
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntitySynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.OnSyncLog
@@ -31,12 +30,10 @@ import kotlinx.coroutines.flow.first
 class ClientEncyclopediaSynchronizer(
 	projectDef: ProjectDef,
 	serverProjectApi: ServerProjectApi,
-	projectMetadataDatasource: ProjectMetadataDatasource,
 	private val strRes: StrRes,
 ) : EntitySynchronizer<ApiProjectEntity.EncyclopediaEntryEntity>(
 	projectDef,
 	serverProjectApi,
-	projectMetadataDatasource
 ), ProjectScoped {
 
 	override val projectScope = ProjectDefScope(projectDef)

@@ -9,10 +9,11 @@ import com.darkrockstudios.apps.hammer.backup_manager_error_delete_backup
 import com.darkrockstudios.apps.hammer.backup_manager_error_load_backups
 import com.darkrockstudios.apps.hammer.backup_manager_error_load_project_backups
 import com.darkrockstudios.apps.hammer.backup_manager_error_restore_backup
+import com.darkrockstudios.apps.hammer.backup_manager_error_restore_in_use
 import com.darkrockstudios.apps.hammer.common.components.SavableComponent
 import com.darkrockstudios.apps.hammer.common.data.ClientMessage
-import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.BackupManagerService
+import com.darkrockstudios.apps.hammer.common.data.projectbackup.BackupRestoreResult
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupDef
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupService
 import com.darkrockstudios.apps.hammer.common.util.StrRes
@@ -47,24 +48,19 @@ class BackupManagerComponent(
 					backupService.getBackedUpProjects()
 				}
 
-				val projectNames = projectsWithBackups
-					.map { it.name }
-					.sorted()
-
 				withContext(dispatcherMain) {
 					val firstProject = projectsWithBackups.firstOrNull()
 					_state.update {
 						it.copy(
-							availableProjects = projectNames,
-							selectedProject = firstProject?.name,
-							selectedProjectDef = firstProject,
+							availableProjects = projectsWithBackups.sorted(),
+							selectedProject = firstProject,
 							isLoading = false
 						)
 					}
 
 					// Load backups for the first project if available
-					firstProject?.let { projectDef ->
-						loadBackupsForProject(projectDef)
+					firstProject?.let { projectName ->
+						loadBackupsForProject(projectName)
 					}
 				}
 				// Loading backups can fail many ways (IO, parse); report and surface error to UI.
@@ -84,11 +80,11 @@ class BackupManagerComponent(
 		}
 	}
 
-	private fun loadBackupsForProject(projectDef: ProjectDef) {
+	private fun loadBackupsForProject(projectName: String) {
 		scope.launch {
 			try {
 				val backups = withContext(dispatcherIo) {
-					backupService.getBackups(projectDef)
+					backupService.getBackups(projectName)
 						.sortedByDescending { it.date }
 				}
 
@@ -112,22 +108,15 @@ class BackupManagerComponent(
 
 	override fun selectProject(projectName: String) {
 		scope.launch {
-			val projectDef = withContext(dispatcherIo) {
-				backupService.getBackedUpProjects().find { it.name == projectName }
-			}
-
 			withContext(dispatcherMain) {
 				_state.update {
 					it.copy(
 						selectedProject = projectName,
-						selectedProjectDef = projectDef,
 						backupsForSelectedProject = emptyList()
 					)
 				}
 
-				projectDef?.let {
-					loadBackupsForProject(it)
-				}
+				loadBackupsForProject(projectName)
 			}
 		}
 	}
@@ -140,8 +129,8 @@ class BackupManagerComponent(
 				}
 
 				// Reload backups for the current project
-				state.value.selectedProjectDef?.let { projectDef ->
-					loadBackupsForProject(projectDef)
+				state.value.selectedProject?.let { projectName ->
+					loadBackupsForProject(projectName)
 				}
 			} catch (e: Exception) {
 				val errorMsg = ClientMessage.Resource(Res.string.backup_manager_error_delete_backup, e.message ?: "")
@@ -157,12 +146,19 @@ class BackupManagerComponent(
 
 	override fun restoreBackup(backup: ProjectBackupDef) {
 		scope.launch {
-			val restored = withContext(dispatcherIo) {
-				backupService.restoreBackup(backup, backup.projectDef.path)
+			val result = withContext(dispatcherIo) {
+				backupService.restoreBackup(backup)
 			}
 
-			if (restored.not()) {
-				val errorMsg = ClientMessage.Resource(Res.string.backup_manager_error_restore_backup, backup.path.name)
+			val errorMsg = when (result) {
+				BackupRestoreResult.Restored -> null
+				BackupRestoreResult.ProjectInUse ->
+					ClientMessage.Resource(Res.string.backup_manager_error_restore_in_use, backup.projectName)
+
+				BackupRestoreResult.Failed ->
+					ClientMessage.Resource(Res.string.backup_manager_error_restore_backup, backup.path.name)
+			}
+			if (errorMsg != null) {
 				val errorText = errorMsg.text(strRes)
 				withContext(dispatcherMain) {
 					_state.update {

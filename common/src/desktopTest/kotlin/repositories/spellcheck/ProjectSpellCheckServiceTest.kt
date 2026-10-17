@@ -31,6 +31,7 @@ import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.koin.dsl.module
+import testProjectId
 import utils.BaseTest
 import kotlin.test.assertEquals
 import kotlin.test.assertSame
@@ -43,6 +44,7 @@ import kotlin.test.assertSame
 class ProjectSpellCheckServiceTest : BaseTest() {
 
 	private val projectDef = ProjectDef(
+		id = testProjectId("Test Project"),
 		name = "Test Project",
 		path = "/projects/Test Project".toPath().toHPath(),
 	)

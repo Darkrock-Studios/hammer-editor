@@ -17,7 +17,7 @@ import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier
 import com.darkrockstudios.apps.hammer.e2e.util.EndToEndTest
 import com.darkrockstudios.apps.hammer.e2e.util.TestAccount
-import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
+import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ClientAccountSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntitySynchronizers
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.HttpSend
@@ -269,10 +269,17 @@ abstract class RoundTripTestBase : EndToEndTest(), KoinTest {
 	 * project: the realistic "two devices, one account, one project" setup.
 	 */
 	protected suspend fun secondDeviceFor(primary: HeadlessClient, localName: String): HeadlessClient {
-		val sharedId = get<ProjectMetadataDatasource>().loadProjectId(primary.projectDef)
-		return HeadlessClient.create(localName, makeServerSettings(), serverProjectId = sharedId)
+		return HeadlessClient.create(localName, makeServerSettings(), serverProjectId = primary.projectDef.id)
 			.also { openClients += it }
 	}
+
+	/**
+	 * Runs account sync, as the project list does; returns its success flag. Only account sync may
+	 * change a project's id, and it skips a project in use, so close any client whose id it should
+	 * settle first.
+	 */
+	protected suspend fun accountSync(): Boolean =
+		get<ClientAccountSynchronizer>().syncProjects(onLog = { }, onUnauthorized = { })
 
 	/** The hash the server currently stores for an entity, or null if it holds none. */
 	protected fun serverEntityHash(projectName: String, entityId: Int): String? {

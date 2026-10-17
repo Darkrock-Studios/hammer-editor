@@ -25,6 +25,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.koin.dsl.module
 import synchronizer.operations.*
+import testProjectId
 import utils.BaseTest
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -45,6 +46,7 @@ class WritingActivitySyncOperationTest : BaseTest() {
 	private lateinit var globalSettingsStore: GlobalSettingsStore
 
 	private val projectDef = ProjectDef(
+		id = testProjectId("Test Project"),
 		name = "Test Project",
 		path = "/projects/Test Project".toPath().toHPath(),
 	)
@@ -85,7 +87,6 @@ class WritingActivitySyncOperationTest : BaseTest() {
 		onlyNew = false,
 		clientSyncData = projectData,
 		entityState = entityState,
-		serverProjectId = projId,
 		serverSyncData = beganResponse,
 		collatedIds = collatedIds,
 		maxId = 1,
@@ -119,7 +120,7 @@ class WritingActivitySyncOperationTest : BaseTest() {
 		coVerify {
 			api.uploadDeviceLog(
 				userId = userId,
-				projectId = projId,
+				projectId = projectDef.id,
 				deviceId = ownDeviceId,
 				log = DeviceLog(deviceLabel = deviceLabel, sessions = listOf(localOnlySession())),
 			)

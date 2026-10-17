@@ -120,7 +120,6 @@ class SyncAccountUseCaseTest : BaseTest() {
 	private fun useCase() = SyncAccountUseCase(
 		projectsRepository = projectsRepository,
 		accountSynchronizer = accountSynchronizer,
-		projectMetadataDatasource = metadataDatasource,
 		strRes = TestStrRes(),
 	)
 
@@ -208,14 +207,14 @@ class SyncAccountUseCaseTest : BaseTest() {
 		projectSyncReturns("Alpha", true)
 		val betaSync = projectSyncReturns("Beta", true)
 
-		val result = useCase().execute(listener) { it.projectId == ProjectId("a") }
+		val result = useCase().execute(listener) { it.id == ProjectId("a") }
 
 		assertTrue(result.allSuccess)
 		assertEquals(ProjectSyncOutcome.Success, result.projects["Alpha"])
 		assertEquals(ProjectSyncOutcome.Skipped, result.projects["Beta"])
 		coVerify(exactly = 0) { betaSync.sync(any(), any(), any(), any(), any(), any()) }
 		coVerify {
-			accountSynchronizer.probeUnchangedProjects(match { list -> list.map { it.projectId } == listOf(ProjectId("a")) })
+			accountSynchronizer.probeUnchangedProjects(match { list -> list.map { it.id } == listOf(ProjectId("a")) })
 		}
 	}
 

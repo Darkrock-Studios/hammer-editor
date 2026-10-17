@@ -9,11 +9,11 @@ import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectContentHasher
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectDataHasher
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.SyncedProjectDefinition
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
 import com.darkrockstudios.apps.hammer.common.data.projectdata.loadStoredProjectData
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectInUseException
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.ClientIdeasSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.IdeaConflictResolver
@@ -184,29 +184,29 @@ class ClientAccountSynchronizer(
 	 * recoverable per-project issue into a failure of the surrounding account sync.
 	 */
 	@Suppress("TooGenericExceptionCaught")
-	suspend fun probeUnchangedProjects(projects: List<SyncedProjectDefinition>): Set<ProjectId> {
+	suspend fun probeUnchangedProjects(projects: List<ProjectDef>): Set<ProjectId> {
 		return try {
 			val items = mutableListOf<ProjectHashItem>()
-			for (synced in projects) {
-				val syncData = loadProjectSyncData(synced.projectDef) ?: continue
+			for (projectDef in projects) {
+				val syncData = loadProjectSyncData(projectDef) ?: continue
 				if (syncData.hashAlgoVersion != ProjectContentHasher.ALGO_VERSION) continue
 				val cachedHash = syncData.cachedProjectHash ?: continue
 				// A lite sync can cache a hash without running the restore check; it must still run.
 				if (syncData.verifyAllEntities) continue
 
 				val entityWorkPending = syncData.dirty.isNotEmpty() || syncData.newIds.isNotEmpty()
-				val projectDataDirty = isProjectDataDirty(synced.projectDef)
+				val projectDataDirty = isProjectDataDirty(projectDef)
 				if (entityWorkPending || projectDataDirty) {
 					val kind = if (projectDataDirty) "project-data" else "journal"
 					Napier.e(
-						"Cache/journal inconsistency for project '${synced.projectDef.name}': cached hash " +
+						"Cache/journal inconsistency for project '${projectDef.name}': cached hash " +
 							"present despite pending $kind work. A write path likely bypassed the " +
 							"invalidation hook. Forcing full sync."
 					)
 					continue
 				}
 
-				items += ProjectHashItem(synced.projectId, cachedHash)
+				items += ProjectHashItem(projectDef.id, cachedHash)
 			}
 
 			if (items.isEmpty()) return emptySet()
@@ -447,21 +447,14 @@ class ClientAccountSynchronizer(
 		onLog: OnSyncLog,
 		onUnauthorized: suspend () -> Unit = {},
 	) {
-		val localProjectsWithIds = localProjects.map {
-			val projectId = projectsRepository.getProjectId(it)
-			it to projectId
-		}
-
 		val serverProjects = serverSyncData.projects
 		val newServerProjects = serverProjects.filter { serverProject ->
-			localProjectsWithIds.none { (_, uuid) ->
-				uuid == serverProject.uuid
-			}
+			localProjects.none { it.id == serverProject.uuid }
 		}
 
 		renameLocalProjectsFromServerChanges(
 			serverProjects,
-			localProjectsWithIds,
+			localProjects,
 			clientSyncData,
 			onLog
 		)
@@ -473,7 +466,7 @@ class ClientAccountSynchronizer(
 		val claimedNames = createLocalProjectsFromServer(newServerProjects, liveServerIds, onLog)
 
 		createProjectsOnServer(
-			localProjectsWithIds,
+			localProjects,
 			claimedNames,
 			serverSyncData,
 			serverKnownIds,
@@ -501,8 +494,7 @@ class ClientAccountSynchronizer(
 			val localName = ProjectsRepository.toLocalSafeName(serverProject.name)
 			val existingProject = projectsRepository.findProject(localName)
 			if (existingProject != null) {
-				val existingId = projectsRepository.getProjectId(existingProject)
-				if (existingId in liveServerIds) {
+				if (existingProject.id in liveServerIds) {
 					onLog(
 						syncAccLogW(
 							strRes.get(
@@ -514,8 +506,11 @@ class ClientAccountSynchronizer(
 					return@forEach
 				}
 
-				projectsRepository.setProjectId(existingProject, serverProject.uuid)
+				// Claimed even when skipped, so createProjectsOnServer does not upload a duplicate.
 				claimedNames += existingProject.name
+				unlessInUse(existingProject, onLog) {
+					projectsRepository.setProjectId(existingProject, serverProject.uuid)
+				} ?: return@forEach
 				onLog(
 					syncAccLogI(
 						strRes.get(
@@ -594,20 +589,24 @@ class ClientAccountSynchronizer(
 	 * would duplicate that project on the server.
 	 */
 	private suspend fun createProjectsOnServer(
-		localProjectsWithIds: List<Pair<ProjectDef, ProjectId>>,
+		localProjects: List<ProjectDef>,
 		claimedNames: Set<String>,
 		serverSyncData: BeginProjectsSyncResponse,
 		serverKnownIds: Set<ProjectId>,
 		onLog: OnSyncLog,
 		onUnauthorized: suspend () -> Unit = {},
 	) {
-		val localOnly = localProjectsWithIds.filter { (def, projectId) ->
-			projectId !in serverKnownIds && def.name !in claimedNames
-		}.map { it.first }
+		val localOnly = localProjects.filter { def ->
+			def.id !in serverKnownIds && def.name !in claimedNames
+		}
 
 		localOnly.forEach { projectDef ->
 			val projectName = projectDef.name
-			when (val outcome = projectCreateResolver.create(projectDef, serverSyncData.syncId)) {
+			val outcome = unlessInUse(projectDef, onLog) {
+				projectCreateResolver.create(projectDef, serverSyncData.syncId)
+			} ?: return@forEach
+
+			when (outcome) {
 				is ServerCreateOutcome.Created -> {
 					if (outcome.reminted) {
 						onLog(
@@ -642,6 +641,9 @@ class ClientAccountSynchronizer(
 					)
 				)
 
+				ServerCreateOutcome.NeedsAccountSync ->
+					error("Account sync may change a project's id, so it never needs account sync")
+
 				is ServerCreateOutcome.Failed -> {
 					Napier.e("Failed to create project on server: $projectName", outcome.error)
 					onLog(
@@ -666,13 +668,13 @@ class ClientAccountSynchronizer(
 	 */
 	private suspend fun renameLocalProjectsFromServerChanges(
 		serverProjects: Set<ApiProjectDefinition>,
-		localProjectsWithIds: List<Pair<ProjectDef, ProjectId>>,
+		localProjects: List<ProjectDef>,
 		clientSyncData: ProjectsSynchronizationData,
 		onLog: OnSyncLog
 	) {
 		val commonProjectsNotLocallyRenamed = serverProjects.mapNotNull { serverProject ->
-			localProjectsWithIds.find { it.second == serverProject.uuid }?.let { localProject ->
-				ProjectPair(serverProject, localProject.first)
+			localProjects.find { it.id == serverProject.uuid }?.let { localProject ->
+				ProjectPair(serverProject, localProject)
 			}
 		}
 			.filterNot { clientSyncData.projectsToDelete.contains(it.serverProject.uuid) }
@@ -685,7 +687,9 @@ class ClientAccountSynchronizer(
 		commonProjectsNotLocallyRenamed.forEach { (serverProject, localProject) ->
 			val targetName = ProjectsRepository.toLocalSafeName(serverProject.name)
 			if (targetName != localProject.name) {
-				val result = projectsRepository.renameProject(localProject, targetName)
+				val result = unlessInUse(localProject, onLog) {
+					projectsRepository.renameProject(localProject, targetName)
+				} ?: return@forEach
 				if (isSuccess(result)) {
 					onLog(
 						syncAccLogI(
@@ -709,12 +713,32 @@ class ClientAccountSynchronizer(
 		}
 	}
 
-	fun deleteProject(project: SyncedProjectDefinition) {
+	/**
+	 * Runs [change], or logs and returns null when [projectDef] is in use. A project opened after the
+	 * check makes [ProjectsRepository.setProjectId] throw, and is skipped the same way.
+	 */
+	private suspend inline fun <T : Any> unlessInUse(projectDef: ProjectDef, onLog: OnSyncLog, change: () -> T): T? {
+		val result = if (projectsRepository.isProjectInUse(projectDef)) {
+			null
+		} else {
+			try {
+				change()
+			} catch (_: ProjectInUseException) {
+				null
+			}
+		}
+		if (result == null) {
+			onLog(syncAccLogW(strRes.get(Res.string.sync_log_account_project_in_use, projectDef.name)))
+		}
+		return result
+	}
+
+	fun deleteProject(project: ProjectDef) {
 		updateSyncData { syncData ->
 			syncData.copy(
-				projectsToDelete = syncData.projectsToDelete + project.projectId,
+				projectsToDelete = syncData.projectsToDelete + project.id,
 				projectsToRename = syncData.projectsToRename
-					.filterNot { it.projectId == project.projectId }
+					.filterNot { it.projectId == project.id }
 					.toSet(),
 			)
 		}

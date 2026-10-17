@@ -290,7 +290,9 @@ recognizable content stays ignored.
 or not a sync server is configured. The server does not issue IDs: the create request carries the
 client's ID and the server stores the project under it (see
 [SYNCING-PROTOCOL.md](SYNCING-PROTOCOL.md#project-ids)). Widgets and Wear OS subscriptions refer to
-a project by this ID, so a rename does not break them. The ID heals rather than fails:
+a project by this ID, so a rename does not break them. A `ProjectDef` carries the ID:
+`ProjectsRepository.getProjects` reads it from each `project.toml`, healing it as below, so callers
+use `def.id` instead of reading the file again. The ID heals rather than fails:
 
 - A file without one (a hand edit, or a recreated file) gets one minted on read
   (`ProjectMetadataDatasource.loadProjectId`). A pre-4 file's `serverProjectId` is read as its ID,
@@ -311,6 +313,20 @@ widgets and watch subscriptions no longer find the project, and the server sees 
 account sync matches it by name to a server project and adopts that ID. A healed or adopted
 folder's surviving `sync.json` may be stale, so the folder is flagged like a restored backup and its
 next sync conflict-checks every entity. That is the accepted cost of keeping the file regenerable.
+
+**A project in use keeps its identity.** While a project has a project scope open (an editor, or a
+temporary task such as a background sync or capture), its ID and name do not change: the scope
+holds state under them. `ProjectsRepository.setProjectId` throws for such a project, and
+`renameProject` and backup restore refuse it (`isProjectInUse`). Only account sync, run from the
+project list, adopts or re-mints an ID, and it skips a project in use with a log telling the user to
+close it. Project sync never changes the ID; when the server's answer would require it, the sync
+fails and asks the user to sync from the project list. So a def's ID stays current for as long as
+the project is in use. Project scopes are keyed by path alone, so a def whose ID was healed still
+finds the open scope.
+
+One gap remains: if an open project's `project.toml` loses its ID, the next listing mints a new one
+on disk while the open editor keeps syncing under the old ID. Once the project is closed, the next
+account sync from the list adopts the server project's ID by name.
 
 **Header comments.** Both TOML files start with a comment line, rewritten on every save, that tells
 a user who opens the file which tier it is in. `project.toml` says it is managed by Hammer and that

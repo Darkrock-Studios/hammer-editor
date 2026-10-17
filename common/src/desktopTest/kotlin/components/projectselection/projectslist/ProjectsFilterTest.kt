@@ -9,6 +9,7 @@ import com.darkrockstudios.apps.hammer.common.data.search.parseQuery
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import okio.Path.Companion.toPath
 import org.junit.jupiter.api.Test
+import testProjectId
 import kotlin.test.assertEquals
 import kotlin.time.Instant
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData as StoredData
@@ -16,7 +17,7 @@ import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData as Stor
 class ProjectsFilterTest {
 
 	private fun project(name: String, tags: Set<String> = emptySet()) = ProjectData(
-		definition = ProjectDef(name = name, path = "/projects/$name".toPath().toHPath()),
+		definition = ProjectDef(id = testProjectId(name), name = name, path = "/projects/$name".toPath().toHPath()),
 		metadata = ProjectMetadata(Info(created = Instant.fromEpochMilliseconds(0))),
 		storedData = StoredData(tags = tags),
 	)

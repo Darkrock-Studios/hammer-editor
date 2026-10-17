@@ -4,7 +4,6 @@ import PROJECT_2_NAME
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
-import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.EntityDeleteOperation
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
@@ -26,9 +25,6 @@ class EntityDeleteOperationTest : BaseTest() {
 	private lateinit var mockSynchronizers: MockSynchronizers
 
 	@MockK(relaxed = true)
-	private lateinit var projectMetadataDatasource: ProjectMetadataDatasource
-
-	@MockK(relaxed = true)
 	private lateinit var serverProjectApi: ServerProjectApi
 
 	private lateinit var strRes: TestStrRes
@@ -45,7 +41,6 @@ class EntityDeleteOperationTest : BaseTest() {
 	private fun createOperation(projectDef: ProjectDef): EntityDeleteOperation {
 		return EntityDeleteOperation(
 			projectDef = projectDef,
-			projectMetadataDatasource = projectMetadataDatasource,
 			serverProjectApi = serverProjectApi,
 			strRes = strRes,
 		)
@@ -68,7 +63,6 @@ class EntityDeleteOperationTest : BaseTest() {
 			onlyNew = false,
 			clientSyncData = projectData,
 			entityState = entityState,
-			serverProjectId = projId,
 			serverSyncData = beganResponse,
 			collatedIds = collatedIds,
 			maxId = 12,
@@ -92,6 +86,6 @@ class EntityDeleteOperationTest : BaseTest() {
 		// Only the newly-deleted id goes to the server; server-known deletions (7) and
 		// previously-synced deletions (8) must not be re-deleted.
 		coVerify(exactly = 1) { serverProjectApi.deleteId(any(), any(), any()) }
-		coVerify { serverProjectApi.deleteId(any(), 9, any()) }
+		coVerify { serverProjectApi.deleteId(projId, 9, any()) }
 	}
 }

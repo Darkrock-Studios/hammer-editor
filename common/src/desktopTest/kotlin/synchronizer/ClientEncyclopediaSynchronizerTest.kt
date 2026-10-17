@@ -1,7 +1,6 @@
 package synchronizer
 
 import ENCYCLOPEDIA_ONLY_PROJECT_NAME
-import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.SaveEntityResponse
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityConflictException
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
@@ -10,7 +9,6 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.Encycl
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaService
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
-import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexDatasource
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexRepository
@@ -66,9 +64,6 @@ class ClientEncyclopediaSynchronizerTest : BaseTest() {
 	private lateinit var serverProjectApi: ServerProjectApi
 
 	@MockK(relaxed = true)
-	private lateinit var projectMetadataDatasource: ProjectMetadataDatasource
-
-	@MockK(relaxed = true)
 	private lateinit var idAllocator: IdAllocator
 
 	@MockK(relaxed = true)
@@ -105,7 +100,6 @@ class ClientEncyclopediaSynchronizerTest : BaseTest() {
 		MockKAnnotations.init(this, relaxUnitFun = true)
 
 		every { syncJournal.isServerSynchronized() } returns false
-		every { projectMetadataDatasource.loadProjectId(projectDef) } returns ProjectId("server-project")
 
 		fileSystem = FakeFileSystem()
 		toml = createTomlSerializer()
@@ -149,7 +143,6 @@ class ClientEncyclopediaSynchronizerTest : BaseTest() {
 	private fun newSynchronizer() = ClientEncyclopediaSynchronizer(
 		projectDef = projectDef,
 		serverProjectApi = serverProjectApi,
-		projectMetadataDatasource = projectMetadataDatasource,
 		strRes = strRes,
 	)
 
@@ -425,7 +418,7 @@ class ClientEncyclopediaSynchronizerTest : BaseTest() {
 		assertEquals(listOf(entry1().id to sync.getEntityHash(entry1().id)), synced)
 		coVerify {
 			serverProjectApi.uploadEntity(
-				ProjectId("server-project"),
+				projectDef.id,
 				match { it.id == entry1().id },
 				"old-hash",
 				"sync",

@@ -8,14 +8,13 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.components.notes.BrowseNotes
-import com.darkrockstudios.apps.hammer.common.data.ProjectDefinition
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagCount
-import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.notes.BrowseNotesUi
 import com.darkrockstudios.apps.hammer.common.preview.TABLET_HEIGHT_DP
 import com.darkrockstudios.apps.hammer.common.preview.TABLET_WIDTH_DP
 import com.darkrockstudios.apps.hammer.common.preview.TabletPreviewSurface
+import com.darkrockstudios.apps.hammer.common.preview.fakeProjectDef
 import kotlin.time.Clock
 
 @OptIn(ExperimentalSharedTransitionApi::class)
@@ -56,9 +55,7 @@ private fun fakeComponent(): BrowseNotes = object : BrowseNotes {
 	override val state: Value<BrowseNotes.State>
 		get() = MutableValue(
 			BrowseNotes.State(
-				projectDef = ProjectDefinition(
-					name = "test2", path = HPath("/", "test", true)
-				),
+				projectDef = fakeProjectDef(),
 				notes = listOf(
 					NoteContent(
 						id = 0,

@@ -17,6 +17,7 @@ import io.mockk.impl.annotations.MockK
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import testProjectId
 import utils.BaseTest
 import kotlin.test.assertEquals
 import kotlin.test.assertSame
@@ -38,7 +39,7 @@ class GlobalSearchComponentTest : BaseTest() {
 	@MockK
 	private lateinit var searchState: GlobalSearchState
 
-	private val projectDef = ProjectDef(name = "Test", path = HPath("/p", "Test", false))
+	private val projectDef = ProjectDef(id = testProjectId("Test"), name = "Test", path = HPath("/p", "Test", false))
 	private val state = MutableValue(GlobalSearch.State())
 
 	@BeforeEach

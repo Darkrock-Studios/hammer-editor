@@ -18,6 +18,7 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.koin.core.module.Module
 import org.koin.dsl.module
+import testProjectId
 
 /**
  * A real [ComponentContext] for testing Decompose components, backed by the genuine Essenty
@@ -85,7 +86,7 @@ open class ComponentTest : BaseTest() {
 	protected lateinit var context: TestComponentContext
 
 	/** Default project for project-scoped components; override if a test needs a different one. */
-	protected open val projectDef = ProjectDef("Test", HPath("/projects/Test", "Test", false))
+	protected open val projectDef = ProjectDef(testProjectId("Test"), "Test", HPath("/projects/Test", "Test", false))
 
 	@BeforeEach
 	override fun setup() {

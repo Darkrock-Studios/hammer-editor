@@ -52,7 +52,7 @@ class WritingActivitySyncOperation(
 
 		try {
 			val userId = globalSettingsStore.userIdOrThrow()
-			val projectId = state.serverProjectId
+			val projectId = projectDef.id
 			val ownDeviceId = repository.ownDeviceId()
 
 			val getResult = api.getWritingActivity(userId, projectId)

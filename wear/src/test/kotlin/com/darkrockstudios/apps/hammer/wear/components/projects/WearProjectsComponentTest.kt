@@ -198,7 +198,7 @@ class WearProjectsComponentTest : WearTestBase() {
 		scheduler.advanceUntilIdle()
 
 		assertTrue(component.row("Draft").subscribed)
-		assertEquals(setOf(projects.repository.getProjectId(projectDef)), subscriptions.currentSubscriptions())
+		assertEquals(setOf(projectDef.id), subscriptions.currentSubscriptions())
 		assertEquals(listOf(SyncTrigger.Manual), coordinator.requested)
 	}
 

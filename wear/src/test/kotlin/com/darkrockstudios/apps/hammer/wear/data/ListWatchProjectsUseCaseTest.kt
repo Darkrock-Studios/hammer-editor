@@ -42,10 +42,10 @@ class ListWatchProjectsUseCaseTest : WearTestBase() {
 		val projectDef = projects.create("Draft")
 
 		val draft = useCase.list().single()
-		assertEquals(projects.repository.getProjectId(projectDef), draft.projectId)
+		assertEquals(projectDef.id, draft.projectDef.id)
 		assertFalse(draft.subscribed)
 
-		subscriptions.setSubscribed(draft.projectId, true)
+		subscriptions.setSubscribed(draft.projectDef.id, true)
 
 		assertTrue(useCase.list().single().subscribed)
 	}

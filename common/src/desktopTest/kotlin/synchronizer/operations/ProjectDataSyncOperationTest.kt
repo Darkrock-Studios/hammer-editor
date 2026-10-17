@@ -99,7 +99,6 @@ class ProjectDataSyncOperationTest : BaseTest() {
 		onlyNew = false,
 		clientSyncData = projectData,
 		entityState = entityState,
-		serverProjectId = projId,
 		serverSyncData = beganResponse,
 		collatedIds = collatedIds,
 		maxId = 11,

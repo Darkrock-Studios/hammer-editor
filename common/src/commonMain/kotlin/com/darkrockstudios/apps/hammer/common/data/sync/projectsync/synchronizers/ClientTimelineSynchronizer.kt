@@ -6,7 +6,6 @@ import com.darkrockstudios.apps.hammer.base.http.EntityHash
 import com.darkrockstudios.apps.hammer.base.http.EntityType
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntitySynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.OnSyncLog
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogE
@@ -23,13 +22,11 @@ import kotlinx.coroutines.flow.first
 class ClientTimelineSynchronizer(
 	projectDef: ProjectDef,
 	serverProjectApi: ServerProjectApi,
-	projectMetadataDatasource: ProjectMetadataDatasource,
 	private val timeLineRepository: TimeLineRepository,
 	private val strRes: StrRes,
 ) : EntitySynchronizer<ApiProjectEntity.TimelineEventEntity>(
 	projectDef,
 	serverProjectApi,
-	projectMetadataDatasource
 ) {
 
 	override suspend fun prepareForSync() {

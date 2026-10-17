@@ -22,6 +22,7 @@ import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
+import testProjectId
 import utils.BaseTest
 import kotlin.time.Clock
 
@@ -113,6 +114,7 @@ abstract class BaseIntegrationTest : BaseTest() {
 		projectPath = getProjectsDirectory().div(projectName).toHPath()
 
 		projectDef = ProjectDef(
+			id = testProjectId(projectName),
 			name = projectName,
 			path = projectPath
 		)

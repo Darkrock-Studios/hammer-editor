@@ -5,7 +5,6 @@ import com.darkrockstudios.apps.hammer.base.http.EntityType
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.drafts.DraftDef
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
-import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogLevel
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessage
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientSceneDraftSynchronizer
@@ -22,6 +21,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.koin.dsl.module
+import testProjectId
 import utils.BaseTest
 import utils.TestStrRes
 import kotlin.test.*
@@ -29,14 +29,11 @@ import kotlin.time.Instant
 
 class ClientSceneDraftSynchronizerTest : BaseTest() {
 
-	private val projectDef = ProjectDef(name = "Test", path = HPath("/projects/Test", "Test", false))
+	private val projectDef = ProjectDef(id = testProjectId("Test"), name = "Test", path = HPath("/projects/Test", "Test", false))
 	private val strRes: StrRes = TestStrRes()
 
 	@MockK
 	private lateinit var serverProjectApi: ServerProjectApi
-
-	@MockK
-	private lateinit var projectMetadataDatasource: ProjectMetadataDatasource
 
 	@MockK(relaxed = true)
 	private lateinit var sceneDraftRepository: SceneDraftRepository
@@ -60,7 +57,6 @@ class ClientSceneDraftSynchronizerTest : BaseTest() {
 	private fun newSynchronizer() = ClientSceneDraftSynchronizer(
 		projectDef = projectDef,
 		serverProjectApi = serverProjectApi,
-		projectMetadataDatasource = projectMetadataDatasource,
 		strRes = strRes,
 	)
 

@@ -11,6 +11,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
+import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.scenelist.SceneList
 import com.darkrockstudios.apps.hammer.common.compose.rememberRootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.data.MoveRequest
@@ -93,6 +94,7 @@ class SceneListFooterTest : BaseTest() {
 }
 
 private fun testProjectDef() = ProjectDef(
+	id = ProjectId("6f0b8e52-2a4c-4d1e-9b3a-7c5d1e2f3a41"),
 	name = "Test",
 	path = HPath(name = "Test", path = "/", isAbsolute = true),
 )
