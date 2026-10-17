@@ -30,6 +30,12 @@ sealed interface ServerCreateOutcome {
 	 */
 	data class AdoptConflict(val heldBy: ProjectDef) : ServerCreateOutcome
 
+	/**
+	 * Only from project sync: the server's answer would change the project's id, which only account
+	 * sync may do. Nothing was changed locally.
+	 */
+	data object NeedsAccountSync : ServerCreateOutcome
+
 	/** This account deleted the project; its id is tombstoned and can never be created again. */
 	data object DeletedElsewhere : ServerCreateOutcome
 
@@ -41,6 +47,11 @@ sealed interface ServerCreateOutcome {
  * so both resolve the server's answers the same way: a same-name project on the account is adopted
  * unless another local project already holds its id, an id held by another account is re-minted
  * once, and a tombstoned id is reported, not retried.
+ *
+ * Only account sync, run from the project list, may change a project's id: project sync runs on a
+ * project that is in use, whose open scope holds state under the old id. For project sync
+ * ([createInOwnSession]) an adopt or re-mint is reported as [ServerCreateOutcome.NeedsAccountSync]
+ * instead.
  */
 class ProjectCreateResolver(
 	private val serverProjectsApi: ServerProjectsApi,
@@ -51,7 +62,10 @@ class ProjectCreateResolver(
 	private val sessionLock = Mutex()
 
 	/** Creates [projectDef] within the open account sync session [syncId]. */
-	suspend fun create(projectDef: ProjectDef, syncId: String): ServerCreateOutcome {
+	suspend fun create(projectDef: ProjectDef, syncId: String): ServerCreateOutcome =
+		create(projectDef, syncId, mayChangeId = true)
+
+	private suspend fun create(projectDef: ProjectDef, syncId: String, mayChangeId: Boolean): ServerCreateOutcome {
 		var projectId = projectsRepository.getProjectId(projectDef)
 		var reminted = false
 		while (true) {
@@ -70,10 +84,22 @@ class ProjectCreateResolver(
 							)
 							return ServerCreateOutcome.AdoptConflict(holder)
 						}
+						if (!mayChangeId) {
+							Napier.w(
+								"'${projectDef.name}' matches server project ${response.projectId.id}: " +
+									"needs account sync"
+							)
+							return ServerCreateOutcome.NeedsAccountSync
+						}
 						Napier.i("'${projectDef.name}' adopted server project ${response.projectId.id}")
 						projectsRepository.setProjectId(projectDef, response.projectId)
 					}
 					return ServerCreateOutcome.Created(response.projectId, response.alreadyExisted, reminted)
+				}
+
+				error.apiErrorCode() == ApiErrorCode.PROJECT_ID_TAKEN && !mayChangeId -> {
+					Napier.w("'${projectDef.name}' id ${projectId.id} is taken on the server: needs account sync")
+					return ServerCreateOutcome.NeedsAccountSync
 				}
 
 				error.apiErrorCode() == ApiErrorCode.PROJECT_ID_TAKEN && !reminted -> {
@@ -92,12 +118,12 @@ class ProjectCreateResolver(
 		}
 	}
 
-	/** Creates [projectDef] in an account sync session of its own. */
+	/** Creates [projectDef] in an account sync session of its own, never changing its id. */
 	suspend fun createInOwnSession(projectDef: ProjectDef): ServerCreateOutcome = sessionLock.withLock {
 		val begin = serverProjectsApi.beginProjectsSync()
 		val syncId = begin.getOrElse { return ServerCreateOutcome.Failed(it) }.syncId
 		try {
-			create(projectDef, syncId)
+			create(projectDef, syncId, mayChangeId = false)
 		} finally {
 			withContext(NonCancellable) { serverProjectsApi.endProjectsSync(syncId) }
 		}

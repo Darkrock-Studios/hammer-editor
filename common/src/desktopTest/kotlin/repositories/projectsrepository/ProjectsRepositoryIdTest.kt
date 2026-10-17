@@ -5,8 +5,10 @@ import PROJECT_2_NAME
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.createProjectScope
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectIdChangeListener
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectInUseException
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournalDatasource
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
@@ -17,6 +19,7 @@ import kotlinx.coroutines.test.runTest
 import okio.Path
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
@@ -60,6 +63,22 @@ class ProjectsRepositoryIdTest : ProjectsRepositoryBaseTest() {
 
 		assertEquals(projectId, repo.getProjectId(proj2Def))
 		assertEquals(proj2Def.name, repo.findProject(projectId)?.name)
+	}
+
+	@Test
+	fun `Set Project ID refuses a project in use`() = scope.runTest {
+		val proj2Def = getProjectDef(PROJECT_2_NAME)
+		createProject(ffs, PROJECT_2_NAME)
+		val repo = projectsRepository()
+		val projectScope = createProjectScope(proj2Def)
+
+		try {
+			assertFailsWith<ProjectInUseException> { repo.setProjectId(proj2Def, ProjectId("test-id")) }
+		} finally {
+			projectScope.close()
+		}
+
+		assertEquals(project2Id, repo.getProjectId(proj2Def))
 	}
 
 	@Test

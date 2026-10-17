@@ -17,6 +17,7 @@ import com.darkrockstudios.apps.hammer.sync_log_account_project_create_server_fa
 import com.darkrockstudios.apps.hammer.sync_log_account_project_create_server_success
 import com.darkrockstudios.apps.hammer.sync_log_account_project_deleted_elsewhere
 import com.darkrockstudios.apps.hammer.sync_log_account_project_id_reminted
+import com.darkrockstudios.apps.hammer.sync_log_account_project_needs_account_sync
 import com.darkrockstudios.apps.hammer.sync_log_server_data_loaded
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.flow.first
@@ -129,6 +130,12 @@ internal suspend fun logCreateOutcome(
 		ProjectAdoptConflictException(projectDef.name, outcome.heldBy.name)
 	}
 
+	ServerCreateOutcome.NeedsAccountSync -> {
+		val message = strRes.get(Res.string.sync_log_account_project_needs_account_sync, projectDef.name)
+		onLog(syncLogW(message, projectDef))
+		ProjectNeedsAccountSyncException(projectDef.name)
+	}
+
 	is ServerCreateOutcome.Failed -> {
 		onLog(
 			syncLogE(
@@ -145,3 +152,6 @@ class ProjectDeletedElsewhereException(projectName: String) :
 
 class ProjectAdoptConflictException(projectName: String, heldBy: String) :
 	SyncOperationException("Server project matching $projectName by name is held by $heldBy")
+
+class ProjectNeedsAccountSyncException(projectName: String) :
+	SyncOperationException("Project must be synced from the project list to settle its id: $projectName")

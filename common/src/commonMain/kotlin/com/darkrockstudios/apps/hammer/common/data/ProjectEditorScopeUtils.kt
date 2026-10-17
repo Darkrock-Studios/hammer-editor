@@ -72,6 +72,10 @@ suspend fun KoinComponent.temporaryProjectTask(projectDef: ProjectDef, block: su
 	}
 }
 
+/** True while [projectDef] has a project scope open, for an editor or a temporary task. */
+fun KoinComponent.isProjectInUse(projectDef: ProjectDef): Boolean =
+	getKoin().getScopeOrNull(ProjectDefScope(projectDef).getScopeId()) != null
+
 fun createProjectScope(projectDef: ProjectDef): Scope {
 	val alreadyCreated = getKoin().getScopeOrNull(ProjectDefScope(projectDef).getScopeId()) != null
 	if (alreadyCreated) error("Scope was already created")

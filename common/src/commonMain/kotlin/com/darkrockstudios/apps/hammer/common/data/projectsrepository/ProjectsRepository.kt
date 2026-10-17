@@ -13,6 +13,7 @@ import com.darkrockstudios.apps.hammer.common.data.ClientMessage
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.data.isProjectInUse as hasOpenProjectScope
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.migrator.PROJECT_DATA_VERSION
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesDatasource
@@ -121,10 +122,14 @@ class ProjectsRepository(
 	 * Gives the project a different identity: adopting a server project's id, or re-minting one
 	 * that collides. The old sync baseline described the old id, so it goes when the id changes
 	 * (a journal flagged for verification keeps its conflict baselines, see [clearProjectSyncBaseline]).
+	 *
+	 * Throws [ProjectInUseException] for a project in use (see [isProjectInUse]): its open scope
+	 * holds state under the old id. Callers check first and skip such a project.
 	 */
 	suspend fun setProjectId(projectDef: ProjectDef, projectId: ProjectId) {
 		val oldId = getProjectId(projectDef)
 		if (oldId == projectId) return
+		if (isProjectInUse(projectDef)) throw ProjectInUseException(projectDef.name)
 
 		clearSyncBaseline(projectDef)
 		projectsMetadataDatasource.updateMetadata(projectDef) {
@@ -231,6 +236,9 @@ class ProjectsRepository(
 			clearProjectDataSyncBaseline(projectDef, fileSystem, toml)
 		}
 	}
+
+	/** True while [projectDef] is open in an editor or a temporary task; its id and name are then fixed. */
+	fun isProjectInUse(projectDef: ProjectDef): Boolean = hasOpenProjectScope(projectDef)
 
 	fun getProjectId(projectDef: ProjectDef): ProjectId =
 		projectsMetadataDatasource.loadProjectId(projectDef)
@@ -401,6 +409,9 @@ class ProjectsRepository(
 
 	@Suppress("SwallowedException") // IOException maps to a typed failure result
 	fun renameProject(projectDef: ProjectDef, newName: String): CResult<ProjectDef> {
+		if (isProjectInUse(projectDef)) {
+			return CResult.failure(ProjectRenameFailed(ProjectRenameFailed.Reason.ProjectInUse))
+		}
 		if (validateFileName(newName).isFailure) {
 			return CResult.failure(ProjectRenameFailed(ProjectRenameFailed.Reason.InvalidName))
 		}

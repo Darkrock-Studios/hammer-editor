@@ -2,6 +2,7 @@ package repositories.projectsrepository
 
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectDefinition
+import com.darkrockstudios.apps.hammer.common.data.createProjectScope
 import com.darkrockstudios.apps.hammer.common.data.isFailure
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectRenameFailed
@@ -110,5 +111,30 @@ class ProjectsRepositoryRenameTest : ProjectsRepositoryBaseTest() {
 		)
 		assertTrue(ffs.exists(oldProjPath))
 		assertTrue(ffs.exists(newProjPath))
+	}
+
+	@Test
+	fun `Rename Project, project in use`() = scope.runTest {
+		createProjectDirectories(ffs)
+		val repo = projectsRepository()
+
+		val projectName = projectNames[0]
+		val newProjectName = "New Project Name"
+		val projDef = ProjectDefinition(projectName, getProjectsDirectory().div(projectName).toHPath())
+		val projectScope = createProjectScope(projDef)
+
+		val result = try {
+			repo.renameProject(projDef, newProjectName)
+		} finally {
+			projectScope.close()
+		}
+
+		assertTrue(isFailure(result))
+		assertEquals(
+			ProjectRenameFailed.Reason.ProjectInUse,
+			(result.exception as ProjectRenameFailed).reason
+		)
+		assertTrue(ffs.exists(getProjectsDirectory().div(projectName)))
+		assertFalse(ffs.exists(getProjectsDirectory().div(newProjectName)))
 	}
 }

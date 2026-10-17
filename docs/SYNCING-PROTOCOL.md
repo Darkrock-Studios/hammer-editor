@@ -51,7 +51,11 @@ deletion is filtered out of the working copy of that list, but it is still known
 judging it against the filtered list would recreate what the user just deleted.
 
 The create answers settle which ID the project keeps. Account sync and project sync resolve them the
-same way (`ProjectCreateResolver`):
+same way (`ProjectCreateResolver`), except that only account sync, run from the project list, may
+change a project's ID (see [Unknown project](#unknown-project-410-gone)). Account sync also leaves a
+project that is in use (open in an editor or a background task) as it is: it does not adopt an ID
+for it, create it on the server or rename it, and logs that the user should close it and sync
+again.
 
 - **Created, or already present under that ID:** the ID stands. The create is idempotent, so
   repeating it after a lost response is safe.
@@ -411,10 +415,12 @@ This is also how a project that has never synced reaches the server: there is no
 pre-check, `begin_sync` is the probe. Retrying `begin_sync` alone can never succeed, so on
 receiving `410` from it the client runs the same create-or-confirm as account sync
 (`ProjectCreateResolver`, see [Project IDs](#project-ids)) under its local ID, in an account sync
-session of its own. A same-name server project may be adopted, or an ID another account holds
-re-minted, exactly as in account sync. The client then clears the project's sync baseline, since
-that described a server project which no longer holds it, and retries `begin_sync` once with the
-ID the create settled on. If the create answers `project_deleted`, refuses to adopt an ID another
+session of its own. Project sync runs on a project that is in use, so it never changes the
+project's ID: if the server answers with a same-name project's ID or `project_id_taken`, nothing
+changes locally and the sync fails, telling the user to close the project and sync from the
+project list, where account sync adopts or re-mints the ID. Otherwise the client clears the
+project's sync baseline, since that described a server project which no longer holds it, and
+retries `begin_sync` once. If the create answers `project_deleted`, refuses to adopt an ID another
 local project holds, or fails, the sync fails with a log saying so instead. Without this repair the
 project would fail every sync, because account sync (above) is not run when syncing a single
 project from inside the project itself.

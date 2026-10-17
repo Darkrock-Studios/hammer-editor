@@ -312,6 +312,14 @@ account sync matches it by name to a server project and adopts that ID. A healed
 folder's surviving `sync.json` may be stale, so the folder is flagged like a restored backup and its
 next sync conflict-checks every entity. That is the accepted cost of keeping the file regenerable.
 
+**A project in use keeps its identity.** While a project has a project scope open (an editor, or a
+temporary task such as a background sync or capture), its ID and name do not change: the scope
+holds state under them. `ProjectsRepository.setProjectId` throws for such a project and
+`renameProject` refuses it (`isProjectInUse`). Only account sync, run from the project list,
+adopts or re-mints an ID, and it skips a project in use with a log telling the user to close it.
+Project sync never changes the ID; when the server's answer would require it, the sync fails and
+asks the user to sync from the project list.
+
 **Header comments.** Both TOML files start with a comment line, rewritten on every save, that tells
 a user who opens the file which tier it is in. `project.toml` says it is managed by Hammer and that
 edits may be overwritten or discarded. `settings.toml` says the user may edit it but must keep it

@@ -212,7 +212,7 @@ class ProjectsRepositorySyncBaselineTest : ProjectsRepositoryBaseTest() {
 		// as well or the next sync still fast-forwards onto the new server's empty copy.
 		assertEquals("hash-agreed-with-the-old-server", projectDataRepository.load().lastSyncedHash)
 
-		projectsRepository().setProjectId(projectDef, ProjectId("id-on-the-new-server"))
+		projectsRepository().clearAllSyncBaselines()
 
 		assertNull(projectDataRepository.load().lastSyncedHash)
 		assertNull(storedProjectData().lastSyncedHash)

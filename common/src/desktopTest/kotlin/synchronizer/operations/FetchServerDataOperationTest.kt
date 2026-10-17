@@ -18,6 +18,7 @@ import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.FetchServerDataOperation
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.ProjectAdoptConflictException
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.ProjectDeletedElsewhereException
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.ProjectNeedsAccountSyncException
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.server.HttpFailureException
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
@@ -43,7 +44,6 @@ import utils.sharedFlow
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
-import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 import kotlin.time.Instant
 
@@ -247,23 +247,22 @@ class FetchServerDataOperationTest : BaseTest() {
 	}
 
 	@Test
-	fun `A 410 retry uses the id the server answered the create with`() = runTest {
+	fun `A 410 whose create needs account sync fails without retrying`() = runTest {
 		val projectDef = getProjectDef(PROJECT_2_NAME)
 		val op = createOperation(projectDef)
-		val adoptedId = ProjectId("adopted-id")
+		val logs = mutableListOf<SyncLogMessage>()
 
 		stubSettingsAndMetadata()
-		coEvery { serverProjectApi.beginProjectSync(any(), projId, any(), any()) } returns Result.failure(gone())
-		coEvery { serverProjectApi.beginProjectSync(any(), adoptedId, any(), any()) } returns
-			Result.success(beganResponse)
-		coEvery { projectCreateResolver.createInOwnSession(projectDef) } returns
-			ServerCreateOutcome.Created(adoptedId, alreadyExisted = true, reminted = false)
-		coEvery { syncJournal.loadSyncData() } returns projectData
+		coEvery { serverProjectApi.beginProjectSync(any(), any(), any(), any()) } returns Result.failure(gone())
+		coEvery { projectCreateResolver.createInOwnSession(projectDef) } returns ServerCreateOutcome.NeedsAccountSync
 
-		val result = execute(op)
+		val result = execute(op) { logs.add(it) }
 
-		assertTrue(isSuccess(result))
-		assertEquals(adoptedId, assertIs<FetchServerDataState>(result.data).serverProjectId)
+		assertFalse(isSuccess(result))
+		assertIs<ProjectNeedsAccountSyncException>(result.exception)
+		assertTrue(logs.any { it.level == SyncLogLevel.WARN })
+		coVerify(exactly = 1) { serverProjectApi.beginProjectSync(any(), any(), any(), any()) }
+		coVerify(exactly = 0) { projectsRepository.clearSyncBaseline(any()) }
 	}
 
 	@Test
@@ -326,51 +325,51 @@ class FetchServerDataOperationTest : BaseTest() {
 	}
 
 	@Test
-	fun `A 410 adopts the id of a same-named server project`() = runTest {
+	fun `A 410 matching a same-named server project fails for account sync to adopt it`() = runTest {
 		val projectDef = getProjectDef(PROJECT_2_NAME)
 		val serverProjectsApi = stubResolverSession(projectDef)
 		val op = createOperation(projectDef, ProjectCreateResolver(serverProjectsApi, projectsRepository))
 		val serverId = ProjectId("server-id")
+		val logs = mutableListOf<SyncLogMessage>()
 
 		stubSettingsAndMetadata()
-		coEvery { serverProjectApi.beginProjectSync(any(), projId, any(), any()) } returns Result.failure(gone())
-		coEvery { serverProjectApi.beginProjectSync(any(), serverId, any(), any()) } returns
-			Result.success(beganResponse)
+		coEvery { serverProjectApi.beginProjectSync(any(), any(), any(), any()) } returns Result.failure(gone())
 		coEvery { serverProjectsApi.createProject(projectDef.name, projId, SYNC_ID) } returns
 			Result.success(CreateProjectResponse(serverId, alreadyExisted = true))
-		coEvery { syncJournal.loadSyncData() } returns projectData
 
-		val result = execute(op)
+		val result = execute(op) { logs.add(it) }
 
-		assertTrue(isSuccess(result))
-		assertEquals(serverId, assertIs<FetchServerDataState>(result.data).serverProjectId)
-		coVerify { projectsRepository.setProjectId(projectDef, serverId) }
+		assertFalse(isSuccess(result))
+		assertIs<ProjectNeedsAccountSyncException>(result.exception)
+		assertTrue(logs.any { it.level == SyncLogLevel.WARN })
+		coVerify(exactly = 0) { projectsRepository.setProjectId(any(), any()) }
+		coVerify(exactly = 0) { projectsRepository.clearSyncBaseline(any()) }
+		coVerify(exactly = 1) { serverProjectApi.beginProjectSync(any(), any(), any(), any()) }
+		coVerify { serverProjectsApi.endProjectsSync(SYNC_ID) }
 	}
 
 	@Test
-	fun `A 410 whose id another account holds re-mints and retries with the new id`() = runTest {
+	fun `A 410 whose id another account holds fails without re-minting`() = runTest {
 		val projectDef = getProjectDef(PROJECT_2_NAME)
 		val serverProjectsApi = stubResolverSession(projectDef)
 		val op = createOperation(projectDef, ProjectCreateResolver(serverProjectsApi, projectsRepository))
 		val logs = mutableListOf<SyncLogMessage>()
 
 		stubSettingsAndMetadata()
-		coEvery { serverProjectApi.beginProjectSync(any(), projId, any(), any()) } returns Result.failure(gone())
-		coEvery { serverProjectApi.beginProjectSync(any(), not(projId), any(), any()) } returns
-			Result.success(beganResponse)
+		coEvery { serverProjectApi.beginProjectSync(any(), any(), any(), any()) } returns Result.failure(gone())
 		coEvery { serverProjectsApi.createProject(projectDef.name, projId, SYNC_ID) } returns
 			Result.failure(conflict(ApiErrorCode.PROJECT_ID_TAKEN))
-		coEvery { serverProjectsApi.createProject(projectDef.name, not(projId), SYNC_ID) } answers
-			{ Result.success(CreateProjectResponse(ProjectId(secondArg<String>()), alreadyExisted = false)) }
-		coEvery { syncJournal.loadSyncData() } returns projectData
 
 		val result = execute(op) { logs.add(it) }
 
-		assertTrue(isSuccess(result))
-		val newId = assertIs<FetchServerDataState>(result.data).serverProjectId
-		assertNotEquals(projId, newId)
-		coVerify { projectsRepository.setProjectId(projectDef, newId) }
+		assertFalse(isSuccess(result))
+		assertIs<ProjectNeedsAccountSyncException>(result.exception)
 		assertTrue(logs.any { it.level == SyncLogLevel.WARN })
+		coVerify(exactly = 1) { serverProjectsApi.createProject(any(), any(), any()) }
+		coVerify(exactly = 0) { projectsRepository.setProjectId(any(), any()) }
+		coVerify(exactly = 0) { projectsRepository.clearSyncBaseline(any()) }
+		coVerify(exactly = 1) { serverProjectApi.beginProjectSync(any(), any(), any(), any()) }
+		coVerify { serverProjectsApi.endProjectsSync(SYNC_ID) }
 	}
 
 	@Test
