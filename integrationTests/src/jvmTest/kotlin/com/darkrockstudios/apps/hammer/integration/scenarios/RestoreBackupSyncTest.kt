@@ -1,12 +1,17 @@
 package com.darkrockstudios.apps.hammer.integration.scenarios
 
+import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
+import com.darkrockstudios.apps.hammer.common.data.ClientResult
 import com.darkrockstudios.apps.hammer.common.data.SceneContent
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.BackupRestoreResult
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupDef
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupService
+import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.InitialSyncOperationState
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournalDatasource
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.ProjectNeedsAccountSyncException
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.e2e.util.E2eTestData
 import com.darkrockstudios.apps.hammer.integration.HeadlessClient
@@ -17,6 +22,8 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Timeout
 import org.koin.test.get
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
@@ -42,6 +49,43 @@ class RestoreBackupSyncTest : RoundTripTestBase() {
 		var conflicted = false
 		assertTrue(sync(resolveConflict = { entity -> conflicted = true; entity }), "sync should complete")
 		return conflicted
+	}
+
+	/** Loses the project's `project.toml` and heals the folder at startup, under an id the server never saw. */
+	private suspend fun healUnderFreshId(client: HeadlessClient) {
+		client.close()
+		get<FileSystem>().delete(client.projectPath / ProjectMetadata.FILENAME)
+		get<ProjectsRepository>().healUnmarkedProjectDirectories()
+	}
+
+	/** Account sync adopts the same-named server project's id for the closed [client], which then reopens. */
+	private suspend fun adoptByAccountSync(client: HeadlessClient, project: String): HeadlessClient {
+		assertNotEquals(serverProjectId(project), localId(client), "the local id should be one the server never saw")
+		assertTrue(accountSync(), "account sync should succeed")
+		assertEquals(serverProjectId(project), localId(client), "account sync should adopt the server project's id")
+		return reopen(client)
+	}
+
+	private fun localId(client: HeadlessClient): ProjectId =
+		get<ProjectMetadataDatasource>().loadProjectId(client.projectDef)
+
+	private fun serverProjectId(name: String): ProjectId = ProjectId(
+		requireNotNull(database().serverDatabase.projectQueries.findProjectByName(userId, name).executeAsOneOrNull()).uuid
+	)
+
+	private fun serverProjects(): Map<String, String> =
+		database().serverDatabase.projectQueries.getProjects(userId).executeAsList().associate { it.name to it.uuid }
+
+	/** Runs a project sync that must fail, returning why. */
+	private suspend fun HeadlessClient.projectSyncFailure(): Throwable? {
+		val result = synchronizer.execute(
+			InitialSyncOperationState(onlyNew = false),
+			onProgress = { _, _ -> },
+			onLog = { },
+			onConflict = { error("unexpected conflict") },
+			onComplete = { },
+		)
+		return assertIs<ClientResult.Failure<*>>(result, "project sync should fail").exception
 	}
 
 	@Test
@@ -139,10 +183,12 @@ class RestoreBackupSyncTest : RoundTripTestBase() {
 		client.writeScene(scene.id, "after the backup")
 		assertTrue(client.sync())
 
-		// No live project at the target, so the restore mints a fresh id, which the project's own
-		// sync then trades for the same-named server project's.
+		// No live project at the target, so the restore mints a fresh id.
+		client.close()
 		get<FileSystem>().delete(client.projectPath / ProjectMetadata.FILENAME)
-		val restored = restore(client, backup)
+		assertEquals(BackupRestoreResult.Restored, get<ProjectBackupService>().restoreBackup(backup, client.projectDef.path))
+
+		val restored = adoptByAccountSync(client, project)
 		assertTrue(restored.syncRecordingConflict(), "the restore must not silently overwrite the server")
 	}
 
@@ -161,10 +207,8 @@ class RestoreBackupSyncTest : RoundTripTestBase() {
 			E2eTestData.createTestScene(id = scene.id).copy(content = "another device's version"),
 		)
 
-		client.close()
-		get<FileSystem>().delete(client.projectPath / ProjectMetadata.FILENAME)
-		get<ProjectsRepository>().healUnmarkedProjectDirectories()
-		val healed = reopen(client)
+		healUnderFreshId(client)
+		val healed = adoptByAccountSync(client, project)
 		assertTrue(healed.syncRecordingConflict(), "the healed copy must not silently overwrite the server")
 	}
 
@@ -178,15 +222,44 @@ class RestoreBackupSyncTest : RoundTripTestBase() {
 		assertTrue(client.sync())
 		client.writeScene(scene.id, "unsynced local edit")
 
-		client.close()
-		get<FileSystem>().delete(client.projectPath / ProjectMetadata.FILENAME)
-		get<ProjectsRepository>().healUnmarkedProjectDirectories()
-		val healed = reopen(client)
+		healUnderFreshId(client)
+		val healed = adoptByAccountSync(client, project)
 		assertTrue(healed.syncNoConflict())
 		assertEquals(
 			"unsynced local edit",
 			healed.sceneEditor.loadSceneMarkdownRaw(requireNotNull(healed.sceneEditor.getSceneItemFromId(scene.id))),
 		)
 		assertConverged(project, healed)
+	}
+
+	@Test
+	@Timeout(value = 60)
+	fun `project sync leaves a healed folder's id to account sync`() = runBlocking {
+		val project = "heal needs account sync"
+		val client = newClient(project)
+		val scene = assertNotNull(client.sceneEditor.createScene(parent = null, sceneName = "Scene"))
+		client.writeScene(scene.id, "v1")
+		assertTrue(client.sync())
+		client.writeScene(scene.id, "unsynced local edit")
+
+		healUnderFreshId(client)
+		val healed = reopen(client)
+		val healedId = localId(healed)
+		val serverProjects = serverProjects()
+		val serverHashes = serverEntityHashes(project)
+
+		assertIs<ProjectNeedsAccountSyncException>(healed.projectSyncFailure())
+		assertEquals(healedId, localId(healed))
+		assertEquals(serverProjects, serverProjects())
+		assertEquals(serverHashes, serverEntityHashes(project))
+
+		healed.close()
+		val adopted = adoptByAccountSync(healed, project)
+		assertTrue(adopted.syncNoConflict())
+		assertEquals(
+			"unsynced local edit",
+			adopted.sceneEditor.loadSceneMarkdownRaw(requireNotNull(adopted.sceneEditor.getSceneItemFromId(scene.id))),
+		)
+		assertConverged(project, adopted)
 	}
 }
