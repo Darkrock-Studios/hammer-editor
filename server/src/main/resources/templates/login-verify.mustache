@@ -1,0 +1,58 @@
+{{> header}}
+
+<main class="page page--centered">
+	<div class="page__container page__container--narrow">
+		<div class="paper-section paper-section--compact">
+			<div class="login-header">
+				<h1>{{msg.login_verify_title}}</h1>
+				{{^useRecovery}}
+					<p>{{msg.login_verify_subtitle}}</p>
+				{{/useRecovery}}
+				{{#useRecovery}}
+					<p>{{msg.login_verify_subtitle_recovery}}</p>
+				{{/useRecovery}}
+			</div>
+
+			<form action="/login/verify{{#useRecovery}}?method=recovery{{/useRecovery}}" method="post" class="login-form">
+				<div class="form-field">
+					{{^useRecovery}}
+						<label for="code" class="form-field__label">{{msg.login_verify_code_label}}</label>
+						<input type="text" id="code" name="code" class="form-input login-code-input" required autofocus
+							   inputmode="numeric" pattern="[0-9 ]{6,7}" maxlength="7" autocomplete="one-time-code"
+							   placeholder="123 456">
+					{{/useRecovery}}
+					{{#useRecovery}}
+						<label for="code" class="form-field__label">{{msg.login_verify_recovery_label}}</label>
+						<input type="text" id="code" name="code" class="form-input login-code-input" required autofocus
+							   autocomplete="one-time-code" autocapitalize="off" spellcheck="false"
+							   placeholder="xxxxx-xxxxx">
+					{{/useRecovery}}
+				</div>
+
+				{{#message}}
+					<div class="login-message">
+						<p>{{message}}</p>
+					</div>
+				{{/message}}
+
+				<div class="form-actions">
+					<button type="submit" class="login-button">{{msg.login_verify_button}}</button>
+				</div>
+			</form>
+
+			<div class="login-info">
+				<p class="login-info-text">
+					{{^useRecovery}}
+						<a href="/login/verify?method=recovery">{{msg.login_verify_use_recovery}}</a>
+					{{/useRecovery}}
+					{{#useRecovery}}
+						<a href="/login/verify">{{msg.login_verify_use_totp}}</a>
+					{{/useRecovery}}
+				</p>
+				<p class="login-info-text"><a href="/login">{{msg.login_verify_start_over}}</a></p>
+			</div>
+		</div>
+	</div>
+</main>
+
+{{> footer}}

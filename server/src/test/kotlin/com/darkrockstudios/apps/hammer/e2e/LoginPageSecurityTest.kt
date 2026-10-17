@@ -84,7 +84,7 @@ class LoginPageSecurityTest : WebEndToEndTest() {
 	}
 
 	@Test
-	fun `an MFA account is refused with a message and audited as a failure`(): Unit = runBlocking {
+	fun `an MFA account goes on to the verify step and is not audited yet`(): Unit = runBlocking {
 		doStartServer()
 		seedWhitelistedAccount(email, password, penName = "Test Author")
 		val totp = database().serverDatabase.accountTotpQueries
@@ -94,11 +94,9 @@ class LoginPageSecurityTest : WebEndToEndTest() {
 
 		val response = postLogin(email, password)
 
-		assertEquals(HttpStatusCode.OK, response.status)
-		val body = response.bodyAsText()
-		assertContains(body, "<form")
-		assertContains(body, "does not support yet")
-		assertTrue(recordedAttemptsFor(email).single().success.not())
+		assertEquals(HttpStatusCode.Found, response.status)
+		assertEquals("/login/verify", response.headers["Location"])
+		assertTrue(recordedAttemptsFor(email).isEmpty())
 	}
 
 	private suspend fun postLogin(email: String, password: String): HttpResponse =
