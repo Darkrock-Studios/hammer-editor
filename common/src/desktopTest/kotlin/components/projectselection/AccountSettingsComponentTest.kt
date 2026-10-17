@@ -266,7 +266,7 @@ class AccountSettingsComponentTest : BaseTest() {
 
 		val component = newComponent()
 		advanceUntilIdle()
-		val projectA = projectsRepository.getProjectDefinition(PROJECT_A)
+		val projectA = assertNotNull(projectsRepository.findProject(PROJECT_A))
 		projectsRepository.setProjectId(projectA, ProjectId("id-a"))
 		writeJournal(PROJECT_A)
 
@@ -285,7 +285,7 @@ class AccountSettingsComponentTest : BaseTest() {
 
 		val component = newComponent()
 		advanceUntilIdle()
-		val projectA = projectsRepository.getProjectDefinition(PROJECT_A)
+		val projectA = assertNotNull(projectsRepository.findProject(PROJECT_A))
 		projectsRepository.setProjectId(projectA, ProjectId("keep-me"))
 		writeJournal(PROJECT_A)
 

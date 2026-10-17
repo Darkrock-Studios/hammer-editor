@@ -71,20 +71,6 @@ class ProjectsRepositoryFindTest : ProjectsRepositoryBaseTest() {
 		assertNull(projectDef)
 	}
 
-	@Test
-	fun `Get Project By name, success`() = scope.runTest {
-		val proj1Def = getProjectDef(PROJECT_1_NAME)
-		createProject(ffs, PROJECT_1_NAME)
-		createProject(ffs, PROJECT_2_NAME)
-		createProject(ffs, OUT_OF_ORDER_PROJECT_NAME)
-
-		val repo = projectsRepository()
-
-		val projectDef = repo.getProjectDefinition(PROJECT_1_NAME)
-
-		assertEquals(proj1Def, projectDef)
-	}
-
 	// Guards the name-only intent resolution used by ProjectRootActivity: a name that does not
 	// match an on-disk project must resolve to nothing, so a forged intent cannot open an
 	// arbitrary project.

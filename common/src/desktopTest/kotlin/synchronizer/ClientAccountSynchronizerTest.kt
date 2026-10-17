@@ -1053,7 +1053,6 @@ class ClientAccountSynchronizerTest {
 		every { projectsRepository.getProjects(any()) } returns listOf(def)
 		every { projectsRepository.getProjectId(def) } returns liveId
 		every { projectsRepository.findProject("My Novel") } returns def
-		every { projectsRepository.getProjectDefinition("My Novel") } returns def
 
 		val result = createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
 

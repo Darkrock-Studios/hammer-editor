@@ -81,7 +81,7 @@ class FetchLocalDataOperationTest : BaseTest() {
 	fun `Golden Path`() = runTest {
 		val op = createOperation(getProjectDef(PROJECT_2_NAME))
 
-		coEvery { projectMetadataDatasource.loadProjectId(any()) } returns projId
+		coEvery { projectMetadataDatasource.loadProjectId(any<ProjectDef>()) } returns projId
 		coEvery { syncJournal.loadSyncData() } returns projectData
 
 		mockSynchronizers.synchronizers.forEach { synchronizer ->
@@ -161,7 +161,7 @@ class FetchLocalDataOperationTest : BaseTest() {
 			syncedHashes = mapOf(2 to "already-recorded-2"),
 		)
 
-		coEvery { projectMetadataDatasource.loadProjectId(any()) } returns projId
+		coEvery { projectMetadataDatasource.loadProjectId(any<ProjectDef>()) } returns projId
 		coEvery { syncJournal.loadSyncData() } returns existing
 
 		mockSynchronizers.synchronizers.forEach { synchronizer ->
@@ -218,7 +218,7 @@ class FetchLocalDataOperationTest : BaseTest() {
 			syncedHashes = mapOf(1 to "confirmed-1", 2 to "confirmed-2"),
 			verifyAllEntities = true,
 		)
-		coEvery { projectMetadataDatasource.loadProjectId(any()) } returns projId
+		coEvery { projectMetadataDatasource.loadProjectId(any<ProjectDef>()) } returns projId
 		coEvery { syncJournal.loadSyncData() } returns restored
 		stubSceneHashes(1, 2, 3, 4)
 
@@ -267,7 +267,7 @@ class FetchLocalDataOperationTest : BaseTest() {
 			syncedHashes = mapOf(1 to "confirmed-1"),
 			verifyAllEntities = true,
 		)
-		coEvery { projectMetadataDatasource.loadProjectId(any()) } returns projId
+		coEvery { projectMetadataDatasource.loadProjectId(any<ProjectDef>()) } returns projId
 		coEvery { syncJournal.loadSyncData() } returns restored
 		stubSceneHashes(1, 2, 3)
 
@@ -290,7 +290,7 @@ class FetchLocalDataOperationTest : BaseTest() {
 	fun `Handle Failure`() = runTest {
 		val op = createOperation(getProjectDef(PROJECT_2_NAME))
 
-		coEvery { projectMetadataDatasource.loadProjectId(any()) } answers {
+		coEvery { projectMetadataDatasource.loadProjectId(any<ProjectDef>()) } answers {
 			throw Exception("Fail the test")
 		}
 
