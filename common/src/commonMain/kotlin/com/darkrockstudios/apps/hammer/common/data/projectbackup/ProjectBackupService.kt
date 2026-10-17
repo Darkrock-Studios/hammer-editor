@@ -197,16 +197,19 @@ open class ProjectBackupService(
 	 * one when there is none: the backup's own id may since have been deleted on the server, and a
 	 * deleted id can never be created again.
 	 *
-	 * A project in use is left alone: its open scope holds state under the id being replaced.
+	 * A project in use is refused before anything is touched: its open scope holds the content and
+	 * id this would replace. One opened mid-restore is not caught; setting its id then fails and is
+	 * logged.
 	 */
 	open suspend fun restoreBackup(backupDef: ProjectBackupDef, targetDir: HPath): BackupRestoreResult {
 		val targetOkioPath = targetDir.toOkioPath()
+		val targetDef = ProjectDef(backupDef.projectName, targetDir)
 		val staging = getBackupsDirectory().toOkioPath() / RESTORE_STAGING_DIRECTORY
 		val extracted = staging / "new"
 		val displaced = staging / "old"
 
 		return restoreLock.withLock {
-			if (projectsRepository.isProjectInUse(ProjectDef(backupDef.projectName, targetDir))) {
+			if (projectsRepository.isProjectInUse(targetDef)) {
 				Napier.w("Did not restore '${backupDef.path.name}': '${backupDef.projectName}' is in use")
 				return@withLock BackupRestoreResult.ProjectInUse
 			}
@@ -230,7 +233,7 @@ open class ProjectBackupService(
 				)
 
 				swapIntoPlace(archiveRoot(extracted), targetOkioPath, displaced)
-				adoptIdentity(ProjectDef(backupDef.projectName, targetDir), liveId, liveSynced)
+				adoptIdentity(targetDef, liveId, liveSynced)
 				BackupRestoreResult.Restored
 			} catch (e: Exception) {
 				Napier.e("Failed to restore backup: ${backupDef.path.name}", e)
