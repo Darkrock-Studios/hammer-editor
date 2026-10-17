@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.frontend
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.account.mfa.CodeResult
 import com.darkrockstudios.apps.hammer.account.mfa.MfaRepository
+import com.darkrockstudios.apps.hammer.account.mfa.lockMinutesRemaining
 import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
@@ -124,7 +125,7 @@ private fun Route.loginPage(
 				return@get
 			}
 			val lockMessage = mfaRepository.lockedUntil(pending.userId)?.let {
-				call.msg("login_verify_locked", minutesUntil(it, clock))
+				call.msg("login_verify_locked", lockMinutesRemaining(it, clock))
 			}
 			respondVerifyPage(call, lockMessage)
 		}
@@ -164,7 +165,7 @@ private fun Route.loginPage(
 					}
 
 					result is CodeResult.Locked ->
-						respondVerifyPage(call, call.msg("login_verify_locked", minutesUntil(result.until, clock)))
+						respondVerifyPage(call, call.msg("login_verify_locked", lockMinutesRemaining(result.until, clock)))
 
 					else -> respondVerifyPage(call, call.msg("login_verify_invalid"))
 				}

@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.account
 
+import com.darkrockstudios.apps.hammer.account.mfa.lockMinutesRemaining
 import com.darkrockstudios.apps.hammer.base.http.ApiErrorCode
 import com.darkrockstudios.apps.hammer.base.http.HTTP_STATUS_TERMS_OF_SERVICE
 import com.darkrockstudios.apps.hammer.base.http.HttpResponseError
@@ -20,9 +21,7 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.koin.ktor.ext.get
-import kotlin.math.ceil
 import kotlin.time.Clock
-import kotlin.time.DurationUnit
 
 fun Route.accountRoutes() {
 	route("/account") {
@@ -167,7 +166,7 @@ private suspend fun RoutingContext.respondLoginResult(result: LoginResult) {
 
 		// Same code as a wrong guess, so an older client shows it as one; the message says to wait.
 		is LoginResult.MfaLocked -> {
-			val minutes = ceil((result.until - clock.now()).toDouble(DurationUnit.MINUTES)).toLong().coerceAtLeast(1)
+			val minutes = lockMinutesRemaining(result.until, clock)
 			call.respond(
 				status = HttpStatusCode.Unauthorized,
 				message = HttpResponseError(

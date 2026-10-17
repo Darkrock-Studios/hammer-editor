@@ -14,7 +14,9 @@ import com.darkrockstudios.apps.hammer.utilities.TokenHasher
 import java.net.URI
 import java.security.SecureRandom
 import kotlin.io.encoding.Base64
+import kotlin.math.ceil
 import kotlin.time.Clock
+import kotlin.time.DurationUnit
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 import org.slf4j.LoggerFactory
@@ -45,6 +47,10 @@ sealed interface ChallengeResult {
 	/** Unknown, expired, or out of attempts. */
 	data object Invalid : ChallengeResult
 }
+
+/** Whole minutes left on a lock, rounded up so a user is never told zero. */
+fun lockMinutesRemaining(until: Instant, clock: Clock): Long =
+	ceil((until - clock.now()).toDouble(DurationUnit.MINUTES)).toLong().coerceAtLeast(1)
 
 class MfaRepository(
 	private val accountDao: AccountDao,

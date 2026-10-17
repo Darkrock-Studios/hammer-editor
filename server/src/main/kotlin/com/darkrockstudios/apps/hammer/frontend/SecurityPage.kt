@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.frontend
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.account.mfa.CodeResult
 import com.darkrockstudios.apps.hammer.account.mfa.MfaRepository
+import com.darkrockstudios.apps.hammer.account.mfa.lockMinutesRemaining
 import com.darkrockstudios.apps.hammer.frontend.utils.Toast
 import com.darkrockstudios.apps.hammer.frontend.utils.authenticatedOnly
 import com.darkrockstudios.apps.hammer.frontend.utils.msg
@@ -27,9 +28,7 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 import io.ktor.server.sessions.sessions
 import java.net.URLEncoder
-import kotlin.math.ceil
 import kotlin.time.Clock
-import kotlin.time.Instant
 
 private const val FACTORS_TEMPLATE = "partials/security-factors.mustache"
 
@@ -101,7 +100,7 @@ fun Route.securityPage(
 							respondToast(call.msg("security_error_code"), Toast.Error, HttpStatusCode.BadRequest)
 
 						is CodeResult.Locked -> respondToast(
-							call.msg("security_error_locked", minutesUntil(result.until, clock)),
+							call.msg("security_error_locked", lockMinutesRemaining(result.until, clock)),
 							Toast.Error,
 							HttpStatusCode.BadRequest,
 						)
@@ -173,6 +172,3 @@ private fun recoveryCodesDownload(heading: String, codes: List<String>): String 
 	val text = (listOf(heading, "") + codes).joinToString("\n", postfix = "\n")
 	return "data:text/plain;charset=utf-8," + URLEncoder.encode(text, Charsets.UTF_8).replace("+", "%20")
 }
-
-internal fun minutesUntil(until: Instant, clock: Clock): Long =
-	ceil((until - clock.now()).inWholeSeconds / 60.0).toLong().coerceAtLeast(1)

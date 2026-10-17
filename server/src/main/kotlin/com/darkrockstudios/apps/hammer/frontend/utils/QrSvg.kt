@@ -13,7 +13,6 @@ fun qrCodeSvg(text: String, quietZone: Int = 4): String {
 	val hints = mapOf(
 		EncodeHintType.MARGIN to quietZone,
 		EncodeHintType.ERROR_CORRECTION to ErrorCorrectionLevel.M,
-		EncodeHintType.CHARACTER_SET to "UTF-8",
 	)
 	// Zero size asks for the smallest matrix: one bit per module, quiet zone included.
 	val matrix = QRCodeWriter().encode(text, BarcodeFormat.QR_CODE, 0, 0, hints)
