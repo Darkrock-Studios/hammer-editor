@@ -40,6 +40,7 @@ import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -541,6 +542,30 @@ class ProjectsListComponentTest : ComponentTest() {
 			assertEquals(ProjectsList.Status.Complete, status.status)
 			assertEquals(1f, status.progress)
 			assertTrue(comp.state.value.syncState.syncComplete)
+		}
+
+	@Test
+	fun `cancelling a sync relists the projects so their ids match what the sync changed`() =
+		runTest(mainTestDispatcher) {
+			every { synchronizer.isServerSynchronized() } returns true
+			val adopted = projectDefA.copy(id = testProjectId("Adopted"))
+			var onDisk = listOf(projectDefA)
+			every { projectsRepository.getProjects(any()) } answers { onDisk }
+			every { metadataDatasource.loadMetadata(any()) } returns metadata(Instant.fromEpochSeconds(1))
+			every { statsReader.loadTotalWords(any()) } returns null
+			coEvery { synchronizer.syncProjects(any(), any(), any(), any()) } coAnswers {
+				onDisk = listOf(adopted)
+				awaitCancellation()
+			}
+			val comp = newComponent()
+			comp.loadProjectList()
+			comp.showProjectsSync()
+			advanceUntilIdle()
+
+			comp.cancelProjectsSync()
+			advanceUntilIdle()
+
+			assertEquals(listOf(adopted.id), comp.state.value.projects.map { it.definition.id })
 		}
 
 	// --- loadProjectList -----------------------------------------------------
