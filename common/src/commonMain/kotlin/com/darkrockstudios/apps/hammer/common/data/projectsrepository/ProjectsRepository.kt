@@ -289,7 +289,8 @@ class ProjectsRepository(
 		projectId: ProjectId,
 		serverKnowsProject: Boolean,
 	): ProjectDef? {
-		val projectDef = getProjectDefinition(projectName)
+		// Trimmed as in createProject, so both resolve a name to the same directory.
+		val projectDef = getProjectDefinition(projectName.trim())
 		val projectDir = projectDef.path.toOkioPath()
 		if (fileSystem.metadataOrNull(projectDir)?.isDirectory != true) return null
 		if (fileSystem.list(projectDir).isNotEmpty() && !hasProjectContent(projectDir)) return null

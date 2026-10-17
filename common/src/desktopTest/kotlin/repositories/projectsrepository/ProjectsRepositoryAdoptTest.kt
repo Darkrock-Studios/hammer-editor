@@ -246,6 +246,17 @@ class ProjectsRepositoryAdoptTest : ProjectsRepositoryBaseTest() {
 	}
 
 	@Test
+	fun `Adopting trims the name as creating a project does`() = scope.runTest {
+		val repo = projectsRepository()
+		val folder = createFolder("Server Project")
+
+		val adopted = repo.adoptUnmarkedDirectory(" Server Project", ProjectId("server-id"), serverKnowsProject = true)
+
+		assertEquals(folder, adopted)
+		assertFalse(ffs.exists(dir(getProjectDef(" Server Project"))))
+	}
+
+	@Test
 	fun `Adopting a marked folder does nothing`() = scope.runTest {
 		val repo = projectsRepository()
 		createProject(ffs, PROJECT_2_NAME)

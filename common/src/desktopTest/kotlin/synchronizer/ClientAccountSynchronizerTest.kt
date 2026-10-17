@@ -44,6 +44,7 @@ import io.mockk.*
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import net.peanuuutz.tomlkt.Toml
+import okio.IOException
 import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.BeforeEach
@@ -925,6 +926,59 @@ class ClientAccountSynchronizerTest {
 		coVerify { projectsRepository.resetSyncStateAfterRestore(adoptedDef, true) }
 		coVerify(exactly = 0) { projectsRepository.createProject(any(), any(), any()) }
 		coVerify(exactly = 0) { serverProjectsApi.createProject(any(), any(), any()) }
+	}
+
+	@Test
+	fun `syncProjects logs a folder it cannot adopt and carries on with the rest`() = runTest {
+		writeSyncData(emptySyncData())
+		val brokenId = ProjectId.randomUUID()
+		val otherId = ProjectId.randomUUID()
+
+		coEvery { serverProjectsApi.beginProjectsSync() } returns Result.success(
+			emptyServerResponse().copy(
+				projects = setOf(
+					ApiProjectDefinition("Unwritable", brokenId),
+					ApiProjectDefinition("OtherNovel", otherId),
+				)
+			)
+		)
+		every { projectsRepository.getProjects(any()) } returns emptyList()
+		every { projectsRepository.findProject(any<String>()) } returns null
+		coEvery { projectsRepository.adoptUnmarkedDirectory("Unwritable", brokenId, true) } throws
+			IOException("read-only folder")
+		every { projectsRepository.createProject("OtherNovel", any(), any()) } returns
+			CResult.success(projectDef("OtherNovel"))
+
+		val strRes = RecordingStrRes()
+		val result = createSynchronizer(strRes).syncProjects(onLog = {}, onUnauthorized = {})
+
+		assertTrue(result)
+		// Creating it would fail on the same directory.
+		coVerify(exactly = 0) { projectsRepository.createProject("Unwritable", any(), any()) }
+		coVerify { projectsRepository.createProject("OtherNovel", false, otherId) }
+		val logged = strRes.calls.single { it.first == Res.string.sync_log_account_project_create_local_failure }
+		assertEquals(listOf<Any>("Unwritable"), logged.second)
+	}
+
+	@Test
+	fun `syncProjects keeps an adopted folder when resetting its sync state fails`() = runTest {
+		writeSyncData(emptySyncData())
+		val serverId = ProjectId.randomUUID()
+		val adoptedDef = projectDef("ServerNovel")
+
+		coEvery { serverProjectsApi.beginProjectsSync() } returns
+			Result.success(emptyServerResponse().copy(projects = setOf(ApiProjectDefinition("ServerNovel", serverId))))
+		every { projectsRepository.getProjects(any()) } returns emptyList()
+		every { projectsRepository.findProject("ServerNovel") } returns null
+		coEvery { projectsRepository.adoptUnmarkedDirectory("ServerNovel", serverId, true) } returns adoptedDef
+		coEvery { projectsRepository.resetSyncStateAfterRestore(adoptedDef, true) } throws IOException("disk full")
+
+		val strRes = RecordingStrRes()
+		val result = createSynchronizer(strRes).syncProjects(onLog = {}, onUnauthorized = {})
+
+		assertTrue(result)
+		assertTrue(strRes.calls.any { it.first == Res.string.sync_log_account_project_adopt_folder })
+		coVerify(exactly = 0) { projectsRepository.createProject(any(), any(), any()) }
 	}
 
 	@Test
