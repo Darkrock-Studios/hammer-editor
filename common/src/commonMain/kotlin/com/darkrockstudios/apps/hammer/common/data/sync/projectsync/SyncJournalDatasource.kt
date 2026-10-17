@@ -71,6 +71,11 @@ class SyncJournalDatasource(
  * id but drop [EntityOriginalState.originalHash]: a baseline the old server confirmed would forge
  * a phantom conflict against the new one, while a null baseline uploads unconditionally.
  *
+ * A journal flagged [ProjectSynchronizationData.verifyAllEntities] keeps its confirmed hashes and
+ * dirty baselines. There they serve only as conflict baselines for the full verification pass, never
+ * to skip an upload, so one from an unrelated project either mismatches, which conflicts, or matches,
+ * which means identical content; dropping them would turn every pending local edit into a conflict.
+ *
  * No-op when the journal doesn't exist. A corrupt journal is deleted so [SyncJournal] rebuilds
  * it from local state.
  */
@@ -87,11 +92,12 @@ fun clearProjectSyncBaseline(projectDef: ProjectDef, fileSystem: FileSystem, jso
 		return
 	}
 
+	val keepBaselines = current.verifyAllEntities
 	val cleared = current.copy(
 		currentSyncId = null,
 		lastSync = Instant.DISTANT_PAST,
-		dirty = current.dirty.map { it.copy(originalHash = null) },
-		syncedHashes = emptyMap(),
+		dirty = if (keepBaselines) current.dirty else current.dirty.map { it.copy(originalHash = null) },
+		syncedHashes = if (keepBaselines) current.syncedHashes else emptyMap(),
 		cachedProjectHash = null,
 		hashAlgoVersion = 0,
 	)

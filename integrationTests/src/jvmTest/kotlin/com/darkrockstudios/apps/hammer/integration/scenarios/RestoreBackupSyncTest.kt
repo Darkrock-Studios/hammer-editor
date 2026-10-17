@@ -1,8 +1,10 @@
 package com.darkrockstudios.apps.hammer.integration.scenarios
 
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.SceneContent
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupDef
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupService
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournalDatasource
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.e2e.util.E2eTestData
@@ -121,5 +123,69 @@ class RestoreBackupSyncTest : RoundTripTestBase() {
 			restored.sceneEditor.loadSceneMarkdownRaw(requireNotNull(restored.sceneEditor.getSceneItemFromId(scene.id))),
 		)
 		assertConverged(project, restored)
+	}
+
+	@Test
+	@Timeout(value = 60)
+	fun `a restore under a fresh id that adopts the same-named server project still conflicts`() = runBlocking {
+		val project = "restore adopt by name"
+		val client = newClient(project)
+		val scene = assertNotNull(client.sceneEditor.createScene(parent = null, sceneName = "Scene"))
+		client.writeScene(scene.id, "backed up")
+		assertTrue(client.sync())
+		val backup = assertNotNull(get<ProjectBackupService>().createBackup(client.projectDef))
+
+		client.writeScene(scene.id, "after the backup")
+		assertTrue(client.sync())
+
+		// No live project at the target, so the restore mints a fresh id, which the project's own
+		// sync then trades for the same-named server project's.
+		get<FileSystem>().delete(client.projectPath / ProjectMetadata.FILENAME)
+		val restored = restore(client, backup)
+		assertTrue(restored.syncRecordingConflict(), "the restore must not silently overwrite the server")
+	}
+
+	@Test
+	@Timeout(value = 60)
+	fun `a healed folder that adopts the same-named server project conflicts with its newer copy`() = runBlocking {
+		val project = "heal adopt by name"
+		val client = newClient(project)
+		val scene = assertNotNull(client.sceneEditor.createScene(parent = null, sceneName = "Scene"))
+		client.writeScene(scene.id, "v1")
+		assertTrue(client.sync())
+
+		client.writeScene(scene.id, "unsynced local edit")
+		mutateServerEntity(
+			requireNotNull(serverNumericProjectIdFor(project)),
+			E2eTestData.createTestScene(id = scene.id).copy(content = "another device's version"),
+		)
+
+		client.close()
+		get<FileSystem>().delete(client.projectPath / ProjectMetadata.FILENAME)
+		get<ProjectsRepository>().healUnmarkedProjectDirectories()
+		val healed = reopen(client)
+		assertTrue(healed.syncRecordingConflict(), "the healed copy must not silently overwrite the server")
+	}
+
+	@Test
+	@Timeout(value = 60)
+	fun `a healed folder's pending edit uploads to the same-named server project without a conflict`() = runBlocking {
+		val project = "heal adopt pending edit"
+		val client = newClient(project)
+		val scene = assertNotNull(client.sceneEditor.createScene(parent = null, sceneName = "Scene"))
+		client.writeScene(scene.id, "v1")
+		assertTrue(client.sync())
+		client.writeScene(scene.id, "unsynced local edit")
+
+		client.close()
+		get<FileSystem>().delete(client.projectPath / ProjectMetadata.FILENAME)
+		get<ProjectsRepository>().healUnmarkedProjectDirectories()
+		val healed = reopen(client)
+		assertTrue(healed.syncNoConflict())
+		assertEquals(
+			"unsynced local edit",
+			healed.sceneEditor.loadSceneMarkdownRaw(requireNotNull(healed.sceneEditor.getSceneItemFromId(scene.id))),
+		)
+		assertConverged(project, healed)
 	}
 }

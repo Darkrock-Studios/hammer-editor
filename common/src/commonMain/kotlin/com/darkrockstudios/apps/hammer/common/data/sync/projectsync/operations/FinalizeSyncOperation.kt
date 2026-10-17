@@ -107,6 +107,8 @@ class FinalizeSyncOperation(
 						syncedHashes = persistedSyncedHashes,
 						cachedProjectHash = projectHash,
 						hashAlgoVersion = ProjectContentHasher.ALGO_VERSION,
+						// A full sync has just verified every entity; a lite sync leaves that to the next.
+						verifyAllEntities = state.onlyNew && state.clientSyncData.verifyAllEntities,
 					)
 					syncJournalDatasource.saveSyncData(finalSyncData)
 				} else {

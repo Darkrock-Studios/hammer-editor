@@ -234,7 +234,8 @@ class FetchLocalDataOperationTest : BaseTest() {
 		val data = result.data
 		assertIs<FetchLocalDataState>(data)
 		// Dirty means uploaded rather than replaced by the server's copy; the baseline means the
-		// server conflict-checks that upload. The new id (5) uploads as new regardless.
+		// server conflict-checks that upload. The new id (5) uploads as new regardless. The flag
+		// stays set until the sync completes, so an id adopted mid-sync keeps these baselines.
 		val expected = restored.copy(
 			dirty = listOf(
 				EntityOriginalState(1, "old-hash-1"),
@@ -248,7 +249,6 @@ class FetchLocalDataOperationTest : BaseTest() {
 				3 to "hash-3",
 				4 to "hash-4",
 			),
-			verifyAllEntities = false,
 		)
 		assertEquals(expected, data.clientSyncData)
 		coVerify { syncJournal.saveSyncData(expected) }

@@ -47,7 +47,7 @@ class TimeLineDatasource(
 
 	companion object {
 		private const val TIMELINE_FILENAME = "timeline.toml"
-		private const val TIMELINE_DIRECTORY = "timeline"
+		const val TIMELINE_DIRECTORY = "timeline"
 
 		fun getTimelineDir(projectDef: ProjectDef): HPath {
 			return (projectDef.path.toOkioPath() / TIMELINE_DIRECTORY).toHPath()

@@ -41,7 +41,8 @@ data class ProjectSynchronizationData(
 	 * Set when the project was restored from a backup. The journal came with the backup, so it
 	 * describes the server as it was then, and an entity it lists as clean would silently take the
 	 * server's newer copy. The next full sync marks every local entity dirty against its best known
-	 * baseline instead, so each one is conflict-checked against the server.
+	 * baseline instead, so each one is conflict-checked against the server. A re-marked project
+	 * folder is flagged for the same reason. The flag is cleared when that full sync completes.
 	 */
 	val verifyAllEntities: Boolean = false,
 )

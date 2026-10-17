@@ -42,7 +42,7 @@ class ProjectMetadataDatasource(
 			// Missing or corrupt (tomlkt throws beyond SerializationException): drop the
 			// bad file and start fresh so migrators re-run instead of crashing the load.
 			fileSystem.delete(path, false)
-			return createNewMetadata(projectDef)
+			return createMetadata(projectDef, ProjectId.randomUUID())
 		}
 
 		return if (metadata.info.projectId == null) withLegacyServerId(metadata, path) else metadata
@@ -73,14 +73,18 @@ class ProjectMetadataDatasource(
 		saveMetadata(newMetadata, projectDef)
 	}
 
-	private fun createNewMetadata(projectDef: ProjectDef): ProjectMetadata {
+	/**
+	 * Writes a fresh file for a directory whose content is of unknown age. `dataVersion = 0` makes
+	 * every migrator run over it; each one skips content that is already current.
+	 */
+	fun createMetadata(projectDef: ProjectDef, projectId: ProjectId): ProjectMetadata {
+		val now = Clock.System.now()
 		val newMetadata = ProjectMetadata(
 			info = Info(
-				created = Clock.System.now(),
-				lastAccessed = Clock.System.now(),
-				// We don't know the version, start at 0 so all migrators will run
+				created = now,
+				lastAccessed = now,
 				dataVersion = 0,
-				projectId = ProjectId.randomUUID(),
+				projectId = projectId,
 			)
 		)
 

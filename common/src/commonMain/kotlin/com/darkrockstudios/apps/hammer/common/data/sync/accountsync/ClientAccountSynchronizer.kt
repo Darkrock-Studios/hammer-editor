@@ -12,6 +12,7 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SyncedProjectDefinition
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
+import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
 import com.darkrockstudios.apps.hammer.common.data.projectdata.loadStoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.ClientIdeasSynchronizer
@@ -33,6 +34,7 @@ import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
+import okio.IOException
 import okio.Path
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.uuid.Uuid
@@ -44,6 +46,7 @@ class ClientAccountSynchronizer(
 	private val serverProjectsApi: ServerProjectsApi,
 	private val projectCreateResolver: ProjectCreateResolver,
 	private val ideasSynchronizer: ClientIdeasSynchronizer,
+	private val dataMigrator: DataMigrator,
 	private val networkConnectivity: NetworkConnectivity,
 	private val json: Json,
 	private val toml: Toml,
@@ -522,6 +525,8 @@ class ClientAccountSynchronizer(
 						)
 					)
 				)
+			} else if (adoptUnmarkedFolder(localName, serverProject.uuid, onLog)) {
+				claimedNames += localName
 			} else {
 				val createResult = projectsRepository.createProject(
 					localName,
@@ -552,6 +557,45 @@ class ClientAccountSynchronizer(
 			}
 		}
 		return claimedNames
+	}
+
+	/**
+	 * Adopts the directory named [localName] under [serverId] if it has no project.toml, treating
+	 * it like a restored backup. Returns false when there is no such directory. An I/O failure is
+	 * logged and returns true: creating the project there would fail on the same directory, and one
+	 * project must not abort the rest of the account sync.
+	 *
+	 * A failed migration is logged rather than failing the sync: startup retries it, but does not
+	 * reset sync state again, so a pre-4 folder migrated only then keeps its stale `lastSyncedHash`
+	 * (its entities are still conflict-checked).
+	 */
+	@Suppress("TooGenericExceptionCaught")
+	private suspend fun adoptUnmarkedFolder(localName: String, serverId: ProjectId, onLog: OnSyncLog): Boolean {
+		val adopted = try {
+			projectsRepository.adoptUnmarkedDirectory(localName, serverId, serverKnowsProject = true)
+		} catch (e: IOException) {
+			Napier.e("Failed to adopt the folder of '$localName'", e)
+			onLog(syncAccLogE(strRes.get(Res.string.sync_log_account_project_create_local_failure, localName)))
+			return true
+		} ?: return false
+
+		try {
+			dataMigrator.migrateProject(adopted)
+		} catch (e: CancellationException) {
+			throw e
+		} catch (e: Exception) {
+			Napier.e("Adopted '${adopted.name}' but failed to migrate it", e)
+		}
+		// Migration3_4 can move a pre-4 settings file, stale sync baseline included, into place.
+		// The journal was already flagged when the folder was adopted, so a failure here is logged.
+		try {
+			projectsRepository.resetSyncStateAfterRestore(adopted, serverKnowsProject = true)
+		} catch (e: IOException) {
+			Napier.e("Adopted '${adopted.name}' but failed to reset its sync state", e)
+		}
+
+		onLog(syncAccLogI(strRes.get(Res.string.sync_log_account_project_adopt_folder, localName)))
+		return true
 	}
 
 	/**
