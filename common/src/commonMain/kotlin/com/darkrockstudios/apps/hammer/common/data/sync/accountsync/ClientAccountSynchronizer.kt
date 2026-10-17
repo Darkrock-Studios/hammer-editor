@@ -14,6 +14,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
 import com.darkrockstudios.apps.hammer.common.data.projectdata.loadStoredProjectData
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectInUseException
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.ClientIdeasSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.IdeaConflictResolver
@@ -516,12 +517,9 @@ class ClientAccountSynchronizer(
 
 				// Claimed even when skipped, so createProjectsOnServer does not upload a duplicate.
 				claimedNames += existingProject.name
-				if (projectsRepository.isProjectInUse(existingProject)) {
-					onLog(projectInUseLog(existingProject))
-					return@forEach
-				}
-
-				projectsRepository.setProjectId(existingProject, serverProject.uuid)
+				unlessInUse(existingProject, onLog) {
+					projectsRepository.setProjectId(existingProject, serverProject.uuid)
+				} ?: return@forEach
 				onLog(
 					syncAccLogI(
 						strRes.get(
@@ -613,12 +611,11 @@ class ClientAccountSynchronizer(
 
 		localOnly.forEach { projectDef ->
 			val projectName = projectDef.name
-			if (projectsRepository.isProjectInUse(projectDef)) {
-				onLog(projectInUseLog(projectDef))
-				return@forEach
-			}
+			val outcome = unlessInUse(projectDef, onLog) {
+				projectCreateResolver.create(projectDef, serverSyncData.syncId)
+			} ?: return@forEach
 
-			when (val outcome = projectCreateResolver.create(projectDef, serverSyncData.syncId)) {
+			when (outcome) {
 				is ServerCreateOutcome.Created -> {
 					if (outcome.reminted) {
 						onLog(
@@ -699,12 +696,9 @@ class ClientAccountSynchronizer(
 		commonProjectsNotLocallyRenamed.forEach { (serverProject, localProject) ->
 			val targetName = ProjectsRepository.toLocalSafeName(serverProject.name)
 			if (targetName != localProject.name) {
-				if (projectsRepository.isProjectInUse(localProject)) {
-					onLog(projectInUseLog(localProject))
-					return@forEach
-				}
-
-				val result = projectsRepository.renameProject(localProject, targetName)
+				val result = unlessInUse(localProject, onLog) {
+					projectsRepository.renameProject(localProject, targetName)
+				} ?: return@forEach
 				if (isSuccess(result)) {
 					onLog(
 						syncAccLogI(
@@ -728,8 +722,25 @@ class ClientAccountSynchronizer(
 		}
 	}
 
-	private suspend fun projectInUseLog(projectDef: ProjectDef): SyncLogMessage =
-		syncAccLogW(strRes.get(Res.string.sync_log_account_project_in_use, projectDef.name))
+	/**
+	 * Runs [change], or logs and returns null when [projectDef] is in use. A project opened after the
+	 * check makes [ProjectsRepository.setProjectId] throw, and is skipped the same way.
+	 */
+	private suspend inline fun <T : Any> unlessInUse(projectDef: ProjectDef, onLog: OnSyncLog, change: () -> T): T? {
+		val result = if (projectsRepository.isProjectInUse(projectDef)) {
+			null
+		} else {
+			try {
+				change()
+			} catch (_: ProjectInUseException) {
+				null
+			}
+		}
+		if (result == null) {
+			onLog(syncAccLogW(strRes.get(Res.string.sync_log_account_project_in_use, projectDef.name)))
+		}
+		return result
+	}
 
 	fun deleteProject(project: SyncedProjectDefinition) {
 		updateSyncData { syncData ->

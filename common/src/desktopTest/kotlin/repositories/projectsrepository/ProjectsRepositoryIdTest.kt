@@ -183,6 +183,25 @@ class ProjectsRepositoryIdTest : ProjectsRepositoryBaseTest() {
 	}
 
 	@Test
+	fun `A copied project folder in use keeps the shared id until it is closed`() = scope.runTest {
+		createProject(ffs, PROJECT_2_NAME)
+		val original = getProjectDef(PROJECT_2_NAME)
+		val copy = copyProject(original, "Test Project 2 copy")
+		ffs.write(original.path.toOkioPath() / SyncJournalDatasource.SYNC_FILE_NAME) { writeUtf8("{}") }
+		val repo = projectsRepository()
+		val projectScope = createProjectScope(copy)
+
+		try {
+			repo.resolveDuplicateProjectIds()
+		} finally {
+			projectScope.close()
+		}
+
+		assertEquals(project2Id, repo.getProjectId(original))
+		assertEquals(project2Id, repo.getProjectId(copy))
+	}
+
+	@Test
 	fun `Distinct ids are left alone`() = scope.runTest {
 		createProject(ffs, PROJECT_1_NAME)
 		createProject(ffs, PROJECT_2_NAME)

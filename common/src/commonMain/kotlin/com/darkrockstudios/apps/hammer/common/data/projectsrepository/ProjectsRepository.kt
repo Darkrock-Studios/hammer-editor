@@ -124,7 +124,8 @@ class ProjectsRepository(
 	 * (a journal flagged for verification keeps its conflict baselines, see [clearProjectSyncBaseline]).
 	 *
 	 * Throws [ProjectInUseException] for a project in use (see [isProjectInUse]): its open scope
-	 * holds state under the old id. Callers check first and skip such a project.
+	 * holds state under the old id. Callers check first and skip such a project; one opened after
+	 * the check still throws.
 	 */
 	suspend fun setProjectId(projectDef: ProjectDef, projectId: ProjectId) {
 		val oldId = getProjectId(projectDef)
@@ -180,11 +181,17 @@ class ProjectsRepository(
 			)
 			holders.filter { it != keeper }.forEach { duplicate ->
 				val newId = ProjectId.randomUUID()
+				try {
+					setProjectId(duplicate, newId)
+				} catch (_: ProjectInUseException) {
+					// Left for the next start, which runs before anything can open it.
+					Napier.w("Project '${duplicate.name}' shares id ${projectId.id} with '${keeper.name}' but is in use")
+					return@forEach
+				}
 				Napier.w(
 					"Project '${duplicate.name}' shared id ${projectId.id} with '${keeper.name}', " +
 						"assigned ${newId.id}"
 				)
-				setProjectId(duplicate, newId)
 			}
 		}
 	}
