@@ -41,6 +41,12 @@
 				<div class="account-info">
 					<p><strong>{{msg.dashboard_account_email}}:</strong> {{email}}</p>
 					<p><strong>{{msg.dashboard_account_created}}:</strong> {{accountCreated}}</p>
+					<p>
+						<a href="/dashboard/security" class="account-security-link">
+							<i class="fa-solid fa-shield-halved"></i>
+							{{msg.dashboard_account_security_link}}
+						</a>
+					</p>
 					<div class="pen-name-section" id="pen-name-section"
 						 data-has-penname="{{#penName}}true{{/penName}}{{^penName}}false{{/penName}}"
 						 data-label="{{msg.penname_label}}">

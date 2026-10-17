@@ -92,6 +92,7 @@ tomlkt = "0.5.0"
 
 krypto = "4.0.10"
 owasp_html_sanitizer = "20260924.2"
+zxing = "3.5.4"
 
 sqldelight = "2.4.0"
 postgresql_jdbc = "42.7.13"
@@ -308,6 +309,7 @@ lifecycle_process = { module = "androidx.lifecycle:lifecycle-process", version.r
 korlibs_krypto = { group = "com.soywiz.korlibs.krypto", name = "krypto", version.ref = "krypto" }
 korlibs_korio = { group = "com.soywiz.korlibs.korio", name = "korio", version.ref = "krypto" }
 
+zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxing" }
 owasp-html-sanitizer = { group = "com.googlecode.owasp-java-html-sanitizer", name = "owasp-java-html-sanitizer", version.ref = "owasp_html_sanitizer" }
 
 sqldelight_driver = { group = "app.cash.sqldelight", name = "sqlite-driver", version.ref = "sqldelight" }

@@ -1227,3 +1227,16 @@
 		padding: 0.875rem;
 	}
 }
+
+.account-security-link {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	font-family: 'Kingthings Typewriter', monospace;
+	color: var(--primary);
+	text-decoration: none;
+}
+
+.account-security-link:hover {
+	color: var(--accent);
+}

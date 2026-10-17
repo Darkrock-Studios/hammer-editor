@@ -132,6 +132,7 @@ dependencies {
 	implementation(libs.resources)
 	implementation(libs.markdown)
 	implementation(libs.owasp.html.sanitizer)
+	implementation(libs.zxing.core)
 
 //	implementation(libs.cryptography.core)
 //	implementation(libs.cryptography.provider.jdk)

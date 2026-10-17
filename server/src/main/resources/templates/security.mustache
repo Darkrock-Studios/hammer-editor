@@ -1,0 +1,31 @@
+{{> header}}
+
+<main class="page">
+	<div class="page__container">
+		<div class="page-header">
+			<div class="page-header__content">
+				<h1 class="page-header__title">{{msg.security_page_title}}</h1>
+				<p class="page-header__subtitle">{{msg.security_subtitle}}</p>
+			</div>
+			<div class="page-header__actions">
+				<a href="/dashboard" class="security-back-link">
+					<i class="fa-solid fa-arrow-left"></i>
+					{{msg.security_back_to_dashboard}}
+				</a>
+			</div>
+		</div>
+
+		<section class="paper-section">
+			<div class="section-header">
+				<h2 class="section-header__title">{{msg.security_factors_title}}</h2>
+			</div>
+			<p class="section-description">{{msg.security_factors_description}}</p>
+
+			<div id="security-factors">
+				{{> partials/security-factors}}
+			</div>
+		</section>
+	</div>
+</main>
+
+{{> footer}}

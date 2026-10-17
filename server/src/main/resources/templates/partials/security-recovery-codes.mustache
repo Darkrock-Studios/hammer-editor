@@ -1,0 +1,22 @@
+<div class="recovery-codes">
+	<p class="recovery-codes__warning">
+		<i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+		{{msg.security_recovery_once}}
+	</p>
+	<ol class="recovery-codes__list">
+		{{#freshCodes}}
+			<li class="recovery-codes__code">{{.}}</li>
+		{{/freshCodes}}
+	</ol>
+	<div class="recovery-codes__actions">
+		<button type="button" class="btn" data-copied="{{msg.security_recovery_copied}}"
+				onclick="copyRecoveryCodes(this)">
+			<i class="fa-regular fa-copy"></i>
+			{{msg.security_recovery_copy}}
+		</button>
+		<a class="btn" href="{{recoveryDownload}}" download="hammer-recovery-codes.txt">
+			<i class="fa-solid fa-download"></i>
+			{{msg.security_recovery_download}}
+		</a>
+	</div>
+</div>

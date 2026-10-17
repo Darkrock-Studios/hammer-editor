@@ -1,0 +1,84 @@
+<ul class="factor-list">
+	<li class="factor" id="factor-totp">
+		<div class="factor__icon" aria-hidden="true"><i class="fa-solid fa-mobile-screen-button"></i></div>
+		<div class="factor__body">
+			<div class="factor__heading">
+				<h3 class="factor__name">{{msg.security_totp_name}}</h3>
+				{{#totpEnabled}}
+					<span class="factor__status factor__status--on">{{msg.security_status_on}}</span>
+				{{/totpEnabled}}
+				{{^totpEnabled}}
+					<span class="factor__status">{{msg.security_status_off}}</span>
+				{{/totpEnabled}}
+			</div>
+			<p class="factor__description">{{msg.security_totp_description}}</p>
+
+			{{^totpEnabled}}
+				<div id="factor-totp-panel" class="factor__panel">
+					<button type="button"
+							class="btn btn--primary"
+							hx-post="/dashboard/security/totp/begin"
+							hx-target="#factor-totp-panel"
+							hx-swap="innerHTML">
+						{{msg.security_totp_setup_button}}
+					</button>
+				</div>
+			{{/totpEnabled}}
+			{{#totpEnabled}}
+				<details class="factor__action">
+					<summary class="factor__action-toggle">{{msg.security_totp_disable_button}}</summary>
+					<form class="factor__form"
+						  hx-post="/dashboard/security/totp/disable"
+						  hx-target="#security-factors"
+						  hx-swap="innerHTML">
+						<p class="factor__note">{{msg.security_totp_disable_note}}</p>
+						<div class="form-field">
+							<label for="disable-password" class="form-field__label">{{msg.security_password_label}}</label>
+							<input type="password" id="disable-password" name="password" class="form-input"
+								   autocomplete="current-password" required>
+						</div>
+						<div class="form-field">
+							<label for="disable-code" class="form-field__label">{{msg.security_code_label}}</label>
+							<input type="text" id="disable-code" name="code" class="form-input form-input--code"
+								   autocomplete="one-time-code" autocapitalize="off" spellcheck="false" required>
+						</div>
+						<button type="submit" class="btn btn--danger">{{msg.security_totp_disable_button}}</button>
+					</form>
+				</details>
+			{{/totpEnabled}}
+		</div>
+	</li>
+
+	{{#totpEnabled}}
+		<li class="factor" id="factor-recovery">
+			<div class="factor__icon" aria-hidden="true"><i class="fa-solid fa-key"></i></div>
+			<div class="factor__body">
+				<div class="factor__heading">
+					<h3 class="factor__name">{{msg.security_recovery_name}}</h3>
+					<span class="factor__status factor__status--count">{{recoveryRemaining}}</span>
+				</div>
+				<p class="factor__description">{{msg.security_recovery_description}}</p>
+
+				{{#hasFreshCodes}}
+					{{> security-recovery-codes}}
+				{{/hasFreshCodes}}
+
+				<details class="factor__action">
+					<summary class="factor__action-toggle">{{msg.security_recovery_regenerate_button}}</summary>
+					<form class="factor__form"
+						  hx-post="/dashboard/security/recovery-codes/regenerate"
+						  hx-target="#security-factors"
+						  hx-swap="innerHTML">
+						<p class="factor__note">{{msg.security_recovery_regenerate_note}}</p>
+						<div class="form-field">
+							<label for="regenerate-password" class="form-field__label">{{msg.security_password_label}}</label>
+							<input type="password" id="regenerate-password" name="password" class="form-input"
+								   autocomplete="current-password" required>
+						</div>
+						<button type="submit" class="btn">{{msg.security_recovery_regenerate_button}}</button>
+					</form>
+				</details>
+			</div>
+		</li>
+	{{/totpEnabled}}
+</ul>

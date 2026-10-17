@@ -96,6 +96,8 @@ class MfaRepository(
 
 	suspend fun hasMfa(userId: Long): Boolean = totpDao.get(userId)?.confirmed == true
 
+	suspend fun unusedRecoveryCodes(userId: Long): Long = recoveryCodeDao.countUnused(userId)
+
 	/** When the account is refusing codes, the instant that ends; null otherwise. */
 	suspend fun lockedUntil(userId: Long): Instant? =
 		totpDao.get(userId)?.takeIf { it.confirmed }?.locked_until?.takeIf { it > clock.now() }
@@ -208,7 +210,7 @@ class MfaRepository(
 		val FAILURE_WINDOW = 15.minutes
 		val LOCKOUT = 15.minutes
 		private const val CHALLENGE_TOKEN_BYTES = 32
-		private const val RECOVERY_CODE_COUNT = 8
+		const val RECOVERY_CODE_COUNT = 8
 		private const val RECOVERY_CODE_LENGTH = 10
 		private const val RECOVERY_ALPHABET = "abcdefghijklmnopqrstuvwxyz234567"
 	}

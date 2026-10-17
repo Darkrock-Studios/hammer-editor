@@ -145,6 +145,7 @@ fun Route.frontend() {
 		securityRepository,
 	)
 	passwordResetRoutes(passwordResetRepository, requestPasswordReset)
+	securityPage(accountsRepository, mfaRepository, clock)
 	dashboardPage(
 		projectsRepository,
 		accountsRepository,
