@@ -232,13 +232,7 @@ open class ProjectBackupService(
 				)
 
 				swapIntoPlace(archiveRoot(extracted), targetOkioPath, displaced)
-				// Under the backup's own id until adoptIdentity settles it.
-				val restoredDef = ProjectDef(
-					id = projectMetadataDatasource.loadProjectId(targetDir),
-					name = backupDef.projectName,
-					path = targetDir,
-				)
-				adoptIdentity(restoredDef, liveId, liveSynced)
+				adoptIdentity(backupDef.projectName, targetDir, liveId, liveSynced)
 				BackupRestoreResult.Restored
 			} catch (e: Exception) {
 				Napier.e("Failed to restore backup: ${backupDef.path.name}", e)
@@ -265,7 +259,14 @@ open class ProjectBackupService(
 	 * keeps an id already present.
 	 */
 	@Suppress("TooGenericExceptionCaught")
-	private suspend fun adoptIdentity(restoredDef: ProjectDef, liveId: ProjectId?, liveSynced: Boolean) {
+	private suspend fun adoptIdentity(name: String, projectDir: HPath, liveId: ProjectId?, liveSynced: Boolean) {
+		// Under the backup's own id until setProjectId settles it.
+		val restoredDef = try {
+			ProjectDef(projectMetadataDatasource.loadProjectId(projectDir), name, projectDir)
+		} catch (e: Exception) {
+			Napier.e("Restored '$name' but failed to read its project id", e)
+			return
+		}
 		try {
 			dataMigrator.migrateProject(restoredDef)
 		} catch (e: Exception) {

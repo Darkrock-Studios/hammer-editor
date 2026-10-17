@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.projectbackup
 
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
@@ -25,6 +26,7 @@ import okio.FileSystem
 import okio.IOException
 import okio.Path
 import okio.Path.Companion.toPath
+import okio.Sink
 import okio.ForwardingFileSystem
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.Test
@@ -587,6 +589,48 @@ class ProjectBackupServiceTest {
 		val backupDef = service.createBackup(projectDef)
 		assertNotNull(backupDef)
 		fileSystem.write(projectDir / "settings.toml") { writeUtf8("changed") }
+
+		assertEquals(
+			BackupRestoreResult.Restored,
+			service.restoreBackup(backupDef, projectDef.path),
+			"the content is already in place",
+		)
+		assertEquals("original", fileSystem.read(projectDir / "settings.toml") { readUtf8() })
+	}
+
+	@Test
+	fun `restoreBackup succeeds when the restored project's id cannot be read`() = runTest {
+		every { clock.now() } returns Instant.parse("2025-12-28T16:29:00Z")
+		every { projectsRepository.getProjectsDirectory() } returns "/projects".toPath().toHPath()
+		every { projectsRepository.getProjectDirectory("Test Project") } returns
+			"/projects/Test Project".toPath().toHPath()
+		every { globalSettingsStore.globalSettings } returns
+			GlobalSettings(projectsDirectory = "/projects", maxBackups = 5)
+
+		val projectDir = "/projects/Test Project".toPath()
+		fileSystem.createDirectories(projectDir)
+		fileSystem.write(projectDir / "settings.toml") { writeUtf8("original") }
+
+		val projectDef = ProjectDef(testProjectId("Test Project"), "Test Project", projectDir.toHPath())
+		val backupDef = realService().createBackup(projectDef)
+		assertNotNull(backupDef)
+		fileSystem.write(projectDir / "settings.toml") { writeUtf8("changed") }
+
+		// The backup has no project.toml, so reading its id must write one.
+		val unwritableMetadata = object : ForwardingFileSystem(fileSystem) {
+			override fun sink(file: Path, mustCreate: Boolean): Sink {
+				if (file.name == ProjectMetadata.FILENAME) throw IOException("disk full")
+				return super.sink(file, mustCreate)
+			}
+		}
+		val service = ProjectBackupService(
+			fileSystem,
+			projectsRepository,
+			globalSettingsStore,
+			clock,
+			dataMigrator,
+			ProjectMetadataDatasource(unwritableMetadata, createTomlSerializer()),
+		)
 
 		assertEquals(
 			BackupRestoreResult.Restored,

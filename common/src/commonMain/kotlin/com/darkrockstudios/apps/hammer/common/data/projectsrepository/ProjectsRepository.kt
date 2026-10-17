@@ -127,9 +127,8 @@ class ProjectsRepository(
 	 * holds state under the old id. Callers check first and skip such a project; one opened after
 	 * the check still throws.
 	 *
-	 * The old id is read from disk rather than taken from [projectDef], so a def built before its
-	 * files changed (a restore swaps them in) cannot skip the write. Returns [projectDef] under
-	 * [projectId].
+	 * The old id is read from disk rather than taken from [projectDef], so a stale def cannot skip
+	 * the write. Returns [projectDef] under [projectId].
 	 */
 	suspend fun setProjectId(projectDef: ProjectDef, projectId: ProjectId): ProjectDef {
 		val updated = projectDef.copy(id = projectId)
@@ -270,8 +269,8 @@ class ProjectsRepository(
 	/**
 	 * A directory is considered a project only if it contains a [ProjectMetadata.FILENAME]
 	 * file and its (decoded) name is a valid project name. Each id is read from that file, minted
-	 * if it has none (see [ProjectMetadataDatasource.loadProjectId]). A project whose file cannot be
-	 * read, such as one deleted while the list is built, is left out.
+	 * if it has none (see [ProjectMetadataDatasource.loadProjectId]). A project deleted while the list
+	 * is built is left out.
 	 */
 	fun getProjects(projectsDir: HPath = getProjectsDirectory()): List<ProjectDef> =
 		listCandidateDirectories(projectsDir.toOkioPath())
