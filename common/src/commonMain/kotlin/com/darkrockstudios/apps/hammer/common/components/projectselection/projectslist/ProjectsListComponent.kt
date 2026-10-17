@@ -670,7 +670,8 @@ class ProjectsListComponent(
 	}
 
 	override fun cancelProjectsSync() {
-		syncProjectsJob?.cancel(CancellationException("User canceled sync"))
+		val canceledJob = syncProjectsJob
+		canceledJob?.cancel(CancellationException("User canceled sync"))
 		syncProjectsJob = null
 
 		syncScope?.cancel(CancellationException("User canceled sync"))
@@ -697,6 +698,10 @@ class ProjectsListComponent(
 					)
 				}
 			}
+
+			// The listed defs' ids are stale if account sync changed any before it stopped.
+			canceledJob?.join()
+			loadProjectList()
 		}
 	}
 

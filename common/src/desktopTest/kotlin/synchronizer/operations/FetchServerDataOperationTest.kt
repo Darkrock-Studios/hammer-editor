@@ -12,7 +12,6 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
-import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.FetchServerDataOperation
@@ -31,7 +30,6 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.impl.annotations.MockK
 import io.mockk.mockk
-import io.mockk.verify
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -50,9 +48,6 @@ import kotlin.time.Instant
 class FetchServerDataOperationTest : BaseTest() {
 
 	private lateinit var mockSynchronizers: MockSynchronizers
-
-	@MockK(relaxed = true)
-	private lateinit var projectMetadataDatasource: ProjectMetadataDatasource
 
 	@MockK(relaxed = true)
 	private lateinit var globalSettingsStore: GlobalSettingsStore
@@ -125,7 +120,6 @@ class FetchServerDataOperationTest : BaseTest() {
 				}
 			)
 		}
-		coEvery { projectMetadataDatasource.loadMetadata(any()) } returns metadata
 
 		val onProgress = mockk<suspend (Float, SyncLogMessage?) -> Unit>(relaxed = true)
 		val onLog = mockk<OnSyncLog>(relaxed = true)
@@ -173,7 +167,6 @@ class FetchServerDataOperationTest : BaseTest() {
 				}
 			)
 		}
-		coEvery { projectMetadataDatasource.loadMetadata(any()) } returns metadata
 		coEvery {
 			serverProjectApi.beginProjectSync(
 				any(),
@@ -208,7 +201,7 @@ class FetchServerDataOperationTest : BaseTest() {
 	fun `A generic failure does not recreate the project`() = runTest {
 		val op = createOperation(getProjectDef(PROJECT_2_NAME))
 
-		stubSettingsAndMetadata()
+		stubSettings()
 		coEvery { serverProjectApi.beginProjectSync(any(), any(), any(), any()) } returns
 			Result.failure(Exception("Test Failure"))
 
@@ -225,7 +218,7 @@ class FetchServerDataOperationTest : BaseTest() {
 		val op = createOperation(projectDef)
 		val clearedJournal = projectData.copy(lastSync = Instant.DISTANT_PAST, syncedHashes = emptyMap())
 
-		stubSettingsAndMetadata()
+		stubSettings()
 		coEvery { serverProjectApi.beginProjectSync(any(), any(), any(), any()) } returnsMany
 			listOf(Result.failure(gone()), Result.success(beganResponse))
 		coEvery { projectCreateResolver.createInOwnSession(projectDef) } returns
@@ -248,7 +241,7 @@ class FetchServerDataOperationTest : BaseTest() {
 		val op = createOperation(projectDef)
 		val logs = mutableListOf<SyncLogMessage>()
 
-		stubSettingsAndMetadata()
+		stubSettings()
 		coEvery { serverProjectApi.beginProjectSync(any(), any(), any(), any()) } returns Result.failure(gone())
 		coEvery { projectCreateResolver.createInOwnSession(projectDef) } returns ServerCreateOutcome.NeedsAccountSync
 
@@ -266,7 +259,7 @@ class FetchServerDataOperationTest : BaseTest() {
 		val projectDef = getProjectDef(PROJECT_2_NAME)
 		val op = createOperation(projectDef)
 
-		stubSettingsAndMetadata()
+		stubSettings()
 		coEvery { serverProjectApi.beginProjectSync(any(), any(), any(), any()) } returns Result.failure(gone())
 		coEvery { projectCreateResolver.createInOwnSession(projectDef) } returns ServerCreateOutcome.DeletedElsewhere
 		val logs = mutableListOf<SyncLogMessage>()
@@ -285,7 +278,7 @@ class FetchServerDataOperationTest : BaseTest() {
 		val projectDef = getProjectDef(PROJECT_2_NAME)
 		val op = createOperation(projectDef)
 
-		stubSettingsAndMetadata()
+		stubSettings()
 		coEvery { serverProjectApi.beginProjectSync(any(), any(), any(), any()) } returns Result.failure(gone())
 		coEvery { projectCreateResolver.createInOwnSession(projectDef) } returns
 			ServerCreateOutcome.Created(alreadyExisted = false, reminted = false)
@@ -305,7 +298,7 @@ class FetchServerDataOperationTest : BaseTest() {
 		val op = createOperation(projectDef, ProjectCreateResolver(serverProjectsApi, projectsRepository))
 		val logs = mutableListOf<SyncLogMessage>()
 
-		stubSettingsAndMetadata()
+		stubSettings()
 		coEvery { serverProjectApi.beginProjectSync(any(), any(), any(), any()) } returnsMany
 			listOf(Result.failure(gone()), Result.success(beganResponse))
 		coEvery { serverProjectsApi.createProject(projectDef.name, projId, SYNC_ID) } returns
@@ -328,7 +321,7 @@ class FetchServerDataOperationTest : BaseTest() {
 		val serverId = ProjectId("server-id")
 		val logs = mutableListOf<SyncLogMessage>()
 
-		stubSettingsAndMetadata()
+		stubSettings()
 		coEvery { serverProjectApi.beginProjectSync(any(), any(), any(), any()) } returns Result.failure(gone())
 		coEvery { serverProjectsApi.createProject(projectDef.name, projId, SYNC_ID) } returns
 			Result.success(CreateProjectResponse(serverId, alreadyExisted = true))
@@ -351,7 +344,7 @@ class FetchServerDataOperationTest : BaseTest() {
 		val op = createOperation(projectDef, ProjectCreateResolver(serverProjectsApi, projectsRepository))
 		val logs = mutableListOf<SyncLogMessage>()
 
-		stubSettingsAndMetadata()
+		stubSettings()
 		coEvery { serverProjectApi.beginProjectSync(any(), any(), any(), any()) } returns Result.failure(gone())
 		coEvery { serverProjectsApi.createProject(projectDef.name, projId, SYNC_ID) } returns
 			Result.failure(conflict(ApiErrorCode.PROJECT_ID_TAKEN))
@@ -376,7 +369,7 @@ class FetchServerDataOperationTest : BaseTest() {
 		val heldId = ProjectId("held-id")
 		val logs = mutableListOf<SyncLogMessage>()
 
-		stubSettingsAndMetadata()
+		stubSettings()
 		every { projectsRepository.findProject(heldId) } returns getProjectDef(PROJECT_1_NAME)
 		coEvery { serverProjectApi.beginProjectSync(any(), any(), any(), any()) } returns Result.failure(gone())
 		coEvery { serverProjectsApi.createProject(projectDef.name, projId, SYNC_ID) } returns
@@ -400,7 +393,7 @@ class FetchServerDataOperationTest : BaseTest() {
 		val op = createOperation(projectDef, ProjectCreateResolver(serverProjectsApi, projectsRepository))
 		val logs = mutableListOf<SyncLogMessage>()
 
-		stubSettingsAndMetadata()
+		stubSettings()
 		coEvery { serverProjectApi.beginProjectSync(any(), any(), any(), any()) } returns Result.failure(gone())
 		coEvery { serverProjectsApi.createProject(projectDef.name, projId, SYNC_ID) } returns
 			Result.failure(Exception("Server error"))
@@ -433,7 +426,7 @@ class FetchServerDataOperationTest : BaseTest() {
 		error = HttpResponseError(error = "Project Not Found", displayMessage = "Project does not exist"),
 	)
 
-	private suspend fun stubSettingsAndMetadata() {
+	private suspend fun stubSettings() {
 		coEvery { globalSettingsStore.serverSettingsUpdates } returns sharedFlow {
 			emit(
 				mockk<ServerSettings>().apply {
@@ -441,7 +434,6 @@ class FetchServerDataOperationTest : BaseTest() {
 				}
 			)
 		}
-		coEvery { projectMetadataDatasource.loadMetadata(any()) } returns metadata
 	}
 
 	private suspend fun execute(

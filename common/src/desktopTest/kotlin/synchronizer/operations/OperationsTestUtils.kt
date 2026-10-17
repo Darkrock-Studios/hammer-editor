@@ -4,23 +4,11 @@ import PROJECT_2_NAME
 import com.darkrockstudios.apps.hammer.base.http.ClientEntityState
 import com.darkrockstudios.apps.hammer.base.http.EntityHash
 import com.darkrockstudios.apps.hammer.base.http.ProjectSynchronizationBegan
-import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.Info
-import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
-import com.darkrockstudios.apps.hammer.common.data.migrator.PROJECT_DATA_VERSION
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.CollateIdsState.CollatedIds
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityOriginalState
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectSynchronizationData
 import testProjectId
 import kotlin.time.Instant
-
-val metadata = ProjectMetadata(
-	info = Info(
-		created = Instant.fromEpochSeconds(123456),
-		lastAccessed = null,
-		dataVersion = PROJECT_DATA_VERSION,
-		projectId = testProjectId(PROJECT_2_NAME)
-	)
-)
 
 val projectData = ProjectSynchronizationData(
 	lastId = 11,
