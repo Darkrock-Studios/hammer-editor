@@ -9,6 +9,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectInUseException
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectContentHasher
@@ -1161,6 +1162,34 @@ class ClientAccountSynchronizerTest {
 		verify(exactly = 0) { projectsRepository.createProject(any(), any(), any()) }
 		val logged = strRes.calls.single { it.first == Res.string.sync_log_account_project_in_use }
 		assertEquals(listOf<Any>("MyNovel"), logged.second)
+	}
+
+	@Test
+	fun `syncProjects skips a project opened while its id was being settled and syncs the rest`() = runTest {
+		writeSyncData(emptySyncData())
+		val opened = projectDef("Opened")
+		val other = projectDef("Other")
+		val openedId = ProjectId.randomUUID()
+		val otherId = ProjectId.randomUUID()
+		val serverId = ProjectId.randomUUID()
+
+		every { projectsRepository.getProjects(any()) } returns listOf(opened, other)
+		every { projectsRepository.getProjectId(opened) } returns openedId
+		every { projectsRepository.getProjectId(other) } returns otherId
+		coEvery { serverProjectsApi.createProject("Opened", openedId, "sync-1") } returns
+			Result.success(CreateProjectResponse(serverId, alreadyExisted = true))
+		coEvery { serverProjectsApi.createProject("Other", otherId, "sync-1") } returns
+			Result.success(CreateProjectResponse(otherId, alreadyExisted = false))
+		// Opened after the in-use check, so the repository's own guard refuses the adopt.
+		coEvery { projectsRepository.setProjectId(opened, serverId) } throws ProjectInUseException("Opened")
+
+		val strRes = RecordingStrRes()
+		val result = createSynchronizer(strRes).syncProjects(onLog = {}, onUnauthorized = {})
+
+		assertTrue(result)
+		val logged = strRes.calls.single { it.first == Res.string.sync_log_account_project_in_use }
+		assertEquals(listOf<Any>("Opened"), logged.second)
+		coVerify { serverProjectsApi.createProject("Other", otherId, "sync-1") }
 	}
 
 	@Test

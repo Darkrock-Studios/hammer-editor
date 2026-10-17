@@ -16,7 +16,6 @@ import com.darkrockstudios.apps.hammer.sync_log_account_project_adopt_conflict
 import com.darkrockstudios.apps.hammer.sync_log_account_project_create_server_failure
 import com.darkrockstudios.apps.hammer.sync_log_account_project_create_server_success
 import com.darkrockstudios.apps.hammer.sync_log_account_project_deleted_elsewhere
-import com.darkrockstudios.apps.hammer.sync_log_account_project_id_reminted
 import com.darkrockstudios.apps.hammer.sync_log_account_project_needs_account_sync
 import com.darkrockstudios.apps.hammer.sync_log_server_data_loaded
 import io.ktor.http.HttpStatusCode
@@ -100,9 +99,6 @@ internal suspend fun logCreateOutcome(
 	onLog: OnSyncLog,
 ): Throwable? = when (outcome) {
 	is ServerCreateOutcome.Created -> {
-		if (outcome.reminted) {
-			onLog(syncLogW(strRes.get(Res.string.sync_log_account_project_id_reminted, projectDef.name), projectDef))
-		}
 		if (!outcome.alreadyExisted) {
 			onLog(
 				syncLogI(
