@@ -156,6 +156,8 @@
 	<string name="sync_log_account_project_deleted_elsewhere">Project %1$s was deleted on another device, so it will not be created on the server</string>
 	<string name="sync_log_account_project_adopt_conflict">Project %1$s was not created on the server: the server project of that name is the one %2$s syncs with. It will be retried on the next sync</string>
 	<string name="sync_log_account_project_id_reminted">Project %1$s: its ID belongs to another account, assigned it a new one</string>
+	<string name="sync_log_account_project_needs_account_sync">Project %1$s has to be synced from the project list. Close it and sync there</string>
+	<string name="sync_log_account_project_in_use">Skipped project %1$s: it is in use. Close it and sync again</string>
 	<string name="sync_log_account_project_create_client">Created local project: %1$s</string>
 	<string name="sync_log_account_project_create_local_failure">Failed to create local project from server: %1$s</string>
 	<string name="sync_log_account_project_adopt_folder">Recovered local folder for server project: %1$s</string>

@@ -38,6 +38,7 @@ import com.darkrockstudios.apps.hammer.sync_log_account_project_create_server_fa
 import com.darkrockstudios.apps.hammer.sync_log_account_project_create_server_success
 import com.darkrockstudios.apps.hammer.sync_log_account_project_deleted_elsewhere
 import com.darkrockstudios.apps.hammer.sync_log_account_project_id_reminted
+import com.darkrockstudios.apps.hammer.sync_log_account_project_in_use
 import org.jetbrains.compose.resources.StringResource
 import io.ktor.http.*
 import io.mockk.*
@@ -1112,5 +1113,94 @@ class ClientAccountSynchronizerTest {
 		coVerify { projectsRepository.createProject(safeName, any(), any()) }
 		coVerify(exactly = 0) { projectsRepository.createProject(mangledName, any(), any()) }
 		coVerify { projectsRepository.createProject(safeName, false, serverId) }
+	}
+
+	@Test
+	fun `syncProjects does not create a project in use on the server`() = runTest {
+		writeSyncData(emptySyncData())
+		val def = projectDef("LocalNovel")
+		val localId = ProjectId.randomUUID()
+
+		every { projectsRepository.getProjects(any()) } returns listOf(def)
+		every { projectsRepository.getProjectId(def) } returns localId
+		every { projectsRepository.isProjectInUse(def) } returns true
+
+		val strRes = RecordingStrRes()
+		val result = createSynchronizer(strRes).syncProjects(onLog = {}, onUnauthorized = {})
+
+		assertTrue(result)
+		// The server may answer with another id, which a project in use must not take.
+		coVerify(exactly = 0) { serverProjectsApi.createProject(any(), any(), any()) }
+		coVerify(exactly = 0) { projectsRepository.setProjectId(any(), any()) }
+		val logged = strRes.calls.single { it.first == Res.string.sync_log_account_project_in_use }
+		assertEquals(listOf<Any>("LocalNovel"), logged.second)
+	}
+
+	@Test
+	fun `syncProjects does not adopt a same-named server project for a project in use`() = runTest {
+		writeSyncData(emptySyncData())
+		val serverId = ProjectId.randomUUID()
+		val localId = ProjectId.randomUUID()
+		val def = projectDef("MyNovel")
+
+		coEvery { serverProjectsApi.beginProjectsSync() } returns Result.success(
+			emptyServerResponse().copy(projects = setOf(ApiProjectDefinition("MyNovel", serverId)))
+		)
+		every { projectsRepository.getProjects(any()) } returns listOf(def)
+		every { projectsRepository.getProjectId(def) } returns localId
+		every { projectsRepository.findProject("MyNovel") } returns def
+		every { projectsRepository.isProjectInUse(def) } returns true
+
+		val strRes = RecordingStrRes()
+		val result = createSynchronizer(strRes).syncProjects(onLog = {}, onUnauthorized = {})
+
+		assertTrue(result)
+		coVerify(exactly = 0) { projectsRepository.setProjectId(any(), any()) }
+		// Still claimed by name, so it is not uploaded as a duplicate either.
+		coVerify(exactly = 0) { serverProjectsApi.createProject(any(), any(), any()) }
+		verify(exactly = 0) { projectsRepository.createProject(any(), any(), any()) }
+		val logged = strRes.calls.single { it.first == Res.string.sync_log_account_project_in_use }
+		assertEquals(listOf<Any>("MyNovel"), logged.second)
+	}
+
+	@Test
+	fun `syncProjects renames a local project the server renamed`() = runTest {
+		writeSyncData(emptySyncData())
+		val id = ProjectId.randomUUID()
+		val def = projectDef("OldName")
+
+		coEvery { serverProjectsApi.beginProjectsSync() } returns Result.success(
+			emptyServerResponse().copy(projects = setOf(ApiProjectDefinition("NewName", id)))
+		)
+		every { projectsRepository.getProjects(any()) } returns listOf(def)
+		every { projectsRepository.getProjectId(def) } returns id
+		every { projectsRepository.renameProject(def, "NewName") } returns CResult.success(projectDef("NewName"))
+
+		val result = createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
+
+		assertTrue(result)
+		verify { projectsRepository.renameProject(def, "NewName") }
+	}
+
+	@Test
+	fun `syncProjects does not rename a project in use that the server renamed`() = runTest {
+		writeSyncData(emptySyncData())
+		val id = ProjectId.randomUUID()
+		val def = projectDef("OldName")
+
+		coEvery { serverProjectsApi.beginProjectsSync() } returns Result.success(
+			emptyServerResponse().copy(projects = setOf(ApiProjectDefinition("NewName", id)))
+		)
+		every { projectsRepository.getProjects(any()) } returns listOf(def)
+		every { projectsRepository.getProjectId(def) } returns id
+		every { projectsRepository.isProjectInUse(def) } returns true
+
+		val strRes = RecordingStrRes()
+		val result = createSynchronizer(strRes).syncProjects(onLog = {}, onUnauthorized = {})
+
+		assertTrue(result)
+		verify(exactly = 0) { projectsRepository.renameProject(any(), any()) }
+		val logged = strRes.calls.single { it.first == Res.string.sync_log_account_project_in_use }
+		assertEquals(listOf<Any>("OldName"), logged.second)
 	}
 }

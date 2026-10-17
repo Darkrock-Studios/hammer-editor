@@ -515,8 +515,14 @@ class ClientAccountSynchronizer(
 					return@forEach
 				}
 
-				projectsRepository.setProjectId(existingProject, serverProject.uuid)
+				// Claimed even when skipped, so createProjectsOnServer does not upload a duplicate.
 				claimedNames += existingProject.name
+				if (projectsRepository.isProjectInUse(existingProject)) {
+					onLog(projectInUseLog(existingProject))
+					return@forEach
+				}
+
+				projectsRepository.setProjectId(existingProject, serverProject.uuid)
 				onLog(
 					syncAccLogI(
 						strRes.get(
@@ -620,6 +626,11 @@ class ClientAccountSynchronizer(
 
 		localOnly.forEach { projectDef ->
 			val projectName = projectDef.name
+			if (projectsRepository.isProjectInUse(projectDef)) {
+				onLog(projectInUseLog(projectDef))
+				return@forEach
+			}
+
 			when (val outcome = projectCreateResolver.create(projectDef, serverSyncData.syncId)) {
 				is ServerCreateOutcome.Created -> {
 					if (outcome.reminted) {
@@ -654,6 +665,9 @@ class ClientAccountSynchronizer(
 						)
 					)
 				)
+
+				ServerCreateOutcome.NeedsAccountSync ->
+					error("Account sync may change a project's id, so it never needs account sync")
 
 				is ServerCreateOutcome.Failed -> {
 					Napier.e("Failed to create project on server: $projectName", outcome.error)
@@ -698,6 +712,11 @@ class ClientAccountSynchronizer(
 		commonProjectsNotLocallyRenamed.forEach { (serverProject, localProject) ->
 			val targetName = ProjectsRepository.toLocalSafeName(serverProject.name)
 			if (targetName != localProject.name) {
+				if (projectsRepository.isProjectInUse(localProject)) {
+					onLog(projectInUseLog(localProject))
+					return@forEach
+				}
+
 				val result = projectsRepository.renameProject(localProject, targetName)
 				if (isSuccess(result)) {
 					onLog(
@@ -721,6 +740,9 @@ class ClientAccountSynchronizer(
 			}
 		}
 	}
+
+	private suspend fun projectInUseLog(projectDef: ProjectDef): SyncLogMessage =
+		syncAccLogW(strRes.get(Res.string.sync_log_account_project_in_use, projectDef.name))
 
 	fun deleteProject(project: SyncedProjectDefinition) {
 		updateSyncData { syncData ->
