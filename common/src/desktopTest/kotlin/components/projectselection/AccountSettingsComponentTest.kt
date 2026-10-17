@@ -38,6 +38,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
+import listedProjectId
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
 import okio.ForwardingFileSystem
@@ -266,14 +267,14 @@ class AccountSettingsComponentTest : BaseTest() {
 
 		val component = newComponent()
 		advanceUntilIdle()
-		val projectA = projectsRepository.getProjectDefinition(PROJECT_A)
+		val projectA = assertNotNull(projectsRepository.findProject(PROJECT_A))
 		projectsRepository.setProjectId(projectA, ProjectId("id-a"))
 		writeJournal(PROJECT_A)
 
 		component.createAccount()
 		advanceUntilIdle()
 
-		assertEquals(ProjectId("id-a"), projectsRepository.getProjectId(projectA))
+		assertEquals(ProjectId("id-a"), projectsRepository.listedProjectId(projectA))
 		assertEquals(Instant.DISTANT_PAST, journalLastSync(PROJECT_A))
 		verify(exactly = 1) { accountSynchronizer.deleteSyncData() }
 	}
@@ -285,7 +286,7 @@ class AccountSettingsComponentTest : BaseTest() {
 
 		val component = newComponent()
 		advanceUntilIdle()
-		val projectA = projectsRepository.getProjectDefinition(PROJECT_A)
+		val projectA = assertNotNull(projectsRepository.findProject(PROJECT_A))
 		projectsRepository.setProjectId(projectA, ProjectId("keep-me"))
 		writeJournal(PROJECT_A)
 
@@ -294,7 +295,7 @@ class AccountSettingsComponentTest : BaseTest() {
 		component.chooseMerge()
 		advanceUntilIdle()
 
-		assertEquals(ProjectId("keep-me"), projectsRepository.getProjectId(projectA))
+		assertEquals(ProjectId("keep-me"), projectsRepository.listedProjectId(projectA))
 		assertEquals(Instant.DISTANT_PAST, journalLastSync(PROJECT_A))
 		verify(exactly = 1) { accountSynchronizer.deleteSyncData() }
 	}

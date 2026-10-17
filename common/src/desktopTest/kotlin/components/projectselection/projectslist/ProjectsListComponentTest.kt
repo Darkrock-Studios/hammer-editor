@@ -9,7 +9,6 @@ import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.ImportOptions
 import com.darkrockstudios.apps.hammer.common.data.MarkdownSplitStrategy
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.SyncedProjectDefinition
 import com.darkrockstudios.apps.hammer.common.data.account.AccountReauthUseCase
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
@@ -41,6 +40,7 @@ import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -52,6 +52,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.koin.dsl.module
 import org.koin.test.get
+import testProjectId
 import utils.ComponentTest
 import utils.TestStrRes
 import kotlin.test.assertEquals
@@ -93,7 +94,7 @@ class ProjectsListComponentTest : ComponentTest() {
 		}
 	}
 
-	private val projectDefA = ProjectDef("Alpha", HPath("/projects/Alpha", "Alpha", false))
+	private val projectDefA = ProjectDef(testProjectId("Alpha"), "Alpha", HPath("/projects/Alpha", "Alpha", false))
 
 	private val fixedNow = Instant.fromEpochSeconds(1_000_000)
 
@@ -131,7 +132,7 @@ class ProjectsListComponentTest : ComponentTest() {
 			single { metadataDatasource }
 			single { statsReader }
 			single { reauthUseCase }
-			factory { SyncAccountUseCase(get(), get(), get(), get()) }
+			factory { SyncAccountUseCase(get(), get(), get()) }
 			single<FileSystem> { FakeFileSystem() }
 			single<Toml> { createTomlSerializer() }
 			single<StrRes> { TestStrRes() }
@@ -362,32 +363,29 @@ class ProjectsListComponentTest : ComponentTest() {
 	@Test
 	fun `deleteProject deletes locally and queues the server delete by id`() =
 		runTest(mainTestDispatcher) {
-			every { projectsRepository.getProjectId(projectDefA) } returns ProjectId("server-id")
 			every { projectsRepository.deleteProject(projectDefA) } returns true
 			val comp = newComponent()
 
 			comp.deleteProject(projectDefA)
 			advanceUntilIdle()
 
-			verify { synchronizer.deleteProject(SyncedProjectDefinition(projectDefA, ProjectId("server-id"))) }
+			verify { synchronizer.deleteProject(projectDefA) }
 		}
 
 	@Test
 	fun `deleteProject queues the server delete even with no server configured`() = runTest(mainTestDispatcher) {
 		every { synchronizer.isServerSynchronized() } returns false
-		every { projectsRepository.getProjectId(projectDefA) } returns ProjectId("local-id")
 		every { projectsRepository.deleteProject(projectDefA) } returns true
 		val comp = newComponent()
 
 		comp.deleteProject(projectDefA)
 		advanceUntilIdle()
 
-		verify { synchronizer.deleteProject(SyncedProjectDefinition(projectDefA, ProjectId("local-id"))) }
+		verify { synchronizer.deleteProject(projectDefA) }
 	}
 
 	@Test
 	fun `deleteProject does nothing when the local delete fails`() = runTest(mainTestDispatcher) {
-		every { projectsRepository.getProjectId(projectDefA) } returns ProjectId("server-id")
 		every { projectsRepository.deleteProject(projectDefA) } returns false
 		val comp = newComponent()
 
@@ -403,19 +401,17 @@ class ProjectsListComponentTest : ComponentTest() {
 	@Test
 	fun `renameProject renames locally and queues the server rename by id`() =
 		runTest(mainTestDispatcher) {
-			every { projectsRepository.getProjectId(projectDefA) } returns ProjectId("server-id")
 			every { projectsRepository.renameProject(projectDefA, "Beta") } returns CResult.success(projectDefA)
 			val comp = newComponent()
 
 			comp.renameProject(projectDefA, "Beta")
 			advanceUntilIdle()
 
-			verify { synchronizer.renameProject(ProjectId("server-id"), "Beta") }
+			verify { synchronizer.renameProject(projectDefA.id, "Beta") }
 		}
 
 	@Test
 	fun `renameProject failure does not sync or reload`() = runTest(mainTestDispatcher) {
-		every { projectsRepository.getProjectId(projectDefA) } returns ProjectId("server-id")
 		every { projectsRepository.renameProject(projectDefA, "Beta") } returns
 			CResult.failure(error = "nope")
 		val comp = newComponent()
@@ -534,10 +530,9 @@ class ProjectsListComponentTest : ComponentTest() {
 			every { synchronizer.isServerSynchronized() } returns true
 			every { projectsRepository.getProjects(any()) } returns listOf(projectDefA)
 			every { metadataDatasource.loadMetadata(projectDefA) } returns
-				metadata(Instant.fromEpochSeconds(1), projectId = ProjectId("server-id"))
-			every { metadataDatasource.loadProjectId(projectDefA) } returns ProjectId("server-id")
+				metadata(Instant.fromEpochSeconds(1), projectId = projectDefA.id)
 			coEvery { synchronizer.syncProjects(any(), any(), any(), any()) } returns true
-			coEvery { synchronizer.probeUnchangedProjects(any()) } returns setOf(ProjectId("server-id"))
+			coEvery { synchronizer.probeUnchangedProjects(any()) } returns setOf(projectDefA.id)
 			val comp = newComponent()
 
 			comp.showProjectsSync()
@@ -549,14 +544,38 @@ class ProjectsListComponentTest : ComponentTest() {
 			assertTrue(comp.state.value.syncState.syncComplete)
 		}
 
+	@Test
+	fun `cancelling a sync relists the projects so their ids match what the sync changed`() =
+		runTest(mainTestDispatcher) {
+			every { synchronizer.isServerSynchronized() } returns true
+			val adopted = projectDefA.copy(id = testProjectId("Adopted"))
+			var onDisk = listOf(projectDefA)
+			every { projectsRepository.getProjects(any()) } answers { onDisk }
+			every { metadataDatasource.loadMetadata(any()) } returns metadata(Instant.fromEpochSeconds(1))
+			every { statsReader.loadTotalWords(any()) } returns null
+			coEvery { synchronizer.syncProjects(any(), any(), any(), any()) } coAnswers {
+				onDisk = listOf(adopted)
+				awaitCancellation()
+			}
+			val comp = newComponent()
+			comp.loadProjectList()
+			comp.showProjectsSync()
+			advanceUntilIdle()
+
+			comp.cancelProjectsSync()
+			advanceUntilIdle()
+
+			assertEquals(listOf(adopted.id), comp.state.value.projects.map { it.definition.id })
+		}
+
 	// --- loadProjectList -----------------------------------------------------
 
 	@Test
 	fun `loadProjectList maps metadata to project data sorted by last-accessed descending`() =
 		runTest(mainTestDispatcher) {
-			val oldest = ProjectDef("Oldest", HPath("/projects/Oldest", "Oldest", false))
-			val newest = ProjectDef("Newest", HPath("/projects/Newest", "Newest", false))
-			val middle = ProjectDef("Middle", HPath("/projects/Middle", "Middle", false))
+			val oldest = ProjectDef(testProjectId("Oldest"), "Oldest", HPath("/projects/Oldest", "Oldest", false))
+			val newest = ProjectDef(testProjectId("Newest"), "Newest", HPath("/projects/Newest", "Newest", false))
+			val middle = ProjectDef(testProjectId("Middle"), "Middle", HPath("/projects/Middle", "Middle", false))
 			every { projectsRepository.getProjects(any()) } returns listOf(oldest, newest, middle)
 			every { metadataDatasource.loadMetadata(oldest) } returns metadata(Instant.fromEpochSeconds(100))
 			every { metadataDatasource.loadMetadata(newest) } returns metadata(Instant.fromEpochSeconds(300))
@@ -594,8 +613,8 @@ class ProjectsListComponentTest : ComponentTest() {
 	@Test
 	fun `loadProjectList skips a project whose metadata fails to load`() =
 		runTest(mainTestDispatcher) {
-			val good = ProjectDef("Good", HPath("/projects/Good", "Good", false))
-			val vanished = ProjectDef("Vanished", HPath("/projects/Vanished", "Vanished", false))
+			val good = ProjectDef(testProjectId("Good"), "Good", HPath("/projects/Good", "Good", false))
+			val vanished = ProjectDef(testProjectId("Vanished"), "Vanished", HPath("/projects/Vanished", "Vanished", false))
 			every { projectsRepository.getProjects(any()) } returns listOf(good, vanished)
 			every { metadataDatasource.loadMetadata(good) } returns metadata(Instant.fromEpochSeconds(100))
 			// Deleted concurrently between listing and reading: loadMetadata throws.

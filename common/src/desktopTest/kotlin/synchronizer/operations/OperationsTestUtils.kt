@@ -1,25 +1,14 @@
 package synchronizer.operations
 
-import com.darkrockstudios.apps.hammer.base.ProjectId
+import PROJECT_2_NAME
 import com.darkrockstudios.apps.hammer.base.http.ClientEntityState
 import com.darkrockstudios.apps.hammer.base.http.EntityHash
 import com.darkrockstudios.apps.hammer.base.http.ProjectSynchronizationBegan
-import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.Info
-import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
-import com.darkrockstudios.apps.hammer.common.data.migrator.PROJECT_DATA_VERSION
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.CollateIdsState.CollatedIds
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityOriginalState
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectSynchronizationData
+import testProjectId
 import kotlin.time.Instant
-
-val metadata = ProjectMetadata(
-	info = Info(
-		created = Instant.fromEpochSeconds(123456),
-		lastAccessed = null,
-		dataVersion = PROJECT_DATA_VERSION,
-		projectId = ProjectId("project-id")
-	)
-)
 
 val projectData = ProjectSynchronizationData(
 	lastId = 11,
@@ -37,7 +26,7 @@ val projectData = ProjectSynchronizationData(
  */
 
 val entityState = ClientEntityState(produceEntityHashSet(1, 2, 3, 4, 5, 6, 7, 10))
-val projId = ProjectId("project-id")
+val projId = testProjectId(PROJECT_2_NAME)
 
 val beganResponse = ProjectSynchronizationBegan(
 	syncId = "sync-id",

@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.common.preview
 
 import com.arkivanov.essenty.backhandler.BackCallback
 import com.arkivanov.essenty.backhandler.BackHandler
+import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.Info
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -12,6 +13,7 @@ import org.jetbrains.compose.resources.StringResource
 import kotlin.time.Instant
 
 fun fakeProjectDef(): ProjectDef = ProjectDef(
+	id = ProjectId("00000000-0000-4000-8000-000000000001"),
 	name = "Test",
 	path = HPath(
 		name = "Test",

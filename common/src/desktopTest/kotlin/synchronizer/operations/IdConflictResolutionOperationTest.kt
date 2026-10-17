@@ -81,7 +81,6 @@ class IdConflictResolutionOperationTest : BaseTest() {
 			onlyNew = false,
 			clientSyncData = projectData,
 			entityState = entityState,
-			serverProjectId = projId,
 			serverSyncData = beganResponse,
 			collatedIds = collatedIds,
 		)
@@ -161,7 +160,6 @@ class IdConflictResolutionOperationTest : BaseTest() {
 			onlyNew = false,
 			clientSyncData = phantomClientData,
 			entityState = entityState,
-			serverProjectId = projId,
 			serverSyncData = serverBegan,
 			collatedIds = emptyCollatedIds,
 		)
@@ -223,7 +221,6 @@ class IdConflictResolutionOperationTest : BaseTest() {
 			onlyNew = false,
 			clientSyncData = clientData,
 			entityState = entityState,
-			serverProjectId = projId,
 			serverSyncData = serverBegan,
 			collatedIds = emptyCollatedIds,
 		)

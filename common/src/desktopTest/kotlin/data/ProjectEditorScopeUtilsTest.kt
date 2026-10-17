@@ -1,6 +1,8 @@
 package data
 
+import PROJECT_1_NAME
 import PROJECT_EMPTY_NAME
+import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.common.data.closeProjectScope
 import com.darkrockstudios.apps.hammer.common.data.openProjectScope
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
@@ -14,9 +16,10 @@ import io.mockk.verify
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.koin.core.component.getScopeId
 import org.koin.dsl.module
 import utils.BaseTest
+import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
@@ -39,7 +42,7 @@ class ProjectEditorScopeUtilsTest : BaseTest() {
 		})
 	}
 
-	private fun scopeOrNull() = getKoin().getScopeOrNull(ProjectDefScope(projectDef).getScopeId())
+	private fun scopeOrNull() = getKoin().getScopeOrNull(ProjectDefScope(projectDef).scopeId)
 
 	@Test
 	fun `a temporary task alone never starts the editor services and closes its scope`() = runTest {
@@ -69,5 +72,24 @@ class ProjectEditorScopeUtilsTest : BaseTest() {
 
 		verify(exactly = 1) { spellCheckService.initialize() }
 		closeProjectScope(assertNotNull(scopeOrNull()), projectDef)
+	}
+
+	@Test
+	fun `defs with the same path share one scope whatever their ids`() = runTest {
+		val reidentified = projectDef.copy(id = ProjectId.randomUUID())
+		openProjectScope(projectDef)
+
+		assertEquals(ProjectDefScope(projectDef).scopeId, ProjectDefScope(reidentified).scopeId)
+		assertNotNull(getKoin().getScopeOrNull(ProjectDefScope(reidentified).scopeId))
+
+		closeProjectScope(assertNotNull(scopeOrNull()), reidentified)
+		assertNull(scopeOrNull())
+	}
+
+	@Test
+	fun `defs with different paths get different scopes`() {
+		val other = getProjectDef(PROJECT_1_NAME)
+
+		assertNotEquals(ProjectDefScope(projectDef).scopeId, ProjectDefScope(other).scopeId)
 	}
 }

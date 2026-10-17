@@ -1,7 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations
 
 import com.darkrockstudios.apps.hammer.Res
-import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ProjectSynchronizationBegan
 import com.darkrockstudios.apps.hammer.common.data.CResult
@@ -16,7 +15,7 @@ import com.darkrockstudios.apps.hammer.sync_log_account_project_adopt_conflict
 import com.darkrockstudios.apps.hammer.sync_log_account_project_create_server_failure
 import com.darkrockstudios.apps.hammer.sync_log_account_project_create_server_success
 import com.darkrockstudios.apps.hammer.sync_log_account_project_deleted_elsewhere
-import com.darkrockstudios.apps.hammer.sync_log_account_project_id_reminted
+import com.darkrockstudios.apps.hammer.sync_log_account_project_needs_account_sync
 import com.darkrockstudios.apps.hammer.sync_log_server_data_loaded
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.flow.first
@@ -41,7 +40,7 @@ class FetchServerDataOperation(
 
 		state as FetchLocalDataState
 
-		var result = beginSync(state, state.serverProjectId)
+		var result = beginSync(state)
 
 		// 410: the server has no record of this id (it lost the project, or never had it). Create it
 		// under the local id and try once more.
@@ -49,14 +48,11 @@ class FetchServerDataOperation(
 		if (firstFailure is HttpFailureException && firstFailure.statusCode == HttpStatusCode.Gone) {
 			val outcome = projectCreateResolver.createInOwnSession(projectDef)
 			logCreateOutcome(outcome, projectDef, strRes, onLog)?.let { return CResult.failure(it) }
-			outcome as ServerCreateOutcome.Created
 
 			// Whatever the journal says the server confirmed, this server project does not hold it.
 			projectsRepository.clearSyncBaseline(projectDef)
 			state.clientSyncData = syncJournal.loadSyncData()
-			state.serverProjectId = outcome.projectId
-
-			result = beginSync(state, outcome.projectId)
+			result = beginSync(state)
 		}
 
 		return if (result.isSuccess) {
@@ -76,11 +72,8 @@ class FetchServerDataOperation(
 		}
 	}
 
-	private suspend fun beginSync(
-		state: FetchLocalDataState,
-		projectId: ProjectId,
-	): Result<ProjectSynchronizationBegan> =
-		serverProjectApi.beginProjectSync(userId(), projectId, state.entityState, state.onlyNew)
+	private suspend fun beginSync(state: FetchLocalDataState): Result<ProjectSynchronizationBegan> =
+		serverProjectApi.beginProjectSync(userId(), projectDef.id, state.entityState, state.onlyNew)
 
 	private suspend fun userId(): Long {
 		return globalSettingsStore.serverSettingsUpdates.first()?.userId
@@ -99,9 +92,6 @@ internal suspend fun logCreateOutcome(
 	onLog: OnSyncLog,
 ): Throwable? = when (outcome) {
 	is ServerCreateOutcome.Created -> {
-		if (outcome.reminted) {
-			onLog(syncLogW(strRes.get(Res.string.sync_log_account_project_id_reminted, projectDef.name), projectDef))
-		}
 		if (!outcome.alreadyExisted) {
 			onLog(
 				syncLogI(
@@ -129,6 +119,12 @@ internal suspend fun logCreateOutcome(
 		ProjectAdoptConflictException(projectDef.name, outcome.heldBy.name)
 	}
 
+	ServerCreateOutcome.NeedsAccountSync -> {
+		val message = strRes.get(Res.string.sync_log_account_project_needs_account_sync, projectDef.name)
+		onLog(syncLogW(message, projectDef))
+		ProjectNeedsAccountSyncException(projectDef.name)
+	}
+
 	is ServerCreateOutcome.Failed -> {
 		onLog(
 			syncLogE(
@@ -145,3 +141,6 @@ class ProjectDeletedElsewhereException(projectName: String) :
 
 class ProjectAdoptConflictException(projectName: String, heldBy: String) :
 	SyncOperationException("Server project matching $projectName by name is held by $heldBy")
+
+class ProjectNeedsAccountSyncException(projectName: String) :
+	SyncOperationException("Project must be synced from the project list to settle its id: $projectName")

@@ -1,8 +1,11 @@
 package components.projectselection.accountsettings
 
+import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.backup_manager_error_restore_backup
+import com.darkrockstudios.apps.hammer.backup_manager_error_restore_in_use
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.BackupManagerComponent
-import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.BackupManagerService
+import com.darkrockstudios.apps.hammer.common.data.projectbackup.BackupRestoreResult
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupDef
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupService
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -18,8 +21,8 @@ import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import utils.ComponentTest
-import utils.TestStrRes
 import org.koin.dsl.module
+import server.RecordingStrRes
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
@@ -31,19 +34,17 @@ class BackupManagerComponentTest : ComponentTest() {
 
 	private lateinit var backupService: ProjectBackupService
 	private lateinit var backupManagerService: BackupManagerService
+	private lateinit var strRes: RecordingStrRes
 
-	private val projAlpha = ProjectDef("Alpha", HPath("/projects/Alpha", "Alpha", false))
-	private val projZulu = ProjectDef("Zulu", HPath("/projects/Zulu", "Zulu", false))
-
-	private val alphaOld = backup(projAlpha, "alpha-old.zip", at = 100)
-	private val alphaNew = backup(projAlpha, "alpha-new.zip", at = 200)
-	private val zuluBackup = backup(projZulu, "zulu.zip", at = 150)
+	private val alphaOld = backup("Alpha", "alpha-old.zip", at = 100)
+	private val alphaNew = backup("Alpha", "alpha-new.zip", at = 200)
+	private val zuluBackup = backup("Zulu", "zulu.zip", at = 150)
 
 	private var alphaBackups = listOf(alphaOld, alphaNew)
 
-	private fun backup(projectDef: ProjectDef, name: String, at: Long) = ProjectBackupDef(
+	private fun backup(projectName: String, name: String, at: Long) = ProjectBackupDef(
 		path = HPath("/backups/$name", name, false),
-		projectDef = projectDef,
+		projectName = projectName,
 		date = Instant.fromEpochSeconds(at),
 	)
 
@@ -55,15 +56,17 @@ class BackupManagerComponentTest : ComponentTest() {
 
 		backupService = mockk(relaxed = true)
 		backupManagerService = mockk(relaxed = true)
+		strRes = RecordingStrRes()
 
-		every { backupService.getBackedUpProjects() } returns listOf(projAlpha, projZulu)
-		every { backupService.getBackups(projAlpha) } answers { alphaBackups }
-		every { backupService.getBackups(projZulu) } returns listOf(zuluBackup)
+		every { backupService.getBackedUpProjects() } returns listOf("Alpha", "Zulu")
+		every { backupService.getBackups("Alpha") } answers { alphaBackups }
+		every { backupService.getBackups("Zulu") } returns listOf(zuluBackup)
+		coEvery { backupService.restoreBackup(any()) } returns BackupRestoreResult.Restored
 
 		setupKoin(module {
 			single { backupService }
 			single { backupManagerService }
-			single<StrRes> { TestStrRes() }
+			single<StrRes> { strRes }
 		})
 	}
 
@@ -78,7 +81,6 @@ class BackupManagerComponentTest : ComponentTest() {
 		val state = comp.state.value
 		assertEquals(listOf("Alpha", "Zulu"), state.availableProjects)
 		assertEquals("Alpha", state.selectedProject)
-		assertEquals(projAlpha, state.selectedProjectDef)
 		assertFalse(state.isLoading)
 		assertNull(state.error)
 	}
@@ -117,7 +119,6 @@ class BackupManagerComponentTest : ComponentTest() {
 
 			val state = comp.state.value
 			assertEquals("Zulu", state.selectedProject)
-			assertEquals(projZulu, state.selectedProjectDef)
 			assertEquals(listOf(zuluBackup), state.backupsForSelectedProject)
 		}
 
@@ -152,7 +153,7 @@ class BackupManagerComponentTest : ComponentTest() {
 	}
 
 	@Test
-	fun `restoreBackup restores into the project's directory`() = runTest(mainTestDispatcher) {
+	fun `restoreBackup restores the backup over its project`() = runTest(mainTestDispatcher) {
 		val comp = newComponent()
 		context.resume()
 		advanceUntilIdle()
@@ -160,12 +161,13 @@ class BackupManagerComponentTest : ComponentTest() {
 		comp.restoreBackup(alphaNew)
 		advanceUntilIdle()
 
-		coVerify(exactly = 1) { backupService.restoreBackup(alphaNew, projAlpha.path) }
+		coVerify(exactly = 1) { backupService.restoreBackup(alphaNew) }
+		assertNull(comp.state.value.error)
 	}
 
 	@Test
 	fun `a failed restore surfaces an error`() = runTest(mainTestDispatcher) {
-		coEvery { backupService.restoreBackup(any(), any()) } returns false
+		coEvery { backupService.restoreBackup(any()) } returns BackupRestoreResult.Failed
 
 		val comp = newComponent()
 		context.resume()
@@ -175,6 +177,22 @@ class BackupManagerComponentTest : ComponentTest() {
 		advanceUntilIdle()
 
 		assertNotNull(comp.state.value.error)
+		assertEquals(listOf(Res.string.backup_manager_error_restore_backup), strRes.requested)
+	}
+
+	@Test
+	fun `a restore refused for a project in use says to close it`() = runTest(mainTestDispatcher) {
+		coEvery { backupService.restoreBackup(any()) } returns BackupRestoreResult.ProjectInUse
+
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		comp.restoreBackup(alphaNew)
+		advanceUntilIdle()
+
+		assertNotNull(comp.state.value.error)
+		assertEquals(listOf(Res.string.backup_manager_error_restore_in_use), strRes.requested)
 	}
 
 	@Test

@@ -10,7 +10,6 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
 import com.darkrockstudios.apps.hammer.common.data.projectInject
-import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntitySynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.OnSyncLog
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogI
@@ -23,12 +22,10 @@ import kotlinx.coroutines.flow.first
 class ClientNoteSynchronizer(
 	projectDef: ProjectDef,
 	serverProjectApi: ServerProjectApi,
-	projectMetadataDatasource: ProjectMetadataDatasource,
 	private val strRes: StrRes,
 ) : EntitySynchronizer<ApiProjectEntity.NoteEntity>(
 	projectDef,
 	serverProjectApi,
-	projectMetadataDatasource
 ), ProjectScoped {
 
 	override val projectScope = ProjectDefScope(projectDef)

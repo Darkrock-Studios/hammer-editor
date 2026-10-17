@@ -59,7 +59,6 @@ import okio.Path
 import okio.Path.Companion.toPath
 import org.jetbrains.compose.resources.StringResource
 import org.koin.core.component.KoinComponent
-import org.koin.core.component.getScopeId
 import org.koin.core.component.inject
 import org.koin.core.qualifier.named
 import kotlin.coroutines.CoroutineContext
@@ -122,16 +121,22 @@ class ProjectsRepository(
 	 * Gives the project a different identity: adopting a server project's id, or re-minting one
 	 * that collides. The old sync baseline described the old id, so it goes when the id changes
 	 * (a journal flagged for verification keeps its conflict baselines, see [clearProjectSyncBaseline]).
+	 *
+	 * Throws [ProjectInUseException] for a project in use: its open scope holds state under the old
+	 * id. The old id is read from disk, so a stale [projectDef] cannot skip the write.
 	 */
-	suspend fun setProjectId(projectDef: ProjectDef, projectId: ProjectId) {
-		val oldId = getProjectId(projectDef)
-		if (oldId == projectId) return
+	suspend fun setProjectId(projectDef: ProjectDef, projectId: ProjectId): ProjectDef {
+		val updated = projectDef.copy(id = projectId)
+		val oldId = projectsMetadataDatasource.loadProjectId(projectDef.path)
+		if (oldId == projectId) return updated
+		if (isProjectInUse(projectDef)) throw ProjectInUseException(projectDef.name)
 
 		clearSyncBaseline(projectDef)
 		projectsMetadataDatasource.updateMetadata(projectDef) {
 			it.copy(info = it.info.copy(projectId = projectId))
 		}
-		notifyProjectIdChanged(projectDef, oldId, projectId)
+		notifyProjectIdChanged(updated, oldId, projectId)
+		return updated
 	}
 
 	/**
@@ -168,7 +173,7 @@ class ProjectsRepository(
 	 * else the earliest created.
 	 */
 	suspend fun resolveDuplicateProjectIds() {
-		val byId = getProjects().groupBy { projectsMetadataDatasource.loadProjectId(it) }
+		val byId = getProjects().groupBy { it.id }
 		byId.filterValues { it.size > 1 }.forEach { (projectId, holders) ->
 			val keeper = holders.minWith(
 				compareBy<ProjectDef> { !hasSyncJournal(it) }
@@ -176,11 +181,17 @@ class ProjectsRepository(
 			)
 			holders.filter { it != keeper }.forEach { duplicate ->
 				val newId = ProjectId.randomUUID()
+				try {
+					setProjectId(duplicate, newId)
+				} catch (_: ProjectInUseException) {
+					// Left for the next start, which runs before anything can open it.
+					Napier.w("Project '${duplicate.name}' shares id ${projectId.id} with '${keeper.name}' but is in use")
+					return@forEach
+				}
 				Napier.w(
 					"Project '${duplicate.name}' shared id ${projectId.id} with '${keeper.name}', " +
 						"assigned ${newId.id}"
 				)
-				setProjectId(duplicate, newId)
 			}
 		}
 	}
@@ -224,7 +235,7 @@ class ProjectsRepository(
 		// An open project serves project data from ProjectDataRepository's cache, so clearing only
 		// the file would leave the stale hash live (and get it written straight back out).
 		val openProject = getKoin()
-			.getScopeOrNull(ProjectDefScope(projectDef).getScopeId())
+			.getScopeOrNull(ProjectDefScope(projectDef).scopeId)
 			?.get<ProjectDataRepository>()
 		if (openProject != null) {
 			openProject.clearSyncBaseline()
@@ -233,40 +244,53 @@ class ProjectsRepository(
 		}
 	}
 
-	fun getProjectId(projectDef: ProjectDef): ProjectId =
-		projectsMetadataDatasource.loadProjectId(projectDef)
+	/** True while the project is open in an editor or a temporary task; its id and name are then fixed. */
+	fun isProjectInUse(projectDir: HPath): Boolean =
+		getKoin().getScopeOrNull(ProjectDefScope.scopeIdFor(projectDir)) != null
 
-	fun findProject(projectId: ProjectId): ProjectDef? {
-		val allProjects = getProjects()
-		val found = allProjects.find { project ->
-			val id = projectsMetadataDatasource.loadProjectId(project)
-			projectId == id
-		}
-		return found
-	}
+	fun isProjectInUse(projectDef: ProjectDef): Boolean = isProjectInUse(projectDef.path)
 
-	fun findProject(projectName: String): ProjectDef? {
-		val allProjects = getProjects()
-		val found = allProjects.find { project -> project.name == projectName }
-		return found
-	}
+	fun findProject(projectId: ProjectId): ProjectDef? =
+		markedCandidates(getProjectsDirectory().toOkioPath())
+			.mapNotNull { (name, dir) -> loadProjectDef(name, dir) }
+			.firstOrNull { it.id == projectId }
+
+	fun findProject(projectName: String): ProjectDef? =
+		markedCandidates(getProjectsDirectory().toOkioPath())
+			.filter { (name, _) -> name == projectName }
+			.firstNotNullOfOrNull { (name, dir) -> loadProjectDef(name, dir) }
 
 	/**
 	 * A directory is considered a project only if it contains a [ProjectMetadata.FILENAME]
-	 * file and its (decoded) name is a valid project name.
+	 * file and its (decoded) name is a valid project name. Each id is read from that file, minted
+	 * if it has none (see [ProjectMetadataDatasource.loadProjectId]). A project deleted while the list
+	 * is built is left out.
 	 */
 	fun getProjects(projectsDir: HPath = getProjectsDirectory()): List<ProjectDef> =
-		listCandidateDirectories(projectsDir.toOkioPath()).filter {
-			fileSystem.metadataOrNull(it.path.toOkioPath() / ProjectMetadata.FILENAME)?.isRegularFile == true
+		markedCandidates(projectsDir.toOkioPath())
+			.mapNotNull { (name, dir) -> loadProjectDef(name, dir) }
+			.toList()
+
+	private fun markedCandidates(projectsDir: Path): Sequence<Pair<String, Path>> =
+		listCandidateDirectories(projectsDir).asSequence()
+			.filter { (_, dir) -> fileSystem.metadataOrNull(dir / ProjectMetadata.FILENAME)?.isRegularFile == true }
+
+	/** Null when its [ProjectMetadata.FILENAME] cannot be read, as when the project is deleted meanwhile. */
+	private fun loadProjectDef(name: String, dir: Path): ProjectDef? =
+		try {
+			ProjectDef(projectsMetadataDatasource.loadProjectId(dir.toHPath()), name, dir.toHPath())
+		} catch (e: IOException) {
+			Napier.w("Skipped project '$name': could not read its ${ProjectMetadata.FILENAME}", e)
+			null
 		}
 
-	/** Non-hidden directories whose decoded name is a valid project name, marked or not. */
-	private fun listCandidateDirectories(projectsDir: Path): List<ProjectDef> =
+	/** Each non-hidden directory whose decoded name is a valid project name, marked or not, with that name. */
+	private fun listCandidateDirectories(projectsDir: Path): List<Pair<String, Path>> =
 		fileSystem.list(projectsDir)
 			.filter { it.name.startsWith('.').not() }
 			.filter { fileSystem.metadataOrNull(it)?.isDirectory == true }
-			.map { path -> ProjectDef(decodeFromFilename(path.name), path.toHPath()) }
-			.filter { validateProjectName(it.name) }
+			.map { path -> decodeFromFilename(path.name) to path }
+			.filter { (name, _) -> validateProjectName(name) }
 
 	/** True only when nothing exists at [ProjectMetadata.FILENAME], not even a directory or an unreadable file. */
 	private fun isUnmarked(projectDir: Path): Boolean =
@@ -290,20 +314,21 @@ class ProjectsRepository(
 		serverKnowsProject: Boolean,
 	): ProjectDef? {
 		// Trimmed as in createProject, so both resolve a name to the same directory.
-		val projectDef = getProjectDefinition(projectName.trim())
-		val projectDir = projectDef.path.toOkioPath()
+		val trimmedName = projectName.trim()
+		val projectDir = getProjectDirectory(trimmedName).toOkioPath()
 		if (fileSystem.metadataOrNull(projectDir)?.isDirectory != true) return null
 		if (fileSystem.list(projectDir).isNotEmpty() && !hasProjectContent(projectDir)) return null
-		return adoptUnmarkedDirectory(projectDef, projectId, serverKnowsProject)
+		return adoptUnmarkedDirectory(trimmedName, projectDir, projectId, serverKnowsProject)
 	}
 
 	private suspend fun adoptUnmarkedDirectory(
-		projectDef: ProjectDef,
+		projectName: String,
+		projectDir: Path,
 		projectId: ProjectId,
 		serverKnowsProject: Boolean,
 	): ProjectDef? {
-		val projectDir = projectDef.path.toOkioPath()
 		if (fileSystem.metadataOrNull(projectDir)?.isDirectory != true || !isUnmarked(projectDir)) return null
+		val projectDef = ProjectDef(projectId, projectName, projectDir.toHPath())
 
 		// Reset before marking, so a crash between the two leaves the folder unmarked and retried.
 		resetSyncStateAfterRestore(projectDef, serverKnowsProject)
@@ -318,8 +343,8 @@ class ProjectsRepository(
 	 */
 	suspend fun healUnmarkedProjectDirectories(): List<ProjectDef> =
 		listCandidateDirectories(getProjectsDirectory().toOkioPath())
-			.filter { isUnmarked(it.path.toOkioPath()) && hasProjectContent(it.path.toOkioPath()) }
-			.mapNotNull { adoptUnmarkedDirectory(it, ProjectId.randomUUID(), serverKnowsProject = false) }
+			.filter { (_, dir) -> isUnmarked(dir) && hasProjectContent(dir) }
+			.mapNotNull { (name, dir) -> adoptUnmarkedDirectory(name, dir, ProjectId.randomUUID(), serverKnowsProject = false) }
 
 	/** Returns up to [limit] projects ordered by `metadata.info.lastAccessed` descending, optionally excluding [excludeCurrent]. Projects with unreadable metadata sort last. */
 	fun getRecentProjects(limit: Int, excludeCurrent: ProjectDef? = null): List<ProjectDef> =
@@ -339,11 +364,6 @@ class ProjectsRepository(
 		val projectsDir = getProjectsDirectory().toOkioPath()
 		val projectDir = projectsDir.div(encodeForFilename(projectName))
 		return projectDir.toHPath()
-	}
-
-	fun getProjectDefinition(projectName: String): ProjectDef {
-		val projectDir = getProjectDirectory(projectName).toOkioPath()
-		return ProjectDef(projectName, projectDir.toHPath())
 	}
 
 	/**
@@ -369,6 +389,7 @@ class ProjectsRepository(
 				fileSystem.createDirectory(newProjectDir)
 
 				val newDef = ProjectDef(
+					id = projectId,
 					name = strippedName,
 					path = newProjectDir.toHPath()
 				)
@@ -412,6 +433,9 @@ class ProjectsRepository(
 
 	@Suppress("SwallowedException") // IOException maps to a typed failure result
 	fun renameProject(projectDef: ProjectDef, newName: String): CResult<ProjectDef> {
+		if (isProjectInUse(projectDef)) {
+			return CResult.failure(ProjectRenameFailed(ProjectRenameFailed.Reason.ProjectInUse))
+		}
 		if (validateFileName(newName).isFailure) {
 			return CResult.failure(ProjectRenameFailed(ProjectRenameFailed.Reason.InvalidName))
 		}
@@ -422,7 +446,7 @@ class ProjectsRepository(
 			if (fileSystem.exists(newProjectDir).not()) {
 				try {
 					fileSystem.atomicMove(source = projectDir, target = newProjectDir)
-					CResult.success(ProjectDef(newName, newProjectDir.toHPath()))
+					CResult.success(projectDef.copy(name = newName, path = newProjectDir.toHPath()))
 				} catch (e: IOException) {
 					CResult.failure(ProjectRenameFailed(ProjectRenameFailed.Reason.MoveFailed))
 				}

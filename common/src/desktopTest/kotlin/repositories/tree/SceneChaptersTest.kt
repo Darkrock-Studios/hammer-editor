@@ -9,12 +9,13 @@ import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
 import com.darkrockstudios.apps.hammer.common.data.tree.collectChapters
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import org.junit.jupiter.api.Test
+import testProjectId
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class SceneChaptersTest {
 
-	private val projectDef = ProjectDef("Test", HPath("/projects/Test", "Test", false))
+	private val projectDef = ProjectDef(testProjectId("Test"), "Test", HPath("/projects/Test", "Test", false))
 
 	private fun item(id: Int, type: SceneItem.Type) =
 		SceneItem(projectDef = projectDef, type = type, id = id, name = "Item $id", order = id)

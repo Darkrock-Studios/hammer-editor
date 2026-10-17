@@ -4,7 +4,6 @@ import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import com.darkrockstudios.apps.hammer.common.util.StrRes
@@ -15,7 +14,6 @@ import io.github.aakira.napier.Napier
 class EntityDeleteOperation(
 	projectDef: ProjectDef,
 	private val serverProjectApi: ServerProjectApi,
-	private val projectMetadataDatasource: ProjectMetadataDatasource,
 	private val strRes: StrRes,
 ) : SyncOperation(projectDef) {
 	override suspend fun execute(
@@ -56,8 +54,7 @@ class EntityDeleteOperation(
 	}
 
 	private suspend fun deleteEntityRemote(id: Int, syncId: String, onLog: OnSyncLog): Boolean {
-		val projectId = projectMetadataDatasource.loadProjectId(projectDef)
-		val result = serverProjectApi.deleteId(projectId, id, syncId)
+		val result = serverProjectApi.deleteId(projectDef.id, id, syncId)
 		return if (result.isSuccess) {
 			onLog(syncLogI(strRes.get(Res.string.sync_log_entity_delete_success, id), projectDef))
 			true

@@ -10,6 +10,7 @@ import getProjectDef
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
+import testProjectId
 import kotlin.test.assertEquals
 
 class ProjectsRepositoryFindTest : ProjectsRepositoryBaseTest() {
@@ -42,7 +43,7 @@ class ProjectsRepositoryFindTest : ProjectsRepositoryBaseTest() {
 
 	@Test
 	fun `Find Project By id, success`() = scope.runTest {
-		val proj2Id = ProjectId("8c3f6a2e-4b1d-4e5a-9f7c-2d6b1a0e9c43")
+		val proj2Id = testProjectId(PROJECT_2_NAME)
 		val proj2Def = getProjectDef(PROJECT_2_NAME)
 
 		createProject(ffs, PROJECT_1_NAME)
@@ -69,20 +70,6 @@ class ProjectsRepositoryFindTest : ProjectsRepositoryBaseTest() {
 		val projectDef = repo.findProject(fakeId)
 
 		assertNull(projectDef)
-	}
-
-	@Test
-	fun `Get Project By name, success`() = scope.runTest {
-		val proj1Def = getProjectDef(PROJECT_1_NAME)
-		createProject(ffs, PROJECT_1_NAME)
-		createProject(ffs, PROJECT_2_NAME)
-		createProject(ffs, OUT_OF_ORDER_PROJECT_NAME)
-
-		val repo = projectsRepository()
-
-		val projectDef = repo.getProjectDefinition(PROJECT_1_NAME)
-
-		assertEquals(proj1Def, projectDef)
 	}
 
 	// Guards the name-only intent resolution used by ProjectRootActivity: a name that does not

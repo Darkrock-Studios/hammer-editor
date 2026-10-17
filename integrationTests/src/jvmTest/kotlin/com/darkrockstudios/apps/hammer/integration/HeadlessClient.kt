@@ -15,6 +15,7 @@ import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjec
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import okio.Path
 import org.koin.core.component.KoinComponent
+import org.koin.core.component.get
 import org.koin.core.scope.Scope
 import org.koin.mp.KoinPlatform.getKoin
 
@@ -66,12 +67,18 @@ class HeadlessClient private constructor(
 		scope.close()
 	}
 
-	/** Closes this client's project scope and opens a fresh one, as after its files were replaced. */
+	/**
+	 * Closes this client's project scope and opens a fresh one, as after its files were replaced.
+	 * The def is read again, since a restore or account sync may have changed the id.
+	 */
 	suspend fun reopen(): HeadlessClient {
 		close()
+		val reread = checkNotNull(get<ProjectsRepository>().getProjects().find { it.path == projectDef.path }) {
+			"Project '${projectDef.name}' is gone"
+		}
 		val anchor = object : KoinComponent {}
-		val scope = with(anchor) { openProjectScope(projectDef) }
-		return HeadlessClient(projectDef, scope)
+		val scope = with(anchor) { openProjectScope(reread) }
+		return HeadlessClient(reread, scope)
 	}
 
 	companion object {

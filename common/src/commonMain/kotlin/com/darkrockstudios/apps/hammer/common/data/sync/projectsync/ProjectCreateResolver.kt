@@ -14,11 +14,11 @@ import kotlinx.coroutines.withContext
 
 sealed interface ServerCreateOutcome {
 	/**
-	 * The project is on the server as [projectId], which is now also its local id. [reminted] when
-	 * the original id belonged to another account and a fresh one was used instead.
+	 * The project is on the server under its local id, which may have just been changed to the
+	 * server's. [reminted] when the original id belonged to another account and a fresh one was
+	 * used instead.
 	 */
 	data class Created(
-		val projectId: ProjectId,
 		val alreadyExisted: Boolean,
 		val reminted: Boolean,
 	) : ServerCreateOutcome
@@ -29,6 +29,12 @@ sealed interface ServerCreateOutcome {
 	 * was adopted; the create is retried on a later sync.
 	 */
 	data class AdoptConflict(val heldBy: ProjectDef) : ServerCreateOutcome
+
+	/**
+	 * Only from project sync: the server's answer would change the project's id, which only account
+	 * sync may do. Nothing was changed locally.
+	 */
+	data object NeedsAccountSync : ServerCreateOutcome
 
 	/** This account deleted the project; its id is tombstoned and can never be created again. */
 	data object DeletedElsewhere : ServerCreateOutcome
@@ -51,36 +57,49 @@ class ProjectCreateResolver(
 	private val sessionLock = Mutex()
 
 	/** Creates [projectDef] within the open account sync session [syncId]. */
-	suspend fun create(projectDef: ProjectDef, syncId: String): ServerCreateOutcome {
-		var projectId = projectsRepository.getProjectId(projectDef)
+	suspend fun create(projectDef: ProjectDef, syncId: String): ServerCreateOutcome =
+		create(projectDef, syncId, mayChangeId = true)
+
+	private suspend fun create(projectDef: ProjectDef, syncId: String, mayChangeId: Boolean): ServerCreateOutcome {
+		var def = projectDef
 		var reminted = false
 		while (true) {
-			val result = serverProjectsApi.createProject(projectDef.name, projectId, syncId)
+			val result = serverProjectsApi.createProject(def.name, def.id, syncId)
 			val error = result.exceptionOrNull()
 			when {
 				error == null -> {
 					val response = result.getOrThrow()
-					if (response.projectId != projectId) {
+					if (response.projectId != def.id) {
 						// Adopting would leave two local projects sharing an id.
 						val holder = projectsRepository.findProject(response.projectId)
-						if (holder != null && holder.name != projectDef.name) {
+						if (holder != null && holder.name != def.name) {
 							Napier.w(
-								"'${projectDef.name}' not adopting server project ${response.projectId.id}: " +
+								"'${def.name}' not adopting server project ${response.projectId.id}: " +
 									"'${holder.name}' holds it"
 							)
 							return ServerCreateOutcome.AdoptConflict(holder)
 						}
-						Napier.i("'${projectDef.name}' adopted server project ${response.projectId.id}")
-						projectsRepository.setProjectId(projectDef, response.projectId)
+						if (!mayChangeId) {
+							Napier.w(
+								"'${def.name}' matches server project ${response.projectId.id}: " +
+									"needs account sync"
+							)
+							return ServerCreateOutcome.NeedsAccountSync
+						}
+						Napier.i("'${def.name}' adopted server project ${response.projectId.id}")
+						projectsRepository.setProjectId(def, response.projectId)
 					}
-					return ServerCreateOutcome.Created(response.projectId, response.alreadyExisted, reminted)
+					return ServerCreateOutcome.Created(response.alreadyExisted, reminted)
 				}
 
 				error.apiErrorCode() == ApiErrorCode.PROJECT_ID_TAKEN && !reminted -> {
+					if (!mayChangeId) {
+						Napier.w("'${def.name}' id ${def.id.id} is taken on the server: needs account sync")
+						return ServerCreateOutcome.NeedsAccountSync
+					}
 					val newId = ProjectId.randomUUID()
-					Napier.w("'${projectDef.name}' id ${projectId.id} is taken on the server, re-minted ${newId.id}")
-					projectsRepository.setProjectId(projectDef, newId)
-					projectId = newId
+					Napier.w("'${def.name}' id ${def.id.id} is taken on the server, re-minted ${newId.id}")
+					def = projectsRepository.setProjectId(def, newId)
 					reminted = true
 				}
 
@@ -92,12 +111,12 @@ class ProjectCreateResolver(
 		}
 	}
 
-	/** Creates [projectDef] in an account sync session of its own. */
+	/** Creates [projectDef] in an account sync session of its own, never changing its id. */
 	suspend fun createInOwnSession(projectDef: ProjectDef): ServerCreateOutcome = sessionLock.withLock {
 		val begin = serverProjectsApi.beginProjectsSync()
 		val syncId = begin.getOrElse { return ServerCreateOutcome.Failed(it) }.syncId
 		try {
-			create(projectDef, syncId)
+			create(projectDef, syncId, mayChangeId = false)
 		} finally {
 			withContext(NonCancellable) { serverProjectsApi.endProjectsSync(syncId) }
 		}

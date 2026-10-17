@@ -23,17 +23,18 @@ import io.mockk.every
 import io.mockk.just
 import io.mockk.runs
 import kotlinx.coroutines.test.runTest
+import listedProjectId
 import okio.Path
 import org.junit.jupiter.api.Test
+import testProjectId
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
-import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Instant
 
 class ProjectsRepositoryAdoptTest : ProjectsRepositoryBaseTest() {
-	private val project2Id = ProjectId("8c3f6a2e-4b1d-4e5a-9f7c-2d6b1a0e9c43")
+	private val project2Id = testProjectId(PROJECT_2_NAME)
 
 	private fun dir(def: ProjectDef): Path = def.path.toOkioPath()
 
@@ -42,6 +43,13 @@ class ProjectsRepositoryAdoptTest : ProjectsRepositoryBaseTest() {
 		ffs.createDirectories(dir(def))
 		subdirectories.forEach { ffs.createDirectories(dir(def) / it) }
 		return def
+	}
+
+	/** The heal mints the id, so only the folder is known up front. */
+	private fun assertHealed(expected: ProjectDef, healed: List<ProjectDef>) {
+		val def = healed.single()
+		assertEquals(expected.copy(id = def.id), def)
+		assertEquals(def.id, projectsMetaDatasource.loadMetadata(def).info.projectId)
 	}
 
 	private fun isMarked(def: ProjectDef): Boolean = ffs.exists(dir(def) / ProjectMetadata.FILENAME)
@@ -71,11 +79,9 @@ class ProjectsRepositoryAdoptTest : ProjectsRepositoryBaseTest() {
 
 		val healed = repo.healUnmarkedProjectDirectories()
 
-		assertEquals(listOf(lost), healed)
-		val info = projectsMetaDatasource.loadMetadata(lost).info
-		assertNotNull(info.projectId)
-		assertEquals(0, info.dataVersion)
-		assertTrue(lost in repo.getProjects())
+		assertHealed(lost, healed)
+		assertEquals(0, projectsMetaDatasource.loadMetadata(lost).info.dataVersion)
+		assertTrue(healed.single() in repo.getProjects())
 	}
 
 	@Test
@@ -93,7 +99,7 @@ class ProjectsRepositoryAdoptTest : ProjectsRepositoryBaseTest() {
 			)
 			ffs.write(journalPath(lost)) { writeUtf8(json.encodeToString(journal)) }
 
-			assertEquals(listOf(lost), repo.healUnmarkedProjectDirectories())
+			assertHealed(lost, repo.healUnmarkedProjectDirectories())
 
 			val healedJournal = readJournal(lost)
 			assertTrue(healedJournal.verifyAllEntities, "the journal may be stale, so every entity is checked")
@@ -145,12 +151,12 @@ class ProjectsRepositoryAdoptTest : ProjectsRepositoryBaseTest() {
 
 			val healed = repo.healUnmarkedProjectDirectories()
 
-			assertEquals(listOf(lost), healed)
+			assertHealed(lost, healed)
 			assertFalse(isMarked(empty))
 			assertFalse(isMarked(hidden))
 			assertFalse(isMarked(invalid))
 			assertTrue(ffs.metadata(dir(oddMarker) / ProjectMetadata.FILENAME).isDirectory)
-			assertEquals(project2Id, repo.getProjectId(getProjectDef(PROJECT_2_NAME)))
+			assertEquals(project2Id, repo.listedProjectId(getProjectDef(PROJECT_2_NAME)))
 		}
 
 	@Test
@@ -162,7 +168,7 @@ class ProjectsRepositoryAdoptTest : ProjectsRepositoryBaseTest() {
 
 			val healed = repo.healUnmarkedProjectDirectories()
 
-			assertEquals(listOf(ProjectDef("What?", rawDir.toHPath())), healed)
+			assertHealed(ProjectDef(testProjectId("What?"), "What?", rawDir.toHPath()), healed)
 			assertTrue(ffs.exists(rawDir / ProjectMetadata.FILENAME))
 			assertFalse(ffs.exists(repo.getProjectDirectory("What?").toOkioPath()))
 		}
@@ -192,8 +198,8 @@ class ProjectsRepositoryAdoptTest : ProjectsRepositoryBaseTest() {
 
 		val adopted = repo.adoptUnmarkedDirectory("Server Project", serverId, serverKnowsProject = false)
 
-		assertEquals(folder, adopted)
-		assertEquals(serverId, repo.getProjectId(folder))
+		assertEquals(folder.copy(id = serverId), adopted)
+		assertEquals(serverId, repo.listedProjectId(folder))
 		assertEquals(0, projectsMetaDatasource.loadMetadata(folder).info.dataVersion)
 		assertFalse(ffs.exists(journalPath(folder)))
 	}
@@ -218,7 +224,7 @@ class ProjectsRepositoryAdoptTest : ProjectsRepositoryBaseTest() {
 
 		val adopted = repo.adoptUnmarkedDirectory("Server Project", ProjectId("server-id"), serverKnowsProject = true)
 
-		assertEquals(folder, adopted)
+		assertEquals(folder.copy(id = ProjectId("server-id")), adopted)
 		assertTrue(isMarked(folder))
 	}
 
@@ -230,7 +236,7 @@ class ProjectsRepositoryAdoptTest : ProjectsRepositoryBaseTest() {
 
 		val adopted = repo.adoptUnmarkedDirectory("Server Project", ProjectId("server-id"), serverKnowsProject = true)
 
-		assertEquals(folder, adopted)
+		assertEquals(folder.copy(id = ProjectId("server-id")), adopted)
 	}
 
 	@Test
@@ -252,7 +258,7 @@ class ProjectsRepositoryAdoptTest : ProjectsRepositoryBaseTest() {
 
 		val adopted = repo.adoptUnmarkedDirectory(" Server Project", ProjectId("server-id"), serverKnowsProject = true)
 
-		assertEquals(folder, adopted)
+		assertEquals(folder.copy(id = ProjectId("server-id")), adopted)
 		assertFalse(ffs.exists(dir(getProjectDef(" Server Project"))))
 	}
 
@@ -264,7 +270,7 @@ class ProjectsRepositoryAdoptTest : ProjectsRepositoryBaseTest() {
 		val adopted = repo.adoptUnmarkedDirectory(PROJECT_2_NAME, ProjectId("server-id"), serverKnowsProject = true)
 
 		assertNull(adopted)
-		assertEquals(project2Id, repo.getProjectId(getProjectDef(PROJECT_2_NAME)))
+		assertEquals(project2Id, repo.listedProjectId(getProjectDef(PROJECT_2_NAME)))
 	}
 
 	@Test

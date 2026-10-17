@@ -32,7 +32,6 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
-import org.koin.core.component.getScopeId
 import org.koin.dsl.module
 import utils.BaseTest
 import kotlin.test.assertEquals
@@ -200,7 +199,7 @@ class SyncJournalTest : BaseTest() {
 
 		assertEquals(23, repo.loadSyncData().lastId)
 		assertNull(
-			projectScope.getKoin().getScopeOrNull(projectScope.getScopeId()),
+			projectScope.getKoin().getScopeOrNull(projectScope.scopeId),
 			"The rebuild must not bring the closed scope back",
 		)
 	}

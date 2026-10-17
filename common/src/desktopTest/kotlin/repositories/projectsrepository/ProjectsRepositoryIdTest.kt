@@ -5,8 +5,12 @@ import PROJECT_2_NAME
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.createProjectScope
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
+import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectIdChangeListener
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectInUseException
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournalDatasource
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
@@ -14,39 +18,79 @@ import createProject
 import getProjectDef
 import getProjectsDirectory
 import kotlinx.coroutines.test.runTest
+import listedProjectId
+import okio.FileMetadata
+import okio.ForwardingFileSystem
 import okio.Path
 import org.junit.jupiter.api.Test
+import testProjectId
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.days
 
 class ProjectsRepositoryIdTest : ProjectsRepositoryBaseTest() {
-	private val project2Id = ProjectId("8c3f6a2e-4b1d-4e5a-9f7c-2d6b1a0e9c43")
+	private val project2Id = testProjectId(PROJECT_2_NAME)
 
 	@Test
-	fun `Get Project ID`() = scope.runTest {
+	fun `Get Projects reads each project's id from disk`() = scope.runTest {
+		createProject(ffs, PROJECT_1_NAME)
 		createProject(ffs, PROJECT_2_NAME)
 
-		val repo = projectsRepository()
+		val projects = projectsRepository().getProjects()
 
-		assertEquals(project2Id, repo.getProjectId(getProjectDef(PROJECT_2_NAME)))
+		assertEquals(
+			mapOf(
+				PROJECT_1_NAME to ProjectId("5f1d7446-1f08-4909-a81e-cdc7470a2f63"),
+				PROJECT_2_NAME to ProjectId("8c3f6a2e-4b1d-4e5a-9f7c-2d6b1a0e9c43"),
+			),
+			projects.associate { it.name to it.id },
+		)
 	}
 
 	@Test
-	fun `Get Project ID heals a project without one`() = scope.runTest {
+	fun `Get Projects heals a project without an id`() = scope.runTest {
 		val proj1Def = getProjectDef(PROJECT_1_NAME)
 		createProject(ffs, PROJECT_1_NAME)
 		ffs.write(proj1Def.path.toOkioPath() / ProjectMetadata.FILENAME) {
 			writeUtf8("[info]\ncreated = 2022-12-30T07:08:02.691261600Z\ndataVersion = 4\n")
 		}
-
 		val repo = projectsRepository()
-		val healed = repo.getProjectId(proj1Def)
 
-		assertEquals(healed, repo.getProjectId(proj1Def))
-		assertEquals(healed, projectsMetaDatasource.loadMetadata(proj1Def).info.projectId)
+		val healed = repo.getProjects().single()
+
+		assertEquals(healed.id, projectsMetaDatasource.loadMetadata(proj1Def).info.projectId)
+		assertEquals(listOf(healed), repo.getProjects())
+	}
+
+	@Test
+	fun `Get Projects skips a project deleted while the list is built`() = scope.runTest {
+		createProject(ffs, PROJECT_1_NAME)
+		createProject(ffs, PROJECT_2_NAME)
+		val vanishingMarker = getProjectDef(PROJECT_1_NAME).path.toOkioPath() / ProjectMetadata.FILENAME
+		// Deletes the project right after the listing sees its marker, before its id is read.
+		val fs = object : ForwardingFileSystem(ffs) {
+			override fun metadataOrNull(path: Path): FileMetadata? =
+				super.metadataOrNull(path).also { if (path == vanishingMarker) ffs.deleteRecursively(path.parent!!) }
+		}
+		val repo = ProjectsRepository(fs, settingsRepo, ProjectMetadataDatasource(fs, toml), toml, json, deviceLocaleResolver)
+
+		assertEquals(listOf(PROJECT_2_NAME), repo.getProjects().map { it.name })
+	}
+
+	@Test
+	fun `Set Project ID returns the def under its new id`() = scope.runTest {
+		val proj2Def = getProjectDef(PROJECT_2_NAME)
+		val newId = ProjectId.randomUUID()
+		createProject(ffs, PROJECT_2_NAME)
+		val repo = projectsRepository()
+
+		val updated = repo.setProjectId(proj2Def, newId)
+
+		assertEquals(proj2Def.copy(id = newId), updated)
+		assertEquals(updated, repo.findProject(newId))
 	}
 
 	@Test
@@ -58,8 +102,42 @@ class ProjectsRepositoryIdTest : ProjectsRepositoryBaseTest() {
 		val repo = projectsRepository()
 		repo.setProjectId(proj2Def, projectId)
 
-		assertEquals(projectId, repo.getProjectId(proj2Def))
+		assertEquals(projectId, repo.listedProjectId(proj2Def))
 		assertEquals(proj2Def.name, repo.findProject(projectId)?.name)
+	}
+
+	@Test
+	fun `Set Project ID refuses a project in use`() = scope.runTest {
+		val proj2Def = getProjectDef(PROJECT_2_NAME)
+		createProject(ffs, PROJECT_2_NAME)
+		val repo = projectsRepository()
+		val projectScope = createProjectScope(proj2Def)
+
+		try {
+			assertFailsWith<ProjectInUseException> { repo.setProjectId(proj2Def, ProjectId("test-id")) }
+		} finally {
+			projectScope.close()
+		}
+
+		assertEquals(project2Id, repo.listedProjectId(proj2Def))
+	}
+
+	@Test
+	fun `A project is in use under any def for its path while its scope is open`() = scope.runTest {
+		val proj2Def = getProjectDef(PROJECT_2_NAME)
+		val reidentified = proj2Def.copy(id = ProjectId.randomUUID())
+		createProject(ffs, PROJECT_2_NAME)
+		val repo = projectsRepository()
+		val projectScope = createProjectScope(proj2Def)
+
+		try {
+			assertTrue(repo.isProjectInUse(reidentified))
+			assertTrue(repo.isProjectInUse(proj2Def.path))
+		} finally {
+			projectScope.close()
+		}
+
+		assertFalse(repo.isProjectInUse(proj2Def))
 	}
 
 	@Test
@@ -71,7 +149,7 @@ class ProjectsRepositoryIdTest : ProjectsRepositoryBaseTest() {
 		val changes = mutableListOf<Triple<String, ProjectId, ProjectId>>()
 		var storedWhenNotified: ProjectId? = null
 		repo.addProjectIdChangeListener { def, oldId, id ->
-			storedWhenNotified = repo.getProjectId(def)
+			storedWhenNotified = repo.listedProjectId(def)
 			changes += Triple(def.name, oldId, id)
 		}
 
@@ -106,7 +184,7 @@ class ProjectsRepositoryIdTest : ProjectsRepositoryBaseTest() {
 
 		repo.setProjectId(proj2Def, newId)
 
-		assertEquals(newId, repo.getProjectId(proj2Def))
+		assertEquals(newId, repo.listedProjectId(proj2Def))
 		assertTrue(laterListenerRan)
 	}
 
@@ -118,7 +196,7 @@ class ProjectsRepositoryIdTest : ProjectsRepositoryBaseTest() {
 		val second = repo.createProject("Second", seedDefaultLanguage = false)
 
 		assertTrue(isSuccess(first) && isSuccess(second))
-		assertNotEquals(repo.getProjectId(first.data), repo.getProjectId(second.data))
+		assertNotEquals(repo.listedProjectId(first.data), repo.listedProjectId(second.data))
 	}
 
 	@Test
@@ -129,7 +207,7 @@ class ProjectsRepositoryIdTest : ProjectsRepositoryBaseTest() {
 		val result = repo.createProject("From Server", seedDefaultLanguage = false, projectId = projectId)
 
 		assertTrue(isSuccess(result))
-		assertEquals(projectId, repo.getProjectId(result.data))
+		assertEquals(projectId, repo.listedProjectId(result.data))
 	}
 
 	@Test
@@ -143,8 +221,8 @@ class ProjectsRepositoryIdTest : ProjectsRepositoryBaseTest() {
 		val repo = projectsRepository()
 		repo.resolveDuplicateProjectIds()
 
-		assertEquals(project2Id, repo.getProjectId(original))
-		assertNotEquals(project2Id, repo.getProjectId(copy))
+		assertEquals(project2Id, repo.listedProjectId(original))
+		assertNotEquals(project2Id, repo.listedProjectId(copy))
 	}
 
 	@Test
@@ -159,8 +237,27 @@ class ProjectsRepositoryIdTest : ProjectsRepositoryBaseTest() {
 		val repo = projectsRepository()
 		repo.resolveDuplicateProjectIds()
 
-		assertEquals(project2Id, repo.getProjectId(original))
-		assertNotEquals(project2Id, repo.getProjectId(copy))
+		assertEquals(project2Id, repo.listedProjectId(original))
+		assertNotEquals(project2Id, repo.listedProjectId(copy))
+	}
+
+	@Test
+	fun `A copied project folder in use keeps the shared id until it is closed`() = scope.runTest {
+		createProject(ffs, PROJECT_2_NAME)
+		val original = getProjectDef(PROJECT_2_NAME)
+		val copy = copyProject(original, "Test Project 2 copy")
+		ffs.write(original.path.toOkioPath() / SyncJournalDatasource.SYNC_FILE_NAME) { writeUtf8("{}") }
+		val repo = projectsRepository()
+		val projectScope = createProjectScope(copy)
+
+		try {
+			repo.resolveDuplicateProjectIds()
+		} finally {
+			projectScope.close()
+		}
+
+		assertEquals(project2Id, repo.listedProjectId(original))
+		assertEquals(project2Id, repo.listedProjectId(copy))
 	}
 
 	@Test
@@ -168,12 +265,12 @@ class ProjectsRepositoryIdTest : ProjectsRepositoryBaseTest() {
 		createProject(ffs, PROJECT_1_NAME)
 		createProject(ffs, PROJECT_2_NAME)
 		val repo = projectsRepository()
-		val project1Id = repo.getProjectId(getProjectDef(PROJECT_1_NAME))
+		val project1Id = repo.listedProjectId(getProjectDef(PROJECT_1_NAME))
 
 		repo.resolveDuplicateProjectIds()
 
-		assertEquals(project1Id, repo.getProjectId(getProjectDef(PROJECT_1_NAME)))
-		assertEquals(project2Id, repo.getProjectId(getProjectDef(PROJECT_2_NAME)))
+		assertEquals(project1Id, repo.listedProjectId(getProjectDef(PROJECT_1_NAME)))
+		assertEquals(project2Id, repo.listedProjectId(getProjectDef(PROJECT_2_NAME)))
 	}
 
 	private fun copyProject(source: ProjectDef, name: String): ProjectDef {
@@ -182,6 +279,6 @@ class ProjectsRepositoryIdTest : ProjectsRepositoryBaseTest() {
 		ffs.list(source.path.toOkioPath()).forEach { file ->
 			if (ffs.metadata(file).isRegularFile) ffs.copy(file, target / file.name)
 		}
-		return ProjectDef(name, target.toHPath())
+		return ProjectDef(testProjectId(name), name, target.toHPath())
 	}
 }

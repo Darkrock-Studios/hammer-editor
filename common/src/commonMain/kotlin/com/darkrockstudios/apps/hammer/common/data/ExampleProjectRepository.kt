@@ -54,9 +54,9 @@ abstract class ExampleProjectRepository(
 		removeExampleProject()
 		platformInstall()
 		// The bundled project.toml carries no id, so every install mints its own.
-		val exampleDef = ProjectDef(PROJECT_NAME, (projectsDir() / PROJECT_NAME).toHPath())
-		if (fileSystem.exists(projectMetadataDatasource.getMetadataPath(exampleDef).toOkioPath())) {
-			projectMetadataDatasource.loadProjectId(exampleDef)
+		val exampleDir = (projectsDir() / PROJECT_NAME).toHPath()
+		if (fileSystem.exists(projectMetadataDatasource.getMetadataPath(exampleDir).toOkioPath())) {
+			projectMetadataDatasource.loadProjectId(exampleDir)
 		}
 
 		scope.launch {

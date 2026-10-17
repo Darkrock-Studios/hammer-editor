@@ -8,7 +8,6 @@ import com.darkrockstudios.apps.hammer.base.http.LoadEntityResponse
 import com.darkrockstudios.apps.hammer.base.http.ProjectSynchronizationBegan
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
-import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.EntityTransferOperation
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
@@ -41,9 +40,6 @@ class EntityTransferOperationTest : BaseTest() {
 
 	@MockK(relaxed = false)
 	private lateinit var serverProjectApi: ServerProjectApi
-
-	@MockK(relaxed = true)
-	private lateinit var projectMetadataDatasource: ProjectMetadataDatasource
 
 	@MockK(relaxed = true)
 	private lateinit var syncJournal: SyncJournal
@@ -79,7 +75,6 @@ class EntityTransferOperationTest : BaseTest() {
 			serverProjectApi = serverProjectApi,
 			strRes = strRes,
 			entitySynchronizers = EntitySynchronizers(projectDef),
-			projectMetadataDatasource = projectMetadataDatasource,
 			syncJournal = syncJournal,
 		)
 	}
@@ -146,7 +141,6 @@ class EntityTransferOperationTest : BaseTest() {
 			onlyNew = false,
 			clientSyncData = projectData,
 			entityState = entityState,
-			serverProjectId = projId,
 			serverSyncData = beganResponse,
 			collatedIds = collatedIds,
 			maxId = 12,
@@ -220,7 +214,6 @@ class EntityTransferOperationTest : BaseTest() {
 			deletedIds = emptySet(),
 		),
 		entityState = ClientEntityState(emptySet()),
-		serverProjectId = projId,
 		serverSyncData = ProjectSynchronizationBegan(
 			syncId = "sync-id",
 			lastSync = Instant.fromEpochSeconds(1),

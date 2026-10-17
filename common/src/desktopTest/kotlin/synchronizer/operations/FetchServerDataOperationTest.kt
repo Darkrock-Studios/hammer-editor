@@ -12,12 +12,12 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
-import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.FetchServerDataOperation
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.ProjectAdoptConflictException
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.ProjectDeletedElsewhereException
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.ProjectNeedsAccountSyncException
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.server.HttpFailureException
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
@@ -30,7 +30,6 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.impl.annotations.MockK
 import io.mockk.mockk
-import io.mockk.verify
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -43,16 +42,12 @@ import utils.sharedFlow
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
-import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 import kotlin.time.Instant
 
 class FetchServerDataOperationTest : BaseTest() {
 
 	private lateinit var mockSynchronizers: MockSynchronizers
-
-	@MockK(relaxed = true)
-	private lateinit var projectMetadataDatasource: ProjectMetadataDatasource
 
 	@MockK(relaxed = true)
 	private lateinit var globalSettingsStore: GlobalSettingsStore
@@ -125,7 +120,6 @@ class FetchServerDataOperationTest : BaseTest() {
 				}
 			)
 		}
-		coEvery { projectMetadataDatasource.loadMetadata(any()) } returns metadata
 
 		val onProgress = mockk<suspend (Float, SyncLogMessage?) -> Unit>(relaxed = true)
 		val onLog = mockk<OnSyncLog>(relaxed = true)
@@ -136,7 +130,6 @@ class FetchServerDataOperationTest : BaseTest() {
 			onlyNew = false,
 			clientSyncData = projectData,
 			entityState = entityState,
-			serverProjectId = projId,
 		)
 		val result = op.execute(
 			state = initialState,
@@ -155,12 +148,11 @@ class FetchServerDataOperationTest : BaseTest() {
 				onlyNew = false,
 				clientSyncData = projectData,
 				entityState = entityState,
-				serverProjectId = projId,
 				serverSyncData = beganResponse
 			),
 			data
 		)
-		// The request carries the settings userId, the metadata project id, and the local entity state.
+		// The request carries the settings userId, the project id, and the local entity state.
 		coVerify { serverProjectApi.beginProjectSync(1L, projId, entityState, false) }
 	}
 
@@ -175,7 +167,6 @@ class FetchServerDataOperationTest : BaseTest() {
 				}
 			)
 		}
-		coEvery { projectMetadataDatasource.loadMetadata(any()) } returns metadata
 		coEvery {
 			serverProjectApi.beginProjectSync(
 				any(),
@@ -194,7 +185,6 @@ class FetchServerDataOperationTest : BaseTest() {
 			onlyNew = false,
 			clientSyncData = projectData,
 			entityState = entityState,
-			serverProjectId = projId,
 		)
 		val result = op.execute(
 			state = initialState,
@@ -211,7 +201,7 @@ class FetchServerDataOperationTest : BaseTest() {
 	fun `A generic failure does not recreate the project`() = runTest {
 		val op = createOperation(getProjectDef(PROJECT_2_NAME))
 
-		stubSettingsAndMetadata()
+		stubSettings()
 		coEvery { serverProjectApi.beginProjectSync(any(), any(), any(), any()) } returns
 			Result.failure(Exception("Test Failure"))
 
@@ -228,11 +218,11 @@ class FetchServerDataOperationTest : BaseTest() {
 		val op = createOperation(projectDef)
 		val clearedJournal = projectData.copy(lastSync = Instant.DISTANT_PAST, syncedHashes = emptyMap())
 
-		stubSettingsAndMetadata()
+		stubSettings()
 		coEvery { serverProjectApi.beginProjectSync(any(), any(), any(), any()) } returnsMany
 			listOf(Result.failure(gone()), Result.success(beganResponse))
 		coEvery { projectCreateResolver.createInOwnSession(projectDef) } returns
-			ServerCreateOutcome.Created(projId, alreadyExisted = false, reminted = false)
+			ServerCreateOutcome.Created(alreadyExisted = false, reminted = false)
 		coEvery { syncJournal.loadSyncData() } returns clearedJournal
 
 		val result = execute(op)
@@ -242,28 +232,26 @@ class FetchServerDataOperationTest : BaseTest() {
 		// The old baseline described a server copy that no longer exists.
 		coVerify { projectsRepository.clearSyncBaseline(projectDef) }
 		assertEquals(clearedJournal, data.clientSyncData)
-		assertEquals(projId, data.serverProjectId)
 		coVerify(exactly = 2) { serverProjectApi.beginProjectSync(1L, projId, entityState, false) }
 	}
 
 	@Test
-	fun `A 410 retry uses the id the server answered the create with`() = runTest {
+	fun `A 410 whose create needs account sync fails without retrying`() = runTest {
 		val projectDef = getProjectDef(PROJECT_2_NAME)
 		val op = createOperation(projectDef)
-		val adoptedId = ProjectId("adopted-id")
+		val logs = mutableListOf<SyncLogMessage>()
 
-		stubSettingsAndMetadata()
-		coEvery { serverProjectApi.beginProjectSync(any(), projId, any(), any()) } returns Result.failure(gone())
-		coEvery { serverProjectApi.beginProjectSync(any(), adoptedId, any(), any()) } returns
-			Result.success(beganResponse)
-		coEvery { projectCreateResolver.createInOwnSession(projectDef) } returns
-			ServerCreateOutcome.Created(adoptedId, alreadyExisted = true, reminted = false)
-		coEvery { syncJournal.loadSyncData() } returns projectData
+		stubSettings()
+		coEvery { serverProjectApi.beginProjectSync(any(), any(), any(), any()) } returns Result.failure(gone())
+		coEvery { projectCreateResolver.createInOwnSession(projectDef) } returns ServerCreateOutcome.NeedsAccountSync
 
-		val result = execute(op)
+		val result = execute(op) { logs.add(it) }
 
-		assertTrue(isSuccess(result))
-		assertEquals(adoptedId, assertIs<FetchServerDataState>(result.data).serverProjectId)
+		assertFalse(isSuccess(result))
+		assertIs<ProjectNeedsAccountSyncException>(result.exception)
+		assertTrue(logs.any { it.level == SyncLogLevel.WARN })
+		coVerify(exactly = 1) { serverProjectApi.beginProjectSync(any(), any(), any(), any()) }
+		coVerify(exactly = 0) { projectsRepository.clearSyncBaseline(any()) }
 	}
 
 	@Test
@@ -271,7 +259,7 @@ class FetchServerDataOperationTest : BaseTest() {
 		val projectDef = getProjectDef(PROJECT_2_NAME)
 		val op = createOperation(projectDef)
 
-		stubSettingsAndMetadata()
+		stubSettings()
 		coEvery { serverProjectApi.beginProjectSync(any(), any(), any(), any()) } returns Result.failure(gone())
 		coEvery { projectCreateResolver.createInOwnSession(projectDef) } returns ServerCreateOutcome.DeletedElsewhere
 		val logs = mutableListOf<SyncLogMessage>()
@@ -290,10 +278,10 @@ class FetchServerDataOperationTest : BaseTest() {
 		val projectDef = getProjectDef(PROJECT_2_NAME)
 		val op = createOperation(projectDef)
 
-		stubSettingsAndMetadata()
+		stubSettings()
 		coEvery { serverProjectApi.beginProjectSync(any(), any(), any(), any()) } returns Result.failure(gone())
 		coEvery { projectCreateResolver.createInOwnSession(projectDef) } returns
-			ServerCreateOutcome.Created(projId, alreadyExisted = false, reminted = false)
+			ServerCreateOutcome.Created(alreadyExisted = false, reminted = false)
 		coEvery { syncJournal.loadSyncData() } returns projectData
 
 		val result = execute(op)
@@ -306,11 +294,11 @@ class FetchServerDataOperationTest : BaseTest() {
 	@Test
 	fun `A 410 for a never-synced project creates it under its own id`() = runTest {
 		val projectDef = getProjectDef(PROJECT_2_NAME)
-		val serverProjectsApi = stubResolverSession(projectDef)
+		val serverProjectsApi = stubResolverSession()
 		val op = createOperation(projectDef, ProjectCreateResolver(serverProjectsApi, projectsRepository))
 		val logs = mutableListOf<SyncLogMessage>()
 
-		stubSettingsAndMetadata()
+		stubSettings()
 		coEvery { serverProjectApi.beginProjectSync(any(), any(), any(), any()) } returnsMany
 			listOf(Result.failure(gone()), Result.success(beganResponse))
 		coEvery { serverProjectsApi.createProject(projectDef.name, projId, SYNC_ID) } returns
@@ -326,62 +314,62 @@ class FetchServerDataOperationTest : BaseTest() {
 	}
 
 	@Test
-	fun `A 410 adopts the id of a same-named server project`() = runTest {
+	fun `A 410 matching a same-named server project fails for account sync to adopt it`() = runTest {
 		val projectDef = getProjectDef(PROJECT_2_NAME)
-		val serverProjectsApi = stubResolverSession(projectDef)
+		val serverProjectsApi = stubResolverSession()
 		val op = createOperation(projectDef, ProjectCreateResolver(serverProjectsApi, projectsRepository))
 		val serverId = ProjectId("server-id")
-
-		stubSettingsAndMetadata()
-		coEvery { serverProjectApi.beginProjectSync(any(), projId, any(), any()) } returns Result.failure(gone())
-		coEvery { serverProjectApi.beginProjectSync(any(), serverId, any(), any()) } returns
-			Result.success(beganResponse)
-		coEvery { serverProjectsApi.createProject(projectDef.name, projId, SYNC_ID) } returns
-			Result.success(CreateProjectResponse(serverId, alreadyExisted = true))
-		coEvery { syncJournal.loadSyncData() } returns projectData
-
-		val result = execute(op)
-
-		assertTrue(isSuccess(result))
-		assertEquals(serverId, assertIs<FetchServerDataState>(result.data).serverProjectId)
-		coVerify { projectsRepository.setProjectId(projectDef, serverId) }
-	}
-
-	@Test
-	fun `A 410 whose id another account holds re-mints and retries with the new id`() = runTest {
-		val projectDef = getProjectDef(PROJECT_2_NAME)
-		val serverProjectsApi = stubResolverSession(projectDef)
-		val op = createOperation(projectDef, ProjectCreateResolver(serverProjectsApi, projectsRepository))
 		val logs = mutableListOf<SyncLogMessage>()
 
-		stubSettingsAndMetadata()
-		coEvery { serverProjectApi.beginProjectSync(any(), projId, any(), any()) } returns Result.failure(gone())
-		coEvery { serverProjectApi.beginProjectSync(any(), not(projId), any(), any()) } returns
-			Result.success(beganResponse)
+		stubSettings()
+		coEvery { serverProjectApi.beginProjectSync(any(), any(), any(), any()) } returns Result.failure(gone())
 		coEvery { serverProjectsApi.createProject(projectDef.name, projId, SYNC_ID) } returns
-			Result.failure(conflict(ApiErrorCode.PROJECT_ID_TAKEN))
-		coEvery { serverProjectsApi.createProject(projectDef.name, not(projId), SYNC_ID) } answers
-			{ Result.success(CreateProjectResponse(ProjectId(secondArg<String>()), alreadyExisted = false)) }
-		coEvery { syncJournal.loadSyncData() } returns projectData
+			Result.success(CreateProjectResponse(serverId, alreadyExisted = true))
 
 		val result = execute(op) { logs.add(it) }
 
-		assertTrue(isSuccess(result))
-		val newId = assertIs<FetchServerDataState>(result.data).serverProjectId
-		assertNotEquals(projId, newId)
-		coVerify { projectsRepository.setProjectId(projectDef, newId) }
+		assertFalse(isSuccess(result))
+		assertIs<ProjectNeedsAccountSyncException>(result.exception)
 		assertTrue(logs.any { it.level == SyncLogLevel.WARN })
+		coVerify(exactly = 0) { projectsRepository.setProjectId(any(), any()) }
+		coVerify(exactly = 0) { projectsRepository.clearSyncBaseline(any()) }
+		coVerify(exactly = 1) { serverProjectApi.beginProjectSync(any(), any(), any(), any()) }
+		coVerify { serverProjectsApi.endProjectsSync(SYNC_ID) }
+	}
+
+	@Test
+	fun `A 410 whose id another account holds fails without re-minting`() = runTest {
+		val projectDef = getProjectDef(PROJECT_2_NAME)
+		val serverProjectsApi = stubResolverSession()
+		val op = createOperation(projectDef, ProjectCreateResolver(serverProjectsApi, projectsRepository))
+		val logs = mutableListOf<SyncLogMessage>()
+
+		stubSettings()
+		coEvery { serverProjectApi.beginProjectSync(any(), any(), any(), any()) } returns Result.failure(gone())
+		coEvery { serverProjectsApi.createProject(projectDef.name, projId, SYNC_ID) } returns
+			Result.failure(conflict(ApiErrorCode.PROJECT_ID_TAKEN))
+
+		val result = execute(op) { logs.add(it) }
+
+		assertFalse(isSuccess(result))
+		assertIs<ProjectNeedsAccountSyncException>(result.exception)
+		assertTrue(logs.any { it.level == SyncLogLevel.WARN })
+		coVerify(exactly = 1) { serverProjectsApi.createProject(any(), any(), any()) }
+		coVerify(exactly = 0) { projectsRepository.setProjectId(any(), any()) }
+		coVerify(exactly = 0) { projectsRepository.clearSyncBaseline(any()) }
+		coVerify(exactly = 1) { serverProjectApi.beginProjectSync(any(), any(), any(), any()) }
+		coVerify { serverProjectsApi.endProjectsSync(SYNC_ID) }
 	}
 
 	@Test
 	fun `A 410 does not adopt a server id another local project holds`() = runTest {
 		val projectDef = getProjectDef(PROJECT_2_NAME)
-		val serverProjectsApi = stubResolverSession(projectDef)
+		val serverProjectsApi = stubResolverSession()
 		val op = createOperation(projectDef, ProjectCreateResolver(serverProjectsApi, projectsRepository))
 		val heldId = ProjectId("held-id")
 		val logs = mutableListOf<SyncLogMessage>()
 
-		stubSettingsAndMetadata()
+		stubSettings()
 		every { projectsRepository.findProject(heldId) } returns getProjectDef(PROJECT_1_NAME)
 		coEvery { serverProjectApi.beginProjectSync(any(), any(), any(), any()) } returns Result.failure(gone())
 		coEvery { serverProjectsApi.createProject(projectDef.name, projId, SYNC_ID) } returns
@@ -401,11 +389,11 @@ class FetchServerDataOperationTest : BaseTest() {
 	@Test
 	fun `A 410 whose create fails fails the sync and ends the session`() = runTest {
 		val projectDef = getProjectDef(PROJECT_2_NAME)
-		val serverProjectsApi = stubResolverSession(projectDef)
+		val serverProjectsApi = stubResolverSession()
 		val op = createOperation(projectDef, ProjectCreateResolver(serverProjectsApi, projectsRepository))
 		val logs = mutableListOf<SyncLogMessage>()
 
-		stubSettingsAndMetadata()
+		stubSettings()
 		coEvery { serverProjectApi.beginProjectSync(any(), any(), any(), any()) } returns Result.failure(gone())
 		coEvery { serverProjectsApi.createProject(projectDef.name, projId, SYNC_ID) } returns
 			Result.failure(Exception("Server error"))
@@ -419,8 +407,7 @@ class FetchServerDataOperationTest : BaseTest() {
 		coVerify { serverProjectsApi.endProjectsSync(SYNC_ID) }
 	}
 
-	private fun stubResolverSession(projectDef: ProjectDef): ServerProjectsApi {
-		every { projectsRepository.getProjectId(projectDef) } returns projId
+	private fun stubResolverSession(): ServerProjectsApi {
 		every { projectsRepository.findProject(any<ProjectId>()) } returns null
 		return mockk<ServerProjectsApi>().also { api ->
 			coEvery { api.beginProjectsSync() } returns
@@ -439,7 +426,7 @@ class FetchServerDataOperationTest : BaseTest() {
 		error = HttpResponseError(error = "Project Not Found", displayMessage = "Project does not exist"),
 	)
 
-	private suspend fun stubSettingsAndMetadata() {
+	private suspend fun stubSettings() {
 		coEvery { globalSettingsStore.serverSettingsUpdates } returns sharedFlow {
 			emit(
 				mockk<ServerSettings>().apply {
@@ -447,7 +434,6 @@ class FetchServerDataOperationTest : BaseTest() {
 				}
 			)
 		}
-		coEvery { projectMetadataDatasource.loadMetadata(any()) } returns metadata
 	}
 
 	private suspend fun execute(
@@ -458,7 +444,6 @@ class FetchServerDataOperationTest : BaseTest() {
 			onlyNew = false,
 			clientSyncData = projectData,
 			entityState = entityState,
-			serverProjectId = projId,
 		),
 		onProgress = mockk(relaxed = true),
 		onLog = onLog,

@@ -20,6 +20,7 @@ import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import testProjectId
 import utils.BaseTest
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -43,7 +44,7 @@ class Migration3_4Test : BaseTest() {
 		ffs = FakeFileSystem()
 		val projectPath = "/projects".toPath().div("Test Project")
 		ffs.createDirectories(projectPath)
-		projDef = ProjectDef(name = "Test Project", path = projectPath.toHPath())
+		projDef = ProjectDef(id = testProjectId("Test Project"), name = "Test Project", path = projectPath.toHPath())
 	}
 
 	private val metadataPath: Path
@@ -86,7 +87,7 @@ class Migration3_4Test : BaseTest() {
 
 		migration().migrate(def)
 
-		assertEquals(ProjectId(SERVER_ID), metadataDatasource().loadProjectId(def))
+		assertEquals(ProjectId(SERVER_ID), metadataDatasource().loadProjectId(def.path))
 	}
 
 	@Test
@@ -107,7 +108,7 @@ class Migration3_4Test : BaseTest() {
 		migrator(2 to noOp(2), 3 to noOp(3), 4 to migration()).migrateProject(projDef)
 
 		assertEquals(4, metadataDatasource().loadMetadata(projDef).info.dataVersion)
-		assertEquals(ProjectId(SERVER_ID), metadataDatasource().loadProjectId(projDef))
+		assertEquals(ProjectId(SERVER_ID), metadataDatasource().loadProjectId(projDef.path))
 		assertFalse(read(metadataPath).contains("serverProjectId"))
 	}
 

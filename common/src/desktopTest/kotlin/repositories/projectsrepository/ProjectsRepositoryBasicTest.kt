@@ -22,6 +22,7 @@ import kotlinx.coroutines.test.runTest
 import org.jetbrains.compose.resources.StringResource
 import org.junit.jupiter.api.Test
 import projectNames
+import testProjectId
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
@@ -187,9 +188,9 @@ class ProjectsRepositoryBasicTest : ProjectsRepositoryBaseTest() {
 		val result2 = repo.createProject(projectName, seedDefaultLanguage = true)
 		assertFalse(result2.isSuccess)
 
-		val newDef = ProjectDef(projectName, actualProjDir.toHPath())
+		val newDef = ProjectDef(testProjectId(projectName), projectName, actualProjDir.toHPath())
 		val metadataDatasource = ProjectMetadataDatasource(ffs, toml)
-		val metadataPath = metadataDatasource.getMetadataPath(newDef)
+		val metadataPath = metadataDatasource.getMetadataPath(newDef.path)
 		assertTrue(
 			ffs.exists(metadataPath.toOkioPath()),
 			"createProject must write ${ProjectMetadata.FILENAME} immediately"
@@ -203,7 +204,7 @@ class ProjectsRepositoryBasicTest : ProjectsRepositoryBaseTest() {
 		val projectName = projectNames[0]
 		assertTrue(repo.createProject(projectName, seedDefaultLanguage = true).isSuccess)
 
-		val newDef = ProjectDef(projectName, getProjectsDirectory().div(projectName).toHPath())
+		val newDef = ProjectDef(testProjectId(projectName), projectName, getProjectsDirectory().div(projectName).toHPath())
 		val stored = loadStoredProjectData(newDef, ffs, toml)
 		// Region deliberately dropped from the en-US device locale: the auto-default must
 		// never gate spell check against a same-language dictionary of another region.
@@ -243,7 +244,7 @@ class ProjectsRepositoryBasicTest : ProjectsRepositoryBaseTest() {
 
 		val projectName = projectNames[0]
 		val projPath = getProjectsDirectory().div(projectName)
-		val projDef = ProjectDefinition(projectName, projPath.toHPath())
+		val projDef = ProjectDefinition(testProjectId(projectName), projectName, projPath.toHPath())
 
 		val deleted = repo.deleteProject(projDef)
 		assertTrue(deleted)

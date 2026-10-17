@@ -14,14 +14,13 @@ import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.scenelist.SceneList
 import com.darkrockstudios.apps.hammer.common.compose.rememberRootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.data.MoveRequest
-import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneBuffer
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.SceneSummary
 import com.darkrockstudios.apps.hammer.common.data.tree.Tree
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
-import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.preview.KoinApplicationPreview
+import com.darkrockstudios.apps.hammer.common.preview.fakeProjectDef
 import com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.SCENE_LIST_ADD_BUTTON_TAG
 import com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.SCENE_LIST_TREE_TAG
 import com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.SceneListUi
@@ -92,13 +91,8 @@ class SceneListFooterTest : BaseTest() {
 	}
 }
 
-private fun testProjectDef() = ProjectDef(
-	name = "Test",
-	path = HPath(name = "Test", path = "/", isAbsolute = true),
-)
-
 private fun testScene(id: Int, order: Int, type: SceneItem.Type = SceneItem.Type.Scene) = SceneItem(
-	projectDef = testProjectDef(),
+	projectDef = fakeProjectDef(),
 	type = type,
 	id = id,
 	name = "Test Scene $id",
@@ -119,7 +113,7 @@ private fun testSceneSummary(): SceneSummary {
 private fun fakeComponent() = object : SceneList {
 	override val state: Value<SceneList.State> = MutableValue(
 		SceneList.State(
-			projectDef = testProjectDef(),
+			projectDef = fakeProjectDef(),
 			sceneSummary = testSceneSummary(),
 		)
 	)

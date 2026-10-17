@@ -27,10 +27,10 @@ class ClientSceneSynchronizer(
 	private val sceneEditorService: SceneEditorService,
 	private val draftRepository: SceneDraftRepository,
 	serverProjectApi: ServerProjectApi,
-	projectMetadataDatasource: ProjectMetadataDatasource,
+	private val projectMetadataDatasource: ProjectMetadataDatasource,
 	private val strRes: StrRes,
 ) : EntitySynchronizer<ApiProjectEntity.SceneEntity>(
-	projectDef, serverProjectApi, projectMetadataDatasource
+	projectDef, serverProjectApi
 ) {
 	override suspend fun createEntityForId(id: Int): ApiProjectEntity.SceneEntity {
 		val scene = sceneEditorRepository.getSceneItemFromId(id)

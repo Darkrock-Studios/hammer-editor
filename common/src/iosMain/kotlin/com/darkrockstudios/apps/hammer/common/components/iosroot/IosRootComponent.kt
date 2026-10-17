@@ -13,7 +13,6 @@ import com.darkrockstudios.apps.hammer.common.data.closeProjectScope
 import com.darkrockstudios.apps.hammer.common.data.openProjectScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import kotlinx.coroutines.runBlocking
-import org.koin.core.component.getScopeId
 
 class IosRootComponent(
 	componentContext: ComponentContext,
@@ -36,7 +35,7 @@ class IosRootComponent(
 		when (config) {
 			is IosRoot.Config.ProjectRoot -> {
 				componentContext.lifecycle.doOnDestroy {
-					val scopeId = ProjectDefScope(config.projectDef).getScopeId()
+					val scopeId = ProjectDefScope(config.projectDef).scopeId
 					getKoin().getScopeOrNull(scopeId)?.let { scope ->
 						closeProjectScope(scope, config.projectDef)
 					}

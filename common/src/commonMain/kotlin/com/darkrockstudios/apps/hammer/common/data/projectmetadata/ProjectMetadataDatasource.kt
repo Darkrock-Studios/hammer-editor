@@ -25,16 +25,18 @@ class ProjectMetadataDatasource(
 	private val fileSystem: FileSystem,
 	private val toml: Toml
 ) {
-	fun getMetadataPath(projectDef: ProjectDef): HPath {
-		return (projectDef.path.toOkioPath() / ProjectMetadata.FILENAME).toHPath()
-	}
+	fun getMetadataPath(projectDir: HPath): HPath = metadataPath(projectDir).toHPath()
+
+	private fun metadataPath(projectDir: HPath): Path = projectDir.toOkioPath() / ProjectMetadata.FILENAME
 
 	/**
 	 * Does not mint: a file without a [Info.projectId] is returned without one. Use [loadProjectId]
 	 * for the id.
 	 */
-	fun loadMetadata(projectDef: ProjectDef): ProjectMetadata {
-		val path = getMetadataPath(projectDef).toOkioPath()
+	fun loadMetadata(projectDef: ProjectDef): ProjectMetadata = loadMetadata(projectDef.path)
+
+	private fun loadMetadata(projectDir: HPath): ProjectMetadata {
+		val path = metadataPath(projectDir)
 
 		val metadata = fileSystem.readTomlOrNull<ProjectMetadata>(path, toml) { e ->
 			Napier.e("Failed to load project metadata: ${path.toHPath().path}", e)
@@ -42,7 +44,7 @@ class ProjectMetadataDatasource(
 			// Missing or corrupt (tomlkt throws beyond SerializationException): drop the
 			// bad file and start fresh so migrators re-run instead of crashing the load.
 			fileSystem.delete(path, false)
-			return createMetadata(projectDef, ProjectId.randomUUID())
+			return createMetadata(projectDir, ProjectId.randomUUID())
 		}
 
 		return if (metadata.info.projectId == null) withLegacyServerId(metadata, path) else metadata
@@ -60,8 +62,10 @@ class ProjectMetadataDatasource(
 		return metadata.copy(info = metadata.info.copy(projectId = legacyId))
 	}
 
-	fun saveMetadata(metadata: ProjectMetadata, projectDef: ProjectDef) {
-		fileSystem.writeToml(getMetadataPath(projectDef).toOkioPath(), toml, metadata, header = FILE_HEADER)
+	fun saveMetadata(metadata: ProjectMetadata, projectDef: ProjectDef) = saveMetadata(metadata, projectDef.path)
+
+	private fun saveMetadata(metadata: ProjectMetadata, projectDir: HPath) {
+		fileSystem.writeToml(metadataPath(projectDir), toml, metadata, header = FILE_HEADER)
 	}
 
 	fun updateMetadata(
@@ -77,7 +81,10 @@ class ProjectMetadataDatasource(
 	 * Writes a fresh file for a directory whose content is of unknown age. `dataVersion = 0` makes
 	 * every migrator run over it; each one skips content that is already current.
 	 */
-	fun createMetadata(projectDef: ProjectDef, projectId: ProjectId): ProjectMetadata {
+	fun createMetadata(projectDef: ProjectDef, projectId: ProjectId): ProjectMetadata =
+		createMetadata(projectDef.path, projectId)
+
+	private fun createMetadata(projectDir: HPath, projectId: ProjectId): ProjectMetadata {
 		val now = Clock.System.now()
 		val newMetadata = ProjectMetadata(
 			info = Info(
@@ -88,19 +95,19 @@ class ProjectMetadataDatasource(
 			)
 		)
 
-		saveMetadata(newMetadata, projectDef)
+		saveMetadata(newMetadata, projectDir)
 
 		return newMetadata
 	}
 
 	/** The project's id, minting and saving a new one if the file has none. */
-	fun loadProjectId(projectDef: ProjectDef): ProjectId {
-		val metadata = loadMetadata(projectDef)
+	fun loadProjectId(projectDir: HPath): ProjectId {
+		val metadata = loadMetadata(projectDir)
 		metadata.info.projectId?.let { return it }
 
 		val minted = ProjectId.randomUUID()
-		Napier.w("Project '${projectDef.name}' had no project id, assigned ${minted.id}")
-		saveMetadata(metadata.copy(info = metadata.info.copy(projectId = minted)), projectDef)
+		Napier.w("Project '${projectDir.name}' had no project id, assigned ${minted.id}")
+		saveMetadata(metadata.copy(info = metadata.info.copy(projectId = minted)), projectDir)
 		return minted
 	}
 

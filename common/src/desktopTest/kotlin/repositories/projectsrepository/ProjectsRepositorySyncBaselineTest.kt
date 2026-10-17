@@ -5,13 +5,12 @@ import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.createProjectScope
-import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupService
+import com.darkrockstudios.apps.hammer.common.data.projectbackup.BackupRestoreResult
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
 import com.darkrockstudios.apps.hammer.common.data.projectdata.StoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.projectdata.readStoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.projectdata.saveStoredProjectData
-import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityOriginalState
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectSynchronizationData
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournalDatasource
@@ -19,9 +18,8 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScop
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import createProject
 import getProjectDef
-import io.mockk.every
-import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
+import listedProjectId
 import okio.Path
 import org.junit.jupiter.api.Test
 import org.koin.dsl.module
@@ -31,7 +29,6 @@ import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-import kotlin.time.Clock
 import kotlin.time.Instant
 
 /**
@@ -178,7 +175,7 @@ class ProjectsRepositorySyncBaselineTest : ProjectsRepositoryBaseTest() {
 	fun `Clearing all sync baselines resets each project but keeps its id`() = scope.runTest {
 		createProject(ffs, PROJECT_1_NAME)
 		val repo = projectsRepository()
-		val projectId = repo.getProjectId(projectDef)
+		val projectId = repo.listedProjectId(projectDef)
 		seedBaseline()
 
 		// A server change: whatever the project is uploaded to next has never seen it.
@@ -188,7 +185,7 @@ class ProjectsRepositorySyncBaselineTest : ProjectsRepositoryBaseTest() {
 		assertEquals(Instant.DISTANT_PAST, readJournal().lastSync)
 		assertNull(storedProjectData().lastSyncedHash)
 		assertEquals(ProjectData(authorName = "Author"), storedProjectData().data)
-		assertEquals(projectId, repo.getProjectId(projectDef))
+		assertEquals(projectId, repo.listedProjectId(projectDef))
 	}
 
 	@Test
@@ -212,7 +209,7 @@ class ProjectsRepositorySyncBaselineTest : ProjectsRepositoryBaseTest() {
 		// as well or the next sync still fast-forwards onto the new server's empty copy.
 		assertEquals("hash-agreed-with-the-old-server", projectDataRepository.load().lastSyncedHash)
 
-		projectsRepository().setProjectId(projectDef, ProjectId("id-on-the-new-server"))
+		projectsRepository().clearAllSyncBaselines()
 
 		assertNull(projectDataRepository.load().lastSyncedHash)
 		assertNull(storedProjectData().lastSyncedHash)
@@ -233,27 +230,19 @@ class ProjectsRepositorySyncBaselineTest : ProjectsRepositoryBaseTest() {
 		return createProjectScope(projectDef).get()
 	}
 
-	private fun backupService(repo: ProjectsRepository): ProjectBackupService {
-		every { settings.maxBackups } returns 5
-		val clock = object : Clock {
-			override fun now(): Instant = Instant.parse("2025-12-28T16:29:00Z")
-		}
-		return ProjectBackupService(ffs, repo, settingsRepo, clock, mockk(relaxed = true))
-	}
-
 	@Test
 	fun `Restoring a backup over the same project flags it for a full conflict check`() =
 		scope.runTest {
 			createProject(ffs, PROJECT_1_NAME)
 			val repo = projectsRepository()
-			val projectId = repo.getProjectId(projectDef)
+			val projectId = repo.listedProjectId(projectDef)
 			seedBaseline()
 			val backups = backupService(repo)
 			val backup = assertNotNull(backups.createBackup(projectDef))
 
-			assertTrue(backups.restoreBackup(backup, projectDef.path))
+			assertEquals(BackupRestoreResult.Restored, backups.restoreBackup(backup, projectDef.path))
 
-			assertEquals(projectId, repo.getProjectId(projectDef))
+			assertEquals(projectId, repo.listedProjectId(projectDef))
 			val journal = readJournal()
 			assertTrue(journal.verifyAllEntities, "the next sync must conflict-check every entity")
 			assertNull(journal.cachedProjectHash, "the pre-sync probe must not skip the restored project")
@@ -271,17 +260,17 @@ class ProjectsRepositorySyncBaselineTest : ProjectsRepositoryBaseTest() {
 		scope.runTest {
 			createProject(ffs, PROJECT_1_NAME)
 			val repo = projectsRepository()
-			val backupId = repo.getProjectId(projectDef)
+			val backupId = repo.listedProjectId(projectDef)
 			seedBaseline()
 			val backups = backupService(repo)
 			val backup = assertNotNull(backups.createBackup(projectDef))
 			ffs.deleteRecursively(projectDef.path.toOkioPath())
 
-			assertTrue(backups.restoreBackup(backup, projectDef.path))
+			assertEquals(BackupRestoreResult.Restored, backups.restoreBackup(backup, projectDef.path))
 
 			// A fresh id can still adopt a same-named server project, where these baselines raise its
 			// conflicts. A new, empty server project holds no entities to conflict-check against.
-			assertNotEquals(backupId, repo.getProjectId(projectDef))
+			assertNotEquals(backupId, repo.listedProjectId(projectDef))
 			val journal = readJournal()
 			assertEquals(seededJournal.syncedHashes, journal.syncedHashes)
 			assertEquals(seededJournal.dirty, journal.dirty)
@@ -309,7 +298,7 @@ class ProjectsRepositorySyncBaselineTest : ProjectsRepositoryBaseTest() {
 			val backup = assertNotNull(backups.createBackup(projectDef))
 			seedBaseline()
 
-			assertTrue(backups.restoreBackup(backup, projectDef.path))
+			assertEquals(BackupRestoreResult.Restored, backups.restoreBackup(backup, projectDef.path))
 
 			// A rebuilt journal would list every entity as clean, so the server's copy would win.
 			val journal = readJournal()

@@ -20,7 +20,7 @@ class CaptureTargetsUseCase(
 		val lastUsed = subscriptions.lastCaptureProjectId()
 		return CaptureTargets(
 			projects = projects,
-			default = projects.find { it.projectId == lastUsed } ?: projects.firstOrNull(),
+			default = projects.find { it.projectDef.id == lastUsed } ?: projects.firstOrNull(),
 		)
 	}
 }

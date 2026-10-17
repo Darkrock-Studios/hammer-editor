@@ -15,14 +15,15 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.koin.core.component.KoinComponent
-import org.koin.core.component.getScopeId
 import org.koin.dsl.module
 import org.koin.mp.KoinPlatform.getKoin
+import testProjectId
 import utils.BaseTest
 
 class TemporaryProjectTaskTest : BaseTest(), KoinComponent {
 
 	private val projectDef = ProjectDef(
+		id = testProjectId("Test Project"),
 		name = "Test Project",
 		path = HPath(path = "/projects/Test Project", name = "Test Project", isAbsolute = true),
 	)
@@ -41,7 +42,7 @@ class TemporaryProjectTaskTest : BaseTest(), KoinComponent {
 	}
 
 	private fun scopeIsOpen(): Boolean =
-		getKoin().getScopeOrNull(ProjectDefScope(projectDef).getScopeId()) != null
+		getKoin().getScopeOrNull(ProjectDefScope(projectDef).scopeId) != null
 
 	@Test
 	fun `a lone task opens the scope and closes it again`() = runTest {
@@ -76,7 +77,7 @@ class TemporaryProjectTaskTest : BaseTest(), KoinComponent {
 				// The first task created the scope and has already returned by now. Closing on its
 				// way out would leave this one resolving against a closed scope.
 				assertTrue(scopeIsOpen())
-				getKoin().getScope(ProjectDefScope(projectDef).getScopeId()).get<SceneEditorService>()
+				getKoin().getScope(ProjectDefScope(projectDef).scopeId).get<SceneEditorService>()
 			}
 		}
 		secondIsIn.await()

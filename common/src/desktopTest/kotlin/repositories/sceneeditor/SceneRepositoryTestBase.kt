@@ -20,6 +20,7 @@ import kotlinx.coroutines.runBlocking
 import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.BeforeEach
+import testProjectId
 import utils.BaseTest
 import kotlin.time.Clock
 
@@ -62,6 +63,7 @@ abstract class SceneRepositoryTestBase : BaseTest() {
 		projectPath = projectsRepo.getProjectsDirectory().toOkioPath().div(PROJECT_1_NAME).toHPath()
 
 		projectDef = ProjectDef(
+			id = testProjectId(PROJECT_1_NAME),
 			name = PROJECT_1_NAME,
 			path = projectPath
 		)

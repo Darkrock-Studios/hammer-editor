@@ -13,10 +13,9 @@ import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.update
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.readermode.ReaderMode
-import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
-import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.preview.KoinApplicationPreview
+import com.darkrockstudios.apps.hammer.common.preview.fakeProjectDef
 import com.darkrockstudios.apps.hammer.common.storyeditor.readermode.READER_MODE_EDIT_TAG
 import com.darkrockstudios.apps.hammer.common.storyeditor.readermode.READER_MODE_HEADINGS_TOGGLE_TAG
 import com.darkrockstudios.apps.hammer.common.storyeditor.readermode.READER_MODE_INCREASE_FONT_TAG
@@ -35,7 +34,7 @@ class ReaderModeUiTest : BaseTest() {
 	@get:Rule
 	val compose = createComposeRule()
 
-	private val projectDef = ProjectDef(name = "Test", path = HPath(name = "Test", path = "/", isAbsolute = true))
+	private val projectDef = fakeProjectDef()
 
 	private fun item(id: Int, name: String, type: SceneItem.Type) =
 		SceneItem(projectDef = projectDef, type = type, id = id, name = name, order = id)

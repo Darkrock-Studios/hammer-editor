@@ -14,7 +14,6 @@ import com.darkrockstudios.apps.hammer.desktop.shortcuts.QuickShortcuts
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import org.koin.core.component.getScopeId
 import org.koin.java.KoinJavaComponent
 
 class ApplicationState(
@@ -68,7 +67,7 @@ class ApplicationState(
 
 	fun closeProject() {
 		val def = (_windows.value as WindowState.ProjectWindow).projectDef
-		closeProjectScope(KoinJavaComponent.getKoin().getScope(ProjectDefScope(def).getScopeId()), def)
+		closeProjectScope(KoinJavaComponent.getKoin().getScope(ProjectDefScope(def).scopeId), def)
 
 		_closeRequest.value = CloseType.None
 		_windows.value = WindowState.ProjectSectionWindow()

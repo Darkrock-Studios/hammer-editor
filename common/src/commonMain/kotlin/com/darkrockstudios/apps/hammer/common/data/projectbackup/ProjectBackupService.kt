@@ -2,10 +2,10 @@ package com.darkrockstudios.apps.hammer.common.data.projectbackup
 
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.validate.validateProjectName
-import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
+import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournalDatasource
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -32,6 +32,7 @@ open class ProjectBackupService(
 	protected val globalSettingsStore: GlobalSettingsStore,
 	protected val clock: Clock,
 	private val dataMigrator: DataMigrator,
+	private val projectMetadataDatasource: ProjectMetadataDatasource,
 ) : KoinComponent {
 
 	private val restoreLock = Mutex()
@@ -46,9 +47,9 @@ open class ProjectBackupService(
 		return dir.toHPath()
 	}
 
-	fun getBackups(projectDef: ProjectDef): List<ProjectBackupDef> {
+	fun getBackups(projectName: String): List<ProjectBackupDef> {
 		val dir = getBackupsDirectory().toOkioPath()
-		val keys = backupKeysForProject(projectDef.name)
+		val keys = backupKeysForProject(projectName)
 		return fileSystem.list(dir)
 			.filter {
 				try {
@@ -57,11 +58,9 @@ open class ProjectBackupService(
 					false
 				}
 			}
-			.mapNotNull { path -> matchBackup(path, projectDef, keys) }
+			.mapNotNull { path -> matchBackup(path, projectName, keys) }
 			.sortedBy { it.date }
 	}
-
-	fun getBackupsForProject(projectDef: ProjectDef): List<ProjectBackupDef> = getBackups(projectDef)
 
 	// The directory-safe encoding plus the legacy `spaces -> underscores` name, so backups written
 	// by older clients are still matched to their project.
@@ -77,7 +76,7 @@ open class ProjectBackupService(
 
 		return ProjectBackupDef(
 			path = path,
-			projectDef = projectDef,
+			projectName = projectDef.name,
 			date = clock.now()
 		)
 	}
@@ -112,7 +111,7 @@ open class ProjectBackupService(
 	fun cullBackups(project: ProjectDef) {
 		val settings = globalSettingsStore.globalSettings
 
-		val backups = getBackups(project).toMutableList()
+		val backups = getBackups(project.name).toMutableList()
 
 		// Oldest first
 		backups.sortBy { it.date }
@@ -129,14 +128,14 @@ open class ProjectBackupService(
 		}
 	}
 
-	private fun matchBackup(path: Path, projectDef: ProjectDef, keys: Set<String>): ProjectBackupDef? {
+	private fun matchBackup(path: Path, projectName: String, keys: Set<String>): ProjectBackupDef? {
 		val match = FILE_NAME_PATTERN.matchEntire(path.name) ?: return null
 		val fileKey = match.groups[1]?.value ?: return null
 		if (fileKey !in keys) return null
 
 		return ProjectBackupDef(
 			path = path.toHPath(),
-			projectDef = projectDef,
+			projectName = projectName,
 			date = backupDate(path, match.groups[2]?.value)
 		)
 	}
@@ -184,26 +183,39 @@ open class ProjectBackupService(
 		}
 	}
 
+	/** Restores [backupDef] over its project, or recreates the project if it no longer exists. */
+	suspend fun restoreBackup(backupDef: ProjectBackupDef): BackupRestoreResult {
+		val targetDir = projectsRepository.findProject(backupDef.projectName)?.path
+			?: projectsRepository.getProjectDirectory(backupDef.projectName)
+		return restoreBackup(backupDef, targetDir)
+	}
+
 	/**
 	 * Replaces the project at [targetDir] with the backup's content, migrated to the current data
 	 * version. The restored project keeps the identity of the project it replaces, or gets a fresh
 	 * one when there is none: the backup's own id may since have been deleted on the server, and a
 	 * deleted id can never be created again.
+	 *
+	 * A project opened mid-restore is not caught: setting its id then fails and is logged.
 	 */
-	open suspend fun restoreBackup(backupDef: ProjectBackupDef, targetDir: HPath): Boolean {
+	open suspend fun restoreBackup(backupDef: ProjectBackupDef, targetDir: HPath): BackupRestoreResult {
 		val targetOkioPath = targetDir.toOkioPath()
-		val targetDef = ProjectDef(backupDef.projectDef.name, targetDir)
 		val staging = getBackupsDirectory().toOkioPath() / RESTORE_STAGING_DIRECTORY
 		val extracted = staging / "new"
 		val displaced = staging / "old"
 
 		return restoreLock.withLock {
+			if (projectsRepository.isProjectInUse(targetDir)) {
+				Napier.w("Did not restore '${backupDef.path.name}': '${backupDef.projectName}' is in use")
+				return@withLock BackupRestoreResult.ProjectInUse
+			}
+
 			try {
 				fileSystem.deleteRecursively(staging)
 				fileSystem.createDirectories(extracted)
 
-				val liveId = if (fileSystem.exists(targetOkioPath / ProjectMetadata.FILENAME)) {
-					projectsRepository.getProjectId(targetDef)
+				val liveId = if (fileSystem.exists(projectMetadataDatasource.getMetadataPath(targetDir).toOkioPath())) {
+					projectMetadataDatasource.loadProjectId(targetDir)
 				} else {
 					null
 				}
@@ -217,11 +229,11 @@ open class ProjectBackupService(
 				)
 
 				swapIntoPlace(archiveRoot(extracted), targetOkioPath, displaced)
-				adoptIdentity(targetDef, liveId, liveSynced)
-				true
+				adoptIdentity(backupDef.projectName, targetDir, liveId, liveSynced)
+				BackupRestoreResult.Restored
 			} catch (e: Exception) {
 				Napier.e("Failed to restore backup: ${backupDef.path.name}", e)
-				false
+				BackupRestoreResult.Failed
 			} finally {
 				try {
 					fileSystem.deleteRecursively(staging)
@@ -244,22 +256,29 @@ open class ProjectBackupService(
 	 * keeps an id already present.
 	 */
 	@Suppress("TooGenericExceptionCaught")
-	private suspend fun adoptIdentity(targetDef: ProjectDef, liveId: ProjectId?, liveSynced: Boolean) {
-		try {
-			dataMigrator.migrateProject(targetDef)
+	private suspend fun adoptIdentity(name: String, projectDir: HPath, liveId: ProjectId?, liveSynced: Boolean) {
+		// Under the backup's own id until setProjectId settles it.
+		val restoredDef = try {
+			ProjectDef(projectMetadataDatasource.loadProjectId(projectDir), name, projectDir)
 		} catch (e: Exception) {
-			Napier.e("Restored '${targetDef.name}' but failed to migrate it", e)
+			Napier.e("Restored '$name' but failed to read its project id", e)
+			return
+		}
+		try {
+			dataMigrator.migrateProject(restoredDef)
+		} catch (e: Exception) {
+			Napier.e("Restored '${restoredDef.name}' but failed to migrate it", e)
 		}
 		// Flagged before the id is set, so an id change keeps the backup's conflict baselines.
 		try {
-			projectsRepository.resetSyncStateAfterRestore(targetDef, serverKnowsProject = liveSynced)
+			projectsRepository.resetSyncStateAfterRestore(restoredDef, serverKnowsProject = liveSynced)
 		} catch (e: Exception) {
-			Napier.e("Restored '${targetDef.name}' but failed to reset its sync state", e)
+			Napier.e("Restored '${restoredDef.name}' but failed to reset its sync state", e)
 		}
 		try {
-			projectsRepository.setProjectId(targetDef, liveId ?: ProjectId.randomUUID())
+			projectsRepository.setProjectId(restoredDef, liveId ?: ProjectId.randomUUID())
 		} catch (e: Exception) {
-			Napier.e("Restored '${targetDef.name}' but failed to set its project id", e)
+			Napier.e("Restored '${restoredDef.name}' but failed to set its project id", e)
 		}
 	}
 
@@ -287,20 +306,20 @@ open class ProjectBackupService(
 	}
 
 	/**
-	 * Every project that has at least one backup, including projects that no longer exist on
-	 * disk, so a deleted project can still be restored from its backups.
+	 * The name of every project that has at least one backup, including projects that no longer
+	 * exist on disk, so a deleted project can still be restored from its backups.
 	 */
-	fun getBackedUpProjects(): List<ProjectDef> {
+	fun getBackedUpProjects(): List<String> {
 		val backupKeys = fileSystem.list(getBackupsDirectory().toOkioPath())
 			.mapNotNull { FILE_NAME_PATTERN.matchEntire(it.name)?.groups?.get(1)?.value }
 			.toSet()
 
-		val projects = projectsRepository.getProjects()
-		val existing = projects.filter { project ->
-			backupKeysForProject(project.name).any { it in backupKeys }
+		val projectNames = projectsRepository.getProjects().map { it.name }
+		val existing = projectNames.filter { name ->
+			backupKeysForProject(name).any { it in backupKeys }
 		}
 
-		val claimedKeys = projects.flatMap { backupKeysForProject(it.name) }.toSet()
+		val claimedKeys = projectNames.flatMap { backupKeysForProject(it) }.toSet()
 		val missingNames = (backupKeys - claimedKeys)
 			.map { ProjectsRepository.decodeFromFilename(it) }
 			.filter { validateProjectName(it) }
@@ -311,9 +330,7 @@ open class ProjectBackupService(
 			.filter { legacyBackupName(it) != it }
 			.map { legacyBackupName(it) }
 			.toSet()
-		val missing = missingNames
-			.filterNot { it in legacyAliases }
-			.map { projectsRepository.getProjectDefinition(it) }
+		val missing = missingNames.filterNot { it in legacyAliases }
 
 		return existing + missing
 	}
