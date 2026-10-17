@@ -25,6 +25,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.koin.dsl.module
 import synchronizer.operations.*
+import testProjectId
 import utils.BaseTest
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -45,6 +46,7 @@ class WritingActivitySyncOperationTest : BaseTest() {
 	private lateinit var globalSettingsStore: GlobalSettingsStore
 
 	private val projectDef = ProjectDef(
+		id = testProjectId("Test Project"),
 		name = "Test Project",
 		path = "/projects/Test Project".toPath().toHPath(),
 	)

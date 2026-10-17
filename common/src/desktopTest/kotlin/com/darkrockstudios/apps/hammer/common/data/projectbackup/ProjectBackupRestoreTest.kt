@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.data.projectbackup
 
 import PROJECT_1_NAME
+import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.common.data.createProjectScope
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
@@ -49,6 +50,23 @@ class ProjectBackupRestoreTest : ProjectsRepositoryBaseTest() {
 		assertEquals(BackupRestoreResult.ProjectInUse, result)
 		assertEquals("written after the backup", ffs.read(laterWork) { readUtf8() })
 		assertEquals(projectId, repo.getProjectId(projectDef))
+	}
+
+	@Test
+	fun `A project open under an id since lost on disk is still in use`() = scope.runTest {
+		createProject(ffs, PROJECT_1_NAME)
+		val repo = projectsRepository()
+		val backups = backupService(repo)
+		val backup = assertNotNull(backups.createBackup(projectDef))
+		val projectScope = createProjectScope(projectDef.copy(id = ProjectId.randomUUID()))
+
+		val result = try {
+			backups.restoreBackup(backup)
+		} finally {
+			projectScope.close()
+		}
+
+		assertEquals(BackupRestoreResult.ProjectInUse, result)
 	}
 
 	@Test

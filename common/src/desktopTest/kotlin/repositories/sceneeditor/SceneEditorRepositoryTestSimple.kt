@@ -31,6 +31,7 @@ import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import testProjectId
 import utils.BaseTest
 import kotlin.test.assertEquals
 import kotlin.time.Clock
@@ -122,6 +123,7 @@ class SceneEditorRepositoryTestSimple : BaseTest() {
 		populateProject(ffs)
 
 		projectDef = ProjectDef(
+			id = testProjectId(PROJ_NAME),
 			name = PROJ_NAME,
 			path = projectPath
 		)

@@ -1,3 +1,4 @@
+import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.common.compose.ComposeRichText
 import com.darkrockstudios.apps.hammer.common.compose.markdown.HammerMarkdownConfiguration
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -20,6 +21,7 @@ import kotlin.test.assertNotEquals
 class SceneContentLoadTest {
 
 	private val projectDef = ProjectDef(
+		id = ProjectId("6f0b8e52-2a4c-4d1e-9b3a-7c5d1e2f3a40"),
 		name = "Test Project",
 		path = HPath(path = "/test", name = "Test Project", isAbsolute = true),
 	)

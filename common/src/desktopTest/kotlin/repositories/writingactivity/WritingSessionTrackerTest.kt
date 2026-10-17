@@ -17,6 +17,7 @@ import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import testProjectId
 import utils.BaseTest
 import utils.TestClock
 import kotlin.test.assertEquals
@@ -35,6 +36,7 @@ class WritingSessionTrackerTest : BaseTest() {
 	private lateinit var tracker: WritingSessionTracker
 
 	private val projectDef = ProjectDef(
+		id = testProjectId("Test Project"),
 		name = "Test Project",
 		path = "/projects/Test Project".toPath().toHPath(),
 	)

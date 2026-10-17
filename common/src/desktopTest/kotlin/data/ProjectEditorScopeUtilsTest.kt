@@ -1,7 +1,10 @@
 package data
 
+import PROJECT_1_NAME
 import PROJECT_EMPTY_NAME
+import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.common.data.closeProjectScope
+import com.darkrockstudios.apps.hammer.common.data.isProjectInUse
 import com.darkrockstudios.apps.hammer.common.data.openProjectScope
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.temporaryProjectTask
@@ -17,8 +20,12 @@ import org.junit.jupiter.api.Test
 import org.koin.core.component.getScopeId
 import org.koin.dsl.module
 import utils.BaseTest
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class ProjectEditorScopeUtilsTest : BaseTest() {
 
@@ -69,5 +76,26 @@ class ProjectEditorScopeUtilsTest : BaseTest() {
 
 		verify(exactly = 1) { spellCheckService.initialize() }
 		closeProjectScope(assertNotNull(scopeOrNull()), projectDef)
+	}
+
+	@Test
+	fun `defs with the same path share one scope whatever their ids`() = runTest {
+		val reidentified = projectDef.copy(id = ProjectId.randomUUID())
+		openProjectScope(projectDef)
+
+		assertEquals(ProjectDefScope(projectDef).getScopeId(), ProjectDefScope(reidentified).getScopeId())
+		assertEquals(ProjectDefScope(projectDef).getScopeId(), ProjectDefScope.scopeIdFor(projectDef.path))
+		assertTrue(isProjectInUse(reidentified))
+		assertTrue(isProjectInUse(projectDef.path))
+
+		closeProjectScope(assertNotNull(scopeOrNull()), reidentified)
+		assertFalse(isProjectInUse(projectDef))
+	}
+
+	@Test
+	fun `defs with different paths get different scopes`() {
+		val other = getProjectDef(PROJECT_1_NAME)
+
+		assertNotEquals(ProjectDefScope(projectDef).getScopeId(), ProjectDefScope(other).getScopeId())
 	}
 }

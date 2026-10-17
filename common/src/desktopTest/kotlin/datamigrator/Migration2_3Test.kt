@@ -12,6 +12,7 @@ import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import testProjectId
 import utils.BaseTest
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -27,7 +28,7 @@ class Migration2_3Test : BaseTest() {
 		ffs = FakeFileSystem()
 		val projectPath = "/projects".toPath().div("Test Project")
 		ffs.createDirectories(projectPath)
-		projDef = ProjectDef(name = "Test Project", path = projectPath.toHPath())
+		projDef = ProjectDef(id = testProjectId("Test Project"), name = "Test Project", path = projectPath.toHPath())
 	}
 
 	private fun encyclopediaTypeDir(type: String): Path {

@@ -9,6 +9,7 @@ import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import testProjectId
 import utils.BaseTest
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -26,7 +27,7 @@ class Migration1_2Test : BaseTest() {
 		val projectsRoot = "/projects".toPath()
 		val projectPath = projectsRoot.div("Test Project")
 		ffs.createDirectories(projectPath)
-		projDef = ProjectDef(name = "Test Project", path = projectPath.toHPath())
+		projDef = ProjectDef(id = testProjectId("Test Project"), name = "Test Project", path = projectPath.toHPath())
 	}
 
 	@Test

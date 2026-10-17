@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.common.data
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
+import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectSpellCheckService
 import io.github.aakira.napier.Napier
 import kotlinx.atomicfu.atomic
@@ -73,8 +74,11 @@ suspend fun KoinComponent.temporaryProjectTask(projectDef: ProjectDef, block: su
 }
 
 /** True while [projectDef] has a project scope open, for an editor or a temporary task. */
-fun KoinComponent.isProjectInUse(projectDef: ProjectDef): Boolean =
-	getKoin().getScopeOrNull(ProjectDefScope(projectDef).getScopeId()) != null
+fun KoinComponent.isProjectInUse(projectDef: ProjectDef): Boolean = isProjectInUse(projectDef.path)
+
+/** [isProjectInUse] for the project at [projectDir], which need not exist. */
+fun KoinComponent.isProjectInUse(projectDir: HPath): Boolean =
+	getKoin().getScopeOrNull(ProjectDefScope.scopeIdFor(projectDir)) != null
 
 fun createProjectScope(projectDef: ProjectDef): Scope {
 	val alreadyCreated = getKoin().getScopeOrNull(ProjectDefScope(projectDef).getScopeId()) != null

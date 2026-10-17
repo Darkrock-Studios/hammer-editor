@@ -127,17 +127,23 @@ class ProjectsRepository(
 	 * Throws [ProjectInUseException] for a project in use (see [isProjectInUse]): its open scope
 	 * holds state under the old id. Callers check first and skip such a project; one opened after
 	 * the check still throws.
+	 *
+	 * The old id is read from disk rather than taken from [projectDef], so a def built before its
+	 * files changed (a restore swaps them in) cannot skip the write. Returns [projectDef] under
+	 * [projectId].
 	 */
-	suspend fun setProjectId(projectDef: ProjectDef, projectId: ProjectId) {
-		val oldId = getProjectId(projectDef)
-		if (oldId == projectId) return
+	suspend fun setProjectId(projectDef: ProjectDef, projectId: ProjectId): ProjectDef {
+		val updated = projectDef.copy(id = projectId)
+		val oldId = projectsMetadataDatasource.loadProjectId(projectDef.path)
+		if (oldId == projectId) return updated
 		if (isProjectInUse(projectDef)) throw ProjectInUseException(projectDef.name)
 
 		clearSyncBaseline(projectDef)
 		projectsMetadataDatasource.updateMetadata(projectDef) {
 			it.copy(info = it.info.copy(projectId = projectId))
 		}
-		notifyProjectIdChanged(projectDef, oldId, projectId)
+		notifyProjectIdChanged(updated, oldId, projectId)
+		return updated
 	}
 
 	/**
@@ -174,7 +180,7 @@ class ProjectsRepository(
 	 * else the earliest created.
 	 */
 	suspend fun resolveDuplicateProjectIds() {
-		val byId = getProjects().groupBy { projectsMetadataDatasource.loadProjectId(it) }
+		val byId = getProjects().groupBy { it.id }
 		byId.filterValues { it.size > 1 }.forEach { (projectId, holders) ->
 			val keeper = holders.minWith(
 				compareBy<ProjectDef> { !hasSyncJournal(it) }
@@ -248,17 +254,13 @@ class ProjectsRepository(
 	/** True while [projectDef] is open in an editor or a temporary task; its id and name are then fixed. */
 	fun isProjectInUse(projectDef: ProjectDef): Boolean = hasOpenProjectScope(projectDef)
 
+	/** [isProjectInUse] for the project at [projectDir], before its id is known. */
+	fun isProjectInUse(projectDir: HPath): Boolean = hasOpenProjectScope(projectDir)
+
 	fun getProjectId(projectDef: ProjectDef): ProjectId =
 		projectsMetadataDatasource.loadProjectId(projectDef)
 
-	fun findProject(projectId: ProjectId): ProjectDef? {
-		val allProjects = getProjects()
-		val found = allProjects.find { project ->
-			val id = projectsMetadataDatasource.loadProjectId(project)
-			projectId == id
-		}
-		return found
-	}
+	fun findProject(projectId: ProjectId): ProjectDef? = getProjects().find { it.id == projectId }
 
 	fun findProject(projectName: String): ProjectDef? {
 		val allProjects = getProjects()
@@ -268,20 +270,29 @@ class ProjectsRepository(
 
 	/**
 	 * A directory is considered a project only if it contains a [ProjectMetadata.FILENAME]
-	 * file and its (decoded) name is a valid project name.
+	 * file and its (decoded) name is a valid project name. Each id is read from that file, minted
+	 * if it has none (see [ProjectMetadataDatasource.loadProjectId]). A project whose file cannot be
+	 * read, such as one deleted while the list is built, is left out.
 	 */
 	fun getProjects(projectsDir: HPath = getProjectsDirectory()): List<ProjectDef> =
-		listCandidateDirectories(projectsDir.toOkioPath()).filter {
-			fileSystem.metadataOrNull(it.path.toOkioPath() / ProjectMetadata.FILENAME)?.isRegularFile == true
-		}
+		listCandidateDirectories(projectsDir.toOkioPath())
+			.filter { (_, dir) -> fileSystem.metadataOrNull(dir / ProjectMetadata.FILENAME)?.isRegularFile == true }
+			.mapNotNull { (name, dir) ->
+				try {
+					ProjectDef(projectsMetadataDatasource.loadProjectId(dir.toHPath()), name, dir.toHPath())
+				} catch (e: IOException) {
+					Napier.w("Skipped project '$name': could not read its ${ProjectMetadata.FILENAME}", e)
+					null
+				}
+			}
 
-	/** Non-hidden directories whose decoded name is a valid project name, marked or not. */
-	private fun listCandidateDirectories(projectsDir: Path): List<ProjectDef> =
+	/** Each non-hidden directory whose decoded name is a valid project name, marked or not, with that name. */
+	private fun listCandidateDirectories(projectsDir: Path): List<Pair<String, Path>> =
 		fileSystem.list(projectsDir)
 			.filter { it.name.startsWith('.').not() }
 			.filter { fileSystem.metadataOrNull(it)?.isDirectory == true }
-			.map { path -> ProjectDef(decodeFromFilename(path.name), path.toHPath()) }
-			.filter { validateProjectName(it.name) }
+			.map { path -> decodeFromFilename(path.name) to path }
+			.filter { (name, _) -> validateProjectName(name) }
 
 	/** True only when nothing exists at [ProjectMetadata.FILENAME], not even a directory or an unreadable file. */
 	private fun isUnmarked(projectDir: Path): Boolean =
@@ -306,20 +317,20 @@ class ProjectsRepository(
 	): ProjectDef? {
 		// Trimmed as in createProject, so both resolve a name to the same directory.
 		val trimmedName = projectName.trim()
-		val projectDef = ProjectDef(trimmedName, getProjectDirectory(trimmedName))
-		val projectDir = projectDef.path.toOkioPath()
+		val projectDir = getProjectDirectory(trimmedName).toOkioPath()
 		if (fileSystem.metadataOrNull(projectDir)?.isDirectory != true) return null
 		if (fileSystem.list(projectDir).isNotEmpty() && !hasProjectContent(projectDir)) return null
-		return adoptUnmarkedDirectory(projectDef, projectId, serverKnowsProject)
+		return adoptUnmarkedDirectory(trimmedName, projectDir, projectId, serverKnowsProject)
 	}
 
 	private suspend fun adoptUnmarkedDirectory(
-		projectDef: ProjectDef,
+		projectName: String,
+		projectDir: Path,
 		projectId: ProjectId,
 		serverKnowsProject: Boolean,
 	): ProjectDef? {
-		val projectDir = projectDef.path.toOkioPath()
 		if (fileSystem.metadataOrNull(projectDir)?.isDirectory != true || !isUnmarked(projectDir)) return null
+		val projectDef = ProjectDef(projectId, projectName, projectDir.toHPath())
 
 		// Reset before marking, so a crash between the two leaves the folder unmarked and retried.
 		resetSyncStateAfterRestore(projectDef, serverKnowsProject)
@@ -334,8 +345,8 @@ class ProjectsRepository(
 	 */
 	suspend fun healUnmarkedProjectDirectories(): List<ProjectDef> =
 		listCandidateDirectories(getProjectsDirectory().toOkioPath())
-			.filter { isUnmarked(it.path.toOkioPath()) && hasProjectContent(it.path.toOkioPath()) }
-			.mapNotNull { adoptUnmarkedDirectory(it, ProjectId.randomUUID(), serverKnowsProject = false) }
+			.filter { (_, dir) -> isUnmarked(dir) && hasProjectContent(dir) }
+			.mapNotNull { (name, dir) -> adoptUnmarkedDirectory(name, dir, ProjectId.randomUUID(), serverKnowsProject = false) }
 
 	/** Returns up to [limit] projects ordered by `metadata.info.lastAccessed` descending, optionally excluding [excludeCurrent]. Projects with unreadable metadata sort last. */
 	fun getRecentProjects(limit: Int, excludeCurrent: ProjectDef? = null): List<ProjectDef> =
@@ -380,6 +391,7 @@ class ProjectsRepository(
 				fileSystem.createDirectory(newProjectDir)
 
 				val newDef = ProjectDef(
+					id = projectId,
 					name = strippedName,
 					path = newProjectDir.toHPath()
 				)
@@ -436,7 +448,7 @@ class ProjectsRepository(
 			if (fileSystem.exists(newProjectDir).not()) {
 				try {
 					fileSystem.atomicMove(source = projectDir, target = newProjectDir)
-					CResult.success(ProjectDef(newName, newProjectDir.toHPath()))
+					CResult.success(projectDef.copy(name = newName, path = newProjectDir.toHPath()))
 				} catch (e: IOException) {
 					CResult.failure(ProjectRenameFailed(ProjectRenameFailed.Reason.MoveFailed))
 				}
