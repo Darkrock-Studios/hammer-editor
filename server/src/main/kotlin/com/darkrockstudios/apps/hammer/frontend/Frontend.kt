@@ -203,6 +203,7 @@ fun Route.frontend() {
 		accountsRepository,
 		projectsRepository,
 		accountDeletionUseCase,
+		mfaRepository,
 		serverConfig,
 		emailService,
 		metricsRepository,
