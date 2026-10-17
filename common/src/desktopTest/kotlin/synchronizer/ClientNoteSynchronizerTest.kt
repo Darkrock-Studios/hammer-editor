@@ -6,7 +6,6 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContainer
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
-import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogLevel
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessage
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientNoteSynchronizer
@@ -41,9 +40,6 @@ class ClientNoteSynchronizerTest : BaseTest() {
 	@MockK
 	private lateinit var serverProjectApi: ServerProjectApi
 
-	@MockK
-	private lateinit var projectMetadataDatasource: ProjectMetadataDatasource
-
 	@MockK(relaxed = true)
 	private lateinit var notesRepository: NotesRepository
 
@@ -66,7 +62,6 @@ class ClientNoteSynchronizerTest : BaseTest() {
 	private fun newSynchronizer() = ClientNoteSynchronizer(
 		projectDef = projectDef,
 		serverProjectApi = serverProjectApi,
-		projectMetadataDatasource = projectMetadataDatasource,
 		strRes = strRes,
 	)
 

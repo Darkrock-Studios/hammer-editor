@@ -9,7 +9,6 @@ import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectContentHasher
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectDataHasher
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.SyncedProjectDefinition
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
@@ -186,29 +185,29 @@ class ClientAccountSynchronizer(
 	 * recoverable per-project issue into a failure of the surrounding account sync.
 	 */
 	@Suppress("TooGenericExceptionCaught")
-	suspend fun probeUnchangedProjects(projects: List<SyncedProjectDefinition>): Set<ProjectId> {
+	suspend fun probeUnchangedProjects(projects: List<ProjectDef>): Set<ProjectId> {
 		return try {
 			val items = mutableListOf<ProjectHashItem>()
-			for (synced in projects) {
-				val syncData = loadProjectSyncData(synced.projectDef) ?: continue
+			for (projectDef in projects) {
+				val syncData = loadProjectSyncData(projectDef) ?: continue
 				if (syncData.hashAlgoVersion != ProjectContentHasher.ALGO_VERSION) continue
 				val cachedHash = syncData.cachedProjectHash ?: continue
 				// A lite sync can cache a hash without running the restore check; it must still run.
 				if (syncData.verifyAllEntities) continue
 
 				val entityWorkPending = syncData.dirty.isNotEmpty() || syncData.newIds.isNotEmpty()
-				val projectDataDirty = isProjectDataDirty(synced.projectDef)
+				val projectDataDirty = isProjectDataDirty(projectDef)
 				if (entityWorkPending || projectDataDirty) {
 					val kind = if (projectDataDirty) "project-data" else "journal"
 					Napier.e(
-						"Cache/journal inconsistency for project '${synced.projectDef.name}': cached hash " +
+						"Cache/journal inconsistency for project '${projectDef.name}': cached hash " +
 							"present despite pending $kind work. A write path likely bypassed the " +
 							"invalidation hook. Forcing full sync."
 					)
 					continue
 				}
 
-				items += ProjectHashItem(synced.projectId, cachedHash)
+				items += ProjectHashItem(projectDef.id, cachedHash)
 			}
 
 			if (items.isEmpty()) return emptySet()
@@ -449,21 +448,14 @@ class ClientAccountSynchronizer(
 		onLog: OnSyncLog,
 		onUnauthorized: suspend () -> Unit = {},
 	) {
-		val localProjectsWithIds = localProjects.map {
-			val projectId = projectsRepository.getProjectId(it)
-			it to projectId
-		}
-
 		val serverProjects = serverSyncData.projects
 		val newServerProjects = serverProjects.filter { serverProject ->
-			localProjectsWithIds.none { (_, uuid) ->
-				uuid == serverProject.uuid
-			}
+			localProjects.none { it.id == serverProject.uuid }
 		}
 
 		renameLocalProjectsFromServerChanges(
 			serverProjects,
-			localProjectsWithIds,
+			localProjects,
 			clientSyncData,
 			onLog
 		)
@@ -475,7 +467,7 @@ class ClientAccountSynchronizer(
 		val claimedNames = createLocalProjectsFromServer(newServerProjects, liveServerIds, onLog)
 
 		createProjectsOnServer(
-			localProjectsWithIds,
+			localProjects,
 			claimedNames,
 			serverSyncData,
 			serverKnownIds,
@@ -503,8 +495,7 @@ class ClientAccountSynchronizer(
 			val localName = ProjectsRepository.toLocalSafeName(serverProject.name)
 			val existingProject = projectsRepository.findProject(localName)
 			if (existingProject != null) {
-				val existingId = projectsRepository.getProjectId(existingProject)
-				if (existingId in liveServerIds) {
+				if (existingProject.id in liveServerIds) {
 					onLog(
 						syncAccLogW(
 							strRes.get(
@@ -611,16 +602,16 @@ class ClientAccountSynchronizer(
 	 * would duplicate that project on the server.
 	 */
 	private suspend fun createProjectsOnServer(
-		localProjectsWithIds: List<Pair<ProjectDef, ProjectId>>,
+		localProjects: List<ProjectDef>,
 		claimedNames: Set<String>,
 		serverSyncData: BeginProjectsSyncResponse,
 		serverKnownIds: Set<ProjectId>,
 		onLog: OnSyncLog,
 		onUnauthorized: suspend () -> Unit = {},
 	) {
-		val localOnly = localProjectsWithIds.filter { (def, projectId) ->
-			projectId !in serverKnownIds && def.name !in claimedNames
-		}.map { it.first }
+		val localOnly = localProjects.filter { def ->
+			def.id !in serverKnownIds && def.name !in claimedNames
+		}
 
 		localOnly.forEach { projectDef ->
 			val projectName = projectDef.name
@@ -690,13 +681,13 @@ class ClientAccountSynchronizer(
 	 */
 	private suspend fun renameLocalProjectsFromServerChanges(
 		serverProjects: Set<ApiProjectDefinition>,
-		localProjectsWithIds: List<Pair<ProjectDef, ProjectId>>,
+		localProjects: List<ProjectDef>,
 		clientSyncData: ProjectsSynchronizationData,
 		onLog: OnSyncLog
 	) {
 		val commonProjectsNotLocallyRenamed = serverProjects.mapNotNull { serverProject ->
-			localProjectsWithIds.find { it.second == serverProject.uuid }?.let { localProject ->
-				ProjectPair(serverProject, localProject.first)
+			localProjects.find { it.id == serverProject.uuid }?.let { localProject ->
+				ProjectPair(serverProject, localProject)
 			}
 		}
 			.filterNot { clientSyncData.projectsToDelete.contains(it.serverProject.uuid) }
@@ -755,12 +746,12 @@ class ClientAccountSynchronizer(
 		return result
 	}
 
-	fun deleteProject(project: SyncedProjectDefinition) {
+	fun deleteProject(project: ProjectDef) {
 		updateSyncData { syncData ->
 			syncData.copy(
-				projectsToDelete = syncData.projectsToDelete + project.projectId,
+				projectsToDelete = syncData.projectsToDelete + project.id,
 				projectsToRename = syncData.projectsToRename
-					.filterNot { it.projectId == project.projectId }
+					.filterNot { it.projectId == project.id }
 					.toSet(),
 			)
 		}

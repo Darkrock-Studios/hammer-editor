@@ -23,6 +23,7 @@ import io.mockk.every
 import io.mockk.just
 import io.mockk.runs
 import kotlinx.coroutines.test.runTest
+import listedProjectId
 import okio.Path
 import org.junit.jupiter.api.Test
 import testProjectId
@@ -155,7 +156,7 @@ class ProjectsRepositoryAdoptTest : ProjectsRepositoryBaseTest() {
 			assertFalse(isMarked(hidden))
 			assertFalse(isMarked(invalid))
 			assertTrue(ffs.metadata(dir(oddMarker) / ProjectMetadata.FILENAME).isDirectory)
-			assertEquals(project2Id, repo.getProjectId(getProjectDef(PROJECT_2_NAME)))
+			assertEquals(project2Id, repo.listedProjectId(getProjectDef(PROJECT_2_NAME)))
 		}
 
 	@Test
@@ -198,7 +199,7 @@ class ProjectsRepositoryAdoptTest : ProjectsRepositoryBaseTest() {
 		val adopted = repo.adoptUnmarkedDirectory("Server Project", serverId, serverKnowsProject = false)
 
 		assertEquals(folder.copy(id = serverId), adopted)
-		assertEquals(serverId, repo.getProjectId(folder))
+		assertEquals(serverId, repo.listedProjectId(folder))
 		assertEquals(0, projectsMetaDatasource.loadMetadata(folder).info.dataVersion)
 		assertFalse(ffs.exists(journalPath(folder)))
 	}
@@ -269,7 +270,7 @@ class ProjectsRepositoryAdoptTest : ProjectsRepositoryBaseTest() {
 		val adopted = repo.adoptUnmarkedDirectory(PROJECT_2_NAME, ProjectId("server-id"), serverKnowsProject = true)
 
 		assertNull(adopted)
-		assertEquals(project2Id, repo.getProjectId(getProjectDef(PROJECT_2_NAME)))
+		assertEquals(project2Id, repo.listedProjectId(getProjectDef(PROJECT_2_NAME)))
 	}
 
 	@Test

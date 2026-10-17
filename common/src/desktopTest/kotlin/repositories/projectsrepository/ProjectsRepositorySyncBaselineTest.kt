@@ -23,6 +23,7 @@ import getProjectDef
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
+import listedProjectId
 import okio.Path
 import org.junit.jupiter.api.Test
 import org.koin.dsl.module
@@ -179,7 +180,7 @@ class ProjectsRepositorySyncBaselineTest : ProjectsRepositoryBaseTest() {
 	fun `Clearing all sync baselines resets each project but keeps its id`() = scope.runTest {
 		createProject(ffs, PROJECT_1_NAME)
 		val repo = projectsRepository()
-		val projectId = repo.getProjectId(projectDef)
+		val projectId = repo.listedProjectId(projectDef)
 		seedBaseline()
 
 		// A server change: whatever the project is uploaded to next has never seen it.
@@ -189,7 +190,7 @@ class ProjectsRepositorySyncBaselineTest : ProjectsRepositoryBaseTest() {
 		assertEquals(Instant.DISTANT_PAST, readJournal().lastSync)
 		assertNull(storedProjectData().lastSyncedHash)
 		assertEquals(ProjectData(authorName = "Author"), storedProjectData().data)
-		assertEquals(projectId, repo.getProjectId(projectDef))
+		assertEquals(projectId, repo.listedProjectId(projectDef))
 	}
 
 	@Test
@@ -247,14 +248,14 @@ class ProjectsRepositorySyncBaselineTest : ProjectsRepositoryBaseTest() {
 		scope.runTest {
 			createProject(ffs, PROJECT_1_NAME)
 			val repo = projectsRepository()
-			val projectId = repo.getProjectId(projectDef)
+			val projectId = repo.listedProjectId(projectDef)
 			seedBaseline()
 			val backups = backupService(repo)
 			val backup = assertNotNull(backups.createBackup(projectDef))
 
 			assertEquals(BackupRestoreResult.Restored, backups.restoreBackup(backup, projectDef.path))
 
-			assertEquals(projectId, repo.getProjectId(projectDef))
+			assertEquals(projectId, repo.listedProjectId(projectDef))
 			val journal = readJournal()
 			assertTrue(journal.verifyAllEntities, "the next sync must conflict-check every entity")
 			assertNull(journal.cachedProjectHash, "the pre-sync probe must not skip the restored project")
@@ -272,7 +273,7 @@ class ProjectsRepositorySyncBaselineTest : ProjectsRepositoryBaseTest() {
 		scope.runTest {
 			createProject(ffs, PROJECT_1_NAME)
 			val repo = projectsRepository()
-			val backupId = repo.getProjectId(projectDef)
+			val backupId = repo.listedProjectId(projectDef)
 			seedBaseline()
 			val backups = backupService(repo)
 			val backup = assertNotNull(backups.createBackup(projectDef))
@@ -282,7 +283,7 @@ class ProjectsRepositorySyncBaselineTest : ProjectsRepositoryBaseTest() {
 
 			// A fresh id can still adopt a same-named server project, where these baselines raise its
 			// conflicts. A new, empty server project holds no entities to conflict-check against.
-			assertNotEquals(backupId, repo.getProjectId(projectDef))
+			assertNotEquals(backupId, repo.listedProjectId(projectDef))
 			val journal = readJournal()
 			assertEquals(seededJournal.syncedHashes, journal.syncedHashes)
 			assertEquals(seededJournal.dirty, journal.dirty)

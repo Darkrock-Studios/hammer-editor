@@ -10,6 +10,7 @@ import getProjectDef
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
+import listedProjectId
 import org.junit.jupiter.api.Test
 import repositories.projectsrepository.ProjectsRepositoryBaseTest
 import kotlin.test.assertEquals
@@ -35,7 +36,7 @@ class ProjectBackupRestoreTest : ProjectsRepositoryBaseTest() {
 	fun `Restoring over a project in use is refused and leaves the project untouched`() = scope.runTest {
 		createProject(ffs, PROJECT_1_NAME)
 		val repo = projectsRepository()
-		val projectId = repo.getProjectId(projectDef)
+		val projectId = repo.listedProjectId(projectDef)
 		val backups = backupService(repo)
 		val backup = assertNotNull(backups.createBackup(projectDef))
 		ffs.write(laterWork) { writeUtf8("written after the backup") }
@@ -49,7 +50,7 @@ class ProjectBackupRestoreTest : ProjectsRepositoryBaseTest() {
 
 		assertEquals(BackupRestoreResult.ProjectInUse, result)
 		assertEquals("written after the backup", ffs.read(laterWork) { readUtf8() })
-		assertEquals(projectId, repo.getProjectId(projectDef))
+		assertEquals(projectId, repo.listedProjectId(projectDef))
 	}
 
 	@Test
@@ -73,7 +74,7 @@ class ProjectBackupRestoreTest : ProjectsRepositoryBaseTest() {
 	fun `Restoring over a project replaces its content and keeps its id`() = scope.runTest {
 		createProject(ffs, PROJECT_1_NAME)
 		val repo = projectsRepository()
-		val projectId = repo.getProjectId(projectDef)
+		val projectId = repo.listedProjectId(projectDef)
 		val backups = backupService(repo)
 		val backup = assertNotNull(backups.createBackup(projectDef))
 		ffs.write(laterWork) { writeUtf8("written after the backup") }
@@ -81,7 +82,7 @@ class ProjectBackupRestoreTest : ProjectsRepositoryBaseTest() {
 		assertEquals(BackupRestoreResult.Restored, backups.restoreBackup(backup))
 
 		assertFalse(ffs.exists(laterWork))
-		assertEquals(projectId, repo.getProjectId(projectDef))
+		assertEquals(projectId, repo.listedProjectId(projectDef))
 	}
 
 	@Test

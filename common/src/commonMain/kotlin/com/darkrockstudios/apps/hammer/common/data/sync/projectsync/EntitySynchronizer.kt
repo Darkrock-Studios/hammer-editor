@@ -5,7 +5,6 @@ import com.darkrockstudios.apps.hammer.base.http.EntityHash
 import com.darkrockstudios.apps.hammer.base.http.EntityType
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityConflictException
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.channels.Channel
@@ -15,7 +14,6 @@ typealias EntityConflictHandler<T> = suspend (T) -> Unit
 abstract class EntitySynchronizer<T : ApiProjectEntity>(
 	protected val projectDef: ProjectDef,
 	protected val serverProjectApi: ServerProjectApi,
-	protected val projectMetadataDatasource: ProjectMetadataDatasource,
 ) {
 	val conflictResolution = Channel<T>()
 
@@ -38,11 +36,9 @@ abstract class EntitySynchronizer<T : ApiProjectEntity>(
 	): Boolean {
 		Napier.d("Uploading Scene $id")
 
-		val serverProjectId = projectMetadataDatasource.loadProjectId(projectDef)
-
 		val entity = createEntityForId(id)
 		val result = serverProjectApi.uploadEntity(
-			serverProjectId,
+			projectDef.id,
 			entity,
 			originalHash,
 			syncId,
@@ -61,7 +57,7 @@ abstract class EntitySynchronizer<T : ApiProjectEntity>(
 
 				val resolvedEntity = conflictResolution.receive()
 				val resolveResult = serverProjectApi.uploadEntity(
-					serverProjectId,
+					projectDef.id,
 					resolvedEntity,
 					null,
 					syncId,

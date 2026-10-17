@@ -256,9 +256,6 @@ class ProjectsRepository(
 	/** [isProjectInUse] for the project at [projectDir], before its id is known. */
 	fun isProjectInUse(projectDir: HPath): Boolean = hasOpenProjectScope(projectDir)
 
-	fun getProjectId(projectDef: ProjectDef): ProjectId =
-		projectsMetadataDatasource.loadProjectId(projectDef)
-
 	fun findProject(projectId: ProjectId): ProjectDef? = getProjects().find { it.id == projectId }
 
 	fun findProject(projectName: String): ProjectDef? {

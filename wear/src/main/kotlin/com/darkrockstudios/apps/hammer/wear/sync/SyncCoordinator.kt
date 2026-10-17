@@ -2,7 +2,6 @@ package com.darkrockstudios.apps.hammer.wear.sync
 
 import com.darkrockstudios.apps.hammer.base.http.storyideas.StoryIdea
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.SyncedProjectDefinition
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ProjectSyncOutcome
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.SyncAccountListener
@@ -28,7 +27,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 fun interface AccountSync {
 	suspend fun run(
 		listener: SyncAccountListener,
-		projectFilter: suspend (SyncedProjectDefinition) -> Boolean,
+		projectFilter: suspend (ProjectDef) -> Boolean,
 	): SyncAccountResult
 }
 
@@ -92,8 +91,8 @@ class DefaultSyncCoordinator(
 
 			// Read when filtering, not before: account sync can change a project's id, and the
 			// subscription is re-keyed to follow it.
-			val result = accountSync.run(listener) { synced ->
-				synced.projectId in subscriptions.currentSubscriptions()
+			val result = accountSync.run(listener) { projectDef ->
+				projectDef.id in subscriptions.currentSubscriptions()
 			}
 
 			_status.update { it.copy(running = false, lastResult = result) }

@@ -95,7 +95,7 @@ private suspend fun loadRows(): List<StoryRow> {
 		}.getOrNull()
 		val words = stats.loadTotalWords(def)
 		StoryRow(
-			projectId = info?.projectId ?: projects.getProjectId(def),
+			projectId = def.id,
 			name = def.name,
 			accentHex = accentHex,
 			words = words,

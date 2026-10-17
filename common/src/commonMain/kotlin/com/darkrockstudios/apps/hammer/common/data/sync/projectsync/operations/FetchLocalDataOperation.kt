@@ -5,14 +5,12 @@ import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ClientEntityState
 import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.apps.hammer.sync_log_client_data_computed
 
 class FetchLocalDataOperation(
 	projectDef: ProjectDef,
-	private val projectMetadataDatasource: ProjectMetadataDatasource,
 	private val entitySynchronizers: EntitySynchronizers,
 	private val syncJournal: SyncJournal,
 	private val strRes: StrRes,
@@ -29,8 +27,6 @@ class FetchLocalDataOperation(
 	): CResult<SyncOperationState> {
 		return try {
 			state as InitialSyncOperationState
-
-			val serverProjectId = projectMetadataDatasource.loadProjectId(projectDef)
 
 			val loadedSyncData = syncJournal.loadSyncData()
 			val entityState = if (state.onlyNew) {
@@ -59,7 +55,6 @@ class FetchLocalDataOperation(
 				state,
 				clientSyncData,
 				entityState,
-				serverProjectId,
 			)
 
 			onProgress(

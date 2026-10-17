@@ -8,7 +8,6 @@ import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.Pr
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.migrator.PROJECT_DATA_VERSION
-import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.FetchLocalDataOperation
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.SyncOperationException
@@ -42,9 +41,6 @@ class FetchLocalDataOperationTest : BaseTest() {
 	@MockK(relaxed = true)
 	private lateinit var syncJournal: SyncJournal
 
-	@MockK(relaxed = true)
-	private lateinit var projectMetadataDatasource: ProjectMetadataDatasource
-
 	private lateinit var strRes: TestStrRes
 
 	@BeforeEach
@@ -73,7 +69,6 @@ class FetchLocalDataOperationTest : BaseTest() {
 			entitySynchronizers = EntitySynchronizers(projectDef),
 			strRes = strRes,
 			syncJournal = syncJournal,
-			projectMetadataDatasource = projectMetadataDatasource,
 		)
 	}
 
@@ -81,7 +76,6 @@ class FetchLocalDataOperationTest : BaseTest() {
 	fun `Golden Path`() = runTest {
 		val op = createOperation(getProjectDef(PROJECT_2_NAME))
 
-		coEvery { projectMetadataDatasource.loadProjectId(any<ProjectDef>()) } returns projId
 		coEvery { syncJournal.loadSyncData() } returns projectData
 
 		mockSynchronizers.synchronizers.forEach { synchronizer ->
@@ -161,7 +155,6 @@ class FetchLocalDataOperationTest : BaseTest() {
 			syncedHashes = mapOf(2 to "already-recorded-2"),
 		)
 
-		coEvery { projectMetadataDatasource.loadProjectId(any<ProjectDef>()) } returns projId
 		coEvery { syncJournal.loadSyncData() } returns existing
 
 		mockSynchronizers.synchronizers.forEach { synchronizer ->
@@ -218,7 +211,6 @@ class FetchLocalDataOperationTest : BaseTest() {
 			syncedHashes = mapOf(1 to "confirmed-1", 2 to "confirmed-2"),
 			verifyAllEntities = true,
 		)
-		coEvery { projectMetadataDatasource.loadProjectId(any<ProjectDef>()) } returns projId
 		coEvery { syncJournal.loadSyncData() } returns restored
 		stubSceneHashes(1, 2, 3, 4)
 
@@ -267,7 +259,6 @@ class FetchLocalDataOperationTest : BaseTest() {
 			syncedHashes = mapOf(1 to "confirmed-1"),
 			verifyAllEntities = true,
 		)
-		coEvery { projectMetadataDatasource.loadProjectId(any<ProjectDef>()) } returns projId
 		coEvery { syncJournal.loadSyncData() } returns restored
 		stubSceneHashes(1, 2, 3)
 
@@ -290,7 +281,7 @@ class FetchLocalDataOperationTest : BaseTest() {
 	fun `Handle Failure`() = runTest {
 		val op = createOperation(getProjectDef(PROJECT_2_NAME))
 
-		coEvery { projectMetadataDatasource.loadProjectId(any<ProjectDef>()) } answers {
+		coEvery { syncJournal.loadSyncData() } answers {
 			throw Exception("Fail the test")
 		}
 

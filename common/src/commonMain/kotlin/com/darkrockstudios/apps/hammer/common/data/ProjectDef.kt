@@ -8,6 +8,3 @@ import kotlinx.serialization.Serializable
 data class ProjectDefinition(val id: ProjectId, val name: String, val path: HPath)
 
 typealias ProjectDef = ProjectDefinition
-
-@Serializable
-data class SyncedProjectDefinition(val projectDef: ProjectDefinition, val projectId: ProjectId)

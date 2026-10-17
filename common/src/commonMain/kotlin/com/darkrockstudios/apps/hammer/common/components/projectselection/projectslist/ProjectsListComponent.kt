@@ -13,7 +13,6 @@ import com.darkrockstudios.apps.hammer.common.components.savableState
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.ImportOptions
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.SyncedProjectDefinition
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.importer.ImportPreview
 import com.darkrockstudios.apps.hammer.common.data.importer.StoryImporterRegistry
@@ -291,22 +290,19 @@ class ProjectsListComponent(
 	}
 
 	override fun deleteProject(projectDef: ProjectDef) {
-		val syncedProject = SyncedProjectDefinition(projectDef, projectsRepository.getProjectId(projectDef))
-
 		if (projectsRepository.deleteProject(projectDef)) {
 			Napier.i("Project deleted: ${projectDef.name}")
 			// Queued even when it never synced: account sync drops ids the server never knew.
-			projectsSynchronizer.deleteProject(syncedProject)
+			projectsSynchronizer.deleteProject(projectDef)
 
 			loadProjectList()
 		}
 	}
 
 	override fun renameProject(projectDef: ProjectDef, newName: String) {
-		val projectId = projectsRepository.getProjectId(projectDef)
 		if (projectsRepository.renameProject(projectDef, newName).isSuccess) {
 			Napier.i("Project renamed: ${projectDef.name}")
-			projectsSynchronizer.renameProject(projectId, newName)
+			projectsSynchronizer.renameProject(projectDef.id, newName)
 
 			loadProjectList()
 		} else {

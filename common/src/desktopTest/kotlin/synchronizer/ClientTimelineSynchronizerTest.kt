@@ -3,7 +3,6 @@ package synchronizer
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.EntityType
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogLevel
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessage
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientTimelineSynchronizer
@@ -27,7 +26,6 @@ class ClientTimelineSynchronizerTest {
 	private val strRes: StrRes = TestStrRes()
 
 	private val serverProjectApi: ServerProjectApi = mockk()
-	private val projectMetadataDatasource: ProjectMetadataDatasource = mockk()
 	private val timeLineRepository: TimeLineRepository = mockk(relaxed = true)
 
 	private fun event(id: Int, order: Int = 0, content: String = "stuff") =
@@ -36,7 +34,6 @@ class ClientTimelineSynchronizerTest {
 	private fun newSynchronizer() = ClientTimelineSynchronizer(
 		projectDef = projectDef,
 		serverProjectApi = serverProjectApi,
-		projectMetadataDatasource = projectMetadataDatasource,
 		timeLineRepository = timeLineRepository,
 		strRes = strRes,
 	)

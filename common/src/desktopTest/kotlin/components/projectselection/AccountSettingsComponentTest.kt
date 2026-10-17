@@ -38,6 +38,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
+import listedProjectId
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
 import okio.ForwardingFileSystem
@@ -273,7 +274,7 @@ class AccountSettingsComponentTest : BaseTest() {
 		component.createAccount()
 		advanceUntilIdle()
 
-		assertEquals(ProjectId("id-a"), projectsRepository.getProjectId(projectA))
+		assertEquals(ProjectId("id-a"), projectsRepository.listedProjectId(projectA))
 		assertEquals(Instant.DISTANT_PAST, journalLastSync(PROJECT_A))
 		verify(exactly = 1) { accountSynchronizer.deleteSyncData() }
 	}
@@ -294,7 +295,7 @@ class AccountSettingsComponentTest : BaseTest() {
 		component.chooseMerge()
 		advanceUntilIdle()
 
-		assertEquals(ProjectId("keep-me"), projectsRepository.getProjectId(projectA))
+		assertEquals(ProjectId("keep-me"), projectsRepository.listedProjectId(projectA))
 		assertEquals(Instant.DISTANT_PAST, journalLastSync(PROJECT_A))
 		verify(exactly = 1) { accountSynchronizer.deleteSyncData() }
 	}

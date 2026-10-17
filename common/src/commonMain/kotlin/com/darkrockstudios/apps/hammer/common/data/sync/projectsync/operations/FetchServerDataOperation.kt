@@ -1,7 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations
 
 import com.darkrockstudios.apps.hammer.Res
-import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ProjectSynchronizationBegan
 import com.darkrockstudios.apps.hammer.common.data.CResult
@@ -41,7 +40,7 @@ class FetchServerDataOperation(
 
 		state as FetchLocalDataState
 
-		var result = beginSync(state, state.serverProjectId)
+		var result = beginSync(state)
 
 		// 410: the server has no record of this id (it lost the project, or never had it). Create it
 		// under the local id and try once more.
@@ -49,14 +48,11 @@ class FetchServerDataOperation(
 		if (firstFailure is HttpFailureException && firstFailure.statusCode == HttpStatusCode.Gone) {
 			val outcome = projectCreateResolver.createInOwnSession(projectDef)
 			logCreateOutcome(outcome, projectDef, strRes, onLog)?.let { return CResult.failure(it) }
-			outcome as ServerCreateOutcome.Created
 
 			// Whatever the journal says the server confirmed, this server project does not hold it.
 			projectsRepository.clearSyncBaseline(projectDef)
 			state.clientSyncData = syncJournal.loadSyncData()
-			state.serverProjectId = outcome.projectId
-
-			result = beginSync(state, outcome.projectId)
+			result = beginSync(state)
 		}
 
 		return if (result.isSuccess) {
@@ -76,11 +72,8 @@ class FetchServerDataOperation(
 		}
 	}
 
-	private suspend fun beginSync(
-		state: FetchLocalDataState,
-		projectId: ProjectId,
-	): Result<ProjectSynchronizationBegan> =
-		serverProjectApi.beginProjectSync(userId(), projectId, state.entityState, state.onlyNew)
+	private suspend fun beginSync(state: FetchLocalDataState): Result<ProjectSynchronizationBegan> =
+		serverProjectApi.beginProjectSync(userId(), projectDef.id, state.entityState, state.onlyNew)
 
 	private suspend fun userId(): Long {
 		return globalSettingsStore.serverSettingsUpdates.first()?.userId

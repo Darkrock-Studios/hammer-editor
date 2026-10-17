@@ -9,7 +9,6 @@ import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.ImportOptions
 import com.darkrockstudios.apps.hammer.common.data.MarkdownSplitStrategy
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.SyncedProjectDefinition
 import com.darkrockstudios.apps.hammer.common.data.account.AccountReauthUseCase
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
@@ -132,7 +131,7 @@ class ProjectsListComponentTest : ComponentTest() {
 			single { metadataDatasource }
 			single { statsReader }
 			single { reauthUseCase }
-			factory { SyncAccountUseCase(get(), get(), get(), get()) }
+			factory { SyncAccountUseCase(get(), get(), get()) }
 			single<FileSystem> { FakeFileSystem() }
 			single<Toml> { createTomlSerializer() }
 			single<StrRes> { TestStrRes() }
@@ -363,32 +362,29 @@ class ProjectsListComponentTest : ComponentTest() {
 	@Test
 	fun `deleteProject deletes locally and queues the server delete by id`() =
 		runTest(mainTestDispatcher) {
-			every { projectsRepository.getProjectId(projectDefA) } returns ProjectId("server-id")
 			every { projectsRepository.deleteProject(projectDefA) } returns true
 			val comp = newComponent()
 
 			comp.deleteProject(projectDefA)
 			advanceUntilIdle()
 
-			verify { synchronizer.deleteProject(SyncedProjectDefinition(projectDefA, ProjectId("server-id"))) }
+			verify { synchronizer.deleteProject(projectDefA) }
 		}
 
 	@Test
 	fun `deleteProject queues the server delete even with no server configured`() = runTest(mainTestDispatcher) {
 		every { synchronizer.isServerSynchronized() } returns false
-		every { projectsRepository.getProjectId(projectDefA) } returns ProjectId("local-id")
 		every { projectsRepository.deleteProject(projectDefA) } returns true
 		val comp = newComponent()
 
 		comp.deleteProject(projectDefA)
 		advanceUntilIdle()
 
-		verify { synchronizer.deleteProject(SyncedProjectDefinition(projectDefA, ProjectId("local-id"))) }
+		verify { synchronizer.deleteProject(projectDefA) }
 	}
 
 	@Test
 	fun `deleteProject does nothing when the local delete fails`() = runTest(mainTestDispatcher) {
-		every { projectsRepository.getProjectId(projectDefA) } returns ProjectId("server-id")
 		every { projectsRepository.deleteProject(projectDefA) } returns false
 		val comp = newComponent()
 
@@ -404,19 +400,17 @@ class ProjectsListComponentTest : ComponentTest() {
 	@Test
 	fun `renameProject renames locally and queues the server rename by id`() =
 		runTest(mainTestDispatcher) {
-			every { projectsRepository.getProjectId(projectDefA) } returns ProjectId("server-id")
 			every { projectsRepository.renameProject(projectDefA, "Beta") } returns CResult.success(projectDefA)
 			val comp = newComponent()
 
 			comp.renameProject(projectDefA, "Beta")
 			advanceUntilIdle()
 
-			verify { synchronizer.renameProject(ProjectId("server-id"), "Beta") }
+			verify { synchronizer.renameProject(projectDefA.id, "Beta") }
 		}
 
 	@Test
 	fun `renameProject failure does not sync or reload`() = runTest(mainTestDispatcher) {
-		every { projectsRepository.getProjectId(projectDefA) } returns ProjectId("server-id")
 		every { projectsRepository.renameProject(projectDefA, "Beta") } returns
 			CResult.failure(error = "nope")
 		val comp = newComponent()
@@ -535,10 +529,9 @@ class ProjectsListComponentTest : ComponentTest() {
 			every { synchronizer.isServerSynchronized() } returns true
 			every { projectsRepository.getProjects(any()) } returns listOf(projectDefA)
 			every { metadataDatasource.loadMetadata(projectDefA) } returns
-				metadata(Instant.fromEpochSeconds(1), projectId = ProjectId("server-id"))
-			every { metadataDatasource.loadProjectId(projectDefA) } returns ProjectId("server-id")
+				metadata(Instant.fromEpochSeconds(1), projectId = projectDefA.id)
 			coEvery { synchronizer.syncProjects(any(), any(), any(), any()) } returns true
-			coEvery { synchronizer.probeUnchangedProjects(any()) } returns setOf(ProjectId("server-id"))
+			coEvery { synchronizer.probeUnchangedProjects(any()) } returns setOf(projectDefA.id)
 			val comp = newComponent()
 
 			comp.showProjectsSync()

@@ -6,7 +6,6 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftsDatasource
 import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
-import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneContentRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogLevel
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessage
@@ -43,9 +42,6 @@ class ClientSceneDraftSynchronizerSecurityTest : BaseTest() {
 
 	@MockK(relaxed = true)
 	private lateinit var serverProjectApi: ServerProjectApi
-
-	@MockK(relaxed = true)
-	private lateinit var projectMetadataDatasource: ProjectMetadataDatasource
 
 	@MockK(relaxed = true)
 	private lateinit var idAllocator: IdAllocator
@@ -85,7 +81,6 @@ class ClientSceneDraftSynchronizerSecurityTest : BaseTest() {
 	private fun newSynchronizer() = ClientSceneDraftSynchronizer(
 		projectDef = projectDef,
 		serverProjectApi = serverProjectApi,
-		projectMetadataDatasource = projectMetadataDatasource,
 		strRes = strRes,
 	)
 

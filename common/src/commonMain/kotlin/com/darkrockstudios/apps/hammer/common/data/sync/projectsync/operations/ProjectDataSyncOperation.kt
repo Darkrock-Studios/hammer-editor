@@ -50,7 +50,7 @@ class ProjectDataSyncOperation(
 		state as IdConflictResolutionState
 
 		val userId = globalSettingsStore.userIdOrThrow()
-		val projectId = state.serverProjectId
+		val projectId = projectDef.id
 
 		val getResult = api.getProjectData(userId, projectId)
 		val serverDto: ProjectDataDto? = getResult.getOrElse { error ->

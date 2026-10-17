@@ -101,7 +101,7 @@ class WearProjectsComponent(
 
 		if (!project.subscribed) {
 			scope.launch {
-				subscriptions.setSubscribed(project.projectId, true)
+				subscriptions.setSubscribed(project.projectDef.id, true)
 				syncCoordinator.requestSync(SyncTrigger.Manual)
 				reload()
 			}
@@ -186,7 +186,7 @@ class WearProjectsComponent(
 
 			reason = syncCoordinator.runExclusive {
 				if (pendingIn(project) == 0) {
-					subscriptions.setSubscribed(project.projectId, false)
+					subscriptions.setSubscribed(project.projectDef.id, false)
 					projectsRepository.deleteProjectContent(project.projectDef)
 					null
 				} else {

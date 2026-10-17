@@ -1,6 +1,5 @@
 package com.darkrockstudios.apps.hammer.common.data.sync.projectsync
 
-import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.ClientEntityState
 import com.darkrockstudios.apps.hammer.base.http.ProjectSynchronizationBegan
 
@@ -14,7 +13,6 @@ data class FetchLocalDataState(
 	val onlyNew: Boolean,
 	var clientSyncData: ProjectSynchronizationData,
 	var entityState: ClientEntityState?,
-	var serverProjectId: ProjectId,
 ) : SyncOperationState {
 
 	companion object {
@@ -22,13 +20,11 @@ data class FetchLocalDataState(
 			step1: InitialSyncOperationState,
 			clientSyncData: ProjectSynchronizationData,
 			entityState: ClientEntityState?,
-			serverProjectId: ProjectId,
 		): FetchLocalDataState {
 			return FetchLocalDataState(
 				onlyNew = step1.onlyNew,
 				clientSyncData = clientSyncData,
 				entityState = entityState,
-				serverProjectId = serverProjectId,
 			)
 		}
 	}
@@ -38,7 +34,6 @@ data class FetchServerDataState(
 	val onlyNew: Boolean,
 	var clientSyncData: ProjectSynchronizationData,
 	var entityState: ClientEntityState?,
-	var serverProjectId: ProjectId,
 	var serverSyncData: ProjectSynchronizationBegan,
 ) : SyncOperationState {
 	companion object {
@@ -50,7 +45,6 @@ data class FetchServerDataState(
 				onlyNew = fetchLocalDataState.onlyNew,
 				clientSyncData = fetchLocalDataState.clientSyncData,
 				entityState = fetchLocalDataState.entityState,
-				serverProjectId = fetchLocalDataState.serverProjectId,
 				serverSyncData = serverData
 			)
 		}
@@ -61,7 +55,6 @@ data class CollateIdsState(
 	val onlyNew: Boolean,
 	var clientSyncData: ProjectSynchronizationData,
 	var entityState: ClientEntityState?,
-	var serverProjectId: ProjectId,
 	var serverSyncData: ProjectSynchronizationBegan,
 	val collatedIds: CollatedIds,
 ) : SyncOperationState {
@@ -77,7 +70,6 @@ data class CollateIdsState(
 				onlyNew = step.onlyNew,
 				clientSyncData = step.clientSyncData,
 				entityState = step.entityState,
-				serverProjectId = step.serverProjectId,
 				serverSyncData = step.serverSyncData,
 				collatedIds = CollatedIds(
 					combinedDeletions, serverDeletedIds, newlyDeletedIds, dirtyEntities
@@ -98,7 +90,6 @@ data class IdConflictResolutionState(
 	val onlyNew: Boolean,
 	var clientSyncData: ProjectSynchronizationData,
 	var entityState: ClientEntityState?,
-	var serverProjectId: ProjectId,
 	var serverSyncData: ProjectSynchronizationBegan,
 	var collatedIds: CollateIdsState.CollatedIds,
 	var maxId: Int,
@@ -114,7 +105,6 @@ data class IdConflictResolutionState(
 				onlyNew = oldState.onlyNew,
 				clientSyncData = oldState.clientSyncData,
 				entityState = oldState.entityState,
-				serverProjectId = oldState.serverProjectId,
 				serverSyncData = oldState.serverSyncData,
 				collatedIds = oldState.collatedIds,
 				maxId = maxId,
@@ -128,7 +118,6 @@ open class EntityDeleteOperationState(
 	val onlyNew: Boolean,
 	var clientSyncData: ProjectSynchronizationData,
 	var entityState: ClientEntityState?,
-	var serverProjectId: ProjectId,
 	var serverSyncData: ProjectSynchronizationBegan,
 	var collatedIds: CollateIdsState.CollatedIds,
 	var maxId: Int,
@@ -142,7 +131,6 @@ open class EntityDeleteOperationState(
 				onlyNew = oldState.onlyNew,
 				clientSyncData = oldState.clientSyncData,
 				entityState = oldState.entityState,
-				serverProjectId = oldState.serverProjectId,
 				serverSyncData = oldState.serverSyncData,
 				collatedIds = oldState.collatedIds,
 				maxId = oldState.maxId,
@@ -156,7 +144,6 @@ data class EntityTransferState(
 	val onlyNew: Boolean,
 	var clientSyncData: ProjectSynchronizationData,
 	var entityState: ClientEntityState?,
-	var serverProjectId: ProjectId,
 	var serverSyncData: ProjectSynchronizationBegan,
 	var collatedIds: CollateIdsState.CollatedIds,
 	var maxId: Int,
@@ -172,7 +159,6 @@ data class EntityTransferState(
 				onlyNew = oldState.onlyNew,
 				clientSyncData = oldState.clientSyncData,
 				entityState = oldState.entityState,
-				serverProjectId = oldState.serverProjectId,
 				serverSyncData = oldState.serverSyncData,
 				collatedIds = oldState.collatedIds,
 				maxId = oldState.maxId,
