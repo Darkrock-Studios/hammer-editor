@@ -282,9 +282,10 @@ lists only directories that hold one, and the project picker, the data migrator,
 and the Wear OS project list all enumerate projects through it. A directory that loses the file is
 re-marked rather than hidden: at startup `ProjectsRepository.healUnmarkedProjectDirectories` gives
 a fresh `project.toml`, under a new ID, to every directory that holds Hammer content (scenes, notes,
-encyclopedia, timeline, `settings.toml` or `sync.json`) but no marker, and account sync adopts an
-unmarked directory whose name matches a server project under that project's ID. A directory with no
-recognizable content stays ignored.
+encyclopedia, timeline, `settings.toml`, a pre-4 `project_data.toml` or `sync.json`) but no marker,
+and account sync adopts an unmarked directory whose name matches a server project under that
+project's ID, if it is empty or holds such content. Any other directory stays ignored, since the
+projects directory may be shared with unrelated folders.
 
 **Project identity.** Every project has a `projectId`, a UUID the client mints at creation whether
 or not a sync server is configured. The server does not issue IDs: the create request carries the

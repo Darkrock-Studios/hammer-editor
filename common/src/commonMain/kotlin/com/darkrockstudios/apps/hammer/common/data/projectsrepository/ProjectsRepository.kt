@@ -14,6 +14,7 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
+import com.darkrockstudios.apps.hammer.common.data.migrator.Migration3_4
 import com.darkrockstudios.apps.hammer.common.data.migrator.PROJECT_DATA_VERSION
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
@@ -279,12 +280,21 @@ class ProjectsRepository(
 	 * [ProjectMetadata.FILENAME]. Any sync journal it holds may be stale, so it is reset like a
 	 * restored backup's (see [resetSyncStateAfterRestore]). Does not migrate: the caller does, then
 	 * resets again, since migration can move a pre-4 settings file's stale baseline into place.
+	 *
+	 * The projects directory may be shared with unrelated folders, so only an empty directory (a
+	 * create interrupted before its project.toml) or one holding Hammer content is adopted.
 	 */
 	suspend fun adoptUnmarkedDirectory(
 		projectName: String,
 		projectId: ProjectId,
 		serverKnowsProject: Boolean,
-	): ProjectDef? = adoptUnmarkedDirectory(getProjectDefinition(projectName), projectId, serverKnowsProject)
+	): ProjectDef? {
+		val projectDef = getProjectDefinition(projectName)
+		val projectDir = projectDef.path.toOkioPath()
+		if (fileSystem.metadataOrNull(projectDir)?.isDirectory != true) return null
+		if (fileSystem.list(projectDir).isNotEmpty() && !hasProjectContent(projectDir)) return null
+		return adoptUnmarkedDirectory(projectDef, projectId, serverKnowsProject)
+	}
 
 	private suspend fun adoptUnmarkedDirectory(
 		projectDef: ProjectDef,
@@ -485,6 +495,7 @@ class ProjectsRepository(
 			EncyclopediaDatasource.ENCYCLOPEDIA_DIRECTORY,
 			TimeLineDatasource.TIMELINE_DIRECTORY,
 			ProjectDataDatasource.FILENAME,
+			Migration3_4.LEGACY_PROJECT_SETTINGS_FILENAME,
 			SyncJournalDatasource.SYNC_FILE_NAME,
 		)
 

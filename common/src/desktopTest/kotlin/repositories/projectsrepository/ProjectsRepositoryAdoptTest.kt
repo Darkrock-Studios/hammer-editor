@@ -212,6 +212,40 @@ class ProjectsRepositoryAdoptTest : ProjectsRepositoryBaseTest() {
 	}
 
 	@Test
+	fun `Adopting a folder with Hammer content marks it`() = scope.runTest {
+		val repo = projectsRepository()
+		val folder = createFolder("Server Project", SceneDatasource.SCENE_DIRECTORY)
+
+		val adopted = repo.adoptUnmarkedDirectory("Server Project", ProjectId("server-id"), serverKnowsProject = true)
+
+		assertEquals(folder, adopted)
+		assertTrue(isMarked(folder))
+	}
+
+	@Test
+	fun `Adopting a pre-4 folder holding only its legacy settings file marks it`() = scope.runTest {
+		val repo = projectsRepository()
+		val folder = createFolder("Server Project")
+		ffs.write(dir(folder) / Migration3_4.LEGACY_PROJECT_SETTINGS_FILENAME) { writeUtf8("") }
+
+		val adopted = repo.adoptUnmarkedDirectory("Server Project", ProjectId("server-id"), serverKnowsProject = true)
+
+		assertEquals(folder, adopted)
+	}
+
+	@Test
+	fun `Adopting a folder that is not a Hammer project does nothing`() = scope.runTest {
+		val repo = projectsRepository()
+		val folder = createFolder("Notes")
+		ffs.write(dir(folder) / "shopping.txt") { writeUtf8("eggs") }
+
+		val adopted = repo.adoptUnmarkedDirectory("Notes", ProjectId("server-id"), serverKnowsProject = true)
+
+		assertNull(adopted)
+		assertEquals(listOf(dir(folder) / "shopping.txt"), ffs.list(dir(folder)))
+	}
+
+	@Test
 	fun `Adopting a marked folder does nothing`() = scope.runTest {
 		val repo = projectsRepository()
 		createProject(ffs, PROJECT_2_NAME)
