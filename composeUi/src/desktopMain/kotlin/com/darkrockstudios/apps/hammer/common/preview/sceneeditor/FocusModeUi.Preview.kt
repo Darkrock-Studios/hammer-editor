@@ -15,12 +15,13 @@ import com.darkrockstudios.apps.hammer.common.preview.TabletPreviewSurface
 import com.darkrockstudios.apps.hammer.common.preview.fakeProjectDef
 import com.darkrockstudios.apps.hammer.common.preview.fakeSceneItem
 import com.darkrockstudios.apps.hammer.common.storyeditor.focusmode.FocusModeUi
+import com.darkrockstudios.libs.platformspellchecker.PlatformSpellChecker
 
 @Preview
 @Composable
 fun ScreenFocusModeUiPreview() {
 	KoinApplicationPreview {
-		FocusModeUi(focusMode)
+		FocusModeUi(fakeFocusMode())
 	}
 }
 
@@ -29,12 +30,15 @@ fun ScreenFocusModeUiPreview() {
 fun ScreenFocusModeUiTabletPreview() {
 	KoinApplicationPreview {
 		TabletPreviewSurface {
-			FocusModeUi(focusMode)
+			FocusModeUi(fakeFocusMode())
 		}
 	}
 }
 
-private val focusMode = object : FocusMode {
+internal fun fakeFocusMode(
+	markdown: String = "This is some demo text for the focus mode preview.",
+	spellChecker: PlatformSpellChecker? = null,
+) = object : FocusMode {
 	override val state = MutableValue(
 		FocusMode.State(
 			projectDef = fakeProjectDef(),
@@ -42,14 +46,14 @@ private val focusMode = object : FocusMode {
 			sceneBuffer = SceneBuffer(
 				content = SceneContent(
 					scene = fakeSceneItem(),
-					markdown = "This is some demo text for the focus mode preview."
+					markdown = markdown
 				),
 				source = UpdateSource.Editor
 			),
 			isLoading = false,
 			textSize = 24f,
-			spellChecker = null,
-			spellCheckingEnabled = false
+			spellChecker = spellChecker,
+			spellCheckingEnabled = spellChecker != null
 		)
 	)
 	override var lastForceUpdate = MutableValue(1L)
