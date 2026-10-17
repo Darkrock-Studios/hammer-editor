@@ -24,6 +24,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.koin.dsl.module
+import testProjectId
 import utils.BaseTest
 import utils.TestStrRes
 import kotlin.test.assertEquals
@@ -34,7 +35,7 @@ import kotlin.time.Instant
 
 class ClientNoteSynchronizerTest : BaseTest() {
 
-	private val projectDef = ProjectDef(name = "Test", path = HPath("/projects/Test", "Test", false))
+	private val projectDef = ProjectDef(id = testProjectId("Test"), name = "Test", path = HPath("/projects/Test", "Test", false))
 	private val strRes: StrRes = TestStrRes()
 
 	@MockK

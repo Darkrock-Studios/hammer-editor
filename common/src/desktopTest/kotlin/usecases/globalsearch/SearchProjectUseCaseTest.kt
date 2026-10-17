@@ -33,6 +33,7 @@ import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import testProjectId
 import utils.BaseTest
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -42,7 +43,7 @@ import kotlin.time.Clock
 
 class SearchProjectUseCaseTest : BaseTest() {
 
-	private val projectDef = ProjectDef(name = "Test", path = HPath("/projects/Test", "Test", false))
+	private val projectDef = ProjectDef(id = testProjectId("Test"), name = "Test", path = HPath("/projects/Test", "Test", false))
 
 	private lateinit var sceneEditor: SceneRepository
 	private lateinit var sceneMetadataRepository: SceneMetadataRepository

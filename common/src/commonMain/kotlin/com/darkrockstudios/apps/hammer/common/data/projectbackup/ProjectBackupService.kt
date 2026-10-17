@@ -203,13 +203,12 @@ open class ProjectBackupService(
 	 */
 	open suspend fun restoreBackup(backupDef: ProjectBackupDef, targetDir: HPath): BackupRestoreResult {
 		val targetOkioPath = targetDir.toOkioPath()
-		val targetDef = ProjectDef(backupDef.projectName, targetDir)
 		val staging = getBackupsDirectory().toOkioPath() / RESTORE_STAGING_DIRECTORY
 		val extracted = staging / "new"
 		val displaced = staging / "old"
 
 		return restoreLock.withLock {
-			if (projectsRepository.isProjectInUse(targetDef)) {
+			if (projectsRepository.isProjectInUse(targetDir)) {
 				Napier.w("Did not restore '${backupDef.path.name}': '${backupDef.projectName}' is in use")
 				return@withLock BackupRestoreResult.ProjectInUse
 			}
@@ -233,7 +232,13 @@ open class ProjectBackupService(
 				)
 
 				swapIntoPlace(archiveRoot(extracted), targetOkioPath, displaced)
-				adoptIdentity(targetDef, liveId, liveSynced)
+				// Under the backup's own id until adoptIdentity settles it.
+				val restoredDef = ProjectDef(
+					id = projectMetadataDatasource.loadProjectId(targetDir),
+					name = backupDef.projectName,
+					path = targetDir,
+				)
+				adoptIdentity(restoredDef, liveId, liveSynced)
 				BackupRestoreResult.Restored
 			} catch (e: Exception) {
 				Napier.e("Failed to restore backup: ${backupDef.path.name}", e)
@@ -260,22 +265,22 @@ open class ProjectBackupService(
 	 * keeps an id already present.
 	 */
 	@Suppress("TooGenericExceptionCaught")
-	private suspend fun adoptIdentity(targetDef: ProjectDef, liveId: ProjectId?, liveSynced: Boolean) {
+	private suspend fun adoptIdentity(restoredDef: ProjectDef, liveId: ProjectId?, liveSynced: Boolean) {
 		try {
-			dataMigrator.migrateProject(targetDef)
+			dataMigrator.migrateProject(restoredDef)
 		} catch (e: Exception) {
-			Napier.e("Restored '${targetDef.name}' but failed to migrate it", e)
+			Napier.e("Restored '${restoredDef.name}' but failed to migrate it", e)
 		}
 		// Flagged before the id is set, so an id change keeps the backup's conflict baselines.
 		try {
-			projectsRepository.resetSyncStateAfterRestore(targetDef, serverKnowsProject = liveSynced)
+			projectsRepository.resetSyncStateAfterRestore(restoredDef, serverKnowsProject = liveSynced)
 		} catch (e: Exception) {
-			Napier.e("Restored '${targetDef.name}' but failed to reset its sync state", e)
+			Napier.e("Restored '${restoredDef.name}' but failed to reset its sync state", e)
 		}
 		try {
-			projectsRepository.setProjectId(targetDef, liveId ?: ProjectId.randomUUID())
+			projectsRepository.setProjectId(restoredDef, liveId ?: ProjectId.randomUUID())
 		} catch (e: Exception) {
-			Napier.e("Restored '${targetDef.name}' but failed to set its project id", e)
+			Napier.e("Restored '${restoredDef.name}' but failed to set its project id", e)
 		}
 	}
 

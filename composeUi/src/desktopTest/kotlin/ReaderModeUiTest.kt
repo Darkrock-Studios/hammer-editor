@@ -12,6 +12,7 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.update
+import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.readermode.ReaderMode
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
@@ -35,7 +36,11 @@ class ReaderModeUiTest : BaseTest() {
 	@get:Rule
 	val compose = createComposeRule()
 
-	private val projectDef = ProjectDef(name = "Test", path = HPath(name = "Test", path = "/", isAbsolute = true))
+	private val projectDef = ProjectDef(
+		id = ProjectId("6f0b8e52-2a4c-4d1e-9b3a-7c5d1e2f3a43"),
+		name = "Test",
+		path = HPath(name = "Test", path = "/", isAbsolute = true),
+	)
 
 	private fun item(id: Int, name: String, type: SceneItem.Type) =
 		SceneItem(projectDef = projectDef, type = type, id = id, name = name, order = id)

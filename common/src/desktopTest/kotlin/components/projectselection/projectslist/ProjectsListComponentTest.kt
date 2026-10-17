@@ -52,6 +52,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.koin.dsl.module
 import org.koin.test.get
+import testProjectId
 import utils.ComponentTest
 import utils.TestStrRes
 import kotlin.test.assertEquals
@@ -93,7 +94,7 @@ class ProjectsListComponentTest : ComponentTest() {
 		}
 	}
 
-	private val projectDefA = ProjectDef("Alpha", HPath("/projects/Alpha", "Alpha", false))
+	private val projectDefA = ProjectDef(testProjectId("Alpha"), "Alpha", HPath("/projects/Alpha", "Alpha", false))
 
 	private val fixedNow = Instant.fromEpochSeconds(1_000_000)
 
@@ -554,9 +555,9 @@ class ProjectsListComponentTest : ComponentTest() {
 	@Test
 	fun `loadProjectList maps metadata to project data sorted by last-accessed descending`() =
 		runTest(mainTestDispatcher) {
-			val oldest = ProjectDef("Oldest", HPath("/projects/Oldest", "Oldest", false))
-			val newest = ProjectDef("Newest", HPath("/projects/Newest", "Newest", false))
-			val middle = ProjectDef("Middle", HPath("/projects/Middle", "Middle", false))
+			val oldest = ProjectDef(testProjectId("Oldest"), "Oldest", HPath("/projects/Oldest", "Oldest", false))
+			val newest = ProjectDef(testProjectId("Newest"), "Newest", HPath("/projects/Newest", "Newest", false))
+			val middle = ProjectDef(testProjectId("Middle"), "Middle", HPath("/projects/Middle", "Middle", false))
 			every { projectsRepository.getProjects(any()) } returns listOf(oldest, newest, middle)
 			every { metadataDatasource.loadMetadata(oldest) } returns metadata(Instant.fromEpochSeconds(100))
 			every { metadataDatasource.loadMetadata(newest) } returns metadata(Instant.fromEpochSeconds(300))
@@ -594,8 +595,8 @@ class ProjectsListComponentTest : ComponentTest() {
 	@Test
 	fun `loadProjectList skips a project whose metadata fails to load`() =
 		runTest(mainTestDispatcher) {
-			val good = ProjectDef("Good", HPath("/projects/Good", "Good", false))
-			val vanished = ProjectDef("Vanished", HPath("/projects/Vanished", "Vanished", false))
+			val good = ProjectDef(testProjectId("Good"), "Good", HPath("/projects/Good", "Good", false))
+			val vanished = ProjectDef(testProjectId("Vanished"), "Vanished", HPath("/projects/Vanished", "Vanished", false))
 			every { projectsRepository.getProjects(any()) } returns listOf(good, vanished)
 			every { metadataDatasource.loadMetadata(good) } returns metadata(Instant.fromEpochSeconds(100))
 			// Deleted concurrently between listing and reading: loadMetadata throws.

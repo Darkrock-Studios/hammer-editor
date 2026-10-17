@@ -10,14 +10,13 @@ import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.components.notes.ViewNote
 import com.darkrockstudios.apps.hammer.common.compose.rememberRootSnackbarHostState
-import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
-import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.notes.ViewNoteUi
 import com.darkrockstudios.apps.hammer.common.preview.KoinApplicationPreview
 import com.darkrockstudios.apps.hammer.common.preview.TABLET_HEIGHT_DP
 import com.darkrockstudios.apps.hammer.common.preview.TABLET_WIDTH_DP
 import com.darkrockstudios.apps.hammer.common.preview.TabletPreviewSurface
+import com.darkrockstudios.apps.hammer.common.preview.fakeProjectDef
 import kotlin.time.Clock
 
 @OptIn(ExperimentalSharedTransitionApi::class)
@@ -123,15 +122,6 @@ fun ScreenViewNoteUiTabletPreview() {
 		}
 	}
 }
-
-private fun fakeProjectDef(): ProjectDef = ProjectDef(
-	name = "Test",
-	path = HPath(
-		name = "Test",
-		path = "/",
-		isAbsolute = true
-	)
-)
 
 private fun fakeNoteContent(): NoteContent = NoteContent(
 	id = 1,

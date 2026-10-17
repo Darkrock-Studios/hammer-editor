@@ -28,6 +28,7 @@ import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import testProjectId
 import utils.projectsDirectoryOf
 import utils.BaseTest
 import kotlin.test.assertEquals
@@ -81,7 +82,7 @@ class AccountTagServiceTest : BaseTest() {
 			toml,
 			StoredProjectData(ProjectData(tags = tags)),
 		)
-		return ProjectDef(name = name, path = dir.toHPath())
+		return ProjectDef(id = testProjectId(name), name = name, path = dir.toHPath())
 	}
 
 	@Test
@@ -182,7 +183,7 @@ class AccountTagServiceTest : BaseTest() {
 	@Test
 	fun `Tolerates a project with no project settings file`() = runTest {
 		advanceUntilIdle()
-		val bare = ProjectDef(name = "Bare", path = "/projects/Bare".toPath().toHPath())
+		val bare = ProjectDef(id = testProjectId("Bare"), name = "Bare", path = "/projects/Bare".toPath().toHPath())
 		ffs.createDirectories("/projects/Bare".toPath())
 		val tagged = seedProject("Tagged", setOf("fantasy"))
 		every { projectsRepository.getProjects() } returns listOf(bare, tagged)

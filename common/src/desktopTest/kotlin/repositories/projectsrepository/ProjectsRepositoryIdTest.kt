@@ -7,8 +7,10 @@ import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.Pr
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.createProjectScope
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
+import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectIdChangeListener
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectInUseException
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournalDatasource
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
@@ -16,8 +18,11 @@ import createProject
 import getProjectDef
 import getProjectsDirectory
 import kotlinx.coroutines.test.runTest
+import okio.FileMetadata
+import okio.ForwardingFileSystem
 import okio.Path
 import org.junit.jupiter.api.Test
+import testProjectId
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
@@ -27,6 +32,7 @@ import kotlin.time.Duration.Companion.days
 
 class ProjectsRepositoryIdTest : ProjectsRepositoryBaseTest() {
 	private val project2Id = ProjectId("8c3f6a2e-4b1d-4e5a-9f7c-2d6b1a0e9c43")
+	private val legacyProject1Id = ProjectId("5f1d7446-1f08-4909-a81e-cdc7470a2f63")
 
 	@Test
 	fun `Get Project ID`() = scope.runTest {
@@ -50,6 +56,62 @@ class ProjectsRepositoryIdTest : ProjectsRepositoryBaseTest() {
 
 		assertEquals(healed, repo.getProjectId(proj1Def))
 		assertEquals(healed, projectsMetaDatasource.loadMetadata(proj1Def).info.projectId)
+	}
+
+	@Test
+	fun `Get Projects reads each project's id from disk`() = scope.runTest {
+		createProject(ffs, PROJECT_1_NAME)
+		createProject(ffs, PROJECT_2_NAME)
+
+		val projects = projectsRepository().getProjects()
+
+		assertEquals(
+			mapOf(PROJECT_1_NAME to legacyProject1Id, PROJECT_2_NAME to project2Id),
+			projects.associate { it.name to it.id },
+		)
+	}
+
+	@Test
+	fun `Get Projects heals a project without an id`() = scope.runTest {
+		val proj1Def = getProjectDef(PROJECT_1_NAME)
+		createProject(ffs, PROJECT_1_NAME)
+		ffs.write(proj1Def.path.toOkioPath() / ProjectMetadata.FILENAME) {
+			writeUtf8("[info]\ncreated = 2022-12-30T07:08:02.691261600Z\ndataVersion = 4\n")
+		}
+		val repo = projectsRepository()
+
+		val healed = repo.getProjects().single()
+
+		assertEquals(healed.id, projectsMetaDatasource.loadMetadata(proj1Def).info.projectId)
+		assertEquals(listOf(healed), repo.getProjects())
+	}
+
+	@Test
+	fun `Get Projects skips a project deleted while the list is built`() = scope.runTest {
+		createProject(ffs, PROJECT_1_NAME)
+		createProject(ffs, PROJECT_2_NAME)
+		val vanishingMarker = getProjectDef(PROJECT_1_NAME).path.toOkioPath() / ProjectMetadata.FILENAME
+		// Deletes the project right after the listing sees its marker, before its id is read.
+		val fs = object : ForwardingFileSystem(ffs) {
+			override fun metadataOrNull(path: Path): FileMetadata? =
+				super.metadataOrNull(path).also { if (path == vanishingMarker) ffs.deleteRecursively(path.parent!!) }
+		}
+		val repo = ProjectsRepository(fs, settingsRepo, ProjectMetadataDatasource(fs, toml), toml, json, deviceLocaleResolver)
+
+		assertEquals(listOf(PROJECT_2_NAME), repo.getProjects().map { it.name })
+	}
+
+	@Test
+	fun `Set Project ID returns the def under its new id`() = scope.runTest {
+		val proj2Def = getProjectDef(PROJECT_2_NAME)
+		val newId = ProjectId.randomUUID()
+		createProject(ffs, PROJECT_2_NAME)
+		val repo = projectsRepository()
+
+		val updated = repo.setProjectId(proj2Def, newId)
+
+		assertEquals(proj2Def.copy(id = newId), updated)
+		assertEquals(updated, repo.findProject(newId))
 	}
 
 	@Test
@@ -220,6 +282,6 @@ class ProjectsRepositoryIdTest : ProjectsRepositoryBaseTest() {
 		ffs.list(source.path.toOkioPath()).forEach { file ->
 			if (ffs.metadata(file).isRegularFile) ffs.copy(file, target / file.name)
 		}
-		return ProjectDef(name, target.toHPath())
+		return ProjectDef(testProjectId(name), name, target.toHPath())
 	}
 }

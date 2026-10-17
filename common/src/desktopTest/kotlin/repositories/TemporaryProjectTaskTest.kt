@@ -18,11 +18,13 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.getScopeId
 import org.koin.dsl.module
 import org.koin.mp.KoinPlatform.getKoin
+import testProjectId
 import utils.BaseTest
 
 class TemporaryProjectTaskTest : BaseTest(), KoinComponent {
 
 	private val projectDef = ProjectDef(
+		id = testProjectId("Test Project"),
 		name = "Test Project",
 		path = HPath(path = "/projects/Test Project", name = "Test Project", isAbsolute = true),
 	)

@@ -28,6 +28,7 @@ import okio.Path.Companion.toPath
 import okio.ForwardingFileSystem
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.Test
+import testProjectId
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
@@ -55,8 +56,8 @@ class ProjectBackupServiceTest {
 	private val liveId = ProjectId("live-project-id")
 
 	init {
-		every { projectsRepository.isProjectInUse(any()) } returns false
-		coEvery { projectsRepository.setProjectId(any(), any()) } just Runs
+		every { projectsRepository.isProjectInUse(any<HPath>()) } returns false
+		coEvery { projectsRepository.setProjectId(any(), any()) } answers { firstArg<ProjectDef>().copy(id = secondArg()) }
 		coEvery { projectsRepository.resetSyncStateAfterRestore(any(), any()) } just Runs
 	}
 
@@ -88,7 +89,7 @@ class ProjectBackupServiceTest {
 		every { clock.now() } returns instant
 		every { projectsRepository.getProjectsDirectory() } returns "/projects".toPath().toHPath()
 
-		val projectDef = ProjectDef("Test Project", "/projects/Test Project".toPath().toHPath())
+		val projectDef = ProjectDef(testProjectId("Test Project"), "Test Project", "/projects/Test Project".toPath().toHPath())
 		val service = TestService(fileSystem, projectsRepository, globalSettingsStore, clock)
 		val backupDef = service.testCreateNewProjectBackupDef(projectDef)
 
@@ -149,7 +150,7 @@ class ProjectBackupServiceTest {
 		fileSystem.createDirectories(projectDir)
 		fileSystem.write(projectDir / "scene.txt") { writeUtf8("once upon a time") }
 
-		val projectDef = ProjectDef(name, projectDir.toHPath())
+		val projectDef = ProjectDef(testProjectId(name), name, projectDir.toHPath())
 		val backupDef = realService().createBackup(projectDef)
 
 		assertNotNull(backupDef)
@@ -272,7 +273,7 @@ class ProjectBackupServiceTest {
 		val middle = writeBackupFile("Test Project", Instant.parse("2025-12-27T10:00:00Z"))
 		val newest = writeBackupFile("Test Project", Instant.parse("2025-12-28T10:00:00Z"))
 
-		realService().cullBackups(ProjectDef("Test Project", "/projects/Test Project".toPath().toHPath()))
+		realService().cullBackups(ProjectDef(testProjectId("Test Project"), "Test Project", "/projects/Test Project".toPath().toHPath()))
 
 		assertFalse(fileSystem.exists(oldest))
 		assertTrue(fileSystem.exists(middle))
@@ -291,7 +292,7 @@ class ProjectBackupServiceTest {
 		fileSystem.createDirectories(projectDir)
 		fileSystem.write(projectDir / "scene.txt") { writeUtf8("once upon a time") }
 
-		val projectDef = ProjectDef("Test Project", projectDir.toHPath())
+		val projectDef = ProjectDef(testProjectId("Test Project"), "Test Project", projectDir.toHPath())
 		val service = realService()
 
 		// Simulate several syncs, each creating a backup a minute apart.
@@ -329,7 +330,7 @@ class ProjectBackupServiceTest {
 		val newer = writeBackupFile("Alice In Wonderland", Instant.parse("2026-06-20T08:01:56Z"))
 		val newest = writeBackupFile("Alice In Wonderland", Instant.parse("2026-06-20T08:02:53Z"))
 
-		realService().cullBackups(ProjectDef("Alice In Wonderland", "/projects/Alice In Wonderland".toPath().toHPath()))
+		realService().cullBackups(ProjectDef(testProjectId("Alice In Wonderland"), "Alice In Wonderland", "/projects/Alice In Wonderland".toPath().toHPath()))
 
 		assertFalse(fileSystem.exists(legacy))
 		assertFalse(fileSystem.exists(older))
@@ -348,7 +349,7 @@ class ProjectBackupServiceTest {
 		val a = writeBackupFile("Test Project", Instant.parse("2025-12-26T10:00:00Z"))
 		val b = writeBackupFile("Test Project", Instant.parse("2025-12-27T10:00:00Z"))
 
-		realService().cullBackups(ProjectDef("Test Project", "/projects/Test Project".toPath().toHPath()))
+		realService().cullBackups(ProjectDef(testProjectId("Test Project"), "Test Project", "/projects/Test Project".toPath().toHPath()))
 
 		assertTrue(fileSystem.exists(a))
 		assertTrue(fileSystem.exists(b))
@@ -367,7 +368,7 @@ class ProjectBackupServiceTest {
 		fileSystem.createDirectories(projectDir)
 		fileSystem.write(projectDir / "scene.txt") { writeUtf8("once upon a time") }
 
-		val projectDef = ProjectDef("Test Project", projectDir.toHPath())
+		val projectDef = ProjectDef(testProjectId("Test Project"), "Test Project", projectDir.toHPath())
 		val service = realService()
 		val backupDef = service.createBackup(projectDef)
 
@@ -394,7 +395,7 @@ class ProjectBackupServiceTest {
 		fileSystem.write(projectDir / "scene.txt") { writeUtf8("once upon a time") }
 
 		val service = realService()
-		val backupDef = service.createBackup(ProjectDef("Test Project", projectDir.toHPath()))
+		val backupDef = service.createBackup(ProjectDef(testProjectId("Test Project"), "Test Project", projectDir.toHPath()))
 		assertNotNull(backupDef)
 
 		val target = "/restored".toPath()
@@ -417,19 +418,19 @@ class ProjectBackupServiceTest {
 
 		val projectDir = "/projects/Test Project".toPath()
 		fileSystem.createDirectories(projectDir / "scenes")
-		fileSystem.write(projectDir / "project.toml") { writeUtf8("original") }
+		fileSystem.write(projectDir / "settings.toml") { writeUtf8("original") }
 		fileSystem.write(projectDir / "scenes" / "scene.md") { writeUtf8("once upon a time") }
 
 		val service = realService()
-		val projectDef = ProjectDef("Test Project", projectDir.toHPath())
+		val projectDef = ProjectDef(testProjectId("Test Project"), "Test Project", projectDir.toHPath())
 		val backupDef = service.createBackup(projectDef)
 		assertNotNull(backupDef)
 
-		fileSystem.write(projectDir / "project.toml") { writeUtf8("changed") }
+		fileSystem.write(projectDir / "settings.toml") { writeUtf8("changed") }
 
 		assertEquals(BackupRestoreResult.Restored, service.restoreBackup(backupDef, projectDef.path))
 
-		assertEquals("original", fileSystem.read(projectDir / "project.toml") { readUtf8() })
+		assertEquals("original", fileSystem.read(projectDir / "settings.toml") { readUtf8() })
 		assertEquals("once upon a time", fileSystem.read(projectDir / "scenes" / "scene.md") { readUtf8() })
 		assertFalse(fileSystem.exists(projectDir / "Test Project"), "Project must not be nested inside itself")
 	}
@@ -444,7 +445,7 @@ class ProjectBackupServiceTest {
 			GlobalSettings(projectsDirectory = "/projects", maxBackups = 5)
 
 		val projectDir = "/projects/Test Project".toPath()
-		val projectDef = ProjectDef("Test Project", projectDir.toHPath())
+		val projectDef = ProjectDef(liveId, "Test Project", projectDir.toHPath())
 		fileSystem.createDirectories(projectDir)
 		metadataDatasource.createMetadata(projectDef, liveId)
 
@@ -471,7 +472,7 @@ class ProjectBackupServiceTest {
 		every { dataMigrator.migrateProject(any()) } throws IllegalStateException("migration failed")
 
 		val projectDir = "/projects/Test Project".toPath()
-		val projectDef = ProjectDef("Test Project", projectDir.toHPath())
+		val projectDef = ProjectDef(liveId, "Test Project", projectDir.toHPath())
 		fileSystem.createDirectories(projectDir)
 		metadataDatasource.createMetadata(projectDef, liveId)
 
@@ -494,7 +495,7 @@ class ProjectBackupServiceTest {
 			GlobalSettings(projectsDirectory = "/projects", maxBackups = 5)
 
 		val projectDir = "/projects/Test Project".toPath()
-		val projectDef = ProjectDef("Test Project", projectDir.toHPath())
+		val projectDef = ProjectDef(backupId, "Test Project", projectDir.toHPath())
 		fileSystem.createDirectories(projectDir)
 		metadataDatasource.createMetadata(projectDef, backupId)
 
@@ -521,7 +522,7 @@ class ProjectBackupServiceTest {
 			GlobalSettings(projectsDirectory = "/projects", maxBackups = 5)
 
 		val projectDir = "/projects/Test Project".toPath()
-		val projectDef = ProjectDef("Test Project", projectDir.toHPath())
+		val projectDef = ProjectDef(liveId, "Test Project", projectDir.toHPath())
 		fileSystem.createDirectories(projectDir)
 		metadataDatasource.createMetadata(projectDef, liveId)
 
@@ -549,7 +550,7 @@ class ProjectBackupServiceTest {
 			GlobalSettings(projectsDirectory = "/projects", maxBackups = 5)
 
 		val projectDir = "/projects/Test Project".toPath()
-		val projectDef = ProjectDef("Test Project", projectDir.toHPath())
+		val projectDef = ProjectDef(backupId, "Test Project", projectDir.toHPath())
 		fileSystem.createDirectories(projectDir)
 		metadataDatasource.createMetadata(projectDef, backupId)
 
@@ -579,28 +580,28 @@ class ProjectBackupServiceTest {
 
 		val projectDir = "/projects/Test Project".toPath()
 		fileSystem.createDirectories(projectDir)
-		fileSystem.write(projectDir / "project.toml") { writeUtf8("original") }
+		fileSystem.write(projectDir / "settings.toml") { writeUtf8("original") }
 
 		val service = realService()
-		val projectDef = ProjectDef("Test Project", projectDir.toHPath())
+		val projectDef = ProjectDef(testProjectId("Test Project"), "Test Project", projectDir.toHPath())
 		val backupDef = service.createBackup(projectDef)
 		assertNotNull(backupDef)
-		fileSystem.write(projectDir / "project.toml") { writeUtf8("changed") }
+		fileSystem.write(projectDir / "settings.toml") { writeUtf8("changed") }
 
 		assertEquals(
 			BackupRestoreResult.Restored,
 			service.restoreBackup(backupDef, projectDef.path),
 			"the content is already in place",
 		)
-		assertEquals("original", fileSystem.read(projectDir / "project.toml") { readUtf8() })
+		assertEquals("original", fileSystem.read(projectDir / "settings.toml") { readUtf8() })
 	}
 
 	@Test
 	fun `getBackedUpProjects includes projects that no longer exist`() {
 		every { projectsRepository.getProjectsDirectory() } returns "/projects".toPath().toHPath()
 
-		val kept = ProjectDef("Kept", "/projects/Kept".toPath().toHPath())
-		val noBackups = ProjectDef("No Backups", "/projects/No Backups".toPath().toHPath())
+		val kept = ProjectDef(testProjectId("Kept"), "Kept", "/projects/Kept".toPath().toHPath())
+		val noBackups = ProjectDef(testProjectId("No Backups"), "No Backups", "/projects/No Backups".toPath().toHPath())
 		every { projectsRepository.getProjects(any()) } returns listOf(kept, noBackups)
 
 		writeBackupFile("Kept", Instant.parse("2025-12-26T10:00:00Z"))
@@ -632,7 +633,7 @@ class ProjectBackupServiceTest {
 			GlobalSettings(projectsDirectory = "/projects", maxBackups = 5)
 
 		val projectDir = "/projects/Test Project".toPath()
-		val projectDef = ProjectDef("Test Project", projectDir.toHPath())
+		val projectDef = ProjectDef(backupId, "Test Project", projectDir.toHPath())
 		fileSystem.createDirectories(projectDir)
 		metadataDatasource.createMetadata(projectDef, backupId)
 

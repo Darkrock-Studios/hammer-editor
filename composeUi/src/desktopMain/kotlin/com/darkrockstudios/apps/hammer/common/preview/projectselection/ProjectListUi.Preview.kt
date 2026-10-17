@@ -8,6 +8,7 @@ import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.components.ToastMessage
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectListModalRouter
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsList
+import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.storyideas.StoryIdea
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectData
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
@@ -27,6 +28,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import org.jetbrains.compose.resources.StringResource
+import kotlin.uuid.Uuid
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData as StoredData
 
 @Preview
@@ -50,7 +52,11 @@ fun ScreenProjectListUiTabletPreview() {
 }
 
 fun previewProject(name: String, tags: Set<String> = setOf("fantasy", "draft")) = ProjectData(
-	definition = ProjectDef(name = name, path = HPath(name = name, path = "/$name", isAbsolute = true)),
+	definition = ProjectDef(
+		id = ProjectId.fromUUID(Uuid.fromLongs(0L, name.hashCode().toLong())),
+		name = name,
+		path = HPath(name = name, path = "/$name", isAbsolute = true),
+	),
 	metadata = fakeProjectMetadata(),
 	storedData = StoredData(authorName = "A. Writer", tags = tags),
 )

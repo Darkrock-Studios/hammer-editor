@@ -40,11 +40,11 @@ import org.junit.jupiter.api.Test
 
 class DefaultSyncCoordinatorTest {
 
-	private val alpha = ProjectDef("Alpha", HPath("/projects/Alpha", "Alpha", false))
-	private val beta = ProjectDef("Beta", HPath("/projects/Beta", "Beta", false))
+	private val alpha = ProjectDef(ProjectId("a"), "Alpha", HPath("/projects/Alpha", "Alpha", false))
+	private val beta = ProjectDef(ProjectId("b"), "Beta", HPath("/projects/Beta", "Beta", false))
 	private val candidates = listOf(
-		SyncedProjectDefinition(alpha, ProjectId("a")),
-		SyncedProjectDefinition(beta, ProjectId("b")),
+		SyncedProjectDefinition(alpha, alpha.id),
+		SyncedProjectDefinition(beta, beta.id),
 	)
 
 	private val signedIn = ServerSettings(

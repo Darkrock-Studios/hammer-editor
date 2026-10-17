@@ -30,6 +30,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.koin.dsl.module
+import testProjectId
 import utils.BaseTest
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -39,7 +40,7 @@ import kotlin.time.Instant
 
 class StatisticsServiceTest : BaseTest() {
 
-	private val projectDef = ProjectDef("Test", HPath("/projects/Test", "Test", false))
+	private val projectDef = ProjectDef(testProjectId("Test"), "Test", HPath("/projects/Test", "Test", false))
 
 	private lateinit var statisticsRepository: StatisticsRepository
 	private lateinit var sceneEditorRepository: SceneRepository

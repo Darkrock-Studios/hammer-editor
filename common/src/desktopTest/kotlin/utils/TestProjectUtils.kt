@@ -1,15 +1,18 @@
-import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
+import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.tree.NodeCoordinates
 import com.darkrockstudios.apps.hammer.common.data.tree.Tree
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.getDefaultRootDocumentDirectory
 import okio.Path
 import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
 import utils.FileResourcesUtils
+import java.util.UUID
 import kotlin.test.assertEquals
 
 const val PROJECT_EMPTY_NAME = "Empty Project"
@@ -28,10 +31,30 @@ val projectNames = listOf(
 	ENCYCLOPEDIA_ONLY_PROJECT_NAME
 )
 
+// The ids in the resource fixtures' project.toml files. Test Project 1 holds a legacy serverProjectId.
+private val fixtureProjectIds = mapOf(
+	PROJECT_EMPTY_NAME to "f70c0c04-a216-49fb-af1a-6a3a11b1328f",
+	OUT_OF_ORDER_PROJECT_NAME to "2a524307-6a15-4200-b811-78483cf81b7c",
+	PROJECT_1_NAME to "5f1d7446-1f08-4909-a81e-cdc7470a2f63",
+	PROJECT_2_NAME to "8c3f6a2e-4b1d-4e5a-9f7c-2d6b1a0e9c43",
+	ENCYCLOPEDIA_ONLY_PROJECT_NAME to "b83682a2-1973-434e-9f9b-a9cdb961a437",
+	MIGRATION_0_1 to "8cafbad6-1d00-4138-86d5-672a3e2f5b3f",
+	MIGRATION_0_1_ALREADY to "07d38a29-2370-4b82-9962-0bb09f40500d",
+	MIGRATION_0_1_NO_TIMELINE to "c3f2f6e0-d1b7-40f8-89ae-f2d3e78ab9cb",
+)
+
+/**
+ * A stable id per project name: a fixture's own id, else one derived from the name. UUID-shaped,
+ * since account sync drops ids that are not.
+ */
+fun testProjectId(name: String): ProjectId =
+	ProjectId(fixtureProjectIds[name] ?: UUID.nameUUIDFromBytes(name.encodeToByteArray()).toString())
+
 fun getProjectDef(name: String): ProjectDef {
 	val projectPath = getProjectsDirectory().div(name).toHPath()
 
 	return ProjectDef(
+		id = testProjectId(name),
 		name = name,
 		path = projectPath
 	)
@@ -41,6 +64,7 @@ fun getProject1Def(): ProjectDef {
 	val projectPath = getProjectsDirectory().div(PROJECT_1_NAME).toHPath()
 
 	return ProjectDef(
+		id = testProjectId(PROJECT_1_NAME),
 		name = PROJECT_1_NAME,
 		path = projectPath
 	)
@@ -62,10 +86,11 @@ fun getProjectsDirectory(): Path {
 fun createProjectDirectories(ffs: FakeFileSystem) {
 	val projDir = getProjectsDirectory()
 	ffs.createDirectories(projDir)
+	val metadataDatasource = ProjectMetadataDatasource(ffs, createTomlSerializer())
 	projectNames.forEach { projectName ->
 		val dir = projDir.div(projectName)
 		ffs.createDirectory(dir, true)
-		ffs.write(dir.div(ProjectMetadata.FILENAME)) { writeUtf8("") }
+		metadataDatasource.createMetadata(getProjectDef(projectName), testProjectId(projectName))
 	}
 }
 

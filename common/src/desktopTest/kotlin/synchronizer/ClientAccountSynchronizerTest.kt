@@ -50,6 +50,7 @@ import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import testProjectId
 import utils.TestStrRes
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -91,7 +92,7 @@ class ClientAccountSynchronizerTest {
 	)
 
 	private fun projectDef(name: String) =
-		ProjectDef(name = name, path = HPath("$projectsDirPath/$name", name, true))
+		ProjectDef(id = testProjectId(name), name = name, path = HPath("$projectsDirPath/$name", name, true))
 
 	private fun serverSettings(userId: Long) = ServerSettings(
 		ssl = false,
@@ -555,7 +556,7 @@ class ClientAccountSynchronizerTest {
 
 		every { projectsRepository.getProjects(any()) } returns listOf(def)
 		every { projectsRepository.getProjectId(def) } returns takenId
-		coEvery { projectsRepository.setProjectId(def, capture(reminted)) } just Runs
+		coEvery { projectsRepository.setProjectId(def, capture(reminted)) } answers { def.copy(id = reminted.captured) }
 		var attempts = 0
 		coEvery { serverProjectsApi.createProject("LocalNovel", any(), "sync-1") } answers {
 			if (attempts++ == 0) {

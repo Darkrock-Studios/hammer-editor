@@ -17,12 +17,13 @@ import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
+import testProjectId
 import utils.TestStrRes
 import kotlin.test.*
 
 class ClientTimelineSynchronizerTest {
 
-	private val projectDef = ProjectDef(name = "Test", path = HPath("/projects/Test", "Test", false))
+	private val projectDef = ProjectDef(id = testProjectId("Test"), name = "Test", path = HPath("/projects/Test", "Test", false))
 	private val strRes: StrRes = TestStrRes()
 
 	private val serverProjectApi: ServerProjectApi = mockk()
