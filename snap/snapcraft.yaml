@@ -22,17 +22,12 @@ confinement: strict
 platforms:
     amd64:
 
-# Spell check loads libhunspell through JNA and only looks for dictionaries at
-# absolute system paths such as /usr/share/hunspell, which core24 lacks.
+# Spell check needs libhunspell and Hunspell dictionaries, neither of which core24 has.
 plugs:
     hunspell-dictionaries:
         interface: content
         target: $SNAP/usr/share/hunspell
         default-provider: hunspell-dictionaries-1-7-2004
-
-layout:
-    /usr/share/hunspell:
-        symlink: $SNAP/usr/share/hunspell
 
 apps:
     hammer-editor:
@@ -42,6 +37,7 @@ apps:
             # JNA asks for libhunspell-1.7.so; only the versioned .so.0 is staged, which
             # JNA matches only when searching an explicit library path.
             JAVA_TOOL_OPTIONS: -Djna.library.path=$SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR
+            DICPATH: $SNAP/usr/share/hunspell
         plugs:
             - home
             - network
