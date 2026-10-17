@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.integration.scenarios
 
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.SceneContent
+import com.darkrockstudios.apps.hammer.common.data.projectbackup.BackupRestoreResult
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupDef
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupService
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
@@ -29,7 +30,7 @@ class RestoreBackupSyncTest : RoundTripTestBase() {
 
 	private suspend fun restore(client: HeadlessClient, backup: ProjectBackupDef): HeadlessClient {
 		client.close()
-		assertTrue(get<ProjectBackupService>().restoreBackup(backup, client.projectDef.path))
+		assertEquals(BackupRestoreResult.Restored, get<ProjectBackupService>().restoreBackup(backup, client.projectDef.path))
 		return reopen(client)
 	}
 

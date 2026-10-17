@@ -430,7 +430,7 @@ class ProjectHomeComponentTest : ComponentTest() {
 	fun `Successful backup invokes the callback and toasts success`() = runTest(mainTestDispatcher) {
 		val backup = ProjectBackupDef(
 			path = HPath("/backups/Test.zip", "Test.zip", true),
-			projectDef = projectDef,
+			projectName = projectDef.name,
 			date = Instant.parse("2026-07-01T00:00:00Z"),
 		)
 		every { projectBackupService.supportsBackup() } returns true
@@ -472,7 +472,7 @@ class ProjectHomeComponentTest : ComponentTest() {
 		advanceUntilIdle()
 
 		var callbackInvoked = false
-		var result: ProjectBackupDef? = ProjectBackupDef(HPath("", "", true), projectDef, Instant.DISTANT_PAST)
+		var result: ProjectBackupDef? = ProjectBackupDef(HPath("", "", true), projectDef.name, Instant.DISTANT_PAST)
 		comp.createBackup { callbackInvoked = true; result = it }
 		advanceUntilIdle()
 		collectJob.cancel()

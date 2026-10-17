@@ -236,7 +236,7 @@ class ClientProjectSynchronizerTest : BaseTest() {
 	fun `Sync fails on Backup Operation`() = runTest {
 		val syncer = createProjectSync(getProjectDef(PROJECT_2_NAME))
 
-		coEvery { projectMetadataDatasource.loadProjectId(any()) } returns ProjectId("project-id")
+		coEvery { projectMetadataDatasource.loadProjectId(any<ProjectDef>()) } returns ProjectId("project-id")
 
 		val result = CResult.success(mockk<SyncOperationState>(relaxed = true))
 		val failure = CResult.failure<SyncOperationState>(Exception("Test failure"))
@@ -343,7 +343,7 @@ class ClientProjectSynchronizerTest : BaseTest() {
 	fun `Sync fails with 401 Unauthorized and calls onUnauthorized`() = runTest {
 		val syncer = createProjectSync(getProjectDef(PROJECT_2_NAME))
 
-		coEvery { projectMetadataDatasource.loadProjectId(any()) } returns ProjectId("project-id")
+		coEvery { projectMetadataDatasource.loadProjectId(any<ProjectDef>()) } returns ProjectId("project-id")
 
 		val result = CResult.success(mockk<SyncOperationState>(relaxed = true))
 		val unauthorizedFailure = CResult.failure<SyncOperationState>(

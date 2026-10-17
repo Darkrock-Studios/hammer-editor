@@ -299,7 +299,8 @@ class ProjectsRepository(
 		projectName: String,
 		projectId: ProjectId,
 		serverKnowsProject: Boolean,
-	): ProjectDef? = adoptUnmarkedDirectory(getProjectDefinition(projectName), projectId, serverKnowsProject)
+	): ProjectDef? =
+		adoptUnmarkedDirectory(ProjectDef(projectName, getProjectDirectory(projectName)), projectId, serverKnowsProject)
 
 	private suspend fun adoptUnmarkedDirectory(
 		projectDef: ProjectDef,
@@ -343,11 +344,6 @@ class ProjectsRepository(
 		val projectsDir = getProjectsDirectory().toOkioPath()
 		val projectDir = projectsDir.div(encodeForFilename(projectName))
 		return projectDir.toHPath()
-	}
-
-	fun getProjectDefinition(projectName: String): ProjectDef {
-		val projectDir = getProjectDirectory(projectName).toOkioPath()
-		return ProjectDef(projectName, projectDir.toHPath())
 	}
 
 	/**

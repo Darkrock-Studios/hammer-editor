@@ -5,6 +5,7 @@ import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.createProjectScope
+import com.darkrockstudios.apps.hammer.common.data.projectbackup.BackupRestoreResult
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupService
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
@@ -238,7 +239,7 @@ class ProjectsRepositorySyncBaselineTest : ProjectsRepositoryBaseTest() {
 		val clock = object : Clock {
 			override fun now(): Instant = Instant.parse("2025-12-28T16:29:00Z")
 		}
-		return ProjectBackupService(ffs, repo, settingsRepo, clock, mockk(relaxed = true))
+		return ProjectBackupService(ffs, repo, settingsRepo, clock, mockk(relaxed = true), projectsMetaDatasource)
 	}
 
 	@Test
@@ -251,7 +252,7 @@ class ProjectsRepositorySyncBaselineTest : ProjectsRepositoryBaseTest() {
 			val backups = backupService(repo)
 			val backup = assertNotNull(backups.createBackup(projectDef))
 
-			assertTrue(backups.restoreBackup(backup, projectDef.path))
+			assertEquals(BackupRestoreResult.Restored, backups.restoreBackup(backup, projectDef.path))
 
 			assertEquals(projectId, repo.getProjectId(projectDef))
 			val journal = readJournal()
@@ -277,7 +278,7 @@ class ProjectsRepositorySyncBaselineTest : ProjectsRepositoryBaseTest() {
 			val backup = assertNotNull(backups.createBackup(projectDef))
 			ffs.deleteRecursively(projectDef.path.toOkioPath())
 
-			assertTrue(backups.restoreBackup(backup, projectDef.path))
+			assertEquals(BackupRestoreResult.Restored, backups.restoreBackup(backup, projectDef.path))
 
 			// A fresh id can still adopt a same-named server project, where these baselines raise its
 			// conflicts. A new, empty server project holds no entities to conflict-check against.
@@ -309,7 +310,7 @@ class ProjectsRepositorySyncBaselineTest : ProjectsRepositoryBaseTest() {
 			val backup = assertNotNull(backups.createBackup(projectDef))
 			seedBaseline()
 
-			assertTrue(backups.restoreBackup(backup, projectDef.path))
+			assertEquals(BackupRestoreResult.Restored, backups.restoreBackup(backup, projectDef.path))
 
 			// A rebuilt journal would list every entity as clean, so the server's copy would win.
 			val journal = readJournal()

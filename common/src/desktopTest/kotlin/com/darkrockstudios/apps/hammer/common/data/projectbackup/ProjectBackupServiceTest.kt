@@ -9,6 +9,8 @@ import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
+import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -48,10 +50,12 @@ class ProjectBackupServiceTest {
 	private val globalSettingsStore = mockk<GlobalSettingsStore>()
 	private val clock = mockk<Clock>()
 	private val dataMigrator = mockk<DataMigrator>(relaxed = true)
+	private val metadataDatasource = ProjectMetadataDatasource(fileSystem, createTomlSerializer())
+	private val backupId = ProjectId("backed-up-project-id")
 	private val liveId = ProjectId("live-project-id")
 
 	init {
-		every { projectsRepository.getProjectId(any()) } returns liveId
+		every { projectsRepository.isProjectInUse(any()) } returns false
 		coEvery { projectsRepository.setProjectId(any(), any()) } just Runs
 		coEvery { projectsRepository.resetSyncStateAfterRestore(any(), any()) } just Runs
 	}
@@ -61,10 +65,18 @@ class ProjectBackupServiceTest {
 		projectsRepository: ProjectsRepository,
 		globalSettingsStore: GlobalSettingsStore,
 		clock: Clock
-	) : ProjectBackupService(fileSystem, projectsRepository, globalSettingsStore, clock, mockk(relaxed = true)) {
+	) : ProjectBackupService(
+		fileSystem,
+		projectsRepository,
+		globalSettingsStore,
+		clock,
+		mockk(relaxed = true),
+		mockk(relaxed = true),
+	) {
 		override fun supportsBackup(): Boolean = true
 		override suspend fun createBackup(projectDef: ProjectDef): ProjectBackupDef? = null
-		override suspend fun restoreBackup(backupDef: ProjectBackupDef, targetDir: HPath): Boolean = true
+		override suspend fun restoreBackup(backupDef: ProjectBackupDef, targetDir: HPath) =
+			BackupRestoreResult.Restored
 
 		fun testCreateNewProjectBackupDef(projectDef: ProjectDef) = createNewProjectBackupDef(projectDef)
 	}
@@ -90,17 +102,16 @@ class ProjectBackupServiceTest {
 		val path = "/projects/.backups/Test_Project-2025-12-28T162900Z.zip".toPath()
 		writeBackupFileNamed(path, modified)
 
-		val projectDef = ProjectDef("Test Project", "/projects/Test Project".toPath().toHPath())
 		every { projectsRepository.getProjectsDirectory() } returns "/projects".toPath().toHPath()
 		every { projectsRepository.getProjectDirectory("Test Project") } returns "/projects/Test Project".toPath()
 			.toHPath()
 
 		val service = TestService(fileSystem, projectsRepository, globalSettingsStore, clock)
-		val backups = service.getBackups(projectDef)
+		val backups = service.getBackups("Test Project")
 
 		assertEquals(1, backups.size)
 		val backupDef = backups[0]
-		assertEquals("Test Project", backupDef.projectDef.name)
+		assertEquals("Test Project", backupDef.projectName)
 		assertEquals(modified, backupDef.date)
 	}
 
@@ -117,10 +128,10 @@ class ProjectBackupServiceTest {
 			Instant.parse("2026-06-20T08:00:00Z"),
 		)
 
-		val backups = realService().getBackups(ProjectDef(name, "/projects/$name".toPath().toHPath()))
+		val backups = realService().getBackups(name)
 
 		assertEquals(1, backups.size)
-		assertEquals(name, backups.first().projectDef.name)
+		assertEquals(name, backups.first().projectName)
 	}
 
 	@Test
@@ -144,7 +155,7 @@ class ProjectBackupServiceTest {
 		assertNotNull(backupDef)
 		val filename = backupDef.path.name
 		assertFalse(filename.contains(':'), "Backup filename must not contain OS-forbidden chars: $filename")
-		assertEquals(1, realService().getBackups(projectDef).size)
+		assertEquals(1, realService().getBackups(name).size)
 	}
 
 	@Test
@@ -156,14 +167,14 @@ class ProjectBackupServiceTest {
 
 		writeBackupFile(name, Instant.parse("2026-06-20T08:00:00Z"))
 
-		val backups = realService().getBackups(ProjectDef(name, "/projects/$name".toPath().toHPath()))
+		val backups = realService().getBackups(name)
 
 		assertEquals(1, backups.size)
-		assertEquals(name, backups.first().projectDef.name)
+		assertEquals(name, backups.first().projectName)
 	}
 
-	private fun realService() =
-		ProjectBackupService(fileSystem, projectsRepository, globalSettingsStore, clock, dataMigrator)
+	private fun realService(fs: FileSystem = fileSystem) =
+		ProjectBackupService(fs, projectsRepository, globalSettingsStore, clock, dataMigrator, metadataDatasource)
 
 	private fun writeBackupFile(projectName: String, instant: Instant): Path {
 		val backupName = projectName.replace(" ", "_")
@@ -188,7 +199,7 @@ class ProjectBackupServiceTest {
 	}
 
 	@Test
-	fun `getBackupsForProject returns only the requested project's backups`() {
+	fun `getBackups returns only the requested project's backups`() {
 		every { projectsRepository.getProjectsDirectory() } returns "/projects".toPath().toHPath()
 		every { projectsRepository.getProjectDirectory("Test Project") } returns
 			"/projects/Test Project".toPath().toHPath()
@@ -198,11 +209,10 @@ class ProjectBackupServiceTest {
 		writeBackupFile("Test Project", Instant.parse("2025-12-28T16:29:00Z"))
 		writeBackupFile("Other Project", Instant.parse("2025-12-28T17:00:00Z"))
 
-		val target = ProjectDef("Test Project", "/projects/Test Project".toPath().toHPath())
-		val backups = realService().getBackupsForProject(target)
+		val backups = realService().getBackups("Test Project")
 
 		assertEquals(1, backups.size)
-		assertEquals("Test Project", backups.first().projectDef.name)
+		assertEquals("Test Project", backups.first().projectName)
 	}
 
 	@Test
@@ -212,7 +222,7 @@ class ProjectBackupServiceTest {
 			"/projects/Test Project".toPath().toHPath()
 
 		val path = writeBackupFile("Test Project", Instant.parse("2025-12-28T16:29:00Z"))
-		val backups = realService().getBackups(ProjectDef("Test Project", "/projects/Test Project".toPath().toHPath()))
+		val backups = realService().getBackups("Test Project")
 
 		realService().deleteBackup(backups.first())
 
@@ -225,7 +235,7 @@ class ProjectBackupServiceTest {
 
 		val missing = ProjectBackupDef(
 			path = "/projects/.backups/Test_Project-2025-12-28T162900Z.zip".toPath().toHPath(),
-			projectDef = ProjectDef("Test Project", "/projects/Test Project".toPath().toHPath()),
+			projectName = "Test Project",
 			date = Instant.parse("2025-12-28T16:29:00Z"),
 		)
 
@@ -243,7 +253,7 @@ class ProjectBackupServiceTest {
 
 		val backup = ProjectBackupDef(
 			path = backupPath.toHPath(),
-			projectDef = ProjectDef("Test Project", "/projects/Test Project".toPath().toHPath()),
+			projectName = "Test Project",
 			date = Instant.parse("2025-12-28T16:29:00Z"),
 		)
 
@@ -294,7 +304,7 @@ class ProjectBackupServiceTest {
 			service.createBackup(projectDef)?.let { created.add(it) }
 		}
 
-		val remaining = service.getBackups(projectDef).map { it.path.name }.toSet()
+		val remaining = service.getBackups(projectDef.name).map { it.path.name }.toSet()
 		val newestThree = created.takeLast(3).map { it.path.name }.toSet()
 
 		assertEquals(3, remaining.size)
@@ -365,7 +375,7 @@ class ProjectBackupServiceTest {
 		assertTrue(fileSystem.exists(backupDef.path.toOkioPath()))
 		assertEquals(
 			listOf(backupDef.path.name),
-			service.getBackups(projectDef).map { it.path.name },
+			service.getBackups(projectDef.name).map { it.path.name },
 			"The new backup should be recorded for the project",
 		)
 	}
@@ -390,7 +400,7 @@ class ProjectBackupServiceTest {
 		val target = "/restored".toPath()
 		val restored = service.restoreBackup(backupDef, target.toHPath())
 
-		assertTrue(restored)
+		assertEquals(BackupRestoreResult.Restored, restored)
 		val restoredScene = fileSystem.listRecursively(target).firstOrNull { it.name == "scene.txt" }
 		assertNotNull(restoredScene, "Restored project should contain its scene file")
 		assertEquals("once upon a time", fileSystem.read(restoredScene) { readUtf8() })
@@ -417,7 +427,7 @@ class ProjectBackupServiceTest {
 
 		fileSystem.write(projectDir / "project.toml") { writeUtf8("changed") }
 
-		assertTrue(service.restoreBackup(backupDef, projectDef.path))
+		assertEquals(BackupRestoreResult.Restored, service.restoreBackup(backupDef, projectDef.path))
 
 		assertEquals("original", fileSystem.read(projectDir / "project.toml") { readUtf8() })
 		assertEquals("once upon a time", fileSystem.read(projectDir / "scenes" / "scene.md") { readUtf8() })
@@ -434,15 +444,15 @@ class ProjectBackupServiceTest {
 			GlobalSettings(projectsDirectory = "/projects", maxBackups = 5)
 
 		val projectDir = "/projects/Test Project".toPath()
+		val projectDef = ProjectDef("Test Project", projectDir.toHPath())
 		fileSystem.createDirectories(projectDir)
-		fileSystem.write(projectDir / "project.toml") { writeUtf8("[info]") }
+		metadataDatasource.createMetadata(projectDef, liveId)
 
 		val service = realService()
-		val projectDef = ProjectDef("Test Project", projectDir.toHPath())
 		val backupDef = service.createBackup(projectDef)
 		assertNotNull(backupDef)
 
-		assertTrue(service.restoreBackup(backupDef, projectDef.path))
+		assertEquals(BackupRestoreResult.Restored, service.restoreBackup(backupDef, projectDef.path))
 
 		coVerifyOrder {
 			dataMigrator.migrateProject(projectDef)
@@ -461,15 +471,15 @@ class ProjectBackupServiceTest {
 		every { dataMigrator.migrateProject(any()) } throws IllegalStateException("migration failed")
 
 		val projectDir = "/projects/Test Project".toPath()
+		val projectDef = ProjectDef("Test Project", projectDir.toHPath())
 		fileSystem.createDirectories(projectDir)
-		fileSystem.write(projectDir / "project.toml") { writeUtf8("[info]") }
+		metadataDatasource.createMetadata(projectDef, liveId)
 
 		val service = realService()
-		val projectDef = ProjectDef("Test Project", projectDir.toHPath())
 		val backupDef = service.createBackup(projectDef)
 		assertNotNull(backupDef)
 
-		assertTrue(service.restoreBackup(backupDef, projectDef.path))
+		assertEquals(BackupRestoreResult.Restored, service.restoreBackup(backupDef, projectDef.path))
 
 		coVerify { projectsRepository.setProjectId(projectDef, liveId) }
 	}
@@ -484,22 +494,21 @@ class ProjectBackupServiceTest {
 			GlobalSettings(projectsDirectory = "/projects", maxBackups = 5)
 
 		val projectDir = "/projects/Test Project".toPath()
+		val projectDef = ProjectDef("Test Project", projectDir.toHPath())
 		fileSystem.createDirectories(projectDir)
-		fileSystem.write(projectDir / "project.toml") { writeUtf8("[info]") }
+		metadataDatasource.createMetadata(projectDef, backupId)
 
 		val service = realService()
-		val projectDef = ProjectDef("Test Project", projectDir.toHPath())
 		val backupDef = service.createBackup(projectDef)
 		assertNotNull(backupDef)
 		fileSystem.deleteRecursively(projectDir)
 
-		assertTrue(service.restoreBackup(backupDef, projectDef.path))
+		assertEquals(BackupRestoreResult.Restored, service.restoreBackup(backupDef, projectDef.path))
 
 		// The backup's own id may be tombstoned on the server, and a tombstoned id stays dead.
 		val assigned = slot<ProjectId>()
 		coVerify { projectsRepository.setProjectId(projectDef, capture(assigned)) }
-		verify(exactly = 0) { projectsRepository.getProjectId(any()) }
-		assertNotEquals(liveId, assigned.captured)
+		assertNotEquals(backupId, assigned.captured)
 	}
 
 	@Test
@@ -512,15 +521,15 @@ class ProjectBackupServiceTest {
 			GlobalSettings(projectsDirectory = "/projects", maxBackups = 5)
 
 		val projectDir = "/projects/Test Project".toPath()
+		val projectDef = ProjectDef("Test Project", projectDir.toHPath())
 		fileSystem.createDirectories(projectDir)
-		fileSystem.write(projectDir / "project.toml") { writeUtf8("[info]") }
+		metadataDatasource.createMetadata(projectDef, liveId)
 
 		val service = realService()
-		val projectDef = ProjectDef("Test Project", projectDir.toHPath())
 		val backupDef = service.createBackup(projectDef)
 		assertNotNull(backupDef)
 
-		assertTrue(service.restoreBackup(backupDef, projectDef.path))
+		assertEquals(BackupRestoreResult.Restored, service.restoreBackup(backupDef, projectDef.path))
 
 		// The id is unchanged, so setProjectId clears nothing; the reset must still run.
 		coVerifyOrder {
@@ -540,16 +549,16 @@ class ProjectBackupServiceTest {
 			GlobalSettings(projectsDirectory = "/projects", maxBackups = 5)
 
 		val projectDir = "/projects/Test Project".toPath()
+		val projectDef = ProjectDef("Test Project", projectDir.toHPath())
 		fileSystem.createDirectories(projectDir)
-		fileSystem.write(projectDir / "project.toml") { writeUtf8("[info]") }
+		metadataDatasource.createMetadata(projectDef, backupId)
 
 		val service = realService()
-		val projectDef = ProjectDef("Test Project", projectDir.toHPath())
 		val backupDef = service.createBackup(projectDef)
 		assertNotNull(backupDef)
 		fileSystem.deleteRecursively(projectDir)
 
-		assertTrue(service.restoreBackup(backupDef, projectDef.path))
+		assertEquals(BackupRestoreResult.Restored, service.restoreBackup(backupDef, projectDef.path))
 
 		// A flagged journal keeps its conflict baselines through the id change.
 		coVerifyOrder {
@@ -578,7 +587,11 @@ class ProjectBackupServiceTest {
 		assertNotNull(backupDef)
 		fileSystem.write(projectDir / "project.toml") { writeUtf8("changed") }
 
-		assertTrue(service.restoreBackup(backupDef, projectDef.path), "the content is already in place")
+		assertEquals(
+			BackupRestoreResult.Restored,
+			service.restoreBackup(backupDef, projectDef.path),
+			"the content is already in place",
+		)
 		assertEquals("original", fileSystem.read(projectDir / "project.toml") { readUtf8() })
 	}
 
@@ -588,29 +601,25 @@ class ProjectBackupServiceTest {
 
 		val kept = ProjectDef("Kept", "/projects/Kept".toPath().toHPath())
 		val noBackups = ProjectDef("No Backups", "/projects/No Backups".toPath().toHPath())
-		val deleted = ProjectDef("Deleted", "/projects/Deleted".toPath().toHPath())
 		every { projectsRepository.getProjects(any()) } returns listOf(kept, noBackups)
-		every { projectsRepository.getProjectDefinition("Deleted") } returns deleted
 
 		writeBackupFile("Kept", Instant.parse("2025-12-26T10:00:00Z"))
 		writeBackupFile("Deleted", Instant.parse("2025-12-26T10:00:00Z"))
 		writeBackupFile("Deleted", Instant.parse("2025-12-27T10:00:00Z"))
 
-		assertEquals(listOf(kept, deleted), realService().getBackedUpProjects())
+		assertEquals(listOf("Kept", "Deleted"), realService().getBackedUpProjects())
 	}
 
 	@Test
 	fun `getBackedUpProjects lists a missing project once when it has legacy and current backups`() {
 		every { projectsRepository.getProjectsDirectory() } returns "/projects".toPath().toHPath()
 
-		val deleted = ProjectDef("My Story", "/projects/My Story".toPath().toHPath())
 		every { projectsRepository.getProjects(any()) } returns emptyList()
-		every { projectsRepository.getProjectDefinition("My Story") } returns deleted
 
 		val legacy = writeBackupFile("My Story", Instant.parse("2025-12-26T10:00:00Z"))
 		fileSystem.write(legacy.parent!! / "My Story-2025-12-27T100000Z.zip") { writeUtf8("zip") }
 
-		assertEquals(listOf(deleted), realService().getBackedUpProjects())
+		assertEquals(listOf("My Story"), realService().getBackedUpProjects())
 	}
 
 	@Test
@@ -623,15 +632,15 @@ class ProjectBackupServiceTest {
 			GlobalSettings(projectsDirectory = "/projects", maxBackups = 5)
 
 		val projectDir = "/projects/Test Project".toPath()
+		val projectDef = ProjectDef("Test Project", projectDir.toHPath())
 		fileSystem.createDirectories(projectDir)
-		fileSystem.write(projectDir / "project.toml") { writeUtf8("original") }
+		metadataDatasource.createMetadata(projectDef, backupId)
 
 		val service = realService()
-		val projectDef = ProjectDef("Test Project", projectDir.toHPath())
 		val backupDef = service.createBackup(projectDef)
 		assertNotNull(backupDef)
 
-		fileSystem.write(projectDir / "project.toml") { writeUtf8("changed") }
+		metadataDatasource.createMetadata(projectDef, liveId)
 		fileSystem.write(projectDir / "notes.md") { writeUtf8("newer work") }
 
 		val failingSwap = object : ForwardingFileSystem(fileSystem) {
@@ -640,24 +649,22 @@ class ProjectBackupServiceTest {
 				super.atomicMove(source, target)
 			}
 		}
-		val failingService = ProjectBackupService(failingSwap, projectsRepository, globalSettingsStore, clock, dataMigrator)
+		assertEquals(BackupRestoreResult.Failed, realService(failingSwap).restoreBackup(backupDef, projectDef.path))
 
-		assertFalse(failingService.restoreBackup(backupDef, projectDef.path))
-
-		assertEquals("changed", fileSystem.read(projectDir / "project.toml") { readUtf8() })
+		assertEquals(liveId, metadataDatasource.loadProjectId(projectDef))
 		assertEquals("newer work", fileSystem.read(projectDir / "notes.md") { readUtf8() })
 	}
 
 	@Test
-	fun `restoreBackup returns false when the backup file is missing`() = runTest {
+	fun `restoreBackup fails when the backup file is missing`() = runTest {
 		every { projectsRepository.getProjectsDirectory() } returns "/projects".toPath().toHPath()
 
 		val missing = ProjectBackupDef(
 			path = "/projects/.backups/Nope-2025-12-28T162900Z.zip".toPath().toHPath(),
-			projectDef = ProjectDef("Nope", "/projects/Nope".toPath().toHPath()),
+			projectName = "Nope",
 			date = Instant.parse("2025-12-28T16:29:00Z"),
 		)
 
-		assertFalse(realService().restoreBackup(missing, "/restored".toPath().toHPath()))
+		assertEquals(BackupRestoreResult.Failed, realService().restoreBackup(missing, "/restored".toPath().toHPath()))
 	}
 }
