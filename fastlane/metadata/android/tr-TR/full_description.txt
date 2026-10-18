@@ -1,10 +1,10 @@
-Please join our Discord to report issues! https://discord.gg/GTmgjZcupk
+Sorunları bildirmek için lütfen Discord sunucumuza katılın! https://discord.gg/GTmgjZcupk
 
-Multi-platform
+Çoklu platform desteği
 
-This app is where ever you are. Your phone, tablet, desktop, laptop, this program can be installed and run, not simply a website-in-a-box, but instead using native client side technologies to provide the best experience possible.
+Bu uygulama, siz neredeyseniz orada. Telefonunuz, tabletiniz, masaüstü bilgisayarınız, dizüstü bilgisayarınız fark etmez, bu programı yükleyebilir ve çalıştırabilirsiniz. Üstelik bu uygulama kutuya konmuş bir web sitesinden ibaret değil, size mümkün olan en iyi deneyimi sunmak için yerel, istemci taraflı teknolojiler kullanılarak tasarlandı.
 
-Offline first
+Önce çevrimdışı
 
 I was frustrated with most of the story writing software I was finding as they were using web technologies (aka: Web Page in a box) which always seems to run into problems while being used offline for long periods of time. Hammer is designed from the ground up to be entirely local, no internet connection required, ever.
 
