@@ -74,9 +74,9 @@ New code goes in a new `:operations` module between `:common` and
 | Module | Holds |
 | --- | --- |
 | `:common` | Same role as today. Gains only pluggable export (below) |
-| `:operations` | `Operation`, `OperationRegistry`, the core operations, `ClientPlugin`, `PluginRegistry`, `PluginSettingsDatasource` |
+| `:operations` | `Operation`, `OperationRegistry`, the core operations, `ClientPlugin`, `PluginRegistry`, `PluginSettingsDatasource`, `ActionSessionStore` |
 | `:plugins:wasmhost` | The [runtime plugin](#runtime-plugins-wasm) host: chasm, the package loader, `RuntimePlugins`, and `WasmPlugin`. All platforms |
-| `:composeUi` | `PluginUiRegistry`, the Plugins section of Settings, and the plugins' actions: their menu items, and the runner that asks for their input and shows their progress and results |
+| `:composeUi` | `PluginUiRegistry`, the Plugins section of Settings, and the plugins' actions: their menu items, and the runner that shows their pages and progress and keeps their runs |
 | `:desktop` | The CLI adapter and `Dispatcher`, socket forwarding, the writer lock |
 
 `:wear` depends only on `:common` and gets no plugins.
@@ -383,11 +383,13 @@ class PluginAction(
 	val label: String,
 	/** The screens whose menus it is in: project, scene, note, entry, event. */
 	val places: Set<ActionPlace>,
-	/** What the user fills in first: a setting-like value, or scenes picked from the tree. */
+	/** Its first page, which the host shows before calling it; with none, it is called at once. */
 	val fields: List<ActionField>,
-	/** Message, document, or interactive. */
-	val output: ActionOutput,
-	/** Runs off the main thread with the project, place, item, input, and pressed button, reporting progress as it goes. */
+	/** Whether a run outlives its dialog being closed part way; see Sessions. */
+	val keep: Boolean = false,
+	/** The plugin's version, which a kept run is resumed only by. */
+	val pluginVersion: String? = null,
+	/** Runs off the main thread with the project, place, item, the page's values and state, and the pressed button, reporting progress as it goes. */
 	val run: suspend (ActionCall) -> ActionReply,
 )
 
@@ -507,15 +509,15 @@ arguments of `PluginUiRegistry` and `StoryExporterRegistry`).
   with an enable toggle, Uninstall, and, when it has declared settings or CLI
   commands, a Settings button that opens them in a dialog: the declared form,
   then how to run each command.
-- **Project actions.** A plugin's actions appear in the project home's
-  overflow menu. The home screen's component runs one in the app's scope, off
-  the main thread, so a plugin needs no UI state of its own. What it returns
-  is toasted, or, for an action declaring `output = "document"`, shown as
-  markdown in a result dialog; a failure is toasted.
-- **Result dialog.** Shows an action's document, titled with the action's
-  label, with Copy and Save as note. Hammer runs both, so saving needs no
-  permission from the plugin. A document longer than a note allows is saved cut
-  at a line break, ending in "…", and the toast says so.
+- **Actions.** A plugin's actions appear in the overflow menus of the screens
+  their manifest names. `PluginActionHost`, at the project root, gives those
+  menus a `PluginActionRunner` for the open project, which calls an action off
+  the main thread and shows the pages it replies with, so a plugin needs no UI
+  state of its own. Messages and failures are toasted. See
+  [Actions](#actions).
+- **Action dialog.** Shows an action's page, titled with the page's title or
+  the action's label. A page that only shows markdown offers Copy and Save as
+  note. Hammer runs both, so saving needs no permission from the plugin.
 
 - **Text diagnostics.** The scene editor and focus mode run every active
   plugin's checks, underlining what they find: a mistake with a wavy blue
@@ -890,10 +892,11 @@ two kinds, each translated by the plugin's author:
   then `fr`), falling back to the manifest's. Ids, keys, and values never
   change. Install refuses a file that does not parse or is not named for a
   language tag.
-- **Replies.** Messages, documents, and check messages a plugin writes at run
-  time. Every call carries `locale`, the UI's BCP 47 tag, so the plugin can
-  write them in the user's language. It is not the project's `language`, which
-  says what the story is written in: a French writer may write in English.
+- **Replies.** Messages, action pages (their labels and buttons included), and
+  check messages a plugin writes at run time. Every call carries `locale`,
+  the UI's BCP 47 tag, so the plugin can write them in the user's language.
+  It is not the project's `language`, which says what the story is written
+  in: a French writer may write in English.
 
 The UI's language is the system's, as for the rest of Hammer, so a plugin's
 declared words are chosen once, when it loads. Operation descriptions are plain
@@ -904,7 +907,8 @@ is localized today.
 
 Real features rather than test fixtures, chosen so that between them they
 exercise every slot: the plain text exporter, the style report, the name
-generator, the simple grammar check, and the [MCP plugin](#mcp-plugin).
+generators, the character interview, the simple grammar check, and the
+[MCP plugin](#mcp-plugin).
 
 ### Plain text exporter (`plaintext`)
 
@@ -938,7 +942,7 @@ Built, as a runtime plugin in C: `style` in `hammer-plugins`, a 72 KB
 package. A "Style report" item in the project menu reports, per scene and for
 the whole story or the scenes chosen, reading ease, adverbs and filter words
 per thousand words, the share of dialogue, and repeated words and phrases, and
-shows it in the result dialog, from which it can be saved as a note.
+shows it in the action's dialog as a document, which can be saved as a note.
 
 It reads the project's language through `project.info` and counts by that
 language's rules and word lists, in `resources/<language>/`:
@@ -971,7 +975,7 @@ the story to be listed as a repeat, and how long each list is.
 
 | Exercises | How |
 | --- | --- |
-| Actions | The manifest declares one action with document output and a `scenes` field; the host asks which scenes, calls the module's `action` export, shows its progress scene by scene, and shows the markdown it returns |
+| Actions | The manifest declares one action whose first page is a `scenes` field; the host asks which scenes, calls the module's `action` export, shows its progress scene by scene, and shows the document page it replies with |
 | Plugin as API consumer | Reads through `project.info`, `scene.tree`, and `scene.read`, the three operations it asks for by name, and nothing else: saving is the user's choice, in the dialog |
 | A full-book job in C | Counts in the module's own hash maps and arenas, reused scene to scene, so a novel fits the 64 MiB memory cap |
 | The plugin cache | Keeps each scene's counts under a hash of its text, its language, and its lists, so a run counts only scenes that changed |
@@ -1032,21 +1036,48 @@ words take about 110 ms under chasm with every group on, against 25 to 30 ms a p
 | Resources | Its lists, one folder per language, copied into a static buffer on first use |
 | Translations | `locales/<tag>.toml` for its words in Settings, and a table of its own messages picked by the request's `locale` |
 
-### Name generator (`name-generator`)
+### Name generators (`fantasy-names`, `real-names`, `scifi-names`)
 
-Built, as a runtime plugin in C: `name-generator` in `hammer-plugins`. A
-"Generate names" item on Project Home and encyclopedia entries asks for a
-style (everyday English, Norse, or Elvish), feminine, masculine, or either
-given names, how many, and whether with surnames, and lists them with a button
-for each that adds it to the encyclopedia as a person. It asks for
+Built, as runtime plugins in Kotlin: `fantasy-names`, `real-names`, and
+`scifi-names` in `hammer-plugins`. An item on Project Home and encyclopedia
+entries asks for a style, how many names, and a few options, and lists them
+with a button for each that adds it to the encyclopedia. Most fantasy styles
+are made up to sound like an old language (Welsh for Elvish, Old Norse for
+Dwarvish), real names are picked by culture and decade of birth as often as
+they were common, and sci-fi names come as three actions: characters, worlds,
+and things, each added as a person, place, or thing. Each asks for
 `entry.create` and nothing else.
 
 | Exercises | How |
 | --- | --- |
-| Action fields | Two choices, a number, and a toggle, asked for before it runs |
-| Interactive output | A button per name; pressing one calls the action again, which adds the entry and replies with the list, that name marked. "More names" is a footer button, replying with a new list |
-| State across calls | The list's seed rides in the button ids, so each call rebuilds the same names; `random_get` seeds the first |
-| Resources | Each style is a JSON file of word lists and name templates in `resources/styles/`, read the first time it is used and kept with `hammer_alloc_keep` |
+| Action fields | Choices, a number, and a toggle on the manifest's first page; the host remembers them for the next run while the project is open |
+| Pages and buttons | A page listing the names, with an inline button per name; pressing one adds the entry and replies with the list again, that name marked and its button gone. More names is a footer button, replying with a new list |
+| State across calls | The page's `state` holds the list's seed, its options, and which names were added, so each call rebuilds the same names |
+| Errors | A name the encyclopedia refuses replies with a page-level error, leaving the list as it was |
+| Resources | Each style's lists of names in `resources/`, read as they are needed |
+
+### Character interview (`character-interview`)
+
+Built, as a runtime plugin in Kotlin: `character-interview` in
+`hammer-plugins`. "Interview a character", on Project Home, asks for the
+character's name and an interview: a quick one of 12 questions, a full one of
+33, or the 31 of the confession album Proust filled in around 1890, in its own
+English wording. It then puts the questions a page at a time, each answered in
+a rich text field, and ends on a review of the entry it will write. Create
+entry adds a person entry with a heading for each page answered, each question
+in bold over its answer, and opens it. It asks for `entry.create` and nothing
+else.
+
+| Exercises | How |
+| --- | --- |
+| Pages | A page per heading of the set, titled like "Mara: Wants and fears (2 of 4)", with Back and Next, then the review with Back and Create entry |
+| State across calls | The page's `state` is the whole run: the name, the set, the page, and every answer by set and question, so switching sets keeps each set's answers |
+| Text formats | Each question is a `rich` field, whose markdown goes into the entry as it is |
+| Buttons | Back has `validate = false`, so it never stops on a field |
+| Errors | A name Hammer would refuse as an entry's, and a failed `entry.create`, reply with `errors` |
+| Open | Create entry replies with `open` for the new entry, which ends the run |
+| Sessions | `keep = true`, so a run closed part way picks up where it was left. A `state` it cannot read starts again on the first page, keeping the name and answers |
+| Resources | Each set is a markdown file in `resources/sets/`: a `## Heading` per page, an optional paragraph under it as the page's intro, and a `- ` bullet per question |
 
 ### Harper grammar (`harper-grammar`)
 
@@ -1084,7 +1115,7 @@ Italian, and Ukrainian. It reads the encyclopedia's names and aliases through
 | Exercises | How |
 | --- | --- |
 | The project in a check | The diagnose request's `project` lets the check read the encyclopedia |
-| A check and a report in one plugin | A `[[diagnostics]]` check and a document action share the name rules |
+| A check and a report in one plugin | A `[[diagnostics]]` check, and an action replying with a document page, share the name rules |
 | Resources | A word list per language, read the first time a project in it is checked, and kept |
 | Translations | `locales/<tag>.toml` for its labels, and its messages and report in the UI's language, counts with that language's plural forms |
 
@@ -1110,6 +1141,11 @@ and more than once, that have no entry.
   plugin needs it.
 - **No per-project settings.** Plugin settings are global. Neither example
   plugin needs per-project ones yet.
+- **No durable store of a plugin's own.** A plugin keeps its settings and a
+  cache the OS may clear. A kept action's `state` is the host's to keep, and
+  only for that run. Custom interview questions would need more;
+  [PLUGIN-ACTION-PAGES.md](PLUGIN-ACTION-PAGES.md#a-durable-plugin-data-store)
+  plans a store for them.
 
 ## Keeping the door open
 
@@ -1152,7 +1188,8 @@ Preview 1 through a companion library. It does not support SIMD or Memory64.
 
 Plugins are supported in three languages: Kotlin/Wasm, for the most comfortable
 way to write one (a kit with typed requests, a `hammer.plugin` Gradle plugin that
-does the build, and unit tests on the JVM against a fake Hammer); Rust, for
+does the build, and unit tests on the JVM against a fake Hammer, with an
+`ActionDriver` that steps through an action's pages as Hammer does); Rust, for
 speed (about half C's speed on a whole-book report, where Kotlin runs at about
 a fifth); and C, the fastest and smallest, written by hand with native unit
 tests. Zig, AssemblyScript, and Go (through TinyGo) were tried too.
@@ -1204,12 +1241,12 @@ label = "Word frequency (CSV)"
 [[actions]]                   # optional; see Actions
 name = "report"
 label = "Word frequency report"
-output = "document"           # message (default), document, or interactive
 places = ["project", "scene"] # where its menu item is; project by default
+keep = false                  # whether a run closed part way is kept; false by default
 
-[[actions.field]]             # optional; asked for before it runs
+[[actions.field]]             # optional; the action's first page
 key = "scenes"
-type = "scenes"               # bool, int, string, choice, as settings are, or scenes
+type = "scenes"               # bool, int, choice, text, or scenes
 label = "Scenes"
 multiple = true
 
@@ -1300,9 +1337,10 @@ eight bytes a plugin copies. The Hammer-specific parts:
   package's [resources](#resources), by its path under `resources/`, or 0
   when there is none by that name.
 - An `action` export runs an action the manifest declares; see
-  [Actions](#actions). Its input is `{"action", "project", "settings", "input",
-  "context": {"place", "id"}, "button"}`, and its output is shown when it
-  finishes, as the action's `output` says.
+  [Actions](#actions). Its input is `{"action", "project", "settings",
+  "locale", "context": {"place", "id"}, "input", "button", "changed", "state",
+  "resumed"}`, and its output a JSON reply: a page to show, a message, errors,
+  or an item to open.
 - `extism:host/user` `hammer_progress(report)`: how far an action has got,
   `{"fraction": 0.5, "message": "Scene 3 of 6"}`, either key optional. The
   host shows it while the action runs. Once the user has stopped the run, the
@@ -1362,44 +1400,244 @@ missing.
 ### Actions
 
 A manifest's `[[actions]]` add items to the overflow menus of the screens in
-their `places`: `project` (Project Home, the default), `scene` (the scene
-editor), `note`, `entry`, and `event` (a timeline event). Choosing one asks
-for its fields, if it has any, then calls the module's `action` export with
-the project, the screen and the id of the item it shows (null on Project
-Home), and the values given:
+their `places`. An action shows **pages** in a dialog, one at a time. A module
+cannot supply Compose UI, so a page says what to ask and what to show, and the
+host decides how it looks.
 
-```json
-{"action": "names", "project": "Storm", "settings": {...},
- "input": {"count": 8, "scenes": [3, 7]},
- "context": {"place": "entry", "id": 12}, "button": null}
+```toml
+[[actions]]
+name = "interview"
+label = "Interview a character"
+places = ["project"]
+keep = true
+
+[[actions.field]]
+key = "name"
+type = "text"
+label = "Name"
+required = true
 ```
 
-- **Fields.** `[[actions.field]]` tables take the settings types (`bool`,
-  `int`, `string` with `multiline`, `choice`), validated as settings are, and
-  `scenes`: a button opening the scene tree to pick from, the pick shown in
-  brief beside it. A `scenes` field with `multiple` (the default) sends a list
-  of ids, and without it one id or null; `required` keeps Run disabled until
-  something is picked. The dialog remembers the values given each action for
-  as long as the project is open.
-- **Output.** `message` is a brief line. `document` is markdown in a dialog
-  the user can copy or save as a note. `interactive` is JSON, `{"markdown",
-  "buttons": [{"id", "label", "footer"}], "message"}`: the markdown is shown
-  with the plugin's buttons under it, and pressing one calls the action again
-  with the same input and context and the button's id as `button`. A button
-  with `"footer": true` sits in the dialog's footer, beside Copy and Save as
-  note, for one that acts on the whole reply rather than an item in it. A reply with
-  markdown updates the dialog; one without closes it; a message is shown
-  either way. The plugin carries any state between calls in its button ids,
-  as the name generator does with its seed.
-- **Progress.** A run that takes a moment shows a dialog with a Stop button,
-  and a bar and a line the plugin sets through `hammer_progress`; without
-  reports the bar is indeterminate. Stop ends the wait and the plugin at once.
-- **One at a time.** Each project window runs one action at a time. A failure
-  shows a short message; the log has the rest.
+| Key | Meaning |
+| --- | --- |
+| `name` | Unique in the plugin, and lowercase and directory-safe as a plugin id is; the call's `action` |
+| `label` | The menu item, and the dialog's title on a page without one |
+| `places` | The screens whose menus it is in: `project` (Project Home, the default), `scene` (the scene editor), `note`, `entry`, and `event` (a timeline event) |
+| `keep` | Whether a run outlives its dialog being closed part way; false by default. See [Sessions](#sessions) |
 
-**Planned.** [PLUGIN-ACTION-PAGES.md](PLUGIN-ACTION-PAGES.md) replaces this
-with pages a plugin sends one at a time: multi-step actions, rich text and
-entity fields, validation, and sessions that keep what the user typed.
+The `[[actions.field]]` tables are the action's first page, which the host
+shows with a Run button, so an action that asks once and answers needs no code
+for its form. An action without any is called as soon as it is chosen. For an
+action without `keep`, the first page starts with the values it was last run
+with, for as long as the project is open, where its fields still take them. A
+manifest whose action sets `output` is refused: every action replies with
+pages.
+
+**The call.** Choosing the action, Run, and each button pressed call the
+module's `action` export. Every key is always present:
+
+```json
+{"action": "interview", "project": "Storm", "settings": {}, "locale": "en",
+ "context": {"place": "project", "id": null},
+ "input": {"q1": "Mara, or Captain.", "q2": "", "q3": ""},
+ "button": "next", "changed": null,
+ "state": {"name": "Mara", "set": "quick", "step": 1}, "resumed": false}
+```
+
+| Key | Holds |
+| --- | --- |
+| `action` | The action's `name` |
+| `project` | The project's name |
+| `settings` | Every declared setting's value |
+| `locale` | The UI's BCP 47 tag, or null; see [Strings](#strings) |
+| `context` | The screen it was run from as `place`, and the id of the item shown there as `id`: null on Project Home |
+| `input` | The values of the page the user was on, a key for each of its fields; `{}` for a page without fields, or when the action has none |
+| `button` | The id of the button pressed; null on the first call, when the action opened without fields or Run was pressed on its first page |
+| `changed` | Always null; reserved for fields that call the action when they change |
+| `state` | The `state` of the page the user was on, handed back untouched; null on the first call |
+| `resumed` | True on the first call from a page restored from a [session](#sessions) |
+
+The host never reads `state`. A plugin keeps everything a run needs in it,
+rather than in its module, which may be loaded afresh between calls; a kept run
+may pick up again days later.
+
+**The reply.** A JSON object, every key optional; empty output is the same as
+`{}`.
+
+```json
+{"page": {"title": "Mara: Review", "markdown": "## Who they are\n\n...",
+          "buttons": [{"id": "back", "label": "Back", "validate": false},
+                      {"id": "create", "label": "Create entry", "primary": true}],
+          "state": {"name": "Mara", "set": "quick", "step": 5}}}
+```
+
+| Key | What the host does |
+| --- | --- |
+| `page` | Shows it next, in place of the page the user was on. Every part is optional: `title`, `markdown` (shown first), `fields` (in order, under it), `buttons`, and `state` (any JSON). Its fields start at their defaults |
+| `message` | Shows it briefly, whatever else the reply does. One over 200 characters is cut |
+| `errors` | `{key: message}`. Keeps the user on the page they were on, with what they entered and the page's own `state`, and shows each message under the field with that key. `""`, or a key no field on the page has, is a message for the whole page, shown above its fields |
+| `open` | `{place, id}`. Ends the run, closes the dialog, and shows an item: `place` is one of the action places, `id` the scene, note, entry, or event. `project` shows Project Home and needs no `id` |
+
+`errors` wins over `open`, and `open` over `page`. A reply with none of the
+three ends the run and closes the dialog, without a word unless it has a
+`message`. Beyond that:
+
+- `errors` in reply to a call made with no page showing, the first call of an
+  action without fields, have no page to stay on: the run ends, and the
+  messages are shown as a message.
+- An `open` whose item is not in the project, or that has no `id` for a place
+  other than `project`, ends the run all the same, and says so.
+- Every call follows something the user did, choosing the action or pressing a
+  button, so a plugin cannot move the user with `open` without their asking.
+- A blank `title`, `markdown`, or `message` counts as none.
+- A reply fails the call, as a trap does, when it is not JSON of this shape
+  (a button without an `id`, say), has a `state` over 1 MiB encoded, has an
+  `open` with an unknown place, or has a field the host cannot show: an
+  unknown `type` or `format`, a key used twice on the page, a `choice` without
+  options, or a `default` the field would not take. Unknown keys are ignored.
+
+#### Fields
+
+Fields take the same keys in a manifest's `[[actions.field]]` and in a page's
+`fields`: `key`, `type`, `label`, and optionally `hint`, `default`, and
+`required`.
+
+| `type` | Shown as | Value in `input` | Extra keys | Without a `default` |
+| --- | --- | --- | --- | --- |
+| `bool` | A toggle | `true` or `false` | | false |
+| `int` | A number field | A whole number | `min`, `max` | `min`, or 0 |
+| `choice` | A dropdown | The chosen option's `value` | `options`: `[{value, label}]`, at least one | The first option |
+| `text` | The editor its `format` picks | A string, markdown for the rich formats | `format`, `multiline` | `""` |
+| `scenes` | A button opening the scene tree to pick from, the pick shown in brief beside it | A list of scene ids, or with `multiple = false`, one id or null | `multiple`, true by default | Nothing picked |
+
+| `format` | Editor |
+| --- | --- |
+| `plain`, the default | An ordinary text field: one line, or several with `multiline = true` |
+| `rich` | The scene editor's, with its format bar, growing from 3 lines to 12 before it scrolls |
+| `rich-extended` | The same with the extended format bar: highlight, task lists, and tables |
+
+- **`default`** is the value a field has when its page shows. A plugin that
+  shows a page again, on Back say, passes what was entered as the defaults.
+- **Rich values** are the markdown the editor stores, so a plugin can pass one
+  straight to `entry.create` or `note.create`.
+- **`required`** applies to `text`, which must not be blank, and `scenes`,
+  which must not be empty. The other types ignore it.
+- **`string`**, a settings type, is refused: an action asks for text with
+  `text`.
+- **Words.** The labels, hints, and option labels of the manifest's fields are
+  translated in `locales/`, as declared words are. A page's are the plugin's
+  own, written for the call's `locale`.
+
+#### Buttons
+
+A page's `buttons` are `{id, label, primary, inline, validate}`:
+
+| Key | Default | Meaning |
+| --- | --- | --- |
+| `id` | | Sent as `button` when it is pressed |
+| `label` | | |
+| `primary` | false | Emphasised, and last in the footer |
+| `inline` | false | Under the markdown, in a row that wraps, rather than in the footer: for a button that acts on an item in the markdown, such as a name to add |
+| `validate` | true | False skips the host's checks, for Back or Cancel |
+
+The footer holds, in order: Start over on a restored page, the plugin's other
+footer buttons, Copy and Save as note, its primary buttons, and Run on the
+first page.
+
+**Host checks.** Before a call from Run or a button with `validate`, the host
+checks the page: a `required` text not blank, `required` scenes not empty, an
+`int` within its `min` and `max`, and a `choice` one of its options. What
+fails is shown under its field, and the module is not called. The button is
+not disabled for these, since a disabled button does not say why. Changing a
+field clears its message. Any other rule is the plugin's, answered with
+`errors`.
+
+**Documents.** A page with markdown and no fields offers Copy. A page with no
+buttons either is a **document**, and offers Save as note too. Hammer runs
+both, so saving needs no permission from the plugin. A document longer than a
+note allows is saved cut at a line break, ending in "…", and the toast says
+so. Saving ends the run and closes the dialog, which is why a page with
+buttons, whose run has further to go, does not offer it.
+
+#### Running
+
+- **Progress.** While a call runs, its page stays and can still be typed in,
+  its buttons disabled, and what is typed then is kept if the reply is
+  `errors`. A call that takes more than 400 ms swaps the footer for a bar, a
+  line the plugin sets through `hammer_progress`, and a Stop button; without
+  reports the bar is indeterminate. A call made with no page showing gets a
+  dialog of its own for these. The dialog cannot be closed while a call runs.
+- **Stop** interrupts the module at once (see [Host](#host)).
+- **Failures.** A call that traps, replies with something the host refuses, or
+  is stopped shows a short message; the log has the rest. A kept run goes
+  back to the page it was called from, as the user left it. Any other run
+  ends.
+- **Closing** the dialog ends a run that is not kept.
+- **One at a time.** Each project window runs one action at a time; choosing
+  another while a call runs says so.
+
+#### Sessions
+
+An **action session** is a kept run of an action: the page showing, with its
+`state`, and what has been entered. Only an action whose manifest sets
+`keep = true` has them, since most actions, a report or a list of names, cost
+nothing to run again. It is set on the action, not on a page, so a page with
+no fields, such as the interview's review, is kept with the rest: its `state`
+holds every answer.
+
+What the user enters in a kept run is their work, and closing the dialog does
+not lose it. Nothing asks "discard?", because nothing is discarded.
+
+- **Where.** One file per action, project, and place the action was run from:
+  `<config>/plugins/_sessions/<plugin id>/<project id>/<action>.<place>[.<item id>].json`,
+  the item id there for an action run from a scene, note, entry, or event. It
+  is in the config directory with the plugin's settings, not in the cache, so
+  the OS never clears it and reinstalling the plugin does not either. A plugin
+  id cannot start with `_`, so no plugin's files collide with `_sessions`. The
+  module cannot read or write a session except through the `state` it is
+  handed.
+- **What.** The plugin's version; the page, with its `state`; the values on
+  it; and the answers: the label and value of each field submitted in the run,
+  a choice by its option's label and scenes by name, which the host keeps for
+  itself and never sends the plugin. At most 4 MiB.
+- **When.** A session is saved when the plugin replies with a page or
+  `errors`, when a button is pressed, half a second after the user stops
+  typing, when a failed or stopped call goes back to its page, when the dialog
+  closes, and when the project does, before the window goes. Each write is
+  staged, then moved into place atomically. A write that fails is logged, and
+  the user told, once a run.
+- **Resuming.** Choosing the action again from the same place shows the page
+  where it was left, with its values, and a Start over button, which asks
+  before it clears the session and starts the action afresh. The next call
+  from that page carries `resumed: true`.
+- **Ending.** A reply that ends the run removes its session, as does `open`,
+  since the work is in the project. So does Save as note on a document, and
+  closing a page with no fields and no buttons, which has nothing left to do.
+  Closing the first page as it opened, with nothing entered, leaves no session
+  to resume. `errors`, a failed call, and Stop keep it.
+- **A changed plugin.** If the plugin's version is not the session's, its
+  `state` may mean nothing to the module, so the host does not hand it back.
+  It shows the answers instead, with what was on the page, to copy or save as
+  a note, and Start afresh, which asks before clearing them. Closing leaves
+  the session for next time. A session whose page the host can no longer show
+  is treated the same.
+- **Unreadable files.** A session file that cannot be read, or is in a format
+  this Hammer does not know, is moved aside to `<name>.json.unreadable` (then
+  `-2`, `-3`, and so on), so nothing writes over it. The user is told, and the
+  action starts afresh. If it cannot be moved, the action does not start.
+- **A new project id.** Sessions are keyed by the project's id, so a renamed
+  or moved project keeps them. When the id changes (adopting a server
+  project's on sync, a clashing one minted anew, or a backup restored), its
+  sessions are copied to the new id. They are copied rather than moved, since
+  a project copied on disk is given a new id while the original keeps the old.
+  A session the new id already has is left as it is.
+- **Uninstalling** a plugin leaves its sessions, so installing it again brings
+  them back.
+- **Not synced.** A half-filled form is this device's.
+
+**Later.** [PLUGIN-ACTION-PAGES.md](PLUGIN-ACTION-PAGES.md) plans what pages
+do not do yet: an entity picker, tabs and fields that refresh their page, and
+a durable store for a plugin's own data.
 
 ### Commands
 
@@ -1421,8 +1659,10 @@ A new `:plugins:wasmhost` module, depending on `:operations` and chasm:
 
 - **Loader.** `RuntimePlugins` keeps packages in `<config>/plugins/packages/`,
   each plugin's enabled flag and granted operations in
-  `<config>/plugins/_runtime-plugins.toml`, and caches under `<cache>/plugins/` (plugin ids cannot start with `_`,
-  so no plugin's settings file collides with it). At startup `activate` wraps
+  `<config>/plugins/_runtime-plugins.toml`, kept action runs under
+  `<config>/plugins/_sessions/` (see [Sessions](#sessions)), and caches under
+  `<cache>/plugins/` (plugin ids cannot start with `_`, so no plugin's settings
+  file collides with them). At startup `activate` wraps
   each enabled package in a `WasmPlugin` and adds it to the registry. A package
   that fails to read, or clashes with another plugin, is logged and skipped; it
   never stops the app starting.
@@ -1583,7 +1823,8 @@ build is optimized by binaryen; the development build is not:
   dispatch import, `hammer_call(operation, input_json)`, and the API version.
   Beside it, `hammer_json.h` reads JSON, `hammer_out.h` writes output,
   `hammer_text.h` finds words, `hammer_action.h` reads an action's request and
-  writes an interactive reply, and `hammer_diagnose.h` does a `diagnose`
+  writes its reply (a message, a page of fields and buttons, errors, or an item
+  to open), and `hammer_diagnose.h` does a `diagnose`
   export's reading and writing, leaving a checker only its rules;
   `hammer_progress` reports a long action's progress. With
   `HAMMER_NATIVE`, a plugin builds for the machine instead, and `hammer_test.h`
@@ -1622,6 +1863,8 @@ Most new code lives outside `:common`: in `:operations`, `:composeUi`,
 | `StoryChapter` keeps its scenes separate, with `markdown` joining them | Small | Yes. Manuscript format needs scene breaks too |
 | A draft-save method that takes text, not only the current scene content | Small | No, but it is a natural addition |
 | Detail screens' overflow menus take extra items, and the project root hosts `PluginActionHost`, which runs actions and shows their dialogs | Small | No. Plugin actions appear on every screen that shows an item |
+| `ProjectRoot.navigateToDeepLink` says whether it found the item, and checks a note or timeline event exists before showing it | Small | Yes. A deep link to a note or event that no longer exists is skipped, as one to a scene or entry is |
+| `ProjectsRepository` tells a `ProjectIdChangeListener` bound in Koin when a project's id changes, as well as those added to it | A few lines | No. It is how action sessions follow a project to its new id |
 
 Headless sync needs no `:common` change: the sync-all orchestration already
 lives in the data layer as `SyncAccountUseCase`. Neither do runtime plugins:
@@ -1688,7 +1931,8 @@ design is revisited rather than `:common` bent to fit.
    Then the [style report](#style-report-style) plugin, now a runtime one with
    the project action slot it needed.
    Then the plugin [cache](#cache), so a style report counts only changed
-   scenes, and the result dialog, where the style report now appears.
+   scenes, and the dialog showing an action's document, where the style
+   report appears.
 10. **Text diagnostics.** Built: `TextDiagnosticsProvider`, the `diagnose`
    export, and a diagnostics layer in the editor library, with the
    [simple grammar](#simple-grammar-simple-grammar) plugin against it. Spell check stays separate:
