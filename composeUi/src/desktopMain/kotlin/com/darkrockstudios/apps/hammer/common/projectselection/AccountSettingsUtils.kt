@@ -73,6 +73,9 @@ internal fun accountSettingsComponent(state: AccountSettings.State = defaultAcco
 		override fun acceptTos() {}
 		override fun declineTos() {}
 
+		override fun submitMfaCode(code: String) {}
+		override fun cancelMfa() {}
+
 		override suspend fun authTest() = true
 		override suspend fun removeServer() {}
 		override suspend fun setAutomaticBackups(value: Boolean) {}

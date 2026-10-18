@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.server
 
+import com.darkrockstudios.apps.hammer.base.http.ApiErrorCode
 import com.darkrockstudios.apps.hammer.base.http.HTTP_STATUS_TERMS_OF_SERVICE
 import com.darkrockstudios.apps.hammer.base.http.TermsOfServiceChallenge
 import com.darkrockstudios.apps.hammer.base.http.Token
@@ -63,12 +64,45 @@ class ServerAccountApi(
 		password: String,
 		installId: String,
 	): Result<Token> {
-		return post("/api/account/login/", parse = { it.body() }) {
+		return post(
+			"/api/account/login/",
+			parse = { it.body() },
+			failureHandler = { response -> loginFailure(response) },
+		) {
 			setBody(
 				FormDataContent(
 					Parameters.build {
 						append("email", email)
 						append("password", password)
+						append("installId", installId)
+					}
+				)
+			)
+		}
+	}
+
+	private suspend fun loginFailure(response: HttpResponse): Throwable {
+		val failure = defaultFailure(response)
+		val error = (failure as? HttpFailureException)?.error
+		val challenge = error?.mfa
+		if (error?.errorCode == ApiErrorCode.MFA_REQUIRED && challenge != null) {
+			return MfaRequiredException(challenge)
+		}
+		return failure
+	}
+
+	/** Answers the challenge from [login] with a TOTP or recovery code. */
+	suspend fun loginMfa(
+		mfaToken: String,
+		code: String,
+		installId: String,
+	): Result<Token> {
+		return post("/api/account/login/mfa", parse = { it.body() }) {
+			setBody(
+				FormDataContent(
+					Parameters.build {
+						append("mfaToken", mfaToken)
+						append("code", code)
 						append("installId", installId)
 					}
 				)

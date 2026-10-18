@@ -168,6 +168,7 @@ fun ManualSignInContent(
 						text = when (error) {
 							ManualSignIn.SignInError.MissingFields -> stringResource(R.string.sign_in_error_missing)
 							ManualSignIn.SignInError.TermsRequired -> stringResource(R.string.sign_in_error_terms)
+							ManualSignIn.SignInError.MfaRequired -> stringResource(R.string.sign_in_error_mfa)
 							ManualSignIn.SignInError.LocalNetworkDenied ->
 								stringResource(R.string.sign_in_error_local_network)
 							is ManualSignIn.SignInError.Message ->

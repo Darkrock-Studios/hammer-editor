@@ -1,9 +1,12 @@
 package server
 
+import com.darkrockstudios.apps.hammer.base.http.ApiErrorCode
+import com.darkrockstudios.apps.hammer.base.http.MfaChallenge
 import com.darkrockstudios.apps.hammer.base.http.TermsOfServiceChallenge
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.server.HttpFailureException
+import com.darkrockstudios.apps.hammer.common.server.MfaRequiredException
 import com.darkrockstudios.apps.hammer.common.server.ServerAccountApi
 import com.darkrockstudios.apps.hammer.common.server.TermsOfServiceRequiredException
 import com.darkrockstudios.apps.hammer.common.util.DeviceLocaleResolver
@@ -144,5 +147,82 @@ class ServerAccountApiTest : BaseTest() {
 
 		assertTrue(result.isFailure)
 		assertIs<HttpFailureException>(result.exceptionOrNull())
+	}
+
+	@Test
+	fun `a 401 asking for a second factor fails with the challenge`() = runTest {
+		val engine = MockEngine {
+			respond(
+				content = """{"error":"Second factor required","displayMessage":"Enter the code",""" +
+					""""errorCode":"mfa_required","mfa":{"token":"challenge-token","methods":["totp","recovery"]}}""",
+				status = HttpStatusCode.Unauthorized,
+				headers = jsonHeaders,
+			)
+		}
+		val api = createApi(engine)
+
+		val result = api.login("user@example.com", "password", "install-id")
+
+		val exception = assertIs<MfaRequiredException>(result.exceptionOrNull())
+		assertEquals(MfaChallenge(token = "challenge-token", methods = listOf("totp", "recovery")), exception.challenge)
+	}
+
+	@Test
+	fun `a 401 for a wrong password is a plain http failure`() = runTest {
+		val engine = MockEngine {
+			respond(
+				content = """{"error":"Failed","displayMessage":"Invalid email or password","errorCode":"invalid_credentials"}""",
+				status = HttpStatusCode.Unauthorized,
+				headers = jsonHeaders,
+			)
+		}
+		val api = createApi(engine)
+
+		val result = api.login("user@example.com", "password", "install-id")
+
+		val exception = assertIs<HttpFailureException>(result.exceptionOrNull())
+		assertEquals(ApiErrorCode.INVALID_CREDENTIALS, exception.error.errorCode)
+	}
+
+	@Test
+	fun `loginMfa posts the challenge token, code and install id`() = runTest {
+		var requestPath: String? = null
+		var form: FormDataContent? = null
+		val engine = MockEngine { request ->
+			requestPath = request.url.encodedPath
+			form = request.body as FormDataContent
+			respond(
+				content = """{"userId":7,"auth":"auth-token","refresh":"refresh-token"}""",
+				status = HttpStatusCode.OK,
+				headers = jsonHeaders,
+			)
+		}
+		val api = createApi(engine)
+
+		val result = api.loginMfa(mfaToken = "challenge-token", code = "123456", installId = "install-id")
+
+		assertEquals("/api/account/login/mfa", requestPath)
+		assertEquals("challenge-token", form?.formData?.get("mfaToken"))
+		assertEquals("123456", form?.formData?.get("code"))
+		assertEquals("install-id", form?.formData?.get("installId"))
+		assertEquals("auth-token", result.getOrThrow().auth)
+	}
+
+	@Test
+	fun `a rejected code is an http failure carrying the server message`() = runTest {
+		val engine = MockEngine {
+			respond(
+				content = """{"error":"Invalid second factor","displayMessage":"That code did not work","errorCode":"mfa_code_invalid"}""",
+				status = HttpStatusCode.Unauthorized,
+				headers = jsonHeaders,
+			)
+		}
+		val api = createApi(engine)
+
+		val result = api.loginMfa(mfaToken = "challenge-token", code = "000000", installId = "install-id")
+
+		val exception = assertIs<HttpFailureException>(result.exceptionOrNull())
+		assertEquals(ApiErrorCode.MFA_CODE_INVALID, exception.error.errorCode)
+		assertEquals("That code did not work", exception.error.displayMessage)
 	}
 }

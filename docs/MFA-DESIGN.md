@@ -193,20 +193,44 @@ code-step tests. `QrSvgTest` decodes the rendered SVG with zxing's reader.
 
 ## Phase 3: Apps answer the challenge
 
-- `ServerAccountApi.loginMfa(mfaToken, code, installId)`.
-- `AccountUseCase.setupServer` returns a new `ServerSetupResult.MfaRequired(challenge)`; the
-  provisional `ServerSettings` are kept, as they are for the terms-of-service challenge.
-  `AccountUseCase.completeMfa(code)` finishes the login. Same shape in `AccountReauthUseCase`.
-- `AccountSettings.State` gains `@Transient mfaChallenge`. `ServerSetupDialog` swaps the
-  password field for a six-digit mono field (`HdHairlineField`, numeric keyboard) with a
-  "recovery code instead" toggle while a challenge is pending. `ReauthenticationUi` gets the same
-  step.
-- `operations` `account.login` gains an optional `code` input; without it an MFA account fails
-  with "this account needs a verification code".
-- Strings in the Moko resource bundle.
+- `ServerAccountApi.login` turns a 401 whose body carries `errorCode = mfa_required` and an `mfa`
+  challenge into `MfaRequiredException(challenge)`, the way a 451 becomes
+  `TermsOfServiceRequiredException`. `ServerAccountApi.loginMfa(mfaToken, code, installId)` posts
+  to `/api/account/login/mfa`.
+- `AccountUseCase.setupServer` returns `ServerSetupResult.MfaRequired(challenge)` and keeps the
+  provisional `ServerSettings`, as it does for the terms-of-service challenge. The use case holds
+  the challenge and those settings until `completeMfa(code)` stores the token. A refused code
+  (`mfa_code_invalid`, which also covers an expired challenge and the account lock) comes back as
+  `MfaRequired(challenge, error = <server message>)` so the step stays open; any other failure
+  discards the challenge and the provisional settings and returns `Failure`, which sends the
+  dialog back to the password step. `cancelMfa()` forgets the challenge; the component owns the
+  provisional settings on cancel, as in the terms flow.
+- `AccountReauthUseCase.reauthenticate` returns a `ReauthResult` with the same three shapes
+  (`Success`, `MfaRequired(challenge, error)`, `Failure(displayMessage)`) and the same
+  `completeMfa` / `cancelMfa` pair. Reauth never writes provisional settings, so its failures carry
+  the server's display message as a `Msg` instead of the old `ServerSetupFailed` exception.
+- `AccountSettings.State` gains `@Transient mfaChallenge`; `ServerReauthentication.State` gains
+  the same field. Both components expose `submitMfaCode(code)` and `cancelMfa()`. A blank code
+  never leaves the component. While a challenge is pending the account settings component keeps
+  the setup dialog open and leaves the pending setup in place so closing the dialog still drops
+  the provisional settings.
+- `MfaCodeStep` (composeUi, `common/account/`) is shared by `ServerSetupDialog` and
+  `ReauthenticationUi`: a digits-only mono `HdHairlineField` with a numeric keyboard and a
+  `n/6` counter, or a plain mono field for a recovery code behind a "use a recovery code
+  instead" `HdHairlineToggleRow` that only shows when the challenge lists `recovery`. The
+  masthead gains a `SECOND FACTOR` stamp, the URL and email fields lock, and the action row
+  becomes Back (`cancelMfa`) and Verify (`submitMfaCode`); the masthead close still cancels the
+  whole setup. `HdHairlineField` gained an optional `textStyle` for the mono input. The digit
+  count is `MfaMethod.TOTP_DIGITS` in `base`, which the server's `Totp.DIGITS` now reads.
+- Strings live in `strings_account_settings.xml` under `settings_server_setup_mfa_*` and are
+  shared by both dialogs.
+- The `operations` module (`account.login` with an optional `code`) is not on the 4.0.0 line yet;
+  that part waits for the branch that carries it. The server already accepts the inline `code`
+  form field, so it needs no API change.
 
-Tests: `AccountUseCaseTest` and `AccountReauthUseCaseTest` for the new result, component tests
-via `TestComponentContext` for the state transitions.
+Tests: `ServerAccountApiTest` for the 401 shapes and `loginMfa`, `AccountUseCaseTest` and
+`AccountReauthUseCaseTest` for the result ladder, `AccountSettingsComponentTest` and
+`ServerReauthenticationComponentTest` for the state transitions.
 
 ## Pull request plan
 

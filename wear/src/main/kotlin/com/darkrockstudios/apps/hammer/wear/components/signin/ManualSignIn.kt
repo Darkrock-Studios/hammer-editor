@@ -28,6 +28,8 @@ interface ManualSignIn {
 	sealed interface SignInError {
 		data object MissingFields : SignInError
 		data object TermsRequired : SignInError
+		/** The account has a second factor; the watch has no code entry, so it pairs from the phone. */
+		data object MfaRequired : SignInError
 		data object LocalNetworkDenied : SignInError
 		data class Message(val text: String?) : SignInError
 	}

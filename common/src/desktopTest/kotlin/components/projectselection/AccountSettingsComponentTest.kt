@@ -4,6 +4,8 @@ import com.arkivanov.decompose.DefaultComponentContext
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
 import com.arkivanov.essenty.lifecycle.resume
 import com.darkrockstudios.apps.hammer.base.ProjectId
+import com.darkrockstudios.apps.hammer.base.http.MfaChallenge
+import com.darkrockstudios.apps.hammer.base.http.MfaMethod
 import com.darkrockstudios.apps.hammer.base.http.TermsOfServiceChallenge
 import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.AccountSettingsComponent
@@ -22,6 +24,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRe
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ClientAccountSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectSynchronizationData
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournalDatasource
+import com.darkrockstudios.apps.hammer.common.data.toMsg
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.getDefaultRootDocumentDirectory
 import com.darkrockstudios.apps.hammer.common.util.StrRes
@@ -610,6 +613,148 @@ class AccountSettingsComponentTest : BaseTest() {
 		verify { globalSettingsStore.deleteServerSettings() }
 		// Only the initial challenge attempt ran; declining never resubmits.
 		coVerify(exactly = 1) { accountUseCase.setupServer(any(), any(), any(), any(), any()) }
+	}
+
+
+	private val challenge = MfaChallenge(
+		token = "challenge-token",
+		methods = listOf(MfaMethod.TOTP, MfaMethod.RECOVERY),
+	)
+
+	private fun setupNeedsSecondFactor() {
+		coEvery { accountUseCase.setupServer(any(), any(), any(), any(), any(), any()) } returns
+			ServerSetupResult.MfaRequired(challenge)
+	}
+
+	/** Opens the dialog and logs in, the way the UI reaches the code step. */
+	private fun AccountSettingsComponent.openAndLogIn() {
+		beginSetupServer()
+		logIn()
+	}
+
+	@Test
+	fun `A second-factor challenge keeps the dialog open on the code step`() = runTest {
+		setupNeedsSecondFactor()
+
+		val component = newComponent()
+		component.openAndLogIn()
+		advanceUntilIdle()
+
+		assertEquals(challenge, component.state.value.mfaChallenge)
+		assertTrue(component.state.value.serverSetup)
+		assertFalse(component.state.value.serverWorking)
+		assertNull(component.state.value.serverError)
+		verify(exactly = 0) { globalSettingsStore.deleteServerSettings() }
+	}
+
+	@Test
+	fun `Submitting the code finishes the login`() = runTest {
+		setupNeedsSecondFactor()
+		coEvery { accountUseCase.completeMfa("123456") } returns ServerSetupResult.Success
+
+		val component = newComponent()
+		component.openAndLogIn()
+		advanceUntilIdle()
+		component.submitMfaCode(" 123456 ")
+		advanceUntilIdle()
+
+		assertNull(component.state.value.mfaChallenge)
+		assertFalse(component.state.value.serverSetup)
+		assertFalse(component.state.value.serverWorking)
+		coVerify { accountUseCase.completeMfa("123456") }
+		verify(exactly = 0) { globalSettingsStore.deleteServerSettings() }
+	}
+
+	@Test
+	fun `A refused code shows the message and stays on the code step`() = runTest {
+		setupNeedsSecondFactor()
+		coEvery { accountUseCase.completeMfa(any()) } returns
+			ServerSetupResult.MfaRequired(challenge, error = "That code did not work".toMsg())
+
+		val component = newComponent()
+		component.openAndLogIn()
+		advanceUntilIdle()
+		component.submitMfaCode("000000")
+		advanceUntilIdle()
+
+		assertEquals("That code did not work", component.state.value.serverError)
+		assertEquals(challenge, component.state.value.mfaChallenge)
+		assertTrue(component.state.value.serverSetup)
+		assertFalse(component.state.value.serverWorking)
+	}
+
+	@Test
+	fun `A failure while completing the second factor returns to the password step`() = runTest {
+		setupNeedsSecondFactor()
+		coEvery { accountUseCase.completeMfa(any()) } returns
+			ServerSetupResult.Failure(displayMessage = "Account pending deletion".toMsg(), exception = null)
+
+		val component = newComponent()
+		component.openAndLogIn()
+		advanceUntilIdle()
+		component.submitMfaCode("123456")
+		advanceUntilIdle()
+
+		assertNull(component.state.value.mfaChallenge)
+		assertTrue(component.state.value.serverSetup)
+		assertEquals("Account pending deletion", component.state.value.serverError)
+	}
+
+	@Test
+	fun `Submitting a blank code does nothing`() = runTest {
+		setupNeedsSecondFactor()
+
+		val component = newComponent()
+		component.openAndLogIn()
+		advanceUntilIdle()
+		component.submitMfaCode("   ")
+		advanceUntilIdle()
+
+		coVerify(exactly = 0) { accountUseCase.completeMfa(any()) }
+		assertEquals(challenge, component.state.value.mfaChallenge)
+		assertFalse(component.state.value.serverWorking)
+	}
+
+	@Test
+	fun `Submitting a code with no challenge pending does nothing`() = runTest {
+		val component = newComponent()
+		component.submitMfaCode("123456")
+		advanceUntilIdle()
+
+		coVerify(exactly = 0) { accountUseCase.completeMfa(any()) }
+		assertFalse(component.state.value.serverWorking)
+	}
+
+	@Test
+	fun `Backing out of the second factor returns to the password step and drops the provisional settings`() = runTest {
+		setupNeedsSecondFactor()
+
+		val component = newComponent()
+		component.openAndLogIn()
+		advanceUntilIdle()
+		component.cancelMfa()
+		advanceUntilIdle()
+
+		assertNull(component.state.value.mfaChallenge)
+		assertTrue(component.state.value.serverSetup)
+		verify { accountUseCase.cancelMfa() }
+		verify { globalSettingsStore.deleteServerSettings() }
+	}
+
+	@Test
+	fun `Closing the dialog during the second factor drops the challenge`() = runTest {
+		setupNeedsSecondFactor()
+
+		val component = newComponent()
+		component.openAndLogIn()
+		advanceUntilIdle()
+		component.cancelServerSetup()
+		advanceUntilIdle()
+
+		assertNull(component.state.value.mfaChallenge)
+		assertFalse(component.state.value.serverSetup)
+		verify { accountUseCase.cancelMfa() }
+		verify { globalSettingsStore.deleteServerSettings() }
 	}
 
 	private companion object {

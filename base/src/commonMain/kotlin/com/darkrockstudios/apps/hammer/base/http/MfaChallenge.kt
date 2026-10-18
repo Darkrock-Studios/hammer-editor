@@ -14,4 +14,7 @@ data class MfaChallenge(
 object MfaMethod {
 	const val TOTP = "totp"
 	const val RECOVERY = "recovery"
+
+	/** Digits in a TOTP code; shared so the apps can shape the input to what the server checks. */
+	const val TOTP_DIGITS = 6
 }

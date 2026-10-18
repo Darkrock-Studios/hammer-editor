@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
+import com.darkrockstudios.apps.hammer.common.account.MfaCodeStep
 import com.darkrockstudios.apps.hammer.common.components.serverreauthentication.ServerReauthentication
 import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialogContainer
 import com.darkrockstudios.apps.hammer.common.compose.Ui
@@ -49,15 +50,18 @@ fun ReauthenticationUi(
 			onPasswordChange = { component.updateServerPassword(it) },
 			onClose = { component.cancelReauthentication() },
 			onLogin = { component.reauthenticate(password = state.serverPassword) },
+			onMfaCodeSubmit = { component.submitMfaCode(it) },
+			onMfaCancel = { component.cancelMfa() },
 			modifier = Modifier.predictiveBackTransform(),
 		)
 	}
 }
 
 /**
- * The visual body of the re-auth dialog — masthead, server identity, password field, and
- * action row — split out from the [AnimatedDialogContainer] shell so it renders directly in
- * `@Preview` (the dialog opens its own window, which preview tooling can't capture).
+ * The visual body of the re-auth dialog: masthead, server identity, password field (or the
+ * second-factor code field while a challenge is pending), and action row. Split out from the
+ * [AnimatedDialogContainer] shell so it renders directly in `@Preview` (the dialog opens its own
+ * window, which preview tooling can't capture).
  */
 @Composable
 internal fun ReauthenticationContent(
@@ -67,8 +71,14 @@ internal fun ReauthenticationContent(
 	onPasswordChange: (String) -> Unit,
 	onClose: () -> Unit,
 	onLogin: () -> Unit,
+	onMfaCodeSubmit: (String) -> Unit,
+	onMfaCancel: () -> Unit,
 	modifier: Modifier = Modifier,
 ) {
+	val challenge = state.mfaChallenge
+	var mfaCode by rememberSaveable(challenge) { mutableStateOf("") }
+	var useRecoveryCode by rememberSaveable(challenge) { mutableStateOf(false) }
+
 	Surface(
 		modifier = modifier
 			.padding(Ui.Padding.M)
@@ -85,7 +95,10 @@ internal fun ReauthenticationContent(
 		Column {
 			HdMasthead(
 				section = Res.string.reauth_title.get(),
-				leadingMeta = listOf(Res.string.reauth_token_expired.get()),
+				leadingMeta = buildList {
+					add(Res.string.reauth_token_expired.get())
+					if (challenge != null) add(Res.string.settings_server_setup_mfa_meta.get())
+				},
 				trailing = {
 					HdMastheadAction(
 						label = "× " + Res.string.close_dialog_button.get(),
@@ -137,15 +150,26 @@ internal fun ReauthenticationContent(
 					selectable = true,
 				)
 
-				HdPasswordField(
-					label = Res.string.settings_server_setup_password_hint.get(),
-					value = state.serverPassword,
-					onValueChange = onPasswordChange,
-					visible = passwordVisible,
-					onVisibleChange = onPasswordVisibleChange,
-					placeholder = Res.string.settings_server_setup_password_hint.get(),
-					enabled = !state.serverWorking,
-				)
+				if (challenge != null) {
+					MfaCodeStep(
+						challenge = challenge,
+						code = mfaCode,
+						onCodeChange = { mfaCode = it },
+						useRecoveryCode = useRecoveryCode,
+						onUseRecoveryCodeChange = { useRecoveryCode = it },
+						enabled = !state.serverWorking,
+					)
+				} else {
+					HdPasswordField(
+						label = Res.string.settings_server_setup_password_hint.get(),
+						value = state.serverPassword,
+						onValueChange = onPasswordChange,
+						visible = passwordVisible,
+						onVisibleChange = onPasswordVisibleChange,
+						placeholder = Res.string.settings_server_setup_password_hint.get(),
+						enabled = !state.serverWorking,
+					)
+				}
 
 				state.serverError?.let { error ->
 					HdMonoLabel(
@@ -160,11 +184,25 @@ internal fun ReauthenticationContent(
 				color = MaterialTheme.colorScheme.outlineVariant,
 			)
 
-			ActionRow(
-				working = state.serverWorking,
-				onCancel = onClose,
-				onLogin = onLogin,
-			)
+			if (challenge != null) {
+				ActionRow(
+					working = state.serverWorking,
+					cancelLabel = Res.string.settings_server_setup_mfa_back_button.get(),
+					confirmLabel = Res.string.settings_server_setup_mfa_verify_button.get(),
+					canConfirm = mfaCode.isNotBlank(),
+					onCancel = onMfaCancel,
+					onConfirm = { onMfaCodeSubmit(mfaCode) },
+				)
+			} else {
+				ActionRow(
+					working = state.serverWorking,
+					cancelLabel = Res.string.settings_server_setup_cancel_button.get(),
+					confirmLabel = Res.string.settings_server_setup_login_button.get(),
+					canConfirm = true,
+					onCancel = onClose,
+					onConfirm = onLogin,
+				)
+			}
 		}
 	}
 }
@@ -189,8 +227,11 @@ private fun Header() {
 @Composable
 private fun ActionRow(
 	working: Boolean,
+	cancelLabel: String,
+	confirmLabel: String,
+	canConfirm: Boolean,
 	onCancel: () -> Unit,
-	onLogin: () -> Unit,
+	onConfirm: () -> Unit,
 ) {
 	Row(
 		modifier = Modifier
@@ -200,7 +241,7 @@ private fun ActionRow(
 		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M),
 	) {
 		HdHairlineButton(
-			label = Res.string.settings_server_setup_cancel_button.get(),
+			label = cancelLabel,
 			onClick = onCancel,
 			enabled = !working,
 		)
@@ -208,9 +249,9 @@ private fun ActionRow(
 		Spacer(modifier = Modifier.weight(1f))
 
 		HdHairlineButton(
-			label = Res.string.settings_server_setup_login_button.get(),
-			onClick = onLogin,
-			enabled = !working,
+			label = confirmLabel,
+			onClick = onConfirm,
+			enabled = !working && canConfirm,
 			emphasised = true,
 		)
 	}

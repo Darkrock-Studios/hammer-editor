@@ -17,6 +17,7 @@ import androidx.compose.ui.window.DialogProperties
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.base.validate.PasswordValidator
+import com.darkrockstudios.apps.hammer.common.account.MfaCodeStep
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.AccountSettings
 import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialogContainer
 import com.darkrockstudios.apps.hammer.common.compose.Ui
@@ -71,6 +72,9 @@ fun ServerSetupDialogContent(
 
 	var passwordVisible by rememberSaveable(state.serverSetup) { mutableStateOf(false) }
 	var showHelpDialog by rememberSaveable { mutableStateOf(false) }
+	val challenge = state.mfaChallenge
+	var mfaCode by rememberSaveable(challenge) { mutableStateOf("") }
+	var useRecoveryCode by rememberSaveable(challenge) { mutableStateOf(false) }
 	val existingServer = rememberSaveable(state.serverSetup) {
 		state.serverWorking.not()
 			&& state.currentUrl != null
@@ -95,6 +99,7 @@ fun ServerSetupDialogContent(
 			Masthead(
 				existingServer = existingServer,
 				loggedIn = state.serverIsLoggedIn,
+				secondFactor = challenge != null,
 				onHelp = { showHelpDialog = true },
 				onClose = { component.cancelServerSetup() },
 			)
@@ -134,7 +139,7 @@ fun ServerSetupDialogContent(
 					capitalization = KeyboardCapitalization.None,
 					autoCorrectEnabled = false,
 					keyboardType = KeyboardType.Uri,
-					enabled = !state.serverWorking && !existingServer,
+					enabled = !state.serverWorking && !existingServer && challenge == null,
 				)
 
 				if (state.serverUrlInsecure) {
@@ -149,22 +154,33 @@ fun ServerSetupDialogContent(
 					value = state.serverEmail ?: "",
 					onValueChange = { component.updateServerEmail(it) },
 					placeholder = Res.string.settings_server_setup_email_hint.get(),
-					enabled = !state.serverWorking && !existingServer,
+					enabled = !state.serverWorking && !existingServer && challenge == null,
 				)
 
-				HdPasswordField(
-					label = "PASSWORD",
-					value = state.serverPassword ?: "",
-					onValueChange = { component.updateServerPassword(it) },
-					visible = passwordVisible,
-					onVisibleChange = { passwordVisible = it },
-					placeholder = Res.string.settings_server_setup_password_hint.get(),
-					hint = Res.string.settings_server_setup_password_requirements.get(
-						PasswordValidator.MIN_LENGTH,
-						PasswordValidator.MAX_LENGTH,
-					),
-					enabled = !state.serverWorking,
-				)
+				if (challenge != null) {
+					MfaCodeStep(
+						challenge = challenge,
+						code = mfaCode,
+						onCodeChange = { mfaCode = it },
+						useRecoveryCode = useRecoveryCode,
+						onUseRecoveryCodeChange = { useRecoveryCode = it },
+						enabled = !state.serverWorking,
+					)
+				} else {
+					HdPasswordField(
+						label = "PASSWORD",
+						value = state.serverPassword ?: "",
+						onValueChange = { component.updateServerPassword(it) },
+						visible = passwordVisible,
+						onVisibleChange = { passwordVisible = it },
+						placeholder = Res.string.settings_server_setup_password_hint.get(),
+						hint = Res.string.settings_server_setup_password_requirements.get(
+							PasswordValidator.MIN_LENGTH,
+							PasswordValidator.MAX_LENGTH,
+						),
+						enabled = !state.serverWorking,
+					)
+				}
 
 				state.serverError?.let { error ->
 					HdMonoLabel(
@@ -191,14 +207,23 @@ fun ServerSetupDialogContent(
 				)
 			}
 
-			ActionRow(
-				working = state.serverWorking,
-				isLoggedIn = state.serverIsLoggedIn,
-				canCreate = state.currentUrl == null,
-				onCancel = { scope.launch { component.cancelServerSetup() } },
-				onCreate = { setupServer(create = true) },
-				onLogin = { setupServer(create = false) },
-			)
+			if (challenge != null) {
+				MfaActionRow(
+					working = state.serverWorking,
+					canVerify = mfaCode.isNotBlank(),
+					onBack = { component.cancelMfa() },
+					onVerify = { component.submitMfaCode(mfaCode) },
+				)
+			} else {
+				ActionRow(
+					working = state.serverWorking,
+					isLoggedIn = state.serverIsLoggedIn,
+					canCreate = state.currentUrl == null,
+					onCancel = { scope.launch { component.cancelServerSetup() } },
+					onCreate = { setupServer(create = true) },
+					onLogin = { setupServer(create = false) },
+				)
+			}
 		}
 	}
 
@@ -211,12 +236,14 @@ fun ServerSetupDialogContent(
 private fun Masthead(
 	existingServer: Boolean,
 	loggedIn: Boolean,
+	secondFactor: Boolean,
 	onHelp: () -> Unit,
 	onClose: () -> Unit,
 ) {
 	val meta = buildList {
 		if (existingServer) add("EXISTING")
 		if (loggedIn) add("CONNECTED")
+		if (secondFactor) add(Res.string.settings_server_setup_mfa_meta.get())
 	}
 	HdMasthead(
 		section = "SERVER SETUP",
@@ -281,6 +308,37 @@ private fun ActionRow(
 			label = Res.string.settings_server_setup_login_button.get(),
 			onClick = onLogin,
 			enabled = !working,
+			emphasised = true,
+		)
+	}
+}
+
+@Composable
+private fun MfaActionRow(
+	working: Boolean,
+	canVerify: Boolean,
+	onBack: () -> Unit,
+	onVerify: () -> Unit,
+) {
+	Row(
+		modifier = Modifier
+			.fillMaxWidth()
+			.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L),
+		verticalAlignment = Alignment.CenterVertically,
+		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M),
+	) {
+		HdHairlineButton(
+			label = Res.string.settings_server_setup_mfa_back_button.get(),
+			onClick = onBack,
+			enabled = !working,
+		)
+
+		Spacer(modifier = Modifier.weight(1f))
+
+		HdHairlineButton(
+			label = Res.string.settings_server_setup_mfa_verify_button.get(),
+			onClick = onVerify,
+			enabled = !working && canVerify,
 			emphasised = true,
 		)
 	}
