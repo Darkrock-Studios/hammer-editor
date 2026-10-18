@@ -63,6 +63,8 @@
 	<string name="plugin_action_not_an_option">Not one of the options</string>
 	<string name="plugin_action_open_missing">What the action meant to open is not in the project</string>
 	<string name="plugin_action_keep_failed">Could not save what you entered here. The log has the details.</string>
+	<string name="plugin_action_keep_set_aside">What was saved of this action could not be read, so it starts afresh. The saved file is kept, and the log says where.</string>
+	<string name="plugin_action_keep_unreadable">What was saved of this action could not be read, nor moved aside to start afresh. The log has the details.</string>
 	<string name="plugin_action_start_over">Start over</string>
 	<string name="plugin_action_start_over_title">Start over?</string>
 	<string name="plugin_action_start_over_message">This clears everything entered so far and starts from the beginning.</string>
@@ -70,6 +72,8 @@
 	<string name="plugin_action_changed">The plugin has changed since you began this, so it cannot carry on from where you were. What you entered is below to copy or save as a note.</string>
 	<string name="plugin_action_changed_nothing">Nothing was entered.</string>
 	<string name="plugin_action_start_afresh">Start afresh</string>
+	<string name="plugin_action_start_afresh_title">Start afresh?</string>
+	<string name="plugin_action_start_afresh_message">This clears what you entered. Copy it or save it as a note first to keep it.</string>
 	<string name="plugin_action_yes">Yes</string>
 	<string name="plugin_action_no">No</string>
 </resources>

@@ -8,6 +8,8 @@ import com.darkrockstudios.apps.hammer.composeui.resources.Res
 import com.darkrockstudios.apps.hammer.composeui.resources.plugin_action_busy
 import com.darkrockstudios.apps.hammer.composeui.resources.plugin_action_failed
 import com.darkrockstudios.apps.hammer.composeui.resources.plugin_action_keep_failed
+import com.darkrockstudios.apps.hammer.composeui.resources.plugin_action_keep_set_aside
+import com.darkrockstudios.apps.hammer.composeui.resources.plugin_action_keep_unreadable
 import com.darkrockstudios.apps.hammer.composeui.resources.plugin_action_no
 import com.darkrockstudios.apps.hammer.composeui.resources.plugin_action_open_missing
 import com.darkrockstudios.apps.hammer.composeui.resources.plugin_action_save_failed
@@ -36,6 +38,7 @@ import com.darkrockstudios.apps.hammer.operations.plugin.ActionSessionStore
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionTarget
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginAction
 import com.darkrockstudios.apps.hammer.operations.plugin.SettingDeclaration
+import com.darkrockstudios.apps.hammer.operations.plugin.UnreadableSessionException
 import io.github.aakira.napier.Napier
 import kotlin.concurrent.Volatile
 import kotlinx.coroutines.CancellationException
@@ -65,7 +68,7 @@ import kotlin.time.Duration.Companion.milliseconds
 
 /** One run of an action, from opening it to its end: the action, and where it was started. */
 class ActionRun(val action: PluginAction, val place: ActionPlace, val itemId: Int?) {
-	/** What was submitted on each field so far, by key, for a kept action; never sent to the plugin. */
+	/** What was submitted on each field so far, by [answerKey], for a kept action; never sent to the plugin. */
 	internal var answers: Map<String, ActionAnswer> = emptyMap()
 
 	/** Whether the user has been told a save failed, which they are only once a run. */
@@ -176,6 +179,11 @@ class PluginActionRunner(
 		scope.launch {
 			val saved = try {
 				withContext(sessionDispatcher) { writer.load(key(run)) }
+			} catch (e: UnreadableSessionException) {
+				// Starting afresh would write over a session left where it was.
+				if (e.setAside == null) return@launch message(Res.string.plugin_action_keep_unreadable)
+				message(Res.string.plugin_action_keep_set_aside)
+				null
 			} finally {
 				opening = false
 			}
@@ -196,11 +204,12 @@ class PluginActionRunner(
 	}
 
 	/**
-	 * Writes the kept run's edits not yet saved, and any save still waiting, on the calling thread. For
-	 * when the host leaves, since the scope saves run in leaves with it.
+	 * Saves the kept run showing and writes every save still waiting, on the calling thread. For when
+	 * the host leaves, since the scope saves run in leaves with it. The run is saved even with no edit
+	 * waiting, in case its last save failed.
 	 */
 	fun flush() {
-		if (saveSoon != null) keep()
+		keep()
 		writer.flush()
 	}
 
@@ -220,7 +229,8 @@ class PluginActionRunner(
 			saved == null -> begin(run)
 			// Its state may mean nothing to the module now, so it is not called with it.
 			page == null || saved.pluginVersion != run.action.pluginVersion -> {
-				val onPage = page?.let { answersOf(it.fields, saved.values) }.orEmpty()
+				// What is on the page replaces what was submitted to the same question, unless it is blank.
+				val onPage = page?.let { answersOf(it.fields, saved.values) }.orEmpty().filterValues { !it.value.isBlankText }
 				_state.value = ActionRunState.Changed(run, saved.answers + onPage)
 			}
 			else -> {
@@ -288,11 +298,14 @@ class PluginActionRunner(
 		message(Res.string.plugin_action_stopped)
 	}
 
-	/** Closes the dialog, unless a call is running. A kept run is saved as it is, to pick up again. */
+	/**
+	 * Closes the dialog, unless a call is running. A kept run is saved as it is, to pick up again, unless
+	 * its page is [over].
+	 */
 	fun dismiss() {
-		when (_state.value) {
+		when (val state = _state.value) {
 			is ActionRunState.Working -> return
-			is ActionRunState.Page -> keep()
+			is ActionRunState.Page -> if (state.over) forget(state.run) else keep()
 			is ActionRunState.Changed, null -> Unit
 		}
 		_state.value = null
@@ -319,8 +332,13 @@ class PluginActionRunner(
 		_state.value = showing.copy(saving = true)
 		scope.launch {
 			val saved = saveNote(markdown)
-			_state.update { state ->
-				if (state is ActionRunState.Page && state.page === showing.page) (if (saved) null else state.copy(saving = false)) else state
+			val state = _state.value
+			if (state !is ActionRunState.Page || state.page !== showing.page) return@launch
+			if (saved) {
+				_state.value = null
+				forget(state.run)
+			} else {
+				_state.value = state.copy(saving = false)
 			}
 		}
 	}
@@ -506,8 +524,10 @@ class PluginActionRunner(
 		val page = shownPage() ?: return
 		val run = page.run
 		if (!run.action.keep) return
-		// With no button to press, the run has nowhere to go: it is over, as if it had ended.
-		if (page.page.buttons.isEmpty() && !page.first) return writer.remove(run, key(run))
+		// The first page as it opened holds nothing to keep, and closing it should not leave a run to resume.
+		val untouched = page.first && !page.resumed && run.answers.isEmpty() &&
+			page.page.fields.all { page.values[it.key] == it.default }
+		if (untouched) return writer.remove(run, key(run))
 		writer.save(run, key(run), ActionSession(run.action.pluginVersion, page.page, page.values, page.first, run.answers))
 	}
 
@@ -527,7 +547,10 @@ class PluginActionRunner(
 
 	private fun key(run: ActionRun) = ActionSessionKey(run.action.pluginId, project.id, run.action.name, run.place, run.itemId)
 
-	/** What the user has given [fields], as answers to keep: choices by their option's label, and scenes by name where known. */
+	/**
+	 * What the user has given [fields], as answers to keep by [answerKey]: choices by their option's
+	 * label, and scenes by name where known.
+	 */
 	private fun answersOf(fields: List<ActionField>, values: JsonObject): Map<String, ActionAnswer> = fields.associate { field ->
 		val value = values[field.key] ?: field.default
 		val answer = when (field) {
@@ -546,7 +569,7 @@ class PluginActionRunner(
 				}
 			}
 		}
-		field.key to ActionAnswer(field.label, answer)
+		field.answerKey to ActionAnswer(field.label, answer)
 	}
 
 	/** The first page's values: the last ones given it, where its fields still accept them, otherwise the defaults. */
@@ -597,9 +620,24 @@ class PluginActionRunner(
 /** [answers] to read or copy: each label bolded, its value under it. Blank answers are left out. */
 internal fun answersMarkdown(answers: Collection<ActionAnswer>, yes: String, no: String): String = answers.mapNotNull { answer ->
 	val value = answer.value
+	if (value.isBlankText) return@mapNotNull null
 	val text = if (!value.isString && value.booleanOrNull != null) (if (value.boolean) yes else no) else value.content.trim()
-	text.takeIf { it.isNotEmpty() }?.let { "**${answer.label}**\n\n$it" }
+	"**${answer.label}**\n\n$text"
 }.joinToString("\n\n")
+
+private val JsonPrimitive.isBlankText: Boolean get() = isString && content.isBlank()
+
+/**
+ * Pages may use a key again for another question, as an interview does when its set changes, so an
+ * answer is kept by its label as well and neither replaces the other.
+ */
+internal val ActionField.answerKey: String get() = "$key\u0000$label"
+
+/**
+ * Whether this page leaves nothing to do but read it: no field to fill in and no button to go on with.
+ * A kept run on it ends when it is closed, and until then it is kept like any other.
+ */
+internal val ActionRunState.Page.over: Boolean get() = !first && page.fields.isEmpty() && page.buttons.isEmpty()
 
 private fun ActionRunState.Page.changed(key: String, value: JsonElement) =
 	copy(values = JsonObject(values + (key to value)), errors = errors - key)
