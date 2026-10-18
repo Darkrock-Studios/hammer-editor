@@ -22,6 +22,8 @@ val scannedSources = listOf("common/src", "server/src/main")
 
 tasks.withType<Test>().configureEach {
 	useJUnitPlatform()
+	// Each class parses the scanned sources again; four scopes overflow Gradle's 512m default.
+	maxHeapSize = "2g"
 	systemProperty("hammer.rootDir", rootProject.projectDir.absolutePath)
 	scannedSources.forEach { path ->
 		inputs.dir(rootProject.file(path))
