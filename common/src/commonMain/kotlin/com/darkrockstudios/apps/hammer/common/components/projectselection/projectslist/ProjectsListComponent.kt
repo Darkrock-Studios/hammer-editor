@@ -44,6 +44,7 @@ import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.apps.hammer.common.util.lifecycleCoroutineScope
 import com.darkrockstudios.apps.hammer.project_home_action_import_toast_failure
 import com.darkrockstudios.apps.hammer.project_home_action_import_toast_success
+import com.darkrockstudios.apps.hammer.projects_list_toast_delete_failed
 import com.darkrockstudios.apps.hammer.projects_list_toast_sync_complete
 import com.darkrockstudios.apps.hammer.projects_list_toast_sync_failed
 import com.darkrockstudios.apps.hammer.sync_log_account_failed
@@ -301,7 +302,14 @@ class ProjectsListComponent(
 			null
 		}
 
-		if (projectsRepository.deleteProject(projectDef)) {
+		val deleted = try {
+			projectsRepository.deleteProject(projectDef)
+		} catch (e: IOException) {
+			Napier.e("Failed to delete project: ${projectDef.name}", e)
+			false
+		}
+
+		if (deleted) {
 			Napier.i("Project deleted: ${projectDef.name}")
 			if (syncedProject != null) {
 				projectsSynchronizer.deleteProject(syncedProject)
@@ -310,6 +318,8 @@ class ProjectsListComponent(
 			}
 
 			loadProjectList()
+		} else {
+			showToast(scope, Res.string.projects_list_toast_delete_failed)
 		}
 	}
 
