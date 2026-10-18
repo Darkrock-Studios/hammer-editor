@@ -22,11 +22,12 @@ class ActionFieldsTest {
 	@Serializable
 	private class Page(val field: List<FieldTable> = emptyList())
 
-	private fun fromToml(toml: String) =
-		Toml { ignoreUnknownKeys = true }.decodeFromString(Page.serializer(), toml.trimIndent()).field.toActionFields()
+	private val toml = Toml { ignoreUnknownKeys = true }
+	private val json = Json { ignoreUnknownKeys = true }
 
-	private fun fromJson(json: String) =
-		Json { ignoreUnknownKeys = true }.decodeFromString(Page.serializer(), json).field.toActionFields()
+	private fun fromToml(text: String) = toml.decodeFromString(Page.serializer(), text.trimIndent()).field.toActionFields()
+
+	private fun fromJson(text: String) = json.decodeFromString(Page.serializer(), text).field.toActionFields()
 
 	@Test
 	fun `a field reads the same from a TOML manifest as from a JSON page`() {
@@ -105,12 +106,16 @@ class ActionFieldsTest {
 				{"key": "d", "type": "choice", "label": "D", "options": [{"value": "x", "label": "X"}]},
 				{"key": "e", "type": "text", "label": "E"},
 				{"key": "f", "type": "scenes", "label": "F"},
-				{"key": "g", "type": "scenes", "label": "G", "multiple": false}
+				{"key": "g", "type": "scenes", "label": "G", "multiple": false},
+				{"key": "h", "type": "choice", "label": "H", "default": null, "options": [{"value": "y", "label": "Y"}]}
 			]}
 			""",
 		)
 		assertEquals(
-			listOf(JsonPrimitive(false), JsonPrimitive(3L), JsonPrimitive(0L), JsonPrimitive("x"), JsonPrimitive(""), JsonArray(emptyList()), JsonNull),
+			listOf(
+				JsonPrimitive(false), JsonPrimitive(3L), JsonPrimitive(0L), JsonPrimitive("x"), JsonPrimitive(""), JsonArray(emptyList()), JsonNull,
+				JsonPrimitive("y"),
+			),
 			fields.map { it.default },
 		)
 		assertEquals(TextFormat.Plain, assertIs<ActionField.Text>(fields[4]).format)
@@ -127,6 +132,15 @@ class ActionFieldsTest {
 		refused("""{"key": "a", "type": "choice", "label": "A"}""")
 		refused("""{"key": "a", "type": "choice", "label": "A", "default": "z", "options": [{"value": "x", "label": "X"}]}""")
 		refused("""{"key": "a", "type": "scenes", "label": "A", "default": ["one"]}""")
+		refused("""{"key": "a", "type": "scenes", "label": "A", "default": 3}""")
+		refused("""{"key": "a", "type": "scenes", "label": "A", "multiple": false, "default": [3]}""")
+		refused("""{"key": "a", "type": "int", "label": "A", "default": 3.5}""")
+		refused("""{"key": "a", "type": "int", "label": "A", "default": 3.0}""")
+		refused("""{"key": "a", "type": "int", "label": "A", "default": 1e20}""")
+		refused("""{"key": "a", "type": "int", "label": "A", "default": "3"}""")
+		refused("""{"key": "a", "type": "bool", "label": "A", "default": "true"}""")
+		refused("""{"key": "a", "type": "choice", "label": "A", "default": 1, "options": [{"value": "1", "label": "One"}]}""")
+		assertThrows<IllegalArgumentException> { fromToml("[[field]]\nkey = \"a\"\ntype = \"int\"\nlabel = \"A\"\ndefault = 3.0") }
 		refused("""{"key": "", "type": "bool", "label": "A"}""")
 		refused("""{"key": "a", "type": "bool", "label": "A"}, {"key": "a", "type": "text", "label": "B"}""")
 	}

@@ -131,10 +131,17 @@ class PluginActionRunner(
 		}
 	}
 
-	/** Sets a field of the page showing, clearing any error on it. */
+	/**
+	 * Sets a field of the page showing, clearing any error on it. A page stays editable while a call
+	 * made from it runs, and what is typed then is kept if the call answers with errors.
+	 */
 	fun change(key: String, value: JsonElement) {
 		_state.update { state ->
-			if (state is ActionRunState.Page) state.copy(values = JsonObject(state.values + (key to value)), errors = state.errors - key) else state
+			when (state) {
+				is ActionRunState.Page -> state.changed(key, value)
+				is ActionRunState.Working -> state.from?.let { state.copy(from = it.changed(key, value)) } ?: state
+				null -> null
+			}
 		}
 	}
 
@@ -144,7 +151,7 @@ class PluginActionRunner(
 	 */
 	fun press(button: ActionButton?) {
 		val page = _state.value as? ActionRunState.Page ?: return
-		if (page.saving) return
+		if (page.saving || (button == null && !page.first)) return
 		if (button?.validate != false) {
 			val errors = hostErrors(page.page.fields, page.values)
 			if (errors.isNotEmpty()) {
@@ -231,13 +238,20 @@ class PluginActionRunner(
 			} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
 				// A plugin's failure must not take the screen down with it.
 				Napier.e(e) { "Plugin action '${run.action.name}' failed" }
-				_state.value = null
-				message(Res.string.plugin_action_failed)
+				if (calling(stop) != null) {
+					_state.value = null
+					message(Res.string.plugin_action_failed)
+				}
 				return@launch
 			}
-			answer(run, from, reply)
+			// Once stopped, the screen has moved on; an action that ignores being cancelled can still get here.
+			val working = calling(stop) ?: return@launch
+			answer(run, working.from, reply)
 		}
 	}
+
+	/** The state while the call [stop] belongs to is the one running, or null once it is not. */
+	private fun calling(stop: Stop): ActionRunState.Working? = (_state.value as? ActionRunState.Working)?.takeIf { this.stop === stop }
 
 	private fun report(run: ActionRun, progress: ActionProgress) {
 		_state.update { state -> if (state is ActionRunState.Working && state.run === run) state.copy(progress = progress) else state }
@@ -280,7 +294,10 @@ class PluginActionRunner(
 
 	private fun showText(text: String) {
 		if (text.isBlank()) return
-		showMessage(if (text.length > MAX_MESSAGE) text.take(MAX_MESSAGE).trimEnd() + "…" else text)
+		if (text.length <= MAX_MESSAGE) return showMessage(text)
+		// Not between the halves of a surrogate pair.
+		val cut = if (text[MAX_MESSAGE - 1].isHighSurrogate()) MAX_MESSAGE - 1 else MAX_MESSAGE
+		showMessage(text.take(cut).trimEnd() + "…")
 	}
 
 	private fun message(text: StringResource) {
@@ -328,6 +345,9 @@ class PluginActionRunner(
 		const val MAX_MESSAGE = 200
 	}
 }
+
+private fun ActionRunState.Page.changed(key: String, value: JsonElement) =
+	copy(values = JsonObject(values + (key to value)), errors = errors - key)
 
 /** What the host finds wrong in [values] before a call: a required value missing, a number out of range, or a choice not among the options. */
 internal fun hostErrors(fields: List<ActionField>, values: JsonObject): Map<String, FieldError> = fields.mapNotNull { field ->

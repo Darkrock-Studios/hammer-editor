@@ -23,10 +23,12 @@ import com.darkrockstudios.apps.hammer.operations.plugin.PluginAction
 import com.darkrockstudios.apps.hammer.operations.plugin.SettingDeclaration
 import com.darkrockstudios.apps.hammer.operations.plugin.TextFormat
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -402,6 +404,72 @@ class PluginActionRunnerTest {
 		assertTrue(calls.single().cancelled())
 		assertNull(runner.state.value)
 		assertEquals(listOf("plugin_action_stopped"), messages)
+	}
+
+	@Test
+	fun `a page stays editable while its call runs, pressing again does nothing, and what was typed outlives errors`() = runTest {
+		val runner = runner()
+		val answer = CompletableDeferred<ActionReply>()
+		runner.start(
+			action { call -> if (call.button == null) ActionReply(ActionPage(fields = listOf(name), buttons = listOf(next))) else answer.await() },
+			ActionPlace.Project,
+			null,
+		)
+		advanceUntilIdle()
+		runner.change("name", JsonPrimitive("Mara"))
+		runner.press(next)
+		advanceUntilIdle()
+		runner.press(next)
+		runner.change("name", JsonPrimitive("Mara Vey"))
+		advanceUntilIdle()
+		assertEquals(2, calls.size)
+		assertEquals(JsonPrimitive("Mara"), calls.last().input["name"])
+
+		answer.complete(ActionReply(errors = mapOf("name" to "Taken")))
+		advanceUntilIdle()
+		assertEquals(JsonPrimitive("Mara Vey"), runner.page.values["name"])
+		assertEquals(mapOf("name" to FieldError.Plugin("Taken")), runner.page.errors)
+	}
+
+	@Test
+	fun `a stopped call that ends late leaves the next run alone`() = runTest {
+		val runner = runner()
+		val late = CompletableDeferred<Unit>()
+		runner.start(
+			action { withContext(NonCancellable) { late.await() }; error("ended late") },
+			ActionPlace.Project,
+			null,
+		)
+		advanceUntilIdle()
+		runner.stop()
+		val never = CompletableDeferred<ActionReply>()
+		val next = action { never.await() }
+		runner.start(next, ActionPlace.Project, null)
+		late.complete(Unit)
+		advanceUntilIdle()
+
+		assertSame(next, assertIs<ActionRunState.Working>(runner.state.value).run.action)
+		assertEquals(listOf("plugin_action_stopped"), messages)
+		runner.stop()
+	}
+
+	@Test
+	fun `Run is only the first page's`() = runTest {
+		val runner = runner()
+		runner.start(action { ActionReply(ActionPage(fields = listOf(story), buttons = listOf(next))) }, ActionPlace.Project, null)
+		advanceUntilIdle()
+		runner.press(null)
+		advanceUntilIdle()
+		assertEquals(1, calls.size)
+	}
+
+	@Test
+	fun `a long message is not cut between the halves of a character`() = runTest {
+		val runner = runner()
+		runner.start(action { ActionReply(message = "x".repeat(199) + "\uD83D\uDE00" + "x".repeat(50)) }, ActionPlace.Project, null)
+		advanceUntilIdle()
+
+		assertEquals("x".repeat(199) + "…", messages.single())
 	}
 
 	@Test
