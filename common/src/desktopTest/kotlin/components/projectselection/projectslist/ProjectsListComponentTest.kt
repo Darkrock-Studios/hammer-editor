@@ -1,6 +1,9 @@
 package components.projectselection.projectslist
 
 import com.darkrockstudios.apps.hammer.base.ProjectId
+import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.projects_list_toast_delete_failed
+import com.darkrockstudios.apps.hammer.common.components.ToastMessage
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsList
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsListComponent
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.Info
@@ -40,9 +43,12 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.verify
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import net.peanuuutz.tomlkt.Toml
@@ -374,6 +380,20 @@ class ProjectsListComponentTest : ComponentTest() {
 		}
 
 	@Test
+	fun `deleteProject does not touch the filesystem on the calling thread`() = runTest(mainTestDispatcher) {
+		every { projectsRepository.deleteProject(projectDefA) } returns true
+		val comp = newComponent()
+
+		comp.deleteProject(projectDefA)
+
+		verify(exactly = 0) { projectsRepository.deleteProject(any()) }
+
+		advanceUntilIdle()
+
+		verify { projectsRepository.deleteProject(projectDefA) }
+	}
+
+	@Test
 	fun `deleteProject queues the server delete even with no server configured`() = runTest(mainTestDispatcher) {
 		every { synchronizer.isServerSynchronized() } returns false
 		every { projectsRepository.deleteProject(projectDefA) } returns true
@@ -389,12 +409,28 @@ class ProjectsListComponentTest : ComponentTest() {
 	fun `deleteProject does nothing when the local delete fails`() = runTest(mainTestDispatcher) {
 		every { projectsRepository.deleteProject(projectDefA) } returns false
 		val comp = newComponent()
+		val toast = async(start = CoroutineStart.UNDISPATCHED) { comp.toast.first() }
 
 		comp.deleteProject(projectDefA)
 		advanceUntilIdle()
 
 		verify(exactly = 0) { synchronizer.deleteProject(any()) }
 		verify(exactly = 0) { projectsRepository.getProjects(any()) }
+		assertEquals(ToastMessage.Resource(Res.string.projects_list_toast_delete_failed), toast.await())
+	}
+
+	@Test
+	fun `deleteProject shows a failure when the filesystem throws`() = runTest(mainTestDispatcher) {
+		every { projectsRepository.deleteProject(projectDefA) } throws IOException("Access denied")
+		val comp = newComponent()
+		val toast = async(start = CoroutineStart.UNDISPATCHED) { comp.toast.first() }
+
+		comp.deleteProject(projectDefA)
+		advanceUntilIdle()
+
+		verify(exactly = 0) { synchronizer.deleteProject(any()) }
+		verify(exactly = 0) { projectsRepository.getProjects(any()) }
+		assertEquals(ToastMessage.Resource(Res.string.projects_list_toast_delete_failed), toast.await())
 	}
 
 	// --- renameProject -------------------------------------------------------
