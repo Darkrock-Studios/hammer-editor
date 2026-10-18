@@ -210,10 +210,10 @@ class FieldTable(
 	fun toDeclaration(): SettingDeclaration {
 		val default = default as? JsonPrimitive
 		return when (type) {
-			"bool" -> SettingDeclaration.Toggle(key, label, default?.booleanOrNull ?: false, hint)
-			"int" -> SettingDeclaration.Number(key, label, default?.longOrNull ?: min ?: 0, min, max, hint)
+			BOOL -> SettingDeclaration.Toggle(key, label, default?.booleanOrNull ?: false, hint)
+			INT -> SettingDeclaration.Number(key, label, default?.longOrNull ?: min ?: 0, min, max, hint)
 			STRING -> SettingDeclaration.Text(key, label, default?.content ?: "", multiline, hint)
-			"choice" -> SettingDeclaration.Choice(
+			CHOICE -> SettingDeclaration.Choice(
 				key = key,
 				label = label,
 				defaultValue = default?.content ?: options.firstOrNull()?.value.orEmpty(),
@@ -250,6 +250,26 @@ fun List<FieldTable>.toActionFields(): List<ActionField> {
 		require(declaration.accept(declaration.default) != null) { "Field '${field.key}' has an invalid default" }
 	}
 	return fields
+}
+
+/** This field as a plugin would declare it, which [FieldTable.toActionField] reads back the same. */
+fun ActionField.toFieldTable(): FieldTable = when (this) {
+	is ActionField.Text -> FieldTable(key, TEXT, label, default, hint, multiline = multiline, required = required, format = format.id)
+	is ActionField.Scenes -> FieldTable(key, SCENES, label, default, hint, multiple = multiple, required = required)
+	is ActionField.Setting -> when (val declaration = declaration) {
+		is SettingDeclaration.Toggle -> FieldTable(key, BOOL, label, declaration.default, hint)
+		is SettingDeclaration.Number -> FieldTable(key, INT, label, declaration.default, hint, min = declaration.min, max = declaration.max)
+		is SettingDeclaration.Choice -> FieldTable(
+			key = key,
+			type = CHOICE,
+			label = label,
+			default = declaration.default,
+			hint = hint,
+			options = declaration.options.map { FieldOption(it.value, it.label) },
+		)
+		// Never read from a plugin, which asks for text with type `text`.
+		is SettingDeclaration.Text -> FieldTable(key, TEXT, label, declaration.default, hint, multiline = declaration.multiline)
+	}
 }
 
 /** A field's `default` as JSON, read the same from a TOML manifest as from a JSON page. */
@@ -294,6 +314,9 @@ private fun JsonElement.toTomlElement(): TomlElement = when (this) {
 	is JsonObject -> TomlTable(mapValues { (_, value) -> value.toTomlElement() })
 }
 
+private const val BOOL = "bool"
+private const val INT = "int"
+private const val CHOICE = "choice"
 private const val SCENES = "scenes"
 private const val TEXT = "text"
 private const val STRING = "string"

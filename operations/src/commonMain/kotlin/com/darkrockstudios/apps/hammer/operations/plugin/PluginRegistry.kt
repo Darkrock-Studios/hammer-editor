@@ -112,6 +112,7 @@ class PluginRegistry : ExporterSource, KoinComponent {
 		return module {
 			single { registry } bind ExporterSource::class
 			single { PluginSettingsDatasource(get(), get()) }
+			single { ActionSessionStore(get()) }
 			single { operationRegistry }
 		}
 	}

@@ -350,6 +350,7 @@ class RuntimePluginsTest {
 
 		val loaded = startKoin(plugins).plugins.single().actions().single()
 		assertEquals(true, loaded.keep)
+		assertEquals("1.0.0", loaded.pluginVersion)
 		val (name, story) = loaded.fields.map { assertIs<ActionField.Text>(it) }
 		assertEquals(listOf(TextFormat.Plain, TextFormat.RichExtended), listOf(name.format, story.format))
 		assertEquals(true, name.required)

@@ -70,6 +70,7 @@ kotlin {
 				api(project(":common"))
 				api(project(":operations"))
 				implementation(project(":plugins:wasmhost"))
+				implementation(libs.kotlinx.atomicfu)
 				api(libs.jetbrains.compose.runtime)
 				api(libs.jetbrains.compose.components.resources)
 				api(libs.jetbrains.compose.ui.tooling.preview)
