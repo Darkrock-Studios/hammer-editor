@@ -279,7 +279,7 @@ private fun PageDialog(
 						.padding(Ui.Padding.XL),
 					verticalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 				) {
-					if (markdown != null) MarkdownView(markdown = markdown, modifier = Modifier.fillMaxWidth(), isSelectable = true)
+					if (markdown != null) MarkdownView(markdown = markdown, modifier = Modifier.fillMaxWidth(), isSelectable = true, paragraphIndent = false)
 					val inline = content.buttons.filter { it.inline }
 					if (inline.isNotEmpty()) {
 						FlowRow(
@@ -490,9 +490,13 @@ private fun PageField(
 @Composable
 private fun TextField(field: ActionField.Text, value: String, error: FieldError?, onChange: (JsonElement) -> Unit) {
 	val errorText = error?.let { fieldErrorText(it) }
+	// A field for more than a line is often a whole question, so its label is in sentence case as a
+	// toggle row's is, not a mono caption.
+	val longLabel = field.multiline || field.format != TextFormat.Plain
+	if (longLabel) Text(text = field.label, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
 	if (field.format == TextFormat.Plain) {
 		HdHairlineField(
-			label = field.label,
+			label = if (longLabel) "" else field.label,
 			value = value,
 			onValueChange = { onChange(JsonPrimitive(it)) },
 			singleLine = !field.multiline,
@@ -500,8 +504,6 @@ private fun TextField(field: ActionField.Text, value: String, error: FieldError?
 			error = errorText,
 		)
 	} else {
-		// Often a whole question, so in sentence case as a toggle row's label is, not a mono caption.
-		Text(text = field.label, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
 		MarkdownEditField(
 			initialMarkdown = value,
 			onMarkdownChanged = { onChange(JsonPrimitive(it)) },
@@ -640,7 +642,7 @@ private fun ChangedDialog(changed: ActionRunState.Changed?, runner: PluginAction
 					if (markdown.isEmpty()) {
 						Text(text = Res.string.plugin_action_changed_nothing.get(), style = MaterialTheme.typography.bodyMedium)
 					} else {
-						MarkdownView(markdown = markdown, modifier = Modifier.fillMaxWidth(), isSelectable = true)
+						MarkdownView(markdown = markdown, modifier = Modifier.fillMaxWidth(), isSelectable = true, paragraphIndent = false)
 					}
 				}
 				MpScrollBarColumn(modifier = scrollBarOverlay(), state = scrollState)

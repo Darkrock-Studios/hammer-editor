@@ -112,7 +112,7 @@ class CharacterInterviewPluginTest {
 		val first = assertNotNull(run(start).page)
 		assertEquals("Mara: Who they are (1 of 4)", first.title)
 		assertEquals(listOf("q1", "q2", "q3"), first.fields.map { it.key })
-		assertTrue(first.fields.all { (it as? ActionField.Text)?.format == TextFormat.Rich }, first.fields.toString())
+		assertTrue(first.fields.all { it is ActionField.Text && it.format == TextFormat.Plain && it.multiline }, first.fields.toString())
 		assertEquals(listOf("back", "next"), first.buttons.map { it.id })
 		assertEquals(false, first.buttons.single { it.id == "back" }.validate)
 		assertTrue(first.buttons.single { it.id == "next" }.primary)
