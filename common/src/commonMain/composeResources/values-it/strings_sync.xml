@@ -140,9 +140,6 @@
 	<string name="sync_log_entity_delete_success">ID %1$d eliminato sul server</string>
 	<string name="sync_log_entity_conflict">Conflitto riscontrato per una nuova entità, non dovrebbe essere possibile! ID: %1$d TIPO: %2$s</string>
 	<string name="sync_log_entity_failed">Sincronizzazione non riuscita: %1$s</string>
-	<string name="sync_log_stale_hash_detected">L’hash memorizzato nella cache del server è obsoleto per l’entità %1$d. Riparazione con caricamento forzato.</string>
-	<string name="sync_log_stale_hash_healed">Cache del server riparata con successo per l’entità %1$d con caricamento forzato</string>
-	<string name="sync_log_stale_hash_heal_failed">Impossibile riparare la cache del server per l’entità %1$d — il caricamento forzato non è riuscito</string>
 	<string name="sync_log_entities_transferred">Entità trasferite</string>
 	<string name="sync_log_finalized">Sincronizzazione finalizzata</string>
 	<string name="sync_log_data_saved">Dati di sincronizzazione salvati</string>

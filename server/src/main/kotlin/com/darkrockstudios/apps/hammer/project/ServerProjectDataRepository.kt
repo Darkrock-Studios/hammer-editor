@@ -1,7 +1,6 @@
 package com.darkrockstudios.apps.hammer.project
 
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
-import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectDataHasher
 import com.darkrockstudios.apps.hammer.database.ProjectDao
 import com.darkrockstudios.apps.hammer.database.ProjectDataDao
 import com.darkrockstudios.apps.hammer.utilities.SResult
@@ -69,7 +68,7 @@ class ServerProjectDataRepository(
 		projectDef: ProjectDefinition,
 		data: JsonElement,
 		originalHash: String?,
-		clientHash: String?,
+		clientHash: String,
 	): SResult<ProjectDataSaveResult> {
 		val projectId = projectDao.getProjectIdOrNull(userId, projectDef.uuid)
 			?: return SResult.failure(ProjectNotFound(projectDef))
@@ -87,18 +86,17 @@ class ServerProjectDataRepository(
 
 		// Validation only — the raw element is what gets stored, so fields this server version
 		// doesn't know survive; ignoreUnknownKeys makes them pass the decode.
-		val decoded = decodeAsProjectData(data)
+		decodeAsProjectData(data)
 			?: return SResult.failure(IllegalArgumentException("Payload does not decode as ProjectData"))
-		val newHash = clientHash ?: ProjectDataHasher.hash(decoded)
 		projectDataDao.upsert(
 			userId = userId,
 			projectId = projectId,
 			content = data.toString(),
-			hash = newHash,
+			hash = clientHash,
 			updatedAt = clock.now(),
 		)
 		return SResult.success(
-			ProjectDataSaveResult.Saved(RawProjectDataDto(data = data, hash = newHash)),
+			ProjectDataSaveResult.Saved(RawProjectDataDto(data = data, hash = clientHash)),
 		)
 	}
 

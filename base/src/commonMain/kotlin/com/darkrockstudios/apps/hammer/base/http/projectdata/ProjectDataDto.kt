@@ -11,13 +11,13 @@ data class ProjectDataDto(
 /**
  * [originalHash] is null when the client has never synced this project's data before.
  * [hash] is the client-computed content hash of [data]; the server stores it verbatim alongside
- * the payload. Null only for legacy clients, where the server falls back to hashing itself.
+ * the payload.
  */
 @Serializable
 data class ProjectDataUploadRequest(
 	val data: ProjectData,
 	val originalHash: String? = null,
-	val hash: String? = null,
+	val hash: String,
 )
 
 @Serializable

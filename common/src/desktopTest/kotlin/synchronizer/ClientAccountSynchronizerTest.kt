@@ -413,7 +413,7 @@ class ClientAccountSynchronizerTest {
 	}
 
 	@Test
-	fun `loadSyncData drops the UUID-migration scrub of valid ids`() {
+	fun `loadSyncData preserves deletion ids across a load and save cycle`() {
 		val validId = ProjectId.randomUUID()
 		writeSyncData(
 			emptySyncData().copy(
@@ -422,29 +422,12 @@ class ClientAccountSynchronizerTest {
 			)
 		)
 
-		// Any mutation forces a load+save cycle, which runs the migration scrub.
+		// Any mutation forces a load+save cycle.
 		createSynchronizer().renameProject(ProjectId.randomUUID(), "AnyProject")
 
 		val result = readSyncData()
 		assertEquals(setOf(validId), result.projectsToDelete)
 		assertEquals(setOf(validId), result.deletedProjects)
-	}
-
-	@Test
-	fun `loadSyncData scrubs malformed project ids instead of crashing`() {
-		writeSyncData(
-			emptySyncData().copy(
-				projectsToDelete = setOf(ProjectId("not-a-uuid")),
-				deletedProjects = setOf(ProjectId("also-not-a-uuid")),
-			)
-		)
-
-		// Any mutation forces a load+save cycle, which runs the migration scrub.
-		createSynchronizer().renameProject(ProjectId.randomUUID(), "AnyProject")
-
-		val result = readSyncData()
-		assertTrue(result.projectsToDelete.isEmpty())
-		assertTrue(result.deletedProjects.isEmpty())
 	}
 
 	@Test

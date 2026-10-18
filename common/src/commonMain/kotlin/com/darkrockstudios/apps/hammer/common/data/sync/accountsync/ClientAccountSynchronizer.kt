@@ -38,7 +38,6 @@ import okio.FileSystem
 import okio.IOException
 import okio.Path
 import kotlin.coroutines.cancellation.CancellationException
-import kotlin.uuid.Uuid
 
 class ClientAccountSynchronizer(
 	private val fileSystem: FileSystem,
@@ -782,7 +781,7 @@ class ClientAccountSynchronizer(
 	@Suppress("SwallowedException")
 	private fun loadSyncData(): ProjectsSynchronizationData {
 		val path = getSyncDataPath()
-		val syncData = if (fileSystem.exists(path)) {
+		return if (fileSystem.exists(path)) {
 			fileSystem.read(path) {
 				val syncDataJson = readUtf8()
 				try {
@@ -794,31 +793,6 @@ class ClientAccountSynchronizer(
 		} else {
 			createAndSaveSyncData()
 		}
-
-		// Handling migration which replaced project names with UUIDs
-		val projectsToDelete = syncData.projectsToDelete.filter {
-			try {
-				Uuid.parse(it.id)
-				true
-			} catch (e: IllegalArgumentException) {
-				Napier.w("Invalid UUID for deleted project: $it", e)
-				false
-			}
-		}
-		val deletedProjects = syncData.deletedProjects.filter {
-			try {
-				Uuid.parse(it.id)
-				true
-			} catch (e: IllegalArgumentException) {
-				Napier.w("Invalid UUID for deleted project: $it")
-				false
-			}
-		}
-
-		return syncData.copy(
-			projectsToDelete = projectsToDelete.toSet(),
-			deletedProjects = deletedProjects.toSet(),
-		)
 	}
 
 	private fun createAndSaveSyncData(): ProjectsSynchronizationData {

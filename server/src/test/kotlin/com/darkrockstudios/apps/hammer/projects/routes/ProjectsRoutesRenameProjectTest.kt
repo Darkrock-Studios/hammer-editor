@@ -44,7 +44,7 @@ class ProjectsRoutesRenameProjectTest : ProjectsRoutesBaseTest() {
 
 		defaultApplication()
 
-		client.get("api/projects/0/rename") {
+		client.post("api/projects/0/rename") {
 			header(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
 			header("Authorization", "Bearer $BEARER_TOKEN")
 			header(HEADER_SYNC_ID, syncId)
@@ -83,7 +83,7 @@ class ProjectsRoutesRenameProjectTest : ProjectsRoutesBaseTest() {
 
 		defaultApplication()
 
-		client.get("api/projects/0/rename") {
+		client.post("api/projects/0/rename") {
 			header(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
 			header("Authorization", "Bearer $BEARER_TOKEN")
 			header(HEADER_SYNC_ID, syncId)
@@ -145,7 +145,7 @@ class ProjectsRoutesRenameProjectTest : ProjectsRoutesBaseTest() {
 
 		defaultApplication()
 
-		client.get("api/projects/0/rename") {
+		client.post("api/projects/0/rename") {
 			header(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
 			header("Authorization", "Bearer $BEARER_TOKEN")
 			header(HEADER_SYNC_ID, syncId)

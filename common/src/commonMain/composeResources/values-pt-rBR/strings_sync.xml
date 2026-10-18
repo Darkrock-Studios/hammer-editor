@@ -140,9 +140,6 @@
 	<string name="sync_log_entity_delete_success">ID %1$d excluído no servidor</string>
 	<string name="sync_log_entity_conflict">Encontrado um conflito para a nova Entidade, isso não deveria ser possível! ID: %1$d TYPE: %2$s</string>
 	<string name="sync_log_entity_failed">Sincronização falhou: %1$s</string>
-	<string name="sync_log_stale_hash_detected">O hash em cache no servidor está desatualizado para a entidade %1$d. Corrigindo através do 'upload' forçado.</string>
-	<string name="sync_log_stale_hash_healed">Cache do servidor para a entidade %1$d corrigido com sucesso através do 'upload' forçado</string>
-	<string name="sync_log_stale_hash_heal_failed">Falha ao corrigir a cache do servidor para a entidade%1$d , 'upload' forçado falhou .</string>
 	<string name="sync_log_entities_transferred">Entidades transferidas</string>
 	<string name="sync_log_finalized">Sincronização finalizada</string>
 	<string name="sync_log_data_saved">Dados da sincronização salvos</string>

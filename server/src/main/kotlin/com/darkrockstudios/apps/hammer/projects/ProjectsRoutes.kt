@@ -134,9 +134,6 @@ private fun Route.beginProjectsSync() {
 	val accountsRepository: AccountsRepository = get()
 	val ideasRepository: ServerIdeasRepository = get()
 
-	// POST is the preferred verb; GET remains for legacy clients.
-	// TODO Remove the legacy GET route at the next protocol version bump.
-	get("/begin_sync") { handleBeginProjectsSync(projectsRepository, accountsRepository, ideasRepository) }
 	post("/begin_sync") { handleBeginProjectsSync(projectsRepository, accountsRepository, ideasRepository) }
 }
 
@@ -209,9 +206,6 @@ private fun Route.syncProbe() {
 private fun Route.endProjectSync() {
 	val projectsRepository: ProjectsRepository = get()
 
-	// POST is the preferred verb; GET remains for legacy clients.
-	// TODO Remove the legacy GET route at the next protocol version bump.
-	get("/end_sync") { handleEndProjectsSync(projectsRepository) }
 	post("/end_sync") { handleEndProjectsSync(projectsRepository) }
 }
 
@@ -233,9 +227,6 @@ private suspend fun RoutingContext.handleEndProjectsSync(projectsRepository: Pro
 private fun Route.deleteProject() {
 	val projectsRepository: ProjectsRepository = get()
 
-	// POST is the preferred verb; GET remains for legacy clients.
-	// TODO Remove the legacy GET route at the next protocol version bump.
-	get("/delete") { handleDeleteProject(projectsRepository) }
 	post("/delete") { handleDeleteProject(projectsRepository) }
 }
 
@@ -255,9 +246,6 @@ private suspend fun RoutingContext.handleDeleteProject(projectsRepository: Proje
 private fun Route.renameProject() {
 	val projectsRepository: ProjectsRepository = get()
 
-	// POST is the preferred verb; GET remains for legacy clients.
-	// TODO Remove the legacy GET route at the next protocol version bump.
-	get("/rename") { handleRenameProject(projectsRepository) }
 	post("/rename") { handleRenameProject(projectsRepository) }
 }
 

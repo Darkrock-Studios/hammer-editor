@@ -285,7 +285,7 @@ class ProjectDataRoutesTest : BaseTest() {
 		val response = testClient.post("api/project/$userId/${projectId.id}/project_data") {
 			header("Authorization", "Bearer $bearerToken")
 			contentType(ContentType.Application.Json)
-			setBody(ProjectDataUploadRequest(sampleData.copy(authorName = "Local"), originalHash = "stale-hash"))
+			setBody(ProjectDataUploadRequest(sampleData.copy(authorName = "Local"), originalHash = "stale-hash", hash = "local-hash"))
 		}
 
 		assertEquals(HttpStatusCode.Conflict, response.status)

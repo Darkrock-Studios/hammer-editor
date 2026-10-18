@@ -190,15 +190,6 @@ class ServerProjectDataRepositoryTest : BaseTest() {
 	}
 
 	@Test
-	fun `save without clientHash falls back to server-side hash for legacy clients`() = runTest {
-		val result =
-			repository.save(userId, projectDef, sampleJson, originalHash = null, clientHash = null)
-		assertTrue(isSuccess(result))
-		val saved = assertIs<ProjectDataSaveResult.Saved>(result.data)
-		assertEquals(sampleHash, saved.dto.hash)
-	}
-
-	@Test
 	fun `save with matching originalHash overwrites`() = runTest {
 		val first = repository.save(
 			userId,

@@ -96,11 +96,7 @@ also be **reclaimed by the same install** that owns it (identified server-side f
 token), so a crashed account sync doesn't lock that device out until expiry. A different install
 must wait for the live session to expire.
 
-All account endpoints use `POST`. `begin_sync`, `end_sync`, `delete` and `rename` were historically
-`GET`, so the server still routes their `GET` form for legacy clients, and the client retries a
-`POST` that answers 404/405 as a `GET` for servers that predate the move. Parameters are unchanged
-either way (query params + headers). `create` is `POST` only: a server that predates client-minted
-IDs cannot honour its `projectId`.
+All account endpoints use `POST` (query params + headers).
 
 ```mermaid
 sequenceDiagram
@@ -522,16 +518,6 @@ and serves the download normally. The client never sees the repair. Because a st
 the entity look changed to the `Entity Update Sequence` check, every stale entity is guaranteed to
 be offered for download, so lazy repair converges without any O(n) sweep.
 
-##### Legacy: 412 Stale Hash Self-Healing
-
-Older servers (pre read-repair) instead respond to a stale hash with `412 Precondition Failed` and a
-`StaleHashResponse` (`{entityId, message, cachedHash, computedHash}`), expecting the client to heal
-the server by force-uploading its local copy (no `X-Original-Hash` — force skips the conflict
-check). The client retains this handler for compatibility with old servers. If the client has no
-local copy of the entity to upload (e.g. a fresh install), the heal is impossible and the entity is
-reported as failed for that sync — against such servers the entity remains undownloadable until a
-client that still has a copy syncs.
-
 #### Post-Download Enrichment Heal (client-initiated)
 
 The read-repair above is driven by the *server* noticing its own hash is stale. A second,
@@ -701,9 +687,7 @@ This makes adding a field to a synced model a **client-only** change:
 3. Update the hash-sensitivity guard (`EntityHashSensitivityTest` fails automatically until the new
    field provably affects the hash).
 
-The server needs no update, and no protocol bump is required. The one legacy exception: clients that
-predate the `hash` upload field don't send a content hash, so the server falls back to a typed
-decode + server-side hash for those uploads only.
+The server needs no update, and no protocol bump is required.
 
 **Mixed app versions within one protocol version.** A not-yet-updated client's typed decode strips
 fields it doesn't know, so its stored copy of downloaded project data hashes differently from the
