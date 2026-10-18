@@ -24,6 +24,8 @@ import okio.FileMetadata
 import okio.ForwardingFileSystem
 import okio.Path
 import org.junit.jupiter.api.Test
+import org.koin.core.context.loadKoinModules
+import org.koin.dsl.module
 import testProjectId
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -161,6 +163,19 @@ class ProjectsRepositoryIdTest : ProjectsRepositoryBaseTest() {
 
 		assertEquals(listOf(Triple(proj2Def.name, project2Id, newId)), changes)
 		assertEquals(newId, storedWhenNotified)
+	}
+
+	@Test
+	fun `Set Project ID tells a listener bound in Koin too`() = scope.runTest {
+		val proj2Def = getProjectDef(PROJECT_2_NAME)
+		val newId = ProjectId("test-id")
+		createProject(ffs, PROJECT_2_NAME)
+		val changes = mutableListOf<Pair<ProjectId, ProjectId>>()
+		loadKoinModules(module { single<ProjectIdChangeListener> { ProjectIdChangeListener { _, oldId, id -> changes += oldId to id } } })
+
+		projectsRepository().setProjectId(proj2Def, newId)
+
+		assertEquals(listOf(project2Id to newId), changes)
 	}
 
 	@Test

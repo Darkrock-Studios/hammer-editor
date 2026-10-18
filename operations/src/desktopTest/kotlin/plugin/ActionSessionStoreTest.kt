@@ -1,6 +1,8 @@
 package plugin
 
 import com.darkrockstudios.apps.hammer.base.ProjectId
+import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionAnswer
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionButton
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionField
@@ -13,7 +15,9 @@ import com.darkrockstudios.apps.hammer.operations.plugin.ActionSessionStore
 import com.darkrockstudios.apps.hammer.operations.plugin.FieldTable
 import com.darkrockstudios.apps.hammer.operations.plugin.SettingDeclaration
 import com.darkrockstudios.apps.hammer.operations.plugin.TextFormat
+import com.darkrockstudios.apps.hammer.operations.plugin.UnreadableSessionException
 import com.darkrockstudios.apps.hammer.operations.plugin.toFieldTable
+import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -148,27 +152,50 @@ class ActionSessionStoreTest {
 	}
 
 	@Test
-	fun `a corrupt file loads as none and is left in place`() {
+	fun `a corrupt file is moved aside, so a new run cannot write over it`() {
 		val file = sessionDir / "interview.project.json"
 		fileSystem.createDirectories(sessionDir)
 		fileSystem.write(file) { writeUtf8("{\"format\": 1, \"pluginVer") }
 
+		val failure = assertFailsWith<UnreadableSessionException> { store.load(key) }
+		val aside = sessionDir / "interview.project.json.unreadable"
+		assertEquals(aside, failure.setAside)
+		assertEquals("{\"format\": 1, \"pluginVer", fileSystem.read(aside) { readUtf8() })
 		assertNull(store.load(key))
-		assertEquals("{\"format\": 1, \"pluginVer", fileSystem.read(file) { readUtf8() })
 
 		store.save(key, session())
 		assertNotNull(store.load(key))
+		assertTrue(fileSystem.exists(aside))
 	}
 
 	@Test
-	fun `a file in another format loads as none and is left in place`() {
-		store.save(key, session())
+	fun `a file in another format is moved aside, beside any set aside before`() {
 		val file = sessionDir / "interview.project.json"
-		val newer = fileSystem.read(file) { readUtf8() }.replace("\"format\":1", "\"format\":2")
-		fileSystem.write(file) { writeUtf8(newer) }
+		repeat(2) {
+			store.save(key, session())
+			val newer = fileSystem.read(file) { readUtf8() }.replace("\"format\":1", "\"format\":2")
+			fileSystem.write(file) { writeUtf8(newer) }
+			assertFailsWith<UnreadableSessionException> { store.load(key) }
+		}
 
-		assertNull(store.load(key))
-		assertTrue(fileSystem.exists(file))
+		assertEquals(
+			listOf("interview.project.json.unreadable", "interview.project.json.unreadable-2"),
+			fileSystem.list(sessionDir).map { it.name }.sorted(),
+		)
+	}
+
+	@Test
+	fun `an unreadable file that cannot be moved aside is left in place`() {
+		val file = sessionDir / "interview.project.json"
+		fileSystem.createDirectories(sessionDir)
+		fileSystem.write(file) { writeUtf8("not json") }
+		val failing = object : ForwardingFileSystem(fileSystem) {
+			override fun atomicMove(source: Path, target: Path) = throw IOException("read-only")
+		}
+
+		val failure = assertFailsWith<UnreadableSessionException> { ActionSessionStore(failing, pluginsDir).load(key) }
+		assertNull(failure.setAside)
+		assertEquals("not json", fileSystem.read(file) { readUtf8() })
 	}
 
 	@Test
@@ -202,6 +229,29 @@ class ActionSessionStoreTest {
 		assertFailsWith<ActionSessionException> { store.save(unsafe, session()) }
 		assertNull(store.load(unsafe))
 		assertTrue(!fileSystem.exists(pluginsDir / "_sessions"))
+	}
+
+	@Test
+	fun `a project given a new id keeps its sessions, and the old id keeps them too`() = runTest {
+		val newId = ProjectId("00000000-0000-4000-8000-000000000003")
+		val moved = key.copy(projectId = newId)
+		val entry = key.copy(place = ActionPlace.Entry, itemId = 12)
+		store.save(key, session())
+		store.save(entry, session())
+		store.save(moved.copy(place = ActionPlace.Entry, itemId = 12), session(version = "9.0.0"))
+		store.save(ActionSessionKey("other", project, "ask", ActionPlace.Project, null), session())
+
+		store.onProjectIdChanged(ProjectDef(newId, "Storm", HPath("/projects/Storm", "Storm", false)), project, newId)
+
+		assertEquals("1.2.0", store.load(moved)?.pluginVersion)
+		assertEquals("9.0.0", store.load(moved.copy(place = ActionPlace.Entry, itemId = 12))?.pluginVersion)
+		assertNotNull(store.load(ActionSessionKey("other", newId, "ask", ActionPlace.Project, null)))
+		assertNotNull(store.load(key))
+		assertNotNull(store.load(entry))
+		assertEquals(
+			listOf("interview.entry.12.json", "interview.project.json"),
+			fileSystem.list(pluginsDir / "_sessions" / "people" / newId.id).map { it.name }.sorted(),
+		)
 	}
 
 	private fun FieldTable.describe() =

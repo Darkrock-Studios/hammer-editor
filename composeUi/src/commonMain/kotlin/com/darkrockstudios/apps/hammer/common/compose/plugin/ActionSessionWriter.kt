@@ -23,9 +23,12 @@ internal class ActionSessionWriter(
 	/** Told of a save that failed; on the thread that tried it. */
 	private val onSaveFailed: (ActionRun, ActionSessionException) -> Unit,
 ) {
-	private val lock = reentrantLock()
+	// Guards waiting only, so asking for a change never waits on the disk.
+	private val queue = reentrantLock()
 
-	// Only touched while holding the lock.
+	// Held while writing, so changes reach the disk one at a time and in the order they were asked.
+	private val writing = reentrantLock()
+
 	private val waiting = LinkedHashMap<ActionSessionKey, Change>()
 
 	private class Change(val run: ActionRun, val session: ActionSession?)
@@ -34,24 +37,28 @@ internal class ActionSessionWriter(
 
 	fun remove(run: ActionRun, key: ActionSessionKey) = ask(key, Change(run, null))
 
-	/** Blocks; call it off the main thread. */
-	fun load(key: ActionSessionKey): ActionSession? = lock.withLock {
+	/** Blocks; call it off the main thread. Throws what [ActionSessionStore.load] does. */
+	fun load(key: ActionSessionKey): ActionSession? = writing.withLock {
 		writeWaiting()
 		store.load(key)
 	}
 
 	/** Writes every change still waiting, on the calling thread. */
-	fun flush() = lock.withLock { writeWaiting() }
+	fun flush() = writing.withLock { writeWaiting() }
 
 	private fun ask(key: ActionSessionKey, change: Change) {
-		lock.withLock { waiting[key] = change }
+		queue.withLock { waiting[key] = change }
 		scope.launch(dispatcher) { flush() }
+	}
+
+	private fun next(): Pair<ActionSessionKey, Change>? = queue.withLock {
+		val key = waiting.keys.firstOrNull() ?: return null
+		key to waiting.remove(key)!!
 	}
 
 	private fun writeWaiting() {
 		while (true) {
-			val (key, change) = waiting.entries.firstOrNull() ?: return
-			waiting.remove(key)
+			val (key, change) = next() ?: return
 			val session = change.session
 			try {
 				if (session != null) store.save(key, session) else store.remove(key)

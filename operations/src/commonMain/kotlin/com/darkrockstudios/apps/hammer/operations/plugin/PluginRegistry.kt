@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.operations.plugin
 
 import com.darkrockstudios.apps.hammer.common.data.export.ExporterSource
 import com.darkrockstudios.apps.hammer.common.data.export.StoryExporter
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectIdChangeListener
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.APP_SCOPE
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcherNow
 import com.darkrockstudios.apps.hammer.operations.KoinProjectResolver
@@ -112,7 +113,7 @@ class PluginRegistry : ExporterSource, KoinComponent {
 		return module {
 			single { registry } bind ExporterSource::class
 			single { PluginSettingsDatasource(get(), get()) }
-			single { ActionSessionStore(get()) }
+			single { ActionSessionStore(get()) } bind ProjectIdChangeListener::class
 			single { operationRegistry }
 		}
 	}

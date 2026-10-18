@@ -157,7 +157,7 @@ class PluginActionDialogsTest {
 	}
 
 	@Test
-	fun `a run another version saved shows what was entered, and Start afresh clears it`() {
+	fun `a run another version saved shows what was entered, and Start afresh asks before clearing it`() {
 		saveSession("1.0.0")
 		compose.setContent { Host(kept("2.0.0")) }
 		compose.waitUntil(timeoutMillis = 10_000) { compose.onAllNodesWithText("Start afresh", ignoreCase = true).fetchSemanticsNodes().isNotEmpty() }
@@ -166,6 +166,15 @@ class PluginActionDialogsTest {
 		compose.onNodeWithText("Mara", substring = true).assertExists()
 
 		compose.onNodeWithText("Start afresh", ignoreCase = true).performClick()
+		compose.waitUntil(timeoutMillis = 10_000) { compose.onAllNodesWithText("Start afresh?").fetchSemanticsNodes().isNotEmpty() }
+		compose.onNodeWithText("Keep going").performClick()
+		compose.waitUntil(timeoutMillis = 10_000) { compose.onAllNodesWithText("Start afresh?").fetchSemanticsNodes().isEmpty() }
+		assertNotNull(store.load(key))
+
+		compose.onNodeWithText("Start afresh", ignoreCase = true).performClick()
+		compose.waitUntil(timeoutMillis = 10_000) { compose.onAllNodesWithText("Start afresh?").fetchSemanticsNodes().isNotEmpty() }
+		// The footer's button, then the dialog's.
+		compose.onAllNodesWithText("Start afresh", ignoreCase = true)[1].performClick()
 		compose.waitUntil(timeoutMillis = 10_000) { store.load(key) == null }
 		compose.waitUntil(timeoutMillis = 10_000) { compose.onAllNodesWithText("Run", ignoreCase = true).fetchSemanticsNodes().isNotEmpty() }
 		assertTrue(calls.isEmpty())

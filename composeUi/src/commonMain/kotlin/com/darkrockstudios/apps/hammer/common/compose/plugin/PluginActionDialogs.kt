@@ -74,6 +74,8 @@ import com.darkrockstudios.apps.hammer.composeui.resources.plugin_action_scenes_
 import com.darkrockstudios.apps.hammer.composeui.resources.plugin_action_scenes_more
 import com.darkrockstudios.apps.hammer.composeui.resources.plugin_action_scenes_none
 import com.darkrockstudios.apps.hammer.composeui.resources.plugin_action_start_afresh
+import com.darkrockstudios.apps.hammer.composeui.resources.plugin_action_start_afresh_message
+import com.darkrockstudios.apps.hammer.composeui.resources.plugin_action_start_afresh_title
 import com.darkrockstudios.apps.hammer.composeui.resources.plugin_action_start_over
 import com.darkrockstudios.apps.hammer.composeui.resources.plugin_action_start_over_cancel
 import com.darkrockstudios.apps.hammer.composeui.resources.plugin_action_start_over_message
@@ -91,9 +93,9 @@ import com.darkrockstudios.apps.hammer.composeui.resources.plugin_setting_range
 import com.darkrockstudios.apps.hammer.composeui.resources.plugin_setting_whole_number
 import com.darkrockstudios.apps.hammer.operations.OperationRegistry
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionButton
-import com.darkrockstudios.apps.hammer.operations.plugin.ActionSessionStore
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionField
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionPlace
+import com.darkrockstudios.apps.hammer.operations.plugin.ActionSessionStore
 import com.darkrockstudios.apps.hammer.operations.plugin.SettingDeclaration
 import com.darkrockstudios.apps.hammer.operations.plugin.TextFormat
 import com.darkrockstudios.texteditor.EditorLineLimits
@@ -619,6 +621,7 @@ private fun SceneChooser(
 private fun ChangedDialog(changed: ActionRunState.Changed?, runner: PluginActionRunner) {
 	val shown = lastOf(changed)
 	var copied by remember(shown?.run) { mutableStateOf(false) }
+	var confirmingStartAfresh by remember(changed?.run) { mutableStateOf(false) }
 	val copy = rememberClipboardCopier()
 	AnimatedDialog(visible = changed != null, onCloseRequest = runner::dismiss) {
 		val current = shown ?: return@AnimatedDialog
@@ -662,10 +665,24 @@ private fun ChangedDialog(changed: ActionRunState.Changed?, runner: PluginAction
 					)
 					HdHairlineButton(label = Res.string.plugin_document_save.get(), onClick = runner::saveAsNote, enabled = !current.saving)
 				}
-				HdHairlineButton(label = Res.string.plugin_action_start_afresh.get(), onClick = runner::startAfresh, emphasised = true)
+				HdHairlineButton(label = Res.string.plugin_action_start_afresh.get(), onClick = { confirmingStartAfresh = true }, emphasised = true)
 			}
 		}
 	}
+
+	ConfirmationDialog(
+		visible = confirmingStartAfresh && changed != null,
+		title = Res.string.plugin_action_start_afresh_title.get(),
+		message = Res.string.plugin_action_start_afresh_message.get(),
+		confirmLabel = Res.string.plugin_action_start_afresh.get(),
+		cancelLabel = Res.string.plugin_action_start_over_cancel.get(),
+		onConfirm = {
+			confirmingStartAfresh = false
+			runner.startAfresh()
+		},
+		onDismiss = { confirmingStartAfresh = false },
+		destructive = true,
+	)
 }
 
 /** A call made with no page showing, once it has taken a moment, so quick actions don't flash a dialog. */

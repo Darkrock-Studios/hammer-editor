@@ -1,6 +1,8 @@
 package com.darkrockstudios.apps.hammer.operations.plugin
 
 import com.darkrockstudios.apps.hammer.base.ProjectId
+import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectIdChangeListener
 import com.darkrockstudios.apps.hammer.common.getConfigDirectory
 import io.github.aakira.napier.Napier
 import kotlinx.serialization.Serializable
@@ -44,34 +46,41 @@ class ActionSession(
 @Serializable
 class ActionAnswer(val label: String, val value: JsonPrimitive)
 
-/** A session that could not be saved or removed. */
-class ActionSessionException(message: String, cause: Throwable? = null) : Exception(message, cause)
+/** A session that could not be saved, removed, or read. */
+open class ActionSessionException(message: String, cause: Throwable? = null) : Exception(message, cause)
+
+/** A saved session that cannot be read: moved to [setAside] so nothing writes over it, or left in place when that is null. */
+class UnreadableSessionException(message: String, val setAside: Path?, cause: Throwable? = null) : ActionSessionException(message, cause)
 
 /**
  * Kept runs of plugin actions, one JSON file each under `<config>/plugins/_sessions/<pluginId>/<projectId>/`,
  * named `<action>.<place>[.<itemId>].json`. They are the user's work, so unlike the plugin cache they
  * are written atomically, a failure is thrown rather than dropped, a file that cannot be read is
- * left in place, and uninstalling the plugin leaves them.
+ * moved aside rather than written over, and uninstalling the plugin leaves them.
  */
 class ActionSessionStore(
 	private val fileSystem: FileSystem,
 	pluginsDirectory: Path = getConfigDirectory().toPath() / PluginSettingsDatasource.PLUGINS_DIRECTORY,
-) {
+) : ProjectIdChangeListener {
 	private val directory = pluginsDirectory / SESSIONS_DIRECTORY
 
-	/** The session saved for [key], or null when there is none or it cannot be read; an unreadable one is logged and left. */
+	/**
+	 * The session saved for [key], or null when there is none. Throws [UnreadableSessionException] for
+	 * one that cannot be read, a newer format's included, having moved it aside to
+	 * `<name>.json.unreadable[-<n>]` when it could.
+	 */
 	fun load(key: ActionSessionKey): ActionSession? {
 		val path = sessionPath(key) ?: return null
 		if (!fileSystem.exists(path)) return null
 		val file = try {
 			json.decodeFromString(SessionFile.serializer(), fileSystem.read(path) { readUtf8() })
 		} catch (e: IOException) {
-			return unreadable(path, e)
+			setAside(path, e)
 		} catch (e: IllegalArgumentException) {
 			// Includes SerializationException.
-			return unreadable(path, e)
+			setAside(path, e)
 		}
-		if (file.format != FORMAT) return unreadable(path, null)
+		if (file.format != FORMAT) setAside(path, null)
 		val page = try {
 			(file.page as? JsonObject)?.let { json.decodeFromJsonElement(PageTable.serializer(), it).toActionPage() }
 		} catch (e: IllegalArgumentException) {
@@ -124,6 +133,28 @@ class ActionSessionStore(
 		}
 	}
 
+	/**
+	 * Gives the project's new id the sessions kept under its old one, so they are found again. They are
+	 * copied, not moved: a project copied on disk is given a new id while the original keeps the old.
+	 * A session the new id already has is left as it is.
+	 */
+	override suspend fun onProjectIdChanged(projectDef: ProjectDef, oldId: ProjectId, newId: ProjectId) {
+		if (!SAFE_NAME.matches(oldId.id) || !SAFE_NAME.matches(newId.id) || !fileSystem.exists(directory)) return
+		for (plugin in fileSystem.list(directory)) {
+			val from = plugin / oldId.id
+			if (!fileSystem.exists(from)) continue
+			val to = plugin / newId.id
+			fileSystem.createDirectories(to)
+			for (session in fileSystem.list(from).filter { it.name.endsWith(".json") }) {
+				val target = to / session.name
+				if (fileSystem.exists(target)) continue
+				val staging = to / "${session.name}.tmp"
+				fileSystem.copy(session, staging)
+				fileSystem.atomicMove(staging, target)
+			}
+		}
+	}
+
 	/** Null when a part of [key] is not safe as a file name. */
 	private fun sessionPath(key: ActionSessionKey): Path? {
 		val parts = listOf(key.pluginId, key.projectId.id, key.action)
@@ -135,9 +166,18 @@ class ActionSessionStore(
 		return directory / key.pluginId / key.projectId.id / "$name.json"
 	}
 
-	private fun unreadable(path: Path, e: Exception?): ActionSession? {
-		Napier.e(e) { "The action session at $path cannot be read; it is left for the user to recover" }
-		return null
+	private fun setAside(path: Path, e: Exception?): Nothing {
+		val aside = generateSequence(1) { it + 1 }
+			.map { n -> path.parent!! / (if (n == 1) "${path.name}.unreadable" else "${path.name}.unreadable-$n") }
+			.first { !fileSystem.exists(it) }
+		try {
+			fileSystem.atomicMove(path, aside)
+		} catch (moveFailed: IOException) {
+			Napier.e(moveFailed) { "The action session at $path cannot be read, nor moved aside" }
+			throw UnreadableSessionException("The action session at $path cannot be read", setAside = null, cause = e ?: moveFailed)
+		}
+		Napier.e(e) { "The action session at $path cannot be read; it is kept at $aside" }
+		throw UnreadableSessionException("The action session at $path cannot be read; it is kept at $aside", aside, e)
 	}
 
 	@Serializable
