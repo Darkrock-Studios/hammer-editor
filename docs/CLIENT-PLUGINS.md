@@ -387,7 +387,7 @@ class PluginAction(
 	val fields: List<ActionField>,
 	/** Whether a run outlives its dialog being closed part way; see Sessions. */
 	val keep: Boolean = false,
-	/** The plugin's version, which a kept run is resumed only by. */
+	/** The plugin's version; a kept run resumes only on the same one. */
 	val pluginVersion: String? = null,
 	/** Runs off the main thread with the project, place, item, the page's values and state, and the pressed button, reporting progress as it goes. */
 	val run: suspend (ActionCall) -> ActionReply,
@@ -516,8 +516,9 @@ arguments of `PluginUiRegistry` and `StoryExporterRegistry`).
   state of its own. Messages and failures are toasted. See
   [Actions](#actions).
 - **Action dialog.** Shows an action's page, titled with the page's title or
-  the action's label. A page that only shows markdown offers Copy and Save as
-  note. Hammer runs both, so saving needs no permission from the plugin.
+  the action's label, and Copy and Save as note on the pages
+  [Buttons](#buttons) names. Hammer runs both, so saving needs no permission
+  from the plugin.
 
 - **Text diagnostics.** The scene editor and focus mode run every active
   plugin's checks, underlining what they find: a mistake with a wavy blue
@@ -1242,7 +1243,7 @@ label = "Word frequency (CSV)"
 name = "report"
 label = "Word frequency report"
 places = ["project", "scene"] # where its menu item is; project by default
-keep = false                  # whether a run closed part way is kept; false by default
+keep = false                  # whether a run closed part way is kept
 
 [[actions.field]]             # optional; the action's first page
 key = "scenes"
@@ -1662,10 +1663,10 @@ A new `:plugins:wasmhost` module, depending on `:operations` and chasm:
   `<config>/plugins/_runtime-plugins.toml`, kept action runs under
   `<config>/plugins/_sessions/` (see [Sessions](#sessions)), and caches under
   `<cache>/plugins/` (plugin ids cannot start with `_`, so no plugin's settings
-  file collides with them). At startup `activate` wraps
-  each enabled package in a `WasmPlugin` and adds it to the registry. A package
-  that fails to read, or clashes with another plugin, is logged and skipped; it
-  never stops the app starting.
+  file collides with them). At startup `activate` wraps each enabled package
+  in a `WasmPlugin` and adds it to the registry. A package that fails to read,
+  or clashes with another plugin, is logged and skipped; it never stops the
+  app starting.
 - **Install.** Reads the package, checks the manifest, the settings
   declarations, and export format prefixes, and instantiates the module once,
   which checks its imports and runs its initializer. Only then is it copied in.
@@ -1824,12 +1825,12 @@ build is optimized by binaryen; the development build is not:
   Beside it, `hammer_json.h` reads JSON, `hammer_out.h` writes output,
   `hammer_text.h` finds words, `hammer_action.h` reads an action's request and
   writes its reply (a message, a page of fields and buttons, errors, or an item
-  to open), and `hammer_diagnose.h` does a `diagnose`
-  export's reading and writing, leaving a checker only its rules;
-  `hammer_progress` reports a long action's progress. With
-  `HAMMER_NATIVE`, a plugin builds for the machine instead, and `hammer_test.h`
-  unit tests it there. Typed C structs for operation inputs and outputs can
-  later be generated from `ops.list`'s schemas.
+  to open), and `hammer_diagnose.h` does a `diagnose` export's reading and
+  writing, leaving a checker only its rules; `hammer_progress` reports a long
+  action's progress. With `HAMMER_NATIVE`, a plugin builds for the machine
+  instead, and `hammer_test.h` unit tests it there. Typed C structs for
+  operation inputs and outputs can later be generated from `ops.list`'s
+  schemas.
 
 The plugin kits live in a separate `hammer-plugin-sdk` repository, next to this
 one, with Hammer's own plugins in `hammer-plugins` and the language comparisons in
