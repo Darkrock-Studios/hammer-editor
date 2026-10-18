@@ -1064,7 +1064,7 @@ Built, as a runtime plugin in Kotlin: `character-interview` in
 character's name and an interview: a quick one of 12 questions, a full one of
 33, or the 31 of the confession album Proust filled in around 1890, in its own
 English wording. It then puts the questions a page at a time, each answered in
-a rich text field, and ends on a review of the entry it will write. Create
+a plain multiline field, and ends on a review of the entry it will write. Create
 entry adds a person entry with a heading for each page answered, each question
 in bold over its answer, and opens it. It asks for `entry.create` and nothing
 else.
@@ -1073,7 +1073,7 @@ else.
 | --- | --- |
 | Pages | A page per heading of the set, titled like "Mara: Wants and fears (2 of 4)", with Back and Next, then the review with Back and Create entry |
 | State across calls | The page's `state` is the whole run: the name, the set, the page, and every answer by set and question, so switching sets keeps each set's answers |
-| Text formats | Each question is a `rich` field, whose markdown goes into the entry as it is |
+| Text fields | Each question is a multiline `plain` field, since a rich editor per question repeats its format bar down the page |
 | Buttons | Back has `validate = false`, so it never stops on a field |
 | Errors | A name Hammer would refuse as an entry's, and a failed `entry.create`, reply with `errors` |
 | Open | Create entry replies with `open` for the new entry, which ends the run |

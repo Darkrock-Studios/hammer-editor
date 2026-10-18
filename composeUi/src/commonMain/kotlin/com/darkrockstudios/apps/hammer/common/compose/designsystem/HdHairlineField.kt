@@ -27,7 +27,8 @@ import androidx.compose.ui.unit.dp
  * the left (e.g. "Markdown") and an optional [counter] on the right
  * (e.g. "0/60"). The input is a chrome-less [BasicTextField] sitting on
  * the surface; below it is a hairline rule that reads as the field's
- * underline.
+ * underline. With a blank [label] and no [hint] or [counter], the row
+ * above is left out, for a caller that labels the field itself.
  *
  *     NAME                                  0/60
  *     Cheshire Cat
@@ -59,7 +60,7 @@ fun HdHairlineField(
 	testTag: String? = null,
 ) {
 	Column(modifier = modifier.fillMaxWidth()) {
-		Row(
+		if (label.isNotBlank() || hint != null || counter != null) Row(
 			modifier = Modifier.fillMaxWidth(),
 			verticalAlignment = Alignment.Bottom,
 			horizontalArrangement = Arrangement.spacedBy(10.dp),
