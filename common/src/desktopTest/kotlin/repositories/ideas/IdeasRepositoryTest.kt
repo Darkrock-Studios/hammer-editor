@@ -18,11 +18,15 @@ import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.IdeasSyncDatas
 import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.IdeasSynchronizationData
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
+import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import okio.fakefilesystem.FakeFileSystem
+import okio.IOException
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
@@ -88,6 +92,19 @@ class IdeasRepositoryTest : BaseTest() {
 		repo.ideasFlow.test {
 			assertEquals(listOf(existing), awaitItem())
 		}
+	}
+
+	@Test
+	fun `Ideas load completes with an empty list when storage is inaccessible`() = runTest {
+		val failingDatasource = mockk<IdeasDatasource>()
+		coEvery { failingDatasource.loadIdeas() } throws IOException("Access denied")
+		val repo = IdeasRepository(failingDatasource, mockk(relaxed = true), clock)
+		val loaded = CompletableDeferred<Unit>()
+
+		repo.loadIdeas { loaded.complete(Unit) }
+
+		withTimeout(2_000) { loaded.await() }
+		repo.ideasFlow.test { assertEquals(emptyList(), awaitItem()) }
 	}
 
 	@Test

@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.base.http.storyideas.StoryIdea
 import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.IdeasSyncDatasource
 import com.darkrockstudios.apps.hammer.common.data.tagindex.cleanTags
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
+import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -14,6 +15,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import okio.IOException
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.koin.core.qualifier.named
@@ -51,8 +53,14 @@ class IdeasRepository(
 
 	fun loadIdeas(onLoaded: (() -> Unit)? = null) {
 		ideasScope.launch {
+			val ideas = try {
+				ideasDatasource.loadIdeas()
+			} catch (e: IOException) {
+				Napier.e("Failed to load ideas", e)
+				emptyList()
+			}
 			ideasLock.withLock {
-				updateIdeas(ideasDatasource.loadIdeas())
+				updateIdeas(ideas)
 			}
 			onLoaded?.invoke()
 		}
