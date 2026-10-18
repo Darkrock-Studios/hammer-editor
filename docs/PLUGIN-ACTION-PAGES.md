@@ -50,8 +50,7 @@ required = true
   exists and matches the field's filter, as it checks a `choice`'s options.
 - **Answers.** A kept run records an entity by its name, as it records scenes.
 - **Shared.** The format bar's link to an encyclopedia entity wants the same
-  type-to-search
-  ([Trello](https://trello.com/c/IVuexeKY/266-format-bar-link-to-an-encyclopedia-entity)).
+  type-to-search ([Trello](https://trello.com/c/IVuexeKY/266-format-bar-link-to-an-encyclopedia-entity)).
   Build it once, for both.
 
 ## Tabs and refresh
@@ -68,37 +67,52 @@ every kit reads it. A refresh call has:
   the new one, and `state` the page's.
 - No host checks: the user is part way through the page, not done with it.
 
-Its reply is handled as any other. A `page` replaces the one showing and
-starts at its defaults, so a plugin carries the values it wants kept into the
-new page's defaults, as it does for Back. `errors` keep the page.
+Its reply is handled as any other, `open` aside (below). A `page` replaces
+the one showing and starts at its defaults, so a plugin carries the values it
+wants kept into the new page's defaults, as it does for Back. `errors` keep
+the page.
 
-To decide when building: a `text` or `int` field changes with each keystroke,
-and a call per keystroke is [left out](#left-out-on-purpose). Either `refresh`
-on those waits until the field loses focus, or it is refused there.
+To decide when building:
+
+- A `text` or `int` field changes with each keystroke, and a call per
+  keystroke is [left out](#left-out-on-purpose). Either `refresh` on those
+  waits until the field loses focus, or it is refused there.
+- The page can be edited while a call runs, so a change to a `refresh` field
+  then either waits for the call or is dropped.
+- A plugin cannot move the user with `open` unless they asked, by choosing the
+  action or pressing a button. Either a field's change counts as asking, or
+  `open` in reply to a refresh is refused.
 
 ## Sci-fi names as one action
 
 `scifi-names` has three actions, characters, worlds, and things, because each
 needs its own form. With a `tabs` choice of Characters, Worlds, and Things
-with `refresh`, it is one: each tab's page has its own kind, count, and long
-form. Its `locales/` keys and its tests follow the action's new name.
+with `refresh`, it is one: each tab's page has its own fields (a kind, how
+many, and long form for characters and things; a style and how many for
+worlds), and adds its names as people, places, or things.
+
+The manifest's page holds the tabs and the Characters fields. A refresh
+replies with a page of the plugin's own, which has no Run, so it carries its
+own button to generate, and the host remembers only the manifest page's
+values for the next run. The plugin's tests follow the action's new name.
 
 ## First meeting
 
 A plugin that finds where two characters first meet: two `entity` fields
 limited to `person` entries. It answers the same character twice with
 `errors`, and otherwise reads the scenes in story order and replies with a
-page naming the scene, and a button that replies with `open` for it.
+page naming the first scene to mention both, by name or alias, and a button
+that replies with `open` for it; or a page saying they never meet. It asks
+for `entry.read`, `scene.tree`, and `scene.read`.
 
 ## Sync renumbers entities
 
 A session holding an entity's id has the problem `hammer://entity/<id>` links
-have when sync renumbers an entity. That already covers a `scenes` field's
-value, and with the picker it covers `entity` values too. The host can
-rewrite field values, but not `state`, which it never reads, nor a plugin's
-own idea of what an id means. The session's file name holds an item id too,
-for an action run from a scene, note, entry, or event, so a renumbered item
-would lose its session.
+have when sync renumbers an entity. A `scenes` field's value has it already,
+and an `entity` field's will. The host can rewrite field values, but not
+`state`, which it never reads, nor what an id means to the plugin. A session's
+file name holds the id of the item the action was run from, too, so a
+renumbered item would lose its session.
 
 Decide later whether a re-id ends the sessions it touches, or the plugin is
 told of it.
@@ -106,11 +120,9 @@ told of it.
 ## A durable plugin data store
 
 Tracked in [Durable plugin data store](https://trello.com/c/OkW01dfW/285-durable-plugin-data-store).
-A plugin has settings, a few typed values, and a cache, which the OS or a
-reinstall may clear and whose writes are best effort. A session is the
-host's, and lasts only for its run. Nothing durable belongs to the plugin.
-
-A store a plugin owns, for data it must not lose:
+Nothing durable belongs to a plugin (see
+[Gaps these expose](CLIENT-PLUGINS.md#gaps-these-expose)). A store a plugin
+owns, for data it must not lose:
 
 - Global, or per project, keyed by the project's id as sessions are.
 - The same promises as sessions: in the config directory, written atomically,
@@ -121,7 +133,7 @@ A store a plugin owns, for data it must not lose:
 Its first user would be custom questions for the Character interview: a
 writer's own sets, in the format of its `resources/sets/` (a `## Heading` per
 page, an optional intro paragraph, a `- ` bullet per question). Editing them
-comfortably may want the list field below.
+comfortably may want a list field, [left out](#left-out-on-purpose) so far.
 
 ## Left out on purpose
 
