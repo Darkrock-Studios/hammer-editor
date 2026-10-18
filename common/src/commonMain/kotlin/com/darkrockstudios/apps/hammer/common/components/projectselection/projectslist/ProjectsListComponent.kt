@@ -295,31 +295,33 @@ class ProjectsListComponent(
 	}
 
 	override fun deleteProject(projectDef: ProjectDef) {
-		val projectId = projectsRepository.getProjectId(projectDef)
-		val syncedProject = if (projectId != null) {
-			SyncedProjectDefinition(projectDef, projectId)
-		} else {
-			null
-		}
-
-		val deleted = try {
-			projectsRepository.deleteProject(projectDef)
-		} catch (e: IOException) {
-			Napier.e("Failed to delete project: ${projectDef.name}", e)
-			false
-		}
-
-		if (deleted) {
-			Napier.i("Project deleted: ${projectDef.name}")
-			if (syncedProject != null) {
-				projectsSynchronizer.deleteProject(syncedProject)
-			} else if (projectsSynchronizer.isServerSynchronized()) {
-				projectsSynchronizer.deleteUnsyncedProject(projectDef.name)
+		scope.launch(dispatcherIo) {
+			val projectId = projectsRepository.getProjectId(projectDef)
+			val syncedProject = if (projectId != null) {
+				SyncedProjectDefinition(projectDef, projectId)
+			} else {
+				null
 			}
 
-			loadProjectList()
-		} else {
-			showToast(scope, Res.string.projects_list_toast_delete_failed)
+			val deleted = try {
+				projectsRepository.deleteProject(projectDef)
+			} catch (e: IOException) {
+				Napier.e("Failed to delete project: ${projectDef.name}", e)
+				false
+			}
+
+			if (deleted) {
+				Napier.i("Project deleted: ${projectDef.name}")
+				if (syncedProject != null) {
+					projectsSynchronizer.deleteProject(syncedProject)
+				} else if (projectsSynchronizer.isServerSynchronized()) {
+					projectsSynchronizer.deleteUnsyncedProject(projectDef.name)
+				}
+
+				loadProjectList()
+			} else {
+				showToast(scope, Res.string.projects_list_toast_delete_failed)
+			}
 		}
 	}
 

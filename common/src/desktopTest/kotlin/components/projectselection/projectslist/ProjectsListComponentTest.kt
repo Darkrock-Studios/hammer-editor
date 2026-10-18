@@ -392,6 +392,21 @@ class ProjectsListComponentTest : ComponentTest() {
 		}
 
 	@Test
+	fun `deleteProject does not touch the filesystem on the calling thread`() = runTest(mainTestDispatcher) {
+		every { projectsRepository.deleteProject(projectDefA) } returns true
+		val comp = newComponent()
+
+		comp.deleteProject(projectDefA)
+
+		verify(exactly = 0) { projectsRepository.getProjectId(any()) }
+		verify(exactly = 0) { projectsRepository.deleteProject(any()) }
+
+		advanceUntilIdle()
+
+		verify { projectsRepository.deleteProject(projectDefA) }
+	}
+
+	@Test
 	fun `deleteProject skips the server when the project has no id`() = runTest(mainTestDispatcher) {
 		every { projectsRepository.getProjectId(projectDefA) } returns null
 		every { projectsRepository.deleteProject(projectDefA) } returns true
