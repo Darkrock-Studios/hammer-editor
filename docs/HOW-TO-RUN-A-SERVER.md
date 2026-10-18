@@ -83,6 +83,32 @@ would let anyone enumerate your users — so the log above is the place to look.
 A login answering `403 Forbidden` with `not_whitelisted` means the credentials were fine and the
 account simply isn't allowed in; see [Allowed Users](#allowed-users).
 
+### Resetting the admin password
+
+If the admin is locked out and the "forgot password" email flow is not an option (no email
+provider configured, or the admin's inbox is the problem), set a new password from the server's
+command line. Only the admin account can be reset this way; for everyone else use the email flow.
+
+```bash
+./server/bin/server reset-admin-password
+```
+
+Run in a terminal, it asks for the password twice without echoing it. Run from a script, pipe the
+password in on stdin:
+
+```bash
+printf '%s\n' "$NEW_PASSWORD" | ./server/bin/server reset-admin-password
+```
+
+The password is never accepted as a command-line argument. Pass `--config` the same way you do when
+starting the server so the command opens the same database; without it the default
+`~/hammer_data/config.toml` is used. With more than one admin account add `--email` to say which
+one. The usual 8 to 64 character rule applies, and the account is signed out of every device.
+
+With the default embedded storage the running server holds a lock on the data directory, so stop
+the server before running the command and start it again afterwards. With `[storage] type =
+"remote"` it can run against a live server.
+
 ## Network binding
 
 By default the server binds to all IPv4 interfaces (`0.0.0.0`), so it accepts connections from the
