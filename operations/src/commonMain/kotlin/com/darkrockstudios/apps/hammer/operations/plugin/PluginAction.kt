@@ -96,6 +96,8 @@ class PluginAction(
 	val fields: List<ActionField>,
 	/** The manifest's `keep`: whether a run should outlive its dialog being closed part way. */
 	val keep: Boolean = false,
+	/** The version of the plugin, which a kept run is resumed only by. */
+	val pluginVersion: String? = null,
 	/** Runs off the main thread. */
 	val run: suspend (ActionCall) -> ActionReply,
 )

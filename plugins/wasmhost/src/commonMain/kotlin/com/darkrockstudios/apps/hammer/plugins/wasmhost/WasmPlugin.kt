@@ -13,16 +13,14 @@ import com.darkrockstudios.apps.hammer.operations.core.OPS_LIST
 import com.darkrockstudios.apps.hammer.operations.core.OperationDescriptor
 import com.darkrockstudios.apps.hammer.operations.core.OperationList
 import com.darkrockstudios.apps.hammer.operations.core.descriptor
-import com.darkrockstudios.apps.hammer.operations.plugin.ActionButton
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionCall
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionCancelledException
-import com.darkrockstudios.apps.hammer.operations.plugin.ActionPage
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionPlace
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionProgress
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionReply
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionTarget
 import com.darkrockstudios.apps.hammer.operations.plugin.ClientPlugin
-import com.darkrockstudios.apps.hammer.operations.plugin.FieldTable
+import com.darkrockstudios.apps.hammer.operations.plugin.PageTable
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginAction
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
 import com.darkrockstudios.apps.hammer.operations.plugin.SettingDeclaration
@@ -131,6 +129,7 @@ class WasmPlugin(
 			places = action.places.mapNotNull(ActionPlace::of).toSet(),
 			fields = action.field.toActionFields(),
 			keep = action.keep,
+			pluginVersion = manifest.version,
 		) { call -> runAction(action.name, call) }
 	}
 
@@ -173,17 +172,12 @@ class WasmPlugin(
 		val reply = ReplyJson.decodeFromString<ActionReplyJson>(text)
 		val page = reply.page?.let { page ->
 			// The state is part of the reply, so only a reply this large can hold too much.
-			if (output.size > MAX_STATE_BYTES && page.state != null) {
-				val size = OperationJson.encodeToString(JsonElement.serializer(), page.state).encodeToByteArray().size
+			val state = page.state
+			if (output.size > MAX_STATE_BYTES && state != null) {
+				val size = OperationJson.encodeToString(JsonElement.serializer(), state).encodeToByteArray().size
 				if (size > MAX_STATE_BYTES) throw PluginException("Plugin '$id' sent a page state of $size bytes, over $MAX_STATE_BYTES")
 			}
-			ActionPage(
-				title = page.title?.ifBlank { null },
-				markdown = page.markdown?.ifBlank { null },
-				fields = page.fields.toActionFields(),
-				buttons = page.buttons.map { ActionButton(it.id, it.label, it.primary, it.inline, it.validate) },
-				state = page.state,
-			)
+			page.toActionPage()
 		}
 		val open = reply.open?.let { open ->
 			ActionTarget(ActionPlace.of(open.place) ?: throw IllegalArgumentException("unknown place '${open.place}' to open"), open.id)
@@ -471,29 +465,11 @@ class WasmPlugin(
 	/** An action's output, every key optional; empty output is the same as `{}`. */
 	@Serializable
 	private class ActionReplyJson(
-		val page: Page? = null,
+		val page: PageTable? = null,
 		val message: String? = null,
 		val errors: Map<String, String> = emptyMap(),
 		val open: Open? = null,
 	) {
-		@Serializable
-		class Page(
-			val title: String? = null,
-			val markdown: String? = null,
-			val fields: List<FieldTable> = emptyList(),
-			val buttons: List<Button> = emptyList(),
-			val state: JsonElement? = null,
-		)
-
-		@Serializable
-		class Button(
-			val id: String,
-			val label: String,
-			val primary: Boolean = false,
-			val inline: Boolean = false,
-			val validate: Boolean = true,
-		)
-
 		@Serializable
 		class Open(val place: String, val id: Int? = null)
 	}

@@ -1,6 +1,7 @@
 import com.darkrockstudios.apps.hammer.common.compose.plugin.ActionRunState
 import com.darkrockstudios.apps.hammer.common.compose.plugin.FieldError
 import com.darkrockstudios.apps.hammer.common.compose.plugin.PluginActionRunner
+import com.darkrockstudios.apps.hammer.common.compose.plugin.answersMarkdown
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.preview.fakeProjectDef
@@ -11,6 +12,7 @@ import com.darkrockstudios.apps.hammer.operations.OperationRegistry
 import com.darkrockstudios.apps.hammer.operations.OperationScope
 import com.darkrockstudios.apps.hammer.operations.ProjectResolver
 import com.darkrockstudios.apps.hammer.operations.operation
+import com.darkrockstudios.apps.hammer.operations.plugin.ActionAnswer
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionButton
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionCall
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionField
@@ -18,6 +20,8 @@ import com.darkrockstudios.apps.hammer.operations.plugin.ActionPage
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionPlace
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionProgress
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionReply
+import com.darkrockstudios.apps.hammer.operations.plugin.ActionSessionKey
+import com.darkrockstudios.apps.hammer.operations.plugin.ActionSessionStore
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionTarget
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginAction
 import com.darkrockstudios.apps.hammer.operations.plugin.SettingDeclaration
@@ -26,17 +30,25 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonPrimitive
+import okio.ForwardingFileSystem
+import okio.IOException
+import okio.Path
+import okio.Path.Companion.toPath
+import okio.fakefilesystem.FakeFileSystem
 import org.jetbrains.compose.resources.StringResource
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
@@ -64,27 +76,42 @@ class PluginActionRunnerTest {
 		override suspend fun get(str: StringResource, vararg args: Any) = str.key
 	}
 
-	private fun TestScope.runner(): PluginActionRunner {
+	private val fileSystem = FakeFileSystem()
+	private val pluginsDir = "/config/plugins".toPath()
+	private val store = ActionSessionStore(fileSystem, pluginsDir)
+	private val project = fakeProjectDef().copy(name = "Storm")
+
+	private fun TestScope.runner(sessions: ActionSessionStore = store): PluginActionRunner {
 		val dispatcher = StandardTestDispatcher(testScheduler)
 		return PluginActionRunner(
-			project = fakeProjectDef().copy(name = "Storm"),
+			project = project,
 			scope = this,
 			operations = operations,
 			strings = strings,
 			showMessage = { messages += it },
 			// Item 404 is missing.
 			navigate = { place, id -> opened += place to id; id != MISSING },
+			sessions = sessions,
 			workDispatcher = dispatcher,
+			sessionDispatcher = dispatcher,
 		)
 	}
 
 	private fun action(
 		fields: List<ActionField> = emptyList(),
+		keep: Boolean = false,
+		version: String = "1.0.0",
 		reply: suspend (ActionCall) -> ActionReply,
-	) = PluginAction("names", "make", "Make names", setOf(ActionPlace.Project), fields) { call ->
+	) = PluginAction("names", "make", "Make names", setOf(ActionPlace.Project), fields, keep = keep, pluginVersion = version) { call ->
 		calls += call
 		reply(call)
 	}
+
+	private fun kept(version: String = "1.0.0", reply: suspend (ActionCall) -> ActionReply) = action(keep = true, version = version, reply = reply)
+
+	private val key = ActionSessionKey("names", project.id, "make", ActionPlace.Project, null)
+
+	private val saved get() = store.load(key)
 
 	private val PluginActionRunner.page get() = assertIs<ActionRunState.Page>(state.value)
 
@@ -369,6 +396,35 @@ class PluginActionRunnerTest {
 	}
 
 	@Test
+	fun `a page with buttons is not saved as a note, so its run goes on`() = runTest {
+		val runner = runner()
+		runner.start(action { ActionReply(ActionPage(markdown = "## Mara", buttons = listOf(back, next))) }, ActionPlace.Project, null)
+		advanceUntilIdle()
+
+		runner.saveAsNote()
+		advanceUntilIdle()
+		assertTrue(notes.isEmpty())
+		assertEquals("## Mara", runner.page.page.markdown)
+	}
+
+	@Test
+	fun `a kept run whose page has no button to press is over`() = runTest {
+		val runner = runner()
+		runner.start(interview { ActionReply(ActionPage(markdown = "Added Mara")) }, ActionPlace.Project, null)
+		advanceUntilIdle()
+		runner.press(next.copyWithoutChecks())
+		advanceUntilIdle()
+		assertNotNull(saved)
+
+		runner.press(next)
+		advanceUntilIdle()
+		assertNull(saved)
+		runner.dismiss()
+		advanceUntilIdle()
+		assertNull(saved)
+	}
+
+	@Test
 	fun `a page with fields is not saved as a note`() = runTest {
 		val runner = runner()
 		runner.start(action { ActionReply(ActionPage(markdown = "# Names", fields = listOf(name))) }, ActionPlace.Project, null)
@@ -481,6 +537,391 @@ class PluginActionRunnerTest {
 		assertNull(runner.state.value)
 		assertEquals(listOf("plugin_action_failed"), messages)
 	}
+
+	// A kept interview: its first call asks for a name, Next asks for a story, and Next again ends it.
+	private val interviewState = JsonObject(mapOf("step" to JsonPrimitive(1)))
+	private val storyState = JsonObject(mapOf("step" to JsonPrimitive(2)))
+
+	private fun interview(version: String = "1.0.0", last: suspend (ActionCall) -> ActionReply = { ActionReply() }) = kept(version) { call ->
+		when {
+			call.state == null || call.button == "back" ->
+				ActionReply(ActionPage(title = "Who", fields = listOf(name, style), buttons = listOf(next), state = interviewState))
+			call.state == interviewState ->
+				ActionReply(ActionPage(title = "Story", fields = listOf(story), buttons = listOf(back, next), state = storyState))
+			else -> last(call)
+		}
+	}
+
+	@Test
+	fun `a kept run is saved as each page shows, and resumed where it was left, saying so on the next call only`() = runTest {
+		val first = runner()
+		val action = interview()
+		first.start(action, ActionPlace.Project, null)
+		advanceUntilIdle()
+		assertEquals("Who", saved?.page?.title)
+		assertEquals(interviewState, saved?.page?.state)
+
+		first.change("name", JsonPrimitive("Mara"))
+		first.press(next)
+		advanceUntilIdle()
+		assertEquals("Story", saved?.page?.title)
+		assertEquals(listOf("name", "style"), saved?.answers?.keys?.toList())
+		first.change("story", JsonPrimitive("She *left*."))
+		first.dismiss()
+		advanceUntilIdle()
+		assertNull(first.state.value)
+		assertEquals(JsonPrimitive("She *left*."), saved?.values?.get("story"))
+
+		val second = runner()
+		second.start(action, ActionPlace.Project, null)
+		advanceUntilIdle()
+		val resumed = second.page
+		assertTrue(resumed.resumed)
+		assertEquals("Story", resumed.page.title)
+		assertEquals(JsonPrimitive("She *left*."), resumed.values["story"])
+		assertEquals(2, calls.size)
+
+		second.press(back)
+		advanceUntilIdle()
+		assertTrue(calls.last().resumed)
+		assertEquals(storyState, calls.last().state)
+		assertEquals(JsonPrimitive("She *left*."), calls.last().input["story"])
+		assertEquals("Who", second.page.page.title)
+		assertEquals(false, second.page.resumed)
+
+		second.press(next.copyWithoutChecks())
+		advanceUntilIdle()
+		assertEquals(4, calls.size)
+		assertEquals(false, calls.last().resumed)
+	}
+
+	@Test
+	fun `typing is saved half a second after it stops`() = runTest {
+		val runner = runner()
+		runner.start(interview(), ActionPlace.Project, null)
+		advanceUntilIdle()
+
+		runner.change("name", JsonPrimitive("Ma"))
+		advanceTimeBy(400)
+		runCurrent()
+		runner.change("name", JsonPrimitive("Mara"))
+		advanceTimeBy(400)
+		runCurrent()
+		assertEquals(JsonPrimitive(""), saved?.values?.get("name"))
+
+		advanceTimeBy(101)
+		runCurrent()
+		assertEquals(JsonPrimitive("Mara"), saved?.values?.get("name"))
+	}
+
+	@Test
+	fun `a kept action's first page is saved once typed into, not before, and resumes with Run`() = runTest {
+		val action = action(listOf(name), keep = true) { ActionReply(ActionPage(markdown = "Thanks")) }
+		val first = runner()
+		first.start(action, ActionPlace.Project, null)
+		advanceUntilIdle()
+		assertNull(saved)
+
+		first.change("name", JsonPrimitive("Mara"))
+		advanceUntilIdle()
+		assertEquals(true, saved?.first)
+		first.dismiss()
+
+		val second = runner()
+		second.start(action, ActionPlace.Project, null)
+		advanceUntilIdle()
+		assertTrue(second.page.first)
+		assertTrue(second.page.resumed)
+		assertEquals(JsonPrimitive("Mara"), second.page.values["name"])
+
+		second.press(null)
+		advanceUntilIdle()
+		assertTrue(calls.single().resumed)
+		assertEquals(null, calls.single().button)
+	}
+
+	@Test
+	fun `values a kept action's first page was given are not remembered for its next run`() = runTest {
+		val runner = runner()
+		val action = action(listOf(count), keep = true) { ActionReply() }
+		runner.start(action, ActionPlace.Project, null)
+		runner.change("count", JsonPrimitive(3))
+		runner.press(null)
+		advanceUntilIdle()
+		assertNull(saved)
+
+		runner.start(action, ActionPlace.Project, null)
+		advanceUntilIdle()
+		assertEquals(JsonPrimitive(5L), runner.page.values["count"])
+	}
+
+	@Test
+	fun `Start over clears a resumed run and starts it afresh`() = runTest {
+		val action = interview()
+		val first = runner()
+		first.start(action, ActionPlace.Project, null)
+		advanceUntilIdle()
+		first.change("name", JsonPrimitive("Mara"))
+		first.dismiss()
+		advanceUntilIdle()
+
+		val second = runner()
+		second.start(action, ActionPlace.Project, null)
+		advanceUntilIdle()
+		assertEquals(JsonPrimitive("Mara"), second.page.values["name"])
+		second.startOver()
+		advanceUntilIdle()
+
+		assertEquals(2, calls.size)
+		assertNull(calls.last().state)
+		assertEquals(false, calls.last().resumed)
+		assertEquals(false, second.page.resumed)
+		assertEquals(JsonPrimitive(""), second.page.values["name"])
+		assertEquals(JsonPrimitive(""), saved?.values?.get("name"))
+
+		// Only a resumed page starts over.
+		second.startOver()
+		advanceUntilIdle()
+		assertEquals(2, calls.size)
+	}
+
+	@Test
+	fun `a run saved by another version shows what was entered, and Start afresh clears it`() = runTest {
+		val first = runner()
+		first.start(interview("1.0.0"), ActionPlace.Project, null)
+		advanceUntilIdle()
+		first.change("name", JsonPrimitive("Mara"))
+		first.change("style", JsonPrimitive("norse"))
+		first.press(next)
+		advanceUntilIdle()
+		first.change("story", JsonPrimitive("She *left*."))
+		first.dismiss()
+		advanceUntilIdle()
+
+		val second = runner()
+		val updated = interview("2.0.0")
+		second.start(updated, ActionPlace.Project, null)
+		advanceUntilIdle()
+		val changed = assertIs<ActionRunState.Changed>(second.state.value)
+		assertEquals(2, calls.size)
+		assertEquals(
+			"**Name**\n\nMara\n\n**Style**\n\nnorse\n\n**Story**\n\nShe *left*.",
+			answersMarkdown(changed.answers.values, "Yes", "No"),
+		)
+
+		second.saveAsNote()
+		advanceUntilIdle()
+		assertEquals("**Name**\n\nMara\n\n**Style**\n\nnorse\n\n**Story**\n\nShe *left*.", notes.single())
+		assertIs<ActionRunState.Changed>(second.state.value)
+
+		// Closing leaves it for next time.
+		second.dismiss()
+		assertNotNull(saved)
+		second.start(updated, ActionPlace.Project, null)
+		advanceUntilIdle()
+		second.startAfresh()
+		advanceUntilIdle()
+		assertEquals(3, calls.size)
+		assertNull(calls.last().state)
+		assertEquals(false, calls.last().resumed)
+		assertEquals("Who", second.page.page.title)
+		assertEquals("2.0.0", saved?.pluginVersion)
+	}
+
+	@Test
+	fun `answers show choices by their label and booleans in words, leaving out blanks`() {
+		val answers = listOf(
+			ActionAnswer("Brave", JsonPrimitive(true)),
+			ActionAnswer("Afraid", JsonPrimitive(false)),
+			ActionAnswer("Age", JsonPrimitive(31)),
+			ActionAnswer("Nickname", JsonPrimitive("  ")),
+			ActionAnswer("Said", JsonPrimitive("true")),
+		)
+		assertEquals(
+			"**Brave**\n\nYes\n\n**Afraid**\n\nNo\n\n**Age**\n\n31\n\n**Said**\n\ntrue",
+			answersMarkdown(answers, "Yes", "No"),
+		)
+	}
+
+	@Test
+	fun `ending a kept run removes it, and so does open`() = runTest {
+		val runner = runner()
+		runner.start(interview(), ActionPlace.Project, null)
+		advanceUntilIdle()
+		runner.press(next.copyWithoutChecks())
+		advanceUntilIdle()
+		assertNotNull(saved)
+		runner.press(next)
+		advanceUntilIdle()
+		assertNull(runner.state.value)
+		assertNull(saved)
+
+		runner.start(interview { ActionReply(open = ActionTarget(ActionPlace.Entry, 12)) }, ActionPlace.Project, null)
+		advanceUntilIdle()
+		runner.press(next.copyWithoutChecks())
+		advanceUntilIdle()
+		assertNotNull(saved)
+		runner.press(next)
+		advanceUntilIdle()
+		assertNull(saved)
+		assertEquals(listOf<Pair<ActionPlace, Int?>>(ActionPlace.Entry to 12), opened)
+	}
+
+	@Test
+	fun `errors keep a kept run, with what was typed`() = runTest {
+		val runner = runner()
+		runner.start(interview { ActionReply(errors = mapOf("story" to "Too short")) }, ActionPlace.Project, null)
+		advanceUntilIdle()
+		runner.press(next.copyWithoutChecks())
+		advanceUntilIdle()
+		runner.change("story", JsonPrimitive("Hm."))
+		runner.press(next)
+		advanceUntilIdle()
+
+		assertEquals(mapOf("story" to FieldError.Plugin("Too short")), runner.page.errors)
+		assertEquals("Story", saved?.page?.title)
+		assertEquals(JsonPrimitive("Hm."), saved?.values?.get("story"))
+	}
+
+	@Test
+	fun `a failed call keeps a kept run, back on its page with what was typed, still resuming`() = runTest {
+		val action = interview { error("broken") }
+		val first = runner()
+		first.start(action, ActionPlace.Project, null)
+		advanceUntilIdle()
+		first.press(next.copyWithoutChecks())
+		advanceUntilIdle()
+		first.dismiss()
+
+		val second = runner()
+		second.start(action, ActionPlace.Project, null)
+		advanceUntilIdle()
+		val asked = second.page
+		second.change("story", JsonPrimitive("She *left*."))
+		second.press(next)
+		advanceUntilIdle()
+
+		assertEquals(listOf("plugin_action_failed"), messages)
+		val back = second.page
+		assertSame(asked.page, back.page)
+		assertTrue(back.resumed)
+		assertEquals(JsonPrimitive("She *left*."), back.values["story"])
+		assertEquals(JsonPrimitive("She *left*."), saved?.values?.get("story"))
+
+		second.press(next)
+		advanceUntilIdle()
+		assertTrue(calls.last().resumed)
+	}
+
+	@Test
+	fun `Stop keeps a kept run, back on its page with what was typed while it ran`() = runTest {
+		val never = CompletableDeferred<ActionReply>()
+		val runner = runner()
+		runner.start(interview { never.await() }, ActionPlace.Project, null)
+		advanceUntilIdle()
+		runner.press(next.copyWithoutChecks())
+		advanceUntilIdle()
+		runner.change("story", JsonPrimitive("She"))
+		runner.press(next)
+		advanceUntilIdle()
+		runner.change("story", JsonPrimitive("She *left*."))
+		runner.stop()
+		advanceUntilIdle()
+
+		assertEquals(listOf("plugin_action_stopped"), messages)
+		assertEquals("Story", runner.page.page.title)
+		assertEquals(JsonPrimitive("She *left*."), runner.page.values["story"])
+		assertEquals(JsonPrimitive("She *left*."), saved?.values?.get("story"))
+	}
+
+	@Test
+	fun `a reply after Stop neither saves nor removes the kept run`() = runTest {
+		var gate = CompletableDeferred<Unit>()
+		var reply = ActionReply()
+		val runner = runner()
+		runner.start(
+			interview {
+				val waiting = gate
+				withContext(NonCancellable) { waiting.await() }
+				reply
+			},
+			ActionPlace.Project,
+			null,
+		)
+		advanceUntilIdle()
+		runner.press(next.copyWithoutChecks())
+		advanceUntilIdle()
+		runner.press(next)
+		advanceUntilIdle()
+		runner.stop()
+		advanceUntilIdle()
+		gate.complete(Unit)
+		advanceUntilIdle()
+		assertEquals("Story", runner.page.page.title)
+		assertEquals("Story", saved?.page?.title)
+
+		gate = CompletableDeferred()
+		reply = ActionReply(ActionPage(title = "Late"))
+		runner.press(next)
+		advanceUntilIdle()
+		runner.stop()
+		runner.dismiss()
+		advanceUntilIdle()
+		gate.complete(Unit)
+		advanceUntilIdle()
+		assertNull(runner.state.value)
+		assertEquals("Story", saved?.page?.title)
+	}
+
+	@Test
+	fun `flush writes typing not yet saved at once`() = runTest {
+		val runner = runner()
+		runner.start(interview(), ActionPlace.Project, null)
+		advanceUntilIdle()
+		runner.change("name", JsonPrimitive("Mara"))
+
+		runner.flush()
+		assertEquals(JsonPrimitive("Mara"), saved?.values?.get("name"))
+	}
+
+	@Test
+	fun `actions that are not kept never touch sessions`() = runTest {
+		val runner = runner()
+		runner.start(
+			action(listOf(name)) { call -> if (call.button == null) ActionReply(ActionPage(fields = listOf(story), buttons = listOf(next))) else error("broken") },
+			ActionPlace.Project,
+			null,
+		)
+		runner.change("name", JsonPrimitive("Mara"))
+		runner.press(null)
+		advanceUntilIdle()
+		runner.change("story", JsonPrimitive("She *left*."))
+		runner.press(next)
+		advanceUntilIdle()
+		assertNull(runner.state.value)
+		runner.flush()
+
+		assertTrue(!fileSystem.exists(pluginsDir / ActionSessionStore.SESSIONS_DIRECTORY))
+		assertTrue(calls.none { it.resumed })
+	}
+
+	@Test
+	fun `a save that fails is reported once a run`() = runTest {
+		val failing = object : ForwardingFileSystem(fileSystem) {
+			override fun atomicMove(source: Path, target: Path) = throw IOException("disk full")
+		}
+		val runner = runner(ActionSessionStore(failing, pluginsDir))
+		runner.start(interview(), ActionPlace.Project, null)
+		advanceUntilIdle()
+		runner.change("name", JsonPrimitive("Mara"))
+		advanceUntilIdle()
+		runner.dismiss()
+		advanceUntilIdle()
+
+		assertEquals(listOf("plugin_action_keep_failed"), messages)
+	}
+
+	private fun ActionButton.copyWithoutChecks() = ActionButton(id, label, primary, inline, validate = false)
 
 	private object NoProjects : ProjectResolver {
 		override fun resolve(project: String): ProjectDef = error("unused")
