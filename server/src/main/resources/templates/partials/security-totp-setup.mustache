@@ -1,0 +1,36 @@
+<div class="totp-setup">
+	<figure class="totp-setup__qr" aria-label="{{msg.security_totp_setup_qr_label}}">
+		{{{qrSvg}}}
+	</figure>
+	<div class="totp-setup__details">
+		<p class="factor__note">{{msg.security_totp_setup_scan}}</p>
+		<p class="totp-setup__key-label">{{msg.security_totp_setup_key_label}}</p>
+		<code id="totp-secret" class="totp-setup__key">{{secretGrouped}}</code>
+		<a href="{{otpauthUri}}" class="totp-setup__open">
+			<i class="fa-solid fa-arrow-up-right-from-square"></i>
+			{{msg.security_totp_setup_open_link}}
+		</a>
+
+		<form class="factor__form"
+			  hx-post="/dashboard/security/totp/confirm"
+			  hx-target="#security-factors"
+			  hx-swap="innerHTML">
+			<div class="form-field">
+				<label for="totp-confirm-code" class="form-field__label">{{msg.security_totp_confirm_label}}</label>
+				<input type="text" id="totp-confirm-code" name="code" class="form-input form-input--code"
+					   inputmode="numeric" pattern="[0-9 ]{6,7}" maxlength="7" autocomplete="one-time-code"
+					   placeholder="123 456" required autofocus>
+			</div>
+			<div class="factor__form-actions">
+				<button type="submit" class="btn btn--primary">{{msg.security_totp_confirm_button}}</button>
+				<button type="button"
+						class="btn btn--ghost"
+						hx-get="/dashboard/security/factors"
+						hx-target="#security-factors"
+						hx-swap="innerHTML">
+					{{msg.security_cancel}}
+				</button>
+			</div>
+		</form>
+	</div>
+</div>

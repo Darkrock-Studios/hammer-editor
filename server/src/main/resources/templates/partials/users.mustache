@@ -98,6 +98,19 @@
 						<i class="fa-solid fa-sync"></i>
 						{{msg.admin_users_last_sync}}: {{lastSync}}
 					</span>
+					{{#hasMfa}}
+						<span class="user-mfa-reset">
+							<span class="status-badge status-badge--active">{{msg.admin_users_mfa_on}}</span>
+							<button class="btn btn--danger user-mfa-reset__btn"
+									hx-post="/admin/users/reset-mfa"
+									hx-vals='{"userId": {{id}}}'
+									hx-confirm="{{msg.admin_users_reset_mfa_confirm}}"
+									hx-target="closest .user-mfa-reset"
+									hx-swap="outerHTML">
+								{{msg.admin_users_reset_mfa}}
+							</button>
+						</span>
+					{{/hasMfa}}
 					{{#pendingDeletion}}
 						<button class="btn btn--accent user-restore-btn"
 								hx-post="/admin/users/restore"

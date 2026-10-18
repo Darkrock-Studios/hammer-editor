@@ -131,37 +131,65 @@ additions (challenge issued, consumed, expired, attempt cap, recovery code singl
 
 ### Dashboard Security section
 
-New `SecurityPage.kt` under `frontend/`, registered in `Frontend.kt`, HTMX partials under
-`templates/partials/security-*.mustache`, styled per `WEB-DESIGN-SYSTEM.md`.
+`SecurityPage.kt` under `frontend/` serves `GET /dashboard/security`, linked from the dashboard's
+account area and styled by `security.css`. HTMX partials are `templates/partials/security-*.mustache`.
+The page is a list of factors (authenticator app, then recovery codes once it is on), so passkeys
+can be added as another entry.
 
 - "Set up authenticator app": `hx-post /dashboard/security/totp/begin` returns a partial with the
-  QR code and the manual key. The QR is rendered server-side as inline SVG from `zxing:core`
-  (BitMatrix to `<rect>`s; no `javase` module, no JavaScript, works offline).
-- Confirm with one code: `hx-post /dashboard/security/totp/confirm`. On success the partial shows
-  the recovery codes once, with a copy button and a "download as text" link.
-- Disable: requires the current password and a valid code or recovery code.
-- Regenerate recovery codes: requires the current password.
+  QR code, the manual key and an `otpauth://` link for phones. The QR is rendered server-side as
+  inline SVG from `com.google.zxing:core` (BitMatrix rows to `<rect>` runs; no `javase` module, no
+  JavaScript, works offline).
+- Confirm with one code: `hx-post /dashboard/security/totp/confirm`. On success the factor list is
+  re-rendered with the recovery codes shown once, a copy button (the page's only script,
+  `security.js`, with a select-the-list fallback where the Clipboard API is missing on plain
+  http) and a "download as text" link. The download is a `data:` URI, so the codes are never held
+  server-side for a second request.
+- Disable: `hx-post /dashboard/security/totp/disable` with the current password and a TOTP or
+  recovery code. A wrong code counts toward the account lock.
+- Regenerate recovery codes: `hx-post /dashboard/security/recovery-codes/regenerate` with the
+  current password.
+- Disable and regenerate share `LOGIN_RATE_LIMIT`, since both take the password.
 
-Password confirmation for these actions reuses `AccountsRepository`'s password check; the
-decoy-hash timing defence does not matter here because the user is already signed in.
+Password confirmation reuses `AccountsRepository.verifyPassword`; the decoy-hash timing defence
+does not matter here because the user is already signed in. Enrollment itself asks for no password.
 
 ### Web login
 
-`POST /login` with a correct password on an MFA account sets a short-lived
-`PendingMfaSession(userId, expires)` cookie (same encrypted transport as `UserSession`) and
-redirects to `GET /login/verify`. That page takes a code and has a "use a recovery code" toggle.
-`POST /login/verify` consumes the pending cookie and sets `UserSession`. Pending cookies are
-rejected after five minutes.
+`POST /login` with a correct password on an MFA account (that the allowed-users gate would admit)
+sets a `PendingMfaSession(userId, expires)` cookie and redirects to `GET /login/verify`. The cookie
+uses the same encrypted transport as `UserSession` under keys derived with a different label, so
+neither cookie's value is accepted as the other; it is scoped to `/login` with a five-minute
+max age, and `expires` is checked against the server clock as well. The password step records no
+login attempt; the verify step records the outcome.
+
+`/login/verify` takes a code; "use a recovery code instead" is a link to `?method=recovery` that
+swaps the field, so the page needs no script. `POST /login/verify` checks through
+`MfaRepository.verifyCode`:
+
+- Verified: the pending cookie is cleared and `UserSession` set, after the same allowed-users check
+  as the password path.
+- Invalid: the page is shown again and the pending cookie kept, so the user can retry within the
+  five minutes. There is no per-cookie attempt cap; the account-wide lock (ten wrong codes in
+  fifteen minutes) and the IP rate limit bound guessing.
+- Locked: the page says how many minutes to wait. `GET /login/verify` shows the same message.
+- Expired cookie, deleted account, or MFA reset while the sign-in waited: back to the login page.
 
 ### Admin
 
-Admin users list gets a "Reset MFA" action: clears TOTP and recovery codes, then `forceLogout`.
-Logged at info with the admin's user id.
+The admin users list shows "Reset MFA" for accounts with confirmed TOTP, behind an `hx-confirm`
+prompt. It calls `MfaRepository.resetAll`, then `AccountsRepository.forceLogout`, and logs at info
+with the admin's user id. `forceLogout` revokes API tokens; existing web `UserSession` cookies are
+stateless and stay valid until they expire.
 
 ### Tests
 
-Frontend route tests for the redirect, the verify page, the cookie expiry, and the enrollment
-partials. One e2e that enrolls, logs out, and logs back in with a generated code.
+End-to-end tests over `WebEndToEndTest` rather than unit-level route tests, so the real templates,
+session cookies and database run: `SecurityPageTest` (enrollment partials, disable, regenerate),
+`LoginVerifyTest` (redirect, verify page, recovery code, wrong code, lock message, cookie expiry,
+reset while pending), `AdminResetMfaTest`, and `MfaWebLoginFlowTest`, which enrolls, logs out and
+logs back in with a generated code. `EndToEndTest` takes an overridable `clock` for the expiry and
+code-step tests. `QrSvgTest` decodes the rendered SVG with zxing's reader.
 
 ## Phase 3: Apps answer the challenge
 

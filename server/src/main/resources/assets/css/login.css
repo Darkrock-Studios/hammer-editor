@@ -389,3 +389,10 @@
 		animation: none;
 	}
 }
+
+.login-code-input {
+	font-family: 'Courier New', Courier, monospace;
+	font-size: 1.25rem;
+	letter-spacing: 0.2em;
+	text-align: center;
+}

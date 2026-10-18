@@ -14,7 +14,9 @@ import com.darkrockstudios.apps.hammer.utilities.TokenHasher
 import java.net.URI
 import java.security.SecureRandom
 import kotlin.io.encoding.Base64
+import kotlin.math.ceil
 import kotlin.time.Clock
+import kotlin.time.DurationUnit
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 import org.slf4j.LoggerFactory
@@ -45,6 +47,10 @@ sealed interface ChallengeResult {
 	/** Unknown, expired, or out of attempts. */
 	data object Invalid : ChallengeResult
 }
+
+/** Whole minutes left on a lock, rounded up so a user is never told zero. */
+fun lockMinutesRemaining(until: Instant, clock: Clock): Long =
+	ceil((until - clock.now()).toDouble(DurationUnit.MINUTES)).toLong().coerceAtLeast(1)
 
 class MfaRepository(
 	private val accountDao: AccountDao,
@@ -95,6 +101,8 @@ class MfaRepository(
 	}
 
 	suspend fun hasMfa(userId: Long): Boolean = totpDao.get(userId)?.confirmed == true
+
+	suspend fun unusedRecoveryCodes(userId: Long): Long = recoveryCodeDao.countUnused(userId)
 
 	/** When the account is refusing codes, the instant that ends; null otherwise. */
 	suspend fun lockedUntil(userId: Long): Instant? =
@@ -208,7 +216,7 @@ class MfaRepository(
 		val FAILURE_WINDOW = 15.minutes
 		val LOCKOUT = 15.minutes
 		private const val CHALLENGE_TOKEN_BYTES = 32
-		private const val RECOVERY_CODE_COUNT = 8
+		const val RECOVERY_CODE_COUNT = 8
 		private const val RECOVERY_CODE_LENGTH = 10
 		private const val RECOVERY_ALPHABET = "abcdefghijklmnopqrstuvwxyz234567"
 	}

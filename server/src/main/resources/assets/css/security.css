@@ -1,0 +1,275 @@
+/* ========================================
+   Security page: a list of sign-in factors
+   ======================================== */
+
+.security-back-link {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 1rem;
+	padding: 0.75rem 1.5rem;
+	color: white;
+	border: 2px solid rgba(255, 255, 255, 0.4);
+	border-radius: 0.5rem;
+	text-decoration: none;
+	transition: all var(--transition-base);
+}
+
+.security-back-link:hover {
+	border-color: var(--accent);
+	background: var(--accent);
+	color: white;
+}
+
+.factor-list {
+	list-style: none;
+	margin: 1.5rem 0 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+}
+
+.factor {
+	display: grid;
+	grid-template-columns: 3rem 1fr;
+	gap: 1.25rem;
+	padding: 1.5rem;
+	background: var(--paper-white);
+	border: 2px solid var(--neutral-200);
+	border-left: 4px solid var(--accent);
+	border-radius: 0.5rem;
+	box-shadow: var(--shadow-sm);
+	animation: slideInUp 0.35s ease-out;
+}
+
+.factor__icon {
+	width: 3rem;
+	height: 3rem;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 1.35rem;
+	color: var(--accent-dark);
+	background: var(--sticky-yellow);
+	border-radius: 0.375rem;
+	box-shadow: var(--shadow-sticky);
+	transform: rotate(-2deg);
+}
+
+.factor__body {
+	min-width: 0;
+}
+
+.factor__heading {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.75rem;
+}
+
+.factor__name {
+	margin: 0;
+	font-size: 1.35rem;
+}
+
+.factor__status {
+	display: inline-flex;
+	align-items: center;
+	padding: 0.15rem 0.65rem;
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.85rem;
+	color: var(--neutral-600);
+	background: var(--neutral-100);
+	border: 1px solid var(--neutral-300);
+	border-radius: 0.375rem;
+}
+
+.factor__status--on {
+	color: #047857;
+	background: rgba(16, 185, 129, 0.12);
+	border-color: rgba(16, 185, 129, 0.35);
+}
+
+.factor__status--count {
+	color: var(--accent-dark);
+	background: rgba(217, 119, 6, 0.08);
+	border-color: rgba(217, 119, 6, 0.3);
+}
+
+.factor__description,
+.factor__note {
+	margin: 0.5rem 0 0;
+	color: var(--text-secondary);
+	line-height: 1.6;
+}
+
+.factor__panel {
+	margin-top: 1rem;
+}
+
+.factor__action {
+	margin-top: 1rem;
+}
+
+.factor__action-toggle {
+	display: inline-block;
+	cursor: pointer;
+	font-family: 'Kingthings Typewriter', monospace;
+	color: var(--primary);
+	list-style: none;
+}
+
+.factor__action-toggle::-webkit-details-marker {
+	display: none;
+}
+
+.factor__action-toggle::before {
+	content: '\25B8';
+	display: inline-block;
+	margin-right: 0.4rem;
+	transition: transform var(--transition-fast);
+}
+
+.factor__action[open] > .factor__action-toggle::before {
+	transform: rotate(90deg);
+}
+
+.factor__form {
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+	max-width: 24rem;
+	margin-top: 0.75rem;
+}
+
+.factor__form .form-field {
+	display: flex;
+	flex-direction: column;
+	gap: 0.35rem;
+}
+
+.factor__form .btn {
+	align-self: flex-start;
+}
+
+.factor__form-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.75rem;
+}
+
+.form-input--code {
+	font-family: 'Courier New', Courier, monospace;
+	font-size: 1.15rem;
+	letter-spacing: 0.15em;
+}
+
+/* Enrollment */
+.totp-setup {
+	display: grid;
+	grid-template-columns: minmax(10rem, 13rem) 1fr;
+	gap: 1.5rem;
+	align-items: start;
+	animation: fadeIn 0.3s ease-out;
+}
+
+.totp-setup__qr {
+	margin: 0;
+	padding: 0.5rem;
+	background: white;
+	border: 2px solid var(--neutral-200);
+	border-radius: 0.5rem;
+	box-shadow: var(--shadow-md);
+}
+
+.totp-setup__qr .qr-code {
+	display: block;
+	width: 100%;
+	height: auto;
+}
+
+.totp-setup__key-label {
+	margin: 1rem 0 0.35rem;
+	font-family: 'Kingthings Typewriter', monospace;
+	color: var(--text-primary);
+}
+
+.totp-setup__key {
+	display: inline-block;
+	padding: 0.5rem 0.75rem;
+	font-family: 'Courier New', Courier, monospace;
+	font-size: 1rem;
+	letter-spacing: 0.08em;
+	word-break: break-all;
+	background: var(--neutral-100);
+	border: 1px dashed var(--neutral-400);
+	border-radius: 0.375rem;
+	user-select: all;
+}
+
+.totp-setup__open {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+	margin-top: 0.75rem;
+	font-size: 0.95rem;
+	color: var(--primary);
+}
+
+/* Recovery codes, shown once */
+.recovery-codes {
+	margin-top: 1rem;
+	padding: 1.25rem;
+	background: var(--sticky-yellow);
+	border-radius: 0.375rem;
+	box-shadow: var(--shadow-sticky);
+	animation: slideInUp 0.35s ease-out;
+}
+
+.recovery-codes__warning {
+	margin: 0;
+	font-family: 'Kingthings Typewriter', monospace;
+	color: var(--accent-dark);
+}
+
+.recovery-codes__list {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 0.4rem 1.5rem;
+	margin: 1rem 0;
+	padding-left: 1.75rem;
+	font-family: 'Courier New', Courier, monospace;
+	font-size: 1.05rem;
+	color: var(--ink);
+}
+
+.recovery-codes__actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.75rem;
+}
+
+.recovery-codes__actions .btn {
+	text-decoration: none;
+}
+
+@media (max-width: 600px) {
+	.factor {
+		grid-template-columns: 1fr;
+		padding: 1.25rem;
+	}
+
+	.totp-setup {
+		grid-template-columns: 1fr;
+	}
+
+	.totp-setup__qr {
+		max-width: 14rem;
+	}
+
+	.recovery-codes__list {
+		grid-template-columns: 1fr;
+	}
+}

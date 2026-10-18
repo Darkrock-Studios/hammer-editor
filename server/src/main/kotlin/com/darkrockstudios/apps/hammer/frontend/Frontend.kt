@@ -17,6 +17,7 @@ import com.darkrockstudios.apps.hammer.base.http.API_ROUTE_PREFIX
 import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECTS_SYNC_MANAGER
 import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECT_SYNC_MANAGER
 import com.darkrockstudios.apps.hammer.email.EmailService
+import com.darkrockstudios.apps.hammer.frontend.data.PendingMfaSession
 import com.darkrockstudios.apps.hammer.frontend.data.UserSession
 import com.darkrockstudios.apps.hammer.frontend.og.OgImageService
 import com.darkrockstudios.apps.hammer.frontend.og.ogImageRoutes
@@ -135,7 +136,7 @@ fun Route.frontend() {
 	termsOfServicePage()
 	privacyPolicyPage()
 	localeRoutes()
-	authRoutes(accountsRepository, whiteListRepository, configRepository, securityRepository, mfaRepository)
+	authRoutes(accountsRepository, whiteListRepository, configRepository, securityRepository, mfaRepository, clock)
 	signupPage(
 		accountsComponent,
 		accountsRepository,
@@ -145,6 +146,7 @@ fun Route.frontend() {
 		securityRepository,
 	)
 	passwordResetRoutes(passwordResetRepository, requestPasswordReset)
+	securityPage(accountsRepository, mfaRepository, clock)
 	dashboardPage(
 		projectsRepository,
 		accountsRepository,
@@ -201,6 +203,7 @@ fun Route.frontend() {
 		accountsRepository,
 		projectsRepository,
 		accountDeletionUseCase,
+		mfaRepository,
 		serverConfig,
 		emailService,
 		metricsRepository,
@@ -217,6 +220,7 @@ fun Route.frontend() {
 }
 
 const val COOKIE_USER_SESSION = "user_session"
+const val COOKIE_PENDING_MFA_SESSION = "mfa_pending"
 
 /**
  * Encrypts and authenticates the web session cookie so a client cannot forge or
@@ -227,11 +231,18 @@ const val COOKIE_USER_SESSION = "user_session"
  * with domain separation. Rotating the underlying secret invalidates all existing
  * web sessions, forcing a re-login.
  */
-internal fun userSessionTransformer(keyMaterial: ByteArray): SessionTransportTransformerEncrypt {
+internal fun userSessionTransformer(keyMaterial: ByteArray): SessionTransportTransformerEncrypt =
+	sessionTransformer(keyMaterial, "hammer.web.session")
+
+/** Keyed apart from [userSessionTransformer] so neither cookie's value is accepted as the other. */
+internal fun pendingMfaSessionTransformer(keyMaterial: ByteArray): SessionTransportTransformerEncrypt =
+	sessionTransformer(keyMaterial, "hammer.web.mfa-pending")
+
+private fun sessionTransformer(keyMaterial: ByteArray, label: String): SessionTransportTransformerEncrypt {
 	// AES-128: the transformer generates an IV sized to the encryption key, and
 	// AES/CBC requires a 16-byte IV. The sign key has no length constraint.
-	val encryptionKey = deriveKey(keyMaterial, "hammer.web.session.encrypt").copyOf(16)
-	val signKey = deriveKey(keyMaterial, "hammer.web.session.sign")
+	val encryptionKey = deriveKey(keyMaterial, "$label.encrypt").copyOf(16)
+	val signKey = deriveKey(keyMaterial, "$label.sign")
 	return SessionTransportTransformerEncrypt(encryptionKey, signKey)
 }
 
@@ -260,6 +271,12 @@ fun Application.configureFrontEnd() {
 			cookie.maxAgeInSeconds = 7.days.inWholeSeconds
 			cookie.extensions["SameSite"] = "lax"
 			transform(userSessionTransformer(sessionKeyMaterial))
+		}
+		cookie<PendingMfaSession>(COOKIE_PENDING_MFA_SESSION) {
+			cookie.path = "/login"
+			cookie.maxAgeInSeconds = PENDING_MFA_LIFETIME.inWholeSeconds
+			cookie.extensions["SameSite"] = "lax"
+			transform(pendingMfaSessionTransformer(sessionKeyMaterial))
 		}
 	}
 

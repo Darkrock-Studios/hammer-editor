@@ -5,6 +5,7 @@ import com.darkrockstudios.apps.hammer.account.AccountDeletionUseCase
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.account.SortDirection
 import com.darkrockstudios.apps.hammer.account.UserSortField
+import com.darkrockstudios.apps.hammer.account.mfa.MfaRepository
 import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
@@ -15,6 +16,8 @@ import com.darkrockstudios.apps.hammer.frontend.utils.adminOnly
 import com.darkrockstudios.apps.hammer.frontend.utils.formatInstant
 import com.darkrockstudios.apps.hammer.frontend.utils.formatSyncDate
 import com.darkrockstudios.apps.hammer.frontend.utils.msg
+import com.darkrockstudios.apps.hammer.frontend.utils.requireUser
+import com.darkrockstudios.apps.hammer.frontend.utils.respondHtmlWithToast
 import com.darkrockstudios.apps.hammer.frontend.utils.respondToast
 import com.darkrockstudios.apps.hammer.plugin.installPluginAdminRoutes
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
@@ -26,6 +29,8 @@ import io.ktor.server.mustache.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.ktor.server.sessions.sessions
+import io.ktor.http.HttpStatusCode
 import kotlin.math.ceil
 
 fun Route.adminPage(
@@ -34,6 +39,7 @@ fun Route.adminPage(
 	accountsRepository: AccountsRepository,
 	projectsRepository: ProjectsRepository,
 	accountDeletionUseCase: AccountDeletionUseCase,
+	mfaRepository: MfaRepository,
 	serverConfig: ServerConfig,
 	emailService: EmailService?,
 	metricsRepository: com.darkrockstudios.apps.hammer.monitoring.MetricsRepository,
@@ -60,7 +66,7 @@ fun Route.adminPage(
 			adminUsersPage()
 			whiteListRoutes(whiteListRepository, clock)
 			serverSettingsRoutes(configRepository)
-			usersRoutes(accountsRepository, projectsRepository, accountDeletionUseCase)
+			usersRoutes(accountsRepository, projectsRepository, accountDeletionUseCase, mfaRepository)
 			if (emailFeatureEnabled && emailService != null) {
 				adminEmailPage(configRepository, emailService, serverConfig)
 				emailSettingsRoutes(configRepository, emailService)
@@ -149,9 +155,24 @@ private fun Route.usersRoutes(
 	accountsRepository: AccountsRepository,
 	projectsRepository: ProjectsRepository,
 	accountDeletionUseCase: AccountDeletionUseCase,
+	mfaRepository: MfaRepository,
 ) {
 	route("/users") {
-		usersFragment(accountsRepository, projectsRepository)
+		usersFragment(accountsRepository, projectsRepository, mfaRepository)
+
+		hx.post("/reset-mfa") {
+			val userId = call.receiveParameters()["userId"]?.toLongOrNull()
+			val account = userId?.let { accountsRepository.getAccountOrNull(it) }
+			if (account == null) {
+				respondToast(call.msg("admin_users_reset_mfa_failed"), Toast.Error, HttpStatusCode.BadRequest)
+				return@post
+			}
+
+			mfaRepository.resetAll(account.id)
+			accountsRepository.forceLogout(account.email)
+			call.application.log.info("Admin ${call.sessions.requireUser().userId} reset MFA for user ${account.id}")
+			respondHtmlWithToast(content = "", message = call.msg("admin_users_reset_mfa_done", account.email))
+		}
 
 		hx.post("/restore") {
 			val userId = call.receiveParameters()["userId"]?.toLongOrNull()
@@ -171,9 +192,13 @@ private fun Route.usersRoutes(
 	}
 }
 
-private fun Route.usersFragment(accountsRepository: AccountsRepository, projectsRepository: ProjectsRepository) {
+private fun Route.usersFragment(
+	accountsRepository: AccountsRepository,
+	projectsRepository: ProjectsRepository,
+	mfaRepository: MfaRepository,
+) {
 	hx.get("/user-fragment") {
-		val model = getUsersModel(call, accountsRepository, projectsRepository)
+		val model = getUsersModel(call, accountsRepository, projectsRepository, mfaRepository)
 		call.respond(MustacheContent("partials/users.mustache", model))
 	}
 }
@@ -182,6 +207,7 @@ private suspend fun getUsersModel(
 	call: ApplicationCall,
 	accountsRepository: AccountsRepository,
 	projectsRepository: ProjectsRepository,
+	mfaRepository: MfaRepository,
 	page: Int? = null,
 	sortBy: UserSortField? = null,
 	sortDirection: SortDirection? = null
@@ -210,7 +236,8 @@ private suspend fun getUsersModel(
 			"penName" to account.pen_name,
 			"hasPenName" to (account.pen_name != null),
 			"projectCount" to account.project_count,
-			"pendingDeletion" to (account.deleted_at != null)
+			"pendingDeletion" to (account.deleted_at != null),
+			"hasMfa" to mfaRepository.hasMfa(account.id),
 		)
 	}
 

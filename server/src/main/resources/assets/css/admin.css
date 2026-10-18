@@ -175,9 +175,16 @@
 	border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
-.user-restore-btn {
+.user-restore-btn,
+.user-mfa-reset__btn {
 	padding: 0.25rem 0.75rem;
 	font-size: 0.875rem;
+}
+
+.user-mfa-reset {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
 }
 
 /* ========================================

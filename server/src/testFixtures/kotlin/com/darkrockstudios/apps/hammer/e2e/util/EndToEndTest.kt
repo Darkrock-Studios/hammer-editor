@@ -34,6 +34,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.koin.dsl.bind
 import java.security.SecureRandom
 import kotlin.io.encoding.Base64
+import kotlin.time.Clock
 
 /**
  * Base class for End to End Tests.
@@ -65,6 +66,9 @@ abstract class EndToEndTest {
 	 * Plugin fixtures must keep their integrations unconfigured or tests become order-dependent.
 	 */
 	protected open val serverPlugins: List<ServerPlugin> = installedPlugins()
+
+	/** The server's clock; tests that need to move time override it. */
+	protected open val clock: Clock = Clock.System
 
 	/** The OS-assigned port the server bound to; valid after [doStartServer]. */
 	protected var serverPort: Int = 0
@@ -156,6 +160,7 @@ abstract class EndToEndTest {
 			single<TouchableFileSystem> { FakeTouchableFileSystem(fileSystem) }
 			// Held by the test so tearDown can see which jobs the app started.
 			single { taskRegistry }
+			single { clock } bind Clock::class
 		}
 
 		val server = embeddedServer(
