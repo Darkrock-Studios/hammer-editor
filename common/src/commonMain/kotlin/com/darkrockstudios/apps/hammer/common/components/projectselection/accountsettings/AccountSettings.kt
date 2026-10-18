@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.common.components.projectselection.accou
 
 import com.arkivanov.decompose.router.slot.ChildSlot
 import com.arkivanov.decompose.value.Value
+import com.darkrockstudios.apps.hammer.base.http.MfaChallenge
 import com.darkrockstudios.apps.hammer.base.http.TermsOfServiceChallenge
 import com.darkrockstudios.apps.hammer.common.components.ComponentToaster
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection
@@ -41,6 +42,11 @@ interface AccountSettings : ComponentToaster {
 	fun acceptTos()
 	fun declineTos()
 
+	/** Answers the pending [State.mfaChallenge] with a TOTP or recovery code. */
+	fun submitMfaCode(code: String)
+	/** Drops the pending challenge and returns the setup dialog to the password step. */
+	fun cancelMfa()
+
 	suspend fun authTest(): Boolean
 	suspend fun removeServer()
 
@@ -76,6 +82,7 @@ interface AccountSettings : ComponentToaster {
 		@Transient val serverError: String? = null,
 		@Transient val serverWorking: Boolean = false,
 		@Transient val tosChallenge: TermsOfServiceChallenge? = null,
+		@Transient val mfaChallenge: MfaChallenge? = null,
 		@Transient val mergePrompt: Boolean = false,
 		val syncAutomaticSync: Boolean,
 		val syncAutomaticBackups: Boolean,

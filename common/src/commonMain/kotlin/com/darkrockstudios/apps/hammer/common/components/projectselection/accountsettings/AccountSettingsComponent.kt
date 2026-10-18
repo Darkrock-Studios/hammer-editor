@@ -183,6 +183,7 @@ class AccountSettingsComponent(
 	override fun cancelServerSetup() {
 		cancelSetupJob()
 		cleanUpServerSetup()
+		accountUseCase.cancelMfa()
 		// A pending setup means setupServer already persisted provisional settings; drop them.
 		if (pendingServerSetup != null) {
 			globalSettingsStore.deleteServerSettings()
@@ -195,6 +196,7 @@ class AccountSettingsComponent(
 				serverError = null,
 				serverWorking = false,
 				tosChallenge = null,
+				mfaChallenge = null,
 				mergePrompt = false,
 			)
 		}
@@ -456,6 +458,44 @@ class AccountSettingsComponent(
 		showToast(scope, Res.string.settings_server_tos_declined)
 	}
 
+	override fun submitMfaCode(code: String) {
+		val pending = pendingServerSetup ?: return
+		val cleanCode = code.trim()
+		if (_state.value.mfaChallenge == null || cleanCode.isEmpty()) return
+
+		cancelSetupJob()
+		serverSetupJob = scope.launch {
+			withContext(mainDispatcher) {
+				_state.getAndUpdate {
+					it.copy(
+						serverError = null,
+						serverWorking = true,
+					)
+				}
+			}
+			handleSetupResult(pending, accountUseCase.completeMfa(cleanCode))
+		}
+	}
+
+	override fun cancelMfa() {
+		if (_state.value.mfaChallenge == null) return
+
+		cancelSetupJob()
+		accountUseCase.cancelMfa()
+		// setupServer persisted provisional settings for the challenge; backing out discards them.
+		if (pendingServerSetup != null) {
+			globalSettingsStore.deleteServerSettings()
+		}
+		pendingServerSetup = null
+		_state.getAndUpdate {
+			it.copy(
+				mfaChallenge = null,
+				serverError = null,
+				serverWorking = false,
+			)
+		}
+	}
+
 	private suspend fun performServerSetup(pending: PendingServerSetup, acceptedTosVersion: String?) {
 		val result = accountUseCase.setupServer(
 			url = pending.url,
@@ -465,6 +505,10 @@ class AccountSettingsComponent(
 			acceptedTosVersion = acceptedTosVersion,
 			ssl = pending.ssl,
 		)
+		handleSetupResult(pending, result)
+	}
+
+	private suspend fun handleSetupResult(pending: PendingServerSetup, result: ServerSetupResult) {
 		withContext(mainDispatcher) {
 			when (result) {
 				is ServerSetupResult.Success -> withContext(NonCancellable) {
@@ -485,6 +529,7 @@ class AccountSettingsComponent(
 						it.copy(
 							serverSetup = false,
 							serverWorking = false,
+							mfaChallenge = null,
 						)
 					}
 					showToast(Res.string.settings_server_setup_toast_success)
@@ -501,6 +546,18 @@ class AccountSettingsComponent(
 					}
 				}
 
+				// The dialog stays open and swaps the password field for the code field.
+				is ServerSetupResult.MfaRequired -> {
+					val message = result.error?.text(strRes)
+					_state.getAndUpdate {
+						it.copy(
+							mfaChallenge = result.challenge,
+							serverError = message,
+							serverWorking = false,
+						)
+					}
+				}
+
 				is ServerSetupResult.Failure -> {
 					pendingServerSetup = null
 					val message = result.displayMessage?.text(strRes)
@@ -509,6 +566,7 @@ class AccountSettingsComponent(
 						it.copy(
 							serverError = message,
 							serverWorking = false,
+							mfaChallenge = null,
 						)
 					}
 					showToast(scope, Res.string.settings_server_setup_toast_failure, message)

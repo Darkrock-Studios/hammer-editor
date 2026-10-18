@@ -10,6 +10,7 @@ import com.darkrockstudios.apps.hammer.common.data.ImportOptions
 import com.darkrockstudios.apps.hammer.common.data.MarkdownSplitStrategy
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.account.AccountReauthUseCase
+import com.darkrockstudios.apps.hammer.common.data.account.ReauthResult
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
@@ -506,7 +507,7 @@ class ProjectsListComponentTest : ComponentTest() {
 				if (syncCalls == 1) secondArg<suspend () -> Unit>().invoke()
 				false
 			}
-			coEvery { reauthUseCase.reauthenticate(any()) } returns CResult.success()
+			coEvery { reauthUseCase.reauthenticate(any()) } returns ReauthResult.Success
 			val comp = newComponent()
 
 			comp.showProjectsSync()

@@ -1,6 +1,10 @@
 package usecases
 
 import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.base.http.ApiErrorCode
+import com.darkrockstudios.apps.hammer.base.http.HttpResponseError
+import com.darkrockstudios.apps.hammer.base.http.MfaChallenge
+import com.darkrockstudios.apps.hammer.base.http.MfaMethod
 import com.darkrockstudios.apps.hammer.base.http.TermsOfServiceChallenge
 import com.darkrockstudios.apps.hammer.base.http.Token
 import com.darkrockstudios.apps.hammer.common.data.ClientMessage
@@ -10,12 +14,15 @@ import com.darkrockstudios.apps.hammer.common.data.account.ServerSetupResult
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.updateCredentials
+import com.darkrockstudios.apps.hammer.common.server.HttpFailureException
+import com.darkrockstudios.apps.hammer.common.server.MfaRequiredException
 import com.darkrockstudios.apps.hammer.common.server.ServerAccountApi
 import com.darkrockstudios.apps.hammer.common.server.TermsOfServiceRequiredException
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.apps.hammer.server_setup_error_unknown
 import io.ktor.client.*
 import io.ktor.client.plugins.auth.providers.*
+import io.ktor.http.HttpStatusCode
 import io.mockk.*
 import io.mockk.impl.annotations.MockK
 import kotlinx.coroutines.test.runTest
@@ -26,6 +33,7 @@ import org.junit.jupiter.api.Test
 import utils.BaseTest
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertNull
 
 class AccountUseCaseTest : BaseTest() {
 
@@ -340,5 +348,148 @@ class AccountUseCaseTest : BaseTest() {
 			settings,
 			settingsSlot.captured
 		)
+	}
+
+	private val challenge = MfaChallenge(
+		token = "challenge-token",
+		methods = listOf(MfaMethod.TOTP, MfaMethod.RECOVERY),
+	)
+
+	private fun loginNeedsSecondFactor() {
+		coEvery { accountApi.login(any(), any(), any()) } returns Result.failure(MfaRequiredException(challenge))
+	}
+
+	private fun mfaFailure(errorCode: String, message: String) = Result.failure<Token>(
+		HttpFailureException(
+			statusCode = HttpStatusCode.Unauthorized,
+			error = HttpResponseError(error = "Failed", displayMessage = message, errorCode = errorCode),
+		)
+	)
+
+	private suspend fun AccountUseCase.logInToMfaAccount() = setupServer(
+		url = "hammer.ink",
+		email = "test@example.com",
+		password = "password",
+		create = false,
+	)
+
+	@Test
+	fun `Login needing a second factor returns the challenge and keeps the provisional settings`() = runTest {
+		loginNeedsSecondFactor()
+		val settingsSlot = slot<ServerSettings>()
+		every { globalSettingsStore.updateServerSettings(settings = capture(settingsSlot)) } just Runs
+
+		val result = createSut().logInToMfaAccount()
+
+		val mfaRequired = assertIs<ServerSetupResult.MfaRequired>(result)
+		assertEquals(challenge, mfaRequired.challenge)
+		assertNull(mfaRequired.error)
+		assertNull(settingsSlot.captured.bearerToken)
+		coVerify(exactly = 0) { globalSettingsStore.deleteServerSettings() }
+		coVerify(exactly = 0) { httpClient.updateCredentials(any()) }
+	}
+
+	@Test
+	fun `Completing the second factor stores the token`() = runTest {
+		loginNeedsSecondFactor()
+		val token = Token(1, "test-auth", "test-refresh")
+		coEvery { accountApi.loginMfa("challenge-token", "123456", "test-uuid") } returns Result.success(token)
+		val bearerTokenSlot = slot<BearerTokens>()
+		every { httpClient.updateCredentials(credentials = capture(bearerTokenSlot)) } just Runs
+		val settingsSlot = slot<ServerSettings>()
+		every { globalSettingsStore.updateServerSettings(settings = capture(settingsSlot)) } just Runs
+
+		val usecase = createSut()
+		usecase.logInToMfaAccount()
+		val result = usecase.completeMfa("123456")
+
+		assertIs<ServerSetupResult.Success>(result)
+		assertEquals(token.auth, bearerTokenSlot.captured.accessToken)
+		assertEquals(
+			ServerSettings(
+				url = "hammer.ink",
+				email = "test@example.com",
+				userId = 1,
+				bearerToken = token.auth,
+				refreshToken = token.refresh,
+			),
+			settingsSlot.captured,
+		)
+	}
+
+	@Test
+	fun `A wrong code keeps the challenge open with the server message`() = runTest {
+		loginNeedsSecondFactor()
+		coEvery { accountApi.loginMfa(any(), "000000", any()) } returns
+			mfaFailure(ApiErrorCode.MFA_CODE_INVALID, "That code did not work")
+		coEvery { accountApi.loginMfa(any(), "123456", any()) } returns
+			Result.success(Token(1, "test-auth", "test-refresh"))
+		every { httpClient.updateCredentials(any()) } just Runs
+
+		val usecase = createSut()
+		usecase.logInToMfaAccount()
+		val rejected = usecase.completeMfa("000000")
+
+		val stillRequired = assertIs<ServerSetupResult.MfaRequired>(rejected)
+		assertEquals(challenge, stillRequired.challenge)
+		assertEquals("That code did not work", assertIs<ClientMessage.Literal>(stillRequired.error).text())
+		coVerify(exactly = 0) { globalSettingsStore.deleteServerSettings() }
+
+		assertIs<ServerSetupResult.Success>(usecase.completeMfa("123456"))
+		coVerify(exactly = 2) { accountApi.loginMfa("challenge-token", any(), "test-uuid") }
+	}
+
+	@Test
+	fun `A failure other than a wrong code abandons the sign-in`() = runTest {
+		loginNeedsSecondFactor()
+		coEvery { accountApi.loginMfa(any(), any(), any()) } returns
+			mfaFailure(ApiErrorCode.ACCOUNT_PENDING_DELETION, "Account pending deletion")
+
+		val usecase = createSut()
+		usecase.logInToMfaAccount()
+		val result = usecase.completeMfa("123456")
+
+		val failure = assertIs<ServerSetupResult.Failure>(result)
+		assertEquals("Account pending deletion", assertIs<ClientMessage.Literal>(failure.displayMessage).text())
+		coVerify { globalSettingsStore.deleteServerSettings() }
+
+		// The challenge is gone, so a retry never reaches the server.
+		assertIs<ServerSetupResult.Failure>(usecase.completeMfa("123456"))
+		coVerify(exactly = 1) { accountApi.loginMfa(any(), any(), any()) }
+	}
+
+	@Test
+	fun `Completing the second factor with no sign-in pending fails without calling the server`() = runTest {
+		val result = createSut().completeMfa("123456")
+
+		assertIs<ServerSetupResult.Failure>(result)
+		coVerify(exactly = 0) { accountApi.loginMfa(any(), any(), any()) }
+		coVerify(exactly = 0) { globalSettingsStore.deleteServerSettings() }
+	}
+
+	@Test
+	fun `Cancelling the second factor forgets the challenge`() = runTest {
+		loginNeedsSecondFactor()
+
+		val usecase = createSut()
+		usecase.logInToMfaAccount()
+		usecase.cancelMfa()
+
+		assertIs<ServerSetupResult.Failure>(usecase.completeMfa("123456"))
+		coVerify(exactly = 0) { accountApi.loginMfa(any(), any(), any()) }
+		coVerify(exactly = 0) { globalSettingsStore.deleteServerSettings() }
+	}
+
+	@Test
+	fun `A new login forgets an earlier challenge`() = runTest {
+		loginNeedsSecondFactor()
+		val usecase = createSut()
+		usecase.logInToMfaAccount()
+
+		coEvery { accountApi.login(any(), any(), any()) } returns Result.failure(IOException())
+		assertIs<ServerSetupResult.Failure>(usecase.logInToMfaAccount())
+
+		assertIs<ServerSetupResult.Failure>(usecase.completeMfa("123456"))
+		coVerify(exactly = 0) { accountApi.loginMfa(any(), any(), any()) }
 	}
 }

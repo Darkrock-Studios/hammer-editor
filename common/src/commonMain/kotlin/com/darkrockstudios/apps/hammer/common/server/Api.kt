@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.http.HAMMER_PROTOCOL_HEADER
 import com.darkrockstudios.apps.hammer.base.http.HAMMER_PROTOCOL_VERSION
 import com.darkrockstudios.apps.hammer.base.http.HttpResponseError
+import com.darkrockstudios.apps.hammer.base.http.MfaChallenge
 import com.darkrockstudios.apps.hammer.base.http.TermsOfServiceChallenge
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.protocolmismatch.ProtocolMismatchRepository
@@ -366,6 +367,11 @@ class HttpFailureException(
 class TermsOfServiceRequiredException(
 	val challenge: TermsOfServiceChallenge
 ) : Exception("Terms of service acceptance required (version ${challenge.version})")
+
+/** The password was accepted; the server wants a second factor before it issues a token. */
+class MfaRequiredException(
+	val challenge: MfaChallenge
+) : Exception("Second factor required")
 
 typealias FailureHandler = suspend (HttpResponse) -> Throwable
 

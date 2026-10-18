@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
@@ -50,6 +51,8 @@ fun HdHairlineField(
 	autoCorrectEnabled: Boolean? = null,
 	keyboardType: KeyboardType = KeyboardType.Text,
 	visualTransformation: VisualTransformation = VisualTransformation.None,
+	/** Replaces the body style of the input; the color still follows [enabled]. */
+	textStyle: TextStyle? = null,
 	enabled: Boolean = true,
 	onFocusChanged: (Boolean) -> Unit = {},
 	trailing: (@Composable () -> Unit)? = null,
@@ -80,7 +83,7 @@ fun HdHairlineField(
 		val mutedColor = MaterialTheme.colorScheme.onSurfaceVariant
 		val errorColor = MaterialTheme.colorScheme.error
 		val textColor = if (enabled) onSurface else mutedColor
-		val textStyle = (if (singleLine) MaterialTheme.typography.bodyLarge
+		val textStyle = (textStyle ?: if (singleLine) MaterialTheme.typography.bodyLarge
 		else MaterialTheme.typography.bodyMedium)
 			.copy(color = textColor)
 

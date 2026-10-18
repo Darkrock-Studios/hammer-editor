@@ -9,8 +9,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import com.darkrockstudios.apps.hammer.base.http.MfaChallenge
+import com.darkrockstudios.apps.hammer.base.http.MfaMethod
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.projectselection.accountSettingsComponent
+import com.darkrockstudios.apps.hammer.common.projectselection.defaultAccountSettingsComponentState
 import com.darkrockstudios.apps.hammer.common.projectselection.settings.ServerSetupDialogContent
 
 @Preview(widthDp = 560, heightDp = 640)
@@ -28,6 +31,33 @@ fun ServerSetupDialogPreview() {
 			) {
 				ServerSetupDialogContent(
 					component = accountSettingsComponent(),
+					scope = scope,
+				)
+			}
+		}
+	}
+}
+
+@Preview(widthDp = 560, heightDp = 640)
+@Composable
+fun ServerSetupDialogMfaPreview() {
+	val scope = rememberCoroutineScope()
+	val state = defaultAccountSettingsComponentState.copy(
+		serverUrl = "hammer.ink",
+		serverEmail = "writer@example.com",
+		mfaChallenge = MfaChallenge(token = "preview", methods = listOf(MfaMethod.TOTP, MfaMethod.RECOVERY)),
+	)
+
+	KoinApplicationPreview {
+		AppTheme(globalSettingsPreview, true) {
+			Box(
+				modifier = Modifier
+					.fillMaxSize()
+					.background(MaterialTheme.colorScheme.background),
+				contentAlignment = Alignment.Center,
+			) {
+				ServerSetupDialogContent(
+					component = accountSettingsComponent(state),
 					scope = scope,
 				)
 			}

@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.account.mfa
 
+import com.darkrockstudios.apps.hammer.base.http.MfaMethod
 import java.net.URLEncoder
 import java.nio.ByteBuffer
 import java.security.MessageDigest
@@ -9,7 +10,7 @@ import javax.crypto.spec.SecretKeySpec
 
 /** RFC 6238 TOTP over HMAC-SHA1, the parameters every authenticator app supports. */
 object Totp {
-	const val DIGITS = 6
+	const val DIGITS = MfaMethod.TOTP_DIGITS
 	const val STEP_SECONDS = 30L
 	const val SECRET_BYTES = 20
 	private const val DRIFT_STEPS = 1

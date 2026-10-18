@@ -6,8 +6,8 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
 import com.darkrockstudios.apps.hammer.common.components.ComponentBase
 import com.darkrockstudios.apps.hammer.common.data.account.AccountReauthUseCase
+import com.darkrockstudios.apps.hammer.common.data.account.ReauthResult
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
-import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import korlibs.io.async.launch
@@ -39,7 +39,8 @@ class ServerReauthenticationComponent(
 	override fun reauthenticate(password: String) {
 		_state.getAndUpdate {
 			it.copy(
-				serverWorking = true
+				serverWorking = true,
+				serverError = null,
 			)
 		}
 
@@ -50,24 +51,63 @@ class ServerReauthenticationComponent(
 				password = state.value.serverPassword,
 			)
 
-			withContext(mainDispatcher) {
-				_state.getAndUpdate {
-					it.copy(
-						serverWorking = false
-					)
+			handleResult(authResult)
+		}
+	}
+
+	private suspend fun handleResult(result: ReauthResult) {
+		withContext(mainDispatcher) {
+			when (result) {
+				is ReauthResult.Success -> {
+					_state.getAndUpdate { it.copy(serverWorking = false, mfaChallenge = null) }
+					onReauthSuccess()
 				}
 
-				if (isSuccess(authResult)) {
-					onReauthSuccess()
-				} else {
-					val errorText = authResult.displayMessage?.text(strRes)
+				is ReauthResult.MfaRequired -> {
+					val errorText = result.error?.text(strRes)
 					_state.getAndUpdate {
-						it.copy(
-							serverError = errorText
-						)
+						it.copy(serverWorking = false, serverError = errorText, mfaChallenge = result.challenge)
+					}
+				}
+
+				is ReauthResult.Failure -> {
+					val errorText = result.displayMessage?.text(strRes)
+					_state.getAndUpdate {
+						it.copy(serverWorking = false, serverError = errorText, mfaChallenge = null)
 					}
 				}
 			}
+		}
+	}
+
+	override fun submitMfaCode(code: String) {
+		val cleanCode = code.trim()
+		if (state.value.mfaChallenge == null || cleanCode.isEmpty()) return
+
+		_state.getAndUpdate {
+			it.copy(
+				serverWorking = true,
+				serverError = null,
+			)
+		}
+
+		authenticateJob?.cancel()
+		authenticateJob = scope.launch {
+			handleResult(reauthUseCase.completeMfa(cleanCode))
+		}
+	}
+
+	override fun cancelMfa() {
+		if (state.value.mfaChallenge == null) return
+
+		authenticateJob?.cancel()
+		reauthUseCase.cancelMfa()
+		_state.getAndUpdate {
+			it.copy(
+				mfaChallenge = null,
+				serverError = null,
+				serverWorking = false,
+			)
 		}
 	}
 
