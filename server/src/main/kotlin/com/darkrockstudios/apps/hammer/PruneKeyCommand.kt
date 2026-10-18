@@ -119,12 +119,9 @@ class PruneKeyCommand : CliktCommand(name = "prune-key") {
 		val manager = KeyringManager(
 			buildSecretProvider(cfg.secret, FileSystem.SYSTEM),
 			codec,
-			FileSystem.SYSTEM,
-			KeyringManager.legacySecretPath(),
 		)
 		return manager.keyringOrNull() ?: throw CliktError(
-			"No keyring found via the configured ${cfg.secret.provider} provider " +
-				"(and no legacy server.secret to grandfather)."
+			"No keyring found via the configured ${cfg.secret.provider} provider."
 		)
 	}
 

@@ -205,15 +205,15 @@ poolSize = 10
 useSsl = true
 ```
 
-### Upgrading from a pre-PostgreSQL version
+### Upgrading from an older release
 
-Older releases (prior to v3.1.0) used SQLite (`~/hammer_data/server.db`). The first run after
-upgrading auto-detects the file and migrates its contents into PostgreSQL inside a single
-transaction, then renames the source to `server.db.migrated-<timestamp>.bak`. If migration fails for
-any reason, the SQLite file is left untouched and the server exits with an error. Fix the cause and
-start again.
+A 4.0 server upgrades from **3.12.0 or later** only. The SQLite storage of releases before 3.1.0
+and its automatic migration are gone, so a server still on SQLite (`~/hammer_data/server.db`)
+must first run 3.12.0 once, which moves that data into PostgreSQL, before moving to 4.0.
 
-To rehearse the migration against a copy of production before flipping the live config, run with `--migrate-dry-run`: it does everything except commit and rename.
+If the server still relies on a pre-keyring `server.secret` for its encryption, 4.0 refuses to
+start until it is converted to a keyring; see
+[Upgrading an existing (already-encrypted) server](SERVER-SECRET-STORAGE.md#upgrading-an-existing-already-encrypted-server).
 
 ## Disk cache
 

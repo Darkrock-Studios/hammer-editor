@@ -101,9 +101,9 @@ file = "/etc/hammer/server.keyring.json"   # default: ~/hammer_data/server.keyri
 > ⚠️ **`file` must be an absolute path.** The server reads this value verbatim and
 > does **not** expand `~` — that is your shell's job, and the shell never touches a
 > value quoted inside a TOML file. `file = "~/hammer_data/server.keyring.json"`
-> resolves to a literal `./~/hammer_data/...` directory that does not exist, the
-> provider finds no keyring, and the server **silently falls back to a legacy
-> `server.secret`** if one is present. Always write `file = "/home/you/.../server.keyring.json"`.
+> resolves to a literal `./~/hammer_data/...` directory that does not exist, so the
+> provider finds no keyring and the server refuses to start. Always write
+> `file = "/home/you/.../server.keyring.json"`.
 
 `mode` has three states:
 
@@ -159,8 +159,7 @@ This mints random keys for both roles. Now copy them, into your chosen key provi
 ### Inspect a keyring without revealing key bytes:
 
 By default, it reads the keyring from your config's `[secret]` provider —
-env or file, exactly as the server would (including a grandfathered legacy
-`server.secret`):
+env or file, exactly as the server would:
 
 ```bash
 ./server/bin/server inspect-keyring --config /path/to/serverConfig.toml
@@ -271,25 +270,17 @@ Use `inspect-keyring` to see which generations exist before and after pruning.
 
 ## Upgrading an existing (already-encrypted) server
 
-Older releases always encrypted, (pre v3.3.1) using an auto-generated
-`~/hammer_data/server.secret`. After upgrading:
+Releases before v3.3.1 always encrypted, using an auto-generated `~/hammer_data/server.secret`.
+Releases 3.4 through 3.12 read that file as a stand-in keyring when no keyring was configured.
+4.0 no longer does: a server whose encryption still depends on `server.secret` (`mode = "aes"`,
+or encrypted rows still waiting to be converged) refuses to start and tells you to run
+`migrate-secret`. A plaintext server with nothing encrypted is unaffected; `server.secret`
+stays as its token-HMAC key.
 
-- That `server.secret` is grandfathered in and read automatically since no keyring will exist yet
-  — **existing data keeps decrypting and existing logins keep
-  working**, no action required to server from this grandfather key.
-- But because the default `mode` is now unspecified, a server that holds
-  encrypted data **will refuse to start until you set `mode` explicitly**. Set
-  `mode = "aes"` under a new `[encryption]` section in your server config to keep encrypting,
-   or `mode = "none"` to deliberately decrypt everything to plaintext (recommended for most self hosters).
-
-### Moving to an explicit keyring (*strongly recommended*)
-
-We recommend you migrate your `server.secret` to a keyring. Support for the
-grandfathered secret will eventually be removed. When migrating **do not hand-copy it!**
-`server.secret` is read verbatim (every byte, including any trailing newline) and
-may contain non-ASCII bytes, so a manual copy that trims or re-encodes it produces a
-different key and leaves your data unreadable. Use `migrate-secret`, which reads the file exactly
-as the server does and emits a matching keyring:
+When migrating **do not hand-copy it!** `server.secret` is read verbatim (every byte, including
+any trailing newline) and may contain non-ASCII bytes, so a manual copy that trims or re-encodes
+it produces a different key and leaves your data unreadable. Use `migrate-secret`, which reads
+the file exactly as older servers did and emits a matching keyring:
 
 _Do **not** run `generate-keyring` for this — that mints new random keys and
 would leave existing data unreadable._
@@ -312,7 +303,7 @@ would leave existing data unreadable._
 mode = "aes"
 ```
 
-3. Migrate the grandfathered `server.secret` to a keyring
+3. Convert `server.secret` to a keyring
 
 ```bash
 # Reads ~/hammer_data/server.secret and writes a keyring whose content.v1 and
@@ -328,11 +319,11 @@ provider = "file"
 file = "/var/lib/hammer/server.keyring.json" # absolute path; ~ is NOT expanded. Just during migration
 ```
 
-5. Start the server again. The server will now read the keyring instead of grandfathering,
-   with identical results. Once it boots cleanly, remove `server.secret`.
+5. Start the server again. It now reads the keyring, with identical results. Once it boots
+   cleanly, remove `server.secret`.
 6. The servers crypto is now migrated to the keyring provider and everything is working!
 7. Shut down the server once again
-8. The legacy keys should be immediately rotated! The grandfathered `v1` values are the
+8. The legacy keys should be immediately rotated! The converted `v1` values are the
    old `server.secret` bytes — often non-ASCII and not safe to put in an env var. Rotate
    both roles to fresh Base64-ASCII keys, writing back to the keyring file your provider reads:
 
@@ -347,7 +338,7 @@ _Rotating `tokenHmac` invalidates active sessions, every user must re-log in on 
 
 9. Start the server to trigger a convergence, all data will be re-encrypted
 10. Once the server data converges and finishes booting, shut it down one last time
-11. Now prune the grandfathered keys. Convergence (step 8) moved every content row onto
+11. Now prune the converted keys. Convergence (step 8) moved every content row onto
     the new key, so the old `content` generation is unused and safe to drop; the old
     `tokenHmac` generation needs no database check. Prune both, writing the result back:
 
@@ -372,5 +363,4 @@ _Rotating `tokenHmac` invalidates active sessions, every user must re-log in on 
 > ```
 >
 > When run under systemd it Just Works; only manual invocations need the `set -a` step.
-> (Tip: once `server.secret` is deleted, a misconfigured `env` provider fails the boot
-> loudly instead of silently grandfathering — keep it that way.)
+> (A misconfigured `env` provider fails the boot loudly.)

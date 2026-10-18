@@ -29,9 +29,9 @@ class MigrateSecretCommand : CliktCommand(name = "migrate-secret") {
 			throw CliktError("No server.secret found at $secretPath. Pass --in <path> if it lives elsewhere.")
 		}
 
-		// Read verbatim — the running server grandfathers this exact string (trailing
-		// newline included), so the emitted v1 must match it byte-for-byte or existing
-		// data stops decrypting.
+		// Read verbatim: older servers keyed on this exact string (trailing newline
+		// included), so the emitted v1 must match it byte-for-byte or existing data
+		// stops decrypting.
 		val legacy = FileSystem.SYSTEM.read(secretPath) { readUtf8() }
 		val keyring = codec.grandfather(legacy)
 		try {

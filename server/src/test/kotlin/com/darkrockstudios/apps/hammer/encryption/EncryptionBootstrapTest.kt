@@ -13,8 +13,6 @@ import com.darkrockstudios.apps.hammer.secret.RoleKeys
 import com.darkrockstudios.apps.hammer.secret.ServerSecretProvider
 import com.darkrockstudios.apps.hammer.utils.BaseTest
 import kotlinx.coroutines.test.runTest
-import okio.Path.Companion.toPath
-import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.security.SecureRandom
@@ -57,7 +55,7 @@ class EncryptionBootstrapTest : BaseTest() {
 		val json = codec.serialize(keyring)
 		keyringManager = KeyringManager(
 			object : ServerSecretProvider { override fun loadKeyring() = json },
-			codec, FakeFileSystem(), "/none".toPath(),
+			codec,
 		)
 
 		configDao = ServerConfigDao(testDatabase)

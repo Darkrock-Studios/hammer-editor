@@ -14,7 +14,7 @@ import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectContentHash
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectDataHasher
 import com.darkrockstudios.apps.hammer.e2e.util.E2eTestData.createAuthToken
 import com.darkrockstudios.apps.hammer.e2e.util.TestDataSet1
-import com.darkrockstudios.apps.hammer.utils.SERVER_EMPTY_NO_WHITELIST
+import com.darkrockstudios.apps.hammer.utils.SERVER_EMPTY
 import com.darkrockstudios.apps.hammer.utils.createTestServer
 import io.ktor.client.*
 import io.ktor.client.call.*
@@ -63,7 +63,7 @@ class ProjectsProbeTest : ProjectSyncTestBase() {
 	@Test
 	fun `probe reports a project unchanged when the client and server hashes agree`(): Unit = runBlocking {
 		val database = database()
-		createTestServer(SERVER_EMPTY_NO_WHITELIST, fileSystem, database)
+		createTestServer(SERVER_EMPTY, fileSystem, database)
 		TestDataSet1.createFullDataset(database, encryptor())
 		val authToken = createAuthToken(userId, "test-install-id", database = database, tokenHasher = tokenHasher())
 		doStartServer()
@@ -80,7 +80,7 @@ class ProjectsProbeTest : ProjectSyncTestBase() {
 	@Test
 	fun `probe omits a project whose hash differs`(): Unit = runBlocking {
 		val database = database()
-		createTestServer(SERVER_EMPTY_NO_WHITELIST, fileSystem, database)
+		createTestServer(SERVER_EMPTY, fileSystem, database)
 		TestDataSet1.createFullDataset(database, encryptor())
 		val authToken = createAuthToken(userId, "test-install-id", database = database, tokenHasher = tokenHasher())
 		doStartServer()
@@ -97,7 +97,7 @@ class ProjectsProbeTest : ProjectSyncTestBase() {
 	@Test
 	fun `probe omits a project with an in-flight sync session`(): Unit = runBlocking {
 		val database = database()
-		createTestServer(SERVER_EMPTY_NO_WHITELIST, fileSystem, database)
+		createTestServer(SERVER_EMPTY, fileSystem, database)
 		TestDataSet1.createFullDataset(database, encryptor())
 		val authToken = createAuthToken(userId, "test-install-id", database = database, tokenHasher = tokenHasher())
 		doStartServer()
@@ -119,7 +119,7 @@ class ProjectsProbeTest : ProjectSyncTestBase() {
 	@Test
 	fun `probe rejects an unauthenticated request`(): Unit = runBlocking {
 		val database = database()
-		createTestServer(SERVER_EMPTY_NO_WHITELIST, fileSystem, database)
+		createTestServer(SERVER_EMPTY, fileSystem, database)
 		TestDataSet1.createFullDataset(database, encryptor())
 		doStartServer()
 
@@ -132,7 +132,7 @@ class ProjectsProbeTest : ProjectSyncTestBase() {
 	@Test
 	fun `probe returns 400 for a malformed body`(): Unit = runBlocking {
 		val database = database()
-		createTestServer(SERVER_EMPTY_NO_WHITELIST, fileSystem, database)
+		createTestServer(SERVER_EMPTY, fileSystem, database)
 		TestDataSet1.createFullDataset(database, encryptor())
 		val authToken = createAuthToken(userId, "test-install-id", database = database, tokenHasher = tokenHasher())
 		doStartServer()

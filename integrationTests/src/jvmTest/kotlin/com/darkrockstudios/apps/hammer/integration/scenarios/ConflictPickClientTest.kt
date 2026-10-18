@@ -4,7 +4,7 @@ import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.common.data.SceneContent
 import com.darkrockstudios.apps.hammer.e2e.util.E2eTestData
 import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
-import com.darkrockstudios.apps.hammer.datamigrator.getSerializerForType
+import com.darkrockstudios.apps.hammer.e2e.util.getSerializerForType
 import com.darkrockstudios.apps.hammer.integration.HeadlessClient
 import com.darkrockstudios.apps.hammer.integration.RoundTripTestBase
 import kotlinx.coroutines.runBlocking

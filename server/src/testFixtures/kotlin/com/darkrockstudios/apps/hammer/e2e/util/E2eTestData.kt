@@ -2,7 +2,6 @@ package com.darkrockstudios.apps.hammer.e2e.util
 
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.base.http.*
-import com.darkrockstudios.apps.hammer.datamigrator.getSerializerForType
 import com.darkrockstudios.apps.hammer.encryption.ContentEncryptor
 import com.darkrockstudios.apps.hammer.utilities.SecureTokenGenerator
 import com.darkrockstudios.apps.hammer.utilities.TokenHasher
@@ -32,6 +31,7 @@ object E2eTestData {
 	val b64 = createTokenBase64()
 	val cipherSecretGenerator = SecureTokenGenerator(AccountsRepository.CIPHER_SALT_LENGTH, b64)
 
+	/** Non-admin accounts are also put on the allowed users list, as routes enforce it. */
 	fun createAccount(account: TestAccount, database: SharedPostgresTestDatabase) {
 		database.serverDatabase.accountQueries.createAccount(
 			email = account.email,
@@ -39,6 +39,10 @@ object E2eTestData {
 			cipher_secret = cipherSecretGenerator.generateToken(),
 			is_admin = account.isAdmin,
 		)
+		val whiteList = database.serverDatabase.whiteListQueries
+		if (!account.isAdmin && whiteList.getByEmail(account.email).executeAsOneOrNull() == null) {
+			whiteList.addToWhiteList(account.email, Clock.System.now(), "Test account", null)
+		}
 	}
 
 	fun createProject(

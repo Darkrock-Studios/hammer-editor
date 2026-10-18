@@ -82,9 +82,6 @@ SELECT COUNT(*) > 0
 FROM account
 WHERE pen_name = CAST(? AS CITEXT) AND (:excludeUserId IS NULL OR id != :excludeUserId);
 
-migration_setCipherSecret:
-UPDATE account SET cipher_secret = :cipherSecret WHERE id = :id;
-
 getAccountsPaginated:
 SELECT id, email, pen_name, created, last_sync
 FROM account

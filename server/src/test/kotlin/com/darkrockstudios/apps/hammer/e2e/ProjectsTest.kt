@@ -9,7 +9,7 @@ import com.darkrockstudios.apps.hammer.e2e.util.EndToEndTest
 import com.darkrockstudios.apps.hammer.e2e.util.TestAccount
 import com.darkrockstudios.apps.hammer.e2e.util.TestDataSet1
 import com.darkrockstudios.apps.hammer.e2e.util.TestProject
-import com.darkrockstudios.apps.hammer.utils.SERVER_EMPTY_NO_WHITELIST
+import com.darkrockstudios.apps.hammer.utils.SERVER_EMPTY
 import com.darkrockstudios.apps.hammer.utils.createTestServer
 import io.ktor.client.call.*
 import io.ktor.client.request.*
@@ -25,11 +25,11 @@ import kotlin.uuid.Uuid
 class ProjectsTest : EndToEndTest() {
 	@Test
 	fun `Project - Begin Sync - No auth`(): Unit = runBlocking {
-		createTestServer(SERVER_EMPTY_NO_WHITELIST, fileSystem, database())
+		createTestServer(SERVER_EMPTY, fileSystem, database())
 		doStartServer()
 
 		client().apply {
-			val response = get(api("projects/1/begin_sync")) {
+			val response = post(api("projects/1/begin_sync")) {
 				headers {
 					append(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
 				}
@@ -42,7 +42,7 @@ class ProjectsTest : EndToEndTest() {
 	@Test
 	fun `Project Sync - Golden Path`(): Unit = runBlocking {
 		val database = database()
-		createTestServer(SERVER_EMPTY_NO_WHITELIST, fileSystem, database)
+		createTestServer(SERVER_EMPTY, fileSystem, database)
 		TestDataSet1.createFullDataset(database, encryptor())
 		val userId = 1L
 		val authToken = createAuthToken(userId, "test-install-id", database = database, tokenHasher = tokenHasher())
@@ -50,7 +50,7 @@ class ProjectsTest : EndToEndTest() {
 
 		client().apply {
 			// Begin Sync
-			val beginSyncResponse = get(api("projects/$userId/begin_sync")) {
+			val beginSyncResponse = post(api("projects/$userId/begin_sync")) {
 				headers {
 					append(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
 					append("Authorization", "Bearer ${authToken.auth}")
@@ -91,7 +91,7 @@ class ProjectsTest : EndToEndTest() {
 			assertEquals(newProjectId, createdProject.projectId)
 
 			// Delete Project
-			val deleteProjectResponse = get(api("projects/$userId/delete")) {
+			val deleteProjectResponse = post(api("projects/$userId/delete")) {
 				headers {
 					append(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
 					append("Authorization", "Bearer ${authToken.auth}")
@@ -103,7 +103,7 @@ class ProjectsTest : EndToEndTest() {
 			assertEquals(HttpStatusCode.OK, deleteProjectResponse.status)
 
 			// End sync
-			val endSyncResponse = get(api("projects/$userId/end_sync")) {
+			val endSyncResponse = post(api("projects/$userId/end_sync")) {
 				headers {
 					append(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
 					append("Authorization", "Bearer ${authToken.auth}")
@@ -114,7 +114,7 @@ class ProjectsTest : EndToEndTest() {
 			assertEquals(HttpStatusCode.OK, endSyncResponse.status)
 
 			// A fresh sync must reflect the create and the delete
-			val verifySyncResponse = get(api("projects/$userId/begin_sync")) {
+			val verifySyncResponse = post(api("projects/$userId/begin_sync")) {
 				headers {
 					append(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
 					append("Authorization", "Bearer ${authToken.auth}")
@@ -132,7 +132,7 @@ class ProjectsTest : EndToEndTest() {
 				"The deleted project must be reported as deleted on the next sync",
 			)
 
-			val verifyEndSyncResponse = get(api("projects/$userId/end_sync")) {
+			val verifyEndSyncResponse = post(api("projects/$userId/end_sync")) {
 				headers {
 					append(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
 					append("Authorization", "Bearer ${authToken.auth}")
@@ -146,7 +146,7 @@ class ProjectsTest : EndToEndTest() {
 	@Test
 	fun `Projects Sync - All account endpoints accept POST`(): Unit = runBlocking {
 		val database = database()
-		createTestServer(SERVER_EMPTY_NO_WHITELIST, fileSystem, database)
+		createTestServer(SERVER_EMPTY, fileSystem, database)
 		TestDataSet1.createFullDataset(database, encryptor())
 		val userId = 1L
 		val authToken = createAuthToken(userId, "test-install-id", database = database, tokenHasher = tokenHasher())
@@ -214,14 +214,14 @@ class ProjectsTest : EndToEndTest() {
 	@Test
 	fun `Projects Sync - Beginning again reclaims the same install's existing session`(): Unit = runBlocking {
 		val database = database()
-		createTestServer(SERVER_EMPTY_NO_WHITELIST, fileSystem, database)
+		createTestServer(SERVER_EMPTY, fileSystem, database)
 		TestDataSet1.createFullDataset(database, encryptor())
 		val userId = 1L
 		val authToken = createAuthToken(userId, "test-install-id", database = database, tokenHasher = tokenHasher())
 		doStartServer()
 
 		client().apply {
-			val beginSyncResponse1 = get(api("projects/$userId/begin_sync")) {
+			val beginSyncResponse1 = post(api("projects/$userId/begin_sync")) {
 				headers {
 					append(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
 					append("Authorization", "Bearer ${authToken.auth}")
@@ -232,7 +232,7 @@ class ProjectsTest : EndToEndTest() {
 
 			// A leaked/stale session must not lock the owner out: beginning again succeeds and
 			// reclaims the session with a fresh sync ID.
-			val beginSyncResponse2 = get(api("projects/$userId/begin_sync")) {
+			val beginSyncResponse2 = post(api("projects/$userId/begin_sync")) {
 				headers {
 					append(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
 					append("Authorization", "Bearer ${authToken.auth}")
@@ -243,7 +243,7 @@ class ProjectsTest : EndToEndTest() {
 			assertNotEquals(syncId1, syncId2)
 
 			// The reclaimed (old) sync ID is no longer valid.
-			val staleEndSyncResponse = get(api("projects/$userId/end_sync")) {
+			val staleEndSyncResponse = post(api("projects/$userId/end_sync")) {
 				headers {
 					append(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
 					append("Authorization", "Bearer ${authToken.auth}")
@@ -253,7 +253,7 @@ class ProjectsTest : EndToEndTest() {
 			assertNotEquals(HttpStatusCode.OK, staleEndSyncResponse.status)
 
 			// The new session works.
-			val endSyncResponse = get(api("projects/$userId/end_sync")) {
+			val endSyncResponse = post(api("projects/$userId/end_sync")) {
 				headers {
 					append(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
 					append("Authorization", "Bearer ${authToken.auth}")
@@ -267,7 +267,7 @@ class ProjectsTest : EndToEndTest() {
 	@Test
 	fun `Projects Sync - Begin from a different install is rejected while a session is active`(): Unit = runBlocking {
 		val database = database()
-		createTestServer(SERVER_EMPTY_NO_WHITELIST, fileSystem, database)
+		createTestServer(SERVER_EMPTY, fileSystem, database)
 		TestDataSet1.createFullDataset(database, encryptor())
 		val userId = 1L
 		val authTokenA = createAuthToken(userId, "install-a", database = database, tokenHasher = tokenHasher())
@@ -275,7 +275,7 @@ class ProjectsTest : EndToEndTest() {
 		doStartServer()
 
 		client().apply {
-			val beginSyncResponseA = get(api("projects/$userId/begin_sync")) {
+			val beginSyncResponseA = post(api("projects/$userId/begin_sync")) {
 				headers {
 					append(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
 					append("Authorization", "Bearer ${authTokenA.auth}")
@@ -285,7 +285,7 @@ class ProjectsTest : EndToEndTest() {
 			val syncIdA = beginSyncResponseA.body<BeginProjectsSyncResponse>().syncId
 
 			// Another install can't steal the active session.
-			val beginSyncResponseB = get(api("projects/$userId/begin_sync")) {
+			val beginSyncResponseB = post(api("projects/$userId/begin_sync")) {
 				headers {
 					append(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
 					append("Authorization", "Bearer ${authTokenB.auth}")
@@ -294,7 +294,7 @@ class ProjectsTest : EndToEndTest() {
 			assertEquals(HttpStatusCode.BadRequest, beginSyncResponseB.status)
 
 			// The original session is untouched.
-			val endSyncResponse = get(api("projects/$userId/end_sync")) {
+			val endSyncResponse = post(api("projects/$userId/end_sync")) {
 				headers {
 					append(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
 					append("Authorization", "Bearer ${authTokenA.auth}")
@@ -308,7 +308,7 @@ class ProjectsTest : EndToEndTest() {
 	@Test
 	fun `Project Sync - Rename Project`(): Unit = runBlocking {
 		val database = database()
-		createTestServer(SERVER_EMPTY_NO_WHITELIST, fileSystem, database)
+		createTestServer(SERVER_EMPTY, fileSystem, database)
 		TestDataSet1.createFullDataset(database, encryptor())
 		val userId = 1L
 		val authToken = createAuthToken(userId, "test-install-id", database = database, tokenHasher = tokenHasher())
@@ -316,7 +316,7 @@ class ProjectsTest : EndToEndTest() {
 
 		client().apply {
 			// Begin Sync
-			val beginSyncResponse = get(api("projects/$userId/begin_sync")) {
+			val beginSyncResponse = post(api("projects/$userId/begin_sync")) {
 				headers {
 					append(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
 					append("Authorization", "Bearer ${authToken.auth}")
@@ -327,7 +327,7 @@ class ProjectsTest : EndToEndTest() {
 
 			// Rename Project
 			val newProjectName = "New Project Name"
-			val renameProjectResponse = get(api("projects/$userId/rename")) {
+			val renameProjectResponse = post(api("projects/$userId/rename")) {
 				headers {
 					append(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
 					append("Authorization", "Bearer ${authToken.auth}")
@@ -339,7 +339,7 @@ class ProjectsTest : EndToEndTest() {
 			assertEquals(HttpStatusCode.OK, renameProjectResponse.status)
 
 			// End sync
-			val endSyncResponse = get(api("projects/$userId/end_sync")) {
+			val endSyncResponse = post(api("projects/$userId/end_sync")) {
 				headers {
 					append(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
 					append("Authorization", "Bearer ${authToken.auth}")
@@ -349,7 +349,7 @@ class ProjectsTest : EndToEndTest() {
 			assertEquals(HttpStatusCode.OK, endSyncResponse.status)
 
 			// Now verify the project is renamed
-			val beginSyncResponse2 = get(api("projects/$userId/begin_sync")) {
+			val beginSyncResponse2 = post(api("projects/$userId/begin_sync")) {
 				headers {
 					append(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
 					append("Authorization", "Bearer ${authToken.auth}")
@@ -363,7 +363,7 @@ class ProjectsTest : EndToEndTest() {
 			val renamedProject = beginSyncResponseBody2.projects.find { it.uuid == uuid }
 			assertEquals(ApiProjectDefinition(newProjectName, uuid), renamedProject)
 
-			val endSyncResponse2 = get(api("projects/$userId/end_sync")) {
+			val endSyncResponse2 = post(api("projects/$userId/end_sync")) {
 				headers {
 					append(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
 					append("Authorization", "Bearer ${authToken.auth}")
@@ -377,14 +377,14 @@ class ProjectsTest : EndToEndTest() {
 	@Test
 	fun `Project Sync - Rename onto a name another project still holds is a conflict`(): Unit = runBlocking {
 		val database = database()
-		createTestServer(SERVER_EMPTY_NO_WHITELIST, fileSystem, database)
+		createTestServer(SERVER_EMPTY, fileSystem, database)
 		TestDataSet1.createFullDataset(database, encryptor())
 		val userId = 1L
 		val authToken = createAuthToken(userId, "test-install-id", database = database, tokenHasher = tokenHasher())
 		doStartServer()
 
 		client().apply {
-			val beginSyncResponse = get(api("projects/$userId/begin_sync")) {
+			val beginSyncResponse = post(api("projects/$userId/begin_sync")) {
 				headers {
 					append(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
 					append("Authorization", "Bearer ${authToken.auth}")
@@ -406,7 +406,7 @@ class ProjectsTest : EndToEndTest() {
 			assertEquals(HttpStatusCode.OK, createResponse.status)
 			val occupyingProjectId = createResponse.body<CreateProjectResponse>().projectId
 
-			val renameResponse = get(api("projects/$userId/rename")) {
+			val renameResponse = post(api("projects/$userId/rename")) {
 				headers {
 					append(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
 					append("Authorization", "Bearer ${authToken.auth}")
@@ -418,7 +418,7 @@ class ProjectsTest : EndToEndTest() {
 			assertEquals(HttpStatusCode.Conflict, renameResponse.status)
 
 			// Every client sends its device locale, and this key has no translation yet.
-			val translatedRenameResponse = get(api("projects/$userId/rename")) {
+			val translatedRenameResponse = post(api("projects/$userId/rename")) {
 				headers {
 					append(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
 					append("Authorization", "Bearer ${authToken.auth}")
@@ -431,7 +431,7 @@ class ProjectsTest : EndToEndTest() {
 			assertEquals(HttpStatusCode.Conflict, translatedRenameResponse.status)
 
 			// Freeing the name first is what the client's delete-before-rename ordering guarantees.
-			val deleteResponse = get(api("projects/$userId/delete")) {
+			val deleteResponse = post(api("projects/$userId/delete")) {
 				headers {
 					append(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
 					append("Authorization", "Bearer ${authToken.auth}")
@@ -441,7 +441,7 @@ class ProjectsTest : EndToEndTest() {
 			}
 			assertEquals(HttpStatusCode.OK, deleteResponse.status)
 
-			val retryRenameResponse = get(api("projects/$userId/rename")) {
+			val retryRenameResponse = post(api("projects/$userId/rename")) {
 				headers {
 					append(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
 					append("Authorization", "Bearer ${authToken.auth}")
@@ -452,7 +452,7 @@ class ProjectsTest : EndToEndTest() {
 			}
 			assertEquals(HttpStatusCode.OK, retryRenameResponse.status)
 
-			val endSyncResponse = get(api("projects/$userId/end_sync")) {
+			val endSyncResponse = post(api("projects/$userId/end_sync")) {
 				headers {
 					append(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
 					append("Authorization", "Bearer ${authToken.auth}")
@@ -466,7 +466,7 @@ class ProjectsTest : EndToEndTest() {
 	@Test
 	fun `Project Sync - Create honours the client id contract`(): Unit = runBlocking {
 		val database = database()
-		createTestServer(SERVER_EMPTY_NO_WHITELIST, fileSystem, database)
+		createTestServer(SERVER_EMPTY, fileSystem, database)
 		TestDataSet1.createFullDataset(database, encryptor())
 		val otherAccount = TestAccount(email = "other@test.com", password = "password123!@#")
 		E2eTestData.createAccount(otherAccount, database)

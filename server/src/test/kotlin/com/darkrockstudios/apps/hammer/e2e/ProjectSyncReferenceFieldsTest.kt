@@ -5,7 +5,7 @@ import com.darkrockstudios.apps.hammer.base.http.ClientEntityState
 import com.darkrockstudios.apps.hammer.base.http.EntityHash
 import com.darkrockstudios.apps.hammer.e2e.util.E2eTestData.createAuthToken
 import com.darkrockstudios.apps.hammer.e2e.util.TestDataSetWithReferences
-import com.darkrockstudios.apps.hammer.utils.SERVER_EMPTY_NO_WHITELIST
+import com.darkrockstudios.apps.hammer.utils.SERVER_EMPTY
 import com.darkrockstudios.apps.hammer.utils.createTestServer
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Test
@@ -34,7 +34,7 @@ class ProjectSyncReferenceFieldsTest : ProjectSyncTestBase() {
 			// these entities and the assertion below will fail with a non-empty
 			// idSequence.
 			val database = database()
-			createTestServer(SERVER_EMPTY_NO_WHITELIST, fileSystem, database)
+			createTestServer(SERVER_EMPTY, fileSystem, database)
 			TestDataSetWithReferences.createFullDataset(database, encryptor())
 			val userId = 1L
 			val authToken = createAuthToken(
@@ -66,7 +66,7 @@ class ProjectSyncReferenceFieldsTest : ProjectSyncTestBase() {
 	fun `Scene confirmedReferences and dismissedReferences round-trip through download`(): Unit =
 		runBlocking {
 			val database = database()
-			createTestServer(SERVER_EMPTY_NO_WHITELIST, fileSystem, database)
+			createTestServer(SERVER_EMPTY, fileSystem, database)
 			TestDataSetWithReferences.createFullDataset(database, encryptor())
 			val userId = 1L
 			val authToken = createAuthToken(
@@ -99,7 +99,7 @@ class ProjectSyncReferenceFieldsTest : ProjectSyncTestBase() {
 	@Test
 	fun `Encyclopedia entry aliases round-trip through download`(): Unit = runBlocking {
 		val database = database()
-		createTestServer(SERVER_EMPTY_NO_WHITELIST, fileSystem, database)
+		createTestServer(SERVER_EMPTY, fileSystem, database)
 		TestDataSetWithReferences.createFullDataset(database, encryptor())
 		val userId = 1L
 		val authToken = createAuthToken(
@@ -134,7 +134,7 @@ class ProjectSyncReferenceFieldsTest : ProjectSyncTestBase() {
 		// the write side dropping or mis-storing the fields, which would otherwise be
 		// invisible until two real clients tried to share the data.
 		val database = database()
-		createTestServer(SERVER_EMPTY_NO_WHITELIST, fileSystem, database)
+		createTestServer(SERVER_EMPTY, fileSystem, database)
 		TestDataSetWithReferences.createFullDataset(database, encryptor())
 		val userId = 1L
 		val authToken = createAuthToken(

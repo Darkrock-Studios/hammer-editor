@@ -5,7 +5,7 @@ import com.darkrockstudios.apps.hammer.base.http.ClientEntityState
 import com.darkrockstudios.apps.hammer.base.http.EntityHash
 import com.darkrockstudios.apps.hammer.e2e.util.E2eTestData.createAuthToken
 import com.darkrockstudios.apps.hammer.e2e.util.TestDataSet1
-import com.darkrockstudios.apps.hammer.utils.SERVER_EMPTY_NO_WHITELIST
+import com.darkrockstudios.apps.hammer.utils.SERVER_EMPTY
 import com.darkrockstudios.apps.hammer.utils.createTestServer
 import io.ktor.http.*
 import kotlinx.coroutines.runBlocking
@@ -19,7 +19,7 @@ class ProjectSyncTest : ProjectSyncTestBase() {
 	@Test
 	fun `A full ProjectSync where all entities are already up to date`(): Unit = runBlocking {
 		val database = database()
-		createTestServer(SERVER_EMPTY_NO_WHITELIST, fileSystem, database)
+		createTestServer(SERVER_EMPTY, fileSystem, database)
 		TestDataSet1.createFullDataset(database, encryptor())
 		val userId = 1L
 		val authToken = createAuthToken(userId, "test-install-id", database = database, tokenHasher = tokenHasher())
@@ -49,7 +49,7 @@ class ProjectSyncTest : ProjectSyncTestBase() {
 	@Test
 	fun `A full ProjectSync where two entities need processing`(): Unit = runBlocking {
 		val database = database()
-		createTestServer(SERVER_EMPTY_NO_WHITELIST, fileSystem, database)
+		createTestServer(SERVER_EMPTY, fileSystem, database)
 		TestDataSet1.createFullDataset(database, encryptor())
 		val userId = 1L
 		val authToken = createAuthToken(userId, "test-install-id", database = database, tokenHasher = tokenHasher())
@@ -139,7 +139,7 @@ class ProjectSyncTest : ProjectSyncTestBase() {
 	@Test
 	fun `A full ProjectSync where client needs all entities`(): Unit = runBlocking {
 		val database = database()
-		createTestServer(SERVER_EMPTY_NO_WHITELIST, fileSystem, database)
+		createTestServer(SERVER_EMPTY, fileSystem, database)
 		TestDataSet1.createFullDataset(database, encryptor())
 		val userId = 1L
 		val authToken = createAuthToken(userId, "test-install-id", database = database, tokenHasher = tokenHasher())
@@ -228,7 +228,7 @@ class ProjectSyncTest : ProjectSyncTestBase() {
 	@Test
 	fun `A full ProjectSync where an entity has a conflict`(): Unit = runBlocking {
 		val database = database()
-		createTestServer(SERVER_EMPTY_NO_WHITELIST, fileSystem, database)
+		createTestServer(SERVER_EMPTY, fileSystem, database)
 		TestDataSet1.createFullDataset(database, encryptor())
 		val userId = 1L
 		val authToken = createAuthToken(userId, "test-install-id", database = database, tokenHasher = tokenHasher())
@@ -306,7 +306,7 @@ class ProjectSyncTest : ProjectSyncTestBase() {
 	@Test
 	fun `Client tries to download a deleted Entity during sync`(): Unit = runBlocking {
 		val database = database()
-		createTestServer(SERVER_EMPTY_NO_WHITELIST, fileSystem, database)
+		createTestServer(SERVER_EMPTY, fileSystem, database)
 		TestDataSet1.createFullDataset(database, encryptor())
 		val userId = 1L
 		val authToken = createAuthToken(userId, "test-install-id", database = database, tokenHasher = tokenHasher())
@@ -338,7 +338,7 @@ class ProjectSyncTest : ProjectSyncTestBase() {
 	@Test
 	fun `Beginning sync again reclaims the same user's existing session`(): Unit = runBlocking {
 		val database = database()
-		createTestServer(SERVER_EMPTY_NO_WHITELIST, fileSystem, database)
+		createTestServer(SERVER_EMPTY, fileSystem, database)
 		TestDataSet1.createFullDataset(database, encryptor())
 		val userId = 1L
 		val checkEntityId = 1
@@ -384,7 +384,7 @@ class ProjectSyncTest : ProjectSyncTestBase() {
 	@Test
 	fun `Begin sync from a different install is rejected while a session is active`(): Unit = runBlocking {
 		val database = database()
-		createTestServer(SERVER_EMPTY_NO_WHITELIST, fileSystem, database)
+		createTestServer(SERVER_EMPTY, fileSystem, database)
 		TestDataSet1.createFullDataset(database, encryptor())
 		val userId = 1L
 		val checkEntityId = 1

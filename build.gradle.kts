@@ -111,13 +111,10 @@ kover {
 					"*ResourceCollectorsKt",
 				)
 				// Generated SQLDelight code: query wrappers and DB impls.
-				packages("com.darkrockstudios.apps.hammer.legacy")
 				classes(
 					"*Queries",
 					"*Queries$*",
 					"*.ServerDatabaseImpl",
-					"*.LegacySqliteDatabaseImpl",
-					"*.LegacySqliteDatabaseImplKt",
 				)
 			}
 		}

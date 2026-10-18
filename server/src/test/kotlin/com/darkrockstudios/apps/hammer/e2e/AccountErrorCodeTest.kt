@@ -6,7 +6,7 @@ import com.darkrockstudios.apps.hammer.base.http.HAMMER_PROTOCOL_VERSION
 import com.darkrockstudios.apps.hammer.base.http.HttpResponseError
 import com.darkrockstudios.apps.hammer.base.validate.PasswordValidator
 import com.darkrockstudios.apps.hammer.e2e.util.EndToEndTest
-import com.darkrockstudios.apps.hammer.utils.SERVER_EMPTY_NO_WHITELIST
+import com.darkrockstudios.apps.hammer.utils.SERVER_EMPTY
 import com.darkrockstudios.apps.hammer.utils.createTestServer
 import io.ktor.client.request.*
 import io.ktor.client.request.forms.*
@@ -94,7 +94,7 @@ class AccountErrorCodeTest : EndToEndTest() {
 	}
 
 	private suspend fun startEmptyServer() {
-		createTestServer(SERVER_EMPTY_NO_WHITELIST, fileSystem, database())
+		createTestServer(SERVER_EMPTY, fileSystem, database())
 		doStartServer()
 	}
 

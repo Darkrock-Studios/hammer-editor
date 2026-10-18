@@ -70,11 +70,6 @@ class WhiteListRepository(
 		whiteListDao.addToWhiteList(cleanedEmail, clock.now(), reason, expires)
 	}
 
-	/** Adds every non-deleted account to the list; existing entries keep their reason and expiry. */
-	suspend fun backfillFromAccounts(reason: String = REASON_EXISTING_ACCOUNT) {
-		whiteListDao.backfillFromAccounts(clock.now(), reason)
-	}
-
 	suspend fun getEntry(email: String): WhiteList? {
 		val cleanedEmail = cleanEmail(email)
 		return whiteListDao.getByEmail(cleanedEmail)
@@ -132,7 +127,6 @@ class WhiteListRepository(
 
 	companion object {
 		const val MAX_REASON_LENGTH = 32
-		const val REASON_EXISTING_ACCOUNT = "Existing account"
 
 		/** `%` and `_` are LIKE wildcards; an admin typing `a_b@` means those literally. */
 		internal fun emailSearchPattern(raw: String): String {

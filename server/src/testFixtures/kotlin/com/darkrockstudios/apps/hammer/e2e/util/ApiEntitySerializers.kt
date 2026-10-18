@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer.datamigrator
+package com.darkrockstudios.apps.hammer.e2e.util
 
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import kotlinx.serialization.KSerializer
