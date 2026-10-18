@@ -136,6 +136,26 @@ class ResetAdminPasswordCommandTest {
 	}
 
 	@Test
+	fun `an unknown email fails`() {
+		val resetter = FakeResetter(AdminPasswordResetResult.NoSuchAccount("nobody@example.com"))
+
+		val result = command(resetter).test(listOf("--email", "nobody@example.com"), stdin = "qweasdZXC123")
+
+		assertEquals(1, result.statusCode)
+		assertContains(result.stderr, "nobody@example.com")
+	}
+
+	@Test
+	fun `a server without an admin fails`() {
+		val resetter = FakeResetter(AdminPasswordResetResult.NoAdmin)
+
+		val result = command(resetter).test(emptyList(), stdin = "qweasdZXC123")
+
+		assertEquals(1, result.statusCode)
+		assertContains(result.stderr, "No admin")
+	}
+
+	@Test
 	fun `a rejected password reports the rule`() {
 		val resetter = FakeResetter(AdminPasswordResetResult.PasswordRejected(PasswordValidationResult.TOO_SHORT))
 
@@ -143,6 +163,16 @@ class ResetAdminPasswordCommandTest {
 
 		assertEquals(1, result.statusCode)
 		assertContains(result.stderr, "8")
+	}
+
+	@Test
+	fun `an over-long password reports the maximum`() {
+		val resetter = FakeResetter(AdminPasswordResetResult.PasswordRejected(PasswordValidationResult.TOO_LONG))
+
+		val result = command(resetter).test(emptyList(), stdin = "qweasdZXC123")
+
+		assertEquals(1, result.statusCode)
+		assertContains(result.stderr, "64")
 	}
 
 	@Test
