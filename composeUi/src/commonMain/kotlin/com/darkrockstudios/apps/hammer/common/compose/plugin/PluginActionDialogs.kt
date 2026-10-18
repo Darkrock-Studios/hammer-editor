@@ -35,6 +35,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectDeepLink
@@ -80,6 +81,7 @@ import com.darkrockstudios.apps.hammer.operations.OperationRegistry
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionButton
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionField
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionPlace
+import com.darkrockstudios.apps.hammer.operations.plugin.SettingDeclaration
 import com.darkrockstudios.apps.hammer.operations.plugin.TextFormat
 import com.darkrockstudios.texteditor.EditorLineLimits
 import kotlinx.coroutines.delay
@@ -240,7 +242,8 @@ private fun PageDialog(
 		val current = shown ?: return@AnimatedDialog
 		val content = current.page
 		val markdown = content.markdown
-		DialogSurface(content.title ?: current.run.action.label, onClose = runner::dismiss) {
+		// Only Stop ends a call, as when there is no page.
+		DialogSurface(content.title ?: current.run.action.label, onClose = runner::dismiss.takeIf { working == null }) {
 			val scrollState = rememberScrollState()
 			Box(modifier = Modifier.fillMaxWidth().heightIn(max = 560.dp)) {
 				Column(
@@ -413,13 +416,16 @@ private fun PageField(
 ) {
 	Column(verticalArrangement = Arrangement.spacedBy(Ui.Padding.S)) {
 		when (field) {
-			is ActionField.Setting -> {
-				DeclaredSettingsForm(
-					declarations = listOf(field.declaration),
-					values = JsonObject(mapOf(field.key to (value ?: field.default))),
-					onChange = { _, changed -> onChange(changed) },
-				)
-				error?.let { FieldErrorText(it) }
+			is ActionField.Setting -> when (val declaration = field.declaration) {
+				is SettingDeclaration.Number -> NumberField(declaration, value, error, onChange)
+				else -> {
+					DeclaredSettingsForm(
+						declarations = listOf(declaration),
+						values = JsonObject(mapOf(field.key to (value ?: field.default))),
+						onChange = { _, changed -> onChange(changed) },
+					)
+					error?.let { FieldErrorText(it) }
+				}
 			}
 
 			is ActionField.Scenes -> {
@@ -461,6 +467,28 @@ private fun TextField(field: ActionField.Text, value: String, error: FieldError?
 		errorText?.let { HdMonoLabel(text = it, color = MaterialTheme.colorScheme.error) }
 	}
 	FieldHint(field.hint)
+}
+
+/**
+ * An `int` field. Unlike a setting's, it passes on any whole number typed, in range or not, so the
+ * check before a call sees what the user sees; until it is one, the value stays as it was.
+ */
+@Composable
+private fun NumberField(declaration: SettingDeclaration.Number, value: JsonElement?, error: FieldError?, onChange: (JsonElement) -> Unit) {
+	var typed by remember { mutableStateOf((value as? JsonPrimitive)?.content ?: declaration.defaultValue.toString()) }
+	val number = typed.trim().toLongOrNull()
+	val outOfRange = FieldError.OutOfRange(declaration.min, declaration.max).takeIf { number?.let { declaration.accept(JsonPrimitive(it)) } == null }
+	HdHairlineField(
+		label = declaration.label,
+		value = typed,
+		onValueChange = { entered ->
+			typed = entered
+			entered.trim().toLongOrNull()?.let { onChange(JsonPrimitive(it)) }
+		},
+		error = (error ?: outOfRange)?.let { fieldErrorText(it) },
+		keyboardType = KeyboardType.Number,
+	)
+	FieldHint(declaration.hint)
 }
 
 @Composable

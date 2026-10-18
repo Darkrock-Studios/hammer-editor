@@ -181,8 +181,9 @@ class FieldTable(
 			required = required,
 			defaultIds = when (val ids = default) {
 				null, JsonNull -> emptyList()
-				is JsonArray -> ids.map { it.sceneId() }
-				else -> listOf(ids.sceneId())
+				is JsonArray if multiple -> ids.map { it.sceneId() }
+				is JsonPrimitive if !multiple -> listOf(ids.sceneId())
+				else -> throw IllegalArgumentException("Field '$key' has an invalid default")
 			},
 		)
 		TEXT -> ActionField.Text(
@@ -198,7 +199,12 @@ class FieldTable(
 			}.orEmpty(),
 		)
 		STRING -> throw IllegalArgumentException("Field '$key' is a string: an action asks for text with type 'text'")
-		else -> ActionField.Setting(toDeclaration())
+		// toDeclaration() quietly replaces a default of the wrong type, as a setting's is; an action's is refused.
+		else -> ActionField.Setting(toDeclaration()).also { field ->
+			require(default == null || (default as? JsonPrimitive)?.let(field.declaration::accept) != null) {
+				"Field '$key' has an invalid default"
+			}
+		}
 	}
 
 	fun toDeclaration(): SettingDeclaration {
