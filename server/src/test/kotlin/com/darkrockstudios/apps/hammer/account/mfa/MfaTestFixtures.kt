@@ -17,7 +17,6 @@ import com.darkrockstudios.apps.hammer.secret.RoleKeys
 import com.darkrockstudios.apps.hammer.secret.ServerSecretProvider
 import com.darkrockstudios.apps.hammer.utilities.ServerSecretManager
 import com.darkrockstudios.apps.hammer.utilities.TokenHasher
-import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
 import java.security.SecureRandom
 import kotlin.io.encoding.Base64
@@ -54,7 +53,7 @@ class MfaTestFixture(
 		object : ServerSecretProvider {
 			override fun loadKeyring() = keyringJson
 		},
-		codec, fileSystem, "/none".toPath(),
+		codec,
 	)
 
 	val tokenHasher = TokenHasher(keyringManager, ServerSecretManager(fileSystem, random), base64)
