@@ -31,7 +31,7 @@ class AdminPasswordResetTest : BaseTest() {
 	private lateinit var authTokenDao: AuthTokenDao
 
 	private val oldHash = AccountsRepository.hashPassword("OldPassword1")
-	private val newPassword = "BrandNewPass123"
+	private val newPassword = "qweasdZXC123"
 
 	@BeforeEach
 	override fun setup() {

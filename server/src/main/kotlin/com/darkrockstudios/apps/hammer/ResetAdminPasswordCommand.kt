@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.database.Database
 import com.darkrockstudios.apps.hammer.dependencyinjection.mainModule
 import com.darkrockstudios.apps.hammer.utilities.getRootDataDirectory
 import com.github.ajalt.clikt.core.CliktCommand
+import com.zaxxer.hikari.pool.HikariPool.PoolInitializationException
 import com.github.ajalt.clikt.core.CliktError
 import com.github.ajalt.clikt.core.Context
 import com.github.ajalt.clikt.core.terminal
@@ -125,7 +126,9 @@ class DatabaseAdminPasswordResetter : AdminPasswordResetter {
 		try {
 			try {
 				database.initialize()
-			} catch (e: Exception) {
+			} catch (e: IllegalStateException) {
+				throw DatabaseUnavailableException(e)
+			} catch (e: PoolInitializationException) {
 				throw DatabaseUnavailableException(e)
 			}
 			val repository: PasswordResetRepository = koinApp.koin.get()

@@ -35,12 +35,12 @@ class ResetAdminPasswordCommandTest {
 	fun `piped stdin supplies the password and the email option picks the account`() {
 		val resetter = FakeResetter()
 
-		val result = command(resetter).test(listOf("--email", "admin@example.com"), stdin = "BrandNewPass123\n")
+		val result = command(resetter).test(listOf("--email", "admin@example.com"), stdin = "qweasdZXC123\n")
 
 		assertEquals(0, result.statusCode)
 		assertEquals(1, resetter.calls)
 		assertEquals("admin@example.com", resetter.email)
-		assertEquals("BrandNewPass123", resetter.password)
+		assertEquals("qweasdZXC123", resetter.password)
 		assertContains(result.stdout, "admin@example.com")
 	}
 
@@ -48,7 +48,7 @@ class ResetAdminPasswordCommandTest {
 	fun `without an email option none is passed`() {
 		val resetter = FakeResetter()
 
-		command(resetter).test(emptyList(), stdin = "BrandNewPass123")
+		command(resetter).test(emptyList(), stdin = "qweasdZXC123")
 
 		assertNull(resetter.email)
 	}
@@ -57,7 +57,7 @@ class ResetAdminPasswordCommandTest {
 	fun `the server's dev flag is accepted`() {
 		val resetter = FakeResetter()
 
-		val result = command(resetter).test(listOf("--dev"), stdin = "BrandNewPass123")
+		val result = command(resetter).test(listOf("--dev"), stdin = "qweasdZXC123")
 
 		assertEquals(0, result.statusCode)
 		assertEquals(1, resetter.calls)
@@ -67,7 +67,7 @@ class ResetAdminPasswordCommandTest {
 	fun `the password never comes from argv`() {
 		val resetter = FakeResetter()
 
-		val result = command(resetter).test(listOf("--password", "BrandNewPass123"), stdin = "")
+		val result = command(resetter).test(listOf("--password", "qweasdZXC123"), stdin = "")
 
 		assertEquals(1, result.statusCode)
 		assertEquals(0, resetter.calls)
@@ -101,13 +101,13 @@ class ResetAdminPasswordCommandTest {
 
 		val result = command(resetter).test(
 			emptyList(),
-			stdin = "BrandNewPass123\nBrandNewPass123",
+			stdin = "qweasdZXC123\nqweasdZXC123",
 			inputInteractive = true,
 		)
 
 		assertEquals(0, result.statusCode)
-		assertEquals("BrandNewPass123", resetter.password)
-		assertFalse(result.output.contains("BrandNewPass123"))
+		assertEquals("qweasdZXC123", resetter.password)
+		assertFalse(result.output.contains("qweasdZXC123"))
 	}
 
 	@Test
@@ -116,7 +116,7 @@ class ResetAdminPasswordCommandTest {
 			AdminPasswordResetResult.MultipleAdmins(listOf("first@example.com", "second@example.com")),
 		)
 
-		val result = command(resetter).test(emptyList(), stdin = "BrandNewPass123")
+		val result = command(resetter).test(emptyList(), stdin = "qweasdZXC123")
 
 		assertEquals(1, result.statusCode)
 		assertContains(result.stderr, "--email")
@@ -128,7 +128,7 @@ class ResetAdminPasswordCommandTest {
 	fun `a non-admin email fails`() {
 		val resetter = FakeResetter(AdminPasswordResetResult.NotAdmin("writer@example.com"))
 
-		val result = command(resetter).test(listOf("--email", "writer@example.com"), stdin = "BrandNewPass123")
+		val result = command(resetter).test(listOf("--email", "writer@example.com"), stdin = "qweasdZXC123")
 
 		assertEquals(1, result.statusCode)
 		assertContains(result.stderr, "writer@example.com")
@@ -149,7 +149,7 @@ class ResetAdminPasswordCommandTest {
 	fun `a database that cannot be opened points at the running server`() {
 		val resetter = FakeResetter(failure = DatabaseUnavailableException(IllegalStateException("could not lock epg-lock")))
 
-		val result = command(resetter).test(emptyList(), stdin = "BrandNewPass123")
+		val result = command(resetter).test(emptyList(), stdin = "qweasdZXC123")
 
 		assertEquals(1, result.statusCode)
 		assertContains(result.stderr, "stop")
