@@ -142,7 +142,10 @@ class SceneContentRepository(
 		}
 	}
 
-	/** Held under the lock throughout, so a [replaceBuffer] cannot land between the staleness check and the update. */
+	/**
+	 * Returns whether the buffer now holds unsaved edits that need a temp file. Held under the lock
+	 * throughout, so a [replaceBuffer] cannot land between the staleness check and the update.
+	 */
 	private fun updateSceneBufferContent(update: SceneContentUpdate): Boolean = sceneBuffersLock.withLock {
 		val (content, source) = update
 		when {
@@ -155,8 +158,9 @@ class SceneContentRepository(
 			else -> {
 				val oldBuffer = sceneBuffers[content.scene.id]
 				if (content != oldBuffer?.content || content.platformRepresentation?.stateCompare(oldBuffer.content.platformRepresentation) == true) {
-					updateSceneBuffer(SceneBuffer(content, source != UpdateSource.Sync, source))
-					true
+					val dirty = source != UpdateSource.Sync
+					updateSceneBuffer(SceneBuffer(content, dirty, source))
+					dirty
 				} else {
 					false
 				}
@@ -275,6 +279,8 @@ class SceneContentRepository(
 			Napier.e { "Failed to store scene: ${sceneItem.id} - ${sceneItem.name}, no buffer present" }
 			return false
 		}
+		// Saved or replaced by synced content since this job was launched.
+		if (!buffer.dirty) return false
 		val success = sceneDatasource.storeTempSceneBuffer(buffer)
 		if (success) {
 			_bufferPersistedFlow.tryEmit(BufferPersistedEvent(sceneItem.id, buffer.source))

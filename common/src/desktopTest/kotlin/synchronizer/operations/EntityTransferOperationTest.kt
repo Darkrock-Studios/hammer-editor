@@ -481,6 +481,29 @@ class EntityTransferOperationTest : BaseTest() {
 	}
 
 	@Test
+	fun `download - a scene with unsaved edits is left alone and keeps its baseline`() = runTest {
+		val op = createOperation(getProjectDef(PROJECT_2_NAME))
+		coEvery { mockSynchronizers.sceneSynchronizer.ownsEntity(4) } returns true
+		coEvery { mockSynchronizers.sceneSynchronizer.hasUnsavedEdits(4) } returns true
+		coEvery {
+			serverProjectApi.downloadEntity(any(), 4, any(), any())
+		} returns Result.success(
+			LoadEntityResponse(mockk<ApiProjectEntity.SceneEntity> {
+				every { id } returns 4
+				every { type } returns ApiProjectEntity.Type.SCENE
+				every { hash() } returns "server-hash-4"
+			})
+		)
+
+		val result = op.run(singleDownloadState(4))
+
+		assertTrue(isSuccess(result))
+		assertTrue(assertIs<EntityTransferState>(result.data).allSuccess)
+		coVerify(exactly = 0) { mockSynchronizers.sceneSynchronizer.storeEntity(any(), any(), any()) }
+		coVerify(exactly = 0) { syncJournal.recordSyncedHash(any(), any()) }
+	}
+
+	@Test
 	fun `download - entity missing from server but present locally is re-uploaded to heal`() = runTest {
 		val op = createOperation(getProjectDef(PROJECT_2_NAME))
 		// Owned locally, but not dirty/new and not newer than the server, so it takes the
