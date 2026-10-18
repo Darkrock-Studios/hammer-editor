@@ -9,10 +9,10 @@ import kotlin.io.encoding.Base64
  * Hashes authentication tokens with HMAC-SHA256, keyed by the active token-HMAC
  * key to prevent rainbow-table attacks.
  *
- * The key comes from the keyring's `tokenHmac` role when a keyring is available
- * (explicit or grandfathered). With no keyring at all — a zero-config plaintext
- * server — it falls back to the auto-managed `server.secret`, because losing this
- * key only forces a re-login, never data loss.
+ * The key comes from the keyring's `tokenHmac` role when a keyring is configured.
+ * With no keyring at all, a zero-config plaintext server, it falls back to the
+ * auto-managed `server.secret`, because losing this key only forces a re-login,
+ * never data loss.
  */
 class TokenHasher(
 	private val keyringManager: KeyringManager,

@@ -40,21 +40,12 @@ kotlin {
 
 sqldelight {
 	databases {
-		// Production database — single source of truth going forward (PostgreSQL).
 		create("ServerDatabase") {
 			packageName.set("com.darkrockstudios.apps.hammer.database")
 			dialect(libs.sqldelight.postgresql.dialect.get().toString())
 			srcDirs("src/main/sqldelight")
 			version = 8
 			schemaOutputDirectory.set(project.file("build/generated/sqldelight"))
-		}
-		// Read-only legacy database — used ONLY by the one-time SQLite-to-Postgres migrator.
-		// Marked for removal in a future release once production has migrated.
-		create("LegacySqliteDatabase") {
-			packageName.set("com.darkrockstudios.apps.hammer.database.legacy")
-			srcDirs("src/main/sqldelight-legacy-sqlite")
-			version = 5
-			schemaOutputDirectory.set(project.file("build/generated/sqldelight-legacy"))
 		}
 	}
 }
@@ -100,9 +91,6 @@ dependencies {
 
 	implementation(libs.okio)
 
-	// SqlDelight: legacy SQLite driver (read-only, used by the one-time migrator)
-	// and the JDBC driver (used by the production PostgreSQL backends).
-	implementation(libs.sqldelight.driver)
 	implementation(libs.sqldelight.jdbc.driver)
 
 	// PostgreSQL backends — embedded (Zonky) for local/personal installs, remote for production.
@@ -166,7 +154,6 @@ dependencies {
 	testFixturesApi(libs.bundles.ktor.server)
 	testFixturesApi(libs.okio)
 	testFixturesApi(libs.okio.fakefilesystem)
-	testFixturesApi(libs.sqldelight.driver)
 	testFixturesApi(libs.sqldelight.jdbc.driver)
 	testFixturesApi(libs.bundles.junit.jupiter)
 	testFixturesApi(libs.coroutines.core)

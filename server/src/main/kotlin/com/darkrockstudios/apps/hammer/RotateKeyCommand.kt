@@ -48,12 +48,9 @@ class RotateKeyCommand : CliktCommand(name = "rotate-key") {
 			val manager = KeyringManager(
 				buildSecretProvider(config.secret, FileSystem.SYSTEM),
 				codec,
-				FileSystem.SYSTEM,
-				KeyringManager.legacySecretPath(),
 			)
 			manager.keyringOrNull() ?: throw CliktError(
-				"No keyring found via the configured ${config.secret.provider} provider " +
-					"(and no legacy server.secret to grandfather)."
+				"No keyring found via the configured ${config.secret.provider} provider."
 			)
 		}
 		val json = codec.serialize(codec.rotate(current, role))

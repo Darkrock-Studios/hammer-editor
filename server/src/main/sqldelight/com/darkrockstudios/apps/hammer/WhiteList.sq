@@ -35,15 +35,6 @@ ON CONFLICT (email) DO UPDATE
 SET reason = EXCLUDED.reason,
     expires = EXCLUDED.expires;
 
--- DO NOTHING rather than addToWhiteList's upsert: existing entries (Patreon,
--- expiring invites) must keep their reason and expiry.
-backfillFromAccounts:
-INSERT INTO white_list(email, date_added, reason, expires)
-SELECT a.email, ?, ?, NULL
-FROM account a
-WHERE a.deleted_at IS NULL
-ON CONFLICT (email) DO NOTHING;
-
 removeFromWhiteList:
 DELETE FROM white_list
 WHERE email = CAST(? AS CITEXT);
@@ -52,9 +43,8 @@ getAll:
 SELECT * FROM white_list
 ORDER BY email ASC;
 
--- Every paginated query breaks ties on email. backfillFromAccounts stamps all the rows
--- it migrates with one timestamp, so date_added alone leaves LIMIT/OFFSET free to repeat
--- and skip entries across pages.
+-- Every paginated query breaks ties on email: entries added in one batch share a
+-- date_added, which alone would leave LIMIT/OFFSET free to repeat and skip entries.
 getPaginated:
 SELECT * FROM white_list
 ORDER BY date_added DESC, email ASC

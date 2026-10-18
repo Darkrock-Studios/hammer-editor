@@ -53,7 +53,7 @@ import com.darkrockstudios.apps.hammer.database.UserDataPurgeDao
 import com.darkrockstudios.apps.hammer.database.WhiteListDao
 import com.darkrockstudios.apps.hammer.database.WritingActivityDao
 import com.darkrockstudios.apps.hammer.datamigrator.DataMigrator
-import com.darkrockstudios.apps.hammer.datamigrator.migrations.AllowedUsersBackfillMigration
+import com.darkrockstudios.apps.hammer.datamigrator.migrations.GrandfatheredSecretMigration
 import com.darkrockstudios.apps.hammer.email.EmailProvider
 import com.darkrockstudios.apps.hammer.email.EmailService
 import com.darkrockstudios.apps.hammer.email.MailgunEmailService
@@ -205,7 +205,15 @@ fun mainModule(
 	single<ConfigRepository>()
 	single {
 		DataMigrator(get()).apply {
-			addMigration(AllowedUsersBackfillMigration(get(), get()))
+			addMigration(
+				GrandfatheredSecretMigration(
+					provider = get(),
+					fileSystem = get(),
+					legacySecretPath = KeyringManager.legacySecretPath(),
+					serverConfig = get(),
+					database = get(),
+				)
+			)
 		}
 	}
 	single<MetricsRepository>()
@@ -273,7 +281,7 @@ fun mainModule(
 	single { KeyringCodec(get(), get()) }
 	single<ServerSecretProvider> { buildSecretProvider(get<ServerConfig>().secret, get()) }
 	single {
-		KeyringManager(get(), get(), get(), KeyringManager.legacySecretPath())
+		KeyringManager(get(), get())
 	}
 	single<SimpleFileBasedAesGcmKeyProvider>() bind AesGcmKeyProvider::class
 	single<PlaintextContentEncryptor>()

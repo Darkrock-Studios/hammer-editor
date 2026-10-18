@@ -28,13 +28,6 @@ open class DataMigrator(
 		return migrators
 	}
 
-	// Order matters: MigrateInlineAuthTokens rewrites server.json tokenless and in doing so
-	// drops legacy fields, so MigrateInstallIdToGlobal must read installId out of it first.
-	protected open fun getGlobalMigrations(): List<GlobalMigration> = listOf(
-		getKoin().get<MigrateInstallIdToGlobal>(),
-		getKoin().get<MigrateInlineAuthTokens>(),
-	)
-
 	private fun getProjects(): List<ProjectData> {
 		val projDir = globalSettingsStore.globalSettings.projectsDirectory.toPath()
 		val projects = projectsRepository.getProjects(projDir.toHPath()).map { projDef ->
@@ -45,7 +38,6 @@ open class DataMigrator(
 	}
 
 	suspend fun handleDataMigration() {
-		runGlobalMigrations()
 		// Healed projects start at data version 0, so they are migrated below.
 		val healed = projectsRepository.healUnmarkedProjectDirectories()
 
@@ -60,13 +52,6 @@ open class DataMigrator(
 		healed.forEach { projectsRepository.resetSyncStateAfterRestore(it, serverKnowsProject = false) }
 
 		projectsRepository.resolveDuplicateProjectIds()
-	}
-
-	private suspend fun runGlobalMigrations() {
-		getGlobalMigrations().forEach { it.migrate() }
-		// Global migrations may relocate legacy inline tokens into the store; refresh the
-		// store's cached server settings so this session sees them.
-		globalSettingsStore.reloadServerSettings()
 	}
 
 	fun checkIfMigrationNeeded(): Boolean {

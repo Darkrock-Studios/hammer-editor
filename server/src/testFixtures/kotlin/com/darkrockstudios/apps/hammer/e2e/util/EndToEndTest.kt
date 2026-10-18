@@ -99,7 +99,7 @@ abstract class EndToEndTest {
 		fileSystem.write(keyringPath) { writeUtf8(codec.serialize(codec.generate())) }
 		val keyringManager = KeyringManager(
 			FileSecretProvider(fileSystem, keyringPath),
-			codec, fileSystem, KeyringManager.legacySecretPath(),
+			codec,
 		)
 		tokenHasher = TokenHasher(keyringManager, serverSecretManager, base64)
 		contentEncryptor = AesGcmContentEncryptor(

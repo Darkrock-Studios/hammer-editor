@@ -14,7 +14,6 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScop
 import com.darkrockstudios.apps.hammer.common.server.EntityNotFoundException
 import com.darkrockstudios.apps.hammer.common.server.EntityNotModifiedException
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
-import com.darkrockstudios.apps.hammer.common.server.StaleServerHashException
 import getProjectDef
 import io.mockk.*
 import io.mockk.impl.annotations.MockK
@@ -269,45 +268,6 @@ class EntityTransferOperationTest : BaseTest() {
 	}
 
 	@Test
-	fun `download - stale server hash is healed by a forced upload`() = runTest {
-		val op = createOperation(getProjectDef(PROJECT_2_NAME))
-		// Client owns the entity but it's neither dirty nor newer than the server, so it
-		// downloads — then the stale-hash response triggers the force-upload heal path.
-		coEvery { mockSynchronizers.sceneSynchronizer.ownsEntity(4) } returns true
-		coEvery {
-			serverProjectApi.downloadEntity(any(), 4, any(), any())
-		} returns Result.failure(StaleServerHashException(4, "cached", "computed"))
-		coEvery {
-			mockSynchronizers.sceneSynchronizer.uploadEntity(4, any(), any(), any(), any(), true, any())
-		} returns true
-
-		val result = op.run(singleDownloadState(4))
-
-		assertTrue(isSuccess(result))
-		assertTrue(assertIs<EntityTransferState>(result.data).allSuccess)
-		coVerify(exactly = 1) {
-			mockSynchronizers.sceneSynchronizer.uploadEntity(4, any(), any(), any(), any(), true, any())
-		}
-	}
-
-	@Test
-	fun `download - stale server hash with no local copy fails instead of claiming healed`() = runTest {
-		val op = createOperation(getProjectDef(PROJECT_2_NAME))
-		// Fresh device: no synchronizer owns the entity, so there is nothing to force-upload.
-		coEvery {
-			serverProjectApi.downloadEntity(any(), 4, any(), any())
-		} returns Result.failure(StaleServerHashException(4, "cached", "computed"))
-
-		val result = op.run(singleDownloadState(4))
-
-		assertTrue(isSuccess(result))
-		assertFalse(assertIs<EntityTransferState>(result.data).allSuccess)
-		coVerify(exactly = 0) {
-			mockSynchronizers.sceneSynchronizer.uploadEntity(any(), any(), any(), any(), any(), any(), any())
-		}
-	}
-
-	@Test
 	fun `download - a failed store logs an error but does not record a synced hash`() = runTest {
 		val op = createOperation(getProjectDef(PROJECT_2_NAME))
 		coEvery {
@@ -534,23 +494,6 @@ class EntityTransferOperationTest : BaseTest() {
 		coEvery {
 			serverProjectApi.downloadEntity(any(), 4, any(), any())
 		} returns Result.failure(RuntimeException("network down"))
-
-		val result = op.run(singleDownloadState(4))
-
-		assertTrue(isSuccess(result))
-		assertFalse(assertIs<EntityTransferState>(result.data).allSuccess)
-	}
-
-	@Test
-	fun `download - a failed stale-hash heal marks the transfer unsuccessful`() = runTest {
-		val op = createOperation(getProjectDef(PROJECT_2_NAME))
-		coEvery { mockSynchronizers.sceneSynchronizer.ownsEntity(4) } returns true
-		coEvery {
-			serverProjectApi.downloadEntity(any(), 4, any(), any())
-		} returns Result.failure(StaleServerHashException(4, "cached", "computed"))
-		coEvery {
-			mockSynchronizers.sceneSynchronizer.uploadEntity(4, any(), any(), any(), any(), true, any())
-		} returns false
 
 		val result = op.run(singleDownloadState(4))
 

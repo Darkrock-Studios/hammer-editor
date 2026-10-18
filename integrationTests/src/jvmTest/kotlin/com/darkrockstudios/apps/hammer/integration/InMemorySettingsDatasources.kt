@@ -40,5 +40,4 @@ class InMemoryServerSettingsDatasource : ServerSettingsDatasource {
 		store.remove(key(projectsDir))
 	}
 
-	override fun migrateInlineTokens(projectsDir: HPath) = Unit
 }

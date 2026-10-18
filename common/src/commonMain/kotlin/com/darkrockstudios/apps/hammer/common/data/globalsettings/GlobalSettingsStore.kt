@@ -72,14 +72,6 @@ class GlobalSettingsStore(
 		}
 	}
 
-	/**
-	 * Re-reads server settings from disk and republishes them, resynchronizing the
-	 * in-memory copy with whatever is on disk.
-	 */
-	fun reloadServerSettings() {
-		dispatchServerSettingsUpdate(serverSettingsDatasource.loadServerSettings(projectsDir()))
-	}
-
 	fun isServerSynchronized(): Boolean = (serverSettings != null)
 
 	private fun dispatchSettingsUpdate(settings: GlobalSettings) {

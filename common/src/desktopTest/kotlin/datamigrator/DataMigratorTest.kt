@@ -119,8 +119,6 @@ class DataMigratorTest : BaseTest() {
 			factory<Migration1_2> { mockk(relaxed = true) }
 			factory<Migration2_3> { mockk(relaxed = true) }
 			factory<Migration3_4> { mockk(relaxed = true) }
-			factory<MigrateInstallIdToGlobal> { mockk(relaxed = true) }
-			factory<MigrateInlineAuthTokens> { mockk(relaxed = true) }
 		}
 		setupKoin(testModule)
 
@@ -165,11 +163,7 @@ class DataMigratorTest : BaseTest() {
 
 	@Test
 	fun `Handle Migration - Heals unmarked folders before the scan and resets them after migrating`() {
-		val testModule = module {
-			factory<MigrateInstallIdToGlobal> { mockk(relaxed = true) }
-			factory<MigrateInlineAuthTokens> { mockk(relaxed = true) }
-		}
-		setupKoin(testModule)
+		setupKoin()
 
 		// The healed project is only listed once it has its project.toml back.
 		val healedDef = getProjectDef(PROJECT_1_NAME)
@@ -222,8 +216,6 @@ class DataMigratorTest : BaseTest() {
 			factory<Migration1_2> { mockk(relaxed = true) }
 			factory<Migration2_3> { mockk(relaxed = true) }
 			factory<Migration3_4> { mockk(relaxed = true) }
-			factory<MigrateInstallIdToGlobal> { mockk(relaxed = true) }
-			factory<MigrateInlineAuthTokens> { mockk(relaxed = true) }
 		}
 		setupKoin(testModule)
 
@@ -286,8 +278,6 @@ class DataMigratorTest : BaseTest() {
 		val proj1def = getProjectDef(PROJECT_1_NAME)
 
 		val testModule = module {
-			factory<MigrateInstallIdToGlobal> { mockk(relaxed = true) }
-			factory<MigrateInlineAuthTokens> { mockk(relaxed = true) }
 		}
 		setupKoin(testModule)
 
@@ -375,8 +365,6 @@ class DataMigratorTest : BaseTest() {
 		val proj1def = getProjectDef(PROJECT_1_NAME)
 
 		val testModule = module {
-			factory<MigrateInstallIdToGlobal> { mockk(relaxed = true) }
-			factory<MigrateInlineAuthTokens> { mockk(relaxed = true) }
 		}
 		setupKoin(testModule)
 

@@ -7,8 +7,6 @@ import com.darkrockstudios.apps.hammer.secret.RoleKeys
 import com.darkrockstudios.apps.hammer.secret.ServerSecretProvider
 import com.darkrockstudios.apps.hammer.utils.BaseTest
 import kotlinx.coroutines.test.runTest
-import okio.Path
-import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -35,7 +33,7 @@ class TokenHasherTest : BaseTest() {
 		codec = KeyringCodec(secureRandom, base64)
 	}
 
-	private fun managerWithTokenKey(tokenKey: String, legacyPath: Path = "/none".toPath()): KeyringManager {
+	private fun managerWithTokenKey(tokenKey: String): KeyringManager {
 		val keyring = Keyring(
 			content = RoleKeys("v1", mapOf("v1" to "content-key")),
 			tokenHmac = RoleKeys("v1", mapOf("v1" to tokenKey)),
@@ -43,13 +41,13 @@ class TokenHasherTest : BaseTest() {
 		val json = codec.serialize(keyring)
 		return KeyringManager(
 			object : ServerSecretProvider { override fun loadKeyring() = json },
-			codec, fileSystem, legacyPath,
+			codec,
 		)
 	}
 
-	private fun managerNoKeyring(legacyPath: Path) = KeyringManager(
+	private fun managerNoKeyring() = KeyringManager(
 		object : ServerSecretProvider { override fun loadKeyring(): String? = null },
-		codec, fileSystem, legacyPath,
+		codec,
 	)
 
 	@Test
@@ -67,30 +65,9 @@ class TokenHasherTest : BaseTest() {
 	}
 
 	@Test
-	fun `grandfathered keyring hashes identically to the legacy secret fallback`() = runTest {
-		// Existing deployment: a server.secret on disk. Grandfathered tokenHmac == that
-		// secret, so it must hash exactly as the legacy fallback would for the same secret.
-		val legacyPath = KeyringManager.legacySecretPath()
-		fileSystem.createDirectories(legacyPath.parent!!)
-		val secret = "legacy-server-secret"
-		fileSystem.write(legacyPath) { writeUtf8(secret) }
-
-		val grandfathered = TokenHasher(
-			managerNoKeyring(legacyPath), ServerSecretManager(fileSystem, secureRandom), base64,
-		)
-		// A manager that finds no legacy file, forcing the fallback to read the same secret
-		// via ServerSecretManager (which reads the standard path).
-		val fallback = TokenHasher(
-			managerNoKeyring("/absent".toPath()), ServerSecretManager(fileSystem, secureRandom), base64,
-		)
-
-		assertEquals(fallback.hashToken(token), grandfathered.hashToken(token))
-	}
-
-	@Test
 	fun `with no keyring the auto-managed secret hashes stably across instances`() = runTest {
 		val hasher = TokenHasher(
-			managerNoKeyring("/absent".toPath()), ServerSecretManager(fileSystem, secureRandom), base64,
+			managerNoKeyring(), ServerSecretManager(fileSystem, secureRandom), base64,
 		)
 		val hash = hasher.hashToken(token)
 		assertTrue(hash.isNotEmpty())
@@ -98,7 +75,7 @@ class TokenHasherTest : BaseTest() {
 		// A fresh instance over the same filesystem must reload the persisted secret and
 		// agree, or every stored token hash would break on server restart.
 		val secondInstance = TokenHasher(
-			managerNoKeyring("/absent".toPath()), ServerSecretManager(fileSystem, secureRandom), base64,
+			managerNoKeyring(), ServerSecretManager(fileSystem, secureRandom), base64,
 		)
 		assertEquals(hash, secondInstance.hashToken(token))
 	}

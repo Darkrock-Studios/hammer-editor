@@ -3,7 +3,7 @@ package com.darkrockstudios.apps.hammer.e2e
 import com.darkrockstudios.apps.hammer.base.http.HAMMER_PROTOCOL_HEADER
 import com.darkrockstudios.apps.hammer.base.http.HAMMER_PROTOCOL_VERSION
 import com.darkrockstudios.apps.hammer.e2e.util.EndToEndTest
-import com.darkrockstudios.apps.hammer.utils.SERVER_EMPTY_NO_WHITELIST
+import com.darkrockstudios.apps.hammer.utils.SERVER_EMPTY
 import com.darkrockstudios.apps.hammer.utils.createTestServer
 import io.ktor.client.request.*
 import io.ktor.client.request.forms.*
@@ -37,7 +37,7 @@ class PasswordComplexityLoginTest : EndToEndTest() {
 
 	// The login rate limiter allows 10 requests per window, so at most five pairs per server.
 	private fun roundTrip(vararg passwords: Pair<String, String>): Unit = runBlocking {
-		createTestServer(SERVER_EMPTY_NO_WHITELIST, fileSystem, database())
+		createTestServer(SERVER_EMPTY, fileSystem, database())
 
 		// Allowed Users is always enforced, and only the first account (the bootstrap
 		// admin) is exempt, so every other address has to be on the list to get in.

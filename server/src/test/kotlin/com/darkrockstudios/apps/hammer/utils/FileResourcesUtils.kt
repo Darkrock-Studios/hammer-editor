@@ -81,10 +81,8 @@ object FileResourcesUtils {
 		dbFiles.forEach { sqlFile ->
 			sqlFile.bufferedReader().use { reader ->
 				val databaseSql = reader.readText()
-				databaseSql.split(";").filter { it.isNotBlank() }.forEach { rawStmt ->
-					val translated = com.darkrockstudios.apps.hammer.e2e.util
-						.LegacyFixtureSqlTranslator.translate(rawStmt)
-					database.executeAsync(translated)
+				databaseSql.split(";").filter { it.isNotBlank() }.forEach { statement ->
+					database.executeAsync(statement)
 				}
 			}
 		}

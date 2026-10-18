@@ -81,10 +81,6 @@ class HammerServerCommand : CliktCommand(name = "Hammer Server") {
 	private val devMode by option("-d", "--dev", help = "Run in development mode").flag()
 	private val logLevelArg by option("-l", "--logLevel", help = "Log Level")
 		.choice("TRACE", "DEBUG", "INFO", "WARN", "ERROR")
-	private val migrateDryRun by option(
-		"--migrate-dry-run",
-		help = "Run the SQLite-to-Postgres migration in verify-only mode (rolls back, never renames server.db)",
-	).flag()
 	private val convergeDryRun by option(
 		"--converge-dry-run",
 		help = "Report what encryption convergence would do (rows off-target, over-cap entities) and exit, writing nothing",
@@ -103,19 +99,10 @@ class HammerServerCommand : CliktCommand(name = "Hammer Server") {
 		config.storage.validate()
 		config.analytics.validate()
 
-		// Dry-run paths exit before the server starts (and never bind a port).
-		if (migrateDryRun) {
-			val exit = com.darkrockstudios.apps.hammer.database.migration.SqliteToPostgresMigrator
-				.runDryRun(config.storage, FileSystem.SYSTEM)
-			exitProcess(exit)
-		}
+		// The dry run exits before the server starts (and never binds a port).
 		if (convergeDryRun) {
 			exitProcess(runConvergeDryRun(config))
 		}
-
-		// Auto-run the one-time SQLite → Postgres migration if a legacy server.db is
-		// found alongside the Postgres config. NoOp on fresh installs.
-		runOneTimeSqliteToPostgresMigration(config)
 
 		startServer(config, devMode, logLevel)
 	}
@@ -153,23 +140,6 @@ private fun runConvergeDryRun(config: ServerConfig): Int {
 	} finally {
 		database.close()
 		koinApp.close()
-	}
-}
-
-private fun runOneTimeSqliteToPostgresMigration(config: ServerConfig) {
-	val migrator = com.darkrockstudios.apps.hammer.database.migration.SqliteToPostgresMigrator(
-		config.storage,
-		FileSystem.SYSTEM,
-	)
-	when (val result = migrator.run()) {
-		is com.darkrockstudios.apps.hammer.database.migration.SqliteToPostgresMigrator.Result.NoOp -> { /* normal boot */ }
-		is com.darkrockstudios.apps.hammer.database.migration.SqliteToPostgresMigrator.Result.Success -> {
-			println("Migrated SQLite -> Postgres. Backup: ${result.backupPath}. Rows: ${result.rowCounts}")
-		}
-		is com.darkrockstudios.apps.hammer.database.migration.SqliteToPostgresMigrator.Result.Aborted -> {
-			System.err.println("SQLite → Postgres migration aborted: ${result.reason}")
-			exitProcess(1)
-		}
 	}
 }
 
@@ -422,12 +392,12 @@ fun Application.appMain(
 	plugins: List<ServerPlugin> = installedPlugins(),
 ) {
 	configureDependencyInjection(config, addInModule, plugins)
-	val encryptionBootstrap: EncryptionBootstrap by inject()
-	runBlocking { encryptionBootstrap.run() }
-	// Must complete before any route is installed: routes enforce the allowed
-	// users list, and the backfill is what guarantees existing accounts are on it.
+	// Migrations run before encryption convergence so the secret guard reports before a
+	// missing-keyring error; a migration must therefore never touch encrypted content.
 	val dataMigrator: DataMigrator by inject()
 	runBlocking { dataMigrator.runMigrations() }
+	val encryptionBootstrap: EncryptionBootstrap by inject()
+	runBlocking { encryptionBootstrap.run() }
 	configureSerialization()
 	configureMonitoring(logLevel)
 	configureApiMetrics()

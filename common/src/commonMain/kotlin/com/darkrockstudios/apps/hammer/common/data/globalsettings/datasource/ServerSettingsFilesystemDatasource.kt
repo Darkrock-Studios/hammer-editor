@@ -9,9 +9,6 @@ import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import io.github.aakira.napier.Napier
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.contentOrNull
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 import okio.FileSystem
 
 class ServerSettingsFilesystemDatasource(
@@ -62,48 +59,6 @@ class ServerSettingsFilesystemDatasource(
 
 		fileSystem.delete(path)
 		account?.let { authTokenStore.remove(it.url, it.userId) }
-	}
-
-	/**
-	 * Moves inline tokens from a legacy `server.json` into the token store and rewrites
-	 * the file tokenless, so the plaintext secrets no longer live in the workspace.
-	 * Idempotent and self-gating: a no-op once the file carries no inline tokens.
-	 *
-	 * Transitional: delete this (and [readInlineTokens]) once 4.0 ships and every upgrading
-	 * user has run it.
-	 */
-	override fun migrateInlineTokens(projectsDir: HPath) {
-		val path = getServerSettingsPath(projectsDir).toOkioPath()
-		if (!fileSystem.exists(path)) return
-
-		val settingsText = fileSystem.read(path) { readUtf8() }
-		val inline = readInlineTokens(settingsText) ?: return
-
-		val persisted: PersistedServerSettings = try {
-			json.decodeFromString(settingsText)
-		} catch (e: SerializationException) {
-			Napier.e("Failed to parse server.json during inline-token migration.", e)
-			return
-		}
-
-		try {
-			authTokenStore.put(persisted.url, persisted.userId, inline)
-			fileSystem.writeJson(path, json, persisted)
-			Napier.i("Migrated inline server.json tokens into the token store")
-		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-			Napier.e("Failed to migrate inline auth tokens", e)
-		}
-	}
-
-	private fun readInlineTokens(settingsText: String): AuthTokens? {
-		val obj = runCatching { json.parseToJsonElement(settingsText).jsonObject }.getOrNull() ?: return null
-		val bearer = obj["bearerToken"]?.jsonPrimitive?.contentOrNull
-		val refresh = obj["refreshToken"]?.jsonPrimitive?.contentOrNull
-		return if (bearer != null || refresh != null) {
-			AuthTokens(bearer, refresh)
-		} else {
-			null
-		}
 	}
 
 	private fun getServerSettingsPath(projectsDir: HPath): HPath {

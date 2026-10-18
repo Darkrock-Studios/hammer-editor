@@ -32,7 +32,7 @@ class ProjectsRoutesDeleteProjectTest : ProjectsRoutesBaseTest() {
 
 		defaultApplication()
 
-		client.get("api/projects/0/delete") {
+		client.post("api/projects/0/delete") {
 			header(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
 			header("Authorization", "Bearer $BEARER_TOKEN")
 			header(HEADER_SYNC_ID, syncId)
@@ -56,7 +56,7 @@ class ProjectsRoutesDeleteProjectTest : ProjectsRoutesBaseTest() {
 
 		defaultApplication()
 
-		client.get("api/projects/0/delete") {
+		client.post("api/projects/0/delete") {
 			header(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
 			header("Authorization", "Bearer $BEARER_TOKEN")
 
@@ -83,7 +83,7 @@ class ProjectsRoutesDeleteProjectTest : ProjectsRoutesBaseTest() {
 
 		defaultApplication()
 
-		client.get("api/projects/0/delete") {
+		client.post("api/projects/0/delete") {
 			header(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
 			header("Authorization", "Bearer $BEARER_TOKEN")
 			header(HEADER_SYNC_ID, syncId)

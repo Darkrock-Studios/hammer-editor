@@ -2,6 +2,7 @@ package server
 
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.CreateProjectResponse
+import com.darkrockstudios.apps.hammer.base.http.HEADER_SYNC_ID
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectsApi
@@ -28,11 +29,8 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-/**
- * The mutating account endpoints moved from GET to POST. Servers that predate the move only
- * route them as GET, so the client prefers POST and retries once as GET on 404/405.
- */
-class ServerProjectsApiLegacyFallbackTest : BaseTest() {
+/** The mutating account endpoints are POST only; a 404 is a failure, never a retry. */
+class ServerProjectsApiTest : BaseTest() {
 
 	private val userId = 42L
 	private val json = Json { ignoreUnknownKeys = true }
@@ -59,29 +57,17 @@ class ServerProjectsApiLegacyFallbackTest : BaseTest() {
 		)
 	}
 
-	private fun modernServer() = MockEngine { request ->
-		if (request.method == HttpMethod.Post) {
-			respond("Okay", HttpStatusCode.OK)
-		} else {
-			respond("", HttpStatusCode.NotFound)
-		}
-	}
-
-	private fun legacyServer() = MockEngine { request ->
-		if (request.method == HttpMethod.Get) {
-			if (request.url.encodedPath.endsWith("/create")) {
-				respond(
-					content = json.encodeToString(
-						CreateProjectResponse(ProjectId("uuid-created"), alreadyExisted = false)
-					),
-					status = HttpStatusCode.OK,
-					headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
-				)
-			} else {
-				respond("Okay", HttpStatusCode.OK)
-			}
-		} else {
-			respond("", HttpStatusCode.NotFound)
+	private fun server() = MockEngine { request ->
+		when {
+			request.method != HttpMethod.Post -> respond("", HttpStatusCode.MethodNotAllowed)
+			request.url.encodedPath.endsWith("/create") -> respond(
+				content = json.encodeToString(
+					CreateProjectResponse(ProjectId("uuid-local"), alreadyExisted = false)
+				),
+				status = HttpStatusCode.OK,
+				headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+			)
+			else -> respond("Okay", HttpStatusCode.OK)
 		}
 	}
 
@@ -93,57 +79,28 @@ class ServerProjectsApiLegacyFallbackTest : BaseTest() {
 	}
 
 	@Test
-	fun `end sync uses a single POST against a modern server`() = runTest {
-		val engine = modernServer()
+	fun `end sync, delete and rename each send a single POST with the sync id`() = runTest {
+		val engine = server()
 		val api = createApi(engine)
 
-		val result = api.endProjectsSync("sync-1")
-
-		assertTrue(result.isSuccess)
-		assertEquals(listOf(HttpMethod.Post), engine.requestHistory.map { it.method })
-	}
-
-	@Test
-	fun `end sync falls back to GET against a legacy server`() = runTest {
-		val engine = legacyServer()
-		val api = createApi(engine)
-
-		val result = api.endProjectsSync("sync-1")
-
-		assertTrue(result.isSuccess)
-		assertEquals("Okay", result.getOrThrow())
-		assertEquals(listOf(HttpMethod.Post, HttpMethod.Get), engine.requestHistory.map { it.method })
-	}
-
-	@Test
-	fun `delete and rename fall back to GET against a legacy server`() = runTest {
-		val engine = legacyServer()
-		val api = createApi(engine)
-
+		assertTrue(api.endProjectsSync("sync-1").isSuccess)
 		assertTrue(api.deleteProject(ProjectId("uuid-1"), "sync-1").isSuccess)
 		assertTrue(api.renameProject(ProjectId("uuid-1"), "sync-1", "New Name").isSuccess)
 
+		val requests = engine.requestHistory
 		assertEquals(
-			listOf(HttpMethod.Post, HttpMethod.Get, HttpMethod.Post, HttpMethod.Get),
-			engine.requestHistory.map { it.method },
+			listOf("/api/projects/42/end_sync", "/api/projects/42/delete", "/api/projects/42/rename"),
+			requests.map { it.url.encodedPath },
 		)
+		assertTrue(requests.all { it.method == HttpMethod.Post })
+		assertTrue(requests.all { it.headers[HEADER_SYNC_ID] == "sync-1" })
+		assertEquals("uuid-1", requests[1].url.parameters["projectId"])
+		assertEquals("New Name", requests[2].url.parameters["projectName"])
 	}
 
 	@Test
 	fun `create sends the client's project id in a single POST`() = runTest {
-		val engine = MockEngine { request ->
-			if (request.method == HttpMethod.Post) {
-				respond(
-					content = json.encodeToString(
-						CreateProjectResponse(ProjectId("uuid-local"), alreadyExisted = false)
-					),
-					status = HttpStatusCode.OK,
-					headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
-				)
-			} else {
-				respond("", HttpStatusCode.NotFound)
-			}
-		}
+		val engine = server()
 		val api = createApi(engine)
 
 		val created = api.createProject("New Project", ProjectId("uuid-local"), "sync-1")
@@ -157,19 +114,8 @@ class ServerProjectsApiLegacyFallbackTest : BaseTest() {
 	}
 
 	@Test
-	fun `create does not fall back to GET`() = runTest {
-		val engine = legacyServer()
-		val api = createApi(engine)
-
-		assertTrue(api.createProject("New Project", ProjectId("uuid-local"), "sync-1").isFailure)
-		assertEquals(listOf(HttpMethod.Post), engine.requestHistory.map { it.method })
-	}
-
-	@Test
-	fun `a real failure does not trigger the GET fallback`() = runTest {
-		val engine = MockEngine { _ ->
-			respond("", HttpStatusCode.BadRequest)
-		}
+	fun `a 404 is a failure with no retry`() = runTest {
+		val engine = MockEngine { _ -> respond("", HttpStatusCode.NotFound) }
 		val api = createApi(engine)
 
 		val result = api.endProjectsSync("sync-1")

@@ -2,7 +2,6 @@ package com.darkrockstudios.apps.hammer.secret
 
 import com.darkrockstudios.apps.hammer.utilities.DATA_DIR
 import kotlinx.serialization.SerializationException
-import okio.FileSystem
 import okio.Path
 import okio.Path.Companion.toPath
 
@@ -18,36 +17,24 @@ class MalformedKeyringException(cause: Throwable) : IllegalStateException(
 )
 
 /**
- * Resolves the server keyring from the configured provider, grandfathering a
- * pre-existing legacy `server.secret` when no keyring document is present.
- * Read-only: never generates or writes key material. The result is cached.
+ * Resolves the server keyring from the configured provider. Read-only: never
+ * generates or writes key material. The result is cached.
  */
 class KeyringManager(
 	private val provider: ServerSecretProvider,
 	private val codec: KeyringCodec,
-	private val fileSystem: FileSystem,
-	private val legacySecretPath: Path,
 ) {
 	private val keyring: Keyring? by lazy { load() }
 
 	private fun load(): Keyring? {
-		provider.loadKeyring()?.let { json ->
-			return try {
-				codec.parse(json)
-			} catch (e: SerializationException) {
-				throw MalformedKeyringException(e)
-			} catch (e: IllegalArgumentException) {
-				throw MalformedKeyringException(e)
-			}
+		val json = provider.loadKeyring() ?: return null
+		return try {
+			codec.parse(json)
+		} catch (e: SerializationException) {
+			throw MalformedKeyringException(e)
+		} catch (e: IllegalArgumentException) {
+			throw MalformedKeyringException(e)
 		}
-
-		// A pre-existing single secret from before keyrings: wrap it verbatim so
-		// existing content still decrypts. Absence here is intentional, not an error.
-		if (fileSystem.exists(legacySecretPath)) {
-			val legacy = fileSystem.read(legacySecretPath) { readUtf8() }
-			return codec.grandfather(legacy)
-		}
-		return null
 	}
 
 	fun keyringOrNull(): Keyring? = keyring
@@ -72,12 +59,16 @@ class KeyringManager(
 	}
 
 	private fun requireKeyring(): Keyring =
-		keyring ?: throw MissingKeyringException("The configured provider returned nothing and no legacy server.secret was found.")
+		keyring ?: throw MissingKeyringException(
+			"The configured provider returned no keyring. Generate one with 'generate-keyring', or " +
+				"if this server still has a pre-keyring server.secret, convert it with 'migrate-secret'."
+		)
 
 	companion object {
 		fun defaultKeyringPath(): Path =
 			System.getProperty("user.home").toPath() / DATA_DIR / "server.keyring.json"
 
+		/** The pre-keyring `server.secret`; only `migrate-secret` and the upgrade guard read it. */
 		fun legacySecretPath(): Path =
 			System.getProperty("user.home").toPath() / DATA_DIR / "server.secret"
 	}

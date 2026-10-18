@@ -362,8 +362,8 @@ class WhiteListRepositoryTest : BaseTest() {
 
 	@Test
 	fun `paging is stable when every entry shares a date_added`() = runTest {
-		// backfillFromAccounts stamps every migrated row with one timestamp, so the sort
-		// key alone can't order them and LIMIT/OFFSET needs a unique tiebreaker.
+		// Entries added in one batch share a timestamp, so the sort key alone can't
+		// order them and LIMIT/OFFSET needs a unique tiebreaker.
 		val emails = (1..15).map { "user%02d@example.com".format(it) }
 		emails.forEach { whiteListDao.addToWhiteList(it, Instant.fromEpochSeconds(0), "Test") }
 

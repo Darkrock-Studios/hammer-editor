@@ -13,7 +13,7 @@ import kotlinx.serialization.json.JsonElement
 data class RawProjectDataUploadRequest(
 	val data: JsonElement,
 	val originalHash: String? = null,
-	val hash: String? = null,
+	val hash: String,
 )
 
 @Serializable

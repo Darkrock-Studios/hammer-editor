@@ -9,8 +9,7 @@ import com.darkrockstudios.apps.hammer.base.http.createTokenBase64
 import com.darkrockstudios.apps.hammer.base.validate.PasswordValidator
 import com.darkrockstudios.apps.hammer.e2e.util.EndToEndTest
 import com.darkrockstudios.apps.hammer.utils.SERVER_CONFIG_ONE
-import com.darkrockstudios.apps.hammer.utils.SERVER_EMPTY_NO_WHITELIST
-import com.darkrockstudios.apps.hammer.utils.SERVER_EMPTY_YES_WHITELIST
+import com.darkrockstudios.apps.hammer.utils.SERVER_EMPTY
 import com.darkrockstudios.apps.hammer.utils.createTestServer
 import io.ktor.client.request.*
 import io.ktor.client.request.forms.*
@@ -28,7 +27,7 @@ class AccountTest : EndToEndTest() {
 	@Test
 	fun `Create Account the First User with Whitelist enabled, who becomes Admin`(): Unit =
 		runBlocking {
-			createTestServer(SERVER_EMPTY_YES_WHITELIST, fileSystem, database())
+			createTestServer(SERVER_EMPTY, fileSystem, database())
 			doStartServer()
 			client().apply {
 				val response = post(api("account/create")) {
@@ -141,7 +140,7 @@ class AccountTest : EndToEndTest() {
 
 	@Test
 	fun `Create Account - password outside the policy is a 400 naming the rule`(): Unit = runBlocking {
-		createTestServer(SERVER_EMPTY_NO_WHITELIST, fileSystem, database())
+		createTestServer(SERVER_EMPTY, fileSystem, database())
 		doStartServer()
 		client().apply {
 			val response = post(api("account/create")) {

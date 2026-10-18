@@ -41,7 +41,7 @@ class ProjectsRoutesProjectBeginSyncTest : ProjectsRoutesBaseTest() {
 
 		defaultApplication()
 
-		client.get("api/projects/0/begin_sync") {
+		client.post("api/projects/0/begin_sync") {
 			header("Authorization", "Bearer $BEARER_TOKEN")
 		}.apply {
 			assertEquals(HttpStatusCode.OK, status)
@@ -66,7 +66,7 @@ class ProjectsRoutesProjectBeginSyncTest : ProjectsRoutesBaseTest() {
 
 		defaultApplication()
 
-		client.get("api/projects/0/begin_sync") {
+		client.post("api/projects/0/begin_sync") {
 			header("Authorization", "Bearer $BEARER_TOKEN")
 		}.apply {
 			assertEquals(HttpStatusCode.BadRequest, status)
@@ -78,7 +78,7 @@ class ProjectsRoutesProjectBeginSyncTest : ProjectsRoutesBaseTest() {
 		coEvery { accountsRepository.checkToken(any(), any()) } returns SResult.failure(Exception())
 		defaultApplication()
 
-		client.get("api/projects/0/begin_sync") {
+		client.post("api/projects/0/begin_sync") {
 			header("Authorization", "Bearer $BEARER_TOKEN")
 		}.apply {
 			assertEquals(HttpStatusCode.Unauthorized, status)

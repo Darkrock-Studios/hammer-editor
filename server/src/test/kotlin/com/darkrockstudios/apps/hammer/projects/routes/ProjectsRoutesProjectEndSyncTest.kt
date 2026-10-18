@@ -24,7 +24,7 @@ class ProjectsRoutesProjectEndSyncTest : ProjectsRoutesBaseTest() {
 
 		defaultApplication()
 
-		client.get("api/projects/0/end_sync") {
+		client.post("api/projects/0/end_sync") {
 			header("Authorization", "Bearer $BEARER_TOKEN")
 			header(HEADER_SYNC_ID, syncId)
 		}.apply {
@@ -42,7 +42,7 @@ class ProjectsRoutesProjectEndSyncTest : ProjectsRoutesBaseTest() {
 
 		defaultApplication()
 
-		client.get("api/projects/0/end_sync") {
+		client.post("api/projects/0/end_sync") {
 			header("Authorization", "Bearer $BEARER_TOKEN")
 		}.apply {
 			assertEquals(HttpStatusCode.BadRequest, status)

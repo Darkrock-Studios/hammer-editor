@@ -14,7 +14,7 @@ import com.darkrockstudios.apps.hammer.base.http.synchronizer.IdeaHasher
 import com.darkrockstudios.apps.hammer.e2e.util.E2eTestData.createAuthToken
 import com.darkrockstudios.apps.hammer.e2e.util.EndToEndTest
 import com.darkrockstudios.apps.hammer.e2e.util.TestDataSet1
-import com.darkrockstudios.apps.hammer.utils.SERVER_EMPTY_NO_WHITELIST
+import com.darkrockstudios.apps.hammer.utils.SERVER_EMPTY
 import com.darkrockstudios.apps.hammer.utils.createTestServer
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -63,7 +63,7 @@ class IdeasSyncTest : EndToEndTest() {
 	@Test
 	fun `Ideas endpoints require the account sync session`(): Unit = runBlocking {
 		val database = database()
-		createTestServer(SERVER_EMPTY_NO_WHITELIST, fileSystem, database)
+		createTestServer(SERVER_EMPTY, fileSystem, database)
 		TestDataSet1.createFullDataset(database, encryptor())
 		val authToken = createAuthToken(userId, "test-install-id", database = database, tokenHasher = tokenHasher())
 		doStartServer()
@@ -82,13 +82,13 @@ class IdeasSyncTest : EndToEndTest() {
 	@Test
 	fun `A malformed idea id is a 400, not a 500`(): Unit = runBlocking {
 		val database = database()
-		createTestServer(SERVER_EMPTY_NO_WHITELIST, fileSystem, database)
+		createTestServer(SERVER_EMPTY, fileSystem, database)
 		TestDataSet1.createFullDataset(database, encryptor())
 		val authToken = createAuthToken(userId, "test-install-id", database = database, tokenHasher = tokenHasher())
 		doStartServer()
 
 		client().apply {
-			val syncId = get(api("projects/$userId/begin_sync")) { authHeaders(authToken.auth) }
+			val syncId = post(api("projects/$userId/begin_sync")) { authHeaders(authToken.auth) }
 				.body<BeginProjectsSyncResponse>().syncId
 
 			// A non-UUID id would hit Postgres's CAST(:uuid AS UUID) and 500 without the guard.
@@ -100,14 +100,14 @@ class IdeasSyncTest : EndToEndTest() {
 	@Test
 	fun `Ideas Sync - Golden Path`(): Unit = runBlocking {
 		val database = database()
-		createTestServer(SERVER_EMPTY_NO_WHITELIST, fileSystem, database)
+		createTestServer(SERVER_EMPTY, fileSystem, database)
 		TestDataSet1.createFullDataset(database, encryptor())
 		val authToken = createAuthToken(userId, "test-install-id", database = database, tokenHasher = tokenHasher())
 		doStartServer()
 
 		client().apply {
 			// The ideas phase rides the projects sync session
-			val beginSyncResponse = get(api("projects/$userId/begin_sync")) {
+			val beginSyncResponse = post(api("projects/$userId/begin_sync")) {
 				authHeaders(authToken.auth)
 			}
 			assertEquals(HttpStatusCode.OK, beginSyncResponse.status)

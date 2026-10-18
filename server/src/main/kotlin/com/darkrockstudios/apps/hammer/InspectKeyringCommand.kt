@@ -36,12 +36,9 @@ class InspectKeyringCommand : CliktCommand(name = "inspect-keyring") {
 			val manager = KeyringManager(
 				buildSecretProvider(config.secret, FileSystem.SYSTEM),
 				cliKeyringCodec(),
-				FileSystem.SYSTEM,
-				KeyringManager.legacySecretPath(),
 			)
 			manager.keyringOrNull() ?: throw CliktError(
-				"No keyring found via the configured ${config.secret.provider} provider " +
-					"(and no legacy server.secret to grandfather)."
+				"No keyring found via the configured ${config.secret.provider} provider."
 			)
 		}
 		echo(keyringSummary(keyring))

@@ -26,7 +26,6 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
-import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
@@ -64,7 +63,7 @@ class ProjectEntityDatabaseDatasourceTest : BaseTest() {
 		val keyringJson = codec.serialize(codec.generate())
 		val keyringManager = KeyringManager(
 			object : ServerSecretProvider { override fun loadKeyring() = keyringJson },
-			codec, fileSystem, "/nonexistent".toPath(),
+			codec,
 		)
 		contentEncryptor = AesGcmContentEncryptor(
 			keyringManager.activeContentKey(),
@@ -197,7 +196,7 @@ class ProjectEntityDatabaseDatasourceTest : BaseTest() {
 	@Test
 	fun `Load Project Sync Data`() = runTest {
 		val syncData = ProjectSyncData(
-			lastSync = sqliteDateTimeStringToInstant("2023-10-03 17:08:13"),
+			lastSync = Instant.parse("2023-10-03T17:08:13Z"),
 			lastId = 20,
 			deletedIds = setOf(3, 8, 9, 11, 13, 17, 18, 19)
 		)

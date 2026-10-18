@@ -22,7 +22,7 @@ class ServerProjectsApi(
 ) : Api(httpClient, globalSettingsStore, strRes) {
 
 	suspend fun beginProjectsSync(): Result<BeginProjectsSyncResponse> {
-		return postWithLegacyGetFallback(
+		return post(
 			path = "/api/projects/$userId/begin_sync",
 			parse = { it.body() },
 		)
@@ -42,7 +42,7 @@ class ServerProjectsApi(
 	}
 
 	suspend fun endProjectsSync(syncId: String): Result<String> {
-		return postWithLegacyGetFallback(
+		return post(
 			path = "/api/projects/$userId/end_sync",
 			parse = { it.bodyAsText() },
 			builder = {
@@ -54,7 +54,7 @@ class ServerProjectsApi(
 	}
 
 	suspend fun deleteProject(projectId: ProjectId, syncId: String): Result<String> {
-		return postWithLegacyGetFallback(
+		return post(
 			path = "/api/projects/$userId/delete",
 			parse = { it.bodyAsText() },
 			builder = {
@@ -71,7 +71,7 @@ class ServerProjectsApi(
 		syncId: String,
 		newName: String
 	): Result<String> {
-		return postWithLegacyGetFallback(
+		return post(
 			path = "/api/projects/$userId/rename",
 			parse = { it.bodyAsText() },
 			builder = {

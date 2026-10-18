@@ -179,8 +179,7 @@ class ServerSettingsDatasourceTest : BaseTest() {
 		val datasource = createDatasource()
 		val loaded = datasource.loadServerSettings(projectsDir())
 
-		// Loading is a pure store-read: inline tokens are ignored (relocated up front by
-		// migrateInlineTokens), and the file is left untouched.
+		// Loading is a pure store-read: inline tokens are ignored and the file is left untouched.
 		assertEquals(legacy.copy(bearerToken = null, refreshToken = null), loaded)
 		assertNull(authTokenStore.get(legacy.url, legacy.userId))
 		assertTrue(readServerJson().contains("zxc456"))
@@ -196,31 +195,6 @@ class ServerSettingsDatasourceTest : BaseTest() {
 		val loaded = datasource.loadServerSettings(projectsDir())
 
 		assertEquals(tokenless, loaded)
-	}
-
-	@Test
-	fun `migrateInlineTokens relocates inline tokens into the store and rewrites the file`() = runTest {
-		val legacy = createConfig()
-		fileSystem.createDirectories(projectsDir().toOkioPath())
-		fileSystem.writeJson(configPath().toOkioPath(), json, legacy)
-
-		val datasource = createDatasource()
-		datasource.migrateInlineTokens(projectsDir())
-
-		assertEquals(
-			AuthTokens(legacy.bearerToken, legacy.refreshToken),
-			authTokenStore.get(legacy.url, legacy.userId),
-		)
-
-		val rewritten = readServerJson()
-		assertFalse(rewritten.contains("bearerToken"))
-		assertFalse(rewritten.contains("refreshToken"))
-		assertFalse(rewritten.contains("zxc456"))
-		assertFalse(rewritten.contains("bnm789"))
-
-		// Idempotent: a second run is a no-op and the relocated tokens still resolve.
-		datasource.migrateInlineTokens(projectsDir())
-		assertEquals(legacy, datasource.loadServerSettings(projectsDir()))
 	}
 
 	@Test

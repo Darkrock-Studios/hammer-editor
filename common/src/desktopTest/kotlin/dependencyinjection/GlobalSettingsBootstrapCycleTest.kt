@@ -7,7 +7,6 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.AuthTokenStore
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.AuthTokens
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.FileAuthTokenStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.GlobalSettingsDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.GlobalSettingsFilesystemDatasource
@@ -86,9 +85,9 @@ class GlobalSettingsBootstrapCycleTest {
 	}
 
 	@Test
-	fun `Construction is a pure read and the migration relocates tokens without looping`() {
+	fun `Construction is a pure read that ignores inline tokens without looping`() {
 		val projectsDir = GlobalSettingsStore.defaultProjectDir()
-		// A real legacy device has both files; seeding only server.json would instead trip
+		// A real device has both files; seeding only server.json would instead trip
 		// the unrelated fresh-install config-write path.
 		rawFs.createDirectories(GlobalSettingsFilesystemDatasource.CONFIG_PATH.parent!!)
 		rawFs.writeToml(
@@ -104,31 +103,14 @@ class GlobalSettingsBootstrapCycleTest {
 		// Precondition: the seeded file really does carry inline tokens.
 		assertTrue(rawFs.read(serverJson) { readUtf8() }.contains("zxc456"))
 
-		// Constructing the store must not loop. The load path is a pure store-read, so the
-		// legacy inline tokens are NOT honored at construction — they surface only once the
-		// migration relocates them into the store and the store reloads.
+		// Constructing the store must not loop. The load path is a pure store-read, so
+		// inline tokens in the file are not honored and the file is left untouched.
 		val store = koin.get<GlobalSettingsStore>()
 		val counter = koin.get<ServerSettingsDatasource>() as CountingServerSettingsDatasource
 
 		assertEquals(1, counter.loadCalls, "Store construction must not re-enter loadServerSettings")
 		assertNull(store.serverSettings?.bearerToken)
-		// Construction is pure: the file is untouched until the migration runs.
 		assertTrue(rawFs.read(serverJson) { readUtf8() }.contains("zxc456"))
-
-		// The migration writes through the guarded filesystem (where the cycle lived) after
-		// the store is built — it must relocate the tokens without re-entering the store.
-		koin.get<ServerSettingsDatasource>().migrateInlineTokens(projectsDir.toHPath())
-
-		val rewritten = rawFs.read(serverJson) { readUtf8() }
-		assertFalse(rewritten.contains("zxc456"))
-		assertFalse(rewritten.contains("bnm789"))
-		assertEquals(AuthTokens("zxc456", "bnm789"), koin.get<AuthTokenStore>().get("hammer.ink", 1L))
-		assertEquals(1, counter.loadCalls, "Migration itself must not trigger more settings loads")
-
-		// Reloading after migration surfaces the relocated tokens on the store for the session.
-		store.reloadServerSettings()
-		assertEquals(2, counter.loadCalls)
-		assertEquals("zxc456", store.serverSettings?.bearerToken)
 	}
 
 	@Test
@@ -182,8 +164,6 @@ class GlobalSettingsBootstrapCycleTest {
 			delegate.storeServerSettings(settings, projectsDir)
 
 		override fun removeServerSettings(projectsDir: HPath) = delegate.removeServerSettings(projectsDir)
-
-		override fun migrateInlineTokens(projectsDir: HPath) = delegate.migrateInlineTokens(projectsDir)
 
 		companion object {
 			private const val MAX_CALLS = 25
