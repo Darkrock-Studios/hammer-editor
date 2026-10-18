@@ -72,6 +72,10 @@ class ManualSignInComponent(
 			val error = when (result) {
 				ServerSetupResult.Success -> null
 				is ServerSetupResult.TermsRequired -> ManualSignIn.SignInError.TermsRequired
+				is ServerSetupResult.MfaRequired -> {
+					accountUseCase.cancelMfa()
+					ManualSignIn.SignInError.MfaRequired
+				}
 				is ServerSetupResult.Failure ->
 					ManualSignIn.SignInError.Message(result.displayMessage?.text(strRes))
 			}

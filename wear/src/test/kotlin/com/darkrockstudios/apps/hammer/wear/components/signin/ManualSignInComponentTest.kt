@@ -1,5 +1,7 @@
 package com.darkrockstudios.apps.hammer.wear.components.signin
 
+import com.darkrockstudios.apps.hammer.base.http.MfaChallenge
+import com.darkrockstudios.apps.hammer.base.http.MfaMethod
 import com.darkrockstudios.apps.hammer.base.http.TermsOfServiceChallenge
 import com.darkrockstudios.apps.hammer.common.data.account.AccountUseCase
 import com.darkrockstudios.apps.hammer.common.data.account.ServerSetupResult
@@ -10,6 +12,10 @@ import com.darkrockstudios.apps.hammer.wear.WearTestBase
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
+import io.mockk.Runs
+import io.mockk.just
+import io.mockk.every
+import io.mockk.verify
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -197,6 +203,22 @@ class ManualSignInComponentTest : WearTestBase() {
 		scheduler.advanceUntilIdle()
 
 		assertEquals(ManualSignIn.SignInError.TermsRequired, component.state.value.error)
+	}
+
+	@Test
+	fun `an account with a second factor is sent to pair from the phone`() = runTest(dispatcher) {
+		coEvery { accountUseCase.setupServer(any(), any(), any(), any(), any()) } returns
+			ServerSetupResult.MfaRequired(MfaChallenge(token = "challenge", methods = listOf(MfaMethod.TOTP)))
+		every { accountUseCase.cancelMfa() } just Runs
+		val component = newComponent()
+		component.fillIn()
+
+		component.signIn()
+		scheduler.advanceUntilIdle()
+
+		assertEquals(ManualSignIn.SignInError.MfaRequired, component.state.value.error)
+		assertFalse(component.state.value.busy)
+		verify { accountUseCase.cancelMfa() }
 	}
 
 	@Test
