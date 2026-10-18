@@ -10,7 +10,6 @@ import com.darkrockstudios.apps.hammer.operations.ProjectResolver
 import com.darkrockstudios.apps.hammer.operations.operation
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionCall
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionField
-import com.darkrockstudios.apps.hammer.operations.plugin.ActionOutput
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionPlace
 import com.darkrockstudios.apps.hammer.operations.plugin.ClientPlugin
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
@@ -20,6 +19,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
@@ -42,6 +42,7 @@ import kotlin.coroutines.CoroutineContext
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertTrue
 
 /**
  * The Kotlin hello plugin from hammer-plugin-sdk, whose parts RECIPES.md shows, run by the host. Runs when
@@ -94,33 +95,53 @@ class HelloPluginTest {
 		return registry.plugins.single()
 	}
 
-	private fun run(name: String, input: JsonObject = JsonObject(emptyMap()), button: String? = null, onProgress: (String?) -> Unit = {}) =
-		runBlocking {
-			plugin.actions().single { it.name == name }
-				.run(ActionCall("Storm", ActionPlace.Project, null, input, button, onProgress = { onProgress(it.message) }))
-		}
-
-	@Test
-	fun `its actions declare their outputs, places, and fields`() {
-		val actions = plugin.actions().associateBy { it.name }
-		assertEquals(ActionOutput.Message, actions.getValue("greet").output)
-		assertEquals(ActionOutput.Interactive, actions.getValue("wave").output)
-		assertEquals(setOf(ActionPlace.Project, ActionPlace.Scene), actions.getValue("count").places)
-		assertIs<ActionField.Scenes>(actions.getValue("count").fields.single())
+	private fun run(
+		name: String,
+		input: JsonObject = JsonObject(emptyMap()),
+		button: String? = null,
+		state: JsonElement? = null,
+		onProgress: (String?) -> Unit = {},
+	) = runBlocking {
+		plugin.actions().single { it.name == name }
+			.run(ActionCall("Storm", ActionPlace.Project, null, input, button, state, onProgress = { onProgress(it.message) }))
 	}
 
 	@Test
-	fun `a message, a document with progress, and interactive buttons`() {
+	fun `its actions declare their places and first pages`() {
+		val actions = plugin.actions().associateBy { it.name }
+		assertEquals(setOf(ActionPlace.Project, ActionPlace.Scene), actions.getValue("count").places)
+		assertIs<ActionField.Scenes>(actions.getValue("count").fields.single())
+		assertTrue(actions.getValue("wave").fields.isEmpty())
+	}
+
+	@Test
+	fun `a message, and a document with progress`() {
 		assertEquals("Hello, Storm!", run("greet").message)
 
 		val progress = mutableListOf<String?>()
-		val counts = run("count", JsonObject(mapOf("scenes" to JsonArray(listOf(JsonPrimitive(1))))), onProgress = { progress += it })
-		assertEquals("# Word counts\n- Storm: 3", counts.markdown)
+		val counts = run("count", JsonObject(mapOf("scenes" to JsonArray(listOf(JsonPrimitive(1))))), onProgress = { progress += it }).page!!
+		assertEquals("# Word counts\n- Storm: 3", counts.markdown!!.trim())
+		assertTrue(counts.fields.isEmpty() && counts.buttons.isEmpty())
 		assertEquals(listOf<String?>("Counting Storm"), progress)
+		assertEquals("# Storm\n- Storm\n- Calm", run("outline").page!!.markdown!!.trim())
+	}
 
-		val wave = run("wave")
-		assertEquals(listOf("Wave", "Wave twice"), wave.buttons.map { it.label })
-		assertEquals("You waved twice", run("wave", button = "twice").message)
+	@Test
+	fun `waving is two pages, a name it checks and then a count, with the name in the state and Back`() {
+		val first = run("wave").page!!
+		val name = assertIs<ActionField.Text>(first.fields.single())
+		assertEquals("name" to true, name.key to name.required)
+
+		val refused = run("wave", JsonObject(mapOf("name" to JsonPrimitive("R2D2"))), button = "next")
+		assertEquals(setOf("name"), refused.errors.keys)
+
+		val second = run("wave", JsonObject(mapOf("name" to JsonPrimitive("Mara"))), button = "next").page!!
+		assertEquals(listOf("back" to false, "wave" to true), second.buttons.map { it.id to it.validate })
+		assertEquals(JsonPrimitive(1L), second.fields.single().default)
+
+		assertEquals("Mara waved 2 times", run("wave", JsonObject(mapOf("times" to JsonPrimitive(2))), button = "wave", state = second.state).message)
+		val back = run("wave", JsonObject(mapOf("times" to JsonPrimitive(1))), button = "back", state = second.state).page!!
+		assertEquals(JsonPrimitive("Mara"), back.fields.single().default)
 	}
 
 	@Test
@@ -143,8 +164,10 @@ class HelloPluginTest {
 		val wave = french.actions().single { it.name == "wave" }
 		assertEquals("Saluer", wave.label)
 		assertEquals("Scènes", french.actions().single { it.name == "count" }.fields.single().label)
-		val reply = runBlocking { wave.run(ActionCall("Storm", ActionPlace.Project, null, JsonObject(emptyMap()), "once")) }
-		assertEquals("Vous avez salué", reply.message)
+		val call = ActionCall(
+			"Storm", ActionPlace.Project, null, JsonObject(mapOf("times" to JsonPrimitive(1))), "wave", JsonObject(mapOf("name" to JsonPrimitive("Mara"))),
+		)
+		assertEquals("Mara a salué", runBlocking { wave.run(call) }.message)
 	}
 
 	private object NoProjects : ProjectResolver {

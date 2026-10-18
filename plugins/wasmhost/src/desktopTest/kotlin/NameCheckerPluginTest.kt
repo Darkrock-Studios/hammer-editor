@@ -108,7 +108,7 @@ class NameCheckerPluginTest {
 	}
 
 	private fun report(plugin: ClientPlugin): String = runBlocking {
-		plugin.actions().single().run(ActionCall("Storm", ActionPlace.Project, null, JsonObject(emptyMap()))).markdown!!
+		plugin.actions().single().run(ActionCall("Storm", ActionPlace.Project, null, JsonObject(emptyMap()))).page!!.markdown!!.trim()
 	}
 
 	/** Each issue in [paragraph] as the text it covers, then its fixes. */

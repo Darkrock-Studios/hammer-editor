@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -24,34 +25,42 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectDeepLink
+import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
 import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialog
 import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarColumn
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdButtonBar
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMasthead
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMastheadAction
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
+import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownEditField
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownView
 import com.darkrockstudios.apps.hammer.common.compose.rememberClipboardCopier
 import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
 import com.darkrockstudios.apps.hammer.common.data.ExportableScene
+import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.projecthome.SceneSelector
 import com.darkrockstudios.apps.hammer.composeui.resources.Res
-import com.darkrockstudios.apps.hammer.composeui.resources.plugin_action_cancel
+import com.darkrockstudios.apps.hammer.composeui.resources.plugin_action_not_an_option
+import com.darkrockstudios.apps.hammer.composeui.resources.plugin_action_required
 import com.darkrockstudios.apps.hammer.composeui.resources.plugin_action_run
 import com.darkrockstudios.apps.hammer.composeui.resources.plugin_action_scenes_choose
 import com.darkrockstudios.apps.hammer.composeui.resources.plugin_action_scenes_done
@@ -63,13 +72,23 @@ import com.darkrockstudios.apps.hammer.composeui.resources.plugin_document_close
 import com.darkrockstudios.apps.hammer.composeui.resources.plugin_document_copied
 import com.darkrockstudios.apps.hammer.composeui.resources.plugin_document_copy
 import com.darkrockstudios.apps.hammer.composeui.resources.plugin_document_save
+import com.darkrockstudios.apps.hammer.composeui.resources.plugin_setting_max
+import com.darkrockstudios.apps.hammer.composeui.resources.plugin_setting_min
+import com.darkrockstudios.apps.hammer.composeui.resources.plugin_setting_range
+import com.darkrockstudios.apps.hammer.composeui.resources.plugin_setting_whole_number
 import com.darkrockstudios.apps.hammer.operations.OperationRegistry
+import com.darkrockstudios.apps.hammer.operations.plugin.ActionButton
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionField
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionPlace
+import com.darkrockstudios.apps.hammer.operations.plugin.TextFormat
+import com.darkrockstudios.texteditor.EditorLineLimits
 import kotlinx.coroutines.delay
 import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
 import org.koin.compose.koinInject
 
 /** The open project's action runner, for menus to start actions with; null outside a project. */
@@ -80,23 +99,50 @@ val LocalDisabledPlugins = compositionLocalOf { emptySet<String>() }
 
 /**
  * Provides [content] with the project's action runner and the plugins it turned off, and shows the
- * runner's dialogs over it.
+ * runner's dialogs over it. [navigate] shows what an action opens: the project's home, or the item at
+ * a place with an id, returning false when there is no such item.
  */
 @Composable
 fun PluginActionHost(
-	project: String,
+	project: ProjectDef,
 	disabledPlugins: Set<String>,
 	rootSnackbar: RootSnackbarHostState,
+	navigate: suspend (ActionPlace, Int?) -> Boolean,
 	content: @Composable () -> Unit,
 ) {
 	val scope = rememberCoroutineScope()
 	val operations = koinInject<OperationRegistry>()
 	val strings = rememberStrRes()
-	val runner = remember(project) { PluginActionRunner(project, scope, operations, strings, showMessage = { rootSnackbar.showSnackbar(it) }) }
+	val currentNavigate by rememberUpdatedState(navigate)
+	val runner = remember(project) {
+		PluginActionRunner(
+			project = project,
+			scope = scope,
+			operations = operations,
+			strings = strings,
+			showMessage = { rootSnackbar.showSnackbar(it) },
+			navigate = { place, id -> currentNavigate(place, id) },
+		)
+	}
 	CompositionLocalProvider(LocalPluginActions provides runner, LocalDisabledPlugins provides disabledPlugins) {
 		content()
 	}
 	PluginActionDialogs(runner)
+}
+
+/** Shows what an action opened: the project's home, or the item at [place] with [id]; false when there is none. */
+suspend fun ProjectRoot.openActionTarget(place: ActionPlace, id: Int?): Boolean {
+	val link = when (place) {
+		ActionPlace.Project -> {
+			showHome()
+			return true
+		}
+		ActionPlace.Scene -> id?.let(ProjectDeepLink::Scene)
+		ActionPlace.Note -> id?.let(ProjectDeepLink::Note)
+		ActionPlace.Entry -> id?.let(ProjectDeepLink::EncyclopediaEntry)
+		ActionPlace.Event -> id?.let(ProjectDeepLink::TimelineEvent)
+	}
+	return link != null && navigateToDeepLink(link)
 }
 
 /** A menu item for each plugin action at [place], run on the item with [itemId] there. */
@@ -118,9 +164,10 @@ fun PluginActionMenuItems(place: ActionPlace, itemId: Int?, onChosen: () -> Unit
 private fun PluginActionDialogs(runner: PluginActionRunner) {
 	val state by runner.state.collectAsState()
 	val scenes by runner.scenes.collectAsState()
-	InputDialog(state as? ActionRunState.Asking, scenes, runner)
-	WorkingDialog(state as? ActionRunState.Working, runner)
-	ResultDialog(state as? ActionRunState.Showing, runner)
+	val working = state as? ActionRunState.Working
+	// A call made from a page keeps the page showing, rather than closing and opening it again.
+	PageDialog((state as? ActionRunState.Page) ?: working?.from, working?.takeIf { it.from != null }, scenes, runner)
+	WorkingDialog(working?.takeIf { it.from == null }, runner)
 }
 
 /** [current], or the last one there was, so a dialog keeps its content while it animates closed. */
@@ -129,6 +176,20 @@ private fun <T : Any> lastOf(current: T?): T? {
 	val last = remember { object { var value: T? = null } }
 	if (current != null) last.value = current
 	return current ?: last.value
+}
+
+/** Whether a call has run long enough to show its progress, so quick ones don't flash it. */
+@Composable
+private fun showsProgress(working: ActionRunState.Working?): Boolean {
+	var shown by remember { mutableStateOf(false) }
+	LaunchedEffect(working?.run, working != null) {
+		shown = false
+		if (working != null) {
+			delay(SHOW_WORKING_AFTER_MS)
+			shown = true
+		}
+	}
+	return shown && working != null
 }
 
 @Composable
@@ -156,49 +217,88 @@ private fun DialogSurface(title: String, onClose: (() -> Unit)?, content: @Compo
 	}
 }
 
+/**
+ * A page of an action: its markdown, to read, copy, or save as a note when the page asks nothing;
+ * its fields with any errors under them; and its buttons. While [working] on a call from it, the
+ * page stays, its buttons give way to the call's progress and Stop.
+ */
 @Composable
-private fun InputDialog(asking: ActionRunState.Asking?, scenes: List<ExportableScene>?, runner: PluginActionRunner) {
-	val shown = lastOf(asking)
-	// Keyed on the run, so a chooser left open never outlives its dialog.
-	var choosing by remember(asking?.run) { mutableStateOf<ActionField.Scenes?>(null) }
-	AnimatedDialog(visible = asking != null, onCloseRequest = runner::dismiss) {
+private fun PageDialog(
+	page: ActionRunState.Page?,
+	working: ActionRunState.Working?,
+	scenes: List<ExportableScene>?,
+	runner: PluginActionRunner,
+) {
+	val shown = lastOf(page)
+	// Keyed on the page, so a chooser left open never outlives it.
+	var choosing by remember(page?.page) { mutableStateOf<ActionField.Scenes?>(null) }
+	var copied by remember(shown?.page) { mutableStateOf(false) }
+	val copy = rememberClipboardCopier()
+	val progress = showsProgress(working)
+
+	AnimatedDialog(visible = page != null, onCloseRequest = runner::dismiss) {
 		val current = shown ?: return@AnimatedDialog
-		val fields = current.run.action.fields
-		val ready = fields.none { it is ActionField.Scenes && it.required && sceneIds(current.values[it.key]).isEmpty() }
-		DialogSurface(current.run.action.label, onClose = runner::dismiss) {
-			Column(
-				modifier = Modifier
-					.heightIn(max = 520.dp)
-					.verticalScroll(rememberScrollState())
-					.padding(Ui.Padding.XL),
-				verticalArrangement = Arrangement.spacedBy(Ui.Padding.L),
-			) {
-				fields.forEach { field ->
-					when (field) {
-						is ActionField.Setting -> DeclaredSettingsForm(
-							declarations = listOf(field.declaration),
-							values = current.values,
-							onChange = { key, value -> runner.change(key, value) },
-						)
-						is ActionField.Scenes -> ScenesField(field, sceneIds(current.values[field.key]), scenes) { choosing = field }
+		val content = current.page
+		val markdown = content.markdown
+		DialogSurface(content.title ?: current.run.action.label, onClose = runner::dismiss) {
+			val scrollState = rememberScrollState()
+			Box(modifier = Modifier.fillMaxWidth().heightIn(max = 560.dp)) {
+				Column(
+					modifier = Modifier
+						.fillMaxWidth()
+						.verticalScroll(scrollState)
+						.padding(Ui.Padding.XL),
+					verticalArrangement = Arrangement.spacedBy(Ui.Padding.L),
+				) {
+					if (markdown != null) MarkdownView(markdown = markdown, modifier = Modifier.fillMaxWidth(), isSelectable = true)
+					val inline = content.buttons.filter { it.inline }
+					if (inline.isNotEmpty()) {
+						FlowRow(
+							modifier = Modifier.fillMaxWidth(),
+							horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M),
+							verticalArrangement = Arrangement.spacedBy(Ui.Padding.M),
+						) {
+							inline.forEach { button -> PageButton(button, enabled = working == null, runner = runner) }
+						}
+					}
+					current.errors[""]?.let { FieldErrorText(it) }
+					content.fields.forEach { field ->
+						// Keyed on the page, so a rich editor, which reads its text only once, starts afresh on a new one.
+						key(content, field.key) {
+							PageField(
+								field = field,
+								value = current.values[field.key],
+								error = current.errors[field.key],
+								scenes = scenes,
+								onChange = { runner.change(field.key, it) },
+								onChooseScenes = { choosing = field as? ActionField.Scenes },
+							)
+						}
 					}
 				}
+				MpScrollBarColumn(modifier = scrollBarOverlay(), state = scrollState)
 			}
-			HdButtonBar(
-				cancelLabel = Res.string.plugin_action_cancel.get(),
-				primaryLabel = Res.string.plugin_action_run.get(),
-				onCancel = runner::dismiss,
-				onPrimary = runner::submit,
-				primaryEnabled = ready,
-				modifier = Modifier.padding(Ui.Padding.XL),
-			)
+			if (progress && working != null) {
+				ProgressFooter(working, runner)
+			} else {
+				PageFooter(
+					current = current,
+					enabled = working == null,
+					copied = copied,
+					onCopy = {
+						copy(markdown.orEmpty())
+						copied = true
+					},
+					runner = runner,
+				)
+			}
 		}
 	}
 
 	val field = choosing
-	val values = asking?.values
+	val values = page?.values
 	SceneChooser(
-		field = field?.takeIf { asking != null },
+		field = field?.takeIf { page != null && working == null },
 		entries = scenes.orEmpty(),
 		selected = field?.let { sceneIds(values?.get(it.key)) }.orEmpty(),
 		onChange = { ids ->
@@ -210,6 +310,179 @@ private fun InputDialog(asking: ActionRunState.Asking?, scenes: List<ExportableS
 		},
 		onDone = { choosing = null },
 	)
+}
+
+@Composable
+private fun PageButton(button: ActionButton, enabled: Boolean, runner: PluginActionRunner) {
+	HdHairlineButton(label = button.label, onClick = { runner.press(button) }, emphasised = button.primary, enabled = enabled)
+}
+
+/**
+ * The page's footer buttons, the primary ones last; Copy and Save as note for a page that only
+ * shows markdown; and Run on an action's first page.
+ */
+@Composable
+private fun PageFooter(
+	current: ActionRunState.Page,
+	enabled: Boolean,
+	copied: Boolean,
+	onCopy: () -> Unit,
+	runner: PluginActionRunner,
+) {
+	val content = current.page
+	val (primary, others) = content.buttons.filter { !it.inline }.partition { it.primary }
+	val document = content.markdown != null && content.fields.isEmpty()
+	if (primary.isEmpty() && others.isEmpty() && !document && !current.first) return
+	// Wraps, so a plugin's buttons never squeeze Copy and Save on a narrow screen.
+	FlowRow(
+		modifier = Modifier
+			.fillMaxWidth()
+			.background(MaterialTheme.colorScheme.surfaceContainerLow)
+			.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.M),
+		itemVerticalAlignment = Alignment.CenterVertically,
+		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M),
+		verticalArrangement = Arrangement.spacedBy(Ui.Padding.M),
+	) {
+		others.forEach { button -> PageButton(button, enabled, runner) }
+		Spacer(modifier = Modifier.weight(1f))
+		if (document) {
+			HdHairlineButton(
+				label = (if (copied) Res.string.plugin_document_copied else Res.string.plugin_document_copy).get(),
+				onClick = onCopy,
+			)
+			HdHairlineButton(
+				label = Res.string.plugin_document_save.get(),
+				onClick = runner::saveAsNote,
+				emphasised = primary.isEmpty() && !current.first,
+				enabled = enabled && !current.saving,
+			)
+		}
+		primary.forEach { button -> PageButton(button, enabled, runner) }
+		if (current.first) {
+			HdHairlineButton(label = Res.string.plugin_action_run.get(), onClick = { runner.press(null) }, emphasised = true, enabled = enabled)
+		}
+	}
+}
+
+@Composable
+private fun ProgressFooter(working: ActionRunState.Working, runner: PluginActionRunner) {
+	Column(
+		modifier = Modifier
+			.fillMaxWidth()
+			.background(MaterialTheme.colorScheme.surfaceContainerLow)
+			.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.M),
+		verticalArrangement = Arrangement.spacedBy(Ui.Padding.M),
+	) {
+		Progress(working)
+		StopRow(runner)
+	}
+}
+
+@Composable
+private fun StopRow(runner: PluginActionRunner) {
+	Row(modifier = Modifier.fillMaxWidth()) {
+		Spacer(modifier = Modifier.weight(1f))
+		HdHairlineButton(label = Res.string.plugin_action_stop.get(), onClick = runner::stop)
+	}
+}
+
+/** A bar and a line the plugin sets as it reports; without reports, the bar is indeterminate. */
+@Composable
+private fun Progress(working: ActionRunState.Working) {
+	val fraction = working.progress?.fraction
+	if (fraction != null) {
+		LinearProgressIndicator(progress = { fraction }, modifier = Modifier.fillMaxWidth())
+	} else {
+		LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+	}
+	Text(
+		text = working.progress?.message ?: Res.string.plugin_action_working.get(),
+		style = MaterialTheme.typography.bodyMedium,
+	)
+}
+
+/** One field of a page, in the widget its type calls for, with its error under it. */
+@Composable
+private fun PageField(
+	field: ActionField,
+	value: JsonElement?,
+	error: FieldError?,
+	scenes: List<ExportableScene>?,
+	onChange: (JsonElement) -> Unit,
+	onChooseScenes: () -> Unit,
+) {
+	Column(verticalArrangement = Arrangement.spacedBy(Ui.Padding.S)) {
+		when (field) {
+			is ActionField.Setting -> {
+				DeclaredSettingsForm(
+					declarations = listOf(field.declaration),
+					values = JsonObject(mapOf(field.key to (value ?: field.default))),
+					onChange = { _, changed -> onChange(changed) },
+				)
+				error?.let { FieldErrorText(it) }
+			}
+
+			is ActionField.Scenes -> {
+				ScenesField(field, sceneIds(value), scenes, onChooseScenes)
+				error?.let { FieldErrorText(it) }
+			}
+
+			is ActionField.Text -> TextField(field, (value as? JsonPrimitive)?.contentOrNull.orEmpty(), error, onChange)
+		}
+	}
+}
+
+@Composable
+private fun TextField(field: ActionField.Text, value: String, error: FieldError?, onChange: (JsonElement) -> Unit) {
+	val errorText = error?.let { fieldErrorText(it) }
+	if (field.format == TextFormat.Plain) {
+		HdHairlineField(
+			label = field.label,
+			value = value,
+			onValueChange = { onChange(JsonPrimitive(it)) },
+			singleLine = !field.multiline,
+			minLines = if (field.multiline) MULTILINE_MIN_LINES else 1,
+			error = errorText,
+		)
+	} else {
+		HdMonoLabel(text = field.label)
+		MarkdownEditField(
+			initialMarkdown = value,
+			onMarkdownChanged = { onChange(JsonPrimitive(it)) },
+			modifier = Modifier.fillMaxWidth(),
+			extendedFormatBar = field.format == TextFormat.RichExtended,
+			// Grows with the text: the dialog scrolls, so the editor cannot take the height left.
+			lineLimits = EditorLineLimits.MultiLine(minLines = RICH_MIN_LINES, maxLines = RICH_MAX_LINES),
+		)
+		HorizontalDivider(
+			thickness = Dp.Hairline,
+			color = if (errorText != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outlineVariant,
+		)
+		errorText?.let { HdMonoLabel(text = it, color = MaterialTheme.colorScheme.error) }
+	}
+	FieldHint(field.hint)
+}
+
+@Composable
+private fun FieldErrorText(error: FieldError) {
+	Text(text = fieldErrorText(error), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+}
+
+@Composable
+private fun fieldErrorText(error: FieldError): String = when (error) {
+	is FieldError.Plugin -> error.message
+	FieldError.Required -> Res.string.plugin_action_required.get()
+	FieldError.NotAnOption -> Res.string.plugin_action_not_an_option.get()
+	is FieldError.OutOfRange -> {
+		val min = error.min
+		val max = error.max
+		when {
+			min != null && max != null -> Res.string.plugin_setting_range.get(min, max)
+			min != null -> Res.string.plugin_setting_min.get(min)
+			max != null -> Res.string.plugin_setting_max.get(max)
+			else -> Res.string.plugin_setting_whole_number.get()
+		}
+	}
 }
 
 /** A scenes field: its label, what is chosen in brief, and a button opening the tree. */
@@ -225,9 +498,7 @@ private fun ScenesField(field: ActionField.Scenes, selected: Set<Int>, scenes: L
 			)
 			HdHairlineButton(label = Res.string.plugin_action_scenes_choose.get(), onClick = onChoose, enabled = scenes != null)
 		}
-		field.hint?.let {
-			Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-		}
+		FieldHint(field.hint)
 	}
 }
 
@@ -264,101 +535,23 @@ private fun SceneChooser(
 	}
 }
 
-/** Shown only once a run has taken a moment, so quick actions don't flash a dialog. */
+/** A call made with no page showing, once it has taken a moment, so quick actions don't flash a dialog. */
 @Composable
 private fun WorkingDialog(working: ActionRunState.Working?, runner: PluginActionRunner) {
-	var visible by remember { mutableStateOf(false) }
-	LaunchedEffect(working?.run) {
-		visible = false
-		if (working != null) {
-			delay(SHOW_WORKING_AFTER_MS)
-			visible = true
-		}
-	}
+	val visible = showsProgress(working)
 	val shown = lastOf(working)
 	AnimatedDialog(visible = visible && working != null, onCloseRequest = {}) {
 		val current = shown ?: return@AnimatedDialog
 		DialogSurface(current.run.action.label, onClose = null) {
 			Column(modifier = Modifier.padding(Ui.Padding.XL), verticalArrangement = Arrangement.spacedBy(Ui.Padding.M)) {
-				val fraction = current.progress?.fraction
-				if (fraction != null) {
-					LinearProgressIndicator(progress = { fraction }, modifier = Modifier.fillMaxWidth())
-				} else {
-					LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-				}
-				Text(
-					text = current.progress?.message ?: Res.string.plugin_action_working.get(),
-					style = MaterialTheme.typography.bodyMedium,
-				)
-				Row(modifier = Modifier.fillMaxWidth()) {
-					Spacer(modifier = Modifier.weight(1f))
-					HdHairlineButton(label = Res.string.plugin_action_stop.get(), onClick = runner::stop)
-				}
-			}
-		}
-	}
-}
-
-/** An action's markdown, to read, copy, or save as a note, with any buttons of the plugin's own. */
-@Composable
-private fun ResultDialog(showing: ActionRunState.Showing?, runner: PluginActionRunner) {
-	val shown = lastOf(showing)
-	var copied by remember(shown?.reply) { mutableStateOf(false) }
-	val copy = rememberClipboardCopier()
-
-	AnimatedDialog(visible = showing != null, onCloseRequest = runner::dismiss) {
-		val current = shown ?: return@AnimatedDialog
-		val markdown = current.reply.markdown.orEmpty()
-		DialogSurface(current.run.action.label, onClose = runner::dismiss) {
-			val scrollState = rememberScrollState()
-			Box(modifier = Modifier.fillMaxWidth().heightIn(max = 520.dp)) {
-				MarkdownView(
-					markdown = markdown,
-					modifier = Modifier
-						.fillMaxWidth()
-						.verticalScroll(scrollState)
-						.padding(Ui.Padding.XL),
-					isSelectable = true,
-				)
-				MpScrollBarColumn(modifier = scrollBarOverlay(), state = scrollState)
-			}
-			val (footerButtons, buttons) = current.reply.buttons.partition { it.footer }
-			if (buttons.isNotEmpty()) {
-				FlowRow(
-					modifier = Modifier.fillMaxWidth().padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.M),
-					horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M),
-					verticalArrangement = Arrangement.spacedBy(Ui.Padding.M),
-				) {
-					buttons.forEach { button ->
-						HdHairlineButton(label = button.label, onClick = { runner.press(button) })
-					}
-				}
-			}
-			// Wraps, so a plugin's footer buttons never squeeze Copy and Save on a narrow screen.
-			FlowRow(
-				modifier = Modifier
-					.fillMaxWidth()
-					.background(MaterialTheme.colorScheme.surfaceContainerLow)
-					.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.M),
-				itemVerticalAlignment = Alignment.CenterVertically,
-				horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M),
-				verticalArrangement = Arrangement.spacedBy(Ui.Padding.M),
-			) {
-				footerButtons.forEach { button ->
-					HdHairlineButton(label = button.label, onClick = { runner.press(button) })
-				}
-				Spacer(modifier = Modifier.weight(1f))
-				HdHairlineButton(
-					label = (if (copied) Res.string.plugin_document_copied else Res.string.plugin_document_copy).get(),
-					onClick = {
-						copy(markdown)
-						copied = true
-					},
-				)
-				HdHairlineButton(label = Res.string.plugin_document_save.get(), onClick = runner::saveAsNote, emphasised = true)
+				Progress(current)
+				StopRow(runner)
 			}
 		}
 	}
 }
 
 private const val SHOW_WORKING_AFTER_MS = 400L
+private const val MULTILINE_MIN_LINES = 3
+private const val RICH_MIN_LINES = 3
+private const val RICH_MAX_LINES = 12

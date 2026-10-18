@@ -1,12 +1,11 @@
 package com.darkrockstudios.apps.hammer.plugins.wasmhost
 
 import com.darkrockstudios.apps.hammer.operations.core.coreOperations
-import com.darkrockstudios.apps.hammer.operations.plugin.ActionField
-import com.darkrockstudios.apps.hammer.operations.plugin.ActionOutput
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionPlace
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
 import com.darkrockstudios.apps.hammer.operations.plugin.SettingDeclaration
 import com.darkrockstudios.apps.hammer.operations.plugin.parseSettingDeclarations
+import com.darkrockstudios.apps.hammer.operations.plugin.toActionFields
 import com.darkrockstudios.apps.hammer.operations.plugin.validateSettings
 import okio.BufferedSource
 import okio.EOFException
@@ -212,30 +211,15 @@ class PluginPackage(
 
 		private fun checkAction(action: PluginManifest.Action) {
 			val name = action.name
-			if (ActionOutput.of(action.output) == null) throw PluginPackageException("Action '$name' has unknown output '${action.output}'")
+			if (action.output != null) throw PluginPackageException("Action '$name' declares an output, but actions reply with pages")
 			if (action.places.isEmpty()) throw PluginPackageException("Action '$name' appears nowhere: give it places")
 			action.places.firstOrNull { ActionPlace.of(it) == null }?.let {
 				throw PluginPackageException("Action '$name' has unknown place '$it'")
 			}
-			val fields = action.field.map { table ->
-				try {
-					table.toActionField()
-				} catch (e: IllegalArgumentException) {
-					throw PluginPackageException("Action '$name': ${e.message}")
-				}
-			}
-			fields.groupBy { it.key }.filterValues { it.size > 1 }.keys.takeIf { it.isNotEmpty() }?.let {
-				throw PluginPackageException("Action '$name' declares fields twice: $it")
-			}
-			fields.forEach { field ->
-				if (field.key.isBlank()) throw PluginPackageException("Action '$name' has a field with no key")
-				val declaration = (field as? ActionField.Setting)?.declaration ?: return@forEach
-				if (declaration is SettingDeclaration.Choice && declaration.options.isEmpty()) {
-					throw PluginPackageException("Action '$name' field '${field.key}' is a choice with no options")
-				}
-				if (declaration.accept(declaration.default) == null) {
-					throw PluginPackageException("Action '$name' field '${field.key}' has an invalid default")
-				}
+			try {
+				action.field.toActionFields()
+			} catch (e: IllegalArgumentException) {
+				throw PluginPackageException("Action '$name': ${e.message}")
 			}
 		}
 

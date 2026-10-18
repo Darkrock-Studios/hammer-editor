@@ -70,7 +70,7 @@ fun ColumnScope.DeclaredSettingsForm(
 // Under the field, as a toggle row shows its hint: a plugin's hints are sentences, too long for the
 // field's own hint beside its label.
 @Composable
-private fun FieldHint(hint: String?) {
+internal fun FieldHint(hint: String?) {
 	if (hint == null) return
 	Text(text = hint, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
 }

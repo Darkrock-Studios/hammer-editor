@@ -1,4 +1,4 @@
-;; An action that reports progress once, then outputs "done". A cancelled run stops at the report.
+;; An action that reports progress once, then replies with the message "done". A cancelled run stops at the report.
 (module
   (import "extism:host/env" "alloc" (func $alloc (param i64) (result i64)))
   (import "extism:host/env" "store_u8" (func $store_u8 (param i64 i32)))
@@ -6,7 +6,7 @@
   (import "extism:host/user" "hammer_progress" (func $progress (param i64)))
   (memory 1)
   (data (i32.const 0) "{\22fraction\22:0.5,\22message\22:\22Half\22}")
-  (data (i32.const 64) "done")
+  (data (i32.const 64) "{\22message\22:\22done\22}")
   ;; Copies len bytes of this module's memory from at into a fresh block.
   (func $copy (param $at i32) (param $len i32) (result i64)
     (local $block i64) (local $i i32)
@@ -22,5 +22,5 @@
     (local.get $block))
   (func (export "action") (result i32)
     (call $progress (call $copy (i32.const 0) (i32.const 33)))
-    (call $output_set (call $copy (i32.const 64) (i32.const 4)) (i64.const 4))
+    (call $output_set (call $copy (i32.const 64) (i32.const 18)) (i64.const 18))
     (i32.const 0)))

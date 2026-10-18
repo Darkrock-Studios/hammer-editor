@@ -1,6 +1,10 @@
 package com.darkrockstudios.apps.hammer.operations.plugin
 
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 
 /** The screens an action can be run from, each passing the item it shows. */
 enum class ActionPlace(val id: String) {
@@ -15,33 +19,35 @@ enum class ActionPlace(val id: String) {
 	}
 }
 
-/** What an action's output is shown as. */
-enum class ActionOutput(val id: String) {
-	/** A line to show briefly. */
-	Message("message"),
-
-	/** Markdown shown in a dialog the user can copy or save as a note. */
-	Document("document"),
-
-	/** A document with the plugin's own buttons, each calling the action again. */
-	Interactive("interactive");
-
-	companion object {
-		fun of(id: String): ActionOutput? = entries.firstOrNull { it.id == id }
-	}
-}
-
-/** One input the user fills in before an action runs. */
+/** One input on an action's page. Its value in [ActionCall.input] is keyed by [key]. */
 sealed interface ActionField {
 	val key: String
 	val label: String
 	val hint: String?
 
-	/** A plain value, rendered and checked as a setting of the same type is. */
+	/** The value the field starts with on its page. */
+	val default: JsonElement
+
+	/** A `bool`, `int`, or `choice`, rendered and checked as a setting of the same type is. */
 	class Setting(val declaration: SettingDeclaration) : ActionField {
 		override val key get() = declaration.key
 		override val label get() = declaration.label
 		override val hint get() = declaration.hint
+		override val default: JsonElement get() = declaration.default
+	}
+
+	/** Text in an editor [format] picks; the value is markdown for the rich formats. Unless [required], blank is allowed. */
+	class Text(
+		override val key: String,
+		override val label: String,
+		override val hint: String? = null,
+		val format: TextFormat = TextFormat.Plain,
+		/** Only for [TextFormat.Plain]. */
+		val multiline: Boolean = false,
+		val required: Boolean = false,
+		val defaultValue: String = "",
+	) : ActionField {
+		override val default: JsonElement get() = JsonPrimitive(defaultValue)
 	}
 
 	/**
@@ -54,12 +60,32 @@ sealed interface ActionField {
 		override val hint: String? = null,
 		val multiple: Boolean = true,
 		val required: Boolean = false,
-	) : ActionField
+		/** The ids picked to begin with. */
+		val defaultIds: List<Int> = emptyList(),
+	) : ActionField {
+		override val default: JsonElement
+			get() = if (multiple) JsonArray(defaultIds.map(::JsonPrimitive)) else defaultIds.firstOrNull()?.let(::JsonPrimitive) ?: JsonNull
+	}
+}
+
+/** The editor a [ActionField.Text] is shown in. */
+enum class TextFormat(val id: String) {
+	Plain("plain"),
+
+	/** The scene editor's, with its format bar. */
+	Rich("rich"),
+
+	/** The rich editor with the extended format bar: highlight, task lists, and tables. */
+	RichExtended("rich-extended");
+
+	companion object {
+		fun of(id: String): TextFormat? = entries.firstOrNull { it.id == id }
+	}
 }
 
 /**
- * An action a plugin adds to the menus of the screens in [places]. The host asks for [fields] first,
- * when there are any, then runs it.
+ * An action a plugin adds to the menus of the screens in [places]. Its [fields] are its first page,
+ * which the host shows before calling it; without any, it is called at once.
  */
 class PluginAction(
 	val pluginId: String,
@@ -68,15 +94,16 @@ class PluginAction(
 	val label: String,
 	val places: Set<ActionPlace>,
 	val fields: List<ActionField>,
-	val output: ActionOutput,
+	/** The manifest's `keep`: whether a run should outlive its dialog being closed part way. */
+	val keep: Boolean = false,
 	/** Runs off the main thread. */
 	val run: suspend (ActionCall) -> ActionReply,
 )
 
 /**
- * One run of an action: on [project], from [place], about the item with [itemId] there (null on the
- * project's own screen), with the user's [input], one value per field. [button] is the id of the
- * plugin's button that was pressed, for an interactive action's later calls.
+ * One call of an action: on [project], from [place], about the item with [itemId] there (null on
+ * the project's own screen). [input] holds the values of the page the user was on, [button] the id
+ * of the button they pressed there (null on the first call), and [state] the state of that page.
  */
 class ActionCall(
 	val project: String,
@@ -84,6 +111,12 @@ class ActionCall(
 	val itemId: Int?,
 	val input: JsonObject,
 	val button: String? = null,
+	/** Handed back untouched from the last page; null on the first call. */
+	val state: JsonElement? = null,
+	/** Reserved for fields that call the action when they change; always null. */
+	val changed: String? = null,
+	/** True on the first call after a kept run was restored. */
+	val resumed: Boolean = false,
 	/** Called as the plugin reports progress, on the thread running it. */
 	val onProgress: (ActionProgress) -> Unit = {},
 	/** Checked each time the plugin reports progress; true stops it there. Cancelling the caller stops it at once. */
@@ -94,17 +127,42 @@ class ActionCall(
 class ActionProgress(val fraction: Float?, val message: String?)
 
 /**
- * What an action returned. A [message] is shown briefly; [markdown] is shown in a dialog, with
- * [buttons] under it or in its footer. Neither means it finished with nothing to say.
+ * What an action returned. [errors] keeps the user on the page they were on; otherwise [open] ends
+ * the run and shows an item, [page] is shown next, and with neither the run ends. A [message] is
+ * shown briefly either way.
  */
 class ActionReply(
+	val page: ActionPage? = null,
 	val message: String? = null,
-	val markdown: String? = null,
-	val buttons: List<ActionButton> = emptyList(),
+	/** By field key; a key that is not a field on the page, such as "", is about the whole page. */
+	val errors: Map<String, String> = emptyMap(),
+	val open: ActionTarget? = null,
 )
 
-/** A button of an [ActionReply]: under the markdown, or in the dialog's footer when [footer], for one that acts on the whole reply. */
-class ActionButton(val id: String, val label: String, val footer: Boolean = false)
+/** What an action's dialog shows: every part optional. */
+class ActionPage(
+	val title: String? = null,
+	val markdown: String? = null,
+	val fields: List<ActionField> = emptyList(),
+	val buttons: List<ActionButton> = emptyList(),
+	/** The plugin's own, handed back untouched with the next call from this page. */
+	val state: JsonElement? = null,
+)
+
+/**
+ * A button on an [ActionPage]: in the dialog's footer, or under the markdown when [inline], for one
+ * that acts on an item in it. Unless [validate] is false, pressing it checks the page's fields first.
+ */
+class ActionButton(
+	val id: String,
+	val label: String,
+	val primary: Boolean = false,
+	val inline: Boolean = false,
+	val validate: Boolean = true,
+)
+
+/** An item to show: the project's home, or the scene, note, entry, or event with [id]. */
+class ActionTarget(val place: ActionPlace, val id: Int?)
 
 /** Thrown out of [PluginAction.run] when [ActionCall.cancelled] stopped it. */
 class ActionCancelledException : RuntimeException("Cancelled")

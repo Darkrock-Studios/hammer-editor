@@ -46,10 +46,8 @@
 	<string name="plugin_document_save">Save as note</string>
 	<string name="plugin_document_close">× CLOSE</string>
 	<string name="plugin_action_run">Run</string>
-	<string name="plugin_action_cancel">Cancel</string>
 	<string name="plugin_action_stop">Stop</string>
 	<string name="plugin_action_working">Working…</string>
-	<string name="plugin_action_done">Done</string>
 	<string name="plugin_action_failed">That did not finish. The log has the details.</string>
 	<string name="plugin_action_stopped">Stopped</string>
 	<string name="plugin_action_busy">Another action is still running</string>
@@ -61,4 +59,7 @@
 	<string name="plugin_action_scenes_none">None chosen</string>
 	<string name="plugin_action_scenes_more">%1$s and %2$d more</string>
 	<string name="plugin_action_scenes_done">Done</string>
+	<string name="plugin_action_required">Required</string>
+	<string name="plugin_action_not_an_option">Not one of the options</string>
+	<string name="plugin_action_open_missing">What the action meant to open is not in the project</string>
 </resources>

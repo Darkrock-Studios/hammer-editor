@@ -16,11 +16,13 @@ import com.darkrockstudios.apps.hammer.operations.core.descriptor
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionButton
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionCall
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionCancelledException
-import com.darkrockstudios.apps.hammer.operations.plugin.ActionOutput
+import com.darkrockstudios.apps.hammer.operations.plugin.ActionPage
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionPlace
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionProgress
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionReply
+import com.darkrockstudios.apps.hammer.operations.plugin.ActionTarget
 import com.darkrockstudios.apps.hammer.operations.plugin.ClientPlugin
+import com.darkrockstudios.apps.hammer.operations.plugin.FieldTable
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginAction
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
 import com.darkrockstudios.apps.hammer.operations.plugin.SettingDeclaration
@@ -28,6 +30,7 @@ import com.darkrockstudios.apps.hammer.operations.plugin.TextDiagnostic
 import com.darkrockstudios.apps.hammer.operations.plugin.TextDiagnosticSeverity
 import com.darkrockstudios.apps.hammer.operations.plugin.TextDiagnosticsProvider
 import com.darkrockstudios.apps.hammer.operations.plugin.TextFix
+import com.darkrockstudios.apps.hammer.operations.plugin.toActionFields
 import io.github.aakira.napier.Napier
 import kotlinx.atomicfu.locks.reentrantLock
 import kotlinx.atomicfu.locks.withLock
@@ -121,28 +124,30 @@ class WasmPlugin(
 	override fun cliCommands(): List<CliCommand> = manifest.commands.map(::Command)
 
 	override fun actions(): List<PluginAction> = manifest.actions.map { action ->
-		val output = ActionOutput.of(action.output) ?: ActionOutput.Message
 		PluginAction(
 			pluginId = id,
 			name = action.name,
 			label = action.label,
 			places = action.places.mapNotNull(ActionPlace::of).toSet(),
-			fields = action.field.map { it.toActionField() },
-			output = output,
-		) { call -> runAction(action.name, output, call) }
+			fields = action.field.toActionFields(),
+			keep = action.keep,
+		) { call -> runAction(action.name, call) }
 	}
 
-	private suspend fun runAction(name: String, output: ActionOutput, call: ActionCall): ActionReply {
+	private suspend fun runAction(name: String, call: ActionCall): ActionReply {
 		val request = ActionRequest(
 			action = name,
 			project = call.project,
 			settings = settingsValues(),
-			input = call.input,
-			context = ActionRequest.Context(call.place.id, call.itemId),
-			button = call.button,
 			locale = locale,
+			context = ActionRequest.Context(call.place.id, call.itemId),
+			input = call.input,
+			button = call.button,
+			changed = call.changed,
+			state = call.state,
+			resumed = call.resumed,
 		)
-		val reply = interruptibly {
+		val output = interruptibly {
 			activeAction = call
 			actionCancelled = false
 			try {
@@ -153,23 +158,37 @@ class WasmPlugin(
 			} finally {
 				activeAction = null
 			}
-		}.decodeToString().trim()
-		if (reply.isEmpty()) return ActionReply()
-		return when (output) {
-			ActionOutput.Message -> ActionReply(message = reply)
-			ActionOutput.Document -> ActionReply(markdown = reply)
-			ActionOutput.Interactive -> try {
-				ReplyJson.decodeFromString<InteractiveReply>(reply).let { interactive ->
-					ActionReply(
-						message = interactive.message?.ifBlank { null },
-						markdown = interactive.markdown?.ifBlank { null },
-						buttons = interactive.buttons.map { ActionButton(it.id, it.label, it.footer) },
-					)
-				}
-			} catch (e: IllegalArgumentException) {
-				throw PluginException("Plugin '$id' sent a malformed reply from action '$name': ${e.message}")
-			}
 		}
+		return try {
+			actionReply(output)
+		} catch (e: IllegalArgumentException) {
+			throw PluginException("Plugin '$id' sent a malformed reply from action '$name': ${e.message}")
+		}
+	}
+
+	/** Throws [IllegalArgumentException] for a reply that is not one, and [PluginException] for state too large to keep. */
+	private fun actionReply(output: ByteArray): ActionReply {
+		val text = output.decodeToString()
+		if (text.isBlank()) return ActionReply()
+		val reply = ReplyJson.decodeFromString<ActionReplyJson>(text)
+		val page = reply.page?.let { page ->
+			// The state is part of the reply, so only a reply this large can hold too much.
+			if (output.size > MAX_STATE_BYTES && page.state != null) {
+				val size = OperationJson.encodeToString(JsonElement.serializer(), page.state).encodeToByteArray().size
+				if (size > MAX_STATE_BYTES) throw PluginException("Plugin '$id' sent a page state of $size bytes, over $MAX_STATE_BYTES")
+			}
+			ActionPage(
+				title = page.title?.ifBlank { null },
+				markdown = page.markdown?.ifBlank { null },
+				fields = page.fields.toActionFields(),
+				buttons = page.buttons.map { ActionButton(it.id, it.label, it.primary, it.inline, it.validate) },
+				state = page.state,
+			)
+		}
+		val open = reply.open?.let { open ->
+			ActionTarget(ActionPlace.of(open.place) ?: throw IllegalArgumentException("unknown place '${open.place}' to open"), open.id)
+		}
+		return ActionReply(page = page, message = reply.message?.ifBlank { null }, errors = reply.errors, open = open)
 	}
 
 	override fun textDiagnostics(): List<TextDiagnosticsProvider> = manifest.diagnostics.map { check ->
@@ -432,28 +451,51 @@ class WasmPlugin(
 		val project: String,
 		/** The plugin's declared settings, every key present. */
 		val settings: JsonObject,
-		/** The action's fields, every key present. */
-		val input: JsonObject,
-		val context: Context,
-		/** The id of the button pressed, for an interactive action's later calls. */
-		val button: String?,
 		/** The UI's BCP 47 tag, or null when Hammer does not know it. */
 		val locale: String?,
+		val context: Context,
+		/** The values of the page the user was on, every key present; empty for a page without fields. */
+		val input: JsonObject,
+		/** The id of the button pressed; null on the first call. */
+		val button: String?,
+		val changed: String?,
+		/** The last page's state, untouched; null on the first call. */
+		val state: JsonElement?,
+		val resumed: Boolean,
 	) {
 		/** The screen the action was run from, and the id of the item it shows there. */
 		@Serializable
 		class Context(val place: String, val id: Int?)
 	}
 
-	/** An interactive action's output: markdown with buttons to show, a message, or both. */
+	/** An action's output, every key optional; empty output is the same as `{}`. */
 	@Serializable
-	private class InteractiveReply(
-		val markdown: String? = null,
-		val buttons: List<Button> = emptyList(),
+	private class ActionReplyJson(
+		val page: Page? = null,
 		val message: String? = null,
+		val errors: Map<String, String> = emptyMap(),
+		val open: Open? = null,
 	) {
 		@Serializable
-		class Button(val id: String, val label: String, val footer: Boolean = false)
+		class Page(
+			val title: String? = null,
+			val markdown: String? = null,
+			val fields: List<FieldTable> = emptyList(),
+			val buttons: List<Button> = emptyList(),
+			val state: JsonElement? = null,
+		)
+
+		@Serializable
+		class Button(
+			val id: String,
+			val label: String,
+			val primary: Boolean = false,
+			val inline: Boolean = false,
+			val validate: Boolean = true,
+		)
+
+		@Serializable
+		class Open(val place: String, val id: Int? = null)
 	}
 
 	/** What `hammer_progress` is given: how far along, from 0 to 1 if known, and a line saying what it is doing. */
@@ -588,6 +630,9 @@ class WasmPlugin(
 
 		/** The export that runs an action the manifest declares; its output is shown to the user. */
 		const val ACTION = "action"
+
+		/** The most a page's state may take, encoded, as for a cache value. */
+		const val MAX_STATE_BYTES = PluginCache.MAX_VALUE_BYTES
 
 		/** The export that checks paragraphs for a text diagnostics check the manifest declares. */
 		const val DIAGNOSE = "diagnose"
