@@ -5,7 +5,6 @@ import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
-import com.darkrockstudios.apps.hammer.common.data.migrator.GlobalMigration
 import com.darkrockstudios.apps.hammer.common.data.migrator.Migration
 import com.darkrockstudios.apps.hammer.common.data.migrator.Migration3_4
 import com.darkrockstudios.apps.hammer.common.data.projectdata.readStoredProjectData
@@ -20,8 +19,6 @@ import createProject
 import getProjectDef
 import getProjectsDirectory
 import io.mockk.every
-import io.mockk.just
-import io.mockk.runs
 import kotlinx.coroutines.test.runTest
 import listedProjectId
 import okio.Path
@@ -62,7 +59,6 @@ class ProjectsRepositoryAdoptTest : ProjectsRepositoryBaseTest() {
 	private fun migrator(repo: ProjectsRepository) =
 		object : DataMigrator(settingsRepo, repo, projectsMetaDatasource) {
 			override val latestProjectDataVersion = 4
-			override fun getGlobalMigrations(): List<GlobalMigration> = emptyList()
 			override fun getMigrators(): Map<Int, Migration> =
 				(1..3).associateWith { noOpMigration(it) } + (4 to Migration3_4(ffs, projectsMetaDatasource))
 		}
@@ -175,7 +171,6 @@ class ProjectsRepositoryAdoptTest : ProjectsRepositoryBaseTest() {
 
 	@Test
 	fun `Startup heal clears a pre-4 settings baseline that migration moves into place`() = scope.runTest {
-		every { settingsRepo.reloadServerSettings() } just runs
 		val repo = projectsRepository()
 		val lost = createFolder("Old Project", SceneDatasource.SCENE_DIRECTORY)
 		ffs.write(dir(lost) / Migration3_4.LEGACY_PROJECT_SETTINGS_FILENAME) {
