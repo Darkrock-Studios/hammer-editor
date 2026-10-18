@@ -127,5 +127,6 @@ private fun FieldTable.translated(texts: List<PluginTranslation.Text>): FieldTab
 		options = options.map { option -> FieldOption(option.value, texts.firstNotNullOfOrNull { it.options[option.value] } ?: option.label) },
 		multiple = multiple,
 		required = required,
+		format = format,
 	)
 }

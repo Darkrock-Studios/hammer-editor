@@ -10,6 +10,7 @@ import com.darkrockstudios.apps.hammer.operations.ProjectResolver
 import com.darkrockstudios.apps.hammer.operations.operation
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionCall
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionField
+import com.darkrockstudios.apps.hammer.operations.plugin.ActionPage
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionPlace
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginAction
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
@@ -18,6 +19,7 @@ import com.darkrockstudios.apps.hammer.plugins.wasmhost.RuntimePlugins
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonPrimitive
@@ -35,11 +37,12 @@ import java.io.File
 import kotlin.coroutines.CoroutineContext
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
-/** The name generator plugin from hammer-plugins, run by the host. Runs when HAMMER_PLUGINS points at that checkout. */
+/** The fantasy names plugin from hammer-plugins, run by the host. Runs when HAMMER_PLUGINS points at that checkout. */
 @EnabledIfEnvironmentVariable(named = "HAMMER_PLUGINS", matches = ".+")
-class NameGeneratorPluginTest {
+class FantasyNamesPluginTest {
 
 	private val fileSystem = FakeFileSystem()
 	private val created = mutableListOf<JsonObject>()
@@ -54,9 +57,9 @@ class NameGeneratorPluginTest {
 			created += input
 			JsonObject(emptyMap())
 		}
-		val built = File(PluginRepos.official, "name-generator/build/name-generator.hammerplugin")
-		check(built.exists()) { "Run ./build.sh name-generator in hammer-plugins first" }
-		val download = "/downloads/name-generator.hammerplugin".toPath()
+		val built = File(PluginRepos.official, "fantasy-names/build/fantasy-names.hammerplugin")
+		check(built.exists()) { "Run ./build.sh fantasy-names in hammer-plugins first" }
+		val download = "/downloads/fantasy-names.hammerplugin".toPath()
 		fileSystem.createDirectories(download.parent!!)
 		fileSystem.write(download) { write(built.readBytes()) }
 		val plugins = RuntimePlugins(fileSystem, "/config/plugins".toPath(), "/cache/plugins".toPath())
@@ -79,37 +82,49 @@ class NameGeneratorPluginTest {
 
 	private val input = JsonObject(
 		mapOf(
-			"style" to JsonPrimitive("norse"),
+			"style" to JsonPrimitive("dwarvish"),
 			"gender" to JsonPrimitive("feminine"),
 			"count" to JsonPrimitive(3),
-			"surnames" to JsonPrimitive(true),
+			"bynames" to JsonPrimitive(false),
 		)
 	)
 
+	private fun run(input: JsonObject, button: String? = null, state: JsonElement? = null) =
+		runBlocking { action.run(ActionCall("Storm", ActionPlace.Project, null, input, button, state)) }
+
+	private fun ActionPage.names() = markdown!!.lines().filter { it.startsWith("- ") }.map { it.removePrefix("- ") }
+
 	@Test
-	fun `it asks for a style, gender, count, and surnames, from the project and entries`() {
-		assertEquals(listOf("style", "gender", "count", "surnames"), action.fields.map { it.key })
+	fun `its first page asks for a style, given names, a count, and second names, from the project and entries`() {
+		assertEquals(listOf("style", "gender", "count", "bynames"), action.fields.map { it.key })
 		assertEquals(setOf(ActionPlace.Project, ActionPlace.Entry), action.places)
 		assertTrue(action.fields.all { it is ActionField.Setting })
 	}
 
 	@Test
 	fun `a name's button adds it as a person, and the same list comes back with it marked`() {
-		val first = runBlocking { action.run(ActionCall("Storm", ActionPlace.Project, null, input)) }
-		val names = first.markdown!!.lines().filter { it.startsWith("- ") }.map { it.removePrefix("- ") }
+		val first = run(input).page!!
+		val names = first.names()
 		assertEquals(3, names.size)
-		assertTrue(names.all { it.endsWith("sdottir") }, names.toString())
-		assertEquals(names + "More names", first.buttons.map { it.label })
-		assertEquals(listOf(false, false, false, true), first.buttons.map { it.footer })
+		val (inline, footer) = first.buttons.partition { it.inline }
+		assertEquals(names, inline.map { it.label })
+		assertEquals(names.indices.map { "add:$it" }, inline.map { it.id })
+		assertEquals(listOf("More names"), footer.map { it.label })
+		assertNotNull(first.state)
 
-		val add = first.buttons.first()
-		val second = runBlocking { action.run(ActionCall("Storm", ActionPlace.Project, null, input, button = add.id)) }
+		// A page of names has no fields, so the next call's input is empty and the plugin works from its state.
+		val second = run(JsonObject(emptyMap()), button = "add:0", state = first.state)
 
 		assertEquals(names.first(), created.single()["name"]!!.jsonPrimitive.content)
 		assertEquals("person", created.single()["type"]!!.jsonPrimitive.content)
 		assertEquals("Added ${names.first()} to the encyclopedia", second.message)
-		assertTrue("- ${names.first()} (added)" in second.markdown!!, second.markdown)
-		assertEquals(names.drop(1) + "More names", second.buttons.map { it.label })
+		val marked = second.page!!
+		assertTrue("- ${names.first()} (added)" in marked.markdown!!, marked.markdown)
+		assertEquals(names.drop(1), marked.buttons.filter { it.inline }.map { it.label })
+
+		val more = run(JsonObject(emptyMap()), button = footer.single().id, state = marked.state).page!!
+		assertEquals(3, more.names().size)
+		assertTrue(more.names() != names, more.names().toString())
 	}
 
 	@Test
@@ -117,8 +132,7 @@ class NameGeneratorPluginTest {
 		val styles = assertIs<SettingDeclaration.Choice>((action.fields.first { it.key == "style" } as ActionField.Setting).declaration)
 		styles.options.forEach { style ->
 			val styled = JsonObject(input + ("style" to JsonPrimitive(style.value)))
-			val reply = runBlocking { action.run(ActionCall("Storm", ActionPlace.Project, null, styled)) }
-			assertEquals(3, reply.markdown!!.lines().count { it.startsWith("- ") }, style.value)
+			assertEquals(3, run(styled).page!!.names().size, style.value)
 		}
 	}
 

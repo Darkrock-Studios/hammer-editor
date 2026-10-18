@@ -66,7 +66,8 @@ interface ProjectRoot : AppCloseManager, HammerComponent, BackHandlerOwner {
 	fun showFocusMode(sceneItem: SceneItem)
 	fun dismissFocusMode()
 
-	fun navigateToDeepLink(link: ProjectDeepLink)
+	/** Shows the item [link] names; false when the project has no such item. */
+	suspend fun navigateToDeepLink(link: ProjectDeepLink): Boolean
 
 	sealed class Destination<T : Router> : Router {
 		abstract val component: T

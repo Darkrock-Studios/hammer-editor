@@ -128,7 +128,7 @@ internal fun NucleusApplicationScope.ProjectEditorWindow(
 		val scope = rememberCoroutineScope()
 		val mainDispatcher = rememberMainDispatcher()
 		RaiseOnRequest(app.raiseRequests.value)
-		LaunchedEffect(component) { app.deepLinks.collect(component::navigateToDeepLink) }
+		LaunchedEffect(component) { app.deepLinks.collect { component.navigateToDeepLink(it) } }
 
 		MaterialTitleBar {
 			Text(

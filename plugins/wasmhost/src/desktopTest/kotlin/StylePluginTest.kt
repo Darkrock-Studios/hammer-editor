@@ -9,7 +9,6 @@ import com.darkrockstudios.apps.hammer.operations.OperationScope
 import com.darkrockstudios.apps.hammer.operations.ProjectResolver
 import com.darkrockstudios.apps.hammer.operations.operation
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionCall
-import com.darkrockstudios.apps.hammer.operations.plugin.ActionOutput
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionPlace
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionProgress
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
@@ -110,7 +109,6 @@ class StylePluginTest {
 		}
 		registry.plugins.single().actions().single().also {
 			if (locale == null) assertEquals("Style report", it.label)
-			assertEquals(ActionOutput.Document, it.output)
 		}
 	}
 
@@ -127,7 +125,10 @@ class StylePluginTest {
 		this.scenes = scenes
 		this.names = names
 		val input = JsonObject(mapOf("scenes" to JsonArray(chosen.map(::JsonPrimitive))))
-		return runBlocking { action.run(ActionCall("Storm", ActionPlace.Project, null, input, onProgress = onProgress)) }.markdown!!
+		val page = runBlocking { action.run(ActionCall("Storm", ActionPlace.Project, null, input, onProgress = onProgress)) }.page!!
+		// A document: markdown alone, which the host offers to copy or save as a note.
+		assertTrue(page.fields.isEmpty() && page.buttons.isEmpty())
+		return page.markdown!!.trim()
 	}
 
 	@Test

@@ -1,15 +1,32 @@
 package com.darkrockstudios.apps.hammer.operations.plugin
 
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerializationException
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonDecoder
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonEncoder
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.doubleOrNull
+import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.longOrNull
 import net.peanuuutz.tomlkt.Toml
+import net.peanuuutz.tomlkt.TomlArray
+import net.peanuuutz.tomlkt.TomlDecoder
 import net.peanuuutz.tomlkt.TomlElement
+import net.peanuuutz.tomlkt.TomlEncoder
 import net.peanuuutz.tomlkt.TomlLiteral
+import net.peanuuutz.tomlkt.TomlNull
 import net.peanuuutz.tomlkt.TomlTable
 import net.peanuuutz.tomlkt.toBooleanOrNull
+import net.peanuuutz.tomlkt.toDoubleOrNull
 import net.peanuuutz.tomlkt.toLongOrNull
 
 /**
@@ -133,15 +150,17 @@ fun parseSettingDeclarations(toml: String): List<SettingDeclaration> =
 private class SettingsFile(val setting: List<FieldTable> = emptyList())
 
 /**
- * A field as a plugin declares it in TOML: a `[[setting]]` in `settings.toml`, or an action's
- * `[[actions.field]]`, which may also be `scenes`, with `multiple` and `required`.
+ * A field as a plugin declares it: a `[[setting]]` in `settings.toml`, an action's
+ * `[[actions.field]]`, or a field of a page an action replies with in JSON. Action fields may also be
+ * `text`, with `format`, and `scenes`, with `multiple`; `required` applies to those two.
  */
 @Serializable
 class FieldTable(
 	val key: String,
 	val type: String,
 	val label: String,
-	val default: TomlElement? = null,
+	@Serializable(with = FieldDefaultSerializer::class)
+	val default: JsonElement? = null,
 	val hint: String? = null,
 	val min: Long? = null,
 	val max: Long? = null,
@@ -149,17 +168,45 @@ class FieldTable(
 	val options: List<FieldOption> = emptyList(),
 	val multiple: Boolean = true,
 	val required: Boolean = false,
+	/** A [TextFormat] id, for `text`. */
+	val format: String? = null,
 ) {
-	/** Throws [IllegalArgumentException] for an unknown type. */
-	fun toActionField(): ActionField =
-		if (type == SCENES) ActionField.Scenes(key, label, hint, multiple, required) else ActionField.Setting(toDeclaration())
+	/** Throws [IllegalArgumentException] for a type an action cannot have. */
+	fun toActionField(): ActionField = when (type) {
+		SCENES -> ActionField.Scenes(
+			key = key,
+			label = label,
+			hint = hint,
+			multiple = multiple,
+			required = required,
+			defaultIds = when (val ids = default) {
+				null, JsonNull -> emptyList()
+				is JsonArray -> ids.map { it.sceneId() }
+				else -> listOf(ids.sceneId())
+			},
+		)
+		TEXT -> ActionField.Text(
+			key = key,
+			label = label,
+			hint = hint,
+			format = format?.let { TextFormat.of(it) ?: throw IllegalArgumentException("Field '$key' has unknown format '$it'") }
+				?: TextFormat.Plain,
+			multiline = multiline,
+			required = required,
+			defaultValue = default?.let { text ->
+				(text as? JsonPrimitive)?.takeIf { it.isString }?.content ?: throw IllegalArgumentException("Field '$key' has an invalid default")
+			}.orEmpty(),
+		)
+		STRING -> throw IllegalArgumentException("Field '$key' is a string: an action asks for text with type 'text'")
+		else -> ActionField.Setting(toDeclaration())
+	}
 
 	fun toDeclaration(): SettingDeclaration {
-		val default = default?.toJsonPrimitive()
+		val default = default as? JsonPrimitive
 		return when (type) {
 			"bool" -> SettingDeclaration.Toggle(key, label, default?.booleanOrNull ?: false, hint)
 			"int" -> SettingDeclaration.Number(key, label, default?.longOrNull ?: min ?: 0, min, max, hint)
-			"string" -> SettingDeclaration.Text(key, label, default?.content ?: "", multiline, hint)
+			STRING -> SettingDeclaration.Text(key, label, default?.content ?: "", multiline, hint)
 			"choice" -> SettingDeclaration.Choice(
 				key = key,
 				label = label,
@@ -167,12 +214,80 @@ class FieldTable(
 				options = options.map { SettingDeclaration.Choice.Option(it.value, it.label) },
 				hint = hint,
 			)
-			else -> throw IllegalArgumentException("Setting '$key' has unknown type '$type'")
+			else -> throw IllegalArgumentException("Field '$key' has unknown type '$type'")
 		}
 	}
+
+	private fun JsonElement.sceneId(): Int =
+		(this as? JsonPrimitive)?.takeIf { !it.isString }?.intOrNull ?: throw IllegalArgumentException("Field '$key' has an invalid default")
 }
 
 @Serializable
 class FieldOption(val value: String, val label: String)
 
+/**
+ * The fields of one page as an action's, in order. Throws [IllegalArgumentException] when one cannot
+ * be shown: an unknown type, no key, a key used twice, a choice with no options, or a default the
+ * field would not accept.
+ */
+fun List<FieldTable>.toActionFields(): List<ActionField> {
+	val fields = map { it.toActionField() }
+	fields.groupBy { it.key }.filterValues { it.size > 1 }.keys.takeIf { it.isNotEmpty() }?.let {
+		throw IllegalArgumentException("Fields declared twice: $it")
+	}
+	fields.forEach { field ->
+		require(field.key.isNotBlank()) { "A field has no key" }
+		val declaration = (field as? ActionField.Setting)?.declaration ?: return@forEach
+		require(declaration !is SettingDeclaration.Choice || declaration.options.isNotEmpty()) {
+			"Field '${field.key}' is a choice with no options"
+		}
+		require(declaration.accept(declaration.default) != null) { "Field '${field.key}' has an invalid default" }
+	}
+	return fields
+}
+
+/** A field's `default` as JSON, read the same from a TOML manifest as from a JSON page. */
+internal object FieldDefaultSerializer : KSerializer<JsonElement> {
+	override val descriptor: SerialDescriptor = JsonElement.serializer().descriptor
+
+	override fun deserialize(decoder: Decoder): JsonElement = when (decoder) {
+		is JsonDecoder -> decoder.decodeJsonElement()
+		is TomlDecoder -> decoder.decodeTomlElement().toJsonElement()
+		else -> throw SerializationException("A field's default is read only from JSON or TOML")
+	}
+
+	override fun serialize(encoder: Encoder, value: JsonElement) = when (encoder) {
+		is JsonEncoder -> encoder.encodeJsonElement(value)
+		is TomlEncoder -> encoder.encodeTomlElement(value.toTomlElement())
+		else -> throw SerializationException("A field's default is written only as JSON or TOML")
+	}
+}
+
+private fun TomlElement.toJsonElement(): JsonElement = when (this) {
+	TomlNull -> JsonNull
+	is TomlLiteral -> when (type) {
+		TomlLiteral.Type.Boolean -> toBooleanOrNull()?.let(::JsonPrimitive) ?: JsonPrimitive(content)
+		TomlLiteral.Type.Integer -> toLongOrNull()?.let(::JsonPrimitive) ?: JsonPrimitive(content)
+		TomlLiteral.Type.Float -> toDoubleOrNull()?.let(::JsonPrimitive) ?: JsonPrimitive(content)
+		// Strings, and dates and times as their text.
+		else -> JsonPrimitive(content)
+	}
+	is TomlArray -> JsonArray(map { it.toJsonElement() })
+	is TomlTable -> JsonObject(mapValues { (_, value) -> value.toJsonElement() })
+}
+
+private fun JsonElement.toTomlElement(): TomlElement = when (this) {
+	JsonNull -> TomlNull
+	is JsonPrimitive -> when {
+		isString -> TomlLiteral(content)
+		booleanOrNull != null -> TomlLiteral(booleanOrNull!!)
+		longOrNull != null -> TomlLiteral(longOrNull!!)
+		else -> TomlLiteral(doubleOrNull ?: 0.0)
+	}
+	is JsonArray -> TomlArray(map { it.toTomlElement() })
+	is JsonObject -> TomlTable(mapValues { (_, value) -> value.toTomlElement() })
+}
+
 private const val SCENES = "scenes"
+private const val TEXT = "text"
+private const val STRING = "string"

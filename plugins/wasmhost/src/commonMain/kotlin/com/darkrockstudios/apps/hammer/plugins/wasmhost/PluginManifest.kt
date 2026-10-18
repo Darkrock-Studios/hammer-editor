@@ -1,6 +1,5 @@
 package com.darkrockstudios.apps.hammer.plugins.wasmhost
 
-import com.darkrockstudios.apps.hammer.operations.plugin.ActionOutput
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionPlace
 import com.darkrockstudios.apps.hammer.operations.plugin.FieldTable
 import kotlinx.serialization.Serializable
@@ -57,19 +56,21 @@ data class PluginManifest(
 	)
 
 	/**
-	 * An item in the menus of the screens in [places], which asks for any [field]s and then calls the
-	 * module's `action` export on the project and the item the screen shows.
+	 * An item in the menus of the screens in [places], which shows its [field]s as its first page, if
+	 * it has any, and calls the module's `action` export on the project and the item the screen shows.
 	 */
 	@Serializable
 	data class Action(
 		/** Tells the module which of its actions to run. */
 		val name: String,
 		val label: String,
-		/** An [ActionOutput] id: `message`, `document`, or `interactive`. */
-		val output: String = ActionOutput.Message.id,
 		/** [ActionPlace] ids: `project`, `scene`, `note`, `entry`, or `event`. */
 		val places: List<String> = listOf(ActionPlace.Project.id),
+		/** Whether a run should outlive its dialog being closed part way. */
+		val keep: Boolean = false,
 		val field: List<FieldTable> = emptyList(),
+		/** Not part of the format: an action replies with pages. A manifest that sets it is refused. */
+		val output: String? = null,
 	)
 
 	/**
