@@ -461,7 +461,7 @@ class SceneContentRepositoryTest : BaseTest() {
 
 		service.initialize()
 		service.storeSceneBuffer(SceneItem(projDef, SceneItem.Type.Scene, 3, "Scene ID 3", 0))
-		// A temp file whose buffer is clean, as a sync download leaves behind.
+		// A stray temp file whose buffer is clean.
 		writeTempBuffer(3)
 
 		contentRepo.onScopeClose(mockk())
@@ -487,6 +487,26 @@ class SceneContentRepositoryTest : BaseTest() {
 
 		assertTrue(contentRepo.hasDirtyBuffer(1))
 		assertEquals(content(1), contentRepo.getSceneBuffer(1)?.content?.markdown)
+	}
+
+	@Test
+	fun `Synced content leaves no temp file to reload as unsaved`() = runTest(mainTestDispatcher) {
+		val projDef = getProject1Def()
+		createProject(ffs, PROJECT_1_NAME)
+
+		createStack(projDef)
+		service.initialize()
+		val scene = SceneItem(projDef, SceneItem.Type.Scene, 1, "Scene ID 1", 0)
+		contentRepo.onContentChanged(SceneContent(scene, "From the server"), UpdateSource.Sync)
+		advanceUntilIdle()
+
+		assertFalse(contentRepo.hasDirtyBuffer(1))
+		assertFalse(ffs.exists(getTempBufferPath(1)))
+
+		createStack(projDef)
+		service.initialize()
+
+		assertFalse(contentRepo.hasDirtyBuffers())
 	}
 
 	@Test
