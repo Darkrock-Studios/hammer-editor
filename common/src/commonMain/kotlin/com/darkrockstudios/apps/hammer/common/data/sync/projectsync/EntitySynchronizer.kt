@@ -22,6 +22,9 @@ abstract class EntitySynchronizer<T : ApiProjectEntity>(
 	abstract suspend fun getEntityHash(id: Int): String?
 	abstract suspend fun createEntityForId(id: Int): T
 
+	/** Unsaved edits block a download: storing the server's copy would discard them. */
+	open suspend fun hasUnsavedEdits(id: Int): Boolean = false
+
 	suspend fun uploadEntity(
 		id: Int,
 		syncId: String,

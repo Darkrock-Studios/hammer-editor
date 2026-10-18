@@ -37,6 +37,7 @@ import com.darkrockstudios.apps.hammer.sync_log_entity_download_failed_general
 import com.darkrockstudios.apps.hammer.sync_log_entity_download_failed_not_found
 import com.darkrockstudios.apps.hammer.sync_log_entity_download_not_modified
 import com.darkrockstudios.apps.hammer.sync_log_entity_download_rejected_mismatch
+import com.darkrockstudios.apps.hammer.sync_log_entity_download_skipped_unsaved
 import com.darkrockstudios.apps.hammer.sync_log_entity_download_success
 import com.darkrockstudios.apps.hammer.sync_log_entity_upload_entity_not_owned
 import com.darkrockstudios.apps.hammer.sync_log_stale_hash_detected
@@ -273,6 +274,17 @@ class EntityTransferOperation(
 				return CResult.failure(
 					IllegalStateException("Server returned mismatched entity for requested id $id")
 				)
+			}
+
+			// The baseline is left unrecorded, so saving these edits later conflicts with the server's copy.
+			if (localType != null && entitySynchronizers[localType].hasUnsavedEdits(id)) {
+				onLog(
+					syncLogW(
+						strRes.get(Res.string.sync_log_entity_download_skipped_unsaved, id),
+						projectDef
+					)
+				)
+				return CResult.success()
 			}
 
 			val success = when (serverEntity) {
