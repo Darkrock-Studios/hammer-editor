@@ -58,7 +58,7 @@ class EncryptionBootstrap(
 		log.info(
 			"Converged ${report.total} row(s) to '$targetTag' " +
 				"(${report.storyEntities} entities, ${report.reviewScenes} review scenes, " +
-				"${report.storyIdeas} ideas)."
+				"${report.storyIdeas} ideas, ${report.totpSecrets} TOTP secrets)."
 		)
 	}
 

@@ -13,3 +13,5 @@ typealias LoginAttempt = Login_attempt
 typealias ReviewRequest = Review_request
 typealias ReviewScene = Review_scene
 typealias ReviewSuggestion = Review_suggestion
+typealias AccountTotp = Account_totp
+typealias MfaLoginChallenge = Mfa_login_challenge

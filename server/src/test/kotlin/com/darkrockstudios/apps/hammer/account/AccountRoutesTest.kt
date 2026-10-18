@@ -5,7 +5,13 @@ import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.admin.ServerConfigKey
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.base.BuildMetadata
+import com.darkrockstudios.apps.hammer.base.http.ApiErrorCode
 import com.darkrockstudios.apps.hammer.base.http.HAMMER_PROTOCOL_HEADER
+import com.darkrockstudios.apps.hammer.base.http.HttpResponseError
+import com.darkrockstudios.apps.hammer.base.http.MfaChallenge
+import com.darkrockstudios.apps.hammer.base.http.MfaMethod
+import com.darkrockstudios.apps.hammer.base.http.createNetworkJsonSerializer
+import com.darkrockstudios.apps.hammer.monitoring.SecurityRepository
 import com.darkrockstudios.apps.hammer.base.http.HAMMER_PROTOCOL_VERSION
 import com.darkrockstudios.apps.hammer.base.http.HEADER_CLIENT_VERSION
 import com.darkrockstudios.apps.hammer.base.http.HTTP_STATUS_TERMS_OF_SERVICE
@@ -45,14 +51,24 @@ import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
 import io.mockk.MockKAnnotations
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.impl.annotations.MockK
 import io.mockk.mockk
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonArray
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.koin.dsl.module
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlin.time.Clock
+import kotlin.time.Duration.Companion.minutes
 
 class AccountRoutesTest : BaseTest() {
 	@MockK
@@ -100,12 +116,17 @@ class AccountRoutesTest : BaseTest() {
 	@MockK
 	private lateinit var markdownRenderer: MarkdownRenderer
 
+	@MockK(relaxed = true)
+	private lateinit var securityRepository: SecurityRepository
+
 	private lateinit var testModule: org.koin.core.module.Module
 
 	private lateinit var json: Json
 
 	private val USER_ID = 0L
 	private val INSTALL_ID = "install-id"
+	private val EMAIL = "mfa@example.com"
+	private val PASSWORD = "qweasdZXC123"
 
 	@BeforeEach
 	override fun setup() {
@@ -135,6 +156,7 @@ class AccountRoutesTest : BaseTest() {
 			single { mockk<ReleasePenNameUseCase>() }
 			single { bioService }
 			single { markdownRenderer }
+			single { securityRepository }
 			single { mockk<com.darkrockstudios.apps.hammer.review.ReviewRepository>(relaxed = true) }
 			single { mockk<com.darkrockstudios.apps.hammer.storyideas.ServerIdeasRepository>(relaxed = true) }
 			single { mockk<com.darkrockstudios.apps.hammer.database.ProjectDao>(relaxed = true) }
@@ -431,6 +453,171 @@ class AccountRoutesTest : BaseTest() {
 			assertEquals(HttpStatusCode.Unauthorized, status)
 		}
 	}
+
+	private fun ApplicationTestBuilder.setupApp() {
+		application {
+			setupKtorTestKoin(this@AccountRoutesTest, testModule)
+
+			configureSerialization()
+			configureLocalization()
+			configureSecurity()
+			configureRouting()
+		}
+	}
+
+	@Test
+	fun `Account - Login - MFA account without a code gets the challenge 401`() = testApplication {
+		val challenge = MfaChallenge("challenge-token", listOf(MfaMethod.TOTP, MfaMethod.RECOVERY))
+		coEvery { accountsComponent.login(EMAIL, PASSWORD, INSTALL_ID, null) } returns LoginResult.MfaRequired(challenge)
+		setupApp()
+
+		makeLoginCall(code = null).apply {
+			assertEquals(HttpStatusCode.Unauthorized, status)
+			val body = Json.parseToJsonElement(bodyAsText()).jsonObject
+			assertEquals(setOf("error", "displayMessage", "errorCode", "mfa"), body.keys)
+			assertEquals(ApiErrorCode.MFA_REQUIRED, body["errorCode"]?.jsonPrimitive?.content)
+			assertEquals(
+				buildJsonObject {
+					put("token", "challenge-token")
+					put("methods", buildJsonArray {
+						add(JsonPrimitive("totp"))
+						add(JsonPrimitive("recovery"))
+					})
+				},
+				body["mfa"]
+			)
+			val decoded = createNetworkJsonSerializer().decodeFromString<HttpResponseError>(bodyAsText())
+			assertEquals(challenge, decoded.mfa)
+		}
+		// A correct password alone is not a sign-in, so it is not audited as one.
+		coVerify(exactly = 0) { securityRepository.recordLoginAttempt(any(), any(), any()) }
+	}
+
+	@Test
+	fun `Account - Login - wrong password keeps the old wire shape`() = testApplication {
+		coEvery { accountsComponent.login(EMAIL, PASSWORD, INSTALL_ID, null) } returns
+			LoginResult.Failure(SResult.failure("Invalid credentials"))
+		setupApp()
+
+		makeLoginCall(code = null).apply {
+			assertEquals(HttpStatusCode.Unauthorized, status)
+			val body = Json.parseToJsonElement(bodyAsText()).jsonObject
+			assertEquals(ApiErrorCode.INVALID_CREDENTIALS, body["errorCode"]?.jsonPrimitive?.content)
+			assertTrue(body["mfa"] == null || body["mfa"] == JsonNull)
+		}
+		coVerify { securityRepository.recordLoginAttempt(EMAIL, any(), false) }
+	}
+
+	@Test
+	fun `Account - Login - inline code signs in`() = testApplication {
+		val token = Token(USER_ID, "auth", "refresh")
+		coEvery { accountsComponent.login(EMAIL, PASSWORD, INSTALL_ID, "123456") } returns LoginResult.Success(token)
+		setupApp()
+
+		makeLoginCall(code = "123456").apply {
+			assertEquals(HttpStatusCode.OK, status)
+			assertEquals(token, json.decodeFromString<Token>(bodyAsText()))
+		}
+		coVerify { securityRepository.recordLoginAttempt(EMAIL, any(), true) }
+	}
+
+	@Test
+	fun `Account - Login - wrong inline code is audited as a failure`() = testApplication {
+		coEvery { accountsComponent.login(EMAIL, PASSWORD, INSTALL_ID, "000000") } returns LoginResult.MfaCodeInvalid(EMAIL)
+		setupApp()
+
+		makeLoginCall(code = "000000").apply {
+			assertEquals(HttpStatusCode.Unauthorized, status)
+			val body = Json.parseToJsonElement(bodyAsText()).jsonObject
+			assertEquals(ApiErrorCode.MFA_CODE_INVALID, body["errorCode"]?.jsonPrimitive?.content)
+		}
+		coVerify { securityRepository.recordLoginAttempt(EMAIL, any(), false) }
+	}
+
+	@Test
+	fun `Account - Login MFA - answers the challenge with a token`() = testApplication {
+		val token = Token(USER_ID, "auth", "refresh")
+		coEvery { accountsComponent.loginMfa("challenge-token", "123456", INSTALL_ID) } returns LoginResult.Success(token)
+		coEvery { accountsRepository.getAccountOrNull(USER_ID) } returns testAccount(userId = USER_ID, email = EMAIL)
+		setupApp()
+
+		makeLoginMfaCall("challenge-token", "123456").apply {
+			assertEquals(HttpStatusCode.OK, status)
+			assertEquals(token, json.decodeFromString<Token>(bodyAsText()))
+		}
+		coVerify { securityRepository.recordLoginAttempt(EMAIL, any(), true) }
+	}
+
+	@Test
+	fun `Account - Login MFA - wrong code is a 401 and audited`() = testApplication {
+		coEvery { accountsComponent.loginMfa("challenge-token", "000000", INSTALL_ID) } returns LoginResult.MfaCodeInvalid(EMAIL)
+		setupApp()
+
+		makeLoginMfaCall("challenge-token", "000000").apply {
+			assertEquals(HttpStatusCode.Unauthorized, status)
+			val body = Json.parseToJsonElement(bodyAsText()).jsonObject
+			assertEquals(ApiErrorCode.MFA_CODE_INVALID, body["errorCode"]?.jsonPrimitive?.content)
+		}
+		coVerify { securityRepository.recordLoginAttempt(EMAIL, any(), false) }
+	}
+
+	@Test
+	fun `Account - Login MFA - locked account is a 401 that says how long to wait`() = testApplication {
+		val until = Clock.System.now() + 10.minutes
+		coEvery { accountsComponent.loginMfa("challenge-token", "000000", INSTALL_ID) } returns LoginResult.MfaLocked(EMAIL, until)
+		setupApp()
+
+		makeLoginMfaCall("challenge-token", "000000").apply {
+			assertEquals(HttpStatusCode.Unauthorized, status)
+			val body = Json.parseToJsonElement(bodyAsText()).jsonObject
+			assertEquals(ApiErrorCode.MFA_CODE_INVALID, body["errorCode"]?.jsonPrimitive?.content)
+			assertTrue(body["displayMessage"]?.jsonPrimitive?.content.orEmpty().contains("10 minutes"))
+		}
+		coVerify { securityRepository.recordLoginAttempt(EMAIL, any(), false) }
+	}
+
+	@Test
+	fun `Account - Login MFA - missing fields are a bad request`() = testApplication {
+		setupApp()
+
+		makeLoginMfaCall(mfaToken = null, code = "123456").apply {
+			assertEquals(HttpStatusCode.BadRequest, status)
+		}
+		coVerify(exactly = 0) { accountsComponent.loginMfa(any(), any(), any()) }
+	}
+
+	private suspend fun ApplicationTestBuilder.makeLoginCall(code: String?): HttpResponse =
+		client.post("/api/account/login") {
+			header(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION)
+			header(HEADER_CLIENT_VERSION, BuildMetadata.APP_VERSION)
+			header(HttpHeaders.Accept, ContentType.Application.Json.toString())
+			setBody(
+				FormDataContent(
+					Parameters.build {
+						append("email", EMAIL)
+						append("password", PASSWORD)
+						append("installId", INSTALL_ID)
+						code?.let { append("code", it) }
+					}
+				)
+			)
+		}
+
+	private suspend fun ApplicationTestBuilder.makeLoginMfaCall(mfaToken: String?, code: String?): HttpResponse =
+		client.post("/api/account/login/mfa") {
+			header(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION)
+			header(HEADER_CLIENT_VERSION, BuildMetadata.APP_VERSION)
+			header(HttpHeaders.Accept, ContentType.Application.Json.toString())
+			setBody(
+				FormDataContent(
+					Parameters.build {
+						mfaToken?.let { append("mfaToken", it) }
+						code?.let { append("code", it) }
+						append("installId", INSTALL_ID)
+					}
+				)
+			)
+		}
 
 	private suspend fun ApplicationTestBuilder.makePairCall(
 		userId: Long,

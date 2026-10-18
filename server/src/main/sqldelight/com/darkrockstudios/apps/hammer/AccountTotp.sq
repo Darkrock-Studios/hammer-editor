@@ -1,0 +1,72 @@
+import kotlin.time.Instant;
+
+-- secret is encrypted with the account's content encryptor; cipher names it for the registry.
+CREATE TABLE account_totp(
+    user_id BIGINT NOT NULL PRIMARY KEY,
+    secret TEXT NOT NULL,
+    cipher TEXT NOT NULL,
+    confirmed BOOLEAN NOT NULL DEFAULT FALSE,
+    last_step BIGINT NOT NULL DEFAULT 0,
+    created TIMESTAMPTZ AS Instant NOT NULL DEFAULT NOW(),
+    failed_attempts INTEGER NOT NULL DEFAULT 0,
+    failure_window_start TIMESTAMPTZ AS Instant,
+    locked_until TIMESTAMPTZ AS Instant,
+    FOREIGN KEY(user_id) REFERENCES account(id) ON DELETE CASCADE
+);
+
+getByUserId:
+SELECT * FROM account_totp WHERE user_id = ?;
+
+deletePending:
+DELETE FROM account_totp WHERE user_id = ? AND confirmed = FALSE;
+
+-- Does nothing when a confirmed secret already exists.
+insertPending:
+INSERT INTO account_totp(user_id, secret, cipher)
+VALUES (:userId, :secret, :cipher)
+ON CONFLICT (user_id) DO NOTHING;
+
+confirm:
+UPDATE account_totp SET confirmed = TRUE, last_step = :step
+WHERE user_id = :userId AND confirmed = FALSE AND last_step < :step
+RETURNING user_id;
+
+-- Atomic replay guard: only one request can claim a given step.
+advanceLastStep:
+UPDATE account_totp SET last_step = :step
+WHERE user_id = :userId AND confirmed = TRUE AND last_step < :step
+RETURNING user_id;
+
+-- Counts a wrong code, starting a fresh window when the current one began before
+-- :windowCutoff. One statement so concurrent guesses cannot share a count.
+recordFailure:
+UPDATE account_totp SET
+    failed_attempts = CASE WHEN failure_window_start IS NULL OR failure_window_start < :windowCutoff THEN 1 ELSE failed_attempts + 1 END,
+    failure_window_start = CASE WHEN failure_window_start IS NULL OR failure_window_start < :windowCutoff THEN :now ELSE failure_window_start END
+WHERE user_id = :userId AND confirmed = TRUE
+RETURNING failed_attempts;
+
+lock:
+UPDATE account_totp SET locked_until = :until, failed_attempts = 0, failure_window_start = NULL
+WHERE user_id = :userId;
+
+clearFailures:
+UPDATE account_totp SET failed_attempts = 0, failure_window_start = NULL, locked_until = NULL
+WHERE user_id = :userId;
+
+deleteAllForUser:
+DELETE FROM account_totp WHERE user_id = ?;
+
+distinctCiphers:
+SELECT DISTINCT cipher FROM account_totp;
+
+countForConvergence:
+SELECT COUNT(*) FROM account_totp WHERE cipher != :target;
+
+selectForConvergence:
+SELECT user_id, secret, cipher FROM account_totp WHERE cipher != :target LIMIT :batchLimit;
+
+-- Matches the old tag so a re-enrollment landing mid-convergence is not overwritten.
+updateSecretCipher:
+UPDATE account_totp SET secret = :secret, cipher = :cipher
+WHERE user_id = :userId AND cipher = :oldCipher AND secret = :oldSecret;

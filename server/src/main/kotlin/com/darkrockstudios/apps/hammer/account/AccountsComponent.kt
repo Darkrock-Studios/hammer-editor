@@ -1,7 +1,11 @@
 package com.darkrockstudios.apps.hammer.account
 
 import com.darkrockstudios.apps.hammer.Account
+import com.darkrockstudios.apps.hammer.account.mfa.ChallengeResult
+import com.darkrockstudios.apps.hammer.account.mfa.CodeResult
+import com.darkrockstudios.apps.hammer.account.mfa.MfaRepository
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
+import com.darkrockstudios.apps.hammer.base.http.MfaChallenge
 import com.darkrockstudios.apps.hammer.base.http.TermsOfServiceChallenge
 import com.darkrockstudios.apps.hammer.base.http.Token
 import com.darkrockstudios.apps.hammer.plugin.PluginRegistry
@@ -10,12 +14,14 @@ import com.darkrockstudios.apps.hammer.utilities.Msg
 import com.darkrockstudios.apps.hammer.utilities.SResult
 import com.darkrockstudios.apps.hammer.utilities.ServerResult
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
+import kotlin.time.Instant
 
 class AccountsComponent(
 	private val accountsRepository: AccountsRepository,
 	private val whiteListRepository: WhiteListRepository,
 	private val projectsRepository: ProjectsRepository,
 	private val termsOfServiceRepository: TermsOfServiceRepository,
+	private val mfaRepository: MfaRepository,
 	private val pluginRegistry: PluginRegistry,
 ) {
 	suspend fun createAccount(
@@ -46,12 +52,58 @@ class AccountsComponent(
 		}
 	}
 
-	suspend fun login(email: String, password: String, installId: String): SResult<Token> {
+	/** A [code] answers the second factor inline, for clients that can't do the challenge round trip. */
+	suspend fun login(email: String, password: String, installId: String, code: String? = null): LoginResult {
 		if (checkIfWhiteListRejected(email)) {
-			return whiteListRejectedFailure()
+			return LoginResult.Failure(whiteListRejectedFailure())
 		}
 
-		return accountsRepository.login(email, password, installId)
+		val verified = accountsRepository.verifyPassword(email, password)
+		if (!isSuccess(verified)) return LoginResult.Failure((verified as ServerResult.Failure).retype())
+		val account = verified.data
+
+		if (!mfaRepository.hasMfa(account.id)) {
+			return LoginResult.Success(accountsRepository.issueToken(account.id, installId))
+		}
+		if (code == null) {
+			mfaRepository.lockedUntil(account.id)?.let { return LoginResult.MfaLocked(account.email, it) }
+			return LoginResult.MfaRequired(mfaRepository.createChallenge(account.id, installId))
+		}
+		return when (val result = mfaRepository.verifyCode(account.id, code)) {
+			CodeResult.Verified -> LoginResult.Success(accountsRepository.issueToken(account.id, installId))
+			CodeResult.Invalid -> LoginResult.MfaCodeInvalid(account.email)
+			is CodeResult.Locked -> LoginResult.MfaLocked(account.email, result.until)
+		}
+	}
+
+	suspend fun loginMfa(mfaToken: String, code: String, installId: String): LoginResult {
+		val userId = when (val result = mfaRepository.verifyChallenge(mfaToken, installId, code)) {
+			ChallengeResult.Invalid -> return LoginResult.MfaCodeInvalid(null)
+			is ChallengeResult.InvalidCode ->
+				return LoginResult.MfaCodeInvalid(accountsRepository.getAccountOrNull(result.userId)?.email)
+
+			is ChallengeResult.Locked ->
+				return LoginResult.MfaLocked(accountsRepository.getAccountOrNull(result.userId)?.email, result.until)
+
+			is ChallengeResult.Verified -> result.userId
+		}
+
+		// The account may have changed in the minutes since the password was checked.
+		val account = accountsRepository.getAccountOrNull(userId)
+			?: return LoginResult.MfaCodeInvalid(null)
+		if (account.deleted_at != null) {
+			return LoginResult.Failure(
+				SResult.failure(
+					"Account pending deletion",
+					Msg.r("api_accounts_login_error_pending_deletion"),
+					AccountPendingDeletion()
+				)
+			)
+		}
+		if (checkIfWhiteListRejected(account)) {
+			return LoginResult.Failure(whiteListRejectedFailure())
+		}
+		return LoginResult.Success(accountsRepository.issueToken(userId, installId))
 	}
 
 	suspend fun refreshToken(
@@ -121,6 +173,21 @@ class AccountsComponent(
 		)
 	}
 }
+
+sealed interface LoginResult {
+	data class Success(val token: Token) : LoginResult
+	data class MfaRequired(val challenge: MfaChallenge) : LoginResult
+
+	/** [email] is the account the code was for, when known, for the login audit. */
+	data class MfaCodeInvalid(val email: String?) : LoginResult
+
+	/** Too many wrong codes; the account takes no code until [until]. */
+	data class MfaLocked(val email: String?, val until: Instant) : LoginResult
+	data class Failure(val failure: ServerResult.Failure<Token>) : LoginResult
+}
+
+private fun ServerResult.Failure<*>.retype(): ServerResult.Failure<Token> =
+	ServerResult.Failure(error, displayMessage, exception)
 
 sealed interface CreateAccountResult {
 	data class Success(val token: Token) : CreateAccountResult

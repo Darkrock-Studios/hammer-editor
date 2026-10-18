@@ -11,6 +11,7 @@ import com.darkrockstudios.apps.hammer.account.PasswordResetRepository
 import com.darkrockstudios.apps.hammer.account.RequestPasswordResetUseCase
 import com.darkrockstudios.apps.hammer.account.PenNameUseCase
 import com.darkrockstudios.apps.hammer.account.ReleasePenNameUseCase
+import com.darkrockstudios.apps.hammer.account.mfa.MfaRepository
 import com.darkrockstudios.apps.hammer.account.PrivacyPolicyRepository
 import com.darkrockstudios.apps.hammer.account.TermsOfServiceRepository
 import com.darkrockstudios.apps.hammer.account.TokenMaintenanceJob
@@ -31,6 +32,9 @@ import com.darkrockstudios.apps.hammer.database.EmbeddedPostgresDatabase
 import com.darkrockstudios.apps.hammer.database.ErrorLogDao
 import com.darkrockstudios.apps.hammer.database.LoginAttemptDao
 import com.darkrockstudios.apps.hammer.database.PasswordResetTokenDao
+import com.darkrockstudios.apps.hammer.database.AccountTotpDao
+import com.darkrockstudios.apps.hammer.database.AccountRecoveryCodeDao
+import com.darkrockstudios.apps.hammer.database.MfaLoginChallengeDao
 import com.darkrockstudios.apps.hammer.database.ProjectAccessDao
 import com.darkrockstudios.apps.hammer.database.ProjectDao
 import com.darkrockstudios.apps.hammer.database.ProjectDataDao
@@ -170,6 +174,9 @@ fun mainModule(
 	single<ServerConfigDao>()
 	single<ProjectAccessDao>()
 	single<PasswordResetTokenDao>()
+	single<AccountTotpDao>()
+	single<AccountRecoveryCodeDao>()
+	single<MfaLoginChallengeDao>()
 	single<ReviewRequestDao>()
 	single<ReviewSceneDao>()
 	single<ReviewSuggestionDao>()
@@ -258,6 +265,7 @@ fun mainModule(
 	}
 	single<PasswordResetRepository>()
 	factory<RequestPasswordResetUseCase>()
+	single<MfaRepository>()
 	single<ReviewRepository>()
 
 	single<ServerSecretManager>()

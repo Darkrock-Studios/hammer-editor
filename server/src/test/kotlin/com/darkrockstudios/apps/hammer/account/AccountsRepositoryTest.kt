@@ -97,23 +97,33 @@ class AccountsRepositoryTest : BaseTest() {
 	}
 
 	@Test
-	fun `Login - Success`() = runTest {
+	fun `Verify password - Success returns the account`() = runTest {
 		coEvery { accountDao.findAccount(any()) } returns account
-
-		val storedToken = slot<Token>()
-		coEvery { authTokenDao.setToken(userId, installId, capture(storedToken), any()) } just Runs
-
 		val accountsRepository =
 			AccountsRepository(accountDao, authTokenDao, clock, tokenHasher, b64)
 
-		val result =
-			accountsRepository.login(email = email, installId = installId, password = password)
+		val result = accountsRepository.verifyPassword(email = email, password = password)
+
 		assertTrue(isSuccess(result))
-		assertEquals(userId, result.data.userId)
-		assertTrue(result.data.isValid())
+		assertEquals(userId, result.data.id)
+		// Checking a password alone never mints a token.
+		coVerify(exactly = 0) { authTokenDao.setToken(any(), any(), any(), any()) }
+	}
+
+	@Test
+	fun `Issue token - stores hashed tokens`() = runTest {
+		val storedToken = slot<Token>()
+		coEvery { authTokenDao.setToken(userId, installId, capture(storedToken), any()) } just Runs
+		val accountsRepository =
+			AccountsRepository(accountDao, authTokenDao, clock, tokenHasher, b64)
+
+		val token = accountsRepository.issueToken(userId, installId)
+
+		assertEquals(userId, token.userId)
+		assertTrue(token.isValid())
 		// The client gets plaintext tokens; only their hashes may be persisted.
-		assertEquals("${result.data.auth}-hashed", storedToken.captured.auth)
-		assertEquals("${result.data.refresh}-hashed", storedToken.captured.refresh)
+		assertEquals("${token.auth}-hashed", storedToken.captured.auth)
+		assertEquals("${token.refresh}-hashed", storedToken.captured.refresh)
 	}
 
 	@Test
@@ -163,41 +173,33 @@ class AccountsRepositoryTest : BaseTest() {
 	}
 
 	@Test
-	fun `Login - Wrong password`() = runTest {
+	fun `Verify password - Wrong password`() = runTest {
 		coEvery { accountDao.findAccount(any()) } returns account
 		val accountsRepository =
 			AccountsRepository(accountDao, authTokenDao, clock, tokenHasher, b64)
 
-		val result = accountsRepository.login(
-			email = email,
-			installId = installId,
-			password = password + "4"
-		)
+		val result = accountsRepository.verifyPassword(email = email, password = password + "4")
 		assertTrue(result.isFailure)
 	}
 
 	@Test
-	fun `Login - No User`() = runTest {
+	fun `Verify password - No User`() = runTest {
 		coEvery { accountDao.findAccount(any()) } returns null
 		val accountsRepository =
 			AccountsRepository(accountDao, authTokenDao, clock, tokenHasher, b64)
 
-		val result = accountsRepository.login(
-			email = "no@account.com",
-			installId = installId,
-			password = "power1234"
-		)
+		val result = accountsRepository.verifyPassword(email = "no@account.com", password = "power1234")
 		assertTrue(result.isFailure)
 	}
 
 	@Test
-	fun `Login - soft-deleted account with correct password gets the pending-deletion failure`() = runTest {
+	fun `Verify password - soft-deleted account with correct password gets the pending-deletion failure`() = runTest {
 		coEvery { accountDao.findAccount(any()) } returns account.copy(deleted_at = Clock.System.now())
 		val accountsRepository =
 			AccountsRepository(accountDao, authTokenDao, clock, tokenHasher, b64)
 
 		val result =
-			accountsRepository.login(email = email, installId = installId, password = password)
+			accountsRepository.verifyPassword(email = email, password = password)
 
 		assertTrue(result.isFailure)
 		result as ServerResult.Failure
@@ -207,16 +209,12 @@ class AccountsRepositoryTest : BaseTest() {
 	}
 
 	@Test
-	fun `Login - soft-deleted account with wrong password gets the generic failure`() = runTest {
+	fun `Verify password - soft-deleted account with wrong password gets the generic failure`() = runTest {
 		coEvery { accountDao.findAccount(any()) } returns account.copy(deleted_at = Clock.System.now())
 		val accountsRepository =
 			AccountsRepository(accountDao, authTokenDao, clock, tokenHasher, b64)
 
-		val result = accountsRepository.login(
-			email = email,
-			installId = installId,
-			password = password + "wrong"
-		)
+		val result = accountsRepository.verifyPassword(email = email, password = password + "wrong")
 
 		assertTrue(result.isFailure)
 		result as ServerResult.Failure
@@ -238,14 +236,14 @@ class AccountsRepositoryTest : BaseTest() {
 	}
 
 	@Test
-	fun `Login - unknown account and wrong password are indistinguishable`() = runTest {
+	fun `Verify password - unknown account and wrong password are indistinguishable`() = runTest {
 		coEvery { accountDao.findAccount(email) } returns account
 		coEvery { accountDao.findAccount("no@account.com") } returns null
 		val accountsRepository =
 			AccountsRepository(accountDao, authTokenDao, clock, tokenHasher, b64)
 
-		val wrongPassword = accountsRepository.login(email, password + "x", installId)
-		val unknownAccount = accountsRepository.login("no@account.com", password, installId)
+		val wrongPassword = accountsRepository.verifyPassword(email, password + "x")
+		val unknownAccount = accountsRepository.verifyPassword("no@account.com", password)
 
 		assertTrue(isFailure(wrongPassword))
 		assertTrue(isFailure(unknownAccount))
@@ -469,11 +467,7 @@ class AccountsRepositoryTest : BaseTest() {
 		val accountsRepository =
 			AccountsRepository(accountDao, authTokenDao, clock, tokenHasher, b64)
 
-		val result = accountsRepository.login(
-			email = email,
-			installId = installId,
-			password = password
-		)
+		val result = accountsRepository.verifyPassword(email = email, password = password)
 
 		// Should fail because old hash cannot be verified
 		assertTrue(result.isFailure, "Login should fail with old SHA-256 hash")

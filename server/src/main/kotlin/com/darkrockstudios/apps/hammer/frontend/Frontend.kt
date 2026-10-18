@@ -30,6 +30,7 @@ import com.darkrockstudios.apps.hammer.monitoring.ErrorRepository
 import com.darkrockstudios.apps.hammer.monitoring.MetricsRepository
 import com.darkrockstudios.apps.hammer.monitoring.MonitoringState
 import com.darkrockstudios.apps.hammer.monitoring.SecurityRepository
+import com.darkrockstudios.apps.hammer.account.mfa.MfaRepository
 import com.darkrockstudios.apps.hammer.monitoring.StoryReaderCollector
 import com.darkrockstudios.apps.hammer.monitoring.StoryReaderRepository
 import com.darkrockstudios.apps.hammer.monitoring.UserActivityCollector
@@ -103,6 +104,7 @@ fun Route.frontend() {
 	val metricsRepository: MetricsRepository by inject()
 	val errorRepository: ErrorRepository by inject()
 	val securityRepository: SecurityRepository by inject()
+	val mfaRepository: MfaRepository by inject()
 	val userActivityRepository: UserActivityRepository by inject()
 	val storyReaderRepository: StoryReaderRepository by inject()
 	val storyReaderCollector: StoryReaderCollector by inject()
@@ -133,7 +135,7 @@ fun Route.frontend() {
 	termsOfServicePage()
 	privacyPolicyPage()
 	localeRoutes()
-	authRoutes(accountsRepository, whiteListRepository, configRepository, securityRepository)
+	authRoutes(accountsRepository, whiteListRepository, configRepository, securityRepository, mfaRepository)
 	signupPage(
 		accountsComponent,
 		accountsRepository,

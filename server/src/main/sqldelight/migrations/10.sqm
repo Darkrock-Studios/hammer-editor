@@ -1,0 +1,38 @@
+-- Migration 10 -> 11: multi-factor authentication. Mirrors AccountTotp.sq,
+-- AccountRecoveryCode.sq and MfaLoginChallenge.sq for already-deployed databases.
+
+CREATE TABLE account_totp(
+    user_id BIGINT NOT NULL PRIMARY KEY,
+    secret TEXT NOT NULL,
+    cipher TEXT NOT NULL,
+    confirmed BOOLEAN NOT NULL DEFAULT FALSE,
+    last_step BIGINT NOT NULL DEFAULT 0,
+    created TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    failed_attempts INTEGER NOT NULL DEFAULT 0,
+    failure_window_start TIMESTAMPTZ,
+    locked_until TIMESTAMPTZ,
+    FOREIGN KEY(user_id) REFERENCES account(id) ON DELETE CASCADE
+);
+
+CREATE TABLE account_recovery_code(
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    code_hash TEXT NOT NULL,
+    used_at TIMESTAMPTZ,
+    FOREIGN KEY(user_id) REFERENCES account(id) ON DELETE CASCADE
+);
+
+CREATE INDEX account_recovery_code_user_idx ON account_recovery_code (user_id, code_hash);
+
+CREATE TABLE mfa_login_challenge(
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    install_id TEXT NOT NULL,
+    token_hash TEXT NOT NULL UNIQUE,
+    attempts INTEGER NOT NULL DEFAULT 0,
+    expires TIMESTAMPTZ NOT NULL,
+    FOREIGN KEY(user_id) REFERENCES account(id) ON DELETE CASCADE
+);
+
+CREATE INDEX mfa_login_challenge_user_idx ON mfa_login_challenge (user_id);
+CREATE INDEX mfa_login_challenge_expires_idx ON mfa_login_challenge (expires);

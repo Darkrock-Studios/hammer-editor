@@ -19,8 +19,16 @@ class TokenHasher(
 	private val serverSecretManager: ServerSecretManager,
 	private val base64: Base64,
 ) {
-	suspend fun hashToken(token: String): String {
-		val key = keyringManager.tokenHmacKeyOrNull() ?: serverSecretManager.getServerSecret()
+	suspend fun hashToken(token: String): String =
+		hash(token, keyringManager.tokenHmacKeyOrNull() ?: serverSecretManager.getServerSecret())
+
+	/** One hash per key generation, for long-lived secrets that must outlive a key rotation. */
+	suspend fun hashTokenWithEveryKey(token: String): List<String> {
+		val keys = keyringManager.tokenHmacKeysOrNull() ?: listOf(serverSecretManager.getServerSecret())
+		return keys.map { hash(token, it) }
+	}
+
+	private fun hash(token: String, key: String): String {
 		val mac = Mac.getInstance("HmacSHA256")
 		mac.init(SecretKeySpec(key.toByteArray(Charsets.UTF_8), "HmacSHA256"))
 		val hashBytes = mac.doFinal(token.toByteArray(Charsets.UTF_8))
