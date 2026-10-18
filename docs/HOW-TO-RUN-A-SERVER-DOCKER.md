@@ -299,10 +299,27 @@ docker start hammer-server
 | `prune-key --role tokenHmac` | no | no |
 | `prune-key --role content` | yes | yes (embedded storage) |
 | `--converge-dry-run` | yes | yes (embedded storage) |
+| `reset-admin-password` | yes | yes (embedded storage) |
 
 The lock is specific to the embedded database. With `[storage] type = "remote"`
 the database is a separate service, so these commands can run against a live
 server.
+
+### Resetting the admin password
+
+`reset-admin-password` reads the new password from stdin (never from the command
+line), so run the container with `-i`:
+
+```bash
+docker stop hammer-server
+printf '%s\n' "$NEW_PASSWORD" | docker run --rm -i -v hammer-data:/data \
+  ghcr.io/darkrock-studios/hammer-editor/server:latest \
+  reset-admin-password --config /data/hammer_data/config.toml
+docker start hammer-server
+```
+
+Add `--email` when the server has more than one admin. See
+[Account passwords](HOW-TO-RUN-A-SERVER.md#resetting-the-admin-password) for the details.
 
 ### Rotating an encryption key
 

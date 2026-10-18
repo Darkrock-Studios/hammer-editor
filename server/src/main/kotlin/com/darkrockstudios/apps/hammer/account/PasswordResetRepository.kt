@@ -87,10 +87,7 @@ class PasswordResetRepository(
 			)
 		}
 
-		val userId = validationResult.userId
-
-		// Validate password
-		val passwordResult = PasswordValidator.validate(newPassword)
+		val passwordResult = setPassword(validationResult.userId, newPassword)
 		if (passwordResult != PasswordValidationResult.VALID) {
 			return SResult.failure(
 				"password failure",
@@ -99,18 +96,47 @@ class PasswordResetRepository(
 			)
 		}
 
-		val hashedPassword = hashPassword(newPassword)
-
-		// Update password in database
-		accountDao.updatePassword(userId, hashedPassword)
-
-		// Invalidate all auth tokens (logout all devices)
-		authTokenDao.deleteTokensByUserId(userId)
-
-		// Mark reset token as used
 		passwordResetTokenDao.markTokenAsUsed(token)
 
 		return SResult.success(Unit)
+	}
+
+	/**
+	 * Validates and stores [newPassword] for [userId], then signs out every device.
+	 * Nothing is written unless the result is [PasswordValidationResult.VALID].
+	 */
+	suspend fun setPassword(userId: Long, newPassword: String): PasswordValidationResult {
+		val passwordResult = PasswordValidator.validate(newPassword)
+		if (passwordResult != PasswordValidationResult.VALID) return passwordResult
+
+		accountDao.updatePassword(userId, hashPassword(newPassword))
+		authTokenDao.deleteTokensByUserId(userId)
+
+		return PasswordValidationResult.VALID
+	}
+
+	/**
+	 * Command-line recovery for a locked-out admin. Only admin accounts qualify;
+	 * [email] is required once the server has more than one.
+	 */
+	suspend fun resetAdminPassword(email: String?, newPassword: String): AdminPasswordResetResult {
+		val target = if (email == null) {
+			val admins = accountDao.getAdmins()
+			when (admins.size) {
+				0 -> return AdminPasswordResetResult.NoAdmin
+				1 -> admins.single()
+				else -> return AdminPasswordResetResult.MultipleAdmins(admins.map { it.email })
+			}
+		} else {
+			val account = accountDao.findAccount(email) ?: return AdminPasswordResetResult.NoSuchAccount(email)
+			if (!account.is_admin) return AdminPasswordResetResult.NotAdmin(email)
+			account
+		}
+
+		return when (val passwordResult = setPassword(target.id, newPassword)) {
+			PasswordValidationResult.VALID -> AdminPasswordResetResult.Success(target.email)
+			else -> AdminPasswordResetResult.PasswordRejected(passwordResult)
+		}
 	}
 
 	/**
@@ -123,6 +149,15 @@ class PasswordResetRepository(
 	companion object {
 		const val RESET_TOKEN_LENGTH = 32
 	}
+}
+
+sealed class AdminPasswordResetResult {
+	data class Success(val email: String) : AdminPasswordResetResult()
+	object NoAdmin : AdminPasswordResetResult()
+	data class MultipleAdmins(val emails: List<String>) : AdminPasswordResetResult()
+	data class NoSuchAccount(val email: String) : AdminPasswordResetResult()
+	data class NotAdmin(val email: String) : AdminPasswordResetResult()
+	data class PasswordRejected(val result: PasswordValidationResult) : AdminPasswordResetResult()
 }
 
 sealed class TokenValidationResult {

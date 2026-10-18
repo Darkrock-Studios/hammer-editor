@@ -69,7 +69,8 @@ fun main(args: Array<String>) = HammerServerCommand()
 		InspectKeyringCommand(),
 		RotateKeyCommand(),
 		PruneKeyCommand(),
-		MigrateSecretCommand()
+		MigrateSecretCommand(),
+		ResetAdminPasswordCommand(),
 	)
 	.main(args)
 
@@ -194,18 +195,7 @@ internal fun resolveServerConfig(
 	configPath: String?,
 	fileSystem: FileSystem = FileSystem.SYSTEM,
 ): ServerConfig {
-	val configFile: Path? = if (configPath != null) {
-		configPath.toPath()
-	} else {
-		val defaultConfig = getRootDataDirectory(fileSystem) / DEFAULT_CONFIG_FILE_NAME
-		if (fileSystem.exists(defaultConfig)) {
-			configLogger.info("Loading config from default location: $defaultConfig")
-			defaultConfig
-		} else {
-			null
-		}
-	}
-
+	val configFile = findConfigFile(configPath, fileSystem)
 	val config = configFile?.let { loadConfig(fileSystem, it) } ?: ServerConfig()
 	// Validated before resolution: a blank directory resolves to the config file's own directory,
 	// which would look valid and quietly put the caches next to the database.
@@ -296,6 +286,19 @@ private fun validateCacheDirectory(config: CacheConfig, fileSystem: FileSystem) 
 		}
 	}
 }
+
+/** An explicit `--config` path, else the `config.toml` in the data directory if one exists. */
+internal fun findConfigFile(configPath: String?, fileSystem: FileSystem = FileSystem.SYSTEM): Path? {
+	if (configPath != null) return configPath.toPath()
+	val defaultConfig = getRootDataDirectory(fileSystem) / DEFAULT_CONFIG_FILE_NAME
+	if (!fileSystem.exists(defaultConfig)) return null
+	configLogger.info("Loading config from default location: $defaultConfig")
+	return defaultConfig
+}
+
+/** The server's config without the startup-only validation, for subcommands that only need the database. */
+internal fun loadServerConfig(configPath: String?, fileSystem: FileSystem = FileSystem.SYSTEM): ServerConfig =
+	findConfigFile(configPath, fileSystem)?.let { loadConfig(fileSystem, it) } ?: ServerConfig()
 
 fun loadConfig(path: String): ServerConfig = loadConfig(FileSystem.SYSTEM, path.toPath())
 

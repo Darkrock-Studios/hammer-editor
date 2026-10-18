@@ -58,6 +58,12 @@ WHERE email = CAST(? AS CITEXT);
 count:
 SELECT COUNT(*) FROM account;
 
+getAdmins:
+SELECT *
+FROM account
+WHERE is_admin = TRUE
+ORDER BY id;
+
 createAccount:
 INSERT INTO account(email, password_hash, cipher_secret, is_admin)
 VALUES (?, ?, ?, ?);

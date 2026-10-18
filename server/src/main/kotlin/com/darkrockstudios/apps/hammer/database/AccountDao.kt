@@ -31,6 +31,10 @@ class AccountDao(
 		return@withContext query.executeAsOneOrNull()
 	}
 
+	suspend fun getAdmins(): List<Account> = withContext(ioDispatcher) {
+		queries.getAdmins().executeAsList()
+	}
+
 	suspend fun createAccount(
 		email: String,
 		hashedPassword: String,
