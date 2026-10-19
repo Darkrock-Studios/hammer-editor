@@ -908,8 +908,8 @@ is localized today.
 
 Real features rather than test fixtures, chosen so that between them they
 exercise every slot: the plain text exporter, the style report, the name
-generators, the character interview, the simple grammar check, and the
-[MCP plugin](#mcp-plugin).
+generators, the character interview, First meeting, the simple grammar check,
+and the [MCP plugin](#mcp-plugin).
 
 ### Plain text exporter (`plaintext`)
 
@@ -1080,6 +1080,30 @@ else.
 | Sessions | `keep = true`, so a run closed part way picks up where it was left. A `state` it cannot read starts again on the first page, keeping the name and answers |
 | Resources | Each set is a markdown file in `resources/sets/`: a `## Heading` per page, an optional paragraph under it as the page's intro, and a `- ` bullet per question |
 
+### First meeting (`first-meeting`)
+
+Built, as a runtime plugin in Kotlin: `first-meeting` in `hammer-plugins`.
+"Find where two characters first meet", on Project Home and encyclopedia
+entries, picks two characters and names the first scene, in story order, with
+both in its References, with the groups it is in. It lists the other scenes
+they share in story order, with a button opening each of the first ten. When
+they share none, it says so, naming either one that is in no scene's
+References at all. Each result says, in italics, that it goes by the
+References confirmed in each scene's Scene Info. It asks for `entry.read` and
+`scene.tree` and nothing else.
+
+| Exercises | How |
+| --- | --- |
+| Entity fields | Two required `entity` fields of `person` entries, on a page the plugin replies with rather than the manifest's, so it can give one a default |
+| Defaults from context | Run from an entry, the first field starts as that entry; Hammer shows it as nothing picked when the entry is not a person |
+| Errors | The same character twice is refused under the second field. A failed operation, or a button for a scene the pair does not share, is an error for the whole page |
+| Open | Each scene's button, and the primary Open for the first, reply with `open` for the scene, which ends the run. The page's `state` holds the scenes found, and only those are opened |
+| Inline buttons | One per shared scene, the first 10 only, so a pair sharing a hundred scenes does not bury the page; the markdown lists them all. A scene with the same name as another with a button is labelled with its groups too |
+| Buttons | Back has `validate = false`, and shows the picking page with the pair still picked, from `state` |
+| References | Reads each character's `referencedBy` with `entry.read`, keeps the scenes in both, and orders them by a walk of `scene.tree`, which leaves out archived scenes. References are the entries a scene names, added as it is saved in the editor, which the writer confirms or dismisses in Scene Info. Going by them takes two reads and the tree rather than every scene's text, and keeps to what the writer has said is in each scene, which a search for names cannot |
+
+No `keep`: a run is two picks, as quick to make again.
+
 ### Harper grammar (`harper-grammar`)
 
 Built, as a runtime plugin in Rust: `harper-grammar` in
@@ -1147,6 +1171,16 @@ and more than once, that have no entry.
   only for that run. Custom interview questions would need more;
   [PLUGIN-ACTION-PAGES.md](PLUGIN-ACTION-PAGES.md#a-durable-plugin-data-store)
   plans a store for them.
+- **References are only as accurate as the writer keeps them.** First
+  meeting, and any plugin built on `entry.read`'s `referencedBy`, counts a
+  character in a scene when it is in the scene's References. Saving a scene
+  in the editor adds the entries it names and never takes one away, so a
+  character only mentioned is counted as there until the writer dismisses it
+  in Scene Info. A planned MCP skill,
+  [true up scene References](https://trello.com/c/OoWcactX/286-mcp-skill-true-up-scene-references),
+  would go through the scenes in story order and propose what to confirm and
+  dismiss, with a quote for each, applying only what the writer approves. It
+  needs operations to read and set a scene's References first.
 
 ## Keeping the door open
 
@@ -1531,8 +1565,8 @@ Fields take the same keys in a manifest's `[[actions.field]]` and in a page's
   translated in `locales/`, as declared words are. A page's are the plugin's
   own, written for the call's `locale`.
 
-**Entities.** An `entity` field picks items of the project by name, as a
-character to interview or two to compare:
+**Entities.** An `entity` field picks items of the project by name, as the
+two characters [First meeting](#first-meeting-first-meeting) compares:
 
 ```toml
 [[actions.field]]
@@ -1548,15 +1582,30 @@ required = true
 Its value is `{"kind": "entry", "id": 12}`, or null when nothing is picked;
 with `multiple = true`, a list of them, empty when nothing is. `default` takes
 the same shape. Picking one is the common case, so `multiple` is false by
-default, unlike a `scenes` field's. The search matches names and entry aliases
-as they are typed, with a tab for each kind when there are several. A scene is
-named as it is in the tree (archived scenes are not offered), a note by its
-first line, and an event by its date, or its first line without one. A field
-is refused with an unknown kind or entry type, an empty `kinds`, `entry_types`
-when `kinds` leaves out `entry`, or a blank tag. A pick a page starts with, its
-`default` or one restored from a session, that names an item no longer in the
-project, or one the field does not take, shows as nothing picked rather than as
-an error.
+default, unlike a `scenes` field's. Tags match ignoring case and a leading
+`#`. A field is refused with an unknown kind or entry type, an empty `kinds`,
+`entry_types` when `kinds` leaves out `entry`, or a blank tag.
+
+- **The picker.** Choose opens a search with a tab for each kind when there
+  are several. It matches names and entry aliases anywhere in them, ignoring
+  case, as they are typed. The search has the focus, and Enter picks the first
+  match; with `multiple`, Enter adds it and clears the search for the next,
+  and Done closes. The first 100 matches are listed, then how many more.
+- **Names.** Scenes are listed in story order, named as in the tree with their
+  groups beside them; archived scenes are not offered. Entries and notes are
+  listed by name, a note named by its first line, and events in timeline
+  order, each named by its date, or its first line without one.
+- **Read afresh.** The items are read each time a page with an entity field
+  shows, and again at each press the host checks: entries from disk, so one
+  created, renamed, or deleted since is current, and scene tags from the tag
+  index, waiting for its first build when the project has only just opened.
+- **Picks dropped.** Once the items are read, a pick on the page that names
+  an item no longer in the project, or one the field does not take, shows as
+  nothing picked rather than as an error: a `default` (the entry an action was
+  run from, say, in a field of people when it is a place) or a pick restored
+  from a session. One gone by the press fails the [host checks](#buttons). If
+  the items cannot be read, picks go to the plugin unchecked, so a plugin
+  still answers an item it cannot read with `errors`.
 
 #### Buttons
 
