@@ -1,15 +1,28 @@
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.test.getBoundsInRoot
+import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isEnabled
+import androidx.compose.ui.test.isToggleable
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.compose.plugin.LocalPluginActions
 import com.darkrockstudios.apps.hammer.common.compose.plugin.PluginActionHost
 import com.darkrockstudios.apps.hammer.common.compose.rememberRootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
+import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogFilter
+import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogItem
+import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogKind
+import com.darkrockstudios.apps.hammer.common.data.entitycatalog.EntityCatalog
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.preview.KoinApplicationPreview
 import com.darkrockstudios.apps.hammer.common.preview.fakeProjectDef
 import com.darkrockstudios.apps.hammer.operations.OpenProject
@@ -27,6 +40,8 @@ import com.darkrockstudios.apps.hammer.operations.plugin.ActionSessionKey
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionSessionStore
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginAction
 import com.darkrockstudios.apps.hammer.operations.plugin.TextFormat
+import com.darkrockstudios.apps.hammer.operations.plugin.toJson
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import okio.Path.Companion.toPath
@@ -110,6 +125,7 @@ class PluginActionDialogsTest {
 					module {
 						single { OperationRegistry(emptyList(), NoProjects) }
 						single { store }
+						scope<ProjectDefScope> { scoped<EntityCatalog> { catalog } }
 					}
 				)
 			},
@@ -178,6 +194,60 @@ class PluginActionDialogsTest {
 		compose.waitUntil(timeoutMillis = 10_000) { store.load(key) == null }
 		compose.waitUntil(timeoutMillis = 10_000) { compose.onAllNodesWithText("Run", ignoreCase = true).fetchSemanticsNodes().isNotEmpty() }
 		assertTrue(calls.isEmpty())
+	}
+
+	private val alice = CatalogItem(CatalogKind.Entry, 7, "Alice", aliases = listOf("Alys"), entryType = EntryType.PERSON, tags = setOf("pov"))
+	private val rabbit = CatalogItem(CatalogKind.Entry, 6, "White Rabbit", entryType = EntryType.PERSON)
+	private val wonderland = CatalogItem(CatalogKind.Entry, 12, "Wonderland", entryType = EntryType.PLACE)
+	private val garden = CatalogItem(CatalogKind.Scene, 1, "The Garden", detail = "Part One", tags = setOf("pov"))
+
+	private val catalog = object : EntityCatalog {
+		override suspend fun items(kinds: Set<CatalogKind>) = listOf(alice, rabbit, wonderland, garden).filter { it.kind in kinds }
+	}
+
+	@Test
+	fun `an entity field is chosen by name in the picker, one closing it or several with Done, and a pick removed by its chip`() {
+		val cast = PluginAction(
+			"people", "cast", "Cast", setOf(ActionPlace.Project),
+			listOf(
+				ActionField.Entity("lead", "Lead", filter = CatalogFilter(setOf(CatalogKind.Entry), setOf(EntryType.PERSON)), required = true),
+				ActionField.Entity("pov", "Points of view", filter = CatalogFilter(setOf(CatalogKind.Entry, CatalogKind.Scene), tags = setOf("pov")), multiple = true),
+			),
+		) { call ->
+			calls += call
+			ActionReply()
+		}
+		compose.setContent { Host(cast) }
+		// Choose waits for the project's items.
+		compose.waitUntil(timeoutMillis = 10_000) { compose.onAllNodes(hasText("Choose", ignoreCase = true) and isEnabled()).fetchSemanticsNodes().size == 2 }
+
+		// One person: typing narrows by name or alias, and picking closes the picker.
+		compose.onAllNodesWithText("Choose", ignoreCase = true)[0].performClick()
+		compose.waitUntil(timeoutMillis = 10_000) { compose.onAllNodes(isToggleable() and hasText("White Rabbit", substring = true)).fetchSemanticsNodes().isNotEmpty() }
+		compose.onNode(isToggleable() and hasText("Wonderland", substring = true)).assertDoesNotExist()
+		compose.onNode(hasSetTextAction()).performTextInput("alys")
+		compose.waitUntil(timeoutMillis = 10_000) { compose.onAllNodes(isToggleable() and hasText("White Rabbit", substring = true)).fetchSemanticsNodes().isEmpty() }
+		compose.onNode(isToggleable() and hasText("Alice", substring = true)).performClick()
+		compose.waitUntil(timeoutMillis = 10_000) { compose.onAllNodes(isToggleable()).fetchSemanticsNodes().isEmpty() }
+		compose.onNodeWithContentDescription("Remove Alice").assertExists()
+
+		// Several, across a tab for each kind, until Done.
+		compose.onAllNodesWithText("Choose", ignoreCase = true)[1].performClick()
+		compose.waitUntil(timeoutMillis = 10_000) { compose.onAllNodes(isToggleable() and hasText("The Garden", substring = true)).fetchSemanticsNodes().isNotEmpty() }
+		compose.onNode(isToggleable() and hasText("The Garden", substring = true)).performClick()
+		compose.onNodeWithText("Encyclopedia").performClick()
+		compose.waitUntil(timeoutMillis = 10_000) { compose.onAllNodes(isToggleable() and hasText("Alice", substring = true)).fetchSemanticsNodes().isNotEmpty() }
+		compose.onNode(isToggleable() and hasText("White Rabbit", substring = true)).assertDoesNotExist()
+		compose.onNode(isToggleable() and hasText("Alice", substring = true)).performClick()
+		compose.onNodeWithText("Done", ignoreCase = true).performClick()
+		compose.waitUntil(timeoutMillis = 10_000) { compose.onAllNodes(isToggleable()).fetchSemanticsNodes().isEmpty() }
+
+		compose.onNodeWithContentDescription("Remove The Garden").performClick()
+		compose.waitUntil(timeoutMillis = 10_000) { compose.onAllNodesWithContentDescription("Remove The Garden").fetchSemanticsNodes().isEmpty() }
+		compose.onNodeWithText("Run", ignoreCase = true).performClick()
+		compose.waitUntil(timeoutMillis = 10_000) { calls.isNotEmpty() }
+		assertEquals(alice.ref.toJson(), calls.single().input["lead"])
+		assertEquals(JsonArray(listOf(alice.ref.toJson())), calls.single().input["pov"])
 	}
 
 	private object NoProjects : ProjectResolver {

@@ -1,6 +1,10 @@
 package plugin
 
 import com.darkrockstudios.apps.hammer.base.ProjectId
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
+import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogFilter
+import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogKind
+import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogRef
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionAnswer
@@ -50,6 +54,14 @@ class ActionSessionStoreTest {
 		ActionField.Text("notes", "Notes", multiline = true),
 		ActionField.Scenes("scenes", "Scenes", multiple = false, required = true, defaultIds = listOf(3)),
 		ActionField.Scenes("more", "More scenes"),
+		ActionField.Entity(
+			"who",
+			"Who",
+			filter = CatalogFilter(setOf(CatalogKind.Entry), setOf(EntryType.PERSON), setOf("pov")),
+			required = true,
+			defaultRefs = listOf(CatalogRef(CatalogKind.Entry, 12)),
+		),
+		ActionField.Entity("where", "Where", multiple = true),
 		ActionField.Setting(SettingDeclaration.Toggle("brave", "Brave", true, hint = "Is she?")),
 		ActionField.Setting(SettingDeclaration.Number("age", "Age", 30, min = 1, max = 120)),
 		ActionField.Setting(
@@ -255,5 +267,5 @@ class ActionSessionStoreTest {
 	}
 
 	private fun FieldTable.describe() =
-		listOf(key, type, label, default, hint, min, max, multiline, options.map { it.value to it.label }, multiple, required, format)
+		listOf(key, type, label, default, hint, min, max, multiline, options.map { it.value to it.label }, multiple, required, format, kinds, entryTypes, tags)
 }

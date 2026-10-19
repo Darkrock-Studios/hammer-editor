@@ -128,5 +128,8 @@ private fun FieldTable.translated(texts: List<PluginTranslation.Text>): FieldTab
 		multiple = multiple,
 		required = required,
 		format = format,
+		kinds = kinds,
+		entryTypes = entryTypes,
+		tags = tags,
 	)
 }

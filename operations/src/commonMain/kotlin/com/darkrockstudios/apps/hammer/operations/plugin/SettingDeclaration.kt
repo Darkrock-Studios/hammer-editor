@@ -1,6 +1,11 @@
 package com.darkrockstudios.apps.hammer.operations.plugin
 
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
+import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogFilter
+import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogKind
+import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogRef
 import kotlinx.serialization.KSerializer
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.descriptors.SerialDescriptor
@@ -152,7 +157,8 @@ private class SettingsFile(val setting: List<FieldTable> = emptyList())
 /**
  * A field as a plugin declares it: a `[[setting]]` in `settings.toml`, an action's
  * `[[actions.field]]`, or a field of a page an action replies with in JSON. Action fields may also be
- * `text`, with `format`, and `scenes`, with `multiple`; `required` applies to those two.
+ * `text`, with `format`; `scenes`, with `multiple`; and `entity`, with `kinds`, `entry_types`, `tags`,
+ * and `multiple`. `required` applies to those three.
  */
 @Serializable
 class FieldTable(
@@ -166,26 +172,38 @@ class FieldTable(
 	val max: Long? = null,
 	val multiline: Boolean = false,
 	val options: List<FieldOption> = emptyList(),
-	val multiple: Boolean = true,
+	/** True by default for `scenes`, false for `entity`. */
+	val multiple: Boolean? = null,
 	val required: Boolean = false,
 	/** A [TextFormat] id, for `text`. */
 	val format: String? = null,
+	/** [CatalogKind] ids, for `entity`; every kind when left out. */
+	val kinds: List<String>? = null,
+	/** [EntryType] ids, for an `entity` that takes entries; every type when empty. */
+	@SerialName("entry_types")
+	val entryTypes: List<String> = emptyList(),
+	/** For `entity`: only items carrying one of these may be picked; any when empty. */
+	val tags: List<String> = emptyList(),
 ) {
 	/** Throws [IllegalArgumentException] for a type an action cannot have. */
 	fun toActionField(): ActionField = when (type) {
-		SCENES -> ActionField.Scenes(
-			key = key,
-			label = label,
-			hint = hint,
-			multiple = multiple,
-			required = required,
-			defaultIds = when (val ids = default) {
-				null, JsonNull -> emptyList()
-				is JsonArray if multiple -> ids.map { it.sceneId() }
-				is JsonPrimitive if !multiple -> listOf(ids.sceneId())
-				else -> throw IllegalArgumentException("Field '$key' has an invalid default")
-			},
-		)
+		SCENES -> {
+			val multiple = multiple ?: true
+			ActionField.Scenes(
+				key = key,
+				label = label,
+				hint = hint,
+				multiple = multiple,
+				required = required,
+				defaultIds = when (val ids = default) {
+					null, JsonNull -> emptyList()
+					is JsonArray if multiple -> ids.map { it.sceneId() }
+					is JsonPrimitive if !multiple -> listOf(ids.sceneId())
+					else -> throw IllegalArgumentException("Field '$key' has an invalid default")
+				},
+			)
+		}
+		ENTITY -> toEntityField()
 		TEXT -> ActionField.Text(
 			key = key,
 			label = label,
@@ -224,6 +242,35 @@ class FieldTable(
 		}
 	}
 
+	private fun toEntityField(): ActionField.Entity {
+		val kinds = kinds?.mapTo(LinkedHashSet()) { id ->
+			CatalogKind.of(id) ?: throw IllegalArgumentException("Field '$key' has unknown kind '$id'")
+		} ?: CatalogKind.entries.toSet()
+		require(kinds.isNotEmpty()) { "Field '$key' has no kinds to pick from" }
+		val entryTypes = entryTypes.mapTo(LinkedHashSet()) { id ->
+			EntryType.entries.firstOrNull { it.text == id } ?: throw IllegalArgumentException("Field '$key' has unknown entry type '$id'")
+		}
+		require(entryTypes.isEmpty() || CatalogKind.Entry in kinds) { "Field '$key' has entry_types, but does not take entries" }
+		require(tags.none { it.isBlank() }) { "Field '$key' has a blank tag" }
+		val multiple = multiple ?: false
+		return ActionField.Entity(
+			key = key,
+			label = label,
+			hint = hint,
+			filter = CatalogFilter(kinds, entryTypes, tags.toSet()),
+			multiple = multiple,
+			required = required,
+			defaultRefs = when (val refs = default) {
+				null, JsonNull -> emptyList()
+				is JsonArray if multiple -> refs.map { it.entityRef() }
+				is JsonObject if !multiple -> listOf(refs.entityRef())
+				else -> throw IllegalArgumentException("Field '$key' has an invalid default")
+			},
+		)
+	}
+
+	private fun JsonElement.entityRef(): CatalogRef = toCatalogRef() ?: throw IllegalArgumentException("Field '$key' has an invalid default")
+
 	private fun JsonElement.sceneId(): Int =
 		(this as? JsonPrimitive)?.takeIf { !it.isString }?.intOrNull ?: throw IllegalArgumentException("Field '$key' has an invalid default")
 }
@@ -256,6 +303,18 @@ fun List<FieldTable>.toActionFields(): List<ActionField> {
 fun ActionField.toFieldTable(): FieldTable = when (this) {
 	is ActionField.Text -> FieldTable(key, TEXT, label, default, hint, multiline = multiline, required = required, format = format.id)
 	is ActionField.Scenes -> FieldTable(key, SCENES, label, default, hint, multiple = multiple, required = required)
+	is ActionField.Entity -> FieldTable(
+		key = key,
+		type = ENTITY,
+		label = label,
+		default = default,
+		hint = hint,
+		multiple = multiple,
+		required = required,
+		kinds = filter.kinds.map { it.id },
+		entryTypes = filter.entryTypes.map { it.text },
+		tags = filter.tags.toList(),
+	)
 	is ActionField.Setting -> when (val declaration = declaration) {
 		is SettingDeclaration.Toggle -> FieldTable(key, BOOL, label, declaration.default, hint)
 		is SettingDeclaration.Number -> FieldTable(key, INT, label, declaration.default, hint, min = declaration.min, max = declaration.max)
@@ -318,5 +377,6 @@ private const val BOOL = "bool"
 private const val INT = "int"
 private const val CHOICE = "choice"
 private const val SCENES = "scenes"
+private const val ENTITY = "entity"
 private const val TEXT = "text"
 private const val STRING = "string"

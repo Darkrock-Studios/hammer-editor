@@ -61,6 +61,8 @@
 	<string name="plugin_action_scenes_done">Done</string>
 	<string name="plugin_action_required">Required</string>
 	<string name="plugin_action_not_an_option">Not one of the options</string>
+	<string name="plugin_action_entity_missing">Not in the project any more</string>
+	<string name="plugin_action_entity_not_taken">Not one this can take</string>
 	<string name="plugin_action_open_missing">What the action meant to open is not in the project</string>
 	<string name="plugin_action_keep_failed">Could not save what you entered here. The log has the details.</string>
 	<string name="plugin_action_keep_set_aside">What was saved of this action could not be read, so it starts afresh. The saved file is kept, and the log says where.</string>
