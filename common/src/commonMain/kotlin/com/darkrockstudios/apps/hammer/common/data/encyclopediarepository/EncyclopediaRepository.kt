@@ -122,6 +122,12 @@ class EncyclopediaRepository(
 		return entryListFlow.replayCache.firstOrNull().orEmpty()
 	}
 
+	/**
+	 * The entries on disk now, without emitting them. [ensureEntriesLoaded] can be behind, since
+	 * creating, renaming, or deleting an entry does not refresh [entryListFlow].
+	 */
+	suspend fun readEntryDefs(): List<EntryDef> = datasource.loadEntriesImperative()
+
 	fun loadEntry(entryDef: EntryDef): EntryContainer {
 		val path = datasource.getEntryPath(entryDef)
 		return datasource.loadEntry(path)

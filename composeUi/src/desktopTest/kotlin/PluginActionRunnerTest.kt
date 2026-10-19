@@ -340,6 +340,56 @@ class PluginActionRunnerTest {
 	}
 
 	@Test
+	fun `a run saved by another version names the entities left picked on its page`() = runTest {
+		val first = runner()
+		first.start(kept { ActionReply(ActionPage(title = "Who", fields = listOf(who, cast), buttons = listOf(next))) }, ActionPlace.Project, null)
+		advanceUntilIdle()
+		first.change("who", alice.ref.toJson())
+		first.change("cast", picks(garden, alice))
+		first.dismiss()
+		advanceUntilIdle()
+
+		val second = runner()
+		second.start(kept("2.0.0") { ActionReply() }, ActionPlace.Project, null)
+		advanceUntilIdle()
+		val changed = assertIs<ActionRunState.Changed>(second.state.value)
+		assertEquals(listOf("Who" to "Alice", "Cast" to "The Garden, Alice"), changed.answers.values.map { it.label to it.value.content })
+	}
+
+	@Test
+	fun `a press that skips the checks stops a check still running for another`() = runTest {
+		var release = CompletableDeferred<Unit>()
+		val slow = object : EntityCatalog {
+			override suspend fun items(kinds: Set<CatalogKind>): List<CatalogItem> {
+				release.await()
+				return catalogItems.filter { it.kind in kinds }
+			}
+		}
+		val dispatcher = StandardTestDispatcher(testScheduler)
+		val runner = PluginActionRunner(
+			project, this, operations, slow, strings, showMessage = { messages += it }, navigate = { _, _ -> true },
+			sessions = store, workDispatcher = dispatcher, sessionDispatcher = dispatcher,
+		)
+		val page = ActionPage(fields = listOf(who), buttons = listOf(next, back))
+		runner.start(action { call -> if (call.button == "back") ActionReply(errors = mapOf("" to "Not yet")) else ActionReply(page) }, ActionPlace.Project, null)
+		advanceUntilIdle()
+		release.complete(Unit)
+		advanceUntilIdle()
+		runner.change("who", alice.ref.toJson())
+
+		release = CompletableDeferred()
+		runner.press(next)
+		runCurrent()
+		// Back comes back to the same page with its errors while Next's check is still reading.
+		runner.press(back)
+		advanceUntilIdle()
+		assertEquals(mapOf("" to FieldError.Plugin("Not yet")), runner.page.errors)
+		release.complete(Unit)
+		advanceUntilIdle()
+		assertEquals(listOf(null, "back"), calls.map { it.button })
+	}
+
+	@Test
 	fun `a button that skips the checks calls with the values as they are`() = runTest {
 		val runner = runner()
 		runner.start(

@@ -16,6 +16,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -23,6 +24,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
@@ -75,7 +77,9 @@ import com.darkrockstudios.apps.hammer.global_search_filter_timeline
  *
  * Only items [filter] accepts are offered, with a tab for each of its kinds when it has more than
  * one. With [multiple], picking a row toggles it in [selected] and Done closes; otherwise picking one
- * replaces the selection and closes. Not tied to plugins: it takes the catalog and reports picks.
+ * replaces the selection and closes. The search has the focus, and Enter picks the first row, or with
+ * [multiple] adds it and clears the search for the next. Not tied to plugins: it takes the catalog
+ * and reports picks.
  */
 @Composable
 fun EntityPickerDialog(
@@ -102,6 +106,17 @@ fun EntityPickerDialog(
 		val matches = remember(items, query, filter, tab) {
 			filterCatalog(items, query, filter.copy(kinds = setOfNotNull(tab)))
 		}
+		val focusRequester = remember { FocusRequester() }
+		LaunchedEffect(Unit) { focusRequester.requestFocus() }
+
+		fun pick(item: CatalogItem) {
+			if (multiple) {
+				onSelectedChange(if (item.ref in selected) selected - item.ref else selected + item.ref)
+			} else {
+				onSelectedChange(listOf(item.ref))
+				requestDismiss()
+			}
+		}
 		HdHairlineDialogShell(
 			title = title,
 			onClose = { requestDismiss() },
@@ -125,7 +140,14 @@ fun EntityPickerDialog(
 				value = query,
 				onValueChange = { query = it },
 				placeholder = Res.string.entity_picker_search.get(),
+				onSearch = {
+					val first = matches.firstOrNull() ?: return@HdSearchField
+					if (!multiple) return@HdSearchField pick(first)
+					if (first.ref !in selected) pick(first)
+					query = ""
+				},
 				onClear = { query = "" },
+				focusRequester = focusRequester,
 				modifier = Modifier.fillMaxWidth(),
 			)
 
@@ -152,20 +174,7 @@ fun EntityPickerDialog(
 				} else {
 					LazyColumn(modifier = Modifier.fillMaxWidth()) {
 						items(matches.take(MAX_ROWS), key = { "${it.kind.id}:${it.id}" }) { item ->
-							val picked = item.ref in selected
-							PickerRow(
-								item = item,
-								picked = picked,
-								multiple = multiple,
-								onToggle = {
-									if (multiple) {
-										onSelectedChange(if (picked) selected - item.ref else selected + item.ref)
-									} else {
-										onSelectedChange(listOf(item.ref))
-										requestDismiss()
-									}
-								},
-							)
+							PickerRow(item = item, picked = item.ref in selected, multiple = multiple, onToggle = { pick(item) })
 							HorizontalDivider(
 								thickness = Dp.Hairline,
 								color = MaterialTheme.colorScheme.outlineVariant,
