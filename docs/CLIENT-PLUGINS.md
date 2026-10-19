@@ -1084,13 +1084,13 @@ else.
 
 Built, as a runtime plugin in Kotlin: `first-meeting` in `hammer-plugins`.
 "Find where two characters first meet", on Project Home and encyclopedia
-entries, picks two characters and names the first scene, in story order, with
-both in its References, with the groups it is in. It lists the other scenes
-they share in story order, with a button opening each of the first ten. When
-they share none, it says so, naming either one that is in no scene's
-References at all. Each result says, in italics, that it goes by the
-References confirmed in each scene's Scene Info. It asks for `entry.read` and
-`scene.tree` and nothing else.
+entries, picks two characters and names the first scene, in story order, that
+has both in its References, and the groups it is in. It lists the other scenes
+they share in story order, with a button opening each of the first 10. When
+they share none, it says so, naming whichever of them is in no scene's
+References at all. Each result says, in italics, that it goes by each scene's
+References in Scene Info. It asks for `entry.read` and `scene.tree` and
+nothing else.
 
 | Exercises | How |
 | --- | --- |
@@ -1100,7 +1100,7 @@ References confirmed in each scene's Scene Info. It asks for `entry.read` and
 | Open | Each scene's button, and the primary Open for the first, reply with `open` for the scene, which ends the run. The page's `state` holds the scenes found, and only those are opened |
 | Inline buttons | One per shared scene, the first 10 only, so a pair sharing a hundred scenes does not bury the page; the markdown lists them all. A scene with the same name as another with a button is labelled with its groups too |
 | Buttons | Back has `validate = false`, and shows the picking page with the pair still picked, from `state` |
-| References | Reads each character's `referencedBy` with `entry.read`, keeps the scenes in both, and orders them by a walk of `scene.tree`, which leaves out archived scenes. References are the entries a scene names, added as it is saved in the editor, which the writer confirms or dismisses in Scene Info. Going by them takes two reads and the tree rather than every scene's text, and keeps to what the writer has said is in each scene, which a search for names cannot |
+| References | Reads each character's `referencedBy` with `entry.read`, keeps the scenes in both, and orders them by a walk of `scene.tree`, which leaves out archived scenes. That takes two reads and the tree rather than every scene's text, and follows what the writer has dismissed or added in Scene Info, which a search for names cannot. [Gaps](#gaps-these-expose) says where References fall short |
 
 No `keep`: a run is two picks, as quick to make again.
 
@@ -1173,10 +1173,12 @@ and more than once, that have no entry.
   plans a store for them.
 - **References are only as accurate as the writer keeps them.** First
   meeting, and any plugin built on `entry.read`'s `referencedBy`, counts a
-  character in a scene when it is in the scene's References. Saving a scene
-  in the editor adds the entries it names and never takes one away, so a
-  character only mentioned is counted as there until the writer dismisses it
-  in Scene Info. A planned MCP skill,
+  character in a scene when it is in the scene's References. Hammer adds an
+  entry to a scene's References when the scene's text names it, as the scene
+  is saved in the editor or the entry is created, renamed, or given an alias,
+  and never takes one away. So a character only mentioned is counted until
+  the writer dismisses it in Scene Info, and one there but never named is
+  missed until the writer adds it. A planned MCP skill,
   [true up scene References](https://trello.com/c/OoWcactX/286-mcp-skill-true-up-scene-references),
   would go through the scenes in story order and propose what to confirm and
   dismiss, with a quote for each, applying only what the writer approves. It
@@ -1596,16 +1598,18 @@ default, unlike a `scenes` field's. Tags match ignoring case and a leading
   listed by name, a note named by its first line, and events in timeline
   order, each named by its date, or its first line without one.
 - **Read afresh.** The items are read each time a page with an entity field
-  shows, and again at each press the host checks: entries from disk, so one
-  created, renamed, or deleted since is current, and scene tags from the tag
-  index, waiting for its first build when the project has only just opened.
+  shows, and again at a press the host checks when something is picked:
+  entries from disk, so any created, renamed, or deleted since are taken in,
+  and scene tags from the tag index, waiting for its first build when the
+  project has only just opened.
 - **Picks dropped.** Once the items are read, a pick on the page that names
   an item no longer in the project, or one the field does not take, shows as
   nothing picked rather than as an error: a `default` (the entry an action was
-  run from, say, in a field of people when it is a place) or a pick restored
-  from a session. One gone by the press fails the [host checks](#buttons). If
-  the items cannot be read, picks go to the plugin unchecked, so a plugin
-  still answers an item it cannot read with `errors`.
+  run from, say, in a field of people when it is a place), a pick the first
+  page keeps from the last run, or one restored from a session. One gone by
+  the press fails the [host checks](#buttons). If the items cannot be read,
+  picks go to the plugin unchecked, so a plugin should still answer an item it
+  cannot read with `errors`.
 
 #### Buttons
 
