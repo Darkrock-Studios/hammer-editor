@@ -4,54 +4,28 @@
 `errors`, `open`, and action sessions are in the host; all three kits (C,
 Rust, Kotlin) have them; every action in `hammer-plugins` replies with pages;
 and the Character interview plugin uses them. The Actions section of
-[CLIENT-PLUGINS.md](CLIENT-PLUGINS.md#actions) describes all of it. This
-document plans what is left.
+[CLIENT-PLUGINS.md](CLIENT-PLUGINS.md#actions) describes all of it.
+
+Of phase 2, the `entity` field, with its picker, and the First meeting plugin
+are built: CLIENT-PLUGINS.md describes the field under
+[Fields](CLIENT-PLUGINS.md#fields) and the plugin under
+[First meeting](CLIENT-PLUGINS.md#first-meeting-first-meeting). This document
+plans what is left.
 
 Tracked as [Multi step action plugins](https://trello.com/c/U3EaC0cr/271-multi-step-action-plugins).
 
 ## What is left
 
-- An [`entity` field](#entity-picker): pick a character, or any other item,
-  by typing.
 - [`choice` tabs and `refresh`](#tabs-and-refresh), so a page can follow a
   field as it changes.
 - [Sci-fi names as one action](#sci-fi-names-as-one-action), in place of
   three.
-- The [First meeting](#first-meeting) plugin.
 - What to do when [sync renumbers entities](#sync-renumbers-entities):
   decided later.
+- [The format bar's entity link](#the-format-bars-entity-link), sharing the
+  entity picker.
 - [A durable plugin data store](#a-durable-plugin-data-store), on the roadmap
   rather than in this phase.
-
-## Entity picker
-
-A field of type `entity`. The user starts typing and picks from a list that
-narrows as they type, each row showing the item's name and what it is. The
-plugin limits what is offered:
-
-```toml
-[[actions.field]]
-key = "a"
-type = "entity"
-label = "First character"
-kinds = ["entry"]          # scene, note, entry, event; all four when left out
-entry_types = ["person"]   # person, place, thing, event, idea
-tags = ["pov"]             # entries carrying any of these
-required = true
-```
-
-- **Value.** `{"kind", "id"}`, a list of them with `multiple`, or null.
-  `default` takes the same.
-- **From the host.** The list comes from the project's own data in the host,
-  not through the plugin, so it needs no operation granted and costs no call
-  per keystroke. The value is a reference, not the item: the plugin reads it
-  with `entry.read` and the like, which do need granting.
-- **Host checks.** Beside `required`, the host checks a picked item still
-  exists and matches the field's filter, as it checks a `choice`'s options.
-- **Answers.** A kept run records an entity by its name, as it records scenes.
-- **Shared.** The format bar's link to an encyclopedia entity wants the same
-  type-to-search ([Trello](https://trello.com/c/IVuexeKY/266-format-bar-link-to-an-encyclopedia-entity)).
-  Build it once, for both.
 
 ## Tabs and refresh
 
@@ -96,26 +70,29 @@ replies with a page of the plugin's own, which has no Run, so it carries its
 own button to generate, and the host remembers only the manifest page's
 values for the next run. The plugin's tests follow the action's new name.
 
-## First meeting
-
-A plugin that finds where two characters first meet: two `entity` fields
-limited to `person` entries. It answers the same character twice with
-`errors`, and otherwise reads the scenes in story order and replies with a
-page naming the first scene to mention both, by name or alias, and a button
-that replies with `open` for it; or a page saying they never meet. It asks
-for `entry.read`, `scene.tree`, and `scene.read`.
-
 ## Sync renumbers entities
 
 A session holding an entity's id has the problem `hammer://entity/<id>` links
-have when sync renumbers an entity. A `scenes` field's value has it already,
-and an `entity` field's will. The host can rewrite field values, but not
-`state`, which it never reads, nor what an id means to the plugin. A session's
-file name holds the id of the item the action was run from, too, so a
-renumbered item would lose its session.
+have when sync renumbers an entity. A `scenes` field's value has it, and so
+does an `entity` field's `{"kind", "id"}`. A kept run's answers do not, since
+they record scenes and entities by name. The host can rewrite field values,
+but not `state`, which it never reads, nor what an id means to the plugin. A
+session's file name holds the id of the item the action was run from, too, so
+a renumbered item would lose its session. First meeting keeps no session, so
+it is not touched.
 
 Decide later whether a re-id ends the sessions it touches, or the plugin is
 told of it.
+
+## The format bar's entity link
+
+Tracked in [Format bar: link to an encyclopedia entity](https://trello.com/c/IVuexeKY/266-format-bar-link-to-an-encyclopedia-entity).
+The extended format bar's link to an encyclopedia entity wants the
+type-to-search an `entity` field has. `EntityPickerDialog`, in `composeUi`'s
+`compose/entitypicker/`, is not tied to plugins: it takes the project's items,
+a filter, and what is picked, and reports picks, so the link can open it on
+entries and set `hammer://entity/<id>` on the selection for the one picked.
+The link gets a plan of its own.
 
 ## A durable plugin data store
 
@@ -143,11 +120,10 @@ edits or reorders can come later as a field type if a plugin needs one.
 
 ## Work
 
-1. **hammer-editor.** The `entity` field and its picker, shared with the
-   format bar; `display` and `refresh`, with `changed` set. Update the Actions
-   section of CLIENT-PLUGINS.md.
-2. **hammer-plugin-sdk.** The `entity` field, `display`, and `refresh` in the
-   three kits; `ActionDriver` calling on a refresh field's change.
-3. **hammer-plugins.** Sci-fi names as one action, and First meeting.
-4. **Later.** The data store, with its own plan, then custom interview
-   questions.
+1. **hammer-editor.** `display` and `refresh`, with `changed` set. Update the
+   Actions section of CLIENT-PLUGINS.md.
+2. **hammer-plugin-sdk.** `display` and `refresh` in the three kits;
+   `ActionDriver` calling on a refresh field's change.
+3. **hammer-plugins.** Sci-fi names as one action.
+4. **Later.** The format bar's entity link, and the data store, each with its
+   own plan; then custom interview questions.
