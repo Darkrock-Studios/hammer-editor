@@ -1,10 +1,14 @@
 package com.darkrockstudios.apps.hammer.operations.plugin
 
+import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogFilter
+import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogKind
+import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogRef
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.intOrNull
 
 /** The screens an action can be run from, each passing the item it shows. */
 enum class ActionPlace(val id: String) {
@@ -66,7 +70,49 @@ sealed interface ActionField {
 		override val default: JsonElement
 			get() = if (multiple) JsonArray(defaultIds.map(::JsonPrimitive)) else defaultIds.firstOrNull()?.let(::JsonPrimitive) ?: JsonNull
 	}
+
+	/**
+	 * Items of the project picked by name: a list of `{"kind", "id"}` when [multiple], otherwise one or
+	 * null. Only items [filter] accepts may be picked. An empty pick is allowed unless [required].
+	 */
+	class Entity(
+		override val key: String,
+		override val label: String,
+		override val hint: String? = null,
+		val filter: CatalogFilter = CatalogFilter(),
+		val multiple: Boolean = false,
+		val required: Boolean = false,
+		/** The items picked to begin with. */
+		val defaultRefs: List<CatalogRef> = emptyList(),
+	) : ActionField {
+		override val default: JsonElement get() = valueOf(defaultRefs)
+
+		/** The value holding [refs]: all of them when [multiple], otherwise the first. */
+		fun valueOf(refs: List<CatalogRef>): JsonElement =
+			if (multiple) JsonArray(refs.map { it.toJson() }) else refs.firstOrNull()?.toJson() ?: JsonNull
+	}
 }
+
+/** An entity field's value for one item, as plugins are sent it. */
+fun CatalogRef.toJson(): JsonObject = JsonObject(mapOf(ENTITY_KIND to JsonPrimitive(kind.id), ENTITY_ID to JsonPrimitive(id)))
+
+/** The item this names if it is `{"kind", "id"}` with a known kind, otherwise null. */
+fun JsonElement.toCatalogRef(): CatalogRef? {
+	val ref = this as? JsonObject ?: return null
+	val kind = (ref[ENTITY_KIND] as? JsonPrimitive)?.takeIf { it.isString }?.let { CatalogKind.of(it.content) } ?: return null
+	val id = (ref[ENTITY_ID] as? JsonPrimitive)?.takeIf { !it.isString }?.intOrNull ?: return null
+	return CatalogRef(kind, id)
+}
+
+/** The items an entity field's [value] names: a list, one, or none. What is not an item is passed over. */
+fun entityRefs(value: JsonElement?): List<CatalogRef> = when (value) {
+	is JsonArray -> value.mapNotNull { it.toCatalogRef() }.distinct()
+	is JsonObject -> listOfNotNull(value.toCatalogRef())
+	else -> emptyList()
+}
+
+private const val ENTITY_KIND = "kind"
+private const val ENTITY_ID = "id"
 
 /** The editor a [ActionField.Text] is shown in. */
 enum class TextFormat(val id: String) {

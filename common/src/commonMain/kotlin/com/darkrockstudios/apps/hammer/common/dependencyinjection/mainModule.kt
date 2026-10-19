@@ -17,6 +17,8 @@ import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftsDatasource
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaDatasource
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaService
+import com.darkrockstudios.apps.hammer.common.data.entitycatalog.BuildEntityCatalogUseCase
+import com.darkrockstudios.apps.hammer.common.data.entitycatalog.EntityCatalog
 import com.darkrockstudios.apps.hammer.common.data.exampleProjectModule
 import com.darkrockstudios.apps.hammer.common.data.globalsearch.SearchProjectUseCase
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
@@ -357,6 +359,7 @@ val mainModule = module {
 		scoped<ReferenceIndexService>()
 
 		scoped<TagIndexService>()
+		scoped<BuildEntityCatalogUseCase>() bind EntityCatalog::class
 		scoped<ScrubInvalidReferencesUseCase>()
 		scoped<AutoConfirmReferencesUseCase>()
 		scoped<BackfillEntryReferencesUseCase>()

@@ -1,5 +1,9 @@
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ExportOptions
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
+import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogFilter
+import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogKind
+import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogRef
 import com.darkrockstudios.apps.hammer.common.data.export.ExportInput
 import com.darkrockstudios.apps.hammer.common.data.export.ExportStrings
 import com.darkrockstudios.apps.hammer.common.data.export.StoryChapter
@@ -415,6 +419,32 @@ class RuntimePluginsTest {
 		assertEquals("Echo it", action.label)
 		val reply = runBlocking { action.run(ActionCall("Storm", ActionPlace.Project, null, JsonObject(emptyMap()))) }
 		assertEquals("de-DE", reply.page!!.state!!.jsonObject["locale"]!!.jsonPrimitive.content)
+	}
+
+	@Test
+	fun `a translated entity field keeps what it may pick`() {
+		val plugins = runtimePlugins(locale = "fr")
+		val manifest = manifest(action = "report") + """
+
+			[[actions.field]]
+			key = "who"
+			type = "entity"
+			label = "Who"
+			kinds = ["entry", "scene"]
+			entry_types = ["person"]
+			tags = ["pov"]
+			multiple = true
+			required = true
+			default = [{ kind = "entry", id = 12 }]
+		""".trimIndent()
+		val french = mapOf("locales/fr.toml" to "[actions.report.fields.who]\nlabel = \"Qui\"")
+		plugins.install(pack("echo", manifest, files = french))
+
+		val who = startKoin(plugins).plugins.single().actions().single().fields.single() as ActionField.Entity
+		assertEquals("Qui", who.label)
+		assertEquals(CatalogFilter(setOf(CatalogKind.Entry, CatalogKind.Scene), setOf(EntryType.PERSON), setOf("pov")), who.filter)
+		assertEquals(listOf(true, true), listOf(who.multiple, who.required))
+		assertEquals(listOf(CatalogRef(CatalogKind.Entry, 12)), who.defaultRefs)
 	}
 
 	private fun described(description: String, languages: String = "\"en\", \"fr-CA\"") =

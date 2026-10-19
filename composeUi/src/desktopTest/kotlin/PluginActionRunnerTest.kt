@@ -2,7 +2,14 @@ import com.darkrockstudios.apps.hammer.common.compose.plugin.ActionRunState
 import com.darkrockstudios.apps.hammer.common.compose.plugin.FieldError
 import com.darkrockstudios.apps.hammer.common.compose.plugin.PluginActionRunner
 import com.darkrockstudios.apps.hammer.common.compose.plugin.answersMarkdown
+import com.darkrockstudios.apps.hammer.common.compose.plugin.hostErrors
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
+import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogFilter
+import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogItem
+import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogKind
+import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogRef
+import com.darkrockstudios.apps.hammer.common.data.entitycatalog.EntityCatalog
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.preview.fakeProjectDef
 import com.darkrockstudios.apps.hammer.common.util.StrRes
@@ -26,6 +33,7 @@ import com.darkrockstudios.apps.hammer.operations.plugin.ActionTarget
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginAction
 import com.darkrockstudios.apps.hammer.operations.plugin.SettingDeclaration
 import com.darkrockstudios.apps.hammer.operations.plugin.TextFormat
+import com.darkrockstudios.apps.hammer.operations.plugin.toJson
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -36,6 +44,8 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonPrimitive
@@ -81,12 +91,28 @@ class PluginActionRunnerTest {
 	private val store = ActionSessionStore(fileSystem, pluginsDir)
 	private val project = fakeProjectDef().copy(name = "Storm")
 
+	private val alice = CatalogItem(CatalogKind.Entry, 7, "Alice", entryType = EntryType.PERSON, tags = setOf("pov"))
+	private val rabbit = CatalogItem(CatalogKind.Entry, 6, "White Rabbit", entryType = EntryType.PERSON)
+	private val wonderland = CatalogItem(CatalogKind.Entry, 12, "Wonderland", entryType = EntryType.PLACE, tags = setOf("pov"))
+	private val garden = CatalogItem(CatalogKind.Scene, 1, "The Garden", tags = setOf("pov"))
+
+	// What the project holds now; a test changes it to delete an item.
+	private var catalogItems = listOf(alice, rabbit, wonderland, garden)
+	private val catalogReads = mutableListOf<Set<CatalogKind>>()
+	private val catalog = object : EntityCatalog {
+		override suspend fun items(kinds: Set<CatalogKind>): List<CatalogItem> {
+			catalogReads += kinds
+			return catalogItems.filter { it.kind in kinds }
+		}
+	}
+
 	private fun TestScope.runner(sessions: ActionSessionStore = store): PluginActionRunner {
 		val dispatcher = StandardTestDispatcher(testScheduler)
 		return PluginActionRunner(
 			project = project,
 			scope = this,
 			operations = operations,
+			entities = catalog,
 			strings = strings,
 			showMessage = { messages += it },
 			// Item 404 is missing.
@@ -125,6 +151,14 @@ class PluginActionRunnerTest {
 
 	private val next = ActionButton("next", "Next", primary = true)
 	private val back = ActionButton("back", "Back", validate = false)
+
+	// A person, required; and any number of items tagged pov, scenes or entries, required.
+	private val who = ActionField.Entity("who", "Who", filter = CatalogFilter(setOf(CatalogKind.Entry), setOf(EntryType.PERSON)), required = true)
+	private val cast = ActionField.Entity(
+		"cast", "Cast", filter = CatalogFilter(setOf(CatalogKind.Entry, CatalogKind.Scene), tags = setOf("pov")), multiple = true, required = true,
+	)
+
+	private fun picks(vararg items: CatalogItem): JsonElement = JsonArray(items.map { it.ref.toJson() })
 
 	@Test
 	fun `an action without fields is called at once, and its message is shown`() = runTest {
@@ -216,6 +250,93 @@ class PluginActionRunnerTest {
 
 		runner.change("name", JsonPrimitive("Mara"))
 		assertEquals(setOf("scenes", "count", "style"), runner.page.errors.keys)
+	}
+
+	@Test
+	fun `the host checks entity picks are given when required, still there, and of what their field takes`() {
+		fun errors(who: JsonElement, cast: JsonElement, items: List<CatalogItem>? = catalogItems) =
+			hostErrors(listOf(this.who, this.cast), JsonObject(mapOf("who" to who, "cast" to cast)), items)
+		val deleted = CatalogRef(CatalogKind.Entry, 99).toJson()
+
+		assertEquals(mapOf("who" to FieldError.Required, "cast" to FieldError.Required), errors(JsonNull, JsonArray(emptyList())))
+		assertEquals(emptyMap(), errors(alice.ref.toJson(), picks(alice, garden)))
+		assertEquals(
+			mapOf("who" to FieldError.Missing, "cast" to FieldError.Missing),
+			errors(deleted, JsonArray(listOf(alice.ref.toJson(), deleted))),
+		)
+		// The wrong kind, the wrong entry type, and without the tag.
+		assertEquals(mapOf("who" to FieldError.NotTaken), errors(garden.ref.toJson(), picks(wonderland)))
+		assertEquals(mapOf("who" to FieldError.NotTaken), errors(wonderland.ref.toJson(), picks(alice)))
+		assertEquals(mapOf("cast" to FieldError.NotTaken), errors(rabbit.ref.toJson(), picks(alice, rabbit)))
+		// Without the project's items, only what is required is checked.
+		assertEquals(emptyMap(), errors(deleted, JsonArray(listOf(deleted)), items = null))
+		assertEquals(mapOf("who" to FieldError.Required), errors(JsonNull, JsonArray(listOf(deleted)), items = null))
+	}
+
+	@Test
+	fun `a page's entity fields load the items they take, and drop defaults no longer there or that they do not take`() = runTest {
+		val runner = runner()
+		val whoFrom = ActionField.Entity("who", "Who", filter = who.filter, defaultRefs = listOf(garden.ref))
+		val castFrom = ActionField.Entity("cast", "Cast", filter = cast.filter, multiple = true, defaultRefs = listOf(alice.ref, CatalogRef(CatalogKind.Entry, 99)))
+		runner.start(action(listOf(whoFrom, castFrom)) { ActionReply() }, ActionPlace.Project, null)
+		assertEquals(JsonArray(listOf(alice.ref.toJson(), CatalogRef(CatalogKind.Entry, 99).toJson())), runner.page.values["cast"])
+		assertNull(runner.catalog.value)
+
+		advanceUntilIdle()
+		assertEquals(listOf(setOf(CatalogKind.Entry, CatalogKind.Scene)), catalogReads)
+		assertEquals(listOf(alice, rabbit, wonderland, garden), runner.catalog.value)
+		assertEquals(JsonNull, runner.page.values["who"])
+		assertEquals(picks(alice), runner.page.values["cast"])
+		assertTrue(runner.page.errors.isEmpty())
+	}
+
+	@Test
+	fun `a press checks entity picks against the project as it is then`() = runTest {
+		val runner = runner()
+		runner.start(action(listOf(who, cast)) { ActionReply() }, ActionPlace.Project, null)
+		advanceUntilIdle()
+		runner.change("who", rabbit.ref.toJson())
+		runner.change("cast", picks(alice, garden))
+
+		catalogItems = catalogItems - rabbit
+		runner.press(null)
+		advanceUntilIdle()
+		assertTrue(calls.isEmpty())
+		assertEquals(mapOf("who" to FieldError.Missing), runner.page.errors)
+
+		runner.change("who", alice.ref.toJson())
+		runner.press(null)
+		advanceUntilIdle()
+		assertEquals(JsonObject(mapOf("who" to alice.ref.toJson(), "cast" to picks(alice, garden))), calls.single().input)
+	}
+
+	@Test
+	fun `a kept run's answers name the entities picked, and its picks come back when it resumes`() = runTest {
+		val action = kept { call ->
+			if (call.button == null) ActionReply(ActionPage(title = "Who", fields = listOf(who, cast), buttons = listOf(next))) else ActionReply(ActionPage(title = "Done", buttons = listOf(back)))
+		}
+		val first = runner()
+		first.start(action, ActionPlace.Project, null)
+		advanceUntilIdle()
+		first.change("who", alice.ref.toJson())
+		first.change("cast", picks(garden, alice))
+		first.dismiss()
+		advanceUntilIdle()
+
+		val second = runner()
+		second.start(action, ActionPlace.Project, null)
+		advanceUntilIdle()
+		assertTrue(second.page.resumed)
+		assertEquals(alice.ref.toJson(), second.page.values["who"])
+		assertEquals(picks(garden, alice), second.page.values["cast"])
+
+		second.press(next)
+		advanceUntilIdle()
+		assertEquals("Done", second.page.page.title)
+		assertEquals(
+			listOf("Who" to "Alice", "Cast" to "The Garden, Alice"),
+			saved?.answers?.values?.map { it.label to it.value.content },
+		)
 	}
 
 	@Test

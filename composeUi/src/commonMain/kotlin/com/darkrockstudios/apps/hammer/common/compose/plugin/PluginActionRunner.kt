@@ -2,6 +2,9 @@ package com.darkrockstudios.apps.hammer.common.compose.plugin
 
 import com.darkrockstudios.apps.hammer.common.data.ExportableScene
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogItem
+import com.darkrockstudios.apps.hammer.common.data.entitycatalog.EntityCatalog
+import com.darkrockstudios.apps.hammer.common.data.entitycatalog.find
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.apps.hammer.composeui.resources.Res
@@ -39,6 +42,8 @@ import com.darkrockstudios.apps.hammer.operations.plugin.ActionTarget
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginAction
 import com.darkrockstudios.apps.hammer.operations.plugin.SettingDeclaration
 import com.darkrockstudios.apps.hammer.operations.plugin.UnreadableSessionException
+import com.darkrockstudios.apps.hammer.operations.plugin.entityRefs
+import com.darkrockstudios.apps.hammer.operations.plugin.toCatalogRef
 import io.github.aakira.napier.Napier
 import kotlin.concurrent.Volatile
 import kotlinx.coroutines.CancellationException
@@ -55,6 +60,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.boolean
@@ -80,12 +86,18 @@ class ActionRun(val action: PluginAction, val place: ActionPlace, val itemId: In
 sealed interface FieldError {
 	data class Plugin(val message: String) : FieldError
 
-	/** A required text left blank, or required scenes left unpicked. */
+	/** A required text left blank, or required scenes or entities left unpicked. */
 	data object Required : FieldError
 
 	data class OutOfRange(val min: Long?, val max: Long?) : FieldError
 
 	data object NotAnOption : FieldError
+
+	/** An entity picked that is no longer in the project. */
+	data object Missing : FieldError
+
+	/** An entity picked that is not of a kind, entry type, or tag the field takes. */
+	data object NotTaken : FieldError
 }
 
 /** What the runner is showing. */
@@ -136,6 +148,8 @@ class PluginActionRunner(
 	private val project: ProjectDef,
 	private val scope: CoroutineScope,
 	private val operations: OperationRegistry,
+	/** The project's items for entity fields to pick from. */
+	private val entities: EntityCatalog,
 	private val strings: StrRes,
 	private val showMessage: (String) -> Unit,
 	/** Shows the project's home, or the item at a place with an id; false when there is no such item. */
@@ -152,6 +166,15 @@ class PluginActionRunner(
 
 	/** The project's scenes for a scenes field, loaded when a page asks for one. */
 	val scenes: StateFlow<List<ExportableScene>?> = _scenes.asStateFlow()
+
+	private val _catalog = MutableStateFlow<List<CatalogItem>?>(null)
+
+	/** The project's items of the kinds a page's entity fields take, loaded when it shows; null until then. */
+	val catalog: StateFlow<List<CatalogItem>?> = _catalog.asStateFlow()
+	private var catalogLoad: Job? = null
+
+	// A press whose entity picks are being checked against the project.
+	private var checking: Job? = null
 
 	// First pages' values, for actions that are not kept; a kept one's whole run is saved instead.
 	private val remembered = mutableMapOf<String, JsonObject>()
@@ -269,13 +292,34 @@ class PluginActionRunner(
 	fun press(button: ActionButton?) {
 		val page = _state.value as? ActionRunState.Page ?: return
 		if (page.saving || (button == null && !page.first)) return
-		if (button?.validate != false) {
-			val errors = hostErrors(page.page.fields, page.values)
-			if (errors.isNotEmpty()) {
-				_state.value = page.copy(errors = errors)
-				return
-			}
+		if (button?.validate == false) return submit(page, button)
+		val picks = page.page.fields.any { it is ActionField.Entity && entityRefs(page.values[it.key]).isNotEmpty() }
+		if (!picks) return check(page, button, items = null)
+		// The picks are checked against the project as it is at the press, not as it was when the page showed.
+		if (checking?.isActive == true) return
+		checking = scope.launch {
+			val items = readCatalog(page.page.fields)
+			val now = _state.value as? ActionRunState.Page
+			if (now == null || now.page !== page.page) return@launch
+			if (items != null) _catalog.value = items
+			check(now, button, items)
 		}
+	}
+
+	/**
+	 * Calls with the page's values if they pass the host's checks, and otherwise shows what fails.
+	 * Entity picks are looked for in [items], unless that is null.
+	 */
+	private fun check(page: ActionRunState.Page, button: ActionButton?, items: List<CatalogItem>?) {
+		val errors = hostErrors(page.page.fields, page.values, items)
+		if (errors.isNotEmpty()) {
+			_state.value = page.copy(errors = errors)
+			return
+		}
+		submit(page, button)
+	}
+
+	private fun submit(page: ActionRunState.Page, button: ActionButton?) {
 		val run = page.run
 		if (run.action.keep) {
 			run.answers += answersOf(page.page.fields, page.values)
@@ -486,6 +530,7 @@ class PluginActionRunner(
 	private fun show(page: ActionRunState.Page) {
 		_state.value = page
 		if (page.page.fields.any { it is ActionField.Scenes }) loadScenes()
+		if (page.page.fields.any { it is ActionField.Entity }) loadCatalog(page.page)
 	}
 
 	private fun showText(text: String) {
@@ -549,7 +594,7 @@ class PluginActionRunner(
 
 	/**
 	 * What the user has given [fields], as answers to keep by [answerKey]: choices by their option's
-	 * label, and scenes by name where known.
+	 * label, and scenes and entities by name where known.
 	 */
 	private fun answersOf(fields: List<ActionField>, values: JsonObject): Map<String, ActionAnswer> = fields.associate { field ->
 		val value = values[field.key] ?: field.default
@@ -558,6 +603,10 @@ class PluginActionRunner(
 			is ActionField.Scenes -> {
 				val scenes = _scenes.value.orEmpty()
 				JsonPrimitive(sceneIds(value).joinToString(", ") { id -> scenes.firstOrNull { it.id == id }?.name ?: id.toString() })
+			}
+			is ActionField.Entity -> {
+				val items = _catalog.value.orEmpty()
+				JsonPrimitive(entityRefs(value).joinToString(", ") { ref -> items.find(ref)?.name ?: "${ref.kind.id} ${ref.id}" })
 			}
 			is ActionField.Setting -> {
 				val declaration = field.declaration
@@ -595,6 +644,41 @@ class PluginActionRunner(
 				Napier.e(e) { "Could not list the scenes to choose from" }
 				emptyList()
 			}
+		}
+	}
+
+	/**
+	 * Loaded afresh for each page, as scenes are. Once it is, a pick on [page] that is no longer in the
+	 * project, or that its field does not take, is dropped: a plugin's default naming a deleted entry,
+	 * say, shows as nothing picked rather than as an error.
+	 */
+	private fun loadCatalog(page: ActionPage) {
+		catalogLoad?.cancel()
+		_catalog.value = null
+		catalogLoad = scope.launch {
+			val items = readCatalog(page.fields)
+			_catalog.value = items.orEmpty()
+			if (items == null) return@launch
+			_state.update { state ->
+				when (state) {
+					is ActionRunState.Page -> if (state.page === page) state.pruned(items) else state
+					is ActionRunState.Working -> state.from?.takeIf { it.page === page }?.let { state.copy(from = it.pruned(items)) } ?: state
+					is ActionRunState.Changed, null -> state
+				}
+			}
+		}
+	}
+
+	/** The items of every kind [fields]' entity fields take; null when they could not be read. */
+	private suspend fun readCatalog(fields: List<ActionField>): List<CatalogItem>? {
+		val kinds = fields.filterIsInstance<ActionField.Entity>().flatMapTo(HashSet()) { it.filter.kinds }
+		return try {
+			withContext(workDispatcher) { entities.items(kinds) }
+		} catch (e: CancellationException) {
+			throw e
+		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+			Napier.e(e) { "Could not list the project's items to choose from" }
+			null
 		}
 	}
 
@@ -642,15 +726,40 @@ internal val ActionRunState.Page.over: Boolean get() = !first && page.fields.isE
 private fun ActionRunState.Page.changed(key: String, value: JsonElement) =
 	copy(values = JsonObject(values + (key to value)), errors = errors - key)
 
+/** This page with only the entity picks [items] has and their fields take. */
+private fun ActionRunState.Page.pruned(items: List<CatalogItem>): ActionRunState.Page {
+	val kept = page.fields.filterIsInstance<ActionField.Entity>().mapNotNull { field ->
+		val refs = entityRefs(values[field.key])
+		val taken = refs.filter { ref -> items.find(ref)?.let(field.filter::accepts) == true }
+		(field.key to field.valueOf(taken)).takeIf { taken.size != refs.size }
+	}
+	return if (kept.isEmpty()) this else copy(values = JsonObject(values + kept))
+}
+
 /** Whether a page only shows markdown: nothing to fill in, and no button to go on with. */
 internal val ActionPage.isDocument: Boolean get() = markdown != null && fields.isEmpty() && buttons.isEmpty()
 
-/** What the host finds wrong in [values] before a call: a required value missing, a number out of range, or a choice not among the options. */
-internal fun hostErrors(fields: List<ActionField>, values: JsonObject): Map<String, FieldError> = fields.mapNotNull { field ->
+/**
+ * What the host finds wrong in [values] before a call: a required value missing, a number out of
+ * range, a choice not among the options, or an entity picked that is not among [items] or that its
+ * field does not take. Entities are not looked for when [items] is null.
+ */
+internal fun hostErrors(fields: List<ActionField>, values: JsonObject, items: List<CatalogItem>? = null): Map<String, FieldError> = fields.mapNotNull { field ->
 	val value = values[field.key]
 	val error = when (field) {
 		is ActionField.Text -> FieldError.Required.takeIf { field.required && (value as? JsonPrimitive)?.contentOrNull.isNullOrBlank() }
 		is ActionField.Scenes -> FieldError.Required.takeIf { field.required && sceneIds(value).isEmpty() }
+		is ActionField.Entity -> {
+			val refs = entityRefs(value)
+			val found = items?.let { refs.mapNotNull { ref -> it.find(ref) } }
+			when {
+				refs.isEmpty() -> FieldError.Required.takeIf { field.required }
+				found == null -> null
+				found.size < refs.size -> FieldError.Missing
+				found.any { !field.filter.accepts(it) } -> FieldError.NotTaken
+				else -> null
+			}
+		}
 		is ActionField.Setting -> when (val declaration = field.declaration) {
 			is SettingDeclaration.Number -> FieldError.OutOfRange(declaration.min, declaration.max).takeUnless { field.accepts(value) }
 			is SettingDeclaration.Choice -> FieldError.NotAnOption.takeUnless { field.accepts(value) }
@@ -674,6 +783,7 @@ private fun ActionField.accepts(value: JsonElement?): Boolean = when (this) {
 	is ActionField.Setting -> (value as? JsonPrimitive)?.let(declaration::accept) != null
 	is ActionField.Text -> (value as? JsonPrimitive)?.isString == true
 	is ActionField.Scenes -> if (multiple) value is JsonArray else value is JsonPrimitive
+	is ActionField.Entity -> if (multiple) value is JsonArray && value.all { it.toCatalogRef() != null } else value == JsonNull || value?.toCatalogRef() != null
 }
 
 private fun SceneNode.flatten(depth: Int): List<ExportableScene> =

@@ -474,7 +474,7 @@ private fun AddReferenceDialog(
 		) {
 			Row(modifier = Modifier.fillMaxWidth()) {
 				RefBucket.entries.forEach { bucket ->
-					TabPill(
+					HdTabPill(
 						label = bucket.label(),
 						active = tab == bucket,
 						onClick = {
@@ -547,39 +547,6 @@ private fun AddReferenceDialog(
 					emphasised = true,
 				)
 			}
-		}
-	}
-}
-
-@Composable
-private fun TabPill(
-	label: String,
-	active: Boolean,
-	onClick: () -> Unit,
-	modifier: Modifier = Modifier,
-) {
-	val accent = MaterialTheme.colorScheme.primary
-	val onSurface = MaterialTheme.colorScheme.onSurface
-	val mutedColor = MaterialTheme.colorScheme.onSurfaceVariant
-	Box(
-		modifier = modifier
-			.clickable(onClick = onClick)
-			.padding(vertical = Ui.Padding.M),
-		contentAlignment = Alignment.Center,
-	) {
-		Column(horizontalAlignment = Alignment.CenterHorizontally) {
-			Text(
-				text = label,
-				style = MaterialTheme.typography.labelLarge,
-				color = if (active) onSurface else mutedColor,
-			)
-			SpacerM()
-			Box(
-				modifier = Modifier
-					.fillMaxWidth()
-					.height(2.dp)
-					.background(if (active) accent else MaterialTheme.colorScheme.outlineVariant)
-			)
 		}
 	}
 }

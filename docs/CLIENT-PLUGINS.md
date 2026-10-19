@@ -1495,7 +1495,8 @@ three ends the run and closes the dialog, without a word unless it has a
   (a button without an `id`, say), has a `state` over 1 MiB encoded, has an
   `open` with an unknown place, or has a field the host cannot show: an
   unknown `type` or `format`, a key used twice on the page, a `choice` without
-  options, or a `default` the field would not take. Unknown keys are ignored.
+  options, an `entity` with an unknown kind or entry type, or a `default` the
+  field would not take. Unknown keys are ignored.
 
 #### Fields
 
@@ -1510,6 +1511,7 @@ Fields take the same keys in a manifest's `[[actions.field]]` and in a page's
 | `choice` | A dropdown | The chosen option's `value` | `options`: `[{value, label}]`, at least one | The first option |
 | `text` | The editor its `format` picks | A string, markdown for the rich formats | `format`, `multiline` | `""` |
 | `scenes` | A button opening the scene tree to pick from, the pick shown in brief beside it | A list of scene ids, or with `multiple = false`, one id or null | `multiple`, true by default | Nothing picked |
+| `entity` | The pick as chips, and a button opening a search by name; see Entities below | `{"kind", "id"}`, or null; with `multiple = true`, a list of them | `kinds`, `entry_types`, `tags`, `multiple`, false by default | Nothing picked |
 
 | `format` | Editor |
 | --- | --- |
@@ -1521,13 +1523,40 @@ Fields take the same keys in a manifest's `[[actions.field]]` and in a page's
   shows a page again, on Back say, passes what was entered as the defaults.
 - **Rich values** are the markdown the editor stores, so a plugin can pass one
   straight to `entry.create` or `note.create`.
-- **`required`** applies to `text`, which must not be blank, and `scenes`,
-  which must not be empty. The other types ignore it.
+- **`required`** applies to `text`, which must not be blank, and `scenes` and
+  `entity`, which must not be empty. The other types ignore it.
 - **`string`**, a settings type, is refused: an action asks for text with
   `text`.
 - **Words.** The labels, hints, and option labels of the manifest's fields are
   translated in `locales/`, as declared words are. A page's are the plugin's
   own, written for the call's `locale`.
+
+**Entities.** An `entity` field picks items of the project by name, as a
+character to interview or two to compare:
+
+```toml
+[[actions.field]]
+key = "who"
+type = "entity"
+label = "Character"
+kinds = ["entry"]          # scene, note, entry, event; all four when left out
+entry_types = ["person"]   # person, place, thing, event, idea; every type when left out
+tags = ["pov"]             # only items carrying one of these; any when left out
+required = true
+```
+
+Its value is `{"kind": "entry", "id": 12}`, or null when nothing is picked;
+with `multiple = true`, a list of them, empty when nothing is. `default` takes
+the same shape. Picking one is the common case, so `multiple` is false by
+default, unlike a `scenes` field's. The search matches names and entry aliases
+as they are typed, with a tab for each kind when there are several. A scene is
+named as it is in the tree (archived scenes are not offered), a note by its
+first line, and an event by its date, or its first line without one. A field
+is refused with an unknown kind or entry type, an empty `kinds`, `entry_types`
+when `kinds` leaves out `entry`, or a blank tag. A pick a page starts with, its
+`default` or one restored from a session, that names an item no longer in the
+project, or one the field does not take, shows as nothing picked rather than as
+an error.
 
 #### Buttons
 
@@ -1546,12 +1575,13 @@ footer buttons, Copy and Save as note, its primary buttons, and Run on the
 first page.
 
 **Host checks.** Before a call from Run or a button with `validate`, the host
-checks the page: a `required` text not blank, `required` scenes not empty, an
-`int` within its `min` and `max`, and a `choice` one of its options. What
-fails is shown under its field, and the module is not called. The button is
-not disabled for these, since a disabled button does not say why. Changing a
-field clears its message. Any other rule is the plugin's, answered with
-`errors`.
+checks the page: a `required` text not blank, `required` scenes or entities not
+empty, an `int` within its `min` and `max`, a `choice` one of its options, and
+each entity picked still in the project, as it is at the press, and of a kind,
+entry type, and tag its field takes. What fails is shown under its field, and
+the module is not called. The button is not disabled for these, since a
+disabled button does not say why. Changing a field clears its message. Any
+other rule is the plugin's, answered with `errors`.
 
 **Documents.** A page with markdown and no fields offers Copy. A page with no
 buttons either is a **document**, and offers Save as note too. Hammer runs
@@ -1599,8 +1629,8 @@ not lose it. Nothing asks "discard?", because nothing is discarded.
   handed.
 - **What.** The plugin's version; the page, with its `state`; the values on
   it; and the answers: the label and value of each field submitted in the run,
-  a choice by its option's label and scenes by name, which the host keeps for
-  itself and never sends the plugin. At most 4 MiB.
+  a choice by its option's label and scenes and entities by name, which the
+  host keeps for itself and never sends the plugin. At most 4 MiB.
 - **When.** A session is saved when the plugin replies with a page or
   `errors`, when a button is pressed, half a second after the user stops
   typing, when a failed or stopped call goes back to its page, when the dialog
@@ -1637,8 +1667,8 @@ not lose it. Nothing asks "discard?", because nothing is discarded.
 - **Not synced.** A half-filled form is this device's.
 
 **Later.** [PLUGIN-ACTION-PAGES.md](PLUGIN-ACTION-PAGES.md) plans what pages
-do not do yet: an entity picker, tabs and fields that refresh their page, and
-a durable store for a plugin's own data.
+do not do yet: tabs and fields that refresh their page, and a durable store for
+a plugin's own data.
 
 ### Commands
 

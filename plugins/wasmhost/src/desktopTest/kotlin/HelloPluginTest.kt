@@ -1,4 +1,8 @@
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
+import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogFilter
+import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogKind
+import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogRef
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.APP_SCOPE
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_IO
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
@@ -14,6 +18,7 @@ import com.darkrockstudios.apps.hammer.operations.plugin.ActionPlace
 import com.darkrockstudios.apps.hammer.operations.plugin.ClientPlugin
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
 import com.darkrockstudios.apps.hammer.operations.plugin.TextDiagnosticsRequest
+import com.darkrockstudios.apps.hammer.operations.plugin.toJson
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.RuntimePlugins
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -22,6 +27,7 @@ import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.add
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonPrimitive
@@ -72,6 +78,15 @@ class HelloPluginTest {
 		val read = operation<JsonObject, JsonObject>("scene.read", "", Access.Read, OperationScope.Content) { input ->
 			buildJsonObject { put("markdown", if (input["id"]!!.jsonPrimitive.int == 1) "Rain fell hard." else "Quiet.") }
 		}
+		val entry = operation<JsonObject, JsonObject>("entry.read", "", Access.Read, OperationScope.Content) { input ->
+			check(input["id"]!!.jsonPrimitive.int == 12)
+			buildJsonObject {
+				put("id", 12)
+				put("name", "Mara")
+				putJsonArray("aliases") { add("The Captain") }
+				putJsonArray("referencedBy") { add(1); add(2) }
+			}
+		}
 		val built = File(PluginRepos.sdk, "kotlin/hello/build/hello.hammerplugin")
 		check(built.exists()) { "Run kotlin/build.sh in hammer-plugin-sdk first" }
 		val download = "/downloads/hello.hammerplugin".toPath()
@@ -89,7 +104,7 @@ class HelloPluginTest {
 					single(named(APP_SCOPE)) { CoroutineScope(Dispatchers.Unconfined) }
 				},
 				registry.koinModule(),
-				module { single { OperationRegistry(listOf(tree, read), NoProjects) } },
+				module { single { OperationRegistry(listOf(tree, read, entry), NoProjects) } },
 			)
 		}
 		return registry.plugins.single()
@@ -112,6 +127,15 @@ class HelloPluginTest {
 		assertEquals(setOf(ActionPlace.Project, ActionPlace.Scene), actions.getValue("count").places)
 		assertIs<ActionField.Scenes>(actions.getValue("count").fields.single())
 		assertTrue(actions.getValue("wave").fields.isEmpty())
+		val who = assertIs<ActionField.Entity>(actions.getValue("about").fields.single())
+		assertEquals(CatalogFilter(setOf(CatalogKind.Entry), setOf(EntryType.PERSON)), who.filter)
+		assertEquals(true to false, who.required to who.multiple)
+	}
+
+	@Test
+	fun `about reads the character picked`() {
+		val input = JsonObject(mapOf("who" to CatalogRef(CatalogKind.Entry, 12).toJson()))
+		assertEquals("# Mara\nAlso known as The Captain.\nIn 2 scenes.", run("about", input).page!!.markdown!!.trim())
 	}
 
 	@Test
@@ -164,6 +188,8 @@ class HelloPluginTest {
 		val wave = french.actions().single { it.name == "wave" }
 		assertEquals("Saluer", wave.label)
 		assertEquals("Scènes", french.actions().single { it.name == "count" }.fields.single().label)
+		val about = french.actions().single { it.name == "about" }
+		assertEquals("À propos d’un personnage" to "Personnage", about.label to about.fields.single().label)
 		val call = ActionCall(
 			"Storm", ActionPlace.Project, null, JsonObject(mapOf("times" to JsonPrimitive(1))), "wave", JsonObject(mapOf("name" to JsonPrimitive("Mara"))),
 		)

@@ -52,6 +52,8 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineFie
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMasthead
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMastheadAction
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
+import com.darkrockstudios.apps.hammer.common.compose.entitypicker.EntityChip
+import com.darkrockstudios.apps.hammer.common.compose.entitypicker.EntityPickerDialog
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownEditField
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownView
 import com.darkrockstudios.apps.hammer.common.compose.rememberClipboardCopier
@@ -61,10 +63,18 @@ import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
 import com.darkrockstudios.apps.hammer.common.data.ExportableScene
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogItem
+import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogKind
+import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogRef
+import com.darkrockstudios.apps.hammer.common.data.entitycatalog.EntityCatalog
+import com.darkrockstudios.apps.hammer.common.data.entitycatalog.find
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.projecthome.SceneSelector
 import com.darkrockstudios.apps.hammer.composeui.resources.Res
 import com.darkrockstudios.apps.hammer.composeui.resources.plugin_action_changed
 import com.darkrockstudios.apps.hammer.composeui.resources.plugin_action_changed_nothing
+import com.darkrockstudios.apps.hammer.composeui.resources.plugin_action_entity_missing
+import com.darkrockstudios.apps.hammer.composeui.resources.plugin_action_entity_not_taken
 import com.darkrockstudios.apps.hammer.composeui.resources.plugin_action_no
 import com.darkrockstudios.apps.hammer.composeui.resources.plugin_action_not_an_option
 import com.darkrockstudios.apps.hammer.composeui.resources.plugin_action_required
@@ -98,6 +108,7 @@ import com.darkrockstudios.apps.hammer.operations.plugin.ActionPlace
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionSessionStore
 import com.darkrockstudios.apps.hammer.operations.plugin.SettingDeclaration
 import com.darkrockstudios.apps.hammer.operations.plugin.TextFormat
+import com.darkrockstudios.apps.hammer.operations.plugin.entityRefs
 import com.darkrockstudios.texteditor.EditorLineLimits
 import kotlinx.coroutines.delay
 import kotlinx.serialization.json.JsonArray
@@ -138,6 +149,7 @@ fun PluginActionHost(
 			project = project,
 			scope = scope,
 			operations = operations,
+			entities = projectEntityCatalog(project),
 			strings = strings,
 			showMessage = { rootSnackbar.showSnackbar(it) },
 			navigate = { place, id -> currentNavigate(place, id) },
@@ -154,6 +166,12 @@ fun PluginActionHost(
 		content()
 	}
 	PluginActionDialogs(runner)
+}
+
+/** The project's catalog, looked up only when a page has an entity field. */
+private fun projectEntityCatalog(project: ProjectDef) = object : EntityCatalog {
+	override suspend fun items(kinds: Set<CatalogKind>): List<CatalogItem> =
+		ProjectDefScope(project).scope.get<EntityCatalog>().items(kinds)
 }
 
 /** Shows what an action opened: the project's home, or the item at [place] with [id]; false when there is none. */
@@ -190,9 +208,10 @@ fun PluginActionMenuItems(place: ActionPlace, itemId: Int?, onChosen: () -> Unit
 private fun PluginActionDialogs(runner: PluginActionRunner) {
 	val state by runner.state.collectAsState()
 	val scenes by runner.scenes.collectAsState()
+	val catalog by runner.catalog.collectAsState()
 	val working = state as? ActionRunState.Working
 	// A call made from a page keeps the page showing, rather than closing and opening it again.
-	PageDialog((state as? ActionRunState.Page) ?: working?.from, working?.takeIf { it.from != null }, scenes, runner)
+	PageDialog((state as? ActionRunState.Page) ?: working?.from, working?.takeIf { it.from != null }, scenes, catalog, runner)
 	WorkingDialog(working?.takeIf { it.from == null }, runner)
 	ChangedDialog(state as? ActionRunState.Changed, runner)
 }
@@ -254,11 +273,13 @@ private fun PageDialog(
 	page: ActionRunState.Page?,
 	working: ActionRunState.Working?,
 	scenes: List<ExportableScene>?,
+	catalog: List<CatalogItem>?,
 	runner: PluginActionRunner,
 ) {
 	val shown = lastOf(page)
 	// Keyed on the page, so a chooser left open never outlives it.
 	var choosing by remember(page?.page) { mutableStateOf<ActionField.Scenes?>(null) }
+	var choosingEntity by remember(page?.page) { mutableStateOf<ActionField.Entity?>(null) }
 	var copied by remember(shown?.page) { mutableStateOf(false) }
 	var confirmingStartOver by remember(page?.run) { mutableStateOf(false) }
 	val copy = rememberClipboardCopier()
@@ -299,8 +320,10 @@ private fun PageDialog(
 								value = current.values[field.key],
 								error = current.errors[field.key],
 								scenes = scenes,
+								catalog = catalog,
 								onChange = { runner.change(field.key, it) },
 								onChooseScenes = { choosing = field as? ActionField.Scenes },
+								onChooseEntity = { choosingEntity = field as? ActionField.Entity },
 							)
 						}
 					}
@@ -354,6 +377,24 @@ private fun PageDialog(
 		},
 		onDone = { choosing = null },
 	)
+
+	val entityField = choosingEntity?.takeIf { page != null && working == null && catalog != null }
+	val shownEntityField = lastOf(entityField)
+	if (shownEntityField != null) {
+		EntityPickerDialog(
+			visible = entityField != null,
+			title = shownEntityField.label,
+			items = catalog.orEmpty(),
+			filter = shownEntityField.filter,
+			multiple = shownEntityField.multiple,
+			selected = entityRefs(values?.get(shownEntityField.key)),
+			onSelectedChange = { refs ->
+				val chosen = choosingEntity ?: return@EntityPickerDialog
+				runner.change(chosen.key, chosen.valueOf(refs))
+			},
+			onDismiss = { choosingEntity = null },
+		)
+	}
 }
 
 @Composable
@@ -460,8 +501,10 @@ private fun PageField(
 	value: JsonElement?,
 	error: FieldError?,
 	scenes: List<ExportableScene>?,
+	catalog: List<CatalogItem>?,
 	onChange: (JsonElement) -> Unit,
 	onChooseScenes: () -> Unit,
+	onChooseEntity: () -> Unit,
 ) {
 	Column(verticalArrangement = Arrangement.spacedBy(Ui.Padding.S)) {
 		when (field) {
@@ -479,6 +522,12 @@ private fun PageField(
 
 			is ActionField.Scenes -> {
 				ScenesField(field, sceneIds(value), scenes, onChooseScenes)
+				error?.let { FieldErrorText(it) }
+			}
+
+			is ActionField.Entity -> {
+				val picked = entityRefs(value)
+				EntityField(field, picked, catalog, onRemove = { ref -> onChange(field.valueOf(picked - ref)) }, onChoose = onChooseEntity)
 				error?.let { FieldErrorText(it) }
 			}
 
@@ -553,6 +602,8 @@ private fun fieldErrorText(error: FieldError): String = when (error) {
 	is FieldError.Plugin -> error.message
 	FieldError.Required -> Res.string.plugin_action_required.get()
 	FieldError.NotAnOption -> Res.string.plugin_action_not_an_option.get()
+	FieldError.Missing -> Res.string.plugin_action_entity_missing.get()
+	FieldError.NotTaken -> Res.string.plugin_action_entity_not_taken.get()
 	is FieldError.OutOfRange -> {
 		val min = error.min
 		val max = error.max
@@ -577,6 +628,42 @@ private fun ScenesField(field: ActionField.Scenes, selected: Set<Int>, scenes: L
 				modifier = Modifier.weight(1f),
 			)
 			HdHairlineButton(label = Res.string.plugin_action_scenes_choose.get(), onClick = onChoose, enabled = scenes != null)
+		}
+		FieldHint(field.hint)
+	}
+}
+
+/**
+ * An entity field: its label, a chip for each pick with × to remove it, and a button opening the
+ * picker. The picks show once the project's items have loaded, which they need for their names.
+ */
+@Composable
+private fun EntityField(
+	field: ActionField.Entity,
+	picked: List<CatalogRef>,
+	catalog: List<CatalogItem>?,
+	onRemove: (CatalogRef) -> Unit,
+	onChoose: () -> Unit,
+) {
+	Column(verticalArrangement = Arrangement.spacedBy(Ui.Padding.S)) {
+		Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M)) {
+			HdMonoLabel(text = field.label)
+			FlowRow(
+				modifier = Modifier.weight(1f),
+				horizontalArrangement = Arrangement.spacedBy(Ui.Padding.S),
+				verticalArrangement = Arrangement.spacedBy(Ui.Padding.S),
+				itemVerticalAlignment = Alignment.CenterVertically,
+			) {
+				when {
+					picked.isEmpty() -> Text(text = Res.string.plugin_action_scenes_none.get(), style = MaterialTheme.typography.bodyMedium)
+					catalog != null -> picked.forEach { ref ->
+						// Only a pick made since the items loaded can be missing from them.
+						val item = catalog.find(ref) ?: CatalogItem(ref.kind, ref.id, "#${ref.id}")
+						EntityChip(item = item, onClick = onChoose, onRemove = { onRemove(ref) })
+					}
+				}
+			}
+			HdHairlineButton(label = Res.string.plugin_action_scenes_choose.get(), onClick = onChoose, enabled = catalog != null)
 		}
 		FieldHint(field.hint)
 	}
