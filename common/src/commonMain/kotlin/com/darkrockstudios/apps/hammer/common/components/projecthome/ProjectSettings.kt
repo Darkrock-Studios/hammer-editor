@@ -13,6 +13,9 @@ interface ProjectSettings : HammerComponent {
 	val spellCheckSettings: SpellCheckSettings
 	val projectInfoState: Value<ProjectInfoState>
 
+	/** Ids of the plugins turned off for this project on this device. */
+	val disabledPlugins: Value<Set<String>>
+
 	/** Every language the platform offers, sorted by display name, for the language picker. */
 	val availableLanguages: List<LanguageOption>
 
@@ -29,6 +32,9 @@ interface ProjectSettings : HammerComponent {
 	/** Input that normalizes to nothing storable is ignored. */
 	fun addDictionaryWord(word: String)
 	fun removeDictionaryWord(word: String)
+
+	/** Turns the installed plugin [pluginId] on or off for this project, on this device only. */
+	fun setPluginEnabled(pluginId: String, enabled: Boolean)
 
 	data class LanguageOption(
 		val tag: String,

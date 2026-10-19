@@ -74,6 +74,11 @@ fun interface ProjectIdChangeListener {
 	suspend fun onProjectIdChanged(projectDef: ProjectDef, oldId: ProjectId, newId: ProjectId)
 }
 
+/** Told when a project is deleted; see [ProjectsRepository.addProjectDeletedListener]. */
+fun interface ProjectDeletedListener {
+	fun onProjectDeleted(projectDef: ProjectDef)
+}
+
 class ProjectsRepository(
 	private val fileSystem: FileSystem,
 	globalSettingsStore: GlobalSettingsStore,
@@ -91,6 +96,8 @@ class ProjectsRepository(
 
 	private val idChangeListenersLock = reentrantLock()
 	private var idChangeListeners: List<ProjectIdChangeListener> = emptyList()
+	private val deletedListenersLock = reentrantLock()
+	private var deletedListeners: List<ProjectDeletedListener> = emptyList()
 
 	init {
 		watchSettings(globalSettingsStore)
@@ -164,6 +171,24 @@ class ProjectsRepository(
 				throw e
 			} catch (e: Exception) {
 				Napier.e("Project id change listener failed for '${projectDef.name}'", e)
+			}
+		}
+	}
+
+	/** [listener] runs inside [deleteProject], once the project's directory is gone. */
+	fun addProjectDeletedListener(listener: ProjectDeletedListener) {
+		deletedListenersLock.withLock { deletedListeners = deletedListeners + listener }
+	}
+
+	// The project is already gone, so a failing listener must not fail the delete.
+	@Suppress("TooGenericExceptionCaught")
+	private fun notifyProjectDeleted(projectDef: ProjectDef) {
+		val listeners = deletedListenersLock.withLock { deletedListeners }
+		listeners.forEach { listener ->
+			try {
+				listener.onProjectDeleted(projectDef)
+			} catch (e: Exception) {
+				Napier.e("Project deleted listener failed for '${projectDef.name}'", e)
 			}
 		}
 	}
@@ -661,6 +686,7 @@ class ProjectsRepository(
 		val projectDir = projectDef.path.toOkioPath()
 		return if (fileSystem.exists(projectDir)) {
 			fileSystem.deleteRecursively(projectDir)
+			notifyProjectDeleted(projectDef)
 			true
 		} else {
 			false

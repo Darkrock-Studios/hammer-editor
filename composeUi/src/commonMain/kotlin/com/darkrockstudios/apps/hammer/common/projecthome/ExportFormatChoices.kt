@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.common.projecthome
 
 import androidx.compose.runtime.Composable
 import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.common.compose.plugin.LocalDisabledPlugins
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.export.BuiltInExportFormat
 import com.darkrockstudios.apps.hammer.common.data.export.StoryExporter
@@ -32,4 +33,5 @@ internal fun exportFormatChoices(exporters: List<StoryExporter>): List<ExportFor
 }
 
 @Composable
-internal fun exportFormatChoices(): List<ExportFormatChoice> = exportFormatChoices(koinInject<StoryExporterRegistry>().exporters)
+internal fun exportFormatChoices(): List<ExportFormatChoice> =
+	exportFormatChoices(koinInject<StoryExporterRegistry>().exporters(LocalDisabledPlugins.current))

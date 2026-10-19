@@ -17,6 +17,7 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupDef
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupService
+import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectPluginsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.EntryAppearance
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.ProjectStatisticsUseCase
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsService
@@ -63,6 +64,10 @@ class ProjectHomeComponent(
 	private val statisticsService: StatisticsService by projectInject()
 	private val projectStatistics: ProjectStatisticsUseCase by projectInject()
 	private val tagIndexService: TagIndexService by projectInject()
+	private val projectPlugins: ProjectPluginsRepository by inject()
+
+	// Read when the export dialog opens, which cannot wait on a file.
+	private var disabledPlugins = emptySet<String>()
 
 	private val contentRouter = ProjectHomeContentRouter(componentContext, projectDef)
 	override val contentRouterState: Value<ChildStack<ProjectHomeContentRouter.Config, ProjectHome.ContentDestination>> =
@@ -87,7 +92,8 @@ class ProjectHomeComponent(
 	override fun beginProjectExport() {
 		_state.getAndUpdate {
 			// A scene limit from a previous export would silently narrow this one.
-			val format = it.exportOptions.format.takeIf(exporters::isRegistered) ?: ExportOptions().format
+			val format = it.exportOptions.format.takeIf { format -> exporters.isRegistered(format, disabledPlugins) }
+				?: ExportOptions().format
 			val options = it.exportOptions.copy(format = format, sceneIds = null)
 			exportOptionsBeforeDialog = options
 			it.copy(
@@ -236,6 +242,11 @@ class ProjectHomeComponent(
 		subscribeToStats()
 		loadData()
 		listenForSyncEvents()
+		scope.launch {
+			projectPlugins.disabledPlugins(projectDef.id).collect { disabled ->
+				withContext(dispatcherMain) { disabledPlugins = disabled }
+			}
+		}
 	}
 
 	override fun onResume() {

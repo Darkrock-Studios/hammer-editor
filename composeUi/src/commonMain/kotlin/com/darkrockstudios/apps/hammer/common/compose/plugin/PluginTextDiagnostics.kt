@@ -17,8 +17,8 @@ import kotlinx.coroutines.CancellationException
 import org.koin.compose.koinInject
 
 /**
- * Underlines what active plugins' text checks find in [textState], a scene of [project] written in
- * [language]. Nothing is checked until [languageLoaded], so a check never runs with the wrong language.
+ * Underlines what the text checks of the plugins [project] has on find in [textState], a scene of it
+ * written in [language]. Nothing is checked until [languageLoaded], so a check never runs with the wrong language.
  */
 @Composable
 fun rememberPluginTextDiagnostics(
@@ -27,7 +27,7 @@ fun rememberPluginTextDiagnostics(
 	language: String?,
 	languageLoaded: Boolean,
 ): TextDiagnosticsState {
-	val providers = koinInject<PluginUiRegistry>().textDiagnostics()
+	val providers = koinInject<PluginUiRegistry>().textDiagnostics(LocalDisabledPlugins.current)
 	val checker = remember(providers, project, language, languageLoaded) {
 		if (providers.isNullOrEmpty() || !languageLoaded) null else PluginChecker(providers, project, language)
 	}

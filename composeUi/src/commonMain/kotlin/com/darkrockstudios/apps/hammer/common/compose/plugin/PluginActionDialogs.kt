@@ -22,6 +22,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -74,14 +75,25 @@ import org.koin.compose.koinInject
 /** The open project's action runner, for menus to start actions with; null outside a project. */
 val LocalPluginActions = staticCompositionLocalOf<PluginActionRunner?> { null }
 
-/** Provides [content] with the project's action runner, and shows its dialogs over it. */
+/** Ids of the plugins the open project turned off; empty outside a project. */
+val LocalDisabledPlugins = compositionLocalOf { emptySet<String>() }
+
+/**
+ * Provides [content] with the project's action runner and the plugins it turned off, and shows the
+ * runner's dialogs over it.
+ */
 @Composable
-fun PluginActionHost(project: String, rootSnackbar: RootSnackbarHostState, content: @Composable () -> Unit) {
+fun PluginActionHost(
+	project: String,
+	disabledPlugins: Set<String>,
+	rootSnackbar: RootSnackbarHostState,
+	content: @Composable () -> Unit,
+) {
 	val scope = rememberCoroutineScope()
 	val operations = koinInject<OperationRegistry>()
 	val strings = rememberStrRes()
 	val runner = remember(project) { PluginActionRunner(project, scope, operations, strings, showMessage = { rootSnackbar.showSnackbar(it) }) }
-	CompositionLocalProvider(LocalPluginActions provides runner) {
+	CompositionLocalProvider(LocalPluginActions provides runner, LocalDisabledPlugins provides disabledPlugins) {
 		content()
 	}
 	PluginActionDialogs(runner)
@@ -91,7 +103,7 @@ fun PluginActionHost(project: String, rootSnackbar: RootSnackbarHostState, conte
 @Composable
 fun PluginActionMenuItems(place: ActionPlace, itemId: Int?, onChosen: () -> Unit) {
 	val runner = LocalPluginActions.current ?: return
-	koinInject<PluginUiRegistry>().actions(place).forEach { action ->
+	koinInject<PluginUiRegistry>().actions(place, LocalDisabledPlugins.current).forEach { action ->
 		DropdownMenuItem(
 			text = { Text(action.label) },
 			onClick = {

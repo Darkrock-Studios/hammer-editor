@@ -20,6 +20,7 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.globalsearch.SearchProjectUseCase
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
+import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectPluginsRepository
 import com.darkrockstudios.apps.hammer.common.data.protocolmismatch.ProtocolMismatchRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
@@ -44,6 +45,7 @@ class ProjectRootComponent(
 	private val syncJournal: SyncJournal = projectGet()
 	private val sceneEditor: SceneEditorService by projectInject()
 	private val projectDataRepository: ProjectDataRepository by projectInject()
+	private val projectPlugins: ProjectPluginsRepository by inject()
 	private val encyclopediaService: EncyclopediaService by projectInject()
 	private val settingsRepository: GlobalSettingsStore by inject()
 	private val searchProjectUseCase: SearchProjectUseCase by projectInject()
@@ -71,6 +73,9 @@ class ProjectRootComponent(
 
 	private val _projectTheme = MutableValue(ProjectRoot.ProjectThemeState(theme = null))
 	override val projectTheme: Value<ProjectRoot.ProjectThemeState> = _projectTheme
+
+	private val _disabledPlugins = MutableValue(emptySet<String>())
+	override val disabledPlugins: Value<Set<String>> = _disabledPlugins
 
 	private val _navRailState = MutableValue(
 		ProjectRoot.NavRailState(expanded = settingsRepository.globalSettings.navRailExpanded)
@@ -139,6 +144,12 @@ class ProjectRootComponent(
 				withContext(dispatcherMain) {
 					_projectTheme.value = ProjectRoot.ProjectThemeState(theme = stored?.data?.theme)
 				}
+			}
+		}
+
+		scope.launch {
+			projectPlugins.disabledPlugins(projectDef.id).collect { disabled ->
+				withContext(dispatcherMain) { _disabledPlugins.value = disabled }
 			}
 		}
 

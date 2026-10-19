@@ -1,8 +1,9 @@
 package com.darkrockstudios.apps.hammer.common.data.export
 
 /** Export formats that can change while the app runs, such as those of plugins installed from Settings. */
-fun interface ExporterSource {
-	fun exporters(): List<StoryExporter>
+interface ExporterSource {
+	/** The formats, less those of the plugins in [disabledPlugins]. */
+	fun exporters(disabledPlugins: Set<String> = emptySet()): List<StoryExporter>
 }
 
 /**
@@ -21,10 +22,16 @@ class StoryExporterRegistry(
 	}
 
 	val exporters: List<StoryExporter>
-		get() = builtInStoryExporters + (contributed + sources.flatMap { it.exporters() }).sortedBy { it.formatId }
+		get() = exporters(emptySet())
 
-	fun isRegistered(formatId: String): Boolean = exporters.any { it.formatId == formatId }
+	/** The formats a project can export to: [exporters] less those of the plugins it turned off. */
+	fun exporters(disabledPlugins: Set<String>): List<StoryExporter> =
+		builtInStoryExporters + (contributed + sources.flatMap { it.exporters(disabledPlugins) }).sortedBy { it.formatId }
 
-	fun forFormat(formatId: String): StoryExporter =
-		exporters.firstOrNull { it.formatId == formatId } ?: throw IllegalArgumentException("Unknown export format '$formatId'")
+	fun isRegistered(formatId: String, disabledPlugins: Set<String> = emptySet()): Boolean =
+		exporters(disabledPlugins).any { it.formatId == formatId }
+
+	fun forFormat(formatId: String, disabledPlugins: Set<String> = emptySet()): StoryExporter =
+		exporters(disabledPlugins).firstOrNull { it.formatId == formatId }
+			?: throw IllegalArgumentException("Unknown export format '$formatId'")
 }

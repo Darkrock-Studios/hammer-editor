@@ -487,6 +487,20 @@ valid id, prefixed export formats, valid settings, and no CLI command another
 plugin has or that shadows an operation. One that fails is refused with nothing
 changed. A replaced plugin gets a new settings store for its own declarations.
 
+Install, permissions, the enable toggle, and settings are app-wide. A project
+can also turn an enabled plugin off for itself, on this device only: the ids
+are kept by project id in `<config>/project_plugins.toml`
+(`ProjectPluginsRepository`), never in the project, so they are not synced.
+The entry follows its project when `ProjectsRepository` changes the project's
+id, and goes when it deletes the project.
+Every enabled plugin not listed is on, including ones installed later. The project's settings
+list each enabled plugin with a toggle. A plugin turned off for
+a project shows no actions, text checks, or export formats in it, and
+`project.export` refuses its formats there. CLI commands run outside any
+project and ignore this. Plugins stay loaded either way; each lookup filters by
+the open project (`PluginRegistry.forProject`, and the `disabledPlugins`
+arguments of `PluginUiRegistry` and `StoryExporterRegistry`).
+
 `PluginUiRegistry` (`:composeUi`) follows the registry:
 
 - **Settings.** The Plugins section of Settings lists installed plugins, each
@@ -1382,6 +1396,10 @@ Home), and the values given:
   reports the bar is indeterminate. Stop ends the wait and the plugin at once.
 - **One at a time.** Each project window runs one action at a time. A failure
   shows a short message; the log has the rest.
+
+**Planned.** [PLUGIN-ACTION-PAGES.md](PLUGIN-ACTION-PAGES.md) replaces this
+with pages a plugin sends one at a time: multi-step actions, rich text and
+entity fields, validation, and sessions that keep what the user typed.
 
 ### Commands
 

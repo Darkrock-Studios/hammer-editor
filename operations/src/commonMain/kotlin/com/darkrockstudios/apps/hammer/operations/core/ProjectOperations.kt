@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.common.data.export.exportFileName
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupService
 import com.darkrockstudios.apps.hammer.common.data.projectdata.readStoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
+import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectPluginsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.ProjectStatisticsCacheReader
 import com.darkrockstudios.apps.hammer.operations.Access
@@ -130,6 +131,10 @@ private class ProjectExportOperation : Operation<ProjectExportInput, ExportedFil
 			sceneIds = input.sceneIds?.toSet(),
 		)
 		return context.projects.withProject(input.project) { project ->
+			val disabledPlugins = koinGet<ProjectPluginsRepository>().readDisabledPlugins(project.def.id)
+			if (!registry.isRegistered(input.format, disabledPlugins)) {
+				invalidInput("Export format '${input.format}' is from a plugin turned off for this project")
+			}
 			val content = project.scope.get<ExportStoryUseCase>().render(options).readByteArray()
 			ExportedFile(
 				fileName = exportFileName(project.def.name, exporter.fileExtension),

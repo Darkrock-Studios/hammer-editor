@@ -40,7 +40,11 @@ class PluginRegistry : ExporterSource, KoinComponent {
 	/** Every active plugin's CLI commands. */
 	val cliCommands: List<CliCommand> get() = plugins.flatMap { it.cliCommands() }
 
-	override fun exporters(): List<StoryExporter> = plugins.flatMap { it.exporters() }
+	override fun exporters(disabledPlugins: Set<String>): List<StoryExporter> =
+		forProject(disabledPlugins).flatMap { it.exporters() }
+
+	/** The active plugins a project with [disabledPlugins] turned off uses. CLI commands ignore this. */
+	fun forProject(disabledPlugins: Set<String>): List<ClientPlugin> = plugins.filterNot { it.id in disabledPlugins }
 
 	/**
 	 * Adds [plugin], replacing one with its id. Throws [IllegalArgumentException], changing nothing,
