@@ -200,17 +200,23 @@ class PluginActionRunner(
 		if (!action.keep) return begin(run)
 		opening = true
 		scope.launch {
-			val saved = try {
-				withContext(sessionDispatcher) { writer.load(key(run)) }
-			} catch (e: UnreadableSessionException) {
-				// Starting afresh would write over a session left where it was.
-				if (e.setAside == null) return@launch message(Res.string.plugin_action_keep_unreadable)
-				message(Res.string.plugin_action_keep_set_aside)
-				null
+			try {
+				val saved = try {
+					withContext(sessionDispatcher) { writer.load(key(run)) }
+				} catch (e: UnreadableSessionException) {
+					// Starting afresh would write over a session left where it was.
+					if (e.setAside == null) return@launch message(Res.string.plugin_action_keep_unreadable)
+					message(Res.string.plugin_action_keep_set_aside)
+					null
+				}
+				// What a run another version saved has picked is shown by name, so the items are read for it.
+				val items = saved?.takeIf { it.pluginVersion != action.pluginVersion }?.page?.fields
+					?.takeIf { fields -> fields.any { it is ActionField.Entity } }
+					?.let { readCatalog(it) }
+				if (_state.value == null) resume(run, saved, items)
 			} finally {
 				opening = false
 			}
-			if (_state.value == null) resume(run, saved)
 		}
 	}
 
@@ -245,15 +251,18 @@ class PluginActionRunner(
 		}
 	}
 
-	/** Shows the run [saved] for [run]'s action where it was left, or what was entered in it if the plugin has changed since. */
-	private fun resume(run: ActionRun, saved: ActionSession?) {
+	/**
+	 * Shows the run [saved] for [run]'s action where it was left, or what was entered in it if the plugin
+	 * has changed since, naming the entities picked from [items].
+	 */
+	private fun resume(run: ActionRun, saved: ActionSession?, items: List<CatalogItem>?) {
 		val page = saved?.page
 		when {
 			saved == null -> begin(run)
 			// Its state may mean nothing to the module now, so it is not called with it.
 			page == null || saved.pluginVersion != run.action.pluginVersion -> {
 				// What is on the page replaces what was submitted to the same question, unless it is blank.
-				val onPage = page?.let { answersOf(it.fields, saved.values) }.orEmpty().filterValues { !it.value.isBlankText }
+				val onPage = page?.let { answersOf(it.fields, saved.values, items) }.orEmpty().filterValues { !it.value.isBlankText }
 				_state.value = ActionRunState.Changed(run, saved.answers + onPage)
 			}
 			else -> {
@@ -292,7 +301,11 @@ class PluginActionRunner(
 	fun press(button: ActionButton?) {
 		val page = _state.value as? ActionRunState.Page ?: return
 		if (page.saving || (button == null && !page.first)) return
-		if (button?.validate == false) return submit(page, button)
+		if (button?.validate == false) {
+			// A check still running for another button must not call too, from this page or one it comes back to.
+			checking?.cancel()
+			return submit(page, button)
+		}
 		val picks = page.page.fields.any { it is ActionField.Entity && entityRefs(page.values[it.key]).isNotEmpty() }
 		if (!picks) return check(page, button, items = null)
 		// The picks are checked against the project as it is at the press, not as it was when the page showed.
@@ -594,9 +607,13 @@ class PluginActionRunner(
 
 	/**
 	 * What the user has given [fields], as answers to keep by [answerKey]: choices by their option's
-	 * label, and scenes and entities by name where known.
+	 * label, and scenes and entities by name where known, entities from [items].
 	 */
-	private fun answersOf(fields: List<ActionField>, values: JsonObject): Map<String, ActionAnswer> = fields.associate { field ->
+	private fun answersOf(
+		fields: List<ActionField>,
+		values: JsonObject,
+		items: List<CatalogItem>? = _catalog.value,
+	): Map<String, ActionAnswer> = fields.associate { field ->
 		val value = values[field.key] ?: field.default
 		val answer = when (field) {
 			is ActionField.Text -> JsonPrimitive((value as? JsonPrimitive)?.contentOrNull.orEmpty())
@@ -605,8 +622,8 @@ class PluginActionRunner(
 				JsonPrimitive(sceneIds(value).joinToString(", ") { id -> scenes.firstOrNull { it.id == id }?.name ?: id.toString() })
 			}
 			is ActionField.Entity -> {
-				val items = _catalog.value.orEmpty()
-				JsonPrimitive(entityRefs(value).joinToString(", ") { ref -> items.find(ref)?.name ?: "${ref.kind.id} ${ref.id}" })
+				val known = items.orEmpty()
+				JsonPrimitive(entityRefs(value).joinToString(", ") { ref -> known.find(ref)?.name ?: "${ref.kind.id} ${ref.id}" })
 			}
 			is ActionField.Setting -> {
 				val declaration = field.declaration

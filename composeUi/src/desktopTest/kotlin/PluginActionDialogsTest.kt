@@ -4,6 +4,7 @@ import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isEnabled
+import androidx.compose.ui.test.isFocused
 import androidx.compose.ui.test.isToggleable
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
@@ -11,6 +12,7 @@ import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.compose.plugin.LocalPluginActions
@@ -206,7 +208,7 @@ class PluginActionDialogsTest {
 	}
 
 	@Test
-	fun `an entity field is chosen by name in the picker, one closing it or several with Done, and a pick removed by its chip`() {
+	fun `an entity field is chosen by name in the picker, one with Enter or several with Done, and a pick removed by its chip`() {
 		val cast = PluginAction(
 			"people", "cast", "Cast", setOf(ActionPlace.Project),
 			listOf(
@@ -221,13 +223,14 @@ class PluginActionDialogsTest {
 		// Choose waits for the project's items.
 		compose.waitUntil(timeoutMillis = 10_000) { compose.onAllNodes(hasText("Choose", ignoreCase = true) and isEnabled()).fetchSemanticsNodes().size == 2 }
 
-		// One person: typing narrows by name or alias, and picking closes the picker.
+		// One person: the search has the focus, typing narrows by name or alias, and Enter picks the first, closing the picker.
 		compose.onAllNodesWithText("Choose", ignoreCase = true)[0].performClick()
 		compose.waitUntil(timeoutMillis = 10_000) { compose.onAllNodes(isToggleable() and hasText("White Rabbit", substring = true)).fetchSemanticsNodes().isNotEmpty() }
 		compose.onNode(isToggleable() and hasText("Wonderland", substring = true)).assertDoesNotExist()
+		compose.waitUntil(timeoutMillis = 10_000) { compose.onAllNodes(hasSetTextAction() and isFocused()).fetchSemanticsNodes().isNotEmpty() }
 		compose.onNode(hasSetTextAction()).performTextInput("alys")
 		compose.waitUntil(timeoutMillis = 10_000) { compose.onAllNodes(isToggleable() and hasText("White Rabbit", substring = true)).fetchSemanticsNodes().isEmpty() }
-		compose.onNode(isToggleable() and hasText("Alice", substring = true)).performClick()
+		compose.onNode(hasSetTextAction()).performImeAction()
 		compose.waitUntil(timeoutMillis = 10_000) { compose.onAllNodes(isToggleable()).fetchSemanticsNodes().isEmpty() }
 		compose.onNodeWithContentDescription("Remove Alice").assertExists()
 

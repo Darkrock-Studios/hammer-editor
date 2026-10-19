@@ -65,13 +65,11 @@ class EntityCatalogTest : BaseTest() {
 			group(10, "Part One", group(11, "Chapter 1", scene(3, "The Fall"), scene(1, "The Garden"))),
 			scene(2, "Tea Party"),
 		)
-		every { tagIndex.tagIndex } returns MutableStateFlow(
-			TagIndex(
-				tagToEntities = mapOf(
-					"pov" to setOf(TaggedEntityRef(TaggedEntityType.Scene, 1), TaggedEntityRef(TaggedEntityType.Encyclopedia, 7)),
-				),
-				countsByType = emptyMap(),
-			)
+		coEvery { tagIndex.builtIndex() } returns TagIndex(
+			tagToEntities = mapOf(
+				"pov" to setOf(TaggedEntityRef(TaggedEntityType.Scene, 1), TaggedEntityRef(TaggedEntityType.Encyclopedia, 7)),
+			),
+			countsByType = emptyMap(),
 		)
 		every { notes.notesListFlow } returns MutableStateFlow(
 			listOf(
@@ -90,7 +88,9 @@ class EntityCatalogTest : BaseTest() {
 		val alice = EntryContent(7, "Alice", EntryType.PERSON, "", tags = setOf("#Lead"), aliases = listOf("Alys", " "))
 		val rabbit = EntryContent(6, "White Rabbit", EntryType.PERSON, "", tags = emptySet())
 		val wonderland = EntryContent(12, "wonderland", EntryType.PLACE, "", tags = setOf("pov"))
-		coEvery { encyclopedia.ensureEntriesLoaded() } returns listOf(rabbit, wonderland, alice).map { it.toDef(projectDef) }
+		// The entries on disk; the list the repository last emitted may be behind them.
+		coEvery { encyclopedia.readEntryDefs() } returns listOf(rabbit, wonderland, alice).map { it.toDef(projectDef) }
+		coEvery { encyclopedia.ensureEntriesLoaded() } returns listOf(rabbit, alice).map { it.toDef(projectDef) }
 		every { encyclopedia.loadEntry(alice.toDef(projectDef)) } returns EntryContainer(alice)
 		every { encyclopedia.loadEntry(wonderland.toDef(projectDef)) } returns EntryContainer(wonderland)
 		every { encyclopedia.loadEntry(rabbit.toDef(projectDef)) } throws IllegalStateException("corrupt")
@@ -120,7 +120,7 @@ class EntityCatalogTest : BaseTest() {
 	}
 
 	@Test
-	fun `entries come by name with their aliases, types, and tags, and one that cannot be read by name alone`() = runTest(mainTestDispatcher) {
+	fun `entries come as they are on disk, by name with their aliases, types, and tags, and one that cannot be read by name alone`() = runTest(mainTestDispatcher) {
 		val items = catalog().items(setOf(CatalogKind.Entry))
 
 		assertEquals(listOf("Alice", "White Rabbit", "wonderland"), items.map { it.name })

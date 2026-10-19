@@ -24,9 +24,9 @@ import org.koin.core.qualifier.named
 import kotlin.coroutines.CoroutineContext
 
 /**
- * Lists a project's items to pick from. Scenes, notes, and events are in memory already; each entry
- * is read for its aliases and tags. Scenes take their tags from the tag index, since their metadata
- * is on disk. Archived scenes are left out, as they are not in the tree.
+ * Lists a project's items to pick from. Scenes, notes, and events are in memory already; the entries
+ * are listed from disk, and each is read for its aliases and tags. Scenes take their tags from the tag
+ * index, since their metadata is on disk. Archived scenes are left out, as they are not in the tree.
  */
 class BuildEntityCatalogUseCase(
 	private val encyclopedia: EncyclopediaRepository,
@@ -52,9 +52,9 @@ class BuildEntityCatalogUseCase(
 		parts.awaitAll().flatten()
 	}
 
-	private fun sceneItems(): List<CatalogItem> {
+	private suspend fun sceneItems(): List<CatalogItem> {
 		val tags = HashMap<Int, MutableSet<String>>()
-		tagIndex.tagIndex.value.tagToEntities.forEach { (tag, refs) ->
+		tagIndex.builtIndex().tagToEntities.forEach { (tag, refs) ->
 			refs.filter { it.type == TaggedEntityType.Scene }.forEach { tags.getOrPut(it.id) { mutableSetOf() } += tag }
 		}
 		return scenes.getSceneTree().root.children.flatMap { it.sceneItems(groups = emptyList(), tags) }
@@ -86,9 +86,8 @@ class BuildEntityCatalogUseCase(
 		.sortedBy { it.name.lowercase() }
 
 	private suspend fun entryItems(): List<CatalogItem> {
-		val defs = encyclopedia.ensureEntriesLoaded()
 		val items = withContext(dispatcherIo) {
-			defs.map { def ->
+			encyclopedia.readEntryDefs().map { def ->
 				async {
 					val entry = try {
 						encyclopedia.loadEntry(def).entry

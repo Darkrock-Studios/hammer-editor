@@ -44,6 +44,8 @@ class TagIndexService(
 	private val _isCalculating = MutableStateFlow(false)
 	val isCalculating: StateFlow<Boolean> = _isCalculating.asStateFlow()
 
+	private val firstBuild = CompletableDeferred<Unit>()
+
 	// Scene metadata writes also fire for outline/notes/draft-name edits, so filter to
 	// emissions where the tag set actually changed - otherwise typing in the outline
 	// thrashes the index rebuild.
@@ -72,6 +74,15 @@ class TagIndexService(
 		}
 	}
 
+	/**
+	 * [tagIndex] once it has been built, or has failed to be, at least once. Until then it is empty, as
+	 * it is for a while after the project opens or this service is first asked for.
+	 */
+	suspend fun builtIndex(): TagIndex {
+		firstBuild.await()
+		return _tagIndex.value
+	}
+
 	fun getRankedTags(limit: Int = Int.MAX_VALUE): List<TagCount> = _tagIndex.value.rankedTags(limit)
 
 	fun getRankedTags(type: TaggedEntityType, limit: Int = Int.MAX_VALUE): List<TagCount> =
@@ -97,6 +108,7 @@ class TagIndexService(
 			Napier.e("TagIndexService rebuild failed", t)
 		} finally {
 			_isCalculating.value = false
+			firstBuild.complete(Unit)
 		}
 	}
 
