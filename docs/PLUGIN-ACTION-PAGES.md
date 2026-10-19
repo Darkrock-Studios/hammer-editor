@@ -1,10 +1,10 @@
 # Plugin action pages, phase 2 (plan)
 
-**Status: phase 1 is built.** Pages and their `state`, `text` formats,
-`errors`, `open`, and action sessions are in the host; all three kits (C,
-Rust, Kotlin) have them; every action in `hammer-plugins` replies with pages;
-and the Character interview plugin uses them. The Actions section of
-[CLIENT-PLUGINS.md](CLIENT-PLUGINS.md#actions) describes all of it.
+**Status: phase 1 is built, and part of phase 2.** Pages and their `state`,
+`text` formats, `errors`, `open`, and action sessions are in the host; all
+three kits (C, Rust, Kotlin) have them; every action in `hammer-plugins`
+replies with pages; and the Character interview plugin uses them. The Actions
+section of [CLIENT-PLUGINS.md](CLIENT-PLUGINS.md#actions) describes all of it.
 
 Of phase 2, the `entity` field, with its picker, and the First meeting plugin
 are built: CLIENT-PLUGINS.md describes the field under
@@ -72,14 +72,15 @@ values for the next run. The plugin's tests follow the action's new name.
 
 ## Sync renumbers entities
 
-A session holding an entity's id has the problem `hammer://entity/<id>` links
-have when sync renumbers an entity. A `scenes` field's value has it, and so
-does an `entity` field's `{"kind", "id"}`. A kept run's answers do not, since
-they record scenes and entities by name. The host can rewrite field values,
-but not `state`, which it never reads, nor what an id means to the plugin. A
-session's file name holds the id of the item the action was run from, too, so
-a renumbered item would lose its session. First meeting keeps no session, so
-it is not touched.
+A session holding an entity's id has the problem the format bar's
+[`hammer://entity/<id>` links](#the-format-bars-entity-link) will have when
+sync renumbers an entity. A `scenes` field's value has it, and so does an
+`entity` field's `{"kind", "id"}`. A kept run's answers do not, since they
+record scenes and entities by name. The host can rewrite field values, but not
+`state`, which it never reads, nor what an id means to the plugin. A session's
+file name holds the id of the item the action was run from, too, so a
+renumbered item would lose its session. First meeting keeps no session, so it
+is not touched.
 
 Decide later whether a re-id ends the sessions it touches, or the plugin is
 told of it.
