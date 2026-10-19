@@ -60,7 +60,7 @@ internal fun NoteConflict(
 					.verticalScroll(rememberScrollState()),
 				verticalArrangement = Arrangement.spacedBy(HdConflictFieldSpacing),
 			) {
-				val contentTransformation = rememberLocalDiffTransformation(contentDiff?.rightSpans.orEmpty())
+				val contentTransformation = rememberLocalDiffHighlight(contentDiff)
 				HdConflictField(
 					label = Res.string.sync_conflict_title_note_field_name.get(),
 					conflict = c.serverEntity.content != c.clientEntity.content,
@@ -85,7 +85,7 @@ internal fun NoteConflict(
 					.verticalScroll(rememberScrollState()),
 				verticalArrangement = Arrangement.spacedBy(HdConflictFieldSpacing),
 			) {
-				val highlighted = rememberRemoteDiffHighlight(c.serverEntity.content, contentDiff?.leftSpans.orEmpty())
+				val highlighted = rememberRemoteDiffHighlight(c.serverEntity.content, contentDiff)
 				HdConflictField(
 					label = Res.string.sync_conflict_title_note_field_name.get(),
 					conflict = c.serverEntity.content != c.clientEntity.content,

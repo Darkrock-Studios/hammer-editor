@@ -89,7 +89,7 @@ private fun diffMovedStyle(): SpanStyle {
  * falls outside the current text are skipped — which can happen briefly while the editable side
  * is being typed into and the diff hasn't been recomputed yet.
  */
-internal fun diffHighlightedString(
+private fun diffHighlightedString(
 	text: String,
 	spans: List<DiffSpan>,
 	style: SpanStyle,
@@ -106,7 +106,7 @@ internal fun diffHighlightedString(
  * A [VisualTransformation] that paints diff [spans] over an editable field's text without
  * altering its length, so the cursor and offset mapping stay identity.
  */
-internal class DiffHighlightTransformation(
+private class DiffHighlightTransformation(
 	private val spans: List<DiffSpan>,
 	private val style: SpanStyle,
 	private val movedStyle: SpanStyle,
@@ -130,9 +130,10 @@ internal class DiffHighlightTransformation(
 		31 * (31 * spans.hashCode() + style.hashCode()) + movedStyle.hashCode()
 }
 
-/** Highlights the editable local side: inserted and moved [spans]. */
+/** Highlights the editable local side of [diff]: inserted and moved spans. */
 @Composable
-internal fun rememberLocalDiffTransformation(spans: List<DiffSpan>): VisualTransformation {
+internal fun rememberLocalDiffHighlight(diff: DiffResult?): VisualTransformation {
+	val spans = diff?.rightSpans.orEmpty()
 	val insertedStyle = diffInsertedStyle()
 	val movedStyle = diffMovedStyle()
 	return remember(spans, insertedStyle, movedStyle) {
@@ -140,9 +141,10 @@ internal fun rememberLocalDiffTransformation(spans: List<DiffSpan>): VisualTrans
 	}
 }
 
-/** Highlights the read-only remote side: deleted and moved [spans]. */
+/** Highlights the read-only remote side of [diff]: deleted and moved spans over [text]. */
 @Composable
-internal fun rememberRemoteDiffHighlight(text: String, spans: List<DiffSpan>): AnnotatedString {
+internal fun rememberRemoteDiffHighlight(text: String, diff: DiffResult?): AnnotatedString {
+	val spans = diff?.leftSpans.orEmpty()
 	val deletedStyle = diffDeletedStyle()
 	val movedStyle = diffMovedStyle()
 	return remember(text, spans, deletedStyle, movedStyle) {

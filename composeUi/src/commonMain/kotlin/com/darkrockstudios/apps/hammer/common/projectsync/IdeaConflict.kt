@@ -78,7 +78,7 @@ fun IdeaConflictUi(
 				) {
 					ReadOnlyLine(formatTags(local.tags))
 				}
-				val contentTransformation = rememberLocalDiffTransformation(contentDiff?.rightSpans.orEmpty())
+				val contentTransformation = rememberLocalDiffHighlight(contentDiff)
 				HdConflictField(
 					label = Res.string.ideas_conflict_field_content.get(),
 					conflict = server.content != local.content,
@@ -114,7 +114,7 @@ fun IdeaConflictUi(
 				) {
 					ReadOnlyLine(formatTags(server.tags))
 				}
-				val highlighted = rememberRemoteDiffHighlight(server.content, contentDiff?.leftSpans.orEmpty())
+				val highlighted = rememberRemoteDiffHighlight(server.content, contentDiff)
 				HdConflictField(
 					label = Res.string.ideas_conflict_field_content.get(),
 					conflict = server.content != local.content,

@@ -78,7 +78,7 @@ internal fun SceneDraftConflict(
 						modifier = Modifier.fillMaxWidth(),
 					)
 				}
-				val contentTransformation = rememberLocalDiffTransformation(contentDiff?.rightSpans.orEmpty())
+				val contentTransformation = rememberLocalDiffHighlight(contentDiff)
 				HdConflictField(
 					label = Res.string.sync_conflict_title_scene_draft_field_content.get(),
 					conflict = c.serverEntity.content != c.clientEntity.content,
@@ -108,7 +108,7 @@ internal fun SceneDraftConflict(
 				) {
 					ReadOnlyLine(c.serverEntity.name)
 				}
-				val highlighted = rememberRemoteDiffHighlight(c.serverEntity.content, contentDiff?.leftSpans.orEmpty())
+				val highlighted = rememberRemoteDiffHighlight(c.serverEntity.content, contentDiff)
 				HdConflictField(
 					label = Res.string.sync_conflict_title_scene_draft_field_content.get(),
 					conflict = c.serverEntity.content != c.clientEntity.content,

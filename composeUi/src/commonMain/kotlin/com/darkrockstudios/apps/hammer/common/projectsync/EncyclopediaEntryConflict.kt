@@ -24,7 +24,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.Res
-import com.darkrockstudios.apps.hammer.base.diff.DiffSpan
+import com.darkrockstudios.apps.hammer.base.diff.DiffResult
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSynchronization
 import com.darkrockstudios.apps.hammer.common.compose.Ui
@@ -92,7 +92,7 @@ internal fun EncyclopediaEntryConflict(
 				onContentChange = { contentTextValue = it },
 				nameError = nameError,
 				contentError = contentError,
-				contentInsertedSpans = contentDiff?.rightSpans.orEmpty(),
+				contentDiff = contentDiff,
 			)
 		},
 		RemoteBody = { m, c, _ ->
@@ -100,7 +100,7 @@ internal fun EncyclopediaEntryConflict(
 				modifier = m,
 				server = c.serverEntity,
 				client = c.clientEntity,
-				contentDeletedSpans = contentDiff?.leftSpans.orEmpty(),
+				contentDiff = contentDiff,
 			)
 		},
 	)
@@ -118,9 +118,9 @@ private fun LocalEntryBody(
 	onContentChange: (String) -> Unit,
 	nameError: String?,
 	contentError: String?,
-	contentInsertedSpans: List<DiffSpan>,
+	contentDiff: DiffResult?,
 ) {
-	val contentTransformation = rememberLocalDiffTransformation(contentInsertedSpans)
+	val contentTransformation = rememberLocalDiffHighlight(contentDiff)
 	Column(
 		modifier = modifier
 			.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L)
@@ -180,9 +180,9 @@ private fun RemoteEntryBody(
 	modifier: Modifier,
 	server: ApiProjectEntity.EncyclopediaEntryEntity,
 	client: ApiProjectEntity.EncyclopediaEntryEntity,
-	contentDeletedSpans: List<DiffSpan>,
+	contentDiff: DiffResult?,
 ) {
-	val highlightedContent = rememberRemoteDiffHighlight(server.text, contentDeletedSpans)
+	val highlightedContent = rememberRemoteDiffHighlight(server.text, contentDiff)
 	Column(
 		modifier = modifier
 			.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L)

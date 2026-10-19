@@ -72,7 +72,7 @@ internal fun TimelineEventConflict(
 						modifier = Modifier.fillMaxWidth(),
 					)
 				}
-				val contentTransformation = rememberLocalDiffTransformation(contentDiff?.rightSpans.orEmpty())
+				val contentTransformation = rememberLocalDiffHighlight(contentDiff)
 				HdConflictField(
 					label = Res.string.sync_conflict_title_timeline_event_field_content.get(),
 					conflict = c.serverEntity.content != c.clientEntity.content,
@@ -103,7 +103,7 @@ internal fun TimelineEventConflict(
 				) {
 					ReadOnlyLine(c.serverEntity.date?.takeIf { it.isNotBlank() } ?: missingDateLabel)
 				}
-				val highlighted = rememberRemoteDiffHighlight(c.serverEntity.content, contentDiff?.leftSpans.orEmpty())
+				val highlighted = rememberRemoteDiffHighlight(c.serverEntity.content, contentDiff)
 				HdConflictField(
 					label = Res.string.sync_conflict_title_timeline_event_field_content.get(),
 					conflict = c.serverEntity.content != c.clientEntity.content,
