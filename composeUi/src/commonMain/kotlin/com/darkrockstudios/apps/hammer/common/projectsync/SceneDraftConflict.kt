@@ -10,7 +10,6 @@ import com.darkrockstudios.apps.hammer.common.compose.WindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -42,9 +41,6 @@ internal fun SceneDraftConflict(
 	var nameError by rememberSaveable(client) { mutableStateOf<String?>(null) }
 
 	val contentDiff = rememberContentDiff(server.content, contentTextValue)
-	val deletedStyle = diffDeletedStyle()
-	val insertedStyle = diffInsertedStyle()
-	val movedStyle = diffMovedStyle()
 
 	val useLocal = {
 		val error = component.resolveConflict(
@@ -82,9 +78,7 @@ internal fun SceneDraftConflict(
 						modifier = Modifier.fillMaxWidth(),
 					)
 				}
-				val contentTransformation = remember(contentDiff, insertedStyle, movedStyle) {
-					DiffHighlightTransformation(contentDiff?.rightSpans.orEmpty(), insertedStyle, movedStyle)
-				}
+				val contentTransformation = rememberLocalDiffTransformation(contentDiff?.rightSpans.orEmpty())
 				HdConflictField(
 					label = Res.string.sync_conflict_title_scene_draft_field_content.get(),
 					conflict = c.serverEntity.content != c.clientEntity.content,
@@ -114,9 +108,7 @@ internal fun SceneDraftConflict(
 				) {
 					ReadOnlyLine(c.serverEntity.name)
 				}
-				val highlighted = remember(c.serverEntity.content, contentDiff, deletedStyle, movedStyle) {
-					diffHighlightedString(c.serverEntity.content, contentDiff?.leftSpans.orEmpty(), deletedStyle, movedStyle)
-				}
+				val highlighted = rememberRemoteDiffHighlight(c.serverEntity.content, contentDiff?.leftSpans.orEmpty())
 				HdConflictField(
 					label = Res.string.sync_conflict_title_scene_draft_field_content.get(),
 					conflict = c.serverEntity.content != c.clientEntity.content,

@@ -11,7 +11,6 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.*
@@ -48,9 +47,6 @@ internal fun SceneConflict(
 	// Word-level diff between the server content and the (editable) local content
 	val server = entityConflict.serverEntity
 	val contentDiff = rememberContentDiff(server.content, contentTextValue)
-	val deletedStyle = diffDeletedStyle()
-	val insertedStyle = diffInsertedStyle()
-	val movedStyle = diffMovedStyle()
 
 	val useLocal = {
 		val error = component.resolveConflict(
@@ -89,8 +85,6 @@ internal fun SceneConflict(
 				onNotesChange = { notesTextValue = it },
 				nameError = nameError,
 				contentInsertedSpans = contentDiff?.rightSpans.orEmpty(),
-				insertedStyle = insertedStyle,
-				movedStyle = movedStyle,
 				component = component,
 			)
 		},
@@ -101,8 +95,6 @@ internal fun SceneConflict(
 				client = c.clientEntity,
 				tab = selectedTab,
 				contentDeletedSpans = contentDiff?.leftSpans.orEmpty(),
-				deletedStyle = deletedStyle,
-				movedStyle = movedStyle,
 				component = component,
 			)
 		},
@@ -153,8 +145,6 @@ private fun LocalSceneBody(
 	onNotesChange: (String) -> Unit,
 	nameError: String?,
 	contentInsertedSpans: List<DiffSpan>,
-	insertedStyle: SpanStyle,
-	movedStyle: SpanStyle,
 	component: ProjectSynchronization,
 ) {
 	Column(
@@ -165,9 +155,7 @@ private fun LocalSceneBody(
 	) {
 		when (tab) {
 			SceneConflictTab.CONTENT -> {
-				val contentTransformation = remember(contentInsertedSpans, insertedStyle, movedStyle) {
-					DiffHighlightTransformation(contentInsertedSpans, insertedStyle, movedStyle)
-				}
+				val contentTransformation = rememberLocalDiffTransformation(contentInsertedSpans)
 				HdConflictField(
 					label = Res.string.sync_conflict_title_scene_field_content.get(),
 					conflict = server.content != client.content,
@@ -244,8 +232,6 @@ private fun RemoteSceneBody(
 	client: ApiProjectEntity.SceneEntity,
 	tab: SceneConflictTab,
 	contentDeletedSpans: List<DiffSpan>,
-	deletedStyle: SpanStyle,
-	movedStyle: SpanStyle,
 	component: ProjectSynchronization,
 ) {
 	Column(
@@ -256,9 +242,7 @@ private fun RemoteSceneBody(
 	) {
 		when (tab) {
 			SceneConflictTab.CONTENT -> {
-				val highlighted = remember(server.content, contentDeletedSpans, deletedStyle, movedStyle) {
-					diffHighlightedString(server.content, contentDeletedSpans, deletedStyle, movedStyle)
-				}
+				val highlighted = rememberRemoteDiffHighlight(server.content, contentDeletedSpans)
 				HdConflictField(
 					label = Res.string.sync_conflict_title_scene_field_content.get(),
 					conflict = server.content != client.content,

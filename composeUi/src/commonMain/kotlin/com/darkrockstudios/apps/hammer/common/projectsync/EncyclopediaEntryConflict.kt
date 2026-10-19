@@ -24,6 +24,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.base.diff.DiffSpan
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSynchronization
 import com.darkrockstudios.apps.hammer.common.compose.Ui
@@ -59,6 +60,8 @@ internal fun EncyclopediaEntryConflict(
 	var nameError by rememberSaveable(client) { mutableStateOf<String?>(null) }
 	var contentError by rememberSaveable(client) { mutableStateOf<String?>(null) }
 
+	val contentDiff = rememberContentDiff(entityConflict.serverEntity.text, contentTextValue)
+
 	val useLocal = {
 		val error = component.resolveConflict(
 			client.copy(name = nameTextValue, text = contentTextValue)
@@ -89,6 +92,7 @@ internal fun EncyclopediaEntryConflict(
 				onContentChange = { contentTextValue = it },
 				nameError = nameError,
 				contentError = contentError,
+				contentInsertedSpans = contentDiff?.rightSpans.orEmpty(),
 			)
 		},
 		RemoteBody = { m, c, _ ->
@@ -96,6 +100,7 @@ internal fun EncyclopediaEntryConflict(
 				modifier = m,
 				server = c.serverEntity,
 				client = c.clientEntity,
+				contentDeletedSpans = contentDiff?.leftSpans.orEmpty(),
 			)
 		},
 	)
@@ -113,7 +118,9 @@ private fun LocalEntryBody(
 	onContentChange: (String) -> Unit,
 	nameError: String?,
 	contentError: String?,
+	contentInsertedSpans: List<DiffSpan>,
 ) {
+	val contentTransformation = rememberLocalDiffTransformation(contentInsertedSpans)
 	Column(
 		modifier = modifier
 			.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L)
@@ -148,6 +155,7 @@ private fun LocalEntryBody(
 				singleLine = false,
 				minLines = 6,
 				error = contentError,
+				visualTransformation = contentTransformation,
 				modifier = Modifier.fillMaxWidth(),
 			)
 		}
@@ -172,7 +180,9 @@ private fun RemoteEntryBody(
 	modifier: Modifier,
 	server: ApiProjectEntity.EncyclopediaEntryEntity,
 	client: ApiProjectEntity.EncyclopediaEntryEntity,
+	contentDeletedSpans: List<DiffSpan>,
 ) {
+	val highlightedContent = rememberRemoteDiffHighlight(server.text, contentDeletedSpans)
 	Column(
 		modifier = modifier
 			.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L)
@@ -191,7 +201,7 @@ private fun RemoteEntryBody(
 			label = Res.string.sync_conflict_encyclopedia_label_content.get(),
 			conflict = server.text != client.text,
 		) {
-			ReadOnlyBlock(server.text)
+			ReadOnlyBlock(highlightedContent)
 		}
 		ChipBlock(
 			label = Res.string.sync_conflict_encyclopedia_label_tags.get(),

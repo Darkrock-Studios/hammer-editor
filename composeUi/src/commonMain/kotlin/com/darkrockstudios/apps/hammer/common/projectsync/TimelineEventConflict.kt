@@ -34,6 +34,8 @@ internal fun TimelineEventConflict(
 	var dateTextValue by rememberSaveable(client) { mutableStateOf(client.date.orEmpty()) }
 	var contentTextValue by rememberSaveable(client) { mutableStateOf(client.content) }
 
+	val contentDiff = rememberContentDiff(entityConflict.serverEntity.content, contentTextValue)
+
 	val useLocal = {
 		component.resolveConflict(
 			client.copy(
@@ -70,6 +72,7 @@ internal fun TimelineEventConflict(
 						modifier = Modifier.fillMaxWidth(),
 					)
 				}
+				val contentTransformation = rememberLocalDiffTransformation(contentDiff?.rightSpans.orEmpty())
 				HdConflictField(
 					label = Res.string.sync_conflict_title_timeline_event_field_content.get(),
 					conflict = c.serverEntity.content != c.clientEntity.content,
@@ -80,6 +83,7 @@ internal fun TimelineEventConflict(
 						onValueChange = { contentTextValue = it },
 						singleLine = false,
 						minLines = 6,
+						visualTransformation = contentTransformation,
 						modifier = Modifier.fillMaxWidth(),
 					)
 				}
@@ -99,11 +103,12 @@ internal fun TimelineEventConflict(
 				) {
 					ReadOnlyLine(c.serverEntity.date?.takeIf { it.isNotBlank() } ?: missingDateLabel)
 				}
+				val highlighted = rememberRemoteDiffHighlight(c.serverEntity.content, contentDiff?.leftSpans.orEmpty())
 				HdConflictField(
 					label = Res.string.sync_conflict_title_timeline_event_field_content.get(),
 					conflict = c.serverEntity.content != c.clientEntity.content,
 				) {
-					ReadOnlyBlock(c.serverEntity.content)
+					ReadOnlyBlock(highlighted)
 				}
 			}
 		},

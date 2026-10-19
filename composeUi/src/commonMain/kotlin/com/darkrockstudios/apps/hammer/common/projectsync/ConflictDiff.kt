@@ -51,7 +51,7 @@ private const val CONFLICT_DIFF_HIGHLIGHT_ALPHA = 0.28f
 
 /** Red strikethrough for removed text, shown on the read-only remote side. */
 @Composable
-internal fun diffDeletedStyle(): SpanStyle {
+private fun diffDeletedStyle(): SpanStyle {
 	val danger = LocalHammerColors.current.danger
 	return remember(danger) {
 		SpanStyle(
@@ -63,7 +63,7 @@ internal fun diffDeletedStyle(): SpanStyle {
 
 /** Green underline for added text, shown on the editable local side. */
 @Composable
-internal fun diffInsertedStyle(): SpanStyle {
+private fun diffInsertedStyle(): SpanStyle {
 	val success = LocalHammerColors.current.success
 	return remember(success) {
 		SpanStyle(
@@ -75,7 +75,7 @@ internal fun diffInsertedStyle(): SpanStyle {
 
 /** Blue background for relocated text, shown on both sides of a move. */
 @Composable
-internal fun diffMovedStyle(): SpanStyle {
+private fun diffMovedStyle(): SpanStyle {
 	val moved = LocalHammerColors.current.moved
 	return remember(moved) {
 		SpanStyle(background = moved.copy(alpha = CONFLICT_DIFF_HIGHLIGHT_ALPHA))
@@ -128,6 +128,26 @@ internal class DiffHighlightTransformation(
 
 	override fun hashCode(): Int =
 		31 * (31 * spans.hashCode() + style.hashCode()) + movedStyle.hashCode()
+}
+
+/** Highlights the editable local side: inserted and moved [spans]. */
+@Composable
+internal fun rememberLocalDiffTransformation(spans: List<DiffSpan>): VisualTransformation {
+	val insertedStyle = diffInsertedStyle()
+	val movedStyle = diffMovedStyle()
+	return remember(spans, insertedStyle, movedStyle) {
+		DiffHighlightTransformation(spans, insertedStyle, movedStyle)
+	}
+}
+
+/** Highlights the read-only remote side: deleted and moved [spans]. */
+@Composable
+internal fun rememberRemoteDiffHighlight(text: String, spans: List<DiffSpan>): AnnotatedString {
+	val deletedStyle = diffDeletedStyle()
+	val movedStyle = diffMovedStyle()
+	return remember(text, spans, deletedStyle, movedStyle) {
+		diffHighlightedString(text, spans, deletedStyle, movedStyle)
+	}
 }
 
 private fun AnnotatedString.Builder.applyDiffSpans(
