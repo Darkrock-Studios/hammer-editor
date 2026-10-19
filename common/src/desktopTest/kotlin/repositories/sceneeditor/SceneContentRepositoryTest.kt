@@ -326,6 +326,30 @@ class SceneContentRepositoryTest : BaseTest() {
 	}
 
 	@Test
+	fun `Temp buffer matching the stored scene is dropped on load`() = runTest(mainTestDispatcher) {
+		val projDef = getProject1Def()
+		createProject(ffs, PROJECT_1_NAME)
+		coEvery { syncJournal.isServerSynchronized() } returns true
+
+		createStack(projDef)
+		val scenePath = assertNotNull(repo.resolveScenePathFromFilesystem(1)).toOkioPath()
+		val stored = ffs.read(scenePath) { readUtf8() }
+		ffs.write(getTempBufferPath(1)) { writeUtf8(stored) }
+		writeTempBuffer(3)
+
+		service.initialize()
+		// The fixture's scene order cleanup marks scenes too; only the save matters here.
+		clearMocks(syncJournal, answers = false)
+		service.storeAllBuffers()
+
+		assertFalse(contentRepo.hasDirtyBuffer(1))
+		assertFalse(ffs.exists(getTempBufferPath(1)))
+		assertFalse(contentRepo.hasDirtyBuffers())
+		coVerify(exactly = 0) { syncJournal.markEntityAsDirty(1) }
+		coVerify(exactly = 1) { syncJournal.markEntityAsDirty(3) }
+	}
+
+	@Test
 	fun `Discard Dirty buffer`() = runTest(mainTestDispatcher) {
 		val sceneId = 1
 		val projDef = getProject1Def()

@@ -94,8 +94,13 @@ class SceneContentRepository(
 	suspend fun initialize() {
 		val tempContent = sceneDatasource.getSceneTempBufferContents()
 		for (content in tempContent) {
-			val buffer = SceneBuffer(content, true, UpdateSource.Repository)
-			updateSceneBuffer(buffer)
+			if (matchesStoredScene(content)) {
+				// Holds no unsaved work. Older syncs left these behind, and loading one as dirty
+				// would save and mark an untouched scene for sync.
+				clearTempScene(content.scene)
+			} else {
+				updateSceneBuffer(SceneBuffer(content, true, UpdateSource.Repository))
+			}
 		}
 
 		contentUpdateJob = editorScope.launch {
@@ -289,6 +294,13 @@ class SceneContentRepository(
 	}
 
 	private fun clearTempScene(sceneItem: SceneItem) = sceneDatasource.clearTempScene(sceneItem)
+
+	/** An empty buffer never matches: [SceneDatasource.loadSceneBuffer] also reads a failed load as empty. */
+	private fun matchesStoredScene(content: SceneContent): Boolean {
+		if (content.markdown.isNullOrEmpty()) return false
+		val scenePath = sceneDatasource.resolveScenePathFromFilesystem(content.scene.id) ?: return false
+		return content.markdown == sceneDatasource.loadSceneBuffer(scenePath)
+	}
 
 	override fun onScopeClose(scope: Scope) {
 		contentUpdateJob?.cancel("Editor Closed")
