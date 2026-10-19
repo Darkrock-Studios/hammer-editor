@@ -49,29 +49,37 @@ class PluginUiRegistry(
 		return remember(plugins) { plugins.mapNotNull(::settingsPane) }
 	}
 
-	/** Every active plugin's actions for the menu of the screen at [place]. */
+	/** Every active plugin, for a project to turn each one on or off. */
 	@Composable
-	fun actions(place: ActionPlace): List<PluginAction> {
+	fun plugins(): List<ClientPlugin> = pluginRegistry.active.collectAsState().value
+
+	/** The actions for the menu of the screen at [place] of the active plugins not in [disabledPlugins]. */
+	@Composable
+	fun actions(place: ActionPlace, disabledPlugins: Set<String>): List<PluginAction> {
 		val plugins by pluginRegistry.active.collectAsState()
-		return remember(plugins, place) { plugins.flatMap { it.actions() }.filter { place in it.places } }
+		return remember(plugins, place, disabledPlugins) {
+			plugins.filterNot { it.id in disabledPlugins }.flatMap { it.actions() }.filter { place in it.places }
+		}
 	}
 
 	/**
-	 * Every active plugin's checks for the text being written, made anew whenever one of those plugins'
-	 * settings changes: the checks read them, so the editor must check its text again.
+	 * The checks for the text being written of the active plugins not in [disabledPlugins], made anew
+	 * whenever one of those plugins' settings changes: the checks read them, so the editor must check
+	 * its text again.
 	 */
 	@OptIn(ExperimentalCoroutinesApi::class)
-	fun textDiagnosticsFlow(): Flow<List<TextDiagnosticsProvider>> = pluginRegistry.active.flatMapLatest { plugins ->
-		val checking = plugins.filter { it.textDiagnostics().isNotEmpty() }
-		val settings = checking.mapNotNull { pluginRegistry.settings(it.id)?.values }
-		val changes = if (settings.isEmpty()) flowOf(Unit) else combine(settings) {}
-		changes.map { checking.flatMap { it.textDiagnostics() } }
-	}
+	fun textDiagnosticsFlow(disabledPlugins: Set<String>): Flow<List<TextDiagnosticsProvider>> =
+		pluginRegistry.active.flatMapLatest { plugins ->
+			val checking = plugins.filter { it.id !in disabledPlugins && it.textDiagnostics().isNotEmpty() }
+			val settings = checking.mapNotNull { pluginRegistry.settings(it.id)?.values }
+			val changes = if (settings.isEmpty()) flowOf(Unit) else combine(settings) {}
+			changes.map { checking.flatMap { it.textDiagnostics() } }
+		}
 
 	/** [textDiagnosticsFlow] as state: null until it has the plugins' checks. */
 	@Composable
-	fun textDiagnostics(): List<TextDiagnosticsProvider>? {
-		val flow = remember { textDiagnosticsFlow() }
+	fun textDiagnostics(disabledPlugins: Set<String>): List<TextDiagnosticsProvider>? {
+		val flow = remember(disabledPlugins) { textDiagnosticsFlow(disabledPlugins) }
 		return flow.collectAsState(initial = null).value
 	}
 

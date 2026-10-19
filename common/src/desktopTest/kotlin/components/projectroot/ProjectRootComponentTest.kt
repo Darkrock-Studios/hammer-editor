@@ -17,6 +17,8 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.InitialProject
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupService
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
+import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectPluginsDatasource
+import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectPluginsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsService
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataConflictBroker
 import com.darkrockstudios.apps.hammer.common.data.protocolmismatch.ProtocolMismatchRepository
@@ -30,6 +32,7 @@ import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRe
 import com.darkrockstudios.apps.hammer.common.data.versioncheck.VersionCheckRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.APP_SCOPE
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.spellcheck.SpellCheckRepository
 import com.darkrockstudios.apps.hammer.common.util.UrlLauncher
 import io.mockk.coEvery
@@ -45,6 +48,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
+import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.koin.core.qualifier.named
@@ -115,6 +119,7 @@ class ProjectRootComponentTest : ComponentTest() {
 		setupComponentKoin(module {
 			single<CoroutineScope>(named(APP_SCOPE)) { scope }
 			single { globalSettingsStore }
+			single { ProjectPluginsRepository(ProjectPluginsDatasource(FakeFileSystem(), createTomlSerializer())) }
 			single<ProjectBackupService> { mockk(relaxed = true) }
 			single { spellCheckRepository }
 			single<FocusModeService> { mockk(relaxed = true) }

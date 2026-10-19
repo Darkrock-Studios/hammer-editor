@@ -13,6 +13,8 @@ import com.darkrockstudios.apps.hammer.common.data.export.StoryExporterRegistry
 import com.darkrockstudios.apps.hammer.common.data.ExportOptions
 import com.darkrockstudios.apps.hammer.common.data.ExportableScene
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
+import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectPluginsDatasource
+import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectPluginsRepository
 import com.darkrockstudios.apps.hammer.common.data.tree.ImmutableTree
 import com.darkrockstudios.apps.hammer.common.data.tree.Tree
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
@@ -37,6 +39,7 @@ import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndexService
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TaggedEntityRef
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TaggedEntityType
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.APP_SCOPE
 import com.darkrockstudios.apps.hammer.project_home_action_backup_toast_failure
@@ -56,6 +59,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
+import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.koin.core.qualifier.named
@@ -148,6 +152,7 @@ class ProjectHomeComponentTest : ComponentTest() {
 		setupComponentKoin(module {
 			single { globalSettingsStore }
 			single { StoryExporterRegistry(emptyList()) }
+			single { ProjectPluginsRepository(ProjectPluginsDatasource(FakeFileSystem(), createTomlSerializer())) }
 			single { projectBackupService }
 			single<AccountTagService> { mockk(relaxed = true) }
 			single(named(APP_SCOPE)) { CoroutineScope(SupervisorJob()) }

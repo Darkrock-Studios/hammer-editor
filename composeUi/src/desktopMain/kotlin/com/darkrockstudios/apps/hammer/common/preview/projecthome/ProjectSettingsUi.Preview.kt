@@ -86,6 +86,7 @@ private fun fakeComponent(language: String?) = object : ProjectSettings {
 			isLoaded = true,
 		)
 	)
+	override val disabledPlugins: Value<Set<String>> = MutableValue(emptySet())
 	override val availableLanguages: List<ProjectSettings.LanguageOption> = listOf(
 		ProjectSettings.LanguageOption("en-US", "English (United States)"),
 		ProjectSettings.LanguageOption("fr-FR", "French (France)"),
@@ -100,6 +101,7 @@ private fun fakeComponent(language: String?) = object : ProjectSettings {
 	override fun setEncyclopediaDictionaryEnabled(enabled: Boolean) {}
 	override fun addDictionaryWord(word: String) {}
 	override fun removeDictionaryWord(word: String) {}
+	override fun setPluginEnabled(pluginId: String, enabled: Boolean) {}
 	override fun suggestProjectTags(prefix: String): List<String> =
 		listOf("fantasy", "sci-fi", "nanowrimo").filter { it.startsWith(prefix, ignoreCase = true) }
 }

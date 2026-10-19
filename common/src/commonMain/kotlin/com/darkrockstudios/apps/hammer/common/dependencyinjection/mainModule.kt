@@ -22,6 +22,8 @@ import com.darkrockstudios.apps.hammer.common.data.globalsearch.SearchProjectUse
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.GlobalSettingsDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.GlobalSettingsFilesystemDatasource
+import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectPluginsDatasource
+import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectPluginsRepository
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.ServerSettingsDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.ServerSettingsFilesystemDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.authTokenStoreModule
@@ -214,6 +216,8 @@ val mainModule = module {
 	single<ServerSettingsFilesystemDatasource>() bind ServerSettingsDatasource::class
 	single<GlobalSettingsFilesystemDatasource>()
 	single<GlobalSettingsStore>()
+	single<ProjectPluginsDatasource>()
+	single<ProjectPluginsRepository>()
 
 	// Only the protocol mismatch dialog checks GitHub, and only once the user has already
 	// connected to a sync server. Nothing on the app-load path may use this.
@@ -237,7 +241,12 @@ val mainModule = module {
 		ContainedFileSystem(getPlatformFilesystem()) { managedStorageRoots(koin) }
 	}
 
-	single<ProjectsRepository>()
+	single {
+		ProjectsRepository(get(), get(), get(), get(), get(), get()).also {
+			// Registered as the repository is made, so ids re-minted at startup carry choices along.
+			get<ProjectPluginsRepository>().followProjectChanges(it)
+		}
+	}
 
 	single<StoryIdeaCodec>()
 	single<ProjectsDirectory> {

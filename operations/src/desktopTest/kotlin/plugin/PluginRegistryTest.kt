@@ -73,6 +73,30 @@ class PluginRegistryTest : KoinComponent {
 	}
 
 	@Test
+	fun `a project that turned a plugin off has none of its export formats, and others still do`() {
+		val registry = PluginRegistry()
+		startKoin(registry)
+		val exporters = getKoin().get<StoryExporterRegistry>()
+		registry.add(FakePlugin("recorder", exporters = listOf(FakeExporter("recorder.txt"))))
+		registry.add(FakePlugin("printer", exporters = listOf(FakeExporter("printer.txt"))))
+
+		val off = setOf("recorder")
+		assertFalse(exporters.isRegistered("recorder.txt", off))
+		assertTrue(exporters.isRegistered("printer.txt", off))
+		assertThrows<IllegalArgumentException> { exporters.forFormat("recorder.txt", off) }
+		assertTrue(exporters.isRegistered("recorder.txt"))
+	}
+
+	@Test
+	fun `a project that turns a plugin off keeps its CLI commands`() {
+		val registry = PluginRegistry()
+		registry.add(FakePlugin("one", commands = listOf(FakeCommand("echo"))))
+
+		assertEquals(emptyList(), registry.forProject(setOf("one")))
+		assertEquals(listOf("echo"), registry.cliCommands.map { it.name })
+	}
+
+	@Test
 	fun `refuses export formats not prefixed with the plugin id`() {
 		assertThrows<IllegalArgumentException> { PluginRegistry().add(FakePlugin("recorder", exporters = listOf(FakeExporter("txt")))) }
 	}

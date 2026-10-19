@@ -110,7 +110,8 @@ fun ProjectRootUi(
 		}
 	}
 
-	PluginActionHost(component.projectDef.name, rootSnackbar) {
+	val disabledPlugins by component.disabledPlugins.subscribeAsState()
+	PluginActionHost(component.projectDef.name, disabledPlugins, rootSnackbar) {
 		SetScreenCharacteristics(WIDE_SCREEN_THRESHOLD) {
 			FeatureContent(
 				modifier.fillMaxSize(),

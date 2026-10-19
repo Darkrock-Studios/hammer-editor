@@ -33,6 +33,9 @@ interface ProjectRoot : AppCloseManager, HammerComponent, BackHandlerOwner {
 	/** Observable form of [hasUnsavedBuffers]. */
 	val unsavedBuffers: Value<Boolean>
 	val projectTheme: Value<ProjectThemeState>
+
+	/** Ids of the plugins turned off for this project on this device. */
+	val disabledPlugins: Value<Set<String>>
 	val navRailState: Value<NavRailState>
 
 	data class ProjectThemeState(val theme: ProjectTheme?)

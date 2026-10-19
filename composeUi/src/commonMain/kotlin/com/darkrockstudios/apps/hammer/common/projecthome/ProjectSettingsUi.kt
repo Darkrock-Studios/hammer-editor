@@ -40,6 +40,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineSec
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineToggleRow
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineWordListField
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
+import com.darkrockstudios.apps.hammer.common.compose.plugin.PluginUiRegistry
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
@@ -48,6 +49,7 @@ import com.darkrockstudios.apps.hammer.common.spellcheck.displayName
 import com.darkrockstudios.apps.hammer.common.spellcheck.isSpellCheckAllowedForProject
 import com.darkrockstudios.apps.hammer.common.spellcheck.normalizeDictionaryWord
 import com.darkrockstudios.apps.hammer.common.util.Locale
+import com.darkrockstudios.apps.hammer.operations.plugin.ClientPlugin
 import com.darkrockstudios.apps.hammer.project_settings_autosaved
 import com.darkrockstudios.apps.hammer.project_settings_breadcrumb_home
 import com.darkrockstudios.apps.hammer.project_settings_breadcrumb_root
@@ -59,10 +61,13 @@ import com.darkrockstudios.apps.hammer.project_settings_folio_section_count
 import com.darkrockstudios.apps.hammer.project_settings_hero_by
 import com.darkrockstudios.apps.hammer.project_settings_hero_marker
 import com.darkrockstudios.apps.hammer.project_settings_hero_no_author
+import com.darkrockstudios.apps.hammer.project_settings_plugins_caption
+import com.darkrockstudios.apps.hammer.project_settings_plugins_section_title
 import com.darkrockstudios.apps.hammer.project_settings_spellcheck_encyclopedia_enable
 import com.darkrockstudios.apps.hammer.project_settings_spellcheck_encyclopedia_enable_hint
 import com.darkrockstudios.apps.hammer.project_settings_spellcheck_mismatch_caption
 import com.darkrockstudios.apps.hammer.project_settings_spellcheck_section_title
+import org.koin.compose.koinInject
 
 private val MaxColumnWidth = 880.dp
 
@@ -73,6 +78,9 @@ fun ProjectSettingsUi(
 	onClose: () -> Unit,
 ) {
 	val state by component.projectInfoState.subscribeAsState()
+	val plugins = koinInject<PluginUiRegistry>().plugins()
+	val disabledPlugins by component.disabledPlugins.subscribeAsState()
+	val sectionCount = if (plugins.isEmpty()) 4 else 5
 	val screen = LocalScreenCharacteristic.current
 	val isCompact = screen.windowWidthClass == WindowWidthSizeClass.Compact
 
@@ -141,6 +149,14 @@ fun ProjectSettingsUi(
 									spellCheckSettings = component.spellCheckSettings,
 								)
 							}
+
+							if (plugins.isNotEmpty()) {
+								ProjectPlugins(
+									plugins = plugins,
+									disabled = disabledPlugins,
+									component = component,
+								)
+							}
 						}
 
 						Spacer(Modifier.height(8.dp))
@@ -156,7 +172,7 @@ fun ProjectSettingsUi(
 
 		FolioCaption(
 			projectName = component.projectName,
-			sectionCount = 4,
+			sectionCount = sectionCount,
 			horizontalPadding = outerHorizontal,
 		)
 	}
@@ -197,6 +213,34 @@ private fun ProjectDictionaryWords(
 		placeholder = Res.string.project_settings_dictionary_placeholder.get(),
 		testTag = "project-settings-dictionary",
 	)
+}
+
+/** A toggle for each plugin enabled in Settings, turning it off for this project alone. */
+@Composable
+private fun ProjectPlugins(
+	plugins: List<ClientPlugin>,
+	disabled: Set<String>,
+	component: ProjectSettings,
+) {
+	val sorted = remember(plugins) { plugins.sortedBy { (it.name ?: it.id).lowercase() } }
+	HdHairlineSection(
+		section = 5,
+		title = Res.string.project_settings_plugins_section_title.get(),
+		contentSpacing = 18.dp,
+	) {
+		Text(
+			text = Res.string.project_settings_plugins_caption.get(),
+			style = MaterialTheme.typography.bodySmall,
+			color = MaterialTheme.colorScheme.onSurfaceVariant,
+		)
+		sorted.forEach { plugin ->
+			HdHairlineToggleRow(
+				checked = plugin.id !in disabled,
+				label = plugin.name ?: plugin.id,
+				onCheckedChange = { component.setPluginEnabled(plugin.id, it) },
+			)
+		}
+	}
 }
 
 /** Explains why spell check isn't running when the project's language gates it off. */

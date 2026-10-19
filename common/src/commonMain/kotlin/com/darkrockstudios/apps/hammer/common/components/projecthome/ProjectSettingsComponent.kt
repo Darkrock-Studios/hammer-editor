@@ -12,6 +12,7 @@ import com.darkrockstudios.apps.hammer.common.components.spellchecksettings.Spel
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
+import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectPluginsRepository
 import com.darkrockstudios.apps.hammer.common.data.tagindex.AccountTagService
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectDictionaryUseCase
@@ -32,6 +33,7 @@ class ProjectSettingsComponent(
 	private val projectDictionary: ProjectDictionaryUseCase by projectInject()
 	private val accountTagService: AccountTagService by inject()
 	private val availableLocalesProvider: AvailableLocalesProvider by inject()
+	private val projectPlugins: ProjectPluginsRepository by inject()
 
 	override val projectName: String = projectDef.name
 
@@ -40,8 +42,16 @@ class ProjectSettingsComponent(
 	private val _projectInfoState = MutableValue(ProjectSettings.ProjectInfoState())
 	override val projectInfoState: Value<ProjectSettings.ProjectInfoState> = _projectInfoState
 
+	private val _disabledPlugins = MutableValue(emptySet<String>())
+	override val disabledPlugins: Value<Set<String>> = _disabledPlugins
+
 	init {
 		scope.launch { accountTagService.refreshProjectTags() }
+		scope.launch {
+			projectPlugins.disabledPlugins(projectDef.id).collect { disabled ->
+				withContext(mainDispatcher) { _disabledPlugins.value = disabled }
+			}
+		}
 		scope.launch {
 			projectDataRepository.load()
 			projectDataRepository.state.collect { stored ->
@@ -109,6 +119,10 @@ class ProjectSettingsComponent(
 
 	override fun removeDictionaryWord(word: String) {
 		scope.launch { projectDictionary.removeWord(word) }
+	}
+
+	override fun setPluginEnabled(pluginId: String, enabled: Boolean) {
+		scope.launch { projectPlugins.setPluginEnabled(projectDef.id, pluginId, enabled) }
 	}
 
 	override fun suggestProjectTags(prefix: String): List<String> {

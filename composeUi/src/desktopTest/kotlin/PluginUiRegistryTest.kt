@@ -58,7 +58,7 @@ class PluginUiRegistryTest {
 
 		val emitted = mutableListOf<List<TextDiagnosticsProvider>>()
 		val collecting = launch(UnconfinedTestDispatcher(testScheduler)) {
-			PluginUiRegistry(registry).textDiagnosticsFlow().collect { emitted += it }
+			PluginUiRegistry(registry).textDiagnosticsFlow(emptySet()).collect { emitted += it }
 		}
 		assertEquals(1, emitted.size)
 
@@ -68,6 +68,34 @@ class PluginUiRegistryTest {
 		registry.settings("checker")!!.set("on", JsonPrimitive(false))
 		assertEquals(2, emitted.size)
 		assertNotSame(emitted[0].single(), emitted[1].single())
+		collecting.cancel()
+	}
+
+	@Test
+	fun `a plugin the project turned off adds no checks, and its settings make nothing anew`() = runTest {
+		val registry = PluginRegistry()
+		GlobalContext.startKoin {
+			modules(
+				module {
+					single<FileSystem> { FakeFileSystem() }
+					single<Toml> { createTomlSerializer() }
+					single<CoroutineContext>(named(DISPATCHER_IO)) { Dispatchers.Unconfined }
+					single(named(APP_SCOPE)) { CoroutineScope(Dispatchers.Unconfined) }
+				},
+				registry.koinModule(),
+			)
+		}
+		registry.add(Plugin("checker", checks = true))
+		registry.add(Plugin("off", checks = true))
+
+		val emitted = mutableListOf<List<TextDiagnosticsProvider>>()
+		val collecting = launch(UnconfinedTestDispatcher(testScheduler)) {
+			PluginUiRegistry(registry).textDiagnosticsFlow(setOf("off")).collect { emitted += it }
+		}
+		assertEquals(1, emitted.single().size)
+
+		registry.settings("off")!!.set("on", JsonPrimitive(false))
+		assertEquals(1, emitted.size)
 		collecting.cancel()
 	}
 }
