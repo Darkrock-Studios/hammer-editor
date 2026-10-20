@@ -31,12 +31,10 @@ import kotlinx.coroutines.IO
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
-import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
 import okio.IOException
-import okio.Path
 import kotlin.coroutines.cancellation.CancellationException
 
 class ClientAccountSynchronizer(
@@ -44,6 +42,7 @@ class ClientAccountSynchronizer(
 	private val globalSettingsStore: GlobalSettingsStore,
 	private val projectsRepository: ProjectsRepository,
 	private val serverProjectsApi: ServerProjectsApi,
+	private val accountSyncDatasource: AccountSyncDatasource,
 	private val projectCreateResolver: ProjectCreateResolver,
 	private val ideasSynchronizer: ClientIdeasSynchronizer,
 	private val dataMigrator: DataMigrator,
@@ -84,7 +83,7 @@ class ClientAccountSynchronizer(
 				val serverSyncData = result.getOrThrow()
 				syncId = serverSyncData.syncId
 
-				val clientSyncData = loadSyncData()
+				val clientSyncData = accountSyncDatasource.load()
 				val serverKnownIds = serverSyncData.knownProjectIds()
 
 				yield()
@@ -335,8 +334,8 @@ class ClientAccountSynchronizer(
 		}
 	}
 
-	private fun dropQueuedRename(projectId: ProjectId) {
-		updateSyncData { syncData ->
+	private suspend fun dropQueuedRename(projectId: ProjectId) {
+		accountSyncDatasource.update { syncData ->
 			syncData.copy(
 				projectsToRename = syncData.projectsToRename
 					.filterNot { it.projectId == projectId }.toSet(),
@@ -398,7 +397,7 @@ class ClientAccountSynchronizer(
 	) {
 		clientSyncData.projectsToDelete.forEach { projectId ->
 			if (projectId !in serverKnownIds) {
-				updateSyncData { syncData ->
+				accountSyncDatasource.update { syncData ->
 					syncData.copy(projectsToDelete = syncData.projectsToDelete - projectId)
 				}
 				return@forEach
@@ -414,7 +413,7 @@ class ClientAccountSynchronizer(
 						)
 					)
 				)
-				updateSyncData { syncData ->
+				accountSyncDatasource.update { syncData ->
 					syncData.copy(
 						projectsToDelete = syncData.projectsToDelete - projectId,
 						deletedProjects = syncData.deletedProjects + projectId,
@@ -741,20 +740,21 @@ class ClientAccountSynchronizer(
 		onLog(syncAccLogW(strRes.get(Res.string.sync_log_account_project_in_use, projectDef.name)))
 	}
 
-	fun deleteProject(project: ProjectDef) {
-		updateSyncData { syncData ->
+	suspend fun deleteProject(project: ProjectDef) {
+		accountSyncDatasource.update { syncData ->
 			syncData.copy(
 				projectsToDelete = syncData.projectsToDelete + project.id,
 				projectsToRename = syncData.projectsToRename
 					.filterNot { it.projectId == project.id }
 					.toSet(),
+				projectBaselines = syncData.projectBaselines - project.id,
 			)
 		}
 	}
 
-	fun renameProject(projectId: ProjectId, newName: String) {
+	suspend fun renameProject(projectId: ProjectId, newName: String) {
 		val renamed = RenamedProject(projectId, newName)
-		updateSyncData { syncData ->
+		accountSyncDatasource.update { syncData ->
 			// Remove any old renames of this project and add this new one
 			val updated = syncData.projectsToRename
 				.filterNot { it.projectId == projectId } + renamed
@@ -769,59 +769,8 @@ class ClientAccountSynchronizer(
 	 * Forgets the account-level queues, which name projects on one particular server and mean
 	 * nothing to another.
 	 */
-	fun deleteSyncData() {
-		val path = getSyncDataPath()
-		if (fileSystem.exists(path)) fileSystem.delete(path)
-	}
-
-	private fun getSyncDataPath(): Path =
-		projectsRepository.getProjectsDirectory().toOkioPath() / SYNC_FILE_NAME
-
-	// Corrupt sync data recovers by recreating it; not an error to surface.
-	@Suppress("SwallowedException")
-	private fun loadSyncData(): ProjectsSynchronizationData {
-		val path = getSyncDataPath()
-		return if (fileSystem.exists(path)) {
-			fileSystem.read(path) {
-				val syncDataJson = readUtf8()
-				try {
-					json.decodeFromString(syncDataJson)
-				} catch (e: SerializationException) {
-					createAndSaveSyncData()
-				}
-			}
-		} else {
-			createAndSaveSyncData()
-		}
-	}
-
-	private fun createAndSaveSyncData(): ProjectsSynchronizationData {
-		val newData = ProjectsSynchronizationData(
-			deletedProjects = emptySet(),
-			projectsToDelete = emptySet(),
-			projectsToRename = emptySet(),
-		)
-		saveSyncData(newData)
-
-		return newData
-	}
-
-	private fun saveSyncData(data: ProjectsSynchronizationData) {
-		val path = getSyncDataPath()
-		fileSystem.write(path) {
-			val syncDataJson = json.encodeToString(data)
-			writeUtf8(syncDataJson)
-		}
-	}
-
-	private fun updateSyncData(action: (ProjectsSynchronizationData) -> ProjectsSynchronizationData) {
-		val data = loadSyncData()
-		val update = action(data)
-		saveSyncData(update)
-	}
-
-	companion object {
-		private const val SYNC_FILE_NAME = "sync.json"
+	suspend fun deleteSyncData() {
+		accountSyncDatasource.delete()
 	}
 }
 

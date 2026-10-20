@@ -281,7 +281,7 @@ class AccountSettingsComponentTest : BaseTest() {
 
 		assertEquals(ProjectId("id-a"), projectsRepository.listedProjectId(projectA))
 		assertEquals(Instant.DISTANT_PAST, journalLastSync(PROJECT_A))
-		verify(exactly = 1) { accountSynchronizer.deleteSyncData() }
+		coVerify(exactly = 1) { accountSynchronizer.deleteSyncData() }
 	}
 
 	@Test
@@ -302,7 +302,7 @@ class AccountSettingsComponentTest : BaseTest() {
 
 		assertEquals(ProjectId("keep-me"), projectsRepository.listedProjectId(projectA))
 		assertEquals(Instant.DISTANT_PAST, journalLastSync(PROJECT_A))
-		verify(exactly = 1) { accountSynchronizer.deleteSyncData() }
+		coVerify(exactly = 1) { accountSynchronizer.deleteSyncData() }
 	}
 
 	@Test
@@ -326,7 +326,7 @@ class AccountSettingsComponentTest : BaseTest() {
 		advanceUntilIdle()
 
 		assertEquals(syncedAt, journalLastSync(PROJECT_A))
-		verify(exactly = 0) { accountSynchronizer.deleteSyncData() }
+		coVerify(exactly = 0) { accountSynchronizer.deleteSyncData() }
 	}
 
 	@Test
@@ -340,7 +340,7 @@ class AccountSettingsComponentTest : BaseTest() {
 		advanceUntilIdle()
 
 		assertEquals(Instant.DISTANT_PAST, journalLastSync(PROJECT_A))
-		verify(exactly = 1) { accountSynchronizer.deleteSyncData() }
+		coVerify(exactly = 1) { accountSynchronizer.deleteSyncData() }
 	}
 
 	@Test

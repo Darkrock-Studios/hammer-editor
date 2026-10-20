@@ -208,8 +208,8 @@ class ProjectsListComponentTest : ComponentTest() {
 
 			verify { projectsRepository.createProject("Novel", any(), any()) }
 			// Account sync uploads every local id the server does not know; nothing is queued.
-			verify(exactly = 0) { synchronizer.deleteProject(any()) }
-			verify(exactly = 0) { synchronizer.renameProject(any(), any()) }
+			coVerify(exactly = 0) { synchronizer.deleteProject(any()) }
+			coVerify(exactly = 0) { synchronizer.renameProject(any(), any()) }
 			assertEquals("", comp.state.value.createDialogProjectName)
 		}
 
@@ -376,7 +376,7 @@ class ProjectsListComponentTest : ComponentTest() {
 			comp.deleteProject(projectDefA)
 			advanceUntilIdle()
 
-			verify { synchronizer.deleteProject(projectDefA) }
+			coVerify { synchronizer.deleteProject(projectDefA) }
 		}
 
 	@Test
@@ -402,7 +402,7 @@ class ProjectsListComponentTest : ComponentTest() {
 		comp.deleteProject(projectDefA)
 		advanceUntilIdle()
 
-		verify { synchronizer.deleteProject(projectDefA) }
+		coVerify { synchronizer.deleteProject(projectDefA) }
 	}
 
 	@Test
@@ -414,7 +414,7 @@ class ProjectsListComponentTest : ComponentTest() {
 		comp.deleteProject(projectDefA)
 		advanceUntilIdle()
 
-		verify(exactly = 0) { synchronizer.deleteProject(any()) }
+		coVerify(exactly = 0) { synchronizer.deleteProject(any()) }
 		verify(exactly = 0) { projectsRepository.getProjects(any()) }
 		assertEquals(ToastMessage.Resource(Res.string.projects_list_toast_delete_failed), toast.await())
 	}
@@ -428,7 +428,7 @@ class ProjectsListComponentTest : ComponentTest() {
 		comp.deleteProject(projectDefA)
 		advanceUntilIdle()
 
-		verify(exactly = 0) { synchronizer.deleteProject(any()) }
+		coVerify(exactly = 0) { synchronizer.deleteProject(any()) }
 		verify(exactly = 0) { projectsRepository.getProjects(any()) }
 		assertEquals(ToastMessage.Resource(Res.string.projects_list_toast_delete_failed), toast.await())
 	}
@@ -444,7 +444,7 @@ class ProjectsListComponentTest : ComponentTest() {
 			comp.renameProject(projectDefA, "Beta")
 			advanceUntilIdle()
 
-			verify { synchronizer.renameProject(projectDefA.id, "Beta") }
+			coVerify { synchronizer.renameProject(projectDefA.id, "Beta") }
 		}
 
 	@Test
@@ -456,7 +456,7 @@ class ProjectsListComponentTest : ComponentTest() {
 		comp.renameProject(projectDefA, "Beta")
 		advanceUntilIdle()
 
-		verify(exactly = 0) { synchronizer.renameProject(any(), any()) }
+		coVerify(exactly = 0) { synchronizer.renameProject(any(), any()) }
 		verify(exactly = 0) { projectsRepository.getProjects(any()) }
 	}
 

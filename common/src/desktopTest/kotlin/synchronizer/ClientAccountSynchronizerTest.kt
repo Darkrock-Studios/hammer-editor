@@ -17,6 +17,7 @@ import com.darkrockstudios.apps.hammer.base.http.writeToml
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectDataHasher
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectdata.StoredProjectData
+import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.AccountSyncDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ClientAccountSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.ClientIdeasSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityOriginalState
@@ -53,6 +54,8 @@ import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import testProjectId
+import utils.BaseTest
+import utils.projectsDirectoryOf
 import utils.TestStrRes
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -60,7 +63,7 @@ import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 import kotlin.time.Instant
 
-class ClientAccountSynchronizerTest {
+class ClientAccountSynchronizerTest : BaseTest() {
 
 	private lateinit var ffs: FakeFileSystem
 	private lateinit var json: Json
@@ -115,11 +118,14 @@ class ClientAccountSynchronizerTest {
 		error = HttpResponseError(error = "Unauthorized", displayMessage = "nope"),
 	)
 
+	private fun accountSyncDatasource() = AccountSyncDatasource(ffs, json, projectsDirectoryOf(globalSettingsStore))
+
 	private fun createSynchronizer(strRes: StrRes = TestStrRes()) = ClientAccountSynchronizer(
 		fileSystem = ffs,
 		globalSettingsStore = globalSettingsStore,
 		projectsRepository = projectsRepository,
 		serverProjectsApi = serverProjectsApi,
+		accountSyncDatasource = accountSyncDatasource(),
 		projectCreateResolver = ProjectCreateResolver(serverProjectsApi, projectsRepository),
 		ideasSynchronizer = ideasSynchronizer,
 		dataMigrator = dataMigrator,
@@ -144,7 +150,9 @@ class ClientAccountSynchronizerTest {
 	}
 
 	@BeforeEach
-	fun setup() {
+	override fun setup() {
+		super.setup()
+		setupKoin()
 		ffs = FakeFileSystem()
 		ffs.createDirectories(projectsDirPath)
 		json = createJsonSerializer()
@@ -369,7 +377,7 @@ class ClientAccountSynchronizerTest {
 	}
 
 	@Test
-	fun `deleteSyncData removes the account sync file`() {
+	fun `deleteSyncData removes the account sync file`() = runTest {
 		writeSyncData(emptySyncData().copy(projectsToDelete = setOf(ProjectId.randomUUID())))
 
 		createSynchronizer().deleteSyncData()
@@ -378,7 +386,7 @@ class ClientAccountSynchronizerTest {
 	}
 
 	@Test
-	fun `renameProject records a pending rename`() {
+	fun `renameProject records a pending rename`() = runTest {
 		writeSyncData(emptySyncData())
 		val id = ProjectId.randomUUID()
 
@@ -388,7 +396,7 @@ class ClientAccountSynchronizerTest {
 	}
 
 	@Test
-	fun `renameProject replaces an earlier rename of the same project`() {
+	fun `renameProject replaces an earlier rename of the same project`() = runTest {
 		writeSyncData(emptySyncData())
 		val id = ProjectId.randomUUID()
 		val sync = createSynchronizer()
@@ -400,7 +408,7 @@ class ClientAccountSynchronizerTest {
 	}
 
 	@Test
-	fun `deleteProject queues deletion and clears a pending rename`() {
+	fun `deleteProject queues deletion and clears a pending rename`() = runTest {
 		val id = ProjectId.randomUUID()
 		val def = projectDef("MyNovel", id)
 		writeSyncData(emptySyncData().copy(projectsToRename = setOf(RenamedProject(id, "Renamed"))))
@@ -413,7 +421,7 @@ class ClientAccountSynchronizerTest {
 	}
 
 	@Test
-	fun `loadSyncData preserves deletion ids across a load and save cycle`() {
+	fun `loadSyncData preserves deletion ids across a load and save cycle`() = runTest {
 		val validId = ProjectId.randomUUID()
 		writeSyncData(
 			emptySyncData().copy(

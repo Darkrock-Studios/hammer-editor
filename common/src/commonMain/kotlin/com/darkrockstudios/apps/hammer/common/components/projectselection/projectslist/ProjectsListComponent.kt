@@ -314,7 +314,7 @@ class ProjectsListComponent(
 	override fun renameProject(projectDef: ProjectDef, newName: String) {
 		if (projectsRepository.renameProject(projectDef, newName).isSuccess) {
 			Napier.i("Project renamed: ${projectDef.name}")
-			projectsSynchronizer.renameProject(projectDef.id, newName)
+			scope.launch { projectsSynchronizer.renameProject(projectDef.id, newName) }
 
 			loadProjectList()
 		} else {
