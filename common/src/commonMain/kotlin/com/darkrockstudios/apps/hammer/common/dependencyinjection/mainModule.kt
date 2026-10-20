@@ -26,6 +26,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.Glo
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.ServerSettingsDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.ServerSettingsFilesystemDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.authTokenStoreModule
+import com.darkrockstudios.apps.hammer.common.data.groupmetadata.GroupMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.id.datasources.EncyclopediaIdDatasource
 import com.darkrockstudios.apps.hammer.common.data.id.datasources.NotesIdDatasource
@@ -261,6 +262,7 @@ val mainModule = module {
 	single<ProjectBackupService>()
 
 	single<ProjectMetadataDatasource>()
+	single<GroupMetadataDatasource>()
 
 	single<ProjectStatisticsCacheReader>()
 

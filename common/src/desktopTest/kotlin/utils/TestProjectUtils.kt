@@ -1,7 +1,9 @@
+import com.darkrockstudios.apps.hammer.base.GroupId
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.data.groupmetadata.GroupMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.tree.NodeCoordinates
@@ -50,6 +52,32 @@ private val fixtureProjectIds = mapOf(
  */
 fun testProjectId(name: String): ProjectId =
 	ProjectId(fixtureProjectIds[name] ?: UUID.nameUUIDFromBytes(name.encodeToByteArray()).toString())
+
+/** A stable, UUID-shaped id per group name. */
+fun testGroupId(name: String): GroupId =
+	GroupId(UUID.nameUUIDFromBytes("group:$name".encodeToByteArray()).toString())
+
+/** A marked group directory named [name] in [parent], the projects directory by default. */
+fun createGroupDirectory(
+	ffs: FakeFileSystem,
+	name: String,
+	parent: Path = getProjectsDirectory(),
+	groupId: GroupId = testGroupId(name),
+): Path {
+	val dir = parent / ProjectsRepository.encodeForFilename(name)
+	ffs.createDirectories(dir)
+	GroupMetadataDatasource(ffs, createTomlSerializer()).createMetadata(dir.toHPath(), groupId)
+	return dir
+}
+
+/** A marked project directory named [name] in [parent], under [testProjectId]. */
+fun createNestedProjectDirectory(ffs: FakeFileSystem, name: String, parent: Path): ProjectDef {
+	val dir = parent / ProjectsRepository.encodeForFilename(name)
+	ffs.createDirectories(dir)
+	val def = ProjectDef(testProjectId(name), name, dir.toHPath())
+	ProjectMetadataDatasource(ffs, createTomlSerializer()).createMetadata(def, def.id)
+	return def
+}
 
 /** The id a fresh listing reads for the project named like [projectDef]. */
 fun ProjectsRepository.listedProjectId(projectDef: ProjectDef): ProjectId =
