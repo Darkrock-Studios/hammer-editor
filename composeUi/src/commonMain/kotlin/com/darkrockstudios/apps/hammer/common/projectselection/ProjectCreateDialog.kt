@@ -21,11 +21,17 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineBut
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHelpButton
 import com.darkrockstudios.apps.hammer.common.compose.rememberNameValidation
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.GroupDef
 
 const val CreateProjectNameFieldTestTag = "create-project-name"
 
 @Composable
-fun ProjectCreateDialog(show: Boolean, component: ProjectsList, close: () -> Unit) {
+fun ProjectCreateDialog(
+	show: Boolean,
+	component: ProjectsList,
+	parent: GroupDef? = null,
+	close: () -> Unit,
+) {
 	val state by component.state.subscribeAsState()
 	val projectName = state.createDialogProjectName
 
@@ -33,13 +39,13 @@ fun ProjectCreateDialog(show: Boolean, component: ProjectsList, close: () -> Uni
 	var showImportHelp by remember { mutableStateOf(false) }
 
 	fun submit() {
-		if (validation.isValid) component.createProject(projectName)
+		if (validation.isValid) component.createProject(projectName, parent)
 	}
 
 	FormDialog(
 		visible = show,
 		marker = "§ ${Res.string.create_project_marker.get().uppercase()}",
-		meta = Res.string.create_project_meta.get().uppercase(),
+		meta = groupMeta(parent, Res.string.create_project_meta.get()),
 		title = Res.string.create_project_title.get(),
 		confirmLabel = Res.string.create_project_button.get(),
 		cancelLabel = Res.string.create_project_cancel_button.get(),

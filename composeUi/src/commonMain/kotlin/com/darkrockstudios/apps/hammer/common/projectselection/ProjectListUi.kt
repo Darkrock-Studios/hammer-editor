@@ -23,6 +23,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -49,6 +50,7 @@ import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.BuildMetadata
+import com.darkrockstudios.apps.hammer.common.components.projectselection.MoveTarget
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectData
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsList
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.filterProjects
@@ -71,6 +73,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdToolButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.rememberHdScrollAwayFooterState
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.GroupDef
 import com.darkrockstudios.apps.hammer.common.data.search.parseQuery
 import com.darkrockstudios.apps.hammer.common.protocolmismatch.ProtocolMismatchDialog
 import com.darkrockstudios.apps.hammer.common.reauthentication.ReauthenticationUi
@@ -78,6 +81,7 @@ import com.darkrockstudios.apps.hammer.project_select_project_list_empty
 import com.darkrockstudios.apps.hammer.projects_list_column_last_open
 import com.darkrockstudios.apps.hammer.projects_list_column_title
 import com.darkrockstudios.apps.hammer.projects_list_create_button
+import com.darkrockstudios.apps.hammer.projects_list_create_group_button
 import com.darkrockstudios.apps.hammer.projects_list_empty_index
 import com.darkrockstudios.apps.hammer.projects_list_entry_count_none
 import com.darkrockstudios.apps.hammer.projects_list_entry_count_one
@@ -114,6 +118,7 @@ private val NarrowContentPadding: Dp = Ui.Padding.XL
 
 /** Tags the "Create Project" affordance (masthead button when wide, bottom bar when narrow). */
 const val CreateProjectButtonTestTag = "create-project-button"
+const val CreateGroupButtonTestTag = "create-group-button"
 const val ProjectListTestTag = "project-list"
 
 internal enum class ProjectsSortMode(
@@ -182,8 +187,25 @@ fun ProjectListUi(
 	var query by rememberSaveable { mutableStateOf("") }
 	val parsed = remember(query) { parseQuery(query) }
 	// Every input is a remember key, so derivedStateOf would add nothing here.
-	val visibleProjects = remember(state.projects, sortMode, parsed) {
-		applySort(filterProjects(state.projects, parsed), sortMode)
+	val rows = remember(state.groups, state.projects, state.placement, sortMode, parsed) {
+		buildProjectListRows(
+			groups = state.groups,
+			projects = filterProjects(state.projects, parsed),
+			placement = state.placement,
+			sortMode = sortMode,
+			filtered = parsed.text.isNotEmpty() || parsed.tags.isNotEmpty(),
+		)
+	}
+	val groupActions = remember(component) {
+		ProjectGroupActions(
+			onToggle = component::toggleGroupCollapsed,
+			onNewProject = { component.showCreate(it) },
+			onNewSubgroup = component::showGroupCreate,
+			onRename = component::showGroupRename,
+			onMove = { component.showMoveToGroup(MoveTarget.Group(it)) },
+			onEditDescription = component::showGroupDescription,
+			onDelete = component::showGroupDelete,
+		)
 	}
 	val onTagClick: (String) -> Unit = { tag ->
 		showSearchBar = true
@@ -206,7 +228,8 @@ fun ProjectListUi(
 			showEntryCount = isWide,
 			isServerSynced = state.isServerSynced,
 			onSync = component::showProjectsSync,
-			onCreate = component::showCreate,
+			onCreate = { component.showCreate() },
+			onCreateGroup = { component.showGroupCreate(null) },
 			showCreate = isWide,
 			horizontalPadding = horizontalPadding,
 			sortMode = sortMode,
@@ -257,9 +280,9 @@ fun ProjectListUi(
 					bottom = if (isWide) 0.dp else createBarState.height,
 				),
 			) {
-				if (visibleProjects.isEmpty()) {
+				if (rows.isEmpty()) {
 					item(key = "empty") {
-						if (state.projects.isEmpty()) {
+						if (state.projects.isEmpty() && state.groups.isEmpty()) {
 							EmptyState(horizontalPadding = horizontalPadding)
 						} else {
 							NoMatchesState(horizontalPadding = horizontalPadding)
@@ -267,19 +290,22 @@ fun ProjectListUi(
 					}
 				}
 
-				items(
-					count = visibleProjects.size,
-					key = { index -> visibleProjects[index].definition.name.hashCode() }
-				) { index ->
-					ProjectIndexRow(
-						isWide = isWide,
-						index = index,
-						projectData = visibleProjects[index],
-						onProjectClick = component::selectProject,
-						onProjectAltClick = component::showProjectDelete,
-						onProjectRenameClick = component::showProjectRename,
-						onTagClick = onTagClick,
-					)
+				items(count = rows.size, key = { index -> rows[index].key }) { index ->
+					when (val row = rows[index]) {
+						is ProjectListRow.Group -> ProjectGroupRow(row = row, actions = groupActions)
+						is ProjectListRow.Project -> ProjectIndexRow(
+							isWide = isWide,
+							index = row.number - 1,
+							projectData = row.data,
+							onProjectClick = component::selectProject,
+							onProjectAltClick = component::showProjectDelete,
+							onProjectRenameClick = component::showProjectRename,
+							onTagClick = onTagClick,
+							onProjectMoveClick = { component.showMoveToGroup(MoveTarget.Project(it)) },
+							depth = row.depth,
+							groupPath = row.groupPath,
+						)
+					}
 				}
 			}
 			MpScrollBarList(
@@ -290,7 +316,8 @@ fun ProjectListUi(
 			BottomCreateBar(
 				state = createBarState,
 				visible = createBarVisible,
-				onCreate = component::showCreate,
+				onCreate = { component.showCreate() },
+				onCreateGroup = { component.showGroupCreate(null) },
 				horizontalPadding = horizontalPadding,
 			)
 		}
@@ -329,6 +356,7 @@ internal fun Masthead(
 	isServerSynced: Boolean,
 	onSync: () -> Unit,
 	onCreate: () -> Unit,
+	onCreateGroup: () -> Unit,
 	showCreate: Boolean,
 	horizontalPadding: Dp,
 	sortMode: ProjectsSortMode,
@@ -369,6 +397,11 @@ internal fun Masthead(
 			RefreshAffordance(onClick = onSync)
 		}
 		if (showCreate) {
+			HdHairlineButton(
+				label = Res.string.projects_list_create_group_button.get(),
+				onClick = onCreateGroup,
+				modifier = Modifier.testTag(CreateGroupButtonTestTag),
+			)
 			HdHairlineButton(
 				label = "＋  ${Res.string.projects_list_create_button.get()}",
 				onClick = onCreate,
@@ -600,6 +633,7 @@ private fun BoxScope.BottomCreateBar(
 	state: HdScrollAwayFooterState,
 	visible: Boolean,
 	onCreate: () -> Unit,
+	onCreateGroup: () -> Unit,
 	horizontalPadding: Dp,
 ) {
 	HdScrollAwayFooter(
@@ -633,6 +667,26 @@ private fun BoxScope.BottomCreateBar(
 				color = MaterialTheme.colorScheme.onPrimary,
 			)
 		}
+		Spacer(modifier = Modifier.width(Ui.Padding.M))
+		Box(
+			modifier = Modifier
+				.size(44.dp)
+				.testTag(CreateGroupButtonTestTag)
+				.border(
+					width = Dp.Hairline,
+					color = MaterialTheme.colorScheme.outline,
+					shape = RectangleShape,
+				)
+				.clickable(onClick = onCreateGroup),
+			contentAlignment = Alignment.Center,
+		) {
+			Icon(
+				imageVector = Icons.Outlined.Folder,
+				contentDescription = Res.string.projects_list_create_group_button.get(),
+				tint = MaterialTheme.colorScheme.onSurfaceVariant,
+				modifier = Modifier.size(20.dp),
+			)
+		}
 	}
 }
 
@@ -646,7 +700,11 @@ private fun entrySummary(count: Int): String = when (count) {
 @Composable
 fun ModalContent(component: ProjectsList, rootSnackbar: RootSnackbarHostState) {
 	val state by component.modalRouterState.subscribeAsState()
+	val listState by component.state.subscribeAsState()
 	val overlay = state.child?.instance
+	// The dialog's copy of a group can be stale (a reload or sync renamed it); act on the current one.
+	fun current(group: GroupDef): GroupDef =
+		listState.groups.firstOrNull { it.definition.id == group.id }?.definition ?: group
 	when (overlay) {
 		null, ProjectsList.ModalDestination.None -> {}
 		is ProjectsList.ModalDestination.ProjectSync -> {
@@ -662,7 +720,7 @@ fun ModalContent(component: ProjectsList, rootSnackbar: RootSnackbarHostState) {
 		}
 
 		is ProjectsList.ModalDestination.ProjectCreate -> {
-			ProjectCreateDialog(true, component) {
+			ProjectCreateDialog(true, component, parent = overlay.parent?.let(::current)) {
 				component.hideCreate()
 			}
 		}
@@ -675,11 +733,57 @@ fun ModalContent(component: ProjectsList, rootSnackbar: RootSnackbarHostState) {
 			)
 		}
 
-		is ProjectsList.ModalDestination.GroupCreate,
-		is ProjectsList.ModalDestination.GroupRename,
-		is ProjectsList.ModalDestination.GroupDelete,
-		is ProjectsList.ModalDestination.GroupDescription,
-		is ProjectsList.ModalDestination.MoveToGroup -> {}
+		is ProjectsList.ModalDestination.GroupCreate -> {
+			val parent = overlay.parent?.let(::current)
+			GroupCreateDialog(
+				parent = parent,
+				onCreate = { name, description -> component.createGroup(name, parent, description) },
+				onDismiss = component::dismissGroupModal,
+			)
+		}
+
+		is ProjectsList.ModalDestination.GroupRename -> {
+			val group = current(overlay.groupDef)
+			GroupRenameDialog(
+				groupDef = group,
+				onRename = { component.renameGroup(group, it) },
+				onDismiss = component::dismissGroupModal,
+			)
+		}
+
+		is ProjectsList.ModalDestination.GroupDelete -> {
+			val group = current(overlay.groupDef)
+			GroupDeleteDialog(
+				groupDef = group,
+				onConfirm = { component.deleteGroup(group) },
+				onDismiss = component::dismissGroupModal,
+			)
+		}
+
+		is ProjectsList.ModalDestination.GroupDescription -> {
+			val group = current(overlay.groupDef)
+			GroupDescriptionDialog(
+				groupDef = group,
+				onSave = { component.updateGroupDescription(group, it) },
+				onDismiss = component::dismissGroupModal,
+			)
+		}
+
+		is ProjectsList.ModalDestination.MoveToGroup -> {
+			val groups = listState.groups.map { it.definition }
+			MoveToGroupDialog(
+				target = overlay.target,
+				groups = groups,
+				placement = listState.placement,
+				onMove = { destination ->
+					when (val target = overlay.target) {
+						is MoveTarget.Project -> component.moveProject(target.projectDef, destination)
+						is MoveTarget.Group -> component.moveGroup(current(target.groupDef), destination)
+					}
+				},
+				onDismiss = component::dismissGroupModal,
+			)
+		}
 
 		is ProjectsList.ModalDestination.ServerReauth -> {
 			ReauthenticationUi(overlay.component)
