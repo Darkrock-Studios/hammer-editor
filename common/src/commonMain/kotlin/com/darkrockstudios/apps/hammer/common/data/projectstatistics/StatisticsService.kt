@@ -8,7 +8,7 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.Encycl
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
-import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexService
+import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndex
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
@@ -44,7 +44,6 @@ class StatisticsService(
 	private val notesRepository: NotesRepository,
 	private val timeLineRepository: TimeLineRepository,
 	private val writingActivityRepository: WritingActivityRepository,
-	private val referenceIndexService: ReferenceIndexService,
 	private val projectDataRepository: ProjectDataRepository,
 	private val clock: Clock,
 ) : ScopeCallback, ProjectScoped {
@@ -68,8 +67,11 @@ class StatisticsService(
 	/**
 	 * Load statistics from cache if available and not dirty.
 	 * If cache is missing, dirty, or has an outdated schema, calculates fresh statistics.
+	 *
+	 * [loadReferenceIndex] supplies the scene references behind entry appearances. It is passed
+	 * in because a Service may not depend on another Service; see [ProjectStatisticsUseCase].
 	 */
-	suspend fun loadStatistics(): ProjectStatistics {
+	suspend fun loadStatistics(loadReferenceIndex: suspend () -> ReferenceIndex): ProjectStatistics {
 		val cached = statisticsRepository.loadStatistics()
 		val isCurrentSchema = cached?.schemaVersion == ProjectStatistics.CURRENT_SCHEMA_VERSION
 		return if (cached != null && isCurrentSchema && !cached.isDirty) {
@@ -85,14 +87,14 @@ class StatisticsService(
 
 				else -> Napier.d("Cache is dirty, will recalculate")
 			}
-			recalculateStatistics()
+			recalculateStatistics(loadReferenceIndex)
 		}
 	}
 
 	/**
 	 * Force recalculation of all statistics, updating the cache.
 	 */
-	suspend fun recalculateStatistics(): ProjectStatistics {
+	suspend fun recalculateStatistics(loadReferenceIndex: suspend () -> ReferenceIndex): ProjectStatistics {
 		_isCalculating.value = true
 		val startTime = clock.now()
 		Napier.d("Recalculating project statistics...")
@@ -186,7 +188,7 @@ class StatisticsService(
 
 			yield()
 
-			val referenceIndex = referenceIndexService.loadIndex()
+			val referenceIndex = loadReferenceIndex()
 			var totalEntryConnections = 0
 			val appearances = entries.map { entry ->
 				val sceneCount = referenceIndex.entryToScenes[entry.id]?.size ?: 0

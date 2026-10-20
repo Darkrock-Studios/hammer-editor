@@ -89,6 +89,8 @@ class StatisticsServiceTest : BaseTest() {
 		coEvery { sceneMetadataDatasource.loadMetadata(any()) } returns null
 	}
 
+	private suspend fun loadIndex(): ReferenceIndex = referenceIndexService.loadIndex()
+
 	private fun makeService() = StatisticsService(
 		projectDef = projectDef,
 		statisticsRepository = statisticsRepository,
@@ -98,7 +100,6 @@ class StatisticsServiceTest : BaseTest() {
 		notesRepository = notesRepository,
 		timeLineRepository = timeLineRepository,
 		writingActivityRepository = writingActivityRepository,
-		referenceIndexService = referenceIndexService,
 		projectDataRepository = projectDataRepository,
 		clock = Clock.System,
 	)
@@ -118,7 +119,7 @@ class StatisticsServiceTest : BaseTest() {
 		val cached = cachedStats(schema = ProjectStatistics.CURRENT_SCHEMA_VERSION, dirty = false)
 		coEvery { statisticsRepository.loadStatistics() } returns cached
 
-		val result = makeService().loadStatistics()
+		val result = makeService().loadStatistics(::loadIndex)
 
 		assertSame(cached, result)
 		coVerify(exactly = 0) { statisticsRepository.saveStatistics(any()) }
@@ -128,7 +129,7 @@ class StatisticsServiceTest : BaseTest() {
 	fun `loadStatistics recalculates when the cache is missing`() = runTest(mainTestDispatcher) {
 		coEvery { statisticsRepository.loadStatistics() } returns null
 
-		val result = makeService().loadStatistics()
+		val result = makeService().loadStatistics(::loadIndex)
 
 		assertEquals(ProjectStatistics.CURRENT_SCHEMA_VERSION, result.schemaVersion)
 		assertFalse(result.isDirty)
@@ -140,7 +141,7 @@ class StatisticsServiceTest : BaseTest() {
 		coEvery { statisticsRepository.loadStatistics() } returns
 			cachedStats(schema = ProjectStatistics.CURRENT_SCHEMA_VERSION - 1, dirty = false)
 
-		val result = makeService().loadStatistics()
+		val result = makeService().loadStatistics(::loadIndex)
 
 		// A regression that returned the stale cache would carry the old schema version.
 		assertEquals(ProjectStatistics.CURRENT_SCHEMA_VERSION, result.schemaVersion)
@@ -152,7 +153,7 @@ class StatisticsServiceTest : BaseTest() {
 		coEvery { statisticsRepository.loadStatistics() } returns
 			cachedStats(schema = ProjectStatistics.CURRENT_SCHEMA_VERSION, dirty = true)
 
-		val result = makeService().loadStatistics()
+		val result = makeService().loadStatistics(::loadIndex)
 
 		// A regression that returned the dirty cache would still be flagged dirty.
 		assertFalse(result.isDirty)
@@ -194,7 +195,7 @@ class StatisticsServiceTest : BaseTest() {
 			coEvery { statisticsRepository.saveStatistics(capture(saved)) } returns Unit
 
 			val service = makeService()
-			val stats = service.recalculateStatistics()
+			val stats = service.recalculateStatistics(::loadIndex)
 
 			assertEquals(2, stats.numberOfScenes)
 			assertEquals(5, stats.totalWords)
@@ -225,7 +226,7 @@ class StatisticsServiceTest : BaseTest() {
 			)
 			coEvery { statisticsRepository.loadStatistics() } returns null
 
-			val stats = makeService().recalculateStatistics()
+			val stats = makeService().recalculateStatistics(::loadIndex)
 
 			assertEquals(
 				listOf(EntryType.PERSON),
@@ -257,7 +258,7 @@ class StatisticsServiceTest : BaseTest() {
 			)
 			coEvery { statisticsRepository.loadStatistics() } returns null
 
-			val stats = makeService().recalculateStatistics()
+			val stats = makeService().recalculateStatistics(::loadIndex)
 
 			// Only the two word-bearing days appear (the empty session is skipped),
 			// regardless of the host timezone (the sessions are 24h apart), and the

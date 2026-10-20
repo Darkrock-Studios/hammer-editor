@@ -55,9 +55,6 @@ class ClientLayerTest {
 	fun `services never reference siblings or upward`() = assertNoViolations(
 		"A Service may only reference Repositories, Foundation primitives and Data Sources",
 		edges(SERVICE, SERVICE, USE_CASE, COMPONENT),
-		baseline = setOf(
-			"StatisticsService -> ReferenceIndexService",
-		),
 	)
 
 	@Test
