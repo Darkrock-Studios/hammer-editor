@@ -78,4 +78,19 @@
 	<string name="create_project_error_too_long">Project name too long</string>
 	<string name="create_project_error_invalid_characters">The project name contains invalid characters</string>
 	<string name="create_project_error_blank">The project name was left blank</string>
+	<string name="create_project_error_group_missing">The group for this project no longer exists</string>
+	<string name="project_rename_error_invalid_name">The project name is not valid</string>
+	<string name="project_rename_error_already_exists">A project with that name already exists</string>
+	<string name="project_rename_error_source_missing">The project no longer exists</string>
+	<string name="project_rename_error_target_missing">The destination group no longer exists</string>
+	<string name="project_rename_error_move_failed">The project folder could not be moved</string>
+	<string name="project_rename_error_in_use">The project is open; close it and try again</string>
+	<string name="group_error_invalid_name">The group name is not valid</string>
+	<string name="group_error_already_exists">Something with that name is already there</string>
+	<string name="group_error_source_missing">The group no longer exists</string>
+	<string name="group_error_target_missing">The destination group no longer exists</string>
+	<string name="group_error_move_failed">The group folder could not be moved</string>
+	<string name="group_error_in_use">A project in this group is open; close it and try again</string>
+	<string name="group_error_would_cycle">A group cannot be moved into itself</string>
+	<string name="group_error_too_deep">Groups can be nested at most %1$d deep</string>
 </resources>

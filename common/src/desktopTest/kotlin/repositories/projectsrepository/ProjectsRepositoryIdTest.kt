@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.createProjectScope
+import com.darkrockstudios.apps.hammer.common.data.groupmetadata.GroupMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectIdChangeListener
@@ -75,7 +76,10 @@ class ProjectsRepositoryIdTest : ProjectsRepositoryBaseTest() {
 			override fun metadataOrNull(path: Path): FileMetadata? =
 				super.metadataOrNull(path).also { if (path == vanishingMarker) ffs.deleteRecursively(path.parent!!) }
 		}
-		val repo = ProjectsRepository(fs, settingsRepo, ProjectMetadataDatasource(fs, toml), toml, json, deviceLocaleResolver)
+		val repo = ProjectsRepository(
+			fs, settingsRepo, ProjectMetadataDatasource(fs, toml), GroupMetadataDatasource(fs, toml), toml, json,
+			deviceLocaleResolver,
+		)
 
 		assertEquals(listOf(PROJECT_2_NAME), repo.getProjects().map { it.name })
 	}

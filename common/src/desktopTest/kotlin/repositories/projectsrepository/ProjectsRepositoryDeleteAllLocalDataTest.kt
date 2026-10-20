@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.data.groupmetadata.GroupMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
@@ -41,6 +42,7 @@ class ProjectsRepositoryDeleteAllLocalDataTest : BaseTest() {
 			fileSystem = ffs,
 			globalSettingsStore = globalSettingsStore,
 			projectsMetadataDatasource = ProjectMetadataDatasource(ffs, toml),
+			groupMetadataDatasource = GroupMetadataDatasource(ffs, toml),
 			toml = toml,
 			json = createJsonSerializer(),
 			deviceLocaleResolver = mockk<DeviceLocaleResolver>(relaxed = true),

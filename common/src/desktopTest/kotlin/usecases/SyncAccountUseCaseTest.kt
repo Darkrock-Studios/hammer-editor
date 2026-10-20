@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.data.groupmetadata.GroupMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataConflictBroker
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
@@ -104,6 +105,7 @@ class SyncAccountUseCaseTest : BaseTest() {
 			fileSystem = ffs,
 			globalSettingsStore = globalSettingsStore,
 			projectsMetadataDatasource = metadataDatasource,
+			groupMetadataDatasource = GroupMetadataDatasource(ffs, toml),
 			toml = toml,
 			json = createJsonSerializer(),
 			deviceLocaleResolver = deviceLocaleResolver,

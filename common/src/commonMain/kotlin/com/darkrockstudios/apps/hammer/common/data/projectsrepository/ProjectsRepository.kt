@@ -1,7 +1,9 @@
 package com.darkrockstudios.apps.hammer.common.data.projectsrepository
 
 import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.base.GroupId
 import com.darkrockstudios.apps.hammer.base.ProjectId
+import com.darkrockstudios.apps.hammer.base.http.MAX_GROUP_NESTING_DEPTH
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.base.validate.ProjectNameValidationResult
 import com.darkrockstudios.apps.hammer.base.validate.ProjectNameValidator
@@ -13,6 +15,8 @@ import com.darkrockstudios.apps.hammer.common.data.ClientMessage
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.data.groupmetadata.GroupMetadata
+import com.darkrockstudios.apps.hammer.common.data.groupmetadata.GroupMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.migrator.Migration3_4
 import com.darkrockstudios.apps.hammer.common.data.migrator.PROJECT_DATA_VERSION
@@ -42,6 +46,7 @@ import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.create_project_error_already_exists
 import com.darkrockstudios.apps.hammer.create_project_error_blank
+import com.darkrockstudios.apps.hammer.create_project_error_group_missing
 import com.darkrockstudios.apps.hammer.create_project_error_invalid_characters
 import com.darkrockstudios.apps.hammer.create_project_error_null_filename
 import com.darkrockstudios.apps.hammer.create_project_error_too_long
@@ -73,6 +78,7 @@ class ProjectsRepository(
 	private val fileSystem: FileSystem,
 	globalSettingsStore: GlobalSettingsStore,
 	private val projectsMetadataDatasource: ProjectMetadataDatasource,
+	private val groupMetadataDatasource: GroupMetadataDatasource,
 	private val toml: Toml,
 	private val json: Json,
 	private val deviceLocaleResolver: DeviceLocaleResolver,
@@ -251,29 +257,47 @@ class ProjectsRepository(
 	fun isProjectInUse(projectDef: ProjectDef): Boolean = isProjectInUse(projectDef.path)
 
 	fun findProject(projectId: ProjectId): ProjectDef? =
-		markedCandidates(getProjectsDirectory().toOkioPath())
-			.mapNotNull { (name, dir) -> loadProjectDef(name, dir) }
+		scan().projects.asSequence()
+			.mapNotNull { loadProjectDef(it.name, it.dir) }
 			.firstOrNull { it.id == projectId }
 
 	fun findProject(projectName: String): ProjectDef? =
-		markedCandidates(getProjectsDirectory().toOkioPath())
-			.filter { (name, _) -> name == projectName }
-			.firstNotNullOfOrNull { (name, dir) -> loadProjectDef(name, dir) }
+		scan().projects.asSequence()
+			.filter { it.name == projectName }
+			.firstNotNullOfOrNull { loadProjectDef(it.name, it.dir) }
+
+	fun findGroup(groupId: GroupId): GroupDef? = getProjectTree().group(groupId)
 
 	/**
-	 * A directory is considered a project only if it contains a [ProjectMetadata.FILENAME]
-	 * file and its (decoded) name is a valid project name. Each id is read from that file, minted
-	 * if it has none (see [ProjectMetadataDatasource.loadProjectId]). A project deleted while the list
-	 * is built is left out.
+	 * Every project at any level of the projects directory. A directory is considered a project only
+	 * if it contains a [ProjectMetadata.FILENAME] file and its (decoded) name is a valid project name.
+	 * Each id is read from that file, minted if it has none (see
+	 * [ProjectMetadataDatasource.loadProjectId]). A project deleted while the list is built is left
+	 * out. Groups are not read; [getProjectTree] lists them.
 	 */
 	fun getProjects(projectsDir: HPath = getProjectsDirectory()): List<ProjectDef> =
-		markedCandidates(projectsDir.toOkioPath())
-			.mapNotNull { (name, dir) -> loadProjectDef(name, dir) }
-			.toList()
+		scan(projectsDir.toOkioPath()).projects.mapNotNull { loadProjectDef(it.name, it.dir) }
 
-	private fun markedCandidates(projectsDir: Path): Sequence<Pair<String, Path>> =
-		listCandidateDirectories(projectsDir).asSequence()
-			.filter { (_, dir) -> fileSystem.metadataOrNull(dir / ProjectMetadata.FILENAME)?.isRegularFile == true }
+	/**
+	 * The projects directory as groups and projects, each project placed in the group whose directory
+	 * holds it. Each group's [GroupMetadata.FILENAME] is healed as it is read (see
+	 * [GroupMetadataDatasource.loadMetadata]), and a group sharing an id with one listed before it, as
+	 * a copied folder does, gets a fresh one.
+	 */
+	fun getProjectTree(projectsDir: HPath = getProjectsDirectory()): ProjectTree {
+		val scan = scan(projectsDir.toOkioPath())
+		val groupIds = mutableMapOf<Path, GroupId>()
+		val groups = scan.groups.mapNotNull { scanned ->
+			val parentId = scanned.parentDir?.let(groupIds::get)
+			loadGroupDef(scanned, parentId, taken = groupIds.values.toSet())?.also { groupIds[scanned.dir] = it.id }
+		}
+		val placement = mutableMapOf<ProjectId, GroupId?>()
+		val projects = scan.projects.mapNotNull { scanned ->
+			loadProjectDef(scanned.name, scanned.dir)
+				?.also { placement[it.id] = scanned.parentDir?.let(groupIds::get) }
+		}
+		return ProjectTree(groups, projects, placement)
+	}
 
 	/** Null when its [ProjectMetadata.FILENAME] cannot be read, as when the project is deleted meanwhile. */
 	private fun loadProjectDef(name: String, dir: Path): ProjectDef? =
@@ -284,13 +308,85 @@ class ProjectsRepository(
 			null
 		}
 
-	/** Each non-hidden directory whose decoded name is a valid project name, marked or not, with that name. */
-	private fun listCandidateDirectories(projectsDir: Path): List<Pair<String, Path>> =
-		fileSystem.list(projectsDir)
-			.filter { it.name.startsWith('.').not() }
-			.filter { fileSystem.metadataOrNull(it)?.isDirectory == true }
-			.map { path -> decodeFromFilename(path.name) to path }
-			.filter { (name, _) -> validateProjectName(name) }
+	/** Null when its [GroupMetadata.FILENAME] cannot be read or healed, as when the group is deleted meanwhile. */
+	private fun loadGroupDef(scanned: ScannedDir, parentId: GroupId?, taken: Set<GroupId>): GroupDef? =
+		try {
+			val dir = scanned.dir.toHPath()
+			val metadata = groupMetadataDatasource.loadMetadata(dir)
+			val loadedId = checkNotNull(metadata.info.groupId)
+			val groupId = if (loadedId in taken) {
+				GroupId.randomUUID().also { newId ->
+					Napier.w("Group '${scanned.name}' shared id ${loadedId.id} with another group, assigned ${newId.id}")
+					groupMetadataDatasource.updateMetadata(dir) { it.copy(info = it.info.copy(groupId = newId)) }
+				}
+			} else {
+				loadedId
+			}
+			GroupDef(groupId, scanned.name, dir, parentId, metadata.info.description)
+		} catch (e: IOException) {
+			Napier.w("Skipped group '${scanned.name}': could not read its ${GroupMetadata.FILENAME}", e)
+			null
+		}
+
+	private data class ScannedDir(val name: String, val dir: Path, val parentDir: Path?)
+
+	/** Groups are listed parents first. [unmarked] holds Hammer content without a [ProjectMetadata.FILENAME]. */
+	private class Scan(val groups: List<ScannedDir>, val projects: List<ScannedDir>, val unmarked: List<ScannedDir>)
+
+	/**
+	 * Walks [dir], whose entries sit at [depth] (1 for the projects directory's own), skipping hidden
+	 * entries, files and names that are not valid project names. A directory holding a
+	 * [ProjectMetadata.FILENAME] file is a project, and one holding Hammer content but no marker is
+	 * unmarked; neither is descended into. Any other directory down to [MAX_GROUP_NESTING_DEPTH] is a
+	 * group if it is marked or holds a group or project, so unrelated folders are never claimed.
+	 */
+	private fun scan(dir: Path = getProjectsDirectory().toOkioPath(), depth: Int = 1): Scan {
+		val groups = mutableListOf<ScannedDir>()
+		val projects = mutableListOf<ScannedDir>()
+		val unmarked = mutableListOf<ScannedDir>()
+
+		fun visit(parentDir: Path, parentGroup: Path?, entryDepth: Int): Boolean {
+			var found = false
+			for (entry in fileSystem.listOrNull(parentDir).orEmpty()) {
+				if (entry.name.startsWith('.')) continue
+				if (fileSystem.metadataOrNull(entry)?.isDirectory != true) continue
+				val name = decodeFromFilename(entry.name)
+				if (!validateProjectName(name)) continue
+
+				val scanned = ScannedDir(name, entry, parentGroup)
+				val marker = fileSystem.metadataOrNull(entry / ProjectMetadata.FILENAME)
+				when {
+					marker?.isRegularFile == true -> {
+						projects += scanned
+						found = true
+					}
+					// A project.toml in another form is the metadata datasource's to recover.
+					marker != null -> Unit
+					hasProjectContent(entry) -> {
+						unmarked += scanned
+						found = true
+					}
+					entryDepth <= MAX_GROUP_NESTING_DEPTH -> {
+						val index = groups.size
+						val holdsEntries = visit(entry, entry, entryDepth + 1)
+						if (holdsEntries || groupMetadataDatasource.isMarked(entry.toHPath())) {
+							groups.add(index, scanned)
+							found = true
+						}
+					}
+				}
+			}
+			return found
+		}
+
+		visit(dir, parentGroup = null, entryDepth = depth)
+		return Scan(groups, projects, unmarked)
+	}
+
+	/** How far [dir] sits below the projects directory: 1 for one of its own entries. */
+	private fun depthBelowRoot(dir: Path): Int = dir.relativeTo(getProjectsDirectory().toOkioPath()).segments.size
+
+	private fun Path.isSameOrUnder(ancestor: Path): Boolean = generateSequence(this) { it.parent }.any { it == ancestor }
 
 	/** True only when nothing exists at [ProjectMetadata.FILENAME], not even a directory or an unreadable file. */
 	private fun isUnmarked(projectDir: Path): Boolean =
@@ -300,7 +396,7 @@ class ProjectsRepository(
 		projectContentMarkers.any { fileSystem.exists(projectDir / it) }
 
 	/**
-	 * Marks the existing directory for [projectName] as a project under [projectId], if it has no
+	 * Marks the existing top-level directory for [projectName] as a project under [projectId], if it has no
 	 * [ProjectMetadata.FILENAME]. Any sync journal it holds may be stale, so it is reset like a
 	 * restored backup's (see [resetSyncStateAfterRestore]). Does not migrate: the caller does, then
 	 * resets again, since migration can move a pre-4 settings file's stale baseline into place.
@@ -338,13 +434,12 @@ class ProjectsRepository(
 	}
 
 	/**
-	 * Re-marks every directory that lost its [ProjectMetadata.FILENAME] but still holds Hammer
-	 * content, each under a fresh id. Directories without such content stay ignored.
+	 * Re-marks every directory, at any level, that lost its [ProjectMetadata.FILENAME] but still holds
+	 * Hammer content, each under a fresh id. Directories without such content stay ignored.
 	 */
 	suspend fun healUnmarkedProjectDirectories(): List<ProjectDef> =
-		listCandidateDirectories(getProjectsDirectory().toOkioPath())
-			.filter { (_, dir) -> isUnmarked(dir) && hasProjectContent(dir) }
-			.mapNotNull { (name, dir) -> adoptUnmarkedDirectory(name, dir, ProjectId.randomUUID(), serverKnowsProject = false) }
+		scan().unmarked
+			.mapNotNull { adoptUnmarkedDirectory(it.name, it.dir, ProjectId.randomUUID(), serverKnowsProject = false) }
 
 	/** Returns up to [limit] projects ordered by `metadata.info.lastAccessed` descending, optionally excluding [excludeCurrent]. Projects with unreadable metadata sort last. */
 	fun getRecentProjects(limit: Int, excludeCurrent: ProjectDef? = null): List<ProjectDef> =
@@ -360,6 +455,7 @@ class ProjectsRepository(
 			.take(limit)
 			.map { it.first }
 
+	/** Where a top-level project named [projectName] lives; a project in a group lives elsewhere, see [ProjectDef.path]. */
 	fun getProjectDirectory(projectName: String): HPath {
 		val projectsDir = getProjectsDirectory().toOkioPath()
 		val projectDir = projectsDir.div(encodeForFilename(projectName))
@@ -372,56 +468,20 @@ class ProjectsRepository(
 	 * ProjectData baseline (empty data, null lastSyncedHash), or the first project sync
 	 * reads the seed as a phantom local edit and raises a spurious conflict. That case also passes
 	 * the server project's [projectId].
+	 *
+	 * The project goes in [group], or the top level when null. Its name must be free in every group,
+	 * since project names are unique per account.
 	 */
 	fun createProject(
 		projectName: String,
 		seedDefaultLanguage: Boolean,
 		projectId: ProjectId = ProjectId.randomUUID(),
+		group: GroupDef? = null,
 	): CResult<ProjectDef> {
 		val strippedName = projectName.trim()
 		val result = validateFileName(strippedName)
-		return if (isSuccess(result)) {
-			val projectsDir = getProjectsDirectory().toOkioPath()
-			val newProjectDir = projectsDir.div(encodeForFilename(strippedName))
-			if (fileSystem.exists(newProjectDir)) {
-				CResult.failure(ProjectCreationFailedException(Res.string.create_project_error_already_exists))
-			} else {
-				fileSystem.createDirectory(newProjectDir)
-
-				val newDef = ProjectDef(
-					id = projectId,
-					name = strippedName,
-					path = newProjectDir.toHPath()
-				)
-
-				val metadata = ProjectMetadata(
-					info = Info(
-						created = Clock.System.now(),
-						lastAccessed = Clock.System.now(),
-						dataVersion = PROJECT_DATA_VERSION,
-						projectId = projectId,
-					)
-				)
-				projectsMetadataDatasource.saveMetadata(metadata, newDef)
-
-				if (seedDefaultLanguage) {
-					// New projects start declared in the device's language, without a region:
-					// the auto-default must never gate spell check against a same-language
-					// dictionary of another region (en vs en-GB). Users can pick a full tag
-					// in project settings.
-					val languageTag = deviceLocaleResolver.getCurrentLocale().language
-					saveStoredProjectData(
-						newDef,
-						fileSystem,
-						toml,
-						StoredProjectData(data = ProjectData(language = languageTag)),
-					)
-				}
-
-				CResult.success(newDef)
-			}
-		} else {
-			CResult.failure(
+		if (!isSuccess(result)) {
+			return CResult.failure(
 				error = result.error,
 				displayMessage = result.displayMessage,
 				exception = ProjectCreationFailedException(
@@ -429,37 +489,110 @@ class ProjectsRepository(
 				)
 			)
 		}
+
+		val parentDir = group?.path?.toOkioPath() ?: getProjectsDirectory().toOkioPath()
+		if (fileSystem.metadataOrNull(parentDir)?.isDirectory != true) {
+			return projectCreationFailure(Res.string.create_project_error_group_missing)
+		}
+		val newProjectDir = parentDir / encodeForFilename(strippedName)
+		if (fileSystem.exists(newProjectDir) || findProject(strippedName) != null) {
+			return projectCreationFailure(Res.string.create_project_error_already_exists)
+		}
+
+		fileSystem.createDirectory(newProjectDir)
+
+		val newDef = ProjectDef(
+			id = projectId,
+			name = strippedName,
+			path = newProjectDir.toHPath()
+		)
+
+		val metadata = ProjectMetadata(
+			info = Info(
+				created = Clock.System.now(),
+				lastAccessed = Clock.System.now(),
+				dataVersion = PROJECT_DATA_VERSION,
+				projectId = projectId,
+			)
+		)
+		projectsMetadataDatasource.saveMetadata(metadata, newDef)
+
+		if (seedDefaultLanguage) {
+			// New projects start declared in the device's language, without a region:
+			// the auto-default must never gate spell check against a same-language
+			// dictionary of another region (en vs en-GB). Users can pick a full tag
+			// in project settings.
+			val languageTag = deviceLocaleResolver.getCurrentLocale().language
+			saveStoredProjectData(
+				newDef,
+				fileSystem,
+				toml,
+				StoredProjectData(data = ProjectData(language = languageTag)),
+			)
+		}
+
+		return CResult.success(newDef)
+	}
+
+	private fun projectCreationFailure(message: StringResource): CResult<ProjectDef> =
+		CResult.failure(
+			error = "",
+			displayMessage = message.toMsg(),
+			exception = ProjectCreationFailedException(message),
+		)
+
+	/** Renames the project in place, within its group. The new name must be free in every group. */
+	fun renameProject(projectDef: ProjectDef, newName: String): CResult<ProjectDef> {
+		if (isProjectInUse(projectDef)) return projectRenameFailure(ProjectRenameFailed.Reason.ProjectInUse)
+		if (validateFileName(newName).isFailure) return projectRenameFailure(ProjectRenameFailed.Reason.InvalidName)
+
+		val projectDir = projectDef.path.toOkioPath()
+		if (!fileSystem.exists(projectDir)) return projectRenameFailure(ProjectRenameFailed.Reason.SourceDoesNotExist)
+
+		val newProjectDir = projectDir.parentOrRoot() / encodeForFilename(newName)
+		val nameTaken = findProject(newName)?.let { it.path != projectDef.path } == true
+		if (fileSystem.exists(newProjectDir) || nameTaken) {
+			return projectRenameFailure(ProjectRenameFailed.Reason.AlreadyExists)
+		}
+
+		return moveProjectDirectory(projectDir, newProjectDir) {
+			projectDef.copy(name = newName, path = newProjectDir.toHPath())
+		}
+	}
+
+	/**
+	 * Moves the project into [target], or the top level when null, keeping its name and id. Refused
+	 * for a project in use: its open scope is keyed by its path.
+	 */
+	fun moveProject(projectDef: ProjectDef, target: GroupDef?): CResult<ProjectDef> {
+		if (isProjectInUse(projectDef)) return projectRenameFailure(ProjectRenameFailed.Reason.ProjectInUse)
+
+		val projectDir = projectDef.path.toOkioPath()
+		if (!fileSystem.exists(projectDir)) return projectRenameFailure(ProjectRenameFailed.Reason.SourceDoesNotExist)
+
+		val targetDir = target?.path?.toOkioPath() ?: getProjectsDirectory().toOkioPath()
+		if (fileSystem.metadataOrNull(targetDir)?.isDirectory != true) {
+			return projectRenameFailure(ProjectRenameFailed.Reason.TargetMissing)
+		}
+
+		val newProjectDir = targetDir / projectDir.name
+		if (newProjectDir == projectDir) return CResult.success(projectDef)
+		if (fileSystem.exists(newProjectDir)) return projectRenameFailure(ProjectRenameFailed.Reason.AlreadyExists)
+
+		return moveProjectDirectory(projectDir, newProjectDir) { projectDef.copy(path = newProjectDir.toHPath()) }
 	}
 
 	@Suppress("SwallowedException") // IOException maps to a typed failure result
-	fun renameProject(projectDef: ProjectDef, newName: String): CResult<ProjectDef> {
-		if (isProjectInUse(projectDef)) {
-			return CResult.failure(ProjectRenameFailed(ProjectRenameFailed.Reason.ProjectInUse))
+	private fun moveProjectDirectory(source: Path, target: Path, moved: () -> ProjectDef): CResult<ProjectDef> =
+		try {
+			fileSystem.atomicMove(source = source, target = target)
+			CResult.success(moved())
+		} catch (e: IOException) {
+			projectRenameFailure(ProjectRenameFailed.Reason.MoveFailed)
 		}
-		if (validateFileName(newName).isFailure) {
-			return CResult.failure(ProjectRenameFailed(ProjectRenameFailed.Reason.InvalidName))
-		}
-
-		val projectDir = getProjectDirectory(projectDef.name).toOkioPath()
-		val newProjectDir = getProjectDirectory(newName).toOkioPath()
-		return if (fileSystem.exists(projectDir)) {
-			if (fileSystem.exists(newProjectDir).not()) {
-				try {
-					fileSystem.atomicMove(source = projectDir, target = newProjectDir)
-					CResult.success(projectDef.copy(name = newName, path = newProjectDir.toHPath()))
-				} catch (e: IOException) {
-					CResult.failure(ProjectRenameFailed(ProjectRenameFailed.Reason.MoveFailed))
-				}
-			} else {
-				CResult.failure(ProjectRenameFailed(ProjectRenameFailed.Reason.AlreadyExists))
-			}
-		} else {
-			CResult.failure(ProjectRenameFailed(ProjectRenameFailed.Reason.SourceDoesNotExist))
-		}
-	}
 
 	fun deleteProject(projectDef: ProjectDef): Boolean {
-		val projectDir = getProjectDirectory(projectDef.name).toOkioPath()
+		val projectDir = projectDef.path.toOkioPath()
 		return if (fileSystem.exists(projectDir)) {
 			fileSystem.deleteRecursively(projectDir)
 			true
@@ -467,6 +600,174 @@ class ProjectsRepository(
 			false
 		}
 	}
+
+	/**
+	 * Creates an empty group in [parent], or the top level when null. Account sync passes the server
+	 * group's [groupId]; a new group mints one.
+	 */
+	fun createGroup(
+		name: String,
+		parent: GroupDef?,
+		groupId: GroupId = GroupId.randomUUID(),
+		description: String? = null,
+	): CResult<GroupDef> {
+		val trimmedName = name.trim()
+		if (validateFileName(trimmedName).isFailure) return groupFailure(GroupOperationFailed.Reason.InvalidName)
+
+		val parentDir = parent?.path?.toOkioPath() ?: getProjectsDirectory().toOkioPath()
+		if (fileSystem.metadataOrNull(parentDir)?.isDirectory != true) {
+			return groupFailure(GroupOperationFailed.Reason.TargetMissing)
+		}
+		if (parent != null && depthBelowRoot(parentDir) + 1 > MAX_GROUP_NESTING_DEPTH) {
+			return groupFailure(GroupOperationFailed.Reason.TooDeep)
+		}
+
+		val groupDir = parentDir / encodeForFilename(trimmedName)
+		if (fileSystem.exists(groupDir)) return groupFailure(GroupOperationFailed.Reason.AlreadyExists)
+
+		fileSystem.createDirectory(groupDir)
+		groupMetadataDatasource.createMetadata(groupDir.toHPath(), groupId, description)
+		return CResult.success(GroupDef(groupId, trimmedName, groupDir.toHPath(), parent?.id, description))
+	}
+
+	/** Renames the group in place. Its name need only be free among its siblings. */
+	fun renameGroup(groupDef: GroupDef, newName: String): CResult<GroupDef> {
+		val trimmedName = newName.trim()
+		if (validateFileName(trimmedName).isFailure) return groupFailure(GroupOperationFailed.Reason.InvalidName)
+
+		val groupDir = groupDef.path.toOkioPath()
+		if (fileSystem.metadataOrNull(groupDir)?.isDirectory != true) {
+			return groupFailure(GroupOperationFailed.Reason.SourceDoesNotExist)
+		}
+
+		val newGroupDir = groupDir.parentOrRoot() / encodeForFilename(trimmedName)
+		if (newGroupDir == groupDir) return CResult.success(groupDef.copy(name = trimmedName))
+		if (isGroupInUse(groupDef)) return groupFailure(GroupOperationFailed.Reason.GroupInUse)
+		if (fileSystem.exists(newGroupDir)) return groupFailure(GroupOperationFailed.Reason.AlreadyExists)
+
+		return moveGroupDirectory(groupDir, newGroupDir) {
+			groupDef.copy(name = trimmedName, path = newGroupDir.toHPath())
+		}
+	}
+
+	/** Moves the group, with everything in it, into [newParent], or the top level when null. */
+	fun moveGroup(groupDef: GroupDef, newParent: GroupDef?): CResult<GroupDef> {
+		val groupDir = groupDef.path.toOkioPath()
+		if (fileSystem.metadataOrNull(groupDir)?.isDirectory != true) {
+			return groupFailure(GroupOperationFailed.Reason.SourceDoesNotExist)
+		}
+
+		val parentDir = newParent?.path?.toOkioPath() ?: getProjectsDirectory().toOkioPath()
+		if (parentDir.isSameOrUnder(groupDir)) return groupFailure(GroupOperationFailed.Reason.WouldCycle)
+		if (fileSystem.metadataOrNull(parentDir)?.isDirectory != true) {
+			return groupFailure(GroupOperationFailed.Reason.TargetMissing)
+		}
+
+		val newGroupDir = parentDir / groupDir.name
+		if (newGroupDir == groupDir) return CResult.success(groupDef.copy(parentId = newParent?.id))
+		if (isGroupInUse(groupDef)) return groupFailure(GroupOperationFailed.Reason.GroupInUse)
+
+		val parentDepth = if (newParent == null) 0 else depthBelowRoot(parentDir)
+		if (parentDepth + groupSubtreeHeight(groupDir) > MAX_GROUP_NESTING_DEPTH) {
+			return groupFailure(GroupOperationFailed.Reason.TooDeep)
+		}
+		if (fileSystem.exists(newGroupDir)) return groupFailure(GroupOperationFailed.Reason.AlreadyExists)
+
+		return moveGroupDirectory(groupDir, newGroupDir) {
+			groupDef.copy(path = newGroupDir.toHPath(), parentId = newParent?.id)
+		}
+	}
+
+	/** Levels of groups from [groupDir] down to its deepest subgroup: 1 when it has none. */
+	private fun groupSubtreeHeight(groupDir: Path): Int {
+		val depth = depthBelowRoot(groupDir)
+		val deepest = scan(groupDir, depth + 1).groups.maxOfOrNull { depthBelowRoot(it.dir) } ?: depth
+		return deepest - depth + 1
+	}
+
+	@Suppress("SwallowedException") // IOException maps to a typed failure result
+	private fun moveGroupDirectory(source: Path, target: Path, moved: () -> GroupDef): CResult<GroupDef> =
+		try {
+			fileSystem.atomicMove(source = source, target = target)
+			CResult.success(moved())
+		} catch (e: IOException) {
+			groupFailure(GroupOperationFailed.Reason.MoveFailed)
+		}
+
+	/**
+	 * Deletes the group but none of its contents: everything in it moves up one level first. Refused,
+	 * with nothing moved, when any entry would collide with one already in the parent.
+	 */
+	fun deleteGroup(groupDef: GroupDef): CResult<Unit> {
+		val groupDir = groupDef.path.toOkioPath()
+		val entries = fileSystem.listOrNull(groupDir)
+			?: return groupFailure(GroupOperationFailed.Reason.SourceDoesNotExist)
+		if (isGroupInUse(groupDef)) return groupFailure(GroupOperationFailed.Reason.GroupInUse)
+
+		val parentDir = groupDir.parentOrRoot()
+		val (osClutter, contents) = entries
+			.filter { it.name != GroupMetadata.FILENAME }
+			.partition { it.name in osClutterFiles && fileSystem.metadataOrNull(it)?.isRegularFile == true }
+		if (contents.any { fileSystem.exists(parentDir / it.name) }) {
+			return groupFailure(GroupOperationFailed.Reason.AlreadyExists)
+		}
+
+		return try {
+			contents.forEach { fileSystem.atomicMove(source = it, target = parentDir / it.name) }
+			osClutter.forEach { fileSystem.delete(it, mustExist = false) }
+			groupMetadataDatasource.deleteMetadata(groupDef.path)
+			fileSystem.delete(groupDir, mustExist = false)
+			CResult.success()
+		} catch (e: IOException) {
+			Napier.e("Failed to delete group '${groupDef.name}'", e)
+			groupFailure(GroupOperationFailed.Reason.MoveFailed)
+		}
+	}
+
+	/** True while any project in the group, at any depth, is in use; see [isProjectInUse]. */
+	fun isGroupInUse(groupDef: GroupDef): Boolean {
+		val groupDir = groupDef.path.toOkioPath()
+		return scan(groupDir, depthBelowRoot(groupDir) + 1).projects.any { isProjectInUse(it.dir.toHPath()) }
+	}
+
+	/**
+	 * Gives the group a different identity, as when account sync adopts a server group's id.
+	 * Throws [IOException] when the group's directory is gone.
+	 */
+	fun setGroupId(groupDef: GroupDef, groupId: GroupId): GroupDef {
+		groupMetadataDatasource.updateMetadata(groupDef.path) { it.copy(info = it.info.copy(groupId = groupId)) }
+		return groupDef.copy(id = groupId)
+	}
+
+	/** Throws [IOException] when the group's directory is gone. */
+	fun updateGroupDescription(groupDef: GroupDef, description: String?): GroupDef {
+		groupMetadataDatasource.updateMetadata(groupDef.path) {
+			it.copy(info = it.info.copy(description = description))
+		}
+		return groupDef.copy(description = description)
+	}
+
+	/** False for a group that cannot be read. */
+	@Suppress("SwallowedException")
+	fun isGroupCollapsed(groupDef: GroupDef): Boolean =
+		try {
+			groupMetadataDatasource.loadMetadata(groupDef.path).info.collapsed
+		} catch (e: IOException) {
+			false
+		}
+
+	/** Best effort: collapsed state is local display state, so a failed write is only logged. */
+	fun setGroupCollapsed(groupDef: GroupDef, collapsed: Boolean) {
+		try {
+			groupMetadataDatasource.updateMetadata(groupDef.path) {
+				it.copy(info = it.info.copy(collapsed = collapsed))
+			}
+		} catch (e: IOException) {
+			Napier.w("Failed to save collapsed state of group '${groupDef.name}'", e)
+		}
+	}
+
+	private fun Path.parentOrRoot(): Path = parent ?: getProjectsDirectory().toOkioPath()
 
 	/**
 	 * Drops a project's content but keeps the directory and its [ProjectMetadata.FILENAME], so the
@@ -512,6 +813,9 @@ class ProjectsRepository(
 		const val FILENAME_DELIMITER = ProjectNameValidator.FILENAME_DELIMITER
 
 		private val whitespaceCollapseRegex = Regex("""\s+""")
+
+		/** Files an OS drops into any folder it shows; deleting a group discards them rather than moving them up. */
+		private val osClutterFiles = setOf(".DS_Store", "Thumbs.db", "desktop.ini")
 
 		/** Entries that show a directory holds Hammer project content. */
 		private val projectContentMarkers = listOf(

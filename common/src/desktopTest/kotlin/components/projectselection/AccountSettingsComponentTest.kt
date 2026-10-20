@@ -19,6 +19,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.NewUserExperience
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.SpellCheckerSettings
+import com.darkrockstudios.apps.hammer.common.data.groupmetadata.GroupMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ClientAccountSynchronizer
@@ -127,6 +128,7 @@ class AccountSettingsComponentTest : BaseTest() {
 					fileSystem = hookedFs,
 					globalSettingsStore = globalSettingsStore,
 					projectsMetadataDatasource = ProjectMetadataDatasource(hookedFs, toml),
+					groupMetadataDatasource = GroupMetadataDatasource(hookedFs, toml),
 					toml = toml,
 					json = createJsonSerializer(),
 					deviceLocaleResolver = mockk(relaxed = true),
