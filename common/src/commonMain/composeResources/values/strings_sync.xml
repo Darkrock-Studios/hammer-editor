@@ -163,6 +163,32 @@
 	<string name="sync_log_account_project_adopt_folder">Recovered local folder for server project: %1$s</string>
 	<string name="sync_log_account_project_create_client_name_taken">Skipped server project %1$s: a local project of that name already syncs with a different server project</string>
 
+	<string name="sync_log_account_project_move_server_success">Moved project on server: %1$s</string>
+	<string name="sync_log_account_project_move_server_failure">Failed to move project on server: %1$s</string>
+	<string name="sync_log_account_project_move_client_from_server_success">Moved project from server: %1$s</string>
+	<string name="sync_log_account_project_move_client_from_server_failure">Failed to move project from server: %1$s</string>
+	<string name="sync_log_account_project_move_client_group_missing">Project %1$s belongs in a group this device does not have yet, so it was placed in the nearest one it has</string>
+
+	<string name="sync_log_account_group_create_server_success">Created group on server: %1$s</string>
+	<string name="sync_log_account_group_create_server_failure">Failed to create group on server: %1$s</string>
+	<string name="sync_log_account_group_create_client_success">Created local group: %1$s</string>
+	<string name="sync_log_account_group_create_client_failure">Failed to create local group from server: %1$s</string>
+	<string name="sync_log_account_group_adopt_server">Group %1$s joined the server group of the same name</string>
+	<string name="sync_log_account_group_id_reminted">Group %1$s: its ID belongs to another account, assigned it a new one</string>
+	<string name="sync_log_account_group_update_server_success">Updated group on server: %1$s</string>
+	<string name="sync_log_account_group_update_server_failure">Failed to update group on server: %1$s</string>
+	<string name="sync_log_account_group_update_server_cycle">Group %1$s was not moved on the server: it would end up inside itself</string>
+	<string name="sync_log_account_group_update_server_too_deep">Group %1$s was not moved on the server: groups would nest too deeply</string>
+	<string name="sync_log_account_group_update_client_from_server_success">Updated group from server: %1$s</string>
+	<string name="sync_log_account_group_update_client_from_server_failure">Failed to update group from server: %1$s</string>
+	<string name="sync_log_account_group_delete_server_success">Deleted group on server: %1$s</string>
+	<string name="sync_log_account_group_delete_server_failure">Failed to delete group on server: %1$s</string>
+	<string name="sync_log_account_group_delete_client_success">Deleted local group: %1$s</string>
+	<string name="sync_log_account_group_delete_client_failure">Failed to delete local group: %1$s</string>
+	<string name="sync_log_account_group_name_taken_client">Server group %1$s was created here as %2$s: a folder of that name already exists</string>
+	<string name="sync_log_account_group_skipped_parent_failed">Skipped group %1$s: its parent group could not be synced</string>
+	<string name="sync_log_account_group_in_use">Skipped group %1$s: a project in it is in use. Close it and sync again</string>
+
 	<string name="sync_log_begin_account">Syncing Account...</string>
 	<string name="sync_log_begin_projects">Syncing Projects...</string>
 	<string name="sync_log_end_projects">Projects Sync Complete</string>

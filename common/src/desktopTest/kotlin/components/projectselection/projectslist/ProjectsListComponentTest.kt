@@ -209,7 +209,6 @@ class ProjectsListComponentTest : ComponentTest() {
 			verify { projectsRepository.createProject("Novel", any(), any()) }
 			// Account sync uploads every local id the server does not know; nothing is queued.
 			coVerify(exactly = 0) { synchronizer.deleteProject(any()) }
-			coVerify(exactly = 0) { synchronizer.renameProject(any(), any()) }
 			assertEquals("", comp.state.value.createDialogProjectName)
 		}
 
@@ -436,7 +435,7 @@ class ProjectsListComponentTest : ComponentTest() {
 	// --- renameProject -------------------------------------------------------
 
 	@Test
-	fun `renameProject renames locally and queues the server rename by id`() =
+	fun `renameProject renames locally and reloads without queueing anything`() =
 		runTest(mainTestDispatcher) {
 			every { projectsRepository.renameProject(projectDefA, "Beta") } returns CResult.success(projectDefA)
 			val comp = newComponent()
@@ -444,11 +443,13 @@ class ProjectsListComponentTest : ComponentTest() {
 			comp.renameProject(projectDefA, "Beta")
 			advanceUntilIdle()
 
-			coVerify { synchronizer.renameProject(projectDefA.id, "Beta") }
+			// Account sync finds the rename on disk through its baseline.
+			verify { projectsRepository.getProjects(any()) }
+			coVerify(exactly = 0) { synchronizer.deleteProject(any()) }
 		}
 
 	@Test
-	fun `renameProject failure does not sync or reload`() = runTest(mainTestDispatcher) {
+	fun `renameProject failure does not reload`() = runTest(mainTestDispatcher) {
 		every { projectsRepository.renameProject(projectDefA, "Beta") } returns
 			CResult.failure(error = "nope")
 		val comp = newComponent()
@@ -456,7 +457,6 @@ class ProjectsListComponentTest : ComponentTest() {
 		comp.renameProject(projectDefA, "Beta")
 		advanceUntilIdle()
 
-		coVerify(exactly = 0) { synchronizer.renameProject(any(), any()) }
 		verify(exactly = 0) { projectsRepository.getProjects(any()) }
 	}
 

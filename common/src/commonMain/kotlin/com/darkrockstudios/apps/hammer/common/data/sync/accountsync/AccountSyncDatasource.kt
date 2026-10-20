@@ -2,7 +2,7 @@ package com.darkrockstudios.apps.hammer.common.data.sync.accountsync
 
 import com.darkrockstudios.apps.hammer.common.data.ProjectsDirectory
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectsSynchronizationData
-import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcherNow
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
@@ -19,7 +19,7 @@ class AccountSyncDatasource(
 	private val json: Json,
 	private val projectsDirectory: ProjectsDirectory,
 ) : KoinComponent {
-	private val ioDispatcher = injectIoDispatcherNow()
+	private val ioDispatcher by injectIoDispatcher()
 
 	fun getSyncDataPath(): HPath = (projectsDirectory.current().toOkioPath() / SYNC_FILE_NAME).toHPath()
 

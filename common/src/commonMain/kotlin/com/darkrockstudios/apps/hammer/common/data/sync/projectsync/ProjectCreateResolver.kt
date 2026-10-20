@@ -1,9 +1,11 @@
 package com.darkrockstudios.apps.hammer.common.data.sync.projectsync
 
+import com.darkrockstudios.apps.hammer.base.GroupId
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.ApiErrorCode
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.AccountSyncDatasource
 import com.darkrockstudios.apps.hammer.common.server.HttpFailureException
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectsApi
 import io.github.aakira.napier.Napier
@@ -46,25 +48,36 @@ sealed interface ServerCreateOutcome {
  * Creates a local project on the server under its own id, shared by account sync and project sync
  * so both resolve the server's answers the same way: a same-name project on the account is adopted
  * unless another local project already holds its id, an id held by another account is re-minted
- * once, and a tombstoned id is reported, not retried.
+ * once, and a tombstoned id is reported, not retried. A created project's account sync baseline
+ * records the placement the server answers with, which differs from the requested one when an
+ * existing project was matched.
  */
 class ProjectCreateResolver(
 	private val serverProjectsApi: ServerProjectsApi,
 	private val projectsRepository: ProjectsRepository,
+	private val accountSyncDatasource: AccountSyncDatasource,
 ) {
 	// The server holds one account sync session per install, and a second begin replaces the
 	// first, so projects syncing in parallel must not open their sessions concurrently.
 	private val sessionLock = Mutex()
 
-	/** Creates [projectDef] within the open account sync session [syncId]. */
-	suspend fun create(projectDef: ProjectDef, syncId: String): ServerCreateOutcome =
-		create(projectDef, syncId, mayChangeId = true)
+	/**
+	 * Creates [projectDef] within the open account sync session [syncId], in [groupId] or the top
+	 * level. [groupId] must be a group the server holds.
+	 */
+	suspend fun create(projectDef: ProjectDef, syncId: String, groupId: GroupId? = null): ServerCreateOutcome =
+		create(projectDef, syncId, groupId, mayChangeId = true)
 
-	private suspend fun create(projectDef: ProjectDef, syncId: String, mayChangeId: Boolean): ServerCreateOutcome {
+	private suspend fun create(
+		projectDef: ProjectDef,
+		syncId: String,
+		groupId: GroupId?,
+		mayChangeId: Boolean,
+	): ServerCreateOutcome {
 		var def = projectDef
 		var reminted = false
 		while (true) {
-			val result = serverProjectsApi.createProject(def.name, def.id, syncId)
+			val result = serverProjectsApi.createProject(def.name, def.id, syncId, groupId)
 			val error = result.exceptionOrNull()
 			when {
 				error == null -> {
@@ -89,6 +102,7 @@ class ProjectCreateResolver(
 						Napier.i("'${def.name}' adopted server project ${response.projectId.id}")
 						projectsRepository.setProjectId(def, response.projectId)
 					}
+					recordBaseline(response.projectId, ProjectBaseline(def.name, response.groupId))
 					return ServerCreateOutcome.Created(response.alreadyExisted, reminted)
 				}
 
@@ -116,11 +130,15 @@ class ProjectCreateResolver(
 		val begin = serverProjectsApi.beginProjectsSync()
 		val syncId = begin.getOrElse { return ServerCreateOutcome.Failed(it) }.syncId
 		try {
-			create(projectDef, syncId, mayChangeId = false)
+			create(projectDef, syncId, groupId = null, mayChangeId = false)
 		} finally {
 			withContext(NonCancellable) { serverProjectsApi.endProjectsSync(syncId) }
 		}
 	}
+
+	private suspend fun recordBaseline(projectId: ProjectId, baseline: ProjectBaseline) {
+		accountSyncDatasource.update { it.copy(projectBaselines = it.projectBaselines + (projectId to baseline)) }
+	}
 }
 
-private fun Throwable.apiErrorCode(): String? = (this as? HttpFailureException)?.error?.errorCode
+internal fun Throwable.apiErrorCode(): String? = (this as? HttpFailureException)?.error?.errorCode

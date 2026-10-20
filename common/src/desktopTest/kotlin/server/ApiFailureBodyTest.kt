@@ -29,6 +29,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
+import utils.RecordingStrRes
 
 /**
  * What the server said about a failure has to survive the trip to the user. A 401

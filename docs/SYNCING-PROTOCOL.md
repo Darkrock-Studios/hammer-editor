@@ -77,16 +77,16 @@ project is uploaded. A local project with the same name adopts the server's ID i
 already bound to another live server project. So does a directory of that name with no
 `project.toml`, which is then treated like a restored backup.
 
-Queued renames and deletes name a project by ID, so one the server cannot act on is dropped without
-being sent rather than retried every session:
+Renames are not queued: a project's name is reconciled against its sync baseline like its placement
+(see [Project groups phase](#project-groups-phase)), so a project renamed outside the app syncs too.
+Older clients queued renames; the first sync after upgrading turns each queued rename into a baseline
+holding the server's current name, which makes the local name win, and drops one whose ID the server
+does not list.
 
-- A **rename** queued against an ID the server does not know is dropped. Creation already covers it,
-  because the project is created under its current local name. A rename queued against a
-  **tombstoned** ID is dropped for the same reason: the delete phase has already removed the project
-  locally, and the server has nothing left to rename.
-- A **delete** queued against an ID the server does not know is dropped. The project was deleted
-  before it ever reached the server, and a tombstone for its ID would only refuse a later create of
-  that ID.
+Queued deletes name a project by ID, so one the server cannot act on is dropped without being sent
+rather than retried every session: a **delete** queued against an ID the server does not know is
+dropped. The project was deleted before it ever reached the server, and a tombstone for its ID would
+only refuse a later create of that ID.
 
 Any given user account may only have one sync in progress at a time. Attempting to start a sync when
 one is already in progress will result in a failure to begin the sync (`400 Bad Request`).

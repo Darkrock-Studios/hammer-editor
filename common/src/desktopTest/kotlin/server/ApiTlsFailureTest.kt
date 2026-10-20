@@ -28,6 +28,7 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
+import utils.RecordingStrRes
 
 /**
  * A server reachable only over plain HTTP fails the client's TLS handshake, which needs to read as

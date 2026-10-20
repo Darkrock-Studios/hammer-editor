@@ -10,6 +10,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectInUseException
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectRenameFailed
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectTree
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectContentHasher
@@ -19,9 +20,12 @@ import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDataso
 import com.darkrockstudios.apps.hammer.common.data.projectdata.StoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.AccountSyncDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ClientAccountSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ProjectAttributeSyncPhase
+import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.groups.GroupSyncPhase
 import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.ClientIdeasSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityOriginalState
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectCreateResolver
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectBaseline
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectSynchronizationData
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectsSynchronizationData
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.RenamedProject
@@ -55,6 +59,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import testProjectId
 import utils.BaseTest
+import utils.RecordingStrRes
 import utils.projectsDirectoryOf
 import utils.TestStrRes
 import kotlin.test.assertEquals
@@ -89,6 +94,12 @@ class ClientAccountSynchronizerTest : BaseTest() {
 
 	private fun readSyncData(): ProjectsSynchronizationData =
 		json.decodeFromString(ffs.read(syncFilePath) { readUtf8() })
+
+	/** The local projects, all at the top level. */
+	private fun stubLocalProjects(projects: List<ProjectDef>) {
+		every { projectsRepository.getProjectTree(any()) } returns
+			ProjectTree(emptyList(), projects, projects.associate { it.id to null })
+	}
 
 	private fun emptyServerResponse(syncId: String = "sync-1") = BeginProjectsSyncResponse(
 		syncId = syncId,
@@ -126,7 +137,9 @@ class ClientAccountSynchronizerTest : BaseTest() {
 		projectsRepository = projectsRepository,
 		serverProjectsApi = serverProjectsApi,
 		accountSyncDatasource = accountSyncDatasource(),
-		projectCreateResolver = ProjectCreateResolver(serverProjectsApi, projectsRepository),
+		groupSyncPhase = GroupSyncPhase(projectsRepository, serverProjectsApi, strRes),
+		projectAttributeSyncPhase = ProjectAttributeSyncPhase(projectsRepository, serverProjectsApi, strRes),
+		projectCreateResolver = ProjectCreateResolver(serverProjectsApi, projectsRepository, accountSyncDatasource()),
 		ideasSynchronizer = ideasSynchronizer,
 		dataMigrator = dataMigrator,
 		networkConnectivity = networkConnectivity,
@@ -134,20 +147,6 @@ class ClientAccountSynchronizerTest : BaseTest() {
 		toml = Toml,
 		strRes = strRes,
 	)
-
-	private class RecordingStrRes : StrRes {
-		val calls = mutableListOf<Pair<StringResource, List<Any>>>()
-
-		override suspend fun get(str: StringResource): String {
-			calls.add(str to emptyList())
-			return "test"
-		}
-
-		override suspend fun get(str: StringResource, vararg args: Any): String {
-			calls.add(str to args.toList())
-			return "test"
-		}
-	}
 
 	@BeforeEach
 	override fun setup() {
@@ -168,6 +167,7 @@ class ClientAccountSynchronizerTest : BaseTest() {
 		every { globalSettingsStore.globalSettings } returns GlobalSettings(projectsDirectory = "/projects")
 		every { globalSettingsStore.serverSettings } returns serverSettings(userId = 1)
 		every { projectsRepository.getProjectsDirectory() } returns HPath("/projects", "projects", true)
+		every { projectsRepository.getProjectTree(any()) } returns ProjectTree.EMPTY
 		every { projectsRepository.findProject(any<ProjectId>()) } returns null
 		coEvery { projectsRepository.adoptUnmarkedDirectory(any(), any(), any()) } returns null
 
@@ -386,28 +386,6 @@ class ClientAccountSynchronizerTest : BaseTest() {
 	}
 
 	@Test
-	fun `renameProject records a pending rename`() = runTest {
-		writeSyncData(emptySyncData())
-		val id = ProjectId.randomUUID()
-
-		createSynchronizer().renameProject(id, "NewName")
-
-		assertEquals(setOf(RenamedProject(id, "NewName")), readSyncData().projectsToRename)
-	}
-
-	@Test
-	fun `renameProject replaces an earlier rename of the same project`() = runTest {
-		writeSyncData(emptySyncData())
-		val id = ProjectId.randomUUID()
-		val sync = createSynchronizer()
-
-		sync.renameProject(id, "FirstName")
-		sync.renameProject(id, "SecondName")
-
-		assertEquals(setOf(RenamedProject(id, "SecondName")), readSyncData().projectsToRename)
-	}
-
-	@Test
 	fun `deleteProject queues deletion and clears a pending rename`() = runTest {
 		val id = ProjectId.randomUUID()
 		val def = projectDef("MyNovel", id)
@@ -431,17 +409,17 @@ class ClientAccountSynchronizerTest : BaseTest() {
 		)
 
 		// Any mutation forces a load+save cycle.
-		createSynchronizer().renameProject(ProjectId.randomUUID(), "AnyProject")
+		createSynchronizer().deleteProject(projectDef("AnyProject", ProjectId.randomUUID()))
 
 		val result = readSyncData()
-		assertEquals(setOf(validId), result.projectsToDelete)
+		assertTrue(validId in result.projectsToDelete)
 		assertEquals(setOf(validId), result.deletedProjects)
 	}
 
 	@Test
 	fun `syncProjects with no changes ends the sync and reports success`() = runTest {
 		writeSyncData(emptySyncData())
-		every { projectsRepository.getProjects(any()) } returns emptyList()
+		stubLocalProjects(emptyList())
 
 		var unauthorized = false
 		val result = createSynchronizer().syncProjects(onLog = {}, onUnauthorized = { unauthorized = true })
@@ -482,7 +460,7 @@ class ClientAccountSynchronizerTest : BaseTest() {
 		val localId = ProjectId.randomUUID()
 		val def = projectDef("LocalNovel", localId)
 
-		every { projectsRepository.getProjects(any()) } returns listOf(def)
+		stubLocalProjects(listOf(def))
 		coEvery { serverProjectsApi.createProject("LocalNovel", localId, "sync-1") } returns
 			Result.success(CreateProjectResponse(localId, alreadyExisted = false))
 
@@ -501,7 +479,7 @@ class ClientAccountSynchronizerTest : BaseTest() {
 		val def = projectDef("LocalNovel", localId)
 
 		// Another device created a same-named project after this sync's begin_sync snapshot.
-		every { projectsRepository.getProjects(any()) } returns listOf(def)
+		stubLocalProjects(listOf(def))
 		coEvery { serverProjectsApi.createProject("LocalNovel", localId, "sync-1") } returns
 			Result.success(CreateProjectResponse(serverId, alreadyExisted = true))
 
@@ -521,7 +499,7 @@ class ClientAccountSynchronizerTest : BaseTest() {
 
 		// "Bar" was renamed from "Foo" here, but the server still has it as "Foo", so it answers the
 		// new "Foo" with Bar's id.
-		every { projectsRepository.getProjects(any()) } returns listOf(def)
+		stubLocalProjects(listOf(def))
 		every { projectsRepository.findProject(renamedId) } returns renamed
 		coEvery { serverProjectsApi.createProject("Foo", localId, "sync-1") } returns
 			Result.success(CreateProjectResponse(renamedId, alreadyExisted = true))
@@ -544,7 +522,7 @@ class ClientAccountSynchronizerTest : BaseTest() {
 		val def = projectDef("LocalNovel", takenId)
 		val reminted = slot<ProjectId>()
 
-		every { projectsRepository.getProjects(any()) } returns listOf(def)
+		stubLocalProjects(listOf(def))
 		coEvery { projectsRepository.setProjectId(def, capture(reminted)) } answers { def.copy(id = reminted.captured) }
 		var attempts = 0
 		coEvery { serverProjectsApi.createProject("LocalNovel", any(), "sync-1") } answers {
@@ -573,7 +551,7 @@ class ClientAccountSynchronizerTest : BaseTest() {
 		val def = projectDef("LocalNovel", ProjectId.randomUUID())
 		val reminted = slot<ProjectId>()
 
-		every { projectsRepository.getProjects(any()) } returns listOf(def)
+		stubLocalProjects(listOf(def))
 		coEvery { projectsRepository.setProjectId(def, capture(reminted)) } answers { def.copy(id = reminted.captured) }
 		coEvery { serverProjectsApi.createProject("LocalNovel", any(), "sync-1") } returns
 			Result.failure(conflict(ApiErrorCode.PROJECT_ID_TAKEN))
@@ -593,7 +571,7 @@ class ClientAccountSynchronizerTest : BaseTest() {
 		val id = ProjectId.randomUUID()
 		val def = projectDef("LocalNovel", id)
 
-		every { projectsRepository.getProjects(any()) } returns listOf(def)
+		stubLocalProjects(listOf(def))
 		coEvery { serverProjectsApi.createProject("LocalNovel", id, "sync-1") } returns
 			Result.failure(conflict(ApiErrorCode.PROJECT_DELETED))
 
@@ -616,7 +594,7 @@ class ClientAccountSynchronizerTest : BaseTest() {
 
 		// The server has no record of this id at all: not a live project, not a tombstone.
 		// This is what a client sees after syncing against a different or since-reset server.
-		every { projectsRepository.getProjects(any()) } returns listOf(def)
+		stubLocalProjects(listOf(def))
 		coEvery { serverProjectsApi.createProject("ResetServerNovel", staleId, "sync-1") } returns
 			Result.success(CreateProjectResponse(staleId, alreadyExisted = false))
 
@@ -637,7 +615,7 @@ class ClientAccountSynchronizerTest : BaseTest() {
 		writeSyncData(emptySyncData().copy(deletedProjects = setOf(id)))
 		coEvery { serverProjectsApi.beginProjectsSync() } returns
 			Result.success(emptyServerResponse().copy(deletedProjects = setOf(id)))
-		every { projectsRepository.getProjects(any()) } returns listOf(def)
+		stubLocalProjects(listOf(def))
 
 		val result = createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
 
@@ -655,7 +633,7 @@ class ClientAccountSynchronizerTest : BaseTest() {
 		coEvery { serverProjectsApi.beginProjectsSync() } returns Result.success(
 			emptyServerResponse().copy(projects = setOf(ApiProjectDefinition("KnownNovel", id)))
 		)
-		every { projectsRepository.getProjects(any()) } returns listOf(def)
+		stubLocalProjects(listOf(def))
 
 		val result = createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
 
@@ -676,7 +654,7 @@ class ClientAccountSynchronizerTest : BaseTest() {
 			emptyServerResponse().copy(projects = setOf(ApiProjectDefinition("DoomedNovel", id)))
 		)
 		coEvery { serverProjectsApi.deleteProject(id, "sync-1") } returns Result.success("ok")
-		every { projectsRepository.getProjects(any()) } returns listOf(def)
+		stubLocalProjects(listOf(def))
 
 		val result = createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
 
@@ -692,7 +670,7 @@ class ClientAccountSynchronizerTest : BaseTest() {
 		coEvery { serverProjectsApi.beginProjectsSync() } returns Result.success(
 			emptyServerResponse().copy(projects = setOf(ApiProjectDefinition("Doomed", id)))
 		)
-		every { projectsRepository.getProjects(any()) } returns emptyList()
+		stubLocalProjects(emptyList())
 		coEvery { serverProjectsApi.deleteProject(id, "sync-1") } returns Result.success("ok")
 
 		val result = createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
@@ -708,7 +686,7 @@ class ClientAccountSynchronizerTest : BaseTest() {
 	fun `syncProjects drops a queued deletion for an id the server never knew`() = runTest {
 		val id = ProjectId.randomUUID()
 		writeSyncData(emptySyncData().copy(projectsToDelete = setOf(id)))
-		every { projectsRepository.getProjects(any()) } returns emptyList()
+		stubLocalProjects(emptyList())
 
 		val result = createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
 
@@ -728,7 +706,7 @@ class ClientAccountSynchronizerTest : BaseTest() {
 		coEvery { serverProjectsApi.beginProjectsSync() } returns
 			Result.success(emptyServerResponse().copy(deletedProjects = setOf(id)))
 		every { projectsRepository.findProject(id) } returns def
-		every { projectsRepository.getProjects(any()) } returns emptyList()
+		stubLocalProjects(emptyList())
 
 		val result = createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
 
@@ -740,7 +718,7 @@ class ClientAccountSynchronizerTest : BaseTest() {
 	fun `syncProjects drops a rename queued against an id the server never knew`() = runTest {
 		val deadId = ProjectId.randomUUID()
 		writeSyncData(emptySyncData().copy(projectsToRename = setOf(RenamedProject(deadId, "NewName"))))
-		every { projectsRepository.getProjects(any()) } returns emptyList()
+		stubLocalProjects(emptyList())
 
 		val result = createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
 
@@ -751,20 +729,40 @@ class ClientAccountSynchronizerTest : BaseTest() {
 	}
 
 	@Test
-	fun `syncProjects renames a project on the server`() = runTest {
+	fun `syncProjects pushes a legacy queued rename once, then clears the queue`() = runTest {
 		val id = ProjectId.randomUUID()
 		writeSyncData(emptySyncData().copy(projectsToRename = setOf(RenamedProject(id, "NewName"))))
 		coEvery { serverProjectsApi.beginProjectsSync() } returns Result.success(
 			emptyServerResponse().copy(projects = setOf(ApiProjectDefinition("OldName", id)))
 		)
-		every { projectsRepository.getProjects(any()) } returns emptyList()
+		stubLocalProjects(listOf(projectDef("NewName", id)))
 		coEvery { serverProjectsApi.renameProject(id, "sync-1", "NewName") } returns Result.success("ok")
 
 		val result = createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
 
 		assertTrue(result)
-		coVerify { serverProjectsApi.renameProject(id, "sync-1", "NewName") }
-		assertTrue(readSyncData().projectsToRename.isEmpty())
+		coVerify(exactly = 1) { serverProjectsApi.renameProject(id, "sync-1", "NewName") }
+		val stored = readSyncData()
+		assertTrue(stored.projectsToRename.isEmpty())
+		assertEquals(ProjectBaseline("NewName"), stored.projectBaselines[id])
+	}
+
+	@Test
+	fun `a legacy queued rename that fails keeps its seed so the next sync pushes it again`() = runTest {
+		val id = ProjectId.randomUUID()
+		writeSyncData(emptySyncData().copy(projectsToRename = setOf(RenamedProject(id, "NewName"))))
+		coEvery { serverProjectsApi.beginProjectsSync() } returns Result.success(
+			emptyServerResponse().copy(projects = setOf(ApiProjectDefinition("OldName", id)))
+		)
+		stubLocalProjects(listOf(projectDef("NewName", id)))
+		coEvery { serverProjectsApi.renameProject(id, "sync-1", "NewName") } returns
+			Result.failure(conflict("name_taken"))
+
+		createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
+
+		val stored = readSyncData()
+		assertTrue(stored.projectsToRename.isEmpty())
+		assertEquals(ProjectBaseline("OldName"), stored.projectBaselines[id])
 	}
 
 	@Test
@@ -789,7 +787,7 @@ class ClientAccountSynchronizerTest : BaseTest() {
 		)
 		coEvery { serverProjectsApi.deleteProject(deletedId, "sync-1") } returns Result.success("ok")
 		coEvery { serverProjectsApi.renameProject(keptId, "sync-1", "FooBar") } returns Result.success("ok")
-		every { projectsRepository.getProjects(any()) } returns listOf(keptDef)
+		stubLocalProjects(listOf(keptDef))
 
 		val result = createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
 
@@ -811,7 +809,7 @@ class ClientAccountSynchronizerTest : BaseTest() {
 		coEvery { serverProjectsApi.beginProjectsSync() } returns
 			Result.success(emptyServerResponse().copy(deletedProjects = setOf(id)))
 		every { projectsRepository.findProject(id) } returns def
-		every { projectsRepository.getProjects(any()) } returns emptyList()
+		stubLocalProjects(emptyList())
 
 		val result = createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
 
@@ -831,7 +829,7 @@ class ClientAccountSynchronizerTest : BaseTest() {
 		coEvery { serverProjectsApi.beginProjectsSync() } returns
 			Result.success(emptyServerResponse().copy(projects = setOf(serverProject)))
 		coEvery { serverProjectsApi.deleteProject(id, "sync-1") } returns Result.success("ok")
-		every { projectsRepository.getProjects(any()) } returns emptyList()
+		stubLocalProjects(emptyList())
 		every { projectsRepository.findProject(any<String>()) } returns null
 		every { projectsRepository.createProject(any(), any(), any()) } returns CResult.success(projectDef("DeadNovel"))
 
@@ -852,7 +850,7 @@ class ClientAccountSynchronizerTest : BaseTest() {
 
 		coEvery { serverProjectsApi.beginProjectsSync() } returns
 			Result.success(emptyServerResponse().copy(projects = setOf(serverProject)))
-		every { projectsRepository.getProjects(any()) } returns emptyList()
+		stubLocalProjects(emptyList())
 		every { projectsRepository.findProject("ServerNovel") } returns null
 		every { projectsRepository.createProject("ServerNovel", any(), any()) } returns CResult.success(createdDef)
 
@@ -873,7 +871,7 @@ class ClientAccountSynchronizerTest : BaseTest() {
 
 		coEvery { serverProjectsApi.beginProjectsSync() } returns
 			Result.success(emptyServerResponse().copy(projects = setOf(ApiProjectDefinition("ServerNovel", serverId))))
-		every { projectsRepository.getProjects(any()) } returns emptyList()
+		stubLocalProjects(emptyList())
 		every { projectsRepository.findProject("ServerNovel") } returns null
 		coEvery { projectsRepository.adoptUnmarkedDirectory("ServerNovel", serverId, true) } returns adoptedDef
 
@@ -901,7 +899,7 @@ class ClientAccountSynchronizerTest : BaseTest() {
 
 		coEvery { serverProjectsApi.beginProjectsSync() } returns
 			Result.success(emptyServerResponse().copy(projects = setOf(ApiProjectDefinition("ServerNovel", serverId))))
-		every { projectsRepository.getProjects(any()) } returns emptyList()
+		stubLocalProjects(emptyList())
 		every { projectsRepository.findProject("ServerNovel") } returns null
 		coEvery { projectsRepository.adoptUnmarkedDirectory("ServerNovel", serverId, true) } returns adoptedDef
 		every { dataMigrator.migrateProject(adoptedDef) } throws IllegalStateException("bad data")
@@ -928,7 +926,7 @@ class ClientAccountSynchronizerTest : BaseTest() {
 				)
 			)
 		)
-		every { projectsRepository.getProjects(any()) } returns emptyList()
+		stubLocalProjects(emptyList())
 		every { projectsRepository.findProject(any<String>()) } returns null
 		coEvery { projectsRepository.adoptUnmarkedDirectory("Unwritable", brokenId, true) } throws
 			IOException("read-only folder")
@@ -954,7 +952,7 @@ class ClientAccountSynchronizerTest : BaseTest() {
 
 		coEvery { serverProjectsApi.beginProjectsSync() } returns
 			Result.success(emptyServerResponse().copy(projects = setOf(ApiProjectDefinition("ServerNovel", serverId))))
-		every { projectsRepository.getProjects(any()) } returns emptyList()
+		stubLocalProjects(emptyList())
 		every { projectsRepository.findProject("ServerNovel") } returns null
 		coEvery { projectsRepository.adoptUnmarkedDirectory("ServerNovel", serverId, true) } returns adoptedDef
 		coEvery { projectsRepository.resetSyncStateAfterRestore(adoptedDef, true) } throws IOException("disk full")
@@ -975,7 +973,7 @@ class ClientAccountSynchronizerTest : BaseTest() {
 
 		coEvery { serverProjectsApi.beginProjectsSync() } returns
 			Result.success(emptyServerResponse().copy(projects = setOf(serverProject)))
-		every { projectsRepository.getProjects(any()) } returns emptyList()
+		stubLocalProjects(emptyList())
 		every { projectsRepository.findProject("ServerNovel") } returns null
 		every { projectsRepository.createProject("ServerNovel", any(), any()) } returns
 			CResult.failure(error = "creation failed")
@@ -999,7 +997,7 @@ class ClientAccountSynchronizerTest : BaseTest() {
 		coEvery { serverProjectsApi.beginProjectsSync() } returns Result.success(
 			emptyServerResponse().copy(projects = setOf(ApiProjectDefinition("MyNovel", serverId)))
 		)
-		every { projectsRepository.getProjects(any()) } returns listOf(def)
+		stubLocalProjects(listOf(def))
 		every { projectsRepository.findProject("MyNovel") } returns def
 		coEvery { serverProjectsApi.createProject("MyNovel", any(), "sync-1") } returns
 			Result.success(CreateProjectResponse(duplicateId, alreadyExisted = false))
@@ -1033,7 +1031,7 @@ class ClientAccountSynchronizerTest : BaseTest() {
 				)
 			)
 		)
-		every { projectsRepository.getProjects(any()) } returns listOf(def)
+		stubLocalProjects(listOf(def))
 		every { projectsRepository.findProject("My Novel") } returns def
 
 		val result = createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
@@ -1060,7 +1058,7 @@ class ClientAccountSynchronizerTest : BaseTest() {
 				)
 			)
 		)
-		every { projectsRepository.getProjects(any()) } returns emptyList()
+		stubLocalProjects(emptyList())
 		every { projectsRepository.findProject("My Novel") } returnsMany listOf(null, createdDef)
 		every { projectsRepository.createProject("My Novel", any(), any()) } returns CResult.success(createdDef)
 
@@ -1084,7 +1082,7 @@ class ClientAccountSynchronizerTest : BaseTest() {
 
 		coEvery { serverProjectsApi.beginProjectsSync() } returns
 			Result.success(emptyServerResponse().copy(projects = setOf(serverProject)))
-		every { projectsRepository.getProjects(any()) } returns emptyList()
+		stubLocalProjects(emptyList())
 		every { projectsRepository.findProject(safeName) } returns null
 		every { projectsRepository.createProject(safeName, any(), any()) } returns CResult.success(createdDef)
 
@@ -1102,7 +1100,7 @@ class ClientAccountSynchronizerTest : BaseTest() {
 		val localId = ProjectId.randomUUID()
 		val def = projectDef("LocalNovel", localId)
 
-		every { projectsRepository.getProjects(any()) } returns listOf(def)
+		stubLocalProjects(listOf(def))
 		every { projectsRepository.isProjectInUse(def) } returns true
 
 		val strRes = RecordingStrRes()
@@ -1126,7 +1124,7 @@ class ClientAccountSynchronizerTest : BaseTest() {
 		coEvery { serverProjectsApi.beginProjectsSync() } returns Result.success(
 			emptyServerResponse().copy(projects = setOf(ApiProjectDefinition("MyNovel", serverId)))
 		)
-		every { projectsRepository.getProjects(any()) } returns listOf(def)
+		stubLocalProjects(listOf(def))
 		every { projectsRepository.findProject("MyNovel") } returns def
 		coEvery { projectsRepository.setProjectId(def, serverId) } throws ProjectInUseException("MyNovel")
 
@@ -1150,7 +1148,7 @@ class ClientAccountSynchronizerTest : BaseTest() {
 		val opened = projectDef("Opened", openedId)
 		val other = projectDef("Other", otherId)
 
-		every { projectsRepository.getProjects(any()) } returns listOf(opened, other)
+		stubLocalProjects(listOf(opened, other))
 		coEvery { serverProjectsApi.createProject("Opened", openedId, "sync-1") } returns
 			Result.success(CreateProjectResponse(serverId, alreadyExisted = true))
 		coEvery { serverProjectsApi.createProject("Other", otherId, "sync-1") } returns
@@ -1176,7 +1174,7 @@ class ClientAccountSynchronizerTest : BaseTest() {
 		coEvery { serverProjectsApi.beginProjectsSync() } returns Result.success(
 			emptyServerResponse().copy(projects = setOf(ApiProjectDefinition("NewName", id)))
 		)
-		every { projectsRepository.getProjects(any()) } returns listOf(def)
+		stubLocalProjects(listOf(def))
 		every { projectsRepository.renameProject(def, "NewName") } returns CResult.success(projectDef("NewName"))
 
 		val result = createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
@@ -1194,7 +1192,7 @@ class ClientAccountSynchronizerTest : BaseTest() {
 		coEvery { serverProjectsApi.beginProjectsSync() } returns Result.success(
 			emptyServerResponse().copy(projects = setOf(ApiProjectDefinition("NewName", id)))
 		)
-		every { projectsRepository.getProjects(any()) } returns listOf(def)
+		stubLocalProjects(listOf(def))
 		every { projectsRepository.renameProject(def, "NewName") } returns
 			CResult.failure(ProjectRenameFailed(ProjectRenameFailed.Reason.ProjectInUse))
 

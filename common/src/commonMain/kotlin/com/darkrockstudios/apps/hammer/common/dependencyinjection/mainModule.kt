@@ -74,6 +74,8 @@ import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRe
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.AccountSyncDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ClientAccountSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ProjectAttributeSyncPhase
+import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.groups.GroupSyncPhase
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.SyncAccountUseCase
 import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.ClientIdeasSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.IdeasSyncDatasource
@@ -259,6 +261,8 @@ val mainModule = module {
 	single<ClientIdeasSynchronizer>()
 	single<AccountSyncDatasource>()
 	single<ProjectCreateResolver>()
+	single<GroupSyncPhase>()
+	single<ProjectAttributeSyncPhase>()
 	single<ClientAccountSynchronizer>()
 
 	single<ProjectBackupService>()
