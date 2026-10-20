@@ -217,7 +217,7 @@ private fun NotesRepository.requireValid(content: String, tags: Set<String>) {
 	}
 }
 
-private suspend fun OpenProject.requireEntry(id: Int): EntryDef {
+internal suspend fun OpenProject.requireEntry(id: Int): EntryDef {
 	val encyclopedia = scope.get<EncyclopediaService>()
 	encyclopedia.ensureEntriesLoaded()
 	return encyclopedia.findEntryDef(id) ?: notFound("No entry $id")

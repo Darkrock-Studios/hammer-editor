@@ -27,6 +27,12 @@ import com.darkrockstudios.apps.hammer.operations.core.SceneItemRef
 import com.darkrockstudios.apps.hammer.operations.core.SceneKind
 import com.darkrockstudios.apps.hammer.operations.core.SceneMeta
 import com.darkrockstudios.apps.hammer.operations.core.SceneMetaWriteInput
+import com.darkrockstudios.apps.hammer.operations.core.SceneReferencesSetInput
+import com.darkrockstudios.apps.hammer.operations.core.SceneReadManyInput
+import com.darkrockstudios.apps.hammer.operations.core.ScenePage
+import com.darkrockstudios.apps.hammer.operations.core.Entry
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.operations.core.SceneMoveInput
 import com.darkrockstudios.apps.hammer.operations.core.SceneNode
 import com.darkrockstudios.apps.hammer.operations.core.SceneRenameInput
@@ -63,6 +69,8 @@ class WriteOperationsTest : KoinOperationsTest() {
 	private lateinit var scene: SceneItem
 	private lateinit var group: SceneItem
 	private lateinit var archived: SceneItem
+	private var alice = 0
+	private var mother = 0
 
 	@BeforeEach
 	fun setUp() = onTestThread {
@@ -76,6 +84,10 @@ class WriteOperationsTest : KoinOperationsTest() {
 			archived = scenes.createScene(group, "Cut")!!
 			scenes.storeSceneMarkdownRaw(SceneContent(archived, markdown = "Nobody needs this."))
 			scenes.archiveScene(archived)
+
+			val encyclopedia = scope.get<EncyclopediaRepository>()
+			alice = encyclopedia.createEntry("Alice", EntryType.PERSON, "The keeper.", emptySet(), null).instance!!.entry.id
+			mother = encyclopedia.createEntry("Mother", EntryType.PERSON, "Alice's mother.", emptySet(), null).instance!!.entry.id
 		}
 	}
 
@@ -299,6 +311,43 @@ class WriteOperationsTest : KoinOperationsTest() {
 		assertEquals("Check tides", meta.notes)
 		assertEquals(listOf("weather"), meta.tags)
 	}
+
+	@Test
+	fun `references are confirmed, dismissed, and cleared, and entries see them`() = onTestThread {
+		setReferences(confirm = listOf(alice, mother))
+		val dismissed = setReferences(dismiss = listOf(mother))
+		assertEquals(listOf(alice), dismissed.references)
+		assertEquals(listOf(mother), dismissed.dismissedReferences)
+		assertEquals(emptyList(), referencedBy(mother))
+
+		val confirmedAgain = setReferences(confirm = listOf(mother), clear = listOf(alice))
+		assertEquals(listOf(mother), confirmedAgain.references)
+		assertEquals(emptyList(), confirmedAgain.dismissedReferences)
+		assertEquals(emptyList(), referencedBy(alice))
+		assertEquals(listOf(scene.id), referencedBy(mother))
+
+		assertEquals(confirmedAgain, run<ProjectItemInput, SceneMeta>("scene.meta.read", ProjectItemInput(PROJECT, scene.id)))
+		val page = run<SceneReadManyInput, ScenePage>("scene.read.many", SceneReadManyInput(PROJECT, ids = listOf(scene.id)))
+		assertEquals(listOf(mother), page.scenes.single().meta.references)
+	}
+
+	@Test
+	fun `a reference change needs known entries, each given once`() = onTestThread {
+		suspend fun kindOf(input: SceneReferencesSetInput) =
+			assertFailsWith<OperationException> { run<SceneReferencesSetInput, SceneMeta>("scene.references.set", input) }.kind
+
+		assertEquals(OperationException.Kind.NotFound, kindOf(SceneReferencesSetInput(PROJECT, scene.id, confirm = listOf(9_999))))
+		assertEquals(
+			OperationException.Kind.InvalidInput,
+			kindOf(SceneReferencesSetInput(PROJECT, scene.id, confirm = listOf(alice), dismiss = listOf(alice))),
+		)
+		assertEquals(OperationException.Kind.InvalidInput, kindOf(SceneReferencesSetInput(PROJECT, scene.id)))
+	}
+
+	private suspend fun setReferences(confirm: List<Int> = emptyList(), dismiss: List<Int> = emptyList(), clear: List<Int> = emptyList()) =
+		run<SceneReferencesSetInput, SceneMeta>("scene.references.set", SceneReferencesSetInput(PROJECT, scene.id, confirm, dismiss, clear))
+
+	private suspend fun referencedBy(entry: Int) = run<ProjectItemInput, Entry>("entry.read", ProjectItemInput(PROJECT, entry)).referencedBy
 
 	@Test
 	fun `drafts are created, applied, and deleted`() = onTestThread {

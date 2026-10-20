@@ -130,7 +130,7 @@ internal fun sceneOperations(): List<Operation<*, *>> = listOf(
 	},
 	operation<ProjectItemInput, SceneMeta>(
 		name = "scene.meta.read",
-		description = "A scene's outline, notes, and tags.",
+		description = "A scene's outline, notes, tags, and references: the entries confirmed as in it, and those dismissed.",
 		access = Access.Read,
 		scope = OperationScope.Content,
 	) { input ->
@@ -247,6 +247,10 @@ data class SceneMeta(
 	val currentDraft: String,
 	val created: Instant?,
 	val lastEdited: Instant?,
+	/** Entry ids confirmed as in the scene. */
+	val references: List<Int>,
+	/** Entry ids the writer dismissed, which name matching no longer adds. */
+	val dismissedReferences: List<Int>,
 ) {
 	constructor(metadata: SceneMetadata) : this(
 		outline = metadata.outline,
@@ -255,6 +259,8 @@ data class SceneMeta(
 		currentDraft = metadata.currentDraftName,
 		created = metadata.created,
 		lastEdited = metadata.lastEdited,
+		references = metadata.confirmedReferences.sorted(),
+		dismissedReferences = metadata.dismissedReferences.sorted(),
 	)
 }
 

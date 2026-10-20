@@ -180,6 +180,29 @@ internal fun sceneWriteOperations(): List<Operation<*, *>> = listOf(
 			SceneMeta(updated)
 		}
 	},
+	operation<SceneReferencesSetInput, SceneMeta>(
+		name = "scene.references.set",
+		description = "Change which entries a scene references. confirm marks entries as in the scene, and " +
+			"un-dismisses them; dismiss marks entries as only mentioned, so name matching stops adding them; " +
+			"clear forgets entries either way, so a later match can add them again.",
+		access = Access.Write,
+		scope = OperationScope.Content,
+	) { input ->
+		projects.withProject(input.project) { project ->
+			val scene = project.requireScene(input.id)
+			val lists = listOf(input.confirm, input.dismiss, input.clear)
+			val all = lists.flatten()
+			if (all.isEmpty()) invalidInput("Give entries to confirm, dismiss, or clear")
+			all.groupingBy { it }.eachCount().filterValues { it > 1 }.keys.firstOrNull()?.let {
+				invalidInput("Entry $it is given more than once")
+			}
+			all.forEach { project.requireEntry(it) }
+			val service = project.scope.get<SceneEditorService>()
+			val updated = service.loadSceneMetadata(scene.id).withReferences(input.confirm, input.dismiss, input.clear)
+			service.storeMetadata(updated, scene.id)
+			SceneMeta(updated)
+		}
+	},
 	operation<DraftCreateInput, DraftInfo>(
 		name = "draft.create",
 		description = "Save a scene's current text as a named draft.",
@@ -370,6 +393,15 @@ data class SceneItemRef(val id: Int, val name: String, val kind: SceneKind) {
 		kind = if (item.type == SceneItem.Type.Scene) SceneKind.Scene else SceneKind.Group,
 	)
 }
+
+@Serializable
+data class SceneReferencesSetInput(
+	val project: String,
+	val id: Int,
+	val confirm: List<Int> = emptyList(),
+	val dismiss: List<Int> = emptyList(),
+	val clear: List<Int> = emptyList(),
+)
 
 @Serializable
 data class SceneMetaWriteInput(
