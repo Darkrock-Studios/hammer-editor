@@ -1,7 +1,9 @@
 package com.darkrockstudios.apps.hammer.projects.repository
 
+import com.darkrockstudios.apps.hammer.base.GroupId
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
+import com.darkrockstudios.apps.hammer.projects.ProjectGroup
 import com.darkrockstudios.apps.hammer.projects.ProjectsBeginSyncData
 import com.darkrockstudios.apps.hammer.projects.ProjectsSyncData
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
@@ -44,6 +46,8 @@ class ProjectsRepositoryBeginSyncTest : ProjectsRepositoryBaseTest() {
 				lastSync = Instant.fromEpochSeconds(123),
 				deletedProjects = setOf(ProjectId("uuid-3"))
 			)
+		coEvery { projectsDatasource.getGroups(userId) } returns emptyList()
+		coEvery { projectsDatasource.getProjectPlacements(userId) } returns emptyMap()
 
 		createProjectsRepository().apply {
 			val beginResult = beginProjectsSync(userId)
@@ -61,6 +65,28 @@ class ProjectsRepositoryBeginSyncTest : ProjectsRepositoryBaseTest() {
 			)
 
 			assertEquals(expectedData, syncData)
+		}
+	}
+
+	@Test
+	fun `Begin Sync, carries groups and project placements`() = runTest {
+		coEvery { projectsSessionManager.claimSession(any(), any(), any()) } returns "new-sync-id"
+		coEvery { projectsDatasource.getProjects(userId) } returns setOf(
+			ProjectDefinition("Project 1", ProjectId("uuid-1")),
+		)
+		coEvery { projectsDatasource.loadSyncData(userId) } returns ProjectsSyncData(deletedProjects = emptySet())
+		val parent = ProjectGroup(1L, GroupId("group-1"), "Series", null, null, null)
+		val child = ProjectGroup(2L, GroupId("group-2"), "Trilogy", "three books", 1L, GroupId("group-1"))
+		coEvery { projectsDatasource.getGroups(userId) } returns listOf(parent, child)
+		coEvery { projectsDatasource.getProjectPlacements(userId) } returns
+			mapOf(ProjectId("uuid-1") to GroupId("group-2"))
+
+		createProjectsRepository().apply {
+			val result = beginProjectsSync(userId)
+
+			assertTrue(isSuccess(result))
+			assertEquals(setOf(parent, child), result.data.groups)
+			assertEquals(mapOf(ProjectId("uuid-1") to GroupId("group-2")), result.data.projectPlacements)
 		}
 	}
 }

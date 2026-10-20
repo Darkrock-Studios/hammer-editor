@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.projects
 
+import com.darkrockstudios.apps.hammer.base.GroupId
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.ApiErrorCode
 import com.darkrockstudios.apps.hammer.base.http.BeginProjectsSyncResponse
@@ -11,6 +12,12 @@ import com.darkrockstudios.apps.hammer.base.http.ProjectsSyncProbeRequest
 import com.darkrockstudios.apps.hammer.base.http.ProjectsSyncProbeResponse
 import com.darkrockstudios.apps.hammer.plugins.ServerUserIdPrincipal
 import com.darkrockstudios.apps.hammer.plugins.USER_AUTH
+import com.darkrockstudios.apps.hammer.project.GroupCycleException
+import com.darkrockstudios.apps.hammer.project.GroupIdTakenException
+import com.darkrockstudios.apps.hammer.project.GroupNameTaken
+import com.darkrockstudios.apps.hammer.project.GroupTooDeepException
+import com.darkrockstudios.apps.hammer.project.InvalidGroupDescription
+import com.darkrockstudios.apps.hammer.project.InvalidGroupName
 import com.darkrockstudios.apps.hammer.project.InvalidProjectName
 import com.darkrockstudios.apps.hammer.project.InvalidSyncIdException
 import com.darkrockstudios.apps.hammer.monitoring.ActivityType
@@ -33,15 +40,22 @@ import io.ktor.server.routing.*
 import org.koin.ktor.ext.get
 import kotlin.uuid.Uuid
 
-private const val ERROR_GENERIC = "Error"
+internal const val ERROR_GENERIC = "Error"
 private const val ERR_KEY_INVALID_PROJECT_NAME = "api_project_rename_error_invalidname"
 private const val ERR_KEY_PROJECT_NAME_TAKEN = "api_project_rename_error_nametaken"
 private const val ERR_KEY_PROJECT_NOT_FOUND = "api_project_getproject_error_notfound"
 private const val ERR_KEY_PROJECT_CREATE_DELETED = "api_projects_create_error_deleted"
 private const val ERR_KEY_PROJECT_CREATE_ID_TAKEN = "api_projects_create_error_id_taken"
+internal const val ERR_KEY_GROUP_ID_MISSING = "api_projects_group_error_groupidmissing"
+private const val ERR_KEY_GROUP_INVALID_NAME = "api_projects_group_error_invalidname"
+private const val ERR_KEY_GROUP_INVALID_DESCRIPTION = "api_projects_group_error_invaliddescription"
+private const val ERR_KEY_GROUP_NAME_TAKEN = "api_projects_group_error_nametaken"
+private const val ERR_KEY_GROUP_CYCLE = "api_projects_group_error_cycle"
+private const val ERR_KEY_GROUP_TOO_DEEP = "api_projects_group_error_toodeep"
+private const val ERR_KEY_GROUP_ID_TAKEN = "api_projects_group_error_id_taken"
 
 /** Reads syncId from header, responding 400 "Missing Header" with a localized message if absent. */
-private suspend fun ApplicationCall.requireSyncIdFromHeader(): String? {
+internal suspend fun ApplicationCall.requireSyncIdFromHeader(): String? {
 	val syncId = request.headers[HEADER_SYNC_ID]
 	if (syncId == null) {
 		respondMissingHeader(ERR_KEY_SYNC_ID_MISSING)
@@ -79,8 +93,48 @@ private suspend fun ApplicationCall.requireProjectIdFromQuery(): ProjectId? {
 	return ProjectId.fromUUID(uuid)
 }
 
+/** Canonical form of a client-sent group id, or null when it is not a UUID. */
+internal fun canonicalGroupId(raw: String): GroupId? =
+	try {
+		GroupId.fromUUID(Uuid.parse(raw))
+	} catch (_: IllegalArgumentException) {
+		null
+	}
+
+/** Where a project goes: [groupId] is null at the top level. */
+private class GroupPlacement(val groupId: GroupId?)
+
+/**
+ * Reads the optional `groupId` query parameter, absent meaning the top level. Responds 400 and
+ * returns null when it is present but not a UUID.
+ */
+private suspend fun ApplicationCall.readGroupPlacementFromQuery(): GroupPlacement? {
+	val raw = request.queryParameters["groupId"] ?: return GroupPlacement(null)
+	val groupId = canonicalGroupId(raw)
+	if (groupId == null) {
+		respondMissingParameter(ERR_KEY_GROUP_ID_MISSING)
+		return null
+	}
+	return GroupPlacement(groupId)
+}
+
+/** Reads the required `groupId` query parameter, responding 400 if absent or not a UUID. */
+internal suspend fun ApplicationCall.requireGroupIdFromQuery(): GroupId? {
+	val groupId = request.queryParameters["groupId"]?.let(::canonicalGroupId)
+	if (groupId == null) {
+		respondMissingParameter(ERR_KEY_GROUP_ID_MISSING)
+		return null
+	}
+	return groupId
+}
+
+private suspend fun ApplicationCall.respondConflict(messageKey: String, errorCode: String) = respond(
+	status = HttpStatusCode.Conflict,
+	HttpResponseError(error = ERROR_GENERIC, displayMessage = t(R(messageKey)), errorCode = errorCode),
+)
+
 /** Handles common failure exceptions for sync-id-based operations. */
-private suspend fun ApplicationCall.respondSyncFailure(exception: Throwable?) {
+internal suspend fun ApplicationCall.respondSyncFailure(exception: Throwable?) {
 	when (exception) {
 		is InvalidSyncIdException -> respondBadRequest(ERROR_GENERIC, t(R(ERR_KEY_INVALID_SYNC_ID)))
 		is InvalidProjectName -> respond(
@@ -106,6 +160,21 @@ private suspend fun ApplicationCall.respondSyncFailure(exception: Throwable?) {
 			),
 		)
 
+		is InvalidGroupName -> respond(
+			status = HttpStatusCode.NotAcceptable,
+			HttpResponseError(error = ERROR_GENERIC, displayMessage = t(R(ERR_KEY_GROUP_INVALID_NAME))),
+		)
+
+		is InvalidGroupDescription -> respond(
+			status = HttpStatusCode.NotAcceptable,
+			HttpResponseError(error = ERROR_GENERIC, displayMessage = t(R(ERR_KEY_GROUP_INVALID_DESCRIPTION))),
+		)
+
+		is GroupNameTaken -> respondConflict(ERR_KEY_GROUP_NAME_TAKEN, ApiErrorCode.GROUP_NAME_TAKEN)
+		is GroupCycleException -> respondConflict(ERR_KEY_GROUP_CYCLE, ApiErrorCode.GROUP_CYCLE)
+		is GroupTooDeepException -> respondConflict(ERR_KEY_GROUP_TOO_DEEP, ApiErrorCode.GROUP_TOO_DEEP)
+		is GroupIdTakenException -> respondConflict(ERR_KEY_GROUP_ID_TAKEN, ApiErrorCode.GROUP_ID_TAKEN)
+
 		else -> respond(
 			status = HttpStatusCode.InternalServerError,
 			HttpResponseError(
@@ -124,7 +193,9 @@ fun Route.projectsRoutes() {
 			deleteProject()
 			createProject()
 			renameProject()
+			moveProject()
 			syncProbe()
+			projectGroupRoutes()
 		}
 	}
 }
@@ -162,9 +233,10 @@ private suspend fun RoutingContext.handleBeginProjectsSync(
 		call.respond(
 			BeginProjectsSyncResponse(
 				syncId = syncData.syncId,
-				projects = syncData.projects.map { it.toApi() }.toSet(),
+				projects = syncData.projects.map { it.toApi(syncData.projectPlacements[it.uuid]) }.toSet(),
 				deletedProjects = syncData.deletedProjects,
 				ideasStateHash = ideasRepository.getIdeasStateHash(principal.id),
+				groups = syncData.groups.map { it.toApi() }.toSet(),
 			),
 		)
 	} else {
@@ -293,12 +365,38 @@ private suspend fun RoutingContext.handleCreateProject(projectsRepository: Proje
 		return
 	}
 	val projectId = call.requireProjectIdFromQuery() ?: return
+	val placement = call.readGroupPlacementFromQuery() ?: return
 	val syncId = call.requireSyncIdFromHeader() ?: return
 
-	val result = projectsRepository.createProject(principal.id, syncId, projectName, projectId)
+	val result = projectsRepository.createProject(principal.id, syncId, projectName, projectId, placement.groupId)
 	if (isSuccess(result)) {
 		val data = result.data
-		call.respond(CreateProjectResponse(data.project.uuid, data.alreadyExisted))
+		call.respond(CreateProjectResponse(data.project.uuid, data.alreadyExisted, data.groupId))
+	} else {
+		call.respondSyncFailure(result.exception)
+	}
+}
+
+private fun Route.moveProject() {
+	val projectsRepository: ProjectsRepository = get()
+
+	post("/move") { handleMoveProject(projectsRepository) }
+}
+
+private suspend fun RoutingContext.handleMoveProject(projectsRepository: ProjectsRepository) {
+	val principal = call.principal<ServerUserIdPrincipal>()!!
+	val projectId = call.requireProjectIdFromQuery() ?: return
+	val placement = call.readGroupPlacementFromQuery() ?: return
+	val syncId = call.requireSyncIdFromHeader() ?: return
+
+	val result = projectsRepository.moveProject(principal.id, syncId, projectId, placement.groupId)
+	if (isSuccess(result)) {
+		call.respond("Success")
+	} else if (result.exception is ProjectNotFound) {
+		call.respond(
+			status = HttpStatusCode.NotFound,
+			HttpResponseError(error = ERROR_GENERIC, displayMessage = call.t(R(ERR_KEY_PROJECT_NOT_FOUND))),
+		)
 	} else {
 		call.respondSyncFailure(result.exception)
 	}
