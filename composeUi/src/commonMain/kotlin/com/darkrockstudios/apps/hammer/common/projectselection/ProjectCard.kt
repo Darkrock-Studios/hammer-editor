@@ -158,7 +158,8 @@ fun ProjectIndexRow(
 		) {
 			ProjectStripe(
 				themePrimary = themePrimary,
-				unsetColor = unsetStripeColor,
+				// Nested rows already have the group rails; a dashed stripe beside them reads as clutter.
+				unsetColor = unsetStripeColor.takeIf { depth == 0 },
 			)
 
 			Text(
@@ -362,7 +363,7 @@ private fun MetaColumn(
 }
 
 @Composable
-private fun ProjectStripe(themePrimary: Color?, unsetColor: Color) {
+private fun ProjectStripe(themePrimary: Color?, unsetColor: Color?) {
 	// Single drawWithCache so the modifier graph is stable per-row regardless
 	// of whether the project has a theme — switching modifier nodes per row
 	// would churn allocations in the LazyColumn.
@@ -377,7 +378,7 @@ private fun ProjectStripe(themePrimary: Color?, unsetColor: Color) {
 				onDrawBehind {
 					if (themePrimary != null) {
 						drawRect(themePrimary)
-					} else {
+					} else if (unsetColor != null) {
 						drawLine(
 							color = unsetColor,
 							start = Offset(0f, 0f),

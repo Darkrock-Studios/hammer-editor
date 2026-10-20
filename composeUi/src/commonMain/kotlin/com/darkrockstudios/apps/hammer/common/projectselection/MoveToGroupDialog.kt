@@ -23,7 +23,9 @@ import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.GroupId
 import com.darkrockstudios.apps.hammer.base.ProjectId
+import com.darkrockstudios.apps.hammer.common.components.projectselection.GroupData
 import com.darkrockstudios.apps.hammer.common.components.projectselection.MoveTarget
+import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectData
 import com.darkrockstudios.apps.hammer.common.compose.FormDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
@@ -74,6 +76,18 @@ internal fun moveDestinations(groups: List<GroupDef>, excluding: GroupId?): List
 	}
 	visit(parent = null, depth = 1, visited = emptySet())
 	return destinations
+}
+
+/**
+ * The target as it is now: a reload or sync may have renamed or moved it since the dialog opened.
+ * Falls back to the stored copy when it is no longer listed.
+ */
+internal fun MoveTarget.current(projects: List<ProjectData>, groups: List<GroupData>): MoveTarget = when (this) {
+	is MoveTarget.Project ->
+		MoveTarget.Project(projects.firstOrNull { it.definition.id == projectDef.id }?.definition ?: projectDef)
+
+	is MoveTarget.Group ->
+		MoveTarget.Group(groups.firstOrNull { it.definition.id == groupDef.id }?.definition ?: groupDef)
 }
 
 /** Picks the group, or the top level, that a project or group moves into. */

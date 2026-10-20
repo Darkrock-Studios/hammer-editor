@@ -398,7 +398,7 @@ internal fun Masthead(
 		}
 		if (showCreate) {
 			HdHairlineButton(
-				label = Res.string.projects_list_create_group_button.get(),
+				label = "＋  ${Res.string.projects_list_create_group_button.get()}",
 				onClick = onCreateGroup,
 				modifier = Modifier.testTag(CreateGroupButtonTestTag),
 			)
@@ -770,15 +770,15 @@ fun ModalContent(component: ProjectsList, rootSnackbar: RootSnackbarHostState) {
 		}
 
 		is ProjectsList.ModalDestination.MoveToGroup -> {
-			val groups = listState.groups.map { it.definition }
+			val target = overlay.target.current(listState.projects, listState.groups)
 			MoveToGroupDialog(
-				target = overlay.target,
-				groups = groups,
+				target = target,
+				groups = listState.groups.map { it.definition },
 				placement = listState.placement,
 				onMove = { destination ->
-					when (val target = overlay.target) {
+					when (target) {
 						is MoveTarget.Project -> component.moveProject(target.projectDef, destination)
-						is MoveTarget.Group -> component.moveGroup(current(target.groupDef), destination)
+						is MoveTarget.Group -> component.moveGroup(target.groupDef, destination)
 					}
 				},
 				onDismiss = component::dismissGroupModal,

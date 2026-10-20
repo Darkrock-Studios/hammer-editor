@@ -127,4 +127,21 @@ class ProjectListRowsTest {
 		assertEquals(keys.size, keys.toSet().size)
 		assertEquals("g:${alpha.id.id}", rows().first().key)
 	}
+
+	@Test
+	fun `group counts include every project beneath them, however deep`() {
+		val deep = previewGroup("Deep", parent = inner)
+		val inDeep = project("In Deep", deep)
+		val alsoInDeep = project("Also In Deep", deep)
+		val all = projects + inDeep + alsoInDeep
+		val nestedPlacement = placement + mapOf(inDeep.definition.id to deep.id, alsoInDeep.definition.id to deep.id)
+
+		val counts = rows(
+			groups = listOf(GroupData(zeta), GroupData(alpha), GroupData(inner), GroupData(deep)),
+			visible = all,
+			placement = nestedPlacement,
+		).filterIsInstance<ProjectListRow.Group>().associate { it.data.definition.name to it.projectCount }
+
+		assertEquals(mapOf("Alpha" to 4, "Inner" to 3, "Deep" to 2, "zeta" to 1), counts)
+	}
 }
