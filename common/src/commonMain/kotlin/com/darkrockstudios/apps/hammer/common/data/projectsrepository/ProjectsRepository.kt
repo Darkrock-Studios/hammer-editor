@@ -244,6 +244,12 @@ class ProjectsRepository(
 		}
 	}
 
+	fun loadProjectMetadata(projectDef: ProjectDef): ProjectMetadata =
+		projectsMetadataDatasource.loadMetadata(projectDef)
+
+	fun updateProjectMetadata(projectDef: ProjectDef, block: (ProjectMetadata) -> ProjectMetadata) =
+		projectsMetadataDatasource.updateMetadata(projectDef, block)
+
 	/** True while the project is open in an editor or a temporary task; its id and name are then fixed. */
 	fun isProjectInUse(projectDir: HPath): Boolean =
 		getKoin().getScopeOrNull(ProjectDefScope.scopeIdFor(projectDir)) != null

@@ -127,6 +127,7 @@ class ProjectDataRoutesTest : BaseTest() {
 			single { passwordResetRepository }
 			single { mockk<RequestPasswordResetUseCase>() }
 			single { mockk<ReleasePenNameUseCase>() }
+			single { mockk<com.darkrockstudios.apps.hammer.projects.ProbeProjectChangesUseCase>() }
 			single { markdownRenderer }
 			single { mockk<com.darkrockstudios.apps.hammer.review.ReviewRepository>(relaxed = true) }
 			single { mockk<com.darkrockstudios.apps.hammer.storyideas.ServerIdeasRepository>(relaxed = true) }

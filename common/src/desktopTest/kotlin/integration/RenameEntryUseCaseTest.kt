@@ -78,7 +78,6 @@ class RenameEntryUseCaseTest : BaseIntegrationTest() {
 		timeLineRepository = TimeLineRepository(projectDef, idAllocator, TimeLineDatasource(ffs, toml)).initialize()
 		drafts = SceneDraftRepository(
 			projectDef,
-			sceneContentRepository,
 			SceneDraftsDatasource(projectDef, ffs),
 			Clock.System,
 		)

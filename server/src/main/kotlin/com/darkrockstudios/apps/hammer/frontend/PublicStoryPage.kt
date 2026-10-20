@@ -2,7 +2,6 @@ package com.darkrockstudios.apps.hammer.frontend
 
 import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
-import com.darkrockstudios.apps.hammer.database.ProjectDao
 import com.darkrockstudios.apps.hammer.frontend.data.UserSession
 import com.darkrockstudios.apps.hammer.frontend.utils.ProjectName
 import com.darkrockstudios.apps.hammer.frontend.utils.applyRevalidationHeaders
@@ -42,7 +41,6 @@ import java.nio.charset.StandardCharsets
 fun Route.publicStoryPage(
 	storyRendererService: StoryRendererService,
 	projectAccessRepository: ProjectAccessRepository,
-	projectDao: ProjectDao,
 	storyReaderCollector: StoryReaderCollector,
 	accountsRepository: AccountsRepository,
 	projectsRepository: ProjectsRepository,
@@ -284,7 +282,7 @@ fun Route.publicStoryPage(
 				// Skip the author reading their own story.
 				val viewerId = call.sessions.get<UserSession>()?.userId
 				if (viewerId != resolved.userId) {
-					projectDao.getProjectIdOrNull(resolved.userId, resolved.projectUuid)?.let { projectId ->
+					projectsRepository.findProjectRowId(resolved.userId, resolved.projectUuid)?.let { projectId ->
 						storyReaderCollector.record(
 							projectId = projectId,
 							clientIp = call.request.origin.remoteAddress,

@@ -7,8 +7,8 @@ import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectContentHasher
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectDataHasher
 import com.darkrockstudios.apps.hammer.project.ProjectSyncKey
+import com.darkrockstudios.apps.hammer.projects.ProbeProjectChangesUseCase
 import com.darkrockstudios.apps.hammer.project.RawProjectDataDto
-import com.darkrockstudios.apps.hammer.utilities.SResult
 import io.mockk.coEvery
 import io.mockk.every
 import kotlinx.coroutines.test.runTest
@@ -16,7 +16,14 @@ import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-class ProjectsRepositoryProbeTest : ProjectsRepositoryBaseTest() {
+class ProbeProjectChangesUseCaseTest : ProjectsRepositoryBaseTest() {
+
+	private fun probe() = ProbeProjectChangesUseCase(
+		projectsDatasource,
+		projectEntityDatasource,
+		serverProjectDataRepository,
+		projectSessionManager,
+	)
 
 	private val projectId = projectDefinition.uuid
 
@@ -26,8 +33,8 @@ class ProjectsRepositoryProbeTest : ProjectsRepositoryBaseTest() {
 			EntityHash(1, "h1"),
 			EntityHash(2, "h2"),
 		)
-		coEvery { serverProjectDataRepository.load(userId, projectDefinition) } returns
-			SResult.success<RawProjectDataDto?>(null)
+		coEvery { serverProjectDataRepository.loadVerifiedDataHash(userId, projectDefinition) } returns
+			ProjectDataHasher.hash(ProjectData())
 	}
 
 	private fun expectedServerHash(): String = ProjectContentHasher.hash(
@@ -38,31 +45,24 @@ class ProjectsRepositoryProbeTest : ProjectsRepositoryBaseTest() {
 	@Test
 	fun `matching hash marks the project unchanged`() = runTest {
 		stubTwoEntities()
-		createProjectsRepository().apply {
-			val result = probeProjectChanges(userId, listOf(ProjectHashItem(projectId, expectedServerHash())))
-			assertEquals(setOf(projectId), result)
-		}
+		val result = probe()(userId, listOf(ProjectHashItem(projectId, expectedServerHash())))
+		assertEquals(setOf(projectId), result)
 	}
 
 	@Test
 	fun `differing hash leaves the project out`() = runTest {
 		stubTwoEntities()
-		createProjectsRepository().apply {
-			val result = probeProjectChanges(userId, listOf(ProjectHashItem(projectId, "stale-hash")))
-			assertTrue(result.isEmpty())
-		}
+		val result = probe()(userId, listOf(ProjectHashItem(projectId, "stale-hash")))
+		assertTrue(result.isEmpty())
 	}
 
 	@Test
 	fun `an unreadable project-data blob forces a full sync`() = runTest {
 		stubTwoEntities()
-		coEvery { serverProjectDataRepository.load(userId, projectDefinition) } returns
-			SResult.failure(Exception("boom"))
+		coEvery { serverProjectDataRepository.loadVerifiedDataHash(userId, projectDefinition) } returns null
 
-		createProjectsRepository().apply {
-			val result = probeProjectChanges(userId, listOf(ProjectHashItem(projectId, expectedServerHash())))
-			assertTrue(result.isEmpty(), "an uncomputable hash must never be reported as unchanged")
-		}
+		val result = probe()(userId, listOf(ProjectHashItem(projectId, expectedServerHash())))
+		assertTrue(result.isEmpty(), "an uncomputable hash must never be reported as unchanged")
 	}
 
 	@Test
@@ -72,20 +72,16 @@ class ProjectsRepositoryProbeTest : ProjectsRepositoryBaseTest() {
 			projectSessionManager.hasActiveSyncSession(ProjectSyncKey(userId, projectDefinition))
 		} returns true
 
-		createProjectsRepository().apply {
-			val result = probeProjectChanges(userId, listOf(ProjectHashItem(projectId, expectedServerHash())))
-			assertTrue(result.isEmpty(), "a project being synced elsewhere must not be reported unchanged")
-		}
+		val result = probe()(userId, listOf(ProjectHashItem(projectId, expectedServerHash())))
+		assertTrue(result.isEmpty(), "a project being synced elsewhere must not be reported unchanged")
 	}
 
 	@Test
 	fun `unknown project is left out`() = runTest {
 		coEvery { projectsDatasource.getProject(userId, projectId) } returns null
 
-		createProjectsRepository().apply {
-			val result = probeProjectChanges(userId, listOf(ProjectHashItem(projectId, "any")))
-			assertTrue(result.isEmpty())
-		}
+		val result = probe()(userId, listOf(ProjectHashItem(projectId, "any")))
+		assertTrue(result.isEmpty())
 	}
 
 	@Test
@@ -98,20 +94,18 @@ class ProjectsRepositoryProbeTest : ProjectsRepositoryBaseTest() {
 			),
 			hash = ProjectDataHasher.hash(ProjectData(authorName = "Pat")),
 		)
-		coEvery { serverProjectDataRepository.load(userId, projectDefinition) } returns SResult.success(withData)
+		coEvery { serverProjectDataRepository.loadVerifiedDataHash(userId, projectDefinition) } returns withData.hash
 
 		val expected = ProjectContentHasher.hash(
 			listOf(EntityHash(1, "h1"), EntityHash(2, "h2")),
 			withData.hash,
 		)
 
-		createProjectsRepository().apply {
-			// The default-project-data hash must NOT match once real project data exists.
-			val staleResult = probeProjectChanges(userId, listOf(ProjectHashItem(projectId, expectedServerHash())))
-			assertTrue(staleResult.isEmpty())
+		// The default-project-data hash must NOT match once real project data exists.
+		val staleResult = probe()(userId, listOf(ProjectHashItem(projectId, expectedServerHash())))
+		assertTrue(staleResult.isEmpty())
 
-			val freshResult = probeProjectChanges(userId, listOf(ProjectHashItem(projectId, expected)))
-			assertEquals(setOf(projectId), freshResult)
-		}
+		val freshResult = probe()(userId, listOf(ProjectHashItem(projectId, expected)))
+		assertEquals(setOf(projectId), freshResult)
 	}
 }

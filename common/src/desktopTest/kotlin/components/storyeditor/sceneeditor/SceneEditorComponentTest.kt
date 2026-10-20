@@ -80,6 +80,7 @@ class SceneEditorComponentTest : ComponentTest() {
 
 		settingsStore = mockk(relaxed = true)
 		sceneEditor = mockk(relaxed = true)
+		every { sceneEditor.getCurrentSceneContentOrNull(any()) } returns "scene text"
 		draftsRepository = mockk(relaxed = true)
 		autoConfirm = mockk(relaxed = true)
 		spellCheck = mockk(relaxed = true)
@@ -300,7 +301,7 @@ class SceneEditorComponentTest : ComponentTest() {
 	@Test
 	fun `saveDraft saves under the draft name and renames the metadata to the new name`() =
 		runTest(mainTestDispatcher) {
-			coEvery { draftsRepository.saveDraft(sceneItem, "draft one") } returns
+			coEvery { draftsRepository.saveDraft(sceneItem, "draft one", "scene text") } returns
 				DraftDef(id = 1, sceneId = 7, draftTimestamp = Instant.fromEpochSeconds(5), draftName = "draft one")
 			val comp = newComponent()
 
@@ -309,13 +310,13 @@ class SceneEditorComponentTest : ComponentTest() {
 			val result = comp.saveDraft(draftName = "draft one", newDraftName = "renamed draft")
 
 			assertTrue(result)
-			coVerify { draftsRepository.saveDraft(sceneItem, "draft one") }
+			coVerify { draftsRepository.saveDraft(sceneItem, "draft one", "scene text") }
 			assertEquals("renamed draft", comp.sceneMetadataComponent.state.value.metadata.currentDraftName)
 		}
 
 	@Test
 	fun `saveDraft with a valid name but a failed save returns false`() = runTest(mainTestDispatcher) {
-		coEvery { draftsRepository.saveDraft(sceneItem, "draft one") } returns null
+		coEvery { draftsRepository.saveDraft(sceneItem, "draft one", "scene text") } returns null
 		val comp = newComponent()
 
 		val result = comp.saveDraft("draft one", "draft one")
@@ -330,7 +331,7 @@ class SceneEditorComponentTest : ComponentTest() {
 		val result = comp.saveDraft("bad~name", "bad~name")
 
 		assertFalse(result)
-		coVerify(exactly = 0) { draftsRepository.saveDraft(any(), any()) }
+		coVerify(exactly = 0) { draftsRepository.saveDraft(any(), any(), any()) }
 	}
 
 	// --- content -------------------------------------------------------------

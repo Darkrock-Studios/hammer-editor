@@ -7,7 +7,6 @@ import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftsDatasource
 import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.migrator.Migration2_3
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneContentRepository
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import createProject
 import getProjectDef
@@ -38,7 +37,6 @@ class SceneDraftNameTest : BaseTest() {
 
 	private lateinit var ffs: FakeFileSystem
 	private lateinit var datasource: SceneDraftsDatasource
-	private lateinit var sceneContentRepository: SceneContentRepository
 	private lateinit var idAllocator: IdAllocator
 	private lateinit var clock: Clock
 
@@ -54,7 +52,6 @@ class SceneDraftNameTest : BaseTest() {
 	override fun setup() {
 		super.setup()
 
-		sceneContentRepository = mockk()
 		idAllocator = mockk()
 		clock = mockk()
 		ffs = FakeFileSystem()
@@ -66,13 +63,12 @@ class SceneDraftNameTest : BaseTest() {
 
 		createProject(ffs, PROJECT_2_NAME)
 		every { clock.now() } returns Instant.fromEpochSeconds(1_700_000_000)
-		coEvery { sceneContentRepository.getCurrentSceneContent(any()) } returns "content"
 	}
 
 	private fun createRepository(nextId: Int = 900): SceneDraftRepository {
 		coEvery { idAllocator.claimNextId() } returns nextId
 		datasource = SceneDraftsDatasource(projectDef, ffs)
-		return SceneDraftRepository(projectDef, sceneContentRepository, datasource, clock)
+		return SceneDraftRepository(projectDef, datasource, clock)
 	}
 
 	@Test
@@ -88,7 +84,7 @@ class SceneDraftNameTest : BaseTest() {
 
 		names.forEachIndexed { index, name ->
 			val repo = createRepository(nextId = 900 + index)
-			assertNotNull(repo.saveDraft(scene, name), "'$name' should be a legal draft name")
+			assertNotNull(repo.saveDraft(scene, name, "content"), "'$name' should be a legal draft name")
 		}
 	}
 
@@ -96,14 +92,14 @@ class SceneDraftNameTest : BaseTest() {
 	fun `the reserved filename delimiter is still rejected`() = runTest {
 		val repo = createRepository()
 
-		assertNull(repo.saveDraft(scene, "bad~name"))
+		assertNull(repo.saveDraft(scene, "bad~name", "content"))
 	}
 
 	@Test
 	fun `a blank name is still rejected`() = runTest {
 		val repo = createRepository()
 
-		assertNull(repo.saveDraft(scene, "   "))
+		assertNull(repo.saveDraft(scene, "   ", "content"))
 	}
 
 	@Test
@@ -112,7 +108,7 @@ class SceneDraftNameTest : BaseTest() {
 			val repo = createRepository()
 			val name = "Chapter 3: The Fall?"
 
-			val def = repo.saveDraft(scene, name)
+			val def = repo.saveDraft(scene, name, "content")
 			assertNotNull(def)
 
 			val path = datasource.getDraftPath(def).toOkioPath()
@@ -172,7 +168,7 @@ class SceneDraftNameTest : BaseTest() {
 	fun `a trailing space in a draft name is accepted and stored trimmed`() = runTest {
 		val repo = createRepository()
 
-		val def = repo.saveDraft(scene, "My Draft ")
+		val def = repo.saveDraft(scene, "My Draft ", "content")
 
 		assertNotNull(def)
 		assertEquals("My Draft", def.draftName)
@@ -183,7 +179,7 @@ class SceneDraftNameTest : BaseTest() {
 	fun `a new draft is written in the current filename format`() = runTest {
 		val repo = createRepository()
 
-		val def = repo.saveDraft(scene, "Act 2, Take 3")
+		val def = repo.saveDraft(scene, "Act 2, Take 3", "content")
 		assertNotNull(def)
 
 		val path = datasource.getDraftPath(def).toOkioPath()

@@ -97,7 +97,6 @@ import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientSceneSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientTimelineSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.tagindex.AccountTagService
-import com.darkrockstudios.apps.hammer.common.data.tagindex.BuildTagIndexUseCase
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndexService
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineDatasource
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
@@ -332,7 +331,6 @@ val mainModule = module {
 		scoped<ReferenceIndexRepository>()
 		scoped<ReferenceIndexService>()
 
-		scoped<BuildTagIndexUseCase>()
 		scoped<TagIndexService>()
 		scoped<ScrubInvalidReferencesUseCase>()
 		scoped<AutoConfirmReferencesUseCase>()

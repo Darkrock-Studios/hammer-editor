@@ -105,7 +105,7 @@ class EntityTypeResyncMatrixTest : RoundTripTestBase() {
 		assertTrue(client.sync(), "scene sync should succeed")
 
 		val drafts: SceneDraftRepository = client.scope.get()
-		val draft = drafts.saveDraft(scene, "first pass")
+		val draft = drafts.saveDraft(scene, "first pass", "body")
 		assertNotNull(draft, "draft should be created")
 		assertTrue(client.sync(), "draft sync should succeed")
 		assertNotNull(serverEntityHash(project, draft.id), "draft should be on the server")

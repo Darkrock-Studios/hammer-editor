@@ -10,7 +10,6 @@ import com.darkrockstudios.apps.hammer.common.data.drafts.DraftDef
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftsDatasource
 import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneContentRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import createProject
@@ -35,7 +34,6 @@ class SceneDraftRepositoryTest : BaseTest() {
 
 	private val projectDef = getProjectDef(PROJECT_2_NAME)
 
-	private lateinit var sceneContentRepository: SceneContentRepository
 	private lateinit var ffs: FakeFileSystem
 	private lateinit var toml: Toml
 	private lateinit var datasource: SceneDraftsDatasource
@@ -46,7 +44,6 @@ class SceneDraftRepositoryTest : BaseTest() {
 	override fun setup() {
 		super.setup()
 
-		sceneContentRepository = mockk<SceneContentRepository>()
 
 		idAllocator = mockk<IdAllocator>()
 		clock = mockk<Clock>()
@@ -64,7 +61,7 @@ class SceneDraftRepositoryTest : BaseTest() {
 
 	private fun createRepository(): SceneDraftRepository {
 		datasource = SceneDraftsDatasource(projectDef, ffs)
-		return SceneDraftRepository(projectDef, sceneContentRepository, datasource, clock)
+		return SceneDraftRepository(projectDef, datasource, clock)
 	}
 
 	@Test
@@ -153,12 +150,12 @@ class SceneDraftRepositoryTest : BaseTest() {
 		)
 
 		val repo = createRepository()
-		val draftDef = repo.saveDraft(sceneItem, "")
+		val draftDef = repo.saveDraft(sceneItem, "", "content")
 		assertNull(draftDef)
 	}
 
 	@Test
-	fun `Save new draft persists the current scene content`() = runTest {
+	fun `Save new draft persists the given content`() = runTest {
 		createProject(ffs, PROJECT_2_NAME)
 
 		val sceneId = 3
@@ -179,11 +176,10 @@ class SceneDraftRepositoryTest : BaseTest() {
 		val draftId = 11
 
 		coEvery { idAllocator.claimNextId() } returns draftId
-		every { sceneContentRepository.getCurrentSceneContent(sceneItem) } returns buffer.content.coerceMarkdown()
 		every { clock.now() } returns fakeNow
 
 		val repo = createRepository()
-		val draftDef = repo.saveDraft(sceneItem, draftName)
+		val draftDef = repo.saveDraft(sceneItem, draftName, buffer.content.coerceMarkdown())
 
 		assertNotNull(draftDef)
 		assertEquals(

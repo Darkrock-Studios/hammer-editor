@@ -119,7 +119,7 @@ class UploadResyncStabilityMatrixTest : RoundTripTestBase() {
 			},
 			Case("scene draft") { client ->
 				val scene = newScene(client, "Scene", "body")
-				assertNotNull(client.draftRepository.saveDraft(scene, "Draft One"))
+				assertNotNull(client.draftRepository.saveDraft(scene, "Draft One", "body"))
 			},
 		).map { Arguments.of(it) }
 	}

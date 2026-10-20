@@ -422,10 +422,8 @@ class SceneEditorComponent(
 
 	override suspend fun saveDraft(draftName: String, newDraftName: String): Boolean {
 		return if (SceneDraftsDatasource.validDraftName(draftName)) {
-			val draftDef = draftsRepository.saveDraft(
-				sceneDef,
-				draftName
-			)
+			val content = withContext(dispatcherDefault) { sceneEditor.getCurrentSceneContentOrNull(sceneDef) }
+			val draftDef = content?.let { draftsRepository.saveDraft(sceneDef, draftName, it) }
 			if (draftDef != null) {
 				// Update to the new draft name
 				sceneMetadataComponent.updateDraftName(newDraftName)
