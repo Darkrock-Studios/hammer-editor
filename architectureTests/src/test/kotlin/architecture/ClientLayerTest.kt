@@ -48,7 +48,6 @@ class ClientLayerTest {
 		edges(REPOSITORY, REPOSITORY, SERVICE, USE_CASE, COMPONENT),
 		baseline = setOf(
 			"ProjectsRepository -> ProjectDataRepository",
-			"SceneDraftRepository -> SceneContentRepository",
 		),
 	)
 
@@ -58,7 +57,6 @@ class ClientLayerTest {
 		edges(SERVICE, SERVICE, USE_CASE, COMPONENT),
 		baseline = setOf(
 			"StatisticsService -> ReferenceIndexService",
-			"TagIndexService -> BuildTagIndexUseCase",
 		),
 	)
 
@@ -85,8 +83,5 @@ class ClientLayerTest {
 	fun `components never reference data sources`() = assertNoViolations(
 		"A Component may not reference a Data Source, go through a Repository",
 		edges(COMPONENT, DATASOURCE),
-		baseline = setOf(
-			"ProjectsListComponent -> ProjectMetadataDatasource",
-		),
 	)
 }

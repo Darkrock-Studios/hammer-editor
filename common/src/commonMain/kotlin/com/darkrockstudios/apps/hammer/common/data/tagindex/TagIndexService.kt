@@ -4,9 +4,12 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
+import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_IO
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.*
@@ -25,13 +28,14 @@ class TagIndexService(
 	private val encyclopediaRepository: EncyclopediaRepository,
 	private val notesRepository: NotesRepository,
 	private val timeLineRepository: TimeLineRepository,
+	private val sceneRepository: SceneRepository,
 	private val sceneMetadataRepository: SceneMetadataRepository,
-	private val buildTagIndex: BuildTagIndexUseCase,
 ) : ScopeCallback, ProjectScoped, KoinComponent {
 
 	override val projectScope = ProjectDefScope(projectDef)
 
 	private val dispatcherDefault: CoroutineContext by inject(named(DISPATCHER_DEFAULT))
+	private val dispatcherIo: CoroutineContext by inject(named(DISPATCHER_IO))
 	private val serviceScope = CoroutineScope(dispatcherDefault)
 
 	private val _tagIndex = MutableStateFlow(TagIndex.EMPTY)
@@ -103,6 +107,78 @@ class TagIndexService(
 		} finally {
 			_isCalculating.value = false
 		}
+	}
+
+	/** Loads tags from notes, timeline events, encyclopedia entries and scene metadata. */
+	private suspend fun buildTagIndex(): TagIndex {
+		val tagToEntities = mutableMapOf<String, MutableSet<TaggedEntityRef>>()
+		val countsByType = mutableMapOf<TaggedEntityType, MutableMap<String, Int>>()
+
+		val noteContainers = notesRepository.notesListFlow.first()
+		for (container in noteContainers) {
+			val ref = TaggedEntityRef(TaggedEntityType.Note, container.note.id)
+			for (tag in container.note.tags) {
+				accumulate(tagToEntities, countsByType, TaggedEntityType.Note, tag, ref)
+			}
+		}
+
+		val timeline = timeLineRepository.timelineFlow.first()
+		for (event in timeline.events) {
+			val ref = TaggedEntityRef(TaggedEntityType.TimelineEvent, event.id)
+			for (tag in event.tags) {
+				accumulate(tagToEntities, countsByType, TaggedEntityType.TimelineEvent, tag, ref)
+			}
+		}
+
+		val entryDefs = encyclopediaRepository.ensureEntriesLoaded()
+		val entries = coroutineScope {
+			entryDefs.map { def ->
+				async { def.id to encyclopediaRepository.loadEntry(def).entry.tags }
+			}.awaitAll()
+		}
+		for ((entryId, tags) in entries) {
+			val ref = TaggedEntityRef(TaggedEntityType.Encyclopedia, entryId)
+			for (tag in tags) {
+				accumulate(tagToEntities, countsByType, TaggedEntityType.Encyclopedia, tag, ref)
+			}
+		}
+
+		val sceneTags = withContext(dispatcherIo) {
+			val sceneItems = sceneRepository.getScenes()
+				.filter { it.type == SceneItem.Type.Scene } + sceneRepository.getArchivedScenes()
+			coroutineScope {
+				sceneItems.map { scene ->
+					async { scene.id to sceneMetadataRepository.loadSceneMetadata(scene.id).tags }
+				}.awaitAll()
+			}
+		}
+		for ((sceneId, tags) in sceneTags) {
+			val ref = TaggedEntityRef(TaggedEntityType.Scene, sceneId)
+			for (tag in tags) {
+				accumulate(tagToEntities, countsByType, TaggedEntityType.Scene, tag, ref)
+			}
+		}
+
+		return TagIndex(
+			tagToEntities = tagToEntities.mapValues { it.value.toSet() },
+			countsByType = countsByType.mapValues { it.value.toMap() },
+		)
+	}
+
+	// Normalized on the way in rather than trusting every writer to have called cleanTags: a tag
+	// that reached disk decomposed would otherwise be a key no typed needle can ever match.
+	private fun accumulate(
+		tagToEntities: MutableMap<String, MutableSet<TaggedEntityRef>>,
+		countsByType: MutableMap<TaggedEntityType, MutableMap<String, Int>>,
+		type: TaggedEntityType,
+		tag: String,
+		ref: TaggedEntityRef,
+	) {
+		val key = normalizeTagNeedle(tag)
+		if (key.isEmpty()) return
+		tagToEntities.getOrPut(key) { mutableSetOf() }.add(ref)
+		val perType = countsByType.getOrPut(type) { mutableMapOf() }
+		perType[key] = (perType[key] ?: 0) + 1
 	}
 
 	override fun onScopeClose(scope: Scope) {

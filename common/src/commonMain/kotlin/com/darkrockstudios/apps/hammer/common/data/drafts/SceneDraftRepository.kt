@@ -3,14 +3,12 @@ package com.darkrockstudios.apps.hammer.common.data.drafts
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneContentRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import io.github.aakira.napier.Napier
 import kotlin.time.Clock
 
 class SceneDraftRepository(
 	projectDef: ProjectDef,
-	private val sceneContentRepository: SceneContentRepository,
 	private val datasource: SceneDraftsDatasource,
 	private val clock: Clock,
 ) : ProjectScoped {
@@ -33,14 +31,7 @@ class SceneDraftRepository(
 
 	fun deleteDraft(id: Int): Boolean = datasource.deleteDraft(id)
 
-	/** Saves the scene's current text as a draft. */
-	suspend fun saveDraft(sceneItem: SceneItem, draftName: String): DraftDef? =
-		saveDraft(sceneItem, draftName) { sceneContentRepository.getCurrentSceneContent(sceneItem) }
-
-	suspend fun saveDraft(sceneItem: SceneItem, draftName: String, content: String): DraftDef? =
-		saveDraft(sceneItem, draftName) { content }
-
-	private suspend fun saveDraft(sceneItem: SceneItem, draftName: String, content: () -> String): DraftDef? {
+	suspend fun saveDraft(sceneItem: SceneItem, draftName: String, content: String): DraftDef? {
 		if (!SceneDraftsDatasource.validDraftName(draftName)) {
 			Napier.w { "saveDraft failed, draftName failed validation" }
 			return null
@@ -55,6 +46,6 @@ class SceneDraftRepository(
 			draftName = draftName.trim()
 		)
 
-		return datasource.storeDraft(newDef, content())
+		return datasource.storeDraft(newDef, content)
 	}
 }

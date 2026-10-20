@@ -23,7 +23,6 @@ import com.darkrockstudios.apps.hammer.common.data.importer.MarkdownStoryImporte
 import com.darkrockstudios.apps.hammer.common.data.importer.RtfStoryImporter
 import com.darkrockstudios.apps.hammer.common.data.importer.StoryImporter
 import com.darkrockstudios.apps.hammer.common.data.importer.StoryImporterRegistry
-import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.ProjectStatisticsCacheReader
 import com.darkrockstudios.apps.hammer.common.data.protocolmismatch.ProtocolMismatchRepository
@@ -75,7 +74,6 @@ class ProjectsListComponentTest : ComponentTest() {
 	private lateinit var projectsRepository: ProjectsRepository
 	private lateinit var synchronizer: ClientAccountSynchronizer
 	private lateinit var networkConnectivity: NetworkConnectivity
-	private lateinit var metadataDatasource: ProjectMetadataDatasource
 	private lateinit var statsReader: ProjectStatisticsCacheReader
 	private lateinit var reauthUseCase: AccountReauthUseCase
 
@@ -113,7 +111,6 @@ class ProjectsListComponentTest : ComponentTest() {
 		projectsRepository = mockk(relaxed = true)
 		synchronizer = mockk(relaxed = true)
 		networkConnectivity = mockk(relaxed = true)
-		metadataDatasource = mockk(relaxed = true)
 		statsReader = mockk(relaxed = true)
 		reauthUseCase = mockk(relaxed = true)
 
@@ -136,7 +133,6 @@ class ProjectsListComponentTest : ComponentTest() {
 			single { projectsRepository }
 			single { synchronizer }
 			single { networkConnectivity }
-			single { metadataDatasource }
 			single { statsReader }
 			single { reauthUseCase }
 			factory { SyncAccountUseCase(get(), get(), get()) }
@@ -469,7 +465,7 @@ class ProjectsListComponentTest : ComponentTest() {
 		comp.selectProject(projectDefA)
 
 		val transform = slot<(ProjectMetadata) -> ProjectMetadata>()
-		verify { metadataDatasource.updateMetadata(eq(projectDefA), capture(transform)) }
+		verify { projectsRepository.updateProjectMetadata(eq(projectDefA), capture(transform)) }
 		val before = metadata(lastAccessed = Instant.fromEpochSeconds(5))
 		assertEquals(
 			before.copy(info = before.info.copy(lastAccessed = fixedNow)),
@@ -566,7 +562,7 @@ class ProjectsListComponentTest : ComponentTest() {
 			globalSettings = globalSettings.copy(autoCloseSyncDialog = false)
 			every { synchronizer.isServerSynchronized() } returns true
 			every { projectsRepository.getProjects(any()) } returns listOf(projectDefA)
-			every { metadataDatasource.loadMetadata(projectDefA) } returns
+			every { projectsRepository.loadProjectMetadata(projectDefA) } returns
 				metadata(Instant.fromEpochSeconds(1), projectId = projectDefA.id)
 			coEvery { synchronizer.syncProjects(any(), any(), any(), any()) } returns true
 			coEvery { synchronizer.probeUnchangedProjects(any()) } returns setOf(projectDefA.id)
@@ -588,7 +584,7 @@ class ProjectsListComponentTest : ComponentTest() {
 			val adopted = projectDefA.copy(id = testProjectId("Adopted"))
 			var onDisk = listOf(projectDefA)
 			every { projectsRepository.getProjects(any()) } answers { onDisk }
-			every { metadataDatasource.loadMetadata(any()) } returns metadata(Instant.fromEpochSeconds(1))
+			every { projectsRepository.loadProjectMetadata(any()) } returns metadata(Instant.fromEpochSeconds(1))
 			every { statsReader.loadTotalWords(any()) } returns null
 			coEvery { synchronizer.syncProjects(any(), any(), any(), any()) } coAnswers {
 				onDisk = listOf(adopted)
@@ -614,9 +610,9 @@ class ProjectsListComponentTest : ComponentTest() {
 			val newest = ProjectDef(testProjectId("Newest"), "Newest", HPath("/projects/Newest", "Newest", false))
 			val middle = ProjectDef(testProjectId("Middle"), "Middle", HPath("/projects/Middle", "Middle", false))
 			every { projectsRepository.getProjects(any()) } returns listOf(oldest, newest, middle)
-			every { metadataDatasource.loadMetadata(oldest) } returns metadata(Instant.fromEpochSeconds(100))
-			every { metadataDatasource.loadMetadata(newest) } returns metadata(Instant.fromEpochSeconds(300))
-			every { metadataDatasource.loadMetadata(middle) } returns metadata(Instant.fromEpochSeconds(200))
+			every { projectsRepository.loadProjectMetadata(oldest) } returns metadata(Instant.fromEpochSeconds(100))
+			every { projectsRepository.loadProjectMetadata(newest) } returns metadata(Instant.fromEpochSeconds(300))
+			every { projectsRepository.loadProjectMetadata(middle) } returns metadata(Instant.fromEpochSeconds(200))
 			every { statsReader.loadTotalWords(any()) } returns null
 			val comp = newComponent()
 
@@ -653,9 +649,9 @@ class ProjectsListComponentTest : ComponentTest() {
 			val good = ProjectDef(testProjectId("Good"), "Good", HPath("/projects/Good", "Good", false))
 			val vanished = ProjectDef(testProjectId("Vanished"), "Vanished", HPath("/projects/Vanished", "Vanished", false))
 			every { projectsRepository.getProjects(any()) } returns listOf(good, vanished)
-			every { metadataDatasource.loadMetadata(good) } returns metadata(Instant.fromEpochSeconds(100))
+			every { projectsRepository.loadProjectMetadata(good) } returns metadata(Instant.fromEpochSeconds(100))
 			// Deleted concurrently between listing and reading: loadMetadata throws.
-			every { metadataDatasource.loadMetadata(vanished) } throws IOException("deleted")
+			every { projectsRepository.loadProjectMetadata(vanished) } throws IOException("deleted")
 			every { statsReader.loadTotalWords(any()) } returns null
 			val comp = newComponent()
 
