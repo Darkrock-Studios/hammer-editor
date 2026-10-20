@@ -15,6 +15,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectsrepository.GroupOpera
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectCreationFailedException
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectRenameFailed
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesDatasource
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
@@ -23,6 +24,8 @@ import createGroupDirectory
 import createNestedProjectDirectory
 import getProjectsDirectory
 import kotlinx.coroutines.test.runTest
+import okio.ForwardingFileSystem
+import okio.IOException
 import okio.Path
 import okio.Path.Companion.toPath
 import org.junit.jupiter.api.Test
@@ -204,6 +207,95 @@ class ProjectsRepositoryGroupsTest : ProjectsRepositoryBaseTest() {
 		assertEquals(lost.toHPath(), healed.path)
 		assertTrue(isProject(lost))
 		assertEquals(testGroupId("Trilogy"), repo.getProjectTree().placement[healed.id])
+	}
+
+	@Test
+	fun `A group holding a subgroup named like project content stays a group`() = scope.runTest {
+		val series = createGroupDirectory(ffs, "Series")
+		val notes = createGroupDirectory(ffs, NotesDatasource.NOTES_DIRECTORY, series)
+		createNestedProjectDirectory(ffs, "Book 1", notes)
+		val repo = projectsRepository()
+
+		val healed = repo.healUnmarkedProjectDirectories()
+
+		assertEquals(emptyList(), healed)
+		assertFalse(isProject(series))
+		assertEquals(
+			listOf(testGroupId("Series"), testGroupId(NotesDatasource.NOTES_DIRECTORY)),
+			repo.getProjectTree().groups.map { it.id },
+		)
+	}
+
+	@Test
+	fun `A group holding a project named like project content stays a group`() = scope.runTest {
+		val series = createGroupDirectory(ffs, "Series")
+		val scenes = createNestedProjectDirectory(ffs, SceneDatasource.SCENE_DIRECTORY, series)
+		val repo = projectsRepository()
+
+		val healed = repo.healUnmarkedProjectDirectories()
+
+		assertEquals(emptyList(), healed)
+		assertFalse(isProject(series))
+		assertEquals(testGroupId("Series"), repo.getProjectTree().placement[scenes.id])
+	}
+
+	@Test
+	fun `An unmarked folder holding a real notes directory is still healed`() = scope.runTest {
+		val lost = root / "Lost"
+		ffs.createDirectories(lost / NotesDatasource.NOTES_DIRECTORY)
+		val repo = projectsRepository()
+
+		val healed = repo.healUnmarkedProjectDirectories().single()
+
+		assertEquals(lost.toHPath(), healed.path)
+		assertTrue(isProject(lost))
+		assertEquals(emptyList(), repo.getProjectTree().groups)
+	}
+
+	@Test
+	fun `A group whose marker cannot be read leaves its whole subtree out of the tree`() = scope.runTest {
+		val series = createGroupDirectory(ffs, "Series")
+		val trilogy = createGroupDirectory(ffs, "Trilogy", series)
+		val book = createNestedProjectDirectory(ffs, "Book 1", trilogy)
+		val prequel = createNestedProjectDirectory(ffs, "Prequel", series)
+		val loose = createNestedProjectDirectory(ffs, "Loose", root)
+		val unreadable = series / GroupMetadata.FILENAME
+		val fs = object : ForwardingFileSystem(ffs) {
+			override fun source(file: Path) =
+				if (file == unreadable) throw IOException("unreadable") else super.source(file)
+
+			override fun delete(path: Path, mustExist: Boolean) =
+				if (path == unreadable) throw IOException("undeletable") else super.delete(path, mustExist)
+		}
+		val repo = projectsRepository(fs)
+
+		val tree = repo.getProjectTree()
+
+		assertEquals(emptyList(), tree.groups)
+		assertEquals(listOf(loose), tree.projects)
+		assertFalse(book.id in tree.placement)
+		assertFalse(prequel.id in tree.placement)
+	}
+
+	@Test
+	fun `A group delete that fails part way moves everything back`() = scope.runTest {
+		val series = createGroupDirectory(ffs, "Series")
+		val trilogy = createGroupDirectory(ffs, "Trilogy", series)
+		createNestedProjectDirectory(ffs, "Book 1", trilogy)
+		val stuck = createNestedProjectDirectory(ffs, "Book 2", trilogy).path.toOkioPath()
+		val fs = object : ForwardingFileSystem(ffs) {
+			override fun atomicMove(source: Path, target: Path) =
+				if (source == stuck) throw IOException("locked") else super.atomicMove(source, target)
+		}
+		val repo = projectsRepository(fs)
+
+		val result = repo.deleteGroup(repo.group("Trilogy"))
+
+		assertGroupFailure(GroupOperationFailed.Reason.MoveFailed, result)
+		assertTrue(isMarkedGroup(trilogy))
+		assertTrue(isProject(trilogy / "Book 1"))
+		assertTrue(isProject(trilogy / "Book 2"))
+		assertFalse(ffs.exists(series / "Book 1"))
 	}
 
 	// Projects in groups

@@ -287,15 +287,26 @@ class ProjectsRepository(
 	fun getProjectTree(projectsDir: HPath = getProjectsDirectory()): ProjectTree {
 		val scan = scan(projectsDir.toOkioPath())
 		val groupIds = mutableMapOf<Path, GroupId>()
+		// A group that cannot be read takes its subtree with it: listing its contents a level up
+		// would read as a move.
+		val skippedDirs = mutableSetOf<Path>()
 		val groups = scan.groups.mapNotNull { scanned ->
+			if (scanned.parentDir in skippedDirs) {
+				skippedDirs += scanned.dir
+				return@mapNotNull null
+			}
 			val parentId = scanned.parentDir?.let(groupIds::get)
-			loadGroupDef(scanned, parentId, taken = groupIds.values.toSet())?.also { groupIds[scanned.dir] = it.id }
+			val def = loadGroupDef(scanned, parentId, taken = groupIds.values.toSet())
+			if (def == null) skippedDirs += scanned.dir else groupIds[scanned.dir] = def.id
+			def
 		}
 		val placement = mutableMapOf<ProjectId, GroupId?>()
-		val projects = scan.projects.mapNotNull { scanned ->
-			loadProjectDef(scanned.name, scanned.dir)
-				?.also { placement[it.id] = scanned.parentDir?.let(groupIds::get) }
-		}
+		val projects = scan.projects
+			.filterNot { it.parentDir in skippedDirs }
+			.mapNotNull { scanned ->
+				loadProjectDef(scanned.name, scanned.dir)
+					?.also { placement[it.id] = scanned.parentDir?.let(groupIds::get) }
+			}
 		return ProjectTree(groups, projects, placement)
 	}
 
@@ -336,9 +347,10 @@ class ProjectsRepository(
 	/**
 	 * Walks [dir], whose entries sit at [depth] (1 for the projects directory's own), skipping hidden
 	 * entries, files and names that are not valid project names. A directory holding a
-	 * [ProjectMetadata.FILENAME] file is a project, and one holding Hammer content but no marker is
-	 * unmarked; neither is descended into. Any other directory down to [MAX_GROUP_NESTING_DEPTH] is a
-	 * group if it is marked or holds a group or project, so unrelated folders are never claimed.
+	 * [ProjectMetadata.FILENAME] file is a project, one holding [GroupMetadata.FILENAME] a group, and
+	 * one holding Hammer content but neither marker is unmarked and not descended into. Any other
+	 * directory is a group if it holds a group or project, so unrelated folders are never claimed.
+	 * Groups end at [MAX_GROUP_NESTING_DEPTH].
 	 */
 	private fun scan(dir: Path = getProjectsDirectory().toOkioPath(), depth: Int = 1): Scan {
 		val groups = mutableListOf<ScannedDir>()
@@ -362,14 +374,20 @@ class ProjectsRepository(
 					}
 					// A project.toml in another form is the metadata datasource's to recover.
 					marker != null -> Unit
+					groupMetadataDatasource.isMarked(entry.toHPath()) -> {
+						if (entryDepth <= MAX_GROUP_NESTING_DEPTH) {
+							groups += scanned
+							visit(entry, entry, entryDepth + 1)
+							found = true
+						}
+					}
 					hasProjectContent(entry) -> {
 						unmarked += scanned
 						found = true
 					}
 					entryDepth <= MAX_GROUP_NESTING_DEPTH -> {
 						val index = groups.size
-						val holdsEntries = visit(entry, entry, entryDepth + 1)
-						if (holdsEntries || groupMetadataDatasource.isMarked(entry.toHPath())) {
+						if (visit(entry, entry, entryDepth + 1)) {
 							groups.add(index, scanned)
 							found = true
 						}
@@ -392,8 +410,19 @@ class ProjectsRepository(
 	private fun isUnmarked(projectDir: Path): Boolean =
 		fileSystem.metadataOrNull(projectDir / ProjectMetadata.FILENAME) == null
 
+	/**
+	 * A child project or group that happens to be named like a content entry (a group's "Notes"
+	 * subgroup, or "notes" on a case-insensitive filesystem) is not content.
+	 */
 	private fun hasProjectContent(projectDir: Path): Boolean =
-		projectContentMarkers.any { fileSystem.exists(projectDir / it) }
+		projectContentMarkers.any { isProjectContent(projectDir / it) }
+
+	private fun isProjectContent(entry: Path): Boolean {
+		val metadata = fileSystem.metadataOrNull(entry) ?: return false
+		if (!metadata.isDirectory) return true
+		return fileSystem.metadataOrNull(entry / ProjectMetadata.FILENAME) == null &&
+			!groupMetadataDatasource.isMarked(entry.toHPath())
+	}
 
 	/**
 	 * Marks the existing top-level directory for [projectName] as a project under [projectId], if it has no
@@ -712,15 +741,31 @@ class ProjectsRepository(
 			return groupFailure(GroupOperationFailed.Reason.AlreadyExists)
 		}
 
+		val moved = mutableListOf<Path>()
 		return try {
-			contents.forEach { fileSystem.atomicMove(source = it, target = parentDir / it.name) }
+			contents.forEach {
+				fileSystem.atomicMove(source = it, target = parentDir / it.name)
+				moved += it
+			}
 			osClutter.forEach { fileSystem.delete(it, mustExist = false) }
 			groupMetadataDatasource.deleteMetadata(groupDef.path)
 			fileSystem.delete(groupDir, mustExist = false)
 			CResult.success()
 		} catch (e: IOException) {
 			Napier.e("Failed to delete group '${groupDef.name}'", e)
+			if (moved.size < contents.size) moveBack(moved, parentDir)
 			groupFailure(GroupOperationFailed.Reason.MoveFailed)
+		}
+	}
+
+	/** Best effort: returns [entries], already moved up into [parentDir], to the group they came from. */
+	private fun moveBack(entries: List<Path>, parentDir: Path) {
+		entries.asReversed().forEach { original ->
+			try {
+				fileSystem.atomicMove(source = parentDir / original.name, target = original)
+			} catch (e: IOException) {
+				Napier.e("Could not move '${original.name}' back into its group", e)
+			}
 		}
 	}
 
