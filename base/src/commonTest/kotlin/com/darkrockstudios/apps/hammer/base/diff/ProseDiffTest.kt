@@ -241,6 +241,24 @@ class ProseDiffTest {
 	}
 
 	@Test
+	fun `unchanged paragraph after an edited one is not marked moved`() {
+		val left = "It sat grinning from ear to ear.\n\nOnly its grin remained."
+		val right = "It sat lounging on the hearth.\n\nOnly its grin remained."
+		val result = ProseDiff.diff(left, right)
+
+		assertTrue(result.leftSpans.none { it.kind == DiffKind.MOVED }, "expected no moved left spans, got: ${result.leftSpans}")
+		assertTrue(result.rightSpans.none { it.kind == DiffKind.MOVED }, "expected no moved right spans, got: ${result.rightSpans}")
+		assertTrue(
+			result.leftSpans.any { it.kind == DiffKind.DELETED && "grinning" in left.substring(it.range.start, it.range.endExclusive) },
+			"expected 'grinning' deleted on left, got: ${result.leftSpans}",
+		)
+		assertTrue(
+			result.rightSpans.any { it.kind == DiffKind.INSERTED && "lounging" in right.substring(it.range.start, it.range.endExclusive) },
+			"expected 'lounging' inserted on right, got: ${result.rightSpans}",
+		)
+	}
+
+	@Test
 	fun `duplicate paragraph text is ambiguous and not marked moved`() {
 		val left = "Dup para.\n\nKeep one.\n\nDup para.\n\nKeep two."
 		val right = "Keep one.\n\nKeep two.\n\nDup para."
