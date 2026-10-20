@@ -1,0 +1,1253 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Writer's Desk Concept</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=IBM+Plex+Mono:wght@400;500;600&family=Literata:opsz,wght@7..72,400;7..72,500;7..72,600;7..72,700&display=swap" rel="stylesheet">
+<style>
+/* ---------- Tokens ---------- */
+:root {
+  --page: #5b5b5b;
+
+  --desk: #cbbb9e;
+  --desk-glow: rgba(255, 249, 232, .55);
+  --well: #b9a785;
+  --well-edge: rgba(255, 250, 238, .55);
+
+  --wood: #9a693d;
+  --wood-hi: #b07d4c;
+  --wood-lo: #7a5030;
+  --cavity: #34200f;
+
+  --brass: #c39a4c;
+  --brass-hi: #efd391;
+  --brass-lo: #8a6a2c;
+  --brass-ink: #34250b;
+
+  --paper: #fdfaf3;
+  --card: #fffcf4;
+  --manila: #ead8ad;
+  --folder: #f6eedb;
+  --slot: #fffdf8;
+  --slot-in: rgba(90, 64, 30, .16);
+
+  --strip: #e8dcc5;
+  --key: #fbf6ea;
+  --key-hi: #ffffff;
+  --key-lo: #c9b998;
+
+  --ink: #1d1812;
+  --ink-2: #3a3026;
+  --label: #6a5a48;
+  --meta: #74644f;
+  --faint: #8b7b66;
+  --dash: #b09f86;
+
+  --rule: #cf5a4b;
+  --accent: #a8382a;
+  --on: #3f7353;
+  --track: #e2d6bf;
+
+  --label-card: #fbf6ea;
+  --label-ink: #2a2017;
+  --plate-ink: #f3e6cb;
+
+  --t-person: #557395;
+  --t-place: #557f5a;
+  --t-thing: #a97b30;
+
+  --glass-1: #3a7a5c;
+  --glass-2: #1f4d37;
+  --bulb: rgba(255, 230, 170, 0);
+
+  --sh-1: 0 1px 1px rgba(74, 48, 20, .20), 0 2px 5px rgba(74, 48, 20, .10);
+  --sh-2: 0 1px 2px rgba(74, 48, 20, .22), 0 12px 26px -10px rgba(74, 48, 20, .48);
+  --sh-3: 0 2px 4px rgba(74, 48, 20, .22), 0 28px 52px -14px rgba(74, 48, 20, .58);
+  --edge: inset 0 1px 0 rgba(255, 255, 255, .65);
+}
+
+html[data-theme="dark"] {
+  --page: #0e0e0e;
+
+  --desk: #17130f;
+  --desk-glow: rgba(255, 176, 92, .22);
+  --well: #0f0c09;
+  --well-edge: rgba(255, 210, 150, .05);
+
+  --wood: #3c2b1e;
+  --wood-hi: #4a3626;
+  --wood-lo: #291d14;
+  --cavity: #070403;
+
+  --brass: #a6823f;
+  --brass-hi: #c9a35d;
+  --brass-lo: #6a5022;
+  --brass-ink: #1d1408;
+
+  --paper: #29241e;
+  --card: #322b24;
+  --manila: #4b3e2b;
+  --folder: #2e2821;
+  --slot: #1e1a15;
+  --slot-in: rgba(0, 0, 0, .55);
+
+  --strip: #241e18;
+  --key: #3a322a;
+  --key-hi: #463d33;
+  --key-lo: #15110d;
+
+  --ink: #f3eadb;
+  --ink-2: #dccfba;
+  --label: #b8a689;
+  --meta: #a8977c;
+  --faint: #8c7d66;
+  --dash: #5f5344;
+
+  --rule: #d8735f;
+  --accent: #eb937b;
+  --on: #82b48f;
+  --track: #18140f;
+
+  --label-card: #c4b394;
+  --label-ink: #1f160d;
+  --plate-ink: #e6d6b6;
+
+  --t-person: #8fabca;
+  --t-place: #92b892;
+  --t-thing: #d8ad60;
+
+  --glass-1: #2f7154;
+  --glass-2: #123423;
+  --bulb: rgba(255, 196, 120, .30);
+
+  /* lamp sits top right, so shadows fall down and to the left */
+  --sh-1: -1px 2px 2px rgba(0, 0, 0, .55), 0 0 0 1px rgba(0, 0, 0, .25);
+  --sh-2: -1px 2px 3px rgba(0, 0, 0, .5), -8px 14px 26px -6px rgba(0, 0, 0, .8);
+  --sh-3: -2px 4px 6px rgba(0, 0, 0, .6), -16px 30px 54px -10px rgba(0, 0, 0, .9);
+  --edge: inset 0 1px 0 rgba(255, 226, 180, .08);
+}
+
+/* ---------- Page harness (not part of the design) ---------- */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: var(--page); }
+body {
+  min-height: 100vh;
+  padding: 64px 24px 48px;
+  font-family: system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.harness {
+  position: fixed; top: 12px; right: 12px; z-index: 100;
+  display: flex; gap: 8px; align-items: center;
+  padding: 6px; border-radius: 10px;
+  background: rgba(20, 20, 20, .88); color: #ddd;
+  font: 12px/1 system-ui, sans-serif;
+  box-shadow: 0 4px 16px rgba(0,0,0,.4);
+}
+.harness .seg { display: flex; background: #333; border-radius: 6px; padding: 2px; }
+.harness button {
+  font: inherit; color: #bbb; background: none; border: 0;
+  padding: 6px 10px; border-radius: 4px; cursor: pointer;
+}
+.harness button[aria-pressed="true"] { background: #f0f0f0; color: #111; }
+.harness .name { padding: 0 6px; color: #888; }
+
+/* ---------- Canvas ---------- */
+.canvas {
+  position: relative; width: 1280px; height: 800px; margin: 0 auto; overflow: hidden;
+  background:
+    radial-gradient(ellipse 1100px 860px at 90% 0%, var(--desk-glow), transparent 75%),
+    var(--desk);
+  color: var(--ink);
+  font-family: 'Atkinson Hyperlegible', system-ui, sans-serif;
+  box-shadow: 0 30px 90px rgba(0,0,0,.45);
+}
+.view { position: absolute; inset: 0; display: none; }
+body[data-view="writing"] #view-writing,
+body[data-view="settings"] #view-settings { display: block; }
+
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; text-align: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.mono { font-family: 'IBM Plex Mono', ui-monospace, monospace; }
+
+/* ---------- Lamp (top right) ---------- */
+.lamp { position: absolute; right: -24px; top: -46px; width: 230px; height: 120px; z-index: 1; pointer-events: none; }
+.lamp-glow { position: absolute; right: -120px; top: -140px; width: 520px; height: 360px; border-radius: 50%; background: radial-gradient(closest-side, var(--bulb), transparent); pointer-events: none; }
+
+/* ---------- Card catalog cabinet (navigation) ---------- */
+.cabinet {
+  position: absolute; left: 0; top: 0; bottom: 0; width: 180px; z-index: 5;
+  background: linear-gradient(90deg, var(--wood-lo), var(--wood) 14%, var(--wood) 86%, var(--wood-lo));
+  box-shadow: 6px 0 18px -4px rgba(0,0,0,.35), inset -1px 0 0 rgba(255,255,255,.08);
+  padding: 20px 14px;
+  display: flex; flex-direction: column;
+}
+html[data-theme="dark"] .cabinet {
+  background: linear-gradient(90deg, #120c08, var(--wood-lo) 20%, var(--wood) 92%, var(--wood-lo));
+}
+.nameplate {
+  border-radius: 4px; padding: 10px 12px 9px;
+  background: linear-gradient(170deg, var(--brass-hi), var(--brass) 45%, var(--brass-lo));
+  box-shadow: 0 1px 0 rgba(255,255,255,.25) inset, 0 2px 0 rgba(0,0,0,.25), 0 4px 8px rgba(0,0,0,.25);
+  color: var(--brass-ink);
+}
+.nameplate .np-title {
+  font-family: 'Literata', serif; font-size: 18px; font-weight: 700; line-height: 1.15;
+  text-shadow: 0 1px 0 rgba(255,240,200,.45);
+}
+.nameplate .np-by { font-size: 13px; margin-top: 3px; text-shadow: 0 1px 0 rgba(255,240,200,.35); }
+html[data-theme="dark"] .nameplate .np-title,
+html[data-theme="dark"] .nameplate .np-by { text-shadow: 0 1px 0 rgba(255,230,170,.25); }
+
+.drawers { display: flex; flex-direction: column; gap: 10px; margin-top: 22px; }
+.slot {
+  display: block; position: relative; width: 152px; height: 70px; border-radius: 5px;
+  background: var(--cavity);
+  box-shadow: inset 0 3px 8px rgba(0,0,0,.7);
+}
+.front {
+  position: absolute; inset: 0; border-radius: 5px;
+  background: linear-gradient(180deg, var(--wood-hi), var(--wood) 60%, var(--wood-lo));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.16), inset 0 -2px 0 rgba(0,0,0,.2), 0 1px 0 rgba(0,0,0,.35);
+  display: flex; flex-direction: column; align-items: center; padding-top: 10px;
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+.holder {
+  display: block; width: 122px; padding: 3px; border-radius: 3px;
+  background: linear-gradient(180deg, var(--brass-hi), var(--brass) 50%, var(--brass-lo));
+  box-shadow: 0 1px 2px rgba(0,0,0,.4);
+}
+.lbl {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  height: 26px; border-radius: 1px;
+  background: var(--label-card); color: var(--label-ink);
+  font-size: 15px; line-height: 1;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,.18);
+}
+.pull {
+  display: block; width: 44px; height: 13px; margin-top: 9px;
+  border-radius: 2px 2px 22px 22px / 2px 2px 13px 13px;
+  background: linear-gradient(180deg, var(--brass-lo), var(--brass) 35%, var(--brass-hi) 70%, var(--brass-lo));
+  box-shadow: 0 2px 3px rgba(0,0,0,.45);
+}
+.slot:hover .front { transform: translateX(3px); }
+.slot[aria-current="page"] .front {
+  transform: translateX(16px);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.2), inset 0 -2px 0 rgba(0,0,0,.2), 4px 6px 12px rgba(0,0,0,.45);
+}
+.slot[aria-current="page"] .lbl { font-weight: 700; }
+.slot-sm { height: 50px; margin-top: 26px; }
+.slot-sm .front { padding-top: 9px; }
+.slot-sm .holder { width: 140px; }
+.slot-sm .lbl { font-size: 14px; }
+.slot-sm svg { width: 14px; height: 14px; }
+
+.sync {
+  margin-top: auto; display: flex; align-items: center; gap: 7px;
+  padding: 9px 9px; border-radius: 4px;
+  background: rgba(0,0,0,.42); box-shadow: inset 0 2px 4px rgba(0,0,0,.5), 0 1px 0 rgba(255,255,255,.12);
+  color: var(--plate-ink); font-size: 11.5px; white-space: nowrap;
+}
+.led {
+  width: 9px; height: 9px; border-radius: 50%; flex: none;
+  background: radial-gradient(circle at 35% 30%, #d9ffd9, #4fcf6a 45%, #1f7a37);
+  box-shadow: 0 0 6px rgba(80, 220, 110, .7);
+}
+
+/* ---------- Writing view ---------- */
+
+/* Card well (scenes) */
+.well {
+  position: absolute; left: 198px; top: 20px; width: 246px; bottom: 20px;
+  border-radius: 10px; background: var(--well);
+  box-shadow: inset 0 4px 12px rgba(0,0,0,.28), inset 0 -1px 0 var(--well-edge), 0 1px 0 var(--well-edge);
+  padding: 14px 12px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+html[data-theme="dark"] .well { box-shadow: inset 0 4px 14px rgba(0,0,0,.8), 0 1px 0 var(--well-edge); }
+
+.divider {
+  position: relative; margin-top: 20px; padding: 7px 12px 8px;
+  border-radius: 0 4px 3px 3px; background: var(--manila);
+  box-shadow: var(--sh-1);
+  display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+}
+.divider::before {
+  content: ''; position: absolute; left: 0; top: -11px; width: 58%; height: 12px;
+  background: var(--manila); border-radius: 5px 5px 0 0;
+}
+.divider:first-child { margin-top: 12px; }
+.d-name { font-family: 'Literata', serif; font-size: 15px; font-weight: 600; color: var(--ink); position: relative; }
+.d-num { font-size: 11px; color: var(--meta); position: relative; }
+.divider.unfiled .d-name { font-family: 'Atkinson Hyperlegible', sans-serif; font-weight: 700; font-size: 14px; color: var(--label); }
+
+.icard {
+  display: block; position: relative; margin-left: 10px; padding: 8px 12px 7px;
+  border-radius: 3px; background: var(--card); box-shadow: var(--sh-1), var(--edge);
+  transition: transform .15s ease;
+}
+.icard .ic-title { display: block; font-family: 'Literata', serif; font-size: 15px; font-weight: 500; line-height: 1.3; color: var(--ink); }
+.icard .ic-rule { display: block; height: 1px; margin: 6px -12px 5px; background: var(--rule); opacity: .55; }
+.icard .ic-id { display: block; font-size: 11px; color: var(--meta); }
+.icard:hover { transform: translateX(3px); }
+.icard.is-open {
+  transform: translateX(22px); z-index: 2;
+  box-shadow: var(--sh-3), var(--edge);
+}
+.icard.is-open .ic-title { font-weight: 700; }
+.icard.is-open .ic-rule { height: 2px; opacity: 1; }
+.icard.is-open::after {
+  /* a notch pointing at the open sheet */
+  content: ''; position: absolute; right: -8px; top: 50%; margin-top: -8px;
+  border: 8px solid transparent; border-right: 0; border-left-color: var(--card);
+}
+.icard.ghost {
+  background: transparent; box-shadow: none; border: 1.5px dashed var(--dash);
+  display: flex; align-items: center; gap: 8px; color: var(--faint); font-size: 14px; padding: 10px 12px;
+  margin-top: 14px;
+}
+.icard.ghost svg { width: 14px; height: 14px; }
+
+/* Tool strip */
+.tools {
+  position: absolute; left: 470px; top: 18px; width: 588px; height: 42px;
+  display: flex; align-items: center; gap: 14px; padding: 0 7px;
+  border-radius: 9px; background: var(--strip);
+  box-shadow: var(--sh-1), var(--edge);
+}
+.keys { display: flex; gap: 5px; }
+.sep { width: 1px; height: 22px; background: var(--dash); opacity: .6; }
+.key {
+  height: 29px; min-width: 31px; padding: 0 7px; border-radius: 6px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  background: linear-gradient(180deg, var(--key-hi), var(--key));
+  box-shadow: 0 2px 0 var(--key-lo), 0 3px 5px rgba(0,0,0,.14), inset 0 1px 0 rgba(255,255,255,.5);
+  color: var(--ink-2); font-size: 13px;
+}
+html[data-theme="dark"] .key { box-shadow: 0 2px 0 var(--key-lo), 0 3px 5px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,235,200,.08); }
+.key:active { transform: translateY(2px); box-shadow: 0 0 0 var(--key-lo), inset 0 1px 2px rgba(0,0,0,.2); }
+.key svg { width: 15px; height: 15px; }
+.key.b { font-weight: 700; font-size: 15px; font-family: 'Literata', serif; }
+.tools .modes { margin-left: auto; display: flex; gap: 6px; }
+.key.wide { padding: 0 11px; }
+
+/* Manuscript sheet */
+.paper {
+  position: absolute; left: 470px; top: 76px; width: 588px; height: 780px;
+  background: var(--paper); border-radius: 2px;
+  box-shadow: var(--sh-3), var(--edge);
+  padding: 58px 64px 0 64px;
+  z-index: 2;
+}
+.scene-title {
+  font-family: 'Literata', serif; font-size: 33px; font-weight: 600; line-height: 1.15;
+  letter-spacing: -.01em; color: var(--ink); margin-bottom: 26px;
+}
+.prose { font-family: 'Literata', serif; font-size: 19px; line-height: 1.72; color: var(--ink); outline: none; }
+.prose p + p { margin-top: .85em; }
+.caret { display: inline-block; width: 2px; height: 1.15em; margin-left: 1px; vertical-align: -.2em; background: var(--accent); }
+
+/* Clipped scene card */
+.meta-card {
+  position: absolute; left: 1036px; top: 104px; width: 224px; z-index: 4;
+  background: var(--card); border-radius: 3px;
+  box-shadow: var(--sh-2), var(--edge);
+  padding: 16px 18px 18px;
+}
+.clip { position: absolute; left: -30px; top: 4px; width: 46px; height: 58px; }
+.mc-head { display: flex; align-items: center; justify-content: space-between; }
+.stamp {
+  font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 600; letter-spacing: .03em;
+  color: var(--accent); border: 1.5px solid var(--accent); border-radius: 3px; padding: 1px 6px;
+}
+.mc-head .wc { font-size: 12px; color: var(--meta); }
+.mc-rule { height: 2px; background: var(--rule); margin: 11px -18px 13px; }
+.lab { display: block; font-size: 13px; color: var(--label); margin-bottom: 3px; }
+.val { font-family: 'Literata', serif; font-size: 15px; line-height: 1.45; color: var(--ink); }
+.mc-sec + .mc-sec { margin-top: 14px; }
+.draft-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.draft-row .val { font-size: 16px; font-weight: 600; }
+.btn-brass {
+  font-size: 13px; padding: 5px 10px; border-radius: 5px; white-space: nowrap;
+  background: linear-gradient(180deg, var(--brass-hi), var(--brass) 55%, var(--brass-lo));
+  color: var(--brass-ink); font-weight: 700;
+  box-shadow: 0 1px 0 rgba(255,255,255,.3) inset, 0 2px 0 var(--brass-lo), 0 3px 5px rgba(0,0,0,.2);
+}
+.edited { font-size: 11px; color: var(--meta); margin-top: 4px; }
+
+.tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag {
+  position: relative; display: inline-flex; align-items: center; gap: 6px;
+  height: 24px; padding: 0 9px 0 16px;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--ink);
+  background: var(--manila);
+  clip-path: polygon(8px 0, 100% 0, 100% 100%, 8px 100%, 0 50%);
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,.25));
+}
+.tag::before {
+  content: ''; position: absolute; left: 6px; top: 50%; width: 5px; height: 5px; margin-top: -2.5px;
+  border-radius: 50%; background: var(--card); box-shadow: inset 0 1px 1px rgba(0,0,0,.35);
+}
+.tag .x { width: 10px; height: 10px; opacity: .55; }
+.tag.empty {
+  background: none; clip-path: none; filter: none;
+  border: 1.5px dashed var(--dash); border-radius: 4px; color: var(--faint);
+  font-family: 'Atkinson Hyperlegible', sans-serif; font-size: 13px; padding: 0 10px;
+}
+.tag.empty::before { display: none; }
+
+/* Reference cards */
+.refs { position: absolute; left: 1040px; top: 516px; width: 220px; z-index: 3; }
+.refs-lab { font-size: 13px; color: var(--label); margin: 0 0 8px 2px; }
+html[data-theme="light"] .refs-lab { color: #5c4c3b; }
+.ref {
+  display: flex; align-items: stretch; width: 100%; margin-bottom: 9px;
+  background: var(--card); border-radius: 3px; overflow: hidden;
+  box-shadow: var(--sh-1), var(--edge);
+}
+.ref:nth-child(2) { transform: translateX(-4px); }
+.ref:nth-child(4) { transform: translateX(3px); }
+.ref .rt { width: 30px; flex: none; display: flex; align-items: center; justify-content: center; color: var(--card); }
+.ref .rt svg { width: 15px; height: 15px; }
+.ref.person .rt { background: var(--t-person); }
+.ref.place .rt { background: var(--t-place); }
+.ref.thing .rt { background: var(--t-thing); }
+html[data-theme="dark"] .ref .rt { color: #1b1611; }
+.ref .rb { padding: 7px 11px 7px; }
+.ref .rn { display: block; font-family: 'Literata', serif; font-size: 15px; font-weight: 600; color: var(--ink); line-height: 1.25; }
+.ref .rk { display: block; font-size: 11px; color: var(--meta); margin-top: 1px; }
+.ref.empty {
+  background: none; box-shadow: none; border: 1.5px dashed var(--dash);
+  color: var(--faint); font-size: 13px; padding: 8px 11px; gap: 8px; align-items: center;
+}
+.ref.empty svg { width: 13px; height: 13px; }
+
+html[data-theme="light"] .well .ghost,
+html[data-theme="light"] .ref.empty { border-color: rgba(70, 48, 22, .38); color: #5e4e3b; }
+
+/* ---------- Settings view ---------- */
+.folder {
+  position: absolute; background: var(--folder); border-radius: 0 6px 5px 5px;
+  box-shadow: var(--sh-2), var(--edge);
+  padding: 22px 22px 22px;
+}
+.ftab {
+  position: absolute; top: -32px; height: 33px; padding: 0 18px;
+  display: flex; align-items: center;
+  background: var(--folder); border-radius: 7px 7px 0 0;
+  font-size: 16px; font-weight: 700; color: var(--ink-2);
+  box-shadow: 0 -2px 4px -2px rgba(0,0,0,.18);
+}
+html[data-theme="dark"] .ftab { box-shadow: 0 -1px 0 rgba(255,226,180,.06); }
+.field + .field, .field + .trow, .trow + .field, .trow + .trow { margin-top: 16px; }
+.flabel { display: block; font-size: 14px; color: var(--label); margin-bottom: 6px; }
+.hint { display: block; font-size: 13px; color: var(--faint); margin-top: 3px; }
+
+.slotf {
+  display: flex; align-items: center; justify-content: space-between; width: 100%;
+  height: 40px; padding: 0 12px; border-radius: 4px;
+  background: var(--slot); border: 0;
+  box-shadow: inset 0 2px 3px var(--slot-in), inset 0 0 0 1px rgba(0,0,0,.06), 0 1px 0 rgba(255,255,255,.5);
+  font-family: 'Literata', serif; font-size: 16px; color: var(--ink);
+}
+html[data-theme="dark"] .slotf { box-shadow: inset 0 2px 4px var(--slot-in), 0 1px 0 rgba(255,226,180,.05); }
+input.slotf { outline: none; }
+input.slotf:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.slotf svg { width: 14px; height: 14px; color: var(--label); flex: none; }
+.slotf.empty {
+  background: transparent; box-shadow: none; border: 1.5px dashed var(--dash);
+  font-family: 'Atkinson Hyperlegible', sans-serif; font-size: 14px;
+}
+.slotf.empty::placeholder { color: var(--faint); opacity: 1; }
+
+.trow { display: flex; align-items: center; gap: 12px; }
+.trow .tl { flex: 1; font-size: 15px; color: var(--ink-2); line-height: 1.3; }
+.trow .tl .hint { font-size: 13px; }
+.switch {
+  position: relative; width: 48px; height: 26px; border-radius: 13px; flex: none;
+  background: var(--track);
+  box-shadow: inset 0 2px 4px rgba(0,0,0,.28), 0 1px 0 rgba(255,255,255,.4);
+  transition: background .15s ease;
+}
+html[data-theme="dark"] .switch { box-shadow: inset 0 2px 5px rgba(0,0,0,.8), 0 1px 0 rgba(255,226,180,.06); }
+.switch .knob {
+  position: absolute; top: 2px; left: 2px; width: 22px; height: 22px; border-radius: 50%;
+  background: linear-gradient(180deg, var(--key-hi), var(--key));
+  box-shadow: 0 1px 1px rgba(0,0,0,.3), 0 2px 4px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.6);
+  transition: left .15s ease;
+}
+html[data-theme="dark"] .switch .knob { background: linear-gradient(180deg, #d9cbb0, #b6a684); }
+.switch[aria-checked="true"] { background: var(--on); }
+.switch[aria-checked="true"] .knob { left: 24px; }
+.state { width: 26px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--meta); flex: none; }
+.switch[aria-checked="true"] + .state { color: var(--ink); font-weight: 600; }
+
+.chips { display: flex; gap: 14px; margin-top: 18px; transition: opacity .15s ease; }
+.chips.is-off { opacity: .55; }
+.chip { width: 128px; background: var(--card); border-radius: 3px; padding: 6px 6px 9px; box-shadow: var(--sh-1), var(--edge); }
+.swatch { height: 62px; border-radius: 2px; box-shadow: inset 0 0 0 1px rgba(0,0,0,.12); }
+.chip .cl { display: block; font-size: 13px; color: var(--label); margin: 7px 3px 1px; }
+.chip .ch { display: block; font-family: 'IBM Plex Mono', monospace; font-size: 14px; font-weight: 500; color: var(--ink); margin: 0 3px; }
+.chips-hint { margin-top: 10px; }
+
+.words { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.word {
+  display: inline-flex; align-items: center; gap: 8px; padding: 5px 10px 5px 12px;
+  background: var(--card); border-radius: 3px; box-shadow: var(--sh-1), var(--edge);
+  font-family: 'Literata', serif; font-size: 15px; color: var(--ink);
+}
+.word svg, .tag svg { width: 10px; height: 10px; color: var(--faint); }
+.folder .tags { gap: 10px; }
+.folder .tag { height: 30px; font-size: 14px; padding: 0 11px 0 19px; }
+.folder .tag.empty { padding: 0 12px; font-size: 14px; }
+
+hr.fold { border: 0; height: 1px; background: var(--dash); opacity: .45; margin: 18px -22px; }
+
+/* ---------- Phone (412 x 915) ---------- */
+.ph { display: none; }
+body[data-device="phone"] { padding: 0; }
+body[data-device="phone"] .canvas { display: none; }
+body[data-device="phone"] .ph { display: block; }
+body[data-controls="0"] .harness { display: none; }
+.harness .seg[hidden] { display: none; }
+
+.ph {
+  position: relative; width: 412px; height: 915px; overflow: hidden; margin: 0;
+  background:
+    radial-gradient(ellipse 520px 640px at 100% 0%, var(--desk-glow), transparent 75%),
+    var(--desk);
+  color: var(--ink);
+  font-family: 'Atkinson Hyperlegible', system-ui, sans-serif;
+}
+.ph-view { position: absolute; inset: 0; display: none; }
+body[data-view="writing"] #ph-writing,
+body[data-view="settings"] #ph-settings { display: block; }
+
+/* Header: nameplate, sync, settings */
+.ph-head {
+  position: absolute; left: 10px; right: 10px; top: 10px; height: 52px; z-index: 6;
+  display: flex; align-items: center; gap: 8px;
+}
+.ph .ph-plate { padding: 7px 12px 7px; height: 52px; }
+.ph .ph-plate .np-title { font-size: 16px; }
+.ph .ph-plate .np-by { font-size: 12px; margin-top: 1px; }
+.ph .ph-sync { margin: 0 0 0 auto; height: 36px; padding: 0 10px; }
+.ph-gear {
+  position: relative; width: 48px; height: 48px; flex: none; border-radius: 6px;
+  background: var(--cavity); box-shadow: inset 0 3px 8px rgba(0,0,0,.7);
+}
+.ph-gear .front { padding: 0; justify-content: center; }
+.ph-gear svg { width: 22px; height: 22px; color: var(--brass-hi); filter: drop-shadow(0 1px 0 rgba(0,0,0,.4)); }
+.ph-gear[aria-current="page"] .front { transform: translateY(5px); box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 -3px 0 var(--cavity), 0 6px 10px rgba(0,0,0,.4); }
+
+/* Scene cards tucked behind the top of the sheet */
+.ph-strip { position: absolute; left: 0; right: 0; top: 64px; height: 120px; z-index: 1; display: flex; }
+.ph-box {
+  flex: none; width: 52px; height: 52px; margin: 12px 0 0 8px; border-radius: 8px;
+  background: var(--well); color: var(--ink-2);
+  box-shadow: inset 0 3px 7px rgba(0,0,0,.28), 0 1px 0 var(--well-edge);
+  display: flex; align-items: center; justify-content: center;
+}
+html[data-theme="dark"] .ph-box { box-shadow: inset 0 3px 8px rgba(0,0,0,.85), 0 1px 0 var(--well-edge); color: var(--ink-2); }
+.ph-box svg { width: 26px; height: 26px; }
+.ph-cards {
+  position: relative; flex: 1; display: flex; align-items: flex-start; gap: 6px;
+  padding: 0 10px 0 8px; overflow-x: auto; overflow-y: hidden; scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 18px, #000 calc(100% - 18px), transparent);
+  mask-image: linear-gradient(90deg, transparent 0, #000 18px, #000 calc(100% - 18px), transparent);
+}
+.ph-cards::-webkit-scrollbar { display: none; }
+.ph-card, .ph-div {
+  flex: none; margin-top: 14px; height: 100px; padding: 7px 12px 0; border-radius: 3px;
+  background: var(--card); box-shadow: var(--sh-1), var(--edge); text-align: left;
+}
+.ph-card { display: flex; flex-direction: column; justify-content: flex-start; }
+.ph-card .ic-title { display: block; font-family: 'Literata', serif; font-size: 14px; font-weight: 500; color: var(--ink); white-space: nowrap; }
+.ph-card .ic-rule { display: block; height: 1px; margin: 5px -12px 4px; background: var(--rule); opacity: .55; }
+.ph-card .ic-id { display: block; font-size: 10.5px; color: var(--meta); }
+.ph-card.is-open { margin-top: 2px; box-shadow: var(--sh-3), var(--edge); }
+.ph-card.is-open .ic-title { font-weight: 700; }
+.ph-card.is-open .ic-rule { height: 2px; opacity: 1; }
+.ph-div { background: var(--manila); margin-top: 20px; padding-top: 8px; }
+.ph-div .d-name { display: block; font-family: 'Literata', serif; font-size: 14px; font-weight: 600; color: var(--ink); white-space: nowrap; }
+.ph-div .d-num { display: block; font-size: 10.5px; color: var(--meta); margin-top: 3px; }
+.ph-div.unfiled .d-name { font-family: 'Atkinson Hyperlegible', sans-serif; font-weight: 700; font-size: 13px; color: var(--label); }
+
+/* The sheet */
+.ph-paper {
+  position: absolute; left: 8px; right: 8px; top: 128px; bottom: 150px; z-index: 2;
+  background: var(--paper); border-radius: 2px; box-shadow: var(--sh-3), var(--edge);
+  padding: 30px 24px 0 26px; overflow: hidden;
+}
+.ph .scene-title { font-size: 26px; margin: 4px 120px 22px 0; }
+.ph .prose { font-size: 18px; line-height: 1.66; }
+.ph .prose p + p { margin-top: .8em; }
+
+.ph-stub {
+  position: absolute; right: 14px; top: 18px; width: 112px; min-height: 56px; z-index: 3;
+  background: var(--card); border-radius: 3px; box-shadow: var(--sh-2), var(--edge);
+  padding: 14px 10px 8px; display: flex; flex-direction: column; align-items: flex-start; gap: 5px;
+}
+.ph-stub .stamp { font-size: 12px; }
+.ph-stub .wc { font-size: 11px; color: var(--meta); }
+.clip-top { position: absolute; left: 50%; width: 46px; height: 30px; margin-left: -23px; top: -16px; }
+.ph-stub .clip-top { width: 38px; height: 25px; margin-left: -19px; top: -13px; }
+
+/* Tool strip */
+.ph-tools {
+  position: absolute; left: 6px; right: 6px; bottom: 88px; height: 54px; z-index: 3;
+  display: flex; align-items: center; justify-content: space-between; padding: 0 4px;
+  border-radius: 10px; background: var(--strip); box-shadow: var(--sh-1), var(--edge);
+}
+.ph .key { width: 44px; height: 44px; min-width: 0; padding: 0; border-radius: 8px; }
+.ph .key svg { width: 18px; height: 18px; }
+.ph .key.b { font-size: 17px; }
+.ph .key.mode { background: linear-gradient(180deg, var(--manila), var(--manila)); }
+
+/* Cabinet along the bottom */
+.ph-cabinet {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 80px; z-index: 7;
+  display: flex; gap: 4px; padding: 10px 6px 10px;
+  background: linear-gradient(180deg, var(--wood-hi), var(--wood) 30%, var(--wood-lo));
+  box-shadow: 0 -6px 16px -4px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.12);
+}
+html[data-theme="dark"] .ph-cabinet { background: linear-gradient(180deg, var(--wood-hi), var(--wood) 30%, #1a120c); }
+.ph-dr {
+  position: relative; flex: 0 0 auto; height: 60px; border-radius: 5px;
+  background: var(--cavity); box-shadow: inset 0 3px 8px rgba(0,0,0,.7);
+}
+.ph-dr .front { padding: 6px 3px 0; gap: 5px; }
+.ph-dr[data-nav="home"] { width: 66px; }
+.ph-dr[data-nav="story"], .ph-dr[data-nav="notes"] { width: 68px; }
+.ph-dr[data-nav="encyclopedia"] { width: 104px; }
+.ph-dr[data-nav="timeline"] { width: 78px; }
+.ph-dr .ico { width: 18px; height: 18px; color: var(--brass-hi); filter: drop-shadow(0 1px 0 rgba(0,0,0,.45)); }
+.ph-dr .holder { width: 100%; padding: 2px; }
+.ph-dr .lbl { height: 21px; font-size: 12px; padding: 0 5px; white-space: nowrap; }
+.ph-dr[aria-current="page"] .front {
+  transform: translateY(-9px);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.2), inset 0 -2px 0 rgba(0,0,0,.2), 0 8px 12px rgba(0,0,0,.45);
+}
+.ph-dr[aria-current="page"] .lbl { font-weight: 700; }
+
+/* Revealed states */
+.ph-scrim { position: absolute; inset: 0; z-index: 4; display: none; background: rgba(40, 26, 12, .38); }
+html[data-theme="dark"] .ph-scrim { background: rgba(0, 0, 0, .55); }
+.ph-sheet { position: absolute; z-index: 5; display: none; }
+body[data-state="scenes"] .ph-scrim, body[data-state="meta"] .ph-scrim { display: block; }
+body[data-state="scenes"] .ph-scenes, body[data-state="meta"] .ph-meta { display: block; }
+
+.ph-scenes {
+  left: 8px; right: 8px; top: 120px; bottom: 90px; border-radius: 12px 12px 8px 8px;
+  background: linear-gradient(180deg, var(--wood-hi), var(--wood));
+  box-shadow: var(--sh-3), inset 0 1px 0 rgba(255,255,255,.15);
+  padding: 0 8px 8px;
+}
+.ph-rim { height: 54px; display: flex; align-items: center; justify-content: space-between; padding: 0 4px 0 8px; }
+.ph-rim .count { font-size: 12px; color: var(--plate-ink); background: rgba(0,0,0,.4); padding: 5px 9px; border-radius: 4px; box-shadow: inset 0 1px 3px rgba(0,0,0,.5); }
+.ph-close { height: 44px; display: flex; align-items: center; }
+.ph-close .holder { width: auto; }
+.ph-close .lbl { padding: 0 14px; height: 30px; font-size: 14px; }
+.ph-scenes .well-in {
+  height: calc(100% - 54px); overflow-y: auto; border-radius: 6px; background: var(--well);
+  box-shadow: inset 0 4px 12px rgba(0,0,0,.3); padding: 4px 12px 16px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+html[data-theme="dark"] .ph-scenes .well-in { box-shadow: inset 0 4px 14px rgba(0,0,0,.85); }
+.ph-scenes .icard { min-height: 52px; margin-right: 10px; }
+.ph-scenes .icard .ic-title { font-size: 16px; }
+.ph-scenes .icard.is-open { transform: translateX(10px); }
+.ph-scenes .icard.is-open::after { display: none; }
+.ph-scenes .icard.ghost { min-height: 52px; margin-top: 10px; font-size: 15px; }
+html[data-theme="light"] .ph-scenes .icard.ghost { border-color: rgba(70, 48, 22, .38); color: #5e4e3b; }
+
+.ph-meta {
+  left: 12px; right: 12px; top: 112px; bottom: 92px;
+  background: var(--card); border-radius: 3px; box-shadow: var(--sh-3), var(--edge);
+}
+.ph-meta .meta-in { height: 100%; overflow-y: auto; padding: 22px 20px 18px; scrollbar-width: none; }
+.ph-meta .mc-head { gap: 12px; }
+.ph-meta .mc-head .wc { margin-right: auto; }
+.ph-meta .mc-rule { margin: 6px -20px 14px; }
+.ph-meta .x-btn { width: 44px; height: 44px; margin-right: -10px; display: flex; align-items: center; justify-content: center; color: var(--label); }
+.ph-meta .x-btn svg { width: 14px; height: 14px; }
+.ph-meta .val { font-size: 16px; }
+.ph-meta .mc-sec + .mc-sec { margin-top: 16px; }
+.ph-meta .btn-brass { min-height: 44px; padding: 0 14px; font-size: 14px; }
+.ph-meta .tag { height: 30px; font-size: 13px; }
+.ph-meta .refs-in { margin-top: 18px; padding-top: 14px; border-top: 1px dashed var(--dash); }
+.ph-meta .ref { min-height: 48px; }
+.ph-meta .ref:nth-child(n) { transform: none; }
+.ph-meta .ref.empty { min-height: 46px; }
+
+/* Settings on the phone */
+.ph-title { position: absolute; left: 10px; right: 10px; top: 74px; height: 40px; display: flex; align-items: center; }
+.ph-title .holder { width: auto; }
+.ph-title .lbl { height: 30px; padding: 0 14px; font-size: 16px; font-weight: 700; }
+.ph-scroll {
+  position: absolute; left: 0; right: 0; top: 118px; bottom: 80px; overflow-y: auto; scrollbar-width: none;
+  padding: 36px 12px 36px;
+}
+.ph-scroll::-webkit-scrollbar { display: none; }
+.ph .folder { position: relative; padding: 18px 18px 20px; }
+.ph .folder + .folder { margin-top: 50px; }
+.ph .ftab { font-size: 15px; height: 34px; top: -33px; }
+.ph .slotf { height: 46px; }
+.ph .trow { min-height: 46px; }
+.ph .switch::after { content: ''; position: absolute; inset: -9px -4px; }
+.ph .chips { margin-top: 14px; gap: 12px; }
+.ph .chip { flex: 1; width: auto; display: flex; align-items: center; gap: 10px; padding: 6px; }
+.ph .chip .swatch { width: 44px; height: 44px; flex: none; }
+.ph .chip .cl { margin: 0 0 1px; }
+.ph .chip .ch { margin: 0; }
+.ph .folder .tags { gap: 10px; }
+.ph .folder .tag { height: 44px; font-size: 15px; padding: 0 0 0 20px; gap: 0; }
+.ph .rm { width: 40px; height: 44px; display: flex; align-items: center; justify-content: center; }
+.ph .rm svg { width: 11px; height: 11px; color: var(--faint); }
+.ph .folder .tag.empty { padding: 0 14px; gap: 7px; }
+.ph .word { height: 44px; padding: 0 0 0 14px; gap: 0; font-size: 16px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+</style>
+</head>
+<body data-view="writing" data-device="desktop">
+
+<div class="harness" role="group" aria-label="Concept controls">
+  <span class="name">Writer's desk</span>
+  <div class="seg">
+    <button type="button" data-set-view="writing">Writing</button>
+    <button type="button" data-set-view="settings">Settings</button>
+  </div>
+  <div class="seg">
+    <button type="button" data-set-theme="light">Light</button>
+    <button type="button" data-set-theme="dark">Dark</button>
+  </div>
+  <div class="seg">
+    <button type="button" data-set-device="desktop">Desktop</button>
+    <button type="button" data-set-device="phone">Phone</button>
+  </div>
+  <div class="seg" id="state-seg">
+    <button type="button" data-set-state="" data-for="writing">Page</button>
+    <button type="button" data-set-state="scenes" data-for="writing">Scenes</button>
+    <button type="button" data-set-state="meta" data-for="writing">Details</button>
+    <button type="button" data-set-state="" data-for="settings">Top</button>
+    <button type="button" data-set-state="spell" data-for="settings">Spell checking</button>
+  </div>
+</div>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-x" viewBox="0 0 10 10"><path d="M2 2l6 6M8 2L2 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 14 14"><path d="M7 2v10M2 7h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+    <symbol id="i-chev" viewBox="0 0 14 14"><path d="M3.5 5.5L7 9l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-person" viewBox="0 0 16 16"><circle cx="8" cy="5.2" r="2.8" fill="currentColor"/><path d="M2.5 14c.6-3.2 2.9-4.8 5.5-4.8s4.9 1.6 5.5 4.8z" fill="currentColor"/></symbol>
+    <symbol id="i-place" viewBox="0 0 16 16"><path d="M8 1.5c-2.8 0-5 2.1-5 4.9C3 10 8 14.5 8 14.5s5-4.5 5-8.1c0-2.8-2.2-4.9-5-4.9zm0 6.8a1.9 1.9 0 110-3.8 1.9 1.9 0 010 3.8z" fill="currentColor"/></symbol>
+    <symbol id="i-thing" viewBox="0 0 16 16"><path d="M3 4h8.5v4.5a4.25 4.25 0 01-8.5 0zM11.5 5h1a2 2 0 010 4h-1.2" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M3 4h8.5v4.5a4.25 4.25 0 01-8.5 0z" fill="currentColor"/><path d="M2 14.5h11" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+    <symbol id="i-gear" viewBox="0 0 16 16"><path d="M8 5.3a2.7 2.7 0 100 5.4 2.7 2.7 0 000-5.4z" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M3.4 12.6l1.4-1.4M11.2 4.8l1.4-1.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
+  </defs>
+</svg>
+
+<main class="canvas" aria-label="Hammer, writer's desk concept">
+
+  <!-- Lamp: off by day, lit at night -->
+  <div class="lamp-glow" aria-hidden="true"></div>
+  <svg class="lamp" viewBox="0 0 230 120" aria-hidden="true">
+    <defs>
+      <linearGradient id="glass" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="var(--glass-2)"/>
+        <stop offset=".42" stop-color="var(--glass-1)"/>
+        <stop offset=".55" stop-color="#7fb89b" stop-opacity=".9"/>
+        <stop offset=".7" stop-color="var(--glass-1)"/>
+        <stop offset="1" stop-color="var(--glass-2)"/>
+      </linearGradient>
+      <linearGradient id="brassg" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="var(--brass-hi)"/><stop offset="1" stop-color="var(--brass-lo)"/>
+      </linearGradient>
+    </defs>
+    <rect x="14" y="40" width="196" height="66" rx="33" fill="url(#glass)"/>
+    <rect x="14" y="40" width="196" height="66" rx="33" fill="none" stroke="url(#brassg)" stroke-width="3.5"/>
+    <path d="M44 73h136" stroke="var(--brass-hi)" stroke-width="1.5" opacity=".45"/>
+    <circle cx="112" cy="73" r="10" fill="url(#brassg)"/>
+    <circle cx="112" cy="73" r="4" fill="var(--brass-lo)"/>
+  </svg>
+
+  <!-- Card catalog: navigation -->
+  <aside class="cabinet">
+    <div class="nameplate">
+      <div class="np-title">The Lighthouse</div>
+      <div class="np-by">A. Writer</div>
+    </div>
+    <nav class="drawers" aria-label="Project">
+      <button class="slot" data-nav="home"><span class="front"><span class="holder"><span class="lbl">Home</span></span><span class="pull"></span></span></button>
+      <button class="slot" data-nav="story"><span class="front"><span class="holder"><span class="lbl">Story</span></span><span class="pull"></span></span></button>
+      <button class="slot" data-nav="notes"><span class="front"><span class="holder"><span class="lbl">Notes</span></span><span class="pull"></span></span></button>
+      <button class="slot" data-nav="encyclopedia"><span class="front"><span class="holder"><span class="lbl">Encyclopedia</span></span><span class="pull"></span></span></button>
+      <button class="slot" data-nav="timeline"><span class="front"><span class="holder"><span class="lbl">Timeline</span></span><span class="pull"></span></span></button>
+    </nav>
+    <button class="slot slot-sm" data-nav="settings"><span class="front"><span class="holder"><span class="lbl"><svg aria-hidden="true"><use href="#i-gear"/></svg>Project settings</span></span></span></button>
+    <div class="sync mono"><span class="led" aria-hidden="true"></span>Synced 2 min ago</div>
+  </aside>
+
+  <!-- ================= Writing ================= -->
+  <section class="view" id="view-writing" aria-label="Writing">
+
+    <div class="well" aria-label="Scenes">
+      <div class="divider"><span class="d-name">Arrival</span><span class="d-num mono">Chapter 1</span></div>
+      <button class="icard"><span class="ic-title">The Harbour</span><span class="ic-rule"></span><span class="ic-id mono">SCN-001</span></button>
+      <button class="icard is-open" aria-current="true"><span class="ic-title">The Lamp Room</span><span class="ic-rule"></span><span class="ic-id mono">SCN-007</span></button>
+
+      <div class="divider"><span class="d-name">The Dark Night</span><span class="d-num mono">Chapter 2</span></div>
+      <button class="icard"><span class="ic-title">Midsummer</span><span class="ic-rule"></span><span class="ic-id mono">SCN-012</span></button>
+      <button class="icard"><span class="ic-title">The Wreck</span><span class="ic-rule"></span><span class="ic-id mono">SCN-004</span></button>
+
+      <div class="divider unfiled"><span class="d-name">Unfiled</span></div>
+      <button class="icard"><span class="ic-title">Rumours</span><span class="ic-rule"></span><span class="ic-id mono">SCN-015</span></button>
+
+      <button class="icard ghost"><svg aria-hidden="true"><use href="#i-plus"/></svg>New scene</button>
+    </div>
+
+    <div class="tools" role="toolbar" aria-label="Editor tools">
+      <div class="keys">
+        <button class="key b" aria-label="Bold" title="Bold">B</button>
+        <button class="key" aria-label="Italic" title="Italic"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M7 2.5h5M4 13.5h5M10 2.5l-4 11" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></button>
+        <button class="key" aria-label="Heading" title="Heading"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 2.5v11M11 2.5v11M3 8h8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+      </div>
+      <span class="sep" aria-hidden="true"></span>
+      <div class="keys">
+        <button class="key" aria-label="Bulleted list" title="Bulleted list"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="3" cy="4" r="1.3" fill="currentColor"/><circle cx="3" cy="8" r="1.3" fill="currentColor"/><circle cx="3" cy="12" r="1.3" fill="currentColor"/><path d="M6.5 4h7M6.5 8h7M6.5 12h7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
+        <button class="key" aria-label="Numbered list" title="Numbered list"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.3 2.8l1.2-.6v3.6M6.5 4h7M6.5 8h7M6.5 12h7M2 9.2c.3-.6 1.9-.8 1.9.3 0 .9-1.9 1.4-1.9 2.4h2" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      </div>
+      <span class="sep" aria-hidden="true"></span>
+      <div class="keys">
+        <button class="key" aria-label="Undo" title="Undo"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3L2 6l3 3M2.5 6H10a3.5 3.5 0 010 7H7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <button class="key" aria-label="Redo" title="Redo"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M11 3l3 3-3 3M13.5 6H6a3.5 3.5 0 000 7h3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      </div>
+      <div class="modes">
+        <button class="key wide"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 5.5V2h3.5M10.5 2H14v3.5M14 10.5V14h-3.5M5.5 14H2v-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Focus</button>
+        <button class="key wide"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 4c-1.6-1.2-3.6-1.5-6-1.2v10c2.4-.3 4.4 0 6 1.2 1.6-1.2 3.6-1.5 6-1.2v-10c-2.4-.3-4.4 0-6 1.2zM8 4v10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>Reader</button>
+      </div>
+    </div>
+
+    <article class="paper">
+      <h1 class="scene-title">The Lamp Room</h1>
+      <div class="prose" contenteditable="true" spellcheck="false">
+        <p>One hundred and nine steps. He counted them the first night and never again, because the number did not change and the counting made the stair feel longer.</p>
+        <p>The lamp room smelled of oil and old brass. Somebody had left a chair facing the sea, and a cup beside it, and in the cup a dry brown ring where the tea had been.</p>
+        <p>He sat. The chair took his weight the way a boat takes a wave, grudging and then all at once.</p>
+        <p>Below, the town had already started to light its windows, one by one, as if it were answering him.<span class="caret" aria-hidden="true"></span></p>
+      </div>
+    </article>
+
+    <aside class="meta-card" aria-label="Scene details">
+      <svg class="clip" viewBox="0 0 46 58" aria-hidden="true">
+        <defs>
+          <linearGradient id="clipg" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stop-color="#2a2a2a"/><stop offset=".5" stop-color="#4a4a4a"/><stop offset="1" stop-color="#1c1c1c"/>
+          </linearGradient>
+        </defs>
+        <path d="M18 14 L4 8 Q1 7 1 10 L1 48 Q1 51 4 50 L18 44" fill="none" stroke="var(--brass-hi)" stroke-width="2.4" stroke-linecap="round"/>
+        <path d="M18 14 L4 8 Q1 7 1 10 L1 48 Q1 51 4 50 L18 44" fill="none" stroke="var(--brass-lo)" stroke-width="1" stroke-linecap="round" transform="translate(0.6 0.6)" opacity=".6"/>
+        <rect x="16" y="4" width="28" height="50" rx="3" fill="url(#clipg)"/>
+        <rect x="16" y="4" width="5" height="50" rx="2" fill="#5c5c5c"/>
+        <rect x="40" y="4" width="4" height="50" rx="2" fill="#111"/>
+      </svg>
+
+      <div class="mc-head">
+        <span class="stamp">SCN-007</span>
+        <span class="wc mono">1,240 W</span>
+      </div>
+      <div class="mc-rule"></div>
+
+      <div class="mc-sec">
+        <span class="lab">Draft</span>
+        <div class="draft-row"><span class="val">Second pass</span><button class="btn-brass">Save draft</button></div>
+        <div class="edited mono">Edited 12 min ago</div>
+      </div>
+      <div class="mc-sec">
+        <span class="lab">Outline</span>
+        <div class="val">Elias climbs the tower for the first time and finds signs someone left in a hurry.</div>
+      </div>
+      <div class="mc-sec">
+        <span class="lab">Notes</span>
+        <div class="val">Plant the cup here; pay it off in chapter 3.</div>
+      </div>
+      <div class="mc-sec">
+        <span class="lab">Tags</span>
+        <div class="tags"><span class="tag">tower</span><span class="tag">foreshadowing</span></div>
+      </div>
+    </aside>
+
+    <div class="refs" aria-label="References">
+      <div class="refs-lab">References</div>
+      <button class="ref person"><span class="rt"><svg aria-hidden="true"><use href="#i-person"/></svg></span><span class="rb"><span class="rn">Elias</span><span class="rk mono">Person</span></span></button>
+      <button class="ref place"><span class="rt"><svg aria-hidden="true"><use href="#i-place"/></svg></span><span class="rb"><span class="rn">The Lighthouse</span><span class="rk mono">Place</span></span></button>
+      <button class="ref thing"><span class="rt"><svg aria-hidden="true"><use href="#i-thing"/></svg></span><span class="rb"><span class="rn">The Keeper's Cup</span><span class="rk mono">Thing</span></span></button>
+      <button class="ref empty"><svg aria-hidden="true"><use href="#i-plus"/></svg>Add a reference</button>
+    </div>
+  </section>
+
+  <!-- ================= Settings ================= -->
+  <section class="view" id="view-settings" aria-label="Project settings">
+
+    <section class="folder" style="left:216px; top:92px; width:340px;" aria-labelledby="f-info">
+      <h2 class="ftab" id="f-info" style="left:0">Project info</h2>
+      <div class="field">
+        <label class="flabel" for="author">Author</label>
+        <input class="slotf" id="author" value="A. Writer">
+      </div>
+      <div class="field">
+        <span class="flabel" id="lang-l">Language</span>
+        <button class="slotf" aria-labelledby="lang-l"><span>English (United States)</span><svg aria-hidden="true"><use href="#i-chev"/></svg></button>
+      </div>
+    </section>
+
+    <section class="folder" style="left:216px; top:376px; width:340px;" aria-labelledby="f-tags">
+      <h2 class="ftab" id="f-tags" style="left:130px">Tags</h2>
+      <div class="tags">
+        <span class="tag">fantasy<svg aria-label="Remove"><use href="#i-x"/></svg></span>
+        <span class="tag">draft<svg aria-label="Remove"><use href="#i-x"/></svg></span>
+        <span class="tag empty"><svg aria-hidden="true" style="width:12px;height:12px"><use href="#i-plus"/></svg>Add a tag</span>
+      </div>
+    </section>
+
+    <section class="folder" style="left:590px; top:132px; width:326px;" aria-labelledby="f-theme">
+      <h2 class="ftab" id="f-theme" style="left:70px">Custom theme</h2>
+      <div class="trow">
+        <span class="tl" id="ct-l">Use a custom theme for this project</span>
+        <button class="switch" role="switch" aria-checked="false" aria-labelledby="ct-l" data-controls="chips"><span class="knob"></span></button>
+        <span class="state">Off</span>
+      </div>
+      <div class="chips is-off" id="chips">
+        <div class="chip"><div class="swatch" style="background:#455A64"></div><span class="cl">Primary</span><span class="ch">#455A64</span></div>
+        <div class="chip"><div class="swatch" style="background:#FFB300"></div><span class="cl">Secondary</span><span class="ch">#FFB300</span></div>
+      </div>
+      <span class="hint chips-hint">Colors apply when the custom theme is on.</span>
+    </section>
+
+    <section class="folder" style="left:950px; top:122px; width:310px;" aria-labelledby="f-spell">
+      <h2 class="ftab" id="f-spell" style="left:0">Spell checking</h2>
+      <div class="trow">
+        <span class="tl" id="sp1">Enable spell checking</span>
+        <button class="switch" role="switch" aria-checked="true" aria-labelledby="sp1"><span class="knob"></span></button>
+        <span class="state">On</span>
+      </div>
+      <div class="trow">
+        <span class="tl" id="sp2">Enable in focus mode</span>
+        <button class="switch" role="switch" aria-checked="false" aria-labelledby="sp2"><span class="knob"></span></button>
+        <span class="state">Off</span>
+      </div>
+      <div class="field">
+        <span class="flabel" id="dict-l">Dictionary</span>
+        <button class="slotf" aria-labelledby="dict-l"><span>English (United States)</span><svg aria-hidden="true"><use href="#i-chev"/></svg></button>
+      </div>
+      <hr class="fold">
+      <div class="trow">
+        <span class="tl"><span id="sp3">Learn encyclopedia names in this project</span><span class="hint">Entry names won't be marked as misspelled</span></span>
+        <button class="switch" role="switch" aria-checked="true" aria-labelledby="sp3"><span class="knob"></span></button>
+        <span class="state">On</span>
+      </div>
+      <div class="field">
+        <span class="flabel">Project dictionary words</span>
+        <div class="words">
+          <span class="word">Elias<svg aria-label="Remove"><use href="#i-x"/></svg></span>
+          <span class="word">Keeper's<svg aria-label="Remove"><use href="#i-x"/></svg></span>
+        </div>
+        <input class="slotf empty" placeholder="Add a word" aria-label="Add a word">
+      </div>
+    </section>
+  </section>
+</main>
+
+<!-- ================= Phone ================= -->
+<main class="ph" aria-label="Hammer, writer's desk concept, phone">
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <linearGradient id="clipg2" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#4a4a4a"/><stop offset=".55" stop-color="#2a2a2a"/><stop offset="1" stop-color="#151515"/>
+      </linearGradient>
+      <symbol id="clip-top" viewBox="0 0 46 30">
+        <path d="M13 16 L8 3 Q7 1 9.5 1 L36.5 1 Q39 1 38 3 L33 16" fill="none" stroke="var(--brass-hi)" stroke-width="2.2" stroke-linecap="round"/>
+        <rect x="4" y="12" width="38" height="18" rx="3" fill="url(#clipg2)"/>
+        <rect x="4" y="12" width="38" height="4" rx="2" fill="#5c5c5c"/>
+      </symbol>
+      <symbol id="i-home" viewBox="0 0 18 18"><path d="M2.5 8.5L9 3l6.5 5.5V15a.8.8 0 01-.8.8H11v-4.5H7v4.5H3.3a.8.8 0 01-.8-.8z" fill="currentColor"/></symbol>
+      <symbol id="i-story" viewBox="0 0 18 18"><path d="M4 2.5h7.5l3 3v10H4z" fill="currentColor"/><path d="M6.5 8.5h5M6.5 11h5M6.5 13.5h3" stroke="var(--wood-lo)" stroke-width="1.2" stroke-linecap="round"/></symbol>
+      <symbol id="i-notes" viewBox="0 0 18 18"><rect x="3" y="3" width="12" height="12" rx="1.2" fill="currentColor"/><path d="M5.5 6.5h7M5.5 9h7M5.5 11.5h4" stroke="var(--wood-lo)" stroke-width="1.2" stroke-linecap="round"/></symbol>
+      <symbol id="i-ency" viewBox="0 0 18 18"><path d="M3.5 3h9a2 2 0 012 2v10.5h-9a2 2 0 01-2-2z" fill="currentColor"/><path d="M3.5 13.5a2 2 0 012-2h9" fill="none" stroke="var(--wood-lo)" stroke-width="1.2"/><path d="M7 3v5l1.5-1 1.5 1V3" fill="var(--wood-lo)"/></symbol>
+      <symbol id="i-time" viewBox="0 0 18 18"><path d="M2 9h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="4.5" cy="9" r="2.2" fill="currentColor"/><circle cx="9.5" cy="9" r="2.2" fill="currentColor"/><circle cx="14" cy="9" r="2.2" fill="currentColor"/></symbol>
+      <symbol id="i-box" viewBox="0 0 26 26"><rect x="5" y="3" width="16" height="11" rx="1.5" fill="var(--card)" stroke="currentColor" stroke-width="1.3"/><rect x="3.5" y="6" width="19" height="11" rx="1.5" fill="var(--card)" stroke="currentColor" stroke-width="1.3"/><path d="M2 12h22v9.5a1.5 1.5 0 01-1.5 1.5h-19A1.5 1.5 0 012 21.5z" fill="var(--manila)" stroke="currentColor" stroke-width="1.3"/><path d="M10 16.5h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
+    </defs>
+  </svg>
+
+  <header class="ph-head">
+    <div class="nameplate ph-plate"><div class="np-title">The Lighthouse</div><div class="np-by">A. Writer</div></div>
+    <div class="sync mono ph-sync"><span class="led" aria-hidden="true"></span>Synced 2 min ago</div>
+    <button class="ph-gear" data-nav="settings" aria-label="Project settings"><span class="front"><svg aria-hidden="true"><use href="#i-gear"/></svg></span></button>
+  </header>
+
+  <!-- Writing -->
+  <section class="ph-view" id="ph-writing" aria-label="Writing">
+    <div class="ph-strip">
+      <button class="ph-box" data-goto-state="scenes" aria-label="All scenes"><svg aria-hidden="true"><use href="#i-box"/></svg></button>
+      <div class="ph-cards" id="ph-cards">
+        <div class="ph-div"><span class="d-name">Arrival</span><span class="d-num mono">Chapter 1</span></div>
+        <button class="ph-card"><span class="ic-title">The Harbour</span><span class="ic-rule"></span><span class="ic-id mono">SCN-001</span></button>
+        <button class="ph-card is-open" aria-current="true"><span class="ic-title">The Lamp Room</span><span class="ic-rule"></span><span class="ic-id mono">SCN-007</span></button>
+        <div class="ph-div"><span class="d-name">The Dark Night</span><span class="d-num mono">Chapter 2</span></div>
+        <button class="ph-card"><span class="ic-title">Midsummer</span><span class="ic-rule"></span><span class="ic-id mono">SCN-012</span></button>
+        <button class="ph-card"><span class="ic-title">The Wreck</span><span class="ic-rule"></span><span class="ic-id mono">SCN-004</span></button>
+        <div class="ph-div unfiled"><span class="d-name">Unfiled</span></div>
+        <button class="ph-card"><span class="ic-title">Rumours</span><span class="ic-rule"></span><span class="ic-id mono">SCN-015</span></button>
+      </div>
+    </div>
+
+    <article class="ph-paper">
+      <button class="ph-stub" data-goto-state="meta" aria-label="Scene details">
+        <svg class="clip-top" aria-hidden="true"><use href="#clip-top"/></svg>
+        <span class="stamp">SCN-007</span>
+        <span class="wc mono">1,240 W</span>
+      </button>
+      <h1 class="scene-title">The Lamp Room</h1>
+      <div class="prose" contenteditable="true" spellcheck="false">
+        <p>One hundred and nine steps. He counted them the first night and never again, because the number did not change and the counting made the stair feel longer.</p>
+        <p>The lamp room smelled of oil and old brass. Somebody had left a chair facing the sea, and a cup beside it, and in the cup a dry brown ring where the tea had been.</p>
+        <p>He sat. The chair took his weight the way a boat takes a wave, grudging and then all at once.</p>
+        <p>Below, the town had already started to light its windows, one by one, as if it were answering him.<span class="caret" aria-hidden="true"></span></p>
+      </div>
+    </article>
+
+    <div class="ph-tools" role="toolbar" aria-label="Editor tools">
+      <button class="key b" aria-label="Bold">B</button>
+      <button class="key" aria-label="Italic"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M7 2.5h5M4 13.5h5M10 2.5l-4 11" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></button>
+      <button class="key" aria-label="Heading"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 2.5v11M11 2.5v11M3 8h8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+      <button class="key" aria-label="Lists"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="3" cy="4" r="1.3" fill="currentColor"/><circle cx="3" cy="8" r="1.3" fill="currentColor"/><circle cx="3" cy="12" r="1.3" fill="currentColor"/><path d="M6.5 4h7M6.5 8h7M6.5 12h7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
+      <button class="key" aria-label="Undo"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3L2 6l3 3M2.5 6H10a3.5 3.5 0 010 7H7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <button class="key" aria-label="Redo"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M11 3l3 3-3 3M13.5 6H6a3.5 3.5 0 000 7h3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <button class="key mode" aria-label="Focus mode"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 5.5V2h3.5M10.5 2H14v3.5M14 10.5V14h-3.5M5.5 14H2v-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <button class="key mode" aria-label="Reader mode"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 4c-1.6-1.2-3.6-1.5-6-1.2v10c2.4-.3 4.4 0 6 1.2 1.6-1.2 3.6-1.5 6-1.2v-10c-2.4-.3-4.4 0-6 1.2zM8 4v10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg></button>
+    </div>
+
+    <div class="ph-scrim" data-goto-state=""></div>
+
+    <!-- state=scenes: the card box, lifted onto the desk -->
+    <section class="ph-sheet ph-scenes" aria-label="Scenes">
+      <div class="ph-rim">
+        <span class="count mono">5 scenes</span>
+        <button class="ph-close" data-goto-state=""><span class="holder"><span class="lbl">Close</span></span></button>
+      </div>
+      <div class="well-in">
+        <div class="divider"><span class="d-name">Arrival</span><span class="d-num mono">Chapter 1</span></div>
+        <button class="icard"><span class="ic-title">The Harbour</span><span class="ic-rule"></span><span class="ic-id mono">SCN-001</span></button>
+        <button class="icard is-open" aria-current="true"><span class="ic-title">The Lamp Room</span><span class="ic-rule"></span><span class="ic-id mono">SCN-007</span></button>
+        <div class="divider"><span class="d-name">The Dark Night</span><span class="d-num mono">Chapter 2</span></div>
+        <button class="icard"><span class="ic-title">Midsummer</span><span class="ic-rule"></span><span class="ic-id mono">SCN-012</span></button>
+        <button class="icard"><span class="ic-title">The Wreck</span><span class="ic-rule"></span><span class="ic-id mono">SCN-004</span></button>
+        <div class="divider unfiled"><span class="d-name">Unfiled</span></div>
+        <button class="icard"><span class="ic-title">Rumours</span><span class="ic-rule"></span><span class="ic-id mono">SCN-015</span></button>
+        <button class="icard ghost"><svg aria-hidden="true"><use href="#i-plus"/></svg>New scene</button>
+      </div>
+    </section>
+
+    <!-- state=meta: the clipped card, unclipped and held up -->
+    <section class="ph-sheet ph-meta" aria-label="Scene details">
+      <svg class="clip-top" aria-hidden="true"><use href="#clip-top"/></svg>
+      <div class="meta-in">
+        <div class="mc-head">
+          <span class="stamp">SCN-007</span>
+          <span class="wc mono">1,240 W</span>
+          <button class="x-btn" data-goto-state="" aria-label="Close"><svg aria-hidden="true"><use href="#i-x"/></svg></button>
+        </div>
+        <div class="mc-rule"></div>
+        <div class="mc-sec">
+          <span class="lab">Draft</span>
+          <div class="draft-row"><span class="val">Second pass</span><button class="btn-brass">Save draft</button></div>
+          <div class="edited mono">Edited 12 min ago</div>
+        </div>
+        <div class="mc-sec">
+          <span class="lab">Outline</span>
+          <div class="val">Elias climbs the tower for the first time and finds signs someone left in a hurry.</div>
+        </div>
+        <div class="mc-sec">
+          <span class="lab">Notes</span>
+          <div class="val">Plant the cup here; pay it off in chapter 3.</div>
+        </div>
+        <div class="mc-sec">
+          <span class="lab">Tags</span>
+          <div class="tags"><span class="tag">tower</span><span class="tag">foreshadowing</span></div>
+        </div>
+        <div class="refs-in">
+          <span class="lab">References</span>
+          <div style="margin-top:6px">
+            <button class="ref person"><span class="rt"><svg aria-hidden="true"><use href="#i-person"/></svg></span><span class="rb"><span class="rn">Elias</span><span class="rk mono">Person</span></span></button>
+            <button class="ref place"><span class="rt"><svg aria-hidden="true"><use href="#i-place"/></svg></span><span class="rb"><span class="rn">The Lighthouse</span><span class="rk mono">Place</span></span></button>
+            <button class="ref thing"><span class="rt"><svg aria-hidden="true"><use href="#i-thing"/></svg></span><span class="rb"><span class="rn">The Keeper's Cup</span><span class="rk mono">Thing</span></span></button>
+            <button class="ref empty"><svg aria-hidden="true"><use href="#i-plus"/></svg>Add a reference</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </section>
+
+  <!-- Settings -->
+  <section class="ph-view" id="ph-settings" aria-label="Project settings">
+    <div class="ph-title"><span class="holder"><span class="lbl">Project settings</span></span></div>
+    <div class="ph-scroll" id="ph-scroll">
+      <section class="folder" aria-labelledby="pf-info">
+        <h2 class="ftab" id="pf-info" style="left:0">Project info</h2>
+        <div class="field">
+          <label class="flabel" for="p-author">Author</label>
+          <input class="slotf" id="p-author" value="A. Writer">
+        </div>
+        <div class="field">
+          <span class="flabel" id="p-lang">Language</span>
+          <button class="slotf" aria-labelledby="p-lang"><span>English (United States)</span><svg aria-hidden="true"><use href="#i-chev"/></svg></button>
+        </div>
+      </section>
+
+      <section class="folder" aria-labelledby="pf-theme">
+        <h2 class="ftab" id="pf-theme" style="left:90px">Custom theme</h2>
+        <div class="trow">
+          <span class="tl" id="p-ct">Use a custom theme for this project</span>
+          <button class="switch" role="switch" aria-checked="false" aria-labelledby="p-ct" data-controls="p-chips"><span class="knob"></span></button>
+          <span class="state">Off</span>
+        </div>
+        <div class="chips is-off" id="p-chips">
+          <div class="chip"><div class="swatch" style="background:#455A64"></div><div><span class="cl">Primary</span><span class="ch">#455A64</span></div></div>
+          <div class="chip"><div class="swatch" style="background:#FFB300"></div><div><span class="cl">Secondary</span><span class="ch">#FFB300</span></div></div>
+        </div>
+        <span class="hint chips-hint">Colors apply when the custom theme is on.</span>
+      </section>
+
+      <section class="folder" aria-labelledby="pf-tags">
+        <h2 class="ftab" id="pf-tags" style="right:24px">Tags</h2>
+        <div class="tags">
+          <span class="tag">fantasy<button class="rm" aria-label="Remove fantasy"><svg aria-hidden="true"><use href="#i-x"/></svg></button></span>
+          <span class="tag">draft<button class="rm" aria-label="Remove draft"><svg aria-hidden="true"><use href="#i-x"/></svg></button></span>
+          <button class="tag empty"><svg aria-hidden="true" style="width:12px;height:12px"><use href="#i-plus"/></svg>Add a tag</button>
+        </div>
+      </section>
+
+      <section class="folder" id="pf-spell-folder" aria-labelledby="pf-spell">
+        <h2 class="ftab" id="pf-spell" style="left:0">Spell checking</h2>
+        <div class="trow">
+          <span class="tl" id="p-sp1">Enable spell checking</span>
+          <button class="switch" role="switch" aria-checked="true" aria-labelledby="p-sp1"><span class="knob"></span></button>
+          <span class="state">On</span>
+        </div>
+        <div class="trow">
+          <span class="tl" id="p-sp2">Enable in focus mode</span>
+          <button class="switch" role="switch" aria-checked="false" aria-labelledby="p-sp2"><span class="knob"></span></button>
+          <span class="state">Off</span>
+        </div>
+        <div class="field">
+          <span class="flabel" id="p-dict">Dictionary</span>
+          <button class="slotf" aria-labelledby="p-dict"><span>English (United States)</span><svg aria-hidden="true"><use href="#i-chev"/></svg></button>
+        </div>
+        <hr class="fold">
+        <div class="trow">
+          <span class="tl"><span id="p-sp3">Learn encyclopedia names in this project</span><span class="hint">Entry names won't be marked as misspelled</span></span>
+          <button class="switch" role="switch" aria-checked="true" aria-labelledby="p-sp3"><span class="knob"></span></button>
+          <span class="state">On</span>
+        </div>
+        <div class="field">
+          <span class="flabel">Project dictionary words</span>
+          <div class="words">
+            <span class="word">Elias<button class="rm" aria-label="Remove Elias"><svg aria-hidden="true"><use href="#i-x"/></svg></button></span>
+            <span class="word">Keeper's<button class="rm" aria-label="Remove Keeper's"><svg aria-hidden="true"><use href="#i-x"/></svg></button></span>
+          </div>
+          <input class="slotf empty" placeholder="Add a word" aria-label="Add a word">
+        </div>
+      </section>
+    </div>
+  </section>
+
+  <nav class="ph-cabinet" aria-label="Project">
+    <button class="ph-dr" data-nav="home"><span class="front"><svg class="ico" aria-hidden="true"><use href="#i-home"/></svg><span class="holder"><span class="lbl">Home</span></span></span></button>
+    <button class="ph-dr" data-nav="story"><span class="front"><svg class="ico" aria-hidden="true"><use href="#i-story"/></svg><span class="holder"><span class="lbl">Story</span></span></span></button>
+    <button class="ph-dr" data-nav="notes"><span class="front"><svg class="ico" aria-hidden="true"><use href="#i-notes"/></svg><span class="holder"><span class="lbl">Notes</span></span></span></button>
+    <button class="ph-dr" data-nav="encyclopedia"><span class="front"><svg class="ico" aria-hidden="true"><use href="#i-ency"/></svg><span class="holder"><span class="lbl">Encyclopedia</span></span></span></button>
+    <button class="ph-dr" data-nav="timeline"><span class="front"><svg class="ico" aria-hidden="true"><use href="#i-time"/></svg><span class="holder"><span class="lbl">Timeline</span></span></span></button>
+  </nav>
+</main>
+
+<script>
+(function () {
+  var VIEWS = ['writing', 'settings'], THEMES = ['light', 'dark'], DEVICES = ['desktop', 'phone'];
+  var STATES = { writing: ['', 'scenes', 'meta'], settings: ['', 'spell'] };
+  var params = new URLSearchParams(location.search);
+  function pick(list, v, d) { return list.indexOf(v) >= 0 ? v : d; }
+  var state = {
+    device: pick(DEVICES, params.get('device'), 'desktop'),
+    view: pick(VIEWS, params.get('view'), 'writing'),
+    theme: pick(THEMES, params.get('theme'), 'light'),
+    st: params.get('state') || ''
+  };
+  if (params.get('controls') === '0') document.body.dataset.controls = '0';
+
+  function placeScroll() {
+    var cards = document.getElementById('ph-cards');
+    var open = cards.querySelector('.is-open');
+    cards.scrollLeft = Math.max(0, open.offsetLeft + open.offsetWidth - cards.clientWidth + 56);
+    var scroll = document.getElementById('ph-scroll');
+    scroll.scrollTop = state.st === 'spell' ? document.getElementById('pf-spell-folder').offsetTop - 44 : 0;
+  }
+
+  function apply(push) {
+    state.st = pick(STATES[state.view], state.st, '');
+    var b = document.body;
+    b.dataset.device = state.device;
+    b.dataset.view = state.view;
+    b.dataset.state = state.device === 'phone' ? state.st : '';
+    document.documentElement.dataset.theme = state.theme;
+    [['setView', 'view'], ['setTheme', 'theme'], ['setDevice', 'device'], ['setState', 'st']].forEach(function (pair) {
+      document.querySelectorAll('[data-' + pair[0].replace(/[A-Z]/, function (c) { return '-' + c.toLowerCase(); }) + ']').forEach(function (btn) {
+        btn.setAttribute('aria-pressed', btn.dataset[pair[0]] === state[pair[1]]);
+      });
+    });
+    document.querySelectorAll('[data-set-state]').forEach(function (btn) {
+      btn.hidden = btn.dataset.for !== state.view;
+    });
+    document.getElementById('state-seg').hidden = state.device !== 'phone';
+    var current = state.view === 'writing' ? 'story' : 'settings';
+    document.querySelectorAll('[data-nav]').forEach(function (s) {
+      if (s.dataset.nav === current) s.setAttribute('aria-current', 'page');
+      else s.removeAttribute('aria-current');
+    });
+    if (state.device === 'phone') placeScroll();
+    if (push) {
+      var p = new URLSearchParams(location.search);
+      p.set('device', state.device); p.set('view', state.view); p.set('theme', state.theme);
+      if (state.st) p.set('state', state.st); else p.delete('state');
+      history.replaceState(null, '', '?' + p.toString());
+    }
+  }
+
+  function on(sel, fn) { document.querySelectorAll(sel).forEach(function (el) { el.addEventListener('click', function () { fn(el); }); }); }
+  on('[data-set-view]', function (el) { state.view = el.dataset.setView; state.st = ''; apply(true); });
+  on('[data-set-theme]', function (el) { state.theme = el.dataset.setTheme; apply(true); });
+  on('[data-set-device]', function (el) { state.device = el.dataset.setDevice; apply(true); });
+  on('[data-set-state]', function (el) { state.st = el.dataset.setState; apply(true); });
+  on('[data-goto-state]', function (el) { state.st = el.dataset.gotoState; apply(true); });
+  on('[data-nav]', function (el) {
+    if (el.dataset.nav === 'story') { state.view = 'writing'; state.st = ''; apply(true); }
+    if (el.dataset.nav === 'settings') { state.view = 'settings'; state.st = ''; apply(true); }
+  });
+  on('.switch', function (sw) {
+    var v = sw.getAttribute('aria-checked') !== 'true';
+    sw.setAttribute('aria-checked', v);
+    var st = sw.nextElementSibling;
+    if (st && st.classList.contains('state')) st.textContent = v ? 'On' : 'Off';
+    if (sw.dataset.controls) document.getElementById(sw.dataset.controls).classList.toggle('is-off', !v);
+  });
+
+  apply(false);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { if (state.device === 'phone') placeScroll(); });
+})();
+</script>
+</body>
+</html>

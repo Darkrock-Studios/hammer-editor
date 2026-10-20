@@ -213,7 +213,7 @@ fun Modifier.hdRegion(): Modifier {
 	val hairline = MaterialTheme.colorScheme.outline
 	val density = LocalDensity.current
 	return when (LocalHdGrouping.current) {
-		HdGrouping.Ledger -> background(fill)
+		HdGrouping.Ledger -> hdSurface(fill)
 			.drawBehind {
 				val heavy = 2.dp.toPx()
 				val gap = 2.dp.toPx()
@@ -223,23 +223,23 @@ fun Modifier.hdRegion(): Modifier {
 			}
 			.padding(start = 20.dp, end = 20.dp, top = 26.dp, bottom = 20.dp)
 
-		HdGrouping.LedgerSide -> background(fill)
+		HdGrouping.LedgerSide -> hdSurface(fill)
 			.drawBehind { drawSpine(ink, hairline, heavy = 3.dp, density = density) }
 			.padding(start = 26.dp, end = 20.dp, top = 20.dp, bottom = 20.dp)
 
-		HdGrouping.HangingSpine -> background(fill)
+		HdGrouping.HangingSpine -> hdSurface(fill)
 			.drawBehind { drawSpine(ink, hairline, heavy = 3.dp, density = density) }
 			.padding(start = 26.dp, end = 20.dp, top = 20.dp, bottom = 20.dp)
 
-		HdGrouping.HangingNotch -> background(fill, NotchShape)
+		HdGrouping.HangingNotch -> hdSurface(fill, NotchShape)
 			.drawBehind { drawSpine(ink, hairline, heavy = 3.dp, density = density) }
 			.padding(start = 26.dp, end = 20.dp, top = 20.dp, bottom = 20.dp)
 
-		HdGrouping.Crop -> background(fill)
+		HdGrouping.Crop -> hdSurface(fill)
 			.drawBehind { drawCropMarks(ink.copy(alpha = 0.7f)) }
 			.padding(20.dp)
 
-		else -> background(fill).padding(20.dp)
+		else -> hdSurface(fill).padding(20.dp)
 	}
 }
 
@@ -255,7 +255,7 @@ fun Modifier.hdCard(): Modifier {
 		return background(MaterialTheme.colorScheme.surfaceContainerLow, RectangleShape)
 			.border(Dp.Hairline, MaterialTheme.colorScheme.outlineVariant, RectangleShape)
 	}
-	val fill = background(hdRegionColor(), if (grouping == HdGrouping.HangingNotch) NotchShape else RectangleShape)
+	val fill = hdSurface(hdRegionColor(), if (grouping == HdGrouping.HangingNotch) NotchShape else RectangleShape)
 	if (grouping != HdGrouping.LedgerSide) return fill
 	val ink = MaterialTheme.colorScheme.onSurface
 	val hairline = MaterialTheme.colorScheme.outline

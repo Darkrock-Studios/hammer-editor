@@ -20,7 +20,9 @@ import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.runDesktopComposeUiTest
 import androidx.compose.ui.unit.Density
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdGrouping
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTexture
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.LocalHdGrouping
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.LocalHdTexture
 import com.darkrockstudios.apps.hammer.common.compose.theme.hammerMonoFontFamily
 import com.darkrockstudios.apps.hammer.common.preview.ScreenAccountSettingsUiTabletPreview
 import com.darkrockstudios.apps.hammer.common.preview.SceneConflictCompactPreview
@@ -85,6 +87,8 @@ class ScreenGalleryTest {
 		val note: String? = null,
 		val content: @Composable (FormFactor) -> Unit,
 	)
+
+	private data class StudyStyle(val label: String, val grouping: HdGrouping, val texture: HdTexture = HdTexture.None)
 
 	private class Capture(val image: BufferedImage, val overflowPx: Int, val textInventory: String)
 
@@ -151,15 +155,15 @@ class ScreenGalleryTest {
 			}
 		}
 
-		val study = mutableMapOf<Triple<String, String, HdGrouping>, Shot>()
+		val study = mutableMapOf<Triple<String, String, StudyStyle>, Shot>()
 		for (screen in screens.filter { GROUPING_STUDY?.contains(it.name) ?: true }) {
 			for (variant in variants) {
-				rendered[screen.name to variant.dir]?.let { study[Triple(screen.name, variant.dir, HdGrouping.Rules)] = it }
-				for (grouping in GROUPING_STYLES - HdGrouping.Rules) {
-					val prefix = "grouping/${grouping.name.lowercase()}/"
-					runCatching { renderShot(screen, variant, outDir, grouping, prefix) }
-						.onSuccess { study[Triple(screen.name, variant.dir, grouping)] = it }
-						.onFailure { failures += "${screen.name} (${variant.label}, ${grouping.name}): ${it.message}" }
+				rendered[screen.name to variant.dir]?.let { study[Triple(screen.name, variant.dir, STUDY_STYLES.first())] = it }
+				for (style in STUDY_STYLES.drop(1)) {
+					val prefix = "grouping/${slug(style.label)}/"
+					runCatching { renderShot(screen, variant, outDir, style, prefix) }
+						.onSuccess { study[Triple(screen.name, variant.dir, style)] = it }
+						.onFailure { failures += "${screen.name} (${variant.label}, ${style.label}): ${it.message}" }
 				}
 			}
 		}
@@ -182,12 +186,12 @@ class ScreenGalleryTest {
 		screen: Screen,
 		variant: Variant,
 		outDir: File,
-		grouping: HdGrouping = HdGrouping.Rules,
+		style: StudyStyle = STUDY_STYLES.first(),
 		dirPrefix: String = "",
 	): Shot {
 		val base = "$dirPrefix${variant.dir}/${slug(screen.name)}"
 		val viewportHeight = variant.formFactor.heightDp * SCALE
-		val viewport = capture(screen, variant, viewportHeight, grouping)
+		val viewport = capture(screen, variant, viewportHeight, style)
 		write(viewport.image, File(outDir, "$base.png"))
 
 		var height = viewportHeight
@@ -197,7 +201,7 @@ class ScreenGalleryTest {
 			if (overflow <= 0) break
 			val nextHeight = minOf(height + overflow, MAX_HEIGHT_DP * SCALE)
 			if (nextHeight == height) break
-			val grown = capture(screen, variant, nextHeight, grouping)
+			val grown = capture(screen, variant, nextHeight, style)
 			if (grown.overflowPx >= overflow) break
 			fullCapture = grown
 			height = nextHeight
@@ -213,7 +217,7 @@ class ScreenGalleryTest {
 	 * Captures the image, the largest remaining vertical scroll range in px, and a TSV of
 	 * every text node's position and style (for auditing emphasis levels and greebles).
 	 */
-	private fun capture(screen: Screen, variant: Variant, heightPx: Int, grouping: HdGrouping): Capture {
+	private fun capture(screen: Screen, variant: Variant, heightPx: Int, style: StudyStyle): Capture {
 		val ff = variant.formFactor
 		lateinit var result: Capture
 		runDesktopComposeUiTest(width = ff.widthDp * SCALE, height = heightPx) {
@@ -224,7 +228,8 @@ class ScreenGalleryTest {
 				CompositionLocalProvider(
 					LocalDensity provides Density(SCALE.toFloat()),
 					LocalSystemTheme provides if (variant.dark) SystemTheme.Dark else SystemTheme.Light,
-					LocalHdGrouping provides grouping,
+					LocalHdGrouping provides style.grouping,
+					LocalHdTexture provides style.texture,
 				) {
 					screen.content(ff)
 				}
@@ -317,7 +322,7 @@ class ScreenGalleryTest {
 		appendLine("</body></html>")
 	}
 
-	private fun groupingHtml(study: Map<Triple<String, String, HdGrouping>, Shot>): String = buildString {
+	private fun groupingHtml(study: Map<Triple<String, String, StudyStyle>, Shot>): String = buildString {
 		appendLine("<!doctype html><html><head><meta charset=\"utf-8\"><title>Hammer grouping study</title><style>")
 		appendLine(
 			"""
@@ -332,7 +337,7 @@ class ScreenGalleryTest {
 			""".trimIndent()
 		)
 		appendLine("</style></head><body><h1>Grouping study</h1>")
-		appendLine("<p>Every screen, grouped by: <b>Rules</b> (current) and <b>HangingSpine</b> (cool-tinted regions with an ink spine, section titles hung in a margin column on wide screens, cards tinted without a spine, controls as wells, tighter gaps, no § numerals) and <b>HangingNotch</b> (HangingSpine with the top-right corner of regions and cards clipped). Earlier rounds are in ui-research/gallery-history. Full-length captures where the screen scrolls. <a href=\"index.html\">All screens</a></p>")
+		appendLine("<p>Study styles: <b>Rules</b> (current); <b>HangingSpine</b> (cool-tinted regions with an ink spine, titles hung on wide screens, controls as wells); and HangingSpine with a faint texture on regions and cards: <b>Grain</b> (paper noise), <b>Laid</b> (laid and chain lines), <b>Dots</b> (fine halftone). Wells stay plain. Earlier rounds are in ui-research/gallery-history. <a href=\"index.html\">All screens</a></p>")
 		val names = screens.map { it.name }.filter { GROUPING_STUDY?.contains(it) ?: true }
 		appendLine("<nav>")
 		names.forEach { appendLine("<a href=\"#${slug(it)}\">${esc(it)}</a>") }
@@ -341,11 +346,11 @@ class ScreenGalleryTest {
 			appendLine("<section id=\"${slug(name)}\"><h2>${esc(name)}</h2>")
 			for (variant in variants) {
 				appendLine("<h3>${esc(variant.label)}</h3><div class=\"row\">")
-				for (grouping in GROUPING_STYLES) {
-					val shot = study[Triple(name, variant.dir, grouping)] ?: continue
+				for (style in STUDY_STYLES) {
+					val shot = study[Triple(name, variant.dir, style)] ?: continue
 					val src = shot.full ?: shot.viewport
 					val cls = variant.formFactor.name.lowercase()
-					appendLine("<figure><figcaption>${grouping.name}</figcaption><a href=\"$src\"><img class=\"$cls\" loading=\"lazy\" src=\"$src\"></a></figure>")
+					appendLine("<figure><figcaption>${style.label}</figcaption><a href=\"$src\"><img class=\"$cls\" loading=\"lazy\" src=\"$src\"></a></figure>")
 				}
 				appendLine("</div>")
 			}
@@ -379,8 +384,18 @@ class ScreenGalleryTest {
 		const val ENABLED_PROPERTY = "hammer.screenGallery"
 		const val OUT_DIR_PROPERTY = "hammer.screenGallery.outDir"
 		private const val SCALE = 2
-		private val GROUPING_STYLES = listOf(HdGrouping.Rules, HdGrouping.HangingSpine, HdGrouping.HangingNotch)
-		private val GROUPING_STUDY: Set<String>? = null
+		/** The first entry is the baseline, reused from the main gallery renders. */
+		private val STUDY_STYLES = listOf(
+			StudyStyle("Rules", HdGrouping.Rules),
+			StudyStyle("HangingSpine", HdGrouping.HangingSpine),
+			StudyStyle("Spine + Grain", HdGrouping.HangingSpine, HdTexture.Grain),
+			StudyStyle("Spine + Laid", HdGrouping.HangingSpine, HdTexture.Laid),
+			StudyStyle("Spine + Dots", HdGrouping.HangingSpine, HdTexture.Dots),
+		)
+		private val GROUPING_STUDY: Set<String>? = setOf(
+			"Project settings", "Account settings", "Project stats", "View encyclopedia entry",
+			"Browse notes", "Scene editor", "Timeline",
+		)
 		private const val MAX_GROW_PASSES = 4
 		private const val MAX_HEIGHT_DP = 8000
 	}

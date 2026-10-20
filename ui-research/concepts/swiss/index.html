@@ -1,0 +1,901 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hammer: Swiss poster</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter+Tight:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ---------- Tokens ---------- */
+:root {
+  --ui: "Inter Tight", "Helvetica Neue", Arial, sans-serif;
+  --text: "Inter", "Helvetica Neue", Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, monospace;
+  --gap: 8px;
+}
+:root[data-theme="light"] {
+  --page: #CFCDC6;
+  --paper: #FBFAF7;
+  --field: #ECEAE4;
+  --inset: #FFFFFF;
+  --ink: #111110;
+  --prose: #1C1C1A;
+  --label: #66655F;
+  --hint: #8C8A82;
+  --track: #C6C4BC;
+  --knob-off: #FFFFFF;
+  --accent: #D7351A;
+  --on-accent: #FFFFFF;
+  --block: #111110;
+  --on-block: #FBFAF7;
+}
+:root[data-theme="dark"] {
+  --page: #000000;
+  --paper: #0E0E0D;
+  --field: #1B1B19;
+  --inset: #0E0E0D;
+  --ink: #F3F0E8;
+  --prose: #DCD8CE;
+  --label: #A09D94;
+  --hint: #6E6C66;
+  --track: #3B3A36;
+  --knob-off: #8E8B83;
+  --accent: #FF4B26;
+  --on-accent: #0E0E0D;
+  --block: #F3F0E8;
+  --on-block: #0E0E0D;
+}
+
+/* ---------- Page around the canvas (not part of the design) ---------- */
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--page);
+  padding: 64px 24px 48px;
+  min-width: 1328px;
+}
+.stage { width: 1280px; margin: 0 auto; }
+.concept-ctl {
+  position: fixed; top: 12px; right: 12px; z-index: 10;
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px 6px 6px 12px;
+  background: rgba(28, 28, 28, .92); color: #ddd;
+  border-radius: 8px;
+  font: 500 12px/1 system-ui, sans-serif;
+  box-shadow: 0 4px 16px rgba(0,0,0,.25);
+}
+.concept-ctl .seg { display: flex; background: #3a3a3a; border-radius: 6px; padding: 2px; }
+.concept-ctl button {
+  font: inherit; color: #ccc; background: none; border: 0;
+  padding: 6px 10px; border-radius: 4px; cursor: pointer;
+}
+.concept-ctl button[aria-pressed="true"] { background: #f2f2f2; color: #111; }
+
+/* ---------- Canvas ---------- */
+.canvas {
+  width: 1280px; height: 800px; overflow: hidden;
+  background: var(--paper); color: var(--ink);
+  font-family: var(--ui);
+  display: grid;
+  column-gap: var(--gap); row-gap: var(--gap);
+  padding: 0 var(--gap) var(--gap);
+  grid-template-rows: 72px minmax(0, 1fr);
+  -webkit-font-smoothing: antialiased;
+}
+.canvas[hidden] { display: none; }
+.canvas.writing { grid-template-columns: 304px 632px 312px; }
+.canvas.settings {
+  grid-template-columns: 304px 312px 312px 312px;
+  grid-template-rows: 72px auto minmax(0, 1fr);
+}
+.canvas button, .canvas input { font-family: var(--ui); color: inherit; }
+.canvas button { cursor: pointer; }
+.canvas :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.field { background: var(--field); }
+svg.i { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: square; stroke-linejoin: miter; flex: none; }
+svg.i.s { width: 16px; height: 16px; }
+
+/* Emphasis ladder: data (ink, heavy) > label (grey, small) > hint (light, thin) */
+.lbl { font: 600 12px/16px var(--ui); color: var(--label); letter-spacing: .01em; }
+.id { font: 500 11.5px/1 var(--mono); color: var(--label); letter-spacing: .02em; }
+.hint { font: 400 13px/18px var(--ui); color: var(--label); }
+
+/* ---------- App bar ---------- */
+.appbar {
+  grid-column: 1 / -1;
+  display: grid; grid-template-columns: 304px 632px 312px; column-gap: var(--gap);
+}
+.proj { display: flex; flex-direction: column; justify-content: flex-end; padding: 0 24px 13px; }
+.proj-name { font: 800 22px/1 var(--ui); letter-spacing: -.03em; }
+.proj-author { font: 500 13px/1 var(--ui); color: var(--label); margin-top: 6px; }
+.nav { display: flex; padding: 8px 0 0 24px; margin: 0; }
+.nav a, .bar-btn {
+  display: flex; align-items: flex-end; gap: 8px;
+  padding: 0 16px 14px;
+  font: 600 17px/1 var(--ui); letter-spacing: -.01em;
+  color: var(--ink); text-decoration: none; background: none; border: 0;
+}
+.nav a:hover, .bar-btn:hover { background: var(--field); }
+.nav a[aria-current="page"], .bar-btn[aria-current="page"] { background: var(--block); color: var(--on-block); }
+.bar-end { display: flex; justify-content: space-between; padding-top: 8px; }
+.sync { align-self: flex-end; display: flex; align-items: center; gap: 8px; padding: 0 0 15px 24px; font: 500 12px/1 var(--mono); color: var(--label); }
+.sync .dot { width: 8px; height: 8px; background: var(--ink); }
+
+/* ---------- Writing: story structure ---------- */
+.story { display: flex; flex-direction: column; padding: 28px 0 16px; min-height: 0; }
+.chapter + .chapter { margin-top: 28px; }
+.ch-head { display: flex; align-items: baseline; gap: 12px; padding: 0 24px 10px; }
+.ch-num { width: 52px; font: 800 60px/.78 var(--ui); letter-spacing: -.05em; font-variant-numeric: tabular-nums; }
+.ch-title { font: 800 22px/1.1 var(--ui); letter-spacing: -.025em; }
+.unfiled .ch-head { padding-left: 88px; }
+.scenes { list-style: none; margin: 0; padding: 0; }
+.scene {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
+  padding: 11px 24px 11px 88px;
+  font: 500 15px/18px var(--ui); color: var(--ink); text-decoration: none;
+}
+.scene:hover { background: var(--inset); }
+.scene.is-open { background: var(--accent); color: var(--on-accent); font-weight: 700; }
+.scene.is-open .id { color: var(--on-accent); opacity: .85; }
+.story-actions { margin-top: auto; padding: 0 24px; display: flex; gap: 20px; }
+.btn-text {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 10px; margin-left: -10px;
+  font: 600 14px/1 var(--ui); background: none; border: 0; color: var(--ink);
+}
+.btn-text:hover { background: var(--inset); }
+
+/* ---------- Writing: editor ---------- */
+.editor { display: flex; flex-direction: column; min-height: 0; }
+.toolbar { height: 48px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 4px 0 20px; }
+.tools { display: flex; gap: 12px; }
+.tgroup { display: flex; }
+.tool {
+  width: 40px; height: 40px; display: grid; place-items: center;
+  background: none; border: 0; color: var(--label);
+  font: 800 17px/1 var(--ui);
+}
+.tool:hover { background: var(--inset); color: var(--ink); }
+.actions { display: flex; align-items: center; gap: 2px; }
+.actions .btn-text { margin: 0; padding: 0 12px; height: 40px; }
+.btn-ink {
+  height: 40px; padding: 0 16px; border: 0;
+  background: var(--block); color: var(--on-block) !important;
+  font: 600 14px/1 var(--ui);
+}
+.scene-head { padding: 44px 40px 0; }
+.scene-head h1 { margin: 12px 0 0; font: 800 68px/.95 var(--ui); letter-spacing: -.048em; }
+.prose {
+  padding: 40px 32px 24px 40px; overflow: auto;
+  font: 400 18px/1.7 var(--text); color: var(--prose);
+  caret-color: var(--accent); outline: none;
+}
+.prose p { max-width: 560px; margin: 0 0 .9em; }
+.prose:focus-visible { outline: none; }
+
+/* ---------- Writing: scene metadata ---------- */
+.meta { display: flex; flex-direction: column; gap: var(--gap); min-height: 0; }
+.count { background: var(--accent); color: var(--on-accent); padding: 20px 24px 22px; flex: none; }
+.count .lbl { color: var(--on-accent); opacity: .82; }
+.big { font: 800 100px/.8 var(--ui); letter-spacing: -.06em; margin: 14px 0 16px -5px; font-variant-numeric: tabular-nums; }
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 0; }
+.pair dd { margin: 3px 0 0; font: 600 15px/1.3 var(--ui); }
+.meta .field { padding: 16px 24px 18px; flex: none; }
+.meta .field.grow { flex: 1; min-height: 0; overflow: hidden; }
+.block-head { display: flex; justify-content: space-between; align-items: center; min-height: 20px; }
+.mini { width: 24px; height: 24px; display: grid; place-items: center; border: 0; background: none; color: var(--label); margin-right: -4px; }
+.mini:hover { background: var(--inset); color: var(--ink); }
+.user-text { font: 400 15px/1.45 var(--text); color: var(--ink); margin: 6px 0 0; }
+.user-text + .block-head { margin-top: 14px; }
+.tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.tag { display: inline-flex; align-items: center; gap: 4px; background: var(--inset); padding: 7px 9px; font: 500 13px/1 var(--mono); color: var(--ink); }
+.tag .x { display: grid; place-items: center; border: 0; background: none; padding: 0; color: var(--label); }
+.refs { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.ref { display: flex; justify-content: space-between; align-items: baseline; padding: 10px 12px; background: var(--inset); color: var(--ink); text-decoration: none; font: 600 15px/1 var(--ui); }
+.ref:hover { background: var(--block); color: var(--on-block); }
+.ref:hover .id { color: var(--on-block); }
+
+/* ---------- Settings ---------- */
+.title-block {
+  grid-column: 1; grid-row: 2 / 4;
+  background: var(--accent); color: var(--on-accent);
+  padding: 28px 24px 24px; display: flex; flex-direction: column;
+}
+.title-block h1 { margin: 0; font: 800 62px/.9 var(--ui); letter-spacing: -.05em; }
+.title-block .scope { margin-top: auto; font: 500 15px/1.4 var(--ui); }
+.btn-on-accent { margin-top: 14px; align-self: flex-start; height: 44px; padding: 0 16px; border: 0; background: var(--on-accent); color: var(--accent) !important; font: 700 15px/1 var(--ui); display: inline-flex; align-items: center; gap: 8px; }
+.sect { padding: 24px; }
+.sect h2 { margin: 0; font: 800 44px/44px var(--ui); letter-spacing: -.048em; }
+.row1 h2 { min-height: 88px; }
+.sect-body { margin-top: 24px; display: flex; flex-direction: column; gap: 16px; }
+.f { display: flex; flex-direction: column; gap: 6px; }
+.inset {
+  width: 100%; height: 44px; padding: 0 12px; border: 0; border-radius: 0;
+  background: var(--inset); color: var(--ink);
+  font: 600 16px/1 var(--ui); text-align: left;
+}
+.inset::placeholder { color: var(--hint); font-weight: 400; opacity: 1; }
+.picker { display: flex; justify-content: space-between; align-items: center; }
+.picker svg { color: var(--label); }
+.toggle { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.t-label { font: 500 15px/20px var(--ui); color: var(--ink); }
+.toggle .hint { margin-top: 4px; }
+.switch { flex: none; display: flex; align-items: center; gap: 8px; background: none; border: 0; padding: 0; margin-top: -2px; }
+.switch .state { width: 26px; text-align: right; font: 500 12px/1 var(--mono); color: var(--label); }
+.track { position: relative; width: 44px; height: 24px; background: var(--track); }
+.knob { position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; background: var(--knob-off); }
+.switch[aria-checked="true"] .track { background: var(--accent); }
+.switch[aria-checked="true"] .knob { left: 23px; background: var(--on-accent); }
+.switch[aria-checked="true"] .state { color: var(--ink); }
+.swatches { display: flex; flex-direction: column; gap: 8px; }
+.swatch { display: flex; align-items: center; gap: 12px; padding: 0; border: 0; background: none; text-align: left; }
+.swatch .sw { width: 44px; height: 44px; flex: none; }
+.swatch .val { display: block; font: 500 14px/1 var(--mono); color: var(--ink); margin-top: 4px; }
+.is-disabled { opacity: .42; }
+.add-row { display: flex; gap: 6px; }
+.add-row .inset { flex: 1; }
+.add-row .btn-ink { height: 44px; }
+.word { display: inline-flex; align-items: center; gap: 6px; background: var(--inset); padding: 9px 10px; font: 600 15px/1 var(--ui); color: var(--ink); }
+.word .x { display: grid; place-items: center; border: 0; background: none; padding: 0; color: var(--label); }
+.spell {
+  grid-column: 2 / 5; grid-row: 3; padding: 0;
+  display: grid; grid-template-columns: 312px 312px 312px; column-gap: var(--gap);
+  align-content: start;
+}
+.spell h2 { grid-column: 1 / -1; padding: 24px 24px 0; }
+.spell .col { padding: 24px; display: flex; flex-direction: column; gap: 22px; }
+
+/* ---------- Page modes ---------- */
+html[data-device="phone"] body { min-width: 0; }
+html[data-device="phone"] .stage { width: 412px; }
+html[data-controls="0"] body { padding: 0; min-width: 0; }
+html[data-controls="0"] .stage { margin: 0; }
+html[data-controls="0"] .concept-ctl { display: none; }
+
+/* ---------- Phone (412 x 915) ---------- */
+.canvas.phone {
+  width: 412px; height: 915px; padding: 0;
+  display: flex; flex-direction: column;
+}
+.canvas.phone[hidden] { display: none; }
+.p-bar { flex: none; height: 56px; display: flex; align-items: center; gap: 12px; padding: 0 8px 0 24px; }
+.p-bar .proj { flex: 1; min-width: 0; padding: 0; justify-content: center; }
+.p-bar .proj-name { font-size: 19px; }
+.p-bar .proj-author { margin-top: 4px; }
+.p-bar .sync { padding: 0; align-self: center; font-size: 11px; }
+.p-icon {
+  flex: none; width: 44px; height: 44px; display: grid; place-items: center;
+  border: 0; background: none; color: var(--ink);
+}
+.p-icon:hover { background: var(--field); }
+.p-icon[aria-current="page"] { background: var(--block); color: var(--on-block); }
+.p-icon.on-accent { color: var(--on-accent); margin-right: -8px; }
+.p-icon.on-accent:hover { background: rgba(0,0,0,.12); }
+.p-body { flex: 1; min-height: 0; position: relative; display: flex; flex-direction: column; gap: var(--gap); padding: 0 8px; }
+.p-body > * { flex: none; }
+.p-nav { flex: none; display: flex; padding: 8px; }
+.p-nav a {
+  flex: 1 1 auto; height: 56px; display: flex; align-items: flex-end;
+  padding: 0 10px 19px;
+  font: 600 14px/1 var(--ui); letter-spacing: -.01em; color: var(--ink); text-decoration: none;
+}
+.p-nav a:hover { background: var(--field); }
+.p-nav a[aria-current="page"] { background: var(--block); color: var(--on-block); }
+
+/* Phone writing */
+.p-switch {
+  height: 56px; width: 100%; display: flex; align-items: center; gap: 12px;
+  padding: 0 10px 0 16px; border: 0; text-align: left; color: var(--ink);
+}
+.p-switch .ch-num { width: auto; font-size: 38px; }
+.p-switch .ch-title { flex: 1; font-size: 19px; }
+.p-switch .lbl { font-size: 13px; }
+.p-head { padding: 8px 0 0 16px; }
+.p-head-row { display: flex; align-items: center; justify-content: space-between; height: 44px; }
+.p-head-row .acts { display: flex; align-items: center; gap: 4px; }
+.p-head-row .btn-ink { height: 44px; }
+.p-head h1 { margin: 6px 0 0; font: 800 50px/.95 var(--ui); letter-spacing: -.048em; }
+.prose.p-prose { flex: 1; min-height: 0; padding: 18px 16px 4px; font-size: 17px; line-height: 1.65; scrollbar-width: none; }
+.p-prose p { margin-bottom: .85em; }
+.p-format { height: 52px; display: flex; align-items: center; gap: 10px; padding: 0 4px; }
+.p-format .tool { width: 44px; height: 44px; }
+.p-count {
+  height: 64px; width: 100%; display: flex; align-items: center; gap: 10px;
+  padding: 0 10px 0 16px; border: 0; text-align: left;
+  background: var(--accent); color: var(--on-accent) !important;
+}
+.p-count .num { font: 800 44px/1 var(--ui); letter-spacing: -.055em; font-variant-numeric: tabular-nums; }
+.p-count .lbl { color: var(--on-accent); opacity: .82; align-self: center; margin-top: 10px; font-size: 13px; }
+.p-count .go { margin-left: auto; display: flex; align-items: center; gap: 8px; font: 600 15px/1 var(--ui); }
+.p-layer { position: absolute; top: 0; bottom: 0; left: 8px; right: 8px; z-index: 2; }
+.p-layer[hidden] { display: none; }
+.p-structure { padding: 4px 0 16px; }
+.p-layer-head { display: flex; align-items: center; justify-content: space-between; padding: 0 4px 0 16px; height: 52px; margin-bottom: 12px; }
+.phone .ch-head { padding: 0 16px 10px; }
+.phone .unfiled .ch-head { padding-left: 80px; }
+.phone .scene { padding: 15px 16px 15px 80px; font-size: 16px; }
+.phone .story-actions { padding: 0 16px; gap: 16px; }
+.phone .btn-text { height: 44px; }
+.p-details { background: var(--paper); }
+.phone .count { padding: 4px 16px 20px; }
+.p-row { display: flex; align-items: center; justify-content: space-between; height: 44px; }
+.phone .count .big { margin: 10px 0 18px -5px; font-size: 104px; }
+.phone .meta .field { padding: 6px 16px 16px; }
+.phone .block-head { min-height: 44px; }
+.phone .mini { width: 44px; height: 44px; margin-right: -12px; }
+.phone .user-text { font-size: 16px; margin-top: 0; }
+.phone .user-text + .block-head { margin-top: 6px; }
+.phone .tags { margin-top: 2px; }
+.phone .refs { margin-top: 2px; }
+.phone .ref { padding: 16px 12px; font-size: 16px; }
+
+/* Phone settings */
+.p-scroll { overflow-y: auto; scrollbar-width: none; padding-bottom: 0; }
+.p-scroll::-webkit-scrollbar { display: none; }
+.p-title { background: var(--accent); color: var(--on-accent); padding: 20px 16px 16px; }
+.p-title h1 { margin: 0; font: 800 54px/.88 var(--ui); letter-spacing: -.05em; }
+.p-title .scope { margin: 22px 0 0; font: 500 15px/1.4 var(--ui); }
+.p-title .btn-on-accent { margin-top: 12px; }
+.phone .sect { padding: 16px 16px 20px; }
+.phone .sect h2 { font-size: 38px; line-height: 40px; }
+.phone .sect-body { margin-top: 18px; gap: 20px; }
+.p-details .tag { padding: 0 12px; }
+.phone .inset { height: 48px; }
+.phone .add-row .btn-ink { height: 48px; }
+.phone .toggle { align-items: center; }
+.phone .switch { min-height: 44px; }
+.phone .tag, .phone .word { height: 44px; padding: 0 2px 0 12px; }
+.phone .tag { font-size: 14px; }
+.phone .x { width: 36px; height: 44px; }
+.p-swatches { flex-direction: row; gap: 28px; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .knob, .track { transition: left .12s linear, background-color .12s linear; }
+}
+</style>
+</head>
+<body>
+
+<div class="concept-ctl" role="toolbar" aria-label="Concept controls">
+  <span>Swiss poster</span>
+  <div class="seg">
+    <button type="button" data-device="desktop">Desktop</button>
+    <button type="button" data-device="phone">Phone</button>
+  </div>
+  <div class="seg">
+    <button type="button" data-view="writing">Writing</button>
+    <button type="button" data-view="settings">Settings</button>
+  </div>
+  <div class="seg">
+    <button type="button" data-theme-set="light">Light</button>
+    <button type="button" data-theme-set="dark">Dark</button>
+  </div>
+</div>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-italic" viewBox="0 0 24 24"><path d="M10 5h8M6 19h8M15 5 9 19"/></symbol>
+  <symbol id="i-ul" viewBox="0 0 24 24"><path d="M10 6h10M10 12h10M10 18h10"/><rect x="4" y="5" width="2" height="2"/><rect x="4" y="11" width="2" height="2"/><rect x="4" y="17" width="2" height="2"/></symbol>
+  <symbol id="i-ol" viewBox="0 0 24 24"><path d="M11 6h9M11 12h9M11 18h9M5 4.5h1.5V9M4 9h4M4 14h3.5v2.5H4V20h4"/></symbol>
+  <symbol id="i-undo" viewBox="0 0 24 24"><path d="M8 5 4 9l4 4M4 9h11a5 5 0 0 1 0 10h-4"/></symbol>
+  <symbol id="i-redo" viewBox="0 0 24 24"><path d="m16 5 4 4-4 4M20 9H9a5 5 0 0 0 0 10h4"/></symbol>
+  <symbol id="i-focus" viewBox="0 0 24 24"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></symbol>
+  <symbol id="i-reader" viewBox="0 0 24 24"><path d="M3 5h8v14H3zM13 5h8v14h-8z"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="m7 7 10 10M17 7 7 17"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24"><path d="m6 15 6-6 6 6"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h16M4 17h16"/><rect x="7" y="4.5" width="4" height="5" fill="currentColor"/><rect x="13" y="14.5" width="4" height="5" fill="currentColor"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4 12h15M13 6l6 6-6 6"/></symbol>
+</svg>
+
+<main class="stage">
+
+<!-- ================= View 1: Writing ================= -->
+<div class="canvas writing" id="view-writing" aria-label="Writing view">
+  <header class="appbar">
+    <div class="proj">
+      <span class="proj-name">The Lighthouse</span>
+      <span class="proj-author">A. Writer</span>
+    </div>
+    <nav class="nav" aria-label="Project">
+      <a href="#">Home</a>
+      <a href="#" aria-current="page">Story</a>
+      <a href="#">Notes</a>
+      <a href="#">Encyclopedia</a>
+      <a href="#">Timeline</a>
+    </nav>
+    <div class="bar-end">
+      <span class="sync"><span class="dot"></span>Synced 2 min ago</span>
+      <button class="bar-btn" type="button"><svg class="i"><use href="#i-sliders"/></svg>Settings</button>
+    </div>
+  </header>
+
+  <aside class="field story" aria-label="Story structure">
+    <div class="chapter">
+      <div class="ch-head"><span class="ch-num">1</span><span class="ch-title">Arrival</span></div>
+      <ul class="scenes">
+        <li><a class="scene" href="#">The Harbour <span class="id">SCN-001</span></a></li>
+        <li><a class="scene is-open" href="#" aria-current="true">The Lamp Room <span class="id">SCN-007</span></a></li>
+      </ul>
+    </div>
+    <div class="chapter">
+      <div class="ch-head"><span class="ch-num">2</span><span class="ch-title">The Dark Night</span></div>
+      <ul class="scenes">
+        <li><a class="scene" href="#">Midsummer <span class="id">SCN-012</span></a></li>
+        <li><a class="scene" href="#">The Wreck <span class="id">SCN-004</span></a></li>
+      </ul>
+    </div>
+    <div class="chapter unfiled">
+      <div class="ch-head"><span class="lbl">Unfiled</span></div>
+      <ul class="scenes">
+        <li><a class="scene" href="#">Rumours <span class="id">SCN-015</span></a></li>
+      </ul>
+    </div>
+    <div class="story-actions">
+      <button class="btn-text" type="button"><svg class="i s"><use href="#i-plus"/></svg>New scene</button>
+      <button class="btn-text" type="button"><svg class="i s"><use href="#i-plus"/></svg>New chapter</button>
+    </div>
+  </aside>
+
+  <section class="editor" aria-label="Scene editor">
+    <div class="toolbar field" role="toolbar" aria-label="Formatting">
+      <div class="tools">
+        <div class="tgroup">
+          <button class="tool" type="button" title="Bold" aria-label="Bold">B</button>
+          <button class="tool" type="button" title="Italic" aria-label="Italic"><svg class="i"><use href="#i-italic"/></svg></button>
+          <button class="tool" type="button" title="Heading" aria-label="Heading">H</button>
+        </div>
+        <div class="tgroup">
+          <button class="tool" type="button" title="Bulleted list" aria-label="Bulleted list"><svg class="i"><use href="#i-ul"/></svg></button>
+          <button class="tool" type="button" title="Numbered list" aria-label="Numbered list"><svg class="i"><use href="#i-ol"/></svg></button>
+        </div>
+        <div class="tgroup">
+          <button class="tool" type="button" title="Undo" aria-label="Undo"><svg class="i"><use href="#i-undo"/></svg></button>
+          <button class="tool" type="button" title="Redo" aria-label="Redo"><svg class="i"><use href="#i-redo"/></svg></button>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn-text" type="button"><svg class="i s"><use href="#i-focus"/></svg>Focus</button>
+        <button class="btn-text" type="button"><svg class="i s"><use href="#i-reader"/></svg>Reader</button>
+        <button class="btn-ink" type="button">Save draft</button>
+      </div>
+    </div>
+    <header class="scene-head">
+      <span class="id">SCN-007</span>
+      <h1>The Lamp Room</h1>
+    </header>
+    <div class="prose" contenteditable="true" spellcheck="false" aria-label="Scene text">
+      <p>One hundred and nine steps. He counted them the first night and never again, because the number did not change and the counting made the stair feel longer.</p>
+      <p>The lamp room smelled of oil and old brass. Somebody had left a chair facing the sea, and a cup beside it, and in the cup a dry brown ring where the tea had been.</p>
+      <p>He sat. The chair took his weight the way a boat takes a wave, grudging and then all at once.</p>
+      <p>Below, the town had already started to light its windows, one by one, as if it were answering him.</p>
+    </div>
+  </section>
+
+  <aside class="meta" aria-label="Scene details">
+    <div class="count">
+      <span class="lbl">Words</span>
+      <div class="big">1,240</div>
+      <dl class="pair">
+        <div><dt class="lbl">Edited</dt><dd>12 min ago</dd></div>
+        <div><dt class="lbl">Draft</dt><dd>Second pass</dd></div>
+      </dl>
+    </div>
+    <div class="field">
+      <div class="block-head"><span class="lbl">Outline</span></div>
+      <p class="user-text">Elias climbs the tower for the first time and finds signs someone left in a hurry.</p>
+      <div class="block-head"><span class="lbl">Notes</span></div>
+      <p class="user-text">Plant the cup here; pay it off in chapter 3.</p>
+    </div>
+    <div class="field">
+      <div class="block-head"><span class="lbl">Tags</span><button class="mini" type="button" aria-label="Add tag"><svg class="i s"><use href="#i-plus"/></svg></button></div>
+      <div class="tags"><span class="tag">tower</span><span class="tag">foreshadowing</span></div>
+    </div>
+    <div class="field grow">
+      <div class="block-head"><span class="lbl">References</span><button class="mini" type="button" aria-label="Add reference"><svg class="i s"><use href="#i-plus"/></svg></button></div>
+      <ul class="refs">
+        <li><a class="ref" href="#">Elias <span class="id">Person</span></a></li>
+        <li><a class="ref" href="#">The Lighthouse <span class="id">Place</span></a></li>
+        <li><a class="ref" href="#">The Keeper's Cup <span class="id">Thing</span></a></li>
+      </ul>
+    </div>
+  </aside>
+</div>
+
+<!-- ================= View 2: Settings ================= -->
+<div class="canvas settings" id="view-settings" aria-label="Settings view" hidden>
+  <header class="appbar">
+    <div class="proj">
+      <span class="proj-name">The Lighthouse</span>
+      <span class="proj-author">A. Writer</span>
+    </div>
+    <nav class="nav" aria-label="Project">
+      <a href="#">Home</a>
+      <a href="#">Story</a>
+      <a href="#">Notes</a>
+      <a href="#">Encyclopedia</a>
+      <a href="#">Timeline</a>
+    </nav>
+    <div class="bar-end">
+      <span class="sync"><span class="dot"></span>Synced 2 min ago</span>
+      <button class="bar-btn" type="button" aria-current="page"><svg class="i"><use href="#i-sliders"/></svg>Settings</button>
+    </div>
+  </header>
+
+  <div class="title-block">
+    <h1>Project settings</h1>
+    <p class="scope">These apply to this project only.</p>
+    <button class="btn-on-accent" type="button">App settings<svg class="i s"><use href="#i-arrow"/></svg></button>
+  </div>
+
+  <section class="field sect row1" aria-labelledby="h-info">
+    <h2 id="h-info">Project<br>info</h2>
+    <div class="sect-body">
+      <label class="f"><span class="lbl">Author</span><input class="inset" value="A. Writer"></label>
+      <div class="f"><span class="lbl" id="l-lang">Language</span><button class="inset picker" type="button" aria-labelledby="l-lang">English (United States)<svg class="i"><use href="#i-down"/></svg></button></div>
+    </div>
+  </section>
+
+  <section class="field sect row1" aria-labelledby="h-theme">
+    <h2 id="h-theme">Custom<br>theme</h2>
+    <div class="sect-body">
+      <div class="toggle">
+        <span class="t-label" id="l-custom">Use a custom theme for this project</span>
+        <button class="switch" type="button" role="switch" aria-checked="false" aria-labelledby="l-custom" data-controls="swatches"><span class="state">Off</span><span class="track"><span class="knob"></span></span></button>
+      </div>
+      <div class="swatches is-disabled" id="swatches">
+        <button class="swatch" type="button" disabled><span class="sw" style="background:#455A64"></span><span><span class="lbl">Primary</span><span class="val">#455A64</span></span></button>
+        <button class="swatch" type="button" disabled><span class="sw" style="background:#FFB300"></span><span><span class="lbl">Secondary</span><span class="val">#FFB300</span></span></button>
+      </div>
+    </div>
+  </section>
+
+  <section class="field sect row1" aria-labelledby="h-tags">
+    <h2 id="h-tags">Tags</h2>
+    <div class="sect-body">
+      <div class="tags" style="margin-top:0">
+        <span class="tag">fantasy<button class="x" type="button" aria-label="Remove fantasy"><svg class="i s"><use href="#i-x"/></svg></button></span>
+        <span class="tag">draft<button class="x" type="button" aria-label="Remove draft"><svg class="i s"><use href="#i-x"/></svg></button></span>
+      </div>
+      <div class="add-row"><input class="inset" placeholder="Add a tag" aria-label="New tag"><button class="btn-ink" type="button">Add</button></div>
+    </div>
+  </section>
+
+  <section class="field sect spell" aria-labelledby="h-spell">
+    <h2 id="h-spell">Spell checking</h2>
+    <div class="col">
+      <div class="toggle">
+        <span class="t-label" id="l-sc">Enable spell checking</span>
+        <button class="switch" type="button" role="switch" aria-checked="true" aria-labelledby="l-sc"><span class="state">On</span><span class="track"><span class="knob"></span></span></button>
+      </div>
+      <div class="toggle">
+        <span class="t-label" id="l-fm">Enable in focus mode</span>
+        <button class="switch" type="button" role="switch" aria-checked="false" aria-labelledby="l-fm"><span class="state">Off</span><span class="track"><span class="knob"></span></span></button>
+      </div>
+    </div>
+    <div class="col">
+      <div class="f"><span class="lbl" id="l-dict">Dictionary</span><button class="inset picker" type="button" aria-labelledby="l-dict">English (United States)<svg class="i"><use href="#i-down"/></svg></button></div>
+      <div class="toggle">
+        <div><div class="t-label" id="l-learn">Learn encyclopedia names in this project</div><div class="hint">Entry names won't be marked as misspelled</div></div>
+        <button class="switch" type="button" role="switch" aria-checked="true" aria-labelledby="l-learn"><span class="state">On</span><span class="track"><span class="knob"></span></span></button>
+      </div>
+    </div>
+    <div class="col">
+      <div class="f">
+        <span class="lbl">Project dictionary words</span>
+        <div class="tags" style="margin-top:2px">
+          <span class="word">Elias<button class="x" type="button" aria-label="Remove Elias"><svg class="i s"><use href="#i-x"/></svg></button></span>
+          <span class="word">Keeper's<button class="x" type="button" aria-label="Remove Keeper's"><svg class="i s"><use href="#i-x"/></svg></button></span>
+        </div>
+      </div>
+      <div class="add-row"><input class="inset" placeholder="Add a word" aria-label="New dictionary word"><button class="btn-ink" type="button">Add</button></div>
+    </div>
+  </section>
+</div>
+
+<!-- ================= Phone: Writing ================= -->
+<div class="canvas phone" id="phone-writing" aria-label="Writing view, phone" hidden>
+  <header class="p-bar">
+    <div class="proj">
+      <span class="proj-name">The Lighthouse</span>
+      <span class="proj-author">A. Writer</span>
+    </div>
+    <span class="sync"><span class="dot"></span>Synced 2 min ago</span>
+    <button class="p-icon" type="button" aria-label="Settings" data-goto="settings"><svg class="i"><use href="#i-sliders"/></svg></button>
+  </header>
+
+  <div class="p-body">
+    <button class="field p-switch" type="button" data-state="structure" aria-label="Show chapters and scenes">
+      <span class="ch-num">1</span><span class="ch-title">Arrival</span>
+      <span class="lbl">Scenes</span><svg class="i"><use href="#i-down"/></svg>
+    </button>
+
+    <header class="p-head">
+      <div class="p-head-row">
+        <span class="id">SCN-007</span>
+        <div class="acts">
+          <button class="p-icon" type="button" aria-label="Focus mode" title="Focus mode"><svg class="i"><use href="#i-focus"/></svg></button>
+          <button class="p-icon" type="button" aria-label="Reader mode" title="Reader mode"><svg class="i"><use href="#i-reader"/></svg></button>
+          <button class="btn-ink" type="button">Save draft</button>
+        </div>
+      </div>
+      <h1>The Lamp Room</h1>
+    </header>
+
+    <div class="prose p-prose" contenteditable="true" spellcheck="false" aria-label="Scene text">
+      <p>One hundred and nine steps. He counted them the first night and never again, because the number did not change and the counting made the stair feel longer.</p>
+      <p>The lamp room smelled of oil and old brass. Somebody had left a chair facing the sea, and a cup beside it, and in the cup a dry brown ring where the tea had been.</p>
+      <p>He sat. The chair took his weight the way a boat takes a wave, grudging and then all at once.</p>
+      <p>Below, the town had already started to light its windows, one by one, as if it were answering him.</p>
+    </div>
+
+    <div class="field p-format" role="toolbar" aria-label="Formatting">
+      <div class="tgroup">
+        <button class="tool" type="button" aria-label="Bold">B</button>
+        <button class="tool" type="button" aria-label="Italic"><svg class="i"><use href="#i-italic"/></svg></button>
+        <button class="tool" type="button" aria-label="Heading">H</button>
+      </div>
+      <div class="tgroup">
+        <button class="tool" type="button" aria-label="Bulleted list"><svg class="i"><use href="#i-ul"/></svg></button>
+        <button class="tool" type="button" aria-label="Numbered list"><svg class="i"><use href="#i-ol"/></svg></button>
+      </div>
+      <div class="tgroup">
+        <button class="tool" type="button" aria-label="Undo"><svg class="i"><use href="#i-undo"/></svg></button>
+        <button class="tool" type="button" aria-label="Redo"><svg class="i"><use href="#i-redo"/></svg></button>
+      </div>
+    </div>
+
+    <button class="p-count" type="button" data-state="details" aria-label="Show scene details, 1,240 words">
+      <span class="num">1,240</span><span class="lbl">Words</span>
+      <span class="go">Details<svg class="i"><use href="#i-up"/></svg></span>
+    </button>
+
+    <aside class="field story p-layer p-structure" data-layer="structure" aria-label="Story structure" hidden>
+      <div class="p-layer-head">
+        <span class="lbl">Chapters and scenes</span>
+        <button class="p-icon" type="button" data-state="" aria-label="Close"><svg class="i"><use href="#i-x"/></svg></button>
+      </div>
+      <div class="chapter">
+        <div class="ch-head"><span class="ch-num">1</span><span class="ch-title">Arrival</span></div>
+        <ul class="scenes">
+          <li><a class="scene" href="#">The Harbour <span class="id">SCN-001</span></a></li>
+          <li><a class="scene is-open" href="#" aria-current="true">The Lamp Room <span class="id">SCN-007</span></a></li>
+        </ul>
+      </div>
+      <div class="chapter">
+        <div class="ch-head"><span class="ch-num">2</span><span class="ch-title">The Dark Night</span></div>
+        <ul class="scenes">
+          <li><a class="scene" href="#">Midsummer <span class="id">SCN-012</span></a></li>
+          <li><a class="scene" href="#">The Wreck <span class="id">SCN-004</span></a></li>
+        </ul>
+      </div>
+      <div class="chapter unfiled">
+        <div class="ch-head"><span class="lbl">Unfiled</span></div>
+        <ul class="scenes">
+          <li><a class="scene" href="#">Rumours <span class="id">SCN-015</span></a></li>
+        </ul>
+      </div>
+      <div class="story-actions">
+        <button class="btn-text" type="button"><svg class="i s"><use href="#i-plus"/></svg>New scene</button>
+        <button class="btn-text" type="button"><svg class="i s"><use href="#i-plus"/></svg>New chapter</button>
+      </div>
+    </aside>
+
+    <aside class="meta p-layer p-details" data-layer="details" aria-label="Scene details" hidden>
+      <div class="count">
+        <div class="p-row">
+          <span class="lbl">Words</span>
+          <button class="p-icon on-accent" type="button" data-state="" aria-label="Hide details"><svg class="i"><use href="#i-down"/></svg></button>
+        </div>
+        <div class="big">1,240</div>
+        <dl class="pair">
+          <div><dt class="lbl">Edited</dt><dd>12 min ago</dd></div>
+          <div><dt class="lbl">Draft</dt><dd>Second pass</dd></div>
+        </dl>
+      </div>
+      <div class="field">
+        <div class="block-head"><span class="lbl">Outline</span></div>
+        <p class="user-text">Elias climbs the tower for the first time and finds signs someone left in a hurry.</p>
+        <div class="block-head"><span class="lbl">Notes</span></div>
+        <p class="user-text">Plant the cup here; pay it off in chapter 3.</p>
+      </div>
+      <div class="field">
+        <div class="block-head"><span class="lbl">Tags</span><button class="mini" type="button" aria-label="Add tag"><svg class="i s"><use href="#i-plus"/></svg></button></div>
+        <div class="tags"><span class="tag">tower</span><span class="tag">foreshadowing</span></div>
+      </div>
+      <div class="field">
+        <div class="block-head"><span class="lbl">References</span><button class="mini" type="button" aria-label="Add reference"><svg class="i s"><use href="#i-plus"/></svg></button></div>
+        <ul class="refs">
+          <li><a class="ref" href="#">Elias <span class="id">Person</span></a></li>
+          <li><a class="ref" href="#">The Lighthouse <span class="id">Place</span></a></li>
+          <li><a class="ref" href="#">The Keeper's Cup <span class="id">Thing</span></a></li>
+        </ul>
+      </div>
+    </aside>
+  </div>
+
+  <nav class="p-nav" aria-label="Project">
+    <a href="#">Home</a>
+    <a href="#" aria-current="page">Story</a>
+    <a href="#">Notes</a>
+    <a href="#">Encyclopedia</a>
+    <a href="#">Timeline</a>
+  </nav>
+</div>
+
+<!-- ================= Phone: Settings ================= -->
+<div class="canvas phone" id="phone-settings" aria-label="Settings view, phone" hidden>
+  <header class="p-bar">
+    <div class="proj">
+      <span class="proj-name">The Lighthouse</span>
+      <span class="proj-author">A. Writer</span>
+    </div>
+    <span class="sync"><span class="dot"></span>Synced 2 min ago</span>
+    <button class="p-icon" type="button" aria-label="Settings" aria-current="page"><svg class="i"><use href="#i-sliders"/></svg></button>
+  </header>
+
+  <div class="p-body p-scroll">
+    <div class="p-title">
+      <h1>Project<br>settings</h1>
+      <p class="scope">These apply to this project only.</p>
+      <button class="btn-on-accent" type="button">App settings<svg class="i s"><use href="#i-arrow"/></svg></button>
+    </div>
+
+    <section class="field sect" aria-labelledby="p-h-info">
+      <h2 id="p-h-info">Project info</h2>
+      <div class="sect-body">
+        <label class="f"><span class="lbl">Author</span><input class="inset" value="A. Writer"></label>
+        <div class="f"><span class="lbl" id="p-l-lang">Language</span><button class="inset picker" type="button" aria-labelledby="p-l-lang">English (United States)<svg class="i"><use href="#i-down"/></svg></button></div>
+      </div>
+    </section>
+
+    <section class="field sect" aria-labelledby="p-h-theme">
+      <h2 id="p-h-theme">Custom theme</h2>
+      <div class="sect-body">
+        <div class="toggle">
+          <span class="t-label" id="p-l-custom">Use a custom theme for this project</span>
+          <button class="switch" type="button" role="switch" aria-checked="false" aria-labelledby="p-l-custom" data-controls="p-swatches"><span class="state">Off</span><span class="track"><span class="knob"></span></span></button>
+        </div>
+        <div class="swatches p-swatches is-disabled" id="p-swatches">
+          <button class="swatch" type="button" disabled><span class="sw" style="background:#455A64"></span><span><span class="lbl">Primary</span><span class="val">#455A64</span></span></button>
+          <button class="swatch" type="button" disabled><span class="sw" style="background:#FFB300"></span><span><span class="lbl">Secondary</span><span class="val">#FFB300</span></span></button>
+        </div>
+      </div>
+    </section>
+
+    <section class="field sect" aria-labelledby="p-h-tags">
+      <h2 id="p-h-tags">Tags</h2>
+      <div class="sect-body">
+        <div class="tags">
+          <span class="tag">fantasy<button class="x" type="button" aria-label="Remove fantasy"><svg class="i s"><use href="#i-x"/></svg></button></span>
+          <span class="tag">draft<button class="x" type="button" aria-label="Remove draft"><svg class="i s"><use href="#i-x"/></svg></button></span>
+        </div>
+        <div class="add-row"><input class="inset" placeholder="Add a tag" aria-label="New tag"><button class="btn-ink" type="button">Add</button></div>
+      </div>
+    </section>
+
+    <section class="field sect" id="p-spell" aria-labelledby="p-h-spell">
+      <h2 id="p-h-spell">Spell checking</h2>
+      <div class="sect-body">
+        <div class="toggle">
+          <span class="t-label" id="p-l-sc">Enable spell checking</span>
+          <button class="switch" type="button" role="switch" aria-checked="true" aria-labelledby="p-l-sc"><span class="state">On</span><span class="track"><span class="knob"></span></span></button>
+        </div>
+        <div class="toggle">
+          <span class="t-label" id="p-l-fm">Enable in focus mode</span>
+          <button class="switch" type="button" role="switch" aria-checked="false" aria-labelledby="p-l-fm"><span class="state">Off</span><span class="track"><span class="knob"></span></span></button>
+        </div>
+        <div class="f"><span class="lbl" id="p-l-dict">Dictionary</span><button class="inset picker" type="button" aria-labelledby="p-l-dict">English (United States)<svg class="i"><use href="#i-down"/></svg></button></div>
+        <div class="toggle">
+          <div><div class="t-label" id="p-l-learn">Learn encyclopedia names in this project</div><div class="hint">Entry names won't be marked as misspelled</div></div>
+          <button class="switch" type="button" role="switch" aria-checked="true" aria-labelledby="p-l-learn"><span class="state">On</span><span class="track"><span class="knob"></span></span></button>
+        </div>
+        <div class="f">
+          <span class="lbl">Project dictionary words</span>
+          <div class="tags">
+            <span class="word">Elias<button class="x" type="button" aria-label="Remove Elias"><svg class="i s"><use href="#i-x"/></svg></button></span>
+            <span class="word">Keeper's<button class="x" type="button" aria-label="Remove Keeper's"><svg class="i s"><use href="#i-x"/></svg></button></span>
+          </div>
+        </div>
+        <div class="add-row"><input class="inset" placeholder="Add a word" aria-label="New dictionary word"><button class="btn-ink" type="button">Add</button></div>
+      </div>
+    </section>
+  </div>
+
+  <nav class="p-nav" aria-label="Project">
+    <a href="#">Home</a>
+    <a href="#" data-goto="writing">Story</a>
+    <a href="#">Notes</a>
+    <a href="#">Encyclopedia</a>
+    <a href="#">Timeline</a>
+  </nav>
+</div>
+
+</main>
+
+<script>
+(function () {
+  var params = new URLSearchParams(location.search);
+  var device = params.get('device') === 'phone' ? 'phone' : 'desktop';
+  var view = params.get('view') === 'settings' ? 'settings' : 'writing';
+  var state = params.get('state') || '';
+  var controls = params.get('controls') !== '0';
+  var theme = params.get('theme');
+  if (theme !== 'light' && theme !== 'dark') {
+    theme = window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  var STATES = { writing: ['details', 'structure'], settings: ['spell'] };
+  var root = document.documentElement;
+
+  function apply(push) {
+    if (device !== 'phone' || STATES[view].indexOf(state) < 0) state = '';
+    root.setAttribute('data-theme', theme);
+    root.setAttribute('data-device', device);
+    root.setAttribute('data-controls', controls ? '1' : '0');
+    var shown = (device === 'phone' ? 'phone-' : 'view-') + view;
+    ['view-writing', 'view-settings', 'phone-writing', 'phone-settings'].forEach(function (id) {
+      document.getElementById(id).hidden = id !== shown;
+    });
+    document.querySelectorAll('[data-layer]').forEach(function (l) {
+      l.hidden = l.dataset.layer !== state;
+    });
+    var scroller = document.querySelector('#phone-settings .p-scroll');
+    var spell = document.getElementById('p-spell');
+    scroller.scrollTop = state === 'spell' ? spell.offsetTop - scroller.offsetTop : 0;
+
+    document.querySelectorAll('button[data-device]').forEach(function (b) {
+      b.setAttribute('aria-pressed', String(b.dataset.device === device));
+    });
+    document.querySelectorAll('button[data-view]').forEach(function (b) {
+      b.setAttribute('aria-pressed', String(b.dataset.view === view));
+    });
+    document.querySelectorAll('button[data-theme-set]').forEach(function (b) {
+      b.setAttribute('aria-pressed', String(b.dataset.themeSet === theme));
+    });
+    if (push) {
+      var q = '?device=' + device + '&view=' + view + '&theme=' + theme + (state ? '&state=' + state : '');
+      try { history.replaceState(null, '', q); } catch (e) {}
+    }
+  }
+
+  document.querySelectorAll('button[data-device]').forEach(function (b) {
+    b.addEventListener('click', function () { device = b.dataset.device; apply(true); });
+  });
+  document.querySelectorAll('button[data-view]').forEach(function (b) {
+    b.addEventListener('click', function () { view = b.dataset.view; state = ''; apply(true); });
+  });
+  document.querySelectorAll('button[data-theme-set]').forEach(function (b) {
+    b.addEventListener('click', function () { theme = b.dataset.themeSet; apply(true); });
+  });
+  document.querySelectorAll('.phone [data-state]').forEach(function (b) {
+    b.addEventListener('click', function () { state = b.dataset.state; apply(true); });
+  });
+  document.querySelectorAll('.phone [data-goto]').forEach(function (b) {
+    b.addEventListener('click', function (e) { e.preventDefault(); view = b.dataset.goto; state = ''; apply(true); });
+  });
+
+  document.querySelectorAll('.switch').forEach(function (s) {
+    s.addEventListener('click', function () {
+      var on = s.getAttribute('aria-checked') !== 'true';
+      s.setAttribute('aria-checked', String(on));
+      s.querySelector('.state').textContent = on ? 'On' : 'Off';
+      var target = s.dataset.controls && document.getElementById(s.dataset.controls);
+      if (target) {
+        target.classList.toggle('is-disabled', !on);
+        target.querySelectorAll('button').forEach(function (b) { b.disabled = !on; });
+      }
+    });
+  });
+
+  document.querySelectorAll('.canvas a[href="#"]').forEach(function (a) {
+    a.addEventListener('click', function (e) { e.preventDefault(); });
+  });
+
+  apply(false);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { apply(false); });
+})();
+</script>
+</body>
+</html>
