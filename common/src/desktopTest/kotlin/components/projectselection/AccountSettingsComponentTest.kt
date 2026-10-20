@@ -787,10 +787,6 @@ private class FakeExampleProjectRepository(
 	toml: Toml,
 	clock: Clock,
 ) : ExampleProjectRepository(globalSettingsStore, fileSystem, toml, clock) {
-	override fun removeExampleProject() {
-		fileSystem.deleteRecursively(projectsDir() / PROJECT_NAME)
-	}
-
 	override fun platformInstall() {
 		val dir = projectsDir() / PROJECT_NAME
 		fileSystem.createDirectories(dir)

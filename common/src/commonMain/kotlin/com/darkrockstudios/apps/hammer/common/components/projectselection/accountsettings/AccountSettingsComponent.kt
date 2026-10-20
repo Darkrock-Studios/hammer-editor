@@ -164,7 +164,7 @@ class AccountSettingsComponent(
 
 	override fun reinstallExampleProject(onComplete: (Boolean) -> Unit) {
 		scope.launch {
-			exampleProjectRepository.install()
+			exampleProjectRepository.install(projectsRepository.findProject(ExampleProjectRepository.PROJECT_NAME)?.path)
 			onComplete(true)
 		}
 	}
