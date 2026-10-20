@@ -138,6 +138,7 @@
 
 	<!-- Server Setup Toast Messages -->
 	<string name="settings_server_setup_toast_success">Server setup successful!</string>
+	<string name="settings_server_change_project_open">Close all open projects before changing servers.</string>
 	<string name="settings_server_setup_toast_failure">Server setup failed: %1$s</string>
 	<string
 		name="settings_server_setup_toast_failure_unknown">Server setup failed. Please check your connection and try again.

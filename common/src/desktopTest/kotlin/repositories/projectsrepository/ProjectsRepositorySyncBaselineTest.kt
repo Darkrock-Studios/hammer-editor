@@ -1,5 +1,6 @@
 package repositories.projectsrepository
 
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectInUseException
 import PROJECT_1_NAME
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
@@ -23,6 +24,7 @@ import listedProjectId
 import okio.Path
 import org.junit.jupiter.api.Test
 import org.koin.dsl.module
+import kotlin.test.assertFailsWith
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
@@ -201,19 +203,16 @@ class ProjectsRepositorySyncBaselineTest : ProjectsRepositoryBaseTest() {
 	}
 
 	@Test
-	fun `Clearing the baseline of an open project drops its cached copy too`() = scope.runTest {
+	fun `Clearing all baselines refuses while a project is open and changes nothing`() = scope.runTest {
 		createProject(ffs, PROJECT_1_NAME)
 		seedBaseline()
+		// An open project serves project data from memory, which a file-level clear can't reach
 		val projectDataRepository = openProject()
-		// An open project serves project data from memory, so the stale hash has to go from there
-		// as well or the next sync still fast-forwards onto the new server's empty copy.
+
+		assertFailsWith<ProjectInUseException> { projectsRepository().clearAllSyncBaselines() }
+
 		assertEquals("hash-agreed-with-the-old-server", projectDataRepository.load().lastSyncedHash)
-
-		projectsRepository().clearAllSyncBaselines()
-
-		assertNull(projectDataRepository.load().lastSyncedHash)
-		assertNull(storedProjectData().lastSyncedHash)
-		assertEquals(ProjectData(authorName = "Author"), projectDataRepository.load().data)
+		assertEquals("hash-agreed-with-the-old-server", storedProjectData().lastSyncedHash)
 	}
 
 	/** Mirrors the project scope `mainModule` opens when a project is opened in the editor. */

@@ -18,7 +18,6 @@ import com.darkrockstudios.apps.hammer.common.data.migrator.Migration3_4
 import com.darkrockstudios.apps.hammer.common.data.migrator.PROJECT_DATA_VERSION
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
-import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
 import com.darkrockstudios.apps.hammer.common.data.projectdata.StoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.projectdata.clearProjectDataSyncBaseline
 import com.darkrockstudios.apps.hammer.common.data.projectdata.saveStoredProjectData
@@ -35,6 +34,7 @@ import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.markProjectR
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineDatasource
 import com.darkrockstudios.apps.hammer.common.data.toMsg
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.util.DeviceLocaleResolver
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -162,10 +162,16 @@ class ProjectsRepository(
 		}
 	}
 
-	/** For a move to a different server: every project keeps its id but re-uploads everything. */
+	/**
+	 * For a move to a different server: every project keeps its id but re-uploads everything.
+	 * No project may be open; that is checked before any baseline changes.
+	 */
 	suspend fun clearAllSyncBaselines() {
+		findProjectInUse()?.let { throw ProjectInUseException(it.name) }
 		getProjects().forEach { clearSyncBaseline(it) }
 	}
+
+	fun findProjectInUse(): ProjectDef? = getProjects().firstOrNull { isProjectInUse(it) }
 
 	/**
 	 * Re-mints all but one holder of any id shared by several projects, as happens when a project
@@ -209,10 +215,14 @@ class ProjectsRepository(
 	 * [setProjectId] runs this before the id is written: the two are separate files, so a failure or crash between them
 	 * must leave a project that still points at the old server rather than one pointing at the new
 	 * server with the old server's baseline, which is the corrupt state this exists to prevent.
+	 *
+	 * The project must not be open: an open project caches its project data in memory, so it
+	 * clears its own baseline through its [SyncJournal] and `ProjectDataRepository`.
 	 */
 	suspend fun clearSyncBaseline(projectDef: ProjectDef) {
+		if (isProjectInUse(projectDef)) throw ProjectInUseException(projectDef.name)
 		clearProjectSyncBaseline(projectDef, fileSystem, json)
-		clearProjectDataBaseline(projectDef)
+		clearProjectDataSyncBaseline(projectDef, fileSystem, toml)
 	}
 
 	/**
@@ -227,21 +237,9 @@ class ProjectsRepository(
 	 * journal then still gets one, flagged.
 	 */
 	suspend fun resetSyncStateAfterRestore(projectDef: ProjectDef, serverKnowsProject: Boolean) {
+		if (isProjectInUse(projectDef)) throw ProjectInUseException(projectDef.name)
 		markProjectRestored(projectDef, fileSystem, json, serverKnowsProject)
-		clearProjectDataBaseline(projectDef)
-	}
-
-	private suspend fun clearProjectDataBaseline(projectDef: ProjectDef) {
-		// An open project serves project data from ProjectDataRepository's cache, so clearing only
-		// the file would leave the stale hash live (and get it written straight back out).
-		val openProject = getKoin()
-			.getScopeOrNull(ProjectDefScope(projectDef).scopeId)
-			?.get<ProjectDataRepository>()
-		if (openProject != null) {
-			openProject.clearSyncBaseline()
-		} else {
-			clearProjectDataSyncBaseline(projectDef, fileSystem, toml)
-		}
+		clearProjectDataSyncBaseline(projectDef, fileSystem, toml)
 	}
 
 	fun loadProjectMetadata(projectDef: ProjectDef): ProjectMetadata =

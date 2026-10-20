@@ -53,6 +53,9 @@ class SyncJournalDatasource(
 		saveSyncData(current.copy(cachedProjectHash = null))
 	}
 
+	/** See [clearProjectSyncBaseline]. */
+	fun clearSyncBaseline() = clearProjectSyncBaseline(projectDef, fileSystem, json)
+
 	fun syncDataExists(): Boolean {
 		val path = getSyncDataPath()
 		return fileSystem.exists(path)

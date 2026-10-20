@@ -2,6 +2,7 @@ package synchronizer.operations
 
 import PROJECT_1_NAME
 import PROJECT_2_NAME
+import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.ApiErrorCode
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
@@ -24,6 +25,9 @@ import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectsApi
 import getProjectDef
 import io.ktor.http.HttpStatusCode
+import io.mockk.just
+import io.mockk.Runs
+import io.mockk.coVerifyOrder
 import io.mockk.MockKAnnotations
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -58,6 +62,9 @@ class FetchServerDataOperationTest : BaseTest() {
 	@MockK(relaxed = true)
 	private lateinit var projectsRepository: ProjectsRepository
 
+	@MockK(relaxed = true)
+	private lateinit var projectDataRepository: ProjectDataRepository
+
 	@MockK
 	private lateinit var projectCreateResolver: ProjectCreateResolver
 
@@ -70,6 +77,7 @@ class FetchServerDataOperationTest : BaseTest() {
 	override fun setup() {
 		super.setup()
 		MockKAnnotations.init(this)
+		every { syncJournal.clearSyncBaseline() } just Runs
 
 		strRes = TestStrRes()
 		mockSynchronizers = MockSynchronizers(false)
@@ -95,7 +103,7 @@ class FetchServerDataOperationTest : BaseTest() {
 			strRes = strRes,
 			globalSettingsStore = globalSettingsStore,
 			projectCreateResolver = resolver,
-			projectsRepository = projectsRepository,
+			projectDataRepository = projectDataRepository,
 			syncJournal = syncJournal,
 			serverProjectApi = serverProjectApi,
 		)
@@ -230,7 +238,10 @@ class FetchServerDataOperationTest : BaseTest() {
 		assertTrue(isSuccess(result))
 		val data = assertIs<FetchServerDataState>(result.data)
 		// The old baseline described a server copy that no longer exists.
-		coVerify { projectsRepository.clearSyncBaseline(projectDef) }
+		coVerifyOrder {
+			syncJournal.clearSyncBaseline()
+			projectDataRepository.clearSyncBaseline()
+		}
 		assertEquals(clearedJournal, data.clientSyncData)
 		coVerify(exactly = 2) { serverProjectApi.beginProjectSync(1L, projId, entityState, false) }
 	}
@@ -251,7 +262,7 @@ class FetchServerDataOperationTest : BaseTest() {
 		assertIs<ProjectNeedsAccountSyncException>(result.exception)
 		assertTrue(logs.any { it.level == SyncLogLevel.WARN })
 		coVerify(exactly = 1) { serverProjectApi.beginProjectSync(any(), any(), any(), any()) }
-		coVerify(exactly = 0) { projectsRepository.clearSyncBaseline(any()) }
+		coVerify(exactly = 0) { projectDataRepository.clearSyncBaseline() }
 	}
 
 	@Test
@@ -270,7 +281,7 @@ class FetchServerDataOperationTest : BaseTest() {
 		assertIs<ProjectDeletedElsewhereException>(result.exception)
 		assertTrue(logs.any { it.level == SyncLogLevel.WARN })
 		coVerify(exactly = 1) { serverProjectApi.beginProjectSync(any(), any(), any(), any()) }
-		coVerify(exactly = 0) { projectsRepository.clearSyncBaseline(any()) }
+		coVerify(exactly = 0) { projectDataRepository.clearSyncBaseline() }
 	}
 
 	@Test
@@ -332,7 +343,7 @@ class FetchServerDataOperationTest : BaseTest() {
 		assertIs<ProjectNeedsAccountSyncException>(result.exception)
 		assertTrue(logs.any { it.level == SyncLogLevel.WARN })
 		coVerify(exactly = 0) { projectsRepository.setProjectId(any(), any()) }
-		coVerify(exactly = 0) { projectsRepository.clearSyncBaseline(any()) }
+		coVerify(exactly = 0) { projectDataRepository.clearSyncBaseline() }
 		coVerify(exactly = 1) { serverProjectApi.beginProjectSync(any(), any(), any(), any()) }
 		coVerify { serverProjectsApi.endProjectsSync(SYNC_ID) }
 	}
@@ -356,7 +367,7 @@ class FetchServerDataOperationTest : BaseTest() {
 		assertTrue(logs.any { it.level == SyncLogLevel.WARN })
 		coVerify(exactly = 1) { serverProjectsApi.createProject(any(), any(), any()) }
 		coVerify(exactly = 0) { projectsRepository.setProjectId(any(), any()) }
-		coVerify(exactly = 0) { projectsRepository.clearSyncBaseline(any()) }
+		coVerify(exactly = 0) { projectDataRepository.clearSyncBaseline() }
 		coVerify(exactly = 1) { serverProjectApi.beginProjectSync(any(), any(), any(), any()) }
 		coVerify { serverProjectsApi.endProjectsSync(SYNC_ID) }
 	}
@@ -381,7 +392,7 @@ class FetchServerDataOperationTest : BaseTest() {
 		assertIs<ProjectAdoptConflictException>(result.exception)
 		assertTrue(logs.any { it.level == SyncLogLevel.WARN })
 		coVerify(exactly = 0) { projectsRepository.setProjectId(any(), any()) }
-		coVerify(exactly = 0) { projectsRepository.clearSyncBaseline(any()) }
+		coVerify(exactly = 0) { projectDataRepository.clearSyncBaseline() }
 		coVerify(exactly = 1) { serverProjectApi.beginProjectSync(any(), any(), any(), any()) }
 		coVerify { serverProjectsApi.endProjectsSync(SYNC_ID) }
 	}
@@ -402,7 +413,7 @@ class FetchServerDataOperationTest : BaseTest() {
 
 		assertFalse(isSuccess(result))
 		assertTrue(logs.any { it.level == SyncLogLevel.ERROR })
-		coVerify(exactly = 0) { projectsRepository.clearSyncBaseline(any()) }
+		coVerify(exactly = 0) { projectDataRepository.clearSyncBaseline() }
 		coVerify(exactly = 1) { serverProjectApi.beginProjectSync(any(), any(), any(), any()) }
 		coVerify { serverProjectsApi.endProjectsSync(SYNC_ID) }
 	}
