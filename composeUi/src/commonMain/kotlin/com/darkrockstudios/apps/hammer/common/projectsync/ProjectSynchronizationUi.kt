@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.projectsync
 
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -33,6 +34,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 private val DialogMaxWidth = 800.dp
+
+/** Wide enough for two side-by-side prose panes at a comfortable line length. */
+private val ConflictDialogMaxWidth = 1280.dp
 private val DialogBodyMinHeight = 280.dp
 
 @Composable
@@ -100,6 +104,9 @@ internal fun ProjectSynchronizationContent(
 	val strRes = rememberStrRes()
 	val snackbarHostState = remember { SnackbarHostState() }
 
+	val showingConflict = state.entityConflict != null || state.projectDataConflict != null
+	val maxWidth by animateDpAsState(if (showingConflict) ConflictDialogMaxWidth else DialogMaxWidth)
+
 	LaunchedEffect(Unit) {
 		component.syncProject { success ->
 			scope.launch {
@@ -115,7 +122,7 @@ internal fun ProjectSynchronizationContent(
 	Surface(
 		modifier = modifier
 			.padding(Ui.Padding.M)
-			.widthIn(max = DialogMaxWidth)
+			.widthIn(max = maxWidth)
 			.fillMaxWidth(),
 		shape = RectangleShape,
 		color = MaterialTheme.colorScheme.surface,
