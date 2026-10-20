@@ -40,6 +40,8 @@ fun IdeaConflictUi(
 	var titleText by rememberSaveable(local) { mutableStateOf(local.title ?: "") }
 	var contentText by rememberSaveable(local) { mutableStateOf(local.content) }
 
+	val contentDiff = rememberContentDiff(server.content, contentText)
+
 	ConflictSplit(
 		compact = compact,
 		onUseLocal = {
@@ -76,6 +78,7 @@ fun IdeaConflictUi(
 				) {
 					ReadOnlyLine(formatTags(local.tags))
 				}
+				val contentTransformation = rememberLocalDiffHighlight(contentDiff)
 				HdConflictField(
 					label = Res.string.ideas_conflict_field_content.get(),
 					conflict = server.content != local.content,
@@ -86,6 +89,7 @@ fun IdeaConflictUi(
 						onValueChange = { contentText = it },
 						singleLine = false,
 						minLines = 6,
+						visualTransformation = contentTransformation,
 						modifier = Modifier.fillMaxWidth(),
 					)
 				}
@@ -110,11 +114,12 @@ fun IdeaConflictUi(
 				) {
 					ReadOnlyLine(formatTags(server.tags))
 				}
+				val highlighted = rememberRemoteDiffHighlight(server.content, contentDiff)
 				HdConflictField(
 					label = Res.string.ideas_conflict_field_content.get(),
 					conflict = server.content != local.content,
 				) {
-					ReadOnlyBlock(server.content)
+					ReadOnlyBlock(highlighted)
 				}
 			}
 		},

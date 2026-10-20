@@ -214,11 +214,11 @@ private fun detectMovedParagraphs(leftPlain: String, rightPlain: String): MovePl
 	}
 	if (matches.isEmpty()) return MovePlan()
 
-	// The stable backbone is the longest run of matches whose relative order is preserved. A
-	// backbone of a single paragraph is no backbone at all (one paragraph is trivially "in order"
-	// even after teleporting), so a fully reordered set is treated as all-moved.
+	// The stable backbone is the longest run of matches whose relative order is preserved. When
+	// several matches yield a single-paragraph backbone, every match was reordered, so all are
+	// moved. A lone match has nothing to be out of order against, so it stays stable.
 	val backbone = longestIncreasingParagraphKeys(matches)
-	val stableKeys = if (backbone.size >= 2) backbone else emptySet()
+	val stableKeys = if (backbone.size >= 2 || matches.size == 1) backbone else emptySet()
 	val movedMatches = matches.filter { it.left.key !in stableKeys }
 	if (movedMatches.isEmpty()) return MovePlan()
 
