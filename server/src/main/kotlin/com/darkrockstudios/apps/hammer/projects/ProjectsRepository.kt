@@ -333,6 +333,14 @@ class ProjectsRepository(
 			return SResult.failure(InvalidSyncIdException())
 
 		val group = projectsDatasource.getGroup(userId, groupId) ?: return SResult.success()
+
+		val groups = projectsDatasource.getGroups(userId)
+		val siblings = groups.filter { it.parentRowId == group.parentRowId && it.rowId != group.rowId }
+		groups.filter { it.parentRowId == group.rowId }
+			.find { child -> siblings.any { it.name.equals(child.name, ignoreCase = true) } }
+			?.let { return SResult.failure(GroupNameTaken(it.name)) }
+
+		// The database stays authoritative on name equality and catches a concurrent rename.
 		return if (projectsDatasource.deleteGroup(userId, group, group.parentRowId)) {
 			SResult.success()
 		} else {

@@ -142,23 +142,8 @@ internal suspend fun ApplicationCall.respondSyncFailure(exception: Throwable?) {
 			HttpResponseError(error = ERROR_GENERIC, displayMessage = t(R(ERR_KEY_INVALID_PROJECT_NAME))),
 		)
 
-		is ProjectDeletedException -> respond(
-			status = HttpStatusCode.Conflict,
-			HttpResponseError(
-				error = ERROR_GENERIC,
-				displayMessage = t(R(ERR_KEY_PROJECT_CREATE_DELETED)),
-				errorCode = ApiErrorCode.PROJECT_DELETED,
-			),
-		)
-
-		is ProjectIdTakenException -> respond(
-			status = HttpStatusCode.Conflict,
-			HttpResponseError(
-				error = ERROR_GENERIC,
-				displayMessage = t(R(ERR_KEY_PROJECT_CREATE_ID_TAKEN)),
-				errorCode = ApiErrorCode.PROJECT_ID_TAKEN,
-			),
-		)
+		is ProjectDeletedException -> respondConflict(ERR_KEY_PROJECT_CREATE_DELETED, ApiErrorCode.PROJECT_DELETED)
+		is ProjectIdTakenException -> respondConflict(ERR_KEY_PROJECT_CREATE_ID_TAKEN, ApiErrorCode.PROJECT_ID_TAKEN)
 
 		is InvalidGroupName -> respond(
 			status = HttpStatusCode.NotAcceptable,

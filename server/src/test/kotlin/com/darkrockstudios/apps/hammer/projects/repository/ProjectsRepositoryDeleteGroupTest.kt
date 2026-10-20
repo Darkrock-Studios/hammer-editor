@@ -11,6 +11,7 @@ import io.mockk.coVerify
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
@@ -31,6 +32,7 @@ class ProjectsRepositoryDeleteGroupTest : ProjectsRepositoryBaseTest() {
 	fun setupDefaults() {
 		coEvery { projectsSessionManager.validateSyncId(userId, syncId, any()) } returns true
 		coEvery { projectsDatasource.getGroup(userId, groupId) } returns group
+		coEvery { projectsDatasource.getGroups(userId) } returns listOf(group)
 		coEvery { projectsDatasource.deleteGroup(userId, group, any()) } returns true
 	}
 
@@ -63,7 +65,21 @@ class ProjectsRepositoryDeleteGroupTest : ProjectsRepositoryBaseTest() {
 	}
 
 	@Test
-	fun `a child name collision at the parent is refused`() = runTest {
+	fun `a child name collision at the parent names the child and writes nothing`() = runTest {
+		val sibling = ProjectGroup(4L, GroupId("9a8b7c6d-5e4f-4a3b-9c2d-1e0f9a8b7c6d"), "Drafts", null, 3L, group.parentUuid)
+		val child = ProjectGroup(8L, GroupId("2b1f3c4d-5e6f-4a1b-8c2d-3e4f5a6b7c8d"), "drafts", null, group.rowId, groupId)
+		val unrelated = ProjectGroup(9L, GroupId("6d5c4b3a-2f1e-4d0c-9b8a-7f6e5d4c3b2a"), "Notes", null, group.rowId, groupId)
+		coEvery { projectsDatasource.getGroups(userId) } returns listOf(sibling, group, unrelated, child)
+
+		val result = createProjectsRepository().deleteGroup(userId, syncId, groupId)
+
+		val failure = assertIs<GroupNameTaken>((result as ServerResult.Failure).exception)
+		assertEquals("drafts", failure.name)
+		coVerify(exactly = 0) { projectsDatasource.deleteGroup(any(), any(), any()) }
+	}
+
+	@Test
+	fun `a collision the database reports is refused`() = runTest {
 		coEvery { projectsDatasource.deleteGroup(userId, group, any()) } returns false
 
 		val result = createProjectsRepository().deleteGroup(userId, syncId, groupId)
