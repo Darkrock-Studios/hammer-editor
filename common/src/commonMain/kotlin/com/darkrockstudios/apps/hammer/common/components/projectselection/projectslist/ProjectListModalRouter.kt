@@ -7,10 +7,12 @@ import com.arkivanov.decompose.router.slot.activate
 import com.arkivanov.decompose.router.slot.childSlot
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
+import com.darkrockstudios.apps.hammer.common.components.projectselection.MoveTarget
 import com.darkrockstudios.apps.hammer.common.components.projectroot.Router
 import com.darkrockstudios.apps.hammer.common.components.protocolmismatch.ProtocolMismatchComponent
 import com.darkrockstudios.apps.hammer.common.components.serverreauthentication.ServerReauthenticationComponent
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.GroupDef
 import com.darkrockstudios.apps.hammer.common.data.protocolmismatch.ProtocolMismatchInfo
 import kotlinx.serialization.Serializable
 
@@ -43,8 +45,13 @@ class ProjectListModalRouter(
 			Config.None -> ProjectsList.ModalDestination.None
 			is Config.ProjectSync -> ProjectsList.ModalDestination.ProjectSync
 			is Config.ProjectRename -> ProjectsList.ModalDestination.ProjectRename(config.projectDef)
-			is Config.ProjectCreate -> ProjectsList.ModalDestination.ProjectCreate
+			is Config.ProjectCreate -> ProjectsList.ModalDestination.ProjectCreate(config.parent)
 			is Config.ProjectDelete -> ProjectsList.ModalDestination.ProjectDelete(config.projectDef)
+			is Config.GroupCreate -> ProjectsList.ModalDestination.GroupCreate(config.parent)
+			is Config.GroupRename -> ProjectsList.ModalDestination.GroupRename(config.groupDef)
+			is Config.GroupDelete -> ProjectsList.ModalDestination.GroupDelete(config.groupDef)
+			is Config.GroupDescription -> ProjectsList.ModalDestination.GroupDescription(config.groupDef)
+			is Config.MoveToGroup -> ProjectsList.ModalDestination.MoveToGroup(config.target)
 			is Config.ServerReauth -> ProjectsList.ModalDestination.ServerReauth(
 				ServerReauthenticationComponent(
 					componentContext = componentContext,
@@ -81,8 +88,8 @@ class ProjectListModalRouter(
 		navigation.activate(Config.None)
 	}
 
-	fun showProjectCreate() {
-		navigation.activate(Config.ProjectCreate)
+	fun showProjectCreate(parent: GroupDef? = null) {
+		navigation.activate(Config.ProjectCreate(parent))
 	}
 
 	fun dismissProjectCreate() {
@@ -94,6 +101,30 @@ class ProjectListModalRouter(
 	}
 
 	fun dismissProjectDelete() {
+		navigation.activate(Config.None)
+	}
+
+	fun showGroupCreate(parent: GroupDef?) {
+		navigation.activate(Config.GroupCreate(parent))
+	}
+
+	fun showGroupRename(groupDef: GroupDef) {
+		navigation.activate(Config.GroupRename(groupDef))
+	}
+
+	fun showGroupDelete(groupDef: GroupDef) {
+		navigation.activate(Config.GroupDelete(groupDef))
+	}
+
+	fun showGroupDescription(groupDef: GroupDef) {
+		navigation.activate(Config.GroupDescription(groupDef))
+	}
+
+	fun showMoveToGroup(target: MoveTarget) {
+		navigation.activate(Config.MoveToGroup(target))
+	}
+
+	fun dismiss() {
 		navigation.activate(Config.None)
 	}
 
@@ -129,11 +160,27 @@ class ProjectListModalRouter(
 		@Serializable
 		data class ProjectRename(val projectDef: ProjectDef) : Config()
 
+		// parent stays defaulted: a saved config without it must still decode.
 		@Serializable
-		data object ProjectCreate : Config()
+		data class ProjectCreate(val parent: GroupDef? = null) : Config()
 
 		@Serializable
 		data class ProjectDelete(val projectDef: ProjectDef) : Config()
+
+		@Serializable
+		data class GroupCreate(val parent: GroupDef?) : Config()
+
+		@Serializable
+		data class GroupRename(val groupDef: GroupDef) : Config()
+
+		@Serializable
+		data class GroupDelete(val groupDef: GroupDef) : Config()
+
+		@Serializable
+		data class GroupDescription(val groupDef: GroupDef) : Config()
+
+		@Serializable
+		data class MoveToGroup(val target: MoveTarget) : Config()
 
 		@Serializable
 		data object ServerReauth : Config()

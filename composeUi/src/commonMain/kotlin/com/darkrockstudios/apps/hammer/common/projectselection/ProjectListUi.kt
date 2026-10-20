@@ -146,7 +146,7 @@ internal enum class ProjectsSortMode(
 	),
 }
 
-private fun applySort(projects: List<ProjectData>, mode: ProjectsSortMode): List<ProjectData> = when (mode) {
+internal fun applySort(projects: List<ProjectData>, mode: ProjectsSortMode): List<ProjectData> = when (mode) {
 	// Sentinels keep never-opened projects and projects without cached stats
 	// at the bottom regardless of direction, so ascending sorts don't lead with "unknown".
 	ProjectsSortMode.LastAccessedDesc -> projects.sortedByDescending { it.metadata.info.lastAccessed }
@@ -674,6 +674,12 @@ fun ModalContent(component: ProjectsList, rootSnackbar: RootSnackbarHostState) {
 				close = { component.dismissProjectDelete() }
 			)
 		}
+
+		is ProjectsList.ModalDestination.GroupCreate,
+		is ProjectsList.ModalDestination.GroupRename,
+		is ProjectsList.ModalDestination.GroupDelete,
+		is ProjectsList.ModalDestination.GroupDescription,
+		is ProjectsList.ModalDestination.MoveToGroup -> {}
 
 		is ProjectsList.ModalDestination.ServerReauth -> {
 			ReauthenticationUi(overlay.component)

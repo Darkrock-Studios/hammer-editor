@@ -10,6 +10,7 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.backhandler.BackCallback
 import com.arkivanov.essenty.backhandler.BackHandler
 import com.darkrockstudios.apps.hammer.common.components.ToastMessage
+import com.darkrockstudios.apps.hammer.common.components.projectselection.MoveTarget
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection.Config
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection.Destination
@@ -21,6 +22,7 @@ import com.darkrockstudios.apps.hammer.common.data.ImportOptions
 import com.darkrockstudios.apps.hammer.common.data.appupdate.AppUpdateState
 import com.darkrockstudios.apps.hammer.common.data.Msg
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.GroupDef
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectSelectScaffold
 import kotlinx.coroutines.CoroutineScope
@@ -40,9 +42,9 @@ val projectListComponent = object : ProjectsList {
 
 	override fun loadProjectList() {}
 	override fun selectProject(projectDef: ProjectDef) {}
-	override fun showCreate() {}
+	override fun showCreate(parent: GroupDef?) {}
 	override fun hideCreate() {}
-	override fun createProject(projectName: String) {}
+	override fun createProject(projectName: String, parent: GroupDef?) {}
 	override fun beginProjectImport() {}
 	override fun cancelImportFilePicker() {}
 	override fun selectImportFile(name: String, content: ByteArray) {}
@@ -63,6 +65,19 @@ val projectListComponent = object : ProjectsList {
 	override fun dismissProjectRename() {}
 	override fun showProjectDelete(projectDef: ProjectDef) {}
 	override fun dismissProjectDelete() {}
+	override fun moveProject(projectDef: ProjectDef, target: GroupDef?) {}
+	override fun createGroup(name: String, parent: GroupDef?, description: String?) {}
+	override fun renameGroup(groupDef: GroupDef, newName: String) {}
+	override fun moveGroup(groupDef: GroupDef, newParent: GroupDef?) {}
+	override fun deleteGroup(groupDef: GroupDef) {}
+	override fun toggleGroupCollapsed(groupDef: GroupDef) {}
+	override fun updateGroupDescription(groupDef: GroupDef, description: String?) {}
+	override fun showGroupCreate(parent: GroupDef?) {}
+	override fun showGroupRename(groupDef: GroupDef) {}
+	override fun showGroupDelete(groupDef: GroupDef) {}
+	override fun showGroupDescription(groupDef: GroupDef) {}
+	override fun showMoveToGroup(target: MoveTarget) {}
+	override fun dismissGroupModal() {}
 
 	override val toast = MutableSharedFlow<ToastMessage>()
 	override fun showToast(scope: CoroutineScope, message: StringResource, vararg params: Any) {}

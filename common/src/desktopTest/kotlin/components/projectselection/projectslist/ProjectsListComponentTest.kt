@@ -1,9 +1,14 @@
 package components.projectselection.projectslist
 
+import com.arkivanov.essenty.statekeeper.SerializableContainer
 import com.darkrockstudios.apps.hammer.base.ProjectId
+import com.darkrockstudios.apps.hammer.group_error_in_use
+import com.darkrockstudios.apps.hammer.group_error_source_missing
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.projects_list_toast_delete_failed
 import com.darkrockstudios.apps.hammer.common.components.ToastMessage
+import com.darkrockstudios.apps.hammer.common.components.projectselection.GroupData
+import com.darkrockstudios.apps.hammer.common.components.projectselection.MoveTarget
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsList
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsListComponent
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.Info
@@ -24,6 +29,8 @@ import com.darkrockstudios.apps.hammer.common.data.importer.RtfStoryImporter
 import com.darkrockstudios.apps.hammer.common.data.importer.StoryImporter
 import com.darkrockstudios.apps.hammer.common.data.importer.StoryImporterRegistry
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.GroupDef
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectTree
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.ProjectStatisticsCacheReader
 import com.darkrockstudios.apps.hammer.common.data.protocolmismatch.ProtocolMismatchRepository
@@ -37,6 +44,7 @@ import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.util.NetworkConnectivity
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.apps.hammer.common.util.UrlLauncher
+import io.mockk.clearMocks
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -51,6 +59,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.Json
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
 import okio.IOException
@@ -59,12 +68,15 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.koin.dsl.module
 import org.koin.test.get
+import testGroupId
 import testProjectId
 import utils.ComponentTest
+import utils.TestComponentContext
 import utils.TestStrRes
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Clock
 import kotlin.time.Instant
@@ -105,6 +117,29 @@ class ProjectsListComponentTest : ComponentTest() {
 
 	private val fixedNow = Instant.fromEpochSeconds(1_000_000)
 
+	private val trilogy = GroupDef(
+		id = testGroupId("Trilogy"),
+		name = "Trilogy",
+		path = HPath("/projects/Trilogy", "Trilogy", false),
+		parentId = null,
+		description = "Three books",
+	)
+	private val drafts = GroupDef(
+		id = testGroupId("Drafts"),
+		name = "Drafts",
+		path = HPath("/projects/Trilogy/Drafts", "Drafts", false),
+		parentId = trilogy.id,
+		description = null,
+	)
+	private val bookOne =
+		ProjectDef(testProjectId("Book One"), "Book One", HPath("/projects/Trilogy/Book One", "Book One", false))
+
+	private val groupedTree = ProjectTree(
+		groups = listOf(trilogy, drafts),
+		projects = listOf(bookOne, projectDefA),
+		placement = mapOf(bookOne.id to trilogy.id, projectDefA.id to null),
+	)
+
 	@BeforeEach
 	override fun setup() {
 		super.setup()
@@ -129,6 +164,7 @@ class ProjectsListComponentTest : ComponentTest() {
 		every { globalSettingsStore.serverSettingsUpdates } returns serverSettingsUpdates
 		every { synchronizer.isServerSynchronized() } returns false
 		// loadProjectList runs after most mutations; default to no projects (parallelMap no-ops on empty).
+		every { projectsRepository.getProjectTree(any()) } returns ProjectTree.EMPTY
 		every { projectsRepository.getProjects(any()) } returns emptyList()
 
 		setupKoin(module {
@@ -161,6 +197,9 @@ class ProjectsListComponentTest : ComponentTest() {
 		componentContext = context,
 		onProjectSelected = { selectedProject = it },
 	)
+
+	private fun flatTree(vararg projects: ProjectDef) =
+		ProjectTree(groups = emptyList(), projects = projects.toList(), placement = projects.associate { it.id to null })
 
 	private fun metadata(lastAccessed: Instant, projectId: ProjectId? = null) =
 		ProjectMetadata(
@@ -223,7 +262,7 @@ class ProjectsListComponentTest : ComponentTest() {
 			comp.createProject("bad/name")
 			advanceUntilIdle()
 
-			verify(exactly = 0) { projectsRepository.getProjects(any()) }
+			verify(exactly = 0) { projectsRepository.getProjectTree(any()) }
 			assertEquals("bad/name", comp.state.value.createDialogProjectName)
 		}
 
@@ -361,7 +400,7 @@ class ProjectsListComponentTest : ComponentTest() {
 			advanceUntilIdle()
 
 			assertTrue(comp.state.value.showImportDialog)
-			verify(exactly = 0) { projectsRepository.getProjects(any()) }
+			verify(exactly = 0) { projectsRepository.getProjectTree(any()) }
 		}
 
 	// --- deleteProject -------------------------------------------------------
@@ -414,7 +453,7 @@ class ProjectsListComponentTest : ComponentTest() {
 		advanceUntilIdle()
 
 		coVerify(exactly = 0) { synchronizer.deleteProject(any()) }
-		verify(exactly = 0) { projectsRepository.getProjects(any()) }
+		verify(exactly = 0) { projectsRepository.getProjectTree(any()) }
 		assertEquals(ToastMessage.Resource(Res.string.projects_list_toast_delete_failed), toast.await())
 	}
 
@@ -428,7 +467,7 @@ class ProjectsListComponentTest : ComponentTest() {
 		advanceUntilIdle()
 
 		coVerify(exactly = 0) { synchronizer.deleteProject(any()) }
-		verify(exactly = 0) { projectsRepository.getProjects(any()) }
+		verify(exactly = 0) { projectsRepository.getProjectTree(any()) }
 		assertEquals(ToastMessage.Resource(Res.string.projects_list_toast_delete_failed), toast.await())
 	}
 
@@ -444,7 +483,7 @@ class ProjectsListComponentTest : ComponentTest() {
 			advanceUntilIdle()
 
 			// Account sync finds the rename on disk through its baseline.
-			verify { projectsRepository.getProjects(any()) }
+			verify { projectsRepository.getProjectTree(any()) }
 			coVerify(exactly = 0) { synchronizer.deleteProject(any()) }
 		}
 
@@ -457,7 +496,7 @@ class ProjectsListComponentTest : ComponentTest() {
 		comp.renameProject(projectDefA, "Beta")
 		advanceUntilIdle()
 
-		verify(exactly = 0) { projectsRepository.getProjects(any()) }
+		verify(exactly = 0) { projectsRepository.getProjectTree(any()) }
 	}
 
 	// --- selectProject / dialog ----------------------------------------------
@@ -566,6 +605,7 @@ class ProjectsListComponentTest : ComponentTest() {
 			globalSettings = globalSettings.copy(autoCloseSyncDialog = false)
 			every { synchronizer.isServerSynchronized() } returns true
 			every { projectsRepository.getProjects(any()) } returns listOf(projectDefA)
+			every { projectsRepository.getProjectTree(any()) } returns flatTree(projectDefA)
 			every { metadataDatasource.loadMetadata(projectDefA) } returns
 				metadata(Instant.fromEpochSeconds(1), projectId = projectDefA.id)
 			coEvery { synchronizer.syncProjects(any(), any(), any(), any()) } returns true
@@ -588,6 +628,7 @@ class ProjectsListComponentTest : ComponentTest() {
 			val adopted = projectDefA.copy(id = testProjectId("Adopted"))
 			var onDisk = listOf(projectDefA)
 			every { projectsRepository.getProjects(any()) } answers { onDisk }
+			every { projectsRepository.getProjectTree(any()) } answers { flatTree(*onDisk.toTypedArray()) }
 			every { metadataDatasource.loadMetadata(any()) } returns metadata(Instant.fromEpochSeconds(1))
 			every { statsReader.loadTotalWords(any()) } returns null
 			coEvery { synchronizer.syncProjects(any(), any(), any(), any()) } coAnswers {
@@ -613,7 +654,7 @@ class ProjectsListComponentTest : ComponentTest() {
 			val oldest = ProjectDef(testProjectId("Oldest"), "Oldest", HPath("/projects/Oldest", "Oldest", false))
 			val newest = ProjectDef(testProjectId("Newest"), "Newest", HPath("/projects/Newest", "Newest", false))
 			val middle = ProjectDef(testProjectId("Middle"), "Middle", HPath("/projects/Middle", "Middle", false))
-			every { projectsRepository.getProjects(any()) } returns listOf(oldest, newest, middle)
+			every { projectsRepository.getProjectTree(any()) } returns flatTree(oldest, newest, middle)
 			every { metadataDatasource.loadMetadata(oldest) } returns metadata(Instant.fromEpochSeconds(100))
 			every { metadataDatasource.loadMetadata(newest) } returns metadata(Instant.fromEpochSeconds(300))
 			every { metadataDatasource.loadMetadata(middle) } returns metadata(Instant.fromEpochSeconds(200))
@@ -652,7 +693,7 @@ class ProjectsListComponentTest : ComponentTest() {
 		runTest(mainTestDispatcher) {
 			val good = ProjectDef(testProjectId("Good"), "Good", HPath("/projects/Good", "Good", false))
 			val vanished = ProjectDef(testProjectId("Vanished"), "Vanished", HPath("/projects/Vanished", "Vanished", false))
-			every { projectsRepository.getProjects(any()) } returns listOf(good, vanished)
+			every { projectsRepository.getProjectTree(any()) } returns flatTree(good, vanished)
 			every { metadataDatasource.loadMetadata(good) } returns metadata(Instant.fromEpochSeconds(100))
 			// Deleted concurrently between listing and reading: loadMetadata throws.
 			every { metadataDatasource.loadMetadata(vanished) } throws IOException("deleted")
@@ -667,4 +708,242 @@ class ProjectsListComponentTest : ComponentTest() {
 				comp.state.value.projects.map { it.definition.name },
 			)
 		}
+
+	// --- groups --------------------------------------------------------------
+
+	private fun stubGroupedTree() {
+		every { projectsRepository.getProjectTree(any()) } returns groupedTree
+		every { projectsRepository.isGroupCollapsed(drafts) } returns true
+		every { metadataDatasource.loadMetadata(any()) } returns metadata(Instant.fromEpochSeconds(1))
+		every { statsReader.loadTotalWords(any()) } returns null
+	}
+
+	@Test
+	fun `loadProjectList loads groups with their collapsed state and the project placement`() =
+		runTest(mainTestDispatcher) {
+			stubGroupedTree()
+			val comp = newComponent()
+
+			comp.loadProjectList()
+			advanceUntilIdle()
+
+			assertEquals(
+				listOf(GroupData(trilogy, collapsed = false), GroupData(drafts, collapsed = true)),
+				comp.state.value.groups,
+			)
+			assertEquals(groupedTree.placement, comp.state.value.placement)
+			assertEquals(setOf("Book One", "Alpha"), comp.state.value.projects.map { it.definition.name }.toSet())
+		}
+
+	@Test
+	fun `createProject in a group creates it there`() = runTest(mainTestDispatcher) {
+		every { projectsRepository.createProject("Book Two", any(), any(), trilogy) } returns
+			CResult.success(projectDefA)
+		val comp = newComponent()
+		comp.showCreate(trilogy)
+
+		comp.createProject("Book Two", trilogy)
+		advanceUntilIdle()
+
+		verify { projectsRepository.createProject("Book Two", true, any(), trilogy) }
+		assertIs<ProjectsList.ModalDestination.None>(comp.modalRouterState.value.child?.instance)
+	}
+
+	@Test
+	fun `showCreate with a parent routes to the create modal carrying it`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+
+		comp.showCreate(trilogy)
+
+		val dest = comp.modalRouterState.value.child?.instance
+		assertIs<ProjectsList.ModalDestination.ProjectCreate>(dest)
+		assertEquals(trilogy, dest.parent)
+	}
+
+	@Test
+	fun `createGroup creates the group, closes the dialog and reloads`() = runTest(mainTestDispatcher) {
+		every { projectsRepository.createGroup("Drafts", trilogy, any(), "Early work") } returns
+			CResult.success(drafts)
+		val comp = newComponent()
+		comp.showGroupCreate(trilogy)
+
+		comp.createGroup("Drafts", trilogy, "Early work")
+		advanceUntilIdle()
+
+		verify { projectsRepository.createGroup("Drafts", trilogy, any(), "Early work") }
+		verify { projectsRepository.getProjectTree(any()) }
+		assertIs<ProjectsList.ModalDestination.None>(comp.modalRouterState.value.child?.instance)
+	}
+
+	@Test
+	fun `createGroup with a blank description stores none`() = runTest(mainTestDispatcher) {
+		every { projectsRepository.createGroup(any(), any(), any(), any()) } returns CResult.success(drafts)
+		val comp = newComponent()
+
+		comp.createGroup("Drafts", null, "   ")
+		advanceUntilIdle()
+
+		verify { projectsRepository.createGroup("Drafts", null, any(), null) }
+	}
+
+	@Test
+	fun `a failed group action toasts the reason and leaves the dialog open without reloading`() =
+		runTest(mainTestDispatcher) {
+			every { projectsRepository.renameGroup(trilogy, "Saga") } returns
+				CResult.failure(error = "GroupInUse", displayMessage = Res.string.group_error_in_use.toMsg())
+			val comp = newComponent()
+			comp.showGroupRename(trilogy)
+			val toast = async(start = CoroutineStart.UNDISPATCHED) { comp.toast.first() }
+
+			comp.renameGroup(trilogy, "Saga")
+			advanceUntilIdle()
+
+			assertEquals(ToastMessage.Resource(Res.string.group_error_in_use), toast.await())
+			verify(exactly = 0) { projectsRepository.getProjectTree(any()) }
+			assertIs<ProjectsList.ModalDestination.GroupRename>(comp.modalRouterState.value.child?.instance)
+		}
+
+	@Test
+	fun `moveProject moves the project off the calling thread and reloads`() = runTest(mainTestDispatcher) {
+		every { projectsRepository.moveProject(projectDefA, trilogy) } returns CResult.success(projectDefA)
+		val comp = newComponent()
+		comp.showMoveToGroup(MoveTarget.Project(projectDefA))
+
+		comp.moveProject(projectDefA, trilogy)
+		verify(exactly = 0) { projectsRepository.moveProject(any(), any()) }
+		advanceUntilIdle()
+
+		verify { projectsRepository.moveProject(projectDefA, trilogy) }
+		verify { projectsRepository.getProjectTree(any()) }
+		assertIs<ProjectsList.ModalDestination.None>(comp.modalRouterState.value.child?.instance)
+	}
+
+	@Test
+	fun `moveGroup to the top level moves it there and reloads`() = runTest(mainTestDispatcher) {
+		every { projectsRepository.moveGroup(drafts, null) } returns CResult.success(drafts.copy(parentId = null))
+		val comp = newComponent()
+
+		comp.moveGroup(drafts, null)
+		advanceUntilIdle()
+
+		verify { projectsRepository.moveGroup(drafts, null) }
+		verify { projectsRepository.getProjectTree(any()) }
+	}
+
+	@Test
+	fun `deleteGroup deletes it and reloads`() = runTest(mainTestDispatcher) {
+		every { projectsRepository.deleteGroup(trilogy) } returns CResult.success()
+		val comp = newComponent()
+		comp.showGroupDelete(trilogy)
+
+		comp.deleteGroup(trilogy)
+		advanceUntilIdle()
+
+		verify { projectsRepository.deleteGroup(trilogy) }
+		verify { projectsRepository.getProjectTree(any()) }
+		assertIs<ProjectsList.ModalDestination.None>(comp.modalRouterState.value.child?.instance)
+	}
+
+	@Test
+	fun `a failed deleteGroup closes the confirmation and toasts the reason`() = runTest(mainTestDispatcher) {
+		every { projectsRepository.deleteGroup(trilogy) } returns
+			CResult.failure(error = "GroupInUse", displayMessage = Res.string.group_error_in_use.toMsg())
+		val comp = newComponent()
+		comp.showGroupDelete(trilogy)
+		val toast = async(start = CoroutineStart.UNDISPATCHED) { comp.toast.first() }
+
+		comp.deleteGroup(trilogy)
+		advanceUntilIdle()
+
+		assertEquals(ToastMessage.Resource(Res.string.group_error_in_use), toast.await())
+		assertIs<ProjectsList.ModalDestination.None>(comp.modalRouterState.value.child?.instance)
+	}
+
+	@Test
+	fun `updateGroupDescription on a vanished group toasts that it is gone`() = runTest(mainTestDispatcher) {
+		every { projectsRepository.updateGroupDescription(trilogy, "New") } throws IOException("gone")
+		val comp = newComponent()
+		val toast = async(start = CoroutineStart.UNDISPATCHED) { comp.toast.first() }
+
+		comp.updateGroupDescription(trilogy, "New")
+		advanceUntilIdle()
+
+		assertEquals(ToastMessage.Resource(Res.string.group_error_source_missing), toast.await())
+		verify(exactly = 0) { projectsRepository.getProjectTree(any()) }
+	}
+
+	@Test
+	fun `updateGroupDescription with a blank description clears it`() = runTest(mainTestDispatcher) {
+		every { projectsRepository.updateGroupDescription(any(), any()) } answers { firstArg() }
+		val comp = newComponent()
+
+		comp.updateGroupDescription(trilogy, "")
+		advanceUntilIdle()
+
+		verify { projectsRepository.updateGroupDescription(trilogy, null) }
+	}
+
+	@Test
+	fun `toggleGroupCollapsed flips the group in place and persists it without reloading`() =
+		runTest(mainTestDispatcher) {
+			stubGroupedTree()
+			val comp = newComponent()
+			comp.loadProjectList()
+			advanceUntilIdle()
+			clearMocks(projectsRepository, answers = false)
+
+			comp.toggleGroupCollapsed(trilogy)
+			advanceUntilIdle()
+
+			assertTrue(comp.state.value.groups.single { it.definition.id == trilogy.id }.collapsed)
+			assertTrue(comp.state.value.groups.single { it.definition.id == drafts.id }.collapsed)
+			verify { projectsRepository.setGroupCollapsed(trilogy, true) }
+			verify(exactly = 0) { projectsRepository.getProjectTree(any()) }
+		}
+
+	@Test
+	fun `group modals route with their group and dismiss back to none`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+
+		comp.showGroupDescription(drafts)
+		assertEquals(drafts, assertIs<ProjectsList.ModalDestination.GroupDescription>(
+			comp.modalRouterState.value.child?.instance
+		).groupDef)
+
+		comp.showMoveToGroup(MoveTarget.Group(drafts))
+		assertEquals(MoveTarget.Group(drafts), assertIs<ProjectsList.ModalDestination.MoveToGroup>(
+			comp.modalRouterState.value.child?.instance
+		).target)
+
+		comp.showGroupCreate(null)
+		assertNull(assertIs<ProjectsList.ModalDestination.GroupCreate>(comp.modalRouterState.value.child?.instance).parent)
+
+		comp.dismissGroupModal()
+		assertIs<ProjectsList.ModalDestination.None>(comp.modalRouterState.value.child?.instance)
+	}
+
+	@Test
+	fun `groups, placement and an open move dialog survive process death`() = runTest(mainTestDispatcher) {
+		stubGroupedTree()
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.showMoveToGroup(MoveTarget.Project(bookOne))
+
+		// Through the real encoding, as on Android, not the in-memory container.
+		val json = Json.encodeToString(SerializableContainer.serializer(), context.stateKeeper.save())
+		val restoredContext = TestComponentContext.create(Json.decodeFromString(SerializableContainer.serializer(), json))
+		try {
+			val restored = ProjectsListComponent(componentContext = restoredContext, onProjectSelected = {})
+
+			assertEquals(comp.state.value.groups, restored.state.value.groups)
+			assertEquals(groupedTree.placement, restored.state.value.placement)
+			assertEquals(
+				MoveTarget.Project(bookOne),
+				assertIs<ProjectsList.ModalDestination.MoveToGroup>(restored.modalRouterState.value.child?.instance).target,
+			)
+		} finally {
+			restoredContext.destroy()
+		}
+	}
 }
