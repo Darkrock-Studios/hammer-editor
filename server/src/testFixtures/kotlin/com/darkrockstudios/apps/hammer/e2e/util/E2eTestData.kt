@@ -56,6 +56,25 @@ object E2eTestData {
 		)
 	}
 
+	/** Returns the new group's row id. */
+	fun createGroup(
+		userId: Long,
+		uuid: Uuid,
+		name: String,
+		database: SharedPostgresTestDatabase,
+		parentRowId: Long? = null,
+	): Long {
+		val queries = database.serverDatabase.projectGroupQueries
+		queries.createGroup(
+			userId = userId,
+			uuid = uuid.toString(),
+			name = name,
+			description = null,
+			parentId = parentRowId,
+		)
+		return queries.getGroup(userId, uuid.toString()).executeAsOne().id
+	}
+
 	val preDeletedProject1 = Uuid.random()
 	fun addDeletedProject(
 		userId: Long,
