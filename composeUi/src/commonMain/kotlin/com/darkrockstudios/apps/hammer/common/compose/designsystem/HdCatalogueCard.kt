@@ -5,6 +5,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -47,6 +49,10 @@ fun HdCatalogueCard(
 	contentPadding: Dp = 20.dp,
 	content: @Composable ColumnScope.() -> Unit,
 ) {
+	if (LocalHdGrouping.current.isTonal) {
+		TonalCatalogueCard(modifier, topStart, topEnd, bottomStart, bottomEnd, content)
+		return
+	}
 	val border = MaterialTheme.colorScheme.outlineVariant
 	val surface = MaterialTheme.colorScheme.surface
 	Box(
@@ -97,6 +103,36 @@ fun HdCatalogueCard(
 				.align(Alignment.BottomEnd)
 				.offset(x = (-14).dp, y = 8.dp),
 		)
+	}
+}
+
+/**
+ * The card as a tonal region: the corner greebles move inline, and [topStart] (by
+ * convention `§ <numeral> · NAME`) becomes a plain section title.
+ */
+@Composable
+private fun TonalCatalogueCard(
+	modifier: Modifier,
+	topStart: String?,
+	topEnd: String?,
+	bottomStart: String?,
+	bottomEnd: String?,
+	content: @Composable ColumnScope.() -> Unit,
+) {
+	HdRegion(
+		modifier = modifier,
+		contentSpacing = 16.dp,
+		title = topStart?.substringAfterLast("· ")?.lowercase()?.replaceFirstChar { it.uppercase() },
+		headerTrailing = { if (topEnd != null) HdMonoLabel(text = topEnd) },
+	) {
+		Column(content = content)
+		if (bottomStart != null || bottomEnd != null) {
+			Row {
+				if (bottomStart != null) HdMonoLabel(text = bottomStart)
+				Spacer(Modifier.weight(1f))
+				if (bottomEnd != null) HdMonoLabel(text = bottomEnd)
+			}
+		}
 	}
 }
 

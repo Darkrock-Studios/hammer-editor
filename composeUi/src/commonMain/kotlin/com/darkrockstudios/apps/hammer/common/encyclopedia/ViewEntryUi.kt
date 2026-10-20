@@ -1,6 +1,11 @@
 package com.darkrockstudios.apps.hammer.common.encyclopedia
 
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionPlace
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdRegion
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSectionHeader
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdHangsHeads
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.LocalHdInRegion
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdControlFrame
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
@@ -81,7 +86,6 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineGri
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineToggleRow
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMetadataItem
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSectionHeader
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagChip
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagSuggestionStrip
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.glyph
@@ -900,20 +904,24 @@ private fun ParticularsLedger(
 		},
 	)
 
-	Column(modifier = modifier.fillMaxWidth()) {
-		HdSectionHeader(
-			marker = "—",
-			title = Res.string.encyclopedia_entry_particulars_label.get(),
-		)
+	HdRegion(
+		modifier = modifier,
+		contentSpacing = 0.dp,
+		title = Res.string.encyclopedia_entry_particulars_label.get(),
+	) {
 		Box(
 			modifier = Modifier
 				.fillMaxWidth()
-				.border(
-					width = Dp.Hairline,
-					color = MaterialTheme.colorScheme.outlineVariant,
-					shape = RectangleShape,
-				)
-				.background(MaterialTheme.colorScheme.surfaceContainerLow),
+				.then(
+					if (LocalHdInRegion.current) Modifier
+					else Modifier
+						.border(
+							width = Dp.Hairline,
+							color = MaterialTheme.colorScheme.outlineVariant,
+							shape = RectangleShape,
+						)
+						.background(MaterialTheme.colorScheme.surfaceContainerLow)
+				),
 		) {
 			HdHairlineGrid(columns = 2, cells = cells)
 		}
@@ -929,7 +937,7 @@ private fun TagsAndAliasesZone(
 ) {
 	val content = state.content ?: return
 	val padding = Modifier.padding(horizontal = Ui.Padding.XXL).padding(top = 28.dp)
-	if (compact) {
+	if (compact || hdHangsHeads()) {
 		Column(
 			modifier = padding.fillMaxWidth(),
 			verticalArrangement = Arrangement.spacedBy(28.dp),
@@ -977,14 +985,11 @@ private fun TagsSection(
 	component: ViewEntry,
 	modifier: Modifier = Modifier,
 ) {
-	Column(
-		modifier = modifier.fillMaxWidth(),
-		verticalArrangement = Arrangement.spacedBy(Ui.Padding.L),
+	HdRegion(
+		modifier = modifier,
+		contentSpacing = Ui.Padding.L,
+		title = Res.string.encyclopedia_entry_tags_label.get(),
 	) {
-		HdSectionHeader(
-			marker = "—",
-			title = Res.string.encyclopedia_entry_tags_label.get(),
-		)
 		FlowRow(
 			modifier = Modifier.fillMaxWidth(),
 			horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -1012,14 +1017,11 @@ private fun AliasesSection(
 	component: ViewEntry,
 	modifier: Modifier = Modifier,
 ) {
-	Column(
-		modifier = modifier.fillMaxWidth(),
-		verticalArrangement = Arrangement.spacedBy(Ui.Padding.L),
+	HdRegion(
+		modifier = modifier,
+		contentSpacing = Ui.Padding.L,
+		title = Res.string.encyclopedia_entry_aliases_label.get(),
 	) {
-		HdSectionHeader(
-			marker = "—",
-			title = Res.string.encyclopedia_entry_aliases_label.get(),
-		)
 		FlowRow(
 			modifier = Modifier.fillMaxWidth(),
 			horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -1041,23 +1043,19 @@ private fun AppearsInZone(
 	state: ViewEntry.State,
 	component: ViewEntry,
 ) {
-	Column(
+	HdRegion(
 		modifier = Modifier
-			.fillMaxWidth()
 			.padding(horizontal = Ui.Padding.XXL)
 			.padding(top = 28.dp),
-		verticalArrangement = Arrangement.spacedBy(Ui.Padding.L),
+		contentSpacing = Ui.Padding.L,
+		title = Res.string.encyclopedia_entry_appears_in_label.get(),
+		headerTrailing = {
+			HdMonoLabel(
+				text = "${state.appearsIn.size}",
+				color = MaterialTheme.colorScheme.onSurfaceVariant,
+			)
+		},
 	) {
-		HdSectionHeader(
-			marker = "—",
-			title = Res.string.encyclopedia_entry_appears_in_label.get(),
-			trailing = {
-				HdMonoLabel(
-					text = "${state.appearsIn.size}",
-					color = MaterialTheme.colorScheme.onSurfaceVariant,
-				)
-			},
-		)
 		if (state.appearsIn.isEmpty()) {
 			Text(
 				text = Res.string.encyclopedia_entry_appears_in_empty.get(),
@@ -1068,11 +1066,7 @@ private fun AppearsInZone(
 			Column(
 				modifier = Modifier
 					.fillMaxWidth()
-					.border(
-						width = Dp.Hairline,
-						color = MaterialTheme.colorScheme.outlineVariant,
-						shape = RectangleShape,
-					)
+					.hdControlFrame(MaterialTheme.colorScheme.outlineVariant)
 					.padding(horizontal = Ui.Padding.L),
 			) {
 				state.appearsIn.forEachIndexed { index, appearance ->

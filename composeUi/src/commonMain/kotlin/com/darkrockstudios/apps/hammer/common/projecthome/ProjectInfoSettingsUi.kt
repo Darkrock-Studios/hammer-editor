@@ -1,5 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.projecthome
 
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdRegion
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdSectionGap
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -509,16 +511,18 @@ fun ProjectInfoSettingsUi(component: ProjectSettings) {
 	val state by component.projectInfoState.subscribeAsState()
 	if (!state.isLoaded) return
 
-	Column(verticalArrangement = Arrangement.spacedBy(40.dp)) {
-		AuthorField(
-			initial = state.data.authorName.orEmpty(),
-			onChange = component::setAuthorName,
-		)
-		LanguageField(
-			languageTag = state.data.language,
-			options = component.availableLanguages,
-			onChange = component::setProjectLanguage,
-		)
+	Column(verticalArrangement = Arrangement.spacedBy(hdSectionGap(40.dp))) {
+		HdRegion(contentSpacing = 40.dp) {
+			AuthorField(
+				initial = state.data.authorName.orEmpty(),
+				onChange = component::setAuthorName,
+			)
+			LanguageField(
+				languageTag = state.data.language,
+				options = component.availableLanguages,
+				onChange = component::setProjectLanguage,
+			)
+		}
 		CoverImageSection(
 			section = 1,
 			coverImageId = state.data.coverImageId,

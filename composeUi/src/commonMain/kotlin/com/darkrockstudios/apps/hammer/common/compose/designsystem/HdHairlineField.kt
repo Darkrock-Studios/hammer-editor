@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.compose.designsystem
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
@@ -88,10 +89,18 @@ fun HdHairlineField(
 		else MaterialTheme.typography.bodyMedium)
 			.copy(color = textColor)
 
+		// In a tonal region the input is a well, which replaces the underline.
+		val inRegion = LocalHdInRegion.current
 		Row(
 			modifier = Modifier
 				.fillMaxWidth()
-				.padding(top = 6.dp, bottom = 6.dp),
+				.padding(top = 6.dp)
+				.then(
+					if (inRegion) Modifier
+						.background(MaterialTheme.colorScheme.background)
+						.padding(horizontal = 10.dp, vertical = 8.dp)
+					else Modifier.padding(bottom = 6.dp)
+				),
 			verticalAlignment = Alignment.CenterVertically,
 		) {
 			Box(modifier = Modifier.weight(1f)) {
@@ -128,11 +137,13 @@ fun HdHairlineField(
 				trailing()
 			}
 		}
-		HorizontalDivider(
-			thickness = Dp.Hairline,
-			color = if (error != null) errorColor
-			else MaterialTheme.colorScheme.outlineVariant,
-		)
+		if (!inRegion || error != null) {
+			HorizontalDivider(
+				thickness = Dp.Hairline,
+				color = if (error != null) errorColor
+				else MaterialTheme.colorScheme.outlineVariant,
+			)
+		}
 		if (error != null) {
 			HdMonoLabel(
 				modifier = Modifier.padding(top = 4.dp),

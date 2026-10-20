@@ -73,7 +73,7 @@ private fun HdSegmentedCell(
 	Box(
 		modifier = modifier
 			.heightIn(min = 36.dp)
-			.border(width = Dp.Hairline, color = borderColor, shape = RectangleShape)
+			.hdControlFrame(borderColor, keepBorder = selected)
 			.clickable(enabled = enabled, onClick = onClick)
 			.padding(horizontal = Ui.Padding.M, vertical = 6.dp),
 		contentAlignment = Alignment.Center,

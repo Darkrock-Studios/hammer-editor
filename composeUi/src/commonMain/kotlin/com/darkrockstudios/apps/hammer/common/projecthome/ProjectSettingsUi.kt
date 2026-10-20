@@ -1,5 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.projecthome
 
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdColumnMaxWidth
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdSectionGap
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -129,11 +131,11 @@ fun ProjectSettingsUi(
 			) {
 				Box(
 					modifier = Modifier
-						.widthIn(max = MaxColumnWidth)
+						.widthIn(max = hdColumnMaxWidth(MaxColumnWidth))
 						.fillMaxWidth()
 						.align(Alignment.CenterHorizontally),
 				) {
-					Column(verticalArrangement = Arrangement.spacedBy(64.dp)) {
+					Column(verticalArrangement = Arrangement.spacedBy(hdSectionGap(64.dp))) {
 						Hero(
 							projectName = component.projectName,
 							authorName = state.data.authorName,

@@ -26,6 +26,7 @@ import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.spellchecksettings.SpellCheckSettings
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineToggleRow
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdControlFrame
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
 import com.darkrockstudios.apps.hammer.notice_experimental_label
@@ -121,11 +122,7 @@ private fun ExperimentalNotice(text: String) {
 	Box(
 		modifier = Modifier
 			.fillMaxWidth()
-			.border(
-				width = Dp.Hairline,
-				color = MaterialTheme.colorScheme.outlineVariant,
-				shape = RectangleShape,
-			)
+			.hdControlFrame(MaterialTheme.colorScheme.outlineVariant)
 			.padding(horizontal = Ui.Padding.M, vertical = Ui.Padding.S),
 	) {
 		Text(

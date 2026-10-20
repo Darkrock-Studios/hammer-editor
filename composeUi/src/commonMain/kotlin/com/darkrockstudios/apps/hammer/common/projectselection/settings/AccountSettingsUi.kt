@@ -1,5 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.projectselection.settings
 
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdColumnMaxWidth
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdSectionGap
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -81,11 +83,11 @@ internal fun AccountSettingsUi(
 			) {
 				Box(
 					modifier = Modifier
-						.widthIn(max = MaxColumnWidth)
+						.widthIn(max = hdColumnMaxWidth(MaxColumnWidth))
 						.fillMaxWidth()
 						.align(Alignment.CenterHorizontally),
 				) {
-					Column(verticalArrangement = Arrangement.spacedBy(64.dp)) {
+					Column(verticalArrangement = Arrangement.spacedBy(hdSectionGap(64.dp))) {
 						Hero(
 							loggedIn = state.serverIsLoggedIn,
 							email = state.currentEmail,

@@ -63,11 +63,7 @@ fun <T> HdHairlineDropdown(
 				modifier = Modifier
 					.fillMaxWidth()
 					.heightIn(min = 36.dp)
-					.border(
-						width = Dp.Hairline,
-						color = MaterialTheme.colorScheme.outlineVariant,
-						shape = RectangleShape,
-					)
+					.hdControlFrame(MaterialTheme.colorScheme.outlineVariant)
 					.clickable(enabled = enabled) { expanded = true }
 					.padding(horizontal = Ui.Padding.M, vertical = 6.dp),
 				verticalAlignment = Alignment.CenterVertically,

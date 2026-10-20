@@ -4,6 +4,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -63,16 +64,19 @@ fun HdSectionHeader(
 	titleMenu: Boolean = false,
 	trailing: @Composable RowScope.() -> Unit = {},
 ) {
+	val ruled = LocalHdGrouping.current == HdGrouping.Rules
 	Row(
 		modifier = modifier,
 		verticalAlignment = Alignment.CenterVertically,
 		horizontalArrangement = Arrangement.spacedBy(12.dp),
 	) {
-		Text(
-			text = "§ $marker",
-			style = MaterialTheme.typography.labelSmall,
-			color = MaterialTheme.colorScheme.onSurfaceVariant,
-		)
+		if (ruled) {
+			Text(
+				text = "§ $marker",
+				style = MaterialTheme.typography.labelSmall,
+				color = MaterialTheme.colorScheme.onSurfaceVariant,
+			)
+		}
 		val clickable = if (onTitleClick != null) {
 			Modifier.clickable(role = Role.Button, onClick = onTitleClick)
 		} else {
@@ -96,7 +100,11 @@ fun HdSectionHeader(
 					)
 					HdMonoLabel(text = "▾", color = MaterialTheme.colorScheme.onSurfaceVariant)
 				}
-				HorizontalDivider(thickness = Dp.Hairline, color = MaterialTheme.colorScheme.outlineVariant)
+				if (ruled) {
+					HorizontalDivider(thickness = Dp.Hairline, color = MaterialTheme.colorScheme.outlineVariant)
+				} else {
+					Spacer(Modifier)
+				}
 			}
 		} else {
 			Text(
@@ -105,13 +113,17 @@ fun HdSectionHeader(
 				color = MaterialTheme.colorScheme.onSurface,
 				modifier = clickable,
 			)
-			HorizontalDivider(
-				modifier = Modifier
-					.weight(1f)
-					.padding(horizontal = 4.dp),
-				thickness = Dp.Hairline,
-				color = MaterialTheme.colorScheme.outlineVariant,
-			)
+			if (ruled) {
+				HorizontalDivider(
+					modifier = Modifier
+						.weight(1f)
+						.padding(horizontal = 4.dp),
+					thickness = Dp.Hairline,
+					color = MaterialTheme.colorScheme.outlineVariant,
+				)
+			} else {
+				Spacer(Modifier.weight(1f))
+			}
 		}
 		trailing()
 	}

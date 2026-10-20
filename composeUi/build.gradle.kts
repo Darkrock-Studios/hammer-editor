@@ -162,3 +162,17 @@ kover {
 }
 
 apply(from = "crowdin-screenshots.gradle.kts")
+
+tasks.register<Test>("renderScreenGallery") {
+	group = "documentation"
+	description = "Render every major screen (phone + tablet, light + dark) to build/screen-gallery/index.html."
+	val desktopTest = tasks.named<Test>("desktopTest").get()
+	testClassesDirs = desktopTest.testClassesDirs
+	classpath = desktopTest.classpath
+	useJUnitPlatform()
+	filter.includeTestsMatching("*.ScreenGalleryTest")
+	systemProperty("hammer.screenGallery", "true")
+	systemProperty("hammer.screenGallery.outDir", layout.buildDirectory.dir("screen-gallery").get().asFile.absolutePath)
+	testLogging.showStandardStreams = true
+	outputs.upToDateWhen { false }
+}

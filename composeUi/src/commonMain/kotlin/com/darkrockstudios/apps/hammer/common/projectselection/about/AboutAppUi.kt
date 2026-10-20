@@ -1,5 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.projectselection.about
 
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdColumnMaxWidth
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdSectionGap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -111,11 +113,11 @@ fun AboutAppUi(
 				) {
 					Box(
 						modifier = Modifier
-							.widthIn(max = MaxColumnWidth)
+							.widthIn(max = hdColumnMaxWidth(MaxColumnWidth))
 							.fillMaxWidth()
 							.align(Alignment.CenterHorizontally),
 					) {
-						Column(verticalArrangement = Arrangement.spacedBy(64.dp)) {
+						Column(verticalArrangement = Arrangement.spacedBy(hdSectionGap(64.dp))) {
 							Hero(isCompact = isCompact)
 
 							HdHairlineSection(

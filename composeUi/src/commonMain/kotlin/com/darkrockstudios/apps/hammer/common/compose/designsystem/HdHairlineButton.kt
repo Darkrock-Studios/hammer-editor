@@ -49,7 +49,7 @@ fun HdHairlineButton(
 	Box(
 		modifier = modifier
 			.heightIn(min = 32.dp)
-			.border(width = Dp.Hairline, color = borderColor, shape = RectangleShape)
+			.hdControlFrame(borderColor)
 			.clickable(enabled = enabled, onClick = onClick)
 			.padding(horizontal = Ui.Padding.L, vertical = 6.dp),
 		contentAlignment = Alignment.Center,

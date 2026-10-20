@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.compose.designsystem
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -38,7 +39,10 @@ fun HdWarningNotice(
 	Row(
 		modifier = modifier
 			.fillMaxWidth()
-			.border(width = Dp.Hairline, color = amber, shape = RectangleShape)
+			.then(
+				if (LocalHdInRegion.current) Modifier.background(amber.copy(alpha = 0.12f))
+				else Modifier.border(width = Dp.Hairline, color = amber, shape = RectangleShape)
+			)
 			.padding(horizontal = 10.dp, vertical = 8.dp),
 		horizontalArrangement = Arrangement.spacedBy(10.dp),
 		verticalAlignment = Alignment.Top,

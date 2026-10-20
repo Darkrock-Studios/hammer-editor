@@ -67,7 +67,7 @@ fun HdTagChip(
 			.height(24.dp)
 			.widthIn(max = MAX_TAG_CHIP_WIDTH)
 			.background(background, RectangleShape)
-			.border(width = Dp.Hairline, color = borderColor, shape = RectangleShape)
+			.hdControlFrame(borderColor)
 			.then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
 			.padding(start = 6.dp, end = if (onRemove != null) 2.dp else 8.dp),
 		verticalAlignment = Alignment.CenterVertically,
