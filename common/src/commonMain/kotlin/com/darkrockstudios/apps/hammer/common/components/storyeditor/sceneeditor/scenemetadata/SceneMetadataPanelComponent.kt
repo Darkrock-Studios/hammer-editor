@@ -297,14 +297,7 @@ class SceneMetadataPanelComponent(
 	}
 
 	override fun addConfirmedReference(entryId: Int) {
-		// Add to confirmed and remove from dismissed in one write so picking a
-		// previously-dismissed entry from search un-dismisses it cleanly.
-		mutateMetadata {
-			it.copy(
-				confirmedReferences = it.confirmedReferences + entryId,
-				dismissedReferences = it.dismissedReferences - entryId,
-			)
-		}
+		mutateMetadata { it.withReferences(confirm = setOf(entryId)) }
 	}
 
 	override fun searchEntriesForAdd(
@@ -324,14 +317,11 @@ class SceneMetadataPanelComponent(
 	}
 
 	override fun dismissReference(entryId: Int) {
-		mutateMetadata { it.copy(
-			confirmedReferences = it.confirmedReferences - entryId,
-			dismissedReferences = it.dismissedReferences + entryId,
-		) }
+		mutateMetadata { it.withReferences(dismiss = setOf(entryId)) }
 	}
 
 	override fun restoreDismissedReference(entryId: Int) {
-		mutateMetadata { it.copy(dismissedReferences = it.dismissedReferences - entryId) }
+		mutateMetadata { it.withReferences(clear = setOf(entryId)) }
 	}
 
 	override fun addTags(input: String) {

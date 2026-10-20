@@ -101,7 +101,7 @@ class McpPluginTest {
 		assertFalse("ops_list" in reading)
 
 		val changing = tools(changes = true, deletes = true).keys
-		assertTrue(listOf("note_create", "entry_update", "scene_create", "scene_meta_write", "timeline_move").all { it in changing })
+		assertTrue(listOf("note_create", "entry_update", "scene_create", "scene_meta_write", "scene_references_set", "timeline_move").all { it in changing })
 		assertFalse(listOf("scene_write", "scene_append", "draft_apply", "project_import", "project_delete").any { it in changing })
 	}
 

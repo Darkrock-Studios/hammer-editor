@@ -227,8 +227,9 @@ Conventions:
 | `scene.unarchive` | Write | |
 | `scene.archived` | Read | |
 | `scene.delete` | Destructive | |
-| `scene.meta.read` | Read | Outline, notes, tags |
+| `scene.meta.read` | Read | Outline, notes, tags, and references: entries confirmed as in the scene, and dismissed |
 | `scene.meta.write` | Write | Outline, notes, tags |
+| `scene.references.set` | Write | Confirm, dismiss, or clear entries the scene references |
 | `draft.list` | Read | Drafts of one scene |
 | `draft.read` | Read | |
 | `draft.create` | Write | Snapshots the scene's current text under a name |
