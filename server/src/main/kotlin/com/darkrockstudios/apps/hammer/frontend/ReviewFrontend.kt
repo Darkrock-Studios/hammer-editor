@@ -2,7 +2,6 @@ package com.darkrockstudios.apps.hammer.frontend
 
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.base.ProjectId
-import com.darkrockstudios.apps.hammer.database.ProjectDao
 import com.darkrockstudios.apps.hammer.frontend.data.UserSession
 import com.darkrockstudios.apps.hammer.frontend.utils.ProjectName
 import com.darkrockstudios.apps.hammer.frontend.utils.Toast
@@ -61,7 +60,6 @@ fun Route.reviewFrontend(
 	projectsRepository: ProjectsRepository,
 	storyRendererService: StoryRendererService,
 	accountsRepository: AccountsRepository,
-	projectDao: ProjectDao,
 	markdownRenderer: MarkdownRenderer,
 	reviewInviteMailer: ReviewInviteMailer?,
 	reviewSubmittedMailer: ReviewSubmittedMailer?,
@@ -242,7 +240,7 @@ fun Route.reviewFrontend(
 					return@get
 				}
 				val review = (reviewResult as ServerResult.Success).data
-				if (!call.reviewMatchesUrlProject(projectDao, review)) {
+				if (!call.reviewMatchesUrlProject(projectsRepository, review)) {
 					call.respondReviewError(call.msg("api_review_error_not_found"))
 					return@get
 				}
@@ -305,7 +303,7 @@ fun Route.reviewFrontend(
 					call.respondJsonError(HttpStatusCode.BadRequest, call.msg("api_review_suggestion_error_invalid"))
 					return@post
 				}
-				if (!call.reviewBelongsToUrlProject(reviewRepository, projectDao, session.userId, reviewId)) {
+				if (!call.reviewBelongsToUrlProject(reviewRepository, projectsRepository, session.userId, reviewId)) {
 					call.respondJsonError(HttpStatusCode.NotFound, call.msg("api_review_error_not_found"))
 					return@post
 				}
@@ -332,7 +330,7 @@ fun Route.reviewFrontend(
 					call.respondJsonError(HttpStatusCode.BadRequest, call.msg("api_review_error_not_found"))
 					return@post
 				}
-				if (!call.reviewBelongsToUrlProject(reviewRepository, projectDao, session.userId, reviewId)) {
+				if (!call.reviewBelongsToUrlProject(reviewRepository, projectsRepository, session.userId, reviewId)) {
 					call.respondJsonError(HttpStatusCode.NotFound, call.msg("api_review_error_not_found"))
 					return@post
 				}
@@ -377,7 +375,7 @@ fun Route.reviewFrontend(
 			// review, not the reviewer's — and the request isn't marked opened.
 			val session = call.sessions.get<UserSession>()
 			if (session != null && found != null && found.userId == session.userId) {
-				val project = projectDao.getProjectByRowId(found.projectId)
+				val project = projectsRepository.getProjectByRowId(found.projectId)
 				if (project != null) {
 					val projectUrl = ProjectName.projectSegment(project.name, project.uuid)
 					val submitted = found.status == ReviewStatus.SUBMITTED ||
@@ -400,12 +398,12 @@ fun Route.reviewFrontend(
 				}
 
 				found.status == ReviewStatus.CANCELED -> {
-					call.respondReviewErrorKind(found, "revoked", accountsRepository, projectDao)
+					call.respondReviewErrorKind(found, "revoked", accountsRepository, projectsRepository)
 					return@get
 				}
 
 				found.expires != null && now > found.expires -> {
-					call.respondReviewErrorKind(found, "expired", accountsRepository, projectDao)
+					call.respondReviewErrorKind(found, "expired", accountsRepository, projectsRepository)
 					return@get
 				}
 			}
@@ -415,7 +413,7 @@ fun Route.reviewFrontend(
 			val firstOpen = opened.firstOpen
 			val scenes = reviewRepository.getReviewScenes(review)
 			val suggestionsByScene = reviewRepository.getSuggestionsByScene(review)
-			val project = projectDao.getProjectByRowId(review.projectId)
+			val project = projectsRepository.getProjectByRowId(review.projectId)
 			val account = accountsRepository.getAccount(review.userId)
 			val authorName = account.pen_name?.ifBlank { null } ?: "the author"
 			val locked = review.status == ReviewStatus.SUBMITTED ||
@@ -563,7 +561,7 @@ fun Route.reviewFrontend(
 				is ServerResult.Success -> {
 					notifyAuthorOfSubmission(
 						call, result.data,
-						reviewRepository, accountsRepository, projectDao, reviewSubmittedMailer,
+						reviewRepository, accountsRepository, projectsRepository, reviewSubmittedMailer,
 					)
 					call.respondText("""{"ok":true}""", ContentType.Application.Json)
 				}
@@ -664,13 +662,13 @@ private suspend fun notifyAuthorOfSubmission(
 	review: ReviewRequest,
 	reviewRepository: ReviewRepository,
 	accountsRepository: AccountsRepository,
-	projectDao: ProjectDao,
+	projectsRepository: ProjectsRepository,
 	mailer: ReviewSubmittedMailer?,
 ) {
 	if (mailer == null) return
 	runCatching {
 		val account = accountsRepository.getAccount(review.userId)
-		val project = projectDao.getProjectByRowId(review.projectId) ?: return
+		val project = projectsRepository.getProjectByRowId(review.projectId) ?: return
 		val baseUrl = call.constructBaseUrl() ?: return
 		val reviewUrl = baseUrl +
 			"/story/${ProjectName.projectSegment(project.name, project.uuid)}/reviews/${review.id}"
@@ -804,11 +802,11 @@ private suspend fun ApplicationCall.resolveProject(
  * from rendering or being acted on under a different project's URL.
  */
 private suspend fun ApplicationCall.reviewMatchesUrlProject(
-	projectDao: ProjectDao,
+	projectsRepository: ProjectsRepository,
 	review: ReviewRequest,
 ): Boolean {
 	val segment = parameters["projectName"] ?: return false
-	val reviewProject = projectDao.getProjectByRowId(review.projectId) ?: return false
+	val reviewProject = projectsRepository.getProjectByRowId(review.projectId) ?: return false
 	// The URL identifies the project by the id embedded in its segment, not by name.
 	return ProjectName.idFromSegment(segment) == ProjectName.shortId(reviewProject.uuid)
 }
@@ -816,12 +814,12 @@ private suspend fun ApplicationCall.reviewMatchesUrlProject(
 /** As [reviewMatchesUrlProject] but for routes that only have the review id. */
 private suspend fun ApplicationCall.reviewBelongsToUrlProject(
 	reviewRepository: ReviewRepository,
-	projectDao: ProjectDao,
+	projectsRepository: ProjectsRepository,
 	userId: Long,
 	reviewId: Long,
 ): Boolean {
 	val review = (reviewRepository.getReview(userId, reviewId) as? ServerResult.Success)?.data ?: return false
-	return reviewMatchesUrlProject(projectDao, review)
+	return reviewMatchesUrlProject(projectsRepository, review)
 }
 
 // 410 Gone rather than 404: the StatusPages plugin swallows non-API 404s and
@@ -835,12 +833,12 @@ private suspend fun ApplicationCall.respondReviewErrorKind(
 	review: ReviewRequest,
 	kind: String,
 	accountsRepository: AccountsRepository,
-	projectDao: ProjectDao,
+	projectsRepository: ProjectsRepository,
 ) {
 	val authorName = runCatching {
 		accountsRepository.getAccount(review.userId).pen_name?.ifBlank { null }
 	}.getOrNull() ?: msg("review_error_the_author")
-	val projectName = projectDao.getProjectByRowId(review.projectId)?.name
+	val projectName = projectsRepository.getProjectByRowId(review.projectId)?.name
 	if (projectName == null) {
 		respondReviewErrorPage("invalid")
 		return

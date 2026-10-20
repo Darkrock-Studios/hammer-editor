@@ -258,6 +258,41 @@ class ServerProjectDataRepositoryTest : BaseTest() {
 	}
 
 	@Test
+	fun `verified hash is the default data hash when no row exists`() = runTest {
+		assertEquals(ProjectDataHasher.hash(ProjectData()), repository.loadVerifiedDataHash(userId, projectDef))
+	}
+
+	@Test
+	fun `verified hash is the stored hash for a readable row`() = runTest {
+		val data = ProjectData(authorName = "Pat")
+		val hash = ProjectDataHasher.hash(data)
+		repository.save(userId, projectDef, json.encodeToJsonElement(ProjectData.serializer(), data), null, hash)
+
+		assertEquals(hash, repository.loadVerifiedDataHash(userId, projectDef))
+	}
+
+	@Test
+	fun `verified hash is null for a row that can't be decoded`() = runTest {
+		val projectId = testDatabase.serverDatabase.projectQueries
+			.getProjectId(userId = userId, uuid = projectDef.uuid.id).executeAsOne()
+		ProjectDataDao(testDatabase).upsert(
+			userId = userId,
+			projectId = projectId,
+			content = """{"tags": 5}""",
+			hash = "poisoned-hash",
+			updatedAt = Instant.parse("2026-04-28T09:00:00Z"),
+		)
+
+		assertNull(repository.loadVerifiedDataHash(userId, projectDef))
+	}
+
+	@Test
+	fun `verified hash is null for an unknown project`() = runTest {
+		val unknown = projectDef.copy(uuid = ProjectId.randomUUID())
+		assertNull(repository.loadVerifiedDataHash(userId, unknown))
+	}
+
+	@Test
 	fun `load fails ProjectNotFound for unknown project`() = runTest {
 		val result = repository.load(userId, unknownProjectDef)
 		assertTrue(!isSuccess(result))
