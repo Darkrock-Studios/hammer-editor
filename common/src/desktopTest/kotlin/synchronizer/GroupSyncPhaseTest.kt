@@ -17,6 +17,7 @@ import com.darkrockstudios.apps.hammer.sync_log_account_group_in_use
 import com.darkrockstudios.apps.hammer.sync_log_account_group_name_taken_client
 import com.darkrockstudios.apps.hammer.sync_log_account_group_skipped_parent_failed
 import com.darkrockstudios.apps.hammer.sync_log_account_group_update_server_cycle
+import com.darkrockstudios.apps.hammer.sync_log_account_group_update_server_success
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.coVerifyOrder
@@ -150,6 +151,8 @@ class GroupSyncPhaseTest : ProjectsDirSyncTest() {
 		coVerify { serverProjectsApi.upsertGroup(server("Notes (2)", id = notes.uuid), "sync-1") }
 		assertEquals(listOf(listOf<Any>("Notes", "Notes (2)")), strRes.argsOf(Res.string.sync_log_account_group_name_taken_client))
 		assertEquals(GroupBaseline("Notes (2)"), storedBaselines()[notes.uuid])
+		// The suffix push must not read in the log as an update to an existing group.
+		assertTrue(strRes.requested.none { it == Res.string.sync_log_account_group_update_server_success })
 	}
 
 	@Test

@@ -28,6 +28,7 @@ import org.junit.jupiter.api.Test
 import testGroupId
 import testProjectId
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -165,6 +166,36 @@ class AccountSyncGroupsTest : ProjectsDirSyncTest() {
 		assertEquals("Mine", repo.findProject(def.id)?.name)
 		assertEquals(ProjectBaseline("Mine"), baselines().projectBaselines[def.id])
 		assertEquals(listOf(listOf<Any>("Mine")), strRes.argsOf(Res.string.sync_log_account_project_in_use))
+	}
+
+	@Test
+	fun `an in-use project renamed and moved on the server logs in-use once and is not moved after the rename fails`() = runTest {
+		val shelf = group("Shelf")
+		val def = project("Mine")
+		stored(
+			ProjectsSynchronizationData(
+				groupBaselines = mapOf(testGroupId("Shelf") to GroupBaseline("Shelf")),
+				projectBaselines = mapOf(def.id to ProjectBaseline("Mine")),
+			)
+		)
+		serverState(
+			projects = setOf(ApiProjectDefinition("Theirs", def.id, testGroupId("Shelf"))),
+			groups = setOf(ApiGroupDefinition(testGroupId("Shelf"), "Shelf")),
+		)
+		val scope = createProjectScope(def)
+
+		try {
+			sync()
+		} finally {
+			scope.close()
+		}
+
+		assertEquals("Mine", repo.findProject(def.id)?.name)
+		assertNull(tree().placement[def.id])
+		assertEquals(ProjectBaseline("Mine"), baselines().projectBaselines[def.id])
+		// The failed rename skips the move, so the in-use message is logged only once.
+		assertEquals(listOf(listOf<Any>("Mine")), strRes.argsOf(Res.string.sync_log_account_project_in_use))
+		assertFalse(ffs.exists(shelf / "Mine"))
 	}
 
 	@Test

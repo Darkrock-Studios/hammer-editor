@@ -244,10 +244,11 @@ class GroupSyncPhase(
 		if (name == baseName) {
 			session.ledger.recordGroup(def.id, GroupBaseline(remote.name, remote.parentId, description))
 		} else {
-			// The other devices take the suffixed name too, or this one would rename it back.
+			// The other devices take the suffixed name too, or this one would rename it back. The
+			// name-taken log already covers it, so the push does not add its update-success line.
 			log(session, Level.W, Res.string.sync_log_account_group_name_taken_client, remote.name, name)
 			val renamed = ApiGroupDefinition(def.id, name, remote.parentId, description)
-			if (pushUpdate(renamed, session)) {
+			if (pushUpdate(renamed, session, logSuccess = false)) {
 				session.ledger.recordGroup(def.id, GroupBaseline(name, remote.parentId, description))
 			}
 		}
@@ -330,11 +331,11 @@ class GroupSyncPhase(
 		return false
 	}
 
-	private suspend fun pushUpdate(group: ApiGroupDefinition, session: Session): Boolean {
+	private suspend fun pushUpdate(group: ApiGroupDefinition, session: Session, logSuccess: Boolean = true): Boolean {
 		val result = serverProjectsApi.upsertGroup(group, session.syncId)
 		val error = result.exceptionOrNull()
 		if (error == null) {
-			log(session, Level.I, Res.string.sync_log_account_group_update_server_success, group.name)
+			if (logSuccess) log(session, Level.I, Res.string.sync_log_account_group_update_server_success, group.name)
 			return true
 		}
 

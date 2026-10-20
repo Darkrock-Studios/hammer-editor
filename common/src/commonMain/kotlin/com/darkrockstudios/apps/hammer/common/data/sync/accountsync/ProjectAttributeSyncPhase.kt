@@ -71,6 +71,9 @@ class ProjectAttributeSyncPhase(
 		val serverGroupsById = serverGroups.associateBy { it.uuid }
 		plans.forEach { plan ->
 			val id = plan.local.id
+			// A rename that failed (e.g. in use) means a move would fail the same way; skip it and
+			// keep the id unsettled.
+			if (id in failed) return@forEach
 			val def = current[id] ?: plan.local
 			plan.actions.forEach { action ->
 				val ok = when (action) {
