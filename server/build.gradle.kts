@@ -44,7 +44,7 @@ sqldelight {
 			packageName.set("com.darkrockstudios.apps.hammer.database")
 			dialect(libs.sqldelight.postgresql.dialect.get().toString())
 			srcDirs("src/main/sqldelight")
-			version = 8
+			version = 12
 			schemaOutputDirectory.set(project.file("build/generated/sqldelight"))
 		}
 	}

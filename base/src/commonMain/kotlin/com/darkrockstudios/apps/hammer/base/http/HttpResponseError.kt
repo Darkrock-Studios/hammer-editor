@@ -40,6 +40,14 @@ object ApiErrorCode {
 	const val PROJECT_DELETED = "project_deleted"
 	/** Create refused: another account already owns a project with that id. */
 	const val PROJECT_ID_TAKEN = "project_id_taken"
+	/** Upsert refused: a sibling group already has that name. Also on delete, when a child would collide. */
+	const val GROUP_NAME_TAKEN = "group_name_taken"
+	/** Upsert refused: the new parent is the group itself or one of its descendants. */
+	const val GROUP_CYCLE = "group_cycle"
+	/** Upsert refused: the result would nest deeper than MAX_GROUP_NESTING_DEPTH. */
+	const val GROUP_TOO_DEEP = "group_too_deep"
+	/** Upsert refused: another account already owns a group with that id. */
+	const val GROUP_ID_TAKEN = "group_id_taken"
 	/** Password accepted; answer [HttpResponseError.mfa] to finish signing in. */
 	const val MFA_REQUIRED = "mfa_required"
 	/** Wrong, reused, or expired second-factor code, or an unknown challenge. */

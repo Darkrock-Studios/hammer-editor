@@ -1,7 +1,9 @@
 package com.darkrockstudios.apps.hammer.projects
 
+import com.darkrockstudios.apps.hammer.base.GroupId
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.database.ProjectDao
+import com.darkrockstudios.apps.hammer.database.ProjectGroupDao
 import com.darkrockstudios.apps.hammer.database.ProjectsDao
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.projects.ProjectsDatasource.Companion.defaultUserData
@@ -9,6 +11,7 @@ import com.darkrockstudios.apps.hammer.projects.ProjectsDatasource.Companion.def
 class ProjectsDatabaseDatasource(
 	private val projectDao: ProjectDao,
 	private val projectsDao: ProjectsDao,
+	private val projectGroupDao: ProjectGroupDao,
 ) : ProjectsDatasource {
 
 	override suspend fun saveSyncData(userId: Long, data: ProjectsSyncData) {
@@ -84,4 +87,40 @@ class ProjectsDatabaseDatasource(
 			data.deletedProjects
 		)
 	}
+
+	override suspend fun getGroups(userId: Long): List<ProjectGroup> = projectGroupDao.getGroups(userId)
+
+	override suspend fun getGroup(userId: Long, groupId: GroupId): ProjectGroup? =
+		projectGroupDao.getGroup(userId, groupId)
+
+	override suspend fun findSiblingGroupByName(userId: Long, parentRowId: Long?, name: String): ProjectGroup? =
+		projectGroupDao.findSiblingByName(userId, parentRowId, name)
+
+	override suspend fun createGroup(
+		userId: Long,
+		groupId: GroupId,
+		name: String,
+		description: String?,
+		parentRowId: Long?,
+	): Boolean = projectGroupDao.createGroup(userId, groupId, name, description, parentRowId)
+
+	override suspend fun updateGroup(
+		userId: Long,
+		rowId: Long,
+		name: String,
+		description: String?,
+		parentRowId: Long?,
+	): Boolean = projectGroupDao.updateGroup(userId, rowId, name, description, parentRowId)
+
+	override suspend fun deleteGroup(userId: Long, group: ProjectGroup, newParentRowId: Long?): Boolean =
+		projectGroupDao.deleteGroup(userId, group, newParentRowId)
+
+	override suspend fun getProjectPlacements(userId: Long): Map<ProjectId, GroupId> =
+		projectDao.getProjectPlacements(userId)
+
+	override suspend fun getProjectGroupId(userId: Long, projectId: ProjectId): GroupId? =
+		projectDao.getProjectGroupUuid(userId, projectId)
+
+	override suspend fun setProjectGroup(userId: Long, projectId: ProjectId, groupRowId: Long?): Boolean =
+		projectDao.setProjectGroup(userId, projectId, groupRowId)
 }

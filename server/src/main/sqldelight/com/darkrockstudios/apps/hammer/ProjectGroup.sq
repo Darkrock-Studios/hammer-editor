@@ -1,0 +1,68 @@
+-- uuid and name are declared TEXT for SqlDelight's parser; PostgresSchemaInitializer
+-- promotes them to UUID and CITEXT, so the sibling-name indexes are case-insensitive.
+-- It also adds the parent_id self-reference FK, which SqlDelight rejects inline as a cycle
+-- and forbids as ALTER TABLE outside migrations.
+CREATE TABLE project_group (
+    id BIGSERIAL PRIMARY KEY,
+    uuid TEXT NOT NULL,
+    user_id BIGINT NOT NULL,
+    name TEXT NOT NULL,
+    description TEXT,
+    parent_id BIGINT,
+    CONSTRAINT project_group_name_len CHECK (length(name) BETWEEN 1 AND 200),
+    CONSTRAINT project_group_description_len CHECK (description IS NULL OR length(description) <= 2000),
+    FOREIGN KEY(user_id) REFERENCES account(id) ON DELETE CASCADE
+);
+
+CREATE UNIQUE INDEX project_group_uuid_unique ON project_group (uuid);
+CREATE INDEX project_group_user_id_idx ON project_group (user_id);
+CREATE INDEX project_group_parent_id_idx ON project_group (parent_id);
+CREATE UNIQUE INDEX project_group_root_name_unique ON project_group (user_id, name) WHERE parent_id IS NULL;
+CREATE UNIQUE INDEX project_group_child_name_unique ON project_group (user_id, parent_id, name) WHERE parent_id IS NOT NULL;
+
+getGroups:
+SELECT g.id, g.uuid, g.name, g.description, g.parent_id, parent.uuid AS parent_uuid
+FROM project_group g
+LEFT JOIN project_group parent ON parent.id = g.parent_id
+WHERE g.user_id = :userId;
+
+getGroup:
+SELECT g.id, g.uuid, g.name, g.description, g.parent_id, parent.uuid AS parent_uuid
+FROM project_group g
+LEFT JOIN project_group parent ON parent.id = g.parent_id
+WHERE g.user_id = :userId AND g.uuid = CAST(:uuid AS UUID);
+
+findRootGroupByName:
+SELECT g.id, g.uuid, g.name, g.description, g.parent_id, parent.uuid AS parent_uuid
+FROM project_group g
+LEFT JOIN project_group parent ON parent.id = g.parent_id
+WHERE g.user_id = :userId AND g.parent_id IS NULL AND g.name = CAST(:name AS CITEXT);
+
+findChildGroupByName:
+SELECT g.id, g.uuid, g.name, g.description, g.parent_id, parent.uuid AS parent_uuid
+FROM project_group g
+LEFT JOIN project_group parent ON parent.id = g.parent_id
+WHERE g.user_id = :userId AND g.parent_id = :parentId AND g.name = CAST(:name AS CITEXT);
+
+-- uuid is unique across all accounts, so a skipped insert may mean another account holds it.
+createGroup:
+INSERT INTO project_group(user_id, uuid, name, description, parent_id)
+VALUES(:userId, CAST(:uuid AS UUID), :name, :description, :parentId)
+ON CONFLICT (uuid) DO NOTHING;
+
+updateGroup:
+UPDATE project_group
+SET name = :name, description = :description, parent_id = :parentId
+WHERE user_id = :userId AND id = :id;
+
+reparentChildren:
+UPDATE project_group
+SET parent_id = :newParentId
+WHERE user_id = :userId AND parent_id = :oldParentId;
+
+deleteGroup:
+DELETE FROM project_group
+WHERE user_id = :userId AND id = :id;
+
+deleteAllForUser:
+DELETE FROM project_group WHERE user_id = :userId;

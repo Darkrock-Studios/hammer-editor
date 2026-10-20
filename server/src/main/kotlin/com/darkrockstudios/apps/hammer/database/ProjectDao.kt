@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.database
 
 import com.darkrockstudios.apps.hammer.GetProjectsWithSyncDate
 import com.darkrockstudios.apps.hammer.Project
+import com.darkrockstudios.apps.hammer.base.GroupId
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.utilities.injectIoDispatcher
@@ -9,13 +10,6 @@ import kotlinx.coroutines.withContext
 import org.koin.core.component.KoinComponent
 import java.sql.SQLException
 import kotlin.time.Instant
-
-private const val SQLSTATE_UNIQUE_VIOLATION = "23505"
-
-// The cause chain is walked because the driver's violation can reach us wrapped by the pool.
-private fun SQLException.isUniqueViolation(): Boolean =
-	generateSequence(this as Throwable) { it.cause }
-		.any { it is SQLException && it.sqlState == SQLSTATE_UNIQUE_VIOLATION }
 
 class ProjectDao(
 	database: Database,
@@ -128,6 +122,25 @@ class ProjectDao(
 
 	suspend fun getProjectByRowId(id: Long): Project? = withContext(ioDispatcher) {
 		queries.getProjectByRowId(id).executeAsOneOrNull()
+	}
+
+	/** Only projects inside a group appear. */
+	suspend fun getProjectPlacements(userId: Long): Map<ProjectId, GroupId> = withContext(ioDispatcher) {
+		queries.getProjectPlacements(userId).executeAsList()
+			.associate { ProjectId(it.uuid) to GroupId(it.group_uuid) }
+	}
+
+	suspend fun getProjectGroupUuid(userId: Long, projectId: ProjectId): GroupId? = withContext(ioDispatcher) {
+		queries.getProjectGroupUuid(userId, projectId.id).executeAsOneOrNull()?.let(::GroupId)
+	}
+
+	/** False when the account has no project [projectId]. A null [groupRowId] places it at the top level. */
+	suspend fun setProjectGroup(
+		userId: Long,
+		projectId: ProjectId,
+		groupRowId: Long?,
+	): Boolean = withContext(ioDispatcher) {
+		queries.setProjectGroup(groupId = groupRowId, userId = userId, uuid = projectId.id).value > 0
 	}
 
 	suspend fun deleteProject(userId: Long, projectId: ProjectId) = withContext(ioDispatcher) {

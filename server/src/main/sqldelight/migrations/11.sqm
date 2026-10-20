@@ -1,0 +1,34 @@
+-- Migration 11 -> 12: project groups. Mirrors ProjectGroup.sq and the group_id column in
+-- Project.sq for already-deployed databases.
+--
+-- uuid and name are created as TEXT then promoted in place, matching what
+-- PostgresSchemaInitializer does for fresh installs.
+
+CREATE TABLE project_group (
+    id BIGSERIAL PRIMARY KEY,
+    uuid TEXT NOT NULL,
+    user_id BIGINT NOT NULL,
+    name TEXT NOT NULL,
+    description TEXT,
+    parent_id BIGINT,
+    CONSTRAINT project_group_name_len CHECK (length(name) BETWEEN 1 AND 200),
+    CONSTRAINT project_group_description_len CHECK (description IS NULL OR length(description) <= 2000),
+    FOREIGN KEY(user_id) REFERENCES account(id) ON DELETE CASCADE
+);
+
+ALTER TABLE project_group ADD CONSTRAINT project_group_parent_id_fkey
+    FOREIGN KEY(parent_id) REFERENCES project_group(id) ON DELETE SET NULL;
+
+CREATE UNIQUE INDEX project_group_uuid_unique ON project_group (uuid);
+CREATE INDEX project_group_user_id_idx ON project_group (user_id);
+CREATE INDEX project_group_parent_id_idx ON project_group (parent_id);
+CREATE UNIQUE INDEX project_group_root_name_unique ON project_group (user_id, name) WHERE parent_id IS NULL;
+CREATE UNIQUE INDEX project_group_child_name_unique ON project_group (user_id, parent_id, name) WHERE parent_id IS NOT NULL;
+
+ALTER TABLE project ADD COLUMN group_id BIGINT REFERENCES project_group(id) ON DELETE SET NULL;
+
+CREATE INDEX project_group_id_idx ON project (group_id);
+
+ALTER TABLE project_group ALTER COLUMN uuid TYPE UUID USING uuid::uuid;
+
+ALTER TABLE project_group ALTER COLUMN name TYPE CITEXT;

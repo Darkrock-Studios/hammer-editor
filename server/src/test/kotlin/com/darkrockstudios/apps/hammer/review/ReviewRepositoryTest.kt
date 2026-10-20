@@ -517,6 +517,7 @@ class ReviewRepositoryTest : BaseTest() {
 				name = projectDef.name,
 				last_id = 6L,
 				last_sync = clock.now(),
+				group_id = null,
 			)
 		coEvery { projectEntityDatasource.getProject(userId, projectId) } returns projectDef
 		coEvery { accountDao.getAccount(userId) } returns mockk {

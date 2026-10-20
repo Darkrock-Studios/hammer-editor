@@ -38,6 +38,7 @@ import com.darkrockstudios.apps.hammer.database.MfaLoginChallengeDao
 import com.darkrockstudios.apps.hammer.database.ProjectAccessDao
 import com.darkrockstudios.apps.hammer.database.ProjectDao
 import com.darkrockstudios.apps.hammer.database.ProjectDataDao
+import com.darkrockstudios.apps.hammer.database.ProjectGroupDao
 import com.darkrockstudios.apps.hammer.database.ProjectsDao
 import com.darkrockstudios.apps.hammer.database.PublishedStoryReaderDao
 import com.darkrockstudios.apps.hammer.database.RemotePostgresDatabase
@@ -169,6 +170,7 @@ fun mainModule(
 	single<StoryEntityDao>()
 	single<ProjectsDao>()
 	single<ProjectDao>()
+	single<ProjectGroupDao>()
 	single<DeletedProjectDao>()
 	single<DeletedEntityDao>()
 	single<ServerConfigDao>()
