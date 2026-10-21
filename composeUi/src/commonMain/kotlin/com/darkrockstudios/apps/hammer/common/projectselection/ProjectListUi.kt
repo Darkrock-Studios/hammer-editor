@@ -40,6 +40,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontStyle
@@ -373,16 +374,29 @@ internal fun Masthead(
 		verticalAlignment = Alignment.CenterVertically,
 		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 	) {
-		HdMonoLabel(
-			text = Res.string.projects_list_masthead_title.get(),
-			color = MaterialTheme.colorScheme.onSurfaceVariant,
-		)
-		Spacer(modifier = Modifier.weight(1f))
-		if (showEntryCount) {
+		// Weighted, so it is measured after the controls and only its labels give way when narrow.
+		Row(
+			modifier = Modifier.weight(1f),
+			verticalAlignment = Alignment.CenterVertically,
+			horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
+		) {
 			HdMonoLabel(
-				text = entrySummary(entryCount),
+				text = Res.string.projects_list_masthead_title.get(),
 				color = MaterialTheme.colorScheme.onSurfaceVariant,
+				maxLines = 1,
+				softWrap = false,
+				overflow = TextOverflow.Ellipsis,
 			)
+			Spacer(modifier = Modifier.weight(1f))
+			if (showEntryCount) {
+				HdMonoLabel(
+					text = entrySummary(entryCount),
+					color = MaterialTheme.colorScheme.onSurfaceVariant,
+					maxLines = 1,
+					softWrap = false,
+					overflow = TextOverflow.Ellipsis,
+				)
+			}
 		}
 		SearchAffordance(active = searchActive, onClick = onToggleSearch)
 		if (showSort) {
@@ -397,11 +411,7 @@ internal fun Masthead(
 			RefreshAffordance(onClick = onSync)
 		}
 		if (showCreate) {
-			HdHairlineButton(
-				label = "＋  ${Res.string.projects_list_create_group_button.get()}",
-				onClick = onCreateGroup,
-				modifier = Modifier.testTag(CreateGroupButtonTestTag),
-			)
+			NewGroupAffordance(onClick = onCreateGroup)
 			HdHairlineButton(
 				label = "＋  ${Res.string.projects_list_create_button.get()}",
 				onClick = onCreate,
@@ -409,6 +419,29 @@ internal fun Masthead(
 				modifier = Modifier.testTag(CreateProjectButtonTestTag),
 			)
 		}
+	}
+}
+
+@Composable
+private fun NewGroupAffordance(onClick: () -> Unit) {
+	Box(
+		modifier = Modifier
+			.size(32.dp)
+			.testTag(CreateGroupButtonTestTag)
+			.border(
+				width = Dp.Hairline,
+				color = MaterialTheme.colorScheme.outlineVariant,
+				shape = RectangleShape,
+			)
+			.clickable(onClick = onClick),
+		contentAlignment = Alignment.Center,
+	) {
+		Icon(
+			imageVector = Icons.Outlined.Folder,
+			contentDescription = Res.string.projects_list_create_group_button.get(),
+			tint = MaterialTheme.colorScheme.onSurfaceVariant,
+			modifier = Modifier.size(16.dp),
+		)
 	}
 }
 
