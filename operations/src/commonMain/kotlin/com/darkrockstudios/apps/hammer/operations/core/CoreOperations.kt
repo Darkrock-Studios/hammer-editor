@@ -20,7 +20,8 @@ fun coreOperations(): List<Operation<*, *>> =
 		searchOperations() +
 		statsOperations() +
 		accountOperations() +
-		syncOperations()
+		syncOperations() +
+		pluginOperations()
 
 @Serializable
 data class ProjectInput(

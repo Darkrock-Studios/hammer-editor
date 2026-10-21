@@ -24,6 +24,10 @@
 	<string name="plugin_install_reads">Read: %1$s</string>
 	<string name="plugin_install_writes">Change: %1$s</string>
 	<string name="plugin_install_deletes">Delete, which cannot be undone: %1$s</string>
+	<string name="plugin_install_http">Send what you write over the internet, to: %1$s</string>
+	<string name="plugin_install_user_host">Send what you write to the address you enter in “%1$s”</string>
+	<string name="plugin_install_user_hosts">With “%1$s” on in its settings, send what you write to the address you enter in “%2$s”</string>
+	<string name="plugin_setting_danger">Risky: this lets the plugin send what you write somewhere Hammer cannot vouch for.</string>
 	<string name="plugin_install_no_access">It asks for no access to your projects.</string>
 	<string name="plugin_install_exports">Adds export formats: %1$s</string>
 	<string name="plugin_install_replaces">Replaces the installed version %1$s.</string>
@@ -31,6 +35,9 @@
 	<string name="plugin_install_cancel">Cancel</string>
 	<string name="plugin_settings_open">Settings</string>
 	<string name="plugin_settings_close">Close settings</string>
+	<string name="plugins_manage">Manage plugins</string>
+	<string name="plugins_manage_title">Plugins</string>
+	<string name="plugins_manage_close">Close plugins</string>
 	<string name="plugin_command_run">%1$s Run it with:</string>
 	<string name="plugin_install_actions">Adds actions: %1$s</string>
 	<string name="plugin_install_commands">Adds commands: %1$s</string>
@@ -40,6 +47,8 @@
 	<string name="plugin_install_scope_content_write">anything in your projects, but never delete</string>
 	<string name="plugin_install_scope_account_read">your sync account's status</string>
 	<string name="plugin_install_scope_account_write">your sync account: log in, log out, and sync</string>
+	<string name="plugin_install_scope_plugins_read">which plugins are installed</string>
+	<string name="plugin_install_scope_plugins_write">your plugins</string>
 	<string name="plugin_install_failed">The plugin change failed: %1$s</string>
 	<string name="plugin_document_copy">Copy</string>
 	<string name="plugin_document_copied">Copied</string>

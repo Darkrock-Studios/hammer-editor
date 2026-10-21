@@ -510,8 +510,10 @@ class ReadOperationsTest : KoinOperationsTest() {
 		val export = ops.operations.single { it.name == "project.export" }
 		val formats = export.input["properties"]!!.jsonObject["format"]!!.jsonObject["enum"]!!.jsonArray
 		assertTrue(JsonPrimitive("markdown") in formats)
-		val (account, projectContent) = ops.operations.partition { it.name.startsWith("account.") || it.name.startsWith("sync.") }
+		val (account, rest) = ops.operations.partition { it.name.startsWith("account.") || it.name.startsWith("sync.") }
+		val (plugins, projectContent) = rest.partition { it.name.startsWith("plugin.") }
 		assertTrue(account.all { it.scope == OperationScope.Account })
+		assertTrue(plugins.isNotEmpty() && plugins.all { it.scope == OperationScope.Plugins })
 		assertTrue(projectContent.all { it.scope == OperationScope.Content })
 
 		val content = export.output["properties"]!!.jsonObject["content"]!!.jsonObject

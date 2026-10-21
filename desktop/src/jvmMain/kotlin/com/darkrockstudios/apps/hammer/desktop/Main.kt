@@ -27,6 +27,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
 import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.data.secrets.EncryptedFileSecretStore
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.NapierLogger
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.appModule
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.imageLoadingModule
@@ -220,7 +221,7 @@ fun main(args: Array<String>) {
 	logStartupBanner()
 	installGlobalExceptionHandler()
 
-	val runtimePlugins = RuntimePlugins.inConfigDirectory(FileSystem.SYSTEM)
+	val runtimePlugins = RuntimePlugins.inConfigDirectory(FileSystem.SYSTEM, EncryptedFileSecretStore(FileSystem.SYSTEM))
 	val pluginRegistry = PluginRegistry().also(runtimePlugins::activate)
 
 	GlobalContext.startKoin {

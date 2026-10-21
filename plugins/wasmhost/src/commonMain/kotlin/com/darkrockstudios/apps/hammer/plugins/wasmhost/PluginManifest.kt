@@ -31,6 +31,18 @@ data class PluginManifest(
 	data class Permissions(
 		/** What the plugin may dispatch, each an [OperationGrant]. */
 		val operations: List<String> = emptyList(),
+		/** Hosts the plugin may send HTTP requests to, such as `api.example.com`. */
+		val http: List<String> = emptyList(),
+		/** A host the user enters in a setting, which the plugin may also reach, while a toggle is on if it names one. */
+		val userHosts: UserHosts? = null,
+	)
+
+	@Serializable
+	data class UserHosts(
+		/** A `string` or `secret` setting holding a URL. */
+		val setting: String,
+		/** A `bool` setting with `danger`, off by default, that must be on too. */
+		val toggle: String? = null,
 	)
 
 	@Serializable

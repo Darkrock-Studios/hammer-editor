@@ -26,7 +26,6 @@ import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.Toaster
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
-import com.darkrockstudios.apps.hammer.common.compose.plugin.PluginSettingsPane
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.RuntimePlugins
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
@@ -46,7 +45,6 @@ internal fun AccountSettingsUi(
 	component: AccountSettings,
 	rootSnackbar: RootSnackbarHostState,
 	modifier: Modifier = Modifier,
-	pluginSettingsPanes: List<PluginSettingsPane> = emptyList(),
 	runtimePlugins: RuntimePlugins? = null,
 ) {
 	val state by component.state.subscribeAsState()
@@ -175,7 +173,12 @@ internal fun AccountSettingsUi(
 								title = Res.string.settings_plugins_header.get(),
 								contentSpacing = 24.dp,
 							) {
-								PluginSettingsSection(pluginSettingsPanes, runtimePlugins)
+								Text(
+									text = Res.string.settings_plugins_caption.get(),
+									style = MaterialTheme.typography.bodySmall,
+									color = MaterialTheme.colorScheme.onSurfaceVariant,
+								)
+								ManagePluginsButton()
 							}
 						}
 

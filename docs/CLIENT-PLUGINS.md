@@ -120,7 +120,7 @@ interface Operation<I, O> {
 enum class Access { Read, Write, Destructive }
 
 /** What an operation reaches into. A plugin can be granted every Read or Write operation in a scope at once. */
-enum class OperationScope { Content, Account }
+enum class OperationScope { Content, Account, Plugins }
 
 class OperationContext(
 	val projects: ProjectResolver,
@@ -186,7 +186,8 @@ Conventions:
   **Destructive** operations delete or overwrite in a way a draft cannot undo;
   the CLI requires `--confirm`, and a plugin only gets one by naming it.
 - Each operation declares its **scope**: `content` (projects and everything in
-  them) or `account` (credentials and the sync server). Nothing in the
+  them), `account` (credentials and the sync server), or `plugins` (the
+  runtime plugins installed). Nothing in the
   operation API knows about agents; a plugin that serves them, like the MCP
   plugin, offers what its grants allow.
 - Operations whose input or output is a file (import, export, entry images)
@@ -336,6 +337,21 @@ when the list is generated, and `export.formats` returns the same set.
 
 These are the `account` scope, so a plugin granted `content:read` and
 `content:write`, such as the MCP plugin, cannot reach them.
+
+### Plugins
+
+| Operation | Access | Notes |
+| --- | --- | --- |
+| `plugin.list` | Read | Each installed plugin: id, name, version, enabled, and what it may use (operations, HTTP hosts, and the setting holding an address it may reach) |
+| `plugin.install` | Destructive | An absolute path to a `.hammerplugin`; grants every permission its manifest asks for, which the reply lists. Applies at once in a running app |
+| `plugin.uninstall` | Destructive | Removes the package, its cache, and its secrets; its other settings stay for a reinstall |
+
+These are the `plugins` scope. Installing grants a plugin its permissions with
+no prompt, so both changes are Destructive: the CLI asks for `--confirm`, and a
+plugin only gets them by naming them. The operations live in `:operations`
+behind `PluginInstaller`, which `RuntimePlugins` implements, since
+`:operations` cannot depend on `:plugins:wasmhost`. The path must be absolute,
+because a forwarded call resolves it in the app, not the shell.
 
 ### Deliberately excluded
 
@@ -506,10 +522,13 @@ arguments of `PluginUiRegistry` and `StoryExporterRegistry`).
 
 `PluginUiRegistry` (`:composeUi`) follows the registry:
 
-- **Settings.** The Plugins section of Settings lists installed plugins, each
+- **Settings.** A Manage plugins button, in the Plugins section of Settings and
+  in each project's settings, opens a dialog listing installed plugins, each
   with an enable toggle, Uninstall, and, when it has declared settings or CLI
   commands, a Settings button that opens them in a dialog: the declared form,
-  then how to run each command.
+  then how to run each command. Plugins are installed and set up for every
+  project, but reaching them from a project saves leaving it. The button is
+  absent where runtime plugins are not registered.
 - **Actions.** A plugin's actions appear in the overflow menus of the screens
   their manifest names. `PluginActionHost`, at the project root, gives those
   menus a `PluginActionRunner` for the open project, which calls an action off
@@ -727,13 +746,15 @@ notes, outlines, and structure, but the prose stays the writer's. This is a
 stance rather than a lock: projects are markdown on disk, and the CLI still
 writes scenes for the writer's own scripts.
 
-**Settings.** Two settings, both off by default, gate what it does request.
+**Settings.** Three settings, all off by default, gate what it does request.
 "Let AI agents make changes" offers the writes: creating, renaming, moving, and
 archiving scenes, scene outlines and tags, drafts as snapshots, notes,
 encyclopedia entries and their images, the timeline, ideas, projects, and
 backups. "Let AI agents delete things" offers the deletes, with MCP's
 `destructiveHint`, so a client can warn before running one; `project.delete` is
-never requested. While a setting is off, its tools are not tools at all.
+never requested. "Let AI agents install and remove plugins", a `danger`
+setting, offers `plugin.install` and `plugin.uninstall`; `plugin.list` is
+always offered. While a setting is off, its tools are not tools at all.
 Granting by name at install, the setting, and the client's own prompt before a
 tool call stand in for the CLI's `--confirm`. Settings are read for every
 message, so turning one off applies to a running server; tools a setting adds
@@ -839,21 +860,26 @@ min = 1
 max = 20
 ```
 
-- **Types.** `bool` (toggle), `int` with optional `min` and `max`, `string`
-  with optional `multiline`, and `choice` (dropdown). More types are added when
-  a plugin needs one. There is no secret type: plugin settings are plain TOML,
-  so credentials do not belong in them.
+- **Types.** `bool` (toggle) with optional `danger`, `int` with optional `min`
+  and `max`, `string` with optional `multiline`, `secret`, and `choice`
+  (dropdown). More types are added when a plugin needs one.
+- **Danger.** A `bool` with `danger = true` turns on something risky, such as
+  letting agents install plugins; the form shows a warning under it.
+- **Secrets.** A `secret` is a password or API key: masked in the form, never
+  written to `plugins/<id>.toml`, and kept in the platform's encrypted store;
+  see [Secrets](#secrets). It has no default, and the plugin gets it as a
+  string, empty when unset. Actions cannot ask for one.
 - **Where it lives.** `settings.toml` in the package, parsed into
   `SettingDeclaration`s (`:operations`, no Compose types).
 - **Storage.** Values go in the plugin's existing `plugins/<id>.toml`, one key
-  per setting. On load, each value is checked against its declaration; a
+  per setting, apart from secrets. On load, each value is checked against its declaration; a
   missing, mistyped, or out-of-range value falls back to its default, and keys
   no longer declared are dropped on the next write.
 - **Reading values.** A plugin receives its current settings as JSON with
   every call, so it never needs a host call to read them. A command reads them
   afresh for each line, so a change applies to a running `hammer mcp`.
 - **Rendering.** `:composeUi` turns a declaration into Hd components: a toggle
-  row, a number field, a text field, or a dropdown, in the plugin's settings
+  row, a number field, a text field, a password field, or a dropdown, in the plugin's settings
   dialog. Labels are plain strings in the declaration.
 - **Access.** `PluginRegistry.settings(pluginId)` is the plugin's
   `DeclaredSettingsStore`: current values as a `StateFlow<JsonObject>`,
@@ -1160,6 +1186,20 @@ in, and where it first appears; entries never mentioned; likely misspellings
 of names; and capitalised words the word list does not know, seen mid-sentence
 and more than once, that have no entry.
 
+### LanguageTool (`languagetool`)
+
+A Rust plugin in `hammer-plugins` checking grammar, punctuation, and style with
+[LanguageTool](https://languagetool.org): its free service, Premium with the
+user's API key, or their own server.
+
+| Exercises | How |
+| --- | --- |
+| HTTP | `permissions.http` names LanguageTool's two hosts; `userHosts` names the `server` setting, for a self-hosted server |
+| Secrets | The Premium API key and the server address are `secret` settings |
+| Batching under a limit | Changed paragraphs go in requests under the service's size limit, and each paragraph's matches are cached by a hash of its text, so a scene opened again is not sent again |
+| Offsets across the boundary | LanguageTool counts UTF-16 units; the plugin turns its matches into UTF-8 byte offsets |
+| Severity | Spelling is left to Hammer's spell check; style and register issues are suggestions |
+
 ### Gaps these expose
 
 - **No content-change events.** A plugin that wants to react to edits (live
@@ -1269,6 +1309,11 @@ languages = ["en"]            # optional: the project languages it works with
 
 [permissions]
 operations = ["project.info", "scene.tree", "scene.read"]
+http = ["api.example.com"]    # optional: hosts it may reach, over https only; see HTTP
+
+[permissions.userHosts]       # optional: an address the user enters; see HTTP
+setting = "server"            # a string or secret setting
+toggle = "allowServer"        # optional: a danger bool, off by default, that must be on too
 
 [[exporters]]
 format = "wordfreq.csv"       # prefixed with the id
@@ -1364,7 +1409,11 @@ eight bytes a plugin copies. The Hammer-specific parts:
 - A function fails by returning non-zero or by trapping. Either way, the
   message it set with `error_set` is what the user sees, if it set one:
   AssemblyScript's `abort` sets one and then traps.
-- HTTP imports exist, as Extism plugins expect them, and always fail. The only
+- `extism:host/env` `http_request(request, body) -> response` and
+  `http_status_code()`, Extism's HTTP imports, send a request to a host the
+  plugin may reach (see [HTTP](#http)) and return its body and status;
+  `http_headers` returns none. A refused request, or one with no response,
+  traps. The only
   WASI imports provided are `random_get` and `clock_time_get`, which Kotlin/Wasm
   and kotlinx.serialization need and which grant no access to anything; a
   module importing any other WASI function does not load.
@@ -1782,22 +1831,65 @@ A new `:plugins:wasmhost` module, depending on `:operations` and chasm:
 Plugins stay headless. A module cannot supply Compose UI, so its settings are
 [declared](#declared-settings) in `settings.toml` and the host renders the form.
 
+### HTTP
+
+A plugin reaches the network only through `http_request`, and only hosts it
+names:
+
+- **Declared hosts.** `permissions.http` lists host names, matched exactly:
+  `api.example.com` covers neither `example.com` nor `eu.api.example.com`, and
+  there are no wildcards. Any path, port, and method on a declared host is
+  allowed, over `https` only.
+- **An entered host.** `permissions.userHosts` names a `string` or `secret`
+  setting holding a URL, such as a self-hosted server's. Its host is reachable
+  over `http` too, since a server on the user's own network often has no
+  certificate. With a `toggle`, a `danger` bool off by default, only while that
+  is on. Both are read on every request, so a change applies at once.
+- **Never.** Other schemes, URLs with user info, which could disguise their
+  host, and redirects, which are returned to the plugin rather than followed.
+- **Limits.** 10 seconds to connect and 30 to read on the JVM; 30 seconds idle
+  and 60 in all on iOS. A response over 8 MiB fails. The call blocks the
+  module, and an interrupt waits for it to return, so the timeouts bound a
+  stopped check.
+- **Platforms.** `PluginHttp`'s actual is `HttpURLConnection` on desktop and
+  Android, and an ephemeral `NSURLSession` on iOS (untested).
+- **Shown at install.** The install prompt and details list the declared hosts,
+  and the entered host's setting, as sending what the user writes.
+
+### Secrets
+
+`secret` settings live in `SecretStore` (`:common`), keyed
+`plugin/<id>/<key>`, never in `plugins/<id>.toml`:
+
+- **Desktop.** One AES-GCM file, `secrets.enc` in the config directory, under a
+  key derived from the OS user name and home directory (`MachineBoundCipher`,
+  shared with the sync token store). It keeps secrets from disk scraping,
+  backups, and copies to other machines, not from malware running as the user.
+- **Android.** `EncryptedSharedPreferences` under its own Keystore master key,
+  so recovering an unreadable keyset never touches the sync tokens'.
+- **iOS.** The Keychain, one item per key.
+
+A value saved in the settings file before its setting became a secret moves to
+the store when it is next read. Uninstalling removes a plugin's secrets.
+Commands read them too: `RuntimePlugins` takes the store.
+
 ### Trust
 
 Plugins are untrusted code:
 
 - **No ambient access.** No WASI filesystem, sockets, environment, or
   arguments: only randomness and clocks. Everything goes through operations, which
-  carry content and never file paths.
+  carry content and never file paths, and [HTTP](#http) to the hosts it names.
 - **Permissions checked on every call.** The host's dispatch refuses any
   operation no grant covers that the manifest requested and the user granted.
   Reads and changes are shown separately at install, scope grants described in
   words, along with any commands the plugin adds. Accepting the install
   prompt grants everything the manifest lists; a replaced package's grants are
   those of the new manifest, since the user just approved them.
-- **Install and removal in Settings.** The Plugins section has install from
-  file, enable and disable, and uninstall, with the permission prompt at
-  install.
+- **Install and removal.** Manage plugins, from Settings or a project's
+  settings, has install from file, enable and disable, and uninstall, with the
+  permission prompt at install. `hammer plugin install` and the MCP plugin's
+  tool install with no prompt, so they need `--confirm` or a `danger` setting.
 - **Signing** is of the [plugin index](#plugin-index), not of packages: the
   signed index pins each package's hash. A package installed from a file is
   unsigned.
@@ -1931,7 +2023,8 @@ with no new host code. Play's rule against downloaded code exempts code run in
 an interpreter, which covers installing from the [plugin index](#plugin-index);
 confirm before shipping the Browse tab there. iOS can run it technically; whether App Review accepts
 installable plugins is a policy question to settle before shipping it there,
-not an architecture one.
+not an architecture one. Its HTTP client and secret store are written but
+untested.
 
 ## Cost to `:common`
 
@@ -2031,7 +2124,11 @@ design is revisited rather than `:common` bent to fit.
     registration only, through the same `RuntimePlugins.inConfigDirectory`
     as desktop. iOS needs only the same line in `HammerAppInit`, once App
     Review's stance on installable plugins is settled.
-13. **[Plugin index](#plugin-index).** `hammer plugin check`, then the
+13. **HTTP, secrets, and plugin management.** Built: [HTTP](#http) to declared
+    and entered hosts, `danger` and `secret` settings, the `plugin.*`
+    operations with their CLI and MCP tools, and Manage plugins in project
+    settings. The [LanguageTool](#languagetool-languagetool) plugin uses them.
+14. **[Plugin index](#plugin-index).** `hammer plugin check`, then the
     `hammer-plugin-index` repository with its checks and signed `index.json`,
     with the first-party plugins as its first listings, then the Browse tab and
     update checks.
@@ -2060,11 +2157,9 @@ remote) instead of a Hammer server? Not with this design, but it can be added:
 - **Core first.** A Drive backend needs OAuth (a browser sign-in and token
   refresh), HTTP, background scheduling, and a place for tokens, all of which
   core Kotlin has. It would start in core once the capability exists.
-- **Plugins need more host.** An HTTP permission limited to hosts the
-  manifest names (Extism's `http_request` already fits), an OAuth flow the
-  host runs on the plugin's behalf, and secret storage, since declared settings
-  are plain TOML and have no secret type. All three are worth doing only once a
-  real backend needs them.
+- **Plugins need more host.** [HTTP](#http) to named hosts and
+  [secrets](#secrets) exist; an OAuth flow the host runs on the plugin's
+  behalf does not, and is worth doing only once a real backend needs it.
 - **No shared server semantics.** Drive has no server-side merge, so the
   backend would store a journal alongside the files and resolve conflicts
   client-side, as sync already does for the Hammer server's reported changes.

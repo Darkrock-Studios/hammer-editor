@@ -53,6 +53,7 @@ class PluginPackage(
 		private const val MAX_RESOURCES = 1000
 		private const val MAX_LOCALES = 200
 		private val LOCALE_TAG = Regex("[A-Za-z]{2,3}([-_][A-Za-z0-9]{2,8})*")
+		private val HOST_NAME = Regex("[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+")
 		private const val MAX_TEXT_BYTES = 256L * 1024
 		private const val BYTES_PER_MIB = 1024L * 1024
 		private const val MAX_CODE_BYTES = 32 * BYTES_PER_MIB
@@ -98,6 +99,7 @@ class PluginPackage(
 			} else {
 				emptyList()
 			}
+			manifest.permissions.userHosts?.let { checkUserHosts(it, settings) }
 
 			val translations = if (zip.exists(root / LOCALES)) readTranslations(zip.list(root / LOCALES), ::text) else emptyMap()
 
@@ -181,6 +183,9 @@ class PluginPackage(
 			manifest.permissions.operations.forEach { entry ->
 				if (OperationGrant.parse(entry) == null) throw PluginPackageException("Unknown permission '$entry'")
 			}
+			manifest.permissions.http.firstOrNull { !HOST_NAME.matches(it) }?.let {
+				throw PluginPackageException("'$it' in permissions.http is not a host name")
+			}
 			checkCommands(manifest)
 			val actions = manifest.actions.map { it.name }
 			actions.groupBy { it }.filterValues { it.size > 1 }.keys.takeIf { it.isNotEmpty() }?.let {
@@ -206,6 +211,18 @@ class PluginPackage(
 				if (check.scope != PluginManifest.SCOPE_PARAGRAPH && check.scope != PluginManifest.SCOPE_SCENE) {
 					throw PluginPackageException("Diagnostics '${check.name}' has unknown scope '${check.scope}'")
 				}
+			}
+		}
+
+		// A toggle the user agrees with has to warn and start off.
+		private fun checkUserHosts(userHosts: PluginManifest.UserHosts, settings: List<SettingDeclaration>) {
+			if (settings.none { it.key == userHosts.setting && (it is SettingDeclaration.Text || it is SettingDeclaration.Secret) }) {
+				throw PluginPackageException("permissions.userHosts setting '${userHosts.setting}' is not a declared string or secret setting")
+			}
+			val key = userHosts.toggle ?: return
+			val toggle = settings.firstOrNull { it.key == key } as? SettingDeclaration.Toggle
+			if (toggle == null || !toggle.danger || toggle.defaultValue) {
+				throw PluginPackageException("permissions.userHosts toggle '${userHosts.toggle}' must be a bool setting with danger, off by default")
 			}
 		}
 

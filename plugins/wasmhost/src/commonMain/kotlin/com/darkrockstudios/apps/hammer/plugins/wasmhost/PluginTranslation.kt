@@ -97,9 +97,10 @@ internal fun translate(settings: List<SettingDeclaration>, translations: List<Pl
 		val label = texts.firstNotNullOfOrNull { it.label } ?: setting.label
 		val hint = texts.firstNotNullOfOrNull { it.hint } ?: setting.hint
 		when (setting) {
-			is SettingDeclaration.Toggle -> SettingDeclaration.Toggle(setting.key, label, setting.defaultValue, hint)
+			is SettingDeclaration.Toggle -> SettingDeclaration.Toggle(setting.key, label, setting.defaultValue, hint, setting.danger)
 			is SettingDeclaration.Number -> SettingDeclaration.Number(setting.key, label, setting.defaultValue, setting.min, setting.max, hint)
 			is SettingDeclaration.Text -> SettingDeclaration.Text(setting.key, label, setting.defaultValue, setting.multiline, hint)
+			is SettingDeclaration.Secret -> SettingDeclaration.Secret(setting.key, label, hint)
 			is SettingDeclaration.Choice -> SettingDeclaration.Choice(
 				setting.key,
 				label,

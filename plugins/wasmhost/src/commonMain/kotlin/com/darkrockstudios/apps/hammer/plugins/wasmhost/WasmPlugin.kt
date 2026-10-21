@@ -47,6 +47,7 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.booleanOrNull
 import okio.BufferedSink
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
@@ -76,6 +77,7 @@ class WasmPlugin(
 	private val releaseGuestHeapAbove: Long = DEFAULT_RELEASE_GUEST_HEAP_ABOVE,
 	/** The UI's BCP 47 tag, sent with every call so a plugin can reply in it. */
 	private val locale: String? = null,
+	private val httpClient: PluginHttp? = platformPluginHttp,
 ) : ClientPlugin, KoinComponent {
 
 	override val id: String = manifest.id
@@ -94,6 +96,7 @@ class WasmPlugin(
 			listOf(dispatchFunction(), progressFunction(), resourceFunction()) + cacheFunctions(),
 			log = ::log,
 			limiter = ModuleLimiter(maxMemoryPages = manifest.limits.memory * PAGES_PER_MIB),
+			http = pluginHttp(),
 		).also { loaded = it }
 
 	// The call [interruptibly] is running, if any, which cancelling its caller interrupts. Only touched
@@ -401,6 +404,23 @@ class WasmPlugin(
 			ExtismPlugin.LogLevel.Info -> Napier.i(line)
 			else -> Napier.d(line)
 		}
+	}
+
+	private fun pluginHttp(): PluginHttp? {
+		val client = httpClient ?: return null
+		if (manifest.permissions.http.isEmpty() && manifest.permissions.userHosts == null) return null
+		return PluginHttp { request ->
+			refusal(request.url, manifest.permissions.http, enteredHost())?.let(::error)
+			client.send(request)
+		}
+	}
+
+	// Read on every request, so a change to the setting or its toggle takes effect at once.
+	private fun enteredHost(): String? {
+		val userHosts = manifest.permissions.userHosts ?: return null
+		val settings = settingsValues()
+		val allowed = userHosts.toggle?.let { (settings[it] as? JsonPrimitive)?.booleanOrNull == true } ?: true
+		return (settings[userHosts.setting] as? JsonPrimitive)?.contentOrNull?.takeIf { allowed }?.let(::httpHost)
 	}
 
 	// An export can start just as this plugin is removed or replaced, when the registry's store is not its own.

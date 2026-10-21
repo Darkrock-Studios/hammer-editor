@@ -9,7 +9,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineDropdown
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineToggleRow
@@ -34,12 +36,21 @@ fun ColumnScope.DeclaredSettingsForm(
 		val hint = setting.hint
 		val value = values[setting.key]?.jsonPrimitive ?: setting.default
 		when (setting) {
-			is SettingDeclaration.Toggle -> HdHairlineToggleRow(
-				checked = value.booleanOrNull ?: setting.defaultValue,
-				onCheckedChange = { onChange(setting.key, JsonPrimitive(it)) },
-				label = label,
-				hint = hint,
-			)
+			is SettingDeclaration.Toggle -> Column {
+				HdHairlineToggleRow(
+					checked = value.booleanOrNull ?: setting.defaultValue,
+					onCheckedChange = { onChange(setting.key, JsonPrimitive(it)) },
+					label = label,
+					hint = hint,
+				)
+				if (setting.danger) {
+					Text(
+						text = Res.string.plugin_setting_danger.get(),
+						style = MaterialTheme.typography.bodySmall,
+						color = MaterialTheme.colorScheme.error,
+					)
+				}
+			}
 
 			is SettingDeclaration.Choice -> HdHairlineDropdown(
 				title = label,
@@ -51,6 +62,19 @@ fun ColumnScope.DeclaredSettingsForm(
 
 			is SettingDeclaration.Number -> Column {
 				NumberField(setting, label, value.longOrNull ?: setting.defaultValue) { onChange(setting.key, JsonPrimitive(it)) }
+				FieldHint(hint)
+			}
+
+			is SettingDeclaration.Secret -> Column {
+				HdHairlineField(
+					label = label,
+					value = value.content,
+					onValueChange = { onChange(setting.key, JsonPrimitive(it)) },
+					capitalization = KeyboardCapitalization.None,
+					autoCorrectEnabled = false,
+					keyboardType = KeyboardType.Password,
+					visualTransformation = PasswordVisualTransformation(),
+				)
 				FieldHint(hint)
 			}
 
