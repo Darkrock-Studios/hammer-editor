@@ -50,6 +50,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRe
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.ProjectStatisticsCacheReader
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
+import com.darkrockstudios.apps.hammer.common.data.projectstatistics.ProjectStatisticsUseCase
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsService
 import com.darkrockstudios.apps.hammer.common.data.protocolmismatch.ProtocolMismatchRepository
 import com.darkrockstudios.apps.hammer.common.data.references.AutoConfirmReferencesUseCase
@@ -316,6 +317,7 @@ val mainModule = module {
 		scoped<StatisticsDatasource>()
 		scoped<StatisticsRepository>()
 		scoped<StatisticsService>()
+		scoped<ProjectStatisticsUseCase>()
 
 		scoped<WritingActivityDatasource>()
 		scoped<WritingActivityRepository>()

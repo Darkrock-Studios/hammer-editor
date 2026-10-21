@@ -26,6 +26,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupSe
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.EntryAppearance
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.ProjectStatistics
+import com.darkrockstudios.apps.hammer.common.data.projectstatistics.ProjectStatisticsUseCase
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsService
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexService
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
@@ -131,8 +132,8 @@ class ProjectHomeComponentTest : ComponentTest() {
 		every { statisticsService.statsFlow } returns statsFlow
 		every { statisticsService.isDirty } returns isDirtyFlow
 		every { statisticsService.isCalculating } returns isCalculatingFlow
-		coEvery { statisticsService.loadStatistics() } coAnswers { loadStatisticsCalls++; stats() }
-		coEvery { statisticsService.recalculateStatistics() } returns stats()
+		coEvery { statisticsService.loadStatistics(any()) } coAnswers { loadStatisticsCalls++; stats() }
+		coEvery { statisticsService.recalculateStatistics(any()) } returns stats()
 
 		tagIndexFlow = MutableStateFlow(TagIndex.EMPTY)
 		tagIndexService = mockk()
@@ -155,6 +156,7 @@ class ProjectHomeComponentTest : ComponentTest() {
 				scoped { statisticsService }
 				scoped { tagIndexService }
 				scoped { referenceIndexService }
+				scoped { ProjectStatisticsUseCase(statisticsService, referenceIndexService) }
 				scoped<ProjectDataRepository> {
 					mockk(relaxed = true) { every { state } returns MutableStateFlow(null) }
 				}
@@ -562,7 +564,7 @@ class ProjectHomeComponentTest : ComponentTest() {
 		advanceUntilIdle()
 
 		assertTrue(comp.state.value.isLoadingStats)
-		coVerify { statisticsService.recalculateStatistics() }
+		coVerify { statisticsService.recalculateStatistics(any()) }
 
 		statsFlow.emit(stats())
 		advanceUntilIdle()
