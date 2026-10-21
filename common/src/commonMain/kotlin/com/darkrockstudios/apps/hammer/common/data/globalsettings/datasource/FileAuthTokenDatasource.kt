@@ -2,7 +2,7 @@ package com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource
 
 import com.darkrockstudios.apps.hammer.base.http.readJsonOrNull
 import com.darkrockstudios.apps.hammer.base.http.writeJson
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.AuthTokenStore.Companion.accountKey
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.AuthTokenDatasource.Companion.accountKey
 import com.darkrockstudios.apps.hammer.common.getConfigDirectory
 import kotlinx.atomicfu.locks.reentrantLock
 import kotlinx.atomicfu.locks.withLock
@@ -11,18 +11,18 @@ import okio.FileSystem
 import okio.Path.Companion.toPath
 
 /**
- * Plaintext JSON-backed [AuthTokenStore] living in the app-private config directory.
+ * Plaintext JSON-backed [AuthTokenDatasource] living in the app-private config directory.
  *
  * The whole account-keyed map is persisted to a single file. A missing or corrupt
  * file is tolerated by starting from an empty map.
  *
- * The [AuthTokenStore] seam lets an encrypted backing be substituted without
+ * The [AuthTokenDatasource] seam lets an encrypted backing be substituted without
  * touching its callers.
  */
-class FileAuthTokenStore(
+class FileAuthTokenDatasource(
 	private val fileSystem: FileSystem,
 	private val json: Json,
-) : AuthTokenStore {
+) : AuthTokenDatasource {
 
 	private val lock = reentrantLock()
 

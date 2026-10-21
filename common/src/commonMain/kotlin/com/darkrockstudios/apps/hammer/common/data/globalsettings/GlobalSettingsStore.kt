@@ -1,8 +1,12 @@
 package com.darkrockstudios.apps.hammer.common.data.globalsettings
 
 import com.darkrockstudios.apps.hammer.base.BuildMetadata
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.AuthTokenDatasource
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.AuthTokens
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.GlobalSettingsDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.ServerSettingsDatasource
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.toPersisted
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.toServerSettings
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.getDefaultRootDocumentDirectory
@@ -25,6 +29,7 @@ import kotlin.uuid.Uuid
 class GlobalSettingsStore(
 	private val globalSettingsDatasource: GlobalSettingsDatasource,
 	private val serverSettingsDatasource: ServerSettingsDatasource,
+	private val authTokenDatasource: AuthTokenDatasource,
 ) : KoinComponent {
 
 	private val lock = reentrantLock()
@@ -54,7 +59,7 @@ class GlobalSettingsStore(
 		globalSettings = globalSettingsDatasource.loadSettings()
 		_globalSettingsUpdates.tryEmit(globalSettings)
 
-		serverSettings = serverSettingsDatasource.loadServerSettings(projectsDir())
+		serverSettings = loadServerSettings()
 		_serverSettingsUpdates.tryEmit(serverSettings)
 	}
 
@@ -66,8 +71,7 @@ class GlobalSettingsStore(
 			dispatchSettingsUpdate(updated)
 
 			if (settings.projectsDirectory != updated.projectsDirectory) {
-				val newServerSettings = serverSettingsDatasource.loadServerSettings(projectsDir())
-				dispatchServerSettingsUpdate(newServerSettings)
+				dispatchServerSettingsUpdate(loadServerSettings())
 			}
 		}
 	}
@@ -79,8 +83,18 @@ class GlobalSettingsStore(
 		_globalSettingsUpdates.tryEmit(settings)
 	}
 
+	private fun loadServerSettings(): ServerSettings? =
+		serverSettingsDatasource.loadServerSettings(projectsDir())?.let { account ->
+			account.toServerSettings(authTokenDatasource.get(account.url, account.userId))
+		}
+
 	fun updateServerSettings(settings: ServerSettings) {
-		serverSettingsDatasource.storeServerSettings(settings, projectsDir())
+		serverSettingsDatasource.storeServerSettings(settings.toPersisted(), projectsDir())
+		authTokenDatasource.put(
+			settings.url,
+			settings.userId,
+			AuthTokens(settings.bearerToken, settings.refreshToken),
+		)
 		dispatchServerSettingsUpdate(settings)
 	}
 
@@ -90,6 +104,7 @@ class GlobalSettingsStore(
 
 	fun deleteServerSettings() {
 		serverSettingsDatasource.removeServerSettings(projectsDir())
+			?.let { authTokenDatasource.remove(it.url, it.userId) }
 		dispatchServerSettingsUpdate(null)
 	}
 

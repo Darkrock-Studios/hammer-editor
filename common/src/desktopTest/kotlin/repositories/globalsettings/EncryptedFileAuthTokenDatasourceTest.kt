@@ -2,7 +2,7 @@ package repositories.globalsettings
 
 import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.AuthTokens
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.EncryptedFileAuthTokenStore
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.EncryptedFileAuthTokenDatasource
 import kotlinx.serialization.json.Json
 import okio.Path
 import okio.Path.Companion.toPath
@@ -14,7 +14,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 
-class EncryptedFileAuthTokenStoreTest : BaseTest() {
+class EncryptedFileAuthTokenDatasourceTest : BaseTest() {
 
 	private lateinit var fileSystem: FakeFileSystem
 	private lateinit var json: Json
@@ -36,7 +36,7 @@ class EncryptedFileAuthTokenStoreTest : BaseTest() {
 		userName: String = "alice",
 		homeDir: String = "/home/alice",
 		salt: ByteArray = "test-salt".encodeToByteArray(),
-	) = EncryptedFileAuthTokenStore(
+	) = EncryptedFileAuthTokenDatasource(
 		fileSystem = fileSystem,
 		json = json,
 		filePath = encPath,

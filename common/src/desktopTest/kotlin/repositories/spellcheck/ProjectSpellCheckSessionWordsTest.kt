@@ -133,7 +133,7 @@ class ProjectSpellCheckSessionWordsTest : BaseTest() {
 			ProjectDataDatasource(fileSystem, toml, projectDef),
 			projectDef,
 		)
-		globalSettingsStore = GlobalSettingsStore(globalSettingsDatasource, serverSettingsDatasource)
+		globalSettingsStore = GlobalSettingsStore(globalSettingsDatasource, serverSettingsDatasource, mockk())
 		spellCheckRepository = SpellCheckRepository(globalSettingsStore, factory)
 	}
 
