@@ -7,6 +7,7 @@ import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.IdeasSyncDatas
 import com.darkrockstudios.apps.hammer.common.data.tagindex.cleanTags
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -15,7 +16,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import okio.IOException
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.koin.core.qualifier.named
@@ -55,12 +55,14 @@ class IdeasRepository(
 		ideasScope.launch {
 			val ideas = try {
 				ideasDatasource.loadIdeas()
-			} catch (e: IOException) {
+			} catch (e: CancellationException) {
+				throw e
+			} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
 				Napier.e("Failed to load ideas", e)
-				emptyList()
+				null
 			}
 			ideasLock.withLock {
-				updateIdeas(ideas)
+				updateIdeas(ideas ?: _ideas)
 			}
 			onLoaded?.invoke()
 		}

@@ -21,6 +21,7 @@ import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -105,6 +106,54 @@ class IdeasRepositoryTest : BaseTest() {
 
 		withTimeout(2_000) { loaded.await() }
 		repo.ideasFlow.test { assertEquals(emptyList(), awaitItem()) }
+	}
+
+	@Test
+	fun `Ideas reload preserves the current list when storage is inaccessible`() = runTest {
+		val existing = StoryIdea(
+			id = IdeaId.randomUUID(),
+			created = clock.now(),
+			updated = clock.now(),
+			content = "Existing idea",
+		)
+		val failingDatasource = mockk<IdeasDatasource>()
+		var loadCount = 0
+		coEvery { failingDatasource.loadIdeas() } coAnswers {
+			if (loadCount++ == 0) listOf(existing) else throw IOException("Access denied")
+		}
+		val repo = IdeasRepository(failingDatasource, mockk(relaxed = true), clock)
+		advanceUntilIdle()
+		val loaded = CompletableDeferred<Unit>()
+
+		repo.loadIdeas { loaded.complete(Unit) }
+		advanceUntilIdle()
+
+		assertTrue(loaded.isCompleted)
+		repo.ideasFlow.test { assertEquals(listOf(existing), awaitItem()) }
+	}
+
+	@Test
+	fun `Ideas load rethrows cancellation without completing the callback`() = runTest {
+		val existing = StoryIdea(
+			id = IdeaId.randomUUID(),
+			created = clock.now(),
+			updated = clock.now(),
+			content = "Existing idea",
+		)
+		val failingDatasource = mockk<IdeasDatasource>()
+		var loadCount = 0
+		coEvery { failingDatasource.loadIdeas() } coAnswers {
+			if (loadCount++ == 0) listOf(existing) else throw CancellationException("Cancelled")
+		}
+		val repo = IdeasRepository(failingDatasource, mockk(relaxed = true), clock)
+		advanceUntilIdle()
+		val loaded = CompletableDeferred<Unit>()
+
+		repo.loadIdeas { loaded.complete(Unit) }
+		advanceUntilIdle()
+
+		assertFalse(loaded.isCompleted)
+		repo.ideasFlow.test { assertEquals(listOf(existing), awaitItem()) }
 	}
 
 	@Test
