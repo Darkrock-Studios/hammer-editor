@@ -11,6 +11,7 @@ import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.AccountSettingsComponent
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.PlatformSettings
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
+import com.darkrockstudios.apps.hammer.common.data.createProjectScope
 import com.darkrockstudios.apps.hammer.common.data.ExampleProjectRepository
 import com.darkrockstudios.apps.hammer.common.data.account.AccountUseCase
 import com.darkrockstudios.apps.hammer.common.data.account.ServerSetupResult
@@ -342,6 +343,22 @@ class AccountSettingsComponentTest : BaseTest() {
 	}
 
 	@Test
+	fun `Removing the server is refused while a project is open`() = runTest {
+		seedProject(PROJECT_A)
+
+		val component = newComponent()
+		advanceUntilIdle()
+		writeJournal(PROJECT_A)
+		createProjectScope(projectsRepository.getProjects().single { it.name == PROJECT_A })
+		component.removeServer()
+		advanceUntilIdle()
+
+		verify(exactly = 0) { globalSettingsStore.deleteServerSettings() }
+		verify(exactly = 0) { accountSynchronizer.deleteSyncData() }
+		assertEquals(syncedAt, journalLastSync(PROJECT_A))
+	}
+
+	@Test
 	fun `A failed login leaves local projects untouched`() = runTest {
 		seedProject(PROJECT_A)
 		seedProject(PROJECT_B)
@@ -559,6 +576,9 @@ class AccountSettingsComponentTest : BaseTest() {
 
 		val component = newComponent()
 		advanceUntilIdle()
+		// Listing projects mints the seeded project's id, which writes (and deletes a temp file);
+		// done now so the hook's first delete is the wipe's and not the open-project check's.
+		projectsRepository.getProjects()
 		// The wipe runs off the main dispatcher, so a close or ESC can land while it is in flight.
 		// By then the account exists and its tokens must survive.
 		onFirstDelete = { component.cancelServerSetup() }

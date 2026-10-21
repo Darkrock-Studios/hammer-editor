@@ -157,4 +157,7 @@ class SyncJournal(
 		)
 	}
 	fun saveSyncData(syncData: ProjectSynchronizationData) = datasource.saveSyncData(syncData)
+
+	/** Drops what one specific server confirmed, keeping local work it hasn't seen. */
+	fun clearSyncBaseline() = datasource.clearSyncBaseline()
 }
