@@ -52,7 +52,7 @@ class SpellCheckRepositoryTest : BaseTest() {
 			spellCheckSettings = SpellCheckerSettings(enabled = enabled, locale = locale),
 		)
 		coEvery { serverSettingsDatasource.loadServerSettings(any()) } returns null
-		return GlobalSettingsStore(globalSettingsDatasource, serverSettingsDatasource)
+		return GlobalSettingsStore(globalSettingsDatasource, serverSettingsDatasource, mockk())
 	}
 
 	@Test

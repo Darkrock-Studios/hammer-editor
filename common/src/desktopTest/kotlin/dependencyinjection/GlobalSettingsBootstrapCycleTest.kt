@@ -6,10 +6,11 @@ import com.darkrockstudios.apps.hammer.base.http.writeToml
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.AuthTokenStore
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.FileAuthTokenStore
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.AuthTokenDatasource
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.FileAuthTokenDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.GlobalSettingsDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.GlobalSettingsFilesystemDatasource
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.PersistedServerSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.ServerSettingsDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.ServerSettingsFilesystemDatasource
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
@@ -65,15 +66,15 @@ class GlobalSettingsBootstrapCycleTest {
 					single { languageUtil }
 					single { PlatformSpellCheckerFactory() }
 					single<FileSystem> { ContainedFileSystem(rawFs) { managedStorageRoots(getKoin()) } }
-					single<AuthTokenStore> { FileAuthTokenStore(get(), get()) }
+					single<AuthTokenDatasource> { FileAuthTokenDatasource(get(), get()) }
 					single { GlobalSettingsFilesystemDatasource(get(), get(), get(), get()) }
 					single<GlobalSettingsDatasource> { get<GlobalSettingsFilesystemDatasource>() }
 					single<ServerSettingsDatasource> {
 						CountingServerSettingsDatasource(
-							ServerSettingsFilesystemDatasource(get(), get(), get())
+							ServerSettingsFilesystemDatasource(get(), get())
 						)
 					}
-					single { GlobalSettingsStore(get(), get()) }
+					single { GlobalSettingsStore(get(), get(), get()) }
 				}
 			)
 		}.koin
@@ -154,13 +155,13 @@ class GlobalSettingsBootstrapCycleTest {
 
 		override fun serverIsSetup(projectsDir: HPath) = delegate.serverIsSetup(projectsDir)
 
-		override fun loadServerSettings(projectsDir: HPath): ServerSettings? {
+		override fun loadServerSettings(projectsDir: HPath): PersistedServerSettings? {
 			loadCalls++
 			check(loadCalls <= MAX_CALLS) { "loadServerSettings re-entered $loadCalls times — bootstrap cycle regression" }
 			return delegate.loadServerSettings(projectsDir)
 		}
 
-		override fun storeServerSettings(settings: ServerSettings, projectsDir: HPath) =
+		override fun storeServerSettings(settings: PersistedServerSettings, projectsDir: HPath) =
 			delegate.storeServerSettings(settings, projectsDir)
 
 		override fun removeServerSettings(projectsDir: HPath) = delegate.removeServerSettings(projectsDir)

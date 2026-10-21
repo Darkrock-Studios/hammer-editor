@@ -25,7 +25,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.Glo
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.GlobalSettingsFilesystemDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.ServerSettingsDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.ServerSettingsFilesystemDatasource
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.authTokenStoreModule
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.authTokenDatasourceModule
 import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.id.datasources.EncyclopediaIdDatasource
 import com.darkrockstudios.apps.hammer.common.data.id.datasources.NotesIdDatasource
@@ -154,7 +154,7 @@ const val RAW_FILESYSTEM = "raw-filesystem"
  */
 val mainModule = module {
 	includes(externalFileIoModule)
-	includes(authTokenStoreModule)
+	includes(authTokenDatasourceModule)
 	includes(exampleProjectModule)
 
 	// Dispatchers live in a plugin-less module (see dispatcherModule): three same-type

@@ -7,11 +7,11 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
-class EncryptedSharedPrefsAuthTokenStoreTest {
+class EncryptedSharedPrefsAuthTokenDatasourceTest {
 
 	private val disk = FakeEncryptedPrefsDisk()
 
-	private fun createStore() = EncryptedSharedPrefsAuthTokenStore(
+	private fun createStore() = EncryptedSharedPrefsAuthTokenDatasource(
 		json = Json,
 		openPrefs = disk::open,
 		resetPrefs = disk::reset,

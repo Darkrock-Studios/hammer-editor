@@ -4,7 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.AuthTokenStore.Companion.accountKey
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.AuthTokenDatasource.Companion.accountKey
 import io.github.aakira.napier.Napier
 import kotlinx.atomicfu.locks.reentrantLock
 import kotlinx.atomicfu.locks.withLock
@@ -14,15 +14,15 @@ import java.security.GeneralSecurityException
 import java.security.KeyStore
 
 /**
- * [AuthTokenStore] backed by [EncryptedSharedPreferences] with an Android
+ * [AuthTokenDatasource] backed by [EncryptedSharedPreferences] with an Android
  * Keystore-backed master key. The account-keyed token map is stored as JSON in a
  * single encrypted preferences entry.
  */
-class EncryptedSharedPrefsAuthTokenStore internal constructor(
+class EncryptedSharedPrefsAuthTokenDatasource internal constructor(
 	private val json: Json,
 	private val openPrefs: () -> SharedPreferences,
 	private val resetPrefs: () -> Unit,
-) : AuthTokenStore {
+) : AuthTokenDatasource {
 
 	constructor(context: Context, json: Json) : this(
 		json = json,

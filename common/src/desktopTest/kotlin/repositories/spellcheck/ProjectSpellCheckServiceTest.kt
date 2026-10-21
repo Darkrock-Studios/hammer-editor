@@ -90,7 +90,7 @@ class ProjectSpellCheckServiceTest : BaseTest() {
 			projectsDirectory = "/projects",
 			spellCheckSettings = SpellCheckerSettings(enabled = true, locale = dictionary),
 		)
-		return GlobalSettingsStore(globalSettingsDatasource, serverSettingsDatasource)
+		return GlobalSettingsStore(globalSettingsDatasource, serverSettingsDatasource, mockk())
 	}
 
 	private fun repository(store: GlobalSettingsStore) = ProjectSpellCheckService(

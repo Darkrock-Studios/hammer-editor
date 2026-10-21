@@ -8,7 +8,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
-class KeychainAuthTokenStoreTest {
+class KeychainAuthTokenDatasourceTest {
 
 	private lateinit var json: Json
 	private lateinit var settings: MapSettings
@@ -23,7 +23,7 @@ class KeychainAuthTokenStoreTest {
 		settings = MapSettings()
 	}
 
-	private fun createStore(keychain: MapSettings = settings) = KeychainAuthTokenStore(
+	private fun createStore(keychain: MapSettings = settings) = KeychainAuthTokenDatasource(
 		json = json,
 		keychain = keychain,
 	)
