@@ -40,6 +40,7 @@ import com.darkrockstudios.apps.hammer.composeui.resources.*
 import com.darkrockstudios.apps.hammer.operations.Access
 import com.darkrockstudios.apps.hammer.operations.OperationRegistry
 import com.darkrockstudios.apps.hammer.operations.OperationScope
+import com.darkrockstudios.apps.hammer.operations.plugin.SettingDeclaration
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.InstalledPlugin
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.OperationGrant
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.PluginManifest
@@ -213,6 +214,8 @@ private fun OperationGrant.label(): String = when (this) {
 			if (access == Access.Read) Res.string.plugin_install_scope_content_read.get() else Res.string.plugin_install_scope_content_write.get()
 		OperationScope.Account ->
 			if (access == Access.Read) Res.string.plugin_install_scope_account_read.get() else Res.string.plugin_install_scope_account_write.get()
+		OperationScope.Plugins ->
+			if (access == Access.Read) Res.string.plugin_install_scope_plugins_read.get() else Res.string.plugin_install_scope_plugins_write.get()
 	}
 }
 
@@ -306,7 +309,7 @@ private fun InstallDialog(
 			closeContentDescription = Res.string.plugin_install_close.get(),
 		) {
 			Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-				PluginDetails(manifest, install.size, install.plugin.translations.keys, manifest.permissions.operations, operations)
+				PluginDetails(manifest, install.size, install.plugin.translations.keys, manifest.permissions.operations, operations, install.plugin.settings)
 				replacing?.manifest?.let {
 					Text(Res.string.plugin_install_replaces.get(it.version), style = MaterialTheme.typography.bodyMedium)
 				}
@@ -336,6 +339,8 @@ private fun PluginDetails(
 	/** What it may use: what its manifest asks for, or for an installed plugin, what the user granted. */
 	permissions: List<String>,
 	operations: OperationRegistry,
+	/** Its declared settings, for their labels; keys stand in without them. */
+	settings: List<SettingDeclaration> = emptyList(),
 ) {
 	Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
 		manifest.description?.let { description ->
@@ -373,6 +378,22 @@ private fun PluginDetails(
 		if (deletes.isNotEmpty()) {
 			Text(
 				text = Res.string.plugin_install_deletes.get(deletes.joinToString()),
+				style = MaterialTheme.typography.bodyMedium,
+				color = MaterialTheme.colorScheme.error,
+			)
+		}
+		if (manifest.permissions.http.isNotEmpty()) {
+			Text(
+				text = Res.string.plugin_install_http.get(manifest.permissions.http.joinToString()),
+				style = MaterialTheme.typography.bodyMedium,
+				color = MaterialTheme.colorScheme.error,
+			)
+		}
+		manifest.permissions.userHosts?.let { userHosts ->
+			val label = { key: String -> settings.firstOrNull { it.key == key }?.label ?: key }
+			Text(
+				text = userHosts.toggle?.let { Res.string.plugin_install_user_hosts.get(label(it), label(userHosts.setting)) }
+					?: Res.string.plugin_install_user_host.get(label(userHosts.setting)),
 				style = MaterialTheme.typography.bodyMedium,
 				color = MaterialTheme.colorScheme.error,
 			)

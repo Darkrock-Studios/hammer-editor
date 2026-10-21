@@ -13,7 +13,6 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
-import net.peanuuutz.tomlkt.TomlTable
 import okio.IOException
 import kotlin.coroutines.CoroutineContext
 
@@ -47,7 +46,7 @@ class DeclaredSettingsStore internal constructor(
 		saveScope.launch(ioDispatcher) {
 			saveLock.withLock {
 				try {
-					datasource.store(pluginId, TomlTable.serializer(), values.value.toTomlTable())
+					datasource.storeDeclared(pluginId, declarations, values.value)
 				} catch (e: IOException) {
 					Napier.e(e) { "Failed to save settings for plugin '$pluginId'" }
 				}

@@ -54,6 +54,8 @@ sealed class SettingDeclaration {
 		override val label: String,
 		val defaultValue: Boolean,
 		override val hint: String? = null,
+		/** Turning it on lets the plugin do something risky, which the form warns of. */
+		val danger: Boolean = false,
 	) : SettingDeclaration() {
 		override val default = JsonPrimitive(defaultValue)
 		override fun accept(value: JsonPrimitive) = value.takeIf { !it.isString && it.booleanOrNull != null }
@@ -82,6 +84,19 @@ sealed class SettingDeclaration {
 		override val hint: String? = null,
 	) : SettingDeclaration() {
 		override val default = JsonPrimitive(defaultValue)
+		override fun accept(value: JsonPrimitive) = value.takeIf { it.isString }
+	}
+
+	/**
+	 * A password or API key: kept in the platform's encrypted store rather than the settings file, and
+	 * masked in the form. The plugin gets it as a string, empty when unset.
+	 */
+	class Secret(
+		override val key: String,
+		override val label: String,
+		override val hint: String? = null,
+	) : SettingDeclaration() {
+		override val default = JsonPrimitive("")
 		override fun accept(value: JsonPrimitive) = value.takeIf { it.isString }
 	}
 
@@ -146,7 +161,7 @@ private fun TomlElement.toJsonPrimitive(): JsonPrimitive? {
 /**
  * Parses a runtime plugin's `settings.toml`: an array of `[[setting]]` tables, each with `key`, `type`
  * (`bool`, `int`, `string`, or `choice`), `label`, and `default`, plus `hint`, `min` and `max` for
- * `int`, `multiline` for `string`, and `options` for `choice`.
+ * `int`, `danger` for `bool`, `multiline` for `string`, and `options` for `choice`. A `secret` has no default.
  */
 fun parseSettingDeclarations(toml: String): List<SettingDeclaration> =
 	Toml { ignoreUnknownKeys = true }.decodeFromString(SettingsFile.serializer(), toml).setting.map { it.toDeclaration() }
@@ -171,6 +186,8 @@ class FieldTable(
 	val min: Long? = null,
 	val max: Long? = null,
 	val multiline: Boolean = false,
+	/** For `bool`: see [SettingDeclaration.Toggle.danger]. */
+	val danger: Boolean = false,
 	val options: List<FieldOption> = emptyList(),
 	/** True by default for `scenes`, false for `entity`. */
 	val multiple: Boolean? = null,
@@ -217,6 +234,7 @@ class FieldTable(
 			}.orEmpty(),
 		)
 		STRING -> throw IllegalArgumentException("Field '$key' is a string: an action asks for text with type 'text'")
+		SECRET -> throw IllegalArgumentException("Field '$key' is a secret, which only a setting may be")
 		// toDeclaration() quietly replaces a default of the wrong type, as a setting's is; an action's is refused.
 		else -> ActionField.Setting(toDeclaration()).also { field ->
 			require(default == null || (default as? JsonPrimitive)?.let(field.declaration::accept) != null) {
@@ -228,9 +246,13 @@ class FieldTable(
 	fun toDeclaration(): SettingDeclaration {
 		val default = default as? JsonPrimitive
 		return when (type) {
-			BOOL -> SettingDeclaration.Toggle(key, label, default?.booleanOrNull ?: false, hint)
+			BOOL -> SettingDeclaration.Toggle(key, label, default?.booleanOrNull ?: false, hint, danger)
 			INT -> SettingDeclaration.Number(key, label, default?.longOrNull ?: min ?: 0, min, max, hint)
 			STRING -> SettingDeclaration.Text(key, label, default?.content ?: "", multiline, hint)
+			SECRET -> {
+				require(default == null) { "Field '$key' is a secret, which cannot have a default" }
+				SettingDeclaration.Secret(key, label, hint)
+			}
 			CHOICE -> SettingDeclaration.Choice(
 				key = key,
 				label = label,
@@ -316,7 +338,7 @@ fun ActionField.toFieldTable(): FieldTable = when (this) {
 		tags = filter.tags.toList(),
 	)
 	is ActionField.Setting -> when (val declaration = declaration) {
-		is SettingDeclaration.Toggle -> FieldTable(key, BOOL, label, declaration.default, hint)
+		is SettingDeclaration.Toggle -> FieldTable(key, BOOL, label, declaration.default, hint, danger = declaration.danger)
 		is SettingDeclaration.Number -> FieldTable(key, INT, label, declaration.default, hint, min = declaration.min, max = declaration.max)
 		is SettingDeclaration.Choice -> FieldTable(
 			key = key,
@@ -328,6 +350,7 @@ fun ActionField.toFieldTable(): FieldTable = when (this) {
 		)
 		// Never read from a plugin, which asks for text with type `text`.
 		is SettingDeclaration.Text -> FieldTable(key, TEXT, label, declaration.default, hint, multiline = declaration.multiline)
+		is SettingDeclaration.Secret -> FieldTable(key, SECRET, label, null, hint)
 	}
 }
 
@@ -380,3 +403,4 @@ private const val SCENES = "scenes"
 private const val ENTITY = "entity"
 private const val TEXT = "text"
 private const val STRING = "string"
+private const val SECRET = "secret"

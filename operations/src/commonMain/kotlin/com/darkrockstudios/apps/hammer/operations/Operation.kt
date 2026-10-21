@@ -48,6 +48,9 @@ enum class OperationScope {
 
 	/** The sync account: its credentials and the server. */
 	@SerialName("account") Account,
+
+	/** The runtime plugins installed. */
+	@SerialName("plugins") Plugins,
 }
 
 /** Input of an operation that takes none; `{}` in JSON. */

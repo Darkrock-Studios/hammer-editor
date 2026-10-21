@@ -69,7 +69,7 @@
 	<string name="project_settings_dictionary_hint">↵ to add</string>
 	<string name="project_settings_dictionary_placeholder">Words the spell checker should accept in this project</string>
 	<string name="project_settings_plugins_section_title">Plugins</string>
-	<string name="project_settings_plugins_caption">A plugin turned off here shows no actions, checks, or export formats in this project. It stays on in your other projects, and on your other devices. Install and remove plugins in Settings.</string>
+	<string name="project_settings_plugins_caption">A plugin turned off here shows no actions, checks, or export formats in this project. It stays on in your other projects, and on your other devices. Installing, removing, and setting up a plugin changes it for every project.</string>
 	<string name="project_settings_folio_caption">Project Settings · %1$s</string>
 	<string name="project_settings_folio_section_count">§§ %1$d</string>
 

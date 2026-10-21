@@ -1,10 +1,15 @@
 package com.darkrockstudios.apps.hammer.plugins.wasmhost
 
+import com.darkrockstudios.apps.hammer.common.data.secrets.SecretStore
 import com.darkrockstudios.apps.hammer.common.util.DeviceLocaleResolver
 import com.darkrockstudios.apps.hammer.common.getCacheDirectory
 import com.darkrockstudios.apps.hammer.common.getConfigDirectory
+import com.darkrockstudios.apps.hammer.operations.invalidInput
+import com.darkrockstudios.apps.hammer.operations.notFound
+import com.darkrockstudios.apps.hammer.operations.plugin.PluginInstaller
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginSettingsDatasource
+import com.darkrockstudios.apps.hammer.operations.plugin.PluginSummary
 import io.github.aakira.napier.Napier
 import kotlinx.atomicfu.locks.reentrantLock
 import kotlinx.atomicfu.locks.withLock
@@ -15,6 +20,7 @@ import okio.IOException
 import okio.Path
 import okio.Path.Companion.toPath
 import org.koin.core.module.Module
+import org.koin.dsl.bind
 import org.koin.dsl.module
 
 /**
@@ -29,7 +35,9 @@ class RuntimePlugins(
 	private val cacheDirectory: Path,
 	/** The UI's BCP 47 tag, which plugins' translations are chosen by and which their calls are told. */
 	private val locale: String? = null,
-) {
+	/** Where plugins' secret settings are kept; without one, commands see them empty. */
+	private val secrets: SecretStore? = null,
+) : PluginInstaller {
 	private val packages = directory / PACKAGES_DIRECTORY
 	private val stateFile = directory / STATE_FILE
 
@@ -116,6 +124,36 @@ class RuntimePlugins(
 		plugin
 	}
 
+	override fun summaries(): List<PluginSummary> = installed().map { it.summary() }
+
+	override fun installFrom(path: String): PluginSummary {
+		val source = path.toPath()
+		if (!fileSystem.exists(source)) notFound("No file at $path")
+		val plugin = try {
+			install(source)
+		} catch (e: PluginPackageException) {
+			invalidInput(e.message.orEmpty())
+		}
+		return installed().first { it.id == plugin.manifest.id }.summary()
+	}
+
+	override fun remove(id: String): Boolean {
+		if (id !in readState().plugins) return false
+		uninstall(id)
+		return true
+	}
+
+	private fun InstalledPlugin.summary() = PluginSummary(
+		id = id,
+		name = manifest?.name,
+		version = manifest?.version,
+		description = manifest?.description,
+		enabled = enabled,
+		operations = granted,
+		http = manifest?.permissions?.http.orEmpty(),
+		userHostSetting = manifest?.permissions?.userHosts?.setting,
+	)
+
 	/** Throws [PluginPackageException], leaving the plugin disabled, when the registry refuses it. */
 	fun setEnabled(id: String, enabled: Boolean): Unit = changes.withLock {
 		val state = readState().plugins[id]?.copy(enabled = enabled) ?: return
@@ -127,12 +165,16 @@ class RuntimePlugins(
 		live?.let { apply(it, id, state) }
 	}
 
-	/** Removes the package, its record, and its cache. Its settings file stays, in case it is installed again. */
+	/**
+	 * Removes the package, its record, its cache, and its secrets. Its settings file stays, in case it is
+	 * installed again.
+	 */
 	fun uninstall(id: String) = changes.withLock {
 		registry?.remove(id)
 		updateState { it - id }
 		fileSystem.delete(packagePath(id), mustExist = false)
 		cache(id).clear()
+		settingsDatasource().removeSecrets(id)
 	}
 
 	/** Brings [live] in line with [id]'s [state]: its plugin added, replacing any before, or removed. */
@@ -154,13 +196,15 @@ class RuntimePlugins(
 		loadModule = ::readModule,
 		declaredSettings = settings,
 		granted = granted,
-		savedSettings = { PluginSettingsDatasource(fileSystem, toml, directory).loadDeclared(manifest.id, settings) },
+		savedSettings = { settingsDatasource().loadDeclared(manifest.id, settings) },
 		cache = cache(manifest.id),
 		readResource = ::readResource,
 		locale = locale,
 	)
 
 	private fun cache(id: String) = PluginCache(fileSystem, cacheDirectory / id)
+
+	private fun settingsDatasource() = PluginSettingsDatasource(fileSystem, toml, directory, secrets)
 
 	private fun packagePath(id: String): Path = packages / "$id.${PluginPackage.EXTENSION}"
 
@@ -200,16 +244,17 @@ class RuntimePlugins(
 		private val toml = Toml { ignoreUnknownKeys = true }
 
 		/** The app's runtime plugins, kept beside plugin settings files in the config directory. */
-		fun inConfigDirectory(fileSystem: FileSystem) = RuntimePlugins(
+		fun inConfigDirectory(fileSystem: FileSystem, secrets: SecretStore?) = RuntimePlugins(
 			fileSystem = fileSystem,
 			directory = getConfigDirectory().toPath() / PluginSettingsDatasource.PLUGINS_DIRECTORY,
 			cacheDirectory = getCacheDirectory().toPath() / PluginSettingsDatasource.PLUGINS_DIRECTORY,
 			locale = DeviceLocaleResolver().getCurrentLocale().toLanguageTag().ifBlank { null },
+			secrets = secrets,
 		)
 	}
 
 	/** Makes these plugins available to Settings. */
-	fun koinModule(): Module = module { single { this@RuntimePlugins } }
+	fun koinModule(): Module = module { single { this@RuntimePlugins } bind PluginInstaller::class }
 }
 
 /** [manifest] is null when the installed package can no longer be read. */

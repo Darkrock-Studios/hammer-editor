@@ -30,6 +30,8 @@ import io.github.charlietap.chasm.host.withMemory
 import io.github.charlietap.chasm.host.writeI32
 import io.github.charlietap.chasm.runtime.value.NumberValue
 import io.github.charlietap.chasm.type.FunctionType
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import kotlin.random.Random
 import kotlin.time.Clock
 import kotlin.time.TimeSource
@@ -39,7 +41,7 @@ import kotlin.time.TimeSource
  * only [interrupt] may be called from another thread.
  *
  * Plugins may import only what the host lists here plus [userFunctions]; anything else, such as a
- * WASI file or socket import, fails the load. HTTP imports exist for compatibility and always fail the call.
+ * WASI file or socket import, fails the load. HTTP goes through [http]; without one, an HTTP import fails the call.
  */
 class ExtismPlugin(
 	/**
@@ -52,6 +54,8 @@ class ExtismPlugin(
 	private val log: (level: LogLevel, message: String) -> Unit = { _, _ -> },
 	limiter: ModuleLimiter = ModuleLimiter(),
 	maxGuestHeapBytes: Long = DEFAULT_MAX_GUEST_HEAP_BYTES,
+	/** Sends `http_request`s, deciding for itself which it allows. */
+	private val http: PluginHttp? = null,
 ) {
 	constructor(
 		wasm: ByteArray,
@@ -60,10 +64,12 @@ class ExtismPlugin(
 		log: (level: LogLevel, message: String) -> Unit = { _, _ -> },
 		limiter: ModuleLimiter = ModuleLimiter(),
 		maxGuestHeapBytes: Long = DEFAULT_MAX_GUEST_HEAP_BYTES,
-	) : this({ wasm }, userFunctions, config, log, limiter, maxGuestHeapBytes)
+		http: PluginHttp? = null,
+	) : this({ wasm }, userFunctions, config, log, limiter, maxGuestHeapBytes, http)
 
 	private val kernel = ExtismKernel()
 	private val vars = mutableMapOf<String, ByteArray>()
+	private var httpStatus = 0
 
 	// A module using Wasm GC keeps its objects in chasm's heap, not its capped linear memory.
 	private val guestHeap = GuestHeap(maxGuestHeapBytes)
@@ -107,6 +113,7 @@ class ExtismPlugin(
 	private fun callOnce(function: String, input: ByteArray, fuel: Long): ByteArray {
 		kernel.reset()
 		kernel.setInput(input)
+		httpStatus = 0
 		setFuel(fuel)
 
 		val result = invoke(store, instance, function)
@@ -192,11 +199,34 @@ class ExtismPlugin(
 			env("log_warn", "I", "", logAt(LogLevel.Warn)),
 			env("log_error", "I", "", logAt(LogLevel.Error)),
 			env("get_log_level", "", "i") { LogLevel.Info.ordinal.toLong() },
-			env("http_request", "II", "I") { throw HostFunctionException("HTTP is not available to Hammer plugins") },
-			env("http_status_code", "", "i") { throw HostFunctionException("HTTP is not available to Hammer plugins") },
-			env("http_headers", "", "I") { throw HostFunctionException("HTTP is not available to Hammer plugins") },
+			env("http_request", "II", "I") { httpRequest(it[0], it[1]) },
+			env("http_status_code", "", "i") { httpStatus.toLong() },
+			// Extism's newer import; response headers are not kept, so there are none to give.
+			env("http_headers", "", "I") { 0 },
 		)
 	}
+
+	/** Blocks until the response arrives; [PluginHttp]'s timeouts bound it, since an interrupt waits for it. */
+	private fun httpRequest(request: Long, body: Long): Long {
+		val client = http ?: throw HostFunctionException("HTTP is not available to this plugin")
+		val parsed = HttpJson.decodeFromString(ExtismHttpRequest.serializer(), kernel.read(request).decodeToString())
+		val bytes = if (body == 0L) null else kernel.read(body)
+		@Suppress("TooGenericExceptionCaught")
+		val response = try {
+			client.send(PluginHttpRequest(parsed.url, parsed.method ?: "GET", parsed.headers, bytes))
+		} catch (e: Exception) {
+			throw HostFunctionException("http_request to ${parsed.url}: ${e.message}")
+		}
+		httpStatus = response.status
+		return if (response.body.isEmpty()) 0 else kernel.write(response.body)
+	}
+
+	@Serializable
+	private class ExtismHttpRequest(
+		val url: String,
+		val method: String? = null,
+		val headers: Map<String, String> = emptyMap(),
+	)
 
 	/**
 	 * A host function in Extism's `extism:host/user` namespace. Arguments and the result are kernel
@@ -313,6 +343,7 @@ class ExtismPlugin(
 		const val ENV = "extism:host/env"
 		const val USER = "extism:host/user"
 		val INITIALIZERS = listOf("_initialize", "__wasm_call_ctors")
+		val HttpJson = Json { ignoreUnknownKeys = true }
 
 		// ARENA frees a call's garbage when the call returns. chasm 2.0.0's TRADITIONAL, which collects while
 		// a call runs, corrupts live Kotlin/Wasm objects.

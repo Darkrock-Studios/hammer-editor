@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.desktop.cli
 
 import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
+import com.darkrockstudios.apps.hammer.common.data.secrets.EncryptedFileSecretStore
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.appModule
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.mainModule
 import com.darkrockstudios.apps.hammer.common.getConfigDirectory
@@ -35,9 +36,13 @@ object HeadlessSession {
 	// Koin's context and the writer lock are both one per process, so calls take turns.
 	private val calls = Mutex()
 
+	private val runtimePlugins by lazy {
+		RuntimePlugins.inConfigDirectory(FileSystem.SYSTEM, EncryptedFileSecretStore(FileSystem.SYSTEM))
+	}
+
 	/** The plugins active for CLI calls, fresh per process: the enabled runtime plugins. */
 	fun pluginRegistry(): PluginRegistry {
-		return PluginRegistry().also(RuntimePlugins.inConfigDirectory(FileSystem.SYSTEM)::activate)
+		return PluginRegistry().also(runtimePlugins::activate)
 	}
 
 	/** Runs [block] with Hammer started; [plugins] is this process's [pluginRegistry], built once. */
@@ -49,7 +54,7 @@ object HeadlessSession {
 		lock.use {
 			val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 			GlobalContext.startKoin {
-				modules(mainModule, appModule(appScope), plugins.koinModule())
+				modules(mainModule, appModule(appScope), plugins.koinModule(), runtimePlugins.koinModule())
 			}
 			try {
 				GlobalContext.get().get<DataMigrator>().handleDataMigration()

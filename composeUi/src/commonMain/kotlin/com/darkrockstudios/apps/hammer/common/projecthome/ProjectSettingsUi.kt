@@ -44,6 +44,7 @@ import com.darkrockstudios.apps.hammer.common.compose.plugin.PluginUiRegistry
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
+import com.darkrockstudios.apps.hammer.common.projectselection.settings.ManagePluginsButton
 import com.darkrockstudios.apps.hammer.common.projectselection.settings.SpellCheckSettingsContent
 import com.darkrockstudios.apps.hammer.common.spellcheck.displayName
 import com.darkrockstudios.apps.hammer.common.spellcheck.isSpellCheckAllowedForProject
@@ -150,13 +151,11 @@ fun ProjectSettingsUi(
 								)
 							}
 
-							if (plugins.isNotEmpty()) {
-								ProjectPlugins(
-									plugins = plugins,
-									disabled = disabledPlugins,
-									component = component,
-								)
-							}
+							ProjectPlugins(
+								plugins = plugins,
+								disabled = disabledPlugins,
+								component = component,
+							)
 						}
 
 						Spacer(Modifier.height(8.dp))
@@ -215,7 +214,7 @@ private fun ProjectDictionaryWords(
 	)
 }
 
-/** A toggle for each plugin enabled in Settings, turning it off for this project alone. */
+/** Manage plugins, then a toggle for each active plugin, turning it off for this project alone. */
 @Composable
 private fun ProjectPlugins(
 	plugins: List<ClientPlugin>,
@@ -233,6 +232,7 @@ private fun ProjectPlugins(
 			style = MaterialTheme.typography.bodySmall,
 			color = MaterialTheme.colorScheme.onSurfaceVariant,
 		)
+		ManagePluginsButton()
 		sorted.forEach { plugin ->
 			HdHairlineToggleRow(
 				checked = plugin.id !in disabled,

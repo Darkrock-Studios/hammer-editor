@@ -112,7 +112,7 @@ class PluginRegistry : ExporterSource, KoinComponent {
 		val registry = this
 		return module {
 			single { registry } bind ExporterSource::class
-			single { PluginSettingsDatasource(get(), get()) }
+			single { PluginSettingsDatasource(get(), get(), secrets = getOrNull()) }
 			single { ActionSessionStore(get()) } bind ProjectIdChangeListener::class
 			single { operationRegistry }
 		}
