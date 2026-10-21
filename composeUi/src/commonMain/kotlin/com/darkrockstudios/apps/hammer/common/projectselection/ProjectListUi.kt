@@ -6,6 +6,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -28,7 +29,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import com.darkrockstudios.apps.hammer.common.compose.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -55,7 +55,6 @@ import com.darkrockstudios.apps.hammer.common.components.projectselection.MoveTa
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectData
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsList
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.filterProjects
-import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarGutter
 import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarList
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
@@ -117,6 +116,13 @@ import kotlin.time.Instant
 private val WideContentPadding: Dp = Ui.Padding.XXL
 private val NarrowContentPadding: Dp = Ui.Padding.XL
 
+/**
+ * The narrowest pane that holds the wide masthead's controls. German, the longest shipped locale,
+ * needs 537dp with the sync button showing; the rest is margin for font metrics. Guarded by
+ * ProjectListMastheadTest, which measures every locale.
+ */
+internal val ProjectListWideMinWidth: Dp = 560.dp
+
 /** Tags the "Create Project" affordance (masthead button when wide, bottom bar when narrow). */
 const val CreateProjectButtonTestTag = "create-project-button"
 const val CreateGroupButtonTestTag = "create-group-button"
@@ -170,12 +176,9 @@ fun ProjectListUi(
 	modifier: Modifier = Modifier,
 	/** A slip laid under the masthead, given the page's inset; composes nothing when there is no notice. */
 	notice: @Composable (Modifier) -> Unit = {},
-) {
-	// Cut at WindowWidthSizeClass.Compact (600dp) rather than the project-wide
-	// 720dp `isWide` so portrait tablets keep the desktop masthead instead of
-	// dropping to the phone layout.
-	val widthClass = LocalScreenCharacteristic.current.windowWidthClass
-	val isWide = widthClass != WindowWidthSizeClass.Compact
+) = BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+	// Measured on the list's own pane: a window of any size can leave it narrow beside the nav rail.
+	val isWide = maxWidth >= ProjectListWideMinWidth
 	val state by component.state.subscribeAsState()
 	val scope = rememberCoroutineScope()
 
@@ -222,7 +225,7 @@ fun ProjectListUi(
 		!isWide && (!listState.canScrollForward || !createBarState.isHiddenByScroll)
 
 	Column(
-		modifier = modifier.fillMaxSize(),
+		modifier = Modifier.fillMaxSize(),
 	) {
 		Masthead(
 			entryCount = state.projects.size,
