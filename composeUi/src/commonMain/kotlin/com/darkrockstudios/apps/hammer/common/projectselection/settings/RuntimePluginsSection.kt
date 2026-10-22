@@ -1,14 +1,39 @@
 package com.darkrockstudios.apps.hammer.common.projectselection.settings
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Output
+import androidx.compose.material.icons.outlined.Spellcheck
+import androidx.compose.material.icons.outlined.Terminal
+import androidx.compose.material.icons.outlined.TouchApp
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Text
+import androidx.compose.material3.TooltipBox
+import androidx.compose.material3.TooltipDefaults
+import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -18,9 +43,14 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
 import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialog
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.WindowWidthSizeClass
@@ -32,14 +62,17 @@ import com.darkrockstudios.apps.hammer.common.compose.linkify
 import com.darkrockstudios.apps.hammer.common.compose.plugin.PluginSettingsPane
 import com.darkrockstudios.apps.hammer.common.compose.rememberIoDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.APP_SCOPE
+import com.darkrockstudios.apps.hammer.common.getCacheDirectory
+import com.darkrockstudios.apps.hammer.common.projectroot.getDestinationIcon
 import com.darkrockstudios.apps.hammer.common.spellcheck.displayName
 import com.darkrockstudios.apps.hammer.common.util.Locale
-import com.darkrockstudios.apps.hammer.common.getCacheDirectory
 import com.darkrockstudios.apps.hammer.composeui.resources.*
 import com.darkrockstudios.apps.hammer.operations.Access
 import com.darkrockstudios.apps.hammer.operations.OperationRegistry
 import com.darkrockstudios.apps.hammer.operations.OperationScope
+import com.darkrockstudios.apps.hammer.operations.plugin.ActionPlace
 import com.darkrockstudios.apps.hammer.operations.plugin.SettingDeclaration
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.InstalledPlugin
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.OperationGrant
@@ -51,6 +84,7 @@ import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.dialogs.FileKitType
 import io.github.vinceglb.filekit.dialogs.openFilePicker
 import io.github.vinceglb.filekit.readBytes
+import kotlin.random.Random
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -60,7 +94,6 @@ import okio.Path
 import okio.Path.Companion.toPath
 import org.koin.compose.koinInject
 import org.koin.core.qualifier.named
-import kotlin.random.Random
 
 /**
  * Install, enable, disable, and uninstall runtime plugins, and open the settings of an active one
@@ -308,28 +341,38 @@ private fun InstallDialog(
 			onClose = { requestDismiss() },
 			closeContentDescription = Res.string.plugin_install_close.get(),
 		) {
-			Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-				PluginDetails(manifest, install.size, install.plugin.translations.keys, manifest.permissions.operations, operations, install.plugin.settings)
-				replacing?.manifest?.let {
-					Text(Res.string.plugin_install_replaces.get(it.version), style = MaterialTheme.typography.bodyMedium)
-				}
-
-				Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-					HdHairlineButton(label = Res.string.plugin_install_cancel.get(), onClick = { requestDismiss() })
-					HdHairlineButton(
-						label = Res.string.plugin_install_confirm.get(),
-						onClick = { onConfirm(install) },
-						emphasised = true,
-					)
-				}
+			PluginDetails(
+				manifest = manifest,
+				size = install.size,
+				translations = install.plugin.translations.keys,
+				permissions = manifest.permissions.operations,
+				operations = operations,
+				settings = install.plugin.settings,
+				modifier = Modifier.weight(1f, fill = false),
+			)
+			replacing?.manifest?.let {
+				Text(
+					text = Res.string.plugin_install_replaces.get(it.version),
+					style = MaterialTheme.typography.bodyMedium,
+					modifier = Modifier.padding(top = 20.dp),
+				)
+			}
+			Row(modifier = Modifier.padding(top = 20.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+				HdHairlineButton(label = Res.string.plugin_install_cancel.get(), onClick = { requestDismiss() })
+				HdHairlineButton(
+					label = Res.string.plugin_install_confirm.get(),
+					onClick = { onConfirm(install) },
+					emphasised = true,
+				)
 			}
 		}
 	}
 }
 
 /**
- * What a plugin is, what it may use, and what it adds, as the install prompt and its details show it.
- * [size] is its package's, and [translations] its translations' language tags.
+ * What a plugin is, what it adds, and what it may use, as the install prompt and its details show it.
+ * [size] is its package's, and [translations] its translations' language tags. Scrolls on its own, so
+ * a long list of permissions cannot push the dialog's buttons off screen.
  */
 @Composable
 private fun PluginDetails(
@@ -341,95 +384,279 @@ private fun PluginDetails(
 	operations: OperationRegistry,
 	/** Its declared settings, for their labels; keys stand in without them. */
 	settings: List<SettingDeclaration> = emptyList(),
+	modifier: Modifier = Modifier,
 ) {
-	Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+	Column(
+		modifier = modifier.verticalScroll(rememberScrollState()),
+		verticalArrangement = Arrangement.spacedBy(20.dp),
+	) {
 		manifest.description?.let { description ->
 			val linkStyle = SpanStyle(color = MaterialTheme.colorScheme.primary, textDecoration = TextDecoration.Underline)
 			Text(linkify(description, linkStyle), style = MaterialTheme.typography.bodyMedium)
 		}
-		Text(Res.string.plugin_install_version.get(manifest.version), style = MaterialTheme.typography.bodyMedium)
-		size?.let { Text(packageSize(it), style = MaterialTheme.typography.bodyMedium) }
+		PluginFacts(manifest, size, translations)
+		if (manifest.actions.isNotEmpty() || manifest.exporters.isNotEmpty() ||
+			manifest.commands.isNotEmpty() || manifest.diagnostics.isNotEmpty()
+		) {
+			DetailsBlock(Res.string.plugin_install_adds.get()) { PluginFeatures(manifest) }
+		}
+		PluginAccess(manifest, permissions, operations, settings)
+	}
+}
+
+/** A mono heading over a hairline, so a block's title never reads like one of its values. */
+@Composable
+private fun DetailsBlock(
+	title: String,
+	trailing: @Composable () -> Unit = {},
+	content: @Composable ColumnScope.() -> Unit,
+) {
+	Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+		Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+			HdMonoLabel(text = title, color = MaterialTheme.colorScheme.onSurface)
+			HorizontalDivider(
+				modifier = Modifier.weight(1f),
+				thickness = Dp.Hairline,
+				color = MaterialTheme.colorScheme.outlineVariant,
+			)
+			trailing()
+		}
+		content()
+	}
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun PluginFacts(manifest: PluginManifest, size: Long?, translations: Collection<String>) {
+	Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+		FlowRow(horizontalArrangement = Arrangement.spacedBy(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+			Fact(Res.string.plugin_install_version.get(), manifest.version)
+			size?.let { Fact(Res.string.plugin_install_size.get(), packageSize(it)) }
+			if (manifest.limits.memory > PluginManifest.DEFAULT_MEMORY_MIB) {
+				Fact(
+					label = Res.string.plugin_install_memory.get(),
+					value = Res.string.plugin_install_memory_value.get(manifest.limits.memory.toString()),
+				)
+			}
+		}
 		if (manifest.languages.isNotEmpty()) {
-			Text(Res.string.plugin_details_languages.get(languageNames(manifest.languages)), style = MaterialTheme.typography.bodyMedium)
+			Fact(Res.string.plugin_details_languages.get(), languageNames(manifest.languages))
 		}
 		if (translations.isNotEmpty()) {
-			Text(Res.string.plugin_details_translations.get(languageNames(translations)), style = MaterialTheme.typography.bodyMedium)
-		}
-		Text(Res.string.plugin_install_sandbox.get(), style = MaterialTheme.typography.bodyMedium)
-
-		val grants = permissions.mapNotNull(OperationGrant::parse)
-		val byAccess = grants.groupBy { it.access(operations) }
-		val reads = byAccess[Access.Read].orEmpty().map { it.label() }
-		val changes = (byAccess[Access.Write].orEmpty() + byAccess[null].orEmpty()).map { it.label() }
-		val deletes = byAccess[Access.Destructive].orEmpty().map { it.label() }
-		if (grants.isEmpty()) {
-			Text(Res.string.plugin_install_no_access.get(), style = MaterialTheme.typography.bodyMedium)
-		}
-		if (reads.isNotEmpty()) {
-			Text(Res.string.plugin_install_reads.get(reads.joinToString()), style = MaterialTheme.typography.bodyMedium)
-		}
-		if (changes.isNotEmpty()) {
-			Text(
-				text = Res.string.plugin_install_writes.get(changes.joinToString()),
-				style = MaterialTheme.typography.bodyMedium,
-				color = MaterialTheme.colorScheme.error,
-			)
-		}
-		if (deletes.isNotEmpty()) {
-			Text(
-				text = Res.string.plugin_install_deletes.get(deletes.joinToString()),
-				style = MaterialTheme.typography.bodyMedium,
-				color = MaterialTheme.colorScheme.error,
-			)
-		}
-		if (manifest.permissions.http.isNotEmpty()) {
-			Text(
-				text = Res.string.plugin_install_http.get(manifest.permissions.http.joinToString()),
-				style = MaterialTheme.typography.bodyMedium,
-				color = MaterialTheme.colorScheme.error,
-			)
-		}
-		manifest.permissions.userHosts?.let { userHosts ->
-			val label = { key: String -> settings.firstOrNull { it.key == key }?.label ?: key }
-			Text(
-				text = userHosts.toggle?.let { Res.string.plugin_install_user_hosts.get(label(it), label(userHosts.setting)) }
-					?: Res.string.plugin_install_user_host.get(label(userHosts.setting)),
-				style = MaterialTheme.typography.bodyMedium,
-				color = MaterialTheme.colorScheme.error,
-			)
-		}
-		if (manifest.exporters.isNotEmpty()) {
-			Text(
-				text = Res.string.plugin_install_exports.get(manifest.exporters.joinToString { it.label }),
-				style = MaterialTheme.typography.bodyMedium,
-			)
-		}
-		if (manifest.actions.isNotEmpty()) {
-			Text(
-				text = Res.string.plugin_install_actions.get(manifest.actions.joinToString { it.label }),
-				style = MaterialTheme.typography.bodyMedium,
-			)
-		}
-		if (manifest.commands.isNotEmpty()) {
-			Text(
-				text = Res.string.plugin_install_commands.get(manifest.commands.joinToString { "hammer ${it.name}" }),
-				style = MaterialTheme.typography.bodyMedium,
-			)
-		}
-		if (manifest.diagnostics.isNotEmpty()) {
-			Text(
-				text = Res.string.plugin_install_diagnostics.get(manifest.diagnostics.joinToString { it.label }),
-				style = MaterialTheme.typography.bodyMedium,
-			)
-		}
-		if (manifest.limits.memory > PluginManifest.DEFAULT_MEMORY_MIB) {
-			Text(
-				text = Res.string.plugin_install_memory.get(manifest.limits.memory.toString()),
-				style = MaterialTheme.typography.bodyMedium,
-			)
+			Fact(Res.string.plugin_details_translations.get(), languageNames(translations))
 		}
 	}
 }
+
+@Composable
+private fun Fact(label: String, value: String) {
+	Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+		HdMonoLabel(text = label)
+		Text(value, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+	}
+}
+
+@Composable
+private fun PluginFeatures(manifest: PluginManifest) {
+	Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+		if (manifest.actions.isNotEmpty()) {
+			FeatureGroup(Icons.Outlined.TouchApp, Res.string.plugin_install_actions.get()) {
+				manifest.actions.forEach { action ->
+					Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+						Text(action.label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+						ActionPlace.entries.filter { it.id in action.places }.forEach { PlaceIcon(it) }
+					}
+				}
+			}
+		}
+		if (manifest.exporters.isNotEmpty()) {
+			FeatureGroup(Icons.Outlined.Output, Res.string.plugin_install_exports.get()) {
+				manifest.exporters.forEach { exporter ->
+					Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+						Text(exporter.label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+						HdMonoLabel(text = ".${exporter.extension}")
+					}
+				}
+			}
+		}
+		if (manifest.diagnostics.isNotEmpty()) {
+			FeatureGroup(Icons.Outlined.Spellcheck, Res.string.plugin_install_diagnostics.get()) {
+				manifest.diagnostics.forEach { Text(it.label, style = MaterialTheme.typography.bodyMedium) }
+			}
+		}
+		if (manifest.commands.isNotEmpty()) {
+			FeatureGroup(Icons.Outlined.Terminal, Res.string.plugin_install_commands.get()) {
+				manifest.commands.forEach { command ->
+					Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+						Text(
+							text = "hammer ${command.name}",
+							style = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
+						)
+						Text(
+							text = command.help,
+							style = MaterialTheme.typography.bodySmall,
+							color = MaterialTheme.colorScheme.onSurfaceVariant,
+						)
+					}
+				}
+			}
+		}
+	}
+}
+
+/** One kind of thing a plugin adds: its icon and name, and the plugin's items of that kind under them. */
+@Composable
+private fun FeatureGroup(icon: ImageVector, title: String, items: @Composable ColumnScope.() -> Unit) {
+	Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+		Icon(
+			imageVector = icon,
+			contentDescription = null,
+			tint = MaterialTheme.colorScheme.onSurfaceVariant,
+			modifier = Modifier.size(18.dp),
+		)
+		Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+			HdMonoLabel(text = title, modifier = Modifier.padding(top = 2.dp))
+			items()
+		}
+	}
+}
+
+/** The navigation icon of the screen whose menus show an action, named by its tooltip. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PlaceIcon(place: ActionPlace) {
+	val destination = place.destination()
+	val name = destination.text.get()
+	TooltipBox(
+		positionProvider = TooltipDefaults.rememberTooltipPositionProvider(),
+		tooltip = { PlainTooltip { Text(name) } },
+		state = rememberTooltipState(),
+	) {
+		Icon(
+			imageVector = getDestinationIcon(destination),
+			contentDescription = name,
+			tint = MaterialTheme.colorScheme.onSurfaceVariant,
+			modifier = Modifier.size(18.dp),
+		)
+	}
+}
+
+private fun ActionPlace.destination(): ProjectRoot.DestinationTypes = when (this) {
+	ActionPlace.Project -> ProjectRoot.DestinationTypes.Home
+	ActionPlace.Scene -> ProjectRoot.DestinationTypes.Editor
+	ActionPlace.Note -> ProjectRoot.DestinationTypes.Notes
+	ActionPlace.Entry -> ProjectRoot.DestinationTypes.Encyclopedia
+	ActionPlace.Event -> ProjectRoot.DestinationTypes.TimeLine
+}
+
+@Composable
+private fun PluginAccess(
+	manifest: PluginManifest,
+	permissions: List<String>,
+	operations: OperationRegistry,
+	settings: List<SettingDeclaration>,
+) {
+	var explaining by remember { mutableStateOf(false) }
+	DetailsBlock(
+		title = Res.string.plugin_install_access.get(),
+		trailing = {
+			Icon(
+				imageVector = Icons.Outlined.Info,
+				contentDescription = Res.string.plugin_install_sandbox_info.get(),
+				tint = if (explaining) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+				modifier = Modifier
+					.clickable { explaining = !explaining }
+					.padding(2.dp)
+					.size(16.dp),
+			)
+		},
+	) {
+		AnimatedVisibility(visible = explaining) {
+			Text(
+				text = Res.string.plugin_install_sandbox.get(),
+				style = MaterialTheme.typography.bodySmall,
+				color = MaterialTheme.colorScheme.onSurfaceVariant,
+			)
+		}
+
+		val grants = permissions.mapNotNull(OperationGrant::parse)
+		if (grants.isEmpty()) {
+			Text(Res.string.plugin_install_no_access.get(), style = MaterialTheme.typography.bodyMedium)
+		}
+		val byAccess = grants.groupBy { it.access(operations) }
+		val colors = LocalHammerColors.current
+		AccessLevel(
+			title = Res.string.plugin_install_reads.get(),
+			color = MaterialTheme.colorScheme.outlineVariant,
+			labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+			grants = byAccess[Access.Read].orEmpty(),
+		)
+		AccessLevel(
+			title = Res.string.plugin_install_writes.get(),
+			color = colors.warning,
+			grants = byAccess[Access.Write].orEmpty() + byAccess[null].orEmpty(),
+		)
+		AccessLevel(
+			title = Res.string.plugin_install_deletes.get(),
+			color = colors.danger,
+			grants = byAccess[Access.Destructive].orEmpty(),
+		)
+		val http = manifest.permissions.http
+		val userHosts = manifest.permissions.userHosts
+		if (http.isNotEmpty() || userHosts != null) {
+			AccessFrame(Res.string.plugin_install_http.get(), colors.danger) {
+				http.forEach { Text(it, style = MaterialTheme.typography.bodyMedium) }
+				userHosts?.let {
+					val label = { key: String -> settings.firstOrNull { it.key == key }?.label ?: key }
+					Text(
+						text = it.toggle?.let { toggle -> Res.string.plugin_install_user_hosts.get(label(toggle), label(it.setting)) }
+							?: Res.string.plugin_install_user_host.get(label(it.setting)),
+						style = MaterialTheme.typography.bodyMedium,
+					)
+				}
+			}
+		}
+	}
+}
+
+/**
+ * The grants of one [Access] level behind a marginalia rule in [color]. Named operations are grouped
+ * by what they act on, `scene` beside `create · rename · move`, so a long list stays scannable. A verb's
+ * own words, such as `references set`, are joined by no-break spaces so it never wraps in half.
+ */
+@Composable
+private fun AccessLevel(title: String, color: Color, grants: List<OperationGrant>, labelColor: Color = color) {
+	if (grants.isEmpty()) return
+	val scoped = grants.filterIsInstance<OperationGrant.Scoped>()
+	val named = grants.filterIsInstance<OperationGrant.Named>()
+		.groupBy({ it.name.substringBefore('.') }, { it.name.substringAfter('.').replace('.', '\u00A0') })
+	AccessFrame(title, color, labelColor) {
+		scoped.forEach { Text(it.label(), style = MaterialTheme.typography.bodyMedium) }
+		named.forEach { (subject, verbs) ->
+			Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+				HdMonoLabel(text = subject, modifier = Modifier.width(SUBJECT_WIDTH).padding(top = 3.dp))
+				Text(verbs.joinToString(" · "), style = MaterialTheme.typography.bodyMedium)
+			}
+		}
+	}
+}
+
+/** A titled run of access rows behind a marginalia rule in [color]. */
+@Composable
+private fun AccessFrame(title: String, color: Color, labelColor: Color = color, content: @Composable ColumnScope.() -> Unit) {
+	Row(Modifier.height(IntrinsicSize.Min)) {
+		Box(Modifier.width(2.dp).fillMaxHeight().background(color))
+		Column(
+			modifier = Modifier.padding(start = 12.dp),
+			verticalArrangement = Arrangement.spacedBy(6.dp),
+		) {
+			HdMonoLabel(text = title, color = labelColor)
+			content()
+		}
+	}
+}
+
+private val SUBJECT_WIDTH = 72.dp
 
 private fun languageNames(tags: Collection<String>): String =
 	tags.joinToString { Locale.forLanguageTag(it.replace('_', '-')).displayName() }
@@ -447,12 +674,21 @@ private fun DetailsDialog(plugin: InstalledPlugin?, operations: OperationRegistr
 			onClose = { requestDismiss() },
 			closeContentDescription = Res.string.plugin_details_close.get(),
 		) {
-			Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-				// Only what the manifest still asks for applies.
-				val permissions = installed.granted.filter { it in manifest.permissions.operations }
-				PluginDetails(manifest, installed.size, installed.translations, permissions, operations)
-				HdHairlineButton(label = Res.string.plugin_details_done.get(), onClick = { requestDismiss() })
-			}
+			// Only what the manifest still asks for applies.
+			val permissions = installed.granted.filter { it in manifest.permissions.operations }
+			PluginDetails(
+				manifest = manifest,
+				size = installed.size,
+				translations = installed.translations,
+				permissions = permissions,
+				operations = operations,
+				modifier = Modifier.weight(1f, fill = false),
+			)
+			HdHairlineButton(
+				label = Res.string.plugin_details_done.get(),
+				onClick = { requestDismiss() },
+				modifier = Modifier.padding(top = 20.dp),
+			)
 		}
 	}
 }
