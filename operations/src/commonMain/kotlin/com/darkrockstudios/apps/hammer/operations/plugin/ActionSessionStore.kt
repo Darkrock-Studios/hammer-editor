@@ -1,10 +1,14 @@
 package com.darkrockstudios.apps.hammer.operations.plugin
 
 import com.darkrockstudios.apps.hammer.base.ProjectId
+import com.darkrockstudios.apps.hammer.base.http.EntityType
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectIdChangeListener
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityIdChangeListener
 import com.darkrockstudios.apps.hammer.common.getConfigDirectory
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
@@ -40,6 +44,11 @@ class ActionSession(
 	val first: Boolean,
 	/** By field key, each the last value submitted; rich text as markdown. */
 	val answers: Map<String, ActionAnswer>,
+	/**
+	 * Whether sync has since given an item a new id that the page's `state` may hold by its old one, which
+	 * now names another item: the run is shown as entered rather than carried on, as for a changed plugin.
+	 */
+	val renumbered: Boolean = false,
 )
 
 /** A field's [label], and its [value] as submitted: a choice by its option's label, scenes by their names. */
@@ -61,8 +70,19 @@ class UnreadableSessionException(message: String, val setAside: Path?, cause: Th
 class ActionSessionStore(
 	private val fileSystem: FileSystem,
 	pluginsDirectory: Path = getConfigDirectory().toPath() / PluginSettingsDatasource.PLUGINS_DIRECTORY,
-) : ProjectIdChangeListener {
+) : ProjectIdChangeListener, EntityIdChangeListener {
 	private val directory = pluginsDirectory / SESSIONS_DIRECTORY
+
+	private val followers = MutableStateFlow<List<(EntityRenumbering) -> Unit>>(emptyList())
+
+	/**
+	 * Tells [follower] of each entity sync gives a new id, once the sessions kept here have followed it,
+	 * so runs open now can follow it too; on the thread syncing. Until the function returned is called.
+	 */
+	fun followRenumberings(follower: (EntityRenumbering) -> Unit): () -> Unit {
+		followers.update { it + follower }
+		return { followers.update { it - follower } }
+	}
 
 	/**
 	 * The session saved for [key], or null when there is none. Throws [UnreadableSessionException] for
@@ -87,7 +107,7 @@ class ActionSessionStore(
 			Napier.e(e) { "The page of the action session at $path cannot be read" }
 			null
 		}
-		return ActionSession(file.pluginVersion, page, file.values, file.first, file.answers)
+		return ActionSession(file.pluginVersion, page, file.values, file.first, file.answers, file.renumbered)
 	}
 
 	/** Throws [ActionSessionException] when it cannot be written, or is over [MAX_SESSION_BYTES] encoded. */
@@ -103,11 +123,21 @@ class ActionSessionStore(
 			page = session.page?.let { json.encodeToJsonElement(PageTable.serializer(), it.toPageTable()) } ?: JsonNull,
 			values = session.values,
 			answers = session.answers,
+			renumbered = session.renumbered,
 		)
 		val bytes = json.encodeToString(SessionFile.serializer(), file).encodeToByteArray()
 		if (bytes.size > MAX_SESSION_BYTES) {
 			throw ActionSessionException("The session for $key is ${bytes.size} bytes, over $MAX_SESSION_BYTES")
 		}
+		try {
+			write(path, bytes)
+		} catch (e: IOException) {
+			throw ActionSessionException("Could not save the session for $key", e)
+		}
+	}
+
+	/** Writes [bytes] to [path] by way of a staging file moved into place, so it is never left half written. */
+	private fun write(path: Path, bytes: ByteArray) {
 		val staging = path.parent!! / "${path.name}.tmp"
 		try {
 			fileSystem.createDirectories(path.parent!!)
@@ -119,7 +149,7 @@ class ActionSessionStore(
 			} catch (_: IOException) {
 				// The write failed already; that is what is reported.
 			}
-			throw ActionSessionException("Could not save the session for $key", e)
+			throw e
 		}
 	}
 
@@ -155,6 +185,60 @@ class ActionSessionStore(
 		}
 	}
 
+	/**
+	 * Follows the entity's new id in the project's sessions: one run from it is filed under the new id, and
+	 * its picks on a saved page are given the new id. One whose page's `state` may hold the old id is
+	 * marked [renumbered][ActionSession.renumbered]. Then [followRenumberings]' followers are told.
+	 */
+	override suspend fun onEntityIdChanged(projectDef: ProjectDef, type: EntityType, oldId: Int, newId: Int) {
+		val renumbering = EntityRenumbering(projectDef.id, type, oldId, newId)
+		if (SAFE_NAME.matches(projectDef.id.id) && fileSystem.exists(directory)) {
+			for (plugin in fileSystem.list(directory)) {
+				val sessions = plugin / projectDef.id.id
+				if (!fileSystem.exists(sessions)) continue
+				for (path in fileSystem.list(sessions).filter { it.name.endsWith(".json") }) {
+					try {
+						renumber(path, renumbering)
+					} catch (e: IOException) {
+						Napier.e(e) { "Could not follow $oldId becoming $newId in the action session at $path" }
+					}
+				}
+			}
+		}
+		followers.value.forEach { it(renumbering) }
+	}
+
+	private fun renumber(path: Path, renumbering: EntityRenumbering) {
+		val file = try {
+			json.decodeFromString(SessionFile.serializer(), fileSystem.read(path) { readUtf8() })
+		} catch (e: IllegalArgumentException) {
+			// One that cannot be read is set aside when its run is opened, and nothing is resumed from it.
+			Napier.w(e) { "The action session at $path cannot be read to follow an id sync changed" }
+			return
+		}
+		if (file.format != FORMAT) return
+		val place = ActionPlace.of(file.place) ?: return
+		val page = try {
+			(file.page as? JsonObject)?.let { json.decodeFromJsonElement(PageTable.serializer(), it).toActionPage() }
+		} catch (e: IllegalArgumentException) {
+			null
+		}
+		// Fields come back as they were when nothing in them changes, so the page is written afresh only when one did.
+		val renumberedPage = page?.let(renumbering::page)?.takeIf { it.fields != page.fields }
+		val updated = file.copy(
+			itemId = renumbering.itemId(place, file.itemId),
+			page = renumberedPage?.let { json.encodeToJsonElement(PageTable.serializer(), it.toPageTable()) } ?: file.page,
+			values = page?.let { renumbering.values(it.fields, file.values) } ?: file.values,
+			renumbered = file.renumbered || renumbering.mentioned((file.page as? JsonObject)?.get(STATE)),
+		)
+		if (updated == file) return
+		val target = path.parent!! / "${fileName(file.action, place, updated.itemId)}.json"
+		// A session left from an item since deleted, whose id was handed out again.
+		if (target != path && fileSystem.exists(target)) fileSystem.atomicMove(target, asidePath(target, SUPERSEDED))
+		write(target, json.encodeToString(SessionFile.serializer(), updated).encodeToByteArray())
+		if (target != path) fileSystem.delete(path, mustExist = false)
+	}
+
 	/** Null when a part of [key] is not safe as a file name. */
 	private fun sessionPath(key: ActionSessionKey): Path? {
 		val parts = listOf(key.pluginId, key.projectId.id, key.action)
@@ -162,14 +246,19 @@ class ActionSessionStore(
 			Napier.w { "No session can be kept for $key: not every part of it is a safe file name" }
 			return null
 		}
-		val name = listOfNotNull(key.action, key.place.id, key.itemId?.toString()).joinToString(".")
-		return directory / key.pluginId / key.projectId.id / "$name.json"
+		return directory / key.pluginId / key.projectId.id / "${fileName(key.action, key.place, key.itemId)}.json"
 	}
 
+	private fun fileName(action: String, place: ActionPlace, itemId: Int?) =
+		listOfNotNull(action, place.id, itemId?.toString()).joinToString(".")
+
+	/** `<name>.<suffix>`, or `-2`, `-3` and so on after it, whichever is free. */
+	private fun asidePath(path: Path, suffix: String): Path = generateSequence(1) { it + 1 }
+		.map { n -> path.parent!! / (if (n == 1) "${path.name}.$suffix" else "${path.name}.$suffix-$n") }
+		.first { !fileSystem.exists(it) }
+
 	private fun setAside(path: Path, e: Exception?): Nothing {
-		val aside = generateSequence(1) { it + 1 }
-			.map { n -> path.parent!! / (if (n == 1) "${path.name}.unreadable" else "${path.name}.unreadable-$n") }
-			.first { !fileSystem.exists(it) }
+		val aside = asidePath(path, UNREADABLE)
 		try {
 			fileSystem.atomicMove(path, aside)
 		} catch (moveFailed: IOException) {
@@ -181,7 +270,7 @@ class ActionSessionStore(
 	}
 
 	@Serializable
-	private class SessionFile(
+	private data class SessionFile(
 		val format: Int,
 		val pluginVersion: String?,
 		val action: String,
@@ -191,6 +280,7 @@ class ActionSessionStore(
 		val page: JsonElement,
 		val values: JsonObject,
 		val answers: Map<String, ActionAnswer>,
+		val renumbered: Boolean = false,
 	)
 
 	companion object {
@@ -201,6 +291,10 @@ class ActionSessionStore(
 
 		/** The file layout's version; a file in another is left unread. */
 		private const val FORMAT = 1
+
+		private const val UNREADABLE = "unreadable"
+		private const val SUPERSEDED = "superseded"
+		private const val STATE = "state"
 
 		private val SAFE_NAME = Regex("[A-Za-z0-9][A-Za-z0-9_-]*")
 		private val json = Json { ignoreUnknownKeys = true }

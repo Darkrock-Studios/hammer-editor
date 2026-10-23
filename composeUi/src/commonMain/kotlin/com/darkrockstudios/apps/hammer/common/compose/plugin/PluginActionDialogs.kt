@@ -73,6 +73,7 @@ import com.darkrockstudios.apps.hammer.common.projecthome.SceneSelector
 import com.darkrockstudios.apps.hammer.composeui.resources.Res
 import com.darkrockstudios.apps.hammer.composeui.resources.plugin_action_changed
 import com.darkrockstudios.apps.hammer.composeui.resources.plugin_action_changed_nothing
+import com.darkrockstudios.apps.hammer.composeui.resources.plugin_action_renumbered
 import com.darkrockstudios.apps.hammer.composeui.resources.plugin_action_entity_missing
 import com.darkrockstudios.apps.hammer.composeui.resources.plugin_action_entity_not_taken
 import com.darkrockstudios.apps.hammer.composeui.resources.plugin_action_no
@@ -160,7 +161,10 @@ fun PluginActionHost(
 	// The runner's scope ends with this composition, taking any save still waiting with it, so those
 	// are written here. Sessions are small, so blocking on them is brief.
 	DisposableEffect(runner) {
-		onDispose { runner.flush() }
+		onDispose {
+			runner.flush()
+			runner.close()
+		}
 	}
 	CompositionLocalProvider(LocalPluginActions provides runner, LocalDisabledPlugins provides disabledPlugins) {
 		content()
@@ -703,8 +707,9 @@ private fun SceneChooser(
 }
 
 /**
- * A kept run that another version of the plugin saved: what was entered in it, to copy or save as a
- * note, and Start afresh to clear it. Closing leaves it for next time.
+ * A run that cannot carry on, saved by another version of the plugin or holding an item sync renumbered:
+ * what was entered in it, to copy or save as a note, and Start afresh to clear it. Closing leaves it for
+ * next time.
  */
 @Composable
 private fun ChangedDialog(changed: ActionRunState.Changed?, runner: PluginActionRunner) {
@@ -725,7 +730,10 @@ private fun ChangedDialog(changed: ActionRunState.Changed?, runner: PluginAction
 						.padding(Ui.Padding.XL),
 					verticalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 				) {
-					Text(text = Res.string.plugin_action_changed.get(), style = MaterialTheme.typography.bodyMedium)
+					Text(
+						text = (if (current.renumbered) Res.string.plugin_action_renumbered else Res.string.plugin_action_changed).get(),
+						style = MaterialTheme.typography.bodyMedium,
+					)
 					if (markdown.isEmpty()) {
 						Text(text = Res.string.plugin_action_changed_nothing.get(), style = MaterialTheme.typography.bodyMedium)
 					} else {

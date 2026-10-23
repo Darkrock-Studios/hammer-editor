@@ -1765,6 +1765,17 @@ not lose it. Nothing asks "discard?", because nothing is discarded.
   sessions are copied to the new id. They are copied rather than moved, since
   a project copied on disk is given a new id while the original keeps the old.
   A session the new id already has is left as it is.
+- **A renumbered item.** Sync gives an item made on this device a new id when
+  the server has given its id to another ([Re-ID](SYNCING-PROTOCOL.md)), so
+  the old id then names that other item. Sessions follow the new id, through
+  `EntityIdChangeListener`: a run from the item is filed under it, and picks of
+  the item in `scenes` and `entity` fields take it, on saved pages and on a
+  page showing. A first page's remembered values follow too. A session already
+  filed under the new id, from a deleted item whose id was handed out again, is
+  moved aside to `<name>.json.superseded`. The host cannot rewrite `state`, so
+  a run whose page's `state` may hold the old id (a number equal to it, or a
+  string or key with it as a whole number) is not carried on: it is shown as
+  entered, as for a changed plugin, with Start afresh.
 - **Uninstalling** a plugin leaves its sessions, so installing it again brings
   them back.
 - **Not synced.** A half-filled form is this device's.

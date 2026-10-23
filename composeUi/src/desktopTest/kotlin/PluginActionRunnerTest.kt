@@ -3,6 +3,7 @@ import com.darkrockstudios.apps.hammer.common.compose.plugin.FieldError
 import com.darkrockstudios.apps.hammer.common.compose.plugin.PluginActionRunner
 import com.darkrockstudios.apps.hammer.common.compose.plugin.answersMarkdown
 import com.darkrockstudios.apps.hammer.common.compose.plugin.hostErrors
+import com.darkrockstudios.apps.hammer.base.http.EntityType
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogFilter
@@ -1245,6 +1246,73 @@ class PluginActionRunnerTest {
 		full = false
 		runner.flush()
 		assertEquals(JsonPrimitive("Mara"), saved?.values?.get("name"))
+	}
+
+	@Test
+	fun `a first page's remembered picks follow a scene sync renumbered`() = runTest {
+		val runner = runner()
+		val report = action(listOf(scenes)) { ActionReply() }
+		runner.start(report, ActionPlace.Project, null)
+		runner.change("scenes", JsonArray(listOf(JsonPrimitive(1), JsonPrimitive(2))))
+		runner.press(null)
+		advanceUntilIdle()
+
+		store.onEntityIdChanged(project, EntityType.Scene, 1, 30)
+		advanceUntilIdle()
+
+		runner.start(report, ActionPlace.Project, null)
+		assertEquals(JsonArray(listOf(JsonPrimitive(30), JsonPrimitive(2))), runner.page.values["scenes"])
+	}
+
+	@Test
+	fun `a kept run showing follows its item's new id, and is kept under it`() = runTest {
+		val runner = runner()
+		val action = kept {
+			ActionReply(ActionPage(title = "Who", fields = listOf(who), buttons = listOf(next), state = JsonObject(mapOf("step" to JsonPrimitive(1)))))
+		}
+		val fromAlice = key.copy(place = ActionPlace.Entry, itemId = 7)
+		runner.start(action, ActionPlace.Entry, 7)
+		advanceUntilIdle()
+		runner.change("who", alice.ref.toJson())
+		advanceUntilIdle()
+
+		store.onEntityIdChanged(project, EntityType.EncyclopediaEntry, 7, 50)
+		advanceUntilIdle()
+
+		val renumbered = CatalogRef(CatalogKind.Entry, 50).toJson()
+		assertEquals(renumbered, runner.page.values["who"])
+		assertNull(store.load(fromAlice))
+		assertEquals(renumbered, store.load(fromAlice.copy(itemId = 50))?.values?.get("who"))
+
+		runner.press(next.copyWithoutChecks())
+		advanceUntilIdle()
+		assertEquals(50, calls.last().itemId)
+		assertEquals(renumbered, calls.last().input["who"])
+	}
+
+	@Test
+	fun `a run whose state may hold its item's old id is shown as entered, then and when opened again`() = runTest {
+		val runner = runner()
+		val action = kept {
+			ActionReply(ActionPage(title = "Story", fields = listOf(story), buttons = listOf(next), state = JsonObject(mapOf("about" to JsonPrimitive(7)))))
+		}
+		runner.start(action, ActionPlace.Entry, 7)
+		advanceUntilIdle()
+		runner.change("story", JsonPrimitive("She *left*."))
+
+		store.onEntityIdChanged(project, EntityType.EncyclopediaEntry, 7, 50)
+		advanceUntilIdle()
+
+		val changed = assertIs<ActionRunState.Changed>(runner.state.value)
+		assertTrue(changed.renumbered)
+		assertEquals("**Story**\n\nShe *left*.", answersMarkdown(changed.answers.values, "Yes", "No"))
+
+		runner.dismiss()
+		val again = runner()
+		again.start(action, ActionPlace.Entry, 50)
+		advanceUntilIdle()
+		assertTrue(assertIs<ActionRunState.Changed>(again.state.value).renumbered)
+		assertEquals(1, calls.size)
 	}
 
 	private fun ActionButton.copyWithoutChecks() = ActionButton(id, label, primary, inline, validate = false)

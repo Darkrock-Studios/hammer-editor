@@ -39,6 +39,7 @@ import com.darkrockstudios.apps.hammer.operations.plugin.ActionSessionException
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionSessionKey
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionSessionStore
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionTarget
+import com.darkrockstudios.apps.hammer.operations.plugin.EntityRenumbering
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginAction
 import com.darkrockstudios.apps.hammer.operations.plugin.SettingDeclaration
 import com.darkrockstudios.apps.hammer.operations.plugin.UnreadableSessionException
@@ -73,7 +74,11 @@ import kotlin.coroutines.CoroutineContext
 import kotlin.time.Duration.Companion.milliseconds
 
 /** One run of an action, from opening it to its end: the action, and where it was started. */
-class ActionRun(val action: PluginAction, val place: ActionPlace, val itemId: Int?) {
+class ActionRun(val action: PluginAction, val place: ActionPlace, itemId: Int?) {
+	/** The item it was run from; sync may give it a new id part way through. */
+	var itemId: Int? = itemId
+		internal set
+
 	/** What was submitted on each field so far, by [answerKey], for a kept action; never sent to the plugin. */
 	internal var answers: Map<String, ActionAnswer> = emptyMap()
 
@@ -121,13 +126,15 @@ sealed interface ActionRunState {
 	) : ActionRunState
 
 	/**
-	 * A kept run saved by another version of the plugin, which may not understand its state: the
-	 * [answers] entered in it, to copy or save before starting afresh.
+	 * A run that cannot carry on, since its state may mean nothing now: the [answers] entered in it, to
+	 * copy or save before starting afresh. Another version of the plugin saved it, or, when
+	 * [renumbered], sync gave an item a new id that its state may hold by the old one.
 	 */
 	data class Changed(
 		override val run: ActionRun,
 		val answers: Map<String, ActionAnswer>,
 		val saving: Boolean = false,
+		val renumbered: Boolean = false,
 	) : ActionRunState
 
 	/** A call in progress, made from the page [from] if there was one, which an `errors` reply goes back to. */
@@ -177,7 +184,9 @@ class PluginActionRunner(
 	private var checking: Job? = null
 
 	// First pages' values, for actions that are not kept; a kept one's whole run is saved instead.
-	private val remembered = mutableMapOf<String, JsonObject>()
+	private val remembered = mutableMapOf<String, Remembered>()
+
+	private class Remembered(val fields: List<ActionField>, val values: JsonObject)
 	private var job: Job? = null
 	private var stop: Stop? = null
 
@@ -188,6 +197,10 @@ class PluginActionRunner(
 
 	// A kept action's saved run being read, during which another cannot start.
 	private var opening = false
+
+	private val unfollow = sessions.followRenumberings { renumbering ->
+		if (renumbering.projectId == project.id) scope.launch { renumbered(renumbering) }
+	}
 
 	fun start(action: PluginAction, place: ActionPlace, itemId: Int?) {
 		when (_state.value) {
@@ -242,6 +255,9 @@ class PluginActionRunner(
 		writer.flush()
 	}
 
+	/** Stops following sync's new ids, for when the host leaves. */
+	fun close() = unfollow()
+
 	private fun begin(run: ActionRun) {
 		val action = run.action
 		if (action.fields.isEmpty()) {
@@ -260,10 +276,10 @@ class PluginActionRunner(
 		when {
 			saved == null -> begin(run)
 			// Its state may mean nothing to the module now, so it is not called with it.
-			page == null || saved.pluginVersion != run.action.pluginVersion -> {
+			page == null || saved.pluginVersion != run.action.pluginVersion || saved.renumbered -> {
 				// What is on the page replaces what was submitted to the same question, unless it is blank.
 				val onPage = page?.let { answersOf(it.fields, saved.values, items) }.orEmpty().filterValues { !it.value.isBlankText }
-				_state.value = ActionRunState.Changed(run, saved.answers + onPage)
+				_state.value = ActionRunState.Changed(run, saved.answers + onPage, renumbered = saved.renumbered)
 			}
 			else -> {
 				run.answers = saved.answers
@@ -337,7 +353,7 @@ class PluginActionRunner(
 		if (run.action.keep) {
 			run.answers += answersOf(page.page.fields, page.values)
 		} else if (page.first) {
-			remembered[run.action.key] = page.values
+			remembered[run.action.key] = Remembered(page.page.fields, page.values)
 		}
 		call(run, from = page, button = button?.id)
 		keep()
@@ -589,6 +605,41 @@ class PluginActionRunner(
 		writer.save(run, key(run), ActionSession(run.action.pluginVersion, page.page, page.values, page.first, run.answers))
 	}
 
+	/**
+	 * Follows sync giving an item a new id: in first pages' remembered values, and in the run showing,
+	 * whose kept session the store has followed already. A page whose state may hold the item by its old
+	 * id, which now names another, is not carried on but shown as entered. A call in progress is left to
+	 * answer as it will.
+	 */
+	private fun renumbered(renumbering: EntityRenumbering) {
+		remembered.entries.forEach { it.setValue(Remembered(it.value.fields, renumbering.values(it.value.fields, it.value.values))) }
+		val shown = shownPage() ?: return
+		val run = shown.run
+		val itemId = renumbering.itemId(run.place, run.itemId)
+		if (itemId != run.itemId) {
+			// A save of it still waiting would put it back under the old id, which is now another item's.
+			if (run.action.keep) writer.remove(run, key(run))
+			run.itemId = itemId
+		}
+		val page = shown.copy(page = renumbering.page(shown.page), values = renumbering.values(shown.page.fields, shown.values))
+		when (val state = _state.value) {
+			is ActionRunState.Page -> if (renumbering.mentioned(page.page.state)) {
+				val onPage = answersOf(page.page.fields, page.values).filterValues { !it.value.isBlankText }
+				_state.value = ActionRunState.Changed(run, run.answers + onPage, renumbered = true)
+				if (run.action.keep) {
+					writer.save(run, key(run), ActionSession(run.action.pluginVersion, page.page, page.values, page.first, run.answers, renumbered = true))
+				}
+				return
+			} else {
+				_state.value = page
+			}
+
+			is ActionRunState.Working -> _state.value = state.copy(from = page)
+			is ActionRunState.Changed, null -> Unit
+		}
+		keep()
+	}
+
 	/** Removes a kept [run], which has ended. */
 	private fun forget(run: ActionRun) {
 		saveSoon?.cancel()
@@ -640,7 +691,7 @@ class PluginActionRunner(
 
 	/** The first page's values: the last ones given it, where its fields still accept them, otherwise the defaults. */
 	private fun firstValues(action: PluginAction): JsonObject {
-		val last = remembered[action.key]?.takeUnless { action.keep }
+		val last = remembered[action.key]?.takeUnless { action.keep }?.values
 		return JsonObject(
 			action.fields.associate { field ->
 				field.key to (last?.get(field.key)?.takeIf { field.accepts(it) } ?: field.default)

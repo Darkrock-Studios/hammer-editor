@@ -1,6 +1,7 @@
 package plugin
 
 import com.darkrockstudios.apps.hammer.base.ProjectId
+import com.darkrockstudios.apps.hammer.base.http.EntityType
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogFilter
 import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogKind
@@ -16,10 +17,12 @@ import com.darkrockstudios.apps.hammer.operations.plugin.ActionSession
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionSessionException
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionSessionKey
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionSessionStore
+import com.darkrockstudios.apps.hammer.operations.plugin.EntityRenumbering
 import com.darkrockstudios.apps.hammer.operations.plugin.FieldTable
 import com.darkrockstudios.apps.hammer.operations.plugin.SettingDeclaration
 import com.darkrockstudios.apps.hammer.operations.plugin.TextFormat
 import com.darkrockstudios.apps.hammer.operations.plugin.UnreadableSessionException
+import com.darkrockstudios.apps.hammer.operations.plugin.toJson
 import com.darkrockstudios.apps.hammer.operations.plugin.toFieldTable
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.JsonArray
@@ -264,6 +267,109 @@ class ActionSessionStoreTest {
 			listOf("interview.entry.12.json", "interview.project.json"),
 			fileSystem.list(pluginsDir / "_sessions" / "people" / newId.id).map { it.name }.sorted(),
 		)
+	}
+
+	private val storm = ProjectDef(project, "Storm", HPath("/projects/Storm", "Storm", false))
+
+	private fun picks(vararg refs: CatalogRef) = JsonArray(refs.map { it.toJson() })
+
+	@Test
+	fun `a run from an item sync renumbered is kept under its new id, picks and all`() = runTest {
+		val fromEntry = key.copy(place = ActionPlace.Entry, itemId = 12)
+		val values = JsonObject(
+			mapOf(
+				"who" to CatalogRef(CatalogKind.Entry, 12).toJson(),
+				"where" to picks(CatalogRef(CatalogKind.Note, 12), CatalogRef(CatalogKind.Entry, 12), CatalogRef(CatalogKind.Entry, 5)),
+				"more" to JsonArray(listOf(JsonPrimitive(12), JsonPrimitive(3))),
+				"age" to JsonPrimitive(12),
+			)
+		)
+		store.save(fromEntry, ActionSession("1.2.0", page, values, first = false, answers = emptyMap()))
+
+		store.onEntityIdChanged(storm, EntityType.EncyclopediaEntry, 12, 40)
+
+		assertNull(store.load(fromEntry))
+		val moved = assertNotNull(store.load(fromEntry.copy(itemId = 40)))
+		assertEquals(false, moved.renumbered)
+		assertEquals(CatalogRef(CatalogKind.Entry, 40).toJson(), moved.values["who"])
+		// Only entries are renumbered: a note and a scene with the same number are other items.
+		assertEquals(picks(CatalogRef(CatalogKind.Note, 12), CatalogRef(CatalogKind.Entry, 40), CatalogRef(CatalogKind.Entry, 5)), moved.values["where"])
+		assertEquals(values["more"], moved.values["more"])
+		assertEquals(JsonPrimitive(12), moved.values["age"])
+		val who = assertIs<ActionField.Entity>(assertNotNull(moved.page).fields.single { it.key == "who" })
+		assertEquals(listOf(CatalogRef(CatalogKind.Entry, 40)), who.defaultRefs)
+		assertEquals(listOf("interview.entry.40.json"), fileSystem.list(sessionDir).map { it.name })
+	}
+
+	@Test
+	fun `a renumbered scene is renumbered in scenes fields`() = runTest {
+		val values = JsonObject(mapOf("more" to JsonArray(listOf(JsonPrimitive(12), JsonPrimitive(3))), "scenes" to JsonPrimitive(3)))
+		store.save(key, ActionSession("1.2.0", page, values, first = false, answers = emptyMap()))
+
+		store.onEntityIdChanged(storm, EntityType.Scene, 3, 41)
+
+		val loaded = assertNotNull(store.load(key))
+		assertEquals(JsonArray(listOf(JsonPrimitive(12), JsonPrimitive(41))), loaded.values["more"])
+		assertEquals(JsonPrimitive(41), loaded.values["scenes"])
+		assertEquals(listOf(41), assertIs<ActionField.Scenes>(assertNotNull(loaded.page).fields.single { it.key == "scenes" }).defaultIds)
+	}
+
+	@Test
+	fun `a run whose state may hold the old id is marked, so it is not carried on`() = runTest {
+		val byNumber = key.copy(action = "number")
+		val inText = key.copy(action = "text")
+		val longer = key.copy(action = "longer")
+		fun withState(vararg state: Pair<String, JsonPrimitive>) = session(page = ActionPage(fields = fields, state = JsonObject(state.toMap())))
+		store.save(byNumber, withState("entry" to JsonPrimitive(12)))
+		store.save(inText, withState("button" to JsonPrimitive("open:12")))
+		store.save(longer, withState("count" to JsonPrimitive(120), "label" to JsonPrimitive("open:112")))
+
+		store.onEntityIdChanged(storm, EntityType.SceneDraft, 12, 40)
+
+		assertEquals(true, store.load(byNumber)?.renumbered)
+		assertEquals(true, store.load(inText)?.renumbered)
+		assertEquals(false, store.load(longer)?.renumbered)
+	}
+
+	@Test
+	fun `other projects and runs from other kinds of item are left as they are`() = runTest {
+		val other = ProjectId("00000000-0000-4000-8000-000000000009")
+		val elsewhere = key.copy(projectId = other, place = ActionPlace.Entry, itemId = 12)
+		val fromNote = key.copy(place = ActionPlace.Note, itemId = 12)
+		store.save(elsewhere, session())
+		store.save(fromNote, session(page = ActionPage(markdown = "Nothing picked here.")))
+		val before = fileSystem.read(sessionDir / "interview.note.12.json") { readUtf8() }
+
+		store.onEntityIdChanged(storm, EntityType.EncyclopediaEntry, 12, 40)
+
+		assertNotNull(store.load(elsewhere))
+		assertEquals(before, fileSystem.read(sessionDir / "interview.note.12.json") { readUtf8() })
+	}
+
+	@Test
+	fun `a session left under the new id is set aside, not written over`() = runTest {
+		val fromEntry = key.copy(place = ActionPlace.Entry, itemId = 12)
+		store.save(fromEntry, session())
+		store.save(fromEntry.copy(itemId = 40), session(version = "0.1.0"))
+
+		store.onEntityIdChanged(storm, EntityType.EncyclopediaEntry, 12, 40)
+
+		assertEquals("1.2.0", store.load(fromEntry.copy(itemId = 40))?.pluginVersion)
+		assertTrue(fileSystem.exists(sessionDir / "interview.entry.40.json.superseded"))
+	}
+
+	@Test
+	fun `followers are told once the sessions have followed, until they stop`() = runTest {
+		val fromEntry = key.copy(place = ActionPlace.Entry, itemId = 12)
+		store.save(fromEntry, session())
+		val told = mutableListOf<EntityRenumbering>()
+		val unfollow = store.followRenumberings { told += it; assertNotNull(store.load(fromEntry.copy(itemId = 40))) }
+
+		store.onEntityIdChanged(storm, EntityType.EncyclopediaEntry, 12, 40)
+		unfollow()
+		store.onEntityIdChanged(storm, EntityType.EncyclopediaEntry, 13, 41)
+
+		assertEquals(listOf(EntityRenumbering(project, EntityType.EncyclopediaEntry, 12, 40)), told)
 	}
 
 	private fun FieldTable.describe() =

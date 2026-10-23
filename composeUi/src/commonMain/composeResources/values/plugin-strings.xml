@@ -86,6 +86,7 @@
 	<string name="plugin_action_start_over_message">This clears everything entered so far and starts from the beginning.</string>
 	<string name="plugin_action_start_over_cancel">Keep going</string>
 	<string name="plugin_action_changed">The plugin has changed since you began this, so it cannot carry on from where you were. What you entered is below to copy or save as a note.</string>
+	<string name="plugin_action_renumbered">Syncing gave something this was using a new number, so it cannot carry on from where you were. What you entered is below to copy or save as a note.</string>
 	<string name="plugin_action_changed_nothing">Nothing was entered.</string>
 	<string name="plugin_action_start_afresh">Start afresh</string>
 	<string name="plugin_action_start_afresh_title">Start afresh?</string>

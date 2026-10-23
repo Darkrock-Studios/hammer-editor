@@ -20,8 +20,6 @@ Tracked as [Multi step action plugins](https://trello.com/c/U3EaC0cr/271-multi-s
   field as it changes.
 - [Sci-fi names as one action](#sci-fi-names-as-one-action), in place of
   three.
-- What to do when [sync renumbers entities](#sync-renumbers-entities):
-  decided later.
 - [The format bar's entity link](#the-format-bars-entity-link), sharing the
   entity picker.
 - [A durable plugin data store](#a-durable-plugin-data-store), on the roadmap
@@ -70,21 +68,6 @@ replies with a page of the plugin's own, which has no Run, so it carries its
 own button to generate, and the host remembers only the manifest page's
 values for the next run. The plugin's tests follow the action's new name.
 
-## Sync renumbers entities
-
-A session holding an entity's id has the problem the format bar's
-[`hammer://entity/<id>` links](#the-format-bars-entity-link) will have when
-sync renumbers an entity. A `scenes` field's value has it, and so does an
-`entity` field's `{"kind", "id"}`. A kept run's answers do not, since they
-record scenes and entities by name. The host can rewrite field values, but not
-`state`, which it never reads, nor what an id means to the plugin. A session's
-file name holds the id of the item the action was run from, too, so a
-renumbered item would lose its session. First meeting keeps no session, so it
-is not touched.
-
-Decide later whether a re-id ends the sessions it touches, or the plugin is
-told of it.
-
 ## The format bar's entity link
 
 Tracked in [Format bar: link to an encyclopedia entity](https://trello.com/c/IVuexeKY/266-format-bar-link-to-an-encyclopedia-entity).
@@ -93,7 +76,9 @@ type-to-search an `entity` field has. `EntityPickerDialog`, in `composeUi`'s
 `compose/entitypicker/`, is not tied to plugins: it takes the project's items,
 a filter, and what is picked, and reports picks, so the link can open it on
 entries and set `hammer://entity/<id>` on the selection for the one picked.
-The link gets a plan of its own.
+Sync can renumber an entry made on this device, so a link to one must follow
+its new id, as action sessions do through `EntityIdChangeListener`. The link
+gets a plan of its own.
 
 ## A durable plugin data store
 

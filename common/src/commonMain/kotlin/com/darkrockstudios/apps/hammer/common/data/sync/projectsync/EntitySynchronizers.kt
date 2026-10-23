@@ -8,8 +8,9 @@ import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.*
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.CancellationException
 
-class EntitySynchronizers(projectDef: ProjectDef) : ProjectScoped {
+class EntitySynchronizers(private val projectDef: ProjectDef) : ProjectScoped {
 
 	override val projectScope = ProjectDefScope(projectDef)
 
@@ -87,6 +88,21 @@ class EntitySynchronizers(projectDef: ProjectDef) : ProjectScoped {
 			)
 
 			EntityType.SceneDraft -> sceneDraftSynchronizer.reIdEntity(oldId = oldId, newId = newId)
+		}
+		notifyEntityIdChanged(type, oldId, newId)
+	}
+
+	// The entity has its new id already, so a failing listener must not fail the sync.
+	@Suppress("TooGenericExceptionCaught")
+	private suspend fun notifyEntityIdChanged(type: EntityType, oldId: Int, newId: Int) {
+		getKoin().getAll<EntityIdChangeListener>().forEach { listener ->
+			try {
+				listener.onEntityIdChanged(projectDef, type, oldId, newId)
+			} catch (e: CancellationException) {
+				throw e
+			} catch (e: Exception) {
+				Napier.e("Entity id change listener failed for $oldId to $newId", e)
+			}
 		}
 	}
 

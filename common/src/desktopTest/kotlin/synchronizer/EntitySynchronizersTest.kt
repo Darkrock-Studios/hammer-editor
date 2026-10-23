@@ -3,6 +3,7 @@ package synchronizer
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.EntityType
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityIdChangeListener
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntitySynchronizers
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import getProjectDef
@@ -14,6 +15,8 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.koin.core.context.loadKoinModules
+import org.koin.core.qualifier.named
 import org.koin.dsl.module
 import utils.BaseTest
 import kotlin.test.assertEquals
@@ -137,6 +140,25 @@ class EntitySynchronizersTest : BaseTest() {
 		cases.forEach { (sync, id) ->
 			coVerify(exactly = 1) { sync.reIdEntity(oldId = id, newId = id + 100) }
 		}
+	}
+
+	@Test
+	fun `reIdEntry tells every listener bound in Koin, even when one fails, and not for a phantom id`() = runTest {
+		val told = mutableListOf<List<Any>>()
+		loadKoinModules(module {
+			single<EntityIdChangeListener>(named("failing")) { EntityIdChangeListener { _, _, _, _ -> error("boom") } }
+			single<EntityIdChangeListener>(named("recording")) {
+				EntityIdChangeListener { project, type, oldId, newId -> told += listOf(project, type, oldId, newId) }
+			}
+		})
+		coEvery { mocks.encyclopediaSynchronizer.ownsEntity(4) } returns true
+
+		val es = entitySynchronizers()
+		es.reIdEntry(oldId = 4, newId = 104)
+		es.reIdEntry(oldId = 404, newId = 9)
+
+		assertEquals(listOf(listOf<Any>(projectDef, EntityType.EncyclopediaEntry, 4, 104)), told)
+		coVerify(exactly = 1) { mocks.encyclopediaSynchronizer.reIdEntity(oldId = 4, newId = 104) }
 	}
 
 	@Test
