@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource
 
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.AuthTokenStore.Companion.accountKey
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.AuthTokenDatasource.Companion.accountKey
 import com.russhwolf.settings.ExperimentalSettingsImplementation
 import com.russhwolf.settings.KeychainSettings
 import com.russhwolf.settings.Settings
@@ -10,16 +10,16 @@ import kotlinx.atomicfu.locks.withLock
 import kotlinx.serialization.json.Json
 
 /**
- * iOS [AuthTokenStore] backed by the Keychain. The account-keyed token map is
+ * iOS [AuthTokenDatasource] backed by the Keychain. The account-keyed token map is
  * serialized to JSON and stored as a single `kSecClassGenericPassword` item, so
  * the tokens are encrypted at rest by the OS (Secure Enclave / device passcode)
  * rather than sitting in a plaintext file in the app sandbox.
  */
 @OptIn(ExperimentalSettingsImplementation::class)
-class KeychainAuthTokenStore(
+class KeychainAuthTokenDatasource(
 	private val json: Json,
 	private val keychain: Settings = KeychainSettings(service = KEYCHAIN_SERVICE),
-) : AuthTokenStore {
+) : AuthTokenDatasource {
 
 	private val lock = reentrantLock()
 

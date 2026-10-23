@@ -1,21 +1,14 @@
 package repositories.globalsettings
 
 import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
-import com.darkrockstudios.apps.hammer.base.http.writeJson
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.AuthTokenStore
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.AuthTokens
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.FileAuthTokenStore
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.PersistedServerSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.ServerSettingsDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.ServerSettingsFilesystemDatasource
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.toPersisted
-import com.darkrockstudios.apps.hammer.common.fileio.okio.isWithin
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import okio.fakefilesystem.FakeFileSystem
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
@@ -27,7 +20,6 @@ import kotlin.test.assertNull
 class ServerSettingsDatasourceTest : BaseTest() {
 	private lateinit var fileSystem: FakeFileSystem
 	private lateinit var json: Json
-	private lateinit var authTokenStore: AuthTokenStore
 
 	@BeforeEach
 	override fun setup() {
@@ -35,29 +27,16 @@ class ServerSettingsDatasourceTest : BaseTest() {
 
 		fileSystem = FakeFileSystem()
 		json = createJsonSerializer()
-		authTokenStore = FileAuthTokenStore(fileSystem, json)
-	}
-
-	@AfterEach
-	fun cleanup() {
-		fileSystem.delete(FileAuthTokenStore.FILE_PATH, mustExist = false)
 	}
 
 	private fun createDatasource(): ServerSettingsDatasource {
-		return ServerSettingsFilesystemDatasource(
-			fileSystem,
-			json,
-			authTokenStore,
-		)
+		return ServerSettingsFilesystemDatasource(fileSystem, json)
 	}
 
-	private fun createConfig() = ServerSettings(
-		ssl = true,
+	private fun createAccount() = PersistedServerSettings(
 		url = "hammer.ink",
 		email = "test@example.com",
 		userId = 1,
-		bearerToken = "zxc456",
-		refreshToken = "bnm789",
 	)
 
 	private fun projectsDirPath() = fileSystem.workingDirectory / "HammerProjects"
@@ -67,7 +46,10 @@ class ServerSettingsDatasourceTest : BaseTest() {
 
 	private fun projectsDir() = projectsDirPath().toHPath()
 
-	private fun readServerJson(): String = fileSystem.read(configPath().toOkioPath()) { readUtf8() }
+	private fun writeServerJson(text: String) {
+		fileSystem.createDirectories(projectsDirPath())
+		fileSystem.write(configPath().toOkioPath()) { writeUtf8(text) }
+	}
 
 	@Test
 	fun `Load Server Settings when none exists`() = runTest {
@@ -78,20 +60,19 @@ class ServerSettingsDatasourceTest : BaseTest() {
 	}
 
 	@Test
-	fun `Store then reload round-trips tokens via the store`() = runTest {
+	fun `Store then reload round-trips the account`() = runTest {
 		val datasource = createDatasource()
-		val serverConfig = createConfig()
+		val account = createAccount()
 
-		datasource.storeServerSettings(serverConfig, projectsDir())
+		datasource.storeServerSettings(account, projectsDir())
 
-		val loaded = datasource.loadServerSettings(projectsDir())
-		assertEquals(serverConfig, loaded)
+		assertEquals(account, datasource.loadServerSettings(projectsDir()))
 	}
 
 	@Test
 	fun `A plaintext server round-trips as plaintext`() = runTest {
 		val datasource = createDatasource()
-		val plaintext = createConfig().copy(ssl = false, url = "192.168.1.50:8080")
+		val plaintext = createAccount().copy(url = "192.168.1.50:8080", plaintext = true)
 
 		datasource.storeServerSettings(plaintext, projectsDir())
 
@@ -100,101 +81,20 @@ class ServerSettingsDatasourceTest : BaseTest() {
 
 	@Test
 	fun `A server json written before plaintext support loads as https`() = runTest {
-		fileSystem.createDirectories(projectsDirPath())
-		fileSystem.write(configPath().toOkioPath()) {
-			writeUtf8("""{"url":"hammer.ink","email":"test@example.com","userId":1}""")
-		}
+		writeServerJson("""{"url":"hammer.ink","email":"test@example.com","userId":1}""")
 
 		val loaded = createDatasource().loadServerSettings(projectsDir())
 
-		assertTrue(loaded!!.ssl)
+		assertFalse(loaded!!.plaintext)
 	}
 
 	@Test
 	fun `A legacy ssl false key still loads as https`() = runTest {
-		fileSystem.createDirectories(projectsDirPath())
-		fileSystem.write(configPath().toOkioPath()) {
-			writeUtf8("""{"ssl":false,"url":"hammer.ink","email":"test@example.com","userId":1}""")
-		}
+		writeServerJson("""{"ssl":false,"url":"hammer.ink","email":"test@example.com","userId":1}""")
 
 		val loaded = createDatasource().loadServerSettings(projectsDir())
 
-		assertTrue(loaded!!.ssl)
-	}
-
-	@Test
-	fun `Stored server json contains no tokens`() = runTest {
-		val datasource = createDatasource()
-
-		datasource.storeServerSettings(createConfig(), projectsDir())
-
-		val jsonStr = readServerJson()
-		assertFalse(jsonStr.contains("bearerToken"))
-		assertFalse(jsonStr.contains("refreshToken"))
-		assertFalse(jsonStr.contains("zxc456"))
-		assertFalse(jsonStr.contains("bnm789"))
-	}
-
-	@Test
-	fun `Tokens are retrievable from the store keyed by account`() = runTest {
-		val datasource = createDatasource()
-		val config = createConfig()
-
-		datasource.storeServerSettings(config, projectsDir())
-
-		val tokens = authTokenStore.get(config.url, config.userId)
-		assertEquals(AuthTokens(config.bearerToken, config.refreshToken), tokens)
-	}
-
-	@Test
-	fun `A different account returns no tokens`() = runTest {
-		val datasource = createDatasource()
-		val config = createConfig()
-
-		datasource.storeServerSettings(config, projectsDir())
-
-		assertNull(authTokenStore.get("other.example.com", config.userId))
-		assertNull(authTokenStore.get(config.url, 999L))
-	}
-
-	@Test
-	fun `Token store file lives in the config directory, not projects dir`() = runTest {
-		val datasource = createDatasource()
-
-		datasource.storeServerSettings(createConfig(), projectsDir())
-
-		assertTrue(fileSystem.exists(FileAuthTokenStore.FILE_PATH))
-		assertFalse(FileAuthTokenStore.FILE_PATH.isWithin(projectsDir().toOkioPath()))
-	}
-
-	@Test
-	fun `Loading legacy server json ignores inline tokens and reads from the store`() = runTest {
-		val legacy = createConfig()
-		fileSystem.createDirectories(projectsDir().toOkioPath())
-		fileSystem.writeJson(configPath().toOkioPath(), json, legacy)
-
-		// Precondition: the seeded file really does carry the inline tokens.
-		assertTrue(readServerJson().contains("zxc456"))
-
-		val datasource = createDatasource()
-		val loaded = datasource.loadServerSettings(projectsDir())
-
-		// Loading is a pure store-read: inline tokens are ignored and the file is left untouched.
-		assertEquals(legacy.copy(bearerToken = null, refreshToken = null), loaded)
-		assertNull(authTokenStore.get(legacy.url, legacy.userId))
-		assertTrue(readServerJson().contains("zxc456"))
-	}
-
-	@Test
-	fun `Loading server json when the store has no tokens yields null tokens`() = runTest {
-		val tokenless = createConfig().copy(bearerToken = null, refreshToken = null)
-		fileSystem.createDirectories(projectsDir().toOkioPath())
-		fileSystem.writeJson(configPath().toOkioPath(), json, tokenless.toPersisted())
-
-		val datasource = createDatasource()
-		val loaded = datasource.loadServerSettings(projectsDir())
-
-		assertEquals(tokenless, loaded)
+		assertFalse(loaded!!.plaintext)
 	}
 
 	@Test
@@ -210,7 +110,7 @@ class ServerSettingsDatasourceTest : BaseTest() {
 	fun `Check if Server is setup when one is`() = runTest {
 		val datasource = createDatasource()
 
-		datasource.storeServerSettings(createConfig(), projectsDir())
+		datasource.storeServerSettings(createAccount(), projectsDir())
 
 		val isSetup = datasource.serverIsSetup(projectsDir())
 
@@ -218,26 +118,21 @@ class ServerSettingsDatasourceTest : BaseTest() {
 	}
 
 	@Test
-	fun `Remove Server Settings clears the account tokens from the store`() = runTest {
+	fun `Remove Server Settings deletes the file and returns the account`() = runTest {
 		val datasource = createDatasource()
-		val config = createConfig()
+		val account = createAccount()
 
-		datasource.storeServerSettings(config, projectsDir())
-		assertEquals(
-			AuthTokens(config.bearerToken, config.refreshToken),
-			authTokenStore.get(config.url, config.userId),
-		)
+		datasource.storeServerSettings(account, projectsDir())
 
-		datasource.removeServerSettings(projectsDir())
-
+		assertEquals(account, datasource.removeServerSettings(projectsDir()))
 		assertFalse(fileSystem.exists(configPath().toOkioPath()))
-		assertNull(authTokenStore.get(config.url, config.userId))
 	}
 
 	@Test
 	fun `Remove Server Settings when none exists`() = runTest {
 		val datasource = createDatasource()
-		datasource.removeServerSettings(projectsDir())
+
+		assertNull(datasource.removeServerSettings(projectsDir()))
 		assertFalse(fileSystem.exists(configPath().toOkioPath()))
 	}
 }

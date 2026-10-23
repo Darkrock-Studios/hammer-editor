@@ -42,9 +42,6 @@ class ServerLayerTest {
 	fun `repositories never reference other repositories`() = assertNoViolations(
 		"A server Repository may not reference another Repository",
 		dependencies.filter { isRepository(it.owner) && isRepository(it.target) },
-		baseline = setOf(
-			"ProjectsRepository -> ServerProjectDataRepository",
-		),
 	)
 
 	// Route handlers are extension functions on Route, in files of any name. The whole file is
@@ -61,11 +58,5 @@ class ServerLayerTest {
 					.distinct()
 					.map { Dependency(file.name, it, lazy = false) }
 			},
-		baseline = setOf(
-			"Frontend -> ProjectDao",
-			"PublicStoryPage -> ProjectDao",
-			"ReviewFrontend -> ProjectDao",
-			"StoryPage -> ProjectDao",
-		),
 	)
 }

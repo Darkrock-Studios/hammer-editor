@@ -17,6 +17,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.InitialProject
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupService
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
+import com.darkrockstudios.apps.hammer.common.data.projectstatistics.ProjectStatisticsUseCase
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsService
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataConflictBroker
 import com.darkrockstudios.apps.hammer.common.data.protocolmismatch.ProtocolMismatchRepository
@@ -132,6 +133,7 @@ class ProjectRootComponentTest : ComponentTest() {
 				scoped<SearchProjectUseCase> { mockk(relaxed = true) }
 				scoped { projectSynchronizer }
 				scoped { statisticsService }
+				scoped<ProjectStatisticsUseCase> { mockk(relaxed = true) }
 				scoped<ExportStoryUseCase> { mockk(relaxed = true) }
 				scoped { notesRepository }
 				scoped { timeLineRepository }

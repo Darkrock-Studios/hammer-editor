@@ -6,7 +6,7 @@ import net.peanuuutz.tomlkt.TomlLiteralString
 
 /**
  * Tokenless persisted form of [ServerSettings] written to the per-workspace
- * `server.json`. The secret token fields live in [AuthTokenStore] instead.
+ * `server.json`. The secret token fields live in [AuthTokenDatasource] instead.
  *
  * Thar be dragons: the scheme is stored as [plaintext], never under an `ssl` key. Files from before
  * clients went HTTPS-only can still hold `ssl: false`, which was never chosen through the http://

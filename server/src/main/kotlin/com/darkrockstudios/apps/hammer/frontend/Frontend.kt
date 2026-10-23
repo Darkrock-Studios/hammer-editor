@@ -101,7 +101,6 @@ fun Route.frontend() {
 	val requestPasswordReset: RequestPasswordResetUseCase by inject()
 	val markdownRenderer: MarkdownRenderer by inject()
 	val reviewRepository: com.darkrockstudios.apps.hammer.review.ReviewRepository by inject()
-	val projectDao: com.darkrockstudios.apps.hammer.database.ProjectDao by inject()
 	val metricsRepository: MetricsRepository by inject()
 	val errorRepository: ErrorRepository by inject()
 	val securityRepository: SecurityRepository by inject()
@@ -163,14 +162,13 @@ fun Route.frontend() {
 		projectsRepository,
 		accountsRepository,
 		reviewRepository,
-		storyReaderRepository, storyKudosRepository, serverProjectDataRepository, projectDao, clock,
+		storyReaderRepository, storyKudosRepository, serverProjectDataRepository, clock,
 	)
 	reviewFrontend(
 		reviewRepository = reviewRepository,
 		projectsRepository = projectsRepository,
 		storyRendererService = storyRendererService,
 		accountsRepository = accountsRepository,
-		projectDao = projectDao,
 		markdownRenderer = markdownRenderer,
 		reviewInviteMailer = emailService?.let { com.darkrockstudios.apps.hammer.review.ReviewInviteMailer(it) },
 		reviewSubmittedMailer = emailService?.let { com.darkrockstudios.apps.hammer.review.ReviewSubmittedMailer(it) },
@@ -180,7 +178,6 @@ fun Route.frontend() {
 	publicStoryPage(
 		storyRendererService,
 		projectAccessRepository,
-		projectDao,
 		storyReaderCollector,
 		accountsRepository,
 		projectsRepository,

@@ -236,7 +236,7 @@ private suspend fun RoutingContext.handleBeginProjectsSync(
 }
 
 private fun Route.syncProbe() {
-	val projectsRepository: ProjectsRepository = get()
+	val probeProjectChanges: ProbeProjectChangesUseCase = get()
 
 	post("/sync_probe") {
 		val principal = call.principal<ServerUserIdPrincipal>()
@@ -255,7 +255,7 @@ private fun Route.syncProbe() {
 			return@post
 		}
 
-		val unchanged = projectsRepository.probeProjectChanges(principal.id, request.projects)
+		val unchanged = probeProjectChanges(principal.id, request.projects)
 		call.respond(ProjectsSyncProbeResponse(unchangedProjects = unchanged))
 	}
 }

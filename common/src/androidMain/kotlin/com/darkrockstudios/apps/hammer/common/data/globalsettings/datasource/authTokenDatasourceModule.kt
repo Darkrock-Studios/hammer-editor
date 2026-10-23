@@ -4,11 +4,11 @@ import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.bind
 import org.koin.dsl.module
 
-actual val authTokenStoreModule = module {
+actual val authTokenDatasourceModule = module {
 	single {
-		EncryptedSharedPrefsAuthTokenStore(
+		EncryptedSharedPrefsAuthTokenDatasource(
 			context = androidContext(),
 			json = get(),
 		)
-	} bind AuthTokenStore::class
+	} bind AuthTokenDatasource::class
 }

@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.integration
 import com.darkrockstudios.apps.hammer.base.http.Token
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.AuthTokenDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.GlobalSettingsDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.ServerSettingsDatasource
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
@@ -215,6 +216,7 @@ abstract class RoundTripTestBase : EndToEndTest(), KoinTest {
 			// being instantiated, which would otherwise write to %APPDATA% via AppDirs.
 			single<GlobalSettingsDatasource> { InMemoryGlobalSettingsDatasource(initialGlobalSettings) }
 			single<ServerSettingsDatasource> { InMemoryServerSettingsDatasource() }
+			single<AuthTokenDatasource> { InMemoryAuthTokenDatasource() }
 
 			// Compose Resources isn't initialized in plain JVM tests; stub StrRes so any
 			// sync log path that interpolates a string doesn't blow up.

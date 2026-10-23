@@ -46,20 +46,12 @@ class ClientLayerTest {
 	fun `repositories reference only data sources and foundation`() = assertNoViolations(
 		"A Repository may only reference Data Sources and Foundation primitives, never another Repository",
 		edges(REPOSITORY, REPOSITORY, SERVICE, USE_CASE, COMPONENT),
-		baseline = setOf(
-			"ProjectsRepository -> ProjectDataRepository",
-			"SceneDraftRepository -> SceneContentRepository",
-		),
 	)
 
 	@Test
 	fun `services never reference siblings or upward`() = assertNoViolations(
 		"A Service may only reference Repositories, Foundation primitives and Data Sources",
 		edges(SERVICE, SERVICE, USE_CASE, COMPONENT),
-		baseline = setOf(
-			"StatisticsService -> ReferenceIndexService",
-			"TagIndexService -> BuildTagIndexUseCase",
-		),
 	)
 
 	@Test
@@ -85,8 +77,5 @@ class ClientLayerTest {
 	fun `components never reference data sources`() = assertNoViolations(
 		"A Component may not reference a Data Source, go through a Repository",
 		edges(COMPONENT, DATASOURCE),
-		baseline = setOf(
-			"ProjectsListComponent -> ProjectMetadataDatasource",
-		),
 	)
 }

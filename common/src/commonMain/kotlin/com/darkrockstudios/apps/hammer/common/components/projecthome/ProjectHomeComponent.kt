@@ -18,10 +18,10 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupDef
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupService
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.EntryAppearance
+import com.darkrockstudios.apps.hammer.common.data.projectstatistics.ProjectStatisticsUseCase
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsService
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.deriveWritingStats
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.parseDailyWordTotals
-import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexService
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndexService
@@ -57,8 +57,8 @@ class ProjectHomeComponent(
 	private val encyclopediaService: EncyclopediaService by projectInject()
 	private val projectSynchronizer: ClientProjectSynchronizer by projectInject()
 	private val statisticsService: StatisticsService by projectInject()
+	private val projectStatistics: ProjectStatisticsUseCase by projectInject()
 	private val tagIndexService: TagIndexService by projectInject()
-	private val referenceIndexService: ReferenceIndexService by projectInject()
 
 	private val contentRouter = ProjectHomeContentRouter(componentContext, projectDef)
 	override val contentRouterState: Value<ChildStack<ProjectHomeContentRouter.Config, ProjectHome.ContentDestination>> =
@@ -237,7 +237,7 @@ class ProjectHomeComponent(
 		// Stats are marked dirty on every scene save; trigger a recalc so
 		// the dashboard reflects edits made since this home was last shown
 		// (e.g. user popped back from the editor with new lastEdited data).
-		scope.launch { statisticsService.loadStatistics() }
+		scope.launch { projectStatistics.load() }
 	}
 
 	private fun subscribeToStats() {
@@ -336,15 +336,14 @@ class ProjectHomeComponent(
 			}
 
 			// Load statistics from service (cached or calculated)
-			statisticsService.loadStatistics()
+			projectStatistics.load()
 		}
 	}
 
 	override fun refreshStatistics() {
 		scope.launch {
 			_state.getAndUpdate { it.copy(isLoadingStats = true) }
-			statisticsService.recalculateStatistics()
-			referenceIndexService.recalculate()
+			projectStatistics.recalculate()
 		}
 	}
 

@@ -25,7 +25,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.Glo
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.GlobalSettingsFilesystemDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.ServerSettingsDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.ServerSettingsFilesystemDatasource
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.authTokenStoreModule
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.authTokenDatasourceModule
 import com.darkrockstudios.apps.hammer.common.data.groupmetadata.GroupMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.id.datasources.EncyclopediaIdDatasource
@@ -51,6 +51,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRe
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.ProjectStatisticsCacheReader
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
+import com.darkrockstudios.apps.hammer.common.data.projectstatistics.ProjectStatisticsUseCase
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsService
 import com.darkrockstudios.apps.hammer.common.data.protocolmismatch.ProtocolMismatchRepository
 import com.darkrockstudios.apps.hammer.common.data.references.AutoConfirmReferencesUseCase
@@ -101,7 +102,6 @@ import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientSceneSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientTimelineSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.tagindex.AccountTagService
-import com.darkrockstudios.apps.hammer.common.data.tagindex.BuildTagIndexUseCase
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndexService
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineDatasource
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
@@ -158,7 +158,7 @@ const val RAW_FILESYSTEM = "raw-filesystem"
  */
 val mainModule = module {
 	includes(externalFileIoModule)
-	includes(authTokenStoreModule)
+	includes(authTokenDatasourceModule)
 	includes(exampleProjectModule)
 
 	// Dispatchers live in a plugin-less module (see dispatcherModule): three same-type
@@ -325,6 +325,7 @@ val mainModule = module {
 		scoped<StatisticsDatasource>()
 		scoped<StatisticsRepository>()
 		scoped<StatisticsService>()
+		scoped<ProjectStatisticsUseCase>()
 
 		scoped<WritingActivityDatasource>()
 		scoped<WritingActivityRepository>()
@@ -340,7 +341,6 @@ val mainModule = module {
 		scoped<ReferenceIndexRepository>()
 		scoped<ReferenceIndexService>()
 
-		scoped<BuildTagIndexUseCase>()
 		scoped<TagIndexService>()
 		scoped<ScrubInvalidReferencesUseCase>()
 		scoped<AutoConfirmReferencesUseCase>()

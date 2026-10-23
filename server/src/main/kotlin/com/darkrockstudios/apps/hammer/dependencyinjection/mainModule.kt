@@ -99,6 +99,7 @@ import com.darkrockstudios.apps.hammer.project.synchronizers.ServerSceneSynchron
 import com.darkrockstudios.apps.hammer.project.synchronizers.ServerTimelineSynchronizer
 import com.darkrockstudios.apps.hammer.projects.ProjectsDatabaseDatasource
 import com.darkrockstudios.apps.hammer.projects.ProjectsDatasource
+import com.darkrockstudios.apps.hammer.projects.ProbeProjectChangesUseCase
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
 import com.darkrockstudios.apps.hammer.review.ReviewRepository
@@ -198,6 +199,9 @@ fun mainModule(
 	single<TermsOfServiceRepository>()
 	single<PrivacyPolicyRepository>()
 	single<ProjectsRepository>()
+	factory {
+		ProbeProjectChangesUseCase(get(), get(), get(), get(named(PROJECT_SYNC_MANAGER)))
+	}
 	single<ProjectEntityRepository>()
 	single<ProjectAccessRepository>()
 	single<ServerWritingActivityRepository>()

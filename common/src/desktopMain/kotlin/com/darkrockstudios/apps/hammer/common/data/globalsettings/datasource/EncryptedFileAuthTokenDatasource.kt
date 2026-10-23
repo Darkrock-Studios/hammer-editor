@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource
 
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.AuthTokenStore.Companion.accountKey
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.AuthTokenDatasource.Companion.accountKey
 import com.darkrockstudios.apps.hammer.common.getConfigDirectory
 import io.github.aakira.napier.Napier
 import kotlinx.atomicfu.locks.reentrantLock
@@ -19,7 +19,7 @@ import javax.crypto.spec.PBEKeySpec
 import javax.crypto.spec.SecretKeySpec
 
 /**
- * AES-GCM encrypted [AuthTokenStore] for desktop. The account-keyed token map is
+ * AES-GCM encrypted [AuthTokenDatasource] for desktop. The account-keyed token map is
  * serialized to JSON, encrypted, and written to the app-private config directory.
  *
  * The encryption key is derived (PBKDF2) from stable per-user/per-machine inputs
@@ -31,14 +31,14 @@ import javax.crypto.spec.SecretKeySpec
  * exfiltration, and off-machine copies. It does NOT defend against same-user local
  * malware, which can re-derive the key from the same inputs.
  */
-class EncryptedFileAuthTokenStore(
+class EncryptedFileAuthTokenDatasource(
 	private val fileSystem: FileSystem,
 	private val json: Json,
 	private val filePath: Path = DEFAULT_FILE_PATH,
 	keyUserName: String = System.getProperty("user.name").orEmpty(),
 	keyHomeDir: String = System.getProperty("user.home").orEmpty(),
 	keySalt: ByteArray = APP_SALT,
-) : AuthTokenStore {
+) : AuthTokenDatasource {
 
 	private val lock = reentrantLock()
 	private val secretKey: SecretKeySpec = deriveKey(keyUserName, keyHomeDir, keySalt)

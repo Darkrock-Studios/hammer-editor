@@ -32,13 +32,5 @@ class NamingTest {
 			.filter { it.endsWith("Store") || it.endsWith("Journal") || it.endsWith("Allocator") }
 			.filterNot { it in foundation }
 			.toSet(),
-		// Auth token storage is a Data Source that predates the reserved suffixes.
-		baseline = setOf(
-			"AuthTokenStore",
-			"EncryptedFileAuthTokenStore",
-			"EncryptedSharedPrefsAuthTokenStore",
-			"FileAuthTokenStore",
-			"KeychainAuthTokenStore",
-		),
 	)
 }

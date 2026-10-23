@@ -6,7 +6,7 @@ import com.darkrockstudios.apps.hammer.base.http.ProjectSynchronizationBegan
 import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
-import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
 import com.darkrockstudios.apps.hammer.common.server.HttpFailureException
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
@@ -25,7 +25,7 @@ class FetchServerDataOperation(
 	private val globalSettingsStore: GlobalSettingsStore,
 	private val serverProjectApi: ServerProjectApi,
 	private val projectCreateResolver: ProjectCreateResolver,
-	private val projectsRepository: ProjectsRepository,
+	private val projectDataRepository: ProjectDataRepository,
 	private val syncJournal: SyncJournal,
 	private val strRes: StrRes,
 ) : SyncOperation(projectDef) {
@@ -50,7 +50,8 @@ class FetchServerDataOperation(
 			logCreateOutcome(outcome, projectDef, strRes, onLog)?.let { return CResult.failure(it) }
 
 			// Whatever the journal says the server confirmed, this server project does not hold it.
-			projectsRepository.clearSyncBaseline(projectDef)
+			syncJournal.clearSyncBaseline()
+			projectDataRepository.clearSyncBaseline()
 			state.clientSyncData = syncJournal.loadSyncData()
 			result = beginSync(state)
 		}

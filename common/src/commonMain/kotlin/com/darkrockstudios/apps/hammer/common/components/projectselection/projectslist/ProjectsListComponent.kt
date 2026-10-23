@@ -23,7 +23,6 @@ import com.darkrockstudios.apps.hammer.common.data.importer.StoryImporterRegistr
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataConflictBroker
 import com.darkrockstudios.apps.hammer.common.data.projectdata.readStoredProjectData
-import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.GroupDef
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.ProjectStatisticsCacheReader
@@ -93,7 +92,6 @@ class ProjectsListComponent(
 	private val syncAccountUseCase: SyncAccountUseCase by inject()
 	private val protocolMismatchRepository: ProtocolMismatchRepository by inject()
 	private val networkConnectivity: NetworkConnectivity by inject()
-	private val projectMetadataDatasource: ProjectMetadataDatasource by inject()
 	private val statisticsCacheReader: ProjectStatisticsCacheReader by inject()
 	private val importerRegistry: StoryImporterRegistry by inject()
 	private val fileSystem: FileSystem by inject()
@@ -224,7 +222,7 @@ class ProjectsListComponent(
 			val projectData = tree.projects.parallelMap { projectDef ->
 				// The project can be deleted concurrently
 				val metadata = try {
-					projectMetadataDatasource.loadMetadata(projectDef)
+					projectsRepository.loadProjectMetadata(projectDef)
 				} catch (_: IOException) {
 					null
 				}
@@ -260,7 +258,7 @@ class ProjectsListComponent(
 		readStoredProjectData(projectDef, fileSystem, toml).data
 
 	private fun updateLastAccessed(projectDef: ProjectDef) {
-		projectMetadataDatasource.updateMetadata(projectDef) { metadata ->
+		projectsRepository.updateProjectMetadata(projectDef) { metadata ->
 			metadata.copy(
 				info = metadata.info.copy(
 					lastAccessed = clock.now()
@@ -412,7 +410,7 @@ class ProjectsListComponent(
 	override fun dismissGroupModal() = modalRouter.dismiss()
 
 	override suspend fun loadProjectMetadata(projectDef: ProjectDef): ProjectMetadata {
-		return projectMetadataDatasource.loadMetadata(projectDef)
+		return projectsRepository.loadProjectMetadata(projectDef)
 	}
 
 	override fun onProjectNameUpdate(newProjectName: String) {

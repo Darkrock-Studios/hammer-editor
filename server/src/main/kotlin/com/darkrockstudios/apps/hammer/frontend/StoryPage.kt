@@ -2,7 +2,6 @@ package com.darkrockstudios.apps.hammer.frontend
 
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.base.ProjectId
-import com.darkrockstudios.apps.hammer.database.ProjectDao
 import com.darkrockstudios.apps.hammer.database.ReaderDay
 import com.darkrockstudios.apps.hammer.frontend.utils.ProjectName
 import com.darkrockstudios.apps.hammer.frontend.utils.Toast
@@ -58,7 +57,6 @@ fun Route.storyPage(
 	storyReaderRepository: StoryReaderRepository,
 	storyKudosRepository: StoryKudosRepository,
 	serverProjectDataRepository: ServerProjectDataRepository,
-	projectDao: ProjectDao,
 	clock: kotlin.time.Clock,
 ) {
 	authenticatedOnly {
@@ -120,7 +118,7 @@ fun Route.storyPage(
 						val hasAnyAccess = projectAccessRepository.hasAnyAccess(session.userId, projectId)
 						val accessEntries = projectAccessRepository.getPrivateAccessEntries(session.userId, projectId)
 
-						val numericProjectId = projectDao.getProjectIdOrNull(session.userId, projectId)
+						val numericProjectId = projectsRepository.findProjectRowId(session.userId, projectId)
 						val totalReaders = numericProjectId
 							?.let { storyReaderRepository.totalReadersForProject(it) } ?: 0L
 						val readerBars = numericProjectId
@@ -356,7 +354,7 @@ fun Route.storyPage(
 				)
 
 				// Publishing is what makes the Kudos panel relevant, so it swaps in out of band.
-				val kudosPanelHtml = projectDao.getProjectIdOrNull(session.userId, projectId)?.let { numericId ->
+				val kudosPanelHtml = projectsRepository.findProjectRowId(session.userId, projectId)?.let { numericId ->
 					model.putAll(call.kudosPanelModel(storyKudosRepository, numericId, newIsPublished, model))
 					model["kudosPanelOob"] = true
 					renderTemplate("partials/story-kudos-panel.mustache", model)
@@ -379,7 +377,7 @@ fun Route.storyPage(
 
 				val project = projectsRepository.findProjectByUrlSegment(session.userId, projectNameParam)
 				val numericProjectId = project?.let {
-					projectDao.getProjectIdOrNull(session.userId, ProjectId(it.uuid))
+					projectsRepository.findProjectRowId(session.userId, ProjectId(it.uuid))
 				}
 				if (project == null || numericProjectId == null) {
 					call.respond(HttpStatusCode.NotFound)

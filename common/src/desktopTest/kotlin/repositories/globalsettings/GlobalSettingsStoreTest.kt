@@ -4,8 +4,11 @@ import app.cash.turbine.test
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.AuthTokenDatasource
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.AuthTokens
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.GlobalSettingsDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.ServerSettingsDatasource
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.toPersisted
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.spellcheck.LanguageUtil
 import com.darkrockstudios.apps.hammer.common.util.Locale
@@ -30,6 +33,7 @@ class GlobalSettingsStoreTest : BaseTest() {
 
 	private lateinit var serverSettings: ServerSettingsDatasource
 	private lateinit var globalSettings: GlobalSettingsDatasource
+	private lateinit var authTokens: AuthTokenDatasource
 	private lateinit var languageUtil: LanguageUtil
 
 	@BeforeEach
@@ -38,8 +42,12 @@ class GlobalSettingsStoreTest : BaseTest() {
 
 		serverSettings = mockk()
 		globalSettings = mockk()
+		authTokens = mockk()
 		languageUtil = mockk()
 		every { languageUtil.getCurrentLocale() } returns Locale.forLanguageTag("en")
+		val config = createServerConfig()
+		every { authTokens.get(config.url, config.userId) } returns
+			AuthTokens(config.bearerToken, config.refreshToken)
 	}
 
 	private fun createDefaultRepository(): GlobalSettingsStore {
@@ -52,6 +60,7 @@ class GlobalSettingsStoreTest : BaseTest() {
 		return GlobalSettingsStore(
 			globalSettings,
 			serverSettings,
+			authTokens,
 		)
 	}
 
@@ -71,11 +80,12 @@ class GlobalSettingsStoreTest : BaseTest() {
 	@Test
 	fun `Initialize Repository, with server settings`() = runTest {
 		coEvery { globalSettings.loadSettings() } returns defaultGlobalSettings()
-		coEvery { serverSettings.loadServerSettings(any()) } returns createServerConfig()
+		coEvery { serverSettings.loadServerSettings(any()) } returns createServerConfig().toPersisted()
 
 		val repo = GlobalSettingsStore(
 			globalSettings,
 			serverSettings,
+			authTokens,
 		)
 
 		assertEquals(defaultGlobalSettings(), repo.globalSettings)
@@ -147,7 +157,7 @@ class GlobalSettingsStoreTest : BaseTest() {
 			serverSettings.loadServerSettings(
 				defaultSettings.projectsDirectory.toPath().toHPath()
 			)
-		} returns createServerConfig()
+		} returns createServerConfig().toPersisted()
 		coEvery { serverSettings.loadServerSettings(newProjDir.toHPath()) } returns null
 		coEvery { globalSettings.storeSettings(any()) } just Runs
 
@@ -158,6 +168,7 @@ class GlobalSettingsStoreTest : BaseTest() {
 		val repo = GlobalSettingsStore(
 			globalSettings,
 			serverSettings,
+			authTokens,
 		)
 
 		assertNotNull(repo.serverSettings)
@@ -180,6 +191,7 @@ class GlobalSettingsStoreTest : BaseTest() {
 	@Test
 	fun `Update Server Settings`() = runTest {
 		coEvery { serverSettings.storeServerSettings(any(), any()) } just Runs
+		every { authTokens.put(any(), any(), any()) } just Runs
 
 		val updated = createServerConfig().copy(
 			ssl = false,
@@ -190,7 +202,8 @@ class GlobalSettingsStoreTest : BaseTest() {
 		val repo = createDefaultRepository()
 		repo.updateServerSettings(updated)
 
-		coVerify { serverSettings.storeServerSettings(updated, projectsDir()) }
+		coVerify { serverSettings.storeServerSettings(updated.toPersisted(), projectsDir()) }
+		coVerify { authTokens.put(updated.url, updated.userId, AuthTokens(updated.bearerToken, updated.refreshToken)) }
 		repo.serverSettingsUpdates.test {
 			assertEquals(updated, awaitItem())
 			cancelAndConsumeRemainingEvents()
@@ -223,12 +236,14 @@ class GlobalSettingsStoreTest : BaseTest() {
 			mockk(relaxed = true),
 			mockk(relaxed = true)
 		)
-		coEvery { serverSettings.loadServerSettings(any()) } returns createServerConfig()
-		coEvery { serverSettings.removeServerSettings(any()) } just Runs
+		coEvery { serverSettings.loadServerSettings(any()) } returns createServerConfig().toPersisted()
+		coEvery { serverSettings.removeServerSettings(any()) } returns createServerConfig().toPersisted()
+		every { authTokens.remove(any(), any()) } just Runs
 
 		val repo = GlobalSettingsStore(
 			globalSettings,
 			serverSettings,
+			authTokens,
 		)
 
 		assertEquals(createServerConfig(), repo.serverSettings)
@@ -239,6 +254,7 @@ class GlobalSettingsStoreTest : BaseTest() {
 		repo.deleteServerSettings()
 
 		coVerify { serverSettings.removeServerSettings(projectsDir()) }
+		coVerify { authTokens.remove(createServerConfig().url, createServerConfig().userId) }
 		assertNull(repo.serverSettings)
 		repo.serverSettingsUpdates.test {
 			assertNull(awaitItem())

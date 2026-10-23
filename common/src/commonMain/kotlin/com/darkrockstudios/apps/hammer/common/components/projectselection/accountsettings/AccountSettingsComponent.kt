@@ -41,6 +41,7 @@ import com.darkrockstudios.apps.hammer.server_setup_error_password_too_long
 import com.darkrockstudios.apps.hammer.server_setup_error_password_too_short
 import com.darkrockstudios.apps.hammer.settings_server_setup_toast_failure
 import com.darkrockstudios.apps.hammer.settings_server_setup_toast_failure_unknown
+import com.darkrockstudios.apps.hammer.settings_server_change_project_open
 import com.darkrockstudios.apps.hammer.settings_server_setup_toast_success
 import com.darkrockstudios.apps.hammer.settings_server_tos_declined
 import io.github.aakira.napier.Napier
@@ -217,8 +218,20 @@ class AccountSettingsComponent(
 	}
 
 	override suspend fun removeServer() {
+		if (refuseServerChangeWhileProjectOpen()) return
 		globalSettingsStore.deleteServerSettings()
 		resetSyncStateForServerChange()
+	}
+
+	/**
+	 * A server change clears every project's sync baseline, which can't be done while a project is
+	 * open. Checked before any server settings change, so a refusal leaves everything as it was.
+	 */
+	private suspend fun refuseServerChangeWhileProjectOpen(): Boolean {
+		val open = projectsRepository.findProjectInUse() ?: return false
+		Napier.w("Refusing to change servers while '${open.name}' is open")
+		showToast(Res.string.settings_server_change_project_open)
+		return true
 	}
 
 	/**
@@ -354,6 +367,11 @@ class AccountSettingsComponent(
 				// result comes back the state already names the server being logged in to.
 				sameServer = current.currentUrl == cleanUrl && current.currentEmail == cleanEmail,
 			)
+
+			if ((pending.create || !pending.sameServer) && refuseServerChangeWhileProjectOpen()) {
+				withContext(mainDispatcher) { _state.getAndUpdate { it.copy(serverWorking = false) } }
+				return@launch
+			}
 
 			if (shouldPromptForMerge(pending)) {
 				promptedSetup = pending

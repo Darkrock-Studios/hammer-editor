@@ -37,6 +37,8 @@ internal fun NoteConflict(
 	var contentTextValue by rememberSaveable(client) { mutableStateOf(client.content) }
 	var contentError by rememberSaveable(client) { mutableStateOf<String?>(null) }
 
+	val contentDiff = rememberContentDiff(entityConflict.serverEntity.content, contentTextValue)
+
 	val useLocal = {
 		val error = component.resolveConflict(client.copy(content = contentTextValue))
 		if (error is ProjectSynchronization.EntityMergeError.NoteMergeError) {
@@ -58,6 +60,7 @@ internal fun NoteConflict(
 					.verticalScroll(rememberScrollState()),
 				verticalArrangement = Arrangement.spacedBy(HdConflictFieldSpacing),
 			) {
+				val contentTransformation = rememberLocalDiffHighlight(contentDiff)
 				HdConflictField(
 					label = Res.string.sync_conflict_title_note_field_name.get(),
 					conflict = c.serverEntity.content != c.clientEntity.content,
@@ -69,6 +72,7 @@ internal fun NoteConflict(
 						singleLine = false,
 						minLines = 6,
 						error = contentError,
+						visualTransformation = contentTransformation,
 						modifier = Modifier.fillMaxWidth(),
 					)
 				}
@@ -81,11 +85,12 @@ internal fun NoteConflict(
 					.verticalScroll(rememberScrollState()),
 				verticalArrangement = Arrangement.spacedBy(HdConflictFieldSpacing),
 			) {
+				val highlighted = rememberRemoteDiffHighlight(c.serverEntity.content, contentDiff)
 				HdConflictField(
 					label = Res.string.sync_conflict_title_note_field_name.get(),
 					conflict = c.serverEntity.content != c.clientEntity.content,
 				) {
-					ReadOnlyBlock(c.serverEntity.content)
+					ReadOnlyBlock(highlighted)
 				}
 			}
 		},

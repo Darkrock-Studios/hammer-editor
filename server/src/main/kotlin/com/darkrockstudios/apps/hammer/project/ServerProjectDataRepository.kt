@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.project
 
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
+import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectDataHasher
 import com.darkrockstudios.apps.hammer.database.ProjectDao
 import com.darkrockstudios.apps.hammer.database.ProjectDataDao
 import com.darkrockstudios.apps.hammer.utilities.SResult
@@ -49,6 +50,17 @@ class ServerProjectDataRepository(
 	suspend fun loadDataHash(userId: Long, projectDef: ProjectDefinition): String? {
 		val projectId = projectDao.getProjectIdOrNull(userId, projectDef.uuid) ?: return null
 		return projectDataDao.getHash(userId, projectId)
+	}
+
+	/**
+	 * The project data hash a client may be told it matches: the default project data's hash when
+	 * there is no row, and null when the project is unknown or its row can't be decoded, so a
+	 * damaged row is never reported as in sync.
+	 */
+	suspend fun loadVerifiedDataHash(userId: Long, projectDef: ProjectDefinition): String? {
+		val projectId = projectDao.getProjectIdOrNull(userId, projectDef.uuid) ?: return null
+		val row = projectDataDao.get(userId, projectId) ?: return ProjectDataHasher.hash(ProjectData())
+		return row.hash.takeIf { parseContent(row.content, userId, projectDef) != null }
 	}
 
 	/** The project's declared BCP-47 language for public-page metadata; null when unset or unreadable. */
