@@ -15,7 +15,7 @@ data class GroupMetadata(
 
 @Serializable
 data class GroupInfo(
-	/** Null only after a hand edit. Read it through `GroupMetadataDatasource.loadGroupId`, which mints one. */
+	/** Null only after a hand edit. Read it through `GroupMetadataDatasource.loadMetadata`, which mints one. */
 	val groupId: GroupId? = null,
 	val created: Instant,
 	val description: String? = null,

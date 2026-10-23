@@ -35,6 +35,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSearchField
 import com.darkrockstudios.apps.hammer.common.compose.leftBorder
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.GroupDef
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectTree
 import com.darkrockstudios.apps.hammer.move_to_group_cancel_button
 import com.darkrockstudios.apps.hammer.move_to_group_destination_label
 import com.darkrockstudios.apps.hammer.move_to_group_marker
@@ -61,21 +62,10 @@ internal data class MoveDestination(val group: GroupDef?, val depth: Int)
  * hangs from the top level.
  */
 internal fun moveDestinations(groups: List<GroupDef>, excluding: GroupId?): List<MoveDestination> {
-	val ids = groups.mapTo(mutableSetOf()) { it.id }
-	val byParent = groups.groupBy { it.parentId?.takeIf { id -> id in ids } }
-	val destinations = mutableListOf(MoveDestination(group = null, depth = 0))
-
-	fun visit(parent: GroupId?, depth: Int, visited: Set<GroupId>) {
-		byParent[parent].orEmpty()
-			.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.name })
-			.forEach { group ->
-				if (group.id == excluding || group.id in visited) return@forEach
-				destinations += MoveDestination(group, depth)
-				visit(group.id, depth + 1, visited + group.id)
-			}
-	}
-	visit(parent = null, depth = 1, visited = emptySet())
-	return destinations
+	val tree = ProjectTree(groups, projects = emptyList(), placement = emptyMap())
+	return listOf(MoveDestination(group = null, depth = 0)) + tree.groupsInTreeOrder()
+		.filter { (group, _) -> excluding == null || !tree.isSameOrDescendant(group.id, excluding) }
+		.map { (group, depth) -> MoveDestination(group, depth) }
 }
 
 /**

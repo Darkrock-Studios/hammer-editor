@@ -236,7 +236,13 @@ class FetchServerDataOperationTest : BaseTest() {
 		coEvery { serverProjectApi.beginProjectSync(any(), any(), any(), any()) } returnsMany
 			listOf(Result.failure(gone()), Result.success(beganResponse))
 		coEvery { projectCreateResolver.createInOwnSession(projectDef) } returns
-			ServerCreateOutcome.Created(alreadyExisted = false, reminted = false)
+			ServerCreateOutcome.Created(
+				projectDef.id,
+				projectDef.name,
+				groupId = null,
+				alreadyExisted = false,
+				reminted = false,
+			)
 		coEvery { syncJournal.loadSyncData() } returns clearedJournal
 
 		val result = execute(op)
@@ -298,7 +304,13 @@ class FetchServerDataOperationTest : BaseTest() {
 		stubSettings()
 		coEvery { serverProjectApi.beginProjectSync(any(), any(), any(), any()) } returns Result.failure(gone())
 		coEvery { projectCreateResolver.createInOwnSession(projectDef) } returns
-			ServerCreateOutcome.Created(alreadyExisted = false, reminted = false)
+			ServerCreateOutcome.Created(
+				projectDef.id,
+				projectDef.name,
+				groupId = null,
+				alreadyExisted = false,
+				reminted = false,
+			)
 		coEvery { syncJournal.loadSyncData() } returns projectData
 
 		val result = execute(op)

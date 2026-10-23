@@ -15,6 +15,7 @@ import utils.BaseTest
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class GroupMetadataDatasourceTest : BaseTest() {
@@ -55,15 +56,15 @@ class GroupMetadataDatasourceTest : BaseTest() {
 		val healed = datasource.loadMetadata(groupDir)
 
 		val groupId = assertNotNull(healed.info.groupId)
-		assertEquals(groupId, datasource.loadGroupId(groupDir))
+		assertEquals(groupId, datasource.loadMetadata(groupDir).info.groupId)
 	}
 
 	@Test
 	fun `A missing file is created on read`() {
-		val groupId = datasource.loadGroupId(groupDir)
+		val groupId = assertNotNull(datasource.loadMetadata(groupDir).info.groupId)
 
 		assertTrue(datasource.isMarked(groupDir))
-		assertEquals(groupId, datasource.loadGroupId(groupDir))
+		assertEquals(groupId, datasource.loadMetadata(groupDir).info.groupId)
 	}
 
 	@Test
@@ -72,7 +73,7 @@ class GroupMetadataDatasourceTest : BaseTest() {
 			writeUtf8("[info]\ncreated = 2025-01-02T03:04:05Z\ndescription = \"Kept\"\ncollapsed = true\n")
 		}
 
-		val groupId = datasource.loadGroupId(groupDir)
+		val groupId = assertNotNull(datasource.loadMetadata(groupDir).info.groupId)
 
 		val stored = datasource.loadMetadata(groupDir)
 		assertEquals(groupId, stored.info.groupId)
@@ -91,6 +92,26 @@ class GroupMetadataDatasourceTest : BaseTest() {
 		assertEquals(groupId, stored.info.groupId)
 		assertEquals("Notes", stored.info.description)
 		assertTrue(stored.info.collapsed)
+	}
+
+	@Test
+	fun `A blank description is stored as none`() {
+		datasource.createMetadata(groupDir, GroupId.randomUUID(), description = "Notes")
+
+		val updated = datasource.updateMetadata(groupDir) { it.copy(info = it.info.copy(description = "  ")) }
+
+		assertNull(updated.info.description)
+		assertNull(datasource.loadMetadata(groupDir).info.description)
+		assertFalse(ffs.read(metadataPath) { readUtf8() }.contains("\"  \""))
+	}
+
+	@Test
+	fun `A blank description written by hand reads as none`() {
+		ffs.write(metadataPath) {
+			writeUtf8("[info]\ngroupId = \"${GroupId.randomUUID().id}\"\ncreated = 2025-01-02T03:04:05Z\ndescription = \" \"\n")
+		}
+
+		assertNull(datasource.loadMetadata(groupDir).info.description)
 	}
 
 	@Test

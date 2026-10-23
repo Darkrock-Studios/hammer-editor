@@ -1,5 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.data.sync.accountsync
 
+import com.darkrockstudios.apps.hammer.base.http.readJson
+import com.darkrockstudios.apps.hammer.base.http.writeJson
 import com.darkrockstudios.apps.hammer.common.data.ProjectsDirectory
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectsSynchronizationData
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcher
@@ -8,7 +10,6 @@ import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import okio.FileSystem
 import org.koin.core.component.KoinComponent
@@ -28,10 +29,7 @@ class AccountSyncDatasource(
 		val path = getSyncDataPath().toOkioPath()
 		val loaded = if (fileSystem.exists(path)) {
 			try {
-				fileSystem.read(path) { json.decodeFromString<ProjectsSynchronizationData>(readUtf8()) }
-			} catch (e: SerializationException) {
-				Napier.w("Corrupt account sync.json; starting fresh (${e.message})")
-				null
+				fileSystem.readJson<ProjectsSynchronizationData>(path, json)
 			} catch (e: IllegalArgumentException) {
 				Napier.w("Corrupt account sync.json; starting fresh (${e.message})")
 				null
@@ -61,9 +59,7 @@ class AccountSyncDatasource(
 	private fun writeFile(data: ProjectsSynchronizationData) {
 		val path = getSyncDataPath().toOkioPath()
 		path.parent?.let(fileSystem::createDirectories)
-		fileSystem.write(path) {
-			writeUtf8(json.encodeToString(ProjectsSynchronizationData.serializer(), data))
-		}
+		fileSystem.writeJson(path, json, data)
 	}
 
 	companion object {

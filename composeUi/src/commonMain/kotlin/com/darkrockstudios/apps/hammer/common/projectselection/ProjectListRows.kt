@@ -54,55 +54,47 @@ internal fun buildProjectListRows(
 		projects = projects.map { it.definition },
 		placement = placement,
 	)
+	fun groupOf(project: ProjectData): GroupId? = placement[project.definition.id]?.takeIf { tree.group(it) != null }
 	var number = 0
 
 	if (filtered) {
 		return sorted.map { project ->
-			val groupId = placement[project.definition.id]?.takeIf { tree.group(it) != null }
-			ProjectListRow.Project(project, depth = 0, number = ++number, groupPath = tree.pathNames(groupId))
+			ProjectListRow.Project(project, depth = 0, number = ++number, groupPath = tree.pathNames(groupOf(project)))
 		}
 	}
 
-	val projectCounts = transitiveProjectCounts(tree, projects)
-	val collapsed = groups.filter { it.collapsed }.mapTo(mutableSetOf()) { it.definition.id }
-	val groupsByParent = groups.groupBy { it.definition.parentId?.takeIf { id -> tree.group(id) != null } }
-	val projectsByParent = sorted.groupBy { project ->
-		placement[project.definition.id]?.takeIf { tree.group(it) != null }
-	}
+	// Each project counts once toward every group above it.
+	val projectCounts = projects.mapNotNull(::groupOf).flatMap(tree::ancestry).groupingBy { it.id }.eachCount()
+	val dataById = groups.associateBy { it.definition.id }
+	val projectsByParent = sorted.groupBy(::groupOf)
 	val rows = mutableListOf<ProjectListRow>()
 
-	fun emit(parent: GroupId?, depth: Int, visited: Set<GroupId>) {
-		groupsByParent[parent].orEmpty()
-			.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.definition.name })
-			.forEach { group ->
-				val id = group.definition.id
-				// A hand-built cycle must not recurse forever.
-				if (id in visited) return@forEach
-				rows += ProjectListRow.Group(group, depth + 1, projectCount = projectCounts[id] ?: 0)
-				if (id !in collapsed) emit(id, depth + 1, visited + id)
-			}
+	fun addProjects(parent: GroupId?, depth: Int) {
 		projectsByParent[parent].orEmpty().forEach { project ->
 			rows += ProjectListRow.Project(project, depth, number = ++number, groupPath = emptyList())
 		}
 	}
-	emit(parent = null, depth = 0, visited = emptySet())
-	return rows
-}
 
-/** Projects in each group or any group beneath it: each project counts once toward every ancestor. */
-private fun transitiveProjectCounts(tree: ProjectTree, projects: List<ProjectData>): Map<GroupId, Int> {
-	val direct = projects.mapNotNull { tree.placement[it.definition.id]?.takeIf { id -> tree.group(id) != null } }
-		.groupingBy { it }
-		.eachCount()
-	val counts = mutableMapOf<GroupId, Int>()
-	direct.forEach { (groupId, count) ->
-		var current: GroupId? = groupId
-		val visited = mutableSetOf<GroupId>()
-		// The visited set stops a hand-built cycle from looping forever.
-		while (current != null && visited.add(current)) {
-			counts[current] = (counts[current] ?: 0) + count
-			current = tree.group(current)?.parentId
+	// The expanded groups enclosing the current one; a group's projects follow its last subgroup.
+	val open = ArrayDeque<GroupId>()
+	fun closeTo(depth: Int) {
+		while (open.size > depth) addProjects(open.removeLast(), depth = open.size + 1)
+	}
+
+	var hiddenBelow = Int.MAX_VALUE
+	tree.groupsInTreeOrder().forEach { (group, depth) ->
+		if (depth > hiddenBelow) return@forEach
+		closeTo(depth - 1)
+		val data = dataById.getValue(group.id)
+		rows += ProjectListRow.Group(data, depth, projectCount = projectCounts[group.id] ?: 0)
+		if (data.collapsed) {
+			hiddenBelow = depth
+		} else {
+			hiddenBelow = Int.MAX_VALUE
+			open += group.id
 		}
 	}
-	return counts
+	closeTo(0)
+	addProjects(parent = null, depth = 0)
+	return rows
 }

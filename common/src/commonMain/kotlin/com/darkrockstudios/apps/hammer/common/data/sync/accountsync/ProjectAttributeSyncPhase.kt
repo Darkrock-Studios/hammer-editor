@@ -9,14 +9,12 @@ import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.ClientResult
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
-import com.darkrockstudios.apps.hammer.common.data.projectsrepository.GroupDef
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectRenameFailed
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.OnSyncLog
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectBaseline
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncAccLogE
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncAccLogI
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncAccLogW
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectsApi
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import io.github.aakira.napier.Napier
@@ -31,6 +29,8 @@ class ProjectAttributeSyncPhase(
 	private val serverProjectsApi: ServerProjectsApi,
 	private val strRes: StrRes,
 ) {
+	private val placer = LocalProjectPlacer(projectsRepository, strRes)
+
 	suspend fun reconcile(
 		syncId: String,
 		serverProjects: Collection<ApiProjectDefinition>,
@@ -80,11 +80,7 @@ class ProjectAttributeSyncPhase(
 					is ProjectAttributeAction.MoveOnServer -> moveOnServer(def, action.groupId, syncId, onLog, onUnauthorized)
 					is ProjectAttributeAction.MoveLocally -> {
 						val target = tree.nearestLocalGroup(action.groupId, serverGroupsById)
-						val moved = target?.id == tree.placement[id] || moveLocally(def, target, onLog)
-						if (target?.id != action.groupId) {
-							onLog(syncAccLogW(strRes.get(Res.string.sync_log_account_project_move_client_group_missing, def.name)))
-						}
-						moved && target?.id == action.groupId
+						placer.place(def, tree.placement[id], target, action.groupId, onLog)
 					}
 
 					else -> true
@@ -124,7 +120,7 @@ class ProjectAttributeSyncPhase(
 			return result.data
 		}
 		if (result.isInUse()) {
-			logInUse(def, onLog)
+			placer.logInUse(def, onLog)
 		} else {
 			onLog(syncAccLogE(strRes.get(Res.string.sync_log_account_project_rename_client_from_server_failure, def.name)))
 		}
@@ -147,28 +143,6 @@ class ProjectAttributeSyncPhase(
 		onLog(syncAccLogE(strRes.get(Res.string.sync_log_account_project_move_server_failure, def.name)))
 		if (error.isAuthenticationFailure()) onUnauthorized()
 		return false
-	}
-
-	private suspend fun moveLocally(
-		def: ProjectDef,
-		target: GroupDef?,
-		onLog: OnSyncLog,
-	): Boolean {
-		val result = projectsRepository.moveProject(def, target)
-		if (isSuccess(result)) {
-			onLog(syncAccLogI(strRes.get(Res.string.sync_log_account_project_move_client_from_server_success, def.name)))
-			return true
-		}
-		if (result.isInUse()) {
-			logInUse(def, onLog)
-		} else {
-			onLog(syncAccLogE(strRes.get(Res.string.sync_log_account_project_move_client_from_server_failure, def.name)))
-		}
-		return false
-	}
-
-	private suspend fun logInUse(def: ProjectDef, onLog: OnSyncLog) {
-		onLog(syncAccLogW(strRes.get(Res.string.sync_log_account_project_in_use, def.name)))
 	}
 }
 

@@ -99,7 +99,7 @@ class ProjectsRepositoryGroupsTest : ProjectsRepositoryBaseTest() {
 		assertEquals(setOf(book, prequel, loose), repo.getProjects().toSet())
 		assertEquals(book, repo.findProject("Book 1"))
 		assertEquals(book, repo.findProject(book.id))
-		assertEquals(tree.groups[1], repo.findGroup(testGroupId("Trilogy")))
+		assertEquals(tree.groups[1], repo.getProjectTree().group(testGroupId("Trilogy")))
 	}
 
 	@Test
@@ -472,7 +472,7 @@ class ProjectsRepositoryGroupsTest : ProjectsRepositoryBaseTest() {
 		val created = repo.createGroup("Trilogy", series, description = "Three books")
 
 		assertTrue(isSuccess(created))
-		assertEquals(created.data, repo.findGroup(created.data.id))
+		assertEquals(created.data, repo.getProjectTree().group(created.data.id))
 		assertEquals(series.id, created.data.parentId)
 		assertEquals("Three books", created.data.description)
 	}
@@ -675,22 +675,24 @@ class ProjectsRepositoryGroupsTest : ProjectsRepositoryBaseTest() {
 
 		repo.setGroupCollapsed(created, true)
 		val adopted = repo.setGroupId(created, newId)
-		val described = repo.updateGroupDescription(adopted, "Four books")
+		val described = assertIs<ClientResult.Success<GroupDef>>(repo.updateGroupDescription(adopted, "Four books")).data
 
-		val listed = repo.getProjectTree().groups.single()
+		val tree = repo.getProjectTree()
+		val listed = tree.groups.single()
 		assertEquals(described, listed)
 		assertEquals(newId, listed.id)
 		assertEquals("Four books", listed.description)
-		assertTrue(repo.isGroupCollapsed(listed))
+		assertEquals(setOf(newId), tree.collapsed)
 
 		repo.setGroupCollapsed(listed, false)
 
-		assertFalse(repo.isGroupCollapsed(listed))
-		assertEquals(listed, repo.getProjectTree().groups.single())
+		val reread = repo.getProjectTree()
+		assertEquals(emptySet(), reread.collapsed)
+		assertEquals(listed, reread.groups.single())
 	}
 
 	@Test
-	fun `Collapsed state of a group that is gone reads as expanded and is not written`() = scope.runTest {
+	fun `Collapsed state of a group that is gone is not written`() = scope.runTest {
 		val trilogy = createGroupDirectory(ffs, "Trilogy")
 		val repo = projectsRepository()
 		val trilogyDef = repo.group("Trilogy")
@@ -698,7 +700,32 @@ class ProjectsRepositoryGroupsTest : ProjectsRepositoryBaseTest() {
 
 		repo.setGroupCollapsed(trilogyDef, true)
 
-		assertFalse(repo.isGroupCollapsed(trilogyDef))
 		assertFalse(ffs.exists(trilogy))
+	}
+
+	@Test
+	fun `Updating the description of a group that is gone fails`() = scope.runTest {
+		val trilogy = createGroupDirectory(ffs, "Trilogy")
+		val repo = projectsRepository()
+		val trilogyDef = repo.group("Trilogy")
+		ffs.deleteRecursively(trilogy)
+
+		val result = repo.updateGroupDescription(trilogyDef, "Gone")
+
+		assertGroupFailure(GroupOperationFailed.Reason.SourceDoesNotExist, result)
+		assertFalse(ffs.exists(trilogy))
+	}
+
+	@Test
+	fun `A blank description is stored as none`() = scope.runTest {
+		val repo = projectsRepository()
+		val created = assertIs<ClientResult.Success<GroupDef>>(
+			repo.createGroup("Trilogy", parent = null, description = " ")
+		).data
+
+		assertNull(created.description)
+		val described = assertIs<ClientResult.Success<GroupDef>>(repo.updateGroupDescription(created, "")).data
+		assertNull(described.description)
+		assertNull(repo.getProjectTree().groups.single().description)
 	}
 }

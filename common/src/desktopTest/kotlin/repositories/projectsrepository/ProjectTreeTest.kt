@@ -10,7 +10,6 @@ import testGroupId
 import testProjectId
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
-import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class ProjectTreeTest {
@@ -41,12 +40,6 @@ class ProjectTreeTest {
 	}
 
 	@Test
-	fun `Subtree height counts the group itself`() {
-		assertEquals(3, tree.subtreeHeight(series.id))
-		assertEquals(1, tree.subtreeHeight(shorts.id))
-	}
-
-	@Test
 	fun `Descendants are found through every level`() {
 		assertTrue(tree.isSameOrDescendant(notes.id, series.id))
 		assertTrue(tree.isSameOrDescendant(series.id, series.id))
@@ -55,19 +48,26 @@ class ProjectTreeTest {
 	}
 
 	@Test
-	fun `Projects under a group include nested groups`() {
-		assertEquals(listOf(book1, outline), tree.projectsUnder(series.id))
-		assertEquals(listOf(outline), tree.projectsIn(notes.id))
-		assertEquals(listOf(loose), tree.projectsIn(null))
+	fun `Tree order lists each group before its subgroups, siblings by name`() {
+		val orphan = GroupDef(testGroupId("Orphan"), "orphan", HPath("/p/orphan", "orphan", true), testGroupId("Gone"), null)
+		val withOrphan = tree.copy(groups = tree.groups + orphan)
+
+		val ordered = withOrphan.groupsInTreeOrder().map { (group, depth) -> group.name to depth }
+
+		assertEquals(
+			listOf("orphan" to 1, "Series" to 1, "Trilogy" to 2, "Book Notes" to 3, "Shorts" to 1),
+			ordered,
+		)
 	}
 
 	@Test
-	fun `Children and parents follow placement`() {
-		assertEquals(listOf(series, shorts), tree.childGroups(null))
-		assertEquals(listOf(trilogy), tree.childGroups(series.id))
-		assertEquals(trilogy, tree.parentOf(book1.id))
-		assertNull(tree.parentOf(loose.id))
-		assertEquals(series, tree.parentOf(trilogy))
+	fun `Tree order skips a cycle`() {
+		val a = GroupDef(testGroupId("A"), "A", HPath("/p/A", "A", true), testGroupId("B"), null)
+		val b = GroupDef(testGroupId("B"), "B", HPath("/p/B", "B", true), testGroupId("A"), null)
+
+		val ordered = ProjectTree(listOf(a, b, shorts), emptyList(), emptyMap()).groupsInTreeOrder()
+
+		assertEquals(listOf(shorts to 1), ordered)
 	}
 
 	@Test

@@ -16,14 +16,21 @@ import kotlinx.coroutines.withContext
 
 sealed interface ServerCreateOutcome {
 	/**
-	 * The project is on the server under its local id, which may have just been changed to the
-	 * server's. [reminted] when the original id belonged to another account and a fresh one was
-	 * used instead.
+	 * The project is on the server as [projectId], its local id, which may have just been changed to
+	 * the server's. [name] and [groupId] are what its account sync baseline records: [groupId] is
+	 * the server's placement, which differs from the requested one when an existing project was
+	 * matched. [reminted] when the original id belonged to another account and a fresh one was used
+	 * instead.
 	 */
 	data class Created(
+		val projectId: ProjectId,
+		val name: String,
+		val groupId: GroupId?,
 		val alreadyExisted: Boolean,
 		val reminted: Boolean,
-	) : ServerCreateOutcome
+	) : ServerCreateOutcome {
+		val baseline: ProjectBaseline get() = ProjectBaseline(name, groupId)
+	}
 
 	/**
 	 * The server matched the project by name to a server project another local project, [heldBy],
@@ -48,9 +55,8 @@ sealed interface ServerCreateOutcome {
  * Creates a local project on the server under its own id, shared by account sync and project sync
  * so both resolve the server's answers the same way: a same-name project on the account is adopted
  * unless another local project already holds its id, an id held by another account is re-minted
- * once, and a tombstoned id is reported, not retried. A created project's account sync baseline
- * records the placement the server answers with, which differs from the requested one when an
- * existing project was matched.
+ * once, and a tombstoned id is reported, not retried. Within account sync the caller records the
+ * created project's baseline; [createInOwnSession] stores it itself.
  */
 class ProjectCreateResolver(
 	private val serverProjectsApi: ServerProjectsApi,
@@ -102,8 +108,13 @@ class ProjectCreateResolver(
 						Napier.i("'${def.name}' adopted server project ${response.projectId.id}")
 						projectsRepository.setProjectId(def, response.projectId)
 					}
-					recordBaseline(response.projectId, ProjectBaseline(def.name, response.groupId))
-					return ServerCreateOutcome.Created(response.alreadyExisted, reminted)
+					return ServerCreateOutcome.Created(
+						projectId = response.projectId,
+						name = def.name,
+						groupId = response.groupId,
+						alreadyExisted = response.alreadyExisted,
+						reminted = reminted,
+					)
 				}
 
 				error.apiErrorCode() == ApiErrorCode.PROJECT_ID_TAKEN && !reminted -> {
@@ -130,14 +141,18 @@ class ProjectCreateResolver(
 		val begin = serverProjectsApi.beginProjectsSync()
 		val syncId = begin.getOrElse { return ServerCreateOutcome.Failed(it) }.syncId
 		try {
-			create(projectDef, syncId, groupId = null, mayChangeId = false)
+			create(projectDef, syncId, groupId = null, mayChangeId = false).also { outcome ->
+				if (outcome is ServerCreateOutcome.Created) recordBaseline(outcome)
+			}
 		} finally {
 			withContext(NonCancellable) { serverProjectsApi.endProjectsSync(syncId) }
 		}
 	}
 
-	private suspend fun recordBaseline(projectId: ProjectId, baseline: ProjectBaseline) {
-		accountSyncDatasource.update { it.copy(projectBaselines = it.projectBaselines + (projectId to baseline)) }
+	private suspend fun recordBaseline(created: ServerCreateOutcome.Created) {
+		accountSyncDatasource.update {
+			it.copy(projectBaselines = it.projectBaselines + (created.projectId to created.baseline))
+		}
 	}
 }
 

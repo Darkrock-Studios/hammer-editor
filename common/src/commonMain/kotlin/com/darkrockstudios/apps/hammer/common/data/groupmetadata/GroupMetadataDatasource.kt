@@ -15,7 +15,8 @@ import kotlin.time.Clock
 /**
  * Owns `group.toml`, the file that marks a directory as a project group. Like `project.toml` it
  * holds only regenerable metadata, so any reader may heal or recreate it: losing it costs the group
- * its identity (a fresh [GroupId]), its description and its collapsed state, never a project.
+ * its identity (a fresh [GroupId]), its description and its collapsed state, never a project. A
+ * blank description is stored and read as none.
  */
 class GroupMetadataDatasource(
 	private val fileSystem: FileSystem,
@@ -39,19 +40,19 @@ class GroupMetadataDatasource(
 			return createMetadata(groupDir, GroupId.randomUUID())
 		}
 
-		if (metadata.info.groupId != null) return metadata
+		if (metadata.info.groupId != null) return metadata.normalized()
 
 		val minted = GroupId.randomUUID()
 		Napier.w("Group '${groupDir.name}' had no group id, assigned ${minted.id}")
-		return metadata.copy(info = metadata.info.copy(groupId = minted)).also { saveMetadata(groupDir, it) }
+		return metadata.copy(info = metadata.info.copy(groupId = minted)).normalized().also { saveMetadata(groupDir, it) }
 	}
 
 	fun saveMetadata(groupDir: HPath, metadata: GroupMetadata) {
-		fileSystem.writeToml(metadataPath(groupDir), toml, metadata, header = FILE_HEADER)
+		fileSystem.writeToml(metadataPath(groupDir), toml, metadata.normalized(), header = FILE_HEADER)
 	}
 
 	fun updateMetadata(groupDir: HPath, block: (metadata: GroupMetadata) -> GroupMetadata): GroupMetadata {
-		val newMetadata = block(loadMetadata(groupDir))
+		val newMetadata = block(loadMetadata(groupDir)).normalized()
 		saveMetadata(groupDir, newMetadata)
 		return newMetadata
 	}
@@ -63,7 +64,7 @@ class GroupMetadataDatasource(
 				created = Clock.System.now(),
 				description = description,
 			)
-		)
+		).normalized()
 		saveMetadata(groupDir, newMetadata)
 		return newMetadata
 	}
@@ -72,8 +73,8 @@ class GroupMetadataDatasource(
 		fileSystem.delete(metadataPath(groupDir), mustExist = false)
 	}
 
-	/** The group's id, minting and saving a new one if the file has none. */
-	fun loadGroupId(groupDir: HPath): GroupId = checkNotNull(loadMetadata(groupDir).info.groupId)
+	private fun GroupMetadata.normalized(): GroupMetadata =
+		if (info.description?.isBlank() == true) copy(info = info.copy(description = null)) else this
 
 	companion object {
 		const val FILE_HEADER =

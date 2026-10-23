@@ -13,17 +13,15 @@ fun threeWay(
 	localEqualsServer: Boolean,
 	localEqualsBaseline: Boolean,
 	serverEqualsBaseline: Boolean,
-	hasBaseline: Boolean,
 ): Winner = when {
 	localEqualsServer -> Winner.Agree
-	!hasBaseline -> Winner.TakeServer
-	localEqualsBaseline -> Winner.TakeServer
-	serverEqualsBaseline -> Winner.PushLocal
+	serverEqualsBaseline && !localEqualsBaseline -> Winner.PushLocal
 	else -> Winner.TakeServer
 }
 
+/** Without a baseline neither side equals it, so the server wins. */
 fun <T> threeWay(local: T, server: T, baseline: T, hasBaseline: Boolean): Winner =
-	threeWay(local == server, hasBaseline && local == baseline, hasBaseline && server == baseline, hasBaseline)
+	threeWay(local == server, hasBaseline && local == baseline, hasBaseline && server == baseline)
 
 /**
  * Names are compared as this device stores them: a server name it cannot store arrives sanitized
@@ -34,5 +32,4 @@ fun nameThreeWay(local: String, server: String, baseline: String?): Winner =
 		localEqualsServer = local == ProjectsRepository.toLocalSafeName(server),
 		localEqualsBaseline = baseline != null && local == ProjectsRepository.toLocalSafeName(baseline),
 		serverEqualsBaseline = server == baseline,
-		hasBaseline = baseline != null,
 	)

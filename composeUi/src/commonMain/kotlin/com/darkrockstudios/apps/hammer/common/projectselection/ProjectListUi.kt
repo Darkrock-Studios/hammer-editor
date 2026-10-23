@@ -427,17 +427,10 @@ internal fun Masthead(
 
 @Composable
 private fun NewGroupAffordance(onClick: () -> Unit) {
-	Box(
-		modifier = Modifier
-			.size(32.dp)
-			.testTag(CreateGroupButtonTestTag)
-			.border(
-				width = Dp.Hairline,
-				color = MaterialTheme.colorScheme.outlineVariant,
-				shape = RectangleShape,
-			)
-			.clickable(onClick = onClick),
-		contentAlignment = Alignment.Center,
+	HdToolButton(
+		active = false,
+		onClick = onClick,
+		modifier = Modifier.testTag(CreateGroupButtonTestTag),
 	) {
 		Icon(
 			imageVector = Icons.Outlined.Folder,
@@ -738,6 +731,7 @@ fun ModalContent(component: ProjectsList, rootSnackbar: RootSnackbarHostState) {
 	val state by component.modalRouterState.subscribeAsState()
 	val listState by component.state.subscribeAsState()
 	val overlay = state.child?.instance
+	val groupDefs = remember(listState.groups) { listState.groups.map { it.definition } }
 	// The dialog's copy of a group can be stale (a reload or sync renamed it); act on the current one.
 	fun current(group: GroupDef): GroupDef =
 		listState.groups.firstOrNull { it.definition.id == group.id }?.definition ?: group
@@ -809,7 +803,7 @@ fun ModalContent(component: ProjectsList, rootSnackbar: RootSnackbarHostState) {
 			val target = overlay.target.current(listState.projects, listState.groups)
 			MoveToGroupDialog(
 				target = target,
-				groups = listState.groups.map { it.definition },
+				groups = groupDefs,
 				placement = listState.placement,
 				onMove = { destination ->
 					when (target) {

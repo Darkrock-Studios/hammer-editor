@@ -18,9 +18,8 @@ import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.isAuthentica
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.GroupBaseline
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.OnSyncLog
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.apiErrorCode
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncAccLogE
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncAccLogI
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncAccLogW
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogLevel
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncAccLog
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectsApi
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import io.github.aakira.napier.Napier
@@ -32,11 +31,7 @@ data class PendingGroupDeletes(
 	val onServer: List<ApiGroupDefinition>,
 	/** Children first. */
 	val locally: List<GroupId>,
-) {
-	companion object {
-		val NONE = PendingGroupDeletes(emptyList(), emptyList())
-	}
-}
+)
 
 /**
  * The groups half of account sync: brings the local and server group trees together by the three-way
@@ -77,13 +72,13 @@ class GroupSyncPhase(
 	): PendingGroupDeletes {
 		ledger.confirmedGroupIds += serverGroups.map { it.uuid }
 
-		val plan = settleAdoptions(serverGroups, baselines, ledger, onLog)
+		val (plan, tree) = settleAdoptions(serverGroups, baselines, ledger, onLog)
 		val session = Session(
 			syncId = syncId,
 			ledger = ledger,
 			onLog = onLog,
 			onUnauthorized = onUnauthorized,
-			localIds = projectsRepository.getProjectTree().groups.mapTo(mutableSetOf()) { it.id },
+			localIds = tree.groups.mapTo(mutableSetOf()) { it.id },
 		)
 
 		createOnServer(plan.createOnServer, session)
@@ -99,26 +94,27 @@ class GroupSyncPhase(
 
 	/**
 	 * Adopts server groups by name until none is left to adopt: a subgroup can only match once its
-	 * parent has taken the server's id, so each pass reaches one level deeper.
+	 * parent has taken the server's id, so each pass reaches one level deeper. Returns the final plan
+	 * with the tree it was made from.
 	 */
 	private suspend fun settleAdoptions(
 		serverGroups: Set<ApiGroupDefinition>,
 		baselines: Map<GroupId, GroupBaseline>,
 		ledger: BaselineLedger,
 		onLog: OnSyncLog,
-	): GroupPlan {
+	): Pair<GroupPlan, ProjectTree> {
 		val failedAdoptions = mutableSetOf<GroupId>()
 		var passes = 0
 		while (true) {
 			val tree = projectsRepository.getProjectTree()
 			val plan = reconcileGroups(tree.groups, serverGroups, baselines, failedAdoptions)
-			if (plan.adoptions.isEmpty() || passes++ > MAX_GROUP_NESTING_DEPTH) return plan
+			if (plan.adoptions.isEmpty() || passes++ > MAX_GROUP_NESTING_DEPTH) return plan to tree
 
 			plan.adoptions.forEach { adoption ->
 				try {
 					projectsRepository.setGroupId(adoption.local, adoption.serverId)
 					ledger.rekeyGroup(adoption.local.id, adoption.serverId)
-					onLog(syncAccLogI(strRes.get(Res.string.sync_log_account_group_adopt_server, adoption.local.name)))
+					onLog.log(SyncLogLevel.INFO, Res.string.sync_log_account_group_adopt_server, adoption.local.name)
 				} catch (e: IOException) {
 					Napier.e("Failed to adopt server group for '${adoption.local.name}'", e)
 					failedAdoptions += adoption.local.id
@@ -132,7 +128,7 @@ class GroupSyncPhase(
 			val parentId = session.resolve(group.parentId)
 			if (parentId != null && (parentId in session.failed || parentId !in session.ledger.confirmedGroupIds)) {
 				session.failed += group.id
-				log(session, Level.W, Res.string.sync_log_account_group_skipped_parent_failed, group.name)
+				session.onLog.log(SyncLogLevel.WARN, Res.string.sync_log_account_group_skipped_parent_failed, group.name)
 				return@forEach
 			}
 			createOnServer(group, parentId, session)
@@ -153,7 +149,7 @@ class GroupSyncPhase(
 					if (serverId == def.id) {
 						session.ledger.confirmedGroupIds += def.id
 						session.ledger.recordGroup(def.id, GroupBaseline(def.name, parentId, description))
-						log(session, Level.I, Res.string.sync_log_account_group_create_server_success, def.name)
+						session.onLog.log(SyncLogLevel.INFO, Res.string.sync_log_account_group_create_server_success, def.name)
 					} else {
 						adoptServerGroup(def, group.id, serverId, session)
 					}
@@ -164,7 +160,7 @@ class GroupSyncPhase(
 					val newId = GroupId.randomUUID()
 					def = rekey(def, group.id, newId, session) ?: return failCreate(group, session, null)
 					reminted = true
-					log(session, Level.W, Res.string.sync_log_account_group_id_reminted, def.name)
+					session.onLog.log(SyncLogLevel.WARN, Res.string.sync_log_account_group_id_reminted, def.name)
 				}
 
 				else -> return failCreate(group, session, error)
@@ -184,7 +180,7 @@ class GroupSyncPhase(
 		rekey(def, originalId, serverId, session) ?: return failCreate(def, session, null)
 		session.ledger.confirmedGroupIds += serverId
 		session.claimed += serverId
-		log(session, Level.I, Res.string.sync_log_account_group_adopt_server, def.name)
+		session.onLog.log(SyncLogLevel.INFO, Res.string.sync_log_account_group_adopt_server, def.name)
 	}
 
 	private fun rekey(def: GroupDef, originalId: GroupId, newId: GroupId, session: Session): GroupDef? =
@@ -203,18 +199,19 @@ class GroupSyncPhase(
 	private suspend fun failCreate(group: GroupDef, session: Session, error: Throwable?) {
 		session.failed += group.id
 		error?.let { Napier.e("Failed to create group on server: ${group.name}", it) }
-		log(session, Level.E, Res.string.sync_log_account_group_create_server_failure, group.name)
+		session.onLog.log(SyncLogLevel.ERROR, Res.string.sync_log_account_group_create_server_failure, group.name)
 		if (error.isAuthenticationFailure()) session.onUnauthorized()
 	}
 
 	/** Parents first; a group whose parent is missing locally is skipped. */
 	private suspend fun createLocally(groups: List<ApiGroupDefinition>, session: Session) {
+		if (groups.isEmpty()) return
 		val tree = projectsRepository.getProjectTree()
 		val created = mutableMapOf<GroupId, GroupDef>()
 		groups.forEach { remote ->
 			val parent = remote.parentId?.let { created[it] ?: tree.group(it) }
 			if (remote.parentId != null && parent == null) {
-				log(session, Level.W, Res.string.sync_log_account_group_skipped_parent_failed, remote.name)
+				session.onLog.log(SyncLogLevel.WARN, Res.string.sync_log_account_group_skipped_parent_failed, remote.name)
 				return@forEach
 			}
 			createLocally(remote, parent, session)?.let { created[remote.uuid] = it }
@@ -234,19 +231,19 @@ class GroupSyncPhase(
 		}
 
 		if (!isSuccess(result)) {
-			log(session, Level.E, Res.string.sync_log_account_group_create_client_failure, remote.name)
+			session.onLog.log(SyncLogLevel.ERROR, Res.string.sync_log_account_group_create_client_failure, remote.name)
 			return null
 		}
 
 		val def = result.data
 		session.localIds += def.id
-		log(session, Level.I, Res.string.sync_log_account_group_create_client_success, def.name)
+		session.onLog.log(SyncLogLevel.INFO, Res.string.sync_log_account_group_create_client_success, def.name)
 		if (name == baseName) {
 			session.ledger.recordGroup(def.id, GroupBaseline(remote.name, remote.parentId, description))
 		} else {
 			// The other devices take the suffixed name too, or this one would rename it back. The
 			// name-taken log already covers it, so the push does not add its update-success line.
-			log(session, Level.W, Res.string.sync_log_account_group_name_taken_client, remote.name, name)
+			session.onLog.log(SyncLogLevel.WARN, Res.string.sync_log_account_group_name_taken_client, remote.name, name)
 			val renamed = ApiGroupDefinition(def.id, name, remote.parentId, description)
 			if (pushUpdate(renamed, session, logSuccess = false)) {
 				session.ledger.recordGroup(def.id, GroupBaseline(name, remote.parentId, description))
@@ -257,13 +254,14 @@ class GroupSyncPhase(
 
 	/** By server depth, parents first, so a group moving under another finds it in place. */
 	private suspend fun applyUpdates(updates: List<GroupUpdate>, session: Session) {
+		if (updates.isEmpty()) return
 		var tree = projectsRepository.getProjectTree()
 		updates.forEach { planned ->
 			val local = tree.group(planned.local.id) ?: return@forEach
 			// Re-read, since a parent created on the server this session may have taken a new id.
 			val update = planned.copy(local = local)
 			if (projectsRepository.isGroupInUse(local)) {
-				log(session, Level.W, Res.string.sync_log_account_group_in_use, local.name)
+				session.onLog.log(SyncLogLevel.WARN, Res.string.sync_log_account_group_in_use, local.name)
 				return@forEach
 			}
 
@@ -311,22 +309,19 @@ class GroupSyncPhase(
 			def = result.data
 		}
 		if (update.description == Winner.TakeServer) {
-			try {
-				def = projectsRepository.updateGroupDescription(def, remote.description.orNullIfBlank())
-			} catch (e: IOException) {
-				Napier.e("Failed to update the description of group '${def.name}'", e)
-				return failLocalUpdate(def, null, session)
-			}
+			val result = projectsRepository.updateGroupDescription(def, remote.description)
+			if (!isSuccess(result)) return failLocalUpdate(def, result, session)
+			def = result.data
 		}
-		log(session, Level.I, Res.string.sync_log_account_group_update_client_from_server_success, def.name)
+		session.onLog.log(SyncLogLevel.INFO, Res.string.sync_log_account_group_update_client_from_server_success, def.name)
 		return true
 	}
 
 	private suspend fun failLocalUpdate(def: GroupDef, result: CResult<*>?, session: Session): Boolean {
 		if (result?.failureReason() == GroupOperationFailed.Reason.GroupInUse) {
-			log(session, Level.W, Res.string.sync_log_account_group_in_use, def.name)
+			session.onLog.log(SyncLogLevel.WARN, Res.string.sync_log_account_group_in_use, def.name)
 		} else {
-			log(session, Level.E, Res.string.sync_log_account_group_update_client_from_server_failure, def.name)
+			session.onLog.log(SyncLogLevel.ERROR, Res.string.sync_log_account_group_update_client_from_server_failure, def.name)
 		}
 		return false
 	}
@@ -335,7 +330,7 @@ class GroupSyncPhase(
 		val result = serverProjectsApi.upsertGroup(group, session.syncId)
 		val error = result.exceptionOrNull()
 		if (error == null) {
-			if (logSuccess) log(session, Level.I, Res.string.sync_log_account_group_update_server_success, group.name)
+			if (logSuccess) session.onLog.log(SyncLogLevel.INFO, Res.string.sync_log_account_group_update_server_success, group.name)
 			return true
 		}
 
@@ -345,7 +340,7 @@ class GroupSyncPhase(
 			ApiErrorCode.GROUP_TOO_DEEP -> Res.string.sync_log_account_group_update_server_too_deep
 			else -> Res.string.sync_log_account_group_update_server_failure
 		}
-		log(session, Level.E, message, group.name)
+		session.onLog.log(SyncLogLevel.ERROR, message, group.name)
 		if (error.isAuthenticationFailure()) session.onUnauthorized()
 		return false
 	}
@@ -361,16 +356,15 @@ class GroupSyncPhase(
 		onLog: OnSyncLog,
 		onUnauthorized: suspend () -> Unit,
 	) {
-		val session = Session(syncId, ledger, onLog, onUnauthorized, mutableSetOf())
 		pending.onServer.forEach { group ->
 			val result = serverProjectsApi.deleteGroup(group.uuid, syncId)
 			val error = result.exceptionOrNull()
 			if (error == null) {
 				ledger.retireGroup(group.uuid)
-				log(session, Level.I, Res.string.sync_log_account_group_delete_server_success, group.name)
+				onLog.log(SyncLogLevel.INFO, Res.string.sync_log_account_group_delete_server_success, group.name)
 			} else {
 				Napier.e("Failed to delete group on server: ${group.name}", error)
-				log(session, Level.E, Res.string.sync_log_account_group_delete_server_failure, group.name)
+				onLog.log(SyncLogLevel.ERROR, Res.string.sync_log_account_group_delete_server_failure, group.name)
 				if (error.isAuthenticationFailure()) onUnauthorized()
 			}
 		}
@@ -385,29 +379,19 @@ class GroupSyncPhase(
 				when {
 					isSuccess(result) -> {
 						ledger.retireGroup(group.id)
-						log(session, Level.I, Res.string.sync_log_account_group_delete_client_success, group.name)
+						onLog.log(SyncLogLevel.INFO, Res.string.sync_log_account_group_delete_client_success, group.name)
 					}
 
 					result.failureReason() == GroupOperationFailed.Reason.GroupInUse ->
-						log(session, Level.W, Res.string.sync_log_account_group_in_use, group.name)
+						onLog.log(SyncLogLevel.WARN, Res.string.sync_log_account_group_in_use, group.name)
 
-					else -> log(session, Level.E, Res.string.sync_log_account_group_delete_client_failure, group.name)
+					else -> onLog.log(SyncLogLevel.ERROR, Res.string.sync_log_account_group_delete_client_failure, group.name)
 				}
 			}
 	}
 
-	private enum class Level { I, W, E }
-
-	private suspend fun log(session: Session, level: Level, message: StringResource, vararg args: Any) {
-		val text = strRes.get(message, *args)
-		session.onLog(
-			when (level) {
-				Level.I -> syncAccLogI(text)
-				Level.W -> syncAccLogW(text)
-				Level.E -> syncAccLogE(text)
-			}
-		)
-	}
+	private suspend fun OnSyncLog.log(level: SyncLogLevel, message: StringResource, vararg args: Any) =
+		this(syncAccLog(strRes.get(message, *args), level))
 
 	private companion object {
 		const val MAX_NAME_SUFFIX = 99

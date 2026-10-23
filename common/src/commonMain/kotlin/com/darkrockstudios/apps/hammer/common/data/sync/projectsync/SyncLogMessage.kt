@@ -28,6 +28,7 @@ fun syncAccLogD(message: String) = syncLog(message, null, SyncLogLevel.DEBUG)
 fun syncAccLogI(message: String) = syncLog(message, null, SyncLogLevel.INFO)
 fun syncAccLogW(message: String) = syncLog(message, null, SyncLogLevel.WARN)
 fun syncAccLogE(message: String) = syncLog(message, null, SyncLogLevel.ERROR)
+fun syncAccLog(message: String, level: SyncLogLevel) = syncLog(message, null, level)
 
 
 private fun syncLog(message: String, projectName: String?, level: SyncLogLevel): SyncLogMessage {

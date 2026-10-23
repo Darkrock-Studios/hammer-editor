@@ -270,8 +270,6 @@ class ProjectsRepository(
 			.filter { it.name == projectName }
 			.firstNotNullOfOrNull { loadProjectDef(it.name, it.dir) }
 
-	fun findGroup(groupId: GroupId): GroupDef? = getProjectTree().group(groupId)
-
 	/**
 	 * Every project at any level of the projects directory. A directory is considered a project only
 	 * if it contains a [ProjectMetadata.FILENAME] file and its (decoded) name is a valid project name.
@@ -286,11 +284,12 @@ class ProjectsRepository(
 	 * The projects directory as groups and projects, each project placed in the group whose directory
 	 * holds it. Each group's [GroupMetadata.FILENAME] is healed as it is read (see
 	 * [GroupMetadataDatasource.loadMetadata]), and a group sharing an id with one listed before it, as
-	 * a copied folder does, gets a fresh one.
+	 * a copied folder does, gets a fresh one. Each group's collapsed state is read along with it.
 	 */
 	fun getProjectTree(projectsDir: HPath = getProjectsDirectory()): ProjectTree {
 		val scan = scan(projectsDir.toOkioPath())
 		val groupIds = mutableMapOf<Path, GroupId>()
+		val collapsed = mutableSetOf<GroupId>()
 		// A group that cannot be read takes its subtree with it: listing its contents a level up
 		// would read as a move.
 		val skippedDirs = mutableSetOf<Path>()
@@ -300,9 +299,14 @@ class ProjectsRepository(
 				return@mapNotNull null
 			}
 			val parentId = scanned.parentDir?.let(groupIds::get)
-			val def = loadGroupDef(scanned, parentId, taken = groupIds.values.toSet())
-			if (def == null) skippedDirs += scanned.dir else groupIds[scanned.dir] = def.id
-			def
+			val loaded = loadGroup(scanned, parentId, taken = groupIds.values.toSet())
+			if (loaded == null) {
+				skippedDirs += scanned.dir
+				return@mapNotNull null
+			}
+			groupIds[scanned.dir] = loaded.def.id
+			if (loaded.collapsed) collapsed += loaded.def.id
+			loaded.def
 		}
 		val placement = mutableMapOf<ProjectId, GroupId?>()
 		val projects = scan.projects
@@ -311,7 +315,7 @@ class ProjectsRepository(
 				loadProjectDef(scanned.name, scanned.dir)
 					?.also { placement[it.id] = scanned.parentDir?.let(groupIds::get) }
 			}
-		return ProjectTree(groups, projects, placement)
+		return ProjectTree(groups, projects, placement, collapsed)
 	}
 
 	/** Null when its [ProjectMetadata.FILENAME] cannot be read, as when the project is deleted meanwhile. */
@@ -323,8 +327,10 @@ class ProjectsRepository(
 			null
 		}
 
+	private class LoadedGroup(val def: GroupDef, val collapsed: Boolean)
+
 	/** Null when its [GroupMetadata.FILENAME] cannot be read or healed, as when the group is deleted meanwhile. */
-	private fun loadGroupDef(scanned: ScannedDir, parentId: GroupId?, taken: Set<GroupId>): GroupDef? =
+	private fun loadGroup(scanned: ScannedDir, parentId: GroupId?, taken: Set<GroupId>): LoadedGroup? =
 		try {
 			val dir = scanned.dir.toHPath()
 			val metadata = groupMetadataDatasource.loadMetadata(dir)
@@ -337,7 +343,10 @@ class ProjectsRepository(
 			} else {
 				loadedId
 			}
-			GroupDef(groupId, scanned.name, dir, parentId, metadata.info.description)
+			LoadedGroup(
+				def = GroupDef(groupId, scanned.name, dir, parentId, metadata.info.description),
+				collapsed = metadata.info.collapsed,
+			)
 		} catch (e: IOException) {
 			Napier.w("Skipped group '${scanned.name}': could not read its ${GroupMetadata.FILENAME}", e)
 			null
@@ -354,23 +363,30 @@ class ProjectsRepository(
 	 * [ProjectMetadata.FILENAME] file is a project, one holding [GroupMetadata.FILENAME] a group, and
 	 * one holding Hammer content but neither marker is unmarked and not descended into. Any other
 	 * directory is a group if it holds a group or project, so unrelated folders are never claimed.
-	 * Groups end at [MAX_GROUP_NESTING_DEPTH].
+	 * Groups end at [MAX_GROUP_NESTING_DEPTH]. Each directory is listed once, and a marker is only
+	 * looked at when that listing holds its name.
 	 */
 	private fun scan(dir: Path = getProjectsDirectory().toOkioPath(), depth: Int = 1): Scan {
 		val groups = mutableListOf<ScannedDir>()
 		val projects = mutableListOf<ScannedDir>()
 		val unmarked = mutableListOf<ScannedDir>()
 
-		fun visit(parentDir: Path, parentGroup: Path?, entryDepth: Int): Boolean {
+		fun visit(entries: List<Path>, parentGroup: Path?, entryDepth: Int): Boolean {
 			var found = false
-			for (entry in fileSystem.listOrNull(parentDir).orEmpty()) {
+			for (entry in entries) {
 				if (entry.name.startsWith('.')) continue
 				if (fileSystem.metadataOrNull(entry)?.isDirectory != true) continue
 				val name = decodeFromFilename(entry.name)
 				if (!validateProjectName(name)) continue
 
+				val children = fileSystem.listOrNull(entry).orEmpty()
+				val listing = Listing(children)
 				val scanned = ScannedDir(name, entry, parentGroup)
-				val marker = fileSystem.metadataOrNull(entry / ProjectMetadata.FILENAME)
+				val marker = if (listing.has(ProjectMetadata.FILENAME)) {
+					fileSystem.metadataOrNull(entry / ProjectMetadata.FILENAME)
+				} else {
+					null
+				}
 				when {
 					marker?.isRegularFile == true -> {
 						projects += scanned
@@ -378,20 +394,20 @@ class ProjectsRepository(
 					}
 					// A project.toml in another form is the metadata datasource's to recover.
 					marker != null -> Unit
-					groupMetadataDatasource.isMarked(entry.toHPath()) -> {
+					listing.has(GroupMetadata.FILENAME) && groupMetadataDatasource.isMarked(entry.toHPath()) -> {
 						if (entryDepth <= MAX_GROUP_NESTING_DEPTH) {
 							groups += scanned
-							visit(entry, entry, entryDepth + 1)
+							visit(children, entry, entryDepth + 1)
 							found = true
 						}
 					}
-					hasProjectContent(entry) -> {
+					hasProjectContent(entry, listing) -> {
 						unmarked += scanned
 						found = true
 					}
 					entryDepth <= MAX_GROUP_NESTING_DEPTH -> {
 						val index = groups.size
-						if (visit(entry, entry, entryDepth + 1)) {
+						if (visit(children, entry, entryDepth + 1)) {
 							groups.add(index, scanned)
 							found = true
 						}
@@ -401,8 +417,18 @@ class ProjectsRepository(
 			return found
 		}
 
-		visit(dir, parentGroup = null, entryDepth = depth)
+		visit(fileSystem.listOrNull(dir).orEmpty(), parentGroup = null, entryDepth = depth)
 		return Scan(groups, projects, unmarked)
+	}
+
+	/**
+	 * A directory's entry names, matched ignoring case so a case-insensitive filesystem still finds a
+	 * marker spelled differently. Callers then check the marker's own path.
+	 */
+	private class Listing(entries: List<Path>) {
+		private val names = entries.mapTo(HashSet()) { it.name.lowercase() }
+
+		fun has(name: String): Boolean = name.lowercase() in names
 	}
 
 	/** How far [dir] sits below the projects directory: 1 for one of its own entries. */
@@ -418,8 +444,8 @@ class ProjectsRepository(
 	 * A child project or group that happens to be named like a content entry (a group's "Notes"
 	 * subgroup, or "notes" on a case-insensitive filesystem) is not content.
 	 */
-	private fun hasProjectContent(projectDir: Path): Boolean =
-		projectContentMarkers.any { isProjectContent(projectDir / it) }
+	private fun hasProjectContent(projectDir: Path, listing: Listing): Boolean =
+		projectContentMarkers.any { listing.has(it) && isProjectContent(projectDir / it) }
 
 	private fun isProjectContent(entry: Path): Boolean {
 		val metadata = fileSystem.metadataOrNull(entry) ?: return false
@@ -446,7 +472,8 @@ class ProjectsRepository(
 		val trimmedName = projectName.trim()
 		val projectDir = getProjectDirectory(trimmedName).toOkioPath()
 		if (fileSystem.metadataOrNull(projectDir)?.isDirectory != true) return null
-		if (fileSystem.list(projectDir).isNotEmpty() && !hasProjectContent(projectDir)) return null
+		val entries = fileSystem.list(projectDir)
+		if (entries.isNotEmpty() && !hasProjectContent(projectDir, Listing(entries))) return null
 		return adoptUnmarkedDirectory(trimmedName, projectDir, projectId, serverKnowsProject)
 	}
 
@@ -523,7 +550,7 @@ class ProjectsRepository(
 			)
 		}
 
-		val parentDir = group?.path?.toOkioPath() ?: getProjectsDirectory().toOkioPath()
+		val parentDir = group.dirOrRoot()
 		if (fileSystem.metadataOrNull(parentDir)?.isDirectory != true) {
 			return projectCreationFailure(Res.string.create_project_error_group_missing)
 		}
@@ -588,7 +615,7 @@ class ProjectsRepository(
 			return projectRenameFailure(ProjectRenameFailed.Reason.AlreadyExists)
 		}
 
-		return moveProjectDirectory(projectDir, newProjectDir) {
+		return moveDirectory(projectDir, newProjectDir, ::projectMoveFailed) {
 			projectDef.copy(name = newName, path = newProjectDir.toHPath())
 		}
 	}
@@ -603,7 +630,7 @@ class ProjectsRepository(
 		val projectDir = projectDef.path.toOkioPath()
 		if (!fileSystem.exists(projectDir)) return projectRenameFailure(ProjectRenameFailed.Reason.SourceDoesNotExist)
 
-		val targetDir = target?.path?.toOkioPath() ?: getProjectsDirectory().toOkioPath()
+		val targetDir = target.dirOrRoot()
 		if (fileSystem.metadataOrNull(targetDir)?.isDirectory != true) {
 			return projectRenameFailure(ProjectRenameFailed.Reason.TargetMissing)
 		}
@@ -612,17 +639,23 @@ class ProjectsRepository(
 		if (newProjectDir == projectDir) return CResult.success(projectDef)
 		if (fileSystem.exists(newProjectDir)) return projectRenameFailure(ProjectRenameFailed.Reason.AlreadyExists)
 
-		return moveProjectDirectory(projectDir, newProjectDir) { projectDef.copy(path = newProjectDir.toHPath()) }
+		return moveDirectory(projectDir, newProjectDir, ::projectMoveFailed) {
+			projectDef.copy(path = newProjectDir.toHPath())
+		}
 	}
 
 	@Suppress("SwallowedException") // IOException maps to a typed failure result
-	private fun moveProjectDirectory(source: Path, target: Path, moved: () -> ProjectDef): CResult<ProjectDef> =
+	private fun <T> moveDirectory(source: Path, target: Path, failure: () -> CResult<T>, moved: () -> T): CResult<T> =
 		try {
 			fileSystem.atomicMove(source = source, target = target)
 			CResult.success(moved())
 		} catch (e: IOException) {
-			projectRenameFailure(ProjectRenameFailed.Reason.MoveFailed)
+			failure()
 		}
+
+	private fun projectMoveFailed(): CResult<ProjectDef> = projectRenameFailure(ProjectRenameFailed.Reason.MoveFailed)
+
+	private fun groupMoveFailed(): CResult<GroupDef> = groupFailure(GroupOperationFailed.Reason.MoveFailed)
 
 	fun deleteProject(projectDef: ProjectDef): Boolean {
 		val projectDir = projectDef.path.toOkioPath()
@@ -647,7 +680,7 @@ class ProjectsRepository(
 		val trimmedName = name.trim()
 		if (validateFileName(trimmedName).isFailure) return groupFailure(GroupOperationFailed.Reason.InvalidName)
 
-		val parentDir = parent?.path?.toOkioPath() ?: getProjectsDirectory().toOkioPath()
+		val parentDir = parent.dirOrRoot()
 		if (fileSystem.metadataOrNull(parentDir)?.isDirectory != true) {
 			return groupFailure(GroupOperationFailed.Reason.TargetMissing)
 		}
@@ -659,8 +692,8 @@ class ProjectsRepository(
 		if (fileSystem.exists(groupDir)) return groupFailure(GroupOperationFailed.Reason.AlreadyExists)
 
 		fileSystem.createDirectory(groupDir)
-		groupMetadataDatasource.createMetadata(groupDir.toHPath(), groupId, description)
-		return CResult.success(GroupDef(groupId, trimmedName, groupDir.toHPath(), parent?.id, description))
+		val metadata = groupMetadataDatasource.createMetadata(groupDir.toHPath(), groupId, description)
+		return CResult.success(GroupDef(groupId, trimmedName, groupDir.toHPath(), parent?.id, metadata.info.description))
 	}
 
 	/** Renames the group in place. Its name need only be free among its siblings. */
@@ -678,7 +711,7 @@ class ProjectsRepository(
 		if (isGroupInUse(groupDef)) return groupFailure(GroupOperationFailed.Reason.GroupInUse)
 		if (fileSystem.exists(newGroupDir)) return groupFailure(GroupOperationFailed.Reason.AlreadyExists)
 
-		return moveGroupDirectory(groupDir, newGroupDir) {
+		return moveDirectory(groupDir, newGroupDir, ::groupMoveFailed) {
 			groupDef.copy(name = trimmedName, path = newGroupDir.toHPath())
 		}
 	}
@@ -690,7 +723,7 @@ class ProjectsRepository(
 			return groupFailure(GroupOperationFailed.Reason.SourceDoesNotExist)
 		}
 
-		val parentDir = newParent?.path?.toOkioPath() ?: getProjectsDirectory().toOkioPath()
+		val parentDir = newParent.dirOrRoot()
 		if (parentDir.isSameOrUnder(groupDir)) return groupFailure(GroupOperationFailed.Reason.WouldCycle)
 		if (fileSystem.metadataOrNull(parentDir)?.isDirectory != true) {
 			return groupFailure(GroupOperationFailed.Reason.TargetMissing)
@@ -706,7 +739,7 @@ class ProjectsRepository(
 		}
 		if (fileSystem.exists(newGroupDir)) return groupFailure(GroupOperationFailed.Reason.AlreadyExists)
 
-		return moveGroupDirectory(groupDir, newGroupDir) {
+		return moveDirectory(groupDir, newGroupDir, ::groupMoveFailed) {
 			groupDef.copy(path = newGroupDir.toHPath(), parentId = newParent?.id)
 		}
 	}
@@ -717,15 +750,6 @@ class ProjectsRepository(
 		val deepest = scan(groupDir, depth + 1).groups.maxOfOrNull { depthBelowRoot(it.dir) } ?: depth
 		return deepest - depth + 1
 	}
-
-	@Suppress("SwallowedException") // IOException maps to a typed failure result
-	private fun moveGroupDirectory(source: Path, target: Path, moved: () -> GroupDef): CResult<GroupDef> =
-		try {
-			fileSystem.atomicMove(source = source, target = target)
-			CResult.success(moved())
-		} catch (e: IOException) {
-			groupFailure(GroupOperationFailed.Reason.MoveFailed)
-		}
 
 	/**
 	 * Deletes the group but none of its contents: everything in it moves up one level first. Refused,
@@ -788,21 +812,16 @@ class ProjectsRepository(
 		return groupDef.copy(id = groupId)
 	}
 
-	/** Throws [IOException] when the group's directory is gone. */
-	fun updateGroupDescription(groupDef: GroupDef, description: String?): GroupDef {
-		groupMetadataDatasource.updateMetadata(groupDef.path) {
-			it.copy(info = it.info.copy(description = description))
-		}
-		return groupDef.copy(description = description)
-	}
-
-	/** False for a group that cannot be read. */
-	@Suppress("SwallowedException")
-	fun isGroupCollapsed(groupDef: GroupDef): Boolean =
+	/** Fails when the group's directory is gone. */
+	fun updateGroupDescription(groupDef: GroupDef, description: String?): CResult<GroupDef> =
 		try {
-			groupMetadataDatasource.loadMetadata(groupDef.path).info.collapsed
+			val updated = groupMetadataDatasource.updateMetadata(groupDef.path) {
+				it.copy(info = it.info.copy(description = description))
+			}
+			CResult.success(groupDef.copy(description = updated.info.description))
 		} catch (e: IOException) {
-			false
+			Napier.e("Failed to update the description of group '${groupDef.name}'", e)
+			groupFailure(GroupOperationFailed.Reason.SourceDoesNotExist)
 		}
 
 	/** Best effort: collapsed state is local display state, so a failed write is only logged. */
@@ -817,6 +836,8 @@ class ProjectsRepository(
 	}
 
 	private fun Path.parentOrRoot(): Path = parent ?: getProjectsDirectory().toOkioPath()
+
+	private fun GroupDef?.dirOrRoot(): Path = this?.path?.toOkioPath() ?: getProjectsDirectory().toOkioPath()
 
 	/**
 	 * Drops a project's content but keeps the directory and its [ProjectMetadata.FILENAME], so the

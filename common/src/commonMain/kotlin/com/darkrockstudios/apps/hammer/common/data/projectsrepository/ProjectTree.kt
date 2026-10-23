@@ -18,24 +18,17 @@ data class GroupDef(
 
 /**
  * The projects directory as a tree. Groups are listed parents first. [placement] maps each project
- * to the group that holds it, null at the top level.
+ * to the group that holds it, null at the top level. [collapsed] is local display state.
  */
 data class ProjectTree(
 	val groups: List<GroupDef>,
 	val projects: List<ProjectDef>,
 	val placement: Map<ProjectId, GroupId?>,
+	val collapsed: Set<GroupId> = emptySet(),
 ) {
 	private val groupsById: Map<GroupId, GroupDef> by lazy { groups.associateBy { it.id } }
 
 	fun group(id: GroupId): GroupDef? = groupsById[id]
-
-	fun parentOf(projectId: ProjectId): GroupDef? = placement[projectId]?.let(::group)
-
-	fun parentOf(group: GroupDef): GroupDef? = group.parentId?.let(::group)
-
-	fun childGroups(parent: GroupId?): List<GroupDef> = groups.filter { it.parentId == parent }
-
-	fun projectsIn(parent: GroupId?): List<ProjectDef> = projects.filter { placement[it.id] == parent }
 
 	/** The group's chain from the top level down to it, empty for an unknown group. */
 	fun ancestry(id: GroupId): List<GroupDef> {
@@ -54,18 +47,31 @@ data class ProjectTree(
 
 	fun isSameOrDescendant(id: GroupId, ancestor: GroupId): Boolean = ancestry(id).any { it.id == ancestor }
 
-	/** Levels of groups from [id] down to its deepest descendant group: 1 for a group with no subgroups. */
-	fun subtreeHeight(id: GroupId): Int = if (group(id) == null) 0 else heightBelow(id, budget = groups.size)
-
-	private fun heightBelow(id: GroupId, budget: Int): Int =
-		1 + (childGroups(id).takeIf { budget > 0 }?.maxOfOrNull { heightBelow(it.id, budget - 1) } ?: 0)
-
-	/** Every project in [id] or any of its descendant groups. */
-	fun projectsUnder(id: GroupId): List<ProjectDef> =
-		projects.filter { project -> placement[project.id]?.let { isSameOrDescendant(it, id) } == true }
-
 	/** Names from the top level down to [id], empty for the top level itself. */
 	fun pathNames(id: GroupId?): List<String> = id?.let { ancestry(it).map(GroupDef::name) } ?: emptyList()
+
+	/**
+	 * Every group with its depth, each followed by its subgroups: top-level groups are at depth 1 and
+	 * siblings sort by name, ignoring case. A group whose parent is unknown is top level. Each id is
+	 * listed once, so a hand-built cycle cannot loop.
+	 */
+	fun groupsInTreeOrder(): List<Pair<GroupDef, Int>> {
+		val byParent = groups.groupBy { it.parentId?.takeIf { id -> group(id) != null } }
+		val listed = mutableSetOf<GroupId>()
+		val ordered = mutableListOf<Pair<GroupDef, Int>>()
+
+		fun visit(parent: GroupId?, depth: Int) {
+			byParent[parent].orEmpty()
+				.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.name })
+				.forEach { group ->
+					if (!listed.add(group.id)) return@forEach
+					ordered += group to depth
+					visit(group.id, depth + 1)
+				}
+		}
+		visit(parent = null, depth = 1)
+		return ordered
+	}
 
 	companion object {
 		val EMPTY = ProjectTree(emptyList(), emptyList(), emptyMap())

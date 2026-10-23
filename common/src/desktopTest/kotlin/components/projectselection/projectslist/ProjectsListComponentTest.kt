@@ -708,8 +708,7 @@ class ProjectsListComponentTest : ComponentTest() {
 	// --- groups --------------------------------------------------------------
 
 	private fun stubGroupedTree() {
-		every { projectsRepository.getProjectTree(any()) } returns groupedTree
-		every { projectsRepository.isGroupCollapsed(drafts) } returns true
+		every { projectsRepository.getProjectTree(any()) } returns groupedTree.copy(collapsed = setOf(drafts.id))
 		every { projectsRepository.loadProjectMetadata(any()) } returns metadata(Instant.fromEpochSeconds(1))
 		every { statsReader.loadTotalWords(any()) } returns null
 	}
@@ -769,17 +768,6 @@ class ProjectsListComponentTest : ComponentTest() {
 		verify { projectsRepository.createGroup("Drafts", trilogy, any(), "Early work") }
 		verify { projectsRepository.getProjectTree(any()) }
 		assertIs<ProjectsList.ModalDestination.None>(comp.modalRouterState.value.child?.instance)
-	}
-
-	@Test
-	fun `createGroup with a blank description stores none`() = runTest(mainTestDispatcher) {
-		every { projectsRepository.createGroup(any(), any(), any(), any()) } returns CResult.success(drafts)
-		val comp = newComponent()
-
-		comp.createGroup("Drafts", null, "   ")
-		advanceUntilIdle()
-
-		verify { projectsRepository.createGroup("Drafts", null, any(), null) }
 	}
 
 	@Test
@@ -857,7 +845,8 @@ class ProjectsListComponentTest : ComponentTest() {
 
 	@Test
 	fun `updateGroupDescription on a vanished group toasts that it is gone`() = runTest(mainTestDispatcher) {
-		every { projectsRepository.updateGroupDescription(trilogy, "New") } throws IOException("gone")
+		every { projectsRepository.updateGroupDescription(trilogy, "New") } returns
+			CResult.failure(error = "SourceDoesNotExist", displayMessage = Res.string.group_error_source_missing.toMsg())
 		val comp = newComponent()
 		val toast = async(start = CoroutineStart.UNDISPATCHED) { comp.toast.first() }
 
@@ -866,17 +855,6 @@ class ProjectsListComponentTest : ComponentTest() {
 
 		assertEquals(ToastMessage.Resource(Res.string.group_error_source_missing), toast.await())
 		verify(exactly = 0) { projectsRepository.getProjectTree(any()) }
-	}
-
-	@Test
-	fun `updateGroupDescription with a blank description clears it`() = runTest(mainTestDispatcher) {
-		every { projectsRepository.updateGroupDescription(any(), any()) } answers { firstArg() }
-		val comp = newComponent()
-
-		comp.updateGroupDescription(trilogy, "")
-		advanceUntilIdle()
-
-		verify { projectsRepository.updateGroupDescription(trilogy, null) }
 	}
 
 	@Test

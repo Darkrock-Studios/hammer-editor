@@ -15,7 +15,6 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
 import com.darkrockstudios.apps.hammer.common.data.projectdata.loadStoredProjectData
-import com.darkrockstudios.apps.hammer.common.data.projectsrepository.GroupDef
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectInUseException
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectTree
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
@@ -58,6 +57,8 @@ class ClientAccountSynchronizer(
 	private val strRes: StrRes,
 ) {
 	var initialSync = false
+
+	private val placer = LocalProjectPlacer(projectsRepository, strRes)
 
 	fun isServerSynchronized(): Boolean {
 		return (globalSettingsStore.serverSettings?.userId ?: -1) > -1
@@ -455,12 +456,14 @@ class ClientAccountSynchronizer(
 		onLog: OnSyncLog
 	): Set<String> {
 		val claimedNames = mutableSetOf<String>()
+		// First holder wins, as a scan of the directory would find it.
+		val localByName = tree.projects.asReversed().associateByTo(mutableMapOf()) { it.name }
 		newServerProjects.forEach { serverProject ->
 			val localName = ProjectsRepository.toLocalSafeName(serverProject.name)
 			val target = tree.nearestLocalGroup(serverProject.groupId, serverGroups)
 			val placed = target?.id == serverProject.groupId
 			val baseline = ProjectBaseline(serverProject.name, serverProject.groupId)
-			val existingProject = projectsRepository.findProject(localName)
+			val existingProject = localByName[localName]
 			if (existingProject != null) {
 				if (existingProject.id in liveServerIds) {
 					onLog(
@@ -479,9 +482,10 @@ class ClientAccountSynchronizer(
 				val adopted = try {
 					projectsRepository.setProjectId(existingProject, serverProject.uuid)
 				} catch (_: ProjectInUseException) {
-					logInUse(existingProject, onLog)
+					placer.logInUse(existingProject, onLog)
 					return@forEach
 				}
+				localByName[adopted.name] = adopted
 				onLog(
 					syncAccLogI(
 						strRes.get(
@@ -491,7 +495,7 @@ class ClientAccountSynchronizer(
 					)
 				)
 				val currentGroup = tree.placement[existingProject.id]
-				if (moveInto(adopted, currentGroup, target, onLog) && placed) {
+				if (placer.place(adopted, currentGroup, target, serverProject.groupId, onLog)) {
 					ledger.recordProject(serverProject.uuid, baseline)
 				}
 			} else {
@@ -499,7 +503,8 @@ class ClientAccountSynchronizer(
 					UnmarkedFolder.Failed -> claimedNames += localName
 					is UnmarkedFolder.Adopted -> {
 						claimedNames += localName
-						if (moveInto(folder.projectDef, null, target, onLog) && placed) {
+						localByName[localName] = folder.projectDef
+						if (placer.place(folder.projectDef, null, target, serverProject.groupId, onLog)) {
 							ledger.recordProject(serverProject.uuid, baseline)
 						}
 					}
@@ -514,6 +519,7 @@ class ClientAccountSynchronizer(
 						if (isSuccess(createResult)) {
 							val projectDef = createResult.data
 							claimedNames += projectDef.name
+							localByName[projectDef.name] = projectDef
 							if (placed) ledger.recordProject(serverProject.uuid, baseline)
 							onLog(
 								syncAccLogI(
@@ -538,28 +544,6 @@ class ClientAccountSynchronizer(
 			}
 		}
 		return claimedNames
-	}
-
-	/** Moves a project adopted by a server project into [target]; true when it is there. */
-	private suspend fun moveInto(
-		projectDef: ProjectDef,
-		currentGroup: GroupId?,
-		target: GroupDef?,
-		onLog: OnSyncLog,
-	): Boolean {
-		if (currentGroup == target?.id) return true
-		val result = projectsRepository.moveProject(projectDef, target)
-		if (isSuccess(result)) return true
-		if (result.isInUse()) {
-			logInUse(projectDef, onLog)
-		} else {
-			onLog(
-				syncAccLogE(
-					strRes.get(Res.string.sync_log_account_project_move_client_from_server_failure, projectDef.name)
-				)
-			)
-		}
-		return false
 	}
 
 	/**
@@ -633,19 +617,20 @@ class ClientAccountSynchronizer(
 			val projectName = projectDef.name
 			// Checked up front: the server create runs before any setProjectId that would refuse it.
 			if (projectsRepository.isProjectInUse(projectDef)) {
-				logInUse(projectDef, onLog)
+				placer.logInUse(projectDef, onLog)
 				return@forEach
 			}
 			val outcome = try {
 				val groupId = tree.placement[projectDef.id]?.takeIf { it in ledger.confirmedGroupIds }
 				projectCreateResolver.create(projectDef, serverSyncData.syncId, groupId)
 			} catch (_: ProjectInUseException) {
-				logInUse(projectDef, onLog)
+				placer.logInUse(projectDef, onLog)
 				return@forEach
 			}
 
 			when (outcome) {
 				is ServerCreateOutcome.Created -> {
+					ledger.recordProject(outcome.projectId, outcome.baseline)
 					if (outcome.reminted) {
 						onLog(
 							syncAccLogW(
@@ -699,10 +684,6 @@ class ClientAccountSynchronizer(
 				}
 			}
 		}
-	}
-
-	private suspend fun logInUse(projectDef: ProjectDef, onLog: OnSyncLog) {
-		onLog(syncAccLogW(strRes.get(Res.string.sync_log_account_project_in_use, projectDef.name)))
 	}
 
 	suspend fun deleteProject(project: ProjectDef) {

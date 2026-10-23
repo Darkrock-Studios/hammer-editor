@@ -20,9 +20,6 @@ class BaselineLedger {
 	/** Groups the server holds this session: a placement or parent may only name one of these. */
 	val confirmedGroupIds = mutableSetOf<GroupId>()
 
-	val recordedGroups: Map<GroupId, GroupBaseline> get() = groups
-	val recordedProjects: Map<ProjectId, ProjectBaseline> get() = projects
-
 	fun recordGroup(id: GroupId, baseline: GroupBaseline) {
 		groups[id] = baseline
 		retiredGroups -= id

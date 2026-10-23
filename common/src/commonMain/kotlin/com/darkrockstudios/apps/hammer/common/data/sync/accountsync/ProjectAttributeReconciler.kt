@@ -28,7 +28,6 @@ sealed interface ProjectAttributeAction {
  */
 data class ProjectReconciliation(
 	val local: ProjectDef,
-	val server: ApiProjectDefinition,
 	val actions: List<ProjectAttributeAction>,
 	val baseline: ProjectBaseline?,
 )
@@ -98,7 +97,6 @@ fun reconcileProjectAttributes(
 
 			ProjectReconciliation(
 				local = project,
-				server = remote,
 				actions = actions,
 				baseline = if (settles) {
 					ProjectBaseline(
