@@ -130,7 +130,7 @@ class ReadOperationsTest : KoinOperationsTest() {
 			scenes.storeSceneMarkdownRaw(SceneContent(cut, markdown = "Nobody needs this."))
 			scenes.archiveScene(cut)
 
-			val draft = scope.get<SceneDraftRepository>().saveDraft(opening, "First pass")!!
+			val draft = scope.get<SceneDraftRepository>().saveDraft(opening, "First pass", "The storm came *early* that year.")!!
 
 			val notes = scope.get<NotesRepository>()
 			notes.createNote("Check the tide tables", setOf("research"))

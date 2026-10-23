@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.plugins.wasmhost
 
-import com.darkrockstudios.apps.hammer.common.data.secrets.SecretStore
+import com.darkrockstudios.apps.hammer.common.data.secrets.SecretDatasource
 import com.darkrockstudios.apps.hammer.common.util.DeviceLocaleResolver
 import com.darkrockstudios.apps.hammer.common.getCacheDirectory
 import com.darkrockstudios.apps.hammer.common.getConfigDirectory
@@ -36,7 +36,7 @@ class RuntimePlugins(
 	/** The UI's BCP 47 tag, which plugins' translations are chosen by and which their calls are told. */
 	private val locale: String? = null,
 	/** Where plugins' secret settings are kept; without one, commands see them empty. */
-	private val secrets: SecretStore? = null,
+	private val secrets: SecretDatasource? = null,
 ) : PluginInstaller {
 	private val packages = directory / PACKAGES_DIRECTORY
 	private val stateFile = directory / STATE_FILE
@@ -244,7 +244,7 @@ class RuntimePlugins(
 		private val toml = Toml { ignoreUnknownKeys = true }
 
 		/** The app's runtime plugins, kept beside plugin settings files in the config directory. */
-		fun inConfigDirectory(fileSystem: FileSystem, secrets: SecretStore?) = RuntimePlugins(
+		fun inConfigDirectory(fileSystem: FileSystem, secrets: SecretDatasource?) = RuntimePlugins(
 			fileSystem = fileSystem,
 			directory = getConfigDirectory().toPath() / PluginSettingsDatasource.PLUGINS_DIRECTORY,
 			cacheDirectory = getCacheDirectory().toPath() / PluginSettingsDatasource.PLUGINS_DIRECTORY,

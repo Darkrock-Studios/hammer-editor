@@ -26,7 +26,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.Glo
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.GlobalSettingsFilesystemDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectPluginsDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectPluginsRepository
-import com.darkrockstudios.apps.hammer.common.data.secrets.secretStoreModule
+import com.darkrockstudios.apps.hammer.common.data.secrets.secretDatasourceModule
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.ServerSettingsDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.ServerSettingsFilesystemDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.authTokenDatasourceModule
@@ -166,7 +166,7 @@ const val RAW_FILESYSTEM = "raw-filesystem"
 val mainModule = module {
 	includes(externalFileIoModule)
 	includes(authTokenDatasourceModule)
-	includes(secretStoreModule)
+	includes(secretDatasourceModule)
 	includes(exampleProjectModule)
 
 	// Dispatchers live in a plugin-less module (see dispatcherModule): three same-type
@@ -250,7 +250,7 @@ val mainModule = module {
 	}
 
 	single {
-		ProjectsRepository(get(), get(), get(), get(), get(), get()).also {
+		ProjectsRepository(get(), get(), get(), get(), get(), get(), get()).also {
 			// Registered as the repository is made, so ids re-minted at startup carry choices along.
 			get<ProjectPluginsRepository>().followProjectChanges(it)
 		}

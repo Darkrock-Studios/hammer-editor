@@ -1,6 +1,6 @@
 package plugin
 
-import com.darkrockstudios.apps.hammer.common.data.secrets.SecretStore
+import com.darkrockstudios.apps.hammer.common.data.secrets.SecretDatasource
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginSettingsDatasource
 import com.darkrockstudios.apps.hammer.operations.plugin.SettingDeclaration
@@ -18,7 +18,7 @@ import kotlin.test.assertNull
 
 class SecretSettingsTest {
 
-	private class MemorySecrets : SecretStore {
+	private class MemorySecrets : SecretDatasource {
 		val values = mutableMapOf<String, String>()
 		override fun get(key: String) = values[key]
 		override fun put(key: String, value: String) {

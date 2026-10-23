@@ -19,7 +19,7 @@ import com.darkrockstudios.apps.hammer.android.widgets.StoryInfoWidgetReceiver
 import com.darkrockstudios.apps.hammer.common.BuildConfig
 import com.darkrockstudios.apps.hammer.common.FileLogger
 import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
-import com.darkrockstudios.apps.hammer.common.data.secrets.EncryptedSharedPrefsSecretStore
+import com.darkrockstudios.apps.hammer.common.data.secrets.EncryptedSharedPrefsSecretDatasource
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.NapierLogger
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.appModule
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.imageLoadingModule
@@ -58,7 +58,7 @@ class HammerApplication : Application(), SingletonImageLoader.Factory {
 		installGlobalExceptionHandler()
 		logStartupBanner()
 
-		val runtimePlugins = RuntimePlugins.inConfigDirectory(FileSystem.SYSTEM, EncryptedSharedPrefsSecretStore(this))
+		val runtimePlugins = RuntimePlugins.inConfigDirectory(FileSystem.SYSTEM, EncryptedSharedPrefsSecretDatasource(this))
 		val pluginRegistry = PluginRegistry().also(runtimePlugins::activate)
 
 		startKoin {

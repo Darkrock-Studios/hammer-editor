@@ -1,6 +1,6 @@
 package repositories.secrets
 
-import com.darkrockstudios.apps.hammer.common.data.secrets.EncryptedFileSecretStore
+import com.darkrockstudios.apps.hammer.common.data.secrets.EncryptedFileSecretDatasource
 import com.darkrockstudios.apps.hammer.common.data.secrets.MachineBoundCipher
 import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
@@ -9,13 +9,13 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 
-class EncryptedFileSecretStoreTest {
+class EncryptedFileSecretDatasourceTest {
 
 	private val fileSystem = FakeFileSystem()
 	private val path = "/config/secrets.enc".toPath()
 
 	private fun store(user: String = "alice") =
-		EncryptedFileSecretStore(fileSystem, path, MachineBoundCipher(user, "/home/$user", "test-salt".encodeToByteArray()))
+		EncryptedFileSecretDatasource(fileSystem, path, MachineBoundCipher(user, "/home/$user", "test-salt".encodeToByteArray()))
 
 	@Test
 	fun `secrets round trip, and the file holds none in plain text`() {

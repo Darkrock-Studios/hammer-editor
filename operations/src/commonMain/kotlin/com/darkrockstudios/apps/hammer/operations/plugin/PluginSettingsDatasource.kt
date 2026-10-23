@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.operations.plugin
 
-import com.darkrockstudios.apps.hammer.common.data.secrets.SecretStore
+import com.darkrockstudios.apps.hammer.common.data.secrets.SecretDatasource
 import com.darkrockstudios.apps.hammer.common.getConfigDirectory
 import io.github.aakira.napier.Napier
 import kotlinx.serialization.KSerializer
@@ -23,7 +23,7 @@ class PluginSettingsDatasource(
 	private val fileSystem: FileSystem,
 	private val toml: Toml,
 	private val pluginsDirectory: Path = getConfigDirectory().toPath() / PLUGINS_DIRECTORY,
-	private val secrets: SecretStore? = null,
+	private val secrets: SecretDatasource? = null,
 ) {
 	/** Returns [default] when the file is missing or unreadable; a bad file is replaced on the next [store]. */
 	fun <T> load(pluginId: String, serializer: KSerializer<T>, default: () -> T): T {

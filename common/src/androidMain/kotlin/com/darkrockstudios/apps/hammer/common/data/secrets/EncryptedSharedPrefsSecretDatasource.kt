@@ -10,13 +10,13 @@ import java.security.GeneralSecurityException
 import java.security.KeyStore
 
 /**
- * [SecretStore] backed by [EncryptedSharedPreferences], one entry per key, under a master key of its
+ * [SecretDatasource] backed by [EncryptedSharedPreferences], one entry per key, under a master key of its
  * own in the Android Keystore: starting over with it never touches the auth tokens' master key.
  */
-class EncryptedSharedPrefsSecretStore internal constructor(
+class EncryptedSharedPrefsSecretDatasource internal constructor(
 	private val openPrefs: () -> SharedPreferences,
 	private val resetPrefs: () -> Unit,
-) : SecretStore {
+) : SecretDatasource {
 
 	constructor(context: Context) : this(
 		openPrefs = { openEncryptedPrefs(context) },

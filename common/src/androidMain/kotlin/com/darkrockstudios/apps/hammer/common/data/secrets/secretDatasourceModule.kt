@@ -4,6 +4,6 @@ import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.bind
 import org.koin.dsl.module
 
-actual val secretStoreModule = module {
-	single { EncryptedSharedPrefsSecretStore(androidContext()) } bind SecretStore::class
+actual val secretDatasourceModule = module {
+	single { EncryptedSharedPrefsSecretDatasource(androidContext()) } bind SecretDatasource::class
 }

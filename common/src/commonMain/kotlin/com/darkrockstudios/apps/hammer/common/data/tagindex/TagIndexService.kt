@@ -112,8 +112,11 @@ class TagIndexService(
 		}
 	}
 
-	/** Loads tags from notes, timeline events, encyclopedia entries and scene metadata. */
-	private suspend fun buildTagIndex(): TagIndex {
+	/**
+	 * Loads tags from notes, timeline events, encyclopedia entries and scene metadata. Called directly
+	 * by callers that need the index as of now, not as of the last debounced rebuild.
+	 */
+	suspend fun buildTagIndex(): TagIndex {
 		val tagToEntities = mutableMapOf<String, MutableSet<TaggedEntityRef>>()
 		val countsByType = mutableMapOf<TaggedEntityType, MutableMap<String, Int>>()
 

@@ -1,7 +1,7 @@
 package com.darkrockstudios.apps.hammer.desktop.cli
 
 import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
-import com.darkrockstudios.apps.hammer.common.data.secrets.EncryptedFileSecretStore
+import com.darkrockstudios.apps.hammer.common.data.secrets.EncryptedFileSecretDatasource
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.appModule
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.mainModule
 import com.darkrockstudios.apps.hammer.common.getConfigDirectory
@@ -37,7 +37,7 @@ object HeadlessSession {
 	private val calls = Mutex()
 
 	private val runtimePlugins by lazy {
-		RuntimePlugins.inConfigDirectory(FileSystem.SYSTEM, EncryptedFileSecretStore(FileSystem.SYSTEM))
+		RuntimePlugins.inConfigDirectory(FileSystem.SYSTEM, EncryptedFileSecretDatasource(FileSystem.SYSTEM))
 	}
 
 	/** The plugins active for CLI calls, fresh per process: the enabled runtime plugins. */

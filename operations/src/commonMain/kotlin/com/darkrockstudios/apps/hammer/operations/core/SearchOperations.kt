@@ -4,7 +4,7 @@ import com.darkrockstudios.apps.hammer.common.components.globalsearch.GlobalSear
 import com.darkrockstudios.apps.hammer.common.components.globalsearch.SearchResult
 import com.darkrockstudios.apps.hammer.common.data.globalsearch.SearchProjectUseCase
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
-import com.darkrockstudios.apps.hammer.common.data.tagindex.BuildTagIndexUseCase
+import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndexService
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndex
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TaggedEntityType
 import com.darkrockstudios.apps.hammer.common.data.tagindex.normalizeTagNeedle
@@ -77,7 +77,7 @@ internal fun searchOperations(): List<Operation<*, *>> = listOf(
 internal suspend fun OpenProject.tagIndex(): TagIndex {
 	scope.get<NotesRepository>().notesListFlow.loaded("Notes")
 	scope.get<TimeLineRepository>().timelineFlow.loaded("Timeline")
-	return scope.get<BuildTagIndexUseCase>()()
+	return scope.get<TagIndexService>().buildTagIndex()
 }
 
 internal fun TagIndex.entitiesWithTag(tag: String, type: TaggedEntityType): Set<Int> =

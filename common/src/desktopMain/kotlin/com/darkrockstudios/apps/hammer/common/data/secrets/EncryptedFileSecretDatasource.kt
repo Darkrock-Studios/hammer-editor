@@ -9,12 +9,12 @@ import okio.FileSystem
 import okio.Path
 import okio.Path.Companion.toPath
 
-/** [SecretStore] for desktop: the whole map as JSON, encrypted by a [MachineBoundCipher], in one file. */
-class EncryptedFileSecretStore(
+/** [SecretDatasource] for desktop: the whole map as JSON, encrypted by a [MachineBoundCipher], in one file. */
+class EncryptedFileSecretDatasource(
 	private val fileSystem: FileSystem,
 	private val filePath: Path = DEFAULT_FILE_PATH,
 	private val cipher: MachineBoundCipher = MachineBoundCipher(salt = APP_SALT),
-) : SecretStore {
+) : SecretDatasource {
 
 	override fun get(key: String): String? = lock.withLock { load()[key] }
 

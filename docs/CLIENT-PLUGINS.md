@@ -1858,7 +1858,7 @@ names:
 
 ### Secrets
 
-`secret` settings live in `SecretStore` (`:common`), keyed
+`secret` settings live in `SecretDatasource` (`:common`), keyed
 `plugin/<id>/<key>`, never in `plugins/<id>.toml`:
 
 - **Desktop.** One AES-GCM file, `secrets.enc` in the config directory, under a

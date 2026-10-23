@@ -168,7 +168,7 @@ class AccountSyncOperationsTest {
 
 		verify { settings.deleteServerSettings() }
 		coVerify { projects.clearAllSyncBaselines() }
-		verify { accountSynchronizer.deleteSyncData() }
+		coVerify { accountSynchronizer.deleteSyncData() }
 	}
 
 	@Test

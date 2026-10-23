@@ -6,7 +6,7 @@ import org.koin.core.module.Module
  * Strings kept encrypted at rest in app-private storage, by key, such as plugins' secret settings. Each
  * platform's store belongs to this machine and user, so its values never travel with a workspace.
  */
-interface SecretStore {
+interface SecretDatasource {
 	fun get(key: String): String?
 
 	/** An empty [value] removes [key]. */
@@ -16,5 +16,5 @@ interface SecretStore {
 	fun removeAll(prefix: String)
 }
 
-/** Provides the platform's [SecretStore]. */
-expect val secretStoreModule: Module
+/** Provides the platform's [SecretDatasource]. */
+expect val secretDatasourceModule: Module

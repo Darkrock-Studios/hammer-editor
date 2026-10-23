@@ -212,7 +212,8 @@ internal fun sceneWriteOperations(): List<Operation<*, *>> = listOf(
 		projects.withProject(input.project) { project ->
 			val scene = project.requireEditableScene(input.sceneId)
 			project.requireNoUnrestoredEdits(scene)
-			val draft = project.scope.get<SceneDraftRepository>().saveDraft(scene, input.name)
+			val content = project.scope.get<SceneContentRepository>().getCurrentSceneContent(scene)
+			val draft = project.scope.get<SceneDraftRepository>().saveDraft(scene, input.name, content)
 				?: invalidInput("Could not save a draft named '${input.name}'")
 			DraftInfo(id = draft.id, name = draft.draftName, created = draft.draftTimestamp)
 		}

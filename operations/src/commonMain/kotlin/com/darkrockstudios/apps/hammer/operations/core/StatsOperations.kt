@@ -2,7 +2,7 @@ package com.darkrockstudios.apps.hammer.operations.core
 
 import com.darkrockstudios.apps.hammer.base.http.writingactivity.DeviceLog
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
-import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsService
+import com.darkrockstudios.apps.hammer.common.data.projectstatistics.ProjectStatisticsUseCase
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingActivityRepository
 import com.darkrockstudios.apps.hammer.operations.Access
@@ -25,8 +25,8 @@ internal fun statsOperations(): List<Operation<*, *>> = listOf(
 		scope = OperationScope.Content,
 	) { input ->
 		projects.withProject(input.project) { project ->
-			val service = project.scope.get<StatisticsService>()
-			val stats = if (input.recalculate) service.recalculateStatistics() else service.loadStatistics()
+			val statistics = project.scope.get<ProjectStatisticsUseCase>()
+			val stats = if (input.recalculate) statistics.recalculate() else statistics.load()
 			val scenes = project.scope.get<SceneEditorService>()
 			ProjectStats(
 				totalWords = stats.totalWords,

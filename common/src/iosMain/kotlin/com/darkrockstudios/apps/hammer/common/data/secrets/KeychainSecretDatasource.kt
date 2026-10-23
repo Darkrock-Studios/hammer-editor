@@ -4,11 +4,11 @@ import com.russhwolf.settings.ExperimentalSettingsImplementation
 import com.russhwolf.settings.KeychainSettings
 import com.russhwolf.settings.Settings
 
-/** [SecretStore] backed by the Keychain, one `kSecClassGenericPassword` item per key. */
+/** [SecretDatasource] backed by the Keychain, one `kSecClassGenericPassword` item per key. */
 @OptIn(ExperimentalSettingsImplementation::class)
-class KeychainSecretStore(
+class KeychainSecretDatasource(
 	private val keychain: Settings = KeychainSettings(service = KEYCHAIN_SERVICE),
-) : SecretStore {
+) : SecretDatasource {
 
 	override fun get(key: String): String? = keychain.getStringOrNull(key)
 
