@@ -54,8 +54,12 @@ class BaselineLedger {
 		retiredGroups += old
 		retiredGroups -= new
 		if (confirmedGroupIds.remove(old)) confirmedGroupIds += new
-		groups.replaceAll { _, baseline -> if (baseline.parentId == old) baseline.copy(parentId = new) else baseline }
-		projects.replaceAll { _, baseline -> if (baseline.groupId == old) baseline.copy(groupId = new) else baseline }
+		groups.entries.forEach { entry ->
+			if (entry.value.parentId == old) entry.setValue(entry.value.copy(parentId = new))
+		}
+		projects.entries.forEach { entry ->
+			if (entry.value.groupId == old) entry.setValue(entry.value.copy(groupId = new))
+		}
 	}
 
 	fun applyTo(data: ProjectsSynchronizationData): ProjectsSynchronizationData = data.copy(
