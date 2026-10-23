@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.sync.projectsync
 
+import com.darkrockstudios.apps.hammer.base.GroupId
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import kotlinx.serialization.Serializable
 import kotlin.time.Instant
@@ -10,11 +11,30 @@ data class RenamedProject(
 	val newName: String,
 )
 
+/** The last name, parent and description this client and the server agreed on for a group. */
+@Serializable
+data class GroupBaseline(
+	val name: String,
+	val parentId: GroupId? = null,
+	val description: String? = null,
+)
+
+/** The last name and placement this client and the server agreed on for a project. */
+@Serializable
+data class ProjectBaseline(
+	val name: String,
+	val groupId: GroupId? = null,
+)
+
+/** The account sync file, `sync.json` in the projects directory. */
 @Serializable
 data class ProjectsSynchronizationData(
-	val deletedProjects: Set<ProjectId>,
-	val projectsToDelete: Set<ProjectId>,
-	val projectsToRename: Set<RenamedProject>,
+	val deletedProjects: Set<ProjectId> = emptySet(),
+	val projectsToDelete: Set<ProjectId> = emptySet(),
+	/** Renames queued by older versions; account sync migrates them into [projectBaselines] once. */
+	val projectsToRename: Set<RenamedProject> = emptySet(),
+	val groupBaselines: Map<GroupId, GroupBaseline> = emptyMap(),
+	val projectBaselines: Map<ProjectId, ProjectBaseline> = emptyMap(),
 )
 
 @Serializable

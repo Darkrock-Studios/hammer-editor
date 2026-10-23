@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.project
 
+import com.darkrockstudios.apps.hammer.base.GroupId
 import com.darkrockstudios.apps.hammer.base.ProjectId
 
 class InvalidSyncIdException : Exception("Invalid sync id")
@@ -38,3 +39,21 @@ class ProjectDeletedException(val projectId: ProjectId) :
 
 class ProjectIdTakenException(val projectId: ProjectId) :
 	Exception("Project id $projectId is already in use")
+
+class InvalidGroupName(val name: String) :
+	Exception("Invalid group name: $name")
+
+class InvalidGroupDescription(val length: Int) :
+	Exception("Group description too long: $length characters")
+
+class GroupNameTaken(val name: String) :
+	Exception("A sibling group is already named: $name")
+
+class GroupCycleException(val groupId: GroupId) :
+	Exception("Group $groupId cannot be moved inside itself")
+
+class GroupTooDeepException(val groupId: GroupId) :
+	Exception("Group $groupId would nest too deeply")
+
+class GroupIdTakenException(val groupId: GroupId) :
+	Exception("Group id $groupId is already in use")

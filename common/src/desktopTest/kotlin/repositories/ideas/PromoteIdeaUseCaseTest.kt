@@ -2,6 +2,7 @@ package repositories.ideas
 
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.data.groupmetadata.GroupMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeasDatasource
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeasRepository
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.PromoteIdeaUseCase
@@ -67,6 +68,7 @@ class PromoteIdeaUseCaseTest : BaseTest() {
 			fileSystem = ffs,
 			globalSettingsStore = globalSettingsStore,
 			projectsMetadataDatasource = ProjectMetadataDatasource(ffs, toml),
+			groupMetadataDatasource = GroupMetadataDatasource(ffs, toml),
 			toml = toml,
 			json = createJsonSerializer(),
 			deviceLocaleResolver = deviceLocaleResolver,

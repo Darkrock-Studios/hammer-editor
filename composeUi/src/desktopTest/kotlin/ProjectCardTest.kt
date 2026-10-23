@@ -10,6 +10,7 @@ import com.darkrockstudios.apps.hammer.common.projectselection.ProjectIndexRow
 import io.mockk.*
 import org.junit.Rule
 import org.junit.Test
+import kotlin.test.assertEquals
 
 class ProjectCardTest {
 	@get:Rule
@@ -77,5 +78,28 @@ class ProjectCardTest {
 		}
 
 		compose.onNodeWithText(data.definition.name).assertIsDisplayed()
+	}
+
+	@Test
+	fun `Project Card Move`() {
+		val data = fakeProjectData()
+		val moved = mutableListOf<ProjectDef>()
+
+		compose.setContent {
+			ProjectIndexRow(
+				isWide = true,
+				index = 0,
+				projectData = data,
+				onProjectClick = {},
+				onProjectAltClick = {},
+				onProjectRenameClick = {},
+				onProjectMoveClick = { moved += it },
+			)
+		}
+
+		compose.onNodeWithTag("More").performClick()
+		compose.onNodeWithTag("Move to…").performClick()
+
+		assertEquals(listOf(data.definition), moved)
 	}
 }

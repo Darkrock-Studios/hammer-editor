@@ -8,9 +8,13 @@ import com.darkrockstudios.apps.hammer.common.components.ComponentToaster
 import com.darkrockstudios.apps.hammer.common.components.ComponentToasterImpl
 import com.darkrockstudios.apps.hammer.common.components.SavableComponent
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ImportStoryUseCase
+import com.darkrockstudios.apps.hammer.common.components.projectselection.GroupData
+import com.darkrockstudios.apps.hammer.common.components.projectselection.MoveTarget
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectData
 import com.darkrockstudios.apps.hammer.common.components.savableState
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
+import com.darkrockstudios.apps.hammer.common.data.CResult
+import com.darkrockstudios.apps.hammer.common.data.ClientResult
 import com.darkrockstudios.apps.hammer.common.data.ImportOptions
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
@@ -19,6 +23,7 @@ import com.darkrockstudios.apps.hammer.common.data.importer.StoryImporterRegistr
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataConflictBroker
 import com.darkrockstudios.apps.hammer.common.data.projectdata.readStoredProjectData
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.GroupDef
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.ProjectStatisticsCacheReader
 import com.darkrockstudios.apps.hammer.base.http.storyideas.StoryIdea
@@ -210,8 +215,9 @@ class ProjectsListComponent(
 
 		loadProjectsJob?.cancel()
 		loadProjectsJob = scope.launch {
-			val projects = projectsRepository.getProjects(projectsDir)
-			val projectData = projects.parallelMap { projectDef ->
+			val tree = projectsRepository.getProjectTree(projectsDir)
+			val groups = tree.groups.map { GroupData(it, collapsed = it.id in tree.collapsed) }
+			val projectData = tree.projects.parallelMap { projectDef ->
 				// The project can be deleted concurrently
 				val metadata = try {
 					projectsRepository.loadProjectMetadata(projectDef)
@@ -232,7 +238,9 @@ class ProjectsListComponent(
 			}.filterNotNull().sortedByDescending { it.metadata.info.lastAccessed }
 
 			withContext(dispatcherMain) {
-				_state.getAndUpdate { it.copy(projects = projectData) }
+				_state.getAndUpdate {
+					it.copy(projects = projectData, groups = groups, placement = tree.placement)
+				}
 				loadProjectsJob = null
 			}
 		}
@@ -262,8 +270,8 @@ class ProjectsListComponent(
 		onProjectSelected(projectDef)
 	}
 
-	override fun showCreate() {
-		modalRouter.showProjectCreate()
+	override fun showCreate(parent: GroupDef?) {
+		modalRouter.showProjectCreate(parent)
 	}
 
 	override fun hideCreate() {
@@ -273,20 +281,10 @@ class ProjectsListComponent(
 		modalRouter.dismissProjectCreate()
 	}
 
-	override fun createProject(projectName: String) {
-		val result = projectsRepository.createProject(projectName, seedDefaultLanguage = true)
-		if (isSuccess(result)) {
-			Napier.i("Project created: $projectName")
-			loadProjectList()
-			hideCreate()
-		} else {
-			result.displayMessage?.let { msg ->
-				showToast(scope, msg)
-			}
-
-			Napier.e("Failed to create Project: $projectName")
+	override fun createProject(projectName: String, parent: GroupDef?) =
+		runTreeAction("create project '$projectName'", dismiss = ::hideCreate) {
+			projectsRepository.createProject(projectName, seedDefaultLanguage = true, group = parent)
 		}
-	}
 
 	override fun deleteProject(projectDef: ProjectDef) {
 		scope.launch(dispatcherIo) {
@@ -309,16 +307,79 @@ class ProjectsListComponent(
 		}
 	}
 
-	override fun renameProject(projectDef: ProjectDef, newName: String) {
-		if (projectsRepository.renameProject(projectDef, newName).isSuccess) {
-			Napier.i("Project renamed: ${projectDef.name}")
-			projectsSynchronizer.renameProject(projectDef.id, newName)
+	override fun renameProject(projectDef: ProjectDef, newName: String) =
+		runTreeAction("rename project '${projectDef.name}'") { projectsRepository.renameProject(projectDef, newName) }
 
-			loadProjectList()
-		} else {
-			Napier.e("Failed to rename Project: ${projectDef.name} to '$newName'")
+	override fun moveProject(projectDef: ProjectDef, target: GroupDef?) =
+		runTreeAction("move project '${projectDef.name}'") { projectsRepository.moveProject(projectDef, target) }
+
+	override fun createGroup(name: String, parent: GroupDef?, description: String?) =
+		runTreeAction("create group '$name'") {
+			projectsRepository.createGroup(name, parent, description = description)
+		}
+
+	override fun renameGroup(groupDef: GroupDef, newName: String) =
+		runTreeAction("rename group '${groupDef.name}'") { projectsRepository.renameGroup(groupDef, newName) }
+
+	override fun moveGroup(groupDef: GroupDef, newParent: GroupDef?) =
+		runTreeAction("move group '${groupDef.name}'") { projectsRepository.moveGroup(groupDef, newParent) }
+
+	override fun deleteGroup(groupDef: GroupDef) =
+		runTreeAction("delete group '${groupDef.name}'", dismissOnFailure = true) {
+			projectsRepository.deleteGroup(groupDef)
+		}
+
+	override fun updateGroupDescription(groupDef: GroupDef, description: String?) =
+		runTreeAction("update description of group '${groupDef.name}'") {
+			projectsRepository.updateGroupDescription(groupDef, description)
+		}
+
+	/**
+	 * Runs a project or group [action] off the main thread. Success closes the dialog with [dismiss]
+	 * and reloads the list; failure toasts the reason and leaves the dialog open so the input is not lost.
+	 */
+	private fun runTreeAction(
+		description: String,
+		dismissOnFailure: Boolean = false,
+		dismiss: () -> Unit = modalRouter::dismiss,
+		action: () -> CResult<*>,
+	) {
+		scope.launch(dispatcherIo) {
+			val result = action()
+			withContext(dispatcherMain) {
+				if (result.isSuccess || dismissOnFailure) dismiss()
+			}
+			when (result) {
+				is ClientResult.Success -> loadProjectList()
+				is ClientResult.Failure -> {
+					Napier.w("Failed to $description: ${result.error}")
+					result.displayMessage?.let { msg -> showToast(scope, msg) }
+				}
+			}
 		}
 	}
+
+	override fun toggleGroupCollapsed(groupDef: GroupDef) {
+		val collapsed = state.value.groups.find { it.definition.id == groupDef.id }?.collapsed?.not() ?: return
+		_state.getAndUpdate { current ->
+			current.copy(
+				groups = current.groups.map { if (it.definition.id == groupDef.id) it.copy(collapsed = collapsed) else it }
+			)
+		}
+		scope.launch(dispatcherIo) { projectsRepository.setGroupCollapsed(groupDef, collapsed) }
+	}
+
+	override fun showGroupCreate(parent: GroupDef?) = modalRouter.showGroupCreate(parent)
+
+	override fun showGroupRename(groupDef: GroupDef) = modalRouter.showGroupRename(groupDef)
+
+	override fun showGroupDelete(groupDef: GroupDef) = modalRouter.showGroupDelete(groupDef)
+
+	override fun showGroupDescription(groupDef: GroupDef) = modalRouter.showGroupDescription(groupDef)
+
+	override fun showMoveToGroup(target: MoveTarget) = modalRouter.showMoveToGroup(target)
+
+	override fun dismissGroupModal() = modalRouter.dismiss()
 
 	override suspend fun loadProjectMetadata(projectDef: ProjectDef): ProjectMetadata {
 		return projectsRepository.loadProjectMetadata(projectDef)

@@ -6,6 +6,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -23,11 +24,11 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import com.darkrockstudios.apps.hammer.common.compose.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -39,6 +40,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontStyle
@@ -49,10 +51,10 @@ import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.BuildMetadata
+import com.darkrockstudios.apps.hammer.common.components.projectselection.MoveTarget
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectData
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsList
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.filterProjects
-import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarGutter
 import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarList
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
@@ -71,6 +73,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdToolButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.rememberHdScrollAwayFooterState
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.GroupDef
 import com.darkrockstudios.apps.hammer.common.data.search.parseQuery
 import com.darkrockstudios.apps.hammer.common.protocolmismatch.ProtocolMismatchDialog
 import com.darkrockstudios.apps.hammer.common.reauthentication.ReauthenticationUi
@@ -78,6 +81,7 @@ import com.darkrockstudios.apps.hammer.project_select_project_list_empty
 import com.darkrockstudios.apps.hammer.projects_list_column_last_open
 import com.darkrockstudios.apps.hammer.projects_list_column_title
 import com.darkrockstudios.apps.hammer.projects_list_create_button
+import com.darkrockstudios.apps.hammer.projects_list_create_group_button
 import com.darkrockstudios.apps.hammer.projects_list_empty_index
 import com.darkrockstudios.apps.hammer.projects_list_entry_count_none
 import com.darkrockstudios.apps.hammer.projects_list_entry_count_one
@@ -112,8 +116,16 @@ import kotlin.time.Instant
 private val WideContentPadding: Dp = Ui.Padding.XXL
 private val NarrowContentPadding: Dp = Ui.Padding.XL
 
+/**
+ * The narrowest pane that holds the wide masthead's controls. German, the longest shipped locale,
+ * needs 537dp with the sync button showing; the rest is margin for font metrics. Guarded by
+ * ProjectListMastheadTest, which measures every locale.
+ */
+internal val ProjectListWideMinWidth: Dp = 560.dp
+
 /** Tags the "Create Project" affordance (masthead button when wide, bottom bar when narrow). */
 const val CreateProjectButtonTestTag = "create-project-button"
+const val CreateGroupButtonTestTag = "create-group-button"
 const val ProjectListTestTag = "project-list"
 
 internal enum class ProjectsSortMode(
@@ -146,7 +158,7 @@ internal enum class ProjectsSortMode(
 	),
 }
 
-private fun applySort(projects: List<ProjectData>, mode: ProjectsSortMode): List<ProjectData> = when (mode) {
+internal fun applySort(projects: List<ProjectData>, mode: ProjectsSortMode): List<ProjectData> = when (mode) {
 	// Sentinels keep never-opened projects and projects without cached stats
 	// at the bottom regardless of direction, so ascending sorts don't lead with "unknown".
 	ProjectsSortMode.LastAccessedDesc -> projects.sortedByDescending { it.metadata.info.lastAccessed }
@@ -164,12 +176,9 @@ fun ProjectListUi(
 	modifier: Modifier = Modifier,
 	/** A slip laid under the masthead, given the page's inset; composes nothing when there is no notice. */
 	notice: @Composable (Modifier) -> Unit = {},
-) {
-	// Cut at WindowWidthSizeClass.Compact (600dp) rather than the project-wide
-	// 720dp `isWide` so portrait tablets keep the desktop masthead instead of
-	// dropping to the phone layout.
-	val widthClass = LocalScreenCharacteristic.current.windowWidthClass
-	val isWide = widthClass != WindowWidthSizeClass.Compact
+) = BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+	// Measured on the list's own pane: a window of any size can leave it narrow beside the nav rail.
+	val isWide = maxWidth >= ProjectListWideMinWidth
 	val state by component.state.subscribeAsState()
 	val scope = rememberCoroutineScope()
 
@@ -182,8 +191,25 @@ fun ProjectListUi(
 	var query by rememberSaveable { mutableStateOf("") }
 	val parsed = remember(query) { parseQuery(query) }
 	// Every input is a remember key, so derivedStateOf would add nothing here.
-	val visibleProjects = remember(state.projects, sortMode, parsed) {
-		applySort(filterProjects(state.projects, parsed), sortMode)
+	val rows = remember(state.groups, state.projects, state.placement, sortMode, parsed) {
+		buildProjectListRows(
+			groups = state.groups,
+			projects = filterProjects(state.projects, parsed),
+			placement = state.placement,
+			sortMode = sortMode,
+			filtered = parsed.text.isNotEmpty() || parsed.tags.isNotEmpty(),
+		)
+	}
+	val groupActions = remember(component) {
+		ProjectGroupActions(
+			onToggle = component::toggleGroupCollapsed,
+			onNewProject = { component.showCreate(it) },
+			onNewSubgroup = component::showGroupCreate,
+			onRename = component::showGroupRename,
+			onMove = { component.showMoveToGroup(MoveTarget.Group(it)) },
+			onEditDescription = component::showGroupDescription,
+			onDelete = component::showGroupDelete,
+		)
 	}
 	val onTagClick: (String) -> Unit = { tag ->
 		showSearchBar = true
@@ -199,14 +225,15 @@ fun ProjectListUi(
 		!isWide && (!listState.canScrollForward || !createBarState.isHiddenByScroll)
 
 	Column(
-		modifier = modifier.fillMaxSize(),
+		modifier = Modifier.fillMaxSize(),
 	) {
 		Masthead(
 			entryCount = state.projects.size,
 			showEntryCount = isWide,
 			isServerSynced = state.isServerSynced,
 			onSync = component::showProjectsSync,
-			onCreate = component::showCreate,
+			onCreate = { component.showCreate() },
+			onCreateGroup = { component.showGroupCreate(null) },
 			showCreate = isWide,
 			horizontalPadding = horizontalPadding,
 			sortMode = sortMode,
@@ -257,9 +284,9 @@ fun ProjectListUi(
 					bottom = if (isWide) 0.dp else createBarState.height,
 				),
 			) {
-				if (visibleProjects.isEmpty()) {
+				if (rows.isEmpty()) {
 					item(key = "empty") {
-						if (state.projects.isEmpty()) {
+						if (state.projects.isEmpty() && state.groups.isEmpty()) {
 							EmptyState(horizontalPadding = horizontalPadding)
 						} else {
 							NoMatchesState(horizontalPadding = horizontalPadding)
@@ -267,19 +294,22 @@ fun ProjectListUi(
 					}
 				}
 
-				items(
-					count = visibleProjects.size,
-					key = { index -> visibleProjects[index].definition.name.hashCode() }
-				) { index ->
-					ProjectIndexRow(
-						isWide = isWide,
-						index = index,
-						projectData = visibleProjects[index],
-						onProjectClick = component::selectProject,
-						onProjectAltClick = component::showProjectDelete,
-						onProjectRenameClick = component::showProjectRename,
-						onTagClick = onTagClick,
-					)
+				items(count = rows.size, key = { index -> rows[index].key }) { index ->
+					when (val row = rows[index]) {
+						is ProjectListRow.Group -> ProjectGroupRow(row = row, actions = groupActions)
+						is ProjectListRow.Project -> ProjectIndexRow(
+							isWide = isWide,
+							index = row.number - 1,
+							projectData = row.data,
+							onProjectClick = component::selectProject,
+							onProjectAltClick = component::showProjectDelete,
+							onProjectRenameClick = component::showProjectRename,
+							onTagClick = onTagClick,
+							onProjectMoveClick = { component.showMoveToGroup(MoveTarget.Project(it)) },
+							depth = row.depth,
+							groupPath = row.groupPath,
+						)
+					}
 				}
 			}
 			MpScrollBarList(
@@ -290,7 +320,8 @@ fun ProjectListUi(
 			BottomCreateBar(
 				state = createBarState,
 				visible = createBarVisible,
-				onCreate = component::showCreate,
+				onCreate = { component.showCreate() },
+				onCreateGroup = { component.showGroupCreate(null) },
 				horizontalPadding = horizontalPadding,
 			)
 		}
@@ -329,6 +360,7 @@ internal fun Masthead(
 	isServerSynced: Boolean,
 	onSync: () -> Unit,
 	onCreate: () -> Unit,
+	onCreateGroup: () -> Unit,
 	showCreate: Boolean,
 	horizontalPadding: Dp,
 	sortMode: ProjectsSortMode,
@@ -345,16 +377,29 @@ internal fun Masthead(
 		verticalAlignment = Alignment.CenterVertically,
 		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 	) {
-		HdMonoLabel(
-			text = Res.string.projects_list_masthead_title.get(),
-			color = MaterialTheme.colorScheme.onSurfaceVariant,
-		)
-		Spacer(modifier = Modifier.weight(1f))
-		if (showEntryCount) {
+		// Weighted, so it is measured after the controls and only its labels give way when narrow.
+		Row(
+			modifier = Modifier.weight(1f),
+			verticalAlignment = Alignment.CenterVertically,
+			horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
+		) {
 			HdMonoLabel(
-				text = entrySummary(entryCount),
+				text = Res.string.projects_list_masthead_title.get(),
 				color = MaterialTheme.colorScheme.onSurfaceVariant,
+				maxLines = 1,
+				softWrap = false,
+				overflow = TextOverflow.Ellipsis,
 			)
+			Spacer(modifier = Modifier.weight(1f))
+			if (showEntryCount) {
+				HdMonoLabel(
+					text = entrySummary(entryCount),
+					color = MaterialTheme.colorScheme.onSurfaceVariant,
+					maxLines = 1,
+					softWrap = false,
+					overflow = TextOverflow.Ellipsis,
+				)
+			}
 		}
 		SearchAffordance(active = searchActive, onClick = onToggleSearch)
 		if (showSort) {
@@ -369,6 +414,7 @@ internal fun Masthead(
 			RefreshAffordance(onClick = onSync)
 		}
 		if (showCreate) {
+			NewGroupAffordance(onClick = onCreateGroup)
 			HdHairlineButton(
 				label = "＋  ${Res.string.projects_list_create_button.get()}",
 				onClick = onCreate,
@@ -376,6 +422,22 @@ internal fun Masthead(
 				modifier = Modifier.testTag(CreateProjectButtonTestTag),
 			)
 		}
+	}
+}
+
+@Composable
+private fun NewGroupAffordance(onClick: () -> Unit) {
+	HdToolButton(
+		active = false,
+		onClick = onClick,
+		modifier = Modifier.testTag(CreateGroupButtonTestTag),
+	) {
+		Icon(
+			imageVector = Icons.Outlined.Folder,
+			contentDescription = Res.string.projects_list_create_group_button.get(),
+			tint = MaterialTheme.colorScheme.onSurfaceVariant,
+			modifier = Modifier.size(16.dp),
+		)
 	}
 }
 
@@ -600,6 +662,7 @@ private fun BoxScope.BottomCreateBar(
 	state: HdScrollAwayFooterState,
 	visible: Boolean,
 	onCreate: () -> Unit,
+	onCreateGroup: () -> Unit,
 	horizontalPadding: Dp,
 ) {
 	HdScrollAwayFooter(
@@ -633,6 +696,26 @@ private fun BoxScope.BottomCreateBar(
 				color = MaterialTheme.colorScheme.onPrimary,
 			)
 		}
+		Spacer(modifier = Modifier.width(Ui.Padding.M))
+		Box(
+			modifier = Modifier
+				.size(44.dp)
+				.testTag(CreateGroupButtonTestTag)
+				.border(
+					width = Dp.Hairline,
+					color = MaterialTheme.colorScheme.outline,
+					shape = RectangleShape,
+				)
+				.clickable(onClick = onCreateGroup),
+			contentAlignment = Alignment.Center,
+		) {
+			Icon(
+				imageVector = Icons.Outlined.Folder,
+				contentDescription = Res.string.projects_list_create_group_button.get(),
+				tint = MaterialTheme.colorScheme.onSurfaceVariant,
+				modifier = Modifier.size(20.dp),
+			)
+		}
 	}
 }
 
@@ -646,7 +729,12 @@ private fun entrySummary(count: Int): String = when (count) {
 @Composable
 fun ModalContent(component: ProjectsList, rootSnackbar: RootSnackbarHostState) {
 	val state by component.modalRouterState.subscribeAsState()
+	val listState by component.state.subscribeAsState()
 	val overlay = state.child?.instance
+	val groupDefs = remember(listState.groups) { listState.groups.map { it.definition } }
+	// The dialog's copy of a group can be stale (a reload or sync renamed it); act on the current one.
+	fun current(group: GroupDef): GroupDef =
+		listState.groups.firstOrNull { it.definition.id == group.id }?.definition ?: group
 	when (overlay) {
 		null, ProjectsList.ModalDestination.None -> {}
 		is ProjectsList.ModalDestination.ProjectSync -> {
@@ -662,7 +750,7 @@ fun ModalContent(component: ProjectsList, rootSnackbar: RootSnackbarHostState) {
 		}
 
 		is ProjectsList.ModalDestination.ProjectCreate -> {
-			ProjectCreateDialog(true, component) {
+			ProjectCreateDialog(true, component, parent = overlay.parent?.let(::current)) {
 				component.hideCreate()
 			}
 		}
@@ -672,6 +760,58 @@ fun ModalContent(component: ProjectsList, rootSnackbar: RootSnackbarHostState) {
 				component = component,
 				projectDef = overlay.projectDef,
 				close = { component.dismissProjectDelete() }
+			)
+		}
+
+		is ProjectsList.ModalDestination.GroupCreate -> {
+			val parent = overlay.parent?.let(::current)
+			GroupCreateDialog(
+				parent = parent,
+				onCreate = { name, description -> component.createGroup(name, parent, description) },
+				onDismiss = component::dismissGroupModal,
+			)
+		}
+
+		is ProjectsList.ModalDestination.GroupRename -> {
+			val group = current(overlay.groupDef)
+			GroupRenameDialog(
+				groupDef = group,
+				onRename = { component.renameGroup(group, it) },
+				onDismiss = component::dismissGroupModal,
+			)
+		}
+
+		is ProjectsList.ModalDestination.GroupDelete -> {
+			val group = current(overlay.groupDef)
+			GroupDeleteDialog(
+				groupDef = group,
+				onConfirm = { component.deleteGroup(group) },
+				onDismiss = component::dismissGroupModal,
+			)
+		}
+
+		is ProjectsList.ModalDestination.GroupDescription -> {
+			val group = current(overlay.groupDef)
+			GroupDescriptionDialog(
+				groupDef = group,
+				onSave = { component.updateGroupDescription(group, it) },
+				onDismiss = component::dismissGroupModal,
+			)
+		}
+
+		is ProjectsList.ModalDestination.MoveToGroup -> {
+			val target = overlay.target.current(listState.projects, listState.groups)
+			MoveToGroupDialog(
+				target = target,
+				groups = groupDefs,
+				placement = listState.placement,
+				onMove = { destination ->
+					when (target) {
+						is MoveTarget.Project -> component.moveProject(target.projectDef, destination)
+						is MoveTarget.Group -> component.moveGroup(target.groupDef, destination)
+					}
+				},
+				onDismiss = component::dismissGroupModal,
 			)
 		}
 

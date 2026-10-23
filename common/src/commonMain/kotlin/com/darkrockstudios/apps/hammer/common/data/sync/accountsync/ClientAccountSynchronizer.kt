@@ -1,7 +1,9 @@
 package com.darkrockstudios.apps.hammer.common.data.sync.accountsync
 
 import com.darkrockstudios.apps.hammer.*
+import com.darkrockstudios.apps.hammer.base.GroupId
 import com.darkrockstudios.apps.hammer.base.ProjectId
+import com.darkrockstudios.apps.hammer.base.http.ApiGroupDefinition
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectDefinition
 import com.darkrockstudios.apps.hammer.base.http.BeginProjectsSyncResponse
 import com.darkrockstudios.apps.hammer.base.http.ProjectHashItem
@@ -14,8 +16,9 @@ import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
 import com.darkrockstudios.apps.hammer.common.data.projectdata.loadStoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectInUseException
-import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectRenameFailed
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectTree
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.groups.GroupSyncPhase
 import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.ClientIdeasSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.IdeaConflictResolver
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
@@ -31,12 +34,10 @@ import kotlinx.coroutines.IO
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
-import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
 import okio.IOException
-import okio.Path
 import kotlin.coroutines.cancellation.CancellationException
 
 class ClientAccountSynchronizer(
@@ -44,6 +45,9 @@ class ClientAccountSynchronizer(
 	private val globalSettingsStore: GlobalSettingsStore,
 	private val projectsRepository: ProjectsRepository,
 	private val serverProjectsApi: ServerProjectsApi,
+	private val accountSyncDatasource: AccountSyncDatasource,
+	private val groupSyncPhase: GroupSyncPhase,
+	private val projectAttributeSyncPhase: ProjectAttributeSyncPhase,
 	private val projectCreateResolver: ProjectCreateResolver,
 	private val ideasSynchronizer: ClientIdeasSynchronizer,
 	private val dataMigrator: DataMigrator,
@@ -53,6 +57,8 @@ class ClientAccountSynchronizer(
 	private val strRes: StrRes,
 ) {
 	var initialSync = false
+
+	private val placer = LocalProjectPlacer(projectsRepository, strRes)
 
 	fun isServerSynchronized(): Boolean {
 		return (globalSettingsStore.serverSettings?.userId ?: -1) > -1
@@ -84,32 +90,64 @@ class ClientAccountSynchronizer(
 				val serverSyncData = result.getOrThrow()
 				syncId = serverSyncData.syncId
 
-				val clientSyncData = loadSyncData()
+				val clientSyncData = accountSyncDatasource.load()
 				val serverKnownIds = serverSyncData.knownProjectIds()
+				val ledger = BaselineLedger()
 
 				yield()
 
 				// Deletions go first: a project name is unique per account on the server, so a
 				// rename into a name still held by a project queued for deletion is rejected.
-				syncDeletedProjects(clientSyncData, serverSyncData, serverKnownIds, onLog, onUnauthorized)
+				syncDeletedProjects(clientSyncData, serverSyncData, serverKnownIds, ledger, onLog, onUnauthorized)
 
 				yield()
 
-				syncRenamedProjects(clientSyncData, serverSyncData, serverKnownIds, onLog, onUnauthorized)
+				// Groups before projects, so a project can be placed in a group created this session.
+				val pendingGroupDeletes = groupSyncPhase.reconcile(
+					syncId = serverSyncData.syncId,
+					serverGroups = serverSyncData.groups,
+					baselines = clientSyncData.groupBaselines,
+					ledger = ledger,
+					onLog = onLog,
+					onUnauthorized = onUnauthorized,
+				)
 
 				yield()
 
-				val updatedServerSyncData = processProjectSyncData(serverSyncData, clientSyncData)
+				val liveServerProjects = serverSyncData.projects
+					.filterNot { it.uuid in clientSyncData.projectsToDelete }
+				val legacySeeds = seedFromLegacyRenames(
+					clientSyncData.projectsToRename,
+					liveServerProjects,
+					clientSyncData.projectBaselines,
+				)
+				ledger.seedProjects(legacySeeds)
+				projectAttributeSyncPhase.reconcile(
+					syncId = serverSyncData.syncId,
+					serverProjects = liveServerProjects,
+					serverGroups = serverSyncData.groups,
+					baselines = clientSyncData.projectBaselines + legacySeeds,
+					excluded = clientSyncData.projectsToDelete,
+					ledger = ledger,
+					onLog = onLog,
+					onUnauthorized = onUnauthorized,
+				)
 
-				val localProjects = projectsRepository.getProjects()
+				yield()
+
 				syncCreatedProjects(
-					clientSyncData,
-					updatedServerSyncData,
+					serverSyncData,
+					liveServerProjects,
 					serverKnownIds,
-					localProjects,
+					ledger,
 					onLog,
 					onUnauthorized,
 				)
+
+				yield()
+
+				// After the project phases, so the groups are already empty on both sides.
+				groupSyncPhase.applyDeletions(serverSyncData.syncId, pendingGroupDeletes, ledger, onLog, onUnauthorized)
 
 				yield()
 
@@ -124,6 +162,9 @@ class ClientAccountSynchronizer(
 				onIdeasSyncResult(ideasSuccess)
 
 				yield()
+
+				// The legacy rename queue is cleared only here, once its seeds are safely stored.
+				accountSyncDatasource.update { ledger.applyTo(it).copy(projectsToRename = emptySet()) }
 
 				serverProjectsApi.endProjectsSync(syncId)
 				onLog(syncAccLogI(strRes.get(Res.string.sync_log_account_complete)))
@@ -256,103 +297,16 @@ class ClientAccountSynchronizer(
 			}
 		}
 
-	private fun processProjectSyncData(
-		serverSyncData: BeginProjectsSyncResponse,
-		clientSyncData: ProjectsSynchronizationData
-	): BeginProjectsSyncResponse {
-		// Remove client deleted projects the list of projects to sync
-		var updatedServerSyncData = serverSyncData.copy(
-			projects = serverSyncData.projects.filter { serverProj ->
-				clientSyncData.projectsToDelete.none { clientProj ->
-					clientProj.id == serverProj.uuid.id
-				}
-			}.toSet()
-		)
-
-		// Replace client renamed projects in the list of projects to sync
-		updatedServerSyncData = updatedServerSyncData.copy(
-			projects = updatedServerSyncData.projects.map { serverProj ->
-				val renamed = clientSyncData.projectsToRename
-					.find { (clientProjId, _) -> clientProjId == serverProj.uuid }
-
-				if (renamed != null) {
-					serverProj.copy(name = renamed.newName)
-				} else {
-					serverProj
-				}
-			}.toSet()
-		)
-
-		return updatedServerSyncData
-	}
-
-	private suspend fun syncRenamedProjects(
-		clientSyncData: ProjectsSynchronizationData,
-		serverSyncData: BeginProjectsSyncResponse,
-		serverKnownIds: Set<ProjectId>,
-		onLog: OnSyncLog,
-		onUnauthorized: suspend () -> Unit = {},
-	) {
-		// Rename projects on the server
-		clientSyncData.projectsToRename.forEach { (projectId, newName) ->
-			// The server can't rename an id it never issued, and would fail this every session
-			// forever. Recreation covers the rename anyway: it creates under the local name,
-			// which a local rename has already updated. A tombstoned id is just as unrenamable,
-			// and its local project has already been deleted by syncDeletedProjects.
-			if (projectId !in serverKnownIds || projectId in serverSyncData.deletedProjects) {
-				dropQueuedRename(projectId)
-				return@forEach
-			}
-
-			val result = serverProjectsApi.renameProject(projectId, serverSyncData.syncId, newName)
-			if (result.isSuccess) {
-				onLog(
-					syncAccLogI(
-						strRes.get(
-							Res.string.sync_log_account_project_rename_server_success,
-							projectId.id
-						)
-					)
-				)
-				dropQueuedRename(projectId)
-			} else {
-				val exception = result.exceptionOrNull()
-				Napier.e("Failed to rename project: $projectId", exception)
-
-				onLog(
-					syncAccLogE(
-						strRes.get(
-							Res.string.sync_log_account_project_rename_server_failure,
-							projectId
-						)
-					)
-				)
-
-				if (exception.isAuthenticationFailure()) {
-					onUnauthorized()
-				}
-			}
-		}
-	}
-
-	private fun dropQueuedRename(projectId: ProjectId) {
-		updateSyncData { syncData ->
-			syncData.copy(
-				projectsToRename = syncData.projectsToRename
-					.filterNot { it.projectId == projectId }.toSet(),
-			)
-		}
-	}
-
 	private suspend fun syncDeletedProjects(
 		clientSyncData: ProjectsSynchronizationData,
 		serverSyncData: BeginProjectsSyncResponse,
 		serverKnownIds: Set<ProjectId>,
+		ledger: BaselineLedger,
 		onLog: OnSyncLog,
 		onUnauthorized: suspend () -> Unit = {},
 	) {
-		deleteServerProjects(clientSyncData, serverSyncData, serverKnownIds, onLog, onUnauthorized)
-		deleteLocalProjects(clientSyncData, serverSyncData, onLog)
+		deleteServerProjects(clientSyncData, serverSyncData, serverKnownIds, ledger, onLog, onUnauthorized)
+		deleteLocalProjects(clientSyncData, serverSyncData, ledger, onLog)
 	}
 
 	/**
@@ -361,8 +315,10 @@ class ClientAccountSynchronizer(
 	private suspend fun deleteLocalProjects(
 		clientSyncData: ProjectsSynchronizationData,
 		serverSyncData: BeginProjectsSyncResponse,
+		ledger: BaselineLedger,
 		onLog: OnSyncLog
 	) {
+		serverSyncData.deletedProjects.forEach(ledger::retireProject)
 		val newlyDeletedProjects = serverSyncData.deletedProjects.filter { project ->
 			clientSyncData.deletedProjects.contains(project).not()
 		}
@@ -393,12 +349,14 @@ class ClientAccountSynchronizer(
 		clientSyncData: ProjectsSynchronizationData,
 		serverSyncData: BeginProjectsSyncResponse,
 		serverKnownIds: Set<ProjectId>,
+		ledger: BaselineLedger,
 		onLog: OnSyncLog,
 		onUnauthorized: suspend () -> Unit = {},
 	) {
 		clientSyncData.projectsToDelete.forEach { projectId ->
+			ledger.retireProject(projectId)
 			if (projectId !in serverKnownIds) {
-				updateSyncData { syncData ->
+				accountSyncDatasource.update { syncData ->
 					syncData.copy(projectsToDelete = syncData.projectsToDelete - projectId)
 				}
 				return@forEach
@@ -414,7 +372,7 @@ class ClientAccountSynchronizer(
 						)
 					)
 				)
-				updateSyncData { syncData ->
+				accountSyncDatasource.update { syncData ->
 					syncData.copy(
 						projectsToDelete = syncData.projectsToDelete - projectId,
 						deletedProjects = syncData.deletedProjects + projectId,
@@ -441,36 +399,37 @@ class ClientAccountSynchronizer(
 	}
 
 	private suspend fun syncCreatedProjects(
-		clientSyncData: ProjectsSynchronizationData,
 		serverSyncData: BeginProjectsSyncResponse,
+		liveServerProjects: List<ApiProjectDefinition>,
 		serverKnownIds: Set<ProjectId>,
-		localProjects: List<ProjectDef>,
+		ledger: BaselineLedger,
 		onLog: OnSyncLog,
 		onUnauthorized: suspend () -> Unit = {},
 	) {
-		val serverProjects = serverSyncData.projects
-		val newServerProjects = serverProjects.filter { serverProject ->
-			localProjects.none { it.id == serverProject.uuid }
+		val tree = projectsRepository.getProjectTree()
+		val newServerProjects = liveServerProjects.filter { serverProject ->
+			tree.projects.none { it.id == serverProject.uuid }
 		}
-
-		renameLocalProjectsFromServerChanges(
-			serverProjects,
-			localProjects,
-			clientSyncData,
-			onLog
-		)
 
 		// Claim server projects by name before uploading anything. The other order uploads a
 		// same-named local project as a second server project and only then overwrites its id
 		// with the name match, stranding an orphan duplicate on the server.
-		val liveServerIds = serverProjects.mapTo(mutableSetOf()) { it.uuid }
-		val claimedNames = createLocalProjectsFromServer(newServerProjects, liveServerIds, onLog)
+		val liveServerIds = liveServerProjects.mapTo(mutableSetOf()) { it.uuid }
+		val claimedNames = createLocalProjectsFromServer(
+			newServerProjects,
+			liveServerIds,
+			tree,
+			serverSyncData.groups.associateBy { it.uuid },
+			ledger,
+			onLog,
+		)
 
 		createProjectsOnServer(
-			localProjects,
+			tree,
 			claimedNames,
 			serverSyncData,
 			serverKnownIds,
+			ledger,
 			onLog,
 			onUnauthorized,
 		)
@@ -484,16 +443,27 @@ class ClientAccountSynchronizer(
 	 * [liveServerIds]: re-pointing it would abandon the server project holding its content, and
 	 * two server names can sanitize to a single local name. Tombstoned ids are absent from
 	 * [liveServerIds], so a project whose server copy was deleted elsewhere can still be claimed.
+	 *
+	 * Each project goes in its server group, or the nearest ancestor of it this device has. Its
+	 * baseline is recorded only when it lands in the server's group itself.
 	 */
 	private suspend fun createLocalProjectsFromServer(
 		newServerProjects: List<ApiProjectDefinition>,
 		liveServerIds: Set<ProjectId>,
+		tree: ProjectTree,
+		serverGroups: Map<GroupId, ApiGroupDefinition>,
+		ledger: BaselineLedger,
 		onLog: OnSyncLog
 	): Set<String> {
 		val claimedNames = mutableSetOf<String>()
+		// First holder wins, as a scan of the directory would find it.
+		val localByName = tree.projects.asReversed().associateByTo(mutableMapOf()) { it.name }
 		newServerProjects.forEach { serverProject ->
 			val localName = ProjectsRepository.toLocalSafeName(serverProject.name)
-			val existingProject = projectsRepository.findProject(localName)
+			val target = tree.nearestLocalGroup(serverProject.groupId, serverGroups)
+			val placed = target?.id == serverProject.groupId
+			val baseline = ProjectBaseline(serverProject.name, serverProject.groupId)
+			val existingProject = localByName[localName]
 			if (existingProject != null) {
 				if (existingProject.id in liveServerIds) {
 					onLog(
@@ -509,12 +479,13 @@ class ClientAccountSynchronizer(
 
 				// Claimed even when skipped, so createProjectsOnServer does not upload a duplicate.
 				claimedNames += existingProject.name
-				try {
+				val adopted = try {
 					projectsRepository.setProjectId(existingProject, serverProject.uuid)
 				} catch (_: ProjectInUseException) {
-					logInUse(existingProject, onLog)
+					placer.logInUse(existingProject, onLog)
 					return@forEach
 				}
+				localByName[adopted.name] = adopted
 				onLog(
 					syncAccLogI(
 						strRes.get(
@@ -523,34 +494,52 @@ class ClientAccountSynchronizer(
 						)
 					)
 				)
-			} else if (adoptUnmarkedFolder(localName, serverProject.uuid, onLog)) {
-				claimedNames += localName
+				val currentGroup = tree.placement[existingProject.id]
+				if (placer.place(adopted, currentGroup, target, serverProject.groupId, onLog)) {
+					ledger.recordProject(serverProject.uuid, baseline)
+				}
 			} else {
-				val createResult = projectsRepository.createProject(
-					localName,
-					seedDefaultLanguage = false,
-					projectId = serverProject.uuid,
-				)
-				if (isSuccess(createResult)) {
-					val projectDef = createResult.data
-					claimedNames += projectDef.name
-					onLog(
-						syncAccLogI(
-							strRes.get(
-								Res.string.sync_log_account_project_create_client,
-								localName
-							)
+				when (val folder = adoptUnmarkedFolder(localName, serverProject.uuid, onLog)) {
+					UnmarkedFolder.Failed -> claimedNames += localName
+					is UnmarkedFolder.Adopted -> {
+						claimedNames += localName
+						localByName[localName] = folder.projectDef
+						if (placer.place(folder.projectDef, null, target, serverProject.groupId, onLog)) {
+							ledger.recordProject(serverProject.uuid, baseline)
+						}
+					}
+
+					UnmarkedFolder.None -> {
+						val createResult = projectsRepository.createProject(
+							localName,
+							seedDefaultLanguage = false,
+							projectId = serverProject.uuid,
+							group = target,
 						)
-					)
-				} else {
-					onLog(
-						syncAccLogE(
-							strRes.get(
-								Res.string.sync_log_account_project_create_local_failure,
-								serverProject.name,
+						if (isSuccess(createResult)) {
+							val projectDef = createResult.data
+							claimedNames += projectDef.name
+							localByName[projectDef.name] = projectDef
+							if (placed) ledger.recordProject(serverProject.uuid, baseline)
+							onLog(
+								syncAccLogI(
+									strRes.get(
+										Res.string.sync_log_account_project_create_client,
+										localName
+									)
+								)
 							)
-						)
-					)
+						} else {
+							onLog(
+								syncAccLogE(
+									strRes.get(
+										Res.string.sync_log_account_project_create_local_failure,
+										serverProject.name,
+									)
+								)
+							)
+						}
+					}
 				}
 			}
 		}
@@ -559,23 +548,23 @@ class ClientAccountSynchronizer(
 
 	/**
 	 * Adopts the directory named [localName] under [serverId] if it has no project.toml, treating
-	 * it like a restored backup. Returns false when there is no such directory. An I/O failure is
-	 * logged and returns true: creating the project there would fail on the same directory, and one
-	 * project must not abort the rest of the account sync.
+	 * it like a restored backup. An I/O failure is logged and reported as [UnmarkedFolder.Failed]:
+	 * creating the project there would fail on the same directory, and one project must not abort
+	 * the rest of the account sync.
 	 *
 	 * A failed migration is logged rather than failing the sync: startup retries it, but does not
 	 * reset sync state again, so a pre-4 folder migrated only then keeps its stale `lastSyncedHash`
 	 * (its entities are still conflict-checked).
 	 */
 	@Suppress("TooGenericExceptionCaught")
-	private suspend fun adoptUnmarkedFolder(localName: String, serverId: ProjectId, onLog: OnSyncLog): Boolean {
+	private suspend fun adoptUnmarkedFolder(localName: String, serverId: ProjectId, onLog: OnSyncLog): UnmarkedFolder {
 		val adopted = try {
 			projectsRepository.adoptUnmarkedDirectory(localName, serverId, serverKnowsProject = true)
 		} catch (e: IOException) {
 			Napier.e("Failed to adopt the folder of '$localName'", e)
 			onLog(syncAccLogE(strRes.get(Res.string.sync_log_account_project_create_local_failure, localName)))
-			return true
-		} ?: return false
+			return UnmarkedFolder.Failed
+		} ?: return UnmarkedFolder.None
 
 		try {
 			dataMigrator.migrateProject(adopted)
@@ -593,7 +582,13 @@ class ClientAccountSynchronizer(
 		}
 
 		onLog(syncAccLogI(strRes.get(Res.string.sync_log_account_project_adopt_folder, localName)))
-		return true
+		return UnmarkedFolder.Adopted(adopted)
+	}
+
+	private sealed interface UnmarkedFolder {
+		data object None : UnmarkedFolder
+		data object Failed : UnmarkedFolder
+		data class Adopted(val projectDef: ProjectDef) : UnmarkedFolder
 	}
 
 	/**
@@ -602,17 +597,19 @@ class ClientAccountSynchronizer(
 	 * a different or since-reset server, which per-project sync could only 410 on.
 	 *
 	 * [claimedNames] are local projects that just adopted a server project by name; uploading them
-	 * would duplicate that project on the server.
+	 * would duplicate that project on the server. A project is created in its group only when the
+	 * server holds that group; the next session pushes the placement once it does.
 	 */
 	private suspend fun createProjectsOnServer(
-		localProjects: List<ProjectDef>,
+		tree: ProjectTree,
 		claimedNames: Set<String>,
 		serverSyncData: BeginProjectsSyncResponse,
 		serverKnownIds: Set<ProjectId>,
+		ledger: BaselineLedger,
 		onLog: OnSyncLog,
 		onUnauthorized: suspend () -> Unit = {},
 	) {
-		val localOnly = localProjects.filter { def ->
+		val localOnly = tree.projects.filter { def ->
 			def.id !in serverKnownIds && def.name !in claimedNames
 		}
 
@@ -620,18 +617,20 @@ class ClientAccountSynchronizer(
 			val projectName = projectDef.name
 			// Checked up front: the server create runs before any setProjectId that would refuse it.
 			if (projectsRepository.isProjectInUse(projectDef)) {
-				logInUse(projectDef, onLog)
+				placer.logInUse(projectDef, onLog)
 				return@forEach
 			}
 			val outcome = try {
-				projectCreateResolver.create(projectDef, serverSyncData.syncId)
+				val groupId = tree.placement[projectDef.id]?.takeIf { it in ledger.confirmedGroupIds }
+				projectCreateResolver.create(projectDef, serverSyncData.syncId, groupId)
 			} catch (_: ProjectInUseException) {
-				logInUse(projectDef, onLog)
+				placer.logInUse(projectDef, onLog)
 				return@forEach
 			}
 
 			when (outcome) {
 				is ServerCreateOutcome.Created -> {
+					ledger.recordProject(outcome.projectId, outcome.baseline)
 					if (outcome.reminted) {
 						onLog(
 							syncAccLogW(
@@ -687,150 +686,28 @@ class ClientAccountSynchronizer(
 		}
 	}
 
-	/**
-	 * Rename projects on this client which the server has renamed
-	 */
-	private suspend fun renameLocalProjectsFromServerChanges(
-		serverProjects: Set<ApiProjectDefinition>,
-		localProjects: List<ProjectDef>,
-		clientSyncData: ProjectsSynchronizationData,
-		onLog: OnSyncLog
-	) {
-		val commonProjectsNotLocallyRenamed = serverProjects.mapNotNull { serverProject ->
-			localProjects.find { it.id == serverProject.uuid }?.let { localProject ->
-				ProjectPair(serverProject, localProject)
-			}
-		}
-			.filterNot { clientSyncData.projectsToDelete.contains(it.serverProject.uuid) }
-			.filterNot {
-				clientSyncData.projectsToRename
-					.find { renamed -> renamed.projectId == it.serverProject.uuid } != null
-			}
-
-		// Handle projects that have been renamed on the server, but not on this client
-		commonProjectsNotLocallyRenamed.forEach { (serverProject, localProject) ->
-			val targetName = ProjectsRepository.toLocalSafeName(serverProject.name)
-			if (targetName != localProject.name) {
-				val result = projectsRepository.renameProject(localProject, targetName)
-				if (isSuccess(result)) {
-					onLog(
-						syncAccLogI(
-							strRes.get(
-								Res.string.sync_log_account_project_rename_client_from_server_success,
-								targetName
-							)
-						)
-					)
-				} else if ((result.exception as? ProjectRenameFailed)?.reason == ProjectRenameFailed.Reason.ProjectInUse) {
-					logInUse(localProject, onLog)
-				} else {
-					onLog(
-						syncAccLogE(
-							strRes.get(
-								Res.string.sync_log_account_project_rename_client_from_server_failure,
-								localProject.name
-							)
-						)
-					)
-				}
-			}
-		}
-	}
-
-	private suspend fun logInUse(projectDef: ProjectDef, onLog: OnSyncLog) {
-		onLog(syncAccLogW(strRes.get(Res.string.sync_log_account_project_in_use, projectDef.name)))
-	}
-
-	fun deleteProject(project: ProjectDef) {
-		updateSyncData { syncData ->
+	suspend fun deleteProject(project: ProjectDef) {
+		accountSyncDatasource.update { syncData ->
 			syncData.copy(
 				projectsToDelete = syncData.projectsToDelete + project.id,
 				projectsToRename = syncData.projectsToRename
 					.filterNot { it.projectId == project.id }
 					.toSet(),
-			)
-		}
-	}
-
-	fun renameProject(projectId: ProjectId, newName: String) {
-		val renamed = RenamedProject(projectId, newName)
-		updateSyncData { syncData ->
-			// Remove any old renames of this project and add this new one
-			val updated = syncData.projectsToRename
-				.filterNot { it.projectId == projectId } + renamed
-
-			syncData.copy(
-				projectsToRename = updated.toSet(),
+				projectBaselines = syncData.projectBaselines - project.id,
 			)
 		}
 	}
 
 	/**
-	 * Forgets the account-level queues, which name projects on one particular server and mean
+	 * Forgets the account-level queues and baselines, which describe one particular server and mean
 	 * nothing to another.
 	 */
-	fun deleteSyncData() {
-		val path = getSyncDataPath()
-		if (fileSystem.exists(path)) fileSystem.delete(path)
-	}
-
-	private fun getSyncDataPath(): Path =
-		projectsRepository.getProjectsDirectory().toOkioPath() / SYNC_FILE_NAME
-
-	// Corrupt sync data recovers by recreating it; not an error to surface.
-	@Suppress("SwallowedException")
-	private fun loadSyncData(): ProjectsSynchronizationData {
-		val path = getSyncDataPath()
-		return if (fileSystem.exists(path)) {
-			fileSystem.read(path) {
-				val syncDataJson = readUtf8()
-				try {
-					json.decodeFromString(syncDataJson)
-				} catch (e: SerializationException) {
-					createAndSaveSyncData()
-				}
-			}
-		} else {
-			createAndSaveSyncData()
-		}
-	}
-
-	private fun createAndSaveSyncData(): ProjectsSynchronizationData {
-		val newData = ProjectsSynchronizationData(
-			deletedProjects = emptySet(),
-			projectsToDelete = emptySet(),
-			projectsToRename = emptySet(),
-		)
-		saveSyncData(newData)
-
-		return newData
-	}
-
-	private fun saveSyncData(data: ProjectsSynchronizationData) {
-		val path = getSyncDataPath()
-		fileSystem.write(path) {
-			val syncDataJson = json.encodeToString(data)
-			writeUtf8(syncDataJson)
-		}
-	}
-
-	private fun updateSyncData(action: (ProjectsSynchronizationData) -> ProjectsSynchronizationData) {
-		val data = loadSyncData()
-		val update = action(data)
-		saveSyncData(update)
-	}
-
-	companion object {
-		private const val SYNC_FILE_NAME = "sync.json"
+	suspend fun deleteSyncData() {
+		accountSyncDatasource.delete()
 	}
 }
 
-private data class ProjectPair(
-	val serverProject: ApiProjectDefinition,
-	val localProject: ProjectDef,
-)
-
-private fun Throwable?.isAuthenticationFailure(): Boolean =
+internal fun Throwable?.isAuthenticationFailure(): Boolean =
 	(this is HttpFailureException && statusCode == HttpStatusCode.Unauthorized)
 
 /**

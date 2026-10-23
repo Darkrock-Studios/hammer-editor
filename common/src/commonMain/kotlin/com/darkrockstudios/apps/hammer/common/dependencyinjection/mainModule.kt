@@ -26,6 +26,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.Glo
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.ServerSettingsDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.ServerSettingsFilesystemDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.authTokenDatasourceModule
+import com.darkrockstudios.apps.hammer.common.data.groupmetadata.GroupMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.id.datasources.EncyclopediaIdDatasource
 import com.darkrockstudios.apps.hammer.common.data.id.datasources.NotesIdDatasource
@@ -72,7 +73,10 @@ import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEd
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
+import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.AccountSyncDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ClientAccountSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ProjectAttributeSyncPhase
+import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.groups.GroupSyncPhase
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.SyncAccountUseCase
 import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.ClientIdeasSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.IdeasSyncDatasource
@@ -255,12 +259,16 @@ val mainModule = module {
 	single(NetworkJsonQualifier) { createNetworkJsonSerializer() }
 
 	single<ClientIdeasSynchronizer>()
+	single<AccountSyncDatasource>()
 	single<ProjectCreateResolver>()
+	single<GroupSyncPhase>()
+	single<ProjectAttributeSyncPhase>()
 	single<ClientAccountSynchronizer>()
 
 	single<ProjectBackupService>()
 
 	single<ProjectMetadataDatasource>()
+	single<GroupMetadataDatasource>()
 
 	single<ProjectStatisticsCacheReader>()
 

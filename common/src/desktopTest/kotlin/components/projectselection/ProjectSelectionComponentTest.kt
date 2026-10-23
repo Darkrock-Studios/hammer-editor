@@ -10,6 +10,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.SpellCheckerSettings
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectTree
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ClientAccountSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.appupdate.AppUpdateState
@@ -113,6 +114,7 @@ class ProjectSelectionComponentTest : BaseTest() {
 		every { globalSettingsStore.serverSettingsUpdates } returns serverSettingsUpdates
 
 		every { projectsRepository.getProjects(any()) } returns emptyList()
+		every { projectsRepository.getProjectTree(any()) } returns ProjectTree.EMPTY
 		every { exampleProjectRepository.shouldInstallFirstTime() } returns false
 	}
 

@@ -16,6 +16,7 @@ import com.darkrockstudios.apps.hammer.common.components.projectselection.storyi
 import com.darkrockstudios.apps.hammer.common.data.ExampleProjectRepository
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.base.RELEASES_LATEST_URL
 import com.darkrockstudios.apps.hammer.common.data.appupdate.AppUpdateState
 import com.darkrockstudios.apps.hammer.common.data.appupdate.AppUpdater
@@ -32,6 +33,7 @@ class ProjectSelectionComponent(
 ) : ProjectSelection, ComponentBase(componentContext) {
 
 	private val exampleProjectRepository: ExampleProjectRepository by inject()
+	private val projectsRepository: ProjectsRepository by inject()
 	private val urlLauncher: UrlLauncher by inject()
 	private val settingsRepository: GlobalSettingsStore by inject()
 	private val changelogRepository: ChangelogRepository by inject()
@@ -59,7 +61,7 @@ class ProjectSelectionComponent(
 
 	init {
 		if (exampleProjectRepository.shouldInstallFirstTime()) {
-			exampleProjectRepository.install()
+			exampleProjectRepository.install(projectsRepository.findProject(ExampleProjectRepository.PROJECT_NAME)?.path)
 		}
 
 		scope.launch {

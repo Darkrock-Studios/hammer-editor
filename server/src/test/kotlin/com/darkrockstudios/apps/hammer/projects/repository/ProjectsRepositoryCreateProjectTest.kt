@@ -1,10 +1,12 @@
 package com.darkrockstudios.apps.hammer.projects.repository
 
+import com.darkrockstudios.apps.hammer.base.GroupId
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.project.InvalidProjectName
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.project.ProjectDeletedException
 import com.darkrockstudios.apps.hammer.project.ProjectIdTakenException
+import com.darkrockstudios.apps.hammer.projects.ProjectGroup
 import com.darkrockstudios.apps.hammer.projects.ProjectsSyncData
 import com.darkrockstudios.apps.hammer.utilities.ServerResult
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
@@ -16,6 +18,7 @@ import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class ProjectsRepositoryCreateProjectTest : ProjectsRepositoryBaseTest() {
@@ -33,7 +36,20 @@ class ProjectsRepositoryCreateProjectTest : ProjectsRepositoryBaseTest() {
 		coEvery {
 			projectEntityDatasource.createProject(userId, projectName, projectId)
 		} returns ProjectDefinition(projectName, projectId)
+		coEvery { projectsDatasource.getProjectGroupId(userId, any()) } returns null
+		coEvery { projectsDatasource.getGroup(userId, any()) } returns null
+		coEvery { projectsDatasource.setProjectGroup(userId, any(), any()) } returns true
 	}
+
+	private val groupId = GroupId("5c0e7a2b-1d3f-4e5a-9b6c-7d8e9f0a1b2c")
+	private val group = ProjectGroup(
+		rowId = 42L,
+		uuid = groupId,
+		name = "Trilogy",
+		description = null,
+		parentRowId = null,
+		parentUuid = null,
+	)
 
 	@Test
 	fun `Create Project, conflicting projects sync session`() = runTest {
@@ -134,6 +150,60 @@ class ProjectsRepositoryCreateProjectTest : ProjectsRepositoryBaseTest() {
 			assertTrue(isSuccess(result))
 			assertEquals(created, result.data.project)
 			assertTrue(result.data.alreadyExisted)
+		}
+	}
+
+	@Test
+	fun `Create Project, placed in the requested group`() = runTest {
+		coEvery { projectsDatasource.getGroup(userId, groupId) } returns group
+
+		createProjectsRepository().apply {
+			val result = createProject(userId, syncId, projectName, projectId, groupId)
+
+			assertTrue(isSuccess(result))
+			assertEquals(groupId, result.data.groupId)
+			coVerify { projectsDatasource.setProjectGroup(userId, projectId, group.rowId) }
+		}
+	}
+
+	@Test
+	fun `Create Project, unknown group places it at the top level`() = runTest {
+		createProjectsRepository().apply {
+			val result = createProject(userId, syncId, projectName, projectId, groupId)
+
+			assertTrue(isSuccess(result))
+			assertNull(result.data.groupId)
+			coVerify(exactly = 0) { projectsDatasource.setProjectGroup(any(), any(), any()) }
+		}
+	}
+
+	@Test
+	fun `Create Project, adoption reports the existing placement and never moves it`() = runTest {
+		val existing = ProjectDefinition(projectName, ProjectId("9a8b7c6d-5e4f-4a3b-9c2d-1e0f9a8b7c6d"))
+		val existingGroup = GroupId("0f1e2d3c-4b5a-4987-8a6b-5c4d3e2f1a0b")
+		coEvery { projectEntityDatasource.findProjectByName(userId, projectName) } returns existing
+		coEvery { projectsDatasource.getProjectGroupId(userId, existing.uuid) } returns existingGroup
+
+		createProjectsRepository().apply {
+			val result = createProject(userId, syncId, projectName, projectId, groupId)
+
+			assertTrue(isSuccess(result))
+			assertTrue(result.data.alreadyExisted)
+			assertEquals(existingGroup, result.data.groupId)
+			coVerify(exactly = 0) { projectsDatasource.setProjectGroup(any(), any(), any()) }
+		}
+	}
+
+	@Test
+	fun `Create Project, existing id reports its placement`() = runTest {
+		coEvery { projectEntityDatasource.getProject(userId, projectId) } returns ProjectDefinition(projectName, projectId)
+		coEvery { projectsDatasource.getProjectGroupId(userId, projectId) } returns groupId
+
+		createProjectsRepository().apply {
+			val result = createProject(userId, syncId, projectName, projectId)
+
+			assertTrue(isSuccess(result))
+			assertEquals(groupId, result.data.groupId)
 		}
 	}
 }

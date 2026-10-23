@@ -20,6 +20,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.NewUserExperience
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.SpellCheckerSettings
+import com.darkrockstudios.apps.hammer.common.data.groupmetadata.GroupMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ClientAccountSynchronizer
@@ -128,6 +129,7 @@ class AccountSettingsComponentTest : BaseTest() {
 					fileSystem = hookedFs,
 					globalSettingsStore = globalSettingsStore,
 					projectsMetadataDatasource = ProjectMetadataDatasource(hookedFs, toml),
+					groupMetadataDatasource = GroupMetadataDatasource(hookedFs, toml),
 					toml = toml,
 					json = createJsonSerializer(),
 					deviceLocaleResolver = mockk(relaxed = true),
@@ -280,7 +282,7 @@ class AccountSettingsComponentTest : BaseTest() {
 
 		assertEquals(ProjectId("id-a"), projectsRepository.listedProjectId(projectA))
 		assertEquals(Instant.DISTANT_PAST, journalLastSync(PROJECT_A))
-		verify(exactly = 1) { accountSynchronizer.deleteSyncData() }
+		coVerify(exactly = 1) { accountSynchronizer.deleteSyncData() }
 	}
 
 	@Test
@@ -301,7 +303,7 @@ class AccountSettingsComponentTest : BaseTest() {
 
 		assertEquals(ProjectId("keep-me"), projectsRepository.listedProjectId(projectA))
 		assertEquals(Instant.DISTANT_PAST, journalLastSync(PROJECT_A))
-		verify(exactly = 1) { accountSynchronizer.deleteSyncData() }
+		coVerify(exactly = 1) { accountSynchronizer.deleteSyncData() }
 	}
 
 	@Test
@@ -325,7 +327,7 @@ class AccountSettingsComponentTest : BaseTest() {
 		advanceUntilIdle()
 
 		assertEquals(syncedAt, journalLastSync(PROJECT_A))
-		verify(exactly = 0) { accountSynchronizer.deleteSyncData() }
+		coVerify(exactly = 0) { accountSynchronizer.deleteSyncData() }
 	}
 
 	@Test
@@ -339,7 +341,7 @@ class AccountSettingsComponentTest : BaseTest() {
 		advanceUntilIdle()
 
 		assertEquals(Instant.DISTANT_PAST, journalLastSync(PROJECT_A))
-		verify(exactly = 1) { accountSynchronizer.deleteSyncData() }
+		coVerify(exactly = 1) { accountSynchronizer.deleteSyncData() }
 	}
 
 	@Test
@@ -354,7 +356,7 @@ class AccountSettingsComponentTest : BaseTest() {
 		advanceUntilIdle()
 
 		verify(exactly = 0) { globalSettingsStore.deleteServerSettings() }
-		verify(exactly = 0) { accountSynchronizer.deleteSyncData() }
+		coVerify(exactly = 0) { accountSynchronizer.deleteSyncData() }
 		assertEquals(syncedAt, journalLastSync(PROJECT_A))
 	}
 
@@ -805,10 +807,6 @@ private class FakeExampleProjectRepository(
 	toml: Toml,
 	clock: Clock,
 ) : ExampleProjectRepository(globalSettingsStore, fileSystem, toml, clock) {
-	override fun removeExampleProject() {
-		fileSystem.deleteRecursively(projectsDir() / PROJECT_NAME)
-	}
-
 	override fun platformInstall() {
 		val dir = projectsDir() / PROJECT_NAME
 		fileSystem.createDirectories(dir)

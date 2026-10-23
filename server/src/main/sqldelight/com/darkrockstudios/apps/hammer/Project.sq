@@ -10,14 +10,17 @@ CREATE TABLE project (
     name TEXT NOT NULL,
     last_id BIGINT NOT NULL DEFAULT 0,
     last_sync TIMESTAMPTZ AS Instant NOT NULL DEFAULT NOW(),
+    group_id BIGINT,
     CONSTRAINT project_name_len CHECK (length(name) BETWEEN 1 AND 200),
     FOREIGN KEY(user_id) REFERENCES account(id) ON DELETE CASCADE,
+    FOREIGN KEY(group_id) REFERENCES project_group(id) ON DELETE SET NULL,
     UNIQUE(name, user_id)
 );
 
 CREATE UNIQUE INDEX project_uuid_unique ON project (uuid);
 CREATE UNIQUE INDEX user_project_name_lookup ON project (user_id, name);
 CREATE INDEX project_user_id_idx ON project (user_id);
+CREATE INDEX project_group_id_idx ON project (group_id);
 
 getProjects:
 SELECT name, uuid
@@ -101,3 +104,26 @@ WHERE user_id = :userId AND uuid = CAST(:uuid AS UUID);
 
 deleteAllForUser:
 DELETE FROM project WHERE user_id = :userId;
+
+-- Projects outside any group are omitted.
+getProjectPlacements:
+SELECT p.uuid, g.uuid AS group_uuid
+FROM project p
+JOIN project_group g ON g.id = p.group_id
+WHERE p.user_id = :userId;
+
+getProjectGroupUuid:
+SELECT g.uuid
+FROM project p
+JOIN project_group g ON g.id = p.group_id
+WHERE p.user_id = :userId AND p.uuid = CAST(:uuid AS UUID);
+
+setProjectGroup:
+UPDATE project
+SET group_id = :groupId
+WHERE user_id = :userId AND uuid = CAST(:uuid AS UUID);
+
+reparentProjects:
+UPDATE project
+SET group_id = :newGroupId
+WHERE user_id = :userId AND group_id = :oldGroupId;

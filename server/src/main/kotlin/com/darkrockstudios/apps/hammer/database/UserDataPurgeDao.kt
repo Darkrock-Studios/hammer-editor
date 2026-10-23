@@ -48,6 +48,7 @@ class UserDataPurgeDao(
 			db.projectDataQueries.deleteAllForUser(userId)
 			db.writingActivityQueries.deleteAllForUser(userId)
 			db.projectQueries.deleteAllForUser(userId)
+			db.projectGroupQueries.deleteAllForUser(userId)
 
 			// Account-scoped data.
 			db.storyIdeaQueries.deleteAllForUser(userId)

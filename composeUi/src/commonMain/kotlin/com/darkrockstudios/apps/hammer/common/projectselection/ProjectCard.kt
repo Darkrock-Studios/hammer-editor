@@ -46,14 +46,18 @@ import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectData
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdIndentStep
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagChip
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdIndentFor
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdIndentRails
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.parseHexColor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.util.format
 import com.darkrockstudios.apps.hammer.common.util.formatDecimalSeparator
 import com.darkrockstudios.apps.hammer.project_select_card_delete_button
+import com.darkrockstudios.apps.hammer.project_select_card_move_button
 import com.darkrockstudios.apps.hammer.project_select_card_rename_button
 import com.darkrockstudios.apps.hammer.projects_list_card_by_author
 import com.darkrockstudios.apps.hammer.projects_list_card_content_description
@@ -84,6 +88,10 @@ private val CompactNumberColumnWidth: Dp = 44.dp
  *     │     by Lewis Carroll
  *     │     CREATED      OPENED      WORDS
  *     │     29 JAN ’23   04 MAR ’24  26,351
+ *
+ * Inside a group ([depth] > 0) the row hangs one step right of its group's chevron, with a rail
+ * per enclosing group. [groupPath], shown while the list is flattened by a filter, names the
+ * groups the project sits in.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -96,6 +104,9 @@ fun ProjectIndexRow(
 	onProjectRenameClick: (projectDef: ProjectDef) -> Unit,
 	modifier: Modifier = Modifier,
 	onTagClick: (tag: String) -> Unit = {},
+	onProjectMoveClick: (projectDef: ProjectDef) -> Unit = {},
+	depth: Int = 0,
+	groupPath: List<String> = emptyList(),
 ) {
 	val storedData = projectData.storedData
 	val author = storedData.authorName?.takeIf { it.isNotBlank() }
@@ -126,122 +137,142 @@ fun ProjectIndexRow(
 		listOfNotNull(byAuthor, createdText).joinToString(" · ")
 	}
 
-	Row(
+	val breadcrumb = remember(groupPath) { groupPath.takeIf { it.isNotEmpty() }?.joinToString(" › ") }
+
+	Column(
 		modifier = modifier
 			.fillMaxWidth()
-			.height(IntrinsicSize.Min)
-			.combinedClickable(onClick = { onProjectClick(projectData.definition) })
-			.semantics {
-				contentDescription = cardContentDescription
-			}
-			.testTag(ProjectCardTestTag),
-		verticalAlignment = Alignment.CenterVertically,
+			.hdIndentRails(levels = depth, color = MaterialTheme.colorScheme.outlineVariant, gutter = ProjectTreeGutter)
+			.padding(start = if (depth > 0) hdIndentFor(depth, gutter = ProjectTreeGutter) + HdIndentStep else 0.dp),
 	) {
-		ProjectStripe(
-			themePrimary = themePrimary,
-			unsetColor = unsetStripeColor,
-		)
-
-		Text(
-			text = rowNumber,
+		Row(
 			modifier = Modifier
-				.width(if (isWide) NumberColumnWidth else CompactNumberColumnWidth)
-				.padding(start = Ui.Padding.XL),
-			style = if (isWide) {
-				MaterialTheme.typography.headlineMedium
-			} else {
-				MaterialTheme.typography.titleLarge
-			},
-			fontWeight = FontWeight.Light,
-			color = MaterialTheme.colorScheme.onSurfaceVariant,
-		)
-
-		Column(
-			modifier = Modifier
-				.weight(1f)
-				.padding(vertical = Ui.Padding.XL),
-			verticalArrangement = Arrangement.spacedBy(2.dp),
+				.fillMaxWidth()
+				.height(IntrinsicSize.Min)
+				.combinedClickable(onClick = { onProjectClick(projectData.definition) })
+				.semantics {
+					contentDescription = cardContentDescription
+				}
+				.testTag(ProjectCardTestTag),
+			verticalAlignment = Alignment.CenterVertically,
 		) {
-			Text(
-				text = projectData.definition.name,
-				style = if (isWide) {
-					MaterialTheme.typography.headlineSmall
-				} else {
-					MaterialTheme.typography.titleMedium
-				},
-				color = MaterialTheme.colorScheme.onSurface,
+			ProjectStripe(
+				themePrimary = themePrimary,
+				// Nested rows already have the group rails; a dashed stripe beside them reads as clutter.
+				unsetColor = unsetStripeColor.takeIf { depth == 0 },
 			)
-			if (isWide) {
+
+			Text(
+				text = rowNumber,
+				modifier = Modifier
+					.width(if (isWide) NumberColumnWidth else CompactNumberColumnWidth)
+					.padding(start = Ui.Padding.XL),
+				style = if (isWide) {
+					MaterialTheme.typography.headlineMedium
+				} else {
+					MaterialTheme.typography.titleLarge
+				},
+				fontWeight = FontWeight.Light,
+				color = MaterialTheme.colorScheme.onSurfaceVariant,
+			)
+
+			Column(
+				modifier = Modifier
+					.weight(1f)
+					.padding(vertical = Ui.Padding.XL),
+				verticalArrangement = Arrangement.spacedBy(2.dp),
+			) {
 				Text(
-					text = subline,
-					style = MaterialTheme.typography.bodyMedium,
-					fontStyle = FontStyle.Italic,
-					color = MaterialTheme.colorScheme.onSurfaceVariant,
+					text = projectData.definition.name,
+					style = if (isWide) {
+						MaterialTheme.typography.headlineSmall
+					} else {
+						MaterialTheme.typography.titleMedium
+					},
+					color = MaterialTheme.colorScheme.onSurface,
 				)
-				TagChipRow(tags = tags, onTagClick = onTagClick)
-			} else {
-				if (byAuthor != null) {
+				if (breadcrumb != null) {
+					HdMonoLabel(
+						text = breadcrumb,
+						color = MaterialTheme.colorScheme.onSurfaceVariant,
+					)
+				}
+				if (isWide) {
 					Text(
-						text = byAuthor,
+						text = subline,
 						style = MaterialTheme.typography.bodyMedium,
 						fontStyle = FontStyle.Italic,
 						color = MaterialTheme.colorScheme.onSurfaceVariant,
 					)
-				}
-				TagChipRow(tags = tags, onTagClick = onTagClick)
-				Spacer(modifier = Modifier.height(8.dp))
-				CompactMetaGrid(
-					createdValue = createdDate,
-					openedValue = lastAccessedDate,
-					wordsValue = wordsValue,
-				)
-			}
-		}
-
-		if (isWide) {
-			Column(
-				modifier = Modifier.padding(horizontal = Ui.Padding.L),
-				horizontalAlignment = Alignment.End,
-				verticalArrangement = Arrangement.spacedBy(2.dp),
-			) {
-				HdMonoLabel(
-					text = lastAccessedDate ?: "—",
-					color = if (lastAccessedDate != null) {
-						MaterialTheme.colorScheme.onSurfaceVariant
-					} else {
-						MaterialTheme.colorScheme.outline
-					},
-				)
-				if (wordsLabel != null) {
-					HdMonoLabel(
-						text = wordsLabel,
-						color = MaterialTheme.colorScheme.onSurfaceVariant,
+					TagChipRow(tags = tags, onTagClick = onTagClick)
+				} else {
+					if (byAuthor != null) {
+						Text(
+							text = byAuthor,
+							style = MaterialTheme.typography.bodyMedium,
+							fontStyle = FontStyle.Italic,
+							color = MaterialTheme.colorScheme.onSurfaceVariant,
+						)
+					}
+					TagChipRow(tags = tags, onTagClick = onTagClick)
+					Spacer(modifier = Modifier.height(8.dp))
+					CompactMetaGrid(
+						createdValue = createdDate,
+						openedValue = lastAccessedDate,
+						wordsValue = wordsValue,
 					)
 				}
 			}
-		}
 
-		ProjectOptionsMenu(
-			items = listOf(
-				Res.string.project_select_card_delete_button,
-				Res.string.project_select_card_rename_button,
-			),
-		) {
-			when (it) {
-				Res.string.project_select_card_delete_button ->
-					onProjectAltClick(projectData.definition)
+			if (isWide) {
+				Column(
+					modifier = Modifier.padding(horizontal = Ui.Padding.L),
+					horizontalAlignment = Alignment.End,
+					verticalArrangement = Arrangement.spacedBy(2.dp),
+				) {
+					HdMonoLabel(
+						text = lastAccessedDate ?: "—",
+						color = if (lastAccessedDate != null) {
+							MaterialTheme.colorScheme.onSurfaceVariant
+						} else {
+							MaterialTheme.colorScheme.outline
+						},
+					)
+					if (wordsLabel != null) {
+						HdMonoLabel(
+							text = wordsLabel,
+							color = MaterialTheme.colorScheme.onSurfaceVariant,
+						)
+					}
+				}
+			}
 
-				Res.string.project_select_card_rename_button ->
-					onProjectRenameClick(projectData.definition)
+			ProjectOptionsMenu(
+				items = listOf(
+					Res.string.project_select_card_delete_button,
+					Res.string.project_select_card_rename_button,
+					Res.string.project_select_card_move_button,
+				),
+			) {
+				when (it) {
+					Res.string.project_select_card_delete_button ->
+						onProjectAltClick(projectData.definition)
+
+					Res.string.project_select_card_rename_button ->
+						onProjectRenameClick(projectData.definition)
+
+					Res.string.project_select_card_move_button ->
+						onProjectMoveClick(projectData.definition)
+				}
 			}
 		}
-	}
 
-	HorizontalDivider(
-		modifier = Modifier.fillMaxWidth(),
-		thickness = Dp.Hairline,
-		color = MaterialTheme.colorScheme.outlineVariant,
-	)
+		HorizontalDivider(
+			modifier = Modifier.fillMaxWidth(),
+			thickness = Dp.Hairline,
+			color = MaterialTheme.colorScheme.outlineVariant,
+		)
+	}
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -332,7 +363,7 @@ private fun MetaColumn(
 }
 
 @Composable
-private fun ProjectStripe(themePrimary: Color?, unsetColor: Color) {
+private fun ProjectStripe(themePrimary: Color?, unsetColor: Color?) {
 	// Single drawWithCache so the modifier graph is stable per-row regardless
 	// of whether the project has a theme — switching modifier nodes per row
 	// would churn allocations in the LazyColumn.
@@ -347,7 +378,7 @@ private fun ProjectStripe(themePrimary: Color?, unsetColor: Color) {
 				onDrawBehind {
 					if (themePrimary != null) {
 						drawRect(themePrimary)
-					} else {
+					} else if (unsetColor != null) {
 						drawLine(
 							color = unsetColor,
 							start = Offset(0f, 0f),

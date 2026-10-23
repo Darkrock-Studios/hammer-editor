@@ -29,11 +29,6 @@ private class ExampleProjectRepositoryiOs(
 	clock: Clock,
 ) : ExampleProjectRepository(globalSettingsStore, fileSystem, toml, clock) {
 
-	override fun removeExampleProject() {
-		val projectPath = projectsDir() / PROJECT_NAME
-		fileSystem.deleteRecursively(projectPath)
-	}
-
 	override fun platformInstall() {
 		val projectPath = projectsDir() / PROJECT_NAME
 		if (!fileSystem.exists(projectPath)) {

@@ -164,7 +164,7 @@ open class ProjectBackupService(
 	open fun supportsBackup(): Boolean = true
 
 	open suspend fun createBackup(projectDef: ProjectDef): ProjectBackupDef? {
-		val projectDir = projectsRepository.getProjectDirectory(projectDef.name).toOkioPath()
+		val projectDir = projectDef.path.toOkioPath()
 		val newBackupDef = createNewProjectBackupDef(projectDef)
 
 		return try {

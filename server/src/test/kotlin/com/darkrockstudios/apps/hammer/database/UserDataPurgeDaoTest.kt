@@ -1,10 +1,12 @@
 package com.darkrockstudios.apps.hammer.database
 
+import com.darkrockstudios.apps.hammer.base.GroupId
 import com.darkrockstudios.apps.hammer.e2e.util.SharedPostgresTestDatabase
 import com.darkrockstudios.apps.hammer.utils.BaseTest
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
@@ -36,6 +38,17 @@ class UserDataPurgeDaoTest : BaseTest() {
 
 		assertTrue(purgeDao.purgeUserData(userId))
 		assertNull(accountDao.getAccount(userId))
+	}
+
+	@Test
+	fun `purgeUserData - deletes the account's project groups`() = runTest {
+		val userId = accountDao.createAccount("purge-groups@example.com", "hash", "secret", isAdmin = false)
+		val groupDao = ProjectGroupDao(db)
+		groupDao.createGroup(userId, GroupId.randomUUID(), "Trilogy", null, null)
+		accountDao.markDeleted(userId, Clock.System.now())
+
+		assertTrue(purgeDao.purgeUserData(userId))
+		assertEquals(emptyList(), groupDao.getGroups(userId))
 	}
 
 	@Test

@@ -2,7 +2,11 @@ package com.darkrockstudios.apps.hammer.common.components.projectselection.proje
 
 import com.arkivanov.decompose.router.slot.ChildSlot
 import com.arkivanov.decompose.value.Value
+import com.darkrockstudios.apps.hammer.base.GroupId
+import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.common.components.ComponentToaster
+import com.darkrockstudios.apps.hammer.common.components.projectselection.GroupData
+import com.darkrockstudios.apps.hammer.common.components.projectselection.MoveTarget
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectData
 import com.darkrockstudios.apps.hammer.common.components.serverreauthentication.ServerReauthentication
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
@@ -10,6 +14,7 @@ import com.darkrockstudios.apps.hammer.common.data.ImportOptions
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.base.http.storyideas.StoryIdea
 import com.darkrockstudios.apps.hammer.common.data.importer.ImportPreview
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.GroupDef
 import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.IdeaConflict
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessage
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponent
@@ -23,9 +28,10 @@ interface ProjectsList : HammerComponent, ComponentToaster {
 
 	fun loadProjectList()
 	fun selectProject(projectDef: ProjectDef)
-	fun showCreate()
+	/** Opens the create dialog for a project in [parent], or the top level when null. */
+	fun showCreate(parent: GroupDef? = null)
 	fun hideCreate()
-	fun createProject(projectName: String)
+	fun createProject(projectName: String, parent: GroupDef? = null)
 	fun beginProjectImport()
 	fun cancelImportFilePicker()
 	fun selectImportFile(name: String, content: ByteArray)
@@ -49,9 +55,30 @@ interface ProjectsList : HammerComponent, ComponentToaster {
 	fun showProjectDelete(projectDef: ProjectDef)
 	fun dismissProjectDelete()
 
+	/** Moves the project into [target], or the top level when null. */
+	fun moveProject(projectDef: ProjectDef, target: GroupDef?)
+	fun createGroup(name: String, parent: GroupDef?, description: String? = null)
+	fun renameGroup(groupDef: GroupDef, newName: String)
+	fun moveGroup(groupDef: GroupDef, newParent: GroupDef?)
+
+	/** Deletes the group only: everything in it moves up one level. */
+	fun deleteGroup(groupDef: GroupDef)
+	fun toggleGroupCollapsed(groupDef: GroupDef)
+	fun updateGroupDescription(groupDef: GroupDef, description: String?)
+	fun showGroupCreate(parent: GroupDef?)
+	fun showGroupRename(groupDef: GroupDef)
+	fun showGroupDelete(groupDef: GroupDef)
+	fun showGroupDescription(groupDef: GroupDef)
+	fun showMoveToGroup(target: MoveTarget)
+	fun dismissGroupModal()
+
 	@Serializable
 	data class State(
 		val projects: List<ProjectData> = mutableListOf(),
+		/** Parents first. */
+		val groups: List<GroupData> = emptyList(),
+		/** The group holding each project, null at the top level. */
+		val placement: Map<ProjectId, GroupId?> = emptyMap(),
 		val projectsPath: HPath,
 		val isServerSynced: Boolean = false,
 		// In-flight sync progress is not meaningful after a process death; don't restore it.
@@ -97,8 +124,13 @@ interface ProjectsList : HammerComponent, ComponentToaster {
 		data object None : ModalDestination()
 		data object ProjectSync : ModalDestination()
 		data class ProjectRename(val projectDef: ProjectDef) : ModalDestination()
-		data object ProjectCreate : ModalDestination()
+		data class ProjectCreate(val parent: GroupDef? = null) : ModalDestination()
 		data class ProjectDelete(val projectDef: ProjectDef) : ModalDestination()
+		data class GroupCreate(val parent: GroupDef?) : ModalDestination()
+		data class GroupRename(val groupDef: GroupDef) : ModalDestination()
+		data class GroupDelete(val groupDef: GroupDef) : ModalDestination()
+		data class GroupDescription(val groupDef: GroupDef) : ModalDestination()
+		data class MoveToGroup(val target: MoveTarget) : ModalDestination()
 		data class ServerReauth(val component: ServerReauthentication) : ModalDestination()
 		data class ProtocolMismatch(val component: com.darkrockstudios.apps.hammer.common.components.protocolmismatch.ProtocolMismatch) :
 			ModalDestination()

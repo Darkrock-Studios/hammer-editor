@@ -5,6 +5,7 @@ import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.data.groupmetadata.GroupMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
@@ -191,6 +192,7 @@ class TestProjects {
 			fileSystem = fileSystem,
 			globalSettingsStore = globalSettingsStore,
 			projectsMetadataDatasource = metadataDatasource,
+			groupMetadataDatasource = GroupMetadataDatasource(fileSystem, toml),
 			toml = toml,
 			json = createJsonSerializer(),
 			deviceLocaleResolver = mockk<DeviceLocaleResolver>(relaxed = true),

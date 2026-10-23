@@ -6,8 +6,9 @@ uses.
 
 ## Two levels of syncing
 
-**Account Sync:** This synchronizes what projects the Account has, creating, deleting, or renaming
-just the top level directories on the client. It also carries the account-level **Story Ideas**
+**Account Sync:** This synchronizes what projects the Account has, creating, deleting, renaming or
+moving the project directories on the client, and the group directories they are nested in (see
+[Project groups phase](#project-groups-phase)). It also carries the account-level **Story Ideas**
 phase (see [Story Ideas Sync](#story-ideas-sync-account-level)).
 
 **Project Sync:** This synchronizes an individual project and all of its Entities
@@ -76,16 +77,16 @@ project is uploaded. A local project with the same name adopts the server's ID i
 already bound to another live server project. So does a directory of that name with no
 `project.toml`, which is then treated like a restored backup.
 
-Queued renames and deletes name a project by ID, so one the server cannot act on is dropped without
-being sent rather than retried every session:
+Renames are not queued: a project's name is reconciled against its sync baseline like its placement
+(see [Project groups phase](#project-groups-phase)), so a project renamed outside the app syncs too.
+Older clients queued renames; the first sync after upgrading turns each queued rename into a baseline
+holding the server's current name, which makes the local name win, and drops one whose ID the server
+does not list.
 
-- A **rename** queued against an ID the server does not know is dropped. Creation already covers it,
-  because the project is created under its current local name. A rename queued against a
-  **tombstoned** ID is dropped for the same reason: the delete phase has already removed the project
-  locally, and the server has nothing left to rename.
-- A **delete** queued against an ID the server does not know is dropped. The project was deleted
-  before it ever reached the server, and a tombstone for its ID would only refuse a later create of
-  that ID.
+Queued deletes name a project by ID, so one the server cannot act on is dropped without being sent
+rather than retried every session: a **delete** queued against an ID the server does not know is
+dropped. The project was deleted before it ever reached the server, and a tombstone for its ID would
+only refuse a later create of that ID.
 
 Any given user account may only have one sync in progress at a time. Attempting to start a sync when
 one is already in progress will result in a failure to begin the sync (`400 Bad Request`).
@@ -183,6 +184,68 @@ sequenceDiagram
 The `begin_sync` response also carries `ideasStateHash` — an account-wide hash of the server's
 live idea set — which lets the client skip the Story Ideas phase entirely when nothing changed
 (see below).
+
+### Project groups phase
+
+Projects can be nested in group directories. Each group has a client-minted `groupId` (stored in its
+`group.toml`), a name (the directory name), an optional parent group and an optional description.
+A project's placement is the id of the group directly holding it, or none at the top level. Paths are
+never sent; they are derived from the parent links on each side.
+
+`begin_sync` carries the server's tree: `groups` (each with `uuid`, `name`, `parentId`,
+`description`) and a `groupId` on every entry of `projects`. Both are optional fields, so older
+clients ignore them and older servers send none.
+
+The groups phase runs inside the account sync session, in this order:
+
+1. Project deletes (as above).
+2. Group creates and updates, parents before children, so a child's parent already exists.
+3. Project renames and moves.
+4. Project creates, each passing the group it belongs in.
+5. Group deletes, after everything has moved out of them.
+
+| Endpoint | Input | Success | Failures |
+|---|---|---|---|
+| `POST /api/projects/{userId}/group/upsert` | JSON body `ApiGroupDefinition` | `UpsertGroupResponse(groupId, alreadyExisted)` | `400` malformed body or id; `406` invalid name or description over 2000 characters; `409` `group_name_taken`, `group_cycle`, `group_too_deep`, `group_id_taken` |
+| `POST /api/projects/{userId}/group/delete` | `?groupId=` | `200` (also for an unknown group) | `400` missing or malformed id; `409` `group_name_taken` |
+| `POST /api/projects/{userId}/move` | `?projectId=`, optional `?groupId=` (absent = top level) | `200` | `400` missing or malformed id; `404` unknown project |
+| `POST /api/projects/{userId}/create` | adds optional `?groupId=` | `CreateProjectResponse` gains `groupId` | as above |
+
+All of them require the session's `syncId` header, and every id is a UUID.
+
+Server rules:
+
+- **Upsert** creates the group under its client id, or updates the name, parent and description of
+  the group already holding that id. An unknown parent places the group at the top level rather than
+  failing. Sibling names are unique, ignoring case. A **new** group whose name a sibling already has
+  is not created: the server answers with the sibling's id and `alreadyExisted = true`, and the client
+  adopts it, as with project names. Renaming or moving an **existing** group onto a sibling's name is
+  `group_name_taken`. Moving a group inside itself or a descendant is `group_cycle`. Nesting is capped
+  at 8 levels (a top-level group is level 1), counting the whole subtree being moved: `group_too_deep`.
+  An id another account holds is `group_id_taken`; the client mints a fresh one and retries once.
+- **Delete** moves the group's child groups and projects up to its parent, then removes it. When a
+  child group's name collides with a sibling at the parent, nothing changes and the answer is
+  `group_name_taken`.
+- **Move** and **create** treat an unknown `groupId` as the top level. A create that adopts an
+  existing project (same id, or same name) never moves it; the response's `groupId` is where that
+  project actually lives, which may differ from the request.
+
+There are no group tombstones. A group deleted on one device disappears from `begin_sync`, and the
+client tells "deleted on the server" apart from "created locally" by its sync baseline.
+
+The client keeps a baseline of the last state both sides agreed on, per group (name, parent,
+description) and per project (name, placement), in the account `sync.json`. Each attribute is
+reconciled three ways:
+
+- Local and server agree: nothing to do.
+- No baseline yet: the server wins.
+- Only the local side moved off the baseline: push the local value.
+- Only the server moved off the baseline: apply the server value locally.
+- Both moved: the server wins.
+
+Because the comparison is against the files on disk, a folder renamed or dragged outside the app syncs
+like an in-app change. A baseline is only written once an item fully agrees, so anything that failed
+or was in use is retried next session.
 
 ---
 

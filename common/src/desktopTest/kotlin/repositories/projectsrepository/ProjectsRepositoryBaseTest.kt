@@ -3,6 +3,7 @@ package repositories.projectsrepository
 import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.data.groupmetadata.GroupMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupService
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
@@ -36,7 +37,7 @@ abstract class ProjectsRepositoryBaseTest : BaseTest() {
 	protected lateinit var deviceLocaleResolver: DeviceLocaleResolver
 
 	protected fun projectsRepository(fs: FileSystem = ffs) =
-		ProjectsRepository(fs, settingsRepo, projectsMetaDatasource, toml, json, deviceLocaleResolver)
+		ProjectsRepository(fs, settingsRepo, projectsMetaDatasource, GroupMetadataDatasource(fs, toml), toml, json, deviceLocaleResolver)
 
 	protected fun backupService(repo: ProjectsRepository): ProjectBackupService {
 		every { settings.maxBackups } returns 5

@@ -5,6 +5,7 @@ import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.base.http.createTokenBase64
 import com.darkrockstudios.apps.hammer.database.ProjectDao
+import com.darkrockstudios.apps.hammer.database.ProjectGroupDao
 import com.darkrockstudios.apps.hammer.database.ProjectsDao
 import com.darkrockstudios.apps.hammer.e2e.util.SharedPostgresTestDatabase
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
@@ -50,6 +51,7 @@ class ProjectsDatabaseDatasourceTest : BaseTest() {
 		return ProjectsDatabaseDatasource(
 			projectDao = ProjectDao(testDatabase),
 			projectsDao = ProjectsDao(testDatabase),
+			projectGroupDao = ProjectGroupDao(testDatabase),
 		)
 	}
 

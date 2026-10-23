@@ -268,9 +268,10 @@ persisted file belongs to one of two tiers, and the tier decides what the app ma
 cannot read.
 
 - **Metadata** is what the app can regenerate: `project.toml` (`created`, `lastAccessed`,
-  `dataVersion`, `projectId`), each project's `sync.json`, and the account-level `sync.json` at the
-  projects root. Any reader may heal or recreate it, and a corrupt file is replaced with fresh
-  state. Losing it costs at most the project's identity and sync state, never content.
+  `dataVersion`, `projectId`), each group's `group.toml` (`groupId`, `description`, `collapsed`),
+  each project's `sync.json`, and the account-level `sync.json` at the projects root. Any reader
+  may heal or recreate it, and a corrupt file is replaced with fresh state. Losing it costs at most
+  a project's or group's identity and sync state, never content.
 - **User data** is what the app cannot rebuild: `settings.toml`, scenes, notes, encyclopedia
   entries, timeline events, drafts and backups. The app tolerates any of it being missing but never
   destroys it. A `settings.toml` that cannot be parsed is moved aside to
@@ -286,6 +287,16 @@ encyclopedia, timeline, `settings.toml`, a pre-4 `project_data.toml` or `sync.js
 and account sync adopts an unmarked directory whose name matches a server project under that
 project's ID, if it is empty or holds such content. Any other directory stays ignored, since the
 projects directory may be shared with unrelated folders.
+
+**`group.toml` marks a directory as a project group.** Projects may sit in plain directories
+nested up to `MAX_GROUP_NESTING_DEPTH` (8) levels below the projects directory.
+`ProjectsRepository.getProjectTree` walks them recursively: a directory that is neither a project
+nor unmarked Hammer content is a group if it holds `group.toml` or any group or project, and a group
+missing the file, or holding a corrupt one, gets a fresh one under a new `groupId`. Directories that
+hold no project stay unmarked, so unrelated folders are never claimed. A group's name is its
+directory name and its parent the directory that holds it; a project's group is likewise derived
+from where it sits, never stored, so `ProjectDef` carries only its path. `collapsed` is local
+display state and never syncs.
 
 **Project identity.** Every project has a `projectId`, a UUID the client mints at creation whether
 or not a sync server is configured. The server does not issue IDs: the create request carries the
@@ -329,10 +340,10 @@ One gap remains: if an open project's `project.toml` loses its ID, the next list
 on disk while the open editor keeps syncing under the old ID. Once the project is closed, the next
 account sync from the list adopts the server project's ID by name.
 
-**Header comments.** Both TOML files start with a comment line, rewritten on every save, that tells
-a user who opens the file which tier it is in. `project.toml` says it is managed by Hammer and that
-edits may be overwritten or discarded. `settings.toml` says the user may edit it but must keep it
-valid TOML, or Hammer will set it aside. Readers ignore comments.
+**Header comments.** The TOML files start with a comment line, rewritten on every save, that tells
+a user who opens the file which tier it is in. `project.toml` and `group.toml` say they are
+managed by Hammer and that edits may be overwritten or discarded. `settings.toml` says the user may
+edit it but must keep it valid TOML, or Hammer will set it aside. Readers ignore comments.
 
 **Adding a file.** If the app can rebuild it, it is metadata and belongs in `project.toml` or a
 sibling cache the app owns. Otherwise it is user data: it gets its own file and its own owning Data

@@ -11,7 +11,8 @@ import app.cash.sqldelight.db.SqlDriver
  * type names). After `Schema.create()` runs the CREATE TABLE statements, this
  * initializer:
  *   1. Installs the `citext` extension.
- *   2. Promotes the relevant columns to CITEXT / UUID.
+ *   2. Promotes the relevant columns to CITEXT / UUID, and adds constraints the
+ *      `.sq` parser cannot express.
  *   3. Records the SqlDelight schema version in a `_schema_version` table so we
  *      can drive `Schema.migrate(...)` on subsequent boots without relying on
  *      SQLite-only `PRAGMA user_version`.
@@ -69,7 +70,7 @@ object PostgresSchemaInitializer {
 
 	/**
 	 * Promote columns we declared as TEXT in .sq to their richer native types.
-	 * Idempotent — Postgres treats ALTER TYPE to the same type as a no-op.
+	 * First boot only: the type changes are no-ops when repeated, the group FK is not.
 	 */
 	private fun promoteColumns(driver: SqlDriver) {
 		// CITEXT — case-insensitive comparison + UNIQUE indexes.
@@ -93,6 +94,19 @@ object PostgresSchemaInitializer {
 		)
 
 		promoteIdeaColumns(driver)
+		promoteGroupColumns(driver)
+	}
+
+	private fun promoteGroupColumns(driver: SqlDriver) {
+		driver.execute(null, "ALTER TABLE project_group ALTER COLUMN uuid TYPE UUID USING uuid::uuid", 0)
+		driver.execute(null, "ALTER TABLE project_group ALTER COLUMN name TYPE CITEXT", 0)
+		// SqlDelight rejects a self-referencing FK in the .sq table definition.
+		driver.execute(
+			null,
+			"ALTER TABLE project_group ADD CONSTRAINT project_group_parent_id_fkey " +
+				"FOREIGN KEY (parent_id) REFERENCES project_group(id) ON DELETE SET NULL",
+			0,
+		)
 	}
 
 	private fun promoteIdeaColumns(driver: SqlDriver) {

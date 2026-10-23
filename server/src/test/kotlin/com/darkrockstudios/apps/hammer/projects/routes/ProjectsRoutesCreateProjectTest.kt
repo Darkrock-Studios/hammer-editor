@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.projects.routes
 
+import com.darkrockstudios.apps.hammer.base.GroupId
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.ApiErrorCode
 import com.darkrockstudios.apps.hammer.base.http.CreateProjectResponse
@@ -63,6 +64,34 @@ class ProjectsRoutesCreateProjectTest : ProjectsRoutesBaseTest() {
 			assertEquals(projectId, response.projectId)
 			assertFalse(response.alreadyExisted)
 			coVerify { projectsRepository.createProject(userId, syncId, projectName, projectId) }
+		}
+	}
+
+	@Test
+	fun `Projects - Create Project - Group is forwarded and placement returned`() = testApplication {
+		val groupId = GroupId("5c0e7a2b-1d3f-4e5a-9b6c-7d8e9f0a1b2c")
+		coEvery {
+			projectsRepository.createProject(userId, syncId, projectName, projectId, groupId)
+		} returns SResult.success(
+			ProjectCreatedResult(ProjectDefinition(projectName, projectId), alreadyExisted = false, groupId = groupId)
+		)
+		authorize()
+
+		postCreate(query = "projectName=$projectName&projectId=${projectId.id}&groupId=${groupId.id.uppercase()}").apply {
+			assertTrue(status.isSuccess())
+			val response = Json.decodeFromString<CreateProjectResponse>(bodyAsText())
+			assertEquals(groupId, response.groupId)
+			coVerify { projectsRepository.createProject(userId, syncId, projectName, projectId, groupId) }
+		}
+	}
+
+	@Test
+	fun `Projects - Create Project - Malformed groupId`() = testApplication {
+		authorize()
+
+		postCreate(query = "projectName=$projectName&projectId=${projectId.id}&groupId=not-a-uuid").apply {
+			assertEquals(HttpStatusCode.BadRequest, status)
+			coVerify(exactly = 0) { projectsRepository.createProject(any(), any(), any(), any(), any()) }
 		}
 	}
 

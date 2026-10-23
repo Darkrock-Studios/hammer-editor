@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetada
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.writeDeviceLog
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
+import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import io.github.aakira.napier.Napier
@@ -50,8 +51,12 @@ abstract class ExampleProjectRepository(
 	fun isExampleProject(projectDef: ProjectDef): Boolean =
 		projectDef.name == PROJECT_NAME && globalSettingsStore.globalSettings.nux.exampleProjectCreated
 
-	fun install() {
-		removeExampleProject()
+	/**
+	 * Replaces any existing example project, found at [existingProjectDir] when the caller knows where
+	 * it is (it may have been moved into a group), with a fresh copy at the top level.
+	 */
+	fun install(existingProjectDir: HPath?) {
+		removeExampleProject(existingProjectDir)
 		platformInstall()
 		// The bundled project.toml carries no id, so every install mints its own.
 		val exampleDir = (projectsDir() / PROJECT_NAME).toHPath()
@@ -71,7 +76,9 @@ abstract class ExampleProjectRepository(
 		}
 	}
 
-	abstract fun removeExampleProject()
+	private fun removeExampleProject(existingProjectDir: HPath?) {
+		fileSystem.deleteRecursively(existingProjectDir?.toOkioPath() ?: (projectsDir() / PROJECT_NAME))
+	}
 
 	protected abstract fun platformInstall()
 
