@@ -17,7 +17,9 @@
 	border-bottom: 3px solid var(--accent);
 }
 
-/* Dark overlay for text readability */
+/* Dark overlay for text readability. The print under the headline is as dark as the
+   outline shadows, so a pool of shade behind the text keeps it legible without
+   flattening the sheets at the edges. */
 .masthead::before {
 	content: '';
 	position: absolute;
@@ -25,7 +27,8 @@
 	left: 0;
 	right: 0;
 	bottom: 0;
-	background: linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(51, 65, 85, 0.6) 100%);
+	background: radial-gradient(ellipse 60% 80% at 50% 46%, rgba(15, 23, 42, 0.62) 0%, rgba(15, 23, 42, 0.32) 55%, rgba(15, 23, 42, 0) 100%),
+	linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(51, 65, 85, 0.6) 100%);
 	pointer-events: none;
 }
 
