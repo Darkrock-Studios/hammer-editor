@@ -38,7 +38,6 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.koin.ktor.ext.get
-import kotlin.uuid.Uuid
 
 internal const val ERROR_GENERIC = "Error"
 private const val ERR_KEY_INVALID_PROJECT_NAME = "api_project_rename_error_invalidname"
@@ -79,13 +78,7 @@ private suspend fun ApplicationCall.requireProjectIdFromPath(): ProjectId? {
  * The id is canonicalized so responses compare equal to what the database returns.
  */
 private suspend fun ApplicationCall.requireProjectIdFromQuery(): ProjectId? {
-	val uuid = request.queryParameters["projectId"]?.let { raw ->
-		try {
-			Uuid.parse(raw)
-		} catch (_: IllegalArgumentException) {
-			null
-		}
-	}
+	val uuid = request.queryParameters["projectId"]?.let(::parseUuidOrNull)
 	if (uuid == null) {
 		respondMissingParameter(ERR_KEY_PROJECT_ID_MISSING)
 		return null
@@ -94,12 +87,7 @@ private suspend fun ApplicationCall.requireProjectIdFromQuery(): ProjectId? {
 }
 
 /** Canonical form of a client-sent group id, or null when it is not a UUID. */
-internal fun canonicalGroupId(raw: String): GroupId? =
-	try {
-		GroupId.fromUUID(Uuid.parse(raw))
-	} catch (_: IllegalArgumentException) {
-		null
-	}
+internal fun canonicalGroupId(raw: String): GroupId? = parseUuidOrNull(raw)?.let { GroupId.fromUUID(it) }
 
 /** Where a project goes: [groupId] is null at the top level. */
 private class GroupPlacement(val groupId: GroupId?)
@@ -128,6 +116,11 @@ internal suspend fun ApplicationCall.requireGroupIdFromQuery(): GroupId? {
 	return groupId
 }
 
+private suspend fun ApplicationCall.respondNotAcceptable(messageKey: String) = respond(
+	status = HttpStatusCode.NotAcceptable,
+	HttpResponseError(error = ERROR_GENERIC, displayMessage = t(R(messageKey))),
+)
+
 private suspend fun ApplicationCall.respondConflict(messageKey: String, errorCode: String) = respond(
 	status = HttpStatusCode.Conflict,
 	HttpResponseError(error = ERROR_GENERIC, displayMessage = t(R(messageKey)), errorCode = errorCode),
@@ -137,23 +130,13 @@ private suspend fun ApplicationCall.respondConflict(messageKey: String, errorCod
 internal suspend fun ApplicationCall.respondSyncFailure(exception: Throwable?) {
 	when (exception) {
 		is InvalidSyncIdException -> respondBadRequest(ERROR_GENERIC, t(R(ERR_KEY_INVALID_SYNC_ID)))
-		is InvalidProjectName -> respond(
-			status = HttpStatusCode.NotAcceptable,
-			HttpResponseError(error = ERROR_GENERIC, displayMessage = t(R(ERR_KEY_INVALID_PROJECT_NAME))),
-		)
+		is InvalidProjectName -> respondNotAcceptable(ERR_KEY_INVALID_PROJECT_NAME)
 
 		is ProjectDeletedException -> respondConflict(ERR_KEY_PROJECT_CREATE_DELETED, ApiErrorCode.PROJECT_DELETED)
 		is ProjectIdTakenException -> respondConflict(ERR_KEY_PROJECT_CREATE_ID_TAKEN, ApiErrorCode.PROJECT_ID_TAKEN)
 
-		is InvalidGroupName -> respond(
-			status = HttpStatusCode.NotAcceptable,
-			HttpResponseError(error = ERROR_GENERIC, displayMessage = t(R(ERR_KEY_GROUP_INVALID_NAME))),
-		)
-
-		is InvalidGroupDescription -> respond(
-			status = HttpStatusCode.NotAcceptable,
-			HttpResponseError(error = ERROR_GENERIC, displayMessage = t(R(ERR_KEY_GROUP_INVALID_DESCRIPTION))),
-		)
+		is InvalidGroupName -> respondNotAcceptable(ERR_KEY_GROUP_INVALID_NAME)
+		is InvalidGroupDescription -> respondNotAcceptable(ERR_KEY_GROUP_INVALID_DESCRIPTION)
 
 		is GroupNameTaken -> respondConflict(ERR_KEY_GROUP_NAME_TAKEN, ApiErrorCode.GROUP_NAME_TAKEN)
 		is GroupCycleException -> respondConflict(ERR_KEY_GROUP_CYCLE, ApiErrorCode.GROUP_CYCLE)

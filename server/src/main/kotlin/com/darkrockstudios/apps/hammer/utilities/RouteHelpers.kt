@@ -11,6 +11,7 @@ import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.response.*
 import org.koin.ktor.ext.get
+import kotlin.uuid.Uuid
 
 internal const val ERROR_MISSING_PARAMETER = "Missing Parameter"
 internal const val ERROR_MISSING_HEADER = "Missing Header"
@@ -22,6 +23,13 @@ internal const val ERR_KEY_SYNC_ID_MISSING = "api_project_sync_error_syncidmissi
 internal const val ERR_KEY_ENTITY_ID_MISSING = "api_project_error_entityidmissing"
 internal const val ERR_KEY_INVALID_SYNC_ID = "api_project_sync_end_invalidid"
 internal const val ERR_KEY_UNKNOWN = "api_error_unknown"
+
+internal fun parseUuidOrNull(raw: String): Uuid? =
+	try {
+		Uuid.parse(raw)
+	} catch (_: IllegalArgumentException) {
+		null
+	}
 
 /** Responds 400 BadRequest with the given error name and a plain-text display message. */
 suspend fun ApplicationCall.respondBadRequest(error: String, displayMessage: String) {

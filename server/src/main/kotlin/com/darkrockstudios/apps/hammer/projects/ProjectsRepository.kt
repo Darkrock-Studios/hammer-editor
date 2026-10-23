@@ -283,9 +283,8 @@ class ProjectsRepository(
 		if (syncSessionManager.validateSyncId(userId, syncId).not())
 			return SResult.failure(InvalidSyncIdException())
 
-		val group = projectsDatasource.getGroup(userId, groupId) ?: return SResult.success()
-
 		val groups = projectsDatasource.getGroups(userId)
+		val group = groups.find { it.uuid == groupId } ?: return SResult.success()
 		val siblings = groups.filter { it.parentRowId == group.parentRowId && it.rowId != group.rowId }
 		groups.filter { it.parentRowId == group.rowId }
 			.find { child -> siblings.any { it.name.equals(child.name, ignoreCase = true) } }

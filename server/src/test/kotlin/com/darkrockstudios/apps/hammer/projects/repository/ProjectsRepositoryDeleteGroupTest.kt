@@ -31,7 +31,6 @@ class ProjectsRepositoryDeleteGroupTest : ProjectsRepositoryBaseTest() {
 	@BeforeEach
 	fun setupDefaults() {
 		coEvery { projectsSessionManager.validateSyncId(userId, syncId, any()) } returns true
-		coEvery { projectsDatasource.getGroup(userId, groupId) } returns group
 		coEvery { projectsDatasource.getGroups(userId) } returns listOf(group)
 		coEvery { projectsDatasource.deleteGroup(userId, group, any()) } returns true
 	}
@@ -56,7 +55,7 @@ class ProjectsRepositoryDeleteGroupTest : ProjectsRepositoryBaseTest() {
 
 	@Test
 	fun `an unknown group is already deleted`() = runTest {
-		coEvery { projectsDatasource.getGroup(userId, groupId) } returns null
+		coEvery { projectsDatasource.getGroups(userId) } returns emptyList()
 
 		val result = createProjectsRepository().deleteGroup(userId, syncId, groupId)
 
