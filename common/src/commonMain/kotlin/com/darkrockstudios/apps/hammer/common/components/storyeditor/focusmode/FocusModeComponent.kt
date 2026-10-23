@@ -170,12 +170,6 @@ class FocusModeComponent(
 				_state.update { it.copy(spellChecker = dictionary) }
 			}
 		}
-
-		scope.launch {
-			spellCheckService.projectLanguage.collect { language ->
-				_state.update { it.copy(language = language, languageLoaded = true) }
-			}
-		}
 	}
 
 	private suspend fun onBufferUpdate(sceneBuffer: SceneBuffer) = withContext(dispatcherMain) {
