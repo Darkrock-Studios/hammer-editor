@@ -48,9 +48,9 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdPickerList
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdPickerRow
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.ExportFont
-import com.darkrockstudios.apps.hammer.common.data.ExportFormat
 import com.darkrockstudios.apps.hammer.common.data.ExportOptions
 import com.darkrockstudios.apps.hammer.common.data.ExportableScene
+import com.darkrockstudios.apps.hammer.common.data.export.BuiltInExportFormat
 import com.darkrockstudios.apps.hammer.project_home_export_blank_lines_hint
 import com.darkrockstudios.apps.hammer.project_home_export_blank_lines_label
 import com.darkrockstudios.apps.hammer.project_home_export_cancel
@@ -59,12 +59,7 @@ import com.darkrockstudios.apps.hammer.project_home_export_close
 import com.darkrockstudios.apps.hammer.project_home_export_dialog_title
 import com.darkrockstudios.apps.hammer.project_home_export_execute
 import com.darkrockstudios.apps.hammer.project_home_export_font_label
-import com.darkrockstudios.apps.hammer.project_home_export_format_docx
-import com.darkrockstudios.apps.hammer.project_home_export_format_epub
 import com.darkrockstudios.apps.hammer.project_home_export_format_label
-import com.darkrockstudios.apps.hammer.project_home_export_format_markdown
-import com.darkrockstudios.apps.hammer.project_home_export_format_pdf
-import com.darkrockstudios.apps.hammer.project_home_export_format_rtf
 import com.darkrockstudios.apps.hammer.project_home_export_help_icon_description
 import com.darkrockstudios.apps.hammer.project_home_export_limit_scenes_hint
 import com.darkrockstudios.apps.hammer.project_home_export_limit_scenes_label
@@ -74,13 +69,8 @@ import com.darkrockstudios.apps.hammer.project_home_export_scenes_label
 import com.darkrockstudios.apps.hammer.project_home_export_scenes_select_all
 import com.darkrockstudios.apps.hammer.project_home_export_scenes_selected
 import com.darkrockstudios.apps.hammer.project_home_export_section
-import org.jetbrains.compose.resources.StringResource
 
 private val DialogMaxWidth = 520.dp
-
-internal fun exportSceneRowTag(id: Int) = "export-scene-row-$id"
-internal fun exportGroupRowTag(id: Int) = "export-group-row-$id"
-internal const val EXPORT_SCENE_MASTER_TOGGLE_TAG = "export-scene-master-toggle"
 
 /**
  * Fully controlled: all option state lives in the component's retained state so
@@ -107,6 +97,7 @@ fun ExportOptionsDialog(
 	) {
 		ExportOptionsDialogContent(
 			options = options,
+			formats = exportFormatChoices(),
 			exportableScenes = exportableScenes,
 			onOptionsChanged = onOptionsChanged,
 			onCancel = onCancel,
@@ -124,6 +115,7 @@ fun ExportOptionsDialog(
 @Composable
 internal fun ExportOptionsDialogContent(
 	options: ExportOptions,
+	formats: List<ExportFormatChoice>,
 	exportableScenes: List<ExportableScene>,
 	onOptionsChanged: (ExportOptions) -> Unit,
 	onCancel: () -> Unit,
@@ -205,10 +197,10 @@ internal fun ExportOptionsDialogContent(
 
 				HdHairlineDropdown(
 					title = Res.string.project_home_export_format_label.get(),
-					options = AVAILABLE_EXPORT_FORMATS,
-					selected = options.format,
-					onSelect = { onOptionsChanged(options.copy(format = it)) },
-					label = { (it.labelRes()).get() },
+					options = formats,
+					selected = formats.firstOrNull { it.formatId == options.format } ?: formats.first(),
+					onSelect = { onOptionsChanged(options.copy(format = it.formatId)) },
+					label = { it.label },
 				)
 
 				if (options.numbersChapters) {
@@ -229,7 +221,7 @@ internal fun ExportOptionsDialogContent(
 					)
 				}
 
-				if (options.format != ExportFormat.Markdown) {
+				if (options.format != BuiltInExportFormat.MARKDOWN) {
 					HdHairlineToggleRow(
 						checked = options.keepBlankLines,
 						onCheckedChange = { onOptionsChanged(options.copy(keepBlankLines = it)) },
@@ -250,10 +242,10 @@ internal fun ExportOptionsDialogContent(
 
 					val selectedIds = options.sceneIds
 					if (selectedIds != null) {
-						ExportSceneSelector(
+						SceneSelector(
 							entries = exportableScenes,
-							allIds = allSceneIds,
 							selected = selectedIds,
+							multiple = true,
 							onSelectionChanged = { onOptionsChanged(options.copy(sceneIds = it)) },
 						)
 					}
@@ -285,129 +277,12 @@ internal fun ExportOptionsDialogContent(
 	}
 }
 
-@Composable
-private fun ExportSceneSelector(
-	entries: List<ExportableScene>,
-	allIds: Set<Int>,
-	selected: Set<Int>,
-	onSelectionChanged: (Set<Int>) -> Unit,
-) {
-	val allSelected = allIds.isNotEmpty() && selected.containsAll(allIds)
-
-	Column(verticalArrangement = Arrangement.spacedBy(Ui.Padding.M)) {
-		Row(
-			modifier = Modifier.fillMaxWidth(),
-			verticalAlignment = Alignment.CenterVertically,
-			horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M),
-		) {
-			HdMonoLabel(text = Res.string.project_home_export_scenes_label.get())
-			Text(
-				text = Res.string.project_home_export_scenes_selected.get(selected.size, allIds.size),
-				style = MaterialTheme.typography.bodySmall,
-				color = MaterialTheme.colorScheme.onSurfaceVariant,
-				modifier = Modifier.weight(1f),
-			)
-			HdHairlineButton(
-				label = if (allSelected) {
-					Res.string.project_home_export_scenes_clear_all.get()
-				} else {
-					Res.string.project_home_export_scenes_select_all.get()
-				},
-				onClick = { onSelectionChanged(if (allSelected) emptySet() else allIds) },
-				modifier = Modifier.testTag(EXPORT_SCENE_MASTER_TOGGLE_TAG),
-			)
-		}
-
-		HdPickerList {
-			items(items = entries, key = { it.id }) { entry ->
-				if (entry.isGroup) {
-					ExportGroupRow(
-						entry = entry,
-						fullySelected = isGroupFullySelected(entries, selected, entry),
-						hasScenes = descendantSceneIds(entries, entry).isNotEmpty(),
-						onToggle = { onSelectionChanged(toggleGroup(entries, selected, entry)) },
-					)
-				} else {
-					ExportSceneRow(
-						entry = entry,
-						isSelected = entry.id in selected,
-						onToggle = { onSelectionChanged(toggleScene(selected, entry.id)) },
-					)
-				}
-			}
-		}
-	}
-}
-
-@Composable
-private fun ExportGroupRow(
-	entry: ExportableScene,
-	fullySelected: Boolean,
-	hasScenes: Boolean,
-	onToggle: () -> Unit,
-) {
-	val interaction = if (hasScenes) {
-		Modifier.toggleable(
-			value = fullySelected,
-			role = Role.Checkbox,
-			onValueChange = { onToggle() },
-		)
-	} else {
-		// Nothing beneath it to select; an inert checkbox would just mislead.
-		Modifier
-	}
-	HdPickerRow(
-		label = entry.name,
-		depth = entry.depth,
-		icon = Icons.Filled.Folder,
-		modifier = interaction.testTag(exportGroupRowTag(entry.id)),
-		trailing = { if (hasScenes) HdHairlineCheckbox(checked = fullySelected) },
-	)
-}
-
-@Composable
-private fun ExportSceneRow(
-	entry: ExportableScene,
-	isSelected: Boolean,
-	onToggle: () -> Unit,
-) {
-	HdPickerRow(
-		label = entry.name,
-		depth = entry.depth,
-		modifier = Modifier
-			.toggleable(
-				value = isSelected,
-				role = Role.Checkbox,
-				onValueChange = { onToggle() },
-			)
-			.testTag(exportSceneRowTag(entry.id)),
-		trailing = { HdHairlineCheckbox(checked = isSelected) },
-	)
-}
-
-private val AVAILABLE_EXPORT_FORMATS =
-	listOf(
-		ExportFormat.Epub,
-		ExportFormat.Docx,
-		ExportFormat.Rtf,
-		ExportFormat.Pdf,
-		ExportFormat.Markdown,
-	)
-
 /** PDF renders in its library's built-in face, and Markdown carries no font. */
-private val FONT_EXPORT_FORMATS = setOf(ExportFormat.Epub, ExportFormat.Docx, ExportFormat.Rtf)
+private val FONT_EXPORT_FORMATS = setOf(BuiltInExportFormat.EPUB, BuiltInExportFormat.DOCX, BuiltInExportFormat.RTF)
 
 /** Markdown only has chapter headings in chapter mode. */
 private val ExportOptions.numbersChapters: Boolean
 	get() = when (format) {
-		ExportFormat.Markdown -> treatTopLevelAsChapters
+		BuiltInExportFormat.MARKDOWN -> treatTopLevelAsChapters
 		else -> true
 	}
-
-private fun ExportFormat.labelRes(): StringResource = when (this) {
-	ExportFormat.Markdown -> Res.string.project_home_export_format_markdown
-	ExportFormat.Epub -> Res.string.project_home_export_format_epub
-	ExportFormat.Pdf -> Res.string.project_home_export_format_pdf
-	ExportFormat.Docx -> Res.string.project_home_export_format_docx
-	ExportFormat.Rtf -> Res.string.project_home_export_format_rtf
-}

@@ -17,6 +17,7 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupDef
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupService
+import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectPluginsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.EntryAppearance
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.ProjectStatisticsUseCase
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsService
@@ -25,6 +26,9 @@ import com.darkrockstudios.apps.hammer.common.data.projectstatistics.parseDailyW
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndexService
+import com.darkrockstudios.apps.hammer.common.data.export.ExportStoryUseCase
+import com.darkrockstudios.apps.hammer.common.data.export.StoryExporterRegistry
+import com.darkrockstudios.apps.hammer.common.data.export.exportFileName
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.util.formatLocal
@@ -52,6 +56,7 @@ class ProjectHomeComponent(
 
 	private val globalSettingsStore: GlobalSettingsStore by inject()
 	private val projectBackupService: ProjectBackupService by inject()
+	private val exporters: StoryExporterRegistry by inject()
 	private val sceneEditorRepository: SceneEditorService by projectInject()
 	private val exportStoryUseCase: ExportStoryUseCase by projectInject()
 	private val encyclopediaService: EncyclopediaService by projectInject()
@@ -59,6 +64,10 @@ class ProjectHomeComponent(
 	private val statisticsService: StatisticsService by projectInject()
 	private val projectStatistics: ProjectStatisticsUseCase by projectInject()
 	private val tagIndexService: TagIndexService by projectInject()
+	private val projectPlugins: ProjectPluginsRepository by inject()
+
+	// Read when the export dialog opens, which cannot wait on a file.
+	private var disabledPlugins = emptySet<String>()
 
 	private val contentRouter = ProjectHomeContentRouter(componentContext, projectDef)
 	override val contentRouterState: Value<ChildStack<ProjectHomeContentRouter.Config, ProjectHome.ContentDestination>> =
@@ -79,10 +88,13 @@ class ProjectHomeComponent(
 	// it is dialog-session bookkeeping, not something the UI renders.
 	private var exportOptionsBeforeDialog: ExportOptions? = null
 
+
 	override fun beginProjectExport() {
 		_state.getAndUpdate {
 			// A scene limit from a previous export would silently narrow this one.
-			val options = it.exportOptions.copy(sceneIds = null)
+			val format = it.exportOptions.format.takeIf { format -> exporters.isRegistered(format, disabledPlugins) }
+				?: ExportOptions().format
+			val options = it.exportOptions.copy(format = format, sceneIds = null)
 			exportOptionsBeforeDialog = options
 			it.copy(
 				showExportDialog = true,
@@ -230,6 +242,11 @@ class ProjectHomeComponent(
 		subscribeToStats()
 		loadData()
 		listenForSyncEvents()
+		scope.launch {
+			projectPlugins.disabledPlugins(projectDef.id).collect { disabled ->
+				withContext(dispatcherMain) { disabledPlugins = disabled }
+			}
+		}
 	}
 
 	override fun onResume() {
@@ -349,7 +366,8 @@ class ProjectHomeComponent(
 
 	override fun isAtRoot() = true
 	override fun shouldConfirmClose() = emptySet<CloseConfirm>()
-	override fun getExportStoryFileName(format: ExportFormat) = exportFileName(projectDef.name, format)
+	override fun getExportStoryFileName(format: String) =
+		exportFileName(projectDef.name, exporters.forFormat(format).fileExtension)
 
 	override fun showProjectStats() = contentRouter.showProjectStats()
 	override fun showProjectSettings() = contentRouter.showProjectSettings()
@@ -360,3 +378,4 @@ class ProjectHomeComponent(
 
 	override fun onBack() = contentRouter.onBack()
 }
+

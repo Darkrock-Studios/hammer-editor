@@ -23,6 +23,7 @@ fun TopBar(
 	title: State<String>,
 	onClose: () -> Unit,
 	menuItems: Set<MenuItemDescriptor>,
+	extraMenuItems: @Composable (close: () -> Unit) -> Unit = {},
 	extraViews: (@Composable RowScope.() -> Unit)? = null
 ) {
 	Row(
@@ -54,6 +55,6 @@ fun TopBar(
 			extraViews()
 		}
 
-		TopAppBarDropdownMenu(menuItems = menuItems)
+		TopAppBarDropdownMenu(menuItems = menuItems, extraItems = extraMenuItems)
 	}
 }

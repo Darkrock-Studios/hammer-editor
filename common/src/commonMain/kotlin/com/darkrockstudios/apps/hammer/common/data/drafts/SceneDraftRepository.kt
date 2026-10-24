@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.common.data.drafts
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import io.github.aakira.napier.Napier
 import kotlin.time.Clock
@@ -15,6 +16,7 @@ class SceneDraftRepository(
 	override val projectScope = ProjectDefScope(projectDef)
 
 	private val idAllocator: IdAllocator by projectInject()
+	private val syncJournal: SyncJournal by projectInject()
 
 	suspend fun getAllDrafts(): Set<DraftDef> = datasource.getAllDrafts()
 	fun getSceneIdsThatHaveDrafts(): List<Int> = datasource.getSceneIdsThatHaveDrafts()
@@ -29,7 +31,15 @@ class SceneDraftRepository(
 	fun insertSyncDraft(draftEntity: ApiProjectEntity.SceneDraftEntity): DraftDef =
 		datasource.insertSyncDraft(draftEntity)
 
+	/** Deletes a draft without telling sync, for sync's own deletions. */
 	fun deleteDraft(id: Int): Boolean = datasource.deleteDraft(id)
+
+	/** Deletes a draft the writer removed, recording the deletion for sync. */
+	suspend fun removeDraft(id: Int): Boolean {
+		val deleted = datasource.deleteDraft(id)
+		if (deleted) syncJournal.recordIdDeletion(id)
+		return deleted
+	}
 
 	suspend fun saveDraft(sceneItem: SceneItem, draftName: String, content: String): DraftDef? {
 		if (!SceneDraftsDatasource.validDraftName(draftName)) {

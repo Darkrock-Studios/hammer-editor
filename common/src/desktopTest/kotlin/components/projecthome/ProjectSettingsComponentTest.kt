@@ -12,6 +12,8 @@ import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeasReposito
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
 import com.darkrockstudios.apps.hammer.common.data.projectdata.StoredProjectData
+import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectPluginsDatasource
+import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectPluginsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournalDatasource
 import com.darkrockstudios.apps.hammer.common.data.tagindex.AccountTagService
@@ -70,6 +72,7 @@ class ProjectSettingsComponentTest : ComponentTest() {
 		setupComponentKoin(module {
 			single { globalSettingsStore }
 			single { AccountTagService(ideasRepository, projectsRepository, ffs, toml) }
+			single { ProjectPluginsRepository(ProjectPluginsDatasource(ffs, toml)) }
 			single<PlatformSpellCheckerFactory> {
 				mockk { every { availableLocales() } returns emptyList() }
 			}
@@ -239,6 +242,25 @@ class ProjectSettingsComponentTest : ComponentTest() {
 		assertEquals(setOf("Denna"), comp.projectInfoState.value.data.dictionaryWords)
 		assertEquals(setOf("Denna"), datasource.load().data.dictionaryWords)
 	}
+
+	@Test
+	fun `setPluginEnabled turns a plugin off and back on for this device, outside the synced project data`() =
+		runTest(mainTestDispatcher) {
+			val comp = newComponent()
+			context.resume()
+			advanceUntilIdle()
+
+			comp.setPluginEnabled("style", false)
+			comp.setPluginEnabled("plaintext", false)
+			advanceUntilIdle()
+			assertEquals(setOf("style", "plaintext"), comp.disabledPlugins.value)
+
+			comp.setPluginEnabled("plaintext", true)
+			advanceUntilIdle()
+			assertEquals(setOf("style"), comp.disabledPlugins.value)
+			assertEquals(setOf("style"), ProjectPluginsDatasource(ffs, toml).load()[projectDef.id])
+			assertEquals(ProjectData(), datasource.load().data)
+		}
 
 	@Test
 	fun `setTags normalizes tags before persisting`() = runTest(mainTestDispatcher) {

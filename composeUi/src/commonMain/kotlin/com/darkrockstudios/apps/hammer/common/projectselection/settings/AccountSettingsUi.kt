@@ -26,6 +26,7 @@ import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.Toaster
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
+import com.darkrockstudios.apps.hammer.plugins.wasmhost.RuntimePlugins
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
@@ -37,16 +38,19 @@ import com.darkrockstudios.apps.hammer.common.getDataVersion
 import com.darkrockstudios.apps.hammer.common.projectselection.settings.backups.BackupsSettingsUi
 
 private val MaxColumnWidth = 880.dp
-private const val SECTION_COUNT = 7
+private const val CORE_SECTION_COUNT = 7
 
 @Composable
 internal fun AccountSettingsUi(
 	component: AccountSettings,
 	rootSnackbar: RootSnackbarHostState,
 	modifier: Modifier = Modifier,
+	runtimePlugins: RuntimePlugins? = null,
 ) {
 	val state by component.state.subscribeAsState()
 	val scope = rememberCoroutineScope()
+	val showPlugins = runtimePlugins != null
+	val sectionCount = CORE_SECTION_COUNT + if (showPlugins) 1 else 0
 	val screen = LocalScreenCharacteristic.current
 	val isCompact = screen.windowWidthClass == WindowWidthSizeClass.Compact
 
@@ -163,6 +167,21 @@ internal fun AccountSettingsUi(
 							ExampleProjectSection(component, rootSnackbar)
 						}
 
+						if (runtimePlugins != null) {
+							HdHairlineSection(
+								section = CORE_SECTION_COUNT + 1,
+								title = Res.string.settings_plugins_header.get(),
+								contentSpacing = 24.dp,
+							) {
+								Text(
+									text = Res.string.settings_plugins_caption.get(),
+									style = MaterialTheme.typography.bodySmall,
+									color = MaterialTheme.colorScheme.onSurfaceVariant,
+								)
+								ManagePluginsButton()
+							}
+						}
+
 						Spacer(Modifier.height(8.dp))
 					}
 				}
@@ -176,6 +195,7 @@ internal fun AccountSettingsUi(
 
 		FolioCaption(
 			horizontalPadding = outerHorizontal,
+			sectionCount = sectionCount,
 		)
 	}
 }
@@ -291,6 +311,7 @@ private fun ExampleProjectSection(
 @Composable
 private fun FolioCaption(
 	horizontalPadding: Dp,
+	sectionCount: Int,
 ) {
 	HorizontalDivider(
 		thickness = Dp.Hairline,
@@ -308,7 +329,7 @@ private fun FolioCaption(
 			text = "·",
 			color = MaterialTheme.colorScheme.outlineVariant,
 		)
-		HdMonoLabel(text = "§§ $SECTION_COUNT")
+		HdMonoLabel(text = "§§ $sectionCount")
 	}
 }
 

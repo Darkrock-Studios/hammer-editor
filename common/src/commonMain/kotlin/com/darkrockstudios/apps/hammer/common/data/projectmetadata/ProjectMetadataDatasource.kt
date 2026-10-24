@@ -29,6 +29,15 @@ class ProjectMetadataDatasource(
 
 	private fun metadataPath(projectDir: HPath): Path = projectDir.toOkioPath() / ProjectMetadata.FILENAME
 
+	/** The stored metadata, or null when it is missing or unreadable. Unlike [loadMetadata], never writes. */
+	fun readMetadata(projectDef: ProjectDef): ProjectMetadata? {
+		val path = metadataPath(projectDef.path)
+		val metadata = fileSystem.readTomlOrNull<ProjectMetadata>(path, toml) { e ->
+			Napier.e("Failed to load project metadata: ${path.toHPath().path}", e)
+		} ?: return null
+		return if (metadata.info.projectId == null) withLegacyServerId(metadata, path) else metadata
+	}
+
 	/**
 	 * Does not mint: a file without a [Info.projectId] is returned without one. Use [loadProjectId]
 	 * for the id.

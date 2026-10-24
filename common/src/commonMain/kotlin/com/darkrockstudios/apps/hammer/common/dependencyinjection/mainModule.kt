@@ -4,7 +4,6 @@ import com.darkrockstudios.apps.hammer.base.di.dispatcherModule
 import com.darkrockstudios.apps.hammer.base.http.NetworkJsonQualifier
 import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.base.http.createNetworkJsonSerializer
-import com.darkrockstudios.apps.hammer.common.components.projecthome.ExportStoryUseCase
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ImportStoryUseCase
 import com.darkrockstudios.apps.hammer.common.data.ProjectsDirectory
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -18,11 +17,16 @@ import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftsDatasource
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaDatasource
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaService
+import com.darkrockstudios.apps.hammer.common.data.entitycatalog.BuildEntityCatalogUseCase
+import com.darkrockstudios.apps.hammer.common.data.entitycatalog.EntityCatalog
 import com.darkrockstudios.apps.hammer.common.data.exampleProjectModule
 import com.darkrockstudios.apps.hammer.common.data.globalsearch.SearchProjectUseCase
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.GlobalSettingsDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.GlobalSettingsFilesystemDatasource
+import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectPluginsDatasource
+import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectPluginsRepository
+import com.darkrockstudios.apps.hammer.common.data.secrets.secretDatasourceModule
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.ServerSettingsDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.ServerSettingsFilesystemDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.authTokenDatasourceModule
@@ -40,6 +44,8 @@ import com.darkrockstudios.apps.hammer.common.data.ideasrepository.StoryIdeaCode
 import com.darkrockstudios.apps.hammer.common.data.importer.MarkdownStoryImporter
 import com.darkrockstudios.apps.hammer.common.data.importer.RtfStoryImporter
 import com.darkrockstudios.apps.hammer.common.data.importer.StoryImporterRegistry
+import com.darkrockstudios.apps.hammer.common.data.export.ExportStoryUseCase
+import com.darkrockstudios.apps.hammer.common.data.export.StoryExporterRegistry
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesDatasource
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupService
@@ -48,6 +54,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDataso
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsService
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.ProjectStatisticsCacheReader
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
@@ -159,6 +166,7 @@ const val RAW_FILESYSTEM = "raw-filesystem"
 val mainModule = module {
 	includes(externalFileIoModule)
 	includes(authTokenDatasourceModule)
+	includes(secretDatasourceModule)
 	includes(exampleProjectModule)
 
 	// Dispatchers live in a plugin-less module (see dispatcherModule): three same-type
@@ -216,6 +224,8 @@ val mainModule = module {
 	single<ServerSettingsFilesystemDatasource>() bind ServerSettingsDatasource::class
 	single<GlobalSettingsFilesystemDatasource>()
 	single<GlobalSettingsStore>()
+	single<ProjectPluginsDatasource>()
+	single<ProjectPluginsRepository>()
 
 	// Only the protocol mismatch dialog checks GitHub, and only once the user has already
 	// connected to a sync server. Nothing on the app-load path may use this.
@@ -239,7 +249,12 @@ val mainModule = module {
 		ContainedFileSystem(getPlatformFilesystem()) { managedStorageRoots(koin) }
 	}
 
-	single<ProjectsRepository>()
+	single {
+		ProjectsRepository(get(), get(), get(), get(), get(), get(), get()).also {
+			// Registered as the repository is made, so ids re-minted at startup carry choices along.
+			get<ProjectPluginsRepository>().followProjectChanges(it)
+		}
+	}
 
 	single<StoryIdeaCodec>()
 	single<ProjectsDirectory> {
@@ -264,6 +279,7 @@ val mainModule = module {
 	single<GroupSyncPhase>()
 	single<ProjectAttributeSyncPhase>()
 	single<ClientAccountSynchronizer>()
+	single<ProjectsService>()
 
 	single<ProjectBackupService>()
 
@@ -279,6 +295,8 @@ val mainModule = module {
 	single<SpellCheckRepository>()
 
 	single { StoryImporterRegistry(listOf(MarkdownStoryImporter(), RtfStoryImporter())) }
+	// Plugins contribute formats by binding StoryExporters; the built-in ones are always present.
+	single { StoryExporterRegistry(getAll(), getAll()) }
 
 	scope<ProjectDefScope> {
 		scoped<ProjectDef> { checkNotNull(getSource<ProjectDefScope>()).projectDef }
@@ -292,6 +310,7 @@ val mainModule = module {
 		scoped {
 			ExportStoryUseCase(
 				sceneEditorRepository = get(),
+				exporters = get(),
 				projectDataDatasource = get(),
 				fileSystem = get(named(RAW_FILESYSTEM)),
 				localeResolver = get(),
@@ -342,6 +361,7 @@ val mainModule = module {
 		scoped<ReferenceIndexService>()
 
 		scoped<TagIndexService>()
+		scoped<BuildEntityCatalogUseCase>() bind EntityCatalog::class
 		scoped<ScrubInvalidReferencesUseCase>()
 		scoped<AutoConfirmReferencesUseCase>()
 		scoped<BackfillEntryReferencesUseCase>()

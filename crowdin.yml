@@ -14,6 +14,10 @@ files:
     translation: /common/src/commonMain/composeResources/values-%android_code%/%original_file_name%
     translate_attributes: 0
     content_segmentation: 0
+  - source: /composeUi/src/commonMain/composeResources/values/*.xml
+    translation: /composeUi/src/commonMain/composeResources/values-%android_code%/%original_file_name%
+    translate_attributes: 0
+    content_segmentation: 0
   # Every file here must be named *_android.xml. The Crowdin post-export
   # processor unescapes quotes for the Compose resources and only skips files
   # with that suffix, and it sees file names, not paths. AAPT rejects an

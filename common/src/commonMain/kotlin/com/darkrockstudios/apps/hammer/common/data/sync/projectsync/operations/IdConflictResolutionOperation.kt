@@ -92,6 +92,7 @@ class IdConflictResolutionOperation(
 				val updatedDirty = clientSyncData.dirty.toMutableList()
 
 				val localDeletedIds = clientSyncData.deletedIds.toMutableSet()
+				val changes = mutableListOf<EntityIdChange>()
 
 				for ((ii, id) in clientSyncData.newIds.withIndex()) {
 					if (id <= serverSyncData.lastId) {
@@ -104,7 +105,7 @@ class IdConflictResolutionOperation(
 						val newId = ++serverLastId
 
 						// Re-ID this currently local only Entity
-						entitySynchronizers.reIdEntry(id, newId)
+						entitySynchronizers.reIdEntry(id, newId)?.let(changes::add)
 						updatedNewIds[ii] = newId
 
 						// If we have a dirty record for this ID, update it
@@ -121,6 +122,8 @@ class IdConflictResolutionOperation(
 						}
 					}
 				}
+
+				entitySynchronizers.notifyEntityIdsChanged(changes)
 
 				// Tell ID Repository to re-find the max ID
 				idAllocator.findNextId()

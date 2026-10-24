@@ -1,0 +1,527 @@
+package data.export
+
+import PROJECT_1_NAME
+import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
+import com.darkrockstudios.apps.hammer.common.data.export.ExportStoryUseCase
+import com.darkrockstudios.apps.hammer.common.data.export.BuiltInExportFormat
+import com.darkrockstudios.apps.hammer.common.data.export.ExportInput
+import com.darkrockstudios.apps.hammer.common.data.export.StoryExporter
+import com.darkrockstudios.apps.hammer.common.data.export.StoryExporterRegistry
+import com.darkrockstudios.apps.hammer.common.data.ExportOptions
+import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
+import com.darkrockstudios.apps.hammer.common.data.projectdata.StoredProjectData
+import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
+import com.darkrockstudios.apps.hammer.common.util.DeviceLocaleResolver
+import com.darkrockstudios.apps.hammer.common.util.Locale
+import com.darkrockstudios.apps.hammer.common.util.StrRes
+import integration.BaseIntegrationTest
+import io.mockk.coEvery
+import io.mockk.every
+import io.mockk.mockk
+import kotlinx.coroutines.test.runTest
+import org.jetbrains.compose.resources.StringResource
+import org.junit.jupiter.api.BeforeEach
+import okio.BufferedSink
+import org.junit.jupiter.api.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertTrue
+
+class ExportStoryUseCaseTest : BaseIntegrationTest() {
+
+	private lateinit var projectDataDatasource: ProjectDataDatasource
+	private lateinit var storedProjectData: StoredProjectData
+	private lateinit var localeResolver: DeviceLocaleResolver
+	private lateinit var strRes: StrRes
+	private var projectDataLoads = 0
+
+	@BeforeEach
+	override fun setup() {
+		super.setup()
+		configureProject(PROJECT_1_NAME)
+		storedProjectData = StoredProjectData(data = ProjectData())
+		projectDataLoads = 0
+		projectDataDatasource = mockk {
+			coEvery { load() } answers {
+				projectDataLoads++
+				storedProjectData
+			}
+		}
+		localeResolver = mockk {
+			every { getCurrentLocale() } returns Locale.forLanguageTag("en-US")
+		}
+		strRes = mockk(relaxed = true)
+	}
+
+	private suspend fun initRepo() {
+		sceneEditorRepository.initializeSceneEditor()
+	}
+
+	private fun useCase(contributed: List<StoryExporter> = emptyList()) = ExportStoryUseCase(
+		sceneEditorRepository = sceneEditorService,
+		exporters = StoryExporterRegistry(contributed),
+		projectDataDatasource = projectDataDatasource,
+		fileSystem = ffs,
+		localeResolver = localeResolver,
+		strRes = strRes,
+	)
+
+	@Test
+	fun `markdown export renders project title, chapters, and group children`() = runTest {
+		initRepo()
+
+		val exportPath = useCase().execute(
+			exportDir = projectPath,
+			options = ExportOptions(format = BuiltInExportFormat.MARKDOWN, treatTopLevelAsChapters = true),
+		)
+
+		assertTrue(exportPath.path.endsWith(".md"), "Should produce a .md file, got $exportPath")
+		val text = ffs.read(exportPath.toOkioPath()) { readByteArray() }.decodeToString()
+		assertEquals(EXPECTED_PROJECT_1_MARKDOWN.trim(), text.trim())
+		assertEquals(0, projectDataLoads)
+	}
+
+	@Test
+	fun `a contributed format renders through its own exporter, with scene boundaries`() = runTest {
+		initRepo()
+		val loadsBefore = projectDataLoads
+		val exporter = object : StoryExporter {
+			override val formatId = "fake.txt"
+			override val fileExtension = "txt"
+			override val mimeType = "text/plain"
+			override val needsProjectData = false
+
+			override fun render(sink: BufferedSink, input: ExportInput) {
+				sink.writeUtf8(input.chapters.joinToString("|") { "${it.name}:${it.scenes.size}" })
+			}
+		}
+
+		val exportPath = useCase(listOf(exporter)).execute(
+			exportDir = projectPath,
+			options = ExportOptions(format = "fake.txt"),
+		)
+
+		assertTrue(exportPath.path.endsWith(".txt"), "Should use the exporter's extension, got $exportPath")
+		val text = ffs.read(exportPath.toOkioPath()) { readUtf8() }
+		assertEquals("Scene ID 1:1|Chapter ID 2:3|Scene ID 6:1|Scene ID 7:1", text)
+		assertEquals(loadsBefore, projectDataLoads)
+	}
+
+	@Test
+	fun `an unknown format is rejected`() = runTest {
+		initRepo()
+
+		assertFailsWith<IllegalArgumentException> {
+			useCase().execute(exportDir = projectPath, options = ExportOptions(format = "missing"))
+		}
+	}
+
+	@Test
+	fun `export includes unsaved scene edits`() = runTest {
+		initRepo()
+		val tempBuffer = sceneDatasource.getSceneBufferDirectory().toOkioPath() / "1.md"
+		ffs.write(tempBuffer) { writeUtf8("Unsaved edit of scene id 1") }
+		sceneContentRepository.initialize()
+
+		val exportPath = useCase().execute(
+			exportDir = projectPath,
+			options = ExportOptions(format = BuiltInExportFormat.MARKDOWN, treatTopLevelAsChapters = true),
+		)
+
+		val text = ffs.read(exportPath.toOkioPath()) { readByteArray() }.decodeToString()
+		assertTrue("Unsaved edit of scene id 1" in text, "Export should carry the unsaved buffer, got: $text")
+		assertTrue("Content of scene id 1" !in text, "Export should not carry the stale on-disk scene, got: $text")
+		assertTrue("Content of scene id 3" in text, "Scenes without a buffer still come from disk, got: $text")
+	}
+
+	@Test
+	fun `epub export produces a valid zip file with PK magic bytes`() = runTest {
+		initRepo()
+		storedProjectData = StoredProjectData(data = ProjectData(authorName = "Test Author"))
+
+		val exportPath = useCase().execute(
+			exportDir = projectPath,
+			options = ExportOptions(format = BuiltInExportFormat.EPUB, treatTopLevelAsChapters = true),
+		)
+
+		assertTrue(exportPath.path.endsWith(".epub"), "Should produce a .epub file, got $exportPath")
+		val bytes = ffs.read(exportPath.toOkioPath()) { readByteArray() }
+		assertTrue(bytes.size > 100, "EPUB output should be more than a stub, got ${bytes.size} bytes")
+		// EPUB is a ZIP container; first two bytes are the local file header signature "PK".
+		assertEquals('P'.code.toByte(), bytes[0])
+		assertEquals('K'.code.toByte(), bytes[1])
+	}
+
+	@Test
+	fun `pdf export produces a valid pdf file with the PDF header`() = runTest {
+		initRepo()
+		storedProjectData = StoredProjectData(data = ProjectData(authorName = "Test Author"))
+
+		val exportPath = useCase().execute(
+			exportDir = projectPath,
+			options = ExportOptions(format = BuiltInExportFormat.PDF, treatTopLevelAsChapters = true),
+		)
+
+		assertTrue(exportPath.path.endsWith(".pdf"), "Should produce a .pdf file, got $exportPath")
+		val bytes = ffs.read(exportPath.toOkioPath()) { readByteArray() }
+		assertTrue(bytes.size > 100, "PDF output should be more than a stub, got ${bytes.size} bytes")
+		// Every PDF starts with the "%PDF" magic header.
+		assertEquals('%'.code.toByte(), bytes[0])
+		assertEquals('P'.code.toByte(), bytes[1])
+		assertEquals('D'.code.toByte(), bytes[2])
+		assertEquals('F'.code.toByte(), bytes[3])
+	}
+
+	@Test
+	fun `docx export produces a valid zip file with PK magic bytes`() = runTest {
+		initRepo()
+		storedProjectData = StoredProjectData(data = ProjectData(authorName = "Test Author"))
+
+		val exportPath = useCase().execute(
+			exportDir = projectPath,
+			options = ExportOptions(format = BuiltInExportFormat.DOCX, treatTopLevelAsChapters = true),
+		)
+
+		assertTrue(
+			exportPath.path.endsWith(".docx"),
+			"Should produce a .docx file, got $exportPath"
+		)
+		val bytes = ffs.read(exportPath.toOkioPath()) { readByteArray() }
+		assertTrue(
+			bytes.size > 100,
+			"DOCX output should be more than a stub, got ${bytes.size} bytes"
+		)
+		// DOCX is a ZIP container; first two bytes are the local file header signature "PK".
+		assertEquals('P'.code.toByte(), bytes[0])
+		assertEquals('K'.code.toByte(), bytes[1])
+	}
+
+	@Test
+	fun `rtf export produces a valid rtf file with the RTF header`() = runTest {
+		initRepo()
+		storedProjectData = StoredProjectData(data = ProjectData(authorName = "Test Author"))
+
+		val exportPath = useCase().execute(
+			exportDir = projectPath,
+			options = ExportOptions(format = BuiltInExportFormat.RTF, treatTopLevelAsChapters = true),
+		)
+
+		assertTrue(exportPath.path.endsWith(".rtf"), "Should produce a .rtf file, got $exportPath")
+		val text = ffs.read(exportPath.toOkioPath()) { readByteArray() }.decodeToString()
+		assertTrue(text.length > 100, "RTF output should be more than a stub, got ${text.length} chars")
+		// Every RTF document starts with the "{\rtf1" signature.
+		assertTrue(text.startsWith("{\\rtf1"), "RTF should start with the {\\rtf1 signature")
+	}
+
+	@Test
+	fun `exported document text comes from the localization system`() = runTest {
+		initRepo()
+		storedProjectData = StoredProjectData(data = ProjectData(authorName = "Ada"))
+		strRes = object : StrRes {
+			override suspend fun get(str: StringResource): String = "TOC_SENTINEL"
+			override suspend fun get(str: StringResource, vararg args: Any): String =
+				"BYLINE_SENTINEL ${args.joinToString()}"
+		}
+
+		val exportPath = useCase().execute(
+			exportDir = projectPath,
+			options = ExportOptions(format = BuiltInExportFormat.RTF, treatTopLevelAsChapters = true),
+		)
+
+		val text = ffs.read(exportPath.toOkioPath()) { readByteArray() }.decodeToString()
+		assertTrue("TOC_SENTINEL" in text, "Contents title should be resolved via StrRes, got: $text")
+		assertTrue(
+			"BYLINE_SENTINEL Ada" in text,
+			"Author byline should be resolved via StrRes with the author name, got: $text",
+		)
+	}
+
+	@Test
+	fun `docx export still produces a valid file when treatTopLevelAsChapters is false`() =
+		runTest {
+			initRepo()
+
+			val exportPath = useCase().execute(
+				exportDir = projectPath,
+				options = ExportOptions(
+					format = BuiltInExportFormat.DOCX,
+					treatTopLevelAsChapters = false
+				),
+			)
+
+			val bytes = ffs.read(exportPath.toOkioPath()) { readByteArray() }
+			assertTrue(bytes.size > 100, "Single-chapter DOCX should still produce a real file")
+		}
+
+	@Test
+	fun `pdf export still produces a valid file when treatTopLevelAsChapters is false`() = runTest {
+		initRepo()
+
+		val exportPath = useCase().execute(
+			exportDir = projectPath,
+			options = ExportOptions(format = BuiltInExportFormat.PDF, treatTopLevelAsChapters = false),
+		)
+
+		val bytes = ffs.read(exportPath.toOkioPath()) { readByteArray() }
+		assertTrue(bytes.size > 100, "Single-chapter PDF should still produce a real file")
+	}
+
+	@Test
+	fun `epub export uses the project language when set`() = runTest {
+		initRepo()
+		storedProjectData = StoredProjectData(data = ProjectData(language = "fr"))
+
+		val exportPath = useCase().execute(
+			exportDir = projectPath,
+			options = ExportOptions(format = BuiltInExportFormat.EPUB, treatTopLevelAsChapters = true),
+		)
+
+		val bytes = ffs.read(exportPath.toOkioPath()) { readByteArray() }
+		assertTrue(
+			zipEntryText(bytes, ".opf").contains(">fr<"),
+			"EPUB metadata should carry the project language, not the device locale",
+		)
+	}
+
+	@Test
+	fun `epub export falls back to the device locale when the project language is unset`() = runTest {
+		initRepo()
+		storedProjectData = StoredProjectData(data = ProjectData())
+
+		val exportPath = useCase().execute(
+			exportDir = projectPath,
+			options = ExportOptions(format = BuiltInExportFormat.EPUB, treatTopLevelAsChapters = true),
+		)
+
+		val bytes = ffs.read(exportPath.toOkioPath()) { readByteArray() }
+		assertTrue(
+			zipEntryText(bytes, ".opf").contains(">en<"),
+			"EPUB metadata should fall back to the device locale's language",
+		)
+	}
+
+	private fun zipEntryText(bytes: ByteArray, nameSuffix: String): String {
+		java.util.zip.ZipInputStream(bytes.inputStream()).use { zin ->
+			var entry = zin.nextEntry
+			while (entry != null) {
+				if (entry.name.endsWith(nameSuffix)) return zin.readBytes().decodeToString()
+				entry = zin.nextEntry
+			}
+		}
+		error("No zip entry ending with $nameSuffix")
+	}
+
+	@Test
+	fun `epub export still produces a valid file when treatTopLevelAsChapters is false`() = runTest {
+		initRepo()
+
+		val exportPath = useCase().execute(
+			exportDir = projectPath,
+			options = ExportOptions(format = BuiltInExportFormat.EPUB, treatTopLevelAsChapters = false),
+		)
+
+		val bytes = ffs.read(exportPath.toOkioPath()) { readByteArray() }
+		assertTrue(bytes.size > 100, "Single-chapter EPUB should still produce a real file")
+	}
+
+	@Test
+	fun `scene filter keeps only selected scenes and renumbers chapters`() = runTest {
+		initRepo()
+
+		val exportPath = useCase().execute(
+			exportDir = projectPath,
+			options = ExportOptions(
+				format = BuiltInExportFormat.MARKDOWN,
+				treatTopLevelAsChapters = true,
+				sceneIds = setOf(1, 4),
+			),
+		)
+
+		val text = ffs.read(exportPath.toOkioPath()) { readByteArray() }.decodeToString()
+		assertEquals(EXPECTED_FILTERED_MARKDOWN.trim(), text.trim())
+	}
+
+	@Test
+	fun `markdown chapter headings are numbered on request`() = runTest {
+		initRepo()
+
+		val exportPath = useCase().execute(
+			exportDir = projectPath,
+			options = ExportOptions(
+				format = BuiltInExportFormat.MARKDOWN,
+				treatTopLevelAsChapters = true,
+				numberChapters = true,
+			),
+		)
+
+		val text = ffs.read(exportPath.toOkioPath()) { readByteArray() }.decodeToString()
+		assertTrue("## 1. Scene ID 1" in text, text)
+		assertTrue("## 2. Chapter ID 2" in text, text)
+	}
+
+	@Test
+	fun `scene breaks survive when blank lines are skipped`() = runTest {
+		initRepo()
+		storedProjectData = StoredProjectData(data = ProjectData(authorName = "Test Author"))
+
+		val exportPath = useCase().execute(
+			exportDir = projectPath,
+			options = ExportOptions(
+				format = BuiltInExportFormat.RTF,
+				keepBlankLines = false,
+				sceneIds = setOf(3, 4),
+			),
+		)
+
+		val rtf = ffs.read(exportPath.toOkioPath()) { readByteArray() }.decodeToString()
+		// \fi360 opens a body paragraph: the two scenes and the break between them.
+		assertEquals(3, Regex("""\\fi360""").findAll(rtf).count(), rtf)
+	}
+
+	@Test
+	fun `scene filter drops chapters with no selected scenes`() = runTest {
+		initRepo()
+
+		val exportPath = useCase().execute(
+			exportDir = projectPath,
+			options = ExportOptions(
+				format = BuiltInExportFormat.MARKDOWN,
+				treatTopLevelAsChapters = true,
+				sceneIds = setOf(6),
+			),
+		)
+
+		val text = ffs.read(exportPath.toOkioPath()) { readByteArray() }.decodeToString()
+		val expected = """
+			# Test Project 1
+
+
+			## Scene ID 6
+
+			Content of scene id 6
+		""".trimIndent()
+		assertEquals(expected, text.trim())
+	}
+
+	@Test
+	fun `scene filter applies when top-level scenes are not chapters`() = runTest {
+		initRepo()
+
+		val exportPath = useCase().execute(
+			exportDir = projectPath,
+			options = ExportOptions(
+				format = BuiltInExportFormat.MARKDOWN,
+				treatTopLevelAsChapters = false,
+				sceneIds = setOf(3, 6),
+			),
+		)
+
+		val text = ffs.read(exportPath.toOkioPath()) { readByteArray() }.decodeToString()
+		assertEquals(
+			"# Test Project 1\n\nContent of scene id 3\n\n\nContent of scene id 6",
+			text.trim(),
+		)
+	}
+
+	@Test
+	fun `scene ids missing from the tree are silently ignored`() = runTest {
+		initRepo()
+
+		val exportPath = useCase().execute(
+			exportDir = projectPath,
+			options = ExportOptions(
+				format = BuiltInExportFormat.MARKDOWN,
+				treatTopLevelAsChapters = true,
+				sceneIds = setOf(1, 4, 999),
+			),
+		)
+
+		val text = ffs.read(exportPath.toOkioPath()) { readByteArray() }.decodeToString()
+		assertEquals(EXPECTED_FILTERED_MARKDOWN.trim(), text.trim())
+	}
+
+	@Test
+	fun `an empty scene filter fails closed instead of exporting the whole story`() = runTest {
+		initRepo()
+
+		val exportPath = useCase().execute(
+			exportDir = projectPath,
+			options = ExportOptions(
+				format = BuiltInExportFormat.MARKDOWN,
+				treatTopLevelAsChapters = true,
+				sceneIds = emptySet(),
+			),
+		)
+
+		val text = ffs.read(exportPath.toOkioPath()) { readByteArray() }.decodeToString()
+		assertEquals("# Test Project 1", text.trim())
+	}
+
+	@Test
+	fun `epub export honors the scene filter`() = runTest {
+		initRepo()
+		storedProjectData = StoredProjectData(data = ProjectData(authorName = "Test Author"))
+
+		val exportPath = useCase().execute(
+			exportDir = projectPath,
+			options = ExportOptions(
+				format = BuiltInExportFormat.EPUB,
+				treatTopLevelAsChapters = true,
+				sceneIds = setOf(4),
+			),
+		)
+
+		val bytes = ffs.read(exportPath.toOkioPath()) { readByteArray() }
+		assertEquals('P'.code.toByte(), bytes[0])
+		assertEquals('K'.code.toByte(), bytes[1])
+		val chapterText = zipEntryText(bytes, "ch1.xhtml")
+		assertTrue(
+			"Content of scene id 4" in chapterText,
+			"Filtered EPUB chapter should contain the selected scene, got: $chapterText",
+		)
+		assertTrue(
+			"Content of scene id 3" !in chapterText,
+			"Filtered EPUB chapter should not contain unselected scenes, got: $chapterText",
+		)
+	}
+
+	companion object {
+		private val EXPECTED_FILTERED_MARKDOWN = """
+			# Test Project 1
+
+
+			## Scene ID 1
+
+			Content of scene id 1
+
+			## Chapter ID 2
+
+			Content of scene id 4
+		""".trimIndent()
+
+		private val EXPECTED_PROJECT_1_MARKDOWN = """
+			# Test Project 1
+
+
+			## Scene ID 1
+
+			Content of scene id 1
+
+			## Chapter ID 2
+
+			Content of scene id 3
+
+			Content of scene id 4
+
+			Content of scene id 5
+
+			## Scene ID 6
+
+			Content of scene id 6
+
+			## Scene ID 7
+
+			Content of scene id 7
+		""".trimIndent()
+	}
+}

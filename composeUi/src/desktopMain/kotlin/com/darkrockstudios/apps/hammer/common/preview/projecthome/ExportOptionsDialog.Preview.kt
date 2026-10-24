@@ -10,12 +10,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.ExportFont
-import com.darkrockstudios.apps.hammer.common.data.ExportFormat
+import com.darkrockstudios.apps.hammer.common.data.export.BuiltInExportFormat
 import com.darkrockstudios.apps.hammer.common.data.ExportOptions
 import com.darkrockstudios.apps.hammer.common.data.ExportableScene
 import com.darkrockstudios.apps.hammer.common.preview.KoinApplicationPreview
 import com.darkrockstudios.apps.hammer.common.preview.globalSettingsPreview
 import com.darkrockstudios.apps.hammer.common.projecthome.ExportOptionsDialogContent
+import com.darkrockstudios.apps.hammer.common.projecthome.exportFormatChoices
 
 private val previewScenes = listOf(
 	ExportableScene(id = 1, name = "Prologue", isGroup = false, depth = 0),
@@ -39,6 +40,7 @@ private fun ExportOptionsPreviewFrame(options: ExportOptions) {
 			) {
 				ExportOptionsDialogContent(
 					options = options,
+					formats = exportFormatChoices(),
 					exportableScenes = previewScenes,
 					onOptionsChanged = {},
 					onCancel = {},
@@ -61,7 +63,7 @@ fun ExportOptionsDialogPreview() {
 fun ExportOptionsDialogWordPreview() {
 	ExportOptionsPreviewFrame(
 		ExportOptions(
-			format = ExportFormat.Docx,
+			format = BuiltInExportFormat.DOCX,
 			numberChapters = true,
 			font = ExportFont.TimesNewRoman,
 			keepBlankLines = false,
