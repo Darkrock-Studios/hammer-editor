@@ -6,6 +6,8 @@ import com.darkrockstudios.apps.hammer.base.http.storyideas.StoryIdea
 import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.IdeasSyncDatasource
 import com.darkrockstudios.apps.hammer.common.data.tagindex.cleanTags
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
+import io.github.aakira.napier.Napier
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -51,8 +53,16 @@ class IdeasRepository(
 
 	fun loadIdeas(onLoaded: (() -> Unit)? = null) {
 		ideasScope.launch {
+			val ideas = try {
+				ideasDatasource.loadIdeas()
+			} catch (e: CancellationException) {
+				throw e
+			} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+				Napier.e("Failed to load ideas", e)
+				null
+			}
 			ideasLock.withLock {
-				updateIdeas(ideasDatasource.loadIdeas())
+				updateIdeas(ideas ?: _ideas)
 			}
 			onLoaded?.invoke()
 		}
