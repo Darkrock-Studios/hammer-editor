@@ -392,6 +392,21 @@ class ProjectsListComponentTest : ComponentTest() {
 		}
 
 	@Test
+	fun `deleteProject does not touch the filesystem on the calling thread`() = runTest(mainTestDispatcher) {
+		every { projectsRepository.deleteProject(projectDefA) } returns true
+		val comp = newComponent()
+
+		comp.deleteProject(projectDefA)
+
+		verify(exactly = 0) { projectsRepository.getProjectId(any()) }
+		verify(exactly = 0) { projectsRepository.deleteProject(any()) }
+
+		advanceUntilIdle()
+
+		verify { projectsRepository.deleteProject(projectDefA) }
+	}
+
+	@Test
 	fun `deleteProject skips the server when the project has no id`() = runTest(mainTestDispatcher) {
 		every { projectsRepository.getProjectId(projectDefA) } returns null
 		every { projectsRepository.deleteProject(projectDefA) } returns true
@@ -404,24 +419,9 @@ class ProjectsListComponentTest : ComponentTest() {
 	}
 
 	@Test
-	fun `deleteProject does nothing when the local delete fails`() = runTest(mainTestDispatcher) {
+	fun `deleteProject shows failure when repository deletion fails`() = runTest(mainTestDispatcher) {
 		every { projectsRepository.getProjectId(projectDefA) } returns ProjectId("server-id")
 		every { projectsRepository.deleteProject(projectDefA) } returns false
-		val comp = newComponent()
-		val toast = async(start = CoroutineStart.UNDISPATCHED) { comp.toast.first() }
-
-		comp.deleteProject(projectDefA)
-		advanceUntilIdle()
-
-		verify(exactly = 0) { synchronizer.deleteProject(any()) }
-		verify(exactly = 0) { projectsRepository.getProjects(any()) }
-		assertEquals(ToastMessage.Resource(Res.string.projects_list_toast_delete_failed), toast.await())
-	}
-
-	@Test
-	fun `deleteProject shows a failure when the filesystem throws`() = runTest(mainTestDispatcher) {
-		every { projectsRepository.getProjectId(projectDefA) } returns ProjectId("server-id")
-		every { projectsRepository.deleteProject(projectDefA) } throws IOException("Access denied")
 		val comp = newComponent()
 		val toast = async(start = CoroutineStart.UNDISPATCHED) { comp.toast.first() }
 
