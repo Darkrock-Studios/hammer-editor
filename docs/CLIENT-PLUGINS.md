@@ -1767,15 +1767,22 @@ not lose it. Nothing asks "discard?", because nothing is discarded.
   A session the new id already has is left as it is.
 - **A renumbered item.** Sync gives an item made on this device a new id when
   the server has given its id to another ([Re-ID](SYNCING-PROTOCOL.md)), so
-  the old id then names that other item. Sessions follow the new id, through
-  `EntityIdChangeListener`: a run from the item is filed under it, and picks of
-  the item in `scenes` and `entity` fields take it, on saved pages and on a
-  page showing. A first page's remembered values follow too. A session already
-  filed under the new id, from a deleted item whose id was handed out again, is
-  moved aside to `<name>.json.superseded`. The host cannot rewrite `state`, so
-  a run whose page's `state` may hold the old id (a number equal to it, or a
-  string or key with it as a whole number) is not carried on: it is shown as
-  entered, as for a changed plugin, with Start afresh.
+  the old id then names that other item. Once a sync has made its changes,
+  `EntityIdChangeListener`s are told of them all, and sessions follow the new
+  ids in one pass: a run from a renumbered item is filed under its new id, and
+  picks of one in `scenes` and `entity` fields take it. An open project's
+  window holds its own saves during the pass, then follows the new ids on the
+  page showing and in a first page's remembered values; a save it asked before
+  that is given them as it is written. A session already filed under a new id,
+  from a deleted item whose id was handed out again, is moved aside to
+  `<name>.json.superseded`. The host cannot rewrite `state`, so a run whose
+  page's `state` may hold an old id is not carried on: a number equal to it,
+  the item picked as `{"kind", "id"}`, or a string without spaces ending in it
+  after a separator, such as `open:12`. Keys and strings with spaces are not
+  read, so a question's number or an answer's is not taken for an id. Such a
+  page showing is shown as entered, as for a changed plugin, with Start
+  afresh; one a call was made from is not gone back to, so `errors`, a failure,
+  or Stop end the run. Its kept session is marked so either way.
 - **Uninstalling** a plugin leaves its sessions, so installing it again brings
   them back.
 - **Not synced.** A half-filled form is this device's.

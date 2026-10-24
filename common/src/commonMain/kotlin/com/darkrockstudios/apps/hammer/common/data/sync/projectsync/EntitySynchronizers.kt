@@ -65,14 +65,15 @@ class EntitySynchronizers(private val projectDef: ProjectDef) : ProjectScoped {
 		}
 	}
 
-	suspend fun reIdEntry(oldId: Int, newId: Int) {
+	/** Gives the entity [oldId] the id [newId]; what changed, or null when no entity has [oldId]. */
+	suspend fun reIdEntry(oldId: Int, newId: Int): EntityIdChange? {
 		val type = findEntityType(oldId)
 		if (type == null) {
 			// Phantom newId with no backing entity (created then deleted before a
 			// successful sync). Skip it so the sync can finish and clear newIds,
 			// instead of wedging every future sync.
 			Napier.w("reId skipped: no local entity owns $oldId")
-			return
+			return null
 		}
 		when (type) {
 			EntityType.Scene -> sceneSynchronizer.reIdEntity(oldId = oldId, newId = newId)
@@ -89,19 +90,20 @@ class EntitySynchronizers(private val projectDef: ProjectDef) : ProjectScoped {
 
 			EntityType.SceneDraft -> sceneDraftSynchronizer.reIdEntity(oldId = oldId, newId = newId)
 		}
-		notifyEntityIdChanged(type, oldId, newId)
+		return EntityIdChange(type, oldId, newId)
 	}
 
-	// The entity has its new id already, so a failing listener must not fail the sync.
-	@Suppress("TooGenericExceptionCaught")
-	private suspend fun notifyEntityIdChanged(type: EntityType, oldId: Int, newId: Int) {
+	/** Tells every [EntityIdChangeListener] bound in Koin of a sync's [changes], unless there are none. */
+	@Suppress("TooGenericExceptionCaught") // The entities have their new ids already, so a failing listener must not fail the sync.
+	suspend fun notifyEntityIdsChanged(changes: List<EntityIdChange>) {
+		if (changes.isEmpty()) return
 		getKoin().getAll<EntityIdChangeListener>().forEach { listener ->
 			try {
-				listener.onEntityIdChanged(projectDef, type, oldId, newId)
+				listener.onEntityIdsChanged(projectDef, changes)
 			} catch (e: CancellationException) {
 				throw e
 			} catch (e: Exception) {
-				Napier.e("Entity id change listener failed for $oldId to $newId", e)
+				Napier.e("Entity id change listener failed for $changes", e)
 			}
 		}
 	}

@@ -58,7 +58,7 @@ sealed interface ActionField {
 	 * Scenes picked from the project's tree: a list of scene ids when [multiple], otherwise one id or
 	 * null. An empty pick is allowed unless [required].
 	 */
-	class Scenes(
+	data class Scenes(
 		override val key: String,
 		override val label: String,
 		override val hint: String? = null,
@@ -75,7 +75,7 @@ sealed interface ActionField {
 	 * Items of the project picked by name: a list of `{"kind", "id"}` when [multiple], otherwise one or
 	 * null. Only items [filter] accepts may be picked. An empty pick is allowed unless [required].
 	 */
-	class Entity(
+	data class Entity(
 		override val key: String,
 		override val label: String,
 		override val hint: String? = null,
@@ -195,7 +195,10 @@ class ActionPage(
 	val buttons: List<ActionButton> = emptyList(),
 	/** The plugin's own, handed back untouched with the next call from this page. */
 	val state: JsonElement? = null,
-)
+) {
+	/** This page with [fields] in place of its own. */
+	fun withFields(fields: List<ActionField>) = ActionPage(title, markdown, fields, buttons, state)
+}
 
 /**
  * A button on an [ActionPage]: in the dialog's footer, or under the markdown when [inline], for one

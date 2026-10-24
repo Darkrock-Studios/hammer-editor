@@ -5,6 +5,7 @@ import com.darkrockstudios.apps.hammer.common.compose.plugin.answersMarkdown
 import com.darkrockstudios.apps.hammer.common.compose.plugin.hostErrors
 import com.darkrockstudios.apps.hammer.base.http.EntityType
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityIdChange
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogFilter
 import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogItem
@@ -1257,7 +1258,7 @@ class PluginActionRunnerTest {
 		runner.press(null)
 		advanceUntilIdle()
 
-		store.onEntityIdChanged(project, EntityType.Scene, 1, 30)
+		store.onEntityIdsChanged(project, listOf(EntityIdChange(EntityType.Scene, 1, 30)))
 		advanceUntilIdle()
 
 		runner.start(report, ActionPlace.Project, null)
@@ -1276,7 +1277,7 @@ class PluginActionRunnerTest {
 		runner.change("who", alice.ref.toJson())
 		advanceUntilIdle()
 
-		store.onEntityIdChanged(project, EntityType.EncyclopediaEntry, 7, 50)
+		renumberAlice()
 		advanceUntilIdle()
 
 		val renumbered = CatalogRef(CatalogKind.Entry, 50).toJson()
@@ -1300,7 +1301,7 @@ class PluginActionRunnerTest {
 		advanceUntilIdle()
 		runner.change("story", JsonPrimitive("She *left*."))
 
-		store.onEntityIdChanged(project, EntityType.EncyclopediaEntry, 7, 50)
+		renumberAlice()
 		advanceUntilIdle()
 
 		val changed = assertIs<ActionRunState.Changed>(runner.state.value)
@@ -1313,6 +1314,78 @@ class PluginActionRunnerTest {
 		advanceUntilIdle()
 		assertTrue(assertIs<ActionRunState.Changed>(again.state.value).renumbered)
 		assertEquals(1, calls.size)
+	}
+
+	private suspend fun renumberAlice() = store.onEntityIdsChanged(project, listOf(EntityIdChange(EntityType.EncyclopediaEntry, 7, 50)))
+
+	@Test
+	fun `a call made from a page whose state may hold an old id does not go back to it`() = runTest {
+		val runner = runner()
+		val reply = CompletableDeferred<ActionReply>()
+		val action = kept { call ->
+			if (call.button == null) {
+				ActionReply(ActionPage(title = "Story", fields = listOf(story), buttons = listOf(next), state = JsonObject(mapOf("about" to JsonPrimitive(7)))))
+			} else {
+				reply.await()
+			}
+		}
+		runner.start(action, ActionPlace.Entry, 7)
+		advanceUntilIdle()
+		runner.change("story", JsonPrimitive("She *left*."))
+		runner.press(next)
+		runCurrent()
+		assertIs<ActionRunState.Working>(runner.state.value)
+
+		renumberAlice()
+		advanceUntilIdle()
+		reply.complete(ActionReply(errors = mapOf("story" to "Too short")))
+		advanceUntilIdle()
+
+		assertNull(runner.state.value)
+		assertEquals(listOf("Too short"), messages)
+		assertEquals(true, store.load(key.copy(place = ActionPlace.Entry, itemId = 50))?.renumbered)
+	}
+
+	@Test
+	fun `a run shown as changed when sync renumbers its item starts afresh from the item's new id`() = runTest {
+		val first = runner()
+		first.start(kept("1.0.0") { ActionReply(ActionPage(title = "Who", fields = listOf(name), buttons = listOf(next))) }, ActionPlace.Entry, 7)
+		advanceUntilIdle()
+		first.change("name", JsonPrimitive("Mara"))
+		first.dismiss()
+		advanceUntilIdle()
+
+		val second = runner()
+		val updated = kept("2.0.0") { ActionReply(ActionPage(title = "Who", fields = listOf(name), buttons = listOf(next))) }
+		second.start(updated, ActionPlace.Entry, 7)
+		advanceUntilIdle()
+		assertIs<ActionRunState.Changed>(second.state.value)
+
+		renumberAlice()
+		advanceUntilIdle()
+		second.startAfresh()
+		advanceUntilIdle()
+
+		assertEquals(50, calls.last().itemId)
+		assertNull(store.load(key.copy(place = ActionPlace.Entry, itemId = 7)))
+	}
+
+	@Test
+	fun `a save still waiting when sync renumbers its item is written under the new id`() = runTest {
+		val runner = runner()
+		val action = kept { ActionReply(ActionPage(title = "Who", fields = listOf(who), buttons = listOf(next))) }
+		runner.start(action, ActionPlace.Entry, 7)
+		advanceUntilIdle()
+		runner.change("who", alice.ref.toJson())
+		// Closing asks for a save the session dispatcher has not run yet.
+		runner.dismiss()
+
+		renumberAlice()
+		advanceUntilIdle()
+
+		val fromAlice = key.copy(place = ActionPlace.Entry, itemId = 7)
+		assertNull(store.load(fromAlice))
+		assertEquals(CatalogRef(CatalogKind.Entry, 50).toJson(), store.load(fromAlice.copy(itemId = 50))?.values?.get("who"))
 	}
 
 	private fun ActionButton.copyWithoutChecks() = ActionButton(id, label, primary, inline, validate = false)

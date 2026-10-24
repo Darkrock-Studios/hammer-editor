@@ -2,6 +2,7 @@ package synchronizer.operations
 
 import PROJECT_2_NAME
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
+import com.darkrockstudios.apps.hammer.base.http.EntityType
 import com.darkrockstudios.apps.hammer.base.http.ProjectSynchronizationBegan
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
@@ -15,6 +16,7 @@ import io.mockk.impl.annotations.MockK
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.koin.core.context.loadKoinModules
 import org.koin.dsl.module
 import synchronizer.MockSynchronizers
 import synchronizer.addSynchronizers
@@ -64,7 +66,10 @@ class IdConflictResolutionOperationTest : BaseTest() {
 
 	@Test
 	fun `Golden Path`() = runTest {
-		val op = createOperation(getProjectDef(PROJECT_2_NAME))
+		val projectDef = getProjectDef(PROJECT_2_NAME)
+		val op = createOperation(projectDef)
+		val told = mutableListOf<Pair<ProjectDef, List<EntityIdChange>>>()
+		loadKoinModules(module { single<EntityIdChangeListener> { EntityIdChangeListener { project, changes -> told += project to changes } } })
 		coEvery { idAllocator.findNextId() } just Runs
 		coEvery { idAllocator.peekLastId() } returns 11
 
@@ -109,6 +114,7 @@ class IdConflictResolutionOperationTest : BaseTest() {
 
 		coVerify { mockSynchronizers.sceneSynchronizer.deleteEntityLocal(11, any()) }
 		coVerify { mockSynchronizers.sceneSynchronizer.reIdEntity(11, 12) }
+		assertEquals(listOf(projectDef to listOf(EntityIdChange(EntityType.Scene, 11, 12))), told)
 	}
 
 	@Test

@@ -40,6 +40,7 @@ import com.darkrockstudios.apps.hammer.operations.plugin.ActionSessionKey
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionSessionStore
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionTarget
 import com.darkrockstudios.apps.hammer.operations.plugin.EntityRenumbering
+import com.darkrockstudios.apps.hammer.operations.plugin.RenumberingFollower
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginAction
 import com.darkrockstudios.apps.hammer.operations.plugin.SettingDeclaration
 import com.darkrockstudios.apps.hammer.operations.plugin.UnreadableSessionException
@@ -75,7 +76,8 @@ import kotlin.time.Duration.Companion.milliseconds
 
 /** One run of an action, from opening it to its end: the action, and where it was started. */
 class ActionRun(val action: PluginAction, val place: ActionPlace, itemId: Int?) {
-	/** The item it was run from; sync may give it a new id part way through. */
+	/** The item it was run from; sync may give it a new id part way through. Read on the thread calling the plugin. */
+	@Volatile
 	var itemId: Int? = itemId
 		internal set
 
@@ -198,9 +200,16 @@ class PluginActionRunner(
 	// A kept action's saved run being read, during which another cannot start.
 	private var opening = false
 
-	private val unfollow = sessions.followRenumberings { renumbering ->
-		if (renumbering.projectId == project.id) scope.launch { renumbered(renumbering) }
-	}
+	private val unfollow = sessions.followRenumberings(object : RenumberingFollower {
+		override fun hold(renumberings: List<EntityRenumbering>, pass: () -> Unit) =
+			if (ours(renumberings)) writer.hold(renumberings, pass) else pass()
+
+		override fun renumbered(renumberings: List<EntityRenumbering>) {
+			if (ours(renumberings)) scope.launch { follow(renumberings) }
+		}
+
+		private fun ours(renumberings: List<EntityRenumbering>) = renumberings.any { it.projectId == project.id }
+	})
 
 	fun start(action: PluginAction, place: ActionPlace, itemId: Int?) {
 		when (_state.value) {
@@ -606,38 +615,39 @@ class PluginActionRunner(
 	}
 
 	/**
-	 * Follows sync giving an item a new id: in first pages' remembered values, and in the run showing,
-	 * whose kept session the store has followed already. A page whose state may hold the item by its old
-	 * id, which now names another, is not carried on but shown as entered. A call in progress is left to
-	 * answer as it will.
+	 * Follows a sync's new ids in what the runner holds: first pages' remembered values, the item the run
+	 * open was started from, and the page showing or called from, whose kept session the store has
+	 * followed already. A page whose state may hold an item by its old id, which now names another, is not
+	 * carried on: showing, it is shown as entered; called from, a reply with errors, a failure, or Stop
+	 * ends the run rather than going back to it. Its kept session is marked so either way.
 	 */
-	private fun renumbered(renumbering: EntityRenumbering) {
-		remembered.entries.forEach { it.setValue(Remembered(it.value.fields, renumbering.values(it.value.fields, it.value.values))) }
+	private fun follow(renumberings: List<EntityRenumbering>) {
+		for (renumbering in renumberings) {
+			remembered.entries.forEach { it.setValue(Remembered(it.value.fields, renumbering.values(it.value.fields, it.value.values))) }
+			_state.value?.run?.let { it.itemId = renumbering.itemId(it.place, it.itemId) }
+		}
+		writer.followed(renumberings)
 		val shown = shownPage() ?: return
 		val run = shown.run
-		val itemId = renumbering.itemId(run.place, run.itemId)
-		if (itemId != run.itemId) {
-			// A save of it still waiting would put it back under the old id, which is now another item's.
-			if (run.action.keep) writer.remove(run, key(run))
-			run.itemId = itemId
+		val page = renumberings.fold(shown) { page, renumbering ->
+			page.copy(page = renumbering.page(page.page), values = renumbering.values(page.page.fields, page.values))
 		}
-		val page = shown.copy(page = renumbering.page(shown.page), values = renumbering.values(shown.page.fields, shown.values))
+		val stale = renumberings.any { it.mentioned(page.page.state) }
+		if (stale && run.action.keep) {
+			writer.save(run, key(run), ActionSession(run.action.pluginVersion, page.page, page.values, page.first, run.answers, renumbered = true))
+		}
 		when (val state = _state.value) {
-			is ActionRunState.Page -> if (renumbering.mentioned(page.page.state)) {
+			is ActionRunState.Page -> _state.value = if (stale) {
 				val onPage = answersOf(page.page.fields, page.values).filterValues { !it.value.isBlankText }
-				_state.value = ActionRunState.Changed(run, run.answers + onPage, renumbered = true)
-				if (run.action.keep) {
-					writer.save(run, key(run), ActionSession(run.action.pluginVersion, page.page, page.values, page.first, run.answers, renumbered = true))
-				}
-				return
+				ActionRunState.Changed(run, run.answers + onPage, renumbered = true)
 			} else {
-				_state.value = page
+				page
 			}
 
-			is ActionRunState.Working -> _state.value = state.copy(from = page)
+			is ActionRunState.Working -> _state.value = state.copy(from = page.takeUnless { stale })
 			is ActionRunState.Changed, null -> Unit
 		}
-		keep()
+		if (!stale) keep()
 	}
 
 	/** Removes a kept [run], which has ended. */
