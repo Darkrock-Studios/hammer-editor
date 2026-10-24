@@ -429,7 +429,7 @@ class ProjectsListComponentTest : ComponentTest() {
 		advanceUntilIdle()
 
 		verify(exactly = 0) { synchronizer.deleteProject(any()) }
-		verify(exactly = 0) { projectsRepository.getProjects(any()) }
+		verify { projectsRepository.getProjects(any()) }
 		assertEquals(ToastMessage.Resource(Res.string.projects_list_toast_delete_failed), toast.await())
 	}
 

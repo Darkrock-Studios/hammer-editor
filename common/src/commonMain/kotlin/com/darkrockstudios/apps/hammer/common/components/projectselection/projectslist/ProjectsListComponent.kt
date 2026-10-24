@@ -313,10 +313,12 @@ class ProjectsListComponent(
 					projectsSynchronizer.deleteUnsyncedProject(projectDef.name)
 				}
 
-				loadProjectList()
 			} else {
 				showToast(scope, Res.string.projects_list_toast_delete_failed)
 			}
+
+			// A failed delete can still have removed part of the project.
+			loadProjectList()
 		}
 	}
 
