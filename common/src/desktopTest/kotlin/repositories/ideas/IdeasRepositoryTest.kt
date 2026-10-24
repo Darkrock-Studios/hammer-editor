@@ -23,7 +23,6 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import okio.fakefilesystem.FakeFileSystem
@@ -104,7 +103,22 @@ class IdeasRepositoryTest : BaseTest() {
 
 		repo.loadIdeas { loaded.complete(Unit) }
 
-		withTimeout(2_000) { loaded.await() }
+		advanceUntilIdle()
+		assertTrue(loaded.isCompleted)
+		repo.ideasFlow.test { assertEquals(emptyList(), awaitItem()) }
+	}
+
+	@Test
+	fun `Ideas load completes with an empty list when storage permission is denied`() = runTest {
+		val failingDatasource = mockk<IdeasDatasource>()
+		coEvery { failingDatasource.loadIdeas() } throws SecurityException("Permission denied")
+		val repo = IdeasRepository(failingDatasource, mockk(relaxed = true), clock)
+		val loaded = CompletableDeferred<Unit>()
+
+		repo.loadIdeas { loaded.complete(Unit) }
+
+		advanceUntilIdle()
+		assertTrue(loaded.isCompleted)
 		repo.ideasFlow.test { assertEquals(emptyList(), awaitItem()) }
 	}
 
