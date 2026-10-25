@@ -57,28 +57,11 @@ class EncyclopediaDatasource(
 		return findEntryPath(id) ?: throw EntryNotFound(id)
 	}
 
-	fun findEntryPath(id: Int): HPath? {
-		var path: HPath? = null
+	fun findEntryPath(id: Int): HPath? =
+		listEntryPaths().firstOrNull { getEntryIdFromFilename(it.name) == id }?.toHPath()
 
-		val types = EntryType.entries.toTypedArray()
-		for (type in types) {
-			val typeDir = getTypeDirectory(type).toOkioPath()
-			val files = fileSystem.listRecursively(typeDir)
-			for (file in files) {
-				try {
-					val entryId = getEntryIdFromFilename(file.name)
-					if (id == entryId) {
-						path = file.toHPath()
-						break
-					}
-				} catch (_: IllegalStateException) {
-				}
-			}
-			if (path != null) break
-		}
-
-		return path
-	}
+	private fun listEntryPaths(): Sequence<Path> =
+		fileSystem.listRecursively(getEncyclopediaDirectory().toOkioPath()).filterEntryPathsOkio()
 
 	fun getEntryImagePath(entryDef: EntryDef, fileExtension: String): HPath {
 		val dir = getTypeDirectory(entryDef.type).toOkioPath()
@@ -109,8 +92,10 @@ class EncyclopediaDatasource(
 		val prefixes = entryImagePrefixes(entryDef)
 		return fileSystem.list(dir)
 			.firstOrNull { path ->
-				prefixes.any { path.name.startsWith(it) } &&
-					path.name.substringAfterLast('.').lowercase() in IMAGE_EXTENSIONS
+				prefixes.any { prefix ->
+					path.name.startsWith(prefix) &&
+						path.name.removePrefix(prefix).lowercase() in IMAGE_EXTENSIONS
+				}
 			}
 			?.toHPath()
 	}
@@ -145,11 +130,19 @@ class EncyclopediaDatasource(
 		}
 	}
 
+	/** One entry per id: the first path in [listEntryPaths] order wins. */
 	suspend fun loadEntriesImperative(): List<EntryDef> {
-		val dir = getEncyclopediaDirectory().toOkioPath()
-		val entryPaths = fileSystem.listRecursively(dir).filterEntryPathsOkio().toList()
-		val entryDefs = entryPaths.map { path -> getEntryDef(path.toHPath()) }
-		return entryDefs
+		val byId = LinkedHashMap<Int, Path>()
+		for (path in listEntryPaths()) {
+			val id = getEntryIdFromFilename(path.name)
+			val existing = byId[id]
+			if (existing == null) {
+				byId[id] = path
+			} else {
+				Napier.e("Duplicate entry id $id on disk: keeping ${existing.name}, refusing ${path.name}")
+			}
+		}
+		return byId.values.map { getEntryDef(it.toHPath()) }
 	}
 
 	fun loadEntry(entryDef: EntryDef): EntryContainer {
@@ -458,9 +451,11 @@ fun Sequence<Path>.filterEntryPathsOkio() =
 		.map { it.toOkioPath() }
 		.filter { path -> !path.segments.any { part -> part.startsWith(".") } }
 
+// Sorted without the extension so an original sorts before copies that append to its name
+// (`Bob.toml` before `Bob.sync-conflict-....toml`); the first path per id is the one used.
 fun Sequence<HPath>.filterEntryPaths() = filter {
 	!it.name.startsWith(".") && EncyclopediaDatasource.isEntryFilename(it.name)
-}.sortedBy { it.name }
+}.sortedBy { it.name.substringBeforeLast('.') }
 
 open class InvalidEntryFilename(message: String, fileName: String, cause: Throwable? = null) :
 	IllegalStateException("$fileName failed to parse because: $message", cause)
