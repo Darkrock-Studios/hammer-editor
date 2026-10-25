@@ -1,6 +1,7 @@
 package operations
 
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectSyncGateRepository
 import com.darkrockstudios.apps.hammer.operations.Access
 import com.darkrockstudios.apps.hammer.operations.OpenProject
 import com.darkrockstudios.apps.hammer.operations.Operation
@@ -31,7 +32,7 @@ class OperationRegistryTest {
 	}
 
 	private fun registry(vararg ops: Operation<*, *>) =
-		OperationRegistry(ops.toList(), NoProjects)
+		OperationRegistry(ops.toList(), NoProjects, ::ProjectSyncGateRepository)
 
 	@Test
 	fun `dispatch decodes input and encodes output`() = runTest {

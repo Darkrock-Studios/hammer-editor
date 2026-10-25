@@ -1,4 +1,5 @@
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectSyncGateRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.APP_SCOPE
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_IO
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
@@ -101,7 +102,7 @@ class NameCheckerPluginTest {
 				},
 				registry.koinModule(),
 				// After the registry's module, which declares the app's own operations.
-				module { single { OperationRegistry(operations, NoProjects) } },
+				module { single { OperationRegistry(operations, NoProjects, ::ProjectSyncGateRepository) } },
 			)
 		}
 		return registry.plugins.single()

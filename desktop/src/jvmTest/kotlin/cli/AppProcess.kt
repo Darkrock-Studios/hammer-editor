@@ -1,6 +1,7 @@
 package cli
 
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectSyncGateRepository
 import com.darkrockstudios.apps.hammer.desktop.cli.AppInstance
 import com.darkrockstudios.apps.hammer.operations.Access
 import com.darkrockstudios.apps.hammer.operations.OpenProject
@@ -31,6 +32,7 @@ object AppProcess {
 				override fun resolve(project: String): ProjectDef = error("unused")
 				override suspend fun <T> withProject(project: String, block: suspend (OpenProject) -> T): T = error("unused")
 			},
+			::ProjectSyncGateRepository,
 		)
 		AppInstance(File(args[0]), { registry }, {}).use { app ->
 			check(app.open(scope, emptyList()))

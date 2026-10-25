@@ -13,6 +13,7 @@ import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogKind
 import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogRef
 import com.darkrockstudios.apps.hammer.common.data.entitycatalog.EntityCatalog
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectSyncGateRepository
 import com.darkrockstudios.apps.hammer.common.preview.fakeProjectDef
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.apps.hammer.operations.Access
@@ -80,6 +81,7 @@ class PluginActionRunnerTest {
 			},
 		),
 		NoProjects,
+		::ProjectSyncGateRepository,
 	)
 
 	// Messages from resources come back as their keys.

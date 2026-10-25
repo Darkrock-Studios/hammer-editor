@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.common.data.export.ExportInput
 import com.darkrockstudios.apps.hammer.common.data.export.ExportStrings
 import com.darkrockstudios.apps.hammer.common.data.export.StoryChapter
 import com.darkrockstudios.apps.hammer.common.data.export.StoryExporterRegistry
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectSyncGateRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.APP_SCOPE
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_IO
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
@@ -82,7 +83,7 @@ class RuntimePluginEndToEndTest {
 					}
 				) + listOf(registry.koinModule()) + module {
 					// After the registry's modules, so it replaces the core operations with this one.
-					single { OperationRegistry(listOf(stats), NoProjects) }
+					single { OperationRegistry(listOf(stats), NoProjects, ::ProjectSyncGateRepository) }
 				}
 			)
 		}

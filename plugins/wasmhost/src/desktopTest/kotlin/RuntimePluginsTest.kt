@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.common.data.export.ExportInput
 import com.darkrockstudios.apps.hammer.common.data.export.ExportStrings
 import com.darkrockstudios.apps.hammer.common.data.export.StoryChapter
 import com.darkrockstudios.apps.hammer.common.data.export.StoryExporterRegistry
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectSyncGateRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.APP_SCOPE
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_IO
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
@@ -958,7 +959,7 @@ class RuntimePluginsTest {
 		}
 		GlobalContext.startKoin {
 			modules(listOf(base) + listOf(registry.koinModule()) + module {
-				single { OperationRegistry(listOf(greet), NoProjects) }
+				single { OperationRegistry(listOf(greet), NoProjects, ::ProjectSyncGateRepository) }
 			})
 		}
 		return registry

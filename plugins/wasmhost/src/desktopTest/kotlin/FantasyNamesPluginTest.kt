@@ -1,4 +1,5 @@
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectSyncGateRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.APP_SCOPE
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_IO
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
@@ -74,7 +75,7 @@ class FantasyNamesPluginTest {
 					single(named(APP_SCOPE)) { CoroutineScope(Dispatchers.Unconfined) }
 				},
 				registry.koinModule(),
-				module { single { OperationRegistry(listOf(create), NoProjects) } },
+				module { single { OperationRegistry(listOf(create), NoProjects, ::ProjectSyncGateRepository) } },
 			)
 		}
 		registry.plugins.single().actions().single()

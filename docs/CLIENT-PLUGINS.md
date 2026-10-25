@@ -138,7 +138,7 @@ interface ProjectResolver {
 
 Most operations are written with the `operation<I, O>(name, description, access)
 { ... }` builder. Errors the caller caused are `OperationException`s with a kind
-(`NotFound`, `InvalidInput`); anything else thrown is a bug. `dispatch(name,
+(`NotFound`, `InvalidInput`, `Unauthorized`, `Busy`); anything else thrown is a bug. `dispatch(name,
 JsonElement)` is what front ends call: unknown input fields, missing fields, and
 wrong types are `InvalidInput`. Binary content is base64 in JSON.
 
@@ -592,8 +592,8 @@ hammer mcp        # the MCP plugin's command
 - Destructive operations need `--confirm`; without it the CLI refuses before
   starting Hammer.
 - Exit codes: 0 success, 1 failure, 3 not logged in or login rejected, 4 not
-  found, 5 another Hammer command holds the writer lock, or the open app is not
-  answering or not ready for calls yet, and 64 (sysexits' EX_USAGE) for usage errors and invalid input. An
+  found, 5 another Hammer command holds the writer lock, the open app is not
+  answering or not ready for calls yet, or the project is syncing, and 64 (sysexits' EX_USAGE) for usage errors and invalid input. An
   operation can report partial failure through `Operation.exitCode`: `sync.run` returns 2 when a project needs
   resolution.
 - A field marked `@FromStdin` is read from stdin when not given as an option; a
@@ -741,6 +741,21 @@ restart cost is small once the JVM is warm.
 
 Forwarding and locking are desktop only. Android and iOS have no CLI and are
 single process.
+
+**Writes during a sync.** Within the process, a project's sync and the write
+operations on it exclude each other through `ProjectSyncGateRepository`, keyed by
+the project's path. Every project sync (the sync dialog, Sync all, the Android
+widget's background sync, `sync.run`) goes through
+`ClientProjectSynchronizer.execute`, which waits for writes already running on the
+project, then holds it to the end. A Write or Destructive operation in the
+`content` scope holds each project it names until it returns, and one that names
+a project mid-sync fails at once as `Busy`: "Project '…' is syncing; try again
+when it finishes." The CLI exits 5, and the MCP plugin returns a tool error.
+It does not wait, since a sync can sit on a conflict for as long as the writer
+takes to resolve it, and a write that never waits cannot deadlock against
+anything a sync triggers. Writes run alongside each other, so a write a sync is
+waiting on can still run the operations it is built on. Reads are never held.
+Account and plugin operations are not gated; `sync.run` is a sync itself.
 
 ## MCP plugin
 

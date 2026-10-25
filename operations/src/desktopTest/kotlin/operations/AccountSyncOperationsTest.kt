@@ -19,6 +19,7 @@ import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.SyncAccountR
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.SyncAccountUseCase
 import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.IdeaConflict
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityOriginalState
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectSyncGateRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectSynchronizationData
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.util.StrRes
@@ -75,7 +76,7 @@ class AccountSyncOperationsTest {
 			listOf(novel, notes).firstOrNull { it.name == project } ?: throw OperationException(OperationException.Kind.NotFound, project)
 
 		override suspend fun <T> withProject(project: String, block: suspend (OpenProject) -> T): T = error("unused")
-	})
+	}, ::ProjectSyncGateRepository)
 
 	@BeforeEach
 	fun setUp() {

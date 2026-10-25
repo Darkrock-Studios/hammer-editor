@@ -1,4 +1,5 @@
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectSyncGateRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_IO
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancelAndJoin
@@ -63,7 +64,7 @@ class WasmPluginTest {
 		GlobalContext.startKoin {
 			modules(
 				module {
-					single { OperationRegistry(listOf(greet, wave), NoProjects) }
+					single { OperationRegistry(listOf(greet, wave), NoProjects, ::ProjectSyncGateRepository) }
 					single<CoroutineContext>(named(DISPATCHER_IO)) { Dispatchers.IO }
 				}
 			)
@@ -125,7 +126,7 @@ class WasmPluginTest {
 			Reply(plugin.callBlocking("run", "{}".encodeToByteArray()).decodeToString())
 		}
 		GlobalContext.startKoin {
-			modules(module { single { OperationRegistry(listOf(reenter), NoProjects) } })
+			modules(module { single { OperationRegistry(listOf(reenter), NoProjects, ::ProjectSyncGateRepository) } })
 		}
 
 		val error = assertThrows<PluginException> { dispatch("""{"operation":"greet","input":{"name":"Ada"}}""") }

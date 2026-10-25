@@ -1,10 +1,16 @@
 package com.darkrockstudios.apps.hammer.operations
 
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectSyncGateRepository
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.serializer
 
 /** Every operation in this process, core and plugin. The one place front ends dispatch through. */
-class OperationRegistry(operations: List<Operation<*, *>>, projects: ProjectResolver) {
+class OperationRegistry(
+	operations: List<Operation<*, *>>,
+	private val projects: ProjectResolver,
+	/** Looked up for each call, since a headless session restarts Koin between calls. */
+	private val syncGate: () -> ProjectSyncGateRepository,
+) {
 
 	val operations: List<Operation<*, *>> = operations.sortedBy { it.name }
 
@@ -22,7 +28,24 @@ class OperationRegistry(operations: List<Operation<*, *>>, projects: ProjectReso
 
 	fun find(name: String): Operation<*, *>? = byName[name]
 
-	suspend fun <I, O> run(operation: Operation<I, O>, input: I): O = operation.run(context, input)
+	/**
+	 * A write on project content keeps every project it names from syncing until it returns, and is
+	 * refused as [OperationException.Kind.Busy] if one is syncing already.
+	 */
+	suspend fun <I, O> run(operation: Operation<I, O>, input: I): O {
+		if (!operation.excludesSync) return operation.run(context, input)
+		val writing = WritingProjects(projects, syncGate())
+		return try {
+			operation.run(OperationContext(writing, this), input)
+		} finally {
+			writing.release()
+		}
+	}
+
+	// Account and plugin operations change no project's content. sync.run is itself a sync, and would
+	// wait forever on a project it held.
+	private val Operation<*, *>.excludesSync: Boolean
+		get() = access != Access.Read && scope == OperationScope.Content
 
 	/** Runs [name] on JSON [input], as every front end does. */
 	suspend fun dispatch(name: String, input: JsonElement): JsonElement {

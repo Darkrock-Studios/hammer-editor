@@ -24,6 +24,7 @@ import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogFilter
 import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogItem
 import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogKind
 import com.darkrockstudios.apps.hammer.common.data.entitycatalog.EntityCatalog
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectSyncGateRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.preview.KoinApplicationPreview
 import com.darkrockstudios.apps.hammer.common.preview.fakeProjectDef
@@ -125,7 +126,7 @@ class PluginActionDialogsTest {
 			application = {
 				modules(
 					module {
-						single { OperationRegistry(emptyList(), NoProjects) }
+						single { OperationRegistry(emptyList(), NoProjects, ::ProjectSyncGateRepository) }
 						single { store }
 						scope<ProjectDefScope> { scoped<EntityCatalog> { catalog } }
 					}

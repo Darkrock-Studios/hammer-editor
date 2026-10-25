@@ -90,6 +90,7 @@ import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.IdeasSyncDatas
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntitySynchronizers
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectCreateResolver
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectSyncGateRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournalDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.BackupOperation
@@ -240,6 +241,7 @@ val mainModule = module {
 	factory<AccountUseCase>()
 	factory<AccountReauthUseCase>()
 	factory<SyncAccountUseCase>()
+	single<ProjectSyncGateRepository>()
 
 	single(named(RAW_FILESYSTEM)) { getPlatformFilesystem() } bind FileSystem::class
 

@@ -78,6 +78,7 @@ object Cli {
 				OperationException.Kind.NotFound -> EXIT_NOT_FOUND
 				OperationException.Kind.InvalidInput -> EXIT_USAGE
 				OperationException.Kind.Unauthorized -> EXIT_UNAUTHORIZED
+				OperationException.Kind.Busy -> EXIT_BUSY
 			}
 		} catch (e: HeadlessSession.Busy) {
 			io.stderr.writeUtf8("${e.message}\n")

@@ -41,6 +41,7 @@ class ClientProjectSynchronizer(
 	private val syncJournal: SyncJournal,
 	private val globalSettingsStore: GlobalSettingsStore,
 	private val serverProjectApi: ServerProjectApi,
+	private val syncGate: ProjectSyncGateRepository,
 ) : ProjectScoped {
 
 	override val projectScope = ProjectDefScope(projectDef)
@@ -99,8 +100,7 @@ class ClientProjectSynchronizer(
 		conflictResolution.trySend(entity)
 	}
 
-	// Must-not-crash sync boundary; failures handled, logged, returned as CResult.
-	@Suppress("TooGenericExceptionCaught")
+	/** Waits for write operations on the project to finish, and keeps new ones out until it returns. */
 	suspend fun execute(
 		initialState: SyncOperationState,
 		onProgress: suspend (Float, SyncLogMessage?) -> Unit,
@@ -108,6 +108,19 @@ class ClientProjectSynchronizer(
 		onConflict: EntityConflictHandler<ApiProjectEntity>,
 		onComplete: suspend (success: Boolean) -> Unit,
 		onUnauthorized: suspend () -> Unit = {}
+	): CResult<SyncOperationState> = syncGate.withSync(projectDef) {
+		runOperations(initialState, onProgress, onLog, onConflict, onComplete, onUnauthorized)
+	}
+
+	// Must-not-crash sync boundary; failures handled, logged, returned as CResult.
+	@Suppress("TooGenericExceptionCaught")
+	private suspend fun runOperations(
+		initialState: SyncOperationState,
+		onProgress: suspend (Float, SyncLogMessage?) -> Unit,
+		onLog: OnSyncLog,
+		onConflict: EntityConflictHandler<ApiProjectEntity>,
+		onComplete: suspend (success: Boolean) -> Unit,
+		onUnauthorized: suspend () -> Unit,
 	): CResult<SyncOperationState> {
 		var currentState = initialState
 

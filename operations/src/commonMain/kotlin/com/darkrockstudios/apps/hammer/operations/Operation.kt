@@ -94,6 +94,9 @@ class OperationException(val kind: Kind, message: String) : Exception(message) {
 
 		/** The sync server rejected the stored credentials; log in again. */
 		Unauthorized,
+
+		/** Hammer is busy with what the call needs, such as a project that is syncing; try again shortly. */
+		Busy,
 	}
 }
 

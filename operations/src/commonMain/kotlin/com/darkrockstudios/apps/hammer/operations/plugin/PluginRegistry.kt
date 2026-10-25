@@ -30,7 +30,7 @@ import org.koin.dsl.module
  */
 class PluginRegistry : ExporterSource, KoinComponent {
 
-	val operationRegistry = OperationRegistry(coreOperations(), KoinProjectResolver())
+	val operationRegistry = OperationRegistry(coreOperations(), KoinProjectResolver(), syncGate = { get() })
 
 	private val operationWords = operationRegistry.operations.map { it.name.substringBefore('.') }.toSet()
 
