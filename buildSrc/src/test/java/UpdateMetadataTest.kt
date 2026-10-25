@@ -89,6 +89,26 @@ class UpdateMetadataTest {
 	}
 
 	@Test
+	fun `sidecars are found inside the per-format subdirectories the artifacts keep`() {
+		val dir = tempDir()
+		installers.forEach { dir.resolve(it.substringAfter('.').lowercase()).apply { mkdirs() }.sidecar(it, "x= 1") }
+
+		val files = updateMetadataFiles(dir, "1", "d")
+
+		assertEquals(listOf("hammer.msi", "hammer.exe"), urlsIn(files.getValue("latest.yml")))
+		assertEquals(listOf("hammer.deb", "hammer.rpm", "hammer.AppImage"), urlsIn(files.getValue("latest-linux.yml")))
+	}
+
+	@Test
+	fun `a duplicated sidecar fails instead of picking one`() {
+		val dir = tempDir()
+		installers.forEach { dir.sidecar(it, "x= 1") }
+		dir.resolve("msi").apply { mkdirs() }.sidecar("hammer.msi", "y= 2")
+
+		assertFailsWith<IllegalStateException> { updateMetadataFiles(dir, "1", "d") }
+	}
+
+	@Test
 	fun `the mac zip is listed first when present and skipped when absent`() {
 		val dir = tempDir()
 		installers.forEach { dir.sidecar(it, "x= 1") }

@@ -1,0 +1,6 @@
+- Fix crash with syncthing conflict files
+- Fixed several crashes in text editor
+- Improved text editor format buttons
+
+Full changelog:
+https://github.com/Darkrock-Studios/hammer-editor/releases/tag/v3.12.1

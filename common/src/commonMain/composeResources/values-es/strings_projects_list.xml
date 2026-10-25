@@ -7,6 +7,7 @@
 	<string name="projects_list_create_button">Crear proyecto</string>
 	<string name="projects_list_toast_sync_complete">Proyectos sincronizados</string>
 	<string name="projects_list_toast_sync_failed">No se pudieron sincronizar los proyectos</string>
+	<string name="projects_list_toast_delete_failed">Could not delete the project. Check that its folder is accessible and try again.</string>
 	<string name="projects_list_item_more_button">Más</string>
 	<string name="projects_list_card_words">%1$s palabras</string>
 	<string name="projects_list_card_by_author">por %1$s</string>

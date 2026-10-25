@@ -24,6 +24,7 @@ import com.darkrockstudios.apps.hammer.common.preview.TABLET_WIDTH_DP
 import com.darkrockstudios.apps.hammer.common.preview.TabletPreviewSurface
 import com.darkrockstudios.apps.hammer.common.preview.fakeSceneItem
 import com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor.SceneEditorUi
+import com.darkrockstudios.libs.platformspellchecker.PlatformSpellChecker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableSharedFlow
 import org.jetbrains.compose.resources.StringResource
@@ -32,7 +33,7 @@ import org.jetbrains.compose.resources.StringResource
 @Composable
 fun ScreenSceneEditorUiPreview() {
 	KoinApplicationPreview {
-		val component = fakeComponent()
+		val component = fakeSceneEditor()
 		val rootSnackbar = rememberRootSnackbarHostState()
 		SceneEditorUi(component, rootSnackbar)
 	}
@@ -42,7 +43,7 @@ fun ScreenSceneEditorUiPreview() {
 @Composable
 fun ScreenSceneEditorUiTabletPreview() {
 	KoinApplicationPreview {
-		val component = fakeComponent()
+		val component = fakeSceneEditor()
 		val rootSnackbar = rememberRootSnackbarHostState()
 		TabletPreviewSurface {
 			SceneEditorUi(component, rootSnackbar)
@@ -59,7 +60,10 @@ private fun fakeProjectDef(): ProjectDef = ProjectDef(
 	)
 )
 
-private fun fakeComponent() = object : SceneEditor {
+internal fun fakeSceneEditor(
+	markdown: String = "The keeper steps off the ferry into a town that already knows his name.",
+	spellChecker: PlatformSpellChecker? = null,
+) = object : SceneEditor {
 	override val state: Value<SceneEditor.State>
 		get() = MutableValue(
 			SceneEditor.State(
@@ -67,13 +71,14 @@ private fun fakeComponent() = object : SceneEditor {
 				sceneBuffer = SceneBuffer(
 					content = SceneContent(
 						scene = fakeSceneItem(),
-						markdown = "The keeper steps off the ferry into a town that already knows his name."
+						markdown = markdown
 					),
 					source = UpdateSource.Editor
 				),
 				isLoading = false,
 				isSavingDraft = false,
-				isEditingName = false
+				isEditingName = false,
+				spellChecker = spellChecker,
 			)
 		)
 	override var lastForceUpdate = MutableValue(0L)

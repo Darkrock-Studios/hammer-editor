@@ -1,6 +1,6 @@
 [versions]
 # App Versions
-app = "3.12.0"
+app = "3.12.1"
 data_version = "1.0"
 
 # Kotlin
@@ -107,9 +107,9 @@ korge-core = "6.0.0"
 bouncycastle = "1.86"
 kotlinx-io-okio = "0.9.1"
 
-compose-texteditor = "3.0.3"
+compose-texteditor = "3.1.0"
 kotlin-multiplatform-diff = "1.4.0"
-platform-spellcheckerkt = "1.3.2"
+platform-spellcheckerkt = "1.4.0"
 nucleus = "2.5.18"
 colorpicker-compose = "1.3.0"
 material-kolor = "5.0.1"

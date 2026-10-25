@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="wear_pairing_masthead">APPAIRER LA MONTRE</string>
+	<string name="wear_pairing_title">Se connecter à %1$s sur Hammer ?</string>
+	<string name="wear_pairing_body">La montre sera synchronisée en tant que %1$s avec sa propre session. Vous pouvez la déconnecter depuis la montre à tout moment.</string>
+	<string name="wear_pairing_not_signed_in">Connectez-vous au serveur sur ce smartphone en premier, puis appairez la montre de nouveau.</string>
+	<string name="wear_pairing_approve">Appairer</string>
+	<string name="wear_pairing_decline">Refuser</string>
+	<string name="wear_pairing_close">Fermer</string>
+	<string name="wear_pairing_toast_success">Montre appairée</string>
+	<string name="wear_pairing_toast_failure">La montre n\'a pas pu être appairée</string>
+	<string name="wear_pairing_channel_name">Appairage de la montre</string>
+	<string name="wear_pairing_notification_title">Appairez votre montre</string>
+	<string name="wear_pairing_notification_text">Tapoter pour que votre montre se synchronise avec votre compte Hammer</string>
+</resources>

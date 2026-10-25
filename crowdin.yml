@@ -1,6 +1,11 @@
 project_id_env: CROWDIN_PROJECT_ID
 api_token_env: CROWDIN_PERSONAL_TOKEN
 
+# Crowdin's default commit message carries [ci skip], which stops Build CI from
+# running on the translation PRs. Supplying a message replaces the default.
+commit_message: "New translations from Crowdin"
+append_commit_message: false
+
 files:
   # Not strings*.xml: Crowdin's * requires at least one character, so that
   # pattern silently skips strings.xml itself. This directory only ever holds
@@ -9,6 +14,10 @@ files:
     translation: /common/src/commonMain/composeResources/values-%android_code%/%original_file_name%
     translate_attributes: 0
     content_segmentation: 0
+  # Every file here must be named *_android.xml. The Crowdin post-export
+  # processor unescapes quotes for the Compose resources and only skips files
+  # with that suffix, and it sees file names, not paths. AAPT rejects an
+  # unescaped apostrophe, so a file without the suffix breaks the Android build.
   - source: /android/src/main/res/values/strings*.xml
     translation: /android/src/main/res/values-%android_code%/%original_file_name%
     translate_attributes: 0

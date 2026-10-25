@@ -1,25 +1,25 @@
-Please join our Discord to report issues! https://discord.gg/GTmgjZcupk
+Sorunları bildirmek için lütfen Discord sunucumuza katılın! https://discord.gg/GTmgjZcupk
 
-Multi-platform
+Çoklu Platform Desteği
 
-This app is where ever you are. Your phone, tablet, desktop, laptop, this program can be installed and run, not simply a website-in-a-box, but instead using native client side technologies to provide the best experience possible.
+Bu uygulama, siz neredeyseniz orada. Telefonunuz, tabletiniz, masaüstü bilgisayarınız, dizüstü bilgisayarınız fark etmez, bu programı yükleyebilir ve çalıştırabilirsiniz. Üstelik bu uygulama kutuya konmuş bir web sitesinden ibaret değil, size mümkün olan en iyi deneyimi sunmak için yerel, istemci taraflı teknolojiler kullanılarak tasarlandı.
 
-Offline first
+Önce Çevrimdışı
 
-I was frustrated with most of the story writing software I was finding as they were using web technologies (aka: Web Page in a box) which always seems to run into problems while being used offline for long periods of time. Hammer is designed from the ground up to be entirely local, no internet connection required, ever.
+Bulabildiğim hikâye yazma yazılımlarının çoğu canımı sıkıyordu çünkü hepsinin web teknolojilerini kullandığını (başka bir deyişle kutuya konmuş birer web sitesinden ibaret olduklarını) gördüm. Bu programlar uzun süreli çevrimdışı kullanımda her zaman sorun çıkarıyorlardı. Hammer, sıfırdan tamamen yerel olarak çalışacak, asla internet bağlantısı gerektirmeyecek şekilde tasarlandı.
 
-Transparent Data
+Şeffaf Veriler
 
-Your data is yours. It's not stored in the cloud, or some opaque database. It is stored in simple, human readable files, just using files and folders to define the project structure. You can open your OSes file browser and take a look for your self. If this program went away today you would be able to easily interact with your data.
+Verileriniz size aittir. Yazdıklarınız bulutta veya göremediğiniz bir veri tabanında saklanmaz. Veriler basit, insanlar tarafından kolayca okunabilecek ve sadece proje yapısını tanımlamak için kullanılan dosya ve klasörler kullanılarak saklanır. İşletim sisteminizin dosya yöneticisini açarak dosyalarınızı bizzat görebilirsiniz. Bu program bugün yok olsa bile verilerinizle kolaylıkla etkileşime girmeye devam edebilirsiniz.
 
-Intelligent Syncing between devices
+Cihazlarınız arasında Akıllı Senkronizasyon
 
-Your data can be synchronized between devices allowing you to work on your story from anywhere, and have no fear of a change on one device, overwriting a change on another device.
+Verileriniz cihazlar arasında senkronize edilebilir, böylece nerede olursanız olun hikâyeleriniz üzerinde çalışabilirsiniz. Cihazların birinde yaptığınız bir değişikliğin başka bir cihazda yaptığınız başka bir değişikilği silmesinden endişe etmenize gerek yoktur.
 
-Optional and Self hosted Syncing
+İsteğe Bağlı, Kendi Sunucunuzda Barındırabileceğiniz Senkronizasyon
 
-Syncing is entirely optional, you can install the client and use it on one device, or you can install the server and sync your data between devices.
+Senkronizasyon tamamen isteğe bağlıdır. İsterseniz istemciyi tek bir cihaza kurup kullanabilir veya sunucuya yükleyip verilerinizi cihazlar arasında senkronize edebilirsiniz.
 
-Wear OS companion
+Wear OS Yardımcınız
 
-Capture notes and story ideas from your wrist with the Wear OS app, then pick them up on your other devices. Dictate or type a quick note and file it under a project. Add the Capture tile to start a note or story idea in a single tap, or put the Hammer complication on your watch face to open a new note. The watch app syncs through your Hammer sync server.
+Wear OS uygulamasıyla notlarınızı ve hikâye fikirlerinizi kaydedin, ardından bunlara diğer cihazlarınızdan erişin. İster klavyenizi ister sesle yazma özelliğini kullanarak hızlıca bir not alın ve bir projeye ekleyin. Yakala kartını ekleyerek tek dokunuşla bir not veya hikâye fikri başlatabilir, Hammer komplikasyonunu saat yüzünüze yerleştirerek yeni bir not açmak için kullanabilirsiniz. Saat uygulaması, verileri Hammer senkronizasyon sunucunuz üzerinden senkronize eder.
