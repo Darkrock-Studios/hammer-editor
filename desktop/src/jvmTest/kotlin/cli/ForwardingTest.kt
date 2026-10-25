@@ -44,7 +44,6 @@ import java.time.Duration
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.time.Duration.Companion.seconds
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 import kotlin.test.assertNull
@@ -132,14 +131,14 @@ class ForwardingTest {
 	@Test
 	fun `a second launch hands its arguments to the app`() {
 		startServer().use {
-			assertTrue(Forwarding.handOff(socket, listOf("--project", "Storm", "--scene", "3")))
+			assertEquals(Forwarding.HandOff.Taken, Forwarding.handOff(socket, listOf("--project", "Storm", "--scene", "3")))
 		}
 		assertEquals(listOf(listOf("--project", "Storm", "--scene", "3")), launches)
 	}
 
 	@Test
 	fun `with no app listening a second launch starts as usual`() {
-		assertFalse(Forwarding.handOff(socket, listOf("--project", "Storm")))
+		assertEquals(Forwarding.HandOff.NotListening, Forwarding.handOff(socket, listOf("--project", "Storm")))
 	}
 
 	@Test

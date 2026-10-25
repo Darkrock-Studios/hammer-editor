@@ -592,9 +592,9 @@ hammer mcp        # the MCP plugin's command
 - Destructive operations need `--confirm`; without it the CLI refuses before
   starting Hammer.
 - Exit codes: 0 success, 1 failure, 3 not logged in or login rejected, 4 not
-  found, 5 another Hammer process holds the writer lock, and 64 (sysexits'
-  EX_USAGE) for usage errors and invalid input. An operation can report partial
-  failure through `Operation.exitCode`: `sync.run` returns 2 when a project needs
+  found, 5 another Hammer command holds the writer lock, or the open app is not
+  answering or not ready for calls yet, and 64 (sysexits' EX_USAGE) for usage errors and invalid input. An
+  operation can report partial failure through `Operation.exitCode`: `sync.run` returns 2 when a project needs
   resolution.
 - A field marked `@FromStdin` is read from stdin when not given as an option; a
   secret one (the login password) is never accepted as an option, and can also
@@ -660,21 +660,45 @@ same time collides on ids, clobbers buffers, desyncs the sync journal, or
 invalidates the other process's token. So there is exactly one writer at a
 time for the whole data set, not per project.
 
-**Writer lock.** One OS file lock, `writer.lock` in the app's data directory
-(next to the global settings, outside the projects directory, so backups,
-renames, and restores never touch it). The app holds it for its whole lifetime.
-A headless call holds it for the duration of that call. OS locks release on
-process death, so there are no stale lock files to clean up. A headless call
-that finds it held by another headless call waits briefly, then fails.
+**Locks.** Three OS file locks in the app's data directory (next to the global
+settings, outside the projects directory, so backups, renames, and restores
+never touch them). OS locks release on process death, so there are no stale lock
+files to clean up.
 
-**Forwarding to a running app.** The app, as the lock holder, listens on a Unix
-domain socket in its data directory (supported by the JDK on Windows 10+ as
+- `window.lock` marks open app windows. Every window holds a shared lock on it
+  for its whole run, including a second window that could not hand off.
+- `app.lock` picks the one window that serves the socket. It takes it first
+  thing and holds it for its whole run.
+- `writer.lock` is the one writer. A headless call holds it for the duration of
+  that call. The app takes it right after `app.lock`, or, if a headless call
+  already has it, as soon as that call finishes, without holding up the window.
+  A headless call that finds it held by another headless call waits briefly,
+  then fails.
+
+A headless call checks for windows only once it holds `writer.lock`, by trying
+`window.lock` and `app.lock` exclusively for a moment, and gives the writer lock
+back if a window is open. So no new headless call starts while any window is
+open. One already running may finish: a window that opens during it starts as
+usual, and serves CLI calls once the writer lock is free. On close, the app
+lets forwarded calls in flight finish before it releases its locks.
+
+On macOS and Linux, closing any channel to a file drops every lock the process
+holds on it, so a window never opens a lock file it holds a second time.
+
+**Forwarding to a running app.** The app, as the `app.lock` holder, listens on a
+Unix domain socket in its data directory (supported by the JDK on Windows 10+ as
 well), created with user-only permissions and replaced on startup if a stale one
-is left behind. Every CLI call tries the socket first. If the app answers, the
-CLI sends the operation name and input, the app runs it against its live state,
-and the CLI prints the result. If nothing answers, the CLI takes the writer lock
-and runs the operation in-process. If the lock is held but the socket does not
-answer, the app could not open it, and the CLI fails saying Hammer is running.
+is left behind. It binds before starting Koin or migrating data, and holds calls
+until it has the writer lock and has migrated, refusing them as not ready if
+that takes more than half a minute. On a system without Unix domain sockets the app
+runs without one, so CLI calls refuse while it is open, and a second launch
+opens its own window. Every CLI call tries the socket
+first. If the app answers, the CLI sends the operation name and input, the app
+runs it against its live state, and the CLI prints the result. If nothing
+answers and no app is open, the CLI takes the writer lock and runs the operation
+in-process. If an app is open but its socket does not answer, the CLI retries
+for a few seconds, then fails saying Hammer is not taking commands yet; it never
+runs headless under an open window.
 
 Forwarding is always on; there is no setting for it. Anything that can reach
 the socket runs as the same user, who could edit the project files directly, and
@@ -683,22 +707,24 @@ is installed: the MCP plugin's granted operations and its settings.
 Refusing while the app is open would only push tools to wait for it to close,
 or to edit files under it.
 
-**Multiple app instances.** A second launch of the app finds the writer lock
-held by the app, hands its launch arguments to the first over the socket, and
-exits, so the app is effectively single-instance. The first comes to the front
+**Multiple app instances.** A second launch of the app finds `app.lock` held,
+hands its launch arguments to the first over the socket, and exits, so the app
+is effectively single-instance. The first takes them at once, even while it is
+still starting. The first comes to the front
 and acts on them as its own: a `--project` (with any `--scene`, `--note`,
 `--entry`, or `--timeline-event`) opens that project, going straight there if it
 is already open, or first closing the open one the usual way, with its
 unsaved-changes prompts; declining the prompt drops the request. A launch that
-cannot hand off (no answer, or a
-CLI call holding the lock) starts its own window without the lock, as before.
+cannot hand off retries for a few seconds, in case the first is still starting,
+then starts its own window, with `window.lock` but without the other two, which
+it takes once the first window closes.
 Windows jump-list items, which relaunch the executable, go through the same
 path, as do the Linux quicklist and macOS Dock menu in-process.
 
 Nucleus's own single-instance mode (`enableSingleInstance`) stays off: its lock
 lives in the temp directory under one app id, so a `--dev` window and a normal
 one would block each other, and it hands over only a deep-link URI, not launch
-flags. The writer lock and socket are already per config directory.
+flags. The locks and socket are already per config directory.
 
 **No state between calls.** Each headless call, including each dispatch from a
 long-running plugin command like `hammer mcp`, starts Koin, runs, and stops it.
@@ -2101,22 +2127,22 @@ design is revisited rather than `:common` bent to fit.
    manifest, and `WasmPlugin`.
 5. **Headless CLI.** Built: subcommands generated from the registry,
    `Dispatcher`, the `cliCommands()` capability, per-call Koin startup, and the
-   writer lock, which the app takes at startup and holds for its lifetime. The
-   holder writes `writer.owner` beside the lock, so nobody waits on the app,
-   while a CLI call waits briefly for another to finish. A second app window
-   that cannot take the lock runs without, as before; forwarding (step 8) is
-   what makes the app single-instance. [Getting `hammer` onto
+   writer lock, which the app holds for its lifetime. The holder writes
+   `writer.owner` beside the lock, so nobody waits on the app, while a CLI call
+   waits briefly for another to finish. `window.lock` marks open windows, so a
+   CLI call never starts headless under one; forwarding (step 8) is what makes the
+   app single-instance. [Getting `hammer` onto
    PATH](#getting-onto-path) is a Settings button on each package format that
    allows it.
 6. **[MCP plugin](#mcp-plugin).** Built, as a runtime plugin on plugin
    commands and scope grants.
 7. **Headless sync.** Built: `account.status`, `account.login`,
    `account.logout`, `sync.status`, and `sync.run` over `SyncAccountUseCase`.
-   Refuses while the app is running, through the writer lock. Tested with fakes
+   Refuses while the app is running, through forwarding. Tested with fakes
    only so far, not against a live server.
 8. **Forwarding.** Built: the app listens on
    `run/hammer.sock` in the config directory (`run/` is owner-only) while it
-   holds the writer lock, refuses account and sync operations since it runs
+   holds `app.lock`, refuses account and sync operations since it runs
    those itself, and the CLI and MCP try the socket before running headless. A second app launch hands its arguments to the first window and
    exits (see [Multiple app instances](#concurrency)).
 9. **Write operations.** Built: every write operation in the catalog, the MCP

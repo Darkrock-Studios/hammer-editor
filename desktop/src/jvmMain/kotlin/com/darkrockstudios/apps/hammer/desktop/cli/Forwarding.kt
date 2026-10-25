@@ -17,8 +17,11 @@ import java.nio.file.Path
 import java.nio.file.attribute.PosixFilePermission
 import java.util.Timer
 import kotlin.concurrent.timerTask
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.TimeSource
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableJob
 import kotlinx.coroutines.CoroutineExceptionHandler
@@ -29,6 +32,8 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.plus
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
@@ -71,11 +76,15 @@ object Forwarding {
 		class Error(val kind: String, val message: String)
 	}
 
-	/** The app's side. [onLaunch] gets the arguments of each second launch handed over. */
+	/**
+	 * The app's side. [onLaunch] gets the arguments of each second launch handed over, at once; calls
+	 * first wait for [awaitReady], and are refused as not ready when it gives false.
+	 */
 	class Server(
 		private val socket: Path,
 		private val registry: () -> OperationRegistry,
 		private val onLaunch: (args: List<String>) -> Unit,
+		private val awaitReady: suspend () -> Boolean = { true },
 	) : AutoCloseable {
 		private val channel: ServerSocketChannel = ServerSocketChannel.open(StandardProtocolFamily.UNIX)
 		private var supervisor: CompletableJob? = null
@@ -142,6 +151,7 @@ object Forwarding {
 					}
 					request.operation.substringBefore('.') in APP_ONLY || request.operation in APP_ONLY_OPERATIONS ->
 						Reply(error = Reply.Error(REFUSED, APP_ONLY_MESSAGE))
+					!awaitReady() -> Reply(error = Reply.Error(NOT_READY, NOT_READY_MESSAGE))
 					else -> {
 						val output = registry().dispatch(request.operation, request.input)
 						Reply(output = output, exitCode = registry().exitCode(request.operation, output))
@@ -164,10 +174,14 @@ object Forwarding {
 			}
 		}
 
+		/** Stops taking calls, and waits a little for those in flight, which still write under the app's locks. */
 		override fun close() {
 			channel.close()
-			supervisor?.complete()
 			Files.deleteIfExists(socket)
+			supervisor?.let {
+				it.complete()
+				runBlocking { withTimeoutOrNull(CLOSE_WAIT) { it.join() } }
+			}
 		}
 
 		private fun privateDirectory(directory: Path) {
@@ -186,14 +200,13 @@ object Forwarding {
 	/** Thrown when the app answers but will not run the call, since the call is its own. */
 	class Refused(message: String) : Exception(message)
 
-	/**
-	 * Runs [operation] in the app, returning its output and exit code, or null when no app is listening,
-	 * so the caller can run it headless instead.
-	 */
+	/** Runs [operation] in the app, returning its output and exit code, or null when no app is listening. */
 	fun dispatch(socket: Path, operation: String, input: JsonElement): Pair<JsonElement, Int>? {
 		val client = try {
 			SocketChannel.open(UnixDomainSocketAddress.of(socket))
 		} catch (e: IOException) {
+			return null
+		} catch (e: UnsupportedOperationException) {
 			return null
 		}
 		// A hung app must not hang every CLI call and agent with it.
@@ -216,19 +229,52 @@ object Forwarding {
 		throw when {
 			kind != null -> OperationException(kind, error.message)
 			error.kind == REFUSED -> Refused(error.message)
+			error.kind == NOT_READY -> Unanswered(error.message)
 			else -> IOException(error.message)
 		}
 	}
 
+	/** Thrown when an app window is open but does not answer on the socket, or is not ready for calls. */
+	class Unanswered(message: String) : Exception(message)
+
 	/**
-	 * Hands a second launch's [args] to the app listening on [socket]. False when no app answers or it
-	 * refuses, so this launch can start as usual.
+	 * Runs [operation] in the open app, or, when no app window is open, with [headless], which throws
+	 * [HeadlessSession.AppOpen] if one opened since. Never headless while a window is open: one that
+	 * does not answer is retried for [wait], then [Unanswered] is thrown.
 	 */
-	fun handOff(socket: Path, args: List<String>): Boolean {
+	fun route(
+		directory: File,
+		operation: String,
+		input: JsonElement,
+		wait: Duration = APP_WAIT,
+		headless: () -> Pair<JsonElement, Int>,
+	): Pair<JsonElement, Int> {
+		val socket = socketPath(directory)
+		val deadline = TimeSource.Monotonic.markNow() + wait
+		while (true) {
+			dispatch(socket, operation, input)?.let { return it }
+			if (!AppInstance.isOpen(directory)) {
+				try {
+					return headless()
+				} catch (e: HeadlessSession.AppOpen) {
+					Napier.d { "Hammer opened as this call started; trying its socket" }
+				}
+			}
+			if (deadline.hasPassedNow()) throw Unanswered(UNANSWERED_MESSAGE)
+			Thread.sleep(ROUTE_RETRY.inWholeMilliseconds)
+		}
+	}
+
+	enum class HandOff { Taken, NotListening, Failed }
+
+	/** Hands a second launch's [args] to the app listening on [socket]. */
+	fun handOff(socket: Path, args: List<String>): HandOff {
 		val client = try {
 			SocketChannel.open(UnixDomainSocketAddress.of(socket))
 		} catch (e: IOException) {
-			return false
+			return HandOff.NotListening
+		} catch (e: UnsupportedOperationException) {
+			return HandOff.Failed
 		}
 		val timeout = Timer(true).apply { schedule(timerTask { client.close() }, HAND_OFF_TIMEOUT.inWholeMilliseconds) }
 		return try {
@@ -237,12 +283,12 @@ object Forwarding {
 				writer.write(json.encodeToString(Request.serializer(), Request(launch = args)))
 				writer.newLine()
 				writer.flush()
-				val line = Channels.newReader(client, Charsets.UTF_8).buffered().readLine() ?: return false
-				json.decodeFromString(Reply.serializer(), line).error == null
+				val line = Channels.newReader(client, Charsets.UTF_8).buffered().readLine() ?: return HandOff.Failed
+				if (json.decodeFromString(Reply.serializer(), line).error == null) HandOff.Taken else HandOff.Failed
 			}
 		} catch (e: IOException) {
 			Napier.w(e) { "Could not hand this launch to the running app" }
-			false
+			HandOff.Failed
 		} finally {
 			timeout.cancel()
 		}
@@ -250,10 +296,17 @@ object Forwarding {
 
 	private const val REFUSED = "Refused"
 	private const val FAILED = "Failed"
+	private const val NOT_READY = "NotReady"
 	private val REQUEST_TIMEOUT = 10.seconds
 	private val REPLY_TIMEOUT = 10.minutes
 	private val HAND_OFF_TIMEOUT = 5.seconds
 	private val ACCEPT_RETRY_DELAY = 1.seconds
+	private val CLOSE_WAIT = 5.seconds
+	private val APP_WAIT = 10.seconds
+	private val ROUTE_RETRY = 100.milliseconds
+	private const val UNANSWERED_MESSAGE = "Hammer is open but not taking commands yet. Try again in a moment."
+	private const val NOT_READY_MESSAGE =
+		"Hammer is still starting, or waiting for another Hammer command to finish. Try again in a moment."
 	private const val APP_ONLY_MESSAGE =
 		"Hammer is open, and this has to wait until it is closed. Use the app, or close it and run this again."
 }

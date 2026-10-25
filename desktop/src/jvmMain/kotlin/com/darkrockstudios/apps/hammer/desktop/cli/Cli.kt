@@ -85,6 +85,9 @@ object Cli {
 		} catch (e: Forwarding.Refused) {
 			io.stderr.writeUtf8("${e.message}\n")
 			EXIT_BUSY
+		} catch (e: Forwarding.Unanswered) {
+			io.stderr.writeUtf8("${e.message}\n")
+			EXIT_BUSY
 		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
 			Napier.e(e) { "CLI call failed: $args" }
 			io.stderr.writeUtf8("Failed: ${e.message}\n")
@@ -315,13 +318,14 @@ object Cli {
 
 	/** Runs [operation] in the open app when there is one, else headless; returns its output and exit code. */
 	private fun dispatch(plugins: PluginRegistry, operation: String, input: JsonElement): Pair<JsonElement, Int> =
-		Forwarding.dispatch(Forwarding.socketPath(File(getConfigDirectory())), operation, input)
-			?: runBlocking {
+		Forwarding.route(File(getConfigDirectory()), operation, input) {
+			runBlocking {
 				HeadlessSession.run(plugins) {
 					val output = it.dispatch(operation, input)
 					output to it.exitCode(operation, output)
 				}
 			}
+		}
 
 	private class HeadlessDispatcher(private val plugins: PluginRegistry) : Dispatcher {
 		override suspend fun dispatch(operation: String, input: JsonElement): JsonElement =

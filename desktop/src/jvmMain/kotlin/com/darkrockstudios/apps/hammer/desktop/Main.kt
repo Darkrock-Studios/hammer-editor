@@ -39,9 +39,8 @@ import com.darkrockstudios.apps.hammer.common.logStartupBanner
 import com.darkrockstudios.apps.hammer.common.setInDevelopmentMode
 import com.darkrockstudios.apps.hammer.common.startupBanner
 import com.darkrockstudios.apps.hammer.desktop.aboutlibraries.aboutLibrariesModule
+import com.darkrockstudios.apps.hammer.desktop.cli.AppInstance
 import com.darkrockstudios.apps.hammer.desktop.cli.Cli
-import com.darkrockstudios.apps.hammer.desktop.cli.Forwarding
-import com.darkrockstudios.apps.hammer.desktop.cli.WriterLock
 import com.darkrockstudios.apps.hammer.desktop.sandbox.SandboxStartup
 import com.darkrockstudios.apps.hammer.desktop.shortcuts.QuickShortcuts
 import com.github.ajalt.clikt.core.CliktError
@@ -57,7 +56,6 @@ import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier
 import io.github.vinceglb.filekit.FileKit
 import java.io.File
-import java.io.IOException
 import java.util.logging.ConsoleHandler
 import java.util.logging.Level
 import kotlin.system.exitProcess
@@ -157,51 +155,25 @@ private fun runCli(args: List<String>): Int {
 }
 
 /**
- * Waits briefly for a CLI call to finish. When another window of the app holds the lock, hands it this
- * launch's [args] and exits. Otherwise runs without the lock when it cannot be had, as before it existed.
+ * Claims the config directory for this window, serving CLI calls and later launches from it, or hands
+ * this launch's [args] to the window that already has it and exits.
  */
-private fun acquireAppWriterLock(args: Array<String>): WriterLock? = try {
-	when (val result = WriterLock.acquire(File(getConfigDirectory()), WriterLock.Holder.App, wait = 3.seconds)) {
-		is WriterLock.Result.Acquired -> result.lock
-		is WriterLock.Result.Busy -> {
-			val socket = Forwarding.socketPath(File(getConfigDirectory()))
-			if (result.holder == WriterLock.Holder.App && Forwarding.handOff(socket, args.toList())) {
-				Napier.i { "Hammer is already running; handed this launch to it" }
-				exitProcess(0)
-			}
-			Napier.w { "Writer lock held by ${result.holder ?: "another process"}; running without it" }
-			null
-		}
-	}
-} catch (e: IOException) {
-	Napier.w(e) { "Could not take the writer lock; running without it" }
-	null
-}
-
-/**
- * Serves CLI calls, and launches handed over by later windows, from this window, for as long as it
- * holds the writer lock.
- */
-private fun startForwarding(appScope: CoroutineScope, launches: SendChannel<DesktopLaunchArgs>): Forwarding.Server? = try {
-	Forwarding.Server(
-		socket = Forwarding.socketPath(File(getConfigDirectory())),
+private fun openAppInstance(appScope: CoroutineScope, args: Array<String>, launches: SendChannel<DesktopLaunchArgs>): AppInstance {
+	val instance = AppInstance(
+		directory = File(getConfigDirectory()),
 		registry = { getKoin().get<OperationRegistry>() },
-		onLaunch = { args ->
-			val launch = parseHandedOffLaunchArgs(args)
+		onLaunch = { handedOff ->
+			val launch = parseHandedOffLaunchArgs(handedOff)
 			if (launch == null) Napier.w { "A handed-over launch had arguments that do not parse" }
 			launches.trySend(launch ?: DesktopLaunchArgs(devMode = false, projectName = null, deepLink = null))
 		},
-	).also { it.start(appScope) }
-} catch (e: IOException) {
-	Napier.w(e) { "Could not open the CLI socket; CLI calls will refuse while Hammer runs" }
-	null
+	)
+	if (!instance.open(appScope, args.toList())) {
+		Napier.i { "Hammer is already running; handed this launch to it" }
+		exitProcess(0)
+	}
+	return instance
 }
-
-/**
- * Held for the app's whole run, so a CLI call cannot write under it; a field so it is never collected.
- * A second launch hands itself to the holder; one that cannot runs without, as before the lock existed.
- */
-private var appWriterLock: WriterLock? = null
 
 @ExperimentalDecomposeApi
 @ExperimentalMaterialApi
@@ -217,7 +189,9 @@ fun main(args: Array<String>) {
 
 	val appScope = CoroutineScope(Dispatchers.Default)
 	setupLogging(appScope)
-	appWriterLock = acquireAppWriterLock(args)
+	// Buffered, since a launch can be handed over before the window is up to take it.
+	val launches = Channel<DesktopLaunchArgs>(HANDED_OFF_LAUNCHES)
+	val appInstance = openAppInstance(appScope, args, launches)
 	logStartupBanner()
 	installGlobalExceptionHandler()
 
@@ -244,9 +218,7 @@ fun main(args: Array<String>) {
 
 	Napier.i("Startup: running data migration")
 	runBlocking { getKoin().get<DataMigrator>(DataMigrator::class).handleDataMigration() }
-	// Buffered, since a launch can be handed over before the window is up to take it.
-	val launches = Channel<DesktopLaunchArgs>(HANDED_OFF_LAUNCHES)
-	val forwarding = if (appWriterLock != null) startForwarding(appScope, launches) else null
+	appInstance.started()
 
 	val initialProject: ProjectDef? = launchArgs.projectName?.let { name ->
 		val match = getKoin().get<ProjectsRepository>().findProject(name)
@@ -373,7 +345,7 @@ fun main(args: Array<String>) {
 		}
 	}
 
-	forwarding?.close()
+	appInstance.close()
 	settingsUpdateJob.cancel()
 	scope.cancel("Program ending")
 	quickShortcuts.dispose()

@@ -49,9 +49,7 @@ class WriterLock private constructor(
 			val deadline = TimeSource.Monotonic.markNow() + wait
 			while (true) {
 				val lock = try {
-					channel.tryLock()
-				} catch (e: OverlappingFileLockException) {
-					null
+					channel.tryLockOrNull()
 				} catch (e: IOException) {
 					channel.close()
 					throw e
@@ -80,4 +78,11 @@ class WriterLock private constructor(
 		class Acquired(val lock: WriterLock) : Result
 		class Busy(val holder: Holder?) : Result
 	}
+}
+
+/** Null when the lock is held elsewhere, by another process or another channel in this one. */
+internal fun FileChannel.tryLockOrNull(shared: Boolean = false): FileLock? = try {
+	tryLock(0L, Long.MAX_VALUE, shared)
+} catch (e: OverlappingFileLockException) {
+	null
 }
