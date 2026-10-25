@@ -122,8 +122,6 @@ class SceneEditorService(
 			statisticsRepository.markDirty()
 			referenceIndexRepository.markSceneDeleted(scene.id)
 			writingSessionTracker.forgetBaseline(scene.id)
-			// A leftover temp file would attach itself to a later scene that reuses this id.
-			sceneContentRepository.dropBuffer(scene)
 		}
 		return deleted
 	}
@@ -142,8 +140,9 @@ class SceneEditorService(
 
 	suspend fun moveScene(moveRequest: MoveRequest) = sceneEditorRepository.moveScene(moveRequest)
 
-	/** Saves the scene's unsaved edits first, so they are archived with it. */
+	/** Saves the scene's unsaved edits first, including any still in the debounce, so they are archived with it. */
 	suspend fun archiveScene(scene: SceneItem): Boolean {
+		sceneContentRepository.flushPendingContent(scene.id)
 		if (sceneContentRepository.hasDirtyBuffer(scene.id) && !storeSceneBuffer(scene)) return false
 		val archived = sceneEditorRepository.archiveScene(scene)
 		if (archived) {

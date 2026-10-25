@@ -83,10 +83,13 @@ class SceneContentRepository(
 	private val updateSequence = atomic(0L)
 
 	/**
-	 * Per scene, the [SceneContentUpdate.sequence] of its last [replaceBuffer] or [forgetBuffer];
-	 * earlier updates are stale. Guarded by [sceneBuffersLock].
+	 * Per scene, the [SceneContentUpdate.sequence] of its last applied update, [replaceBuffer] or
+	 * [forgetBuffer]; updates at or before it are stale. Guarded by [sceneBuffersLock].
 	 */
-	private val resetAt = mutableMapOf<Int, Long>()
+	private val staleThrough = mutableMapOf<Int, Long>()
+
+	/** Per scene, its newest update the debounce has not applied yet. Guarded by [sceneBuffersLock]. */
+	private val pendingUpdates = mutableMapOf<Int, SceneContentUpdate>()
 
 	/** Guarded by [sceneBuffersLock]: [forgetBuffer] runs on its caller's thread. */
 	private val storeTempJobs = mutableMapOf<Int, Job>()
@@ -127,7 +130,10 @@ class SceneContentRepository(
 	}
 
 	fun onContentChanged(content: SceneContent, source: UpdateSource) {
-		val update = SceneContentUpdate(content, source, updateSequence.incrementAndGet())
+		val update = sceneBuffersLock.withLock {
+			SceneContentUpdate(content, source, updateSequence.incrementAndGet())
+				.also { pendingUpdates[content.scene.id] = it }
+		}
 		editorScope.launch {
 			_contentFlow.emit(update)
 		}
@@ -139,9 +145,21 @@ class SceneContentRepository(
 	 */
 	fun replaceBuffer(content: SceneContent) {
 		sceneBuffersLock.withLock {
-			resetAt[content.scene.id] = updateSequence.incrementAndGet()
+			staleThrough[content.scene.id] = updateSequence.incrementAndGet()
+			pendingUpdates.remove(content.scene.id)
 			updateSceneBuffer(SceneBuffer(content, dirty = true, source = UpdateSource.Repository))
 		}
+	}
+
+	/**
+	 * Applies the scene's edits still waiting in the debounce to its buffer now, as if the cool-down
+	 * had elapsed, so a save that follows includes everything typed.
+	 */
+	fun flushPendingContent(sceneId: Int) {
+		val applied = sceneBuffersLock.withLock {
+			pendingUpdates[sceneId]?.takeIf { updateSceneBufferContent(it) }
+		} ?: return
+		launchSaveJob(applied.content.scene)
 	}
 
 	/** True when the scene has unsaved edits from an earlier session that this scope has not restored. */
@@ -154,8 +172,11 @@ class SceneContentRepository(
 	 */
 	private fun updateSceneBufferContent(update: SceneContentUpdate): Boolean = sceneBuffersLock.withLock {
 		val (content, source) = update
+		val sceneId = content.scene.id
+		if (pendingUpdates[sceneId]?.let { it.sequence <= update.sequence } == true) pendingUpdates.remove(sceneId)
+		if (update.sequence <= (staleThrough[sceneId] ?: 0)) return@withLock false
+		staleThrough[sceneId] = update.sequence
 		when {
-			update.sequence < (resetAt[content.scene.id] ?: 0) -> false
 			source == UpdateSource.Editor -> {
 				updateSceneBuffer(SceneBuffer(content, dirty = true, source = source))
 				true
@@ -267,11 +288,13 @@ class SceneContentRepository(
 
 	/**
 	 * Drops a scene's buffer and temp file without saving, for a scene that is gone from the tree.
-	 * Left behind, a dirty buffer would be saved back by the next save-all, recreating the scene.
+	 * Left behind, a dirty buffer would be saved back by the next save-all, recreating the scene, and
+	 * a temp file would attach itself to a later scene that reuses the id.
 	 */
 	suspend fun forgetBuffer(sceneItem: SceneItem) {
 		val pendingSave = sceneBuffersLock.withLock {
-			resetAt[sceneItem.id] = updateSequence.incrementAndGet()
+			staleThrough[sceneItem.id] = updateSequence.incrementAndGet()
+			pendingUpdates.remove(sceneItem.id)
 			if (sceneBuffers.remove(sceneItem.id) != null) _dirtyBufferIds.value = getDirtyBufferIds()
 			storeTempJobs.remove(sceneItem.id)
 		}
