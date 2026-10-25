@@ -52,7 +52,10 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import net.peanuuutz.tomlkt.Toml
 import okio.Buffer
+import okio.FileHandle
 import okio.FileSystem
+import okio.ForwardingFileSystem
+import okio.Source
 import okio.Path
 import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
@@ -127,6 +130,7 @@ class RuntimePluginsTest {
 		name: String,
 		manifest: String? = manifest(),
 		module: String = "export_echo",
+		wasm: ByteArray = testPlugin(module),
 		settingsToml: String? = settings,
 		files: Map<String, String> = emptyMap(),
 		binaries: Map<String, ByteArray> = emptyMap(),
@@ -140,7 +144,7 @@ class RuntimePluginsTest {
 				}
 				manifest?.let { entry("manifest.toml", it.encodeToByteArray()) }
 				settingsToml?.let { entry("settings.toml", it.encodeToByteArray()) }
-				entry("plugin.wasm", testPlugin(module))
+				entry("plugin.wasm", wasm)
 				files.forEach { (entryName, content) -> entry(entryName, content.encodeToByteArray()) }
 				binaries.forEach { (entryName, content) -> entry(entryName, content) }
 			}
@@ -211,6 +215,184 @@ class RuntimePluginsTest {
 
 		assertTrue(plugins.load().isEmpty())
 		assertEquals(null, plugins.installed().single().manifest)
+	}
+
+	/** Reading any of [failing] throws what it maps to. */
+	private class FailingFileSystem(delegate: FileSystem, private val failing: Map<Path, () -> Throwable>) : ForwardingFileSystem(delegate) {
+		override fun source(file: Path): Source = failing[file]?.let { throw it() } ?: super.source(file)
+		override fun openReadOnly(file: Path): FileHandle = failing[file]?.let { throw it() } ?: super.openReadOnly(file)
+	}
+
+	private fun failingPlugins(vararg failing: Pair<String, () -> Throwable>) = RuntimePlugins(
+		FailingFileSystem(fileSystem, failing.associate { (name, error) -> directory / name to error }),
+		directory,
+		cacheDirectory,
+	)
+
+	@Test
+	fun `a package that fails to load in any way is skipped, and the others still load`() {
+		runtimePlugins().apply {
+			install(pack("one", manifest(id = "one")))
+			install(pack("two", manifest(id = "two")))
+		}
+		val plugins = failingPlugins("packages/one.hammerplugin" to { IllegalStateException("zip reader bug") })
+
+		val registry = PluginRegistry().also(plugins::activate)
+
+		assertEquals(listOf("two"), registry.plugins.map { it.id })
+	}
+
+	@Test
+	fun `a state file that fails to read starts with no plugins`() {
+		runtimePlugins().install(pack("echo"))
+		val plugins = failingPlugins(RuntimePlugins.STATE_FILE to { IndexOutOfBoundsException("parser bug") })
+
+		val registry = PluginRegistry().also(plugins::activate)
+
+		assertTrue(registry.plugins.isEmpty())
+	}
+
+	@Test
+	fun `an unreadable state file is kept aside, not written over`() {
+		fileSystem.createDirectories(directory)
+		fileSystem.write(directory / RuntimePlugins.STATE_FILE) { writeUtf8("plugins = [") }
+		fileSystem.write(directory / "${RuntimePlugins.STATE_FILE}.unreadable") { writeUtf8("older") }
+		val plugins = runtimePlugins()
+
+		plugins.install(pack("echo"))
+
+		assertEquals("plugins = [", fileSystem.read(directory / "${RuntimePlugins.STATE_FILE}.unreadable-2") { readUtf8() })
+		assertEquals(listOf("echo"), plugins.installed().map { it.id })
+	}
+
+	private fun dieWhileActivating(id: String) {
+		assertThrows<OutOfMemoryError> {
+			failingPlugins("packages/$id.hammerplugin" to { OutOfMemoryError("test") }).activate(PluginRegistry())
+		}
+	}
+
+	@Test
+	fun `after a launch that died loading a plugin, that plugin stays off and the others load`() {
+		runtimePlugins().apply {
+			install(pack("one", manifest(id = "one")))
+			install(pack("two", manifest(id = "two")))
+		}
+		dieWhileActivating("one")
+
+		repeat(2) {
+			val next = runtimePlugins()
+			assertEquals(listOf("two"), PluginRegistry().also(next::activate).plugins.map { it.id })
+			val one = next.installed().first { it.id == "one" }
+			assertEquals(false, one.enabled)
+			assertTrue(one.turnedOffAfterCrash)
+		}
+	}
+
+	@Test
+	fun `a plugin turned off after a crash can be turned on again`() {
+		runtimePlugins().apply {
+			install(pack("one", manifest(id = "one")))
+			install(pack("two", manifest(id = "two")))
+		}
+		dieWhileActivating("one")
+		val plugins = runtimePlugins()
+		val registry = PluginRegistry().also(plugins::activate)
+
+		plugins.setEnabled("one", true)
+
+		assertEquals(setOf("one", "two"), registry.plugins.map { it.id }.toSet())
+		assertEquals(false, plugins.installed().first { it.id == "one" }.turnedOffAfterCrash)
+		assertEquals(setOf("one", "two"), PluginRegistry().also(runtimePlugins()::activate).plugins.map { it.id }.toSet())
+	}
+
+	@Test
+	fun `a launch that died turning a plugin on turns it off at the next`() {
+		runtimePlugins().apply {
+			install(pack("echo"))
+			setEnabled("echo", false)
+		}
+		val dying = failingPlugins("packages/echo.hammerplugin" to { OutOfMemoryError("test") })
+		dying.activate(PluginRegistry())
+		assertThrows<OutOfMemoryError> { dying.setEnabled("echo", true) }
+
+		val next = runtimePlugins()
+		next.activate(PluginRegistry())
+
+		assertTrue(next.installed().single().turnedOffAfterCrash)
+	}
+
+	@Test
+	fun `an unguarded activation neither turns off a plugin after a crash nor clears the mark`() {
+		runtimePlugins().install(pack("echo"))
+		dieWhileActivating("echo")
+
+		val unguarded = PluginRegistry().also { runtimePlugins().activate(it, crashGuard = false) }
+
+		assertEquals(listOf("echo"), unguarded.plugins.map { it.id })
+		assertTrue(PluginRegistry().also(runtimePlugins()::activate).plugins.isEmpty())
+	}
+
+	@Test
+	fun `TOML nested too deep for the parser is refused, not left to overflow the stack`() {
+		// Each well under the size limit on a text, and far deeper than the parser's stack can follow.
+		val depth = 50_000
+		val arrays = "deep = " + "[".repeat(depth) + "]".repeat(depth)
+		val tables = "deep = " + "{a=".repeat(depth) + "1" + "}".repeat(depth)
+		val dotted = "a.".repeat(depth) + "a = 1"
+		val header = "[" + "a.".repeat(depth) + "a]"
+		val packages = listOf(
+			pack("deep-manifest", manifest = manifest() + "\n" + arrays),
+			pack("deep-header", manifest = manifest() + "\n" + header),
+			pack("deep-settings", settingsToml = settings + "\n" + tables),
+			pack("deep-translation", files = mapOf("locales/fr.toml" to dotted)),
+		)
+
+		packages.forEach { assertThrows<PluginPackageException> { runtimePlugins().inspect(it) } }
+	}
+
+	@Test
+	fun `brackets and dots in strings and comments are not nesting`() {
+		val noise = "[{.".repeat(100)
+		val noisy = manifest().replace(
+			"api = 1",
+			"api = 1\ndescription = '$noise'\nnote = \"a\\\".$noise\"\nlong = \"\"\"\n$noise\"\"\"\n# $noise",
+		)
+
+		runtimePlugins().inspect(pack("noisy", manifest = noisy))
+	}
+
+	@Test
+	fun `a state file nested too deep for the parser is kept aside`() {
+		fileSystem.createDirectories(directory)
+		val deep = "plugins = " + "[".repeat(50_000) + "]".repeat(50_000)
+		fileSystem.write(directory / RuntimePlugins.STATE_FILE) { writeUtf8(deep) }
+
+		val registry = PluginRegistry().also(runtimePlugins()::activate)
+
+		assertTrue(registry.plugins.isEmpty())
+		assertEquals(deep, fileSystem.read(directory / "${RuntimePlugins.STATE_FILE}.unreadable") { readUtf8() })
+	}
+
+	@Test
+	fun `a module the limiter or the runtime cannot handle is refused at install`() {
+		// A last section declaring more bytes than follow it.
+		val overrun = testPlugin("export_echo") + byteArrayOf(0x00, 0x10, 0x01)
+		// A table whose minimum, 2^31, does not fit an Int.
+		val hugeTable = MODULE_HEADER + byteArrayOf(0x04, 0x08, 0x01, 0x70, 0x00) + U32_2_POW_31
+
+		listOf(overrun, hugeTable).forEachIndexed { i, wasm ->
+			assertThrows<PluginPackageException> { runtimePlugins().inspect(pack("bad-$i", wasm = wasm)) }
+		}
+	}
+
+	@Test
+	fun `a package larger than any accepted is refused before it is read`() {
+		val echo = pack("echo")
+		val reportingHuge = object : ForwardingFileSystem(fileSystem) {
+			override fun metadataOrNull(path: Path) = super.metadataOrNull(path)?.copy(size = PluginPackage.MAX_PACKAGE_BYTES + 1)
+		}
+
+		assertThrows<PluginPackageException> { RuntimePlugins(reportingHuge, directory, cacheDirectory).inspect(echo) }
 	}
 
 	@Test

@@ -59,6 +59,9 @@ class PluginPackage(
 		private const val MAX_CODE_BYTES = 32 * BYTES_PER_MIB
 		const val MAX_RESOURCE_BYTES = 64 * BYTES_PER_MIB
 
+		/** The largest package read: room for the largest module, resources, translations, and the zip's own records. */
+		const val MAX_PACKAGE_BYTES = PluginManifest.MAX_MEMORY_MIB * BYTES_PER_MIB + MAX_CODE_BYTES + MAX_RESOURCE_BYTES + 128 * BYTES_PER_MIB
+
 		/** Words the CLI handles itself. */
 		private val RESERVED_COMMANDS = setOf("help")
 
@@ -69,6 +72,8 @@ class PluginPackage(
 		 */
 		fun read(fileSystem: FileSystem, path: Path, checkModule: Boolean = false): PluginPackage {
 			val zip = try {
+				val size = fileSystem.metadataOrNull(path)?.size ?: 0
+				if (size > MAX_PACKAGE_BYTES) throw PluginPackageException("The package is larger than $MAX_PACKAGE_BYTES bytes")
 				fileSystem.openZip(path)
 			} catch (e: IOException) {
 				throw PluginPackageException("Not a plugin package: ${e.message}")
@@ -79,7 +84,8 @@ class PluginPackage(
 				if (size > limit) throw PluginPackageException("$name is larger than $limit bytes")
 				return zip.read(root / name) { readByteArray() }
 			}
-			fun text(name: String) = bytes(name, MAX_TEXT_BYTES).decodeToString()
+			// Every text in a package is TOML, checked before tomlkt can overflow the stack on it.
+			fun text(name: String) = bytes(name, MAX_TEXT_BYTES).decodeToString().also(::requireShallowToml)
 
 			val manifest = try {
 				PluginManifest.parse(text(MANIFEST))
@@ -261,6 +267,9 @@ class PluginPackage(
 				throw PluginPackageException("Unsupported module: ${e.message}")
 			} catch (e: IllegalStateException) {
 				throw PluginPackageException("Unsupported module: ${e.message}")
+			} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+				// A malformed module can trip anything in the runtime, which must not reach the install prompt.
+				throw PluginPackageException("The module could not be loaded: ${e::class.simpleName}: ${e.message}")
 			}
 		}
 	}

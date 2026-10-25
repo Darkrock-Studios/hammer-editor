@@ -16,12 +16,19 @@ class DesktopLaunchArgsTest {
 		assertEquals(false, args.devMode)
 		assertNull(args.projectName)
 		assertNull(args.deepLink)
+		assertEquals(false, args.noPlugins)
 	}
 
 	@Test
 	fun `dev flag sets devMode`() {
 		val args = parseDesktopLaunchArgs(arrayOf("--dev"))
 		assertEquals(true, args.devMode)
+	}
+
+	@Test
+	fun `no-plugins flag turns runtime plugins off for the run`() {
+		val args = parseDesktopLaunchArgs(arrayOf("--no-plugins"))
+		assertEquals(true, args.noPlugins)
 	}
 
 	@Test

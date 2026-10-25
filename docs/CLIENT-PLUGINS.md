@@ -1841,9 +1841,20 @@ A new `:plugins:wasmhost` module, depending on `:operations` and chasm:
   `<config>/plugins/_sessions/` (see [Sessions](#sessions)), and caches under
   `<cache>/plugins/` (plugin ids cannot start with `_`, so no plugin's settings
   file collides with them). At startup `activate` wraps each enabled package
-  in a `WasmPlugin` and adds it to the registry. A package that fails to read,
-  or clashes with another plugin, is logged and skipped; it never stops the
-  app starting.
+  in a `WasmPlugin` and adds it to the registry. A package that fails to read
+  in any way, or clashes with another plugin, is logged and skipped; it never
+  stops the app starting. A state file that cannot be parsed is moved aside to
+  `_runtime-plugins.toml.unreadable` and read as empty. Each TOML text, in a
+  package or the state file, is refused if it nests more than 64 levels deep,
+  since the parser would overflow the stack on it. In the app, every plugin
+  load writes that plugin's id to `_runtime-plugins.loading` and removes it
+  once loaded, so a process that dies loading one (an `Error` such as running
+  out of memory) leaves its id behind. The next launch turns that plugin off,
+  loads the rest, and shows in Settings why it is off; turning it on again
+  tries it again. CLI calls skip this guard, since one may load while the app
+  starts. On desktop, `--no-plugins` starts the app without activating runtime
+  plugins, to uninstall or disable the one at fault; it has no effect on a
+  launch handed to an open window.
 - **Install.** Reads the package, checks the manifest, the settings
   declarations, and export format prefixes, and instantiates the module once,
   which checks its imports and runs its initializer. Only then is it copied in.

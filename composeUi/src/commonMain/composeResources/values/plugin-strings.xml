@@ -14,6 +14,7 @@
 	<string name="plugin_details_done">Close</string>
 	<string name="plugin_details_languages">Works with projects in</string>
 	<string name="plugin_details_translations">Translated into</string>
+	<string name="plugin_runtime_turned_off_after_crash">Turned off because Hammer closed while loading it. Turn it on to try again.</string>
 	<string name="plugin_runtime_unreadable">Its package can no longer be read. Uninstall it and install it again.</string>
 	<string name="plugin_install_title">Install %1$s?</string>
 	<string name="plugin_install_close">Cancel install</string>

@@ -20,10 +20,16 @@ data class DesktopLaunchArgs(
 	val devMode: Boolean,
 	val projectName: String?,
 	val deepLink: ProjectDeepLink?,
+	val noPlugins: Boolean = false,
 )
 
 private class DesktopArgsCommand : CliktCommand(name = "hammer") {
 	val devMode by option("-d", "--dev", help = "Development Mode").flag()
+
+	val noPlugins by option(
+		"--no-plugins",
+		help = "Start without loading installed plugins, to recover from one that stops Hammer starting.",
+	).flag()
 
 	val projectName by option(
 		"-p", "--$PROJECT_FLAG",
@@ -84,4 +90,5 @@ private fun DesktopArgsCommand.launchArgs() = DesktopLaunchArgs(
 	devMode = devMode,
 	projectName = projectName,
 	deepLink = deepLink,
+	noPlugins = noPlugins,
 )

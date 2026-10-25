@@ -40,52 +40,105 @@ class RuntimePlugins(
 ) : PluginInstaller {
 	private val packages = directory / PACKAGES_DIRECTORY
 	private val stateFile = directory / STATE_FILE
+	private val loadingMark = directory / LOADING_MARK
 
 	private var registry: PluginRegistry? = null
 
 	// Changes take turns, so each reads the state and the registry the last one left.
 	private val changes = reentrantLock()
 
-	/** The enabled, readable plugins. Never throws: a plugin that cannot load is logged and skipped. */
-	fun load(): List<WasmPlugin> = readState().plugins.mapNotNull { (id, state) -> load(id, state) }
+	// Whether each plugin load is marked on disk, as a guarded activate asks.
+	private var guarded = false
+
+	/** The enabled, readable plugins. Never throws an Exception: a plugin that cannot load is logged and skipped. */
+	fun load(): List<WasmPlugin> = changes.withLock { readState().plugins.mapNotNull { (id, state) -> load(id, state) } }
 
 	/**
-	 * Adds the enabled plugins to [registry], and from now on applies every change to it. Never throws:
-	 * a plugin the registry refuses, such as one adding a command another has, is logged and skipped.
+	 * Adds the enabled plugins to [registry], and from now on applies every change to it. Never throws an
+	 * Exception: a plugin that cannot load, or that the registry refuses, such as one adding a command
+	 * another has, is logged and skipped.
+	 *
+	 * With [crashGuard], this and every later change marks on disk which plugin it is loading, so a
+	 * process that dies loading one, as on an Error, leaves its id behind. The next guarded activation
+	 * then turns that plugin off, noting why in [InstalledPlugin.turnedOffAfterCrash], and loads the rest.
+	 * Pass false where another process may be loading at the same time, whose mark this would take for
+	 * a crash.
 	 */
-	fun activate(registry: PluginRegistry) = changes.withLock {
+	fun activate(registry: PluginRegistry, crashGuard: Boolean = true) = changes.withLock {
 		this.registry = registry
-		load().forEach { plugin ->
+		guarded = crashGuard
+		val crashed = if (crashGuard) turnOffCrashed() else null
+		readState().plugins.forEach { (id, state) ->
+			if (id == crashed) return@forEach
+			val plugin = load(id, state) ?: return@forEach
 			try {
 				registry.add(plugin)
 			} catch (e: IllegalArgumentException) {
 				Napier.e { "Runtime plugin '${plugin.id}' was not added: ${e.message}" }
+			} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+				Napier.e(e) { "Runtime plugin '${plugin.id}' was not added" }
 			}
+		}
+	}
+
+	/** Turns off the plugin the loading mark names, if any is installed, and returns that id. */
+	private fun turnOffCrashed(): String? {
+		val id = try {
+			if (!fileSystem.exists(loadingMark)) return null
+			fileSystem.read(loadingMark) { readUtf8() }.trim()
+		} catch (e: IOException) {
+			Napier.e(e) { "Could not read the runtime plugins loading mark" }
+			return null
+		}
+		val state = readState().plugins[id]
+		if (state != null) {
+			Napier.w { "Hammer closed while loading runtime plugin '$id', so it is turned off" }
+			try {
+				updateState { it + (id to state.copy(enabled = false, turnedOffAfterCrash = true)) }
+			} catch (e: IOException) {
+				// The mark stays, so the next launch tries again; this one still skips the plugin.
+				Napier.e(e) { "Could not turn off runtime plugin '$id'" }
+				return id
+			}
+		}
+		setMark(null)
+		return id
+	}
+
+	/** Records [id] as the plugin loading, or that none is, when null. */
+	private fun setMark(id: String?) {
+		try {
+			if (id != null) fileSystem.write(loadingMark) { writeUtf8(id) } else fileSystem.delete(loadingMark, mustExist = false)
+		} catch (e: IOException) {
+			Napier.e(e) { "Could not update the runtime plugins loading mark" }
 		}
 	}
 
 	private fun load(id: String, state: PluginState): WasmPlugin? {
 		if (!state.enabled) return null
-		return try {
-			val plugin = PluginPackage.read(fileSystem, packagePath(id)).localized(locale)
-			if (plugin.manifest.id != id) throw PluginPackageException("Package id changed to '${plugin.manifest.id}'")
-			plugin.toWasmPlugin(state.granted.toSet())
+		// Cleared only on returning, so an Error leaves it behind.
+		if (guarded) setMark(id)
+		val plugin = try {
+			val read = PluginPackage.read(fileSystem, packagePath(id)).localized(locale)
+			if (read.manifest.id != id) throw PluginPackageException("Package id changed to '${read.manifest.id}'")
+			read.toWasmPlugin(state.granted.toSet())
 		} catch (e: PluginPackageException) {
 			Napier.e { "Runtime plugin '$id' could not load: ${e.message}" }
 			null
-		} catch (e: IOException) {
+		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+			// A malformed package can make the zip or TOML readers throw anything.
 			Napier.e(e) { "Runtime plugin '$id' could not load" }
 			null
 		}
+		if (guarded) setMark(null)
+		return plugin
 	}
 
 	/** Everything installed, loadable or not, for Settings. */
 	fun installed(): List<InstalledPlugin> = readState().plugins.map { (id, state) ->
 		val plugin = try {
 			PluginPackage.read(fileSystem, packagePath(id))
-		} catch (e: PluginPackageException) {
-			null
-		} catch (e: IOException) {
+		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
 			null
 		}
 		InstalledPlugin(
@@ -95,6 +148,7 @@ class RuntimePlugins(
 			granted = state.granted,
 			size = fileSystem.metadataOrNull(packagePath(id))?.size,
 			translations = plugin?.translations?.keys.orEmpty(),
+			turnedOffAfterCrash = state.turnedOffAfterCrash,
 		)
 	}
 
@@ -156,7 +210,7 @@ class RuntimePlugins(
 
 	/** Throws [PluginPackageException], leaving the plugin disabled, when the registry refuses it. */
 	fun setEnabled(id: String, enabled: Boolean): Unit = changes.withLock {
-		val state = readState().plugins[id]?.copy(enabled = enabled) ?: return
+		val state = readState().plugins[id]?.copy(enabled = enabled, turnedOffAfterCrash = false) ?: return
 		val live = registry
 		if (enabled && live != null) {
 			load(id, state)?.let { plugin -> refused { live.validate(plugin) } }
@@ -208,16 +262,34 @@ class RuntimePlugins(
 
 	private fun packagePath(id: String): Path = packages / "$id.${PluginPackage.EXTENSION}"
 
-	private fun readState(): StateFile {
-		if (!fileSystem.exists(stateFile)) return StateFile()
-		return try {
-			toml.decodeFromString(StateFile.serializer(), fileSystem.read(stateFile) { readUtf8() })
+	/**
+	 * The state, or none when it cannot be read. A file that fails to parse is moved aside to
+	 * `_runtime-plugins.toml.unreadable[-<n>]` first, so the next change cannot write over its records.
+	 */
+	private fun readState(): StateFile = changes.withLock {
+		try {
+			if (!fileSystem.exists(stateFile)) return@withLock StateFile()
+			val text = fileSystem.read(stateFile) { readUtf8() }
+			requireShallowToml(text)
+			toml.decodeFromString(StateFile.serializer(), text)
 		} catch (e: IOException) {
 			Napier.e(e) { "Could not read runtime plugin state" }
 			StateFile()
-		} catch (e: IllegalArgumentException) {
-			Napier.e(e) { "Could not read runtime plugin state" }
+		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+			setAside(e)
 			StateFile()
+		}
+	}
+
+	private fun setAside(e: Exception) {
+		try {
+			val aside = generateSequence(1) { it + 1 }
+				.map { n -> directory / (if (n == 1) "$STATE_FILE.$UNREADABLE" else "$STATE_FILE.$UNREADABLE-$n") }
+				.first { !fileSystem.exists(it) }
+			fileSystem.atomicMove(stateFile, aside)
+			Napier.e(e) { "Could not read runtime plugin state; it is kept at $aside" }
+		} catch (moveFailed: IOException) {
+			Napier.e(e) { "Could not read runtime plugin state, nor move it aside: ${moveFailed.message}" }
 		}
 	}
 
@@ -233,13 +305,21 @@ class RuntimePlugins(
 	private class StateFile(val plugins: Map<String, PluginState> = emptyMap())
 
 	@Serializable
-	private data class PluginState(val enabled: Boolean, val granted: List<String> = emptyList())
+	private data class PluginState(
+		val enabled: Boolean,
+		val granted: List<String> = emptyList(),
+		val turnedOffAfterCrash: Boolean = false,
+	)
 
 	companion object {
 		const val PACKAGES_DIRECTORY = "packages"
 
 		// Plugin ids cannot start with an underscore, so no plugin's settings file can collide with this.
 		const val STATE_FILE = "_runtime-plugins.toml"
+
+		/** Holds the id of the plugin a guarded instance is loading, while it loads it. */
+		private const val LOADING_MARK = "_runtime-plugins.loading"
+		private const val UNREADABLE = "unreadable"
 		private const val STAGING_EXTENSION = "partial"
 		private val toml = Toml { ignoreUnknownKeys = true }
 
@@ -267,4 +347,6 @@ class InstalledPlugin(
 	val size: Long? = null,
 	/** The language tags of the package's translations, as named in it. */
 	val translations: Set<String> = emptySet(),
+	/** Whether a guarded activation turned it off, since Hammer closed while loading it. */
+	val turnedOffAfterCrash: Boolean = false,
 )

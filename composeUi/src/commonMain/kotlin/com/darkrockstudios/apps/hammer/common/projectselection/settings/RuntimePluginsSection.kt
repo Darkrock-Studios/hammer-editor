@@ -81,13 +81,18 @@ import com.darkrockstudios.apps.hammer.plugins.wasmhost.PluginPackage
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.PluginPackageException
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.RuntimePlugins
 import io.github.vinceglb.filekit.FileKit
+import io.github.vinceglb.filekit.PlatformFile
 import io.github.vinceglb.filekit.dialogs.FileKitType
 import io.github.vinceglb.filekit.dialogs.openFilePicker
-import io.github.vinceglb.filekit.readBytes
+import io.github.vinceglb.filekit.size
+import io.github.vinceglb.filekit.source
 import kotlin.random.Random
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.io.buffered
 import okio.FileSystem
 import okio.IOException
 import okio.Path
@@ -162,20 +167,25 @@ internal fun ColumnScope.RuntimePluginsSection(
 		label = Res.string.plugin_runtime_install.get(),
 		onClick = {
 			scope.launch {
-				val file = FileKit.openFilePicker(type = FileKitType.File(extensions = listOf(PluginPackage.EXTENSION)))
-					?: return@launch
-				failure = null
-				val staged = withContext(ioDispatcher) { stage(fileSystem, file.readBytes()) }
+				// Deleted unless the prompt takes it, even when leaving Settings cancels this part way.
+				var staged: Path? = null
 				try {
+					val file = FileKit.openFilePicker(type = FileKitType.File(extensions = listOf(PluginPackage.EXTENSION)))
+						?: return@launch
+					failure = null
+					val path = stagingPath().also { staged = it }
+					withContext(ioDispatcher) { stage(fileSystem, file, path) }
 					pending = withContext(ioDispatcher) {
-						PendingInstall(staged, runtimePlugins.inspect(staged), fileSystem.metadata(staged).size ?: 0)
+						PendingInstall(path, runtimePlugins.inspect(path), fileSystem.metadata(path).size ?: 0)
 					}
-				} catch (e: PluginPackageException) {
-					failure = e.message
-					withContext(ioDispatcher) { fileSystem.delete(staged, mustExist = false) }
-				} catch (e: IOException) {
-					failure = e.message
-					withContext(ioDispatcher) { fileSystem.delete(staged, mustExist = false) }
+					staged = null
+				} catch (e: CancellationException) {
+					throw e
+				} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+					// A malformed package can make the readers throw anything; it is shown, not left to crash the app.
+					failure = e.message ?: e::class.simpleName
+				} finally {
+					staged?.let { path -> withContext(NonCancellable + ioDispatcher) { fileSystem.delete(path, mustExist = false) } }
 				}
 			}
 		},
@@ -253,18 +263,36 @@ private fun OperationGrant.label(): String = when (this) {
 }
 
 /**
- * A copy under the cache directory, since a picked file may only be readable while the picker's grant
- * lasts. Each pick gets its own name, so a later pick cannot replace the package a prompt is showing.
+ * Where a picked package is copied, under the cache directory, since a picked file may only be readable
+ * while the picker's grant lasts. Each pick gets its own name, so a later pick cannot replace the package
+ * a prompt is showing.
  */
-private fun stage(fileSystem: FileSystem, bytes: ByteArray): Path {
-	val directory = getCacheDirectory().toPath() / STAGING_DIRECTORY
-	fileSystem.createDirectories(directory)
-	val path = directory / "${Random.nextLong().toULong().toString(16)}.${PluginPackage.EXTENSION}"
-	fileSystem.write(path) { write(bytes) }
-	return path
+private fun stagingPath(): Path =
+	getCacheDirectory().toPath() / STAGING_DIRECTORY / "${Random.nextLong().toULong().toString(16)}.${PluginPackage.EXTENSION}"
+
+/** Copies [file] to [path] in chunks, refused once past [PluginPackage.MAX_PACKAGE_BYTES], since a picked file can be anything. */
+private fun stage(fileSystem: FileSystem, file: PlatformFile, path: Path) {
+	val tooLarge = "The package is larger than ${PluginPackage.MAX_PACKAGE_BYTES} bytes"
+	if (file.size() > PluginPackage.MAX_PACKAGE_BYTES) throw PluginPackageException(tooLarge)
+	fileSystem.createDirectories(path.parent!!)
+	file.source().buffered().use { source ->
+		fileSystem.write(path) {
+			val buffer = ByteArray(STAGING_CHUNK_BYTES)
+			var copied = 0L
+			while (true) {
+				val count = source.readAtMostTo(buffer)
+				if (count == -1) break
+				copied += count
+				// The size a picker reports may be unknown, so the copy checks too.
+				if (copied > PluginPackage.MAX_PACKAGE_BYTES) throw PluginPackageException(tooLarge)
+				write(buffer, 0, count)
+			}
+		}
+	}
 }
 
 private const val STAGING_DIRECTORY = "plugin-install"
+private const val STAGING_CHUNK_BYTES = 64 * 1024
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -282,10 +310,10 @@ private fun InstalledPluginRow(
 			checked = plugin.enabled,
 			onCheckedChange = onEnabledChange,
 			label = manifest?.name ?: plugin.id,
-			hint = if (manifest != null) {
-				Res.string.plugin_runtime_details.get(manifest.version)
-			} else {
-				Res.string.plugin_runtime_unreadable.get()
+			hint = when {
+				manifest == null -> Res.string.plugin_runtime_unreadable.get()
+				plugin.turnedOffAfterCrash -> Res.string.plugin_runtime_turned_off_after_crash.get()
+				else -> Res.string.plugin_runtime_details.get(manifest.version)
 			},
 			enabled = manifest != null,
 			modifier = modifier,

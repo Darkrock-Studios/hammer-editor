@@ -196,7 +196,12 @@ fun main(args: Array<String>) {
 	installGlobalExceptionHandler()
 
 	val runtimePlugins = RuntimePlugins.inConfigDirectory(FileSystem.SYSTEM, EncryptedFileSecretDatasource(FileSystem.SYSTEM))
-	val pluginRegistry = PluginRegistry().also(runtimePlugins::activate)
+	val pluginRegistry = PluginRegistry()
+	if (launchArgs.noPlugins) {
+		Napier.i("Startup: runtime plugins are off for this run (--no-plugins)")
+	} else {
+		runtimePlugins.activate(pluginRegistry)
+	}
 
 	GlobalContext.startKoin {
 		logger(NapierLogger())

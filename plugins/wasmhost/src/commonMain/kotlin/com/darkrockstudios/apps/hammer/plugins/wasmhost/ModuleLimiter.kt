@@ -53,21 +53,22 @@ class ModuleLimiter(
 		val sections = mutableListOf<Section>()
 		while (!reader.atEnd) {
 			val id = reader.byte()
-			val size = reader.u32()
-			sections += Section(id, wasm, reader.pos, size)
-			reader.skip(size)
+			val size = reader.u32Long()
+			require(size <= wasm.size - reader.pos) { "Section $id runs past the end of the module" }
+			sections += Section(id, wasm, reader.pos, size.toInt())
+			reader.skip(size.toInt())
 		}
 		return sections
 	}
 
 	private fun capTables(body: ByteArray): ByteArray {
 		val reader = Reader(body)
-		val count = reader.u32()
+		val count = reader.count()
 		return Writer().apply {
 			u32(count)
 			repeat(count) {
 				// A table with an initializer is prefixed 0x40 0x00 and followed by a constant expression.
-				val initialized = reader.source[reader.pos].toInt() == TABLE_WITH_INIT
+				val initialized = reader.peek() == TABLE_WITH_INIT
 				if (initialized) {
 					reader.skip(2)
 					byte(TABLE_WITH_INIT)
@@ -78,12 +79,12 @@ class ModuleLimiter(
 				bytes(reader.source, typeStart, reader.pos - typeStart)
 				val flags = reader.byte()
 				require(flags and SHARED_OR_64 == 0) { "Shared and 64-bit tables are not supported" }
-				val min = reader.u32()
-				val max = if (flags and HAS_MAX != 0) reader.u32() else null
+				val min = reader.u32Long()
+				val max = if (flags and HAS_MAX != 0) reader.u32Long() else null
 				require(min <= maxTableElements) { "Module needs a table of $min; the limit is $maxTableElements" }
 				byte(HAS_MAX)
-				u32(min)
-				u32(minOf(max ?: maxTableElements, maxTableElements))
+				u32(min.toInt())
+				u32(minOf(max ?: Long.MAX_VALUE, maxTableElements.toLong()).toInt())
 				if (initialized) {
 					val exprStart = reader.pos
 					while (true) {
@@ -99,18 +100,18 @@ class ModuleLimiter(
 
 	private fun capMemories(body: ByteArray): ByteArray {
 		val reader = Reader(body)
-		val count = reader.u32()
+		val count = reader.count()
 		return Writer().apply {
 			u32(count)
 			repeat(count) {
 				val flags = reader.byte()
 				require(flags and SHARED_OR_64 == 0) { "Shared and 64-bit memories are not supported" }
-				val min = reader.u32()
-				val max = if (flags and HAS_MAX != 0) reader.u32() else null
+				val min = reader.u32Long()
+				val max = if (flags and HAS_MAX != 0) reader.u32Long() else null
 				require(min <= maxMemoryPages) { "Module needs $min memory pages; the limit is $maxMemoryPages" }
 				byte(HAS_MAX)
-				u32(min)
-				u32(minOf(max ?: maxMemoryPages, maxMemoryPages))
+				u32(min.toInt())
+				u32(minOf(max ?: Long.MAX_VALUE, maxMemoryPages.toLong()).toInt())
 			}
 		}.toByteArray()
 	}
@@ -192,21 +193,41 @@ class ModuleLimiter(
 	private class Reader(val source: ByteArray, var pos: Int = 0) {
 		val atEnd get() = pos >= source.size
 
-		fun byte(): Int = source[pos++].toInt() and 0xFF
+		fun peek(): Int {
+			require(pos < source.size) { "Module ends in the middle of a section" }
+			return source[pos].toInt() and 0xFF
+		}
+
+		fun byte(): Int = peek().also { pos++ }
 
 		fun skip(count: Int) {
+			require(count in 0..source.size - pos) { "Module ends in the middle of a section" }
 			pos += count
 		}
 
-		fun u32(): Int {
+		/** Wraps a value past [Int.MAX_VALUE] negative, so sizes and limits are read with [u32Long]. */
+		fun u32(): Int = u32Long().toInt()
+
+		fun u32Long(): Long {
 			var result = 0L
 			var shift = 0
 			while (true) {
+				require(shift < U32_MAX_SHIFT) { "Malformed integer in the module" }
 				val b = byte()
 				result = result or ((b and 0x7F).toLong() shl shift)
-				if (b and 0x80 == 0) return result.toInt()
+				if (b and 0x80 == 0) {
+					require(result <= U32_MAX) { "Malformed integer in the module" }
+					return result
+				}
 				shift += 7
 			}
+		}
+
+		/** How many entries follow, each at least a byte. */
+		fun count(): Int {
+			val count = u32Long()
+			require(count <= source.size - pos) { "Module ends in the middle of a section" }
+			return count.toInt()
 		}
 
 		/** Any signed LEB up to 64 bits; the value itself is never needed. */
@@ -225,7 +246,7 @@ class ModuleLimiter(
 		fun valType() = refType()
 
 		fun blockType() {
-			val first = source[pos].toInt() and 0xFF
+			val first = peek()
 			when {
 				first == REF || first == REF_NULL -> {
 					pos++
@@ -291,6 +312,11 @@ class ModuleLimiter(
 		private const val HAS_MAX = 0x01
 		private const val SHARED_OR_64 = 0x06
 		private const val MEMARG_HAS_MEMORY = 0x40
+
+		private const val U32_MAX = 0xFFFFFFFFL
+
+		// A u32 takes at most five 7-bit groups.
+		private const val U32_MAX_SHIFT = 35
 
 		private const val END = 0x0B
 		private const val REF = 0x64

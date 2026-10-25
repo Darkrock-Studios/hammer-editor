@@ -25,6 +25,8 @@ class CliTest {
 		assertEquals(listOf("project", "list"), Cli.commandArgs(arrayOf("--dev", "project", "list")))
 		assertEquals(false, Cli.isInvocation(arrayOf("--dev")))
 		assertEquals(false, Cli.isInvocation(arrayOf("--dev", "--project", "Novel")))
+		assertEquals(false, Cli.isInvocation(arrayOf("--no-plugins")))
+		assertEquals(false, Cli.isInvocation(arrayOf("--dev", "--no-plugins")))
 	}
 
 	@Test

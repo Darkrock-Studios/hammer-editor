@@ -40,7 +40,8 @@ object HeadlessSession {
 
 	/** The plugins active for CLI calls, fresh per process: the enabled runtime plugins. */
 	fun pluginRegistry(): PluginRegistry {
-		return PluginRegistry().also(runtimePlugins::activate)
+		// Unguarded: an app starting while this loads would take the guard's mark for a crash.
+		return PluginRegistry().also { runtimePlugins.activate(it, crashGuard = false) }
 	}
 
 	/** Runs [block] with Hammer started; [plugins] is this process's [pluginRegistry], built once. */
