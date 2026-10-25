@@ -341,6 +341,20 @@ class SceneContentRepositoryTest : BaseTest() {
 	}
 
 	@Test
+	fun `Closing a project whose folder is gone neither fails nor brings the folder back`() = runTest(mainTestDispatcher) {
+		val projDef = getProject1Def()
+		createProject(ffs, PROJECT_1_NAME)
+
+		createStack(projDef)
+		service.initialize()
+		ffs.deleteRecursively(projDef.path.toOkioPath())
+
+		contentRepo.onScopeClose(mockk())
+
+		assertFalse(ffs.exists(projDef.path.toOkioPath()))
+	}
+
+	@Test
 	fun `Discard Dirty buffer`() = runTest(mainTestDispatcher) {
 		val sceneId = 1
 		val projDef = getProject1Def()

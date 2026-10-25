@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import okio.IOException
 import org.koin.core.component.KoinComponent
 import org.koin.core.scope.Scope
 import org.koin.core.scope.ScopeCallback
@@ -360,9 +361,13 @@ class SceneContentRepository(
 		// only in a scope that restored the temp buffers, which otherwise leaves them for the next one.
 		if (tempBuffersRestored.value) {
 			val dirtyIds = getDirtyBufferIds()
-			sceneDatasource.getSceneTempBufferContents()
-				.filterNot { it.scene.id in dirtyIds }
-				.forEach { clearTempScene(it.scene) }
+			try {
+				sceneDatasource.getSceneTempBufferContents()
+					.filterNot { it.scene.id in dirtyIds }
+					.forEach { clearTempScene(it.scene) }
+			} catch (e: IOException) {
+				Napier.w("Could not clear saved scenes' temp buffers on close", e)
+			}
 		}
 		Napier.i("SceneContentRepository Closed.")
 	}
