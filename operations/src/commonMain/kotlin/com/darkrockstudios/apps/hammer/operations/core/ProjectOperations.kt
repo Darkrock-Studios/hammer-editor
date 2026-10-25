@@ -137,7 +137,7 @@ private class ProjectExportOperation : Operation<ProjectExportInput, ExportedFil
 			}
 			val content = project.scope.get<ExportStoryUseCase>().render(options).readByteArray()
 			ExportedFile(
-				fileName = exportFileName(project.def.name, exporter.fileExtension),
+				fileName = exportFileName(project.def.name, exporter.fileExtension).fileName,
 				mimeType = exporter.mimeType,
 				content = content,
 			)

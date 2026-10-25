@@ -124,6 +124,11 @@ internal fun ExportOptionsDialogContent(
 	working: Boolean = false,
 ) {
 	val allSceneIds = remember(exportableScenes) { allSceneIds(exportableScenes) }
+	// A format no longer offered shows, and exports, as the default instead.
+	val shownFormat = formats.firstOrNull { it.formatId == options.format }
+		?: formats.firstOrNull { it.formatId == ExportOptions().format }
+		?: formats.first()
+	val shown = options.copy(format = shownFormat.formatId)
 
 	Surface(
 		modifier = Modifier
@@ -190,41 +195,41 @@ internal fun ExportOptionsDialogContent(
 				verticalArrangement = Arrangement.spacedBy(Ui.Padding.XL),
 			) {
 				HdHairlineToggleRow(
-					checked = options.treatTopLevelAsChapters,
-					onCheckedChange = { onOptionsChanged(options.copy(treatTopLevelAsChapters = it)) },
+					checked = shown.treatTopLevelAsChapters,
+					onCheckedChange = { onOptionsChanged(shown.copy(treatTopLevelAsChapters = it)) },
 					label = Res.string.project_home_export_chapters_label.get(),
 				)
 
 				HdHairlineDropdown(
 					title = Res.string.project_home_export_format_label.get(),
 					options = formats,
-					selected = formats.firstOrNull { it.formatId == options.format } ?: formats.first(),
-					onSelect = { onOptionsChanged(options.copy(format = it.formatId)) },
+					selected = shownFormat,
+					onSelect = { onOptionsChanged(shown.copy(format = it.formatId)) },
 					label = { it.label },
 				)
 
-				if (options.numbersChapters) {
+				if (shown.numbersChapters) {
 					HdHairlineToggleRow(
-						checked = options.numberChapters,
-						onCheckedChange = { onOptionsChanged(options.copy(numberChapters = it)) },
+						checked = shown.numberChapters,
+						onCheckedChange = { onOptionsChanged(shown.copy(numberChapters = it)) },
 						label = Res.string.project_home_export_number_chapters_label.get(),
 					)
 				}
 
-				if (options.format in FONT_EXPORT_FORMATS) {
+				if (shown.format in FONT_EXPORT_FORMATS) {
 					HdHairlineDropdown(
 						title = Res.string.project_home_export_font_label.get(),
 						options = ExportFont.entries,
-						selected = options.font,
-						onSelect = { onOptionsChanged(options.copy(font = it)) },
+						selected = shown.font,
+						onSelect = { onOptionsChanged(shown.copy(font = it)) },
 						label = { it.faceName },
 					)
 				}
 
-				if (options.format != BuiltInExportFormat.MARKDOWN) {
+				if (shown.format != BuiltInExportFormat.MARKDOWN) {
 					HdHairlineToggleRow(
-						checked = options.keepBlankLines,
-						onCheckedChange = { onOptionsChanged(options.copy(keepBlankLines = it)) },
+						checked = shown.keepBlankLines,
+						onCheckedChange = { onOptionsChanged(shown.copy(keepBlankLines = it)) },
 						label = Res.string.project_home_export_blank_lines_label.get(),
 						hint = Res.string.project_home_export_blank_lines_hint.get(),
 					)
@@ -232,21 +237,21 @@ internal fun ExportOptionsDialogContent(
 
 				if (allSceneIds.isNotEmpty()) {
 					HdHairlineToggleRow(
-						checked = options.sceneIds != null,
+						checked = shown.sceneIds != null,
 						onCheckedChange = { limit ->
-							onOptionsChanged(options.copy(sceneIds = if (limit) emptySet() else null))
+							onOptionsChanged(shown.copy(sceneIds = if (limit) emptySet() else null))
 						},
 						label = Res.string.project_home_export_limit_scenes_label.get(),
 						hint = Res.string.project_home_export_limit_scenes_hint.get(),
 					)
 
-					val selectedIds = options.sceneIds
+					val selectedIds = shown.sceneIds
 					if (selectedIds != null) {
 						SceneSelector(
 							entries = exportableScenes,
 							selected = selectedIds,
 							multiple = true,
-							onSelectionChanged = { onOptionsChanged(options.copy(sceneIds = it)) },
+							onSelectionChanged = { onOptionsChanged(shown.copy(sceneIds = it)) },
 						)
 					}
 				}
@@ -261,16 +266,16 @@ internal fun ExportOptionsDialogContent(
 				onPrimary = {
 					// Selecting every scene means no limit at all: exporting the full story
 					// keeps empty chapter groups instead of silently dropping them.
-					val selectedIds = options.sceneIds
+					val selectedIds = shown.sceneIds
 					val confirmed = if (selectedIds != null && isFullSelection(exportableScenes, selectedIds)) {
-						options.copy(sceneIds = null)
+						shown.copy(sceneIds = null)
 					} else {
-						options
+						shown
 					}
 					onConfirm(confirmed)
 				},
 				primaryLoading = working,
-				primaryEnabled = options.sceneIds?.isNotEmpty() ?: true,
+				primaryEnabled = shown.sceneIds?.isNotEmpty() ?: true,
 				cancelEnabled = !working,
 			)
 		}

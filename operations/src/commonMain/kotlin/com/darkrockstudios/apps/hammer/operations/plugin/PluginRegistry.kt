@@ -11,9 +11,11 @@ import com.darkrockstudios.apps.hammer.operations.OperationRegistry
 import com.darkrockstudios.apps.hammer.operations.cli.CliCommand
 import com.darkrockstudios.apps.hammer.operations.core.coreOperations
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
@@ -45,6 +47,8 @@ class PluginRegistry : ExporterSource, KoinComponent {
 
 	override fun exporters(disabledPlugins: Set<String>): List<StoryExporter> =
 		forProject(disabledPlugins).flatMap { it.exporters() }
+
+	override val changes: Flow<Unit> = active.map { }
 
 	/** The active plugins a project with [disabledPlugins] turned off uses. CLI commands ignore this. */
 	fun forProject(disabledPlugins: Set<String>): List<ClientPlugin> = plugins.filterNot { it.id in disabledPlugins }

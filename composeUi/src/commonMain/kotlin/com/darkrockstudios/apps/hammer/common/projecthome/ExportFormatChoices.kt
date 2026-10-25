@@ -1,6 +1,9 @@
 package com.darkrockstudios.apps.hammer.common.projecthome
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.compose.plugin.LocalDisabledPlugins
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
@@ -12,6 +15,7 @@ import com.darkrockstudios.apps.hammer.project_home_export_format_epub
 import com.darkrockstudios.apps.hammer.project_home_export_format_markdown
 import com.darkrockstudios.apps.hammer.project_home_export_format_pdf
 import com.darkrockstudios.apps.hammer.project_home_export_format_rtf
+import kotlinx.coroutines.flow.runningFold
 import org.jetbrains.compose.resources.StringResource
 import org.koin.compose.koinInject
 
@@ -33,5 +37,11 @@ internal fun exportFormatChoices(exporters: List<StoryExporter>): List<ExportFor
 }
 
 @Composable
-internal fun exportFormatChoices(): List<ExportFormatChoice> =
-	exportFormatChoices(koinInject<StoryExporterRegistry>().exporters(LocalDisabledPlugins.current))
+internal fun exportFormatChoices(
+	registry: StoryExporterRegistry = koinInject(),
+	disabledPlugins: Set<String> = LocalDisabledPlugins.current,
+): List<ExportFormatChoice> {
+	val changes by remember(registry) { registry.changes.runningFold(0) { count, _ -> count + 1 } }.collectAsState(0)
+	val exporters = remember(registry, disabledPlugins, changes) { registry.exporters(disabledPlugins) }
+	return exportFormatChoices(exporters)
+}

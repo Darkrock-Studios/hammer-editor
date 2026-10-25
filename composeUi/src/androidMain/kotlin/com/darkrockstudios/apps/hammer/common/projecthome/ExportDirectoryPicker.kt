@@ -35,7 +35,7 @@ actual fun ExportDirectoryPicker(
 	val externalFileIo: ExternalFileIo = rememberKoinInject()
 	val exporters: StoryExporterRegistry = rememberKoinInject()
 	val state by component.state.subscribeAsState()
-	val mimeType = exporters.forFormat(state.exportOptions.format).mimeType
+	val mimeType = exporters.forFormatOrDefault(state.exportOptions.format).mimeType
 	// Snapshot of the confirmed options taken when the SAF picker launches; the
 	// picker does not block the app, so options must not be re-read afterwards.
 	var confirmedOptions by remember { mutableStateOf<ExportOptions?>(null) }
@@ -79,7 +79,7 @@ actual fun ExportDirectoryPicker(
 		if (show) {
 			val options = component.state.value.exportOptions
 			confirmedOptions = options
-			launcher.launch(component.getExportStoryFileName(options.format))
+			launcher.launch(component.getExportStoryFileName(options.format).fileName)
 		}
 	}
 }

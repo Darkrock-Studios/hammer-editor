@@ -19,6 +19,7 @@ import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.ExportOptions
 import com.darkrockstudios.apps.hammer.common.data.Msg
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
+import com.darkrockstudios.apps.hammer.common.data.export.ExportFileName
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupDef
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.EntryAppearance
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -124,7 +125,7 @@ private val component = object : ProjectHome {
 	override fun showEntry(entry: EntryAppearance) {}
 	override fun supportsBackup(): Boolean = true
 	override fun createBackup(callback: (ProjectBackupDef?) -> Unit) {}
-	override fun getExportStoryFileName(format: String): String = "story"
+	override fun getExportStoryFileName(format: String) = ExportFileName("story", "epub")
 	override fun refreshStatistics() {}
 	override fun showProjectStats() {}
 	override fun showProjectSettings() {}

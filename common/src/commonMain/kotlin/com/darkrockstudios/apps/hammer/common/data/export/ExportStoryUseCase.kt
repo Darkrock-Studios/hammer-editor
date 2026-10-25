@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.common.data.ExportOptions
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
+import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectPluginsRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.tree.ChapterScenes
 import com.darkrockstudios.apps.hammer.common.data.tree.collectChapters
@@ -17,15 +18,19 @@ import com.darkrockstudios.apps.hammer.common.util.DeviceLocaleResolver
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.apps.hammer.project_home_export_byline
 import com.darkrockstudios.apps.hammer.project_home_export_contents_title
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import okio.Buffer
 import okio.FileSystem
 import org.koin.core.component.KoinComponent
 
-fun exportFileName(projectName: String, fileExtension: String): String {
-	val safeName = projectName.sanitizedFileName().ifBlank { "story" }
-	return "$safeName.$fileExtension"
+/** An export's file name, with the extension apart for save dialogs that add it themselves. */
+data class ExportFileName(val baseName: String, val extension: String) {
+	val fileName: String get() = "$baseName.$extension"
 }
+
+fun exportFileName(projectName: String, fileExtension: String): ExportFileName =
+	ExportFileName(projectName.sanitizedFileName().ifBlank { "story" }, fileExtension)
 
 /** Strips characters that have meaning in file paths or the SAF picker; covers project names that came from sync. */
 private val unsafeFileNameChars = Regex("""[/\\:*?"<>|\x00-\x1F]""")
@@ -35,6 +40,7 @@ private fun String.sanitizedFileName(): String =
 class ExportStoryUseCase(
 	private val sceneEditorRepository: SceneEditorService,
 	private val exporters: StoryExporterRegistry,
+	private val projectPlugins: ProjectPluginsRepository,
 	private val projectDataDatasource: ProjectDataDatasource,
 	private val fileSystem: FileSystem,
 	private val localeResolver: DeviceLocaleResolver,
@@ -46,8 +52,8 @@ class ExportStoryUseCase(
 
 	suspend fun execute(exportDir: HPath, options: ExportOptions): HPath {
 		val projectName = sceneEditorRepository.projectDef.name
-		val fileExtension = exporters.forFormat(options.format).fileExtension
-		val targetFile = (exportDir.toOkioPath() / exportFileName(projectName, fileExtension)).toHPath()
+		val fileExtension = exporterFor(options.format).fileExtension
+		val targetFile = (exportDir.toOkioPath() / exportFileName(projectName, fileExtension).fileName).toHPath()
 		return executeToFile(targetFile, options)
 	}
 
@@ -73,7 +79,7 @@ class ExportStoryUseCase(
 	/** Reads source data off [ioDispatcher], then renders the document into an in-memory buffer on [defaultDispatcher]. */
 	suspend fun render(options: ExportOptions): Buffer {
 		val projectName = sceneEditorRepository.projectDef.name
-		val exporter = exporters.forFormat(options.format)
+		val exporter = exporterFor(options.format)
 		val input = withContext(ioDispatcher) {
 			val chapters = sceneEditorRepository.getSceneTree().collectChapters().mapNotNull { chapter ->
 				chapterFor(chapter, options)
@@ -97,6 +103,12 @@ class ExportStoryUseCase(
 		return withContext(defaultDispatcher) {
 			Buffer().also { exporter.render(it, input) }
 		}
+	}
+
+	/** Throws [IllegalArgumentException] when the project cannot export to [format]. */
+	private suspend fun exporterFor(format: String): StoryExporter {
+		val disabledPlugins = projectPlugins.disabledPlugins(sceneEditorRepository.projectDef.id).first()
+		return exporters.forFormat(format, disabledPlugins)
 	}
 
 	/** Resolves the user-facing strings that appear inside the exported document for the active locale. */

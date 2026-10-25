@@ -2,13 +2,18 @@ package data.export
 
 import com.darkrockstudios.apps.hammer.common.data.export.BuiltInExportFormat
 import com.darkrockstudios.apps.hammer.common.data.export.ExportInput
+import com.darkrockstudios.apps.hammer.common.data.export.ExporterSource
 import com.darkrockstudios.apps.hammer.common.data.export.StoryExporter
 import com.darkrockstudios.apps.hammer.common.data.export.StoryExporterRegistry
+import kotlinx.coroutines.flow.emptyFlow
 import okio.BufferedSink
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertSame
+import kotlin.test.assertTrue
 
 class StoryExporterRegistryTest {
 
@@ -48,5 +53,31 @@ class StoryExporterRegistryTest {
 	@Test
 	fun `a contributed format cannot reuse an existing id`() {
 		assertThrows<IllegalArgumentException> { StoryExporterRegistry(listOf(FakeExporter(BuiltInExportFormat.PDF))) }
+	}
+
+	private class ThrowingSource : ExporterSource {
+		override val changes = emptyFlow<Unit>()
+		override fun exporters(disabledPlugins: Set<String>): List<StoryExporter> = error("plugin blew up")
+	}
+
+	@Test
+	fun `a source that throws contributes nothing and leaves the other formats working`() {
+		val contributed = FakeExporter("aa.two")
+		val registry = StoryExporterRegistry(listOf(contributed), listOf(ThrowingSource()))
+
+		assertEquals("epub", registry.forFormat(BuiltInExportFormat.EPUB).fileExtension)
+		assertSame(contributed, registry.forFormat("aa.two"))
+		assertTrue(registry.isRegistered(BuiltInExportFormat.PDF))
+		assertFalse(registry.isRegistered("gone.fmt"))
+		assertEquals(6, registry.exporters.size)
+		assertEquals(6, registry.exporters(setOf("other")).size)
+	}
+
+	@Test
+	fun `an unknown format falls back to the default without throwing`() {
+		val registry = StoryExporterRegistry(emptyList())
+
+		assertNull(registry.find("gone.fmt"))
+		assertEquals(BuiltInExportFormat.EPUB, registry.forFormatOrDefault("gone.fmt").formatId)
 	}
 }

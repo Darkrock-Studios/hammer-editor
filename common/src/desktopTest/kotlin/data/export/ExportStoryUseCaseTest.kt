@@ -4,12 +4,18 @@ import PROJECT_1_NAME
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.common.data.export.ExportStoryUseCase
 import com.darkrockstudios.apps.hammer.common.data.export.BuiltInExportFormat
+import com.darkrockstudios.apps.hammer.common.data.export.ExportFileName
 import com.darkrockstudios.apps.hammer.common.data.export.ExportInput
+import com.darkrockstudios.apps.hammer.common.data.export.ExporterSource
+import com.darkrockstudios.apps.hammer.common.data.export.exportFileName
 import com.darkrockstudios.apps.hammer.common.data.export.StoryExporter
 import com.darkrockstudios.apps.hammer.common.data.export.StoryExporterRegistry
 import com.darkrockstudios.apps.hammer.common.data.ExportOptions
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectdata.StoredProjectData
+import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectPluginsDatasource
+import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectPluginsRepository
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.util.DeviceLocaleResolver
 import com.darkrockstudios.apps.hammer.common.util.Locale
@@ -18,10 +24,12 @@ import integration.BaseIntegrationTest
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.jetbrains.compose.resources.StringResource
 import org.junit.jupiter.api.BeforeEach
 import okio.BufferedSink
+import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -33,6 +41,7 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 	private lateinit var storedProjectData: StoredProjectData
 	private lateinit var localeResolver: DeviceLocaleResolver
 	private lateinit var strRes: StrRes
+	private lateinit var projectPlugins: ProjectPluginsRepository
 	private var projectDataLoads = 0
 
 	@BeforeEach
@@ -51,15 +60,20 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 			every { getCurrentLocale() } returns Locale.forLanguageTag("en-US")
 		}
 		strRes = mockk(relaxed = true)
+		projectPlugins = ProjectPluginsRepository(ProjectPluginsDatasource(FakeFileSystem(), createTomlSerializer()))
 	}
 
 	private suspend fun initRepo() {
 		sceneEditorRepository.initializeSceneEditor()
 	}
 
-	private fun useCase(contributed: List<StoryExporter> = emptyList()) = ExportStoryUseCase(
+	private fun useCase(
+		contributed: List<StoryExporter> = emptyList(),
+		sources: List<ExporterSource> = emptyList(),
+	) = ExportStoryUseCase(
 		sceneEditorRepository = sceneEditorService,
-		exporters = StoryExporterRegistry(contributed),
+		exporters = StoryExporterRegistry(contributed, sources),
+		projectPlugins = projectPlugins,
 		projectDataDatasource = projectDataDatasource,
 		fileSystem = ffs,
 		localeResolver = localeResolver,
@@ -114,6 +128,33 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 		assertFailsWith<IllegalArgumentException> {
 			useCase().execute(exportDir = projectPath, options = ExportOptions(format = "missing"))
 		}
+	}
+
+	@Test
+	fun `a format from a plugin the project turned off is rejected`() = runTest {
+		initRepo()
+		val exporter = object : StoryExporter {
+			override val formatId = "fake.txt"
+			override val fileExtension = "txt"
+			override val mimeType = "text/plain"
+			override fun render(sink: BufferedSink, input: ExportInput) = Unit
+		}
+		val plugin = object : ExporterSource {
+			override val changes = flowOf(Unit)
+			override fun exporters(disabledPlugins: Set<String>): List<StoryExporter> =
+				if ("fake" in disabledPlugins) emptyList() else listOf(exporter)
+		}
+		projectPlugins.setPluginEnabled(projectDef.id, "fake", enabled = false)
+
+		assertFailsWith<IllegalArgumentException> {
+			useCase(sources = listOf(plugin)).execute(exportDir = projectPath, options = ExportOptions(format = "fake.txt"))
+		}
+	}
+
+	@Test
+	fun `a dotted project name stays in the base name`() {
+		assertEquals(ExportFileName("Vol. 2", "tar.gz"), exportFileName("Vol. 2", "tar.gz"))
+		assertEquals("Vol. 2.tar.gz", exportFileName("Vol. 2", "tar.gz").fileName)
 	}
 
 	@Test

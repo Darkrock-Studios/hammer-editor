@@ -9,6 +9,7 @@ import com.darkrockstudios.apps.hammer.common.data.ExportFont
 import com.darkrockstudios.apps.hammer.common.data.ExportOptions
 import com.darkrockstudios.apps.hammer.common.data.export.BuiltInExportFormat
 import com.darkrockstudios.apps.hammer.common.data.export.ExportInput
+import com.darkrockstudios.apps.hammer.common.data.export.ExporterSource
 import com.darkrockstudios.apps.hammer.common.data.export.StoryExporter
 import com.darkrockstudios.apps.hammer.common.data.export.StoryExporterRegistry
 import com.darkrockstudios.apps.hammer.common.data.ExportableScene
@@ -17,6 +18,8 @@ import com.darkrockstudios.apps.hammer.common.projecthome.ExportFormatChoice
 import com.darkrockstudios.apps.hammer.common.projecthome.ExportOptionsDialogContent
 import com.darkrockstudios.apps.hammer.common.projecthome.exportFormatChoices
 import com.darkrockstudios.apps.hammer.settings_plugins_header
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.map
 import okio.BufferedSink
 import org.junit.Rule
 import org.junit.Test
@@ -178,6 +181,31 @@ class ExportOptionsDialogTest : BaseTest() {
 	}
 
 	@Test
+	fun `A format no longer offered is replaced by the default it shows`() {
+		var confirmed: ExportOptions? = null
+		compose.setContent {
+			KoinApplicationPreview {
+				ExportOptionsDialogContent(
+					options = ExportOptions(format = "gone.fdx"),
+					formats = exportFormatChoices(),
+					exportableScenes = entries,
+					onOptionsChanged = {},
+					onCancel = {},
+					onConfirm = { confirmed = it },
+					onShowHelp = {},
+				)
+			}
+		}
+
+		compose.onNodeWithText("EPub (.epub)").assertExists()
+		compose.onNodeWithText("Georgia").assertExists()
+		compose.onNodeWithText("Export").performClick()
+		compose.waitForIdle()
+
+		assertEquals(BuiltInExportFormat.EPUB, confirmed?.format)
+	}
+
+	@Test
 	fun `A contributed format shows its own label, or its extension without one`() {
 		var choices: List<ExportFormatChoice> = emptyList()
 		compose.setContent {
@@ -189,6 +217,27 @@ class ExportOptionsDialogTest : BaseTest() {
 
 		assertEquals("FDX", choices.single { it.formatId == "a.fdx" }.label)
 		assertEquals("Plain text", choices.single { it.formatId == "b.txt" }.label)
+	}
+
+	@Test
+	fun `The format choices follow plugins added while they show`() {
+		val formats = MutableStateFlow<List<StoryExporter>>(emptyList())
+		val plugins = object : ExporterSource {
+			override val changes = formats.map { }
+			override fun exporters(disabledPlugins: Set<String>) = formats.value
+		}
+		val registry = StoryExporterRegistry(emptyList(), listOf(plugins))
+		var choices: List<ExportFormatChoice> = emptyList()
+		compose.setContent {
+			choices = exportFormatChoices(registry, disabledPlugins = emptySet())
+		}
+		compose.waitForIdle()
+		assertNull(choices.firstOrNull { it.formatId == "a.fdx" })
+
+		formats.value = listOf(FakeExporter("a.fdx", "fdx"))
+		compose.waitForIdle()
+
+		assertEquals("FDX", choices.single { it.formatId == "a.fdx" }.label)
 	}
 
 	private class FakeExporter(

@@ -32,6 +32,8 @@ import com.darkrockstudios.apps.hammer.common.data.export.exportFileName
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.util.formatLocal
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -66,7 +68,7 @@ class ProjectHomeComponent(
 	private val tagIndexService: TagIndexService by projectInject()
 	private val projectPlugins: ProjectPluginsRepository by inject()
 
-	// Read when the export dialog opens, which cannot wait on a file.
+	// Read on export lookups, which cannot wait on a file.
 	private var disabledPlugins = emptySet<String>()
 
 	private val contentRouter = ProjectHomeContentRouter(componentContext, projectDef)
@@ -92,9 +94,7 @@ class ProjectHomeComponent(
 	override fun beginProjectExport() {
 		_state.getAndUpdate {
 			// A scene limit from a previous export would silently narrow this one.
-			val format = it.exportOptions.format.takeIf { format -> exporters.isRegistered(format, disabledPlugins) }
-				?: ExportOptions().format
-			val options = it.exportOptions.copy(format = format, sceneIds = null)
+			val options = it.exportOptions.withAvailableFormat().copy(sceneIds = null)
 			exportOptionsBeforeDialog = options
 			it.copy(
 				showExportDialog = true,
@@ -120,7 +120,7 @@ class ProjectHomeComponent(
 
 	override fun updateExportOptions(options: ExportOptions) {
 		_state.getAndUpdate {
-			it.copy(exportOptions = options)
+			it.copy(exportOptions = options.withAvailableFormat())
 		}
 	}
 
@@ -143,10 +143,19 @@ class ProjectHomeComponent(
 		// Keep the dialog open through the file picker and export so it can show the working state.
 		_state.getAndUpdate {
 			it.copy(
-				exportOptions = options,
+				exportOptions = options.withAvailableFormat(),
 				showExportFilePicker = true,
 			)
 		}
+	}
+
+	/** These options, with the default format in place of one the project cannot export to. */
+	private fun ExportOptions.withAvailableFormat(): ExportOptions =
+		if (exporters.isRegistered(format, disabledPlugins)) this else copy(format = ExportOptions().format)
+
+	private fun dropUnavailableExportFormat() {
+		exportOptionsBeforeDialog = exportOptionsBeforeDialog?.withAvailableFormat()
+		_state.getAndUpdate { it.copy(exportOptions = it.exportOptions.withAvailableFormat()) }
 	}
 
 	override fun endProjectExport() {
@@ -243,8 +252,14 @@ class ProjectHomeComponent(
 		loadData()
 		listenForSyncEvents()
 		scope.launch {
-			projectPlugins.disabledPlugins(projectDef.id).collect { disabled ->
-				withContext(dispatcherMain) { disabledPlugins = disabled }
+			// The registry's changes never emit when it has no sources.
+			combine(exporters.changes.onStart { emit(Unit) }, projectPlugins.disabledPlugins(projectDef.id)) { _, disabled ->
+				disabled
+			}.collect { disabled ->
+				withContext(dispatcherMain) {
+					disabledPlugins = disabled
+					dropUnavailableExportFormat()
+				}
 			}
 		}
 	}
@@ -367,7 +382,7 @@ class ProjectHomeComponent(
 	override fun isAtRoot() = true
 	override fun shouldConfirmClose() = emptySet<CloseConfirm>()
 	override fun getExportStoryFileName(format: String) =
-		exportFileName(projectDef.name, exporters.forFormat(format).fileExtension)
+		exportFileName(projectDef.name, exporters.forFormatOrDefault(format, disabledPlugins).fileExtension)
 
 	override fun showProjectStats() = contentRouter.showProjectStats()
 	override fun showProjectSettings() = contentRouter.showProjectSettings()

@@ -313,6 +313,7 @@ val mainModule = module {
 			ExportStoryUseCase(
 				sceneEditorRepository = get(),
 				exporters = get(),
+				projectPlugins = get(),
 				projectDataDatasource = get(),
 				fileSystem = get(named(RAW_FILESYSTEM)),
 				localeResolver = get(),
