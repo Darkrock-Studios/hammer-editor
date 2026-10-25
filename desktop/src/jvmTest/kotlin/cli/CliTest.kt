@@ -5,6 +5,7 @@ import com.darkrockstudios.apps.hammer.operations.cli.CliIo
 import okio.Buffer
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 /** Only what runs before Hammer starts: finding the command and reading its options. */
@@ -64,6 +65,12 @@ class CliTest {
 
 		assertEquals(Cli.EXIT_OK, run("scene", "delete", "--help"))
 		assertTrue("--confirm" in stdout.readUtf8())
+	}
+
+	@Test
+	fun `writing a scene's prose needs no confirming`() {
+		assertEquals(Cli.EXIT_OK, run("scene", "append", "--help"))
+		assertFalse("--confirm" in stdout.readUtf8())
 	}
 
 	@Test

@@ -27,6 +27,7 @@
 	<string name="plugin_install_sandbox">Plugins run in a sandbox. This one can only use what is listed here.</string>
 	<string name="plugin_install_reads">Read</string>
 	<string name="plugin_install_writes">Change</string>
+	<string name="plugin_install_prose">Change the text of your scenes</string>
 	<string name="plugin_install_deletes">Delete, which cannot be undone</string>
 	<string name="plugin_install_http">Send what you write over the internet</string>
 	<string name="plugin_install_user_host">To the address you enter in “%1$s”</string>
@@ -50,7 +51,7 @@
 	<string name="plugin_install_memory">Memory</string>
 	<string name="plugin_install_memory_value">Up to %1$s MB</string>
 	<string name="plugin_install_scope_content_read">everything in your projects</string>
-	<string name="plugin_install_scope_content_write">anything in your projects, but never delete</string>
+	<string name="plugin_install_scope_content_write">anything in your projects but the text of your scenes, and never delete</string>
 	<string name="plugin_install_scope_account_read">your sync account's status</string>
 	<string name="plugin_install_scope_account_write">your sync account: log in, log out, and sync</string>
 	<string name="plugin_install_scope_plugins_read">which plugins are installed</string>

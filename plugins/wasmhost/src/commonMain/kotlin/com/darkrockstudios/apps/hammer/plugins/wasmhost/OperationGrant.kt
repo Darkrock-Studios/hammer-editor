@@ -7,8 +7,8 @@ import com.darkrockstudios.apps.hammer.operations.core.OperationDescriptor
 
 /**
  * One entry of a manifest's `permissions.operations`: an operation by name, such as `scene.read`, or
- * every Read or Write operation in a scope, such as `content:write`. Destructive operations are only
- * ever granted by name.
+ * every Read or Write operation in a scope, such as `content:write`. Prose and Destructive operations
+ * are only ever granted by name.
  */
 sealed interface OperationGrant {
 	fun covers(op: OperationDescriptor): Boolean

@@ -243,10 +243,19 @@ private fun packageSize(bytes: Long): String {
 	return Res.string.plugin_install_size_mb.get("${tenths / 10}.${tenths % 10}")
 }
 
-/** Null for an operation this version of Hammer does not have, which is shown with the changes. */
-private fun OperationGrant.access(operations: OperationRegistry): Access? = when (this) {
-	is OperationGrant.Named -> operations.find(name)?.access
-	is OperationGrant.Scoped -> access
+/**
+ * [grants] by the [Access] level the install prompt lists them under. A named operation this version of
+ * Hammer does not have, which [accessOf] gives null for, is listed after the changes.
+ */
+internal fun grantsByAccess(grants: List<OperationGrant>, accessOf: (String) -> Access?): Map<Access, List<OperationGrant>> {
+	val byAccess = grants.groupBy {
+		when (it) {
+			is OperationGrant.Named -> accessOf(it.name)
+			is OperationGrant.Scoped -> it.access
+		}
+	}
+	return Access.entries.associateWith { byAccess[it].orEmpty() } +
+		(Access.Write to byAccess[Access.Write].orEmpty() + byAccess[null].orEmpty())
 }
 
 @Composable
@@ -611,23 +620,28 @@ private fun PluginAccess(
 		if (grants.isEmpty()) {
 			Text(Res.string.plugin_install_no_access.get(), style = MaterialTheme.typography.bodyMedium)
 		}
-		val byAccess = grants.groupBy { it.access(operations) }
+		val byAccess = grantsByAccess(grants) { operations.find(it)?.access }
 		val colors = LocalHammerColors.current
 		AccessLevel(
 			title = Res.string.plugin_install_reads.get(),
 			color = MaterialTheme.colorScheme.outlineVariant,
 			labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-			grants = byAccess[Access.Read].orEmpty(),
+			grants = byAccess.getValue(Access.Read),
 		)
 		AccessLevel(
 			title = Res.string.plugin_install_writes.get(),
 			color = colors.warning,
-			grants = byAccess[Access.Write].orEmpty() + byAccess[null].orEmpty(),
+			grants = byAccess.getValue(Access.Write),
+		)
+		AccessLevel(
+			title = Res.string.plugin_install_prose.get(),
+			color = colors.danger,
+			grants = byAccess.getValue(Access.Prose),
 		)
 		AccessLevel(
 			title = Res.string.plugin_install_deletes.get(),
 			color = colors.danger,
-			grants = byAccess[Access.Destructive].orEmpty(),
+			grants = byAccess.getValue(Access.Destructive),
 		)
 		val http = manifest.permissions.http
 		val userHosts = manifest.permissions.userHosts

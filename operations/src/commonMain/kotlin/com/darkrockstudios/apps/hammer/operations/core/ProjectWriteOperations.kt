@@ -63,7 +63,7 @@ internal fun projectWriteOperations(): List<Operation<*, *>> = listOf(
 	operation<ProjectImportInput, ProjectImported>(
 		name = "project.import",
 		description = "Create a project from a Markdown or RTF manuscript, split into scenes by its headings or a chapter pattern.",
-		access = Access.Write,
+		access = Access.Prose,
 		scope = OperationScope.Content,
 	) { input ->
 		val preview = preview(input)

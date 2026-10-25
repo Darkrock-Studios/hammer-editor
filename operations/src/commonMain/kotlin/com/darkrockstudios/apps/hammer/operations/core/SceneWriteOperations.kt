@@ -25,7 +25,7 @@ internal fun sceneWriteOperations(): List<Operation<*, *>> = listOf(
 		name = "scene.write",
 		description = "Replace a scene's text with markdown. Mode draft saves it as a new draft of the scene and leaves " +
 			"the scene alone. Mode live replaces the scene's text, saving the old text as a draft first.",
-		access = Access.Write,
+		access = Access.Prose,
 		scope = OperationScope.Content,
 	) { input ->
 		projects.withProject(input.project) { project ->
@@ -49,7 +49,7 @@ internal fun sceneWriteOperations(): List<Operation<*, *>> = listOf(
 	operation<SceneAppendInput, SceneWordCount>(
 		name = "scene.append",
 		description = "Add markdown to the end of a scene's text, as a new paragraph.",
-		access = Access.Write,
+		access = Access.Prose,
 		scope = OperationScope.Content,
 	) { input ->
 		if (input.markdown.isBlank()) invalidInput("Nothing to append")
@@ -221,7 +221,7 @@ internal fun sceneWriteOperations(): List<Operation<*, *>> = listOf(
 	operation<DraftApplyInput, DraftApplied>(
 		name = "draft.apply",
 		description = "Replace a scene's text with one of its drafts, saving the replaced text as a draft first.",
-		access = Access.Write,
+		access = Access.Prose,
 		scope = OperationScope.Content,
 	) { input ->
 		projects.withProject(input.project) { project ->

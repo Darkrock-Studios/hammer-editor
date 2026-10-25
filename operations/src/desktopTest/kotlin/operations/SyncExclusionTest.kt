@@ -11,9 +11,13 @@ import com.darkrockstudios.apps.hammer.operations.OperationRegistry
 import com.darkrockstudios.apps.hammer.operations.OperationScope
 import com.darkrockstudios.apps.hammer.operations.core.Backup
 import com.darkrockstudios.apps.hammer.operations.core.ProjectInput
+import com.darkrockstudios.apps.hammer.operations.core.ProjectItemInput
+import com.darkrockstudios.apps.hammer.operations.core.SceneAppendInput
 import com.darkrockstudios.apps.hammer.operations.core.SceneCreateInput
 import com.darkrockstudios.apps.hammer.operations.core.SceneItemRef
+import com.darkrockstudios.apps.hammer.operations.core.SceneText
 import com.darkrockstudios.apps.hammer.operations.core.SceneTree
+import com.darkrockstudios.apps.hammer.operations.core.SceneWordCount
 import com.darkrockstudios.apps.hammer.operations.core.coreOperations
 import com.darkrockstudios.apps.hammer.operations.operation
 import kotlinx.coroutines.CompletableDeferred
@@ -89,6 +93,17 @@ class SyncExclusionTest : KoinOperationsTest() {
 		gate.withSync(def) {
 			busy { run<ProjectInput, Backup>("backup.create", ProjectInput(PROJECT)) }
 		}
+	}
+
+	@Test
+	fun `writing a scene's prose is refused while its project syncs`() = onTestThread {
+		val scene = createScene(PROJECT)
+
+		gate.withSync(def) {
+			busy { run<SceneAppendInput, SceneWordCount>("scene.append", SceneAppendInput(PROJECT, scene.id, "Rain.")) }
+		}
+
+		assertEquals("", run<ProjectItemInput, SceneText>("scene.read", ProjectItemInput(PROJECT, scene.id)).markdown)
 	}
 
 	@Test

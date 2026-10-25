@@ -19,6 +19,8 @@ import com.darkrockstudios.apps.hammer.operations.ProjectResolver
 import com.darkrockstudios.apps.hammer.operations.cli.Dispatcher
 import com.darkrockstudios.apps.hammer.operations.core.OPS_LIST
 import com.darkrockstudios.apps.hammer.operations.core.OperationDescriptor
+import com.darkrockstudios.apps.hammer.operations.core.coreOperations
+import com.darkrockstudios.apps.hammer.operations.core.descriptor
 import com.darkrockstudios.apps.hammer.operations.notFound
 import com.darkrockstudios.apps.hammer.operations.operation
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.PluginCache
@@ -155,6 +157,18 @@ class WasmPluginTest {
 	}
 
 	@Test
+	fun `writing a scene's prose must be named`() {
+		val core = coreOperations().map { it.descriptor() }
+		val scoped = FakeDispatcher(operations = core)
+		assertEquals(WasmPlugin.PERMISSION_DENIED, caller(pluginGranted("\"content:write\""), scoped)("scene.append").errorKind())
+		assertEquals(emptyList(), scoped.dispatched)
+
+		val named = FakeDispatcher(operations = core)
+		assertEquals("Hello", caller(pluginGranted("\"scene.append\""), named)("scene.append")["output"]!!.jsonObject["text"]!!.jsonPrimitive.content)
+		assertEquals(listOf("scene.append"), named.dispatched)
+	}
+
+	@Test
 	fun `a failure reaching Hammer comes back to the module`() {
 		val reply = caller(pluginGranted("\"greet\""), FakeDispatcher(IllegalStateException("Hammer is busy")))("greet")
 
@@ -268,15 +282,17 @@ class WasmPluginTest {
 		}
 	}
 
-	private class FakeDispatcher(private val failure: Throwable? = null) : Dispatcher {
-		val dispatched = mutableListOf<String>()
-		private val operations = listOf(
+	private class FakeDispatcher(
+		private val failure: Throwable? = null,
+		private val operations: List<OperationDescriptor> = listOf(
 			descriptor("greet", Access.Read),
 			descriptor(OPS_LIST, Access.Read),
 			descriptor("wave", Access.Write),
 			descriptor("zap", Access.Destructive),
 			descriptor("status", Access.Read, OperationScope.Account),
-		)
+		),
+	) : Dispatcher {
+		val dispatched = mutableListOf<String>()
 
 		override suspend fun operations() = operations
 
@@ -286,8 +302,10 @@ class WasmPluginTest {
 			return buildJsonObject { put("text", "Hello") }
 		}
 
-		private fun descriptor(name: String, access: Access, scope: OperationScope = OperationScope.Content) =
-			OperationDescriptor(name, "", access, scope, JsonObject(emptyMap()), JsonObject(emptyMap()))
+		companion object {
+			private fun descriptor(name: String, access: Access, scope: OperationScope = OperationScope.Content) =
+				OperationDescriptor(name, "", access, scope, JsonObject(emptyMap()), JsonObject(emptyMap()))
+		}
 	}
 
 	private fun JsonObject.errorKind() = this["error"]!!.jsonObject["kind"]!!.jsonPrimitive.content

@@ -37,6 +37,9 @@ interface Operation<I, O> {
 enum class Access {
 	@SerialName("read") Read,
 	@SerialName("write") Write,
+
+	/** Puts text into a scene's prose. Like [Destructive], a plugin only gets it by naming the operation. */
+	@SerialName("prose") Prose,
 	@SerialName("destructive") Destructive,
 }
 

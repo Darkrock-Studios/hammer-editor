@@ -117,7 +117,7 @@ interface Operation<I, O> {
 	suspend fun run(context: OperationContext, input: I): O
 }
 
-enum class Access { Read, Write, Destructive }
+enum class Access { Read, Write, Prose, Destructive }
 
 /** What an operation reaches into. A plugin can be granted every Read or Write operation in a scope at once. */
 enum class OperationScope { Content, Account, Plugins }
@@ -182,9 +182,12 @@ Conventions:
   CLI. An update replaces the body, so the body is required there too; the
   other fields keep their value when left out. An optional body would leave
   `hammer note update --tags x` waiting on stdin.
-- **Read** operations change nothing. **Write** operations change content.
-  **Destructive** operations delete or overwrite in a way a draft cannot undo;
-  the CLI requires `--confirm`, and a plugin only gets one by naming it.
+- **Read** operations change nothing. **Write** operations change content
+  other than a scene's prose. **Prose** operations put text into a scene's
+  prose; a plugin only gets one by naming it, but the CLI runs them without
+  `--confirm`, since it is the writer's own tool. **Destructive** operations
+  delete or overwrite in a way a draft cannot undo; the CLI requires
+  `--confirm`, and a plugin only gets one by naming it.
 - Each operation declares its **scope**: `content` (projects and everything in
   them), `account` (credentials and the sync server), or `plugins` (the
   runtime plugins installed). Nothing in the
@@ -208,7 +211,7 @@ Conventions:
 | `project.delete` | Destructive | Refused while the project is open, and while the app runs (not forwarded) |
 | `project.export` | Read | Format id and scene subset as in `ExportOptions`; returns the file's bytes |
 | `export.formats` | Read | Available export formats: id, file extension, MIME type |
-| `project.import` | Write | Format and split options as in `ImportOptions`, plus the file's bytes |
+| `project.import` | Prose | Format and split options as in `ImportOptions`, plus the file's bytes |
 | `backup.list` | Read | |
 | `backup.create` | Write | |
 
@@ -219,8 +222,8 @@ Conventions:
 | `scene.tree` | Read | Nested groups and scenes: ids, names, order, word counts |
 | `scene.read` | Read | Markdown plus metadata |
 | `scene.read.many` | Read | Story-order scenes (all, a group's, or by id) with markdown, metadata, and group path, paged by `maxWords` with an `after` cursor; leaves out archived scenes |
-| `scene.write` | Write | Replaces the text; `mode` is required, see below |
-| `scene.append` | Write | Appends to the live text; for capture devices and scripts |
+| `scene.write` | Prose | Replaces the text; `mode` is required, see below |
+| `scene.append` | Prose | Appends to the live text; for capture devices and scripts |
 | `scene.create` | Write | Parent, name, position, scene or group |
 | `scene.rename` | Write | |
 | `scene.move` | Write | New parent and index |
@@ -234,7 +237,7 @@ Conventions:
 | `draft.list` | Read | Drafts of one scene |
 | `draft.read` | Read | |
 | `draft.create` | Write | Snapshots the scene's current text under a name |
-| `draft.apply` | Write | Replaces the scene's text with the draft |
+| `draft.apply` | Prose | Replaces the scene's text with the draft |
 | `draft.delete` | Destructive | |
 
 `scene.write` has no default mode. `mode: draft` saves the new text as a named
@@ -242,8 +245,9 @@ draft and leaves the scene alone. `mode: live` replaces the scene text through
 the same service the editor uses, so an open editor sees the change instead of
 clobbering it. It first saves the text it replaces, including an open editor's
 unsaved edits, as a draft named "Before external edit", so a live write is
-undoable and stays a Write. Edits the editor typed but had not yet debounced
-into its buffer are dropped rather than landing on top. Neither a live write nor
+undoable and is Prose rather than Destructive. Draft mode is Prose too, since
+a draft is prose. Edits the editor typed but had not yet debounced into its
+buffer are dropped rather than landing on top. Neither a live write nor
 `scene.append` credits the writer's activity. Both refuse archived scenes, and
 scenes with unsaved edits left by a session that did not close, since saving
 would discard them; opening the project in Hammer restores those first.
@@ -335,8 +339,8 @@ when the list is generated, and `export.formats` returns the same set.
 | `sync.status` | Read | Per project: linked or not, last sync, count of locally changed entities |
 | `sync.run` | Write | See [Headless sync](#headless-sync) |
 
-These are the `account` scope, so a plugin granted `content:read` and
-`content:write`, such as the MCP plugin, cannot reach them.
+These are the `account` scope, so a plugin granted only `content` and
+`plugins` operations, such as the MCP plugin, cannot reach them.
 
 ### Plugins
 
@@ -590,7 +594,8 @@ hammer mcp        # the MCP plugin's command
 - `--dev` before the command, as in `hammer --dev project list`, uses
   development data, as it does for the app, and so reaches a `--dev` window.
 - Destructive operations need `--confirm`; without it the CLI refuses before
-  starting Hammer.
+  starting Hammer. Prose operations do not, since the CLI is the writer's own
+  tool.
 - Exit codes: 0 success, 1 failure, 3 not logged in or login rejected, 4 not
   found, 5 another Hammer command holds the writer lock, the open app is not
   answering or not ready for calls yet, or the project is syncing, and 64 (sysexits' EX_USAGE) for usage errors and invalid input. An
@@ -747,7 +752,7 @@ operations on it exclude each other through `ProjectSyncGateRepository`, keyed b
 the project's path. Every project sync (the sync dialog, Sync all, the Android
 widget's background sync, `sync.run`) goes through
 `ClientProjectSynchronizer.execute`, which waits for writes already running on the
-project, then holds it to the end. A Write or Destructive operation in the
+project, then holds it to the end. Any operation but a Read in the
 `content` scope holds each project it names until it returns, and one that names
 a project mid-sync fails at once as `Busy`: "Project '…' is syncing; try again
 when it finishes." The CLI exits 5, and the MCP plugin returns a tool error.
@@ -783,9 +788,11 @@ no token management.
 replacement, so the plugin requests no operation that writes a scene's text:
 not `scene.write`, `scene.append`, `draft.apply`, or `project.import`. An agent
 can read the whole story and help around it, with the encyclopedia, timeline,
-notes, outlines, and structure, but the prose stays the writer's. This is a
-stance rather than a lock: projects are markdown on disk, and the CLI still
-writes scenes for the writer's own scripts.
+notes, outlines, and structure, but the prose stays the writer's. The host
+enforces this for every plugin, not only this one: those operations are Prose,
+which no scope grant covers, so a plugin reaches one only by naming it and the
+writer sees it at install under its own heading. The CLI still writes scenes
+for the writer's own scripts.
 
 **Settings.** Three settings, all off by default, gate what it does request.
 "Let AI agents make changes" offers the writes: creating, renaming, moving, and
@@ -1400,8 +1407,15 @@ a plugin asks for more memory than the default.
 
 Each `permissions.operations` entry is an operation's name, or a scope with
 `read` or `write`, such as `content:read`, which covers every operation of
-that scope and access. A scope never covers a Destructive operation; a plugin
-that needs one names it.
+that scope and access. A scope never covers a Prose or Destructive operation;
+a plugin that needs one names it.
+
+The install dialog lists what a plugin may use by level: Read, Change, "Change
+the text of your scenes" for named Prose operations, and "Delete, which cannot
+be undone". A scope grant is described in words; `content:write` reads
+"anything in your projects but the text of your scenes, and never delete". A
+named operation this version of Hammer does not have is listed with the
+changes.
 
 There is no platforms field: a WASM module runs anywhere the host does.
 Labels are plain strings in the manifest; see [Strings](#strings) for
@@ -1978,8 +1992,8 @@ Plugins are untrusted code:
   carry content and never file paths, and [HTTP](#http) to the hosts it names.
 - **Permissions checked on every call.** The host's dispatch refuses any
   operation no grant covers that the manifest requested and the user granted.
-  Reads and changes are shown separately at install, scope grants described in
-  words, along with any commands the plugin adds. Accepting the install
+  Reads, changes, prose, and deletes are shown separately at install, scope
+  grants described in words, along with any commands the plugin adds. Accepting the install
   prompt grants everything the manifest lists; a replaced package's grants are
   those of the new manifest, since the user just approved them.
 - **Install and removal.** Manage plugins, from Settings or a project's
@@ -2030,7 +2044,7 @@ listing needs a public source link.
 **Review.** Plugins have no ambient access (see [Trust](#trust)), so a plugin
 cannot send anything anywhere; review asks whether it could damage a project
 and whether it does what it says. A person approves new listings, releases that
-request more permissions than the last, and any Destructive operation. Other releases merge
+request more permissions than the last, and any Prose or Destructive operation. Other releases merge
 once the checks pass.
 
 **Publishing.** On merge, CI builds `index.json` and publishes it, with its
