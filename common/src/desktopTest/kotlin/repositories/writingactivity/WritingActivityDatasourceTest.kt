@@ -117,6 +117,29 @@ class WritingActivityDatasourceTest : BaseTest() {
 	}
 
 	@Test
+	fun `loadAllDeviceLogs skips sync conflict copies and temp files`() = runTest {
+		val log = DeviceLog(
+			deviceLabel = "Desktop",
+			sessions = listOf(
+				WritingSession(
+					startedAt = Instant.parse("2026-04-28T09:00:00Z"),
+					endedAt = Instant.parse("2026-04-28T10:00:00Z"),
+					wordsWritten = 100,
+				)
+			),
+		)
+		datasource.saveDeviceLog("device-a", log)
+		val dir = datasource.getDirectory()
+		val logToml = fileSystem.read(datasource.getDeviceLogPath("device-a")) { readUtf8() }
+		fileSystem.write(dir / "device-a.sync-conflict-20261024-173944-53PQXWR.toml") { writeUtf8(logToml) }
+		fileSystem.write(dir / ".syncthing.device-a.toml.tmp") { writeUtf8(logToml) }
+
+		val all = datasource.loadAllDeviceLogs()
+
+		assertEquals(setOf("device-a"), all.keys)
+	}
+
+	@Test
 	fun `directory layout matches plan`() {
 		val dir = datasource.getDirectory()
 		assertEquals("/projects/Test Project/scenes/.activity", dir.toString().replace('\\', '/'))
