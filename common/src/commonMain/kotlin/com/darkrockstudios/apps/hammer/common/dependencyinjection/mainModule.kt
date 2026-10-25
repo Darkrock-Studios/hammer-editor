@@ -297,7 +297,7 @@ val mainModule = module {
 	single<SpellCheckRepository>()
 
 	single { StoryImporterRegistry(listOf(MarkdownStoryImporter(), RtfStoryImporter())) }
-	// Plugins contribute formats by binding StoryExporters; the built-in ones are always present.
+	// Formats come from bound StoryExporters and from ExporterSources such as runtime plugins; the built-in ones are always present.
 	single { StoryExporterRegistry(getAll(), getAll()) }
 
 	scope<ProjectDefScope> {

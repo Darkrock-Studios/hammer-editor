@@ -1,10 +1,9 @@
 # Client Plugins
 
-Design note for extending the Hammer client (desktop, Android, iOS) with plugins,
-and for exposing the same API as a command line interface and an MCP server.
-Status: rollout steps 1 to 9, 11, and Android's half of 12 are built; the rest is a proposal. The server has its own plugin
-seam (`server/.../plugin/ServerPlugin.kt`) for the hammer.ink overlay; the
-client does not follow it (see below).
+How the Hammer client (desktop, Android, iOS) is extended with plugins, and how
+the same API is exposed as a command line interface and an MCP server. The
+server has its own plugin seam (`server/.../plugin/ServerPlugin.kt`) for the
+hammer.ink overlay; the client does not follow it.
 
 A client plugin is a sandboxed WebAssembly module installed from a package,
 which anyone can write. Plugins do not add operations: the operation API is
@@ -13,32 +12,21 @@ in the `hammer-plugins` repository, next to this one, built on the kits in
 `hammer-plugin-sdk`; `hammer-plugin-development` holds the same few plugins in
 six languages, for comparing them.
 
-**Compiled-in plugins, explored and dropped.** The first design also had
-compiled-in plugins: Kotlin modules registered in the build, with Koin modules,
-operations of their own, project lifecycle hooks, and a Compose UI half. The
-plain text exporter, the style report, and the MCP server were built that way
-first. Once runtime plugins could do the same jobs, compiled-in ones added
-nothing a core feature or a runtime plugin could not, and each of the three
-moved to a runtime plugin, checked against the compiled-in version before it
-was removed. A feature that needs Kotlin and Koin belongs in core.
+There are no compiled-in plugins: a feature that needs Kotlin and Koin belongs
+in core.
 
 ## Scope
 
-**Now: headless plugins.** A plugin that adds behavior without adding a feature
-surface: export formats, actions, CLI commands, and a settings form the
-host renders. Examples: an exporter, a style report, an MCP server, and later a
-grammar checker.
+**Headless plugins.** A plugin adds behavior without adding a feature surface:
+export formats, actions, CLI commands, text checks, and a settings form the
+host renders. It cannot add a new kind of thing with its own data type and
+screen; see [Feature plugins](#feature-plugins-not-supported).
 
-**Now: one API, several front ends.** The operations (list projects, read a
-scene, write a scene, link an entry) are defined once and exposed to the CLI
-and to plugins. MCP is not core: it is a plugin, built on plugin commands (see
+**One API, several front ends.** The operations (list projects, read a scene,
+write a scene, link an entry) are defined once and exposed to the CLI and to
+plugins. MCP is not core: it is a plugin, built on plugin commands (see
 [MCP plugin](#mcp-plugin)). The CLI also runs sync, so any machine that can
 run the JVM can be a headless sync client.
-
-**Later: feature plugins.** A plugin that adds a whole new kind of thing, with its
-own data type, screen, sync, and search integration (brainstorming cards, say).
-Out of scope for this note. The only requirement is that nothing here makes it
-impossible. See [Keeping the door open](#keeping-the-door-open).
 
 ## Architecture
 
@@ -64,36 +52,36 @@ the user approved (see [Runtime plugins](#runtime-plugins-wasm)).
 
 ## Modules
 
-New code goes in a new `:operations` module between `:common` and
-`:composeUi`, rather than growing `:common`.
-
 ```
 :base <- :common <- :operations <- :plugins:wasmhost <- :composeUi <- :android, :desktop
 ```
 
 | Module | Holds |
 | --- | --- |
-| `:common` | Same role as today. Gains only pluggable export (below) |
+| `:common` | The data layer, with the few seams plugins reach it through (below) |
 | `:operations` | `Operation`, `OperationRegistry`, the core operations, `ClientPlugin`, `PluginRegistry`, `PluginSettingsDatasource`, `ActionSessionStore` |
 | `:plugins:wasmhost` | The [runtime plugin](#runtime-plugins-wasm) host: chasm, the package loader, `RuntimePlugins`, and `WasmPlugin`. All platforms |
 | `:composeUi` | `PluginUiRegistry`, the Plugins section of Settings, and the plugins' actions: their menu items, and the runner that shows their pages and progress and keeps their runs |
-| `:desktop` | The CLI adapter and `Dispatcher`, socket forwarding, the writer lock |
+| `:desktop` | The CLI adapter and `Dispatcher`, socket forwarding, the app, window, and writer locks |
 
 `:wear` depends only on `:common` and gets no plugins.
 
 `:operations` and the host target the same platforms as `:common` (Android,
 desktop JVM, iOS), because the host is common code.
 
-**`:common` does not know about plugins.** Its one extension point is export:
-`StoryExporterRegistry` always holds the built-in formats, then asks each
-`ExporterSource` bound in Koin for more on every lookup. `PluginRegistry` is
-one, so plugin formats come and go as plugins do.
+**`:common` holds no plugin types.** What plugins need of it is a few seams:
 
-**The v2 rule, partly enforced.** `:operations` declares no dependency on
-Compose resources, Napier, or Decompose. Napier and Decompose still reach it
-through `:common`'s `api` dependencies until the v2 core split, so a lint rule
-covers the gap. In v2 the data layer leaves `:common` for a UI-free `:core`, and
-`:operations` re-points from `:common` to `:core`.
+- `StoryExporterRegistry` holds the built-in formats, then asks each
+  `ExporterSource` bound in Koin for more on every lookup. `PluginRegistry` is
+  one, so plugin formats come and go as plugins do.
+- `ProjectPluginsRepository` keeps the plugins each project turns off.
+- `SecretDatasource` keeps `secret` settings.
+- `ProjectIdChangeListener` and `EntityIdChangeListener` report the ids
+  `ProjectsRepository` and sync change, which action sessions follow.
+- `EntityCatalog` lists a project's items for an `entity` field's picker.
+
+Anything else `:common` gains for plugins must make sense without them, or
+the design is revisited rather than `:common` bent to fit.
 
 ## Operations
 
@@ -113,6 +101,8 @@ interface Operation<I, O> {
 	val scope: OperationScope
 	/** Overridden only when valid values are known at runtime, such as `project.export`'s formats. */
 	fun inputSchema(): JsonObject = jsonSchema(input.descriptor)
+	/** For front ends that report success as a number, like the CLI: nonzero for a partial failure. */
+	fun exitCode(output: O): Int = 0
 
 	suspend fun run(context: OperationContext, input: I): O
 }
@@ -136,8 +126,8 @@ interface ProjectResolver {
 }
 ```
 
-Most operations are written with the `operation<I, O>(name, description, access)
-{ ... }` builder. Errors the caller caused are `OperationException`s with a kind
+Most operations are written with the `operation<I, O>(name, description, access,
+scope) { ... }` builder. Errors the caller caused are `OperationException`s with a kind
 (`NotFound`, `InvalidInput`, `Unauthorized`, `Busy`); anything else thrown is a bug. `dispatch(name,
 JsonElement)` is what front ends call: unknown input fields, missing fields, and
 wrong types are `InvalidInput`. Binary content is base64 in JSON.
@@ -163,11 +153,6 @@ Rules that keep this a stable API rather than a mirror of internals:
   or write. Reading and writing local files is the CLI adapter's job, so an
   agent can only hand Hammer content it already has and only receives content
   back.
-- Operation code does not use Compose resources, Napier, or Decompose, so it
-  can move into a native-capable core module unchanged. See
-  [Native CLI](#native-cli) under v2. (`SyncAccountUseCase` already localizes its
-  log lines through Compose resources; that is covered by the v2 plan for
-  structured sync logs.)
 
 ## Operation catalog
 
@@ -177,7 +162,8 @@ Conventions:
   `hammer scene read`.
 - Project-scoped operations take `project`, either the project name or its
   server project id.
-- Entity ids are the project's own ids, which are stable across sync.
+- Entity ids are the project's own ids. Sync can give an item made on this
+  device a new id ([Re-ID](SYNCING-PROTOCOL.md#terminology)).
 - Body text (scene, note, entry, timeline event, idea) is read from stdin on the
   CLI. An update replaces the body, so the body is required there too; the
   other fields keep their value when left out. An optional body would leave
@@ -196,9 +182,6 @@ Conventions:
 - Operations whose input or output is a file (import, export, entry images)
   carry the bytes. The CLI maps them to `--in FILE` and `--out FILE`, or to
   stdin and stdout.
-- **Agent-visible by default:** none. The catalog opts in every Read and Write
-  operation in the projects, scenes and drafts, notes, encyclopedia, timeline,
-  ideas, cross-cutting, and statistics sections. Account and sync operations stay hidden.
 
 ### Projects
 
@@ -342,14 +325,16 @@ when the list is generated, and `export.formats` returns the same set.
 These are the `account` scope. A plugin may read it, through `account:read` or
 by naming `account.status` or `sync.status`, but can never log in, log out, or
 sync: `OperationScope.grantableToPlugins` withholds every operation in this
-scope but its reads, so a later account change is covered too. A package that requests
+scope but its reads, by scope rather than by name. A package that requests
 `account:write`, or names `account.login`, `account.logout`, or `sync.run`, is
 refused at install, and dispatch refuses them whatever a plugin was granted.
 Logged in to a server of its choosing, a plugin with no HTTP hosts could still
 sync every project there. Account changes belong to the app's UI, which applies
 safeguards these operations do not, such as refusing to change servers while a
 project is open, whose sync state the change would leave stale. The CLI runs
-all five, since it is the writer's own tool.
+all five, since it is the writer's own tool, but only while the app is closed:
+the app runs its own sync and login, and refuses these over the socket (see
+[Concurrency](#concurrency)).
 
 ### Plugins
 
@@ -371,9 +356,6 @@ because a forwarded call resolves it in the app, not the shell.
 - **Account creation and terms acceptance** stay in the GUI.
 - **Server admin** is the server's web UI.
 - **Global settings** are not exposed, nor are plugin settings.
-- **Reference confirmation** is an editor interaction, not an API.
-- **Partial scene edits** (`scene.patch`, find and replace within a scene) are
-  likely wanted by agents but wait until full-text writes have settled.
 
 ## Plugin interface
 
@@ -464,7 +446,7 @@ interface StoryExporter {
 	val mimeType: String
 	/** Shown in the export dialog; the built-in formats' labels are localized in `:composeUi` instead. */
 	val label: String? get() = null
-	/** False only for formats that ignore project data (Markdown today), which skips loading it. */
+	/** False only for formats that ignore project data (such as Markdown), which skips loading it. */
 	val needsProjectData: Boolean get() = true
 
 	fun render(sink: BufferedSink, input: ExportInput)
@@ -476,6 +458,7 @@ class ExportInput(
 	/** One per top-level node of the scene tree. */
 	val chapters: List<StoryChapter>,
 	val treatTopLevelAsChapters: Boolean,
+	val options: ExportOptions,
 	val language: String,
 	val strings: ExportStrings,
 ) {
@@ -485,29 +468,18 @@ class ExportInput(
 }
 ```
 
-The five built-in renderers already share this shape (sink, project name,
-project data, chapters, language, localized strings), so the interface is
-lifted from them rather than invented. What changes:
+- **Built-in formats.** The five built-in formats are `StoryExporter`s too,
+  with ids `epub`, `docx`, `rtf`, `pdf`, and `markdown`, so built-in and plugin
+  formats take the same path. `ExportOptions.format` is a format id.
+- **`StoryExporterRegistry`** (in `:common`'s `data/export`, with
+  `ExportStoryUseCase` and the renderers) lists the built-in
+  formats first, in their menu order, then the others by id (see
+  [Modules](#modules)). `ExportStoryUseCase` takes each format's renderer and
+  file extension from it, and the Android save picker its MIME type.
+- **Labels.** Built-in labels are localized in `:composeUi`. A plugin format
+  shows its manifest label, or its file extension in upper case.
 
-- **`ExportFormat` stops being an enum.** `ExportOptions.format` becomes a
-  format id. The four places that switch on the enum today (file extension and
-  render dispatch in `ExportStoryUseCase`, the Android MIME type in
-  `ExportDirectoryPicker`, the format list and labels in `ExportOptionsDialog`)
-  read from a `StoryExporterRegistry` in `:common` instead, which mirrors the
-  existing `StoryImporterRegistry` (see [Modules](#modules)). It lists the
-  built-in formats first, in their menu order, then plugin ones by id.
-- **All five built-in formats become `StoryExporter`s**, with ids `epub`,
-  `docx`, `rtf`, `pdf`, and `markdown`, so built-in and plugin formats take the
-  same path.
-- **Export moves to the data layer.** `ExportStoryUseCase` and the renderers
-  move from `components/projecthome` to `data/export`, next to the importers,
-  where operations and a future core module can reach them.
-- **Labels.** Built-in labels stay localized in `:composeUi`. A plugin format
-  shows its manifest label, or its file extension in upper case. The Android
-  save picker takes the exporter's MIME type, and the desktop one its extension.
-
-Importers could follow the same pattern (`ImportFormat` is the same kind of
-closed enum). Not in v1.
+Importers have no plugin seam: `ImportFormat` is a closed enum.
 
 ### The registry and the UI
 
@@ -568,18 +540,19 @@ arguments of `PluginUiRegistry` and `StoryExporterRegistry`).
   settings checks the whole text again. The plugins get the editor's text,
   markdown already rendered away, the project's language, and the project's
   name, so a check can read the project through operations it has permission
-  for, such as the encyclopedia's names.
+  for, such as the encyclopedia's names. Spell check is separate: it loads
+  suggestions only when a word is clicked and re-checks single words, where
+  diagnostics carry their fixes up front and re-check whole paragraphs.
 
-These are the only UI slots for now. Future ones (a scene editor toolbar
-action) are added when a plugin needs them, not speculatively.
+These are the only UI slots.
 
 ## CLI
 
 The CLI is the normal desktop binary with subcommands, not a separate target.
 Every package format (Flatpak, Snap, MSIX, the Mac bundle) already ships one
 launcher, and a second target would double that work. A first argument that
-does not start with `-` is a CLI call (`Cli`); anything else launches the app as
-today, parsed by the Clikt command in `DesktopLaunchArgs.kt`. The CLI parses its
+does not start with `-` is a CLI call (`Cli`); anything else launches the app,
+parsed by the Clikt command in `DesktopLaunchArgs.kt`. The CLI parses its
 own arguments, since every command and option comes from an operation's schema
 at runtime.
 
@@ -608,7 +581,9 @@ hammer mcp        # the MCP plugin's command
   commands, which no plugin can be granted.
 - Exit codes: 0 success, 1 failure, 3 not logged in or login rejected, 4 not
   found, 5 another Hammer command holds the writer lock, the open app is not
-  answering or not ready for calls yet, or the project is syncing, and 64 (sysexits' EX_USAGE) for usage errors and invalid input. An
+  answering, is not ready for calls, or refuses one it keeps to itself (see
+  [Concurrency](#concurrency)), or the project is syncing, and 64 (sysexits'
+  EX_USAGE) for usage errors and invalid input. An
   operation can report partial failure through `Operation.exitCode`: `sync.run` returns 2 when a project needs
   resolution.
 - A field marked `@FromStdin` is read from stdin when not given as an option; a
@@ -617,14 +592,9 @@ hammer mcp        # the MCP plugin's command
 - Plugin `cliCommands()` are added alongside the generated subcommands. A plugin
   command cannot shadow a generated one.
 - With a subcommand, `main` starts Koin without opening a window, runs the
-  command, and exits (`HeadlessSession`). Logs go only to the log file. Tried
-  against real data: the data migrator, string resources, and export all work
-  without a window, and a call takes about 1.5 seconds including JVM start.
+  command, and exits (`HeadlessSession`). Logs go only to the log file.
 - JVM startup plus Koin init is on the order of a second per call on a desktop,
-  several on a Pi Zero. Deferred to v2: `hammer batch`, one process reading
-  operations as JSON lines on stdin and writing one JSON result line per
-  operation to stdout. It is a few lines on top of `Dispatcher`, the same loop
-  the MCP plugin runs with MCP framing.
+  several on a Pi Zero.
 - Getting `hammer` onto PATH differs per package; see
   [Getting onto PATH](#getting-onto-path).
 
@@ -649,7 +619,7 @@ Each script carries a marker line, so Hammer only ever replaces or removes its
 own; a `hammer` someone else put there is left alone. In a `--dev` window, the
 full command shown in Settings and in plugin dialogs ends in `--dev`, so what
 is set up from it reaches that window; the PATH script never does. On Linux, Settings says
-when the script's directory is not on PATH yet.
+when the script's directory is not on PATH.
 
 **Windows needs a console launcher.** jpackage gives the app one launcher,
 `hammer.exe`, built as a GUI program, which a terminal does not wait for and
@@ -659,11 +629,12 @@ same binary with its PE subsystem set to console, as `editbin
 launcher finds its config by its own name (`addWindowsConsoleLauncher` in
 `buildSrc`). The installers and the MSIX are built from that app image. Store
 apps cannot be run from their install folder, so the alias is also what MCP
-clients use there. Not yet run on Windows: the console launcher, the alias, and
-the PATH change (PowerShell writing `HKCU\Environment` and broadcasting
-`WM_SETTINGCHANGE`) need one check there before release. `hammer.cmd` is read
-in the OEM code page, so an install path with non-ASCII characters breaks it,
-and uninstalling Hammer leaves the script and PATH entry behind.
+clients use there. The PATH change is PowerShell writing `HKCU\Environment` and
+broadcasting `WM_SETTINGCHANGE`.
+
+Known limitations on Windows: `hammer.cmd` is read in the OEM code page, so an
+install path with non-ASCII characters breaks it, and uninstalling Hammer
+leaves the script and PATH entry behind.
 
 ## Concurrency
 
@@ -675,7 +646,7 @@ same time collides on ids, clobbers buffers, desyncs the sync journal, or
 invalidates the other process's token. So there is exactly one writer at a
 time for the whole data set, not per project.
 
-**Locks.** Three OS file locks in the app's data directory (next to the global
+**Locks.** Three OS file locks in the config directory (next to the global
 settings, outside the projects directory, so backups, renames, and restores
 never touch them). OS locks release on process death, so there are no stale lock
 files to clean up.
@@ -687,8 +658,10 @@ files to clean up.
 - `writer.lock` is the one writer. A headless call holds it for the duration of
   that call. The app takes it right after `app.lock`, or, if a headless call
   already has it, as soon as that call finishes, without holding up the window.
-  A headless call that finds it held by another headless call waits briefly,
-  then fails.
+  The holder writes `App` or `Cli` to `writer.owner` beside it, so a headless
+  call that finds it held knows whether waiting can help: held by the app, the
+  call goes to the app's socket instead; held by another headless call, it
+  waits up to three seconds, then fails.
 
 A headless call checks for windows only once it holds `writer.lock`, by trying
 `window.lock` and `app.lock` exclusively for a moment, and gives the writer lock
@@ -701,9 +674,11 @@ On macOS and Linux, closing any channel to a file drops every lock the process
 holds on it, so a window never opens a lock file it holds a second time.
 
 **Forwarding to a running app.** The app, as the `app.lock` holder, listens on a
-Unix domain socket in its data directory (supported by the JDK on Windows 10+ as
-well), created with user-only permissions and replaced on startup if a stale one
-is left behind. It binds before starting Koin or migrating data, and holds calls
+Unix domain socket, `run/hammer.sock` in the config directory (supported by the
+JDK on Windows 10+ as well). `run/` is owner-only, so the socket is private from
+the moment it exists; on Windows it inherits the user profile's per-user ACL. A
+stale socket left behind is replaced on startup. It binds before starting Koin
+or migrating data, and holds calls
 until it has the writer lock and has migrated, refusing them as not ready if
 that takes more than half a minute. On a system without Unix domain sockets the app
 runs without one, so CLI calls refuse while it is open, and a second launch
@@ -712,15 +687,24 @@ first. If the app answers, the CLI sends the operation name and input, the app
 runs it against its live state, and the CLI prints the result. If nothing
 answers and no app is open, the CLI takes the writer lock and runs the operation
 in-process. If an app is open but its socket does not answer, the CLI retries
-for a few seconds, then fails saying Hammer is not taking commands yet; it never
-runs headless under an open window.
+for up to ten seconds, then fails saying Hammer is not taking commands yet; it
+never runs headless under an open window.
+
+The app refuses a few operations over the socket, and the CLI exits 5 with a
+message to use the app or close it first:
+
+- every `account.*` and `sync.*` operation, since the app runs its own sync and
+  login, which a forwarded call must not race;
+- `project.rename` and `project.delete`, since moving a project's directory
+  would race anything in the app that opens it, such as a sync.
 
 Forwarding is always on; there is no setting for it. Anything that can reach
 the socket runs as the same user, who could edit the project files directly, and
 the socket's directory is theirs alone. What an agent may do is decided where it
-is installed: the MCP plugin's granted operations and its settings.
-Refusing while the app is open would only push tools to wait for it to close,
-or to edit files under it.
+is installed: the MCP plugin's granted operations and its settings. Every other
+operation is forwarded rather than refused while the app is open, since
+refusing would only push tools to wait for it to close, or to edit files under
+it.
 
 **Multiple app instances.** A second launch of the app finds `app.lock` held,
 hands its launch arguments to the first over the socket, and exits, so the app
@@ -730,16 +714,16 @@ and acts on them as its own: a `--project` (with any `--scene`, `--note`,
 `--entry`, or `--timeline-event`) opens that project, going straight there if it
 is already open, or first closing the open one the usual way, with its
 unsaved-changes prompts; declining the prompt drops the request. A launch that
-cannot hand off retries for a few seconds, in case the first is still starting,
+cannot hand off retries for up to ten seconds, in case the first is still starting,
 then starts its own window, with `window.lock` but without the other two, which
 it takes once the first window closes.
 Windows jump-list items, which relaunch the executable, go through the same
 path, as do the Linux quicklist and macOS Dock menu in-process.
 
-Nucleus's own single-instance mode (`enableSingleInstance`) stays off: its lock
+Nucleus's own single-instance mode (`enableSingleInstance`) is off: its lock
 lives in the temp directory under one app id, so a `--dev` window and a normal
 one would block each other, and it hands over only a deep-link URI, not launch
-flags. The locks and socket are already per config directory.
+flags. Hammer's locks and socket are per config directory.
 
 **No state between calls.** Each headless call, including each dispatch from a
 long-running plugin command like `hammer mcp`, starts Koin, runs, and stops it.
@@ -750,9 +734,10 @@ an app launched mid-session is picked up on the next call.
 Repositories resolve through Koin's global context, so this is a stop and
 restart of the global context, and calls within one process run one at a time.
 That is why `CliCommand` reaches Hammer only through `Dispatcher`: anything it
-resolved from Koin would be dead after the first call. Two things to verify
-early: that project and app scopes shut down cleanly on `stopKoin`, and that
-restart cost is small once the JVM is warm.
+resolved from Koin would be dead after the first call. It also means project
+and app scopes must shut down cleanly on `stopKoin`: `HeadlessRestartTest`
+starts the real Koin graph several times, running migration and read
+operations each time, and fails on any work that outlives a stop.
 
 Forwarding and locking are desktop only. Android and iOS have no CLI and are
 single process.
@@ -778,8 +763,9 @@ MCP is a runtime plugin, in hammer-plugins' `mcp`, written in
 Kotlin/Wasm. The host provides only generic pieces: plugin commands, scope
 grants, and `ops.list` filtered to the grants.
 
-Its manifest requests `content:read`, then by name the writes that organize a
-project and the deletes of everything inside one, and declares a `mcp` command. An MCP client launches `hammer mcp` as a child process and
+Its manifest requests `content:read` and `plugins:read`, then by name the writes
+that organize a project, the deletes of everything inside one, and plugin
+install and uninstall, and declares a `mcp` command. An MCP client launches `hammer mcp` as a child process and
 speaks JSON-RPC over stdio, one message per line; the host hands each line to
 the plugin (see [Commands](#commands)). The plugin answers `initialize`,
 `ping`, `tools/list`, and `tools/call`, and ignores notifications.
@@ -806,7 +792,7 @@ for the writer's own scripts.
 
 **Settings.** Three settings, all off by default, gate what it does request.
 "Let AI agents make changes" offers the writes: creating, renaming, moving, and
-archiving scenes, scene outlines and tags, drafts as snapshots, notes,
+archiving scenes, scene outlines, tags, and references, drafts as snapshots, notes,
 encyclopedia entries and their images, the timeline, ideas, projects, and
 backups. "Let AI agents delete things" offers the deletes, with MCP's
 `destructiveHint`, so a client can warn before running one; `project.delete` is
@@ -833,33 +819,31 @@ hammer sync run
 hammer sync run --project "My Novel" --on-conflict server
 ```
 
-- **Already in place.** `SyncAccountUseCase` in the data layer holds the
-  sync-all orchestration. It reports through a `SyncAccountListener`, takes a project filter,
-  and returns a per-project `ProjectSyncOutcome`. `sync.run` is a CLI listener
-  plus that call; no refactor needed.
+- **Orchestration.** `sync.run` is a CLI listener on `SyncAccountUseCase`, the
+  data layer's sync-all code, which reports through a `SyncAccountListener`,
+  takes a project filter, and returns a per-project `ProjectSyncOutcome`.
 - **Conflicts.** `--on-conflict abort|local|server`, default `abort`. Abort is
-  what bulk sync already does: the project stops, is reported as needing
-  resolution, and other projects continue. `local` and `server` apply to idea
-  conflicts only, for now: `SyncAccountUseCase` always stops a conflicted
-  project, and resolving one headless needs the project sync to accept a
-  choice instead of aborting.
+  what bulk sync does: the project stops, is reported as needing resolution,
+  and other projects continue. `local` and `server` apply to idea conflicts
+  only: `SyncAccountUseCase` always stops a conflicted project, which is then
+  resolved in the app.
 - **Output.** A JSON summary with each project's outcome, and the sync log
-  lines, goes to stdout. (Streaming the log to stderr as it happens needs a
-  progress channel operations do not have yet.)
+  lines, goes to stdout when the sync ends; the log is not streamed.
 - **Exit codes.** 0 all synced, 1 failure, 2 at least one project needs
-  resolution, 3 unauthorized (run `account login` again).
-- **Login** takes the server, email, and password (from stdin). A server that
-  asks for terms acceptance or a sign-in code is refused with a message to log
-  in from the app once, since both stay in the GUI. These map from
+  resolution, 3 unauthorized (run `account login` again). These map from
   `ProjectSyncOutcome`: `Failed` is 1, `NeedsResolution` is 2, and `Success`,
   `Unchanged`, and `Skipped` are 0. `onUnauthorized` gives 3.
+- **Login** takes the server, email, and password (from stdin). A server that
+  asks for terms acceptance or a sign-in code is refused with a message to log
+  in from the app once, since both stay in the GUI.
 - **Credentials.** The desktop token store is an AES-encrypted file keyed on
   the user name and home directory. It needs no keyring or desktop session, so it
   works on a bare Linux box.
-- **App running.** `sync.run` is forwarded like any other operation, so the
-  app's own sync state stays coherent and only one process ever refreshes the
-  token. Before forwarding exists, the writer lock makes the CLI refuse with a
-  message instead.
+- **App running.** The app refuses `sync.run`, and every other account and
+  sync operation, over the socket (see [Concurrency](#concurrency)), so only
+  the app syncs while it is open: its sync state stays coherent and only one
+  process ever refreshes the token. The CLI exits 5 with a message to use the
+  app or close it first.
 
 What this enables: a cron job on a NAS or Pi acting as an always-on sync peer
 and backup mirror, the Typewriter device syncing without the GUI's involvement,
@@ -867,8 +851,7 @@ and scripted pipelines such as sync then export.
 
 **Hardware floor.** Anything that runs a 64-bit JVM, which starts around a
 Pi Zero 2 W (512 MB, Cortex-A53). There, startup is several seconds per call,
-which is fine for cron sync and slow for chatty tooling until `hammer batch`
-lands in v2 (see [CLI](#cli)).
+which is fine for cron sync and slow for chatty tooling.
 
 ## Settings
 
@@ -879,8 +862,8 @@ write cannot reset it. (It is a datasource by name because `:common`'s
 architecture rule keeps raw TOML I/O in datasource files.) This keeps plugin
 schemas out of the core settings migrations.
 
-Plugins have no storage of their own beyond settings; see
-[Gaps](#gaps-these-expose).
+Plugins have no durable storage of their own beyond settings; see
+[Limitations](#limitations).
 
 ### Declared settings
 
@@ -920,7 +903,7 @@ max = 20
 
 - **Types.** `bool` (toggle) with optional `danger`, `int` with optional `min`
   and `max`, `string` with optional `multiline`, `secret`, and `choice`
-  (dropdown). More types are added when a plugin needs one.
+  (dropdown).
 - **Danger.** A `bool` with `danger = true` turns on something risky, such as
   letting agents install plugins; the form shows a warning under it.
 - **Secrets.** A `secret` is a password or API key: masked in the form, never
@@ -934,7 +917,7 @@ max = 20
   default stays the plugin's: an update that changes one changes it for anyone
   who never set it. On load, each value is checked against its declaration; a
   missing, mistyped, or out-of-range value falls back to its default, and keys
-  no longer declared are dropped on the next write.
+  the declaration lacks are dropped on the next write.
 - **Reading values.** A plugin receives its current settings as JSON with
   every call, so it never needs a host call to read them. A command reads them
   afresh for each line, so a change applies to a running `hammer mcp`.
@@ -989,289 +972,38 @@ two kinds, each translated by the plugin's author:
 The UI's language is the system's, as for the rest of Hammer, so a plugin's
 declared words are chosen once, when it loads. Operation descriptions are plain
 English strings: they are read by agents and shown in CLI help, neither of which
-is localized today.
+is localized.
 
 ## Example plugins
 
-Real features rather than test fixtures, chosen so that between them they
-exercise every slot: the plain text exporter, the style report, the name
-generators, the character interview, First meeting, the simple grammar check,
-and the [MCP plugin](#mcp-plugin).
+Hammer's own plugins, in `hammer-plugins`, are real features rather than test
+fixtures. Between them they use every slot:
 
-### Plain text exporter (`plaintext`)
-
-Built, as a runtime plugin in C: `plaintext` in the `hammer-plugins`
-repository, an 8 KB package. Exports a story as plain text for pasting into
-submission forms, which want text with their own conventions for scene breaks
-and italics. Settings: scene break marker (`#`, `* * *`, or a blank line),
-italics (underscores, asterisks, or removed), paragraphs (blank line between,
-or indented), and chapter headings.
-
-| Exercises | How |
-| --- | --- |
-| Exporter capability | The manifest declares one exporter, format id `plaintext.txt`, with `input = "prose"` |
-| Declared settings | Three choices and a toggle in `settings.toml`, kept in `plugins/plaintext.toml` as before, so saved choices carry over |
-| Operations for free | `hammer project export --format plaintext.txt`, and export through MCP, with no plugin code |
-
-A fresh install of Hammer has no plain text export until the plugin is
-installed.
-
-**Manuscript format moves into core.** Standard Manuscript Format (12 point
-Times or Courier, double spacing, a surname, title, and page number header, a
-rounded word count, `#` scene breaks) was the first example plugin. It fits the
-built-in DOCX better: writers mostly want DOCX to send to agents, editors, and
-contests, all of whom expect manuscript format, and EPUB and PDF already cover
-a styled book. Converting the built-in DOCX is a separate change, pending where
-the page-one contact block comes from.
-
-### Style report (`style`)
-
-Built, as a runtime plugin in C: `style` in `hammer-plugins`, a 72 KB
-package. A "Style report" item in the project menu reports, per scene and for
-the whole story or the scenes chosen, reading ease, adverbs and filter words
-per thousand words, the share of dialogue, and repeated words and phrases, and
-shows it in the action's dialog as a document, which can be saved as a note.
-
-It reads the project's language through `project.info` and counts by that
-language's rules and word lists, in `resources/<language>/`:
-
-| Language | Reading ease | Adverbs | Dialogue |
-| --- | --- | --- | --- |
-| English | Flesch, with Flesch–Kincaid grade | "-ly" | Double quotes, curly single quotes |
-| French | Kandel–Moles | "-ment" | Guillemets, curly double quotes, lines opening with a dash |
-| German | Amstad | None, as German marks no adverbs | „ “, guillemets either way round, curly double quotes |
-| Spanish | Szigriszt-Pazos | "-mente" | Guillemets, curly double quotes, lines opening with a dash |
-| Italian | Gulpease | "-mente" | Guillemets, curly double quotes, lines opening with a dash |
-| Ukrainian | None | None | Guillemets, „ “, lines opening with a dash |
-
-Syllables are counted as vowel groups in each language's vowels. French and
-Italian split words at an apostrophe, so "l'homme" counts "homme". On a line
-opening with a dash, each later dash moves between speech and narration:
-"—Ven —dijo ella—. Ya." Filter words are verbs of seeing, feeling, and knowing
-("felt", "saw", "realized"; "sentit", "fühlte", "sintió", "sentì", "відчув")
-that put a character between the reader and the scene. The French, Spanish,
-and Italian lists of words ending in "-ment" or "-mente" that are not adverbs
-("moment", "comente") are made from the LibreOffice dictionaries by
-`tools/not-adverbs.py`. A project in a language without lists, or with none,
-gets its words, sentences, and dialogue, and a note that the rest needs lists.
-
-The report is written in the UI's language, from the request's `locale`, in
-English, French, German, Spanish, Italian, or Ukrainian; `locales/` translates
-its labels and settings. Its settings turn filter words and the section for
-each scene on and off, and set how often a word must come up in a scene or in
-the story to be listed as a repeat, and how long each list is.
-
-| Exercises | How |
-| --- | --- |
-| Actions | The manifest declares one action whose first page is a `scenes` field; the host asks which scenes, calls the module's `action` export, shows its progress scene by scene, and shows the document page it replies with |
-| Plugin as API consumer | Reads through `project.info`, `scene.tree`, and `scene.read`, the three operations it asks for by name, and nothing else: saving is the user's choice, in the dialog |
-| A full-book job in C | Counts in the module's own hash maps and arenas, reused scene to scene, so a novel fits the 64 MiB memory cap |
-| The plugin cache | Keeps each scene's counts under a hash of its text, its language, and its lists, so a run counts only scenes that changed |
-| Resources | Each language's common words, words with its adverb ending that are not adverbs, filter words, and titles, read at the start of each run |
-| Translations | Its report and progress in the UI's language, with that language's plurals and decimal comma, and `locales/*.toml` for its labels |
-
-The whole story's figures are the sum of its scenes' counts, so they need no
-second pass. Its repeated phrases are those repeated within a scene. On a
-300,000-word book a first run takes about 7
-seconds and a run with nothing changed about 1, the reading of every scene
-that remains.
-
-### Simple grammar (`simple-grammar`)
-
-Built, as a runtime plugin in C: `simple-grammar` in `hammer-plugins`, a
-48 KB package. Underlines slips that a spell checker passes, since every word
-in them is a real one, in English, French, German, Spanish, Italian, and
-Ukrainian. Its settings turn groups of rules on and off:
-
-| Group | Default | Rules |
+| Plugin | Language | Shows |
 | --- | --- | --- |
-| Word mistakes | On | Repeated words, mixed-up words and phrases ("could of", "your welcome", "sneak peak"; "quelque soit"; "seid wann", "das selbe"; "a sido", "de el"; "un amica", "c'è la faccio"; "приймати участь"), and each language's own: "a" and "an" and "better then" in English, elision in French ("le arbre" for "l'arbre") |
-| Verb agreement | On | A pronoun with a verb form that does not agree ("they was", "il sont", "wir hat", "ellos está", "loro ha", "вона був"), but not after a word that makes it right: the subjunctive ("if he were"), a subject of several ("you and I are"), an auxiliary ("does he have"), or a preposition ("para él son"). Pronouns that are objects too, such as "you", "it", "nous", and "sie", are left out, and so is speech |
-| Agreement in dialogue | Off | Verb agreement in speech too: quotes, and paragraphs that open with a dash |
-| Punctuation and capitalization | On | A lower-case "i" in English, spacing around punctuation, French's space before a colon, doubled marks (",,", ".." but not an ellipsis), unmatched parentheses, and a sentence starting in lower case |
-| Dialogue | On | `"Wait." she said` wants a comma and `"Wait," She said` lower case, in English; in every language a quote run into the next word wants a space, and one a comma follows drops its full stop (`„Warte.“, sagte sie`) |
-| Wordy phrases | Off | "in order to" for "to", "dans le but de" for "pour", "zum jetzigen Zeitpunkt" for "jetzt" |
-| Redundant phrases | Off | "free gift" for "gift", "monter en haut" for "monter", "subir arriba" for "subir" |
-| Repeated marks | Off | "!!" and "?!?" |
-| Long sentences | Off | More than a set number of words, 40 unless changed |
+| `plaintext` | C | An exporter, `plaintext.txt`, reading each scene as Hammer parses it (`input = "prose"`), with declared settings. `hammer project export --format plaintext.txt`, and export through MCP, need no plugin code |
+| `style` | C | A project action whose first page is a `scenes` field, with progress, a document page, the [cache](#cache) keyed by each scene's text, per-language [resources](#resources), and translations |
+| `reading-level` | Kotlin | A project and scene action with a scene picker page of its own, resources, and the cache |
+| `simple-grammar` | C | A text check, with byte offsets the host turns into the editor's UTF-16 ranges, written on the C kit's `hammer_diagnose.h` |
+| `harper-grammar` | Rust | A text check pre-initialized with Wizer: a module of over 100 MB declaring `limits.memory = 256` |
+| `name-checker` | Rust | A text check and a document-page action in one plugin. The check reads the encyclopedia through `entry.list`, using the request's `project` |
+| `languagetool` | Rust | [HTTP](#http) to declared hosts, `userHosts` for a self-hosted server, and `secret` settings for the Premium API key and the server address |
+| `fantasy-names`, `real-names`, `scifi-names` | Kotlin | Action fields remembered for the next run, inline buttons, `state` across calls, and page-level `errors` |
+| `character-interview` | Kotlin | A run of pages with Back (`validate = false`), `errors`, `open`, and a kept [session](#sessions) (`keep = true`) |
+| `first-meeting` | Kotlin | `entity` fields, one defaulting to the entry it was run from, `open`, and References read through `entry.read`'s `referencedBy` |
+| `mcp` | Kotlin | Plugin commands and scope grants; see [MCP plugin](#mcp-plugin) |
 
-The rules flag only what they are sure of ("had had" and "nous nous" pass, "a"
-and "an" are left alone before words starting with "h" or "u", French elision
-before an "h", and "better then." at the end of a sentence is the time). Its
-word and phrase lists are resources, in `resources/<language>/`, read once and
-kept for as long as projects in that language are checked; a project in a
-language with no lists gets nothing. A phrase's first word matches in either
-case and the rest as written, so "de el" passes "de El Salvador" and German
-keeps its nouns' capitals. A new language is a folder of lists, and gets every
-rule but English's and French's own, with curly quotes unless the plugin's
-table of quotation marks says otherwise; German's are „ and “, and French,
-Spanish, Italian, and Ukrainian's guillemets. A sentence may go on in lower
-case after "?" and "!" ("alas! either"). Case is known for Latin and Cyrillic
-letters. Fixes use curly apostrophes where the paragraph does. Its messages
-are in the UI's language, from the request's `locale`, when that is one of the
-six, and English otherwise; its name, description, and settings are translated
-in `locales/`, as any package's are. Every rule is
-one pass over a paragraph with small tables, and a word passes over the
-phrases of a list whose first word it is not in one step: 40 paragraphs of 74
-words take about 110 ms under chasm with every group on, against 25 to 30 ms a paragraph for Harper grammar.
+Hammer ships with none of them installed.
 
-| Exercises | How |
-| --- | --- |
-| Text diagnostics | The manifest declares one check; the host calls the module's `diagnose` export with changed paragraphs and underlines what it returns |
-| Declared settings | Seven toggles and a number in `settings.toml`, read from the request |
-| Offsets across the boundary | Byte offsets from C, turned into the editor's UTF-16 ranges by the host |
-| The C kit | `hammer_diagnose.h` reads the request and writes the reply, so the plugin is its rules; `hammer_test.h` tests them natively |
-| Resources | Its lists, one folder per language, copied into a static buffer on first use |
-| Translations | `locales/<tag>.toml` for its words in Settings, and a table of its own messages picked by the request's `locale` |
-
-### Name generators (`fantasy-names`, `real-names`, `scifi-names`)
-
-Built, as runtime plugins in Kotlin: `fantasy-names`, `real-names`, and
-`scifi-names` in `hammer-plugins`. An item on Project Home and encyclopedia
-entries asks for a style, how many names, and a few options, and lists them
-with a button for each that adds it to the encyclopedia. Most fantasy styles
-are made up to sound like an old language (Welsh for Elvish, Old Norse for
-Dwarvish), real names are picked by culture and decade of birth as often as
-they were common, and sci-fi names come as three actions: characters, worlds,
-and things, each added as a person, place, or thing. Each asks for
-`entry.create` and nothing else.
-
-| Exercises | How |
-| --- | --- |
-| Action fields | Choices, a number, and a toggle on the manifest's first page; the host remembers them for the next run while the project is open |
-| Pages and buttons | A page listing the names, with an inline button per name; pressing one adds the entry and replies with the list again, that name marked and its button gone. More names is a footer button, replying with a new list |
-| State across calls | The page's `state` holds the list's seed, its options, and which names were added, so each call rebuilds the same names |
-| Errors | A name the encyclopedia refuses replies with a page-level error, leaving the list as it was |
-| Resources | Each style's lists of names in `resources/`, read as they are needed |
-
-### Character interview (`character-interview`)
-
-Built, as a runtime plugin in Kotlin: `character-interview` in
-`hammer-plugins`. "Interview a character", on Project Home, asks for the
-character's name and an interview: a quick one of 12 questions, a full one of
-33, or the 31 of the confession album Proust filled in around 1890, in its own
-English wording. It then puts the questions a page at a time, each answered in
-a plain multiline field, and ends on a review of the entry it will write. Create
-entry adds a person entry with a heading for each page answered, each question
-in bold over its answer, and opens it. It asks for `entry.create` and nothing
-else.
-
-| Exercises | How |
-| --- | --- |
-| Pages | A page per heading of the set, titled like "Mara: Wants and fears (2 of 4)", with Back and Next, then the review with Back and Create entry |
-| State across calls | The page's `state` is the whole run: the name, the set, the page, and every answer by set and question, so switching sets keeps each set's answers |
-| Text fields | Each question is a multiline `plain` field, since a rich editor per question repeats its format bar down the page |
-| Buttons | Back has `validate = false`, so it never stops on a field |
-| Errors | A name Hammer would refuse as an entry's, and a failed `entry.create`, reply with `errors` |
-| Open | Create entry replies with `open` for the new entry, which ends the run |
-| Sessions | `keep = true`, so a run closed part way picks up where it was left. A `state` it cannot read starts again on the first page, keeping the name and answers |
-| Resources | Each set is a markdown file in `resources/sets/`: a `## Heading` per page, an optional paragraph under it as the page's intro, and a `- ` bullet per question |
-
-### First meeting (`first-meeting`)
-
-Built, as a runtime plugin in Kotlin: `first-meeting` in `hammer-plugins`.
-"Find where two characters first meet", on Project Home and encyclopedia
-entries, picks two characters and names the first scene, in story order, that
-has both in its References, and the groups it is in. It lists the other scenes
-they share in story order, with a button opening each of the first 10. When
-they share none, it says so, naming whichever of them is in no scene's
-References at all. Each result says, in italics, that it goes by each scene's
-References in Scene Info. It asks for `entry.read` and `scene.tree` and
-nothing else.
-
-| Exercises | How |
-| --- | --- |
-| Entity fields | Two required `entity` fields of `person` entries, on a page the plugin replies with rather than the manifest's, so it can give one a default |
-| Defaults from context | Run from an entry, the first field starts as that entry; Hammer shows it as nothing picked when the entry is not a person |
-| Errors | The same character twice is refused under the second field. A failed operation, or a button for a scene the pair does not share, is an error for the whole page |
-| Open | Each scene's button, and the primary Open for the first, reply with `open` for the scene, which ends the run. The page's `state` holds the scenes found, and only those are opened |
-| Inline buttons | One per shared scene, the first 10 only, so a pair sharing a hundred scenes does not bury the page; the markdown lists them all. A scene with the same name as another with a button is labelled with its groups too |
-| Buttons | Back has `validate = false`, and shows the picking page with the pair still picked, from `state` |
-| References | Reads each character's `referencedBy` with `entry.read`, keeps the scenes in both, and orders them by a walk of `scene.tree`, which leaves out archived scenes. That takes two reads and the tree rather than every scene's text, and follows what the writer has dismissed or added in Scene Info, which a search for names cannot. [Gaps](#gaps-these-expose) says where References fall short |
-
-No `keep`: a run is two picks, as quick to make again.
-
-### Harper grammar (`harper-grammar`)
-
-Built, as a runtime plugin in Rust: `harper-grammar` in
-`hammer-plugins`, on [Harper](https://github.com/Automattic/harper), with
-Harper's spell check turned off. English only; the project's language picks
-the dialect (American, British, Canadian, Australian, or Indian). Its settings
-turn off whole categories (grammar, word choice, punctuation and
-capitalization, style), which group Harper's finer kinds of lint, and long
-sentences on their own. Style lints come back as suggestions. A long
-sentence's lint is kept apart when overlapping lints are pared down, since it
-covers the whole sentence and would hide every other issue in it. Harper's
-rules can be switched on and off by name but take no parameters, so the
-40-word limit for a long sentence is fixed.
-
-Harper builds its dictionary and rules on start-up, which takes 36 seconds
-under chasm (0.6 natively) and about 140 MB of memory. So the build runs that
-start-up under Wizer and ships the result: a 104 MB module, 18 MB zipped,
-declaring `limits.memory = 256`. Loading it takes about 1.5 seconds and a
-paragraph about 0.4. It loads in a 352 MB JVM heap, not in 320: the host
-rewrites the module's limits into one exactly sized copy, without copying the
-sections it leaves alone, and lets go of the original as soon as that is done,
-which leaves chasm's decoded copy of the data and the module's memory. About
-90 MB stays. Short of that heap, the check fails and the text goes unmarked.
-Android's app heap may still be too small; untried there.
-
-### Name checker (`name-checker`)
-
-Built, as a runtime plugin in Rust: `name-checker` in `hammer-plugins`, a
-300 KB module with a word list for each language it checks as resources:
-English (SCOWL's American and British lists), French, German, Spanish,
-Italian, and Ukrainian. It reads the encyclopedia's names and aliases through
-`entry.list` on every check, so it follows edits to the encyclopedia.
-
-| Exercises | How |
-| --- | --- |
-| The project in a check | The diagnose request's `project` lets the check read the encyclopedia |
-| A check and a report in one plugin | A `[[diagnostics]]` check, and an action replying with a document page, share the name rules |
-| Resources | A word list per language, read the first time a project in it is checked, and kept |
-| Translations | `locales/<tag>.toml` for its labels, and its messages and report in the UI's language, counts with that language's plural forms |
-
-As the text is written, it underlines a word one edit from a name (two for a
-name of eight letters or more), a swap of neighbours counting as one, and a
-name written in lower case, offering the name as the fix; a plural ("the
-Grangers") counts as the name. Only names the word
-list does not know take part, so a name that is also a word ("Grace",
-"Harry") is left to spell check, and a word is never taken for a misspelled
-name. So it checks only projects in a language it has a list for. With the encyclopedia's names fed to
-spell check, a slip also gets spell check's own underline.
-
-The Names report, from the project menu, lists each entry's mentions (by
-name, alias, or a word of its name that is unique to it), the scenes they are
-in, and where it first appears; entries never mentioned; likely misspellings
-of names; and capitalised words the word list does not know, seen mid-sentence
-and more than once, that have no entry.
-
-### LanguageTool (`languagetool`)
-
-A Rust plugin in `hammer-plugins` checking grammar, punctuation, and style with
-[LanguageTool](https://languagetool.org): its free service, Premium with the
-user's API key, or their own server.
-
-| Exercises | How |
-| --- | --- |
-| HTTP | `permissions.http` names LanguageTool's two hosts; `userHosts` names the `server` setting, for a self-hosted server |
-| Secrets | The Premium API key and the server address are `secret` settings |
-| Batching under a limit | Changed paragraphs go in requests under the service's size limit, and each paragraph's matches are cached by a hash of its text, so a scene opened again is not sent again |
-| Offsets across the boundary | LanguageTool counts UTF-16 units; the plugin turns its matches into UTF-8 byte offsets |
-| Severity | Spelling is left to Hammer's spell check; style and register issues are suggestions |
-
-### Gaps these expose
+## Limitations
 
 - **No content-change events.** A plugin that wants to react to edits (live
-  stats, a background linter) has nothing to subscribe to. Deferred until a
-  plugin needs it.
-- **No per-project settings.** Plugin settings are global. Neither example
-  plugin needs per-project ones yet.
+  stats, a background linter) has nothing to subscribe to.
+- **Settings are global.** A project can turn a plugin off, but a plugin's
+  settings are the same in every project.
 - **No durable store of a plugin's own.** A plugin keeps its settings and a
   cache the OS may clear. A kept action's `state` is the host's to keep, and
-  only for that run. Custom interview questions would need more;
-  [PLUGIN-ACTION-PAGES.md](PLUGIN-ACTION-PAGES.md#a-durable-plugin-data-store)
-  plans a store for them.
+  only for that run.
 - **References are only as accurate as the writer keeps them.** First
   meeting, and any plugin built on `entry.read`'s `referencedBy`, counts a
   character in a scene when it is in the scene's References. Hammer adds an
@@ -1279,15 +1011,15 @@ user's API key, or their own server.
   is saved in the editor or the entry is created, renamed, or given an alias,
   and never takes one away. So a character only mentioned is counted until
   the writer dismisses it in Scene Info, and one there but never named is
-  missed until the writer adds it. A planned MCP skill,
-  [true up scene References](https://trello.com/c/OoWcactX/286-mcp-skill-true-up-scene-references),
-  would go through the scenes in story order and propose what to confirm and
-  dismiss, with a quote for each, applying only what the writer approves. It
-  needs operations to read and set a scene's References first.
+  missed until the writer adds it. `scene.meta.read` and
+  `scene.references.set` let a tool correct them; the MCP plugin's
+  `true-up-references` skill does so with the writer's approval.
 
-## Keeping the door open
+## Feature plugins (not supported)
 
-A feature plugin needs a new entity type. Today that means touching every one of:
+A feature plugin would add a whole new kind of thing, with its own data type,
+screen, sync, and search integration (brainstorming cards, say). Plugins
+cannot. A new entity type touches every one of:
 
 - `EntityType` and `ApiProjectEntity` in `:base` (shared with the server)
 - `IdAllocator` and its per-type `IdDatasource`s
@@ -1296,16 +1028,15 @@ A feature plugin needs a new entity type. Today that means touching every one of
 - `ProjectRootRouter.Config` and the navigation rail
 - `DataMigrator`
 
-None of that is generalized in this proposal. The rules that keep it possible
-later are:
+The rules that keep feature plugins possible are:
 
 1. Nothing in `ClientPlugin` or the operation API references any of the types
    above.
-2. Plugin ids are stable and match the server plugin id convention, so a future
+2. Plugin ids are stable and match the server plugin id convention, so a
    feature plugin can be one id with a client half and a `ServerPlugin` half.
 3. Any per-plugin storage is explicitly *not* synced. Owning synced entities
-   becomes a separate, opt-in capability when the entity model is opened up,
-   rather than something plugins fall into by storing data.
+   would be a separate, opt-in capability of an opened-up entity model, rather
+   than something plugins fall into by storing data.
 
 ## Runtime plugins (WASM)
 
@@ -1330,16 +1061,23 @@ does the build, and unit tests on the JVM against a fake Hammer, with an
 `ActionDriver` that steps through an action's pages as Hammer does); Rust, for
 speed (about half C's speed on a whole-book report, where Kotlin runs at about
 a fifth); and C, the fastest and smallest, written by hand with native unit
-tests. Zig, AssemblyScript, and Go (through TinyGo) were tried too.
-hammer-plugin-development's `LANGUAGES.md` compares them all. Kotlin/Wasm's objects live in
+tests. The kits for all three are in `hammer-plugin-sdk`. hammer-plugin-development
+has the same few plugins in Zig, AssemblyScript, and Go (through TinyGo) as
+well, and its `LANGUAGES.md` compares them all.
+
+Kotlin plugin authors should ship the production build, which binaryen
+optimizes: it runs about five times faster than the development build and is a
+fraction of its size. Kotlin/Wasm's objects live in
 chasm's guest heap rather than the module's linear memory, so that heap has a cap
 of its own: 1 GiB, or half the JVM's heap if that is less, beyond which a call
-fails with "ran out of memory". chasm frees a call's garbage when the call returns
-(its collector that runs during a call corrupts live objects in 2.0.0), so a call
-holds all it allocates: the reading level report needs 192 MiB on a 100,000-word
-novel and 384 MiB on a 300,000-word one, and the Kotlin style report on the
-longer needs 768 MiB with the benchmark's 22-word vocabulary and over 1 GiB with
-an 8,000-word one. The desktop JVM's default heap is a quarter of the machine's
+fails with "ran out of memory". Hammer runs chasm's `ARENA` collector, which frees
+a call's garbage when the call returns, so a call holds all it allocates: the
+reading level report needs 192 MiB on a 100,000-word novel and 384 MiB on a
+300,000-word one, and hammer-plugin-development's Kotlin style report on the
+longer needs 768 MiB with a 22-word vocabulary and over 1 GiB with an
+8,000-word one. chasm's `TRADITIONAL` collector, which runs during a call,
+corrupts live Kotlin/Wasm objects in chasm 2.0.0; it is not used on 2.1.0, the
+version Hammer pins. The desktop JVM's default heap is a quarter of the machine's
 memory, so an 8 GB machine allows about 1 GiB; Android's app heap, 192 to 512 MB,
 allows 96 to 256 MiB. The heap never gives pages back, so a plugin left holding more than 64 MiB
 after a call is dropped and loaded afresh when next used. The cap needs the JVM:
@@ -1356,6 +1094,23 @@ anything Hammer does not offer. A plugin whose start-up is slow can run it at
 build time under [Wizer](https://github.com/bytecodealliance/wizer), which
 saves the memory start-up leaves into the module; the zeroing allocator keeps
 what start-up threw away out of it.
+
+The C kit (`c/include`) builds freestanding (`--target=wasm32-unknown-unknown
+-nostdlib`), so a C plugin imports nothing but Extism and Hammer functions.
+On top of Extism's `extism-pdk.h`, `hammer.h` has the dispatch import,
+`hammer_call(operation, input_json)`, the API version, and the `memset`,
+`memcpy`, and `strlen` clang emits calls to even then. Beside it,
+`hammer_json.h` reads JSON, `hammer_out.h` writes output, `hammer_text.h` finds
+words, `hammer_action.h` reads an action's request and writes its reply (a
+message, a page of fields and buttons, errors, or an item to open), and
+`hammer_diagnose.h` does a `diagnose` export's reading and writing, leaving a
+checker only its rules; `hammer_progress` reports a long action's progress.
+With `HAMMER_NATIVE`, a plugin builds for the machine instead, and
+`hammer_test.h` unit tests it there.
+
+The host's own tests do not need these repositories: their fixtures are WAT, in
+`:plugins:wasmhost`'s `src/desktopTest/wat`, whose `build.sh` writes the
+compiled fixtures (a few hundred bytes each) into its test resources.
 
 ### Package
 
@@ -1393,7 +1148,7 @@ keep = false                  # whether a run closed part way is kept
 
 [[actions.field]]             # optional; the action's first page
 key = "scenes"
-type = "scenes"               # bool, int, choice, text, or scenes
+type = "scenes"               # bool, int, choice, text, scenes, or entity
 label = "Scenes"
 multiple = true
 
@@ -1438,27 +1193,23 @@ translating them.
 
 ### Calling convention
 
+Hammer uses [Extism](https://extism.org)'s calling convention, so plugin
+authors can start from Extism's plugin libraries for C, Rust, Go, Zig, JavaScript,
+AssemblyScript, .NET, and Haskell. The host implements the `extism:host/env`
+functions natively (`ExtismKernel`) rather than running Extism's kernel module,
+which would cost a second interpreted call for every eight bytes a plugin
+copies.
+
 Everything crosses the boundary as JSON in the plugin's linear memory, so the
 host needs no knowledge of plugin types:
 
-- **Plugin to host:** one import that dispatches an operation, plus logging.
-  This is the [`Dispatcher`](#clientplugin-operations) call, so a runtime plugin
-  reaches exactly the API an in-process plugin or the CLI does.
-- **Host to plugin:** exports for each capability: render an export, run one of
-  the plugin's own operations, describe itself.
+- **Plugin to host:** `hammer_dispatch`, which runs an operation as the CLI's
+  [`Dispatcher`](#clientplugin-operations) does, within the plugin's grants,
+  and host functions for logging, progress, the cache, resources, and HTTP.
+- **Host to plugin:** an export per capability the manifest declares:
+  `export`, `action`, `diagnose`, and `command`.
 
-**Decision for the spike: Extism compatibility.** Extism already publishes
-plugin libraries for C, Rust, Go, Zig, JavaScript, AssemblyScript, .NET, and
-Haskell, with documentation. Since anyone can write plugins, adopting its
-convention gives authors that head start. The cost is implementing Extism's
-host side on chasm; its Java SDK does the same on the Chicory runtime and is
-the reference. If the port proves too large, the fallback is a small
-convention of our own (allocate, call, dispatch, log) plus a C header.
-
-**Settled by the spike.** Extism's convention it is. The host implements the
-`extism:host/env` functions natively (`ExtismKernel`) rather than running
-Extism's kernel module, which would cost a second interpreted call for every
-eight bytes a plugin copies. The Hammer-specific parts:
+The Hammer-specific parts:
 
 - `extism:host/user` `hammer_dispatch(request) -> reply`. The request is
   `{"operation": "...", "input": {...}}`; the reply is `{"output": ...}` or
@@ -1563,7 +1314,9 @@ under `resources/` can be read, and an empty one reads as missing.
 A manifest's `[[actions]]` add items to the overflow menus of the screens in
 their `places`. An action shows **pages** in a dialog, one at a time. A module
 cannot supply Compose UI, so a page says what to ask and what to show, and the
-host decides how it looks.
+host decides how it looks. Pages leave out, on purpose, rows, columns, and
+nesting; colors and styling; a call per keystroke; and fields that appear
+without a call.
 
 ```toml
 [[actions]]
@@ -1692,7 +1445,8 @@ Fields take the same keys in a manifest's `[[actions.field]]` and in a page's
   own, written for the call's `locale`.
 
 **Entities.** An `entity` field picks items of the project by name, as the
-two characters [First meeting](#first-meeting-first-meeting) compares:
+two characters the `first-meeting` plugin compares (see
+[Example plugins](#example-plugins)):
 
 ```toml
 [[actions.field]]
@@ -1840,7 +1594,7 @@ not lose it. Nothing asks "discard?", because nothing is discarded.
   a project copied on disk is given a new id while the original keeps the old.
   A session the new id already has is left as it is.
 - **A renumbered item.** Sync gives an item made on this device a new id when
-  the server has given its id to another ([Re-ID](SYNCING-PROTOCOL.md)), so
+  the server has given its id to another ([Re-ID](SYNCING-PROTOCOL.md#terminology)), so
   the old id then names that other item. Once a sync has made its changes,
   `EntityIdChangeListener`s are told of them all, and sessions follow the new
   ids in one pass: a run from a renumbered item is filed under its new id, and
@@ -1861,10 +1615,6 @@ not lose it. Nothing asks "discard?", because nothing is discarded.
   them back.
 - **Not synced.** A half-filled form is this device's.
 
-**Later.** [PLUGIN-ACTION-PAGES.md](PLUGIN-ACTION-PAGES.md) plans what pages
-do not do yet: tabs and fields that refresh their page, and a durable store for
-a plugin's own data.
-
 ### Commands
 
 A manifest's `[[commands]]` add top-level CLI commands, desktop only. For
@@ -1881,7 +1631,7 @@ cannot load, the command exits with an error rather than reading input.
 
 ### Host
 
-A new `:plugins:wasmhost` module, depending on `:operations` and chasm:
+`:plugins:wasmhost` depends on `:operations` and chasm:
 
 - **Loader.** `RuntimePlugins` keeps packages in `<config>/plugins/packages/`,
   each plugin's enabled flag and granted operations in
@@ -1931,7 +1681,8 @@ A new `:plugins:wasmhost` module, depending on `:operations` and chasm:
   interruptible too: cancelling the coroutine waiting on a call, such as a
   stopped action or a text check the editor no longer wants, interrupts the
   module at its next function entry or loop iteration, or once the host
-  function it is in returns. chasm makes one check for both, so it adds little.
+  function it is in returns. chasm makes one check for both, so interrupting
+  adds little to metering, which costs about 20% in tight loops.
 - **Host memory.** What a plugin can make the host hold is capped per plugin:
   - The kernel (Extism's shared memory, holding a call's input, output, and host
     function results) at 256 MiB, or a sixteenth of the JVM's heap if that is
@@ -1948,6 +1699,15 @@ A new `:plugins:wasmhost` module, depending on `:operations` and chasm:
   that call or load as a plugin failure ("ran out of memory"), never the app. The
   instance is dropped, freeing what it held, and the next call loads the module
   afresh. Only the plugin path catches it; anywhere else it still ends the app.
+- **Loading a large module.** Each load reads the module from the package.
+  `ModuleLimiter` writes its rewrite into one array sized exactly, copying the
+  sections it leaves alone straight from the original, which is let go once
+  that is done; chasm's decoded module and the module's linear memory remain.
+  So a pre-initialized module needs a JVM heap several times its size while it
+  loads: the 104 MB `harper-grammar` module loads in a 352 MB heap but not in
+  320, and holds about 90 MB once loaded. Short of that, the load fails as out
+  of memory, and a text check it provides leaves the text unmarked. It is
+  untried on Android's app heap.
 - **iOS.** Kotlin/Native has no heap limit to read, so the kernel's cap is a fixed
   256 MiB there, and chasm cannot be given a capped guest heap on native, so a
   Kotlin/Wasm plugin's is uncapped. Most failed allocations abort the process
@@ -2000,8 +1760,9 @@ names:
   so recovering an unreadable keyset never touches the sync tokens'.
 - **iOS.** The Keychain, one item per key.
 
-A value saved in the settings file before its setting became a secret moves to
-the store when it is next read. Uninstalling removes a plugin's secrets.
+A secret setting's value found in the settings file, as when a plugin update
+turns a setting into a secret, is moved to the store when next read.
+Uninstalling removes a plugin's secrets.
 Commands read them too: `RuntimePlugins` takes the store.
 
 ### Trust
@@ -2019,332 +1780,23 @@ Plugins are untrusted code:
   those of the new manifest, since the user just approved them.
 - **Never the sync account.** No plugin logs in, logs out, or syncs, whatever
   its grants; see [Account and sync](#account-and-sync). An installed package
-  that asks to no longer loads, and Settings lists it as unreadable.
+  that asks to does not load, and Settings lists it as unreadable.
 - **Install and removal.** Manage plugins, from Settings or a project's
   settings, has install from file, enable and disable, and uninstall, with the
   permission prompt at install. `hammer plugin install` and the MCP plugin's
   tool install with no prompt, so they need `--confirm` or a `danger` setting.
-- **Signing** is of the [plugin index](#plugin-index), not of packages: the
-  signed index pins each package's hash. A package installed from a file is
-  unsigned.
-
-### Plugin index
-
-A public, curated list of plugins the app can browse and install from. It holds
-listings, not packages.
-
-**Submitting.** A plugin gets one file in a `hammer-plugin-index` repository,
-added by pull request. `hammer-plugins` stays the first-party plugins' source
-and is the index's first submitter, attaching each package to a GitHub release.
-
-```toml
-# plugins/style.toml
-id = "style"
-name = "Style Report"
-summary = "Sentence length, adverbs, and repeated words, per scene."
-source = "https://github.com/Wavesonics/hammer-plugins/tree/main/style"
-license = "MIT"
-maintainers = ["Wavesonics"]
-
-[[releases]]
-version = "1.2.0"
-url = "https://github.com/Wavesonics/hammer-plugins/releases/download/style-1.2.0/style.hammerplugin"
-sha256 = "9f2c..."
-```
-
-Packages stay where their authors host them: a `.wasm` is not reviewable in a
-diff, and the pinned hash keeps an author from swapping one after review. A
-listing needs a public source link.
-
-**Checks on each pull request.** CI downloads each new release and checks:
-
-- Its hash, and that it passes the install checks the app runs, through a
-  `hammer plugin check <file>` command authors can run too.
-- Its id is the listing's, its version is above the last, and its `api` is one
-  a released app supports.
-- For an existing listing, the pull request's author is one of its
-  `maintainers`.
-
-**Review.** Plugins have no ambient access (see [Trust](#trust)), so a plugin
-cannot send anything anywhere; review asks whether it could damage a project
-and whether it does what it says. A person approves new listings, releases that
-request more permissions than the last, and any Prose or Destructive operation. Other releases merge
-once the checks pass.
-
-**Publishing.** On merge, CI builds `index.json` and publishes it, with its
-signature, at a fixed URL on a Hammer domain, so hosting can move. Permissions,
-commands, actions, and exporters in it are read from each package's manifest,
-never from the listing, so a listing cannot misstate what a plugin requests.
-
-**Signing.** CI signs `index.json` with an Ed25519 key held as a repository
-secret; the app ships the public keys it accepts, and a rotation ships in an app
-release. The app refuses an index whose signature fails, and one generated
-before the newest it has seen, so an old index cannot be replayed to hide an
-update. The signature covers the index and the index pins every package hash,
-so packages need no signatures of their own.
-
-**In the app.** The Plugins section of Settings gets a Browse tab. It fetches
-the index only when opened, or when checking installed plugins for updates,
-lists the releases whose `api` the app supports, and installs one by
-downloading it, checking its hash, and passing it to the usual install and its
-permission prompt. An update that requests more asks again, as any
-[replaced package](#trust) does. Install from file stays for plugins outside
-the index.
-
-**Later.** Verified builds: CI builds a release from source at a pinned commit
-and marks the listing when the result matches the package. It needs a toolchain
-per language, so it is a mark, not a requirement. A browse page on hammer.ink
-can read the same `index.json`.
-
-### Spike results
-
-Desktop JVM, warm, chasm 2.0.0:
-
-| Measure | Result |
-| --- | --- |
-| Tight loop, 20M iterations | 358 ms bare, 738 ms with fuel checks written into the module; on chasm 2.1.0, 375 ms bare and 450 ms with its own fuel |
-| 557 KB of text (100k words) through a WAT plugin, two host calls per byte | 63 ms |
-
-The same two jobs in C and Kotlin/Wasm, on that text. The Kotlin production
-build is optimized by binaryen; the development build is not:
-
-| Job | C | Kotlin production | Kotlin development |
-| --- | --- | --- | --- |
-| Upper-case it | 23 ms | 350 ms | 1.8 s |
-| Word frequency export of it | 77 ms | 945 ms | 4.5 s |
-| Load the module (after the first, which warms chasm itself) | under 25 ms | 25 to 135 ms | 0.4 to 0.5 s |
-| Module size | 1 to 4 KB | 12 to 325 KB | 0.6 to 1.9 MB |
-
-- **Kotlin/Wasm works** on the same host, `wasmWasi` target, with
-  `@WasmImport` for the Extism functions and only `random_get` and
-  `clock_time_get` from WASI. Optimized, it is 12 to 15 times slower than C
-  here: part is doing more (Unicode case rules, kotlinx.serialization), most is
-  its GC-heavy standard library under an interpreter. Fine for occasional jobs;
-  C, Rust, Zig, or AssemblyScript suit exports that run over a whole book.
-  Plugin authors should ship the production build.
-- **C works freestanding.** Extism's C PDK compiles with no libc
-  (`--target=wasm32-unknown-unknown -nostdlib`), so a C plugin imports nothing
-  but Extism and Hammer functions. `hammer.h` supplies the `memset`, `memcpy`,
-  and `strlen` clang emits calls to even then.
-- **Fuel costs about 20% in tight loops** with chasm's own metering, where
-  checks written into the module cost 2x. A cheaper scheme charges a basic
-  block's instruction count once per block instead of one unit per loop pass;
-  it is not needed yet.
-- **Plugin kit.** Authors get `hammer.h` on top of Extism's `extism-pdk.h`: the
-  dispatch import, `hammer_call(operation, input_json)`, and the API version.
-  Beside it, `hammer_json.h` reads JSON, `hammer_out.h` writes output,
-  `hammer_text.h` finds words, `hammer_action.h` reads an action's request and
-  writes its reply (a message, a page of fields and buttons, errors, or an item
-  to open), and `hammer_diagnose.h` does a `diagnose` export's reading and
-  writing, leaving a checker only its rules; `hammer_progress` reports a long
-  action's progress. With `HAMMER_NATIVE`, a plugin builds for the machine
-  instead, and `hammer_test.h` unit tests it there. Typed C structs for
-  operation inputs and outputs can later be generated from `ops.list`'s
-  schemas.
-
-The plugin kits live in a separate `hammer-plugin-sdk` repository, next to this
-one, with Hammer's own plugins in `hammer-plugins` and the language comparisons in
-`hammer-plugin-development`. The host's test fixtures are WAT, in
-`:plugins:wasmhost`'s `src/desktopTest/wat`, whose `build.sh` writes the compiled
-fixtures (a few hundred bytes each) into its test resources, so this repo's tests
-do not need those checkouts.
+- **Unsigned packages.** A package is not signed: what protects the user is
+  the sandbox and the permissions they approve at install.
 
 ### Platforms
 
 The host is common code, so enabling a platform is a registration change: the
-platform's entry point calls the loader. Desktop comes first. Android follows
-with no new host code. Play's rule against downloaded code exempts code run in
-an interpreter, which covers installing from the [plugin index](#plugin-index);
-confirm before shipping the Browse tab there. iOS can run it technically; whether App Review accepts
-installable plugins is a policy question to settle before shipping it there,
-not an architecture one. Its HTTP client and secret store are written but
-untested.
+platform's entry point calls `RuntimePlugins.inConfigDirectory` and activates
+the plugins into its `PluginRegistry`. Desktop (`Main.kt`) and Android
+(`HammerApplication`) do. Google Play's rule against downloaded code exempts
+code run in an interpreter, as plugins are.
 
-## Cost to `:common`
-
-Most new code lives outside `:common`: in `:operations`, `:composeUi`,
-`:desktop`, and plugin modules. Everything this note asks of `:common`:
-
-| Change | Size | Justified without plugins? |
-| --- | --- | --- |
-| `closeProjectScope` counts editors, closing the scope when the last one closes | A few lines | Yes. Two Android tasks on one project otherwise close the scope under each other |
-| One string, `settings_plugins_header` | Trivial | No, but it is where all UI strings live |
-| `StoryExporterRegistry` asks Koin-bound `ExporterSource`s on each lookup | A few lines | No. The one piece of pure plugin plumbing |
-| `ExportFormat` enum becomes `StoryExporterRegistry`; export moves from `components/projecthome` to the data layer | Moderate | Partly. Export logic is in the wrong layer today |
-| The prose markdown parser moves out of `PdfProseMarkdown.kt` into a public `ProseMarkdown.kt` | Small | Yes. DOCX and RTF already use it, and it had nothing to do with PDF |
-| `StoryChapter` keeps its scenes separate, with `markdown` joining them | Small | Yes. Manuscript format needs scene breaks too |
-| A draft-save method that takes text, not only the current scene content | Small | No, but it is a natural addition |
-| Detail screens' overflow menus take extra items, and the project root hosts `PluginActionHost`, which runs actions and shows their dialogs | Small | No. Plugin actions appear on every screen that shows an item |
-| `ProjectRoot.navigateToDeepLink` says whether it found the item, and checks a note or timeline event exists before showing it | Small | Yes. A deep link to a note or event that no longer exists is skipped, as one to a scene or entry is |
-| `ProjectsRepository` tells a `ProjectIdChangeListener` bound in Koin when a project's id changes, as well as those added to it | A few lines | No. It is how action sessions follow a project to its new id |
-
-Headless sync needs no `:common` change: the sync-all orchestration already
-lives in the data layer as `SyncAccountUseCase`. Neither do runtime plugins:
-they reach `:common` only through operations.
-
-**Hidden costs.** Two assumptions could push fixes into `:common`, and both
-come from running it with no UI:
-
-- **Headless startup.** String resources and the data migrator have not been
-  run without a window.
-- **Koin restart per call.** Stopping and restarting the global context only
-  works if project and app scopes shut down cleanly. A repository that leaves a
-  coroutine running or holds static state would need fixing. `TimeLineRepository`
-  was one, and now cancels its scope when the project scope closes.
-
-Both were spiked before step 5: `HeadlessRestartTest` starts the real Koin
-graph five times, runs migration and read operations each time, and fails on
-any work that outlives a stop. It passes, at about 0.2 seconds per warm cycle.
-
-**Guardrail.** Every step's `:common` changes must make sense without plugins,
-or be listed in the table above. Anything else gets flagged in review, and the
-design is revisited rather than `:common` bent to fit.
-
-## Rollout
-
-1. **Seam.** The `:operations` module, `ClientPlugin`, the registries,
-   `PluginSettingsDatasource`, the Plugins section of Settings, and entry-point
-   wiring. (Built first for compiled-in plugins, since dropped.)
-2. **Pluggable export.** Move export into the data layer, replace the
-   `ExportFormat` enum with `StoryExporterRegistry`, port the five built-in
-   formats, then ship the [plain text exporter](#plain-text-exporter-plaintext)
-   as the first real plugin, now a runtime one.
-3. **Operation registry and read operations.** Registry, `OperationContext`,
-   the Read operations from the catalog, including `project.export` and
-   `export.formats`. Tested directly, no front end yet.
-4. **Runtime plugin spike.** Done; see [Spike results](#spike-results).
-   `:plugins:wasmhost` holds the Extism host on chasm, module limits, the
-   manifest, and `WasmPlugin`.
-5. **Headless CLI.** Built: subcommands generated from the registry,
-   `Dispatcher`, the `cliCommands()` capability, per-call Koin startup, and the
-   writer lock, which the app holds for its lifetime. The holder writes
-   `writer.owner` beside the lock, so nobody waits on the app, while a CLI call
-   waits briefly for another to finish. `window.lock` marks open windows, so a
-   CLI call never starts headless under one; forwarding (step 8) is what makes the
-   app single-instance. [Getting `hammer` onto
-   PATH](#getting-onto-path) is a Settings button on each package format that
-   allows it.
-6. **[MCP plugin](#mcp-plugin).** Built, as a runtime plugin on plugin
-   commands and scope grants.
-7. **Headless sync.** Built: `account.status`, `account.login`,
-   `account.logout`, `sync.status`, and `sync.run` over `SyncAccountUseCase`.
-   Refuses while the app is running, through forwarding. Tested with fakes
-   only so far, not against a live server.
-8. **Forwarding.** Built: the app listens on
-   `run/hammer.sock` in the config directory (`run/` is owner-only) while it
-   holds `app.lock`, refuses account and sync operations since it runs
-   those itself, and the CLI and MCP try the socket before running headless. A second app launch hands its arguments to the first window and
-   exits (see [Multiple app instances](#concurrency)).
-9. **Write operations.** Built: every write operation in the catalog, the MCP
-   plugin's settings, and the CLI's `--confirm` and `--in`. Project
-   create, rename, and delete go through `ProjectsService`, shared with the
-   projects list, so they queue for account sync the same way. Deliberately
-   after forwarding, so live writes always go through the app when it is up.
-   Then the [style report](#style-report-style) plugin, now a runtime one with
-   the project action slot it needed.
-   Then the plugin [cache](#cache), so a style report counts only changed
-   scenes, and the dialog showing an action's document, where the style
-   report appears.
-10. **Text diagnostics.** Built: `TextDiagnosticsProvider`, the `diagnose`
-   export, and a diagnostics layer in the editor library, with the
-   [simple grammar](#simple-grammar-simple-grammar) plugin against it. Spell check stays separate:
-   it loads suggestions only when a word is clicked and re-checks single words,
-   where diagnostics carry their fixes up front and re-check whole paragraphs.
-   Moving it over waits until diagnostics can load fixes on demand.
-11. **Runtime plugins on desktop.** Built. Plugins from the `hammer-plugins`
-    repository compile, package, install without a restart, read their
-    declared settings, and call back into Hammer. Compiled-in plugins are gone.
-12. **Runtime plugins on Android**, then an iOS decision. Android is built:
-    registration only, through the same `RuntimePlugins.inConfigDirectory`
-    as desktop. iOS needs only the same line in `HammerAppInit`, once App
-    Review's stance on installable plugins is settled.
-13. **HTTP, secrets, and plugin management.** Built: [HTTP](#http) to declared
-    and entered hosts, `danger` and `secret` settings, the `plugin.*`
-    operations with their CLI and MCP tools, and Manage plugins in project
-    settings. The [LanguageTool](#languagetool-languagetool) plugin uses them.
-14. **[Plugin index](#plugin-index).** `hammer plugin check`, then the
-    `hammer-plugin-index` repository with its checks and signed `index.json`,
-    with the first-party plugins as its first listings, then the Browse tab and
-    update checks.
-
-Steps 1 and 2 restructure existing code, and step 8 changes app startup
-(single-instance hand-off). The rest are additive. Step 9 is where the
-concurrency design gets tested for real.
-
-## v2
-
-### Batch mode
-
-`hammer batch`, described under [CLI](#cli). One process, operations in as
-JSON lines, results out as JSON lines.
-
-### Sync backends
-
-Could a plugin sync projects through Google Drive (or Dropbox, WebDAV, a git
-remote) instead of a Hammer server? Not with this design, but it can be added:
-
-- **A sync capability.** Today sync is `SyncAccountUseCase` talking to the
-  Hammer server's API. A plugin backend needs a `syncBackend()` capability
-  that the sync use case calls instead: push and pull whole entities, list what
-  changed since a marker. The entity journal and conflict handling stay in
-  core; only the transport is the plugin's.
-- **Core first.** A Drive backend needs OAuth (a browser sign-in and token
-  refresh), HTTP, background scheduling, and a place for tokens, all of which
-  core Kotlin has. It would start in core once the capability exists.
-- **Plugins need more host.** [HTTP](#http) to named hosts and
-  [secrets](#secrets) exist; an OAuth flow the host runs on the plugin's
-  behalf does not, and is worth doing only once a real backend needs it.
-- **No shared server semantics.** Drive has no server-side merge, so the
-  backend would store a journal alongside the files and resolve conflicts
-  client-side, as sync already does for the Hammer server's reported changes.
-
-### Native CLI
-
-A Kotlin/Native build of the CLI for `linuxX64` and `linuxArm64`: a single
-binary with no JVM, fast startup, and a small memory footprint on devices like
-a Pi Zero.
-
-**Dependencies are not the obstacle.** As of this writing, every dependency of
-`:base` and `:common` publishes Linux native targets except these:
-
-| Library | Use in the data layer | Resolution |
-| --- | --- | --- |
-| Napier | Logging in about 56 files | Swap for Kermit (has Linux targets) or a small internal facade |
-| Compose resources | About 18 files; sync log messages are localized through it | Sync logs become structured events that the UI localizes |
-| Decompose | 1 file | Remove the dependency from that file |
-| platform-spellcheckerkt, pdfkmp | Spell check, PDF export | Excluded from the native build |
-
-The Ktor client uses the curl engine on Linux, which requires libcurl on the
-target system. chasm publishes Linux native targets too, so plugins, the MCP
-plugin included, can come along.
-
-**The obstacle is module structure.** A native CLI module cannot depend on
-`:common` as it is, because that would require all of `:common`'s shared code,
-components and Compose resources included, to compile for Linux. The
-prerequisite is extracting a UI-free `:core` module from `:common`: the data
-layer and sync. `:common` keeps the components, `:operations` re-points to
-`:core`, and the native CLI depends on `:operations` and `:core`. That extraction is the bulk of the work, roughly 200 files, and it matches
-the layering in `ARCHITECTURE.md`, so it has value beyond the CLI.
-
-After that:
-
-- Linux actuals for the core module's `expect` declarations (`:common` has 32
-  today, some of which stay with the UI). The iOS actuals mostly use Foundation
-  and cannot be shared.
-- A Linux token store, porting the desktop AES file store onto the crypto
-  libraries `:base` already uses.
-- The writer lock and the local socket via POSIX.
-- A native test run in CI. Sync would ship on two runtimes, and TLS through
-  libcurl and file locking are the likeliest places for them to differ.
-
-**Cross-compilation is a real advantage.** Kotlin/Native builds `linuxArm64`
-binaries on an x64 host. GraalVM native-image cannot cross-compile.
-
-**Try the cheaper options first.** In order:
-
-1. Measure JVM CLI startup on the target hardware. The figures in this note are
-   estimates.
-2. AppCDS (JVM class-data sharing). No code changes.
-3. GraalVM native-image of the JVM CLI. Reuses the JVM code as is, but needs an
-   arm64 build host and reflection and resource configuration.
-4. Kotlin/Native, once the core module split is wanted for its own sake.
+iOS does not load runtime plugins: `HammerAppInit` registers an empty
+`PluginRegistry`. Enabling them is the same registration line there; whether
+App Review accepts installable plugins is a policy question, not an
+architecture one. iOS's HTTP client and secret store are written but untested.

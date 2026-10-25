@@ -14,7 +14,7 @@ import org.koin.core.scope.Scope
 
 class OperationContext(
 	val projects: ProjectResolver,
-	/** For operations built on other operations, including plugin ones. */
+	/** For operations built on other operations. */
 	val operations: OperationRegistry,
 )
 
