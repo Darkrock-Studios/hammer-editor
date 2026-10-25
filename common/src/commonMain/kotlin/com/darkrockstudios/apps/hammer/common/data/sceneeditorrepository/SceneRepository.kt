@@ -97,16 +97,27 @@ class SceneRepository(
 	 * Content/metadata initialization is orchestrated by [SceneEditorService].
 	 */
 	suspend fun initializeSceneEditor(): SceneRepository {
-		val root = sceneDatasource.loadSceneTree(rootScene)
-		sceneTree.setRoot(root)
-
-		cleanupSceneOrder()
+		loadTreeFromDisk()
 
 		idAllocator.findNextId()
 
 		reloadScenes()
 
 		return this
+	}
+
+	/** For when scene files changed underneath the loaded tree. */
+	suspend fun reloadTreeFromDisk() {
+		loadTreeFromDisk()
+		reloadScenes()
+	}
+
+	private suspend fun loadTreeFromDisk() {
+		sceneDatasource.invalidateScenePathCache()
+		val root = sceneDatasource.loadSceneTree(rootScene)
+		sceneTree.setRoot(root)
+
+		cleanupSceneOrder()
 	}
 
 	/**

@@ -24,7 +24,7 @@ class SceneDatasource(
 
 	private val scenePathIndex = ScenePathIndex(::scanScenePaths)
 
-	private fun invalidateScenePathCache() = scenePathIndex.invalidate()
+	fun invalidateScenePathCache() = scenePathIndex.invalidate()
 
 	private fun addScenePathToCache(scenePath: HPath) = scenePathIndex.onCreated(scenePath)
 
