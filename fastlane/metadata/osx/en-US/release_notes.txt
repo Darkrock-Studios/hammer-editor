@@ -1,13 +1,3 @@
-New
-- Reader Mode: read your story as prose, a chapter at a time
-- Export options: chapter numbering, font, blank lines
-- OLED black theme
-- Turkish translation
-- Text editor 3.0: Huge improvements in input and performance
-
-Fixes
-- Unsaved scene edits could be lost when the app closed in the background
-- Restoring a backup could make the project disappear
-- Discarded scenes were still saved and uploaded by sync
-- PDF export cut off lines at page breaks
-- Crash on launch when the saved login could not be read
+- Fix crash with syncthing conflict files
+- Fixed several crashes in text editor
+- Improved text editor format buttons
