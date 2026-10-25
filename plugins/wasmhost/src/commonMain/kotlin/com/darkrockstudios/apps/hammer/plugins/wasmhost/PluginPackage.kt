@@ -220,10 +220,17 @@ class PluginPackage(
 			}
 		}
 
-		// A toggle the user agrees with has to warn and start off.
+		// The host has to be one the user enters, since the install prompt names only the setting, and a
+		// toggle the user agrees with has to warn and start off.
 		private fun checkUserHosts(userHosts: PluginManifest.UserHosts, settings: List<SettingDeclaration>) {
-			if (settings.none { it.key == userHosts.setting && (it is SettingDeclaration.Text || it is SettingDeclaration.Secret) }) {
+			val setting = settings.firstOrNull { it.key == userHosts.setting }
+			if (setting !is SettingDeclaration.Text && setting !is SettingDeclaration.Secret) {
 				throw PluginPackageException("permissions.userHosts setting '${userHosts.setting}' is not a declared string or secret setting")
+			}
+			if (setting.default.content.isNotEmpty()) {
+				throw PluginPackageException(
+					"permissions.userHosts setting '${userHosts.setting}' must have no default: list a host known in advance in permissions.http"
+				)
 			}
 			val key = userHosts.toggle ?: return
 			val toggle = settings.firstOrNull { it.key == key } as? SettingDeclaration.Toggle
@@ -260,7 +267,8 @@ class PluginPackage(
 
 		private fun PluginPackage.checkModule() {
 			try {
-				WasmPlugin(manifest, ::readModule, settings, readResource = ::readResource).instantiate()
+				// Without HTTP, so a package sends nothing before the user agrees to install it.
+				WasmPlugin(manifest, ::readModule, settings, readResource = ::readResource, httpClient = null).instantiate()
 			} catch (e: PluginException) {
 				throw PluginPackageException(e.message.orEmpty())
 			} catch (e: IllegalArgumentException) {

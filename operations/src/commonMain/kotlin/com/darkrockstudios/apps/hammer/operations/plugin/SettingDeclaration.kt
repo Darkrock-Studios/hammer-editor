@@ -130,8 +130,8 @@ fun validateSettings(pluginId: String, settings: List<SettingDeclaration>) {
 }
 
 /** Every declared setting's value from [stored], or its default where the stored value is missing or invalid. */
-fun List<SettingDeclaration>.resolve(stored: Map<String, JsonPrimitive>): JsonObject =
-	JsonObject(associate { setting -> setting.key to (stored[setting.key]?.let(setting::accept) ?: setting.default) })
+fun List<SettingDeclaration>.resolve(stored: Map<String, JsonElement>): JsonObject =
+	JsonObject(associate { setting -> setting.key to ((stored[setting.key] as? JsonPrimitive)?.let(setting::accept) ?: setting.default) })
 
 internal fun TomlTable.toSettingValues(): Map<String, JsonPrimitive> = mapNotNull { (key, element) ->
 	element.toJsonPrimitive()?.let { key to it }

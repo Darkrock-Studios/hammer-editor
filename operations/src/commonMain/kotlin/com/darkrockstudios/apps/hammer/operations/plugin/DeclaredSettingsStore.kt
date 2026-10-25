@@ -26,9 +26,10 @@ class DeclaredSettingsStore internal constructor(
 ) {
 	private val saveLock = Mutex()
 
-	private val _values = MutableStateFlow(
-		datasource.loadDeclared(pluginId, declarations)
-	)
+	// The values the user set, which alone are saved.
+	private val chosen = MutableStateFlow(datasource.loadChosen(pluginId, declarations))
+
+	private val _values = MutableStateFlow(declarations.resolve(chosen.value))
 	val values: StateFlow<JsonObject> = _values.asStateFlow()
 
 	/** The current values decoded into a plugin's own settings class, whose properties are the keys. */
@@ -42,11 +43,12 @@ class DeclaredSettingsStore internal constructor(
 	fun set(key: String, value: JsonPrimitive) {
 		val declaration = declarations.firstOrNull { it.key == key } ?: return
 		val accepted = declaration.accept(value) ?: return
+		chosen.update { JsonObject(it + (key to accepted)) }
 		_values.update { JsonObject(it + (key to accepted)) }
 		saveScope.launch(ioDispatcher) {
 			saveLock.withLock {
 				try {
-					datasource.storeDeclared(pluginId, declarations, values.value)
+					datasource.storeDeclared(pluginId, declarations, chosen.value)
 				} catch (e: IOException) {
 					Napier.e(e) { "Failed to save settings for plugin '$pluginId'" }
 				}

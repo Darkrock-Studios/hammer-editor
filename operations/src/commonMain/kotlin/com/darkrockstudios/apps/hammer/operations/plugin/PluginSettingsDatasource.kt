@@ -57,11 +57,15 @@ class PluginSettingsDatasource(
 		fileSystem.atomicMove(staging, path)
 	}
 
+	/** A plugin's declared settings as stored, with defaults for anything missing or invalid. */
+	fun loadDeclared(pluginId: String, declarations: List<SettingDeclaration>): JsonObject =
+		declarations.resolve(loadChosen(pluginId, declarations))
+
 	/**
-	 * A plugin's declared settings as stored, with defaults for anything missing or invalid. A secret
-	 * found in the settings file, saved there before its setting was one, moves to [secrets].
+	 * The valid values the user set, without defaults. A secret found in the settings file, saved there
+	 * before its setting was one, moves to [secrets].
 	 */
-	fun loadDeclared(pluginId: String, declarations: List<SettingDeclaration>): JsonObject {
+	fun loadChosen(pluginId: String, declarations: List<SettingDeclaration>): JsonObject {
 		val table = load(pluginId, TomlTable.serializer()) { TomlTable(emptyMap<String, TomlElement>()) }
 		val stored = table.toSettingValues()
 		val secretKeys = declarations.filterIsInstance<SettingDeclaration.Secret>().map { it.key }.toSet()
@@ -78,10 +82,14 @@ class PluginSettingsDatasource(
 				Napier.e(e) { "Failed to remove secrets from the settings file of plugin '$pluginId'" }
 			}
 		}
-		return declarations.resolve(stored + found)
+		val all = stored + found
+		return JsonObject(declarations.mapNotNull { setting -> all[setting.key]?.let(setting::accept)?.let { setting.key to it } }.toMap())
 	}
 
-	/** Saves [values]: secrets to [secrets], and everything else to the plugin's settings file. */
+	/**
+	 * Saves [values], only those the user set, so a default stays the plugin's to change: secrets to
+	 * [secrets], and everything else to the plugin's settings file.
+	 */
 	fun storeDeclared(pluginId: String, declarations: List<SettingDeclaration>, values: JsonObject) {
 		val secretKeys = declarations.filterIsInstance<SettingDeclaration.Secret>().map { it.key }.toSet()
 		secretKeys.forEach { key ->

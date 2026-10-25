@@ -32,6 +32,9 @@ import com.darkrockstudios.apps.hammer.operations.plugin.TextDiagnosticSeverity
 import com.darkrockstudios.apps.hammer.operations.plugin.TextDiagnosticsRequest
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.PluginCache
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.PluginException
+import com.darkrockstudios.apps.hammer.plugins.wasmhost.PluginHttp
+import com.darkrockstudios.apps.hammer.plugins.wasmhost.PluginHttpResponse
+import com.darkrockstudios.apps.hammer.plugins.wasmhost.PluginManifest
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.PluginPackageException
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.PluginPackage
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.RuntimePlugins
@@ -67,8 +70,12 @@ import org.koin.core.context.GlobalContext
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
 import java.io.ByteArrayOutputStream
+import java.net.InetAddress
+import java.net.ServerSocket
+import java.net.SocketException
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
+import kotlin.concurrent.thread
 import kotlin.coroutines.CoroutineContext
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.measureTime
@@ -873,6 +880,127 @@ class RuntimePluginsTest {
 		val check = startKoin(plugins).plugins.single().textDiagnostics().single()
 
 		assertEquals(listOf(emptyList(), emptyList()), runBlocking { check.diagnose(TextDiagnosticsRequest(listOf("One.", "Two."), null, "Project")) }.map { it.toList() })
+	}
+
+	private fun userHostsManifest(id: String, toggle: String? = null) = """
+		id = "$id"
+		name = "Fetch"
+		version = "1.0.0"
+		api = 1
+
+		[permissions.userHosts]
+		setting = "server"
+	""".trimIndent() + toggle?.let { "\ntoggle = \"$it\"" }.orEmpty()
+
+	@Test
+	fun `a userHosts setting with a default, or a toggle on by default, is refused`() {
+		val plugins = runtimePlugins()
+		fun server(type: String, default: String? = null) =
+			"[[setting]]\nkey = \"server\"\ntype = \"$type\"\nlabel = \"Server\"" + default?.let { "\ndefault = \"$it\"" }.orEmpty()
+		val toggleOn = "\n\n[[setting]]\nkey = \"allowServer\"\ntype = \"bool\"\nlabel = \"Allow\"\ndanger = true\ndefault = true"
+
+		val error = assertThrows<PluginPackageException> {
+			plugins.inspect(pack("exfil", userHostsManifest("exfil"), settingsToml = server("string", "http://exfil.attacker.tld")))
+		}
+		assertTrue("default" in error.message!!, error.message)
+		assertThrows<PluginPackageException> {
+			plugins.inspect(pack("on", userHostsManifest("on", toggle = "allowServer"), settingsToml = server("string") + toggleOn))
+		}
+		plugins.inspect(pack("text", userHostsManifest("text"), settingsToml = server("string")))
+		plugins.inspect(pack("secret", userHostsManifest("secret"), settingsToml = server("secret")))
+	}
+
+	private fun fetching(sent: MutableList<String>, vararg settings: SettingDeclaration, toggle: String? = null): WasmPlugin {
+		val registry = startKoin(runtimePlugins())
+		// Built directly, since a package declaring these is refused.
+		val plugin = WasmPlugin(
+			PluginManifest.parse(userHostsManifest("fetch", toggle)),
+			{ testPlugin("fetch") },
+			settings.toList(),
+			httpClient = PluginHttp { request -> sent += request.url; PluginHttpResponse(200, "ok".encodeToByteArray()) },
+		)
+		registry.add(plugin)
+		return plugin
+	}
+
+	private fun WasmPlugin.fetch(url: String) = callBlocking("fetch", """{"url":"$url"}""".encodeToByteArray()).decodeToString()
+
+	@Test
+	fun `the host a userHosts setting names is reachable only once the user enters it, whatever its default`() {
+		val sent = mutableListOf<String>()
+		val plugin = fetching(sent, SettingDeclaration.Text("server", "Server", defaultValue = "http://exfil.attacker.tld"))
+
+		assertThrows<PluginException> { plugin.fetch("http://exfil.attacker.tld/check") }
+		assertEquals(emptyList(), sent)
+
+		GlobalContext.get().get<PluginRegistry>().settings("fetch")!!.set("server", JsonPrimitive("http://192.168.1.20:8081"))
+		assertEquals("ok", plugin.fetch("http://192.168.1.20:8081/v2/check"))
+		assertEquals(listOf("http://192.168.1.20:8081/v2/check"), sent)
+	}
+
+	@Test
+	fun `a userHosts toggle on only by default does not open the host`() {
+		val sent = mutableListOf<String>()
+		val plugin = fetching(
+			sent,
+			SettingDeclaration.Text("server", "Server"),
+			SettingDeclaration.Toggle("allowServer", "Allow", defaultValue = true, danger = true),
+			toggle = "allowServer",
+		)
+		GlobalContext.get().get<PluginRegistry>().settings("fetch")!!.set("server", JsonPrimitive("http://192.168.1.20:8081"))
+
+		assertThrows<PluginException> { plugin.fetch("http://192.168.1.20:8081/v2/check") }
+		assertEquals(emptyList(), sent)
+	}
+
+	/** How many connections a loopback server, at the port [block] is given, accepted while it ran. */
+	private fun loopbackConnections(block: (port: Int) -> Unit): Int =
+		ServerSocket(0, 50, InetAddress.getLoopbackAddress()).use { server ->
+			var connections = 0
+			val listener = thread {
+				try {
+					while (true) server.accept().use { connections++ }
+				} catch (e: SocketException) {
+					// Closed once the block is done.
+				}
+			}
+			block(server.localPort)
+			server.close()
+			listener.join(5_000)
+			connections
+		}
+
+	@Test
+	fun `inspecting a package runs its initializer without network`() {
+		val connections = loopbackConnections { port ->
+			val manifest = "id = \"fetch\"\nname = \"Fetch\"\nversion = \"1.0.0\"\napi = 1\n\n[permissions]\nhttp = [\"127.0.0.1\"]"
+			val request = mapOf("resources/request" to """{"url":"https://127.0.0.1:$port/"}""")
+
+			assertThrows<PluginPackageException> {
+				runtimePlugins().inspect(pack("fetch", manifest, module = "fetch", settingsToml = null, files = request))
+			}
+		}
+
+		assertEquals(0, connections)
+	}
+
+	@Test
+	fun `a default from an earlier version does not open the host once an update names its setting in userHosts`() {
+		val connections = loopbackConnections { port ->
+			val plugins = runtimePlugins()
+			val v1 = "id = \"fetch\"\nname = \"Fetch\"\nversion = \"1.0.0\"\napi = 1"
+			val server = "[[setting]]\nkey = \"server\"\ntype = \"string\"\nlabel = \"Server\""
+			plugins.install(pack("v1", v1, module = "fetch", settingsToml = "$server\ndefault = \"http://127.0.0.1:$port\"\n\n$settings"))
+			val registry = startKoin(plugins)
+			registry.settings("fetch")!!.set("shout", JsonPrimitive(true))
+
+			plugins.install(pack("v2", userHostsManifest("fetch"), module = "fetch", settingsToml = "$server\n\n$settings"))
+
+			val plugin = registry.plugins.single() as WasmPlugin
+			assertThrows<PluginException> { plugin.fetch("http://127.0.0.1:$port/") }
+		}
+
+		assertEquals(0, connections)
 	}
 
 	@Test

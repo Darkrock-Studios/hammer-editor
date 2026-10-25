@@ -920,7 +920,9 @@ max = 20
 - **Where it lives.** `settings.toml` in the package, parsed into
   `SettingDeclaration`s (`:operations`, no Compose types).
 - **Storage.** Values go in the plugin's existing `plugins/<id>.toml`, one key
-  per setting, apart from secrets. On load, each value is checked against its declaration; a
+  per setting, apart from secrets. Only values the user set are written, so a
+  default stays the plugin's: an update that changes one changes it for anyone
+  who never set it. On load, each value is checked against its declaration; a
   missing, mistyped, or out-of-range value falls back to its default, and keys
   no longer declared are dropped on the next write.
 - **Reading values.** A plugin receives its current settings as JSON with
@@ -1364,7 +1366,7 @@ operations = ["project.info", "scene.tree", "scene.read"]
 http = ["api.example.com"]    # optional: hosts it may reach, over https only; see HTTP
 
 [permissions.userHosts]       # optional: an address the user enters; see HTTP
-setting = "server"            # a string or secret setting
+setting = "server"            # a string or secret setting, with no default
 toggle = "allowServer"        # optional: a danger bool, off by default, that must be on too
 
 [[exporters]]
@@ -1891,6 +1893,8 @@ A new `:plugins:wasmhost` module, depending on `:operations` and chasm:
 - **Install.** Reads the package, checks the manifest, the settings
   declarations, and export format prefixes, and instantiates the module once,
   which checks its imports and runs its initializer. Only then is it copied in.
+  The initializer runs without network here, before the user has agreed to
+  anything, so an `http_request` from it traps and the package is refused.
   Installing a package with an installed id replaces it. Install, enable,
   disable, and uninstall apply at once, and one the registry would refuse,
   such as a command clash, is refused before anything changes.
@@ -1954,7 +1958,11 @@ names:
   setting holding a URL, such as a self-hosted server's. Its host is reachable
   over `http` too, since a server on the user's own network often has no
   certificate. With a `toggle`, a `danger` bool off by default, only while that
-  is on. Both are read on every request, so a change applies at once.
+  is on. Both are read on every request, so a change applies at once. The
+  setting may have no default, since the install prompt names only the
+  setting: a host known in advance belongs in `permissions.http`, where the
+  prompt lists it. Only a value the user chose counts, so one equal to the
+  declared default, of the setting or its toggle, opens nothing.
 - **Never.** Other schemes, URLs with user info, which could disguise their
   host, and redirects, which are returned to the plugin rather than followed.
 - **Limits.** 10 seconds to connect and 30 to read on the JVM; 30 seconds idle

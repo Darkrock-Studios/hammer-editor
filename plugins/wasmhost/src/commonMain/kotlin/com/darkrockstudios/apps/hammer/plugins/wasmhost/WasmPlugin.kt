@@ -421,8 +421,14 @@ class WasmPlugin(
 	private fun enteredHost(): String? {
 		val userHosts = manifest.permissions.userHosts ?: return null
 		val settings = settingsValues()
-		val allowed = userHosts.toggle?.let { (settings[it] as? JsonPrimitive)?.booleanOrNull == true } ?: true
-		return (settings[userHosts.setting] as? JsonPrimitive)?.contentOrNull?.takeIf { allowed }?.let(::httpHost)
+		val allowed = userHosts.toggle?.let { settings.chosen(it)?.booleanOrNull == true } ?: true
+		return settings.chosen(userHosts.setting)?.contentOrNull?.takeIf { allowed }?.let(::httpHost)
+	}
+
+	// The value of [key] unless it is the declared default, which the package chose rather than the user.
+	private fun JsonObject.chosen(key: String): JsonPrimitive? {
+		val declared = declaredSettings.firstOrNull { it.key == key } ?: return null
+		return (this[key] as? JsonPrimitive)?.takeIf { it != declared.default }
 	}
 
 	// An export can start just as this plugin is removed or replaced, when the registry's store is not its own.

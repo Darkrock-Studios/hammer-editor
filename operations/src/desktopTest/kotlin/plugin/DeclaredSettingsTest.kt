@@ -76,8 +76,8 @@ class DeclaredSettingsTest {
 		GlobalContext.stopKoin()
 	}
 
-	private fun registry(): PluginRegistry {
-		val registry = PluginRegistry().apply { add(Declaring("demo", declarations)) }
+	private fun registry(declared: List<SettingDeclaration> = declarations): PluginRegistry {
+		val registry = PluginRegistry().apply { add(Declaring("demo", declared)) }
 		val base = module {
 			single<FileSystem> { fileSystem }
 			single<Toml> { createTomlSerializer() }
@@ -139,6 +139,20 @@ class DeclaredSettingsTest {
 
 		val values = registry().settings("demo")!!.values.value
 		assertEquals(JsonPrimitive(3), values["min_length"])
+		assertEquals(JsonPrimitive(false), values["headings"])
+	}
+
+	@Test
+	fun `only values the user set are saved, so an update's new default applies to the rest`() {
+		registry().settings("demo")!!.set("min_length", JsonPrimitive(7))
+		GlobalContext.stopKoin()
+		val updated = declarations.map { setting ->
+			if (setting.key == "headings") SettingDeclaration.Toggle("headings", "Chapter headings", defaultValue = false) else setting
+		}
+
+		val values = registry(updated).settings("demo")!!.values.value
+
+		assertEquals(JsonPrimitive(7), values["min_length"])
 		assertEquals(JsonPrimitive(false), values["headings"])
 	}
 
