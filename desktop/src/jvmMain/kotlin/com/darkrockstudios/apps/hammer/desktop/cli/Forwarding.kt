@@ -20,11 +20,15 @@ import kotlin.concurrent.timerTask
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableJob
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.plus
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
@@ -74,13 +78,27 @@ object Forwarding {
 		private val onLaunch: (args: List<String>) -> Unit,
 	) : AutoCloseable {
 		private val channel: ServerSocketChannel = ServerSocketChannel.open(StandardProtocolFamily.UNIX)
+		private var supervisor: CompletableJob? = null
 
-		/** Binds, replacing a socket file a crashed app left behind, and serves on [scope] until closed. */
+		/**
+		 * Binds, replacing a socket file a crashed app left behind, and serves on [scope] until closed.
+		 * Failures stay in the server, so one bad connection cannot cancel [scope] or stop later ones.
+		 */
 		fun start(scope: CoroutineScope) {
 			privateDirectory(socket.parent)
 			Files.deleteIfExists(socket)
 			channel.bind(UnixDomainSocketAddress.of(socket))
-			scope.launch(Dispatchers.IO) {
+			val supervisor = SupervisorJob(scope.coroutineContext[Job])
+			this.supervisor = supervisor
+			val serverScope = scope + supervisor + Dispatchers.IO + CoroutineExceptionHandler { _, e ->
+				// Errors still crash the app, as they do everywhere else in it.
+				if (e is Exception) {
+					Napier.e(e) { "Forwarded CLI connection failed" }
+				} else {
+					Thread.currentThread().run { uncaughtExceptionHandler.uncaughtException(this, e) }
+				}
+			}
+			serverScope.launch {
 				while (true) {
 					val client = try {
 						channel.accept()
@@ -88,8 +106,12 @@ object Forwarding {
 						break
 					} catch (e: ClosedChannelException) {
 						break
+					} catch (e: IOException) {
+						Napier.e(e) { "Could not accept a forwarded CLI call" }
+						delay(ACCEPT_RETRY_DELAY)
+						continue
 					}
-					launch {
+					serverScope.launch {
 						// Closing the channel is what ends a blocked read, if the request never comes.
 						val watchdog = launch {
 							delay(REQUEST_TIMEOUT)
@@ -133,13 +155,18 @@ object Forwarding {
 				Napier.e(e) { "Forwarded CLI call failed" }
 				Reply(error = Reply.Error(FAILED, e.message ?: "Failed"))
 			}
-			writer.write(json.encodeToString(Reply.serializer(), reply))
-			writer.newLine()
-			writer.flush()
+			try {
+				writer.write(json.encodeToString(Reply.serializer(), reply))
+				writer.newLine()
+				writer.flush()
+			} catch (e: IOException) {
+				Napier.d(e) { "Forwarded CLI caller left before its reply" }
+			}
 		}
 
 		override fun close() {
 			channel.close()
+			supervisor?.complete()
 			Files.deleteIfExists(socket)
 		}
 
@@ -171,16 +198,19 @@ object Forwarding {
 		}
 		// A hung app must not hang every CLI call and agent with it.
 		val timeout = Timer(true).apply { schedule(timerTask { client.close() }, REPLY_TIMEOUT.inWholeMilliseconds) }
-		val reply = client.use {
-			val writer = Channels.newWriter(client, Charsets.UTF_8).buffered()
-			writer.write(json.encodeToString(Request.serializer(), Request(operation, input)))
-			writer.newLine()
-			writer.flush()
-			val line = Channels.newReader(client, Charsets.UTF_8).buffered().readLine()
-				?: throw IOException("The running app closed the connection without replying")
-			json.decodeFromString(Reply.serializer(), line)
+		val reply = try {
+			client.use {
+				val writer = Channels.newWriter(client, Charsets.UTF_8).buffered()
+				writer.write(json.encodeToString(Request.serializer(), Request(operation, input)))
+				writer.newLine()
+				writer.flush()
+				val line = Channels.newReader(client, Charsets.UTF_8).buffered().readLine()
+					?: throw IOException("The running app closed the connection without replying")
+				json.decodeFromString(Reply.serializer(), line)
+			}
+		} finally {
+			timeout.cancel()
 		}
-		timeout.cancel()
 		val error = reply.error ?: return reply.output!! to reply.exitCode
 		val kind = OperationException.Kind.entries.firstOrNull { it.name == error.kind }
 		throw when {
@@ -223,6 +253,7 @@ object Forwarding {
 	private val REQUEST_TIMEOUT = 10.seconds
 	private val REPLY_TIMEOUT = 10.minutes
 	private val HAND_OFF_TIMEOUT = 5.seconds
+	private val ACCEPT_RETRY_DELAY = 1.seconds
 	private const val APP_ONLY_MESSAGE =
 		"Hammer is open, and this has to wait until it is closed. Use the app, or close it and run this again."
 }
