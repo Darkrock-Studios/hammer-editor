@@ -9,6 +9,8 @@ import io.github.charlietap.chasm.runtime.store.Store as RuntimeStore
 
 internal actual val hostHeapBytes: Long? = Runtime.getRuntime().maxMemory().takeIf { it != Long.MAX_VALUE }
 
+internal actual fun Throwable.isOutOfMemory(): Boolean = this is OutOfMemoryError
+
 // chasm keeps the constructors that take a heap internal to Kotlin; on the JVM they are public.
 internal actual fun storeWith(heap: GarbageCollectedHeap): Store? {
 	val wasmHeap = WasmHeap::class.java.getConstructor(GarbageCollectedHeap::class.java).newInstance(heap)

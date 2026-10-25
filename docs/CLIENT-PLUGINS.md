@@ -1302,8 +1302,12 @@ chasm's guest heap rather than the module's linear memory, so that heap has a ca
 of its own: 1 GiB, or half the JVM's heap if that is less, beyond which a call
 fails with "ran out of memory". chasm frees a call's garbage when the call returns
 (its collector that runs during a call corrupts live objects in 2.0.0), so a call
-holds all it allocates: the Kotlin style report on a 300,000-word novel needs
-768 MiB. The heap never gives pages back, so a plugin left holding more than 64 MiB
+holds all it allocates: the reading level report needs 192 MiB on a 100,000-word
+novel and 384 MiB on a 300,000-word one, and the Kotlin style report on the
+longer needs 768 MiB with the benchmark's 22-word vocabulary and over 1 GiB with
+an 8,000-word one. The desktop JVM's default heap is a quarter of the machine's
+memory, so an 8 GB machine allows about 1 GiB; Android's app heap, 192 to 512 MB,
+allows 96 to 256 MiB. The heap never gives pages back, so a plugin left holding more than 64 MiB
 after a call is dropped and loaded afresh when next used. The cap needs the JVM:
 on iOS the heap is uncapped.
 
@@ -1506,9 +1510,9 @@ plugin reads one with `hammer_resource`, which reads it out of the package then
 and hands the plugin all its bytes, so a file the plugin reads has to fit its
 memory, and one it uses often is worth keeping rather than reading again: a C
 plugin keeps its with `hammer_alloc_keep`. Each read also takes the file's size
-from the 256 MiB a call has for passing data to and from Hammer, until the call
-ends. Only files under `resources/` can be read, and an empty one reads as
-missing.
+from what a call has for passing data to and from Hammer (256 MiB, or a
+sixteenth of the JVM's heap if that is less), until the call ends. Only files
+under `resources/` can be read, and an empty one reads as missing.
 
 ### Actions
 
@@ -1882,6 +1886,28 @@ A new `:plugins:wasmhost` module, depending on `:operations` and chasm:
   stopped action or a text check the editor no longer wants, interrupts the
   module at its next function entry or loop iteration, or once the host
   function it is in returns. chasm makes one check for both, so it adds little.
+- **Host memory.** What a plugin can make the host hold is capped per plugin:
+  - The kernel (Extism's shared memory, holding a call's input, output, and host
+    function results) at 256 MiB, or a sixteenth of the JVM's heap if that is
+    less: 16 MiB on a 256 MB Android heap. Growing it copies it, briefly holding
+    half as much again, so two plugins growing at once take under a fifth of the
+    heap. An allocation past it traps. A call's kernel is released when it ends.
+  - Variables (`var_set`) at 1 MiB in all, Extism's own default, and 1,024 of
+    them; a `var_set` past either traps.
+  - Logging at 4 KiB a line, cut short past that, and 64 KiB a call, past which
+    the rest of the call's log is dropped with a warning.
+  - The guest heap, as under [Languages](#languages).
+
+  Running out of memory anyway, in a call, at load, or in a host function, fails
+  that call or load as a plugin failure ("ran out of memory"), never the app. The
+  instance is dropped, freeing what it held, and the next call loads the module
+  afresh. Only the plugin path catches it; anywhere else it still ends the app.
+- **iOS.** Kotlin/Native has no heap limit to read, so the kernel's cap is a fixed
+  256 MiB there, and chasm cannot be given a capped guest heap on native, so a
+  Kotlin/Wasm plugin's is uncapped. Most failed allocations abort the process
+  rather than throw, so running out of memory there is contained only in the
+  few cases Kotlin/Native throws `OutOfMemoryError`. The variable and log caps
+  apply on every platform.
 
 Plugins stay headless. A module cannot supply Compose UI, so its settings are
 [declared](#declared-settings) in `settings.toml` and the host renders the form.

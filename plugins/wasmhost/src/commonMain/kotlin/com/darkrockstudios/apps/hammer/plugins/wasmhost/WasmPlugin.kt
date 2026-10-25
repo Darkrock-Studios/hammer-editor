@@ -264,8 +264,10 @@ class WasmPlugin(
 		} finally {
 			activeRoute = outer
 			// chasm never gives back the guest heap a call grew, so a module that needed a lot is dropped and
-			// loaded afresh when next used.
-			if (outer == null && (loaded?.guestHeapBytes ?: 0) > releaseGuestHeapAbove) loaded = null
+			// loaded afresh when next used, as is one that ran the host out of memory.
+			if (outer == null && loaded?.let { it.outOfMemory || it.guestHeapBytes > releaseGuestHeapAbove } == true) {
+				loaded = null
+			}
 		}
 	}
 

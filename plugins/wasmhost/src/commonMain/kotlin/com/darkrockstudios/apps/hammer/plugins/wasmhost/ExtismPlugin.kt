@@ -42,6 +42,9 @@ import kotlin.time.TimeSource
  *
  * Plugins may import only what the host lists here plus [userFunctions]; anything else, such as a
  * WASI file or socket import, fails the load. HTTP goes through [http]; without one, an HTTP import fails the call.
+ *
+ * What a plugin can make the host hold is capped: its kernel at [maxKernelBytes], its guest heap at
+ * [maxGuestHeapBytes], both lower on a small host heap, and its variables and log output at fixed sizes.
  */
 class ExtismPlugin(
 	/**
@@ -56,6 +59,7 @@ class ExtismPlugin(
 	maxGuestHeapBytes: Long = DEFAULT_MAX_GUEST_HEAP_BYTES,
 	/** Sends `http_request`s, deciding for itself which it allows. */
 	private val http: PluginHttp? = null,
+	maxKernelBytes: Long = DEFAULT_MAX_KERNEL_BYTES,
 ) {
 	constructor(
 		wasm: ByteArray,
@@ -65,19 +69,34 @@ class ExtismPlugin(
 		limiter: ModuleLimiter = ModuleLimiter(),
 		maxGuestHeapBytes: Long = DEFAULT_MAX_GUEST_HEAP_BYTES,
 		http: PluginHttp? = null,
-	) : this({ wasm }, userFunctions, config, log, limiter, maxGuestHeapBytes, http)
+		maxKernelBytes: Long = DEFAULT_MAX_KERNEL_BYTES,
+	) : this({ wasm }, userFunctions, config, log, limiter, maxGuestHeapBytes, http, maxKernelBytes)
 
-	private val kernel = ExtismKernel()
+	private val kernel = ExtismKernel(maxKernelBytes)
 	private val vars = mutableMapOf<String, ByteArray>()
+	private var varBytes = 0L
 	private var httpStatus = 0
+
+	// Log output in the call running now, and whether the rest of it is being dropped.
+	private var loggedBytes = 0
+	private var loggingDropped = false
+
+	/**
+	 * Whether the host ran out of memory in a call, after which this instance refuses calls: chasm may be
+	 * left mid-call. The module must be loaded again.
+	 */
+	var outOfMemory = false
+		private set
 
 	// A module using Wasm GC keeps its objects in chasm's heap, not its capped linear memory.
 	private val guestHeap = GuestHeap(maxGuestHeapBytes)
 	private val store = guestHeap.store ?: store(StoreConfig(meterFuel = true, interruptible = true))
-	private val instance: Instance
+	private val instance: Instance = failingOutOfMemory("Plugin ran out of memory starting up") {
+		start(loadWasm, userFunctions, limiter)
+	}
 	private var calling = false
 
-	init {
+	private fun start(loadWasm: () -> ByteArray, userFunctions: List<UserFunction>, limiter: ModuleLimiter): Instance {
 		val module = module(limiter.limit(loadWasm())).orThrow("Invalid plugin module")
 		val provided = (envFunctions() + userFunctions.map { it.toHost(kernel) } + RandomGet + ClockTimeGet)
 			.associateBy { it.module to it.name }
@@ -88,10 +107,11 @@ class ExtismPlugin(
 		}
 		// The start function, data initialization, and the initializer share this, as Extism hosts do for reactor modules.
 		setFuel(INSTANTIATION_FUEL)
-		instance = instance(store, module, imports, RUNTIME_CONFIG).orThrowStarting("Plugin failed to start")
+		val instance = instance(store, module, imports, RUNTIME_CONFIG).orThrowStarting("Plugin failed to start")
 		INITIALIZERS.firstOrNull { name -> module.exports.any { it.name == name } }?.let { initializer ->
 			invoke(store, instance, initializer).orThrowStarting("Plugin failed to initialize")
 		}
+		return instance
 	}
 
 	/**
@@ -100,20 +120,42 @@ class ExtismPlugin(
 	 */
 	fun call(function: String, input: ByteArray, fuel: Long): ByteArray {
 		require(fuel >= 0) { "Fuel must not be negative" }
+		if (outOfMemory) throw PluginException("Plugin ran out of memory earlier and must be loaded again")
 		// A host function re-entering the module would reset the memory and fuel of the call in progress.
 		if (calling) throw PluginException("Plugin was called again while running $function")
 		calling = true
 		try {
-			return callOnce(function, input, fuel)
+			return failingOutOfMemory("Plugin ran out of memory in $function") { callOnce(function, input, fuel) }
 		} finally {
 			calling = false
+			// The output is copied out by now, so a kernel the call grew need not be held until the next.
+			kernel.reset()
 		}
+	}
+
+	/**
+	 * Runs [block], turning the host running out of memory into a [PluginException] with [message]. The
+	 * plugin is the likely cause, and dropping this instance frees what it holds, so the app carries on.
+	 */
+	@Suppress("TooGenericExceptionCaught")
+	private inline fun <T> failingOutOfMemory(message: String, block: () -> T): T = try {
+		block()
+	} catch (e: Throwable) {
+		if (!e.isOutOfMemory()) throw e
+		outOfMemory = true
+		// Released before building the exception, which itself needs memory.
+		kernel.reset()
+		vars.clear()
+		varBytes = 0
+		throw PluginException(message)
 	}
 
 	private fun callOnce(function: String, input: ByteArray, fuel: Long): ByteArray {
 		kernel.reset()
 		kernel.setInput(input)
 		httpStatus = 0
+		loggedBytes = 0
+		loggingDropped = false
 		setFuel(fuel)
 
 		val result = invoke(store, instance, function)
@@ -169,7 +211,7 @@ class ExtismPlugin(
 			Host(ENV, name, params, results, body)
 
 		fun text(offset: Long) = kernel.read(offset).decodeToString()
-		fun logAt(level: LogLevel): (Args) -> Long = { log(level, text(it[0])); 0 }
+		fun logAt(level: LogLevel): (Args) -> Long = { logLine(level, it[0]); 0 }
 
 		return listOf(
 			env("alloc", "I", "I") { kernel.alloc(it[0]) },
@@ -188,11 +230,7 @@ class ExtismPlugin(
 			env("error_set", "I", "") { kernel.errorSet(it[0]); 0 },
 			env("config_get", "I", "I") { config[text(it[0])]?.let { value -> kernel.write(value.encodeToByteArray()) } ?: 0 },
 			env("var_get", "I", "I") { vars[text(it[0])]?.let(kernel::write) ?: 0 },
-			env("var_set", "II", "") {
-				val key = text(it[0])
-				if (it[1] == 0L) vars.remove(key) else vars[key] = kernel.read(it[1])
-				0
-			},
+			env("var_set", "II", "") { setVar(it[0], it[1]); 0 },
 			env("log_trace", "I", "", logAt(LogLevel.Trace)),
 			env("log_debug", "I", "", logAt(LogLevel.Debug)),
 			env("log_info", "I", "", logAt(LogLevel.Info)),
@@ -204,6 +242,42 @@ class ExtismPlugin(
 			// Extism's newer import; response headers are not kept, so there are none to give.
 			env("http_headers", "", "I") { 0 },
 		)
+	}
+
+	/** A variable costs its key's characters plus its value's bytes. */
+	private fun setVar(keyOffset: Long, valueOffset: Long) {
+		val keyLength = kernel.length(keyOffset)
+		val valueLength = if (valueOffset == 0L) 0 else kernel.length(valueOffset)
+		// Checked before copying either out of the kernel.
+		require(keyLength + valueLength <= MAX_VAR_BYTES) { "Variables are limited to $MAX_VAR_BYTES bytes" }
+		val key = kernel.read(keyOffset, keyLength).decodeToString()
+		val old = vars[key]
+		val freed = old?.let { key.length + it.size } ?: 0
+		if (valueOffset == 0L) {
+			vars.remove(key)
+			varBytes -= freed
+			return
+		}
+		require(old != null || vars.size < MAX_VARS) { "Variables are limited to $MAX_VARS" }
+		val cost = key.length + valueLength
+		require(varBytes - freed + cost <= MAX_VAR_BYTES) { "Variables are limited to $MAX_VAR_BYTES bytes" }
+		vars[key] = kernel.read(valueOffset, valueLength)
+		varBytes += cost - freed
+	}
+
+	/** Cuts a long line short, and drops a call's log output past its cap. */
+	private fun logLine(level: LogLevel, offset: Long) {
+		if (loggingDropped) return
+		val length = kernel.length(offset)
+		val shown = minOf(length, MAX_LOG_LINE_BYTES.toLong()).toInt()
+		if (loggedBytes + shown > MAX_LOG_BYTES_PER_CALL) {
+			loggingDropped = true
+			log(LogLevel.Warn, "Logged over $MAX_LOG_BYTES_PER_CALL bytes in one call; the rest of its log is dropped")
+			return
+		}
+		loggedBytes += shown
+		val text = kernel.read(offset, shown.toLong()).decodeToString()
+		log(level, if (shown < length) "$text… (${length - shown} more bytes)" else text)
 	}
 
 	/** Blocks until the response arrives; [PluginHttp]'s timeouts bound it, since an interrupt waits for it. */
@@ -313,10 +387,25 @@ class ExtismPlugin(
 		context(stack: HostStack, module: HostModuleInstance, resources: HostResources)
 		override fun invoke(parameters: HostParameters, results: HostResults) {
 			val pointer = parameters.readI32(0)
-			val bytes = trapping { Random.nextBytes(parameters.readI32(1)) }
-			trapping { withMemory(0) { bytes.forEachIndexed { i, byte -> writeI8(pointer + i, byte) } } }
+			val length = parameters.readI32(1)
+			trapping { require(length >= 0) { "Length $length refused" } }
+			// In chunks, so asking for more than the module's memory holds cannot make the host allocate it.
+			val chunk = ByteArray(minOf(length, CHUNK_BYTES))
+			trapping {
+				withMemory(0) {
+					var done = 0
+					while (done < length) {
+						val count = minOf(chunk.size, length - done)
+						Random.nextBytes(chunk, 0, count)
+						for (i in 0 until count) writeI8(pointer + done + i, chunk[i])
+						done += count
+					}
+				}
+			}
 			results.writeI32(0, 0)
 		}
+
+		private const val CHUNK_BYTES = 64 * 1024
 	}
 
 	/** WASI's clocks, which kotlinx.serialization on Kotlin/Wasm needs: wall time, and a monotonic time for anything else. */
@@ -359,6 +448,17 @@ class ExtismPlugin(
 		const val INTERRUPTED = "Interrupted"
 
 		const val INSTANTIATION_FUEL = 10_000_000L
+
+		/** Extism's own default for what a plugin's variables may take. */
+		const val MAX_VAR_BYTES = 1024 * 1024
+
+		/** Bounds the map's overhead per variable, which [MAX_VAR_BYTES] does not count. */
+		const val MAX_VARS = 1024
+
+		const val MAX_LOG_LINE_BYTES = 4 * 1024
+
+		/** Android's file logger queues lines without bound, so a plugin logging in a loop could fill the heap. */
+		const val MAX_LOG_BYTES_PER_CALL = 64 * 1024
 	}
 }
 
@@ -369,6 +469,12 @@ class PluginException(message: String) : Exception(message)
  * returns; Kotlin/Wasm's style report on a 300,000-word novel needs 768 MiB.
  */
 const val DEFAULT_MAX_GUEST_HEAP_BYTES = 1024L * 1024 * 1024
+
+/**
+ * How much a plugin's kernel may hold at once: the host side of Extism's memory, where a call's input,
+ * output, and host function results live. Lower on a small host heap; see [ExtismKernel].
+ */
+const val DEFAULT_MAX_KERNEL_BYTES = 256L * 1024 * 1024
 
 private fun <S> ChasmResult<S, *>.orThrow(context: String): S = when (this) {
 	is ChasmResult.Success -> result

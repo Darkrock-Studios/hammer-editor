@@ -9,6 +9,7 @@ import org.koin.core.qualifier.named
 import kotlin.coroutines.CoroutineContext
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.measureTime
+import kotlin.concurrent.thread
 import com.darkrockstudios.apps.hammer.operations.Access
 import com.darkrockstudios.apps.hammer.operations.OpenProject
 import com.darkrockstudios.apps.hammer.operations.OperationRegistry
@@ -221,6 +222,38 @@ class WasmPluginTest {
 		assertEquals(1, loads)
 	}
 
+	@Test
+	fun `a module that runs the host out of memory is dropped, and the next call loads it afresh`() {
+		var loads = 0
+		val plugin = WasmPlugin(
+			PluginManifest.parse("id = \"echo\"\nname = \"Echo\"\nversion = \"1\"\napi = 1\n[permissions]\noperations = [\"greet\"]"),
+			{ loads++; testPlugin("dispatch_echo") },
+		)
+
+		val error = assertThrows<PluginException> { caller(plugin, FakeDispatcher(OutOfMemoryError("Java heap space")))("greet") }
+		assertEquals("Plugin ran out of memory in run", error.message)
+
+		// From another thread, so a lock left held would block it.
+		var reply: JsonObject? = null
+		thread { reply = caller(plugin, FakeDispatcher())("greet") }.join(5_000)
+		assertEquals("Hello", reply?.get("output")?.jsonObject?.get("text")?.jsonPrimitive?.content)
+		assertEquals(2, loads)
+	}
+
+	@Test
+	fun `a module that runs the host out of memory loading can load on the next try`() {
+		var loads = 0
+		val plugin = WasmPlugin(
+			PluginManifest.parse("id = \"echo\"\nname = \"Echo\"\nversion = \"1\"\napi = 1"),
+			{ if (loads++ == 0) throw OutOfMemoryError("Java heap space") else testPlugin("upper") },
+		)
+
+		val error = assertThrows<PluginException> { plugin.instantiate() }
+		assertEquals("Plugin ran out of memory starting up", error.message)
+
+		assertEquals("ABC", plugin.callBlocking("run", "abc".encodeToByteArray()).decodeToString())
+	}
+
 	private fun pluginGranted(operations: String) = WasmPlugin(
 		PluginManifest.parse("id = \"echo\"\nname = \"Echo\"\nversion = \"1\"\napi = 1\n[permissions]\noperations = [$operations]"),
 		{ testPlugin("dispatch_echo") },
@@ -234,7 +267,7 @@ class WasmPluginTest {
 		}
 	}
 
-	private class FakeDispatcher(private val failure: Exception? = null) : Dispatcher {
+	private class FakeDispatcher(private val failure: Throwable? = null) : Dispatcher {
 		val dispatched = mutableListOf<String>()
 		private val operations = listOf(
 			descriptor("greet", Access.Read),

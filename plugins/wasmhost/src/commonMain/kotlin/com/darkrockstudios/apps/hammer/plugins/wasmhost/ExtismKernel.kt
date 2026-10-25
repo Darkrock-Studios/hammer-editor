@@ -6,7 +6,13 @@ package com.darkrockstudios.apps.hammer.plugins.wasmhost
  * load and store imports, which must stay inside one live block. Everything allocated during a
  * call is dropped by [reset] before the next.
  */
-internal class ExtismKernel {
+internal class ExtismKernel(maxBytes: Long = DEFAULT_MAX_KERNEL_BYTES) {
+	/**
+	 * At most a sixteenth of the host's heap. Growing copies the memory, briefly holding half as much again,
+	 * so two plugins growing to their caps at once take under a fifth of the heap.
+	 */
+	private val maxMemory = hostHeapShare(maxBytes, HOST_HEAP_SHARE)
+
 	private var memory = ByteArray(INITIAL_SIZE)
 	private var top = FIRST_OFFSET
 
@@ -31,16 +37,19 @@ internal class ExtismKernel {
 		output = 0
 		outputLength = 0
 		error = 0
-		if (memory.size > RETAINED_SIZE) memory = ByteArray(INITIAL_SIZE)
+		// Allocates nothing, since it may run just after the host ran out of memory; alloc grows it again.
+		if (memory.size > RETAINED_SIZE) memory = NO_MEMORY
 	}
 
 	fun alloc(size: Long): Long {
-		require(size in 0..MAX_MEMORY) { "Allocation of $size bytes refused" }
+		require(size in 0..maxMemory) { "Allocation of $size bytes refused" }
 		if (size == 0L) return 0
 		val offset = top
 		val end = offset + size
-		require(end <= MAX_MEMORY) { "Plugin memory exhausted" }
-		if (end > memory.size) memory = memory.copyOf(maxOf(memory.size * 2L, end).coerceAtMost(MAX_MEMORY).toInt())
+		require(end <= maxMemory) { "Plugin memory exhausted" }
+		if (end > memory.size) {
+			memory = memory.copyOf(maxOf(memory.size * 2L, end, INITIAL_SIZE.toLong()).coerceAtMost(maxMemory).toInt())
+		}
 		if (blockCount == starts.size) {
 			starts = starts.copyOf(blockCount * 2)
 			lengths = lengths.copyOf(blockCount * 2)
@@ -148,7 +157,8 @@ internal class ExtismKernel {
 
 		/** Memory a finished call may keep for the next; beyond this it is released. */
 		const val RETAINED_SIZE = 1024 * 1024
-		const val MAX_MEMORY = 256L * 1024 * 1024
+		const val HOST_HEAP_SHARE = 16
 		const val FREED = -1
+		val NO_MEMORY = ByteArray(0)
 	}
 }
