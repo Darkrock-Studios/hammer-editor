@@ -52,8 +52,7 @@
 	<string name="plugin_install_memory_value">Up to %1$s MB</string>
 	<string name="plugin_install_scope_content_read">everything in your projects</string>
 	<string name="plugin_install_scope_content_write">anything in your projects but the text of your scenes, and never delete</string>
-	<string name="plugin_install_scope_account_read">your sync account's status</string>
-	<string name="plugin_install_scope_account_write">your sync account: log in, log out, and sync</string>
+	<string name="plugin_install_scope_account_read">which sync server and account you use, and each project's sync status</string>
 	<string name="plugin_install_scope_plugins_read">which plugins are installed</string>
 	<string name="plugin_install_scope_plugins_write">your plugins</string>
 	<string name="plugin_install_failed">The plugin change failed: %1$s</string>

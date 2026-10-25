@@ -216,6 +216,31 @@ class RuntimePluginsTest {
 	}
 
 	@Test
+	fun `a package asking to log in, log out, or sync is refused, and one reading the account is not`() {
+		val plugins = runtimePlugins()
+
+		listOf("account:write", "account.login", "account.logout", "sync.run").forEach { entry ->
+			val error = assertThrows<PluginPackageException> { plugins.inspect(pack(entry.replace(':', '-'), manifest(operations = "\"$entry\""))) }
+			assertTrue(entry in error.message!!, error.message)
+		}
+		plugins.inspect(pack("status", manifest(operations = "\"account:read\"")))
+	}
+
+	@Test
+	fun `a package installed asking to change the account no longer loads, and Settings shows it cannot be read`() {
+		val plugins = runtimePlugins()
+		plugins.install(pack("echo"))
+		val older = pack("older", manifest(operations = "\"greet\", \"account.login\", \"account:write\""))
+		fileSystem.copy(older, directory / "packages" / "echo.hammerplugin")
+		fileSystem.write(directory / RuntimePlugins.STATE_FILE) {
+			writeUtf8("[plugins.echo]\nenabled = true\ngranted = [\"greet\", \"account.login\", \"account:write\"]\n")
+		}
+
+		assertTrue(plugins.load().isEmpty())
+		assertNull(plugins.installed().single { it.id == "echo" }.manifest)
+	}
+
+	@Test
 	fun `a package damaged after install is skipped, not fatal`() {
 		val plugins = runtimePlugins()
 		plugins.install(pack("echo"))

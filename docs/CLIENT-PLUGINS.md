@@ -339,8 +339,17 @@ when the list is generated, and `export.formats` returns the same set.
 | `sync.status` | Read | Per project: linked or not, last sync, count of locally changed entities |
 | `sync.run` | Write | See [Headless sync](#headless-sync) |
 
-These are the `account` scope, so a plugin granted only `content` and
-`plugins` operations, such as the MCP plugin, cannot reach them.
+These are the `account` scope. A plugin may read it, through `account:read` or
+by naming `account.status` or `sync.status`, but can never log in, log out, or
+sync: `OperationScope.grantableToPlugins` withholds every operation in this
+scope but its reads, so a later account change is covered too. A package that requests
+`account:write`, or names `account.login`, `account.logout`, or `sync.run`, is
+refused at install, and dispatch refuses them whatever a plugin was granted.
+Logged in to a server of its choosing, a plugin with no HTTP hosts could still
+sync every project there. Account changes belong to the app's UI, which applies
+safeguards these operations do not, such as refusing to change servers while a
+project is open, whose sync state the change would leave stale. The CLI runs
+all five, since it is the writer's own tool.
 
 ### Plugins
 
@@ -595,7 +604,8 @@ hammer mcp        # the MCP plugin's command
   development data, as it does for the app, and so reaches a `--dev` window.
 - Destructive operations need `--confirm`; without it the CLI refuses before
   starting Hammer. Prose operations do not, since the CLI is the writer's own
-  tool.
+  tool. Allowing an agent to run `hammer *` includes the account and sync
+  commands, which no plugin can be granted.
 - Exit codes: 0 success, 1 failure, 3 not logged in or login rejected, 4 not
   found, 5 another Hammer command holds the writer lock, the open app is not
   answering or not ready for calls yet, or the project is syncing, and 64 (sysexits' EX_USAGE) for usage errors and invalid input. An
@@ -1410,13 +1420,16 @@ a plugin asks for more memory than the default.
 Each `permissions.operations` entry is an operation's name, or a scope with
 `read` or `write`, such as `content:read`, which covers every operation of
 that scope and access. A scope never covers a Prose or Destructive operation;
-a plugin that needs one names it.
+a plugin that needs one names it. No entry may grant a change to the sync
+account: `account:write`, `account.login`, `account.logout`, and `sync.run` are
+refused at install (see [Account and sync](#account-and-sync)).
 
 The install dialog lists what a plugin may use by level: Read, Change, "Change
 the text of your scenes" for named Prose operations, and "Delete, which cannot
 be undone". A scope grant is described in words; `content:write` reads
-"anything in your projects but the text of your scenes, and never delete". A
-named operation this version of Hammer does not have is listed with the
+"anything in your projects but the text of your scenes, and never delete", and
+`account:read` "which sync server and account you use, and each project's sync
+status". A named operation this version of Hammer does not have is listed with the
 changes.
 
 There is no platforms field: a WASM module runs anywhere the host does.
@@ -2004,6 +2017,9 @@ Plugins are untrusted code:
   grants described in words, along with any commands the plugin adds. Accepting the install
   prompt grants everything the manifest lists; a replaced package's grants are
   those of the new manifest, since the user just approved them.
+- **Never the sync account.** No plugin logs in, logs out, or syncs, whatever
+  its grants; see [Account and sync](#account-and-sync). An installed package
+  that asks to no longer loads, and Settings lists it as unreadable.
 - **Install and removal.** Manage plugins, from Settings or a project's
   settings, has install from file, enable and disable, and uninstall, with the
   permission prompt at install. `hammer plugin install` and the MCP plugin's

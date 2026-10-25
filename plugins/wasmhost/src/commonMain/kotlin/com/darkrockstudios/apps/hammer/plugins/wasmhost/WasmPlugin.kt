@@ -55,8 +55,9 @@ import org.koin.core.component.get
 /**
  * A runtime plugin: a manifest plus an Extism-convention module, presented as a [ClientPlugin].
  * The module is instantiated on first use, and calls into it run one at a time. It may dispatch only
- * operations covered by an [OperationGrant] that its manifest requests and the user [granted], and
- * `ops.list` shows it only those.
+ * operations covered by an [OperationGrant] that its manifest requests and the user [granted], never one
+ * [com.darkrockstudios.apps.hammer.operations.OperationScope.grantableToPlugins] withholds, and `ops.list`
+ * shows it only those.
  */
 class WasmPlugin(
 	val manifest: PluginManifest,
@@ -85,6 +86,9 @@ class WasmPlugin(
 
 	private val grants: List<OperationGrant> =
 		manifest.permissions.operations.filter { it in granted }.mapNotNull(OperationGrant::parse)
+
+	// Checked here as well as in PluginPackage, for a grant that never went through its checks.
+	private fun permits(op: OperationDescriptor) = op.scope.grantableToPlugins(op.access) && grants.any { it.covers(op) }
 
 	private val lock = reentrantLock()
 
@@ -343,11 +347,11 @@ class WasmPlugin(
 		try {
 			val op = route.find(request.operation)
 				?: return@runBlocking DispatchReply.failed(OperationException.Kind.NotFound.name, "No operation named '${request.operation}'")
-			if (grants.none { it.covers(op) }) {
+			if (!permits(op)) {
 				return@runBlocking DispatchReply.failed(PERMISSION_DENIED, "Plugin '$id' has no permission for ${op.name}")
 			}
 			val output = if (op.name == OPS_LIST) {
-				val permitted = route.operations().filter { listed -> grants.any { it.covers(listed) } }
+				val permitted = route.operations().filter(::permits)
 				OperationJson.encodeToJsonElement(OperationList.serializer(), OperationList(permitted))
 			} else {
 				route.dispatch(op.name, request.input)

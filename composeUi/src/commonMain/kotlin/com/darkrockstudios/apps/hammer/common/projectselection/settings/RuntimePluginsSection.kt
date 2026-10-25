@@ -264,8 +264,8 @@ private fun OperationGrant.label(): String = when (this) {
 	is OperationGrant.Scoped -> when (scope) {
 		OperationScope.Content ->
 			if (access == Access.Read) Res.string.plugin_install_scope_content_read.get() else Res.string.plugin_install_scope_content_write.get()
-		OperationScope.Account ->
-			if (access == Access.Read) Res.string.plugin_install_scope_account_read.get() else Res.string.plugin_install_scope_account_write.get()
+		// A package asking to change the account is refused, so only reading it gets this far.
+		OperationScope.Account -> Res.string.plugin_install_scope_account_read.get()
 		OperationScope.Plugins ->
 			if (access == Access.Read) Res.string.plugin_install_scope_plugins_read.get() else Res.string.plugin_install_scope_plugins_write.get()
 	}

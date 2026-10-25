@@ -53,7 +53,14 @@ enum class OperationScope {
 	@SerialName("account") Account,
 
 	/** The runtime plugins installed. */
-	@SerialName("plugins") Plugins,
+	@SerialName("plugins") Plugins;
+
+	/**
+	 * Whether a plugin may hold an operation of [access] here, by any grant. Never one that changes the
+	 * account: logged in to another server, a sync would send it every project, and the app's own
+	 * account screens apply safeguards these operations do not, such as refusing while a project is open.
+	 */
+	fun grantableToPlugins(access: Access): Boolean = this != Account || access == Access.Read
 }
 
 /** Input of an operation that takes none; `{}` in JSON. */

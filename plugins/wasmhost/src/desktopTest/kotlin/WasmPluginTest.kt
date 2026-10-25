@@ -169,6 +169,30 @@ class WasmPluginTest {
 	}
 
 	@Test
+	fun `a plugin never logs in, logs out, or syncs, whatever it was granted`() {
+		val dispatcher = FakeDispatcher(operations = coreOperations().map { it.descriptor() })
+		// Built directly, since a package asking for these is refused.
+		val call = caller(pluginGranted("\"ops.list\", \"account:write\", \"account.login\", \"account.logout\", \"sync.run\""), dispatcher)
+
+		listOf("account.login", "account.logout", "sync.run").forEach { name ->
+			assertEquals(WasmPlugin.PERMISSION_DENIED, call(name).errorKind(), name)
+		}
+		val listed = call("ops.list")["output"]!!.jsonObject["operations"]!!.jsonArray
+		assertEquals(listOf("ops.list"), listed.map { it.jsonObject["name"]!!.jsonPrimitive.content })
+		assertEquals(emptyList(), dispatcher.dispatched)
+	}
+
+	@Test
+	fun `a plugin may read the account`() {
+		val dispatcher = FakeDispatcher(operations = coreOperations().map { it.descriptor() })
+		val call = caller(pluginGranted("\"account:read\""), dispatcher)
+
+		assertEquals("Hello", call("account.status")["output"]!!.jsonObject["text"]!!.jsonPrimitive.content)
+		assertEquals("Hello", call("sync.status")["output"]!!.jsonObject["text"]!!.jsonPrimitive.content)
+		assertEquals(listOf("account.status", "sync.status"), dispatcher.dispatched)
+	}
+
+	@Test
 	fun `a failure reaching Hammer comes back to the module`() {
 		val reply = caller(pluginGranted("\"greet\""), FakeDispatcher(IllegalStateException("Hammer is busy")))("greet")
 

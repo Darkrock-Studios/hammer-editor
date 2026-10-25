@@ -186,8 +186,13 @@ class PluginPackage(
 					throw PluginPackageException("Export format '${exporter.format}' has unknown input '${exporter.input}'")
 				}
 			}
+			val core = coreOperations().associateBy { it.name }
 			manifest.permissions.operations.forEach { entry ->
-				if (OperationGrant.parse(entry) == null) throw PluginPackageException("Unknown permission '$entry'")
+				val withheld = when (val grant = OperationGrant.parse(entry) ?: throw PluginPackageException("Unknown permission '$entry'")) {
+					is OperationGrant.Named -> core[grant.name]?.let { !it.scope.grantableToPlugins(it.access) } ?: false
+					is OperationGrant.Scoped -> !grant.scope.grantableToPlugins(grant.access)
+				}
+				if (withheld) throw PluginPackageException("'$entry' cannot be granted: plugins may not change the sync account or sync")
 			}
 			manifest.permissions.http.firstOrNull { !HOST_NAME.matches(it) }?.let {
 				throw PluginPackageException("'$it' in permissions.http is not a host name")
