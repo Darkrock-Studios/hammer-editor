@@ -3,12 +3,14 @@ package data
 import PROJECT_EMPTY_NAME
 import com.darkrockstudios.apps.hammer.common.data.closeProjectScope
 import com.darkrockstudios.apps.hammer.common.data.openProjectScope
+import com.darkrockstudios.apps.hammer.common.data.duplicateids.DuplicateIdService
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.temporaryProjectTask
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectDictionaryService
 import getProjectDef
+import io.mockk.coVerifyOrder
 import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.test.runTest
@@ -32,6 +34,7 @@ class ProjectEditorScopeUtilsTest : BaseTest() {
 		setupKoin(module {
 			scope<ProjectDefScope> {
 				scoped { projectDef }
+				scoped<DuplicateIdService> { mockk(relaxed = true) }
 				scoped<SceneEditorService> { mockk(relaxed = true) }
 				scoped<TimeLineRepository> { mockk(relaxed = true) }
 				scoped { dictionaryService }
@@ -69,5 +72,18 @@ class ProjectEditorScopeUtilsTest : BaseTest() {
 
 		verify(exactly = 1) { dictionaryService.initialize() }
 		closeProjectScope(assertNotNull(scopeOrNull()), projectDef)
+	}
+
+	@Test
+	fun `duplicate ids are settled before the scene editor loads`() = runTest {
+		val scope = openProjectScope(projectDef)
+
+		val duplicateIdService = scope.get<DuplicateIdService>()
+		val sceneEditorService = scope.get<SceneEditorService>()
+		coVerifyOrder {
+			duplicateIdService.rationalizeOnOpen()
+			sceneEditorService.initialize()
+		}
+		closeProjectScope(scope, projectDef)
 	}
 }

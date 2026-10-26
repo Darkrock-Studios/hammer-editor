@@ -324,6 +324,7 @@ class EncyclopediaDatasource(
 		// Old name set was the restricted `[\d\p{L}+ _']` so `-` is unambiguously a delimiter.
 		val LEGACY_ENTRY_FILENAME_PATTERN = Regex("""([a-zA-Z]+)-(\d+)-([\d\p{L}+ _']+)\.toml""")
 		val LEGACY_ENTRY_IMAGE_FILENAME_PATTERN = Regex("""([a-zA-Z]+)-(\d+)-image\.([a-zA-Z0-9]+)""")
+		val ENTRY_IMAGE_FILENAME_PATTERN = Regex("""([a-zA-Z]+)~(\d+)~image\.([a-zA-Z0-9]+)""")
 
 		const val ENCYCLOPEDIA_DIRECTORY = "encyclopedia"
 
@@ -352,7 +353,7 @@ class EncyclopediaDatasource(
 			return "${type.text}~$id~${ProjectsRepository.encodeForFilename(name)}.toml"
 		}
 
-		private fun getEntryImageFilename(id: Int, type: EntryType, fileExtension: String): String {
+		fun getEntryImageFilename(id: Int, type: EntryType, fileExtension: String): String {
 			return "${type.text}~$id~image.$fileExtension"
 		}
 

@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data
 
+import com.darkrockstudios.apps.hammer.common.data.duplicateids.DuplicateIdService
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
@@ -101,6 +102,8 @@ suspend fun openProjectScope(projectDef: ProjectDef, temporary: Boolean = false)
 suspend fun initializeProjectScope(projectDef: ProjectDef, temporary: Boolean = false) {
 	val defScope = ProjectDefScope(projectDef)
 	getKoin().getScopeOrNull(defScope.getScopeId())?.let { projScope ->
+		projScope.get<DuplicateIdService>().rationalizeOnOpen()
+
 		// Creates the service (activating its autosave side-effect subscription from project open)
 		// and runs the scene-editor init sequence: tree, then content (autosave), then metadata.
 		val sceneEditorService: SceneEditorService = projScope.get()

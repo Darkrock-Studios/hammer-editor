@@ -115,6 +115,8 @@ class SceneDatasource(
 	}
 
 	fun loadSceneTree(rootScene: SceneItem): TreeNode<SceneItem> {
+		// Keeps the path index in step with the tree being loaded.
+		invalidateScenePathCache()
 		val sceneDirPath = getSceneDirectory().toOkioPath()
 		val rootNode = TreeNode(rootScene)
 
@@ -447,6 +449,12 @@ class SceneDatasource(
 				LEGACY_ARCHIVED_SCENE_FILENAME_PATTERN.matchEntire(fileName) != null
 		}
 
+		/** [order] is kept as written, so an existing zero-padded order survives a rename. */
+		fun buildSceneFileName(order: String, name: String, id: Int, isGroup: Boolean = false): String {
+			val extension = if (isGroup) "" else SCENE_FILENAME_EXTENSION
+			return "$order~${ProjectsRepository.encodeForFilename(name)}~$id$extension"
+		}
+
 		fun buildArchivedSceneFileName(name: String, id: Int): String {
 			return "${ProjectsRepository.encodeForFilename(name)}~$id$SCENE_FILENAME_EXTENSION"
 		}
@@ -489,7 +497,7 @@ class SceneDatasource(
 			?: error("Scene ${scene.id} not found in archive")
 
 		val sceneDir = getSceneDirectory().toOkioPath()
-		val newFileName = buildSceneFileName(newOrder, scene.name, scene.id)
+		val newFileName = buildSceneFileName(newOrder.toString(), scene.name, scene.id)
 		val targetPath = (sceneDir / newFileName).toHPath()
 
 		moveScene(currentPath, targetPath)
@@ -512,9 +520,6 @@ class SceneDatasource(
 		return targetPath.toHPath()
 	}
 
-	private fun buildSceneFileName(order: Int, name: String, id: Int): String {
-		return "$order~${ProjectsRepository.encodeForFilename(name)}~$id$SCENE_FILENAME_EXTENSION"
-	}
 
 	fun getAllArchivedScenePaths(): List<HPath> {
 		val archivedDir = getArchivedDirectory().toOkioPath()
