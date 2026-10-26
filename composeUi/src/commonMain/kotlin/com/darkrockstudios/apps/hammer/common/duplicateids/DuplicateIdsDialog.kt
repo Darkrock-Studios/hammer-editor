@@ -193,15 +193,14 @@ private fun DuplicateIdsSurface(
 
 @Composable
 private fun Explanation(set: DuplicateIdSet) {
-	val count = set.copies.size
-	val name = set.inUse.name
+	// Only the id is known to be shared: the copies may be different items with different names.
 	val title = when (set.kind) {
-		DuplicateIdKind.Entry -> Res.string.duplicate_ids_title_entry.get(count, name)
-		DuplicateIdKind.EntryImage -> Res.string.duplicate_ids_title_entry_image.get(count)
-		DuplicateIdKind.Scene -> Res.string.duplicate_ids_title_scene.get(count, name)
-		DuplicateIdKind.Draft -> Res.string.duplicate_ids_title_draft.get(count, name)
-		DuplicateIdKind.Note -> Res.string.duplicate_ids_title_note.get(count)
-	}
+		DuplicateIdKind.Entry -> Res.string.duplicate_ids_title_entry
+		DuplicateIdKind.EntryImage -> Res.string.duplicate_ids_title_entry_image
+		DuplicateIdKind.Scene -> Res.string.duplicate_ids_title_scene
+		DuplicateIdKind.Draft -> Res.string.duplicate_ids_title_draft
+		DuplicateIdKind.Note -> Res.string.duplicate_ids_title_note
+	}.get(set.copies.size, set.id)
 	Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
 		Text(
 			text = title,
