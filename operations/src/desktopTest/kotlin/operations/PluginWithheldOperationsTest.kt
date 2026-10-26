@@ -10,12 +10,12 @@ import kotlin.test.assertEquals
 class PluginWithheldOperationsTest {
 
 	@Test
-	fun `every operation that changes the sync account or syncs is withheld from plugins`() {
-		val accountChanges = coreOperations()
-			.filter { it.scope == OperationScope.Account && it.access != Access.Read }
+	fun `every operation that changes the sync account, syncs, or changes plugins is withheld from plugins`() {
+		val changes = coreOperations()
+			.filter { it.scope != OperationScope.Content && it.access != Access.Read }
 			.map { it.name }
 			.toSet()
 
-		assertEquals(accountChanges, PLUGIN_WITHHELD_OPERATIONS)
+		assertEquals(changes, PLUGIN_WITHHELD_OPERATIONS)
 	}
 }
