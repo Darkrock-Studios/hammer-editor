@@ -32,6 +32,14 @@
 	<content_rating type="oars-1.1" />
 
 	<releases>
+        <release version="3.12.1" date="2026-10-24">
+            <description>
+                <p>- Fix crash with syncthing conflict files</p>
+                <p>- Fixed several crashes in text editor</p>
+                <p>- Improved text editor format buttons</p>
+                <p>- Fix snap package spell checking</p>
+            </description>
+        </release>
         <release version="3.12.0" date="2026-10-05">
             <description>
                 <p>New features</p>

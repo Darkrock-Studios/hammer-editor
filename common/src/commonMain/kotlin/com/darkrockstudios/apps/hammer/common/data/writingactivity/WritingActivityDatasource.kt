@@ -50,9 +50,9 @@ class WritingActivityDatasource(
 		val dir = getDirectory()
 		if (!fileSystem.exists(dir)) return@withContext emptyMap()
 		fileSystem.list(dir)
-			.filter { it.name.endsWith(FILE_SUFFIX) }
 			.mapNotNull { path ->
-				val deviceId = path.name.removeSuffix(FILE_SUFFIX)
+				val deviceId = DEVICE_LOG_FILENAME_PATTERN.matchEntire(path.name)?.groupValues?.get(1)
+					?: return@mapNotNull null
 				val log = fileSystem.readTomlOrNull<DeviceLog>(path, toml) { e ->
 					Napier.e("Failed to load writing activity log: $path", e)
 				}
@@ -67,6 +67,9 @@ class WritingActivityDatasource(
 	companion object {
 		const val ACTIVITY_DIRECTORY = ".activity"
 		const val FILE_SUFFIX = ".toml"
+
+		// Device ids are install UUIDs (or the example project's fixed id).
+		val DEVICE_LOG_FILENAME_PATTERN = Regex("""([A-Za-z0-9_-]+)\.toml""")
 	}
 }
 
