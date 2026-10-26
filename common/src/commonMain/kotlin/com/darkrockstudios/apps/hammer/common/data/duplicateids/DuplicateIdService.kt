@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.duplicateids
 
+import com.darkrockstudios.apps.hammer.base.http.EntityType
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
@@ -8,6 +9,7 @@ import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesReposito
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntitySynchronizers
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcher
@@ -40,6 +42,7 @@ class DuplicateIdService(
 	private val sceneRepository: SceneRepository by projectInject()
 	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
 	private val notesRepository: NotesRepository by projectInject()
+	private val entitySynchronizers: EntitySynchronizers by projectInject()
 
 	private val _unresolved = MutableStateFlow<List<DuplicateIdSet>>(emptyList())
 	val unresolved: StateFlow<List<DuplicateIdSet>> = _unresolved
@@ -67,9 +70,48 @@ class DuplicateIdService(
 		}
 	}
 
+	/**
+	 * Gives every extra holder of an id shared across types a fresh id. Must run once the stores
+	 * have loaded: renumbering goes through each type's own re-id, which also moves drafts,
+	 * scene metadata and entry references.
+	 */
+	suspend fun resolveCrossTypeIds() = withContext(ioDispatcher) {
+		mutex.withLock { resolveCrossTypeIdsLocked() }
+	}
+
+	private suspend fun resolveCrossTypeIdsLocked() {
+		// Re-id acts on whichever file a store reads for an id, so each store must hold one first.
+		if (_unresolved.value.isNotEmpty()) return
+
+		val collisions = try {
+			rationalizer.findCrossTypeIds()
+		} catch (e: IOException) {
+			Napier.e("Cross-type id scan failed for ${projectDef.name}", e)
+			return
+		}
+		if (collisions.isEmpty()) return
+
+		collisions.values.flatten().toSet().forEach { entitySynchronizers[it].prepareForSync() }
+		for ((id, types) in collisions) {
+			val keeper = keeperOf(id, types)
+			for (type in types - keeper) {
+				val newId = idAllocator.claimNextId()
+				Napier.i("$type $id shares its id with $keeper $id; renumbering it to $newId")
+				entitySynchronizers[type].reIdEntity(oldId = id, newId = newId)
+			}
+		}
+	}
+
+	/** The item the server last confirmed for [id] keeps it; otherwise the most depended-on type. */
+	private suspend fun keeperOf(id: Int, types: List<EntityType>): EntityType {
+		val syncedHash = if (syncJournal.isServerSynchronized()) syncJournal.loadSyncData().syncedHashes[id] else null
+		return syncedHash?.let { hash -> types.firstOrNull { entitySynchronizers[it].getEntityHash(id) == hash } }
+			?: types.minBy { CROSS_TYPE_PRECEDENCE.indexOf(it) }
+	}
+
 	/** A fresh scan, so copies a file-sync tool delivered while the project was open count too. */
 	suspend fun hasDuplicates(): Boolean = withContext(ioDispatcher) {
-		rationalizer.hasDuplicates()
+		rationalizer.hasDuplicates() || rationalizer.findCrossTypeIds().isNotEmpty()
 	}
 
 	suspend fun resolve(set: DuplicateIdSet, keep: Set<HPath>): ResolveResult = withContext(ioDispatcher) {
@@ -87,7 +129,10 @@ class DuplicateIdService(
 			}
 
 			_unresolved.value = rationalizer.findDuplicates()
-			if (result == ResolveResult.Resolved) reload(set.kind)
+			if (result == ResolveResult.Resolved) {
+				reload(set.kind)
+				resolveCrossTypeIdsLocked()
+			}
 			result
 		}
 	}
@@ -105,6 +150,17 @@ class DuplicateIdService(
 			DuplicateIdKind.Note -> notesRepository.loadNotes()
 			DuplicateIdKind.Draft -> Unit
 		}
+	}
+
+	private companion object {
+		// Scenes own drafts, metadata and buffers by id, and scene metadata points at entries.
+		val CROSS_TYPE_PRECEDENCE = listOf(
+			EntityType.Scene,
+			EntityType.EncyclopediaEntry,
+			EntityType.TimelineEvent,
+			EntityType.Note,
+			EntityType.SceneDraft,
+		)
 	}
 
 	enum class ResolveResult {

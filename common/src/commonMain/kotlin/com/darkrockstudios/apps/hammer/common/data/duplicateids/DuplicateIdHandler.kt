@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.duplicateids
 
+import com.darkrockstudios.apps.hammer.base.http.EntityType
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
@@ -17,6 +18,12 @@ internal abstract class DuplicateIdHandler(
 	protected val fileSystem: FileSystem,
 ) {
 	abstract val kind: DuplicateIdKind
+
+	/** The synced entity type this store's ids belong to, or null when it holds no entities of its own. */
+	open val entityType: EntityType? = null
+
+	/** Every id this store holds, read from filenames where the format allows. */
+	open fun ids(): Set<Int> = emptySet()
 
 	/** Sets with copies ordered the way this store's read path picks them. */
 	abstract fun findDuplicates(): List<DuplicateIdSet>

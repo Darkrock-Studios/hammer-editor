@@ -185,7 +185,19 @@ class EncyclopediaDatasource(
 
 		val oldPath = getEntryPath(oldDef).toOkioPath()
 		val newPath = getEntryPath(newDef).toOkioPath()
+		val content = try {
+			loadEntry(oldPath.toHPath()).entry
+		} catch (e: EntryLoadError) {
+			Napier.w("Re-id of entry $oldId moves it without updating its unreadable content", e)
+			null
+		}
 		fileSystem.atomicMove(oldPath, newPath)
+		// The id inside the file is what the entry's image and sync entity are looked up by.
+		if (content != null) {
+			fileSystem.write(newPath) {
+				writeUtf8(toml.encodeToString(EntryContainer(content.copy(id = newId))))
+			}
+		}
 
 		loadEntriesImperative()
 	}

@@ -75,14 +75,17 @@ class ProjectEditorScopeUtilsTest : BaseTest() {
 	}
 
 	@Test
-	fun `duplicate ids are settled before the scene editor loads`() = runTest {
+	fun `duplicate files are settled before the stores load and shared ids after`() = runTest {
 		val scope = openProjectScope(projectDef)
 
 		val duplicateIdService = scope.get<DuplicateIdService>()
 		val sceneEditorService = scope.get<SceneEditorService>()
+		val timeLineRepository = scope.get<TimeLineRepository>()
 		coVerifyOrder {
 			duplicateIdService.rationalizeOnOpen()
 			sceneEditorService.initialize()
+			timeLineRepository.initialize()
+			duplicateIdService.resolveCrossTypeIds()
 		}
 		closeProjectScope(scope, projectDef)
 	}
