@@ -143,6 +143,7 @@
 	<string name="sync_log_entity_delete_success">ID %1$d видалено на сервері</string>
 	<string name="sync_log_entity_conflict">Виникнув конфлікт для нової сутності, це не мало б бути можливим! ID: %1$d ТИП: %2$s</string>
 	<string name="sync_log_entity_failed">Синхронізацію не вдалося: %1$s</string>
+	<string name="sync_log_duplicate_ids">Some files in this project share an id. Reopen the project to choose which copies to keep.</string>
 	<string name="sync_log_stale_hash_detected">Кешований хеш сервера застарів для сутності %1$d. Виправлення примусовим вивантаженням.</string>
 	<string name="sync_log_stale_hash_healed">Кеш сервера для сутності %1$d успішно виправлено примусовим вивантаженням</string>
 	<string name="sync_log_stale_hash_heal_failed">Не вдалося виправити кеш сервера для сутності %1$d — примусове вивантаження не вдалося</string>
