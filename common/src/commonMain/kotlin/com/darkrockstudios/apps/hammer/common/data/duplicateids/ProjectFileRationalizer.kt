@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.common.data.duplicateids
 
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
+import com.darkrockstudios.apps.hammer.common.fileio.okio.isWithin
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import io.github.aakira.napier.Napier
@@ -32,6 +33,8 @@ class ProjectFileRationalizer(
 	).associateBy { it.kind }
 
 	fun findDuplicates(): List<DuplicateIdSet> = handlers.values.flatMap { it.findDuplicates() }
+
+	fun hasDuplicates(): Boolean = handlers.values.any { it.findDuplicates().isNotEmpty() }
 
 	/** Every copy has the same bytes (or is a group) and would end up at the same path. */
 	fun isSafeToResolve(set: DuplicateIdSet): Boolean {
@@ -122,7 +125,7 @@ private fun HPath.remapped(moved: Map<HPath, HPath>): HPath {
 	for ((from, to) in moved) {
 		val fromPath = from.toOkioPath()
 		if (path == fromPath) return to
-		if (path.isDescendantOf(fromPath)) return (to.toOkioPath() / path.relativeTo(fromPath)).toHPath()
+		if (path.isWithin(fromPath)) return (to.toOkioPath() / path.relativeTo(fromPath)).toHPath()
 	}
 	return this
 }

@@ -113,7 +113,6 @@ class SceneRepository(
 	}
 
 	private suspend fun loadTreeFromDisk() {
-		sceneDatasource.invalidateScenePathCache()
 		val root = sceneDatasource.loadSceneTree(rootScene)
 		sceneTree.setRoot(root)
 

@@ -21,6 +21,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -280,9 +281,10 @@ private fun CopyRow(
 			)
 			HdMonoLabel(text = copyMeta(copy), maxLines = 1)
 
-			if (copy.text.isNotBlank()) {
+			val preview = remember(copy.text) { copy.text.trim().take(PREVIEW_LENGTH) }
+			if (preview.isNotEmpty()) {
 				Text(
-					text = copy.text.trim(),
+					text = preview,
 					style = MaterialTheme.typography.bodySmall,
 					color = MaterialTheme.colorScheme.onSurfaceVariant,
 					maxLines = 2,
@@ -376,6 +378,9 @@ private fun Footer(
 }
 
 private val COMPACT_WIDTH = 520.dp
+
+// Plenty for the two lines shown, without laying out a whole scene per row.
+private const val PREVIEW_LENGTH = 400
 
 private fun entityCode(set: DuplicateIdSet): String {
 	val prefix = when (set.kind) {

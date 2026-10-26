@@ -6,9 +6,6 @@ import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftsDatasource
 import com.darkrockstudios.apps.hammer.common.data.duplicateids.DuplicateIdService
 import com.darkrockstudios.apps.hammer.common.data.duplicateids.DuplicateIdService.ResolveResult
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
-import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContainer
-import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
-import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.id.datasources.EncyclopediaIdDatasource
 import com.darkrockstudios.apps.hammer.common.data.id.datasources.NotesIdDatasource
@@ -16,8 +13,6 @@ import com.darkrockstudios.apps.hammer.common.data.id.datasources.SceneDraftIdDa
 import com.darkrockstudios.apps.hammer.common.data.id.datasources.SceneIdDatasource
 import com.darkrockstudios.apps.hammer.common.data.id.datasources.TimeLineEventIdDatasource
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
-import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContainer
-import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupDef
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
@@ -28,7 +23,6 @@ import io.mockk.coVerify
 import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.test.runTest
-import kotlinx.serialization.encodeToString
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -88,12 +82,9 @@ class DuplicateIdServiceTest : RationalizerTestBase() {
 	private fun service(backups: ProjectBackupRepository) =
 		DuplicateIdService(projectDef, rationalizer, syncJournal, backups)
 
-	private fun bob(text: String): String =
-		toml.encodeToString(EntryContainer(EntryContent(id = 5, name = "Bob", type = EntryType.PERSON, text = text, tags = emptySet())))
-
 	private fun writeConflictingEntries() {
-		write("encyclopedia/person/person~5~Bob.toml", bob("The real Bob"))
-		write("encyclopedia/person/person~5~Bob.sync-conflict-x.toml", bob("Laptop Bob"))
+		write("encyclopedia/person/person~5~Bob.toml", entryToml(5, "Bob", "The real Bob"))
+		write("encyclopedia/person/person~5~Bob.sync-conflict-x.toml", entryToml(5, "Bob", "Laptop Bob"))
 	}
 
 	@Test
@@ -144,7 +135,7 @@ class DuplicateIdServiceTest : RationalizerTestBase() {
 	fun `Keeping every copy needs no backup and gives the extra one a fresh id`() = runTest {
 		write("scenes/0~Prologue~12.md", "Once upon a time")
 		write("scenes/1~Duel~12.md", "En garde")
-		write("notes/note-20.toml", toml.encodeToString(NoteContainer(NoteContent(20, Instant.fromEpochSeconds(0), "x"))))
+		write("notes/note-20.toml", noteToml(20, "x"))
 		val backups = FakeBackups(succeeds = true)
 		val service = service(backups)
 		service.rationalizeOnOpen()
@@ -165,7 +156,7 @@ class DuplicateIdServiceTest : RationalizerTestBase() {
 		val service = service(FakeBackups(succeeds = true))
 		service.rationalizeOnOpen()
 		val set = service.unresolved.value.single()
-		write("encyclopedia/person/person~5~Bob.sync-conflict-y.toml", bob("Phone Bob"))
+		write("encyclopedia/person/person~5~Bob.sync-conflict-y.toml", entryToml(5, "Bob", "Phone Bob"))
 
 		val result = service.resolve(set, keep = setOf(set.inUse.path))
 

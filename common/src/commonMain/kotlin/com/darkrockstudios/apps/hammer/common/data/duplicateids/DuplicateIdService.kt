@@ -69,7 +69,7 @@ class DuplicateIdService(
 
 	/** A fresh scan, so copies a file-sync tool delivered while the project was open count too. */
 	suspend fun hasDuplicates(): Boolean = withContext(ioDispatcher) {
-		rationalizer.findDuplicates().isNotEmpty()
+		rationalizer.hasDuplicates()
 	}
 
 	suspend fun resolve(set: DuplicateIdSet, keep: Set<HPath>): ResolveResult = withContext(ioDispatcher) {
@@ -77,18 +77,18 @@ class DuplicateIdService(
 			val deletesSomething = set.copies.any { it.path !in keep }
 			if (deletesSomething && !ensureBackup()) return@withContext ResolveResult.BackupFailed
 
-			val markDirty = try {
+			val result = try {
 				rationalizer.resolve(set, keep) { idAllocator.claimNextId() }
+					.forEach { syncJournal.markEntityAsDirty(it) }
+				ResolveResult.Resolved
 			} catch (e: StaleDuplicateIdSet) {
 				Napier.w("Duplicate set changed before it was resolved", e)
-				_unresolved.value = rationalizer.findDuplicates()
-				return@withContext ResolveResult.Stale
+				ResolveResult.Stale
 			}
-			markDirty.forEach { syncJournal.markEntityAsDirty(it) }
 
 			_unresolved.value = rationalizer.findDuplicates()
-			reload(set.kind)
-			ResolveResult.Resolved
+			if (result == ResolveResult.Resolved) reload(set.kind)
+			result
 		}
 	}
 

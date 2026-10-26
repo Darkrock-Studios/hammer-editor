@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
+import com.darkrockstudios.apps.hammer.common.fileio.okio.isWithin
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import okio.FileSystem
@@ -29,16 +30,13 @@ internal class SceneDuplicateIdHandler(
 			.sortedBy { (path, _) -> path.name }
 			.toList()
 
-		val archived = listOrEmpty(archivedDir)
+		val archived = fileSystem.listOrNull(archivedDir).orEmpty()
 			.mapNotNull { path -> parseArchived(path)?.let { path to it } }
 			.sortedBy { (path, _) -> path.name }
 
 		return (active + archived).toDuplicateSets({ (_, name) -> name.id }) { (path, name) ->
-			when {
-				name.archived -> copyOf(path, name.displayName, readBytes(path), archived = true)
-				name.isGroup -> copyOf(path, name.displayName, bytes = null)
-				else -> copyOf(path, name.displayName, readBytes(path))
-			}
+			val bytes = if (name.isGroup) null else readBytes(path)
+			copyOf(path, name.displayName, bytes, archived = name.archived)
 		}
 	}
 
@@ -49,8 +47,7 @@ internal class SceneDuplicateIdHandler(
 			archivedDir / SceneDatasource.buildArchivedSceneFileName(name.displayName, id)
 		} else {
 			val name = parseActive(path) ?: error("Not a scene: $path")
-			val extension = if (copy.isGroup) "" else SceneDatasource.SCENE_FILENAME_EXTENSION
-			path.parent!! / "${name.order}~${ProjectsRepository.encodeForFilename(name.displayName)}~$id$extension"
+			path.parent!! / SceneDatasource.buildSceneFileName(name.order, name.displayName, id, name.isGroup)
 		}.toHPath()
 	}
 
@@ -71,19 +68,14 @@ internal class SceneDuplicateIdHandler(
 	 */
 	override fun discard(copy: DuplicateCopy, owner: DuplicateCopy): Discarded {
 		val path = copy.path.toOkioPath()
-		if (!copy.isGroup) {
-			fileSystem.delete(path)
-			return Discarded()
-		}
-
 		// A group-named file holds no scenes.
-		if (!fileSystem.metadata(path).isDirectory) {
+		if (!copy.isGroup || !fileSystem.metadata(path).isDirectory) {
 			fileSystem.delete(path)
 			return Discarded()
 		}
 
 		val ownerPath = owner.path.toOkioPath()
-		val intoOwner = owner.isGroup && !owner.archived && !ownerPath.isDescendantOf(path) &&
+		val intoOwner = owner.isGroup && !owner.archived && !ownerPath.isWithin(path) &&
 			fileSystem.metadata(ownerPath).isDirectory
 		val targetDir = if (intoOwner) ownerPath else path.parent!!
 		var nextOrder = fileSystem.list(targetDir).count { parseActive(it) != null }
@@ -94,10 +86,10 @@ internal class SceneDuplicateIdHandler(
 		for (child in children) {
 			val name = parseActive(child)
 			val target = if (name != null) {
-				val extension = if (name.isGroup) "" else SceneDatasource.SCENE_FILENAME_EXTENSION
-				val encodedName = ProjectsRepository.encodeForFilename(name.displayName)
 				generateSequence(nextOrder) { it + 1 }
-					.map { order -> order to targetDir / "$order~$encodedName~${name.id}$extension" }
+					.map { order ->
+						order to targetDir / SceneDatasource.buildSceneFileName(order.toString(), name.displayName, name.id, name.isGroup)
+					}
 					.first { (_, candidate) -> !fileSystem.exists(candidate) }
 					.let { (order, candidate) -> nextOrder = order + 1; candidate }
 			} else {

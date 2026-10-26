@@ -4,6 +4,9 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
+import kotlinx.serialization.SerializationException
+import kotlinx.serialization.decodeFromString
+import net.peanuuutz.tomlkt.Toml
 import okio.ByteString
 import okio.FileSystem
 import okio.Path
@@ -39,6 +42,13 @@ internal abstract class DuplicateIdHandler(
 		if (from != to) fileSystem.atomicMove(from.toOkioPath(), to.toOkioPath())
 	}
 
+	/** Writes [rewritten] to [target] and drops [from], or just moves [from] when null. */
+	protected fun rewriteOrMove(from: HPath, target: HPath, rewritten: String?) {
+		if (rewritten == null) return move(from, target)
+		fileSystem.write(target.toOkioPath()) { writeUtf8(rewritten) }
+		if (target != from) fileSystem.delete(from.toOkioPath())
+	}
+
 	protected fun readBytes(path: Path): ByteString = fileSystem.read(path) { readByteString() }
 
 	protected fun copyOf(
@@ -51,7 +61,7 @@ internal abstract class DuplicateIdHandler(
 		val metadata = fileSystem.metadataOrNull(path)
 		return DuplicateCopy(
 			path = path.toHPath(),
-			relativePath = path.relativeTo(projectDef.path.toOkioPath()).segments.joinToString("/"),
+			relativePath = path.relativeTo(projectDir).segments.joinToString("/"),
 			name = name,
 			isGroup = bytes == null,
 			archived = archived,
@@ -69,22 +79,23 @@ internal abstract class DuplicateIdHandler(
 			.map { (id, files) -> DuplicateIdSet(kind, id, files.map(copyOf)) }
 
 	/** Lists without creating the directory, which the stores' own directory getters do. */
-	protected fun listOrEmpty(dir: Path): List<Path> = if (fileSystem.exists(dir)) fileSystem.list(dir) else emptyList()
-
 	protected fun listRecursivelyOrEmpty(dir: Path): Sequence<Path> =
 		if (fileSystem.exists(dir)) fileSystem.listRecursively(dir) else emptySequence()
 
 	protected val projectDir: Path get() = projectDef.path.toOkioPath()
 }
 
-internal fun Path.isDescendantOf(ancestor: Path): Boolean {
-	var current = parent
-	while (current != null) {
-		if (current == ancestor) return true
-		current = current.parent
+@Suppress("SwallowedException")
+internal inline fun <reified T : Any> Toml.decodeOrNull(bytes: ByteString): T? =
+	try {
+		decodeFromString<T>(bytes.utf8())
+	} catch (_: SerializationException) {
+		null
+	} catch (_: IllegalArgumentException) {
+		null
+	} catch (_: IllegalStateException) {
+		null
 	}
-	return false
-}
 
 internal data class Discarded(
 	val markDirty: Set<Int> = emptySet(),

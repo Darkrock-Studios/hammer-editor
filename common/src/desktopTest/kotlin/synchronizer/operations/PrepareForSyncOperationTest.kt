@@ -4,6 +4,7 @@ import PROJECT_2_NAME
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.common.data.ClientResult
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.duplicateids.DuplicateIdService
 import com.darkrockstudios.apps.hammer.common.data.duplicateids.ProjectFileRationalizer
 import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
@@ -66,7 +67,12 @@ class PrepareForSyncOperationTest : BaseTest() {
 			entitySynchronizers = EntitySynchronizers(projectDef),
 			idAllocator = idAllocator,
 			syncJournal = syncJournal,
-			rationalizer = ProjectFileRationalizer(projectDef, projectFiles, createTomlSerializer()),
+			duplicateIdService = DuplicateIdService(
+				projectDef = projectDef,
+				rationalizer = ProjectFileRationalizer(projectDef, projectFiles, createTomlSerializer()),
+				syncJournal = syncJournal,
+				backupRepository = mockk(relaxed = true),
+			),
 			strRes = TestStrRes(),
 		)
 	}

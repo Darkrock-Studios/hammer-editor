@@ -2,12 +2,18 @@ package repositories.duplicateids
 
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.duplicateids.DuplicateIdKind
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContainer
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
+import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContainer
+import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
 import com.darkrockstudios.apps.hammer.common.data.duplicateids.DuplicateIdSet
 import com.darkrockstudios.apps.hammer.common.data.duplicateids.ProjectFileRationalizer
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
+import kotlinx.serialization.encodeToString
 import net.peanuuutz.tomlkt.Toml
 import okio.Path
 import okio.Path.Companion.toPath
@@ -16,6 +22,7 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import utils.BaseTest
 import kotlin.test.assertNotNull
+import kotlin.time.Instant
 
 abstract class RationalizerTestBase : BaseTest() {
 
@@ -44,6 +51,12 @@ abstract class RationalizerTestBase : BaseTest() {
 		super.tearDown()
 		ffs.checkNoOpenFiles()
 	}
+
+	protected fun entryToml(id: Int, name: String, text: String, type: EntryType = EntryType.PERSON): String =
+		toml.encodeToString(EntryContainer(EntryContent(id = id, name = name, type = type, text = text, tags = emptySet())))
+
+	protected fun noteToml(id: Int, content: String): String =
+		toml.encodeToString(NoteContainer(NoteContent(id = id, created = Instant.fromEpochSeconds(1_700_000_000), content = content)))
 
 	protected fun write(relative: String, content: String): Path {
 		val path = projectDir / relative

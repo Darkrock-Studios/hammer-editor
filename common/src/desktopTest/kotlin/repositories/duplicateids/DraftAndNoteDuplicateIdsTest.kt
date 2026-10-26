@@ -6,18 +6,11 @@ import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteCont
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.decodeFromString
-import kotlinx.serialization.encodeToString
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
-import kotlin.time.Instant
 
 class DraftAndNoteDuplicateIdsTest : RationalizerTestBase() {
-
-	private val created = Instant.fromEpochSeconds(1_700_000_000)
-
-	private fun noteToml(id: Int, content: String): String =
-		toml.encodeToString(NoteContainer(NoteContent(id = id, created = created, content = content)))
 
 	private fun noteAt(relative: String): NoteContent = toml.decodeFromString<NoteContainer>(read(relative)).note
 

@@ -11,11 +11,8 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.filter
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
-import kotlinx.serialization.SerializationException
-import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import net.peanuuutz.tomlkt.Toml
-import okio.ByteString
 import okio.FileSystem
 import okio.Path
 
@@ -36,7 +33,7 @@ internal class EntryDuplicateIdHandler(
 			.toList()
 			.toDuplicateSets({ (_, def) -> def.id }) { (path, def) ->
 				val bytes = readBytes(path)
-				val content = decode(bytes)
+				val content = toml.decodeOrNull<EntryContainer>(bytes)?.entry
 				copyOf(
 					path = path,
 					name = content?.name ?: def.name,
@@ -45,8 +42,9 @@ internal class EntryDuplicateIdHandler(
 				)
 			}
 
-	override fun canonicalPath(copy: DuplicateCopy, id: Int): HPath {
-		val content = decode(readBytes(copy.path.toOkioPath()))
+	override fun canonicalPath(copy: DuplicateCopy, id: Int): HPath = canonicalPath(copy, read(copy), id)
+
+	private fun canonicalPath(copy: DuplicateCopy, content: EntryContent?, id: Int): HPath {
 		return if (content != null) {
 			val dir = EncyclopediaDatasource.getTypeDirectory(projectDef, content.type, fileSystem).toOkioPath()
 			dir / EncyclopediaDatasource.getEntryFilename(content.copy(id = id))
@@ -58,16 +56,9 @@ internal class EntryDuplicateIdHandler(
 	}
 
 	override fun claim(copy: DuplicateCopy, owner: DuplicateCopy, oldId: Int, newId: Int): Set<Int> {
-		val content = decode(readBytes(copy.path.toOkioPath()))
-		val target = canonicalPath(copy, newId)
-		if (content != null && content.id != newId) {
-			fileSystem.write(target.toOkioPath()) {
-				writeUtf8(toml.encodeToString(EntryContainer(content.copy(id = newId))))
-			}
-			if (target != copy.path) fileSystem.delete(copy.path.toOkioPath())
-		} else {
-			move(copy.path, target)
-		}
+		val content = read(copy)
+		val rewritten = content?.takeIf { it.id != newId }?.let { toml.encodeToString(EntryContainer(it.copy(id = newId))) }
+		rewriteOrMove(copy.path, canonicalPath(copy, content, newId), rewritten)
 
 		// Images belong to (type, id): one of another type than the owner's leaves with its entry.
 		val type = requireFilenameDef(copy).type
@@ -97,17 +88,8 @@ internal class EntryDuplicateIdHandler(
 	private fun requireFilenameDef(copy: DuplicateCopy): EntryDef =
 		filenameDef(copy.path) ?: error("Not an entry filename: ${copy.path}")
 
-	@Suppress("SwallowedException")
-	private fun decode(bytes: ByteString): EntryContent? =
-		try {
-			toml.decodeFromString<EntryContainer>(bytes.utf8()).entry
-		} catch (_: SerializationException) {
-			null
-		} catch (_: IllegalArgumentException) {
-			null
-		} catch (_: IllegalStateException) {
-			null
-		}
+	private fun read(copy: DuplicateCopy): EntryContent? =
+		toml.decodeOrNull<EntryContainer>(readBytes(copy.path.toOkioPath()))?.entry
 }
 
 /** More than one image for an entry: legacy and current names, or different extensions. */
@@ -122,7 +104,7 @@ internal class EntryImageDuplicateIdHandler(
 	override fun findDuplicates(): List<DuplicateIdSet> =
 		EntryType.entries.flatMap { type ->
 			images.all(type).toDuplicateSets({ it.id }) { image ->
-				copyOf(image.path, image.path.name, readBytes(image.path))
+				copyOf(image.path, image.path.name, readBytes(image.path), text = "")
 			}
 		}
 
@@ -139,14 +121,12 @@ internal class EntryImageFiles(
 	data class Image(val path: Path, val type: EntryType, val id: Int, val extension: String)
 
 	/** In directory order, which is the order the image lookup picks them. */
-	fun all(type: EntryType): List<Image> {
-		val dir = typeDirectory(type)
-		if (!fileSystem.exists(dir)) return emptyList()
-		return fileSystem.list(dir).mapNotNull { parse(it) }.filter { it.type == type }
-	}
+	fun all(type: EntryType): List<Image> =
+		fileSystem.listOrNull(typeDirectory(type)).orEmpty().mapNotNull { parse(it) }.filter { it.type == type }
 
 	fun parse(path: Path): Image? {
-		val match = IMAGE_PATTERN.matchEntire(path.name) ?: LEGACY_IMAGE_PATTERN.matchEntire(path.name)
+		val match = EncyclopediaDatasource.ENTRY_IMAGE_FILENAME_PATTERN.matchEntire(path.name)
+			?: EncyclopediaDatasource.LEGACY_ENTRY_IMAGE_FILENAME_PATTERN.matchEntire(path.name)
 			?: return null
 		val extension = match.groupValues[3]
 		if (extension.lowercase() !in EncyclopediaDatasource.IMAGE_EXTENSIONS) return null
@@ -156,7 +136,7 @@ internal class EntryImageFiles(
 	}
 
 	fun canonicalPath(type: EntryType, id: Int, extension: String): Path =
-		typeDirectory(type) / "${type.text}~$id~image.$extension"
+		typeDirectory(type) / EncyclopediaDatasource.getEntryImageFilename(id, type, extension)
 
 	fun move(type: EntryType, oldId: Int, newId: Int) {
 		all(type).filter { it.id == oldId }.forEach { image ->
@@ -170,9 +150,4 @@ internal class EntryImageFiles(
 
 	private fun typeDirectory(type: EntryType): Path =
 		projectDef.path.toOkioPath() / EncyclopediaDatasource.ENCYCLOPEDIA_DIRECTORY / type.text
-
-	private companion object {
-		val IMAGE_PATTERN = Regex("""([a-zA-Z]+)~(\d+)~image\.([a-zA-Z0-9]+)""")
-		val LEGACY_IMAGE_PATTERN = EncyclopediaDatasource.LEGACY_ENTRY_IMAGE_FILENAME_PATTERN
-	}
 }

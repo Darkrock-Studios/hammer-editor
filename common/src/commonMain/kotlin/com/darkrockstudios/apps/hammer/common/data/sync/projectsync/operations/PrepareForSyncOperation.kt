@@ -3,7 +3,7 @@ package com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.duplicateids.ProjectFileRationalizer
+import com.darkrockstudios.apps.hammer.common.data.duplicateids.DuplicateIdService
 import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
 import com.darkrockstudios.apps.hammer.common.util.StrRes
@@ -16,7 +16,7 @@ class PrepareForSyncOperation(
 	private val entitySynchronizers: EntitySynchronizers,
 	private val idAllocator: IdAllocator,
 	private val syncJournal: SyncJournal,
-	private val rationalizer: ProjectFileRationalizer,
+	private val duplicateIdService: DuplicateIdService,
 	private val strRes: StrRes,
 ) : SyncOperation(projectDef) {
 	override suspend fun execute(
@@ -27,7 +27,7 @@ class PrepareForSyncOperation(
 		onComplete: suspend (success: Boolean) -> Unit
 	): CResult<SyncOperationState> {
 		// Until the user picks which copy owns each id, any of them could be uploaded.
-		if (rationalizer.findDuplicates().isNotEmpty()) {
+		if (duplicateIdService.hasDuplicates()) {
 			return CResult.failure(DuplicateIdFilesException(strRes.get(Res.string.sync_log_duplicate_ids)))
 		}
 

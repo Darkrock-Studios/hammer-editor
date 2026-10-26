@@ -9,7 +9,6 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.decodeFromString
-import kotlinx.serialization.encodeToString
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -18,9 +17,6 @@ import kotlin.test.assertTrue
 class EntryDuplicateIdsTest : RationalizerTestBase() {
 
 	private val conflictSuffix = ".sync-conflict-20261024-173944-53PQXWR"
-
-	private fun entryToml(id: Int, name: String, text: String, type: EntryType = EntryType.PERSON): String =
-		toml.encodeToString(EntryContainer(EntryContent(id = id, name = name, type = type, text = text, tags = emptySet())))
 
 	private fun entryText(relative: String): EntryContent =
 		toml.decodeFromString<EntryContainer>(read(relative)).entry
