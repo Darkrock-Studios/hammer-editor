@@ -324,8 +324,8 @@ when the list is generated, and `export.formats` returns the same set.
 
 These are the `account` scope. A plugin may read it, through `account:read` or
 by naming `account.status` or `sync.status`, but can never log in, log out, or
-sync: `OperationScope.grantableToPlugins` withholds every operation in this
-scope but its reads, by scope rather than by name. A package that requests
+sync: they are listed in `PLUGIN_WITHHELD_OPERATIONS`, and a test keeps every
+operation in this scope but its reads on that list. A package that requests
 `account:write`, or names `account.login`, `account.logout`, or `sync.run`, is
 refused at install, and dispatch refuses them whatever a plugin was granted.
 Logged in to a server of its choosing, a plugin with no HTTP hosts could still

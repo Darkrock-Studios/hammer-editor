@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispat
 import com.darkrockstudios.apps.hammer.operations.OperationException
 import com.darkrockstudios.apps.hammer.operations.OperationJson
 import com.darkrockstudios.apps.hammer.operations.OperationRegistry
+import com.darkrockstudios.apps.hammer.operations.PLUGIN_WITHHELD_OPERATIONS
 import com.darkrockstudios.apps.hammer.operations.cli.CliCommand
 import com.darkrockstudios.apps.hammer.operations.cli.CliIo
 import com.darkrockstudios.apps.hammer.operations.cli.Dispatcher
@@ -56,7 +57,7 @@ import org.koin.core.component.get
  * A runtime plugin: a manifest plus an Extism-convention module, presented as a [ClientPlugin].
  * The module is instantiated on first use, and calls into it run one at a time. It may dispatch only
  * operations covered by an [OperationGrant] that its manifest requests and the user [granted], never one
- * [com.darkrockstudios.apps.hammer.operations.OperationScope.grantableToPlugins] withholds, and `ops.list`
+ * [com.darkrockstudios.apps.hammer.operations.PLUGIN_WITHHELD_OPERATIONS] lists, and `ops.list`
  * shows it only those.
  */
 class WasmPlugin(
@@ -88,7 +89,7 @@ class WasmPlugin(
 		manifest.permissions.operations.filter { it in granted }.mapNotNull(OperationGrant::parse)
 
 	// Checked here as well as in PluginPackage, for a grant that never went through its checks.
-	private fun permits(op: OperationDescriptor) = op.scope.grantableToPlugins(op.access) && grants.any { it.covers(op) }
+	private fun permits(op: OperationDescriptor) = op.name !in PLUGIN_WITHHELD_OPERATIONS && grants.any { it.covers(op) }
 
 	private val lock = reentrantLock()
 

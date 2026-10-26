@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.plugins.wasmhost
 
+import com.darkrockstudios.apps.hammer.operations.PLUGIN_WITHHELD_OPERATIONS
 import com.darkrockstudios.apps.hammer.operations.core.coreOperations
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionPlace
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
@@ -186,11 +187,11 @@ class PluginPackage(
 					throw PluginPackageException("Export format '${exporter.format}' has unknown input '${exporter.input}'")
 				}
 			}
-			val core = coreOperations().associateBy { it.name }
+			val withheldOps = coreOperations().filter { it.name in PLUGIN_WITHHELD_OPERATIONS }
 			manifest.permissions.operations.forEach { entry ->
 				val withheld = when (val grant = OperationGrant.parse(entry) ?: throw PluginPackageException("Unknown permission '$entry'")) {
-					is OperationGrant.Named -> core[grant.name]?.let { !it.scope.grantableToPlugins(it.access) } ?: false
-					is OperationGrant.Scoped -> !grant.scope.grantableToPlugins(grant.access)
+					is OperationGrant.Named -> grant.name in PLUGIN_WITHHELD_OPERATIONS
+					is OperationGrant.Scoped -> withheldOps.any { it.scope == grant.scope && it.access == grant.access }
 				}
 				if (withheld) throw PluginPackageException("'$entry' cannot be granted: plugins may not change the sync account or sync")
 			}
