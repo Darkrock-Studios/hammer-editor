@@ -68,6 +68,9 @@ kotlin {
 		val commonMain by getting {
 			dependencies {
 				api(project(":common"))
+				api(project(":operations"))
+				implementation(project(":plugins:wasmhost"))
+				implementation(libs.kotlinx.atomicfu)
 				api(libs.jetbrains.compose.runtime)
 				api(libs.jetbrains.compose.components.resources)
 				api(libs.jetbrains.compose.ui.tooling.preview)
@@ -130,9 +133,16 @@ kotlin {
 				runtimeOnly(libs.junit.vintage.engine)
 				implementation(libs.mockk)
 				implementation(libs.jetbrains.compose.ui.test.junit4)
+				// Plugin settings tests build the settings store's Koin module.
+				implementation(libs.tomlkt)
 			}
 		}
 	}
+}
+
+// Strings for the UI halves of in-tree plugins. The app's own strings live in :common.
+compose.resources {
+	packageOfResClass = "com.darkrockstudios.apps.hammer.composeui.resources"
 }
 
 composeCompiler {

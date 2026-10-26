@@ -44,6 +44,8 @@ class TagIndexService(
 	private val _isCalculating = MutableStateFlow(false)
 	val isCalculating: StateFlow<Boolean> = _isCalculating.asStateFlow()
 
+	private val firstBuild = CompletableDeferred<Unit>()
+
 	// Scene metadata writes also fire for outline/notes/draft-name edits, so filter to
 	// emissions where the tag set actually changed - otherwise typing in the outline
 	// thrashes the index rebuild.
@@ -72,11 +74,19 @@ class TagIndexService(
 		}
 	}
 
-	fun getRankedTags(limit: Int = Int.MAX_VALUE): List<TagCount> =
-		_tagIndex.value.tagToEntities.toRankedTagCounts(limit) { it.size }
+	/**
+	 * [tagIndex] once it has been built, or has failed to be, at least once. Until then it is empty, as
+	 * it is for a while after the project opens or this service is first asked for.
+	 */
+	suspend fun builtIndex(): TagIndex {
+		firstBuild.await()
+		return _tagIndex.value
+	}
+
+	fun getRankedTags(limit: Int = Int.MAX_VALUE): List<TagCount> = _tagIndex.value.rankedTags(limit)
 
 	fun getRankedTags(type: TaggedEntityType, limit: Int = Int.MAX_VALUE): List<TagCount> =
-		_tagIndex.value.countsByType[type].orEmpty().toRankedTagCounts(limit) { it }
+		_tagIndex.value.rankedTags(type, limit)
 
 	fun getEntitiesWithTag(tag: String): Set<TaggedEntityRef> =
 		_tagIndex.value.tagToEntities[tag].orEmpty()
@@ -89,14 +99,6 @@ class TagIndexService(
 			.toRankedTagCounts(limit) { it.size }
 	}
 
-	private inline fun <V> Map<String, V>.toRankedTagCounts(
-		limit: Int,
-		countOf: (V) -> Int,
-	): List<TagCount> =
-		map { TagCount(it.key, countOf(it.value)) }
-			.sortedWith(compareByDescending<TagCount> { it.count }.thenBy { it.tag })
-			.take(limit)
-
 	@Suppress("TooGenericExceptionCaught") // Background rebuild must not crash on any failure
 	private suspend fun rebuild() {
 		_isCalculating.value = true
@@ -106,11 +108,15 @@ class TagIndexService(
 			Napier.e("TagIndexService rebuild failed", t)
 		} finally {
 			_isCalculating.value = false
+			firstBuild.complete(Unit)
 		}
 	}
 
-	/** Loads tags from notes, timeline events, encyclopedia entries and scene metadata. */
-	private suspend fun buildTagIndex(): TagIndex {
+	/**
+	 * Loads tags from notes, timeline events, encyclopedia entries and scene metadata. Called directly
+	 * by callers that need the index as of now, not as of the last debounced rebuild.
+	 */
+	suspend fun buildTagIndex(): TagIndex {
 		val tagToEntities = mutableMapOf<String, MutableSet<TaggedEntityRef>>()
 		val countsByType = mutableMapOf<TaggedEntityType, MutableMap<String, Int>>()
 

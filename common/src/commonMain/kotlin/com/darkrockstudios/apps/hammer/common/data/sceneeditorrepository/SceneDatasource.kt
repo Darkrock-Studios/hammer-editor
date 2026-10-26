@@ -71,7 +71,7 @@ class SceneDatasource(
 	}
 
 	private fun getSceneBufferTempPath(sceneItem: SceneItem): HPath {
-		val bufferPathSegment = getSceneBufferDirectory().toOkioPath()
+		val bufferPathSegment = sceneBufferDirectoryPath()
 		val fileName = getSceneTempFileName(sceneItem)
 		return bufferPathSegment.div(fileName).toHPath()
 	}
@@ -90,9 +90,11 @@ class SceneDatasource(
 		}
 	}
 
+	fun hasTempScene(sceneItem: SceneItem): Boolean = fileSystem.exists(getSceneBufferTempPath(sceneItem).toOkioPath())
+
 	fun getSceneTempBufferContents(): List<SceneContent> {
-		val bufferDirectory = getSceneBufferDirectory().toOkioPath()
-		return fileSystem.list(bufferDirectory)
+		val bufferDirectory = sceneBufferDirectoryPath()
+		return (fileSystem.listOrNull(bufferDirectory) ?: return emptyList())
 			.filter { fileSystem.metadataOrNull(it)?.isRegularFile == true }
 			.mapNotNull { path ->
 				val sceneId = getSceneIdFromBufferFilename(path.name)
@@ -209,14 +211,16 @@ class SceneDatasource(
 	}
 
 	fun getSceneBufferDirectory(): HPath {
-		val projOkPath = projectDef.path.toOkioPath()
-		val sceneDirPath = projOkPath.div(SCENE_DIRECTORY)
-		val bufferPathSegment = sceneDirPath.div(BUFFER_DIRECTORY)
+		val bufferPathSegment = sceneBufferDirectoryPath()
 		if (!fileSystem.exists(bufferPathSegment)) {
 			fileSystem.createDirectories(bufferPathSegment)
 		}
 		return bufferPathSegment.toHPath()
 	}
+
+	/** Reads leave the directory alone: creating it would bring back a project folder deleted while open. */
+	private fun sceneBufferDirectoryPath(): Path =
+		projectDef.path.toOkioPath().div(SCENE_DIRECTORY).div(BUFFER_DIRECTORY)
 
 	fun getSceneFromPath(path: HPath): SceneItem {
 		val sceneDef = getSceneFromFilename(path)
@@ -309,6 +313,7 @@ class SceneDatasource(
 
 		return try {
 			val markdown = buffer.content.coerceMarkdown()
+			getSceneBufferDirectory()
 
 			fileSystem.write(scenePath) {
 				writeUtf8(markdown)

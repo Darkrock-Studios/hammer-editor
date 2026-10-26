@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.onStart
@@ -69,6 +70,13 @@ class ProjectSpellCheckService(
 	) { settings, stored ->
 		isSpellCheckAllowedForProject(stored?.data?.language, settings.spellCheckSettings.locale)
 	}
+		.onStart { projectDataRepository.load() }
+		.distinctUntilChanged()
+
+	/** The project's declared language, a BCP 47 tag, or null when it has none. Emits once it is loaded. */
+	val projectLanguage: Flow<String?> = projectDataRepository.state
+		.filterNotNull()
+		.map { it.data?.language }
 		.onStart { projectDataRepository.load() }
 		.distinctUntilChanged()
 

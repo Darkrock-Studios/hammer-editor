@@ -11,6 +11,7 @@ import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRe
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectSpellCheckService
 import getProjectDef
+import io.mockk.coVerify
 import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.test.runTest
@@ -19,6 +20,7 @@ import org.junit.jupiter.api.Test
 import org.koin.dsl.module
 import utils.BaseTest
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
@@ -27,15 +29,17 @@ class ProjectEditorScopeUtilsTest : BaseTest() {
 
 	private val projectDef = getProjectDef(PROJECT_EMPTY_NAME)
 	private lateinit var spellCheckService: ProjectSpellCheckService
+	private lateinit var sceneEditorService: SceneEditorService
 
 	@BeforeEach
 	override fun setup() {
 		super.setup()
 		spellCheckService = mockk(relaxed = true)
+		sceneEditorService = mockk(relaxed = true)
 		setupKoin(module {
 			scope<ProjectDefScope> {
 				scoped { projectDef }
-				scoped<SceneEditorService> { mockk(relaxed = true) }
+				scoped { sceneEditorService }
 				scoped<TimeLineRepository> { mockk(relaxed = true) }
 				scoped { spellCheckService }
 			}
@@ -66,12 +70,38 @@ class ProjectEditorScopeUtilsTest : BaseTest() {
 		}
 
 	@Test
+	fun `unsaved edits are restored for editors only`() = runTest {
+		temporaryProjectTask(projectDef) {
+			coVerify { sceneEditorService.initialize(restoreUnsavedEdits = false) }
+			verify(exactly = 0) { sceneEditorService.restoreUnsavedEdits() }
+
+			openProjectScope(projectDef)
+			verify(exactly = 1) { sceneEditorService.restoreUnsavedEdits() }
+		}
+
+		closeProjectScope(assertNotNull(scopeOrNull()), projectDef)
+	}
+
+	@Test
 	fun `reopening for editing does not start the editor services twice`() = runTest {
 		openProjectScope(projectDef)
 		openProjectScope(projectDef)
 
 		verify(exactly = 1) { spellCheckService.initialize() }
 		closeProjectScope(assertNotNull(scopeOrNull()), projectDef)
+		closeProjectScope(assertNotNull(scopeOrNull()), projectDef)
+	}
+
+	@Test
+	fun `the scope stays open until every editor has closed it`() = runTest {
+		openProjectScope(projectDef)
+		openProjectScope(projectDef)
+
+		closeProjectScope(assertNotNull(scopeOrNull()), projectDef)
+		assertFalse(assertNotNull(scopeOrNull()).closed)
+
+		closeProjectScope(assertNotNull(scopeOrNull()), projectDef)
+		assertNull(scopeOrNull())
 	}
 
 	@Test

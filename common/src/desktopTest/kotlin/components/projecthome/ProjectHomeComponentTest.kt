@@ -3,15 +3,22 @@ package components.projecthome
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.http.projectdata.WordCountGoal
 import com.darkrockstudios.apps.hammer.common.components.ToastMessage
-import com.darkrockstudios.apps.hammer.common.components.projecthome.ExportStoryUseCase
+import com.darkrockstudios.apps.hammer.common.data.export.ExportStoryUseCase
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectHome
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectHomeComponent
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.Info
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
-import com.darkrockstudios.apps.hammer.common.data.ExportFormat
+import com.darkrockstudios.apps.hammer.common.data.export.BuiltInExportFormat
+import com.darkrockstudios.apps.hammer.common.data.export.ExportFileName
+import com.darkrockstudios.apps.hammer.common.data.export.ExportInput
+import com.darkrockstudios.apps.hammer.common.data.export.ExporterSource
+import com.darkrockstudios.apps.hammer.common.data.export.StoryExporter
+import com.darkrockstudios.apps.hammer.common.data.export.StoryExporterRegistry
 import com.darkrockstudios.apps.hammer.common.data.ExportOptions
 import com.darkrockstudios.apps.hammer.common.data.ExportableScene
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
+import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectPluginsDatasource
+import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectPluginsRepository
 import com.darkrockstudios.apps.hammer.common.data.tree.ImmutableTree
 import com.darkrockstudios.apps.hammer.common.data.tree.Tree
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
@@ -37,7 +44,9 @@ import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndexService
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TaggedEntityRef
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TaggedEntityType
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.APP_SCOPE
 import com.darkrockstudios.apps.hammer.project_home_action_backup_toast_failure
 import com.darkrockstudios.apps.hammer.project_home_action_backup_toast_success
 import com.darkrockstudios.libs.platformspellchecker.PlatformSpellCheckerFactory
@@ -45,16 +54,22 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
+import okio.BufferedSink
+import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.koin.core.qualifier.named
 import org.koin.dsl.module
 import utils.ComponentTest
 import kotlin.test.assertEquals
@@ -77,6 +92,8 @@ class ProjectHomeComponentTest : ComponentTest() {
 	private lateinit var statisticsService: StatisticsService
 	private lateinit var tagIndexService: TagIndexService
 	private lateinit var referenceIndexService: ReferenceIndexService
+	private lateinit var pluginFormats: FakeExporterSource
+	private lateinit var projectPlugins: ProjectPluginsRepository
 
 	private lateinit var statsFlow: MutableSharedFlow<ProjectStatistics>
 	private lateinit var isDirtyFlow: MutableStateFlow<Boolean>
@@ -141,10 +158,16 @@ class ProjectHomeComponentTest : ComponentTest() {
 
 		referenceIndexService = mockk(relaxed = true)
 
+		pluginFormats = FakeExporterSource()
+		projectPlugins = ProjectPluginsRepository(ProjectPluginsDatasource(FakeFileSystem(), createTomlSerializer()))
+
 		setupComponentKoin(module {
 			single { globalSettingsStore }
+			single { StoryExporterRegistry(emptyList(), listOf(pluginFormats)) }
+			single { projectPlugins }
 			single { projectBackupService }
 			single<AccountTagService> { mockk(relaxed = true) }
+			single(named(APP_SCOPE)) { CoroutineScope(SupervisorJob()) }
 			single<PlatformSpellCheckerFactory> {
 				mockk { every { availableLocales() } returns emptyList() }
 			}
@@ -162,6 +185,28 @@ class ProjectHomeComponentTest : ComponentTest() {
 				}
 			}
 		})
+	}
+
+	private class FakeExporter(override val formatId: String, override val fileExtension: String) : StoryExporter {
+		override val mimeType = "text/plain"
+		override fun render(sink: BufferedSink, input: ExportInput) = Unit
+	}
+
+	/** Formats of plugins that come and go, each owned by the plugin its id is prefixed with. */
+	private class FakeExporterSource : ExporterSource {
+		val formats = MutableStateFlow<List<StoryExporter>>(emptyList())
+		override val changes = formats.map { }
+		override fun exporters(disabledPlugins: Set<String>): List<StoryExporter> =
+			formats.value.filterNot { it.formatId.substringBefore('.') in disabledPlugins }
+	}
+
+	private fun ProjectHomeComponent.rememberFormat(format: String) {
+		beginProjectExport()
+		val options = state.value.exportOptions.copy(format = format)
+		updateExportOptions(options)
+		confirmExportDialog(options)
+		endProjectExport()
+		exportDialogDismissed()
 	}
 
 	private fun newComponent() = ProjectHomeComponent(
@@ -263,7 +308,7 @@ class ProjectHomeComponentTest : ComponentTest() {
 		comp.beginProjectExport()
 		assertTrue(comp.state.value.showExportDialog)
 
-		val options = ExportOptions(treatTopLevelAsChapters = false, format = ExportFormat.Pdf)
+		val options = ExportOptions(treatTopLevelAsChapters = false, format = BuiltInExportFormat.PDF)
 		comp.confirmExportDialog(options)
 		assertEquals(options, comp.state.value.exportOptions)
 		assertTrue(comp.state.value.showExportFilePicker)
@@ -308,6 +353,80 @@ class ProjectHomeComponentTest : ComponentTest() {
 	}
 
 	@Test
+	fun `beginProjectExport replaces a format that is no longer registered`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+
+		comp.beginProjectExport()
+		comp.updateExportOptions(ExportOptions(format = "removed.fmt"))
+		comp.confirmExportDialog(comp.state.value.exportOptions)
+		comp.endProjectExport()
+
+		comp.beginProjectExport()
+		assertEquals(BuiltInExportFormat.EPUB, comp.state.value.exportOptions.format)
+	}
+
+	@Test
+	fun `A remembered plugin format falls back to the default when its plugin goes away`() = runTest(mainTestDispatcher) {
+		pluginFormats.formats.value = listOf(FakeExporter("fake.fdx", "fdx"))
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.rememberFormat("fake.fdx")
+		assertEquals("fake.fdx", comp.state.value.exportOptions.format)
+
+		pluginFormats.formats.value = emptyList()
+		advanceUntilIdle()
+
+		assertEquals(BuiltInExportFormat.EPUB, comp.state.value.exportOptions.format)
+		assertEquals("Test.epub", comp.getExportStoryFileName(comp.state.value.exportOptions.format).fileName)
+		assertEquals("Test.epub", comp.getExportStoryFileName("fake.fdx").fileName)
+	}
+
+	@Test
+	fun `A remembered plugin format falls back to the default when the project turns its plugin off`() =
+		runTest(mainTestDispatcher) {
+			pluginFormats.formats.value = listOf(FakeExporter("fake.fdx", "fdx"))
+			val comp = newComponent()
+			context.resume()
+			advanceUntilIdle()
+			comp.rememberFormat("fake.fdx")
+
+			projectPlugins.setPluginEnabled(projectDef.id, "fake", enabled = false)
+			advanceUntilIdle()
+
+			assertEquals(BuiltInExportFormat.EPUB, comp.state.value.exportOptions.format)
+			assertEquals("Test.epub", comp.getExportStoryFileName("fake.fdx").fileName)
+		}
+
+	@Test
+	fun `Cancelling the dialog does not restore a format whose plugin went away`() = runTest(mainTestDispatcher) {
+		pluginFormats.formats.value = listOf(FakeExporter("fake.fdx", "fdx"))
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.rememberFormat("fake.fdx")
+
+		comp.beginProjectExport()
+		pluginFormats.formats.value = emptyList()
+		advanceUntilIdle()
+		comp.cancelExportDialog()
+		comp.exportDialogDismissed()
+
+		assertEquals(BuiltInExportFormat.EPUB, comp.state.value.exportOptions.format)
+	}
+
+	@Test
+	fun `The export file name keeps a dotted extension whole`() = runTest(mainTestDispatcher) {
+		pluginFormats.formats.value = listOf(FakeExporter("fake.tgz", "tar.gz"))
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		assertEquals(ExportFileName("Test", "tar.gz"), comp.getExportStoryFileName("fake.tgz"))
+	}
+
+	@Test
 	fun `updateExportOptions persists in-dialog edits in component state`() = runTest(mainTestDispatcher) {
 		val comp = newComponent()
 		context.resume()
@@ -315,7 +434,7 @@ class ProjectHomeComponentTest : ComponentTest() {
 		comp.beginProjectExport()
 		val edited = ExportOptions(
 			treatTopLevelAsChapters = false,
-			format = ExportFormat.Pdf,
+			format = BuiltInExportFormat.PDF,
 			sceneIds = setOf(3, 4),
 		)
 		comp.updateExportOptions(edited)
@@ -326,7 +445,7 @@ class ProjectHomeComponentTest : ComponentTest() {
 
 	@Test
 	fun `confirmExportDialog carries the scene filter through to the use case`() = runTest(mainTestDispatcher) {
-		val options = ExportOptions(format = ExportFormat.Markdown, sceneIds = setOf(3, 6))
+		val options = ExportOptions(format = BuiltInExportFormat.MARKDOWN, sceneIds = setOf(3, 6))
 		val exported = HPath("/out/Test.md", "Test.md", true)
 		coEvery { exportStoryUseCase.execute(any(), any()) } returns exported
 
@@ -353,7 +472,7 @@ class ProjectHomeComponentTest : ComponentTest() {
 		advanceUntilIdle()
 		assertTrue(comp.state.value.exportableScenes.isNotEmpty())
 
-		comp.updateExportOptions(ExportOptions(treatTopLevelAsChapters = false, format = ExportFormat.Pdf))
+		comp.updateExportOptions(ExportOptions(treatTopLevelAsChapters = false, format = BuiltInExportFormat.PDF))
 		comp.cancelExportDialog()
 		// The snapshot survives until the close animation finishes, no mid-animation flash.
 		assertTrue(comp.state.value.exportableScenes.isNotEmpty())
@@ -369,7 +488,7 @@ class ProjectHomeComponentTest : ComponentTest() {
 		context.resume()
 
 		comp.beginProjectExport()
-		val confirmed = ExportOptions(format = ExportFormat.Rtf, sceneIds = setOf(3))
+		val confirmed = ExportOptions(format = BuiltInExportFormat.RTF, sceneIds = setOf(3))
 		comp.updateExportOptions(confirmed)
 		comp.confirmExportDialog(confirmed)
 		comp.endProjectExport()
@@ -380,7 +499,7 @@ class ProjectHomeComponentTest : ComponentTest() {
 
 	@Test
 	fun `exportProject delegates to the use case and resets export state`() = runTest(mainTestDispatcher) {
-		val options = ExportOptions(format = ExportFormat.Markdown)
+		val options = ExportOptions(format = BuiltInExportFormat.MARKDOWN)
 		val exported = HPath("/out/Test.md", "Test.md", true)
 		coEvery { exportStoryUseCase.execute(any(), any()) } returns exported
 
@@ -424,8 +543,8 @@ class ProjectHomeComponentTest : ComponentTest() {
 		val comp = newComponent()
 		context.resume()
 
-		assertEquals("Test.epub", comp.getExportStoryFileName(ExportFormat.Epub))
-		assertEquals("Test.docx", comp.getExportStoryFileName(ExportFormat.Docx))
+		assertEquals("Test.epub", comp.getExportStoryFileName(BuiltInExportFormat.EPUB).fileName)
+		assertEquals("Test.docx", comp.getExportStoryFileName(BuiltInExportFormat.DOCX).fileName)
 	}
 
 	@Test

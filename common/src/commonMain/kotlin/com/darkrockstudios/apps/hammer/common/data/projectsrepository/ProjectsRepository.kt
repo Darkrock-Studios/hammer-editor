@@ -69,9 +69,17 @@ import org.koin.core.qualifier.named
 import kotlin.coroutines.CoroutineContext
 import kotlin.time.Clock
 
-/** Told when a project's id changes; see [ProjectsRepository.addProjectIdChangeListener]. */
+/**
+ * Told when a project's id changes; see [ProjectsRepository.addProjectIdChangeListener]. One bound in
+ * Koin is told as well, without adding it.
+ */
 fun interface ProjectIdChangeListener {
 	suspend fun onProjectIdChanged(projectDef: ProjectDef, oldId: ProjectId, newId: ProjectId)
+}
+
+/** Told when a project is deleted; see [ProjectsRepository.addProjectDeletedListener]. */
+fun interface ProjectDeletedListener {
+	fun onProjectDeleted(projectDef: ProjectDef)
 }
 
 class ProjectsRepository(
@@ -91,6 +99,8 @@ class ProjectsRepository(
 
 	private val idChangeListenersLock = reentrantLock()
 	private var idChangeListeners: List<ProjectIdChangeListener> = emptyList()
+	private val deletedListenersLock = reentrantLock()
+	private var deletedListeners: List<ProjectDeletedListener> = emptyList()
 
 	init {
 		watchSettings(globalSettingsStore)
@@ -147,7 +157,8 @@ class ProjectsRepository(
 
 	/**
 	 * [listener] runs inside [setProjectId], after the new id is persisted and before it returns,
-	 * so anything keyed by project id is re-keyed before the caller acts on the new id.
+	 * so anything keyed by project id is re-keyed before the caller acts on the new id. Listeners
+	 * bound in Koin run after those added here.
 	 */
 	fun addProjectIdChangeListener(listener: ProjectIdChangeListener) {
 		idChangeListenersLock.withLock { idChangeListeners = idChangeListeners + listener }
@@ -156,7 +167,7 @@ class ProjectsRepository(
 	// The id is already persisted, so a failing listener must not fail the identity change.
 	@Suppress("TooGenericExceptionCaught")
 	private suspend fun notifyProjectIdChanged(projectDef: ProjectDef, oldId: ProjectId, newId: ProjectId) {
-		val listeners = idChangeListenersLock.withLock { idChangeListeners }
+		val listeners = idChangeListenersLock.withLock { idChangeListeners } + getKoin().getAll<ProjectIdChangeListener>()
 		listeners.forEach { listener ->
 			try {
 				listener.onProjectIdChanged(projectDef, oldId, newId)
@@ -164,6 +175,24 @@ class ProjectsRepository(
 				throw e
 			} catch (e: Exception) {
 				Napier.e("Project id change listener failed for '${projectDef.name}'", e)
+			}
+		}
+	}
+
+	/** [listener] runs inside [deleteProject], once the project's directory is gone. */
+	fun addProjectDeletedListener(listener: ProjectDeletedListener) {
+		deletedListenersLock.withLock { deletedListeners = deletedListeners + listener }
+	}
+
+	// The project is already gone, so a failing listener must not fail the delete.
+	@Suppress("TooGenericExceptionCaught")
+	private fun notifyProjectDeleted(projectDef: ProjectDef) {
+		val listeners = deletedListenersLock.withLock { deletedListeners }
+		listeners.forEach { listener ->
+			try {
+				listener.onProjectDeleted(projectDef)
+			} catch (e: Exception) {
+				Napier.e("Project deleted listener failed for '${projectDef.name}'", e)
 			}
 		}
 	}
@@ -661,6 +690,7 @@ class ProjectsRepository(
 		val projectDir = projectDef.path.toOkioPath()
 		return if (fileSystem.exists(projectDir)) {
 			fileSystem.deleteRecursively(projectDir)
+			notifyProjectDeleted(projectDef)
 			true
 		} else {
 			false

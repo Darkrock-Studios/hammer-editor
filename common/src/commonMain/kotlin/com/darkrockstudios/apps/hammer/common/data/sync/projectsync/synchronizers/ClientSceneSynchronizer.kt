@@ -77,7 +77,12 @@ class ClientSceneSynchronizer(
 	/** Unsaved buffers are left alone: whether they join the project is the user's call, not sync's. */
 	override suspend fun prepareForSync() = Unit
 
-	override suspend fun hasUnsavedEdits(id: Int): Boolean = sceneEditorService.hasDirtyBuffer(id)
+	// A temporary scope leaves earlier sessions' temp buffers unrestored; they are unsaved edits too.
+	override suspend fun hasUnsavedEdits(id: Int): Boolean {
+		if (sceneEditorService.hasDirtyBuffer(id)) return true
+		val sceneItem = sceneEditorRepository.getSceneItemFromIdIncludingArchived(id) ?: return false
+		return sceneEditorService.hasUnrestoredEdits(sceneItem)
+	}
 
 	override suspend fun ownsEntity(id: Int): Boolean {
 		return sceneEditorRepository.getSceneItemFromId(id) != null

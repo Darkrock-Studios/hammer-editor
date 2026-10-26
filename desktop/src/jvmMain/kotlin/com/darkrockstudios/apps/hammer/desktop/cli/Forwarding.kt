@@ -1,0 +1,312 @@
+package com.darkrockstudios.apps.hammer.desktop.cli
+
+import com.darkrockstudios.apps.hammer.operations.OperationException
+import com.darkrockstudios.apps.hammer.operations.OperationRegistry
+import io.github.aakira.napier.Napier
+import java.io.File
+import java.io.IOException
+import java.net.StandardProtocolFamily
+import java.net.UnixDomainSocketAddress
+import java.nio.channels.AsynchronousCloseException
+import java.nio.channels.Channels
+import java.nio.channels.ClosedChannelException
+import java.nio.channels.ServerSocketChannel
+import java.nio.channels.SocketChannel
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.attribute.PosixFilePermission
+import java.util.Timer
+import kotlin.concurrent.timerTask
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.TimeSource
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableJob
+import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.plus
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
+
+/**
+ * Lets CLI calls run inside the running app, against its live state, over a Unix domain socket, and
+ * a second launch of the app hand its arguments to the first. Each connection carries one request
+ * line and one reply line.
+ */
+object Forwarding {
+	private const val SOCKET_DIRECTORY = "run"
+	private const val SOCKET_NAME = "hammer.sock"
+
+	/**
+	 * Inside a directory only this user can enter, so the socket is private from the moment it exists,
+	 * whatever the config directory's own permissions.
+	 */
+	fun socketPath(configDirectory: File): Path = File(File(configDirectory, SOCKET_DIRECTORY), SOCKET_NAME).toPath()
+
+	/** Operations that stay with the app while it runs: its own sync and login must not be raced. */
+	private val APP_ONLY = setOf("account", "sync")
+
+	/** Moving a project's directory would race anything in the app that opens it, such as a sync. */
+	private val APP_ONLY_OPERATIONS = setOf("project.rename", "project.delete")
+
+	private val json = Json { ignoreUnknownKeys = true }
+
+	/** An operation to run, or, when [launch] is set, a second launch's arguments. */
+	@Serializable
+	private class Request(
+		val operation: String = "",
+		val input: JsonElement = JsonNull,
+		val launch: List<String>? = null,
+	)
+
+	@Serializable
+	private class Reply(val output: JsonElement? = null, val exitCode: Int = 0, val error: Error? = null) {
+		@Serializable
+		class Error(val kind: String, val message: String)
+	}
+
+	/**
+	 * The app's side. [onLaunch] gets the arguments of each second launch handed over, at once; calls
+	 * first wait for [awaitReady], and are refused as not ready when it gives false.
+	 */
+	class Server(
+		private val socket: Path,
+		private val registry: () -> OperationRegistry,
+		private val onLaunch: (args: List<String>) -> Unit,
+		private val awaitReady: suspend () -> Boolean = { true },
+	) : AutoCloseable {
+		private val channel: ServerSocketChannel = ServerSocketChannel.open(StandardProtocolFamily.UNIX)
+		private var supervisor: CompletableJob? = null
+
+		/**
+		 * Binds, replacing a socket file a crashed app left behind, and serves on [scope] until closed.
+		 * Failures stay in the server, so one bad connection cannot cancel [scope] or stop later ones.
+		 */
+		fun start(scope: CoroutineScope) {
+			privateDirectory(socket.parent)
+			Files.deleteIfExists(socket)
+			channel.bind(UnixDomainSocketAddress.of(socket))
+			val supervisor = SupervisorJob(scope.coroutineContext[Job])
+			this.supervisor = supervisor
+			val serverScope = scope + supervisor + Dispatchers.IO + CoroutineExceptionHandler { _, e ->
+				// Errors still crash the app, as they do everywhere else in it.
+				if (e is Exception) {
+					Napier.e(e) { "Forwarded CLI connection failed" }
+				} else {
+					Thread.currentThread().run { uncaughtExceptionHandler.uncaughtException(this, e) }
+				}
+			}
+			serverScope.launch {
+				while (true) {
+					val client = try {
+						channel.accept()
+					} catch (e: AsynchronousCloseException) {
+						break
+					} catch (e: ClosedChannelException) {
+						break
+					} catch (e: IOException) {
+						Napier.e(e) { "Could not accept a forwarded CLI call" }
+						delay(ACCEPT_RETRY_DELAY)
+						continue
+					}
+					serverScope.launch {
+						// Closing the channel is what ends a blocked read, if the request never comes.
+						val watchdog = launch {
+							delay(REQUEST_TIMEOUT)
+							client.close()
+						}
+						client.use { serve(it, watchdog) }
+					}
+				}
+			}
+		}
+
+		private suspend fun serve(client: SocketChannel, watchdog: Job) {
+			val reader = Channels.newReader(client, Charsets.UTF_8).buffered()
+			val writer = Channels.newWriter(client, Charsets.UTF_8).buffered()
+			val reply = try {
+				val line = try {
+					reader.readLine()
+				} catch (e: IOException) {
+					null
+				} ?: return
+				watchdog.cancel()
+				val request = json.decodeFromString(Request.serializer(), line)
+				val launch = request.launch
+				when {
+					launch != null -> {
+						onLaunch(launch)
+						Reply(output = JsonNull)
+					}
+					request.operation.substringBefore('.') in APP_ONLY || request.operation in APP_ONLY_OPERATIONS ->
+						Reply(error = Reply.Error(REFUSED, APP_ONLY_MESSAGE))
+					!awaitReady() -> Reply(error = Reply.Error(NOT_READY, NOT_READY_MESSAGE))
+					else -> {
+						val output = registry().dispatch(request.operation, request.input)
+						Reply(output = output, exitCode = registry().exitCode(request.operation, output))
+					}
+				}
+			} catch (e: CancellationException) {
+				throw e
+			} catch (e: OperationException) {
+				Reply(error = Reply.Error(e.kind.name, e.message.orEmpty()))
+			} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+				Napier.e(e) { "Forwarded CLI call failed" }
+				Reply(error = Reply.Error(FAILED, e.message ?: "Failed"))
+			}
+			try {
+				writer.write(json.encodeToString(Reply.serializer(), reply))
+				writer.newLine()
+				writer.flush()
+			} catch (e: IOException) {
+				Napier.d(e) { "Forwarded CLI caller left before its reply" }
+			}
+		}
+
+		/** Stops taking calls, and waits a little for those in flight, which still write under the app's locks. */
+		override fun close() {
+			channel.close()
+			Files.deleteIfExists(socket)
+			supervisor?.let {
+				it.complete()
+				runBlocking { withTimeoutOrNull(CLOSE_WAIT) { it.join() } }
+			}
+		}
+
+		private fun privateDirectory(directory: Path) {
+			Files.createDirectories(directory)
+			try {
+				Files.setPosixFilePermissions(
+					directory,
+					setOf(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE, PosixFilePermission.OWNER_EXECUTE),
+				)
+			} catch (e: UnsupportedOperationException) {
+				// Windows: the directory inherits the per-user ACL of the user's profile.
+			}
+		}
+	}
+
+	/** Thrown when the app answers but will not run the call, since the call is its own. */
+	class Refused(message: String) : Exception(message)
+
+	/** Runs [operation] in the app, returning its output and exit code, or null when no app is listening. */
+	fun dispatch(socket: Path, operation: String, input: JsonElement): Pair<JsonElement, Int>? {
+		val client = try {
+			SocketChannel.open(UnixDomainSocketAddress.of(socket))
+		} catch (e: IOException) {
+			return null
+		} catch (e: UnsupportedOperationException) {
+			return null
+		}
+		// A hung app must not hang every CLI call and agent with it.
+		val timeout = Timer(true).apply { schedule(timerTask { client.close() }, REPLY_TIMEOUT.inWholeMilliseconds) }
+		val reply = try {
+			client.use {
+				val writer = Channels.newWriter(client, Charsets.UTF_8).buffered()
+				writer.write(json.encodeToString(Request.serializer(), Request(operation, input)))
+				writer.newLine()
+				writer.flush()
+				val line = Channels.newReader(client, Charsets.UTF_8).buffered().readLine()
+					?: throw IOException("The running app closed the connection without replying")
+				json.decodeFromString(Reply.serializer(), line)
+			}
+		} finally {
+			timeout.cancel()
+		}
+		val error = reply.error ?: return reply.output!! to reply.exitCode
+		val kind = OperationException.Kind.entries.firstOrNull { it.name == error.kind }
+		throw when {
+			kind != null -> OperationException(kind, error.message)
+			error.kind == REFUSED -> Refused(error.message)
+			error.kind == NOT_READY -> Unanswered(error.message)
+			else -> IOException(error.message)
+		}
+	}
+
+	/** Thrown when an app window is open but does not answer on the socket, or is not ready for calls. */
+	class Unanswered(message: String) : Exception(message)
+
+	/**
+	 * Runs [operation] in the open app, or, when no app window is open, with [headless], which throws
+	 * [HeadlessSession.AppOpen] if one opened since. Never headless while a window is open: one that
+	 * does not answer is retried for [wait], then [Unanswered] is thrown.
+	 */
+	fun route(
+		directory: File,
+		operation: String,
+		input: JsonElement,
+		wait: Duration = APP_WAIT,
+		headless: () -> Pair<JsonElement, Int>,
+	): Pair<JsonElement, Int> {
+		val socket = socketPath(directory)
+		val deadline = TimeSource.Monotonic.markNow() + wait
+		while (true) {
+			dispatch(socket, operation, input)?.let { return it }
+			if (!AppInstance.isOpen(directory)) {
+				try {
+					return headless()
+				} catch (e: HeadlessSession.AppOpen) {
+					Napier.d { "Hammer opened as this call started; trying its socket" }
+				}
+			}
+			if (deadline.hasPassedNow()) throw Unanswered(UNANSWERED_MESSAGE)
+			Thread.sleep(ROUTE_RETRY.inWholeMilliseconds)
+		}
+	}
+
+	enum class HandOff { Taken, NotListening, Failed }
+
+	/** Hands a second launch's [args] to the app listening on [socket]. */
+	fun handOff(socket: Path, args: List<String>): HandOff {
+		val client = try {
+			SocketChannel.open(UnixDomainSocketAddress.of(socket))
+		} catch (e: IOException) {
+			return HandOff.NotListening
+		} catch (e: UnsupportedOperationException) {
+			return HandOff.Failed
+		}
+		val timeout = Timer(true).apply { schedule(timerTask { client.close() }, HAND_OFF_TIMEOUT.inWholeMilliseconds) }
+		return try {
+			client.use {
+				val writer = Channels.newWriter(client, Charsets.UTF_8).buffered()
+				writer.write(json.encodeToString(Request.serializer(), Request(launch = args)))
+				writer.newLine()
+				writer.flush()
+				val line = Channels.newReader(client, Charsets.UTF_8).buffered().readLine() ?: return HandOff.Failed
+				if (json.decodeFromString(Reply.serializer(), line).error == null) HandOff.Taken else HandOff.Failed
+			}
+		} catch (e: IOException) {
+			Napier.w(e) { "Could not hand this launch to the running app" }
+			HandOff.Failed
+		} finally {
+			timeout.cancel()
+		}
+	}
+
+	private const val REFUSED = "Refused"
+	private const val FAILED = "Failed"
+	private const val NOT_READY = "NotReady"
+	private val REQUEST_TIMEOUT = 10.seconds
+	private val REPLY_TIMEOUT = 10.minutes
+	private val HAND_OFF_TIMEOUT = 5.seconds
+	private val ACCEPT_RETRY_DELAY = 1.seconds
+	private val CLOSE_WAIT = 5.seconds
+	private val APP_WAIT = 10.seconds
+	private val ROUTE_RETRY = 100.milliseconds
+	private const val UNANSWERED_MESSAGE = "Hammer is open but not taking commands yet. Try again in a moment."
+	private const val NOT_READY_MESSAGE =
+		"Hammer is still starting, or waiting for another Hammer command to finish. Try again in a moment."
+	private const val APP_ONLY_MESSAGE =
+		"Hammer is open, and this has to wait until it is closed. Use the app, or close it and run this again."
+}

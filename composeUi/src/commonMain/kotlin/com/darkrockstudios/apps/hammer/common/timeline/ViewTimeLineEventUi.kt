@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.timeline
 
+import com.darkrockstudios.apps.hammer.operations.plugin.ActionPlace
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
@@ -100,7 +101,7 @@ fun ViewTimeLineEventUi(
 					Column {
 						CrumbRow(
 							onClose = { component.confirmClose() },
-							menuSlot = { DetailViewDropdownMenu(menuItems = state.menuItems) },
+							menuSlot = { DetailViewDropdownMenu(state.menuItems, ActionPlace.Event, event?.id) },
 						)
 
 						HorizontalDivider(

@@ -335,6 +335,10 @@ The handwriting of the system. Reach for these instead of styling
   Use where a dropdown would be unwieldy: dozens to hundreds of
   options, e.g. every platform locale. Optional muted clear row above
   the list resets the selection.
+- **[`HdTabPill`](HdTabPill.kt)**: one tab of an evenly weighted row
+  in a dialog, a label over a 2dp rule that takes the accent when
+  active. Used where a dialog's list splits into a few kinds, such as
+  Add reference's entry groups and the entity picker's kinds.
 - **[`HdResizeHandle`](HdResizeHandle.kt)**: full-height 16dp gutter
   on the start edge of a centered, width-capped column (the scene
   editor, focus mode) that drags the column wider or narrower. Shows

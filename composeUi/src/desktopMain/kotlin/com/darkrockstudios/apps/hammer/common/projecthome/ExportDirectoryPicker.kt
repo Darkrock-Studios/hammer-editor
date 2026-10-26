@@ -4,7 +4,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectHome
-import com.darkrockstudios.apps.hammer.common.components.projecthome.fileExtension
 import com.darkrockstudios.apps.hammer.common.compose.rememberDefaultDispatcher
 import com.darkrockstudios.apps.hammer.project_home_action_export_toast_failure
 import com.darkrockstudios.apps.hammer.project_home_action_export_toast_success
@@ -29,11 +28,8 @@ actual fun ExportDirectoryPicker(
 			// Snapshot before the save dialog: it does not block this window, so the
 			// options must not be re-read after the suspend.
 			val options = component.state.value.exportOptions
-			val format = options.format
-			val suggested = component.getExportStoryFileName(format)
-			val extension = format.fileExtension
-			val baseName = suggested.removeSuffix(".$extension")
-			val file = FileKit.openFileSaver(suggestedName = baseName, defaultExtension = extension)
+			val suggested = component.getExportStoryFileName(options.format)
+			val file = FileKit.openFileSaver(suggestedName = suggested.baseName, defaultExtension = suggested.extension)
 			if (file != null) {
 				scope.launch(defaultDispatcher) {
 					// A renderer failure must surface as a toast; an uncaught throw here takes down the app.

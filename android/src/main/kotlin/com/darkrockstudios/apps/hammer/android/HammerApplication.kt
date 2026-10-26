@@ -19,6 +19,7 @@ import com.darkrockstudios.apps.hammer.android.widgets.StoryInfoWidgetReceiver
 import com.darkrockstudios.apps.hammer.common.BuildConfig
 import com.darkrockstudios.apps.hammer.common.FileLogger
 import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
+import com.darkrockstudios.apps.hammer.common.data.secrets.EncryptedSharedPrefsSecretDatasource
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.NapierLogger
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.appModule
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.imageLoadingModule
@@ -40,6 +41,10 @@ import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.GlobalContext.startKoin
 import org.koin.java.KoinJavaComponent
 import org.koin.java.KoinJavaComponent.getKoin
+import com.darkrockstudios.apps.hammer.common.compose.plugin.pluginUiModule
+import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
+import com.darkrockstudios.apps.hammer.plugins.wasmhost.RuntimePlugins
+import okio.FileSystem
 
 class HammerApplication : Application(), SingletonImageLoader.Factory {
 
@@ -53,6 +58,9 @@ class HammerApplication : Application(), SingletonImageLoader.Factory {
 		installGlobalExceptionHandler()
 		logStartupBanner()
 
+		val runtimePlugins = RuntimePlugins.inConfigDirectory(FileSystem.SYSTEM, EncryptedSharedPrefsSecretDatasource(this))
+		val pluginRegistry = PluginRegistry().also(runtimePlugins::activate)
+
 		startKoin {
 			logger(NapierLogger())
 			androidContext(this@HammerApplication)
@@ -63,6 +71,9 @@ class HammerApplication : Application(), SingletonImageLoader.Factory {
 					aboutLibrariesModule,
 					shortcutsModule,
 					appModule(applicationScope),
+					pluginUiModule(),
+					runtimePlugins.koinModule(),
+					pluginRegistry.koinModule(),
 				) + playServicesModules
 			)
 		}

@@ -78,5 +78,6 @@ actual fun ColumnScope.PlatformSettingsUi(component: PlatformSettings) {
 				hint = Res.string.settings_automatic_update_checks_hint.get(),
 			)
 		}
+		CommandLineSettings()
 	}
 }

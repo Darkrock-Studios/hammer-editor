@@ -41,6 +41,10 @@ platforms.
 The majority of code falls under `common` with only the UI layers and some glue code having to be
 reimplemented per platform.
 
+The operation API and the plugin host sit between `common` and the UI, in `:operations` and
+`:plugins:wasmhost`, with the desktop CLI as one more front end; see
+[CLIENT-PLUGINS.md](CLIENT-PLUGINS.md).
+
 ### Architecture Layers
 
 Layers are ordered from **lowest** (closest to data) to **highest** (closest to the UI). "Lower"

@@ -25,6 +25,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataConfli
 import com.darkrockstudios.apps.hammer.common.data.projectdata.readStoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.GroupDef
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsService
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.ProjectStatisticsCacheReader
 import com.darkrockstudios.apps.hammer.base.http.storyideas.StoryIdea
 import com.darkrockstudios.apps.hammer.common.data.protocolmismatch.ProtocolMismatchRepository
@@ -87,6 +88,7 @@ class ProjectsListComponent(
 	private val globalSettingsStore: GlobalSettingsStore by inject()
 	private val projectsRepository: ProjectsRepository by inject()
 	private val projectsSynchronizer: ClientAccountSynchronizer by inject()
+	private val projectsService: ProjectsService by inject()
 	private val syncAccountUseCase: SyncAccountUseCase by inject()
 	private val protocolMismatchRepository: ProtocolMismatchRepository by inject()
 	private val networkConnectivity: NetworkConnectivity by inject()
@@ -283,13 +285,13 @@ class ProjectsListComponent(
 
 	override fun createProject(projectName: String, parent: GroupDef?) =
 		runTreeAction("create project '$projectName'", dismiss = ::hideCreate) {
-			projectsRepository.createProject(projectName, seedDefaultLanguage = true, group = parent)
+			projectsService.createProject(projectName, group = parent)
 		}
 
 	override fun deleteProject(projectDef: ProjectDef) {
 		scope.launch(dispatcherIo) {
 			val deleted = try {
-				projectsRepository.deleteProject(projectDef)
+				projectsService.deleteProject(projectDef)
 			} catch (e: IOException) {
 				Napier.e("Failed to delete project: ${projectDef.name}", e)
 				false
@@ -297,9 +299,6 @@ class ProjectsListComponent(
 
 			if (deleted) {
 				Napier.i("Project deleted: ${projectDef.name}")
-				// Queued even when it never synced: account sync drops ids the server never knew.
-				projectsSynchronizer.deleteProject(projectDef)
-
 				loadProjectList()
 			} else {
 				showToast(scope, Res.string.projects_list_toast_delete_failed)
@@ -308,7 +307,7 @@ class ProjectsListComponent(
 	}
 
 	override fun renameProject(projectDef: ProjectDef, newName: String) =
-		runTreeAction("rename project '${projectDef.name}'") { projectsRepository.renameProject(projectDef, newName) }
+		runTreeAction("rename project '${projectDef.name}'") { projectsService.renameProject(projectDef, newName) }
 
 	override fun moveProject(projectDef: ProjectDef, target: GroupDef?) =
 		runTreeAction("move project '${projectDef.name}'") { projectsRepository.moveProject(projectDef, target) }
@@ -526,7 +525,7 @@ class ProjectsListComponent(
 			return
 		}
 
-		val result = projectsRepository.createProject(projectName, seedDefaultLanguage = true)
+		val result = projectsService.createProject(projectName)
 		if (!isSuccess(result)) {
 			result.displayMessage?.let { msg -> showToast(scope, msg) }
 			Napier.e("Import: failed to create project '$projectName'")

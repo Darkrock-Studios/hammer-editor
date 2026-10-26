@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="entity_picker_search">Search by name</string>
+	<string name="entity_picker_empty">Nothing here matches</string>
+	<string name="entity_picker_none">Nothing here to choose</string>
+	<string name="entity_picker_more">%1$d more: type to narrow them down</string>
+	<string name="entity_picker_done">Done</string>
+	<string name="entity_picker_close">Close</string>
+	<string name="entity_picker_remove">Remove %1$s</string>
+</resources>

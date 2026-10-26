@@ -1,9 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.data
 
+import com.darkrockstudios.apps.hammer.common.data.export.BuiltInExportFormat
 import kotlinx.serialization.Serializable
-
-@Serializable
-enum class ExportFormat { Markdown, Epub, Pdf, Docx, Rtf }
 
 /** Body typefaces offered for exports; the reader's own installed copy of [faceName] is what renders. */
 @Serializable
@@ -19,7 +17,8 @@ enum class ExportFont(val faceName: String, val cssFamily: String) {
 @Serializable
 data class ExportOptions(
 	val treatTopLevelAsChapters: Boolean = true,
-	val format: ExportFormat = ExportFormat.Epub,
+	/** A [com.darkrockstudios.apps.hammer.common.data.export.StoryExporter.formatId]. */
+	val format: String = BuiltInExportFormat.EPUB,
 	/** Scene ids the export is limited to; null exports the entire story. */
 	val sceneIds: Set<Int>? = null,
 	/** Prefixes each chapter title with its position ("1. Title"). */

@@ -19,12 +19,15 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.impl.annotations.MockK
 import io.mockk.mockk
+import kotlinx.coroutines.async
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.koin.dsl.module
 import utils.BaseTest
 import utils.TestStrRes
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -45,6 +48,8 @@ class ClientProjectSynchronizerTest : BaseTest() {
 	private lateinit var serverProjectApi: ServerProjectApi
 
 	private lateinit var mockSynchronizers: MockSynchronizers
+
+	private val syncGate = ProjectSyncGateRepository()
 
 	@MockK
 	private lateinit var prepareForSyncOperation: PrepareForSyncOperation
@@ -119,7 +124,69 @@ class ClientProjectSynchronizerTest : BaseTest() {
 			syncJournal = syncJournal,
 			globalSettingsStore = globalSettingsStore,
 			serverProjectApi = serverProjectApi,
+			syncGate = syncGate,
 		)
+	}
+
+	private fun succeedEveryOperation(): CResult<SyncOperationState> {
+		val result = CResult.success(mockk<SyncOperationState>(relaxed = true))
+		listOf(
+			prepareForSyncOperation,
+			fetchLocalDataOperation,
+			fetchServerDataOperation,
+			collateIdsOperation,
+			backupOperation,
+			idConflictResolutionOperation,
+			projectDataSyncOperation,
+			entityDeleteOperation,
+			entityTransferOperation,
+			writingActivitySyncOperation,
+			finalizeSyncOperation,
+		).forEach { operation ->
+			coEvery { operation.execute(any(), any(), any(), any(), any()) } returns result
+		}
+		return result
+	}
+
+	private suspend fun ClientProjectSynchronizer.syncQuietly(): Boolean = sync(
+		onProgress = { _, _ -> },
+		onLog = {},
+		onConflict = mockk(relaxed = true),
+		onComplete = {},
+		onUnauthorized = {},
+	)
+
+	@Test
+	fun `Sync waits for a write in progress on the project`() = runTest {
+		val projectDef = getProjectDef(PROJECT_2_NAME)
+		val syncer = createProjectSync(projectDef)
+		succeedEveryOperation()
+		assertTrue(syncGate.beginWrite(projectDef))
+
+		val sync = async { syncer.syncQuietly() }
+		runCurrent()
+		coVerify(exactly = 0) { prepareForSyncOperation.execute(any(), any(), any(), any(), any()) }
+
+		syncGate.endWrite(projectDef)
+		assertTrue(sync.await())
+		coVerify(exactly = 1) { prepareForSyncOperation.execute(any(), any(), any(), any(), any()) }
+	}
+
+	@Test
+	fun `A write is refused while the project syncs, and admitted after`() = runTest {
+		val projectDef = getProjectDef(PROJECT_2_NAME)
+		val syncer = createProjectSync(projectDef)
+		val result = succeedEveryOperation()
+		var admittedDuringSync: Boolean? = null
+		coEvery { entityTransferOperation.execute(any(), any(), any(), any(), any()) } coAnswers {
+			admittedDuringSync = syncGate.beginWrite(projectDef)
+			result
+		}
+
+		assertTrue(syncer.syncQuietly())
+
+		assertEquals(false, admittedDuringSync)
+		assertTrue(syncGate.beginWrite(projectDef))
 	}
 
 	@Test

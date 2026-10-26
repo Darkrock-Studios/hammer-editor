@@ -21,6 +21,8 @@
 	</string>
 	<string name="settings_projects_directory_button">Select Dir</string>
 	<string name="settings_example_project_header">Example Project</string>
+	<string name="settings_plugins_header">Plugins</string>
+	<string name="settings_plugins_caption">Plugins add checks, actions, and export formats. They are installed, and set up, for every project on this device.</string>
 	<string
 		name="settings_example_project_description">Install an example project to see how different features are used.
 	</string>
@@ -173,5 +175,4 @@
 	</string>
 	<string name="server_error_tls">Could not make a secure connection to %1$s. Hammer only connects over HTTPS, so the server needs a valid TLS certificate of its own or a reverse proxy that provides one.</string>
 	<string name="server_error_network_unavailable">Hammer could not open a network connection on this device, so the request never reached the server. Security software, a VPN, or a firewall may be blocking it.</string>
-
 </resources>

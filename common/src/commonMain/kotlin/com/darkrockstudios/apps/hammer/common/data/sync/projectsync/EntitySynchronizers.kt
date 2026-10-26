@@ -8,8 +8,9 @@ import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.*
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.CancellationException
 
-class EntitySynchronizers(projectDef: ProjectDef) : ProjectScoped {
+class EntitySynchronizers(private val projectDef: ProjectDef) : ProjectScoped {
 
 	override val projectScope = ProjectDefScope(projectDef)
 
@@ -64,14 +65,15 @@ class EntitySynchronizers(projectDef: ProjectDef) : ProjectScoped {
 		}
 	}
 
-	suspend fun reIdEntry(oldId: Int, newId: Int) {
+	/** Gives the entity [oldId] the id [newId]; what changed, or null when no entity has [oldId]. */
+	suspend fun reIdEntry(oldId: Int, newId: Int): EntityIdChange? {
 		val type = findEntityType(oldId)
 		if (type == null) {
 			// Phantom newId with no backing entity (created then deleted before a
 			// successful sync). Skip it so the sync can finish and clear newIds,
 			// instead of wedging every future sync.
 			Napier.w("reId skipped: no local entity owns $oldId")
-			return
+			return null
 		}
 		when (type) {
 			EntityType.Scene -> sceneSynchronizer.reIdEntity(oldId = oldId, newId = newId)
@@ -87,6 +89,22 @@ class EntitySynchronizers(projectDef: ProjectDef) : ProjectScoped {
 			)
 
 			EntityType.SceneDraft -> sceneDraftSynchronizer.reIdEntity(oldId = oldId, newId = newId)
+		}
+		return EntityIdChange(type, oldId, newId)
+	}
+
+	/** Tells every [EntityIdChangeListener] bound in Koin of a sync's [changes], unless there are none. */
+	@Suppress("TooGenericExceptionCaught") // The entities have their new ids already, so a failing listener must not fail the sync.
+	suspend fun notifyEntityIdsChanged(changes: List<EntityIdChange>) {
+		if (changes.isEmpty()) return
+		getKoin().getAll<EntityIdChangeListener>().forEach { listener ->
+			try {
+				listener.onEntityIdsChanged(projectDef, changes)
+			} catch (e: CancellationException) {
+				throw e
+			} catch (e: Exception) {
+				Napier.e("Entity id change listener failed for $changes", e)
+			}
 		}
 	}
 

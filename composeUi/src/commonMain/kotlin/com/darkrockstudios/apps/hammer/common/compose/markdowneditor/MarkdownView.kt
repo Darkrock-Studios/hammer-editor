@@ -34,6 +34,8 @@ import com.darkrockstudios.texteditor.state.rememberTextEditorState
  * that is still empty.
  *
  * [isSelectable] lets the user select and copy text.
+ *
+ * [paragraphIndent] indents each paragraph's first line, as prose is set.
  */
 @Composable
 fun MarkdownView(
@@ -42,6 +44,7 @@ fun MarkdownView(
 	contentPadding: PaddingValues = PaddingValues(0.dp),
 	importDuringComposition: Boolean = false,
 	isSelectable: Boolean = false,
+	paragraphIndent: Boolean = true,
 ) {
 	val richTextStyles = LocalRichTextStyles.current
 	val state = rememberTextEditorState()
@@ -64,7 +67,7 @@ fun MarkdownView(
 		contentPadding = contentPadding,
 		isSelectable = isSelectable,
 		style = rememberTextEditorStyle(
-			textStyle = LocalEditorTextStyle.current.withParagraphIndent()
+			textStyle = LocalEditorTextStyle.current.let { if (paragraphIndent) it.withParagraphIndent() else it }
 		)
 	)
 }

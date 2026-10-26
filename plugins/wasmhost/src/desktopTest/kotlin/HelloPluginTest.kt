@@ -1,0 +1,204 @@
+import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
+import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogFilter
+import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogKind
+import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogRef
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectSyncGateRepository
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.APP_SCOPE
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_IO
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
+import com.darkrockstudios.apps.hammer.operations.Access
+import com.darkrockstudios.apps.hammer.operations.OpenProject
+import com.darkrockstudios.apps.hammer.operations.OperationRegistry
+import com.darkrockstudios.apps.hammer.operations.OperationScope
+import com.darkrockstudios.apps.hammer.operations.ProjectResolver
+import com.darkrockstudios.apps.hammer.operations.operation
+import com.darkrockstudios.apps.hammer.operations.plugin.ActionCall
+import com.darkrockstudios.apps.hammer.operations.plugin.ActionField
+import com.darkrockstudios.apps.hammer.operations.plugin.ActionPlace
+import com.darkrockstudios.apps.hammer.operations.plugin.ClientPlugin
+import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
+import com.darkrockstudios.apps.hammer.operations.plugin.TextDiagnosticsRequest
+import com.darkrockstudios.apps.hammer.operations.plugin.toJson
+import com.darkrockstudios.apps.hammer.plugins.wasmhost.RuntimePlugins
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.add
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.int
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
+import kotlinx.serialization.json.putJsonArray
+import net.peanuuutz.tomlkt.Toml
+import okio.FileSystem
+import okio.Path.Companion.toPath
+import okio.fakefilesystem.FakeFileSystem
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable
+import org.koin.core.context.GlobalContext
+import org.koin.core.qualifier.named
+import org.koin.dsl.module
+import java.io.File
+import kotlin.coroutines.CoroutineContext
+import kotlin.test.assertContains
+import kotlin.test.assertEquals
+import kotlin.test.assertIs
+import kotlin.test.assertTrue
+
+/**
+ * The Kotlin hello plugin from hammer-plugin-sdk, whose parts RECIPES.md shows, run by the host. Runs when
+ * HAMMER_PLUGINS points at a hammer-plugins checkout with hammer-plugin-sdk beside it.
+ */
+@EnabledIfEnvironmentVariable(named = "HAMMER_PLUGINS", matches = ".+")
+class HelloPluginTest {
+
+	private val fileSystem = FakeFileSystem()
+
+	@AfterEach
+	fun tearDown() {
+		GlobalContext.stopKoin()
+	}
+
+	private val plugin: ClientPlugin by lazy { load(locale = null) }
+
+	private fun load(locale: String?): ClientPlugin {
+		val tree = operation<JsonObject, JsonObject>("scene.tree", "", Access.Read, OperationScope.Content) {
+			buildJsonObject {
+				putJsonArray("nodes") {
+					add(buildJsonObject { put("id", 1); put("name", "Storm"); put("kind", "scene"); put("wordCount", 0); putJsonArray("children") {} })
+					add(buildJsonObject { put("id", 2); put("name", "Calm"); put("kind", "scene"); put("wordCount", 0); putJsonArray("children") {} })
+				}
+			}
+		}
+		val read = operation<JsonObject, JsonObject>("scene.read", "", Access.Read, OperationScope.Content) { input ->
+			buildJsonObject { put("markdown", if (input["id"]!!.jsonPrimitive.int == 1) "Rain fell hard." else "Quiet.") }
+		}
+		val entry = operation<JsonObject, JsonObject>("entry.read", "", Access.Read, OperationScope.Content) { input ->
+			check(input["id"]!!.jsonPrimitive.int == 12)
+			buildJsonObject {
+				put("id", 12)
+				put("name", "Mara")
+				putJsonArray("aliases") { add("The Captain") }
+				putJsonArray("referencedBy") { add(1); add(2) }
+			}
+		}
+		val built = File(PluginRepos.sdk, "kotlin/hello/build/hello.hammerplugin")
+		check(built.exists()) { "Run kotlin/build.sh in hammer-plugin-sdk first" }
+		val download = "/downloads/hello.hammerplugin".toPath()
+		fileSystem.createDirectories(download.parent!!)
+		fileSystem.write(download) { write(built.readBytes()) }
+		val plugins = RuntimePlugins(fileSystem, "/config/plugins".toPath(), "/cache/plugins".toPath(), locale)
+		plugins.install(download)
+		val registry = PluginRegistry().also(plugins::activate)
+		GlobalContext.startKoin {
+			modules(
+				module {
+					single<FileSystem> { fileSystem }
+					single<Toml> { createTomlSerializer() }
+					single<CoroutineContext>(named(DISPATCHER_IO)) { Dispatchers.Unconfined }
+					single(named(APP_SCOPE)) { CoroutineScope(Dispatchers.Unconfined) }
+				},
+				registry.koinModule(),
+				module { single { OperationRegistry(listOf(tree, read, entry), NoProjects, ::ProjectSyncGateRepository) } },
+			)
+		}
+		return registry.plugins.single()
+	}
+
+	private fun run(
+		name: String,
+		input: JsonObject = JsonObject(emptyMap()),
+		button: String? = null,
+		state: JsonElement? = null,
+		onProgress: (String?) -> Unit = {},
+	) = runBlocking {
+		plugin.actions().single { it.name == name }
+			.run(ActionCall("Storm", ActionPlace.Project, null, input, button, state, onProgress = { onProgress(it.message) }))
+	}
+
+	@Test
+	fun `its actions declare their places and first pages`() {
+		val actions = plugin.actions().associateBy { it.name }
+		assertEquals(setOf(ActionPlace.Project, ActionPlace.Scene), actions.getValue("count").places)
+		assertIs<ActionField.Scenes>(actions.getValue("count").fields.single())
+		assertTrue(actions.getValue("wave").fields.isEmpty())
+		val who = assertIs<ActionField.Entity>(actions.getValue("about").fields.single())
+		assertEquals(CatalogFilter(setOf(CatalogKind.Entry), setOf(EntryType.PERSON)), who.filter)
+		assertEquals(true to false, who.required to who.multiple)
+	}
+
+	@Test
+	fun `about reads the character picked`() {
+		val input = JsonObject(mapOf("who" to CatalogRef(CatalogKind.Entry, 12).toJson()))
+		assertEquals("# Mara\nAlso known as The Captain.\nIn 2 scenes.", run("about", input).page!!.markdown!!.trim())
+	}
+
+	@Test
+	fun `a message, and a document with progress`() {
+		assertEquals("Hello, Storm!", run("greet").message)
+
+		val progress = mutableListOf<String?>()
+		val counts = run("count", JsonObject(mapOf("scenes" to JsonArray(listOf(JsonPrimitive(1))))), onProgress = { progress += it }).page!!
+		assertEquals("# Word counts\n- Storm: 3", counts.markdown!!.trim())
+		assertTrue(counts.fields.isEmpty() && counts.buttons.isEmpty())
+		assertEquals(listOf<String?>("Counting Storm"), progress)
+		assertEquals("# Storm\n- Storm\n- Calm", run("outline").page!!.markdown!!.trim())
+	}
+
+	@Test
+	fun `waving is two pages, a name it checks and then a count, with the name in the state and Back`() {
+		val first = run("wave").page!!
+		val name = assertIs<ActionField.Text>(first.fields.single())
+		assertEquals("name" to true, name.key to name.required)
+
+		val refused = run("wave", JsonObject(mapOf("name" to JsonPrimitive("R2D2"))), button = "next")
+		assertEquals(setOf("name"), refused.errors.keys)
+
+		val second = run("wave", JsonObject(mapOf("name" to JsonPrimitive("Mara"))), button = "next").page!!
+		assertEquals(listOf("back" to false, "wave" to true), second.buttons.map { it.id to it.validate })
+		assertEquals(JsonPrimitive(1L), second.fields.single().default)
+
+		assertEquals("Mara waved 2 times", run("wave", JsonObject(mapOf("times" to JsonPrimitive(2))), button = "wave", state = second.state).message)
+		val back = run("wave", JsonObject(mapOf("times" to JsonPrimitive(1))), button = "back", state = second.state).page!!
+		assertEquals(JsonPrimitive("Mara"), back.fields.single().default)
+	}
+
+	@Test
+	fun `its tip is read from the package's resources`() {
+		val tips = File(PluginRepos.sdk, "kotlin/hello/resources/tips.txt").readLines()
+		assertContains(tips, run("tip").message)
+	}
+
+	@Test
+	fun `its text check underlines each very`() {
+		val paragraph = "Café very cold."
+		val found = runBlocking { plugin.textDiagnostics().single().diagnose(TextDiagnosticsRequest(listOf(paragraph), "en", "Storm")) }.single().single()
+		assertEquals("very ", paragraph.substring(found.start, found.end))
+		assertEquals(listOf("" to "Remove “very”"), found.fixes.map { it.replacement to it.label })
+	}
+
+	@Test
+	fun `in French, its labels come from its translation and its replies from the locale`() {
+		val french = load(locale = "fr-FR")
+		val wave = french.actions().single { it.name == "wave" }
+		assertEquals("Saluer", wave.label)
+		assertEquals("Scènes", french.actions().single { it.name == "count" }.fields.single().label)
+		val about = french.actions().single { it.name == "about" }
+		assertEquals("À propos d’un personnage" to "Personnage", about.label to about.fields.single().label)
+		val call = ActionCall(
+			"Storm", ActionPlace.Project, null, JsonObject(mapOf("times" to JsonPrimitive(1))), "wave", JsonObject(mapOf("name" to JsonPrimitive("Mara"))),
+		)
+		assertEquals("Mara a salué", runBlocking { wave.run(call) }.message)
+	}
+
+	private object NoProjects : ProjectResolver {
+		override fun resolve(project: String): ProjectDef = error("unused")
+		override suspend fun <T> withProject(project: String, block: suspend (OpenProject) -> T): T = error("unused")
+	}
+}

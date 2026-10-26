@@ -21,6 +21,7 @@ import com.darkrockstudios.apps.hammer.common.compose.rememberKoinInject
 import com.darkrockstudios.apps.hammer.common.compose.withParagraphIndent
 import com.darkrockstudios.apps.hammer.common.spellcheck.SpellCheckRepository
 import com.darkrockstudios.apps.hammer.common.utils.toEditorSpellChecker
+import com.darkrockstudios.texteditor.EditorLineLimits
 import com.darkrockstudios.texteditor.markdown.withMarkdown
 import com.darkrockstudios.texteditor.rememberTextEditorStyle
 import com.darkrockstudios.texteditor.spellcheck.SpellCheckingTextEditor
@@ -44,6 +45,13 @@ fun MarkdownEditField(
 	autoFocus: Boolean = false,
 	contentPadding: PaddingValues = PaddingValues(),
 	minEditorHeight: Dp = 200.dp,
+	/** The format bar with highlight, task lists, and tables. */
+	extendedFormatBar: Boolean = true,
+	/**
+	 * [EditorLineLimits.Fill] takes the height left in the column, at least [minEditorHeight]; the
+	 * others grow with the text, as a field in a scrolling column must, and ignore [minEditorHeight].
+	 */
+	lineLimits: EditorLineLimits = EditorLineLimits.Fill,
 	testTag: String? = null,
 ) {
 	val richTextStyles = LocalRichTextStyles.current
@@ -87,7 +95,7 @@ fun MarkdownEditField(
 		}
 	) {
 		if (enabled && showFormatBar) {
-			MarkdownFormatBar(markdownState = markdownExtension, extended = true)
+			MarkdownFormatBar(markdownState = markdownExtension, extended = extendedFormatBar)
 		}
 		SpellCheckingTextEditor(
 			state = textEditorState,
@@ -97,10 +105,10 @@ fun MarkdownEditField(
 				textStyle = LocalEditorTextStyle.current.withParagraphIndent()
 			),
 			contentPadding = contentPadding,
+			lineLimits = lineLimits,
 			modifier = Modifier
 				.fillMaxWidth()
-				.weight(1f)
-				.heightIn(min = minEditorHeight)
+				.then(if (lineLimits == EditorLineLimits.Fill) Modifier.weight(1f).heightIn(min = minEditorHeight) else Modifier)
 				.then(if (testTag != null) Modifier.testTag(testTag) else Modifier),
 		)
 	}

@@ -19,10 +19,13 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.Encycl
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.globalsearch.SearchProjectUseCase
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
+import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectPluginsRepository
 import com.darkrockstudios.apps.hammer.common.data.protocolmismatch.ProtocolMismatchRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.sync_menu_group
 import com.darkrockstudios.apps.hammer.sync_menu_item
 import io.github.aakira.napier.Napier
@@ -44,7 +47,10 @@ class ProjectRootComponent(
 	private val syncJournal: SyncJournal = projectGet()
 	private val sceneEditor: SceneEditorService by projectInject()
 	private val projectDataRepository: ProjectDataRepository by projectInject()
+	private val projectPlugins: ProjectPluginsRepository by inject()
 	private val encyclopediaService: EncyclopediaService by projectInject()
+	private val notesRepository: NotesRepository by projectInject()
+	private val timeLineRepository: TimeLineRepository by projectInject()
 	private val settingsRepository: GlobalSettingsStore by inject()
 	private val searchProjectUseCase: SearchProjectUseCase by projectInject()
 	private val protocolMismatchRepository: ProtocolMismatchRepository by inject()
@@ -71,6 +77,9 @@ class ProjectRootComponent(
 
 	private val _projectTheme = MutableValue(ProjectRoot.ProjectThemeState(theme = null))
 	override val projectTheme: Value<ProjectRoot.ProjectThemeState> = _projectTheme
+
+	private val _disabledPlugins = MutableValue(emptySet<String>())
+	override val disabledPlugins: Value<Set<String>> = _disabledPlugins
 
 	private val _navRailState = MutableValue(
 		ProjectRoot.NavRailState(expanded = settingsRepository.globalSettings.navRailExpanded)
@@ -143,6 +152,12 @@ class ProjectRootComponent(
 		}
 
 		scope.launch {
+			projectPlugins.disabledPlugins(projectDef.id).collect { disabled ->
+				withContext(dispatcherMain) { _disabledPlugins.value = disabled }
+			}
+		}
+
+		scope.launch {
 			settingsRepository.globalSettingsUpdates.collect { settings ->
 				if (_navRailState.value.expanded != settings.navRailExpanded) {
 					withContext(dispatcherMain) {
@@ -154,7 +169,7 @@ class ProjectRootComponent(
 
 		pendingDeepLink?.let { link ->
 			pendingDeepLink = null
-			navigateToDeepLink(link)
+			scope.launch { navigateToDeepLink(link) }
 		}
 
 		scope.launch {
@@ -277,47 +292,60 @@ class ProjectRootComponent(
 					?.component?.showScene(result.sceneItem)
 			}
 
-			is SearchResult.Note -> navigateToDeepLink(ProjectDeepLink.Note(result.noteId))
+			is SearchResult.Note -> scope.launch { navigateToDeepLink(ProjectDeepLink.Note(result.noteId)) }
 
 			is SearchResult.EncyclopediaEntry -> showEncyclopediaEntry(result.entryDef)
 
-			is SearchResult.TimelineEvent -> navigateToDeepLink(ProjectDeepLink.TimelineEvent(result.eventId))
+			is SearchResult.TimelineEvent -> scope.launch { navigateToDeepLink(ProjectDeepLink.TimelineEvent(result.eventId)) }
 		}
 		dismissGlobalSearch()
 	}
 
-	override fun navigateToDeepLink(link: ProjectDeepLink) {
+	override suspend fun navigateToDeepLink(link: ProjectDeepLink): Boolean {
 		when (link) {
 			is ProjectDeepLink.Scene -> {
 				val sceneItem = sceneEditor.getSceneItemFromId(link.sceneId)
 				if (sceneItem == null) {
 					Napier.w("Deep link skipped: no scene for id ${link.sceneId}")
-					return
+					return false
 				}
-				showEditorScene(sceneItem)
+				withContext(dispatcherMain) { showEditorScene(sceneItem) }
 			}
 
 			is ProjectDeepLink.Note -> {
-				showNotes()
-				(routerState.value.active.instance as? ProjectRoot.Destination.NotesDestination)
-					?.component?.showViewNote(link.noteId)
+				if (notesRepository.getNoteById(link.noteId) == null) {
+					Napier.w("Deep link skipped: no note for id ${link.noteId}")
+					return false
+				}
+				withContext(dispatcherMain) {
+					showNotes()
+					(routerState.value.active.instance as? ProjectRoot.Destination.NotesDestination)
+						?.component?.showViewNote(link.noteId)
+				}
 			}
 
 			is ProjectDeepLink.EncyclopediaEntry -> {
 				val entryDef = encyclopediaService.findEntryDef(link.entryId)
 				if (entryDef == null) {
 					Napier.w("Deep link skipped: no encyclopedia entry for id ${link.entryId}")
-					return
+					return false
 				}
-				showEncyclopediaEntry(entryDef)
+				withContext(dispatcherMain) { showEncyclopediaEntry(entryDef) }
 			}
 
 			is ProjectDeepLink.TimelineEvent -> {
-				showTimeLine()
-				(routerState.value.active.instance as? ProjectRoot.Destination.TimeLineDestination)
-					?.component?.showViewEvent(link.eventId)
+				if (timeLineRepository.getTimelineEvent(link.eventId) == null) {
+					Napier.w("Deep link skipped: no timeline event for id ${link.eventId}")
+					return false
+				}
+				withContext(dispatcherMain) {
+					showTimeLine()
+					(routerState.value.active.instance as? ProjectRoot.Destination.TimeLineDestination)
+						?.component?.showViewEvent(link.eventId)
+				}
 			}
 		}
+		return true
 	}
 
 	private fun updateCloseConfirmRequirement() {

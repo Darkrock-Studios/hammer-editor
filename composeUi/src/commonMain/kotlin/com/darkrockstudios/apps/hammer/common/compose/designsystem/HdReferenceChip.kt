@@ -21,6 +21,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
@@ -64,7 +65,35 @@ fun HdReferenceChip(
 	modifier: Modifier = Modifier,
 	variant: HdReferenceChipVariant = HdReferenceChipVariant.Active,
 ) {
-	val swatchColor = LocalHammerColors.current.colorFor(type)
+	HdReferenceChip(
+		glyph = type.glyph(),
+		swatchColor = LocalHammerColors.current.colorFor(type),
+		glyphColor = MaterialTheme.colorScheme.onPrimary,
+		name = name,
+		onClick = onClick,
+		onAction = onAction,
+		actionContentDescription = actionContentDescription,
+		modifier = modifier,
+		variant = variant,
+	)
+}
+
+/**
+ * The same chip for something other than an entry, such as a scene: [glyph] in [glyphColor] on a
+ * [swatchColor] swatch.
+ */
+@Composable
+fun HdReferenceChip(
+	glyph: String,
+	swatchColor: Color,
+	glyphColor: Color,
+	name: String,
+	onClick: () -> Unit,
+	onAction: () -> Unit,
+	actionContentDescription: String,
+	modifier: Modifier = Modifier,
+	variant: HdReferenceChipVariant = HdReferenceChipVariant.Active,
+) {
 	val borderColor = MaterialTheme.colorScheme.outlineVariant
 	val background = MaterialTheme.colorScheme.surfaceContainer
 	val onSurface = MaterialTheme.colorScheme.onSurface
@@ -84,7 +113,7 @@ fun HdReferenceChip(
 		verticalAlignment = Alignment.CenterVertically,
 		horizontalArrangement = Arrangement.spacedBy(0.dp),
 	) {
-		// Type-color swatch with the entry-type glyph centered inside.
+		// Swatch with the glyph centered inside.
 		Box(
 			modifier = Modifier
 				.fillMaxHeight()
@@ -94,13 +123,13 @@ fun HdReferenceChip(
 			contentAlignment = Alignment.Center,
 		) {
 			Text(
-				text = type.glyph(),
+				text = glyph,
 				style = MaterialTheme.typography.labelMedium,
-				color = MaterialTheme.colorScheme.onPrimary,
+				color = glyphColor,
 			)
 		}
 
-		// Name — clicking the body navigates to the encyclopedia entry.
+		// Name: clicking the body is the caller's, such as opening the entry.
 		Box(
 			modifier = Modifier
 				.heightIn(min = ChipHeight)

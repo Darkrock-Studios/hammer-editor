@@ -326,6 +326,35 @@ class SceneContentRepositoryTest : BaseTest() {
 	}
 
 	@Test
+	fun `A scope that did not restore temp buffers leaves them on disk`() = runTest(mainTestDispatcher) {
+		val projDef = getProject1Def()
+		createProject(ffs, PROJECT_1_NAME)
+
+		createStack(projDef)
+		writeTempBuffer(1)
+
+		service.initialize(restoreUnsavedEdits = false)
+		assertFalse(contentRepo.hasDirtyBuffer(1))
+
+		contentRepo.onScopeClose(mockk())
+		assertTrue(ffs.exists(getTempBufferPath(1)))
+	}
+
+	@Test
+	fun `Closing a project whose folder is gone neither fails nor brings the folder back`() = runTest(mainTestDispatcher) {
+		val projDef = getProject1Def()
+		createProject(ffs, PROJECT_1_NAME)
+
+		createStack(projDef)
+		service.initialize()
+		ffs.deleteRecursively(projDef.path.toOkioPath())
+
+		contentRepo.onScopeClose(mockk())
+
+		assertFalse(ffs.exists(projDef.path.toOkioPath()))
+	}
+
+	@Test
 	fun `Discard Dirty buffer`() = runTest(mainTestDispatcher) {
 		val sceneId = 1
 		val projDef = getProject1Def()
@@ -378,7 +407,7 @@ class SceneContentRepositoryTest : BaseTest() {
 		writeTempBuffer(3)
 
 		service.initialize()
-		assertTrue(service.archiveScene(SceneItem(projDef, SceneItem.Type.Scene, 1, "Scene ID 1", 0)))
+		assertTrue(repo.archiveScene(SceneItem(projDef, SceneItem.Type.Scene, 1, "Scene ID 1", 0)))
 		assertTrue(contentRepo.hasDirtyBuffer(1))
 
 		service.discardAllBuffers()
@@ -448,6 +477,97 @@ class SceneContentRepositoryTest : BaseTest() {
 		assertFalse(ffs.exists(getTempBufferPath(1)))
 		assertTrue(contentRepo.hasDirtyBuffer(3))
 		assertTrue(ffs.exists(getTempBufferPath(3)))
+	}
+
+	@Test
+	fun `A flushed edit stays saved when its debounce elapses`() = runTest(mainTestDispatcher) {
+		val projDef = getProject1Def()
+		createProject(ffs, PROJECT_1_NAME)
+
+		createStack(projDef)
+		service.initialize()
+		val scene = SceneItem(projDef, SceneItem.Type.Scene, 3, "Scene ID 3", 0)
+		service.loadSceneBuffer(scene)
+
+		service.onContentChanged(SceneContent(scene, "Flushed edit"), UpdateSource.Editor)
+		contentRepo.flushPendingContent(scene.id)
+		assertTrue(service.storeSceneBuffer(scene))
+		advanceUntilIdle()
+
+		assertEquals("Flushed edit", contentRepo.getSceneBuffer(scene)?.content?.markdown)
+		assertFalse(contentRepo.hasDirtyBuffer(scene.id))
+		assertFalse(ffs.exists(getTempBufferPath(3)))
+		ffs.read(repo.getSceneFilePath(3).toOkioPath()) {
+			assertEquals("Flushed edit", readUtf8())
+		}
+	}
+
+	@Test
+	fun `Archiving a scene keeps edits still waiting in the debounce`() = runTest(mainTestDispatcher) {
+		val projDef = getProject1Def()
+		createProject(ffs, PROJECT_1_NAME)
+
+		createStack(projDef)
+		service.initialize()
+		val scene = SceneItem(projDef, SceneItem.Type.Scene, 1, "Scene ID 1", 0)
+		service.loadSceneBuffer(scene)
+
+		service.onContentChanged(SceneContent(scene, "Typed just before archiving"), UpdateSource.Editor)
+		assertTrue(service.archiveScene(scene))
+		advanceUntilIdle()
+
+		val archivedPath = assertNotNull(repo.resolveScenePathFromFilesystemIncludingArchived(1))
+		ffs.read(archivedPath.toOkioPath()) {
+			assertEquals("Typed just before archiving", readUtf8())
+		}
+		assertNull(contentRepo.getSceneBuffer(1))
+		assertFalse(ffs.exists(getTempBufferPath(1)))
+	}
+
+	@Test
+	fun `Archiving a scene keeps edits typed after its last autosave`() = runTest(mainTestDispatcher) {
+		val projDef = getProject1Def()
+		createProject(ffs, PROJECT_1_NAME)
+
+		createStack(projDef)
+		service.initialize()
+		val scene = SceneItem(projDef, SceneItem.Type.Scene, 1, "Scene ID 1", 0)
+		service.loadSceneBuffer(scene)
+		service.onContentChanged(SceneContent(scene, "Autosaved"), UpdateSource.Editor)
+		advanceUntilIdle()
+		assertTrue(contentRepo.hasDirtyBuffer(1))
+
+		service.onContentChanged(SceneContent(scene, "Autosaved, then more"), UpdateSource.Editor)
+		assertTrue(service.archiveScene(scene))
+		advanceUntilIdle()
+
+		val archivedPath = assertNotNull(repo.resolveScenePathFromFilesystemIncludingArchived(1))
+		ffs.read(archivedPath.toOkioPath()) {
+			assertEquals("Autosaved, then more", readUtf8())
+		}
+		assertFalse(contentRepo.hasDirtyBuffers())
+		assertFalse(ffs.exists(getTempBufferPath(1)))
+	}
+
+	@Test
+	fun `Deleting a scene drops edits still waiting in the debounce`() = runTest(mainTestDispatcher) {
+		val projDef = getProject1Def()
+		createProject(ffs, PROJECT_1_NAME)
+
+		createStack(projDef)
+		service.initialize()
+		val scene = SceneItem(projDef, SceneItem.Type.Scene, 1, "Scene ID 1", 0)
+		service.loadSceneBuffer(scene)
+
+		service.onContentChanged(SceneContent(scene, "Typed just before deleting"), UpdateSource.Editor)
+		assertTrue(service.deleteScene(scene))
+		advanceUntilIdle()
+		service.storeAllBuffers()
+
+		assertNull(contentRepo.getSceneBuffer(1))
+		assertFalse(contentRepo.hasDirtyBuffers())
+		assertFalse(ffs.exists(getTempBufferPath(1)))
+		assertNull(repo.resolveScenePathFromFilesystemIncludingArchived(1))
 	}
 
 	@Test

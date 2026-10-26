@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import okio.IOException
 import org.koin.core.component.KoinComponent
 import org.koin.core.scope.Scope
 import org.koin.core.scope.ScopeCallback
@@ -83,20 +84,25 @@ class SceneContentRepository(
 	private val updateSequence = atomic(0L)
 
 	/**
-	 * Per scene, the [SceneContentUpdate.sequence] of its last [replaceBuffer]; earlier updates are
-	 * stale. Guarded by [sceneBuffersLock].
+	 * Per scene, the [SceneContentUpdate.sequence] of its last applied update, [replaceBuffer] or
+	 * [forgetBuffer]; updates at or before it are stale. Guarded by [sceneBuffersLock].
 	 */
-	private val resetAt = mutableMapOf<Int, Long>()
+	private val staleThrough = mutableMapOf<Int, Long>()
 
+	/** Per scene, its newest update the debounce has not applied yet. Guarded by [sceneBuffersLock]. */
+	private val pendingUpdates = mutableMapOf<Int, SceneContentUpdate>()
+
+	/** Guarded by [sceneBuffersLock]: [forgetBuffer] runs on its caller's thread. */
 	private val storeTempJobs = mutableMapOf<Int, Job>()
 
-	/** Loads any temp (unsaved) buffers from disk and starts the content debounce pipeline. */
-	suspend fun initialize() {
-		val tempContent = sceneDatasource.getSceneTempBufferContents()
-		for (content in tempContent) {
-			val buffer = SceneBuffer(content, true, UpdateSource.Repository)
-			updateSceneBuffer(buffer)
-		}
+	private val tempBuffersRestored = atomic(false)
+
+	/**
+	 * Starts the content debounce pipeline, restoring temp (unsaved) buffers from disk only when
+	 * [restoreTempBuffers] is set. A scope that never restored them leaves them on disk at close.
+	 */
+	suspend fun initialize(restoreTempBuffers: Boolean = true) {
+		if (restoreTempBuffers) restoreTempBuffers()
 
 		contentUpdateJob = editorScope.launch {
 			contentFlow.debounceUntilQuiescentBy({ it.content.scene.id }, BUFFER_COOL_DOWN)
@@ -125,7 +131,10 @@ class SceneContentRepository(
 	}
 
 	fun onContentChanged(content: SceneContent, source: UpdateSource) {
-		val update = SceneContentUpdate(content, source, updateSequence.incrementAndGet())
+		val update = sceneBuffersLock.withLock {
+			SceneContentUpdate(content, source, updateSequence.incrementAndGet())
+				.also { pendingUpdates[content.scene.id] = it }
+		}
 		editorScope.launch {
 			_contentFlow.emit(update)
 		}
@@ -137,10 +146,26 @@ class SceneContentRepository(
 	 */
 	fun replaceBuffer(content: SceneContent) {
 		sceneBuffersLock.withLock {
-			resetAt[content.scene.id] = updateSequence.incrementAndGet()
+			staleThrough[content.scene.id] = updateSequence.incrementAndGet()
+			pendingUpdates.remove(content.scene.id)
 			updateSceneBuffer(SceneBuffer(content, dirty = true, source = UpdateSource.Repository))
 		}
 	}
+
+	/**
+	 * Applies the scene's edits still waiting in the debounce to its buffer now, as if the cool-down
+	 * had elapsed, so a save that follows includes everything typed.
+	 */
+	fun flushPendingContent(sceneId: Int) {
+		val applied = sceneBuffersLock.withLock {
+			pendingUpdates[sceneId]?.takeIf { updateSceneBufferContent(it) }
+		} ?: return
+		launchSaveJob(applied.content.scene)
+	}
+
+	/** True when the scene has unsaved edits from an earlier session that this scope has not restored. */
+	fun hasUnrestoredEdits(sceneItem: SceneItem): Boolean =
+		!tempBuffersRestored.value && sceneDatasource.hasTempScene(sceneItem)
 
 	/**
 	 * Returns whether the buffer now holds unsaved edits that need a temp file. Held under the lock
@@ -148,8 +173,11 @@ class SceneContentRepository(
 	 */
 	private fun updateSceneBufferContent(update: SceneContentUpdate): Boolean = sceneBuffersLock.withLock {
 		val (content, source) = update
+		val sceneId = content.scene.id
+		if (pendingUpdates[sceneId]?.let { it.sequence <= update.sequence } == true) pendingUpdates.remove(sceneId)
+		if (update.sequence <= (staleThrough[sceneId] ?: 0)) return@withLock false
+		staleThrough[sceneId] = update.sequence
 		when {
-			update.sequence < (resetAt[content.scene.id] ?: 0) -> false
 			source == UpdateSource.Editor -> {
 				updateSceneBuffer(SceneBuffer(content, dirty = true, source = source))
 				true
@@ -259,17 +287,38 @@ class SceneContentRepository(
 		return wasPresent
 	}
 
+	/**
+	 * Drops a scene's buffer and temp file without saving, for a scene that is gone from the tree.
+	 * Left behind, a dirty buffer would be saved back by the next save-all, recreating the scene, and
+	 * a temp file would attach itself to a later scene that reuses the id.
+	 */
+	suspend fun forgetBuffer(sceneItem: SceneItem) {
+		val pendingSave = sceneBuffersLock.withLock {
+			staleThrough[sceneItem.id] = updateSequence.incrementAndGet()
+			pendingUpdates.remove(sceneItem.id)
+			if (sceneBuffers.remove(sceneItem.id) != null) _dirtyBufferIds.value = getDirtyBufferIds()
+			storeTempJobs.remove(sceneItem.id)
+		}
+		// Joined, so a temp save already writing cannot recreate the file after it is cleared.
+		pendingSave?.cancelAndJoin()
+		clearTempScene(sceneItem)
+	}
+
 	/** Stores all currently-dirty buffers to disk via [persist], one per dirty scene. */
 	suspend fun forEachDirtyBuffer(persist: suspend (SceneItem) -> Unit) {
 		getDirtyBufferScenes().forEach { persist(it) }
 	}
 
 	private fun launchSaveJob(sceneDef: SceneItem) {
-		val job = storeTempJobs[sceneDef.id]
-		job?.cancel("Starting a new one")
-		storeTempJobs[sceneDef.id] = editorScope.launch {
-			storeTempSceneBuffer(sceneDef)
-			storeTempJobs.remove(sceneDef.id)
+		sceneBuffersLock.withLock {
+			storeTempJobs[sceneDef.id]?.cancel("Starting a new one")
+			val job = editorScope.launch(start = CoroutineStart.LAZY) {
+				storeTempSceneBuffer(sceneDef)
+				val self = coroutineContext.job
+				sceneBuffersLock.withLock { if (storeTempJobs[sceneDef.id] == self) storeTempJobs.remove(sceneDef.id) }
+			}
+			storeTempJobs[sceneDef.id] = job
+			job.start()
 		}
 	}
 
@@ -288,6 +337,14 @@ class SceneContentRepository(
 		return success
 	}
 
+	/** Loads temp (unsaved) buffers from disk as dirty buffers. Only the first call does anything. */
+	fun restoreTempBuffers() {
+		if (!tempBuffersRestored.compareAndSet(expect = false, update = true)) return
+		for (content in sceneDatasource.getSceneTempBufferContents()) {
+			updateSceneBuffer(SceneBuffer(content, true, UpdateSource.Repository))
+		}
+	}
+
 	private fun clearTempScene(sceneItem: SceneItem) = sceneDatasource.clearTempScene(sceneItem)
 
 	override fun onScopeClose(scope: Scope) {
@@ -295,16 +352,23 @@ class SceneContentRepository(
 		// Time-bounded so a stuck save can't block process shutdown.
 		runBlocking {
 			withTimeoutOrNull(SHUTDOWN_SAVE_TIMEOUT) {
-				storeTempJobs.values.toList().joinAll()
+				sceneBuffersLock.withLock { storeTempJobs.values.toList() }.joinAll()
 			} ?: Napier.w("Timed out waiting for temp scene saves on close; forcing shutdown.")
 		}
 		editorScope.cancel("Editor Closed")
 		// Thar be dragons: a scope can close without the user choosing Save or Discard, and a dirty
-		// buffer's temp file is the only durable copy of that work. Only clean buffers are cleared.
-		val dirtyIds = getDirtyBufferIds()
-		sceneDatasource.getSceneTempBufferContents()
-			.filterNot { it.scene.id in dirtyIds }
-			.forEach { clearTempScene(it.scene) }
+		// buffer's temp file is the only durable copy of that work. Only clean buffers are cleared, and
+		// only in a scope that restored the temp buffers, which otherwise leaves them for the next one.
+		if (tempBuffersRestored.value) {
+			val dirtyIds = getDirtyBufferIds()
+			try {
+				sceneDatasource.getSceneTempBufferContents()
+					.filterNot { it.scene.id in dirtyIds }
+					.forEach { clearTempScene(it.scene) }
+			} catch (e: IOException) {
+				Napier.w("Could not clear saved scenes' temp buffers on close", e)
+			}
+		}
 		Napier.i("SceneContentRepository Closed.")
 	}
 

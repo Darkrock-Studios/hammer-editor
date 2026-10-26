@@ -3,6 +3,8 @@ package synchronizer
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.EntityType
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityIdChange
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityIdChangeListener
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntitySynchronizers
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import getProjectDef
@@ -14,6 +16,8 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.koin.core.context.loadKoinModules
+import org.koin.core.qualifier.named
 import org.koin.dsl.module
 import utils.BaseTest
 import kotlin.test.assertEquals
@@ -137,6 +141,32 @@ class EntitySynchronizersTest : BaseTest() {
 		cases.forEach { (sync, id) ->
 			coVerify(exactly = 1) { sync.reIdEntity(oldId = id, newId = id + 100) }
 		}
+	}
+
+	@Test
+	fun `reIdEntry says what changed, and nothing for a phantom id`() = runTest {
+		coEvery { mocks.encyclopediaSynchronizer.ownsEntity(4) } returns true
+
+		val es = entitySynchronizers()
+
+		assertEquals(EntityIdChange(EntityType.EncyclopediaEntry, 4, 104), es.reIdEntry(oldId = 4, newId = 104))
+		assertNull(es.reIdEntry(oldId = 404, newId = 9))
+	}
+
+	@Test
+	fun `a sync's id changes are told to every listener bound in Koin at once, even when one fails`() = runTest {
+		val told = mutableListOf<Pair<ProjectDef, List<EntityIdChange>>>()
+		loadKoinModules(module {
+			single<EntityIdChangeListener>(named("failing")) { EntityIdChangeListener { _, _ -> error("boom") } }
+			single<EntityIdChangeListener>(named("recording")) { EntityIdChangeListener { project, changes -> told += project to changes } }
+		})
+		val changes = listOf(EntityIdChange(EntityType.Scene, 4, 104), EntityIdChange(EntityType.Note, 5, 105))
+
+		val es = entitySynchronizers()
+		es.notifyEntityIdsChanged(emptyList())
+		es.notifyEntityIdsChanged(changes)
+
+		assertEquals(listOf(projectDef to changes), told)
 	}
 
 	@Test

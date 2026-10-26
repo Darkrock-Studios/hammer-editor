@@ -23,16 +23,19 @@ import getProject1Def
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.koin.dsl.module
 import utils.BaseTest
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.time.Clock
 
@@ -178,6 +181,21 @@ class TagIndexServiceTest : BaseTest() {
 				index.tagToEntities["gamma"],
 			)
 		}
+
+	@Test
+	fun `builtIndex waits for the first build rather than giving the empty index before it`() = runTest(mainTestDispatcher) {
+		stubNotes(note(1, "alpha"))
+		stubTimeline()
+		stubEntries()
+
+		val service = makeService()
+		val built = async { service.builtIndex() }
+		runCurrent()
+		assertFalse(built.isCompleted)
+
+		advanceUntilIdle()
+		assertEquals(setOf(TaggedEntityRef(TaggedEntityType.Note, 1)), built.await().tagToEntities["alpha"])
+	}
 
 	@Test
 	fun `getRankedTags returns tags ordered by frequency`() = runTest(mainTestDispatcher) {
