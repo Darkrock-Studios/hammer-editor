@@ -156,4 +156,25 @@ class CrossTypeIdRenumberTest : RationalizerTestBase() {
 		assertEquals(listOf("person/person~6~Bob.toml"), filesIn("encyclopedia"))
 		assertEquals(listOf("0~Duel~6.md", "1~Duel copy~6.md"), filesIn("scenes"))
 	}
+
+	@Test
+	fun `An unreadable entry doesn't stop the project opening`() = runTest {
+		write("scenes/0~Duel~6.md", "En garde")
+		write("encyclopedia/person/person~6~Bob.toml", "not toml at all [[")
+		openStores()
+		every { syncJournal.isServerSynchronized() } returns true
+		coEvery { syncJournal.loadSyncData() } returns ProjectSynchronizationData(
+			lastId = 6,
+			newIds = emptyList(),
+			lastSync = Instant.fromEpochSeconds(0),
+			dirty = emptyList(),
+			deletedIds = emptySet(),
+			syncedHashes = mapOf(6 to "server-hash"),
+		)
+
+		service.resolveCrossTypeIds()
+
+		assertEquals(listOf("0~Duel~6.md"), filesIn("scenes"))
+		assertEquals(listOf("person/person~7~Bob.toml"), filesIn("encyclopedia"))
+	}
 }

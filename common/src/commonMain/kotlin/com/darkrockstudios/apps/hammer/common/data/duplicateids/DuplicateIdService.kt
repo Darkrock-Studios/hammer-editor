@@ -15,6 +15,7 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScop
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.sync.Mutex
@@ -70,11 +71,7 @@ class DuplicateIdService(
 		}
 	}
 
-	/**
-	 * Gives every extra holder of an id shared across types a fresh id. Must run once the stores
-	 * have loaded: renumbering goes through each type's own re-id, which also moves drafts,
-	 * scene metadata and entry references.
-	 */
+	/** Gives every extra holder of an id shared across types a fresh id. Needs the stores loaded. */
 	suspend fun resolveCrossTypeIds() = withContext(ioDispatcher) {
 		mutex.withLock { resolveCrossTypeIdsLocked() }
 	}
@@ -91,13 +88,16 @@ class DuplicateIdService(
 		}
 		if (collisions.isEmpty()) return
 
-		collisions.values.flatten().toSet().forEach { entitySynchronizers[it].prepareForSync() }
+		// A store that fails here must not stop the project opening; sync stays blocked on what's left.
 		for ((id, types) in collisions) {
-			val keeper = keeperOf(id, types)
-			for (type in types - keeper) {
-				val newId = idAllocator.claimNextId()
-				Napier.i("$type $id shares its id with $keeper $id; renumbering it to $newId")
-				entitySynchronizers[type].reIdEntity(oldId = id, newId = newId)
+			attempt("Renumbering id $id shared by $types") {
+				types.forEach { entitySynchronizers[it].prepareForSync() }
+				val keeper = keeperOf(id, types)
+				for (type in types - keeper) {
+					val newId = idAllocator.claimNextId()
+					Napier.i("$type $id shares its id with $keeper $id; renumbering it to $newId")
+					entitySynchronizers[type].reIdEntity(oldId = id, newId = newId)
+				}
 			}
 		}
 	}
@@ -105,9 +105,22 @@ class DuplicateIdService(
 	/** The item the server last confirmed for [id] keeps it; otherwise the most depended-on type. */
 	private suspend fun keeperOf(id: Int, types: List<EntityType>): EntityType {
 		val syncedHash = if (syncJournal.isServerSynchronized()) syncJournal.loadSyncData().syncedHashes[id] else null
-		return syncedHash?.let { hash -> types.firstOrNull { entitySynchronizers[it].getEntityHash(id) == hash } }
-			?: types.minBy { CROSS_TYPE_PRECEDENCE.indexOf(it) }
+		val serverMatch = syncedHash?.let { hash ->
+			types.firstOrNull { type -> attempt("Hashing $type $id") { entitySynchronizers[type].getEntityHash(id) } == hash }
+		}
+		return serverMatch ?: types.minBy { CROSS_TYPE_PRECEDENCE.indexOf(it) }
 	}
+
+	@Suppress("TooGenericExceptionCaught")
+	private suspend fun <T> attempt(what: String, block: suspend () -> T): T? =
+		try {
+			block()
+		} catch (e: CancellationException) {
+			throw e
+		} catch (e: Exception) {
+			Napier.e("$what failed for ${projectDef.name}", e)
+			null
+		}
 
 	/** A fresh scan, so copies a file-sync tool delivered while the project was open count too. */
 	suspend fun hasDuplicates(): Boolean = withContext(ioDispatcher) {

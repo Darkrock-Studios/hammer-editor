@@ -1,6 +1,7 @@
 package repositories.duplicateids
 
 import com.darkrockstudios.apps.hammer.base.http.EntityType
+import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesDatasource
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineContainer
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import kotlinx.coroutines.test.runTest
@@ -41,5 +42,23 @@ class CrossTypeIdsTest : RationalizerTestBase() {
 		write("scenes/1~Duel copy~6.md", "Touche")
 
 		assertTrue(rationalizer.findCrossTypeIds().isEmpty())
+	}
+
+	@Test
+	fun `Two timeline events with one id are not a cross-type collision`() = runTest {
+		val events = listOf(TimeLineEvent(id = 9, order = 0, content = "One"), TimeLineEvent(id = 9, order = 1, content = "Two"))
+		write("timeline/timeline.toml", toml.encodeToString(TimeLineContainer(events)))
+
+		assertTrue(rationalizer.findCrossTypeIds().isEmpty())
+	}
+
+	@Test
+	fun `A note in a subfolder can be renumbered`() = runTest {
+		write("notes/old/note-6.toml", noteToml(6, "Remember the sword"))
+
+		val renumbered = NotesDatasource(projectDef, ffs, toml).reIdNote(6, 9)
+
+		assertEquals(9, renumbered.id)
+		assertEquals(listOf("note-9.toml"), filesIn("notes"))
 	}
 }

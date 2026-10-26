@@ -53,9 +53,9 @@ class ProjectFileRationalizer(
 	}
 
 	// Timeline events share one file, so they can't be duplicated on disk, but their ids can collide.
-	private fun timelineIds(): List<Int> =
+	private fun timelineIds(): Set<Int> =
 		TimeLineDatasource.loadTimeline(TimeLineDatasource.getTimelineFilePath(projectDef), fileSystem, toml)
-			.events.map { it.id }
+			.events.mapTo(mutableSetOf()) { it.id }
 
 	/** Every copy has the same bytes (or is a group) and would end up at the same path. */
 	fun isSafeToResolve(set: DuplicateIdSet): Boolean {
