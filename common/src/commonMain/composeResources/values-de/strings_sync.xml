@@ -143,6 +143,7 @@
 	<string name="sync_log_entity_delete_success">ID %1$d auf dem Server gelöscht</string>
 	<string name="sync_log_entity_conflict">Konflikt für neue Entität aufgetreten, das sollte nicht möglich sein! ID: %1$d TYP: %2$s</string>
 	<string name="sync_log_entity_failed">Synchronisierung fehlgeschlagen: %1$s</string>
+	<string name="sync_log_duplicate_ids">Some files in this project share an id. Reopen the project to choose which copies to keep.</string>
 	<string name="sync_log_stale_hash_detected">Der zwischengespeicherte Server-Hash für Entität %1$d ist veraltet. Wird durch erzwungenes Hochladen repariert.</string>
 	<string name="sync_log_stale_hash_healed">Server-Cache für Entität %1$d durch erzwungenes Hochladen erfolgreich repariert</string>
 	<string name="sync_log_stale_hash_heal_failed">Server-Cache für Entität %1$d konnte nicht repariert werden – erzwungenes Hochladen fehlgeschlagen</string>
