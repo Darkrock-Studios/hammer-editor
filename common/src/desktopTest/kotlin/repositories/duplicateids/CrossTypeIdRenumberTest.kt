@@ -15,10 +15,13 @@ import com.darkrockstudios.apps.hammer.common.data.id.datasources.SceneDraftIdDa
 import com.darkrockstudios.apps.hammer.common.data.id.datasources.SceneIdDatasource
 import com.darkrockstudios.apps.hammer.common.data.id.datasources.TimeLineEventIdDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
+import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
+import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexRepository
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceRemapper
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneContentRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntitySynchronizers
@@ -29,6 +32,7 @@ import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientSceneDraftSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientSceneSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientTimelineSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingSessionTracker
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import io.mockk.coEvery
@@ -70,7 +74,25 @@ class CrossTypeIdRenumberTest : RationalizerTestBase() {
 				scoped { SceneContentRepository(projectDef, get()) }
 				scoped { SceneDraftsDatasource(ffs, get()) }
 				scoped { SceneDraftRepository(projectDef, get(), get(), Clock.System) }
-				scoped<SceneEditorService> { mockk(relaxed = true) }
+				scoped {
+					SceneMetadataRepository(
+						projectDef = projectDef,
+						sceneMetadataDatasource = get(),
+						projectMetadataDatasource = get(),
+						strRes = TestStrRes(),
+						clock = Clock.System,
+					)
+				}
+				scoped {
+					SceneEditorService(
+						sceneEditorRepository = get(),
+						sceneContentRepository = get(),
+						sceneMetadataRepository = get(),
+						referenceIndexRepository = mockk<ReferenceIndexRepository>(relaxed = true),
+						statisticsRepository = mockk<StatisticsRepository>(relaxed = true),
+						writingSessionTracker = mockk<WritingSessionTracker>(relaxed = true),
+					)
+				}
 				scoped { EncyclopediaDatasource(projectDef, toml, ffs, mockk()) }
 				scoped { EncyclopediaRepository(projectDef, get(), get(), get()) }
 				scoped<EncyclopediaService> { mockk(relaxed = true) }
@@ -102,7 +124,20 @@ class CrossTypeIdRenumberTest : RationalizerTestBase() {
 	/** What project open does before this step: load the tree and find the next free id. */
 	private suspend fun openStores() {
 		projectScope.get<SceneRepository>().initializeSceneEditor()
+		projectScope.get<SceneContentRepository>().initialize()
 		projectScope.get<EncyclopediaRepository>().loadEntriesImperative()
+	}
+
+	private fun serverLastSaw(id: Int, hash: String) {
+		every { syncJournal.isServerSynchronized() } returns true
+		coEvery { syncJournal.loadSyncData() } returns ProjectSynchronizationData(
+			lastId = id,
+			newIds = emptyList(),
+			lastSync = Instant.fromEpochSeconds(0),
+			dirty = emptyList(),
+			deletedIds = emptySet(),
+			syncedHashes = mapOf(id to hash),
+		)
 	}
 
 	private fun writeSceneAndEntrySharingSix() {
@@ -176,5 +211,22 @@ class CrossTypeIdRenumberTest : RationalizerTestBase() {
 
 		assertEquals(listOf("0~Duel~6.md"), filesIn("scenes"))
 		assertEquals(listOf("person/person~7~Bob.toml"), filesIn("encyclopedia"))
+	}
+
+	@Test
+	fun `A renumbered scene keeps its unsaved edits`() = runTest {
+		writeSceneAndEntrySharingSix()
+		write("scenes/.buffers/6.md", "Unsaved edits")
+		openStores()
+		serverLastSaw(6, projectScope.get<ClientEncyclopediaSynchronizer>().getEntityHash(6))
+
+		service.resolveCrossTypeIds()
+
+		assertEquals(listOf("0~Duel~7.md"), filesIn("scenes").filterNot { it.startsWith(".") })
+		assertEquals(listOf("7.md"), filesIn("scenes/.buffers"))
+		val buffers = projectScope.get<SceneContentRepository>()
+		assertEquals(null, buffers.getSceneBuffer(6))
+		assertEquals("Unsaved edits", buffers.getSceneBuffer(7)?.content?.markdown)
+		assertEquals(7, buffers.getSceneBuffer(7)?.content?.scene?.id)
 	}
 }

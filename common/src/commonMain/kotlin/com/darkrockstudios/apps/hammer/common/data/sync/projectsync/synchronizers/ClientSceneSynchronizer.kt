@@ -342,7 +342,7 @@ class ClientSceneSynchronizer(
 	override suspend fun reIdEntity(oldId: Int, newId: Int) {
 		Napier.d("Re-Id Scene $oldId to $newId")
 
-		sceneEditorRepository.reIdScene(oldId, newId)
+		sceneEditorService.reIdScene(oldId, newId)
 
 		draftRepository.reIdScene(
 			oldId = oldId,

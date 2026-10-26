@@ -80,6 +80,12 @@ class SceneEditorService(
 
 	// region Writes / orchestration
 
+	/** Re-ids a scene, taking its unsaved buffer with it. */
+	fun reIdScene(oldId: Int, newId: Int) {
+		sceneEditorRepository.reIdScene(oldId, newId)
+		sceneContentRepository.reIdBuffer(oldId, newId)
+	}
+
 	/**
 	 * Project-open entry point: loads the scene tree, then starts the content (autosave) and
 	 * metadata engines, in order.
