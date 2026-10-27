@@ -1,6 +1,7 @@
 package repositories
 
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.duplicateids.DuplicateIdService
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.temporaryProjectTask
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
@@ -34,7 +35,8 @@ class TemporaryProjectTaskTest : BaseTest(), KoinComponent {
 		setupKoin(
 			module {
 				scope<ProjectDefScope> {
-					scoped<SceneEditorService> { mockk(relaxed = true) }
+					scoped<DuplicateIdService> { mockk(relaxed = true) }
+				scoped<SceneEditorService> { mockk(relaxed = true) }
 					scoped<TimeLineRepository> { mockk(relaxed = true) }
 				}
 			}

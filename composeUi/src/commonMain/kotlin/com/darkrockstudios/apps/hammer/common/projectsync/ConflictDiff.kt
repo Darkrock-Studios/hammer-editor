@@ -63,7 +63,7 @@ private fun diffDeletedStyle(): SpanStyle {
 
 /** Green underline for added text, shown on the editable local side. */
 @Composable
-private fun diffInsertedStyle(): SpanStyle {
+internal fun diffInsertedStyle(): SpanStyle {
 	val success = LocalHammerColors.current.success
 	return remember(success) {
 		SpanStyle(
@@ -75,7 +75,7 @@ private fun diffInsertedStyle(): SpanStyle {
 
 /** Blue background for relocated text, shown on both sides of a move. */
 @Composable
-private fun diffMovedStyle(): SpanStyle {
+internal fun diffMovedStyle(): SpanStyle {
 	val moved = LocalHammerColors.current.moved
 	return remember(moved) {
 		SpanStyle(background = moved.copy(alpha = CONFLICT_DIFF_HIGHLIGHT_ALPHA))
@@ -89,7 +89,7 @@ private fun diffMovedStyle(): SpanStyle {
  * falls outside the current text are skipped — which can happen briefly while the editable side
  * is being typed into and the diff hasn't been recomputed yet.
  */
-private fun diffHighlightedString(
+internal fun diffHighlightedString(
 	text: String,
 	spans: List<DiffSpan>,
 	style: SpanStyle,

@@ -5,6 +5,7 @@ import PROJECT_EMPTY_NAME
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.common.data.closeProjectScope
 import com.darkrockstudios.apps.hammer.common.data.openProjectScope
+import com.darkrockstudios.apps.hammer.common.data.duplicateids.DuplicateIdService
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.temporaryProjectTask
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
@@ -12,6 +13,7 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScop
 import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectSpellCheckService
 import getProjectDef
 import io.mockk.coVerify
+import io.mockk.coVerifyOrder
 import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.test.runTest
@@ -39,6 +41,7 @@ class ProjectEditorScopeUtilsTest : BaseTest() {
 		setupKoin(module {
 			scope<ProjectDefScope> {
 				scoped { projectDef }
+				scoped<DuplicateIdService> { mockk(relaxed = true) }
 				scoped { sceneEditorService }
 				scoped<TimeLineRepository> { mockk(relaxed = true) }
 				scoped { spellCheckService }
@@ -121,5 +124,20 @@ class ProjectEditorScopeUtilsTest : BaseTest() {
 		val other = getProjectDef(PROJECT_1_NAME)
 
 		assertNotEquals(ProjectDefScope(projectDef).scopeId, ProjectDefScope(other).scopeId)
+	}
+
+	@Test
+	fun `duplicate files are settled before the stores load and shared ids after`() = runTest {
+		val scope = openProjectScope(projectDef)
+
+		val duplicateIdService = scope.get<DuplicateIdService>()
+		val timeLineRepository = scope.get<TimeLineRepository>()
+		coVerifyOrder {
+			duplicateIdService.rationalizeOnOpen()
+			sceneEditorService.initialize()
+			timeLineRepository.initialize()
+			duplicateIdService.resolveCrossTypeIds()
+		}
+		closeProjectScope(scope, projectDef)
 	}
 }

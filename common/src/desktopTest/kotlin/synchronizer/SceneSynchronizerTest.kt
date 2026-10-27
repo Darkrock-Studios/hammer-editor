@@ -875,11 +875,11 @@ class SceneSynchronizerTest : BaseTest() {
 	}
 
 	@Test
-	fun `reIdEntity - re-ids the scene and its drafts`() = runTest {
+	fun `reIdEntity - re-ids the scene, its buffer and its drafts`() = runTest {
 		val sync = defaultSceneSynchronizer()
 		sync.reIdEntity(oldId = 4, newId = 9)
 
-		coVerify(exactly = 1) { sceneEditorRepository.reIdScene(4, 9) }
+		coVerify(exactly = 1) { sceneEditorService.reIdScene(4, 9) }
 		coVerify(exactly = 1) { draftRepository.reIdScene(oldId = 4, newId = 9) }
 	}
 }

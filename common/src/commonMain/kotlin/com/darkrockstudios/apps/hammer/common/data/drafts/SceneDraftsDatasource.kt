@@ -216,11 +216,6 @@ class SceneDraftsDatasource(
 		return sceneDrafts.toHPath()
 	}
 
-	private fun getFilename(draftDef: DraftDef): String {
-		val name = ProjectsRepository.encodeForFilename(draftDef.draftName)
-		return "${draftDef.sceneId}~${draftDef.id}~$name~${draftDef.draftTimestamp.epochSeconds}.md"
-	}
-
 	private fun getLegacyFilename(draftDef: DraftDef): String {
 		val timestamp = draftDef.draftTimestamp.epochSeconds
 		return "${draftDef.sceneId}-${draftDef.id}-${draftDef.draftName}-$timestamp.md"
@@ -235,6 +230,11 @@ class SceneDraftsDatasource(
 			val path: Path = sceneDir / DRAFTS_DIR
 			fileSystem.createDirectories(path)
 			return path.toHPath()
+		}
+
+		fun getFilename(draftDef: DraftDef): String {
+			val name = ProjectsRepository.encodeForFilename(draftDef.draftName)
+			return "${draftDef.sceneId}~${draftDef.id}~$name~${draftDef.draftTimestamp.epochSeconds}.md"
 		}
 
 		// Draft format: sceneId~draftId~name~timestamp.md (delimiter changed from `-` to `~` in

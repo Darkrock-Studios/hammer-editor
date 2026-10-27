@@ -17,6 +17,8 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.InitialProjectScreen
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupService
+import com.darkrockstudios.apps.hammer.common.data.duplicateids.DuplicateIdService
+import com.darkrockstudios.apps.hammer.common.data.duplicateids.ProjectFileRationalizer
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
 import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectPluginsDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectPluginsRepository
@@ -35,6 +37,7 @@ import com.darkrockstudios.apps.hammer.common.data.versioncheck.VersionCheckRepo
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.APP_SCOPE
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
+import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.spellcheck.SpellCheckRepository
 import com.darkrockstudios.apps.hammer.common.util.UrlLauncher
 import io.mockk.coEvery
@@ -71,6 +74,8 @@ class ProjectRootComponentTest : ComponentTest() {
 	private lateinit var projectDataRepository: ProjectDataRepository
 	private lateinit var encyclopediaService: EncyclopediaService
 	private lateinit var protocolMismatchRepository: ProtocolMismatchRepository
+	private lateinit var projectFiles: FakeFileSystem
+	private lateinit var duplicateIdService: DuplicateIdService
 
 	private val addedMenus = mutableListOf<MenuDescriptor>()
 	private val removedMenuIds = mutableListOf<String>()
@@ -91,6 +96,14 @@ class ProjectRootComponentTest : ComponentTest() {
 
 		sceneEditor = mockk(relaxed = true)
 		syncJournal = mockk(relaxed = true)
+
+		projectFiles = FakeFileSystem()
+		duplicateIdService = DuplicateIdService(
+			projectDef = projectDef,
+			rationalizer = ProjectFileRationalizer(projectDef, projectFiles, createTomlSerializer()),
+			syncJournal = syncJournal,
+			backupService = mockk(relaxed = true),
+		)
 
 		encyclopediaService = mockk(relaxed = true)
 		every { encyclopediaService.entryListFlow } returns MutableSharedFlow()
@@ -134,6 +147,7 @@ class ProjectRootComponentTest : ComponentTest() {
 				scoped<ScrubInvalidReferencesUseCase> { mockk(relaxed = true) }
 				scoped { sceneEditor }
 				scoped { syncJournal }
+				scoped { duplicateIdService }
 				scoped { projectDataRepository }
 				scoped { encyclopediaService }
 				scoped { tagIndexService }
@@ -449,6 +463,46 @@ class ProjectRootComponentTest : ComponentTest() {
 
 		val modal = comp.modalRouterState.value.child?.instance
 		assertIs<ProjectRoot.ModalDestination.ProtocolMismatchModal>(modal)
+	}
+
+	private fun writeDuplicateEntryFiles() {
+		val dir = projectDef.path.toOkioPath() / "encyclopedia" / "person"
+		projectFiles.createDirectories(dir)
+		projectFiles.write(dir / "person~5~Bob.toml") { writeUtf8("one") }
+		projectFiles.write(dir / "person~5~Bob.sync-conflict-x.toml") { writeUtf8("two") }
+	}
+
+	@Test
+	fun `Unresolved duplicate files surface their dialog on open`() = runTest(mainTestDispatcher) {
+		writeDuplicateEntryFiles()
+		duplicateIdService.rationalizeOnOpen()
+
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		val modal = comp.modalRouterState.value.child?.instance
+		assertIs<ProjectRoot.ModalDestination.DuplicateIdsModal>(modal)
+		assertEquals(5, modal.component.state.value.current?.id)
+
+		modal.component.decideLater()
+		assertIs<ProjectRoot.ModalDestination.None>(comp.modalRouterState.value.child?.instance)
+	}
+
+	@Test
+	fun `Request close skips the auto sync while duplicate files are unresolved`() = runTest(mainTestDispatcher) {
+		coEvery { syncJournal.shouldAutoSync() } returns true
+		writeDuplicateEntryFiles()
+		duplicateIdService.rationalizeOnOpen()
+
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		comp.requestClose()
+		advanceUntilIdle()
+
+		assertEquals(setOf(CloseConfirm.Complete), comp.closeRequestHandlers.value)
 	}
 
 	@Test

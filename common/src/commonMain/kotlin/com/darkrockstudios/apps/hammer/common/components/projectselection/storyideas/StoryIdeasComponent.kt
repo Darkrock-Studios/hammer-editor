@@ -15,6 +15,7 @@ import com.darkrockstudios.apps.hammer.common.data.ideasrepository.InvalidIdea
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.PromoteIdeaUseCase
 import com.darkrockstudios.apps.hammer.base.http.storyideas.StoryIdea
 import com.darkrockstudios.apps.hammer.common.data.tagindex.AccountTagService
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
@@ -43,11 +44,12 @@ class StoryIdeasComponent(
 		}
 
 		scope.launch {
-			ideasRepository.ideasFlow.collect { ideas ->
-				withContext(dispatcherMain) {
-					_state.update { it.copy(ideas = ideas).withoutOrphanedEditor() }
+			combine(ideasRepository.ideasFlow, ideasRepository.loadFailedFlow, ::Pair)
+				.collect { (ideas, loadFailed) ->
+					withContext(dispatcherMain) {
+						_state.update { it.copy(ideas = ideas, loadFailed = loadFailed).withoutOrphanedEditor() }
+					}
 				}
-			}
 		}
 		// Pick up any ideas edited on disk since the repository first loaded
 		ideasRepository.loadIdeas()

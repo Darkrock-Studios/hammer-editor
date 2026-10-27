@@ -49,6 +49,8 @@ import com.darkrockstudios.apps.hammer.common.data.export.StoryExporterRegistry
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesDatasource
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupService
+import com.darkrockstudios.apps.hammer.common.data.duplicateids.DuplicateIdService
+import com.darkrockstudios.apps.hammer.common.data.duplicateids.ProjectFileRationalizer
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataConflictBroker
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
@@ -398,6 +400,9 @@ val mainModule = module {
 
 		scoped<SyncJournal>()
 		scoped<ClientProjectSynchronizer>()
+
+		scoped<ProjectFileRationalizer>()
+		scoped<DuplicateIdService>()
 
 		scoped<EntitySynchronizers>()
 	}

@@ -219,6 +219,7 @@
 		name="sync_log_entity_conflict">Encountered conflict for new Entity, this should not be possible! ID: %1$d TYPE: %2$s
 	</string>
 	<string name="sync_log_entity_failed">Sync failed: %1$s</string>
+	<string name="sync_log_duplicate_ids">Some files in this project share an id. Reopen the project to choose which copies to keep.</string>
 	<string name="sync_log_entities_transferred">Entities transferred</string>
 	<string name="sync_log_finalized">Sync finalized</string>
 	<string name="sync_log_data_saved">Sync data saved</string>

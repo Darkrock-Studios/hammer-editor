@@ -290,19 +290,16 @@ class ProjectsListComponent(
 
 	override fun deleteProject(projectDef: ProjectDef) {
 		scope.launch(dispatcherIo) {
-			val deleted = try {
-				projectsService.deleteProject(projectDef)
-			} catch (e: IOException) {
-				Napier.e("Failed to delete project: ${projectDef.name}", e)
-				false
-			}
+			val deleted = projectsService.deleteProject(projectDef)
 
 			if (deleted) {
 				Napier.i("Project deleted: ${projectDef.name}")
-				loadProjectList()
 			} else {
 				showToast(scope, Res.string.projects_list_toast_delete_failed)
 			}
+
+			// A failed delete can still have removed part of the project.
+			loadProjectList()
 		}
 	}
 

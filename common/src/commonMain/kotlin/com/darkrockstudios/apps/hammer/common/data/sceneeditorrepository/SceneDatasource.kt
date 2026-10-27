@@ -76,19 +76,8 @@ class SceneDatasource(
 		return bufferPathSegment.div(fileName).toHPath()
 	}
 
-	private fun getSceneIdFromBufferFilename(fileName: String): Int {
-		val captures = SCENE_BUFFER_FILENAME_PATTERN.matchEntire(fileName)
-			?: error("Scene filename was bad: $fileName")
-
-		try {
-			val sceneId = captures.groupValues[1].toInt()
-			return sceneId
-		} catch (e: NumberFormatException) {
-			throw InvalidSceneBufferFilename("Number format exception", fileName, e)
-		} catch (e: IllegalStateException) {
-			throw InvalidSceneBufferFilename("Invalid filename", fileName, e)
-		}
-	}
+	private fun getSceneIdFromBufferFilename(fileName: String): Int? =
+		SCENE_BUFFER_FILENAME_PATTERN.matchEntire(fileName)?.groupValues?.get(1)?.toIntOrNull()
 
 	fun hasTempScene(sceneItem: SceneItem): Boolean = fileSystem.exists(getSceneBufferTempPath(sceneItem).toOkioPath())
 
@@ -97,7 +86,12 @@ class SceneDatasource(
 		return (fileSystem.listOrNull(bufferDirectory) ?: return emptyList())
 			.filter { fileSystem.metadataOrNull(it)?.isRegularFile == true }
 			.mapNotNull { path ->
+				// File sync tools leave their own files here, such as Syncthing conflict copies.
 				val sceneId = getSceneIdFromBufferFilename(path.name)
+				if (sceneId == null) {
+					Napier.w("Ignoring non-buffer file in scene buffers: ${path.name}")
+					return@mapNotNull null
+				}
 				resolveScenePathFromFilesystem(sceneId)?.let { scenePath ->
 					getSceneFromFilename(scenePath)
 				}
@@ -117,6 +111,8 @@ class SceneDatasource(
 	}
 
 	fun loadSceneTree(rootScene: SceneItem): TreeNode<SceneItem> {
+		// Keeps the path index in step with the tree being loaded.
+		invalidateScenePathCache()
 		val sceneDirPath = getSceneDirectory().toOkioPath()
 		val rootNode = TreeNode(rootScene)
 
@@ -228,6 +224,12 @@ class SceneDatasource(
 	}
 
 	fun getSceneFilename(path: HPath) = path.toOkioPath().name
+
+	fun reIdTempSceneBuffer(oldId: Int, newId: Int) {
+		val bufferDir = getSceneBufferDirectory().toOkioPath()
+		val oldPath = bufferDir / "$oldId$SCENE_FILENAME_EXTENSION"
+		if (fileSystem.exists(oldPath)) fileSystem.atomicMove(oldPath, bufferDir / "$newId$SCENE_FILENAME_EXTENSION")
+	}
 
 	fun clearTempScene(sceneItem: SceneItem) {
 		val path = getSceneBufferTempPath(sceneItem).toOkioPath()
@@ -452,6 +454,12 @@ class SceneDatasource(
 				LEGACY_ARCHIVED_SCENE_FILENAME_PATTERN.matchEntire(fileName) != null
 		}
 
+		/** [order] is kept as written, so an existing zero-padded order survives a rename. */
+		fun buildSceneFileName(order: String, name: String, id: Int, isGroup: Boolean = false): String {
+			val extension = if (isGroup) "" else SCENE_FILENAME_EXTENSION
+			return "$order~${ProjectsRepository.encodeForFilename(name)}~$id$extension"
+		}
+
 		fun buildArchivedSceneFileName(name: String, id: Int): String {
 			return "${ProjectsRepository.encodeForFilename(name)}~$id$SCENE_FILENAME_EXTENSION"
 		}
@@ -494,7 +502,7 @@ class SceneDatasource(
 			?: error("Scene ${scene.id} not found in archive")
 
 		val sceneDir = getSceneDirectory().toOkioPath()
-		val newFileName = buildSceneFileName(newOrder, scene.name, scene.id)
+		val newFileName = buildSceneFileName(newOrder.toString(), scene.name, scene.id)
 		val targetPath = (sceneDir / newFileName).toHPath()
 
 		moveScene(currentPath, targetPath)
@@ -517,9 +525,6 @@ class SceneDatasource(
 		return targetPath.toHPath()
 	}
 
-	private fun buildSceneFileName(order: Int, name: String, id: Int): String {
-		return "$order~${ProjectsRepository.encodeForFilename(name)}~$id$SCENE_FILENAME_EXTENSION"
-	}
 
 	fun getAllArchivedScenePaths(): List<HPath> {
 		val archivedDir = getArchivedDirectory().toOkioPath()

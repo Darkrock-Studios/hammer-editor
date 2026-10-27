@@ -11,6 +11,7 @@ import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataConflictBroker
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.data.duplicateids.DuplicateIdService
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.AccountSyncLock
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.AccountSyncProgress
@@ -107,6 +108,7 @@ class SyncAccountUseCaseTest : BaseTest() {
 					projectSynchronizers.getValue(params.get<ProjectDef>().name)
 				}
 				scoped { params -> ProjectDataConflictBroker(params.get()) }
+				scoped<DuplicateIdService> { mockk(relaxed = true) }
 				scoped<SceneEditorService> { mockk(relaxed = true) }
 				scoped<TimeLineRepository> { mockk(relaxed = true) }
 			}

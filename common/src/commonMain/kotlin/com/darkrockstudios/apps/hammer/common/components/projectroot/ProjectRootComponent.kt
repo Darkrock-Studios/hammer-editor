@@ -15,6 +15,7 @@ import com.darkrockstudios.apps.hammer.common.components.globalsearch.GlobalSear
 import com.darkrockstudios.apps.hammer.common.components.globalsearch.GlobalSearchState
 import com.darkrockstudios.apps.hammer.common.components.globalsearch.SearchResult
 import com.darkrockstudios.apps.hammer.common.data.*
+import com.darkrockstudios.apps.hammer.common.data.duplicateids.DuplicateIdService
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaService
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.globalsearch.SearchProjectUseCase
@@ -54,6 +55,7 @@ class ProjectRootComponent(
 	private val settingsRepository: GlobalSettingsStore by inject()
 	private val searchProjectUseCase: SearchProjectUseCase by projectInject()
 	private val protocolMismatchRepository: ProtocolMismatchRepository by inject()
+	private val duplicateIdService: DuplicateIdService by projectInject()
 
 	// Retained on this long-lived parent so search state survives the modal being dismissed/reopened
 	// and config changes; stateKeeper carries the query/filter slice across process death.
@@ -165,6 +167,10 @@ class ProjectRootComponent(
 					}
 				}
 			}
+		}
+
+		if (duplicateIdService.unresolved.value.isNotEmpty()) {
+			modalRouter.showDuplicateIds()
 		}
 
 		pendingDeepLink?.let { link ->
@@ -364,7 +370,7 @@ class ProjectRootComponent(
 		scope.launch {
 			val list = unsavedConfirmations()
 
-			if (syncJournal.shouldAutoSync()) {
+			if (syncJournal.shouldAutoSync() && duplicateIdService.unresolved.value.isEmpty()) {
 				list.add(CloseConfirm.Sync)
 			}
 

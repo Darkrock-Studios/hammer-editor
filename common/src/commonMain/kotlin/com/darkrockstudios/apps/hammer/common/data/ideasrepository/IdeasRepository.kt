@@ -7,10 +7,14 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.IdeasSyncDatasource
 import com.darkrockstudios.apps.hammer.common.data.tagindex.cleanTags
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
+import io.github.aakira.napier.Napier
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -54,6 +58,10 @@ class IdeasRepository(
 	@Volatile
 	private var loadedFrom = globalSettingsStore.globalSettings.projectsDirectory
 
+	// Without this a storage failure is indistinguishable from having no ideas
+	private val _loadFailedFlow = MutableStateFlow(false)
+	val loadFailedFlow: StateFlow<Boolean> = _loadFailedFlow
+
 	init {
 		loadIdeas()
 
@@ -70,8 +78,19 @@ class IdeasRepository(
 	fun loadIdeas(onLoaded: (() -> Unit)? = null) {
 		ideasScope.launch {
 			ideasLock.withLock {
-				loadedFrom = globalSettingsStore.globalSettings.projectsDirectory
-				updateIdeas(ideasDatasource.loadIdeas())
+				val directory = globalSettingsStore.globalSettings.projectsDirectory
+				val ideas = try {
+					ideasDatasource.loadIdeas()
+				} catch (e: CancellationException) {
+					throw e
+				} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+					Napier.e("Failed to load ideas", e)
+					null
+				}
+				// A failed reload keeps the ideas already shown, but never those of another directory.
+				updateIdeas(ideas ?: _ideas.takeIf { directory == loadedFrom }.orEmpty())
+				loadedFrom = directory
+				_loadFailedFlow.value = ideas == null
 			}
 			onLoaded?.invoke()
 		}

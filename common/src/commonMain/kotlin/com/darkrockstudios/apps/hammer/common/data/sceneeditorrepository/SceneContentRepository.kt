@@ -304,6 +304,25 @@ class SceneContentRepository(
 		clearTempScene(sceneItem)
 	}
 
+	/** Moves a scene's buffer, in memory and its temp file, to [newId]. */
+	suspend fun reIdBuffer(oldId: Int, newId: Int) {
+		val (buffer, pendingSave) = sceneBuffersLock.withLock {
+			// Debounced edits land first; then the old id goes stale so a late one cannot recreate it.
+			pendingUpdates[oldId]?.let(::updateSceneBufferContent)
+			staleThrough[oldId] = updateSequence.incrementAndGet()
+			val moved = sceneBuffers.remove(oldId)?.let { old ->
+				old.copy(content = old.content.copy(scene = old.content.scene.copy(id = newId)))
+			}
+			if (moved != null) sceneBuffers[newId] = moved
+			_dirtyBufferIds.value = getDirtyBufferIds()
+			moved to storeTempJobs.remove(oldId)
+		}
+		// Joined, so a temp save already writing cannot recreate the old file after the move.
+		pendingSave?.cancelAndJoin()
+		sceneDatasource.reIdTempSceneBuffer(oldId, newId)
+		if (buffer?.dirty == true) launchSaveJob(buffer.content.scene)
+	}
+
 	/** Stores all currently-dirty buffers to disk via [persist], one per dirty scene. */
 	suspend fun forEachDirtyBuffer(persist: suspend (SceneItem) -> Unit) {
 		getDirtyBufferScenes().forEach { persist(it) }

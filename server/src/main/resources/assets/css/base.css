@@ -793,6 +793,23 @@ a:focus-visible {
 	font-size: 0.9375rem;
 }
 
+.footer-credit {
+	font-family: 'Kingthings Typewriter', monospace;
+	color: var(--neutral-400);
+	font-size: 0.9375rem;
+}
+
+.footer-credit a {
+	color: inherit;
+	text-decoration: underline;
+	text-underline-offset: 0.15em;
+	transition: color var(--transition-fast);
+}
+
+.footer-credit a:hover {
+	color: var(--accent);
+}
+
 /* Plaintext legal content (e.g. Terms of Service) */
 .legal-text {
 	font-family: 'Lora', Georgia, serif;

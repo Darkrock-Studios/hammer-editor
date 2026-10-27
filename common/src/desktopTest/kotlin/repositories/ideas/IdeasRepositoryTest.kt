@@ -18,12 +18,18 @@ import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.IdeasSyncDatas
 import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.IdeasSynchronizationData
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
+import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.async
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.test.runTest
 import okio.fakefilesystem.FakeFileSystem
+import okio.IOException
+import okio.Path.Companion.toPath
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
@@ -127,6 +133,154 @@ class IdeasRepositoryTest : BaseTest() {
 			val ideas = awaitItem()
 			assertEquals(listOf(newIdea), ideas)
 			assertTrue(oldIdea !in ideas)
+		}
+	}
+
+	@Test
+	fun `Failed load after changing the projects directory does not keep the old ideas`() = runTest {
+		val repo = createRepository()
+		advanceUntilIdle()
+		repo.createIdeaOrFail("Lives in the old directory")
+
+		// A file where the ideas folder should be makes the load fail
+		ffs.createDirectories("/elsewhere".toPath())
+		ffs.write("/elsewhere/.ideas".toPath()) { writeUtf8("not a directory") }
+		setProjectsDirectory("/elsewhere")
+		advanceUntilIdle()
+
+		assertTrue(repo.loadFailedFlow.value)
+		repo.ideasFlow.test { assertEquals(emptyList(), awaitItem()) }
+	}
+
+	@Test
+	fun `Ideas load completes with an empty list when storage is inaccessible`() = runTest {
+		val failingDatasource = mockk<IdeasDatasource>()
+		coEvery { failingDatasource.loadIdeas() } throws IOException("Access denied")
+		val repo = IdeasRepository(failingDatasource, mockk(relaxed = true), globalSettingsStore, clock)
+		val loaded = CompletableDeferred<Unit>()
+
+		repo.loadIdeas { loaded.complete(Unit) }
+
+		advanceUntilIdle()
+		assertTrue(loaded.isCompleted)
+		repo.ideasFlow.test { assertEquals(emptyList(), awaitItem()) }
+	}
+
+	@Test
+	fun `Ideas load completes with an empty list when storage permission is denied`() = runTest {
+		val failingDatasource = mockk<IdeasDatasource>()
+		coEvery { failingDatasource.loadIdeas() } throws SecurityException("Permission denied")
+		val repo = IdeasRepository(failingDatasource, mockk(relaxed = true), globalSettingsStore, clock)
+		val loaded = CompletableDeferred<Unit>()
+
+		repo.loadIdeas { loaded.complete(Unit) }
+
+		advanceUntilIdle()
+		assertTrue(loaded.isCompleted)
+		repo.ideasFlow.test { assertEquals(emptyList(), awaitItem()) }
+	}
+
+	@Test
+	fun `Ideas reload preserves the current list when storage is inaccessible`() = runTest {
+		val existing = StoryIdea(
+			id = IdeaId.randomUUID(),
+			created = clock.now(),
+			updated = clock.now(),
+			content = "Existing idea",
+		)
+		val failingDatasource = mockk<IdeasDatasource>()
+		var loadCount = 0
+		coEvery { failingDatasource.loadIdeas() } coAnswers {
+			if (loadCount++ == 0) listOf(existing) else throw IOException("Access denied")
+		}
+		val repo = IdeasRepository(failingDatasource, mockk(relaxed = true), globalSettingsStore, clock)
+		advanceUntilIdle()
+		val loaded = CompletableDeferred<Unit>()
+
+		repo.loadIdeas { loaded.complete(Unit) }
+		advanceUntilIdle()
+
+		assertTrue(loaded.isCompleted)
+		repo.ideasFlow.test { assertEquals(listOf(existing), awaitItem()) }
+	}
+
+	@Test
+	fun `Ideas load rethrows cancellation without completing the callback`() = runTest {
+		val existing = StoryIdea(
+			id = IdeaId.randomUUID(),
+			created = clock.now(),
+			updated = clock.now(),
+			content = "Existing idea",
+		)
+		val failingDatasource = mockk<IdeasDatasource>()
+		var loadCount = 0
+		coEvery { failingDatasource.loadIdeas() } coAnswers {
+			if (loadCount++ == 0) listOf(existing) else throw CancellationException("Cancelled")
+		}
+		val repo = IdeasRepository(failingDatasource, mockk(relaxed = true), globalSettingsStore, clock)
+		advanceUntilIdle()
+		val loaded = CompletableDeferred<Unit>()
+
+		repo.loadIdeas { loaded.complete(Unit) }
+		advanceUntilIdle()
+
+		assertFalse(loaded.isCompleted)
+		repo.ideasFlow.test { assertEquals(listOf(existing), awaitItem()) }
+	}
+
+	@Test
+	fun `Failed load is reported`() = runTest {
+		val failingDatasource = mockk<IdeasDatasource>()
+		coEvery { failingDatasource.loadIdeas() } throws IOException("Access denied")
+		val repo = IdeasRepository(failingDatasource, mockk(relaxed = true), globalSettingsStore, clock)
+
+		advanceUntilIdle()
+
+		assertTrue(repo.loadFailedFlow.value)
+	}
+
+	@Test
+	fun `Successful reload clears a reported load failure`() = runTest {
+		val flakyDatasource = mockk<IdeasDatasource>()
+		coEvery { flakyDatasource.loadIdeas() } throws IOException("Access denied") andThen emptyList()
+		val repo = IdeasRepository(flakyDatasource, mockk(relaxed = true), globalSettingsStore, clock)
+		advanceUntilIdle()
+
+		repo.loadIdeas()
+		advanceUntilIdle()
+
+		assertFalse(repo.loadFailedFlow.value)
+	}
+
+	@Test
+	fun `Reload in flight does not drop an idea created meanwhile`() = runTest {
+		val existing = StoryIdea(
+			id = IdeaId.randomUUID(),
+			created = clock.now(),
+			updated = clock.now(),
+			content = "Existing idea",
+		)
+		val datasource = mockk<IdeasDatasource>(relaxed = true)
+		val reloadGate = CompletableDeferred<Unit>()
+		var loadCount = 0
+		coEvery { datasource.loadIdeas() } coAnswers {
+			if (loadCount++ > 0) reloadGate.await()
+			listOf(existing)
+		}
+		val repo = IdeasRepository(datasource, mockk(relaxed = true), globalSettingsStore, clock)
+		advanceUntilIdle()
+
+		repo.loadIdeas()
+		advanceUntilIdle()
+		val create = async { repo.createIdea(content = "Written during the reload") }
+		advanceUntilIdle()
+		reloadGate.complete(Unit)
+		val created = create.await()
+		advanceUntilIdle()
+
+		assertTrue(isSuccess(created))
+		repo.ideasFlow.test {
+			assertEquals(listOf(existing.id, created.data.id), awaitItem().map { it.id })
 		}
 	}
 

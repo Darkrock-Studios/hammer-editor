@@ -189,7 +189,19 @@ class EncyclopediaDatasource(
 
 		val oldPath = getEntryPath(oldDef).toOkioPath()
 		val newPath = getEntryPath(newDef).toOkioPath()
+		val content = try {
+			loadEntry(oldPath.toHPath()).entry
+		} catch (e: EntryLoadError) {
+			Napier.w("Re-id of entry $oldId moves it without updating its unreadable content", e)
+			null
+		}
 		fileSystem.atomicMove(oldPath, newPath)
+		// The id inside the file is what the entry's image and sync entity are looked up by.
+		if (content != null) {
+			fileSystem.write(newPath) {
+				writeUtf8(toml.encodeToString(EntryContainer(content.copy(id = newId))))
+			}
+		}
 
 		loadEntriesImperative()
 	}
@@ -328,6 +340,7 @@ class EncyclopediaDatasource(
 		// Old name set was the restricted `[\d\p{L}+ _']` so `-` is unambiguously a delimiter.
 		val LEGACY_ENTRY_FILENAME_PATTERN = Regex("""([a-zA-Z]+)-(\d+)-([\d\p{L}+ _']+)\.toml""")
 		val LEGACY_ENTRY_IMAGE_FILENAME_PATTERN = Regex("""([a-zA-Z]+)-(\d+)-image\.([a-zA-Z0-9]+)""")
+		val ENTRY_IMAGE_FILENAME_PATTERN = Regex("""([a-zA-Z]+)~(\d+)~image\.([a-zA-Z0-9]+)""")
 
 		const val ENCYCLOPEDIA_DIRECTORY = "encyclopedia"
 
@@ -356,7 +369,7 @@ class EncyclopediaDatasource(
 			return "${type.text}~$id~${ProjectsRepository.encodeForFilename(name)}.toml"
 		}
 
-		private fun getEntryImageFilename(id: Int, type: EntryType, fileExtension: String): String {
+		fun getEntryImageFilename(id: Int, type: EntryType, fileExtension: String): String {
 			return "${type.text}~$id~image.$fileExtension"
 		}
 

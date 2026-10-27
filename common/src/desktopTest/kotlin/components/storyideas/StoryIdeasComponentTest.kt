@@ -22,12 +22,16 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
+import okio.ForwardingFileSystem
+import okio.IOException
+import okio.Path
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.koin.core.context.GlobalContext
 import org.koin.dsl.bind
 import org.koin.dsl.module
+import org.koin.test.get
 import utils.projectsDirectoryOf
 import utils.ComponentTest
 import utils.TestComponentContext
@@ -42,6 +46,7 @@ import kotlin.time.Clock
 class StoryIdeasComponentTest : ComponentTest() {
 
 	private lateinit var ffs: FakeFileSystem
+	private var ideasStorageFails = false
 
 	@BeforeEach
 	override fun setup() {
@@ -55,11 +60,18 @@ class StoryIdeasComponentTest : ComponentTest() {
 		val projectsRepository = mockk<ProjectsRepository>()
 		every { projectsRepository.getProjects() } returns emptyList()
 
+		val ideasFs = object : ForwardingFileSystem(ffs) {
+			override fun list(dir: Path): List<Path> {
+				if (ideasStorageFails) throw IOException("Access denied")
+				return super.list(dir)
+			}
+		}
+
 		setupKoin(module {
 			single {
 				val toml = createTomlSerializer()
-				val datasource = IdeasDatasource(ffs, StoryIdeaCodec(toml), projectsDirectoryOf(globalSettingsStore))
-				val syncDatasource = IdeasSyncDatasource(ffs, createJsonSerializer(), projectsDirectoryOf(globalSettingsStore))
+				val datasource = IdeasDatasource(ideasFs, StoryIdeaCodec(toml), projectsDirectoryOf(globalSettingsStore))
+				val syncDatasource = IdeasSyncDatasource(ideasFs, createJsonSerializer(), projectsDirectoryOf(globalSettingsStore))
 				IdeasRepository(datasource, syncDatasource, globalSettingsStore, Clock.System)
 			} bind IdeasRepository::class
 			single {
@@ -423,5 +435,20 @@ class StoryIdeasComponentTest : ComponentTest() {
 		comp.editIdea(IdeaId.randomUUID())
 
 		assertNull(comp.state.value.editor)
+	}
+
+	@Test
+	fun `Load failure shows in state until a load succeeds`() = runTest(mainTestDispatcher) {
+		ideasStorageFails = true
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		assertTrue(comp.state.value.loadFailed)
+
+		ideasStorageFails = false
+		get<IdeasRepository>().loadIdeas()
+		advanceUntilIdle()
+
+		assertFalse(comp.state.value.loadFailed)
 	}
 }

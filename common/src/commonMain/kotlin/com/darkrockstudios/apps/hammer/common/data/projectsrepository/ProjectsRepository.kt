@@ -688,11 +688,12 @@ class ProjectsRepository(
 
 	fun deleteProject(projectDef: ProjectDef): Boolean {
 		val projectDir = projectDef.path.toOkioPath()
-		return if (fileSystem.exists(projectDir)) {
+		return try {
 			fileSystem.deleteRecursively(projectDir)
 			notifyProjectDeleted(projectDef)
 			true
-		} else {
+		} catch (e: IOException) {
+			Napier.e("Failed to delete project: ${projectDef.name}", e)
 			false
 		}
 	}
