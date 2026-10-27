@@ -303,12 +303,7 @@ class ProjectsListComponent(
 				null
 			}
 
-			val deleted = try {
-				projectsRepository.deleteProject(projectDef)
-			} catch (e: IOException) {
-				Napier.e("Failed to delete project: ${projectDef.name}", e)
-				false
-			}
+			val deleted = projectsRepository.deleteProject(projectDef)
 
 			if (deleted) {
 				Napier.i("Project deleted: ${projectDef.name}")
@@ -318,10 +313,12 @@ class ProjectsListComponent(
 					projectsSynchronizer.deleteUnsyncedProject(projectDef.name)
 				}
 
-				loadProjectList()
 			} else {
 				showToast(scope, Res.string.projects_list_toast_delete_failed)
 			}
+
+			// A failed delete can still have removed part of the project.
+			loadProjectList()
 		}
 	}
 

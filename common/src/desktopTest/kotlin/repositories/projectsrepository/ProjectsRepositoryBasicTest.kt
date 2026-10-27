@@ -20,6 +20,9 @@ import getProjectsDirectory
 import kotlinx.coroutines.test.runTest
 import org.jetbrains.compose.resources.StringResource
 import org.junit.jupiter.api.Test
+import okio.ForwardingFileSystem
+import okio.IOException
+import okio.Path
 import projectNames
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -250,7 +253,26 @@ class ProjectsRepositoryBasicTest : ProjectsRepositoryBaseTest() {
 		assertFalse(ffs.exists(projPath))
 
 		val deleteAgain = repo.deleteProject(projDef)
-		assertFalse(deleteAgain)
+		assertTrue(deleteAgain)
+	}
+
+	@Test
+	fun `Delete Project reports filesystem failures`() = scope.runTest {
+		createProjectDirectories(ffs)
+		val projectName = projectNames[0]
+		val projPath = getProjectsDirectory().div(projectName)
+		val projDef = ProjectDefinition(projectName, projPath.toHPath())
+		val failingFileSystem = object : ForwardingFileSystem(ffs) {
+			override fun deleteRecursively(fileOrDirectory: Path, mustExist: Boolean) {
+				if (fileOrDirectory == projPath) throw IOException("Access denied")
+				super.deleteRecursively(fileOrDirectory, mustExist)
+			}
+		}
+
+		val repo = projectsRepository(failingFileSystem)
+
+		assertFalse(repo.deleteProject(projDef))
+		assertTrue(ffs.exists(projPath))
 	}
 
 	private fun assertFailure(filename: String?, error: StringResource) {
