@@ -8,6 +8,7 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.isSignedIn
+import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.NightlySyncSetting
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.NightlySyncWindow
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.combine
@@ -27,6 +28,7 @@ import kotlin.time.toJavaDuration
  */
 class NightlySyncScheduler(
 	private val workManager: WorkManager,
+	private val nightlySyncSetting: NightlySyncSetting,
 	private val globalSettingsStore: GlobalSettingsStore,
 	private val appScope: CoroutineScope,
 	private val clock: Clock,
@@ -34,9 +36,9 @@ class NightlySyncScheduler(
 	fun start() {
 		appScope.launch {
 			combine(
-				globalSettingsStore.globalSettingsUpdates,
+				nightlySyncSetting.enabled,
 				globalSettingsStore.serverSettingsUpdates,
-			) { settings, server -> settings.nightlySync && server.isSignedIn() }
+			) { enabled, server -> enabled && server.isSignedIn() }
 				.distinctUntilChanged()
 				.collect { enabled ->
 					if (enabled) {

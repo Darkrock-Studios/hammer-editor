@@ -60,8 +60,6 @@ data class GlobalSettings(
 	val automaticUpdateChecks: Boolean = true,
 	/** The release the user chose "Later" on; the banner stays hidden until a newer one appears. */
 	val dismissedUpdateVersion: String? = null,
-	/** Whether Android runs a full account sync overnight while charging. Needs a signed-in server. */
-	val nightlySync: Boolean = true,
 ) {
 	companion object {
 

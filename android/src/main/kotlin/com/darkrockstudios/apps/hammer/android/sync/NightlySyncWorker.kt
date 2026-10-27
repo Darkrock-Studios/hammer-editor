@@ -6,6 +6,7 @@ import androidx.work.WorkerParameters
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.isSignedIn
+import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.NightlySyncSetting
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.NightlySyncWindow
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ProjectSyncOutcome
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.SyncAccountListener
@@ -23,6 +24,7 @@ class NightlySyncWorker(
 	params: WorkerParameters,
 ) : CoroutineWorker(context, params), KoinComponent {
 
+	private val nightlySyncSetting: NightlySyncSetting by inject()
 	private val globalSettingsStore: GlobalSettingsStore by inject()
 	private val syncAccountUseCase: SyncAccountUseCase by inject()
 	private val scheduler: NightlySyncScheduler by inject()
@@ -30,7 +32,7 @@ class NightlySyncWorker(
 
 	override suspend fun doWork(): Result {
 		// The scheduler cancels the chain when either goes false; this guards a run already in flight.
-		if (!globalSettingsStore.globalSettings.nightlySync) return Result.success()
+		if (!nightlySyncSetting.enabled.value) return Result.success()
 		if (!globalSettingsStore.serverSettings.isSignedIn()) return Result.success()
 
 		// Constraints can hold the run back until morning; leave the sync to the next night then.

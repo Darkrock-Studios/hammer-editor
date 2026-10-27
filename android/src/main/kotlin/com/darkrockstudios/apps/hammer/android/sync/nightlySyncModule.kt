@@ -11,6 +11,7 @@ val nightlySyncModule: Module = module {
 	single {
 		NightlySyncScheduler(
 			workManager = WorkManager.getInstance(androidContext()),
+			nightlySyncSetting = get(),
 			globalSettingsStore = get(),
 			appScope = get(named(APP_SCOPE)),
 			clock = get(),

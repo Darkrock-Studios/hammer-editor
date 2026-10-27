@@ -9,6 +9,7 @@ import com.darkrockstudios.apps.hammer.common.components.storyeditor.focusmode.F
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.GlobalSettingsDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.GlobalSettingsFilesystemDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.BackupManagerService
+import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.NightlySyncSetting
 import com.darkrockstudios.apps.hammer.common.spellcheck.LanguageUtil
 import com.darkrockstudios.apps.hammer.common.util.*
 import com.darkrockstudios.libs.platformspellchecker.PlatformSpellCheckerFactory
@@ -38,6 +39,7 @@ actual val platformModule = module {
 	factory<FocusModeService>()
 	single<AndroidShareDatasource>()
 	single<BackupManagerService>()
+	single<NightlySyncSetting>()
 	single<GlobalSettingsDatasource> { get<GlobalSettingsFilesystemDatasource>() }
 	single<AppUpdater> { NoOpAppUpdater }
 }

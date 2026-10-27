@@ -18,6 +18,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.isSignedIn
 import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.NightlySyncSetting
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcher
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -54,6 +55,7 @@ class AndroidPlatformSettingsComponent(
 
 	private val globalSettingsStore: GlobalSettingsStore by inject()
 	private val projectsRepository: ProjectsRepository by inject()
+	private val nightlySyncSetting: NightlySyncSetting by inject()
 
 	val permissionsController = PermissionsController(context)
 
@@ -91,9 +93,9 @@ class AndroidPlatformSettingsComponent(
 		}
 
 		scope.launch {
-			globalSettingsStore.globalSettingsUpdates.collect { settings ->
+			nightlySyncSetting.enabled.collect { enabled ->
 				withContext(mainDispatcher) {
-					_state.getAndUpdate { it.copy(nightlySync = settings.nightlySync) }
+					_state.getAndUpdate { it.copy(nightlySync = enabled) }
 				}
 			}
 		}
@@ -156,11 +158,7 @@ class AndroidPlatformSettingsComponent(
 		}
 	}
 
-	fun updateNightlySync(enabled: Boolean) {
-		scope.launch {
-			globalSettingsStore.updateSettings { it.copy(nightlySync = enabled) }
-		}
-	}
+	fun updateNightlySync(enabled: Boolean) = nightlySyncSetting.set(enabled)
 
 	fun promptForFileAccess() {
 		if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
