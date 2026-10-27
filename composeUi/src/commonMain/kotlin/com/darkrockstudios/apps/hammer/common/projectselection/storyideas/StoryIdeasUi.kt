@@ -503,7 +503,8 @@ private fun IdeasBrowse(
 						}
 					}
 
-					if (visibleIdeas.isEmpty() && !loadFailed) {
+					// With nothing loaded, the notice stands in for the empty text
+					if (visibleIdeas.isEmpty() && !(loadFailed && ideas.isEmpty())) {
 						item(span = StaggeredGridItemSpan.FullLine) {
 							Box(
 								modifier = Modifier

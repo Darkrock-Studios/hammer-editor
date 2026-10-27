@@ -23,6 +23,7 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.async
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import okio.fakefilesystem.FakeFileSystem
@@ -192,6 +193,38 @@ class IdeasRepositoryTest : BaseTest() {
 		advanceUntilIdle()
 
 		assertFalse(repo.loadFailedFlow.value)
+	}
+
+	@Test
+	fun `Reload in flight does not drop an idea created meanwhile`() = runTest {
+		val existing = StoryIdea(
+			id = IdeaId.randomUUID(),
+			created = clock.now(),
+			updated = clock.now(),
+			content = "Existing idea",
+		)
+		val datasource = mockk<IdeasDatasource>(relaxed = true)
+		val reloadGate = CompletableDeferred<Unit>()
+		var loadCount = 0
+		coEvery { datasource.loadIdeas() } coAnswers {
+			if (loadCount++ > 0) reloadGate.await()
+			listOf(existing)
+		}
+		val repo = IdeasRepository(datasource, mockk(relaxed = true), clock)
+		advanceUntilIdle()
+
+		repo.loadIdeas()
+		advanceUntilIdle()
+		val create = async { repo.createIdea(content = "Written during the reload") }
+		advanceUntilIdle()
+		reloadGate.complete(Unit)
+		val created = create.await()
+		advanceUntilIdle()
+
+		assertTrue(isSuccess(created))
+		repo.ideasFlow.test {
+			assertEquals(listOf(existing.id, created.data.id), awaitItem().map { it.id })
+		}
 	}
 
 	@Test

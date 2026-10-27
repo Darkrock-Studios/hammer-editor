@@ -59,15 +59,15 @@ class IdeasRepository(
 
 	fun loadIdeas(onLoaded: (() -> Unit)? = null) {
 		ideasScope.launch {
-			val ideas = try {
-				ideasDatasource.loadIdeas()
-			} catch (e: CancellationException) {
-				throw e
-			} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-				Napier.e("Failed to load ideas", e)
-				null
-			}
 			ideasLock.withLock {
+				val ideas = try {
+					ideasDatasource.loadIdeas()
+				} catch (e: CancellationException) {
+					throw e
+				} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+					Napier.e("Failed to load ideas", e)
+					null
+				}
 				updateIdeas(ideas ?: _ideas)
 				_loadFailedFlow.value = ideas == null
 			}
