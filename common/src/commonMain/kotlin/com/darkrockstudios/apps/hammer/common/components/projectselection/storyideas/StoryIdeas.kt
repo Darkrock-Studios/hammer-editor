@@ -34,6 +34,8 @@ interface StoryIdeas : HammerComponent {
 
 	data class State(
 		val ideas: List<StoryIdea> = emptyList(),
+		/** The last read of the ideas folder failed; [ideas] may be stale or incomplete. */
+		val loadFailed: Boolean = false,
 		val editor: Editor? = null,
 		val draft: Draft? = null,
 	)

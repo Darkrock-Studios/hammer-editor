@@ -6,10 +6,14 @@ import com.darkrockstudios.apps.hammer.base.http.storyideas.StoryIdea
 import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.IdeasSyncDatasource
 import com.darkrockstudios.apps.hammer.common.data.tagindex.cleanTags
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
+import io.github.aakira.napier.Napier
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -45,6 +49,10 @@ class IdeasRepository(
 	)
 	val ideasFlow: SharedFlow<List<StoryIdea>> = _ideasFlow
 
+	// Without this a storage failure is indistinguishable from having no ideas
+	private val _loadFailedFlow = MutableStateFlow(false)
+	val loadFailedFlow: StateFlow<Boolean> = _loadFailedFlow
+
 	init {
 		loadIdeas()
 	}
@@ -52,7 +60,16 @@ class IdeasRepository(
 	fun loadIdeas(onLoaded: (() -> Unit)? = null) {
 		ideasScope.launch {
 			ideasLock.withLock {
-				updateIdeas(ideasDatasource.loadIdeas())
+				val ideas = try {
+					ideasDatasource.loadIdeas()
+				} catch (e: CancellationException) {
+					throw e
+				} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+					Napier.e("Failed to load ideas", e)
+					null
+				}
+				updateIdeas(ideas ?: _ideas)
+				_loadFailedFlow.value = ideas == null
 			}
 			onLoaded?.invoke()
 		}
