@@ -71,6 +71,8 @@
 	<string name="settings_nightly_sync">Nightly auto-update</string>
 	<string name="settings_nightly_sync_hint">Syncs all of your projects overnight while this device is charging and online.</string>
 	<string name="settings_nightly_sync_needs_server">Connect to a sync server to use this.</string>
+	<string name="settings_nightly_sync_notifications_explanation">Allow notifications to see progress while the nightly sync runs.</string>
+	<string name="settings_nightly_sync_notifications_button">Allow Notifications</string>
 	<string name="settings_enable_dnd_focus_mode_title">Enable Do Not Disturb when in Focus Mode</string>
 	<string name="settings_dnd_permission_button">Grant DND Permission</string>
 	<string

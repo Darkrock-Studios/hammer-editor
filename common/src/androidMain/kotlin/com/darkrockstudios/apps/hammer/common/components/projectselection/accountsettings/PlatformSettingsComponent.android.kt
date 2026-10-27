@@ -1,12 +1,15 @@
 package com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings
 
+import android.Manifest
 import android.app.Activity
 import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Environment
 import android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION
 import android.provider.Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS
+import androidx.core.content.ContextCompat
 import androidx.core.content.ContextCompat.startActivity
 import androidx.core.net.toUri
 import com.arkivanov.decompose.ComponentContext
@@ -88,6 +91,7 @@ class AndroidPlatformSettingsComponent(
 					fileAccessGranted = externalStorageAccess,
 					enableDndInFocusMode = dndSelected,
 					dndPermissionGranted = dndGranted,
+					notificationsGranted = isNotificationsGranted(),
 				)
 			}
 		}
@@ -131,6 +135,7 @@ class AndroidPlatformSettingsComponent(
 					it.copy(
 						fileAccessGranted = externalStorageAccess,
 						dndPermissionGranted = dndGranted,
+						notificationsGranted = isNotificationsGranted(),
 					)
 				}
 			}
@@ -159,6 +164,15 @@ class AndroidPlatformSettingsComponent(
 	}
 
 	fun updateNightlySync(enabled: Boolean) = nightlySyncSetting.set(enabled)
+
+	fun refreshNotificationsGranted() {
+		_state.getAndUpdate { it.copy(notificationsGranted = isNotificationsGranted()) }
+	}
+
+	private fun isNotificationsGranted(): Boolean =
+		android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.TIRAMISU ||
+			ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
+			PackageManager.PERMISSION_GRANTED
 
 	fun promptForFileAccess() {
 		if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
@@ -284,6 +298,7 @@ class AndroidPlatformSettingsComponent(
 		val dndPermissionGranted: Boolean = false,
 		val nightlySync: Boolean = true,
 		val nightlySyncAvailable: Boolean = false,
+		val notificationsGranted: Boolean = true,
 		val projectsDir: HPath,
 	)
 }
