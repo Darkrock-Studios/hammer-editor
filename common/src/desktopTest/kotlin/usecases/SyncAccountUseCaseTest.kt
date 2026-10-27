@@ -12,6 +12,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataConfli
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
+import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.AccountSyncLock
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ClientAccountSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ProjectSyncOutcome
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.SyncAccountListener
@@ -28,7 +29,9 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import net.peanuuutz.tomlkt.Toml
 import okio.Path.Companion.toPath
@@ -40,6 +43,7 @@ import utils.BaseTest
 import utils.TestStrRes
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class SyncAccountUseCaseTest : BaseTest() {
@@ -50,6 +54,7 @@ class SyncAccountUseCaseTest : BaseTest() {
 	private lateinit var metadataDatasource: ProjectMetadataDatasource
 	private lateinit var accountSynchronizer: ClientAccountSynchronizer
 	private lateinit var listener: RecordingListener
+	private lateinit var syncLock: AccountSyncLock
 
 	private val projectSynchronizers = mutableMapOf<String, ClientProjectSynchronizer>()
 
@@ -117,11 +122,13 @@ class SyncAccountUseCaseTest : BaseTest() {
 
 		projectSynchronizers.clear()
 		listener = RecordingListener()
+		syncLock = AccountSyncLock()
 	}
 
 	private fun useCase() = SyncAccountUseCase(
 		projectsRepository = projectsRepository,
 		accountSynchronizer = accountSynchronizer,
+		syncLock = syncLock,
 		strRes = TestStrRes(),
 	)
 
@@ -285,5 +292,28 @@ class SyncAccountUseCaseTest : BaseTest() {
 		assertFalse(result.ideasSuccess)
 		assertFalse(result.allSuccess)
 		assertEquals(ProjectSyncOutcome.Success, result.projects["Alpha"])
+	}
+
+	@Test
+	fun `executeIfIdle skips while another account sync is running`() = runTest {
+		localProject("Alpha", "a")
+		projectSyncReturns("Alpha", true)
+		val accountSyncStarted = CompletableDeferred<Unit>()
+		val releaseAccountSync = CompletableDeferred<Unit>()
+		coEvery { accountSynchronizer.syncProjects(any(), any(), any(), any()) } coAnswers {
+			accountSyncStarted.complete(Unit)
+			releaseAccountSync.await()
+			true
+		}
+		val running = launch { useCase().execute(RecordingListener()) }
+		accountSyncStarted.await()
+
+		val skipped = useCase().executeIfIdle(listener)
+
+		assertNull(skipped)
+		assertTrue(listener.outcomes.isEmpty())
+		releaseAccountSync.complete(Unit)
+		running.join()
+		assertTrue(useCase().executeIfIdle(listener)!!.allSuccess)
 	}
 }

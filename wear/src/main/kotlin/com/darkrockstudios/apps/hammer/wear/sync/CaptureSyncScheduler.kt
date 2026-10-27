@@ -7,7 +7,7 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.OutOfQuotaPolicy
 import androidx.work.WorkManager
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
-import com.darkrockstudios.apps.hammer.wear.data.isSignedIn
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.isSignedIn
 
 /** Pushes a fresh capture to the server as soon as the watch has a network. */
 interface CaptureSyncScheduler {

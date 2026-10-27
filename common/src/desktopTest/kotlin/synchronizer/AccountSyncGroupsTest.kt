@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.base.http.ApiProjectDefinition
 import com.darkrockstudios.apps.hammer.base.http.BeginProjectsSyncResponse
 import com.darkrockstudios.apps.hammer.base.http.CreateProjectResponse
 import com.darkrockstudios.apps.hammer.common.data.createProjectScope
+import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.AccountSessionLock
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ClientAccountSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ProjectAttributeSyncPhase
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.groups.GroupSyncPhase
@@ -44,6 +45,7 @@ class AccountSyncGroupsTest : ProjectsDirSyncTest() {
 	private fun synchronizer(): ClientAccountSynchronizer {
 		val ideas = mockk<ClientIdeasSynchronizer>()
 		coEvery { ideas.syncIdeas(any(), any(), any(), any()) } returns true
+		val sessionLock = AccountSessionLock()
 		return ClientAccountSynchronizer(
 			fileSystem = ffs,
 			globalSettingsStore = globalSettingsStore,
@@ -52,7 +54,8 @@ class AccountSyncGroupsTest : ProjectsDirSyncTest() {
 			accountSyncDatasource = accountSyncDatasource,
 			groupSyncPhase = GroupSyncPhase(repo, serverProjectsApi, strRes),
 			projectAttributeSyncPhase = ProjectAttributeSyncPhase(repo, serverProjectsApi, strRes),
-			projectCreateResolver = ProjectCreateResolver(serverProjectsApi, repo, accountSyncDatasource),
+			projectCreateResolver = ProjectCreateResolver(serverProjectsApi, repo, accountSyncDatasource, sessionLock),
+			sessionLock = sessionLock,
 			ideasSynchronizer = ideas,
 			dataMigrator = mockk(relaxed = true),
 			networkConnectivity = mockk(relaxed = true),

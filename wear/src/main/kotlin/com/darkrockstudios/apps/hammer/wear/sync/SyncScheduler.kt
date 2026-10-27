@@ -6,7 +6,7 @@ import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
-import com.darkrockstudios.apps.hammer.wear.data.isSignedIn
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.isSignedIn
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit

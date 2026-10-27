@@ -36,6 +36,17 @@ actual fun ColumnScope.PlatformSettingsUi(component: PlatformSettings) {
 			onCheckedChange = component::updateKeepScreenOn,
 			label = Res.string.settings_keep_screen_on.get(),
 		)
+		HdHairlineToggleRow(
+			checked = state.nightlySync,
+			onCheckedChange = component::updateNightlySync,
+			label = Res.string.settings_nightly_sync.get(),
+			hint = if (state.nightlySyncAvailable) {
+				Res.string.settings_nightly_sync_hint.get()
+			} else {
+				Res.string.settings_nightly_sync_needs_server.get()
+			},
+			enabled = state.nightlySyncAvailable,
+		)
 		Column(
 			modifier = Modifier.alpha(if (state.dndPermissionGranted) 1f else 0.45f),
 		) {

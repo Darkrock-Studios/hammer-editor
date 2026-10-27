@@ -13,6 +13,8 @@ import coil3.SingletonImageLoader
 import com.darkrockstudios.apps.hammer.android.aboutlibraries.aboutLibrariesModule
 import com.darkrockstudios.apps.hammer.android.shortcuts.ProjectShortcutsManager
 import com.darkrockstudios.apps.hammer.android.shortcuts.shortcutsModule
+import com.darkrockstudios.apps.hammer.android.sync.NightlySyncScheduler
+import com.darkrockstudios.apps.hammer.android.sync.nightlySyncModule
 import com.darkrockstudios.apps.hammer.android.widgets.AddNoteWidgetReceiver
 import com.darkrockstudios.apps.hammer.android.widgets.StoriesListWidgetReceiver
 import com.darkrockstudios.apps.hammer.android.widgets.StoryInfoWidgetReceiver
@@ -70,6 +72,7 @@ class HammerApplication : Application(), SingletonImageLoader.Factory {
 					imageLoadingModule,
 					aboutLibrariesModule,
 					shortcutsModule,
+					nightlySyncModule,
 					appModule(applicationScope),
 					pluginUiModule(),
 					runtimePlugins.koinModule(),
@@ -83,6 +86,8 @@ class HammerApplication : Application(), SingletonImageLoader.Factory {
 		applicationScope.launch {
 			getKoin().get<ProjectShortcutsManager>().refresh()
 		}
+
+		getKoin().get<NightlySyncScheduler>(NightlySyncScheduler::class).start()
 
 		publishWidgetPreviews()
 	}

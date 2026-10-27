@@ -22,7 +22,7 @@ import com.darkrockstudios.apps.hammer.wear.data.LocalNetworkAccess
 import com.darkrockstudios.apps.hammer.wear.data.SignOutUseCase
 import com.darkrockstudios.apps.hammer.wear.data.SubscribedProjectsRepository
 import com.darkrockstudios.apps.hammer.wear.data.UnsyncedContentUseCase
-import com.darkrockstudios.apps.hammer.wear.data.isSignedIn
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.isSignedIn
 import com.darkrockstudios.apps.hammer.wear.pairing.PhonePairingUseCase
 import com.darkrockstudios.apps.hammer.wear.sync.SyncCoordinator
 import kotlinx.coroutines.CoroutineScope

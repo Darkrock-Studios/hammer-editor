@@ -5,13 +5,12 @@ import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.ApiErrorCode
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.AccountSessionLock
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.AccountSyncDatasource
 import com.darkrockstudios.apps.hammer.common.server.HttpFailureException
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectsApi
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.NonCancellable
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 sealed interface ServerCreateOutcome {
@@ -62,11 +61,8 @@ class ProjectCreateResolver(
 	private val serverProjectsApi: ServerProjectsApi,
 	private val projectsRepository: ProjectsRepository,
 	private val accountSyncDatasource: AccountSyncDatasource,
+	private val sessionLock: AccountSessionLock,
 ) {
-	// The server holds one account sync session per install, and a second begin replaces the
-	// first, so projects syncing in parallel must not open their sessions concurrently.
-	private val sessionLock = Mutex()
-
 	/**
 	 * Creates [projectDef] within the open account sync session [syncId], in [groupId] or the top
 	 * level. [groupId] must be a group the server holds.
@@ -137,7 +133,7 @@ class ProjectCreateResolver(
 	}
 
 	/** Creates [projectDef] in an account sync session of its own, never changing its id. */
-	suspend fun createInOwnSession(projectDef: ProjectDef): ServerCreateOutcome = sessionLock.withLock {
+	suspend fun createInOwnSession(projectDef: ProjectDef): ServerCreateOutcome = sessionLock.withSession {
 		val begin = serverProjectsApi.beginProjectsSync()
 		val syncId = begin.getOrElse { return ServerCreateOutcome.Failed(it) }.syncId
 		try {

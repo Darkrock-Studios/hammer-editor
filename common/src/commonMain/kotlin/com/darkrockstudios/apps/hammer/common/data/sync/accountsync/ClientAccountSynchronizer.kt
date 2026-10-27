@@ -49,6 +49,7 @@ class ClientAccountSynchronizer(
 	private val groupSyncPhase: GroupSyncPhase,
 	private val projectAttributeSyncPhase: ProjectAttributeSyncPhase,
 	private val projectCreateResolver: ProjectCreateResolver,
+	private val sessionLock: AccountSessionLock,
 	private val ideasSynchronizer: ClientIdeasSynchronizer,
 	private val dataMigrator: DataMigrator,
 	private val networkConnectivity: NetworkConnectivity,
@@ -69,7 +70,6 @@ class ClientAccountSynchronizer(
 			networkConnectivity.hasActiveConnection()
 
 	// Must-not-crash sync boundary; any failure logged and reported as false.
-	@Suppress("TooGenericExceptionCaught")
 	suspend fun syncProjects(
 		onLog: OnSyncLog,
 		onUnauthorized: suspend () -> Unit,
@@ -78,6 +78,16 @@ class ClientAccountSynchronizer(
 		// value: a transient idea failure must not gate the (much more important) project sync,
 		// but the caller still needs it so a failed idea sync doesn't show a success toast.
 		onIdeasSyncResult: (Boolean) -> Unit = {},
+	): Boolean = sessionLock.withSession {
+		syncProjectsInSession(onLog, onUnauthorized, onIdeaConflict, onIdeasSyncResult)
+	}
+
+	@Suppress("TooGenericExceptionCaught")
+	private suspend fun syncProjectsInSession(
+		onLog: OnSyncLog,
+		onUnauthorized: suspend () -> Unit,
+		onIdeaConflict: IdeaConflictResolver,
+		onIdeasSyncResult: (Boolean) -> Unit,
 	): Boolean {
 		onLog(syncAccLogI(strRes.get(Res.string.sync_log_account_begin)))
 

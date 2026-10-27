@@ -15,6 +15,7 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
 import com.darkrockstudios.apps.hammer.common.components.SavableComponent
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.isSignedIn
 import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcher
@@ -88,6 +89,22 @@ class AndroidPlatformSettingsComponent(
 				)
 			}
 		}
+
+		scope.launch {
+			globalSettingsStore.globalSettingsUpdates.collect { settings ->
+				withContext(mainDispatcher) {
+					_state.getAndUpdate { it.copy(nightlySync = settings.nightlySync) }
+				}
+			}
+		}
+
+		scope.launch {
+			globalSettingsStore.serverSettingsUpdates.collect { server ->
+				withContext(mainDispatcher) {
+					_state.getAndUpdate { it.copy(nightlySyncAvailable = server.isSignedIn()) }
+				}
+			}
+		}
 	}
 
 	private suspend fun isExternalStorageGranted(): Boolean {
@@ -136,6 +153,12 @@ class AndroidPlatformSettingsComponent(
 			_state.getAndUpdate {
 				it.copy(enableDndInFocusMode = enabled)
 			}
+		}
+	}
+
+	fun updateNightlySync(enabled: Boolean) {
+		scope.launch {
+			globalSettingsStore.updateSettings { it.copy(nightlySync = enabled) }
 		}
 	}
 
@@ -261,6 +284,8 @@ class AndroidPlatformSettingsComponent(
 		val fileAccessGranted: Boolean = false,
 		val enableDndInFocusMode: Boolean = false,
 		val dndPermissionGranted: Boolean = false,
+		val nightlySync: Boolean = true,
+		val nightlySyncAvailable: Boolean = false,
 		val projectsDir: HPath,
 	)
 }

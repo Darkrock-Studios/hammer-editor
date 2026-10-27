@@ -35,6 +35,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsSe
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.ProjectStatisticsCacheReader
 import com.darkrockstudios.apps.hammer.common.data.protocolmismatch.ProtocolMismatchRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ClientAccountSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.AccountSyncLock
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.SyncAccountUseCase
 import com.darkrockstudios.apps.hammer.common.data.toMsg
 import com.darkrockstudios.apps.hammer.common.data.versioncheck.VersionCheckDatasource
@@ -173,7 +174,7 @@ class ProjectsListComponentTest : ComponentTest() {
 			single { networkConnectivity }
 			single { statsReader }
 			single { reauthUseCase }
-			factory { SyncAccountUseCase(get(), get(), get()) }
+			factory { SyncAccountUseCase(get(), get(), AccountSyncLock(), get()) }
 			single<FileSystem> { FakeFileSystem() }
 			single<Toml> { createTomlSerializer() }
 			single<StrRes> { TestStrRes() }
