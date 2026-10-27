@@ -61,4 +61,15 @@ class ProjectNameTest {
 		assertEquals("Jane-Doe", ProjectName.penNameForUrl("Jane Doe"))
 		assertEquals("Jane Doe", ProjectName.penNameFromUrl("Jane-Doe"))
 	}
+
+	@Test
+	fun `penInitial keeps a character outside the basic plane whole`() {
+		// U+1D49C MATHEMATICAL SCRIPT CAPITAL A, two UTF-16 chars; taking one would print half a pair.
+		assertEquals("\uD835\uDC9C", ProjectName.penInitial("\uD835\uDC9Cnna"))
+	}
+
+	@Test
+	fun `penInitial ignores leading whitespace`() {
+		assertEquals("J", ProjectName.penInitial("  jane"))
+	}
 }
