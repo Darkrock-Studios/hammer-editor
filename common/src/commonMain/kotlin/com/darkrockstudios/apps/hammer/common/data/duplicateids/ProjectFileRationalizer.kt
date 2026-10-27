@@ -1,6 +1,8 @@
 package com.darkrockstudios.apps.hammer.common.data.duplicateids
 
+import com.darkrockstudios.apps.hammer.base.http.EntityType
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineDatasource
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.isWithin
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
@@ -19,9 +21,9 @@ import okio.FileSystem
  * one file instead of each side deleting the copy the other kept.
  */
 class ProjectFileRationalizer(
-	projectDef: ProjectDef,
-	fileSystem: FileSystem,
-	toml: Toml,
+	private val projectDef: ProjectDef,
+	private val fileSystem: FileSystem,
+	private val toml: Toml,
 ) {
 	// Entries before images: resolving an entry can move or delete images.
 	private val handlers: Map<DuplicateIdKind, DuplicateIdHandler> = listOf(
@@ -35,6 +37,25 @@ class ProjectFileRationalizer(
 	fun findDuplicates(): List<DuplicateIdSet> = handlers.values.flatMap { it.findDuplicates() }
 
 	fun hasDuplicates(): Boolean = handlers.values.any { it.findDuplicates().isNotEmpty() }
+
+	/**
+	 * Ids held by items of more than one type, with the types holding each. Ids are one space
+	 * across types, since sync keys every entity by id alone.
+	 */
+	fun findCrossTypeIds(): Map<Int, List<EntityType>> {
+		val holders = mutableMapOf<Int, MutableList<EntityType>>()
+		for (handler in handlers.values) {
+			val type = handler.entityType ?: continue
+			handler.ids().forEach { id -> holders.getOrPut(id) { mutableListOf() } += type }
+		}
+		timelineIds().forEach { id -> holders.getOrPut(id) { mutableListOf() } += EntityType.TimelineEvent }
+		return holders.filterValues { it.size > 1 }
+	}
+
+	// Timeline events share one file, so they can't be duplicated on disk, but their ids can collide.
+	private fun timelineIds(): Set<Int> =
+		TimeLineDatasource.loadTimeline(TimeLineDatasource.getTimelineFilePath(projectDef), fileSystem, toml)
+			.events.mapTo(mutableSetOf()) { it.id }
 
 	/** Every copy has the same bytes (or is a group) and would end up at the same path. */
 	fun isSafeToResolve(set: DuplicateIdSet): Boolean {

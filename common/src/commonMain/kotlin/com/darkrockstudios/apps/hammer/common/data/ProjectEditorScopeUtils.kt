@@ -102,7 +102,8 @@ suspend fun openProjectScope(projectDef: ProjectDef, temporary: Boolean = false)
 suspend fun initializeProjectScope(projectDef: ProjectDef, temporary: Boolean = false) {
 	val defScope = ProjectDefScope(projectDef)
 	getKoin().getScopeOrNull(defScope.getScopeId())?.let { projScope ->
-		projScope.get<DuplicateIdService>().rationalizeOnOpen()
+		val duplicateIdService: DuplicateIdService = projScope.get()
+		duplicateIdService.rationalizeOnOpen()
 
 		// Creates the service (activating its autosave side-effect subscription from project open)
 		// and runs the scene-editor init sequence: tree, then content (autosave), then metadata.
@@ -111,6 +112,8 @@ suspend fun initializeProjectScope(projectDef: ProjectDef, temporary: Boolean = 
 
 		val timeLineRepository: TimeLineRepository = projScope.get { parametersOf(projectDef) }
 		timeLineRepository.initialize()
+
+		duplicateIdService.resolveCrossTypeIds()
 
 		// Skipped for temporary scopes (background sync, import): loading session words
 		// there only churns the shared checker while the sync rewrites entries.

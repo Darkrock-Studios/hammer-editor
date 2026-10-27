@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.duplicateids
 
+import com.darkrockstudios.apps.hammer.base.http.EntityType
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
@@ -23,7 +24,11 @@ internal class SceneDuplicateIdHandler(
 	private val sceneDir get() = projectDir / SceneDatasource.SCENE_DIRECTORY
 	private val archivedDir get() = sceneDir / SceneDatasource.ARCHIVED_DIRECTORY
 
-	override fun findDuplicates(): List<DuplicateIdSet> {
+	override val entityType = EntityType.Scene
+
+	override fun ids(): Set<Int> = files().mapTo(mutableSetOf()) { (_, name) -> name.id }
+
+	private fun files(): List<Pair<Path, SceneName>> {
 		val active = listRecursivelyOrEmpty(sceneDir)
 			.filter { path -> path.relativeTo(sceneDir).segments.none { it.startsWith(".") } }
 			.mapNotNull { path -> parseActive(path)?.let { path to it } }
@@ -34,11 +39,14 @@ internal class SceneDuplicateIdHandler(
 			.mapNotNull { path -> parseArchived(path)?.let { path to it } }
 			.sortedBy { (path, _) -> path.name }
 
-		return (active + archived).toDuplicateSets({ (_, name) -> name.id }) { (path, name) ->
+		return active + archived
+	}
+
+	override fun findDuplicates(): List<DuplicateIdSet> =
+		files().toDuplicateSets({ (_, name) -> name.id }) { (path, name) ->
 			val bytes = if (name.isGroup) null else readBytes(path)
 			copyOf(path, name.displayName, bytes, archived = name.archived)
 		}
-	}
 
 	override fun canonicalPath(copy: DuplicateCopy, id: Int): HPath {
 		val path = copy.path.toOkioPath()

@@ -227,6 +227,12 @@ class SceneDatasource(
 
 	fun getSceneFilename(path: HPath) = path.toOkioPath().name
 
+	fun reIdTempSceneBuffer(oldId: Int, newId: Int) {
+		val bufferDir = getSceneBufferDirectory().toOkioPath()
+		val oldPath = bufferDir / "$oldId$SCENE_FILENAME_EXTENSION"
+		if (fileSystem.exists(oldPath)) fileSystem.atomicMove(oldPath, bufferDir / "$newId$SCENE_FILENAME_EXTENSION")
+	}
+
 	fun clearTempScene(sceneItem: SceneItem) {
 		val path = getSceneBufferTempPath(sceneItem).toOkioPath()
 		fileSystem.delete(path)

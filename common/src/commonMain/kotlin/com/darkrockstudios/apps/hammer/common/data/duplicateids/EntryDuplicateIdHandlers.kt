@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.duplicateids
 
+import com.darkrockstudios.apps.hammer.base.http.EntityType as SyncEntityType
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaDatasource
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.InvalidEntryFilename
@@ -26,21 +27,27 @@ internal class EntryDuplicateIdHandler(
 
 	private val images = EntryImageFiles(projectDef, fileSystem)
 
-	override fun findDuplicates(): List<DuplicateIdSet> =
+	override val entityType = SyncEntityType.EncyclopediaEntry
+
+	override fun ids(): Set<Int> = files().mapTo(mutableSetOf()) { (_, def) -> def.id }
+
+	private fun files(): List<Pair<Path, EntryDef>> =
 		listRecursivelyOrEmpty(projectDir / EncyclopediaDatasource.ENCYCLOPEDIA_DIRECTORY)
 			.filterEntryPathsOkio()
 			.mapNotNull { path -> filenameDef(path.toHPath())?.let { path to it } }
 			.toList()
-			.toDuplicateSets({ (_, def) -> def.id }) { (path, def) ->
-				val bytes = readBytes(path)
-				val content = toml.decodeOrNull<EntryContainer>(bytes)?.entry
-				copyOf(
-					path = path,
-					name = content?.name ?: def.name,
-					bytes = bytes,
-					text = content?.text ?: bytes.utf8(),
-				)
-			}
+
+	override fun findDuplicates(): List<DuplicateIdSet> =
+		files().toDuplicateSets({ (_, def) -> def.id }) { (path, def) ->
+			val bytes = readBytes(path)
+			val content = toml.decodeOrNull<EntryContainer>(bytes)?.entry
+			copyOf(
+				path = path,
+				name = content?.name ?: def.name,
+				bytes = bytes,
+				text = content?.text ?: bytes.utf8(),
+			)
+		}
 
 	override fun canonicalPath(copy: DuplicateCopy, id: Int): HPath = canonicalPath(copy, read(copy), id)
 

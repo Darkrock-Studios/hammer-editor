@@ -1,17 +1,20 @@
 package com.darkrockstudios.apps.hammer.common.data.duplicateids
 
+import com.darkrockstudios.apps.hammer.base.http.EntityType
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.drafts.DraftDef
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftsDatasource
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesDatasource
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.filterNotePathsOkio
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContainer
+import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import kotlinx.serialization.encodeToString
 import net.peanuuutz.tomlkt.Toml
+import okio.ByteString
 import okio.FileSystem
 import okio.Path
 
@@ -28,7 +31,11 @@ internal class DraftDuplicateIdHandler(
 	private val draftsDir
 		get() = projectDir / SceneDatasource.SCENE_DIRECTORY / SceneDraftsDatasource.DRAFTS_DIR
 
-	override fun findDuplicates(): List<DuplicateIdSet> =
+	override val entityType = EntityType.SceneDraft
+
+	override fun ids(): Set<Int> = files().mapTo(mutableSetOf()) { it.def.id }
+
+	private fun files(): List<DraftFile> =
 		fileSystem.listOrNull(draftsDir).orEmpty()
 			.mapNotNull { dir -> dir.name.toIntOrNull()?.takeIf { it > 0 && fileSystem.metadata(dir).isDirectory }?.let { dir to it } }
 			.flatMap { (dir, sceneId) ->
@@ -40,7 +47,9 @@ internal class DraftDuplicateIdHandler(
 					}
 					.sortedWith(compareBy({ it.def.draftTimestamp }, { it.legacy }))
 			}
-			.toDuplicateSets({ it.def.id }) { copyOf(it.path, it.def.draftName, readBytes(it.path)) }
+
+	override fun findDuplicates(): List<DuplicateIdSet> =
+		files().toDuplicateSets({ it.def.id }) { copyOf(it.path, it.def.draftName, readBytes(it.path)) }
 
 	private data class DraftFile(val path: Path, val def: DraftDef, val legacy: Boolean)
 
@@ -60,17 +69,23 @@ internal class NoteDuplicateIdHandler(
 
 	private val notesDir get() = projectDir / NotesDatasource.NOTES_DIRECTORY
 
+	override val entityType = EntityType.Note
+
+	override fun ids(): Set<Int> = files().mapTo(mutableSetOf()) { (_, _, note) -> note.id }
+
 	// The id is in the content, so every note is read.
-	override fun findDuplicates(): List<DuplicateIdSet> =
+	private fun files(): List<Triple<Path, ByteString, NoteContent>> =
 		listRecursivelyOrEmpty(notesDir).filterNotePathsOkio()
 			.mapNotNull { path ->
 				val bytes = readBytes(path)
 				toml.decodeOrNull<NoteContainer>(bytes)?.note?.let { note -> Triple(path, bytes, note) }
 			}
 			.toList()
-			.toDuplicateSets({ (_, _, note) -> note.id }) { (path, bytes, note) ->
-				copyOf(path, firstLine(note.content), bytes, text = note.content)
-			}
+
+	override fun findDuplicates(): List<DuplicateIdSet> =
+		files().toDuplicateSets({ (_, _, note) -> note.id }) { (path, bytes, note) ->
+			copyOf(path, firstLine(note.content), bytes, text = note.content)
+		}
 
 	override fun canonicalPath(copy: DuplicateCopy, id: Int): HPath =
 		(notesDir / NotesDatasource.getNoteFilenameFromId(id)).toHPath()
