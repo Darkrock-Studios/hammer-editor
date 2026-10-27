@@ -49,6 +49,13 @@ class StoryIdeasComponent(
 				}
 			}
 		}
+		scope.launch {
+			ideasRepository.loadFailedFlow.collect { failed ->
+				withContext(dispatcherMain) {
+					_state.update { it.copy(loadFailed = failed) }
+				}
+			}
+		}
 		// Pick up any ideas edited on disk since the repository first loaded
 		ideasRepository.loadIdeas()
 		scope.launch { accountTagService.refreshProjectTags() }

@@ -171,6 +171,30 @@ class IdeasRepositoryTest : BaseTest() {
 	}
 
 	@Test
+	fun `Failed load is reported`() = runTest {
+		val failingDatasource = mockk<IdeasDatasource>()
+		coEvery { failingDatasource.loadIdeas() } throws IOException("Access denied")
+		val repo = IdeasRepository(failingDatasource, mockk(relaxed = true), clock)
+
+		advanceUntilIdle()
+
+		assertTrue(repo.loadFailedFlow.value)
+	}
+
+	@Test
+	fun `Successful reload clears a reported load failure`() = runTest {
+		val flakyDatasource = mockk<IdeasDatasource>()
+		coEvery { flakyDatasource.loadIdeas() } throws IOException("Access denied") andThen emptyList()
+		val repo = IdeasRepository(flakyDatasource, mockk(relaxed = true), clock)
+		advanceUntilIdle()
+
+		repo.loadIdeas()
+		advanceUntilIdle()
+
+		assertFalse(repo.loadFailedFlow.value)
+	}
+
+	@Test
 	fun `Create idea stores the file and updates the flow`() = runTest {
 		val repo = createRepository()
 		advanceUntilIdle()

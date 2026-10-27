@@ -11,7 +11,9 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -47,6 +49,10 @@ class IdeasRepository(
 	)
 	val ideasFlow: SharedFlow<List<StoryIdea>> = _ideasFlow
 
+	// Without this a storage failure is indistinguishable from having no ideas
+	private val _loadFailedFlow = MutableStateFlow(false)
+	val loadFailedFlow: StateFlow<Boolean> = _loadFailedFlow
+
 	init {
 		loadIdeas()
 	}
@@ -63,6 +69,7 @@ class IdeasRepository(
 			}
 			ideasLock.withLock {
 				updateIdeas(ideas ?: _ideas)
+				_loadFailedFlow.value = ideas == null
 			}
 			onLoaded?.invoke()
 		}
