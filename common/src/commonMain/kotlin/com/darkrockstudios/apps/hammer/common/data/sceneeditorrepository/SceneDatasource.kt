@@ -76,26 +76,20 @@ class SceneDatasource(
 		return bufferPathSegment.div(fileName).toHPath()
 	}
 
-	private fun getSceneIdFromBufferFilename(fileName: String): Int {
-		val captures = SCENE_BUFFER_FILENAME_PATTERN.matchEntire(fileName)
-			?: error("Scene filename was bad: $fileName")
-
-		try {
-			val sceneId = captures.groupValues[1].toInt()
-			return sceneId
-		} catch (e: NumberFormatException) {
-			throw InvalidSceneBufferFilename("Number format exception", fileName, e)
-		} catch (e: IllegalStateException) {
-			throw InvalidSceneBufferFilename("Invalid filename", fileName, e)
-		}
-	}
+	private fun getSceneIdFromBufferFilename(fileName: String): Int? =
+		SCENE_BUFFER_FILENAME_PATTERN.matchEntire(fileName)?.groupValues?.get(1)?.toIntOrNull()
 
 	fun getSceneTempBufferContents(): List<SceneContent> {
 		val bufferDirectory = getSceneBufferDirectory().toOkioPath()
 		return fileSystem.list(bufferDirectory)
 			.filter { fileSystem.metadataOrNull(it)?.isRegularFile == true }
 			.mapNotNull { path ->
+				// File sync tools leave their own files here, such as Syncthing conflict copies.
 				val sceneId = getSceneIdFromBufferFilename(path.name)
+				if (sceneId == null) {
+					Napier.w("Ignoring non-buffer file in scene buffers: ${path.name}")
+					return@mapNotNull null
+				}
 				resolveScenePathFromFilesystem(sceneId)?.let { scenePath ->
 					getSceneFromFilename(scenePath)
 				}
