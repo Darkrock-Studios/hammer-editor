@@ -16,6 +16,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.AccountSessionLock
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.AccountSyncDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.FetchServerDataOperation
@@ -324,7 +325,7 @@ class FetchServerDataOperationTest : BaseTest() {
 	fun `A 410 for a never-synced project creates it under its own id`() = runTest {
 		val projectDef = getProjectDef(PROJECT_2_NAME)
 		val serverProjectsApi = stubResolverSession()
-		val op = createOperation(projectDef, ProjectCreateResolver(serverProjectsApi, projectsRepository, accountSyncDatasource()))
+		val op = createOperation(projectDef, ProjectCreateResolver(serverProjectsApi, projectsRepository, accountSyncDatasource(), AccountSessionLock()))
 		val logs = mutableListOf<SyncLogMessage>()
 
 		stubSettings()
@@ -346,7 +347,7 @@ class FetchServerDataOperationTest : BaseTest() {
 	fun `A 410 matching a same-named server project fails for account sync to adopt it`() = runTest {
 		val projectDef = getProjectDef(PROJECT_2_NAME)
 		val serverProjectsApi = stubResolverSession()
-		val op = createOperation(projectDef, ProjectCreateResolver(serverProjectsApi, projectsRepository, accountSyncDatasource()))
+		val op = createOperation(projectDef, ProjectCreateResolver(serverProjectsApi, projectsRepository, accountSyncDatasource(), AccountSessionLock()))
 		val serverId = ProjectId("server-id")
 		val logs = mutableListOf<SyncLogMessage>()
 
@@ -370,7 +371,7 @@ class FetchServerDataOperationTest : BaseTest() {
 	fun `A 410 whose id another account holds fails without re-minting`() = runTest {
 		val projectDef = getProjectDef(PROJECT_2_NAME)
 		val serverProjectsApi = stubResolverSession()
-		val op = createOperation(projectDef, ProjectCreateResolver(serverProjectsApi, projectsRepository, accountSyncDatasource()))
+		val op = createOperation(projectDef, ProjectCreateResolver(serverProjectsApi, projectsRepository, accountSyncDatasource(), AccountSessionLock()))
 		val logs = mutableListOf<SyncLogMessage>()
 
 		stubSettings()
@@ -394,7 +395,7 @@ class FetchServerDataOperationTest : BaseTest() {
 	fun `A 410 does not adopt a server id another local project holds`() = runTest {
 		val projectDef = getProjectDef(PROJECT_2_NAME)
 		val serverProjectsApi = stubResolverSession()
-		val op = createOperation(projectDef, ProjectCreateResolver(serverProjectsApi, projectsRepository, accountSyncDatasource()))
+		val op = createOperation(projectDef, ProjectCreateResolver(serverProjectsApi, projectsRepository, accountSyncDatasource(), AccountSessionLock()))
 		val heldId = ProjectId("held-id")
 		val logs = mutableListOf<SyncLogMessage>()
 
@@ -419,7 +420,7 @@ class FetchServerDataOperationTest : BaseTest() {
 	fun `A 410 whose create fails fails the sync and ends the session`() = runTest {
 		val projectDef = getProjectDef(PROJECT_2_NAME)
 		val serverProjectsApi = stubResolverSession()
-		val op = createOperation(projectDef, ProjectCreateResolver(serverProjectsApi, projectsRepository, accountSyncDatasource()))
+		val op = createOperation(projectDef, ProjectCreateResolver(serverProjectsApi, projectsRepository, accountSyncDatasource(), AccountSessionLock()))
 		val logs = mutableListOf<SyncLogMessage>()
 
 		stubSettings()

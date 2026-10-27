@@ -26,6 +26,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.yield
 import org.koin.core.component.KoinComponent
 import org.koin.core.parameter.parametersOf
@@ -78,12 +79,32 @@ interface SyncAccountListener {
 class SyncAccountUseCase(
 	private val projectsRepository: ProjectsRepository,
 	private val accountSynchronizer: ClientAccountSynchronizer,
+	private val syncLock: AccountSyncLock,
 	private val strRes: StrRes,
 ) : KoinComponent {
 
+	/** Waits for any account sync already running in this process, then syncs. */
 	suspend fun execute(
 		listener: SyncAccountListener,
 		projectFilter: suspend (ProjectDef) -> Boolean = { true },
+	): SyncAccountResult = syncLock.mutex.withLock { sync(listener, projectFilter) }
+
+	/** Syncs, or returns null at once if an account sync is already running in this process. */
+	suspend fun executeIfIdle(
+		listener: SyncAccountListener,
+		projectFilter: suspend (ProjectDef) -> Boolean = { true },
+	): SyncAccountResult? {
+		if (!syncLock.mutex.tryLock()) return null
+		return try {
+			sync(listener, projectFilter)
+		} finally {
+			syncLock.mutex.unlock()
+		}
+	}
+
+	private suspend fun sync(
+		listener: SyncAccountListener,
+		projectFilter: suspend (ProjectDef) -> Boolean,
 	): SyncAccountResult {
 		val initialProjects = projectsRepository.getProjects()
 		listener.onProjectsDiscovered(initialProjects)

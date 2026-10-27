@@ -18,6 +18,7 @@ import com.darkrockstudios.apps.hammer.base.http.writeToml
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectDataHasher
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectdata.StoredProjectData
+import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.AccountSessionLock
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.AccountSyncDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ClientAccountSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ProjectAttributeSyncPhase
@@ -49,6 +50,8 @@ import com.darkrockstudios.apps.hammer.sync_log_account_project_rename_client_fr
 import org.jetbrains.compose.resources.StringResource
 import io.ktor.http.*
 import io.mockk.*
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import net.peanuuutz.tomlkt.Toml
@@ -131,7 +134,10 @@ class ClientAccountSynchronizerTest : BaseTest() {
 
 	private fun accountSyncDatasource() = AccountSyncDatasource(ffs, json, projectsDirectoryOf(globalSettingsStore))
 
-	private fun createSynchronizer(strRes: StrRes = TestStrRes()) = ClientAccountSynchronizer(
+	private fun createSynchronizer(
+		strRes: StrRes = TestStrRes(),
+		sessionLock: AccountSessionLock = AccountSessionLock(),
+	) = ClientAccountSynchronizer(
 		fileSystem = ffs,
 		globalSettingsStore = globalSettingsStore,
 		projectsRepository = projectsRepository,
@@ -139,7 +145,8 @@ class ClientAccountSynchronizerTest : BaseTest() {
 		accountSyncDatasource = accountSyncDatasource(),
 		groupSyncPhase = GroupSyncPhase(projectsRepository, serverProjectsApi, strRes),
 		projectAttributeSyncPhase = ProjectAttributeSyncPhase(projectsRepository, serverProjectsApi, strRes),
-		projectCreateResolver = ProjectCreateResolver(serverProjectsApi, projectsRepository, accountSyncDatasource()),
+		projectCreateResolver = ProjectCreateResolver(serverProjectsApi, projectsRepository, accountSyncDatasource(), sessionLock),
+		sessionLock = sessionLock,
 		ideasSynchronizer = ideasSynchronizer,
 		dataMigrator = dataMigrator,
 		networkConnectivity = networkConnectivity,
@@ -197,6 +204,36 @@ class ClientAccountSynchronizerTest : BaseTest() {
 		val path = projectDef.path.toOkioPath() / ProjectDataDatasource.FILENAME
 		path.parent?.let { ffs.createDirectories(it) }
 		ffs.writeToml(path, Toml, data)
+	}
+
+	@Test
+	fun `a project opening its own session waits for a running account sync's session to end`() = runTest {
+		val sessionLock = AccountSessionLock()
+		var begins = 0
+		coEvery { serverProjectsApi.beginProjectsSync() } coAnswers {
+			begins++
+			if (begins == 1) Result.success(emptyServerResponse()) else Result.failure(conflict("busy"))
+		}
+		val accountSessionEnding = CompletableDeferred<Unit>()
+		val releaseAccountSession = CompletableDeferred<Unit>()
+		coEvery { serverProjectsApi.endProjectsSync(any()) } coAnswers {
+			accountSessionEnding.complete(Unit)
+			releaseAccountSession.await()
+			Result.success("ok")
+		}
+		val resolver = ProjectCreateResolver(serverProjectsApi, projectsRepository, accountSyncDatasource(), sessionLock)
+
+		val accountSync = launch { createSynchronizer(sessionLock = sessionLock).syncProjects({}, {}) }
+		accountSessionEnding.await()
+		val projectCreate = launch { resolver.createInOwnSession(projectDef("Draft")) }
+		testScheduler.runCurrent()
+		val beginsWhileAccountSessionOpen = begins
+		releaseAccountSession.complete(Unit)
+		accountSync.join()
+		projectCreate.join()
+
+		assertEquals(1, beginsWhileAccountSessionOpen)
+		assertEquals(2, begins)
 	}
 
 	@Test

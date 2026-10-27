@@ -1,6 +1,7 @@
 package repositories.encyclopedia
 
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import testProjectId
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaDatasource
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContainer
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
@@ -30,6 +31,7 @@ class EncyclopediaDatasourceDuplicateIdTest : BaseTest() {
 	private lateinit var personDir: Path
 
 	private val projectDef = ProjectDef(
+		id = testProjectId("Test Project"),
 		name = "Test Project",
 		path = "/projects/Test Project".toPath().toHPath(),
 	)

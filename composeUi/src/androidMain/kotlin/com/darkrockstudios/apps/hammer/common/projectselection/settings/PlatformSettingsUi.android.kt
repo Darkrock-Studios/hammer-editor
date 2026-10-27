@@ -1,6 +1,10 @@
 package com.darkrockstudios.apps.hammer.common.projectselection.settings
 
+import android.Manifest
+import android.os.Build
 import androidx.activity.compose.LocalActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -30,12 +34,52 @@ actual fun ColumnScope.PlatformSettingsUi(component: PlatformSettings) {
 
 	BindEffect(component.permissionsController)
 
+	val notificationPermission = rememberLauncherForActivityResult(
+		ActivityResultContracts.RequestPermission()
+	) { component.refreshNotificationsGranted() }
+	val requestNotifications = {
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+			notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+		}
+	}
+
 	Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
 		HdHairlineToggleRow(
 			checked = state.keepScreenOn,
 			onCheckedChange = component::updateKeepScreenOn,
 			label = Res.string.settings_keep_screen_on.get(),
 		)
+		HdHairlineToggleRow(
+			checked = state.nightlySync,
+			onCheckedChange = { enabled ->
+				component.updateNightlySync(enabled)
+				if (enabled && !state.notificationsGranted) requestNotifications()
+			},
+			label = Res.string.settings_nightly_sync.get(),
+			hint = if (state.nightlySyncAvailable) {
+				Res.string.settings_nightly_sync_hint.get()
+			} else {
+				Res.string.settings_nightly_sync_needs_server.get()
+			},
+			enabled = state.nightlySyncAvailable,
+		)
+		if (state.nightlySync && state.nightlySyncAvailable && !state.notificationsGranted) {
+			Column(
+				modifier = Modifier.fillMaxWidth(),
+				verticalArrangement = Arrangement.spacedBy(10.dp),
+			) {
+				Text(
+					text = Res.string.settings_nightly_sync_notifications_explanation.get(),
+					style = MaterialTheme.typography.bodyMedium,
+					color = MaterialTheme.colorScheme.onSurface,
+				)
+				HdHairlineButton(
+					label = Res.string.settings_nightly_sync_notifications_button.get(),
+					onClick = requestNotifications,
+					emphasised = true,
+				)
+			}
+		}
 		Column(
 			modifier = Modifier.alpha(if (state.dndPermissionGranted) 1f else 0.45f),
 		) {

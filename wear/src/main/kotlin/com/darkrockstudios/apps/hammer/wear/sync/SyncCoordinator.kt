@@ -10,7 +10,7 @@ import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.IdeaConflict
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessage
 import com.darkrockstudios.apps.hammer.common.util.NetworkConnectivity
 import com.darkrockstudios.apps.hammer.wear.data.SubscribedProjectsRepository
-import com.darkrockstudios.apps.hammer.wear.data.isSignedIn
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.isSignedIn
 import com.darkrockstudios.apps.hammer.wear.tile.CaptureSurfaceUpdater
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CancellationException

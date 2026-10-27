@@ -12,6 +12,9 @@ import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataConfli
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
+import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.AccountSyncLock
+import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.AccountSyncProgress
+import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.AccountSyncProgressTracker
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ClientAccountSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ProjectSyncOutcome
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.SyncAccountListener
@@ -28,7 +31,9 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import net.peanuuutz.tomlkt.Toml
 import okio.Path.Companion.toPath
@@ -40,6 +45,7 @@ import utils.BaseTest
 import utils.TestStrRes
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class SyncAccountUseCaseTest : BaseTest() {
@@ -50,6 +56,7 @@ class SyncAccountUseCaseTest : BaseTest() {
 	private lateinit var metadataDatasource: ProjectMetadataDatasource
 	private lateinit var accountSynchronizer: ClientAccountSynchronizer
 	private lateinit var listener: RecordingListener
+	private lateinit var syncLock: AccountSyncLock
 
 	private val projectSynchronizers = mutableMapOf<String, ClientProjectSynchronizer>()
 
@@ -57,17 +64,22 @@ class SyncAccountUseCaseTest : BaseTest() {
 		val logs = mutableListOf<SyncLogMessage>()
 		val outcomes = mutableMapOf<String, ProjectSyncOutcome>()
 		var unauthorized = 0
+		val tracker = AccountSyncProgressTracker()
+		val progress: AccountSyncProgress get() = tracker.progress.value
 
 		override suspend fun onLog(message: SyncLogMessage) {
 			logs += message
 		}
 
-		override suspend fun onProjectsDiscovered(projects: List<ProjectDef>) {}
+		override suspend fun onProjectsDiscovered(projects: List<ProjectDef>) {
+			tracker.onProjectsDiscovered(projects.size)
+		}
 
 		override suspend fun onProjectProgress(projectDef: ProjectDef, progress: Float?) {}
 
 		override suspend fun onProjectOutcome(projectDef: ProjectDef, outcome: ProjectSyncOutcome) {
 			outcomes[projectDef.name] = outcome
+			tracker.onProjectFinished()
 		}
 
 		override suspend fun onUnauthorized() {
@@ -117,11 +129,13 @@ class SyncAccountUseCaseTest : BaseTest() {
 
 		projectSynchronizers.clear()
 		listener = RecordingListener()
+		syncLock = AccountSyncLock()
 	}
 
 	private fun useCase() = SyncAccountUseCase(
 		projectsRepository = projectsRepository,
 		accountSynchronizer = accountSynchronizer,
+		syncLock = syncLock,
 		strRes = TestStrRes(),
 	)
 
@@ -285,5 +299,65 @@ class SyncAccountUseCaseTest : BaseTest() {
 		assertFalse(result.ideasSuccess)
 		assertFalse(result.allSuccess)
 		assertEquals(ProjectSyncOutcome.Success, result.projects["Alpha"])
+	}
+
+	@Test
+	fun `executeIfIdle skips while another account sync is running`() = runTest {
+		localProject("Alpha", "a")
+		projectSyncReturns("Alpha", true)
+		val accountSyncStarted = CompletableDeferred<Unit>()
+		val releaseAccountSync = CompletableDeferred<Unit>()
+		coEvery { accountSynchronizer.syncProjects(any(), any(), any(), any()) } coAnswers {
+			accountSyncStarted.complete(Unit)
+			releaseAccountSync.await()
+			true
+		}
+		val running = launch { useCase().execute(RecordingListener()) }
+		accountSyncStarted.await()
+
+		val skipped = useCase().executeIfIdle(listener)
+
+		assertNull(skipped)
+		assertTrue(listener.outcomes.isEmpty())
+		assertEquals(AccountSyncProgress.Waiting, listener.progress)
+		releaseAccountSync.complete(Unit)
+		running.join()
+		assertTrue(useCase().executeIfIdle(listener)!!.allSuccess)
+	}
+
+	@Test
+	fun `progress follows the account sync and then every project to the end`() = runTest {
+		localProject("Alpha", "a")
+		localProject("Beta", "b")
+		localProject("Gamma", "c")
+		var duringAccountSync: AccountSyncProgress? = null
+		coEvery { accountSynchronizer.syncProjects(any(), any(), any(), any()) } coAnswers {
+			duringAccountSync = listener.progress
+			true
+		}
+		coEvery { accountSynchronizer.probeUnchangedProjects(any()) } returns setOf(ProjectId("b"))
+		var duringAlpha: AccountSyncProgress? = null
+		val alphaSync = mockk<ClientProjectSynchronizer>()
+		coEvery { alphaSync.sync(any(), any(), any(), any(), any(), any()) } coAnswers {
+			duringAlpha = listener.progress
+			true
+		}
+		projectSynchronizers["Alpha"] = alphaSync
+
+		useCase().execute(listener) { it.id != ProjectId("c") }
+
+		assertEquals(AccountSyncProgress.Account, duringAccountSync)
+		assertEquals(3, (duringAlpha as AccountSyncProgress.Projects).total)
+		assertEquals(AccountSyncProgress.Projects(done = 3, total = 3), listener.progress)
+	}
+
+	@Test
+	fun `progress stays on the account when account sync fails`() = runTest {
+		localProject("Alpha", "a")
+		coEvery { accountSynchronizer.syncProjects(any(), any(), any(), any()) } returns false
+
+		useCase().execute(listener)
+
+		assertEquals(AccountSyncProgress.Account, listener.progress)
 	}
 }

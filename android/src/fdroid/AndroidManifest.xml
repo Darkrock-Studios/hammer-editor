@@ -11,12 +11,17 @@
 	IMPORTANT: keep the <application> block below in sync with src/main/AndroidManifest.xml.
 	If you add/remove an activity, receiver or provider there, mirror it here.
 -->
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+	xmlns:tools="http://schemas.android.com/tools">
 
 	<uses-permission android:name="android.permission.INTERNET"/>
 	<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
 	<uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY"/>
 	<uses-permission android:name="android.permission.ACCESS_LOCAL_NETWORK" />
+	<!-- Nightly sync progress. -->
+	<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+	<uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+	<uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC"/>
 
 	<!-- Public-storage projects (F-Droid only) -->
 	<uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"/>
@@ -131,6 +136,11 @@
 					android:name="android.support.FILE_PROVIDER_PATHS"
 					android:resource="@xml/file_provider_paths"/>
 		</provider>
+		<!-- Nightly sync runs as a foreground service when Android allows it. -->
+		<service
+			android:name="androidx.work.impl.foreground.SystemForegroundService"
+			android:foregroundServiceType="dataSync"
+			tools:node="merge"/>
 	</application>
 
 </manifest>

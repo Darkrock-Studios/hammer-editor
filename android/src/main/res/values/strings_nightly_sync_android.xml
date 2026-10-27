@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="nightly_sync_channel_name">Nightly sync</string>
+	<string name="nightly_sync_channel_description">Progress while your projects sync overnight</string>
+	<string name="nightly_sync_notification_title">Syncing your projects</string>
+	<string name="nightly_sync_notification_account">Syncing your account</string>
+	<plurals name="nightly_sync_notification_projects">
+		<item quantity="one">%1$d of %2$d project synced</item>
+		<item quantity="other">%1$d of %2$d projects synced</item>
+	</plurals>
+</resources>

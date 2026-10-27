@@ -1,12 +1,15 @@
 package com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings
 
+import android.Manifest
 import android.app.Activity
 import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Environment
 import android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION
 import android.provider.Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS
+import androidx.core.content.ContextCompat
 import androidx.core.content.ContextCompat.startActivity
 import androidx.core.net.toUri
 import com.arkivanov.decompose.ComponentContext
@@ -15,8 +18,10 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
 import com.darkrockstudios.apps.hammer.common.components.SavableComponent
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.isSignedIn
 import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.NightlySyncSetting
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcher
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -53,6 +58,7 @@ class AndroidPlatformSettingsComponent(
 
 	private val globalSettingsStore: GlobalSettingsStore by inject()
 	private val projectsRepository: ProjectsRepository by inject()
+	private val nightlySyncSetting: NightlySyncSetting by inject()
 
 	val permissionsController = PermissionsController(context)
 
@@ -85,7 +91,24 @@ class AndroidPlatformSettingsComponent(
 					fileAccessGranted = externalStorageAccess,
 					enableDndInFocusMode = dndSelected,
 					dndPermissionGranted = dndGranted,
+					notificationsGranted = isNotificationsGranted(),
 				)
+			}
+		}
+
+		scope.launch {
+			nightlySyncSetting.enabled.collect { enabled ->
+				withContext(mainDispatcher) {
+					_state.getAndUpdate { it.copy(nightlySync = enabled) }
+				}
+			}
+		}
+
+		scope.launch {
+			globalSettingsStore.serverSettingsUpdates.collect { server ->
+				withContext(mainDispatcher) {
+					_state.getAndUpdate { it.copy(nightlySyncAvailable = server.isSignedIn()) }
+				}
 			}
 		}
 	}
@@ -112,6 +135,7 @@ class AndroidPlatformSettingsComponent(
 					it.copy(
 						fileAccessGranted = externalStorageAccess,
 						dndPermissionGranted = dndGranted,
+						notificationsGranted = isNotificationsGranted(),
 					)
 				}
 			}
@@ -138,6 +162,17 @@ class AndroidPlatformSettingsComponent(
 			}
 		}
 	}
+
+	fun updateNightlySync(enabled: Boolean) = nightlySyncSetting.set(enabled)
+
+	fun refreshNotificationsGranted() {
+		_state.getAndUpdate { it.copy(notificationsGranted = isNotificationsGranted()) }
+	}
+
+	private fun isNotificationsGranted(): Boolean =
+		android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.TIRAMISU ||
+			ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
+			PackageManager.PERMISSION_GRANTED
 
 	fun promptForFileAccess() {
 		if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
@@ -261,6 +296,9 @@ class AndroidPlatformSettingsComponent(
 		val fileAccessGranted: Boolean = false,
 		val enableDndInFocusMode: Boolean = false,
 		val dndPermissionGranted: Boolean = false,
+		val nightlySync: Boolean = true,
+		val nightlySyncAvailable: Boolean = false,
+		val notificationsGranted: Boolean = true,
 		val projectsDir: HPath,
 	)
 }

@@ -84,6 +84,8 @@ import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.AccountSyncD
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ClientAccountSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ProjectAttributeSyncPhase
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.groups.GroupSyncPhase
+import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.AccountSessionLock
+import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.AccountSyncLock
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.SyncAccountUseCase
 import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.ClientIdeasSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.IdeasSyncDatasource
@@ -240,6 +242,8 @@ val mainModule = module {
 
 	factory<AccountUseCase>()
 	factory<AccountReauthUseCase>()
+	single<AccountSyncLock>()
+	single<AccountSessionLock>()
 	factory<SyncAccountUseCase>()
 	single<ProjectSyncGateRepository>()
 

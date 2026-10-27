@@ -18,3 +18,7 @@ data class ServerSettings(
 	@TomlLiteralString
 	val refreshToken: String?,
 )
+
+/** Account setup stores provisional settings with no user before sign-in completes. */
+fun ServerSettings?.isSignedIn(): Boolean =
+	this != null && userId >= 0 && !bearerToken.isNullOrBlank()

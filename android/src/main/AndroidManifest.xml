@@ -1,12 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+	xmlns:tools="http://schemas.android.com/tools">
 
 	<uses-permission android:name="android.permission.INTERNET"/>
 	<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
 	<uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY"/>
 	<uses-permission android:name="android.permission.ACCESS_LOCAL_NETWORK" />
-	<!-- Watch pairing prompt. Play services only: not mirrored in src/fdroid/AndroidManifest.xml. -->
+	<!-- Nightly sync progress and the watch pairing prompt. -->
 	<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+	<uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+	<uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC"/>
 
 	<application
 		android:name=".HammerApplication"
@@ -133,6 +136,11 @@
 					android:name="android.support.FILE_PROVIDER_PATHS"
 					android:resource="@xml/file_provider_paths"/>
 		</provider>
+		<!-- Nightly sync runs as a foreground service when Android allows it. -->
+		<service
+			android:name="androidx.work.impl.foreground.SystemForegroundService"
+			android:foregroundServiceType="dataSync"
+			tools:node="merge"/>
 	</application>
 
 </manifest>
