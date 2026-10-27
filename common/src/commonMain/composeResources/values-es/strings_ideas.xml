@@ -6,6 +6,8 @@
 	<string name="ideas_header_meta">%1$d IDEAS · %2$d ETIQUETAS</string>
 	<string name="ideas_list_empty">Aún no hay ideas de historias. Captura tu primera chispa.</string>
 	<string name="ideas_list_empty_archived">No hay ideas archivadas.</string>
+	<string name="ideas_load_failed_label">COULDN'T READ IDEAS</string>
+	<string name="ideas_load_failed_message">Hammer couldn't read your ideas folder, so this list may be out of date or incomplete. Check that the folder exists and is accessible.</string>
 	<string name="ideas_word_count_short">%1$d PAL</string>
 	<string name="ideas_tag_count_short">%1$d ETIQUETAS</string>
 	<string name="ideas_search_placeholder">Buscar ideas</string>

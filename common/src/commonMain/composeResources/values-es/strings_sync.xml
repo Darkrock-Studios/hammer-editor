@@ -143,6 +143,7 @@
 	<string name="sync_log_entity_delete_success">ID %1$d eliminado en el servidor</string>
 	<string name="sync_log_entity_conflict">Se encontró un conflicto para una nueva entidad, ¡esto no debería ser posible! ID: %1$d TIPO: %2$s</string>
 	<string name="sync_log_entity_failed">La sincronización falló: %1$s</string>
+	<string name="sync_log_duplicate_ids">Some files in this project share an id. Reopen the project to choose which copies to keep.</string>
 	<string name="sync_log_stale_hash_detected">El hash en caché del servidor está obsoleto para la entidad %1$d. Reparando mediante subida forzada.</string>
 	<string name="sync_log_stale_hash_healed">Caché del servidor reparada correctamente para la entidad %1$d mediante subida forzada</string>
 	<string name="sync_log_stale_hash_heal_failed">No se pudo reparar la caché del servidor para la entidad %1$d — la subida forzada falló</string>
