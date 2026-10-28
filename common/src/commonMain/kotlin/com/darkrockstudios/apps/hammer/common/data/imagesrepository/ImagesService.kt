@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.common.data.references.ImageReferenceRewr
 import com.darkrockstudios.apps.hammer.common.data.references.ImageUsages
 import com.darkrockstudios.apps.hammer.common.data.references.TouchedEntity
 import com.darkrockstudios.apps.hammer.common.fileio.ExternalFileIo
+import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.flow.SharedFlow
 import okio.IOException
@@ -32,7 +33,17 @@ class ImagesService(
 
 	fun findImage(id: Int): ImageDef? = imagesRepository.findImage(id)
 
+	/** Reads the whole image to hash it unless its hash is cached; [imagePath] and [cachedContentHash] do not. */
 	fun imageFile(def: ImageDef): ImageFile = imagesRepository.imageFile(def)
+
+	fun imagePath(def: ImageDef): HPath = imagesRepository.getImagePath(def)
+
+	/** The size and modification time of [def]'s file, or null when it is missing. */
+	fun fileStamp(def: ImageDef): ImageFileStamp? = imagesRepository.getFileStamp(def)
+
+	/** [ImageFile.contentHash] when it is already known for the file's [stamp]; never reads the file. */
+	fun cachedContentHash(def: ImageDef, stamp: ImageFileStamp): String? =
+		imagesRepository.cachedContentHash(def, stamp)
 
 	fun loadImageBytes(def: ImageDef): ByteArray? = imagesRepository.loadImageBytes(def)
 
@@ -64,6 +75,9 @@ class ImagesService(
 	suspend fun rename(id: Int, name: String): ImageAddOutcome = imagesRepository.rename(id, name)
 
 	suspend fun findUsages(id: Int): ImageUsages = referenceRewriter.findUsages(id)
+
+	/** Whether anything in the project refers to image [id]; stops at the first use. */
+	suspend fun isUsed(id: Int): Boolean = referenceRewriter.isUsed(id)
 
 	/** The ids of the images something in the project refers to. */
 	suspend fun findUsedImageIds(): Set<Int> = referenceRewriter.findReferencedIds()

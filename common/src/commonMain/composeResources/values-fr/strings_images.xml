@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="images_toast_too_large">L'image est trop volumineuse. La taille maximale est de %1$d Mo.</string>
+	<string name="images_toast_load_failed">Impossible de lire l'image sélectionnée.</string>
+</resources>

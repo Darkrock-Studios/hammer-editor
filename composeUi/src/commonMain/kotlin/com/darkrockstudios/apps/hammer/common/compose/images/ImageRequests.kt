@@ -8,24 +8,25 @@ import coil3.request.ImageRequest
 import coil3.request.crossfade
 
 /**
- * A request for the image file at [path]. Coil keys a file by its path alone, so the content
- * [hash] goes into the memory cache key: a file rewritten in place gets a fresh entry.
+ * A request for the image file at [path]. Coil keys a file by its path alone, so [version] goes
+ * into the memory cache key: a file rewritten in place gets a fresh entry. [version] is any token
+ * that changes whenever the bytes do, such as the content hash or the file's size and mtime.
  *
- * [placeholderFromPath] uses the path's un-hashed memory cache entry as the placeholder.
+ * [placeholderFromPath] uses the path's memory cache entry with no extras as the placeholder.
  * [crossfadeMillis] of null keeps the image loader's default; 0 disables it.
  */
 @Composable
 fun rememberImageRequest(
 	path: String,
-	hash: String?,
+	version: String?,
 	placeholderFromPath: Boolean = false,
 	crossfadeMillis: Int? = null,
 ): ImageRequest {
 	val context = LocalPlatformContext.current
-	return remember(context, path, hash, placeholderFromPath, crossfadeMillis) {
+	return remember(context, path, version, placeholderFromPath, crossfadeMillis) {
 		ImageRequest.Builder(context)
 			.data(path)
-			.memoryCacheKeyExtras(mapOf("hash" to hash.toString()))
+			.memoryCacheKeyExtras(mapOf("version" to version.toString()))
 			.apply {
 				if (placeholderFromPath) placeholderMemoryCacheKey(path)
 				if (crossfadeMillis != null) crossfade(crossfadeMillis)
@@ -35,7 +36,7 @@ fun rememberImageRequest(
 }
 
 /**
- * Drops every cached decode of the image file at [path]: all hashes and sizes, and the viewer's
+ * Drops every cached decode of the image file at [path]: all versions and sizes, and the viewer's
  * full-screen entries. Call it once the file has been replaced or deleted.
  */
 fun ImageLoader.evictImageFile(path: String) {

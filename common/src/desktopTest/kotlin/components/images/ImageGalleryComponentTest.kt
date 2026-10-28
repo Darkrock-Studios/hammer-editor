@@ -10,28 +10,36 @@ import com.darkrockstudios.apps.hammer.common.components.images.ImagePickTarget
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImageAddOutcome
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImageAddResult
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImageDeleteResult
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImageFileStamp
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesDatasource
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesRepository
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesService
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageDef
-import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageFile
 import com.darkrockstudios.apps.hammer.common.data.references.ImageUsage
 import com.darkrockstudios.apps.hammer.common.data.references.ImageUsages
 import com.darkrockstudios.apps.hammer.common.data.references.TouchedEntity
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
+import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.spyk
+import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
+import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.koin.dsl.module
 import utils.ComponentTest
+import utils.TestImages
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
@@ -53,13 +61,18 @@ class ImageGalleryComponentTest : ComponentTest() {
 	override fun setup() {
 		super.setup()
 		dismissed = 0
-		imagesFlow = MutableSharedFlow(replay = 1)
+		imagesFlow = MutableSharedFlow(replay = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
 		imagesFlow.tryEmit(stored)
 		pickRequests = ImagePickRequests()
 		imagesService = mockk(relaxed = true)
 		every { imagesService.imagesFlow } returns imagesFlow
 		coEvery { imagesService.ensureImagesLoaded() } answers { stored }
-		every { imagesService.imageFile(any()) } answers { file(firstArg()) }
+		every { imagesService.imagePath(any()) } answers { path(firstArg()) }
+		every { imagesService.fileStamp(any()) } returns STAMP
+		every { imagesService.cachedContentHash(any(), any()) } answers {
+			val def = firstArg<ImageDef>()
+			"h${def.id}-${def.fileExtension}"
+		}
 		coEvery { imagesService.findUsedImageIds() } answers { used }
 
 		setupComponentKoin(module {
@@ -70,11 +83,14 @@ class ImageGalleryComponentTest : ComponentTest() {
 
 	private fun def(id: Int, name: String, ext: String = "png") = ImageDef(id, name, ext)
 
-	private fun file(def: ImageDef) = ImageFile(
-		def = def,
-		path = HPath(path = "/images/${def.id}~${def.name}.${def.fileExtension}", name = "x", isAbsolute = true),
-		contentHash = "h${def.id}-${def.fileExtension}",
-	)
+	private fun path(def: ImageDef) =
+		HPath(path = "/images/${def.id}~${def.name}.${def.fileExtension}", name = "x", isAbsolute = true)
+
+	/** What the repository does after each write: store the list, then emit it. */
+	private fun store(images: List<ImageDef>) {
+		stored = images
+		imagesFlow.tryEmit(images)
+	}
 
 	private fun component(mode: ImageGalleryMode = ImageGalleryMode.Browse) =
 		ImageGalleryComponent(context, projectDef, mode, onDismiss = { dismissed++ })
@@ -97,6 +113,103 @@ class ImageGalleryComponentTest : ComponentTest() {
 		assertEquals(listOf(false, false, true), state.images.map { it.inUse })
 		assertEquals("/images/3~Map.png", state.images.last().path)
 		assertEquals("h3-png", state.images.last().hash)
+		assertEquals("h3-png", state.images.last().cacheToken)
+	}
+
+	@Test
+	fun `Opening the gallery hashes nothing, keying an unhashed image by its file stamp`() = runTest(mainTestDispatcher) {
+		every { imagesService.cachedContentHash(any(), any()) } returns null
+		val comp = component()
+		context.resume()
+		advanceUntilIdle()
+
+		val image = comp.state.value.images.first()
+		assertNull(image.hash)
+		assertEquals("stamp:${STAMP.size}-${STAMP.lastModifiedAtMillis}", image.cacheToken)
+		verify(exactly = 0) { imagesService.imageFile(any()) }
+		verify(exactly = 0) { imagesService.loadImageBytes(any()) }
+	}
+
+	@Test
+	fun `Opening the gallery over a real repository reads no image bytes`() = runTest(mainTestDispatcher) {
+		val ffs = FakeFileSystem()
+		val datasource = spyk(ImagesDatasource(projectDef, ffs))
+		val dir = projectDef.path.toOkioPath() / ImagesDatasource.IMAGES_DIRECTORY
+		ffs.createDirectories(dir)
+		ffs.write(dir / "3~Map.png") { write(TestImages.png(1)) }
+		ffs.write(dir / "5~Coast.png") { write(TestImages.png(2)) }
+		val repository = ImagesRepository(projectDef, mockk(), mockk(relaxed = true), datasource)
+		imagesService = ImagesService(repository, mockk(relaxed = true), mockk())
+
+		val comp = component()
+		context.resume()
+		advanceUntilIdle()
+
+		assertEquals(listOf("Coast", "Map"), comp.state.value.images.map { it.def.name })
+		assertTrue(comp.state.value.images.all { it.hash == null && it.stamp != null })
+		verify(exactly = 0) { datasource.loadImageBytes(any()) }
+	}
+
+	@Test
+	fun `Each change rebuilds the list once`() = runTest(mainTestDispatcher) {
+		coEvery { imagesService.rename(5, "Shore") } answers {
+			store(stored.map { if (it.id == 5) it.copy(name = "Shore") else it })
+			ImageAddOutcome(ImageAddResult.Ok, def(5, "Shore"))
+		}
+		coEvery { imagesService.addFromPath("/staged/pier.png") } answers {
+			store(stored + def(13, "pier"))
+			ImageAddOutcome(ImageAddResult.Ok, def(13, "pier"))
+		}
+		coEvery { imagesService.delete(8) } answers {
+			store(stored.filterNot { it.id == 8 })
+			ImageDeleteResult(deleted = true, touched = emptySet())
+		}
+		coEvery { imagesService.findUsages(8) } returns ImageUsages(emptyList())
+		val comp = component()
+		context.resume()
+		advanceUntilIdle()
+
+		var rebuilds = 0
+		var shown = comp.state.value.images
+		comp.state.subscribe { state ->
+			if (state.images !== shown) {
+				shown = state.images
+				rebuilds++
+			}
+		}
+		suspend fun rebuildsDuring(change: suspend () -> Unit): Int {
+			rebuilds = 0
+			change()
+			advanceUntilIdle()
+			return rebuilds
+		}
+
+		assertEquals(1, rebuildsDuring { comp.rename(5, "Shore") })
+		assertEquals(1, rebuildsDuring { comp.addImage("/staged/pier.png") })
+		assertEquals(13, comp.state.value.selectedId)
+		comp.requestDelete(8)
+		advanceUntilIdle()
+		assertEquals(1, rebuildsDuring { comp.confirmDelete() })
+		coVerify(exactly = 0) { imagesService.ensureImagesLoaded() }
+	}
+
+	@Test
+	fun `An added image is selected even when the list catches up after the add returns`() = runTest(mainTestDispatcher) {
+		val comp = component()
+		context.resume()
+		advanceUntilIdle()
+		coEvery { imagesService.addFromPath("/staged/pier.png") } answers {
+			stored = stored + def(13, "pier")
+			ImageAddOutcome(ImageAddResult.Ok, def(13, "pier"))
+		}
+
+		comp.addImage("/staged/pier.png")
+		advanceUntilIdle()
+		assertNull(comp.state.value.selected)
+
+		imagesFlow.tryEmit(stored)
+		advanceUntilIdle()
+		assertEquals(13, comp.state.value.selected?.def?.id)
 	}
 
 	@Test
@@ -122,7 +235,7 @@ class ImageGalleryComponentTest : ComponentTest() {
 		context.resume()
 		advanceUntilIdle()
 		coEvery { imagesService.addFromPath("/staged/pier.png") } answers {
-			stored = stored + def(13, "pier")
+			store(stored + def(13, "pier"))
 			ImageAddOutcome(ImageAddResult.Ok, def(13, "pier"))
 		}
 
@@ -153,7 +266,7 @@ class ImageGalleryComponentTest : ComponentTest() {
 		advanceUntilIdle()
 		comp.select(5)
 		coEvery { imagesService.replaceFromPath(5, "/staged/coast.jpg") } answers {
-			stored = stored.map { if (it.id == 5) it.copy(fileExtension = "jpg") else it }
+			store(stored.map { if (it.id == 5) it.copy(fileExtension = "jpg") else it })
 			ImageAddOutcome(ImageAddResult.Ok, def(5, "Coast", "jpg"))
 		}
 
@@ -173,7 +286,7 @@ class ImageGalleryComponentTest : ComponentTest() {
 		comp.startRename(5)
 		coEvery { imagesService.rename(5, "bad/name") } returns ImageAddOutcome(ImageAddResult.NameInvalid)
 		coEvery { imagesService.rename(5, "Shore") } answers {
-			stored = stored.map { if (it.id == 5) it.copy(name = "Shore") else it }
+			store(stored.map { if (it.id == 5) it.copy(name = "Shore") else it })
 			ImageAddOutcome(ImageAddResult.Ok, def(5, "Shore"))
 		}
 
@@ -192,7 +305,7 @@ class ImageGalleryComponentTest : ComponentTest() {
 		val usages = ImageUsages(listOf(ImageUsage(TouchedEntity(EntityType.EncyclopediaEntry, 30), "Alice")))
 		coEvery { imagesService.findUsages(3) } returns usages
 		coEvery { imagesService.delete(3) } answers {
-			stored = stored.filterNot { it.id == 3 }
+			store(stored.filterNot { it.id == 3 })
 			ImageDeleteResult(deleted = true, touched = setOf(TouchedEntity(EntityType.EncyclopediaEntry, 30)))
 		}
 		val comp = component()
@@ -290,5 +403,9 @@ class ImageGalleryComponentTest : ComponentTest() {
 
 		assertTrue(results.isEmpty())
 		assertEquals(1, dismissed)
+	}
+
+	private companion object {
+		val STAMP = ImageFileStamp(size = 120, lastModifiedAtMillis = 1_700_000_000_000)
 	}
 }

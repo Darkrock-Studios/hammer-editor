@@ -204,7 +204,7 @@ internal fun EncyclopediaEntryItem(
 								AsyncImage(
 									model = rememberImageRequest(
 										path = imagePath,
-										hash = entryImageHash,
+										version = entryImageHash,
 										placeholderFromPath = true,
 										crossfadeMillis = 300,
 									),

@@ -28,6 +28,7 @@ import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 class ImageOperationsTest : KoinOperationsTest() {
 
@@ -74,6 +75,8 @@ class ImageOperationsTest : KoinOperationsTest() {
 		run<EntryUpdateInput, Entry>("entry.update", EntryUpdateInput(PROJECT, point.id, text))
 
 		assertEquals(listOf(true, true), list().map { it.inUse })
+		val renamed = run<ImageRenameInput, ImageSummary>("image.rename", ImageRenameInput(PROJECT, keep.id, "Shore"))
+		assertTrue(renamed.inUse)
 
 		val deleted = run<ProjectItemInput, ImageDeleted>("image.delete", ProjectItemInput(PROJECT, image.id))
 

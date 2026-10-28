@@ -132,7 +132,7 @@ internal fun EntryImagePager(
 					AsyncImage(
 						model = rememberImageRequest(
 							path = image.path,
-							hash = image.hash,
+							version = image.hash,
 							placeholderFromPath = true,
 							crossfadeMillis = 0,
 						),

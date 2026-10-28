@@ -109,13 +109,13 @@ internal fun ImageConflict(
 					ConflictImagePreview(
 						request = rememberImageRequest(
 							path = entityConflict.clientImagePath.path,
-							hash = clientImage.digest,
+							version = clientImage.digest,
 						),
 						image = clientImage,
 						onOpen = {
 							viewing = ImageViewerItem.ofFile(
 								path = entityConflict.clientImagePath.path,
-								hash = clientImage.digest,
+								version = clientImage.digest,
 								label = c.clientEntity.name,
 							)
 						},

@@ -24,8 +24,6 @@
 	<string name="encyclopedia_create_entry_image_browse_button">Dateien durchsuchen</string>
 	<string name="encyclopedia_create_entry_image_attached">1 angehängt</string>
 	<string name="encyclopedia_create_entry_image_replace">Ersetzen</string>
-	<string name="encyclopedia_create_entry_image_too_large">Das Bild ist zu groß. Maximale Größe: %1$d MB.</string>
-	<string name="encyclopedia_create_entry_image_load_failed">Das ausgewählte Bild konnte nicht gelesen werden.</string>
 	<string name="encyclopedia_create_entry_create_button">Eintrag erstellen</string>
 	<string name="encyclopedia_create_entry_cancel_button">Abbruch</string>
 	<string name="encyclopedia_create_entry_toast_success">Eintrag erstellt</string>

@@ -16,6 +16,8 @@ import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
+import io.mockk.spyk
+import io.mockk.verify
 import kotlinx.coroutines.test.runTest
 import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
@@ -159,6 +161,23 @@ class ImagesRepositoryTest : BaseTest() {
 		assertEquals(EntityHasher.hashImage(3, "Atlas", "png", edited), repo.contentHash(3))
 
 		assertNull(repo.contentHash(99))
+	}
+
+	@Test
+	fun `cachedContentHash only answers from the cache and never reads the file`() = runTest {
+		writeRaw("3~Map.png", TestImages.png(1))
+		val spied = spyk(datasource)
+		val repo = ImagesRepository(projectDef, idAllocator, syncJournal, spied)
+		val def = ImageDef(3, "Map", "png")
+		val stamp = repo.getFileStamp(def)!!
+
+		assertNull(repo.cachedContentHash(def, stamp))
+		verify(exactly = 0) { spied.loadImageBytes(any()) }
+
+		val hash = repo.contentHash(def)
+		assertEquals(hash, repo.cachedContentHash(def, stamp))
+		assertNull(repo.cachedContentHash(def, stamp.copy(size = stamp.size + 1)))
+		assertNull(repo.cachedContentHash(def.copy(name = "Other"), stamp))
 	}
 
 	@Test

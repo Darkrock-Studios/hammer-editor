@@ -71,15 +71,17 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMastheadAct
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdPrimaryAction
 import com.darkrockstudios.apps.hammer.common.compose.fileDropTarget
+import com.darkrockstudios.apps.hammer.common.compose.images.StagedImage
 import com.darkrockstudios.apps.hammer.common.compose.images.evictImageFile
+import com.darkrockstudios.apps.hammer.common.compose.images.imageAddResultMessage
+import com.darkrockstudios.apps.hammer.common.compose.images.pickImageFile
 import com.darkrockstudios.apps.hammer.common.compose.images.rememberImageRequest
+import com.darkrockstudios.apps.hammer.common.compose.images.stageImage
 import com.darkrockstudios.apps.hammer.common.compose.rememberIoDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
-import com.darkrockstudios.apps.hammer.common.compose.stageIntoCache
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImageAddResult
 import com.darkrockstudios.apps.hammer.common.data.references.ImageUsages
-import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.apps.hammer.images_gallery_add
 import com.darkrockstudios.apps.hammer.images_gallery_cancel
 import com.darkrockstudios.apps.hammer.images_gallery_close
@@ -104,26 +106,15 @@ import com.darkrockstudios.apps.hammer.images_gallery_section
 import com.darkrockstudios.apps.hammer.images_gallery_unused_badge
 import com.darkrockstudios.apps.hammer.images_gallery_use
 import com.darkrockstudios.apps.hammer.images_gallery_view
-import com.darkrockstudios.apps.hammer.images_toast_load_failed
 import com.darkrockstudios.apps.hammer.images_toast_name_invalid
-import com.darkrockstudios.apps.hammer.images_toast_too_large
-import com.darkrockstudios.apps.hammer.images_toast_unsupported
 import com.darkrockstudios.apps.hammer.images_usage_type_draft
 import com.darkrockstudios.apps.hammer.images_usage_type_entry
 import com.darkrockstudios.apps.hammer.images_usage_type_event
 import com.darkrockstudios.apps.hammer.images_usage_type_image
 import com.darkrockstudios.apps.hammer.images_usage_type_note
 import com.darkrockstudios.apps.hammer.images_usage_type_scene
-import io.github.aakira.napier.Napier
-import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.PlatformFile
-import io.github.vinceglb.filekit.dialogs.FileKitPickerException
-import io.github.vinceglb.filekit.dialogs.FileKitType
-import io.github.vinceglb.filekit.dialogs.openFilePicker
-import io.github.vinceglb.filekit.path
-import io.github.vinceglb.filekit.size
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.StringResource
 
 const val IMAGE_GALLERY_TAG = "image-gallery"
@@ -184,22 +175,20 @@ fun ImageGalleryUi(component: ImageGallery, modifier: Modifier = Modifier) {
 	fun openViewer(image: ImageGallery.GalleryImage) {
 		val shown = state.visibleImages
 		val index = shown.indexOfFirst { it.def.id == image.def.id }.coerceAtLeast(0)
-		viewer = shown.map { ImageViewerItem.ofFile(it.path, it.hash, it.def.name) } to index
+		viewer = shown.map { ImageViewerItem.ofFile(it.path, it.cacheToken, it.def.name) } to index
 	}
 
 	suspend fun report(result: ImageAddResult) {
-		addResultMessage(result, strRes)?.let { snackbar.showSnackbar(it) }
+		imageAddResultMessage(result, strRes)?.let { snackbar.showSnackbar(it) }
 	}
 
 	/** The picked [file] copied where the image service can read it, or null after reporting why not. */
-	suspend fun stage(file: PlatformFile): String? {
-		if (file.size() > ImageFormat.MAX_IMAGE_BYTES) {
-			report(ImageAddResult.TooLarge)
-			return null
+	suspend fun stage(file: PlatformFile): String? = when (val staged = file.stageImage(dispatcherIo)) {
+		is StagedImage.Staged -> staged.path
+		is StagedImage.Failed -> {
+			report(staged.result)
+			null
 		}
-		val local = withContext(dispatcherIo) { file.stageIntoCache() }
-		if (local == null) report(ImageAddResult.ReadFailed)
-		return local?.path
 	}
 
 	suspend fun addFile(file: PlatformFile) {
@@ -207,18 +196,10 @@ fun ImageGalleryUi(component: ImageGallery, modifier: Modifier = Modifier) {
 		report(component.addImage(path))
 	}
 
-	suspend fun pickFile(): PlatformFile? = try {
-		FileKit.openFilePicker(type = FileKitType.File(ImageFormat.ALLOWED_EXTENSIONS))
-	} catch (e: FileKitPickerException) {
-		Napier.e("Image picker failed", e)
-		report(ImageAddResult.ReadFailed)
-		null
-	}
-
-	val onAdd: () -> Unit = { scope.launch { pickFile()?.let { addFile(it) } } }
+	val onAdd: () -> Unit = { scope.launch { pickImageFile(::report)?.let { addFile(it) } } }
 	val onReplace: (ImageGallery.GalleryImage) -> Unit = { image ->
 		scope.launch {
-			val file = pickFile() ?: return@launch
+			val file = pickImageFile(::report) ?: return@launch
 			val path = stage(file) ?: return@launch
 			val result = component.replaceImage(image.def.id, path)
 			if (result == ImageAddResult.Ok) imageLoader.evictImageFile(image.path)
@@ -439,7 +420,7 @@ private fun Thumbnail(
 			.then(modifier),
 	) {
 		AsyncImage(
-			model = rememberImageRequest(path = image.path, hash = image.hash),
+			model = rememberImageRequest(path = image.path, version = image.cacheToken),
 			contentDescription = image.def.name,
 			contentScale = ContentScale.Fit,
 			modifier = Modifier
@@ -529,7 +510,7 @@ private fun ImageDetail(
 		verticalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 	) {
 		AsyncImage(
-			model = rememberImageRequest(path = image.path, hash = image.hash, placeholderFromPath = true),
+			model = rememberImageRequest(path = image.path, version = image.cacheToken, placeholderFromPath = true),
 			contentDescription = image.def.name,
 			contentScale = ContentScale.Fit,
 			modifier = Modifier
@@ -693,17 +674,4 @@ private fun usageTypeLabel(type: EntityType): StringResource = when (type) {
 	EntityType.EncyclopediaEntry -> Res.string.images_usage_type_entry
 	EntityType.SceneDraft -> Res.string.images_usage_type_draft
 	EntityType.Image -> Res.string.images_usage_type_image
-}
-
-/** The snackbar text for [result], or null when there is nothing to say. */
-internal suspend fun addResultMessage(result: ImageAddResult, strRes: StrRes): String? = when (result) {
-	ImageAddResult.Ok -> null
-	ImageAddResult.TooLarge -> strRes.get(Res.string.images_toast_too_large, ImageFormat.MAX_IMAGE_MB)
-	ImageAddResult.UnsupportedType -> strRes.get(
-		Res.string.images_toast_unsupported,
-		ImageFormat.ALLOWED_EXTENSIONS.joinToString(),
-	)
-
-	ImageAddResult.NameInvalid -> strRes.get(Res.string.images_toast_name_invalid)
-	ImageAddResult.ReadFailed -> strRes.get(Res.string.images_toast_load_failed)
 }

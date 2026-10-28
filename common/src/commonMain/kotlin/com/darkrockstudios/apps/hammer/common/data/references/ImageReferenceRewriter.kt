@@ -35,6 +35,10 @@ class ImageReferenceRewriter(projectDef: ProjectDef) : ProjectScoped {
 	suspend fun findUsages(imageId: Int): ImageUsages =
 		ImageUsages(holders.flatMap { holder -> guarded(holder, emptyList()) { holder.usages(imageId) } })
 
+	/** Whether anything refers to [imageId]; stops at the first reference. */
+	suspend fun isUsed(imageId: Int): Boolean =
+		holders.any { holder -> guarded(holder, false) { holder.uses(imageId) } }
+
 	/** The id of every image something refers to, whether or not that image exists. */
 	suspend fun findReferencedIds(): Set<Int> =
 		holders.flatMapTo(mutableSetOf()) { holder -> guarded(holder, emptySet()) { holder.referencedIds() } }
@@ -73,6 +77,7 @@ class ImageReferenceRewriter(projectDef: ProjectDef) : ProjectScoped {
 	private interface Holder {
 		val name: String
 		suspend fun usages(imageId: Int): List<ImageUsage>
+		suspend fun uses(imageId: Int): Boolean
 		suspend fun referencedIds(): Set<Int>
 		suspend fun apply(edit: Edit): Set<TouchedEntity>
 	}
@@ -82,8 +87,11 @@ class ImageReferenceRewriter(projectDef: ProjectDef) : ProjectScoped {
 
 		override suspend fun usages(imageId: Int): List<ImageUsage> = eachEntry { def ->
 			val entry = encyclopediaRepository.loadEntry(def).entry
-			val used = imageId in entry.images || imageId in ImageReferenceSyntax.findIds(entry.text)
-			if (used) ImageUsage(entry.touched(), entry.name) else null
+			if (entry.uses(imageId)) ImageUsage(entry.touched(), entry.name) else null
+		}
+
+		override suspend fun uses(imageId: Int): Boolean = encyclopediaRepository.readEntryDefs().any { def ->
+			guarded("entry ${def.id}", false) { encyclopediaRepository.loadEntry(def).entry.uses(imageId) }
 		}
 
 		override suspend fun referencedIds(): Set<Int> = eachEntry { def ->
@@ -99,6 +107,9 @@ class ImageReferenceRewriter(projectDef: ProjectDef) : ProjectScoped {
 		}.toSet()
 
 		private fun EntryContent.touched() = TouchedEntity(EntityType.EncyclopediaEntry, id)
+
+		private fun EntryContent.uses(imageId: Int) =
+			imageId in images || imageId in ImageReferenceSyntax.findIds(text)
 
 		private suspend fun <T : Any> eachEntry(block: suspend (EntryDef) -> T?): List<T> =
 			encyclopediaRepository.readEntryDefs().mapNotNull { def ->

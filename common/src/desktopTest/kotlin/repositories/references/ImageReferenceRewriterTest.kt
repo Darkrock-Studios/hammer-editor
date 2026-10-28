@@ -30,6 +30,7 @@ import repositories.encyclopedia.entry1
 import repositories.encyclopedia.entry2
 import utils.BaseTest
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class ImageReferenceRewriterTest : BaseTest() {
@@ -119,6 +120,18 @@ class ImageReferenceRewriterTest : BaseTest() {
 		assertEquals(touched(1, 2), usages.usages.map { it.entity }.toSet())
 		assertEquals(setOf("Entry 1", "Entry 2"), usages.usages.map { it.name }.toSet())
 		assertTrue(ImageReferenceRewriter(projectDef).findUsages(99).isUnused)
+	}
+
+	@Test
+	fun `isUsed finds an image that is shown or embedded`() = runTest {
+		store(entry1().copy(text = "![a](hammer://image/7)"))
+		store(entry2().copy(images = listOf(5)))
+
+		val rewriter = ImageReferenceRewriter(projectDef)
+
+		assertTrue(rewriter.isUsed(5))
+		assertTrue(rewriter.isUsed(7))
+		assertFalse(rewriter.isUsed(99))
 	}
 
 	@Test

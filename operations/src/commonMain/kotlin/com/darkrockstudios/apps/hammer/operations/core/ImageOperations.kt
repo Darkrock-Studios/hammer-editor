@@ -68,7 +68,7 @@ internal fun imageOperations(): List<Operation<*, *>> = listOf(
 			project.requireImage(input.id)
 			val images = project.scope.get<ImagesService>()
 			val replaced = images.replace(input.id, input.extension, input.content).requireImage()
-			ImageSummary(replaced, inUse = input.id in images.findUsedImageIds())
+			ImageSummary(replaced, inUse = images.isUsed(input.id))
 		}
 	},
 	operation<ImageRenameInput, ImageSummary>(
@@ -81,7 +81,7 @@ internal fun imageOperations(): List<Operation<*, *>> = listOf(
 			project.requireImage(input.id)
 			val images = project.scope.get<ImagesService>()
 			val renamed = images.rename(input.id, input.name).requireImage()
-			ImageSummary(renamed, inUse = input.id in images.findUsedImageIds())
+			ImageSummary(renamed, inUse = images.isUsed(input.id))
 		}
 	},
 	operation<ProjectItemInput, ImageDeleted>(

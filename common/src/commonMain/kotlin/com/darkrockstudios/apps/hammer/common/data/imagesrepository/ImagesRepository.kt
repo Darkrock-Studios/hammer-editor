@@ -110,12 +110,7 @@ class ImagesRepository(
 	fun contentHash(def: ImageDef): String? {
 		val id = def.id
 		val stamp = imagesDatasource.getFileStamp(def)
-		if (stamp != null) {
-			hashLock.withLock {
-				val cached = hashCache[id]
-				if (cached != null && cached.def == def && cached.stamp == stamp) return cached.hash
-			}
-		}
+		if (stamp != null) cachedContentHash(def, stamp)?.let { return it }
 
 		val bytes = imagesDatasource.loadImageBytes(def) ?: return null
 		val hash = EntityHasher.hashImage(
@@ -128,6 +123,16 @@ class ImagesRepository(
 			hashLock.withLock { hashCache[id] = CachedHash(def, stamp, hash) }
 		}
 		return hash
+	}
+
+	fun getFileStamp(def: ImageDef): ImageFileStamp? = imagesDatasource.getFileStamp(def)
+
+	/**
+	 * The [contentHash] of [def] if one was computed while its file had [stamp]; null otherwise.
+	 * Never reads the file.
+	 */
+	fun cachedContentHash(def: ImageDef, stamp: ImageFileStamp): String? = hashLock.withLock {
+		hashCache[def.id]?.takeIf { it.def == def && it.stamp == stamp }?.hash
 	}
 
 	private fun invalidateHash(id: Int) {

@@ -31,8 +31,12 @@ class ImageGalleryComponent(
 	private var delivered = false
 	private var busyCount = 0
 
+	/** An image to select once [showImages] lists it. Main thread only. */
+	private var pendingSelection: Int? = null
+
 	override fun onCreate() {
 		super.onCreate()
+		// The only list refresh: the repository emits after each of its writes, including this gallery's.
 		scope.launch {
 			imagesService.imagesFlow.collect { defs -> showImages(defs) }
 		}
@@ -43,22 +47,35 @@ class ImageGalleryComponent(
 		val images = defs
 			.sortedWith(compareBy<ImageDef> { it.name.lowercase() }.thenBy { it.id })
 			.map { def ->
-				val file = imagesService.imageFile(def)
+				val stamp = imagesService.fileStamp(def)
 				ImageGallery.GalleryImage(
 					def = def,
-					path = file.path.path,
-					hash = file.contentHash,
+					path = imagesService.imagePath(def).path,
+					hash = stamp?.let { imagesService.cachedContentHash(def, it) },
+					stamp = stamp,
 					inUse = usedIds?.contains(def.id),
 				)
 			}
 		withContext(dispatcherMain) {
+			fun listed(id: Int) = images.any { it.def.id == id }
+			val pending = pendingSelection?.takeIf(::listed)
+			if (pending != null) pendingSelection = null
 			_state.getAndUpdate { current ->
 				current.copy(
 					images = images,
 					loaded = true,
-					selectedId = current.selectedId?.takeIf { id -> images.any { it.def.id == id } },
+					selectedId = (pending ?: current.selectedId)?.takeIf(::listed),
 				)
 			}
+		}
+	}
+
+	// Main thread only. The list may not have caught up with the write that produced [id] yet.
+	private fun selectWhenListed(id: Int) {
+		if (_state.value.images.any { it.def.id == id }) {
+			_state.getAndUpdate { it.copy(selectedId = id) }
+		} else {
+			pendingSelection = id
 		}
 	}
 
@@ -73,6 +90,7 @@ class ImageGalleryComponent(
 	}
 
 	override fun select(id: Int?) {
+		pendingSelection = null
 		_state.getAndUpdate { it.copy(selectedId = id) }
 	}
 
@@ -85,17 +103,12 @@ class ImageGalleryComponent(
 
 	override suspend fun addImage(path: String): ImageAddResult = whileBusy {
 		val outcome = imagesService.addFromPath(path)
-		outcome.image?.let { added ->
-			showImages(imagesService.ensureImagesLoaded())
-			withContext(dispatcherMain) { _state.getAndUpdate { it.copy(selectedId = added.id) } }
-		}
+		outcome.image?.let { added -> withContext(dispatcherMain) { selectWhenListed(added.id) } }
 		outcome.result
 	}
 
 	override suspend fun replaceImage(id: Int, path: String): ImageAddResult = whileBusy {
-		val outcome = imagesService.replaceFromPath(id, path)
-		if (outcome.image != null) showImages(imagesService.ensureImagesLoaded())
-		outcome.result
+		imagesService.replaceFromPath(id, path).result
 	}
 
 	override fun startRename(id: Int) {
@@ -104,10 +117,7 @@ class ImageGalleryComponent(
 
 	override suspend fun rename(id: Int, name: String): ImageAddResult = whileBusy {
 		val outcome = imagesService.rename(id, name)
-		if (outcome.image != null) {
-			showImages(imagesService.ensureImagesLoaded())
-			withContext(dispatcherMain) { endRename() }
-		}
+		if (outcome.image != null) withContext(dispatcherMain) { endRename() }
 		outcome.result
 	}
 
@@ -133,15 +143,8 @@ class ImageGalleryComponent(
 	override suspend fun confirmDelete() {
 		val request = _state.value.confirmDelete ?: return
 		withContext(dispatcherMain) { cancelDelete() }
-		whileBusy {
-			val result = imagesService.delete(request.id)
-			if (result.deleted) {
-				showImages(imagesService.ensureImagesLoaded())
-				withContext(dispatcherMain) {
-					_state.getAndUpdate { if (it.selectedId == request.id) it.copy(selectedId = null) else it }
-				}
-			}
-		}
+		// The list drops the image, and with it the selection, once the repository emits.
+		whileBusy { imagesService.delete(request.id) }
 	}
 
 	override fun pick(id: Int) {

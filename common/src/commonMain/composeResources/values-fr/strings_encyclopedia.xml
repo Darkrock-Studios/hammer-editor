@@ -24,8 +24,6 @@
 	<string name="encyclopedia_create_entry_image_browse_button">Parcourir les fichiers</string>
 	<string name="encyclopedia_create_entry_image_attached">1 pièce jointe</string>
 	<string name="encyclopedia_create_entry_image_replace">Remplacer</string>
-	<string name="encyclopedia_create_entry_image_too_large">L'image est trop volumineuse. La taille maximale est de %1$d Mo.</string>
-	<string name="encyclopedia_create_entry_image_load_failed">Impossible de lire l'image sélectionnée.</string>
 	<string name="encyclopedia_create_entry_create_button">Créer une entrée</string>
 	<string name="encyclopedia_create_entry_cancel_button">Annuler</string>
 	<string name="encyclopedia_create_entry_toast_success">Entrée créée</string>

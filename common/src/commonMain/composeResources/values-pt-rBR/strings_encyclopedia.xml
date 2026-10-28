@@ -24,8 +24,6 @@
 	<string name="encyclopedia_create_entry_image_browse_button">Procurar arquivos</string>
 	<string name="encyclopedia_create_entry_image_attached">1 anexada</string>
 	<string name="encyclopedia_create_entry_image_replace">Substituir</string>
-	<string name="encyclopedia_create_entry_image_too_large">A imagem é grande demais. O tamanho máximo é %1$d MB.</string>
-	<string name="encyclopedia_create_entry_image_load_failed">Não foi possível ler a imagem selecionada.</string>
 	<string name="encyclopedia_create_entry_create_button">Criar Verbete</string>
 	<string name="encyclopedia_create_entry_cancel_button">Cancelar</string>
 	<string name="encyclopedia_create_entry_toast_success">Verbete Criado</string>

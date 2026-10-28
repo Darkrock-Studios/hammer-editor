@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.common.components.images
 
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImageAddResult
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImageFileStamp
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageDef
 import com.darkrockstudios.apps.hammer.common.data.references.ImageUsages
 import kotlinx.serialization.Serializable
@@ -38,13 +39,21 @@ interface ImageGallery {
 		val selected: GalleryImage? get() = images.find { it.def.id == selectedId }
 	}
 
-	/** [hash] changes whenever the image's bytes do, so it keys image caches. [inUse] is null until known. */
+	/**
+	 * [hash] is the content hash only when something already computed it, as hashing reads the whole
+	 * file. [cacheToken] changes whenever the image's bytes do, so it keys image caches. [inUse] is
+	 * null until known.
+	 */
 	data class GalleryImage(
 		val def: ImageDef,
 		val path: String,
 		val hash: String?,
+		val stamp: ImageFileStamp?,
 		val inUse: Boolean?,
-	)
+	) {
+		val cacheToken: String
+			get() = hash ?: stamp?.let { "stamp:${it.size}-${it.lastModifiedAtMillis}" } ?: "missing"
+	}
 
 	data class DeleteRequest(val id: Int, val usages: ImageUsages)
 

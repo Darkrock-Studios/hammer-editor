@@ -24,8 +24,6 @@
 	<string name="encyclopedia_create_entry_image_browse_button">Sfoglia i file</string>
 	<string name="encyclopedia_create_entry_image_attached">1 allegata</string>
 	<string name="encyclopedia_create_entry_image_replace">Sostituisci</string>
-	<string name="encyclopedia_create_entry_image_too_large">L’immagine è troppo grande. La dimensione massima è %1$d MB.</string>
-	<string name="encyclopedia_create_entry_image_load_failed">Impossibile leggere l’immagine selezionata.</string>
 	<string name="encyclopedia_create_entry_create_button">Crea voce</string>
 	<string name="encyclopedia_create_entry_cancel_button">Annulla</string>
 	<string name="encyclopedia_create_entry_toast_success">Voce creata</string>

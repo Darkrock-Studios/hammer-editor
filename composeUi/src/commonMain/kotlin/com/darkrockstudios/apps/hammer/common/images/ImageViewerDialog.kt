@@ -77,10 +77,10 @@ data class ImageViewerItem(
 	val isGif: Boolean = false,
 ) {
 	companion object {
-		/** The image file at [path], whose content hash is [hash]. */
-		fun ofFile(path: String, hash: String?, label: String) = ImageViewerItem(
+		/** The image file at [path]; [version] changes whenever its bytes do, such as its content hash. */
+		fun ofFile(path: String, version: String?, label: String) = ImageViewerItem(
 			model = path,
-			cacheKey = "$path#$hash",
+			cacheKey = "$path#$version",
 			label = label,
 			isGif = path.substringAfterLast('.', "").equals("gif", ignoreCase = true),
 		)

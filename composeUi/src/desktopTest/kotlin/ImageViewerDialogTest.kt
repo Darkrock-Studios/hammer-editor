@@ -27,7 +27,7 @@ class ImageViewerDialogTest : BaseTest() {
 	val compose = createComposeRule()
 
 	private val items = listOf("Harbour", "Lighthouse", "Storm").mapIndexed { index, name ->
-		ImageViewerItem.ofFile(path = "/missing/$index.png", hash = "h$index", label = name)
+		ImageViewerItem.ofFile(path = "/missing/$index.png", version = "h$index", label = name)
 	}
 
 	private var dismissed = 0

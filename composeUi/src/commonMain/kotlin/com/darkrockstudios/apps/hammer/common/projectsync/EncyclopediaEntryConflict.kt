@@ -329,7 +329,7 @@ private fun ImageThumb(id: Int, file: ImageFile?, modifier: Modifier) {
 		}
 	} else {
 		AsyncImage(
-			model = rememberImageRequest(path = file.path.path, hash = file.contentHash),
+			model = rememberImageRequest(path = file.path.path, version = file.contentHash),
 			contentDescription = file.def.name,
 			contentScale = ContentScale.Crop,
 			modifier = modifier.background(MaterialTheme.colorScheme.surfaceContainerHigh),

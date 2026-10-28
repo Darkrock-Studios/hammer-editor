@@ -1,6 +1,5 @@
 package com.darkrockstudios.apps.hammer.common.encyclopedia
 
-import com.darkrockstudios.apps.hammer.base.image.ImageFormat
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionPlace
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
@@ -87,6 +86,10 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagChip
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagSuggestionStrip
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.glyph
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.rememberTagSuggestions
+import com.darkrockstudios.apps.hammer.common.compose.images.StagedImage
+import com.darkrockstudios.apps.hammer.common.compose.images.imageAddResultMessage
+import com.darkrockstudios.apps.hammer.common.compose.images.pickImageFile
+import com.darkrockstudios.apps.hammer.common.compose.images.stageImage
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownEditField
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownView
 import com.darkrockstudios.apps.hammer.common.compose.rememberDefaultDispatcher
@@ -95,7 +98,6 @@ import com.darkrockstudios.apps.hammer.common.compose.rememberMainDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
-import com.darkrockstudios.apps.hammer.common.compose.stageIntoCache
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryError
@@ -106,8 +108,6 @@ import com.darkrockstudios.apps.hammer.common.images.ImageViewerDialog
 import com.darkrockstudios.apps.hammer.common.images.ImageViewerItem
 import com.darkrockstudios.apps.hammer.common.data.tagindex.replaceTagPrefix
 import com.darkrockstudios.apps.hammer.common.util.StrRes
-import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_image_load_failed
-import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_image_too_large
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_tags_label
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_toast_alias_too_long
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_toast_invalid_name
@@ -144,7 +144,6 @@ import com.darkrockstudios.apps.hammer.encyclopedia_entry_edit_save_button
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_edit_save_toast
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_figure_caption
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_folio_format
-import com.darkrockstudios.apps.hammer.encyclopedia_entry_image_unsupported
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_name_hint
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_particulars_aliases
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_particulars_label
@@ -155,14 +154,7 @@ import com.darkrockstudios.apps.hammer.encyclopedia_entry_remove_image_message
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_remove_image_title
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_scene_index_format
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_tags_label
-import io.github.aakira.napier.Napier
-import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.PlatformFile
-import io.github.vinceglb.filekit.dialogs.FileKitPickerException
-import io.github.vinceglb.filekit.dialogs.FileKitType
-import io.github.vinceglb.filekit.dialogs.openFilePicker
-import io.github.vinceglb.filekit.path
-import io.github.vinceglb.filekit.size
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -240,35 +232,16 @@ internal fun ViewEntryUi(
 		component.finishTextEdit()
 	}
 
+	suspend fun reportImage(result: ImageAddResult) {
+		imageAddResultMessage(result, strRes)?.let { rootSnackbar.showSnackbar(it) }
+	}
+
 	suspend fun importPicked(file: PlatformFile) {
-		if (file.size() > ImageFormat.MAX_IMAGE_BYTES) {
-			rootSnackbar.showSnackbar(
-				strRes.get(Res.string.encyclopedia_create_entry_image_too_large, ImageFormat.MAX_IMAGE_MB)
-			)
-			return
+		val result = when (val staged = file.stageImage(dispatcherIo)) {
+			is StagedImage.Staged -> component.importImage(staged.path)
+			is StagedImage.Failed -> staged.result
 		}
-		val localCopy = withContext(dispatcherIo) { file.stageIntoCache() }
-		if (localCopy == null) {
-			rootSnackbar.showSnackbar(strRes.get(Res.string.encyclopedia_create_entry_image_load_failed))
-			return
-		}
-		val message = when (component.importImage(localCopy.path)) {
-			ImageAddResult.Ok -> null
-			ImageAddResult.TooLarge -> strRes.get(
-				Res.string.encyclopedia_create_entry_image_too_large,
-				ImageFormat.MAX_IMAGE_MB,
-			)
-
-			ImageAddResult.UnsupportedType -> strRes.get(
-				Res.string.encyclopedia_entry_image_unsupported,
-				ImageFormat.ALLOWED_EXTENSIONS.joinToString(),
-			)
-
-			ImageAddResult.ReadFailed, ImageAddResult.NameInvalid -> strRes.get(
-				Res.string.encyclopedia_create_entry_image_load_failed
-			)
-		}
-		message?.let { rootSnackbar.showSnackbar(it) }
+		reportImage(result)
 	}
 
 	val primaryImageModifier = with(sharedTransitionScope) {
@@ -475,15 +448,7 @@ internal fun ViewEntryUi(
 
 	LaunchedEffect(state.showAddImageDialog) {
 		if (state.showAddImageDialog) {
-			val file = try {
-				FileKit.openFilePicker(type = FileKitType.File(ImageFormat.ALLOWED_EXTENSIONS))
-			} catch (e: FileKitPickerException) {
-				Napier.e("Image picker failed", e)
-				rootSnackbar.showSnackbar(
-					strRes.get(Res.string.encyclopedia_create_entry_image_load_failed)
-				)
-				null
-			}
+			val file = pickImageFile(::reportImage)
 			// Imported outside this effect: closing the dialog below restarts it.
 			if (file != null) scope.launch { importPicked(file) }
 			component.closeAddImageDialog()

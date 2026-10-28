@@ -50,16 +50,20 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineTog
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineTypePicker
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.glyph
+import com.darkrockstudios.apps.hammer.common.compose.images.StagedImage
+import com.darkrockstudios.apps.hammer.common.compose.images.imageAddResultMessage
+import com.darkrockstudios.apps.hammer.common.compose.images.pickImageFile
+import com.darkrockstudios.apps.hammer.common.compose.images.stageImage
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownEditField
 import com.darkrockstudios.apps.hammer.common.compose.rememberIoDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.rememberSaveableStringList
 import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
-import com.darkrockstudios.apps.hammer.common.compose.stageIntoCache
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryError
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImageAddResult
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_cancel_button
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_cover_art_label
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_create_button
@@ -70,9 +74,7 @@ import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_header
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_image_attached
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_image_browse_button
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_image_drop_hint
-import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_image_load_failed
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_image_replace
-import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_image_too_large
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_name_label
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_name_placeholder
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_section_marker
@@ -87,17 +89,9 @@ import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_toast_name_too_
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_toast_success
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_toast_tag_too_long
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_toast_too_long
-import io.github.aakira.napier.Napier
-import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.PlatformFile
-import io.github.vinceglb.filekit.dialogs.FileKitPickerException
-import io.github.vinceglb.filekit.dialogs.FileKitType
-import io.github.vinceglb.filekit.dialogs.openFilePicker
-import io.github.vinceglb.filekit.path
-import io.github.vinceglb.filekit.size
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 const val ENCYCLOPEDIA_CREATE_NAME_TAG = "encyclopedia-create-name"
 const val ENCYCLOPEDIA_CREATE_TAGS_TAG = "encyclopedia-create-tags"
@@ -122,25 +116,16 @@ internal fun CreateEntryUi(
 	var selectedType by rememberSaveable { mutableStateOf(EntryType.PERSON) }
 	var excludeFromDictionary by rememberSaveable { mutableStateOf(false) }
 
-	var imagePath by remember { mutableStateOf<PlatformFile?>(null) }
+	var imagePath by remember { mutableStateOf<String?>(null) }
+
+	suspend fun reportImage(result: ImageAddResult) {
+		imageAddResultMessage(result, strRes)?.let { rootSnackbar.showSnackbar(it) }
+	}
 
 	suspend fun applyImage(picked: PlatformFile) {
-		if (picked.size() > ImageFormat.MAX_IMAGE_BYTES) {
-			rootSnackbar.showSnackbar(
-				strRes.get(
-					Res.string.encyclopedia_create_entry_image_too_large,
-					ImageFormat.MAX_IMAGE_MB,
-				)
-			)
-		} else {
-			val localCopy = withContext(dispatcherIo) { picked.stageIntoCache() }
-			if (localCopy != null) {
-				imagePath = localCopy
-			} else {
-				rootSnackbar.showSnackbar(
-					strRes.get(Res.string.encyclopedia_create_entry_image_load_failed)
-				)
-			}
+		when (val staged = picked.stageImage(dispatcherIo)) {
+			is StagedImage.Staged -> imagePath = staged.path
+			is StagedImage.Failed -> reportImage(staged.result)
 		}
 	}
 
@@ -222,16 +207,7 @@ internal fun CreateEntryUi(
 					label = Res.string.encyclopedia_create_entry_cover_art_label.get(),
 					onClick = {
 						scope.launch {
-							val picked = try {
-								FileKit.openFilePicker(type = FileKitType.File(ImageFormat.ALLOWED_EXTENSIONS))
-							} catch (e: FileKitPickerException) {
-								Napier.e("Image picker failed", e)
-								rootSnackbar.showSnackbar(
-									strRes.get(Res.string.encyclopedia_create_entry_image_load_failed)
-								)
-								null
-							}
-							if (picked != null) applyImage(picked)
+							pickImageFile(::reportImage)?.let { applyImage(it) }
 						}
 					},
 					onFilesDropped = { files ->
@@ -247,7 +223,7 @@ internal fun CreateEntryUi(
 					image = if (attachedImage != null) {
 						{
 							AsyncImage(
-								model = attachedImage.path,
+								model = attachedImage,
 								contentDescription = null,
 								modifier = Modifier.fillMaxSize(),
 								contentScale = ContentScale.Crop,
@@ -279,7 +255,7 @@ internal fun CreateEntryUi(
 							type = selectedType,
 							text = description,
 							tags = tags.toSet(),
-							imagePath = imagePath?.path,
+							imagePath = imagePath,
 							excludeFromDictionary = excludeFromDictionary,
 						)
 						val message = when (result.error) {
