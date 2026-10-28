@@ -328,6 +328,7 @@ val mainModule = module {
 				exporters = get(),
 				projectPlugins = get(),
 				projectDataDatasource = get(),
+				imagesRepository = get(),
 				fileSystem = get(named(RAW_FILESYSTEM)),
 				localeResolver = get(),
 				strRes = get(),

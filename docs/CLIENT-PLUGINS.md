@@ -488,10 +488,10 @@ class ExportInput(
   shows its manifest label, or its file extension in upper case.
 - **Images.** Chapter markdown embeds a project image as a line of its own,
   `![name](hammer://image/<id>)`, which only Hammer can resolve: the app, and
-  the server's web reader, which serves the image itself. An exported file
-  cannot load it, so the EPUB, DOCX, RTF and PDF formats write each image as its
-  alt text, the image's name; the Markdown format keeps the reference as
-  written.
+  the server's web reader, which serves the image itself. The EPUB format
+  packages each referenced image in the book and writes an `img` tag for it;
+  DOCX, RTF and PDF write the image as its alt text, the image's name; the
+  Markdown format keeps the reference as written.
 
 Importers have no plugin seam: `ImportFormat` is a closed enum.
 

@@ -17,6 +17,9 @@ interface StoryExporter {
 	/** False for formats that ignore project data, which skips loading it. */
 	val needsProjectData: Boolean get() = true
 
+	/** True for formats that package project images, which is the only time their files are read. */
+	val embedsImages: Boolean get() = false
+
 	fun render(sink: BufferedSink, input: ExportInput)
 }
 
@@ -34,6 +37,14 @@ data class StoryChapter(val name: String, val scenes: List<String>, val separato
 fun sceneSeparator(options: ExportOptions): String =
 	if (options.keepBlankLines || options.format == BuiltInExportFormat.MARKDOWN) "\n\n" else "\n\n\n"
 
+/** A project image as read from disk for an export. */
+class ExportImage(
+	val id: Int,
+	val name: String,
+	val fileExtension: String,
+	val bytes: ByteArray,
+)
+
 class ExportInput(
 	val projectName: String,
 	/** Null only when the exporter does not need project data. */
@@ -45,6 +56,8 @@ class ExportInput(
 	val options: ExportOptions,
 	val language: String,
 	val strings: ExportStrings,
+	/** The project images the story refers to, by id; empty unless the exporter [StoryExporter.embedsImages]. */
+	val images: Map<Int, ExportImage> = emptyMap(),
 ) {
 	fun requireProjectData(): ProjectData =
 		requireNotNull(projectData) { "Project data is required for this export format" }

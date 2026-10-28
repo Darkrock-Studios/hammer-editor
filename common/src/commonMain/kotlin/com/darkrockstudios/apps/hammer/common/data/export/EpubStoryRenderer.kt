@@ -10,15 +10,22 @@ import kotlinx.html.*
 import kotlinx.html.stream.appendHTML
 import okio.BufferedSink
 import com.darkrockstudios.apps.hammer.base.markdown.ProseHtml
+import com.darkrockstudios.apps.hammer.common.data.references.ImageReferenceSyntax
 import org.intellij.markdown.MarkdownElementTypes
+import org.intellij.markdown.MarkdownTokenTypes
 import org.intellij.markdown.ast.ASTNode
+import org.intellij.markdown.ast.LeafASTNode
 import org.intellij.markdown.flavours.gfm.GFMFlavourDescriptor
+import org.intellij.markdown.flavours.gfm.GFMTokenTypes
 import org.intellij.markdown.html.HtmlGenerator
 import org.intellij.markdown.html.ImageGeneratingProvider
 import org.intellij.markdown.parser.LinkMap
 import org.intellij.markdown.parser.MarkdownParser
 
 private data class TocEntry(val title: String, val href: String)
+
+/** An image packaged in the book; [href] is relative to the chapter files. */
+private class PackagedImage(val href: String, val resource: Resource)
 
 fun writeStoryAsEpub(
 	sink: BufferedSink,
@@ -28,8 +35,10 @@ fun writeStoryAsEpub(
 	language: String,
 	strings: ExportStrings,
 	options: ExportOptions = ExportOptions(),
+	images: Map<Int, ExportImage> = emptyMap(),
 ) {
 	val authorName = projectData.authorName?.takeIf { it.isNotBlank() }
+	val packagedImages = images.values.mapNotNull { image -> packageImage(image)?.let { image.id to it } }.toMap()
 
 	val book = Book().apply {
 		metadata.addTitle(projectName)
@@ -37,6 +46,9 @@ fun writeStoryAsEpub(
 		metadata.language = language
 
 		addStylesheet(buildStylesheet(projectData.theme, options.font))
+
+		packagedImages.values.forEach { addResource(it.resource) }
+		projectData.coverImageId?.let(packagedImages::get)?.let { coverImage = it.resource }
 
 		val effective = chapters.ifEmpty { listOf(StoryChapter(projectName, "")) }
 		val tocEntries = effective.mapIndexed { index, chapter ->
@@ -72,7 +84,9 @@ fun writeStoryAsEpub(
 					id = "ch${index + 1}",
 					href = entry.href,
 					title = chapter.name,
-					bodyBuilder = { chapterBody(entry.title, chapter.markdown, options.keepBlankLines) },
+					bodyBuilder = {
+						chapterBody(entry.title, chapter.markdown, options.keepBlankLines, packagedImages)
+					},
 				),
 			)
 		}
@@ -106,6 +120,7 @@ private fun buildStylesheet(theme: ProjectTheme?, font: ExportFont): Stylesheet 
 		nav.toc li.toc-item { margin: 0.6em 0; text-indent: 0; }
 		nav.toc li.toc-item a { text-decoration: none; }
 		.user-del { text-decoration: line-through; }
+		img { display: block; max-width: 100%; height: auto; margin: 1em auto; }
 		""".trimIndent(),
 	)
 
@@ -180,32 +195,87 @@ private fun BODY.titlePageBody(projectName: String, authorName: String?) {
 	}
 }
 
-private fun BODY.chapterBody(chapterTitle: String, markdown: String, keepBlankLines: Boolean) {
+private fun BODY.chapterBody(
+	chapterTitle: String,
+	markdown: String,
+	keepBlankLines: Boolean,
+	images: Map<Int, PackagedImage>,
+) {
 	h1(classes = "chapter-title") { +chapterTitle }
 	val flavour = GFMFlavourDescriptor()
 	val source = ProseHtml.normalizeLineEndings(markdown)
 	val parsed = MarkdownParser(flavour).buildMarkdownTreeFromString(source)
 	val linkMap = LinkMap.buildLinkMap(parsed, source)
 	val providers = ProseHtml.providers(flavour, linkMap, keepBlankLines) +
-		(MarkdownElementTypes.IMAGE to ImageAltTextProvider(linkMap))
+		(MarkdownElementTypes.IMAGE to EpubImageProvider(linkMap, images))
 	val htmlBody = HtmlGenerator(source, parsed, providers).generateHtml()
 	val xhtmlBody = htmlBody.selfCloseHtmlVoidTags()
 	unsafe { +xhtmlBody }
 }
 
 /**
- * Writes an image as its alt text. An EPUB reader loads only resources packaged in the book, and
- * neither a `hammer://image` reference nor a web address is one.
+ * Writes a `hammer://image` reference to a packaged image as an `img` of it, and any other image as
+ * its alt text: an EPUB reader loads only resources packaged in the book.
  */
-private class ImageAltTextProvider(linkMap: LinkMap) : ImageGeneratingProvider(linkMap, null) {
+private class EpubImageProvider(
+	linkMap: LinkMap,
+	private val images: Map<Int, PackagedImage>,
+) : ImageGeneratingProvider(linkMap, null) {
 	override fun renderLink(
 		visitor: HtmlGenerator.HtmlGeneratingVisitor,
 		text: String,
 		node: ASTNode,
 		info: RenderInfo,
 	) {
-		labelProvider.processNode(visitor, text, info.label)
+		val image = ImageReferenceSyntax.parseId(info.destination.toString())?.let(images::get)
+		if (image == null) {
+			labelProvider.processNode(visitor, text, info.label)
+		} else {
+			val alt = plainAltText(info.label, text)
+			// Written as an HTML void tag; selfCloseHtmlVoidTags closes it for XHTML.
+			visitor.consumeTagOpen(node, "img", "src=\"${image.href}\"", "alt=\"$alt\"")
+		}
 	}
+}
+
+private val altMarkupTokens = setOf(MarkdownTokenTypes.EMPH, MarkdownTokenTypes.BACKTICK, GFMTokenTypes.TILDE)
+
+/**
+ * The label's text without its brackets or emphasis markup. [HtmlGenerator.leafText] resolves Markdown
+ * escapes and entities and escapes `& < > "`, so the result is safe in an attribute.
+ */
+private fun plainAltText(label: ASTNode, text: String): String = buildString {
+	fun visit(node: ASTNode) {
+		when {
+			node.type in altMarkupTokens -> Unit
+			node is LeafASTNode -> append(HtmlGenerator.leafText(text, node))
+			else -> node.children.forEach(::visit)
+		}
+	}
+	val children = label.children
+	children.forEachIndexed { index, child ->
+		val isBracket = (index == 0 && child.type == MarkdownTokenTypes.LBRACKET) ||
+			(index == children.lastIndex && child.type == MarkdownTokenTypes.RBRACKET)
+		if (!isBracket) visit(child)
+	}
+}
+
+private val webpMediaType = MediaType("image/webp", ".webp")
+
+private fun packageImage(image: ExportImage): PackagedImage? {
+	val extension = image.fileExtension.lowercase()
+	val mediaType = when (extension) {
+		"jpg", "jpeg" -> MediaTypes.JPG
+		"png" -> MediaTypes.PNG
+		"gif" -> MediaTypes.GIF
+		"svg" -> MediaTypes.SVG
+		"webp" -> webpMediaType
+		else -> return null
+	}
+	val href = "images/${image.id}.$extension"
+	val resource = Resource(id = "img${image.id}", data = image.bytes, href = href)
+		.apply { this.mediaType = mediaType }
+	return PackagedImage(href, resource)
 }
 
 private val voidTagPattern = Regex(

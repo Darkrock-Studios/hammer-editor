@@ -5,12 +5,15 @@ import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.common.data.export.ExportStoryUseCase
 import com.darkrockstudios.apps.hammer.common.data.export.BuiltInExportFormat
 import com.darkrockstudios.apps.hammer.common.data.export.ExportFileName
+import com.darkrockstudios.apps.hammer.common.data.export.ExportImage
 import com.darkrockstudios.apps.hammer.common.data.export.ExportInput
 import com.darkrockstudios.apps.hammer.common.data.export.ExporterSource
 import com.darkrockstudios.apps.hammer.common.data.export.exportFileName
 import com.darkrockstudios.apps.hammer.common.data.export.StoryExporter
 import com.darkrockstudios.apps.hammer.common.data.export.StoryExporterRegistry
 import com.darkrockstudios.apps.hammer.common.data.ExportOptions
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesRepository
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageDef
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectdata.StoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectPluginsDatasource
@@ -22,8 +25,10 @@ import com.darkrockstudios.apps.hammer.common.util.Locale
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import integration.BaseIntegrationTest
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.jetbrains.compose.resources.StringResource
@@ -31,6 +36,7 @@ import org.junit.jupiter.api.BeforeEach
 import okio.BufferedSink
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.Test
+import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
@@ -42,6 +48,7 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 	private lateinit var localeResolver: DeviceLocaleResolver
 	private lateinit var strRes: StrRes
 	private lateinit var projectPlugins: ProjectPluginsRepository
+	private lateinit var imagesRepository: ImagesRepository
 	private var projectDataLoads = 0
 
 	@BeforeEach
@@ -61,6 +68,10 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 		}
 		strRes = mockk(relaxed = true)
 		projectPlugins = ProjectPluginsRepository(ProjectPluginsDatasource(FakeFileSystem(), createTomlSerializer()))
+		imagesRepository = mockk {
+			coEvery { loadImages() } returns emptyList()
+			every { loadImageBytes(any()) } returns null
+		}
 	}
 
 	private suspend fun initRepo() {
@@ -75,6 +86,7 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 		exporters = StoryExporterRegistry(contributed, sources),
 		projectPlugins = projectPlugins,
 		projectDataDatasource = projectDataDatasource,
+		imagesRepository = imagesRepository,
 		fileSystem = ffs,
 		localeResolver = localeResolver,
 		strRes = strRes,
@@ -173,6 +185,80 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 		assertTrue("Unsaved edit of scene id 1" in text, "Export should carry the unsaved buffer, got: $text")
 		assertTrue("Content of scene id 1" !in text, "Export should not carry the stale on-disk scene, got: $text")
 		assertTrue("Content of scene id 3" in text, "Scenes without a buffer still come from disk, got: $text")
+	}
+
+	/** Records the input it is given; embeds images when [embedsImages]. */
+	private class CapturingExporter(override val embedsImages: Boolean) : StoryExporter {
+		override val formatId = "fake.capture"
+		override val fileExtension = "txt"
+		override val mimeType = "text/plain"
+		var input: ExportInput? = null
+
+		override fun render(sink: BufferedSink, input: ExportInput) {
+			this.input = input
+		}
+	}
+
+	private suspend fun writeSceneBuffer(sceneId: Int, markdown: String) {
+		val buffer = sceneDatasource.getSceneBufferDirectory().toOkioPath() / "$sceneId.md"
+		ffs.write(buffer) { writeUtf8(markdown) }
+		sceneContentRepository.initialize()
+	}
+
+	@Test
+	fun `an exporter that embeds images gets the referenced images and the cover`() = runTest {
+		initRepo()
+		writeSceneBuffer(1, "Text.\n\n![Cat](hammer://image/1)\n\n![Gone](hammer://image/2)\n\n![Lost](hammer://image/7)")
+		storedProjectData = StoredProjectData(data = ProjectData(coverImageId = 5))
+		val unreferenced = ImageDef(id = 9, name = "Unused", fileExtension = "png")
+		imagesRepository = mockk {
+			coEvery { loadImages() } returns listOf(
+				ImageDef(id = 1, name = "Cat", fileExtension = "png"),
+				ImageDef(id = 2, name = "Gone", fileExtension = "jpg"),
+				ImageDef(id = 5, name = "Cover", fileExtension = "webp"),
+				unreferenced,
+			)
+			every { loadImageBytes(match { it.id == 1 }) } returns byteArrayOf(1)
+			every { loadImageBytes(match { it.id == 2 }) } returns null
+			every { loadImageBytes(match { it.id == 5 }) } returns byteArrayOf(5)
+			every { loadImageBytes(unreferenced) } returns byteArrayOf(9)
+		}
+		val exporter = CapturingExporter(embedsImages = true)
+
+		useCase(listOf(exporter)).render(ExportOptions(format = exporter.formatId))
+
+		val images: Map<Int, ExportImage> = checkNotNull(exporter.input).images
+		assertEquals(setOf(1, 5), images.keys, "Only referenced images with readable files should load")
+		assertEquals("Cat", images.getValue(1).name)
+		assertEquals("png", images.getValue(1).fileExtension)
+		assertContentEquals(byteArrayOf(1), images.getValue(1).bytes)
+		assertContentEquals(byteArrayOf(5), images.getValue(5).bytes)
+		verify(exactly = 0) { imagesRepository.loadImageBytes(unreferenced) }
+	}
+
+	@Test
+	fun `an exporter that does not embed images never reads them`() = runTest {
+		initRepo()
+		writeSceneBuffer(1, "![Cat](hammer://image/1)")
+		storedProjectData = StoredProjectData(data = ProjectData(coverImageId = 1))
+		val exporter = CapturingExporter(embedsImages = false)
+
+		useCase(listOf(exporter)).render(ExportOptions(format = exporter.formatId))
+
+		assertEquals(emptyMap(), checkNotNull(exporter.input).images)
+		coVerify(exactly = 0) { imagesRepository.loadImages() }
+		verify(exactly = 0) { imagesRepository.loadImageBytes(any()) }
+	}
+
+	@Test
+	fun `a story without image references reads no images`() = runTest {
+		initRepo()
+		val exporter = CapturingExporter(embedsImages = true)
+
+		useCase(listOf(exporter)).render(ExportOptions(format = exporter.formatId))
+
+		assertEquals(emptyMap(), checkNotNull(exporter.input).images)
+		coVerify(exactly = 0) { imagesRepository.loadImages() }
 	}
 
 	@Test

@@ -3,8 +3,10 @@ package com.darkrockstudios.apps.hammer.common.data.export
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.common.data.ExportOptions
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesRepository
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectPluginsRepository
+import com.darkrockstudios.apps.hammer.common.data.references.ImageReferenceSyntax
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.tree.ChapterScenes
 import com.darkrockstudios.apps.hammer.common.data.tree.collectChapters
@@ -42,6 +44,7 @@ class ExportStoryUseCase(
 	private val exporters: StoryExporterRegistry,
 	private val projectPlugins: ProjectPluginsRepository,
 	private val projectDataDatasource: ProjectDataDatasource,
+	private val imagesRepository: ImagesRepository,
 	private val fileSystem: FileSystem,
 	private val localeResolver: DeviceLocaleResolver,
 	private val strRes: StrRes,
@@ -89,6 +92,7 @@ class ExportStoryUseCase(
 			val language = projectData?.language?.takeIf { it.isNotBlank() }
 				?: localeResolver.getCurrentLocale().language?.takeIf { it.isNotBlank() }
 				?: "en"
+			val images = if (exporter.embedsImages) loadImages(chapters, projectData) else emptyMap()
 			ExportInput(
 				projectName = projectName,
 				projectData = projectData,
@@ -97,6 +101,7 @@ class ExportStoryUseCase(
 				options = options,
 				language = language,
 				strings = resolveExportStrings(projectData),
+				images = images,
 			)
 		}
 
@@ -109,6 +114,24 @@ class ExportStoryUseCase(
 	private suspend fun exporterFor(format: String): StoryExporter {
 		val disabledPlugins = projectPlugins.disabledPlugins(sceneEditorRepository.projectDef.id).first()
 		return exporters.forFormat(format, disabledPlugins)
+	}
+
+	/** The images the scenes and the cover refer to; one without a readable file is left out. */
+	private suspend fun loadImages(chapters: List<StoryChapter>, projectData: ProjectData?): Map<Int, ExportImage> {
+		val ids = chapters.flatMapTo(mutableSetOf()) { chapter ->
+			chapter.scenes.flatMap(ImageReferenceSyntax::findIds)
+		}
+		projectData?.coverImageId?.let(ids::add)
+		if (ids.isEmpty()) return emptyMap()
+
+		return imagesRepository.loadImages()
+			.filter { it.id in ids }
+			.mapNotNull { def ->
+				imagesRepository.loadImageBytes(def)?.let { bytes ->
+					ExportImage(id = def.id, name = def.name, fileExtension = def.fileExtension, bytes = bytes)
+				}
+			}
+			.associateBy { it.id }
 	}
 
 	/** Resolves the user-facing strings that appear inside the exported document for the active locale. */

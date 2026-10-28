@@ -22,6 +22,7 @@ private object EpubStoryExporter : StoryExporter {
 	override val formatId = BuiltInExportFormat.EPUB
 	override val fileExtension = "epub"
 	override val mimeType = "application/epub+zip"
+	override val embedsImages = true
 
 	override fun render(sink: BufferedSink, input: ExportInput) = writeStoryAsEpub(
 		sink = sink,
@@ -31,6 +32,7 @@ private object EpubStoryExporter : StoryExporter {
 		language = input.language,
 		strings = input.strings,
 		options = input.options,
+		images = input.images,
 	)
 }
 
