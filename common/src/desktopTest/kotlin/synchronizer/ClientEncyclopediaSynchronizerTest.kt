@@ -29,8 +29,8 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.impl.annotations.MockK
+import io.mockk.mockk
 import kotlinx.coroutines.launch
-import korlibs.crypto.encoding.Base64
 import kotlinx.coroutines.test.runTest
 import net.peanuuutz.tomlkt.Toml
 import okio.fakefilesystem.FakeFileSystem
@@ -41,7 +41,6 @@ import org.koin.dsl.module
 import repositories.encyclopedia.entry1
 import repositories.encyclopedia.entry2
 import utils.BaseTest
-import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
@@ -124,7 +123,6 @@ class ClientEncyclopediaSynchronizerTest : BaseTest() {
 			projectDef = projectDef,
 			toml = toml,
 			fileSystem = fileSystem,
-			externalFileIo = externalFileIo,
 		)
 		repository = EncyclopediaRepository(
 			projectDef = projectDef,
@@ -138,6 +136,8 @@ class ClientEncyclopediaSynchronizerTest : BaseTest() {
 			repository = repository,
 			statisticsRepository = statisticsRepository,
 			referenceIndexRepository = referenceIndexRepository,
+			imagesRepository = mockk(relaxed = true),
+			externalFileIo = externalFileIo,
 		)
 		remapper = RecordingReferenceRemapper()
 	}
@@ -169,21 +169,31 @@ class ClientEncyclopediaSynchronizerTest : BaseTest() {
 		assertEquals(EntryType.PERSON.text, entity.entryType)
 		assertEquals(entry1().text, entity.text)
 		assertEquals(entry1().tags, entity.tags)
-		assertNull(entity.image)
+		assertTrue(entity.images.isEmpty())
 	}
 
 	@Test
-	fun `createEntityForId round-trips the entry image as base64`() = runTest {
-		val imageBytes = byteArrayOf(1, 2, 3, 4, 5, 6, 7, 8)
-		datasource.writeEntryImage(entry1().toDef(projectDef), imageBytes, "jpg")
+	fun `createEntityForId carries the entry's image ids in order`() = runTest {
+		repository.addEntryImage(entry1().toDef(projectDef), 12)
+		repository.addEntryImage(entry1().toDef(projectDef), 4)
 
+		val entity = newSynchronizer().createEntityForId(entry1().id)
+
+		assertEquals(listOf(12, 4), entity.images)
+	}
+
+	@Test
+	fun `getEntityHash matches the API model hash, with and without images`() = runTest {
 		val sync = newSynchronizer()
-		val entity = sync.createEntityForId(entry1().id)
+		assertEquals(sync.createEntityForId(entry1().id).hash(), sync.getEntityHash(entry1().id))
 
-		val image = entity.image
-		assertNotNull(image)
-		assertEquals("jpg", image.fileExtension)
-		assertContentEquals(imageBytes, Base64.decode(image.base64, url = true))
+		repository.addEntryImage(entry1().toDef(projectDef), 12)
+		repository.addEntryImage(entry1().toDef(projectDef), 4)
+		assertEquals(sync.createEntityForId(entry1().id).hash(), sync.getEntityHash(entry1().id))
+
+		repository.setPrimaryImage(entry1().toDef(projectDef), 4)
+		val reordered = sync.getEntityHash(entry1().id)
+		assertEquals(sync.createEntityForId(entry1().id).hash(), reordered)
 	}
 
 	@Test
@@ -231,131 +241,38 @@ class ClientEncyclopediaSynchronizerTest : BaseTest() {
 	}
 
 	@Test
-	fun `storeEntity writes a server-provided image to disk`() = runTest {
-		val imageBytes = byteArrayOf(9, 8, 7, 6)
+	fun `storeEntity stores the server's image ids as given, with a stable hash`() = runTest {
 		val sync = newSynchronizer()
-		val serverEntity = sync.createEntityForId(entry1().id).copy(
-			image = com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity.EncyclopediaEntryEntity.Image(
-				base64 = Base64.encode(imageBytes, url = true),
-				fileExtension = "jpg",
-			)
-		)
+		// Image 77 has not arrived on this device; the reference is kept anyway.
+		val serverEntity = sync.createEntityForId(entry1().id).copy(images = listOf(77, 5))
 
 		sync.storeEntity(serverEntity, syncId = "sync", onLog = {})
 
-		val def = entry1().toDef(projectDef)
-		assertTrue(datasource.hasEntryImage(def, "jpg"))
-		assertContentEquals(imageBytes, datasource.loadEntryImage(def, "jpg"))
-	}
-
-	@Test
-	fun `storeEntity rejects a traversal file extension and writes no image but still stores the entry`() = runTest {
-		val imageBytes = byteArrayOf(4, 5, 6)
-		val sync = newSynchronizer()
-		val serverEntity = sync.createEntityForId(entry1().id).copy(
-			text = "Stored anyway",
-			image = com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity.EncyclopediaEntryEntity.Image(
-				base64 = Base64.encode(imageBytes, url = true),
-				fileExtension = "jpg/../../../../evil",
-			),
-		)
-
-		val before = allRegularFiles()
-
-		val stored = sync.storeEntity(serverEntity, syncId = "sync", onLog = {})
-
-		assertTrue(stored)
-		assertEquals("Stored anyway", repository.loadEntry(entry1().id).entry.text)
-		// Storing rewrites the entry file itself, so count files rather than compare paths.
-		assertEquals(before.size, allRegularFiles().size, "No file may be created anywhere")
-		assertNull(datasource.findEntryImagePath(entry1().toDef(projectDef)))
-	}
-
-	@Test
-	fun `storeEntity rejects an unknown image extension`() = runTest {
-		val sync = newSynchronizer()
-		val serverEntity = sync.createEntityForId(entry1().id).copy(
-			image = com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity.EncyclopediaEntryEntity.Image(
-				base64 = Base64.encode(byteArrayOf(1), url = true),
-				fileExtension = "exe",
-			),
-		)
-
-		val before = allRegularFiles()
-		sync.storeEntity(serverEntity, syncId = "sync", onLog = {})
-
-		assertEquals(before.size, allRegularFiles().size, "No file may be created anywhere")
-		assertNull(datasource.findEntryImagePath(entry1().toDef(projectDef)))
-	}
-
-	@Test
-	fun `storeEntity writes a png image with an allowed extension`() = runTest {
-		val imageBytes = byteArrayOf(7, 7, 7)
-		val sync = newSynchronizer()
-		val serverEntity = sync.createEntityForId(entry1().id).copy(
-			image = com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity.EncyclopediaEntryEntity.Image(
-				base64 = Base64.encode(imageBytes, url = true),
-				fileExtension = "png",
-			),
-		)
-
-		sync.storeEntity(serverEntity, syncId = "sync", onLog = {})
-
-		val def = entry1().toDef(projectDef)
-		assertTrue(datasource.hasEntryImage(def, "png"))
-		assertContentEquals(imageBytes, datasource.loadEntryImage(def, "png"))
-	}
-
-	@Test
-	fun `a non-jpg synced image round-trips with a stable hash and is cleared on server-clear`() = runTest {
-		val imageBytes = byteArrayOf(10, 20, 30, 40)
-		val sync = newSynchronizer()
-		val serverEntity = sync.createEntityForId(entry1().id).copy(
-			image = com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity.EncyclopediaEntryEntity.Image(
-				base64 = Base64.encode(imageBytes, url = true),
-				fileExtension = "png",
-			),
-		)
-
-		// Download: the png is stored under its real extension, no stray jpg.
-		sync.storeEntity(serverEntity, syncId = "sync", onLog = {})
-		val def = entry1().toDef(projectDef)
-		assertTrue(datasource.hasEntryImage(def, "png"))
-		assertFalse(datasource.hasEntryImage(def, "jpg"))
-
-		// The locally recomputed hash agrees with the server's, so the entry is not
-		// flagged dirty and re-synced on every run.
+		assertEquals(listOf(77, 5), repository.loadEntry(entry1().id).entry.images)
 		assertEquals(serverEntity.hash(), sync.getEntityHash(entry1().id))
-
-		// Re-upload reports the real extension and the original bytes.
-		val reuploaded = sync.createEntityForId(entry1().id)
-		assertEquals("png", reuploaded.image?.fileExtension)
-		assertContentEquals(imageBytes, Base64.decode(reuploaded.image!!.base64, url = true))
-
-		// Server-clear removes the stored file rather than orphaning it.
-		sync.storeEntity(serverEntity.copy(image = null), syncId = "sync", onLog = {})
-		assertNull(datasource.findEntryImagePath(def))
-		assertFalse(datasource.hasEntryImage(def, "png"))
 	}
 
-	private fun allRegularFiles(): Set<String> =
-		fileSystem.allPaths
-			.filter { fileSystem.metadataOrNull(it)?.isRegularFile == true }
-			.map { it.toString() }
-			.toSet()
-
 	@Test
-	fun `storeEntity drops a local image when the server has none`() = runTest {
-		val def = entry1().toDef(projectDef)
-		datasource.writeEntryImage(def, byteArrayOf(1, 2, 3), "jpg")
-		assertTrue(datasource.hasEntryImage(def, "jpg"))
-
+	fun `storeEntity clears the images when the server has none`() = runTest {
+		repository.addEntryImage(entry1().toDef(projectDef), 12)
 		val sync = newSynchronizer()
-		val serverEntity = sync.createEntityForId(entry1().id).copy(image = null)
+		val serverEntity = sync.createEntityForId(entry1().id).copy(images = emptyList())
 
 		sync.storeEntity(serverEntity, syncId = "sync", onLog = {})
 
-		assertFalse(datasource.hasEntryImage(def, "jpg"))
+		assertTrue(repository.loadEntry(entry1().id).entry.images.isEmpty())
+		assertEquals(serverEntity.hash(), sync.getEntityHash(entry1().id))
+	}
+
+	@Test
+	fun `storeEntity creates a new entry with the server's images`() = runTest {
+		val sync = newSynchronizer()
+		val serverEntity = sync.createEntityForId(entry1().id).copy(id = 60, name = "New", images = listOf(8))
+
+		sync.storeEntity(serverEntity, syncId = "sync", onLog = {})
+
+		assertEquals(listOf(8), repository.loadEntry(60).entry.images)
+		assertEquals(serverEntity.hash(), sync.getEntityHash(60))
 	}
 
 	@Test

@@ -61,7 +61,6 @@ import com.darkrockstudios.apps.hammer.common.util.format
 import com.darkrockstudios.apps.hammer.duplicate_ids_archived
 import com.darkrockstudios.apps.hammer.duplicate_ids_body_groups
 import com.darkrockstudios.apps.hammer.duplicate_ids_body_several
-import com.darkrockstudios.apps.hammer.duplicate_ids_body_single
 import com.darkrockstudios.apps.hammer.duplicate_ids_close
 import com.darkrockstudios.apps.hammer.duplicate_ids_decide_later
 import com.darkrockstudios.apps.hammer.duplicate_ids_error_backup
@@ -81,7 +80,6 @@ import com.darkrockstudios.apps.hammer.duplicate_ids_section
 import com.darkrockstudios.apps.hammer.duplicate_ids_show_differences
 import com.darkrockstudios.apps.hammer.duplicate_ids_title_draft
 import com.darkrockstudios.apps.hammer.duplicate_ids_title_entry
-import com.darkrockstudios.apps.hammer.duplicate_ids_title_entry_image
 import com.darkrockstudios.apps.hammer.duplicate_ids_title_image
 import com.darkrockstudios.apps.hammer.duplicate_ids_title_note
 import com.darkrockstudios.apps.hammer.duplicate_ids_title_scene
@@ -197,7 +195,6 @@ private fun Explanation(set: DuplicateIdSet) {
 	// Only the id is known to be shared: the copies may be different items with different names.
 	val title = when (set.kind) {
 		DuplicateIdKind.Entry -> Res.string.duplicate_ids_title_entry
-		DuplicateIdKind.EntryImage -> Res.string.duplicate_ids_title_entry_image
 		DuplicateIdKind.Scene -> Res.string.duplicate_ids_title_scene
 		DuplicateIdKind.Draft -> Res.string.duplicate_ids_title_draft
 		DuplicateIdKind.Note -> Res.string.duplicate_ids_title_note
@@ -213,9 +210,8 @@ private fun Explanation(set: DuplicateIdSet) {
 			),
 			color = MaterialTheme.colorScheme.onSurface,
 		)
-		val body = if (set.canKeepSeveral) Res.string.duplicate_ids_body_several else Res.string.duplicate_ids_body_single
 		Text(
-			text = body.get(),
+			text = Res.string.duplicate_ids_body_several.get(),
 			style = MaterialTheme.typography.bodyMedium,
 			color = MaterialTheme.colorScheme.onSurfaceVariant,
 		)
@@ -385,7 +381,7 @@ private const val PREVIEW_LENGTH = 400
 
 private fun entityCode(set: DuplicateIdSet): String {
 	val prefix = when (set.kind) {
-		DuplicateIdKind.Entry, DuplicateIdKind.EntryImage -> "ENT"
+		DuplicateIdKind.Entry -> "ENT"
 		DuplicateIdKind.Scene -> "SCN"
 		DuplicateIdKind.Draft -> "DRF"
 		DuplicateIdKind.Note -> "NOTE"

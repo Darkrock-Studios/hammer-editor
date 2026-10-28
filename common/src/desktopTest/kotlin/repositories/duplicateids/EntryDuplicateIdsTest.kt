@@ -6,7 +6,6 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.Encycl
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContainer
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
-import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.decodeFromString
 import org.junit.jupiter.api.Test
@@ -21,7 +20,7 @@ class EntryDuplicateIdsTest : RationalizerTestBase() {
 	private fun entryText(relative: String): EntryContent =
 		toml.decodeFromString<EntryContainer>(read(relative)).entry
 
-	private fun datasource() = EncyclopediaDatasource(projectDef, toml, ffs, mockk())
+	private fun datasource() = EncyclopediaDatasource(projectDef, toml, ffs)
 
 	@Test
 	fun `Identical sync copy of an entry is removed without asking`() = runTest {
@@ -110,70 +109,15 @@ class EntryDuplicateIdsTest : RationalizerTestBase() {
 	}
 
 	@Test
-	fun `Entries of two types sharing an id keep their images when both are kept`() = runTest {
+	fun `Entries of two types sharing an id are both kept, the second under a fresh id`() = runTest {
 		write("encyclopedia/person/person~5~Bob.toml", entryToml(5, "Bob", "A person"))
-		write("encyclopedia/person/person~5~image.png", "bob-image")
 		write("encyclopedia/place/place~5~Castle.toml", entryToml(5, "Castle", "A place", EntryType.PLACE))
-		write("encyclopedia/place/place~5~image.png", "castle-image")
 		val set = onlySet(DuplicateIdKind.Entry)
 
 		rationalizer.resolve(set, keep = set.copies.map { it.path }.toSet(), claimId = ids(9))
 
-		assertEquals(
-			listOf(
-				"person/person~5~Bob.toml",
-				"person/person~5~image.png",
-				"place/place~9~Castle.toml",
-				"place/place~9~image.png",
-			),
-			filesIn("encyclopedia"),
-		)
-		assertEquals("castle-image", read("encyclopedia/place/place~9~image.png"))
-	}
-
-	@Test
-	fun `A discarded entry of another type takes its image with it`() = runTest {
-		write("encyclopedia/person/person~5~Bob.toml", entryToml(5, "Bob", "A person"))
-		write("encyclopedia/person/person~5~image.png", "bob-image")
-		write("encyclopedia/place/place~5~Castle.toml", entryToml(5, "Castle", "A place", EntryType.PLACE))
-		write("encyclopedia/place/place~5~image.png", "castle-image")
-		val set = onlySet(DuplicateIdKind.Entry)
-
-		rationalizer.resolve(set, keep = setOf(set.pathOf("encyclopedia/person/person~5~Bob.toml")), claimId = noIds)
-
-		assertEquals(listOf("person/person~5~Bob.toml", "person/person~5~image.png"), filesIn("encyclopedia"))
-	}
-
-	@Test
-	fun `Identical legacy and current images of an entry resolve without asking`() = runTest {
-		write("encyclopedia/person/person~5~Bob.toml", entryToml(5, "Bob", "A person"))
-		write("encyclopedia/person/person-5-image.png", "same")
-		write("encyclopedia/person/person~5~image.png", "same")
-
-		val resolution = rationalizer.resolveSafeDuplicates()
-
-		assertTrue(resolution.remaining.isEmpty())
-		assertEquals(listOf("person/person~5~Bob.toml", "person/person~5~image.png"), filesIn("encyclopedia"))
-	}
-
-	@Test
-	fun `Three different images of an entry, keeping one deletes the others`() = runTest {
-		write("encyclopedia/person/person~5~Bob.toml", entryToml(5, "Bob", "A person"))
-		write("encyclopedia/person/person-5-image.png", "old")
-		write("encyclopedia/person/person~5~image.png", "png")
-		write("encyclopedia/person/person~5~image.jpg", "jpg")
-		assertTrue(rationalizer.resolveSafeDuplicates().remaining.isNotEmpty())
-		val set = onlySet(DuplicateIdKind.EntryImage)
-		assertEquals(3, set.copies.size)
-
-		assertFailsWith<IllegalArgumentException> {
-			rationalizer.resolve(set, keep = set.copies.take(2).map { it.path }.toSet(), claimId = noIds)
-		}
-		rationalizer.resolve(set, keep = setOf(set.pathOf("encyclopedia/person/person~5~image.jpg")), claimId = noIds)
-
-		assertEquals(listOf("person/person~5~Bob.toml", "person/person~5~image.jpg"), filesIn("encyclopedia"))
-		val def = datasource().loadEntriesImperative().single()
-		assertEquals("person~5~image.jpg", datasource().findEntryImagePath(def)?.name)
+		assertEquals(listOf("person/person~5~Bob.toml", "place/place~9~Castle.toml"), filesIn("encyclopedia"))
+		assertEquals(9, entryText("encyclopedia/place/place~9~Castle.toml").id)
 	}
 
 	@Test

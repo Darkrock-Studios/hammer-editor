@@ -67,6 +67,33 @@ class SyncJournalDatasource(
 }
 
 /**
+ * A project's `sync.json` read without a project scope, for callers that run before one exists (data
+ * migrations). Null when the journal is missing or cannot be decoded.
+ */
+// Corrupt sync data recovers by being rebuilt; not an error to surface.
+@Suppress("SwallowedException")
+fun readProjectSyncData(projectDef: ProjectDef, fileSystem: FileSystem, json: Json): ProjectSynchronizationData? {
+	val path = projectDef.path.toOkioPath() / SyncJournalDatasource.SYNC_FILE_NAME
+	if (!fileSystem.exists(path)) return null
+	return try {
+		fileSystem.read(path) { json.decodeFromString<ProjectSynchronizationData>(readUtf8()) }
+	} catch (e: SerializationException) {
+		null
+	}
+}
+
+/** Writes [data] as a project's `sync.json` without a project scope. See [readProjectSyncData]. */
+fun writeProjectSyncData(
+	projectDef: ProjectDef,
+	fileSystem: FileSystem,
+	json: Json,
+	data: ProjectSynchronizationData,
+) {
+	val path = projectDef.path.toOkioPath() / SyncJournalDatasource.SYNC_FILE_NAME
+	fileSystem.write(path) { writeUtf8(json.encodeToString(data)) }
+}
+
+/**
  * Resets everything in the entity journal that records agreement with a *specific* server, for
  * scope-less callers moving a project to a different server project. Local pending work the new
  * server has never seen — [ProjectSynchronizationData.dirty], `newIds`, `deletedIds`, `lastId` —

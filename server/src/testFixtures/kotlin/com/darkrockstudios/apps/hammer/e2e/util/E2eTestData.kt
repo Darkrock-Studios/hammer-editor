@@ -202,7 +202,6 @@ object E2eTestData {
 			entryType = "person",
 			text = "test text $id",
 			tags = emptySet(),
-			image = null,
 			aliases = aliases,
 		)
 	}

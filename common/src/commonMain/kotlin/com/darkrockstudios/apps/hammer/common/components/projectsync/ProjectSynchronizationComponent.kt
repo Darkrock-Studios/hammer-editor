@@ -324,15 +324,6 @@ class ProjectSynchronizationComponent(
 
 	private suspend fun onEncyclopediaEntryConflict(serverEntity: ApiProjectEntity.EncyclopediaEntryEntity) {
 		val local = encyclopediaService.loadEntry(serverEntity.id).entry
-		val def = local.toDef(projectDef)
-		val imageExtension = encyclopediaService.findEntryImageExtension(def)
-		val image = if (imageExtension != null) {
-			val imageBytes = encyclopediaService.loadEntryImage(def, imageExtension)
-			val imageBase64 = Base64.encode(imageBytes, url = true)
-			ApiProjectEntity.EncyclopediaEntryEntity.Image(imageBase64, imageExtension)
-		} else {
-			null
-		}
 
 		val localEntity = ApiProjectEntity.EncyclopediaEntryEntity(
 			id = local.id,
@@ -340,9 +331,9 @@ class ProjectSynchronizationComponent(
 			entryType = local.type.text,
 			text = local.text,
 			tags = local.tags,
-			image = image,
 			aliases = local.aliases,
 			excludeFromDictionary = local.excludeFromDictionary,
+			images = local.images,
 		)
 
 		withContext(mainDispatcher) {

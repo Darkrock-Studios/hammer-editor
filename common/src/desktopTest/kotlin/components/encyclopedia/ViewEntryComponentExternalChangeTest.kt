@@ -36,8 +36,7 @@ class ViewEntryComponentExternalChangeTest : ComponentTest() {
 		entryChangedFlow = MutableSharedFlow(extraBufferCapacity = 8)
 		encyclopediaService = mockk(relaxed = true)
 		every { encyclopediaService.entryChangedFlow } returns entryChangedFlow
-		every { encyclopediaService.findEntryImagePath(any()) } returns null
-		every { encyclopediaService.findEntryImageExtension(any()) } returns null
+		every { encyclopediaService.findPrimaryImage(any()) } returns null
 
 		val referenceIndexService = mockk<ReferenceIndexService>(relaxed = true)
 		every { referenceIndexService.flowForEntry(any()) } returns emptyFlow()

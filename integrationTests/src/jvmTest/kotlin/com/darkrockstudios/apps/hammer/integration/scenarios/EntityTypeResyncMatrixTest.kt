@@ -78,7 +78,6 @@ class EntityTypeResyncMatrixTest : RoundTripTestBase() {
 			type = EntryType.PERSON,
 			text = "a brave hero",
 			tags = setOf("hero"),
-			imagePath = null,
 		)
 		val container = assertNotNull(created.instance, "entry should be created")
 		assertTrue(client.sync(), "first sync should succeed")
@@ -92,9 +91,49 @@ class EntityTypeResyncMatrixTest : RoundTripTestBase() {
 			text = "a very brave hero",
 			tags = setOf("hero", "legend"),
 			excludeFromDictionary = false,
+			images = container.entry.images,
 		)
 		assertTrue(client.syncNoConflict(), "resync should succeed")
 		assertNotEquals(before, serverEntityHash(project, container.entry.id), "edit must reach the server")
+	}
+
+	@Test
+	@Timeout(value = 60)
+	fun `encyclopedia entry image list edits reach the other device without conflict`() = runBlocking {
+		val project = "entry images matrix"
+		val first = newClient(project)
+		val images: ImagesRepository = first.scope.get()
+		val encyclopedia: EncyclopediaRepository = first.scope.get()
+		encyclopedia.ensureEntriesLoaded()
+		val portrait = assertNotNull(images.create("Portrait", TestImages.png(1), "png").image)
+		val entry = assertNotNull(encyclopedia.createEntry("Hero", EntryType.PERSON, "brave", emptySet()).instance)
+		val def = entry.toDef(first.projectDef)
+		assertTrue(encyclopedia.addEntryImage(def, portrait.id))
+		assertTrue(first.syncNoConflict(), "first sync should succeed")
+		val before = assertNotNull(serverEntityHash(project, entry.entry.id))
+
+		val sketch = assertNotNull(images.create("Sketch", TestImages.jpeg(2), "jpg").image)
+		assertTrue(encyclopedia.addEntryImage(def, sketch.id))
+		assertTrue(encyclopedia.setPrimaryImage(def, sketch.id))
+		assertTrue(first.syncNoConflict(), "resync should succeed")
+		assertNotEquals(before, serverEntityHash(project, entry.entry.id), "the list edit must reach the server")
+
+		val second = secondDeviceFor(first, "entry images matrix b")
+		assertTrue(second.syncNoConflict(), "second device sync should succeed")
+		val secondEncyclopedia: EncyclopediaRepository = second.scope.get()
+		assertEquals(listOf(sketch.id, portrait.id), secondEncyclopedia.loadEntry(entry.entry.id).entry.images)
+		val secondImages: ImagesRepository = second.scope.get()
+		assertNotNull(secondImages.findImage(sketch.id))
+		assertNotNull(secondImages.findImage(portrait.id))
+
+		assertTrue(encyclopedia.removeEntryImage(def, portrait.id))
+		assertTrue(first.syncNoConflict(), "removal sync should succeed")
+		assertTrue(second.syncNoConflict(), "second device should take the removal")
+		assertEquals(listOf(sketch.id), secondEncyclopedia.loadEntry(entry.entry.id).entry.images)
+
+		assertConverged(project, first, second)
+		assertResyncSilent(first)
+		assertResyncSilent(second)
 	}
 
 	@Test

@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.base.image.ImageFormat
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.CreateEntry
 import com.darkrockstudios.apps.hammer.common.compose.CollapseWhileTyping
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
@@ -56,7 +57,6 @@ import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.stageIntoCache
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
-import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaDatasource
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryError
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
@@ -125,11 +125,11 @@ internal fun CreateEntryUi(
 	var imagePath by remember { mutableStateOf<PlatformFile?>(null) }
 
 	suspend fun applyImage(picked: PlatformFile) {
-		if (picked.size() > EncyclopediaDatasource.MAX_IMAGE_SIZE_BYTES) {
+		if (picked.size() > ImageFormat.MAX_IMAGE_BYTES) {
 			rootSnackbar.showSnackbar(
 				strRes.get(
 					Res.string.encyclopedia_create_entry_image_too_large,
-					EncyclopediaDatasource.MAX_IMAGE_SIZE_MB,
+					ImageFormat.MAX_IMAGE_MB,
 				)
 			)
 		} else {
@@ -223,7 +223,7 @@ internal fun CreateEntryUi(
 					onClick = {
 						scope.launch {
 							val picked = try {
-								FileKit.openFilePicker(type = FileKitType.File(EncyclopediaDatasource.IMAGE_EXTENSIONS))
+								FileKit.openFilePicker(type = FileKitType.File(ImageFormat.ALLOWED_EXTENSIONS))
 							} catch (e: FileKitPickerException) {
 								Napier.e("Image picker failed", e)
 								rootSnackbar.showSnackbar(
@@ -239,7 +239,7 @@ internal fun CreateEntryUi(
 							scope.launch { applyImage(file) }
 						}
 					},
-					dropExtensions = EncyclopediaDatasource.IMAGE_EXTENSIONS,
+					dropExtensions = ImageFormat.ALLOWED_EXTENSIONS,
 					dropHint = Res.string.encyclopedia_create_entry_image_drop_hint.get(),
 					browseLabel = Res.string.encyclopedia_create_entry_image_browse_button.get(),
 					attachedLabel = Res.string.encyclopedia_create_entry_image_attached.get(),

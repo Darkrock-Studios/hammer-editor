@@ -100,7 +100,7 @@ class CrossTypeIdRenumberTest : RationalizerTestBase() {
 						writingSessionTracker = mockk<WritingSessionTracker>(relaxed = true),
 					)
 				}
-				scoped { EncyclopediaDatasource(projectDef, toml, ffs, mockk()) }
+				scoped { EncyclopediaDatasource(projectDef, toml, ffs) }
 				scoped { EncyclopediaRepository(projectDef, get(), get(), get()) }
 				scoped<EncyclopediaService> { mockk(relaxed = true) }
 				scoped { referenceRemapper }

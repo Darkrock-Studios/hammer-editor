@@ -162,7 +162,7 @@ class DuplicateIdService(
 
 	private suspend fun reload(kind: DuplicateIdKind) {
 		when (kind) {
-			DuplicateIdKind.Entry, DuplicateIdKind.EntryImage -> encyclopediaRepository.loadEntries()
+			DuplicateIdKind.Entry -> encyclopediaRepository.loadEntries()
 			DuplicateIdKind.Scene -> sceneRepository.reloadTreeFromDisk()
 			DuplicateIdKind.Note -> notesRepository.loadNotes()
 			DuplicateIdKind.Draft -> Unit

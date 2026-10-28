@@ -60,8 +60,7 @@ class EncyclopediaComponentTest : ComponentTest() {
 		every { encyclopediaService.entryListFlow } returns MutableStateFlow(emptyList<EntryDef>())
 		every { encyclopediaService.entryChangedFlow } returns MutableSharedFlow()
 		every { encyclopediaService.loadEntry(any<EntryDef>()) } returns EntryContainer(entryContent)
-		every { encyclopediaService.findEntryImagePath(any()) } returns null
-		every { encyclopediaService.findEntryImageExtension(any()) } returns null
+		every { encyclopediaService.findPrimaryImage(any()) } returns null
 
 		val referenceIndexService = mockk<ReferenceIndexService>(relaxed = true)
 		every { referenceIndexService.flowForEntry(any()) } returns emptyFlow()

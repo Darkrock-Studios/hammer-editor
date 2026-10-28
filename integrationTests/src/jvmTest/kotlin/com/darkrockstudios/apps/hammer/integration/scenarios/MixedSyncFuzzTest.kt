@@ -68,7 +68,7 @@ class MixedSyncFuzzTest : RoundTripTestBase() {
 					.let { if (isSuccess(it)) noteState[it.data.id] = it.data }
 				2 -> timeline.createEvent(content = "event $i", date = if (rng.nextBoolean()) "$i" else null)
 					.let { eventState[it.id] = it }
-				3 -> encyclopedia.createEntry("Entry $i", EntryType.PERSON, "about $i", randomTags(rng), null)
+				3 -> encyclopedia.createEntry("Entry $i", EntryType.PERSON, "about $i", randomTags(rng))
 					.instance?.entry?.id?.let { entries.add(it) }
 
 				4 -> scenes.randomOrNull(rng)?.let { id ->
@@ -105,6 +105,7 @@ class MixedSyncFuzzTest : RoundTripTestBase() {
 						"about edit $i",
 						randomTags(rng),
 						excludeFromDictionary = false,
+						images = encyclopedia.loadEntry(id).entry.images,
 					)
 				}
 
@@ -139,6 +140,17 @@ class MixedSyncFuzzTest : RoundTripTestBase() {
 						client.draftRepository.saveDraft(scene, "Draft $i", "draft $i")
 					}
 				}
+
+				20 -> entries.randomOrNull(rng)?.let { id ->
+					imageIds.randomOrNull(rng)?.let { imageId -> encyclopedia.addEntryImage(encyclopedia.getEntryDef(id), imageId) }
+				}
+				21 -> entries.randomOrNull(rng)?.let { id ->
+					val def = encyclopedia.getEntryDef(id)
+					encyclopedia.loadEntry(id).entry.images.randomOrNull(rng)?.let { imageId ->
+						if (rng.nextBoolean()) encyclopedia.setPrimaryImage(def, imageId)
+						else encyclopedia.removeEntryImage(def, imageId)
+					}
+				}
 			}
 		}
 
@@ -162,7 +174,7 @@ class MixedSyncFuzzTest : RoundTripTestBase() {
 
 	companion object {
 		private const val ITERATIONS = 30
-		private const val OP_COUNT = 20
+		private const val OP_COUNT = 22
 		private val SEEDS = listOf(1L, 777L, 20260630L)
 	}
 }

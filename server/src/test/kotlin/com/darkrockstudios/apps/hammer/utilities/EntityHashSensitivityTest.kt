@@ -33,9 +33,9 @@ import kotlin.time.Instant
  *  1. **New field** - [leafPaths] reads the descriptor, so adding a field expands the declared
  *     set and immediately fails the coverage assertion until a mutation is declared; the
  *     sensitivity loop then fails until the hasher actually folds the field in.
- *  2. **New field on a nested DTO** ([ProjectTheme], [WordCountGoal], `EncyclopediaEntryEntity.Image`)
- *     - [leafPaths] recurses into owned nested classes, so `theme.tertiary` or `image.caption`
- *     is a tracked path, not an invisible sub-field of a single `theme`/`image` element.
+ *  2. **New field on a nested DTO** ([ProjectTheme], [WordCountGoal])
+ *     - [leafPaths] recurses into owned nested classes, so `theme.tertiary` is a tracked path,
+ *     not an invisible sub-field of a single `theme` element.
  *  3. **New entity type** - [`every ApiProjectEntity Type has a sensitivity spec`] ties the spec
  *     list to the [ApiProjectEntity.Type] registry, so a new subtype can't ship without a spec.
  */
@@ -218,9 +218,8 @@ class EntityHashSensitivityTest {
 			entryType = "person",
 			text = "base text",
 			tags = setOf("base-tag"),
-			// Non-null so the nested image.* sub-fields can be mutated individually.
-			image = ApiProjectEntity.EncyclopediaEntryEntity.Image(base64 = "abc", fileExtension = "png"),
 			aliases = listOf("Bob"),
+			images = listOf(3, 4),
 		)
 		Spec(
 			klass = ApiProjectEntity.EncyclopediaEntryEntity::class,
@@ -234,11 +233,10 @@ class EntityHashSensitivityTest {
 				"entryType" to base.copy(entryType = "place"),
 				"text" to base.copy(text = "different"),
 				"tags" to base.copy(tags = setOf("different")),
-				"image" to base.copy(image = null),
-				"image.base64" to base.copy(image = base.image!!.copy(base64 = "abcd")),
-				"image.fileExtension" to base.copy(image = base.image!!.copy(fileExtension = "jpg")),
 				"aliases" to base.copy(aliases = listOf("Bobby")),
 				"excludeFromDictionary" to base.copy(excludeFromDictionary = true),
+				// Reordered rather than changed: the order is the display order, so it must sync.
+				"images" to base.copy(images = listOf(4, 3)),
 			),
 		)
 	}

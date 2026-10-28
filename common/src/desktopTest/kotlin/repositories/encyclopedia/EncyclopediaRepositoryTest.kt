@@ -15,7 +15,6 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
-import com.darkrockstudios.apps.hammer.common.fileio.ExternalFileIo
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import createProject
 import getProjectDef
@@ -40,8 +39,6 @@ class EncyclopediaRepositoryTest : BaseTest() {
 	@MockK
 	lateinit var idAllocator: IdAllocator
 
-	@MockK
-	lateinit var externalFileIo: ExternalFileIo
 
 	@MockK
 	lateinit var syncJournal: SyncJournal
@@ -70,7 +67,6 @@ class EncyclopediaRepositoryTest : BaseTest() {
 			projectDef = projDef,
 			toml = toml,
 			fileSystem = fileSystem,
-			externalFileIo = externalFileIo,
 		)
 		return EncyclopediaRepository(
 			projectDef = projDef,
@@ -98,6 +94,7 @@ class EncyclopediaRepositoryTest : BaseTest() {
 			text = entry.text,
 			tags = entry.tags,
 			excludeFromDictionary = false,
+			images = emptyList(),
 		)
 
 
@@ -130,6 +127,7 @@ class EncyclopediaRepositoryTest : BaseTest() {
 			text = oldEntry.text,
 			tags = oldEntry.tags,
 			excludeFromDictionary = false,
+			images = emptyList(),
 		)
 
 		assertInvalid(EntryError.NAME_INVALID_CHARACTERS, result, repo, oldEntry, newEntry)
@@ -146,6 +144,7 @@ class EncyclopediaRepositoryTest : BaseTest() {
 			text = oldEntry.text,
 			tags = oldEntry.tags,
 			excludeFromDictionary = false,
+			images = emptyList(),
 		)
 
 		assertInvalid(EntryError.NAME_TOO_SHORT, result, repo, oldEntry, newEntry)
@@ -162,6 +161,7 @@ class EncyclopediaRepositoryTest : BaseTest() {
 			text = oldEntry.text,
 			tags = oldEntry.tags,
 			excludeFromDictionary = false,
+			images = emptyList(),
 		)
 
 		assertInvalid(EntryError.NAME_TOO_LONG, result, repo, oldEntry, newEntry)
@@ -187,7 +187,6 @@ class EncyclopediaRepositoryTest : BaseTest() {
 			type = container.entry.type,
 			text = container.entry.text,
 			tags = container.entry.tags,
-			imagePath = null,
 			forceId = null,
 		)
 
@@ -210,7 +209,6 @@ class EncyclopediaRepositoryTest : BaseTest() {
 			type = EntryType.PERSON,
 			text = "A person",
 			tags = setOf("tag1"),
-			imagePath = null,
 			forceId = null,
 			aliases = listOf("Bob", "Bobby"),
 		)
@@ -234,7 +232,6 @@ class EncyclopediaRepositoryTest : BaseTest() {
 			type = EntryType.PERSON,
 			text = "A person",
 			tags = emptySet(),
-			imagePath = null,
 			forceId = null,
 			aliases = listOf("  Bob  ", "Bob", "", "  ", "Robert"),
 		)
@@ -255,7 +252,6 @@ class EncyclopediaRepositoryTest : BaseTest() {
 			type = EntryType.PERSON,
 			text = "A person",
 			tags = emptySet(),
-			imagePath = null,
 			forceId = null,
 			aliases = listOf(tooLong),
 		)
@@ -362,7 +358,6 @@ class EncyclopediaRepositoryTest : BaseTest() {
 				type = EntryType.PERSON,
 				text = "",
 				tags = emptySet(),
-				imagePath = null,
 				forceId = null,
 			)
 			awaitItem()
@@ -373,6 +368,7 @@ class EncyclopediaRepositoryTest : BaseTest() {
 				text = "updated text",
 				tags = entry1().tags,
 				excludeFromDictionary = false,
+				images = emptyList(),
 			)
 			awaitItem()
 

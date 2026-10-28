@@ -84,6 +84,9 @@ class ContentWriteOperationsTest : KoinOperationsTest() {
 		val image = run<ProjectItemInput, EntryImage>("entry.image.get", ProjectItemInput(PROJECT, entry.id))
 		assertEquals("png", image.extension)
 		assertContentEquals(IMAGE, image.content)
+		// Each set adds an image in front; removing takes off the front one.
+		assertTrue(run<ProjectItemInput, Entry>("entry.image.remove", ProjectItemInput(PROJECT, entry.id)).hasImage)
+		assertEquals("jpg", run<ProjectItemInput, EntryImage>("entry.image.get", ProjectItemInput(PROJECT, entry.id)).extension)
 		assertFalse(run<ProjectItemInput, Entry>("entry.image.remove", ProjectItemInput(PROJECT, entry.id)).hasImage)
 
 		run<ProjectItemInput, EntrySummary>("entry.delete", ProjectItemInput(PROJECT, entry.id))

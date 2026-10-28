@@ -1,12 +1,15 @@
 package com.darkrockstudios.apps.hammer.operations.core
 
 import com.darkrockstudios.apps.hammer.base.http.storyideas.StoryIdea
+import com.darkrockstudios.apps.hammer.base.image.ImageFormat
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaService
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryLoadError
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContainer
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeasRepository
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexService
@@ -78,16 +81,18 @@ internal fun contentOperations(): List<Operation<*, *>> = listOf(
 	},
 	operation<ProjectItemInput, EntryImage>(
 		name = "entry.image.get",
-		description = "An encyclopedia entry's image.",
+		description = "An encyclopedia entry's primary image.",
 		access = Access.Read,
 		scope = OperationScope.Content,
 	) { input ->
 		projects.withProject(input.project) { project ->
-			val encyclopedia = project.scope.get<EncyclopediaRepository>()
+			val encyclopedia = project.scope.get<EncyclopediaService>()
 			encyclopedia.ensureEntriesLoaded()
 			val def = encyclopedia.findEntryDef(input.id) ?: notFound("No entry ${input.id}")
-			val extension = encyclopedia.findEntryImageExtension(def) ?: notFound("Entry ${input.id} has no image")
-			EntryImage(extension, encyclopedia.loadEntryImage(def, extension))
+			val image = encyclopedia.findPrimaryImage(def) ?: notFound("Entry ${input.id} has no image")
+			val bytes = project.scope.get<ImagesRepository>().loadImageBytes(image)
+				?: error("Could not read image ${image.id}")
+			EntryImage(image.fileExtension, bytes)
 		}
 	},
 	operation<ProjectInput, Timeline>(
@@ -138,7 +143,7 @@ internal suspend fun OpenProject.readEntry(id: Int): Entry {
 		text = entry.text,
 		tags = entry.tags.sorted(),
 		aliases = entry.aliases,
-		hasImage = encyclopedia.findEntryImageExtension(def) != null,
+		hasImage = entry.images.isNotEmpty(),
 		referencedBy = scope.get<ReferenceIndexService>().getScenesReferencing(def.id).sorted(),
 	)
 }
@@ -226,7 +231,7 @@ data class Entry(
 
 @Serializable
 class EntryImage(
-	/** jpg, jpeg, png, or webp. */
+	/** One of [ImageFormat.ALLOWED_EXTENSIONS]. */
 	val extension: String,
 	@Serializable(with = Base64Bytes::class)
 	val content: ByteArray,

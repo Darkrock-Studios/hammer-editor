@@ -162,9 +162,9 @@ class ViewEntryComponent(
 	// Serialized so overlapping reloads can't land out of order.
 	private suspend fun loadEntryState() = reloadMutex.withLock {
 		val entryDef = state.value.entryDef
-		val entryImagePath = getImagePath(entryDef)
-		val imageHash = encyclopediaService.findEntryImageExtension(entryDef)
-			?.let { ext -> encyclopediaService.calculateEntryImageHash(entryDef, ext) }
+		val primaryImage = encyclopediaService.findPrimaryImage(entryDef)
+		val entryImagePath = primaryImage?.let { encyclopediaService.getImagePath(it).path }
+		val imageHash = primaryImage?.let { encyclopediaService.imageContentHash(it) }
 
 		val content = loadEntryContent(entryDef)
 		withContext(dispatcherMain) {
@@ -179,7 +179,7 @@ class ViewEntryComponent(
 	}
 
 	override fun getImagePath(entryDef: EntryDef): String? {
-		return encyclopediaService.findEntryImagePath(entryDef)?.path
+		return encyclopediaService.findPrimaryImage(entryDef)?.let { encyclopediaService.getImagePath(it).path }
 	}
 
 	override suspend fun loadEntryContent(entryDef: EntryDef): EntryContent {
@@ -194,14 +194,16 @@ class ViewEntryComponent(
 	}
 
 	override suspend fun removeEntryImage(): Boolean {
-		if (encyclopediaService.removeEntryImage(state.value.entryDef)) {
+		val entryDef = state.value.entryDef
+		val primary = encyclopediaService.findPrimaryImage(entryDef) ?: return true
+		if (encyclopediaService.removeEntryImage(entryDef, primary.id)) {
 			reload()
 		}
 		return true
 	}
 
 	override suspend fun setImage(path: String) {
-		encyclopediaService.setEntryImage(state.value.entryDef, path)
+		encyclopediaService.importPrimaryImage(state.value.entryDef, path)
 		reload()
 	}
 
@@ -286,6 +288,7 @@ class ViewEntryComponent(
 			tags = updated.tags,
 			aliases = updated.aliases,
 			excludeFromDictionary = updated.excludeFromDictionary,
+			images = updated.images,
 		)
 	}
 

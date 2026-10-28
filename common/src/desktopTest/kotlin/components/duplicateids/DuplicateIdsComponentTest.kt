@@ -4,6 +4,9 @@ import com.darkrockstudios.apps.hammer.common.components.duplicateids.DuplicateI
 import com.darkrockstudios.apps.hammer.common.data.duplicateids.DuplicateIdService
 import com.darkrockstudios.apps.hammer.common.data.duplicateids.ProjectFileRationalizer
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContainer
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
@@ -11,6 +14,7 @@ import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.encodeToString
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -25,6 +29,7 @@ class DuplicateIdsComponentTest : ComponentTest() {
 
 	private lateinit var projectFiles: FakeFileSystem
 	private lateinit var duplicateIdService: DuplicateIdService
+	private val toml = createTomlSerializer()
 	private var dismissed = false
 
 	private val personDir get() = projectDef.path.toOkioPath() / "encyclopedia" / "person"
@@ -37,7 +42,7 @@ class DuplicateIdsComponentTest : ComponentTest() {
 		projectFiles.createDirectories(personDir)
 		duplicateIdService = DuplicateIdService(
 			projectDef = projectDef,
-			rationalizer = ProjectFileRationalizer(projectDef, projectFiles, createTomlSerializer()),
+			rationalizer = ProjectFileRationalizer(projectDef, projectFiles, toml),
 			syncJournal = mockk(relaxed = true),
 			backupService = mockk(relaxed = true),
 		)
@@ -49,16 +54,21 @@ class DuplicateIdsComponentTest : ComponentTest() {
 		})
 	}
 
-	private fun writeImages() {
-		projectFiles.write(personDir / "person~5~image.png") { writeUtf8("png") }
-		projectFiles.write(personDir / "person~5~image.jpg") { writeUtf8("jpg") }
+	private fun writeEntry(fileName: String, text: String) {
+		val entry = EntryContent(id = 5, name = "Bob", type = EntryType.PERSON, text = text, tags = emptySet())
+		projectFiles.write(personDir / fileName) { writeUtf8(toml.encodeToString(EntryContainer(entry))) }
+	}
+
+	private fun writeDivergedCopies() {
+		writeEntry("person~5~Bob.toml", "The real Bob")
+		writeEntry("person~5~Bob.sync-conflict-20261024-173944-53PQXWR.toml", "Bob from the laptop")
 	}
 
 	private fun newComponent() = DuplicateIdsComponent(context, projectDef, dismissDialog = { dismissed = true })
 
 	@Test
 	fun `Opens on the first set with only the copy in use kept`() = runTest(mainTestDispatcher) {
-		writeImages()
+		writeDivergedCopies()
 		duplicateIdService.rationalizeOnOpen()
 
 		val comp = newComponent()
@@ -71,22 +81,25 @@ class DuplicateIdsComponentTest : ComponentTest() {
 	}
 
 	@Test
-	fun `An image set keeps one copy, so picking another replaces the selection`() = runTest(mainTestDispatcher) {
-		writeImages()
+	fun `Toggling a copy adds it to the selection and toggling again removes it`() = runTest(mainTestDispatcher) {
+		writeDivergedCopies()
 		duplicateIdService.rationalizeOnOpen()
 		val comp = newComponent()
 		context.resume()
 		advanceUntilIdle()
+		val inUse = comp.state.value.current!!.inUse.path
 		val other = comp.state.value.current!!.copies.last().path
 
 		comp.toggleKeep(other)
+		assertEquals(setOf(inUse, other), comp.state.value.keep)
 
-		assertEquals(setOf(other), comp.state.value.keep)
+		comp.toggleKeep(other)
+		assertEquals(setOf(inUse), comp.state.value.keep)
 	}
 
 	@Test
 	fun `Resolving the last set deletes the rest and closes the dialog`() = runTest(mainTestDispatcher) {
-		writeImages()
+		writeDivergedCopies()
 		duplicateIdService.rationalizeOnOpen()
 		val comp = newComponent()
 		context.resume()

@@ -26,6 +26,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.Glo
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.GlobalSettingsFilesystemDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectPluginsDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectPluginsRepository
+import com.darkrockstudios.apps.hammer.common.data.references.ImageReferenceRewriter
 import com.darkrockstudios.apps.hammer.common.data.secrets.secretDatasourceModule
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.ServerSettingsDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.ServerSettingsFilesystemDatasource
@@ -385,6 +386,7 @@ val mainModule = module {
 		scoped<RenameEntryUseCase>()
 		scoped<CleanupReferencesOnEntryDeleteUseCase>()
 		scoped<SceneMetadataReferenceRemapper>() bind ReferenceRemapper::class
+		scoped<ImageReferenceRewriter>()
 
 		scoped<SyncJournalDatasource>()
 

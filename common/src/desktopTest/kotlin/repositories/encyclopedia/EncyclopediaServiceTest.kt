@@ -7,6 +7,7 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.Encycl
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryError
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesRepository
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndex
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexDatasource
@@ -46,6 +47,9 @@ class EncyclopediaServiceTest : BaseTest() {
 	lateinit var syncJournal: SyncJournal
 
 	@MockK
+	lateinit var imagesRepository: ImagesRepository
+
+	@MockK
 	lateinit var statisticsRepository: StatisticsRepository
 
 	private lateinit var datasource: EncyclopediaDatasource
@@ -74,7 +78,6 @@ class EncyclopediaServiceTest : BaseTest() {
 			projectDef = projDef,
 			toml = toml,
 			fileSystem = fileSystem,
-			externalFileIo = externalFileIo,
 		)
 		referenceIndexDatasource = ReferenceIndexDatasource(fileSystem, toml, projDef)
 		referenceIndexRepository = ReferenceIndexRepository(projDef, referenceIndexDatasource)
@@ -88,6 +91,8 @@ class EncyclopediaServiceTest : BaseTest() {
 			repository = repository,
 			statisticsRepository = statisticsRepository,
 			referenceIndexRepository = referenceIndexRepository,
+			imagesRepository = imagesRepository,
+			externalFileIo = externalFileIo,
 		)
 	}
 
@@ -132,6 +137,7 @@ class EncyclopediaServiceTest : BaseTest() {
 			text = entry1().text,
 			tags = entry1().tags,
 			excludeFromDictionary = false,
+			images = emptyList(),
 		)
 
 		assertEquals(EntryError.NONE, result.error)
@@ -147,6 +153,7 @@ class EncyclopediaServiceTest : BaseTest() {
 			text = entry1().text,
 			tags = entry1().tags,
 			excludeFromDictionary = false,
+			images = emptyList(),
 		)
 
 		assertEquals(EntryError.NAME_TOO_SHORT, result.error)

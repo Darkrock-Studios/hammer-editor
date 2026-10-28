@@ -128,8 +128,8 @@ private fun LocalEntryBody(
 		verticalArrangement = Arrangement.spacedBy(HdConflictFieldSpacing),
 	) {
 		HeaderRow(
-			imageConflict = (server.image != null) != (client.image != null),
-			hasImage = client.image != null,
+			imageConflict = server.images != client.images,
+			hasImage = client.images.isNotEmpty(),
 			name = nameValue,
 			type = client.entryType,
 			nameConflict = server.name != client.name,
@@ -190,8 +190,8 @@ private fun RemoteEntryBody(
 		verticalArrangement = Arrangement.spacedBy(HdConflictFieldSpacing),
 	) {
 		HeaderRow(
-			imageConflict = (server.image != null) != (client.image != null),
-			hasImage = server.image != null,
+			imageConflict = server.images != client.images,
+			hasImage = server.images.isNotEmpty(),
 			name = server.name,
 			type = server.entryType,
 			nameConflict = server.name != client.name,

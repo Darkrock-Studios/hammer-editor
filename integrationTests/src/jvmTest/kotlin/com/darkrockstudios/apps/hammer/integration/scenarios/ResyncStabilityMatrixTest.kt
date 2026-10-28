@@ -131,23 +131,32 @@ class ResyncStabilityMatrixTest : RoundTripTestBase() {
 				"encyclopedia entry, minimal",
 				ApiProjectEntity.EncyclopediaEntryEntity(
 					id = 1, name = "Hero", entryType = "person", text = "brave", tags = emptySet(),
-					image = null, aliases = emptyList(),
+					aliases = emptyList(),
 				),
 			),
 			one(
 				"encyclopedia entry, tags and aliases",
 				ApiProjectEntity.EncyclopediaEntryEntity(
 					id = 1, name = "Hero", entryType = "person", text = "brave",
-					tags = setOf("legend"), image = null, aliases = listOf("The Brave", "Champion"),
+					tags = setOf("legend"), aliases = listOf("The Brave", "Champion"),
+				),
+			),
+			Case(
+				"encyclopedia entry with images, not in id order",
+				listOf(
+					TestImages.entity(id = 1, name = "Portrait", fileExtension = "png", bytes = TestImages.png(1)),
+					TestImages.entity(id = 2, name = "Sketch", fileExtension = "jpg", bytes = TestImages.jpeg(2)),
+					ApiProjectEntity.EncyclopediaEntryEntity(
+						id = 3, name = "Hero", entryType = "person", text = "brave", tags = emptySet(),
+						images = listOf(2, 1),
+					),
 				),
 			),
 			one(
-				"encyclopedia entry, with image",
+				"encyclopedia entry listing an image the server does not have",
 				ApiProjectEntity.EncyclopediaEntryEntity(
 					id = 1, name = "Hero", entryType = "person", text = "brave", tags = emptySet(),
-					// Canonical url-safe base64 of "img" so the client's re-encode matches.
-					image = ApiProjectEntity.EncyclopediaEntryEntity.Image(base64 = "aW1n", fileExtension = "png"),
-					aliases = emptyList(),
+					images = listOf(40),
 				),
 			),
 			one("image, png", TestImages.entity(id = 1, name = "Map", fileExtension = "png", bytes = TestImages.png())),

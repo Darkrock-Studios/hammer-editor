@@ -1,6 +1,8 @@
 package com.darkrockstudios.apps.hammer.common.data.imagesrepository
 
 import com.darkrockstudios.apps.hammer.base.image.ImageFormat
+import com.darkrockstudios.apps.hammer.base.validate.FilenameEncoding
+import com.darkrockstudios.apps.hammer.base.validate.ProjectNameValidator
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageDef
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
@@ -135,11 +137,33 @@ class ImagesDatasource(
 	companion object {
 		const val IMAGES_DIRECTORY = "images"
 
+		/** Used when nothing of a candidate name survives as a valid image name. */
+		const val FALLBACK_IMAGE_NAME = "Image"
+
 		// <id>~<encoded name>.<extension>. The name may contain dots; the extension is after the last one.
 		val IMAGE_FILENAME_PATTERN = Regex("""(\d+)~([^~/\\]+)\.([A-Za-z0-9]+)""")
 
 		fun getFilename(def: ImageDef): String =
 			"${def.id}~${ProjectsRepository.encodeForFilename(def.name)}.${def.fileExtension}"
+
+		/**
+		 * [candidate] as an image name: trimmed, disallowed characters turned into spaces, cut to the
+		 * maximum length, and what does not survive the filename round trip dropped; or
+		 * [FALLBACK_IMAGE_NAME] when that leaves nothing valid.
+		 */
+		fun validImageName(candidate: String): String {
+			val trimmed = candidate.trim()
+			if (ImageFormat.isValidName(trimmed)) return trimmed
+			val cleaned = trimmed
+				.map { if (ProjectNameValidator.isCharacterAllowed(it)) it else ' ' }
+				.joinToString("")
+				.replace(SPACE_RUNS, " ")
+				.take(ProjectNameValidator.MAX_LENGTH)
+			val roundTripped = FilenameEncoding.decode(FilenameEncoding.encode(cleaned)).trim()
+			return roundTripped.takeIf { ImageFormat.isValidName(it) } ?: FALLBACK_IMAGE_NAME
+		}
+
+		private val SPACE_RUNS = Regex(" {2,}")
 
 		fun parseFilename(fileName: String): ImageDef? {
 			if (fileName.startsWith(".")) return null

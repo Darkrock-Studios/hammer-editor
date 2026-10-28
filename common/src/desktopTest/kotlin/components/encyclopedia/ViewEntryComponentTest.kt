@@ -60,9 +60,7 @@ class ViewEntryComponentTest : ComponentTest() {
 		val newEntry = oldEntry.copy(name = newName)
 		val newContainer = EntryContainer(newEntry)
 
-		every { encyclopediaService.findEntryImagePath(any()) } returns null
-		every { encyclopediaService.findEntryImageExtension(any()) } returns null
-		coEvery { encyclopediaService.calculateEntryImageHash(any(), any()) } returns null
+		every { encyclopediaService.findPrimaryImage(any()) } returns null
 		coEvery { encyclopediaService.loadEntry(entryDef = any()) } returns newContainer
 		coEvery {
 			encyclopediaService.updateEntry(
@@ -71,6 +69,7 @@ class ViewEntryComponentTest : ComponentTest() {
 				text = oldEntry.text,
 				tags = oldEntry.tags,
 				excludeFromDictionary = false,
+				images = oldEntry.images,
 			)
 		} returns EntryResult(newContainer, EntryError.NONE)
 
@@ -108,8 +107,7 @@ class ViewEntryComponentTest : ComponentTest() {
 		val newEntry = oldEntry.copy(name = newName)
 		val newContainer = EntryContainer(newEntry)
 
-		every { encyclopediaService.findEntryImagePath(any()) } returns null
-		every { encyclopediaService.findEntryImageExtension(any()) } returns null
+		every { encyclopediaService.findPrimaryImage(any()) } returns null
 		coEvery { encyclopediaService.loadEntry(entryDef = any()) } returns newContainer
 		coEvery {
 			encyclopediaService.updateEntry(
@@ -118,6 +116,7 @@ class ViewEntryComponentTest : ComponentTest() {
 				text = oldEntry.text,
 				tags = oldEntry.tags,
 				excludeFromDictionary = false,
+				images = oldEntry.images,
 			)
 		} returns EntryResult(newContainer, EntryError.NAME_INVALID_CHARACTERS)
 
@@ -148,9 +147,7 @@ class ViewEntryComponentTest : ComponentTest() {
 	fun `Discard edit leaves every edit mode without saving`() = runTest {
 		val proj = getProject1Def()
 		val entry = fakeEntry()
-		every { encyclopediaService.findEntryImagePath(any()) } returns null
-		every { encyclopediaService.findEntryImageExtension(any()) } returns null
-		coEvery { encyclopediaService.calculateEntryImageHash(any(), any()) } returns null
+		every { encyclopediaService.findPrimaryImage(any()) } returns null
 		coEvery { encyclopediaService.loadEntry(entryDef = any()) } returns EntryContainer(entry)
 
 		val comp = ViewEntryComponent(
@@ -173,7 +170,7 @@ class ViewEntryComponentTest : ComponentTest() {
 		assertFalse(comp.state.value.editText)
 		assertFalse(comp.state.value.confirmClose)
 		coVerify(exactly = 0) {
-			encyclopediaService.updateEntry(any(), any(), any(), any(), any(), any())
+			encyclopediaService.updateEntry(any(), any(), any(), any(), any(), any(), any())
 		}
 	}
 }

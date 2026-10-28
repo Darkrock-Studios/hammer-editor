@@ -10,6 +10,7 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesRepository
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageDef
 import com.darkrockstudios.apps.hammer.common.data.projectInject
+import com.darkrockstudios.apps.hammer.common.data.references.ImageReferenceRewriter
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntitySynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.OnSyncLog
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogI
@@ -33,6 +34,7 @@ class ClientImageSynchronizer(
 
 	override val projectScope = ProjectDefScope(projectDef)
 	private val imagesRepository: ImagesRepository by projectInject()
+	private val referenceRewriter: ImageReferenceRewriter by projectInject()
 
 	override suspend fun prepareForSync() {
 		imagesRepository.loadImages()
@@ -82,10 +84,10 @@ class ClientImageSynchronizer(
 		return bytes.takeIf { ImageFormat.validate(entity.name, entity.fileExtension, bytes) == null }
 	}
 
-	// Nothing references an image by id, so there are no referrers to rewrite.
+	// The file moves first so a rewritten reference never points at an id with no file.
 	override suspend fun reIdEntity(oldId: Int, newId: Int): Set<Int> {
 		imagesRepository.reIdImage(oldId, newId)
-		return emptySet()
+		return referenceRewriter.remap(mapOf(oldId to newId)).mapTo(mutableSetOf()) { it.id }
 	}
 
 	override suspend fun finalizeSync() {

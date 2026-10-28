@@ -234,7 +234,6 @@
 	<string name="sync_log_failed">Failed to end sync</string>
 
 	<string name="sync_draft_rejected_invalid_name">Rejected draft %1$d from server: unsafe draft name</string>
-	<string name="sync_encyclopedia_image_rejected_invalid_extension">Skipped image for encyclopedia entry %1$d from server: unsafe file extension</string>
 	<string name="sync_image_rejected_invalid">Rejected image %1$d from server: not a supported image or unsafe name</string>
 
 	<string name="sync_encyclopedia_deleted">Deleted Encyclopedia ID %1$d from client</string>

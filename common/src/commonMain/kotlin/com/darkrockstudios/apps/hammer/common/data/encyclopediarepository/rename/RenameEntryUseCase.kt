@@ -235,6 +235,7 @@ class RenameEntryUseCase(
 			tags = entry.tags,
 			aliases = check.newAliases,
 			excludeFromDictionary = entry.excludeFromDictionary,
+			images = entry.images,
 		)
 		if (ownText != null && result.error == EntryError.NONE) {
 			replaced += ownReplaced
@@ -413,6 +414,7 @@ class RenameEntryUseCase(
 					tags = entry.tags,
 					aliases = entry.aliases,
 					excludeFromDictionary = entry.excludeFromDictionary,
+					images = entry.images,
 				).error == EntryError.NONE
 			}
 		}

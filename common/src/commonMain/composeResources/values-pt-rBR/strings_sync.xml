@@ -146,7 +146,6 @@
 	<string name="sync_log_data_save_failed">Dados de sincronização não salvos devido a erros</string>
 	<string name="sync_log_failed">Falha ao terminar a sincronização</string>
 	<string name="sync_draft_rejected_invalid_name">Rascunho %1$d do servidor rejeitado: nome de rascunho não seguro</string>
-	<string name="sync_encyclopedia_image_rejected_invalid_extension">Imagem do verbete de enciclopédia %1$d do servidor ignorada: extensão de arquivo não segura</string>
 	<string name="sync_encyclopedia_deleted">ID de Enciclopédia %1$d excluído do cliente</string>
 	<string name="sync_note_deleted">Nota ID %1$d excluído do cliente</string>
 	<string name="sync_draft_deleted">Rascunho %1$d excluído do cliente</string>

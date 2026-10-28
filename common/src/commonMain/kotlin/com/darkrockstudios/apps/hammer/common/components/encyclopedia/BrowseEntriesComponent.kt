@@ -166,12 +166,11 @@ class BrowseEntriesComponent(
 	}
 
 	override fun getImagePath(entryDef: EntryDef): String? {
-		return encyclopediaService.findEntryImagePath(entryDef)?.path
+		return encyclopediaService.findPrimaryImage(entryDef)?.let { encyclopediaService.getImagePath(it).path }
 	}
 
 	override suspend fun calculateEntryImageHash(entryDef: EntryDef): String? {
-		return encyclopediaService.findEntryImageExtension(entryDef)
-			?.let { ext -> encyclopediaService.calculateEntryImageHash(entryDef, ext) }
+		return encyclopediaService.findPrimaryImage(entryDef)?.let { encyclopediaService.imageContentHash(it) }
 	}
 
 	override fun clearFilterText() {

@@ -15,6 +15,8 @@ data class EntryContent(
 	val aliases: List<String> = emptyList(),
 	/** Keeps this entry's name and aliases out of the spell-check session dictionary. */
 	val excludeFromDictionary: Boolean = false,
+	/** Image entity ids in display order; the first is the primary image. */
+	val images: List<Int> = emptyList(),
 ) {
 	fun toDef(projectDef: ProjectDef): EntryDef = EntryDef(
 		projectDef = projectDef,

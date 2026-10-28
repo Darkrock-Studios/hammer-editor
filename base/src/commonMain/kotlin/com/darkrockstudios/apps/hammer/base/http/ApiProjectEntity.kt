@@ -98,25 +98,20 @@ sealed interface ApiProjectEntity {
 		val entryType: String,
 		val text: String,
 		val tags: Set<String>,
-		val image: Image?,
 		val aliases: List<String> = emptyList(),
 		val excludeFromDictionary: Boolean = false,
+		/** Image entity ids in display order; the first is the primary image. */
+		val images: List<Int> = emptyList(),
 	) : ApiProjectEntity {
-		@Serializable
-		data class Image(
-			val base64: String,
-			val fileExtension: String,
-		)
-
 		override fun hash(): String = EntityHasher.hashEncyclopediaEntry(
 			id = id,
 			name = name,
 			entryType = entryType,
 			text = text,
 			tags = tags,
-			image = image,
 			aliases = aliases,
 			excludeFromDictionary = excludeFromDictionary,
+			images = images,
 		)
 	}
 

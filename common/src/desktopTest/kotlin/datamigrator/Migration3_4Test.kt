@@ -60,6 +60,8 @@ class Migration3_4Test : BaseTest() {
 
 	private fun migrator(vararg migrations: Pair<Int, Migration>) =
 		object : DataMigrator(mockk(relaxed = true), mockk(relaxed = true), metadataDatasource()) {
+			// Stops at this migration; later ones are covered by their own tests.
+			override val latestProjectDataVersion: Int = migrations.maxOf { it.first }
 			override fun getMigrators(): Map<Int, Migration> = migrations.toMap()
 		}
 

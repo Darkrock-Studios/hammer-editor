@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.encyclopedia
 
+import com.darkrockstudios.apps.hammer.base.image.ImageFormat
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionPlace
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
@@ -105,7 +106,6 @@ import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
 import com.darkrockstudios.apps.hammer.common.compose.stageIntoCache
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
-import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaDatasource
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryError
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryResult
@@ -428,7 +428,7 @@ internal fun ViewEntryUi(
 	LaunchedEffect(state.showAddImageDialog) {
 		if (state.showAddImageDialog) {
 			val file = try {
-				FileKit.openFilePicker(type = FileKitType.File(EncyclopediaDatasource.IMAGE_EXTENSIONS))
+				FileKit.openFilePicker(type = FileKitType.File(ImageFormat.ALLOWED_EXTENSIONS))
 			} catch (e: FileKitPickerException) {
 				Napier.e("Image picker failed", e)
 				rootSnackbar.showSnackbar(
@@ -437,11 +437,11 @@ internal fun ViewEntryUi(
 				null
 			}
 			if (file != null) {
-				if (file.size() > EncyclopediaDatasource.MAX_IMAGE_SIZE_BYTES) {
+				if (file.size() > ImageFormat.MAX_IMAGE_BYTES) {
 					rootSnackbar.showSnackbar(
 						strRes.get(
 							Res.string.encyclopedia_create_entry_image_too_large,
-							EncyclopediaDatasource.MAX_IMAGE_SIZE_MB,
+							ImageFormat.MAX_IMAGE_MB,
 						)
 					)
 				} else {

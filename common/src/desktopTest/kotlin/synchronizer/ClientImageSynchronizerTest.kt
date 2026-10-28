@@ -7,6 +7,8 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesDatasource
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesRepository
+import com.darkrockstudios.apps.hammer.common.data.references.ImageReferenceRewriter
+import com.darkrockstudios.apps.hammer.common.data.references.TouchedEntity
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogLevel
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessage
@@ -15,6 +17,7 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScop
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
+import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
 import korlibs.crypto.encoding.Base64
@@ -48,6 +51,7 @@ class ClientImageSynchronizerTest : BaseTest() {
 	private lateinit var syncJournal: SyncJournal
 	private lateinit var datasource: ImagesDatasource
 	private lateinit var repository: ImagesRepository
+	private lateinit var rewriter: ImageReferenceRewriter
 
 	@BeforeEach
 	override fun setup() {
@@ -56,11 +60,14 @@ class ClientImageSynchronizerTest : BaseTest() {
 		ffs.createDirectories(projectDef.path.toOkioPath())
 		syncJournal = mockk(relaxed = true)
 		datasource = ImagesDatasource(projectDef, ffs)
+		rewriter = mockk()
+		coEvery { rewriter.remap(any()) } returns emptySet()
 
 		setupKoin(module {
 			scope<ProjectDefScope> {
 				scoped<ProjectDef> { projectDef }
 				scoped { repository }
+				scoped { rewriter }
 			}
 		})
 		repository = ImagesRepository(projectDef, mockk<IdAllocator>(relaxed = true), syncJournal, datasource)
@@ -238,13 +245,17 @@ class ClientImageSynchronizerTest : BaseTest() {
 	}
 
 	@Test
-	fun `reIdEntity renames the file and reports no referrers`() = runTest {
+	fun `reIdEntity renames the file, then rewrites references and reports the referrers`() = runTest {
 		val sync = newSynchronizer()
 		sync.storeEntity(entity(id = 5), "sync", {})
+		coEvery { rewriter.remap(mapOf(5 to 9)) } answers {
+			assertEquals(listOf("9~Castle Map.png"), imageFiles(), "The file must move before references do")
+			setOf(TouchedEntity(EntityType.EncyclopediaEntry, 3), TouchedEntity(EntityType.EncyclopediaEntry, 4))
+		}
 
 		val referrers = sync.reIdEntity(oldId = 5, newId = 9)
 
-		assertTrue(referrers.isEmpty())
+		assertEquals(setOf(3, 4), referrers)
 		assertEquals(listOf("9~Castle Map.png"), imageFiles())
 		assertFalse(sync.ownsEntity(5))
 		assertTrue(sync.ownsEntity(9))

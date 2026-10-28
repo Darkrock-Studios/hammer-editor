@@ -20,7 +20,8 @@ object ImageFormat {
 	/** Lowercase file extensions an Image entity may have. */
 	val ALLOWED_EXTENSIONS: Set<String> = setOf("jpg", "jpeg", "png", "webp", "gif", "svg")
 
-	const val MAX_IMAGE_BYTES: Long = 8L * 1024 * 1024
+	const val MAX_IMAGE_MB: Int = 8
+	const val MAX_IMAGE_BYTES: Long = MAX_IMAGE_MB * 1024L * 1024
 
 	/** How much of a file to decode when looking for the SVG root element past the XML prolog. */
 	private const val SVG_SNIFF_WINDOW = 1024

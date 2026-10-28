@@ -360,7 +360,6 @@ class EntityHasherExtTest {
 				entryType = "person",
 				text = "",
 				tags = emptySet(),
-				image = null
 			),
 			// Entry with all text fields
 			ApiProjectEntity.EncyclopediaEntryEntity(
@@ -369,19 +368,15 @@ class EntityHasherExtTest {
 				entryType = "place",
 				text = "Detailed description\nwith multiple lines\nand special chars: !@#$%",
 				tags = setOf("tag1", "tag2", "tag3"),
-				image = null
 			),
-			// Entry with image
+			// Entry with images
 			ApiProjectEntity.EncyclopediaEntryEntity(
 				id = 3,
 				name = "Entry with Image",
 				entryType = "item",
 				text = "Entry with an image",
 				tags = setOf("important", "visual"),
-				image = ApiProjectEntity.EncyclopediaEntryEntity.Image(
-					base64 = "iVBORw0KGgoAAAANSUhEUgAAAAUA",
-					fileExtension = "png"
-				)
+				images = listOf(12),
 			),
 			// Entry with unicode and complex tags
 			ApiProjectEntity.EncyclopediaEntryEntity(
@@ -390,10 +385,7 @@ class EntityHasherExtTest {
 				entryType = "concept",
 				text = "Text with unicode: \u00E9\u00E8\u00EA\u00EB",
 				tags = setOf("unicode", "special-chars", "tag with spaces"),
-				image = ApiProjectEntity.EncyclopediaEntryEntity.Image(
-					base64 = "base64encodedstringhere==",
-					fileExtension = "jpg"
-				)
+				images = listOf(9, 4, 30),
 			),
 			// Entry with many tags
 			ApiProjectEntity.EncyclopediaEntryEntity(
@@ -402,19 +394,16 @@ class EntityHasherExtTest {
 				entryType = "event",
 				text = "Entry with many tags",
 				tags = setOf("a", "b", "c", "d", "e", "f", "g", "h", "i", "j"),
-				image = null
 			),
-			// Entry with different image extension
+			// Entry excluded from the dictionary, with images
 			ApiProjectEntity.EncyclopediaEntryEntity(
 				id = 6,
-				name = "JPEG Image",
+				name = "Hidden",
 				entryType = "person",
-				text = "Has a JPEG",
+				text = "Not in the dictionary",
 				tags = setOf("image"),
-				image = ApiProjectEntity.EncyclopediaEntryEntity.Image(
-					base64 = "/9j/4AAQSkZJRgABAQEAYABgAAD/2wBD",
-					fileExtension = "jpeg"
-				)
+				excludeFromDictionary = true,
+				images = listOf(2, 1),
 			),
 			// Entry with aliases
 			ApiProjectEntity.EncyclopediaEntryEntity(
@@ -423,7 +412,6 @@ class EntityHasherExtTest {
 				entryType = "person",
 				text = "A character with nicknames",
 				tags = setOf("protagonist"),
-				image = null,
 				aliases = listOf("Bob", "Bobby", "Rob"),
 			),
 		)
@@ -437,8 +425,9 @@ class EntityHasherExtTest {
 				entryType = entry.entryType,
 				text = entry.text,
 				tags = entry.tags,
-				image = entry.image,
 				aliases = entry.aliases,
+				excludeFromDictionary = entry.excludeFromDictionary,
+				images = entry.images,
 			)
 
 			assertEquals(
