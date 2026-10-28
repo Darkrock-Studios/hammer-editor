@@ -3,10 +3,20 @@ package com.darkrockstudios.apps.hammer.common.data.references
 import com.darkrockstudios.apps.hammer.base.http.EntityType
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
+import com.darkrockstudios.apps.hammer.common.data.SceneContent
+import com.darkrockstudios.apps.hammer.common.data.SceneItem
+import com.darkrockstudios.apps.hammer.common.data.drafts.DraftDef
+import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
+import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
+import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
 import com.darkrockstudios.apps.hammer.common.data.projectInject
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
+import com.darkrockstudios.apps.hammer.common.data.search.markdownTitleLine
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CancellationException
@@ -22,18 +32,36 @@ data class ImageUsages(val usages: List<ImageUsage>) {
 
 /**
  * Finds and rewrites the references other entities hold to Image entities: Markdown
- * `hammer://image/<id>` links and image id lists. Every rewritten entity is marked dirty for sync.
- * Never throws: an entity that cannot be read or written is logged and skipped.
+ * `hammer://image/<id>` links and image id lists, in encyclopedia entries, scenes (active, archived
+ * and unsaved edits not yet restored), drafts, notes and timeline events. Every rewritten entity is
+ * marked dirty for sync, except unrestored edits, which are local until restored and saved. Never
+ * throws: an entity that cannot be read or written is logged and skipped.
  */
 class ImageReferenceRewriter(projectDef: ProjectDef) : ProjectScoped {
 	override val projectScope = ProjectDefScope(projectDef)
 
 	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
+	private val sceneEditor: SceneEditorService by projectInject()
+	private val draftRepository: SceneDraftRepository by projectInject()
+	private val notesRepository: NotesRepository by projectInject()
+	private val timeLineRepository: TimeLineRepository by projectInject()
 
-	private val holders: List<Holder> = listOf(EntryHolder())
+	private val holders: List<Holder> = listOf(
+		EntryHolder(),
+		SceneHolder(),
+		ArchivedSceneHolder(),
+		UnrestoredEditsHolder(),
+		DraftHolder(),
+		NoteHolder(),
+		EventHolder(),
+	)
 
-	suspend fun findUsages(imageId: Int): ImageUsages =
-		ImageUsages(holders.flatMap { holder -> guarded(holder, emptyList()) { holder.usages(imageId) } })
+	/** A scene listed once even when both its text and its unrestored edits use the image. */
+	suspend fun findUsages(imageId: Int): ImageUsages = ImageUsages(
+		holders
+			.flatMap { holder -> guarded(holder, emptyList()) { holder.usages(imageId) } }
+			.distinctBy { it.entity }
+	)
 
 	/** Whether anything refers to [imageId]; stops at the first reference. */
 	suspend fun isUsed(imageId: Int): Boolean =
@@ -117,6 +145,179 @@ class ImageReferenceRewriter(projectDef: ProjectDef) : ProjectScoped {
 			}
 	}
 
+	/**
+	 * A kind of entity whose Markdown text can embed images. [rewrite] reads the item's current text,
+	 * passes it through the transform and writes the result only when it changed.
+	 */
+	private abstract inner class MarkdownHolder<T> : Holder {
+		abstract val type: EntityType
+		abstract suspend fun items(): List<T>
+		abstract fun id(item: T): Int
+		abstract suspend fun name(item: T): String
+
+		/** The item's text, or null when it has none to read. */
+		abstract suspend fun read(item: T): String?
+
+		/** Returns true when the item's text changed and was written. */
+		abstract suspend fun rewrite(item: T, transform: (String) -> String): Boolean
+
+		override suspend fun usages(imageId: Int): List<ImageUsage> = eachItem { item ->
+			if (read(item)?.let { imageId in ImageReferenceSyntax.findIds(it) } == true) {
+				ImageUsage(TouchedEntity(type, id(item)), name(item))
+			} else {
+				null
+			}
+		}
+
+		override suspend fun uses(imageId: Int): Boolean = items().any { item ->
+			guarded("$name ${id(item)}", false) {
+				read(item)?.let { imageId in ImageReferenceSyntax.findIds(it) } == true
+			}
+		}
+
+		override suspend fun referencedIds(): Set<Int> =
+			eachItem { item -> read(item)?.let(ImageReferenceSyntax::findIds) }.flatten().toSet()
+
+		override suspend fun apply(edit: Edit): Set<TouchedEntity> = eachItem { item ->
+			if (rewrite(item, edit::text)) TouchedEntity(type, id(item)) else null
+		}.toSet()
+
+		private suspend fun <R : Any> eachItem(block: suspend (T) -> R?): List<R> =
+			items().mapNotNull { item -> guarded("$name ${id(item)}", null) { block(item) } }
+	}
+
+	/** Shared by the holders that store a whole Markdown body: read, transform, write if changed. */
+	private inline fun rewriteText(current: String?, transform: (String) -> String, write: (String) -> Boolean): Boolean {
+		if (current == null) return false
+		val updated = transform(current)
+		return updated != current && write(updated)
+	}
+
+	/**
+	 * Scenes in the tree. A scene with a loaded buffer is rewritten through the buffer, which also
+	 * updates an open editor; writing its file directly would be undone by the editor's next save.
+	 */
+	private inner class SceneHolder : MarkdownHolder<SceneItem>() {
+		override val name = "scenes"
+		override val type = EntityType.Scene
+
+		override suspend fun items(): List<SceneItem> =
+			sceneEditor.getSceneTree().map { it.value }.filter { it.type == SceneItem.Type.Scene }
+
+		override fun id(item: SceneItem) = item.id
+		override suspend fun name(item: SceneItem) = item.name
+		override suspend fun read(item: SceneItem): String? = sceneEditor.getCurrentSceneContentOrNull(item)
+
+		override suspend fun rewrite(item: SceneItem, transform: (String) -> String): Boolean =
+			if (sceneEditor.getSceneBuffer(item) != null) {
+				// Keystrokes still in the debounce would be dropped by the replacement.
+				sceneEditor.applyPendingEdits(item)
+				rewriteText(sceneEditor.getCurrentSceneContentOrNull(item), transform) { updated ->
+					sceneEditor.replaceSceneText(item, updated)
+				}
+			} else {
+				rewriteFile(item, transform)
+			}
+	}
+
+	private inner class ArchivedSceneHolder : MarkdownHolder<SceneItem>() {
+		override val name = "archived scenes"
+		override val type = EntityType.Scene
+
+		override suspend fun items(): List<SceneItem> = sceneEditor.getArchivedScenes()
+		override fun id(item: SceneItem) = item.id
+		override suspend fun name(item: SceneItem) = item.name
+
+		override suspend fun read(item: SceneItem): String? =
+			sceneEditor.resolveScenePathFromFilesystemIncludingArchived(item.id)
+				?.let { path -> sceneEditor.loadSceneMarkdownRaw(item, path) }
+
+		override suspend fun rewrite(item: SceneItem, transform: (String) -> String): Boolean =
+			rewriteFile(item, transform)
+	}
+
+	private suspend fun rewriteFile(scene: SceneItem, transform: (String) -> String): Boolean {
+		val path = sceneEditor.resolveScenePathFromFilesystemIncludingArchived(scene.id) ?: return false
+		val current = sceneEditor.loadSceneMarkdownRaw(scene, path)
+		val updated = transform(current)
+		return updated != current && sceneEditor.storeSceneMarkdownRaw(SceneContent(scene, updated), path)
+	}
+
+	/**
+	 * Unsaved edits an earlier session left on disk that this scope has not restored. Rewritten so that
+	 * restoring them does not bring back a reference that was remapped or removed.
+	 */
+	private inner class UnrestoredEditsHolder : MarkdownHolder<SceneItem>() {
+		override val name = "unrestored scene edits"
+		override val type = EntityType.Scene
+
+		override suspend fun items(): List<SceneItem> =
+			sceneEditor.getSceneTree().map { it.value }
+				.filter { it.type == SceneItem.Type.Scene && sceneEditor.hasUnrestoredEdits(it) }
+
+		override fun id(item: SceneItem) = item.id
+		override suspend fun name(item: SceneItem) = item.name
+		override suspend fun read(item: SceneItem): String? = sceneEditor.loadUnrestoredEdits(item)
+
+		override suspend fun rewrite(item: SceneItem, transform: (String) -> String): Boolean =
+			sceneEditor.updateUnrestoredEdits(item, transform)
+	}
+
+	private inner class DraftHolder : MarkdownHolder<DraftDef>() {
+		override val name = "drafts"
+		override val type = EntityType.SceneDraft
+
+		override suspend fun items(): List<DraftDef> = draftRepository.getAllDrafts().toList()
+		override fun id(item: DraftDef) = item.id
+
+		override suspend fun name(item: DraftDef): String {
+			val scene = sceneEditor.getSceneItemFromIdIncludingArchived(item.sceneId)
+			return if (scene != null) "${scene.name}: ${item.draftName}" else item.draftName
+		}
+
+		override suspend fun read(item: DraftDef): String? = draftRepository.loadDraftContent(item)
+
+		override suspend fun rewrite(item: DraftDef, transform: (String) -> String): Boolean =
+			rewriteText(read(item), transform) { updated -> draftRepository.updateDraftContent(item, updated) }
+	}
+
+	private inner class NoteHolder : MarkdownHolder<NoteContent>() {
+		override val name = "notes"
+		override val type = EntityType.Note
+
+		override suspend fun items(): List<NoteContent> = notesRepository.loadNotesImperative().map { it.note }
+		override fun id(item: NoteContent) = item.id
+		override suspend fun name(item: NoteContent) = titleOf(item.content)
+		override suspend fun read(item: NoteContent): String = item.content
+
+		override suspend fun rewrite(item: NoteContent, transform: (String) -> String): Boolean =
+			rewriteText(item.content, transform) { updated ->
+				notesRepository.updateNote(item.copy(content = updated))
+				true
+			}
+	}
+
+	private inner class EventHolder : MarkdownHolder<TimeLineEvent>() {
+		override val name = "timeline events"
+		override val type = EntityType.TimelineEvent
+
+		override suspend fun items(): List<TimeLineEvent> = timeLineRepository.loadTimeline().events
+		override fun id(item: TimeLineEvent) = item.id
+		override suspend fun name(item: TimeLineEvent) = titleOf(item.content)
+		override suspend fun read(item: TimeLineEvent): String = item.content
+
+		override suspend fun rewrite(item: TimeLineEvent, transform: (String) -> String): Boolean =
+			rewriteText(item.content, transform) { updated ->
+				timeLineRepository.updateEvent(item.copy(content = updated))
+			}
+	}
+
+	/** Notes and events have no title: their first line of prose stands in, cut short. */
+	private fun titleOf(markdown: String): String {
+		val line = markdownTitleLine(markdown)
+		return if (line.length <= TITLE_LENGTH) line else line.take(TITLE_LENGTH).trimEnd() + "…"
+	}
+
 	private suspend fun <T> guarded(holder: Holder, fallback: T, block: suspend () -> T): T =
 		guarded(holder.name, fallback, block)
 
@@ -130,4 +331,8 @@ class ImageReferenceRewriter(projectDef: ProjectDef) : ProjectScoped {
 			Napier.e("Image reference rewrite failed for $what", e)
 			fallback
 		}
+
+	private companion object {
+		const val TITLE_LENGTH = 40
+	}
 }

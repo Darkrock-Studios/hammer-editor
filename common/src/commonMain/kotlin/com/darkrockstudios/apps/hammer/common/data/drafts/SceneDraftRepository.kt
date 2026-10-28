@@ -31,6 +31,15 @@ class SceneDraftRepository(
 	fun insertSyncDraft(draftEntity: ApiProjectEntity.SceneDraftEntity): DraftDef =
 		datasource.insertSyncDraft(draftEntity)
 
+	/** Replaces a draft's text and marks it for sync. Returns false when the draft has no file. */
+	suspend fun updateDraftContent(draftDef: DraftDef, content: String): Boolean {
+		if (!datasource.updateDraftContent(draftDef, content)) return false
+		if (syncJournal.isServerSynchronized() && !syncJournal.isEntityDirty(draftDef.id)) {
+			syncJournal.markEntityAsDirty(draftDef.id)
+		}
+		return true
+	}
+
 	/** Deletes a draft without telling sync, for sync's own deletions. */
 	fun deleteDraft(id: Int): Boolean = datasource.deleteDraft(id)
 

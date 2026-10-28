@@ -179,6 +179,17 @@ class ImageReferenceSyntaxTest {
 
 	// endregion
 
+	@Test
+	fun `parseId reads the id of a hammer image source`() {
+		assertEquals(3, ImageReferenceSyntax.parseId("hammer://image/3"))
+		assertEquals(42, ImageReferenceSyntax.parseId(ImageReferenceSyntax.reference(42)))
+		assertEquals(null, ImageReferenceSyntax.parseId("https://example.com/3.png"))
+		assertEquals(null, ImageReferenceSyntax.parseId("hammer://image/"))
+		assertEquals(null, ImageReferenceSyntax.parseId("hammer://image/3x"))
+		assertEquals(null, ImageReferenceSyntax.parseId("hammer://image/-3"))
+		assertEquals(null, ImageReferenceSyntax.parseId("hammer://image/99999999999"))
+	}
+
 	private fun assertRemoves(text: String, expected: String, imageId: Int = 5) {
 		assertEquals(expected, ImageReferenceSyntax.remove(text, imageId))
 	}

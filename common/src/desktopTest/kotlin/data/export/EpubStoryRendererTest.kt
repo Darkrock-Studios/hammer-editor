@@ -170,4 +170,23 @@ class EpubStoryRendererTest {
 		)
 		assertTrue("112233" in content, "The theme primary color should reach the stylesheet")
 	}
+
+	@Test
+	fun `an image is written as its alt text`() {
+		val content = render(
+			listOf(StoryChapter("Alpha", "Before.\n\n![A *black* cat](hammer://image/3)\n\nAfter.")),
+		)
+
+		assertTrue("<p>A <em>black</em> cat</p>" in content, content)
+		assertTrue("<img" !in content, content)
+		assertTrue("hammer://image" !in content, content)
+	}
+
+	@Test
+	fun `an image in a line of prose leaves its alt text in place`() {
+		val content = render(listOf(StoryChapter("Alpha", "See ![the map](https://example.com/map.png) here.")))
+
+		assertTrue("<p>See the map here.</p>" in content, content)
+		assertTrue("<img" !in content, content)
+	}
 }

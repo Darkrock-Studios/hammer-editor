@@ -168,6 +168,17 @@ class SceneContentRepository(
 		!tempBuffersRestored.value && sceneDatasource.hasTempScene(sceneItem)
 
 	/**
+	 * Rewrites the unsaved edits an earlier session left for the scene, while this scope has not
+	 * restored them, so they come back rewritten. Returns true when they changed.
+	 */
+	fun updateUnrestoredEdits(sceneItem: SceneItem, transform: (String) -> String): Boolean =
+		hasUnrestoredEdits(sceneItem) && sceneDatasource.updateTempSceneBuffer(sceneItem, transform)
+
+	/** The unsaved edits an earlier session left for the scene that this scope has not restored, or null. */
+	fun loadUnrestoredEdits(sceneItem: SceneItem): String? =
+		if (hasUnrestoredEdits(sceneItem)) sceneDatasource.loadTempSceneBuffer(sceneItem) else null
+
+	/**
 	 * Returns whether the buffer now holds unsaved edits that need a temp file. Held under the lock
 	 * throughout, so a [replaceBuffer] cannot land between the staleness check and the update.
 	 */

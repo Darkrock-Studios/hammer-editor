@@ -10,6 +10,9 @@ import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.ComponentToaster
 import com.darkrockstudios.apps.hammer.common.components.ComponentToasterImpl
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
+import com.darkrockstudios.apps.hammer.common.components.images.ImagePickRequests
+import com.darkrockstudios.apps.hammer.common.components.images.ImagePickTarget
+import com.darkrockstudios.apps.hammer.common.components.images.findPickedImage
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.scenemetadata.SceneMetadataPanel
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.scenemetadata.SceneMetadataPanelComponent
 import com.darkrockstudios.apps.hammer.common.data.*
@@ -19,6 +22,7 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings.Companion.DEFAULT_EDITOR_WIDTH
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings.Companion.DEFAULT_FONT_SIZE
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesService
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.references.AutoConfirmReferencesUseCase
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
@@ -26,8 +30,10 @@ import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectDictionaryUseCas
 import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectSpellCheckService
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.Serializable
 import org.koin.core.component.inject
 import kotlin.time.Clock
 
@@ -53,6 +59,9 @@ class SceneEditorComponent(
 
 	private val spellCheckService: ProjectSpellCheckService by projectInject()
 	private val projectDictionary: ProjectDictionaryUseCase by projectInject()
+	private val imagePickRequests: ImagePickRequests by projectInject()
+	private val imagesService: ImagesService by projectInject()
+	private var imagePickInProgress = false
 
 	private val _state = MutableValue(
 		SceneEditor.State(
@@ -81,6 +90,7 @@ class SceneEditorComponent(
 
 		loadSceneContent()
 		subscribeToBufferUpdates()
+		restoreImagePick()
 		watchSettings()
 		sceneEditor.subscribeToSceneUpdates(scope, ::onSceneTreeUpdate)
 
@@ -516,6 +526,49 @@ class SceneEditorComponent(
 		scope.launch { projectDictionary.addWord(word) }
 	}
 
+	private fun imagePickTarget() = ImagePickTarget.EditorInsert(sceneDef.id)
+
+	// The gallery comes back with the project root after process death; wait for its answer again.
+	private fun restoreImagePick() {
+		val saved = stateKeeper.consume(IMAGE_PICK_KEY, SavedImagePick.serializer())
+		stateKeeper.register(IMAGE_PICK_KEY, SavedImagePick.serializer()) {
+			SavedImagePick(inProgress = imagePickInProgress, pendingImageId = state.value.pendingImageInsert?.id)
+		}
+		saved?.pendingImageId?.let { id ->
+			scope.launch {
+				val image = findPickedImage(id, imagesService)
+				withContext(dispatcherMain) { _state.update { it.copy(pendingImageInsert = image) } }
+			}
+		}
+		if (saved?.inProgress == true) {
+			val target = imagePickTarget()
+			awaitImagePick { imagePickRequests.awaitResult(target) }
+		}
+	}
+
+	override fun pickImageForInsert() {
+		if (imagePickInProgress) return
+		val target = imagePickTarget()
+		awaitImagePick { imagePickRequests.pick(target) }
+	}
+
+	private fun awaitImagePick(pick: suspend () -> Int?) {
+		imagePickInProgress = true
+		scope.launch {
+			try {
+				val imageId = pick() ?: return@launch
+				val image = findPickedImage(imageId, imagesService) ?: return@launch
+				withContext(dispatcherMain) { _state.update { it.copy(pendingImageInsert = image) } }
+			} finally {
+				withContext(NonCancellable + dispatcherMain) { imagePickInProgress = false }
+			}
+		}
+	}
+
+	override fun consumePendingImageInsert() {
+		_state.update { it.copy(pendingImageInsert = null) }
+	}
+
 	override fun decreaseTextSize() {
 		scope.launch {
 			val size = decreaseEditorTextSize(state.value.textSize)
@@ -552,5 +605,9 @@ class SceneEditorComponent(
 
 	companion object {
 		const val VIEW_DRAFTS_MENU_ITEM_ID = "scene-editor-view-drafts"
+		private const val IMAGE_PICK_KEY = "scene_editor_image_pick"
 	}
+
+	@Serializable
+	private data class SavedImagePick(val inProgress: Boolean, val pendingImageId: Int?)
 }

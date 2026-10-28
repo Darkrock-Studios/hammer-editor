@@ -13,6 +13,7 @@ import androidx.compose.ui.semantics.text
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.compose.LocalEditorTextStyle
+import com.darkrockstudios.apps.hammer.common.compose.LocalImageProvider
 import com.darkrockstudios.apps.hammer.common.compose.LocalRichTextStyles
 import com.darkrockstudios.apps.hammer.common.compose.markdown.HammerMarkdownConfiguration
 import com.darkrockstudios.apps.hammer.common.compose.withParagraphIndent
@@ -47,11 +48,12 @@ fun MarkdownView(
 	paragraphIndent: Boolean = true,
 ) {
 	val richTextStyles = LocalRichTextStyles.current
+	val imageProvider = LocalImageProvider.current
 	val state = rememberTextEditorState()
 	var imported by remember(state) { mutableStateOf(if (importDuringComposition) markdown else null) }
 	val markdownExtension = remember(state) {
 		state.richTextStyles = richTextStyles
-		state.withMarkdown(HammerMarkdownConfiguration).apply {
+		state.withMarkdown(HammerMarkdownConfiguration, imageProvider).apply {
 			if (importDuringComposition) importMarkdown(markdown)
 		}
 	}

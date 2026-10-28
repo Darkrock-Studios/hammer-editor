@@ -35,6 +35,7 @@
 	<string name="markdown_format_bar_bullet_list">Aufzählungsliste</string>
 	<string name="markdown_format_bar_numbered_list">Nummerierte Liste</string>
 	<string name="markdown_format_bar_horizontal_rule">Horizontale Linie</string>
+	<string name="markdown_format_bar_image">Bild einfügen</string>
 	<string name="markdown_format_bar_undo">Rückgängig</string>
 	<string name="markdown_format_bar_redo">Wiederholen</string>
 	<string name="form_dialog_keyboard_hint">ESC Abbrechen</string>

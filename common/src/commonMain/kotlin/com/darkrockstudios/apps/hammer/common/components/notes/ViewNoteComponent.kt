@@ -9,9 +9,14 @@ import com.arkivanov.decompose.value.update
 import com.arkivanov.essenty.backhandler.BackCallback
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
+import com.darkrockstudios.apps.hammer.common.components.images.ImagePickRequests
+import com.darkrockstudios.apps.hammer.common.components.images.ImagePickTarget
+import com.darkrockstudios.apps.hammer.common.components.images.pickImage
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.MenuItemDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesService
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageDef
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
 import com.darkrockstudios.apps.hammer.common.data.projectInject
@@ -34,6 +39,8 @@ class ViewNoteComponent(
 ) : ProjectComponentBase(projectDef, componentContext), ViewNote {
 
 	private val notesRepository: NotesRepository by projectInject()
+	private val imagePickRequests: ImagePickRequests by projectInject()
+	private val imagesService: ImagesService by projectInject()
 
 	// A restored in-progress edit, only present after process death while editing.
 	private val restoredDraft: SavedDraft? =
@@ -242,6 +249,9 @@ class ViewNoteComponent(
 			closeNote()
 		}
 	}
+
+	override suspend fun pickImageForText(): ImageDef? =
+		imagePickRequests.pickImage(ImagePickTarget.NoteImage(noteId), imagesService)
 
 	override fun cancelClose() {
 		_state.getAndUpdate {

@@ -12,8 +12,8 @@ private val IMAGE_MARKER = Char(0xE001)
 /**
  * Horizontal rules and code fences live in the editor's rich span manager, not in the
  * AnnotatedString, so scene content has to travel as markdown and be imported.
- * Round-tripping it as an AnnotatedString silently drops every block. Images need an
- * ImageProvider the editors don't supply, so they import as literal text.
+ * Round-tripping it as an AnnotatedString silently drops every block. Images import as
+ * blocks only in an editor given an ImageProvider; anywhere else they stay literal text.
  */
 fun loadSceneContent(markdown: MarkdownExtension, sceneContent: SceneContent?) {
 	loadSceneContent(markdown, sceneContentMarkdown(sceneContent))

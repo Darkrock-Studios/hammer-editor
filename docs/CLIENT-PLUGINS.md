@@ -486,6 +486,10 @@ class ExportInput(
   file extension from it, and the Android save picker its MIME type.
 - **Labels.** Built-in labels are localized in `:composeUi`. A plugin format
   shows its manifest label, or its file extension in upper case.
+- **Images.** Chapter markdown embeds a project image as a line of its own,
+  `![name](hammer://image/<id>)`, which nothing outside Hammer can load. The
+  EPUB, DOCX, RTF and PDF formats write each image as its alt text, the image's
+  name; the Markdown format keeps the reference as written.
 
 Importers have no plugin seam: `ImportFormat` is a closed enum.
 

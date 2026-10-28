@@ -17,6 +17,7 @@ import com.darkrockstudios.apps.hammer.common.components.encyclopedia.rename.Ren
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.rename.RenameEntryComponent
 import com.darkrockstudios.apps.hammer.common.components.images.ImagePickRequests
 import com.darkrockstudios.apps.hammer.common.components.images.ImagePickTarget
+import com.darkrockstudios.apps.hammer.common.components.images.pickImage
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.MenuItemDescriptor
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
@@ -27,6 +28,8 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryR
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImageAddResult
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesService
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageDef
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.references.BackfillEntryReferencesUseCase
 import com.darkrockstudios.apps.hammer.common.data.references.CleanupReferencesOnEntryDeleteUseCase
@@ -67,6 +70,7 @@ class ViewEntryComponent(
 	private val backfillEntryReferences: BackfillEntryReferencesUseCase by projectInject()
 	private val cleanupReferencesOnDelete: CleanupReferencesOnEntryDeleteUseCase by projectInject()
 	private val imagePickRequests: ImagePickRequests by projectInject()
+	private val imagesService: ImagesService by projectInject()
 
 	private val reloadMutex = Mutex()
 
@@ -158,6 +162,9 @@ class ViewEntryComponent(
 		val target = libraryPickTarget()
 		awaitLibraryPick { imagePickRequests.pick(target) }
 	}
+
+	override suspend fun pickImageForText(): ImageDef? =
+		imagePickRequests.pickImage(ImagePickTarget.EntryText(state.value.entryDef.id), imagesService)
 
 	private fun awaitLibraryPick(pick: suspend () -> Int?) {
 		_state.getAndUpdate { it.copy(pendingLibraryPick = true) }

@@ -1,5 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.data.search
 
+import com.darkrockstudios.apps.hammer.base.markdown.inlineImageAltEnd
+import com.darkrockstudios.apps.hammer.base.markdown.inlineImageDestinationEnd
 import com.darkrockstudios.apps.hammer.common.util.ScanBuffers
 
 private const val FLAG_CAN_OPEN = 1
@@ -434,11 +436,14 @@ class MarkdownProjector(initialCapacity: Int = INITIAL_OUT) : ScanBuffers {
 		}
 	}
 
+	/** An image renders as its alt text: the `![` is dropped, and so is everything from the `]` on. */
 	private fun render() {
 		val length = srcLength
 		var i = 0
 		var r = 0
 		var atLineStart = true
+		var imageAltEnd = -1
+		var imageEnd = -1
 		while (i < length) {
 			if (atLineStart) {
 				atLineStart = false
@@ -450,6 +455,13 @@ class MarkdownProjector(initialCapacity: Int = INITIAL_OUT) : ScanBuffers {
 				}
 			}
 
+			if (i == imageAltEnd) {
+				i = imageEnd
+				imageAltEnd = -1
+				while (r < runCount && runStart[r] < i) r++
+				continue
+			}
+
 			if (r < runCount && i == runStart[r]) {
 				appendOut(runStart[r] + runDropFront[r], runEnd[r] - runDropBack[r])
 				i = runEnd[r]
@@ -458,6 +470,16 @@ class MarkdownProjector(initialCapacity: Int = INITIAL_OUT) : ScanBuffers {
 			}
 
 			val c = src[i]
+			if (c == '!' && imageAltEnd < 0) {
+				val altEnd = inlineImageAltEnd(i, length) { src[it] }
+				val end = if (altEnd < 0) -1 else inlineImageDestinationEnd(altEnd, length) { src[it] }
+				if (end > 0) {
+					imageAltEnd = altEnd
+					imageEnd = end
+					i += 2
+					continue
+				}
+			}
 			if (c == '\n') atLineStart = true
 			if (c == '\\' && i + 1 < length && src[i + 1].isAsciiPunctuation()) {
 				appendOut(src[i + 1])

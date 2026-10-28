@@ -9,6 +9,14 @@ object ImageReferenceSyntax {
 
 	fun reference(imageId: Int): String = "$SCHEME_PREFIX$imageId"
 
+	/** The image id an image source such as `hammer://image/3` names, or null when it names none. */
+	fun parseId(source: String): Int? {
+		if (!source.startsWith(SCHEME_PREFIX)) return null
+		val digits = source.substring(SCHEME_PREFIX.length)
+		if (digits.isEmpty() || !digits.all { it in '0'..'9' }) return null
+		return digits.toIntOrNull()
+	}
+
 	// The id runs to the last digit and must not continue into a word ("hammer://image/12x" is not
 	// image 12), and the scheme must not be the tail of a longer one.
 	private val ID_PATTERN = Regex("""(?<![\w+.-])hammer://image/(\d+)(?!\w)""")

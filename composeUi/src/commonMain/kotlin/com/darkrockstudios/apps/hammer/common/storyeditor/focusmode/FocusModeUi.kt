@@ -38,6 +38,7 @@ import com.darkrockstudios.apps.hammer.common.components.storyeditor.focusmode.F
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.clampEditorWidth
 import com.darkrockstudios.apps.hammer.common.compose.ComposeRichText
 import com.darkrockstudios.apps.hammer.common.compose.LocalEditorTextStyle
+import com.darkrockstudios.apps.hammer.common.compose.LocalImageProvider
 import com.darkrockstudios.apps.hammer.common.compose.LocalRichTextStyles
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.findShortcutModifier
@@ -70,6 +71,7 @@ fun FocusModeUi(component: FocusMode) {
 	val state by component.state.subscribeAsState()
 	val lastForceUpdate by component.lastForceUpdate.subscribeAsState()
 	val richTextStyles = LocalRichTextStyles.current
+	val imageProvider = LocalImageProvider.current
 	val defaultDispatcher = rememberDefaultDispatcher()
 
 	val addToDictionaryLabel = Res.string.scene_editor_add_to_dictionary.get()
@@ -86,7 +88,7 @@ fun FocusModeUi(component: FocusMode) {
 	)
 	val markdownExtension = remember {
 		textEditorState.textState.richTextStyles = richTextStyles
-		textEditorState.textState.withMarkdown(HammerMarkdownConfiguration)
+		textEditorState.textState.withMarkdown(HammerMarkdownConfiguration, imageProvider)
 	}
 
 	val findState = rememberFindState(textEditorState.textState)
@@ -148,6 +150,8 @@ fun FocusModeUi(component: FocusMode) {
 					.fillMaxWidth(),
 				horizontalArrangement = Arrangement.SpaceBetween,
 			) {
+				// No insert image action: focus mode fills the project's one modal slot, which the
+				// image gallery would need.
 				MarkdownFormatBar(
 					markdownState = markdownExtension,
 					decreaseTextSize = component::decreaseTextSize,

@@ -6,6 +6,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
 import com.darkrockstudios.apps.hammer.common.compose.LocalEditorTextStyle
+import com.darkrockstudios.apps.hammer.common.compose.LocalImageProvider
 import com.darkrockstudios.apps.hammer.common.compose.WindowWidthSizeClass
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -341,9 +342,10 @@ private fun rememberSceneContentEditor(
 	richTextStyles: RichTextStyles,
 ): MarkdownExtension {
 	val editorState = rememberTextEditorState()
+	val imageProvider = LocalImageProvider.current
 	val markdownExtension = remember(editorState) {
 		editorState.richTextStyles = richTextStyles
-		editorState.withMarkdown(HammerMarkdownConfiguration).also { loadSceneContent(it, content) }
+		editorState.withMarkdown(HammerMarkdownConfiguration, imageProvider).also { loadSceneContent(it, content) }
 	}
 	// Both panes restyle together; the styles are otherwise baked in at import time and
 	// the two would drift apart on a font size or theme change.

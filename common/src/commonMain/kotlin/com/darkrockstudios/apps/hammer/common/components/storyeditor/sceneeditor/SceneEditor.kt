@@ -9,6 +9,7 @@ import com.darkrockstudios.apps.hammer.common.data.PlatformRichText
 import com.darkrockstudios.apps.hammer.common.data.SceneBuffer
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageDef
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponent
 import com.darkrockstudios.libs.platformspellchecker.PlatformSpellChecker
 
@@ -61,6 +62,12 @@ interface SceneEditor : HammerComponent, ComponentToaster {
 	/** Adds a flagged word to the project's spell-check dictionary. */
 	fun addWordToDictionary(word: String)
 
+	/** Opens the gallery to pick an image to embed; the pick lands in [State.pendingImageInsert]. */
+	fun pickImageForInsert()
+
+	/** Call once the editor has inserted [State.pendingImageInsert]. */
+	fun consumePendingImageInsert()
+
 	data class State(
 		val sceneItem: SceneItem,
 		val sceneBuffer: SceneBuffer? = null,
@@ -83,5 +90,10 @@ interface SceneEditor : HammerComponent, ComponentToaster {
 		/** Whether [language] has been read, so text diagnostics wait for it rather than guess. */
 		val languageLoaded: Boolean = false,
 		val spellCheckingEnabled: Boolean = true,
+		/**
+		 * The image picked for embedding in the scene, waiting for the editor to insert it at the
+		 * caret. Held here so it outlives the editor UI while the gallery covers it.
+		 */
+		val pendingImageInsert: ImageDef? = null,
 	)
 }

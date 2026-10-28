@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.encyclopedia
 
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageDef
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionPlace
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
@@ -370,6 +371,7 @@ internal fun ViewEntryUi(
 							entryText = entryText,
 							setEntryText = { entryText = it },
 							onStartTextEdit = component::startTextEdit,
+							imagePicker = component::pickImageForText,
 							figure = figure,
 							outerModifier = bodyOuterModifier,
 							sharedTransitionScope = sharedTransitionScope,
@@ -381,6 +383,7 @@ internal fun ViewEntryUi(
 							entryText = entryText,
 							setEntryText = { entryText = it },
 							onStartTextEdit = component::startTextEdit,
+							imagePicker = component::pickImageForText,
 							figure = figure,
 							outerModifier = bodyOuterModifier,
 							sharedTransitionScope = sharedTransitionScope,
@@ -730,6 +733,7 @@ private fun WideBody(
 	entryText: String,
 	setEntryText: (String) -> Unit,
 	onStartTextEdit: () -> Unit,
+	imagePicker: suspend () -> ImageDef?,
 	figure: @Composable (Modifier) -> Unit,
 	outerModifier: Modifier,
 	sharedTransitionScope: SharedTransitionScope,
@@ -746,6 +750,7 @@ private fun WideBody(
 			entryText = entryText,
 			setEntryText = setEntryText,
 			onStartTextEdit = onStartTextEdit,
+			imagePicker = imagePicker,
 			enableSpellChecking = state.spellCheckAllowed,
 			modifier = Modifier.weight(1f).fillMaxHeight(),
 			sharedKey = "encyclopedia-text-${state.entryDef.id}",
@@ -776,6 +781,7 @@ private fun CompactBody(
 	entryText: String,
 	setEntryText: (String) -> Unit,
 	onStartTextEdit: () -> Unit,
+	imagePicker: suspend () -> ImageDef?,
 	figure: @Composable (Modifier) -> Unit,
 	outerModifier: Modifier,
 	sharedTransitionScope: SharedTransitionScope,
@@ -804,6 +810,7 @@ private fun CompactBody(
 			entryText = entryText,
 			setEntryText = setEntryText,
 			onStartTextEdit = onStartTextEdit,
+			imagePicker = imagePicker,
 			enableSpellChecking = state.spellCheckAllowed,
 			modifier = if (editing) Modifier.fillMaxWidth().weight(1f) else Modifier.fillMaxWidth(),
 			sharedKey = "encyclopedia-text-${state.entryDef.id}",
@@ -820,6 +827,7 @@ private fun BodyTextZone(
 	entryText: String,
 	setEntryText: (String) -> Unit,
 	onStartTextEdit: () -> Unit,
+	imagePicker: suspend () -> ImageDef?,
 	enableSpellChecking: Boolean,
 	modifier: Modifier,
 	sharedKey: String,
@@ -838,6 +846,7 @@ private fun BodyTextZone(
 				initialMarkdown = entryText,
 				onMarkdownChanged = setEntryText,
 				enableSpellChecking = enableSpellChecking,
+				imagePicker = imagePicker,
 				contentPadding = PaddingValues(Ui.Padding.XL),
 				modifier = Modifier
 					.fillMaxWidth()

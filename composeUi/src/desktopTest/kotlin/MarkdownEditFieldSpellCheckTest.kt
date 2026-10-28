@@ -9,6 +9,7 @@ import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.components.notes.ViewNote
 import com.darkrockstudios.apps.hammer.common.compose.rememberRootSnackbarHostState
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageDef
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
 import com.darkrockstudios.apps.hammer.common.notes.ViewNoteUi
 import androidx.compose.ui.test.captureToImage
@@ -119,6 +120,7 @@ class MarkdownEditFieldSpellCheckTest {
 		override fun cancelDiscard() {}
 		override fun confirmClose() {}
 		override fun cancelClose() {}
+		override suspend fun pickImageForText(): ImageDef? = null
 		override fun suggestTags(prefix: String, limit: Int): List<String> = emptyList()
 	}
 

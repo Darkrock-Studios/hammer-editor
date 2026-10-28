@@ -51,6 +51,7 @@
 	<string name="markdown_format_bar_numbered_list">Numbered list</string>
 	<string name="markdown_format_bar_task_list">Task list</string>
 	<string name="markdown_format_bar_horizontal_rule">Horizontal rule</string>
+	<string name="markdown_format_bar_image">Insert image</string>
 	<string name="markdown_format_bar_table">Table</string>
 	<string name="markdown_format_bar_table_insert">Insert %1$d × %2$d table</string>
 	<string name="markdown_format_bar_table_row_above">Row above</string>

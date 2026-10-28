@@ -79,4 +79,24 @@ class WordCountTest {
 		assertEquals(1, countWords("don't"))
 		assertEquals(1, countWords("end."))
 	}
+
+	@Test
+	fun `an image counts for nothing`() {
+		assertEquals(0, countWords("![Cat](hammer://image/3)"))
+		assertEquals(0, countWords("![A black cat](hammer://image/3 \"On the mat\")"))
+		assertEquals(2, countWords("Before\n\n![Black cat](hammer://image/3)\n\nafter"))
+	}
+
+	@Test
+	fun `an image inside a line leaves the words around it`() {
+		assertEquals(3, countWords("one ![two three](https://example.com/a(b).png) four five"))
+		assertEquals(2, countWords("see ![a [nested] alt](<hammer://image/3>) here"))
+	}
+
+	@Test
+	fun `text that only looks like an image still counts`() {
+		assertEquals(2, countWords("\\![not](an image)"))
+		assertEquals(3, countWords("![open alt](no close"))
+		assertEquals(2, countWords("![split\nalt](hammer://image/3)"))
+	}
 }

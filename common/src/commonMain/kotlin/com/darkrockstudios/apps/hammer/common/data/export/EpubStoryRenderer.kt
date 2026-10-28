@@ -10,8 +10,11 @@ import kotlinx.html.*
 import kotlinx.html.stream.appendHTML
 import okio.BufferedSink
 import com.darkrockstudios.apps.hammer.base.markdown.ProseHtml
+import org.intellij.markdown.MarkdownElementTypes
+import org.intellij.markdown.ast.ASTNode
 import org.intellij.markdown.flavours.gfm.GFMFlavourDescriptor
 import org.intellij.markdown.html.HtmlGenerator
+import org.intellij.markdown.html.ImageGeneratingProvider
 import org.intellij.markdown.parser.LinkMap
 import org.intellij.markdown.parser.MarkdownParser
 
@@ -182,10 +185,27 @@ private fun BODY.chapterBody(chapterTitle: String, markdown: String, keepBlankLi
 	val flavour = GFMFlavourDescriptor()
 	val source = ProseHtml.normalizeLineEndings(markdown)
 	val parsed = MarkdownParser(flavour).buildMarkdownTreeFromString(source)
-	val providers = ProseHtml.providers(flavour, LinkMap.buildLinkMap(parsed, source), keepBlankLines)
+	val linkMap = LinkMap.buildLinkMap(parsed, source)
+	val providers = ProseHtml.providers(flavour, linkMap, keepBlankLines) +
+		(MarkdownElementTypes.IMAGE to ImageAltTextProvider(linkMap))
 	val htmlBody = HtmlGenerator(source, parsed, providers).generateHtml()
 	val xhtmlBody = htmlBody.selfCloseHtmlVoidTags()
 	unsafe { +xhtmlBody }
+}
+
+/**
+ * Writes an image as its alt text. An EPUB reader loads only resources packaged in the book, and
+ * neither a `hammer://image` reference nor a web address is one.
+ */
+private class ImageAltTextProvider(linkMap: LinkMap) : ImageGeneratingProvider(linkMap, null) {
+	override fun renderLink(
+		visitor: HtmlGenerator.HtmlGeneratingVisitor,
+		text: String,
+		node: ASTNode,
+		info: RenderInfo,
+	) {
+		labelProvider.processNode(visitor, text, info.label)
+	}
 }
 
 private val voidTagPattern = Regex(

@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.notes
 
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageDef
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionPlace
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
@@ -130,6 +131,7 @@ fun ViewNoteUi(
 						onNoteTextChanged = { component.onContentChanged(it) },
 						suggestTags = component::suggestTags,
 						enableSpellChecking = state.spellCheckAllowed,
+						imagePicker = component::pickImageForText,
 						modifier = Modifier.weight(1f),
 					)
 
@@ -380,6 +382,7 @@ private fun EditBody(
 	onNoteTextChanged: (String) -> Unit,
 	suggestTags: (prefix: String) -> List<String>,
 	enableSpellChecking: Boolean,
+	imagePicker: suspend () -> ImageDef?,
 	modifier: Modifier = Modifier,
 ) {
 	Column(modifier = modifier.fillMaxWidth()) {
@@ -407,6 +410,7 @@ private fun EditBody(
 			initialMarkdown = noteText,
 			onMarkdownChanged = onNoteTextChanged,
 			enableSpellChecking = enableSpellChecking,
+			imagePicker = imagePicker,
 			contentPadding = PaddingValues(Ui.Padding.XL),
 			modifier = Modifier
 				.fillMaxWidth()

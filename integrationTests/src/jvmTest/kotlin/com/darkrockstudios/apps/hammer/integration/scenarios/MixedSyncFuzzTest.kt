@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.common.data.SceneContent
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesService
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
@@ -46,6 +47,7 @@ class MixedSyncFuzzTest : RoundTripTestBase() {
 		val timeline: TimeLineRepository = client.scope.get()
 		val encyclopedia: EncyclopediaRepository = client.scope.get()
 		val images: ImagesRepository = client.scope.get()
+		val imagesService: ImagesService = client.scope.get()
 		timeline.initialize()
 		encyclopedia.ensureEntriesLoaded()
 
@@ -151,6 +153,18 @@ class MixedSyncFuzzTest : RoundTripTestBase() {
 						else encyclopedia.removeEntryImage(def, imageId)
 					}
 				}
+
+				22 -> scenes.randomOrNull(rng)?.let { id ->
+					val scene = client.sceneEditor.getSceneItemFromId(id) ?: return@let
+					imageIds.randomOrNull(rng)?.let { imageId ->
+						client.sceneEditor.storeSceneMarkdownRaw(
+							SceneContent(scene, "content $i\n\n![Image $imageId](hammer://image/$imageId)"),
+						)
+					}
+				}
+				23 -> imageIds.randomOrNull(rng)?.let { id ->
+					if (imagesService.delete(id).deleted) imageIds.remove(id)
+				}
 			}
 		}
 
@@ -174,7 +188,7 @@ class MixedSyncFuzzTest : RoundTripTestBase() {
 
 	companion object {
 		private const val ITERATIONS = 30
-		private const val OP_COUNT = 22
+		private const val OP_COUNT = 24
 		private val SEEDS = listOf(1L, 777L, 20260630L)
 	}
 }

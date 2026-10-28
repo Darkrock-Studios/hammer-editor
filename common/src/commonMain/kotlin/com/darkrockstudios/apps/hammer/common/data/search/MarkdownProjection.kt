@@ -4,13 +4,14 @@ package com.darkrockstudios.apps.hammer.common.data.search
  * Flattens stored Markdown into the prose a reader sees. Backslash escapes resolve to their literal
  * character (`well\-known` becomes `well-known`), paired emphasis and code delimiters are dropped
  * (`**Chapter** One` becomes `Chapter One`), and leading blockquote, heading and bullet markers are
- * removed from each line.
+ * removed from each line. An inline image becomes its alt text (`![Cat](hammer://image/3)` becomes
+ * `Cat`).
  *
  * Delimiters pair only within a paragraph, and only where CommonMark's flanking rules allow, so
  * literal markers survive: `user_name`, `2 * 3`, a bare `***` divider and a stray apostrophe-backtick
  * are all left intact.
  *
- * Link and image syntax is left as written. Punctuation is tested against ASCII only, and escapes
+ * Link syntax is left as written. Punctuation is tested against ASCII only, and escapes
  * resolve inside code spans as well as outside them.
  *
  * Scanning a whole project repeatedly wants [MarkdownProjector] instead: this convenience builds a
@@ -48,7 +49,8 @@ internal fun containsMarkdownSyntax(text: CharSequence): Boolean {
 	while (i < text.length) {
 		val c = text[i]
 		if (c == '*' || c == '_' || c == '`' ||
-			c == '\\' || c == '#' || c == '>' || c == '-' || c == '+'
+			c == '\\' || c == '#' || c == '>' || c == '-' || c == '+' ||
+			c == '!' && i + 1 < text.length && text[i + 1] == '['
 		) {
 			return true
 		}

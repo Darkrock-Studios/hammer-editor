@@ -94,6 +94,8 @@ internal fun fakeSceneEditor(
 	override fun removeEditorMenu() {}
 	override fun loadSceneContent() {}
 	override fun addWordToDictionary(word: String) {}
+	override fun pickImageForInsert() {}
+	override fun consumePendingImageInsert() {}
 	override suspend fun storeSceneContent() = true
 	override fun onContentChanged(content: PlatformRichText) {}
 	override fun beginSceneNameEdit() {}

@@ -231,6 +231,26 @@ class SceneDatasource(
 		if (fileSystem.exists(oldPath)) fileSystem.atomicMove(oldPath, bufferDir / "$newId$SCENE_FILENAME_EXTENSION")
 	}
 
+	/** The text of the scene's temp buffer file, or null when it has none. */
+	fun loadTempSceneBuffer(sceneItem: SceneItem): String? {
+		val path = getSceneBufferTempPath(sceneItem).toOkioPath()
+		if (!fileSystem.exists(path)) return null
+		return fileSystem.read(path) { readUtf8() }
+	}
+
+	/**
+	 * Rewrites the scene's temp buffer file through [transform]. Returns true when the file existed
+	 * and its text changed; an unchanged result is not written.
+	 */
+	fun updateTempSceneBuffer(sceneItem: SceneItem, transform: (String) -> String): Boolean {
+		val path = getSceneBufferTempPath(sceneItem).toOkioPath()
+		val current = loadTempSceneBuffer(sceneItem) ?: return false
+		val updated = transform(current)
+		if (updated == current) return false
+		fileSystem.write(path) { writeUtf8(updated) }
+		return true
+	}
+
 	fun clearTempScene(sceneItem: SceneItem) {
 		val path = getSceneBufferTempPath(sceneItem).toOkioPath()
 		fileSystem.delete(path)

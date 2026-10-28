@@ -35,6 +35,7 @@
 	<string name="markdown_format_bar_bullet_list">Lista com marcadores</string>
 	<string name="markdown_format_bar_numbered_list">Lista numerada</string>
 	<string name="markdown_format_bar_horizontal_rule">Linha horizontal</string>
+	<string name="markdown_format_bar_image">Inserir imagem</string>
 	<string name="markdown_format_bar_undo">Desfazer</string>
 	<string name="markdown_format_bar_redo">Refazer</string>
 	<string name="form_dialog_keyboard_hint">ESC cancelar</string>

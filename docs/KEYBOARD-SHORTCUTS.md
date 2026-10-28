@@ -70,8 +70,13 @@ conflict (`ImageViewerDialog.kt`).
 
 Available anywhere `MarkdownFormatBar.kt` is used (scene, note, and encyclopedia editors).
 
-| Shortcut       | Action               |
-|----------------|----------------------|
-| `Ctrl+B`       | Toggle bold          |
-| `Ctrl+I`       | Toggle italic        |
-| `Ctrl+Shift+X` | Toggle strikethrough |
+| Shortcut       | Action                                   |
+|----------------|------------------------------------------|
+| `Ctrl+B`       | Toggle bold                              |
+| `Ctrl+I`       | Toggle italic                            |
+| `Ctrl+Shift+X` | Toggle strikethrough                     |
+| `Ctrl+Shift+I` | Insert an image from the project gallery |
+
+`Ctrl+Shift+I` is bound only where the format bar offers the insert image button: the scene
+editor, and the note, timeline event and encyclopedia entry text editors. Focus mode has no
+image insertion, as it fills the project's single modal slot that the gallery needs.

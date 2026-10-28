@@ -165,4 +165,31 @@ class MarkdownProjectionTest {
 	fun `an emphasized title keeps its words`() {
 		assertEquals("Once upon a time", markdownTitleLine("*Once upon a time*"))
 	}
+
+	@Test
+	fun `an image projects to its alt text`() {
+		assertEquals("Cat", projectMarkdownToPlainText("![Cat](hammer://image/3)"))
+		assertEquals(
+			"Before\n\nBlack cat\n\nafter",
+			projectMarkdownToPlainText("Before\n\n![Black cat](hammer://image/3)\n\nafter"),
+		)
+	}
+
+	@Test
+	fun `an image alt keeps its own markup resolved`() {
+		assertEquals("A big cat", projectMarkdownToPlainText("![A **big** cat](hammer://image/3 \"Title\")"))
+		assertEquals("See [x] here", projectMarkdownToPlainText("See ![\\[x\\]](<hammer://image/3>) here"))
+	}
+
+	@Test
+	fun `text that is not a whole image is left as written`() {
+		assertEquals("![Cat](hammer://image/3", projectMarkdownToPlainText("![Cat](hammer://image/3"))
+		assertEquals("![Cat](hammer://image/3)", projectMarkdownToPlainText("\\![Cat](hammer://image/3)"))
+		assertEquals("Wow! [link](x)", projectMarkdownToPlainText("Wow! [link](x)"))
+	}
+
+	@Test
+	fun `a title line that opens with an image is its alt text`() {
+		assertEquals("Cat", markdownTitleLine("![Cat](hammer://image/3)\n\nBody"))
+	}
 }
