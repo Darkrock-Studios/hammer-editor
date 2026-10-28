@@ -329,6 +329,11 @@ for this yet.
 The protocol for synchronizing data between client and server is outlined here:
 [SYNCING-PROTOCOL.md](docs/SYNCING-PROTOCOL.md)
 
+## Adding an Entity Type
+
+Every client and server touch point for a new synced entity type, with the hashing rules that
+have to hold, is in [HOW-TO-ADD-AN-ENTITY-TYPE.md](docs/HOW-TO-ADD-AN-ENTITY-TYPE.md).
+
 ## How to Release
 
 When `develop` is ready to release, run: `./gradlew prepareForRelease`

@@ -1028,6 +1028,9 @@ cannot. A new entity type touches every one of:
 - `ProjectRootRouter.Config` and the navigation rail
 - `DataMigrator`
 
+That list is the short version; the full inventory is in
+[HOW-TO-ADD-AN-ENTITY-TYPE.md](HOW-TO-ADD-AN-ENTITY-TYPE.md).
+
 The rules that keep feature plugins possible are:
 
 1. Nothing in `ClientPlugin` or the operation API references any of the types
