@@ -11,6 +11,9 @@ import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexRepo
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.*
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingActivityDatasource
+import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingActivityRepository
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingSessionTracker
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
@@ -82,7 +85,10 @@ class SceneContentRepositoryTest : BaseTest() {
 		coEvery { syncJournal.markEntityAsDirty(any()) } just Runs
 	}
 
-	private fun createStack(projectDef: ProjectDef) {
+	private fun createStack(
+		projectDef: ProjectDef,
+		writingSessionTracker: WritingSessionTracker = mockk(relaxed = true),
+	) {
 		sceneMetadataDatasource = SceneMetadataDatasource(ffs, toml, projectDef)
 		sceneDatasource = SceneDatasource(projectDef, ffs)
 		contentRepo = SceneContentRepository(projectDef, sceneDatasource)
@@ -94,7 +100,6 @@ class SceneContentRepositoryTest : BaseTest() {
 			clock = Clock.System,
 		)
 		val referenceIndexRepository = mockk<ReferenceIndexRepository>(relaxed = true)
-		val writingSessionTracker = mockk<WritingSessionTracker>(relaxed = true)
 		repo = SceneRepository(
 			projectDef = projectDef,
 			syncJournal = syncJournal,
@@ -264,6 +269,53 @@ class SceneContentRepositoryTest : BaseTest() {
 
 		assertEquals("Typed after the replace", contentRepo.getSceneBuffer(sceneItem)?.content?.markdown)
 		assertTrue(service.hasDirtyBuffer(sceneItem.id))
+	}
+
+	@Test
+	fun `Rewrite scene text still credits words typed before it, but not the rewrite`() = runTest(mainTestDispatcher) {
+		val projDef = getProject1Def()
+		createProject(ffs, PROJECT_1_NAME)
+
+		val globalSettingsStore = mockk<GlobalSettingsStore>(relaxed = true)
+		coEvery { globalSettingsStore.ensureInstallId() } returns "device-test"
+		val activity = WritingActivityRepository(WritingActivityDatasource(ffs, toml, projDef), globalSettingsStore, projDef)
+		createStack(projDef, WritingSessionTracker(activity, Clock.System, projDef))
+		service.initialize()
+
+		val sceneItem = SceneItem(getProject1Def(), SceneItem.Type.Scene, 3, "Scene ID 3", 0)
+		service.loadSceneBuffer(sceneItem)
+		service.replaceSceneText(sceneItem, "Intro ![a](hammer://image/1)")
+
+		contentRepo.onContentChanged(SceneContent(sceneItem, "Intro ![a](hammer://image/1) three new words"), UpdateSource.Editor)
+		assertTrue(service.rewriteSceneText(sceneItem) { it.replace("image/1", "image/22") })
+		advanceUntilIdle()
+
+		val rewritten = "Intro ![a](hammer://image/22) three new words"
+		assertEquals(rewritten, contentRepo.getSceneBuffer(sceneItem)?.content?.markdown)
+		ffs.read(repo.getSceneFilePath(3).toOkioPath()) {
+			assertEquals(rewritten, readUtf8())
+		}
+
+		contentRepo.onContentChanged(SceneContent(sceneItem, rewritten), UpdateSource.Editor)
+		contentRepo.flushPendingContent(sceneItem.id)
+		assertTrue(service.storeSceneBuffer(sceneItem))
+		advanceUntilIdle()
+
+		assertEquals(3, activity.loadOwnLog().sessions.sumOf { it.wordsWritten })
+	}
+
+	@Test
+	fun `Rewrite scene text that does not change it reports no change`() = runTest(mainTestDispatcher) {
+		val projDef = getProject1Def()
+		createProject(ffs, PROJECT_1_NAME)
+
+		createStack(projDef)
+		service.initialize()
+
+		val sceneItem = SceneItem(getProject1Def(), SceneItem.Type.Scene, 3, "Scene ID 3", 0)
+		service.loadSceneBuffer(sceneItem)
+
+		assertFalse(service.rewriteSceneText(sceneItem) { it })
 	}
 
 	@Test

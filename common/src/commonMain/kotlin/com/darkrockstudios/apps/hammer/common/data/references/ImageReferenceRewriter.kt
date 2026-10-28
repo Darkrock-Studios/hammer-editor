@@ -210,11 +210,7 @@ class ImageReferenceRewriter(projectDef: ProjectDef) : ProjectScoped {
 
 		override suspend fun rewrite(item: SceneItem, transform: (String) -> String): Boolean =
 			if (sceneEditor.getSceneBuffer(item) != null) {
-				// Keystrokes still in the debounce would be dropped by the replacement.
-				sceneEditor.applyPendingEdits(item)
-				rewriteText(sceneEditor.getCurrentSceneContentOrNull(item), transform) { updated ->
-					sceneEditor.replaceSceneText(item, updated)
-				}
+				sceneEditor.rewriteSceneText(item, transform)
 			} else {
 				rewriteFile(item, transform)
 			}
@@ -261,6 +257,12 @@ class ImageReferenceRewriter(projectDef: ProjectDef) : ProjectScoped {
 
 		override suspend fun rewrite(item: SceneItem, transform: (String) -> String): Boolean =
 			sceneEditor.updateUnrestoredEdits(item, transform)
+
+		/** Reports nothing: syncing the scene would upload its unchanged file over newer server changes. */
+		override suspend fun apply(edit: Edit): Set<TouchedEntity> {
+			super.apply(edit)
+			return emptySet()
+		}
 	}
 
 	private inner class DraftHolder : MarkdownHolder<DraftDef>() {

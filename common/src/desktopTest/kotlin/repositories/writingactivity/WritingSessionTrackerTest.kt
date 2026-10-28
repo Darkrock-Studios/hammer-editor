@@ -171,6 +171,26 @@ class WritingSessionTrackerTest : BaseTest() {
 	}
 
 	@Test
+	fun `transformBaseline keeps a rewrite out of the credited words`() = runTest {
+		tracker.rememberBaseline(sceneId = 1, content = "I went home")
+		tracker.transformBaseline(sceneId = 1) { it.replace("home", "to the shop") }
+		val credited = tracker.onSceneSaved(
+			sceneId = 1,
+			newContent = "I went to the shop and back",
+			source = UpdateSource.Editor,
+		)
+		// "and", "back" are new; "to the shop" came from the rewrite.
+		assertEquals(2, credited)
+	}
+
+	@Test
+	fun `transformBaseline without a baseline leaves none`() = runTest {
+		tracker.transformBaseline(sceneId = 1) { "rewritten" }
+		val credited = tracker.onSceneSaved(1, "some words", UpdateSource.Editor)
+		assertEquals(0, credited)
+	}
+
+	@Test
 	fun `forgetBaseline drops state for deleted scenes`() = runTest {
 		tracker.rememberBaseline(sceneId = 1, content = "some original text")
 		tracker.forgetBaseline(1)

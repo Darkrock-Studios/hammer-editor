@@ -72,7 +72,6 @@ internal fun reconcileImageBlocks(state: TextEditorState) {
 		if (text == IMAGE_PLACEHOLDER) return@forEach
 
 		val placeholder = span.range.start.char.takeIf { text.getOrNull(it) == ' ' }
-			?: text.indexOf(' ').takeIf { it >= 0 }
 		if (placeholder == null) {
 			state.removeRichSpan(span)
 			return@forEach

@@ -3,8 +3,10 @@ import com.darkrockstudios.apps.hammer.common.compose.markdown.HammerMarkdownCon
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.insertImageBlock
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.reconcileImageBlocks
 import com.darkrockstudios.texteditor.CharLineOffset
+import com.darkrockstudios.texteditor.TextEditorRange
 import com.darkrockstudios.texteditor.markdown.MarkdownExtension
 import com.darkrockstudios.texteditor.markdown.withMarkdown
+import com.darkrockstudios.texteditor.richstyle.IMAGE_PLACEHOLDER
 import com.darkrockstudios.texteditor.richstyle.ImageBlockSpanStyle
 import com.darkrockstudios.texteditor.richstyle.InMemoryImageProvider
 import com.darkrockstudios.texteditor.state.TextEditorState
@@ -131,6 +133,38 @@ class InsertImageBlockTest {
 
 		assertTrue(editor.imageSpans().isEmpty())
 		assertFalse("hammer://image" in editor.exportAsMarkdown())
+	}
+
+	@Test
+	fun `text pasted over the placeholder removes the image and stays as typed`() = runTest {
+		val editor = newEditor()
+		editor.importMarkdown("Above\n\n![Cat](hammer://image/3)\n\nBelow")
+		val imageLine = editor.imageSpans().single().range.start.line
+
+		editor.editorState.replace(
+			TextEditorRange(CharLineOffset(imageLine, 0), CharLineOffset(imageLine, IMAGE_PLACEHOLDER.length)),
+			"hello world",
+		)
+		reconcileImageBlocks(editor.editorState)
+
+		assertTrue(editor.imageSpans().isEmpty())
+		assertEquals("hello world", editor.editorState.textLines[imageLine].text)
+		assertFalse("hammer://image" in editor.exportAsMarkdown())
+	}
+
+	@Test
+	fun `text typed after an intact placeholder moves to its own line and keeps the image`() = runTest {
+		val editor = newEditor()
+		insertImageBlock(editor.editorState, provider, imageId = 3, alt = "Cat")
+		val imageLine = editor.imageSpans().single().range.start.line
+
+		editor.editorState.cursor.updatePosition(CharLineOffset(imageLine, IMAGE_PLACEHOLDER.length))
+		editor.editorState.insertStringAtCursor("abc")
+		reconcileImageBlocks(editor.editorState)
+
+		val span = editor.imageSpans().single()
+		assertEquals(IMAGE_PLACEHOLDER, editor.editorState.textLines[span.range.start.line].text)
+		assertEquals("abc", editor.editorState.textLines[span.range.start.line + 1].text)
 	}
 
 	@Test

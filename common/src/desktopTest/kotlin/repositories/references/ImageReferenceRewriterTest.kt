@@ -139,9 +139,16 @@ class ImageReferenceRewriterTest : BaseTest() {
 			sceneFiles[content.scene.id] = content.markdown!!
 			true
 		}
-		coEvery { sceneEditor.replaceSceneText(any(), any()) } answers {
-			sceneBuffers[firstArg<SceneItem>().id] = secondArg()
-			true
+		coEvery { sceneEditor.rewriteSceneText(any(), any()) } answers {
+			val id = firstArg<SceneItem>().id
+			val current = sceneBuffers[id]
+			val updated = current?.let(secondArg<(String) -> String>())
+			if (updated != null && updated != current) {
+				sceneBuffers[id] = updated
+				true
+			} else {
+				false
+			}
 		}
 		every { sceneEditor.hasUnrestoredEdits(any()) } answers { firstArg<SceneItem>().id in unrestoredEdits }
 		every { sceneEditor.loadUnrestoredEdits(any()) } answers { unrestoredEdits[firstArg<SceneItem>().id] }
@@ -311,8 +318,8 @@ class ImageReferenceRewriterTest : BaseTest() {
 		val result = ImageReferenceRewriter(projectDef).remap(mapOf(5 to 50))
 
 		assertEquals(touched(EntityType.Scene, 1), result)
-		verify { sceneEditor.applyPendingEdits(scene(1)) }
-		coVerify { sceneEditor.replaceSceneText(scene(1), "Unsaved\n\n![a](hammer://image/50)") }
+		assertEquals("Unsaved\n\n![a](hammer://image/50)", sceneBuffers[1])
+		coVerify(exactly = 0) { sceneEditor.replaceSceneText(any(), any()) }
 		coVerify(exactly = 0) { sceneEditor.storeSceneMarkdownRaw(any(), any()) }
 		assertEquals("Saved ![a](hammer://image/5)", sceneFiles[1])
 	}
@@ -327,7 +334,7 @@ class ImageReferenceRewriterTest : BaseTest() {
 		assertEquals(touched(EntityType.Scene, 1), result)
 		assertEquals("![a](hammer://image/50)\n\nBody", sceneFiles[1])
 		coVerify { sceneEditor.storeSceneMarkdownRaw(SceneContent(scene(1), "![a](hammer://image/50)\n\nBody"), scenePath(1)) }
-		coVerify(exactly = 0) { sceneEditor.replaceSceneText(any(), any()) }
+		coVerify(exactly = 0) { sceneEditor.rewriteSceneText(any(), any()) }
 	}
 
 	@Test
@@ -342,14 +349,14 @@ class ImageReferenceRewriterTest : BaseTest() {
 	}
 
 	@Test
-	fun `unrestored edits are rewritten so restoring them keeps the new reference`() = runTest {
+	fun `unrestored edits are rewritten so restoring them keeps the new reference, but not reported for sync`() = runTest {
 		activeScenes = listOf(scene(1))
 		sceneFiles[1] = "Saved, no image"
 		unrestoredEdits[1] = "Typed later\n\n![a](hammer://image/5)"
 
 		val result = ImageReferenceRewriter(projectDef).remap(mapOf(5 to 50))
 
-		assertEquals(touched(EntityType.Scene, 1), result)
+		assertTrue(result.isEmpty())
 		assertEquals("Typed later\n\n![a](hammer://image/50)", unrestoredEdits[1])
 		assertEquals("Saved, no image", sceneFiles[1])
 		coVerify(exactly = 0) { sceneEditor.storeSceneMarkdownRaw(any(), any()) }
@@ -398,7 +405,7 @@ class ImageReferenceRewriterTest : BaseTest() {
 
 		assertTrue(result.isEmpty())
 		coVerify(exactly = 0) { sceneEditor.storeSceneMarkdownRaw(any(), any()) }
-		coVerify(exactly = 0) { sceneEditor.replaceSceneText(any(), any()) }
+		assertEquals("![b](hammer://image/6)", sceneBuffers[2])
 		coVerify(exactly = 0) { notesRepository.updateNote(any(), any()) }
 		coVerify(exactly = 0) { timeLineRepository.updateEvent(any(), any()) }
 		coVerify(exactly = 0) { syncJournal.markEntityAsDirty(any()) }

@@ -249,8 +249,22 @@ class SceneEditorService(
 		return storeSceneBuffer(sceneItem)
 	}
 
-	/** Applies the scene's edits still waiting in the editor's debounce to its buffer. */
-	fun applyPendingEdits(sceneItem: SceneItem) = sceneContentRepository.flushPendingContent(sceneItem.id)
+	/**
+	 * Rewrites a scene's loaded buffer from outside the editor through [transform] and saves it; an
+	 * open editor shows the new text. The writing-session baseline goes through the same transform, so
+	 * words typed but not yet saved are still credited and the rewrite itself is not. Returns true when
+	 * the text changed and was saved.
+	 */
+	suspend fun rewriteSceneText(sceneItem: SceneItem, transform: (String) -> String): Boolean {
+		// Keystrokes still in the debounce would be dropped by the replacement.
+		sceneContentRepository.flushPendingContent(sceneItem.id)
+		val current = getCurrentSceneContentOrNull(sceneItem) ?: return false
+		val updated = transform(current)
+		if (updated == current) return false
+		sceneContentRepository.replaceBuffer(SceneContent(sceneItem, updated))
+		writingSessionTracker.transformBaseline(sceneItem.id, transform)
+		return storeSceneBuffer(sceneItem)
+	}
 
 	/**
 	 * Rewrites unsaved edits left by an earlier session that this scope has not restored, so restoring
