@@ -239,6 +239,24 @@ class ProjectEntityDatabaseDatasourceTest : BaseTest() {
 	}
 
 	@Test
+	fun `Load Entity Hash - Typed Lookup Matches Only Its Type`() = runTest {
+		setupEntities(testDatabase, contentEncryptor)
+		val datasource = createDatasource()
+
+		val untyped = assertIs<ServerResult.Success<String>>(datasource.loadEntityHash(userId, projectDef, 1))
+		val typed = assertIs<ServerResult.Success<String>>(
+			datasource.loadEntityHash(userId, projectDef, 1, ApiProjectEntity.Type.SCENE)
+		)
+		assertEquals(untyped.data, typed.data)
+
+		val wrongType = datasource.loadEntityHash(userId, projectDef, 1, ApiProjectEntity.Type.IMAGE)
+		assertIs<EntityNotFound>(assertIs<ServerResult.Failure<String>>(wrongType).exception)
+
+		val missing = datasource.loadEntityHash(userId, projectDef, 999, ApiProjectEntity.Type.SCENE)
+		assertIs<EntityNotFound>(assertIs<ServerResult.Failure<String>>(missing).exception)
+	}
+
+	@Test
 	fun `Find Entity Defs`() = runTest {
 		setupEntities(testDatabase, contentEncryptor)
 		val datasource = createDatasource()

@@ -17,8 +17,17 @@ enum class ImageProblem {
 
 /** Format rules for Image entities, shared by the client and the server. */
 object ImageFormat {
+	private val MEDIA_TYPES: Map<String, String> = mapOf(
+		"jpg" to "image/jpeg",
+		"jpeg" to "image/jpeg",
+		"png" to "image/png",
+		"webp" to "image/webp",
+		"gif" to "image/gif",
+		"svg" to "image/svg+xml",
+	)
+
 	/** Lowercase file extensions an Image entity may have. */
-	val ALLOWED_EXTENSIONS: Set<String> = setOf("jpg", "jpeg", "png", "webp", "gif", "svg")
+	val ALLOWED_EXTENSIONS: Set<String> = MEDIA_TYPES.keys
 
 	const val MAX_IMAGE_MB: Int = 8
 	const val MAX_IMAGE_BYTES: Long = MAX_IMAGE_MB * 1024L * 1024
@@ -29,14 +38,7 @@ object ImageFormat {
 	fun isAllowedExtension(extension: String): Boolean = extension.lowercase() in ALLOWED_EXTENSIONS
 
 	/** The media type an image of [extension] is served as, or null for an extension Hammer does not allow. */
-	fun mimeType(extension: String): String? = when (extension.lowercase()) {
-		"jpg", "jpeg" -> "image/jpeg"
-		"png" -> "image/png"
-		"webp" -> "image/webp"
-		"gif" -> "image/gif"
-		"svg" -> "image/svg+xml"
-		else -> null
-	}
+	fun mimeType(extension: String): String? = MEDIA_TYPES[extension.lowercase()]
 
 	/**
 	 * A name the client can store as a filename and read back unchanged. Anything else would hash

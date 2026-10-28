@@ -111,6 +111,7 @@ import com.darkrockstudios.apps.hammer.secret.ServerSecretProvider
 import com.darkrockstudios.apps.hammer.secret.buildSecretProvider
 import com.darkrockstudios.apps.hammer.story.StoryImageSigner
 import com.darkrockstudios.apps.hammer.story.StoryRenderCache
+import com.darkrockstudios.apps.hammer.story.StoryImageService
 import com.darkrockstudios.apps.hammer.story.StoryRendererService
 import com.darkrockstudios.apps.hammer.storyideas.ServerIdeasRepository
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
@@ -264,6 +265,7 @@ fun mainModule(
 	single { DiskCachePruneJob(listOf(get<OgImageService>(), get<StoryRenderCache>()), get()) }
 	// Explicit ctor: renderCache defaults to null, which the constructor DSL would honor over injection.
 	single { StoryRendererService(get(), get(), get()) }
+	single<StoryImageService>()
 	factory<PenNameUseCase>()
 	factory<ReleasePenNameUseCase>()
 	single<BioService>()

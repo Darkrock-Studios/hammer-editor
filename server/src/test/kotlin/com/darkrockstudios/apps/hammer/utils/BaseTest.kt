@@ -17,11 +17,11 @@ import com.darkrockstudios.apps.hammer.monitoring.StoryReaderRepository
 import com.darkrockstudios.apps.hammer.monitoring.UserActivityCollector
 import com.darkrockstudios.apps.hammer.monitoring.UserActivityRepository
 import com.darkrockstudios.apps.hammer.plugins.LoginRateLimitConfig
-import com.darkrockstudios.apps.hammer.project.ProjectEntityDatasource
 import com.darkrockstudios.apps.hammer.project.ProjectSyncKey
 import com.darkrockstudios.apps.hammer.project.ProjectSynchronizationSession
 import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
 import com.darkrockstudios.apps.hammer.scheduling.RecurringTaskRegistry
+import com.darkrockstudios.apps.hammer.story.StoryImageService
 import com.darkrockstudios.apps.hammer.story.StoryImageSigner
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
 import com.darkrockstudios.apps.hammer.plugin.PluginRegistry
@@ -160,7 +160,7 @@ fun Application.setupKtorTestKoin(baseTest: BaseTest, vararg modules: Module) {
 				single<StoryReaderCollector> { mockk(relaxed = true) }
 				single<StoryKudosRepository> { mockk(relaxed = true) }
 				// The story image routes inject these; a test module that defines its own overrides them.
-				single<ProjectEntityDatasource> { mockk(relaxed = true) }
+				single<StoryImageService> { mockk(relaxed = true) }
 				single<StoryImageSigner> { mockk(relaxed = true) }
 				single { RecurringTaskRegistry() }
 				single<SyncSessionManager<Long, ProjectsSynchronizationSession>>(named(PROJECTS_SYNC_MANAGER)) {

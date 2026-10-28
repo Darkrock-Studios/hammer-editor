@@ -1,12 +1,9 @@
 package com.darkrockstudios.apps.hammer.frontend
 
-import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
-import com.darkrockstudios.apps.hammer.base.image.ImageFormat
 import com.darkrockstudios.apps.hammer.frontend.utils.applyRevalidationHeaders
 import com.darkrockstudios.apps.hammer.frontend.utils.matchesETag
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
-import com.darkrockstudios.apps.hammer.project.ProjectEntityDatasource
-import com.darkrockstudios.apps.hammer.utilities.ServerResult
+import com.darkrockstudios.apps.hammer.story.StoryImageService
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
@@ -28,17 +25,12 @@ internal const val STORY_IMAGE_CSP = "default-src 'none'; style-src 'unsafe-inli
  * The stored hash is the validator: a reader holding it is answered 304 without decrypting.
  */
 internal suspend fun ApplicationCall.respondStoryImage(
-	projectEntityDatasource: ProjectEntityDatasource,
+	storyImageService: StoryImageService,
 	userId: Long,
 	projectDef: ProjectDefinition,
 	imageId: Int,
 ) {
-	// The hash lookup is not typed, and the id of a scene must not answer as an image.
-	if (projectEntityDatasource.findEntityType(imageId, userId, projectDef) != ApiProjectEntity.Type.IMAGE) {
-		respond(HttpStatusCode.NotFound)
-		return
-	}
-	val hash = (projectEntityDatasource.loadEntityHash(userId, projectDef, imageId) as? ServerResult.Success)?.data
+	val hash = storyImageService.imageHash(userId, projectDef, imageId)
 	if (hash == null) {
 		respond(HttpStatusCode.NotFound)
 		return
@@ -51,22 +43,14 @@ internal suspend fun ApplicationCall.respondStoryImage(
 		return
 	}
 
-	val image = (projectEntityDatasource.loadEntity(
-		userId = userId,
-		projectDef = projectDef,
-		entityId = imageId,
-		entityType = ApiProjectEntity.Type.IMAGE,
-		serializer = ApiProjectEntity.ImageEntity.serializer(),
-	) as? ServerResult.Success)?.data
-	val mimeType = image?.let { ImageFormat.mimeType(it.fileExtension) }
-	val bytes = image?.let { ImageFormat.decodeBase64(it.base64) }
-	if (mimeType == null || bytes == null) {
+	val image = storyImageService.loadImage(userId, projectDef, imageId)
+	if (image == null) {
 		respond(HttpStatusCode.NotFound)
 		return
 	}
 
 	applyImageHeaders(etag)
-	respondBytes(bytes, ContentType.parse(mimeType))
+	respondBytes(image.bytes, ContentType.parse(image.mediaType))
 }
 
 private fun ApplicationCall.applyImageHeaders(etag: String) {

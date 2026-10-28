@@ -81,4 +81,25 @@ class StoryImageSignerTest {
 
 		assertFalse(retired.verify(projectId, 5, signature))
 	}
+
+	@Test
+	fun `the key generation follows the active key without revealing it`() {
+		val rotated = signer("v2", mapOf("v1" to "key-one", "v2" to "key-two"))
+
+		assertNotEquals(current.keyGeneration(), rotated.keyGeneration())
+		assertNotEquals("key-one", current.keyGeneration())
+		assertNotEquals("key-two", rotated.keyGeneration())
+	}
+
+	@Test
+	fun `the key generation without a keyring is stable and is not the server secret`() = runTest {
+		val keyring = KeyringManager(object : ServerSecretProvider { override fun loadKeyring(): String? = null }, codec)
+		val serverSecretManager = ServerSecretManager(FakeFileSystem(), SecureRandom())
+		val signer = StoryImageSigner(TokenHasher(keyring, serverSecretManager, base64))
+
+		val generation = signer.keyGeneration()
+		assertEquals(generation, signer.keyGeneration())
+		assertNotEquals(serverSecretManager.getServerSecret(), generation)
+		assertNotEquals(current.keyGeneration(), generation)
+	}
 }

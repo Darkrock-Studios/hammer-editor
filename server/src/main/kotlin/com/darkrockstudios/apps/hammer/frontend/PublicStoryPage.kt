@@ -14,13 +14,13 @@ import com.darkrockstudios.apps.hammer.frontend.utils.pageETag
 import com.darkrockstudios.apps.hammer.frontend.utils.storyArticleJsonLd
 import com.darkrockstudios.apps.hammer.monitoring.StoryReaderCollector
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
-import com.darkrockstudios.apps.hammer.project.ProjectEntityDatasource
 import com.darkrockstudios.apps.hammer.project.ServerProjectDataRepository
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.project.access.PublicProjectResult
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.story.PaginatedExportResult
 import com.darkrockstudios.apps.hammer.story.StoryImageLinks
+import com.darkrockstudios.apps.hammer.story.StoryImageService
 import com.darkrockstudios.apps.hammer.story.StoryImageSigner
 import com.darkrockstudios.apps.hammer.story.StoryRendererService
 import com.darkrockstudios.apps.hammer.story.WordCountUtils
@@ -48,7 +48,7 @@ fun Route.publicStoryPage(
 	accountsRepository: AccountsRepository,
 	projectsRepository: ProjectsRepository,
 	serverProjectDataRepository: ServerProjectDataRepository,
-	projectEntityDatasource: ProjectEntityDatasource,
+	storyImageService: StoryImageService,
 	storyImageSigner: StoryImageSigner,
 	serverConfig: ServerConfig,
 ) {
@@ -150,9 +150,18 @@ fun Route.publicStoryPage(
 
 					// A reader who already holds this exact page is answered without rendering it.
 					// `indexable` is an explicit input: it gates the JSON-LD block but never reaches
-					// the shell model.
+					// the shell model. The signing key generation is too, so rotating the key
+					// reissues the page's signed image links before the old generation is retired.
 					val etag = prepared?.let {
-						pageETag(model, it.version, page, passwordParam, indexable, projectDataHash)
+						pageETag(
+							model,
+							it.version,
+							page,
+							passwordParam,
+							indexable,
+							projectDataHash,
+							storyImageSigner.keyGeneration(),
+						)
 					}
 					if (etag != null && call.matchesETag(etag)) {
 						call.applyRevalidationHeaders(etag)
@@ -268,7 +277,7 @@ fun Route.publicStoryPage(
 			}
 
 			call.respondStoryImage(
-				projectEntityDatasource = projectEntityDatasource,
+				storyImageService = storyImageService,
 				userId = resolved.userId,
 				projectDef = ProjectDefinition(name = resolved.projectName, uuid = resolved.projectUuid),
 				imageId = imageId,

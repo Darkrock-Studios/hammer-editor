@@ -18,13 +18,13 @@ import com.darkrockstudios.apps.hammer.frontend.utils.sceneTreeModel
 import com.darkrockstudios.apps.hammer.kudos.StoryKudosRepository
 import com.darkrockstudios.apps.hammer.monitoring.StoryReaderRepository
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
-import com.darkrockstudios.apps.hammer.project.ProjectEntityDatasource
 import com.darkrockstudios.apps.hammer.project.ServerProjectDataRepository
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.story.SceneHierarchyResult
 import com.darkrockstudios.apps.hammer.story.SingleSceneExportResult
 import com.darkrockstudios.apps.hammer.story.StoryImageLinks
+import com.darkrockstudios.apps.hammer.story.StoryImageService
 import com.darkrockstudios.apps.hammer.story.StoryRenderResult
 import com.darkrockstudios.apps.hammer.story.StoryRendererService
 import com.darkrockstudios.apps.hammer.story.WordCountUtils
@@ -59,7 +59,7 @@ fun Route.storyPage(
 	storyReaderRepository: StoryReaderRepository,
 	storyKudosRepository: StoryKudosRepository,
 	serverProjectDataRepository: ServerProjectDataRepository,
-	projectEntityDatasource: ProjectEntityDatasource,
+	storyImageService: StoryImageService,
 	clock: kotlin.time.Clock,
 ) {
 	authenticatedOnly {
@@ -76,7 +76,7 @@ fun Route.storyPage(
 				}
 
 				call.respondStoryImage(
-					projectEntityDatasource = projectEntityDatasource,
+					storyImageService = storyImageService,
 					userId = session.userId,
 					projectDef = ProjectDefinition(name = project.name, uuid = ProjectId(project.uuid)),
 					imageId = imageId,

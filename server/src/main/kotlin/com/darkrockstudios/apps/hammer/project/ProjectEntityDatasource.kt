@@ -50,6 +50,14 @@ interface ProjectEntityDatasource {
 		entityId: Int,
 	): SResult<String>
 
+	/** Like the untyped lookup, but an entity of any other type is [EntityNotFound]. */
+	suspend fun loadEntityHash(
+		userId: Long,
+		projectDef: ProjectDefinition,
+		entityId: Int,
+		entityType: ApiProjectEntity.Type,
+	): SResult<String>
+
 	suspend fun deleteEntity(
 		userId: Long,
 		entityType: ApiProjectEntity.Type,

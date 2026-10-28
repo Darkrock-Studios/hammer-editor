@@ -18,6 +18,12 @@ class StoryImageSigner(
 	suspend fun sign(projectId: ProjectId, imageId: Int): String =
 		urlSafe(tokenHasher.hashToken(message(projectId, imageId)))
 
+	/**
+	 * Identifies the key [sign] uses without revealing it. A page carrying signed links has to
+	 * fold this into its validator, or a reader could keep links from a retired generation.
+	 */
+	fun keyGeneration(): String = tokenHasher.activeKeyGeneration()
+
 	/** True when [signature] was made by [sign] under any key generation still in the keyring. */
 	suspend fun verify(projectId: ProjectId, imageId: Int, signature: String): Boolean {
 		val given = signature.toByteArray(Charsets.UTF_8)

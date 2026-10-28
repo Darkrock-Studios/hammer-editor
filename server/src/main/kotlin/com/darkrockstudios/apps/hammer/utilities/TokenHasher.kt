@@ -28,10 +28,17 @@ class TokenHasher(
 		return keys.map { hash(token, it) }
 	}
 
+	/** Names the key [hashToken] uses without revealing it. */
+	fun activeKeyGeneration(): String = keyringManager.tokenHmacKeyIdOrNull() ?: SERVER_SECRET_GENERATION
+
 	private fun hash(token: String, key: String): String {
 		val mac = Mac.getInstance("HmacSHA256")
 		mac.init(SecretKeySpec(key.toByteArray(Charsets.UTF_8), "HmacSHA256"))
 		val hashBytes = mac.doFinal(token.toByteArray(Charsets.UTF_8))
 		return base64.encode(hashBytes)
+	}
+
+	private companion object {
+		const val SERVER_SECRET_GENERATION = "server-secret"
 	}
 }
