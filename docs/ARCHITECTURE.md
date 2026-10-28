@@ -277,7 +277,7 @@ cannot read.
   may heal or recreate it, and a corrupt file is replaced with fresh state. Losing it costs at most
   a project's or group's identity and sync state, never content.
 - **User data** is what the app cannot rebuild: `settings.toml`, scenes, notes, encyclopedia
-  entries, timeline events, drafts and backups. The app tolerates any of it being missing but never
+  entries, timeline events, drafts, images and backups. The app tolerates any of it being missing but never
   destroys it. A `settings.toml` that cannot be parsed is moved aside to
   `settings.toml.corrupt-<epochMillis>` and the project opens with default settings; the bad copy
   is kept, not overwritten.
@@ -287,7 +287,7 @@ lists only directories that hold one, and the project picker, the data migrator,
 and the Wear OS project list all enumerate projects through it. A directory that loses the file is
 re-marked rather than hidden: at startup `ProjectsRepository.healUnmarkedProjectDirectories` gives
 a fresh `project.toml`, under a new ID, to every directory that holds Hammer content (scenes, notes,
-encyclopedia, timeline, `settings.toml`, a pre-4 `project_data.toml` or `sync.json`) but no marker,
+encyclopedia, timeline, images, `settings.toml`, a pre-4 `project_data.toml` or `sync.json`) but no marker,
 and account sync adopts an unmarked directory whose name matches a server project under that
 project's ID, if it is empty or holds such content. Any other directory stays ignored, since the
 projects directory may be shared with unrelated folders.

@@ -179,7 +179,7 @@ Conventions:
   runtime plugins installed). Nothing in the
   operation API knows about agents; a plugin that serves them, like the MCP
   plugin, offers what its grants allow.
-- Operations whose input or output is a file (import, export, entry images)
+- Operations whose input or output is a file (import, export, images)
   carry the bytes. The CLI maps them to `--in FILE` and `--out FILE`, or to
   stdin and stdout.
 
@@ -260,7 +260,7 @@ lands in place.
 | `entry.delete` | Destructive | The entry's images stay in the project |
 | `entry.images.list` | Read | Id, name and extension of each image, primary first |
 | `entry.images.add` | Write | Appends an image already in the project |
-| `entry.images.import` | Write | Takes image bytes and extension; creates the image and appends it |
+| `entry.images.import` | Write | Takes image bytes and extension; creates the image, named after the entry, and appends it |
 | `entry.images.remove` | Write | Takes the image off the entry; it stays in the project |
 | `entry.images.primary` | Write | Moves an image the entry lists to the front |
 | `image.list` | Read | Id, name, extension, and whether anything uses it, of each image in the project |
@@ -268,7 +268,7 @@ lands in place.
 | `image.add` | Write | Takes a name, extension, and base64 bytes; creates the image |
 | `image.replace` | Write | New bytes and extension for an image; its id stays, so everything using it follows |
 | `image.rename` | Write | |
-| `image.delete` | Destructive | Takes the image out of every entry and text using it first, and lists them |
+| `image.delete` | Destructive | Takes the image out of every entry and text using it, and off the project cover, first. `removedFrom` lists each with a `kind` and an `id`; kind `cover` has no id |
 | `timeline.list` | Read | |
 | `timeline.read` | Read | |
 | `timeline.create` | Write | |

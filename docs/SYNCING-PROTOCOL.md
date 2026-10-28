@@ -491,6 +491,8 @@ These are Project level `syncID`s. Account syncing use separate Account level `s
 ### Entity Update Sequence
 The server will inspect the provided ClientState, and then return a sequence of Entity IDs: every server Entity the client is missing or holds a different version of (compared by hash). The client synchronizes those IDs in that order, then appends any local Entities the server doesn't know about yet (IDs above the server's `lastId`).
 
+`ProjectEntityRepository.getUpdateSequence` lists Images first, then scenes, drafts, notes, timeline events and encyclopedia entries: every other type can refer to an Image, so a device receives the image before the text that embeds it. Drafts follow the scenes that own them.
+
 ### Remote Entity Deletion
 The last step before individual Entity synchronization can begin is having the Client notify the server of any locally deleted Entities.
 
@@ -546,7 +548,7 @@ It will now either upload or download each ID depending on what it infers from t
 ### Download
 The client has determined that it needs to download the Server's copy of an Entity. This is either because the client is simply missing the Entity, or it has determined that the server has a newer version and it wants to overwrite the local client copy with the server copy.
 
-If the client has a local copy, it sends that copy's hash in the `X-Entity-Hash` header. When it matches the server's copy, the server answers `304 Not Modified` and the client records the Entity as synchronized without transferring the body.
+If the client has a local copy, it sends that copy's hash in the `X-Entity-Hash` header. When it matches the server's copy, the server answers `304 Not Modified` and the client records the Entity as synchronized without transferring the body. It also records that local hash as the Entity's conflict baseline (`EntityTransferOperation.downloadEntry`): the server just confirmed it, and a baseline left stale by a hasher change would otherwise raise a false conflict on the next edit.
 
 If the server answers `404 Not Found` (an ID in the sequence with no server entity — only possible through server-side data loss or an allocation gap), the client self-heals by whichever side still holds the truth: if it has no local copy either, it records the ID as deleted so it stops appearing in future syncs; if it does hold a copy, it re-uploads it with no conflict baseline to restore the server's. Known deletions are skipped before this point, so the restore can never resurrect an intentionally deleted Entity.
 ```mermaid
@@ -677,7 +679,73 @@ sequenceDiagram
 ```
 Note that the resolved `ApiProjectEntity` in the `force` request does not have to be exclusively the Client's or Server's copy, it can be a merging between the two that the client helped the user create.
 
-Uploads carry an `X-Entity-Type` header (the server rejects an upload without one, and answers `409` on a type mismatch — a distinct conflict from the hash conflict above). An upload may also fail with `413 Payload Too Large`, or `417 Expectation Failed` for a non-conflict save failure.
+#### Stale stored hash
+
+The stored hash column can be stale (see [Stale Hash Read-Repair](#stale-hash-read-repair-server-side)), and the conflict check reads the column, not the content. So on a mismatch `ServerEntitySynchronizer.checkForConflict` loads the stored Entity and recomputes its hash; when that equals the client's `original hash`, the client saw exactly this version, the upload is accepted, and storing it rewrites the column. Only when the recomputed hash also differs is it a conflict. This keeps an Entity whose hash algorithm or shape changed (an encyclopedia entry that lost its inline image, for example) from conflicting on its first upload after the change, whether or not a download has repaired the column first.
+
+Uploads carry an `X-Entity-Type` header (the server rejects an upload without one, and answers `409` on a type mismatch, a distinct conflict from the hash conflict above). Before the conflict check, and for `force` uploads too, the type's `ServerEntitySynchronizer.validate` may reject the Entity: `400 Bad Request` for `EntityValidationException`, `413 Payload Too Large` for `EntityTooLargeException` (see [Images](#images)). An upload may also fail with `413` when the encrypted content exceeds the server's row cap, or `417 Expectation Failed` for a non-conflict save failure.
+
+## Images
+
+### Image entities
+
+An Image is a synced Entity holding one picture file: `ApiProjectEntity.Type.IMAGE` (`5`, string id `image`). Other Entities refer to it by Entity id (see [Image references](#image-references)). The wire shape is `ApiProjectEntity.ImageEntity`:
+
+| Field | Content |
+|---|---|
+| `id` | Entity id |
+| `name` | Display name; the client stores the file as `images/<id>~<name>.<ext>`, the name run through `FilenameEncoding` |
+| `fileExtension` | One of `ImageFormat.ALLOWED_EXTENSIONS` |
+| `base64` | The raw file bytes, URL-safe base64 |
+
+The file travels inline in the upload and download bodies, so a reverse proxy must accept bodies of about 11 MB (see the nginx examples in [HOW-TO-RUN-A-SERVER.md](HOW-TO-RUN-A-SERVER.md)).
+
+`EntityHasher.hashImage` hashes the decoded bytes, not the base64 text: the id, then `name.length` and `name`, then `fileExtension.length` and `fileExtension`, then `bytes.size` and the bytes. The length prefixes keep adjacent fields from bleeding into each other (`"ab"` + `"c"` against `"a"` + `"bc"`).
+
+### Validation
+
+`ImageFormat` (in `base`) holds the rules, so client and server apply the same ones:
+
+- **Extension**: `jpg`, `jpeg`, `png`, `webp`, `gif` or `svg`, ignoring case.
+- **Size**: at most `MAX_IMAGE_BYTES` (8 MiB) decoded.
+- **Content**: `sniff` checks the magic bytes for the extension (the PNG signature, `FF D8 FF` for JPEG, `RIFF` then `WEBP` at offset 8, `GIF8`). An SVG must have `<svg` as its root element: within the first 1024 bytes, after an optional BOM, XML declarations, comments and a DOCTYPE (internal subset included).
+- **Name**: `ImageFormat.isValidName`, which requires a valid `ProjectNameValidator` name that comes back unchanged from `FilenameEncoding.encode` then `decode`. The name is a filename on the client; one that does not round-trip would read back different, hash differently and re-sync forever, so the server refuses it too.
+
+`ServerImageSynchronizer.validate` answers `400` (`EntityValidationException`) for base64 that does not decode, an invalid name, an unsupported extension or content that does not match it, and `413` (`EntityTooLargeException`) over the size cap. `ClientImageSynchronizer.storeEntity` applies the same `ImageFormat.validate` to a download and refuses to store an image that fails it.
+
+### Encyclopedia entry images
+
+`EncyclopediaEntryEntity.images: List<Int>` holds Image ids in display order; the first is the primary image. An entry carries no image bytes. `hashEncyclopediaEntry` appends the list only when it is non-empty: its size, then each id in list order (not sorted, since the order is meaningful). An entry without images keeps its stored hash.
+
+Entry rows stored before images were Entities carry an inline `image` object. Both JSON serializers (`createJsonSerializer`, `createNetworkJsonSerializer`) set `ignoreUnknownKeys`, so those rows still decode and the inline bytes are dropped. Server-side inline images are not converted to Image Entities; only the copies still on a device's disk survive, through the client migration:
+
+- Data version 5 (`Migration4_5`, which calls `EntryImagePromoter`) moves each on-disk entry image to an Image named after its entry and lists it in the entry's `images`.
+- When the project has a `sync.json`, the promoter adds the new image ids to `newIds` and each entry that gained one to `dirty`, so the next sync uploads both. For an entry that was clean, it sets the baseline (`syncedHashes[id]`) to the hash of the entry's content before promotion. The server's hash column for that entry may still hold the old hash, which covered the inline image bytes. If this device uploads first, the baseline matches the hash the server recomputes from its stored content (see [Stale stored hash](#stale-stored-hash)). If another device downloaded the entry first, the read-repair already rewrote the column to that same hash. Either order is conflict-free. An entry that was already dirty keeps its baseline.
+- `DataMigrator` runs `EntryImagePromoter` again on every launch for projects at data version 5 or later, so an image a failed move left behind is promoted later.
+
+Two devices that migrate the same entry before either syncs each create an Image for it. The entry then conflicts; whichever side the user keeps, the other Image stays in the project, unused.
+
+### Image references
+
+Markdown in scenes, drafts, notes, timeline events and entry text embeds an image as a line of its own, `![name](hammer://image/<id>)` (`ImageReferenceSyntax`). Entries also refer through `images`, and project data through `coverImageId`. Because references hold Entity ids, a [Re-ID](#terminology) has to rewrite them, and the rewritten referrers have to upload in the same sync.
+
+`EntitySynchronizer.reIdEntity(oldId, newId)` returns the ids of other Entities whose stored content the re-ID rewrote. `ClientImageSynchronizer` renames the file, then runs `ImageReferenceRewriter.remap`; `ClientEncyclopediaSynchronizer` returns the scenes whose entry references `SceneMetadataReferenceRemapper` rewrote. The other types return an empty set.
+
+During `IdConflictResolution`, `IdConflictResolutionOperation` collects these from each `EntityIdChange.rewrittenReferrers` and resolves them through the final old-to-new id map, since a referrer may itself be re-IDed later in the loop. Each one not already dirty joins the dirty list with its synced baseline (`syncedHashes[id]`), and all of them go into `CollatedIds.rewrittenIds`. `EntityTransferOperation` visits `rewrittenIds` as well as the server's `idSequence`, because a referrer the server already holds unchanged is not in the sequence. Otherwise the sync would finish, clear the dirty list, and the next sync would download the server's copy over the rewrite. The cross-type renumbering that runs when a project opens (`DuplicateIdService`) marks the returned referrers dirty the same way.
+
+`ImageReferenceRewriter` covers every holder of a reference:
+
+| Holder | Rewritten | Reported for sync |
+|---|---|---|
+| Encyclopedia entries | text and `images` | yes |
+| Scenes | text, through the loaded buffer when there is one, so an open editor follows | yes |
+| Archived scenes | the scene file | yes |
+| Unrestored scene edits | unsaved edits an earlier session left on disk | no |
+| Drafts | draft content | yes |
+| Notes, timeline events | text | yes |
+| Project cover | `coverImageId` | no |
+
+Unrestored edits stay local until they are restored and saved; reporting the scene would upload its unchanged file over newer server changes. The cover is project data, written through `ProjectDataRepository.updateData`, which the project data phase uploads (see [Project data fields](#project-data-fields)). Deleting an image runs `ImageReferenceRewriter.removeAll` first, which removes each Markdown reference (the whole line for a block image), takes the id out of `images` and clears the cover. Another device's `ClientImageSynchronizer.deleteEntityLocal` deletes only the file, since the rewritten referrers arrive as Entity updates of their own.
 
 ## Project Data Sync (non-entity blob)
 
@@ -856,6 +924,7 @@ any individual block of data. Each entity is given a unique ID. Examples include
 - Timeline Event
 - Encyclopedia Entry
 - Note
+- Image
 
 **Entity ID**
 Every Entity is given an Entity ID, which is a unique, monotonically incrementing
