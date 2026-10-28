@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="images_menu_group">Images</string>
+	<string name="images_menu_item">Image Gallery</string>
+
+	<string name="images_gallery_section">IMAGES</string>
+	<string name="images_gallery_pick_section">CHOOSE AN IMAGE</string>
+	<string name="images_gallery_close">× Close</string>
+	<string name="images_gallery_add">+ Add</string>
+	<string name="images_gallery_filter_unused">Unused</string>
+	<string name="images_gallery_filter_all">All</string>
+	<string name="images_gallery_unused_badge">Unused</string>
+	<string name="images_gallery_empty_title">No images yet</string>
+	<string name="images_gallery_empty_message">Add an image, or drop image files here.</string>
+	<string name="images_gallery_empty_unused">Every image is in use.</string>
+	<string name="images_gallery_drop_hint">Drop images to add them</string>
+
+	<string name="images_gallery_use">USE</string>
+	<string name="images_gallery_view">View</string>
+	<string name="images_gallery_rename">Rename</string>
+	<string name="images_gallery_replace">Replace</string>
+	<string name="images_gallery_delete">Delete</string>
+	<string name="images_gallery_cancel">Cancel</string>
+
+	<string name="images_gallery_rename_title">Rename image</string>
+	<string name="images_gallery_rename_label">Name</string>
+	<string name="images_gallery_rename_button">Rename</string>
+
+	<string name="images_gallery_delete_title">Delete “%1$s”?</string>
+	<string name="images_gallery_delete_unused">Nothing in the project uses this image.</string>
+	<string name="images_gallery_delete_used">This image is used in %1$d places. Deleting it takes it out of each of them.</string>
+	<string name="images_gallery_delete_usage_line">%1$s (%2$d): %3$s</string>
+	<string name="images_usage_type_scene">Scenes</string>
+	<string name="images_usage_type_note">Notes</string>
+	<string name="images_usage_type_event">Timeline events</string>
+	<string name="images_usage_type_entry">Encyclopedia entries</string>
+	<string name="images_usage_type_draft">Drafts</string>
+	<string name="images_usage_type_image">Images</string>
+
+	<string name="images_toast_too_large">Image is too large. Maximum size is %1$d MB.</string>
+	<string name="images_toast_unsupported">That image type is not supported. Use %1$s.</string>
+	<string name="images_toast_load_failed">Could not read the selected image.</string>
+	<string name="images_toast_name_invalid">That name cannot be used for an image.</string>
+
+	<string name="images_viewer_close">Close</string>
+	<string name="images_viewer_counter">%1$d / %2$d</string>
+	<string name="images_viewer_gif_badge">GIF</string>
+
+	<string name="images_entry_from_library">+ From library</string>
+	<string name="images_entry_import_file">+ Import file</string>
+</resources>

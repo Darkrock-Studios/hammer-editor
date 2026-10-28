@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.ViewEntry
 import com.darkrockstudios.apps.hammer.common.encyclopedia.ENTRY_IMAGE_ADD_TAG
 import com.darkrockstudios.apps.hammer.common.encyclopedia.ENTRY_IMAGE_COUNTER_TAG
+import com.darkrockstudios.apps.hammer.common.encyclopedia.ENTRY_IMAGE_LIBRARY_TAG
 import com.darkrockstudios.apps.hammer.common.encyclopedia.ENTRY_IMAGE_PAGER_TAG
 import com.darkrockstudios.apps.hammer.common.encyclopedia.ENTRY_IMAGE_REMOVE_TAG
 import com.darkrockstudios.apps.hammer.common.encyclopedia.ENTRY_IMAGE_SET_PRIMARY_TAG
@@ -33,6 +34,8 @@ class EntryImagePagerTest {
 	}
 
 	private var added = 0
+	private var fromLibrary = 0
+	private val opened = mutableListOf<Int>()
 	private val primaryRequests = mutableListOf<Int>()
 	private val removeRequests = mutableListOf<Int>()
 
@@ -49,6 +52,8 @@ class EntryImagePagerTest {
 				currentIndex = current,
 				onShowIndex = { if (followSwipes) current = it },
 				onAdd = { added++ },
+				onAddFromLibrary = { fromLibrary++ },
+				onOpenImage = { opened += it },
 				onFilesDropped = {},
 				onSetPrimary = { primaryRequests += it },
 				onRemove = { removeRequests += it },
@@ -63,8 +68,29 @@ class EntryImagePagerTest {
 
 		compose.onNodeWithTag(ENTRY_IMAGE_PAGER_TAG).assertDoesNotExist()
 		compose.onNodeWithTag(ENTRY_IMAGE_ADD_TAG).performClick()
+		compose.onNodeWithTag(ENTRY_IMAGE_LIBRARY_TAG).performClick()
 
 		assertEquals(1, added)
+		assertEquals(1, fromLibrary)
+	}
+
+	@Test
+	fun `Images can be added from the library`() {
+		setPager(images)
+
+		compose.onNodeWithTag(ENTRY_IMAGE_LIBRARY_TAG).performClick()
+
+		assertEquals(1, fromLibrary)
+		assertEquals(0, added)
+	}
+
+	@Test
+	fun `Tapping an image opens it at its page`() {
+		setPager(images, startIndex = 2)
+
+		compose.onNodeWithTag(entryImagePageTag(9)).performClick()
+
+		assertEquals(listOf(2), opened)
 	}
 
 	@Test

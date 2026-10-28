@@ -38,6 +38,7 @@ interface ProjectHome : Router, HammerComponent, BackHandlerOwner, ComponentToas
 	fun startProjectSync()
 	fun showGlobalSearch()
 	fun showGlobalSearchForTag(tag: String)
+	fun showImageGallery()
 	fun showLongestScene()
 	fun showLastEditedScene()
 	fun showEntry(entry: EntryAppearance)

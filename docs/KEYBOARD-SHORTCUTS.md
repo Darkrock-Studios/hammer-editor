@@ -55,6 +55,17 @@ composable they are attached to.
 | `Ctrl+S` | Save the current item | `saveShortcutModifier` via `SceneEditorUi.kt`, `ViewNoteUi.kt`, `ViewTimeLineEventUi.kt`, `StoryIdeasUi.kt` |
 | `Ctrl+F` | Open find bar         | `findShortcutModifier` via `SceneEditorUi.kt`, `FocusModeUi.kt`                                             |
 
+## Image viewer
+
+The full-screen viewer opened from the image gallery, an entry's images, or an image sync
+conflict (`ImageViewerDialog.kt`).
+
+| Shortcut | Action              |
+|----------|---------------------|
+| `Left`   | Previous image      |
+| `Right`  | Next image          |
+| `Esc`    | Close the viewer    |
+
 ## Rich Text Formatting
 
 Available anywhere `MarkdownFormatBar.kt` is used (scene, note, and encyclopedia editors).

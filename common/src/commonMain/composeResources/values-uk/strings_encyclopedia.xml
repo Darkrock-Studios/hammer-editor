@@ -73,7 +73,6 @@
 	<string name="encyclopedia_entry_add_alias_chip">псевдонім</string>
 	<string name="encyclopedia_entry_figure_caption">Рис. I · Запис</string>
 	<string name="encyclopedia_entry_figure_label">Рис. I</string>
-	<string name="encyclopedia_entry_figure_add">+ Додати</string>
 	<string name="encyclopedia_entry_folio_format">Арк. %1$s · Зап-%2$s</string>
 	<string name="encyclopedia_entry_scene_index_format">Сц.%1$s</string>
 	<string name="encyclopedia_entry_colophon_label">Запис · Каталожна картка</string>

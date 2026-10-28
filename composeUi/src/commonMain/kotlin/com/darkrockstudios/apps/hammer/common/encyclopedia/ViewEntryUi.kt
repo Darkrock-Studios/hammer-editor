@@ -102,6 +102,8 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryE
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryResult
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImageAddResult
+import com.darkrockstudios.apps.hammer.common.images.ImageViewerDialog
+import com.darkrockstudios.apps.hammer.common.images.ImageViewerItem
 import com.darkrockstudios.apps.hammer.common.data.tagindex.replaceTagPrefix
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_image_load_failed
@@ -277,6 +279,7 @@ internal fun ViewEntryUi(
 			animatedVisibilityScope = animatedVisibilityScope,
 		)
 	}
+	var viewerIndex by remember { mutableStateOf<Int?>(null) }
 	val figure: @Composable (Modifier) -> Unit = { figureModifier ->
 		EntryImagePager(
 			entryName = state.entryDef.name,
@@ -284,6 +287,8 @@ internal fun ViewEntryUi(
 			currentIndex = state.currentImageIndex,
 			onShowIndex = component::showImageAt,
 			onAdd = component::showAddImageDialog,
+			onAddFromLibrary = component::addImageFromLibrary,
+			onOpenImage = { viewerIndex = it },
 			onFilesDropped = { files -> scope.launch { files.forEach { importPicked(it) } } },
 			onSetPrimary = { id -> scope.launch { component.setPrimaryImage(id) } },
 			onRemove = component::showRemoveImageConfirm,
@@ -483,6 +488,14 @@ internal fun ViewEntryUi(
 			if (file != null) scope.launch { importPicked(file) }
 			component.closeAddImageDialog()
 		}
+	}
+
+	viewerIndex?.let { index ->
+		ImageViewerDialog(
+			items = state.images.map { ImageViewerItem.ofFile(it.path, it.hash, it.name) },
+			initialIndex = index,
+			onDismissed = { viewerIndex = null },
+		)
 	}
 
 	state.removeImageConfirm?.let { imageId ->

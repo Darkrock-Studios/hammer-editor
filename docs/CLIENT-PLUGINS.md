@@ -244,7 +244,7 @@ Input that edits scene text in place is marked `@LiveEdit`: the whole input of
 `x-hammer-live`, so a client can tell an edit a writer reviews from one that
 lands in place.
 
-### Notes, encyclopedia, timeline
+### Notes, encyclopedia, images, timeline
 
 | Operation | Access | Notes |
 | --- | --- | --- |
@@ -263,6 +263,12 @@ lands in place.
 | `entry.images.import` | Write | Takes image bytes and extension; creates the image and appends it |
 | `entry.images.remove` | Write | Takes the image off the entry; it stays in the project |
 | `entry.images.primary` | Write | Moves an image the entry lists to the front |
+| `image.list` | Read | Id, name, extension, and whether anything uses it, of each image in the project |
+| `image.get` | Read | Name, extension, and base64 bytes of one image |
+| `image.add` | Write | Takes a name, extension, and base64 bytes; creates the image |
+| `image.replace` | Write | New bytes and extension for an image; its id stays, so everything using it follows |
+| `image.rename` | Write | |
+| `image.delete` | Destructive | Takes the image out of every entry and text using it first, and lists them |
 | `timeline.list` | Read | |
 | `timeline.read` | Read | |
 | `timeline.create` | Write | |

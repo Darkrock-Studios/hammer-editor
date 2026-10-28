@@ -5,8 +5,6 @@ import com.darkrockstudios.apps.hammer.common.data.ClientResult
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaService
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryError
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
-import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImageAddResult
-import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NoteError
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
@@ -129,7 +127,7 @@ internal fun contentWriteOperations(): List<Operation<*, *>> = listOf(
 	) { input ->
 		projects.withProject(input.project) { project ->
 			val def = project.requireEntry(input.id)
-			project.scope.get<ImagesRepository>().findImage(input.imageId) ?: notFound("No image ${input.imageId}")
+			project.requireImage(input.imageId)
 			project.scope.get<EncyclopediaService>().addEntryImage(def, input.imageId)
 			project.entryImages(def)
 		}
@@ -167,18 +165,7 @@ internal fun contentWriteOperations(): List<Operation<*, *>> = listOf(
 	) { input ->
 		projects.withProject(input.project) { project ->
 			val def = project.requireEntry(input.id)
-			val outcome = project.scope.get<EncyclopediaService>().importEntryImage(def, input.extension, input.content)
-			when (outcome.result) {
-				ImageAddResult.Ok -> Unit
-				ImageAddResult.TooLarge -> invalidInput("Images can be at most ${ImageFormat.MAX_IMAGE_MB} MB")
-				ImageAddResult.UnsupportedType -> {
-					val formats = ImageFormat.ALLOWED_EXTENSIONS.joinToString()
-					invalidInput("Images must be one of $formats, and match their extension")
-				}
-
-				ImageAddResult.NameInvalid -> invalidInput("The entry's name cannot name an image")
-				ImageAddResult.ReadFailed -> error("Could not write the image")
-			}
+			project.scope.get<EncyclopediaService>().importEntryImage(def, input.extension, input.content).requireImage()
 			project.entryImages(def)
 		}
 	},

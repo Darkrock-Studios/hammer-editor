@@ -122,6 +122,14 @@ class ImageReferenceRewriterTest : BaseTest() {
 	}
 
 	@Test
+	fun `findReferencedIds collects every image entries show or embed`() = runTest {
+		store(entry1().copy(text = "![a](hammer://image/7)\n\n![b](hammer://image/5)", images = listOf(5)))
+		store(entry2().copy(images = listOf(6, 5)))
+
+		assertEquals(setOf(5, 6, 7), ImageReferenceRewriter(projectDef).findReferencedIds())
+	}
+
+	@Test
 	fun `an unreadable entry does not stop the others`() = runTest {
 		val brokenDir = EncyclopediaDatasource.getTypeDirectory(projectDef, EntryType.PERSON, ffs).toOkioPath()
 		ffs.write(brokenDir / "person~3~Broken.toml") { writeUtf8("this is [[ not toml") }

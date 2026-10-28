@@ -15,6 +15,8 @@ import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.rename.RenameEntry
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.rename.RenameEntryComponent
+import com.darkrockstudios.apps.hammer.common.components.images.ImagePickRequests
+import com.darkrockstudios.apps.hammer.common.components.images.ImagePickTarget
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.MenuItemDescriptor
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
@@ -32,12 +34,14 @@ import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexServ
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.tagindex.parseTagInput
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.builtins.serializer
 import okio.IOException
 
 class ViewEntryComponent(
@@ -62,6 +66,7 @@ class ViewEntryComponent(
 	private val sceneEditorRepository: SceneEditorService by projectInject()
 	private val backfillEntryReferences: BackfillEntryReferencesUseCase by projectInject()
 	private val cleanupReferencesOnDelete: CleanupReferencesOnEntryDeleteUseCase by projectInject()
+	private val imagePickRequests: ImagePickRequests by projectInject()
 
 	private val reloadMutex = Mutex()
 
@@ -133,6 +138,45 @@ class ViewEntryComponent(
 		reload()
 		watchEntry()
 		watchImages()
+		restoreLibraryPick()
+	}
+
+	// The gallery comes back with the project root after process death; wait for its answer again.
+	private fun restoreLibraryPick() {
+		val pending = stateKeeper.consume(LIBRARY_PICK_KEY, Boolean.serializer()) == true
+		stateKeeper.register(LIBRARY_PICK_KEY, Boolean.serializer()) { state.value.pendingLibraryPick }
+		if (pending) {
+			val target = libraryPickTarget()
+			awaitLibraryPick { imagePickRequests.awaitResult(target) }
+		}
+	}
+
+	private fun libraryPickTarget() = ImagePickTarget.EntryImage(state.value.entryDef.id)
+
+	override fun addImageFromLibrary() {
+		if (state.value.pendingLibraryPick) return
+		val target = libraryPickTarget()
+		awaitLibraryPick { imagePickRequests.pick(target) }
+	}
+
+	private fun awaitLibraryPick(pick: suspend () -> Int?) {
+		_state.getAndUpdate { it.copy(pendingLibraryPick = true) }
+		scope.launch {
+			try {
+				val imageId = pick() ?: return@launch
+				// Already listed, it is not added twice, but it is still the one shown.
+				encyclopediaService.addEntryImage(state.value.entryDef, imageId)
+				loadEntryState(showImageId = imageId)
+			} catch (e: EntryLoadError) {
+				Napier.w("Failed to add a library image to entry ${state.value.entryDef.id}", e)
+			} catch (e: IOException) {
+				Napier.w("Failed to add a library image to entry ${state.value.entryDef.id}", e)
+			} finally {
+				withContext(NonCancellable + dispatcherMain) {
+					_state.getAndUpdate { it.copy(pendingLibraryPick = false) }
+				}
+			}
+		}
 	}
 
 	// Follows writes made elsewhere (sync), including a rename that moves the entry's file.
@@ -523,3 +567,5 @@ class ViewEntryComponent(
 
 @Serializable
 data class RenameConfig(val entryId: Int)
+
+private const val LIBRARY_PICK_KEY = "view_entry_library_pick"

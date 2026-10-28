@@ -48,6 +48,7 @@ class ProjectHomeComponent(
 	private val requestProjectSync: () -> Unit,
 	private val onShowGlobalSearch: () -> Unit,
 	private val onShowGlobalSearchForTag: (String) -> Unit,
+	private val onShowImageGallery: () -> Unit,
 	private val onShowScene: (SceneItem) -> Unit,
 	private val onShowEntry: (EntryDef) -> Unit,
 	private val onCloseProject: (() -> Unit)? = null,
@@ -205,6 +206,8 @@ class ProjectHomeComponent(
 	override fun showGlobalSearch() = onShowGlobalSearch()
 
 	override fun showGlobalSearchForTag(tag: String) = onShowGlobalSearchForTag(tag)
+
+	override fun showImageGallery() = onShowImageGallery()
 
 	override fun showLongestScene() {
 		val id = _state.value.longestSceneId ?: return

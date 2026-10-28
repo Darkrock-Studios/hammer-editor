@@ -35,6 +35,10 @@ class ImageReferenceRewriter(projectDef: ProjectDef) : ProjectScoped {
 	suspend fun findUsages(imageId: Int): ImageUsages =
 		ImageUsages(holders.flatMap { holder -> guarded(holder, emptyList()) { holder.usages(imageId) } })
 
+	/** The id of every image something refers to, whether or not that image exists. */
+	suspend fun findReferencedIds(): Set<Int> =
+		holders.flatMapTo(mutableSetOf()) { holder -> guarded(holder, emptySet()) { holder.referencedIds() } }
+
 	/** Rewrites references to each key of [idMap] to its value. */
 	suspend fun remap(idMap: Map<Int, Int>): Set<TouchedEntity> {
 		val changes = idMap.filter { (old, new) -> old != new }
@@ -69,6 +73,7 @@ class ImageReferenceRewriter(projectDef: ProjectDef) : ProjectScoped {
 	private interface Holder {
 		val name: String
 		suspend fun usages(imageId: Int): List<ImageUsage>
+		suspend fun referencedIds(): Set<Int>
 		suspend fun apply(edit: Edit): Set<TouchedEntity>
 	}
 
@@ -80,6 +85,11 @@ class ImageReferenceRewriter(projectDef: ProjectDef) : ProjectScoped {
 			val used = imageId in entry.images || imageId in ImageReferenceSyntax.findIds(entry.text)
 			if (used) ImageUsage(entry.touched(), entry.name) else null
 		}
+
+		override suspend fun referencedIds(): Set<Int> = eachEntry { def ->
+			val entry = encyclopediaRepository.loadEntry(def).entry
+			entry.images + ImageReferenceSyntax.findIds(entry.text)
+		}.flatten().toSet()
 
 		override suspend fun apply(edit: Edit): Set<TouchedEntity> = eachEntry { def ->
 			val changed = encyclopediaRepository.rewriteEntry(def) { entry ->

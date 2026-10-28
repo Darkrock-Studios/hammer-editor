@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.common.compose.images
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import coil3.ImageLoader
 import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
 import coil3.request.crossfade
@@ -32,3 +33,20 @@ fun rememberImageRequest(
 			.build()
 	}
 }
+
+/**
+ * Drops every cached decode of the image file at [path]: all hashes and sizes, and the viewer's
+ * full-screen entries. Call it once the file has been replaced or deleted.
+ */
+fun ImageLoader.evictImageFile(path: String) {
+	memoryCache?.let { cache ->
+		val viewerPrefix = "$VIEWER_CACHE_KEY_PREFIX$path#"
+		cache.keys
+			.filter { it.key == path || it.key.startsWith(viewerPrefix) }
+			.forEach { cache.remove(it) }
+	}
+	diskCache?.remove(path)
+}
+
+/** Prefixes the memory cache keys of the image viewer's full-screen decodes. */
+internal const val VIEWER_CACHE_KEY_PREFIX = "image-viewer:"

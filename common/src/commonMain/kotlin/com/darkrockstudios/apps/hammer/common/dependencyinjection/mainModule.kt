@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.base.di.dispatcherModule
 import com.darkrockstudios.apps.hammer.base.http.NetworkJsonQualifier
 import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.base.http.createNetworkJsonSerializer
+import com.darkrockstudios.apps.hammer.common.components.images.ImagePickRequests
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ImportStoryUseCase
 import com.darkrockstudios.apps.hammer.common.data.ProjectsDirectory
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -50,6 +51,7 @@ import com.darkrockstudios.apps.hammer.common.data.export.ExportStoryUseCase
 import com.darkrockstudios.apps.hammer.common.data.export.StoryExporterRegistry
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesDatasource
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesRepository
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesService
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesDatasource
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupService
@@ -349,6 +351,8 @@ val mainModule = module {
 
 		factory<ImagesDatasource>()
 		scoped<ImagesRepository>()
+		scoped<ImagesService>()
+		scoped<ImagePickRequests>()
 
 		factory<EncyclopediaDatasource>()
 		scoped<EncyclopediaRepository>()

@@ -9,6 +9,7 @@ import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectTheme
 import com.darkrockstudios.apps.hammer.common.AppCloseManager
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.Encyclopedia
 import com.darkrockstudios.apps.hammer.common.components.globalsearch.GlobalSearch
+import com.darkrockstudios.apps.hammer.common.components.images.ImageGallery
 import com.darkrockstudios.apps.hammer.common.components.notes.Notes
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectHome
 import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSynchronization
@@ -67,6 +68,9 @@ interface ProjectRoot : AppCloseManager, HammerComponent, BackHandlerOwner {
 	fun showFocusMode(sceneItem: SceneItem)
 	fun dismissFocusMode()
 
+	/** Opens the image gallery to browse and manage the project's images. */
+	fun showImageGallery()
+
 	/** Shows the item [link] names; false when the project has no such item. */
 	suspend fun navigateToDeepLink(link: ProjectDeepLink): Boolean
 
@@ -116,6 +120,8 @@ interface ProjectRoot : AppCloseManager, HammerComponent, BackHandlerOwner {
 		data class ProtocolMismatchModal(val component: ProtocolMismatch) : ModalDestination()
 
 		data class DuplicateIdsModal(val component: DuplicateIds) : ModalDestination()
+
+		data class ImageGalleryModal(val component: ImageGallery) : ModalDestination()
 	}
 
 	enum class DestinationTypes(val text: StringResource, val shortText: StringResource) {

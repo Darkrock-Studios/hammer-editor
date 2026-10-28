@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.projectsync
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -35,6 +36,8 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineFie
 import com.darkrockstudios.apps.hammer.common.compose.images.rememberImageRequest
 import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.common.images.ImageViewerDialog
+import com.darkrockstudios.apps.hammer.common.images.ImageViewerItem
 import com.darkrockstudios.apps.hammer.sync_conflict_entity_label_image
 import com.darkrockstudios.apps.hammer.sync_conflict_image_description
 import com.darkrockstudios.apps.hammer.sync_conflict_image_unreadable
@@ -67,6 +70,11 @@ internal fun ImageConflict(
 		}
 	}
 	val useRemote = { component.resolveConflict(entityConflict.serverEntity); Unit }
+
+	var viewing by remember { mutableStateOf<ImageViewerItem?>(null) }
+	viewing?.let { item ->
+		ImageViewerDialog(items = listOf(item), initialIndex = 0, onDismissed = { viewing = null })
+	}
 
 	EntityConflict(
 		entityConflict = entityConflict,
@@ -104,6 +112,13 @@ internal fun ImageConflict(
 							hash = clientImage.digest,
 						),
 						image = clientImage,
+						onOpen = {
+							viewing = ImageViewerItem.ofFile(
+								path = entityConflict.clientImagePath.path,
+								hash = clientImage.digest,
+								label = c.clientEntity.name,
+							)
+						},
 					)
 				}
 			}
@@ -126,15 +141,26 @@ internal fun ImageConflict(
 					conflict = imagesDiffer,
 				) {
 					val context = LocalPlatformContext.current
+					// Bytes have no default memory cache key, so this names them.
+					val cacheKey = "sync-conflict-remote-${c.serverEntity.id}-${serverImage.digest}"
 					ConflictImagePreview(
-						// Bytes have no default memory cache key, so this names them.
 						request = remember(context, serverImage, c.serverEntity.id) {
 							ImageRequest.Builder(context)
 								.data(serverImage.bytes)
-								.memoryCacheKey("sync-conflict-remote-${c.serverEntity.id}-${serverImage.digest}")
+								.memoryCacheKey(cacheKey)
 								.build()
 						},
 						image = serverImage,
+						onOpen = {
+							serverImage.bytes?.let { bytes ->
+								viewing = ImageViewerItem(
+									model = bytes,
+									cacheKey = cacheKey,
+									label = c.serverEntity.name,
+									isGif = serverImage.fileExtension.equals("gif", ignoreCase = true),
+								)
+							}
+						},
 					)
 				}
 			}
@@ -161,7 +187,7 @@ private class ConflictImage(
 }
 
 @Composable
-private fun ConflictImagePreview(request: ImageRequest, image: ConflictImage) {
+private fun ConflictImagePreview(request: ImageRequest, image: ConflictImage, onOpen: () -> Unit) {
 	if (image.bytes == null) {
 		Text(
 			text = Res.string.sync_conflict_image_unreadable.get(),
@@ -178,7 +204,8 @@ private fun ConflictImagePreview(request: ImageRequest, image: ConflictImage) {
 			contentScale = ContentScale.Fit,
 			modifier = Modifier
 				.fillMaxWidth()
-				.heightIn(max = 320.dp),
+				.heightIn(max = 320.dp)
+				.clickable(onClick = onOpen),
 		)
 		Text(
 			text = Res.string.sync_conflict_image_description.get(

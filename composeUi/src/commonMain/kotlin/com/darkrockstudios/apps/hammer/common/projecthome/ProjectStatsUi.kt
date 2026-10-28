@@ -12,6 +12,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
@@ -64,6 +65,7 @@ import kotlin.random.Random
 import kotlin.time.Clock
 
 const val PROJECT_STATS_TAG = "project-stats"
+const val PROJECT_HOME_IMAGES_TAG = "project-home-images"
 
 @Composable
 fun ProjectStatsUi(
@@ -185,6 +187,16 @@ private fun DashboardHeader(
 						} else {
 							MaterialTheme.colorScheme.primary
 						},
+					)
+				}
+				IconButton(
+					onClick = { component.showImageGallery() },
+					modifier = Modifier.testTag(PROJECT_HOME_IMAGES_TAG),
+				) {
+					Icon(
+						Icons.Default.Image,
+						contentDescription = Res.string.project_home_menu_images.get(),
+						tint = MaterialTheme.colorScheme.primary,
 					)
 				}
 				IconButton(onClick = { component.showProjectSettings() }) {
@@ -1350,6 +1362,14 @@ private fun ProjectHomeMenu(
 				text = { Text(Res.string.global_search_button.get()) },
 				onClick = {
 					component.showGlobalSearch()
+					expanded = false
+				},
+			)
+
+			DropdownMenuItem(
+				text = { Text(Res.string.project_home_menu_images.get()) },
+				onClick = {
+					component.showImageGallery()
 					expanded = false
 				},
 			)

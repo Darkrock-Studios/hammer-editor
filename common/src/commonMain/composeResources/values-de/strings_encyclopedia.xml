@@ -73,7 +73,6 @@
 	<string name="encyclopedia_entry_add_alias_chip">Alias</string>
 	<string name="encyclopedia_entry_figure_caption">Abb. I · Eintrag</string>
 	<string name="encyclopedia_entry_figure_label">Abb. I</string>
-	<string name="encyclopedia_entry_figure_add">+ Hinzufügen</string>
 	<string name="encyclopedia_entry_folio_format">Fol. %1$s · Ein-%2$s</string>
 	<string name="encyclopedia_entry_scene_index_format">Sz.%1$s</string>
 	<string name="encyclopedia_entry_colophon_label">Eintrag · Katalogkarte</string>

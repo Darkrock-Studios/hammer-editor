@@ -73,7 +73,6 @@
 	<string name="encyclopedia_entry_add_alias_chip">alias</string>
 	<string name="encyclopedia_entry_figure_caption">Fig. I · Voce</string>
 	<string name="encyclopedia_entry_figure_label">Fig. I</string>
-	<string name="encyclopedia_entry_figure_add">+ Aggiungi</string>
 	<string name="encyclopedia_entry_folio_format">Fol. %1$s · Voce-%2$s</string>
 	<string name="encyclopedia_entry_scene_index_format">Sc.%1$s</string>
 	<string name="encyclopedia_entry_colophon_label">Voce · Scheda di catalogo</string>

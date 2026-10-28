@@ -321,6 +321,7 @@ private class FakeViewEntryComponent(initial: ViewEntry.State) : ViewEntry {
 		EntryResult(EntryContainer(fakeEntryContent()), EntryError.NONE)
 
 	override suspend fun importImage(path: String) = ImageAddResult.Ok
+	override fun addImageFromLibrary() {}
 	override suspend fun removeImage(id: Int) = true
 	override suspend fun setPrimaryImage(id: Int) = true
 	override fun showImageAt(index: Int) {}

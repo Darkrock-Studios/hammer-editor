@@ -1,6 +1,8 @@
 package components.encyclopedia
 
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.ViewEntry
+import com.darkrockstudios.apps.hammer.common.components.images.ImagePickRequests
+import com.darkrockstudios.apps.hammer.common.components.images.ImagePickTarget
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.ViewEntryComponent
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaService
@@ -23,6 +25,8 @@ import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
@@ -30,14 +34,18 @@ import org.junit.jupiter.api.Test
 import org.koin.dsl.module
 import repositories.encyclopedia.fakeEntry
 import utils.ComponentTest
+import utils.TestComponentContext
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ViewEntryComponentImagesTest : ComponentTest() {
 
 	private lateinit var encyclopediaService: EncyclopediaService
 	private lateinit var imageChangedFlow: MutableSharedFlow<Int>
+	private lateinit var pickRequests: ImagePickRequests
 
 	private var stored: EntryContent = fakeEntry().copy(images = listOf(3, 5))
 	private val hashes = mutableMapOf(3 to "h3", 5 to "h5", 9 to "h9")
@@ -47,6 +55,7 @@ class ViewEntryComponentImagesTest : ComponentTest() {
 		super.setup()
 
 		imageChangedFlow = MutableSharedFlow(extraBufferCapacity = 8)
+		pickRequests = ImagePickRequests()
 		encyclopediaService = mockk(relaxed = true)
 		every { encyclopediaService.entryChangedFlow } returns MutableSharedFlow()
 		every { encyclopediaService.imageChangedFlow } returns imageChangedFlow
@@ -66,6 +75,7 @@ class ViewEntryComponentImagesTest : ComponentTest() {
 			single<SceneEditorService> { mockk(relaxed = true) }
 			single<BackfillEntryReferencesUseCase> { mockk(relaxed = true) }
 			single<CleanupReferencesOnEntryDeleteUseCase> { mockk(relaxed = true) }
+			single { pickRequests }
 		})
 	}
 
@@ -82,8 +92,11 @@ class ViewEntryComponentImagesTest : ComponentTest() {
 		hash = hashes[id],
 	)
 
-	private fun component(menus: MutableList<MenuDescriptor> = mutableListOf()) = ViewEntryComponent(
-		componentContext = context,
+	private fun component(
+		menus: MutableList<MenuDescriptor> = mutableListOf(),
+		componentContext: TestComponentContext = context,
+	) = ViewEntryComponent(
+		componentContext = componentContext,
 		entryDef = stored.toDef(projectDef),
 		addMenu = { menus.add(it) },
 		removeMenu = {},
@@ -207,5 +220,76 @@ class ViewEntryComponentImagesTest : ComponentTest() {
 		advanceUntilIdle()
 
 		assertEquals("replaced", comp.state.value.images.single { it.id == 5 }.hash)
+	}
+
+	private val libraryTarget get() = ImagePickTarget.EntryImage(stored.id)
+
+	private fun givenAddEntryImageAppends() {
+		coEvery { encyclopediaService.addEntryImage(any(), any()) } answers {
+			stored = stored.copy(images = stored.images + secondArg<Int>())
+			true
+		}
+	}
+
+	@Test
+	fun `Adding from the library asks the gallery and shows the picked image`() = runTest(mainTestDispatcher) {
+		val requested = mutableListOf<ImagePickTarget>()
+		backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { pickRequests.requests.collect { requested += it } }
+		givenAddEntryImageAppends()
+		val comp = component()
+		context.resume()
+		advanceUntilIdle()
+
+		comp.addImageFromLibrary()
+		advanceUntilIdle()
+		assertEquals(listOf<ImagePickTarget>(libraryTarget), requested)
+		assertTrue(comp.state.value.pendingLibraryPick)
+
+		pickRequests.deliver(libraryTarget, 9)
+		advanceUntilIdle()
+
+		coVerify(exactly = 1) { encyclopediaService.addEntryImage(stored.toDef(projectDef), 9) }
+		assertEquals(listOf(3, 5, 9), comp.state.value.images.map { it.id })
+		assertEquals(2, comp.state.value.currentImageIndex)
+		assertFalse(comp.state.value.pendingLibraryPick)
+	}
+
+	@Test
+	fun `A cancelled library pick adds nothing`() = runTest(mainTestDispatcher) {
+		val comp = component()
+		context.resume()
+		advanceUntilIdle()
+
+		comp.addImageFromLibrary()
+		advanceUntilIdle()
+		pickRequests.deliver(libraryTarget, null)
+		advanceUntilIdle()
+
+		coVerify(exactly = 0) { encyclopediaService.addEntryImage(any(), any()) }
+		assertFalse(comp.state.value.pendingLibraryPick)
+		assertEquals(listOf(3, 5), comp.state.value.images.map { it.id })
+	}
+
+	@Test
+	fun `A library pick survives process death`() = runTest(mainTestDispatcher) {
+		givenAddEntryImageAppends()
+		val comp = component()
+		context.resume()
+		advanceUntilIdle()
+		comp.addImageFromLibrary()
+		advanceUntilIdle()
+
+		val restoredContext = context.saveAndRecreate()
+		context.destroy()
+		val restored = component(componentContext = restoredContext)
+		restoredContext.resume()
+		advanceUntilIdle()
+		assertTrue(restored.state.value.pendingLibraryPick)
+
+		pickRequests.deliver(libraryTarget, 9)
+		advanceUntilIdle()
+
+		assertEquals(listOf(3, 5, 9), restored.state.value.images.map { it.id })
+		assertFalse(restored.state.value.pendingLibraryPick)
 	}
 }

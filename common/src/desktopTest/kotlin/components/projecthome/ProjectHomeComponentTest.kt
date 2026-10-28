@@ -105,6 +105,7 @@ class ProjectHomeComponentTest : ComponentTest() {
 
 	private var syncShown = false
 	private var globalSearchShown = false
+	private var imageGalleryShown = false
 	private var searchedTag: String? = null
 	private var shownScene: SceneItem? = null
 	private var shownEntry: EntryDef? = null
@@ -117,6 +118,7 @@ class ProjectHomeComponentTest : ComponentTest() {
 		loadStatisticsCalls = 0
 		syncShown = false
 		globalSearchShown = false
+		imageGalleryShown = false
 		searchedTag = null
 		shownScene = null
 		shownEntry = null
@@ -215,6 +217,7 @@ class ProjectHomeComponentTest : ComponentTest() {
 		requestProjectSync = { syncShown = true },
 		onShowGlobalSearch = { globalSearchShown = true },
 		onShowGlobalSearchForTag = { searchedTag = it },
+		onShowImageGallery = { imageGalleryShown = true },
 		onShowScene = { shownScene = it },
 		onShowEntry = { shownEntry = it },
 		onCloseProject = { projectClosed = true },
@@ -778,6 +781,9 @@ class ProjectHomeComponentTest : ComponentTest() {
 
 		comp.showGlobalSearchForTag("magic")
 		assertEquals("magic", searchedTag)
+
+		comp.showImageGallery()
+		assertTrue(imageGalleryShown)
 
 		comp.closeProject()
 		assertTrue(projectClosed)

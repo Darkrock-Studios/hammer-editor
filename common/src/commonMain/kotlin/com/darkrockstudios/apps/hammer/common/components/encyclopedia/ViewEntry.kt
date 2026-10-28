@@ -24,6 +24,8 @@ interface ViewEntry : TagSuggesting {
 		val currentImageIndex: Int = 0,
 		val content: EntryContent? = null,
 		val showAddImageDialog: Boolean = false,
+		/** The gallery is open to pick an image from the project for this entry. */
+		val pendingLibraryPick: Boolean = false,
 		/** The image waiting on confirmation before it is removed from the entry. */
 		val removeImageConfirm: Int? = null,
 		val showDeleteEntryDialog: Boolean = false,
@@ -62,6 +64,9 @@ interface ViewEntry : TagSuggesting {
 
 	/** Imports the file at [path] as a new Image and adds it after the entry's other images. */
 	suspend fun importImage(path: String): ImageAddResult
+
+	/** Opens the image gallery to pick an image already in the project, and adds it after the entry's other images. */
+	fun addImageFromLibrary()
 
 	/** Detaches image [id] from the entry; the Image stays in the project. */
 	suspend fun removeImage(id: Int): Boolean

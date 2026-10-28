@@ -43,17 +43,18 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.fileDropTarget
 import com.darkrockstudios.apps.hammer.common.compose.images.rememberImageRequest
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
-import com.darkrockstudios.apps.hammer.encyclopedia_entry_figure_add
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_figure_label
-import com.darkrockstudios.apps.hammer.encyclopedia_entry_image_add_file
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_image_counter
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_image_page_description
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_image_remove
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_image_set_primary
+import com.darkrockstudios.apps.hammer.images_entry_from_library
+import com.darkrockstudios.apps.hammer.images_entry_import_file
 import io.github.vinceglb.filekit.PlatformFile
 
 const val ENTRY_IMAGE_PAGER_TAG = "entry-image-pager"
 const val ENTRY_IMAGE_ADD_TAG = "entry-image-add"
+const val ENTRY_IMAGE_LIBRARY_TAG = "entry-image-library"
 const val ENTRY_IMAGE_REMOVE_TAG = "entry-image-remove"
 const val ENTRY_IMAGE_SET_PRIMARY_TAG = "entry-image-set-primary"
 const val ENTRY_IMAGE_COUNTER_TAG = "entry-image-counter"
@@ -62,7 +63,8 @@ fun entryImagePageTag(id: Int) = "entry-image-page-$id"
 /**
  * An entry's images, one page each, inside the inset figure frame. [currentIndex] is the image on
  * show and drives the bar's counter and actions; the pager scrolls to follow it, and a swipe
- * reports the new page through [onShowIndex].
+ * reports the new page through [onShowIndex]. [onAdd] imports a file; [onAddFromLibrary] picks an
+ * image already in the project; tapping a page calls [onOpenImage] with its index.
  * [primaryImageModifier] goes on the first image only, for the shared element from the browse card.
  */
 @OptIn(ExperimentalLayoutApi::class)
@@ -73,10 +75,12 @@ internal fun EntryImagePager(
 	currentIndex: Int,
 	onShowIndex: (Int) -> Unit,
 	onAdd: () -> Unit,
+	onAddFromLibrary: () -> Unit,
 	onFilesDropped: (List<PlatformFile>) -> Unit,
 	onSetPrimary: (imageId: Int) -> Unit,
 	onRemove: (imageId: Int) -> Unit,
 	modifier: Modifier = Modifier,
+	onOpenImage: (index: Int) -> Unit = {},
 	primaryImageModifier: Modifier = Modifier,
 ) {
 	val ruleColor = MaterialTheme.colorScheme.outlineVariant
@@ -98,7 +102,7 @@ internal fun EntryImagePager(
 			),
 	) {
 		if (images.isEmpty()) {
-			EmptyFigure(entryName = entryName, onAdd = onAdd)
+			EmptyFigure(entryName = entryName, onAdd = onAdd, onAddFromLibrary = onAddFromLibrary)
 		} else {
 			Column(modifier = Modifier.fillMaxSize()) {
 				val shownIndex = currentIndex.coerceIn(0, images.size - 1)
@@ -140,6 +144,7 @@ internal fun EntryImagePager(
 						modifier = Modifier
 							.fillMaxSize()
 							.testTag(entryImagePageTag(image.id))
+							.clickable { onOpenImage(page) }
 							.then(if (page == 0) primaryImageModifier else Modifier),
 						contentScale = ContentScale.Fit,
 					)
@@ -151,6 +156,7 @@ internal fun EntryImagePager(
 					shownIndex = shownIndex,
 					onShowIndex = onShowIndex,
 					onAdd = onAdd,
+					onAddFromLibrary = onAddFromLibrary,
 					onSetPrimary = onSetPrimary,
 					onRemove = onRemove,
 				)
@@ -166,6 +172,7 @@ private fun FigureBar(
 	shownIndex: Int,
 	onShowIndex: (Int) -> Unit,
 	onAdd: () -> Unit,
+	onAddFromLibrary: () -> Unit,
 	onSetPrimary: (imageId: Int) -> Unit,
 	onRemove: (imageId: Int) -> Unit,
 ) {
@@ -196,7 +203,12 @@ private fun FigureBar(
 			verticalArrangement = Arrangement.spacedBy(Ui.Padding.S),
 		) {
 			FigureAction(
-				label = Res.string.encyclopedia_entry_image_add_file.get(),
+				label = Res.string.images_entry_from_library.get(),
+				onClick = onAddFromLibrary,
+				tag = ENTRY_IMAGE_LIBRARY_TAG,
+			)
+			FigureAction(
+				label = Res.string.images_entry_import_file.get(),
 				onClick = onAdd,
 				tag = ENTRY_IMAGE_ADD_TAG,
 			)
@@ -255,20 +267,17 @@ private fun FigureAction(label: String, onClick: () -> Unit, tag: String) {
 	)
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun EmptyFigure(entryName: String, onAdd: () -> Unit) {
+private fun EmptyFigure(entryName: String, onAdd: () -> Unit, onAddFromLibrary: () -> Unit) {
 	val ruleColor = MaterialTheme.colorScheme.outlineVariant
-	Column(
-		modifier = Modifier
-			.fillMaxSize()
-			.testTag(ENTRY_IMAGE_ADD_TAG)
-			.clickable(onClick = onAdd),
-	) {
+	Column(modifier = Modifier.fillMaxSize()) {
 		HdEngravingPlaceholder(
 			label = entryName.uppercase(),
 			modifier = Modifier
 				.fillMaxWidth()
-				.weight(1f),
+				.weight(1f)
+				.clickable(onClick = onAdd),
 		)
 		HorizontalDivider(thickness = Dp.Hairline, color = ruleColor)
 		Row(
@@ -282,10 +291,21 @@ private fun EmptyFigure(entryName: String, onAdd: () -> Unit) {
 				text = Res.string.encyclopedia_entry_figure_label.get(),
 				color = MaterialTheme.colorScheme.onSurfaceVariant,
 			)
-			HdMonoLabel(
-				text = Res.string.encyclopedia_entry_figure_add.get(),
-				color = MaterialTheme.colorScheme.onSurfaceVariant,
-			)
+			FlowRow(
+				horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L, Alignment.End),
+				verticalArrangement = Arrangement.spacedBy(Ui.Padding.S),
+			) {
+				FigureAction(
+					label = Res.string.images_entry_from_library.get(),
+					onClick = onAddFromLibrary,
+					tag = ENTRY_IMAGE_LIBRARY_TAG,
+				)
+				FigureAction(
+					label = Res.string.images_entry_import_file.get(),
+					onClick = onAdd,
+					tag = ENTRY_IMAGE_ADD_TAG,
+				)
+			}
 		}
 	}
 }
