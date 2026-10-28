@@ -36,6 +36,7 @@
 	<string name="images_usage_type_entry">Encyclopedia entries</string>
 	<string name="images_usage_type_draft">Drafts</string>
 	<string name="images_usage_type_image">Images</string>
+	<string name="images_usage_type_cover">Project cover</string>
 
 	<string name="images_toast_too_large">Image is too large. Maximum size is %1$d MB.</string>
 	<string name="images_toast_unsupported">That image type is not supported. Use %1$s.</string>

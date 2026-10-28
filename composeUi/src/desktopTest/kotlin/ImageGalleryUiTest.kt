@@ -97,8 +97,9 @@ class ImageGalleryUiTest : BaseTest() {
 		compose.onNodeWithTag(IMAGE_GALLERY_DELETE_TAG).performClick()
 		compose.waitForIdle()
 
-		compose.onNodeWithText("This image is used in 2 places", substring = true).assertIsDisplayed()
+		compose.onNodeWithText("This image is used in 3 places", substring = true).assertIsDisplayed()
 		compose.onNodeWithText("Encyclopedia entries (2): Alice, The Point", substring = true).assertIsDisplayed()
+		compose.onNodeWithText("Project cover (1): Alice in Wonderland", substring = true).assertIsDisplayed()
 	}
 
 	@Test

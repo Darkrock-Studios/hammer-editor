@@ -57,4 +57,31 @@ class ProjectDataMergeTest {
 			reapplyLocalEdits(base, local, incoming).dictionaryWords,
 		)
 	}
+
+	@Test
+	fun `reapplyLocalEdits keeps a local cover change`() {
+		val base = ProjectData(coverImageId = 1)
+		val local = base.copy(coverImageId = 2)
+		val incoming = ProjectData(coverImageId = 3)
+
+		assertEquals(2, reapplyLocalEdits(base, local, incoming).coverImageId)
+	}
+
+	@Test
+	fun `reapplyLocalEdits keeps a locally cleared cover`() {
+		val base = ProjectData(coverImageId = 1)
+		val local = base.copy(coverImageId = null)
+		val incoming = ProjectData(coverImageId = 3)
+
+		assertEquals(null, reapplyLocalEdits(base, local, incoming).coverImageId)
+	}
+
+	@Test
+	fun `reapplyLocalEdits takes the incoming cover when unchanged locally`() {
+		val base = ProjectData(coverImageId = 1, authorName = "Pat")
+		val local = base.copy(authorName = "Edited")
+		val incoming = ProjectData(coverImageId = 3)
+
+		assertEquals(3, reapplyLocalEdits(base, local, incoming).coverImageId)
+	}
 }

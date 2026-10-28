@@ -81,7 +81,7 @@ fun ProjectSettingsUi(
 	val state by component.projectInfoState.subscribeAsState()
 	val plugins = koinInject<PluginUiRegistry>().plugins()
 	val disabledPlugins by component.disabledPlugins.subscribeAsState()
-	val sectionCount = if (plugins.isEmpty()) 4 else 5
+	val sectionCount = if (plugins.isEmpty()) 5 else 6
 	val screen = LocalScreenCharacteristic.current
 	val isCompact = screen.windowWidthClass == WindowWidthSizeClass.Compact
 
@@ -129,7 +129,7 @@ fun ProjectSettingsUi(
 							ProjectInfoSettingsUi(component)
 
 							HdHairlineSection(
-								section = 4,
+								section = 5,
 								title = Res.string.project_settings_spellcheck_section_title.get(),
 								contentSpacing = 18.dp,
 							) {
@@ -223,7 +223,7 @@ private fun ProjectPlugins(
 ) {
 	val sorted = remember(plugins) { plugins.sortedBy { (it.name ?: it.id).lowercase() } }
 	HdHairlineSection(
-		section = 5,
+		section = 6,
 		title = Res.string.project_settings_plugins_section_title.get(),
 		contentSpacing = 18.dp,
 	) {

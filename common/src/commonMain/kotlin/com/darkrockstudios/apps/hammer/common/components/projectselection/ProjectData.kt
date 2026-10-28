@@ -11,4 +11,8 @@ data class ProjectData(
 	val metadata: ProjectMetadata,
 	val storedData: StoredData = StoredData(),
 	val totalWords: Int? = null,
+	/** The book cover's file, when the project has one and its image is on this device. */
+	val coverImagePath: String? = null,
+	/** Changes whenever the cover file's bytes do; keys the image cache. */
+	val coverImageVersion: String? = null,
 )

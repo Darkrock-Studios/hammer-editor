@@ -54,12 +54,7 @@ class ImagesDatasource(
 		}
 	}
 
-	fun getFileStamp(def: ImageDef): ImageFileStamp? {
-		val metadata = fileSystem.metadataOrNull(getImagePath(def).toOkioPath()) ?: return null
-		val size = metadata.size ?: return null
-		val lastModified = metadata.lastModifiedAtMillis ?: return null
-		return ImageFileStamp(size, lastModified)
-	}
+	fun getFileStamp(def: ImageDef): ImageFileStamp? = readImageFileStamp(getImagePath(def), fileSystem)
 
 	/**
 	 * Writes [bytes] as the image [def], replacing any other file that holds the same id (the
@@ -196,4 +191,12 @@ fun findImageFile(projectDef: ProjectDef, id: Int, fileSystem: FileSystem): HPat
 		.firstOrNull { (_, def) -> def.id == id }
 		?.first
 		?.toHPath()
+}
+
+/** The size and modification time of the image file at [path], or null when it is missing. */
+fun readImageFileStamp(path: HPath, fileSystem: FileSystem): ImageFileStamp? {
+	val metadata = fileSystem.metadataOrNull(path.toOkioPath()) ?: return null
+	val size = metadata.size ?: return null
+	val lastModified = metadata.lastModifiedAtMillis ?: return null
+	return ImageFileStamp(size, lastModified)
 }

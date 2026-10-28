@@ -681,7 +681,7 @@ Uploads carry an `X-Entity-Type` header (the server rejects an upload without on
 
 ## Project Data Sync (non-entity blob)
 
-In addition to entity sync, each project has a single per-project blob holding user-authored settings (author name, theme colors, word-count goal). This blob is synced as its own phase, inserted into the pipeline *before* the entity phases (entity deletion, then entity transfer) so the project's identity is settled before any entity churn.
+In addition to entity sync, each project has a single per-project blob holding user-authored settings (author name, theme colors, word-count goal, tags, language, spell-check dictionary, book cover). This blob is synced as its own phase, inserted into the pipeline *before* the entity phases (entity deletion, then entity transfer) so the project's identity is settled before any entity churn.
 
 The blob is a structured object — see `ProjectData` in the `base` module — but is treated as a single unit at the sync layer. Conflict detection is hash-based, mirroring entity sync: the client persists the `lastSyncedHash` it most recently agreed on with the server and replays it on the next upload.
 
@@ -730,6 +730,28 @@ that snapshot (dictionary words as an add/remove delta). Those edits then differ
 Unlike writing-activity sync (which swallows errors and continues), a non-conflict failure on the project-data phase fails the whole sync — the data is user-authored and silent loss is unacceptable.
 
 Note: unlike the entity endpoints, the `project_data` and `writing_activity` endpoints are not gated on a `syncID` — they simply run inside the sync session window.
+
+### Project data fields
+
+How each `ProjectData` field feeds `ProjectDataHasher` and how a conflict on it is resolved. Fields
+added after the first release contribute zero bytes at their default and open with a negative marker,
+so older hashes stay byte-identical and no block can be read as the tail of another.
+
+| Field | Hash contribution | On conflict |
+|-------|-------------------|-------------|
+| `authorName` | presence byte `0`/`1`, then the string | per-field pick |
+| `theme` | presence byte, then primary and secondary | per-field pick, as a unit |
+| `wordCountGoal` | presence byte, then cadence ordinal and count | per-field pick, as a unit |
+| `tags` | nothing when empty; else size, then the sorted tags | per-field pick, the whole set |
+| `language` | nothing when null; else `-1`, length, string | per-field pick |
+| `encyclopediaDictionary` | nothing when `true`; else `-2` | per-field pick |
+| `dictionaryWords` | nothing when empty; else `-3`, size, then each sorted word as length and string | union of both sides |
+| `coverImageId` | nothing when null; else `-4`, then the id | per-field pick |
+
+`coverImageId` holds an Image entity id. The client rewrites it like any other image reference: a
+re-ID during id resolution remaps it and deleting the image clears it, both through the project data
+repository, so the project data phase (which runs after id resolution) uploads the change in the
+same sync.
 
 ### Server storage is shape-agnostic
 

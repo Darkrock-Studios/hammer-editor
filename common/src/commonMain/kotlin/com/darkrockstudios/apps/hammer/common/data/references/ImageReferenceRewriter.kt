@@ -13,6 +13,7 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
 import com.darkrockstudios.apps.hammer.common.data.projectInject
+import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.search.markdownTitleLine
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
@@ -24,7 +25,13 @@ import kotlinx.coroutines.CancellationException
 /** An entity whose content refers to an image, or was rewritten because it did. */
 data class TouchedEntity(val type: EntityType, val id: Int)
 
-data class ImageUsage(val entity: TouchedEntity, val name: String)
+/** [entity] is null when the image is the project's cover, which is not an entity. */
+data class ImageUsage(val entity: TouchedEntity?, val name: String) {
+	val isProjectCover: Boolean get() = entity == null
+}
+
+/** [touched] are the entities a reference was taken out of; [coverCleared] is true when the image was the cover. */
+data class ImageRemoval(val touched: Set<TouchedEntity>, val coverCleared: Boolean)
 
 data class ImageUsages(val usages: List<ImageUsage>) {
 	val isUnused: Boolean get() = usages.isEmpty()
@@ -33,11 +40,11 @@ data class ImageUsages(val usages: List<ImageUsage>) {
 /**
  * Finds and rewrites the references other entities hold to Image entities: Markdown
  * `hammer://image/<id>` links and image id lists, in encyclopedia entries, scenes (active, archived
- * and unsaved edits not yet restored), drafts, notes and timeline events. Every rewritten entity is
- * marked dirty for sync, except unrestored edits, which are local until restored and saved. Never
- * throws: an entity that cannot be read or written is logged and skipped.
+ * and unsaved edits not yet restored), drafts, notes and timeline events, and the project's cover.
+ * Every rewritten entity is marked dirty for sync, except unrestored edits, which are local until
+ * restored and saved. Never throws: an entity that cannot be read or written is logged and skipped.
  */
-class ImageReferenceRewriter(projectDef: ProjectDef) : ProjectScoped {
+class ImageReferenceRewriter(private val projectDef: ProjectDef) : ProjectScoped {
 	override val projectScope = ProjectDefScope(projectDef)
 
 	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
@@ -45,6 +52,9 @@ class ImageReferenceRewriter(projectDef: ProjectDef) : ProjectScoped {
 	private val draftRepository: SceneDraftRepository by projectInject()
 	private val notesRepository: NotesRepository by projectInject()
 	private val timeLineRepository: TimeLineRepository by projectInject()
+	private val projectDataRepository: ProjectDataRepository by projectInject()
+
+	private val coverHolder = CoverHolder()
 
 	private val holders: List<Holder> = listOf(
 		EntryHolder(),
@@ -54,6 +64,7 @@ class ImageReferenceRewriter(projectDef: ProjectDef) : ProjectScoped {
 		DraftHolder(),
 		NoteHolder(),
 		EventHolder(),
+		coverHolder,
 	)
 
 	/** A scene listed once even when both its text and its unrestored edits use the image. */
@@ -79,7 +90,12 @@ class ImageReferenceRewriter(projectDef: ProjectDef) : ProjectScoped {
 	}
 
 	/** Removes every reference to [imageId]. */
-	suspend fun removeAll(imageId: Int): Set<TouchedEntity> = apply(Edit.Remove(imageId))
+	suspend fun removeAll(imageId: Int): ImageRemoval {
+		val wasCover = guarded(coverHolder, false) { coverHolder.uses(imageId) }
+		val touched = apply(Edit.Remove(imageId))
+		val coverCleared = wasCover && !guarded(coverHolder, true) { coverHolder.uses(imageId) }
+		return ImageRemoval(touched = touched, coverCleared = coverCleared)
+	}
 
 	private suspend fun apply(edit: Edit): Set<TouchedEntity> =
 		holders.flatMapTo(mutableSetOf()) { holder -> guarded(holder, emptySet()) { holder.apply(edit) } }
@@ -87,15 +103,18 @@ class ImageReferenceRewriter(projectDef: ProjectDef) : ProjectScoped {
 	private sealed interface Edit {
 		fun text(text: String): String
 		fun ids(ids: List<Int>): List<Int>
+		fun id(id: Int): Int?
 
 		class Remap(private val idMap: Map<Int, Int>) : Edit {
 			override fun text(text: String): String = ImageReferenceSyntax.remap(text, idMap)
+			override fun id(id: Int): Int = idMap[id] ?: id
 			override fun ids(ids: List<Int>): List<Int> =
 				if (ids.none { it in idMap }) ids else ids.map { idMap[it] ?: it }.distinct()
 		}
 
 		class Remove(private val imageId: Int) : Edit {
 			override fun text(text: String): String = ImageReferenceSyntax.remove(text, imageId)
+			override fun id(id: Int): Int? = id.takeUnless { it == imageId }
 			override fun ids(ids: List<Int>): List<Int> =
 				if (imageId !in ids) ids else ids.filterNot { it == imageId }
 		}
@@ -312,6 +331,31 @@ class ImageReferenceRewriter(projectDef: ProjectDef) : ProjectScoped {
 			rewriteText(item.content, transform) { updated ->
 				timeLineRepository.updateEvent(item.copy(content = updated))
 			}
+	}
+
+	/**
+	 * The project's cover. Written through [ProjectDataRepository.updateData] and never the datasource:
+	 * the project data sync reads the repository's cached state, so a write behind it would be lost.
+	 */
+	private inner class CoverHolder : Holder {
+		override val name = "project cover"
+
+		private suspend fun cover(): Int? = projectDataRepository.load().data.coverImageId
+
+		override suspend fun usages(imageId: Int): List<ImageUsage> =
+			if (cover() == imageId) listOf(ImageUsage(entity = null, name = projectDef.name)) else emptyList()
+
+		override suspend fun uses(imageId: Int): Boolean = cover() == imageId
+
+		override suspend fun referencedIds(): Set<Int> = setOfNotNull(cover())
+
+		/** Reports nothing: project data syncs on its own path, and [ProjectDataRepository.updateData] flags it for that. */
+		override suspend fun apply(edit: Edit): Set<TouchedEntity> {
+			projectDataRepository.updateData { data ->
+				data.copy(coverImageId = data.coverImageId?.let(edit::id))
+			}
+			return emptySet()
+		}
 	}
 
 	/** Notes and events have no title: their first line of prose stands in, cut short. */

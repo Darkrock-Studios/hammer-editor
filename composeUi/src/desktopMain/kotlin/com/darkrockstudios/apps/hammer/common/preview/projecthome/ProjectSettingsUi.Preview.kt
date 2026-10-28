@@ -82,6 +82,7 @@ private fun fakeComponent(language: String?) = object : ProjectSettings {
 				authorName = "A. Writer",
 				tags = setOf("fantasy", "draft"),
 				language = language,
+				coverImageId = 4,
 			),
 			isLoaded = true,
 		)
@@ -99,6 +100,8 @@ private fun fakeComponent(language: String?) = object : ProjectSettings {
 	override fun setTags(tags: Set<String>) {}
 	override fun setProjectLanguage(tag: String?) {}
 	override fun setEncyclopediaDictionaryEnabled(enabled: Boolean) {}
+	override fun pickCoverImage() {}
+	override fun clearCoverImage() {}
 	override fun addDictionaryWord(word: String) {}
 	override fun removeDictionaryWord(word: String) {}
 	override fun setPluginEnabled(pluginId: String, enabled: Boolean) {}

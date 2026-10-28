@@ -23,19 +23,26 @@ import com.darkrockstudios.apps.hammer.operations.core.ProjectInput
 import com.darkrockstudios.apps.hammer.operations.core.ProjectItemInput
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import com.darkrockstudios.apps.hammer.common.data.closeProjectScope
+import com.darkrockstudios.apps.hammer.common.data.openProjectScope
+import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
 import org.koin.core.component.get
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class ImageOperationsTest : KoinOperationsTest() {
+
+	private lateinit var def: ProjectDef
 
 	@BeforeEach
 	fun setUp() = onTestThread {
 		val created = get<ProjectsRepository>().createProject(PROJECT, seedDefaultLanguage = false)
 		check(created is ClientResult.Success<ProjectDef>)
+		def = created.data
 	}
 
 	private fun failsWith(kind: OperationException.Kind, block: suspend () -> Unit) = onTestThread {
@@ -88,6 +95,21 @@ class ImageOperationsTest : KoinOperationsTest() {
 		assertEquals(listOf(keep.id), run<ProjectItemInput, Entry>("entry.read", ProjectItemInput(PROJECT, alice.id)).images)
 		assertEquals("Before.\n\nAfter.", run<ProjectItemInput, Entry>("entry.read", ProjectItemInput(PROJECT, point.id)).text)
 		assertEquals(listOf(keep.id), list().map { it.id })
+	}
+
+	@Test
+	fun `deleting the cover image clears the cover and reports it`() = onTestThread {
+		val image = run<ImageAddInput, ImageSummary>("image.add", ImageAddInput(PROJECT, "Cover", "png", PNG))
+		val scope = openProjectScope(def)
+		val projectData = scope.get<ProjectDataRepository>()
+		projectData.updateData { it.copy(coverImageId = image.id) }
+		assertTrue(list().single().inUse)
+
+		val deleted = run<ProjectItemInput, ImageDeleted>("image.delete", ProjectItemInput(PROJECT, image.id))
+
+		assertEquals(listOf(ImageUser(ImageUserKind.Cover)), deleted.removedFrom)
+		assertNull(projectData.load().data.coverImageId)
+		closeProjectScope(scope, def)
 	}
 
 	@Test

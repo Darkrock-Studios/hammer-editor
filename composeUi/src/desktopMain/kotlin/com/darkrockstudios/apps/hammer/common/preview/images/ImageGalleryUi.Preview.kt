@@ -67,6 +67,7 @@ fun previewImageUsages(): Map<Int, ImageUsages> = mapOf(
 		listOf(
 			ImageUsage(TouchedEntity(EntityType.EncyclopediaEntry, 30), "Alice"),
 			ImageUsage(TouchedEntity(EntityType.EncyclopediaEntry, 31), "The Point"),
+			ImageUsage(entity = null, "Alice in Wonderland"),
 		)
 	),
 )

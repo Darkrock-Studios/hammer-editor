@@ -45,6 +45,8 @@ interface ProjectSynchronization {
 		val local: ProjectData,
 		val server: ProjectData,
 		val serverHash: String,
+		/** Either side's cover image, when this device has it. */
+		val localImages: Map<Int, ImageFile> = emptyMap(),
 	)
 
 	sealed class EntityConflict<T : ApiProjectEntity>(

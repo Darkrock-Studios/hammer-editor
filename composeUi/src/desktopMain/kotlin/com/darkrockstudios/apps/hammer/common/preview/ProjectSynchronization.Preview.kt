@@ -227,12 +227,14 @@ fun ProjectDataConflictPreview() {
 		theme = ProjectTheme(primary = "#3F51B5", secondary = "#FFC107"),
 		wordCountGoal = WordCountGoal(cadence = WordCountGoal.Cadence.DAY, count = 500),
 		tags = setOf("fantasy", "classic"),
+		coverImageId = 3,
 	)
 	val server = ProjectData(
 		authorName = "Charles Dodgson",
 		theme = ProjectTheme(primary = "#009688", secondary = "#E91E63"),
 		wordCountGoal = WordCountGoal(cadence = WordCountGoal.Cadence.WEEK, count = 3500),
 		tags = setOf("fantasy", "children"),
+		coverImageId = 9,
 	)
 
 	val conflictState = ProjectSynchronization.ProjectDataConflictState(

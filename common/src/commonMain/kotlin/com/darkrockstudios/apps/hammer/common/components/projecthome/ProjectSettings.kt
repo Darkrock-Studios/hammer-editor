@@ -5,6 +5,7 @@ import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectTheme
 import com.darkrockstudios.apps.hammer.base.http.projectdata.WordCountGoal
 import com.darkrockstudios.apps.hammer.common.components.spellchecksettings.SpellCheckSettings
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageFile
 import com.darkrockstudios.apps.hammer.common.data.tagindex.cleanTags
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponent
 
@@ -29,6 +30,10 @@ interface ProjectSettings : HammerComponent {
 
 	fun setEncyclopediaDictionaryEnabled(enabled: Boolean)
 
+	/** Opens the image gallery to pick the book cover; ignored while a pick is pending. */
+	fun pickCoverImage()
+	fun clearCoverImage()
+
 	/** Input that normalizes to nothing storable is ignored. */
 	fun addDictionaryWord(word: String)
 	fun removeDictionaryWord(word: String)
@@ -47,6 +52,9 @@ interface ProjectSettings : HammerComponent {
 	data class ProjectInfoState(
 		val data: ProjectData = ProjectData(),
 		val isLoaded: Boolean = false,
+		/** The file of [ProjectData.coverImageId]; null when unset or this device lacks the image. */
+		val coverImage: ImageFile? = null,
+		val pendingCoverPick: Boolean = false,
 	)
 
 	companion object {

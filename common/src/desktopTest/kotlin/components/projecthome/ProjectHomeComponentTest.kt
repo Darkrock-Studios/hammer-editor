@@ -30,7 +30,13 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupDef
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupService
+import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
+import com.darkrockstudios.apps.hammer.common.components.images.ImagePickRequests
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesService
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageDef
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageFile
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
+import com.darkrockstudios.apps.hammer.common.data.projectdata.StoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.EntryAppearance
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.ProjectStatistics
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.ProjectStatisticsUseCase
@@ -100,6 +106,10 @@ class ProjectHomeComponentTest : ComponentTest() {
 	private lateinit var isCalculatingFlow: MutableStateFlow<Boolean>
 	private lateinit var tagIndexFlow: MutableStateFlow<TagIndex>
 	private lateinit var syncCompleteChannel: Channel<Boolean>
+	private lateinit var projectDataState: MutableStateFlow<StoredProjectData?>
+	private lateinit var imagesService: ImagesService
+	private lateinit var imageChangedFlow: MutableSharedFlow<Int>
+	private val imageFiles = mutableMapOf<Int, ImageFile>()
 
 	private var loadStatisticsCalls = 0
 
@@ -160,6 +170,13 @@ class ProjectHomeComponentTest : ComponentTest() {
 
 		referenceIndexService = mockk(relaxed = true)
 
+		projectDataState = MutableStateFlow(null)
+		imageFiles.clear()
+		imageChangedFlow = MutableSharedFlow(extraBufferCapacity = 8)
+		imagesService = mockk()
+		every { imagesService.imageChangedFlow } returns imageChangedFlow
+		coEvery { imagesService.loadImageFile(any()) } answers { imageFiles[firstArg()] }
+
 		pluginFormats = FakeExporterSource()
 		projectPlugins = ProjectPluginsRepository(ProjectPluginsDatasource(FakeFileSystem(), createTomlSerializer()))
 
@@ -183,8 +200,10 @@ class ProjectHomeComponentTest : ComponentTest() {
 				scoped { referenceIndexService }
 				scoped { ProjectStatisticsUseCase(statisticsService, referenceIndexService) }
 				scoped<ProjectDataRepository> {
-					mockk(relaxed = true) { every { state } returns MutableStateFlow(null) }
+					mockk(relaxed = true) { every { state } returns projectDataState }
 				}
+				scoped { imagesService }
+				scoped { ImagePickRequests() }
 			}
 		})
 	}
@@ -787,5 +806,51 @@ class ProjectHomeComponentTest : ComponentTest() {
 
 		comp.closeProject()
 		assertTrue(projectClosed)
+	}
+
+	private fun coverFile(id: Int, hash: String) = ImageFile(
+		def = ImageDef(id = id, name = "Cover $id", fileExtension = "png"),
+		path = HPath(path = "/images/$id~Cover $id.png", name = "$id~Cover $id.png", isAbsolute = true),
+		contentHash = hash,
+	)
+
+	@Test
+	fun `The cover follows the project data and its image`() = runTest(mainTestDispatcher) {
+		imageFiles[4] = coverFile(4, "h1")
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		assertNull(comp.state.value.coverImage)
+
+		projectDataState.value = StoredProjectData(ProjectData(coverImageId = 4))
+		advanceUntilIdle()
+		assertEquals(coverFile(4, "h1"), comp.state.value.coverImage)
+
+		imageFiles[4] = coverFile(4, "h2")
+		imageChangedFlow.emit(9)
+		advanceUntilIdle()
+		assertEquals("h1", comp.state.value.coverImage?.contentHash)
+		imageChangedFlow.emit(4)
+		advanceUntilIdle()
+		assertEquals("h2", comp.state.value.coverImage?.contentHash)
+
+		projectDataState.value = StoredProjectData(ProjectData())
+		advanceUntilIdle()
+		assertNull(comp.state.value.coverImage)
+	}
+
+	@Test
+	fun `A cover whose image is not on this device shows nothing`() = runTest(mainTestDispatcher) {
+		projectDataState.value = StoredProjectData(ProjectData(coverImageId = 7))
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		assertNull(comp.state.value.coverImage)
+
+		imageFiles[7] = coverFile(7, "h7")
+		imageChangedFlow.emit(7)
+		advanceUntilIdle()
+		assertEquals(coverFile(7, "h7"), comp.state.value.coverImage)
 	}
 }

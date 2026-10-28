@@ -43,6 +43,12 @@
 	<string name="project_info_word_goal_cadence_week">Week</string>
 	<string name="project_info_word_goal_effective_label">Effective</string>
 	<string name="project_info_word_goal_effective_unit">W / day</string>
+	<string name="project_info_cover_section_title">Book cover</string>
+	<string name="project_info_cover_caption">Shown on the project home and in the project list. Pick any image from the gallery.</string>
+	<string name="project_info_cover_pick">Pick</string>
+	<string name="project_info_cover_clear">Clear</string>
+	<string name="project_info_cover_none">No cover</string>
+	<string name="project_info_cover_missing">Not on this device yet</string>
 	<string name="project_info_tags_section_title">Tags</string>
 	<string name="project_info_tags_label">Tags</string>
 	<string name="project_info_tags_hint">↵ to add</string>
@@ -83,6 +89,7 @@
 	<string name="sync_conflict_project_data_field_tags">Tags</string>
 	<string name="sync_conflict_project_data_field_language">Language</string>
 	<string name="sync_conflict_project_data_field_dictionary">Learn Encyclopedia Names</string>
+	<string name="sync_conflict_title_project_data_field_cover">Book Cover</string>
 	<string name="sync_conflict_project_data_value_unset">(not set)</string>
 	<string name="sync_conflict_project_data_value_on">On</string>
 	<string name="sync_conflict_project_data_value_off">Off</string>

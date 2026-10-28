@@ -297,6 +297,7 @@ class EntityHashSensitivityTest {
 			tags = setOf("base-tag"),
 			language = "en-US",
 			dictionaryWords = setOf("base-word"),
+			coverImageId = 1,
 		)
 		Spec(
 			klass = ProjectData::class,
@@ -316,6 +317,7 @@ class EntityHashSensitivityTest {
 				"language" to base.copy(language = "fr"),
 				"encyclopediaDictionary" to base.copy(encyclopediaDictionary = false),
 				"dictionaryWords" to base.copy(dictionaryWords = setOf("different")),
+				"coverImageId" to base.copy(coverImageId = 2),
 			),
 		)
 	}

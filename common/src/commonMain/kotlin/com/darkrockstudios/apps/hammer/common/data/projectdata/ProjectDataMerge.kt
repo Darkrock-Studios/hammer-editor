@@ -30,6 +30,7 @@ fun reapplyLocalEdits(base: ProjectData, local: ProjectData, incoming: ProjectDa
 		tags = pick(base.tags, local.tags, incoming.tags),
 		language = pick(base.language, local.language, incoming.language),
 		encyclopediaDictionary = pick(base.encyclopediaDictionary, local.encyclopediaDictionary, incoming.encyclopediaDictionary),
+		coverImageId = pick(base.coverImageId, local.coverImageId, incoming.coverImageId),
 		dictionaryWords = incoming.dictionaryWords +
 			(local.dictionaryWords - base.dictionaryWords) -
 			(base.dictionaryWords - local.dictionaryWords),

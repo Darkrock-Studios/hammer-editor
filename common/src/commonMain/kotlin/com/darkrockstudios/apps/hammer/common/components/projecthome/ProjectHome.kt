@@ -11,6 +11,7 @@ import com.darkrockstudios.apps.hammer.common.data.ExportableScene
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.export.ExportFileName
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageFile
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupDef
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.EntryAppearance
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.WritingActivityDerived
@@ -19,6 +20,7 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponen
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 
 interface ProjectHome : Router, HammerComponent, BackHandlerOwner, ComponentToaster {
 	val state: Value<State>
@@ -89,6 +91,9 @@ interface ProjectHome : Router, HammerComponent, BackHandlerOwner, ComponentToas
 		val hasServer: Boolean = false,
 		val isLoadingStats: Boolean = false,
 		val isStatsDirty: Boolean = false,
+		/** The book cover's file; null when unset or this device lacks the image. */
+		@Transient
+		val coverImage: ImageFile? = null,
 	) {
 		val averageWordsPerScene: Int
 			get() = if (numberOfScenes > 0) totalWords / numberOfScenes else 0

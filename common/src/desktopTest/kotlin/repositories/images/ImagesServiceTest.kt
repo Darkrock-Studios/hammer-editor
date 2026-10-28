@@ -13,6 +13,9 @@ import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesDataso
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesRepository
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesService
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageDef
+import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
+import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
+import com.darkrockstudios.apps.hammer.common.data.projectdata.StoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.references.ImageReferenceRewriter
 import com.darkrockstudios.apps.hammer.common.data.references.TouchedEntity
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
@@ -54,6 +57,8 @@ class ImagesServiceTest : BaseTest() {
 	private lateinit var encyclopedia: EncyclopediaRepository
 	private lateinit var imagesDatasource: ImagesDatasource
 	private lateinit var images: ImagesRepository
+	private lateinit var projectDataRepository: ProjectDataRepository
+	private var projectData = ProjectData()
 
 	@BeforeEach
 	override fun setup() {
@@ -66,11 +71,17 @@ class ImagesServiceTest : BaseTest() {
 		idAllocator = mockk()
 		coEvery { idAllocator.claimNextId() } returnsMany listOf(40, 41, 42)
 		externalFileIo = mockk()
+		projectDataRepository = mockk()
+		coEvery { projectDataRepository.load() } answers { StoredProjectData(projectData) }
+		coEvery { projectDataRepository.updateData(any()) } answers {
+			projectData = firstArg<(ProjectData) -> ProjectData>()(projectData)
+		}
 
 		setupKoin(module {
 			scope<ProjectDefScope> {
 				scoped<ProjectDef> { projectDef }
 				scoped { encyclopedia }
+				scoped { projectDataRepository }
 			}
 		})
 		encyclopediaDatasource = EncyclopediaDatasource(projectDef, createTomlSerializer(), ffs)
@@ -118,6 +129,19 @@ class ImagesServiceTest : BaseTest() {
 		coVerify { syncJournal.recordIdDeletion(5) }
 		assertNull(images.findImage(5))
 		assertFalse(ffs.exists(imagesDatasource.getImagePath(map).toOkioPath()))
+	}
+
+	@Test
+	fun `deleting the cover image clears the cover and reports it`() = runTest {
+		writeImage(ImageDef(5, "Cover", "png"))
+		projectData = ProjectData(coverImageId = 5)
+
+		val result = service().delete(5)
+
+		assertTrue(result.deleted)
+		assertTrue(result.coverCleared)
+		assertTrue(result.touched.isEmpty())
+		assertNull(projectData.coverImageId)
 	}
 
 	@Test

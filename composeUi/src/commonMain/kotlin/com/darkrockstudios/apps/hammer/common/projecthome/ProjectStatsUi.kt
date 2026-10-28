@@ -39,6 +39,8 @@ import com.darkrockstudios.apps.hammer.common.compose.HeaderUi
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarColumn
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
+import com.darkrockstudios.apps.hammer.common.compose.images.COVER_ASPECT_RATIO
+import com.darkrockstudios.apps.hammer.common.compose.images.CoverThumbnail
 import com.darkrockstudios.apps.hammer.common.compose.plugin.PluginActionMenuItems
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionPlace
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
@@ -51,6 +53,8 @@ import com.darkrockstudios.apps.hammer.common.data.projectstatistics.WritingActi
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.estimatePages
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.estimateReadingMinutes
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TaggedEntityType
+import com.darkrockstudios.apps.hammer.common.images.ImageViewerDialog
+import com.darkrockstudios.apps.hammer.common.images.ImageViewerItem
 import com.darkrockstudios.apps.hammer.common.util.formatDecimalSeparator
 import io.github.koalaplot.core.pie.BezierLabelConnector
 import io.github.koalaplot.core.pie.DefaultSlice
@@ -66,6 +70,7 @@ import kotlin.time.Clock
 
 const val PROJECT_STATS_TAG = "project-stats"
 const val PROJECT_HOME_IMAGES_TAG = "project-home-images"
+const val PROJECT_HOME_COVER_TAG = "project-home-cover"
 
 @Composable
 fun ProjectStatsUi(
@@ -154,12 +159,27 @@ private fun DashboardHeader(
 	component: ProjectHome,
 	scope: CoroutineScope,
 ) {
+	var viewingCover by remember { mutableStateOf(false) }
+	val cover = state.coverImage
 	Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
 		Row(
 			modifier = Modifier.fillMaxWidth(),
 			verticalAlignment = Alignment.CenterVertically,
 			horizontalArrangement = Arrangement.SpaceBetween,
 		) {
+			if (cover != null) {
+				CoverThumbnail(
+					path = cover.path.path,
+					version = cover.contentHash,
+					contentDescription = Res.string.project_home_cover_description.get(),
+					modifier = Modifier
+						.height(HeaderCoverHeight)
+						.aspectRatio(COVER_ASPECT_RATIO)
+						.testTag(PROJECT_HOME_COVER_TAG)
+						.clickable { viewingCover = true },
+				)
+				Spacer(Modifier.width(12.dp))
+			}
 			HeaderUi(
 				state.projectDef.name,
 				"🏡",
@@ -214,7 +234,17 @@ private fun DashboardHeader(
 			color = MaterialTheme.colorScheme.onSurfaceVariant,
 		)
 	}
+
+	if (viewingCover && cover != null) {
+		ImageViewerDialog(
+			items = listOf(ImageViewerItem.ofFile(cover.path.path, cover.contentHash, cover.def.name)),
+			initialIndex = 0,
+			onDismissed = { viewingCover = false },
+		)
+	}
 }
+
+private val HeaderCoverHeight = 56.dp
 
 @Composable
 private fun SceneCallout(

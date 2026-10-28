@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -51,6 +52,8 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagChip
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdIndentFor
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdIndentRails
+import com.darkrockstudios.apps.hammer.common.compose.images.COVER_ASPECT_RATIO
+import com.darkrockstudios.apps.hammer.common.compose.images.CoverThumbnail
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.parseHexColor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -70,10 +73,13 @@ import org.jetbrains.compose.resources.StringResource
 import kotlin.time.Instant
 
 val ProjectCardTestTag = "project-card"
+const val ProjectCardCoverTestTag = "project-card-cover"
 
 private val StripeWidth: Dp = 4.dp
 private val NumberColumnWidth: Dp = 56.dp
 private val CompactNumberColumnWidth: Dp = 44.dp
+private val CoverHeight: Dp = 56.dp
+private val CompactCoverHeight: Dp = 48.dp
 
 /**
  * Editorial-index row for a single project. Reflows between Wide and Compact:
@@ -175,6 +181,20 @@ fun ProjectIndexRow(
 				fontWeight = FontWeight.Light,
 				color = MaterialTheme.colorScheme.onSurfaceVariant,
 			)
+
+			val coverPath = projectData.coverImagePath
+			if (coverPath != null) {
+				CoverThumbnail(
+					path = coverPath,
+					version = projectData.coverImageVersion,
+					contentDescription = null,
+					modifier = Modifier
+						.padding(end = Ui.Padding.L)
+						.height(if (isWide) CoverHeight else CompactCoverHeight)
+						.aspectRatio(COVER_ASPECT_RATIO)
+						.testTag(ProjectCardCoverTestTag),
+				)
+			}
 
 			Column(
 				modifier = Modifier

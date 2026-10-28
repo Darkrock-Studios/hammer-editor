@@ -41,7 +41,13 @@ import com.darkrockstudios.apps.hammer.common.data.toMsg
 import com.darkrockstudios.apps.hammer.common.data.versioncheck.VersionCheckDatasource
 import com.darkrockstudios.apps.hammer.common.data.versioncheck.VersionCheckRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
+import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesDatasource
+import com.darkrockstudios.apps.hammer.common.data.projectdata.StoredProjectData
+import com.darkrockstudios.apps.hammer.common.data.projectdata.saveStoredProjectData
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
+import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.util.NetworkConnectivity
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.apps.hammer.common.util.UrlLauncher
@@ -692,6 +698,40 @@ class ProjectsListComponentTest : ComponentTest() {
 				listOf("Good"),
 				comp.state.value.projects.map { it.definition.name },
 			)
+		}
+
+	@Test
+	fun `loadProjectList resolves the cover file without opening a project scope`() =
+		runTest(mainTestDispatcher) {
+			val withCover = ProjectDef(testProjectId("Covered"), "Covered", HPath("/projects/Covered", "Covered", false))
+			val missing = ProjectDef(testProjectId("Missing"), "Missing", HPath("/projects/Missing", "Missing", false))
+			val bare = ProjectDef(testProjectId("Bare"), "Bare", HPath("/projects/Bare", "Bare", false))
+			val ffs = get<FileSystem>() as FakeFileSystem
+			listOf(withCover, missing, bare).forEach { ffs.createDirectories(it.path.toOkioPath()) }
+			saveStoredProjectData(withCover, ffs, get(), StoredProjectData(ProjectData(coverImageId = 4)))
+			saveStoredProjectData(missing, ffs, get(), StoredProjectData(ProjectData(coverImageId = 5)))
+			val imagesDir = withCover.path.toOkioPath() / ImagesDatasource.IMAGES_DIRECTORY
+			ffs.createDirectories(imagesDir)
+			ffs.write(imagesDir / "4~Cover.png") { write(byteArrayOf(1, 2, 3)) }
+			ffs.write(imagesDir / "6~Other.png") { write(byteArrayOf(1)) }
+
+			every { projectsRepository.getProjectTree(any()) } returns flatTree(withCover, missing, bare)
+			every { projectsRepository.loadProjectMetadata(any()) } returns metadata(Instant.fromEpochSeconds(1))
+			every { statsReader.loadTotalWords(any()) } returns null
+			val comp = newComponent()
+
+			comp.loadProjectList()
+			advanceUntilIdle()
+
+			val projects = comp.state.value.projects.associateBy { it.definition.name }
+			assertEquals((imagesDir / "4~Cover.png").toString(), projects.getValue("Covered").coverImagePath)
+			assertEquals("3-${ffs.metadata(imagesDir / "4~Cover.png").lastModifiedAtMillis}", projects.getValue("Covered").coverImageVersion)
+			assertNull(projects.getValue("Missing").coverImagePath)
+			assertNull(projects.getValue("Missing").coverImageVersion)
+			assertNull(projects.getValue("Bare").coverImagePath)
+			listOf(withCover, missing, bare).forEach { def ->
+				assertNull(getKoin().getScopeOrNull(ProjectDefScope(def).scopeId))
+			}
 		}
 
 	// --- groups --------------------------------------------------------------

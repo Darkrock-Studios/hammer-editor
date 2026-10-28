@@ -107,6 +107,7 @@ import com.darkrockstudios.apps.hammer.images_gallery_unused_badge
 import com.darkrockstudios.apps.hammer.images_gallery_use
 import com.darkrockstudios.apps.hammer.images_gallery_view
 import com.darkrockstudios.apps.hammer.images_toast_name_invalid
+import com.darkrockstudios.apps.hammer.images_usage_type_cover
 import com.darkrockstudios.apps.hammer.images_usage_type_draft
 import com.darkrockstudios.apps.hammer.images_usage_type_entry
 import com.darkrockstudios.apps.hammer.images_usage_type_event
@@ -653,10 +654,11 @@ private class LastValue<T : Any> {
 private fun usageMessage(usages: ImageUsages): String {
 	if (usages.isUnused) return Res.string.images_gallery_delete_unused.get()
 	val header = Res.string.images_gallery_delete_used.get(usages.usages.size)
+	// The cover is not an entity: its null type sorts last.
 	val lines = usages.usages
-		.groupBy { it.entity.type }
+		.groupBy { it.entity?.type }
 		.entries
-		.sortedBy { it.key.ordinal }
+		.sortedBy { it.key?.ordinal ?: Int.MAX_VALUE }
 		.map { (type, uses) ->
 			Res.string.images_gallery_delete_usage_line.get(
 				usageTypeLabel(type).get(),
@@ -667,7 +669,8 @@ private fun usageMessage(usages: ImageUsages): String {
 	return (listOf(header) + lines).joinToString("\n")
 }
 
-private fun usageTypeLabel(type: EntityType): StringResource = when (type) {
+private fun usageTypeLabel(type: EntityType?): StringResource = when (type) {
+	null -> Res.string.images_usage_type_cover
 	EntityType.Scene -> Res.string.images_usage_type_scene
 	EntityType.Note -> Res.string.images_usage_type_note
 	EntityType.TimelineEvent -> Res.string.images_usage_type_event

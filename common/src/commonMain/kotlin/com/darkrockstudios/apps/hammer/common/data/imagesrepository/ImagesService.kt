@@ -11,8 +11,15 @@ import io.github.aakira.napier.Napier
 import kotlinx.coroutines.flow.SharedFlow
 import okio.IOException
 
-/** [touched] are the entities a reference was taken out of; [deleted] is false when there was no such image. */
-data class ImageDeleteResult(val deleted: Boolean, val touched: Set<TouchedEntity>)
+/**
+ * [touched] are the entities a reference was taken out of; [coverCleared] is true when the image was
+ * the project's cover. [deleted] is false when there was no such image.
+ */
+data class ImageDeleteResult(
+	val deleted: Boolean,
+	val touched: Set<TouchedEntity>,
+	val coverCleared: Boolean = false,
+)
 
 /**
  * The Component-facing API for the project's Image entities. Adds the work the repository does not
@@ -37,6 +44,12 @@ class ImagesService(
 	fun imageFile(def: ImageDef): ImageFile = imagesRepository.imageFile(def)
 
 	fun imagePath(def: ImageDef): HPath = imagesRepository.getImagePath(def)
+
+	/** The file of image [id], or null when the project has no such image. Reads it to hash it unless cached. */
+	suspend fun loadImageFile(id: Int): ImageFile? {
+		imagesRepository.ensureImagesLoaded()
+		return imagesRepository.findImage(id)?.let(imagesRepository::imageFile)
+	}
 
 	/** The size and modification time of [def]'s file, or null when it is missing. */
 	fun fileStamp(def: ImageDef): ImageFileStamp? = imagesRepository.getFileStamp(def)
@@ -88,9 +101,9 @@ class ImagesService(
 	 */
 	suspend fun delete(id: Int): ImageDeleteResult {
 		if (imagesRepository.findImage(id) == null) return ImageDeleteResult(deleted = false, touched = emptySet())
-		val touched = referenceRewriter.removeAll(id)
+		val removal = referenceRewriter.removeAll(id)
 		val deleted = imagesRepository.delete(id)
-		return ImageDeleteResult(deleted = deleted, touched = touched)
+		return ImageDeleteResult(deleted = deleted, touched = removal.touched, coverCleared = removal.coverCleared)
 	}
 
 	private fun readExternal(path: String): ByteArray? = try {

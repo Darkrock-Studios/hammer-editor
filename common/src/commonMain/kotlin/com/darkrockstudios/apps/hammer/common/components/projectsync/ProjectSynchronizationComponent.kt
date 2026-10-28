@@ -63,6 +63,12 @@ class ProjectSynchronizationComponent(
 	init {
 		conflictListenerJob = scope.launch {
 			for (conflict in projectDataConflictBroker.conflicts) {
+				val coverIds = listOfNotNull(conflict.local.coverImageId, conflict.server.coverImageId)
+				val localImages = if (coverIds.isEmpty()) {
+					emptyMap()
+				} else {
+					imagesRepository.findImageFiles(coverIds).associateBy { it.def.id }
+				}
 				withContext(mainDispatcher) {
 					_state.getAndUpdate {
 						it.copy(
@@ -70,6 +76,7 @@ class ProjectSynchronizationComponent(
 								local = conflict.local,
 								server = conflict.server,
 								serverHash = conflict.serverHash,
+								localImages = localImages,
 							),
 							conflictTitle = Res.string.sync_conflict_project_data_title,
 						)

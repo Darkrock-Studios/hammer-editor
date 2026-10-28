@@ -5,6 +5,10 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.preview.fakeProjectData
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import com.darkrockstudios.apps.hammer.common.projectselection.ProjectCardCoverTestTag
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectCardTestTag
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectIndexRow
 import io.mockk.*
@@ -101,5 +105,25 @@ class ProjectCardTest {
 		compose.onNodeWithTag("Move to…").performClick()
 
 		assertEquals(listOf(data.definition), moved)
+	}
+
+	@Test
+	fun `Project Card shows a cover only when it has one`() {
+		var data by mutableStateOf(fakeProjectData())
+
+		compose.setContent {
+			ProjectIndexRow(
+				isWide = true,
+				index = 0,
+				projectData = data,
+				onProjectClick = {},
+				onProjectAltClick = {},
+				onProjectRenameClick = {},
+			)
+		}
+
+		compose.onNodeWithTag(ProjectCardCoverTestTag, useUnmergedTree = true).assertDoesNotExist()
+		data = data.copy(coverImagePath = "/projects/Test/images/4~Cover.png", coverImageVersion = "10-20")
+		compose.onNodeWithTag(ProjectCardCoverTestTag, useUnmergedTree = true).assertExists()
 	}
 }

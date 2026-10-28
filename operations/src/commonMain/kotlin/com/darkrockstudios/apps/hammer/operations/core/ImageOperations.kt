@@ -86,7 +86,7 @@ internal fun imageOperations(): List<Operation<*, *>> = listOf(
 	},
 	operation<ProjectItemInput, ImageDeleted>(
 		name = "image.delete",
-		description = "Delete an image for good, first taking it out of every entry and text that uses it.",
+		description = "Delete an image for good, first taking it out of every entry and text that uses it, and the project cover.",
 		access = Access.Destructive,
 		scope = OperationScope.Content,
 	) { input ->
@@ -100,7 +100,8 @@ internal fun imageOperations(): List<Operation<*, *>> = listOf(
 				extension = def.fileExtension,
 				removedFrom = result.touched
 					.map { ImageUser(ImageUserKind.of(it.type), it.id) }
-					.sortedWith(compareBy({ it.kind.ordinal }, { it.id })),
+					.sortedWith(compareBy({ it.kind.ordinal }, { it.id }))
+					.plus(listOfNotNull(ImageUser(ImageUserKind.Cover).takeIf { result.coverCleared })),
 			)
 		}
 	},
@@ -187,7 +188,11 @@ data class ImageDeleted(
 )
 
 @Serializable
-data class ImageUser(val kind: ImageUserKind, val id: Int)
+data class ImageUser(
+	val kind: ImageUserKind,
+	/** Null for [ImageUserKind.Cover], which is not an entity. */
+	val id: Int? = null,
+)
 
 @Serializable
 enum class ImageUserKind {
@@ -196,7 +201,8 @@ enum class ImageUserKind {
 	@SerialName("timeline") Timeline,
 	@SerialName("entry") Entry,
 	@SerialName("draft") Draft,
-	@SerialName("image") Image;
+	@SerialName("image") Image,
+	@SerialName("cover") Cover;
 
 	companion object {
 		fun of(type: EntityType): ImageUserKind = when (type) {

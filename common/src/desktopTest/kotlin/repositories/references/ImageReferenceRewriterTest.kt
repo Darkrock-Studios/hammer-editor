@@ -19,6 +19,9 @@ import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContainer
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
+import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
+import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
+import com.darkrockstudios.apps.hammer.common.data.projectdata.StoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.references.ImageReferenceRewriter
 import com.darkrockstudios.apps.hammer.common.data.references.TouchedEntity
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
@@ -67,6 +70,8 @@ class ImageReferenceRewriterTest : BaseTest() {
 	private lateinit var draftRepository: SceneDraftRepository
 	private lateinit var notesRepository: NotesRepository
 	private lateinit var timeLineRepository: TimeLineRepository
+	private lateinit var projectDataRepository: ProjectDataRepository
+	private var projectData = ProjectData()
 
 	private var activeScenes: List<SceneItem> = emptyList()
 	private var archivedScenes: List<SceneItem> = emptyList()
@@ -92,6 +97,11 @@ class ImageReferenceRewriterTest : BaseTest() {
 		coEvery { notesRepository.loadNotesImperative() } answers { notes.map(::NoteContainer) }
 		coEvery { timeLineRepository.loadTimeline() } answers { TimeLineContainer(events) }
 		coEvery { timeLineRepository.updateEvent(any(), any()) } returns true
+		projectDataRepository = mockk()
+		coEvery { projectDataRepository.load() } answers { StoredProjectData(projectData) }
+		coEvery { projectDataRepository.updateData(any()) } answers {
+			projectData = firstArg<(ProjectData) -> ProjectData>()(projectData)
+		}
 
 		setupKoin(module {
 			single { syncJournal }
@@ -103,6 +113,7 @@ class ImageReferenceRewriterTest : BaseTest() {
 				scoped { draftRepository }
 				scoped { notesRepository }
 				scoped { timeLineRepository }
+				scoped { projectDataRepository }
 			}
 		})
 		datasource = EncyclopediaDatasource(projectDef, createTomlSerializer(), ffs)
@@ -233,7 +244,7 @@ class ImageReferenceRewriterTest : BaseTest() {
 		store(entry1().copy(text = "Top\n\n![a](hammer://image/5)\n\nBottom", images = listOf(6, 5)))
 		store(entry2().copy(images = listOf(5)))
 
-		val result = ImageReferenceRewriter(projectDef).removeAll(5)
+		val result = ImageReferenceRewriter(projectDef).removeAll(5).touched
 
 		assertEquals(touched(1, 2), result)
 		assertEquals("Top\n\nBottom", entry(1).text)
@@ -452,7 +463,7 @@ class ImageReferenceRewriterTest : BaseTest() {
 				TouchedEntity(EntityType.Note, 30) to "A note about the cat",
 				TouchedEntity(EntityType.TimelineEvent, 40) to "Long Long Long Long Long Long Long Long…",
 			),
-			usages.associate { it.entity to it.name },
+			usages.associate { it.entity!! to it.name },
 		)
 		assertEquals(usages.size, usages.map { it.entity }.toSet().size)
 	}
@@ -471,7 +482,7 @@ class ImageReferenceRewriterTest : BaseTest() {
 		events = listOf(event(40, "![a](hammer://image/5)\n\nEvent"))
 		store(entry1().copy(text = "![a](hammer://image/5)", images = listOf(5, 6)))
 
-		val result = ImageReferenceRewriter(projectDef).removeAll(5)
+		val result = ImageReferenceRewriter(projectDef).removeAll(5).touched
 
 		assertEquals(
 			touched(EntityType.Scene, 1, 2, 3) + touched(EntityType.SceneDraft, 20) +
@@ -519,4 +530,71 @@ class ImageReferenceRewriterTest : BaseTest() {
 	}
 
 	// endregion
+
+	@Test
+	fun `remap moves the cover through the project data repository and reports no entity`() = runTest {
+		projectData = ProjectData(authorName = "Pat", coverImageId = 5)
+
+		val result = ImageReferenceRewriter(projectDef).remap(mapOf(5 to 50, 6 to 60))
+
+		assertTrue(result.isEmpty())
+		assertEquals(ProjectData(authorName = "Pat", coverImageId = 50), projectData)
+		coVerify(exactly = 1) { projectDataRepository.updateData(any()) }
+	}
+
+	@Test
+	fun `remap leaves a cover it does not map alone`() = runTest {
+		projectData = ProjectData(coverImageId = 7)
+
+		ImageReferenceRewriter(projectDef).remap(mapOf(5 to 50))
+
+		assertEquals(7, projectData.coverImageId)
+	}
+
+	@Test
+	fun `removeAll clears the cover and says so`() = runTest {
+		projectData = ProjectData(coverImageId = 5)
+
+		val removal = ImageReferenceRewriter(projectDef).removeAll(5)
+
+		assertTrue(removal.touched.isEmpty())
+		assertTrue(removal.coverCleared)
+		assertEquals(null, projectData.coverImageId)
+	}
+
+	@Test
+	fun `removeAll of another image keeps the cover`() = runTest {
+		projectData = ProjectData(coverImageId = 7)
+
+		val removal = ImageReferenceRewriter(projectDef).removeAll(5)
+
+		assertFalse(removal.coverCleared)
+		assertEquals(7, projectData.coverImageId)
+	}
+
+	@Test
+	fun `the cover counts as a usage and a reference`() = runTest {
+		projectData = ProjectData(coverImageId = 5)
+		store(entry1().copy(images = listOf(5)))
+		val rewriter = ImageReferenceRewriter(projectDef)
+
+		val usages = rewriter.findUsages(5).usages
+		assertEquals(2, usages.size)
+		val cover = usages.single { it.isProjectCover }
+		assertEquals(projectDef.name, cover.name)
+		assertTrue(rewriter.isUsed(5))
+		assertTrue(5 in rewriter.findReferencedIds())
+
+		projectData = ProjectData()
+		store(entry2())
+		assertFalse(rewriter.findUsages(5).usages.any { it.isProjectCover })
+	}
+
+	@Test
+	fun `a cover alone keeps an image in use`() = runTest {
+		projectData = ProjectData(coverImageId = 9)
+
+		assertTrue(ImageReferenceRewriter(projectDef).isUsed(9))
+		assertFalse(ImageReferenceRewriter(projectDef).isUsed(5))
+	}
 }

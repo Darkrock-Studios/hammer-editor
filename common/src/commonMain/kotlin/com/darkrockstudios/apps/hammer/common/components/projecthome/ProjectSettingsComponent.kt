@@ -7,9 +7,15 @@ import com.arkivanov.decompose.value.getAndUpdate
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectTheme
 import com.darkrockstudios.apps.hammer.base.http.projectdata.WordCountGoal
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
+import com.darkrockstudios.apps.hammer.common.components.images.ImagePickRequests
+import com.darkrockstudios.apps.hammer.common.components.images.ImagePickTarget
+import com.darkrockstudios.apps.hammer.common.components.images.findPickedImage
+import com.darkrockstudios.apps.hammer.common.components.images.pickImage
 import com.darkrockstudios.apps.hammer.common.components.spellchecksettings.SpellCheckSettings
 import com.darkrockstudios.apps.hammer.common.components.spellchecksettings.SpellCheckSettingsComponent
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesService
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageDef
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
 import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectPluginsRepository
@@ -19,8 +25,10 @@ import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectDictionaryUseCas
 import com.darkrockstudios.apps.hammer.common.spellcheck.displayName
 import com.darkrockstudios.apps.hammer.common.util.AvailableLocalesProvider
 import com.darkrockstudios.apps.hammer.common.util.Locale
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.builtins.serializer
 import org.koin.core.component.inject
 
 class ProjectSettingsComponent(
@@ -34,6 +42,8 @@ class ProjectSettingsComponent(
 	private val accountTagService: AccountTagService by inject()
 	private val availableLocalesProvider: AvailableLocalesProvider by inject()
 	private val projectPlugins: ProjectPluginsRepository by inject()
+	private val imagesService: ImagesService by projectInject()
+	private val imagePickRequests: ImagePickRequests by projectInject()
 
 	override val projectName: String = projectDef.name
 
@@ -63,6 +73,51 @@ class ProjectSettingsComponent(
 					}
 				}
 			}
+		}
+		scope.launch {
+			coverImageFlow(projectDataRepository, imagesService).collect { cover ->
+				withContext(mainDispatcher) {
+					_projectInfoState.getAndUpdate { it.copy(coverImage = cover) }
+				}
+			}
+		}
+		restoreCoverPick()
+	}
+
+	// The gallery comes back with the project root after process death; wait for its answer again.
+	private fun restoreCoverPick() {
+		val pending = stateKeeper.consume(COVER_PICK_KEY, Boolean.serializer()) == true
+		stateKeeper.register(COVER_PICK_KEY, Boolean.serializer()) { projectInfoState.value.pendingCoverPick }
+		if (pending) {
+			awaitCoverPick {
+				imagePickRequests.awaitResult(ImagePickTarget.ProjectCover)
+					?.let { findPickedImage(it, imagesService) }
+			}
+		}
+	}
+
+	override fun pickCoverImage() {
+		if (projectInfoState.value.pendingCoverPick) return
+		awaitCoverPick { imagePickRequests.pickImage(ImagePickTarget.ProjectCover, imagesService) }
+	}
+
+	private fun awaitCoverPick(pick: suspend () -> ImageDef?) {
+		_projectInfoState.getAndUpdate { it.copy(pendingCoverPick = true) }
+		scope.launch {
+			try {
+				val image = pick() ?: return@launch
+				projectDataRepository.updateData { it.copy(coverImageId = image.id) }
+			} finally {
+				withContext(NonCancellable + mainDispatcher) {
+					_projectInfoState.getAndUpdate { it.copy(pendingCoverPick = false) }
+				}
+			}
+		}
+	}
+
+	override fun clearCoverImage() {
+		scope.launch {
+			projectDataRepository.updateData { it.copy(coverImageId = null) }
 		}
 	}
 
@@ -132,3 +187,5 @@ class ProjectSettingsComponent(
 			.map { it.tag }
 	}
 }
+
+private const val COVER_PICK_KEY = "project_settings_cover_pick"

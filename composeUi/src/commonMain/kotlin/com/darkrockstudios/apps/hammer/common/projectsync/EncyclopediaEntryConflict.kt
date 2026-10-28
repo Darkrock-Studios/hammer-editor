@@ -312,8 +312,9 @@ private fun ImagesBlock(
 	}
 }
 
+/** [file] is null when this device does not have image [id]; the tile then shows the id. */
 @Composable
-private fun ImageThumb(id: Int, file: ImageFile?, modifier: Modifier) {
+internal fun ImageThumb(id: Int, file: ImageFile?, modifier: Modifier) {
 	if (file == null) {
 		val description = Res.string.sync_conflict_encyclopedia_image_not_local_description.get(id)
 		Box(
