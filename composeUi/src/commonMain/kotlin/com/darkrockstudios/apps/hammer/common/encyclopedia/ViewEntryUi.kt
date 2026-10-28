@@ -62,8 +62,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil3.ImageLoader
-import coil3.memory.MemoryCache
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.ViewEntry
@@ -93,7 +91,6 @@ import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownEdi
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownView
 import com.darkrockstudios.apps.hammer.common.compose.rememberDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.rememberIoDispatcher
-import com.darkrockstudios.apps.hammer.common.compose.rememberKoinInject
 import com.darkrockstudios.apps.hammer.common.compose.rememberMainDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
@@ -183,7 +180,6 @@ internal fun ViewEntryUi(
 	sharedTransitionScope: SharedTransitionScope,
 	animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
-	val imageLoader = rememberKoinInject<ImageLoader>()
 	val strRes = rememberStrRes()
 	val dispatcherMain = rememberMainDispatcher()
 	val dispatcherDefault = rememberDefaultDispatcher()
@@ -495,16 +491,7 @@ internal fun ViewEntryUi(
 			message = Res.string.encyclopedia_entry_remove_image_message.get(),
 			onDismiss = { component.dismissRemoveImageConfirm() },
 			onConfirm = {
-				val removed = state.images.find { it.id == imageId }
-				scope.launch {
-					component.removeImage(imageId)
-					removed?.let { image ->
-						imageLoader.diskCache?.remove(image.path)
-						imageLoader.memoryCache?.remove(
-							MemoryCache.Key(image.path, mapOf("hash" to image.hash.toString()))
-						)
-					}
-				}
+				scope.launch { component.removeImage(imageId) }
 				component.dismissRemoveImageConfirm()
 			},
 		)

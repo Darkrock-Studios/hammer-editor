@@ -54,12 +54,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
-import coil3.compose.LocalPlatformContext
-import coil3.request.ImageRequest
-import coil3.request.crossfade
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.BrowseEntries
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
+import com.darkrockstudios.apps.hammer.common.compose.images.rememberImageRequest
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagChip
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTypeStamp
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTypographicHero
@@ -202,19 +200,14 @@ internal fun EncyclopediaEntryItem(
 								)
 							}
 
-							val context = LocalPlatformContext.current
 							with(animatedVisibilityScope) {
 								AsyncImage(
-									model = remember(imagePath, entryImageHash) {
-										ImageRequest.Builder(context)
-											.data(imagePath)
-											.memoryCacheKeyExtras(
-												mapOf("hash" to entryImageHash.toString()),
-											)
-											.placeholderMemoryCacheKey(imagePath)
-											.crossfade(300)
-											.build()
-									},
+									model = rememberImageRequest(
+										path = imagePath,
+										hash = entryImageHash,
+										placeholderFromPath = true,
+										crossfadeMillis = 300,
+									),
 									contentDescription = null,
 									modifier = Modifier
 										.fillMaxSize()

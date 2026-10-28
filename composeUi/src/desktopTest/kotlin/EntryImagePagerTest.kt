@@ -1,6 +1,7 @@
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
@@ -35,14 +36,18 @@ class EntryImagePagerTest {
 	private val primaryRequests = mutableListOf<Int>()
 	private val removeRequests = mutableListOf<Int>()
 
-	private fun setPager(images: List<ViewEntry.EntryImage>, startIndex: Int = 0) {
+	private fun setPager(
+		images: List<ViewEntry.EntryImage>,
+		startIndex: Int = 0,
+		followSwipes: Boolean = true,
+	) {
 		compose.setContent {
-			var current by mutableIntStateOf(startIndex)
+			var current by remember { mutableIntStateOf(startIndex) }
 			EntryImagePager(
 				entryName = "Alice",
 				images = images,
 				currentIndex = current,
-				onShowIndex = { current = it },
+				onShowIndex = { if (followSwipes) current = it },
 				onAdd = { added++ },
 				onFilesDropped = {},
 				onSetPrimary = { primaryRequests += it },
@@ -95,6 +100,20 @@ class EntryImagePagerTest {
 		compose.onNodeWithTag(ENTRY_IMAGE_COUNTER_TAG).assertTextEquals("2 / 3")
 		compose.onNodeWithTag(ENTRY_IMAGE_REMOVE_TAG).performClick()
 		assertEquals(listOf(7), removeRequests)
+	}
+
+	@Test
+	fun `The bar acts on the current index, not the pager's page`() {
+		setPager(images, followSwipes = false)
+
+		compose.onNodeWithTag(ENTRY_IMAGE_PAGER_TAG).performTouchInput { swipeLeft() }
+		compose.waitForIdle()
+
+		compose.onNodeWithTag(entryImagePageTag(7)).assertIsDisplayed()
+		compose.onNodeWithTag(ENTRY_IMAGE_COUNTER_TAG).assertTextEquals("1 / 3")
+		compose.onNodeWithTag(ENTRY_IMAGE_SET_PRIMARY_TAG).assertDoesNotExist()
+		compose.onNodeWithTag(ENTRY_IMAGE_REMOVE_TAG).performClick()
+		assertEquals(listOf(4), removeRequests)
 	}
 
 	@Test

@@ -32,6 +32,7 @@ import com.darkrockstudios.apps.hammer.common.compose.WindowSizeClass
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdConflictField
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdConflictFieldSpacing
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
+import com.darkrockstudios.apps.hammer.common.compose.images.rememberImageRequest
 import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.sync_conflict_entity_label_image
@@ -98,9 +99,11 @@ internal fun ImageConflict(
 					conflict = imagesDiffer,
 				) {
 					ConflictImagePreview(
-						model = entityConflict.clientImagePath.path,
+						request = rememberImageRequest(
+							path = entityConflict.clientImagePath.path,
+							hash = clientImage.digest,
+						),
 						image = clientImage,
-						cacheKey = null,
 					)
 				}
 			}
@@ -122,10 +125,16 @@ internal fun ImageConflict(
 					label = Res.string.sync_conflict_entity_label_image.get(),
 					conflict = imagesDiffer,
 				) {
+					val context = LocalPlatformContext.current
 					ConflictImagePreview(
-						model = serverImage.bytes,
+						// Bytes have no default memory cache key, so this names them.
+						request = remember(context, serverImage, c.serverEntity.id) {
+							ImageRequest.Builder(context)
+								.data(serverImage.bytes)
+								.memoryCacheKey("sync-conflict-remote-${c.serverEntity.id}-${serverImage.digest}")
+								.build()
+						},
 						image = serverImage,
-						cacheKey = "sync-conflict-remote-${c.serverEntity.id}-${serverImage.digest}",
 					)
 				}
 			}
@@ -151,13 +160,9 @@ private class ConflictImage(
 	}
 }
 
-/**
- * [model] is a file path or the image bytes. A path is cached by Coil under its own key, so the
- * content hash is added to it; bytes have no default key, so [cacheKey] must name them.
- */
 @Composable
-private fun ConflictImagePreview(model: Any?, image: ConflictImage, cacheKey: String?) {
-	if (model == null || image.bytes == null) {
+private fun ConflictImagePreview(request: ImageRequest, image: ConflictImage) {
+	if (image.bytes == null) {
 		Text(
 			text = Res.string.sync_conflict_image_unreadable.get(),
 			style = MaterialTheme.typography.bodyMedium,
@@ -166,21 +171,9 @@ private fun ConflictImagePreview(model: Any?, image: ConflictImage, cacheKey: St
 		return
 	}
 
-	val context = LocalPlatformContext.current
 	Column(verticalArrangement = Arrangement.spacedBy(Ui.Padding.M)) {
 		AsyncImage(
-			model = remember(model, image.digest, cacheKey) {
-				ImageRequest.Builder(context)
-					.data(model)
-					.apply {
-						if (cacheKey != null) {
-							memoryCacheKey(cacheKey)
-						} else {
-							memoryCacheKeyExtras(mapOf("hash" to image.digest.toString()))
-						}
-					}
-					.build()
-			},
+			model = request,
 			contentDescription = null,
 			contentScale = ContentScale.Fit,
 			modifier = Modifier

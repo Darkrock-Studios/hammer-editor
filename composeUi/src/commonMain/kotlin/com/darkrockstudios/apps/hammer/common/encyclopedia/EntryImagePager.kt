@@ -34,9 +34,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
-import coil3.compose.LocalPlatformContext
-import coil3.request.ImageRequest
-import coil3.request.crossfade
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.image.ImageFormat
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.ViewEntry
@@ -44,6 +41,7 @@ import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdEngravingPlaceholder
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.fileDropTarget
+import com.darkrockstudios.apps.hammer.common.compose.images.rememberImageRequest
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_figure_add
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_figure_label
@@ -62,8 +60,9 @@ const val ENTRY_IMAGE_COUNTER_TAG = "entry-image-counter"
 fun entryImagePageTag(id: Int) = "entry-image-page-$id"
 
 /**
- * An entry's images, one page each, inside the inset figure frame. [currentIndex] is the page on
- * show; swiping reports a new one through [onShowIndex], and a new [currentIndex] scrolls to it.
+ * An entry's images, one page each, inside the inset figure frame. [currentIndex] is the image on
+ * show and drives the bar's counter and actions; the pager scrolls to follow it, and a swipe
+ * reports the new page through [onShowIndex].
  * [primaryImageModifier] goes on the first image only, for the shared element from the browse card.
  */
 @OptIn(ExperimentalLayoutApi::class)
@@ -102,8 +101,9 @@ internal fun EntryImagePager(
 			EmptyFigure(entryName = entryName, onAdd = onAdd)
 		} else {
 			Column(modifier = Modifier.fillMaxSize()) {
+				val shownIndex = currentIndex.coerceIn(0, images.size - 1)
 				val pagerState = rememberPagerState(
-					initialPage = currentIndex.coerceIn(0, images.size - 1),
+					initialPage = shownIndex,
 					pageCount = { images.size },
 				)
 				val latestOnShowIndex by rememberUpdatedState(onShowIndex)
@@ -116,7 +116,6 @@ internal fun EntryImagePager(
 					snapshotFlow { pagerState.currentPage }.collect { latestOnShowIndex(it) }
 				}
 
-				val context = LocalPlatformContext.current
 				HorizontalPager(
 					state = pagerState,
 					key = { page -> images.getOrNull(page)?.id ?: "missing-$page" },
@@ -127,14 +126,12 @@ internal fun EntryImagePager(
 				) { page ->
 					val image = images.getOrNull(page) ?: return@HorizontalPager
 					AsyncImage(
-						model = remember(image.path, image.hash) {
-							ImageRequest.Builder(context)
-								.data(image.path)
-								.memoryCacheKeyExtras(mapOf("hash" to image.hash.toString()))
-								.placeholderMemoryCacheKey(image.path)
-								.crossfade(false)
-								.build()
-						},
+						model = rememberImageRequest(
+							path = image.path,
+							hash = image.hash,
+							placeholderFromPath = true,
+							crossfadeMillis = 0,
+						),
 						contentDescription = Res.string.encyclopedia_entry_image_page_description.get(
 							page + 1,
 							images.size,
@@ -149,7 +146,6 @@ internal fun EntryImagePager(
 				}
 
 				HorizontalDivider(thickness = Dp.Hairline, color = ruleColor)
-				val shownIndex = pagerState.currentPage.coerceIn(0, images.size - 1)
 				FigureBar(
 					images = images,
 					shownIndex = shownIndex,

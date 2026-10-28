@@ -17,7 +17,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -30,8 +29,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
-import coil3.compose.LocalPlatformContext
-import coil3.request.ImageRequest
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.diff.DiffResult
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
@@ -44,6 +41,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdEngravingPl
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagChip
+import com.darkrockstudios.apps.hammer.common.compose.images.rememberImageRequest
 import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
@@ -330,15 +328,8 @@ private fun ImageThumb(id: Int, file: ImageFile?, modifier: Modifier) {
 			)
 		}
 	} else {
-		val context = LocalPlatformContext.current
-		val path = file.path.path
 		AsyncImage(
-			model = remember(path, file.contentHash) {
-				ImageRequest.Builder(context)
-					.data(path)
-					.memoryCacheKeyExtras(mapOf("hash" to file.contentHash.toString()))
-					.build()
-			},
+			model = rememberImageRequest(path = file.path.path, hash = file.contentHash),
 			contentDescription = file.def.name,
 			contentScale = ContentScale.Crop,
 			modifier = modifier.background(MaterialTheme.colorScheme.surfaceContainerHigh),
