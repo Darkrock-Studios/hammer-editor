@@ -9,6 +9,7 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.duplicateids.DuplicateIdService
 import com.darkrockstudios.apps.hammer.common.data.duplicateids.DuplicateIdService.ResolveResult
 import com.darkrockstudios.apps.hammer.common.data.duplicateids.DuplicateIdSet
+import com.darkrockstudios.apps.hammer.common.data.duplicateids.ResolveDuplicateIdUseCase
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import kotlinx.coroutines.launch
@@ -21,6 +22,7 @@ class DuplicateIdsComponent(
 ) : ProjectComponentBase(projectDef, componentContext), DuplicateIds {
 
 	private val duplicateIdService: DuplicateIdService by projectInject()
+	private val resolveDuplicateId: ResolveDuplicateIdUseCase by projectInject()
 
 	private val _state = MutableValue(DuplicateIds.State())
 	override val state: Value<DuplicateIds.State> = _state
@@ -66,7 +68,7 @@ class DuplicateIdsComponent(
 
 		_state.update { it.copy(working = true, error = null) }
 		scope.launch {
-			val result = duplicateIdService.resolve(set, current.keep)
+			val result = resolveDuplicateId(set, current.keep)
 			withContext(dispatcherMain) {
 				_state.update {
 					it.copy(

@@ -50,6 +50,7 @@ import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesDatasour
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupService
 import com.darkrockstudios.apps.hammer.common.data.duplicateids.DuplicateIdService
+import com.darkrockstudios.apps.hammer.common.data.duplicateids.ResolveDuplicateIdUseCase
 import com.darkrockstudios.apps.hammer.common.data.duplicateids.ProjectFileRationalizer
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataConflictBroker
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
@@ -403,6 +404,7 @@ val mainModule = module {
 
 		scoped<ProjectFileRationalizer>()
 		scoped<DuplicateIdService>()
+		scoped<ResolveDuplicateIdUseCase>()
 
 		scoped<EntitySynchronizers>()
 	}
