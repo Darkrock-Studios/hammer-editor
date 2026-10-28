@@ -25,7 +25,7 @@ import org.intellij.markdown.parser.MarkdownParser
 private data class TocEntry(val title: String, val href: String)
 
 /** An image packaged in the book; [href] is relative to the chapter files. */
-private class PackagedImage(val href: String, val resource: Resource)
+private class PackagedImage(val name: String, val href: String, val resource: Resource)
 
 fun writeStoryAsEpub(
 	sink: BufferedSink,
@@ -215,7 +215,8 @@ private fun BODY.chapterBody(
 
 /**
  * Writes a `hammer://image` reference to a packaged image as an `img` of it, and any other image as
- * its alt text: an EPUB reader loads only resources packaged in the book.
+ * its alt text: an EPUB reader loads only resources packaged in the book. An image written without
+ * alt text is described by its name.
  */
 private class EpubImageProvider(
 	linkMap: LinkMap,
@@ -231,7 +232,7 @@ private class EpubImageProvider(
 		if (image == null) {
 			labelProvider.processNode(visitor, text, info.label)
 		} else {
-			val alt = plainAltText(info.label, text)
+			val alt = plainAltText(info.label, text).ifBlank { escapeAttribute(image.name) }
 			// Written as an HTML void tag; selfCloseHtmlVoidTags closes it for XHTML.
 			visitor.consumeTagOpen(node, "img", "src=\"${image.href}\"", "alt=\"$alt\"")
 		}
@@ -260,6 +261,12 @@ private fun plainAltText(label: ASTNode, text: String): String = buildString {
 	}
 }
 
+private fun escapeAttribute(value: String): String = value
+	.replace("&", "&amp;")
+	.replace("<", "&lt;")
+	.replace(">", "&gt;")
+	.replace("\"", "&quot;")
+
 private val webpMediaType = MediaType("image/webp", ".webp")
 
 private fun packageImage(image: ExportImage): PackagedImage? {
@@ -275,7 +282,7 @@ private fun packageImage(image: ExportImage): PackagedImage? {
 	val href = "images/${image.id}.$extension"
 	val resource = Resource(id = "img${image.id}", data = image.bytes, href = href)
 		.apply { this.mediaType = mediaType }
-	return PackagedImage(href, resource)
+	return PackagedImage(image.name, href, resource)
 }
 
 private val voidTagPattern = Regex(

@@ -69,7 +69,7 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 		strRes = mockk(relaxed = true)
 		projectPlugins = ProjectPluginsRepository(ProjectPluginsDatasource(FakeFileSystem(), createTomlSerializer()))
 		imagesRepository = mockk {
-			coEvery { loadImages() } returns emptyList()
+			coEvery { ensureImagesLoaded() } returns emptyList()
 			every { loadImageBytes(any()) } returns null
 		}
 	}
@@ -212,7 +212,7 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 		storedProjectData = StoredProjectData(data = ProjectData(coverImageId = 5))
 		val unreferenced = ImageDef(id = 9, name = "Unused", fileExtension = "png")
 		imagesRepository = mockk {
-			coEvery { loadImages() } returns listOf(
+			coEvery { ensureImagesLoaded() } returns listOf(
 				ImageDef(id = 1, name = "Cat", fileExtension = "png"),
 				ImageDef(id = 2, name = "Gone", fileExtension = "jpg"),
 				ImageDef(id = 5, name = "Cover", fileExtension = "webp"),
@@ -246,7 +246,7 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 		useCase(listOf(exporter)).render(ExportOptions(format = exporter.formatId))
 
 		assertEquals(emptyMap(), checkNotNull(exporter.input).images)
-		coVerify(exactly = 0) { imagesRepository.loadImages() }
+		coVerify(exactly = 0) { imagesRepository.ensureImagesLoaded() }
 		verify(exactly = 0) { imagesRepository.loadImageBytes(any()) }
 	}
 
@@ -258,7 +258,7 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 		useCase(listOf(exporter)).render(ExportOptions(format = exporter.formatId))
 
 		assertEquals(emptyMap(), checkNotNull(exporter.input).images)
-		coVerify(exactly = 0) { imagesRepository.loadImages() }
+		coVerify(exactly = 0) { imagesRepository.ensureImagesLoaded() }
 	}
 
 	@Test

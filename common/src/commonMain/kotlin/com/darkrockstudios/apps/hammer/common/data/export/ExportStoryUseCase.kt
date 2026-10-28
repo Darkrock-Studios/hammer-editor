@@ -124,7 +124,7 @@ class ExportStoryUseCase(
 		projectData?.coverImageId?.let(ids::add)
 		if (ids.isEmpty()) return emptyMap()
 
-		return imagesRepository.loadImages()
+		return imagesRepository.ensureImagesLoaded()
 			.filter { it.id in ids }
 			.mapNotNull { def ->
 				imagesRepository.loadImageBytes(def)?.let { bytes ->

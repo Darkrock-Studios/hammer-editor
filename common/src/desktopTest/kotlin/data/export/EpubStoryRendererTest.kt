@@ -221,6 +221,29 @@ class EpubStoryRendererTest {
 	}
 
 	@Test
+	fun `an image written without alt text is described by its name`() {
+		val chapter = renderEntries(
+			listOf(StoryChapter("Alpha", "![](hammer://image/3)")),
+			images = mapOf(3 to catImage),
+		).text("OEBPS/ch1.xhtml")
+
+		assertTrue("""<img src="images/3.png" alt="cat"/>""" in chapter, chapter)
+	}
+
+	@Test
+	fun `an image with an extension the book cannot carry is written as its alt text`() {
+		val entries = renderEntries(
+			listOf(StoryChapter("Alpha", "![A cat](hammer://image/3)")),
+			images = mapOf(3 to ExportImage(id = 3, name = "cat", fileExtension = "bmp", bytes = PNG_BYTES)),
+		)
+
+		val chapter = entries.text("OEBPS/ch1.xhtml")
+		assertTrue("<p>A cat</p>" in chapter, chapter)
+		assertTrue("<img" !in chapter, chapter)
+		assertTrue(entries.keys.none { it.startsWith("OEBPS/images/") }, entries.keys.toString())
+	}
+
+	@Test
 	fun `an image that is not packaged is written as its alt text`() {
 		val content = render(
 			listOf(StoryChapter("Alpha", "Before.\n\n![A *black* cat](hammer://image/3)\n\nAfter.")),
