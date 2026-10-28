@@ -102,7 +102,6 @@ class ProjectRootComponentTest : ComponentTest() {
 			projectDef = projectDef,
 			rationalizer = ProjectFileRationalizer(projectDef, projectFiles, createTomlSerializer()),
 			syncJournal = syncJournal,
-			backupService = mockk(relaxed = true),
 		)
 
 		encyclopediaService = mockk(relaxed = true)

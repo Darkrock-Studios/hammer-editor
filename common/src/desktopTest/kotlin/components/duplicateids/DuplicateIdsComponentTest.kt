@@ -2,6 +2,7 @@ package components.duplicateids
 
 import com.darkrockstudios.apps.hammer.common.components.duplicateids.DuplicateIdsComponent
 import com.darkrockstudios.apps.hammer.common.data.duplicateids.DuplicateIdService
+import com.darkrockstudios.apps.hammer.common.data.duplicateids.ResolveDuplicateIdUseCase
 import com.darkrockstudios.apps.hammer.common.data.duplicateids.ProjectFileRationalizer
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
@@ -39,11 +40,11 @@ class DuplicateIdsComponentTest : ComponentTest() {
 			projectDef = projectDef,
 			rationalizer = ProjectFileRationalizer(projectDef, projectFiles, createTomlSerializer()),
 			syncJournal = mockk(relaxed = true),
-			backupService = mockk(relaxed = true),
 		)
 		setupComponentKoin(module {
 			scope<ProjectDefScope> {
 				scoped { duplicateIdService }
+				scoped { ResolveDuplicateIdUseCase(projectDef, duplicateIdService, mockk(relaxed = true)) }
 				scoped<EncyclopediaRepository> { mockk(relaxed = true) }
 			}
 		})
