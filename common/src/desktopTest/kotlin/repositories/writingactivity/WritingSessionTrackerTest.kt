@@ -21,6 +21,7 @@ import testProjectId
 import utils.BaseTest
 import utils.TestClock
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.hours
@@ -126,9 +127,16 @@ class WritingSessionTrackerTest : BaseTest() {
 
 	@Test
 	fun `transforming a missing baseline does not create one`() = runTest {
-		tracker.transformBaseline(1) { "made up" }
+		assertFalse(tracker.transformBaseline(1) { "made up" })
 
 		assertEquals(0, tracker.onSceneSaved(1, "made up words", UpdateSource.Editor))
+	}
+
+	@Test
+	fun `transforming an existing baseline reports it`() = runTest {
+		tracker.rememberBaseline(sceneId = 1, content = "Bob went home")
+
+		assertTrue(tracker.transformBaseline(1) { it })
 	}
 
 	@Test

@@ -86,7 +86,7 @@ class SceneContentRepositoryTest : BaseTest() {
 		coEvery { syncJournal.markEntityAsDirty(any()) } just Runs
 	}
 
-	private fun createStack(projectDef: ProjectDef, tracker: WritingSessionTracker = mockk(relaxed = true)) {
+	private fun createStack(projectDef: ProjectDef, tracker: WritingSessionTracker = trackerWithBaselines()) {
 		sceneMetadataDatasource = SceneMetadataDatasource(ffs, toml, projectDef)
 		sceneDatasource = SceneDatasource(projectDef, ffs)
 		contentRepo = SceneContentRepository(projectDef, sceneDatasource)
@@ -318,6 +318,21 @@ class SceneContentRepositoryTest : BaseTest() {
 		advanceUntilIdle()
 
 		assertEquals(4, activity.loadOwnLog().sessions.sumOf { it.wordsWritten })
+	}
+
+	@Test
+	fun `Rewriting a scene that was not open gives it a baseline`() = runTest(mainTestDispatcher) {
+		val projDef = getProject1Def()
+		createProject(ffs, PROJECT_1_NAME)
+
+		createStack(projDef, mockk(relaxed = true))
+		service.initialize()
+
+		val sceneItem = SceneItem(getProject1Def(), SceneItem.Type.Scene, 3, "Scene ID 3", 0)
+		assertTrue(service.rewriteSceneText(sceneItem) { it.replace("scene", "chapter") })
+		advanceUntilIdle()
+
+		verify { writingSessionTracker.rememberBaseline(3, "Content of chapter id 3") }
 	}
 
 	@Test
@@ -823,4 +838,9 @@ class SceneContentRepositoryTest : BaseTest() {
 		assertNotEquals(oldPath1, newPath1)
 		assertNotEquals(oldPath6, newPath6)
 	}
+}
+
+/** A tracker that behaves as if every scene has a baseline, so rewrites transform rather than reset it. */
+private fun trackerWithBaselines(): WritingSessionTracker = mockk(relaxed = true) {
+	every { transformBaseline(any(), any()) } returns true
 }

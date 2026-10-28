@@ -317,6 +317,7 @@ class RenameEntryUseCaseTest : BaseIntegrationTest() {
 	@Test
 	fun `Renaming an open scene transforms its writing baseline instead of resetting it`() = runTest(mainTestDispatcher) {
 		createStack()
+		every { writingSessionTracker.transformBaseline(any(), any()) } returns true
 		sceneEditorService.storeMetadata(sceneEditorService.loadSceneMetadata(6).copy(dismissedReferences = emptySet()), 6)
 		sceneEditorService.loadSceneBuffer(scene(6))
 		val preview = useCase.preview(request())
