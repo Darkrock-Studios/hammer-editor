@@ -11,9 +11,12 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.id.datasources.EncyclopediaIdDatasource
 import com.darkrockstudios.apps.hammer.common.data.id.datasources.NotesIdDatasource
+import com.darkrockstudios.apps.hammer.common.data.id.datasources.ImageIdDatasource
 import com.darkrockstudios.apps.hammer.common.data.id.datasources.SceneDraftIdDatasource
 import com.darkrockstudios.apps.hammer.common.data.id.datasources.SceneIdDatasource
 import com.darkrockstudios.apps.hammer.common.data.id.datasources.TimeLineEventIdDatasource
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesDatasource
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesRepository
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexRepository
@@ -28,6 +31,7 @@ import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntitySynchr
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectSynchronizationData
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientEncyclopediaSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientImageSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientNoteSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientSceneDraftSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientSceneSynchronizer
@@ -36,6 +40,7 @@ import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingSessio
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
@@ -54,6 +59,7 @@ import kotlin.time.Instant
 class CrossTypeIdRenumberTest : RationalizerTestBase() {
 
 	private lateinit var syncJournal: SyncJournal
+	private lateinit var referenceRemapper: ReferenceRemapper
 	private lateinit var projectScope: Scope
 	private lateinit var service: DuplicateIdService
 
@@ -62,6 +68,7 @@ class CrossTypeIdRenumberTest : RationalizerTestBase() {
 		super.setup()
 		syncJournal = mockk(relaxed = true)
 		every { syncJournal.isServerSynchronized() } returns false
+		referenceRemapper = mockk(relaxed = true)
 		setupKoin(module {
 			scope<ProjectDefScope> {
 				scoped { projectDef }
@@ -96,18 +103,22 @@ class CrossTypeIdRenumberTest : RationalizerTestBase() {
 				scoped { EncyclopediaDatasource(projectDef, toml, ffs, mockk()) }
 				scoped { EncyclopediaRepository(projectDef, get(), get(), get()) }
 				scoped<EncyclopediaService> { mockk(relaxed = true) }
-				scoped<ReferenceRemapper> { mockk(relaxed = true) }
+				scoped { referenceRemapper }
 				scoped { ClientSceneSynchronizer(projectDef, get(), get(), get(), get(), get(), TestStrRes()) }
 				scoped { ClientEncyclopediaSynchronizer(projectDef, get(), TestStrRes()) }
 				scoped<ClientNoteSynchronizer> { mockk(relaxed = true) }
 				scoped<ClientTimelineSynchronizer> { mockk(relaxed = true) }
 				scoped<ClientSceneDraftSynchronizer> { mockk(relaxed = true) }
+				scoped { ImagesDatasource(projectDef, ffs) }
+				scoped { ImagesRepository(projectDef, get(), get(), get()) }
+				scoped { ClientImageSynchronizer(projectDef, get(), TestStrRes()) }
 				scoped { EntitySynchronizers(projectDef) }
 				factory { SceneIdDatasource(ffs) }
 				factory { NotesIdDatasource(ffs) }
 				factory { EncyclopediaIdDatasource(ffs) }
 				factory { TimeLineEventIdDatasource(ffs, toml) }
 				factory { SceneDraftIdDatasource(ffs) }
+				factory { ImageIdDatasource(ffs) }
 				scoped { IdAllocator(projectDef) }
 			}
 		})
@@ -155,6 +166,35 @@ class CrossTypeIdRenumberTest : RationalizerTestBase() {
 		assertEquals(listOf("0~Duel~6.md"), filesIn("scenes"))
 		assertEquals(listOf("person/person~7~Bob.toml"), filesIn("encyclopedia"))
 		assertEquals(7, toml.decodeFromString<EntryContainer>(read("encyclopedia/person/person~7~Bob.toml")).entry.id)
+		assertEquals(emptyMap(), rationalizer.findCrossTypeIds())
+	}
+
+	@Test
+	fun `Referrers rewritten by renumbering are marked dirty`() = runTest {
+		writeSceneAndEntrySharingSix()
+		openStores()
+		coEvery { referenceRemapper.remapEntryReferences(6, 7) } returns setOf(3, 4)
+
+		service.resolveCrossTypeIds()
+
+		assertEquals(listOf("person/person~7~Bob.toml"), filesIn("encyclopedia"))
+		coVerify(exactly = 1) { syncJournal.markEntityAsDirty(3) }
+		coVerify(exactly = 1) { syncJournal.markEntityAsDirty(4) }
+	}
+
+	@Test
+	fun `An image keeps a shared id and the scene gets a fresh one`() = runTest {
+		write("scenes/0~Duel~6.md", "En garde")
+		val image = projectDir / "images" / "6~Map.png"
+		ffs.createDirectories(image.parent!!)
+		ffs.write(image) { write(byteArrayOf(0x89.toByte(), 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A)) }
+		openStores()
+
+		service.resolveCrossTypeIds()
+
+		// Other entities reference images by id, so the image is the keeper.
+		assertEquals(listOf("6~Map.png"), filesIn("images"))
+		assertEquals(listOf("0~Duel~7.md"), filesIn("scenes"))
 		assertEquals(emptyMap(), rationalizer.findCrossTypeIds())
 	}
 

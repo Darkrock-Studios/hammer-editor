@@ -27,6 +27,11 @@ sealed class EntityConflictException : Exception("Entity conflict") {
 		override val entity: ApiProjectEntity.SceneDraftEntity = scene
 	}
 
+	class ImageConflictException(image: ApiProjectEntity.ImageEntity) :
+		EntityConflictException() {
+		override val entity: ApiProjectEntity.ImageEntity = image
+	}
+
 	companion object {
 		fun fromEntity(entity: ApiProjectEntity): EntityConflictException {
 			return when (entity) {
@@ -35,6 +40,7 @@ sealed class EntityConflictException : Exception("Entity conflict") {
 				is ApiProjectEntity.TimelineEventEntity -> TimelineEventConflictException(entity)
 				is ApiProjectEntity.EncyclopediaEntryEntity -> EncyclopediaEntryConflictException(entity)
 				is ApiProjectEntity.SceneDraftEntity -> SceneDraftConflictException(entity)
+				is ApiProjectEntity.ImageEntity -> ImageConflictException(entity)
 			}
 		}
 	}

@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.base.http.synchronizer
 
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ApiSceneType
+import korlibs.crypto.encoding.Base64
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
@@ -74,6 +75,46 @@ class EntityHasherTest {
 		)
 
 		assertEquals("lGUFzy0jQtYbLHWa998BfA", hash)
+	}
+
+	@Test
+	fun hashImage() {
+		val hash = EntityHasher.hashImage(
+			id = 7,
+			name = "Castle Map",
+			fileExtension = "png",
+			bytes = byteArrayOf(0x89.toByte(), 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 1, 2, 3),
+		)
+
+		assertEquals("1jWFiWJPKpy7Db-32vCaQQ", hash)
+	}
+
+	@Test
+	fun `hashImage of empty bytes`() {
+		val hash = EntityHasher.hashImage(id = 1, name = "", fileExtension = "jpg", bytes = ByteArray(0))
+		assertEquals("L8xYoT-YxVjqc30-RvPPFg", hash)
+	}
+
+	@Test
+	fun `hashImage name and extension do not bleed into each other`() {
+		val a = EntityHasher.hashImage(id = 1, name = "ab", fileExtension = "c", bytes = byteArrayOf(1))
+		val b = EntityHasher.hashImage(id = 1, name = "a", fileExtension = "bc", bytes = byteArrayOf(1))
+		assertNotEquals(a, b)
+	}
+
+	@Test
+	fun `ImageEntity hash decodes base64 and hashes the raw bytes`() {
+		val bytes = byteArrayOf(0x47, 0x49, 0x46, 0x38, -1, -2, -3)
+		val entity = ApiProjectEntity.ImageEntity(
+			id = 3,
+			name = "Portrait",
+			fileExtension = "gif",
+			base64 = Base64.encode(bytes, url = true),
+		)
+		assertEquals(
+			EntityHasher.hashImage(id = 3, name = "Portrait", fileExtension = "gif", bytes = bytes),
+			entity.hash(),
+		)
 	}
 
 	@Test

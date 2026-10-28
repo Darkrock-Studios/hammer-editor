@@ -32,6 +32,7 @@ class ProjectFileRationalizer(
 		SceneDuplicateIdHandler(projectDef, fileSystem),
 		DraftDuplicateIdHandler(projectDef, fileSystem),
 		NoteDuplicateIdHandler(projectDef, fileSystem, toml),
+		ImageDuplicateIdHandler(projectDef, fileSystem),
 	).associateBy { it.kind }
 
 	fun findDuplicates(): List<DuplicateIdSet> = handlers.values.flatMap { it.findDuplicates() }

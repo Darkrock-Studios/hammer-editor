@@ -18,6 +18,7 @@ data class LoadEntityResponse(
 	constructor(note: ApiProjectEntity.TimelineEventEntity) : this(ApiProjectEntity.Type.TIMELINE_EVENT, note)
 	constructor(note: ApiProjectEntity.EncyclopediaEntryEntity) : this(ApiProjectEntity.Type.ENCYCLOPEDIA_ENTRY, note)
 	constructor(note: ApiProjectEntity.SceneDraftEntity) : this(ApiProjectEntity.Type.SCENE_DRAFT, note)
+	constructor(image: ApiProjectEntity.ImageEntity) : this(ApiProjectEntity.Type.IMAGE, image)
 }
 
 @Serializable

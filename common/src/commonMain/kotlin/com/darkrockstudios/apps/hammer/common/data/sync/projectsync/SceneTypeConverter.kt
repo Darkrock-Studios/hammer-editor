@@ -28,5 +28,6 @@ fun ApiProjectEntity.Type.toEntityType(): EntityType {
 		ApiProjectEntity.Type.TIMELINE_EVENT -> EntityType.TimelineEvent
 		ApiProjectEntity.Type.ENCYCLOPEDIA_ENTRY -> EntityType.EncyclopediaEntry
 		ApiProjectEntity.Type.SCENE_DRAFT -> EntityType.SceneDraft
+		ApiProjectEntity.Type.IMAGE -> EntityType.Image
 	}
 }

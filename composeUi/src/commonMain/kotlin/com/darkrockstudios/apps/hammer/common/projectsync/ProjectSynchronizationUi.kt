@@ -190,6 +190,9 @@ internal fun ProjectSynchronizationContent(
 
 							is ProjectSynchronization.EntityConflict.SceneDraftConflict ->
 								SceneDraftConflict(conflict, component, screenCharacteristics)
+
+							is ProjectSynchronization.EntityConflict.ImageConflict ->
+								ImageConflict(conflict, component, screenCharacteristics)
 						}
 					}
 
@@ -397,6 +400,7 @@ private fun rememberConflictSummary(
 	val timelineLabel = Res.string.sync_conflict_entity_label_timeline_event.get()
 	val encyclopediaLabel = Res.string.sync_conflict_entity_label_encyclopedia_entry.get()
 	val sceneDraftLabel = Res.string.sync_conflict_entity_label_scene_draft.get()
+	val imageLabel = Res.string.sync_conflict_entity_label_image.get()
 	val projectDataLabel = Res.string.sync_conflict_entity_label_project_data.get()
 	return remember(entity, projectData) {
 		when (entity) {
@@ -424,6 +428,11 @@ private fun rememberConflictSummary(
 				label = sceneDraftLabel,
 				name = entity.serverEntity.name,
 				meta = null,
+			)
+			is ProjectSynchronization.EntityConflict.ImageConflict -> ConflictSummary(
+				label = imageLabel,
+				name = entity.serverEntity.name,
+				meta = "IMG · ${entity.serverEntity.fileExtension.uppercase()}",
 			)
 			null -> ConflictSummary(
 				label = if (projectData != null) projectDataLabel else "Conflict",

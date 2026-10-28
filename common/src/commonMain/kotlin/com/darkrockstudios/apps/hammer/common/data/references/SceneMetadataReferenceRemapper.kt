@@ -15,19 +15,20 @@ class SceneMetadataReferenceRemapper(
 	private val sceneMetadataDatasource: SceneMetadataDatasource,
 	private val referenceIndexRepository: ReferenceIndexRepository,
 ) : ReferenceRemapper {
-	override suspend fun remapEntryReferences(oldEntryId: Int, newEntryId: Int) {
-		if (oldEntryId == newEntryId) return
+	override suspend fun remapEntryReferences(oldEntryId: Int, newEntryId: Int): Set<Int> {
+		if (oldEntryId == newEntryId) return emptySet()
 
 		val sceneIds = collectAllSceneIds()
-		var anyRewritten = false
+		val rewrittenScenes = mutableSetOf<Int>()
 		for (sceneId in sceneIds) {
 			val metadata = sceneMetadataDatasource.loadMetadata(sceneId) ?: continue
 			val rewritten = metadata.rewriteReferences(oldEntryId, newEntryId) ?: continue
 			sceneMetadataDatasource.storeMetadata(rewritten, sceneId)
-			anyRewritten = true
+			rewrittenScenes += sceneId
 		}
 
-		if (anyRewritten) referenceIndexRepository.markDirty()
+		if (rewrittenScenes.isNotEmpty()) referenceIndexRepository.markDirty()
+		return rewrittenScenes
 	}
 
 	private suspend fun collectAllSceneIds(): Set<Int> {

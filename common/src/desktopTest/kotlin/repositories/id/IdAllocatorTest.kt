@@ -61,6 +61,7 @@ class IdAllocatorTest : BaseTest() {
 			single { encyclopediaIdDatasource }
 			single { timeLineEventIdDatasource }
 			single { sceneDraftIdDatasource }
+			single { ImageIdDatasource(ffs) }
 		}
 
 		setupKoin(testModule)

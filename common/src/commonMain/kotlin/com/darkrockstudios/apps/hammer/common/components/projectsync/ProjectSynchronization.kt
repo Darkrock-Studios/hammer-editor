@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.common.data.Msg
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessage
+import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import org.jetbrains.compose.resources.StringResource
 
 interface ProjectSynchronization {
@@ -73,6 +74,13 @@ interface ProjectSynchronization {
 			serverEntry: ApiProjectEntity.SceneDraftEntity,
 			clientEntry: ApiProjectEntity.SceneDraftEntity
 		) : EntityConflict<ApiProjectEntity.SceneDraftEntity>(serverEntry, clientEntry)
+
+		class ImageConflict(
+			serverImage: ApiProjectEntity.ImageEntity,
+			clientImage: ApiProjectEntity.ImageEntity,
+			/** The local image file, for display without decoding the base64 copy. */
+			val clientImagePath: HPath,
+		) : EntityConflict<ApiProjectEntity.ImageEntity>(serverImage, clientImage)
 	}
 
 	sealed class EntityMergeError {
@@ -94,6 +102,10 @@ interface ProjectSynchronization {
 		) : EntityMergeError()
 
 		class SceneDraftMergeError(
+			val nameError: Msg? = null,
+		) : EntityMergeError()
+
+		class ImageMergeError(
 			val nameError: Msg? = null,
 		) : EntityMergeError()
 	}

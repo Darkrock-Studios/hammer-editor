@@ -33,6 +33,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.aut
 import com.darkrockstudios.apps.hammer.common.data.groupmetadata.GroupMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.id.datasources.EncyclopediaIdDatasource
+import com.darkrockstudios.apps.hammer.common.data.id.datasources.ImageIdDatasource
 import com.darkrockstudios.apps.hammer.common.data.id.datasources.NotesIdDatasource
 import com.darkrockstudios.apps.hammer.common.data.id.datasources.SceneDraftIdDatasource
 import com.darkrockstudios.apps.hammer.common.data.id.datasources.SceneIdDatasource
@@ -46,6 +47,8 @@ import com.darkrockstudios.apps.hammer.common.data.importer.RtfStoryImporter
 import com.darkrockstudios.apps.hammer.common.data.importer.StoryImporterRegistry
 import com.darkrockstudios.apps.hammer.common.data.export.ExportStoryUseCase
 import com.darkrockstudios.apps.hammer.common.data.export.StoryExporterRegistry
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesDatasource
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesDatasource
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupService
@@ -109,6 +112,7 @@ import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.P
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.ProjectDataSyncOperation
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.WritingActivitySyncOperation
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientEncyclopediaSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientImageSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientNoteSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientSceneDraftSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientSceneSynchronizer
@@ -336,10 +340,14 @@ val mainModule = module {
 		factory<EncyclopediaIdDatasource>()
 		factory<TimeLineEventIdDatasource>()
 		factory<SceneDraftIdDatasource>()
+		factory<ImageIdDatasource>()
 		scoped<IdAllocator>()
 
 		scoped<NotesDatasource>()
 		scoped<NotesRepository>()
+
+		factory<ImagesDatasource>()
+		scoped<ImagesRepository>()
 
 		factory<EncyclopediaDatasource>()
 		scoped<EncyclopediaRepository>()
@@ -385,6 +393,7 @@ val mainModule = module {
 		scoped<ClientTimelineSynchronizer>()
 		scoped<ClientEncyclopediaSynchronizer>()
 		scoped<ClientSceneDraftSynchronizer>()
+		scoped<ClientImageSynchronizer>()
 
 		factory<PrepareForSyncOperation>()
 		factory<FetchLocalDataOperation>()

@@ -200,6 +200,7 @@ private fun Route.uploadEntity() {
 			ApiProjectEntity.Type.TIMELINE_EVENT -> call.receive<ApiProjectEntity.TimelineEventEntity>()
 			ApiProjectEntity.Type.ENCYCLOPEDIA_ENTRY -> call.receive<ApiProjectEntity.EncyclopediaEntryEntity>()
 			ApiProjectEntity.Type.SCENE_DRAFT -> call.receive<ApiProjectEntity.SceneDraftEntity>()
+			ApiProjectEntity.Type.IMAGE -> call.receive<ApiProjectEntity.ImageEntity>()
 		}
 
 		val projectDef = call.requireProjectDef(principal.id) ?: return@post
@@ -248,6 +249,17 @@ private suspend fun RoutingContext.respondUploadEntityFailure(
 			log.warn(e.message)
 		}
 
+		is EntityValidationException -> {
+			call.respond(
+				status = HttpStatusCode.BadRequest,
+				HttpResponseError(
+					error = e.message ?: "Invalid entity",
+					displayMessage = result.displayMessageText(call, R(ERR_KEY_UNKNOWN)),
+				),
+			)
+			log.warn(e.message)
+		}
+
 		is EntityTooLargeException -> {
 			call.respond(
 				status = HttpStatusCode.PayloadTooLarge,
@@ -278,6 +290,7 @@ private suspend fun RoutingContext.respondConflictedEntity(entity: ApiProjectEnt
 		is ApiProjectEntity.TimelineEventEntity -> call.respond(HttpStatusCode.Conflict, entity)
 		is ApiProjectEntity.EncyclopediaEntryEntity -> call.respond(HttpStatusCode.Conflict, entity)
 		is ApiProjectEntity.SceneDraftEntity -> call.respond(HttpStatusCode.Conflict, entity)
+		is ApiProjectEntity.ImageEntity -> call.respond(HttpStatusCode.Conflict, entity)
 	}
 }
 
@@ -323,6 +336,7 @@ private suspend fun RoutingContext.respondDownloadedEntity(
 		is ApiProjectEntity.TimelineEventEntity -> call.respond(serverEntity)
 		is ApiProjectEntity.EncyclopediaEntryEntity -> call.respond(serverEntity)
 		is ApiProjectEntity.SceneDraftEntity -> call.respond(serverEntity)
+		is ApiProjectEntity.ImageEntity -> call.respond(serverEntity)
 	}
 }
 

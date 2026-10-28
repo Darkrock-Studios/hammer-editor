@@ -146,4 +146,24 @@ object EntityHasher {
 		d.update(content, buf)
 		return d.digest().base64Url
 	}
+
+	/** [bytes] are the decoded raw image bytes, not the base64 wire form. */
+	fun hashImage(
+		id: Int,
+		name: String,
+		fileExtension: String,
+		bytes: ByteArray,
+	): String {
+		val buf = buff()
+		val d = Algorithm.MurmurHash3_X64_128().createDigest()
+		d.update(id, buf)
+		// Length prefixes keep adjacent fields from bleeding into each other ("ab"+"c" vs "a"+"bc").
+		d.update(name.length, buf)
+		d.update(name, buf)
+		d.update(fileExtension.length, buf)
+		d.update(fileExtension, buf)
+		d.update(bytes.size, buf)
+		d.update(bytes)
+		return d.digest().base64Url
+	}
 }

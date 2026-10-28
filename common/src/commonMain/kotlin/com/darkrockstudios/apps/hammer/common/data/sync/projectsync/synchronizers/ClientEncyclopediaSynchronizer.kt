@@ -99,9 +99,9 @@ class ClientEncyclopediaSynchronizer(
 		)
 	}
 
-	override suspend fun reIdEntity(oldId: Int, newId: Int) {
+	override suspend fun reIdEntity(oldId: Int, newId: Int): Set<Int> {
 		encyclopediaRepository.reIdEntry(oldId, newId)
-		referenceRemapper.remapEntryReferences(oldId, newId)
+		return referenceRemapper.remapEntryReferences(oldId, newId)
 	}
 
 	override suspend fun finalizeSync() {

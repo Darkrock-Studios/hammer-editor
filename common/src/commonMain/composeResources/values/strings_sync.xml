@@ -6,6 +6,7 @@
 	<string name="sync_conflict_scene_draft_title">Scene Draft Conflict</string>
 	<string name="sync_conflict_note_title">Note Conflict</string>
 	<string name="sync_conflict_timeline_title">Timeline Event Conflict</string>
+	<string name="sync_conflict_image_title">Image Conflict</string>
 
 	<string name="sync_conflict_timeline_event_missing_date">No Date</string>
 
@@ -18,6 +19,7 @@
 	<string name="sync_conflict_entity_label_timeline_event">Timeline Event</string>
 	<string name="sync_conflict_entity_label_encyclopedia_entry">Encyclopedia Entry</string>
 	<string name="sync_conflict_entity_label_scene_draft">Scene Draft</string>
+	<string name="sync_conflict_entity_label_image">Image</string>
 	<string name="sync_conflict_entity_label_project_data">Project Settings</string>
 
 
@@ -117,6 +119,11 @@
 
 	<string name="sync_conflict_title_timeline_event_field_date">Date</string>
 	<string name="sync_conflict_title_timeline_event_field_content">Event Content</string>
+
+	<string name="sync_conflict_title_image_field_name">Name</string>
+	<string name="sync_conflict_image_name_invalid">Image names cannot be blank, end with a dot or space, or contain ~</string>
+	<string name="sync_conflict_image_description">%1$s image, %2$s</string>
+	<string name="sync_conflict_image_unreadable">This image could not be displayed</string>
 
 	<string name="sync_menu_group">Sync</string>
 	<string name="sync_menu_item">Start Sync</string>
@@ -228,10 +235,12 @@
 
 	<string name="sync_draft_rejected_invalid_name">Rejected draft %1$d from server: unsafe draft name</string>
 	<string name="sync_encyclopedia_image_rejected_invalid_extension">Skipped image for encyclopedia entry %1$d from server: unsafe file extension</string>
+	<string name="sync_image_rejected_invalid">Rejected image %1$d from server: not a supported image or unsafe name</string>
 
 	<string name="sync_encyclopedia_deleted">Deleted Encyclopedia ID %1$d from client</string>
 	<string name="sync_note_deleted">Deleted note ID %1$d from client</string>
 	<string name="sync_draft_deleted">Deleted draft %1$d from client</string>
+	<string name="sync_image_deleted">Deleted image %1$d from client</string>
 	<string name="sync_scene_deleted">Deleted scene %1$d from client</string>
 	<string name="sync_scene_delete_failed">Failed to delete scene %1$d from client</string>
 	<string name="sync_scene_delete_failed_not_found">Failed find scene to delete: %1$d</string>

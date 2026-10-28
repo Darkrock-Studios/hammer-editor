@@ -66,7 +66,8 @@ class EntityTransferOperation(
 			resolvedClientSyncData = state.clientSyncData,
 			serverSyncData = state.serverSyncData,
 			newClientIds = state.newClientIds,
-			dirtyEntities = state.collatedIds.dirtyEntities
+			dirtyEntities = state.collatedIds.dirtyEntities,
+			rewrittenIds = state.collatedIds.rewrittenIds,
 		)
 
 		// Transfer Entities
@@ -138,13 +139,14 @@ class EntityTransferOperation(
 	): Boolean {
 		var allSuccess = true
 
-		// Add local IDs on top of the server sequence
+		// Add local IDs on top of the server sequence, then any entity id resolution rewrote that
+		// neither covers, so its rewrite is still uploaded.
 		val combinedSequence = if (state.maxId > state.serverSyncData.lastId) {
 			val localIds = (state.serverSyncData.lastId + 1..state.maxId).toList()
 			state.serverSyncData.idSequence + localIds
 		} else {
 			state.serverSyncData.idSequence
-		}.toSet()
+		}.toSet() + state.rewrittenIds
 
 		val totalIds = combinedSequence.size
 		var currentIndex = 0
@@ -318,6 +320,13 @@ class EntityTransferOperation(
 						syncId,
 						onLog
 					)
+
+				is ApiProjectEntity.ImageEntity ->
+					entitySynchronizers.imageSynchronizer.storeEntity(
+						serverEntity,
+						syncId,
+						onLog
+					)
 			}
 
 			if (success) {
@@ -344,6 +353,9 @@ class EntityTransferOperation(
 		} else {
 			when (val exception = entityResponse.exceptionOrNull()) {
 				is EntityNotModifiedException -> {
+					// The server matched our hash, so it is the baseline. Without this a baseline
+					// left stale by a hasher change would raise a false conflict on the next edit.
+					if (localEntityHash != null) syncJournal.recordSyncedHash(id, localEntityHash)
 					onLog(
 						syncLogI(
 							strRes.get(Res.string.sync_log_entity_download_not_modified, id),
@@ -455,5 +467,6 @@ class EntityTransferOperation(
 		var serverSyncData: ProjectSynchronizationBegan,
 		var newClientIds: List<Int>,
 		var dirtyEntities: MutableList<EntityOriginalState>,
+		val rewrittenIds: Set<Int>,
 	)
 }

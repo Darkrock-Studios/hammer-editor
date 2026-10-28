@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.utilities
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ApiSceneType
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
+import korlibs.crypto.encoding.Base64
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.time.Instant
@@ -208,6 +209,30 @@ class EntityHasherExtTest {
 				hashFromExtension,
 				"Extension function hash must match direct call for draft ID ${draft.id}"
 			)
+		}
+	}
+
+	@Test
+	fun `hashEntity extension must match direct call for Image variations`() {
+		val testImages = listOf(
+			byteArrayOf() to ApiProjectEntity.ImageEntity(id = 1, name = "Empty", fileExtension = "png", base64 = ""),
+			byteArrayOf(0x47, 0x49, 0x46, 0x38, -1) to ApiProjectEntity.ImageEntity(
+				id = 2,
+				name = "Unicode éèêë",
+				fileExtension = "gif",
+				base64 = Base64.encode(byteArrayOf(0x47, 0x49, 0x46, 0x38, -1), url = true),
+			),
+		)
+
+		testImages.forEach { (bytes, image) ->
+			val hashDirect = EntityHasher.hashImage(
+				id = image.id,
+				name = image.name,
+				fileExtension = image.fileExtension,
+				bytes = bytes,
+			)
+
+			assertEquals(hashDirect, image.hash(), "Extension function hash must match direct call for image ID ${image.id}")
 		}
 	}
 

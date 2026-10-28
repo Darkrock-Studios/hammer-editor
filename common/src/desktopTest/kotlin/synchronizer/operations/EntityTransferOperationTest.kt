@@ -252,6 +252,74 @@ class EntityTransferOperationTest : BaseTest() {
 	}
 
 	@Test
+	fun `download - not modified records the local hash as the baseline`() = runTest {
+		val op = createOperation(getProjectDef(PROJECT_2_NAME))
+		coEvery { mockSynchronizers.sceneSynchronizer.ownsEntity(4) } returns true
+		coEvery { mockSynchronizers.sceneSynchronizer.getEntityHash(4) } returns "local-hash-4"
+		coEvery {
+			serverProjectApi.downloadEntity(any(), 4, "local-hash-4", any())
+		} returns Result.failure(EntityNotModifiedException(4))
+
+		val result = op.run(singleDownloadState(4))
+
+		assertTrue(isSuccess(result))
+		assertTrue(assertIs<EntityTransferState>(result.data).allSuccess)
+		// The server matched our hash, so it replaces a baseline a hasher change left stale.
+		coVerify(exactly = 1) { syncJournal.recordSyncedHash(4, "local-hash-4") }
+	}
+
+	@Test
+	fun `download - not modified without a local entity records nothing`() = runTest {
+		val op = createOperation(getProjectDef(PROJECT_2_NAME))
+		coEvery {
+			serverProjectApi.downloadEntity(any(), 4, null, any())
+		} returns Result.failure(EntityNotModifiedException(4))
+
+		op.run(singleDownloadState(4))
+
+		coVerify(exactly = 0) { syncJournal.recordSyncedHash(any(), any()) }
+	}
+
+	@Test
+	fun `An entity rewritten during id resolution is uploaded even when the server sequence skips it`() = runTest {
+		val op = createOperation(getProjectDef(PROJECT_2_NAME))
+		coEvery { mockSynchronizers.sceneSynchronizer.ownsEntity(any()) } returns true
+		coEvery { mockSynchronizers.sceneSynchronizer.getEntityHash(4) } returns "local-hash-4"
+		coEvery {
+			serverProjectApi.downloadEntity(any(), 4, any(), any())
+		} returns Result.failure(EntityNotModifiedException(4))
+		coEvery {
+			mockSynchronizers.sceneSynchronizer.uploadEntity(2, any(), any(), any(), any(), any(), any())
+		} returns true
+
+		val base = singleDownloadState(4)
+		val state = EntityDeleteOperationState(
+			onlyNew = false,
+			clientSyncData = base.clientSyncData.copy(
+				dirty = listOf(EntityOriginalState(2, "synced-2")),
+				syncedHashes = mapOf(2 to "synced-2"),
+			),
+			entityState = base.entityState,
+			serverSyncData = base.serverSyncData,
+			collatedIds = base.collatedIds.copy(
+				dirtyEntities = mutableListOf(EntityOriginalState(2, "synced-2")),
+				rewrittenIds = mutableSetOf(2),
+			),
+			maxId = base.maxId,
+			newClientIds = emptyList(),
+		)
+
+		val result = op.run(state)
+
+		assertTrue(isSuccess(result))
+		assertTrue(assertIs<EntityTransferState>(result.data).allSuccess)
+		coVerify(exactly = 1) {
+			mockSynchronizers.sceneSynchronizer.uploadEntity(2, any(), "synced-2", any(), any(), any(), any())
+		}
+		assertTrue(assertIs<EntityTransferState>(result.data).collatedIds.dirtyEntities.isEmpty())
+	}
+
+	@Test
 	fun `download - entity missing from server and client is deleted remotely`() = runTest {
 		val op = createOperation(getProjectDef(PROJECT_2_NAME))
 		coEvery {

@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.base.http
 
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
+import korlibs.crypto.encoding.Base64
 import kotlinx.serialization.Polymorphic
 import kotlinx.serialization.Serializable
 import kotlin.time.Instant
@@ -137,12 +138,30 @@ sealed interface ApiProjectEntity {
 		)
 	}
 
+	@Serializable
+	data class ImageEntity(
+		override val type: Type = Type.IMAGE,
+		override val id: Int,
+		val name: String,
+		val fileExtension: String,
+		/** URL-safe base64 of the raw image bytes. */
+		val base64: String,
+	) : ApiProjectEntity {
+		override fun hash(): String = EntityHasher.hashImage(
+			id = id,
+			name = name,
+			fileExtension = fileExtension,
+			bytes = Base64.decode(base64, url = true),
+		)
+	}
+
 	enum class Type(val id: Int) {
 		SCENE(0),
 		NOTE(1),
 		TIMELINE_EVENT(2),
 		ENCYCLOPEDIA_ENTRY(3),
-		SCENE_DRAFT(4);
+		SCENE_DRAFT(4),
+		IMAGE(5);
 
 		fun toStringId() = when (this) {
 			SCENE -> "scene"
@@ -150,6 +169,7 @@ sealed interface ApiProjectEntity {
 			TIMELINE_EVENT -> "timeline_event"
 			ENCYCLOPEDIA_ENTRY -> "encyclopedia_entry"
 			SCENE_DRAFT -> "scene_draft"
+			IMAGE -> "image"
 		}
 
 		companion object {
@@ -160,6 +180,7 @@ sealed interface ApiProjectEntity {
 					"timeline_event" -> TIMELINE_EVENT
 					"encyclopedia_entry" -> ENCYCLOPEDIA_ENTRY
 					"scene_draft" -> SCENE_DRAFT
+					"image" -> IMAGE
 					else -> null
 				}
 			}

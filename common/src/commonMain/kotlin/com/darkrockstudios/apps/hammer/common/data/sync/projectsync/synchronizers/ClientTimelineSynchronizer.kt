@@ -68,8 +68,9 @@ class ClientTimelineSynchronizer(
 		)
 	}
 
-	override suspend fun reIdEntity(oldId: Int, newId: Int) {
+	override suspend fun reIdEntity(oldId: Int, newId: Int): Set<Int> {
 		timeLineRepository.reIdEvent(oldId, newId)
+		return emptySet()
 	}
 
 	override suspend fun storeEntity(

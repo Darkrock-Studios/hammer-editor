@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.integration.scenarios
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ApiSceneType
 import com.darkrockstudios.apps.hammer.integration.RoundTripTestBase
+import com.darkrockstudios.apps.hammer.integration.TestImages
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Timeout
 import org.junit.jupiter.params.ParameterizedTest
@@ -149,6 +150,12 @@ class ResyncStabilityMatrixTest : RoundTripTestBase() {
 					aliases = emptyList(),
 				),
 			),
+			one("image, png", TestImages.entity(id = 1, name = "Map", fileExtension = "png", bytes = TestImages.png())),
+			one(
+				"image, name with dots and encoded characters",
+				TestImages.entity(id = 1, name = "map.v2: what?", fileExtension = "jpeg", bytes = TestImages.jpeg()),
+			),
+			one("image, svg", TestImages.entity(id = 1, name = "Vector", fileExtension = "svg", bytes = TestImages.svg())),
 			Case(
 				"scene draft references its scene",
 				listOf(

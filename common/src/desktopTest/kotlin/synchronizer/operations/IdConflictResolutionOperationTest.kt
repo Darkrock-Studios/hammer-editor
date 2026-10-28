@@ -75,7 +75,7 @@ class IdConflictResolutionOperationTest : BaseTest() {
 
 		coEvery { mockSynchronizers.sceneSynchronizer.ownsEntity(11) } returns true
 		coEvery { mockSynchronizers.sceneSynchronizer.deleteEntityLocal(any(), any()) } just Runs
-		coEvery { mockSynchronizers.sceneSynchronizer.reIdEntity(any(), any()) } just Runs
+		coEvery { mockSynchronizers.sceneSynchronizer.reIdEntity(any(), any()) } returns emptySet()
 
 		val onProgress = mockk<suspend (Float, SyncLogMessage?) -> Unit>(relaxed = true)
 		val onLog = mockk<OnSyncLog>(relaxed = true)
@@ -134,6 +134,7 @@ class IdConflictResolutionOperationTest : BaseTest() {
 		coEvery { mockSynchronizers.timelineSynchronizer.ownsEntity(any()) } returns false
 		coEvery { mockSynchronizers.encyclopediaSynchronizer.ownsEntity(any()) } returns false
 		coEvery { mockSynchronizers.sceneDraftSynchronizer.ownsEntity(any()) } returns false
+		coEvery { mockSynchronizers.imageSynchronizer.ownsEntity(any()) } returns false
 
 		val phantomClientData = ProjectSynchronizationData(
 			lastId = 50,
@@ -194,7 +195,7 @@ class IdConflictResolutionOperationTest : BaseTest() {
 		coEvery { idAllocator.peekLastId() } returns 100 // local max entity id
 
 		coEvery { mockSynchronizers.sceneSynchronizer.ownsEntity(30) } returns true
-		coEvery { mockSynchronizers.sceneSynchronizer.reIdEntity(any(), any()) } just Runs
+		coEvery { mockSynchronizers.sceneSynchronizer.reIdEntity(any(), any()) } returns emptySet()
 
 		val clientData = ProjectSynchronizationData(
 			lastId = 100,
@@ -242,5 +243,120 @@ class IdConflictResolutionOperationTest : BaseTest() {
 		assertTrue(isSuccess(result))
 		// Must land above the local max (101), not 51 which would clobber a real entity.
 		coVerify { mockSynchronizers.sceneSynchronizer.reIdEntity(30, 101) }
+	}
+
+	private fun stubNobodyOwns() {
+		mockSynchronizers.synchronizers.forEach { sync ->
+			coEvery { sync.ownsEntity(any()) } returns false
+		}
+	}
+
+	private suspend fun runResolution(
+		op: IdConflictResolutionOperation,
+		clientData: ProjectSynchronizationData,
+		serverLastId: Int,
+	): IdConflictResolutionState {
+		val state = CollateIdsState(
+			onlyNew = false,
+			clientSyncData = clientData,
+			entityState = entityState,
+			serverSyncData = ProjectSynchronizationBegan(
+				syncId = "sync-id",
+				lastSync = Instant.fromEpochSeconds(1234567),
+				lastId = serverLastId,
+				idSequence = emptyList(),
+				deletedIds = emptySet(),
+			),
+			collatedIds = CollateIdsState.CollatedIds(
+				combinedDeletions = emptySet(),
+				serverDeletedIds = emptySet(),
+				newlyDeletedIds = emptySet(),
+				dirtyEntities = mutableListOf(),
+			),
+		)
+		val result = op.execute(state, { _, _ -> }, {}, {}, {})
+		assertTrue(isSuccess(result))
+		return assertIs<IdConflictResolutionState>(result.data)
+	}
+
+	@Test
+	fun `Entities a re-ID rewrote become dirty with their synced baseline and are recorded`() = runTest {
+		val op = createOperation(getProjectDef(PROJECT_2_NAME))
+		coEvery { idAllocator.findNextId() } just Runs
+		coEvery { idAllocator.peekLastId() } returns 12
+
+		stubNobodyOwns()
+		coEvery { mockSynchronizers.encyclopediaSynchronizer.ownsEntity(11) } returns true
+		coEvery { mockSynchronizers.sceneSynchronizer.ownsEntity(12) } returns true
+		// Re-IDing entry 11 rewrites scene 5 (synced) and scene 12 (new, re-IDed after it).
+		coEvery { mockSynchronizers.encyclopediaSynchronizer.reIdEntity(11, 13) } returns setOf(5, 12)
+		coEvery { mockSynchronizers.sceneSynchronizer.reIdEntity(12, 14) } returns emptySet()
+
+		val clientData = ProjectSynchronizationData(
+			lastId = 12,
+			newIds = listOf(11, 12),
+			lastSync = Instant.fromEpochSeconds(123456),
+			dirty = listOf(EntityOriginalState(3, "synced-3")),
+			deletedIds = emptySet(),
+			syncedHashes = mapOf(3 to "synced-3", 5 to "synced-5"),
+		)
+
+		val data = runResolution(op, clientData, serverLastId = 12)
+
+		assertEquals(listOf(13, 14), data.newClientIds)
+		// Scene 12 was itself re-IDed later in the loop, so it is recorded under its final id.
+		assertEquals(setOf(5, 14), data.collatedIds.rewrittenIds)
+		assertEquals(
+			listOf(
+				EntityOriginalState(3, "synced-3"),
+				EntityOriginalState(5, "synced-5"),
+				EntityOriginalState(14, null),
+			),
+			data.clientSyncData.dirty,
+		)
+	}
+
+	@Test
+	fun `A rewritten entity that is already dirty keeps its one dirty record`() = runTest {
+		val op = createOperation(getProjectDef(PROJECT_2_NAME))
+		coEvery { idAllocator.findNextId() } just Runs
+		coEvery { idAllocator.peekLastId() } returns 11
+
+		stubNobodyOwns()
+		coEvery { mockSynchronizers.encyclopediaSynchronizer.ownsEntity(11) } returns true
+		coEvery { mockSynchronizers.encyclopediaSynchronizer.reIdEntity(11, 12) } returns setOf(5)
+
+		val clientData = ProjectSynchronizationData(
+			lastId = 11,
+			newIds = listOf(11),
+			lastSync = Instant.fromEpochSeconds(123456),
+			dirty = listOf(EntityOriginalState(5, "older-baseline")),
+			deletedIds = emptySet(),
+			syncedHashes = mapOf(5 to "synced-5"),
+		)
+
+		val data = runResolution(op, clientData, serverLastId = 11)
+
+		assertEquals(setOf(5), data.collatedIds.rewrittenIds)
+		assertEquals(listOf(EntityOriginalState(5, "older-baseline")), data.clientSyncData.dirty)
+	}
+
+	@Test
+	fun `No re-ID means nothing is recorded as rewritten`() = runTest {
+		val op = createOperation(getProjectDef(PROJECT_2_NAME))
+		coEvery { idAllocator.findNextId() } just Runs
+		coEvery { idAllocator.peekLastId() } returns 11
+
+		val clientData = ProjectSynchronizationData(
+			lastId = 11,
+			newIds = listOf(11),
+			lastSync = Instant.fromEpochSeconds(123456),
+			dirty = emptyList(),
+			deletedIds = emptySet(),
+		)
+
+		val data = runResolution(op, clientData, serverLastId = 10)
+
+		assertTrue(data.collatedIds.rewrittenIds.isEmpty())
 	}
 }

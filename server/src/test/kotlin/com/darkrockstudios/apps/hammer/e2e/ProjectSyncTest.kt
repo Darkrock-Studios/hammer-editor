@@ -218,6 +218,17 @@ class ProjectSyncTest : ProjectSyncTestBase() {
 						)
 						assertEquals(entity, downloadResponse)
 					}
+
+					is ApiProjectEntity.ImageEntity -> {
+						val downloadResponse: ApiProjectEntity.ImageEntity = downloadEntity(
+							userId,
+							authToken,
+							synchronizationBegan.syncId,
+							entity.id,
+							null,
+						)
+						assertEquals(entity, downloadResponse)
+					}
 				}
 			}
 

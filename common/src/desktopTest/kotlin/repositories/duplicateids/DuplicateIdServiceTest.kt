@@ -9,6 +9,7 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.Encycl
 import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.id.datasources.EncyclopediaIdDatasource
 import com.darkrockstudios.apps.hammer.common.data.id.datasources.NotesIdDatasource
+import com.darkrockstudios.apps.hammer.common.data.id.datasources.ImageIdDatasource
 import com.darkrockstudios.apps.hammer.common.data.id.datasources.SceneDraftIdDatasource
 import com.darkrockstudios.apps.hammer.common.data.id.datasources.SceneIdDatasource
 import com.darkrockstudios.apps.hammer.common.data.id.datasources.TimeLineEventIdDatasource
@@ -73,6 +74,7 @@ class DuplicateIdServiceTest : RationalizerTestBase() {
 				factory { EncyclopediaIdDatasource(ffs) }
 				factory { TimeLineEventIdDatasource(ffs, toml) }
 				factory { SceneDraftIdDatasource(ffs) }
+				factory { ImageIdDatasource(ffs) }
 				scoped { IdAllocator(projectDef) }
 			}
 		})

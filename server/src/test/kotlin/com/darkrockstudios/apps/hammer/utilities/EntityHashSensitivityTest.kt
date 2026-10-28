@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectTheme
 import com.darkrockstudios.apps.hammer.base.http.projectdata.WordCountGoal
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectDataHasher
+import korlibs.crypto.encoding.Base64
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.StructureKind
@@ -266,6 +267,28 @@ class EntityHashSensitivityTest {
 		)
 	}
 
+	private val imageSpec = run {
+		val base = ApiProjectEntity.ImageEntity(
+			id = 1,
+			name = "base image",
+			fileExtension = "png",
+			base64 = Base64.encode(byteArrayOf(1, 2, 3, 4), url = true),
+		)
+		Spec(
+			klass = ApiProjectEntity.ImageEntity::class,
+			serializer = ApiProjectEntity.ImageEntity.serializer(),
+			entityType = ApiProjectEntity.Type.IMAGE,
+			base = base,
+			hashOf = { it.hash() },
+			mutations = mapOf(
+				"id" to base.copy(id = 999),
+				"name" to base.copy(name = "different"),
+				"fileExtension" to base.copy(fileExtension = "jpg"),
+				"base64" to base.copy(base64 = Base64.encode(byteArrayOf(1, 2, 3, 5), url = true)),
+			),
+		)
+	}
+
 	// Synced per-project settings. NOT an ApiProjectEntity - it has its own [ProjectDataHasher],
 	// which is exactly why it needs its own structural guard (and recursion over theme/wordCountGoal).
 	private val projectDataSpec = run {
@@ -300,7 +323,7 @@ class EntityHashSensitivityTest {
 	}
 
 	private val allSpecs: List<Spec<*>> = listOf(
-		sceneSpec, noteSpec, timelineSpec, encyclopediaSpec, draftSpec, projectDataSpec,
+		sceneSpec, noteSpec, timelineSpec, encyclopediaSpec, draftSpec, imageSpec, projectDataSpec,
 	)
 
 	companion object {

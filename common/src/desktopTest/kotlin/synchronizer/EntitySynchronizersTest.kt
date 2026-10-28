@@ -53,6 +53,7 @@ class EntitySynchronizersTest : BaseTest() {
 		assertSame(mocks.timelineSynchronizer, es[EntityType.TimelineEvent])
 		assertSame(mocks.encyclopediaSynchronizer, es[EntityType.EncyclopediaEntry])
 		assertSame(mocks.sceneDraftSynchronizer, es[EntityType.SceneDraft])
+		assertSame(mocks.imageSynchronizer, es[EntityType.Image])
 	}
 
 	@Test
@@ -93,6 +94,7 @@ class EntitySynchronizersTest : BaseTest() {
 			Triple(mocks.timelineSynchronizer, 3, "timeline-hash"),
 			Triple(mocks.encyclopediaSynchronizer, 4, "encyclopedia-hash"),
 			Triple(mocks.sceneDraftSynchronizer, 5, "draft-hash"),
+			Triple(mocks.imageSynchronizer, 6, "image-hash"),
 		)
 		cases.forEach { (sync, id, hash) ->
 			coEvery { sync.ownsEntity(id) } returns true
@@ -132,6 +134,7 @@ class EntitySynchronizersTest : BaseTest() {
 			mocks.timelineSynchronizer to 3,
 			mocks.encyclopediaSynchronizer to 4,
 			mocks.sceneDraftSynchronizer to 5,
+			mocks.imageSynchronizer to 6,
 		)
 		cases.forEach { (sync, id) -> coEvery { sync.ownsEntity(id) } returns true }
 
@@ -146,10 +149,14 @@ class EntitySynchronizersTest : BaseTest() {
 	@Test
 	fun `reIdEntry says what changed, and nothing for a phantom id`() = runTest {
 		coEvery { mocks.encyclopediaSynchronizer.ownsEntity(4) } returns true
+		coEvery { mocks.encyclopediaSynchronizer.reIdEntity(4, 104) } returns setOf(9)
 
 		val es = entitySynchronizers()
 
-		assertEquals(EntityIdChange(EntityType.EncyclopediaEntry, 4, 104), es.reIdEntry(oldId = 4, newId = 104))
+		assertEquals(
+			EntityIdChange(EntityType.EncyclopediaEntry, 4, 104, rewrittenReferrers = setOf(9)),
+			es.reIdEntry(oldId = 4, newId = 104),
+		)
 		assertNull(es.reIdEntry(oldId = 404, newId = 9))
 	}
 
@@ -179,6 +186,7 @@ class EntitySynchronizersTest : BaseTest() {
 		coVerify(exactly = 0) { mocks.timelineSynchronizer.reIdEntity(any(), any()) }
 		coVerify(exactly = 0) { mocks.encyclopediaSynchronizer.reIdEntity(any(), any()) }
 		coVerify(exactly = 0) { mocks.sceneDraftSynchronizer.reIdEntity(any(), any()) }
+		coVerify(exactly = 0) { mocks.imageSynchronizer.reIdEntity(any(), any()) }
 	}
 
 	@Test
@@ -188,18 +196,21 @@ class EntitySynchronizersTest : BaseTest() {
 		val timelineCh = Channel<ApiProjectEntity.TimelineEventEntity>(Channel.UNLIMITED)
 		val encyclopediaCh = Channel<ApiProjectEntity.EncyclopediaEntryEntity>(Channel.UNLIMITED)
 		val draftCh = Channel<ApiProjectEntity.SceneDraftEntity>(Channel.UNLIMITED)
+		val imageCh = Channel<ApiProjectEntity.ImageEntity>(Channel.UNLIMITED)
 
 		every { mocks.sceneSynchronizer.conflictResolution } returns sceneCh
 		every { mocks.noteSynchronizer.conflictResolution } returns noteCh
 		every { mocks.timelineSynchronizer.conflictResolution } returns timelineCh
 		every { mocks.encyclopediaSynchronizer.conflictResolution } returns encyclopediaCh
 		every { mocks.sceneDraftSynchronizer.conflictResolution } returns draftCh
+		every { mocks.imageSynchronizer.conflictResolution } returns imageCh
 
 		val scene = mockk<ApiProjectEntity.SceneEntity>()
 		val note = mockk<ApiProjectEntity.NoteEntity>()
 		val timeline = mockk<ApiProjectEntity.TimelineEventEntity>()
 		val encyclopedia = mockk<ApiProjectEntity.EncyclopediaEntryEntity>()
 		val draft = mockk<ApiProjectEntity.SceneDraftEntity>()
+		val image = mockk<ApiProjectEntity.ImageEntity>()
 
 		val es = entitySynchronizers()
 		es.handleConflict(scene)
@@ -207,11 +218,13 @@ class EntitySynchronizersTest : BaseTest() {
 		es.handleConflict(timeline)
 		es.handleConflict(encyclopedia)
 		es.handleConflict(draft)
+		es.handleConflict(image)
 
 		assertSame(scene, sceneCh.tryReceive().getOrNull())
 		assertSame(note, noteCh.tryReceive().getOrNull())
 		assertSame(timeline, timelineCh.tryReceive().getOrNull())
 		assertSame(encyclopedia, encyclopediaCh.tryReceive().getOrNull())
 		assertSame(draft, draftCh.tryReceive().getOrNull())
+		assertSame(image, imageCh.tryReceive().getOrNull())
 	}
 }

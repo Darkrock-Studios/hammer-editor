@@ -82,6 +82,7 @@ import com.darkrockstudios.apps.hammer.duplicate_ids_show_differences
 import com.darkrockstudios.apps.hammer.duplicate_ids_title_draft
 import com.darkrockstudios.apps.hammer.duplicate_ids_title_entry
 import com.darkrockstudios.apps.hammer.duplicate_ids_title_entry_image
+import com.darkrockstudios.apps.hammer.duplicate_ids_title_image
 import com.darkrockstudios.apps.hammer.duplicate_ids_title_note
 import com.darkrockstudios.apps.hammer.duplicate_ids_title_scene
 import com.darkrockstudios.apps.hammer.duplicate_ids_working
@@ -200,6 +201,7 @@ private fun Explanation(set: DuplicateIdSet) {
 		DuplicateIdKind.Scene -> Res.string.duplicate_ids_title_scene
 		DuplicateIdKind.Draft -> Res.string.duplicate_ids_title_draft
 		DuplicateIdKind.Note -> Res.string.duplicate_ids_title_note
+		DuplicateIdKind.Image -> Res.string.duplicate_ids_title_image
 	}.get(set.copies.size, set.id)
 	Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
 		Text(
@@ -387,6 +389,7 @@ private fun entityCode(set: DuplicateIdSet): String {
 		DuplicateIdKind.Scene -> "SCN"
 		DuplicateIdKind.Draft -> "DRF"
 		DuplicateIdKind.Note -> "NOTE"
+		DuplicateIdKind.Image -> "IMG"
 	}
 	return "$prefix-${set.id.toString().padStart(3, '0')}"
 }

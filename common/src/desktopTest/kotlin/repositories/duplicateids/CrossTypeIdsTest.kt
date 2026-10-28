@@ -27,11 +27,12 @@ class CrossTypeIdsTest : RationalizerTestBase() {
 		write("scenes/.drafts/6/6~6~Take one~1700000000.md", "First take")
 		write("notes/note-6.toml", noteToml(6, "Remember the sword"))
 		write("timeline/timeline.toml", toml.encodeToString(TimeLineContainer(listOf(TimeLineEvent(id = 6, order = 0, content = "The duel")))))
+		write("images/6~Map.png", "png bytes")
 
 		val owners = rationalizer.findCrossTypeIds()
 
 		assertEquals(
-			setOf(EntityType.Scene, EntityType.SceneDraft, EntityType.Note, EntityType.TimelineEvent),
+			setOf(EntityType.Scene, EntityType.SceneDraft, EntityType.Note, EntityType.TimelineEvent, EntityType.Image),
 			owners.getValue(6).toSet(),
 		)
 	}

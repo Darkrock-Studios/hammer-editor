@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.integration.scenarios
 
 import com.darkrockstudios.apps.hammer.common.data.SceneContent
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
@@ -10,6 +11,7 @@ import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEv
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.integration.HeadlessClient
 import com.darkrockstudios.apps.hammer.integration.RoundTripTestBase
+import com.darkrockstudios.apps.hammer.integration.TestImages
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Timeout
@@ -43,6 +45,7 @@ class MixedSyncFuzzTest : RoundTripTestBase() {
 		val notes: NotesRepository = client.scope.get()
 		val timeline: TimeLineRepository = client.scope.get()
 		val encyclopedia: EncyclopediaRepository = client.scope.get()
+		val images: ImagesRepository = client.scope.get()
 		timeline.initialize()
 		encyclopedia.ensureEntriesLoaded()
 
@@ -50,6 +53,7 @@ class MixedSyncFuzzTest : RoundTripTestBase() {
 		val noteState = mutableMapOf<Int, NoteContent>()
 		val eventState = mutableMapOf<Int, TimeLineEvent>()
 		val entries = mutableListOf<Int>()
+		val imageIds = mutableListOf<Int>()
 
 		// Seed a baseline so early edit/delete ops have something to act on.
 		newScene(client, scenes, "Opening", "the beginning")
@@ -58,7 +62,7 @@ class MixedSyncFuzzTest : RoundTripTestBase() {
 
 		repeat(ITERATIONS) { i ->
 			val tag = "[seed $seed iter $i]"
-			when (rng.nextInt(15)) {
+			when (rng.nextInt(OP_COUNT)) {
 				0 -> newScene(client, scenes, "Scene $i", "content $i")
 				1 -> notes.createNote("note $i", tags = randomTags(rng))
 					.let { if (isSuccess(it)) noteState[it.data.id] = it.data }
@@ -121,6 +125,20 @@ class MixedSyncFuzzTest : RoundTripTestBase() {
 				}
 
 				14 -> assertTrue(client.syncNoConflict(), "$tag sync should not conflict")
+
+				15 -> images.create("Image $i", TestImages.png(i), "png").image?.let { imageIds.add(it.id) }
+				16 -> imageIds.randomOrNull(rng)?.let { id ->
+					if (rng.nextBoolean()) images.replace(id, TestImages.jpeg(i), "jpg")
+					else images.replace(id, TestImages.png(i), "png")
+				}
+				17 -> imageIds.randomOrNull(rng)?.let { id -> images.rename(id, "Renamed image $i") }
+				18 -> imageIds.randomOrNull(rng)?.let { id -> if (images.delete(id)) imageIds.remove(id) }
+
+				19 -> scenes.randomOrNull(rng)?.let { id ->
+					client.sceneEditor.getSceneItemFromId(id)?.let { scene ->
+						client.draftRepository.saveDraft(scene, "Draft $i", "draft $i")
+					}
+				}
 			}
 		}
 
@@ -144,6 +162,7 @@ class MixedSyncFuzzTest : RoundTripTestBase() {
 
 	companion object {
 		private const val ITERATIONS = 30
+		private const val OP_COUNT = 20
 		private val SEEDS = listOf(1L, 777L, 20260630L)
 	}
 }

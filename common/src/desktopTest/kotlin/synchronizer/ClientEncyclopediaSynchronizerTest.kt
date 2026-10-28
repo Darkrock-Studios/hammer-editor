@@ -89,8 +89,10 @@ class ClientEncyclopediaSynchronizerTest : BaseTest() {
 
 	private class RecordingReferenceRemapper : ReferenceRemapper {
 		val remaps = mutableListOf<Pair<Int, Int>>()
-		override suspend fun remapEntryReferences(oldEntryId: Int, newEntryId: Int) {
+		var rewritten: Set<Int> = emptySet()
+		override suspend fun remapEntryReferences(oldEntryId: Int, newEntryId: Int): Set<Int> {
 			remaps.add(oldEntryId to newEntryId)
+			return rewritten
 		}
 	}
 
@@ -387,8 +389,11 @@ class ClientEncyclopediaSynchronizerTest : BaseTest() {
 		val oldPath = datasource.getEntryPath(entry2().toDef(projectDef)).toOkioPath()
 		assertTrue(fileSystem.exists(oldPath))
 
-		sync.reIdEntity(oldId = entry2().id, newId = 7)
+		remapper.rewritten = setOf(3, 4)
+		val referrers = sync.reIdEntity(oldId = entry2().id, newId = 7)
 
+		// The scenes whose references were rewritten must be uploaded in the same sync.
+		assertEquals(setOf(3, 4), referrers)
 		assertFalse(fileSystem.exists(oldPath))
 		val newPath = datasource.getEntryPath(entry2().copy(id = 7).toDef(projectDef)).toOkioPath()
 		assertTrue(fileSystem.exists(newPath))

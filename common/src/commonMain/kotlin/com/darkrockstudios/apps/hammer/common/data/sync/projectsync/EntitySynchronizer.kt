@@ -84,7 +84,11 @@ abstract class EntitySynchronizer<T : ApiProjectEntity>(
 	}
 
 	abstract suspend fun storeEntity(serverEntity: T, syncId: String, onLog: OnSyncLog): Boolean
-	abstract suspend fun reIdEntity(oldId: Int, newId: Int)
+	/**
+	 * Gives the entity [oldId] the id [newId]. Returns the ids of other entities whose stored
+	 * content this changed (references rewritten to [newId]), which must be uploaded in the same sync.
+	 */
+	abstract suspend fun reIdEntity(oldId: Int, newId: Int): Set<Int>
 	abstract suspend fun finalizeSync()
 	abstract fun getEntityType(): EntityType
 	abstract suspend fun deleteEntityLocal(id: Int, onLog: OnSyncLog)

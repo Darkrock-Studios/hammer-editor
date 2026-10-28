@@ -68,6 +68,7 @@ class SyncJournalTest : BaseTest() {
 			single { EncyclopediaIdDatasource(ffs) }
 			single { TimeLineEventIdDatasource(ffs, createTomlSerializer()) }
 			single { SceneDraftIdDatasource(ffs) }
+			single { ImageIdDatasource(ffs) }
 		})
 		datasource = SyncJournalDatasource(
 			projectDef = projectDef,

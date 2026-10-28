@@ -8,6 +8,7 @@ enum class DuplicateIdKind {
 	Scene,
 	Draft,
 	Note,
+	Image,
 }
 
 /** One file (or scene group directory) claiming an id. */
