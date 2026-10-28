@@ -81,6 +81,7 @@ import com.darkrockstudios.apps.hammer.common.compose.rememberIoDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImageAddResult
+import com.darkrockstudios.apps.hammer.common.data.references.ImageReferrer
 import com.darkrockstudios.apps.hammer.common.data.references.ImageUsages
 import com.darkrockstudios.apps.hammer.images_gallery_add
 import com.darkrockstudios.apps.hammer.images_gallery_cancel
@@ -654,14 +655,12 @@ private class LastValue<T : Any> {
 private fun usageMessage(usages: ImageUsages): String {
 	if (usages.isUnused) return Res.string.images_gallery_delete_unused.get()
 	val header = Res.string.images_gallery_delete_used.get(usages.usages.size)
-	// The cover is not an entity: its null type sorts last.
 	val lines = usages.usages
-		.groupBy { it.entity?.type }
-		.entries
-		.sortedBy { it.key?.ordinal ?: Int.MAX_VALUE }
-		.map { (type, uses) ->
+		.sortedBy { usageOrder(it.referrer) }
+		.groupBy { usageTypeLabel(it.referrer) }
+		.map { (label, uses) ->
 			Res.string.images_gallery_delete_usage_line.get(
-				usageTypeLabel(type).get(),
+				label.get(),
 				uses.size,
 				uses.joinToString { it.name },
 			)
@@ -669,12 +668,20 @@ private fun usageMessage(usages: ImageUsages): String {
 	return (listOf(header) + lines).joinToString("\n")
 }
 
-private fun usageTypeLabel(type: EntityType?): StringResource = when (type) {
-	null -> Res.string.images_usage_type_cover
-	EntityType.Scene -> Res.string.images_usage_type_scene
-	EntityType.Note -> Res.string.images_usage_type_note
-	EntityType.TimelineEvent -> Res.string.images_usage_type_event
-	EntityType.EncyclopediaEntry -> Res.string.images_usage_type_entry
-	EntityType.SceneDraft -> Res.string.images_usage_type_draft
-	EntityType.Image -> Res.string.images_usage_type_image
+/** Entities in [EntityType] order, then the cover. */
+private fun usageOrder(referrer: ImageReferrer): Int = when (referrer) {
+	is ImageReferrer.Entity -> referrer.entity.type.ordinal
+	ImageReferrer.ProjectCover -> Int.MAX_VALUE
+}
+
+private fun usageTypeLabel(referrer: ImageReferrer): StringResource = when (referrer) {
+	ImageReferrer.ProjectCover -> Res.string.images_usage_type_cover
+	is ImageReferrer.Entity -> when (referrer.entity.type) {
+		EntityType.Scene -> Res.string.images_usage_type_scene
+		EntityType.Note -> Res.string.images_usage_type_note
+		EntityType.TimelineEvent -> Res.string.images_usage_type_event
+		EntityType.EncyclopediaEntry -> Res.string.images_usage_type_entry
+		EntityType.SceneDraft -> Res.string.images_usage_type_draft
+		EntityType.Image -> Res.string.images_usage_type_image
+	}
 }

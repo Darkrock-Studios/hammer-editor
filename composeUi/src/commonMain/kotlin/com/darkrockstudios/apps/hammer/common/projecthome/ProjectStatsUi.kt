@@ -169,8 +169,8 @@ private fun DashboardHeader(
 		) {
 			if (cover != null) {
 				CoverThumbnail(
-					path = cover.path.path,
-					version = cover.contentHash,
+					path = cover.path,
+					version = cover.version,
 					contentDescription = Res.string.project_home_cover_description.get(),
 					modifier = Modifier
 						.height(HeaderCoverHeight)
@@ -237,7 +237,7 @@ private fun DashboardHeader(
 
 	if (viewingCover && cover != null) {
 		ImageViewerDialog(
-			items = listOf(ImageViewerItem.ofFile(cover.path.path, cover.contentHash, cover.def.name)),
+			items = listOf(ImageViewerItem.ofFile(cover.path, cover.version, cover.def.name)),
 			initialIndex = 0,
 			onDismissed = { viewingCover = false },
 		)

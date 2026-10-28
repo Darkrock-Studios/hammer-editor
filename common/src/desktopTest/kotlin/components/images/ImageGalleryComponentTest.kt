@@ -15,6 +15,7 @@ import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesDataso
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesRepository
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesService
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageDef
+import com.darkrockstudios.apps.hammer.common.data.references.ImageReferrer
 import com.darkrockstudios.apps.hammer.common.data.references.ImageUsage
 import com.darkrockstudios.apps.hammer.common.data.references.ImageUsages
 import com.darkrockstudios.apps.hammer.common.data.references.TouchedEntity
@@ -302,7 +303,7 @@ class ImageGalleryComponentTest : ComponentTest() {
 
 	@Test
 	fun `Asking to delete finds the image's usages, confirming deletes it`() = runTest(mainTestDispatcher) {
-		val usages = ImageUsages(listOf(ImageUsage(TouchedEntity(EntityType.EncyclopediaEntry, 30), "Alice")))
+		val usages = ImageUsages(listOf(ImageUsage(ImageReferrer.Entity(TouchedEntity(EntityType.EncyclopediaEntry, 30)), "Alice")))
 		coEvery { imagesService.findUsages(3) } returns usages
 		coEvery { imagesService.delete(3) } answers {
 			store(stored.filterNot { it.id == 3 })

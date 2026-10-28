@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImageAddOutc
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImageAddResult
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesService
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageDef
+import com.darkrockstudios.apps.hammer.common.data.references.ImageReferrer
 import com.darkrockstudios.apps.hammer.operations.Access
 import com.darkrockstudios.apps.hammer.operations.Base64Bytes
 import com.darkrockstudios.apps.hammer.operations.OpenProject
@@ -98,10 +99,9 @@ internal fun imageOperations(): List<Operation<*, *>> = listOf(
 				id = def.id,
 				name = def.name,
 				extension = def.fileExtension,
-				removedFrom = result.touched
-					.map { ImageUser(ImageUserKind.of(it.type), it.id) }
-					.sortedWith(compareBy({ it.kind.ordinal }, { it.id }))
-					.plus(listOfNotNull(ImageUser(ImageUserKind.Cover).takeIf { result.coverCleared })),
+				removedFrom = result.removedFrom
+					.map(ImageUser::of)
+					.sortedWith(compareBy({ it.kind.ordinal }, { it.id })),
 			)
 		}
 	},
@@ -192,7 +192,14 @@ data class ImageUser(
 	val kind: ImageUserKind,
 	/** Null for [ImageUserKind.Cover], which is not an entity. */
 	val id: Int? = null,
-)
+) {
+	companion object {
+		fun of(referrer: ImageReferrer): ImageUser = when (referrer) {
+			is ImageReferrer.Entity -> ImageUser(ImageUserKind.of(referrer.entity.type), referrer.entity.id)
+			ImageReferrer.ProjectCover -> ImageUser(ImageUserKind.Cover)
+		}
+	}
+}
 
 @Serializable
 enum class ImageUserKind {

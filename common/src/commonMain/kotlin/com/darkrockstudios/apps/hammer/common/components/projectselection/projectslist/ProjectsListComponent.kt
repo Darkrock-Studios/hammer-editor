@@ -270,7 +270,7 @@ class ProjectsListComponent(
 	private fun findCover(projectDef: ProjectDef, coverImageId: Int): Pair<String, String?>? = try {
 		findImageFile(projectDef, coverImageId, fileSystem)?.let { path ->
 			val stamp = readImageFileStamp(path, fileSystem)
-			path.path to stamp?.let { "${it.size}-${it.lastModifiedAtMillis}" }
+			path.path to stamp?.cacheToken
 		}
 	} catch (_: IOException) {
 		null

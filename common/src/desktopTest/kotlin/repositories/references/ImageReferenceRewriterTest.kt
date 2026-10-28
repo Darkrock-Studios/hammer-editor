@@ -23,6 +23,7 @@ import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
 import com.darkrockstudios.apps.hammer.common.data.projectdata.StoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.references.ImageReferenceRewriter
+import com.darkrockstudios.apps.hammer.common.data.references.ImageReferrer
 import com.darkrockstudios.apps.hammer.common.data.references.TouchedEntity
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
@@ -211,6 +212,8 @@ class ImageReferenceRewriterTest : BaseTest() {
 
 	private fun touched(vararg ids: Int) = ids.map { TouchedEntity(EntityType.EncyclopediaEntry, it) }.toSet()
 
+	private fun referrers(entities: Set<TouchedEntity>): Set<ImageReferrer> = entities.mapTo(mutableSetOf(), ImageReferrer::Entity)
+
 	@Test
 	fun `remap rewrites entry text and image lists and reports the entries it touched`() = runTest {
 		store(entry1().copy(text = "Portrait:\n\n![Alice](hammer://image/5)", images = listOf(5, 6)))
@@ -259,7 +262,7 @@ class ImageReferenceRewriterTest : BaseTest() {
 
 		val usages = ImageReferenceRewriter(projectDef).findUsages(5)
 
-		assertEquals(touched(1, 2), usages.usages.map { it.entity }.toSet())
+		assertEquals(referrers(touched(1, 2)), usages.usages.map { it.referrer }.toSet())
 		assertEquals(setOf("Entry 1", "Entry 2"), usages.usages.map { it.name }.toSet())
 		assertTrue(ImageReferenceRewriter(projectDef).findUsages(99).isUnused)
 	}
@@ -294,7 +297,7 @@ class ImageReferenceRewriterTest : BaseTest() {
 
 		assertEquals(touched(2), rewriter.remap(mapOf(5 to 50)))
 		assertEquals(listOf(50), entry(2).images)
-		assertEquals(touched(2), rewriter.findUsages(50).usages.map { it.entity }.toSet())
+		assertEquals(referrers(touched(2)), rewriter.findUsages(50).usages.map { it.referrer }.toSet())
 	}
 
 	@Test
@@ -463,9 +466,9 @@ class ImageReferenceRewriterTest : BaseTest() {
 				TouchedEntity(EntityType.Note, 30) to "A note about the cat",
 				TouchedEntity(EntityType.TimelineEvent, 40) to "Long Long Long Long Long Long Long Long…",
 			),
-			usages.associate { it.entity!! to it.name },
+			usages.associate { (it.referrer as ImageReferrer.Entity).entity to it.name },
 		)
-		assertEquals(usages.size, usages.map { it.entity }.toSet().size)
+		assertEquals(usages.size, usages.map { it.referrer }.toSet().size)
 	}
 
 	@Test
@@ -580,14 +583,14 @@ class ImageReferenceRewriterTest : BaseTest() {
 
 		val usages = rewriter.findUsages(5).usages
 		assertEquals(2, usages.size)
-		val cover = usages.single { it.isProjectCover }
+		val cover = usages.single { it.referrer == ImageReferrer.ProjectCover }
 		assertEquals(projectDef.name, cover.name)
 		assertTrue(rewriter.isUsed(5))
 		assertTrue(5 in rewriter.findReferencedIds())
 
 		projectData = ProjectData()
 		store(entry2())
-		assertFalse(rewriter.findUsages(5).usages.any { it.isProjectCover })
+		assertFalse(rewriter.findUsages(5).usages.any { it.referrer == ImageReferrer.ProjectCover })
 	}
 
 	@Test

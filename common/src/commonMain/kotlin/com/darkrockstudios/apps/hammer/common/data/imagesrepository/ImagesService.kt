@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.common.data.imagesrepository
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageDef
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageFile
 import com.darkrockstudios.apps.hammer.common.data.references.ImageReferenceRewriter
+import com.darkrockstudios.apps.hammer.common.data.references.ImageReferrer
 import com.darkrockstudios.apps.hammer.common.data.references.ImageUsages
 import com.darkrockstudios.apps.hammer.common.data.references.TouchedEntity
 import com.darkrockstudios.apps.hammer.common.fileio.ExternalFileIo
@@ -19,7 +20,11 @@ data class ImageDeleteResult(
 	val deleted: Boolean,
 	val touched: Set<TouchedEntity>,
 	val coverCleared: Boolean = false,
-)
+) {
+	/** [touched] and the cover, when it was cleared, as one list. */
+	val removedFrom: List<ImageReferrer>
+		get() = touched.map(ImageReferrer::Entity) + listOfNotNull(ImageReferrer.ProjectCover.takeIf { coverCleared })
+}
 
 /**
  * The Component-facing API for the project's Image entities. Adds the work the repository does not
@@ -44,12 +49,6 @@ class ImagesService(
 	fun imageFile(def: ImageDef): ImageFile = imagesRepository.imageFile(def)
 
 	fun imagePath(def: ImageDef): HPath = imagesRepository.getImagePath(def)
-
-	/** The file of image [id], or null when the project has no such image. Reads it to hash it unless cached. */
-	suspend fun loadImageFile(id: Int): ImageFile? {
-		imagesRepository.ensureImagesLoaded()
-		return imagesRepository.findImage(id)?.let(imagesRepository::imageFile)
-	}
 
 	/** The size and modification time of [def]'s file, or null when it is missing. */
 	fun fileStamp(def: ImageDef): ImageFileStamp? = imagesRepository.getFileStamp(def)

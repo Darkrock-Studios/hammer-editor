@@ -11,6 +11,7 @@ import com.darkrockstudios.apps.hammer.common.components.images.ImageGalleryMode
 import com.darkrockstudios.apps.hammer.common.components.images.ImagePickTarget
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImageAddResult
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageDef
+import com.darkrockstudios.apps.hammer.common.data.references.ImageReferrer
 import com.darkrockstudios.apps.hammer.common.data.references.ImageUsage
 import com.darkrockstudios.apps.hammer.common.data.references.ImageUsages
 import com.darkrockstudios.apps.hammer.common.data.references.TouchedEntity
@@ -65,9 +66,9 @@ fun previewGalleryImages(): List<ImageGallery.GalleryImage> = listOf(
 fun previewImageUsages(): Map<Int, ImageUsages> = mapOf(
 	3 to ImageUsages(
 		listOf(
-			ImageUsage(TouchedEntity(EntityType.EncyclopediaEntry, 30), "Alice"),
-			ImageUsage(TouchedEntity(EntityType.EncyclopediaEntry, 31), "The Point"),
-			ImageUsage(entity = null, "Alice in Wonderland"),
+			ImageUsage(ImageReferrer.Entity(TouchedEntity(EntityType.EncyclopediaEntry, 30)), "Alice"),
+			ImageUsage(ImageReferrer.Entity(TouchedEntity(EntityType.EncyclopediaEntry, 31)), "The Point"),
+			ImageUsage(ImageReferrer.ProjectCover, "Alice in Wonderland"),
 		)
 	),
 )

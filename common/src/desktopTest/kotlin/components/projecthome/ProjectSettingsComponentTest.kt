@@ -7,10 +7,11 @@ import com.darkrockstudios.apps.hammer.base.http.projectdata.WordCountGoal
 import com.darkrockstudios.apps.hammer.base.http.storyideas.StoryIdea
 import com.darkrockstudios.apps.hammer.common.components.images.ImagePickRequests
 import com.darkrockstudios.apps.hammer.common.components.images.ImagePickTarget
+import com.darkrockstudios.apps.hammer.common.components.projecthome.CoverImage
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectSettingsComponent
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImageFileStamp
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesService
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageDef
-import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageFile
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
@@ -80,7 +81,12 @@ class ProjectSettingsComponentTest : ComponentTest() {
 		every { imagesService.imageChangedFlow } returns MutableSharedFlow()
 		coEvery { imagesService.ensureImagesLoaded() } answers { images.values.toList() }
 		every { imagesService.findImage(any()) } answers { images[firstArg()] }
-		coEvery { imagesService.loadImageFile(any()) } answers { images[firstArg()]?.let(::file) }
+		every { imagesService.fileStamp(any()) } returns ImageFileStamp(size = 10, lastModifiedAtMillis = 20)
+		every { imagesService.imagePath(any()) } answers {
+			val def = firstArg<ImageDef>()
+			HPath(path = coverPath(def), name = "${def.id}~${def.name}.png", isAbsolute = true)
+		}
+		every { imagesService.cachedContentHash(any(), any()) } answers { "h${firstArg<ImageDef>().id}" }
 		val ideasRepository = mockk<IdeasRepository>()
 		every { ideasRepository.ideasFlow } returns ideasFlow
 
@@ -123,11 +129,9 @@ class ProjectSettingsComponentTest : ComponentTest() {
 		projectDef = projectDef,
 	)
 
-	private fun file(def: ImageDef) = ImageFile(
-		def = def,
-		path = HPath(path = "/images/${def.id}~${def.name}.png", name = "${def.id}~${def.name}.png", isAbsolute = true),
-		contentHash = "h${def.id}",
-	)
+	private fun coverPath(def: ImageDef) = "/images/${def.id}~${def.name}.png"
+
+	private fun cover(def: ImageDef) = CoverImage(def = def, path = coverPath(def), version = "h${def.id}")
 
 	private fun idea(vararg tags: String) = StoryIdea(
 		id = IdeaId.randomUUID(),
@@ -393,7 +397,7 @@ class ProjectSettingsComponentTest : ComponentTest() {
 		assertFalse(comp.projectInfoState.value.pendingCoverPick)
 		assertEquals(4, datasource.load().data.coverImageId)
 		assertEquals(4, comp.projectInfoState.value.data.coverImageId)
-		assertEquals(file(images.getValue(4)), comp.projectInfoState.value.coverImage)
+		assertEquals(cover(images.getValue(4)), comp.projectInfoState.value.coverImage)
 	}
 
 	@Test

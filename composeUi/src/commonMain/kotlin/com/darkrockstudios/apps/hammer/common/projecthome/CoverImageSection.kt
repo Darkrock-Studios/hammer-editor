@@ -18,13 +18,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.common.components.projecthome.CoverImage
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdEngravingPlaceholder
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineSection
 import com.darkrockstudios.apps.hammer.common.compose.images.COVER_ASPECT_RATIO
 import com.darkrockstudios.apps.hammer.common.compose.images.CoverThumbnail
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
-import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageFile
 import com.darkrockstudios.apps.hammer.common.images.ImageViewerDialog
 import com.darkrockstudios.apps.hammer.common.images.ImageViewerItem
 import com.darkrockstudios.apps.hammer.project_info_cover_caption
@@ -46,7 +46,7 @@ const val PROJECT_SETTINGS_COVER_THUMB_TAG = "project-settings-cover-thumb"
 internal fun CoverImageSection(
 	section: Int,
 	coverImageId: Int?,
-	coverImage: ImageFile?,
+	coverImage: CoverImage?,
 	pickPending: Boolean,
 	onPick: () -> Unit,
 	onClear: () -> Unit,
@@ -70,8 +70,8 @@ internal fun CoverImageSection(
 				.testTag(PROJECT_SETTINGS_COVER_THUMB_TAG)
 			if (coverImage != null) {
 				CoverThumbnail(
-					path = coverImage.path.path,
-					version = coverImage.contentHash,
+					path = coverImage.path,
+					version = coverImage.version,
 					contentDescription = coverImage.def.name,
 					modifier = frame.clickable { viewing = true },
 				)
@@ -112,8 +112,8 @@ internal fun CoverImageSection(
 		ImageViewerDialog(
 			items = listOf(
 				ImageViewerItem.ofFile(
-					path = coverImage.path.path,
-					version = coverImage.contentHash,
+					path = coverImage.path,
+					version = coverImage.version,
 					label = coverImage.def.name,
 				)
 			),

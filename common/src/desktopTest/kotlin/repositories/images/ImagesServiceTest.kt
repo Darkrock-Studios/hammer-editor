@@ -17,6 +17,7 @@ import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
 import com.darkrockstudios.apps.hammer.common.data.projectdata.StoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.references.ImageReferenceRewriter
+import com.darkrockstudios.apps.hammer.common.data.references.ImageReferrer
 import com.darkrockstudios.apps.hammer.common.data.references.TouchedEntity
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
@@ -141,6 +142,7 @@ class ImagesServiceTest : BaseTest() {
 		assertTrue(result.deleted)
 		assertTrue(result.coverCleared)
 		assertTrue(result.touched.isEmpty())
+		assertEquals(listOf<ImageReferrer>(ImageReferrer.ProjectCover), result.removedFrom)
 		assertNull(projectData.coverImageId)
 	}
 

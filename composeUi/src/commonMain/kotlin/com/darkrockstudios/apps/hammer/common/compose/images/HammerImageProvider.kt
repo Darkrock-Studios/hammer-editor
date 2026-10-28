@@ -91,7 +91,7 @@ class HammerImageProvider(
 				null to ImageBlockResource.Failed("missing image $id")
 			} else {
 				val version = imagesService.cachedContentHash(def, stamp)
-					?: "stamp:${stamp.size}-${stamp.lastModifiedAtMillis}"
+					?: stamp.cacheToken
 				val path = imagesService.imagePath(def).path
 				val key = "$path#$version"
 				if (key == lock.withLock { entry.loadedKey }) return

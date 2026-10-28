@@ -725,7 +725,7 @@ class ProjectsListComponentTest : ComponentTest() {
 
 			val projects = comp.state.value.projects.associateBy { it.definition.name }
 			assertEquals((imagesDir / "4~Cover.png").toString(), projects.getValue("Covered").coverImagePath)
-			assertEquals("3-${ffs.metadata(imagesDir / "4~Cover.png").lastModifiedAtMillis}", projects.getValue("Covered").coverImageVersion)
+			assertEquals("stamp:3-${ffs.metadata(imagesDir / "4~Cover.png").lastModifiedAtMillis}", projects.getValue("Covered").coverImageVersion)
 			assertNull(projects.getValue("Missing").coverImagePath)
 			assertNull(projects.getValue("Missing").coverImageVersion)
 			assertNull(projects.getValue("Bare").coverImagePath)

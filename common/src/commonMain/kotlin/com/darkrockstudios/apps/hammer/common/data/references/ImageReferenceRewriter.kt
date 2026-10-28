@@ -25,10 +25,13 @@ import kotlinx.coroutines.CancellationException
 /** An entity whose content refers to an image, or was rewritten because it did. */
 data class TouchedEntity(val type: EntityType, val id: Int)
 
-/** [entity] is null when the image is the project's cover, which is not an entity. */
-data class ImageUsage(val entity: TouchedEntity?, val name: String) {
-	val isProjectCover: Boolean get() = entity == null
+/** What refers to an image: an entity, or the project's cover, which is not one. */
+sealed interface ImageReferrer {
+	data class Entity(val entity: TouchedEntity) : ImageReferrer
+	data object ProjectCover : ImageReferrer
 }
+
+data class ImageUsage(val referrer: ImageReferrer, val name: String)
 
 /** [touched] are the entities a reference was taken out of; [coverCleared] is true when the image was the cover. */
 data class ImageRemoval(val touched: Set<TouchedEntity>, val coverCleared: Boolean)
@@ -71,7 +74,7 @@ class ImageReferenceRewriter(private val projectDef: ProjectDef) : ProjectScoped
 	suspend fun findUsages(imageId: Int): ImageUsages = ImageUsages(
 		holders
 			.flatMap { holder -> guarded(holder, emptyList()) { holder.usages(imageId) } }
-			.distinctBy { it.entity }
+			.distinctBy { it.referrer }
 	)
 
 	/** Whether anything refers to [imageId]; stops at the first reference. */
@@ -134,7 +137,7 @@ class ImageReferenceRewriter(private val projectDef: ProjectDef) : ProjectScoped
 
 		override suspend fun usages(imageId: Int): List<ImageUsage> = eachEntry { def ->
 			val entry = encyclopediaRepository.loadEntry(def).entry
-			if (entry.uses(imageId)) ImageUsage(entry.touched(), entry.name) else null
+			if (entry.uses(imageId)) ImageUsage(ImageReferrer.Entity(entry.touched()), entry.name) else null
 		}
 
 		override suspend fun uses(imageId: Int): Boolean = encyclopediaRepository.readEntryDefs().any { def ->
@@ -182,7 +185,7 @@ class ImageReferenceRewriter(private val projectDef: ProjectDef) : ProjectScoped
 
 		override suspend fun usages(imageId: Int): List<ImageUsage> = eachItem { item ->
 			if (read(item)?.let { imageId in ImageReferenceSyntax.findIds(it) } == true) {
-				ImageUsage(TouchedEntity(type, id(item)), name(item))
+				ImageUsage(ImageReferrer.Entity(TouchedEntity(type, id(item))), name(item))
 			} else {
 				null
 			}
@@ -343,7 +346,7 @@ class ImageReferenceRewriter(private val projectDef: ProjectDef) : ProjectScoped
 		private suspend fun cover(): Int? = projectDataRepository.load().data.coverImageId
 
 		override suspend fun usages(imageId: Int): List<ImageUsage> =
-			if (cover() == imageId) listOf(ImageUsage(entity = null, name = projectDef.name)) else emptyList()
+			if (cover() == imageId) listOf(ImageUsage(ImageReferrer.ProjectCover, projectDef.name)) else emptyList()
 
 		override suspend fun uses(imageId: Int): Boolean = cover() == imageId
 

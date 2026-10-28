@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.http.projectdata.WordCountGoal
 import com.darkrockstudios.apps.hammer.common.components.ToastMessage
 import com.darkrockstudios.apps.hammer.common.data.export.ExportStoryUseCase
+import com.darkrockstudios.apps.hammer.common.components.projecthome.CoverImage
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectHome
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectHomeComponent
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.Info
@@ -32,9 +33,9 @@ import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupDe
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupService
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.common.components.images.ImagePickRequests
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImageFileStamp
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesService
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageDef
-import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageFile
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
 import com.darkrockstudios.apps.hammer.common.data.projectdata.StoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.EntryAppearance
@@ -60,6 +61,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
@@ -109,7 +111,9 @@ class ProjectHomeComponentTest : ComponentTest() {
 	private lateinit var projectDataState: MutableStateFlow<StoredProjectData?>
 	private lateinit var imagesService: ImagesService
 	private lateinit var imageChangedFlow: MutableSharedFlow<Int>
-	private val imageFiles = mutableMapOf<Int, ImageFile>()
+	private val coverDefs = mutableMapOf<Int, ImageDef>()
+	private val coverStamps = mutableMapOf<Int, ImageFileStamp>()
+	private val coverHashes = mutableMapOf<Int, String>()
 
 	private var loadStatisticsCalls = 0
 
@@ -171,11 +175,20 @@ class ProjectHomeComponentTest : ComponentTest() {
 		referenceIndexService = mockk(relaxed = true)
 
 		projectDataState = MutableStateFlow(null)
-		imageFiles.clear()
+		coverDefs.clear()
+		coverStamps.clear()
+		coverHashes.clear()
 		imageChangedFlow = MutableSharedFlow(extraBufferCapacity = 8)
 		imagesService = mockk()
 		every { imagesService.imageChangedFlow } returns imageChangedFlow
-		coEvery { imagesService.loadImageFile(any()) } answers { imageFiles[firstArg()] }
+		coEvery { imagesService.ensureImagesLoaded() } answers { coverDefs.values.toList() }
+		every { imagesService.findImage(any()) } answers { coverDefs[firstArg()] }
+		every { imagesService.fileStamp(any()) } answers { coverStamps[firstArg<ImageDef>().id] }
+		every { imagesService.imagePath(any()) } answers {
+			val def = firstArg<ImageDef>()
+			HPath(path = coverPath(def.id), name = "${def.id}~${def.name}.png", isAbsolute = true)
+		}
+		every { imagesService.cachedContentHash(any(), any()) } answers { coverHashes[firstArg<ImageDef>().id] }
 
 		pluginFormats = FakeExporterSource()
 		projectPlugins = ProjectPluginsRepository(ProjectPluginsDatasource(FakeFileSystem(), createTomlSerializer()))
@@ -808,15 +821,21 @@ class ProjectHomeComponentTest : ComponentTest() {
 		assertTrue(projectClosed)
 	}
 
-	private fun coverFile(id: Int, hash: String) = ImageFile(
-		def = ImageDef(id = id, name = "Cover $id", fileExtension = "png"),
-		path = HPath(path = "/images/$id~Cover $id.png", name = "$id~Cover $id.png", isAbsolute = true),
-		contentHash = hash,
-	)
+	private fun coverPath(id: Int) = "/images/$id~Cover $id.png"
+
+	private fun coverDef(id: Int) = ImageDef(id = id, name = "Cover $id", fileExtension = "png")
+
+	private fun addCover(id: Int, hash: String?, stamp: ImageFileStamp = ImageFileStamp(size = 10, lastModifiedAtMillis = 20)) {
+		coverDefs[id] = coverDef(id)
+		coverStamps[id] = stamp
+		if (hash != null) coverHashes[id] = hash else coverHashes.remove(id)
+	}
+
+	private fun cover(id: Int, version: String) = CoverImage(coverDef(id), coverPath(id), version)
 
 	@Test
 	fun `The cover follows the project data and its image`() = runTest(mainTestDispatcher) {
-		imageFiles[4] = coverFile(4, "h1")
+		addCover(4, "h1")
 		val comp = newComponent()
 		context.resume()
 		advanceUntilIdle()
@@ -824,15 +843,15 @@ class ProjectHomeComponentTest : ComponentTest() {
 
 		projectDataState.value = StoredProjectData(ProjectData(coverImageId = 4))
 		advanceUntilIdle()
-		assertEquals(coverFile(4, "h1"), comp.state.value.coverImage)
+		assertEquals(cover(4, "h1"), comp.state.value.coverImage)
 
-		imageFiles[4] = coverFile(4, "h2")
+		coverHashes[4] = "h2"
 		imageChangedFlow.emit(9)
 		advanceUntilIdle()
-		assertEquals("h1", comp.state.value.coverImage?.contentHash)
+		assertEquals("h1", comp.state.value.coverImage?.version)
 		imageChangedFlow.emit(4)
 		advanceUntilIdle()
-		assertEquals("h2", comp.state.value.coverImage?.contentHash)
+		assertEquals("h2", comp.state.value.coverImage?.version)
 
 		projectDataState.value = StoredProjectData(ProjectData())
 		advanceUntilIdle()
@@ -848,9 +867,27 @@ class ProjectHomeComponentTest : ComponentTest() {
 
 		assertNull(comp.state.value.coverImage)
 
-		imageFiles[7] = coverFile(7, "h7")
+		addCover(7, "h7")
 		imageChangedFlow.emit(7)
 		advanceUntilIdle()
-		assertEquals(coverFile(7, "h7"), comp.state.value.coverImage)
+		assertEquals(cover(7, "h7"), comp.state.value.coverImage)
+	}
+
+	@Test
+	fun `A cover whose hash is not cached is versioned by its file stamp without reading it`() = runTest(mainTestDispatcher) {
+		addCover(4, hash = null, stamp = ImageFileStamp(size = 120, lastModifiedAtMillis = 5))
+		projectDataState.value = StoredProjectData(ProjectData(coverImageId = 4))
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		assertEquals(cover(4, "stamp:120-5"), comp.state.value.coverImage)
+		verify(exactly = 0) { imagesService.imageFile(any()) }
+		verify(exactly = 0) { imagesService.loadImageBytes(any()) }
+
+		coverStamps.remove(4)
+		imageChangedFlow.emit(4)
+		advanceUntilIdle()
+		assertNull(comp.state.value.coverImage, "a cover whose file is missing shows nothing")
 	}
 }

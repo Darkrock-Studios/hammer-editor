@@ -52,7 +52,7 @@ interface ImageGallery {
 		val inUse: Boolean?,
 	) {
 		val cacheToken: String
-			get() = hash ?: stamp?.let { "stamp:${it.size}-${it.lastModifiedAtMillis}" } ?: "missing"
+			get() = hash ?: stamp?.cacheToken ?: "missing"
 	}
 
 	data class DeleteRequest(val id: Int, val usages: ImageUsages)

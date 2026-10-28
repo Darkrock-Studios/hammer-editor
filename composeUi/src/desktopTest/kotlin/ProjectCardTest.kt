@@ -123,7 +123,7 @@ class ProjectCardTest {
 		}
 
 		compose.onNodeWithTag(ProjectCardCoverTestTag, useUnmergedTree = true).assertDoesNotExist()
-		data = data.copy(coverImagePath = "/projects/Test/images/4~Cover.png", coverImageVersion = "10-20")
+		data = data.copy(coverImagePath = "/projects/Test/images/4~Cover.png", coverImageVersion = "stamp:10-20")
 		compose.onNodeWithTag(ProjectCardCoverTestTag, useUnmergedTree = true).assertExists()
 	}
 }

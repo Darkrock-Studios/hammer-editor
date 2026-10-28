@@ -14,7 +14,10 @@ import okio.IOException
 import okio.Path
 
 /** Size and modification time of an image file, used to tell whether a cached hash is still current. */
-data class ImageFileStamp(val size: Long, val lastModifiedAtMillis: Long)
+data class ImageFileStamp(val size: Long, val lastModifiedAtMillis: Long) {
+	/** Keys image caches when the content hash is not known; shared so a file has one cache entry on every screen. */
+	val cacheToken: String get() = "stamp:$size-$lastModifiedAtMillis"
+}
 
 class ImagesDatasource(
 	private val projectDef: ProjectDef,
