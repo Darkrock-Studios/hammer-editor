@@ -218,6 +218,10 @@ class EncyclopediaRepository(
 			if (imageId in images) listOf(imageId) + images.filterNot { it == imageId } else images
 		}
 
+	/** Puts image [imageId] first in the entry's images, adding it when the entry does not have it. */
+	suspend fun addPrimaryImage(entryDef: EntryDef, imageId: Int): Boolean =
+		changeImages(entryDef) { images -> listOf(imageId) + images.filterNot { it == imageId } }
+
 	private suspend fun changeImages(entryDef: EntryDef, change: (List<Int>) -> List<Int>): Boolean =
 		rewriteEntry(entryDef) { entry -> entry.copy(images = change(entry.images)) }
 

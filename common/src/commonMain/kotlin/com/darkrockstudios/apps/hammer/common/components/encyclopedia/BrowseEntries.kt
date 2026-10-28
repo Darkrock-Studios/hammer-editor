@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.components.encyclopedia
 
 import com.arkivanov.decompose.value.Value
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryImageFile
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
@@ -20,8 +21,7 @@ interface BrowseEntries {
 	fun updateFilter(text: String?, type: EntryType?)
 	fun getFilteredEntries(): List<EntryDef>
 	suspend fun loadEntryContent(entryDef: EntryDef): EntryContent
-	fun getImagePath(entryDef: EntryDef): String?
-	suspend fun calculateEntryImageHash(entryDef: EntryDef): String?
+	suspend fun loadEntryImage(entry: EntryContent): EntryImageFile?
 	fun addTagToSearch(tag: String)
 	fun clearFilterText()
 }

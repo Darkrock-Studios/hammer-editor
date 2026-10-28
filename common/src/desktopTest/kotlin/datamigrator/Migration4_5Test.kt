@@ -1,6 +1,7 @@
 package datamigrator
 
 import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
+import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import com.darkrockstudios.apps.hammer.base.image.ImageFormat
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaDatasource
@@ -8,6 +9,7 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesDatasource
+import com.darkrockstudios.apps.hammer.common.data.migrator.EntryImagePromoter
 import com.darkrockstudios.apps.hammer.common.data.migrator.Migration4_5
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityOriginalState
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectSynchronizationData
@@ -17,6 +19,9 @@ import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
+import okio.FileSystem
+import okio.ForwardingFileSystem
+import okio.IOException
 import okio.Path
 import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
@@ -48,7 +53,19 @@ class Migration4_5Test : BaseTest() {
 		projDef = ProjectDef(id = testProjectId("Test Project"), name = "Test Project", path = projectPath.toHPath())
 	}
 
-	private fun migrate() = Migration4_5(ffs, toml, json).migrate(projDef)
+	private fun migrate(fileSystem: FileSystem = ffs) =
+		Migration4_5(EntryImagePromoter(fileSystem, toml, json)).migrate(projDef)
+
+	private fun hashOf(entry: EntryContent) = EntityHasher.hashEncyclopediaEntry(
+		id = entry.id,
+		name = entry.name,
+		entryType = entry.type.text,
+		text = entry.text,
+		tags = entry.tags,
+		aliases = entry.aliases,
+		excludeFromDictionary = entry.excludeFromDictionary,
+		images = entry.images,
+	)
 
 	private fun typeDir(type: EntryType): Path {
 		val dir = projDef.path.toOkioPath() / EncyclopediaDatasource.ENCYCLOPEDIA_DIRECTORY / type.text
@@ -139,7 +156,8 @@ class Migration4_5Test : BaseTest() {
 
 	@Test
 	fun `adds the images and entries to the sync journal and leaves the rest of it alone`() {
-		val alice = writeEntry("person~1~Alice.toml", entry(1, "Alice"))
+		val aliceBefore = entry(1, "Alice")
+		val alice = writeEntry("person~1~Alice.toml", aliceBefore)
 		writeFile(typeDir(EntryType.PERSON) / "person~1~image.png", TestImages.png())
 		writeEntry("person~2~Bob.toml", entry(2, "Bob"))
 		writeFile(typeDir(EntryType.PERSON) / "person~2~image.webp", "RIFF0000WEBP".encodeToByteArray())
@@ -148,7 +166,7 @@ class Migration4_5Test : BaseTest() {
 			newIds = listOf(3),
 			dirty = listOf(EntityOriginalState(2, "bob-dirty-baseline")),
 			deletedIds = setOf(1000),
-			syncedHashes = mapOf(1 to "alice-synced", 2 to "bob-synced"),
+			syncedHashes = mapOf(1 to "alice-synced", 2 to "bob-synced", 3 to "other-synced"),
 		)
 		writeSync(before)
 
@@ -157,17 +175,85 @@ class Migration4_5Test : BaseTest() {
 		val after = readSync()
 		val aliceImage = readEntry(alice).images.single()
 		assertEquals(listOf(3, aliceImage, aliceImage + 1), after.newIds)
+		// The clean entry's baseline becomes the hash the server gives its stored, image-less copy;
+		// the dirty one keeps both of its baselines.
+		val aliceBaseline = hashOf(aliceBefore)
 		assertEquals(
-			listOf(EntityOriginalState(2, "bob-dirty-baseline"), EntityOriginalState(1, "alice-synced")),
+			listOf(EntityOriginalState(2, "bob-dirty-baseline"), EntityOriginalState(1, aliceBaseline)),
 			after.dirty,
 		)
+		assertEquals(mapOf(1 to aliceBaseline, 2 to "bob-synced", 3 to "other-synced"), after.syncedHashes)
 		assertNull(after.cachedProjectHash)
 		assertEquals(before.lastId, after.lastId)
 		assertEquals(before.deletedIds, after.deletedIds)
-		assertEquals(before.syncedHashes, after.syncedHashes)
 		assertEquals(before.currentSyncId, after.currentSyncId)
 		assertEquals(before.verifyAllEntities, after.verifyAllEntities)
 		assertEquals(before.lastSync, after.lastSync)
+	}
+
+	@Test
+	fun `an entry with no synced baseline is not given one`() {
+		writeEntry("person~1~Alice.toml", entry(1, "Alice"))
+		writeFile(typeDir(EntryType.PERSON) / "person~1~image.png", TestImages.png())
+		writeSync(syncData(lastId = 1, newIds = listOf(1)))
+
+		migrate()
+
+		val after = readSync()
+		assertEquals(emptyMap(), after.syncedHashes)
+		assertEquals(listOf(EntityOriginalState(1, null)), after.dirty)
+	}
+
+	@Test
+	fun `an entry name with a trailing dot names its image without it`() {
+		val chapter = writeEntry("person~1~Chapter 1.toml", entry(1, "Chapter 1."))
+		writeFile(typeDir(EntryType.PERSON) / "person~1~image.png", TestImages.png())
+		writeEntry("person~2~Act 2.toml", entry(2, "Act 2 ."))
+		writeFile(typeDir(EntryType.PERSON) / "person~2~image.png", TestImages.png())
+
+		migrate()
+
+		assertEquals(listOf("3~Chapter 1.png", "4~Act 2.png"), imageFiles().sortedBy { it.substringBefore('~').toInt() })
+		assertEquals(listOf(3), readEntry(chapter).images)
+	}
+
+	@Test
+	fun `an image a failed move left behind is promoted by the next run`() {
+		val dir = typeDir(EntryType.PERSON)
+		val alice = writeEntry("person~1~Alice.toml", entry(1, "Alice"))
+		writeFile(dir / "person~1~image.png", TestImages.png(1))
+		val bob = writeEntry("person~2~Bob.toml", entry(2, "Bob"))
+		writeFile(dir / "person~2~image.png", TestImages.png(2))
+		writeSync(syncData(lastId = 2))
+		val lockedImage = dir / "person~1~image.png"
+		val locked = object : ForwardingFileSystem(ffs) {
+			override fun atomicMove(source: Path, target: Path) {
+				if (source == lockedImage) throw IOException("locked by a sync tool")
+				super.atomicMove(source, target)
+			}
+		}
+
+		migrate(locked)
+
+		assertTrue(ffs.exists(lockedImage))
+		assertTrue(readEntry(alice).images.isEmpty())
+		val bobImage = readEntry(bob).images.single()
+
+		// A sync since then confirmed Bob with his image.
+		val bobSynced = hashOf(readEntry(bob))
+		writeSync(syncData(lastId = bobImage, syncedHashes = mapOf(1 to "alice-synced", 2 to bobSynced)))
+		val aliceBefore = readEntry(alice)
+
+		EntryImagePromoter(ffs, toml, json).promote(projDef)
+
+		assertFalse(ffs.exists(lockedImage))
+		val aliceImage = readEntry(alice).images.single()
+		assertContentEquals(TestImages.png(1), ffs.read(imagesDir / "$aliceImage~Alice.png") { readByteArray() })
+		assertEquals(listOf(bobImage), readEntry(bob).images)
+		val after = readSync()
+		assertEquals(listOf(aliceImage), after.newIds)
+		assertEquals(listOf(EntityOriginalState(1, hashOf(aliceBefore))), after.dirty)
+		assertEquals(mapOf(1 to hashOf(aliceBefore), 2 to bobSynced), after.syncedHashes)
 	}
 
 	@Test

@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.data.encyclopediarepository
 
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContainer
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImageAddOutcome
@@ -35,9 +36,9 @@ class EncyclopediaService(
 	// region Writes / orchestration
 
 	/**
-	 * Creates an entry. With [imagePath], the picked file first becomes a new Image entity named
-	 * after the entry and is the entry's first image; an image that cannot be read or is not a
-	 * valid image is skipped and the entry is created without it.
+	 * Creates an entry. With [imagePath], the picked file then becomes a new Image entity named
+	 * after the entry and is the entry's primary image; an image that cannot be read or is not a
+	 * valid image is skipped and the entry keeps only [images].
 	 */
 	suspend fun createEntry(
 		name: String,
@@ -50,15 +51,6 @@ class EncyclopediaService(
 		excludeFromDictionary: Boolean = false,
 		images: List<Int> = emptyList(),
 	): EntryResult {
-		var allImages = images
-		if (imagePath != null) {
-			val error = repository.validateEntry(name, type, text, tags, aliases)
-			if (error != EntryError.NONE) return EntryResult(error)
-
-			val imported = importImage(name, imagePath)
-			imported.image?.let { allImages = allImages + it.id }
-		}
-
 		val result = repository.createEntry(
 			name = name,
 			type = type,
@@ -67,10 +59,21 @@ class EncyclopediaService(
 			forceId = forceId,
 			aliases = aliases,
 			excludeFromDictionary = excludeFromDictionary,
-			images = allImages,
+			images = images,
 		)
-		if (result.error == EntryError.NONE) statisticsRepository.markDirty()
-		return result
+		val entry = result.instance?.entry
+		if (result.error != EntryError.NONE || entry == null) return result
+		statisticsRepository.markDirty()
+
+		val image = imagePath?.let { importImage(entry.name, it).image } ?: return result
+		val attached = try {
+			repository.addPrimaryImage(repository.getEntryDef(entry.id), image.id)
+		} catch (e: IOException) {
+			Napier.w("Failed to list image ${image.id} in new entry ${entry.id}", e)
+			false
+		}
+		if (!attached) return result
+		return EntryResult(EntryContainer(entry.copy(images = listOf(image.id) + entry.images)), EntryError.NONE)
 	}
 
 	suspend fun updateEntry(
@@ -126,8 +129,7 @@ class EncyclopediaService(
 	}
 
 	private suspend fun attachAsPrimary(entryDef: EntryDef, image: ImageDef) {
-		repository.addEntryImage(entryDef, image.id)
-		repository.setPrimaryImage(entryDef, image.id)
+		repository.addPrimaryImage(entryDef, image.id)
 	}
 
 	private suspend fun importImage(entryName: String, imagePath: String): ImageAddOutcome {
@@ -167,19 +169,34 @@ class EncyclopediaService(
 	fun findEntryDef(id: Int): EntryDef? = repository.findEntryDef(id)
 
 	/** The entry's first image that exists in the project, or null; also null when the entry cannot be read. */
-	fun findPrimaryImage(entryDef: EntryDef): ImageDef? {
+	suspend fun findPrimaryImage(entryDef: EntryDef): ImageDef? {
 		val images = try {
 			repository.loadEntry(entryDef).entry.images
 		} catch (e: EntryLoadError) {
 			Napier.w("Failed to read entry ${entryDef.id} for its image", e)
 			return null
 		}
-		return images.firstNotNullOfOrNull { imagesRepository.findImage(it) }
+		return findPrimaryImage(images)
 	}
 
-	fun getImagePath(image: ImageDef): HPath = imagesRepository.getImagePath(image)
+	/** The first of [imageIds] that exists in the project, or null. */
+	suspend fun findPrimaryImage(imageIds: List<Int>): ImageDef? {
+		if (imageIds.isEmpty()) return null
+		val loaded = imagesRepository.ensureImagesLoaded().associateBy { it.id }
+		return imageIds.firstNotNullOfOrNull { loaded[it] }
+	}
 
-	fun imageContentHash(image: ImageDef): String? = imagesRepository.contentHash(image)
+	/** The file of [entry]'s primary image and the hash of its bytes, or null when it has none. */
+	suspend fun primaryImageFile(entry: EntryContent): EntryImageFile? {
+		val image = findPrimaryImage(entry.images) ?: return null
+		return EntryImageFile(imagesRepository.getImagePath(image), imagesRepository.contentHash(image))
+	}
 
 	// endregion
 }
+
+/**
+ * Where an entry's primary image is on disk. [contentHash] changes whenever the bytes do, unlike
+ * the path, so it keys image caches; null when the file cannot be read.
+ */
+data class EntryImageFile(val path: HPath, val contentHash: String?)

@@ -44,7 +44,6 @@ interface ViewEntry : TagSuggesting {
 		Scene,
 	}
 
-	fun getImagePath(entryDef: EntryDef): String?
 	suspend fun loadEntryContent(entryDef: EntryDef): EntryContent
 	suspend fun deleteEntry(entryDef: EntryDef): Boolean
 	suspend fun updateEntry(name: String, text: String, tags: Set<String>): EntryResult

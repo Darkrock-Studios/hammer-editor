@@ -161,25 +161,17 @@ class ViewEntryComponent(
 
 	// Serialized so overlapping reloads can't land out of order.
 	private suspend fun loadEntryState() = reloadMutex.withLock {
-		val entryDef = state.value.entryDef
-		val primaryImage = encyclopediaService.findPrimaryImage(entryDef)
-		val entryImagePath = primaryImage?.let { encyclopediaService.getImagePath(it).path }
-		val imageHash = primaryImage?.let { encyclopediaService.imageContentHash(it) }
-
-		val content = loadEntryContent(entryDef)
+		val content = loadEntryContent(state.value.entryDef)
+		val image = encyclopediaService.primaryImageFile(content)
 		withContext(dispatcherMain) {
 			_state.getAndUpdate {
 				it.copy(
-					entryImagePath = entryImagePath,
-					entryImageHash = imageHash,
+					entryImagePath = image?.path?.path,
+					entryImageHash = image?.contentHash,
 					content = content
 				)
 			}
 		}
-	}
-
-	override fun getImagePath(entryDef: EntryDef): String? {
-		return encyclopediaService.findPrimaryImage(entryDef)?.let { encyclopediaService.getImagePath(it).path }
 	}
 
 	override suspend fun loadEntryContent(entryDef: EntryDef): EntryContent {

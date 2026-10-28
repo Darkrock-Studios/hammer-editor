@@ -98,8 +98,7 @@ private val browseEntriesComponent: BrowseEntries = object : BrowseEntries {
 		)
 	}
 
-	override fun getImagePath(entryDef: EntryDef) = null
-	override suspend fun calculateEntryImageHash(entryDef: EntryDef) = null
+	override suspend fun loadEntryImage(entry: EntryContent) = null
 	override fun clearFilterText() {}
 }
 
@@ -301,7 +300,6 @@ val fakeViewEntryComponent: ViewEntry = object : ViewEntry {
 			)
 		)
 
-	override fun getImagePath(entryDef: EntryDef) = null
 	override suspend fun loadEntryContent(entryDef: EntryDef) = fakeEntryContent()
 	override suspend fun deleteEntry(entryDef: EntryDef) = true
 	override suspend fun updateEntry(name: String, text: String, tags: Set<String>) =

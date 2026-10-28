@@ -33,6 +33,9 @@ class DataMigratorTest : BaseTest() {
 	@MockK(relaxed = true)
 	private lateinit var projectMetadataDatasource: ProjectMetadataDatasource
 
+	@MockK(relaxed = true)
+	private lateinit var entryImagePromoter: EntryImagePromoter
+
 	@BeforeEach
 	override fun setup() {
 		super.setup()
@@ -69,6 +72,7 @@ class DataMigratorTest : BaseTest() {
 			globalSettingsStore = globalSettingsStore,
 			projectsRepository = projectsRepository,
 			projectMetadataDatasource = projectMetadataDatasource,
+			entryImagePromoter = entryImagePromoter,
 		)
 
 		val migrationNeeded = migrator.checkIfMigrationNeeded()
@@ -105,6 +109,7 @@ class DataMigratorTest : BaseTest() {
 			globalSettingsStore = globalSettingsStore,
 			projectsRepository = projectsRepository,
 			projectMetadataDatasource = projectMetadataDatasource,
+			entryImagePromoter = entryImagePromoter,
 		)
 
 		val migrationNeeded = migrator.checkIfMigrationNeeded()
@@ -151,6 +156,7 @@ class DataMigratorTest : BaseTest() {
 			globalSettingsStore = globalSettingsStore,
 			projectsRepository = projectsRepository,
 			projectMetadataDatasource = projectMetadataDatasource,
+			entryImagePromoter = entryImagePromoter,
 		)
 
 		runBlocking { migrator.handleDataMigration() }
@@ -158,6 +164,9 @@ class DataMigratorTest : BaseTest() {
 		verify(exactly = 0) { mockMigrator.migrate(any()) }
 		// Copied project folders are caught even when nothing needs migrating.
 		coVerify(exactly = 1) { projectsRepository.resolveDuplicateProjectIds() }
+		// Entry images a past migration could not move are retried on every launch.
+		verify(exactly = 1) { entryImagePromoter.promote(getProjectDef(PROJECT_1_NAME)) }
+		verify(exactly = 1) { entryImagePromoter.promote(getProjectDef(PROJECT_2_NAME)) }
 
 		confirmVerified(mockMigrator)
 	}
@@ -191,6 +200,7 @@ class DataMigratorTest : BaseTest() {
 			globalSettingsStore = globalSettingsStore,
 			projectsRepository = projectsRepository,
 			projectMetadataDatasource = projectMetadataDatasource,
+			entryImagePromoter = entryImagePromoter,
 		) {
 			override val latestProjectDataVersion = 1
 			override fun getMigrators(): Map<Int, Migration> = mapOf(1 to migration)
@@ -199,6 +209,8 @@ class DataMigratorTest : BaseTest() {
 		runBlocking { migrator.handleDataMigration() }
 
 		verify(exactly = 1) { migration.migrate(healedDef) }
+		// Still below the version that has Image entities.
+		verify(exactly = 0) { entryImagePromoter.promote(any()) }
 		coVerifyOrder {
 			projectsRepository.healUnmarkedProjectDirectories()
 			projectsRepository.getProjects(any())
@@ -260,6 +272,7 @@ class DataMigratorTest : BaseTest() {
 			globalSettingsStore = globalSettingsStore,
 			projectsRepository = projectsRepository,
 			projectMetadataDatasource = projectMetadataDatasource,
+			entryImagePromoter = entryImagePromoter,
 		) {
 			override val latestProjectDataVersion = 1
 		}
@@ -337,6 +350,7 @@ class DataMigratorTest : BaseTest() {
 			globalSettingsStore = globalSettingsStore,
 			projectsRepository = projectsRepository,
 			projectMetadataDatasource = projectMetadataDatasource,
+			entryImagePromoter = entryImagePromoter,
 		) {
 			override val latestProjectDataVersion = maxVersion
 			override fun getMigrators(): Map<Int, Migration> {
@@ -424,6 +438,7 @@ class DataMigratorTest : BaseTest() {
 			globalSettingsStore = globalSettingsStore,
 			projectsRepository = projectsRepository,
 			projectMetadataDatasource = projectMetadataDatasource,
+			entryImagePromoter = entryImagePromoter,
 		) {
 			override val latestProjectDataVersion = maxVersion
 			override fun getMigrators(): Map<Int, Migration> {

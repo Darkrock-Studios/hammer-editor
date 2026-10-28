@@ -128,14 +128,13 @@ internal fun EncyclopediaEntryItem(
 		paletteState.reset()
 		loadContentJob?.cancel()
 		loadContentJob = scope.launch(ioDispatcher) {
-			val imagePath = component.getImagePath(entryDef)
-			// The image's filename is stable across replacement, so the cache key must be unique
-			val imageHash = imagePath?.let { component.calculateEntryImageHash(entryDef) }
 			val content = component.loadEntryContent(entryDef)
+			// The image's filename is stable across replacement, so the cache key must be unique
+			val image = component.loadEntryImage(content)
 			withContext(mainDispatcher) {
-				entryImagePath = imagePath
-				entryImageHash = imageHash
-				hasImage = imagePath != null
+				entryImagePath = image?.path?.path
+				entryImageHash = image?.contentHash
+				hasImage = image != null
 				entryContent = content
 				loadContentJob = null
 			}

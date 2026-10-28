@@ -60,7 +60,7 @@ class ViewEntryComponentTest : ComponentTest() {
 		val newEntry = oldEntry.copy(name = newName)
 		val newContainer = EntryContainer(newEntry)
 
-		every { encyclopediaService.findPrimaryImage(any()) } returns null
+		coEvery { encyclopediaService.primaryImageFile(any()) } returns null
 		coEvery { encyclopediaService.loadEntry(entryDef = any()) } returns newContainer
 		coEvery {
 			encyclopediaService.updateEntry(
@@ -107,7 +107,7 @@ class ViewEntryComponentTest : ComponentTest() {
 		val newEntry = oldEntry.copy(name = newName)
 		val newContainer = EntryContainer(newEntry)
 
-		every { encyclopediaService.findPrimaryImage(any()) } returns null
+		coEvery { encyclopediaService.primaryImageFile(any()) } returns null
 		coEvery { encyclopediaService.loadEntry(entryDef = any()) } returns newContainer
 		coEvery {
 			encyclopediaService.updateEntry(
@@ -147,7 +147,7 @@ class ViewEntryComponentTest : ComponentTest() {
 	fun `Discard edit leaves every edit mode without saving`() = runTest {
 		val proj = getProject1Def()
 		val entry = fakeEntry()
-		every { encyclopediaService.findPrimaryImage(any()) } returns null
+		coEvery { encyclopediaService.primaryImageFile(any()) } returns null
 		coEvery { encyclopediaService.loadEntry(entryDef = any()) } returns EntryContainer(entry)
 
 		val comp = ViewEntryComponent(

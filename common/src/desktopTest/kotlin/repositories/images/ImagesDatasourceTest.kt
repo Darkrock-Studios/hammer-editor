@@ -157,4 +157,16 @@ class ImagesDatasourceTest : BaseTest() {
 		assertEquals(setOf(4, 11), ids.findIds(projectDef))
 		assertEquals(11, ids.findHighestId(projectDef))
 	}
+
+	@Test
+	fun `validImageName keeps a valid name and cleans the rest`() {
+		assertEquals("Map of the North", ImagesDatasource.validImageName("  Map of the North "))
+		assertEquals("Who: me?", ImagesDatasource.validImageName("Who: me?"))
+		assertEquals("Chapter 1", ImagesDatasource.validImageName("Chapter 1."))
+		assertEquals("Chapter 1", ImagesDatasource.validImageName("Chapter 1 ."))
+		assertEquals("Bob the Builder", ImagesDatasource.validImageName("Bob~the\tBuilder"))
+		assertEquals("a".repeat(127), ImagesDatasource.validImageName("a".repeat(127) + " b" + "~"))
+		assertEquals(ImagesDatasource.FALLBACK_IMAGE_NAME, ImagesDatasource.validImageName("~~~"))
+		assertEquals(ImagesDatasource.FALLBACK_IMAGE_NAME, ImagesDatasource.validImageName(" . "))
+	}
 }

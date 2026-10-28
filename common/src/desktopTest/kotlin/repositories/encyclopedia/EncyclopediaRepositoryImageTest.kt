@@ -24,7 +24,11 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import net.peanuuutz.tomlkt.Toml
+import okio.FileSystem
+import okio.ForwardingFileSystem
 import okio.IOException
+import okio.Path
+import okio.Sink
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -32,6 +36,7 @@ import org.koin.dsl.module
 import utils.BaseTest
 import utils.TestImages
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
@@ -74,8 +79,8 @@ class EncyclopediaRepositoryImageTest : BaseTest() {
 		createProject(fileSystem, ENCYCLOPEDIA_ONLY_PROJECT_NAME)
 	}
 
-	private fun repository(): EncyclopediaRepository {
-		datasource = EncyclopediaDatasource(projectDef = projDef, toml = toml, fileSystem = fileSystem)
+	private fun repository(entryFileSystem: FileSystem = fileSystem): EncyclopediaRepository {
+		datasource = EncyclopediaDatasource(projectDef = projDef, toml = toml, fileSystem = entryFileSystem)
 		return EncyclopediaRepository(
 			projectDef = projDef,
 			idAllocator = idAllocator,
@@ -136,6 +141,19 @@ class EncyclopediaRepositoryImageTest : BaseTest() {
 	}
 
 	@Test
+	fun `addPrimaryImage puts the image first, adding it when missing`() = runTest {
+		val repo = repository()
+		val def = entry1().toDef(projDef)
+		listOf(7, 3).forEach { repo.addEntryImage(def, it) }
+
+		assertTrue(repo.addPrimaryImage(def, 9))
+		assertEquals(listOf(9, 7, 3), repo.images())
+		assertTrue(repo.addPrimaryImage(def, 3))
+		assertEquals(listOf(3, 9, 7), repo.images())
+		assertFalse(repo.addPrimaryImage(def, 3))
+	}
+
+	@Test
 	fun `an unchanged list writes nothing and marks nothing`() = runTest {
 		val repo = repository()
 		val def = entry1().toDef(projDef)
@@ -180,6 +198,50 @@ class EncyclopediaRepositoryImageTest : BaseTest() {
 		assertEquals("Alice", image.name)
 		assertEquals("png", image.fileExtension)
 		assertEquals(image.id, assertNotNull(service.findPrimaryImage(entry.toDef(projDef))).id)
+		// The entry is written first, so it claims its id before the image does.
+		assertTrue(entry.id < image.id)
+	}
+
+	@Test
+	fun `createEntry puts a picked image ahead of the listed ones`() = runTest {
+		val repo = repository()
+		val service = service(repo)
+
+		val result = service.createEntry(
+			name = "Alice",
+			type = EntryType.PERSON,
+			text = "",
+			tags = emptySet(),
+			imagePath = sourcePath,
+			images = listOf(7),
+		)
+
+		val entry = assertNotNull(result.instance).entry
+		val image = assertNotNull(imagesRepository.getImages().single())
+		assertEquals(listOf(image.id, 7), entry.images)
+		assertEquals(listOf(image.id, 7), repo.loadEntry(entry.id).entry.images)
+	}
+
+	@Test
+	fun `createEntry whose entry cannot be written creates no Image`() = runTest {
+		val failingEntryWrites = object : ForwardingFileSystem(fileSystem) {
+			override fun sink(file: Path, mustCreate: Boolean): Sink {
+				if (file.name.endsWith(".toml")) throw IOException("disk full")
+				return super.sink(file, mustCreate)
+			}
+		}
+		val service = service(repository(failingEntryWrites))
+
+		assertFailsWith<IOException> {
+			service.createEntry(
+				name = "Alice",
+				type = EntryType.PERSON,
+				text = "",
+				tags = emptySet(),
+				imagePath = sourcePath,
+			)
+		}
+		assertTrue(imagesRepository.loadImages().isEmpty())
 	}
 
 	@Test

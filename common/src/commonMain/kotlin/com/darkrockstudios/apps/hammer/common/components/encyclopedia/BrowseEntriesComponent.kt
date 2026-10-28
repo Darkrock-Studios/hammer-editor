@@ -8,6 +8,7 @@ import com.arkivanov.decompose.value.update
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaService
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryImageFile
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryLoadError
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContainer
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
@@ -165,13 +166,8 @@ class BrowseEntriesComponent(
 		}
 	}
 
-	override fun getImagePath(entryDef: EntryDef): String? {
-		return encyclopediaService.findPrimaryImage(entryDef)?.let { encyclopediaService.getImagePath(it).path }
-	}
-
-	override suspend fun calculateEntryImageHash(entryDef: EntryDef): String? {
-		return encyclopediaService.findPrimaryImage(entryDef)?.let { encyclopediaService.imageContentHash(it) }
-	}
+	override suspend fun loadEntryImage(entry: EntryContent): EntryImageFile? =
+		encyclopediaService.primaryImageFile(entry)
 
 	override fun clearFilterText() {
 		_filterText.update { "" }

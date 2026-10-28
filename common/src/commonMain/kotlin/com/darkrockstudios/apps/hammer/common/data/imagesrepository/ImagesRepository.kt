@@ -76,6 +76,10 @@ class ImagesRepository(
 	/** `imagesFlow` should be preferred; this is the last loaded list. */
 	fun getImages(): List<ImageDef> = images
 
+	/** The loaded images, loading them first when that has not happened yet. */
+	suspend fun ensureImagesLoaded(): List<ImageDef> =
+		_imagesFlow.replayCache.firstOrNull() ?: loadImages()
+
 	/** Reads from disk, so it is current even before the first load completes. */
 	fun findImage(id: Int): ImageDef? = imagesDatasource.findImage(id)
 

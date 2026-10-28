@@ -15,6 +15,7 @@ import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEd
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndex
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndexService
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
+import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -60,7 +61,7 @@ class EncyclopediaComponentTest : ComponentTest() {
 		every { encyclopediaService.entryListFlow } returns MutableStateFlow(emptyList<EntryDef>())
 		every { encyclopediaService.entryChangedFlow } returns MutableSharedFlow()
 		every { encyclopediaService.loadEntry(any<EntryDef>()) } returns EntryContainer(entryContent)
-		every { encyclopediaService.findPrimaryImage(any()) } returns null
+		coEvery { encyclopediaService.primaryImageFile(any()) } returns null
 
 		val referenceIndexService = mockk<ReferenceIndexService>(relaxed = true)
 		every { referenceIndexService.flowForEntry(any()) } returns emptyFlow()

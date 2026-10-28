@@ -13,6 +13,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetada
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.e2e.util.getSerializerForType
 import com.darkrockstudios.apps.hammer.encryption.ContentEncryptor
+import com.darkrockstudios.apps.hammer.integration.HeadlessClient
 import com.darkrockstudios.apps.hammer.integration.RoundTripTestBase
 import com.darkrockstudios.apps.hammer.integration.TestImages
 import korlibs.crypto.encoding.Base64
@@ -36,17 +37,70 @@ import org.koin.test.get
  * A project last synced by a client from before images were their own entity: the entry's image
  * is a file next to it, the server's copy of the entry carries the image inline, and both sides
  * hold the hash that included the image bytes. After the data migration promotes the image, the
- * first sync must upload the image and the entry without a conflict, and a second device must
+ * first sync must upload the image and the entry without a conflict, whether or not another
+ * device's download has repaired the server's hash for the entry first, and a second device must
  * end up with both.
  */
 class EntryImageUpgradeTest : RoundTripTestBase() {
 
 	private val json = createJsonSerializer()
 
+	private class Upgraded(
+		val client: HeadlessClient,
+		val entryId: Int,
+		val imageBytes: ByteArray,
+		val legacyHash: String,
+		/** The hash the server computes for its stored copy of the entry, which has no images. */
+		val imagelessHash: String,
+	)
+
 	@Test
 	@Timeout(value = 120)
 	fun `a migrated entry image syncs without conflict and reaches a second device`() = runBlocking {
 		val project = "entry image upgrade"
+		val upgraded = upgradeLegacyProject(project)
+		val client = upgraded.client
+
+		assertTrue(client.syncNoConflict(), "the first sync after the upgrade should not conflict")
+		val syncedImageId = assertImageUploaded(project, upgraded)
+
+		val second = secondDeviceFor(client, "entry image upgrade b")
+		assertTrue(second.syncNoConflict(), "second device sync should succeed")
+		assertHasImage(second, upgraded, syncedImageId)
+
+		assertConverged(project, client, second)
+		assertResyncSilent(client)
+		assertResyncSilent(second)
+	}
+
+	@Test
+	@Timeout(value = 120)
+	fun `a migrated entry uploads without conflict after another device repaired its server hash`() = runBlocking {
+		val project = "entry image upgrade repaired"
+		val upgraded = upgradeLegacyProject(project)
+		val client = upgraded.client
+
+		val second = secondDeviceFor(client, "entry image upgrade repaired b")
+		assertTrue(second.syncNoConflict(), "a fresh device should download the legacy entry")
+		assertEquals(
+			upgraded.imagelessHash,
+			serverEntityHash(project, upgraded.entryId),
+			"the download should repair the server's hash for the entry",
+		)
+
+		assertTrue(client.syncNoConflict(), "the upgraded device should upload over the repaired hash")
+		val syncedImageId = assertImageUploaded(project, upgraded)
+
+		assertTrue(second.syncNoConflict(), "the fresh device should take the upgraded entry")
+		assertHasImage(second, upgraded, syncedImageId)
+
+		assertConverged(project, client, second)
+		assertResyncSilent(client)
+		assertResyncSilent(second)
+	}
+
+	/** Syncs an entry, rewinds the client and server to a pre-upgrade state, and runs the migration. */
+	private suspend fun upgradeLegacyProject(project: String): Upgraded {
 		val client = newClient(project)
 		val encyclopedia: EncyclopediaRepository = client.scope.get()
 		encyclopedia.ensureEntriesLoaded()
@@ -92,23 +146,27 @@ class EntryImageUpgradeTest : RoundTripTestBase() {
 		val upgradedImages: ImagesRepository = upgraded.scope.get()
 		assertEquals("Alice", assertNotNull(upgradedImages.findImage(imageId)).name)
 
-		assertTrue(upgraded.syncNoConflict(), "the first sync after the upgrade should not conflict")
+		return Upgraded(upgraded, entry.id, imageBytes, legacyHash, serverEntity.hash())
+	}
+
+	/** The id the upgraded entry's image synced under, after checking the server has both. */
+	private suspend fun assertImageUploaded(project: String, upgraded: Upgraded): Int {
+		val encyclopedia: EncyclopediaRepository = upgraded.client.scope.get()
 		// The image may have been re-IDed past the server's ids; the entry follows it.
-		val syncedImageId = upgradedEncyclopedia.loadEntry(entry.id).entry.images.single()
+		val syncedImageId = encyclopedia.loadEntry(upgraded.entryId).entry.images.single()
 		assertNotNull(serverEntityHash(project, syncedImageId), "the promoted image should be on the server")
-		assertNotEquals(legacyHash, serverEntityHash(project, entry.id), "the entry should have been re-uploaded")
+		val serverHash = serverEntityHash(project, upgraded.entryId)
+		assertNotEquals(upgraded.legacyHash, serverHash, "the entry should have been re-uploaded")
+		assertNotEquals(upgraded.imagelessHash, serverHash, "the entry should have been re-uploaded")
+		return syncedImageId
+	}
 
-		val second = secondDeviceFor(upgraded, "entry image upgrade b")
-		assertTrue(second.syncNoConflict(), "second device sync should succeed")
-		val secondEncyclopedia: EncyclopediaRepository = second.scope.get()
-		assertEquals(listOf(syncedImageId), secondEncyclopedia.loadEntry(entry.id).entry.images)
-		val secondImages: ImagesRepository = second.scope.get()
-		val secondImage = assertNotNull(secondImages.findImage(syncedImageId))
-		assertContentEquals(imageBytes, secondImages.loadImageBytes(secondImage))
-
-		assertConverged(project, upgraded, second)
-		assertResyncSilent(upgraded)
-		assertResyncSilent(second)
+	private fun assertHasImage(device: HeadlessClient, upgraded: Upgraded, imageId: Int) {
+		val encyclopedia: EncyclopediaRepository = device.scope.get()
+		assertEquals(listOf(imageId), encyclopedia.loadEntry(upgraded.entryId).entry.images)
+		val images: ImagesRepository = device.scope.get()
+		val image = assertNotNull(images.findImage(imageId))
+		assertContentEquals(upgraded.imageBytes, images.loadImageBytes(image))
 	}
 
 	/** Stores [entity] as an old server would have: the image inline in the JSON, hashed with it. */
