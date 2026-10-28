@@ -130,6 +130,17 @@ class ImageFormatTest {
 	}
 
 	@Test
+	fun `Every allowed extension has a media type`() {
+		for (ext in ImageFormat.ALLOWED_EXTENSIONS) {
+			assertTrue(ImageFormat.mimeType(ext)?.startsWith("image/") == true, ext)
+		}
+		assertEquals("image/jpeg", ImageFormat.mimeType("JPG"))
+		assertEquals("image/svg+xml", ImageFormat.mimeType("svg"))
+		assertNull(ImageFormat.mimeType("bmp"))
+		assertNull(ImageFormat.mimeType(""))
+	}
+
+	@Test
 	fun `Allowed extensions and cap`() {
 		for (ext in listOf("jpg", "jpeg", "png", "webp", "gif", "svg")) {
 			assertTrue(ImageFormat.isAllowedExtension(ext), ext)

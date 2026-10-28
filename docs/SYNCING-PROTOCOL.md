@@ -747,6 +747,15 @@ During `IdConflictResolution`, `IdConflictResolutionOperation` collects these fr
 
 Unrestored edits stay local until they are restored and saved; reporting the scene would upload its unchanged file over newer server changes. The cover is project data, written through `ProjectDataRepository.updateData`, which the project data phase uploads (see [Project data fields](#project-data-fields)). Deleting an image runs `ImageReferenceRewriter.removeAll` first, which removes each Markdown reference (the whole line for a block image), takes the id out of `images` and clears the cover. Another device's `ClientImageSynchronizer.deleteEntityLocal` deletes only the file, since the rewritten referrers arrive as Entity updates of their own.
 
+### Web reader
+
+The server's story pages show embedded images. Story prose is rendered with `MarkdownRenderer`'s image policy, which keeps an `img` only when its source is exactly `hammer://image/<id>`; any other source is dropped, so prose cannot load an external image. The rendered HTML, cached pages included, keeps those references, and `StoryImageLinks` replaces them with URLs when the page is served:
+
+- A reader's page (`/a/<pen name>/<project>`) links `/a/<pen name>/<project>/image/<id>?s=<signature>`, plus the share's `p` when the page has one. `StoryImageSigner` signs the project id and image id with the token HMAC key, and the image route serves only an id whose signature verifies under any key generation in the keyring, after the same access check as the page. An image is reachable only through a link the server rendered into prose the reader could see, without decrypting scenes on each image request.
+- The author's own view (`/story/<project>`) links `/story/<project>/image/<id>`, behind the login, for any image in the project.
+
+Both routes answer `404` for every failure. The image's stored hash is its weak ETag, so a revalidation is answered `304` without decrypting. Each response carries `Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; sandbox`, so an SVG opened directly cannot run script.
+
 ## Project Data Sync (non-entity blob)
 
 In addition to entity sync, each project has a single per-project blob holding user-authored settings (author name, theme colors, word-count goal, tags, language, spell-check dictionary, book cover). This blob is synced as its own phase, inserted into the pipeline *before* the entity phases (entity deletion, then entity transfer) so the project's identity is settled before any entity churn.

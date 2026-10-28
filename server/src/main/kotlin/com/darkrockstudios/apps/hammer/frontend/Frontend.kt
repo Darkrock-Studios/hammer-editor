@@ -43,12 +43,14 @@ import com.darkrockstudios.apps.hammer.plugin.NoticeSlot
 import com.darkrockstudios.apps.hammer.plugin.pluginAdminNav
 import com.darkrockstudios.apps.hammer.plugin.putAllowedUsersNotice
 import com.darkrockstudios.apps.hammer.plugins.configureTemplating
+import com.darkrockstudios.apps.hammer.project.ProjectEntityDatasource
 import com.darkrockstudios.apps.hammer.project.ProjectSyncKey
 import com.darkrockstudios.apps.hammer.project.ProjectSynchronizationSession
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
 import com.darkrockstudios.apps.hammer.secret.KeyringManager
+import com.darkrockstudios.apps.hammer.story.StoryImageSigner
 import com.darkrockstudios.apps.hammer.story.StoryRendererService
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
 import com.darkrockstudios.apps.hammer.utilities.MarkdownRenderer
@@ -110,6 +112,8 @@ fun Route.frontend() {
 	val storyReaderCollector: StoryReaderCollector by inject()
 	val storyKudosRepository: StoryKudosRepository by inject()
 	val serverProjectDataRepository: com.darkrockstudios.apps.hammer.project.ServerProjectDataRepository by inject()
+	val projectEntityDatasource: ProjectEntityDatasource by inject()
+	val storyImageSigner: StoryImageSigner by inject()
 	val recurringTaskRegistry: com.darkrockstudios.apps.hammer.scheduling.RecurringTaskRegistry by inject()
 	val clock: kotlin.time.Clock by inject()
 	val projectsSyncManager: SyncSessionManager<Long, ProjectsSynchronizationSession> by inject(named(PROJECTS_SYNC_MANAGER))
@@ -162,7 +166,7 @@ fun Route.frontend() {
 		projectsRepository,
 		accountsRepository,
 		reviewRepository,
-		storyReaderRepository, storyKudosRepository, serverProjectDataRepository, clock,
+		storyReaderRepository, storyKudosRepository, serverProjectDataRepository, projectEntityDatasource, clock,
 	)
 	reviewFrontend(
 		reviewRepository = reviewRepository,
@@ -182,6 +186,8 @@ fun Route.frontend() {
 		accountsRepository,
 		projectsRepository,
 		serverProjectDataRepository,
+		projectEntityDatasource,
+		storyImageSigner,
 		serverConfig,
 	)
 	storyKudosRoutes(

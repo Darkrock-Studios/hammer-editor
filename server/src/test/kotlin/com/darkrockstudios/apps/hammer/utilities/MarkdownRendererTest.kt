@@ -419,6 +419,108 @@ class MarkdownRendererTest {
 		assertTrue(result.contains("<p>After the list.</p>"), result)
 	}
 
+	@Test
+	fun `markdownToSafeHtml keeps a project image reference when images are on`() {
+		val result = renderImages("![Map](hammer://image/5)")
+
+		assertTrue(result.contains("""src="hammer://image/5""""), result)
+		assertTrue(result.contains("""alt="Map""""), result)
+		assertEquals(1, countTag(result, "img"), result)
+	}
+
+	@Test
+	fun `markdownToSafeHtml keeps an image on its own prose line`() {
+		val result = markdownRenderer.markdownToSafeHtml(
+			"Before.\n\n![Map](hammer://image/12)\n\nAfter.",
+			preserveLineBreaks = true,
+			images = true,
+		)
+
+		assertTrue(result.contains("""src="hammer://image/12""""), result)
+		assertTrue(result.contains("Before."), result)
+		assertTrue(result.contains("After."), result)
+	}
+
+	@Test
+	fun `markdownToSafeHtml drops any image source but a project image`() {
+		for (source in listOf(
+			"https://evil.example/t.png",
+			"http://evil.example/t.png",
+			"//evil.example/t.png",
+			"data:image/png;base64,iVBORw0KGgo=",
+			"hammer://image/abc",
+			"hammer://image/5/extra",
+			"hammer://image/1234567890",
+			"hammer://other/5",
+			"images/map.png",
+			"/assets/images/og-story.png",
+		)) {
+			val result = renderImages("![x]($source)")
+
+			assertFalse(result.contains("<img"), "$source rendered as $result")
+			assertFalse(result.contains("evil.example"), "$source rendered as $result")
+		}
+	}
+
+	@Test
+	fun `markdownToSafeHtml escapes markup in image alt text`() {
+		val result = renderImages("![<b>Map</b>](hammer://image/5)")
+
+		assertTrue(result.contains("""src="hammer://image/5""""), result)
+		assertFalse(result.contains("<b>"), result)
+	}
+
+	@Test
+	fun `markdownToSafeHtml strips raw image markup even with images on`() {
+		val result = renderImages("""<img src=x onerror="alert('xss')">""")
+
+		assertFalse(result.contains("<img"), result)
+		assertFalse(result.contains("onerror"), result)
+		assertFalse(result.contains("alert"), result)
+	}
+
+	@Test
+	fun `markdownToSafeHtml strips event handlers from an allowed image`() {
+		val result = renderImages("""<img src="hammer://image/5" alt="Map" onerror="alert('xss')">""")
+
+		assertFalse(result.contains("onerror"), result)
+		assertFalse(result.contains("alert"), result)
+	}
+
+	@Test
+	fun `markdownToSafeHtml never links to a project image reference`() {
+		for (markdown in listOf(
+			"[link](hammer://image/5)",
+			"[link](HAMMER://image/5)",
+			"""<a href="hammer://image/5">link</a>""",
+		)) {
+			val result = renderImages(markdown)
+
+			assertFalse(result.contains("href"), "$markdown rendered as $result")
+			assertTrue(result.contains("link"), result)
+		}
+	}
+
+	@Test
+	fun `markdownToSafeHtml still links over http with images on`() {
+		val result = renderImages("[site](https://example.com)")
+
+		assertTrue(result.contains("""href="https://example.com""""), result)
+	}
+
+	@Test
+	fun `markdownToSafeHtml drops images by default`() {
+		val plain = markdownRenderer.markdownToSafeHtml("![Map](hammer://image/5)")
+		val prose = markdownRenderer.markdownToSafeHtml("![Map](hammer://image/5)", preserveLineBreaks = true)
+
+		assertFalse(plain.contains("<img"), plain)
+		assertFalse(prose.contains("<img"), prose)
+		assertFalse(plain.contains("hammer://"), plain)
+	}
+
+	private fun renderImages(markdown: String) =
+		markdownRenderer.markdownToSafeHtml(markdown, preserveLineBreaks = true, images = true)
+
 	private fun countBreaks(html: String) = Regex("<br\\s*/?>").findAll(html).count()
 
 	private fun countTag(html: String, tag: String) = Regex("<$tag[\\s>]").findAll(html).count()

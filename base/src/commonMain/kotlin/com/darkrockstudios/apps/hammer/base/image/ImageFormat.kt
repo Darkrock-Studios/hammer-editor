@@ -28,6 +28,16 @@ object ImageFormat {
 
 	fun isAllowedExtension(extension: String): Boolean = extension.lowercase() in ALLOWED_EXTENSIONS
 
+	/** The media type an image of [extension] is served as, or null for an extension Hammer does not allow. */
+	fun mimeType(extension: String): String? = when (extension.lowercase()) {
+		"jpg", "jpeg" -> "image/jpeg"
+		"png" -> "image/png"
+		"webp" -> "image/webp"
+		"gif" -> "image/gif"
+		"svg" -> "image/svg+xml"
+		else -> null
+	}
+
 	/**
 	 * A name the client can store as a filename and read back unchanged. Anything else would hash
 	 * differently once read back from disk, so the server rejects it too.

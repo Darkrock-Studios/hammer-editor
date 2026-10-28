@@ -109,6 +109,7 @@ import com.darkrockstudios.apps.hammer.secret.KeyringCodec
 import com.darkrockstudios.apps.hammer.secret.KeyringManager
 import com.darkrockstudios.apps.hammer.secret.ServerSecretProvider
 import com.darkrockstudios.apps.hammer.secret.buildSecretProvider
+import com.darkrockstudios.apps.hammer.story.StoryImageSigner
 import com.darkrockstudios.apps.hammer.story.StoryRenderCache
 import com.darkrockstudios.apps.hammer.story.StoryRendererService
 import com.darkrockstudios.apps.hammer.storyideas.ServerIdeasRepository
@@ -307,6 +308,7 @@ fun mainModule(
 	single { EncryptionConvergence(get(), get(), get()) }
 	single { EncryptionBootstrap(get(), get(), get(), get(), get(), get()) }
 	single<TokenHasher>()
+	single<StoryImageSigner>()
 
 	single<EmailService> {
 		val serverConfig = get<ServerConfig>()
