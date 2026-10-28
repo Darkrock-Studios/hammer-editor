@@ -53,8 +53,6 @@
 	<string name="encyclopedia_entry_delete_title">¿Eliminar la entrada?</string>
 	<string name="encyclopedia_entry_delete_message">¡Esta acción no se puede deshacer!</string>
 	<string name="encyclopedia_entry_delete_toast">Entrada eliminada</string>
-	<string name="encyclopedia_entry_delete_image_title">¿Eliminar la imagen?</string>
-	<string name="encyclopedia_entry_delete_image_message">¡Esta acción no se puede deshacer!</string>
 	<string name="encyclopedia_entry_name_hint">Nombre</string>
 	<string name="encyclopedia_entry_close_button">Cerrar entrada</string>
 	<string name="encyclopedia_entry_menu_group">Entrada</string>

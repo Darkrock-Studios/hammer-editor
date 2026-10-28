@@ -254,13 +254,15 @@ lands in place.
 | `note.update` | Write | |
 | `note.delete` | Destructive | |
 | `entry.list` | Read | Each entry's aliases; optional type and tag filters |
-| `entry.read` | Read | Text, type, tags, whether it has an image, referencing scenes |
+| `entry.read` | Read | Text, type, tags, image ids (primary first), referencing scenes |
 | `entry.create` | Write | |
 | `entry.update` | Write | |
-| `entry.delete` | Destructive | |
-| `entry.image.get` | Read | Returns the image bytes and extension |
-| `entry.image.set` | Write | Takes the image bytes and extension |
-| `entry.image.remove` | Write | |
+| `entry.delete` | Destructive | The entry's images stay in the project |
+| `entry.images.list` | Read | Id, name and extension of each image, primary first |
+| `entry.images.add` | Write | Appends an image already in the project |
+| `entry.images.import` | Write | Takes image bytes and extension; creates the image and appends it |
+| `entry.images.remove` | Write | Takes the image off the entry; it stays in the project |
+| `entry.images.primary` | Write | Moves an image the entry lists to the front |
 | `timeline.list` | Read | |
 | `timeline.read` | Read | |
 | `timeline.create` | Write | |

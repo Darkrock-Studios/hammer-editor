@@ -35,7 +35,8 @@ import com.darkrockstudios.apps.hammer.operations.core.DraftText
 import com.darkrockstudios.apps.hammer.operations.core.Drafts
 import com.darkrockstudios.apps.hammer.operations.core.Entries
 import com.darkrockstudios.apps.hammer.operations.core.Entry
-import com.darkrockstudios.apps.hammer.operations.core.EntryImage
+import com.darkrockstudios.apps.hammer.operations.core.EntryImageSummary
+import com.darkrockstudios.apps.hammer.operations.core.EntryImages
 import com.darkrockstudios.apps.hammer.operations.core.EntryKind
 import com.darkrockstudios.apps.hammer.operations.core.EntityKind
 import com.darkrockstudios.apps.hammer.operations.core.EntryListInput
@@ -82,7 +83,6 @@ import kotlinx.serialization.json.put
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.koin.core.component.get
-import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
@@ -350,15 +350,14 @@ class ReadOperationsTest : KoinOperationsTest() {
 	}
 
 	@Test
-	fun `entry read and image`() = onTestThread {
+	fun `entry read and images`() = onTestThread {
 		val entry = run<ProjectItemInput, Entry>("entry.read", ProjectItemInput(PROJECT, ids.entryId))
 		assertEquals("The keeper.", entry.text)
 		assertEquals(EntryKind.Person, entry.type)
 		assertTrue(entry.hasImage)
 
-		val image = run<ProjectItemInput, EntryImage>("entry.image.get", ProjectItemInput(PROJECT, ids.entryId))
-		assertEquals("png", image.extension)
-		assertContentEquals(IMAGE, image.content)
+		val images = run<ProjectItemInput, EntryImages>("entry.images.list", ProjectItemInput(PROJECT, ids.entryId))
+		assertEquals(listOf(EntryImageSummary(entry.images.single(), "Alice", "png")), images.images)
 	}
 
 	@Test

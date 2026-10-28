@@ -36,6 +36,7 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImageAddResult
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndex
 import com.darkrockstudios.apps.hammer.common.encyclopedia.CreateEntryUi
 import com.darkrockstudios.apps.hammer.common.encyclopedia.EncyclopediaEntryItem
@@ -291,26 +292,42 @@ fun ScreenViewEntryPreview() {
 	}
 }
 
-val fakeViewEntryComponent: ViewEntry = object : ViewEntry {
-	override val state: Value<ViewEntry.State>
-		get() = MutableValue(
-			ViewEntry.State(
-				entryDef = fakeEntryDef(),
-				content = fakeEntryContent()
-			)
-		)
+val fakeViewEntryComponent: ViewEntry = FakeViewEntryComponent(
+	ViewEntry.State(
+		entryDef = fakeEntryDef(),
+		content = fakeEntryContent()
+	)
+)
+
+val fakeViewEntryComponentWithImages: ViewEntry = FakeViewEntryComponent(
+	ViewEntry.State(
+		entryDef = fakeEntryDef(),
+		content = fakeEntryContent().copy(images = listOf(4, 7, 9)),
+		images = listOf(
+			ViewEntry.EntryImage(id = 4, name = "Portrait", path = "/preview/images/4~Portrait.png", hash = "a"),
+			ViewEntry.EntryImage(id = 7, name = "Sketch", path = "/preview/images/7~Sketch.png", hash = "b"),
+			ViewEntry.EntryImage(id = 9, name = "Map", path = "/preview/images/9~Map.png", hash = "c"),
+		),
+		currentImageIndex = 1,
+	)
+)
+
+private class FakeViewEntryComponent(initial: ViewEntry.State) : ViewEntry {
+	override val state: Value<ViewEntry.State> = MutableValue(initial)
 
 	override suspend fun loadEntryContent(entryDef: EntryDef) = fakeEntryContent()
 	override suspend fun deleteEntry(entryDef: EntryDef) = true
 	override suspend fun updateEntry(name: String, text: String, tags: Set<String>) =
 		EntryResult(EntryContainer(fakeEntryContent()), EntryError.NONE)
 
-	override suspend fun removeEntryImage() = true
-	override suspend fun setImage(path: String) {}
+	override suspend fun importImage(path: String) = ImageAddResult.Ok
+	override suspend fun removeImage(id: Int) = true
+	override suspend fun setPrimaryImage(id: Int) = true
+	override fun showImageAt(index: Int) {}
 	override fun showDeleteEntryDialog() {}
 	override fun closeDeleteEntryDialog() {}
-	override fun showDeleteImageDialog() {}
-	override fun closeDeleteImageDialog() {}
+	override fun showRemoveImageConfirm(id: Int) {}
+	override fun dismissRemoveImageConfirm() {}
 	override fun showAddImageDialog() {}
 	override fun closeAddImageDialog() {}
 	override fun startNameEdit() {}

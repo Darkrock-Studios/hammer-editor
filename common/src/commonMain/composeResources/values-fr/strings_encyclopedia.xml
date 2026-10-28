@@ -53,8 +53,6 @@
 	<string name="encyclopedia_entry_delete_title">Supprimer l'entrée ?</string>
 	<string name="encyclopedia_entry_delete_message">Cette action est irréversible !</string>
 	<string name="encyclopedia_entry_delete_toast">Entrée supprimée</string>
-	<string name="encyclopedia_entry_delete_image_title">Supprimer l'image ?</string>
-	<string name="encyclopedia_entry_delete_image_message">Cette action est irréversible !</string>
 	<string name="encyclopedia_entry_name_hint">Nom</string>
 	<string name="encyclopedia_entry_close_button">Fermer l'entrée</string>
 	<string name="encyclopedia_entry_menu_group">Entrée</string>

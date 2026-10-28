@@ -335,13 +335,16 @@ class ProjectSynchronizationComponent(
 			excludeFromDictionary = local.excludeFromDictionary,
 			images = local.images,
 		)
+		val localImages = imagesRepository.findImageFiles(local.images + serverEntity.images)
+			.associateBy { it.def.id }
 
 		withContext(mainDispatcher) {
 			_state.getAndUpdate {
 				it.copy(
 					entityConflict = ProjectSynchronization.EntityConflict.EncyclopediaEntryConflict(
 						serverEntry = serverEntity,
-						clientEntry = localEntity
+						clientEntry = localEntity,
+						localImages = localImages,
 					),
 					conflictTitle = Res.string.sync_conflict_encyclopedia_title
 				)

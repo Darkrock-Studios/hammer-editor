@@ -79,7 +79,6 @@
 	<string name="sync_conflict_encyclopedia_label_image">Bild:</string>
 	<string name="sync_conflict_encyclopedia_label_content">Inhalt:</string>
 	<string name="sync_conflict_encyclopedia_label_tags">Tags:</string>
-	<string name="sync_conflict_encyclopedia_has_image">Mit Bild</string>
 	<string name="sync_conflict_title_scene_field_name">Name</string>
 	<string name="sync_conflict_title_scene_field_content">Szeneninhalt</string>
 	<string name="sync_conflict_title_scene_field_outline">Gliederung</string>

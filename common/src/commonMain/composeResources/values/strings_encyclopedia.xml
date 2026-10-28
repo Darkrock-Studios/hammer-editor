@@ -57,8 +57,8 @@
 	<string name="encyclopedia_entry_delete_title">Delete Entry?</string>
 	<string name="encyclopedia_entry_delete_message">This cannot be undone!</string>
 	<string name="encyclopedia_entry_delete_toast">Entry Deleted</string>
-	<string name="encyclopedia_entry_delete_image_title">Delete Image?</string>
-	<string name="encyclopedia_entry_delete_image_message">This cannot be undone!</string>
+	<string name="encyclopedia_entry_remove_image_title">Remove Image?</string>
+	<string name="encyclopedia_entry_remove_image_message">The image is taken off this entry only. It stays in the project and can be added again.</string>
 	<string name="encyclopedia_entry_name_hint">Name</string>
 	<string name="encyclopedia_entry_close_button">Close Entry</string>
 	<string name="encyclopedia_entry_menu_group">Entry</string>
@@ -140,6 +140,12 @@
 	<string name="encyclopedia_entry_figure_caption">Fig. I · Entry</string>
 	<string name="encyclopedia_entry_figure_label">Fig. I</string>
 	<string name="encyclopedia_entry_figure_add">+ Add</string>
+	<string name="encyclopedia_entry_image_add_file">+ Add file</string>
+	<string name="encyclopedia_entry_image_set_primary">Set primary</string>
+	<string name="encyclopedia_entry_image_remove">Remove</string>
+	<string name="encyclopedia_entry_image_counter">%1$d / %2$d</string>
+	<string name="encyclopedia_entry_image_page_description">Image %1$d of %2$d: %3$s</string>
+	<string name="encyclopedia_entry_image_unsupported">That image type is not supported. Use %1$s.</string>
 	<string name="encyclopedia_entry_folio_format">Fol. %1$s · Ent-%2$s</string>
 	<string name="encyclopedia_entry_scene_index_format">Sc.%1$s</string>
 	<string name="encyclopedia_entry_colophon_label">Entry · Catalogue card</string>

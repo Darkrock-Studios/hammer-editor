@@ -80,7 +80,6 @@
 	<string name="sync_conflict_encyclopedia_label_image">Image:</string>
 	<string name="sync_conflict_encyclopedia_label_content">Content:</string>
 	<string name="sync_conflict_encyclopedia_label_tags">Tags:</string>
-	<string name="sync_conflict_encyclopedia_has_image">Has Image</string>
 	<string name="sync_conflict_title_scene_field_name">Name</string>
 	<string name="sync_conflict_title_scene_field_content">Scene Content</string>
 	<string name="sync_conflict_title_scene_field_outline">Outline</string>

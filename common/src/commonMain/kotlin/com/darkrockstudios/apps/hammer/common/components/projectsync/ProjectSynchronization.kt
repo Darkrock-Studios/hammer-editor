@@ -5,6 +5,7 @@ import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.common.data.Msg
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageFile
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessage
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import org.jetbrains.compose.resources.StringResource
@@ -67,7 +68,12 @@ interface ProjectSynchronization {
 
 		class EncyclopediaEntryConflict(
 			serverEntry: ApiProjectEntity.EncyclopediaEntryEntity,
-			clientEntry: ApiProjectEntity.EncyclopediaEntryEntity
+			clientEntry: ApiProjectEntity.EncyclopediaEntryEntity,
+			/**
+			 * The images either side lists that are on this device, by id. A server-side id may be
+			 * missing when that image has not been downloaded.
+			 */
+			val localImages: Map<Int, ImageFile> = emptyMap(),
 		) : EntityConflict<ApiProjectEntity.EncyclopediaEntryEntity>(serverEntry, clientEntry)
 
 		class SceneDraftConflict(

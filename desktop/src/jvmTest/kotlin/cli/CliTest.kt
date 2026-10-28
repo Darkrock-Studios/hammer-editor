@@ -75,7 +75,7 @@ class CliTest {
 
 	@Test
 	fun `file inputs come from --in`() {
-		assertEquals(Cli.EXIT_OK, run("entry", "image", "set", "--help"))
+		assertEquals(Cli.EXIT_OK, run("entry", "images", "import", "--help"))
 		assertTrue("--in <file>" in stdout.readUtf8())
 
 		assertEquals(Cli.EXIT_USAGE, run("note", "read", "--project", "X", "--id", "1", "--in", "notes.txt"))

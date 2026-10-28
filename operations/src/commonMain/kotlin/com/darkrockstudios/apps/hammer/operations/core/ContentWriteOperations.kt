@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.Encycl
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryError
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImageAddResult
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NoteError
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
@@ -108,7 +109,7 @@ internal fun contentWriteOperations(): List<Operation<*, *>> = listOf(
 	},
 	operation<ProjectItemInput, EntrySummary>(
 		name = "entry.delete",
-		description = "Delete an encyclopedia entry, and its image, for good.",
+		description = "Delete an encyclopedia entry for good. Its images stay in the project.",
 		access = Access.Destructive,
 		scope = OperationScope.Content,
 	) { input ->
@@ -120,34 +121,65 @@ internal fun contentWriteOperations(): List<Operation<*, *>> = listOf(
 			EntrySummary(def.id, def.name, EntryKind.of(def.type), aliases)
 		}
 	},
-	operation<EntryImageSetInput, Entry>(
-		name = "entry.image.set",
-		description = "Add an image to an encyclopedia entry as its primary image. The extension is jpg, jpeg, png, " +
-			"webp, gif, or svg, and must match the image.",
+	operation<EntryImageInput, EntryImages>(
+		name = "entry.images.add",
+		description = "Add an image already in the project to the end of an encyclopedia entry's images.",
 		access = Access.Write,
 		scope = OperationScope.Content,
 	) { input ->
 		projects.withProject(input.project) { project ->
 			val def = project.requireEntry(input.id)
-			val outcome = project.scope.get<EncyclopediaService>().importPrimaryImage(def, input.extension, input.content)
-			if (outcome.result != ImageAddResult.Ok) {
-				val formats = ImageFormat.ALLOWED_EXTENSIONS.joinToString()
-				invalidInput("Images must be one of $formats, and at most ${ImageFormat.MAX_IMAGE_MB} MB")
-			}
-			project.readEntry(def.id)
+			project.scope.get<ImagesRepository>().findImage(input.imageId) ?: notFound("No image ${input.imageId}")
+			project.scope.get<EncyclopediaService>().addEntryImage(def, input.imageId)
+			project.entryImages(def)
 		}
 	},
-	operation<ProjectItemInput, Entry>(
-		name = "entry.image.remove",
-		description = "Remove an encyclopedia entry's primary image from the entry.",
+	operation<EntryImageInput, EntryImages>(
+		name = "entry.images.remove",
+		description = "Take an image off an encyclopedia entry. The image stays in the project.",
+		access = Access.Write,
+		scope = OperationScope.Content,
+	) { input ->
+		projects.withProject(input.project) { project ->
+			val def = project.requireEntryImage(input.id, input.imageId)
+			project.scope.get<EncyclopediaService>().removeEntryImage(def, input.imageId)
+			project.entryImages(def)
+		}
+	},
+	operation<EntryImageInput, EntryImages>(
+		name = "entry.images.primary",
+		description = "Make one of an encyclopedia entry's images its primary image, moving it first.",
+		access = Access.Write,
+		scope = OperationScope.Content,
+	) { input ->
+		projects.withProject(input.project) { project ->
+			val def = project.requireEntryImage(input.id, input.imageId)
+			project.scope.get<EncyclopediaService>().setPrimaryImage(def, input.imageId)
+			project.entryImages(def)
+		}
+	},
+	operation<EntryImageImportInput, EntryImages>(
+		name = "entry.images.import",
+		description = "Add a new image to the project, named after an encyclopedia entry, and to the end of the " +
+			"entry's images. The extension is jpg, jpeg, png, webp, gif, or svg, and must match the image.",
 		access = Access.Write,
 		scope = OperationScope.Content,
 	) { input ->
 		projects.withProject(input.project) { project ->
 			val def = project.requireEntry(input.id)
-			val encyclopedia = project.scope.get<EncyclopediaService>()
-			encyclopedia.findPrimaryImage(def)?.let { encyclopedia.removeEntryImage(def, it.id) }
-			project.readEntry(def.id)
+			val outcome = project.scope.get<EncyclopediaService>().importEntryImage(def, input.extension, input.content)
+			when (outcome.result) {
+				ImageAddResult.Ok -> Unit
+				ImageAddResult.TooLarge -> invalidInput("Images can be at most ${ImageFormat.MAX_IMAGE_MB} MB")
+				ImageAddResult.UnsupportedType -> {
+					val formats = ImageFormat.ALLOWED_EXTENSIONS.joinToString()
+					invalidInput("Images must be one of $formats, and match their extension")
+				}
+
+				ImageAddResult.NameInvalid -> invalidInput("The entry's name cannot name an image")
+				ImageAddResult.ReadFailed -> error("Could not write the image")
+			}
+			project.entryImages(def)
 		}
 	},
 	operation<TimelineCreateInput, TimelineEntry>(
@@ -227,6 +259,15 @@ internal suspend fun OpenProject.requireEntry(id: Int): EntryDef {
 	return encyclopedia.findEntryDef(id) ?: notFound("No entry $id")
 }
 
+/** The entry [id], which must list image [imageId]. */
+private suspend fun OpenProject.requireEntryImage(id: Int, imageId: Int): EntryDef {
+	val def = requireEntry(id)
+	if (imageId !in scope.get<EncyclopediaService>().loadEntry(def).entry.images) {
+		notFound("Entry $id has no image $imageId")
+	}
+	return def
+}
+
 private fun EntryError.requireNone() {
 	when (this) {
 		EntryError.NONE -> Unit
@@ -300,8 +341,17 @@ data class EntryUpdateInput(
 )
 
 @Serializable
-class EntryImageSetInput(
+data class EntryImageInput(
 	val project: String,
+	/** The entry. */
+	val id: Int,
+	val imageId: Int,
+)
+
+@Serializable
+class EntryImageImportInput(
+	val project: String,
+	/** The entry. */
 	val id: Int,
 	/** One of [ImageFormat.ALLOWED_EXTENSIONS]. */
 	val extension: String,

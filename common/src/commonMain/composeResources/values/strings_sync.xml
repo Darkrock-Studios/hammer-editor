@@ -96,9 +96,10 @@
 	<string name="sync_conflict_encyclopedia_label_type">Type:</string>
 	<string name="sync_conflict_encyclopedia_label_image">Image:</string>
 	<string name="sync_conflict_encyclopedia_label_content">Content:</string>
+	<string name="sync_conflict_encyclopedia_image_not_local">#%1$d</string>
+	<string name="sync_conflict_encyclopedia_image_not_local_description">Image %1$d, not on this device yet</string>
 	<string name="sync_conflict_encyclopedia_label_tags">Tags:</string>
 
-	<string name="sync_conflict_encyclopedia_has_image">Has Image</string>
 
 	<string name="sync_conflict_title_scene_field_name">Name</string>
 	<string name="sync_conflict_title_scene_field_content">Scene Content</string>

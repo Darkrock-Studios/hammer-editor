@@ -54,8 +54,6 @@
 	<string name="encyclopedia_entry_delete_title">Delete Entry?</string>
 	<string name="encyclopedia_entry_delete_message">This cannot be undone!</string>
 	<string name="encyclopedia_entry_delete_toast">Entry Deleted</string>
-	<string name="encyclopedia_entry_delete_image_title">Delete Image?</string>
-	<string name="encyclopedia_entry_delete_image_message">This cannot be undone!</string>
 	<string name="encyclopedia_entry_name_hint">Name</string>
 	<string name="encyclopedia_entry_close_button">Close Entry</string>
 	<string name="encyclopedia_entry_menu_group">Entry</string>

@@ -18,7 +18,6 @@ import com.darkrockstudios.apps.hammer.common.data.tagindex.normalizeTagNeedle
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.operations.Access
-import com.darkrockstudios.apps.hammer.operations.Base64Bytes
 import com.darkrockstudios.apps.hammer.operations.OpenProject
 import com.darkrockstudios.apps.hammer.operations.Operation
 import com.darkrockstudios.apps.hammer.operations.OperationScope
@@ -79,21 +78,13 @@ internal fun contentOperations(): List<Operation<*, *>> = listOf(
 	) { input ->
 		projects.withProject(input.project) { project -> project.readEntry(input.id) }
 	},
-	operation<ProjectItemInput, EntryImage>(
-		name = "entry.image.get",
-		description = "An encyclopedia entry's primary image.",
+	operation<ProjectItemInput, EntryImages>(
+		name = "entry.images.list",
+		description = "The images an encyclopedia entry shows, primary first.",
 		access = Access.Read,
 		scope = OperationScope.Content,
 	) { input ->
-		projects.withProject(input.project) { project ->
-			val encyclopedia = project.scope.get<EncyclopediaService>()
-			encyclopedia.ensureEntriesLoaded()
-			val def = encyclopedia.findEntryDef(input.id) ?: notFound("No entry ${input.id}")
-			val image = encyclopedia.findPrimaryImage(def) ?: notFound("Entry ${input.id} has no image")
-			val bytes = project.scope.get<ImagesRepository>().loadImageBytes(image)
-				?: error("Could not read image ${image.id}")
-			EntryImage(image.fileExtension, bytes)
-		}
+		projects.withProject(input.project) { project -> project.entryImages(project.requireEntry(input.id)) }
 	},
 	operation<ProjectInput, Timeline>(
 		name = "timeline.list",
@@ -144,8 +135,16 @@ internal suspend fun OpenProject.readEntry(id: Int): Entry {
 		tags = entry.tags.sorted(),
 		aliases = entry.aliases,
 		hasImage = entry.images.isNotEmpty(),
+		images = entry.images,
 		referencedBy = scope.get<ReferenceIndexService>().getScenesReferencing(def.id).sorted(),
 	)
+}
+
+/** The images [def] lists that are in the project, in its order. */
+internal suspend fun OpenProject.entryImages(def: EntryDef): EntryImages {
+	val listed = scope.get<EncyclopediaService>().loadEntry(def).entry.images
+	val loaded = scope.get<ImagesRepository>().ensureImagesLoaded().associateBy { it.id }
+	return EntryImages(listed.mapNotNull { loaded[it] }.map { EntryImageSummary(it.id, it.name, it.fileExtension) })
 }
 
 /** Matches tags the way the tag index keys them, so filters agree with tag.list and tag.find. */
@@ -225,16 +224,21 @@ data class Entry(
 	val tags: List<String>,
 	val aliases: List<String>,
 	val hasImage: Boolean,
+	/** Image ids in order, primary first. An id can name an image no longer in the project. */
+	val images: List<Int> = emptyList(),
 	/** Scene ids whose references to this entry have been confirmed. */
 	val referencedBy: List<Int>,
 )
 
 @Serializable
-class EntryImage(
+data class EntryImages(val images: List<EntryImageSummary>)
+
+@Serializable
+data class EntryImageSummary(
+	val id: Int,
+	val name: String,
 	/** One of [ImageFormat.ALLOWED_EXTENSIONS]. */
 	val extension: String,
-	@Serializable(with = Base64Bytes::class)
-	val content: ByteArray,
 )
 
 @Serializable

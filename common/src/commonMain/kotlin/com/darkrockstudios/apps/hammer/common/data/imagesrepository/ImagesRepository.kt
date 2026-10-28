@@ -7,6 +7,7 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageDef
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageFile
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
@@ -84,6 +85,15 @@ class ImagesRepository(
 	fun findImage(id: Int): ImageDef? = imagesDatasource.findImage(id)
 
 	fun getImagePath(def: ImageDef): HPath = imagesDatasource.getImagePath(def)
+
+	fun imageFile(def: ImageDef): ImageFile = ImageFile(def, getImagePath(def), contentHash(def))
+
+	/** The files of the images in [ids] that exist in the project, in [ids] order. */
+	suspend fun findImageFiles(ids: List<Int>): List<ImageFile> {
+		if (ids.isEmpty()) return emptyList()
+		val loaded = ensureImagesLoaded().associateBy { it.id }
+		return ids.distinct().mapNotNull { loaded[it] }.map(::imageFile)
+	}
 
 	fun loadImageBytes(def: ImageDef): ByteArray? = imagesDatasource.loadImageBytes(def)
 

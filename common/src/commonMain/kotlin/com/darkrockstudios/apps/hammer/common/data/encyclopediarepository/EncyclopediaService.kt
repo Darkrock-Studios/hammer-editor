@@ -9,10 +9,10 @@ import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImageAddResu
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesDatasource
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesRepository
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageDef
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageFile
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexRepository
 import com.darkrockstudios.apps.hammer.common.fileio.ExternalFileIo
-import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.flow.SharedFlow
 import okio.IOException
@@ -110,26 +110,25 @@ class EncyclopediaService(
 	suspend fun setPrimaryImage(entryDef: EntryDef, imageId: Int): Boolean =
 		repository.setPrimaryImage(entryDef, imageId)
 
-	/** Imports the file at [imagePath] as a new Image entity and makes it the entry's primary image. */
-	suspend fun importPrimaryImage(entryDef: EntryDef, imagePath: String): ImageAddOutcome {
+	/**
+	 * Imports the file at [imagePath] as a new Image entity named after the entry and adds it to the
+	 * end of the entry's images, so it is the primary image only when the entry had none.
+	 */
+	suspend fun importEntryImage(entryDef: EntryDef, imagePath: String): ImageAddOutcome {
 		val outcome = importImage(entryDef.name, imagePath)
-		outcome.image?.let { attachAsPrimary(entryDef, it) }
+		outcome.image?.let { repository.addEntryImage(entryDef, it.id) }
 		return outcome
 	}
 
-	/** [importPrimaryImage] for image bytes already in hand. */
-	suspend fun importPrimaryImage(entryDef: EntryDef, extension: String, bytes: ByteArray): ImageAddOutcome {
+	/** [importEntryImage] for image bytes already in hand. */
+	suspend fun importEntryImage(entryDef: EntryDef, extension: String, bytes: ByteArray): ImageAddOutcome {
 		val outcome = imagesRepository.create(
 			name = ImagesDatasource.validImageName(entryDef.name),
 			bytes = bytes,
 			fileExtension = extension.removePrefix("."),
 		)
-		outcome.image?.let { attachAsPrimary(entryDef, it) }
+		outcome.image?.let { repository.addEntryImage(entryDef, it.id) }
 		return outcome
-	}
-
-	private suspend fun attachAsPrimary(entryDef: EntryDef, image: ImageDef) {
-		repository.addPrimaryImage(entryDef, image.id)
 	}
 
 	private suspend fun importImage(entryName: String, imagePath: String): ImageAddOutcome {
@@ -186,17 +185,16 @@ class EncyclopediaService(
 		return imageIds.firstNotNullOfOrNull { loaded[it] }
 	}
 
-	/** The file of [entry]'s primary image and the hash of its bytes, or null when it has none. */
-	suspend fun primaryImageFile(entry: EntryContent): EntryImageFile? {
-		val image = findPrimaryImage(entry.images) ?: return null
-		return EntryImageFile(imagesRepository.getImagePath(image), imagesRepository.contentHash(image))
-	}
+	/** The file of [entry]'s primary image, or null when it has none. */
+	suspend fun primaryImageFile(entry: EntryContent): ImageFile? =
+		findPrimaryImage(entry.images)?.let(imagesRepository::imageFile)
+
+	/** The files of [entry]'s images that exist in the project, primary first. */
+	suspend fun entryImageFiles(entry: EntryContent): List<ImageFile> =
+		imagesRepository.findImageFiles(entry.images)
+
+	/** Emits the id of an image whose bytes, name or id changed, or that was deleted. */
+	val imageChangedFlow: SharedFlow<Int> get() = imagesRepository.imageChangedFlow
 
 	// endregion
 }
-
-/**
- * Where an entry's primary image is on disk. [contentHash] changes whenever the bytes do, unlike
- * the path, so it keys image caches; null when the file cannot be read.
- */
-data class EntryImageFile(val path: HPath, val contentHash: String?)

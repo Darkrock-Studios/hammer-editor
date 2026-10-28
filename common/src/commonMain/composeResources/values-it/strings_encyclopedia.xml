@@ -53,8 +53,6 @@
 	<string name="encyclopedia_entry_delete_title">Eliminare la voce?</string>
 	<string name="encyclopedia_entry_delete_message">Questa azione non può essere annullata!</string>
 	<string name="encyclopedia_entry_delete_toast">Voce eliminata</string>
-	<string name="encyclopedia_entry_delete_image_title">Eliminare l’immagine?</string>
-	<string name="encyclopedia_entry_delete_image_message">Questa azione non può essere annullata!</string>
 	<string name="encyclopedia_entry_name_hint">Nome</string>
 	<string name="encyclopedia_entry_close_button">Chiudi la voce</string>
 	<string name="encyclopedia_entry_menu_group">Voce</string>

@@ -285,18 +285,75 @@ class EncyclopediaRepositoryImageTest : BaseTest() {
 	}
 
 	@Test
-	fun `importPrimaryImage puts the new image first and keeps the others`() = runTest {
+	fun `importEntryImage adds the new image after the others`() = runTest {
 		val repo = repository()
 		val service = service(repo)
 		val def = entry1().toDef(projDef)
 		repo.addEntryImage(def, 7)
 
-		val outcome = service.importPrimaryImage(def, sourcePath)
+		val outcome = service.importEntryImage(def, sourcePath)
 
 		assertEquals(ImageAddResult.Ok, outcome.result)
 		val image = assertNotNull(outcome.image)
 		assertEquals("Entry 1", image.name)
-		assertEquals(listOf(image.id, 7), repo.images())
+		assertEquals(listOf(7, image.id), repo.images())
+	}
+
+	@Test
+	fun `importEntryImage into an entry without images makes it the primary image`() = runTest {
+		val repo = repository()
+		val service = service(repo)
+		val def = entry1().toDef(projDef)
+
+		val outcome = service.importEntryImage(def, "png", TestImages.png())
+
+		val image = assertNotNull(outcome.image)
+		assertEquals(listOf(image.id), repo.images())
+		assertEquals(image.id, service.findPrimaryImage(def)?.id)
+	}
+
+	@Test
+	fun `importEntryImage that is not a valid image leaves the entry alone`() = runTest {
+		val repo = repository()
+		val service = service(repo)
+		val def = entry1().toDef(projDef)
+
+		val outcome = service.importEntryImage(def, "jpg", TestImages.png())
+
+		assertEquals(ImageAddResult.UnsupportedType, outcome.result)
+		assertTrue(repo.images().isEmpty())
+		assertTrue(imagesRepository.loadImages().isEmpty())
+	}
+
+	@Test
+	fun `removeEntryImage through the service leaves the Image in the project`() = runTest {
+		val repo = repository()
+		val service = service(repo)
+		val def = entry1().toDef(projDef)
+		val image = assertNotNull(service.importEntryImage(def, sourcePath).image)
+
+		assertTrue(service.removeEntryImage(def, image.id))
+
+		assertTrue(repo.images().isEmpty())
+		assertEquals(image, imagesRepository.findImage(image.id))
+	}
+
+	@Test
+	fun `entryImageFiles lists the images in the project in entry order`() = runTest {
+		val repo = repository()
+		val service = service(repo)
+		val def = entry1().toDef(projDef)
+		val map = assertNotNull(imagesRepository.create("Map", TestImages.png(), "png").image)
+		val sketch = assertNotNull(imagesRepository.create("Sketch", TestImages.png(), "png").image)
+		repo.addEntryImage(def, sketch.id)
+		repo.addEntryImage(def, 55)
+		repo.addEntryImage(def, map.id)
+
+		val files = service.entryImageFiles(repo.loadEntry(def).entry)
+
+		assertEquals(listOf(sketch, map), files.map { it.def })
+		assertEquals(imagesRepository.getImagePath(sketch), files.first().path)
+		assertEquals(imagesRepository.contentHash(sketch), files.first().contentHash)
 	}
 
 	@Test

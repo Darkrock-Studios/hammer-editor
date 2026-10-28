@@ -79,7 +79,6 @@
 	<string name="sync_conflict_encyclopedia_label_image">Зображення:</string>
 	<string name="sync_conflict_encyclopedia_label_content">Вміст:</string>
 	<string name="sync_conflict_encyclopedia_label_tags">Теги:</string>
-	<string name="sync_conflict_encyclopedia_has_image">Із зображенням</string>
 	<string name="sync_conflict_title_scene_field_name">Назва</string>
 	<string name="sync_conflict_title_scene_field_content">Вміст сцени</string>
 	<string name="sync_conflict_title_scene_field_outline">План</string>
