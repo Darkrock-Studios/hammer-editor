@@ -115,6 +115,23 @@ class WritingSessionTrackerTest : BaseTest() {
 	}
 
 	@Test
+	fun `transformed baseline credits typed words but not the rewrite`() = runTest {
+		tracker.rememberBaseline(sceneId = 1, content = "Bob went home")
+		tracker.transformBaseline(1) { it.replace("Bob", "Robert") }
+
+		val credited = tracker.onSceneSaved(1, "Robert went home and slept", UpdateSource.Editor)
+
+		assertEquals(2, credited)
+	}
+
+	@Test
+	fun `transforming a missing baseline does not create one`() = runTest {
+		tracker.transformBaseline(1) { "made up" }
+
+		assertEquals(0, tracker.onSceneSaved(1, "made up words", UpdateSource.Editor))
+	}
+
+	@Test
 	fun `save without prior baseline establishes one but credits zero`() = runTest {
 		// Scene was never explicitly loaded — first save shouldn't credit
 		// any words because we have no reference to compare against.

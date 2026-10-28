@@ -249,6 +249,21 @@ class SceneEditorService(
 		return storeSceneBuffer(sceneItem)
 	}
 
+	/**
+	 * Rewrites a scene's text from outside the editor, including edits still in the debounce, and saves
+	 * it; an open editor shows the new text. The rewritten words are not credited to the writer's
+	 * activity, while words typed since the baseline still are. False when [transform] changes nothing.
+	 */
+	suspend fun rewriteSceneText(sceneItem: SceneItem, transform: (String) -> String): Boolean {
+		sceneContentRepository.flushPendingContent(sceneItem.id)
+		val current = getCurrentSceneContentOrNull(sceneItem) ?: return false
+		val rewritten = transform(current)
+		if (rewritten == current) return false
+		sceneContentRepository.replaceBuffer(SceneContent(sceneItem, rewritten))
+		writingSessionTracker.transformBaseline(sceneItem.id, transform)
+		return storeSceneBuffer(sceneItem)
+	}
+
 	suspend fun storeAllBuffers() {
 		sceneContentRepository.forEachDirtyBuffer { scene -> storeSceneBuffer(scene) }
 	}

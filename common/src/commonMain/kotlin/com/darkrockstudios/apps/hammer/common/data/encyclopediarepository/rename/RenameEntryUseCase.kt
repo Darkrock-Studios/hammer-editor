@@ -191,13 +191,11 @@ class RenameEntryUseCase(
 		var skippedStale = 0
 		var skippedInvalid = 0
 
-		/** The matches still where the preview found them; the rest are counted as stale. */
-		fun stillMatching(key: RenameItemKey, current: String, matches: List<RenameMatch>): List<RenameMatch> {
-			val fresh = matchText(plan, key, current, dismissed = false, withSnippets = false)
+		/** The matches still where the preview found them in [text]. */
+		fun stillMatching(key: RenameItemKey, text: String, matches: List<RenameMatch>): List<RenameMatch> {
+			val fresh = matchText(plan, key, text, dismissed = false, withSnippets = false)
 				.associateBy { it.key }
-			val applicable = matches.filter { fresh[it.key]?.replacement == it.replacement }
-			skippedStale += matches.size - applicable.size
-			return applicable
+			return matches.filter { fresh[it.key]?.replacement == it.replacement }
 		}
 
 		notesRepository.loadNotesImperative()
@@ -205,18 +203,15 @@ class RenameEntryUseCase(
 		var ownReplaced = 0
 		accepted.forEachIndexed { index, (key, matches) ->
 			val current = readText(key)
-			val applicable = if (current == null) {
-				skippedStale += matches.size
-				emptyList()
-			} else {
-				stillMatching(key, current, matches)
-			}
+			val applicable = if (current == null) emptyList() else stillMatching(key, current, matches)
+			skippedStale += matches.size - applicable.size
 			if (current != null && applicable.isNotEmpty()) {
-				val newText = replaceAll(current, applicable)
+				val rename = { text: String -> replaceAll(text, stillMatching(key, text, applicable)) }
+				val newText = rename(current)
 				if (key == ownKey) {
 					ownText = newText
 					ownReplaced = applicable.size
-				} else if (writeText(key, current, newText, draftName)) {
+				} else if (writeText(key, current, newText, rename, draftName)) {
 					replaced += applicable.size
 					itemsChanged++
 				} else {
@@ -338,6 +333,7 @@ class RenameEntryUseCase(
 
 	private suspend fun readText(key: RenameItemKey): String? = when (key.place) {
 		RenamePlace.SCENE_TEXT -> sceneEditor.getSceneItemFromId(key.id)?.let { scene ->
+			sceneContentRepository.flushPendingContent(scene.id)
 			runCatching { sceneContentRepository.getCurrentSceneContent(scene) }.getOrNull()
 		}
 
@@ -350,14 +346,23 @@ class RenameEntryUseCase(
 		RenamePlace.ENCYCLOPEDIA_ENTRY -> runCatching { encyclopediaRepository.loadEntry(key.id).entry.text }.getOrNull()
 	}
 
-	/** False when the place refused the new text, which is then left as it was. */
-	private suspend fun writeText(key: RenameItemKey, current: String, newText: String, draftName: String): Boolean =
+	/**
+	 * False when the place refused the new text, which is then left as it was. Scene text is rewritten
+	 * with [rename] from its freshest content, which may hold keystrokes typed since [current] was read.
+	 */
+	private suspend fun writeText(
+		key: RenameItemKey,
+		current: String,
+		newText: String,
+		rename: (String) -> String,
+		draftName: String,
+	): Boolean =
 		when (key.place) {
 			RenamePlace.SCENE_TEXT -> {
 				val scene = sceneEditor.getSceneItemFromId(key.id)
 				scene != null &&
 					drafts.saveDraft(scene, draftName, current) != null &&
-					sceneEditor.replaceSceneText(scene, newText)
+					sceneEditor.rewriteSceneText(scene, rename)
 			}
 
 			RenamePlace.ARCHIVED_SCENE_TEXT -> {
