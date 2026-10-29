@@ -48,6 +48,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdPrimaryAction
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdUnsavedBadge
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdWarningNotice
+import com.darkrockstudios.apps.hammer.common.compose.formatByteSize
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.duplicateids.DuplicateCopy
 import com.darkrockstudios.apps.hammer.common.data.duplicateids.DuplicateIdKind
@@ -393,7 +394,7 @@ private fun entityCode(set: DuplicateIdSet): String {
 @Composable
 private fun copyMeta(copy: DuplicateCopy): String = listOfNotNull(
 	copy.modifiedAtMillis?.let { Res.string.duplicate_ids_modified.get(formatModified(it)) },
-	copy.sizeBytes?.takeIf { !copy.isGroup }?.let(::formatSize),
+	copy.sizeBytes?.takeIf { !copy.isGroup }?.let(::formatByteSize),
 ).joinToString(" · ")
 
 private fun formatModified(millis: Long): String =
@@ -401,9 +402,3 @@ private fun formatModified(millis: Long): String =
 		.toLocalDateTime(TimeZone.currentSystemDefault())
 		.format("d MMM yyyy HH:mm")
 		.uppercase()
-
-private fun formatSize(bytes: Long): String = when {
-	bytes < 1024 -> "$bytes B"
-	bytes < 1024 * 1024 -> "${(bytes * 10 / 1024) / 10.0} KB"
-	else -> "${(bytes * 10 / (1024 * 1024)) / 10.0} MB"
-}

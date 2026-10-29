@@ -9,13 +9,10 @@ import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.*
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.FrameWindowScope
 import androidx.compose.ui.window.MenuBar
@@ -44,7 +41,6 @@ import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRootUi
 import com.darkrockstudios.apps.hammer.common.projectroot.toHdNavRailDestination
 import dev.nucleusframework.application.NucleusApplicationScope
 import dev.nucleusframework.window.material.MaterialDecoratedWindow
-import dev.nucleusframework.window.material.MaterialTitleBar
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.painterResource
@@ -132,21 +128,9 @@ internal fun NucleusApplicationScope.ProjectEditorWindow(
 		RaiseOnRequest(app.raiseRequests.value)
 		LaunchedEffect(component) { app.deepLinks.collect { component.navigateToDeepLink(it) } }
 
-		val density = LocalDensity.current
-		var titleBarHeight by remember { mutableStateOf(0.dp) }
-		MaterialTitleBar(
-			modifier = Modifier.onSizeChanged { titleBarHeight = with(density) { it.height.toDp() } },
-		) {
-			Text(
-				text = windowTitle,
-				color = MaterialTheme.colorScheme.onSurface,
-				modifier = Modifier.align(Alignment.CenterHorizontally),
-			)
-		}
-
-		// Tao windows are their own ComposeScene: locals provided outside the
-		// window (AppTheme in Main.kt) don't reach this content, so re-apply.
-		CompositionLocalProvider(LocalWindowTitleBarHeight provides titleBarHeight) {
+		TitledWindowContent(windowTitle) {
+			// Tao windows are their own ComposeScene: locals provided outside the
+			// window (AppTheme in Main.kt) don't reach this content, so re-apply.
 			AppTheme(useDarkTheme = darkMode, settings = settings) {
 				AppContent(component, shortcutHost)
 

@@ -124,8 +124,18 @@ data class ImageViewerItem(
 			model = path,
 			cacheKey = "$path#$version",
 			label = label,
-			isGif = path.substringAfterLast('.', "").equals("gif", ignoreCase = true),
+			isGif = isGif(path.substringAfterLast('.', "")),
 		)
+
+		/** [bytes] of an image whose file extension is [extension]; [cacheKey] names this version of them. */
+		fun ofBytes(bytes: ByteArray, cacheKey: String, label: String, extension: String) = ImageViewerItem(
+			model = bytes,
+			cacheKey = cacheKey,
+			label = label,
+			isGif = isGif(extension),
+		)
+
+		private fun isGif(extension: String) = extension.equals("gif", ignoreCase = true)
 	}
 }
 

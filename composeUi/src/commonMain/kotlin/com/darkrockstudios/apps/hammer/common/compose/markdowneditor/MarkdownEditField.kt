@@ -17,8 +17,8 @@ import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.compose.LocalEditorTextStyle
 import com.darkrockstudios.apps.hammer.common.compose.LocalImageProvider
 import com.darkrockstudios.apps.hammer.common.compose.LocalRichTextStyles
-import com.darkrockstudios.apps.hammer.common.compose.markdown.HammerMarkdownConfiguration
-import com.darkrockstudios.apps.hammer.common.compose.markdown.HammerImageBlockSize
+import com.darkrockstudios.apps.hammer.common.compose.markdown.rememberHammerEditorStyle
+import com.darkrockstudios.apps.hammer.common.compose.markdown.rememberHammerMarkdown
 import com.darkrockstudios.apps.hammer.common.compose.markdown.updateRichTextStyles
 import com.darkrockstudios.apps.hammer.common.compose.rememberKoinInject
 import com.darkrockstudios.apps.hammer.common.compose.withParagraphIndent
@@ -26,8 +26,6 @@ import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageD
 import com.darkrockstudios.apps.hammer.common.spellcheck.SpellCheckRepository
 import com.darkrockstudios.apps.hammer.common.utils.toEditorSpellChecker
 import com.darkrockstudios.texteditor.EditorLineLimits
-import com.darkrockstudios.texteditor.markdown.withMarkdown
-import com.darkrockstudios.texteditor.rememberTextEditorStyle
 import com.darkrockstudios.texteditor.spellcheck.SpellCheckingTextEditor
 import com.darkrockstudios.texteditor.spellcheck.rememberSpellCheckState
 import kotlinx.coroutines.launch
@@ -81,10 +79,7 @@ fun MarkdownEditField(
 		// so a null checker also means "disabled" — clear decorations rather than keep checking.
 		enableSpellChecking = enableSpellChecking && platformSpellChecker != null,
 	)
-	val markdownExtension = remember {
-		textEditorState.textState.richTextStyles = richTextStyles
-		textEditorState.textState.withMarkdown(HammerMarkdownConfiguration, imageProvider)
-	}
+	val markdownExtension = textEditorState.textState.rememberHammerMarkdown(richTextStyles)
 
 	val onInsertImage: (() -> Unit)? = if (imagePicker != null && imageProvider != null) {
 		{
@@ -128,10 +123,7 @@ fun MarkdownEditField(
 			state = textEditorState,
 			enabled = enabled,
 			autoFocus = autoFocus,
-			style = rememberTextEditorStyle(
-				textStyle = LocalEditorTextStyle.current.withParagraphIndent(),
-				imageSize = HammerImageBlockSize,
-			),
+			style = rememberHammerEditorStyle(textStyle = LocalEditorTextStyle.current.withParagraphIndent()),
 			contentPadding = contentPadding,
 			lineLimits = lineLimits,
 			modifier = Modifier

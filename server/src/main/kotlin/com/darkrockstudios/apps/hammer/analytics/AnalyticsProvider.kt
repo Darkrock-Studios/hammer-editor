@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.AnalyticsConfig
 import com.darkrockstudios.apps.hammer.AnalyticsProviderType
 import com.darkrockstudios.apps.hammer.GoogleConfig
 import com.darkrockstudios.apps.hammer.UmamiConfig
+import com.darkrockstudios.apps.hammer.utilities.escapeHtml
 import java.net.URI
 import java.net.URISyntaxException
 
@@ -43,7 +44,7 @@ internal class UmamiAnalyticsProvider(config: UmamiConfig) : AnalyticsProvider {
 	private val origin = originOf(config.scriptUrl)
 	private val configuredConnectSrc = config.connectSrc
 	private val snippet =
-		"""<script defer src="${escapeAttr(config.scriptUrl)}" data-website-id="${escapeAttr(config.websiteId)}"></script>"""
+		"""<script defer src="${escapeHtml(config.scriptUrl)}" data-website-id="${escapeHtml(config.websiteId)}"></script>"""
 
 	override fun headSnippet(): String = snippet
 
@@ -65,7 +66,7 @@ internal class UmamiAnalyticsProvider(config: UmamiConfig) : AnalyticsProvider {
 
 internal class GoogleAnalyticsProvider(config: GoogleConfig) : AnalyticsProvider {
 	// Validated to ^G-[A-Za-z0-9]+$, so it is safe to interpolate into both the attribute and the inline script.
-	private val id = escapeAttr(config.measurementId)
+	private val id = escapeHtml(config.measurementId)
 	private val snippet =
 		"""<script async src="https://www.googletagmanager.com/gtag/js?id=$id"></script>""" +
 			"<script>window.dataLayer=window.dataLayer||[];" +
@@ -135,10 +136,3 @@ internal fun originOf(url: String): String {
 		url
 	}
 }
-
-/** Minimal HTML-attribute escaping. Values are admin-controlled but rendered unescaped. */
-internal fun escapeAttr(value: String): String =
-	value.replace("&", "&amp;")
-		.replace("\"", "&quot;")
-		.replace("<", "&lt;")
-		.replace(">", "&gt;")

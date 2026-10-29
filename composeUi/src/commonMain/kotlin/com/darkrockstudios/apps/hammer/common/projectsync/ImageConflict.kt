@@ -33,6 +33,7 @@ import com.darkrockstudios.apps.hammer.common.compose.WindowSizeClass
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdConflictField
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdConflictFieldSpacing
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
+import com.darkrockstudios.apps.hammer.common.compose.formatByteSize
 import com.darkrockstudios.apps.hammer.common.compose.images.rememberImageRequest
 import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
@@ -153,11 +154,11 @@ internal fun ImageConflict(
 						image = serverImage,
 						onOpen = {
 							serverImage.bytes?.let { bytes ->
-								viewing = ImageViewerItem(
-									model = bytes,
+								viewing = ImageViewerItem.ofBytes(
+									bytes = bytes,
 									cacheKey = cacheKey,
 									label = c.serverEntity.name,
-									isGif = serverImage.fileExtension.equals("gif", ignoreCase = true),
+									extension = serverImage.fileExtension,
 								)
 							}
 						},
@@ -210,16 +211,10 @@ private fun ConflictImagePreview(request: ImageRequest, image: ConflictImage, on
 		Text(
 			text = Res.string.sync_conflict_image_description.get(
 				image.fileExtension.uppercase(),
-				formatImageSize(image.bytes.size.toLong()),
+				formatByteSize(image.bytes.size.toLong()),
 			),
 			style = MaterialTheme.typography.bodySmall,
 			color = MaterialTheme.colorScheme.onSurfaceVariant,
 		)
 	}
-}
-
-private fun formatImageSize(bytes: Long): String = when {
-	bytes < 1024 -> "$bytes B"
-	bytes < 1024 * 1024 -> "${(bytes * 10 / 1024) / 10.0} KB"
-	else -> "${(bytes * 10 / (1024 * 1024)) / 10.0} MB"
 }

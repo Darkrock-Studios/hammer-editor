@@ -1,5 +1,7 @@
 package com.darkrockstudios.apps.hammer.story
 
+import com.darkrockstudios.apps.hammer.utilities.escapeHtml
+
 /**
  * Story HTML keeps an embedded image as `<img src="hammer://image/<id>">`, so a rendered page, and
  * the disk cache holding it, does not depend on who asked for it. [resolve] swaps those sources
@@ -17,15 +19,9 @@ object StoryImageLinks {
 		val ids = IMAGE_SRC.findAll(html).map { it.groupValues[1].toInt() }.toSet()
 		if (ids.isEmpty()) return html
 
-		val urls = ids.associateWith { escapeAttribute(urlFor(it)) }
+		val urls = ids.associateWith { escapeHtml(urlFor(it)) }
 		return IMAGE_SRC.replace(html) { match ->
 			"src=\"${urls.getValue(match.groupValues[1].toInt())}\""
 		}
 	}
-
-	private fun escapeAttribute(value: String): String = value
-		.replace("&", "&amp;")
-		.replace("\"", "&quot;")
-		.replace("<", "&lt;")
-		.replace(">", "&gt;")
 }

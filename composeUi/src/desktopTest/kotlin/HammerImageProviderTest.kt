@@ -30,8 +30,7 @@ class HammerImageProviderTest {
 		every { imageChangedFlow } returns changed
 		coEvery { ensureImagesLoaded() } answers { images.values.toList() }
 		every { findImage(any()) } answers { images[firstArg()] }
-		every { fileStamp(any()) } answers { stamps[firstArg<ImageDef>().id] }
-		every { cachedContentHash(any(), any()) } returns null
+		every { cacheVersion(any()) } answers { stamps[firstArg<ImageDef>().id]?.cacheToken }
 		every { imagePath(any()) } answers {
 			val def = firstArg<ImageDef>()
 			HPath("/images/${def.id}~${def.name}.${def.fileExtension}", "${def.id}~${def.name}.${def.fileExtension}", true)

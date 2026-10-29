@@ -38,12 +38,11 @@ import com.darkrockstudios.apps.hammer.common.components.storyeditor.focusmode.F
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.clampEditorWidth
 import com.darkrockstudios.apps.hammer.common.compose.ComposeRichText
 import com.darkrockstudios.apps.hammer.common.compose.LocalEditorTextStyle
-import com.darkrockstudios.apps.hammer.common.compose.LocalImageProvider
 import com.darkrockstudios.apps.hammer.common.compose.LocalRichTextStyles
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.findShortcutModifier
-import com.darkrockstudios.apps.hammer.common.compose.markdown.HammerMarkdownConfiguration
-import com.darkrockstudios.apps.hammer.common.compose.markdown.HammerImageBlockSize
+import com.darkrockstudios.apps.hammer.common.compose.markdown.rememberHammerEditorStyle
+import com.darkrockstudios.apps.hammer.common.compose.markdown.rememberHammerMarkdown
 import com.darkrockstudios.apps.hammer.common.compose.rememberDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.markdown.updateRichTextStyles
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdResizeHandle
@@ -61,8 +60,6 @@ import com.darkrockstudios.apps.hammer.scene_editor_add_to_dictionary
 import com.darkrockstudios.apps.hammer.scene_editor_menu_item_close
 import com.darkrockstudios.texteditor.find.FindBar
 import com.darkrockstudios.texteditor.find.rememberFindState
-import com.darkrockstudios.texteditor.markdown.withMarkdown
-import com.darkrockstudios.texteditor.rememberTextEditorStyle
 import com.darkrockstudios.texteditor.spellcheck.SpellCheckingTextEditor
 import com.darkrockstudios.texteditor.spellcheck.rememberSpellCheckState
 import kotlinx.coroutines.withContext
@@ -72,7 +69,6 @@ fun FocusModeUi(component: FocusMode) {
 	val state by component.state.subscribeAsState()
 	val lastForceUpdate by component.lastForceUpdate.subscribeAsState()
 	val richTextStyles = LocalRichTextStyles.current
-	val imageProvider = LocalImageProvider.current
 	val defaultDispatcher = rememberDefaultDispatcher()
 
 	val addToDictionaryLabel = Res.string.scene_editor_add_to_dictionary.get()
@@ -87,10 +83,7 @@ fun FocusModeUi(component: FocusMode) {
 		initialText = null,
 		enableSpellChecking = state.spellCheckingEnabled,
 	)
-	val markdownExtension = remember {
-		textEditorState.textState.richTextStyles = richTextStyles
-		textEditorState.textState.withMarkdown(HammerMarkdownConfiguration, imageProvider)
-	}
+	val markdownExtension = textEditorState.textState.rememberHammerMarkdown(richTextStyles)
 
 	val findState = rememberFindState(textEditorState.textState)
 	var showFindBar by remember { mutableStateOf(false) }
@@ -210,10 +203,9 @@ fun FocusModeUi(component: FocusMode) {
 						contentPadding = PaddingValues(Ui.Padding.XL),
 						enabled = hasReceivedInitialBuffer,
 						spellCheckMenuItems = spellCheckMenuItems,
-						style = rememberTextEditorStyle(
+						style = rememberHammerEditorStyle(
 							textStyle = LocalEditorTextStyle.current.withParagraphIndent(),
 							focusedBorderColor = Color.Transparent,
-							imageSize = HammerImageBlockSize,
 						),
 						modifier = Modifier
 							.background(MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp))

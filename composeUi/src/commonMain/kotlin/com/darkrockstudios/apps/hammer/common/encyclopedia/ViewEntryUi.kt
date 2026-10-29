@@ -751,16 +751,7 @@ private fun WideBody(
 			animatedVisibilityScope = animatedVisibilityScope,
 			sharedTransitionScope = sharedTransitionScope,
 		)
-		Column(
-			modifier = Modifier.width(InsetFigureWidth),
-			verticalArrangement = Arrangement.spacedBy(Ui.Padding.M),
-		) {
-			figure(
-				Modifier
-					.fillMaxWidth()
-					.height(InsetFigureHeight)
-			)
-		}
+		figure(Modifier.width(InsetFigureWidth).height(InsetFigureHeight))
 	}
 }
 

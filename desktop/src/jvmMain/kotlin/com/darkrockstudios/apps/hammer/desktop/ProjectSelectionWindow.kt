@@ -8,13 +8,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.*
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.DefaultComponentContext
 import com.arkivanov.decompose.ExperimentalDecomposeApi
@@ -26,7 +22,6 @@ import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.account_window_title
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelectionComponent
-import com.darkrockstudios.apps.hammer.common.compose.LocalWindowTitleBarHeight
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNavRail
@@ -43,7 +38,6 @@ import com.darkrockstudios.cairn.CairnAppId
 import com.darkrockstudios.cairn.CairnConfig
 import dev.nucleusframework.application.NucleusApplicationScope
 import dev.nucleusframework.window.material.MaterialDecoratedWindow
-import dev.nucleusframework.window.material.MaterialTitleBar
 import org.jetbrains.compose.resources.painterResource
 
 @ExperimentalMaterialApi
@@ -102,20 +96,9 @@ internal fun NucleusApplicationScope.ProjectSelectionWindow(
 		}
 	) {
 		RaiseOnRequest(raiseRequests)
-		val density = LocalDensity.current
-		var titleBarHeight by remember { mutableStateOf(0.dp) }
-		MaterialTitleBar(
-			modifier = Modifier.onSizeChanged { titleBarHeight = with(density) { it.height.toDp() } },
-		) {
-			Text(
-				text = title,
-				color = MaterialTheme.colorScheme.onSurface,
-				modifier = Modifier.align(Alignment.CenterHorizontally),
-			)
-		}
-		// Tao windows are their own ComposeScene: locals provided outside the
-		// window (AppTheme in Main.kt) don't reach this content, so re-apply.
-		CompositionLocalProvider(LocalWindowTitleBarHeight provides titleBarHeight) {
+		TitledWindowContent(title) {
+			// Tao windows are their own ComposeScene: locals provided outside the
+			// window (AppTheme in Main.kt) don't reach this content, so re-apply.
 			AppTheme(useDarkTheme = darkMode, settings = settings) {
 				Content(component)
 			}

@@ -56,6 +56,7 @@ import com.darkrockstudios.apps.hammer.common.compose.entitypicker.EntityChip
 import com.darkrockstudios.apps.hammer.common.compose.entitypicker.EntityPickerDialog
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownEditField
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownView
+import com.darkrockstudios.apps.hammer.common.compose.lastOf
 import com.darkrockstudios.apps.hammer.common.compose.rememberClipboardCopier
 import com.darkrockstudios.apps.hammer.common.compose.rememberIoDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
@@ -218,14 +219,6 @@ private fun PluginActionDialogs(runner: PluginActionRunner) {
 	PageDialog((state as? ActionRunState.Page) ?: working?.from, working?.takeIf { it.from != null }, scenes, catalog, runner)
 	WorkingDialog(working?.takeIf { it.from == null }, runner)
 	ChangedDialog(state as? ActionRunState.Changed, runner)
-}
-
-/** [current], or the last one there was, so a dialog keeps its content while it animates closed. */
-@Composable
-private fun <T : Any> lastOf(current: T?): T? {
-	val last = remember { object { var value: T? = null } }
-	if (current != null) last.value = current
-	return current ?: last.value
 }
 
 /** Whether a call has run long enough to show its progress, so quick ones don't flash it. */

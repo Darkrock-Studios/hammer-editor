@@ -17,15 +17,14 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -40,7 +39,6 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -52,7 +50,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -78,6 +75,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMastheadAct
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdPrimaryAction
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSearchField
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSortPill
 import com.darkrockstudios.apps.hammer.common.compose.fileDropTarget
 import com.darkrockstudios.apps.hammer.common.compose.images.StagedImage
 import com.darkrockstudios.apps.hammer.common.compose.images.evictImageFile
@@ -85,6 +83,7 @@ import com.darkrockstudios.apps.hammer.common.compose.images.imageAddResultMessa
 import com.darkrockstudios.apps.hammer.common.compose.images.pickImageFile
 import com.darkrockstudios.apps.hammer.common.compose.images.rememberImageRequest
 import com.darkrockstudios.apps.hammer.common.compose.images.stageImage
+import com.darkrockstudios.apps.hammer.common.compose.lastOf
 import com.darkrockstudios.apps.hammer.common.compose.rememberIoDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
@@ -411,40 +410,24 @@ private fun GalleryToolbar(
 	}
 }
 
-/** Styled as HdSortMenu's pill, but a click flips between the two orders instead of opening a menu. */
+/** [HdSortPill] flipping between the two orders, as there are only two to choose from. */
 @Composable
 private fun SortToggle(newestFirst: Boolean, onToggle: () -> Unit) {
-	val toggleLabel = if (newestFirst) {
-		Res.string.images_gallery_sort_toggle_oldest.get()
-	} else {
-		Res.string.images_gallery_sort_toggle_newest.get()
-	}
-	Row(
-		modifier = Modifier
-			.testTag(IMAGE_GALLERY_SORT_TAG)
-			.height(32.dp)
-			.border(width = Dp.Hairline, color = MaterialTheme.colorScheme.outlineVariant, shape = RectangleShape)
-			.clickable(onClickLabel = toggleLabel, role = Role.Button, onClick = onToggle)
-			.padding(horizontal = Ui.Padding.L),
-		verticalAlignment = Alignment.CenterVertically,
-		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.S),
-	) {
-		HdMonoLabel(
-			text = Res.string.images_gallery_sort_label.get(),
-			maxLines = 1,
-			softWrap = false,
-		)
-		HdMonoLabel(
-			text = if (newestFirst) {
-				Res.string.images_gallery_sort_newest.get()
-			} else {
-				Res.string.images_gallery_sort_oldest.get()
-			},
-			color = MaterialTheme.colorScheme.onSurface,
-			maxLines = 1,
-			softWrap = false,
-		)
-	}
+	HdSortPill(
+		label = Res.string.images_gallery_sort_label.get(),
+		value = if (newestFirst) {
+			Res.string.images_gallery_sort_newest.get()
+		} else {
+			Res.string.images_gallery_sort_oldest.get()
+		},
+		onClick = onToggle,
+		onClickLabel = if (newestFirst) {
+			Res.string.images_gallery_sort_toggle_oldest.get()
+		} else {
+			Res.string.images_gallery_sort_toggle_newest.get()
+		},
+		modifier = Modifier.testTag(IMAGE_GALLERY_SORT_TAG),
+	)
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -464,16 +447,12 @@ private fun GalleryGrid(
 			shape = RectangleShape,
 		),
 	) {
-		val shown = state.visibleImages
-		val gridState = rememberLazyGridState()
+		val shown = remember(state.images, state.filterUnused, state.searchQuery, state.newestFirst) {
+			state.visibleImages
+		}
 		// A keyed grid follows its first visible item when the order changes; start from the top instead.
-		val order = state.newestFirst to state.searchQuery
-		val lastOrder = remember { LastValue<Pair<Boolean, String>>().also { it.value = order } }
-		LaunchedEffect(order) {
-			if (order != lastOrder.value) {
-				lastOrder.value = order
-				gridState.scrollToItem(0)
-			}
+		val gridState = rememberSaveable(state.newestFirst, state.searchQuery, saver = LazyGridState.Saver) {
+			LazyGridState()
 		}
 		val query = state.searchQuery.trim()
 		when {
@@ -711,7 +690,7 @@ private fun RenameDialog(
 	onClose: () -> Unit,
 ) {
 	val renaming = state.renaming?.let { id -> state.images.find { it.def.id == id } }
-	val image = retainedWhileClosing(renaming) ?: return
+	val image = lastOf(renaming) ?: return
 
 	SimpleDialog(
 		title = Res.string.images_gallery_rename_title.get(),
@@ -747,7 +726,7 @@ private fun DeleteDialog(
 	onCancel: () -> Unit,
 ) {
 	val request = state.confirmDelete
-	val showing = retainedWhileClosing(request) ?: return
+	val showing = lastOf(request) ?: return
 	val name = state.images.find { it.def.id == showing.id }?.def?.name.orEmpty()
 
 	ConfirmationDialog(
@@ -761,18 +740,6 @@ private fun DeleteDialog(
 		destructive = true,
 		kind = "DELETE",
 	)
-}
-
-/** [value], or the last non-null one while a dialog showing it animates out. */
-@Composable
-private fun <T : Any> retainedWhileClosing(value: T?): T? {
-	val last = remember { LastValue<T>() }
-	if (value != null) last.value = value
-	return value ?: last.value
-}
-
-private class LastValue<T : Any> {
-	var value: T? = null
 }
 
 /** What deleting the image would take it out of, one line per kind of entity. */
