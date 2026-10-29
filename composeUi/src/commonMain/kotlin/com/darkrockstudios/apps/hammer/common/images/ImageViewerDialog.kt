@@ -248,7 +248,10 @@ private fun ViewerPage(item: ImageViewerItem, isCurrent: Boolean, modifier: Modi
 	val loaded = painterState as? AsyncImagePainter.State.Success
 	LaunchedEffect(loaded) {
 		val size = loaded?.painter?.intrinsicSize ?: return@LaunchedEffect
-		zoomState.setContentLocation(ZoomableContentLocation.scaledInsideAndCenterAligned(size))
+		// The location has to say how the Image draws its painter, Fit here: told the content is
+		// scaled inside instead, the zoom treated a small image as drawn at its own size and
+		// enlarged what was already fitted.
+		zoomState.setContentLocation(ZoomableContentLocation.scaledToFitAndCenterAligned(size))
 	}
 	// A page is laid out before it is shown, and a zoom from then or from a mouse wheel over
 	// a neighbouring page would otherwise carry over: each image opens fitted inside.
