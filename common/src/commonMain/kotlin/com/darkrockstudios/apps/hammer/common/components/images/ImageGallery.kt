@@ -26,15 +26,29 @@ interface ImageGallery {
 		/** False until the project's images have been listed once. */
 		val loaded: Boolean = false,
 		val filterUnused: Boolean = false,
+		/** Ids are allocated in increasing order, so id order is the order images were added in. */
+		val newestFirst: Boolean = true,
+		/** Matched case-insensitively against image names; blank shows every image. */
+		val searchQuery: String = "",
 		val selectedId: Int? = null,
 		/** The image whose rename dialog is open. */
 		val renaming: Int? = null,
 		val confirmDelete: DeleteRequest? = null,
 		val busy: Boolean = false,
 	) {
-		/** [images] after the unused filter; an image whose use is not yet known stays in. */
+		/**
+		 * [images] after the unused filter and the search, in sort order. An image whose use is not
+		 * yet known passes the unused filter.
+		 */
 		val visibleImages: List<GalleryImage>
-			get() = if (filterUnused) images.filter { it.inUse != true } else images
+			get() {
+				val query = searchQuery.trim()
+				val shown = images.filter { image ->
+					(!filterUnused || image.inUse != true) &&
+						(query.isEmpty() || image.def.name.contains(query, ignoreCase = true))
+				}
+				return if (newestFirst) shown.sortedByDescending { it.def.id } else shown.sortedBy { it.def.id }
+			}
 
 		val selected: GalleryImage? get() = images.find { it.def.id == selectedId }
 	}
@@ -59,6 +73,8 @@ interface ImageGallery {
 
 	fun select(id: Int?)
 	fun toggleFilterUnused()
+	fun toggleSortOrder()
+	fun setSearchQuery(query: String)
 
 	/** Adds the file at [path] as a new image and selects it. */
 	suspend fun addImage(path: String): ImageAddResult

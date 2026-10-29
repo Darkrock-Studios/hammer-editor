@@ -34,6 +34,8 @@ class FakeImageGallery(
 
 	override fun select(id: Int?) = _state.update { it.copy(selectedId = id) }
 	override fun toggleFilterUnused() = _state.update { it.copy(filterUnused = !it.filterUnused) }
+	override fun toggleSortOrder() = _state.update { it.copy(newestFirst = !it.newestFirst) }
+	override fun setSearchQuery(query: String) = _state.update { it.copy(searchQuery = query) }
 	override suspend fun addImage(path: String) = ImageAddResult.Ok
 	override suspend fun replaceImage(id: Int, path: String) = ImageAddResult.Ok
 	override fun startRename(id: Int) = _state.update { it.copy(renaming = id) }

@@ -103,19 +103,96 @@ class ImageGalleryComponentTest : ComponentTest() {
 	}
 
 	@Test
-	fun `The project's images are listed by name with whether they are used`() = runTest(mainTestDispatcher) {
+	fun `The project's images are shown newest first with whether they are used`() = runTest(mainTestDispatcher) {
 		val comp = component()
 		context.resume()
 		advanceUntilIdle()
 
 		val state = comp.state.value
 		assertTrue(state.loaded)
-		assertEquals(listOf("Bay", "Coast", "Map"), state.images.map { it.def.name })
-		assertEquals(listOf(false, false, true), state.images.map { it.inUse })
-		assertEquals("/images/3~Map.png", state.images.last().path)
-		assertEquals("h3-png", state.images.last().hash)
-		assertEquals("h3-png", state.images.last().cacheToken)
+		assertTrue(state.newestFirst)
+		assertEquals(listOf("Bay", "Coast", "Map"), state.visibleImages.map { it.def.name })
+		assertEquals(listOf(false, false, true), state.visibleImages.map { it.inUse })
+		val map = state.visibleImages.last()
+		assertEquals("/images/3~Map.png", map.path)
+		assertEquals("h3-png", map.hash)
+		assertEquals("h3-png", map.cacheToken)
 	}
+
+	@Test
+	fun `Toggling the sort order flips between newest and oldest first`() = runTest(mainTestDispatcher) {
+		val comp = component()
+		context.resume()
+		advanceUntilIdle()
+
+		comp.toggleSortOrder()
+		assertFalse(comp.state.value.newestFirst)
+		assertEquals(listOf(3, 5, 8), comp.state.value.visibleImages.map { it.def.id })
+
+		comp.toggleSortOrder()
+		assertTrue(comp.state.value.newestFirst)
+		assertEquals(listOf(8, 5, 3), comp.state.value.visibleImages.map { it.def.id })
+	}
+
+	@Test
+	fun `An added image sorts by when it was added, not by name`() = runTest(mainTestDispatcher) {
+		val comp = component()
+		context.resume()
+		advanceUntilIdle()
+		coEvery { imagesService.addFromPath("/staged/anchor.png") } answers {
+			store(stored + def(13, "Anchor"))
+			ImageAddOutcome(ImageAddResult.Ok, def(13, "Anchor"))
+		}
+
+		comp.addImage("/staged/anchor.png")
+		advanceUntilIdle()
+		assertEquals(listOf(13, 8, 5, 3), comp.state.value.visibleImages.map { it.def.id })
+
+		comp.toggleSortOrder()
+		assertEquals(listOf(3, 5, 8, 13), comp.state.value.visibleImages.map { it.def.id })
+	}
+
+	@Test
+	fun `Searching shows only images whose name contains the query, ignoring case`() = runTest(mainTestDispatcher) {
+		val comp = component()
+		context.resume()
+		advanceUntilIdle()
+
+		comp.setSearchQuery("OA")
+		assertEquals("OA", comp.state.value.searchQuery)
+		assertEquals(listOf("Coast"), comp.state.value.visibleImages.map { it.def.name })
+
+		comp.setSearchQuery("  ba ")
+		assertEquals(listOf("Bay"), comp.state.value.visibleImages.map { it.def.name })
+
+		comp.setSearchQuery("zzz")
+		assertTrue(comp.state.value.visibleImages.isEmpty())
+		assertEquals(3, comp.state.value.images.size)
+
+		comp.setSearchQuery(" ")
+		assertEquals(listOf(8, 5, 3), comp.state.value.visibleImages.map { it.def.id })
+	}
+
+	@Test
+	fun `The search combines with the unused filter and the sort order and outlives list changes`() =
+		runTest(mainTestDispatcher) {
+			val comp = component()
+			context.resume()
+			advanceUntilIdle()
+
+			comp.setSearchQuery("a")
+			comp.toggleFilterUnused()
+			advanceUntilIdle()
+			assertEquals(listOf(8, 5), comp.state.value.visibleImages.map { it.def.id })
+
+			comp.toggleSortOrder()
+			assertEquals(listOf(5, 8), comp.state.value.visibleImages.map { it.def.id })
+
+			store(stored + def(13, "Anchor") + def(21, "Pier"))
+			advanceUntilIdle()
+			assertEquals("a", comp.state.value.searchQuery)
+			assertEquals(listOf(5, 8, 13), comp.state.value.visibleImages.map { it.def.id })
+		}
 
 	@Test
 	fun `Opening the gallery hashes nothing, keying an unhashed image by its file stamp`() = runTest(mainTestDispatcher) {
@@ -146,7 +223,7 @@ class ImageGalleryComponentTest : ComponentTest() {
 		context.resume()
 		advanceUntilIdle()
 
-		assertEquals(listOf("Coast", "Map"), comp.state.value.images.map { it.def.name })
+		assertEquals(listOf("Coast", "Map"), comp.state.value.visibleImages.map { it.def.name })
 		assertTrue(comp.state.value.images.all { it.hash == null && it.stamp != null })
 		verify(exactly = 0) { datasource.loadImageBytes(any()) }
 	}
@@ -325,7 +402,7 @@ class ImageGalleryComponentTest : ComponentTest() {
 		coVerify(exactly = 1) { imagesService.delete(3) }
 		assertNull(comp.state.value.confirmDelete)
 		assertNull(comp.state.value.selectedId)
-		assertEquals(listOf(8, 5), comp.state.value.images.map { it.def.id })
+		assertEquals(listOf(8, 5), comp.state.value.visibleImages.map { it.def.id })
 	}
 
 	@Test

@@ -45,7 +45,7 @@ class ImageGalleryComponent(
 
 	private suspend fun showImages(defs: List<ImageDef>) {
 		val images = defs
-			.sortedWith(compareBy<ImageDef> { it.name.lowercase() }.thenBy { it.id })
+			.sortedBy { it.id }
 			.map { def ->
 				val stamp = imagesService.fileStamp(def)
 				ImageGallery.GalleryImage(
@@ -99,6 +99,14 @@ class ImageGalleryComponent(
 		_state.getAndUpdate { it.copy(filterUnused = filter) }
 		// Something may have started or stopped using an image since the gallery opened.
 		if (filter) scope.launch { refreshUsage() }
+	}
+
+	override fun toggleSortOrder() {
+		_state.getAndUpdate { it.copy(newestFirst = !it.newestFirst) }
+	}
+
+	override fun setSearchQuery(query: String) {
+		_state.getAndUpdate { it.copy(searchQuery = query) }
 	}
 
 	override suspend fun addImage(path: String): ImageAddResult = whileBusy {

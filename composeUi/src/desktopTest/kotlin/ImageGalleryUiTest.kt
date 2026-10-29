@@ -2,10 +2,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.doubleClick
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.components.images.ImageGallery
@@ -14,6 +17,8 @@ import com.darkrockstudios.apps.hammer.common.components.images.ImagePickTarget
 import com.darkrockstudios.apps.hammer.common.images.IMAGE_GALLERY_DELETE_TAG
 import com.darkrockstudios.apps.hammer.common.images.IMAGE_GALLERY_DETAIL_TAG
 import com.darkrockstudios.apps.hammer.common.images.IMAGE_GALLERY_EMPTY_TAG
+import com.darkrockstudios.apps.hammer.common.images.IMAGE_GALLERY_SEARCH_TAG
+import com.darkrockstudios.apps.hammer.common.images.IMAGE_GALLERY_SORT_TAG
 import com.darkrockstudios.apps.hammer.common.images.IMAGE_GALLERY_USE_TAG
 import com.darkrockstudios.apps.hammer.common.images.ImageGalleryUi
 import com.darkrockstudios.apps.hammer.common.images.imageGalleryItemTag
@@ -49,6 +54,15 @@ class ImageGalleryUiTest : BaseTest() {
 			ImageGallery.State(mode = mode, images = images, loaded = true),
 			usages = previewImageUsages(),
 		)
+
+	/** Asserts the thumbnails of [ids] are laid out in that reading order. */
+	private fun assertShownInOrder(vararg ids: Int) {
+		val positions = ids.map { id ->
+			val bounds = compose.onNodeWithTag(imageGalleryItemTag(id)).assertIsDisplayed().getUnclippedBoundsInRoot()
+			bounds.top to bounds.left
+		}
+		assertEquals(positions.sortedWith(compareBy({ it.first }, { it.second })), positions)
+	}
 
 	@Test
 	fun `Pick mode offers USE for the selected image and picks it`() {
@@ -120,6 +134,77 @@ class ImageGalleryUiTest : BaseTest() {
 		setGallery(gallery(ImageGalleryMode.Browse, images = emptyList()))
 
 		compose.onNodeWithTag(IMAGE_GALLERY_EMPTY_TAG).assertIsDisplayed()
+		compose.onNodeWithTag(IMAGE_GALLERY_SEARCH_TAG).assertDoesNotExist()
+		compose.onNodeWithTag(IMAGE_GALLERY_SORT_TAG).assertDoesNotExist()
+	}
+
+	@Test
+	fun `Images are shown newest first`() {
+		setGallery(gallery(ImageGalleryMode.Browse, images = previewGalleryImages().shuffled()))
+
+		compose.onNodeWithText("↓ NEWEST").assertIsDisplayed()
+		assertShownInOrder(13, 8, 5, 3)
+	}
+
+	@Test
+	fun `The sort toggle flips the order back and forth`() {
+		val fake = gallery(ImageGalleryMode.Browse)
+		setGallery(fake)
+
+		compose.onNodeWithTag(IMAGE_GALLERY_SORT_TAG).performClick()
+		compose.waitForIdle()
+		assertEquals(false, fake.state.value.newestFirst)
+		compose.onNodeWithText("↑ OLDEST").assertIsDisplayed()
+		assertShownInOrder(3, 5, 8, 13)
+
+		compose.onNodeWithTag(IMAGE_GALLERY_SORT_TAG).performClick()
+		compose.waitForIdle()
+		assertEquals(true, fake.state.value.newestFirst)
+		assertShownInOrder(13, 8, 5, 3)
+	}
+
+	@Test
+	fun `Typing in the search filters the grid by name, ignoring case`() {
+		val fake = gallery(ImageGalleryMode.Browse)
+		setGallery(fake)
+
+		compose.onNodeWithTag(IMAGE_GALLERY_SEARCH_TAG).performTextInput("OF THE")
+		compose.waitForIdle()
+
+		assertEquals("OF THE", fake.state.value.searchQuery)
+		compose.onNodeWithTag(imageGalleryItemTag(8)).assertIsDisplayed()
+		listOf(3, 5, 13).forEach { compose.onNodeWithTag(imageGalleryItemTag(it)).assertDoesNotExist() }
+
+		compose.onNodeWithTag(IMAGE_GALLERY_SEARCH_TAG).performTextReplacement("h")
+		compose.waitForIdle()
+		assertShownInOrder(8, 5, 3)
+		compose.onNodeWithTag(imageGalleryItemTag(13)).assertDoesNotExist()
+	}
+
+	@Test
+	fun `A search that matches nothing says so`() {
+		setGallery(gallery(ImageGalleryMode.Browse))
+
+		compose.onNodeWithTag(IMAGE_GALLERY_SEARCH_TAG).performTextInput("kraken")
+		compose.waitForIdle()
+
+		compose.onNodeWithText("No images match “kraken”.").assertIsDisplayed()
+	}
+
+	@Test
+	fun `Pick mode can search and sort too`() {
+		val fake = gallery(ImageGalleryMode.Pick(ImagePickTarget.ProjectCover))
+		setGallery(fake)
+
+		compose.onNodeWithTag(IMAGE_GALLERY_SEARCH_TAG).performTextInput("R")
+		compose.onNodeWithTag(IMAGE_GALLERY_SORT_TAG).performClick()
+		compose.waitForIdle()
+
+		assertShownInOrder(3, 13)
+		listOf(5, 8).forEach { compose.onNodeWithTag(imageGalleryItemTag(it)).assertDoesNotExist() }
+		compose.onNodeWithTag(imageGalleryItemTag(13)).performTouchInput { doubleClick() }
+		compose.waitForIdle()
+		assertEquals(listOf(13), fake.picked)
 	}
 
 	private companion object {

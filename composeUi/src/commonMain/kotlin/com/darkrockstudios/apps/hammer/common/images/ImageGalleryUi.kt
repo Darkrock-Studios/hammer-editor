@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -24,6 +25,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
@@ -46,6 +48,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -70,6 +73,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMasthead
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMastheadAction
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdPrimaryAction
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSearchField
 import com.darkrockstudios.apps.hammer.common.compose.fileDropTarget
 import com.darkrockstudios.apps.hammer.common.compose.images.StagedImage
 import com.darkrockstudios.apps.hammer.common.compose.images.evictImageFile
@@ -93,6 +97,7 @@ import com.darkrockstudios.apps.hammer.images_gallery_delete_usage_line
 import com.darkrockstudios.apps.hammer.images_gallery_delete_used
 import com.darkrockstudios.apps.hammer.images_gallery_drop_hint
 import com.darkrockstudios.apps.hammer.images_gallery_empty_message
+import com.darkrockstudios.apps.hammer.images_gallery_empty_search
 import com.darkrockstudios.apps.hammer.images_gallery_empty_title
 import com.darkrockstudios.apps.hammer.images_gallery_empty_unused
 import com.darkrockstudios.apps.hammer.images_gallery_filter_all
@@ -103,7 +108,14 @@ import com.darkrockstudios.apps.hammer.images_gallery_rename_button
 import com.darkrockstudios.apps.hammer.images_gallery_rename_label
 import com.darkrockstudios.apps.hammer.images_gallery_rename_title
 import com.darkrockstudios.apps.hammer.images_gallery_replace
+import com.darkrockstudios.apps.hammer.images_gallery_search_clear
+import com.darkrockstudios.apps.hammer.images_gallery_search_placeholder
 import com.darkrockstudios.apps.hammer.images_gallery_section
+import com.darkrockstudios.apps.hammer.images_gallery_sort_label
+import com.darkrockstudios.apps.hammer.images_gallery_sort_newest
+import com.darkrockstudios.apps.hammer.images_gallery_sort_oldest
+import com.darkrockstudios.apps.hammer.images_gallery_sort_toggle_newest
+import com.darkrockstudios.apps.hammer.images_gallery_sort_toggle_oldest
 import com.darkrockstudios.apps.hammer.images_gallery_unused_badge
 import com.darkrockstudios.apps.hammer.images_gallery_use
 import com.darkrockstudios.apps.hammer.images_gallery_view
@@ -122,6 +134,8 @@ import org.jetbrains.compose.resources.StringResource
 const val IMAGE_GALLERY_TAG = "image-gallery"
 const val IMAGE_GALLERY_ADD_TAG = "image-gallery-add"
 const val IMAGE_GALLERY_FILTER_TAG = "image-gallery-filter"
+const val IMAGE_GALLERY_SEARCH_TAG = "image-gallery-search"
+const val IMAGE_GALLERY_SORT_TAG = "image-gallery-sort"
 const val IMAGE_GALLERY_CLOSE_TAG = "image-gallery-close"
 const val IMAGE_GALLERY_EMPTY_TAG = "image-gallery-empty"
 const val IMAGE_GALLERY_DETAIL_TAG = "image-gallery-detail"
@@ -246,6 +260,15 @@ fun ImageGalleryUi(component: ImageGallery, modifier: Modifier = Modifier) {
 				},
 			)
 			HorizontalDivider(thickness = Dp.Hairline, color = MaterialTheme.colorScheme.outlineVariant)
+			if (state.images.isNotEmpty()) {
+				GalleryToolbar(
+					query = state.searchQuery,
+					onQueryChange = component::setSearchQuery,
+					newestFirst = state.newestFirst,
+					onToggleSort = component::toggleSortOrder,
+				)
+				HorizontalDivider(thickness = Dp.Hairline, color = MaterialTheme.colorScheme.outlineVariant)
+			}
 			if (state.busy) {
 				LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
 			}
@@ -351,6 +374,69 @@ fun ImageGalleryUi(component: ImageGallery, modifier: Modifier = Modifier) {
 	}
 }
 
+@Composable
+private fun GalleryToolbar(
+	query: String,
+	onQueryChange: (String) -> Unit,
+	newestFirst: Boolean,
+	onToggleSort: () -> Unit,
+) {
+	Row(
+		modifier = Modifier
+			.fillMaxWidth()
+			.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.M),
+		verticalAlignment = Alignment.CenterVertically,
+		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
+	) {
+		HdSearchField(
+			value = query,
+			onValueChange = onQueryChange,
+			placeholder = Res.string.images_gallery_search_placeholder.get(),
+			onClear = { onQueryChange("") },
+			clearContentDescription = Res.string.images_gallery_search_clear.get(),
+			modifier = Modifier.weight(1f),
+			testTag = IMAGE_GALLERY_SEARCH_TAG,
+		)
+		SortToggle(newestFirst = newestFirst, onToggle = onToggleSort)
+	}
+}
+
+/** Styled as HdSortMenu's pill, but a click flips between the two orders instead of opening a menu. */
+@Composable
+private fun SortToggle(newestFirst: Boolean, onToggle: () -> Unit) {
+	val toggleLabel = if (newestFirst) {
+		Res.string.images_gallery_sort_toggle_oldest.get()
+	} else {
+		Res.string.images_gallery_sort_toggle_newest.get()
+	}
+	Row(
+		modifier = Modifier
+			.testTag(IMAGE_GALLERY_SORT_TAG)
+			.height(32.dp)
+			.border(width = Dp.Hairline, color = MaterialTheme.colorScheme.outlineVariant, shape = RectangleShape)
+			.clickable(onClickLabel = toggleLabel, role = Role.Button, onClick = onToggle)
+			.padding(horizontal = Ui.Padding.L),
+		verticalAlignment = Alignment.CenterVertically,
+		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.S),
+	) {
+		HdMonoLabel(
+			text = Res.string.images_gallery_sort_label.get(),
+			maxLines = 1,
+			softWrap = false,
+		)
+		HdMonoLabel(
+			text = if (newestFirst) {
+				Res.string.images_gallery_sort_newest.get()
+			} else {
+				Res.string.images_gallery_sort_oldest.get()
+			},
+			color = MaterialTheme.colorScheme.onSurface,
+			maxLines = 1,
+			softWrap = false,
+		)
+	}
+}
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun GalleryGrid(
@@ -369,12 +455,25 @@ private fun GalleryGrid(
 		),
 	) {
 		val shown = state.visibleImages
+		val gridState = rememberLazyGridState()
+		// A keyed grid follows its first visible item when the order changes; start from the top instead.
+		val order = state.newestFirst to state.searchQuery
+		val lastOrder = remember { LastValue<Pair<Boolean, String>>().also { it.value = order } }
+		LaunchedEffect(order) {
+			if (order != lastOrder.value) {
+				lastOrder.value = order
+				gridState.scrollToItem(0)
+			}
+		}
+		val query = state.searchQuery.trim()
 		when {
 			!state.loaded -> Unit
 			state.images.isEmpty() -> EmptyGallery(onAdd = onAdd)
+			shown.isEmpty() && query.isNotEmpty() -> EmptyMessage(Res.string.images_gallery_empty_search.get(query))
 			shown.isEmpty() -> EmptyMessage(Res.string.images_gallery_empty_unused.get())
 			else -> LazyVerticalGrid(
 				columns = GridCells.Adaptive(ThumbnailMinSize),
+				state = gridState,
 				contentPadding = PaddingValues(Ui.Padding.XL),
 				horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 				verticalArrangement = Arrangement.spacedBy(Ui.Padding.L),

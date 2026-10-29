@@ -13,6 +13,14 @@
 	<string name="images_gallery_empty_title">No images yet</string>
 	<string name="images_gallery_empty_message">Add an image, or drop image files here.</string>
 	<string name="images_gallery_empty_unused">Every image is in use.</string>
+	<string name="images_gallery_empty_search">No images match “%1$s”.</string>
+	<string name="images_gallery_search_placeholder">Search by name</string>
+	<string name="images_gallery_search_clear">Clear search</string>
+	<string name="images_gallery_sort_label">Sort</string>
+	<string name="images_gallery_sort_newest">↓ Newest</string>
+	<string name="images_gallery_sort_oldest">↑ Oldest</string>
+	<string name="images_gallery_sort_toggle_newest">Show newest first</string>
+	<string name="images_gallery_sort_toggle_oldest">Show oldest first</string>
 	<string name="images_gallery_drop_hint">Drop images to add them</string>
 
 	<string name="images_gallery_use">USE</string>
