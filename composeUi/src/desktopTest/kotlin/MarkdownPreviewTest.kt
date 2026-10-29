@@ -22,6 +22,11 @@ class MarkdownPreviewTest {
 	}
 
 	@Test
+	fun `markdown characters in the alt text are escaped`() {
+		assertEquals("""*Cat \*sleeping\* \[1\]*""", preview("![Cat *sleeping* [1]](hammer://image/3)"))
+	}
+
+	@Test
 	fun `an image without alt text uses the placeholder`() {
 		assertEquals("*Image*", preview("![](hammer://image/3)"))
 		assertEquals("A *Image* b", preview("A ![  ](hammer://image/3) b"))

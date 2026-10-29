@@ -14,6 +14,9 @@ private val INLINE_SPAN = Regex(
 	"""`[^`\r\n]*`|!?\[[^\]\r\n]*\]\([^)\r\n]*\)|\*\*[^\r\n]*?\*\*|\*[^*\r\n]+\*|__[^\r\n]*?__|_[^_\r\n]+_|~~[^\r\n]*?~~|==[^\r\n]*?=="""
 )
 
+// Characters that would start inline Markdown inside the italic alt text.
+private val ALT_SPECIALS = Regex("""[\\`*_\[\]~<=]""")
+
 /**
  * The Markdown a card shows as a preview of [markdown]. Each project image becomes its alt text in
  * italics ([imagePlaceholder] when the alt text is empty), so a card never renders a full image.
@@ -23,7 +26,7 @@ private val INLINE_SPAN = Regex(
  */
 fun markdownPreview(markdown: String, maxLength: Int?, imagePlaceholder: String): String {
 	val text = ImageReferenceSyntax.replaceImages(markdown) { alt ->
-		"*${alt.trim().ifEmpty { imagePlaceholder }}*"
+		"*${alt.trim().ifEmpty { imagePlaceholder }.replace(ALT_SPECIALS) { "\\${it.value}" }}*"
 	}.trim()
 	if (maxLength == null || text.length <= maxLength) return text
 	return truncate(text, maxLength)
