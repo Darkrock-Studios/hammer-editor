@@ -138,7 +138,6 @@ fun FocusModeUi(component: FocusMode) {
 		Column(
 			modifier = Modifier
 				.fillMaxSize()
-				.focusModeChromePadding()
 				.findShortcutModifier { showFindBar = true }
 				.textSizeShortcutModifier(
 					onIncrease = component::increaseTextSize,

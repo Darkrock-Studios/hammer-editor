@@ -14,6 +14,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.*
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.FrameWindowScope
 import androidx.compose.ui.window.MenuBar
@@ -130,7 +132,11 @@ internal fun NucleusApplicationScope.ProjectEditorWindow(
 		RaiseOnRequest(app.raiseRequests.value)
 		LaunchedEffect(component) { app.deepLinks.collect { component.navigateToDeepLink(it) } }
 
-		MaterialTitleBar {
+		val density = LocalDensity.current
+		var titleBarHeight by remember { mutableStateOf(0.dp) }
+		MaterialTitleBar(
+			modifier = Modifier.onSizeChanged { titleBarHeight = with(density) { it.height.toDp() } },
+		) {
 			Text(
 				text = windowTitle,
 				color = MaterialTheme.colorScheme.onSurface,
@@ -140,88 +146,90 @@ internal fun NucleusApplicationScope.ProjectEditorWindow(
 
 		// Tao windows are their own ComposeScene: locals provided outside the
 		// window (AppTheme in Main.kt) don't reach this content, so re-apply.
-		AppTheme(useDarkTheme = darkMode, settings = settings) {
-			AppContent(component, shortcutHost)
+		CompositionLocalProvider(LocalWindowTitleBarHeight provides titleBarHeight) {
+			AppTheme(useDarkTheme = darkMode, settings = settings) {
+				AppContent(component, shortcutHost)
 
-			LaunchedEffect(closeRequest) {
-				if (closeRequest != ApplicationState.CloseType.None) {
-					component.requestClose()
+				LaunchedEffect(closeRequest) {
+					if (closeRequest != ApplicationState.CloseType.None) {
+						component.requestClose()
+					}
 				}
-			}
 
-			if (shouldConfirmClose.isNotEmpty()) {
-				val item = shouldConfirmClose.first()
-				when (item) {
-					CloseConfirm.Scenes -> {
-						confirmCloseUnsavedScenesDialog(closeRequest) { result, closeType ->
-							scope.launch {
+				if (shouldConfirmClose.isNotEmpty()) {
+					val item = shouldConfirmClose.first()
+					when (item) {
+						CloseConfirm.Scenes -> {
+							confirmCloseUnsavedScenesDialog(closeRequest) { result, closeType ->
+								scope.launch {
+									when (result) {
+										ConfirmCloseResult.SaveAll -> component.storeDirtyBuffers()
+										ConfirmCloseResult.Discard -> component.discardUnsaved(CloseConfirm.Scenes)
+										ConfirmCloseResult.Cancel -> Unit
+									}
+
+									withContext(mainDispatcher) {
+										if (result != ConfirmCloseResult.Cancel) {
+											component.closeRequestDealtWith(CloseConfirm.Scenes)
+										} else {
+											cancelClose()
+										}
+									}
+								}
+							}
+						}
+
+						CloseConfirm.Notes -> {
+							confirmCloseUnsavedNotesDialog(closeRequest) { result, closeType ->
 								when (result) {
-									ConfirmCloseResult.SaveAll -> component.storeDirtyBuffers()
-									ConfirmCloseResult.Discard -> component.discardUnsaved(CloseConfirm.Scenes)
-									ConfirmCloseResult.Cancel -> Unit
-								}
-
-								withContext(mainDispatcher) {
-									if (result != ConfirmCloseResult.Cancel) {
-										component.closeRequestDealtWith(CloseConfirm.Scenes)
-									} else {
-										cancelClose()
+									ConfirmCloseResult.SaveAll -> error("Unhandled close type: $closeType")
+									ConfirmCloseResult.Discard -> scope.launch {
+										component.discardUnsaved(CloseConfirm.Notes)
+										withContext(mainDispatcher) {
+											component.closeRequestDealtWith(CloseConfirm.Notes)
+										}
 									}
+									ConfirmCloseResult.Cancel -> cancelClose()
 								}
 							}
 						}
-					}
 
-					CloseConfirm.Notes -> {
-						confirmCloseUnsavedNotesDialog(closeRequest) { result, closeType ->
-							when (result) {
-								ConfirmCloseResult.SaveAll -> error("Unhandled close type: $closeType")
-								ConfirmCloseResult.Discard -> scope.launch {
-									component.discardUnsaved(CloseConfirm.Notes)
-									withContext(mainDispatcher) {
-										component.closeRequestDealtWith(CloseConfirm.Notes)
+						CloseConfirm.Encyclopedia -> {
+							confirmCloseUnsavedEncyclopediaDialog(closeRequest) { result, closeType ->
+								when (result) {
+									ConfirmCloseResult.SaveAll -> error("Unhandled close type: $closeType")
+									ConfirmCloseResult.Discard -> scope.launch {
+										component.discardUnsaved(CloseConfirm.Encyclopedia)
+										withContext(mainDispatcher) {
+											component.closeRequestDealtWith(CloseConfirm.Encyclopedia)
+										}
 									}
+									ConfirmCloseResult.Cancel -> cancelClose()
 								}
-								ConfirmCloseResult.Cancel -> cancelClose()
 							}
 						}
-					}
 
-					CloseConfirm.Encyclopedia -> {
-						confirmCloseUnsavedEncyclopediaDialog(closeRequest) { result, closeType ->
-							when (result) {
-								ConfirmCloseResult.SaveAll -> error("Unhandled close type: $closeType")
-								ConfirmCloseResult.Discard -> scope.launch {
-									component.discardUnsaved(CloseConfirm.Encyclopedia)
-									withContext(mainDispatcher) {
-										component.closeRequestDealtWith(CloseConfirm.Encyclopedia)
+						CloseConfirm.Timeline -> {
+							confirmCloseUnsavedTimelineDialog(closeRequest) { result, closeType ->
+								when (result) {
+									ConfirmCloseResult.SaveAll -> error("Unhandled close type: $closeType")
+									ConfirmCloseResult.Discard -> scope.launch {
+										component.discardUnsaved(CloseConfirm.Timeline)
+										withContext(mainDispatcher) {
+											component.closeRequestDealtWith(CloseConfirm.Timeline)
+										}
 									}
+									ConfirmCloseResult.Cancel -> cancelClose()
 								}
-								ConfirmCloseResult.Cancel -> cancelClose()
 							}
 						}
-					}
 
-					CloseConfirm.Timeline -> {
-						confirmCloseUnsavedTimelineDialog(closeRequest) { result, closeType ->
-							when (result) {
-								ConfirmCloseResult.SaveAll -> error("Unhandled close type: $closeType")
-								ConfirmCloseResult.Discard -> scope.launch {
-									component.discardUnsaved(CloseConfirm.Timeline)
-									withContext(mainDispatcher) {
-										component.closeRequestDealtWith(CloseConfirm.Timeline)
-									}
-								}
-								ConfirmCloseResult.Cancel -> cancelClose()
-							}
+						CloseConfirm.Sync -> {
+							component.showProjectSync()
 						}
-					}
 
-					CloseConfirm.Sync -> {
-						component.showProjectSync()
+						CloseConfirm.Complete -> performClose(app, closeRequest)
 					}
-
-					CloseConfirm.Complete -> performClose(app, closeRequest)
 				}
 			}
 		}

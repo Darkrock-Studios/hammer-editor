@@ -13,6 +13,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.*
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.DefaultComponentContext
 import com.arkivanov.decompose.ExperimentalDecomposeApi
@@ -24,6 +26,7 @@ import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.account_window_title
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelectionComponent
+import com.darkrockstudios.apps.hammer.common.compose.LocalWindowTitleBarHeight
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNavRail
@@ -99,7 +102,11 @@ internal fun NucleusApplicationScope.ProjectSelectionWindow(
 		}
 	) {
 		RaiseOnRequest(raiseRequests)
-		MaterialTitleBar {
+		val density = LocalDensity.current
+		var titleBarHeight by remember { mutableStateOf(0.dp) }
+		MaterialTitleBar(
+			modifier = Modifier.onSizeChanged { titleBarHeight = with(density) { it.height.toDp() } },
+		) {
 			Text(
 				text = title,
 				color = MaterialTheme.colorScheme.onSurface,
@@ -108,8 +115,10 @@ internal fun NucleusApplicationScope.ProjectSelectionWindow(
 		}
 		// Tao windows are their own ComposeScene: locals provided outside the
 		// window (AppTheme in Main.kt) don't reach this content, so re-apply.
-		AppTheme(useDarkTheme = darkMode, settings = settings) {
-			Content(component)
+		CompositionLocalProvider(LocalWindowTitleBarHeight provides titleBarHeight) {
+			AppTheme(useDarkTheme = darkMode, settings = settings) {
+				Content(component)
+			}
 		}
 	}
 }
