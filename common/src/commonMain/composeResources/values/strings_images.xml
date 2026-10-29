@@ -49,4 +49,6 @@
 
 	<string name="images_entry_from_library">+ From library</string>
 	<string name="images_entry_import_file">+ Import file</string>
+	<string name="images_entry_menu_from_library">Add from library</string>
+	<string name="images_entry_menu_import_file">Import file</string>
 </resources>

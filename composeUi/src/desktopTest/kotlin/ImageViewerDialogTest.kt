@@ -1,3 +1,4 @@
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
@@ -6,6 +7,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performKeyInput
+import androidx.compose.ui.test.performMouseInput
 import androidx.compose.ui.test.pressKey
 import com.darkrockstudios.apps.hammer.common.images.IMAGE_VIEWER_CLOSE_TAG
 import com.darkrockstudios.apps.hammer.common.images.IMAGE_VIEWER_COUNTER_TAG
@@ -62,6 +64,21 @@ class ImageViewerDialogTest : BaseTest() {
 		compose.onNodeWithTag(IMAGE_VIEWER_TAG).performKeyInput { pressKey(Key.DirectionLeft) }
 		compose.waitForIdle()
 		compose.onNodeWithTag(IMAGE_VIEWER_COUNTER_TAG).assertTextEquals("1 / 3")
+	}
+
+	@OptIn(ExperimentalTestApi::class)
+	@Test
+	fun `Dragging with the mouse pages to the next image`() {
+		setViewer(items, initialIndex = 0)
+
+		compose.onNodeWithTag(IMAGE_VIEWER_TAG).performMouseInput {
+			press()
+			repeat(10) { moveBy(Offset(-20f, 0f), delayMillis = 16) }
+			release()
+		}
+		compose.waitForIdle()
+
+		compose.onNodeWithTag(IMAGE_VIEWER_COUNTER_TAG).assertTextEquals("2 / 3")
 	}
 
 	@Test

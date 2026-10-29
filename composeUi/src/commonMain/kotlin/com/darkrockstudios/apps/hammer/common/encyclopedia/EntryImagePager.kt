@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -16,8 +17,15 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -41,15 +49,19 @@ import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdEngravingPlaceholder
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.fileDropTarget
+import com.darkrockstudios.apps.hammer.common.compose.mouseDragPaging
 import com.darkrockstudios.apps.hammer.common.compose.images.rememberImageRequest
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_figure_label
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_image_actions
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_image_counter
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_image_page_description
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_image_remove
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_image_set_primary
 import com.darkrockstudios.apps.hammer.images_entry_from_library
 import com.darkrockstudios.apps.hammer.images_entry_import_file
+import com.darkrockstudios.apps.hammer.images_entry_menu_from_library
+import com.darkrockstudios.apps.hammer.images_entry_menu_import_file
 import io.github.vinceglb.filekit.PlatformFile
 
 const val ENTRY_IMAGE_PAGER_TAG = "entry-image-pager"
@@ -58,6 +70,7 @@ const val ENTRY_IMAGE_LIBRARY_TAG = "entry-image-library"
 const val ENTRY_IMAGE_REMOVE_TAG = "entry-image-remove"
 const val ENTRY_IMAGE_SET_PRIMARY_TAG = "entry-image-set-primary"
 const val ENTRY_IMAGE_COUNTER_TAG = "entry-image-counter"
+const val ENTRY_IMAGE_MENU_TAG = "entry-image-menu"
 fun entryImagePageTag(id: Int) = "entry-image-page-$id"
 
 /**
@@ -67,7 +80,6 @@ fun entryImagePageTag(id: Int) = "entry-image-page-$id"
  * image already in the project; tapping a page calls [onOpenImage] with its index.
  * [primaryImageModifier] goes on the first image only, for the shared element from the browse card.
  */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun EntryImagePager(
 	entryName: String,
@@ -126,6 +138,7 @@ internal fun EntryImagePager(
 					modifier = Modifier
 						.fillMaxWidth()
 						.weight(1f)
+						.mouseDragPaging(pagerState)
 						.testTag(ENTRY_IMAGE_PAGER_TAG),
 				) { page ->
 					val image = images.getOrNull(page) ?: return@HorizontalPager
@@ -165,7 +178,6 @@ internal fun EntryImagePager(
 	}
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun FigureBar(
 	images: List<ViewEntry.EntryImage>,
@@ -177,55 +189,100 @@ private fun FigureBar(
 	onRemove: (imageId: Int) -> Unit,
 ) {
 	val shown = images[shownIndex]
-	Column(
+	Row(
 		modifier = Modifier
 			.fillMaxWidth()
-			.padding(horizontal = Ui.Padding.L, vertical = Ui.Padding.M),
-		verticalArrangement = Arrangement.spacedBy(Ui.Padding.M),
+			.padding(start = Ui.Padding.L),
+		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
+		verticalAlignment = Alignment.CenterVertically,
 	) {
 		if (images.size > 1) {
-			Row(
-				modifier = Modifier.fillMaxWidth(),
-				horizontalArrangement = Arrangement.SpaceBetween,
-				verticalAlignment = Alignment.CenterVertically,
-			) {
-				HdMonoLabel(
-					text = Res.string.encyclopedia_entry_image_counter.get(shownIndex + 1, images.size),
-					color = MaterialTheme.colorScheme.onSurfaceVariant,
-					modifier = Modifier.testTag(ENTRY_IMAGE_COUNTER_TAG),
-				)
-				PageDots(count = images.size, selected = shownIndex, onSelect = onShowIndex)
-			}
+			HdMonoLabel(
+				text = Res.string.encyclopedia_entry_image_counter.get(shownIndex + 1, images.size),
+				color = MaterialTheme.colorScheme.onSurfaceVariant,
+				modifier = Modifier.testTag(ENTRY_IMAGE_COUNTER_TAG),
+			)
+			PageDots(count = images.size, selected = shownIndex, onSelect = onShowIndex)
 		}
-		FlowRow(
-			modifier = Modifier.fillMaxWidth(),
-			horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
-			verticalArrangement = Arrangement.spacedBy(Ui.Padding.S),
+		Spacer(modifier = Modifier.weight(1f))
+		FigureMenu(
+			canSetPrimary = shownIndex > 0,
+			onAddFromLibrary = onAddFromLibrary,
+			onAdd = onAdd,
+			onSetPrimary = { onSetPrimary(shown.id) },
+			onRemove = { onRemove(shown.id) },
+		)
+	}
+}
+
+@Composable
+private fun FigureMenu(
+	canSetPrimary: Boolean,
+	onAddFromLibrary: () -> Unit,
+	onAdd: () -> Unit,
+	onSetPrimary: () -> Unit,
+	onRemove: () -> Unit,
+) {
+	var expanded by remember { mutableStateOf(false) }
+	Box {
+		IconButton(
+			onClick = { expanded = true },
+			modifier = Modifier.testTag(ENTRY_IMAGE_MENU_TAG),
 		) {
-			FigureAction(
-				label = Res.string.images_entry_from_library.get(),
-				onClick = onAddFromLibrary,
+			Icon(
+				imageVector = Icons.Filled.MoreVert,
+				contentDescription = Res.string.encyclopedia_entry_image_actions.get(),
+				tint = MaterialTheme.colorScheme.onSurfaceVariant,
+			)
+		}
+		DropdownMenu(
+			expanded = expanded,
+			onDismissRequest = { expanded = false },
+		) {
+			fun closing(action: () -> Unit): () -> Unit = {
+				expanded = false
+				action()
+			}
+
+			FigureMenuItem(
+				label = Res.string.images_entry_menu_from_library.get(),
 				tag = ENTRY_IMAGE_LIBRARY_TAG,
+				onClick = closing(onAddFromLibrary),
 			)
-			FigureAction(
-				label = Res.string.images_entry_import_file.get(),
-				onClick = onAdd,
+			FigureMenuItem(
+				label = Res.string.images_entry_menu_import_file.get(),
 				tag = ENTRY_IMAGE_ADD_TAG,
+				onClick = closing(onAdd),
 			)
-			if (shownIndex > 0) {
-				FigureAction(
+			if (canSetPrimary) {
+				FigureMenuItem(
 					label = Res.string.encyclopedia_entry_image_set_primary.get(),
-					onClick = { onSetPrimary(shown.id) },
 					tag = ENTRY_IMAGE_SET_PRIMARY_TAG,
+					onClick = closing(onSetPrimary),
 				)
 			}
-			FigureAction(
+			FigureMenuItem(
 				label = Res.string.encyclopedia_entry_image_remove.get(),
-				onClick = { onRemove(shown.id) },
 				tag = ENTRY_IMAGE_REMOVE_TAG,
+				onClick = closing(onRemove),
 			)
 		}
 	}
+}
+
+@Composable
+private fun FigureMenuItem(label: String, tag: String, onClick: () -> Unit) {
+	DropdownMenuItem(
+		text = {
+			Text(
+				text = label,
+				style = MaterialTheme.typography.bodyMedium,
+				color = MaterialTheme.colorScheme.onSurface,
+			)
+		},
+		onClick = onClick,
+		modifier = Modifier.testTag(tag),
+	)
 }
 
 @Composable

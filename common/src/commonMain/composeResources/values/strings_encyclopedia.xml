@@ -139,6 +139,7 @@
 	<string name="encyclopedia_entry_figure_label">Fig. I</string>
 	<string name="encyclopedia_entry_image_set_primary">Set primary</string>
 	<string name="encyclopedia_entry_image_remove">Remove</string>
+	<string name="encyclopedia_entry_image_actions">Image actions</string>
 	<string name="encyclopedia_entry_image_counter">%1$d / %2$d</string>
 	<string name="encyclopedia_entry_image_page_description">Image %1$d of %2$d: %3$s</string>
 	<string name="encyclopedia_entry_folio_format">Fol. %1$s · Ent-%2$s</string>

@@ -46,6 +46,7 @@ import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.images.VIEWER_CACHE_KEY_PREFIX
 import com.darkrockstudios.apps.hammer.common.compose.matchesShortcut
+import com.darkrockstudios.apps.hammer.common.compose.mouseDragPaging
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.images_viewer_close
 import com.darkrockstudios.apps.hammer.images_viewer_counter
@@ -142,7 +143,9 @@ fun ImageViewerDialog(
 				state = pagerState,
 				beyondViewportPageCount = 1,
 				key = { page -> items.getOrNull(page)?.cacheKey ?: "missing-$page" },
-				modifier = Modifier.fillMaxSize(),
+				modifier = Modifier
+					.fillMaxSize()
+					.mouseDragPaging(pagerState),
 			) { page ->
 				val item = items.getOrNull(page) ?: return@HorizontalPager
 				ViewerPage(item = item, modifier = Modifier.testTag(imageViewerPageTag(page)))
