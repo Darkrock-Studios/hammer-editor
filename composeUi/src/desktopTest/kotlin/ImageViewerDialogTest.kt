@@ -68,6 +68,20 @@ class ImageViewerDialogTest : BaseTest() {
 
 	@OptIn(ExperimentalTestApi::class)
 	@Test
+	fun `The mouse wheel pages through the images`() {
+		setViewer(items, initialIndex = 0)
+
+		compose.onNodeWithTag(IMAGE_VIEWER_TAG).performMouseInput { scroll(1f) }
+		compose.waitForIdle()
+		compose.onNodeWithTag(IMAGE_VIEWER_COUNTER_TAG).assertTextEquals("2 / 3")
+
+		compose.onNodeWithTag(IMAGE_VIEWER_TAG).performMouseInput { scroll(-1f) }
+		compose.waitForIdle()
+		compose.onNodeWithTag(IMAGE_VIEWER_COUNTER_TAG).assertTextEquals("1 / 3")
+	}
+
+	@OptIn(ExperimentalTestApi::class)
+	@Test
 	fun `Dragging with the mouse pages to the next image`() {
 		setViewer(items, initialIndex = 0)
 

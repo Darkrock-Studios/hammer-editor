@@ -31,7 +31,15 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.pointer.PointerEvent
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.PointerKeyboardModifiers
+import androidx.compose.ui.input.pointer.isCtrlPressed
+import androidx.compose.ui.input.pointer.isMetaPressed
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
@@ -52,10 +60,13 @@ import com.darkrockstudios.apps.hammer.images_viewer_close
 import com.darkrockstudios.apps.hammer.images_viewer_counter
 import com.darkrockstudios.apps.hammer.images_viewer_gif_badge
 import kotlinx.coroutines.launch
+import me.saket.telephoto.zoomable.HardwareShortcutDetector
+import me.saket.telephoto.zoomable.HardwareShortcutsSpec
 import me.saket.telephoto.zoomable.ZoomSpec
 import me.saket.telephoto.zoomable.ZoomableContentLocation
 import me.saket.telephoto.zoomable.rememberZoomableState
 import me.saket.telephoto.zoomable.zoomable
+import kotlin.math.abs
 
 const val IMAGE_VIEWER_TAG = "image-viewer"
 const val IMAGE_VIEWER_CLOSE_TAG = "image-viewer-close"
@@ -66,6 +77,36 @@ fun imageViewerPageTag(index: Int) = "image-viewer-page-$index"
 private val ViewerBackground = Color(0xFF0D0D0D)
 private val ViewerForeground = Color(0xFFEDEDED)
 private const val MAX_ZOOM = 5f
+
+/** Telephoto's shortcuts, with the wheel zooming only while Ctrl or Cmd is held: a plain wheel pages. */
+private object WheelZoomsWithModifier : HardwareShortcutDetector {
+	override fun detectKey(event: KeyEvent): HardwareShortcutDetector.ShortcutEvent? =
+		HardwareShortcutDetector.Default.detectKey(event)
+
+	override fun detectScroll(event: PointerEvent): HardwareShortcutDetector.ShortcutEvent? =
+		if (event.keyboardModifiers.zoomsWithWheel) HardwareShortcutDetector.Default.detectScroll(event) else null
+}
+
+private val PointerKeyboardModifiers.zoomsWithWheel: Boolean get() = isCtrlPressed || isMetaPressed
+
+/**
+ * Turns a plain wheel notch into a page turn, ahead of the zoomable image below, which gets a
+ * wheel only with a modifier held.
+ */
+private fun Modifier.wheelPaging(onPage: (forward: Boolean) -> Unit): Modifier = pointerInput(onPage) {
+	awaitPointerEventScope {
+		while (true) {
+			val event = awaitPointerEvent(PointerEventPass.Initial)
+			if (event.type != PointerEventType.Scroll || event.keyboardModifiers.zoomsWithWheel) continue
+			val delta = event.changes.firstOrNull()?.scrollDelta ?: continue
+			val along = if (abs(delta.x) > abs(delta.y)) delta.x else delta.y
+			if (along != 0f) {
+				onPage(along > 0f)
+				event.changes.forEach { it.consume() }
+			}
+		}
+	}
+}
 
 /**
  * One image in [ImageViewerDialog]. [model] is a file path or the image's bytes; [cacheKey] names
@@ -89,9 +130,9 @@ data class ImageViewerItem(
 }
 
 /**
- * Full-screen lightbox over [items], opening at [initialIndex]: pinch, scroll or double-click to
- * zoom, swipe or the arrow keys to page. Local composable state rather than a navigation slot, so
- * it can open over other modals.
+ * Full-screen lightbox over [items], opening at [initialIndex]: pinch, Ctrl and the wheel, or a
+ * double-click to zoom; swipe, the wheel or the arrow keys to page. Local composable state rather
+ * than a navigation slot, so it can open over other modals.
  */
 @Composable
 fun ImageViewerDialog(
@@ -137,7 +178,14 @@ fun ImageViewerDialog(
 
 						else -> false
 					}
-				},
+				}
+				.wheelPaging(
+					onPage = { forward ->
+						if (!pagerState.isScrollInProgress) {
+							showPage(pagerState.currentPage + if (forward) 1 else -1)
+						}
+					},
+				),
 		) {
 			HorizontalPager(
 				state = pagerState,
@@ -192,7 +240,10 @@ private fun ViewerPage(item: ImageViewerItem, isCurrent: Boolean, modifier: Modi
 	}
 	val painter = rememberAsyncImagePainter(model = request, contentScale = ContentScale.Fit)
 	val painterState by painter.state.collectAsState()
-	val zoomState = rememberZoomableState(zoomSpec = ZoomSpec(maxZoomFactor = MAX_ZOOM))
+	val zoomState = rememberZoomableState(
+		zoomSpec = ZoomSpec(maxZoomFactor = MAX_ZOOM),
+		hardwareShortcutsSpec = HardwareShortcutsSpec(shortcutDetector = WheelZoomsWithModifier),
+	)
 
 	val loaded = painterState as? AsyncImagePainter.State.Success
 	LaunchedEffect(loaded) {
