@@ -10,16 +10,20 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.height
 import com.darkrockstudios.apps.hammer.common.components.images.ImageGallery
 import com.darkrockstudios.apps.hammer.common.components.images.ImageGalleryMode
 import com.darkrockstudios.apps.hammer.common.components.images.ImagePickTarget
 import com.darkrockstudios.apps.hammer.common.images.IMAGE_GALLERY_DELETE_TAG
+import com.darkrockstudios.apps.hammer.common.images.IMAGE_GALLERY_DETAIL_IMAGE_TAG
 import com.darkrockstudios.apps.hammer.common.images.IMAGE_GALLERY_DETAIL_TAG
 import com.darkrockstudios.apps.hammer.common.images.IMAGE_GALLERY_EMPTY_TAG
 import com.darkrockstudios.apps.hammer.common.images.IMAGE_GALLERY_SEARCH_TAG
 import com.darkrockstudios.apps.hammer.common.images.IMAGE_GALLERY_SORT_TAG
 import com.darkrockstudios.apps.hammer.common.images.IMAGE_GALLERY_USE_TAG
+import com.darkrockstudios.apps.hammer.common.images.IMAGE_GALLERY_VIEW_TAG
 import com.darkrockstudios.apps.hammer.common.images.ImageGalleryUi
 import com.darkrockstudios.apps.hammer.common.images.imageGalleryItemTag
 import com.darkrockstudios.apps.hammer.common.preview.KoinApplicationPreview
@@ -29,16 +33,17 @@ import com.darkrockstudios.apps.hammer.common.preview.images.previewImageUsages
 import org.junit.Rule
 import org.junit.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class ImageGalleryUiTest : BaseTest() {
 
 	@get:Rule
 	val compose = createComposeRule()
 
-	private fun setGallery(gallery: FakeImageGallery) {
+	private fun setGallery(gallery: FakeImageGallery, width: Dp = 1000.dp, height: Dp = 800.dp) {
 		compose.setContent {
 			KoinApplicationPreview {
-				ImageGalleryUi(gallery, modifier = Modifier.size(width = 1000.dp, height = 800.dp))
+				ImageGalleryUi(gallery, modifier = Modifier.size(width = width, height = height))
 			}
 		}
 	}
@@ -86,6 +91,20 @@ class ImageGalleryUiTest : BaseTest() {
 		compose.waitForIdle()
 
 		assertEquals(listOf(8), fake.picked)
+	}
+
+	@Test
+	fun `The detail image fits above its actions in a narrow gallery`() {
+		val fake = gallery(ImageGalleryMode.Browse)
+		setGallery(fake, width = 560.dp, height = 900.dp)
+
+		compose.onNodeWithTag(imageGalleryItemTag(3)).performClick()
+		passDoubleClickWindow()
+
+		val image = compose.onNodeWithTag(IMAGE_GALLERY_DETAIL_IMAGE_TAG).assertIsDisplayed().getUnclippedBoundsInRoot()
+		val view = compose.onNodeWithTag(IMAGE_GALLERY_VIEW_TAG).assertIsDisplayed().getUnclippedBoundsInRoot()
+		assertTrue(image.height <= 240.dp, "image height ${image.height}")
+		assertTrue(image.bottom <= view.top, "image bottom ${image.bottom} runs under the actions at ${view.top}")
 	}
 
 	@Test

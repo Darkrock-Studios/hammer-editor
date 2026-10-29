@@ -139,6 +139,7 @@ const val IMAGE_GALLERY_SORT_TAG = "image-gallery-sort"
 const val IMAGE_GALLERY_CLOSE_TAG = "image-gallery-close"
 const val IMAGE_GALLERY_EMPTY_TAG = "image-gallery-empty"
 const val IMAGE_GALLERY_DETAIL_TAG = "image-gallery-detail"
+const val IMAGE_GALLERY_DETAIL_IMAGE_TAG = "image-gallery-detail-image"
 const val IMAGE_GALLERY_USE_TAG = "image-gallery-use"
 const val IMAGE_GALLERY_VIEW_TAG = "image-gallery-view"
 const val IMAGE_GALLERY_RENAME_TAG = "image-gallery-rename"
@@ -148,6 +149,8 @@ fun imageGalleryItemTag(id: Int) = "image-gallery-item-$id"
 
 private val WideGalleryThreshold = 720.dp
 private val DetailPaneWidth = 320.dp
+private val DetailImageMinHeight = 120.dp
+private val DetailImageMaxHeight = 240.dp
 private val ThumbnailMinSize = 140.dp
 
 /** The gallery as the project root's modal: full screen, closing through the exit animation. */
@@ -610,16 +613,18 @@ private fun ImageDetail(
 			.padding(Ui.Padding.XL),
 		verticalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 	) {
+		// The whole image fits inside a box of bounded height, so a tall one never runs under the
+		// name and the actions below it.
 		AsyncImage(
 			model = rememberImageRequest(path = image.path, version = image.cacheToken, placeholderFromPath = true),
 			contentDescription = image.def.name,
 			contentScale = ContentScale.Fit,
 			modifier = Modifier
 				.fillMaxWidth()
-				.heightIn(max = 200.dp)
-				.aspectRatio(4f / 3f)
+				.heightIn(min = DetailImageMinHeight, max = DetailImageMaxHeight)
 				.background(MaterialTheme.colorScheme.surfaceContainerLow)
-				.clickable(onClick = onView),
+				.clickable(onClick = onView)
+				.testTag(IMAGE_GALLERY_DETAIL_IMAGE_TAG),
 		)
 		Column(verticalArrangement = Arrangement.spacedBy(Ui.Padding.S)) {
 			Text(
