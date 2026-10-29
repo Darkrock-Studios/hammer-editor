@@ -48,6 +48,17 @@ class WritingSessionTracker(
 		baselineLock.withReentrantLock { baseline[sceneId] = content }
 	}
 
+	/**
+	 * Passes a scene's baseline through a rewrite applied to its text from outside the editor.
+	 * False when the scene has no baseline, which is then left unset.
+	 */
+	fun transformBaseline(sceneId: Int, transform: (String) -> String): Boolean =
+		baselineLock.withReentrantLock {
+			val current = baseline[sceneId]
+			if (current != null) baseline[sceneId] = transform(current)
+			current != null
+		}
+
 	/** Drops the baseline for a scene that's been deleted. */
 	fun forgetBaseline(sceneId: Int) {
 		baselineLock.withReentrantLock { baseline.remove(sceneId) }

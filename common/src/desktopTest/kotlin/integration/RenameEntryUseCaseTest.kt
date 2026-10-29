@@ -25,6 +25,8 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.slot
+import io.mockk.verify
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -294,6 +296,39 @@ class RenameEntryUseCaseTest : BaseIntegrationTest() {
 		assertEquals("Unsaved: Robert Tolliver.", sceneContentRepository.getSceneBuffer(scene(6))?.content?.markdown)
 		assertFalse(sceneEditorService.hasDirtyBuffer(6))
 		assertEquals("Unsaved: Robert Tallow.", drafts.loadDraftContent(renameDrafts(6).single()))
+	}
+
+	@Test
+	fun `Keystrokes still in the debounce survive the rename`() = runTest(mainTestDispatcher) {
+		createStack()
+		sceneEditorService.storeMetadata(sceneEditorService.loadSceneMetadata(6).copy(dismissedReferences = emptySet()), 6)
+		sceneEditorService.loadSceneBuffer(scene(6))
+		val preview = useCase.preview(request())
+		sceneContentRepository.onContentChanged(SceneContent(scene(6), "Robert Tallow again. Typed late."), UpdateSource.Editor)
+
+		val result = applyDefaults(preview)
+		advanceUntilIdle()
+
+		assertEquals("Robert Tolliver again. Typed late.", sceneText(6))
+		assertEquals("Robert Tallow again. Typed late.", drafts.loadDraftContent(renameDrafts(6).single()))
+		assertEquals(0, result.skippedStale)
+	}
+
+	@Test
+	fun `Renaming an open scene transforms its writing baseline instead of resetting it`() = runTest(mainTestDispatcher) {
+		createStack()
+		every { writingSessionTracker.transformBaseline(any(), any()) } returns true
+		sceneEditorService.storeMetadata(sceneEditorService.loadSceneMetadata(6).copy(dismissedReferences = emptySet()), 6)
+		sceneEditorService.loadSceneBuffer(scene(6))
+		val preview = useCase.preview(request())
+
+		applyDefaults(preview)
+		advanceUntilIdle()
+
+		val transform = slot<(String) -> String>()
+		verify { writingSessionTracker.transformBaseline(6, capture(transform)) }
+		assertEquals("Robert Tolliver again.", transform.captured("Robert Tallow again."))
+		verify(exactly = 1) { writingSessionTracker.rememberBaseline(6, any()) }
 	}
 
 	@Test
