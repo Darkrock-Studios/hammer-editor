@@ -148,7 +148,11 @@ fun ImageViewerDialog(
 					.mouseDragPaging(pagerState),
 			) { page ->
 				val item = items.getOrNull(page) ?: return@HorizontalPager
-				ViewerPage(item = item, modifier = Modifier.testTag(imageViewerPageTag(page)))
+				ViewerPage(
+					item = item,
+					isCurrent = pagerState.currentPage == page,
+					modifier = Modifier.testTag(imageViewerPageTag(page)),
+				)
 			}
 
 			IconButton(
@@ -177,7 +181,7 @@ fun ImageViewerDialog(
 }
 
 @Composable
-private fun ViewerPage(item: ImageViewerItem, modifier: Modifier = Modifier) {
+private fun ViewerPage(item: ImageViewerItem, isCurrent: Boolean, modifier: Modifier = Modifier) {
 	val context = LocalPlatformContext.current
 	val request = remember(context, item.cacheKey) {
 		ImageRequest.Builder(context)
@@ -194,6 +198,11 @@ private fun ViewerPage(item: ImageViewerItem, modifier: Modifier = Modifier) {
 	LaunchedEffect(loaded) {
 		val size = loaded?.painter?.intrinsicSize ?: return@LaunchedEffect
 		zoomState.setContentLocation(ZoomableContentLocation.scaledInsideAndCenterAligned(size))
+	}
+	// A page is laid out before it is shown, and a zoom from then or from a mouse wheel over
+	// a neighbouring page would otherwise carry over: each image opens fitted inside.
+	LaunchedEffect(isCurrent, loaded) {
+		if (isCurrent && loaded != null) zoomState.resetZoom(withAnimation = false)
 	}
 
 	Image(
