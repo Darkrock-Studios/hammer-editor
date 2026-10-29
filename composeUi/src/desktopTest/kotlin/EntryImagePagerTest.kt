@@ -18,6 +18,7 @@ import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.ViewEntry
 import com.darkrockstudios.apps.hammer.common.encyclopedia.ENTRY_IMAGE_ADD_TAG
+import com.darkrockstudios.apps.hammer.common.encyclopedia.ENTRY_IMAGE_CAPTION_TAG
 import com.darkrockstudios.apps.hammer.common.encyclopedia.ENTRY_IMAGE_COUNTER_TAG
 import com.darkrockstudios.apps.hammer.common.encyclopedia.ENTRY_IMAGE_LIBRARY_TAG
 import com.darkrockstudios.apps.hammer.common.encyclopedia.ENTRY_IMAGE_MENU_TAG
@@ -77,6 +78,13 @@ class EntryImagePagerTest {
 
 		assertEquals(1, added)
 		assertEquals(1, fromLibrary)
+	}
+
+	@Test
+	fun `The bar names the figure, with the counter only for several images`() {
+		setPager(images.take(1))
+		compose.onNodeWithTag(ENTRY_IMAGE_CAPTION_TAG).assertTextEquals("FIG. I")
+		compose.onNodeWithTag(ENTRY_IMAGE_COUNTER_TAG).assertDoesNotExist()
 	}
 
 	@Test

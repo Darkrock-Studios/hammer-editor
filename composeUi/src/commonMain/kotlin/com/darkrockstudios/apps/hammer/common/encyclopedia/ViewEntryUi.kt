@@ -142,7 +142,6 @@ import com.darkrockstudios.apps.hammer.encyclopedia_entry_edit_button
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_edit_cancel_button
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_edit_save_button
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_edit_save_toast
-import com.darkrockstudios.apps.hammer.encyclopedia_entry_figure_caption
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_folio_format
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_name_hint
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_particulars_aliases
@@ -761,10 +760,6 @@ private fun WideBody(
 					.fillMaxWidth()
 					.height(InsetFigureHeight)
 			)
-			HdMonoLabel(
-				text = Res.string.encyclopedia_entry_figure_caption.get() + " · ↗",
-				color = MaterialTheme.colorScheme.onSurfaceVariant,
-			)
 		}
 	}
 }
@@ -793,10 +788,6 @@ private fun CompactBody(
 				Modifier
 					.fillMaxWidth()
 					.height(240.dp)
-			)
-			HdMonoLabel(
-				text = Res.string.encyclopedia_entry_figure_caption.get() + " · ↗",
-				color = MaterialTheme.colorScheme.onSurfaceVariant,
 			)
 		}
 		BodyTextZone(

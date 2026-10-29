@@ -71,6 +71,7 @@ const val ENTRY_IMAGE_REMOVE_TAG = "entry-image-remove"
 const val ENTRY_IMAGE_SET_PRIMARY_TAG = "entry-image-set-primary"
 const val ENTRY_IMAGE_COUNTER_TAG = "entry-image-counter"
 const val ENTRY_IMAGE_MENU_TAG = "entry-image-menu"
+const val ENTRY_IMAGE_CAPTION_TAG = "entry-image-caption"
 fun entryImagePageTag(id: Int) = "entry-image-page-$id"
 
 /**
@@ -196,6 +197,12 @@ private fun FigureBar(
 		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 		verticalAlignment = Alignment.CenterVertically,
 	) {
+		HdMonoLabel(
+			text = Res.string.encyclopedia_entry_figure_label.get(),
+			color = MaterialTheme.colorScheme.onSurfaceVariant,
+			maxLines = 1,
+			modifier = Modifier.testTag(ENTRY_IMAGE_CAPTION_TAG),
+		)
 		if (images.size > 1) {
 			HdMonoLabel(
 				text = Res.string.encyclopedia_entry_image_counter.get(shownIndex + 1, images.size),
