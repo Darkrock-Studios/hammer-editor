@@ -25,6 +25,7 @@
 
 	<string name="images_gallery_use">USE</string>
 	<string name="images_gallery_view">View</string>
+	<string name="images_gallery_detail_close">Close details</string>
 	<string name="images_gallery_rename">Rename</string>
 	<string name="images_gallery_replace">Replace</string>
 	<string name="images_gallery_delete">Delete</string>

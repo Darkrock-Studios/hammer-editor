@@ -17,6 +17,7 @@ import com.darkrockstudios.apps.hammer.common.components.images.ImageGallery
 import com.darkrockstudios.apps.hammer.common.components.images.ImageGalleryMode
 import com.darkrockstudios.apps.hammer.common.components.images.ImagePickTarget
 import com.darkrockstudios.apps.hammer.common.images.IMAGE_GALLERY_DELETE_TAG
+import com.darkrockstudios.apps.hammer.common.images.IMAGE_GALLERY_DETAIL_CLOSE_TAG
 import com.darkrockstudios.apps.hammer.common.images.IMAGE_GALLERY_DETAIL_IMAGE_TAG
 import com.darkrockstudios.apps.hammer.common.images.IMAGE_GALLERY_DETAIL_TAG
 import com.darkrockstudios.apps.hammer.common.images.IMAGE_GALLERY_EMPTY_TAG
@@ -105,6 +106,21 @@ class ImageGalleryUiTest : BaseTest() {
 		val view = compose.onNodeWithTag(IMAGE_GALLERY_VIEW_TAG).assertIsDisplayed().getUnclippedBoundsInRoot()
 		assertTrue(image.height <= 240.dp, "image height ${image.height}")
 		assertTrue(image.bottom <= view.top, "image bottom ${image.bottom} runs under the actions at ${view.top}")
+	}
+
+	@Test
+	fun `Closing the details clears the selection`() {
+		val fake = gallery(ImageGalleryMode.Browse)
+		setGallery(fake)
+
+		compose.onNodeWithTag(imageGalleryItemTag(3)).performClick()
+		passDoubleClickWindow()
+		compose.onNodeWithTag(IMAGE_GALLERY_DETAIL_TAG).assertIsDisplayed()
+
+		compose.onNodeWithTag(IMAGE_GALLERY_DETAIL_CLOSE_TAG).performClick()
+
+		compose.onNodeWithTag(IMAGE_GALLERY_DETAIL_TAG).assertDoesNotExist()
+		assertEquals(null, fake.state.value.selectedId)
 	}
 
 	@Test

@@ -28,7 +28,11 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
@@ -94,6 +98,7 @@ import com.darkrockstudios.apps.hammer.images_gallery_delete
 import com.darkrockstudios.apps.hammer.images_gallery_delete_title
 import com.darkrockstudios.apps.hammer.images_gallery_delete_unused
 import com.darkrockstudios.apps.hammer.images_gallery_delete_usage_line
+import com.darkrockstudios.apps.hammer.images_gallery_detail_close
 import com.darkrockstudios.apps.hammer.images_gallery_delete_used
 import com.darkrockstudios.apps.hammer.images_gallery_drop_hint
 import com.darkrockstudios.apps.hammer.images_gallery_empty_message
@@ -140,6 +145,7 @@ const val IMAGE_GALLERY_CLOSE_TAG = "image-gallery-close"
 const val IMAGE_GALLERY_EMPTY_TAG = "image-gallery-empty"
 const val IMAGE_GALLERY_DETAIL_TAG = "image-gallery-detail"
 const val IMAGE_GALLERY_DETAIL_IMAGE_TAG = "image-gallery-detail-image"
+const val IMAGE_GALLERY_DETAIL_CLOSE_TAG = "image-gallery-detail-close"
 const val IMAGE_GALLERY_USE_TAG = "image-gallery-use"
 const val IMAGE_GALLERY_VIEW_TAG = "image-gallery-view"
 const val IMAGE_GALLERY_RENAME_TAG = "image-gallery-rename"
@@ -312,6 +318,7 @@ fun ImageGalleryUi(component: ImageGallery, modifier: Modifier = Modifier) {
 							onReplace = { onReplace(selected) },
 							onDelete = { component.requestDelete(selected.def.id) },
 							onUse = { component.pick(selected.def.id) },
+							onClose = { component.select(null) },
 							modifier = detailModifier,
 						)
 					}
@@ -604,6 +611,7 @@ private fun ImageDetail(
 	onReplace: () -> Unit,
 	onDelete: () -> Unit,
 	onUse: () -> Unit,
+	onClose: () -> Unit,
 	modifier: Modifier = Modifier,
 ) {
 	Column(
@@ -627,11 +635,24 @@ private fun ImageDetail(
 				.testTag(IMAGE_GALLERY_DETAIL_IMAGE_TAG),
 		)
 		Column(verticalArrangement = Arrangement.spacedBy(Ui.Padding.S)) {
-			Text(
-				text = image.def.name,
-				style = MaterialTheme.typography.titleMedium,
-				color = MaterialTheme.colorScheme.onSurface,
-			)
+			Row(verticalAlignment = Alignment.CenterVertically) {
+				Text(
+					text = image.def.name,
+					style = MaterialTheme.typography.titleMedium,
+					color = MaterialTheme.colorScheme.onSurface,
+					modifier = Modifier.weight(1f),
+				)
+				IconButton(
+					onClick = onClose,
+					modifier = Modifier.testTag(IMAGE_GALLERY_DETAIL_CLOSE_TAG),
+				) {
+					Icon(
+						imageVector = Icons.Default.Close,
+						contentDescription = Res.string.images_gallery_detail_close.get(),
+						tint = MaterialTheme.colorScheme.onSurfaceVariant,
+					)
+				}
+			}
 			Row(
 				horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M),
 				verticalAlignment = Alignment.CenterVertically,
