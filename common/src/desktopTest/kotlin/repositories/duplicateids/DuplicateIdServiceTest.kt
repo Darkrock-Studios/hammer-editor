@@ -5,6 +5,7 @@ import com.darkrockstudios.apps.hammer.common.data.createProjectScope
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftsDatasource
 import com.darkrockstudios.apps.hammer.common.data.duplicateids.DuplicateIdService
 import com.darkrockstudios.apps.hammer.common.data.duplicateids.DuplicateIdService.ResolveResult
+import com.darkrockstudios.apps.hammer.common.data.duplicateids.ResolveDuplicateIdUseCase
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.id.datasources.EncyclopediaIdDatasource
@@ -81,8 +82,9 @@ class DuplicateIdServiceTest : RationalizerTestBase() {
 		projectScope = createProjectScope(projectDef)
 	}
 
-	private fun service(backups: ProjectBackupService) =
-		DuplicateIdService(projectDef, rationalizer, syncJournal, backups)
+	private val service by lazy { DuplicateIdService(projectDef, rationalizer, syncJournal) }
+
+	private fun resolver(backups: ProjectBackupService) = ResolveDuplicateIdUseCase(projectDef, service, backups)
 
 	private fun writeConflictingEntries() {
 		write("encyclopedia/person/person~5~Bob.toml", entryToml(5, "Bob", "The real Bob"))
@@ -92,7 +94,6 @@ class DuplicateIdServiceTest : RationalizerTestBase() {
 	@Test
 	fun `Copies left after open wait for the user and block sync`() = runTest {
 		writeConflictingEntries()
-		val service = service(FakeBackups(succeeds = true))
 
 		service.rationalizeOnOpen()
 
@@ -103,11 +104,11 @@ class DuplicateIdServiceTest : RationalizerTestBase() {
 	@Test
 	fun `A failed backup deletes nothing`() = runTest {
 		writeConflictingEntries()
-		val service = service(FakeBackups(succeeds = false))
+		val resolve = resolver(FakeBackups(succeeds = false))
 		service.rationalizeOnOpen()
 		val set = service.unresolved.value.single()
 
-		val result = service.resolve(set, keep = setOf(set.inUse.path))
+		val result = resolve(set, keep = setOf(set.inUse.path))
 
 		assertEquals(ResolveResult.BackupFailed, result)
 		assertEquals(2, filesIn("encyclopedia").size)
@@ -118,11 +119,11 @@ class DuplicateIdServiceTest : RationalizerTestBase() {
 	fun `Keeping a copy other than the one in use marks it for upload`() = runTest {
 		writeConflictingEntries()
 		val backups = FakeBackups(succeeds = true)
-		val service = service(backups)
+		val resolve = resolver(backups)
 		service.rationalizeOnOpen()
 		val set = service.unresolved.value.single()
 
-		val result = service.resolve(set, keep = setOf(set.copies.last().path))
+		val result = resolve(set, keep = setOf(set.copies.last().path))
 
 		assertEquals(ResolveResult.Resolved, result)
 		assertEquals(1, backups.backups)
@@ -139,12 +140,12 @@ class DuplicateIdServiceTest : RationalizerTestBase() {
 		write("scenes/1~Duel~12.md", "En garde")
 		write("notes/note-20.toml", noteToml(20, "x"))
 		val backups = FakeBackups(succeeds = true)
-		val service = service(backups)
+		val resolve = resolver(backups)
 		service.rationalizeOnOpen()
 		projectScope.get<IdAllocator>().findNextId()
 		val set = service.unresolved.value.single()
 
-		val result = service.resolve(set, keep = set.copies.map { it.path }.toSet())
+		val result = resolve(set, keep = set.copies.map { it.path }.toSet())
 
 		assertEquals(ResolveResult.Resolved, result)
 		assertEquals(0, backups.backups)
@@ -155,12 +156,12 @@ class DuplicateIdServiceTest : RationalizerTestBase() {
 	@Test
 	fun `A set that changed on disk is refreshed instead of resolved`() = runTest {
 		writeConflictingEntries()
-		val service = service(FakeBackups(succeeds = true))
+		val resolve = resolver(FakeBackups(succeeds = true))
 		service.rationalizeOnOpen()
 		val set = service.unresolved.value.single()
 		write("encyclopedia/person/person~5~Bob.sync-conflict-y.toml", entryToml(5, "Bob", "Phone Bob"))
 
-		val result = service.resolve(set, keep = setOf(set.inUse.path))
+		val result = resolve(set, keep = setOf(set.inUse.path))
 
 		assertEquals(ResolveResult.Stale, result)
 		assertEquals(3, filesIn("encyclopedia").size)

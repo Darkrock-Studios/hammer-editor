@@ -71,7 +71,6 @@ class PrepareForSyncOperationTest : BaseTest() {
 				projectDef = projectDef,
 				rationalizer = ProjectFileRationalizer(projectDef, projectFiles, createTomlSerializer()),
 				syncJournal = syncJournal,
-				backupService = mockk(relaxed = true),
 			),
 			strRes = TestStrRes(),
 		)

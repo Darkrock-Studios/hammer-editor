@@ -4,6 +4,7 @@ import PROJECT_1_NAME
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.Info
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.*
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
@@ -11,7 +12,6 @@ import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexRepo
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.*
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingActivityDatasource
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingActivityRepository
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingSessionTracker
@@ -59,6 +59,7 @@ class SceneContentRepositoryTest : BaseTest() {
 	private lateinit var sceneMetadataDatasource: SceneMetadataDatasource
 	private lateinit var sceneDatasource: SceneDatasource
 	private lateinit var statisticsRepository: StatisticsRepository
+	private lateinit var writingSessionTracker: WritingSessionTracker
 
 	private lateinit var contentRepo: SceneContentRepository
 	private lateinit var repo: SceneRepository
@@ -85,10 +86,7 @@ class SceneContentRepositoryTest : BaseTest() {
 		coEvery { syncJournal.markEntityAsDirty(any()) } just Runs
 	}
 
-	private fun createStack(
-		projectDef: ProjectDef,
-		writingSessionTracker: WritingSessionTracker = mockk(relaxed = true),
-	) {
+	private fun createStack(projectDef: ProjectDef, tracker: WritingSessionTracker = trackerWithBaselines()) {
 		sceneMetadataDatasource = SceneMetadataDatasource(ffs, toml, projectDef)
 		sceneDatasource = SceneDatasource(projectDef, ffs)
 		contentRepo = SceneContentRepository(projectDef, sceneDatasource)
@@ -100,6 +98,7 @@ class SceneContentRepositoryTest : BaseTest() {
 			clock = Clock.System,
 		)
 		val referenceIndexRepository = mockk<ReferenceIndexRepository>(relaxed = true)
+		writingSessionTracker = tracker
 		repo = SceneRepository(
 			projectDef = projectDef,
 			syncJournal = syncJournal,
@@ -272,40 +271,7 @@ class SceneContentRepositoryTest : BaseTest() {
 	}
 
 	@Test
-	fun `Rewrite scene text still credits words typed before it, but not the rewrite`() = runTest(mainTestDispatcher) {
-		val projDef = getProject1Def()
-		createProject(ffs, PROJECT_1_NAME)
-
-		val globalSettingsStore = mockk<GlobalSettingsStore>(relaxed = true)
-		coEvery { globalSettingsStore.ensureInstallId() } returns "device-test"
-		val activity = WritingActivityRepository(WritingActivityDatasource(ffs, toml, projDef), globalSettingsStore, projDef)
-		createStack(projDef, WritingSessionTracker(activity, Clock.System, projDef))
-		service.initialize()
-
-		val sceneItem = SceneItem(getProject1Def(), SceneItem.Type.Scene, 3, "Scene ID 3", 0)
-		service.loadSceneBuffer(sceneItem)
-		service.replaceSceneText(sceneItem, "Intro ![a](hammer://image/1)")
-
-		contentRepo.onContentChanged(SceneContent(sceneItem, "Intro ![a](hammer://image/1) three new words"), UpdateSource.Editor)
-		assertTrue(service.rewriteSceneText(sceneItem) { it.replace("image/1", "image/22") })
-		advanceUntilIdle()
-
-		val rewritten = "Intro ![a](hammer://image/22) three new words"
-		assertEquals(rewritten, contentRepo.getSceneBuffer(sceneItem)?.content?.markdown)
-		ffs.read(repo.getSceneFilePath(3).toOkioPath()) {
-			assertEquals(rewritten, readUtf8())
-		}
-
-		contentRepo.onContentChanged(SceneContent(sceneItem, rewritten), UpdateSource.Editor)
-		contentRepo.flushPendingContent(sceneItem.id)
-		assertTrue(service.storeSceneBuffer(sceneItem))
-		advanceUntilIdle()
-
-		assertEquals(3, activity.loadOwnLog().sessions.sumOf { it.wordsWritten })
-	}
-
-	@Test
-	fun `Rewrite scene text that does not change it reports no change`() = runTest(mainTestDispatcher) {
+	fun `Rewriting scene text keeps edits still in the debounce`() = runTest(mainTestDispatcher) {
 		val projDef = getProject1Def()
 		createProject(ffs, PROJECT_1_NAME)
 
@@ -315,7 +281,77 @@ class SceneContentRepositoryTest : BaseTest() {
 		val sceneItem = SceneItem(getProject1Def(), SceneItem.Type.Scene, 3, "Scene ID 3", 0)
 		service.loadSceneBuffer(sceneItem)
 
-		assertFalse(service.rewriteSceneText(sceneItem) { it })
+		contentRepo.onContentChanged(SceneContent(sceneItem, "Content of scene id 3, typed"), UpdateSource.Editor)
+		assertTrue(service.rewriteSceneText(sceneItem) { it.replace("scene", "chapter") })
+		advanceUntilIdle()
+
+		assertEquals("Content of chapter id 3, typed", contentRepo.getSceneBuffer(sceneItem)?.content?.markdown)
+		assertFalse(service.hasDirtyBuffer(sceneItem.id))
+		ffs.read(repo.getSceneFilePath(3).toOkioPath()) {
+			assertEquals("Content of chapter id 3, typed", readUtf8())
+		}
+		verify { writingSessionTracker.transformBaseline(3, any()) }
+		verify(exactly = 1) { writingSessionTracker.rememberBaseline(3, any()) }
+	}
+
+	@Test
+	fun `Rewriting scene text keeps credit for words typed since the baseline`() = runTest(mainTestDispatcher) {
+		val projDef = getProject1Def()
+		createProject(ffs, PROJECT_1_NAME)
+		val globalSettingsStore = mockk<GlobalSettingsStore>(relaxed = true)
+		coEvery { globalSettingsStore.ensureInstallId() } returns "device-test"
+		val activity = WritingActivityRepository(WritingActivityDatasource(ffs, toml, projDef), globalSettingsStore, projDef)
+
+		createStack(projDef, WritingSessionTracker(activity, Clock.System, projDef))
+		service.initialize()
+
+		val sceneItem = SceneItem(getProject1Def(), SceneItem.Type.Scene, 3, "Scene ID 3", 0)
+		service.loadSceneBuffer(sceneItem)
+
+		contentRepo.onContentChanged(SceneContent(sceneItem, "Content of scene id 3 typed words here"), UpdateSource.Editor)
+		assertTrue(service.rewriteSceneText(sceneItem) { it.replace("scene", "chapter") })
+		advanceUntilIdle()
+		contentRepo.onContentChanged(
+			SceneContent(sceneItem, "Content of chapter id 3 typed words here again"),
+			UpdateSource.Editor,
+		)
+		advanceUntilIdle()
+
+		assertEquals(4, activity.loadOwnLog().sessions.sumOf { it.wordsWritten })
+	}
+
+	@Test
+	fun `Rewriting a scene that was not open gives it a baseline`() = runTest(mainTestDispatcher) {
+		val projDef = getProject1Def()
+		createProject(ffs, PROJECT_1_NAME)
+
+		createStack(projDef, mockk(relaxed = true))
+		service.initialize()
+
+		val sceneItem = SceneItem(getProject1Def(), SceneItem.Type.Scene, 3, "Scene ID 3", 0)
+		assertTrue(service.rewriteSceneText(sceneItem) { it.replace("scene", "chapter") })
+		advanceUntilIdle()
+
+		verify { writingSessionTracker.rememberBaseline(3, "Content of chapter id 3") }
+	}
+
+	@Test
+	fun `Rewriting scene text that changes nothing writes nothing`() = runTest(mainTestDispatcher) {
+		val projDef = getProject1Def()
+		createProject(ffs, PROJECT_1_NAME)
+
+		createStack(projDef)
+		service.initialize()
+
+		val sceneItem = SceneItem(getProject1Def(), SceneItem.Type.Scene, 3, "Scene ID 3", 0)
+		service.loadSceneBuffer(sceneItem)
+
+		assertFalse(service.rewriteSceneText(sceneItem) { it.replace("Bob", "Robert") })
+		advanceUntilIdle()
+
+		assertFalse(service.hasDirtyBuffer(sceneItem.id))
+		verify(exactly = 0) { writingSessionTracker.transformBaseline(any(), any()) }
+		coVerify(exactly = 0) { statisticsRepository.markDirty() }
 	}
 
 	@Test
@@ -802,4 +838,9 @@ class SceneContentRepositoryTest : BaseTest() {
 		assertNotEquals(oldPath1, newPath1)
 		assertNotEquals(oldPath6, newPath6)
 	}
+}
+
+/** A tracker that behaves as if every scene has a baseline, so rewrites transform rather than reset it. */
+private fun trackerWithBaselines(): WritingSessionTracker = mockk(relaxed = true) {
+	every { transformBaseline(any(), any()) } returns true
 }

@@ -21,6 +21,7 @@ import testProjectId
 import utils.BaseTest
 import utils.TestClock
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.hours
@@ -112,6 +113,30 @@ class WritingSessionTrackerTest : BaseTest() {
 
 		val log = repository.loadOwnLog()
 		assertTrue(log.sessions.isEmpty())
+	}
+
+	@Test
+	fun `transformed baseline credits typed words but not the rewrite`() = runTest {
+		tracker.rememberBaseline(sceneId = 1, content = "Bob went home")
+		tracker.transformBaseline(1) { it.replace("Bob", "Robert") }
+
+		val credited = tracker.onSceneSaved(1, "Robert went home and slept", UpdateSource.Editor)
+
+		assertEquals(2, credited)
+	}
+
+	@Test
+	fun `transforming a missing baseline does not create one`() = runTest {
+		assertFalse(tracker.transformBaseline(1) { "made up" })
+
+		assertEquals(0, tracker.onSceneSaved(1, "made up words", UpdateSource.Editor))
+	}
+
+	@Test
+	fun `transforming an existing baseline reports it`() = runTest {
+		tracker.rememberBaseline(sceneId = 1, content = "Bob went home")
+
+		assertTrue(tracker.transformBaseline(1) { it })
 	}
 
 	@Test

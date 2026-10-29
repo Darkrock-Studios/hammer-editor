@@ -242,7 +242,9 @@ WorkManager, mirroring the widget worker:
   asks again instead of reporting success.
 - The pending count is gathered after the save is confirmed, not before. Nothing that can still
   fail belongs between writing the user's words and telling them the words are safe.
-- A periodic request (charging plus unmetered network) for all subscribed projects.
+- A periodic request every 12 hours, while charging and online, for all subscribed projects. Watches
+  charge overnight, so this is in effect a nightly sync; 12 rather than 24 hours so a watch that goes
+  on the charger earlier than the night before does not skip a night.
 - A manual "Sync now" in the app.
 
 ## Read aloud

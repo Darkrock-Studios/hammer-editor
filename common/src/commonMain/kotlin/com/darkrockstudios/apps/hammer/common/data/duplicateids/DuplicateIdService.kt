@@ -8,7 +8,6 @@ import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.projectInject
-import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupService
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntitySynchronizers
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
@@ -33,7 +32,6 @@ class DuplicateIdService(
 	private val projectDef: ProjectDef,
 	private val rationalizer: ProjectFileRationalizer,
 	private val syncJournal: SyncJournal,
-	private val backupService: ProjectBackupService,
 ) : ProjectScoped {
 	override val projectScope = ProjectDefScope(projectDef)
 
@@ -51,7 +49,6 @@ class DuplicateIdService(
 	val unresolved: StateFlow<List<DuplicateIdSet>> = _unresolved
 
 	private val mutex = Mutex()
-	private var backedUp = false
 
 	/**
 	 * Must run before any store loads its files. A scan that fails (say a sync tool removed a file
@@ -131,11 +128,9 @@ class DuplicateIdService(
 		rationalizer.hasDuplicates() || rationalizer.findCrossTypeIds().isNotEmpty()
 	}
 
+	/** Deletes the copies not in [keep]; [ResolveDuplicateIdUseCase] backs the project up first. */
 	suspend fun resolve(set: DuplicateIdSet, keep: Set<HPath>): ResolveResult = withContext(ioDispatcher) {
 		mutex.withLock {
-			val deletesSomething = set.copies.any { it.path !in keep }
-			if (deletesSomething && !ensureBackup()) return@withContext ResolveResult.BackupFailed
-
 			val result = try {
 				rationalizer.resolve(set, keep) { idAllocator.claimNextId() }
 					.forEach { syncJournal.markEntityAsDirty(it) }
@@ -152,12 +147,6 @@ class DuplicateIdService(
 			}
 			result
 		}
-	}
-
-	private suspend fun ensureBackup(): Boolean {
-		if (backedUp || !backupService.supportsBackup()) return true
-		backedUp = backupService.createBackup(projectDef) != null
-		return backedUp
 	}
 
 	private suspend fun reload(kind: DuplicateIdKind) {

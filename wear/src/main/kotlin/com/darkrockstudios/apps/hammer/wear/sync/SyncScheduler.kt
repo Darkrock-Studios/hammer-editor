@@ -37,16 +37,18 @@ class SyncScheduler(
 	private fun schedule() {
 		val constraints = Constraints.Builder()
 			.setRequiredNetworkType(NetworkType.CONNECTED)
-			.setRequiresBatteryNotLow(true)
+			// Watches charge overnight; syncing on battery costs the wearer a day's charge.
+			.setRequiresCharging(true)
 			.build()
 		val request = PeriodicWorkRequestBuilder<AccountSyncWorker>(SYNC_INTERVAL_HOURS, TimeUnit.HOURS)
 			.setConstraints(constraints)
 			.build()
-		workManager.enqueueUniquePeriodicWork(WORK_NAME, ExistingPeriodicWorkPolicy.KEEP, request)
+		// UPDATE so installs scheduled with older constraints pick these up, keeping their timing.
+		workManager.enqueueUniquePeriodicWork(WORK_NAME, ExistingPeriodicWorkPolicy.UPDATE, request)
 	}
 
 	private companion object {
 		const val WORK_NAME = "hammer_account_sync"
-		const val SYNC_INTERVAL_HOURS = 6L
+		const val SYNC_INTERVAL_HOURS = 12L
 	}
 }

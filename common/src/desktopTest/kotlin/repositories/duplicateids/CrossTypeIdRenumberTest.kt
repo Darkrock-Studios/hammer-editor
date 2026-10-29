@@ -123,7 +123,7 @@ class CrossTypeIdRenumberTest : RationalizerTestBase() {
 			}
 		})
 		projectScope = createProjectScope(projectDef)
-		service = DuplicateIdService(projectDef, rationalizer, syncJournal, mockk(relaxed = true))
+		service = DuplicateIdService(projectDef, rationalizer, syncJournal)
 	}
 
 	@AfterEach
