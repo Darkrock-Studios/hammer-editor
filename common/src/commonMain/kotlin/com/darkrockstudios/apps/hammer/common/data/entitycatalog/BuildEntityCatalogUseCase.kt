@@ -4,7 +4,7 @@ import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
-import com.darkrockstudios.apps.hammer.common.data.search.markdownTitleLine
+import com.darkrockstudios.apps.hammer.common.data.search.markdownTitle
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndexService
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TaggedEntityType
 import com.darkrockstudios.apps.hammer.common.data.tagindex.normalizeTagNeedle
@@ -124,14 +124,7 @@ class BuildEntityCatalogUseCase(
 		)
 	}
 
-	private fun titleOf(markdown: String): String? {
-		val title = markdownTitleLine(markdown)
-		return when {
-			title.isEmpty() -> null
-			title.length > TITLE_MAX -> title.take(TITLE_MAX).trimEnd() + "…"
-			else -> title
-		}
-	}
+	private fun titleOf(markdown: String): String? = markdownTitle(markdown, TITLE_MAX).ifEmpty { null }
 
 	private fun normalized(tags: Set<String>): Set<String> =
 		tags.mapNotNullTo(LinkedHashSet()) { tag -> normalizeTagNeedle(tag).takeIf { it.isNotEmpty() } }

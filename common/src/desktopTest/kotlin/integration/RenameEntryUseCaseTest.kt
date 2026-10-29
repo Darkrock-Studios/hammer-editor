@@ -78,7 +78,7 @@ class RenameEntryUseCaseTest : BaseIntegrationTest() {
 			statisticsRepository,
 			referenceIndexRepository,
 			imagesRepository = mockk(relaxed = true),
-			externalFileIo = mockk(relaxed = true),
+			imagesService = mockk(relaxed = true),
 		)
 		notesRepository = NotesRepository(projectDef, idAllocator, syncJournal, NotesDatasource(projectDef, ffs, toml))
 		timeLineRepository = TimeLineRepository(projectDef, idAllocator, TimeLineDatasource(ffs, toml)).initialize()

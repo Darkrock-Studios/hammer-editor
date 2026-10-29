@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry
 
+import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import kotlinx.serialization.Serializable
 import net.peanuuutz.tomlkt.TomlMultilineString
@@ -23,5 +24,17 @@ data class EntryContent(
 		id = id,
 		type = type,
 		name = name
+	)
+
+	/** The sync entity for this entry; its [ApiProjectEntity.hash] is the entry's sync hash. */
+	fun toApiEntity(): ApiProjectEntity.EncyclopediaEntryEntity = ApiProjectEntity.EncyclopediaEntryEntity(
+		id = id,
+		name = name,
+		entryType = type.text,
+		text = text,
+		tags = tags,
+		aliases = aliases,
+		excludeFromDictionary = excludeFromDictionary,
+		images = images,
 	)
 }

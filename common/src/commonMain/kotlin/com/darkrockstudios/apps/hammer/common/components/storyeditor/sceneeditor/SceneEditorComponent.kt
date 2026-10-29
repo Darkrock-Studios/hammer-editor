@@ -10,7 +10,7 @@ import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.ComponentToaster
 import com.darkrockstudios.apps.hammer.common.components.ComponentToasterImpl
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
-import com.darkrockstudios.apps.hammer.common.components.images.ImagePickRequests
+import com.darkrockstudios.apps.hammer.common.components.images.ImagePickSession
 import com.darkrockstudios.apps.hammer.common.components.images.ImagePickTarget
 import com.darkrockstudios.apps.hammer.common.components.images.findPickedImage
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.scenemetadata.SceneMetadataPanel
@@ -30,10 +30,9 @@ import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectDictionaryUseCas
 import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectSpellCheckService
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.Serializable
+import kotlinx.serialization.builtins.serializer
 import org.koin.core.component.inject
 import kotlin.time.Clock
 
@@ -59,9 +58,14 @@ class SceneEditorComponent(
 
 	private val spellCheckService: ProjectSpellCheckService by projectInject()
 	private val projectDictionary: ProjectDictionaryUseCase by projectInject()
-	private val imagePickRequests: ImagePickRequests by projectInject()
 	private val imagesService: ImagesService by projectInject()
-	private var imagePickInProgress = false
+	private val imagePick = ImagePickSession(
+		requests = projectInject(),
+		stateKeeper = stateKeeper,
+		key = IMAGE_PICK_KEY,
+		scope = scope,
+		mainDispatcher = dispatcherMain,
+	)
 
 	private val _state = MutableValue(
 		SceneEditor.State(
@@ -528,41 +532,25 @@ class SceneEditorComponent(
 
 	private fun imagePickTarget() = ImagePickTarget.EditorInsert(sceneDef.id)
 
-	// The gallery comes back with the project root after process death; wait for its answer again.
 	private fun restoreImagePick() {
-		val saved = stateKeeper.consume(IMAGE_PICK_KEY, SavedImagePick.serializer())
-		stateKeeper.register(IMAGE_PICK_KEY, SavedImagePick.serializer()) {
-			SavedImagePick(inProgress = imagePickInProgress, pendingImageId = state.value.pendingImageInsert?.id)
-		}
-		saved?.pendingImageId?.let { id ->
+		val pendingImageId = stateKeeper.consume(PENDING_IMAGE_KEY, Int.serializer())
+		stateKeeper.register(PENDING_IMAGE_KEY, Int.serializer()) { state.value.pendingImageInsert?.id }
+		pendingImageId?.let { id ->
 			scope.launch {
 				val image = findPickedImage(id, imagesService)
 				withContext(dispatcherMain) { _state.update { it.copy(pendingImageInsert = image) } }
 			}
 		}
-		if (saved?.inProgress == true) {
-			val target = imagePickTarget()
-			awaitImagePick { imagePickRequests.awaitResult(target) }
-		}
+		imagePick.restore(imagePickTarget(), ::offerImageForInsert)
 	}
 
 	override fun pickImageForInsert() {
-		if (imagePickInProgress) return
-		val target = imagePickTarget()
-		awaitImagePick { imagePickRequests.pick(target) }
+		imagePick.start(imagePickTarget(), ::offerImageForInsert)
 	}
 
-	private fun awaitImagePick(pick: suspend () -> Int?) {
-		imagePickInProgress = true
-		scope.launch {
-			try {
-				val imageId = pick() ?: return@launch
-				val image = findPickedImage(imageId, imagesService) ?: return@launch
-				withContext(dispatcherMain) { _state.update { it.copy(pendingImageInsert = image) } }
-			} finally {
-				withContext(NonCancellable + dispatcherMain) { imagePickInProgress = false }
-			}
-		}
+	private suspend fun offerImageForInsert(imageId: Int) {
+		val image = findPickedImage(imageId, imagesService) ?: return
+		withContext(dispatcherMain) { _state.update { it.copy(pendingImageInsert = image) } }
 	}
 
 	override fun consumePendingImageInsert() {
@@ -606,8 +594,6 @@ class SceneEditorComponent(
 	companion object {
 		const val VIEW_DRAFTS_MENU_ITEM_ID = "scene-editor-view-drafts"
 		private const val IMAGE_PICK_KEY = "scene_editor_image_pick"
+		private const val PENDING_IMAGE_KEY = "scene_editor_pending_image"
 	}
-
-	@Serializable
-	private data class SavedImagePick(val inProgress: Boolean, val pendingImageId: Int?)
 }

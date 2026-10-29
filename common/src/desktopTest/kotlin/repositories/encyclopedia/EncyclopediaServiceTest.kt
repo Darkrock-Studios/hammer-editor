@@ -8,13 +8,13 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryE
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesRepository
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesService
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndex
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexDatasource
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
-import com.darkrockstudios.apps.hammer.common.fileio.ExternalFileIo
 import createProject
 import getProjectDef
 import io.mockk.*
@@ -41,7 +41,7 @@ class EncyclopediaServiceTest : BaseTest() {
 	lateinit var idAllocator: IdAllocator
 
 	@MockK
-	lateinit var externalFileIo: ExternalFileIo
+	lateinit var imagesService: ImagesService
 
 	@MockK
 	lateinit var syncJournal: SyncJournal
@@ -92,7 +92,7 @@ class EncyclopediaServiceTest : BaseTest() {
 			statisticsRepository = statisticsRepository,
 			referenceIndexRepository = referenceIndexRepository,
 			imagesRepository = imagesRepository,
-			externalFileIo = externalFileIo,
+			imagesService = imagesService,
 		)
 	}
 

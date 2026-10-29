@@ -1,6 +1,5 @@
 package com.darkrockstudios.apps.hammer.common.data.migrator
 
-import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import com.darkrockstudios.apps.hammer.base.image.ImageFormat
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaDatasource
@@ -227,16 +226,7 @@ class EntryImagePromoter(
 		writeProjectSyncData(projectDef, fileSystem, json, updated)
 	}
 
-	private fun hashOf(entry: EntryContent): String = EntityHasher.hashEncyclopediaEntry(
-		id = entry.id,
-		name = entry.name,
-		entryType = entry.type.text,
-		text = entry.text,
-		tags = entry.tags,
-		aliases = entry.aliases,
-		excludeFromDictionary = entry.excludeFromDictionary,
-		images = entry.images,
-	)
+	private fun hashOf(entry: EntryContent): String = entry.toApiEntity().hash()
 
 	/** An id source that cannot be read counts as incomplete instead of failing the promotion. */
 	private class GuardedIdSource(private val source: IdDatasource) : IdDatasource {

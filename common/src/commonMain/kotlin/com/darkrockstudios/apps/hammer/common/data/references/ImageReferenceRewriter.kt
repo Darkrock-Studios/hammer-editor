@@ -15,7 +15,7 @@ import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteCont
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
-import com.darkrockstudios.apps.hammer.common.data.search.markdownTitleLine
+import com.darkrockstudios.apps.hammer.common.data.search.markdownTitle
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
@@ -311,7 +311,7 @@ class ImageReferenceRewriter(private val projectDef: ProjectDef) : ProjectScoped
 
 		override suspend fun items(): List<NoteContent> = notesRepository.loadNotesImperative().map { it.note }
 		override fun id(item: NoteContent) = item.id
-		override suspend fun name(item: NoteContent) = titleOf(item.content)
+		override suspend fun name(item: NoteContent) = markdownTitle(item.content, TITLE_LENGTH)
 		override suspend fun read(item: NoteContent): String = item.content
 
 		override suspend fun rewrite(item: NoteContent, transform: (String) -> String): Boolean =
@@ -327,7 +327,7 @@ class ImageReferenceRewriter(private val projectDef: ProjectDef) : ProjectScoped
 
 		override suspend fun items(): List<TimeLineEvent> = timeLineRepository.loadTimeline().events
 		override fun id(item: TimeLineEvent) = item.id
-		override suspend fun name(item: TimeLineEvent) = titleOf(item.content)
+		override suspend fun name(item: TimeLineEvent) = markdownTitle(item.content, TITLE_LENGTH)
 		override suspend fun read(item: TimeLineEvent): String = item.content
 
 		override suspend fun rewrite(item: TimeLineEvent, transform: (String) -> String): Boolean =
@@ -361,12 +361,6 @@ class ImageReferenceRewriter(private val projectDef: ProjectDef) : ProjectScoped
 		}
 	}
 
-	/** Notes and events have no title: their first line of prose stands in, cut short. */
-	private fun titleOf(markdown: String): String {
-		val line = markdownTitleLine(markdown)
-		return if (line.length <= TITLE_LENGTH) line else line.take(TITLE_LENGTH).trimEnd() + "…"
-	}
-
 	private suspend fun <T> guarded(holder: Holder, fallback: T, block: suspend () -> T): T =
 		guarded(holder.name, fallback, block)
 
@@ -382,6 +376,7 @@ class ImageReferenceRewriter(private val projectDef: ProjectDef) : ProjectScoped
 		}
 
 	private companion object {
+		// Notes and events have no title: their first line of prose stands in, cut short.
 		const val TITLE_LENGTH = 40
 	}
 }

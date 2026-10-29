@@ -9,7 +9,6 @@ import com.darkrockstudios.apps.hammer.common.components.images.ImagePickRequest
 import com.darkrockstudios.apps.hammer.common.components.images.ImagePickTarget
 import com.darkrockstudios.apps.hammer.common.components.projecthome.CoverImage
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectSettingsComponent
-import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImageFileStamp
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesService
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageDef
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -81,12 +80,11 @@ class ProjectSettingsComponentTest : ComponentTest() {
 		every { imagesService.imageChangedFlow } returns MutableSharedFlow()
 		coEvery { imagesService.ensureImagesLoaded() } answers { images.values.toList() }
 		every { imagesService.findImage(any()) } answers { images[firstArg()] }
-		every { imagesService.fileStamp(any()) } returns ImageFileStamp(size = 10, lastModifiedAtMillis = 20)
 		every { imagesService.imagePath(any()) } answers {
 			val def = firstArg<ImageDef>()
 			HPath(path = coverPath(def), name = "${def.id}~${def.name}.png", isAbsolute = true)
 		}
-		every { imagesService.cachedContentHash(any(), any()) } answers { "h${firstArg<ImageDef>().id}" }
+		every { imagesService.cacheVersion(any()) } answers { "h${firstArg<ImageDef>().id}" }
 		val ideasRepository = mockk<IdeasRepository>()
 		every { ideasRepository.ideasFlow } returns ideasFlow
 

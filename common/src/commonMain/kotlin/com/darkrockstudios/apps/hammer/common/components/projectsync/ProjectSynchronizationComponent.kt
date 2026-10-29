@@ -7,6 +7,7 @@ import com.arkivanov.decompose.value.getAndUpdate
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
+import com.darkrockstudios.apps.hammer.base.image.ImageFormat
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
@@ -332,16 +333,7 @@ class ProjectSynchronizationComponent(
 	private suspend fun onEncyclopediaEntryConflict(serverEntity: ApiProjectEntity.EncyclopediaEntryEntity) {
 		val local = encyclopediaService.loadEntry(serverEntity.id).entry
 
-		val localEntity = ApiProjectEntity.EncyclopediaEntryEntity(
-			id = local.id,
-			name = local.name,
-			entryType = local.type.text,
-			text = local.text,
-			tags = local.tags,
-			aliases = local.aliases,
-			excludeFromDictionary = local.excludeFromDictionary,
-			images = local.images,
-		)
+		val localEntity = local.toApiEntity()
 		val localImages = imagesRepository.findImageFiles(local.images + serverEntity.images)
 			.associateBy { it.def.id }
 
@@ -503,7 +495,7 @@ class ProjectSynchronizationComponent(
 	}
 
 	private fun validateImage(resolvedEntity: ApiProjectEntity.ImageEntity): ProjectSynchronization.EntityMergeError.ImageMergeError? {
-		return if (imagesRepository.isValidName(resolvedEntity.name)) {
+		return if (ImageFormat.isValidName(resolvedEntity.name)) {
 			null
 		} else {
 			ProjectSynchronization.EntityMergeError.ImageMergeError(

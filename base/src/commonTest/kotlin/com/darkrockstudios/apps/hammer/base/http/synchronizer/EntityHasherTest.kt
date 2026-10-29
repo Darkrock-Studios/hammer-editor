@@ -3,6 +3,8 @@ package com.darkrockstudios.apps.hammer.base.http.synchronizer
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ApiSceneType
 import korlibs.crypto.encoding.Base64
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
@@ -153,6 +155,26 @@ class EntityHasherTest {
 			EntityHasher.hashImage(id = 3, name = "Portrait", fileExtension = "gif", bytes = bytes),
 			entity.hash(),
 		)
+	}
+
+	@Test
+	fun `ImageEntity hash survives a serialization round trip and its cache is not serialized`() {
+		val bytes = byteArrayOf(0x47, 0x49, 0x46, 0x38, -1, -2, -3)
+		val entity = ApiProjectEntity.ImageEntity(
+			id = 3,
+			name = "Portrait",
+			fileExtension = "gif",
+			base64 = Base64.encode(bytes, url = true),
+		)
+		val expected = entity.hash()
+
+		val json = Json.encodeToString(ApiProjectEntity.ImageEntity.serializer(), entity)
+		val decoded = Json.decodeFromString(ApiProjectEntity.ImageEntity.serializer(), json)
+
+		assertEquals(Json.parseToJsonElement(json).jsonObject.keys, setOf("id", "name", "fileExtension", "base64"))
+		assertEquals(entity, decoded)
+		assertEquals(expected, decoded.hash())
+		assertNotEquals(expected, entity.copy(name = "Other").hash())
 	}
 
 	@Test

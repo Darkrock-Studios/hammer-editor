@@ -183,12 +183,14 @@ class ProjectHomeComponentTest : ComponentTest() {
 		every { imagesService.imageChangedFlow } returns imageChangedFlow
 		coEvery { imagesService.ensureImagesLoaded() } answers { coverDefs.values.toList() }
 		every { imagesService.findImage(any()) } answers { coverDefs[firstArg()] }
-		every { imagesService.fileStamp(any()) } answers { coverStamps[firstArg<ImageDef>().id] }
 		every { imagesService.imagePath(any()) } answers {
 			val def = firstArg<ImageDef>()
 			HPath(path = coverPath(def.id), name = "${def.id}~${def.name}.png", isAbsolute = true)
 		}
-		every { imagesService.cachedContentHash(any(), any()) } answers { coverHashes[firstArg<ImageDef>().id] }
+		every { imagesService.cacheVersion(any()) } answers {
+			val id = firstArg<ImageDef>().id
+			coverStamps[id]?.let { stamp -> coverHashes[id] ?: stamp.cacheToken }
+		}
 
 		pluginFormats = FakeExporterSource()
 		projectPlugins = ProjectPluginsRepository(ProjectPluginsDatasource(FakeFileSystem(), createTomlSerializer()))
@@ -882,7 +884,6 @@ class ProjectHomeComponentTest : ComponentTest() {
 		advanceUntilIdle()
 
 		assertEquals(cover(4, "stamp:120-5"), comp.state.value.coverImage)
-		verify(exactly = 0) { imagesService.imageFile(any()) }
 		verify(exactly = 0) { imagesService.loadImageBytes(any()) }
 
 		coverStamps.remove(4)

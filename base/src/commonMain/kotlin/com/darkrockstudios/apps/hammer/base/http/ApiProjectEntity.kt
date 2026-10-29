@@ -142,12 +142,18 @@ sealed interface ApiProjectEntity {
 		/** URL-safe base64 of the raw image bytes. */
 		val base64: String,
 	) : ApiProjectEntity {
-		override fun hash(): String = EntityHasher.hashImage(
-			id = id,
-			name = name,
-			fileExtension = fileExtension,
-			bytes = Base64.decode(base64, url = true),
-		)
+		// Decoding and hashing the whole image is costly and sync asks more than once. A delegated
+		// property is not serialized and is not part of data class equality.
+		private val cachedHash by lazy {
+			EntityHasher.hashImage(
+				id = id,
+				name = name,
+				fileExtension = fileExtension,
+				bytes = Base64.decode(base64, url = true),
+			)
+		}
+
+		override fun hash(): String = cachedHash
 	}
 
 	enum class Type(val id: Int) {

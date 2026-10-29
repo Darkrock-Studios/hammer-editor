@@ -86,7 +86,8 @@ class ImagesRepository(
 
 	fun getImagePath(def: ImageDef): HPath = imagesDatasource.getImagePath(def)
 
-	fun imageFile(def: ImageDef): ImageFile = ImageFile(def, getImagePath(def), contentHash(def))
+	/** Never reads the image's bytes: [ImageFile.contentHash] is its [cacheVersion]. */
+	fun imageFile(def: ImageDef): ImageFile = ImageFile(def, getImagePath(def), cacheVersion(def))
 
 	/** The files of the images in [ids] that exist in the project, in [ids] order. */
 	suspend fun findImageFiles(ids: List<Int>): List<ImageFile> {
@@ -98,15 +99,9 @@ class ImagesRepository(
 	fun loadImageBytes(def: ImageDef): ByteArray? = imagesDatasource.loadImageBytes(def)
 
 	/**
-	 * The [EntityHasher.hashImage] digest of the image as stored on disk, or null when there is no
-	 * image with [id]. Cached per id until the file's size or modification time changes.
+	 * The [EntityHasher.hashImage] digest of the image as stored on disk, or null when it cannot be
+	 * read. Cached per id until the file's size or modification time changes.
 	 */
-	fun contentHash(id: Int): String? {
-		val def = imagesDatasource.findImage(id) ?: return null
-		return contentHash(def)
-	}
-
-	/** [contentHash] for an image already looked up, saving a directory listing. */
 	fun contentHash(def: ImageDef): String? {
 		val id = def.id
 		val stamp = imagesDatasource.getFileStamp(def)
@@ -133,6 +128,12 @@ class ImagesRepository(
 	 */
 	fun cachedContentHash(def: ImageDef, stamp: ImageFileStamp): String? = hashLock.withLock {
 		hashCache[def.id]?.takeIf { it.def == def && it.stamp == stamp }?.hash
+	}
+
+	/** See [ImagesService.cacheVersion]. */
+	fun cacheVersion(def: ImageDef): String? {
+		val stamp = imagesDatasource.getFileStamp(def) ?: return null
+		return cachedContentHash(def, stamp) ?: stamp.cacheToken
 	}
 
 	private fun invalidateHash(id: Int) {
@@ -216,8 +217,6 @@ class ImagesRepository(
 		onChanged(oldId)
 		_imageChangedFlow.emit(newId)
 	}
-
-	fun isValidName(name: String): Boolean = ImageFormat.isValidName(name)
 
 	private fun validate(name: String, bytes: ByteArray, fileExtension: String): ImageAddResult =
 		when (ImageFormat.validate(name, fileExtension, bytes)) {

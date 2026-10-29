@@ -12,6 +12,7 @@ import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImageAddResult
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesDatasource
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesRepository
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesService
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
@@ -96,7 +97,7 @@ class EncyclopediaRepositoryImageTest : BaseTest() {
 			statisticsRepository = mockk(relaxed = true),
 			referenceIndexRepository = mockk(relaxed = true),
 			imagesRepository = imagesRepository,
-			externalFileIo = externalFileIo,
+			imagesService = ImagesService(imagesRepository, mockk(), externalFileIo),
 		)
 	}
 
@@ -197,7 +198,7 @@ class EncyclopediaRepositoryImageTest : BaseTest() {
 		val image = assertNotNull(imagesRepository.findImage(entry.images.single()))
 		assertEquals("Alice", image.name)
 		assertEquals("png", image.fileExtension)
-		assertEquals(image.id, assertNotNull(service.findPrimaryImage(entry.toDef(projDef))).id)
+		assertEquals(image.id, assertNotNull(service.findPrimaryImage(entry.images)).id)
 		// The entry is written first, so it claims its id before the image does.
 		assertTrue(entry.id < image.id)
 	}
@@ -309,7 +310,7 @@ class EncyclopediaRepositoryImageTest : BaseTest() {
 
 		val image = assertNotNull(outcome.image)
 		assertEquals(listOf(image.id), repo.images())
-		assertEquals(image.id, service.findPrimaryImage(def)?.id)
+		assertEquals(image.id, service.findPrimaryImage(repo.images())?.id)
 	}
 
 	@Test
@@ -353,7 +354,8 @@ class EncyclopediaRepositoryImageTest : BaseTest() {
 
 		assertEquals(listOf(sketch, map), files.map { it.def })
 		assertEquals(imagesRepository.getImagePath(sketch), files.first().path)
-		assertEquals(imagesRepository.contentHash(sketch), files.first().contentHash)
+		// Keyed by the file stamp, as nothing has hashed the image yet: listing reads no bytes.
+		assertEquals(imagesRepository.getFileStamp(sketch)?.cacheToken, files.first().contentHash)
 	}
 
 	@Test
@@ -365,8 +367,8 @@ class EncyclopediaRepositoryImageTest : BaseTest() {
 		repo.addEntryImage(def, 55)
 		repo.addEntryImage(def, created.id)
 
-		assertEquals(created.id, service.findPrimaryImage(def)?.id)
-		assertNull(service.findPrimaryImage(entry2().toDef(projDef)))
+		assertEquals(created.id, service.findPrimaryImage(repo.images())?.id)
+		assertNull(service.findPrimaryImage(listOf(55)))
 	}
 
 	@Test

@@ -47,12 +47,10 @@ class ImageGalleryComponent(
 		val images = defs
 			.sortedBy { it.id }
 			.map { def ->
-				val stamp = imagesService.fileStamp(def)
 				ImageGallery.GalleryImage(
 					def = def,
 					path = imagesService.imagePath(def).path,
-					hash = stamp?.let { imagesService.cachedContentHash(def, it) },
-					stamp = stamp,
+					cacheToken = imagesService.cacheVersion(def) ?: "missing",
 					inUse = usedIds?.contains(def.id),
 				)
 			}

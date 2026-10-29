@@ -159,7 +159,7 @@ internal fun contentWriteOperations(): List<Operation<*, *>> = listOf(
 	operation<EntryImageImportInput, EntryImages>(
 		name = "entry.images.import",
 		description = "Add a new image to the project, named after an encyclopedia entry, and to the end of the " +
-			"entry's images. The extension is jpg, jpeg, png, webp, gif, or svg, and must match the image.",
+			"entry's images. $IMAGE_FORMAT_RULES",
 		access = Access.Write,
 		scope = OperationScope.Content,
 	) { input ->

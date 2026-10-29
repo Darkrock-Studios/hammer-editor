@@ -29,6 +29,7 @@ import testProjectId
 import utils.BaseTest
 import utils.TestImages
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
@@ -147,20 +148,38 @@ class ImagesRepositoryTest : BaseTest() {
 		writeRaw("3~Map.png", TestImages.png(1))
 		val repo = createRepository()
 
-		val first = repo.contentHash(3)
+		val map = ImageDef(3, "Map", "png")
+		val first = repo.contentHash(map)
 		assertEquals(EntityHasher.hashImage(3, "Map", "png", TestImages.png(1)), first)
-		assertEquals(first, repo.contentHash(3), "Cached value is stable")
+		assertEquals(first, repo.contentHash(map), "Cached value is stable")
 
 		// Written behind the repository's back: the changed size invalidates the cached hash.
 		val edited = TestImages.png(1) + byteArrayOf(9)
 		writeRaw("3~Map.png", edited)
-		assertEquals(EntityHasher.hashImage(3, "Map", "png", edited), repo.contentHash(3))
+		assertEquals(EntityHasher.hashImage(3, "Map", "png", edited), repo.contentHash(map))
 
 		// A rename changes the hashed name, so it must not be served from the cache.
-		repo.rename(3, "Atlas")
-		assertEquals(EntityHasher.hashImage(3, "Atlas", "png", edited), repo.contentHash(3))
+		val atlas = assertNotNull(repo.rename(3, "Atlas").image)
+		assertEquals(EntityHasher.hashImage(3, "Atlas", "png", edited), repo.contentHash(atlas))
 
-		assertNull(repo.contentHash(99))
+		assertNull(repo.contentHash(ImageDef(99, "Gone", "png")))
+	}
+
+	@Test
+	fun `cacheVersion is the cached hash, else the file stamp, and never reads the file`() = runTest {
+		writeRaw("3~Map.png", TestImages.png(1))
+		val spied = spyk(datasource)
+		val repo = ImagesRepository(projectDef, idAllocator, syncJournal, spied)
+		val def = ImageDef(3, "Map", "png")
+		val stamp = repo.getFileStamp(def)!!
+
+		assertEquals(stamp.cacheToken, repo.cacheVersion(def))
+		verify(exactly = 0) { spied.loadImageBytes(any()) }
+
+		val hash = repo.contentHash(def)
+		assertEquals(hash, repo.cacheVersion(def))
+		assertEquals(hash, repo.imageFile(def).contentHash)
+		assertNull(repo.cacheVersion(ImageDef(99, "Gone", "png")))
 	}
 
 	@Test

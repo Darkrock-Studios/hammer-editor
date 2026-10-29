@@ -10,7 +10,6 @@ import com.darkrockstudios.apps.hammer.common.components.images.ImagePickTarget
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImageAddOutcome
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImageAddResult
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImageDeleteResult
-import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImageFileStamp
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesDatasource
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesRepository
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesService
@@ -69,8 +68,7 @@ class ImageGalleryComponentTest : ComponentTest() {
 		every { imagesService.imagesFlow } returns imagesFlow
 		coEvery { imagesService.ensureImagesLoaded() } answers { stored }
 		every { imagesService.imagePath(any()) } answers { path(firstArg()) }
-		every { imagesService.fileStamp(any()) } returns STAMP
-		every { imagesService.cachedContentHash(any(), any()) } answers {
+		every { imagesService.cacheVersion(any()) } answers {
 			val def = firstArg<ImageDef>()
 			"h${def.id}-${def.fileExtension}"
 		}
@@ -115,7 +113,6 @@ class ImageGalleryComponentTest : ComponentTest() {
 		assertEquals(listOf(false, false, true), state.visibleImages.map { it.inUse })
 		val map = state.visibleImages.last()
 		assertEquals("/images/3~Map.png", map.path)
-		assertEquals("h3-png", map.hash)
 		assertEquals("h3-png", map.cacheToken)
 	}
 
@@ -195,16 +192,13 @@ class ImageGalleryComponentTest : ComponentTest() {
 		}
 
 	@Test
-	fun `Opening the gallery hashes nothing, keying an unhashed image by its file stamp`() = runTest(mainTestDispatcher) {
-		every { imagesService.cachedContentHash(any(), any()) } returns null
+	fun `An image whose file is missing is keyed as missing`() = runTest(mainTestDispatcher) {
+		every { imagesService.cacheVersion(any()) } returns null
 		val comp = component()
 		context.resume()
 		advanceUntilIdle()
 
-		val image = comp.state.value.images.first()
-		assertNull(image.hash)
-		assertEquals("stamp:${STAMP.size}-${STAMP.lastModifiedAtMillis}", image.cacheToken)
-		verify(exactly = 0) { imagesService.imageFile(any()) }
+		assertEquals("missing", comp.state.value.images.first().cacheToken)
 		verify(exactly = 0) { imagesService.loadImageBytes(any()) }
 	}
 
@@ -224,7 +218,7 @@ class ImageGalleryComponentTest : ComponentTest() {
 		advanceUntilIdle()
 
 		assertEquals(listOf("Coast", "Map"), comp.state.value.visibleImages.map { it.def.name })
-		assertTrue(comp.state.value.images.all { it.hash == null && it.stamp != null })
+		assertTrue(comp.state.value.images.all { it.cacheToken.startsWith("stamp:") })
 		verify(exactly = 0) { datasource.loadImageBytes(any()) }
 	}
 
@@ -353,7 +347,7 @@ class ImageGalleryComponentTest : ComponentTest() {
 
 		val selected = comp.state.value.selected
 		assertEquals(5, selected?.def?.id)
-		assertEquals("h5-jpg", selected?.hash)
+		assertEquals("h5-jpg", selected?.cacheToken)
 	}
 
 	@Test
@@ -481,9 +475,5 @@ class ImageGalleryComponentTest : ComponentTest() {
 
 		assertTrue(results.isEmpty())
 		assertEquals(1, dismissed)
-	}
-
-	private companion object {
-		val STAMP = ImageFileStamp(size = 120, lastModifiedAtMillis = 1_700_000_000_000)
 	}
 }

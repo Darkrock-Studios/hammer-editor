@@ -4,7 +4,6 @@ import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.EntityHash
 import com.darkrockstudios.apps.hammer.base.http.EntityType
-import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
@@ -49,35 +48,10 @@ class ClientEncyclopediaSynchronizer(
 		return getEntity(id) != null
 	}
 
-	override suspend fun getEntityHash(id: Int): String {
-		val entity = createEntityForId(id)
+	override suspend fun getEntityHash(id: Int): String = createEntityForId(id).hash()
 
-		return EntityHasher.hashEncyclopediaEntry(
-			id = entity.id,
-			name = entity.name,
-			entryType = entity.entryType,
-			text = entity.text,
-			tags = entity.tags,
-			aliases = entity.aliases,
-			excludeFromDictionary = entity.excludeFromDictionary,
-			images = entity.images,
-		)
-	}
-
-	override suspend fun createEntityForId(id: Int): ApiProjectEntity.EncyclopediaEntryEntity {
-		val entry = encyclopediaRepository.loadEntry(id).entry
-
-		return ApiProjectEntity.EncyclopediaEntryEntity(
-			id = id,
-			name = entry.name,
-			entryType = entry.type.text,
-			text = entry.text,
-			tags = entry.tags,
-			aliases = entry.aliases,
-			excludeFromDictionary = entry.excludeFromDictionary,
-			images = entry.images,
-		)
-	}
+	override suspend fun createEntityForId(id: Int): ApiProjectEntity.EncyclopediaEntryEntity =
+		encyclopediaRepository.loadEntry(id).entry.toApiEntity()
 
 	override suspend fun reIdEntity(oldId: Int, newId: Int): Set<Int> {
 		encyclopediaRepository.reIdEntry(oldId, newId)

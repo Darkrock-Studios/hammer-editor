@@ -47,10 +47,6 @@ fun coverImageFlow(
 private suspend fun resolveCover(imagesService: ImagesService, id: Int): CoverImage? {
 	imagesService.ensureImagesLoaded()
 	val def = imagesService.findImage(id) ?: return null
-	val stamp = imagesService.fileStamp(def) ?: return null
-	return CoverImage(
-		def = def,
-		path = imagesService.imagePath(def).path,
-		version = imagesService.cachedContentHash(def, stamp) ?: stamp.cacheToken,
-	)
+	val version = imagesService.cacheVersion(def) ?: return null
+	return CoverImage(def = def, path = imagesService.imagePath(def).path, version = version)
 }

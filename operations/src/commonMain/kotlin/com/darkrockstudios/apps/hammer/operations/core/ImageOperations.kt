@@ -49,7 +49,7 @@ internal fun imageOperations(): List<Operation<*, *>> = listOf(
 	},
 	operation<ImageAddInput, ImageSummary>(
 		name = "image.add",
-		description = "Add an image to a project. $FORMAT_RULES",
+		description = "Add an image to a project. $IMAGE_FORMAT_RULES",
 		access = Access.Write,
 		scope = OperationScope.Content,
 	) { input ->
@@ -61,7 +61,7 @@ internal fun imageOperations(): List<Operation<*, *>> = listOf(
 	operation<ImageReplaceInput, ImageSummary>(
 		name = "image.replace",
 		description = "Replace an image's bytes, keeping its id, so everything that uses it shows the new image. " +
-			FORMAT_RULES,
+			IMAGE_FORMAT_RULES,
 		access = Access.Write,
 		scope = OperationScope.Content,
 	) { input ->
@@ -107,7 +107,9 @@ internal fun imageOperations(): List<Operation<*, *>> = listOf(
 	},
 )
 
-private const val FORMAT_RULES = "The extension is jpg, jpeg, png, webp, gif, or svg, and must match the image."
+internal val IMAGE_FORMAT_RULES: String = ImageFormat.ALLOWED_EXTENSIONS.toList().let { extensions ->
+	"The extension is ${extensions.dropLast(1).joinToString(", ")}, or ${extensions.last()}, and must match the image."
+}
 
 internal suspend fun OpenProject.requireImage(id: Int): ImageDef {
 	val images = scope.get<ImagesService>()

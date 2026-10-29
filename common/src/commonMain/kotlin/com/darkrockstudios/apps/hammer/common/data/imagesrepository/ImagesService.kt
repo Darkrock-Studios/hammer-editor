@@ -1,7 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.imagesrepository
 
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageDef
-import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageFile
 import com.darkrockstudios.apps.hammer.common.data.references.ImageReferenceRewriter
 import com.darkrockstudios.apps.hammer.common.data.references.ImageReferrer
 import com.darkrockstudios.apps.hammer.common.data.references.ImageUsages
@@ -45,28 +44,22 @@ class ImagesService(
 
 	fun findImage(id: Int): ImageDef? = imagesRepository.findImage(id)
 
-	/** Reads the whole image to hash it unless its hash is cached; [imagePath] and [cachedContentHash] do not. */
-	fun imageFile(def: ImageDef): ImageFile = imagesRepository.imageFile(def)
-
 	fun imagePath(def: ImageDef): HPath = imagesRepository.getImagePath(def)
 
-	/** The size and modification time of [def]'s file, or null when it is missing. */
-	fun fileStamp(def: ImageDef): ImageFileStamp? = imagesRepository.getFileStamp(def)
-
-	/** [ImageFile.contentHash] when it is already known for the file's [stamp]; never reads the file. */
-	fun cachedContentHash(def: ImageDef, stamp: ImageFileStamp): String? =
-		imagesRepository.cachedContentHash(def, stamp)
+	/**
+	 * Keys image caches for [def] without reading it: the content hash when it is already known for
+	 * the file as it is now, else the file's [ImageFileStamp.cacheToken]. Null when the file is missing.
+	 */
+	fun cacheVersion(def: ImageDef): String? = imagesRepository.cacheVersion(def)
 
 	fun loadImageBytes(def: ImageDef): ByteArray? = imagesRepository.loadImageBytes(def)
 
-	fun isValidName(name: String): Boolean = imagesRepository.isValidName(name)
-
-	/** Adds the file at [path] as a new image named after the file. */
-	suspend fun addFromPath(path: String): ImageAddOutcome {
+	/** Adds the file at [path] as a new image named [name], or after the file when [name] is null. */
+	suspend fun addFromPath(path: String, name: String? = null): ImageAddOutcome {
 		val bytes = readExternal(path) ?: return ImageAddOutcome(ImageAddResult.ReadFailed)
 		val fileName = path.substringAfterLast('/').substringAfterLast('\\')
 		return add(
-			name = ImagesDatasource.validImageName(fileName.substringBeforeLast('.')),
+			name = ImagesDatasource.validImageName(name ?: fileName.substringBeforeLast('.')),
 			fileExtension = extensionOf(fileName),
 			bytes = bytes,
 		)

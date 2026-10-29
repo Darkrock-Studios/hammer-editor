@@ -66,45 +66,12 @@ object ImageReferenceSyntax {
 	fun remove(text: String, imageId: Int): String {
 		if (imageId !in findIds(text)) return text
 
-		val destination = destinationPattern("$imageId")
-		val inline = inlinePattern(destination)
-		val wholeLine = Regex("""^$LINE_PREFIX${inline.pattern}[ \t]*$""")
-		val definition = definitionPattern(destination)
-
-		val lines = splitLines(text)
-		val code = fencedLines(lines)
-
-		val removedLabels = lines.indices
-			.filterNot { code[it] }
-			.mapNotNull { definition.matchEntire(lines[it].content)?.groupValues?.get(1)?.let(::normalizeLabel) }
-			.toSet()
-
-		val dropped = BooleanArray(lines.size)
-		var changed = false
-		for (i in lines.indices) {
-			if (code[i]) continue
-			val content = lines[i].content
-			if (wholeLine.matches(content) || definition.matches(content)) {
-				dropped[i] = true
-				changed = true
-				continue
-			}
-
-			val stripped = replaceReferenceUses(inline.replace(content, ""), removedLabels) { "" }
-			if (stripped != content) {
-				changed = true
-				if (BLANK.matches(stripped) && !BLANK.matches(content)) {
-					dropped[i] = true
-				} else {
-					lines[i] = lines[i].copy(content = stripped)
-				}
-			}
-		}
-		if (!changed) return text
-
-		collapseBlankLines(lines, dropped)
-		return buildString {
-			lines.forEachIndexed { i, line -> if (!dropped[i]) append(line.content).append(line.terminator) }
+		val id = "$imageId"
+		val wholeLine = Regex("""^$LINE_PREFIX${inlinePattern(destinationPattern(id))}[ \t]*$""")
+		return rewriteImages(text, id) { content, inline, labels ->
+			if (wholeLine.matches(content)) return@rewriteImages null
+			val stripped = replaceReferenceUses(inline.replace(content, ""), labels) { "" }
+			if (stripped != content && BLANK.matches(stripped) && !BLANK.matches(content)) null else stripped
 		}
 	}
 
@@ -118,14 +85,31 @@ object ImageReferenceSyntax {
 	fun replaceImages(text: String, replacement: (alt: String) -> String): String {
 		if (findIds(text).isEmpty()) return text
 
-		val destination = destinationPattern("""\d+""")
-		val inline = inlinePattern(destination)
+		return rewriteImages(text, """\d+""") { content, inline, labels ->
+			val inlineReplaced = inline.replace(content) { replacement(it.groupValues[1]) }
+			replaceReferenceUses(inlineReplaced, labels, replacement)
+		}
+	}
+
+	/**
+	 * Drops every reference definition whose destination is an image matching [idPattern], then
+	 * passes each other line outside fenced code to [rewriteLine] with the inline image pattern and the
+	 * normalized labels of the dropped definitions. [rewriteLine] returns the line's new content, or
+	 * null to drop the line.
+	 */
+	private inline fun rewriteImages(
+		text: String,
+		idPattern: String,
+		rewriteLine: (content: String, inline: Regex, labels: Set<String>) -> String?,
+	): String {
+		val destination = destinationPattern(idPattern)
+		val inline = Regex(inlinePattern(destination))
 		val definition = definitionPattern(destination)
 
 		val lines = splitLines(text)
 		val code = fencedLines(lines)
 
-		val replacedLabels = lines.indices
+		val labels = lines.indices
 			.filterNot { code[it] }
 			.mapNotNull { definition.matchEntire(lines[it].content)?.groupValues?.get(1)?.let(::normalizeLabel) }
 			.toSet()
@@ -135,17 +119,13 @@ object ImageReferenceSyntax {
 		for (i in lines.indices) {
 			if (code[i]) continue
 			val content = lines[i].content
-			if (definition.matches(content)) {
+			val rewritten = if (definition.matches(content)) null else rewriteLine(content, inline, labels)
+			if (rewritten == null) {
 				dropped[i] = true
 				changed = true
-				continue
-			}
-
-			val inlineReplaced = inline.replace(content) { replacement(it.groupValues[1]) }
-			val replaced = replaceReferenceUses(inlineReplaced, replacedLabels, replacement)
-			if (replaced != content) {
+			} else if (rewritten != content) {
+				lines[i] = lines[i].copy(content = rewritten)
 				changed = true
-				lines[i] = lines[i].copy(content = replaced)
 			}
 		}
 		if (!changed) return text
@@ -158,8 +138,8 @@ object ImageReferenceSyntax {
 
 	private fun destinationPattern(id: String): String = """(?:<hammer://image/$id>|hammer://image/$id)"""
 
-	private fun inlinePattern(destination: String): Regex =
-		Regex("""!\[($ALT)\]\([ \t]*$destination(?:[ \t]+$TITLE)?[ \t]*\)""")
+	private fun inlinePattern(destination: String): String =
+		"""!\[($ALT)\]\([ \t]*$destination(?:[ \t]+$TITLE)?[ \t]*\)"""
 
 	private fun definitionPattern(destination: String): Regex =
 		Regex("""^$LINE_PREFIX\[($LABEL)\]:[ \t]*$destination(?:[ \t]+$TITLE)?[ \t]*$""")

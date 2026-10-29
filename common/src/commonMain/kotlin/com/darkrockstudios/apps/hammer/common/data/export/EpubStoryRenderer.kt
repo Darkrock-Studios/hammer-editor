@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.data.export
 
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
+import com.darkrockstudios.apps.hammer.base.image.ImageFormat
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectTheme
 import com.darkrockstudios.apps.hammer.common.data.ExportFont
 import com.darkrockstudios.apps.hammer.common.data.ExportOptions
@@ -267,18 +268,11 @@ private fun escapeAttribute(value: String): String = value
 	.replace(">", "&gt;")
 	.replace("\"", "&quot;")
 
-private val webpMediaType = MediaType("image/webp", ".webp")
-
 private fun packageImage(image: ExportImage): PackagedImage? {
 	val extension = image.fileExtension.lowercase()
-	val mediaType = when (extension) {
-		"jpg", "jpeg" -> MediaTypes.JPG
-		"png" -> MediaTypes.PNG
-		"gif" -> MediaTypes.GIF
-		"svg" -> MediaTypes.SVG
-		"webp" -> webpMediaType
-		else -> return null
-	}
+	val mimeType = ImageFormat.mimeType(extension) ?: return null
+	// epub4kmp tells bitmaps apart by the identity of its own constants, so reuse them where one exists.
+	val mediaType = MediaTypes.getMediaTypeByName(mimeType) ?: MediaType(mimeType, ".$extension")
 	val href = "images/${image.id}.$extension"
 	val resource = Resource(id = "img${image.id}", data = image.bytes, href = href)
 		.apply { this.mediaType = mediaType }

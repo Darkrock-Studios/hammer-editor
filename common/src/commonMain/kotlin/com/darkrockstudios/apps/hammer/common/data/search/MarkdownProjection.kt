@@ -40,6 +40,12 @@ fun markdownTitleLine(markdown: String): String {
 	return markdown.lineSequence().firstOrNull { it.isNotBlank() }?.trim().orEmpty()
 }
 
+/** [markdownTitleLine] cut to [maxLength] characters, ending in an ellipsis when it was longer. */
+fun markdownTitle(markdown: String, maxLength: Int): String {
+	val line = markdownTitleLine(markdown)
+	return if (line.length <= maxLength) line else line.take(maxLength).trimEnd() + "…"
+}
+
 /**
  * True when [text] holds a character the projection can remove. Text without one projects to itself,
  * so the scan can be skipped entirely.

@@ -48,7 +48,7 @@ class ClientImageSynchronizer(
 	override suspend fun getEntityHash(id: Int): String? = loadedImage(id)?.let { imagesRepository.contentHash(it) }
 
 	override suspend fun createEntityForId(id: Int): ApiProjectEntity.ImageEntity {
-		val def = imagesRepository.findImage(id) ?: error("Image $id not found")
+		val def = loadedImage(id) ?: error("Image $id not found")
 		val bytes = imagesRepository.loadImageBytes(def) ?: error("Failed to read image $id")
 		return ApiProjectEntity.ImageEntity(
 			id = def.id,

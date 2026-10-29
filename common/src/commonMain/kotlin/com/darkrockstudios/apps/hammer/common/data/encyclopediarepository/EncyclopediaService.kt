@@ -8,11 +8,11 @@ import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImageAddOutc
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImageAddResult
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesDatasource
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesRepository
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesService
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageDef
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageFile
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexRepository
-import com.darkrockstudios.apps.hammer.common.fileio.ExternalFileIo
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.flow.SharedFlow
 import okio.IOException
@@ -30,7 +30,7 @@ class EncyclopediaService(
 	private val statisticsRepository: StatisticsRepository,
 	private val referenceIndexRepository: ReferenceIndexRepository,
 	private val imagesRepository: ImagesRepository,
-	private val externalFileIo: ExternalFileIo,
+	private val imagesService: ImagesService,
 ) {
 
 	// region Writes / orchestration
@@ -122,27 +122,13 @@ class EncyclopediaService(
 
 	/** [importEntryImage] for image bytes already in hand. */
 	suspend fun importEntryImage(entryDef: EntryDef, extension: String, bytes: ByteArray): ImageAddOutcome {
-		val outcome = imagesRepository.create(
-			name = ImagesDatasource.validImageName(entryDef.name),
-			bytes = bytes,
-			fileExtension = extension.removePrefix("."),
-		)
+		val outcome = imagesService.add(ImagesDatasource.validImageName(entryDef.name), extension, bytes)
 		outcome.image?.let { repository.addEntryImage(entryDef, it.id) }
 		return outcome
 	}
 
 	private suspend fun importImage(entryName: String, imagePath: String): ImageAddOutcome {
-		val bytes = try {
-			externalFileIo.readExternalFile(imagePath)
-		} catch (e: IOException) {
-			Napier.w("Failed to read entry image: $imagePath", e)
-			return ImageAddOutcome(ImageAddResult.ReadFailed)
-		}
-		val outcome = imagesRepository.create(
-			name = ImagesDatasource.validImageName(entryName),
-			bytes = bytes,
-			fileExtension = imagePath.substringAfterLast('.', ""),
-		)
+		val outcome = imagesService.addFromPath(imagePath, name = entryName)
 		if (outcome.result != ImageAddResult.Ok) {
 			Napier.w("Ignoring entry image $imagePath: ${outcome.result}")
 		}
@@ -166,17 +152,6 @@ class EncyclopediaService(
 	fun loadEntry(id: Int): EntryContainer = repository.loadEntry(id)
 
 	fun findEntryDef(id: Int): EntryDef? = repository.findEntryDef(id)
-
-	/** The entry's first image that exists in the project, or null; also null when the entry cannot be read. */
-	suspend fun findPrimaryImage(entryDef: EntryDef): ImageDef? {
-		val images = try {
-			repository.loadEntry(entryDef).entry.images
-		} catch (e: EntryLoadError) {
-			Napier.w("Failed to read entry ${entryDef.id} for its image", e)
-			return null
-		}
-		return findPrimaryImage(images)
-	}
 
 	/** The first of [imageIds] that exists in the project, or null. */
 	suspend fun findPrimaryImage(imageIds: List<Int>): ImageDef? {
