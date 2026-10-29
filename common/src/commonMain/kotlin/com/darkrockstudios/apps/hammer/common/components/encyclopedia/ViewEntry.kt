@@ -9,7 +9,6 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryR
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImageAddResult
-import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageDef
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagSuggesting
 
 interface ViewEntry : TagSuggesting {
@@ -68,9 +67,6 @@ interface ViewEntry : TagSuggesting {
 
 	/** Opens the image gallery to pick an image already in the project, and adds it after the entry's other images. */
 	fun addImageFromLibrary()
-
-	/** Opens the gallery to pick an image to embed in the text; null when the pick was cancelled. */
-	suspend fun pickImageForText(): ImageDef?
 
 	/** Detaches image [id] from the entry; the Image stays in the project. */
 	suspend fun removeImage(id: Int): Boolean

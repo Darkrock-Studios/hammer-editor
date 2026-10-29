@@ -20,10 +20,6 @@ sealed class ImagePickTarget {
 	@Serializable
 	data class EntryImage(val entryId: Int) : ImagePickTarget()
 
-	/** An image to embed in an entry's text. */
-	@Serializable
-	data class EntryText(val entryId: Int) : ImagePickTarget()
-
 	/** An image to embed in a note's text. */
 	@Serializable
 	data class NoteImage(val noteId: Int) : ImagePickTarget()

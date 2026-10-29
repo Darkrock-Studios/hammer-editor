@@ -29,7 +29,6 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImageAddResult
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesService
-import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageDef
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.references.BackfillEntryReferencesUseCase
 import com.darkrockstudios.apps.hammer.common.data.references.CleanupReferencesOnEntryDeleteUseCase
@@ -162,9 +161,6 @@ class ViewEntryComponent(
 		val target = libraryPickTarget()
 		awaitLibraryPick { imagePickRequests.pick(target) }
 	}
-
-	override suspend fun pickImageForText(): ImageDef? =
-		imagePickRequests.pickImage(ImagePickTarget.EntryText(state.value.entryDef.id), imagesService)
 
 	private fun awaitLibraryPick(pick: suspend () -> Int?) {
 		_state.getAndUpdate { it.copy(pendingLibraryPick = true) }

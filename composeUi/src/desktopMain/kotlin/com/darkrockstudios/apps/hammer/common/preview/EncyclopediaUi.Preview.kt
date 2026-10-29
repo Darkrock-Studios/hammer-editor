@@ -37,7 +37,6 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImageAddResult
-import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageDef
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndex
 import com.darkrockstudios.apps.hammer.common.encyclopedia.CreateEntryUi
 import com.darkrockstudios.apps.hammer.common.encyclopedia.EncyclopediaEntryItem
@@ -323,7 +322,6 @@ private class FakeViewEntryComponent(initial: ViewEntry.State) : ViewEntry {
 
 	override suspend fun importImage(path: String) = ImageAddResult.Ok
 	override fun addImageFromLibrary() {}
-	override suspend fun pickImageForText(): ImageDef? = null
 	override suspend fun removeImage(id: Int) = true
 	override suspend fun setPrimaryImage(id: Int) = true
 	override fun showImageAt(index: Int) {}
