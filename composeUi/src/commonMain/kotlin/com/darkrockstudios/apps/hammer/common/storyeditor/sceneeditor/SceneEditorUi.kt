@@ -54,6 +54,7 @@ import com.darkrockstudios.apps.hammer.common.compose.LocalImageProvider
 import com.darkrockstudios.apps.hammer.common.compose.LocalRichTextStyles
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.markdown.HammerMarkdownConfiguration
+import com.darkrockstudios.apps.hammer.common.compose.markdown.HammerImageBlockSize
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.insertImageBlock
 import com.darkrockstudios.apps.hammer.common.compose.plugin.rememberPluginTextDiagnostics
 import com.darkrockstudios.apps.hammer.common.compose.rememberDefaultDispatcher
@@ -263,6 +264,7 @@ fun SceneEditorUi(
 							textStyle = LocalEditorTextStyle.current.withParagraphIndent(),
 							focusedBorderColor = Color.Transparent,
 							unfocusedBorderColor = Color.Transparent,
+							imageSize = HammerImageBlockSize,
 						),
 						modifier = Modifier
 							.testTag(SCENE_EDITOR_TEXT_TAG)

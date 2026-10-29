@@ -18,6 +18,7 @@ import com.darkrockstudios.apps.hammer.common.compose.LocalEditorTextStyle
 import com.darkrockstudios.apps.hammer.common.compose.LocalImageProvider
 import com.darkrockstudios.apps.hammer.common.compose.LocalRichTextStyles
 import com.darkrockstudios.apps.hammer.common.compose.markdown.HammerMarkdownConfiguration
+import com.darkrockstudios.apps.hammer.common.compose.markdown.HammerImageBlockSize
 import com.darkrockstudios.apps.hammer.common.compose.markdown.updateRichTextStyles
 import com.darkrockstudios.apps.hammer.common.compose.rememberKoinInject
 import com.darkrockstudios.apps.hammer.common.compose.withParagraphIndent
@@ -128,7 +129,8 @@ fun MarkdownEditField(
 			enabled = enabled,
 			autoFocus = autoFocus,
 			style = rememberTextEditorStyle(
-				textStyle = LocalEditorTextStyle.current.withParagraphIndent()
+				textStyle = LocalEditorTextStyle.current.withParagraphIndent(),
+				imageSize = HammerImageBlockSize,
 			),
 			contentPadding = contentPadding,
 			lineLimits = lineLimits,

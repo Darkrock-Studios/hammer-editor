@@ -111,7 +111,7 @@ korge-core = "6.0.0"
 bouncycastle = "1.86"
 kotlinx-io-okio = "0.9.1"
 
-compose-texteditor = "3.1.0"
+compose-texteditor = "3.2.0-SNAPSHOT"
 kotlin-multiplatform-diff = "1.4.0"
 platform-spellcheckerkt = "1.4.0"
 nucleus = "2.5.18"

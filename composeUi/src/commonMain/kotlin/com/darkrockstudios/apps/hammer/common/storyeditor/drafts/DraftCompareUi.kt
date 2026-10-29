@@ -24,6 +24,7 @@ import com.darkrockstudios.apps.hammer.common.components.storyeditor.drafts.Draf
 import com.darkrockstudios.apps.hammer.common.compose.*
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
 import com.darkrockstudios.apps.hammer.common.compose.markdown.HammerMarkdownConfiguration
+import com.darkrockstudios.apps.hammer.common.compose.markdown.HammerImageBlockSize
 import com.darkrockstudios.apps.hammer.common.compose.markdown.updateRichTextStyles
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
@@ -256,7 +257,7 @@ private fun DraftPane(
 			TextEditor(
 				modifier = Modifier.fillMaxSize(),
 				state = textEditorState,
-				style = rememberTextEditorStyle(textStyle = LocalEditorTextStyle.current),
+				style = rememberTextEditorStyle(textStyle = LocalEditorTextStyle.current, imageSize = HammerImageBlockSize),
 				enabled = false,
 			)
 		}
@@ -329,7 +330,7 @@ private fun CurrentPane(
 			TextEditor(
 				modifier = Modifier.fillMaxSize(),
 				state = textEditorState,
-				style = rememberTextEditorStyle(textStyle = LocalEditorTextStyle.current),
+				style = rememberTextEditorStyle(textStyle = LocalEditorTextStyle.current, imageSize = HammerImageBlockSize),
 			)
 		}
 	}

@@ -16,6 +16,7 @@ import com.darkrockstudios.apps.hammer.common.compose.LocalEditorTextStyle
 import com.darkrockstudios.apps.hammer.common.compose.LocalImageProvider
 import com.darkrockstudios.apps.hammer.common.compose.LocalRichTextStyles
 import com.darkrockstudios.apps.hammer.common.compose.markdown.HammerMarkdownConfiguration
+import com.darkrockstudios.apps.hammer.common.compose.markdown.HammerImageBlockSize
 import com.darkrockstudios.apps.hammer.common.compose.withParagraphIndent
 import com.darkrockstudios.texteditor.RichTextView
 import com.darkrockstudios.texteditor.markdown.withMarkdown
@@ -69,7 +70,8 @@ fun MarkdownView(
 		contentPadding = contentPadding,
 		isSelectable = isSelectable,
 		style = rememberTextEditorStyle(
-			textStyle = LocalEditorTextStyle.current.let { if (paragraphIndent) it.withParagraphIndent() else it }
+			textStyle = LocalEditorTextStyle.current.let { if (paragraphIndent) it.withParagraphIndent() else it },
+			imageSize = HammerImageBlockSize,
 		)
 	)
 }

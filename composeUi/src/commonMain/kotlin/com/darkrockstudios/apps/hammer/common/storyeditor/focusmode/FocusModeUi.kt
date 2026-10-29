@@ -43,6 +43,7 @@ import com.darkrockstudios.apps.hammer.common.compose.LocalRichTextStyles
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.findShortcutModifier
 import com.darkrockstudios.apps.hammer.common.compose.markdown.HammerMarkdownConfiguration
+import com.darkrockstudios.apps.hammer.common.compose.markdown.HammerImageBlockSize
 import com.darkrockstudios.apps.hammer.common.compose.rememberDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.markdown.updateRichTextStyles
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdResizeHandle
@@ -213,6 +214,7 @@ fun FocusModeUi(component: FocusMode) {
 						style = rememberTextEditorStyle(
 							textStyle = LocalEditorTextStyle.current.withParagraphIndent(),
 							focusedBorderColor = Color.Transparent,
+							imageSize = HammerImageBlockSize,
 						),
 						modifier = Modifier
 							.background(MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp))
