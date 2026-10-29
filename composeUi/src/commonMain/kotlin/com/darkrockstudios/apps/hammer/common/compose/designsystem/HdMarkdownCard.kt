@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
@@ -24,6 +23,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownView
+import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.rememberMarkdownPreview
 
 /**
  * The text-blob card of a browse grid (Notes, Story Ideas): mono meta masthead over a hairline
@@ -75,10 +75,7 @@ fun HdMarkdownCard(
 			.then(surfaceModifier)
 			.clickable(onClick = onClick),
 	) {
-		// Editor-saved text commonly ends with a trailing `\n`; the markdown pipeline splits on
-		// newlines, so a trailing newline becomes an empty trailing line and shows up as a blank
-		// gap at the bottom of the card. Trim defensively.
-		val previewMarkdown = remember(markdown) { markdown.trim() }
+		val previewMarkdown = rememberMarkdownPreview(markdown)
 
 		Row(
 			modifier = Modifier

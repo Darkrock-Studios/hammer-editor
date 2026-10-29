@@ -1,5 +1,7 @@
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -34,6 +36,25 @@ class StoryIdeasUiTest : BaseTest() {
 
 		compose.onNodeWithText("The Courier").assertIsDisplayed()
 		compose.onNodeWithText("A courier of dreams").assertIsDisplayed()
+	}
+
+	@Test
+	fun `Idea cards show an image as its alt text`() {
+		val component = FakeStoryIdeas(
+			listOf(
+				storyIdea(
+					"00000000-0000-0000-0000-000000000001",
+					"A grin\n\n![Cheshire Cat](hammer://image/3)\n",
+				),
+			)
+		)
+
+		compose.setContent {
+			StoryIdeasUi(component = component, rootSnackbar = rememberRootSnackbarHostState())
+		}
+
+		compose.onNodeWithText("A grin\n\n*Cheshire Cat*").assertIsDisplayed()
+		compose.onAllNodesWithText("hammer://", substring = true).assertCountEquals(0)
 	}
 
 	@Test

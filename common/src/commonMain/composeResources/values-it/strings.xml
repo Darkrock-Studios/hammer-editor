@@ -36,6 +36,7 @@
 	<string name="markdown_format_bar_numbered_list">Elenco numerato</string>
 	<string name="markdown_format_bar_horizontal_rule">Linea orizzontale</string>
 	<string name="markdown_format_bar_image">Inserisci immagine</string>
+	<string name="markdown_preview_image">Immagine</string>
 	<string name="markdown_format_bar_undo">Annulla</string>
 	<string name="markdown_format_bar_redo">Ripeti</string>
 	<string name="form_dialog_keyboard_hint">ESC annulla</string>

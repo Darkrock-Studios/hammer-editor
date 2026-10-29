@@ -179,6 +179,64 @@ class ImageReferenceSyntaxTest {
 
 	// endregion
 
+	// region replaceImages
+
+	private fun italicAlt(alt: String) = "*$alt*"
+
+	@Test
+	fun `replaceImages replaces an image on its own line`() {
+		assertEquals(
+			"Before\n\n*Cheshire Cat*\n\nAfter",
+			ImageReferenceSyntax.replaceImages(
+				"Before\n\n![Cheshire Cat](hammer://image/3)\n\nAfter",
+				::italicAlt,
+			),
+		)
+	}
+
+	@Test
+	fun `replaceImages replaces an image inside prose and keeps line prefixes`() {
+		assertEquals(
+			"A *cat* grins, and > *b*",
+			ImageReferenceSyntax.replaceImages(
+				"A ![cat](<hammer://image/3> \"title\") grins, and > ![b](hammer://image/12)",
+				::italicAlt,
+			),
+		)
+		assertEquals("> *a*\n", ImageReferenceSyntax.replaceImages("> ![a](hammer://image/1)\n", ::italicAlt))
+	}
+
+	@Test
+	fun `replaceImages passes the raw alt text, empty included`() {
+		assertEquals(
+			"[]|[a \\] [b]]",
+			ImageReferenceSyntax.replaceImages(
+				"![](hammer://image/1)|![a \\] [b]](hammer://image/2)",
+			) { "[$it]" },
+		)
+	}
+
+	@Test
+	fun `replaceImages replaces reference uses and drops their definitions`() {
+		assertEquals(
+			"See *Map* here.\n",
+			ImageReferenceSyntax.replaceImages(
+				"See ![Map][m] here.\n\n[m]: hammer://image/4\n",
+				::italicAlt,
+			),
+		)
+	}
+
+	@Test
+	fun `replaceImages leaves other images, links and fenced code alone`() {
+		val text = "![web](https://example.com/a.png) [link](hammer://image/5)\n```\n![x](hammer://image/5)\n```\n"
+		assertSame(text, ImageReferenceSyntax.replaceImages(text, ::italicAlt))
+		val plain = "No images here."
+		assertSame(plain, ImageReferenceSyntax.replaceImages(plain, ::italicAlt))
+	}
+
+	// endregion
+
 	@Test
 	fun `parseId reads the id of a hammer image source`() {
 		assertEquals(3, ImageReferenceSyntax.parseId("hammer://image/3"))

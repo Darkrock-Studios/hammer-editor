@@ -66,10 +66,10 @@ object ImageReferenceSyntax {
 	fun remove(text: String, imageId: Int): String {
 		if (imageId !in findIds(text)) return text
 
-		val destination = """(?:<hammer://image/$imageId>|hammer://image/$imageId)"""
-		val inline = Regex("""!\[$ALT\]\([ \t]*$destination(?:[ \t]+$TITLE)?[ \t]*\)""")
+		val destination = destinationPattern("$imageId")
+		val inline = inlinePattern(destination)
 		val wholeLine = Regex("""^$LINE_PREFIX${inline.pattern}[ \t]*$""")
-		val definition = Regex("""^$LINE_PREFIX\[($LABEL)\]:[ \t]*$destination(?:[ \t]+$TITLE)?[ \t]*$""")
+		val definition = definitionPattern(destination)
 
 		val lines = splitLines(text)
 		val code = fencedLines(lines)
@@ -90,7 +90,7 @@ object ImageReferenceSyntax {
 				continue
 			}
 
-			val stripped = stripReferenceUses(inline.replace(content, ""), removedLabels)
+			val stripped = replaceReferenceUses(inline.replace(content, ""), removedLabels) { "" }
 			if (stripped != content) {
 				changed = true
 				if (BLANK.matches(stripped) && !BLANK.matches(content)) {
@@ -108,11 +108,71 @@ object ImageReferenceSyntax {
 		}
 	}
 
-	private fun stripReferenceUses(content: String, removedLabels: Set<String>): String {
-		if (removedLabels.isEmpty()) return content
+	/**
+	 * Replaces every image that shows a project image with what [replacement] makes of its alt
+	 * text, whether the image stands on a line of its own or sits inside prose, and whether it is
+	 * inline (`![alt](hammer://image/3)`) or uses a reference (`![alt][label]`). A reference
+	 * definition pointing at a project image is dropped, as [remove] drops one. Fenced code is left
+	 * alone.
+	 */
+	fun replaceImages(text: String, replacement: (alt: String) -> String): String {
+		if (findIds(text).isEmpty()) return text
+
+		val destination = destinationPattern("""\d+""")
+		val inline = inlinePattern(destination)
+		val definition = definitionPattern(destination)
+
+		val lines = splitLines(text)
+		val code = fencedLines(lines)
+
+		val replacedLabels = lines.indices
+			.filterNot { code[it] }
+			.mapNotNull { definition.matchEntire(lines[it].content)?.groupValues?.get(1)?.let(::normalizeLabel) }
+			.toSet()
+
+		val dropped = BooleanArray(lines.size)
+		var changed = false
+		for (i in lines.indices) {
+			if (code[i]) continue
+			val content = lines[i].content
+			if (definition.matches(content)) {
+				dropped[i] = true
+				changed = true
+				continue
+			}
+
+			val inlineReplaced = inline.replace(content) { replacement(it.groupValues[1]) }
+			val replaced = replaceReferenceUses(inlineReplaced, replacedLabels, replacement)
+			if (replaced != content) {
+				changed = true
+				lines[i] = lines[i].copy(content = replaced)
+			}
+		}
+		if (!changed) return text
+
+		collapseBlankLines(lines, dropped)
+		return buildString {
+			lines.forEachIndexed { i, line -> if (!dropped[i]) append(line.content).append(line.terminator) }
+		}
+	}
+
+	private fun destinationPattern(id: String): String = """(?:<hammer://image/$id>|hammer://image/$id)"""
+
+	private fun inlinePattern(destination: String): Regex =
+		Regex("""!\[($ALT)\]\([ \t]*$destination(?:[ \t]+$TITLE)?[ \t]*\)""")
+
+	private fun definitionPattern(destination: String): Regex =
+		Regex("""^$LINE_PREFIX\[($LABEL)\]:[ \t]*$destination(?:[ \t]+$TITLE)?[ \t]*$""")
+
+	private fun replaceReferenceUses(
+		content: String,
+		labels: Set<String>,
+		replacement: (alt: String) -> String,
+	): String {
+		if (labels.isEmpty()) return content
 		return REFERENCE_USE.replace(content) { match ->
 			val label = match.groups[2]?.value ?: match.groupValues[1]
-			if (normalizeLabel(label) in removedLabels) "" else match.value
+			if (normalizeLabel(label) in labels) replacement(match.groupValues[1]) else match.value
 		}
 	}
 

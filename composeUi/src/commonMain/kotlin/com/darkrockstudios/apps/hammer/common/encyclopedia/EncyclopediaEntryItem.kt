@@ -62,6 +62,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagChip
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTypeStamp
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTypographicHero
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownView
+import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.rememberMarkdownPreview
 import com.darkrockstudios.apps.hammer.common.compose.rememberIoDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.rememberMainDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
@@ -302,7 +303,7 @@ internal fun EncyclopediaEntryItem(
 						CircularProgressIndicator()
 					}
 				} else if (content != null) {
-					val previewMarkdown = remember(content.text) { content.text.trim() }
+					val previewMarkdown = rememberMarkdownPreview(content.text)
 					MarkdownView(
 						markdown = previewMarkdown,
 						modifier = Modifier

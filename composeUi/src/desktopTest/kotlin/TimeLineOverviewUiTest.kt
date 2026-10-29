@@ -308,4 +308,41 @@ class TimeLineOverviewUiTest : BaseTest() {
 				text.length <= EVENT_CARD_MAX_CONTENT_LENGTH
 			}
 	}
+
+	@OptIn(ExperimentalSharedTransitionApi::class)
+	@Test
+	fun `Event Card shows an image as its alt text`() {
+		val content = "x ".repeat(100) + "\n\n![Cheshire Cat](hammer://image/3)\n\n" + "tail ".repeat(20)
+		val event = TimeLineEvent(
+			id = 0,
+			order = 0,
+			date = null,
+			content = content
+		)
+
+		compose.setContent {
+			SharedTransitionLayout {
+				AnimatedVisibility(visible = true) {
+					EventCard(
+						event = event,
+						isLast = true,
+						activeTags = emptySet(),
+						onTagClick = {},
+						onClick = {},
+						sharedTransitionScope = this@SharedTransitionLayout,
+						animatedVisibilityScope = this@AnimatedVisibility,
+					)
+				}
+			}
+		}
+
+		compose
+			.onNodeWithTag(EVENT_CARD_CONTENT_TAG, useUnmergedTree = true)
+			.assertIsDisplayed()
+			.assertTextSatisfies { text ->
+				text.length <= EVENT_CARD_MAX_CONTENT_LENGTH &&
+					text.contains("*Cheshire Cat*") &&
+					!text.contains("hammer://")
+			}
+	}
 }
