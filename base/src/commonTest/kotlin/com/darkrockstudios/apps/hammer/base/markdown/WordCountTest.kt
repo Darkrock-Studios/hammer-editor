@@ -91,12 +91,66 @@ class WordCountTest {
 	fun `an image inside a line leaves the words around it`() {
 		assertEquals(3, countWords("one ![two three](https://example.com/a(b).png) four five"))
 		assertEquals(2, countWords("see ![a [nested] alt](<hammer://image/3>) here"))
+		assertEquals(2, countWords("Figure: ![Figure 12, plate 4](hammer://image/42) above"))
+	}
+
+	@Test
+	fun `an image ends the word before it`() {
+		assertEquals(2, countWords("cat![Cat](hammer://image/3)s"))
 	}
 
 	@Test
 	fun `text that only looks like an image still counts`() {
-		assertEquals(2, countWords("\\![not](an image)"))
-		assertEquals(3, countWords("![open alt](no close"))
-		assertEquals(2, countWords("![split\nalt](hammer://image/3)"))
+		assertEquals(3, countWords("\\![not](an image)"))
+		assertEquals(4, countWords("![open alt](no close"))
+		assertEquals(5, countWords("![split\nalt](hammer://image/3)"))
+	}
+
+	@Test
+	fun `a hyphen separates words`() {
+		assertEquals(2, countWords("well-known"))
+	}
+
+	@Test
+	fun `numbers keep their separators`() {
+		assertEquals(1, countWords("3.14"))
+		assertEquals(1, countWords("1,000"))
+	}
+
+	@Test
+	fun `abbreviations and apostrophes stay whole`() {
+		assertEquals(1, countWords("U.S.A."))
+		assertEquals(1, countWords("rock’n’roll"))
+	}
+
+	@Test
+	fun `underscores join words but are not words`() {
+		assertEquals(1, countWords("hello_world"))
+		assertEquals(0, countWords("___"))
+	}
+
+	@Test
+	fun `a katakana run is one word`() {
+		assertEquals(1, countWords("コーヒー"))
+	}
+
+	@Test
+	fun `each ideograph is a word`() {
+		assertEquals(3, countWords("日本語"))
+	}
+
+	@Test
+	fun `each Thai letter is a word without a dictionary`() {
+		assertEquals(7, countWords("ภาษาไทย"))
+	}
+
+	@Test
+	fun `emoji are not words`() {
+		assertEquals(0, countWords("🐈 ❤️ 🇺🇸"))
+	}
+
+	@Test
+	fun `a lone combining mark is not a word`() {
+		assertEquals(1, countWords("a \u0301"))
 	}
 }

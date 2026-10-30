@@ -55,6 +55,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.base.markdown.countWords
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.BrowseEntries
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.images.rememberImageRequest
@@ -382,7 +383,7 @@ internal fun EncyclopediaEntryItem(
 				verticalAlignment = Alignment.CenterVertically,
 				horizontalArrangement = Arrangement.SpaceBetween,
 			) {
-				val wordCount = entryContent?.text?.let { wordCount(it) } ?: 0
+				val wordCount = entryContent?.text?.let { countWords(it) } ?: 0
 				val tagCount = tags.size
 				HdMonoLabel(
 					text = formatEntryMeta(wordCount = wordCount, tagCount = tagCount),
@@ -411,11 +412,6 @@ fun GradientDivider(modifier: Modifier = Modifier) {
 				),
 			),
 	)
-}
-
-private fun wordCount(text: String): Int {
-	if (text.isBlank()) return 0
-	return text.trim().split(Regex("\\s+")).size
 }
 
 private fun formatEntryMeta(wordCount: Int, tagCount: Int): String {

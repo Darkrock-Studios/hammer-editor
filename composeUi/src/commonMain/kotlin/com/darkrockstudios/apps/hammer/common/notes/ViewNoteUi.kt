@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
+import com.darkrockstudios.apps.hammer.base.markdown.countWords
 import com.darkrockstudios.apps.hammer.common.TextEditorDefaults
 import com.darkrockstudios.apps.hammer.common.components.notes.ViewNote
 import com.darkrockstudios.apps.hammer.common.compose.*
@@ -422,7 +423,7 @@ private fun EditBody(
 @Composable
 private fun ViewFolioFooter(note: NoteContent?, noteText: String) {
 	val words = remember(noteText) {
-		noteText.trim().split(Regex("\\s+")).count { it.isNotBlank() }
+		countWords(noteText)
 	}
 	HorizontalDivider(
 		thickness = Dp.Hairline,
@@ -458,7 +459,7 @@ private fun ViewFolioFooter(note: NoteContent?, noteText: String) {
 @Composable
 private fun EditStatusFooter(text: String) {
 	val words = remember(text) {
-		text.trim().split(Regex("\\s+")).count { it.isNotBlank() }
+		countWords(text)
 	}
 	val chars = text.length
 
