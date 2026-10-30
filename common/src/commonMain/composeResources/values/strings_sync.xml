@@ -44,7 +44,7 @@
 	<string name="project_info_word_goal_effective_label">Effective</string>
 	<string name="project_info_word_goal_effective_unit">W / day</string>
 	<string name="project_info_cover_section_title">Book cover</string>
-	<string name="project_info_cover_caption">Shown on the project home and in the project list. Pick any image from the gallery.</string>
+	<string name="project_info_cover_caption">Shown on the project home, in the project list and on the web reader, and opens every export. Pick any image from the gallery.</string>
 	<string name="project_info_cover_pick">Pick</string>
 	<string name="project_info_cover_clear">Clear</string>
 	<string name="project_info_cover_none">No cover</string>

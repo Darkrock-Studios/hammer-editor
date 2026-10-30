@@ -2,7 +2,7 @@ package com.darkrockstudios.apps.hammer.common.compose.designsystem
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -11,17 +11,22 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import kotlin.math.sqrt
 
 /**
  * "No image" placeholder: 45° hatched stripes + `[ENGRAVING · NAME]`.
  * Uses `outlineVariant` so it tints with any surface tone.
+ *
+ * [compact] suits narrow frames: it drops the `ENGRAVING ·` prefix and centres `[NAME]`,
+ * wrapping only between words.
  */
 @Composable
 fun HdEngravingPlaceholder(
 	label: String,
 	modifier: Modifier = Modifier,
+	compact: Boolean = false,
 ) {
 	val stripeColor = MaterialTheme.colorScheme.outlineVariant
 	val backgroundColor = MaterialTheme.colorScheme.surfaceVariant
@@ -50,9 +55,18 @@ fun HdEngravingPlaceholder(
 			},
 		contentAlignment = Alignment.Center,
 	) {
-		HdMonoLabel(
-			text = "[ENGRAVING · $label]",
-			color = MaterialTheme.colorScheme.outline,
-		)
+		if (compact) {
+			HdMonoLabel(
+				text = "[$label]",
+				color = MaterialTheme.colorScheme.outline,
+				textAlign = TextAlign.Center,
+				modifier = Modifier.padding(horizontal = 8.dp),
+			)
+		} else {
+			HdMonoLabel(
+				text = "[ENGRAVING · $label]",
+				color = MaterialTheme.colorScheme.outline,
+			)
+		}
 	}
 }

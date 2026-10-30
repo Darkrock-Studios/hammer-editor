@@ -81,7 +81,7 @@ internal fun CoverImageSection(
 				} else {
 					Res.string.project_info_cover_missing.get()
 				}
-				HdEngravingPlaceholder(label = label.uppercase(), modifier = frame)
+				HdEngravingPlaceholder(label = label.uppercase(), modifier = frame, compact = true)
 			}
 
 			Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
