@@ -7,6 +7,9 @@
 			<a href="/dashboard" class="back-link">
 				<i class="fas fa-arrow-left"></i> {{msg.story_back_to_dashboard}}
 			</a>
+			{{#coverImageUrl}}
+				<img class="story-cover" src="{{coverImageUrl}}" alt="">
+			{{/coverImageUrl}}
 			<h1 class="story-title">{{projectName}}</h1>
 		</div>
 

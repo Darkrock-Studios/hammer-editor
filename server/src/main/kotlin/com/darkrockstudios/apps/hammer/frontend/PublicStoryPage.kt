@@ -134,7 +134,17 @@ fun Route.publicStoryPage(
 						model["kudosFragmentUrl"] = "/a/$penNameForUrl/$projectNameForUrl/kudos"
 					}
 
-					// Resolved once and reused by the render below, so the ETag costs no extra queries.
+					suspend fun signedImageUrl(imageId: Int): String {
+						val signature = storyImageSigner.sign(resolved.projectUuid, imageId)
+						return "/a/$penNameForUrl/$projectNameForUrl/image/$imageId?s=$signature$passwordParam"
+					}
+
+					// In the shell, so the validator changes when the cover is set or cleared, and when
+					// its image reaches the server or leaves it.
+					storyCoverImageId(serverProjectDataRepository, storyImageService, resolved.userId, projectDef)
+						?.let { model["coverImageUrl"] = signedImageUrl(it) }
+
+					// Resolved once and reused by the render below.
 					// A scene-limited share prepares only its scene subset; if every selected scene
 					// is gone this returns null and the link 404s like a nonexistent share.
 					val prepared = storyRendererService.prepareExport(
@@ -143,9 +153,8 @@ fun Route.publicStoryPage(
 						resolved.sceneIds,
 					)
 
-					// Stands in for everything project-data carries (notably the declared story
-					// language rendered below): a hash-only lookup, so the revalidation path never
-					// transfers or parses the data blob.
+					// Stands in for the rest of project data (notably the declared story language
+					// rendered below), so it need not be read before deciding on a 304.
 					val projectDataHash = serverProjectDataRepository.loadDataHash(resolved.userId, projectDef)
 
 					// A reader who already holds this exact page is answered without rendering it.
@@ -207,10 +216,7 @@ fun Route.publicStoryPage(
 
 							model.putAll(
 								mapOf(
-									"storyHtml" to StoryImageLinks.resolve(data.pageHtml) { imageId ->
-										val signature = storyImageSigner.sign(resolved.projectUuid, imageId)
-										"/a/$penNameForUrl/$projectNameForUrl/image/$imageId?s=$signature$passwordParam"
-									},
+									"storyHtml" to StoryImageLinks.resolve(data.pageHtml, ::signedImageUrl),
 									"hasContent" to data.hasContent,
 									"sceneCount" to data.sceneCount,
 									"totalWordCount" to data.totalWordCount,

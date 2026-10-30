@@ -10,6 +10,8 @@ import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.intOrNull
 import org.koin.core.component.KoinComponent
 import kotlin.time.Clock
 
@@ -73,6 +75,18 @@ class ServerProjectDataRepository(
 			return null
 		}
 		return decodeAsProjectData(element)?.language?.takeIf { it.isNotBlank() }
+	}
+
+	/** The project's cover Image entity id; null when unset or unreadable. */
+	suspend fun loadCoverImageId(userId: Long, projectDef: ProjectDefinition): Int? {
+		val projectId = projectDao.getProjectIdOrNull(userId, projectDef.uuid) ?: return null
+		val row = projectDataDao.get(userId, projectId) ?: return null
+		val element = try {
+			json.parseToJsonElement(row.content)
+		} catch (e: SerializationException) {
+			return null
+		}
+		return coverImageIdOf(element)
 	}
 
 	suspend fun save(
@@ -146,6 +160,14 @@ class ServerProjectDataRepository(
 			null
 		} catch (e: IllegalArgumentException) {
 			null
+		}
+	}
+
+	internal companion object {
+		/** Reads only `coverImageId`: null unless it is a JSON integer, whatever the rest holds. */
+		fun coverImageIdOf(data: JsonElement): Int? {
+			val field = (data as? JsonObject)?.get(ProjectData::coverImageId.name) as? JsonPrimitive ?: return null
+			return if (field.isString) null else field.intOrNull
 		}
 	}
 }

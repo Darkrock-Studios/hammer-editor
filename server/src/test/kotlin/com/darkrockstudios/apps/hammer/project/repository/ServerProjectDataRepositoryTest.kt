@@ -312,6 +312,47 @@ class ServerProjectDataRepositoryTest : BaseTest() {
 		assertTrue(result.exception is ProjectNotFound)
 	}
 
+	private fun coverOf(content: String): Int? =
+		ServerProjectDataRepository.coverImageIdOf(json.parseToJsonElement(content))
+
+	@Test
+	fun `cover id is read from an integer field`() {
+		assertEquals(7, coverOf("""{"authorName":"Pat","coverImageId":7}"""))
+	}
+
+	@Test
+	fun `cover id is null when the field is absent, null or not an integer`() {
+		assertNull(coverOf("""{"authorName":"Pat"}"""))
+		assertNull(coverOf("""{"coverImageId":null}"""))
+		assertNull(coverOf("""{"coverImageId":"7"}"""))
+		assertNull(coverOf("""{"coverImageId":7.5}"""))
+		assertNull(coverOf("""{"coverImageId":true}"""))
+		assertNull(coverOf("""{"coverImageId":{"id":7}}"""))
+		assertNull(coverOf("""{"coverImageId":9999999999}"""))
+		assertNull(coverOf("""[7]"""))
+	}
+
+	@Test
+	fun `cover id is read without decoding the rest of the data`() = runTest {
+		val projectId = testDatabase.serverDatabase.projectQueries
+			.getProjectId(userId = userId, uuid = projectDef.uuid.id).executeAsOne()
+		ProjectDataDao(testDatabase).upsert(
+			userId = userId,
+			projectId = projectId,
+			content = """{"tags": 5, "coverImageId": 7}""",
+			hash = "some-hash",
+			updatedAt = Instant.parse("2026-04-28T09:00:00Z"),
+		)
+
+		assertEquals(7, repository.loadCoverImageId(userId, projectDef))
+	}
+
+	@Test
+	fun `cover id is null without a row or a project`() = runTest {
+		assertNull(repository.loadCoverImageId(userId, projectDef))
+		assertNull(repository.loadCoverImageId(userId, unknownProjectDef))
+	}
+
 	private fun seedAccountAndProject() {
 		val base64 = createTokenBase64()
 		val cipherSecretGenerator =

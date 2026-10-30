@@ -24,7 +24,9 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.time.Clock
 import kotlin.uuid.Uuid
 
 /** Images embedded in story prose, as the web reader links and serves them. */
@@ -89,6 +91,27 @@ class StoryImagesTest : WebEndToEndTest() {
 			access_password = password,
 			expires_at = null,
 		).executeAsOne()
+	}
+
+	private fun setProjectData(content: String, hash: String = "hash-$content") {
+		database().serverDatabase.projectDataQueries.upsert(
+			userId = userId(),
+			projectId = projectRowId(),
+			content = content,
+			hash = hash,
+			updatedAt = Clock.System.now(),
+		)
+	}
+
+	private fun setCover(imageId: Int) = setProjectData("""{"coverImageId":$imageId}""")
+
+	/** The cover's src on [body], attribute escaping undone; null when the page shows no cover. */
+	private fun coverSrc(body: String): String? {
+		if (!body.contains("story-cover")) return null
+		val src = Regex("""<img class="story-cover" src="([^"]*)"""").find(body)
+		return assertNotNull(src, "cover markup should carry its image").groupValues[1]
+			.replace("&#61;", "=")
+			.replace("&amp;", "&")
 	}
 
 	/** The absolute URL the page links image [imageId] at, attribute escaping undone. */
@@ -264,5 +287,156 @@ class StoryImagesTest : WebEndToEndTest() {
 		} finally {
 			authed.close()
 		}
+	}
+
+	@Test
+	fun `the author's page shows the cover`(): Unit = runBlocking {
+		doStartServer()
+		seedStory()
+		setCover(3)
+		val authed = login(email, password)
+		try {
+			val page = authed.get(route("story/$projectSegment")).bodyAsText()
+			assertEquals("/story/$projectSegment/image/3", coverSrc(page), page)
+			assertTrue(Regex("""<img class="story-cover" src="[^"]*" alt="">""").containsMatchIn(page), page)
+
+			val image = authed.get(route("story/$projectSegment/image/3"))
+			assertEquals(HttpStatusCode.OK, image.status)
+			assertContentEquals(png, image.readRawBytes())
+		} finally {
+			authed.close()
+		}
+	}
+
+	@Test
+	fun `a public page shows the cover through a signed url`(): Unit = runBlocking {
+		doStartServer()
+		seedStory()
+		grantAccess(password = null)
+		// No prose refers to image 3, so only the cover's own signature can open it.
+		setCover(3)
+
+		val page = client().get(storyPath()).bodyAsText()
+		val src = assertNotNull(coverSrc(page))
+		assertTrue(src.startsWith("/a/$penName/$projectSegment/image/3?s="), src)
+		assertTrue(Regex("""<img class="story-cover" src="[^"]*" alt="" fetchpriority="high">""").containsMatchIn(page), page)
+
+		val response = client().get(route(src.removePrefix("/")))
+		assertEquals(HttpStatusCode.OK, response.status)
+		assertContentEquals(png, response.readRawBytes())
+	}
+
+	@Test
+	fun `a story without a cover shows none`(): Unit = runBlocking {
+		doStartServer()
+		seedStory()
+		grantAccess(password = null)
+		setProjectData("""{"authorName":"Jane"}""")
+
+		assertNull(coverSrc(client().get(storyPath()).bodyAsText()))
+		val authed = login(email, password)
+		try {
+			assertNull(coverSrc(authed.get(route("story/$projectSegment")).bodyAsText()))
+		} finally {
+			authed.close()
+		}
+	}
+
+	@Test
+	fun `a cover whose image the server lacks shows none`(): Unit = runBlocking {
+		doStartServer()
+		seedStory()
+		grantAccess(password = null)
+		// Scene 1 exists, but is not an image.
+		for (coverId in listOf(99, 1)) {
+			setCover(coverId)
+
+			assertNull(coverSrc(client().get(storyPath()).bodyAsText()), "cover $coverId")
+			val authed = login(email, password)
+			try {
+				assertNull(coverSrc(authed.get(route("story/$projectSegment")).bodyAsText()), "cover $coverId")
+			} finally {
+				authed.close()
+			}
+		}
+	}
+
+	@Test
+	fun `a private share's cover needs the share's password`(): Unit = runBlocking {
+		doStartServer()
+		seedStory()
+		grantAccess(password = "secret")
+		setCover(3)
+
+		val src = assertNotNull(coverSrc(client().get(storyPath(password = "secret")).bodyAsText()))
+		assertTrue(src.endsWith("&p=secret"), src)
+		val url = route(src.removePrefix("/"))
+
+		assertEquals(HttpStatusCode.OK, client().get(url).status)
+		assertEquals(HttpStatusCode.NotFound, client().get(url.removeSuffix("&p=secret")).status)
+		assertEquals(HttpStatusCode.NotFound, client().get(url.replace("&p=secret", "&p=wrong")).status)
+	}
+
+	@Test
+	fun `a public page is not revalidated over a cover being set`(): Unit = runBlocking {
+		doStartServer()
+		seedStory()
+		grantAccess(password = null)
+		val etag = assertNotNull(client().get(storyPath()).headers[HttpHeaders.ETag])
+
+		setCover(3)
+		val response = client().get(storyPath()) { header(HttpHeaders.IfNoneMatch, etag) }
+
+		assertEquals(HttpStatusCode.OK, response.status)
+		assertNotNull(coverSrc(response.bodyAsText()))
+	}
+
+	@Test
+	fun `a public page is not revalidated over its cover's image arriving`(): Unit = runBlocking {
+		doStartServer()
+		seedStory()
+		grantAccess(password = null)
+		setCover(5)
+		val before = client().get(storyPath())
+		assertNull(coverSrc(before.bodyAsText()))
+		val etag = assertNotNull(before.headers[HttpHeaders.ETag])
+
+		insert(image(5, "Cover", "png", png))
+		val response = client().get(storyPath()) { header(HttpHeaders.IfNoneMatch, etag) }
+
+		assertEquals(HttpStatusCode.OK, response.status)
+		assertNotNull(coverSrc(response.bodyAsText()))
+	}
+
+	@Test
+	fun `a public page with a cover is answered 304 while nothing changes`(): Unit = runBlocking {
+		doStartServer()
+		seedStory()
+		grantAccess(password = null)
+		setCover(3)
+
+		val first = client().get(storyPath())
+		assertNotNull(coverSrc(first.bodyAsText()))
+		val etag = assertNotNull(first.headers[HttpHeaders.ETag])
+		val second = client().get(storyPath()) { header(HttpHeaders.IfNoneMatch, etag) }
+
+		assertEquals(HttpStatusCode.NotModified, second.status)
+	}
+
+	@Test
+	fun `a public page is not revalidated over its cover being cleared`(): Unit = runBlocking {
+		doStartServer()
+		seedStory()
+		grantAccess(password = null)
+		setCover(3)
+		val before = client().get(storyPath())
+		assertNotNull(coverSrc(before.bodyAsText()))
+		val etag = assertNotNull(before.headers[HttpHeaders.ETag])
+
+		setProjectData("""{"authorName":"Jane"}""")
+		val response = client().get(storyPath()) { header(HttpHeaders.IfNoneMatch, etag) }
+
+		assertEquals(HttpStatusCode.OK, response.status)
+		assertNull(coverSrc(response.bodyAsText()))
 	}
 }

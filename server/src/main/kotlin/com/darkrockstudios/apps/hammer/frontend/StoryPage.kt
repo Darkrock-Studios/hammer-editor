@@ -174,9 +174,16 @@ fun Route.storyPage(
 						// The public reader page declares the story's language on the prose; the
 						// author's own view has to as well, or the browser hyphenates a French
 						// story by the rules of whatever locale the author reads Hammer in.
+						val projectDef = ProjectDefinition(name = project.name, uuid = projectId)
 						val storyLanguage = serverProjectDataRepository.loadProjectLanguage(
 							userId = session.userId,
-							projectDef = ProjectDefinition(name = project.name, uuid = projectId),
+							projectDef = projectDef,
+						)
+						val coverImageId = storyCoverImageId(
+							serverProjectDataRepository,
+							storyImageService,
+							session.userId,
+							projectDef,
 						)
 
 						val model = call.withDefaults(
@@ -209,6 +216,9 @@ fun Route.storyPage(
 								"hasScenes" to sceneHierarchy.isNotEmpty()
 							)
 						)
+						if (coverImageId != null) {
+							model["coverImageUrl"] = "/story/$projectNameForUrl/image/$coverImageId"
+						}
 						if (numericProjectId != null) {
 							model.putAll(call.kudosPanelModel(storyKudosRepository, numericProjectId, isPublished, model))
 						}

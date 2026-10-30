@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.frontend
 import com.darkrockstudios.apps.hammer.frontend.utils.applyRevalidationHeaders
 import com.darkrockstudios.apps.hammer.frontend.utils.matchesETag
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
+import com.darkrockstudios.apps.hammer.project.ServerProjectDataRepository
 import com.darkrockstudios.apps.hammer.story.StoryImageService
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
@@ -51,6 +52,20 @@ internal suspend fun ApplicationCall.respondStoryImage(
 
 	applyImageHeaders(etag)
 	respondBytes(image.bytes, ContentType.parse(image.mediaType))
+}
+
+/**
+ * The cover's Image entity id when the server holds that image. A cover can name an image that has
+ * not synced yet or was deleted on another device, and that must show no cover rather than a broken one.
+ */
+internal suspend fun storyCoverImageId(
+	serverProjectDataRepository: ServerProjectDataRepository,
+	storyImageService: StoryImageService,
+	userId: Long,
+	projectDef: ProjectDefinition,
+): Int? {
+	val coverId = serverProjectDataRepository.loadCoverImageId(userId, projectDef) ?: return null
+	return coverId.takeIf { storyImageService.imageHash(userId, projectDef, it) != null }
 }
 
 private fun ApplicationCall.applyImageHeaders(etag: String) {
