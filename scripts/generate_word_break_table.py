@@ -13,16 +13,17 @@ base/src/commonTest/resources/ for the conformance test. Python 3 standard libra
 from __future__ import annotations
 
 import argparse
+import http.client
 import re
 import shutil
 import sys
-import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 KOTLIN_OUT = ROOT / "base/src/commonMain/kotlin/com/darkrockstudios/apps/hammer/base/markdown/WordBreakProperties.kt"
 TEST_OUT = ROOT / "base/src/commonTest/resources/WordBreakTest.txt"
 CACHE = Path.home() / ".cache" / "hammer-ucd"
+UCD_HOST = "www.unicode.org"
 
 FILES = {
 	"WordBreakProperty.txt": "ucd/auxiliary/WordBreakProperty.txt",
@@ -85,10 +86,19 @@ def download(version: str) -> Path:
 	for name, remote in FILES.items():
 		dest = target / name
 		if not dest.exists():
-			url = f"https://www.unicode.org/Public/{version}/{remote}"
+			path = f"/Public/{version}/{remote}"
+			url = f"https://{UCD_HOST}{path}"
 			print(f"Downloading {url}")
-			with urllib.request.urlopen(url) as response, dest.open("wb") as out:
-				shutil.copyfileobj(response, out)
+			connection = http.client.HTTPSConnection(UCD_HOST)
+			try:
+				connection.request("GET", path)
+				response = connection.getresponse()
+				body = response.read()
+				if response.status != 200:
+					sys.exit(f"{url}: HTTP {response.status} {response.reason}")
+			finally:
+				connection.close()
+			dest.write_bytes(body)
 	return target
 
 
@@ -98,7 +108,8 @@ def build_values(ucd: Path) -> list[int]:
 	for first, last, name in parse_ranges(ucd / "WordBreakProperty.txt"):
 		wb = WB_INDEX[name]
 		for cp in range(first, last + 1):
-			assert values[cp] == 0, f"U+{cp:04X} has two word break values"
+			if values[cp] != 0:
+				raise ValueError(f"U+{cp:04X} has two word break values")
 			values[cp] = wb
 
 	for first, last, name in parse_ranges(ucd / "emoji-data.txt"):
@@ -117,8 +128,8 @@ def build_values(ucd: Path) -> list[int]:
 		range_first = None
 		for c in range(first, cp + 1):
 			wb = values[c] & WB_MASK
-			if category == "Nd":
-				assert wb == WB_INDEX["Numeric"], f"U+{c:04X} is Nd but not Numeric"
+			if category == "Nd" and wb != WB_INDEX["Numeric"]:
+				raise ValueError(f"U+{c:04X} is Nd but not Numeric")
 			# The flag only matters where the word break value does not already make a word.
 			if category[0] == "L" and wb not in WORD_BEARING:
 				values[c] |= FLAG_LETTER
@@ -137,7 +148,8 @@ def to_runs(values: list[int]) -> list[tuple[int, int, int]]:
 			runs.append((cp, end, value))
 		cp = end + 1
 	for (_, a_last, _), (b_first, _, _) in zip(runs, runs[1:]):
-		assert a_last < b_first, "runs overlap"
+		if a_last >= b_first:
+			raise ValueError("runs overlap")
 	return runs
 
 
