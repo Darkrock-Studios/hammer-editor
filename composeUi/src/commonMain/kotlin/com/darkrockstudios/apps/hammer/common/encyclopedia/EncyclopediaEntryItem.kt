@@ -390,7 +390,7 @@ internal fun EncyclopediaEntryItem(
 				verticalAlignment = Alignment.CenterVertically,
 				horizontalArrangement = Arrangement.SpaceBetween,
 			) {
-				val wordCount = entryContent?.text?.let { wordCount(it) } ?: 0
+				val wordCount = entryContent?.text?.let { countWords(it) } ?: 0
 				val tagCount = tags.size
 				HdMonoLabel(
 					text = formatEntryMeta(wordCount = wordCount, tagCount = tagCount),
@@ -420,8 +420,6 @@ fun GradientDivider(modifier: Modifier = Modifier) {
 			),
 	)
 }
-
-private fun wordCount(text: String): Int = countWords(text)
 
 private fun formatEntryMeta(wordCount: Int, tagCount: Int): String {
 	return buildString {

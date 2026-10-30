@@ -1143,8 +1143,8 @@ spans are UTF-16 chars.
 `WordBreakProperties.kt`, from Unicode's `WordBreakProperty.txt`,
 `emoji-data.txt` (for Extended_Pictographic, which WB3c needs), and
 `UnicodeData.txt` (for the letter categories). A kit needs the same three facts
-about each code point, its Word_Break class, whether it is Extended_Pictographic,
-and whether it is a letter, and can generate its own table from the same files.
+about each code point: its Word_Break class, whether it is Extended_Pictographic,
+and whether it is a letter. It can generate its own table from the same files.
 
 A kit's tests must pass two files. `base/src/commonTest/resources/WordBreakTest.txt`
 is Unicode's conformance file, as published: each line is a case, its code
