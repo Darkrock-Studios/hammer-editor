@@ -16,7 +16,7 @@ import com.darkrockstudios.libs.rtfparserkmp.model.PictureFormat
 import com.darkrockstudios.libs.rtfparserkmp.writer.RtfAlignment
 import com.darkrockstudios.libs.rtfparserkmp.writer.RtfBlock
 import com.darkrockstudios.libs.rtfparserkmp.writer.RtfDocumentWriter
-import com.darkrockstudios.libs.rtfparserkmp.writer.RtfPageBreak
+import com.darkrockstudios.libs.rtfparserkmp.writer.RtfParagraph
 import com.darkrockstudios.libs.rtfparserkmp.writer.RtfPicture
 import com.darkrockstudios.libs.rtfparserkmp.parser.RtfEvent
 import com.darkrockstudios.libs.rtfparserkmp.parser.parseRtf
@@ -221,8 +221,10 @@ class RtfStoryRendererImageTest {
 		assertEquals(8640 to 4320, cover.goalWidthTwips to cover.goalHeightTwips)
 		assertEquals(RtfAlignment.Center, cover.style.alignment)
 		assertContentEquals(png, cover.bytes)
-		assertEquals(RtfPageBreak, blocks[1])
-		assertEquals(coverBlocks(emptyMap(), coverImageId = null), blocks.drop(2))
+		val title = assertIs<RtfParagraph>(blocks[1])
+		assertTrue(title.style.pageBreakBefore)
+		val withoutBreak = title.copy(style = title.style.copy(pageBreakBefore = false))
+		assertEquals(coverBlocks(emptyMap(), coverImageId = null), listOf(withoutBreak) + blocks.drop(2))
 	}
 
 	@Test
@@ -248,7 +250,10 @@ class RtfStoryRendererImageTest {
 		val pict = picts(rtf).single()
 		assertEquals(8640 to 4320, pict.goalWidth to pict.goalHeight)
 		assertEquals("\\qc", pict.paragraph)
-		assertTrue(rtf.indexOf("\\pict") < rtf.indexOf("\\page"), rtf)
+		val pictAt = rtf.indexOf("\\pict")
+		val betweenCoverAndTitle = rtf.substring(pictAt, rtf.indexOf("Story", pictAt))
+		assertNull(BARE_PAGE.find(betweenCoverAndTitle), rtf)
+		assertTrue("\\pagebb" in betweenCoverAndTitle.substringAfterLast("\\pard"), rtf)
 	}
 
 	@Test
@@ -266,6 +271,8 @@ class RtfStoryRendererImageTest {
 	}
 
 	private companion object {
+		val BARE_PAGE = Regex("""\\page(?![a-z])""")
+
 		val PICT = Regex(
 			"""\\pard((?:\\[a-z]+\d*)*) \{\\pict\\(pngblip|jpegblip)\\picw(\d+)\\pich(\d+)\\picwgoal(\d+)\\pichgoal(\d+) ([0-9a-f\s]+)}""",
 		)

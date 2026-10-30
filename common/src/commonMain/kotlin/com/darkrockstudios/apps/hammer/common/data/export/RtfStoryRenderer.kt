@@ -102,11 +102,11 @@ internal fun buildStoryRtf(
 	val picture = decodedOnce(images)
 
 	val blocks = buildList {
-		exportCover(projectData, images) { picture(it.id) }?.let { cover ->
-			add(coverPicture(cover))
-			add(RtfPageBreak)
-		}
-		addAll(titlePage(projectName, strings.authorByline, primary))
+		val cover = exportCover(projectData, images) { picture(it.id) }
+		cover?.let { add(coverPicture(it)) }
+		// The title breaks the page itself: Word lays a bare \page after the cover out on the cover's
+		// page, which can push the title past a blank page.
+		addAll(titlePage(projectName, strings.authorByline, primary, newPage = cover != null))
 		addAll(contentsPage(effective, strings.contentsTitle, primary, options.numberChapters))
 		effective.forEachIndexed { index, chapter ->
 			addAll(chapterBlocks(index, chapter, primary, secondary, options, imageNames, picture))
@@ -122,7 +122,12 @@ internal fun buildStoryRtf(
 	)
 }
 
-private fun titlePage(projectName: String, authorByline: String?, primary: RtfColor?): List<RtfBlock> = buildList {
+private fun titlePage(
+	projectName: String,
+	authorByline: String?,
+	primary: RtfColor?,
+	newPage: Boolean,
+): List<RtfBlock> = buildList {
 	add(
 		RtfParagraph(
 			content = listOf(
@@ -135,6 +140,7 @@ private fun titlePage(projectName: String, authorByline: String?, primary: RtfCo
 				alignment = RtfAlignment.Center,
 				spaceBeforeTwips = TITLE_SPACE_BEFORE,
 				spaceAfterTwips = SECTION_SPACE,
+				pageBreakBefore = newPage,
 			),
 		),
 	)
