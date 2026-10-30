@@ -25,6 +25,7 @@ class DocxStoryRendererTest {
 		projectName: String = "Test Project",
 		projectData: ProjectData = ProjectData(authorName = "Test Author"),
 		options: ExportOptions = ExportOptions(),
+		imageNames: Map<Int, String> = emptyMap(),
 	): XWPFDocument {
 		val buffer = Buffer()
 		val author = projectData.authorName?.takeIf { it.isNotBlank() }
@@ -35,6 +36,7 @@ class DocxStoryRendererTest {
 			chapters = chapters,
 			strings = ExportStrings(contentsTitle = "Contents", authorByline = author?.let { "by $it" }),
 			options = options,
+			imageNames = imageNames,
 		)
 		return XWPFDocument(ByteArrayInputStream(buffer.readByteArray()))
 	}
@@ -410,5 +412,15 @@ class DocxStoryRendererTest {
 		val second = texts.indexOf("Second passage.")
 		assertEquals(first + 2, second, "Expected one empty paragraph between the passages, got $texts")
 		assertEquals("", texts[first + 1])
+	}
+
+	@Test
+	fun `a project image is written as its current name, or not at all without one`() {
+		val doc = render(
+			listOf(StoryChapter("Alpha", "![image](hammer://image/3)\n\n![Old](hammer://image/9)")),
+			imageNames = mapOf(3 to "Cheshire Cat"),
+		)
+
+		assertEquals(listOf("Cheshire Cat"), doc.bodyParagraphs().map { it.text }.filter { it.isNotBlank() })
 	}
 }

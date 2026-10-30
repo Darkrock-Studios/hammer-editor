@@ -16,6 +16,8 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesRepository
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageDef
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContainer
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
@@ -72,7 +74,9 @@ class ImageReferenceRewriterTest : BaseTest() {
 	private lateinit var notesRepository: NotesRepository
 	private lateinit var timeLineRepository: TimeLineRepository
 	private lateinit var projectDataRepository: ProjectDataRepository
+	private lateinit var imagesRepository: ImagesRepository
 	private var projectData = ProjectData()
+	private var images: List<ImageDef> = emptyList()
 
 	private var activeScenes: List<SceneItem> = emptyList()
 	private var archivedScenes: List<SceneItem> = emptyList()
@@ -104,6 +108,10 @@ class ImageReferenceRewriterTest : BaseTest() {
 			projectData = firstArg<(ProjectData) -> ProjectData>()(projectData)
 		}
 
+		imagesRepository = mockk()
+		coEvery { imagesRepository.ensureImagesLoaded() } answers { images }
+		coEvery { imagesRepository.imageNames() } answers { images.associate { it.id to it.name } }
+
 		setupKoin(module {
 			single { syncJournal }
 			single { mockk<IdAllocator>() }
@@ -115,6 +123,7 @@ class ImageReferenceRewriterTest : BaseTest() {
 				scoped { notesRepository }
 				scoped { timeLineRepository }
 				scoped { projectDataRepository }
+				scoped { imagesRepository }
 			}
 		})
 		datasource = EncyclopediaDatasource(projectDef, createTomlSerializer(), ffs)
@@ -469,6 +478,23 @@ class ImageReferenceRewriterTest : BaseTest() {
 			usages.associate { (it.referrer as ImageReferrer.Entity).entity to it.name },
 		)
 		assertEquals(usages.size, usages.map { it.referrer }.toSet().size)
+	}
+
+	@Test
+	fun `findUsages titles notes and events with the current names of their images`() = runTest {
+		images = listOf(ImageDef(id = 5, name = "Cheshire Cat", fileExtension = "png"))
+		notes = listOf(note(30, "![image](hammer://image/5)\n\nThe body"))
+		events = listOf(event(40, "![image](hammer://image/6)\n\nThe trial\n\n![image](hammer://image/5)"))
+
+		val usages = ImageReferenceRewriter(projectDef).findUsages(5).usages
+
+		assertEquals(
+			mapOf(
+				TouchedEntity(EntityType.Note, 30) to "Cheshire Cat",
+				TouchedEntity(EntityType.TimelineEvent, 40) to "The trial",
+			),
+			usages.associate { (it.referrer as ImageReferrer.Entity).entity to it.name },
+		)
 	}
 
 	@Test

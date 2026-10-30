@@ -67,6 +67,7 @@ fun writeStoryAsRtf(
 	chapters: List<StoryChapter>,
 	strings: ExportStrings,
 	options: ExportOptions = ExportOptions(),
+	imageNames: Map<Int, String> = emptyMap(),
 ) {
 	val authorName = projectData.authorName?.takeIf { it.isNotBlank() }
 	val effective = chapters.ifEmpty { listOf(StoryChapter(projectName, "")) }
@@ -76,7 +77,9 @@ fun writeStoryAsRtf(
 	val blocks = buildList {
 		addAll(titlePage(projectName, strings.authorByline, primary))
 		addAll(contentsPage(effective, strings.contentsTitle, primary, options.numberChapters))
-		effective.forEachIndexed { index, chapter -> addAll(chapterBlocks(index, chapter, primary, secondary, options)) }
+		effective.forEachIndexed { index, chapter ->
+			addAll(chapterBlocks(index, chapter, primary, secondary, options, imageNames))
+		}
 	}
 
 	val document = RtfDocument(
@@ -158,6 +161,7 @@ private fun chapterBlocks(
 	primary: RtfColor?,
 	secondary: RtfColor?,
 	options: ExportOptions,
+	imageNames: Map<Int, String>,
 ): List<RtfBlock> = buildList {
 	add(RtfPageBreak)
 	add(
@@ -181,7 +185,7 @@ private fun chapterBlocks(
 		),
 	)
 	if (chapter.markdown.isNotBlank()) {
-		addAll(renderMarkdownRtf(chapter.markdown, primary, secondary, options.keepBlankLines))
+		addAll(renderMarkdownRtf(chapter.markdown, primary, secondary, options.keepBlankLines, imageNames))
 	}
 }
 
@@ -203,9 +207,10 @@ private fun renderMarkdownRtf(
 	primary: RtfColor?,
 	secondary: RtfColor?,
 	keepBlankLines: Boolean,
+	imageNames: Map<Int, String>,
 ): List<RtfBlock> {
 	val blocks = mutableListOf<RtfBlock>()
-	val parsed = parseProseMarkdown(markdown, keepBlankLines)
+	val parsed = parseProseMarkdown(markdown, keepBlankLines, imageNames::get)
 	parsed.forEachIndexed { index, block ->
 		// Prose runs tight: the indent parts one line from the next, and the space a passage break
 		// wants is a blank line the author actually typed. Space after is for leaving prose behind.

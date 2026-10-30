@@ -38,10 +38,10 @@ internal fun insertHorizontalRule(state: TextEditorState) {
 }
 
 /**
- * Inserts image [imageId] as a block on its own line at the caret, [alt] as its alt text, and leaves
- * the caret on the line below. Returns false, inserting nothing, in a table cell.
+ * Inserts image [imageId] as a block on its own line at the caret and leaves the caret on the line
+ * below. Returns false, inserting nothing, in a table cell.
  */
-internal fun insertImageBlock(state: TextEditorState, provider: ImageProvider, imageId: Int, alt: String): Boolean {
+internal fun insertImageBlock(state: TextEditorState, provider: ImageProvider, imageId: Int): Boolean {
 	if (touchesTableCell(state)) return false
 	// At the start of a line the image can take the line, pushing its text down.
 	if (state.selector.selection != null || state.cursorPosition.char > 0) state.insertNewlineAtCursor()
@@ -51,7 +51,11 @@ internal fun insertImageBlock(state: TextEditorState, provider: ImageProvider, i
 	state.addRichSpan(
 		start = CharLineOffset(imageLine, 0),
 		end = CharLineOffset(imageLine, IMAGE_PLACEHOLDER.length),
-		style = ImageBlockSpanStyle(source = ImageReferenceSyntax.reference(imageId), alt = alt, provider = provider),
+		style = ImageBlockSpanStyle(
+			source = ImageReferenceSyntax.reference(imageId),
+			alt = ImageReferenceSyntax.PLACEHOLDER_ALT,
+			provider = provider,
+		),
 	)
 	return true
 }

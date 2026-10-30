@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.data.export
 
 import com.darkrockstudios.apps.hammer.base.markdown.ProseHtml
+import com.darkrockstudios.apps.hammer.common.data.references.ImageReferenceSyntax
 import com.darkrockstudios.apps.hammer.common.data.search.unescapeMarkdown
 import org.intellij.markdown.IElementType
 import org.intellij.markdown.MarkdownElementTypes
@@ -60,11 +61,18 @@ sealed interface ProseBlock {
  *
  * With [keepBlankLines] off a lone blank line is dropped, leaving paragraphs to run together, and a
  * run of two or more is reduced to one: the break between passages or scenes.
+ *
+ * An image becomes text. A project image becomes the name [imageName] gives it, or nothing when it
+ * gives none: its alt text carries no meaning. Any other image becomes its alt text.
  */
-fun parseProseMarkdown(markdown: String, keepBlankLines: Boolean = true): List<ProseBlock> {
+fun parseProseMarkdown(
+	markdown: String,
+	keepBlankLines: Boolean = true,
+	imageName: (imageId: Int) -> String? = { null },
+): List<ProseBlock> {
 	val source = ProseHtml.normalizeLineEndings(markdown)
 	val root = MarkdownParser(GFMFlavourDescriptor()).buildMarkdownTreeFromString(source)
-	val blocks = ProseWalker(source).blocks(root)
+	val blocks = ProseWalker(source, imageName).blocks(root)
 	return if (keepBlankLines) blocks else blocks.withoutParagraphGaps()
 }
 
@@ -102,7 +110,10 @@ private val HEADING_LEVELS: Map<IElementType, Int> = mapOf(
 	MarkdownElementTypes.SETEXT_2 to 2,
 )
 
-private class ProseWalker(private val source: String) {
+private class ProseWalker(
+	private val source: String,
+	private val imageName: (imageId: Int) -> String?,
+) {
 
 	/**
 	 * Walks the top level, keeping the blank lines between prose passages. A run of newlines
@@ -352,11 +363,15 @@ private class ProseWalker(private val source: String) {
 			MarkdownElementTypes.SHORT_REFERENCE_LINK,
 			-> linkText(node)?.let { collect(it, flags, out) }
 
-			// Images degrade to their alt text.
-			MarkdownElementTypes.IMAGE ->
-				node.findChildOfType(MarkdownElementTypes.INLINE_LINK)
-					?.let { linkText(it) }
-					?.let { collect(it, flags, out) }
+			MarkdownElementTypes.IMAGE -> {
+				val link = node.findChildOfType(MarkdownElementTypes.INLINE_LINK)
+				val imageId = link?.let(::linkDestination)?.let(ImageReferenceSyntax::parseId)
+				if (imageId != null) {
+					imageName(imageId)?.let { out += span(it, flags) }
+				} else {
+					link?.let(::linkText)?.let { collect(it, flags, out) }
+				}
+			}
 
 			MarkdownElementTypes.LINK_TEXT ->
 				node.children.drop(1).dropLast(1).forEach { collect(it, flags, out) }

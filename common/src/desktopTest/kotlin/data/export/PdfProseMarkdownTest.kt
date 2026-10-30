@@ -262,4 +262,28 @@ class PdfProseMarkdownTest {
 		assertNull(argbHexToPdfColor("not-a-color"))
 		assertNull(argbHexToPdfColor("#12345"))
 	}
+
+	@Test
+	fun `a project image becomes its current name, any other image its alt text`() {
+		val names = mapOf(3 to "Cheshire Cat")
+		val blocks = parseProseMarkdown(
+			"![image](hammer://image/3)\n![Map *one*](https://e.com/m.png)",
+			imageName = names::get,
+		)
+
+		assertEquals(
+			listOf("Cheshire Cat", "Map one"),
+			blocks.map { (it as ProseBlock.Paragraph).spans.joinToString("") { span -> span.text } },
+		)
+	}
+
+	@Test
+	fun `a project image without a name becomes nothing`() {
+		val blocks = parseProseMarkdown("Before ![Old *name*](hammer://image/9) after\n![image](hammer://image/3)")
+
+		assertEquals(
+			listOf("Before after"),
+			blocks.map { (it as ProseBlock.Paragraph).spans.joinToString("") { span -> span.text } },
+		)
+	}
 }

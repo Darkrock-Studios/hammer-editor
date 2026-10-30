@@ -1,11 +1,15 @@
 package com.darkrockstudios.apps.hammer.common.data.references
 
 /**
- * How Markdown refers to an Image entity: `![name](hammer://image/<id>)`. Every function returns
- * the identical String instance when it changes nothing, so callers can skip the write.
+ * How Markdown refers to an Image entity: `![image](hammer://image/<id>)`. The alt text carries no
+ * meaning: Hammer shows the image's current name wherever alt text would be displayed. Every function
+ * returns the identical String instance when it changes nothing, so callers can skip the write.
  */
 object ImageReferenceSyntax {
 	const val SCHEME_PREFIX = "hammer://image/"
+
+	/** The alt text Hammer writes for every image. */
+	const val PLACEHOLDER_ALT = "image"
 
 	fun reference(imageId: Int): String = "$SCHEME_PREFIX$imageId"
 
@@ -70,23 +74,25 @@ object ImageReferenceSyntax {
 		val wholeLine = Regex("""^$LINE_PREFIX${inlinePattern(destinationPattern(id))}[ \t]*$""")
 		return rewriteImages(text, id) { content, inline, labels ->
 			if (wholeLine.matches(content)) return@rewriteImages null
-			val stripped = replaceReferenceUses(inline.replace(content, ""), labels) { "" }
+			val stripped = replaceReferenceUses(inline.replace(content, ""), labels) { _, _ -> "" }
 			if (stripped != content && BLANK.matches(stripped) && !BLANK.matches(content)) null else stripped
 		}
 	}
 
 	/**
-	 * Replaces every image that shows a project image with what [replacement] makes of its alt
-	 * text, whether the image stands on a line of its own or sits inside prose, and whether it is
+	 * Replaces every image that shows a project image with what [replacement] makes of its id and
+	 * alt text, whether the image stands on a line of its own or sits inside prose, and whether it is
 	 * inline (`![alt](hammer://image/3)`) or uses a reference (`![alt][label]`). A reference
 	 * definition pointing at a project image is dropped, as [remove] drops one. Fenced code is left
 	 * alone.
 	 */
-	fun replaceImages(text: String, replacement: (alt: String) -> String): String {
+	fun replaceImages(text: String, replacement: (imageId: Int, alt: String) -> String): String {
 		if (findIds(text).isEmpty()) return text
 
 		return rewriteImages(text, """\d+""") { content, inline, labels ->
-			val inlineReplaced = inline.replace(content) { replacement(it.groupValues[1]) }
+			val inlineReplaced = inline.replace(content) { match ->
+				match.destinationId(2)?.let { replacement(it, match.groupValues[1]) } ?: match.value
+			}
 			replaceReferenceUses(inlineReplaced, labels, replacement)
 		}
 	}
@@ -94,13 +100,14 @@ object ImageReferenceSyntax {
 	/**
 	 * Drops every reference definition whose destination is an image matching [idPattern], then
 	 * passes each other line outside fenced code to [rewriteLine] with the inline image pattern and the
-	 * normalized labels of the dropped definitions. [rewriteLine] returns the line's new content, or
-	 * null to drop the line.
+	 * normalized labels of the dropped definitions, each mapped to the image id it names. [rewriteLine]
+	 * returns the line's new content, or null to drop the line. A definition whose id is too large to
+	 * name an image is left as written.
 	 */
 	private inline fun rewriteImages(
 		text: String,
 		idPattern: String,
-		rewriteLine: (content: String, inline: Regex, labels: Set<String>) -> String?,
+		rewriteLine: (content: String, inline: Regex, labels: Map<String, Int>) -> String?,
 	): String {
 		val destination = destinationPattern(idPattern)
 		val inline = Regex(inlinePattern(destination))
@@ -109,17 +116,26 @@ object ImageReferenceSyntax {
 		val lines = splitLines(text)
 		val code = fencedLines(lines)
 
-		val labels = lines.indices
-			.filterNot { code[it] }
-			.mapNotNull { definition.matchEntire(lines[it].content)?.groupValues?.get(1)?.let(::normalizeLabel) }
-			.toSet()
+		val labels = mutableMapOf<String, Int>()
+		val definitions = arrayOfNulls<Int>(lines.size)
+		for (i in lines.indices) {
+			if (code[i]) continue
+			val match = definition.matchEntire(lines[i].content) ?: continue
+			// -1 marks a definition whose id overflows: it names no image, so the line is left alone.
+			val imageId = match.destinationId(2) ?: -1
+			definitions[i] = imageId
+			// The first definition of a label is the one Markdown uses.
+			if (imageId >= 0) labels.getOrPut(normalizeLabel(match.groupValues[1])) { imageId }
+		}
 
 		val dropped = BooleanArray(lines.size)
 		var changed = false
 		for (i in lines.indices) {
 			if (code[i]) continue
 			val content = lines[i].content
-			val rewritten = if (definition.matches(content)) null else rewriteLine(content, inline, labels)
+			val definitionId = definitions[i]
+			if (definitionId != null && definitionId < 0) continue
+			val rewritten = if (definitionId != null) null else rewriteLine(content, inline, labels)
 			if (rewritten == null) {
 				dropped[i] = true
 				changed = true
@@ -136,7 +152,12 @@ object ImageReferenceSyntax {
 		}
 	}
 
-	private fun destinationPattern(id: String): String = """(?:<hammer://image/$id>|hammer://image/$id)"""
+	// Captures the id in one of two groups, one per spelling; see [destinationId].
+	private fun destinationPattern(id: String): String = """(?:<hammer://image/($id)>|hammer://image/($id))"""
+
+	/** The id [destinationPattern] captured, given the index of its first group, or null when it overflows. */
+	private fun MatchResult.destinationId(firstGroup: Int): Int? =
+		(groups[firstGroup] ?: groups[firstGroup + 1])!!.value.toIntOrNull()
 
 	private fun inlinePattern(destination: String): String =
 		"""!\[($ALT)\]\([ \t]*$destination(?:[ \t]+$TITLE)?[ \t]*\)"""
@@ -146,13 +167,14 @@ object ImageReferenceSyntax {
 
 	private fun replaceReferenceUses(
 		content: String,
-		labels: Set<String>,
-		replacement: (alt: String) -> String,
+		labels: Map<String, Int>,
+		replacement: (imageId: Int, alt: String) -> String,
 	): String {
 		if (labels.isEmpty()) return content
 		return REFERENCE_USE.replace(content) { match ->
 			val label = match.groups[2]?.value ?: match.groupValues[1]
-			if (normalizeLabel(label) in labels) replacement(match.groupValues[1]) else match.value
+			val imageId = labels[normalizeLabel(label)]
+			if (imageId != null) replacement(imageId, match.groupValues[1]) else match.value
 		}
 	}
 

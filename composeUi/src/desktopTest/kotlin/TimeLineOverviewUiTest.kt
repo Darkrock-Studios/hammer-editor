@@ -1,11 +1,13 @@
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import com.arkivanov.decompose.Cancellation
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineOverview
+import com.darkrockstudios.apps.hammer.common.compose.LocalImageNames
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagCount
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineContainer
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
@@ -311,7 +313,7 @@ class TimeLineOverviewUiTest : BaseTest() {
 
 	@OptIn(ExperimentalSharedTransitionApi::class)
 	@Test
-	fun `Event Card shows an image as its alt text`() {
+	fun `Event Card never shows an image's alt text`() {
 		val content = "x ".repeat(100) + "\n\n![Cheshire Cat](hammer://image/3)\n\n" + "tail ".repeat(20)
 		val event = TimeLineEvent(
 			id = 0,
@@ -341,8 +343,37 @@ class TimeLineOverviewUiTest : BaseTest() {
 			.assertIsDisplayed()
 			.assertTextSatisfies { text ->
 				text.length <= EVENT_CARD_MAX_CONTENT_LENGTH &&
-					text.contains("*Cheshire Cat*") &&
+					Regex("""\n\n\*[^*\n]+\*\n\n""").containsMatchIn(text) &&
+					!text.contains("Cheshire Cat") &&
 					!text.contains("hammer://")
 			}
+	}
+
+	@OptIn(ExperimentalSharedTransitionApi::class)
+	@Test
+	fun `Event Card shows an image by its current name`() {
+		val event = TimeLineEvent(id = 0, order = 0, date = null, content = "Met\n\n![image](hammer://image/3)")
+
+		compose.setContent {
+			CompositionLocalProvider(LocalImageNames provides { id -> if (id == 3) "Cheshire Cat" else null }) {
+				SharedTransitionLayout {
+					AnimatedVisibility(visible = true) {
+						EventCard(
+							event = event,
+							isLast = true,
+							activeTags = emptySet(),
+							onTagClick = {},
+							onClick = {},
+							sharedTransitionScope = this@SharedTransitionLayout,
+							animatedVisibilityScope = this@AnimatedVisibility,
+						)
+					}
+				}
+			}
+		}
+
+		compose
+			.onNodeWithTag(EVENT_CARD_CONTENT_TAG, useUnmergedTree = true)
+			.assertTextSatisfies { text -> text.text == "Met\n\n*Cheshire Cat*" }
 	}
 }

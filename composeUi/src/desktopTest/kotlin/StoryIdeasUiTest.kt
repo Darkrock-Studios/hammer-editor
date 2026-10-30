@@ -39,7 +39,7 @@ class StoryIdeasUiTest : BaseTest() {
 	}
 
 	@Test
-	fun `Idea cards show an image as its alt text`() {
+	fun `Idea cards never show an image's alt text`() {
 		val component = FakeStoryIdeas(
 			listOf(
 				storyIdea(
@@ -53,7 +53,8 @@ class StoryIdeasUiTest : BaseTest() {
 			StoryIdeasUi(component = component, rootSnackbar = rememberRootSnackbarHostState())
 		}
 
-		compose.onNodeWithText("A grin\n\n*Cheshire Cat*").assertIsDisplayed()
+		compose.onNodeWithText("A grin\n\n*", substring = true).assertIsDisplayed()
+		compose.onAllNodesWithText("Cheshire Cat", substring = true).assertCountEquals(0)
 		compose.onAllNodesWithText("hammer://", substring = true).assertCountEquals(0)
 	}
 

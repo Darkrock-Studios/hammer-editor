@@ -41,6 +41,12 @@ val LocalRichTextStyles = compositionLocalOf { HammerRichTextStyles }
  */
 val LocalImageProvider = staticCompositionLocalOf<ImageProvider?> { null }
 
+/**
+ * The current name of the project image with an id, or null when the id names none. Names nothing
+ * outside an open project.
+ */
+val LocalImageNames = compositionLocalOf<(imageId: Int) -> String?> { { null } }
+
 /** The editor's body text style; every rich text size scales from it. */
 val LocalEditorTextStyle = compositionLocalOf {
 	TextStyle(fontSize = GlobalSettings.DEFAULT_FONT_SIZE.sp)

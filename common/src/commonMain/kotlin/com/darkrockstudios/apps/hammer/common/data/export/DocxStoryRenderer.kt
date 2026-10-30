@@ -59,13 +59,14 @@ fun writeStoryAsDocx(
 	chapters: List<StoryChapter>,
 	strings: ExportStrings,
 	options: ExportOptions = ExportOptions(),
+	imageNames: Map<Int, String> = emptyMap(),
 ) {
 	val authorName = projectData.authorName?.takeIf { it.isNotBlank() }
 	val effective = chapters.ifEmpty { listOf(StoryChapter(projectName, "")) }
 
 	// The body walk collects hyperlink targets and ordered-list instances that
 	// document.xml.rels and numbering.xml must declare, so it runs first.
-	val ctx = DocxRenderContext()
+	val ctx = DocxRenderContext(imageNames)
 	val documentXml = buildXmlPart { writeDocument(it, ctx, projectName, strings, effective, options) }
 
 	val zip = OkioZipOutputStream(sink)
@@ -99,7 +100,7 @@ private fun buildXmlPart(block: (XmlWriter) -> Unit): ByteArray {
 	return out.toString().encodeToByteArray()
 }
 
-private class DocxRenderContext {
+private class DocxRenderContext(val imageNames: Map<Int, String>) {
 	val hyperlinkUrls = mutableListOf<String>()
 
 	/** One entry per ordered list in the document, holding its indent level; entry index maps to its numId. */
@@ -525,7 +526,7 @@ private class MarkdownDocxWriter(
 	private val keepBlankLines: Boolean,
 ) {
 	fun render(markdown: String) {
-		val blocks = parseProseMarkdown(markdown, keepBlankLines)
+		val blocks = parseProseMarkdown(markdown, keepBlankLines, ctx.imageNames::get)
 		blocks.forEachIndexed { index, block ->
 			// Prose runs tight: the indent parts one line from the next, and the space a passage
 			// break wants is a blank line the author typed. Space after is for leaving prose behind.

@@ -35,9 +35,9 @@ class InsertImageBlockTest {
 	fun `an inserted image saves as an image reference`() = runTest {
 		val editor = newEditor()
 
-		assertTrue(insertImageBlock(editor.editorState, provider, imageId = 3, alt = "Cat"))
+		assertTrue(insertImageBlock(editor.editorState, provider, imageId = 3))
 
-		assertEquals("![Cat](hammer://image/3)", editor.exportAsMarkdown().trim())
+		assertEquals("![image](hammer://image/3)", editor.exportAsMarkdown().trim())
 		assertEquals(1, editor.editorState.cursorPosition.line)
 	}
 
@@ -47,16 +47,16 @@ class InsertImageBlockTest {
 		editor.importMarkdown("Before after")
 		editor.editorState.cursor.updatePosition(CharLineOffset(0, 7))
 
-		insertImageBlock(editor.editorState, provider, imageId = 3, alt = "Cat")
+		insertImageBlock(editor.editorState, provider, imageId = 3)
 
 		val lines = editor.exportAsMarkdown().lines().filter { it.isNotBlank() }.map { it.trimEnd() }
-		assertEquals(listOf("Before", "![Cat](hammer://image/3)", "after"), lines)
+		assertEquals(listOf("Before", "![image](hammer://image/3)", "after"), lines)
 	}
 
 	@Test
 	fun `a saved image reads back as an image block`() = runTest {
 		val editor = newEditor()
-		insertImageBlock(editor.editorState, provider, imageId = 3, alt = "Cat")
+		insertImageBlock(editor.editorState, provider, imageId = 3)
 		val saved = editor.exportAsMarkdown()
 
 		val reopened = newEditor()
@@ -64,19 +64,21 @@ class InsertImageBlockTest {
 
 		val style = reopened.imageSpans().single().style as ImageBlockSpanStyle
 		assertEquals("hammer://image/3", style.source)
-		assertEquals("Cat", style.alt)
+		assertEquals("image", style.alt)
 		assertEquals(saved, reopened.exportAsMarkdown())
 	}
 
 	@Test
-	fun `alt text with markdown syntax survives the round trip`() = runTest {
+	fun `existing alt text with markdown syntax survives the round trip`() = runTest {
 		val editor = newEditor()
-		insertImageBlock(editor.editorState, provider, imageId = 3, alt = "Cat [the *best*]")
+		editor.importMarkdown("""![Cat \[the \*best\*\]](hammer://image/3)""")
+		val saved = editor.exportAsMarkdown()
 
 		val reopened = newEditor()
-		reopened.importMarkdown(editor.exportAsMarkdown())
+		reopened.importMarkdown(saved)
 
 		assertEquals("Cat [the *best*]", (reopened.imageSpans().single().style as ImageBlockSpanStyle).alt)
+		assertEquals(saved, reopened.exportAsMarkdown())
 	}
 
 	@Test
@@ -87,7 +89,7 @@ class InsertImageBlockTest {
 		val cell = editor.editorState.textLines.indices.first { editor.editorState.isTableCell(it) }
 		editor.editorState.cursor.updatePosition(CharLineOffset(cell, 1))
 
-		assertFalse(insertImageBlock(editor.editorState, provider, imageId = 3, alt = "Cat"))
+		assertFalse(insertImageBlock(editor.editorState, provider, imageId = 3))
 
 		assertEquals(before, editor.exportAsMarkdown())
 		assertTrue(editor.imageSpans().isEmpty())
@@ -96,7 +98,7 @@ class InsertImageBlockTest {
 	@Test
 	fun `text typed on the image line moves to its own line`() = runTest {
 		val editor = newEditor()
-		insertImageBlock(editor.editorState, provider, imageId = 3, alt = "Cat")
+		insertImageBlock(editor.editorState, provider, imageId = 3)
 		val imageLine = editor.imageSpans().single().range.start.line
 
 		editor.editorState.cursor.updatePosition(CharLineOffset(imageLine, 1))
@@ -104,13 +106,13 @@ class InsertImageBlockTest {
 		reconcileImageBlocks(editor.editorState)
 
 		val lines = editor.exportAsMarkdown().lines().filter { it.isNotBlank() }
-		assertEquals(listOf("![Cat](hammer://image/3)", "after"), lines)
+		assertEquals(listOf("![image](hammer://image/3)", "after"), lines)
 	}
 
 	@Test
 	fun `text typed before the image moves to its own line`() = runTest {
 		val editor = newEditor()
-		insertImageBlock(editor.editorState, provider, imageId = 3, alt = "Cat")
+		insertImageBlock(editor.editorState, provider, imageId = 3)
 		val imageLine = editor.imageSpans().single().range.start.line
 
 		editor.editorState.cursor.updatePosition(CharLineOffset(imageLine, 0))
@@ -118,7 +120,7 @@ class InsertImageBlockTest {
 		reconcileImageBlocks(editor.editorState)
 
 		val lines = editor.exportAsMarkdown().lines().filter { it.isNotBlank() }
-		assertEquals(listOf("before", "![Cat](hammer://image/3)"), lines)
+		assertEquals(listOf("before", "![image](hammer://image/3)"), lines)
 	}
 
 	@Test
@@ -155,7 +157,7 @@ class InsertImageBlockTest {
 	@Test
 	fun `text typed after an intact placeholder moves to its own line and keeps the image`() = runTest {
 		val editor = newEditor()
-		insertImageBlock(editor.editorState, provider, imageId = 3, alt = "Cat")
+		insertImageBlock(editor.editorState, provider, imageId = 3)
 		val imageLine = editor.imageSpans().single().range.start.line
 
 		editor.editorState.cursor.updatePosition(CharLineOffset(imageLine, IMAGE_PLACEHOLDER.length))

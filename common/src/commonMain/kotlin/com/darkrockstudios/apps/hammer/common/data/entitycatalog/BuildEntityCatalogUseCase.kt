@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.common.data.entitycatalog
 
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
 import com.darkrockstudios.apps.hammer.common.data.search.markdownTitle
@@ -34,18 +35,21 @@ class BuildEntityCatalogUseCase(
 	private val notes: NotesRepository,
 	private val timeline: TimeLineRepository,
 	private val tagIndex: TagIndexService,
+	private val images: ImagesRepository,
 ) : EntityCatalog, KoinComponent {
 
 	private val dispatcherIo: CoroutineContext by inject(named(DISPATCHER_IO))
 
 	override suspend fun items(kinds: Set<CatalogKind>): List<CatalogItem> = coroutineScope {
+		val namesImages = CatalogKind.Note in kinds || CatalogKind.Event in kinds
+		val imageNames = if (namesImages) images.imageNames() else emptyMap()
 		val parts = CatalogKind.entries.filter { it in kinds }.map { kind ->
 			async {
 				when (kind) {
 					CatalogKind.Scene -> sceneItems()
-					CatalogKind.Note -> noteItems()
+					CatalogKind.Note -> noteItems(imageNames)
 					CatalogKind.Entry -> entryItems()
-					CatalogKind.Event -> eventItems()
+					CatalogKind.Event -> eventItems(imageNames)
 				}
 			}
 		}
@@ -73,13 +77,13 @@ class BuildEntityCatalogUseCase(
 		else -> children.flatMap { it.sceneItems(groups + value.name, tags) }
 	}
 
-	private suspend fun noteItems(): List<CatalogItem> = notes.notesListFlow.first()
+	private suspend fun noteItems(imageNames: Map<Int, String>): List<CatalogItem> = notes.notesListFlow.first()
 		.map { container ->
 			val note = container.note
 			CatalogItem(
 				kind = CatalogKind.Note,
 				id = note.id,
-				name = titleOf(note.content) ?: EMPTY_NOTE,
+				name = titleOf(note.content, imageNames) ?: EMPTY_NOTE,
 				tags = normalized(note.tags),
 			)
 		}
@@ -112,19 +116,21 @@ class BuildEntityCatalogUseCase(
 		return items.sortedBy { it.name.lowercase() }
 	}
 
-	private suspend fun eventItems(): List<CatalogItem> = timeline.timelineFlow.first().events.map { event ->
-		val date = event.date?.trim()?.takeIf { it.isNotEmpty() }
-		val title = titleOf(event.content)
-		CatalogItem(
-			kind = CatalogKind.Event,
-			id = event.id,
-			name = date ?: title ?: EMPTY_EVENT,
-			tags = normalized(event.tags),
-			detail = title.takeIf { date != null },
-		)
-	}
+	private suspend fun eventItems(imageNames: Map<Int, String>): List<CatalogItem> =
+		timeline.timelineFlow.first().events.map { event ->
+			val date = event.date?.trim()?.takeIf { it.isNotEmpty() }
+			val title = titleOf(event.content, imageNames)
+			CatalogItem(
+				kind = CatalogKind.Event,
+				id = event.id,
+				name = date ?: title ?: EMPTY_EVENT,
+				tags = normalized(event.tags),
+				detail = title.takeIf { date != null },
+			)
+		}
 
-	private fun titleOf(markdown: String): String? = markdownTitle(markdown, TITLE_MAX).ifEmpty { null }
+	private fun titleOf(markdown: String, imageNames: Map<Int, String>): String? =
+		markdownTitle(markdown, TITLE_MAX, imageNames::get).ifEmpty { null }
 
 	private fun normalized(tags: Set<String>): Set<String> =
 		tags.mapNotNullTo(LinkedHashSet()) { tag -> normalizeTagNeedle(tag).takeIf { it.isNotEmpty() } }

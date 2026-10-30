@@ -727,7 +727,7 @@ Two devices that migrate the same entry before either syncs each create an Image
 
 ### Image references
 
-Markdown in scenes, drafts, notes and timeline events embeds an image as a line of its own, `![name](hammer://image/<id>)` (`ImageReferenceSyntax`); entry text offers no way to insert one, but the rewriters still cover any it holds. Entries refer through `images`, and project data through `coverImageId`. Because references hold Entity ids, a [Re-ID](#terminology) has to rewrite them, and the rewritten referrers have to upload in the same sync.
+Markdown in scenes, drafts, notes and timeline events embeds an image as a line of its own, `![image](hammer://image/<id>)` (`ImageReferenceSyntax`); entry text offers no way to insert one, but the rewriters still cover any it holds. The alt text carries no meaning, so renaming an image rewrites nothing: Hammer shows the image's current name wherever alt text would be displayed, and the server's web reader passes the alt text through as written. Entries refer through `images`, and project data through `coverImageId`. Because references hold Entity ids, a [Re-ID](#terminology) has to rewrite them, and the rewritten referrers have to upload in the same sync.
 
 `EntitySynchronizer.reIdEntity(oldId, newId)` returns the ids of other Entities whose stored content the re-ID rewrote. `ClientImageSynchronizer` renames the file, then runs `ImageReferenceRewriter.remap`; `ClientEncyclopediaSynchronizer` returns the scenes whose entry references `SceneMetadataReferenceRemapper` rewrote. The other types return an empty set.
 

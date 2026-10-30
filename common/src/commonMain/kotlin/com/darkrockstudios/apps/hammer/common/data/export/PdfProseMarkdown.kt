@@ -68,6 +68,7 @@ internal fun prepareProse(
 	metrics: FontMetrics,
 	width: Float,
 	keepBlankLines: Boolean = true,
+	imageName: (imageId: Int) -> String? = { null },
 ): PreparedProse {
 	fun wrap(
 		spans: List<ProseSpan>,
@@ -98,7 +99,7 @@ internal fun prepareProse(
 		}
 	}
 
-	val blocks = parseProseMarkdown(markdown, keepBlankLines)
+	val blocks = parseProseMarkdown(markdown, keepBlankLines, imageName)
 	val layouts = blocks.map { block ->
 		when (block) {
 			is ProseBlock.Paragraph ->

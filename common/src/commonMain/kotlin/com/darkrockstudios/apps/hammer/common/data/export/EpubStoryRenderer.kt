@@ -13,11 +13,8 @@ import okio.BufferedSink
 import com.darkrockstudios.apps.hammer.base.markdown.ProseHtml
 import com.darkrockstudios.apps.hammer.common.data.references.ImageReferenceSyntax
 import org.intellij.markdown.MarkdownElementTypes
-import org.intellij.markdown.MarkdownTokenTypes
 import org.intellij.markdown.ast.ASTNode
-import org.intellij.markdown.ast.LeafASTNode
 import org.intellij.markdown.flavours.gfm.GFMFlavourDescriptor
-import org.intellij.markdown.flavours.gfm.GFMTokenTypes
 import org.intellij.markdown.html.HtmlGenerator
 import org.intellij.markdown.html.ImageGeneratingProvider
 import org.intellij.markdown.parser.LinkMap
@@ -37,6 +34,7 @@ fun writeStoryAsEpub(
 	strings: ExportStrings,
 	options: ExportOptions = ExportOptions(),
 	images: Map<Int, ExportImage> = emptyMap(),
+	imageNames: Map<Int, String> = emptyMap(),
 ) {
 	val authorName = projectData.authorName?.takeIf { it.isNotBlank() }
 	val packagedImages = images.values.mapNotNull { image -> packageImage(image)?.let { image.id to it } }.toMap()
@@ -86,7 +84,7 @@ fun writeStoryAsEpub(
 					href = entry.href,
 					title = chapter.name,
 					bodyBuilder = {
-						chapterBody(entry.title, chapter.markdown, options.keepBlankLines, packagedImages)
+						chapterBody(entry.title, chapter.markdown, options.keepBlankLines, packagedImages, imageNames)
 					},
 				),
 			)
@@ -201,6 +199,7 @@ private fun BODY.chapterBody(
 	markdown: String,
 	keepBlankLines: Boolean,
 	images: Map<Int, PackagedImage>,
+	imageNames: Map<Int, String>,
 ) {
 	h1(classes = "chapter-title") { +chapterTitle }
 	val flavour = GFMFlavourDescriptor()
@@ -208,20 +207,22 @@ private fun BODY.chapterBody(
 	val parsed = MarkdownParser(flavour).buildMarkdownTreeFromString(source)
 	val linkMap = LinkMap.buildLinkMap(parsed, source)
 	val providers = ProseHtml.providers(flavour, linkMap, keepBlankLines) +
-		(MarkdownElementTypes.IMAGE to EpubImageProvider(linkMap, images))
+		(MarkdownElementTypes.IMAGE to EpubImageProvider(linkMap, images, imageNames))
 	val htmlBody = HtmlGenerator(source, parsed, providers).generateHtml()
 	val xhtmlBody = htmlBody.selfCloseHtmlVoidTags()
 	unsafe { +xhtmlBody }
 }
 
 /**
- * Writes a `hammer://image` reference to a packaged image as an `img` of it, and any other image as
- * its alt text: an EPUB reader loads only resources packaged in the book. An image written without
- * alt text is described by its name.
+ * Writes a `hammer://image` reference to a packaged image as an `img` of it described by the image's
+ * name, and one to an image that could not be packaged as the name from [imageNames] in plain text, or
+ * as nothing without one: its alt text carries no meaning. Any other image is written as its alt text,
+ * as an EPUB reader loads only resources packaged in the book.
  */
 private class EpubImageProvider(
 	linkMap: LinkMap,
 	private val images: Map<Int, PackagedImage>,
+	private val imageNames: Map<Int, String>,
 ) : ImageGeneratingProvider(linkMap, null) {
 	override fun renderLink(
 		visitor: HtmlGenerator.HtmlGeneratingVisitor,
@@ -229,40 +230,20 @@ private class EpubImageProvider(
 		node: ASTNode,
 		info: RenderInfo,
 	) {
-		val image = ImageReferenceSyntax.parseId(info.destination.toString())?.let(images::get)
-		if (image == null) {
-			labelProvider.processNode(visitor, text, info.label)
-		} else {
-			val alt = plainAltText(info.label, text).ifBlank { escapeAttribute(image.name) }
-			// Written as an HTML void tag; selfCloseHtmlVoidTags closes it for XHTML.
-			visitor.consumeTagOpen(node, "img", "src=\"${image.href}\"", "alt=\"$alt\"")
-		}
-	}
-}
-
-private val altMarkupTokens = setOf(MarkdownTokenTypes.EMPH, MarkdownTokenTypes.BACKTICK, GFMTokenTypes.TILDE)
-
-/**
- * The label's text without its brackets or emphasis markup. [HtmlGenerator.leafText] resolves Markdown
- * escapes and entities and escapes `& < > "`, so the result is safe in an attribute.
- */
-private fun plainAltText(label: ASTNode, text: String): String = buildString {
-	fun visit(node: ASTNode) {
+		val imageId = ImageReferenceSyntax.parseId(info.destination.toString())
+		val image = imageId?.let(images::get)
 		when {
-			node.type in altMarkupTokens -> Unit
-			node is LeafASTNode -> append(HtmlGenerator.leafText(text, node))
-			else -> node.children.forEach(::visit)
+			// Written as an HTML void tag; selfCloseHtmlVoidTags closes it for XHTML.
+			image != null ->
+				visitor.consumeTagOpen(node, "img", "src=\"${image.href}\"", "alt=\"${escapeXml(image.name)}\"")
+
+			imageId != null -> imageNames[imageId]?.let { visitor.consumeHtml(escapeXml(it)) }
+			else -> labelProvider.processNode(visitor, text, info.label)
 		}
-	}
-	val children = label.children
-	children.forEachIndexed { index, child ->
-		val isBracket = (index == 0 && child.type == MarkdownTokenTypes.LBRACKET) ||
-			(index == children.lastIndex && child.type == MarkdownTokenTypes.RBRACKET)
-		if (!isBracket) visit(child)
 	}
 }
 
-private fun escapeAttribute(value: String): String = value
+private fun escapeXml(value: String): String = value
 	.replace("&", "&amp;")
 	.replace("<", "&lt;")
 	.replace(">", "&gt;")

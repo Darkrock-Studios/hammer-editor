@@ -181,7 +181,7 @@ class ImageReferenceSyntaxTest {
 
 	// region replaceImages
 
-	private fun italicAlt(alt: String) = "*$alt*"
+	private val italicAlt = { _: Int, alt: String -> "*$alt*" }
 
 	@Test
 	fun `replaceImages replaces an image on its own line`() {
@@ -189,7 +189,7 @@ class ImageReferenceSyntaxTest {
 			"Before\n\n*Cheshire Cat*\n\nAfter",
 			ImageReferenceSyntax.replaceImages(
 				"Before\n\n![Cheshire Cat](hammer://image/3)\n\nAfter",
-				::italicAlt,
+				italicAlt,
 			),
 		)
 	}
@@ -200,10 +200,10 @@ class ImageReferenceSyntaxTest {
 			"A *cat* grins, and > *b*",
 			ImageReferenceSyntax.replaceImages(
 				"A ![cat](<hammer://image/3> \"title\") grins, and > ![b](hammer://image/12)",
-				::italicAlt,
+				italicAlt,
 			),
 		)
-		assertEquals("> *a*\n", ImageReferenceSyntax.replaceImages("> ![a](hammer://image/1)\n", ::italicAlt))
+		assertEquals("> *a*\n", ImageReferenceSyntax.replaceImages("> ![a](hammer://image/1)\n", italicAlt))
 	}
 
 	@Test
@@ -212,7 +212,27 @@ class ImageReferenceSyntaxTest {
 			"[]|[a \\] [b]]",
 			ImageReferenceSyntax.replaceImages(
 				"![](hammer://image/1)|![a \\] [b]](hammer://image/2)",
-			) { "[$it]" },
+			) { _, alt -> "[$alt]" },
+		)
+	}
+
+	@Test
+	fun `replaceImages passes the image id of inline images and reference uses`() {
+		assertEquals(
+			"3:a 12:b 4:c\n",
+			ImageReferenceSyntax.replaceImages(
+				"![a](hammer://image/3) ![b](<hammer://image/12>) ![c][M]\n\n[m]: <hammer://image/4> \"t\"\n",
+			) { id, alt -> "$id:$alt" },
+		)
+	}
+
+	@Test
+	fun `replaceImages takes a reference use's id from the first definition of its label`() {
+		assertEquals(
+			"7:x\n",
+			ImageReferenceSyntax.replaceImages(
+				"![x][m]\n\n[m]: hammer://image/7\n[m]: hammer://image/8\n",
+			) { id, alt -> "$id:$alt" },
 		)
 	}
 
@@ -222,7 +242,7 @@ class ImageReferenceSyntaxTest {
 			"See *Map* here.\n",
 			ImageReferenceSyntax.replaceImages(
 				"See ![Map][m] here.\n\n[m]: hammer://image/4\n",
-				::italicAlt,
+				italicAlt,
 			),
 		)
 	}
@@ -230,9 +250,29 @@ class ImageReferenceSyntaxTest {
 	@Test
 	fun `replaceImages leaves other images, links and fenced code alone`() {
 		val text = "![web](https://example.com/a.png) [link](hammer://image/5)\n```\n![x](hammer://image/5)\n```\n"
-		assertSame(text, ImageReferenceSyntax.replaceImages(text, ::italicAlt))
+		assertSame(text, ImageReferenceSyntax.replaceImages(text, italicAlt))
 		val plain = "No images here."
-		assertSame(plain, ImageReferenceSyntax.replaceImages(plain, ::italicAlt))
+		assertSame(plain, ImageReferenceSyntax.replaceImages(plain, italicAlt))
+	}
+
+	@Test
+	fun `an id too large for an Int names no image and is left as written`() {
+		val text = "![a](hammer://image/3) ![b](hammer://image/99999999999) ![c][m]\n\n" +
+			"[m]: hammer://image/99999999999\n"
+
+		assertEquals(
+			"3:a ![b](hammer://image/99999999999) ![c][m]\n\n[m]: hammer://image/99999999999\n",
+			ImageReferenceSyntax.replaceImages(text) { id, alt -> "$id:$alt" },
+		)
+		assertEquals(setOf(3), ImageReferenceSyntax.findIds(text))
+		assertEquals(
+			"![a](hammer://image/4) ![b](hammer://image/99999999999) ![c][m]\n\n[m]: hammer://image/99999999999\n",
+			ImageReferenceSyntax.remap(text, mapOf(3 to 4)),
+		)
+		assertEquals(
+			" ![b](hammer://image/99999999999) ![c][m]\n\n[m]: hammer://image/99999999999\n",
+			ImageReferenceSyntax.remove(text, 3),
+		)
 	}
 
 	// endregion

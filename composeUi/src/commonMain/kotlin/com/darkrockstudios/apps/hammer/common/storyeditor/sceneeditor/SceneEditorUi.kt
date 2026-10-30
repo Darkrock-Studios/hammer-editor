@@ -159,7 +159,7 @@ fun SceneEditorUi(
 		val image = state.pendingImageInsert ?: return@LaunchedEffect
 		val provider = imageProvider ?: return@LaunchedEffect
 		if (!hasReceivedInitialBuffer) return@LaunchedEffect
-		insertImageBlock(textEditorState.textState, provider, image.id, image.name)
+		insertImageBlock(textEditorState.textState, provider, image.id)
 		component.consumePendingImageInsert()
 	}
 

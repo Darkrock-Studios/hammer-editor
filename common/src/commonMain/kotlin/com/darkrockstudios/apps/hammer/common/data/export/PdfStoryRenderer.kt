@@ -33,8 +33,9 @@ fun writeStoryAsPdf(
 	chapters: List<StoryChapter>,
 	strings: ExportStrings,
 	options: ExportOptions = ExportOptions(),
+	imageNames: Map<Int, String> = emptyMap(),
 ) {
-	sink.write(buildStoryPdf(projectName, projectData, chapters, strings, options).toByteArray())
+	sink.write(buildStoryPdf(projectName, projectData, chapters, strings, options, imageNames).toByteArray())
 }
 
 internal fun buildStoryPdf(
@@ -43,6 +44,7 @@ internal fun buildStoryPdf(
 	chapters: List<StoryChapter>,
 	strings: ExportStrings,
 	options: ExportOptions = ExportOptions(),
+	imageNames: Map<Int, String> = emptyMap(),
 ): PdfDocument {
 	val authorName = projectData.authorName?.takeIf { it.isNotBlank() }
 	val effective = chapters.ifEmpty { listOf(StoryChapter(projectName, "")) }
@@ -54,7 +56,14 @@ internal fun buildStoryPdf(
 	val measuringDriver = defaultPdfDriverFactory().create(PdfMetadata(), emptyList())
 	val prose = try {
 		effective.map {
-			prepareProse(it.markdown, proseColors, measuringDriver.fontMetrics, contentWidth, options.keepBlankLines)
+			prepareProse(
+				it.markdown,
+				proseColors,
+				measuringDriver.fontMetrics,
+				contentWidth,
+				options.keepBlankLines,
+				imageNames::get,
+			)
 		}
 	} finally {
 		measuringDriver.close()

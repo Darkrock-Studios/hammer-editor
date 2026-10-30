@@ -30,4 +30,13 @@ class ExportProseTest {
 			json("1. One\n   - **Two**\n\n> Said.\n\n| A | B |\n| --- | --- |\n| 1 | 2 |"),
 		)
 	}
+
+	@Test
+	fun `a project image arrives as its current name`() {
+		val prose = proseOf("![image](hammer://image/3)") { id -> if (id == 3) "Cheshire Cat" else null }
+		assertEquals(
+			"""[{"type":"paragraph","spans":[{"text":"Cheshire Cat"}]}]""",
+			OperationJson.encodeToString(ListSerializer(ExportBlock.serializer()), prose),
+		)
+	}
 }

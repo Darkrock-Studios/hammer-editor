@@ -469,6 +469,10 @@ class ExportInput(
 	val options: ExportOptions,
 	val language: String,
 	val strings: ExportStrings,
+	/** The project images the story refers to, by id; empty unless the exporter embeds images. */
+	val images: Map<Int, ExportImage> = emptyMap(),
+	/** The current name of each project image the story refers to, by id. */
+	val imageNames: Map<Int, String> = emptyMap(),
 ) {
 	fun requireProjectData(): ProjectData
 	/** [chapters], or one chapter named after the project when top-level nodes are not chapters. */
@@ -487,11 +491,15 @@ class ExportInput(
 - **Labels.** Built-in labels are localized in `:composeUi`. A plugin format
   shows its manifest label, or its file extension in upper case.
 - **Images.** Chapter markdown embeds a project image as a line of its own,
-  `![name](hammer://image/<id>)`, which only Hammer can resolve: the app, and
-  the server's web reader, which serves the image itself. The EPUB format
-  packages each referenced image in the book and writes an `img` tag for it;
-  DOCX, RTF and PDF write the image as its alt text, the image's name; the
-  Markdown format keeps the reference as written.
+  `![image](hammer://image/<id>)`, which only Hammer can resolve: the app, and
+  the server's web reader, which serves the image itself. The alt text carries
+  no meaning: Hammer shows the image's current name wherever alt text would be
+  displayed, and the web reader passes the alt text through as written. The
+  EPUB format packages each referenced image in the book and writes an `img`
+  tag for it, described by the image's name; DOCX, RTF and PDF write the
+  image's name as text, as does the `prose` input of a plugin exporter
+  (`ExportInput.imageNames`), and leave out an image with no name to show;
+  the Markdown format keeps the reference as written.
 
 Importers have no plugin seam: `ImportFormat` is a closed enum.
 
@@ -1246,8 +1254,9 @@ The Hammer-specific parts:
   gets each scene in `prose` instead of `scenes`: the host's own parse of its
   markdown, the one the built-in formats render from, as blocks (`paragraph`,
   `blank`, `heading`, `list`, `quote`, `code`, `rule`, `table`) of styled
-  spans. A plugin then needs no markdown parser, and reads text exactly as the
-  built-in formats do. The C kit's `hammer_json.h` reads either form.
+  spans, with a project image as its name. A plugin then needs no markdown
+  parser, and reads text exactly as the built-in formats do. The C kit's
+  `hammer_json.h` reads either form.
 - A function fails by returning non-zero or by trapping. Either way, the
   message it set with `error_set` is what the user sees, if it set one:
   AssemblyScript's `abort` sets one and then traps.

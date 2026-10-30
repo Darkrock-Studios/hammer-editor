@@ -33,6 +33,7 @@ private object EpubStoryExporter : StoryExporter {
 		strings = input.strings,
 		options = input.options,
 		images = input.images,
+		imageNames = input.imageNames,
 	)
 }
 
@@ -48,6 +49,7 @@ private object DocxStoryExporter : StoryExporter {
 		chapters = input.bookChapters(),
 		strings = input.strings,
 		options = input.options,
+		imageNames = input.imageNames,
 	)
 }
 
@@ -63,6 +65,7 @@ private object RtfStoryExporter : StoryExporter {
 		chapters = input.bookChapters(),
 		strings = input.strings,
 		options = input.options,
+		imageNames = input.imageNames,
 	)
 }
 
@@ -78,6 +81,7 @@ private object PdfStoryExporter : StoryExporter {
 		chapters = input.bookChapters(),
 		strings = input.strings,
 		options = input.options,
+		imageNames = input.imageNames,
 	)
 }
 

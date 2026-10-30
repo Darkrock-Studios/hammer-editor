@@ -20,6 +20,7 @@ class RtfStoryRendererTest {
 		projectName: String = "Test Project",
 		projectData: ProjectData = ProjectData(authorName = "Test Author"),
 		options: ExportOptions = ExportOptions(),
+		imageNames: Map<Int, String> = emptyMap(),
 	): String {
 		val buffer = Buffer()
 		val author = projectData.authorName?.takeIf { it.isNotBlank() }
@@ -30,6 +31,7 @@ class RtfStoryRendererTest {
 			chapters = chapters,
 			strings = ExportStrings(contentsTitle = "Contents", authorByline = author?.let { "by $it" }),
 			options = options,
+			imageNames = imageNames,
 		)
 		return buffer.readByteArray().decodeToString()
 	}
@@ -240,5 +242,17 @@ class RtfStoryRendererTest {
 			scene.markdown.contains("The quick brown fox jumped."),
 			"Chapter body should survive the export/import round-trip, got: ${scene.markdown}",
 		)
+	}
+
+	@Test
+	fun `a project image is written as its current name, or not at all without one`() {
+		val rtf = render(
+			listOf(StoryChapter("Alpha", "![image](hammer://image/3)\n\n![Old](hammer://image/9)")),
+			imageNames = mapOf(3 to "Cheshire Cat"),
+		)
+
+		val body = rtf.substring(rtf.indexOf("Cheshire Cat"))
+		assertTrue(!body.contains("Old"), rtf)
+		assertTrue(!body.contains("image"), rtf)
 	}
 }

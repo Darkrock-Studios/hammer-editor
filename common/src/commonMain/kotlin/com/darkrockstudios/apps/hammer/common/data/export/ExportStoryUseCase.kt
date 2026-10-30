@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.common.data.ExportOptions
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesRepository
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageDef
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectPluginsRepository
 import com.darkrockstudios.apps.hammer.common.data.references.ImageReferenceSyntax
@@ -92,7 +93,8 @@ class ExportStoryUseCase(
 			val language = projectData?.language?.takeIf { it.isNotBlank() }
 				?: localeResolver.getCurrentLocale().language?.takeIf { it.isNotBlank() }
 				?: "en"
-			val images = if (exporter.embedsImages) loadImages(chapters, projectData) else emptyMap()
+			val imageDefs = referencedImages(chapters, projectData)
+			val images = if (exporter.embedsImages) loadImages(imageDefs) else emptyMap()
 			ExportInput(
 				projectName = projectName,
 				projectData = projectData,
@@ -102,6 +104,7 @@ class ExportStoryUseCase(
 				language = language,
 				strings = resolveExportStrings(projectData),
 				images = images,
+				imageNames = imageDefs.associate { it.id to it.name },
 			)
 		}
 
@@ -116,23 +119,26 @@ class ExportStoryUseCase(
 		return exporters.forFormat(format, disabledPlugins)
 	}
 
-	/** The images the scenes and the cover refer to; one without a readable file is left out. */
-	private suspend fun loadImages(chapters: List<StoryChapter>, projectData: ProjectData?): Map<Int, ExportImage> {
+	/** The project images the scenes and the cover refer to. */
+	private suspend fun referencedImages(chapters: List<StoryChapter>, projectData: ProjectData?): List<ImageDef> {
 		val ids = chapters.flatMapTo(mutableSetOf()) { chapter ->
 			chapter.scenes.flatMap(ImageReferenceSyntax::findIds)
 		}
 		projectData?.coverImageId?.let(ids::add)
-		if (ids.isEmpty()) return emptyMap()
+		if (ids.isEmpty()) return emptyList()
 
-		return imagesRepository.ensureImagesLoaded()
-			.filter { it.id in ids }
+		return imagesRepository.ensureImagesLoaded().filter { it.id in ids }
+	}
+
+	/** The files of [defs]; one without a readable file is left out. */
+	private fun loadImages(defs: List<ImageDef>): Map<Int, ExportImage> =
+		defs
 			.mapNotNull { def ->
 				imagesRepository.loadImageBytes(def)?.let { bytes ->
 					ExportImage(id = def.id, name = def.name, fileExtension = def.fileExtension, bytes = bytes)
 				}
 			}
 			.associateBy { it.id }
-	}
 
 	/** Resolves the user-facing strings that appear inside the exported document for the active locale. */
 	private suspend fun resolveExportStrings(projectData: ProjectData?): ExportStrings {

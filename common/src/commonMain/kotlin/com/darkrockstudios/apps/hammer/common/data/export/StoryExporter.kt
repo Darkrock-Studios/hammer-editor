@@ -58,6 +58,8 @@ class ExportInput(
 	val strings: ExportStrings,
 	/** The project images the story refers to, by id; empty unless the exporter [StoryExporter.embedsImages]. */
 	val images: Map<Int, ExportImage> = emptyMap(),
+	/** The current name of each project image the story refers to, by id. */
+	val imageNames: Map<Int, String> = emptyMap(),
 ) {
 	fun requireProjectData(): ProjectData =
 		requireNotNull(projectData) { "Project data is required for this export format" }

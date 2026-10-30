@@ -13,11 +13,12 @@ import kotlin.test.assertTrue
 
 class PdfStoryRendererTest {
 
-	private fun render(markdown: String): PdfDocument = buildStoryPdf(
+	private fun render(markdown: String, imageNames: Map<Int, String> = emptyMap()): PdfDocument = buildStoryPdf(
 		projectName = "Story",
 		projectData = ProjectData(authorName = "Author"),
 		chapters = listOf(StoryChapter("Chapter", markdown)),
 		strings = ExportStrings(contentsTitle = "Contents", authorByline = "by Author"),
+		imageNames = imageNames,
 	)
 
 	private fun assertInsideMargins(document: PdfDocument) {
@@ -105,5 +106,13 @@ class PdfStoryRendererTest {
 		val rows = document.textRuns.filter { it.pageIndex == 2 }.map { it.yPoints }.distinct().sorted()
 		val gaps = rows.drop(1).zipWithNext { a, b -> b - a }.map { Math.round(it * 10) }.distinct()
 		assertEquals(1, gaps.size, "uneven line spacing: $gaps")
+	}
+
+	@Test
+	fun `a project image is written as its current name`() {
+		val document = render("![image](hammer://image/3)", imageNames = mapOf(3 to "Cheshire"))
+
+		assertTrue(document.textRuns.any { it.text.contains("Cheshire") }, document.textRuns.toString())
+		assertTrue(document.textRuns.none { it.text.contains("image") }, document.textRuns.toString())
 	}
 }

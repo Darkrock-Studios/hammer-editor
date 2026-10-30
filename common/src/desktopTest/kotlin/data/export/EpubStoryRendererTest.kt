@@ -13,6 +13,7 @@ import java.io.ByteArrayInputStream
 import java.util.zip.ZipInputStream
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
+import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
@@ -25,6 +26,7 @@ class EpubStoryRendererTest {
 		projectData: ProjectData = ProjectData(authorName = "Jane Doe"),
 		options: ExportOptions = ExportOptions(),
 		images: Map<Int, ExportImage> = emptyMap(),
+		imageNames: Map<Int, String> = emptyMap(),
 	): Map<String, ByteArray> {
 		val buffer = Buffer()
 		val author = projectData.authorName?.takeIf { it.isNotBlank() }
@@ -37,6 +39,7 @@ class EpubStoryRendererTest {
 			strings = ExportStrings(contentsTitle = "Contents", authorByline = author?.let { "by $it" }),
 			options = options,
 			images = images,
+			imageNames = imageNames,
 		)
 
 		val entries = linkedMapOf<String, ByteArray>()
@@ -57,7 +60,8 @@ class EpubStoryRendererTest {
 		projectData: ProjectData = ProjectData(authorName = "Jane Doe"),
 		options: ExportOptions = ExportOptions(),
 		images: Map<Int, ExportImage> = emptyMap(),
-	): String = renderEntries(chapters, projectName, projectData, options, images).values
+		imageNames: Map<Int, String> = emptyMap(),
+	): String = renderEntries(chapters, projectName, projectData, options, images, imageNames).values
 		.joinToString(separator = "\n", postfix = "\n") { it.decodeToString() }
 
 	private fun Map<String, ByteArray>.text(name: String): String =
@@ -203,7 +207,7 @@ class EpubStoryRendererTest {
 		assertTrue("media-type=\"image/png\"" in item, item)
 
 		val chapter = entries.text("OEBPS/ch1.xhtml")
-		assertTrue("""<img src="images/3.png" alt="A black cat"/>""" in chapter, chapter)
+		assertTrue("""<img src="images/3.png" alt="cat"/>""" in chapter, chapter)
 		assertTrue("hammer://image" !in chapter, chapter)
 
 		val css = entries.filterKeys { it.endsWith(".css") }.values.joinToString { it.decodeToString() }
@@ -211,46 +215,51 @@ class EpubStoryRendererTest {
 	}
 
 	@Test
-	fun `alt text special characters are escaped in the img tag`() {
+	fun `special characters in the image name are escaped in the img tag`() {
 		val chapter = renderEntries(
-			listOf(StoryChapter("Alpha", """![Tom & "Jerry" <3](hammer://image/3)""")),
-			images = mapOf(3 to catImage),
+			listOf(StoryChapter("Alpha", "![image](hammer://image/3)")),
+			images = mapOf(3 to ExportImage(id = 3, name = """Tom & "Jerry" <3""", fileExtension = "png", bytes = PNG_BYTES)),
 		).text("OEBPS/ch1.xhtml")
 
 		assertTrue("""alt="Tom &amp; &quot;Jerry&quot; &lt;3"/>""" in chapter, chapter)
 	}
 
 	@Test
-	fun `an image written without alt text is described by its name`() {
+	fun `a packaged image is described by its name whatever its alt text`() {
 		val chapter = renderEntries(
-			listOf(StoryChapter("Alpha", "![](hammer://image/3)")),
+			listOf(StoryChapter("Alpha", "![](hammer://image/3)\n\n![image](hammer://image/3)")),
 			images = mapOf(3 to catImage),
 		).text("OEBPS/ch1.xhtml")
 
-		assertTrue("""<img src="images/3.png" alt="cat"/>""" in chapter, chapter)
+		assertEquals(2, Regex("""<img src="images/3\.png" alt="cat"/>""").findAll(chapter).count(), chapter)
 	}
 
 	@Test
-	fun `an image with an extension the book cannot carry is written as its alt text`() {
+	fun `an image with an extension the book cannot carry is written as its name`() {
 		val entries = renderEntries(
 			listOf(StoryChapter("Alpha", "![A cat](hammer://image/3)")),
-			images = mapOf(3 to ExportImage(id = 3, name = "cat", fileExtension = "bmp", bytes = PNG_BYTES)),
+			images = mapOf(3 to ExportImage(id = 3, name = "Tom & <Jerry>", fileExtension = "bmp", bytes = PNG_BYTES)),
+			imageNames = mapOf(3 to "Tom & <Jerry>"),
 		)
 
 		val chapter = entries.text("OEBPS/ch1.xhtml")
-		assertTrue("<p>A cat</p>" in chapter, chapter)
+		assertTrue("<p>Tom &amp; &lt;Jerry&gt;</p>" in chapter, chapter)
+		assertTrue("A cat" !in chapter, chapter)
 		assertTrue("<img" !in chapter, chapter)
 		assertTrue(entries.keys.none { it.startsWith("OEBPS/images/") }, entries.keys.toString())
 	}
 
 	@Test
-	fun `an image that is not packaged is written as its alt text`() {
-		val content = render(
-			listOf(StoryChapter("Alpha", "Before.\n\n![A *black* cat](hammer://image/3)\n\nAfter.")),
+	fun `an image that is not packaged is written as its name, or as nothing without one`() {
+		val content = renderEntries(
+			listOf(StoryChapter("Alpha", "Before.\n\n![A *black* cat](hammer://image/3)\n\n![Old](hammer://image/5)")),
 			images = mapOf(4 to ExportImage(id = 4, name = "dog", fileExtension = "png", bytes = PNG_BYTES)),
-		)
+			imageNames = mapOf(3 to "cat"),
+		).text("OEBPS/ch1.xhtml")
 
-		assertTrue("<p>A <em>black</em> cat</p>" in content, content)
+		assertTrue("<p>cat</p>" in content, content)
+		assertTrue("black" !in content, content)
+		assertTrue("Old" !in content, content)
 		assertTrue("<img" !in content, content)
 		assertTrue("hammer://image" !in content, content)
 	}

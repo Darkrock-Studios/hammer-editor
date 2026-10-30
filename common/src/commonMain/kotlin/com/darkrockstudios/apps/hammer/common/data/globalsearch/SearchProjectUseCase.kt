@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.common.components.globalsearch.SearchResu
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneContentRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataRepository
@@ -15,6 +16,7 @@ import com.darkrockstudios.apps.hammer.common.data.search.MarkdownProjectorPool
 import com.darkrockstudios.apps.hammer.common.data.search.ParsedQuery
 import com.darkrockstudios.apps.hammer.common.data.search.matchesAllTags
 import com.darkrockstudios.apps.hammer.common.data.search.parseQuery
+import com.darkrockstudios.apps.hammer.common.data.search.rawTitleLine
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_IO
@@ -25,6 +27,7 @@ import kotlinx.coroutines.withContext
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.koin.core.qualifier.named
+import kotlin.concurrent.Volatile
 import kotlin.coroutines.CoroutineContext
 
 /** A tag match with nothing to preview: the result stands on the tag alone. */
@@ -41,17 +44,23 @@ class SearchProjectUseCase(
 	private val notes: NotesRepository,
 	private val encyclopedia: EncyclopediaRepository,
 	private val timeLine: TimeLineRepository,
+	private val images: ImagesRepository,
 ) : KoinComponent {
 
 	private val dispatcherDefault: CoroutineContext by inject(named(DISPATCHER_DEFAULT))
 	private val dispatcherIo: CoroutineContext by inject(named(DISPATCHER_IO))
 
+	// Read by projectors on the default dispatcher; replaced at the start of each search.
+	@Volatile
+	private var imageNames: Map<Int, String> = emptyMap()
+
 	// Outlives a single search so the buffers one scan grew are still sized for the next keystroke.
-	private val projectors = MarkdownProjectorPool()
+	private val projectors = MarkdownProjectorPool { imageNames[it] }
 
 	suspend fun search(query: String, filter: GlobalSearchFilter): List<SearchResult> {
 		val parsed = parseQuery(query)
 		if (!parsed.isUsable()) return emptyList()
+		imageNames = images.imageNames()
 		return withContext(dispatcherDefault) { runSearch(parsed, filter) }
 	}
 
@@ -309,9 +318,7 @@ class SearchProjectUseCase(
 		fallback: String,
 	): String {
 		projector.project(content)
-		val title = projector.firstNonBlankLine().ifEmpty {
-			content.lineSequence().firstOrNull { it.isNotBlank() }?.trim().orEmpty()
-		}
+		val title = projector.firstNonBlankLine().ifEmpty { rawTitleLine(content) }
 		return when {
 			title.isEmpty() -> fallback
 			title.length > TITLE_MAX -> title.take(TITLE_MAX).trimEnd() + "…"

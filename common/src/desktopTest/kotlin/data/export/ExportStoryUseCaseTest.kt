@@ -234,19 +234,27 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 		assertContentEquals(byteArrayOf(1), images.getValue(1).bytes)
 		assertContentEquals(byteArrayOf(5), images.getValue(5).bytes)
 		verify(exactly = 0) { imagesRepository.loadImageBytes(unreferenced) }
+		assertEquals(
+			mapOf(1 to "Cat", 2 to "Gone", 5 to "Cover"),
+			exporter.input?.imageNames,
+			"Every referenced image that exists should be named, readable or not",
+		)
 	}
 
 	@Test
-	fun `an exporter that does not embed images never reads them`() = runTest {
+	fun `an exporter that does not embed images gets their names but never reads their files`() = runTest {
 		initRepo()
-		writeSceneBuffer(1, "![Cat](hammer://image/1)")
+		writeSceneBuffer(1, "![image](hammer://image/1)")
 		storedProjectData = StoredProjectData(data = ProjectData(coverImageId = 1))
+		imagesRepository = mockk {
+			coEvery { ensureImagesLoaded() } returns listOf(ImageDef(id = 1, name = "Cat", fileExtension = "png"))
+		}
 		val exporter = CapturingExporter(embedsImages = false)
 
 		useCase(listOf(exporter)).render(ExportOptions(format = exporter.formatId))
 
 		assertEquals(emptyMap(), checkNotNull(exporter.input).images)
-		coVerify(exactly = 0) { imagesRepository.ensureImagesLoaded() }
+		assertEquals(mapOf(1 to "Cat"), exporter.input?.imageNames)
 		verify(exactly = 0) { imagesRepository.loadImageBytes(any()) }
 	}
 
@@ -258,6 +266,7 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 		useCase(listOf(exporter)).render(ExportOptions(format = exporter.formatId))
 
 		assertEquals(emptyMap(), checkNotNull(exporter.input).images)
+		assertEquals(emptyMap(), checkNotNull(exporter.input).imageNames)
 		coVerify(exactly = 0) { imagesRepository.ensureImagesLoaded() }
 	}
 

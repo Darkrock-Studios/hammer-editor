@@ -10,6 +10,7 @@ import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
 import com.darkrockstudios.apps.hammer.common.data.projectInject
@@ -56,6 +57,7 @@ class ImageReferenceRewriter(private val projectDef: ProjectDef) : ProjectScoped
 	private val notesRepository: NotesRepository by projectInject()
 	private val timeLineRepository: TimeLineRepository by projectInject()
 	private val projectDataRepository: ProjectDataRepository by projectInject()
+	private val imagesRepository: ImagesRepository by projectInject()
 
 	private val coverHolder = CoverHolder()
 
@@ -311,7 +313,7 @@ class ImageReferenceRewriter(private val projectDef: ProjectDef) : ProjectScoped
 
 		override suspend fun items(): List<NoteContent> = notesRepository.loadNotesImperative().map { it.note }
 		override fun id(item: NoteContent) = item.id
-		override suspend fun name(item: NoteContent) = markdownTitle(item.content, TITLE_LENGTH)
+		override suspend fun name(item: NoteContent) = markdownTitle(item.content, TITLE_LENGTH, imageNames())
 		override suspend fun read(item: NoteContent): String = item.content
 
 		override suspend fun rewrite(item: NoteContent, transform: (String) -> String): Boolean =
@@ -327,7 +329,7 @@ class ImageReferenceRewriter(private val projectDef: ProjectDef) : ProjectScoped
 
 		override suspend fun items(): List<TimeLineEvent> = timeLineRepository.loadTimeline().events
 		override fun id(item: TimeLineEvent) = item.id
-		override suspend fun name(item: TimeLineEvent) = markdownTitle(item.content, TITLE_LENGTH)
+		override suspend fun name(item: TimeLineEvent) = markdownTitle(item.content, TITLE_LENGTH, imageNames())
 		override suspend fun read(item: TimeLineEvent): String = item.content
 
 		override suspend fun rewrite(item: TimeLineEvent, transform: (String) -> String): Boolean =
@@ -360,6 +362,9 @@ class ImageReferenceRewriter(private val projectDef: ProjectDef) : ProjectScoped
 			return emptySet()
 		}
 	}
+
+	/** Names each image the way the titles of notes and events show it. */
+	private suspend fun imageNames(): (Int) -> String? = imagesRepository.imageNames()::get
 
 	private suspend fun <T> guarded(holder: Holder, fallback: T, block: suspend () -> T): T =
 		guarded(holder.name, fallback, block)

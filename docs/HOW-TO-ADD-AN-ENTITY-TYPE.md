@@ -373,7 +373,7 @@ All opt-in. Nothing forces any of these, so decide from section 1 and do them de
 | Project statistics | `data/projectstatistics/ProjectStatistics` count field; `StatisticsService` count and assignment; `components/projecthome/ProjectHome.State`; `ProjectHomeComponent`; composeUi `ProjectStatsUi` count cell in both grid layouts | **Silent** |
 | Encyclopedia rename | `encyclopediarepository/rename/RenameModels.RenamePlace`; `RenameEntryUseCase` scan, `readText`, `writeText` | Only if the type holds prose |
 | References, spell check, writing activity, story export, backup | Scene or encyclopedia only; backup zips the whole folder | Nothing |
-| Syntax embedded in Markdown | `countWords` (`base/.../markdown/WordCount.kt`) and `MarkdownProjector` must skip it; exporters must degrade it (`EpubStoryRenderer.kt` writes an image's alt text); a rewrite of an open scene runs `WritingSessionTracker.transformBaseline` | **Silent** |
+| Syntax embedded in Markdown | `countWords` (`base/.../markdown/WordCount.kt`) and `MarkdownProjector` must skip it; exporters must degrade it (`ProseMarkdown.kt` writes an image's name, looked up by id); a rewrite of an open scene runs `WritingSessionTracker.transformBaseline` | **Silent** |
 
 ## 6. Navigation and screens
 

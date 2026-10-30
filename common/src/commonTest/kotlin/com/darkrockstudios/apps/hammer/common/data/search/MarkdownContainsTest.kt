@@ -43,6 +43,14 @@ class MarkdownContainsTest {
 	}
 
 	@Test
+	fun `a project image matches neither its alt text nor the placeholder`() {
+		// Global search, which has the project's image names, finds an image by its name instead.
+		assertFalse(markdownContains("A cat\n\n![image](hammer://image/3)", "image"))
+		assertFalse(markdownContains("![Cheshire Cat](hammer://image/3)", "Cheshire"))
+		assertTrue(markdownContains("A cat\n\n![image](hammer://image/3)", "A cat"))
+	}
+
+	@Test
 	fun `text that is absent does not match`() {
 		assertFalse(markdownContains("A well\\-known secret", "unrelated"))
 		assertFalse(markdownContains("", "anything"))

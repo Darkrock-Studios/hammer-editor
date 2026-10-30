@@ -81,6 +81,9 @@ class ImagesRepository(
 	suspend fun ensureImagesLoaded(): List<ImageDef> =
 		_imagesFlow.replayCache.firstOrNull() ?: loadImages()
 
+	/** The current name of every image, by id, loading the images first when needed. */
+	suspend fun imageNames(): Map<Int, String> = ensureImagesLoaded().associate { it.id to it.name }
+
 	/** Reads from disk, so it is current even before the first load completes. */
 	fun findImage(id: Int): ImageDef? = imagesDatasource.findImage(id)
 

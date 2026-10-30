@@ -85,7 +85,7 @@ fun MarkdownEditField(
 		{
 			scope.launch {
 				val image = imagePicker() ?: return@launch
-				insertImageBlock(textEditorState.textState, imageProvider, image.id, image.name)
+				insertImageBlock(textEditorState.textState, imageProvider, image.id)
 			}
 		}
 	} else {

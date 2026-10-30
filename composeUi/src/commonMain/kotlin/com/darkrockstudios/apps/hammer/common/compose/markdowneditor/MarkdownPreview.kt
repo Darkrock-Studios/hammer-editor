@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.common.compose.markdowneditor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.common.compose.LocalImageNames
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.references.ImageReferenceSyntax
 import com.darkrockstudios.apps.hammer.markdown_preview_image
@@ -14,29 +15,42 @@ private val INLINE_SPAN = Regex(
 	"""`[^`\r\n]*`|!?\[[^\]\r\n]*\]\([^)\r\n]*\)|\*\*[^\r\n]*?\*\*|\*[^*\r\n]+\*|__[^\r\n]*?__|_[^_\r\n]+_|~~[^\r\n]*?~~|==[^\r\n]*?=="""
 )
 
-// Characters that would start inline Markdown inside the italic alt text.
-private val ALT_SPECIALS = Regex("""[\\`*_\[\]~<=]""")
+// Characters that would start inline Markdown, or an entity, inside an image's italic label.
+private val NAME_SPECIALS = Regex("""[\\`*_\[\]~<=&]""")
 
 /**
- * The Markdown a card shows as a preview of [markdown]. Each project image becomes its alt text in
- * italics ([imagePlaceholder] when the alt text is empty), so a card never renders a full image.
- * The result is trimmed: a trailing newline would render as a blank gap at the bottom of a card.
- * When the result is longer than [maxLength] it is cut at whitespace, outside any inline construct
- * where possible, and ends in an ellipsis, never exceeding [maxLength].
+ * The Markdown a card shows as a preview of [markdown]. Each project image becomes, in italics, the
+ * name [imageName] gives its id, else [imagePlaceholder], so a card never renders a full image; its
+ * alt text carries no meaning and is never shown. The result is trimmed: a trailing newline would
+ * render as a blank gap at the bottom of a card. When the result is longer than [maxLength] it is cut
+ * at whitespace, outside any inline construct where possible, and ends in an ellipsis, never
+ * exceeding [maxLength].
  */
-fun markdownPreview(markdown: String, maxLength: Int?, imagePlaceholder: String): String {
-	val text = ImageReferenceSyntax.replaceImages(markdown) { alt ->
-		"*${alt.trim().ifEmpty { imagePlaceholder }.replace(ALT_SPECIALS) { "\\${it.value}" }}*"
+fun markdownPreview(
+	markdown: String,
+	maxLength: Int?,
+	imagePlaceholder: String,
+	imageName: (imageId: Int) -> String? = { null },
+): String {
+	val text = ImageReferenceSyntax.replaceImages(markdown) { imageId, _ ->
+		val label = imageName(imageId)?.trim()?.ifEmpty { null } ?: imagePlaceholder
+		"*${label.replace(NAME_SPECIALS) { "\\${it.value}" }}*"
 	}.trim()
 	if (maxLength == null || text.length <= maxLength) return text
 	return truncate(text, maxLength)
 }
 
-/** [markdownPreview] with the localized image placeholder, recomputed only when its inputs change. */
+/**
+ * [markdownPreview] with the localized image placeholder and the [LocalImageNames], recomputed only
+ * when its inputs change.
+ */
 @Composable
 fun rememberMarkdownPreview(markdown: String, maxLength: Int? = null): String {
 	val placeholder = Res.string.markdown_preview_image.get()
-	return remember(markdown, maxLength, placeholder) { markdownPreview(markdown, maxLength, placeholder) }
+	val imageNames = LocalImageNames.current
+	return remember(markdown, maxLength, placeholder, imageNames) {
+		markdownPreview(markdown, maxLength, placeholder, imageNames)
+	}
 }
 
 private fun truncate(text: String, maxLength: Int): String {

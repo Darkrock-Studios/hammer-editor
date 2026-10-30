@@ -13,6 +13,7 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.globalsearch.SearchProjectUseCase
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContainer
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
@@ -51,6 +52,7 @@ class SearchProjectUseCaseTest : BaseTest() {
 	private lateinit var notes: NotesRepository
 	private lateinit var encyclopedia: EncyclopediaRepository
 	private lateinit var timeLine: TimeLineRepository
+	private lateinit var images: ImagesRepository
 
 	@BeforeEach
 	override fun setup() {
@@ -63,6 +65,8 @@ class SearchProjectUseCaseTest : BaseTest() {
 		notes = mockk(relaxed = true)
 		encyclopedia = mockk(relaxed = true)
 		timeLine = mockk(relaxed = true)
+		images = mockk(relaxed = true)
+		coEvery { images.imageNames() } returns emptyMap()
 
 		// Defaults: empty results
 		every { sceneEditor.getScenes() } returns emptyList()
@@ -80,12 +84,17 @@ class SearchProjectUseCaseTest : BaseTest() {
 		notes = notes,
 		encyclopedia = encyclopedia,
 		timeLine = timeLine,
+		images = images,
 	)
 
 	@Test
 	fun `global search agrees with the shared match rule`() {
-		// Global search needs offsets so it resolves separately; the two must not drift apart.
+		// Global search needs offsets so it resolves separately; the two must not drift apart. Project
+		// images are the one place they differ: global search names them and markdownContains cannot,
+		// so they agree here only because this projector has no names either.
 		val cases = listOf(
+			"A cat\n\n![image](hammer://image/3)" to "image",
+			"A cat\n\n![image](hammer://image/3)" to "A cat",
 			"A well\\-known secret" to "well-known",
 			"A well\\-known secret" to "well\\-known",
 			"A well\\-known secret" to "unrelated",
@@ -544,6 +553,38 @@ class SearchProjectUseCaseTest : BaseTest() {
 		assertEquals(1, results.size)
 		assertEquals("Chapter One", results.first().title)
 		assertEquals("Chapter One The body text", results.first().snippet.text)
+	}
+
+	@Test
+	fun `an image is found and titled by its current name`() = runTest {
+		coEvery { images.imageNames() } returns mapOf(3 to "Cheshire Cat")
+		every { notes.getNotes() } returns listOf(note(1, "![Old name](hammer://image/3)\n\nThe body"))
+
+		val results = createUseCase().search("cheshire", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.Note>()
+
+		assertEquals(1, results.size)
+		assertEquals("Cheshire Cat", results.first().title)
+		assertEquals("Cheshire Cat The body", results.first().snippet.text)
+	}
+
+	@Test
+	fun `an image is not found by its alt text or an unknown id`() = runTest {
+		every { notes.getNotes() } returns listOf(note(1, "![image](hammer://image/3)\n\nThe body"))
+
+		val results = createUseCase().search("image", GlobalSearchFilter.All)
+
+		assertEquals(emptyList(), results)
+	}
+
+	@Test
+	fun `a note opening with an unnamed image is titled from its next line`() = runTest {
+		every { notes.getNotes() } returns listOf(note(1, "![image](hammer://image/3)\n\nThe body"))
+
+		val results = createUseCase().search("body", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.Note>()
+
+		assertEquals("The body", results.single().title)
 	}
 
 	@Test
