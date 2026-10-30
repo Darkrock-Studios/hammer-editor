@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -52,8 +51,8 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagChip
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdIndentFor
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdIndentRails
-import com.darkrockstudios.apps.hammer.common.compose.images.COVER_ASPECT_RATIO
 import com.darkrockstudios.apps.hammer.common.compose.images.CoverThumbnail
+import com.darkrockstudios.apps.hammer.common.compose.images.coverSize
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.parseHexColor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -190,8 +189,7 @@ fun ProjectIndexRow(
 					contentDescription = null,
 					modifier = Modifier
 						.padding(end = Ui.Padding.L)
-						.height(if (isWide) CoverHeight else CompactCoverHeight)
-						.aspectRatio(COVER_ASPECT_RATIO)
+						.coverSize(if (isWide) CoverHeight else CompactCoverHeight)
 						.testTag(ProjectCardCoverTestTag),
 				)
 			}

@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.common.compose.images
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -12,6 +13,12 @@ import coil3.compose.AsyncImage
 
 /** Width over height of a book cover thumbnail. */
 const val COVER_ASPECT_RATIO = 2f / 3f
+
+/**
+ * Fixes both dimensions of a cover frame [height] tall. Unlike `height().aspectRatio()`, this reports
+ * a fixed intrinsic size, so it is safe inside an `IntrinsicSize` parent.
+ */
+fun Modifier.coverSize(height: Dp): Modifier = size(width = height * COVER_ASPECT_RATIO, height = height)
 
 /**
  * A book cover cropped to the frame [modifier] gives it, with a hairline border. [version] changes
