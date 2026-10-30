@@ -245,7 +245,7 @@ class RtfStoryRendererTest {
 	}
 
 	@Test
-	fun `a project image is written as its current name, or not at all without one`() {
+	fun `a project image is written as its current name or dropped without one`() {
 		val rtf = render(
 			listOf(StoryChapter("Alpha", "![image](hammer://image/3)\n\n![Old](hammer://image/9)")),
 			imageNames = mapOf(3 to "Cheshire Cat"),
