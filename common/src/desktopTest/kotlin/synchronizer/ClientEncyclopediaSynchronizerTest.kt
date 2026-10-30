@@ -9,7 +9,6 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.Encycl
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaService
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
-import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesService
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexDatasource
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexRepository
@@ -19,6 +18,7 @@ import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessa
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientEncyclopediaSynchronizer
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
+import com.darkrockstudios.apps.hammer.common.fileio.ExternalFileIo
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import com.darkrockstudios.apps.hammer.common.util.StrRes
@@ -66,7 +66,7 @@ class ClientEncyclopediaSynchronizerTest : BaseTest() {
 	private lateinit var idAllocator: IdAllocator
 
 	@MockK(relaxed = true)
-	private lateinit var imagesService: ImagesService
+	private lateinit var externalFileIo: ExternalFileIo
 
 	@MockK
 	private lateinit var syncJournal: SyncJournal
@@ -137,7 +137,7 @@ class ClientEncyclopediaSynchronizerTest : BaseTest() {
 			statisticsRepository = statisticsRepository,
 			referenceIndexRepository = referenceIndexRepository,
 			imagesRepository = mockk(relaxed = true),
-			imagesService = imagesService,
+			externalFileIo = externalFileIo,
 		)
 		remapper = RecordingReferenceRemapper()
 	}

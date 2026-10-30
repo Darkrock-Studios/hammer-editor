@@ -12,7 +12,6 @@ import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImageAddResult
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesDatasource
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesRepository
-import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesService
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
@@ -97,7 +96,7 @@ class EncyclopediaRepositoryImageTest : BaseTest() {
 			statisticsRepository = mockk(relaxed = true),
 			referenceIndexRepository = mockk(relaxed = true),
 			imagesRepository = imagesRepository,
-			imagesService = ImagesService(imagesRepository, mockk(), externalFileIo),
+			externalFileIo = externalFileIo,
 		)
 	}
 
