@@ -264,17 +264,50 @@ class PdfProseMarkdownTest {
 	}
 
 	@Test
-	fun `a project image becomes its current name, any other image its alt text`() {
+	fun `a line holding only a project image is an image block, any other image its alt text`() {
 		val names = mapOf(3 to "Cheshire Cat")
 		val blocks = parseProseMarkdown(
 			"![image](hammer://image/3)\n![Map *one*](https://e.com/m.png)",
 			imageName = names::get,
 		)
 
-		assertEquals(
-			listOf("Cheshire Cat", "Map one"),
-			blocks.map { (it as ProseBlock.Paragraph).spans.joinToString("") { span -> span.text } },
+		assertEquals(ProseBlock.Image(3, "Cheshire Cat"), blocks[0])
+		assertEquals("Map one", paragraph(blocks[1]).spans.plain())
+		assertEquals(2, blocks.size)
+	}
+
+	@Test
+	fun `an image block keeps the blank lines around it`() {
+		val blocks = parseProseMarkdown(
+			"Before.\n\n  ![image](hammer://image/3)  \n\nAfter.",
+			imageName = mapOf(3 to "Cat")::get,
 		)
+
+		assertEquals(5, blocks.size, blocks.toString())
+		assertIs<ProseBlock.Blank>(blocks[1])
+		assertEquals(ProseBlock.Image(3, "Cat"), blocks[2])
+		assertIs<ProseBlock.Blank>(blocks[3])
+	}
+
+	@Test
+	fun `an image block's name is tidied the way the line's text is`() {
+		val blocks = parseProseMarkdown("![image](hammer://image/3)", imageName = { "  Cheshire   Cat " })
+
+		assertEquals(listOf(ProseBlock.Image(3, "Cheshire Cat")), blocks)
+		assertEquals(listOf(ProseSpan("Cheshire Cat")), (blocks.single() as ProseBlock.Image).spans)
+	}
+
+	@Test
+	fun `a project image inside other text stays its name`() {
+		val names = mapOf(3 to "Cheshire Cat")
+		val blocks = parseProseMarkdown(
+			"See ![image](hammer://image/3) here.\n*![image](hammer://image/3)*\n> ![image](hammer://image/3)",
+			imageName = names::get,
+		)
+
+		assertEquals("See Cheshire Cat here.", paragraph(blocks[0]).spans.plain())
+		assertEquals(listOf(ProseSpan("Cheshire Cat", italic = true)), paragraph(blocks[1]).spans)
+		assertEquals(listOf(listOf(ProseSpan("Cheshire Cat"))), assertIs<ProseBlock.Quote>(blocks[2]).paragraphs)
 	}
 
 	@Test

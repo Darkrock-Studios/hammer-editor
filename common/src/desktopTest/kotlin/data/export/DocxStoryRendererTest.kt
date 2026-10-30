@@ -423,4 +423,17 @@ class DocxStoryRendererTest {
 
 		assertEquals(listOf("Cheshire Cat"), doc.bodyParagraphs().map { it.text }.filter { it.isNotBlank() })
 	}
+
+	@Test
+	fun `an image on its own line is written exactly as a line of its name`() {
+		fun body(markdown: String) = render(
+			listOf(StoryChapter("Alpha", markdown)),
+			imageNames = mapOf(3 to "Cheshire Cat"),
+		).bodyParagraphs().map { it.ctp.xmlText() }
+
+		assertEquals(
+			body("Before.\n\nCheshire Cat\nAfter."),
+			body("Before.\n\n![image](hammer://image/3)\nAfter."),
+		)
+	}
 }

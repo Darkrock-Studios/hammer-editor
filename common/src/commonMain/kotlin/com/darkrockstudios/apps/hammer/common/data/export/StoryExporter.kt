@@ -20,6 +20,9 @@ interface StoryExporter {
 	/** True for formats that package project images, which is the only time their files are read. */
 	val embedsImages: Boolean get() = false
 
+	/** True for formats that also package the project cover; only read when [embedsImages] too. */
+	val embedsCover: Boolean get() = false
+
 	fun render(sink: BufferedSink, input: ExportInput)
 }
 

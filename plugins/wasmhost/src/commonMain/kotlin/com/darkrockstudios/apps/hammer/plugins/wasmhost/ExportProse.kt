@@ -19,6 +19,7 @@ internal fun proseOf(
 ): List<ExportBlock> = parseProseMarkdown(markdown, imageName = imageName).map { block ->
 	when (block) {
 		is ProseBlock.Paragraph -> ExportBlock.Paragraph(block.spans.map(::ExportSpan))
+		is ProseBlock.Image -> ExportBlock.Paragraph(block.spans.map(::ExportSpan))
 		ProseBlock.Blank -> ExportBlock.Blank
 		is ProseBlock.Heading -> ExportBlock.Heading(block.level, block.spans.map(::ExportSpan))
 		is ProseBlock.Listing -> ExportBlock.Listing(

@@ -93,7 +93,7 @@ class ExportStoryUseCase(
 			val language = projectData?.language?.takeIf { it.isNotBlank() }
 				?: localeResolver.getCurrentLocale().language?.takeIf { it.isNotBlank() }
 				?: "en"
-			val imageDefs = referencedImages(chapters, projectData)
+			val imageDefs = referencedImages(chapters, projectData?.coverImageId?.takeIf { exporter.embedsCover })
 			val images = if (exporter.embedsImages) loadImages(imageDefs) else emptyMap()
 			ExportInput(
 				projectName = projectName,
@@ -119,12 +119,12 @@ class ExportStoryUseCase(
 		return exporters.forFormat(format, disabledPlugins)
 	}
 
-	/** The project images the scenes and the cover refer to. */
-	private suspend fun referencedImages(chapters: List<StoryChapter>, projectData: ProjectData?): List<ImageDef> {
+	/** The project images the scenes refer to, and [coverId]. */
+	private suspend fun referencedImages(chapters: List<StoryChapter>, coverId: Int?): List<ImageDef> {
 		val ids = chapters.flatMapTo(mutableSetOf()) { chapter ->
 			chapter.scenes.flatMap(ImageReferenceSyntax::findIds)
 		}
-		projectData?.coverImageId?.let(ids::add)
+		coverId?.let(ids::add)
 		if (ids.isEmpty()) return emptyList()
 
 		return imagesRepository.ensureImagesLoaded().filter { it.id in ids }

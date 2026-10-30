@@ -2,7 +2,9 @@ package com.darkrockstudios.apps.hammer.common.data.export
 
 import com.conamobile.pdfkmp.dsl.ContainerScope
 import com.conamobile.pdfkmp.dsl.TextScope
+import com.conamobile.pdfkmp.geometry.ContentScale
 import com.conamobile.pdfkmp.geometry.Padding
+import com.conamobile.pdfkmp.image.readImageInfo
 import com.conamobile.pdfkmp.layout.BoxAlignment
 import com.conamobile.pdfkmp.layout.RichLine
 import com.conamobile.pdfkmp.layout.VerticalAlignment
@@ -20,6 +22,8 @@ import com.conamobile.pdfkmp.style.TableColumn
 import com.conamobile.pdfkmp.style.TextStyle
 import com.conamobile.pdfkmp.unit.Dp
 import com.conamobile.pdfkmp.unit.Sp
+import com.conamobile.pdfkmp.vector.VectorImage
+import com.darkrockstudios.apps.hammer.base.image.ImageFormat
 
 /** Theme accents for prose rendering; null falls back to neutral defaults. */
 internal data class ProseColors(
@@ -27,6 +31,51 @@ internal data class ProseColors(
 	val secondary: PdfColor? = null,
 ) {
 	val link: PdfColor get() = primary ?: PdfColor.Blue
+}
+
+/** A project image in a form pdfkmp can draw. */
+internal sealed interface ProsePicture {
+	/** Height over width. */
+	val aspectRatio: Float
+
+	/** PNG or JPEG bytes. */
+	class Raster(val bytes: ByteArray, override val aspectRatio: Float) : ProsePicture
+
+	class Vector(val image: VectorImage, override val aspectRatio: Float) : ProsePicture
+}
+
+/**
+ * [image] as pdfkmp can draw it: PNG and JPEG as they are, WebP and a JPEG with an EXIF rotation or
+ * flip re-encoded upright as PNG, SVG as a vector. Null, so the image is written as its name, for an
+ * extension Hammer does not allow, a file whose header cannot be read or that must be re-encoded and
+ * does not decode, or an SVG with nothing to draw. A PNG or JPEG whose header reads but whose body is
+ * corrupt still has a picture, and its slot is left empty.
+ */
+internal fun prosePicture(image: ExportImage): ProsePicture? = when (ImageFormat.mimeType(image.fileExtension)) {
+	"image/png", "image/jpeg" -> rasterPicture(image.bytes)
+	"image/webp" -> transcodeToPng(image.bytes)?.let(::rasterPicture)
+	"image/svg+xml" -> vectorPicture(image.bytes)
+	else -> null
+}
+
+/**
+ * pdfkmp sizes and draws a JPEG by its stored pixels, ignoring EXIF orientation, so a turned or
+ * flipped one is re-encoded upright.
+ */
+private fun rasterPicture(bytes: ByteArray): ProsePicture? {
+	val orientation = jpegExifOrientation(bytes)
+	val upright = if (orientation == 1) bytes else transcodeToPng(bytes, orientation) ?: return null
+	return readImageInfo(upright)?.let { ProsePicture.Raster(upright, it.heightPx.toFloat() / it.widthPx) }
+}
+
+private fun vectorPicture(bytes: ByteArray): ProsePicture? {
+	val image = runCatching { VectorImage.parse(bytes.decodeToString()) }.getOrNull() ?: return null
+	// pdfkmp sizes a vector the same way: its intrinsic size, else its viewport.
+	val width = image.intrinsicWidth.takeIf { it > 0f } ?: image.viewportWidth
+	val height = image.intrinsicHeight.takeIf { it > 0f } ?: image.viewportHeight
+	// Text, embedded bitmaps and the like are not drawn, so such an SVG would come out blank.
+	if (image.paths.isEmpty() || width <= 0f || height <= 0f) return null
+	return ProsePicture.Vector(image, height / width)
 }
 
 /**
@@ -56,11 +105,18 @@ internal sealed interface ProseLayout {
 
 	/** Body rows of wrapped cells. A source row too tall for a page arrives as several rows. */
 	data class Table(val rows: List<List<List<RichLine>>>) : ProseLayout
+
+	/** @property inset the left offset that centres the image in the column. */
+	class Image(val picture: ProsePicture, val width: Float, val height: Float, val inset: Float) : ProseLayout
 }
 
 /**
  * Parses [markdown] and wraps its text to [width], the width of the container
  * [proseMarkdown] will render into.
+ *
+ * A project image [picture] has no drawing for is written as its name, as a line of prose. One it
+ * has is drawn at [IMAGE_WIDTH_FRACTION] of [width], the share of the text width the editor gives
+ * it, but no taller than [maxImageHeight].
  */
 internal fun prepareProse(
 	markdown: String,
@@ -69,6 +125,8 @@ internal fun prepareProse(
 	width: Float,
 	keepBlankLines: Boolean = true,
 	imageName: (imageId: Int) -> String? = { null },
+	picture: (imageId: Int) -> ProsePicture? = { null },
+	maxImageHeight: Float = Float.POSITIVE_INFINITY,
 ): PreparedProse {
 	fun wrap(
 		spans: List<ProseSpan>,
@@ -99,7 +157,9 @@ internal fun prepareProse(
 		}
 	}
 
-	val blocks = parseProseMarkdown(markdown, keepBlankLines, imageName)
+	val blocks = parseProseMarkdown(markdown, keepBlankLines, imageName).map { block ->
+		if (block is ProseBlock.Image && picture(block.imageId) == null) ProseBlock.Paragraph(block.spans) else block
+	}
 	val layouts = blocks.map { block ->
 		when (block) {
 			is ProseBlock.Paragraph ->
@@ -140,10 +200,22 @@ internal fun prepareProse(
 				)
 			}
 
+			is ProseBlock.Image -> picture(block.imageId)?.let { imageLayout(it, width, maxImageHeight) }
+
 			else -> null
 		}
 	}
 	return PreparedProse(blocks, layouts)
+}
+
+private fun imageLayout(picture: ProsePicture, width: Float, maxHeight: Float): ProseLayout.Image {
+	var imageWidth = width * IMAGE_WIDTH_FRACTION
+	var imageHeight = imageWidth * picture.aspectRatio
+	if (imageHeight > maxHeight) {
+		imageHeight = maxHeight
+		imageWidth = maxHeight / picture.aspectRatio
+	}
+	return ProseLayout.Image(picture, imageWidth, imageHeight, inset = (width - imageWidth) / 2)
 }
 
 /**
@@ -164,6 +236,11 @@ internal fun ContainerScope.proseMarkdown(prose: PreparedProse, colors: ProseCol
 			if (index > 0) {
 				val previous = blocks[index - 1]
 				when {
+					// An image sits a blank line from its neighbours, whether or not the author typed one.
+					previous is ProseBlock.Image || block is ProseBlock.Image -> {
+						if (previous != ProseBlock.Blank && block != ProseBlock.Blank) spacer(height = BLANK_LINE_HEIGHT)
+					}
+
 					// Prose carries its own separation: the indent, and the author's blank lines.
 					previous.isProseLine && block.isProseLine -> Unit
 					previous is ProseBlock.Heading -> spacer(height = HEADING_SPACING)
@@ -173,13 +250,14 @@ internal fun ContainerScope.proseMarkdown(prose: PreparedProse, colors: ProseCol
 			val layout = prose.layouts[index]
 			when (block) {
 				is ProseBlock.Paragraph -> renderParagraph(block, layout as ProseLayout.Paragraph?, colors)
-				ProseBlock.Blank -> spacer(height = Dp(TextStyle().fontSize.value * BODY_LEADING))
+				ProseBlock.Blank -> spacer(height = BLANK_LINE_HEIGHT)
 				is ProseBlock.Heading -> renderHeading(block, base, colors)
 				is ProseBlock.Listing -> renderListing(block, layout as ProseLayout.Listing)
 				is ProseBlock.Quote -> renderQuote(layout as ProseLayout.Quote)
 				is ProseBlock.CodeBlock -> renderCode(block, layout as ProseLayout.Code)
 				ProseBlock.Rule -> divider()
 				is ProseBlock.Table -> renderTable(block, layout as ProseLayout.Table, base, colors)
+				is ProseBlock.Image -> renderImage(block, layout as ProseLayout.Image)
 			}
 		}
 	}
@@ -201,6 +279,12 @@ private val HEADING_SCALES = listOf(2.0f, 1.6f, 1.3f, 1.15f, 1.05f, 1.0f)
 private val BLOCK_SPACING = Dp(8f)
 private val HEADING_SPACING = Dp(12f)
 private val CODE_BACKGROUND = PdfColor(0.95f, 0.95f, 0.95f)
+
+/** One blank line of body text. */
+private val BLANK_LINE_HEIGHT = Dp(TextStyle().fontSize.value * BODY_LEADING)
+
+/** The editor's `HammerImageBlockSize`. */
+private const val IMAGE_WIDTH_FRACTION = 0.7f
 
 /** Baseline-to-baseline distance as a multiple of font size. */
 private const val BODY_LEADING = 1.5f
@@ -383,6 +467,25 @@ private fun ContainerScope.renderCode(block: ProseBlock.CodeBlock, layout: Prose
 			text(line) {
 				fontSize = CODE_STYLE.fontSize
 				color = CODE_STYLE.color
+			}
+		}
+	}
+}
+
+/** Kept whole, so an image that does not fit the rest of a page moves to the next. */
+private fun ContainerScope.renderImage(block: ProseBlock.Image, layout: ProseLayout.Image) {
+	keepTogether {
+		column(padding = Padding(left = Dp(layout.inset))) {
+			when (val picture = layout.picture) {
+				is ProsePicture.Raster -> image(
+					bytes = picture.bytes,
+					width = Dp(layout.width),
+					height = Dp(layout.height),
+					contentScale = ContentScale.Fit,
+					altText = block.name,
+				)
+
+				is ProsePicture.Vector -> vector(picture.image, width = Dp(layout.width), height = Dp(layout.height))
 			}
 		}
 	}

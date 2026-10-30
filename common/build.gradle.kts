@@ -157,6 +157,8 @@ kotlin {
 				implementation(libs.appdirs)
 				implementation(libs.ktor.client.okhttp)
 				implementation(libs.turbine)
+				// Skia, for decoding images pdfkmp cannot embed.
+				implementation(libs.jetbrains.compose.ui.graphics)
 			}
 		}
 		val desktopTest by getting {

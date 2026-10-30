@@ -150,6 +150,7 @@ jetbrains_compose_ui_tooling_preview = { module = "org.jetbrains.compose.ui:ui-t
 jetbrains_compose_ui_test_junit4 = { module = "org.jetbrains.compose.ui:ui-test-junit4", version.ref = "jetbrains_compose" }
 jetbrains_compose_components_resources = { module = "org.jetbrains.compose.components:components-resources", version.ref = "jetbrains_compose" }
 jetbrains_compose_components_ui_tooling_preview = { module = "org.jetbrains.compose.components:components-ui-tooling-preview", version.ref = "jetbrains_compose" }
+jetbrains_compose_ui_graphics = { module = "org.jetbrains.compose.ui:ui-graphics", version.ref = "jetbrains_compose" }
 jetbrains_compose_ui_util = { module = "org.jetbrains.compose.ui:ui-util", version.ref = "jetbrains_compose" }
 jetbrains_compose_ui_text = { module = "org.jetbrains.compose.ui:ui-text", version.ref = "jetbrains_compose" }
 jetbrains_compose_ui_backhandler = { module = "org.jetbrains.compose.ui:ui-backhandler", version.ref = "jetbrains_compose" }

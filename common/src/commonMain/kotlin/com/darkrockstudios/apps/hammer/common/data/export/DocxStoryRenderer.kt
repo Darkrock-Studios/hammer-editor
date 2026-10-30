@@ -535,6 +535,7 @@ private class MarkdownDocxWriter(
 				is ProseBlock.Paragraph ->
 					paragraph(style = null, numId = null, tight = runsOn) { runs(block.spans) }
 
+				is ProseBlock.Image -> paragraph(style = null, numId = null, tight = runsOn) { runs(block.spans) }
 				ProseBlock.Blank -> paragraph(style = null, numId = null, tight = runsOn) {}
 				is ProseBlock.Heading -> paragraph(style = "Heading${block.level}", numId = null) { runs(block.spans) }
 				is ProseBlock.Listing -> {

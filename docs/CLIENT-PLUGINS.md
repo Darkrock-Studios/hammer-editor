@@ -496,10 +496,18 @@ class ExportInput(
   no meaning: Hammer shows the image's current name wherever alt text would be
   displayed, and the web reader passes the alt text through as written. The
   EPUB format packages each referenced image in the book and writes an `img`
-  tag for it, described by the image's name; DOCX, RTF and PDF write the
-  image's name as text, as does the `prose` input of a plugin exporter
-  (`ExportInput.imageNames`), and leave out an image with no name to show;
-  the Markdown format keeps the reference as written.
+  tag for it, described by the image's name. PDF draws an image that stands on
+  its own line, centred at 70% of the text width as the editor shows it and
+  shrunk to fit 60% of the page height: PNG and JPEG as they are, WebP and a
+  JPEG with an EXIF rotation or flip re-encoded upright as PNG by the
+  platform, SVG as vector paths. An image anywhere but on a plain line of its
+  own is written as its name, as is one PDF cannot draw: an unsupported
+  extension, a file whose header cannot be read, or an SVG with nothing to
+  draw. A file whose header reads but whose body is corrupt leaves the image's
+  slot empty. DOCX and RTF write the image's name as text, as does
+  the `prose` input of a plugin exporter (`ExportInput.imageNames`); all of
+  these leave out an image with no name to show. The Markdown format keeps the
+  reference as written.
 
 Importers have no plugin seam: `ImportFormat` is a closed enum.
 

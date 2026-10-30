@@ -23,6 +23,7 @@ private object EpubStoryExporter : StoryExporter {
 	override val fileExtension = "epub"
 	override val mimeType = "application/epub+zip"
 	override val embedsImages = true
+	override val embedsCover = true
 
 	override fun render(sink: BufferedSink, input: ExportInput) = writeStoryAsEpub(
 		sink = sink,
@@ -73,6 +74,7 @@ private object PdfStoryExporter : StoryExporter {
 	override val formatId = BuiltInExportFormat.PDF
 	override val fileExtension = "pdf"
 	override val mimeType = "application/pdf"
+	override val embedsImages = true
 
 	override fun render(sink: BufferedSink, input: ExportInput) = writeStoryAsPdf(
 		sink = sink,
@@ -82,6 +84,7 @@ private object PdfStoryExporter : StoryExporter {
 		strings = input.strings,
 		options = input.options,
 		imageNames = input.imageNames,
+		images = input.images,
 	)
 }
 

@@ -7,6 +7,7 @@ import com.conamobile.pdfkmp.geometry.PageSize
 import com.conamobile.pdfkmp.layout.PageBreakStrategy
 import com.conamobile.pdfkmp.metadata.PdfMetadata
 import com.conamobile.pdfkmp.pdf
+import com.conamobile.pdfkmp.render.PdfDriverFactory
 import com.conamobile.pdfkmp.style.PdfColor
 import com.conamobile.pdfkmp.unit.dp
 import com.conamobile.pdfkmp.unit.sp
@@ -19,12 +20,16 @@ private fun chapterAnchorId(index: Int): String = "chapter-$index"
 internal val STORY_PAGE_SIZE = PageSize.A4
 internal val STORY_PAGE_PADDING = Padding.symmetric(horizontal = 56.dp, vertical = 64.dp)
 
+/** The share of the page height a tall image is shrunk to fit. */
+private const val MAX_IMAGE_PAGE_FRACTION = 0.6f
+
 /**
  * Renders the story as a PDF mirroring the EPUB layout: a title page, a clickable table of contents,
  * then one auto-paginating section per chapter. Chapter bodies are rendered from markdown with book
  * typography (first-line paragraph indents) via [proseMarkdown]. Like the EPUB stylesheet, the
  * project theme's primary color accents the title page, contents, chapter headings, and links;
- * secondary accents h2 headings within chapters.
+ * secondary accents h2 headings within chapters. A project image on a line of its own is drawn from
+ * [images]; one missing there, or in a format it cannot draw, is written as its name.
  */
 fun writeStoryAsPdf(
 	sink: BufferedSink,
@@ -34,8 +39,9 @@ fun writeStoryAsPdf(
 	strings: ExportStrings,
 	options: ExportOptions = ExportOptions(),
 	imageNames: Map<Int, String> = emptyMap(),
+	images: Map<Int, ExportImage> = emptyMap(),
 ) {
-	sink.write(buildStoryPdf(projectName, projectData, chapters, strings, options, imageNames).toByteArray())
+	sink.write(buildStoryPdf(projectName, projectData, chapters, strings, options, imageNames, images).toByteArray())
 }
 
 internal fun buildStoryPdf(
@@ -45,6 +51,8 @@ internal fun buildStoryPdf(
 	strings: ExportStrings,
 	options: ExportOptions = ExportOptions(),
 	imageNames: Map<Int, String> = emptyMap(),
+	images: Map<Int, ExportImage> = emptyMap(),
+	factory: PdfDriverFactory = defaultPdfDriverFactory(),
 ): PdfDocument {
 	val authorName = projectData.authorName?.takeIf { it.isNotBlank() }
 	val effective = chapters.ifEmpty { listOf(StoryChapter(projectName, "")) }
@@ -53,7 +61,13 @@ internal fun buildStoryPdf(
 	val proseColors = ProseColors(primary = primary, secondary = secondary)
 
 	val contentWidth = STORY_PAGE_SIZE.width.value - STORY_PAGE_PADDING.left.value - STORY_PAGE_PADDING.right.value
-	val measuringDriver = defaultPdfDriverFactory().create(PdfMetadata(), emptyList())
+	// Decoded once per image, however often the story shows it.
+	val pictures = mutableMapOf<Int, ProsePicture?>()
+	val picture = { imageId: Int ->
+		if (imageId !in pictures) pictures[imageId] = images[imageId]?.let(::prosePicture)
+		pictures[imageId]
+	}
+	val measuringDriver = factory.create(PdfMetadata(), emptyList())
 	val prose = try {
 		effective.map {
 			prepareProse(
@@ -63,13 +77,15 @@ internal fun buildStoryPdf(
 				contentWidth,
 				options.keepBlankLines,
 				imageNames::get,
+				picture,
+				maxImageHeight = STORY_PAGE_SIZE.height.value * MAX_IMAGE_PAGE_FRACTION,
 			)
 		}
 	} finally {
 		measuringDriver.close()
 	}
 
-	return pdf {
+	return pdf(factory) {
 		// Bottom/side margins so text doesn't run to the page edge; Slice lets long bodies flow
 		// onto new pages at line boundaries instead of being clipped at the bottom.
 		defaultPagePadding = STORY_PAGE_PADDING

@@ -36,6 +36,9 @@ import org.junit.jupiter.api.BeforeEach
 import okio.BufferedSink
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.Test
+import java.awt.image.BufferedImage
+import java.io.ByteArrayOutputStream
+import javax.imageio.ImageIO
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -187,8 +190,11 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 		assertTrue("Content of scene id 3" in text, "Scenes without a buffer still come from disk, got: $text")
 	}
 
-	/** Records the input it is given; embeds images when [embedsImages]. */
-	private class CapturingExporter(override val embedsImages: Boolean) : StoryExporter {
+	/** Records the input it is given. */
+	private class CapturingExporter(
+		override val embedsImages: Boolean,
+		override val embedsCover: Boolean = false,
+	) : StoryExporter {
 		override val formatId = "fake.capture"
 		override val fileExtension = "txt"
 		override val mimeType = "text/plain"
@@ -206,7 +212,7 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 	}
 
 	@Test
-	fun `an exporter that embeds images gets the referenced images and the cover`() = runTest {
+	fun `an exporter that embeds images and the cover gets the referenced images and the cover`() = runTest {
 		initRepo()
 		writeSceneBuffer(1, "Text.\n\n![Cat](hammer://image/1)\n\n![Gone](hammer://image/2)\n\n![Lost](hammer://image/7)")
 		storedProjectData = StoredProjectData(data = ProjectData(coverImageId = 5))
@@ -223,7 +229,7 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 			every { loadImageBytes(match { it.id == 5 }) } returns byteArrayOf(5)
 			every { loadImageBytes(unreferenced) } returns byteArrayOf(9)
 		}
-		val exporter = CapturingExporter(embedsImages = true)
+		val exporter = CapturingExporter(embedsImages = true, embedsCover = true)
 
 		useCase(listOf(exporter)).render(ExportOptions(format = exporter.formatId))
 
@@ -239,6 +245,28 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 			exporter.input?.imageNames,
 			"Every referenced image that exists should be named, readable or not",
 		)
+	}
+
+	@Test
+	fun `an exporter that embeds images but not the cover never reads the cover`() = runTest {
+		initRepo()
+		writeSceneBuffer(1, "![image](hammer://image/1)")
+		storedProjectData = StoredProjectData(data = ProjectData(coverImageId = 5))
+		val cover = ImageDef(id = 5, name = "Cover", fileExtension = "png")
+		imagesRepository = mockk {
+			coEvery { ensureImagesLoaded() } returns listOf(
+				ImageDef(id = 1, name = "Cat", fileExtension = "png"),
+				cover,
+			)
+			every { loadImageBytes(match { it.id == 1 }) } returns byteArrayOf(1)
+		}
+		val exporter = CapturingExporter(embedsImages = true)
+
+		useCase(listOf(exporter)).render(ExportOptions(format = exporter.formatId))
+
+		assertEquals(setOf(1), checkNotNull(exporter.input).images.keys)
+		assertEquals(mapOf(1 to "Cat"), exporter.input?.imageNames)
+		verify(exactly = 0) { imagesRepository.loadImageBytes(cover) }
 	}
 
 	@Test
@@ -306,6 +334,24 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 		assertEquals('P'.code.toByte(), bytes[1])
 		assertEquals('D'.code.toByte(), bytes[2])
 		assertEquals('F'.code.toByte(), bytes[3])
+	}
+
+	@Test
+	fun `pdf export draws the images the story shows`() = runTest {
+		initRepo()
+		writeSceneBuffer(1, "Text.\n\n![image](hammer://image/1)")
+		val png = ByteArrayOutputStream().also {
+			ImageIO.write(BufferedImage(8, 4, BufferedImage.TYPE_INT_RGB), "png", it)
+		}.toByteArray()
+		imagesRepository = mockk {
+			coEvery { ensureImagesLoaded() } returns listOf(ImageDef(id = 1, name = "Cat", fileExtension = "png"))
+			every { loadImageBytes(match { it.id == 1 }) } returns png
+		}
+
+		val pdf = useCase().render(ExportOptions(format = BuiltInExportFormat.PDF)).readByteArray()
+
+		verify(exactly = 1) { imagesRepository.loadImageBytes(any()) }
+		assertTrue("/Subtype /Image" in pdf.toString(Charsets.ISO_8859_1), "The image should be embedded")
 	}
 
 	@Test

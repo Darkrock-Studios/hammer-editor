@@ -255,4 +255,17 @@ class RtfStoryRendererTest {
 		assertTrue(!body.contains("Old"), rtf)
 		assertTrue(!body.contains("image"), rtf)
 	}
+
+	@Test
+	fun `an image on its own line is written exactly as a line of its name`() {
+		fun rtf(markdown: String) = render(
+			listOf(StoryChapter("Alpha", markdown)),
+			imageNames = mapOf(3 to "Cheshire Cat"),
+		)
+
+		assertEquals(
+			rtf("Before.\n\nCheshire Cat\nAfter."),
+			rtf("Before.\n\n![image](hammer://image/3)\nAfter."),
+		)
+	}
 }

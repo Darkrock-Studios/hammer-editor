@@ -1,12 +1,13 @@
 package com.darkrockstudios.apps.hammer.common.fileio
 
+import com.darkrockstudios.apps.hammer.common.util.toByteArray
+import com.darkrockstudios.apps.hammer.common.util.toNSData
 import io.github.aakira.napier.Napier
 import kotlinx.cinterop.*
 import org.koin.core.module.dsl.singleOf
 import org.koin.dsl.bind
 import org.koin.dsl.module
 import platform.Foundation.*
-import platform.posix.memcpy
 
 actual val externalFileIoModule = module {
 	singleOf(::IosExternalFileIo) bind ExternalFileIo::class
@@ -41,24 +42,5 @@ private class IosExternalFileIo : ExternalFileIo {
 			Napier.e("Failed to write external file $path: ${errorVar.value?.localizedDescription}")
 		}
 		ok
-	}
-}
-
-@OptIn(ExperimentalForeignApi::class)
-private fun NSData.toByteArray(): ByteArray {
-	val size = length.toInt()
-	val out = ByteArray(size)
-	if (size == 0) return out
-	out.usePinned { pinned ->
-		memcpy(pinned.addressOf(0), bytes, length.convert())
-	}
-	return out
-}
-
-@OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
-private fun ByteArray.toNSData(): NSData {
-	if (isEmpty()) return NSData()
-	return usePinned { pinned ->
-		NSData.create(bytes = pinned.addressOf(0), length = size.convert())
 	}
 }

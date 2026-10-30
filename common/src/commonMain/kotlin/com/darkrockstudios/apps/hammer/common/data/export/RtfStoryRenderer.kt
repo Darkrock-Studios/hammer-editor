@@ -218,6 +218,7 @@ private fun renderMarkdownRtf(
 		val proseSpaceAfter = if (runsOn) 0 else PARAGRAPH_SPACE_AFTER
 		when (block) {
 			is ProseBlock.Paragraph -> blocks += bodyParagraph(block.spans, primary, proseSpaceAfter)
+			is ProseBlock.Image -> blocks += bodyParagraph(block.spans, primary, proseSpaceAfter)
 			ProseBlock.Blank -> blocks += bodyParagraph(emptyList(), primary, proseSpaceAfter)
 			is ProseBlock.Heading -> blocks += headingParagraph(block, primary, secondary)
 			is ProseBlock.Listing -> {
