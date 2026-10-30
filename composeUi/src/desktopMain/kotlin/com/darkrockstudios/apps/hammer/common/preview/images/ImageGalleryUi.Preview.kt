@@ -62,7 +62,7 @@ fun previewGalleryImages(): List<ImageGallery.GalleryImage> = listOf(
 	ImageGallery.GalleryImage(ImageDef(3, "Harbour at dusk", "jpg"), "/preview/3.jpg", "h3", inUse = true),
 	ImageGallery.GalleryImage(ImageDef(5, "Lighthouse", "png"), "/preview/5.png", "h5", inUse = false),
 	ImageGallery.GalleryImage(ImageDef(8, "Map of the coast", "webp"), "/preview/8.webp", "h8", inUse = true),
-	ImageGallery.GalleryImage(ImageDef(13, "Storm", "gif"), "/preview/13.gif", "h13", inUse = null),
+	ImageGallery.GalleryImage(ImageDef(13, "Storm", "jpeg"), "/preview/13.jpeg", "h13", inUse = null),
 )
 
 fun previewImageUsages(): Map<Int, ImageUsages> = mapOf(

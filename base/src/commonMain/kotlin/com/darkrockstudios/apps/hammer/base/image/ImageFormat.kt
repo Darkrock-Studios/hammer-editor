@@ -22,7 +22,6 @@ object ImageFormat {
 		"jpeg" to "image/jpeg",
 		"png" to "image/png",
 		"webp" to "image/webp",
-		"gif" to "image/gif",
 		"svg" to "image/svg+xml",
 	)
 
@@ -74,7 +73,6 @@ object ImageFormat {
 			"png" -> startsWith(0, 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A)
 			"jpg", "jpeg" -> startsWith(0, 0xFF, 0xD8, 0xFF)
 			"webp" -> startsWith(0, 0x52, 0x49, 0x46, 0x46) && startsWith(8, 0x57, 0x45, 0x42, 0x50)
-			"gif" -> startsWith(0, 0x47, 0x49, 0x46, 0x38)
 			"svg" -> isSvg(bytes)
 			else -> false
 		}

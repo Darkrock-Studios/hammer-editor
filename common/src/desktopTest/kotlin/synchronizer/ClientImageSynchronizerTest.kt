@@ -111,7 +111,7 @@ class ClientImageSynchronizerTest : BaseTest() {
 		val cases = listOf(
 			entity(id = 1, fileExtension = "png", bytes = TestImages.png(1)),
 			entity(id = 2, name = "map.v2 final", fileExtension = "jpg", bytes = TestImages.jpeg(2)),
-			entity(id = 3, name = "Ünïcödé: what? / why*", fileExtension = "gif", bytes = TestImages.gif(3)),
+			entity(id = 3, name = "Ünïcödé: what? / why*", fileExtension = "webp", bytes = TestImages.webp(3)),
 			entity(id = 4, name = "Vector", fileExtension = "svg", bytes = TestImages.svg()),
 			entity(id = 6, name = " leading space", fileExtension = "jpeg", bytes = TestImages.jpeg(6)),
 		)
@@ -265,10 +265,10 @@ class ClientImageSynchronizerTest : BaseTest() {
 	@Test
 	fun `createEntityForId sends the bytes on disk`() = runTest {
 		val sync = newSynchronizer()
-		sync.storeEntity(entity(bytes = TestImages.gif(7), fileExtension = "gif"), "sync", {})
+		sync.storeEntity(entity(bytes = TestImages.webp(7), fileExtension = "webp"), "sync", {})
 
 		val local = sync.createEntityForId(5)
 
-		assertContentEquals(TestImages.gif(7), Base64.decode(local.base64, url = true))
+		assertContentEquals(TestImages.webp(7), Base64.decode(local.base64, url = true))
 	}
 }

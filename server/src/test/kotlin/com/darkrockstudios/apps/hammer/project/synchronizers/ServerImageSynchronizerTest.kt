@@ -66,7 +66,6 @@ class ServerImageSynchronizerTest :
 			"jpg" to byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 0xFF.toByte(), 0xE0.toByte()),
 			"jpeg" to byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 0xFF.toByte(), 0xE0.toByte()),
 			"webp" to "RIFF\u0000\u0000\u0000\u0000WEBPVP8 ".encodeToByteArray(),
-			"gif" to "GIF89a".encodeToByteArray(),
 			"svg" to "<svg xmlns=\"http://www.w3.org/2000/svg\"/>".encodeToByteArray(),
 		)
 		for ((extension, bytes) in samples) {
@@ -87,10 +86,15 @@ class ServerImageSynchronizerTest :
 
 	@Test
 	fun `Rejects an unsupported extension`() = runTest {
-		val result = save(image(png(0), extension = "exe"))
-
-		assertFalse(isSuccess(result))
-		assertIs<EntityValidationException>(result.exception)
+		val samples = mapOf(
+			"exe" to png(0),
+			"gif" to "GIF89a".encodeToByteArray(),
+		)
+		for ((extension, bytes) in samples) {
+			val result = save(image(bytes, extension))
+			assertFalse(isSuccess(result), extension)
+			assertIs<EntityValidationException>(result.exception, extension)
+		}
 		assertNotStored()
 	}
 

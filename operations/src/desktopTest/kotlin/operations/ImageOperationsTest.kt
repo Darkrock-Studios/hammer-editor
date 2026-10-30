@@ -128,7 +128,7 @@ class ImageOperationsTest : KoinOperationsTest() {
 			run<ImageRenameInput, ImageSummary>("image.rename", ImageRenameInput(PROJECT, image.id, " "))
 		}
 		failsWith(OperationException.Kind.InvalidInput) {
-			run<ImageReplaceInput, ImageSummary>("image.replace", ImageReplaceInput(PROJECT, image.id, "gif", PNG))
+			run<ImageReplaceInput, ImageSummary>("image.replace", ImageReplaceInput(PROJECT, image.id, "jpg", PNG))
 		}
 	}
 

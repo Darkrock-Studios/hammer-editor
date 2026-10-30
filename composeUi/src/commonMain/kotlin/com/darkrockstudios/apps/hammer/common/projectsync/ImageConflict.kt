@@ -158,7 +158,6 @@ internal fun ImageConflict(
 									bytes = bytes,
 									cacheKey = cacheKey,
 									label = c.serverEntity.name,
-									extension = serverImage.fileExtension,
 								)
 							}
 						},

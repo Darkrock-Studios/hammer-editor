@@ -8,7 +8,8 @@ object TestImages {
 	fun jpeg(marker: Int = 0): ByteArray =
 		byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 0xFF.toByte(), 0xE0.toByte(), marker.toByte())
 
-	fun gif(marker: Int = 0): ByteArray = "GIF89a".encodeToByteArray() + marker.toByte()
+	fun webp(marker: Int = 0): ByteArray =
+		"RIFF".encodeToByteArray() + ByteArray(4) + "WEBP".encodeToByteArray() + marker.toByte()
 
 	fun svg(): ByteArray = "<svg xmlns=\"http://www.w3.org/2000/svg\"/>".encodeToByteArray()
 }

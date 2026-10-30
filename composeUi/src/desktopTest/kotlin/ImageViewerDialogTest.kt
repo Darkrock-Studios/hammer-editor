@@ -20,8 +20,6 @@ import com.darkrockstudios.apps.hammer.common.preview.KoinApplicationPreview
 import org.junit.Rule
 import org.junit.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
 
 class ImageViewerDialogTest : BaseTest() {
 
@@ -112,11 +110,5 @@ class ImageViewerDialogTest : BaseTest() {
 		compose.waitForIdle()
 
 		assertEquals(1, dismissed)
-	}
-
-	@Test
-	fun `Only gif files are marked as gifs`() {
-		assertTrue(ImageViewerItem.ofFile("/images/1~Storm.GIF", "h", "Storm").isGif)
-		assertFalse(ImageViewerItem.ofFile("/images/2~Map.png", "h", "Map").isGif)
 	}
 }

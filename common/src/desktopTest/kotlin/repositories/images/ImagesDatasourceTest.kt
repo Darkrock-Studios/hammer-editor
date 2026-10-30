@@ -81,10 +81,10 @@ class ImagesDatasourceTest : BaseTest() {
 		val datasource = ImagesDatasource(projectDef, ffs)
 		writeRaw("4~Map.png")
 
-		datasource.writeImage(ImageDef(4, "Map", "gif"), TestImages.gif())
+		datasource.writeImage(ImageDef(4, "Map", "webp"), TestImages.webp())
 
-		assertEquals(listOf("4~Map.gif"), ffs.list(imagesDir).map { it.name })
-		assertContentEquals(TestImages.gif(), datasource.loadImageBytes(ImageDef(4, "Map", "gif")))
+		assertEquals(listOf("4~Map.webp"), ffs.list(imagesDir).map { it.name })
+		assertContentEquals(TestImages.webp(), datasource.loadImageBytes(ImageDef(4, "Map", "webp")))
 	}
 
 	@Test
@@ -118,7 +118,7 @@ class ImagesDatasourceTest : BaseTest() {
 		val datasource = ImagesDatasource(projectDef, failingMoves)
 		writeRaw("4~Map.png", TestImages.png(1))
 
-		assertFailsWith<IOException> { datasource.writeImage(ImageDef(4, "Map", "gif"), TestImages.gif()) }
+		assertFailsWith<IOException> { datasource.writeImage(ImageDef(4, "Map", "webp"), TestImages.webp()) }
 
 		assertEquals(listOf("4~Map.png"), ffs.list(imagesDir).map { it.name })
 		assertContentEquals(TestImages.png(1), ffs.read(imagesDir / "4~Map.png") { readByteArray() })

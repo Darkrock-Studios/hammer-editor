@@ -180,14 +180,14 @@ class ImagesServiceTest : BaseTest() {
 	@Test
 	fun `replacing keeps the id and name and takes the new extension`() = runTest {
 		writeImage(ImageDef(5, "Map", "png"))
-		val gif = TestImages.gif()
-		every { externalFileIo.readExternalFile("/picked/new.gif") } returns gif
+		val webp = TestImages.webp()
+		every { externalFileIo.readExternalFile("/picked/new.webp") } returns webp
 
-		val outcome = service().replaceFromPath(5, "/picked/new.gif")
+		val outcome = service().replaceFromPath(5, "/picked/new.webp")
 
-		assertEquals(ImageDef(5, "Map", "gif"), outcome.image)
-		assertContentEquals(gif, images.loadImageBytes(ImageDef(5, "Map", "gif")))
-		assertEquals(listOf(ImageDef(5, "Map", "gif")), images.loadImages())
+		assertEquals(ImageDef(5, "Map", "webp"), outcome.image)
+		assertContentEquals(webp, images.loadImageBytes(ImageDef(5, "Map", "webp")))
+		assertEquals(listOf(ImageDef(5, "Map", "webp")), images.loadImages())
 	}
 
 	@Test

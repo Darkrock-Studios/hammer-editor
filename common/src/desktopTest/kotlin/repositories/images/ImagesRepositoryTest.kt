@@ -202,12 +202,12 @@ class ImagesRepositoryTest : BaseTest() {
 	@Test
 	fun `imagesFlow emits the loaded images`() = runTest {
 		writeRaw("2~B.png", TestImages.png())
-		writeRaw("1~A.gif", TestImages.gif())
+		writeRaw("1~A.webp", TestImages.webp())
 		writeRaw("notes.txt", "x".encodeToByteArray())
 		val repo = createRepository()
 
 		repo.imagesFlow.test(timeout = 5.seconds) {
-			assertEquals(listOf(ImageDef(1, "A", "gif"), ImageDef(2, "B", "png")), awaitItem())
+			assertEquals(listOf(ImageDef(1, "A", "webp"), ImageDef(2, "B", "png")), awaitItem())
 		}
 	}
 }

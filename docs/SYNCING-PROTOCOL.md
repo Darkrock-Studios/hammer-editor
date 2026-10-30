@@ -706,9 +706,9 @@ The file travels inline in the upload and download bodies, so a reverse proxy mu
 
 `ImageFormat` (in `base`) holds the rules, so client and server apply the same ones:
 
-- **Extension**: `jpg`, `jpeg`, `png`, `webp`, `gif` or `svg`, ignoring case.
+- **Extension**: `jpg`, `jpeg`, `png`, `webp` or `svg`, ignoring case.
 - **Size**: at most `MAX_IMAGE_BYTES` (8 MiB) decoded.
-- **Content**: `sniff` checks the magic bytes for the extension (the PNG signature, `FF D8 FF` for JPEG, `RIFF` then `WEBP` at offset 8, `GIF8`). An SVG must have `<svg` as its root element: within the first 1024 bytes, after an optional BOM, XML declarations, comments and a DOCTYPE (internal subset included).
+- **Content**: `sniff` checks the magic bytes for the extension (the PNG signature, `FF D8 FF` for JPEG, `RIFF` then `WEBP` at offset 8). An SVG must have `<svg` as its root element: within the first 1024 bytes, after an optional BOM, XML declarations, comments and a DOCTYPE (internal subset included).
 - **Name**: `ImageFormat.isValidName`, which requires a valid `ProjectNameValidator` name that comes back unchanged from `FilenameEncoding.encode` then `decode`. The name is a filename on the client; one that does not round-trip would read back different, hash differently and re-sync forever, so the server refuses it too.
 
 `ServerImageSynchronizer.validate` answers `400` (`EntityValidationException`) for base64 that does not decode, an invalid name, an unsupported extension or content that does not match it, and `413` (`EntityTooLargeException`) over the size cap. `ClientImageSynchronizer.storeEntity` applies the same `ImageFormat.validate` to a download and refuses to store an image that fails it.

@@ -21,8 +21,6 @@ class ImageFormatTest {
 		assertTrue(ImageFormat.sniff(jpeg, "jpg"))
 		assertTrue(ImageFormat.sniff(jpeg, "jpeg"))
 		assertTrue(ImageFormat.sniff(webp, "webp"))
-		assertTrue(ImageFormat.sniff(gif, "gif"))
-		assertTrue(ImageFormat.sniff("GIF87a".encodeToByteArray(), "gif"))
 	}
 
 	@Test
@@ -35,7 +33,7 @@ class ImageFormatTest {
 	fun `Rejects bytes that do not match the extension`() {
 		assertFalse(ImageFormat.sniff(png, "jpg"))
 		assertFalse(ImageFormat.sniff(jpeg, "png"))
-		assertFalse(ImageFormat.sniff(gif, "webp"))
+		assertFalse(ImageFormat.sniff(webp, "png"))
 		assertFalse(ImageFormat.sniff("RIFF0000WAVE".encodeToByteArray(), "webp"))
 		assertFalse(ImageFormat.sniff(png, "svg"))
 	}
@@ -54,6 +52,17 @@ class ImageFormatTest {
 		assertFalse(ImageFormat.sniff(png, ""))
 		assertFalse(ImageFormat.isAllowedExtension("bmp"))
 		assertFalse(ImageFormat.isAllowedExtension("exe"))
+	}
+
+	@Test
+	fun `Rejects GIF`() {
+		assertFalse(ImageFormat.isAllowedExtension("gif"))
+		assertFalse(ImageFormat.isAllowedExtension("GIF"))
+		assertNull(ImageFormat.mimeType("gif"))
+		for (ext in ImageFormat.ALLOWED_EXTENSIONS + "gif") {
+			assertFalse(ImageFormat.sniff(gif, ext), ext)
+		}
+		assertEquals(ImageProblem.UnsupportedType, ImageFormat.validate("Map", "gif", gif))
 	}
 
 	@Test
@@ -142,7 +151,7 @@ class ImageFormatTest {
 
 	@Test
 	fun `Allowed extensions and cap`() {
-		for (ext in listOf("jpg", "jpeg", "png", "webp", "gif", "svg")) {
+		for (ext in listOf("jpg", "jpeg", "png", "webp", "svg")) {
 			assertTrue(ImageFormat.isAllowedExtension(ext), ext)
 		}
 		assertEquals(8L * 1024 * 1024, ImageFormat.MAX_IMAGE_BYTES)

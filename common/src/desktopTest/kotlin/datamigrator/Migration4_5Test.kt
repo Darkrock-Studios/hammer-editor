@@ -295,14 +295,14 @@ class Migration4_5Test : BaseTest() {
 
 	@Test
 	fun `an image whose entry is gone becomes an unattached image named after its file`() {
-		writeFile(typeDir(EntryType.PERSON) / "person~5~image.gif", TestImages.gif())
+		writeFile(typeDir(EntryType.PERSON) / "person~5~image.webp", TestImages.webp())
 
 		migrate()
 
 		val promoted = imageFiles().single()
 		val def = ImagesDatasource.parseFilename(promoted)!!
 		assertEquals(1, def.id)
-		assertEquals("gif", def.fileExtension)
+		assertEquals("webp", def.fileExtension)
 		assertTrue(ImageFormat.isValidName(def.name), "Unattached image name '${def.name}' must sync")
 	}
 

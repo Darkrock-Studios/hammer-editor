@@ -2,7 +2,6 @@ package com.darkrockstudios.apps.hammer.common.images
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -29,7 +28,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.onPreviewKeyEvent
@@ -43,7 +41,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import coil3.compose.AsyncImagePainter
 import coil3.compose.LocalPlatformContext
 import coil3.compose.rememberAsyncImagePainter
@@ -58,7 +55,6 @@ import com.darkrockstudios.apps.hammer.common.compose.mouseDragPaging
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.images_viewer_close
 import com.darkrockstudios.apps.hammer.images_viewer_counter
-import com.darkrockstudios.apps.hammer.images_viewer_gif_badge
 import kotlinx.coroutines.launch
 import me.saket.telephoto.zoomable.HardwareShortcutDetector
 import me.saket.telephoto.zoomable.HardwareShortcutsSpec
@@ -116,7 +112,6 @@ data class ImageViewerItem(
 	val model: Any,
 	val cacheKey: String,
 	val label: String,
-	val isGif: Boolean = false,
 ) {
 	companion object {
 		/** The image file at [path]; [version] changes whenever its bytes do, such as its content hash. */
@@ -124,18 +119,14 @@ data class ImageViewerItem(
 			model = path,
 			cacheKey = "$path#$version",
 			label = label,
-			isGif = isGif(path.substringAfterLast('.', "")),
 		)
 
-		/** [bytes] of an image whose file extension is [extension]; [cacheKey] names this version of them. */
-		fun ofBytes(bytes: ByteArray, cacheKey: String, label: String, extension: String) = ImageViewerItem(
+		/** An image's [bytes]; [cacheKey] names this version of them. */
+		fun ofBytes(bytes: ByteArray, cacheKey: String, label: String) = ImageViewerItem(
 			model = bytes,
 			cacheKey = cacheKey,
 			label = label,
-			isGif = isGif(extension),
 		)
-
-		private fun isGif(extension: String) = extension.equals("gif", ignoreCase = true)
 	}
 }
 
@@ -299,15 +290,6 @@ private fun Footer(item: ImageViewerItem, index: Int, count: Int, modifier: Modi
 				.weight(1f)
 				.testTag(IMAGE_VIEWER_LABEL_TAG),
 		)
-		if (item.isGif) {
-			HdMonoLabel(
-				text = Res.string.images_viewer_gif_badge.get(),
-				color = ViewerForeground,
-				modifier = Modifier
-					.border(Dp.Hairline, ViewerForeground.copy(alpha = 0.6f), RectangleShape)
-					.padding(horizontal = Ui.Padding.S),
-			)
-		}
 		if (count > 1) {
 			HdMonoLabel(
 				text = Res.string.images_viewer_counter.get(index + 1, count),
