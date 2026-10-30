@@ -58,6 +58,7 @@ import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.base.markdown.countWords
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.BrowseEntries
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagChip
@@ -420,10 +421,7 @@ fun GradientDivider(modifier: Modifier = Modifier) {
 	)
 }
 
-private fun wordCount(text: String): Int {
-	if (text.isBlank()) return 0
-	return text.trim().split(Regex("\\s+")).size
-}
+private fun wordCount(text: String): Int = countWords(text)
 
 private fun formatEntryMeta(wordCount: Int, tagCount: Int): String {
 	return buildString {

@@ -50,6 +50,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.base.markdown.countWords
 import com.darkrockstudios.apps.hammer.common.components.notes.BrowseNotes
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarStaggeredGrid
@@ -119,7 +120,7 @@ internal fun noteMatchesQuery(note: NoteContent, query: String): Boolean =
 	markdownContains(note.content, query)
 
 private fun NoteContent.wordCount(): Int =
-	content.split(Regex("\\s+")).count { it.isNotBlank() }
+	countWords(content)
 
 private fun NoteContent.firstLine(): String = content.firstNonBlankLine()
 

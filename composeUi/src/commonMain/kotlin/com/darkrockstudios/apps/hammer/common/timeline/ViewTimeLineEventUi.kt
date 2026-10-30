@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
+import com.darkrockstudios.apps.hammer.base.markdown.countWords
 import com.darkrockstudios.apps.hammer.common.TextEditorDefaults
 import com.darkrockstudios.apps.hammer.common.components.timeline.ViewTimeLineEvent
 import com.darkrockstudios.apps.hammer.common.compose.*
@@ -445,7 +446,7 @@ private fun EditBody(
 
 @Composable
 private fun ViewFolioFooter(event: TimeLineEvent?, eventText: String) {
-	val words = eventText.trim().split(Regex("\\s+")).count { it.isNotBlank() }
+	val words = countWords(eventText)
 	HorizontalDivider(
 		thickness = Dp.Hairline,
 		color = MaterialTheme.colorScheme.outlineVariant,
@@ -479,7 +480,7 @@ private fun ViewFolioFooter(event: TimeLineEvent?, eventText: String) {
 
 @Composable
 private fun EditStatusFooter(text: String) {
-	val words = text.trim().split(Regex("\\s+")).count { it.isNotBlank() }
+	val words = countWords(text)
 	val chars = text.length
 
 	HorizontalDivider(
