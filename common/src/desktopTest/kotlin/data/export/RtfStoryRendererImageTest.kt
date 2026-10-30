@@ -7,17 +7,24 @@ import com.darkrockstudios.apps.hammer.common.data.export.ExportImage
 import com.darkrockstudios.apps.hammer.common.data.export.ExportInput
 import com.darkrockstudios.apps.hammer.common.data.export.ExportStrings
 import com.darkrockstudios.apps.hammer.common.data.export.StoryChapter
+import com.darkrockstudios.apps.hammer.common.data.export.buildStoryRtf
 import com.darkrockstudios.apps.hammer.common.data.export.builtInStoryExporters
 import com.darkrockstudios.apps.hammer.common.data.export.decodedOnce
 import com.darkrockstudios.apps.hammer.common.data.export.exportRaster
 import com.darkrockstudios.apps.hammer.common.data.export.writeStoryAsRtf
 import com.darkrockstudios.libs.rtfparserkmp.model.PictureFormat
+import com.darkrockstudios.libs.rtfparserkmp.writer.RtfAlignment
+import com.darkrockstudios.libs.rtfparserkmp.writer.RtfBlock
+import com.darkrockstudios.libs.rtfparserkmp.writer.RtfDocumentWriter
+import com.darkrockstudios.libs.rtfparserkmp.writer.RtfPageBreak
+import com.darkrockstudios.libs.rtfparserkmp.writer.RtfPicture
 import com.darkrockstudios.libs.rtfparserkmp.parser.RtfEvent
 import com.darkrockstudios.libs.rtfparserkmp.parser.parseRtf
 import okio.Buffer
 import org.junit.jupiter.api.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -194,6 +201,68 @@ class RtfStoryRendererImageTest {
 			),
 		)
 		assertNotNull(picts(buffer.readByteArray().decodeToString()).singleOrNull())
+	}
+
+	/** The blocks of a one-chapter story whose project cover is image 3. */
+	private fun coverBlocks(images: Map<Int, ExportImage>, coverImageId: Int? = 3): List<RtfBlock> = buildStoryRtf(
+		projectName = "Story",
+		projectData = ProjectData(authorName = "Author", coverImageId = coverImageId),
+		chapters = listOf(StoryChapter("Alpha", "Body.")),
+		strings = ExportStrings(contentsTitle = "Contents", authorByline = "by Author"),
+		images = images,
+	).blocks
+
+	@Test
+	fun `a cover fills the text width of a page of its own before the title page`() {
+		val png = encoded("png", width = 40, height = 20)
+		val blocks = coverBlocks(mapOf(3 to ExportImage(3, "Cover", "png", png)))
+
+		val cover = assertIs<RtfPicture>(blocks[0])
+		assertEquals(8640 to 4320, cover.goalWidthTwips to cover.goalHeightTwips)
+		assertEquals(RtfAlignment.Center, cover.style.alignment)
+		assertContentEquals(png, cover.bytes)
+		assertEquals(RtfPageBreak, blocks[1])
+		assertEquals(coverBlocks(emptyMap(), coverImageId = null), blocks.drop(2))
+	}
+
+	@Test
+	fun `a tall cover is held to the text height`() {
+		val blocks = coverBlocks(mapOf(3 to ExportImage(3, "Cover", "png", encoded("png", width = 20, height = 80))))
+
+		val cover = assertIs<RtfPicture>(blocks[0])
+		assertEquals(3240 to 12960, cover.goalWidthTwips to cover.goalHeightTwips)
+	}
+
+	@Test
+	fun `the cover is written as a picture group before the title`() {
+		val rtf = RtfDocumentWriter().write(
+			buildStoryRtf(
+				projectName = "Story",
+				projectData = ProjectData(coverImageId = 3),
+				chapters = listOf(StoryChapter("Alpha", "Body.")),
+				strings = ExportStrings(contentsTitle = "Contents", authorByline = null),
+				images = mapOf(3 to ExportImage(3, "Cover", "png", encoded("png"))),
+			),
+		)
+
+		val pict = picts(rtf).single()
+		assertEquals(8640 to 4320, pict.goalWidth to pict.goalHeight)
+		assertEquals("\\qc", pict.paragraph)
+		assertTrue(rtf.indexOf("\\pict") < rtf.indexOf("\\page"), rtf)
+	}
+
+	@Test
+	fun `a cover that is missing or not a raster leaves the document as it is without one`() {
+		val svg = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 10"><rect width="20" height="10"/></svg>"""
+		val without = coverBlocks(emptyMap(), coverImageId = null)
+
+		for (images in listOf(
+			emptyMap(),
+			mapOf(3 to ExportImage(3, "Cover", "svg", svg.encodeToByteArray())),
+			mapOf(3 to ExportImage(3, "Cover", "png", "not an image".encodeToByteArray())),
+		)) {
+			assertEquals(without, coverBlocks(images), images.toString())
+		}
 	}
 
 	private companion object {

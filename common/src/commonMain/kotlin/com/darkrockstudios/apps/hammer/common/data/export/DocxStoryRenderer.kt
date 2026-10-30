@@ -64,9 +64,10 @@ private const val PARAGRAPH_SPACE = "160"
 
 /**
  * Renders the story as an OOXML WordprocessingML (.docx) package mirroring the EPUB layout:
- * a title page, a Contents page of hyperlinks to chapter bookmarks, then one chapter per
- * top-level node starting on a fresh page. Chapter bodies are rendered from markdown into
- * styled paragraphs and runs. Heading styles pick up the project theme's accent colors.
+ * a cover page when [images] holds a project cover [exportRaster] can read, a title page, a
+ * Contents page of hyperlinks to chapter bookmarks, then one chapter per top-level node starting
+ * on a fresh page. Chapter bodies are rendered from markdown into styled paragraphs and runs.
+ * Heading styles pick up the project theme's accent colors.
  *
  * A project image on a line of its own is embedded from [images], centred at 70% of the text width
  * and no taller than 60% of the text height. One missing there, an SVG, or one [exportRaster] cannot
@@ -88,7 +89,7 @@ fun writeStoryAsDocx(
 	// The body walk collects hyperlink targets and ordered-list instances that
 	// document.xml.rels and numbering.xml must declare, so it runs first.
 	val ctx = DocxRenderContext(imageNames, images)
-	val documentXml = buildXmlPart { writeDocument(it, ctx, projectName, strings, effective, options) }
+	val documentXml = buildXmlPart { writeDocument(it, ctx, projectName, projectData, strings, effective, options) }
 
 	val zip = OkioZipOutputStream(sink)
 	val mediaFormats = ctx.media.map { it.raster.format }.toSet()
@@ -129,7 +130,7 @@ private class DocxRelationship(val type: String, val target: String, val externa
 /** An image part, at [target] relative to `word/`, and the id of the relationship that points at it. */
 private class DocxMedia(val target: String, val relId: String, val raster: ExportRaster)
 
-private class DocxRenderContext(val imageNames: Map<Int, String>, private val images: Map<Int, ExportImage>) {
+private class DocxRenderContext(val imageNames: Map<Int, String>, val images: Map<Int, ExportImage>) {
 	/** Hyperlinks and images in the order the body first refers to them. */
 	val relationships = mutableListOf<DocxRelationship>()
 
@@ -445,6 +446,7 @@ private fun writeDocument(
 	writer: XmlWriter,
 	ctx: DocxRenderContext,
 	projectName: String,
+	projectData: ProjectData,
 	strings: ExportStrings,
 	chapters: List<StoryChapter>,
 	options: ExportOptions,
@@ -455,7 +457,9 @@ private fun writeDocument(
 		namespaceAttr("a", A_NS)
 		namespaceAttr("pic", PIC_NS)
 		w("body") {
-			writeTitlePage(projectName, strings.authorByline)
+			val cover = exportCover(projectData, ctx.images) { ctx.mediaFor(it.id)?.let { media -> it.name to media } }
+			cover?.let { (name, media) -> writeCoverPage(ctx, name, media) }
+			writeTitlePage(projectName, strings.authorByline, pageBreakBefore = cover != null)
 			writeContentsPage(chapters, strings.contentsTitle, options.numberChapters)
 			chapters.forEachIndexed { index, chapter ->
 				writeChapter(ctx, index, chapter, options)
@@ -479,9 +483,18 @@ private fun writeDocument(
 	}
 }
 
-private fun XmlWriter.writeTitlePage(projectName: String, authorByline: String?) {
+/** [media] filling the text width of the first page, or as much of it as keeps within the text height. */
+private fun XmlWriter.writeCoverPage(ctx: DocxRenderContext, name: String, media: DocxMedia) {
+	val (cx, cy) = imageExtent(media.raster.aspectRatio, widthFraction = 1f, maxHeightFraction = 1f)
+	picture(name, media, ctx.nextDrawingId(), cx, cy, spaceBefore = "0", spaceAfter = "0")
+}
+
+private fun XmlWriter.writeTitlePage(projectName: String, authorByline: String?, pageBreakBefore: Boolean) {
 	w("p") {
-		w("pPr") { wVal("pStyle", "Title") }
+		w("pPr") {
+			wVal("pStyle", "Title")
+			if (pageBreakBefore) wVal("pageBreakBefore", "true")
+		}
 		w("r") {
 			w("t") {
 				preserveSpace()
@@ -708,81 +721,22 @@ private class MarkdownDocxWriter(
 	}
 
 	/**
-	 * A centred paragraph holding [media] inline, described by [name], set a paragraph gap from its
-	 * neighbours unless a blank line already parts them. Prose beside an image runs on into it and
-	 * leaves no gap of its own, so the picture supplies both.
+	 * [media] as a [picture] paragraph a paragraph gap from its neighbours, unless a blank line already
+	 * parts them. Prose beside an image runs on into it and leaves no gap of its own, so the picture
+	 * supplies both.
 	 */
 	private fun picture(name: String, media: DocxMedia, previous: ProseBlock?, next: ProseBlock?) {
-		val (cx, cy) = imageExtent(media.raster.aspectRatio)
-		val drawingId = ctx.nextDrawingId()
-		writer.w("p") {
-			w("pPr") {
-				w("spacing") {
-					wAttr("before", if (previous == ProseBlock.Blank) "0" else PARAGRAPH_SPACE)
-					wAttr("after", if (next == ProseBlock.Blank) "0" else PARAGRAPH_SPACE)
-				}
-				wVal("jc", "center")
-			}
-			w("r") {
-				w("drawing") {
-					smartStartTag(WP_NS, "inline", "wp") {
-						for (side in listOf("distT", "distB", "distL", "distR")) attr(side, "0")
-						smartStartTag(WP_NS, "extent", "wp") {
-							attr("cx", cx.toString())
-							attr("cy", cy.toString())
-						}
-						smartStartTag(WP_NS, "docPr", "wp") {
-							attr("id", drawingId.toString())
-							attr("name", name)
-							attr("descr", name)
-						}
-						smartStartTag(WP_NS, "cNvGraphicFramePr", "wp") {
-							smartStartTag(A_NS, "graphicFrameLocks", "a") { attr("noChangeAspect", "1") }
-						}
-						smartStartTag(A_NS, "graphic", "a") {
-							smartStartTag(A_NS, "graphicData", "a") {
-								attr("uri", PIC_NS)
-								pic(name, media.relId, cx, cy)
-							}
-						}
-					}
-				}
-			}
-		}
+		val (cx, cy) = imageExtent(media.raster.aspectRatio, IMAGE_WIDTH_FRACTION, MAX_IMAGE_HEIGHT_FRACTION)
+		writer.picture(
+			name = name,
+			media = media,
+			drawingId = ctx.nextDrawingId(),
+			cx = cx,
+			cy = cy,
+			spaceBefore = if (previous == ProseBlock.Blank) "0" else PARAGRAPH_SPACE,
+			spaceAfter = if (next == ProseBlock.Blank) "0" else PARAGRAPH_SPACE,
+		)
 	}
-
-	private fun XmlWriter.pic(name: String, relId: String, cx: Long, cy: Long) =
-		smartStartTag(PIC_NS, "pic", "pic") {
-			smartStartTag(PIC_NS, "nvPicPr", "pic") {
-				smartStartTag(PIC_NS, "cNvPr", "pic") {
-					attr("id", "0")
-					attr("name", name)
-				}
-				smartStartTag(PIC_NS, "cNvPicPr", "pic") {
-					smartStartTag(A_NS, "picLocks", "a") { attr("noChangeAspect", "1") }
-				}
-			}
-			smartStartTag(PIC_NS, "blipFill", "pic") {
-				smartStartTag(A_NS, "blip", "a") { attribute(R_NS, "embed", "r", relId) }
-				smartStartTag(A_NS, "stretch", "a") { smartStartTag(A_NS, "fillRect", "a") {} }
-			}
-			smartStartTag(PIC_NS, "spPr", "pic") {
-				smartStartTag(A_NS, "xfrm", "a") {
-					smartStartTag(A_NS, "off", "a") {
-						attr("x", "0")
-						attr("y", "0")
-					}
-					smartStartTag(A_NS, "ext", "a") {
-						attr("cx", cx.toString())
-						attr("cy", cy.toString())
-					}
-				}
-				smartStartTag(A_NS, "prstGeom", "a") {
-					attr("prst", "rect")
-					smartStartTag(A_NS, "avLst", "a") {}
-				}
-			}
-		}
 
 	private fun paragraph(
 		style: String?,
@@ -812,15 +766,94 @@ private class MarkdownDocxWriter(
 	}
 }
 
+/** A centred paragraph holding [media] inline at [cx] by [cy] EMUs, described by [name]. */
+private fun XmlWriter.picture(
+	name: String,
+	media: DocxMedia,
+	drawingId: Int,
+	cx: Long,
+	cy: Long,
+	spaceBefore: String,
+	spaceAfter: String,
+) {
+	w("p") {
+		w("pPr") {
+			w("spacing") {
+				wAttr("before", spaceBefore)
+				wAttr("after", spaceAfter)
+			}
+			wVal("jc", "center")
+		}
+		w("r") {
+			w("drawing") {
+				smartStartTag(WP_NS, "inline", "wp") {
+					for (side in listOf("distT", "distB", "distL", "distR")) attr(side, "0")
+					smartStartTag(WP_NS, "extent", "wp") {
+						attr("cx", cx.toString())
+						attr("cy", cy.toString())
+					}
+					smartStartTag(WP_NS, "docPr", "wp") {
+						attr("id", drawingId.toString())
+						attr("name", name)
+						attr("descr", name)
+					}
+					smartStartTag(WP_NS, "cNvGraphicFramePr", "wp") {
+						smartStartTag(A_NS, "graphicFrameLocks", "a") { attr("noChangeAspect", "1") }
+					}
+					smartStartTag(A_NS, "graphic", "a") {
+						smartStartTag(A_NS, "graphicData", "a") {
+							attr("uri", PIC_NS)
+							pic(name, media.relId, cx, cy)
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+private fun XmlWriter.pic(name: String, relId: String, cx: Long, cy: Long) =
+	smartStartTag(PIC_NS, "pic", "pic") {
+		smartStartTag(PIC_NS, "nvPicPr", "pic") {
+			smartStartTag(PIC_NS, "cNvPr", "pic") {
+				attr("id", "0")
+				attr("name", name)
+			}
+			smartStartTag(PIC_NS, "cNvPicPr", "pic") {
+				smartStartTag(A_NS, "picLocks", "a") { attr("noChangeAspect", "1") }
+			}
+		}
+		smartStartTag(PIC_NS, "blipFill", "pic") {
+			smartStartTag(A_NS, "blip", "a") { attribute(R_NS, "embed", "r", relId) }
+			smartStartTag(A_NS, "stretch", "a") { smartStartTag(A_NS, "fillRect", "a") {} }
+		}
+		smartStartTag(PIC_NS, "spPr", "pic") {
+			smartStartTag(A_NS, "xfrm", "a") {
+				smartStartTag(A_NS, "off", "a") {
+					attr("x", "0")
+					attr("y", "0")
+				}
+				smartStartTag(A_NS, "ext", "a") {
+					attr("cx", cx.toString())
+					attr("cy", cy.toString())
+				}
+			}
+			smartStartTag(A_NS, "prstGeom", "a") {
+				attr("prst", "rect")
+				smartStartTag(A_NS, "avLst", "a") {}
+			}
+		}
+	}
+
 /**
- * The size, in EMUs, of an image of [aspectRatio] (height over width): [IMAGE_WIDTH_FRACTION] of the
- * text width, scaling a small image up, then narrowed if need be to keep within
- * [MAX_IMAGE_HEIGHT_FRACTION] of the text height.
+ * The size, in EMUs, of an image of [aspectRatio] (height over width): [widthFraction] of the text
+ * width, scaling a small image up, then narrowed if need be to keep within [maxHeightFraction] of the
+ * text height.
  */
-private fun imageExtent(aspectRatio: Float): Pair<Long, Long> {
+private fun imageExtent(aspectRatio: Float, widthFraction: Float, maxHeightFraction: Float): Pair<Long, Long> {
 	val textWidth = (PAGE_WIDTH_TWIPS - PAGE_MARGIN_TWIPS * 2) * EMU_PER_TWIP
-	val maxHeight = (PAGE_HEIGHT_TWIPS - PAGE_MARGIN_TWIPS * 2) * EMU_PER_TWIP * MAX_IMAGE_HEIGHT_FRACTION.toDouble()
-	var width = textWidth * IMAGE_WIDTH_FRACTION.toDouble()
+	val maxHeight = (PAGE_HEIGHT_TWIPS - PAGE_MARGIN_TWIPS * 2) * EMU_PER_TWIP * maxHeightFraction.toDouble()
+	var width = textWidth * widthFraction.toDouble()
 	var height = width * aspectRatio
 	if (height > maxHeight) {
 		height = maxHeight

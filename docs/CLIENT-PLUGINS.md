@@ -511,6 +511,14 @@ class ExportInput(
   (`ExportInput.imageNames`) carries the image's name as text; all of these
   leave out an image with no name to show. The Markdown format keeps the
   reference as written.
+- **Cover.** A project cover opens the export with a cover page before the
+  title page. PDF fits it to the whole page, edge to edge and centred. DOCX
+  and RTF give it a page of its own at the full text width, narrowed if need
+  be to fit the text height. EPUB adds a cover page that scales it to the
+  screen as the first item of the reading order, kept out of the table of
+  contents, beside the book's `cover` metadata. A cover whose image is missing
+  or does not decode, or an SVG cover outside PDF, leaves the export without
+  a cover page.
 
 Importers have no plugin seam: `ImportFormat` is a closed enum.
 

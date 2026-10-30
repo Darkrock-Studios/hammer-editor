@@ -49,6 +49,15 @@ fun writeStoryAsEpub(
 		packagedImages.values.forEach { addResource(it.resource) }
 		projectData.coverImageId?.let(packagedImages::get)?.let { coverImage = it.resource }
 
+		// The cover page leads the spine but stays out of the table of contents.
+		exportCover(projectData, images) { image ->
+			val packaged = packagedImages[image.id] ?: return@exportCover null
+			exportRaster(image)?.let { coverPageResource(projectName, packaged, it) }
+		}?.let { page ->
+			coverPage = page
+			spine.addResource(page)
+		}
+
 		val effective = chapters.ifEmpty { listOf(StoryChapter(projectName, "")) }
 		val tocEntries = effective.mapIndexed { index, chapter ->
 			TocEntry(title = chapterTitle(index, chapter, options.numberChapters), href = "ch${index + 1}.xhtml")
@@ -156,18 +165,45 @@ private fun buildXhtmlResource(
 	id: String,
 	href: String,
 	title: String,
+	css: String? = null,
 	bodyBuilder: BODY.() -> Unit,
 ): Resource {
 	val xhtml = buildString {
 		append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
 		appendHTML(xhtmlCompatible = true).html(namespace = "http://www.w3.org/1999/xhtml") {
-			head { title { +title } }
+			head {
+				title { +title }
+				css?.let { style(type = "text/css") { unsafe { +it } } }
+			}
 			body { bodyBuilder() }
 		}
 	}
 	return Resource(id = id, data = xhtml.encodeToByteArray(), href = href)
 		.apply { mediaType = MediaTypes.XHTML }
 }
+
+/**
+ * A page showing [image] as large as the reader's viewport allows, at [raster]'s aspect ratio. An SVG
+ * wrapper is what scales a cover to the screen across EPUB 2 readers; CSS viewport units are not
+ * reliable there. The class selectors outrank the book stylesheet, which is linked after this one.
+ */
+private fun coverPageResource(projectName: String, image: PackagedImage, raster: ExportRaster): Resource =
+	buildXhtmlResource(
+		id = "cover",
+		href = "cover.xhtml",
+		title = projectName,
+		css = "@page { margin: 0; } html { height: 100%; } " +
+			"body.cover-page { height: 100%; margin: 0; padding: 0; text-align: center; } div.cover { height: 100%; } div.cover svg { display: block; }",
+	) {
+		classes = setOf("cover-page")
+		val width = raster.widthPx
+		val height = raster.heightPx
+		val svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" " +
+			"version=\"1.1\" width=\"100%\" height=\"100%\" viewBox=\"0 0 $width $height\" " +
+			"preserveAspectRatio=\"xMidYMid meet\">" +
+			"<image width=\"$width\" height=\"$height\" xlink:href=\"${escapeXml(image.href)}\"/></svg>"
+		div(classes = "cover") { unsafe { +svg } }
+	}
 
 private fun BODY.tocPageBody(contentsTitle: String, entries: List<TocEntry>) {
 	classes = setOf("toc-page")

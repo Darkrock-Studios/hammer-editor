@@ -62,10 +62,11 @@ private val IMAGE_WIDTH = (TEXT_WIDTH * IMAGE_WIDTH_FRACTION).roundToInt()
 private val MAX_IMAGE_HEIGHT = (TEXT_HEIGHT * MAX_IMAGE_HEIGHT_FRACTION).roundToInt()
 
 /**
- * Renders the story as a Rich Text Format (.rtf) document mirroring the EPUB/DOCX layout: a title
- * page, a Contents page of links to chapter bookmarks, then one chapter per top-level node starting
- * on a fresh page. Chapter bodies are rendered from markdown into formatted RTF runs. Heading and
- * link colors pick up the project theme's accent colors.
+ * Renders the story as a Rich Text Format (.rtf) document mirroring the EPUB/DOCX layout: a cover
+ * page when [images] holds a project cover [exportRaster] can read, a title page, a Contents page of
+ * links to chapter bookmarks, then one chapter per top-level node starting on a fresh page. Chapter
+ * bodies are rendered from markdown into formatted RTF runs. Heading and link colors pick up the
+ * project theme's accent colors.
  *
  * The document is assembled as a strongly-typed [RtfDocument] and serialized by [RtfDocumentWriter],
  * which keeps the output 7-bit ASCII (non-ASCII as `\uN` escapes) and portable across readers.
@@ -80,6 +81,19 @@ fun writeStoryAsRtf(
 	imageNames: Map<Int, String> = emptyMap(),
 	images: Map<Int, ExportImage> = emptyMap(),
 ) {
+	val document = buildStoryRtf(projectName, projectData, chapters, strings, options, imageNames, images)
+	sink.writeUtf8(RtfDocumentWriter().write(document))
+}
+
+internal fun buildStoryRtf(
+	projectName: String,
+	projectData: ProjectData,
+	chapters: List<StoryChapter>,
+	strings: ExportStrings,
+	options: ExportOptions = ExportOptions(),
+	imageNames: Map<Int, String> = emptyMap(),
+	images: Map<Int, ExportImage> = emptyMap(),
+): RtfDocument {
 	val authorName = projectData.authorName?.takeIf { it.isNotBlank() }
 	val effective = chapters.ifEmpty { listOf(StoryChapter(projectName, "")) }
 	val primary = themeColor(projectData.theme?.primary)
@@ -88,6 +102,10 @@ fun writeStoryAsRtf(
 	val picture = decodedOnce(images)
 
 	val blocks = buildList {
+		exportCover(projectData, images) { picture(it.id) }?.let { cover ->
+			add(coverPicture(cover))
+			add(RtfPageBreak)
+		}
 		addAll(titlePage(projectName, strings.authorByline, primary))
 		addAll(contentsPage(effective, strings.contentsTitle, primary, options.numberChapters))
 		effective.forEachIndexed { index, chapter ->
@@ -95,15 +113,13 @@ fun writeStoryAsRtf(
 		}
 	}
 
-	val document = RtfDocument(
+	return RtfDocument(
 		blocks = blocks,
 		defaultFont = options.font.toRtfFont(),
 		defaultFontSizeHalfPoints = BODY_HALF_POINTS,
 		info = RtfInfo(title = projectName, author = authorName),
 		generator = "Hammer ${BuildMetadata.APP_VERSION}",
 	)
-
-	sink.writeUtf8(RtfDocumentWriter().write(document))
 }
 
 private fun titlePage(projectName: String, authorByline: String?, primary: RtfColor?): List<RtfBlock> = buildList {
@@ -276,11 +292,30 @@ internal fun decodedOnce(
 }
 
 /** A centred picture set a paragraph gap from its neighbours, unless a blank line already parts them. */
-private fun pictureBlock(image: ExportRaster, previous: ProseBlock?, next: ProseBlock?): RtfPicture {
-	var width = IMAGE_WIDTH
+private fun pictureBlock(image: ExportRaster, previous: ProseBlock?, next: ProseBlock?): RtfPicture = rtfPicture(
+	image,
+	maxWidth = IMAGE_WIDTH,
+	maxHeight = MAX_IMAGE_HEIGHT,
+	spaceBeforeTwips = if (previous == ProseBlock.Blank) 0 else PARAGRAPH_SPACE_AFTER,
+	spaceAfterTwips = if (next == ProseBlock.Blank) 0 else PARAGRAPH_SPACE_AFTER,
+)
+
+/** [image] filling the text width, or as much of it as keeps within the text height. */
+private fun coverPicture(image: ExportRaster): RtfPicture =
+	rtfPicture(image, maxWidth = TEXT_WIDTH, maxHeight = TEXT_HEIGHT, spaceBeforeTwips = 0, spaceAfterTwips = 0)
+
+/** [image] centred at [maxWidth] twips wide, narrowed if need be to keep within [maxHeight]. */
+private fun rtfPicture(
+	image: ExportRaster,
+	maxWidth: Int,
+	maxHeight: Int,
+	spaceBeforeTwips: Int,
+	spaceAfterTwips: Int,
+): RtfPicture {
+	var width = maxWidth
 	var height = (width * image.aspectRatio).roundToInt()
-	if (height > MAX_IMAGE_HEIGHT) {
-		height = MAX_IMAGE_HEIGHT
+	if (height > maxHeight) {
+		height = maxHeight
 		width = (height / image.aspectRatio).roundToInt()
 	}
 	return RtfPicture(
@@ -295,8 +330,8 @@ private fun pictureBlock(image: ExportRaster, previous: ProseBlock?, next: Prose
 		goalHeightTwips = height.coerceAtLeast(1),
 		style = RtfParagraphStyle(
 			alignment = RtfAlignment.Center,
-			spaceBeforeTwips = if (previous == ProseBlock.Blank) 0 else PARAGRAPH_SPACE_AFTER,
-			spaceAfterTwips = if (next == ProseBlock.Blank) 0 else PARAGRAPH_SPACE_AFTER,
+			spaceBeforeTwips = spaceBeforeTwips,
+			spaceAfterTwips = spaceAfterTwips,
 		),
 	)
 }

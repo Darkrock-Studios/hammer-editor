@@ -9,8 +9,10 @@ import com.darkrockstudios.apps.hammer.common.data.export.writeStoryAsEpub
 import com.darkrockstudios.apps.hammer.common.data.ExportFont
 import com.darkrockstudios.apps.hammer.common.data.ExportOptions
 import okio.Buffer
+import org.w3c.dom.Element
 import java.io.ByteArrayInputStream
 import java.util.zip.ZipInputStream
+import javax.xml.parsers.DocumentBuilderFactory
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
@@ -286,6 +288,80 @@ class EpubStoryRendererTest {
 		).text("OEBPS/content.opf")
 
 		assertTrue("name=\"cover\"" !in opf, opf)
+	}
+
+	private fun withoutBookId(ncx: String): String = ncx.replace(Regex("""name="dtb:UUID" content="[^"]*""""), "")
+
+	private fun spineIdrefs(opf: String): List<String> =
+		Regex("""<(?:opf:)?itemref [^>]*idref="([^"]+)"""").findAll(opf).map { it.groupValues[1] }.toList()
+
+	@Test
+	fun `a cover that decodes opens the book on a cover page outside the table of contents`() {
+		val cover = ExportImage(id = 3, name = "cat", fileExtension = "png", bytes = encoded("png", width = 40, height = 20))
+		val entries = renderEntries(
+			listOf(StoryChapter("Alpha", "Body.")),
+			projectData = ProjectData(authorName = "Jane Doe", coverImageId = 3),
+			images = mapOf(3 to cover),
+		)
+
+		val opf = entries.text("OEBPS/content.opf")
+		assertEquals(listOf("cover", "title", "toc", "ch1"), spineIdrefs(opf))
+		assertTrue(Regex("""<(?:opf:)?meta [^>]*name="cover"[^>]*content="img3"""").containsMatchIn(opf), opf)
+		assertTrue(Regex("""<(?:opf:)?reference [^>]*type="cover"[^>]*href="cover\.xhtml"""").containsMatchIn(opf), opf)
+
+		val page = entries.text("OEBPS/cover.xhtml")
+		assertTrue("""xlink:href="images/3.png"""" in page, page)
+		assertTrue("""viewBox="0 0 40 20"""" in page, page)
+		assertTrue("""preserveAspectRatio="xMidYMid meet"""" in page, page)
+
+		val ncx = entries.text("OEBPS/toc.ncx")
+		assertTrue("cover.xhtml" !in ncx, ncx)
+		assertTrue("cover.xhtml" !in entries.text("OEBPS/toc.xhtml"))
+	}
+
+	@Test
+	fun `the cover page parses as xml`() {
+		val entries = renderEntries(
+			listOf(StoryChapter("Alpha", "Body.")),
+			projectName = "Tom & <Jerry>",
+			projectData = ProjectData(coverImageId = 3),
+			images = mapOf(3 to ExportImage(id = 3, name = "cat", fileExtension = "jpg", bytes = encoded("jpg"))),
+		)
+
+		val page = assertNotNull(entries["OEBPS/cover.xhtml"])
+		val document = DocumentBuilderFactory.newInstance().apply { isNamespaceAware = true }
+			.newDocumentBuilder()
+			.parse(ByteArrayInputStream(page))
+		val image = document.getElementsByTagNameNS("http://www.w3.org/2000/svg", "image").item(0) as Element
+		assertEquals("images/3.jpg", image.getAttributeNS("http://www.w3.org/1999/xlink", "href"))
+	}
+
+	@Test
+	fun `a cover that is missing or not a raster leaves the book as it is without one`() {
+		val svg = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 10"><rect width="20" height="10"/></svg>"""
+		fun book(coverImageId: Int?, images: Map<Int, ExportImage>) = renderEntries(
+			listOf(StoryChapter("Alpha", "Body.")),
+			projectData = ProjectData(authorName = "Jane Doe", coverImageId = coverImageId),
+			images = images,
+		)
+
+		for (images in listOf(
+			emptyMap(),
+			mapOf(3 to ExportImage(id = 3, name = "cat", fileExtension = "svg", bytes = svg.encodeToByteArray())),
+			mapOf(3 to catImage),
+		)) {
+			val entries = book(coverImageId = 3, images)
+			val without = book(coverImageId = null, images)
+
+			assertTrue("OEBPS/cover.xhtml" !in entries, entries.keys.toString())
+			assertEquals(listOf("title", "toc", "ch1"), spineIdrefs(entries.text("OEBPS/content.opf")))
+			// The package and the NCX carry a fresh book id each time.
+			assertEquals(without.keys, entries.keys)
+			without.keys.filter { it.endsWith(".xhtml") || it.endsWith(".css") }.forEach { name ->
+				assertContentEquals(without[name], entries[name], "$name with $images")
+			}
+			assertEquals(withoutBookId(without.text("OEBPS/toc.ncx")), withoutBookId(entries.text("OEBPS/toc.ncx")))
+		}
 	}
 
 	@Test

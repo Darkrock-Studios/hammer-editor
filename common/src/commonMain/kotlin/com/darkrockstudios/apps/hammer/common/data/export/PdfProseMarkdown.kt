@@ -459,18 +459,23 @@ private fun ContainerScope.renderCode(block: ProseBlock.CodeBlock, layout: Prose
 private fun ContainerScope.renderImage(block: ProseBlock.Image, layout: ProseLayout.Image) {
 	keepTogether {
 		column(padding = Padding(left = Dp(layout.inset))) {
-			when (val picture = layout.picture) {
-				is ProsePicture.Raster -> image(
-					bytes = picture.bytes,
-					width = Dp(layout.width),
-					height = Dp(layout.height),
-					contentScale = ContentScale.Fit,
-					altText = block.name,
-				)
-
-				is ProsePicture.Vector -> vector(picture.image, width = Dp(layout.width), height = Dp(layout.height))
-			}
+			picture(layout.picture, layout.width, layout.height, altText = block.name)
 		}
+	}
+}
+
+/** Draws [picture] at [width] by [height] points. */
+internal fun ContainerScope.picture(picture: ProsePicture, width: Float, height: Float, altText: String?) {
+	when (picture) {
+		is ProsePicture.Raster -> image(
+			bytes = picture.bytes,
+			width = Dp(width),
+			height = Dp(height),
+			contentScale = ContentScale.Fit,
+			altText = altText,
+		)
+
+		is ProsePicture.Vector -> vector(picture.image, width = Dp(width), height = Dp(height))
 	}
 }
 

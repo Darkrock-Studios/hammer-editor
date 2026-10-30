@@ -250,6 +250,76 @@ class PdfStoryRendererTest {
 		assertEquals(STORY_PAGE_SIZE.width.value / 2, drawn.x + drawn.width / 2, 0.5f)
 	}
 
+	private val svgCover =
+		ExportImage(3, "Cover", "svg", """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 10"><rect width="20" height="10" fill="#f80"/></svg>""".encodeToByteArray())
+
+	/** A story whose project cover is image 3, drawn from [images]. */
+	private fun renderWithCover(images: Map<Int, ExportImage>, coverImageId: Int? = 3): PdfDocument = buildStoryPdf(
+		projectName = "Story",
+		projectData = ProjectData(authorName = "Author", coverImageId = coverImageId),
+		chapters = listOf(StoryChapter("Chapter", "Body.")),
+		strings = ExportStrings(contentsTitle = "Contents", authorByline = "by Author"),
+		images = images,
+		factory = ImageWatchingFactory(drawnImages),
+	)
+
+	private fun PdfDocument.titlePageIndex(): Int = textRuns.first { it.text == "Story" }.pageIndex
+
+	@Test
+	fun `a wide cover fills the width of a page of its own before the title page`() {
+		val document = renderWithCover(mapOf(3 to ExportImage(3, "Cover", "png", encoded("png", width = 40, height = 20))))
+
+		val drawn = drawnImages.single()
+		assertEquals(0, drawn.pageIndex)
+		assertEquals(0f, drawn.x, 0.5f)
+		assertEquals(STORY_PAGE_SIZE.width.value, drawn.width, 0.5f)
+		assertEquals(STORY_PAGE_SIZE.width.value / 2, drawn.height, 0.5f)
+		assertEquals(STORY_PAGE_SIZE.height.value / 2, drawn.y + drawn.height / 2, 0.5f)
+		assertTrue(document.textRuns.none { it.pageIndex == 0 }, document.textRuns.toString())
+		assertEquals(1, document.titlePageIndex())
+	}
+
+	@Test
+	fun `a tall cover fills the height of the page centred across it`() {
+		val document = renderWithCover(mapOf(3 to ExportImage(3, "Cover", "png", encoded("png", width = 20, height = 80))))
+
+		val drawn = drawnImages.single()
+		assertEquals(0, drawn.pageIndex)
+		assertEquals(0f, drawn.y, 0.5f)
+		assertEquals(STORY_PAGE_SIZE.height.value, drawn.height, 0.5f)
+		assertEquals(STORY_PAGE_SIZE.height.value / 4, drawn.width, 0.5f)
+		assertEquals(STORY_PAGE_SIZE.width.value / 2, drawn.x + drawn.width / 2, 0.5f)
+		assertEquals(1, document.titlePageIndex())
+	}
+
+	@Test
+	fun `an svg cover is drawn as a vector on a page of its own`() {
+		val document = renderWithCover(mapOf(3 to svgCover))
+
+		assertTrue(drawnImages.isEmpty())
+		assertTrue(document.textRuns.none { it.pageIndex == 0 }, document.textRuns.toString())
+		assertEquals(1, document.titlePageIndex())
+	}
+
+	@Test
+	fun `a cover that is missing or does not decode adds no page`() {
+		val withoutCover = renderWithCover(emptyMap(), coverImageId = null)
+		assertEquals(0, withoutCover.titlePageIndex())
+
+		for (images in listOf(
+			emptyMap(),
+			mapOf(3 to ExportImage(3, "Cover", "png", "not an image".encodeToByteArray())),
+			mapOf(3 to ExportImage(3, "Cover", "bmp", encoded("bmp"))),
+		)) {
+			val document = renderWithCover(images)
+
+			assertEquals(withoutCover.textRuns, document.textRuns, images.toString())
+			assertEquals(withoutCover.hyperlinks, document.hyperlinks, images.toString())
+			assertEquals(0, imageObjects(document))
+		}
+		assertTrue(drawnImages.isEmpty())
+	}
+
 	private fun preparedImage(bytes: ByteArray, extension: String, width: Float, maxHeight: Float): ProseLayout.Image {
 		val metrics = defaultPdfDriverFactory().create(PdfMetadata(), emptyList())
 		val prose = try {

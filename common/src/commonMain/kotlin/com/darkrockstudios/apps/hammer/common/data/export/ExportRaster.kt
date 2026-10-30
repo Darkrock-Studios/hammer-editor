@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.data.export
 
 import com.conamobile.pdfkmp.image.readImageInfo
+import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.base.image.ImageFormat
 
 /** The share of the text width an embedded image takes: the editor's `HammerImageBlockSize`. */
@@ -37,6 +38,17 @@ internal fun exportRaster(image: ExportImage): ExportRaster? = when (ImageFormat
 	"image/webp" -> transcodeToPng(image.bytes)?.let(::uprightRaster)
 	else -> null
 }
+
+/**
+ * The project cover from [images] as [decode] reads it, or null when the project has no cover, its
+ * image is not in [images], or it does not decode. A format opens with a cover page only for a
+ * non-null result.
+ */
+internal fun <T : Any> exportCover(
+	projectData: ProjectData,
+	images: Map<Int, ExportImage>,
+	decode: (ExportImage) -> T?,
+): T? = projectData.coverImageId?.let(images::get)?.let(decode)
 
 /**
  * The widest or tallest raster an export embeds: JPEG's limit. A PNG header can claim any u32 side,

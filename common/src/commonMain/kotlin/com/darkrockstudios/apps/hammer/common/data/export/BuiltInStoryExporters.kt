@@ -43,6 +43,7 @@ private object DocxStoryExporter : StoryExporter {
 	override val fileExtension = "docx"
 	override val mimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 	override val embedsImages = true
+	override val embedsCover = true
 
 	override fun render(sink: BufferedSink, input: ExportInput) = writeStoryAsDocx(
 		sink = sink,
@@ -61,6 +62,7 @@ private object RtfStoryExporter : StoryExporter {
 	override val fileExtension = "rtf"
 	override val mimeType = "application/rtf"
 	override val embedsImages = true
+	override val embedsCover = true
 
 	override fun render(sink: BufferedSink, input: ExportInput) = writeStoryAsRtf(
 		sink = sink,
@@ -79,6 +81,7 @@ private object PdfStoryExporter : StoryExporter {
 	override val fileExtension = "pdf"
 	override val mimeType = "application/pdf"
 	override val embedsImages = true
+	override val embedsCover = true
 
 	override fun render(sink: BufferedSink, input: ExportInput) = writeStoryAsPdf(
 		sink = sink,

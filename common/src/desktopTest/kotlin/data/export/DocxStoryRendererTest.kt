@@ -20,6 +20,7 @@ import java.io.ByteArrayInputStream
 import java.util.zip.ZipInputStream
 import javax.xml.parsers.DocumentBuilderFactory
 import kotlin.math.roundToLong
+import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
@@ -707,6 +708,80 @@ class DocxStoryRendererTest {
 		assertEquals(8, xmlParts.size, "Expected every package part, got ${parts.keys}")
 		xmlParts.forEach { (name, bytes) -> assertNotNull(runCatching { parseXml(bytes) }.getOrNull(), name) }
 		assertEquals("Cat & <Dog>", drawings(parts).first().name)
+	}
+
+	/** The package of a one-chapter story showing [markdown] whose project cover is image 3. */
+	private fun renderCover(
+		images: Map<Int, ExportImage>,
+		coverImageId: Int? = 3,
+		markdown: String = "Body.",
+	): ByteArray = renderBytes(
+		listOf(StoryChapter("Alpha", markdown)),
+		projectData = ProjectData(authorName = "Test Author", coverImageId = coverImageId),
+		imageNames = images.mapValues { it.value.name },
+		images = images,
+	)
+
+	@Test
+	fun `a cover fills the text width of the first page before the title page`() {
+		val bytes = renderCover(mapOf(image(3, "Cover", "png", encoded("png", width = 40, height = 20))))
+
+		val parts = unzip(bytes)
+		val (textWidth, _) = textArea(parts)
+		val drawing = drawings(parts).single()
+		assertEquals(textWidth, drawing.cx)
+		assertEquals(textWidth / 2, drawing.cy)
+		assertEquals("Cover", drawing.name)
+
+		val doc = XWPFDocument(ByteArrayInputStream(bytes))
+		val cover = doc.paragraphs[0]
+		assertEquals(1, cover.runs.sumOf { it.embeddedPictures.size })
+		assertEquals(ParagraphAlignment.CENTER, cover.alignment)
+		assertEquals("", cover.text)
+		val title = doc.paragraphs[1]
+		assertEquals("Title", title.style)
+		assertEquals("Test Project", title.text)
+		assertTrue(title.isPageBreak, "The title page should start on a fresh page")
+	}
+
+	@Test
+	fun `a tall cover is held to the text height`() {
+		val parts = unzip(renderCover(mapOf(image(3, "Cover", "png", encoded("png", width = 20, height = 80)))))
+
+		val (_, textHeight) = textArea(parts)
+		val drawing = drawings(parts).single()
+		assertEquals(textHeight, drawing.cy)
+		assertEquals((textHeight / 4.0).roundToLong(), drawing.cx)
+	}
+
+	@Test
+	fun `a cover the story also shows is packaged once`() {
+		val parts = unzip(
+			renderCover(mapOf(image(3, "Cover", "png", encoded("png"))), markdown = "![image](hammer://image/3)"),
+		)
+
+		assertEquals(listOf("word/media/image1.png"), parts.keys.filter { it.startsWith("word/media/") })
+		val drawings = drawings(parts)
+		assertEquals(2, drawings.size)
+		assertEquals(1, drawings.map { it.embed }.distinct().size)
+		assertEquals(listOf("1", "2"), drawings.map { it.docPrId })
+	}
+
+	@Test
+	fun `a cover that is missing or not a raster leaves the document as it is without one`() {
+		val svg = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 10"><rect width="20" height="10"/></svg>"""
+		val without = unzip(renderCover(emptyMap(), coverImageId = null))
+
+		for (images in listOf(
+			emptyMap(),
+			mapOf(image(3, "Cover", "svg", svg.encodeToByteArray())),
+			mapOf(image(3, "Cover", "png", "not an image".encodeToByteArray())),
+		)) {
+			val parts = unzip(renderCover(images))
+
+			assertEquals(without.keys, parts.keys, images.toString())
+			without.forEach { (name, bytes) -> assertContentEquals(bytes, parts[name], "$name with $images") }
+		}
 	}
 
 	private companion object {

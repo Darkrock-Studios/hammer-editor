@@ -350,6 +350,23 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 	}
 
 	@Test
+	fun `pdf docx and rtf exports read the cover for their cover page`() = runTest {
+		initRepo()
+		storedProjectData = StoredProjectData(data = ProjectData(coverImageId = 5))
+		val cover = ImageDef(id = 5, name = "Cover", fileExtension = "png")
+		imagesRepository = mockk {
+			coEvery { ensureImagesLoaded() } returns listOf(cover)
+			every { loadImageBytes(cover) } returns encoded("png")
+		}
+
+		for (format in listOf(BuiltInExportFormat.PDF, BuiltInExportFormat.DOCX, BuiltInExportFormat.RTF)) {
+			useCase().render(ExportOptions(format = format))
+		}
+
+		verify(exactly = 3) { imagesRepository.loadImageBytes(cover) }
+	}
+
+	@Test
 	fun `docx export produces a valid zip file with PK magic bytes`() = runTest {
 		initRepo()
 		storedProjectData = StoredProjectData(data = ProjectData(authorName = "Test Author"))
