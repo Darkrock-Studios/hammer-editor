@@ -9,8 +9,11 @@ import com.darkrockstudios.apps.hammer.common.data.export.writeStoryAsEpub
 import com.darkrockstudios.apps.hammer.common.data.ExportFont
 import com.darkrockstudios.apps.hammer.common.data.ExportOptions
 import okio.Buffer
+import org.w3c.dom.Document
 import org.w3c.dom.Element
+import org.xml.sax.InputSource
 import java.io.ByteArrayInputStream
+import java.io.StringReader
 import java.util.zip.ZipInputStream
 import javax.xml.parsers.DocumentBuilderFactory
 import kotlin.test.Test
@@ -328,10 +331,7 @@ class EpubStoryRendererTest {
 			images = mapOf(3 to ExportImage(id = 3, name = "cat", fileExtension = "jpg", bytes = encoded("jpg"))),
 		)
 
-		val page = assertNotNull(entries["OEBPS/cover.xhtml"])
-		val document = DocumentBuilderFactory.newInstance().apply { isNamespaceAware = true }
-			.newDocumentBuilder()
-			.parse(ByteArrayInputStream(page))
+		val document = parseXhtml(assertNotNull(entries["OEBPS/cover.xhtml"]))
 		val image = document.getElementsByTagNameNS("http://www.w3.org/2000/svg", "image").item(0) as Element
 		assertEquals("images/3.jpg", image.getAttributeNS("http://www.w3.org/1999/xlink", "href"))
 	}
@@ -365,6 +365,31 @@ class EpubStoryRendererTest {
 	}
 
 	@Test
+	fun `every content document declares the XHTML doctype and parses`() {
+		val entries = renderEntries(
+			listOf(StoryChapter("Alpha", "Body *one*."), StoryChapter("Beta", "Body two.")),
+			projectData = ProjectData(authorName = "Jane Doe", coverImageId = 3),
+			images = mapOf(3 to ExportImage(id = 3, name = "cat", fileExtension = "png", bytes = encoded("png"))),
+		)
+
+		val pages = entries.keys.filter { it.endsWith(".xhtml") }
+		assertEquals(
+			listOf("cover", "title", "toc", "ch1", "ch2").map { "OEBPS/$it.xhtml" }.toSet(),
+			pages.toSet(),
+		)
+		pages.forEach { name ->
+			val lines = entries.text(name).lines()
+			assertEquals("""<?xml version="1.0" encoding="UTF-8"?>""", lines[0], name)
+			assertEquals(XHTML11_DOCTYPE, lines[1], name)
+			val root = parseXhtml(assertNotNull(entries[name])).documentElement
+			assertEquals("http://www.w3.org/1999/xhtml", root.namespaceURI, name)
+			assertEquals("html", root.localName, name)
+		}
+		val toc = entries.text("OEBPS/toc.xhtml")
+		assertTrue("<nav" !in toc && """<div class="toc">""" in toc, toc)
+	}
+
+	@Test
 	fun `an image in a line of prose leaves its alt text in place`() {
 		val content = render(listOf(StoryChapter("Alpha", "See ![the map](https://example.com/map.png) here.")))
 
@@ -372,9 +397,22 @@ class EpubStoryRendererTest {
 		assertTrue("<img" !in content, content)
 	}
 
+	/** Parses a content document without fetching the external DTD its DOCTYPE names. */
+	private fun parseXhtml(bytes: ByteArray): Document =
+		DocumentBuilderFactory.newInstance().apply {
+			isNamespaceAware = true
+			isValidating = false
+			setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false)
+		}
+			.newDocumentBuilder()
+			.apply { setEntityResolver { _, _ -> InputSource(StringReader("")) } }
+			.parse(ByteArrayInputStream(bytes))
+
 	private val catImage = ExportImage(id = 3, name = "cat", fileExtension = "png", bytes = PNG_BYTES)
 
 	private companion object {
+		const val XHTML11_DOCTYPE =
+			"""<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">"""
 		val PNG_BYTES = byteArrayOf(0x89.toByte(), 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 1, 2, 3)
 	}
 }

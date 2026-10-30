@@ -124,9 +124,9 @@ private fun buildStylesheet(theme: ProjectTheme?, font: ExportFont): Stylesheet 
 		p.book-author { font-size: 1.2em; font-style: italic; margin: 0.5em 0; }
 		body.toc-page h1.toc-title { text-align: center; margin-bottom: 1.5em; }
 		h1.chapter-title { page-break-before: auto; }
-		nav.toc ol.toc-list { list-style: none; padding: 0; margin: 0; }
-		nav.toc li.toc-item { margin: 0.6em 0; text-indent: 0; }
-		nav.toc li.toc-item a { text-decoration: none; }
+		div.toc ol.toc-list { list-style: none; padding: 0; margin: 0; }
+		div.toc li.toc-item { margin: 0.6em 0; text-indent: 0; }
+		div.toc li.toc-item a { text-decoration: none; }
 		.user-del { text-decoration: line-through; }
 		img { display: block; max-width: 100%; height: auto; margin: 1em auto; }
 		""".trimIndent(),
@@ -161,6 +161,10 @@ internal fun argbHexToCssHex(argb: String): String? {
 
 private fun Char.isHexDigit(): Boolean = this in '0'..'9' || this in 'a'..'f' || this in 'A'..'F'
 
+/** The DOCTYPE an EPUB 2 (OPS 2.0.1) content document declares; Apple Books rejects pages without it. */
+private const val XHTML11_DOCTYPE =
+	"<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.1//EN\" \"http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd\">"
+
 private fun buildXhtmlResource(
 	id: String,
 	href: String,
@@ -170,6 +174,7 @@ private fun buildXhtmlResource(
 ): Resource {
 	val xhtml = buildString {
 		append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
+		append(XHTML11_DOCTYPE).append('\n')
 		appendHTML(xhtmlCompatible = true).html(namespace = "http://www.w3.org/1999/xhtml") {
 			head {
 				title { +title }
@@ -186,6 +191,7 @@ private fun buildXhtmlResource(
  * A page showing [image] as large as the reader's viewport allows, at [raster]'s aspect ratio. An SVG
  * wrapper is what scales a cover to the screen across EPUB 2 readers; CSS viewport units are not
  * reliable there. The class selectors outrank the book stylesheet, which is linked after this one.
+ * The XHTML 1.1 DTD has no `svg` element, but OPS 2.0.1 permits inline SVG in content documents.
  */
 private fun coverPageResource(projectName: String, image: PackagedImage, raster: ExportRaster): Resource =
 	buildXhtmlResource(
@@ -208,7 +214,7 @@ private fun coverPageResource(projectName: String, image: PackagedImage, raster:
 private fun BODY.tocPageBody(contentsTitle: String, entries: List<TocEntry>) {
 	classes = setOf("toc-page")
 	h1(classes = "toc-title") { +contentsTitle }
-	nav(classes = "toc") {
+	div(classes = "toc") {
 		ol(classes = "toc-list") {
 			entries.forEach { entry ->
 				li(classes = "toc-item") {
