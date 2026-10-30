@@ -23,7 +23,7 @@ fun wordSpans(text: CharSequence): Sequence<IntRange> = Sequence { SpanIterator(
 fun words(text: CharSequence): List<String> =
 	wordSpans(text).map { text.substring(it) }.toList()
 
-internal fun wordBreakValue(codePoint: Int): Int =
+private fun wordBreakValue(codePoint: Int): Int =
 	if (codePoint < ASCII_VALUES.size) ASCII_VALUES[codePoint] else searchWordBreakRanges(codePoint)
 
 private val ASCII_VALUES = IntArray(0x80) { searchWordBreakRanges(it) }
@@ -117,12 +117,11 @@ private class WordBreaker(private val text: CharSequence) {
 			position += charCount(codePoint)
 
 			val breaks = isBreak(right, value)
-			val wordBearing = isWordBearing(value)
 			if (breaks) {
 				lastSegmentHasWord = segmentHasWord
-				segmentHasWord = wordBearing
-			} else if (wordBearing) {
-				segmentHasWord = true
+				segmentHasWord = isWordBearing(value)
+			} else if (!segmentHasWord) {
+				segmentHasWord = isWordBearing(value)
 			}
 
 			// WB4: an Extend, Format or ZWJ joined to what precedes it is invisible to later rules.

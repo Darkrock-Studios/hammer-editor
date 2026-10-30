@@ -1,8 +1,8 @@
-# Shared with the Hammer plugin SDK (tests/words.txt): the kits' words() and Hammer's word count split text
-# the same way. Keep them in sync. Words follow the Unicode 17 UAX #29 default word boundaries, with no
-# dictionary or tailoring, and a word is a segment holding a letter or digit; docs/CLIENT-PLUGINS.md describes
-# the rules. Each case is the text, a tab, and the words it holds, separated by spaces. \u{...} is a code point.
-# The Kotlin, Rust, and C kits' tests and Hammer's base tests all read this file.
+# Hammer's copy of the shared word cases. The Hammer plugin SDK keeps its own copy in tests/words.txt; the two
+# must stay identical so the kits' words() and Hammer's word count split text the same way. Words follow the
+# Unicode 17 UAX #29 default word boundaries, with no dictionary or tailoring, and a word is a segment holding
+# a letter or digit; docs/CLIENT-PLUGINS.md describes the rules. Each case is the text, a tab, and the words it
+# holds, separated by spaces. \u{...} is a code point.
 
 Don't say l'arbre — rock’n’roll! ʼtwas	Don't say l'arbre rock’n’roll ʼtwas
 very every, “Very.”	very every Very
