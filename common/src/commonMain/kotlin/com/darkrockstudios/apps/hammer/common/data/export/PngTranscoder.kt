@@ -4,8 +4,8 @@ import kotlin.math.max
 import kotlin.math.roundToInt
 
 /**
- * The longest edge a transcoded image is decoded to. A PDF page draws an image at most about 940 px
- * wide at pdfkmp's 200 dpi, so this keeps headroom while bounding decode memory.
+ * The longest edge a transcoded image is decoded to. PDF, DOCX and RTF embed an image at most about
+ * 4.5 inches wide (and 7 tall), so this keeps close to 300 dpi or better while bounding decode memory.
  */
 internal const val MAX_TRANSCODE_EDGE = 2000
 

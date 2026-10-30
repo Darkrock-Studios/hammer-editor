@@ -23,13 +23,7 @@ import com.darkrockstudios.apps.hammer.common.data.export.StoryChapter
 import com.darkrockstudios.apps.hammer.common.data.export.buildStoryPdf
 import com.darkrockstudios.apps.hammer.common.data.export.prepareProse
 import com.darkrockstudios.apps.hammer.common.data.export.prosePicture
-import org.jetbrains.skia.Color
-import org.jetbrains.skia.EncodedImageFormat
-import org.jetbrains.skia.Surface
 import org.junit.jupiter.api.Test
-import java.awt.image.BufferedImage
-import java.io.ByteArrayOutputStream
-import javax.imageio.ImageIO
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
@@ -54,23 +48,6 @@ class PdfStoryRendererTest {
 		images = images,
 		factory = ImageWatchingFactory(drawnImages),
 	)
-
-	/** An opaque image, so the PDF holds one image object for it and no soft mask. */
-	private fun encoded(format: String, width: Int = 40, height: Int = 20): ByteArray {
-		val image = BufferedImage(width, height, BufferedImage.TYPE_INT_RGB)
-		image.createGraphics().apply {
-			color = java.awt.Color.ORANGE
-			fillRect(0, 0, width, height)
-			dispose()
-		}
-		return ByteArrayOutputStream().also { ImageIO.write(image, format, it) }.toByteArray()
-	}
-
-	private fun webp(width: Int = 40, height: Int = 20): ByteArray {
-		val surface = Surface.makeRasterN32Premul(width, height)
-		surface.canvas.clear(Color.makeRGB(255, 160, 0))
-		return checkNotNull(surface.makeImageSnapshot().encodeToData(EncodedImageFormat.WEBP)).bytes
-	}
 
 	private fun imageObjects(document: PdfDocument): Int =
 		IMAGE_SUBTYPE.findAll(document.toByteArray().toString(Charsets.ISO_8859_1)).count()

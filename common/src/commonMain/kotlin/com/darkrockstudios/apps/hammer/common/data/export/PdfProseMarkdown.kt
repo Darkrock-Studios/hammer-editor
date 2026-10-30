@@ -4,7 +4,6 @@ import com.conamobile.pdfkmp.dsl.ContainerScope
 import com.conamobile.pdfkmp.dsl.TextScope
 import com.conamobile.pdfkmp.geometry.ContentScale
 import com.conamobile.pdfkmp.geometry.Padding
-import com.conamobile.pdfkmp.image.readImageInfo
 import com.conamobile.pdfkmp.layout.BoxAlignment
 import com.conamobile.pdfkmp.layout.RichLine
 import com.conamobile.pdfkmp.layout.VerticalAlignment
@@ -45,28 +44,15 @@ internal sealed interface ProsePicture {
 }
 
 /**
- * [image] as pdfkmp can draw it: PNG and JPEG as they are, WebP and a JPEG with an EXIF rotation or
- * flip re-encoded upright as PNG, SVG as a vector. Null, so the image is written as its name, for an
- * extension Hammer does not allow, a file whose header cannot be read or that must be re-encoded and
- * does not decode, or an SVG with nothing to draw. A PNG or JPEG whose header reads but whose body is
- * corrupt still has a picture, and its slot is left empty.
+ * [image] as pdfkmp can draw it: a raster as [exportRaster] gives it, SVG as a vector. Null, so the
+ * image is written as its name, when [exportRaster] has none or an SVG has nothing to draw.
  */
-internal fun prosePicture(image: ExportImage): ProsePicture? = when (ImageFormat.mimeType(image.fileExtension)) {
-	"image/png", "image/jpeg" -> rasterPicture(image.bytes)
-	"image/webp" -> transcodeToPng(image.bytes)?.let(::rasterPicture)
-	"image/svg+xml" -> vectorPicture(image.bytes)
-	else -> null
-}
-
-/**
- * pdfkmp sizes and draws a JPEG by its stored pixels, ignoring EXIF orientation, so a turned or
- * flipped one is re-encoded upright.
- */
-private fun rasterPicture(bytes: ByteArray): ProsePicture? {
-	val orientation = jpegExifOrientation(bytes)
-	val upright = if (orientation == 1) bytes else transcodeToPng(bytes, orientation) ?: return null
-	return readImageInfo(upright)?.let { ProsePicture.Raster(upright, it.heightPx.toFloat() / it.widthPx) }
-}
+internal fun prosePicture(image: ExportImage): ProsePicture? =
+	if (ImageFormat.mimeType(image.fileExtension) == "image/svg+xml") {
+		vectorPicture(image.bytes)
+	} else {
+		exportRaster(image)?.let { ProsePicture.Raster(it.bytes, it.aspectRatio) }
+	}
 
 private fun vectorPicture(bytes: ByteArray): ProsePicture? {
 	val image = runCatching { VectorImage.parse(bytes.decodeToString()) }.getOrNull() ?: return null
@@ -282,9 +268,6 @@ private val CODE_BACKGROUND = PdfColor(0.95f, 0.95f, 0.95f)
 
 /** One blank line of body text. */
 private val BLANK_LINE_HEIGHT = Dp(TextStyle().fontSize.value * BODY_LEADING)
-
-/** The editor's `HammerImageBlockSize`. */
-private const val IMAGE_WIDTH_FRACTION = 0.7f
 
 /** Baseline-to-baseline distance as a multiple of font size. */
 private const val BODY_LEADING = 1.5f

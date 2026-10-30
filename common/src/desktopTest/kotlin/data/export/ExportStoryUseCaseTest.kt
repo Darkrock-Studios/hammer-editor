@@ -36,9 +36,6 @@ import org.junit.jupiter.api.BeforeEach
 import okio.BufferedSink
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.Test
-import java.awt.image.BufferedImage
-import java.io.ByteArrayOutputStream
-import javax.imageio.ImageIO
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -340,9 +337,7 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 	fun `pdf export draws the images the story shows`() = runTest {
 		initRepo()
 		writeSceneBuffer(1, "Text.\n\n![image](hammer://image/1)")
-		val png = ByteArrayOutputStream().also {
-			ImageIO.write(BufferedImage(8, 4, BufferedImage.TYPE_INT_RGB), "png", it)
-		}.toByteArray()
+		val png = encoded("png", width = 8, height = 4)
 		imagesRepository = mockk {
 			coEvery { ensureImagesLoaded() } returns listOf(ImageDef(id = 1, name = "Cat", fileExtension = "png"))
 			every { loadImageBytes(match { it.id == 1 }) } returns png

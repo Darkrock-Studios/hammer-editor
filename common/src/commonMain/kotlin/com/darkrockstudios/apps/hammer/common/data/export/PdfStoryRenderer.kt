@@ -20,9 +20,6 @@ private fun chapterAnchorId(index: Int): String = "chapter-$index"
 internal val STORY_PAGE_SIZE = PageSize.A4
 internal val STORY_PAGE_PADDING = Padding.symmetric(horizontal = 56.dp, vertical = 64.dp)
 
-/** The share of the page height a tall image is shrunk to fit. */
-private const val MAX_IMAGE_PAGE_FRACTION = 0.6f
-
 /**
  * Renders the story as a PDF mirroring the EPUB layout: a title page, a clickable table of contents,
  * then one auto-paginating section per chapter. Chapter bodies are rendered from markdown with book
@@ -78,7 +75,7 @@ internal fun buildStoryPdf(
 				options.keepBlankLines,
 				imageNames::get,
 				picture,
-				maxImageHeight = STORY_PAGE_SIZE.height.value * MAX_IMAGE_PAGE_FRACTION,
+				maxImageHeight = STORY_PAGE_SIZE.height.value * MAX_IMAGE_HEIGHT_FRACTION,
 			)
 		}
 	} finally {

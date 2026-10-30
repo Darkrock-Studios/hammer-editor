@@ -319,6 +319,23 @@ class RtfStoryImporterTest {
 	}
 
 	@Test
+	fun `A picture is dropped and its hex never reaches the text`() {
+		val body = """
+			\pard\fs24 Before the picture.\par
+			\pard\qc {\pict\pngblip\picw1\pich1\picwgoal6552\pichgoal6552 89504e470d0a1a0a
+			cafebabe}\par
+			\pard\fs24 After the picture.\par
+		""".trimIndent()
+
+		val scene = singleScene(body)
+
+		assertTrue(scene.markdown.contains("Before the picture."), scene.markdown)
+		assertTrue(scene.markdown.contains("After the picture."), scene.markdown)
+		assertFalse(scene.markdown.contains("89504e47"), scene.markdown)
+		assertFalse(scene.markdown.contains("cafebabe"), scene.markdown)
+	}
+
+	@Test
 	fun `Empty document produces an empty preview`() {
 		val result = preview("", strategy = RtfSplitStrategy.SingleScene)
 		assertTrue(result.isEmpty)

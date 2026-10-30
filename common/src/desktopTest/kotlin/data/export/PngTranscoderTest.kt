@@ -65,17 +65,3 @@ class PngTranscoderTest {
 		assertNull(transcodeToPng("not an image".encodeToByteArray()))
 	}
 }
-
-/** [jpeg] with a big-endian EXIF APP1 segment carrying [orientation] spliced in after SOI. */
-internal fun withExifOrientation(jpeg: ByteArray, orientation: Int): ByteArray {
-	val tiff = byteArrayOf(
-		'M'.code.toByte(), 'M'.code.toByte(), 0, 42, 0, 0, 0, 8,
-		0, 1,
-		0x01, 0x12, 0, 3, 0, 0, 0, 1, 0, orientation.toByte(), 0, 0,
-		0, 0, 0, 0,
-	)
-	val payload = "Exif".encodeToByteArray() + byteArrayOf(0, 0) + tiff
-	val length = payload.size + 2
-	val app1 = byteArrayOf(0xFF.toByte(), 0xE1.toByte(), (length shr 8).toByte(), length.toByte()) + payload
-	return jpeg.copyOfRange(0, 2) + app1 + jpeg.copyOfRange(2, jpeg.size)
-}
