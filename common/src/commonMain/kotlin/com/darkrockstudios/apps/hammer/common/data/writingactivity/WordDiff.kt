@@ -1,22 +1,22 @@
 package com.darkrockstudios.apps.hammer.common.data.writingactivity
 
+import com.darkrockstudios.apps.hammer.base.markdown.countedWordSpans
+
 /**
- * Counts how many words appear in [newText] that aren't already accounted
- * for in the bag of words from [oldText]. Multiset-based: tokenises both
- * texts on whitespace and pairs each new word against an unused occurrence
- * of the same word in the old bag; anything left unpaired counts as added.
+ * Counts how many words appear in [newText] that aren't already accounted for in the bag of
+ * words from [oldText]. Words are the ones the word count counts ([countedWordSpans]): Unicode
+ * default word segments outside inline images. Multiset-based: each new word is paired against
+ * an unused occurrence of the same word (case sensitive) in the old bag; anything left unpaired
+ * counts as added, and deletions credit nothing.
  *
- * Position is ignored, so a pure rearrangement returns 0 — the writer
- * didn't produce any *new* vocabulary, they just reorganised. That's the
- * intent: "how many new words did the writer actually type?", not "how
- * much did the text change?"
+ * Position is ignored, so a pure rearrangement returns 0: the writer didn't produce any *new*
+ * vocabulary, they just reorganised. That's the intent: "how many new words did the writer
+ * actually type?", not "how much did the text change?"
  *
- * Performance: O(m + n) using a hash map; trivially fast even for very
- * long scenes. The pre-edit baseline (held in memory by the tracker) is
- * what makes this work — without it we couldn't distinguish "wrote 100
- * new words" from "rewrote a 100-word paragraph". Holding the actual text
- * also keeps the door open for swapping in a richer diff later if we
- * decide moves should count.
+ * Performance: O(m + n) using a hash map; trivially fast even for very long scenes. The pre-edit
+ * baseline (held in memory by the tracker) is what makes this work; without it we couldn't
+ * distinguish "wrote 100 new words" from "rewrote a 100-word paragraph". Holding the actual text
+ * also keeps the door open for swapping in a richer diff later if we decide moves should count.
  */
 fun countAddedWords(oldText: String, newText: String): Int {
 	val remainingOld = tokenizeWords(oldText)
@@ -37,6 +37,4 @@ fun countAddedWords(oldText: String, newText: String): Int {
 }
 
 private fun tokenizeWords(text: String): Sequence<String> =
-	WORD_TOKEN.findAll(text).map { it.value }
-
-private val WORD_TOKEN = Regex("""\S+""")
+	countedWordSpans(text).map { text.substring(it) }

@@ -101,7 +101,7 @@ class WordCountTest {
 
 	@Test
 	fun `text that only looks like an image still counts`() {
-		assertEquals(3, countWords("\\![not](an image)"))
+		assertEquals(2, countWords("\\![not](x)"))
 		assertEquals(4, countWords("![open alt](no close"))
 		assertEquals(5, countWords("![split\nalt](hammer://image/3)"))
 	}
@@ -152,5 +152,35 @@ class WordCountTest {
 	@Test
 	fun `a lone combining mark is not a word`() {
 		assertEquals(1, countWords("a \u0301"))
+	}
+
+	@Test
+	fun `counted word spans of empty text are empty`() {
+		assertEquals(emptyList<IntRange>(), countedWordSpans("").toList())
+	}
+
+	@Test
+	fun `counted word spans index the original string around an image`() {
+		val text = "cat![Cat](hammer://image/3)s and ![dog](x) more"
+		val spans = countedWordSpans(text).toList()
+		assertEquals(listOf(0..2, 27..27, 29..31, 43..46), spans)
+		assertEquals(listOf("cat", "s", "and", "more"), spans.map { text.substring(it) })
+	}
+
+	@Test
+	fun `counted word spans without an image are the word spans`() {
+		val text = "one \\![not](x) two"
+		assertEquals(4, countedWordSpans(text).count())
+		assertEquals(wordSpans(text).toList(), countedWordSpans(text).toList())
+	}
+
+	@Test
+	fun `counted word spans start right after back-to-back images`() {
+		assertEquals(listOf(15..15), countedWordSpans("![a](x)![b](y) z").toList())
+	}
+
+	@Test
+	fun `counted word spans skip an image inside a code span`() {
+		assertEquals(listOf(10..10), countedWordSpans("`![a](b)` c").toList())
 	}
 }

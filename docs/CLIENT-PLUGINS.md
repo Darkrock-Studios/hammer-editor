@@ -1151,10 +1151,24 @@ compiled fixtures (a few hundred bytes each) into its test resources.
 ### Words
 
 The kits' `words()` (`String.words()` in Kotlin, `words` in Rust, `hammer_words`
-in C) split text the same way Hammer counts words, so a plugin's counts match
-the app's. The kits are in `hammer-plugin-sdk`, and each must follow the rules
-here; Hammer's own implementation is `WordSegmentation.kt` in `base`'s
-`markdown` package.
+in C) segment raw text exactly as Hammer's `wordSpans` does, by the rules
+below. Hammer's word count (`countWords`) and writing-session credit also
+drop Markdown inline images, alt text and destination alike, and an image is
+a word boundary on both sides, so `cat![Cat](x)s` gives `cat` and `s`. An
+image is `![`, alt text in which brackets nest, `]`, then directly `(`, a
+destination, an optional title, and `)`. The destination is either `<...>`,
+which may hold spaces, or a run without spaces or tabs whose parentheses
+balance; the title is in `"..."`, `'...'`, or `(...)`; spaces or tabs may
+surround both. A backslash escapes the next character in the alt text,
+destination, and title, and no part may hold a line break. A `!` directly
+after a backslash does not start an image. The rule knows nothing of code, so
+an image inside a code span or code block counts no words either:
+`` `![a](b)` `` counts 0. A plugin that wants to match the app's displayed
+count must drop inline images the same way before calling `words()`. The kits
+are in `hammer-plugin-sdk`, and each must follow the rules here; Hammer's own
+implementation is `WordSegmentation.kt` in `base`'s `markdown` package, with
+the image grammar in `InlineImages.kt` and the loop that skips images in
+`WordCount.kt` beside it.
 
 The rules are Unicode 17's default word boundaries from UAX #29, rules WB1 to
 WB999, with no dictionary and no locale tailoring. A word is a segment between
