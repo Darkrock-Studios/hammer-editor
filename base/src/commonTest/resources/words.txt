@@ -1,0 +1,43 @@
+# Hammer's copy of the shared word cases. The Hammer plugin SDK keeps its own copy in tests/words.txt; the two
+# must stay identical so the kits' words() and Hammer's word count split text the same way. Words follow the
+# Unicode 17 UAX #29 default word boundaries, with no dictionary or tailoring, and a word is a segment holding
+# a letter or digit; docs/CLIENT-PLUGINS.md describes the rules. Each case is the text, a tab, and the words it
+# holds, separated by spaces. \u{...} is a code point.
+
+Don't say l'arbre — rock’n’roll! ʼtwas	Don't say l'arbre rock’n’roll ʼtwas
+very every, “Very.”	very every Very
+'quoted' ‘single’ don''t	quoted single don t
+well-known abc123def dogs' 	well known abc123def dogs
+  42 — … x×y	42 x y
+hello_world some_other_test	hello_world some_other_test
+word123 456test test789test	word123 456test test789test
+snake_case-separator dash-and_underscore	snake_case separator dash and_underscore
+-prefix suffix- -both-	prefix suffix both
+Mary's 'word' word' wo''rd 1990's	Mary's word word wo rd 1990 s
+U.S.A. e.g. U..S word. .word	U.S.A e.g U S word word
+Hello.World 3.14 end.	Hello.World 3.14 end
+ab\u{663} \u{661}\u{662}\u{663}	ab\u{663} \u{661}\u{662}\u{663}
+Привет, мир	Привет мир
+naïve café	naïve café
+cafe\u{301} au lait	cafe\u{301} au lait
+\u{301}stray a\u{301}\u{301}b	stray a\u{301}\u{301}b
+हिन्दी भाषा	हिन्दी भाषा
+مَرْحَبًا بِكُم	مَرْحَبًا بِكُم
+می\u{200C}خواهم	می\u{200C}خواهم
+צה״ל	צה״ל
+col·lecció	col·lecció
+co\u{AD}operate \u{200D}a	co\u{AD}operate a
+ภาษาไทย ง่าย	ภ า ษ า ไ ท ย ง่ า ย
+한국어 문장	한국어 문장
+I ❤️ 🐈 cats Ⅻ	I cats Ⅻ
+𐌰𐌱𐌲 𠀀𠀁	𐌰𐌱𐌲 𠀀 𠀁
+我爱北京。你好	我 爱 北 京 你 好
+東京に行きました	東 京 に 行 き ま し た
+コーヒー Tシャツ か\u{3099}	コーヒー T シャツ か\u{3099}
+日本語text	日 本 語 text
+__ _a a_ 1_2 a__b	_a a_ 1_2 a__b
+1,000.50 $5 50% 3:30	1,000.50 5 50 3 30
+🇺🇸🇫🇷 flags	flags
+a\u{D}\u{A}b	a b
+x\u{200D}y	x\u{200D}y
+אב"ג אב'	אב"ג אב'

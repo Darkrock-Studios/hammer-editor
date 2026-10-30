@@ -15,6 +15,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
+import com.darkrockstudios.apps.hammer.base.markdown.countWords
 import com.darkrockstudios.apps.hammer.common.TextEditorDefaults
 import com.darkrockstudios.apps.hammer.common.components.timeline.CreateTimeLineEvent
 import com.darkrockstudios.apps.hammer.common.compose.*
@@ -48,7 +49,7 @@ fun CreateTimeLineEventUi(
 	val tags = rememberSaveableStringList()
 
 	val wordCount = remember(contentText) {
-		contentText.split(Regex("\\s+")).count { it.isNotBlank() }
+		countWords(contentText)
 	}
 	val charCount = contentText.length
 

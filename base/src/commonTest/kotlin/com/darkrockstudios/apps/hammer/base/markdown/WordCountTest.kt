@@ -79,4 +79,52 @@ class WordCountTest {
 		assertEquals(1, countWords("don't"))
 		assertEquals(1, countWords("end."))
 	}
+
+	@Test
+	fun `a hyphen separates words`() {
+		assertEquals(2, countWords("well-known"))
+	}
+
+	@Test
+	fun `numbers keep their separators`() {
+		assertEquals(1, countWords("3.14"))
+		assertEquals(1, countWords("1,000"))
+	}
+
+	@Test
+	fun `abbreviations and apostrophes stay whole`() {
+		assertEquals(1, countWords("U.S.A."))
+		assertEquals(1, countWords("rock’n’roll"))
+	}
+
+	@Test
+	fun `underscores join words but are not words`() {
+		assertEquals(1, countWords("hello_world"))
+		assertEquals(0, countWords("___"))
+	}
+
+	@Test
+	fun `a katakana run is one word`() {
+		assertEquals(1, countWords("コーヒー"))
+	}
+
+	@Test
+	fun `each ideograph is a word`() {
+		assertEquals(3, countWords("日本語"))
+	}
+
+	@Test
+	fun `each Thai letter is a word without a dictionary`() {
+		assertEquals(7, countWords("ภาษาไทย"))
+	}
+
+	@Test
+	fun `emoji are not words`() {
+		assertEquals(0, countWords("🐈 ❤️ 🇺🇸"))
+	}
+
+	@Test
+	fun `a lone combining mark is not a word`() {
+		assertEquals(1, countWords("a \u0301"))
+	}
 }

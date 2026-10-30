@@ -73,6 +73,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.base.markdown.countWords
 import com.darkrockstudios.apps.hammer.common.TextEditorDefaults
 import com.darkrockstudios.apps.hammer.common.components.projectselection.storyideas.StoryIdeas
 import com.darkrockstudios.apps.hammer.common.compose.CollapseWhileTyping
@@ -218,7 +219,7 @@ private val TagSetSaver = listSaver<Set<String>, String>(
 )
 
 private fun StoryIdea.wordCount(): Int =
-	content.split(Regex("\\s+")).count { it.isNotBlank() }
+	countWords(content)
 
 /** An idea matches on its body read as prose, or on its plain-text title. */
 internal fun ideaMatchesQuery(idea: StoryIdea, query: String): Boolean =
@@ -1230,7 +1231,7 @@ private fun EditBody(
 @Composable
 private fun ViewFolioFooter(markdown: String, tagCount: Int) {
 	val words = remember(markdown) {
-		markdown.trim().split(Regex("\\s+")).count { it.isNotBlank() }
+		countWords(markdown)
 	}
 	HorizontalDivider(
 		thickness = Dp.Hairline,

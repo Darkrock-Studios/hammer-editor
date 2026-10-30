@@ -14,6 +14,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
+import com.darkrockstudios.apps.hammer.base.markdown.countWords
 import com.darkrockstudios.apps.hammer.common.TextEditorDefaults
 import com.darkrockstudios.apps.hammer.common.components.notes.CreateNote
 import com.darkrockstudios.apps.hammer.common.compose.*
@@ -50,7 +51,7 @@ fun CreateNoteUi(
 	val tags = rememberSaveableStringList()
 
 	val wordCount = remember(noteText) {
-		noteText.split(Regex("\\s+")).count { it.isNotBlank() }
+		countWords(noteText)
 	}
 	val charCount = noteText.length
 	val canCreate = noteText.isNotBlank()

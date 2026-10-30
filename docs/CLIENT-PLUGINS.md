@@ -1112,6 +1112,49 @@ The host's own tests do not need these repositories: their fixtures are WAT, in
 `:plugins:wasmhost`'s `src/desktopTest/wat`, whose `build.sh` writes the
 compiled fixtures (a few hundred bytes each) into its test resources.
 
+### Words
+
+The kits' `words()` (`String.words()` in Kotlin, `words` in Rust, `hammer_words`
+in C) split text the same way Hammer counts words, so a plugin's counts match
+the app's. The kits are in `hammer-plugin-sdk`, and each must follow the rules
+here; Hammer's own implementation is `WordSegmentation.kt` in `base`'s
+`markdown` package.
+
+The rules are Unicode 17's default word boundaries from UAX #29, rules WB1 to
+WB999, with no dictionary and no locale tailoring. A word is a segment between
+two boundaries that holds at least one letter or digit: a letter is a code
+point of General_Category L (Lu, Ll, Lt, Lm, or Lo) or of Word_Break ALetter,
+Hebrew_Letter, or Katakana, and a digit is one of Word_Break Numeric. So
+"don't" and "rock’n’roll" are one word each, "U.S.A." gives `U.S.A` (the inner
+periods stay, the last does not), "3.14" and "1,000" are one word each, and
+"well-known" is two. `_` joins letters and digits, so `hello_world` is one
+word, but `_` alone is not a word. Each Han ideograph and each Hiragana
+character is a word of its own, while a run of Katakana stays together. Emoji
+and punctuation are not words. Thai, Lao, Khmer, and Myanmar need a dictionary
+to find their words, which the default rules do not have, so each of their
+letters, with its marks, is a word of its own.
+
+A Kotlin word's `start` and `end` index its String (UTF-16 chars), as the kit's
+`Diagnostic` takes them; the kit turns them into a `diagnose` reply's UTF-8
+byte offsets. Rust's and C's words are byte offsets already. Hammer's own word
+spans are UTF-16 chars.
+
+`scripts/generate_word_break_table.py` writes Hammer's table,
+`WordBreakProperties.kt`, from Unicode's `WordBreakProperty.txt`,
+`emoji-data.txt` (for Extended_Pictographic, which WB3c needs), and
+`UnicodeData.txt` (for the letter categories). A kit needs the same three facts
+about each code point: its Word_Break class, whether it is Extended_Pictographic,
+and whether it is a letter. It can generate its own table from the same files.
+
+A kit's tests must pass two files. `base/src/commonTest/resources/WordBreakTest.txt`
+is Unicode's conformance file, as published: each line is a case, its code
+points in hex, with `÷` where there is a boundary and `×` where there is none.
+`base/src/commonTest/resources/words.txt` is the shared case file, and its copy
+in `hammer-plugin-sdk`, `tests/words.txt`, must stay identical. Each line is a
+case: the text, a tab, and the words it holds separated by spaces, with
+`\u{...}` for a code point. Lines starting with `#` are comments, and blank
+lines are skipped.
+
 ### Package
 
 A `.hammerplugin` file is a zip holding `manifest.toml`, `plugin.wasm`, and,
