@@ -18,6 +18,8 @@ import org.w3c.dom.Document
 import org.w3c.dom.Element
 import utils.unzip
 import java.io.ByteArrayInputStream
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import javax.xml.parsers.DocumentBuilderFactory
 import kotlin.math.roundToLong
 import kotlin.test.assertContentEquals
@@ -26,6 +28,8 @@ import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.time.Clock
+import kotlin.time.Instant
 
 class DocxStoryRendererTest {
 
@@ -48,6 +52,7 @@ class DocxStoryRendererTest {
 			options = options,
 			imageNames = imageNames,
 			images = images,
+			clock = PINNED_CLOCK,
 		)
 		return buffer.readByteArray()
 	}
@@ -670,10 +675,10 @@ class DocxStoryRendererTest {
 		)
 
 		val rels = documentRels(unzip(bytes))
-		assertEquals(listOf("rId1", "rId2", "rId3", "rId4", "rId5"), rels.keys.toList())
-		assertEquals("https://example.com/1", rels.getValue("rId3").getAttribute("Target"))
-		assertEquals("media/image1.png", rels.getValue("rId4").getAttribute("Target"))
-		assertEquals("https://example.com/2", rels.getValue("rId5").getAttribute("Target"))
+		assertEquals((1..7).map { "rId$it" }, rels.keys.toList())
+		assertEquals("https://example.com/1", rels.getValue("rId5").getAttribute("Target"))
+		assertEquals("media/image1.png", rels.getValue("rId6").getAttribute("Target"))
+		assertEquals("https://example.com/2", rels.getValue("rId7").getAttribute("Target"))
 
 		val doc = XWPFDocument(ByteArrayInputStream(bytes))
 		val links = doc.bodyParagraphs().flatMap { it.runs }.filterIsInstance<XWPFHyperlinkRun>()
@@ -693,9 +698,91 @@ class DocxStoryRendererTest {
 		)
 
 		val xmlParts = parts.filterKeys { it.endsWith(".xml") || it.endsWith(".rels") }
-		assertEquals(8, xmlParts.size, "Expected every package part, got ${parts.keys}")
+		assertEquals(10, xmlParts.size, "Expected every package part, got ${parts.keys}")
 		xmlParts.forEach { (name, bytes) -> assertNotNull(runCatching { parseXml(bytes) }.getOrNull(), name) }
 		assertEquals("Cat & <Dog>", drawings(parts).first().name)
+	}
+
+	@Test
+	fun `every xml part opens with the declaration Word writes`() {
+		val parts = renderImages(listOf(3), mapOf(image(3, "Cat", "png", encoded("png"))))
+
+		val xmlParts = parts.filterKeys { it.endsWith(".xml") || it.endsWith(".rels") }
+		xmlParts.forEach { (name, bytes) ->
+			assertTrue(bytes.decodeToString().startsWith(WORD_XML_DECLARATION), "$name: ${bytes.decodeToString().take(80)}")
+		}
+	}
+
+	@Test
+	fun `settings and the font table are related to the document and content-typed`() {
+		val parts = unzip(renderBytes(listOf(StoryChapter("Alpha", "Text.")), options = ExportOptions(font = ExportFont.Arial)))
+
+		val targets = documentRels(parts).values.associate { it.getAttribute("Type") to it.getAttribute("Target") }
+		assertEquals("settings.xml", targets[SETTINGS_REL_TYPE])
+		assertEquals("fontTable.xml", targets[FONT_TABLE_REL_TYPE])
+
+		val overrides = parseXml(assertNotNull(parts["[Content_Types].xml"]))
+			.elements(CONTENT_TYPES_NS, "Override")
+			.associate { it.getAttribute("PartName") to it.getAttribute("ContentType") }
+		assertEquals(
+			"application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml",
+			overrides["/word/settings.xml"],
+		)
+		assertEquals(
+			"application/vnd.openxmlformats-officedocument.wordprocessingml.fontTable+xml",
+			overrides["/word/fontTable.xml"],
+		)
+
+		val compat = parseXml(assertNotNull(parts["word/settings.xml"])).elements(W_NS, "compatSetting").single()
+		assertEquals("compatibilityMode", compat.getAttributeNS(W_NS, "name"))
+		assertEquals("http://schemas.microsoft.com/office/word", compat.getAttributeNS(W_NS, "uri"))
+		assertEquals("15", compat.getAttributeNS(W_NS, "val"))
+
+		val fonts = parseXml(assertNotNull(parts["word/fontTable.xml"])).elements(W_NS, "font")
+		assertEquals(listOf("Arial", "Consolas"), fonts.map { it.getAttributeNS(W_NS, "name") })
+	}
+
+	@Test
+	fun `core properties date the package to the second from the clock`() {
+		val core = parseXml(assertNotNull(unzip(renderBytes(listOf(StoryChapter("Alpha", "Text."))))["docProps/core.xml"]))
+
+		for (name in listOf("created", "modified")) {
+			val date = core.elements(DCTERMS_NS, name).single()
+			assertEquals("2026-10-31T12:00:00Z", date.textContent)
+			assertEquals("dcterms:W3CDTF", date.getAttributeNS(XSI_NS, "type"))
+			assertEquals(DCTERMS_NS, date.lookupNamespaceURI("dcterms"))
+		}
+	}
+
+	@Test
+	fun `no zip entry defers its sizes to a data descriptor`() {
+		val bytes = renderBytes(
+			listOf(StoryChapter("Alpha", "Before.\n\n![image](hammer://image/3)")),
+			imageNames = mapOf(3 to "Cat"),
+			images = mapOf(image(3, "Cat", "png", encoded("png"))),
+		)
+
+		val headers = localFileHeaders(bytes)
+		assertEquals(unzip(bytes).keys.toList(), headers.map { it.first })
+		headers.forEach { (name, flags) -> assertEquals(0, flags and 0x08, "$name sets the data descriptor flag") }
+	}
+
+	/** Each local file header's name and general purpose flags, walked from the start of the archive. */
+	private fun localFileHeaders(bytes: ByteArray): List<Pair<String, Int>> {
+		val buffer = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN)
+		val headers = mutableListOf<Pair<String, Int>>()
+		var offset = 0
+		while (buffer.getInt(offset) == LOCAL_FILE_HEADER_SIGNATURE) {
+			val flags = buffer.getShort(offset + 6).toInt() and 0xFFFF
+			val compressedSize = buffer.getInt(offset + 18)
+			val nameLength = buffer.getShort(offset + 26).toInt() and 0xFFFF
+			val extraLength = buffer.getShort(offset + 28).toInt() and 0xFFFF
+			headers += String(bytes, offset + 30, nameLength, Charsets.UTF_8) to flags
+			// A descriptor-flagged header holds no size to step over.
+			if (flags and 0x08 != 0) break
+			offset += 30 + nameLength + extraLength + compressedSize
+		}
+		return headers
 	}
 
 	/** The package of a one-chapter story showing [markdown] whose project cover is image 3. */
@@ -780,6 +867,17 @@ class DocxStoryRendererTest {
 		const val PACKAGE_RELS_NS = "http://schemas.openxmlformats.org/package/2006/relationships"
 		const val CONTENT_TYPES_NS = "http://schemas.openxmlformats.org/package/2006/content-types"
 		const val IMAGE_REL_TYPE = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image"
+		const val SETTINGS_REL_TYPE = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings"
+		const val FONT_TABLE_REL_TYPE = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/fontTable"
+		const val DCTERMS_NS = "http://purl.org/dc/terms/"
+		const val XSI_NS = "http://www.w3.org/2001/XMLSchema-instance"
+		const val WORD_XML_DECLARATION = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
+		const val LOCAL_FILE_HEADER_SIGNATURE = 0x04034b50
+
+		/** Part way through a second, which the core properties drop. */
+		val PINNED_CLOCK = object : Clock {
+			override fun now() = Instant.parse("2026-10-31T12:00:00.750Z")
+		}
 
 		/** 914400 EMUs per inch over 1440 twips per inch. */
 		const val EMU_PER_TWIP = 635L

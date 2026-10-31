@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.common.data.export
 import com.darkrockstudios.apps.hammer.base.BuildMetadata
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectTheme
+import com.darkrockstudios.apps.hammer.common.data.ExportFont
 import com.darkrockstudios.apps.hammer.common.data.ExportOptions
 import com.darkrockstudios.apps.hammer.common.util.zip.InMemoryZipEntry
 import com.darkrockstudios.apps.hammer.common.util.zip.writeZip
@@ -13,6 +14,8 @@ import nl.adaptivity.xmlutil.core.KtXmlWriter
 import nl.adaptivity.xmlutil.smartStartTag
 import okio.BufferedSink
 import kotlin.math.roundToLong
+import kotlin.time.Clock
+import kotlin.time.Instant
 
 private const val W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 private const val R_NS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
@@ -21,6 +24,8 @@ private const val PACKAGE_RELS_NS = "http://schemas.openxmlformats.org/package/2
 private const val CORE_PROPS_NS =
 	"http://schemas.openxmlformats.org/package/2006/metadata/core-properties"
 private const val DC_NS = "http://purl.org/dc/elements/1.1/"
+private const val DCTERMS_NS = "http://purl.org/dc/terms/"
+private const val XSI_NS = "http://www.w3.org/2001/XMLSchema-instance"
 private const val APP_PROPS_NS =
 	"http://schemas.openxmlformats.org/officeDocument/2006/extended-properties"
 private const val WP_NS = "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"
@@ -37,6 +42,10 @@ private const val REL_TYPE_STYLES =
 	"http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles"
 private const val REL_TYPE_NUMBERING =
 	"http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering"
+private const val REL_TYPE_SETTINGS =
+	"http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings"
+private const val REL_TYPE_FONT_TABLE =
+	"http://schemas.openxmlformats.org/officeDocument/2006/relationships/fontTable"
 private const val REL_TYPE_HYPERLINK =
 	"http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink"
 private const val REL_TYPE_IMAGE =
@@ -48,8 +57,14 @@ private const val BULLET_NUM_ID = 1
 private const val BULLET_ABSTRACT_ID = 0
 private const val DECIMAL_ABSTRACT_ID = 1
 
-/** Relationship ids rId1/rId2 in document.xml.rels are styles and numbering; hyperlinks and images follow. */
-private const val FIRST_BODY_REL_ID = 3
+/**
+ * Relationship ids rId1 to rId4 in document.xml.rels are styles, numbering, settings and the font
+ * table; hyperlinks and images follow.
+ */
+private const val FIRST_BODY_REL_ID = 5
+
+/** The declaration Word writes at the top of every part. */
+private const val XML_DECLARATION = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\r\n"
 
 /** US Letter with one-inch margins, in twips. */
 private const val PAGE_WIDTH_TWIPS = 12240
@@ -71,6 +86,8 @@ private const val PARAGRAPH_SPACE = "160"
  * A project image on a line of its own is embedded from [images], centred at 70% of the text width
  * and no taller than 60% of the text height. One missing there, an SVG, or one [exportRaster] cannot
  * read is written as its name.
+ *
+ * [clock] dates the package's creation and modification in its core properties.
  */
 fun writeStoryAsDocx(
 	sink: BufferedSink,
@@ -81,6 +98,7 @@ fun writeStoryAsDocx(
 	options: ExportOptions = ExportOptions(),
 	imageNames: Map<Int, String> = emptyMap(),
 	images: Map<Int, ExportImage> = emptyMap(),
+	clock: Clock = Clock.System,
 ) {
 	val authorName = projectData.authorName?.takeIf { it.isNotBlank() }
 	val effective = chapters.ifEmpty { listOf(StoryChapter(projectName, "")) }
@@ -91,31 +109,37 @@ fun writeStoryAsDocx(
 	val documentXml = buildXmlPart { writeDocument(it, ctx, projectName, projectData, strings, effective, options) }
 
 	val mediaFormats = ctx.media.map { it.raster.format }.toSet()
+	// Word dates core properties to the second.
+	val now = Instant.fromEpochSeconds(clock.now().epochSeconds)
 	writeZip(
 		sink,
 		listOf(
 			InMemoryZipEntry("[Content_Types].xml", buildXmlPart { writeContentTypes(it, mediaFormats) }),
 			InMemoryZipEntry("_rels/.rels", buildXmlPart(::writePackageRels)),
-			InMemoryZipEntry("docProps/core.xml", buildXmlPart { writeCoreProps(it, projectName, authorName) }),
+			InMemoryZipEntry("docProps/core.xml", buildXmlPart { writeCoreProps(it, projectName, authorName, now) }),
 			InMemoryZipEntry("docProps/app.xml", buildXmlPart(::writeAppProps)),
 			InMemoryZipEntry(
 				"word/styles.xml",
 				buildXmlPart { writeStyles(it, projectData.theme, options.font.faceName) },
 			),
 			InMemoryZipEntry("word/numbering.xml", buildXmlPart { writeNumbering(it, ctx.orderedListLevels) }),
+			InMemoryZipEntry("word/settings.xml", buildXmlPart(::writeSettings)),
+			InMemoryZipEntry("word/fontTable.xml", buildXmlPart { writeFontTable(it, options.font) }),
 			InMemoryZipEntry(
 				"word/_rels/document.xml.rels",
 				buildXmlPart { writeDocumentRels(it, ctx.relationships) },
 			),
 			InMemoryZipEntry("word/document.xml", documentXml),
 		) + ctx.media.map { InMemoryZipEntry("word/${it.target}", it.raster.bytes) },
+		stored = true,
 	)
 }
 
 private fun buildXmlPart(block: (XmlWriter) -> Unit): ByteArray {
-	val out = StringBuilder()
-	val writer = KtXmlWriter(out, isRepairNamespaces = true, xmlDeclMode = XmlDeclMode.Charset)
-	writer.startDocument()
+	// KtXmlWriter only quotes its declaration with apostrophes, so Word's form is written here.
+	val out = StringBuilder(XML_DECLARATION)
+	val writer = KtXmlWriter(out, isRepairNamespaces = true, xmlDeclMode = XmlDeclMode.None)
+	writer.addTrailingSpaceBeforeEnd = false
 	block(writer)
 	writer.endDocument()
 	writer.close()
@@ -217,6 +241,14 @@ private fun writeContentTypes(writer: XmlWriter, mediaFormats: Set<ExportRaster.
 			"/word/numbering.xml",
 			"application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml"
 		)
+		override(
+			"/word/settings.xml",
+			"application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml"
+		)
+		override(
+			"/word/fontTable.xml",
+			"application/vnd.openxmlformats-officedocument.wordprocessingml.fontTable+xml"
+		)
 		override("/docProps/core.xml", "application/vnd.openxmlformats-package.core-properties+xml")
 		override(
 			"/docProps/app.xml",
@@ -250,17 +282,29 @@ private fun writeDocumentRels(writer: XmlWriter, relationships: List<DocxRelatio
 	writer.smartStartTag(PACKAGE_RELS_NS, "Relationships", "") {
 		relationship("rId1", REL_TYPE_STYLES, "styles.xml")
 		relationship("rId2", REL_TYPE_NUMBERING, "numbering.xml")
+		relationship("rId3", REL_TYPE_SETTINGS, "settings.xml")
+		relationship("rId4", REL_TYPE_FONT_TABLE, "fontTable.xml")
 		relationships.forEachIndexed { index, it ->
 			relationship("rId${index + FIRST_BODY_REL_ID}", it.type, it.target, it.external)
 		}
 	}
 }
 
-private fun writeCoreProps(writer: XmlWriter, projectName: String, authorName: String?) {
+private fun writeCoreProps(writer: XmlWriter, projectName: String, authorName: String?, now: Instant) {
+	fun XmlWriter.date(name: String) = smartStartTag(DCTERMS_NS, name, "dcterms") {
+		// The type is a QName, so it relies on the dcterms prefix declared on the root.
+		attribute(XSI_NS, "type", "xsi", "dcterms:W3CDTF")
+		text(now.toString())
+	}
+
 	writer.smartStartTag(CORE_PROPS_NS, "coreProperties", "cp") {
 		namespaceAttr("dc", DC_NS)
+		namespaceAttr("dcterms", DCTERMS_NS)
+		namespaceAttr("xsi", XSI_NS)
 		smartStartTag(DC_NS, "title", "dc") { text(projectName) }
 		authorName?.let { smartStartTag(DC_NS, "creator", "dc") { text(it) } }
+		date("created")
+		date("modified")
 	}
 }
 
@@ -268,6 +312,43 @@ private fun writeAppProps(writer: XmlWriter) {
 	writer.smartStartTag(APP_PROPS_NS, "Properties", "") {
 		smartStartTag(APP_PROPS_NS, "Application", "") { text("Hammer") }
 		smartStartTag(APP_PROPS_NS, "AppVersion", "") { text(BuildMetadata.APP_VERSION) }
+	}
+}
+
+/** Compatibility mode 15 has Word lay the document out as Word 2013 and later do, not in compatibility mode. */
+private fun writeSettings(writer: XmlWriter) {
+	writer.smartStartTag(W_NS, "settings", "w") {
+		w("zoom") { wAttr("percent", "100") }
+		wVal("defaultTabStop", "720")
+		wVal("characterSpacingControl", "doNotCompress")
+		w("compat") {
+			w("compatSetting") {
+				wAttr("name", "compatibilityMode")
+				wAttr("uri", "http://schemas.microsoft.com/office/word")
+				wAttr("val", "15")
+			}
+		}
+	}
+}
+
+/** Declares [bodyFont] and the code font, with the generic family a reader substitutes from when one is missing. */
+private fun writeFontTable(writer: XmlWriter, bodyFont: ExportFont) {
+	val bodyFamily = when (bodyFont) {
+		ExportFont.Georgia, ExportFont.TimesNewRoman, ExportFont.Garamond -> "roman"
+		ExportFont.Arial, ExportFont.Verdana -> "swiss"
+		ExportFont.CourierNew -> "modern"
+	}
+	val fonts = listOf(bodyFont.faceName to bodyFamily, EXPORT_MONO_FONT to "modern").distinctBy { it.first }
+
+	writer.smartStartTag(W_NS, "fonts", "w") {
+		fonts.forEach { (name, family) ->
+			w("font") {
+				wAttr("name", name)
+				wVal("charset", "00")
+				wVal("family", family)
+				wVal("pitch", if (family == "modern") "fixed" else "variable")
+			}
+		}
 	}
 }
 
