@@ -1,7 +1,17 @@
 package com.darkrockstudios.apps.hammer.plugins.wasmhost
 
+import com.darkrockstudios.apps.hammer.common.data.export.ExportImage
 import com.darkrockstudios.apps.hammer.common.util.zip.InMemoryZipEntry
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerializationException
+import kotlinx.serialization.descriptors.PrimitiveKind
+import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
+import kotlinx.serialization.json.JsonDecoder
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.intOrNull
 import kotlin.io.encoding.Base64
 
 /** The zip format's limit on an entry name, in UTF-8 bytes. */
@@ -14,9 +24,10 @@ private const val QUOTED_LONG_PATH_CHARS = 64
  * The files an exporter with `output = "archive"` replied with, in order, ready to zip. The whole
  * reply is checked before any entry is returned, so a refused one leaves nothing half written.
  *
+ * @param images the images sent in the request, by id: the only ones an `image` entry may name
  * @throws ArchiveRefusal when the reply is not an archive reply, or breaks one of its rules
  */
-internal fun archiveEntries(reply: ByteArray): List<InMemoryZipEntry> {
+internal fun archiveEntries(reply: ByteArray, images: Map<Int, ExportImage>): List<InMemoryZipEntry> {
 	val files = try {
 		WasmPlugin.ReplyJson.decodeFromString<ArchiveReply>(reply.decodeToString()).files
 	} catch (e: IllegalArgumentException) {
@@ -36,7 +47,8 @@ internal fun archiveEntries(reply: ByteArray): List<InMemoryZipEntry> {
 		if (pathBytes.decodeToString() != path) refuse("Archive path \"$path\" is not valid Unicode")
 		if (!paths.add(path)) refuse("Archive path \"$path\" is already in the archive")
 		when {
-			file.text != null && file.content != null -> refuse("Archive path \"$path\" has both text and content")
+			listOfNotNull(file.text, file.content, file.image).size > 1 ->
+				refuse("Archive path \"$path\" has more than one of text, content and image")
 			file.text != null -> InMemoryZipEntry(path, file.text.encodeToByteArray())
 			file.content != null -> {
 				val bytes = try {
@@ -46,7 +58,12 @@ internal fun archiveEntries(reply: ByteArray): List<InMemoryZipEntry> {
 				}
 				InMemoryZipEntry(path, bytes)
 			}
-			else -> refuse("Archive path \"$path\" has neither text nor content")
+			file.image != null -> {
+				val image = images[file.image]
+					?: refuse("Archive path \"$path\" names image ${file.image}, which was not sent")
+				InMemoryZipEntry(path, image.bytes)
+			}
+			else -> refuse("Archive path \"$path\" has none of text, content and image")
 		}
 	}
 }
@@ -76,10 +93,30 @@ private fun archivePathRefusal(path: String): String? = when {
 
 /**
  * What an `archive` exporter replies: [files] in the order to zip them, each with exactly one of
- * [File.text], written as UTF-8, or [File.content], its bytes as standard padded base64.
+ * [File.text], written as UTF-8, [File.content], its bytes as standard padded base64, or
+ * [File.image], the id of a sent image whose bytes it is.
  */
 @Serializable
 private class ArchiveReply(val files: List<File>) {
 	@Serializable
-	class File(val path: String, val text: String? = null, val content: String? = null)
+	class File(
+		val path: String,
+		val text: String? = null,
+		val content: String? = null,
+		@Serializable(with = ImageIdSerializer::class)
+		val image: Int? = null,
+	)
+}
+
+// Json reads a quoted number as a number, so without this an id sent as a string would pass.
+private object ImageIdSerializer : KSerializer<Int> {
+	override val descriptor = PrimitiveSerialDescriptor("ArchiveImageId", PrimitiveKind.INT)
+
+	override fun deserialize(decoder: Decoder): Int {
+		val element = (decoder as JsonDecoder).decodeJsonElement()
+		return (element as? JsonPrimitive)?.takeUnless { it.isString }?.intOrNull
+			?: throw SerializationException("An archive image is an integer id, not $element")
+	}
+
+	override fun serialize(encoder: Encoder, value: Int) = encoder.encodeInt(value)
 }

@@ -645,12 +645,13 @@ class RuntimePluginsTest {
 		return unzip(sink.readByteArray())
 	}
 
-	// The message an archive exporter replying [reply] fails with, having written nothing.
-	private fun archiveFailure(reply: String?): String {
+	// The message an archive exporter declared with [exporterKeys] and replying [reply] fails with for
+	// [input], having written nothing.
+	private fun archiveFailure(reply: String?, exporterKeys: String = "", input: ExportInput = exportInput()): String {
 		GlobalContext.stopKoin()
-		val exporter = archiveExporter(reply)
+		val exporter = archiveExporter(reply, exporterKeys)
 		val sink = Buffer()
-		val error = assertThrows<PluginException>("$reply") { exporter.render(sink, exportInput()) }
+		val error = assertThrows<PluginException>("$reply") { exporter.render(sink, input) }
 		assertEquals(0L, sink.size, "$reply")
 		return error.message!!
 	}
@@ -701,6 +702,40 @@ class RuntimePluginsTest {
 	}
 
 	@Test
+	fun `an archive file naming a sent image is that image's bytes`() {
+		val png = byteArrayOf(-119, 80, 78, 71, 13, 10, 26, 10, 0, -1)
+		val cover = byteArrayOf(-1, -40, -1, 0)
+		val exporter = archiveExporter(
+			"""{"files": [{"path": "story.md", "text": "![Cat](images/cat.png)"}, {"path": "images/cat.png", "image": 1}, {"path": "cover.jpg", "image": 2}]}""",
+			"images = true\ncover = true",
+		)
+		val input = exportInput(
+			projectData = ProjectData(coverImageId = 2),
+			images = listOf(image(1, "Cat", "png", png), image(2, "Cover", "jpg", cover)),
+		)
+
+		val files = exporter.renderFiles(input)
+
+		assertEquals(listOf("story.md", "images/cat.png", "cover.jpg"), files.map { it.first })
+		assertContentEquals(png, files[1].second)
+		assertContentEquals(cover, files[2].second)
+	}
+
+	@Test
+	fun `an archive file naming an image that was not sent fails the export and writes nothing`() {
+		val input = exportInput(images = listOf(image(1, "Cat", "png", byteArrayOf(1))))
+		// An unknown id, and the id of an input image the exporter did not ask for.
+		listOf(9 to "images = true", 1 to "").forEach { (id, keys) ->
+			val reply = """{"files": [{"path": "story.md", "text": "x"}, {"path": "images/cat.png", "image": $id}]}"""
+			assertEquals(
+				"Plugin 'zipped' sent an invalid archive from export format 'zipped.zip': " +
+					"Archive path \"images/cat.png\" names image $id, which was not sent",
+				archiveFailure(reply, keys, input),
+			)
+		}
+	}
+
+	@Test
 	fun `an archive reply that breaks a rule fails the export, naming the path, and writes nothing`() {
 		fun text(path: String) = """{"path": "$path", "text": "x"}"""
 		fun files(vararg entries: String) = """{"files": [${entries.joinToString()}]}"""
@@ -719,8 +754,11 @@ class RuntimePluginsTest {
 			files(text("é".repeat(32768))) to "Archive path \"${"é".repeat(64)}...\" is longer than 65535 bytes",
 			files(text("a\\ud800"), text("a\\udbff")) to "Archive path \"a\ud800\" is not valid Unicode",
 			files(text("story.md"), text("story.md")) to "Archive path \"story.md\" is already in the archive",
-			files("""{"path": "a", "text": "x", "content": "eA=="}""") to "Archive path \"a\" has both text and content",
-			files("""{"path": "a"}""") to "Archive path \"a\" has neither text nor content",
+			files("""{"path": "a", "text": "x", "content": "eA=="}""") to "Archive path \"a\" has more than one of text, content and image",
+			files("""{"path": "a", "text": "x", "image": 1}""") to "Archive path \"a\" has more than one of text, content and image",
+			files("""{"path": "a", "content": "eA==", "image": 1}""") to "Archive path \"a\" has more than one of text, content and image",
+			files("""{"path": "a"}""") to "Archive path \"a\" has none of text, content and image",
+			files("""{"path": "a", "text": null, "image": null}""") to "Archive path \"a\" has none of text, content and image",
 			files("""{"path": "a", "content": "not base64!"}""") to "Archive path \"a\" has content that is not standard padded base64",
 			files("""{"path": "a", "content": "eA"}""") to "Archive path \"a\" has content that is not standard padded base64",
 			files("""{"path": "a", "content": "eA==\n"}""") to "Archive path \"a\" has content that is not standard padded base64",
@@ -734,10 +772,27 @@ class RuntimePluginsTest {
 
 	@Test
 	fun `an archive reply that is not one fails the export and writes nothing`() {
-		listOf(null, "done", "[1, 2]", "{}", """{"files": "story.md"}""", """{"files": [{"text": "x"}]}""").forEach { reply ->
-			val message = archiveFailure(reply)
+		val input = exportInput(images = listOf(image(1, "Cat", "png", byteArrayOf(1))))
+		listOf(
+			null,
+			"done",
+			"[1, 2]",
+			"{}",
+			"""{"files": "story.md"}""",
+			"""{"files": [{"text": "x"}]}""",
+			"""{"files": [{"path": "a", "image": "1"}]}""",
+			"""{"files": [{"path": "a", "image": 1.5}]}""",
+			"""{"files": [{"path": "a", "image": true}]}""",
+			"""{"files": [{"path": "a", "image": [1]}]}""",
+			"""{"files": [{"path": "a", "image": {}}]}""",
+		).forEach { reply ->
+			val message = archiveFailure(reply, "images = true", input)
 			assertTrue(message.startsWith("Plugin 'zipped' sent a malformed reply from export format 'zipped.zip': "), message)
 		}
+		assertEquals(
+			"Plugin 'zipped' sent a malformed reply from export format 'zipped.zip': An archive image is an integer id, not \"1\"",
+			archiveFailure("""{"files": [{"path": "a", "image": "1"}]}""", "images = true", input),
+		)
 	}
 
 	@Test

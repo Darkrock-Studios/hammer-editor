@@ -540,10 +540,11 @@ class ExportInput(
   is sent the cover's file with the other images and its id as
   `coverImageId`, and draws its own cover page, or none.
 - **Archives.** A plugin exporter whose manifest entry sets
-  `output = "archive"` returns a list of files, which the host checks and
-  zips, in order, into the one export file, so no plugin writes zip code. The
-  manifest still gives its `extension` and `mime`: `zip` and
-  `application/zip` suit it. See [Calling convention](#calling-convention).
+  `output = "archive"` returns a list of files, each its text, its bytes, or
+  the id of an image the host sent it, which the host checks and zips, in
+  order, into the one export file, so no plugin writes zip code. The manifest
+  still gives its `extension` and `mime`: `zip` and `application/zip` suit
+  it. See [Calling convention](#calling-convention).
 
 Importers have no plugin seam: `ImportFormat` is a closed enum.
 
@@ -1387,32 +1388,37 @@ The Hammer-specific parts:
   less (16 MiB on a 256 MB Android heap; see [Host](#host)), and no manifest
   key raises that cap: an export whose request or output does not fit fails,
   one whose request does not fit before the module runs. An archive reply
-  sits in the kernel beside the request, so one that sends the story's images
-  back holds them twice, both as base64 (about 8/3 of their size), and fits
-  about half the images the request alone could carry. When that reply is
-  what does not fit, the export fails with the module's allocation error, not
-  the message that the images are too large. Inside the module, a language
-  that uses linear memory (C, Rust, Zig, AssemblyScript, Go) should raise
+  sits in the kernel beside the request. An `image` entry adds only its path
+  to the reply, so an exporter that packages the story's images that way
+  holds them once, and only a plugin that sends bytes it made itself pays the
+  base64 cost (4/3 of their size) in the reply. When that reply is what does
+  not fit, the export fails with the module's allocation error, not the
+  message that the images are too large. Inside the module, a language that
+  uses linear memory (C, Rust, Zig, AssemblyScript, Go) should raise
   `[limits] memory` (64 MiB by default). As a rule of thumb, the copy of the
   request (4/3 of the images' size), their decoded bytes, and the output (at
   least their size again) are live at once, so plan for about three and a
-  half times the size of the story's images. A Kotlin/Wasm plugin keeps its
-  objects in the guest heap instead, where `[limits] memory` does not apply;
-  see [Languages](#languages).
+  half times the size of the story's images; an exporter that writes `image`
+  entries needs only the request copy and its own text. A Kotlin/Wasm plugin
+  keeps its objects in the guest heap instead, where `[limits] memory` does
+  not apply; see [Languages](#languages).
 - An exporter whose manifest entry sets `output = "archive"` returns UTF-8
   JSON, `{"files": [{"path": "story.md", "text": "..."},
-  {"path": "images/1.png", "content": "..."}]}`, and the host zips the files,
-  in order, into the export file. Each file has exactly one of `text`,
-  written as UTF-8, or `content`, its bytes in standard base64 with padding,
-  as `images` sends them. A `path` is relative, with `/` between its segments:
-  not empty, not starting with `/`, no `\`, no empty segment (so no `//` or
-  trailing `/`), and no `.` or `..` segment. It is valid Unicode, and at
-  most 65535 bytes as UTF-8, the zip format's limit on an entry name. No two
-  files have the same path, and there is at least one file. The host checks
-  the whole reply before writing any of it: one that is not this JSON, or
-  that breaks a rule, fails the export with a message naming the plugin and
-  the path or problem. The kits' archive builders check the same path rules,
-  apart from the length and Unicode ones, as each file is added.
+  {"path": "images/1.png", "image": 1}]}`, and the host zips the files, in
+  order, into the export file. Each file has exactly one of `text`, written
+  as UTF-8, `content`, its bytes in standard base64 with padding, as `images`
+  sends them, or `image`, the id of an entry in `images`. For `image` the
+  host writes that image's bytes, so a plugin that packages the story's
+  images sends no bytes back; an id the host did not send in this request's
+  `images` fails the export. A `path` is relative, with `/` between its
+  segments: not empty, not starting with `/`, no `\`, no empty segment (so
+  no `//` or trailing `/`), and no `.` or `..` segment. It is valid Unicode,
+  and at most 65535 bytes as UTF-8, the zip format's limit on an entry name.
+  No two files have the same path, and there is at least one file. The host
+  checks the whole reply before writing any of it: one that is not this JSON,
+  or that breaks a rule, fails the export with a message naming the plugin
+  and the path or problem. The kits' archive builders check the same path
+  rules, apart from the length and Unicode ones, as each file is added.
 - A function fails by returning non-zero or by trapping. Either way, the
   message it set with `error_set` is what the user sees, if it set one:
   AssemblyScript's `abort` sets one and then traps.

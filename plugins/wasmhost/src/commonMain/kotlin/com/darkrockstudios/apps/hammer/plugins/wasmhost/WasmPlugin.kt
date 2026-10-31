@@ -461,8 +461,9 @@ class WasmPlugin(
 
 		override fun render(sink: BufferedSink, input: ExportInput) {
 			val prose = format.input == PluginManifest.INPUT_PROSE
-			val images = if (format.images) input.images.values.sortedBy { it.id }.map(ExportRequest::Image) else emptyList()
-			val delivered = images.mapTo(mutableSetOf()) { it.id }
+			val sent = if (format.images) input.images else emptyMap()
+			val images = sent.values.sortedBy { it.id }.map(ExportRequest::Image)
+			val delivered = sent.keys
 			val request = ExportRequest(
 				format = formatId,
 				projectName = input.projectName,
@@ -499,7 +500,7 @@ class WasmPlugin(
 				return
 			}
 			val entries = try {
-				archiveEntries(reply)
+				archiveEntries(reply, sent)
 			} catch (e: ArchiveRefusal) {
 				val what = if (e is ArchiveRefusal.Malformed) "a malformed reply" else "an invalid archive"
 				throw PluginException("Plugin '$id' sent $what from export format '$formatId': ${e.message}")
