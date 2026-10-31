@@ -1,8 +1,6 @@
-package repositories.projectstatistics
+package com.darkrockstudios.apps.hammer.base
 
-import com.darkrockstudios.apps.hammer.common.data.projectstatistics.estimatePages
-import com.darkrockstudios.apps.hammer.common.data.projectstatistics.estimateReadingMinutes
-import org.junit.jupiter.api.Test
+import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class ReadingEstimateTest {

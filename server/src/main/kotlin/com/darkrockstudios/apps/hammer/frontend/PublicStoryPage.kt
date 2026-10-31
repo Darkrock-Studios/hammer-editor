@@ -18,11 +18,11 @@ import com.darkrockstudios.apps.hammer.project.ServerProjectDataRepository
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.project.access.PublicProjectResult
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
-import com.darkrockstudios.apps.hammer.story.PaginatedExportResult
 import com.darkrockstudios.apps.hammer.story.StoryImageLinks
 import com.darkrockstudios.apps.hammer.story.StoryImageService
 import com.darkrockstudios.apps.hammer.story.StoryImageSigner
 import com.darkrockstudios.apps.hammer.story.StoryRendererService
+import com.darkrockstudios.apps.hammer.story.StoryResult
 import com.darkrockstudios.apps.hammer.story.WordCountUtils
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.htmx.hx
@@ -211,7 +211,7 @@ fun Route.publicStoryPage(
 					// beacon is what best-effort filters out drive-by clicks.
 
 					val exportResult = if (prepared == null) {
-						PaginatedExportResult.ProjectNotFound
+						StoryResult.ProjectNotFound
 					} else {
 						storyRendererService.renderStoryAsHtmlPaginated(
 							prepared = prepared,
@@ -223,8 +223,8 @@ fun Route.publicStoryPage(
 					}
 
 					when (exportResult) {
-						is PaginatedExportResult.Success -> {
-							val data = exportResult.data
+						is StoryResult.Success -> {
+							val data = exportResult.value
 
 							// The story's declared language, when set, becomes the page's content
 							// language: <html lang> via the `locale` model key and the JSON-LD
@@ -281,15 +281,14 @@ fun Route.publicStoryPage(
 							call.respond(MustacheContent("publicstory.mustache", model))
 						}
 
-						is PaginatedExportResult.ProjectNotFound -> {
+						is StoryResult.ProjectNotFound -> {
 							call.respond(HttpStatusCode.NotFound)
 						}
 
-						is PaginatedExportResult.Error -> {
-							model["errorMessage"] = exportResult.message
+						is StoryResult.Error -> {
 							call.respond(
 								HttpStatusCode.InternalServerError,
-								MustacheContent("storyerror.mustache", model)
+								call.storyErrorContent(exportResult.message, model),
 							)
 						}
 					}

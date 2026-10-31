@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer.common.data.projectstatistics
+package com.darkrockstudios.apps.hammer.base
 
 import kotlin.math.ceil
 import kotlin.math.max
