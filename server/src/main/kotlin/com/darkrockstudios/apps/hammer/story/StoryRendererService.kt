@@ -392,19 +392,136 @@ class StoryRendererService(
 		val scenesByParent = scenes.groupBy { it.path.lastOrNull() ?: ROOT_KEY }
 		val ordered = mutableListOf<ApiProjectEntity.SceneEntity>()
 		val visited = mutableSetOf<Int>()
-
-		fun visit(parentId: Int) {
-			val children = scenesByParent[parentId] ?: return
-			for (scene in children.sortedBy { it.order }) {
-				// A path cycle would otherwise recurse forever.
-				if (!visited.add(scene.id)) continue
-				if (scene.sceneType == ApiSceneType.Scene) ordered += scene else visit(scene.id)
-			}
-		}
-		visit(ROOT_ID)
+		appendLeaves(ROOT_ID, scenesByParent, visited, ordered)
 
 		val orphans = scenes.filter { it.sceneType == ApiSceneType.Scene && it.id !in visited }
 		return SceneWalk(scenes = ordered + orphans, orphans = orphans)
+	}
+
+	/** Appends the leaf scenes under [parentId] to [out], depth first, siblings by order. */
+	private fun appendLeaves(
+		parentId: Int,
+		scenesByParent: Map<Int, List<ApiProjectEntity.SceneEntity>>,
+		visited: MutableSet<Int>,
+		out: MutableList<ApiProjectEntity.SceneEntity>,
+	) {
+		val children = scenesByParent[parentId] ?: return
+		for (scene in children.sortedBy { it.order }) {
+			// A path cycle would otherwise recurse forever.
+			if (!visited.add(scene.id)) continue
+			if (scene.sceneType == ApiSceneType.Scene) {
+				out += scene
+			} else {
+				appendLeaves(scene.id, scenesByParent, visited, out)
+			}
+		}
+	}
+
+	/**
+	 * Splits the story into chapters the way the app's reader does: each top-level node is one
+	 * chapter, a top-level group flattened to its leaf scenes and a top-level scene standing alone.
+	 * Orphaned scenes follow as chapters of their own so nothing the author wrote goes missing.
+	 */
+	private fun collectChapters(scenes: List<ApiProjectEntity.SceneEntity>): List<CollectedChapter> {
+		val scenesByParent = scenes.groupBy { it.path.lastOrNull() ?: ROOT_KEY }
+		val visited = mutableSetOf<Int>()
+		val chapters = mutableListOf<CollectedChapter>()
+
+		for (top in scenesByParent[ROOT_ID].orEmpty().sortedBy { it.order }) {
+			if (!visited.add(top.id)) continue
+			val leaves = if (top.sceneType == ApiSceneType.Scene) {
+				listOf(top)
+			} else {
+				mutableListOf<ApiProjectEntity.SceneEntity>()
+					.also { appendLeaves(top.id, scenesByParent, visited, it) }
+			}
+			chapters += CollectedChapter(top.name, leaves)
+		}
+
+		scenes.filter { it.sceneType == ApiSceneType.Scene && it.id !in visited }
+			.forEach { chapters += CollectedChapter(it.name, listOf(it)) }
+
+		return chapters
+	}
+
+	private class CollectedChapter(
+		val title: String,
+		val scenes: List<ApiProjectEntity.SceneEntity>,
+	)
+
+	private fun overviewOf(projectName: String, chapters: List<CollectedChapter>): StoryOverview {
+		val storyChapters = chapters.mapIndexed { index, chapter ->
+			StoryChapter(
+				number = index + 1,
+				title = chapter.title,
+				sceneCount = chapter.scenes.size,
+				wordCount = chapter.scenes.sumOf { countWords(it.content) },
+			)
+		}
+		return StoryOverview(
+			projectName = projectName,
+			chapters = storyChapters,
+			sceneCount = storyChapters.sumOf { it.sceneCount },
+			totalWordCount = storyChapters.sumOf { it.wordCount },
+		)
+	}
+
+	private suspend fun loadAllScenes(
+		userId: Long,
+		projectDef: ProjectDefinition,
+	): List<ApiProjectEntity.SceneEntity> {
+		val sceneDefs = projectEntityDatasource.getEntityDefsByType(
+			userId = userId,
+			projectDef = projectDef,
+			type = ApiProjectEntity.Type.SCENE
+		)
+		return loadScenes(userId, projectDef, sceneDefs.map { it.id })
+	}
+
+	/** The story's chapters and totals, without rendering any prose. */
+	suspend fun storyOverview(userId: Long, projectId: ProjectId): StoryOverviewResult {
+		val projectDef = projectEntityDatasource.getProject(userId, projectId)
+			?: return StoryOverviewResult.ProjectNotFound
+
+		return try {
+			val chapters = collectChapters(loadAllScenes(userId, projectDef))
+			StoryOverviewResult.Success(overviewOf(projectDef.name, chapters))
+		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+			StoryOverviewResult.Error(e.message ?: "Unknown error occurred")
+		}
+	}
+
+	/**
+	 * Renders chapter [chapterNumber] (1-based, coerced into range) one scene at a time. Scene and
+	 * chapter names are left out of the HTML; the page renders them itself.
+	 */
+	suspend fun renderChapter(userId: Long, projectId: ProjectId, chapterNumber: Int): ChapterRenderResult {
+		val projectDef = projectEntityDatasource.getProject(userId, projectId)
+			?: return ChapterRenderResult.ProjectNotFound
+
+		return try {
+			val chapters = collectChapters(loadAllScenes(userId, projectDef))
+			val overview = overviewOf(projectDef.name, chapters)
+			if (chapters.isEmpty()) {
+				return ChapterRenderResult.Success(ChapterRender(overview, chapter = null, scenes = emptyList()))
+			}
+
+			val index = chapterNumber.coerceIn(1, chapters.size) - 1
+			val scenes = chapters[index].scenes.map { scene ->
+				ChapterScene(
+					id = scene.id,
+					name = scene.name,
+					html = if (scene.content.isBlank()) {
+						""
+					} else {
+						markdownRenderer.markdownToSafeHtml(scene.content, preserveLineBreaks = true, images = true)
+					},
+				)
+			}
+			ChapterRenderResult.Success(ChapterRender(overview, overview.chapters[index], scenes))
+		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+			ChapterRenderResult.Error(e.message ?: "Unknown error occurred")
+		}
 	}
 
 	/**
@@ -702,6 +819,50 @@ data class PaginatedStoryExportResult(
 	val prevPage: Int,
 	val estimatedReadingTimeMinutes: Int
 )
+
+/** One chapter of the story; [number] is 1-based. */
+data class StoryChapter(
+	val number: Int,
+	val title: String,
+	val sceneCount: Int,
+	val wordCount: Int,
+)
+
+data class StoryOverview(
+	val projectName: String,
+	val chapters: List<StoryChapter>,
+	/** Leaf scenes only; groups are structure, not scenes. */
+	val sceneCount: Int,
+	val totalWordCount: Int,
+) {
+	val readingTimeMinutes: Int get() = WordCountUtils.estimateReadingTimeMinutes(totalWordCount)
+}
+
+sealed class StoryOverviewResult {
+	data class Success(val overview: StoryOverview) : StoryOverviewResult()
+	data object ProjectNotFound : StoryOverviewResult()
+	data class Error(val message: String) : StoryOverviewResult()
+}
+
+/** A scene's prose as HTML, empty when the scene has none. */
+data class ChapterScene(
+	val id: Int,
+	val name: String,
+	val html: String,
+)
+
+/** [chapter] is null only when the story has no chapters at all. */
+data class ChapterRender(
+	val overview: StoryOverview,
+	val chapter: StoryChapter?,
+	val scenes: List<ChapterScene>,
+)
+
+sealed class ChapterRenderResult {
+	data class Success(val render: ChapterRender) : ChapterRenderResult()
+	data object ProjectNotFound : ChapterRenderResult()
+	data class Error(val message: String) : ChapterRenderResult()
+}
 
 sealed class PaginatedExportResult {
 	data class Success(val data: PaginatedStoryExportResult) : PaginatedExportResult()

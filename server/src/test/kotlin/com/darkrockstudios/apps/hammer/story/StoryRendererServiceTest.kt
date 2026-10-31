@@ -701,6 +701,213 @@ class StoryRendererServiceTest {
 		}
 	}
 
+	// Chapters
+
+	@Test
+	fun `chapters - each top-level node is one chapter, nested groups flattened`() = runTest {
+		setupMocksForScenes(
+			listOf(
+				createScene(id = 1, name = "Prologue", content = "Before it all.", order = 0),
+				createScene(id = 2, name = "Part One", content = "", order = 1, sceneType = ApiSceneType.Group),
+				createScene(id = 3, name = "Arrival", content = "one two", order = 0, path = listOf(0, 2)),
+				createScene(id = 4, name = "Inner", content = "", order = 1, sceneType = ApiSceneType.Group, path = listOf(0, 2)),
+				createScene(id = 5, name = "Deep", content = "three four five", order = 0, path = listOf(0, 2, 4)),
+				createScene(id = 6, name = "Departure", content = "six", order = 2, path = listOf(0, 2)),
+			)
+		)
+
+		val result = service.storyOverview(userId, projectId)
+
+		assertIs<StoryOverviewResult.Success>(result)
+		val overview = result.overview
+		assertEquals(
+			listOf(
+				StoryChapter(number = 1, title = "Prologue", sceneCount = 1, wordCount = 3),
+				StoryChapter(number = 2, title = "Part One", sceneCount = 3, wordCount = 6),
+			),
+			overview.chapters
+		)
+		assertEquals(4, overview.sceneCount, "groups are not scenes")
+		assertEquals(9, overview.totalWordCount)
+	}
+
+	@Test
+	fun `chapters - a group's scenes render in tree order`() = runTest {
+		setupMocksForScenes(
+			listOf(
+				createScene(id = 1, name = "Part One", content = "", order = 0, sceneType = ApiSceneType.Group),
+				createScene(id = 2, name = "Second", content = "Second prose", order = 1, path = listOf(0, 1)),
+				createScene(id = 3, name = "Inner", content = "", order = 0, sceneType = ApiSceneType.Group, path = listOf(0, 1)),
+				createScene(id = 4, name = "First", content = "First prose", order = 0, path = listOf(0, 1, 3)),
+			)
+		)
+
+		val result = service.renderChapter(userId, projectId, chapterNumber = 1)
+
+		assertIs<ChapterRenderResult.Success>(result)
+		assertEquals(listOf(4, 2), result.render.scenes.map { it.id })
+		assertEquals(listOf("First", "Second"), result.render.scenes.map { it.name })
+		assertTrue(result.render.scenes[0].html.contains("First prose"))
+	}
+
+	@Test
+	fun `chapters - renders only the requested chapter`() = runTest {
+		setupMocksForScenes(
+			listOf(
+				createScene(id = 1, name = "One", content = "Chapter one prose", order = 0),
+				createScene(id = 2, name = "Two", content = "Chapter two prose", order = 1),
+			)
+		)
+
+		val result = service.renderChapter(userId, projectId, chapterNumber = 2)
+
+		assertIs<ChapterRenderResult.Success>(result)
+		assertEquals("Two", result.render.chapter?.title)
+		assertEquals(2, result.render.chapter?.number)
+		val html = result.render.scenes.joinToString { it.html }
+		assertTrue(html.contains("Chapter two prose"))
+		assertFalse(html.contains("Chapter one prose"))
+	}
+
+	@Test
+	fun `chapters - scene html leaves the scene name to the page`() = runTest {
+		setupMocksForScenes(listOf(createScene(id = 1, name = "The Name", content = "Prose only.", order = 0)))
+
+		val result = service.renderChapter(userId, projectId, chapterNumber = 1)
+
+		assertIs<ChapterRenderResult.Success>(result)
+		val html = result.render.scenes.single().html
+		assertTrue(html.contains("Prose only."))
+		assertFalse(html.contains("The Name"), html)
+	}
+
+	@Test
+	fun `chapters - an out of range chapter number is coerced`() = runTest {
+		setupMocksForScenes(
+			listOf(
+				createScene(id = 1, name = "One", content = "a", order = 0),
+				createScene(id = 2, name = "Two", content = "b", order = 1),
+			)
+		)
+
+		val high = service.renderChapter(userId, projectId, chapterNumber = 99)
+		val low = service.renderChapter(userId, projectId, chapterNumber = 0)
+
+		assertIs<ChapterRenderResult.Success>(high)
+		assertIs<ChapterRenderResult.Success>(low)
+		assertEquals(2, high.render.chapter?.number)
+		assertEquals(1, low.render.chapter?.number)
+	}
+
+	@Test
+	fun `chapters - an empty group is a chapter with no scenes`() = runTest {
+		setupMocksForScenes(
+			listOf(
+				createScene(id = 1, name = "Empty Part", content = "", order = 0, sceneType = ApiSceneType.Group),
+				createScene(id = 2, name = "After", content = "words", order = 1),
+			)
+		)
+
+		val result = service.renderChapter(userId, projectId, chapterNumber = 1)
+
+		assertIs<ChapterRenderResult.Success>(result)
+		assertEquals(StoryChapter(1, "Empty Part", sceneCount = 0, wordCount = 0), result.render.chapter)
+		assertTrue(result.render.scenes.isEmpty())
+		assertEquals(2, result.render.overview.chapters.size)
+	}
+
+	@Test
+	fun `chapters - a blank scene keeps its place with no prose`() = runTest {
+		setupMocksForScenes(
+			listOf(
+				createScene(id = 1, name = "Part", content = "", order = 0, sceneType = ApiSceneType.Group),
+				createScene(id = 2, name = "Drafted", content = "Some words", order = 0, path = listOf(0, 1)),
+				createScene(id = 3, name = "Not yet", content = "  \n", order = 1, path = listOf(0, 1)),
+			)
+		)
+
+		val result = service.renderChapter(userId, projectId, chapterNumber = 1)
+
+		assertIs<ChapterRenderResult.Success>(result)
+		assertEquals(listOf("Drafted", "Not yet"), result.render.scenes.map { it.name })
+		assertEquals("", result.render.scenes[1].html)
+	}
+
+	@Test
+	fun `chapters - an orphaned scene becomes a trailing chapter`() = runTest {
+		setupMocksForScenes(
+			listOf(
+				createScene(id = 1, name = "Part", content = "", order = 0, sceneType = ApiSceneType.Group),
+				createScene(id = 2, name = "Attached", content = "Attached content", order = 0, path = listOf(0, 1)),
+				// Parent group 99 does not exist; readers can see this scene, so the author must too.
+				createScene(id = 3, name = "Lost Scene", content = "Orphaned content", order = 0, path = listOf(0, 99)),
+			)
+		)
+
+		val result = service.renderChapter(userId, projectId, chapterNumber = 2)
+
+		assertIs<ChapterRenderResult.Success>(result)
+		assertEquals(listOf("Part", "Lost Scene"), result.render.overview.chapters.map { it.title })
+		assertTrue(result.render.scenes.single().html.contains("Orphaned content"))
+	}
+
+	@Test
+	fun `chapters - a scene under groups caught in a path cycle still gets a chapter`() = runTest {
+		setupMocksForScenes(
+			listOf(
+				createScene(id = 1, name = "Part", content = "", order = 0, sceneType = ApiSceneType.Group),
+				createScene(id = 2, name = "Loop A", content = "", order = 0, sceneType = ApiSceneType.Group, path = listOf(0, 3)),
+				createScene(id = 3, name = "Loop B", content = "", order = 0, sceneType = ApiSceneType.Group, path = listOf(0, 2)),
+				createScene(id = 4, name = "Inside", content = "words here", order = 0, path = listOf(0, 1)),
+				createScene(id = 5, name = "Stranded", content = "still mine", order = 0, path = listOf(0, 3, 2)),
+			)
+		)
+
+		val result = service.storyOverview(userId, projectId)
+
+		assertIs<StoryOverviewResult.Success>(result)
+		assertEquals(listOf("Part", "Stranded"), result.overview.chapters.map { it.title })
+		assertEquals(2, result.overview.sceneCount)
+	}
+
+	@Test
+	fun `chapters - a story with no scenes has no chapter`() = runTest {
+		coEvery { datasource.getProject(userId, projectId) } returns projectDef
+		coEvery { datasource.getEntityDefsByType(userId, projectDef, ApiProjectEntity.Type.SCENE) } returns emptyList()
+
+		val result = service.renderChapter(userId, projectId, chapterNumber = 1)
+
+		assertIs<ChapterRenderResult.Success>(result)
+		assertNull(result.render.chapter)
+		assertTrue(result.render.overview.chapters.isEmpty())
+		assertEquals("Test Story", result.render.overview.projectName)
+	}
+
+	@Test
+	fun `chapters - returns ProjectNotFound when project does not exist`() = runTest {
+		coEvery { datasource.getProject(userId, projectId) } returns null
+
+		assertIs<ChapterRenderResult.ProjectNotFound>(service.renderChapter(userId, projectId, 1))
+		assertIs<StoryOverviewResult.ProjectNotFound>(service.storyOverview(userId, projectId))
+	}
+
+	@Test
+	fun `chapters - a scene that embeds an image renders the image reference`() = runTest {
+		val scene = createScene(
+			id = 1,
+			name = "Chapter One",
+			content = "The road north.\n\n![Map](hammer://image/7)\n\nThey set out.",
+			order = 0,
+		)
+		setupMocksForScenes(listOf(scene))
+
+		val result = service.renderChapter(userId, projectId, chapterNumber = 1)
+
+		assertIs<ChapterRenderResult.Success>(result)
+		val html = result.render.scenes.single().html
+		assertTrue(html.contains("""<img src="hammer://image/7" alt="Map" />"""), html)
+	}
+
 	private fun createScene(
 		id: Int,
 		name: String,
