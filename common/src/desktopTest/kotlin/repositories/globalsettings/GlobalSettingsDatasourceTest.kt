@@ -1,6 +1,7 @@
 package repositories.globalsettings
 
 import com.darkrockstudios.apps.hammer.base.http.writeToml
+import com.darkrockstudios.apps.hammer.common.data.ManuscriptContact
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.InitialProjectScreen
@@ -157,6 +158,47 @@ class GlobalSettingsDatasourceTest : BaseTest() {
 		val loaded: GlobalSettings = datasource.loadSettings()
 
 		assertEquals(InitialProjectScreen.Editor, loaded.initialProjectScreen)
+	}
+
+	@Test
+	fun `Store and load preserves a manuscript contact with a multi-line address`() = runTest {
+		val datasource = createDatasource()
+		val contact = ManuscriptContact(
+			legalName = "Ada \"Lovelace\" King",
+			address = "12 St James's Square\nLondon SW1Y 4JH\nUnited Kingdom",
+			phone = "+44 20 7946 0000",
+			email = "ada@example.com",
+		)
+		val settings = GlobalSettingsStore.createDefault(languageUtil, platformSpellCheckerFactory).copy(
+			manuscriptContact = contact,
+		)
+
+		datasource.storeSettings(settings)
+		val loaded: GlobalSettings = datasource.loadSettings()
+
+		assertEquals(contact, loaded.manuscriptContact)
+	}
+
+	@Test
+	fun `Load Global Settings missing the manuscript contact uses an empty contact`() = runTest {
+		val datasource = createDatasource()
+		fileSystem.createDirectories(GlobalSettingsFilesystemDatasource.CONFIG_PATH.parent!!)
+		fileSystem.write(GlobalSettingsFilesystemDatasource.CONFIG_PATH) {
+			writeUtf8(
+				"""
+				projectsDirectory = "test"
+				uiTheme = "Dark"
+
+				[nux]
+				exampleProjectCreated = true
+				""".trimIndent()
+			)
+		}
+
+		val loaded: GlobalSettings = datasource.loadSettings()
+
+		assertEquals(ManuscriptContact(), loaded.manuscriptContact)
+		assertEquals(UiTheme.Dark, loaded.uiTheme)
 	}
 
 	@Test

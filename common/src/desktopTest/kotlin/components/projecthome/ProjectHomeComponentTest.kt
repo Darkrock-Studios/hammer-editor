@@ -17,6 +17,7 @@ import com.darkrockstudios.apps.hammer.common.data.export.StoryExporter
 import com.darkrockstudios.apps.hammer.common.data.export.StoryExporterRegistry
 import com.darkrockstudios.apps.hammer.common.data.ExportOptions
 import com.darkrockstudios.apps.hammer.common.data.ExportableScene
+import com.darkrockstudios.apps.hammer.common.data.ManuscriptContact
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectPluginsDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectPluginsRepository
@@ -80,6 +81,8 @@ import org.junit.jupiter.api.Test
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
 import utils.ComponentTest
+import utils.InMemoryGlobalSettingsDatasource
+import utils.inMemoryGlobalSettingsStore
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
@@ -532,6 +535,88 @@ class ProjectHomeComponentTest : ComponentTest() {
 		comp.exportDialogDismissed()
 
 		assertEquals(confirmed, comp.state.value.exportOptions)
+	}
+
+	private val savedContact = ManuscriptContact(
+		legalName = "Ada King",
+		address = "12 St James's Square\nLondon",
+		email = "ada@example.com",
+	)
+
+	/** Swaps the mocked settings for a real store holding [contact]. */
+	private fun useSavedContact(contact: ManuscriptContact): InMemoryGlobalSettingsDatasource {
+		val datasource = InMemoryGlobalSettingsDatasource(
+			GlobalSettings(projectsDirectory = "/projects", manuscriptContact = contact)
+		)
+		globalSettingsStore = inMemoryGlobalSettingsStore(datasource)
+		return datasource
+	}
+
+	@Test
+	fun `beginProjectExport loads the saved manuscript contact`() = runTest(mainTestDispatcher) {
+		useSavedContact(savedContact)
+		val comp = newComponent()
+		context.resume()
+
+		comp.beginProjectExport()
+
+		assertEquals(savedContact, comp.state.value.manuscriptContact)
+	}
+
+	@Test
+	fun `dismissal after cancel restores the saved manuscript contact`() = runTest(mainTestDispatcher) {
+		val settings = useSavedContact(savedContact)
+		val comp = newComponent()
+		context.resume()
+
+		comp.beginProjectExport()
+		comp.updateManuscriptContact(savedContact.copy(phone = "555-0100"))
+		comp.cancelExportDialog()
+		comp.exportDialogDismissed()
+		advanceUntilIdle()
+
+		assertEquals(savedContact, comp.state.value.manuscriptContact)
+		assertEquals(savedContact, settings.stored.manuscriptContact)
+	}
+
+	@Test
+	fun `confirming the export dialog saves the edited manuscript contact`() = runTest(mainTestDispatcher) {
+		val settings = useSavedContact(savedContact)
+		val edited = savedContact.copy(phone = "555-0100")
+		val comp = newComponent()
+		context.resume()
+
+		comp.beginProjectExport()
+		comp.updateManuscriptContact(edited)
+		comp.confirmExportDialog(comp.state.value.exportOptions)
+		comp.endProjectExport()
+		comp.exportDialogDismissed()
+		advanceUntilIdle()
+
+		assertEquals(edited, comp.state.value.manuscriptContact)
+		assertEquals(edited, settings.stored.manuscriptContact)
+	}
+
+	@Test
+	fun `An export right after confirming uses the edited manuscript contact`() = runTest(mainTestDispatcher) {
+		useSavedContact(savedContact)
+		val edited = savedContact.copy(phone = "555-0100")
+		var contactAtExport: ManuscriptContact? = null
+		coEvery { exportStoryUseCase.execute(any(), any()) } answers {
+			contactAtExport = globalSettingsStore.globalSettings.manuscriptContact
+			HPath("/out/Test.epub", "Test.epub", true)
+		}
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		comp.beginProjectExport()
+		comp.updateManuscriptContact(edited)
+		val options = comp.state.value.exportOptions
+		comp.confirmExportDialog(options)
+		comp.exportProject("/out", options)
+
+		assertEquals(edited, contactAtExport)
 	}
 
 	@Test

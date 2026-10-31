@@ -116,6 +116,8 @@
 
 	<string name="project_home_export_contents_title">Contents</string>
 	<string name="project_home_export_byline">by %1$s</string>
+	<string name="project_home_export_word_count">about %1$s words</string>
+	<string name="project_home_export_end_marker">END</string>
 
 	<string name="project_home_action_import_toast_success">Story Imported</string>
 	<string name="project_home_action_import_toast_failure">Import failed</string>

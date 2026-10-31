@@ -1490,7 +1490,12 @@ class RuntimePluginsTest {
 		treatTopLevelAsChapters = true,
 		options = ExportOptions(),
 		language = "en",
-		strings = ExportStrings(contentsTitle = "Contents", authorByline = null),
+		strings = ExportStrings(
+			contentsTitle = "Contents",
+			authorByline = null,
+			wordCount = { "about $it words" },
+			endMarker = "END",
+		),
 		images = images.associateBy { it.id },
 		imageNames = imageNames,
 	)

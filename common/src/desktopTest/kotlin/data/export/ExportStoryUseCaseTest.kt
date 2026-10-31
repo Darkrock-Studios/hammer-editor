@@ -12,6 +12,8 @@ import com.darkrockstudios.apps.hammer.common.data.export.exportFileName
 import com.darkrockstudios.apps.hammer.common.data.export.StoryExporter
 import com.darkrockstudios.apps.hammer.common.data.export.StoryExporterRegistry
 import com.darkrockstudios.apps.hammer.common.data.ExportOptions
+import com.darkrockstudios.apps.hammer.common.data.ManuscriptContact
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesRepository
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageDef
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
@@ -37,6 +39,7 @@ import org.junit.jupiter.api.BeforeEach
 import okio.BufferedSink
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.Test
+import utils.inMemoryGlobalSettingsStore
 import utils.unzip
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
@@ -51,6 +54,7 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 	private lateinit var strRes: StrRes
 	private lateinit var projectPlugins: ProjectPluginsRepository
 	private lateinit var imagesRepository: ImagesRepository
+	private lateinit var globalSettingsStore: GlobalSettingsStore
 	private var projectDataLoads = 0
 
 	@BeforeEach
@@ -74,6 +78,7 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 			coEvery { ensureImagesLoaded() } returns emptyList()
 			every { loadImageBytes(any()) } returns null
 		}
+		globalSettingsStore = inMemoryGlobalSettingsStore()
 	}
 
 	private suspend fun initRepo() {
@@ -92,6 +97,7 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 		fileSystem = ffs,
 		localeResolver = localeResolver,
 		strRes = strRes,
+		globalSettingsStore = globalSettingsStore,
 	)
 
 	@Test
@@ -474,6 +480,40 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 			"BYLINE_SENTINEL Ada" in text,
 			"Author byline should be resolved via StrRes with the author name, got: $text",
 		)
+	}
+
+	@Test
+	fun `manuscript word count and end marker come from the localization system`() = runTest {
+		initRepo()
+		strRes = object : StrRes {
+			override suspend fun get(str: StringResource): String = "<${str.key}>"
+			override suspend fun get(str: StringResource, vararg args: Any): String =
+				"<${str.key}> ${args.joinToString()}"
+		}
+		val exporter = CapturingExporter(embedsImages = false)
+
+		useCase(listOf(exporter)).render(ExportOptions(format = exporter.formatId))
+
+		val strings = checkNotNull(exporter.input).strings
+		assertEquals("<project_home_export_word_count> 12,500", strings.wordCount("12,500"))
+		assertEquals("<project_home_export_end_marker>", strings.endMarker)
+	}
+
+	@Test
+	fun `the saved manuscript contact reaches the exporter`() = runTest {
+		initRepo()
+		val contact = ManuscriptContact(
+			legalName = "Ada King",
+			address = "12 St James's Square\nLondon",
+			phone = "555-0100",
+			email = "ada@example.com",
+		)
+		globalSettingsStore.updateSettings { it.copy(manuscriptContact = contact) }
+		val exporter = CapturingExporter(embedsImages = false)
+
+		useCase(listOf(exporter)).render(ExportOptions(format = exporter.formatId))
+
+		assertEquals(contact, checkNotNull(exporter.input).contact)
 	}
 
 	@Test

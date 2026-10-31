@@ -56,7 +56,12 @@ class PdfProseVisualCheck {
 				"Indent Check",
 				projectData,
 				chapters,
-				ExportStrings(contentsTitle = "Contents", authorByline = "by Test Author"),
+				ExportStrings(
+					contentsTitle = "Contents",
+					authorByline = "by Test Author",
+					wordCount = { "about $it words" },
+					endMarker = "END",
+				),
 			)
 		}
 		println("Wrote $out")

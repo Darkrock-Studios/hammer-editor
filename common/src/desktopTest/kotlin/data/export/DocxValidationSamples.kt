@@ -62,6 +62,8 @@ class DocxValidationSamples {
 				strings = ExportStrings(
 					contentsTitle = "Contents",
 					authorByline = projectData.authorName?.let { "by $it" },
+					wordCount = { "about $it words" },
+					endMarker = "END",
 				),
 				options = ExportOptions(numberChapters = true),
 				imageNames = images.mapValues { it.value.name },

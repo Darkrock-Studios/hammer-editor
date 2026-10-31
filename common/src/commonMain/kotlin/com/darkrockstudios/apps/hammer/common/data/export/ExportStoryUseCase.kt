@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.common.data.export
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.common.data.ExportOptions
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesRepository
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageDef
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
@@ -21,6 +22,8 @@ import com.darkrockstudios.apps.hammer.common.util.DeviceLocaleResolver
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.apps.hammer.project_home_export_byline
 import com.darkrockstudios.apps.hammer.project_home_export_contents_title
+import com.darkrockstudios.apps.hammer.project_home_export_end_marker
+import com.darkrockstudios.apps.hammer.project_home_export_word_count
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import okio.Buffer
@@ -40,6 +43,9 @@ private val unsafeFileNameChars = Regex("""[/\\:*?"<>|\x00-\x1F]""")
 private fun String.sanitizedFileName(): String =
 	replace(unsafeFileNameChars, "_").trim().trim('.')
 
+/** A private-use character, so it can't collide with anything in a translated string. */
+private const val WORD_COUNT_PLACEHOLDER = "\uE000"
+
 class ExportStoryUseCase(
 	private val sceneEditorRepository: SceneEditorService,
 	private val exporters: StoryExporterRegistry,
@@ -49,6 +55,7 @@ class ExportStoryUseCase(
 	private val fileSystem: FileSystem,
 	private val localeResolver: DeviceLocaleResolver,
 	private val strRes: StrRes,
+	private val globalSettingsStore: GlobalSettingsStore,
 ) : KoinComponent {
 
 	private val ioDispatcher by injectIoDispatcher()
@@ -105,6 +112,7 @@ class ExportStoryUseCase(
 				strings = resolveExportStrings(projectData),
 				images = images,
 				imageNames = imageDefs.associate { it.id to it.name },
+				contact = globalSettingsStore.globalSettings.manuscriptContact,
 			)
 		}
 
@@ -143,9 +151,13 @@ class ExportStoryUseCase(
 	/** Resolves the user-facing strings that appear inside the exported document for the active locale. */
 	private suspend fun resolveExportStrings(projectData: ProjectData?): ExportStrings {
 		val authorName = projectData?.authorName?.takeIf { it.isNotBlank() }
+		// Renderers can't suspend, so the count is formatted once around a placeholder and filled in later.
+		val wordCountTemplate = strRes.get(Res.string.project_home_export_word_count, WORD_COUNT_PLACEHOLDER)
 		return ExportStrings(
 			contentsTitle = strRes.get(Res.string.project_home_export_contents_title),
 			authorByline = authorName?.let { strRes.get(Res.string.project_home_export_byline, it) },
+			wordCount = { count -> wordCountTemplate.replace(WORD_COUNT_PLACEHOLDER, count) },
+			endMarker = strRes.get(Res.string.project_home_export_end_marker),
 		)
 	}
 

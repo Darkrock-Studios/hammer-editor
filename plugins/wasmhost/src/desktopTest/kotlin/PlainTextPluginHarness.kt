@@ -83,7 +83,12 @@ class PlainTextPluginHarness {
 			treatTopLevelAsChapters = treatTopLevelAsChapters,
 			options = ExportOptions(),
 			language = "en",
-			strings = ExportStrings(contentsTitle = "Contents", authorByline = null),
+			strings = ExportStrings(
+				contentsTitle = "Contents",
+				authorByline = null,
+				wordCount = { "about $it words" },
+				endMarker = "END",
+			),
 		)
 		return Buffer().also { exporter.render(it, input) }.readUtf8()
 	}

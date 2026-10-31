@@ -17,6 +17,7 @@ import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectHome
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.ExportOptions
+import com.darkrockstudios.apps.hammer.common.data.ManuscriptContact
 import com.darkrockstudios.apps.hammer.common.data.Msg
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.export.ExportFileName
@@ -114,6 +115,7 @@ private val component = object : ProjectHome {
 	override fun beginProjectExport() {}
 	override fun cancelExportDialog() {}
 	override fun updateExportOptions(options: ExportOptions) {}
+	override fun updateManuscriptContact(contact: ManuscriptContact) {}
 	override fun confirmExportDialog(options: ExportOptions) {}
 	override fun endProjectExport() {}
 	override fun exportDialogDismissed() {}

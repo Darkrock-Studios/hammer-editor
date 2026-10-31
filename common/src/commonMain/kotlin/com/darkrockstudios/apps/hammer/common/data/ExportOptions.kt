@@ -29,4 +29,8 @@ data class ExportOptions(
 	 * indent as the separator, while a run of two or more still leaves one break.
 	 */
 	val keepBlankLines: Boolean = true,
+	/** Docx only: the short story layout puts the title on page 1 instead of a separate title page. */
+	val manuscriptShortStory: Boolean = false,
+	/** Docx only: the classic manuscript layout sets the text in Courier instead of Times New Roman. */
+	val manuscriptClassic: Boolean = false,
 )

@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.common.data.export
 
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.common.data.ExportOptions
+import com.darkrockstudios.apps.hammer.common.data.ManuscriptContact
 import okio.BufferedSink
 
 /** One export format. Plugins contribute formats by binding more of these in Koin. */
@@ -63,6 +64,8 @@ class ExportInput(
 	val images: Map<Int, ExportImage> = emptyMap(),
 	/** The current name of each project image the story refers to, by id. */
 	val imageNames: Map<Int, String> = emptyMap(),
+	/** The author's saved contact block, for formats that print one. */
+	val contact: ManuscriptContact = ManuscriptContact(),
 ) {
 	fun requireProjectData(): ProjectData =
 		requireNotNull(projectData) { "Project data is required for this export format" }

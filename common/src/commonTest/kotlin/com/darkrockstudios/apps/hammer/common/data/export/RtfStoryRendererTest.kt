@@ -31,7 +31,12 @@ class RtfStoryRendererTest {
 			projectName = projectName,
 			projectData = projectData,
 			chapters = chapters,
-			strings = ExportStrings(contentsTitle = "Contents", authorByline = author?.let { "by $it" }),
+			strings = ExportStrings(
+				contentsTitle = "Contents",
+				authorByline = author?.let { "by $it" },
+				wordCount = { "about $it words" },
+				endMarker = "END",
+			),
 			options = options,
 			imageNames = imageNames,
 			images = images,

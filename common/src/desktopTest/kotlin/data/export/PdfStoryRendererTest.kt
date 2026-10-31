@@ -43,7 +43,12 @@ class PdfStoryRendererTest {
 		projectName = "Story",
 		projectData = ProjectData(authorName = "Author"),
 		chapters = listOf(StoryChapter("Chapter", markdown)),
-		strings = ExportStrings(contentsTitle = "Contents", authorByline = "by Author"),
+		strings = ExportStrings(
+			contentsTitle = "Contents",
+			authorByline = "by Author",
+			wordCount = { "about $it words" },
+			endMarker = "END",
+		),
 		imageNames = imageNames,
 		images = images,
 		factory = ImageWatchingFactory(drawnImages),
@@ -258,7 +263,12 @@ class PdfStoryRendererTest {
 		projectName = "Story",
 		projectData = ProjectData(authorName = "Author", coverImageId = coverImageId),
 		chapters = listOf(StoryChapter("Chapter", "Body.")),
-		strings = ExportStrings(contentsTitle = "Contents", authorByline = "by Author"),
+		strings = ExportStrings(
+			contentsTitle = "Contents",
+			authorByline = "by Author",
+			wordCount = { "about $it words" },
+			endMarker = "END",
+		),
 		images = images,
 		factory = ImageWatchingFactory(drawnImages),
 	)

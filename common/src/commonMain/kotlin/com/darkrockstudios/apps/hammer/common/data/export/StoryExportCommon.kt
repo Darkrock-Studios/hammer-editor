@@ -7,10 +7,15 @@ package com.darkrockstudios.apps.hammer.common.data.export
  *
  * @param contentsTitle the heading of the table-of-contents page.
  * @param authorByline the title-page byline (e.g. "by Jane Doe"), or null when there is no author.
+ * @param wordCount the manuscript word count line (e.g. "about 12,500 words") for an already rounded
+ *   and formatted figure.
+ * @param endMarker the line that closes a manuscript.
  */
 data class ExportStrings(
 	val contentsTitle: String,
 	val authorByline: String?,
+	val wordCount: (String) -> String,
+	val endMarker: String,
 )
 
 // Shared layout vocabulary mirrored across the EPUB / DOCX / RTF / PDF exporters. Keeping these in one
