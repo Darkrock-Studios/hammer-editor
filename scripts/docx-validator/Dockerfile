@@ -9,4 +9,8 @@ RUN git clone https://github.com/mikeebowen/OOXML-Validator.git . \
 
 FROM mcr.microsoft.com/dotnet/runtime-deps:8.0
 COPY --from=build /out/OOXMLValidatorCLI /usr/local/bin/ooxml-validator
+# The non-root user .NET 8 images ship with. validate-docx.sh runs it as the caller's uid instead,
+# which has no home for the single-file bundle to extract into.
+ENV DOTNET_BUNDLE_EXTRACT_BASE_DIR=/tmp/dotnet-bundle
+USER app
 ENTRYPOINT ["ooxml-validator"]
