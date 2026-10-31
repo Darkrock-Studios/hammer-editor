@@ -8,18 +8,14 @@ private val MARKDOWN_SPECIAL = "\\`*_{}[]()<>#+-!|".toSet()
 private val ORDERED_LIST_MARKER = Regex("""^(\d+)\.""", RegexOption.MULTILINE)
 
 /**
- * Backslash-escapes the editor's Markdown special characters in [text], the set ComposeTextEditor's
- * escaper uses. Others, such as `.`, `~`, `=` and `&`, are left as they are.
+ * Backslash-escapes the editor's Markdown special characters in [text]. Others, such as `.`, `~`,
+ * `=` and `&`, are left as they are.
  */
-fun escapeMarkdown(text: String): String {
-	if (text.none { it in MARKDOWN_SPECIAL }) return text
-
-	val out = StringBuilder(text.length + 8)
+fun escapeMarkdown(text: String): String = buildString {
 	for (ch in text) {
-		if (ch in MARKDOWN_SPECIAL) out.append('\\')
-		out.append(ch)
+		if (ch in MARKDOWN_SPECIAL) append('\\')
+		append(ch)
 	}
-	return out.toString()
 }
 
 /** Escapes the dot of a line-leading `1.`, so the line does not parse as an ordered list item. */

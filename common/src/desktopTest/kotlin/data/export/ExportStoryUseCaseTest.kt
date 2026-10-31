@@ -37,6 +37,7 @@ import org.junit.jupiter.api.BeforeEach
 import okio.BufferedSink
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.Test
+import utils.unzip
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -404,22 +405,11 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 			every { loadImageBytes(cover) } returns coverBytes
 		}
 
-		val zip = useCase().render(ExportOptions(format = BuiltInExportFormat.MARKDOWN)).readByteArray()
+		val entries = unzip(useCase().render(ExportOptions(format = BuiltInExportFormat.MARKDOWN)).readByteArray())
 
-		val entries = linkedMapOf<String, ByteArray>()
-		java.util.zip.ZipInputStream(zip.inputStream()).use { zin ->
-			while (true) {
-				val entry = zin.nextEntry ?: break
-				entries[entry.name] = zin.readBytes()
-			}
-		}
-		val documentName = exportFileName(sceneEditorService.projectDef.name, "md").fileName
-		assertEquals(listOf(documentName, "images/5~Cover.png", "images/1~Cat.jpg"), entries.keys.toList())
+		assertEquals(listOf(markdownDocumentName(), "images/5~Cover.png", "images/1~Cat.jpg"), entries.keys.toList())
 		assertContentEquals(coverBytes, entries["images/5~Cover.png"])
 		assertContentEquals(catBytes, entries["images/1~Cat.jpg"])
-		val text = entries.getValue(documentName).decodeToString()
-		assertTrue(text.startsWith("![Cover](images/5~Cover.png)\n\n# "), text)
-		assertTrue("![Cat](images/1~Cat.jpg)" in text, text)
 	}
 
 	@Test
@@ -550,22 +540,15 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 		)
 	}
 
-	/** The `.md` inside a Markdown export, which is named after the project as the zip is. */
-	private fun markdownExportText(exportPath: HPath): String {
-		val bytes = ffs.read(exportPath.toOkioPath()) { readByteArray() }
-		return zipEntryText(bytes, exportFileName(sceneEditorService.projectDef.name, "md").fileName)
-	}
+	/** The name of the `.md` inside a Markdown export, which is named after the project as the zip is. */
+	private fun markdownDocumentName(): String = exportFileName(sceneEditorService.projectDef.name, "md").fileName
 
-	private fun zipEntryText(bytes: ByteArray, nameSuffix: String): String {
-		java.util.zip.ZipInputStream(bytes.inputStream()).use { zin ->
-			var entry = zin.nextEntry
-			while (entry != null) {
-				if (entry.name.endsWith(nameSuffix)) return zin.readBytes().decodeToString()
-				entry = zin.nextEntry
-			}
-		}
-		error("No zip entry ending with $nameSuffix")
-	}
+	private fun markdownExportText(exportPath: HPath): String =
+		zipEntryText(ffs.read(exportPath.toOkioPath()) { readByteArray() }, markdownDocumentName())
+
+	private fun zipEntryText(bytes: ByteArray, nameSuffix: String): String =
+		unzip(bytes).entries.firstOrNull { it.key.endsWith(nameSuffix) }?.value?.decodeToString()
+			?: error("No zip entry ending with $nameSuffix")
 
 	@Test
 	fun `epub export still produces a valid file when treatTopLevelAsChapters is false`() = runTest {

@@ -7,16 +7,16 @@ import com.darkrockstudios.apps.hammer.common.data.search.escapeMarkdown
 import com.darkrockstudios.apps.hammer.common.data.search.escapeOrderedListMarkers
 import com.darkrockstudios.apps.hammer.common.util.zip.InMemoryZipEntry
 import com.darkrockstudios.apps.hammer.common.util.zip.writeZip
-import okio.Buffer
 import okio.BufferedSink
 
-internal const val MARKDOWN_FILE_EXTENSION = "md"
+private const val MARKDOWN_FILE_EXTENSION = "md"
 
 /** The folder beside the `.md` that holds the images it shows. */
-internal const val MARKDOWN_IMAGES_DIRECTORY = "images"
+private const val MARKDOWN_IMAGES_DIRECTORY = "images"
 
-private const val DESTINATION_ENCODED = " ()<>%#?\"`\\"
-private const val HEX_DIGITS = "0123456789ABCDEF"
+// Enough only for a path from ImagesDatasource.getFilename, whose FilenameEncoding has already
+// mapped ? " < > \ to lookalikes; ASCII controls are checked separately.
+private const val DESTINATION_ENCODED = " ()%#`"
 
 /**
  * Renders the story as a zip of `<project>.md` and, under [MARKDOWN_IMAGES_DIRECTORY], the file of
@@ -26,55 +26,37 @@ private const val HEX_DIGITS = "0123456789ABCDEF"
  * its name, and one with no name is dropped.
  */
 fun writeStoryAsMarkdownZip(sink: BufferedSink, input: ExportInput) {
-	// Image id to its path in the archive, in the order the document first shows them.
-	val packaged = LinkedHashMap<Int, String>()
+	// Keyed by image id, in the order the document first shows them.
+	val packaged = LinkedHashMap<Int, InMemoryZipEntry>()
 	fun imageMarkdown(image: ExportImage): String {
-		val path = packaged.getOrPut(image.id) {
+		val entry = packaged.getOrPut(image.id) {
 			val def = ImageDef(id = image.id, name = image.name, fileExtension = image.fileExtension)
-			"$MARKDOWN_IMAGES_DIRECTORY/${ImagesDatasource.getFilename(def)}"
+			InMemoryZipEntry("$MARKDOWN_IMAGES_DIRECTORY/${ImagesDatasource.getFilename(def)}", image.bytes)
 		}
-		return "![${escapeMarkdown(image.name)}](${markdownDestination(path)})"
+		return "![${escapeMarkdown(image.name)}](${markdownDestination(entry.name)})"
 	}
 
 	val cover = exportCover(input.requireProjectData(), input.images, ::imageMarkdown)
 	// Rewritten as a whole, so a reference definition in one scene still serves a use in another.
-	val story = Buffer().also {
-		writeStoryAsMarkdown(
-			sink = it,
-			projectName = input.projectName,
-			chapters = input.chapters,
-			treatTopLevelAsChapters = input.treatTopLevelAsChapters,
-			numberChapters = input.options.numberChapters,
-		)
-	}.readUtf8()
-	val body = ImageReferenceSyntax.replaceImages(story) { imageId, _ ->
+	val body = ImageReferenceSyntax.replaceImages(storyMarkdown(input)) { imageId, _ ->
 		input.images[imageId]?.let(::imageMarkdown)
 			?: input.imageNames[imageId]?.let { escapeOrderedListMarkers(escapeMarkdown(it)) }
 	}
 	val markdown = (if (cover != null) "$cover\n\n$body" else body).encodeToByteArray()
 
 	val documentName = exportFileName(input.projectName, MARKDOWN_FILE_EXTENSION).fileName
-	val imageEntries = packaged.map { (imageId, path) ->
-		InMemoryZipEntry(path, input.images.getValue(imageId).bytes, compress = false)
-	}
-	writeZip(sink, listOf(InMemoryZipEntry(documentName, markdown)) + imageEntries)
+	writeZip(sink, listOf(InMemoryZipEntry(documentName, markdown)) + packaged.values)
 }
 
 /**
- * [path] as a link destination, with each UTF-8 byte of a space, a control character, a backtick,
- * or one of `()<>%#?"\` percent-encoded. Many viewers lack CommonMark's angle-bracket form, but
- * they resolve percent-encoding as in any URL. `%`, `#` and `?` are encoded because a URL reads
- * them as an escape, a fragment and a query. Other characters, non-ASCII included, stay raw so the
- * text reads well.
+ * [path] as a link destination, with each space, parenthesis, `%`, `#`, backtick and ASCII control
+ * character percent-encoded: many viewers lack CommonMark's angle-bracket form, and a URL reads `%`
+ * and `#` as an escape and a fragment.
  */
 private fun markdownDestination(path: String): String = buildString {
 	for (ch in path) {
-		if (ch in DESTINATION_ENCODED || ch.isISOControl()) {
-			for (byte in ch.toString().encodeToByteArray()) {
-				append('%')
-				append(HEX_DIGITS[(byte.toInt() shr 4) and 0xF])
-				append(HEX_DIGITS[byte.toInt() and 0xF])
-			}
+		if (ch in DESTINATION_ENCODED || ch < ' ' || ch == '\u007F') {
+			append('%').append(ch.code.toByte().toHexString(HexFormat.UpperCase))
 		} else {
 			append(ch)
 		}

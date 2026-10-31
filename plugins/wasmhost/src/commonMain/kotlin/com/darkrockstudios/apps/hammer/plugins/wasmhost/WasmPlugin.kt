@@ -5,7 +5,6 @@ import com.darkrockstudios.apps.hammer.common.data.export.ExportImage
 import com.darkrockstudios.apps.hammer.common.data.export.ExportInput
 import com.darkrockstudios.apps.hammer.common.data.export.StoryExporter
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcher
-import com.darkrockstudios.apps.hammer.common.util.zip.InMemoryZipEntry
 import com.darkrockstudios.apps.hammer.common.util.zip.writeZip
 import com.darkrockstudios.apps.hammer.operations.Base64Bytes
 import com.darkrockstudios.apps.hammer.operations.OperationException
@@ -57,7 +56,6 @@ import kotlinx.serialization.json.booleanOrNull
 import okio.BufferedSink
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
-import kotlin.io.encoding.Base64
 
 /**
  * A runtime plugin: a manifest plus an Extism-convention module, presented as a [ClientPlugin].
@@ -496,72 +494,18 @@ class WasmPlugin(
 			}
 			// Export renders on a background dispatcher already.
 			val reply = callBlocking(EXPORT, encoded)
-			if (format.output == PluginManifest.OUTPUT_ARCHIVE) writeZip(sink, archiveEntries(reply)) else sink.write(reply)
-		}
-
-		// Checks the whole reply before any of it is written, so a refused one leaves the sink untouched.
-		private fun archiveEntries(reply: ByteArray): List<InMemoryZipEntry> {
-			val files = try {
-				ReplyJson.decodeFromString<ArchiveReply>(reply.decodeToString()).files
-			} catch (e: IllegalArgumentException) {
-				throw PluginException("Plugin '$id' sent a malformed reply from export format '$formatId': ${e.message}")
+			if (format.output != PluginManifest.OUTPUT_ARCHIVE) {
+				sink.write(reply)
+				return
 			}
-			fun refuse(problem: String): Nothing =
-				throw PluginException("Plugin '$id' sent an invalid archive from export format '$formatId': $problem")
-			if (files.isEmpty()) refuse("An archive needs at least one file")
-			val paths = hashSetOf<String>()
-			return files.map { file ->
-				val path = file.path
-				val pathBytes = path.encodeToByteArray()
-				if (pathBytes.size > MAX_ARCHIVE_PATH_BYTES) {
-					refuse("Archive path \"${path.take(QUOTED_LONG_PATH_CHARS)}...\" is longer than $MAX_ARCHIVE_PATH_BYTES bytes")
-				}
-				archivePathRefusal(path)?.let { refuse("Archive path \"$path\" $it") }
-				// An unpaired surrogate encodes as ?, so two such paths could otherwise pass as different and zip as one name.
-				if (pathBytes.decodeToString() != path) refuse("Archive path \"$path\" is not valid Unicode")
-				if (!paths.add(path)) refuse("Archive path \"$path\" is already in the archive")
-				val text = file.text
-				val content = file.content
-				when {
-					text != null && content != null -> refuse("Archive path \"$path\" has both text and content")
-					text != null -> InMemoryZipEntry(path, text.encodeToByteArray())
-					content != null -> {
-						val bytes = try {
-							Base64.decode(content)
-						} catch (_: IllegalArgumentException) {
-							refuse("Archive path \"$path\" has content that is not standard padded base64")
-						}
-						// Usually an image, which deflating would not shrink.
-						InMemoryZipEntry(path, bytes, compress = false)
-					}
-					else -> refuse("Archive path \"$path\" has neither text nor content")
-				}
+			val entries = try {
+				archiveEntries(reply)
+			} catch (e: ArchiveRefusal) {
+				val what = if (e is ArchiveRefusal.Malformed) "a malformed reply" else "an invalid archive"
+				throw PluginException("Plugin '$id' sent $what from export format '$formatId': ${e.message}")
 			}
+			writeZip(sink, entries)
 		}
-	}
-
-	// The rules the plugin kits check before sending an archive, worded as they word them.
-	private fun archivePathRefusal(path: String): String? = when {
-		path.isEmpty() -> "is empty"
-		path.startsWith('/') -> "starts with /"
-		'\\' in path -> "has a backslash"
-		else -> path.split('/').firstNotNullOfOrNull { segment ->
-			when (segment) {
-				"" -> "has an empty segment"
-				".", ".." -> "has a $segment segment"
-				else -> null
-			}
-		}
-	}
-
-	/**
-	 * What an `archive` exporter replies: [files] in the order to zip them, each with exactly one of
-	 * [File.text], written as UTF-8, or [File.content], its bytes as standard padded base64.
-	 */
-	@Serializable
-	private class ArchiveReply(val files: List<File>) {
-		@Serializable
-		class File(val path: String, val text: String? = null, val content: String? = null)
 	}
 
 	@Serializable
@@ -761,14 +705,9 @@ class WasmPlugin(
 		/** The export that checks paragraphs for a text diagnostics check the manifest declares. */
 		const val DIAGNOSE = "diagnose"
 
-		private val ReplyJson = Json { ignoreUnknownKeys = true }
+		internal val ReplyJson = Json { ignoreUnknownKeys = true }
 		private const val SEVERITY_SUGGESTION = "suggestion"
 		private const val UNKNOWN_MIME_TYPE = "application/octet-stream"
-
-		/** The zip format's limit on an entry name, in UTF-8 bytes. */
-		private const val MAX_ARCHIVE_PATH_BYTES = 65535
-
-		private const val QUOTED_LONG_PATH_CHARS = 64
 
 		const val PERMISSION_DENIED = "PermissionDenied"
 

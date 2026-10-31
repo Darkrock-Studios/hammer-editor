@@ -1404,16 +1404,15 @@ The Hammer-specific parts:
   {"path": "images/1.png", "content": "..."}]}`, and the host zips the files,
   in order, into the export file. Each file has exactly one of `text`,
   written as UTF-8, or `content`, its bytes in standard base64 with padding,
-  as `images` sends them. Text is compressed; `content`, usually an image
-  that already is, is not. A `path` is relative, with `/` between its
-  segments: not empty, not starting with `/`, no `\`, no empty segment (so no
-  `//` or trailing `/`), and no `.` or `..` segment. It is valid Unicode, and
-  at most 65535 bytes as UTF-8, the zip format's limit on an entry name. No
-  two files have the same path, and there is at least one file. The host
-  checks the whole reply before writing any of it: one that is not this JSON,
-  or that breaks a rule, fails the export with a message naming the plugin
-  and the path or problem. The kits' archive builders check the same path
-  rules, apart from the length and Unicode ones, as each file is added.
+  as `images` sends them. A `path` is relative, with `/` between its segments:
+  not empty, not starting with `/`, no `\`, no empty segment (so no `//` or
+  trailing `/`), and no `.` or `..` segment. It is valid Unicode, and at
+  most 65535 bytes as UTF-8, the zip format's limit on an entry name. No two
+  files have the same path, and there is at least one file. The host checks
+  the whole reply before writing any of it: one that is not this JSON, or
+  that breaks a rule, fails the export with a message naming the plugin and
+  the path or problem. The kits' archive builders check the same path rules,
+  apart from the length and Unicode ones, as each file is added.
 - A function fails by returning non-zero or by trapping. Either way, the
   message it set with `error_set` is what the user sees, if it set one:
   AssemblyScript's `abort` sets one and then traps.

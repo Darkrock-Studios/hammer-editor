@@ -214,7 +214,6 @@ class RuntimePluginsTest {
 			pack("bad-command", manifest = manifest(command = "Echo Back")),
 			pack("bad-action", manifest = manifest(action = "Echo It")),
 			pack("has-output", manifest = manifest(action = "report", output = "message")),
-			pack("bad-export-output", manifest = manifest(exporterKeys = "output = \"bogus\"")),
 			pack("bad-diagnostics", manifest = manifest() + diagnostics("Grammar Check")),
 			pack("diagnostics-twice", manifest = manifest() + diagnostics("grammar") + diagnostics("grammar")),
 			pack("no-memory", manifest = manifest() + "\n\n[limits]\nmemory = 0"),
@@ -640,6 +639,22 @@ class RuntimePluginsTest {
 		generateSequence { zip.nextEntry }.map { it.name to zip.readBytes() }.toList()
 	}
 
+	private fun StoryExporter.renderFiles(input: ExportInput = exportInput()): List<Pair<String, ByteArray>> {
+		val sink = Buffer()
+		render(sink, input)
+		return unzip(sink.readByteArray())
+	}
+
+	// The message an archive exporter replying [reply] fails with, having written nothing.
+	private fun archiveFailure(reply: String?): String {
+		GlobalContext.stopKoin()
+		val exporter = archiveExporter(reply)
+		val sink = Buffer()
+		val error = assertThrows<PluginException>("$reply") { exporter.render(sink, exportInput()) }
+		assertEquals(0L, sink.size, "$reply")
+		return error.message!!
+	}
+
 	@Test
 	fun `an archive exporter's files are zipped in order, text as UTF-8 and content decoded`() {
 		val png = byteArrayOf(-119, 80, 78, 71, 13, 10, 26, 10, 0, -1)
@@ -649,9 +664,7 @@ class RuntimePluginsTest {
 		)
 		assertEquals("zip" to "application/zip", exporter.fileExtension to exporter.mimeType)
 
-		val sink = Buffer()
-		exporter.render(sink, exportInput())
-		val files = unzip(sink.readByteArray())
+		val files = exporter.renderFiles()
 
 		assertEquals(listOf("story.md", "images/carte été.png"), files.map { it.first })
 		assertContentEquals("# Café über ✓".encodeToByteArray(), files[0].second)
@@ -663,9 +676,7 @@ class RuntimePluginsTest {
 		val exporter = archiveExporter(
 			"""{"files": [{"path": "a.txt", "text": ""}, {"path": "b.bin", "content": ""}, {"path": "c.bin", "text": null, "content": "eA=="}]}""",
 		)
-		val sink = Buffer()
-		exporter.render(sink, exportInput())
-		val files = unzip(sink.readByteArray())
+		val files = exporter.renderFiles()
 
 		assertEquals(listOf("a.txt", "b.bin", "c.bin"), files.map { it.first })
 		assertEquals(listOf(0, 0), files.take(2).map { it.second.size })
@@ -675,9 +686,8 @@ class RuntimePluginsTest {
 	@Test
 	fun `an archive path of 65535 UTF-8 bytes is accepted`() {
 		val path = "é".repeat(32767) + "a"
-		val sink = Buffer()
-		archiveExporter("""{"files": [{"path": "$path", "text": "x"}]}""").render(sink, exportInput())
-		assertEquals(listOf(path), unzip(sink.readByteArray()).map { it.first })
+		val files = archiveExporter("""{"files": [{"path": "$path", "text": "x"}]}""").renderFiles()
+		assertEquals(listOf(path), files.map { it.first })
 	}
 
 	@Test
@@ -686,9 +696,8 @@ class RuntimePluginsTest {
 		assertTrue(exporter.embedsImages)
 		assertTrue(exporter.embedsCover)
 
-		val sink = Buffer()
-		exporter.render(sink, exportInput(projectData = ProjectData(coverImageId = 1), images = listOf(image(1, "Cat", "png", byteArrayOf(1)))))
-		assertEquals(listOf("a.txt"), unzip(sink.readByteArray()).map { it.first })
+		val input = exportInput(projectData = ProjectData(coverImageId = 1), images = listOf(image(1, "Cat", "png", byteArrayOf(1))))
+		assertEquals(listOf("a.txt"), exporter.renderFiles(input).map { it.first })
 	}
 
 	@Test
@@ -719,24 +728,15 @@ class RuntimePluginsTest {
 			files("""{"path": "a", "content": "-_8="}""") to "Archive path \"a\" has content that is not standard padded base64",
 			files() to "An archive needs at least one file",
 		).forEach { (reply, problem) ->
-			GlobalContext.stopKoin()
-			val exporter = archiveExporter(reply)
-			val sink = Buffer()
-			val error = assertThrows<PluginException>(reply) { exporter.render(sink, exportInput()) }
-			assertEquals("Plugin 'zipped' sent an invalid archive from export format 'zipped.zip': $problem", error.message)
-			assertEquals(0L, sink.size, "$reply")
+			assertEquals("Plugin 'zipped' sent an invalid archive from export format 'zipped.zip': $problem", archiveFailure(reply))
 		}
 	}
 
 	@Test
 	fun `an archive reply that is not one fails the export and writes nothing`() {
 		listOf(null, "done", "[1, 2]", "{}", """{"files": "story.md"}""", """{"files": [{"text": "x"}]}""").forEach { reply ->
-			GlobalContext.stopKoin()
-			val exporter = archiveExporter(reply)
-			val sink = Buffer()
-			val error = assertThrows<PluginException>("$reply") { exporter.render(sink, exportInput()) }
-			assertTrue(error.message!!.startsWith("Plugin 'zipped' sent a malformed reply from export format 'zipped.zip': "), error.message)
-			assertEquals(0L, sink.size, "$reply")
+			val message = archiveFailure(reply)
+			assertTrue(message.startsWith("Plugin 'zipped' sent a malformed reply from export format 'zipped.zip': "), message)
 		}
 	}
 

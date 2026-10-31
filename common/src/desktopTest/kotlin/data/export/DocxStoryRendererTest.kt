@@ -16,8 +16,8 @@ import org.apache.poi.xwpf.usermodel.XWPFParagraph
 import org.junit.jupiter.api.Test
 import org.w3c.dom.Document
 import org.w3c.dom.Element
+import utils.unzip
 import java.io.ByteArrayInputStream
-import java.util.zip.ZipInputStream
 import javax.xml.parsers.DocumentBuilderFactory
 import kotlin.math.roundToLong
 import kotlin.test.assertContentEquals
@@ -457,18 +457,6 @@ class DocxStoryRendererTest {
 			body("Before.\n\nCheshire Cat\nAfter."),
 			body("Before.\n\n![image](hammer://image/3)\nAfter."),
 		)
-	}
-
-	/** The package's parts by name. */
-	private fun unzip(bytes: ByteArray): Map<String, ByteArray> {
-		val parts = linkedMapOf<String, ByteArray>()
-		ZipInputStream(ByteArrayInputStream(bytes)).use { zip ->
-			while (true) {
-				val entry = zip.nextEntry ?: break
-				parts[entry.name] = zip.readBytes()
-			}
-		}
-		return parts
 	}
 
 	private fun parseXml(bytes: ByteArray): Document =
