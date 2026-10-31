@@ -1,0 +1,150 @@
+{{> header}}
+
+<main class="story-page reader-page">
+	<div class="reader" id="reader" data-project-key="{{projectKey}}" data-chapter="{{chapterNumber}}"
+		 data-headings="off" data-width="medium">
+		<!-- Applies stored reading prefs before the prose paints; story-read.js validates them after. -->
+		<script>
+			(function () {
+				try {
+					var prefs = JSON.parse(localStorage.getItem('hammer.reader.prefs')) || {};
+					var reader = document.getElementById('reader');
+					if (typeof prefs.fontSize === 'number') {
+						reader.style.setProperty('--reader-font-size', Math.min(32, Math.max(12, prefs.fontSize)) + 'px');
+					}
+					if (prefs.headings === true) reader.dataset.headings = 'on';
+					if (typeof prefs.width === 'string') reader.dataset.width = prefs.width;
+				} catch (e) { /* defaults stand */ }
+			})();
+		</script>
+
+		<div class="reader-bar">
+			<a href="{{dashboardUrl}}" class="back-link reader-bar__back">
+				<i class="fas fa-arrow-left" aria-hidden="true"></i>
+				<span>{{projectName}}</span>
+			</a>
+			{{#hasChapter}}
+				<span class="reader-bar__position">{{chapterPosition}}</span>
+				<div class="reader-tools" role="toolbar" aria-label="{{msg.story_read_tools_label}}">
+					<button type="button" class="reader-tool" data-reader-action="contents" aria-haspopup="dialog"
+							aria-controls="reader-toc" aria-label="{{msg.story_read_contents}}">
+						<i class="fas fa-list-ul" aria-hidden="true"></i>
+						<span class="reader-tool__text">{{msg.story_read_contents}}</span>
+					</button>
+					<span class="reader-tools__group">
+						<button type="button" class="reader-tool" data-reader-action="smaller"
+								aria-label="{{msg.story_read_font_smaller}}" title="{{msg.story_read_font_smaller}}">A&minus;</button>
+						<button type="button" class="reader-tool reader-tool--value" data-reader-action="reset-size"
+								aria-label="{{msg.story_read_font_reset}}" title="{{msg.story_read_font_reset}}"
+								data-reader-size-label>18</button>
+						<button type="button" class="reader-tool" data-reader-action="larger"
+								aria-label="{{msg.story_read_font_larger}}" title="{{msg.story_read_font_larger}}">A+</button>
+					</span>
+					<button type="button" class="reader-tool" data-reader-action="headings" aria-pressed="false"
+							aria-label="{{msg.story_read_scene_headings}}" title="{{msg.story_read_scene_headings}}">&sect;</button>
+					<button type="button" class="reader-tool" data-reader-action="width"
+							title="{{msg.story_read_width}}" aria-label="{{msg.story_read_width}}"
+							data-width-narrow="{{msg.story_read_width_narrow}}"
+							data-width-medium="{{msg.story_read_width_medium}}"
+							data-width-wide="{{msg.story_read_width_wide}}">
+						<i class="fas fa-arrows-left-right" aria-hidden="true"></i>
+						<span class="reader-tool__text" data-reader-width-label>{{msg.story_read_width_medium}}</span>
+					</button>
+				</div>
+			{{/hasChapter}}
+		</div>
+
+		{{^complete}}
+			<p class="reader-notice" role="status">
+				<i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
+				{{msg.story_read_incomplete}}
+			</p>
+		{{/complete}}
+
+		{{#hasChapter}}
+			<article class="story-content reader-chapter"{{#storyLanguage}} lang="{{storyLanguage}}"{{/storyLanguage}}>
+				<header class="reader-chapter__header">
+					<span class="reader-chapter__eyebrow">{{chapterRoman}} &middot; {{chapterSceneCount}}</span>
+					<h1 class="reader-chapter__title">{{chapterTitle}}</h1>
+				</header>
+
+				{{#scenes}}
+					<section class="reader-scene" id="scene-{{id}}">
+						{{^isFirst}}
+							<div class="reader-scene__break" aria-hidden="true">&middot; &middot; &middot;</div>
+						{{/isFirst}}
+						<h2 class="reader-scene__heading">
+							<span class="reader-scene__marker">{{marker}}</span>
+							<span class="reader-scene__name">{{name}}</span>
+						</h2>
+						{{#hasProse}}{{{html}}}{{/hasProse}}
+					</section>
+				{{/scenes}}
+
+				{{^hasScenes}}
+					<p class="story-empty">{{msg.story_read_empty_chapter}}</p>
+				{{/hasScenes}}
+			</article>
+
+			<nav class="reader-nav">
+				{{#hasPrev}}
+					<a href="{{prevUrl}}" class="reader-nav__link reader-nav__link--prev" rel="prev" data-reader-prev>
+						<i class="fas fa-arrow-left" aria-hidden="true"></i>
+						{{msg.story_read_prev}}
+					</a>
+				{{/hasPrev}}
+				{{^hasPrev}}<span></span>{{/hasPrev}}
+				{{#hasNext}}
+					<a href="{{nextUrl}}" class="reader-nav__link reader-nav__link--next" rel="next" data-reader-next>
+						{{msg.story_read_next}}
+						<i class="fas fa-arrow-right" aria-hidden="true"></i>
+					</a>
+				{{/hasNext}}
+				{{^hasNext}}
+					<span class="reader-nav__end">
+						<span aria-hidden="true">&#10086;</span>
+						{{msg.story_read_end}}
+					</span>
+				{{/hasNext}}
+			</nav>
+		{{/hasChapter}}
+
+		{{^hasChapter}}
+			<div class="story-content reader-chapter">
+				<p class="story-empty">{{msg.story_read_empty_story}}</p>
+			</div>
+		{{/hasChapter}}
+	</div>
+
+	{{#hasChapter}}
+		<dialog class="reader-toc" id="reader-toc" aria-labelledby="reader-toc-title">
+			<div class="reader-toc__header">
+				<h2 class="reader-toc__title" id="reader-toc-title">{{msg.story_read_contents}}</h2>
+				<button type="button" class="reader-tool" data-reader-action="close-contents"
+						aria-label="{{msg.story_read_close}}" title="{{msg.story_read_close}}">
+					<i class="fas fa-xmark" aria-hidden="true"></i>
+				</button>
+			</div>
+			<ol class="reader-toc__list">
+				{{#toc}}
+					<li class="reader-toc__item{{#isCurrent}} reader-toc__item--current{{/isCurrent}}">
+						<a href="{{url}}" class="reader-toc__chapter"{{#isCurrent}} aria-current="page"{{/isCurrent}}>
+							<span class="reader-toc__roman">{{roman}}</span>
+							<span class="reader-toc__name">{{title}}</span>
+							<span class="reader-toc__count">{{sceneCount}}</span>
+						</a>
+						{{#isCurrent}}
+							<ol class="reader-toc__scenes">
+								{{#scenes}}
+									<li><a href="#scene-{{id}}" class="reader-toc__scene" data-reader-scene-link>{{name}}</a></li>
+								{{/scenes}}
+							</ol>
+						{{/isCurrent}}
+					</li>
+				{{/toc}}
+			</ol>
+		</dialog>
+	{{/hasChapter}}
+</main>
+
+{{> footer}}

@@ -680,7 +680,7 @@ private fun buildReaderBars(daily: List<ReaderDay>, now: Instant): List<Map<Stri
 	}
 }
 
-private suspend fun resolveAuthorImages(html: String, projectNameForUrl: String): String =
+internal suspend fun resolveAuthorImages(html: String, projectNameForUrl: String): String =
 	StoryImageLinks.resolve(html) { imageId -> "/story/$projectNameForUrl/image/$imageId" }
 
 fun ApplicationCall.constructPublicUrl(penName: String, projectName: String, projectUuid: String): String {

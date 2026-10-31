@@ -2783,3 +2783,339 @@
 .kudos-panel__toggle .publish-toggle-track {
 	flex: none;
 }
+
+/* ========================================
+   Chapter Reader
+   The author's chapter-at-a-time reading view
+   ======================================== */
+
+.reader {
+	--reader-font-size: 18px;
+	--reader-width: 52rem;
+	width: 100%;
+	max-width: var(--reader-width);
+	margin: 0 auto;
+	animation: fadeIn 0.5s ease-out;
+}
+
+.reader[data-width="narrow"] {
+	--reader-width: 42rem;
+}
+
+.reader[data-width="wide"] {
+	--reader-width: 70rem;
+}
+
+/* The prose column follows the reader's width setting, not the old sidebar layout's cap */
+.reader .story-content {
+	max-width: none;
+	font-size: var(--reader-font-size);
+}
+
+.reader-bar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.75rem 1rem;
+	margin-bottom: 1rem;
+}
+
+.reader-bar__back {
+	margin-bottom: 0;
+	min-width: 0;
+}
+
+.reader-bar__back span {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.reader-bar__position {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.875rem;
+	color: var(--text-secondary);
+}
+
+.reader-tools {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	margin-left: auto;
+}
+
+.reader-tools__group {
+	display: inline-flex;
+}
+
+.reader-tools__group .reader-tool {
+	border-radius: 0;
+}
+
+.reader-tools__group .reader-tool + .reader-tool {
+	border-left: none;
+}
+
+.reader-tools__group .reader-tool:first-child {
+	border-radius: 0.375rem 0 0 0.375rem;
+}
+
+.reader-tools__group .reader-tool:last-child {
+	border-radius: 0 0.375rem 0.375rem 0;
+}
+
+.reader-tool {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.4rem;
+	min-height: 2.25rem;
+	padding: 0.375rem 0.7rem;
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.9375rem;
+	color: var(--text-primary);
+	background: var(--surface-elevated);
+	border: 1px solid var(--neutral-300);
+	border-radius: 0.375rem;
+	cursor: pointer;
+	transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
+}
+
+.reader-tool:hover {
+	border-color: var(--accent);
+	color: var(--accent-dark);
+}
+
+.reader-tool:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+}
+
+.reader-tool[aria-pressed="true"] {
+	background: var(--accent);
+	border-color: var(--accent);
+	color: white;
+}
+
+.reader-tool--value {
+	min-width: 2.75rem;
+	font-variant-numeric: tabular-nums;
+}
+
+.reader-notice {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	margin: 0 0 1rem;
+	padding: 0.75rem 1rem;
+	background: rgba(245, 158, 11, 0.12);
+	border: 1px solid var(--accent-light);
+	border-radius: 0.5rem;
+	color: var(--accent-dark);
+}
+
+.reader-chapter__header {
+	text-align: center;
+	margin-bottom: 2.5rem;
+	padding-bottom: 1.5rem;
+	border-bottom: 1px solid var(--neutral-200);
+}
+
+.reader-chapter__eyebrow {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.8125rem;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var(--text-secondary);
+}
+
+.story-content .reader-chapter__title {
+	font-size: clamp(1.75rem, 4vw, 2.25rem);
+	font-weight: normal;
+	margin: 0.5rem 0 0;
+}
+
+.story-content .reader-scene__heading {
+	display: flex;
+	align-items: baseline;
+	gap: 0.75rem;
+	text-align: left;
+	font-size: 1.125rem;
+	margin: 2.5rem 0 1rem;
+	padding-top: 0;
+	border-top: none;
+}
+
+.story-content .reader-scene:first-of-type .reader-scene__heading {
+	margin-top: 0;
+}
+
+/* Clears the sticky site header when the contents dialog jumps to a scene */
+.reader-scene {
+	scroll-margin-top: 6rem;
+}
+
+.reader-scene__marker {
+	flex: none;
+	font-size: 0.8125rem;
+	letter-spacing: 0.08em;
+	color: var(--accent);
+}
+
+.reader-scene__break {
+	margin: 2rem 0;
+	text-align: center;
+	letter-spacing: 0.5em;
+	color: var(--neutral-400);
+	user-select: none;
+}
+
+.reader[data-headings="off"] .reader-scene__heading,
+.reader[data-headings="on"] .reader-scene__break {
+	display: none;
+}
+
+.reader-nav {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	margin-top: 1.5rem;
+}
+
+.reader-nav__link {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.625rem 1rem;
+	font-family: 'Kingthings Typewriter', monospace;
+	color: var(--accent-dark);
+	text-decoration: none;
+	background: var(--surface-elevated);
+	border: 1px solid var(--neutral-300);
+	border-radius: 0.5rem;
+	transition: border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.reader-nav__link:hover {
+	border-color: var(--accent);
+	color: var(--accent);
+}
+
+.reader-nav__end {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	font-family: 'Kingthings Typewriter', monospace;
+	color: var(--text-secondary);
+}
+
+.reader-toc {
+	width: calc(100% - 2rem);
+	max-width: 32rem;
+	max-height: 80vh;
+	padding: 0;
+	border: none;
+	border-radius: 0.75rem;
+	background: var(--paper-white);
+	box-shadow: var(--shadow-xl);
+	color: var(--text-primary);
+}
+
+.reader-toc[open] {
+	display: flex;
+	flex-direction: column;
+}
+
+.reader-toc::backdrop {
+	background: rgba(28, 25, 23, 0.45);
+}
+
+.reader-toc__header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 1rem 1.25rem;
+	border-bottom: 1px dashed var(--neutral-300);
+}
+
+.reader-toc__title {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 1.25rem;
+	margin: 0;
+}
+
+.reader-toc__list {
+	list-style: none;
+	margin: 0;
+	padding: 0.5rem 0;
+	overflow-y: auto;
+}
+
+.reader-toc__chapter {
+	display: grid;
+	grid-template-columns: 3.5rem 1fr auto;
+	align-items: baseline;
+	gap: 0.5rem;
+	padding: 0.625rem 1.25rem;
+	color: var(--text-primary);
+	text-decoration: none;
+	border-left: 3px solid transparent;
+}
+
+.reader-toc__chapter:hover,
+.reader-toc__chapter:focus-visible {
+	background: var(--neutral-100);
+	outline: none;
+}
+
+.reader-toc__item--current .reader-toc__chapter {
+	background: rgba(217, 119, 6, 0.08);
+	border-left-color: var(--accent);
+}
+
+.reader-toc__roman {
+	font-family: 'Kingthings Typewriter', monospace;
+	color: var(--accent);
+}
+
+.reader-toc__count {
+	font-size: 0.8125rem;
+	color: var(--text-secondary);
+	white-space: nowrap;
+}
+
+.reader-toc__scenes {
+	list-style: none;
+	margin: 0;
+	padding: 0 1.25rem 0.5rem 5.25rem;
+}
+
+.reader-toc__scene {
+	display: block;
+	padding: 0.25rem 0;
+	font-size: 0.9375rem;
+	color: var(--text-secondary);
+	text-decoration: none;
+}
+
+.reader-toc__scene:hover {
+	color: var(--accent-dark);
+	text-decoration: underline;
+}
+
+@media only screen and (max-width: 600px) {
+	.reader-tool__text {
+		display: none;
+	}
+
+	.reader-tools {
+		margin-left: 0;
+		width: 100%;
+		justify-content: space-between;
+	}
+
+	.reader-scene__marker {
+		display: none;
+	}
+}
