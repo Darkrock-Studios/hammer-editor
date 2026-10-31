@@ -1,2 +1,3 @@
-<!-- After the root's controls, so the stored prefs apply to them and to the prose before it paints. -->
-<script>initReaderPrefs();</script>
+<!-- After the root's controls, so the stored prefs apply to them and to the prose before it paints.
+     Guarded: if the head script failed to load, the page still reads with the default prefs. -->
+<script>if (typeof initReaderPrefs === 'function') initReaderPrefs();</script>
