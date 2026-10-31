@@ -62,7 +62,7 @@ private val IMAGE_WIDTH = (TEXT_WIDTH * IMAGE_WIDTH_FRACTION).roundToInt()
 private val MAX_IMAGE_HEIGHT = (TEXT_HEIGHT * MAX_IMAGE_HEIGHT_FRACTION).roundToInt()
 
 /**
- * Renders the story as a Rich Text Format (.rtf) document mirroring the EPUB/DOCX layout: a cover
+ * Renders the story as a Rich Text Format (.rtf) document mirroring the EPUB layout: a cover
  * page when [images] holds a project cover [exportRaster] can read, a title page, a Contents page of
  * links to chapter bookmarks, then one chapter per top-level node starting on a fresh page. Chapter
  * bodies are rendered from markdown into formatted RTF runs. Heading and link colors pick up the

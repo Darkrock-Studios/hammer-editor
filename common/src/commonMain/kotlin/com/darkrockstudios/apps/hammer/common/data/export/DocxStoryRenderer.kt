@@ -103,6 +103,13 @@ private const val CHAPTER_DROP_TWIPS = 3360
 
 private const val FIRST_LINE_INDENT = "720"
 
+/** The longest title the running header prints whole; a longer one is cut to its leading words. */
+private const val HEADER_TITLE_MAX_LENGTH = 30
+
+private val WHITESPACE = Regex("\\s+")
+private val GENERATIONAL_SUFFIXES = setOf("jr", "sr", "ii", "iii", "iv")
+private val LEADING_ARTICLES = setOf("the", "a", "an")
+
 /**
  * Renders the story as an OOXML WordprocessingML (.docx) package in Standard Manuscript Format
  * (William Shunn's Modern guide): US Letter, one-inch margins, 12pt black text in Times New Roman, or
@@ -112,7 +119,8 @@ private const val FIRST_LINE_INDENT = "720"
  *
  * Page 1 opens with [contact], single spaced at the top left, with [ExportStrings.wordCount] flush
  * right on its first line. Every later page carries a running header, flush right: the byline
- * surname (or failing that the last word of the legal name), the title, and the page number.
+ * surname (or failing that the legal name's), the title, and the page number. A title longer than
+ * [HEADER_TITLE_MAX_LENGTH] characters is cut to its leading words there.
  *
  * The novel layout gives the title and byline a title page of their own, centred about halfway down,
  * and numbers the text pages from 1. Each chapter starts a new page with its heading about a third of
@@ -122,8 +130,9 @@ private const val FIRST_LINE_INDENT = "720"
  *
  * Each chapter's scenes are parsed separately, with lone blank lines dropped. A centred `#` marks the
  * break between scenes, a markdown rule, and a run of blank lines; consecutive breaks collapse to one
- * and none falls at a chapter's start or end. [ExportStrings.endMarker] closes the manuscript. Links
- * are written as their text.
+ * and none falls at a chapter's start or end. [ExportStrings.endMarker] closes the manuscript; with no
+ * [chapters] it follows the title, on a page of its own in the novel layout. Links are written as
+ * their text.
  *
  * A project image on a line of its own is embedded from [images], centred at 70% of the text width
  * and no taller than 60% of the text height. One missing there, an SVG, or one [exportRaster] cannot
@@ -144,16 +153,15 @@ fun writeStoryAsDocx(
 	clock: Clock = Clock.System,
 ) {
 	val authorName = projectData.authorName?.takeIf { it.isNotBlank() }
-	val effective = chapters.ifEmpty { listOf(StoryChapter(projectName, "")) }
 	val font = if (options.manuscriptClassic) CLASSIC_FONT else MODERN_FONT
-	val surname = lastWord(authorName) ?: lastWord(contact.legalName)
-	val headerText = listOfNotNull(surname, projectName).joinToString(" / ", postfix = " / ")
+	val surname = surname(authorName) ?: surname(contact.legalName)
+	val headerText = listOfNotNull(surname, headerTitle(projectName)).joinToString(" / ", postfix = " / ")
 
 	// The body walk collects the images and ordered-list instances that document.xml.rels and
 	// numbering.xml must declare, so it runs first.
 	val ctx = DocxRenderContext(imageNames, images)
 	val documentXml = buildXmlPart {
-		writeDocument(it, ctx, projectName, strings, effective, options, contact)
+		writeDocument(it, ctx, projectName, strings, chapters, options, contact)
 	}
 
 	val mediaFormats = ctx.media.map { it.raster.format }.toSet()
@@ -182,8 +190,33 @@ fun writeStoryAsDocx(
 	)
 }
 
-private fun lastWord(name: String?): String? =
-	name?.trim()?.split(Regex("\\s+"))?.last()?.takeIf { it.isNotEmpty() }
+/**
+ * The last word of [name], passing over a trailing generational suffix such as "Jr." or "III".
+ * Multi-word surnames such as "Le Guin" come out as their last word.
+ */
+private fun surname(name: String?): String? {
+	val words = name?.trim()?.split(WHITESPACE)?.map { it.trimEnd(',') }?.filter { it.isNotEmpty() } ?: return null
+	val suffixed = words.size > 1 && words.last().removeSuffix(".").lowercase() in GENERATIONAL_SUFFIXES
+	return (if (suffixed) words.dropLast(1) else words).lastOrNull()
+}
+
+/**
+ * [title] whole when it fits in [HEADER_TITLE_MAX_LENGTH] characters. Otherwise its leading words up
+ * to that length, after any leading English article, and always at least one word.
+ */
+private fun headerTitle(title: String): String {
+	val trimmed = title.trim()
+	if (trimmed.length <= HEADER_TITLE_MAX_LENGTH) return trimmed
+	val words = trimmed.split(WHITESPACE).let {
+		if (it.size > 1 && it.first().lowercase() in LEADING_ARTICLES) it.drop(1) else it
+	}
+	val shortened = StringBuilder(words.first())
+	for (word in words.drop(1)) {
+		if (shortened.length + 1 + word.length > HEADER_TITLE_MAX_LENGTH) break
+		shortened.append(' ').append(word)
+	}
+	return shortened.toString()
+}
 
 private fun buildXmlPart(block: (XmlWriter) -> Unit): ByteArray {
 	// KtXmlWriter only quotes its declaration with apostrophes, so Word's form is written here.
@@ -598,7 +631,7 @@ private fun writeDocument(
 				if (headed) writeChapterHeading(chapterTitle(index, chapter, options.numberChapters), index, novel)
 				MarkdownDocxWriter(this, ctx).render(chapterBlocks(chapter, ctx))
 			}
-			centredLine(strings.endMarker)
+			centredLine(strings.endMarker, pageBreakBefore = novel && chapters.isEmpty())
 			w("sectPr") {
 				w("headerReference") {
 					wAttr("type", "default")
@@ -698,9 +731,15 @@ private fun XmlWriter.writeChapterHeading(title: String, index: Int, novel: Bool
 }
 
 /** A centred, unindented paragraph of [text]. */
-private fun XmlWriter.centredLine(text: String, before: Int? = null, after: Int? = null) {
+private fun XmlWriter.centredLine(
+	text: String,
+	before: Int? = null,
+	after: Int? = null,
+	pageBreakBefore: Boolean = false,
+) {
 	w("p") {
 		w("pPr") {
+			if (pageBreakBefore) wVal("pageBreakBefore", "true")
 			if (before != null || after != null) spacing(before = before, after = after)
 			wVal("jc", "center")
 		}

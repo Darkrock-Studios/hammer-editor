@@ -24,6 +24,7 @@ import java.nio.ByteOrder
 import javax.xml.parsers.DocumentBuilderFactory
 import kotlin.math.roundToLong
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
@@ -340,6 +341,70 @@ class DocxStoryRendererTest {
 		assertEquals("Writer / Test Project / {PAGE}1", header("  ", "Jane Q. Writer "))
 		assertEquals("Pen / Test Project / {PAGE}1", header("Pen", "Jane Q. Writer"))
 		assertEquals("Test Project / {PAGE}1", header(null, " "))
+	}
+
+	private fun runningHeader(
+		projectName: String = "Test Project",
+		author: String? = "Test Author",
+		legalName: String = "",
+	): String = headerText(
+		unzip(
+			renderBytes(
+				listOf(StoryChapter("Alpha", "Text.")),
+				projectName = projectName,
+				projectData = ProjectData(authorName = author),
+				contact = ManuscriptContact(legalName = legalName),
+			),
+		),
+		"header1.xml",
+	)
+
+	@Test
+	fun `the header surname skips a generational suffix and a trailing comma`() {
+		assertEquals("King / Test Project / {PAGE}1", runningHeader(author = "Martin Luther King Jr."))
+		assertEquals("King / Test Project / {PAGE}1", runningHeader(author = "Martin Luther King, Jr."))
+		assertEquals("King / Test Project / {PAGE}1", runningHeader(author = "Martin Luther King, jr"))
+		assertEquals("Davis / Test Project / {PAGE}1", runningHeader(author = "Sammy Davis Sr."))
+		assertEquals("Gates / Test Project / {PAGE}1", runningHeader(author = "William Gates III"))
+		assertEquals("Smith / Test Project / {PAGE}1", runningHeader(author = "John Smith ii"))
+		assertEquals("Writer / Test Project / {PAGE}1", runningHeader(author = "Jane Writer,"))
+		assertEquals("Writer / Test Project / {PAGE}1", runningHeader(author = null, legalName = "Jane Q. Writer, IV"))
+	}
+
+	@Test
+	fun `a short title runs in the header whole, leading article and all`() {
+		assertEquals("Author / The Fifth Season / {PAGE}1", runningHeader(projectName = "The Fifth Season"))
+		val thirty = "A Title Of Exactly Thirty Char"
+		assertEquals(30, thirty.length)
+		assertEquals("Author / $thirty / {PAGE}1", runningHeader(projectName = thirty))
+	}
+
+	@Test
+	fun `a long title is cut to its leading words in the header, without a leading article`() {
+		assertEquals(
+			"Author / Left Hand of Darkness and / {PAGE}1",
+			runningHeader(projectName = "The Left Hand of Darkness and Other Stories"),
+		)
+		assertEquals(
+			"Author / Extraordinarily Long Title for / {PAGE}1",
+			runningHeader(projectName = "an Extraordinarily Long Title for a Story"),
+		)
+		assertEquals(
+			"Author / Anthology of Stories Told by / {PAGE}1",
+			runningHeader(projectName = "Anthology of Stories Told by the Fire"),
+		)
+	}
+
+	@Test
+	fun `a long title of one long word keeps that word in the header`() {
+		assertEquals(
+			"Author / Supercalifragilisticexpialidocious / {PAGE}1",
+			runningHeader(projectName = "Supercalifragilisticexpialidocious"),
+		)
+		assertEquals(
+			"Author / Supercalifragilisticexpialidocious / {PAGE}1",
+			runningHeader(projectName = "The Supercalifragilisticexpialidocious Tale"),
+		)
 	}
 
 	@Test
@@ -662,6 +727,26 @@ class DocxStoryRendererTest {
 			"No byline expected without an author"
 		)
 		assertEquals("END", doc.paragraphs.last().text)
+	}
+
+	@Test
+	fun `a novel with no chapters prints its title page, then END on a page of its own`() {
+		val doc = render(chapters = emptyList())
+
+		assertEquals(listOf("\t$WORD_COUNT", "Test Project", "by Test Author", "END"), doc.paragraphTexts())
+		assertTrue(doc.paragraphs.none { it.style == "Heading1" })
+		val end = doc.paragraphs.last()
+		assertTrue(end.isPageBreak, "END should start a new page after the title page")
+		assertEquals(ParagraphAlignment.CENTER, end.alignment)
+	}
+
+	@Test
+	fun `a short story with no chapters prints its first page, then END in the flow`() {
+		val doc = render(chapters = emptyList(), options = ExportOptions(manuscriptShortStory = true))
+
+		assertEquals(listOf("\t$WORD_COUNT", "Test Project", "by Test Author", "END"), doc.paragraphTexts())
+		assertTrue(doc.paragraphs.none { it.style == "Heading1" })
+		assertFalse(doc.paragraphs.last().isPageBreak, "END should run on below the byline")
 	}
 
 	@Test

@@ -17,13 +17,13 @@ data class ExportStrings(
 	val endMarker: String,
 )
 
-// Shared layout vocabulary mirrored across the EPUB / DOCX / RTF / PDF exporters. Keeping these in one
-// place is what lets the "mirrored" exports actually stay in step when the layout is tuned.
+// Layout vocabulary. [chapterTitle] serves every exporter; the rest serves the RTF exporter's book
+// layout.
 
-/** Monospace font face shared by the DOCX and RTF exporters. */
+/** Monospace font face of the RTF exporter. */
 internal const val EXPORT_MONO_FONT = "Consolas"
 
-/** Heading 1..6 sizes in half-points, shared by the DOCX and RTF exporters. */
+/** Heading 1..6 sizes in half-points, for the RTF exporter. */
 internal val HEADING_HALF_POINTS = listOf(48, 36, 32, 28, 26, 24)
 
 /** The chapter title as it appears in headings and the Contents page. */
