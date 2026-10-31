@@ -6,8 +6,13 @@
 # Prints the validator's JSON per file; exits non-zero if any file has errors.
 set -euo pipefail
 
-IMAGE=hammer-docx-validator
 here="$(cd "$(dirname "$0")" && pwd)"
+
+# Tagged by Dockerfile hash, so Dockerfile edits rebuild the image.
+dockerfile="$here/docx-validator/Dockerfile"
+if command -v sha256sum >/dev/null 2>&1; then hash="$(sha256sum "$dockerfile")"
+else hash="$(shasum -a 256 "$dockerfile")"; fi
+IMAGE="hammer-docx-validator:${hash:0:12}"
 
 if ! docker image inspect "$IMAGE" >/dev/null 2>&1; then
 	docker build -q -t "$IMAGE" "$here/docx-validator" >/dev/null
@@ -18,7 +23,7 @@ extra=()
 samples=false
 for arg in "$@"; do
 	if [[ "$arg" == "--samples" ]]; then samples=true
-	elif [[ -f "$arg" ]]; then files+=("$(realpath "$arg")")
+	elif [[ -f "$arg" ]]; then files+=("$(cd "$(dirname "$arg")" && pwd)/$(basename "$arg")")
 	else extra+=("$arg"); fi
 done
 
@@ -43,8 +48,9 @@ if [[ ${#files[@]} -eq 0 ]]; then
 fi
 
 status=0
+# The +-guard keeps empty arrays from tripping set -u on bash < 4.4.
 for f in "${files[@]}"; do
-	out="$(docker run --rm -v "$(dirname "$f")":/in:ro "$IMAGE" "/in/$(basename "$f")" "${extra[@]}")"
+	out="$(docker run --rm -v "$(dirname "$f")":/in:ro "$IMAGE" "/in/$(basename "$f")" ${extra[@]+"${extra[@]}"})"
 	echo "== $f"
 	echo "$out"
 	# The validator prints an empty JSON array when the file is clean.

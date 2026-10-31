@@ -45,7 +45,8 @@ The results of which will be here:
 
 `scripts/validate-docx.sh` checks `.docx` files against Microsoft's Open XML SDK schemas, using
 [OOXML-Validator](https://github.com/mikeebowen/OOXML-Validator) in Docker. It needs Docker, and builds
-the `hammer-docx-validator` image from `scripts/docx-validator/` on first use.
+the `hammer-docx-validator` image from `scripts/docx-validator/` on first use, tagged with a hash of the
+Dockerfile so edits to it rebuild the image.
 
 `scripts/validate-docx.sh path/to/file.docx` validates exported files.
 
