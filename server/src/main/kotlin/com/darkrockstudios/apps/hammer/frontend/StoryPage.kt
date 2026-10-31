@@ -141,7 +141,10 @@ fun Route.storyPage(
 							mapOf(
 								"page_stylesheet" to "/assets/css/story.css",
 								"page_script" to "/assets/js/story.js",
-								"page_pre_script" to "/assets/js/review-form-logic.js",
+								"page_pre_scripts" to listOf(
+									"/assets/js/review-form-logic.js",
+									"/assets/js/story-read-logic.js",
+								),
 								"reviews" to reviewModels,
 								"hasReviews" to reviewModels.isNotEmpty(),
 								"projectName" to overview.projectName,
@@ -149,6 +152,7 @@ fun Route.storyPage(
 								"projectKey" to project.uuid,
 								"readUrl" to "/story/$projectNameForUrl/read",
 								"hasChapters" to overview.chapters.isNotEmpty(),
+								"hasWords" to (overview.totalWordCount > 0),
 								"complete" to overview.complete,
 								"hasPenName" to hasPenName,
 								"isPublished" to isPublished,
@@ -162,7 +166,7 @@ fun Route.storyPage(
 								"accessEntries" to accessEntries,
 								"hasAccessEntries" to accessEntries.isNotEmpty(),
 								"hasReaderStats" to (numericProjectId != null),
-								"totalReaders" to "%,d".format(totalReaders),
+								"totalReaders" to NumberFormat.getIntegerInstance(locale).format(totalReaders),
 								"readerBars" to readerBars,
 								"hasReaderBars" to readerBars.any { (it["height"] as Int) > 0 },
 							)
@@ -520,13 +524,12 @@ fun Route.storyPage(
 	}
 }
 
-/** [minutes] as "42 min", or "3 h 5 min" from an hour up. */
-private fun readingTime(locale: Locale, minutes: Int): String =
-	if (minutes < 60) {
-		localizedMsg(locale, "story_reading_minutes", minutes)
-	} else {
-		localizedMsg(locale, "story_reading_hours", minutes / 60, minutes % 60)
-	}
+/** [minutes] as "42 min", "3 h" or "3 h 5 min". */
+internal fun readingTime(locale: Locale, minutes: Int): String = when {
+	minutes < 60 -> localizedMsg(locale, "story_reading_minutes", minutes)
+	minutes % 60 == 0 -> localizedMsg(locale, "story_reading_whole_hours", minutes / 60)
+	else -> localizedMsg(locale, "story_reading_hours", minutes / 60, minutes % 60)
+}
 
 /**
  * Builds a fixed 30-slot (oldest→newest) per-day bar model for the reader trend

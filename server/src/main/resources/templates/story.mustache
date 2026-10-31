@@ -14,7 +14,8 @@
 			<div class="story-hero__body">
 				<h1 class="story-title">{{projectName}}</h1>
 				{{#hasChapters}}
-					<div class="story-hero__actions" id="story-read-actions" data-project-key="{{projectKey}}">
+					<div class="story-hero__actions" id="story-read-actions" data-project-key="{{projectKey}}"
+						 data-chapter-count="{{chapterCount}}">
 						<a href="{{readUrl}}" class="btn btn--accent story-hero__read">
 							<i class="fas fa-book-open" aria-hidden="true"></i> {{msg.story_read_button}}
 						</a>
@@ -39,12 +40,12 @@
 				<dt class="story-stat__label">{{msg.story_info_scenes}}</dt>
 				<dd class="story-stat__value">{{sceneCount}}</dd>
 			</div>
-			{{#hasChapters}}
+			{{#hasWords}}
 				<div class="story-stat">
 					<dt class="story-stat__label">{{msg.story_info_reading_time}}</dt>
 					<dd class="story-stat__value">{{readingTime}}</dd>
 				</div>
-			{{/hasChapters}}
+			{{/hasWords}}
 			<div class="story-stat story-stat--sync">
 				<dt class="story-stat__label">{{msg.story_info_last_sync}}</dt>
 				<dd class="story-stat__value">{{lastSync}}</dd>

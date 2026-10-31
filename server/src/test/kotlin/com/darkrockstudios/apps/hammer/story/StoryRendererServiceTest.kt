@@ -52,6 +52,41 @@ class StoryRendererServiceTest {
 			)
 	}
 
+	@Test
+	fun `paginated - sibling scenes are parted by one blank line`() = runTest {
+		setupMocksForScenes(
+			listOf(
+				createScene(id = 1, name = "Chapter 1", content = "", order = 0, sceneType = ApiSceneType.Group),
+				createScene(id = 2, name = "Scene 1.1", content = "First child content.", order = 0, path = listOf(0, 1)),
+				createScene(id = 3, name = "Scene 1.2", content = "Second child content.", order = 1, path = listOf(0, 1)),
+			)
+		)
+
+		val result = service.renderStoryAsHtmlPaginated(userId, projectId)
+
+		assertIs<PaginatedExportResult.Success>(result)
+		val html = result.data.pageHtml
+		// Without the separator the last line of one scene and the first of the next read as one passage.
+		assertTrue(html.contains("<p>First child content.</p>"), html)
+		assertTrue(html.contains("<p>Second child content.</p>"), html)
+	}
+
+	@Test
+	fun `paginated - scene headings are the author's own, unnumbered`() = runTest {
+		setupMocksForScenes(
+			listOf(
+				createScene(id = 1, name = "Prologue", content = "Prologue content.", order = 0),
+				createScene(id = 2, name = "Chapitre 1", content = "First chapter.", order = 1),
+			)
+		)
+
+		val result = service.renderStoryAsHtmlPaginated(userId, projectId)
+
+		assertIs<PaginatedExportResult.Success>(result)
+		assertTrue(result.data.pageHtml.contains("<h2>Prologue</h2>"), result.data.pageHtml)
+		assertTrue(result.data.pageHtml.contains("<h2>Chapitre 1</h2>"), result.data.pageHtml)
+	}
+
 	// Scene-limited share tests
 
 	@Test

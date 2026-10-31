@@ -548,8 +548,8 @@ here or a deliberate exclusion. Images and task-list checkboxes are excluded: a 
 public page is a tracking pixel, and a checkbox is a form control.
 
 The prose element declares the story's language (`lang` on `.story-content`) on both the author's
-page and the public reader page, so the browser hyphenates by the story's rules rather than the
-reader's UI locale.
+chapter reader and the public reader page, so the browser hyphenates by the story's rules rather
+than the reader's UI locale.
 
 Below 600px the column is too narrow to justify without opening rivers, so paragraphs go ragged
 right and hyphenation is off.
@@ -924,7 +924,10 @@ While the shared components cover most use cases, some pages have additional spe
 - **admin.css** - Sidebar navigation, allowed users management (CSS class names still use the legacy `whitelist-` prefix)
 - **login.css** - Login header styling, error shake animation, allowed-users notices
 - **author.css** - Author header with avatar, story count
-- **story.css** - Story content formatting, publish toggle, access list
+- **story.css** - Story prose, the author's story dashboard (`.story-hero`, `.story-stats-strip`,
+  `.story-panels`), the chapter reader (`.reader`, `.reader-tool`, the `.reader-toc` contents
+  dialog), publish toggle, access list. The reader keeps its text size, scene-heading and width
+  choices as `data-*` attributes and a `--reader-font-size` custom property on `.reader`.
 - **error.css** - Colored sticky-note error cards with animations
 
 ---

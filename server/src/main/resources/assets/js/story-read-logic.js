@@ -69,6 +69,18 @@ function parseLastChapter(raw) {
 }
 
 /**
+ * The chapter a "Continue reading" link should open, or null when there is nothing to continue:
+ * no record, or chapter one (where Read already starts). A record past the end, left by a story
+ * that has since lost chapters, lands on the last one.
+ */
+function continueChapter(raw, chapterCount) {
+	var chapter = parseLastChapter(raw);
+	if (chapter === null || !(chapterCount > 0)) return null;
+	chapter = Math.min(chapter, chapterCount);
+	return chapter > 1 ? chapter : null;
+}
+
+/**
  * Whether a key press should turn the chapter: plain arrow keys only, never while a control has
  * focus (links, buttons and fields keep their own keys) or a modifier is held (those belong to the
  * browser).
@@ -90,6 +102,7 @@ if (typeof module !== 'undefined' && module.exports) {
 		nextWidth: nextWidth,
 		lastChapterKey: lastChapterKey,
 		parseLastChapter: parseLastChapter,
+		continueChapter: continueChapter,
 		isChapterKey: isChapterKey,
 	};
 }

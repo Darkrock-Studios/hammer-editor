@@ -8,6 +8,7 @@ const {
 	nextWidth,
 	lastChapterKey,
 	parseLastChapter,
+	continueChapter,
 	isChapterKey,
 } = require('../main/resources/assets/js/story-read-logic.js');
 
@@ -64,4 +65,13 @@ test('only plain arrow keys away from focused controls turn the chapter', () => 
 	assert.equal(isChapterKey({key: 'ArrowRight', altKey: true}, false), false);
 	assert.equal(isChapterKey({key: 'ArrowLeft', metaKey: true}, false), false);
 	assert.equal(isChapterKey({key: 'ArrowUp'}, false), false);
+});
+
+test('continue offers a recorded chapter past the first, held to the story length', () => {
+	assert.equal(continueChapter('3', 5), 3);
+	assert.equal(continueChapter('1', 5), null);
+	assert.equal(continueChapter(null, 5), null);
+	assert.equal(continueChapter('9', 4), 4);
+	assert.equal(continueChapter('9', 1), null);
+	assert.equal(continueChapter('3', NaN), null);
 });

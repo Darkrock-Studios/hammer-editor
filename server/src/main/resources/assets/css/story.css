@@ -127,8 +127,11 @@
 	flex-direction: column;
 	gap: 0.25rem;
 	padding: 1rem 1.25rem;
+	/* Offset borders tuck under the strip's clipped edge, so only rules between stats show when it wraps */
 	border-left: 1px dashed var(--neutral-200);
+	border-top: 1px dashed var(--neutral-200);
 	margin-left: -1px;
+	margin-top: -1px;
 }
 
 .story-stat__label {
@@ -2800,6 +2803,12 @@
 	color: var(--accent);
 }
 
+/* An empty-state line inside the prose column is not prose */
+.reader .story-content .story-empty {
+	text-indent: 0;
+	text-align: center;
+}
+
 .reader-scene__break {
 	margin: 2rem 0;
 	text-align: center;
@@ -2848,7 +2857,9 @@
 	color: var(--text-secondary);
 }
 
+/* The base reset zeroes margins, which would pin the modal to the top left instead of centring it */
 .reader-toc {
+	margin: auto;
 	width: calc(100% - 2rem);
 	max-width: 32rem;
 	max-height: 80vh;

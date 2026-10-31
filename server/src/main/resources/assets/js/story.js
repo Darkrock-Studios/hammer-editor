@@ -6,7 +6,8 @@
 // Top-level functions in this file are wired to HTML elements from mustache
 // templates (onclick=..., hx-* attributes) — ESLint can't see those references.
 /* eslint-disable no-unused-vars */
-/* global htmx, nextToggleState, allSelected, reviewCountLabel, canSendReview */
+/* global htmx, nextToggleState, allSelected, reviewCountLabel, canSendReview, lastChapterKey,
+   continueChapter */
 
 document.addEventListener('DOMContentLoaded', function () {
 	initContinueReading();
@@ -16,22 +17,21 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 /**
- * Offer to pick up at the chapter the reader page last recorded for this story. The storage key
- * matches lastChapterKey in story-read-logic.js.
+ * Offer to pick up at the chapter the reader page last recorded for this story.
  */
 function initContinueReading() {
 	const actions = document.getElementById('story-read-actions');
 	const link = actions && actions.querySelector('.story-hero__continue');
 	if (!link) return;
 
-	let chapter = null;
+	let stored = null;
 	try {
-		chapter = parseInt(localStorage.getItem('hammer.reader.lastChapter:' + actions.dataset.projectKey), 10);
+		stored = localStorage.getItem(lastChapterKey(actions.dataset.projectKey));
 	} catch (err) {
 		return;
 	}
-	// Chapter one is where Read already starts.
-	if (!(chapter > 1)) return;
+	const chapter = continueChapter(stored, parseInt(actions.dataset.chapterCount, 10));
+	if (chapter === null) return;
 
 	link.href = link.dataset.readUrl + '?chapter=' + chapter;
 	link.textContent = link.dataset.continueLabel.replace('{0}', String(chapter));
