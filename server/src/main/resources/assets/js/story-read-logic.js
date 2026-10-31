@@ -70,14 +70,14 @@ function parseLastChapter(raw) {
 
 /**
  * The chapter a "Continue reading" link should open, or null when there is nothing to continue:
- * no record, or chapter one (where Read already starts). A record past the end, left by a story
- * that has since lost chapters, lands on the last one.
+ * no record, or the chapter Read already starts on (chapter one, unless a cover comes first). A
+ * record past the end, left by a story that has since lost chapters, lands on the last one.
  */
-function continueChapter(raw, chapterCount) {
+function continueChapter(raw, chapterCount, readStartsAtCover) {
 	var chapter = parseLastChapter(raw);
 	if (chapter === null || !(chapterCount > 0)) return null;
 	chapter = Math.min(chapter, chapterCount);
-	return chapter > 1 ? chapter : null;
+	return chapter > 1 || readStartsAtCover ? chapter : null;
 }
 
 /**

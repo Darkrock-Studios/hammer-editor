@@ -75,3 +75,9 @@ test('continue offers a recorded chapter past the first, held to the story lengt
 	assert.equal(continueChapter('9', 1), null);
 	assert.equal(continueChapter('3', NaN), null);
 });
+
+test('continueChapter offers chapter one when Read opens on a cover', () => {
+	assert.equal(continueChapter('1', 5, true), 1);
+	assert.equal(continueChapter('3', 5, true), 3);
+	assert.equal(continueChapter(null, 5, true), null);
+});

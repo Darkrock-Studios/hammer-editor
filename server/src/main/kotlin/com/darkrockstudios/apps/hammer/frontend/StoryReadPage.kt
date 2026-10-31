@@ -13,6 +13,7 @@ import com.darkrockstudios.apps.hammer.project.ServerProjectDataRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.story.ChapterRender
 import com.darkrockstudios.apps.hammer.story.ChapterRenderResult
+import com.darkrockstudios.apps.hammer.story.StoryImageService
 import com.darkrockstudios.apps.hammer.story.StoryRendererService
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationCall
@@ -21,12 +22,17 @@ import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.sessions.sessions
+import java.util.Locale
 
-/** The author's own chapter-at-a-time reader, modelled on the app's reader mode. */
+/**
+ * The author's own chapter-at-a-time reader, modelled on the app's reader mode. With no `chapter`
+ * asked for, a story with a cover opens on the cover as its first page.
+ */
 fun Route.storyReadPage(
 	storyRendererService: StoryRendererService,
 	projectsRepository: ProjectsRepository,
 	serverProjectDataRepository: ServerProjectDataRepository,
+	storyImageService: StoryImageService,
 ) {
 	authenticatedOnly {
 		get("/story/{projectName}/read") {
@@ -40,16 +46,21 @@ fun Route.storyReadPage(
 
 			val projectId = ProjectId(project.uuid)
 			val projectSegment = ProjectName.projectSegment(project.name, project.uuid)
-			val requestedChapter = call.request.queryParameters["chapter"]?.toIntOrNull() ?: 1
+			val projectDef = ProjectDefinition(name = project.name, uuid = projectId)
+			val chapterParam = call.request.queryParameters["chapter"]
+			val coverUrl = storyCoverImageId(serverProjectDataRepository, storyImageService, session.userId, projectDef)
+				?.let { "/story/$projectSegment/image/$it" }
+			val showCover = chapterParam == null && coverUrl != null
+			val requestedChapter = chapterParam?.toIntOrNull() ?: 1
 
 			val (status, content) = when (
 				val result = storyRendererService.renderChapter(session.userId, projectId, requestedChapter)
 			) {
 				is ChapterRenderResult.Success -> {
-					val model = call.readerModel(result.render, projectSegment, project.uuid)
+					val model = call.readerModel(result.render, projectSegment, project.uuid, coverUrl, showCover)
 					serverProjectDataRepository.loadProjectLanguage(
 						userId = session.userId,
-						projectDef = ProjectDefinition(name = project.name, uuid = projectId),
+						projectDef = projectDef,
 					)?.let { model["storyLanguage"] = it }
 					HttpStatusCode.OK to MustacheContent("story-read.mustache", model)
 				}
@@ -80,6 +91,8 @@ private suspend fun ApplicationCall.readerModel(
 	render: ChapterRender,
 	projectSegment: String,
 	projectUuid: String,
+	coverUrl: String?,
+	showCover: Boolean,
 ): MutableMap<String, Any> {
 	val chapter = render.chapter
 	val readUrl = "/story/$projectSegment/read"
@@ -92,6 +105,7 @@ private suspend fun ApplicationCall.readerModel(
 			"projectName" to render.projectName,
 			"projectKey" to projectUuid,
 			"dashboardUrl" to "/story/$projectSegment",
+			"readUrl" to readUrl,
 			"complete" to render.complete,
 			"hasChapter" to (chapter != null),
 		)
@@ -106,8 +120,28 @@ private suspend fun ApplicationCall.readerModel(
 	val untitled = localizedMsg(locale, "story_read_untitled")
 	fun named(name: String) = name.ifBlank { untitled }
 
-	val roman = romanNumeral(chapter.number)
 	val total = render.chapters.size
+	val coverLabel = localizedMsg(locale, "story_read_cover")
+	if (showCover && coverUrl != null) {
+		model.putAll(
+			mapOf(
+				"title" to "${render.projectName} · Hammer",
+				"isCover" to true,
+				"coverUrl" to coverUrl,
+				"position" to coverLabel,
+				"toc" to tableOfContents(render, readUrl, current = null, currentScenes = emptyList(), ::named, locale),
+				"hasCoverEntry" to true,
+				"coverIsCurrent" to true,
+				"coverLabel" to coverLabel,
+				"hasPrev" to false,
+				"hasNext" to true,
+				"nextUrl" to "$readUrl?chapter=1",
+			)
+		)
+		return model
+	}
+
+	val roman = romanNumeral(chapter.number)
 	val scenes = render.scenes.mapIndexed { index, scene ->
 		mapOf<String, Any>(
 			"id" to scene.id,
@@ -118,18 +152,9 @@ private suspend fun ApplicationCall.readerModel(
 			"isFirst" to (index == 0),
 		)
 	}
-	val toc = render.chapters.map { entry ->
-		val isCurrent = entry.number == chapter.number
-		mapOf<String, Any>(
-			"number" to entry.number,
-			"roman" to romanNumeral(entry.number),
-			"title" to named(entry.title),
-			"sceneCount" to localizedMsg(locale, "story_read_scene_count", entry.sceneCount),
-			"url" to "$readUrl?chapter=${entry.number}",
-			"isCurrent" to isCurrent,
-			"scenes" to if (isCurrent) scenes.map { mapOf("id" to it.getValue("id"), "name" to it.getValue("name")) } else emptyList(),
-		)
-	}
+	val currentScenes = scenes.map { mapOf("id" to it.getValue("id"), "name" to it.getValue("name")) }
+	val toc = tableOfContents(render, readUrl, chapter.number, currentScenes, ::named, locale)
+	val prevIsCover = chapter.number == 1 && coverUrl != null
 
 	model.putAll(
 		mapOf(
@@ -138,15 +163,38 @@ private suspend fun ApplicationCall.readerModel(
 			"chapterRoman" to roman,
 			"chapterTitle" to named(chapter.title),
 			"chapterSceneCount" to localizedMsg(locale, "story_read_scene_count", chapter.sceneCount),
-			"chapterPosition" to localizedMsg(locale, "story_read_chapter_position", chapter.number, total),
+			"position" to localizedMsg(locale, "story_read_chapter_position", chapter.number, total),
 			"scenes" to scenes,
 			"hasScenes" to scenes.isNotEmpty(),
 			"toc" to toc,
-			"hasPrev" to (chapter.number > 1),
-			"prevUrl" to "$readUrl?chapter=${chapter.number - 1}",
+			"hasCoverEntry" to (coverUrl != null),
+			"coverLabel" to coverLabel,
+			"hasPrev" to (chapter.number > 1 || prevIsCover),
+			"prevUrl" to if (prevIsCover) readUrl else "$readUrl?chapter=${chapter.number - 1}",
+			"prevLabel" to if (prevIsCover) coverLabel else localizedMsg(locale, "story_read_prev"),
 			"hasNext" to (chapter.number < total),
 			"nextUrl" to "$readUrl?chapter=${chapter.number + 1}",
 		)
 	)
 	return model
+}
+
+private fun tableOfContents(
+	render: ChapterRender,
+	readUrl: String,
+	current: Int?,
+	currentScenes: List<Map<String, Any>>,
+	named: (String) -> String,
+	locale: Locale,
+): List<Map<String, Any>> = render.chapters.map { entry ->
+	val isCurrent = entry.number == current
+	mapOf(
+		"number" to entry.number,
+		"roman" to romanNumeral(entry.number),
+		"title" to named(entry.title),
+		"sceneCount" to localizedMsg(locale, "story_read_scene_count", entry.sceneCount),
+		"url" to "$readUrl?chapter=${entry.number}",
+		"isCurrent" to isCurrent,
+		"scenes" to if (isCurrent) currentScenes else emptyList(),
+	)
 }

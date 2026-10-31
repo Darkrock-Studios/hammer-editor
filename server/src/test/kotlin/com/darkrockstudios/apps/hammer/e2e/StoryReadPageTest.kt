@@ -12,11 +12,13 @@ import io.ktor.client.request.header
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
+import korlibs.crypto.encoding.Base64
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import kotlin.time.Clock
 import kotlin.uuid.Uuid
 
 /** The author's story page at /story/{project} and its chapter reader at /story/{project}/read. */
@@ -65,6 +67,22 @@ class StoryReadPageTest : WebEndToEndTest() {
 
 	private fun insert(entity: ApiProjectEntity) =
 		E2eTestData.insertEntity(userId(), projectRowId(), entity, database(), encryptor())
+
+	private fun setCover() {
+		val png = java.util.Base64.getDecoder().decode(
+			"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
+		)
+		insert(
+			ApiProjectEntity.ImageEntity(id = 20, name = "Cover", fileExtension = "png", base64 = Base64.encode(png, url = true))
+		)
+		database().serverDatabase.projectDataQueries.upsert(
+			userId = userId(),
+			projectId = projectRowId(),
+			content = """{"coverImageId":20}""",
+			hash = "cover",
+			updatedAt = Clock.System.now(),
+		)
+	}
 
 	/** The page with Mustache's attribute escaping of `=` undone, so links read as written. */
 	private suspend fun HttpResponse.unescapedBody(): String = bodyAsText().replace("&#61;", "=")
@@ -213,6 +231,38 @@ class StoryReadPageTest : WebEndToEndTest() {
 			val body = author.get(readPath("?chapter=3")).bodyAsText()
 
 			assertTrue(body.contains("""<h1 class="reader-chapter__title">Untitled</h1>"""), body)
+		}
+	}
+
+	@Test
+	fun `with a cover the reader opens on it and leads into chapter one`(): Unit = runBlocking {
+		doStartServer()
+		seedStory()
+		setCover()
+
+		login(email, password).use { author ->
+			val body = author.get(readPath()).unescapedBody()
+
+			assertTrue(body.contains("""<img class="reader-cover__image" src="/story/$projectSegment/image/20""""), body)
+			assertFalse(body.contains("The train came in late."), "the cover page holds no prose")
+			assertTrue(body.contains("""href="/story/$projectSegment/read?chapter=1" class="reader-nav__link"""))
+			assertFalse(body.contains("data-reader-prev"))
+			assertFalse(body.contains("""data-chapter="1""""), "the cover is not a chapter to continue from")
+		}
+	}
+
+	@Test
+	fun `with a cover chapter one leads back to it`(): Unit = runBlocking {
+		doStartServer()
+		seedStory()
+		setCover()
+
+		login(email, password).use { author ->
+			val body = author.get(readPath("?chapter=1")).unescapedBody()
+
+			assertTrue(body.contains("The train came in late."), body)
+			assertTrue(body.contains("""href="/story/$projectSegment/read" class="reader-nav__link"""))
+			assertTrue(body.contains("""href="/story/$projectSegment/read" class="reader-toc__chapter""""))
 		}
 	}
 

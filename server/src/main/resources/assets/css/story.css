@@ -2822,6 +2822,22 @@
 	display: none;
 }
 
+.reader-cover {
+	display: flex;
+	justify-content: center;
+	margin: 1rem 0 0;
+}
+
+.reader-cover__image {
+	display: block;
+	max-width: 100%;
+	max-height: 75vh;
+	width: auto;
+	height: auto;
+	border-radius: 0.5rem;
+	box-shadow: var(--shadow-xl);
+}
+
 .reader-nav {
 	display: flex;
 	align-items: center;

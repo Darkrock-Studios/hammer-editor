@@ -30,7 +30,11 @@ function initContinueReading() {
 	} catch (err) {
 		return;
 	}
-	const chapter = continueChapter(stored, parseInt(actions.dataset.chapterCount, 10));
+	const chapter = continueChapter(
+		stored,
+		parseInt(actions.dataset.chapterCount, 10),
+		actions.dataset.hasCover === 'true',
+	);
 	if (chapter === null) return;
 
 	link.href = link.dataset.readUrl + '?chapter=' + chapter;
