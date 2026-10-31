@@ -29,6 +29,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.Res
@@ -39,6 +42,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivide
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineCheckbox
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineDropdown
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineToggleRow
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHelpButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMasthead
@@ -50,12 +54,19 @@ import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.ExportFont
 import com.darkrockstudios.apps.hammer.common.data.ExportOptions
 import com.darkrockstudios.apps.hammer.common.data.ExportableScene
+import com.darkrockstudios.apps.hammer.common.data.ManuscriptContact
 import com.darkrockstudios.apps.hammer.common.data.export.BuiltInExportFormat
 import com.darkrockstudios.apps.hammer.project_home_export_blank_lines_hint
 import com.darkrockstudios.apps.hammer.project_home_export_blank_lines_label
 import com.darkrockstudios.apps.hammer.project_home_export_cancel
 import com.darkrockstudios.apps.hammer.project_home_export_chapters_label
 import com.darkrockstudios.apps.hammer.project_home_export_close
+import com.darkrockstudios.apps.hammer.project_home_export_contact_address
+import com.darkrockstudios.apps.hammer.project_home_export_contact_email
+import com.darkrockstudios.apps.hammer.project_home_export_contact_hint
+import com.darkrockstudios.apps.hammer.project_home_export_contact_label
+import com.darkrockstudios.apps.hammer.project_home_export_contact_legal_name
+import com.darkrockstudios.apps.hammer.project_home_export_contact_phone
 import com.darkrockstudios.apps.hammer.project_home_export_dialog_title
 import com.darkrockstudios.apps.hammer.project_home_export_execute
 import com.darkrockstudios.apps.hammer.project_home_export_font_label
@@ -63,6 +74,10 @@ import com.darkrockstudios.apps.hammer.project_home_export_format_label
 import com.darkrockstudios.apps.hammer.project_home_export_help_icon_description
 import com.darkrockstudios.apps.hammer.project_home_export_limit_scenes_hint
 import com.darkrockstudios.apps.hammer.project_home_export_limit_scenes_label
+import com.darkrockstudios.apps.hammer.project_home_export_manuscript_classic_hint
+import com.darkrockstudios.apps.hammer.project_home_export_manuscript_classic_label
+import com.darkrockstudios.apps.hammer.project_home_export_manuscript_short_story_hint
+import com.darkrockstudios.apps.hammer.project_home_export_manuscript_short_story_label
 import com.darkrockstudios.apps.hammer.project_home_export_number_chapters_label
 import com.darkrockstudios.apps.hammer.project_home_export_scenes_clear_all
 import com.darkrockstudios.apps.hammer.project_home_export_scenes_label
@@ -72,6 +87,11 @@ import com.darkrockstudios.apps.hammer.project_home_export_section
 
 private val DialogMaxWidth = 520.dp
 
+internal const val EXPORT_CONTACT_LEGAL_NAME_TAG = "export-contact-legal-name"
+internal const val EXPORT_CONTACT_ADDRESS_TAG = "export-contact-address"
+internal const val EXPORT_CONTACT_PHONE_TAG = "export-contact-phone"
+internal const val EXPORT_CONTACT_EMAIL_TAG = "export-contact-email"
+
 /**
  * Fully controlled: all option state lives in the component's retained state so
  * in-dialog edits survive configuration changes (see issue #885).
@@ -80,8 +100,10 @@ private val DialogMaxWidth = 520.dp
 fun ExportOptionsDialog(
 	visible: Boolean,
 	options: ExportOptions,
+	contact: ManuscriptContact,
 	exportableScenes: List<ExportableScene>,
 	onOptionsChanged: (ExportOptions) -> Unit,
+	onContactChanged: (ManuscriptContact) -> Unit,
 	onCancel: () -> Unit,
 	onConfirm: (ExportOptions) -> Unit,
 	onDismissed: () -> Unit = {},
@@ -97,9 +119,11 @@ fun ExportOptionsDialog(
 	) {
 		ExportOptionsDialogContent(
 			options = options,
+			contact = contact,
 			formats = exportFormatChoices(),
 			exportableScenes = exportableScenes,
 			onOptionsChanged = onOptionsChanged,
+			onContactChanged = onContactChanged,
 			onCancel = onCancel,
 			onConfirm = onConfirm,
 			onShowHelp = { showHelp = true },
@@ -115,9 +139,11 @@ fun ExportOptionsDialog(
 @Composable
 internal fun ExportOptionsDialogContent(
 	options: ExportOptions,
+	contact: ManuscriptContact,
 	formats: List<ExportFormatChoice>,
 	exportableScenes: List<ExportableScene>,
 	onOptionsChanged: (ExportOptions) -> Unit,
+	onContactChanged: (ManuscriptContact) -> Unit,
 	onCancel: () -> Unit,
 	onConfirm: (ExportOptions) -> Unit,
 	onShowHelp: () -> Unit,
@@ -226,7 +252,28 @@ internal fun ExportOptionsDialogContent(
 					)
 				}
 
-				if (shown.format != BuiltInExportFormat.MARKDOWN) {
+				if (shown.format == BuiltInExportFormat.DOCX) {
+					HdHairlineToggleRow(
+						checked = shown.manuscriptShortStory,
+						onCheckedChange = { onOptionsChanged(shown.copy(manuscriptShortStory = it)) },
+						label = Res.string.project_home_export_manuscript_short_story_label.get(),
+						hint = Res.string.project_home_export_manuscript_short_story_hint.get(),
+					)
+					HdHairlineToggleRow(
+						checked = shown.manuscriptClassic,
+						onCheckedChange = { onOptionsChanged(shown.copy(manuscriptClassic = it)) },
+						label = Res.string.project_home_export_manuscript_classic_label.get(),
+						hint = Res.string.project_home_export_manuscript_classic_hint.get(),
+					)
+					ManuscriptContactFields(
+						contact = contact,
+						onContactChanged = onContactChanged,
+						// The contact is saved on confirm, so later edits would show but never persist.
+						enabled = !working,
+					)
+				}
+
+				if (shown.format !in BLANK_LINE_FREE_FORMATS) {
 					HdHairlineToggleRow(
 						checked = shown.keepBlankLines,
 						onCheckedChange = { onOptionsChanged(shown.copy(keepBlankLines = it)) },
@@ -282,8 +329,72 @@ internal fun ExportOptionsDialogContent(
 	}
 }
 
-/** PDF renders in its library's built-in face, and Markdown carries no font. */
-private val FONT_EXPORT_FORMATS = setOf(BuiltInExportFormat.EPUB, BuiltInExportFormat.DOCX, BuiltInExportFormat.RTF)
+@Composable
+private fun ManuscriptContactFields(
+	contact: ManuscriptContact,
+	onContactChanged: (ManuscriptContact) -> Unit,
+	enabled: Boolean,
+) {
+	Column(verticalArrangement = Arrangement.spacedBy(Ui.Padding.L)) {
+		Column {
+			HdMonoLabel(text = Res.string.project_home_export_contact_label.get())
+			Text(
+				text = Res.string.project_home_export_contact_hint.get(),
+				style = MaterialTheme.typography.bodySmall,
+				color = MaterialTheme.colorScheme.onSurfaceVariant,
+			)
+		}
+		HdHairlineField(
+			label = Res.string.project_home_export_contact_legal_name.get(),
+			value = contact.legalName,
+			onValueChange = { onContactChanged(contact.copy(legalName = it)) },
+			capitalization = KeyboardCapitalization.Words,
+			autoCorrectEnabled = false,
+			enabled = enabled,
+			testTag = EXPORT_CONTACT_LEGAL_NAME_TAG,
+		)
+		HdHairlineField(
+			label = Res.string.project_home_export_contact_address.get(),
+			value = contact.address,
+			onValueChange = { onContactChanged(contact.copy(address = it)) },
+			singleLine = false,
+			minLines = 2,
+			maxLines = 4,
+			capitalization = KeyboardCapitalization.Words,
+			autoCorrectEnabled = false,
+			enabled = enabled,
+			testTag = EXPORT_CONTACT_ADDRESS_TAG,
+		)
+		HdHairlineField(
+			label = Res.string.project_home_export_contact_phone.get(),
+			value = contact.phone,
+			onValueChange = { onContactChanged(contact.copy(phone = it)) },
+			keyboardType = KeyboardType.Phone,
+			enabled = enabled,
+			testTag = EXPORT_CONTACT_PHONE_TAG,
+		)
+		HdHairlineField(
+			label = Res.string.project_home_export_contact_email.get(),
+			value = contact.email,
+			onValueChange = { onContactChanged(contact.copy(email = it)) },
+			keyboardType = KeyboardType.Email,
+			capitalization = KeyboardCapitalization.None,
+			autoCorrectEnabled = false,
+			imeAction = ImeAction.Done,
+			enabled = enabled,
+			testTag = EXPORT_CONTACT_EMAIL_TAG,
+		)
+	}
+}
+
+/**
+ * PDF renders in its library's built-in face, Markdown carries no font, and the
+ * Word manuscript takes its font from the Classic toggle.
+ */
+private val FONT_EXPORT_FORMATS = setOf(BuiltInExportFormat.EPUB, BuiltInExportFormat.RTF)
+
+/** Markdown keeps its source as written, and a manuscript never uses blank lines. */
+private val BLANK_LINE_FREE_FORMATS = setOf(BuiltInExportFormat.MARKDOWN, BuiltInExportFormat.DOCX)
 
 /** Markdown only has chapter headings in chapter mode. */
 private val ExportOptions.numbersChapters: Boolean

@@ -140,8 +140,10 @@ fun ProjectStatsUi(
 	ExportOptionsDialog(
 		visible = state.showExportDialog,
 		options = state.exportOptions,
+		contact = state.manuscriptContact,
 		exportableScenes = state.exportableScenes,
 		onOptionsChanged = component::updateExportOptions,
+		onContactChanged = component::updateManuscriptContact,
 		onCancel = component::cancelExportDialog,
 		onConfirm = component::confirmExportDialog,
 		onDismissed = component::exportDialogDismissed,

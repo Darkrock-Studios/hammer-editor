@@ -9,6 +9,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import com.darkrockstudios.apps.hammer.common.data.ExportOptions
 import com.darkrockstudios.apps.hammer.common.data.ExportableScene
+import com.darkrockstudios.apps.hammer.common.data.ManuscriptContact
 import com.darkrockstudios.apps.hammer.common.preview.KoinApplicationPreview
 import com.darkrockstudios.apps.hammer.common.projecthome.ExportOptionsDialog
 import com.darkrockstudios.apps.hammer.common.projecthome.sceneSelectorSceneTag
@@ -48,8 +49,10 @@ class ExportOptionsDialogRotationTest : BaseTest() {
 					ExportOptionsDialog(
 						visible = true,
 						options = options,
+						contact = ManuscriptContact(),
 						exportableScenes = entries,
 						onOptionsChanged = { options = it },
+						onContactChanged = {},
 						onCancel = {},
 						onConfirm = {},
 					)
