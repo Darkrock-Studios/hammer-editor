@@ -2650,7 +2650,11 @@
 /* The prose column follows the reader's width setting, not the old sidebar layout's cap */
 .reader .story-content {
 	max-width: none;
-	font-size: var(--reader-font-size);
+}
+
+/* Shared with the published story page: the reader's text size setting */
+[data-reader-root] .story-content {
+	font-size: var(--reader-font-size, 1.125rem);
 }
 
 .reader-bar {
@@ -2826,6 +2830,34 @@
 	display: flex;
 	justify-content: center;
 	margin: 1rem 0 0;
+}
+
+/* ========================================
+   Published Story Reading
+   The chapter reader's cover page and text size on the public page
+   ======================================== */
+
+.story-header--cover-page {
+	margin: 1.5rem 0 0;
+	text-align: center;
+}
+
+.story-cover-start {
+	display: flex;
+	justify-content: center;
+	margin: 0.5rem 0 1rem;
+}
+
+.story-reading-bar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.5rem 1rem;
+	margin-bottom: 0.5rem;
+}
+
+.story-reading-bar .page-indicator {
+	margin: 0;
 }
 
 .reader-cover__image {

@@ -1,12 +1,13 @@
 {{> header}}
 
 <main class="story-page public-story-page">
-	<div class="story-container">
+	<div class="story-container" data-reader-root>
+		{{#isCoverPage}}
+			{{> partials/reader-cover}}
+		{{/isCoverPage}}
+
 		<!-- Story Header -->
-		<div class="story-header">
-			{{#coverImageUrl}}
-				<img class="story-cover" src="{{coverImageUrl}}" alt="" fetchpriority="high">
-			{{/coverImageUrl}}
+		<div class="story-header{{#isCoverPage}} story-header--cover-page{{/isCoverPage}}">
 			<div class="public-story-attribution">
 				<span class="by-line">{{msg.public_story_by}}</span>
 				<a href="/a/{{authorPenNameUrl}}" class="author-name">{{authorPenName}}</a>
@@ -21,34 +22,53 @@
 					<span class="stat-separator">|</span>
 					<span class="stat-item">
 					<i class="fa-regular fa-clock"></i>
-						{{estimatedReadingTime}} {{msg.public_story_min_read}}
+						{{readingTime}}
 				</span>
 				</div>
 			{{/hasContent}}
 		</div>
 
-		<!-- Story Content -->
-		{{#hasContent}}
-			{{#hasPagination}}
-				<div class="page-indicator">
-					{{msg.admin_pagination_page}} {{currentPage}} {{msg.admin_pagination_of}} {{totalPages}}
+		{{#isCoverPage}}
+			{{#hasContent}}
+				<nav class="story-cover-start">
+					<a href="{{startReadingUrl}}" class="reader-nav__link">
+						{{msg.public_story_start_reading}}
+						<i class="fas fa-arrow-right" aria-hidden="true"></i>
+					</a>
+				</nav>
+			{{/hasContent}}
+		{{/isCoverPage}}
+
+		{{^isCoverPage}}
+			<!-- Story Content -->
+			{{#hasContent}}
+				<div class="story-reading-bar">
+					{{#hasPageCount}}
+						<span class="page-indicator">
+							{{msg.admin_pagination_page}} {{currentPage}} {{msg.admin_pagination_of}} {{totalPages}}
+						</span>
+					{{/hasPageCount}}
+					<div class="reader-tools" role="toolbar" aria-label="{{msg.story_read_tools_label}}">
+						{{> partials/reader-text-size}}
+					</div>
 				</div>
-			{{/hasPagination}}
-			<div id="story-page-content">
-				{{> partials/story-page-content}}
-			</div>
-			{{#kudosFragmentUrl}}
-				{{^hasNextPage}}
-					<div class="story-kudos-slot" hx-get="{{kudosFragmentUrl}}" hx-trigger="intersect once" hx-swap="outerHTML"></div>
-				{{/hasNextPage}}
-			{{/kudosFragmentUrl}}
-		{{/hasContent}}
+				{{> partials/reader-prefs}}
+				<div id="story-page-content">
+					{{> partials/story-page-content}}
+				</div>
+				{{#kudosFragmentUrl}}
+					{{^hasNextPage}}
+						<div class="story-kudos-slot" hx-get="{{kudosFragmentUrl}}" hx-trigger="intersect once" hx-swap="outerHTML"></div>
+					{{/hasNextPage}}
+				{{/kudosFragmentUrl}}
+			{{/hasContent}}
+		{{/isCoverPage}}
 		{{^hasContent}}
 			<article class="story-content">
 				<div class="story-empty">
 					<p>{{msg.story_no_scenes}}</p>
 				</div>
-		</article>
+			</article>
 		{{/hasContent}}
 
 		<!-- Public Footer Attribution -->

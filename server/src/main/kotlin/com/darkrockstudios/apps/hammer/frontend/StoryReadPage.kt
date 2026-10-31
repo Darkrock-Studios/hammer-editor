@@ -51,16 +51,16 @@ fun Route.storyReadPage(
 			val projectSegment = ProjectName.projectSegment(project.name, project.uuid)
 			val projectDef = ProjectDefinition(name = project.name, uuid = projectId)
 			val chapterParam = call.request.queryParameters["chapter"]
-			val coverUrl = storyCoverImageId(serverProjectDataRepository, storyImageService, session.userId, projectDef)
+			val coverImageUrl = storyCoverImageId(serverProjectDataRepository, storyImageService, session.userId, projectDef)
 				?.let { authorImageUrl(projectSegment, it) }
-			val showCover = chapterParam == null && coverUrl != null
+			val showCover = chapterParam == null && coverImageUrl != null
 			val requestedChapter = chapterParam?.toIntOrNull() ?: 1
 			val readUrl = "/story/$projectSegment/read"
 
 			val model = call.withDefaults(
 				mapOf(
 					"page_stylesheet" to "/assets/css/story.css",
-					"page_pre_script" to "/assets/js/story-read-logic.js",
+					"page_head_scripts" to READER_HEAD_SCRIPTS,
 					"page_script" to "/assets/js/story-read.js",
 					"projectKey" to project.uuid,
 					"dashboardUrl" to "/story/$projectSegment",
@@ -76,7 +76,7 @@ fun Route.storyReadPage(
 					it.version,
 					showCover,
 					requestedChapter,
-					coverUrl,
+					coverImageUrl,
 					serverProjectDataRepository.loadDataHash(session.userId, projectDef),
 				)
 			}
@@ -91,7 +91,7 @@ fun Route.storyReadPage(
 			) {
 				is StoryResult.Success -> {
 					val render = result.value
-					call.addReaderModel(model, render, projectSegment, readUrl, coverUrl, showCover)
+					call.addReaderModel(model, render, projectSegment, readUrl, coverImageUrl, showCover)
 					serverProjectDataRepository.loadProjectLanguage(
 						userId = session.userId,
 						projectDef = projectDef,
@@ -115,13 +115,19 @@ fun Route.storyReadPage(
 	}
 }
 
+/**
+ * Loaded in the head by both story readers, so the inline initReaderPrefs() call that follows
+ * their controls can apply the stored prefs before the prose paints.
+ */
+internal val READER_HEAD_SCRIPTS = listOf("/assets/js/story-read-logic.js", "/assets/js/reader-prefs.js")
+
 /** Fills [model] with the chapter, or the cover, that [render] holds. */
 private suspend fun ApplicationCall.addReaderModel(
 	model: MutableMap<String, Any>,
 	render: ChapterRender,
 	projectSegment: String,
 	readUrl: String,
-	coverUrl: String?,
+	coverImageUrl: String?,
 	showCover: Boolean,
 ) {
 	val chapter = render.chapter
@@ -144,12 +150,12 @@ private suspend fun ApplicationCall.addReaderModel(
 
 	val total = render.chapters.size
 	val coverLabel = localizedMsg(locale, "story_read_cover")
-	if (showCover && coverUrl != null) {
+	if (showCover && coverImageUrl != null) {
 		model.putAll(
 			mapOf(
 				"title" to "${render.projectName} · Hammer",
 				"isCover" to true,
-				"coverUrl" to coverUrl,
+				"coverImageUrl" to coverImageUrl,
 				"position" to coverLabel,
 				"toc" to tableOfContents(render, readUrl, current = null, currentScenes = emptyList(), ::named, locale),
 				"hasCoverEntry" to true,
@@ -176,7 +182,7 @@ private suspend fun ApplicationCall.addReaderModel(
 	}
 	val currentScenes = scenes.map { mapOf("id" to it.getValue("id"), "name" to it.getValue("name")) }
 	val toc = tableOfContents(render, readUrl, chapter.number, currentScenes, ::named, locale)
-	val prevIsCover = chapter.number == 1 && coverUrl != null
+	val prevIsCover = chapter.number == 1 && coverImageUrl != null
 
 	model.putAll(
 		mapOf(
@@ -189,7 +195,7 @@ private suspend fun ApplicationCall.addReaderModel(
 			"scenes" to scenes,
 			"hasScenes" to scenes.isNotEmpty(),
 			"toc" to toc,
-			"hasCoverEntry" to (coverUrl != null),
+			"hasCoverEntry" to (coverImageUrl != null),
 			"coverLabel" to coverLabel,
 			"hasPrev" to (chapter.number > 1 || prevIsCover),
 			"prevUrl" to if (prevIsCover) readUrl else "$readUrl?chapter=${chapter.number - 1}",

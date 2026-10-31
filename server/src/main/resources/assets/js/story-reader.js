@@ -17,7 +17,8 @@
  *
  * The dwell math lives in story-reader-logic.js (DOM-free, unit-tested);
  * createDwellTracker is a global here, loaded as page_pre_script before this
- * file. This file is just the timers, Visibility API, storage, and beacon.
+ * file, and bestEffortStorage comes from story-read-logic.js. This file is just
+ * the timers, Visibility API, storage, and beacon.
  *
  * This is a heuristic, not a guarantee — it just filters the obvious bounces.
  */
@@ -25,25 +26,19 @@
 	// Minimum visible time on the page before we count the visit as a read.
 	var DWELL_THRESHOLD_MS = 10000;
 
-	// sessionStorage can throw (private-mode quotas, disabled storage). Degrade to
-	// a per-page timer rather than break the page: dwell just won't carry across
-	// pages, which is the same as having no cross-page refinement at all.
-	var storage = {
-		get: function (key) {
-			try {
-				return sessionStorage.getItem(key);
-			} catch (e) {
+	// Without sessionStorage, or without story-read-logic.js, the timer degrades to
+	// per-page: dwell just won't carry across pages, which is the same as having no
+	// cross-page refinement at all.
+	var storage = typeof bestEffortStorage === 'function'
+		? bestEffortStorage(function () {
+			return sessionStorage;
+		})
+		: {
+			get: function () {
 				return null;
-			}
-		},
-		set: function (key, value) {
-			try {
-				sessionStorage.setItem(key, value);
-			} catch (e) {
-				// Best-effort only.
-			}
-		},
-	};
+			},
+			set: function () {},
+		};
 
 	var tracker = createDwellTracker({
 		thresholdMs: DWELL_THRESHOLD_MS,

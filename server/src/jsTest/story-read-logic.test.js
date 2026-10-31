@@ -10,6 +10,7 @@ const {
 	parseLastChapter,
 	continueChapter,
 	isChapterKey,
+	bestEffortStorage,
 } = require('../main/resources/assets/js/story-read-logic.js');
 
 test('missing or broken prefs fall back to the defaults', () => {
@@ -80,4 +81,24 @@ test('continueChapter offers chapter one when Read opens on a cover', () => {
 	assert.equal(continueChapter('1', 5, true), 1);
 	assert.equal(continueChapter('3', 5, true), 3);
 	assert.equal(continueChapter(null, 5, true), null);
+});
+
+test('bestEffortStorage reads and writes through to the area', () => {
+	const data = new Map();
+	const area = {getItem: (k) => (data.has(k) ? data.get(k) : null), setItem: (k, v) => data.set(k, v)};
+	const storage = bestEffortStorage(() => area);
+
+	storage.set('key', 'value');
+
+	assert.equal(storage.get('key'), 'value');
+	assert.equal(storage.get('missing'), null);
+});
+
+test('bestEffortStorage swallows a storage area that throws', () => {
+	const storage = bestEffortStorage(() => {
+		throw new Error('SecurityError');
+	});
+
+	assert.doesNotThrow(() => storage.set('key', 'value'));
+	assert.equal(storage.get('key'), null);
 });

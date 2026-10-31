@@ -1,61 +1,16 @@
 /**
- * Browser wiring for the author's chapter reader: reading controls, the contents dialog, arrow-key
- * chapter turns, and remembering the last chapter for the story page's "Continue reading" link.
- * The preference rules live in story-read-logic.js (DOM-free, unit-tested), loaded before this.
+ * Browser wiring for the author's chapter reader: the contents dialog, arrow-key chapter turns, and
+ * remembering the last chapter for the story page's "Continue reading" link. Reading prefs are
+ * reader-prefs.js, loaded before this with story-read-logic.js.
  */
-/* global READER_PREFS_KEY, READER_DEFAULT_FONT_SIZE, parseReaderPrefs, stepFontSize, nextWidth,
-   lastChapterKey, isChapterKey */
+/* global readerStorage, lastChapterKey, isChapterKey */
 (function () {
 	var reader = document.getElementById('reader');
 	if (!reader) return;
 
-	// localStorage throws in some private modes and with storage disabled; the reader then works
-	// with defaults and simply forgets.
-	var storage = {
-		get: function (key) {
-			try {
-				return localStorage.getItem(key);
-			} catch (e) {
-				return null;
-			}
-		},
-		set: function (key, value) {
-			try {
-				localStorage.setItem(key, value);
-			} catch (e) {
-				// Best effort only.
-			}
-		},
-	};
-
-	var prefs = parseReaderPrefs(storage.get(READER_PREFS_KEY));
-	var sizeLabel = reader.querySelector('[data-reader-size-label]');
-	var headingsButton = reader.querySelector('[data-reader-action="headings"]');
-	var widthButton = reader.querySelector('[data-reader-action="width"]');
-	var widthLabel = reader.querySelector('[data-reader-width-label]');
-
-	function apply() {
-		reader.style.setProperty('--reader-font-size', prefs.fontSize + 'px');
-		reader.dataset.headings = prefs.headings ? 'on' : 'off';
-		reader.dataset.width = prefs.width;
-		if (sizeLabel) sizeLabel.textContent = String(prefs.fontSize);
-		if (headingsButton) headingsButton.setAttribute('aria-pressed', String(prefs.headings));
-		if (widthButton && widthLabel) {
-			widthLabel.textContent = widthButton.getAttribute('data-width-' + prefs.width) || prefs.width;
-		}
-	}
-
-	function update(change) {
-		change();
-		storage.set(READER_PREFS_KEY, JSON.stringify(prefs));
-		apply();
-	}
-
-	apply();
-
 	var projectKey = reader.dataset.projectKey;
 	var chapter = reader.dataset.chapter;
-	if (projectKey && chapter) storage.set(lastChapterKey(projectKey), chapter);
+	if (projectKey && chapter) readerStorage.set(lastChapterKey(projectKey), chapter);
 
 	var toc = document.getElementById('reader-toc');
 
@@ -72,21 +27,6 @@
 
 	// A Map, so a data-reader-action value can only name one of these, never an inherited property.
 	var actions = new Map([
-		['smaller', function () {
-			update(function () { prefs.fontSize = stepFontSize(prefs.fontSize, -1); });
-		}],
-		['larger', function () {
-			update(function () { prefs.fontSize = stepFontSize(prefs.fontSize, 1); });
-		}],
-		['reset-size', function () {
-			update(function () { prefs.fontSize = READER_DEFAULT_FONT_SIZE; });
-		}],
-		['headings', function () {
-			update(function () { prefs.headings = !prefs.headings; });
-		}],
-		['width', function () {
-			update(function () { prefs.width = nextWidth(prefs.width); });
-		}],
 		['contents', openContents],
 		['close-contents', closeContents],
 	]);

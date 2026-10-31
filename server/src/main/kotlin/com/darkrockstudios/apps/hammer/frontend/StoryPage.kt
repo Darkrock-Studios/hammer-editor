@@ -157,7 +157,7 @@ fun Route.storyPage(
 						"accessEntries" to accessEntries,
 						"hasAccessEntries" to accessEntries.isNotEmpty(),
 						"hasReaderStats" to (numericProjectId != null),
-						"totalReaders" to NumberFormat.getIntegerInstance(locale).format(totalReaders),
+						"totalReaders" to formatCount(locale, totalReaders),
 						"readerBars" to readerBars,
 						"hasReaderBars" to readerBars.any { (it["height"] as Int) > 0 },
 					)
@@ -188,7 +188,7 @@ fun Route.storyPage(
 								"hasChapters" to overview.chapters.isNotEmpty(),
 								"hasWords" to (overview.totalWordCount > 0),
 								"complete" to overview.complete,
-								"wordCount" to NumberFormat.getIntegerInstance(locale).format(overview.totalWordCount),
+								"wordCount" to formatCount(locale, overview.totalWordCount),
 								"chapterCount" to overview.chapters.size,
 								"sceneCount" to overview.sceneCount,
 								"readingTime" to readingTime(locale, overview.readingTimeMinutes),
@@ -534,6 +534,9 @@ fun Route.storyPage(
 		}
 	}
 }
+
+/** [count] in the viewer's digit grouping, as both story pages show it. */
+internal fun formatCount(locale: Locale, count: Number): String = NumberFormat.getIntegerInstance(locale).format(count)
 
 /** [minutes] as "42 min", "3 h" or "3 h 5 min". */
 internal fun readingTime(locale: Locale, minutes: Int): String = when {

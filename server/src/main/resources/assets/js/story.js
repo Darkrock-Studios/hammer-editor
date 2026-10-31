@@ -7,7 +7,7 @@
 // templates (onclick=..., hx-* attributes) — ESLint can't see those references.
 /* eslint-disable no-unused-vars */
 /* global htmx, nextToggleState, allSelected, reviewCountLabel, canSendReview, lastChapterKey,
-   continueChapter */
+   continueChapter, bestEffortStorage */
 
 document.addEventListener('DOMContentLoaded', function () {
 	initContinueReading();
@@ -24,12 +24,7 @@ function initContinueReading() {
 	const link = actions && actions.querySelector('.story-hero__continue');
 	if (!link) return;
 
-	let stored = null;
-	try {
-		stored = localStorage.getItem(lastChapterKey(actions.dataset.projectKey));
-	} catch (err) {
-		return;
-	}
+	const stored = bestEffortStorage(() => localStorage).get(lastChapterKey(actions.dataset.projectKey));
 	const chapter = continueChapter(
 		stored,
 		parseInt(actions.dataset.chapterCount, 10),

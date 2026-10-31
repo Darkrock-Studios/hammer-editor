@@ -1,7 +1,7 @@
 {{> header}}
 
 <main class="story-page reader-page">
-	<div class="reader" id="reader" data-project-key="{{projectKey}}" data-chapter="{{chapterNumber}}"
+	<div class="reader" id="reader" data-reader-root data-project-key="{{projectKey}}" data-chapter="{{chapterNumber}}"
 		 data-headings="off" data-width="medium">
 		<div class="reader-bar">
 			<a href="{{dashboardUrl}}" class="back-link reader-bar__back" title="{{msg.story_read_back}}"
@@ -18,15 +18,7 @@
 						<span class="reader-tool__text">{{msg.story_read_contents}}</span>
 					</button>
 					{{^isCover}}
-					<span class="reader-tools__group">
-						<button type="button" class="reader-tool" data-reader-action="smaller"
-								aria-label="{{msg.story_read_font_smaller}}" title="{{msg.story_read_font_smaller}}">A&minus;</button>
-						<button type="button" class="reader-tool reader-tool--value" data-reader-action="reset-size"
-								aria-label="{{msg.story_read_font_reset}}" title="{{msg.story_read_font_reset}}"
-								data-reader-size-label>18</button>
-						<button type="button" class="reader-tool" data-reader-action="larger"
-								aria-label="{{msg.story_read_font_larger}}" title="{{msg.story_read_font_larger}}">A+</button>
-					</span>
+					{{> partials/reader-text-size}}
 					<button type="button" class="reader-tool" data-reader-action="headings" aria-pressed="false"
 							aria-label="{{msg.story_read_scene_headings}}" title="{{msg.story_read_scene_headings}}">&sect;</button>
 					<button type="button" class="reader-tool" data-reader-action="width"
@@ -42,27 +34,7 @@
 			{{/hasChapter}}
 		</div>
 
-		<!-- Applies stored reading prefs before the prose paints; story-read.js validates them after. -->
-		<script>
-			(function () {
-				try {
-					var prefs = JSON.parse(localStorage.getItem('hammer.reader.prefs')) || {};
-					var reader = document.getElementById('reader');
-					if (typeof prefs.fontSize === 'number') {
-						var size = Math.min(32, Math.max(12, Math.round(prefs.fontSize)));
-						reader.style.setProperty('--reader-font-size', size + 'px');
-						var label = reader.querySelector('[data-reader-size-label]');
-						if (label) label.textContent = String(size);
-					}
-					if (prefs.headings === true) {
-						reader.dataset.headings = 'on';
-						var toggle = reader.querySelector('[data-reader-action="headings"]');
-						if (toggle) toggle.setAttribute('aria-pressed', 'true');
-					}
-					if (typeof prefs.width === 'string') reader.dataset.width = prefs.width;
-				} catch (e) { /* defaults stand */ }
-			})();
-		</script>
+		{{> partials/reader-prefs}}
 
 		{{^complete}}
 			<p class="reader-notice" role="status">
@@ -72,9 +44,7 @@
 		{{/complete}}
 
 		{{#isCover}}
-			<figure class="reader-cover">
-				<img class="reader-cover__image" src="{{coverUrl}}" alt="{{projectName}}">
-			</figure>
+			{{> partials/reader-cover}}
 		{{/isCover}}
 
 		{{#hasChapter}}

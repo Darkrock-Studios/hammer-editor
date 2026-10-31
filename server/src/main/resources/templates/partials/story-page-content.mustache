@@ -5,7 +5,7 @@
 		{{#hasPrevPage}}
 			<a href="{{prevPageUrl}}" class="pagination-button prev">
 				<i class="fa-solid fa-chevron-left"></i>
-				{{msg.public_story_prev_page}}
+				{{#prevIsCover}}{{msg.story_read_cover}}{{/prevIsCover}}{{^prevIsCover}}{{msg.public_story_prev_page}}{{/prevIsCover}}
 			</a>
 		{{/hasPrevPage}}
 		{{^hasPrevPage}}
@@ -15,9 +15,11 @@
 	</span>
 		{{/hasPrevPage}}
 
-		<span class="pagination-info">
-		{{msg.admin_pagination_page}} {{currentPage}} {{msg.admin_pagination_of}} {{totalPages}}
-	</span>
+		{{#hasPageCount}}
+			<span class="pagination-info">
+				{{msg.admin_pagination_page}} {{currentPage}} {{msg.admin_pagination_of}} {{totalPages}}
+			</span>
+		{{/hasPageCount}}
 
 		{{#hasNextPage}}
 			<a href="{{nextPageUrl}}" class="pagination-button next">
@@ -26,10 +28,12 @@
 			</a>
 		{{/hasNextPage}}
 		{{^hasNextPage}}
-			<span class="pagination-button next disabled">
-		{{msg.public_story_next_page}}
-				<i class="fa-solid fa-chevron-right"></i>
-	</span>
+			{{#hasPageCount}}
+				<span class="pagination-button next disabled">
+					{{msg.public_story_next_page}}
+					<i class="fa-solid fa-chevron-right"></i>
+				</span>
+			{{/hasPageCount}}
 		{{/hasNextPage}}
 	</nav>
 {{/hasPagination}}

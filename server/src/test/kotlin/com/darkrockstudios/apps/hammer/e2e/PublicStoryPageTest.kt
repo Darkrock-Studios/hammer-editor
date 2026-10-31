@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.e2e
 
+import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.e2e.util.E2eTestData
 import com.darkrockstudios.apps.hammer.e2e.util.EndToEndTest
 import com.darkrockstudios.apps.hammer.utilities.DiskCache
@@ -11,9 +12,11 @@ import io.ktor.client.request.header
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
+import korlibs.crypto.encoding.Base64
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
@@ -30,10 +33,35 @@ class PublicStoryPageTest : EndToEndTest() {
 	private val projectNameText = "Insurgency"
 	private val projectUuid = Uuid.random()
 
+	private val segment = ProjectName.projectSegment(projectNameText, projectUuid.toString())
+
 	private fun storyPath(password: String? = null): String {
-		val segment = ProjectName.projectSegment(projectNameText, projectUuid.toString())
 		val query = if (password != null) "?p=$password" else ""
 		return route("a/$penName/$segment$query")
+	}
+
+	private fun pagePath(page: Int): String = route("a/$penName/$segment?page=$page")
+
+	/** The page with Mustache's attribute escaping undone, so links read as written. */
+	private fun String.unescaped(): String = replace("&#61;", "=").replace("&amp;", "&")
+
+	private fun seedCover() {
+		val png = java.util.Base64.getDecoder().decode(
+			"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
+		)
+		E2eTestData.insertEntity(
+			userId = userId,
+			projectId = projectRowId(),
+			entity = ApiProjectEntity.ImageEntity(
+				id = 20,
+				name = "Cover",
+				fileExtension = "png",
+				base64 = Base64.encode(png, url = true),
+			),
+			testDatabase = database(),
+			contentEncryptor = encryptor(),
+		)
+		seedProjectData("""{"coverImageId":20}""")
 	}
 
 	private fun projectRowId(): Long =
@@ -314,5 +342,126 @@ class PublicStoryPageTest : EndToEndTest() {
 		assertEquals(HttpStatusCode.OK, response.status)
 		assertNotEquals(before, response.headers[HttpHeaders.ETag])
 		assertTrue(response.bodyAsText().contains("a freshly written chapter"))
+	}
+
+	@Test
+	fun `a story with a cover opens on it, with a way into the prose`(): Unit = runBlocking {
+		doStartServer()
+		seedStory()
+		grantAccess(password = null)
+		seedCover()
+
+		val body = client().get(storyPath()).bodyAsText().unescaped()
+
+		assertTrue(
+			Regex("""<img class="reader-cover__image" src="/a/$penName/$segment/image/20\?s=""").containsMatchIn(body),
+			body,
+		)
+		assertTrue(body.contains(projectNameText))
+		assertFalse(body.contains("test content 1"), "the cover page holds no prose")
+		assertTrue(body.contains("""href="/a/$penName/$segment?page=1""""), "a link starts the prose")
+		assertFalse(body.contains("story-kudos-slot"), "kudos wait for the end of the story, not its cover")
+		assertFalse(body.contains("reader-prefs.js"), "the cover has no reading controls to set up")
+		assertTrue(body.contains("story-read-logic.js"), "the reader-count beacon still needs its storage helper")
+	}
+
+	@Test
+	fun `with a cover the first page of prose leads back to it`(): Unit = runBlocking {
+		doStartServer()
+		seedStory()
+		grantAccess(password = null)
+		seedCover()
+
+		val body = client().get(pagePath(1)).bodyAsText().unescaped()
+
+		assertTrue(body.contains("test content 1"), body)
+		assertFalse(body.contains("reader-cover__image"), "the cover has its own page")
+		assertTrue(Regex("""<a href="/a/$penName/$segment" class="pagination-button prev">\s*<i[^>]*></i>\s*Cover""").containsMatchIn(body))
+		assertTrue(Regex("""<link rel="canonical" href="[^"]*/a/$penName/$segment\?page=1">""").containsMatchIn(body))
+	}
+
+	@Test
+	fun `a private share keeps its password between the cover and the prose`(): Unit = runBlocking {
+		doStartServer()
+		seedStory()
+		grantAccess(password = "secret")
+		seedCover()
+
+		val cover = client().get(storyPath(password = "secret")).bodyAsText().unescaped()
+		assertTrue(cover.contains("""href="/a/$penName/$segment?page=1&p=secret""""), cover)
+
+		val first = client().get(route("a/$penName/$segment?page=1&p=secret")).bodyAsText().unescaped()
+		assertTrue(first.contains("""<a href="/a/$penName/$segment?p=secret" class="pagination-button prev">"""), first)
+	}
+
+	@Test
+	fun `the cover page and the first page of prose have their own validators`(): Unit = runBlocking {
+		doStartServer()
+		seedStory()
+		grantAccess(password = null)
+		seedCover()
+
+		val cover = assertNotNull(client().get(storyPath()).headers[HttpHeaders.ETag])
+		val first = assertNotNull(client().get(pagePath(1)).headers[HttpHeaders.ETag])
+
+		assertNotEquals(cover, first)
+	}
+
+	@Test
+	fun `a story without a cover starts on its prose with nothing before it`(): Unit = runBlocking {
+		doStartServer()
+		seedStory()
+		grantAccess(password = null)
+
+		val body = client().get(storyPath()).bodyAsText().unescaped()
+
+		assertTrue(body.contains("test content 1"), body)
+		assertFalse(body.contains("reader-cover__image"))
+		assertFalse(body.contains("pagination-button prev\""), "nothing comes before the first page")
+		assertTrue(Regex("""<link rel="canonical" href="[^"]*/a/$penName/$segment">""").containsMatchIn(body))
+	}
+
+	@Test
+	fun `a one-page story with a cover links back to it without a page count`(): Unit = runBlocking {
+		doStartServer()
+		seedStory()
+		grantAccess(password = null)
+		seedCover()
+
+		val body = client().get(pagePath(1)).bodyAsText()
+
+		assertTrue(body.contains("pagination-button prev\""), body)
+		assertFalse(body.contains("Page 1 of 1"), "a single page needs no count")
+		assertFalse(body.contains("pagination-button next"), "nothing follows a single page")
+	}
+
+	@Test
+	fun `the stats read like the author's dashboard`(): Unit = runBlocking {
+		doStartServer()
+		seedStory()
+		grantAccess(password = null)
+		val long = E2eTestData.createTestScene(1).copy(content = List(1_497) { "word" }.joinToString(" "))
+		database().serverDatabase.storyEntityQueries.deleteEntity(userId, projectRowId(), 1L)
+		E2eTestData.insertEntity(userId, projectRowId(), long, database(), encryptor())
+
+		val body = client().get(storyPath()).bodyAsText()
+
+		assertTrue(body.contains("1,497 words"), body)
+		assertTrue(body.contains("7 min"))
+		assertFalse(body.contains("1.5K"))
+	}
+
+	@Test
+	fun `a page of prose offers text size controls`(): Unit = runBlocking {
+		doStartServer()
+		seedStory()
+		grantAccess(password = null)
+
+		val body = client().get(storyPath()).bodyAsText()
+
+		assertTrue(body.contains("data-reader-root"), body)
+		assertTrue(body.contains("""data-reader-action="smaller""""))
+		assertTrue(body.contains("""data-reader-action="larger""""))
+		assertTrue(body.contains("reader-prefs.js"))
 	}
 }

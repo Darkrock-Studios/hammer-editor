@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.frontend.data.UserSession
 import com.darkrockstudios.apps.hammer.frontend.utils.ProjectName
 import com.darkrockstudios.apps.hammer.frontend.utils.applyRevalidationHeaders
 import com.darkrockstudios.apps.hammer.frontend.utils.canonicalUrl
+import com.darkrockstudios.apps.hammer.frontend.utils.getLocale
 import com.darkrockstudios.apps.hammer.frontend.utils.lookUpStory
 import com.darkrockstudios.apps.hammer.frontend.utils.matchesETag
 import com.darkrockstudios.apps.hammer.frontend.utils.metaDescription
@@ -23,7 +24,6 @@ import com.darkrockstudios.apps.hammer.story.StoryImageService
 import com.darkrockstudios.apps.hammer.story.StoryImageSigner
 import com.darkrockstudios.apps.hammer.story.StoryRendererService
 import com.darkrockstudios.apps.hammer.story.StoryResult
-import com.darkrockstudios.apps.hammer.story.WordCountUtils
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.htmx.hx
 import io.ktor.server.mustache.MustacheContent
@@ -56,7 +56,8 @@ fun Route.publicStoryPage(
 		get {
 			// Check for password and page in query parameters
 			val password = call.request.queryParameters["p"]
-			val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
+			val pageParam = call.request.queryParameters["page"]
+			val page = pageParam?.toIntOrNull() ?: 1
 
 			val lookup = call.lookUpStory(accountsRepository, projectsRepository, projectAccessRepository, password)
 			if (lookup == null) {
@@ -105,6 +106,22 @@ fun Route.publicStoryPage(
 					}
 
 					val projectDef = ProjectDefinition(name = projectName, uuid = resolved.projectUuid)
+					val storyUrl = "/a/$penNameForUrl/$projectNameForUrl"
+
+					suspend fun signedImageUrl(imageId: Int): String {
+						val signature = storyImageSigner.sign(resolved.projectUuid, imageId)
+						return "$storyUrl/image/$imageId?s=$signature$passwordParam"
+					}
+
+					// A story with a cover opens on it, as its own first page; the prose starts at ?page=1.
+					val coverImageUrl = storyCoverImageId(
+						serverProjectDataRepository,
+						storyImageService,
+						resolved.userId,
+						projectDef,
+					)?.let { signedImageUrl(it) }
+					val isCoverPage = pageParam == null && coverImageUrl != null
+					val coverPageUrl = storyUrl + if (passwordParam.isEmpty()) "" else "?" + passwordParam.removePrefix("&")
 
 					// The page shell — everything not derived from the story render. Built first so
 					// it can be hashed into the validator, then filled in with the render below.
@@ -114,7 +131,11 @@ fun Route.publicStoryPage(
 							"title" to "$projectName · ${resolved.penName} — Hammer",
 							// Self-referential canonical: each page is its own indexable URL. The
 							// password (?p) is never included — it's a secret and those pages are noindex.
-							"canonicalUrl" to (call.canonicalUrl() + if (page > 1) "?page=$page" else ""),
+							"canonicalUrl" to (call.canonicalUrl() + when {
+								isCoverPage -> ""
+								page > 1 || coverImageUrl != null -> "?page=$page"
+								else -> ""
+							}),
 							"ogType" to "article",
 							// Dynamic card only for public (password-free) access, matching the OG
 							// route; a private share falls back to the static card, never a 404.
@@ -123,7 +144,6 @@ fun Route.publicStoryPage(
 							} else {
 								call.canonicalUrl("/assets/images/og-story.png")
 							},
-							"page_pre_script" to "/assets/js/story-reader-logic.js",
 							"page_script" to "/assets/js/story-reader.js",
 							"projectName" to projectName,
 							"authorPenName" to resolved.penName,
@@ -131,18 +151,28 @@ fun Route.publicStoryPage(
 						)
 					)
 					if (resolved.isPublic) {
-						model["kudosFragmentUrl"] = "/a/$penNameForUrl/$projectNameForUrl/kudos"
+						model["kudosFragmentUrl"] = "$storyUrl/kudos"
 					}
 
-					suspend fun signedImageUrl(imageId: Int): String {
-						val signature = storyImageSigner.sign(resolved.projectUuid, imageId)
-						return "/a/$penNameForUrl/$projectNameForUrl/image/$imageId?s=$signature$passwordParam"
+					// Prose pages set up their reading controls from the head, before the prose paints.
+					// The cover has none, so it loads only the beacon's helpers, at the end of the body.
+					if (isCoverPage) {
+						model["page_pre_scripts"] = listOf("/assets/js/story-reader-logic.js", "/assets/js/story-read-logic.js")
+					} else {
+						model["page_head_scripts"] = READER_HEAD_SCRIPTS
+						model["page_pre_script"] = "/assets/js/story-reader-logic.js"
 					}
 
 					// In the shell, so the validator changes when the cover is set or cleared, and when
-					// its image reaches the server or leaves it.
-					storyCoverImageId(serverProjectDataRepository, storyImageService, resolved.userId, projectDef)
-						?.let { model["coverImageUrl"] = signedImageUrl(it) }
+					// its image reaches the server or leaves it: every page links back to the cover.
+					if (coverImageUrl != null) {
+						model["hasCover"] = true
+						if (isCoverPage) {
+							model["isCoverPage"] = true
+							model["coverImageUrl"] = coverImageUrl
+							model["startReadingUrl"] = "$storyUrl?page=1$passwordParam"
+						}
+					}
 
 					// Resolved once and reused by the render below.
 					// A scene-limited share prepares only its scene subset; if every selected scene
@@ -198,6 +228,8 @@ fun Route.publicStoryPage(
 
 					when (exportResult) {
 						is StoryResult.Success -> {
+							// The stats are the viewer's UI, so they take the viewer's locale, not the story's.
+							val viewerLocale = call.getLocale()
 							val data = exportResult.value
 
 							// The story's declared language, when set, becomes the page's content
@@ -220,15 +252,22 @@ fun Route.publicStoryPage(
 									"hasContent" to data.hasContent,
 									"sceneCount" to data.sceneCount,
 									"totalWordCount" to data.totalWordCount,
-									"formattedWordCount" to WordCountUtils.formatWordCount(data.totalWordCount),
-									"estimatedReadingTime" to data.estimatedReadingTimeMinutes,
+									"formattedWordCount" to formatCount(viewerLocale, data.totalWordCount),
+									"readingTime" to readingTime(viewerLocale, data.estimatedReadingTimeMinutes),
 									"currentPage" to data.currentPage,
 									"totalPages" to data.totalPages,
-									"hasPagination" to (data.totalPages > 1),
+									// The page nav also carries the way back to a cover; the count needs real pages.
+									"hasPagination" to (data.totalPages > 1 || coverImageUrl != null),
+									"hasPageCount" to (data.totalPages > 1),
 									"hasNextPage" to data.hasNextPage,
-									"hasPrevPage" to data.hasPrevPage,
-									"nextPageUrl" to "/a/$penNameForUrl/$projectNameForUrl?page=${data.nextPage}$passwordParam",
-									"prevPageUrl" to "/a/$penNameForUrl/$projectNameForUrl?page=${data.prevPage}$passwordParam"
+									"hasPrevPage" to (data.hasPrevPage || coverImageUrl != null),
+									"prevIsCover" to (!data.hasPrevPage && coverImageUrl != null),
+									"nextPageUrl" to "$storyUrl?page=${data.nextPage}$passwordParam",
+									"prevPageUrl" to if (data.hasPrevPage) {
+										"$storyUrl?page=${data.prevPage}$passwordParam"
+									} else {
+										coverPageUrl
+									},
 								)
 							)
 							metaDescription(
@@ -237,7 +276,7 @@ fun Route.publicStoryPage(
 							if (indexable) {
 								model["jsonLd"] = storyArticleJsonLd(
 									title = data.projectName,
-									url = call.canonicalUrl("/a/$penNameForUrl/$projectNameForUrl"),
+									url = call.canonicalUrl(storyUrl),
 									authorName = resolved.penName,
 									authorUrl = call.canonicalUrl("/a/${ProjectName.penNameForUrl(resolved.penName)}"),
 									wordCount = data.totalWordCount.toLong(),
