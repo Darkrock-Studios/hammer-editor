@@ -1,8 +1,8 @@
 package data.export
 
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
-import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectTheme
 import com.darkrockstudios.apps.hammer.common.data.ExportOptions
+import com.darkrockstudios.apps.hammer.common.data.ManuscriptContact
 import com.darkrockstudios.apps.hammer.common.data.export.ExportImage
 import com.darkrockstudios.apps.hammer.common.data.export.ExportStrings
 import com.darkrockstudios.apps.hammer.common.data.export.StoryChapter
@@ -41,6 +41,11 @@ class DocxValidationSamples {
 			| 1 | 2 |
 
 			[a link](https://example.com) and another [link](https://example.org?a=1&b=2)
+			Roses are red,
+			violets are blue.
+
+
+			After a blank run.
 
 			![image](hammer://image/3)
 
@@ -51,8 +56,14 @@ class DocxValidationSamples {
 			4 to ExportImage(4, "Dog", "jpg", encoded("jpg")),
 			5 to ExportImage(5, "Cover", "png", encoded("png", 40, 60)),
 		)
+		val contact = ManuscriptContact(
+			legalName = "Jane Q. Writer",
+			address = "12 Main St & Co\nSpringfield, IL 62701",
+			phone = "555-0100",
+			email = "jane@example.com",
+		)
 
-		fun write(name: String, projectData: ProjectData, chapters: List<StoryChapter>) {
+		fun write(name: String, projectData: ProjectData, chapters: List<StoryChapter>, options: ExportOptions, contact: ManuscriptContact) {
 			val buffer = Buffer()
 			writeStoryAsDocx(
 				sink = buffer,
@@ -65,22 +76,27 @@ class DocxValidationSamples {
 					wordCount = "about 12,500 words",
 					endMarker = "END",
 				),
-				options = ExportOptions(numberChapters = true),
+				options = options,
 				imageNames = images.mapValues { it.value.name },
 				images = images,
+				contact = contact,
 			)
 			File(dir, name).writeBytes(buffer.readByteArray())
 		}
 
+		val rich = ProjectData(authorName = "Some One", coverImageId = 5)
+		val chapters = listOf(StoryChapter("One", listOf(markdown, "", "Second scene.")), StoryChapter("Two", "Second."))
+		write("novel-modern.docx", rich, chapters, ExportOptions(numberChapters = true), contact)
+		write("novel-classic.docx", rich, chapters, ExportOptions(manuscriptClassic = true), ManuscriptContact())
+		write("story-modern.docx", rich, chapters, ExportOptions(manuscriptShortStory = true), ManuscriptContact())
 		write(
-			"rich.docx",
-			ProjectData(
-				authorName = "Someone",
-				coverImageId = 5,
-				theme = ProjectTheme(primary = "FF336699", secondary = "FF993366"),
-			),
-			listOf(StoryChapter("One", markdown), StoryChapter("Two", "Second.")),
+			"story-classic.docx",
+			rich,
+			listOf(StoryChapter("Only", listOf(markdown, "Second scene."))),
+			ExportOptions(manuscriptShortStory = true, manuscriptClassic = true),
+			contact,
 		)
-		write("minimal.docx", ProjectData(), emptyList())
+		write("minimal-novel.docx", ProjectData(), emptyList(), ExportOptions(), ManuscriptContact())
+		write("minimal-story.docx", ProjectData(), emptyList(), ExportOptions(manuscriptShortStory = true), ManuscriptContact())
 	}
 }

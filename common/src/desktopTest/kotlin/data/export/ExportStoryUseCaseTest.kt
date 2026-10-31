@@ -381,7 +381,7 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 	}
 
 	@Test
-	fun `pdf docx and rtf exports read the cover for their cover page`() = runTest {
+	fun `pdf and rtf exports read the cover for their cover page, docx does not`() = runTest {
 		initRepo()
 		storedProjectData = StoredProjectData(data = ProjectData(coverImageId = 5))
 		val cover = ImageDef(id = 5, name = "Cover", fileExtension = "png")
@@ -394,7 +394,7 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 			useCase().render(ExportOptions(format = format))
 		}
 
-		verify(exactly = 3) { imagesRepository.loadImageBytes(cover) }
+		verify(exactly = 2) { imagesRepository.loadImageBytes(cover) }
 	}
 
 	@Test
