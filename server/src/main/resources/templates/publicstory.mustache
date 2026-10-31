@@ -43,11 +43,11 @@
 			<!-- Story Content -->
 			{{#hasContent}}
 				<div class="story-reading-bar">
-					{{#hasPagination}}
+					{{#hasPageCount}}
 						<span class="page-indicator">
 							{{msg.admin_pagination_page}} {{currentPage}} {{msg.admin_pagination_of}} {{totalPages}}
 						</span>
-					{{/hasPagination}}
+					{{/hasPageCount}}
 					<div class="reader-tools" role="toolbar" aria-label="{{msg.story_read_tools_label}}">
 						{{> partials/reader-text-size}}
 					</div>

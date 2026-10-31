@@ -250,7 +250,9 @@ fun Route.publicStoryPage(
 									"estimatedReadingTime" to data.estimatedReadingTimeMinutes,
 									"currentPage" to data.currentPage,
 									"totalPages" to data.totalPages,
+									// The page nav also carries the way back to a cover; the count needs real pages.
 									"hasPagination" to (data.totalPages > 1 || coverImageUrl != null),
+									"hasPageCount" to (data.totalPages > 1),
 									"hasNextPage" to data.hasNextPage,
 									"hasPrevPage" to (data.hasPrevPage || coverImageUrl != null),
 									"prevIsCover" to (!data.hasPrevPage && coverImageUrl != null),

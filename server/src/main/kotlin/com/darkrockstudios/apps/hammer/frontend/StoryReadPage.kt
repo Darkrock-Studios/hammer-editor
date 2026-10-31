@@ -48,16 +48,16 @@ fun Route.storyReadPage(
 			val projectSegment = ProjectName.projectSegment(project.name, project.uuid)
 			val projectDef = ProjectDefinition(name = project.name, uuid = projectId)
 			val chapterParam = call.request.queryParameters["chapter"]
-			val coverUrl = storyCoverImageId(serverProjectDataRepository, storyImageService, session.userId, projectDef)
+			val coverImageUrl = storyCoverImageId(serverProjectDataRepository, storyImageService, session.userId, projectDef)
 				?.let { "/story/$projectSegment/image/$it" }
-			val showCover = chapterParam == null && coverUrl != null
+			val showCover = chapterParam == null && coverImageUrl != null
 			val requestedChapter = chapterParam?.toIntOrNull() ?: 1
 
 			val (status, content) = when (
 				val result = storyRendererService.renderChapter(session.userId, projectId, requestedChapter)
 			) {
 				is ChapterRenderResult.Success -> {
-					val model = call.readerModel(result.render, projectSegment, project.uuid, coverUrl, showCover)
+					val model = call.readerModel(result.render, projectSegment, project.uuid, coverImageUrl, showCover)
 					serverProjectDataRepository.loadProjectLanguage(
 						userId = session.userId,
 						projectDef = projectDef,
@@ -91,7 +91,7 @@ private suspend fun ApplicationCall.readerModel(
 	render: ChapterRender,
 	projectSegment: String,
 	projectUuid: String,
-	coverUrl: String?,
+	coverImageUrl: String?,
 	showCover: Boolean,
 ): MutableMap<String, Any> {
 	val chapter = render.chapter
@@ -122,12 +122,12 @@ private suspend fun ApplicationCall.readerModel(
 
 	val total = render.chapters.size
 	val coverLabel = localizedMsg(locale, "story_read_cover")
-	if (showCover && coverUrl != null) {
+	if (showCover && coverImageUrl != null) {
 		model.putAll(
 			mapOf(
 				"title" to "${render.projectName} · Hammer",
 				"isCover" to true,
-				"coverImageUrl" to coverUrl,
+				"coverImageUrl" to coverImageUrl,
 				"position" to coverLabel,
 				"toc" to tableOfContents(render, readUrl, current = null, currentScenes = emptyList(), ::named, locale),
 				"hasCoverEntry" to true,
@@ -154,7 +154,7 @@ private suspend fun ApplicationCall.readerModel(
 	}
 	val currentScenes = scenes.map { mapOf("id" to it.getValue("id"), "name" to it.getValue("name")) }
 	val toc = tableOfContents(render, readUrl, chapter.number, currentScenes, ::named, locale)
-	val prevIsCover = chapter.number == 1 && coverUrl != null
+	val prevIsCover = chapter.number == 1 && coverImageUrl != null
 
 	model.putAll(
 		mapOf(
@@ -167,7 +167,7 @@ private suspend fun ApplicationCall.readerModel(
 			"scenes" to scenes,
 			"hasScenes" to scenes.isNotEmpty(),
 			"toc" to toc,
-			"hasCoverEntry" to (coverUrl != null),
+			"hasCoverEntry" to (coverImageUrl != null),
 			"coverLabel" to coverLabel,
 			"hasPrev" to (chapter.number > 1 || prevIsCover),
 			"prevUrl" to if (prevIsCover) readUrl else "$readUrl?chapter=${chapter.number - 1}",

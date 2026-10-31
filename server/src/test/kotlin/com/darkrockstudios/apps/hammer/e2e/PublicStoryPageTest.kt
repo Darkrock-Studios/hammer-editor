@@ -406,6 +406,33 @@ class PublicStoryPageTest : EndToEndTest() {
 	}
 
 	@Test
+	fun `a story without a cover starts on its prose with nothing before it`(): Unit = runBlocking {
+		doStartServer()
+		seedStory()
+		grantAccess(password = null)
+
+		val body = client().get(storyPath()).bodyAsText().unescaped()
+
+		assertTrue(body.contains("test content 1"), body)
+		assertFalse(body.contains("reader-cover__image"))
+		assertFalse(body.contains("pagination-button prev\""), "nothing comes before the first page")
+		assertTrue(Regex("""<link rel="canonical" href="[^"]*/a/$penName/$segment">""").containsMatchIn(body))
+	}
+
+	@Test
+	fun `a one-page story with a cover links back to it without a page count`(): Unit = runBlocking {
+		doStartServer()
+		seedStory()
+		grantAccess(password = null)
+		seedCover()
+
+		val body = client().get(pagePath(1)).bodyAsText()
+
+		assertTrue(body.contains("pagination-button prev\""), body)
+		assertFalse(body.contains("Page 1 of 1"), "a single page needs no count")
+	}
+
+	@Test
 	fun `a page of prose offers text size controls`(): Unit = runBlocking {
 		doStartServer()
 		seedStory()

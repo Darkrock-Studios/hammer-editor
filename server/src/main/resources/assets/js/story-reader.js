@@ -16,7 +16,7 @@
  *    spends a few seconds on each of several pages still crosses the threshold.
  *
  * The dwell math lives in story-reader-logic.js (DOM-free, unit-tested);
- * createDwellTracker is a global here, loaded as page_pre_script before this
+ * createDwellTracker is a global here, loaded from page_pre_scripts before this
  * file. This file is just the timers, Visibility API, storage, and beacon.
  *
  * This is a heuristic, not a guarantee — it just filters the obvious bounces.

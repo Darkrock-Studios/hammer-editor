@@ -15,9 +15,11 @@
 	</span>
 		{{/hasPrevPage}}
 
-		<span class="pagination-info">
-		{{msg.admin_pagination_page}} {{currentPage}} {{msg.admin_pagination_of}} {{totalPages}}
-	</span>
+		{{#hasPageCount}}
+			<span class="pagination-info">
+				{{msg.admin_pagination_page}} {{currentPage}} {{msg.admin_pagination_of}} {{totalPages}}
+			</span>
+		{{/hasPageCount}}
 
 		{{#hasNextPage}}
 			<a href="{{nextPageUrl}}" class="pagination-button next">
