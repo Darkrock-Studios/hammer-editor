@@ -1,5 +1,14 @@
 # Changelog
 
+## [4.0.0] - Unreleased
+
+New features
+- Export: Word export produces Standard Manuscript Format for submitting to editors, agents and publishers. A title page (or a short story first page) with your contact details and word count, double spacing, a running header, and `#` between scenes. Options for the short story layout and Classic (Courier)
+
+Improvements
+- Export: Word files open more reliably in other word processors
+
+
 ## [3.12.1] - 2026-10-24
 
 - Fix crash with syncthing conflict files
