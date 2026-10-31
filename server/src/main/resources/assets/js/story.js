@@ -1,6 +1,6 @@
 /**
  * Story Page JavaScript
- * Handles settings panel interactions, copy URL functionality, and share dialog
+ * Handles the continue-reading link, copy URL functionality, and share dialog
  */
 
 // Top-level functions in this file are wired to HTML elements from mustache
@@ -9,29 +9,33 @@
 /* global htmx, nextToggleState, allSelected, reviewCountLabel, canSendReview */
 
 document.addEventListener('DOMContentLoaded', function () {
-	initSettingsPanel();
+	initContinueReading();
 	initCopyUrl();
 	initShareDialog();
 	initPublishWarning();
-	initSceneSelector();
 });
 
 /**
- * Initialize the collapsible settings panel
+ * Offer to pick up at the chapter the reader page last recorded for this story. The storage key
+ * matches lastChapterKey in story-read-logic.js.
  */
-function initSettingsPanel() {
-	const toggleBtn = document.getElementById('settings-toggle-btn');
-	const settingsContent = document.getElementById('settings-content');
+function initContinueReading() {
+	const actions = document.getElementById('story-read-actions');
+	const link = actions && actions.querySelector('.story-hero__continue');
+	if (!link) return;
 
-	if (!toggleBtn || !settingsContent) return;
+	let chapter = null;
+	try {
+		chapter = parseInt(localStorage.getItem('hammer.reader.lastChapter:' + actions.dataset.projectKey), 10);
+	} catch (err) {
+		return;
+	}
+	// Chapter one is where Read already starts.
+	if (!(chapter > 1)) return;
 
-	toggleBtn.addEventListener('click', function () {
-		const isExpanded = toggleBtn.getAttribute('aria-expanded') === 'true';
-
-		toggleBtn.setAttribute('aria-expanded', !isExpanded);
-		settingsContent.setAttribute('aria-hidden', isExpanded);
-		settingsContent.classList.toggle('open', !isExpanded);
-	});
+	link.href = link.dataset.readUrl + '?chapter=' + chapter;
+	link.textContent = link.dataset.continueLabel.replace('{0}', String(chapter));
+	link.hidden = false;
 }
 
 /**
@@ -222,21 +226,6 @@ function confirmPublish() {
 			swap: 'outerHTML'
 		});
 	}, 220);
-}
-
-/**
- * Initialize scene selector functionality
- * Scrolls content to top when a new scene is loaded
- */
-function initSceneSelector() {
-	const contentArea = document.getElementById('story-content-area');
-	if (!contentArea) return;
-
-	// Listen for HTMX swap events on the content area
-	contentArea.addEventListener('htmx:afterSwap', function () {
-		// Smooth scroll to the top of the content area
-		contentArea.scrollIntoView({behavior: 'smooth', block: 'start'});
-	});
 }
 
 /* ===== Editorial Review dialog ===== */

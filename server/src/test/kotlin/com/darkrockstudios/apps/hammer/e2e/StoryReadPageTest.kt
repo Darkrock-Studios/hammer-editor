@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.e2e.util.WebEndToEndTest
 import com.darkrockstudios.apps.hammer.frontend.utils.ProjectName
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
+import io.ktor.client.request.header
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
@@ -18,7 +19,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.uuid.Uuid
 
-/** The author's chapter reader at /story/{project}/read. */
+/** The author's story page at /story/{project} and its chapter reader at /story/{project}/read. */
 class StoryReadPageTest : WebEndToEndTest() {
 
 	private val email = "jane@test.com"
@@ -67,6 +68,52 @@ class StoryReadPageTest : WebEndToEndTest() {
 
 	/** The page with Mustache's attribute escaping of `=` undone, so links read as written. */
 	private suspend fun HttpResponse.unescapedBody(): String = bodyAsText().replace("&#61;", "=")
+
+	@Test
+	fun `dashboard - shows headline numbers and a way in, not the prose`(): Unit = runBlocking {
+		doStartServer()
+		seedStory()
+
+		login(email, password).use { author ->
+			val response = author.get(route("story/$projectSegment"))
+			val body = response.unescapedBody()
+
+			assertEquals(HttpStatusCode.OK, response.status)
+			// 5 + 3 + 5 words across three scenes in two chapters.
+			assertTrue(Regex("""Words</dt>\s*<dd class="story-stat__value">13<""").containsMatchIn(body), body)
+			assertTrue(Regex("""Chapters</dt>\s*<dd class="story-stat__value">2<""").containsMatchIn(body))
+			assertTrue(Regex("""Scenes</dt>\s*<dd class="story-stat__value">3<""").containsMatchIn(body))
+			assertTrue(body.contains("""href="/story/$projectSegment/read" class="btn btn--accent story-hero__read""""))
+			assertFalse(body.contains("The train came in late."), "the dashboard is not a reader")
+		}
+	}
+
+	@Test
+	fun `dashboard - an empty story offers nothing to read`(): Unit = runBlocking {
+		doStartServer()
+		seedWhitelistedAccount(email, password)
+		E2eTestData.createProject(TestProject(name = projectNameText, uuid = projectUuid, userId = userId()), database())
+
+		login(email, password).use { author ->
+			val body = author.get(route("story/$projectSegment")).bodyAsText()
+
+			assertFalse(body.contains("story-hero__read"), body)
+			assertTrue(body.contains("doesn&#39;t have any scenes yet") || body.contains("doesn't have any scenes yet"), body)
+		}
+	}
+
+	@Test
+	fun `dashboard - the old scene fragment route is gone`(): Unit = runBlocking {
+		doStartServer()
+		seedStory()
+
+		login(email, password).use { author ->
+			val response = author.get(route("story/$projectSegment/scene?sceneId=2")) {
+				header("HX-Request", "true")
+			}
+			assertEquals(HttpStatusCode.NotFound, response.status)
+		}
+	}
 
 	@Test
 	fun `a signed-out visitor is sent to log in`(): Unit = runBlocking {

@@ -14,29 +14,9 @@
 	box-sizing: border-box;
 }
 
-/* Story Layout - Side by side on wide screens */
-.story-layout {
-	display: flex;
-	flex-direction: column-reverse;
-	gap: 1.5rem;
-}
-
 @media only screen and (min-width: 1024px) {
-	.story-layout {
-		flex-direction: row;
-		align-items: flex-start;
-	}
-
 	.story-content {
-		flex: 1;
 		max-width: 800px;
-	}
-
-	.story-sidebar {
-		position: sticky;
-		top: 100px;
-		width: 320px;
-		flex-shrink: 0;
 	}
 }
 
@@ -78,6 +58,143 @@
 	margin: 0;
 	padding-bottom: 1rem;
 	border-bottom: 3px solid var(--accent);
+}
+
+/* ========================================
+   Story Dashboard
+   The author's overview of one story
+   ======================================== */
+
+.story-hero {
+	display: grid;
+	gap: 1.5rem;
+	align-items: end;
+	margin-bottom: 1.5rem;
+}
+
+.story-hero--cover {
+	grid-template-columns: auto 1fr;
+}
+
+.story-hero .story-cover {
+	margin-bottom: 0;
+	max-height: 200px;
+}
+
+.story-hero__body {
+	min-width: 0;
+}
+
+.story-hero__actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.75rem 1.25rem;
+	margin-top: 1.25rem;
+}
+
+.story-hero__read {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	text-decoration: none;
+}
+
+.story-hero__continue {
+	font-family: 'Kingthings Typewriter', monospace;
+	color: var(--accent-dark);
+	text-decoration-color: rgba(217, 119, 6, 0.4);
+	text-underline-offset: 0.2em;
+}
+
+.story-hero__continue:hover {
+	color: var(--accent);
+}
+
+.story-stats-strip {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+	margin: 0 0 1.5rem;
+	background: var(--surface-elevated);
+	border: 2px solid var(--neutral-200);
+	border-radius: 0.5rem;
+	box-shadow: var(--shadow-sm);
+	overflow: hidden;
+}
+
+.story-stat {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+	padding: 1rem 1.25rem;
+	border-left: 1px dashed var(--neutral-200);
+	margin-left: -1px;
+}
+
+.story-stat__label {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.75rem;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--text-secondary);
+}
+
+.story-stat__value {
+	margin: 0;
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 1.5rem;
+	line-height: 1.2;
+	color: var(--text-primary);
+	font-variant-numeric: tabular-nums;
+}
+
+.story-stat--sync .story-stat__value {
+	font-family: 'Lora', Georgia, serif;
+	font-size: 1rem;
+	line-height: 1.6;
+}
+
+.story-empty--panel {
+	margin-bottom: 1.5rem;
+	background: var(--surface-elevated);
+	border: 2px dashed var(--neutral-200);
+	border-radius: 0.5rem;
+}
+
+.story-panels {
+	display: grid;
+	gap: 1rem;
+	align-items: start;
+}
+
+@media only screen and (min-width: 900px) {
+	.story-panels {
+		grid-template-columns: 1fr 1fr;
+	}
+}
+
+.story-panels__column {
+	min-width: 0;
+}
+
+/* The publish partial brings its own section padding and rule for the old collapsible panel */
+.story-info-panel--sharing .settings-section {
+	padding: 0;
+	border-top: none;
+}
+
+.story-info-panel--sharing .publish-setting {
+	padding-top: 0;
+}
+
+@media only screen and (max-width: 600px) {
+	.story-hero--cover {
+		grid-template-columns: 1fr;
+	}
+
+	.story-title {
+		font-size: 2rem;
+	}
 }
 
 /* ========================================
@@ -397,150 +514,6 @@
 	font-style: italic;
 }
 
-/* ========================================
-   Story Main Container
-   Wraps scene selector and content
-   ======================================== */
-
-.story-main {
-	flex: 1;
-	display: flex;
-	flex-direction: column;
-	gap: 1rem;
-	min-width: 0;
-}
-
-@media only screen and (min-width: 1024px) {
-	.story-main {
-		max-width: 800px;
-	}
-}
-
-/* ========================================
-   Scene Selector
-   Dropdown to select individual scenes
-   ======================================== */
-
-.scene-selector {
-	display: flex;
-	align-items: center;
-	gap: 1rem;
-	padding: 1rem 1.25rem;
-	background: linear-gradient(135deg, rgba(255, 253, 250, 0.95) 0%, rgba(255, 250, 245, 0.98) 100%);
-	border: 2px solid var(--neutral-200);
-	border-radius: 0.5rem;
-	box-shadow: var(--shadow-sm);
-	position: relative;
-}
-
-/* Decorative accent bar at top */
-.scene-selector::before {
-	content: '';
-	position: absolute;
-	top: 0;
-	left: 0;
-	right: 0;
-	height: 3px;
-	background: linear-gradient(90deg,
-	var(--neutral-300) 0%,
-	var(--accent) 20%,
-	var(--accent) 80%,
-	var(--neutral-300) 100%
-	);
-	opacity: 0.7;
-	border-radius: 0.5rem 0.5rem 0 0;
-}
-
-.scene-selector__label {
-	display: flex;
-	align-items: center;
-	gap: 0.5rem;
-	font-family: 'Kingthings Typewriter', monospace;
-	font-size: 0.9375rem;
-	color: var(--text-secondary);
-	white-space: nowrap;
-}
-
-.scene-selector__label i {
-	color: var(--accent);
-	font-size: 1rem;
-}
-
-.scene-selector__dropdown {
-	flex: 1;
-	padding: 0.625rem 2.5rem 0.625rem 0.875rem;
-	font-family: 'Lora', Georgia, serif;
-	font-size: 0.9375rem;
-	color: var(--text-primary);
-	background-color: white;
-	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2378716c' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
-	background-repeat: no-repeat;
-	background-position: right 0.75rem center;
-	background-size: 12px;
-	border: 2px solid var(--neutral-200);
-	border-radius: 0.375rem;
-	cursor: pointer;
-	transition: all var(--transition-base);
-	appearance: none;
-	-webkit-appearance: none;
-	-moz-appearance: none;
-}
-
-.scene-selector__dropdown:hover {
-	border-color: var(--neutral-300);
-}
-
-.scene-selector__dropdown:focus {
-	outline: none;
-	border-color: var(--accent);
-	box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.1);
-}
-
-/* Group options styling (bold for chapters) */
-.scene-selector__dropdown option.scene-option--group {
-	font-weight: 600;
-	color: var(--text-primary);
-}
-
-/* Loading indicator */
-.scene-loading {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: 1.5rem;
-	height: 1.5rem;
-	color: var(--accent);
-	opacity: 0;
-	transition: opacity 0.2s ease;
-}
-
-.scene-loading.htmx-request {
-	opacity: 1;
-}
-
-/* Responsive scene selector */
-@media only screen and (max-width: 600px) {
-	.scene-selector {
-		flex-direction: column;
-		align-items: stretch;
-		gap: 0.75rem;
-	}
-
-	.scene-selector__label {
-		justify-content: center;
-	}
-
-	.scene-selector__dropdown {
-		width: 100%;
-	}
-
-	.scene-loading {
-		position: absolute;
-		top: 0.5rem;
-		right: 0.5rem;
-	}
-}
-
 /* Story Error Page */
 .story-error {
 	text-align: center;
@@ -631,6 +604,8 @@
 }
 
 .info-panel-title {
+	margin: 0;
+	line-height: 1.4;
 	font-family: 'Kingthings Typewriter', monospace;
 	font-size: 0.9375rem;
 	font-weight: 500;
@@ -724,136 +699,6 @@
 	font-size: 0.6875rem;
 	font-style: italic;
 	color: var(--text-secondary);
-}
-
-.info-item {
-	display: flex;
-	justify-content: space-between;
-	align-items: baseline;
-	padding: 0.5rem 0;
-	border-bottom: 1px dotted var(--neutral-200);
-}
-
-.info-item:last-child {
-	border-bottom: none;
-	padding-bottom: 0;
-}
-
-.info-item:first-child {
-	padding-top: 0;
-}
-
-.info-label {
-	font-family: 'Kingthings Typewriter', monospace;
-	font-size: 0.8125rem;
-	color: var(--text-secondary);
-}
-
-.info-value {
-	font-family: 'Lora', Georgia, serif;
-	font-size: 0.9375rem;
-	color: var(--text-primary);
-	font-weight: 500;
-}
-
-/* ========================================
-   Story Settings Panel
-   A refined, collapsible panel with
-   editorial-inspired design elements
-   ======================================== */
-
-.story-settings-panel {
-	background: linear-gradient(135deg, rgba(255, 253, 250, 0.95) 0%, rgba(255, 250, 245, 0.98) 100%);
-	border: 2px solid var(--neutral-200);
-	border-radius: 0.5rem;
-	overflow: hidden;
-	box-shadow: var(--shadow-sm);
-	position: relative;
-}
-
-/* Decorative top accent bar */
-.story-settings-panel::before {
-	content: '';
-	position: absolute;
-	top: 0;
-	left: 0;
-	right: 0;
-	height: 3px;
-	background: linear-gradient(90deg,
-	var(--neutral-300) 0%,
-	var(--accent) 20%,
-	var(--accent) 80%,
-	var(--neutral-300) 100%
-	);
-	opacity: 0.7;
-}
-
-/* Settings Toggle Button */
-.settings-toggle-btn {
-	width: 100%;
-	display: flex;
-	align-items: center;
-	gap: 0.75rem;
-	padding: 1rem 1.25rem;
-	background: transparent;
-	border: none;
-	cursor: pointer;
-	font-family: 'Kingthings Typewriter', monospace;
-	font-size: 1rem;
-	color: var(--text-secondary);
-	transition: all var(--transition-base);
-	text-align: left;
-}
-
-.settings-toggle-btn:hover {
-	background: rgba(217, 119, 6, 0.05);
-	color: var(--text-primary);
-}
-
-.settings-toggle-icon {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: 2rem;
-	height: 2rem;
-	background: var(--neutral-100);
-	border-radius: 50%;
-	color: var(--accent);
-	transition: all var(--transition-base);
-}
-
-.settings-toggle-btn:hover .settings-toggle-icon {
-	background: var(--accent);
-	color: white;
-	transform: rotate(90deg);
-}
-
-.settings-toggle-text {
-	flex: 1;
-	font-weight: 500;
-}
-
-.settings-chevron {
-	font-size: 0.75rem;
-	color: var(--neutral-400);
-	transition: transform var(--transition-base);
-}
-
-.settings-toggle-btn[aria-expanded="true"] .settings-chevron {
-	transform: rotate(180deg);
-}
-
-/* Settings Content Area */
-.settings-content {
-	max-height: 0;
-	overflow: hidden;
-	transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1),
-	padding 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-	background: rgba(255, 255, 255, 0.5);
-}
-
-.settings-content.open {
-	max-height: 2000px;
 }
 
 .settings-section {
@@ -1104,13 +949,6 @@
 	.copy-url-btn {
 		border-radius: 0 0 0.375rem 0.375rem;
 		padding: 0.75rem;
-	}
-}
-
-/* On mobile, ensure sidebar comes after content */
-@media only screen and (max-width: 1023px) {
-	.story-sidebar {
-		width: 100%;
 	}
 }
 

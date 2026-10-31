@@ -268,14 +268,10 @@ class StoryImagesTest : WebEndToEndTest() {
 		seedStory()
 		val authed = login(email, password)
 		try {
-			val page = authed.get(route("story/$projectSegment")).bodyAsText()
+			val page = authed.get(route("story/$projectSegment/read?chapter=1")).bodyAsText()
 			assertTrue(page.contains("""src="/story/$projectSegment/image/2""""), page)
+			assertTrue(page.contains("""src="/story/$projectSegment/image/4""""), page)
 			assertFalse(page.contains("hammer://"), "no reference may reach the browser unresolved")
-
-			val scene = authed.get(route("story/$projectSegment/scene?sceneId=1")) {
-				header("HX-Request", "true")
-			}.bodyAsText()
-			assertTrue(scene.contains("""src="/story/$projectSegment/image/4""""), scene)
 
 			val image = authed.get(route("story/$projectSegment/image/3"))
 			assertEquals(HttpStatusCode.OK, image.status)
