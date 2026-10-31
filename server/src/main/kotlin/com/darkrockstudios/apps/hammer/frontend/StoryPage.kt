@@ -5,13 +5,16 @@ import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.database.ReaderDay
 import com.darkrockstudios.apps.hammer.frontend.utils.ProjectName
 import com.darkrockstudios.apps.hammer.frontend.utils.Toast
+import com.darkrockstudios.apps.hammer.frontend.utils.applyRevalidationHeaders
 import com.darkrockstudios.apps.hammer.frontend.utils.authenticatedOnly
 import com.darkrockstudios.apps.hammer.frontend.utils.findProjectByUrlSegment
 import com.darkrockstudios.apps.hammer.frontend.utils.formatInstant
 import com.darkrockstudios.apps.hammer.frontend.utils.formatSyncDate
 import com.darkrockstudios.apps.hammer.frontend.utils.getLocale
 import com.darkrockstudios.apps.hammer.frontend.utils.localizedMsg
+import com.darkrockstudios.apps.hammer.frontend.utils.matchesETag
 import com.darkrockstudios.apps.hammer.frontend.utils.msg
+import com.darkrockstudios.apps.hammer.frontend.utils.pageETag
 import com.darkrockstudios.apps.hammer.frontend.utils.renderTemplate
 import com.darkrockstudios.apps.hammer.frontend.utils.requireUser
 import com.darkrockstudios.apps.hammer.frontend.utils.respondHtmlWithToast
@@ -23,11 +26,10 @@ import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.project.ServerProjectDataRepository
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
-import com.darkrockstudios.apps.hammer.story.SceneHierarchyResult
 import com.darkrockstudios.apps.hammer.story.StoryImageLinks
 import com.darkrockstudios.apps.hammer.story.StoryImageService
-import com.darkrockstudios.apps.hammer.story.StoryOverviewResult
 import com.darkrockstudios.apps.hammer.story.StoryRendererService
+import com.darkrockstudios.apps.hammer.story.StoryResult
 import com.darkrockstudios.apps.hammer.utilities.ServerResult
 import com.darkrockstudios.apps.hammer.utilities.truncateToUtcDay
 import com.github.aymanizz.ktori18n.R
@@ -103,94 +105,103 @@ fun Route.storyPage(
 				val projectId = ProjectId(project.uuid)
 				val projectNameForUrl = ProjectName.projectSegment(project.name, project.uuid)
 
+				val account = accountsRepository.getAccount(session.userId)
+				val hasPenName = !account.pen_name.isNullOrBlank()
+
+				val isPublished = projectAccessRepository.isPublished(session.userId, projectId)
+				val hasAnyAccess = projectAccessRepository.hasAnyAccess(session.userId, projectId)
+				val accessEntries = projectAccessRepository.getPrivateAccessEntries(session.userId, projectId)
+
+				val numericProjectId = projectsRepository.findProjectRowId(session.userId, projectId)
+				val totalReaders = numericProjectId
+					?.let { storyReaderRepository.totalReadersForProject(it) } ?: 0L
+				val readerBars = numericProjectId
+					?.let { storyReaderRepository.dailyReadersForProject(it, clock.now() - 30.days) }
+					?.let { buildReaderBars(it, clock.now()) }
+					?: emptyList()
+				val publicUrl = if (hasAnyAccess && hasPenName) {
+					call.constructPublicUrl(account.pen_name, project.name, project.uuid)
+				} else {
+					""
+				}
+
+				val reviewModels = call.reviewCards(reviewRepository, session.userId, projectId)
+				val coverImageId = storyCoverImageId(
+					serverProjectDataRepository,
+					storyImageService,
+					session.userId,
+					ProjectDefinition(name = project.name, uuid = projectId),
+				)
+
+				val locale = call.getLocale()
+				// Everything but the story's own numbers, which the story version below stands in for.
+				val model = call.withDefaults(
+					mapOf(
+						"page_stylesheet" to "/assets/css/story.css",
+						"page_script" to "/assets/js/story.js",
+						"page_pre_scripts" to listOf(
+							"/assets/js/review-form-logic.js",
+							"/assets/js/story-read-logic.js",
+						),
+						"reviews" to reviewModels,
+						"hasReviews" to reviewModels.isNotEmpty(),
+						"projectName" to project.name,
+						"projectNameForUrl" to projectNameForUrl,
+						"projectKey" to project.uuid,
+						"readUrl" to "/story/$projectNameForUrl/read",
+						"hasPenName" to hasPenName,
+						"isPublished" to isPublished,
+						"hasAnyAccess" to hasAnyAccess,
+						"publicUrl" to publicUrl,
+						"lastSync" to formatSyncDate(project.lastSync),
+						"accessEntries" to accessEntries,
+						"hasAccessEntries" to accessEntries.isNotEmpty(),
+						"hasReaderStats" to (numericProjectId != null),
+						"totalReaders" to NumberFormat.getIntegerInstance(locale).format(totalReaders),
+						"readerBars" to readerBars,
+						"hasReaderBars" to readerBars.any { (it["height"] as Int) > 0 },
+					)
+				)
+				if (coverImageId != null) {
+					model["coverImageUrl"] = authorImageUrl(projectNameForUrl, coverImageId)
+				}
+				if (numericProjectId != null) {
+					model.putAll(call.kudosPanelModel(storyKudosRepository, numericProjectId, isPublished, model))
+				}
+
+				// An unchanged story is answered without reading or counting its scenes.
+				val etag = storyRendererService.prepareExport(session.userId, projectId)
+					?.let { pageETag(model, it.version) }
+				if (etag != null && call.matchesETag(etag)) {
+					call.applyRevalidationHeaders(etag)
+					call.respond(HttpStatusCode.NotModified)
+					return@get
+				}
+
 				val (status, content) = when (
 					val result = storyRendererService.storyOverview(session.userId, projectId)
 				) {
-					is StoryOverviewResult.Success -> {
-						val overview = result.overview
-						val account = accountsRepository.getAccount(session.userId)
-						val hasPenName = !account.pen_name.isNullOrBlank()
-
-						val isPublished = projectAccessRepository.isPublished(session.userId, projectId)
-						val hasAnyAccess = projectAccessRepository.hasAnyAccess(session.userId, projectId)
-						val accessEntries = projectAccessRepository.getPrivateAccessEntries(session.userId, projectId)
-
-						val numericProjectId = projectsRepository.findProjectRowId(session.userId, projectId)
-						val totalReaders = numericProjectId
-							?.let { storyReaderRepository.totalReadersForProject(it) } ?: 0L
-						val readerBars = numericProjectId
-							?.let { storyReaderRepository.dailyReadersForProject(it, clock.now() - 30.days) }
-							?.let { buildReaderBars(it, clock.now()) }
-							?: emptyList()
-						val publicUrl = if (hasAnyAccess && hasPenName) {
-							call.constructPublicUrl(account.pen_name, overview.projectName, project.uuid)
-						} else {
-							""
-						}
-
-						val reviewModels = call.reviewCards(reviewRepository, session.userId, projectId)
-						val coverImageId = storyCoverImageId(
-							serverProjectDataRepository,
-							storyImageService,
-							session.userId,
-							ProjectDefinition(name = project.name, uuid = projectId),
-						)
-
-						val locale = call.getLocale()
-						val model = call.withDefaults(
+					is StoryResult.Success -> {
+						val overview = result.value
+						model.putAll(
 							mapOf(
-								"page_stylesheet" to "/assets/css/story.css",
-								"page_script" to "/assets/js/story.js",
-								"page_pre_scripts" to listOf(
-									"/assets/js/review-form-logic.js",
-									"/assets/js/story-read-logic.js",
-								),
-								"reviews" to reviewModels,
-								"hasReviews" to reviewModels.isNotEmpty(),
-								"projectName" to overview.projectName,
-								"projectNameForUrl" to projectNameForUrl,
-								"projectKey" to project.uuid,
-								"readUrl" to "/story/$projectNameForUrl/read",
 								"hasChapters" to overview.chapters.isNotEmpty(),
 								"hasWords" to (overview.totalWordCount > 0),
 								"complete" to overview.complete,
-								"hasPenName" to hasPenName,
-								"isPublished" to isPublished,
-								"hasAnyAccess" to hasAnyAccess,
-								"publicUrl" to publicUrl,
-								"lastSync" to formatSyncDate(project.lastSync),
 								"wordCount" to NumberFormat.getIntegerInstance(locale).format(overview.totalWordCount),
 								"chapterCount" to overview.chapters.size,
 								"sceneCount" to overview.sceneCount,
 								"readingTime" to readingTime(locale, overview.readingTimeMinutes),
-								"accessEntries" to accessEntries,
-								"hasAccessEntries" to accessEntries.isNotEmpty(),
-								"hasReaderStats" to (numericProjectId != null),
-								"totalReaders" to NumberFormat.getIntegerInstance(locale).format(totalReaders),
-								"readerBars" to readerBars,
-								"hasReaderBars" to readerBars.any { (it["height"] as Int) > 0 },
 							)
 						)
-						if (coverImageId != null) {
-							model["coverImageUrl"] = "/story/$projectNameForUrl/image/$coverImageId"
-						}
-						if (numericProjectId != null) {
-							model.putAll(call.kudosPanelModel(storyKudosRepository, numericProjectId, isPublished, model))
-						}
+						// A scene that failed to load would otherwise be pinned in the browser until an edit.
+						if (overview.complete) etag?.let { call.applyRevalidationHeaders(it) }
 						HttpStatusCode.OK to MustacheContent("story.mustache", model)
 					}
 
-					is StoryOverviewResult.ProjectNotFound -> HttpStatusCode.NotFound to null
+					is StoryResult.ProjectNotFound -> HttpStatusCode.NotFound to null
 
-					is StoryOverviewResult.Error -> {
-						val model = call.withDefaults(
-							mapOf(
-								"page_stylesheet" to "/assets/css/story.css",
-								"errorMessage" to result.message,
-							)
-						)
-						HttpStatusCode.InternalServerError to MustacheContent("storyerror.mustache", model)
-					}
+					is StoryResult.Error -> HttpStatusCode.InternalServerError to call.storyErrorContent(result.message)
 				}
 
 				if (content == null) {
@@ -319,7 +330,7 @@ fun Route.storyPage(
 				// A failed tree load must not render as an innocent empty tree: with the limit
 				// toggle on, an empty tree pins the submit button disabled with no explanation.
 				val scenes = when (hierarchyResult) {
-					is SceneHierarchyResult.Success -> hierarchyResult.scenes
+					is StoryResult.Success -> hierarchyResult.value.scenes
 					else -> {
 						respondHtmlWithToast(
 							content = "",
@@ -552,8 +563,22 @@ private fun buildReaderBars(daily: List<ReaderDay>, now: Instant): List<Map<Stri
 	}
 }
 
+/** The author-only address of image [imageId] in the story at [projectNameForUrl]. */
+internal fun authorImageUrl(projectNameForUrl: String, imageId: Int): String =
+	"/story/$projectNameForUrl/image/$imageId"
+
 internal suspend fun resolveAuthorImages(html: String, projectNameForUrl: String): String =
-	StoryImageLinks.resolve(html) { imageId -> "/story/$projectNameForUrl/image/$imageId" }
+	StoryImageLinks.resolve(html) { imageId -> authorImageUrl(projectNameForUrl, imageId) }
+
+/** The story error page for [message], built on [model] when the page already has one. */
+internal suspend fun ApplicationCall.storyErrorContent(
+	message: String,
+	model: MutableMap<String, Any>? = null,
+): MustacheContent {
+	val page = model ?: withDefaults(mapOf("page_stylesheet" to "/assets/css/story.css"))
+	page["errorMessage"] = message
+	return MustacheContent("storyerror.mustache", page)
+}
 
 fun ApplicationCall.constructPublicUrl(penName: String, projectName: String, projectUuid: String): String {
 	return buildPublicUrl(

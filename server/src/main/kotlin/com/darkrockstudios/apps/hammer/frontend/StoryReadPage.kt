@@ -3,18 +3,21 @@ package com.darkrockstudios.apps.hammer.frontend
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.romanNumeral
 import com.darkrockstudios.apps.hammer.frontend.utils.ProjectName
+import com.darkrockstudios.apps.hammer.frontend.utils.applyRevalidationHeaders
 import com.darkrockstudios.apps.hammer.frontend.utils.authenticatedOnly
 import com.darkrockstudios.apps.hammer.frontend.utils.findProjectByUrlSegment
 import com.darkrockstudios.apps.hammer.frontend.utils.getLocale
 import com.darkrockstudios.apps.hammer.frontend.utils.localizedMsg
+import com.darkrockstudios.apps.hammer.frontend.utils.matchesETag
+import com.darkrockstudios.apps.hammer.frontend.utils.pageETag
 import com.darkrockstudios.apps.hammer.frontend.utils.requireUser
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.project.ServerProjectDataRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.story.ChapterRender
-import com.darkrockstudios.apps.hammer.story.ChapterRenderResult
 import com.darkrockstudios.apps.hammer.story.StoryImageService
 import com.darkrockstudios.apps.hammer.story.StoryRendererService
+import com.darkrockstudios.apps.hammer.story.StoryResult
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.mustache.MustacheContent
@@ -49,33 +52,57 @@ fun Route.storyReadPage(
 			val projectDef = ProjectDefinition(name = project.name, uuid = projectId)
 			val chapterParam = call.request.queryParameters["chapter"]
 			val coverUrl = storyCoverImageId(serverProjectDataRepository, storyImageService, session.userId, projectDef)
-				?.let { "/story/$projectSegment/image/$it" }
+				?.let { authorImageUrl(projectSegment, it) }
 			val showCover = chapterParam == null && coverUrl != null
 			val requestedChapter = chapterParam?.toIntOrNull() ?: 1
+			val readUrl = "/story/$projectSegment/read"
+
+			val model = call.withDefaults(
+				mapOf(
+					"page_stylesheet" to "/assets/css/story.css",
+					"page_pre_script" to "/assets/js/story-read-logic.js",
+					"page_script" to "/assets/js/story-read.js",
+					"projectKey" to project.uuid,
+					"dashboardUrl" to "/story/$projectSegment",
+					"readUrl" to readUrl,
+				)
+			)
+
+			// The page follows from the story's version and these inputs, so an unchanged chapter is
+			// answered without decrypting the manuscript. The data hash stands in for the language.
+			val etag = storyRendererService.prepareExport(session.userId, projectId)?.let {
+				pageETag(
+					model,
+					it.version,
+					chapterParam,
+					coverUrl,
+					serverProjectDataRepository.loadDataHash(session.userId, projectDef),
+				)
+			}
+			if (etag != null && call.matchesETag(etag)) {
+				call.applyRevalidationHeaders(etag)
+				call.respond(HttpStatusCode.NotModified)
+				return@get
+			}
 
 			val (status, content) = when (
 				val result = storyRendererService.renderChapter(session.userId, projectId, requestedChapter)
 			) {
-				is ChapterRenderResult.Success -> {
-					val model = call.readerModel(result.render, projectSegment, project.uuid, coverUrl, showCover)
+				is StoryResult.Success -> {
+					val render = result.value
+					call.addReaderModel(model, render, projectSegment, readUrl, coverUrl, showCover)
 					serverProjectDataRepository.loadProjectLanguage(
 						userId = session.userId,
 						projectDef = projectDef,
 					)?.let { model["storyLanguage"] = it }
+					// A scene that failed to load would otherwise be pinned in the browser until an edit.
+					if (render.complete) etag?.let { call.applyRevalidationHeaders(it) }
 					HttpStatusCode.OK to MustacheContent("story-read.mustache", model)
 				}
 
-				is ChapterRenderResult.ProjectNotFound -> HttpStatusCode.NotFound to null
+				is StoryResult.ProjectNotFound -> HttpStatusCode.NotFound to null
 
-				is ChapterRenderResult.Error -> {
-					val model = call.withDefaults(
-						mapOf(
-							"page_stylesheet" to "/assets/css/story.css",
-							"errorMessage" to result.message,
-						)
-					)
-					HttpStatusCode.InternalServerError to MustacheContent("storyerror.mustache", model)
-				}
+				is StoryResult.Error -> HttpStatusCode.InternalServerError to call.storyErrorContent(result.message)
 			}
 
 			if (content == null) {
@@ -87,32 +114,26 @@ fun Route.storyReadPage(
 	}
 }
 
-private suspend fun ApplicationCall.readerModel(
+/** Fills [model] with the chapter, or the cover, that [render] holds. */
+private suspend fun ApplicationCall.addReaderModel(
+	model: MutableMap<String, Any>,
 	render: ChapterRender,
 	projectSegment: String,
-	projectUuid: String,
+	readUrl: String,
 	coverUrl: String?,
 	showCover: Boolean,
-): MutableMap<String, Any> {
+) {
 	val chapter = render.chapter
-	val readUrl = "/story/$projectSegment/read"
-
-	val model = withDefaults(
+	model.putAll(
 		mapOf(
-			"page_stylesheet" to "/assets/css/story.css",
-			"page_pre_script" to "/assets/js/story-read-logic.js",
-			"page_script" to "/assets/js/story-read.js",
 			"projectName" to render.projectName,
-			"projectKey" to projectUuid,
-			"dashboardUrl" to "/story/$projectSegment",
-			"readUrl" to readUrl,
 			"complete" to render.complete,
 			"hasChapter" to (chapter != null),
 		)
 	)
 	if (chapter == null) {
 		model["title"] = "${render.projectName} · Hammer"
-		return model
+		return
 	}
 
 	// Resolved once: a long table of contents would otherwise look the locale up per chapter.
@@ -138,7 +159,7 @@ private suspend fun ApplicationCall.readerModel(
 				"nextUrl" to "$readUrl?chapter=1",
 			)
 		)
-		return model
+		return
 	}
 
 	val roman = romanNumeral(chapter.number)
@@ -176,7 +197,6 @@ private suspend fun ApplicationCall.readerModel(
 			"nextUrl" to "$readUrl?chapter=${chapter.number + 1}",
 		)
 	)
-	return model
 }
 
 private fun tableOfContents(

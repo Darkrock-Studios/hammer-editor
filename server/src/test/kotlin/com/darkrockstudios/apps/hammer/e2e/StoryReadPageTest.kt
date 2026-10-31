@@ -11,12 +11,15 @@ import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import korlibs.crypto.encoding.Base64
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlin.time.Clock
 import kotlin.uuid.Uuid
@@ -103,6 +106,49 @@ class StoryReadPageTest : WebEndToEndTest() {
 			assertTrue(Regex("""Scenes</dt>\s*<dd class="story-stat__value">3<""").containsMatchIn(body))
 			assertTrue(body.contains("""href="/story/$projectSegment/read" class="btn btn--accent story-hero__read""""))
 			assertFalse(body.contains("The train came in late."), "the dashboard is not a reader")
+		}
+	}
+
+	/** Rewrites scene 2's prose the way a sync would, so its stored hash changes too. */
+	private fun editArrival(content: String) {
+		database().serverDatabase.storyEntityQueries.deleteEntity(userId(), projectRowId(), 2L)
+		insert(scene(2, "Arrival", content, order = 0, path = listOf(0, 1)))
+	}
+
+	@Test
+	fun `dashboard - an unchanged story is answered 304, an edited one is not`(): Unit = runBlocking {
+		doStartServer()
+		seedStory()
+
+		login(email, password).use { author ->
+			val etag = assertNotNull(author.get(route("story/$projectSegment")).headers[HttpHeaders.ETag])
+
+			val again = author.get(route("story/$projectSegment")) { header(HttpHeaders.IfNoneMatch, etag) }
+			assertEquals(HttpStatusCode.NotModified, again.status)
+
+			editArrival("The train came in late, and then later still.")
+			val edited = author.get(route("story/$projectSegment")) { header(HttpHeaders.IfNoneMatch, etag) }
+			assertEquals(HttpStatusCode.OK, edited.status)
+			assertTrue(Regex("""Words</dt>\s*<dd class="story-stat__value">17<""").containsMatchIn(edited.bodyAsText()))
+		}
+	}
+
+	@Test
+	fun `an unchanged chapter is answered 304, an edited one is not`(): Unit = runBlocking {
+		doStartServer()
+		seedStory()
+
+		login(email, password).use { author ->
+			val etag = assertNotNull(author.get(readPath("?chapter=1")).headers[HttpHeaders.ETag])
+
+			val again = author.get(readPath("?chapter=1")) { header(HttpHeaders.IfNoneMatch, etag) }
+			assertEquals(HttpStatusCode.NotModified, again.status)
+			assertNotEquals(etag, author.get(readPath("?chapter=2")).headers[HttpHeaders.ETag], "each chapter has its own")
+
+			editArrival("The train was early for once.")
+			val edited = author.get(readPath("?chapter=1")) { header(HttpHeaders.IfNoneMatch, etag) }
+			assertEquals(HttpStatusCode.OK, edited.status)
+			assertTrue(edited.bodyAsText().contains("The train was early for once."))
 		}
 	}
 

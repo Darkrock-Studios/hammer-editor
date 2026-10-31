@@ -50,8 +50,8 @@ import com.darkrockstudios.apps.hammer.common.compose.theme.hammerMonoFontFamily
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.EntryAppearance
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.WritingActivityDerived
-import com.darkrockstudios.apps.hammer.common.data.projectstatistics.estimatePages
-import com.darkrockstudios.apps.hammer.common.data.projectstatistics.estimateReadingMinutes
+import com.darkrockstudios.apps.hammer.base.estimatePages
+import com.darkrockstudios.apps.hammer.base.estimateReadingMinutes
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TaggedEntityType
 import com.darkrockstudios.apps.hammer.common.images.ImageViewerDialog
 import com.darkrockstudios.apps.hammer.common.images.ImageViewerItem
