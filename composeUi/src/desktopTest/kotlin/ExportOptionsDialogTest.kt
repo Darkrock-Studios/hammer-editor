@@ -1,6 +1,7 @@
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -24,7 +25,9 @@ import com.darkrockstudios.apps.hammer.common.projecthome.EXPORT_CONTACT_LEGAL_N
 import com.darkrockstudios.apps.hammer.common.projecthome.EXPORT_CONTACT_PHONE_TAG
 import com.darkrockstudios.apps.hammer.common.projecthome.ExportFormatChoice
 import com.darkrockstudios.apps.hammer.common.projecthome.ExportOptionsDialogContent
+import com.darkrockstudios.apps.hammer.common.projecthome.SCENE_SELECTOR_MASTER_TOGGLE_TAG
 import com.darkrockstudios.apps.hammer.common.projecthome.exportFormatChoices
+import com.darkrockstudios.apps.hammer.common.projecthome.sceneSelectorSceneTag
 import com.darkrockstudios.apps.hammer.settings_plugins_header
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
@@ -32,6 +35,7 @@ import okio.BufferedSink
 import org.junit.Rule
 import org.junit.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
 
 class ExportOptionsDialogTest : BaseTest() {
@@ -276,6 +280,52 @@ class ExportOptionsDialogTest : BaseTest() {
 			compose.onNodeWithText("Classic (Courier)").assertDoesNotExist()
 			CONTACT_FIELD_TAGS.forEach { compose.onNodeWithTag(it).assertDoesNotExist() }
 		}
+	}
+
+	@Test
+	fun `Every option control is disabled while the export is working`() {
+		var options by mutableStateOf(ExportOptions(format = BuiltInExportFormat.DOCX, sceneIds = setOf(1)))
+		var changed = false
+		compose.setContent {
+			KoinApplicationPreview {
+				ExportOptionsDialogContent(
+					options = options,
+					contact = ManuscriptContact(),
+					formats = exportFormatChoices(),
+					exportableScenes = entries,
+					onOptionsChanged = { changed = true },
+					onContactChanged = { changed = true },
+					onCancel = {},
+					onConfirm = {},
+					onShowHelp = {},
+					working = true,
+				)
+			}
+		}
+
+		listOf(
+			"Word manuscript (.docx)",
+			"Number chapter titles",
+			"Short story layout",
+			"Classic (Courier)",
+			"Limit to specific scenes",
+		).forEach { compose.onNodeWithText(it).assertIsNotEnabled() }
+		CONTACT_FIELD_TAGS.forEach { compose.onNodeWithTag(it).assertIsNotEnabled() }
+		compose.onNodeWithTag(SCENE_SELECTOR_MASTER_TOGGLE_TAG).assertIsNotEnabled()
+		compose.onNodeWithTag(sceneSelectorSceneTag(1)).assertIsNotEnabled()
+
+		options = ExportOptions(format = BuiltInExportFormat.RTF)
+		compose.waitForIdle()
+
+		listOf(
+			"RTF (.rtf)",
+			"Georgia",
+			"Keep blank lines between paragraphs",
+		).forEach { compose.onNodeWithText(it).assertIsNotEnabled() }
+
+		compose.onNodeWithText("Keep blank lines between paragraphs").performClick()
+		compose.waitForIdle()
+		assertFalse(changed, "Clicking a disabled option must not change it")
 	}
 
 	@Test

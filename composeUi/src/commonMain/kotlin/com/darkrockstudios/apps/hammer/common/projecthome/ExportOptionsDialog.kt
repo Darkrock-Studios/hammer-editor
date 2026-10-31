@@ -155,6 +155,8 @@ internal fun ExportOptionsDialogContent(
 		?: formats.firstOrNull { it.formatId == ExportOptions().format }
 		?: formats.first()
 	val shown = options.copy(format = shownFormat.formatId)
+	// The export runs with the options and contact as confirmed, so edits while working would never apply.
+	val editable = !working
 
 	Surface(
 		modifier = Modifier
@@ -224,6 +226,7 @@ internal fun ExportOptionsDialogContent(
 					checked = shown.treatTopLevelAsChapters,
 					onCheckedChange = { onOptionsChanged(shown.copy(treatTopLevelAsChapters = it)) },
 					label = Res.string.project_home_export_chapters_label.get(),
+					enabled = editable,
 				)
 
 				HdHairlineDropdown(
@@ -232,6 +235,7 @@ internal fun ExportOptionsDialogContent(
 					selected = shownFormat,
 					onSelect = { onOptionsChanged(shown.copy(format = it.formatId)) },
 					label = { it.label },
+					enabled = editable,
 				)
 
 				if (shown.numbersChapters) {
@@ -239,6 +243,7 @@ internal fun ExportOptionsDialogContent(
 						checked = shown.numberChapters,
 						onCheckedChange = { onOptionsChanged(shown.copy(numberChapters = it)) },
 						label = Res.string.project_home_export_number_chapters_label.get(),
+						enabled = editable,
 					)
 				}
 
@@ -249,6 +254,7 @@ internal fun ExportOptionsDialogContent(
 						selected = shown.font,
 						onSelect = { onOptionsChanged(shown.copy(font = it)) },
 						label = { it.faceName },
+						enabled = editable,
 					)
 				}
 
@@ -258,18 +264,19 @@ internal fun ExportOptionsDialogContent(
 						onCheckedChange = { onOptionsChanged(shown.copy(manuscriptShortStory = it)) },
 						label = Res.string.project_home_export_manuscript_short_story_label.get(),
 						hint = Res.string.project_home_export_manuscript_short_story_hint.get(),
+						enabled = editable,
 					)
 					HdHairlineToggleRow(
 						checked = shown.manuscriptClassic,
 						onCheckedChange = { onOptionsChanged(shown.copy(manuscriptClassic = it)) },
 						label = Res.string.project_home_export_manuscript_classic_label.get(),
 						hint = Res.string.project_home_export_manuscript_classic_hint.get(),
+						enabled = editable,
 					)
 					ManuscriptContactFields(
 						contact = contact,
 						onContactChanged = onContactChanged,
-						// The contact is saved on confirm, so later edits would show but never persist.
-						enabled = !working,
+						enabled = editable,
 					)
 				}
 
@@ -279,6 +286,7 @@ internal fun ExportOptionsDialogContent(
 						onCheckedChange = { onOptionsChanged(shown.copy(keepBlankLines = it)) },
 						label = Res.string.project_home_export_blank_lines_label.get(),
 						hint = Res.string.project_home_export_blank_lines_hint.get(),
+						enabled = editable,
 					)
 				}
 
@@ -290,6 +298,7 @@ internal fun ExportOptionsDialogContent(
 						},
 						label = Res.string.project_home_export_limit_scenes_label.get(),
 						hint = Res.string.project_home_export_limit_scenes_hint.get(),
+						enabled = editable,
 					)
 
 					val selectedIds = shown.sceneIds
@@ -299,6 +308,7 @@ internal fun ExportOptionsDialogContent(
 							selected = selectedIds,
 							multiple = true,
 							onSelectionChanged = { onOptionsChanged(shown.copy(sceneIds = it)) },
+							enabled = editable,
 						)
 					}
 				}

@@ -14,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import com.darkrockstudios.apps.hammer.Res
@@ -44,11 +45,15 @@ internal fun SceneSelector(
 	selected: Set<Int>,
 	multiple: Boolean,
 	onSelectionChanged: (Set<Int>) -> Unit,
+	enabled: Boolean = true,
 ) {
 	val allIds = remember(entries) { allSceneIds(entries) }
 	val allSelected = allIds.isNotEmpty() && selected.containsAll(allIds)
 
-	Column(verticalArrangement = Arrangement.spacedBy(Ui.Padding.M)) {
+	Column(
+		modifier = Modifier.alpha(if (enabled) 1f else 0.45f),
+		verticalArrangement = Arrangement.spacedBy(Ui.Padding.M),
+	) {
 		if (multiple) {
 			Row(
 				modifier = Modifier.fillMaxWidth(),
@@ -69,6 +74,7 @@ internal fun SceneSelector(
 						Res.string.project_home_export_scenes_select_all.get()
 					},
 					onClick = { onSelectionChanged(if (allSelected) emptySet() else allIds) },
+					enabled = enabled,
 					modifier = Modifier.testTag(SCENE_SELECTOR_MASTER_TOGGLE_TAG),
 				)
 			}
@@ -81,6 +87,7 @@ internal fun SceneSelector(
 						entry = entry,
 						fullySelected = isGroupFullySelected(entries, selected, entry),
 						selectable = multiple && descendantSceneIds(entries, entry).isNotEmpty(),
+						enabled = enabled,
 						onToggle = { onSelectionChanged(toggleGroup(entries, selected, entry)) },
 					)
 				} else {
@@ -88,6 +95,7 @@ internal fun SceneSelector(
 						entry = entry,
 						isSelected = entry.id in selected,
 						multiple = multiple,
+						enabled = enabled,
 						onToggle = {
 							onSelectionChanged(
 								when {
@@ -109,11 +117,13 @@ private fun GroupRow(
 	entry: ExportableScene,
 	fullySelected: Boolean,
 	selectable: Boolean,
+	enabled: Boolean,
 	onToggle: () -> Unit,
 ) {
 	val interaction = if (selectable) {
 		Modifier.toggleable(
 			value = fullySelected,
+			enabled = enabled,
 			role = Role.Checkbox,
 			onValueChange = { onToggle() },
 		)
@@ -135,6 +145,7 @@ private fun SceneRow(
 	entry: ExportableScene,
 	isSelected: Boolean,
 	multiple: Boolean,
+	enabled: Boolean,
 	onToggle: () -> Unit,
 ) {
 	HdPickerRow(
@@ -143,6 +154,7 @@ private fun SceneRow(
 		modifier = Modifier
 			.toggleable(
 				value = isSelected,
+				enabled = enabled,
 				role = if (multiple) Role.Checkbox else Role.RadioButton,
 				onValueChange = { onToggle() },
 			)

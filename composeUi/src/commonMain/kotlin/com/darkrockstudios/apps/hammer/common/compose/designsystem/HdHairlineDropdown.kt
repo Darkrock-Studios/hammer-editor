@@ -20,6 +20,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -47,10 +48,11 @@ fun <T> HdHairlineDropdown(
 	label: @Composable (T) -> String,
 	modifier: Modifier = Modifier,
 	title: String? = null,
+	enabled: Boolean = true,
 ) {
 	var expanded by remember { mutableStateOf(false) }
 	Column(
-		modifier = modifier,
+		modifier = modifier.alpha(if (enabled) 1f else 0.45f),
 		verticalArrangement = Arrangement.spacedBy(8.dp),
 	) {
 		if (title != null) {
@@ -66,7 +68,7 @@ fun <T> HdHairlineDropdown(
 						color = MaterialTheme.colorScheme.outlineVariant,
 						shape = RectangleShape,
 					)
-					.clickable { expanded = true }
+					.clickable(enabled = enabled) { expanded = true }
 					.padding(horizontal = Ui.Padding.M, vertical = 6.dp),
 				verticalAlignment = Alignment.CenterVertically,
 				horizontalArrangement = Arrangement.spacedBy(Ui.Padding.S),
@@ -86,7 +88,7 @@ fun <T> HdHairlineDropdown(
 				)
 			}
 			DropdownMenu(
-				expanded = expanded,
+				expanded = expanded && enabled,
 				onDismissRequest = { expanded = false },
 			) {
 				options.forEach { option ->
