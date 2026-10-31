@@ -4,9 +4,12 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogFilter
 import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogKind
 import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogRef
+import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
+import com.darkrockstudios.apps.hammer.common.data.export.ExportImage
 import com.darkrockstudios.apps.hammer.common.data.export.ExportInput
 import com.darkrockstudios.apps.hammer.common.data.export.ExportStrings
 import com.darkrockstudios.apps.hammer.common.data.export.StoryChapter
+import com.darkrockstudios.apps.hammer.common.data.export.StoryExporter
 import com.darkrockstudios.apps.hammer.common.data.export.StoryExporterRegistry
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectSyncGateRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.APP_SCOPE
@@ -47,10 +50,12 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -79,6 +84,7 @@ import kotlin.concurrent.thread
 import kotlin.coroutines.CoroutineContext
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.measureTime
+import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNull
@@ -105,6 +111,7 @@ class RuntimePluginsTest {
 		command: String? = null,
 		action: String? = null,
 		output: String? = null,
+		exporterKeys: String? = null,
 	) = """
 		id = "$id"
 		name = "Echo"
@@ -119,7 +126,7 @@ class RuntimePluginsTest {
 		extension = "txt"
 		mime = "text/plain"
 		label = "Echo (TXT)"
-	""".trimIndent() + command?.let { "\n\n[[commands]]\nname = \"$it\"\nhelp = \"Echoes.\"" }.orEmpty() +
+	""".trimIndent() + exporterKeys?.let { "\n$it" }.orEmpty() + command?.let { "\n\n[[commands]]\nname = \"$it\"\nhelp = \"Echoes.\"" }.orEmpty() +
 		action?.let { "\n\n[[actions]]\nname = \"$it\"\nlabel = \"Echo it\"" }.orEmpty() +
 		output?.let { "\noutput = \"$it\"" }.orEmpty()
 
@@ -213,6 +220,15 @@ class RuntimePluginsTest {
 		)
 		bad.forEach { assertThrows<PluginPackageException> { plugins.install(it) } }
 		assertTrue(plugins.installed().isEmpty())
+	}
+
+	@Test
+	fun `an export format asking for the cover without images is refused`() {
+		val error = assertThrows<PluginPackageException> {
+			runtimePlugins().inspect(pack("cover", manifest(exporterKeys = "cover = true")))
+		}
+		assertTrue("cover without images" in error.message!!, error.message)
+		runtimePlugins().inspect(pack("both", manifest(exporterKeys = "images = true\ncover = true")))
 	}
 
 	@Test
@@ -445,6 +461,144 @@ class RuntimePluginsTest {
 		assertEquals(JsonPrimitive(true), request["settings"]!!.jsonObject["shout"])
 		assertEquals("Chapter One", request["chapters"]!!.jsonArray[0].jsonObject["name"]!!.jsonPrimitive.content)
 	}
+
+	@Test
+	fun `an exporter asking for images and the cover is sent their files and the cover's id`() {
+		val (exporter, request) = export(
+			"pics",
+			"images = true\ncover = true",
+			exportInput(
+				scene = "![image](hammer://image/1)",
+				projectData = ProjectData(coverImageId = 5),
+				images = listOf(image(5, "Cover", "webp", byteArrayOf(5, 5)), image(1, "Cat", "png", byteArrayOf(1, 2, 3, 4))),
+			),
+		)
+
+		assertTrue(exporter.embedsImages)
+		assertTrue(exporter.embedsCover)
+		assertTrue(exporter.needsProjectData)
+		val images = request["images"]!!.jsonArray.map { it.jsonObject }
+		assertEquals(listOf(1, 5), images.map { it["id"]!!.jsonPrimitive.int })
+		assertEquals(
+			mapOf("id" to "1", "name" to "Cat", "extension" to "png", "mimeType" to "image/png", "content" to "AQIDBA=="),
+			images[0].mapValues { it.value.jsonPrimitive.content },
+		)
+		assertContentEquals(byteArrayOf(1, 2, 3, 4), java.util.Base64.getDecoder().decode(images[0]["content"]!!.jsonPrimitive.content))
+		assertEquals("image/webp", images[1]["mimeType"]!!.jsonPrimitive.content)
+		assertEquals(5, request["coverImageId"]!!.jsonPrimitive.int)
+		assertEquals(
+			"![image](hammer://image/1)",
+			request["chapters"]!!.jsonArray[0].jsonObject["scenes"]!!.jsonArray.single().jsonPrimitive.content,
+		)
+	}
+
+	@Test
+	fun `a cover whose file was not read has no id`() {
+		val (_, request) = export(
+			"pics",
+			"images = true\ncover = true",
+			exportInput(projectData = ProjectData(coverImageId = 5), images = listOf(image(1, "Cat", "png", byteArrayOf(1)))),
+		)
+
+		assertEquals(listOf(1), request["images"]!!.jsonArray.map { it.jsonObject["id"]!!.jsonPrimitive.int })
+		assertEquals(JsonNull, request["coverImageId"])
+	}
+
+	@Test
+	fun `a prose exporter asking for images gets an image block for each image it is sent`() {
+		val (exporter, request) = export(
+			"pics",
+			"input = \"prose\"\nimages = true",
+			exportInput(
+				scene = "![image](hammer://image/1)\n![image](hammer://image/2)",
+				projectData = ProjectData(coverImageId = 1),
+				images = listOf(image(1, "Cat", "png", byteArrayOf(1))),
+				imageNames = mapOf(1 to "Cat", 2 to "Gone"),
+			),
+		)
+
+		assertTrue(exporter.embedsImages)
+		assertEquals(false, exporter.embedsCover)
+		assertTrue(exporter.needsProjectData)
+		assertEquals(
+			Json.parseToJsonElement("""[[{"type":"image","id":1,"name":"Cat"},{"type":"paragraph","spans":[{"text":"Gone"}]}]]"""),
+			request["chapters"]!!.jsonArray[0].jsonObject["prose"],
+		)
+		assertEquals(JsonNull, request["coverImageId"], "Only an exporter asking for the cover is told its id")
+	}
+
+	@Test
+	fun `an exporter not asking for images is sent none, even when the input has them`() {
+		val (exporter, request) = export(
+			"plain",
+			null,
+			exportInput(
+				scene = "![image](hammer://image/1)",
+				projectData = ProjectData(coverImageId = 1),
+				images = listOf(image(1, "Cat", "png", byteArrayOf(1))),
+			),
+		)
+
+		assertEquals(false, exporter.embedsImages)
+		assertEquals(false, exporter.embedsCover)
+		assertTrue(exporter.needsProjectData, "Every plugin exporter is told the project's language")
+		assertEquals(JsonArray(emptyList()), request["images"])
+		assertEquals(JsonNull, request["coverImageId"])
+	}
+
+	@Test
+	fun `a prose exporter not asking for images gets an image as its name, even when the input has its file`() {
+		val (_, request) = export(
+			"plainprose",
+			"input = \"prose\"",
+			exportInput(
+				scene = "![image](hammer://image/1)",
+				projectData = ProjectData(coverImageId = 1),
+				images = listOf(image(1, "Cat", "png", byteArrayOf(1))),
+				imageNames = mapOf(1 to "Cat"),
+			),
+		)
+
+		assertEquals(
+			Json.parseToJsonElement("""[[{"type":"paragraph","spans":[{"text":"Cat"}]}]]"""),
+			request["chapters"]!!.jsonArray[0].jsonObject["prose"],
+		)
+		assertEquals(JsonArray(emptyList()), request["images"])
+		assertEquals(JsonNull, request["coverImageId"])
+	}
+
+	@Test
+	fun `an export whose request cannot fit the plugin's kernel fails before calling it`() {
+		startKoin(runtimePlugins())
+		val plugin = WasmPlugin(
+			PluginManifest.parse(manifest(id = "tight", exporterKeys = "images = true")),
+			{ testPlugin("export_echo") },
+			maxKernelBytes = 4096,
+		)
+		val exporter = plugin.exporters().single()
+
+		val error = assertThrows<PluginException> {
+			exporter.render(Buffer(), exportInput(images = listOf(image(1, "Cat", "png", ByteArray(4096)))))
+		}
+		assertTrue("images are too large for export format 'tight.txt'" in error.message!!, error.message)
+		assertTrue("at most 4096" in error.message!!, error.message)
+		val sink = Buffer()
+		exporter.render(sink, exportInput())
+		assertEquals("Storm", Json.parseToJsonElement(sink.readUtf8()).jsonObject["projectName"]!!.jsonPrimitive.content)
+	}
+
+	// The exporter of the echo plugin [id] declared with [exporterKeys], and the request it sent for [input].
+	private fun export(id: String, exporterKeys: String?, input: ExportInput): Pair<StoryExporter, JsonObject> {
+		val plugins = runtimePlugins()
+		plugins.install(pack(id, manifest(id = id, exporterKeys = exporterKeys)))
+		startKoin(plugins)
+		val exporter = GlobalContext.get().get<StoryExporterRegistry>().forFormat("$id.txt")
+		val sink = Buffer()
+		exporter.render(sink, input)
+		return exporter to Json.parseToJsonElement(sink.readUtf8()).jsonObject
+	}
+
+	private fun image(id: Int, name: String, extension: String, bytes: ByteArray) = ExportImage(id, name, extension, bytes)
 
 	@Test
 	fun `operations the user did not grant are refused`() {
@@ -1118,14 +1272,21 @@ class RuntimePluginsTest {
 		return registry
 	}
 
-	private fun exportInput() = ExportInput(
+	private fun exportInput(
+		scene: String = "It rained.",
+		projectData: ProjectData? = null,
+		images: List<ExportImage> = emptyList(),
+		imageNames: Map<Int, String> = images.associate { it.id to it.name },
+	) = ExportInput(
 		projectName = "Storm",
-		projectData = null,
-		chapters = listOf(StoryChapter("Chapter One", listOf("It rained."))),
+		projectData = projectData,
+		chapters = listOf(StoryChapter("Chapter One", listOf(scene))),
 		treatTopLevelAsChapters = true,
 		options = ExportOptions(),
 		language = "en",
 		strings = ExportStrings(contentsTitle = "Contents", authorByline = null),
+		images = images.associateBy { it.id },
+		imageNames = imageNames,
 	)
 
 	@Serializable

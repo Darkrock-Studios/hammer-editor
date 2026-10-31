@@ -456,6 +456,10 @@ interface StoryExporter {
 	val label: String? get() = null
 	/** False only for formats that ignore project data (such as Markdown), which skips loading it. */
 	val needsProjectData: Boolean get() = true
+	/** True for formats that package project images, which is the only time their files are read. */
+	val embedsImages: Boolean get() = false
+	/** True for formats that also package the project cover; only read when embedsImages too. */
+	val embedsCover: Boolean get() = false
 
 	fun render(sink: BufferedSink, input: ExportInput)
 }
@@ -507,7 +511,10 @@ class ExportInput(
   a WebP or turned JPEG that does not decode, or an SVG with nothing to draw.
   A PNG or JPEG whose header reads but whose body is corrupt is embedded as it
   is: PDF leaves its slot empty, and a DOCX or RTF reader shows its
-  broken-image placeholder. The `prose` input of a plugin exporter
+  broken-image placeholder. A plugin exporter that declares `images` is sent
+  the file of every image the story refers to, and with the `prose` input gets
+  an image on a plain line of its own as an `image` block (see
+  [Calling convention](#calling-convention)). Otherwise the `prose` input
   (`ExportInput.imageNames`) carries the image's name as text; all of these
   leave out an image with no name to show. The Markdown format keeps the
   reference as written.
@@ -518,7 +525,9 @@ class ExportInput(
   screen as the first item of the reading order, kept out of the table of
   contents, beside the book's `cover` metadata. A cover whose image is missing
   or does not decode, or an SVG cover outside PDF, leaves the export without
-  a cover page.
+  a cover page. A plugin exporter that declares `cover`, which needs `images`,
+  is sent the cover's file with the other images and its id as
+  `coverImageId`, and draws its own cover page, or none.
 
 Importers have no plugin seam: `ImportFormat` is a closed enum.
 
@@ -1240,6 +1249,9 @@ format = "wordfreq.csv"       # prefixed with the id
 extension = "csv"
 mime = "text/csv"
 label = "Word frequency (CSV)"
+input = "prose"               # optional: markdown, the default, or prose; see Calling convention
+images = true                 # optional: send the files of the images the story shows; false by default
+cover = true                  # optional, needs images: send the project cover too; false by default
 
 [[actions]]                   # optional; see Actions
 name = "report"
@@ -1324,15 +1336,46 @@ The Hammer-specific parts:
   [Strings](#strings).
 - An `export` function renders every export format the manifest declares. Its
   input is `{"format", "projectName", "language", "topLevelAsChapters",
-  "chapters": [{"name", "scenes": [markdown], "prose": []}], "settings": {...}}`,
-  the last holding every declared setting's current value, and its output is
-  the file's bytes. An exporter whose manifest entry sets `input = "prose"`
-  gets each scene in `prose` instead of `scenes`: the host's own parse of its
-  markdown, the one the built-in formats render from, as blocks (`paragraph`,
-  `blank`, `heading`, `list`, `quote`, `code`, `rule`, `table`) of styled
-  spans, with a project image as its name. A plugin then needs no markdown
-  parser, and reads text exactly as the built-in formats do. The C kit's
-  `hammer_json.h` reads either form.
+  "chapters": [{"name", "scenes": [markdown], "prose": []}], "images": [...],
+  "coverImageId", "settings": {...}}`, the last holding every declared
+  setting's current value, and its output is the file's bytes. An exporter
+  whose manifest entry sets `input = "prose"` gets each scene in `prose`
+  instead of `scenes`: the host's own parse of its markdown, the one the
+  built-in formats render from, as blocks (`paragraph`, `blank`, `image`,
+  `heading`, `list`, `quote`, `code`, `rule`, `table`) of styled spans. A
+  project image is its name as text, except that for an exporter with
+  `images = true` a line holding only the image is an `image` block,
+  `{"type": "image", "id", "name"}`, whose `id` is always one in `images`. A
+  plugin then needs no markdown parser, and reads text exactly as the
+  built-in formats do. The C kit's `hammer_json.h` reads either form.
+- An exporter whose manifest entry sets `images = true` gets in `images` each
+  project image the story refers to whose file Hammer could read, sorted by
+  id, as `{"id", "name", "extension", "mimeType", "content"}`: `image.get`'s
+  result with `mimeType` added, `content` encoded the same way, the file in
+  standard base64 with padding (RFC 4648 section 4). A markdown exporter
+  matches an image's destination, `hammer://image/<id>`, in `scenes` (the
+  alt text is arbitrary, as under [Exporters](#exporters)) and looks its id
+  up in `images`. `images` is built from every reference the host finds,
+  one in a code span or a bare link included. With `cover = true` too, the
+  cover is among `images` and `coverImageId` is its id; it is null when the
+  project has no cover or its file could not be read. Any other exporter
+  gets an empty `images` and a null `coverImageId`.
+
+  Each image may be up to 8 MiB, and base64 adds a third (about 10.7 MiB for
+  a full-size image). The host sends every image the story refers to, and the
+  cover, not a selection. It puts the request in the plugin's kernel, which
+  also holds the export's output, and the module reads it from there. The
+  kernel is capped at 256 MiB or a sixteenth of the JVM's heap, whichever is
+  less (16 MiB on a 256 MB Android heap; see [Host](#host)), and no manifest
+  key raises that cap: an export whose request or output does not fit fails,
+  one whose request does not fit before the module runs. Inside the module,
+  a language that uses linear memory (C, Rust, Zig, AssemblyScript, Go)
+  should raise `[limits] memory` (64 MiB by default). As a rule of thumb,
+  the copy of the request (4/3 of the images' size), their decoded bytes,
+  and the output (at least their size again) are live at once, so plan for
+  about three and a half times the size of the story's images. A Kotlin/Wasm
+  plugin keeps its objects in the guest heap instead, where `[limits] memory`
+  does not apply; see [Languages](#languages).
 - A function fails by returning non-zero or by trapping. Either way, the
   message it set with `error_set` is what the user sees, if it set one:
   AssemblyScript's `abort` sets one and then traps.

@@ -1,8 +1,11 @@
 package com.darkrockstudios.apps.hammer.plugins.wasmhost
 
+import com.darkrockstudios.apps.hammer.base.image.ImageFormat
+import com.darkrockstudios.apps.hammer.common.data.export.ExportImage
 import com.darkrockstudios.apps.hammer.common.data.export.ExportInput
 import com.darkrockstudios.apps.hammer.common.data.export.StoryExporter
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcher
+import com.darkrockstudios.apps.hammer.operations.Base64Bytes
 import com.darkrockstudios.apps.hammer.operations.OperationException
 import com.darkrockstudios.apps.hammer.operations.OperationJson
 import com.darkrockstudios.apps.hammer.operations.OperationRegistry
@@ -80,6 +83,8 @@ class WasmPlugin(
 	/** The UI's BCP 47 tag, sent with every call so a plugin can reply in it. */
 	private val locale: String? = null,
 	private val httpClient: PluginHttp? = platformPluginHttp,
+	/** What the module's kernel may hold, which a small host heap lowers; see [kernelCapacity]. */
+	private val maxKernelBytes: Long = DEFAULT_MAX_KERNEL_BYTES,
 ) : ClientPlugin, KoinComponent {
 
 	override val id: String = manifest.id
@@ -102,6 +107,7 @@ class WasmPlugin(
 			log = ::log,
 			limiter = ModuleLimiter(maxMemoryPages = manifest.limits.memory * PAGES_PER_MIB),
 			http = pluginHttp(),
+			maxKernelBytes = maxKernelBytes,
 		).also { loaded = it }
 
 	// The call [interruptibly] is running, if any, which cancelling its caller interrupts. Only touched
@@ -448,10 +454,14 @@ class WasmPlugin(
 		override val fileExtension = format.extension
 		override val mimeType = format.mime
 		override val label = format.label
-		override val needsProjectData = false
+		override val needsProjectData = true
+		override val embedsImages = format.images
+		override val embedsCover = format.cover
 
 		override fun render(sink: BufferedSink, input: ExportInput) {
 			val prose = format.input == PluginManifest.INPUT_PROSE
+			val images = if (format.images) input.images.values.sortedBy { it.id }.map(ExportRequest::Image) else emptyList()
+			val delivered = images.mapTo(mutableSetOf()) { it.id }
 			val request = ExportRequest(
 				format = formatId,
 				projectName = input.projectName,
@@ -461,17 +471,28 @@ class WasmPlugin(
 					if (prose) {
 						ExportRequest.Chapter(
 							chapter.name,
-							prose = chapter.scenes.map { proseOf(it, input.imageNames::get) },
+							prose = chapter.scenes.map { proseOf(it, delivered, input.imageNames::get) },
 						)
 					} else {
 						ExportRequest.Chapter(chapter.name, scenes = chapter.scenes)
 					}
 				},
+				images = images,
+				coverImageId = input.projectData?.coverImageId?.takeIf { format.cover && it in delivered },
 				settings = settingsValues(),
 				locale = locale,
 			)
+			val encoded = OperationJson.encodeToString(request).encodeToByteArray()
+			val capacity = kernelCapacity(maxKernelBytes)
+			if (encoded.size > capacity) {
+				val what = if (images.isEmpty()) "The story is" else "The story's images are"
+				throw PluginException(
+					"$what too large for export format '$formatId' on this device: its request takes " +
+						"${encoded.size} bytes, and plugin '$id' can be sent at most $capacity"
+				)
+			}
 			// Export renders on a background dispatcher already.
-			sink.write(callBlocking(EXPORT, OperationJson.encodeToString(request).encodeToByteArray()))
+			sink.write(callBlocking(EXPORT, encoded))
 		}
 	}
 
@@ -601,11 +622,34 @@ class WasmPlugin(
 		 */
 		val topLevelAsChapters: Boolean,
 		val chapters: List<Chapter>,
+		/** The images the story shows, and the cover, by id; empty unless the exporter asks for `images`. */
+		val images: List<Image>,
+		/** The cover's id in [images]; null unless the exporter asks for the `cover` and its file was read. */
+		val coverImageId: Int?,
 		/** The plugin's declared settings, every key present. */
 		val settings: JsonObject,
 		/** The UI's BCP 47 tag, or null when Hammer does not know it. */
 		val locale: String?,
 	) {
+		/** `image.get`'s result plus [mimeType], [content] encoded the same way: standard, padded base64. */
+		@Serializable
+		class Image(
+			val id: Int,
+			val name: String,
+			val extension: String,
+			val mimeType: String,
+			@Serializable(with = Base64Bytes::class)
+			val content: ByteArray,
+		) {
+			constructor(image: ExportImage) : this(
+				image.id,
+				image.name,
+				image.fileExtension,
+				ImageFormat.mimeType(image.fileExtension) ?: UNKNOWN_MIME_TYPE,
+				image.bytes,
+			)
+		}
+
 		/** Each scene in [scenes] as markdown, or in [prose] as blocks, as the exporter's `input` asks. */
 		@Serializable
 		class Chapter(
@@ -651,6 +695,7 @@ class WasmPlugin(
 
 		private val ReplyJson = Json { ignoreUnknownKeys = true }
 		private const val SEVERITY_SUGGESTION = "suggestion"
+		private const val UNKNOWN_MIME_TYPE = "application/octet-stream"
 
 		const val PERMISSION_DENIED = "PermissionDenied"
 

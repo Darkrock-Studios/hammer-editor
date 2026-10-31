@@ -191,6 +191,7 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 	private class CapturingExporter(
 		override val embedsImages: Boolean,
 		override val embedsCover: Boolean = false,
+		override val needsProjectData: Boolean = true,
 	) : StoryExporter {
 		override val formatId = "fake.capture"
 		override val fileExtension = "txt"
@@ -263,6 +264,28 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 
 		assertEquals(setOf(1), checkNotNull(exporter.input).images.keys)
 		assertEquals(mapOf(1 to "Cat"), exporter.input?.imageNames)
+		verify(exactly = 0) { imagesRepository.loadImageBytes(cover) }
+	}
+
+	@Test
+	fun `an exporter that embeds the cover without project data never learns of the cover`() = runTest {
+		initRepo()
+		writeSceneBuffer(1, "![image](hammer://image/1)")
+		storedProjectData = StoredProjectData(data = ProjectData(coverImageId = 5))
+		val cover = ImageDef(id = 5, name = "Cover", fileExtension = "png")
+		imagesRepository = mockk {
+			coEvery { ensureImagesLoaded() } returns listOf(
+				ImageDef(id = 1, name = "Cat", fileExtension = "png"),
+				cover,
+			)
+			every { loadImageBytes(match { it.id == 1 }) } returns byteArrayOf(1)
+		}
+		val exporter = CapturingExporter(embedsImages = true, embedsCover = true, needsProjectData = false)
+
+		useCase(listOf(exporter)).render(ExportOptions(format = exporter.formatId))
+
+		assertEquals(setOf(1), checkNotNull(exporter.input).images.keys)
+		assertEquals(0, projectDataLoads)
 		verify(exactly = 0) { imagesRepository.loadImageBytes(cover) }
 	}
 

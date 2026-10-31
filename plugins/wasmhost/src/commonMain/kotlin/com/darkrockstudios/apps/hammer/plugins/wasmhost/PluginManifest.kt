@@ -54,6 +54,10 @@ data class PluginManifest(
 		val label: String,
 		/** What each scene arrives as: `markdown`, its text, or `prose`, the host's parse of it. */
 		val input: String = INPUT_MARKDOWN,
+		/** Whether the export is sent the files of the images the story shows. */
+		val images: Boolean = false,
+		/** Whether the project cover is sent too; only with [images]. */
+		val cover: Boolean = false,
 	)
 
 	/**

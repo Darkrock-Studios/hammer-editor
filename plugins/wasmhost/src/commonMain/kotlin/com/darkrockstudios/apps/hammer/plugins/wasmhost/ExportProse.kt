@@ -10,16 +10,23 @@ import kotlinx.serialization.Serializable
 
 /**
  * A scene as an exporter with `input = "prose"` receives it: the host's own reading of its markdown,
- * the one the built-in formats render from, so a plugin needs no markdown parser of its own. A project
- * image arrives as the name [imageName] gives it, or not at all when it gives none.
+ * the one the built-in formats render from, so a plugin needs no markdown parser of its own. A line
+ * holding only a project image in [delivered] arrives as an image block, so its id can always be looked
+ * up in the request's images. Any other project image arrives as the name [imageName] gives it, or not
+ * at all when it gives none.
  */
 internal fun proseOf(
 	markdown: String,
+	delivered: Set<Int> = emptySet(),
 	imageName: (imageId: Int) -> String? = { null },
 ): List<ExportBlock> = parseProseMarkdown(markdown, imageName = imageName).map { block ->
 	when (block) {
 		is ProseBlock.Paragraph -> ExportBlock.Paragraph(block.spans.map(::ExportSpan))
-		is ProseBlock.Image -> ExportBlock.Paragraph(block.spans.map(::ExportSpan))
+		is ProseBlock.Image -> if (block.imageId in delivered) {
+			ExportBlock.Image(block.imageId, block.name)
+		} else {
+			ExportBlock.Paragraph(block.spans.map(::ExportSpan))
+		}
 		ProseBlock.Blank -> ExportBlock.Blank
 		is ProseBlock.Heading -> ExportBlock.Heading(block.level, block.spans.map(::ExportSpan))
 		is ProseBlock.Listing -> ExportBlock.Listing(
@@ -36,7 +43,7 @@ internal fun proseOf(
 	}
 }
 
-/** Keyed by `type`: paragraph, blank, heading, list, quote, code, rule, or table. */
+/** Keyed by `type`: paragraph, blank, image, heading, list, quote, code, rule, or table. */
 @Serializable
 internal sealed interface ExportBlock {
 	/** One line of prose as the author typed it. */
@@ -48,6 +55,11 @@ internal sealed interface ExportBlock {
 	@Serializable
 	@SerialName("blank")
 	data object Blank : ExportBlock
+
+	/** A line holding only a project image, whose file is the request's image with this [id]. */
+	@Serializable
+	@SerialName("image")
+	class Image(val id: Int, val name: String) : ExportBlock
 
 	@Serializable
 	@SerialName("heading")
