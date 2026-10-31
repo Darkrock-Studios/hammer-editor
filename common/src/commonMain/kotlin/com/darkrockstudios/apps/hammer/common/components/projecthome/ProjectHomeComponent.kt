@@ -34,6 +34,8 @@ import com.darkrockstudios.apps.hammer.common.data.export.exportFileName
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.util.formatLocal
+import io.github.aakira.napier.Napier
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.onStart
@@ -101,12 +103,12 @@ class ProjectHomeComponent(
 	private var manuscriptContactSave: Job? = null
 
 	override fun beginProjectExport() {
+		// A scene limit from a previous export would silently narrow this one.
+		val options = _state.value.exportOptions.withAvailableFormat().copy(sceneIds = null)
+		val contact = globalSettingsStore.globalSettings.manuscriptContact
+		exportOptionsBeforeDialog = options
+		manuscriptContactBeforeDialog = contact
 		_state.getAndUpdate {
-			// A scene limit from a previous export would silently narrow this one.
-			val options = it.exportOptions.withAvailableFormat().copy(sceneIds = null)
-			val contact = globalSettingsStore.globalSettings.manuscriptContact
-			exportOptionsBeforeDialog = options
-			manuscriptContactBeforeDialog = contact
 			it.copy(
 				showExportDialog = true,
 				exportOptions = options,
@@ -173,7 +175,15 @@ class ProjectHomeComponent(
 	private fun saveManuscriptContact(contact: ManuscriptContact) {
 		if (contact == globalSettingsStore.globalSettings.manuscriptContact) return
 		manuscriptContactSave = scope.launch {
-			globalSettingsStore.updateSettings { it.copy(manuscriptContact = contact) }
+			try {
+				globalSettingsStore.updateSettings { it.copy(manuscriptContact = contact) }
+			} catch (e: CancellationException) {
+				throw e
+			} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+				// An unwritable settings file must not block the export, which keeps the previously saved contact.
+				Napier.e("Failed to save the manuscript contact", e)
+				showToast(scope, Res.string.project_home_action_export_toast_contact_failure)
+			}
 		}
 	}
 

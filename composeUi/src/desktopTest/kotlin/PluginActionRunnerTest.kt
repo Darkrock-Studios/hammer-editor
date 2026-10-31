@@ -57,6 +57,7 @@ import okio.IOException
 import okio.Path
 import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
+import org.jetbrains.compose.resources.PluralStringResource
 import org.jetbrains.compose.resources.StringResource
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -88,6 +89,7 @@ class PluginActionRunnerTest {
 	private val strings = object : StrRes {
 		override suspend fun get(str: StringResource) = str.key
 		override suspend fun get(str: StringResource, vararg args: Any) = str.key
+		override suspend fun get(str: PluralStringResource, quantity: Int, vararg args: Any) = str.key
 	}
 
 	private val fileSystem = FakeFileSystem()

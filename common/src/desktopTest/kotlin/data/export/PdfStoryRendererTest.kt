@@ -46,7 +46,7 @@ class PdfStoryRendererTest {
 		strings = ExportStrings(
 			contentsTitle = "Contents",
 			authorByline = "by Author",
-			wordCount = { "about $it words" },
+			wordCount = "about 12,500 words",
 			endMarker = "END",
 		),
 		imageNames = imageNames,
@@ -266,7 +266,7 @@ class PdfStoryRendererTest {
 		strings = ExportStrings(
 			contentsTitle = "Contents",
 			authorByline = "by Author",
-			wordCount = { "about $it words" },
+			wordCount = "about 12,500 words",
 			endMarker = "END",
 		),
 		images = images,

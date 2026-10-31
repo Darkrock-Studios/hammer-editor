@@ -80,6 +80,7 @@
 
 	<string name="project_home_action_export_toast_success">Story Exported</string>
 	<string name="project_home_action_export_toast_failure">Export failed</string>
+	<string name="project_home_action_export_toast_contact_failure">Contact details could not be saved</string>
 
 	<string name="project_home_export_dialog_title">Export Story</string>
 	<string name="project_home_export_section">EXPORT</string>
@@ -116,7 +117,14 @@
 
 	<string name="project_home_export_contents_title">Contents</string>
 	<string name="project_home_export_byline">by %1$s</string>
-	<string name="project_home_export_word_count">about %1$s words</string>
+	<plurals name="project_home_export_word_count_about">
+		<item quantity="one">about %1$s word</item>
+		<item quantity="other">about %1$s words</item>
+	</plurals>
+	<plurals name="project_home_export_word_count_exact">
+		<item quantity="one">%1$s word</item>
+		<item quantity="other">%1$s words</item>
+	</plurals>
 	<string name="project_home_export_end_marker">END</string>
 
 	<string name="project_home_action_import_toast_success">Story Imported</string>

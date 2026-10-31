@@ -86,7 +86,7 @@ class PlainTextPluginHarness {
 			strings = ExportStrings(
 				contentsTitle = "Contents",
 				authorByline = null,
-				wordCount = { "about $it words" },
+				wordCount = "about 12,500 words",
 				endMarker = "END",
 			),
 		)

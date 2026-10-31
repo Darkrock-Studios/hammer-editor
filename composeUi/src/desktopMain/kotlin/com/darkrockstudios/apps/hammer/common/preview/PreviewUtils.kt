@@ -9,6 +9,7 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.util.StrRes
+import org.jetbrains.compose.resources.PluralStringResource
 import org.jetbrains.compose.resources.StringResource
 import kotlin.time.Instant
 
@@ -40,6 +41,7 @@ fun fakeSceneItem() = SceneItem(
 class PreviewStrRes : StrRes {
 	override suspend fun get(str: StringResource): String = ""
 	override suspend fun get(str: StringResource, vararg args: Any): String = ""
+	override suspend fun get(str: PluralStringResource, quantity: Int, vararg args: Any): String = ""
 }
 
 val dummyBackHandler = object : BackHandler {

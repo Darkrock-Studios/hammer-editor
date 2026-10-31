@@ -44,7 +44,7 @@ class EpubStoryRendererTest {
 			strings = ExportStrings(
 				contentsTitle = "Contents",
 				authorByline = author?.let { "by $it" },
-				wordCount = { "about $it words" },
+				wordCount = "about 12,500 words",
 				endMarker = "END",
 			),
 			options = options,

@@ -30,6 +30,7 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.GlobalSettingsDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupDef
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupService
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
@@ -57,6 +58,7 @@ import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.APP_SCOPE
 import com.darkrockstudios.apps.hammer.project_home_action_backup_toast_failure
 import com.darkrockstudios.apps.hammer.project_home_action_backup_toast_success
+import com.darkrockstudios.apps.hammer.project_home_action_export_toast_contact_failure
 import com.darkrockstudios.libs.platformspellchecker.PlatformSpellCheckerFactory
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -75,6 +77,7 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
 import okio.BufferedSink
+import okio.IOException
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -617,6 +620,36 @@ class ProjectHomeComponentTest : ComponentTest() {
 		comp.exportProject("/out", options)
 
 		assertEquals(edited, contactAtExport)
+	}
+
+	@Test
+	fun `A contact that cannot be saved toasts the failure and the export still runs`() = runTest(mainTestDispatcher) {
+		globalSettingsStore = inMemoryGlobalSettingsStore(object : GlobalSettingsDatasource {
+			override fun loadSettings() = GlobalSettings(projectsDirectory = "/projects")
+			override fun storeSettings(settings: GlobalSettings) = throw IOException("read-only settings")
+		})
+		val exported = HPath("/out/Test.epub", "Test.epub", true)
+		coEvery { exportStoryUseCase.execute(any(), any()) } returns exported
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		val toasts = mutableListOf<ToastMessage>()
+		val collectJob = launch { comp.toast.collect { toasts.add(it) } }
+		advanceUntilIdle()
+
+		comp.beginProjectExport()
+		comp.updateManuscriptContact(savedContact)
+		val options = comp.state.value.exportOptions
+		comp.confirmExportDialog(options)
+		val result = comp.exportProject("/out", options)
+		advanceUntilIdle()
+		collectJob.cancel()
+
+		assertEquals(exported, result)
+		assertEquals(
+			listOf<ToastMessage>(ToastMessage.Resource(Res.string.project_home_action_export_toast_contact_failure)),
+			toasts,
+		)
 	}
 
 	@Test

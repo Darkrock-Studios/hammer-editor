@@ -62,7 +62,7 @@ class DocxValidationSamples {
 				strings = ExportStrings(
 					contentsTitle = "Contents",
 					authorByline = projectData.authorName?.let { "by $it" },
-					wordCount = { "about $it words" },
+					wordCount = "about 12,500 words",
 					endMarker = "END",
 				),
 				options = ExportOptions(numberChapters = true),

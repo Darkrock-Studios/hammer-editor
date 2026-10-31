@@ -52,7 +52,7 @@ class RtfStoryRendererImageTest {
 			strings = ExportStrings(
 				contentsTitle = "Contents",
 				authorByline = "by Author",
-				wordCount = { "about $it words" },
+				wordCount = "about 12,500 words",
 				endMarker = "END",
 			),
 			imageNames = mapOf(3 to "Cheshire Cat"),
@@ -203,7 +203,7 @@ class RtfStoryRendererImageTest {
 				strings = ExportStrings(
 					contentsTitle = "Contents",
 					authorByline = null,
-					wordCount = { "about $it words" },
+					wordCount = "about 12,500 words",
 					endMarker = "END",
 				),
 				images = mapOf(3 to ExportImage(3, "Cheshire Cat", "png", encoded("png"))),
@@ -221,7 +221,7 @@ class RtfStoryRendererImageTest {
 		strings = ExportStrings(
 			contentsTitle = "Contents",
 			authorByline = "by Author",
-			wordCount = { "about $it words" },
+			wordCount = "about 12,500 words",
 			endMarker = "END",
 		),
 		images = images,
@@ -260,7 +260,7 @@ class RtfStoryRendererImageTest {
 				strings = ExportStrings(
 					contentsTitle = "Contents",
 					authorByline = null,
-					wordCount = { "about $it words" },
+					wordCount = "about 12,500 words",
 					endMarker = "END",
 				),
 				images = mapOf(3 to ExportImage(3, "Cover", "png", encoded("png"))),

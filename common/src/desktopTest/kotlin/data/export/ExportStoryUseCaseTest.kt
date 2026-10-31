@@ -34,6 +34,7 @@ import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
+import org.jetbrains.compose.resources.PluralStringResource
 import org.jetbrains.compose.resources.StringResource
 import org.junit.jupiter.api.BeforeEach
 import okio.BufferedSink
@@ -467,6 +468,8 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 			override suspend fun get(str: StringResource): String = "TOC_SENTINEL"
 			override suspend fun get(str: StringResource, vararg args: Any): String =
 				"BYLINE_SENTINEL ${args.joinToString()}"
+			override suspend fun get(str: PluralStringResource, quantity: Int, vararg args: Any): String =
+				"WORD_COUNT_SENTINEL"
 		}
 
 		val exportPath = useCase().execute(
@@ -482,21 +485,55 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 		)
 	}
 
+	/** Resolves each string to its key, with a plural's quantity and the format arguments. */
+	private val keyStrRes = object : StrRes {
+		override suspend fun get(str: StringResource): String = "<${str.key}>"
+		override suspend fun get(str: StringResource, vararg args: Any): String =
+			"<${str.key}> ${args.joinToString()}"
+		override suspend fun get(str: PluralStringResource, quantity: Int, vararg args: Any): String =
+			"<${str.key}:$quantity> ${args.joinToString()}"
+	}
+
 	@Test
-	fun `manuscript word count and end marker come from the localization system`() = runTest {
+	fun `the manuscript end marker comes from the localization system`() = runTest {
 		initRepo()
-		strRes = object : StrRes {
-			override suspend fun get(str: StringResource): String = "<${str.key}>"
-			override suspend fun get(str: StringResource, vararg args: Any): String =
-				"<${str.key}> ${args.joinToString()}"
-		}
+		strRes = keyStrRes
 		val exporter = CapturingExporter(embedsImages = false)
 
 		useCase(listOf(exporter)).render(ExportOptions(format = exporter.formatId))
 
-		val strings = checkNotNull(exporter.input).strings
-		assertEquals("<project_home_export_word_count> 12,500", strings.wordCount("12,500"))
-		assertEquals("<project_home_export_end_marker>", strings.endMarker)
+		assertEquals("<project_home_export_end_marker>", checkNotNull(exporter.input).strings.endMarker)
+	}
+
+	@Test
+	fun `a manuscript under 100 words states its exact count of the selected scenes`() = runTest {
+		initRepo()
+		strRes = keyStrRes
+		val exporter = CapturingExporter(embedsImages = false)
+
+		// Each fixture scene reads "Content of scene id N": five words.
+		useCase(listOf(exporter)).render(ExportOptions(format = exporter.formatId, sceneIds = setOf(1, 4)))
+
+		assertEquals(
+			"<project_home_export_word_count_exact:10> 10",
+			checkNotNull(exporter.input).strings.wordCount,
+		)
+	}
+
+	@Test
+	fun `a longer manuscript states its rounded count with a thousands separator`() = runTest {
+		initRepo()
+		strRes = keyStrRes
+		// 12,470 words here and five in each of the other five scenes: 12,495, which rounds to 12,500.
+		writeSceneBuffer(1, "word ".repeat(12_470))
+		val exporter = CapturingExporter(embedsImages = false)
+
+		useCase(listOf(exporter)).render(ExportOptions(format = exporter.formatId))
+
+		assertEquals(
+			"<project_home_export_word_count_about:12500> 12,500",
+			checkNotNull(exporter.input).strings.wordCount,
+		)
 	}
 
 	@Test
