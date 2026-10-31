@@ -361,6 +361,8 @@ class PublicStoryPageTest : EndToEndTest() {
 		assertFalse(body.contains("test content 1"), "the cover page holds no prose")
 		assertTrue(body.contains("""href="/a/$penName/$segment?page=1""""), "a link starts the prose")
 		assertFalse(body.contains("story-kudos-slot"), "kudos wait for the end of the story, not its cover")
+		assertFalse(body.contains("reader-prefs.js"), "the cover has no reading controls to set up")
+		assertTrue(body.contains("story-read-logic.js"), "the reader-count beacon still needs its storage helper")
 	}
 
 	@Test
@@ -430,6 +432,7 @@ class PublicStoryPageTest : EndToEndTest() {
 
 		assertTrue(body.contains("pagination-button prev\""), body)
 		assertFalse(body.contains("Page 1 of 1"), "a single page needs no count")
+		assertFalse(body.contains("pagination-button next"), "nothing follows a single page")
 	}
 
 	@Test

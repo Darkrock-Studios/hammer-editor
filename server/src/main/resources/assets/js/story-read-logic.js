@@ -1,7 +1,8 @@
 /**
  * Pure reading-preference logic for the story readers: no DOM, and storage only as injected. Kept
  * DOM-free so it can be unit-tested under Node while still loading as a plain browser <script>
- * (see the dual export at the end). story-read.js supplies the browser wiring.
+ * (see the dual export at the end). reader-prefs.js and story-read.js supply the browser wiring;
+ * story.js and the published page's story-reader.js use bestEffortStorage.
  *
  * The font sizes mirror the app's reader (EDITOR_TEXT_SIZES), with the web prose's 18px as the
  * default. Scene headings start hidden, as in the app.

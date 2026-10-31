@@ -28,10 +28,12 @@
 			</a>
 		{{/hasNextPage}}
 		{{^hasNextPage}}
-			<span class="pagination-button next disabled">
-		{{msg.public_story_next_page}}
-				<i class="fa-solid fa-chevron-right"></i>
-	</span>
+			{{#hasPageCount}}
+				<span class="pagination-button next disabled">
+					{{msg.public_story_next_page}}
+					<i class="fa-solid fa-chevron-right"></i>
+				</span>
+			{{/hasPageCount}}
 		{{/hasNextPage}}
 	</nav>
 {{/hasPagination}}

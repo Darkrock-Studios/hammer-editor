@@ -535,10 +535,10 @@ fun Route.storyPage(
 	}
 }
 
-/** [minutes] as "42 min", "3 h" or "3 h 5 min". */
 /** [count] in the viewer's digit grouping, as both story pages show it. */
 internal fun formatCount(locale: Locale, count: Number): String = NumberFormat.getIntegerInstance(locale).format(count)
 
+/** [minutes] as "42 min", "3 h" or "3 h 5 min". */
 internal fun readingTime(locale: Locale, minutes: Int): String = when {
 	minutes < 60 -> localizedMsg(locale, "story_reading_minutes", minutes)
 	minutes % 60 == 0 -> localizedMsg(locale, "story_reading_whole_hours", minutes / 60)

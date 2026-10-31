@@ -144,8 +144,6 @@ fun Route.publicStoryPage(
 							} else {
 								call.canonicalUrl("/assets/images/og-story.png")
 							},
-							"page_head_scripts" to READER_HEAD_SCRIPTS,
-							"page_pre_script" to "/assets/js/story-reader-logic.js",
 							"page_script" to "/assets/js/story-reader.js",
 							"projectName" to projectName,
 							"authorPenName" to resolved.penName,
@@ -154,6 +152,15 @@ fun Route.publicStoryPage(
 					)
 					if (resolved.isPublic) {
 						model["kudosFragmentUrl"] = "$storyUrl/kudos"
+					}
+
+					// Prose pages set up their reading controls from the head, before the prose paints.
+					// The cover has none, so it loads only the beacon's helpers, at the end of the body.
+					if (isCoverPage) {
+						model["page_pre_scripts"] = listOf("/assets/js/story-reader-logic.js", "/assets/js/story-read-logic.js")
+					} else {
+						model["page_head_scripts"] = READER_HEAD_SCRIPTS
+						model["page_pre_script"] = "/assets/js/story-reader-logic.js"
 					}
 
 					// In the shell, so the validator changes when the cover is set or cleared, and when
