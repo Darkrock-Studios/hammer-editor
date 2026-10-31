@@ -39,4 +39,22 @@ class ExportProseTest {
 			OperationJson.encodeToString(ListSerializer(ExportBlock.serializer()), prose),
 		)
 	}
+
+	@Test
+	fun `a project image whose file is delivered arrives as an image block`() {
+		val prose = proseOf("Before.\n![image](hammer://image/3)", setOf(3)) { id -> if (id == 3) "Cheshire Cat" else null }
+		assertEquals(
+			"""[{"type":"paragraph","spans":[{"text":"Before."}]},{"type":"image","id":3,"name":"Cheshire Cat"}]""",
+			OperationJson.encodeToString(ListSerializer(ExportBlock.serializer()), prose),
+		)
+	}
+
+	@Test
+	fun `a project image whose file is not delivered arrives as its name`() {
+		val prose = proseOf("![image](hammer://image/3)", setOf(4)) { id -> if (id == 3) "Cheshire Cat" else null }
+		assertEquals(
+			"""[{"type":"paragraph","spans":[{"text":"Cheshire Cat"}]}]""",
+			OperationJson.encodeToString(ListSerializer(ExportBlock.serializer()), prose),
+		)
+	}
 }

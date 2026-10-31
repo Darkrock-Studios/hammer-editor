@@ -186,6 +186,9 @@ class PluginPackage(
 				if (exporter.input != PluginManifest.INPUT_MARKDOWN && exporter.input != PluginManifest.INPUT_PROSE) {
 					throw PluginPackageException("Export format '${exporter.format}' has unknown input '${exporter.input}'")
 				}
+				if (exporter.cover && !exporter.images) {
+					throw PluginPackageException("Export format '${exporter.format}' asks for the cover without images")
+				}
 			}
 			val withheldOps = coreOperations().filter { it.name in PLUGIN_WITHHELD_OPERATIONS }
 			manifest.permissions.operations.forEach { entry ->

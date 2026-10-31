@@ -1,5 +1,10 @@
 package com.darkrockstudios.apps.hammer.plugins.wasmhost
 
+/** The most a kernel created with [maxBytes] can hold. */
+internal fun kernelCapacity(maxBytes: Long): Long = hostHeapShare(maxBytes, KERNEL_HOST_HEAP_SHARE)
+
+private const val KERNEL_HOST_HEAP_SHARE = 16
+
 /**
  * The host side of Extism's shared memory, implemented natively instead of by running Extism's
  * kernel module. Plugins see opaque u64 offsets into it and copy through the `extism:host/env`
@@ -11,7 +16,7 @@ internal class ExtismKernel(maxBytes: Long = DEFAULT_MAX_KERNEL_BYTES) {
 	 * At most a sixteenth of the host's heap. Growing copies the memory, briefly holding half as much again,
 	 * so two plugins growing to their caps at once take under a fifth of the heap.
 	 */
-	private val maxMemory = hostHeapShare(maxBytes, HOST_HEAP_SHARE)
+	private val maxMemory = kernelCapacity(maxBytes)
 
 	private var memory = ByteArray(INITIAL_SIZE)
 	private var top = FIRST_OFFSET
@@ -157,7 +162,6 @@ internal class ExtismKernel(maxBytes: Long = DEFAULT_MAX_KERNEL_BYTES) {
 
 		/** Memory a finished call may keep for the next; beyond this it is released. */
 		const val RETAINED_SIZE = 1024 * 1024
-		const val HOST_HEAP_SHARE = 16
 		const val FREED = -1
 		val NO_MEMORY = ByteArray(0)
 	}
