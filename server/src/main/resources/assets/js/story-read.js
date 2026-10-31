@@ -114,8 +114,11 @@
 	document.addEventListener('keydown', function (event) {
 		if (toc && toc.open) return;
 		var target = event.target;
-		var editable = target && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName));
-		if (!isChapterKey(event, editable)) return;
+		var interactive = !!(target && target.closest && (
+			target.isContentEditable ||
+			target.closest('a, button, input, select, textarea, summary, [role="toolbar"], [tabindex]')
+		));
+		if (!isChapterKey(event, interactive)) return;
 
 		var link = reader.querySelector(event.key === 'ArrowLeft' ? '[data-reader-prev]' : '[data-reader-next]');
 		if (link) window.location.href = link.href;

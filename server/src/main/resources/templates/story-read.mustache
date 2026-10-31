@@ -3,23 +3,9 @@
 <main class="story-page reader-page">
 	<div class="reader" id="reader" data-project-key="{{projectKey}}" data-chapter="{{chapterNumber}}"
 		 data-headings="off" data-width="medium">
-		<!-- Applies stored reading prefs before the prose paints; story-read.js validates them after. -->
-		<script>
-			(function () {
-				try {
-					var prefs = JSON.parse(localStorage.getItem('hammer.reader.prefs')) || {};
-					var reader = document.getElementById('reader');
-					if (typeof prefs.fontSize === 'number') {
-						reader.style.setProperty('--reader-font-size', Math.min(32, Math.max(12, prefs.fontSize)) + 'px');
-					}
-					if (prefs.headings === true) reader.dataset.headings = 'on';
-					if (typeof prefs.width === 'string') reader.dataset.width = prefs.width;
-				} catch (e) { /* defaults stand */ }
-			})();
-		</script>
-
 		<div class="reader-bar">
-			<a href="{{dashboardUrl}}" class="back-link reader-bar__back">
+			<a href="{{dashboardUrl}}" class="back-link reader-bar__back" title="{{msg.story_read_back}}"
+			   aria-label="{{msg.story_read_back}}: {{projectName}}">
 				<i class="fas fa-arrow-left" aria-hidden="true"></i>
 				<span>{{projectName}}</span>
 			</a>
@@ -53,6 +39,28 @@
 				</div>
 			{{/hasChapter}}
 		</div>
+
+		<!-- Applies stored reading prefs before the prose paints; story-read.js validates them after. -->
+		<script>
+			(function () {
+				try {
+					var prefs = JSON.parse(localStorage.getItem('hammer.reader.prefs')) || {};
+					var reader = document.getElementById('reader');
+					if (typeof prefs.fontSize === 'number') {
+						var size = Math.min(32, Math.max(12, Math.round(prefs.fontSize)));
+						reader.style.setProperty('--reader-font-size', size + 'px');
+						var label = reader.querySelector('[data-reader-size-label]');
+						if (label) label.textContent = String(size);
+					}
+					if (prefs.headings === true) {
+						reader.dataset.headings = 'on';
+						var toggle = reader.querySelector('[data-reader-action="headings"]');
+						if (toggle) toggle.setAttribute('aria-pressed', 'true');
+					}
+					if (typeof prefs.width === 'string') reader.dataset.width = prefs.width;
+				} catch (e) { /* defaults stand */ }
+			})();
+		</script>
 
 		{{^complete}}
 			<p class="reader-notice" role="status">

@@ -722,8 +722,8 @@ class StoryRendererServiceTest {
 		val overview = result.overview
 		assertEquals(
 			listOf(
-				StoryChapter(number = 1, title = "Prologue", sceneCount = 1, wordCount = 3),
-				StoryChapter(number = 2, title = "Part One", sceneCount = 3, wordCount = 6),
+				StoryChapter(number = 1, title = "Prologue", sceneCount = 1),
+				StoryChapter(number = 2, title = "Part One", sceneCount = 3),
 			),
 			overview.chapters
 		)
@@ -811,9 +811,9 @@ class StoryRendererServiceTest {
 		val result = service.renderChapter(userId, projectId, chapterNumber = 1)
 
 		assertIs<ChapterRenderResult.Success>(result)
-		assertEquals(StoryChapter(1, "Empty Part", sceneCount = 0, wordCount = 0), result.render.chapter)
+		assertEquals(StoryChapter(1, "Empty Part", sceneCount = 0), result.render.chapter)
 		assertTrue(result.render.scenes.isEmpty())
-		assertEquals(2, result.render.overview.chapters.size)
+		assertEquals(2, result.render.chapters.size)
 	}
 
 	@Test
@@ -847,7 +847,7 @@ class StoryRendererServiceTest {
 		val result = service.renderChapter(userId, projectId, chapterNumber = 2)
 
 		assertIs<ChapterRenderResult.Success>(result)
-		assertEquals(listOf("Part", "Lost Scene"), result.render.overview.chapters.map { it.title })
+		assertEquals(listOf("Part", "Lost Scene"), result.render.chapters.map { it.title })
 		assertTrue(result.render.scenes.single().html.contains("Orphaned content"))
 	}
 
@@ -887,7 +887,7 @@ class StoryRendererServiceTest {
 		val result = service.renderChapter(userId, projectId, chapterNumber = 2)
 
 		assertIs<ChapterRenderResult.Success>(result)
-		assertEquals(listOf("Part", "Adrift"), result.render.overview.chapters.map { it.title })
+		assertEquals(listOf("Part", "Adrift"), result.render.chapters.map { it.title })
 		assertEquals(listOf("First", "Second"), result.render.scenes.map { it.name })
 	}
 
@@ -925,8 +925,8 @@ class StoryRendererServiceTest {
 
 		assertIs<ChapterRenderResult.Success>(result)
 		assertNull(result.render.chapter)
-		assertTrue(result.render.overview.chapters.isEmpty())
-		assertEquals("Test Story", result.render.overview.projectName)
+		assertTrue(result.render.chapters.isEmpty())
+		assertEquals("Test Story", result.render.projectName)
 	}
 
 	@Test

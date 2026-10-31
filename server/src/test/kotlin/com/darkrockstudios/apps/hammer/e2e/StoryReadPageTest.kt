@@ -157,6 +157,19 @@ class StoryReadPageTest : WebEndToEndTest() {
 	}
 
 	@Test
+	fun `a chapter with a blank name reads as untitled`(): Unit = runBlocking {
+		doStartServer()
+		seedStory()
+		insert(scene(5, "  ", "Nameless prose.", order = 2))
+
+		login(email, password).use { author ->
+			val body = author.get(readPath("?chapter=3")).bodyAsText()
+
+			assertTrue(body.contains("""<h1 class="reader-chapter__title">Untitled</h1>"""), body)
+		}
+	}
+
+	@Test
 	fun `a story with no scenes says there is nothing to read`(): Unit = runBlocking {
 		doStartServer()
 		seedWhitelistedAccount(email, password)

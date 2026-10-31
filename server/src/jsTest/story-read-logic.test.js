@@ -57,7 +57,7 @@ test('last chapter is scoped per project and must be positive', () => {
 	assert.equal(parseLastChapter('x'), null);
 });
 
-test('only plain arrow keys outside form fields turn the chapter', () => {
+test('only plain arrow keys away from focused controls turn the chapter', () => {
 	assert.equal(isChapterKey({key: 'ArrowRight'}, false), true);
 	assert.equal(isChapterKey({key: 'ArrowLeft'}, false), true);
 	assert.equal(isChapterKey({key: 'ArrowRight'}, true), false);

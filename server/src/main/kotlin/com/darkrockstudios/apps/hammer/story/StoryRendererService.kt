@@ -471,27 +471,10 @@ class StoryRendererService(
 		val orphaned: Boolean,
 	)
 
-	private fun overviewOf(
-		projectName: String,
-		chapters: List<CollectedChapter>,
-		complete: Boolean,
-	): StoryOverview {
-		val storyChapters = chapters.mapIndexed { index, chapter ->
-			StoryChapter(
-				number = index + 1,
-				title = chapter.title,
-				sceneCount = chapter.scenes.size,
-				wordCount = chapter.scenes.sumOf { countWords(it.content) },
-			)
+	private fun chapterEntries(chapters: List<CollectedChapter>): List<StoryChapter> =
+		chapters.mapIndexed { index, chapter ->
+			StoryChapter(number = index + 1, title = chapter.title, sceneCount = chapter.scenes.size)
 		}
-		return StoryOverview(
-			projectName = projectName,
-			chapters = storyChapters,
-			sceneCount = storyChapters.sumOf { it.sceneCount },
-			totalWordCount = storyChapters.sumOf { it.wordCount },
-			complete = complete,
-		)
-	}
 
 	/** Every scene entity in the project; [PreloadedScenes.complete] is false if any failed to load. */
 	private suspend fun loadAllScenes(userId: Long, projectDef: ProjectDefinition): PreloadedScenes {
@@ -519,7 +502,16 @@ class StoryRendererService(
 
 		return try {
 			val loaded = loadAllScenes(userId, projectDef)
-			StoryOverviewResult.Success(overviewOf(projectDef.name, collectChapters(loaded.scenes), loaded.complete))
+			val chapters = collectChapters(loaded.scenes)
+			StoryOverviewResult.Success(
+				StoryOverview(
+					projectName = projectDef.name,
+					chapters = chapterEntries(chapters),
+					sceneCount = chapters.sumOf { it.scenes.size },
+					totalWordCount = chapters.sumOf { chapter -> chapter.scenes.sumOf { countWords(it.content) } },
+					complete = loaded.complete,
+				)
+			)
 		} catch (e: CancellationException) {
 			throw e
 		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
@@ -529,7 +521,8 @@ class StoryRendererService(
 
 	/**
 	 * Renders chapter [chapterNumber] (1-based, coerced into range) one scene at a time. Scene and
-	 * chapter names are left out of the HTML; the page renders them itself.
+	 * chapter names are left out of the HTML; the page renders them itself. Nothing is word
+	 * counted: the reader shows no counts, and counting a whole manuscript per page turn is costly.
 	 */
 	suspend fun renderChapter(userId: Long, projectId: ProjectId, chapterNumber: Int): ChapterRenderResult {
 		val projectDef = projectEntityDatasource.getProject(userId, projectId)
@@ -538,9 +531,11 @@ class StoryRendererService(
 		return try {
 			val loaded = loadAllScenes(userId, projectDef)
 			val chapters = collectChapters(loaded.scenes)
-			val overview = overviewOf(projectDef.name, chapters, loaded.complete)
+			val entries = chapterEntries(chapters)
 			if (chapters.isEmpty()) {
-				return ChapterRenderResult.Success(ChapterRender(overview, chapter = null, scenes = emptyList()))
+				return ChapterRenderResult.Success(
+					ChapterRender(projectDef.name, entries, chapter = null, scenes = emptyList(), loaded.complete)
+				)
 			}
 
 			val index = chapterNumber.coerceIn(1, chapters.size) - 1
@@ -555,7 +550,9 @@ class StoryRendererService(
 					},
 				)
 			}
-			ChapterRenderResult.Success(ChapterRender(overview, overview.chapters[index], scenes))
+			ChapterRenderResult.Success(
+				ChapterRender(projectDef.name, entries, entries[index], scenes, loaded.complete)
+			)
 		} catch (e: CancellationException) {
 			throw e
 		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
@@ -841,7 +838,6 @@ data class StoryChapter(
 	val number: Int,
 	val title: String,
 	val sceneCount: Int,
-	val wordCount: Int,
 )
 
 data class StoryOverview(
@@ -871,11 +867,16 @@ data class ChapterScene(
 	val html: String,
 )
 
-/** [chapter] is null only when the story has no chapters at all. */
+/**
+ * One chapter ready to read, with every chapter listed for navigation. [chapter] is null only when
+ * the story has no chapters at all; [complete] is false when a scene failed to load.
+ */
 data class ChapterRender(
-	val overview: StoryOverview,
+	val projectName: String,
+	val chapters: List<StoryChapter>,
 	val chapter: StoryChapter?,
 	val scenes: List<ChapterScene>,
+	val complete: Boolean,
 )
 
 sealed class ChapterRenderResult {

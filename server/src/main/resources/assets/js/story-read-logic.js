@@ -69,11 +69,12 @@ function parseLastChapter(raw) {
 }
 
 /**
- * Whether a key press should turn the chapter: plain arrow keys only, never while typing or while
- * a modifier is held (those belong to the browser).
+ * Whether a key press should turn the chapter: plain arrow keys only, never while a control has
+ * focus (links, buttons and fields keep their own keys) or a modifier is held (those belong to the
+ * browser).
  */
-function isChapterKey(event, targetIsEditable) {
-	if (targetIsEditable) return false;
+function isChapterKey(event, targetIsInteractive) {
+	if (targetIsInteractive) return false;
 	if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return false;
 	return event.key === 'ArrowLeft' || event.key === 'ArrowRight';
 }
