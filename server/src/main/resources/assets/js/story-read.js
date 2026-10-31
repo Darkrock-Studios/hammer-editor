@@ -70,30 +70,32 @@
 		if (toc && toc.open) toc.close();
 	}
 
-	var actions = {
-		smaller: function () {
+	// A Map, so a data-reader-action value can only name one of these, never an inherited property.
+	var actions = new Map([
+		['smaller', function () {
 			update(function () { prefs.fontSize = stepFontSize(prefs.fontSize, -1); });
-		},
-		larger: function () {
+		}],
+		['larger', function () {
 			update(function () { prefs.fontSize = stepFontSize(prefs.fontSize, 1); });
-		},
-		'reset-size': function () {
+		}],
+		['reset-size', function () {
 			update(function () { prefs.fontSize = READER_DEFAULT_FONT_SIZE; });
-		},
-		headings: function () {
+		}],
+		['headings', function () {
 			update(function () { prefs.headings = !prefs.headings; });
-		},
-		width: function () {
+		}],
+		['width', function () {
 			update(function () { prefs.width = nextWidth(prefs.width); });
-		},
-		contents: openContents,
-		'close-contents': closeContents,
-	};
+		}],
+		['contents', openContents],
+		['close-contents', closeContents],
+	]);
 
 	document.addEventListener('click', function (event) {
 		var button = event.target.closest('[data-reader-action]');
-		if (button && actions[button.dataset.readerAction]) {
-			actions[button.dataset.readerAction]();
+		var action = button && actions.get(button.dataset.readerAction);
+		if (action) {
+			action();
 			return;
 		}
 		// A scene link jumps within this page, so the dialog gets out of the way.
