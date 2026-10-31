@@ -100,7 +100,7 @@ private suspend fun ApplicationCall.readerModel(
 	val model = withDefaults(
 		mapOf(
 			"page_stylesheet" to "/assets/css/story.css",
-			"page_pre_script" to "/assets/js/story-read-logic.js",
+			"page_pre_scripts" to listOf("/assets/js/story-read-logic.js", "/assets/js/reader-prefs.js"),
 			"page_script" to "/assets/js/story-read.js",
 			"projectName" to render.projectName,
 			"projectKey" to projectUuid,
@@ -127,7 +127,7 @@ private suspend fun ApplicationCall.readerModel(
 			mapOf(
 				"title" to "${render.projectName} · Hammer",
 				"isCover" to true,
-				"coverUrl" to coverUrl,
+				"coverImageUrl" to coverUrl,
 				"position" to coverLabel,
 				"toc" to tableOfContents(render, readUrl, current = null, currentScenes = emptyList(), ::named, locale),
 				"hasCoverEntry" to true,

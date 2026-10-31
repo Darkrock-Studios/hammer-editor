@@ -926,8 +926,11 @@ While the shared components cover most use cases, some pages have additional spe
 - **author.css** - Author header with avatar, story count
 - **story.css** - Story prose, the author's story dashboard (`.story-hero`, `.story-stats-strip`,
   `.story-panels`), the chapter reader (`.reader`, `.reader-tool`, the `.reader-toc` contents
-  dialog), publish toggle, access list. The reader keeps its text size, scene-heading and width
-  choices as `data-*` attributes and a `--reader-font-size` custom property on `.reader`.
+  dialog), publish toggle, access list. Reading prefs (text size everywhere, scene headings and
+  width in the chapter reader) live on whichever element carries `data-reader-root`: `data-*`
+  attributes plus a `--reader-font-size` custom property. The chapter reader and the published
+  story page share them through `reader-prefs.js` and the `partials/reader-*` templates (text size
+  buttons, the pre-paint prefs script, the cover page).
 - **error.css** - Colored sticky-note error cards with animations
 
 ---

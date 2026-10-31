@@ -1,0 +1,23 @@
+<!-- Applies stored reading prefs to [data-reader-root] before the prose paints; reader-prefs.js
+     validates them after. Placed after the root's controls so it can label them too. -->
+<script>
+	(function () {
+		try {
+			var prefs = JSON.parse(localStorage.getItem('hammer.reader.prefs')) || {};
+			var root = document.querySelector('[data-reader-root]');
+			if (!root) return;
+			if (typeof prefs.fontSize === 'number') {
+				var size = Math.min(32, Math.max(12, Math.round(prefs.fontSize)));
+				root.style.setProperty('--reader-font-size', size + 'px');
+				var label = root.querySelector('[data-reader-size-label]');
+				if (label) label.textContent = String(size);
+			}
+			if (prefs.headings === true) {
+				root.dataset.headings = 'on';
+				var toggle = root.querySelector('[data-reader-action="headings"]');
+				if (toggle) toggle.setAttribute('aria-pressed', 'true');
+			}
+			if (typeof prefs.width === 'string') root.dataset.width = prefs.width;
+		} catch (e) { /* defaults stand */ }
+	})();
+</script>

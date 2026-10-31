@@ -5,7 +5,7 @@
 		{{#hasPrevPage}}
 			<a href="{{prevPageUrl}}" class="pagination-button prev">
 				<i class="fa-solid fa-chevron-left"></i>
-				{{msg.public_story_prev_page}}
+				{{#prevIsCover}}{{msg.story_read_cover}}{{/prevIsCover}}{{^prevIsCover}}{{msg.public_story_prev_page}}{{/prevIsCover}}
 			</a>
 		{{/hasPrevPage}}
 		{{^hasPrevPage}}

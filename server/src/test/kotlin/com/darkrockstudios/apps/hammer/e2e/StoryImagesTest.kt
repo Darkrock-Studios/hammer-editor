@@ -107,8 +107,8 @@ class StoryImagesTest : WebEndToEndTest() {
 
 	/** The cover's src on [body], attribute escaping undone; null when the page shows no cover. */
 	private fun coverSrc(body: String): String? {
-		if (!body.contains("story-cover")) return null
-		val src = Regex("""<img class="story-cover" src="([^"]*)"""").find(body)
+		if (!body.contains("story-cover") && !body.contains("reader-cover__image")) return null
+		val src = Regex("""<img class="(?:story-cover|reader-cover__image)" src="([^"]*)"""").find(body)
 		return assertNotNull(src, "cover markup should carry its image").groupValues[1]
 			.replace("&#61;", "=")
 			.replace("&amp;", "&")
@@ -315,7 +315,7 @@ class StoryImagesTest : WebEndToEndTest() {
 		val page = client().get(storyPath()).bodyAsText()
 		val src = assertNotNull(coverSrc(page))
 		assertTrue(src.startsWith("/a/$penName/$projectSegment/image/3?s="), src)
-		assertTrue(Regex("""<img class="story-cover" src="[^"]*" alt="" fetchpriority="high">""").containsMatchIn(page), page)
+		assertTrue(Regex("""<img class="reader-cover__image" src="[^"]*" alt="" fetchpriority="high">""").containsMatchIn(page), page)
 
 		val response = client().get(route(src.removePrefix("/")))
 		assertEquals(HttpStatusCode.OK, response.status)
