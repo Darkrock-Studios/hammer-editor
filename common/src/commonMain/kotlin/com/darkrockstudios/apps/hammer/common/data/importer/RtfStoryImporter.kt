@@ -3,6 +3,8 @@ package com.darkrockstudios.apps.hammer.common.data.importer
 import com.darkrockstudios.apps.hammer.common.data.ImportFormat
 import com.darkrockstudios.apps.hammer.common.data.ImportOptions
 import com.darkrockstudios.apps.hammer.common.data.RtfSplitStrategy
+import com.darkrockstudios.apps.hammer.common.data.search.escapeMarkdown
+import com.darkrockstudios.apps.hammer.common.data.search.escapeOrderedListMarkers
 import com.darkrockstudios.libs.rtfparserkmp.parser.parseRtf
 import com.darkrockstudios.libs.rtfparserkmp.rtf.Command
 import com.darkrockstudios.libs.rtfparserkmp.rtf.CommandType
@@ -300,7 +302,7 @@ class RtfStoryImporter : StoryImporter {
 			}
 			markdown.append(text.substring(0, firstVisible))
 			openEmphasis()
-			markdown.append(escape(text.substring(firstVisible)))
+			markdown.append(escapeMarkdown(text.substring(firstVisible)))
 		}
 
 		private fun openEmphasis() {
@@ -340,19 +342,6 @@ class RtfStoryImporter : StoryImporter {
 		private fun trailingWhitespaceLength(): Int =
 			markdown.length - (markdown.indexOfLast { !it.isWhitespace() } + 1)
 
-		/** Keeps an imported paragraph that starts with "1." from parsing as an ordered list. */
-		private fun escapeOrderedListMarkers(text: String): String =
-			text.replace(ORDERED_LIST_MARKER, "$1\\\\.")
-
-		private fun escape(text: String): String {
-			val out = StringBuilder(text.length)
-			for (ch in text) {
-				if (ch in MARKDOWN_SPECIAL) out.append('\\')
-				out.append(ch)
-			}
-			return out.toString()
-		}
-
 		private class Formatting(val bold: Boolean, val italic: Boolean, val fontSize: Int?)
 
 		private enum class Marker(val text: String) {
@@ -362,10 +351,6 @@ class RtfStoryImporter : StoryImporter {
 
 		private companion object {
 			const val BOLD_RATIO = 0.8
-
-			/** Mirrors `MARKDOWN_SPECIAL_CHARS` in ComposeTextEditor's Markdown escaper. */
-			val MARKDOWN_SPECIAL = "\\`*_{}[]()<>#+-!|".toSet()
-			val ORDERED_LIST_MARKER = Regex("^(\\d+)\\.", RegexOption.MULTILINE)
 		}
 	}
 }

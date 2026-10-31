@@ -4,16 +4,15 @@ import com.darkrockstudios.apps.hammer.base.BuildMetadata
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectTheme
 import com.darkrockstudios.apps.hammer.common.data.ExportOptions
+import com.darkrockstudios.apps.hammer.common.util.zip.InMemoryZipEntry
+import com.darkrockstudios.apps.hammer.common.util.zip.writeZip
 import nl.adaptivity.xmlutil.XMLConstants
 import nl.adaptivity.xmlutil.XmlDeclMode
 import nl.adaptivity.xmlutil.XmlWriter
 import nl.adaptivity.xmlutil.core.KtXmlWriter
 import nl.adaptivity.xmlutil.smartStartTag
-import no.synth.kmpzip.zip.ZipEntry
-import no.synth.kmpzip.zip.ZipOutputStream
 import okio.BufferedSink
 import kotlin.math.roundToLong
-import no.synth.kmpzip.okio.ZipOutputStream as OkioZipOutputStream
 
 private const val W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 private const val R_NS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
@@ -91,27 +90,26 @@ fun writeStoryAsDocx(
 	val ctx = DocxRenderContext(imageNames, images)
 	val documentXml = buildXmlPart { writeDocument(it, ctx, projectName, projectData, strings, effective, options) }
 
-	val zip = OkioZipOutputStream(sink)
 	val mediaFormats = ctx.media.map { it.raster.format }.toSet()
-	zip.putEntry("[Content_Types].xml", buildXmlPart { writeContentTypes(it, mediaFormats) })
-	zip.putEntry("_rels/.rels", buildXmlPart(::writePackageRels))
-	zip.putEntry("docProps/core.xml", buildXmlPart { writeCoreProps(it, projectName, authorName) })
-	zip.putEntry("docProps/app.xml", buildXmlPart(::writeAppProps))
-	zip.putEntry("word/styles.xml", buildXmlPart { writeStyles(it, projectData.theme, options.font.faceName) })
-	zip.putEntry("word/numbering.xml", buildXmlPart { writeNumbering(it, ctx.orderedListLevels) })
-	zip.putEntry(
-		"word/_rels/document.xml.rels",
-		buildXmlPart { writeDocumentRels(it, ctx.relationships) })
-	zip.putEntry("word/document.xml", documentXml)
-	ctx.media.forEach { zip.putEntry("word/${it.target}", it.raster.bytes) }
-	zip.finish()
-	zip.flush()
-}
-
-private fun ZipOutputStream.putEntry(name: String, content: ByteArray) {
-	putNextEntry(ZipEntry(name))
-	write(content)
-	closeEntry()
+	writeZip(
+		sink,
+		listOf(
+			InMemoryZipEntry("[Content_Types].xml", buildXmlPart { writeContentTypes(it, mediaFormats) }),
+			InMemoryZipEntry("_rels/.rels", buildXmlPart(::writePackageRels)),
+			InMemoryZipEntry("docProps/core.xml", buildXmlPart { writeCoreProps(it, projectName, authorName) }),
+			InMemoryZipEntry("docProps/app.xml", buildXmlPart(::writeAppProps)),
+			InMemoryZipEntry(
+				"word/styles.xml",
+				buildXmlPart { writeStyles(it, projectData.theme, options.font.faceName) },
+			),
+			InMemoryZipEntry("word/numbering.xml", buildXmlPart { writeNumbering(it, ctx.orderedListLevels) }),
+			InMemoryZipEntry(
+				"word/_rels/document.xml.rels",
+				buildXmlPart { writeDocumentRels(it, ctx.relationships) },
+			),
+			InMemoryZipEntry("word/document.xml", documentXml),
+		) + ctx.media.map { InMemoryZipEntry("word/${it.target}", it.raster.bytes) },
+	)
 }
 
 private fun buildXmlPart(block: (XmlWriter) -> Unit): ByteArray {

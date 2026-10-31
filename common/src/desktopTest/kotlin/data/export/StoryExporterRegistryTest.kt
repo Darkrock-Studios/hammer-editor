@@ -47,7 +47,7 @@ class StoryExporterRegistryTest {
 		val registry = StoryExporterRegistry(listOf(contributed))
 
 		assertSame(contributed, registry.forFormat("aa.two"))
-		assertEquals("md", registry.forFormat(BuiltInExportFormat.MARKDOWN).fileExtension)
+		assertEquals("zip", registry.forFormat(BuiltInExportFormat.MARKDOWN).fileExtension)
 	}
 
 	@Test

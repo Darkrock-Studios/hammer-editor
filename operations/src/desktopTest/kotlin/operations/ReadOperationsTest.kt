@@ -83,6 +83,7 @@ import kotlinx.serialization.json.put
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.koin.core.component.get
+import java.util.zip.ZipInputStream
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
@@ -418,10 +419,13 @@ class ReadOperationsTest : KoinOperationsTest() {
 			"project.export",
 			ProjectExportInput(PROJECT, format = "markdown", sceneIds = listOf(ids.storm.id)),
 		)
-		val text = file.content.decodeToString()
+		assertEquals("$PROJECT.zip", file.fileName)
+		val text = ZipInputStream(file.content.inputStream()).use { zip ->
+			assertEquals("$PROJECT.md", zip.nextEntry?.name)
+			zip.readBytes().decodeToString()
+		}
 		assertTrue("Alice ran for the lighthouse." in text)
 		assertFalse("Before it all." in text)
-		assertEquals("$PROJECT.md", file.fileName)
 	}
 
 	@Test

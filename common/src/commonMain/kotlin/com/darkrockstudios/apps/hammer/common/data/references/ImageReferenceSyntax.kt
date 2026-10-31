@@ -85,15 +85,23 @@ object ImageReferenceSyntax {
 	 * inline (`![alt](hammer://image/3)`) or uses a reference (`![alt][label]`). A reference
 	 * definition pointing at a project image is dropped, as [remove] drops one. Fenced code is left
 	 * alone.
+	 *
+	 * When [replacement] returns null the image is removed as [remove] removes one: a line left with
+	 * nothing else on it is dropped along with a doubled blank line.
 	 */
-	fun replaceImages(text: String, replacement: (imageId: Int, alt: String) -> String): String {
+	fun replaceImages(text: String, replacement: (imageId: Int, alt: String) -> String?): String {
 		if (findIds(text).isEmpty()) return text
 
 		return rewriteImages(text, """\d+""") { content, inline, labels ->
-			val inlineReplaced = inline.replace(content) { match ->
-				match.destinationId(2)?.let { replacement(it, match.groupValues[1]) } ?: match.value
+			var removed = false
+			val replaceOrRemove = { imageId: Int, alt: String ->
+				replacement(imageId, alt) ?: "".also { removed = true }
 			}
-			replaceReferenceUses(inlineReplaced, labels, replacement)
+			val inlineReplaced = inline.replace(content) { match ->
+				match.destinationId(2)?.let { replaceOrRemove(it, match.groupValues[1]) } ?: match.value
+			}
+			val replaced = replaceReferenceUses(inlineReplaced, labels, replaceOrRemove)
+			if (removed && BLANK.matches(replaced) && !BLANK.matches(content)) null else replaced
 		}
 	}
 

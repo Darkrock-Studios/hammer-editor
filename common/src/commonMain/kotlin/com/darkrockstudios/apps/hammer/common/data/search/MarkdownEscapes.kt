@@ -2,6 +2,29 @@ package com.darkrockstudios.apps.hammer.common.data.search
 
 private const val ASCII_PUNCTUATION = "!\"#\$%&'()*+,-./:;<=>?@[\\]^_`{|}~"
 
+/** Mirrors `MARKDOWN_SPECIAL_CHARS` in ComposeTextEditor's Markdown escaper. */
+private val MARKDOWN_SPECIAL = "\\`*_{}[]()<>#+-!|".toSet()
+
+private val ORDERED_LIST_MARKER = Regex("""^(\d+)\.""", RegexOption.MULTILINE)
+
+/**
+ * Backslash-escapes the editor's Markdown special characters in [text], the set ComposeTextEditor's
+ * escaper uses. Others, such as `.`, `~`, `=` and `&`, are left as they are.
+ */
+fun escapeMarkdown(text: String): String {
+	if (text.none { it in MARKDOWN_SPECIAL }) return text
+
+	val out = StringBuilder(text.length + 8)
+	for (ch in text) {
+		if (ch in MARKDOWN_SPECIAL) out.append('\\')
+		out.append(ch)
+	}
+	return out.toString()
+}
+
+/** Escapes the dot of a line-leading `1.`, so the line does not parse as an ordered list item. */
+fun escapeOrderedListMarkers(text: String): String = text.replace(ORDERED_LIST_MARKER, "$1\\\\.")
+
 /**
  * Resolves CommonMark backslash escapes (`\*` becomes `*`) to their bare ASCII punctuation, so text
  * reads the way it does on screen rather than the way it is stored. Allocates only when [text]

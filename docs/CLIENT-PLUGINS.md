@@ -454,7 +454,7 @@ interface StoryExporter {
 	val mimeType: String
 	/** Shown in the export dialog; the built-in formats' labels are localized in `:composeUi` instead. */
 	val label: String? get() = null
-	/** False only for formats that ignore project data (such as Markdown), which skips loading it. */
+	/** False for formats that ignore project data, which skips loading it. */
 	val needsProjectData: Boolean get() = true
 	/** True for formats that package project images, which is the only time their files are read. */
 	val embedsImages: Boolean get() = false
@@ -516,8 +516,17 @@ class ExportInput(
   an image on a plain line of its own as an `image` block (see
   [Calling convention](#calling-convention)). Otherwise the `prose` input
   (`ExportInput.imageNames`) carries the image's name as text; all of these
-  leave out an image with no name to show. The Markdown format keeps the
-  reference as written.
+  leave out an image with no name to show.
+- **Markdown.** The Markdown format is a zip: `<project>.md` beside an
+  `images` folder holding the file of each image the story shows and the
+  cover, named `<id>~<name>.<extension>` as in the project and with its bytes
+  as they are. Every reference, on a line of its own or inside prose, becomes
+  `![<name>](images/<file>)` with the image's current name as alt text; a
+  destination with a space or parenthesis goes in angle brackets. The cover
+  is the first line, above the title. An image whose file cannot be read is
+  written as its name, and one with no name is left out. A reference inside
+  fenced code is left as written and its image is not packaged; a bare link
+  such as `[text](hammer://image/5)` is not an image and is left as written.
 - **Cover.** A project cover opens the export with a cover page before the
   title page. PDF fits it to the whole page, edge to edge and centred. DOCX
   and RTF give it a page of its own at the full text width, narrowed if need
