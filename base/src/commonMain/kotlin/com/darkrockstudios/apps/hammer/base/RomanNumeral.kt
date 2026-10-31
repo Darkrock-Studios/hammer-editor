@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer.common.compose.designsystem
+package com.darkrockstudios.apps.hammer.base
 
 private val romanPairs = listOf(
 	1000 to "M", 900 to "CM", 500 to "D", 400 to "CD",
@@ -8,8 +8,8 @@ private val romanPairs = listOf(
 
 /**
  * Convert [n] to a roman numeral string. Returns "0" for 0 and an unsigned
- * roman for negatives (sign discarded — section markers are positive). Used
- * by [HdSectionHeader] and any `§ I`-style marker.
+ * roman for negatives (sign discarded; section markers are positive). Shared by
+ * the app's `§ I`-style markers and the web reader's chapter numbers.
  */
 fun romanNumeral(n: Int): String {
 	if (n == 0) return "0"

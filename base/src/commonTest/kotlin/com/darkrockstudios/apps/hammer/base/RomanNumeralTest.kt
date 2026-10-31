@@ -1,11 +1,11 @@
-package com.darkrockstudios.apps.hammer.frontend.utils
+package com.darkrockstudios.apps.hammer.base
 
-import org.junit.jupiter.api.Test
+import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class RomanNumeralTest {
 	@Test
-	fun `converts chapter numbers`() {
+	fun convertsChapterNumbers() {
 		assertEquals("I", romanNumeral(1))
 		assertEquals("IV", romanNumeral(4))
 		assertEquals("IX", romanNumeral(9))
@@ -15,8 +15,8 @@ class RomanNumeralTest {
 	}
 
 	@Test
-	fun `non-positive numbers stay as digits`() {
+	fun zeroAndNegatives() {
 		assertEquals("0", romanNumeral(0))
-		assertEquals("-3", romanNumeral(-3))
+		assertEquals("III", romanNumeral(-3))
 	}
 }

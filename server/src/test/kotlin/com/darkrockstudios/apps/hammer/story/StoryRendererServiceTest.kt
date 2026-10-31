@@ -866,8 +866,54 @@ class StoryRendererServiceTest {
 		val result = service.storyOverview(userId, projectId)
 
 		assertIs<StoryOverviewResult.Success>(result)
-		assertEquals(listOf("Part", "Stranded"), result.overview.chapters.map { it.title })
+		// The cycle's outermost group on the scene's path becomes its chapter.
+		assertEquals(listOf("Part", "Loop B"), result.overview.chapters.map { it.title })
 		assertEquals(2, result.overview.sceneCount)
+	}
+
+	@Test
+	fun `chapters - a group whose parent is missing stays one chapter`() = runTest {
+		setupMocksForScenes(
+			listOf(
+				createScene(id = 1, name = "Part", content = "", order = 0, sceneType = ApiSceneType.Group),
+				createScene(id = 2, name = "Attached", content = "a", order = 0, path = listOf(0, 1)),
+				// Parent group 99 does not exist.
+				createScene(id = 3, name = "Adrift", content = "", order = 0, sceneType = ApiSceneType.Group, path = listOf(0, 99)),
+				createScene(id = 4, name = "Second", content = "b", order = 1, path = listOf(0, 99, 3)),
+				createScene(id = 5, name = "First", content = "c", order = 0, path = listOf(0, 99, 3)),
+			)
+		)
+
+		val result = service.renderChapter(userId, projectId, chapterNumber = 2)
+
+		assertIs<ChapterRenderResult.Success>(result)
+		assertEquals(listOf("Part", "Adrift"), result.render.overview.chapters.map { it.title })
+		assertEquals(listOf("First", "Second"), result.render.scenes.map { it.name })
+	}
+
+	@Test
+	fun `chapters - a scene that fails to load marks the overview incomplete`() = runTest {
+		setupMocksForScenes(listOf(createScene(id = 1, name = "Loaded", content = "words", order = 0)))
+		// A second scene is listed but its entity cannot be read.
+		coEvery { datasource.getEntityDefsByType(userId, projectDef, ApiProjectEntity.Type.SCENE) } returns
+			listOf(EntityDefinition(1, ApiProjectEntity.Type.SCENE), EntityDefinition(2, ApiProjectEntity.Type.SCENE))
+
+		val result = service.storyOverview(userId, projectId)
+
+		assertIs<StoryOverviewResult.Success>(result)
+		assertFalse(result.overview.complete)
+		assertEquals(1, result.overview.sceneCount)
+	}
+
+	@Test
+	fun `chapters - an empty story reads in zero minutes`() = runTest {
+		setupMocksForScenes(listOf(createScene(id = 1, name = "Blank", content = "", order = 0)))
+
+		val result = service.storyOverview(userId, projectId)
+
+		assertIs<StoryOverviewResult.Success>(result)
+		assertTrue(result.overview.complete)
+		assertEquals(0, result.overview.readingTimeMinutes)
 	}
 
 	@Test
