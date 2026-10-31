@@ -43,7 +43,7 @@ private object DocxStoryExporter : StoryExporter {
 	override val fileExtension = "docx"
 	override val mimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 	override val embedsImages = true
-	override val embedsCover = true
+	override val embedsCover = false
 
 	override fun render(sink: BufferedSink, input: ExportInput) = writeStoryAsDocx(
 		sink = sink,
@@ -54,6 +54,7 @@ private object DocxStoryExporter : StoryExporter {
 		options = input.options,
 		imageNames = input.imageNames,
 		images = input.images,
+		contact = input.contact,
 	)
 }
 

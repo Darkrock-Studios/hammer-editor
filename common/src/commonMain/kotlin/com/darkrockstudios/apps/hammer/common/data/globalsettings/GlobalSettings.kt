@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.data.globalsettings
 
 import androidx.compose.runtime.Immutable
+import com.darkrockstudios.apps.hammer.common.data.ManuscriptContact
 import com.darkrockstudios.apps.hammer.common.util.Locale
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
@@ -60,6 +61,8 @@ data class GlobalSettings(
 	val automaticUpdateChecks: Boolean = true,
 	/** The release the user chose "Later" on; the banner stays hidden until a newer one appears. */
 	val dismissedUpdateVersion: String? = null,
+	/** The contact block for manuscript exports, remembered from the export dialog. */
+	val manuscriptContact: ManuscriptContact = ManuscriptContact(),
 ) {
 	companion object {
 

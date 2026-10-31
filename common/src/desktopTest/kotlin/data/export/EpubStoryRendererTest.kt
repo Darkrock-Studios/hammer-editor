@@ -41,7 +41,12 @@ class EpubStoryRendererTest {
 			projectData = projectData,
 			chapters = chapters,
 			language = "en",
-			strings = ExportStrings(contentsTitle = "Contents", authorByline = author?.let { "by $it" }),
+			strings = ExportStrings(
+				contentsTitle = "Contents",
+				authorByline = author?.let { "by $it" },
+				wordCount = "about 12,500 words",
+				endMarker = "END",
+			),
 			options = options,
 			images = images,
 			imageNames = imageNames,

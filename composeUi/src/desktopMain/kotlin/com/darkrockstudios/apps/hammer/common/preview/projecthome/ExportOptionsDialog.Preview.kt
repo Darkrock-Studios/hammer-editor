@@ -9,10 +9,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
-import com.darkrockstudios.apps.hammer.common.data.ExportFont
 import com.darkrockstudios.apps.hammer.common.data.export.BuiltInExportFormat
 import com.darkrockstudios.apps.hammer.common.data.ExportOptions
 import com.darkrockstudios.apps.hammer.common.data.ExportableScene
+import com.darkrockstudios.apps.hammer.common.data.ManuscriptContact
 import com.darkrockstudios.apps.hammer.common.preview.KoinApplicationPreview
 import com.darkrockstudios.apps.hammer.common.preview.globalSettingsPreview
 import com.darkrockstudios.apps.hammer.common.projecthome.ExportOptionsDialogContent
@@ -29,7 +29,10 @@ private val previewScenes = listOf(
 )
 
 @Composable
-private fun ExportOptionsPreviewFrame(options: ExportOptions) {
+private fun ExportOptionsPreviewFrame(
+	options: ExportOptions,
+	contact: ManuscriptContact = ManuscriptContact(),
+) {
 	KoinApplicationPreview {
 		AppTheme(globalSettingsPreview, true) {
 			Box(
@@ -40,9 +43,11 @@ private fun ExportOptionsPreviewFrame(options: ExportOptions) {
 			) {
 				ExportOptionsDialogContent(
 					options = options,
+					contact = contact,
 					formats = exportFormatChoices(),
 					exportableScenes = previewScenes,
 					onOptionsChanged = {},
+					onContactChanged = {},
 					onCancel = {},
 					onConfirm = {},
 					onShowHelp = {},
@@ -58,16 +63,21 @@ fun ExportOptionsDialogPreview() {
 	ExportOptionsPreviewFrame(ExportOptions())
 }
 
-@Preview(widthDp = 600, heightDp = 640)
+@Preview(widthDp = 600, heightDp = 900)
 @Composable
 fun ExportOptionsDialogWordPreview() {
 	ExportOptionsPreviewFrame(
-		ExportOptions(
+		options = ExportOptions(
 			format = BuiltInExportFormat.DOCX,
 			numberChapters = true,
-			font = ExportFont.TimesNewRoman,
-			keepBlankLines = false,
-		)
+			manuscriptShortStory = true,
+		),
+		contact = ManuscriptContact(
+			legalName = "Jane Q. Writer",
+			address = "123 Lantern Street\nSpringfield, IL 62704",
+			phone = "(555) 010-0199",
+			email = "jane@example.com",
+		),
 	)
 }
 

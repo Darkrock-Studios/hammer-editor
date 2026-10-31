@@ -27,6 +27,7 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.impl.annotations.MockK
 import kotlinx.coroutines.test.runTest
+import org.jetbrains.compose.resources.PluralStringResource
 import org.jetbrains.compose.resources.StringResource
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -61,6 +62,7 @@ class SceneSynchronizerTest : BaseTest() {
 	private val strRes: StrRes = object : StrRes {
 		override suspend fun get(str: StringResource) = "test"
 		override suspend fun get(str: StringResource, vararg args: Any) = "test"
+		override suspend fun get(str: PluralStringResource, quantity: Int, vararg args: Any) = "test"
 	}
 
 	private lateinit var rootNode: TreeNode<SceneItem>

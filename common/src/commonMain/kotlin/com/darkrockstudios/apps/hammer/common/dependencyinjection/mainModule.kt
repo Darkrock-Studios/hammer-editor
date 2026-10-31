@@ -333,6 +333,7 @@ val mainModule = module {
 				fileSystem = get(named(RAW_FILESYSTEM)),
 				localeResolver = get(),
 				strRes = get(),
+				globalSettingsStore = get(),
 			)
 		}
 		scoped<SceneDraftsDatasource>()

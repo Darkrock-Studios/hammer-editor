@@ -477,11 +477,24 @@ class ExportInput(
 	val images: Map<Int, ExportImage> = emptyMap(),
 	/** The current name of each project image the story refers to, by id. */
 	val imageNames: Map<Int, String> = emptyMap(),
+	/** The author's saved contact block, for formats that print one. */
+	val contact: ManuscriptContact = ManuscriptContact(),
 ) {
 	fun requireProjectData(): ProjectData
 	/** [chapters], or one chapter named after the project when top-level nodes are not chapters. */
 	fun bookChapters(): List<StoryChapter>
 }
+
+/** Localized text for the document body, resolved once by the export use case. */
+data class ExportStrings(
+	val contentsTitle: String,
+	/** The title-page byline, e.g. "by Jane Doe", or null when there is no author. */
+	val authorByline: String?,
+	/** The manuscript's word count line, e.g. "about 12,500 words". */
+	val wordCount: String,
+	/** The line that closes a manuscript. */
+	val endMarker: String,
+)
 ```
 
 - **Built-in formats.** The five built-in formats are `StoryExporter`s too,
@@ -494,6 +507,16 @@ class ExportInput(
   file extension from it, and the Android save picker its MIME type.
 - **Labels.** Built-in labels are localized in `:composeUi`. A plugin format
   shows its manifest label, or its file extension in upper case.
+- **Word manuscript.** DOCX renders Standard Manuscript Format: US Letter,
+  12pt Times New Roman (Courier New with `ExportOptions.manuscriptClassic`),
+  double spaced, the author's contact and the word count on page 1, a running
+  header of surname, title and page number, and a centred `#` between scenes.
+  A novel gets a title page and starts each chapter on a new page;
+  `ExportOptions.manuscriptShortStory` puts the title on page 1 above the text
+  instead. `ExportInput.contact` carries the contact (legal name, address,
+  phone, email) the user saves in the export dialog, so a Kotlin exporter can
+  print it too; runtime plugins are not sent it. `ExportOptions.font` and
+  `keepBlankLines` do not apply.
 - **Images.** Chapter markdown embeds a project image as a line of its own,
   `![image](hammer://image/<id>)`, which only Hammer can resolve: the app, and
   the server's web reader, which serves the image itself. The alt text carries
@@ -530,9 +553,9 @@ class ExportInput(
   link such as `[text](hammer://image/5)` is not an image and is left as
   written.
 - **Cover.** A project cover opens the export with a cover page before the
-  title page. PDF fits it to the whole page, edge to edge and centred. DOCX
-  and RTF give it a page of its own at the full text width, narrowed if need
-  be to fit the text height. EPUB adds a cover page that scales it to the
+  title page, except in DOCX: a manuscript has no cover. PDF fits it to the
+  whole page, edge to edge and centred. RTF gives it a page of its own at the
+  full text width, narrowed if need be to fit the text height. EPUB adds a cover page that scales it to the
   screen as the first item of the reading order, kept out of the table of
   contents, beside the book's `cover` metadata. A cover whose image is missing
   or does not decode, or an SVG cover outside PDF, leaves the export without

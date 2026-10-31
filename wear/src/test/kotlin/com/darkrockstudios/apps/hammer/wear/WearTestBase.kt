@@ -15,6 +15,7 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestCoroutineScheduler
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
+import org.jetbrains.compose.resources.PluralStringResource
 import org.jetbrains.compose.resources.StringResource
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
@@ -66,4 +67,5 @@ abstract class WearTestBase {
 class FakeStrRes : StrRes {
 	override suspend fun get(str: StringResource) = "text"
 	override suspend fun get(str: StringResource, vararg args: Any) = "text"
+	override suspend fun get(str: PluralStringResource, quantity: Int, vararg args: Any) = "text"
 }

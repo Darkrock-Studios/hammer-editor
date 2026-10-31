@@ -34,6 +34,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import net.peanuuutz.tomlkt.Toml
 import okio.fakefilesystem.FakeFileSystem
+import org.jetbrains.compose.resources.PluralStringResource
 import org.jetbrains.compose.resources.StringResource
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -77,6 +78,7 @@ class ClientEncyclopediaSynchronizerTest : BaseTest() {
 	private val strRes: StrRes = object : StrRes {
 		override suspend fun get(str: StringResource) = "test"
 		override suspend fun get(str: StringResource, vararg args: Any) = "test"
+		override suspend fun get(str: PluralStringResource, quantity: Int, vararg args: Any) = "test"
 	}
 
 	private lateinit var fileSystem: FakeFileSystem

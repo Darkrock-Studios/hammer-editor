@@ -41,6 +41,20 @@ And for the Server:
 The results of which will be here:
 [Code Coverage Report](./build/reports/kover/html/index.html)
 
+#### Validating Word exports
+
+`scripts/validate-docx.sh` checks `.docx` files against Microsoft's Open XML SDK schemas, using
+[OOXML-Validator](https://github.com/mikeebowen/OOXML-Validator) in Docker. It needs Docker, and builds
+the `hammer-docx-validator` image from `scripts/docx-validator/` on first use, tagged with a hash of the
+Dockerfile so edits to it rebuild the image.
+
+`scripts/validate-docx.sh path/to/file.docx` validates exported files.
+
+`scripts/validate-docx.sh --samples` renders the sample documents in the `DocxValidationSamples` test
+and validates them. Run it after changing the docx exporter.
+
+Both print the validator's JSON per file (`[]` when clean) and exit non-zero on any error.
+
 ## Writing Tests
 
 ### Testing Philosophy

@@ -103,7 +103,12 @@ class RuntimePluginEndToEndTest {
 				treatTopLevelAsChapters = true,
 				options = ExportOptions(),
 				language = "en",
-				strings = ExportStrings(contentsTitle = "Contents", authorByline = null),
+				strings = ExportStrings(
+					contentsTitle = "Contents",
+					authorByline = null,
+					wordCount = "about 12,500 words",
+					endMarker = "END",
+				),
 			),
 		)
 		val report = sink.readUtf8()

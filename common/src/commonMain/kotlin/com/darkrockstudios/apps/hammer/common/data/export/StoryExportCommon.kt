@@ -7,19 +7,23 @@ package com.darkrockstudios.apps.hammer.common.data.export
  *
  * @param contentsTitle the heading of the table-of-contents page.
  * @param authorByline the title-page byline (e.g. "by Jane Doe"), or null when there is no author.
+ * @param wordCount the manuscript's word count line (e.g. "about 12,500 words").
+ * @param endMarker the line that closes a manuscript.
  */
 data class ExportStrings(
 	val contentsTitle: String,
 	val authorByline: String?,
+	val wordCount: String,
+	val endMarker: String,
 )
 
-// Shared layout vocabulary mirrored across the EPUB / DOCX / RTF / PDF exporters. Keeping these in one
-// place is what lets the "mirrored" exports actually stay in step when the layout is tuned.
+// Layout vocabulary. [chapterTitle] serves every exporter; the rest serves the RTF exporter's book
+// layout.
 
-/** Monospace font face shared by the DOCX and RTF exporters. */
+/** Monospace font face of the RTF exporter. */
 internal const val EXPORT_MONO_FONT = "Consolas"
 
-/** Heading 1..6 sizes in half-points, shared by the DOCX and RTF exporters. */
+/** Heading 1..6 sizes in half-points, for the RTF exporter. */
 internal val HEADING_HALF_POINTS = listOf(48, 36, 32, 28, 26, 24)
 
 /** The chapter title as it appears in headings and the Contents page. */

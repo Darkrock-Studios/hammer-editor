@@ -80,6 +80,7 @@
 
 	<string name="project_home_action_export_toast_success">Story Exported</string>
 	<string name="project_home_action_export_toast_failure">Export failed</string>
+	<string name="project_home_action_export_toast_contact_failure">Contact details could not be saved</string>
 
 	<string name="project_home_export_dialog_title">Export Story</string>
 	<string name="project_home_export_section">EXPORT</string>
@@ -89,7 +90,7 @@
 	<string name="project_home_export_format_markdown">Markdown (.zip)</string>
 	<string name="project_home_export_format_epub">EPub (.epub)</string>
 	<string name="project_home_export_format_pdf">PDF (.pdf)</string>
-	<string name="project_home_export_format_docx">Word (.docx)</string>
+	<string name="project_home_export_format_docx">Word manuscript (.docx)</string>
 	<string name="project_home_export_format_rtf">RTF (.rtf)</string>
 	<string name="project_home_export_cancel">Cancel</string>
 	<string name="project_home_export_execute">Export</string>
@@ -97,6 +98,16 @@
 	<string name="project_home_export_font_label">Font</string>
 	<string name="project_home_export_blank_lines_label">Keep blank lines between paragraphs</string>
 	<string name="project_home_export_blank_lines_hint">Turn off if you separate paragraphs with a blank line and do not want empty paragraphs in the export. Scene breaks and runs of two or more blank lines are kept.</string>
+	<string name="project_home_export_manuscript_short_story_label">Short story layout</string>
+	<string name="project_home_export_manuscript_short_story_hint">Title on the first page, no separate title page</string>
+	<string name="project_home_export_manuscript_classic_label">Classic (Courier)</string>
+	<string name="project_home_export_manuscript_classic_hint">The older Courier style some markets still ask for</string>
+	<string name="project_home_export_contact_label">Contact details</string>
+	<string name="project_home_export_contact_hint">Printed on the manuscript's first page and saved on this device only.</string>
+	<string name="project_home_export_contact_legal_name">Legal name</string>
+	<string name="project_home_export_contact_address">Address</string>
+	<string name="project_home_export_contact_phone">Phone</string>
+	<string name="project_home_export_contact_email">Email</string>
 	<string name="project_home_export_limit_scenes_label">Limit to specific scenes</string>
 	<string name="project_home_export_limit_scenes_hint">Only the selected scenes will be included in the export</string>
 	<string name="project_home_export_scenes_label">Scenes</string>
@@ -110,12 +121,21 @@
 	<string name="project_home_export_help_format_markdown">Plain text with light formatting, in a zip with its images; ideal for version control or other writing tools.</string>
 	<string name="project_home_export_help_format_epub">The standard e-book format; best for beta readers reading on e-readers and phones with reflowable text.</string>
 	<string name="project_home_export_help_format_pdf">A fixed page layout that looks the same everywhere; best for printing or sharing a final, read-only copy.</string>
-	<string name="project_home_export_help_format_docx">Opens in Word and Google Docs; best for editors and beta readers who leave comments or track changes.</string>
+	<string name="project_home_export_help_format_docx">Standard Manuscript Format, for submitting to editors, agents and publishers: a first page with your contact details and word count, double spacing, and a running header.</string>
 	<string name="project_home_export_help_format_rtf">A broadly compatible rich-text format; a safe choice when you are unsure which word processor the recipient uses.</string>
 	<string name="project_home_export_help_dismiss">Got it</string>
 
 	<string name="project_home_export_contents_title">Contents</string>
 	<string name="project_home_export_byline">by %1$s</string>
+	<plurals name="project_home_export_word_count_about">
+		<item quantity="one">about %1$s word</item>
+		<item quantity="other">about %1$s words</item>
+	</plurals>
+	<plurals name="project_home_export_word_count_exact">
+		<item quantity="one">%1$s word</item>
+		<item quantity="other">%1$s words</item>
+	</plurals>
+	<string name="project_home_export_end_marker">END</string>
 
 	<string name="project_home_action_import_toast_success">Story Imported</string>
 	<string name="project_home_action_import_toast_failure">Import failed</string>

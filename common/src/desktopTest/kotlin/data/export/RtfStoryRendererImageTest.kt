@@ -49,7 +49,12 @@ class RtfStoryRendererImageTest {
 			projectName = "Story",
 			projectData = ProjectData(authorName = "Author"),
 			chapters = listOf(StoryChapter("Alpha", markdown)),
-			strings = ExportStrings(contentsTitle = "Contents", authorByline = "by Author"),
+			strings = ExportStrings(
+				contentsTitle = "Contents",
+				authorByline = "by Author",
+				wordCount = "about 12,500 words",
+				endMarker = "END",
+			),
 			imageNames = mapOf(3 to "Cheshire Cat"),
 			images = mapOf(3 to image),
 		)
@@ -195,7 +200,12 @@ class RtfStoryRendererImageTest {
 				treatTopLevelAsChapters = true,
 				options = ExportOptions(),
 				language = "en",
-				strings = ExportStrings(contentsTitle = "Contents", authorByline = null),
+				strings = ExportStrings(
+					contentsTitle = "Contents",
+					authorByline = null,
+					wordCount = "about 12,500 words",
+					endMarker = "END",
+				),
 				images = mapOf(3 to ExportImage(3, "Cheshire Cat", "png", encoded("png"))),
 				imageNames = mapOf(3 to "Cheshire Cat"),
 			),
@@ -208,7 +218,12 @@ class RtfStoryRendererImageTest {
 		projectName = "Story",
 		projectData = ProjectData(authorName = "Author", coverImageId = coverImageId),
 		chapters = listOf(StoryChapter("Alpha", "Body.")),
-		strings = ExportStrings(contentsTitle = "Contents", authorByline = "by Author"),
+		strings = ExportStrings(
+			contentsTitle = "Contents",
+			authorByline = "by Author",
+			wordCount = "about 12,500 words",
+			endMarker = "END",
+		),
 		images = images,
 	).blocks
 
@@ -242,7 +257,12 @@ class RtfStoryRendererImageTest {
 				projectName = "Story",
 				projectData = ProjectData(coverImageId = 3),
 				chapters = listOf(StoryChapter("Alpha", "Body.")),
-				strings = ExportStrings(contentsTitle = "Contents", authorByline = null),
+				strings = ExportStrings(
+					contentsTitle = "Contents",
+					authorByline = null,
+					wordCount = "about 12,500 words",
+					endMarker = "END",
+				),
 				images = mapOf(3 to ExportImage(3, "Cover", "png", encoded("png"))),
 			),
 		)

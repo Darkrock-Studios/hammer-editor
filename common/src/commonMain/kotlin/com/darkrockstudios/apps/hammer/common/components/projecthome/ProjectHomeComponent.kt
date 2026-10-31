@@ -34,6 +34,9 @@ import com.darkrockstudios.apps.hammer.common.data.export.exportFileName
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.util.formatLocal
+import io.github.aakira.napier.Napier
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -94,16 +97,22 @@ class ProjectHomeComponent(
 	// cancelled edits don't become the next export's defaults. Lives outside State:
 	// it is dialog-session bookkeeping, not something the UI renders.
 	private var exportOptionsBeforeDialog: ExportOptions? = null
+	private var manuscriptContactBeforeDialog: ManuscriptContact? = null
 
+	// The use case reads the contact from global settings, so an export waits for a confirmed save.
+	private var manuscriptContactSave: Job? = null
 
 	override fun beginProjectExport() {
+		// A scene limit from a previous export would silently narrow this one.
+		val options = _state.value.exportOptions.withAvailableFormat().copy(sceneIds = null)
+		val contact = globalSettingsStore.globalSettings.manuscriptContact
+		exportOptionsBeforeDialog = options
+		manuscriptContactBeforeDialog = contact
 		_state.getAndUpdate {
-			// A scene limit from a previous export would silently narrow this one.
-			val options = it.exportOptions.withAvailableFormat().copy(sceneIds = null)
-			exportOptionsBeforeDialog = options
 			it.copy(
 				showExportDialog = true,
 				exportOptions = options,
+				manuscriptContact = contact,
 			)
 		}
 		// The tree walk reads from the repository and can be large; keep it off the click handler.
@@ -129,14 +138,21 @@ class ProjectHomeComponent(
 		}
 	}
 
+	override fun updateManuscriptContact(contact: ManuscriptContact) {
+		_state.getAndUpdate { it.copy(manuscriptContact = contact) }
+	}
+
 	override fun exportDialogDismissed() {
 		// Runs after the close animation, so restoring options and dropping the scene
 		// snapshot can't visibly change the still-composed dialog content.
 		val restore = exportOptionsBeforeDialog
+		val restoreContact = manuscriptContactBeforeDialog
 		exportOptionsBeforeDialog = null
+		manuscriptContactBeforeDialog = null
 		_state.getAndUpdate {
 			it.copy(
 				exportOptions = restore ?: it.exportOptions,
+				manuscriptContact = restoreContact ?: it.manuscriptContact,
 				exportableScenes = emptyList(),
 			)
 		}
@@ -145,12 +161,29 @@ class ProjectHomeComponent(
 	override fun confirmExportDialog(options: ExportOptions) {
 		// Confirmed edits are the new defaults; nothing to restore on dismissal.
 		exportOptionsBeforeDialog = null
+		manuscriptContactBeforeDialog = null
+		saveManuscriptContact(_state.value.manuscriptContact)
 		// Keep the dialog open through the file picker and export so it can show the working state.
 		_state.getAndUpdate {
 			it.copy(
 				exportOptions = options.withAvailableFormat(),
 				showExportFilePicker = true,
 			)
+		}
+	}
+
+	private fun saveManuscriptContact(contact: ManuscriptContact) {
+		if (contact == globalSettingsStore.globalSettings.manuscriptContact) return
+		manuscriptContactSave = scope.launch {
+			try {
+				globalSettingsStore.updateSettings { it.copy(manuscriptContact = contact) }
+			} catch (e: CancellationException) {
+				throw e
+			} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+				// An unwritable settings file must not block the export, which keeps the previously saved contact.
+				Napier.e("Failed to save the manuscript contact", e)
+				showToast(scope, Res.string.project_home_action_export_toast_contact_failure)
+			}
 		}
 	}
 
@@ -181,6 +214,7 @@ class ProjectHomeComponent(
 		)
 		withContext(mainDispatcher) { setExporting() }
 		return try {
+			manuscriptContactSave?.join()
 			exportStoryUseCase.execute(hpath, options)
 		} finally {
 			withContext(mainDispatcher) { endProjectExport() }
@@ -195,6 +229,7 @@ class ProjectHomeComponent(
 		)
 		withContext(mainDispatcher) { setExporting() }
 		return try {
+			manuscriptContactSave?.join()
 			exportStoryUseCase.executeToFile(hpath, options)
 		} finally {
 			withContext(mainDispatcher) { endProjectExport() }

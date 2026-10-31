@@ -1,6 +1,7 @@
 package utils
 
 import com.darkrockstudios.apps.hammer.common.util.StrRes
+import org.jetbrains.compose.resources.PluralStringResource
 import org.jetbrains.compose.resources.StringResource
 
 /** Records which string resources were asked for, with their arguments. */
@@ -20,4 +21,6 @@ class RecordingStrRes : StrRes {
 		calls += str to args.toList()
 		return "test"
 	}
+
+	override suspend fun get(str: PluralStringResource, quantity: Int, vararg args: Any): String = "test"
 }

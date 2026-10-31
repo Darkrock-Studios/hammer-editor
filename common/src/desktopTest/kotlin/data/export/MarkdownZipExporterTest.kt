@@ -47,7 +47,12 @@ class MarkdownZipExporterTest {
 			treatTopLevelAsChapters = treatTopLevelAsChapters,
 			options = ExportOptions(format = BuiltInExportFormat.MARKDOWN),
 			language = "en",
-			strings = ExportStrings(contentsTitle = "Contents", authorByline = null),
+			strings = ExportStrings(
+				contentsTitle = "Contents",
+				authorByline = null,
+				wordCount = "about 12,500 words",
+				endMarker = "END",
+			),
 			images = images,
 			imageNames = imageNames,
 		)

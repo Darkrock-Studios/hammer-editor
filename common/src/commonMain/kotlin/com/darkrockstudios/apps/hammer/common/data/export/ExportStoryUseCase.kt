@@ -1,8 +1,10 @@
 package com.darkrockstudios.apps.hammer.common.data.export
 
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
+import com.darkrockstudios.apps.hammer.base.markdown.countWords
 import com.darkrockstudios.apps.hammer.common.data.ExportOptions
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesRepository
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageDef
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
@@ -19,8 +21,12 @@ import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.util.DeviceLocaleResolver
 import com.darkrockstudios.apps.hammer.common.util.StrRes
+import com.darkrockstudios.apps.hammer.common.util.formatDecimalSeparator
 import com.darkrockstudios.apps.hammer.project_home_export_byline
 import com.darkrockstudios.apps.hammer.project_home_export_contents_title
+import com.darkrockstudios.apps.hammer.project_home_export_end_marker
+import com.darkrockstudios.apps.hammer.project_home_export_word_count_about
+import com.darkrockstudios.apps.hammer.project_home_export_word_count_exact
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import okio.Buffer
@@ -49,6 +55,7 @@ class ExportStoryUseCase(
 	private val fileSystem: FileSystem,
 	private val localeResolver: DeviceLocaleResolver,
 	private val strRes: StrRes,
+	private val globalSettingsStore: GlobalSettingsStore,
 ) : KoinComponent {
 
 	private val ioDispatcher by injectIoDispatcher()
@@ -88,6 +95,7 @@ class ExportStoryUseCase(
 			val chapters = sceneEditorRepository.getSceneTree().collectChapters().mapNotNull { chapter ->
 				chapterFor(chapter, options)
 			}
+			val wordCount = chapters.sumOf { chapter -> chapter.scenes.sumOf(::countWords) }
 			val projectData = if (exporter.needsProjectData) projectDataDatasource.load().data else null
 			// The project's declared language wins; the device locale is only a fallback.
 			val language = projectData?.language?.takeIf { it.isNotBlank() }
@@ -102,9 +110,10 @@ class ExportStoryUseCase(
 				treatTopLevelAsChapters = options.treatTopLevelAsChapters,
 				options = options,
 				language = language,
-				strings = resolveExportStrings(projectData),
+				strings = resolveExportStrings(projectData, wordCount),
 				images = images,
 				imageNames = imageDefs.associate { it.id to it.name },
+				contact = globalSettingsStore.globalSettings.manuscriptContact,
 			)
 		}
 
@@ -141,12 +150,25 @@ class ExportStoryUseCase(
 			.associateBy { it.id }
 
 	/** Resolves the user-facing strings that appear inside the exported document for the active locale. */
-	private suspend fun resolveExportStrings(projectData: ProjectData?): ExportStrings {
+	private suspend fun resolveExportStrings(projectData: ProjectData?, wordCount: Int): ExportStrings {
 		val authorName = projectData?.authorName?.takeIf { it.isNotBlank() }
 		return ExportStrings(
 			contentsTitle = strRes.get(Res.string.project_home_export_contents_title),
 			authorByline = authorName?.let { strRes.get(Res.string.project_home_export_byline, it) },
+			wordCount = wordCountLine(wordCount),
+			endMarker = strRes.get(Res.string.project_home_export_end_marker),
 		)
+	}
+
+	/** The manuscript's word count line for [count] words, rounded by [manuscriptWordCount]. */
+	private suspend fun wordCountLine(count: Int): String {
+		val stated = manuscriptWordCount(count)
+		val line = if (count < MANUSCRIPT_EXACT_WORD_COUNT_LIMIT) {
+			Res.plurals.project_home_export_word_count_exact
+		} else {
+			Res.plurals.project_home_export_word_count_about
+		}
+		return strRes.get(line, stated, stated.formatDecimalSeparator())
 	}
 
 	/**

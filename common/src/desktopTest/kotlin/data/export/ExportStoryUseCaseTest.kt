@@ -12,6 +12,8 @@ import com.darkrockstudios.apps.hammer.common.data.export.exportFileName
 import com.darkrockstudios.apps.hammer.common.data.export.StoryExporter
 import com.darkrockstudios.apps.hammer.common.data.export.StoryExporterRegistry
 import com.darkrockstudios.apps.hammer.common.data.ExportOptions
+import com.darkrockstudios.apps.hammer.common.data.ManuscriptContact
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesRepository
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageDef
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
@@ -32,11 +34,13 @@ import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
+import org.jetbrains.compose.resources.PluralStringResource
 import org.jetbrains.compose.resources.StringResource
 import org.junit.jupiter.api.BeforeEach
 import okio.BufferedSink
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.Test
+import utils.inMemoryGlobalSettingsStore
 import utils.unzip
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
@@ -51,6 +55,7 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 	private lateinit var strRes: StrRes
 	private lateinit var projectPlugins: ProjectPluginsRepository
 	private lateinit var imagesRepository: ImagesRepository
+	private lateinit var globalSettingsStore: GlobalSettingsStore
 	private var projectDataLoads = 0
 
 	@BeforeEach
@@ -74,6 +79,7 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 			coEvery { ensureImagesLoaded() } returns emptyList()
 			every { loadImageBytes(any()) } returns null
 		}
+		globalSettingsStore = inMemoryGlobalSettingsStore()
 	}
 
 	private suspend fun initRepo() {
@@ -92,6 +98,7 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 		fileSystem = ffs,
 		localeResolver = localeResolver,
 		strRes = strRes,
+		globalSettingsStore = globalSettingsStore,
 	)
 
 	@Test
@@ -374,7 +381,7 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 	}
 
 	@Test
-	fun `pdf docx and rtf exports read the cover for their cover page`() = runTest {
+	fun `pdf and rtf exports read the cover for their cover page, docx does not`() = runTest {
 		initRepo()
 		storedProjectData = StoredProjectData(data = ProjectData(coverImageId = 5))
 		val cover = ImageDef(id = 5, name = "Cover", fileExtension = "png")
@@ -387,7 +394,7 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 			useCase().render(ExportOptions(format = format))
 		}
 
-		verify(exactly = 3) { imagesRepository.loadImageBytes(cover) }
+		verify(exactly = 2) { imagesRepository.loadImageBytes(cover) }
 	}
 
 	@Test
@@ -461,6 +468,8 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 			override suspend fun get(str: StringResource): String = "TOC_SENTINEL"
 			override suspend fun get(str: StringResource, vararg args: Any): String =
 				"BYLINE_SENTINEL ${args.joinToString()}"
+			override suspend fun get(str: PluralStringResource, quantity: Int, vararg args: Any): String =
+				"WORD_COUNT_SENTINEL"
 		}
 
 		val exportPath = useCase().execute(
@@ -474,6 +483,74 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 			"BYLINE_SENTINEL Ada" in text,
 			"Author byline should be resolved via StrRes with the author name, got: $text",
 		)
+	}
+
+	/** Resolves each string to its key, with a plural's quantity and the format arguments. */
+	private val keyStrRes = object : StrRes {
+		override suspend fun get(str: StringResource): String = "<${str.key}>"
+		override suspend fun get(str: StringResource, vararg args: Any): String =
+			"<${str.key}> ${args.joinToString()}"
+		override suspend fun get(str: PluralStringResource, quantity: Int, vararg args: Any): String =
+			"<${str.key}:$quantity> ${args.joinToString()}"
+	}
+
+	@Test
+	fun `the manuscript end marker comes from the localization system`() = runTest {
+		initRepo()
+		strRes = keyStrRes
+		val exporter = CapturingExporter(embedsImages = false)
+
+		useCase(listOf(exporter)).render(ExportOptions(format = exporter.formatId))
+
+		assertEquals("<project_home_export_end_marker>", checkNotNull(exporter.input).strings.endMarker)
+	}
+
+	@Test
+	fun `a manuscript under 100 words states its exact count of the selected scenes`() = runTest {
+		initRepo()
+		strRes = keyStrRes
+		val exporter = CapturingExporter(embedsImages = false)
+
+		// Each fixture scene reads "Content of scene id N": five words.
+		useCase(listOf(exporter)).render(ExportOptions(format = exporter.formatId, sceneIds = setOf(1, 4)))
+
+		assertEquals(
+			"<project_home_export_word_count_exact:10> 10",
+			checkNotNull(exporter.input).strings.wordCount,
+		)
+	}
+
+	@Test
+	fun `a longer manuscript states its rounded count with a thousands separator`() = runTest {
+		initRepo()
+		strRes = keyStrRes
+		// 12,470 words here and five in each of the other five scenes: 12,495, which rounds to 12,500.
+		writeSceneBuffer(1, "word ".repeat(12_470))
+		val exporter = CapturingExporter(embedsImages = false)
+
+		useCase(listOf(exporter)).render(ExportOptions(format = exporter.formatId))
+
+		assertEquals(
+			"<project_home_export_word_count_about:12500> 12,500",
+			checkNotNull(exporter.input).strings.wordCount,
+		)
+	}
+
+	@Test
+	fun `the saved manuscript contact reaches the exporter`() = runTest {
+		initRepo()
+		val contact = ManuscriptContact(
+			legalName = "Ada King",
+			address = "12 St James's Square\nLondon",
+			phone = "555-0100",
+			email = "ada@example.com",
+		)
+		globalSettingsStore.updateSettings { it.copy(manuscriptContact = contact) }
+		val exporter = CapturingExporter(embedsImages = false)
+
+		useCase(listOf(exporter)).render(ExportOptions(format = exporter.formatId))
+
+		assertEquals(contact, checkNotNull(exporter.input).contact)
 	}
 
 	@Test
