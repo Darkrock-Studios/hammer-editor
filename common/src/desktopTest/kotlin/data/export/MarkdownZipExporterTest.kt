@@ -12,6 +12,7 @@ import com.darkrockstudios.apps.hammer.common.data.export.exportFileName
 import okio.Buffer
 import org.junit.jupiter.api.Test
 import java.io.ByteArrayInputStream
+import java.net.URI
 import java.nio.charset.Charset
 import java.util.zip.ZipInputStream
 import kotlin.test.assertContentEquals
@@ -165,7 +166,7 @@ class MarkdownZipExporterTest {
 
 		val text = render(listOf(StoryChapter("One", "![image](hammer://image/1)")), images).markdown()
 
-		assertTrue("![Star\\*Map \\(old\\)](<images/1~Star\u2217Map (old).png>)" in text, text)
+		assertTrue("![Star\\*Map \\(old\\)](images/1~Star\u2217Map%20%28old%29.png)" in text, text)
 	}
 
 	@Test
@@ -174,10 +175,39 @@ class MarkdownZipExporterTest {
 
 		val entries = render(listOf(StoryChapter("One", "![image](hammer://image/4)")), images)
 
-		val expected = "images/4~North\u2044South\uA789 Map\uFF1F.png"
-		assertEquals(listOf("Story.md", expected), entries.keys.toList())
-		val destination = Regex("""!\[[^\]]*]\(<([^>]+)>\)""").find(entries.markdown())?.groupValues?.get(1)
-		assertEquals(expected, destination)
+		assertEquals(listOf("Story.md", "images/4~North\u2044South\uA789 Map\uFF1F.png"), entries.keys.toList())
+		assertTrue("](images/4~North\u2044South\uA789%20Map\uFF1F.png)" in entries.markdown(), entries.markdown())
+	}
+
+	@Test
+	fun `a destination percent-encodes spaces and parentheses, while the entry keeps them`() {
+		val images = mapOf(image(87, "The White Queens Castle", "jpg"), image(88, "Map (old)"))
+
+		val entries = render(
+			listOf(StoryChapter("One", "![image](hammer://image/87)\n\n![image](hammer://image/88)")),
+			images,
+		)
+
+		assertEquals(
+			listOf("Story.md", "images/87~The White Queens Castle.jpg", "images/88~Map (old).png"),
+			entries.keys.toList(),
+		)
+		val text = entries.markdown()
+		assertTrue("![The White Queens Castle](images/87~The%20White%20Queens%20Castle.jpg)" in text, text)
+		assertTrue("![Map \\(old\\)](images/88~Map%20%28old%29.png)" in text, text)
+		assertTrue("<images/" !in text, text)
+		val destinations = Regex("""!\[[^\]]*]\(([^)]+)\)""").findAll(text).map { it.groupValues[1] }.toList()
+		assertEquals(entries.keys.drop(1), destinations.map { URI(it).path })
+	}
+
+	@Test
+	fun `a destination leaves non-ASCII letters raw`() {
+		val images = mapOf(image(5, "Café été"))
+
+		val entries = render(listOf(StoryChapter("One", "![image](hammer://image/5)")), images)
+
+		assertEquals(listOf("Story.md", "images/5~Café été.png"), entries.keys.toList())
+		assertTrue("![Café été](images/5~Café%20été.png)" in entries.markdown(), entries.markdown())
 	}
 
 	@Test

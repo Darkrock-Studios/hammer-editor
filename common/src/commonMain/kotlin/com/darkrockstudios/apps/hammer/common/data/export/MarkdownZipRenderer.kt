@@ -15,6 +15,9 @@ internal const val MARKDOWN_FILE_EXTENSION = "md"
 /** The folder beside the `.md` that holds the images it shows. */
 internal const val MARKDOWN_IMAGES_DIRECTORY = "images"
 
+private const val DESTINATION_ENCODED = " ()<>%#?\"`\\"
+private const val HEX_DIGITS = "0123456789ABCDEF"
+
 /**
  * Renders the story as a zip of `<project>.md` and, under [MARKDOWN_IMAGES_DIRECTORY], the file of
  * each project image it shows, named as in the project ([ImagesDatasource.getFilename]) and with its
@@ -58,8 +61,22 @@ fun writeStoryAsMarkdownZip(sink: BufferedSink, input: ExportInput) {
 }
 
 /**
- * [path] as a link destination. One holding a space or a parenthesis goes in angle brackets, which
- * CommonMark reads verbatim; encoded image names hold no `<`, `>` or `\`.
+ * [path] as a link destination, with each UTF-8 byte of a space, a control character, a backtick,
+ * or one of `()<>%#?"\` percent-encoded. Many viewers lack CommonMark's angle-bracket form, but
+ * they resolve percent-encoding as in any URL. `%`, `#` and `?` are encoded because a URL reads
+ * them as an escape, a fragment and a query. Other characters, non-ASCII included, stay raw so the
+ * text reads well.
  */
-private fun markdownDestination(path: String): String =
-	if (path.any { it.isWhitespace() || it == '(' || it == ')' || it.isISOControl() }) "<$path>" else path
+private fun markdownDestination(path: String): String = buildString {
+	for (ch in path) {
+		if (ch in DESTINATION_ENCODED || ch.isISOControl()) {
+			for (byte in ch.toString().encodeToByteArray()) {
+				append('%')
+				append(HEX_DIGITS[(byte.toInt() shr 4) and 0xF])
+				append(HEX_DIGITS[byte.toInt() and 0xF])
+			}
+		} else {
+			append(ch)
+		}
+	}
+}
