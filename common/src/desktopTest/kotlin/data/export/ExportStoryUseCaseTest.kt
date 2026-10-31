@@ -19,6 +19,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectdata.StoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectPluginsDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectPluginsRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
+import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.util.DeviceLocaleResolver
 import com.darkrockstudios.apps.hammer.common.util.Locale
@@ -36,6 +37,7 @@ import org.junit.jupiter.api.BeforeEach
 import okio.BufferedSink
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.Test
+import utils.unzip
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -101,10 +103,9 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 			options = ExportOptions(format = BuiltInExportFormat.MARKDOWN, treatTopLevelAsChapters = true),
 		)
 
-		assertTrue(exportPath.path.endsWith(".md"), "Should produce a .md file, got $exportPath")
-		val text = ffs.read(exportPath.toOkioPath()) { readByteArray() }.decodeToString()
+		assertTrue(exportPath.path.endsWith(".zip"), "Should produce a .zip file, got $exportPath")
+		val text = markdownExportText(exportPath)
 		assertEquals(EXPECTED_PROJECT_1_MARKDOWN.trim(), text.trim())
-		assertEquals(0, projectDataLoads)
 	}
 
 	@Test
@@ -181,7 +182,7 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 			options = ExportOptions(format = BuiltInExportFormat.MARKDOWN, treatTopLevelAsChapters = true),
 		)
 
-		val text = ffs.read(exportPath.toOkioPath()) { readByteArray() }.decodeToString()
+		val text = markdownExportText(exportPath)
 		assertTrue("Unsaved edit of scene id 1" in text, "Export should carry the unsaved buffer, got: $text")
 		assertTrue("Content of scene id 1" !in text, "Export should not carry the stale on-disk scene, got: $text")
 		assertTrue("Content of scene id 3" in text, "Scenes without a buffer still come from disk, got: $text")
@@ -390,6 +391,28 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 	}
 
 	@Test
+	fun `markdown export packages the cover and the images the story shows`() = runTest {
+		initRepo()
+		writeSceneBuffer(1, "![image](hammer://image/1)")
+		storedProjectData = StoredProjectData(data = ProjectData(coverImageId = 5))
+		val cat = ImageDef(id = 1, name = "Cat", fileExtension = "jpg")
+		val cover = ImageDef(id = 5, name = "Cover", fileExtension = "png")
+		val catBytes = encoded("jpg")
+		val coverBytes = encoded("png")
+		imagesRepository = mockk {
+			coEvery { ensureImagesLoaded() } returns listOf(cat, cover)
+			every { loadImageBytes(cat) } returns catBytes
+			every { loadImageBytes(cover) } returns coverBytes
+		}
+
+		val entries = unzip(useCase().render(ExportOptions(format = BuiltInExportFormat.MARKDOWN)).readByteArray())
+
+		assertEquals(listOf(markdownDocumentName(), "images/5~Cover.png", "images/1~Cat.jpg"), entries.keys.toList())
+		assertContentEquals(coverBytes, entries["images/5~Cover.png"])
+		assertContentEquals(catBytes, entries["images/1~Cat.jpg"])
+	}
+
+	@Test
 	fun `docx export produces a valid zip file with PK magic bytes`() = runTest {
 		initRepo()
 		storedProjectData = StoredProjectData(data = ProjectData(authorName = "Test Author"))
@@ -517,16 +540,15 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 		)
 	}
 
-	private fun zipEntryText(bytes: ByteArray, nameSuffix: String): String {
-		java.util.zip.ZipInputStream(bytes.inputStream()).use { zin ->
-			var entry = zin.nextEntry
-			while (entry != null) {
-				if (entry.name.endsWith(nameSuffix)) return zin.readBytes().decodeToString()
-				entry = zin.nextEntry
-			}
-		}
-		error("No zip entry ending with $nameSuffix")
-	}
+	/** The name of the `.md` inside a Markdown export, which is named after the project as the zip is. */
+	private fun markdownDocumentName(): String = exportFileName(sceneEditorService.projectDef.name, "md").fileName
+
+	private fun markdownExportText(exportPath: HPath): String =
+		zipEntryText(ffs.read(exportPath.toOkioPath()) { readByteArray() }, markdownDocumentName())
+
+	private fun zipEntryText(bytes: ByteArray, nameSuffix: String): String =
+		unzip(bytes).entries.firstOrNull { it.key.endsWith(nameSuffix) }?.value?.decodeToString()
+			?: error("No zip entry ending with $nameSuffix")
 
 	@Test
 	fun `epub export still produces a valid file when treatTopLevelAsChapters is false`() = runTest {
@@ -554,7 +576,7 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 			),
 		)
 
-		val text = ffs.read(exportPath.toOkioPath()) { readByteArray() }.decodeToString()
+		val text = markdownExportText(exportPath)
 		assertEquals(EXPECTED_FILTERED_MARKDOWN.trim(), text.trim())
 	}
 
@@ -571,7 +593,7 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 			),
 		)
 
-		val text = ffs.read(exportPath.toOkioPath()) { readByteArray() }.decodeToString()
+		val text = markdownExportText(exportPath)
 		assertTrue("## 1. Scene ID 1" in text, text)
 		assertTrue("## 2. Chapter ID 2" in text, text)
 	}
@@ -608,7 +630,7 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 			),
 		)
 
-		val text = ffs.read(exportPath.toOkioPath()) { readByteArray() }.decodeToString()
+		val text = markdownExportText(exportPath)
 		val expected = """
 			# Test Project 1
 
@@ -633,7 +655,7 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 			),
 		)
 
-		val text = ffs.read(exportPath.toOkioPath()) { readByteArray() }.decodeToString()
+		val text = markdownExportText(exportPath)
 		assertEquals(
 			"# Test Project 1\n\nContent of scene id 3\n\n\nContent of scene id 6",
 			text.trim(),
@@ -653,7 +675,7 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 			),
 		)
 
-		val text = ffs.read(exportPath.toOkioPath()) { readByteArray() }.decodeToString()
+		val text = markdownExportText(exportPath)
 		assertEquals(EXPECTED_FILTERED_MARKDOWN.trim(), text.trim())
 	}
 
@@ -670,7 +692,7 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 			),
 		)
 
-		val text = ffs.read(exportPath.toOkioPath()) { readByteArray() }.decodeToString()
+		val text = markdownExportText(exportPath)
 		assertEquals("# Test Project 1", text.trim())
 	}
 

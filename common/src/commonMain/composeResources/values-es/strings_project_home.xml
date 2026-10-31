@@ -71,7 +71,7 @@
 	<string name="project_home_export_close">× CERRAR</string>
 	<string name="project_home_export_chapters_label">Tratar las escenas de nivel superior como capítulos</string>
 	<string name="project_home_export_format_label">Formato</string>
-	<string name="project_home_export_format_markdown">Markdown (.md)</string>
+	<string name="project_home_export_format_markdown">Markdown (.zip)</string>
 	<string name="project_home_export_format_epub">EPub (.epub)</string>
 	<string name="project_home_export_format_pdf">PDF (.pdf)</string>
 	<string name="project_home_export_format_docx">Word (.docx)</string>
@@ -91,7 +91,7 @@
 	<string name="project_home_export_help_icon_description">Más información sobre los formatos de exportación</string>
 	<string name="project_home_export_help_title">Elegir un formato de exportación</string>
 	<string name="project_home_export_help_intro">Cada formato sirve para un propósito diferente. Elige el que se ajuste a cómo planeas usar la historia exportada.</string>
-	<string name="project_home_export_help_format_markdown">Texto sin formato con formato ligero; ideal para el control de versiones, reimportar u otras herramientas de escritura.</string>
+	<string name="project_home_export_help_format_markdown">Texto sin formato con formato ligero, en un ZIP con sus imágenes; ideal para el control de versiones u otras herramientas de escritura.</string>
 	<string name="project_home_export_help_format_epub">El formato estándar de libro electrónico; el mejor para lectores beta que leen en lectores electrónicos y teléfonos con texto adaptable.</string>
 	<string name="project_home_export_help_format_pdf">Un diseño de página fijo que se ve igual en todas partes; el mejor para imprimir o compartir una copia final de solo lectura.</string>
 	<string name="project_home_export_help_format_docx">Se abre en Word y Google Docs; el mejor para editores y lectores beta que dejan comentarios o registran cambios.</string>

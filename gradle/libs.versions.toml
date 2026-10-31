@@ -45,7 +45,7 @@ kotlinx_html = "0.12.0"
 material = "1.14.0"
 orchestrator = "1.6.1"
 cryptography = "0.6.0"
-kmpZip = "1.0.0"
+kmpZip = "2.0.0"
 
 coroutines = "1.11.0"
 datetime = "0.8.0"

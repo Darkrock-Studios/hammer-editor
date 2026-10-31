@@ -1,5 +1,5 @@
-;; An action that outputs the package's resources/reply.json, or nothing when it has none, so tests can
-;; pack any reply.
+;; An action and an exporter that output the package's resources/reply.json, or nothing when it has none,
+;; so tests can pack any reply.
 (module
   (import "extism:host/env" "alloc" (func $alloc (param i64) (result i64)))
   (import "extism:host/env" "store_u8" (func $store_u8 (param i64 i32)))
@@ -8,7 +8,7 @@
   (import "extism:host/user" "hammer_resource" (func $resource (param i64) (result i64)))
   (memory 1)
   (data (i32.const 0) "reply.json")
-  (func (export "action") (result i32)
+  (func (export "action") (export "export") (result i32)
     (local $name i64) (local $i i32) (local $value i64)
     (local.set $name (call $alloc (i64.const 10)))
     (block $done

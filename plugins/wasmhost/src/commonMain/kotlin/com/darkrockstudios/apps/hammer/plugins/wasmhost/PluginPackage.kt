@@ -186,6 +186,9 @@ class PluginPackage(
 				if (exporter.input != PluginManifest.INPUT_MARKDOWN && exporter.input != PluginManifest.INPUT_PROSE) {
 					throw PluginPackageException("Export format '${exporter.format}' has unknown input '${exporter.input}'")
 				}
+				if (exporter.output != PluginManifest.OUTPUT_FILE && exporter.output != PluginManifest.OUTPUT_ARCHIVE) {
+					throw PluginPackageException("Export format '${exporter.format}' has unknown output '${exporter.output}'")
+				}
 				if (exporter.cover && !exporter.images) {
 					throw PluginPackageException("Export format '${exporter.format}' asks for the cover without images")
 				}

@@ -2,12 +2,30 @@ package com.darkrockstudios.apps.hammer.common.util.zip
 
 import no.synth.kmpzip.okio.unzipFrom
 import no.synth.kmpzip.okio.zipTo
+import no.synth.kmpzip.zip.ZipEntry
 import no.synth.kmpzip.zip.ZipInputStream
 import no.synth.kmpzip.zip.safeEntrySegments
+import okio.BufferedSink
 import okio.FileSystem
 import okio.Path
+import no.synth.kmpzip.okio.ZipOutputStream as OkioZipOutputStream
 
 private const val COPY_BUFFER_SIZE = 8192
+
+/** One file of an archive [writeZip] builds in memory. */
+class InMemoryZipEntry(val name: String, val bytes: ByteArray)
+
+/** Writes [entries] to [sink] as a zip archive, in order, and flushes it; [sink] is left open. */
+fun writeZip(sink: BufferedSink, entries: List<InMemoryZipEntry>) {
+	val zip = OkioZipOutputStream(sink)
+	for (entry in entries) {
+		zip.putNextEntry(ZipEntry(entry.name))
+		zip.write(entry.bytes)
+		zip.closeEntry()
+	}
+	zip.finish()
+	zip.flush()
+}
 
 /**
  * Creates a zip archive from a directory. The archive contains entries rooted at
