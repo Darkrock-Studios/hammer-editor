@@ -74,7 +74,8 @@ fun Route.storyReadPage(
 				pageETag(
 					model,
 					it.version,
-					chapterParam,
+					showCover,
+					requestedChapter,
 					coverUrl,
 					serverProjectDataRepository.loadDataHash(session.userId, projectDef),
 				)
