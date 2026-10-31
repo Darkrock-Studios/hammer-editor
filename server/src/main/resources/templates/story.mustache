@@ -2,107 +2,101 @@
 
 <main class="story-page">
 	<div class="story-container">
+		<a href="/dashboard" class="back-link">
+			<i class="fas fa-arrow-left" aria-hidden="true"></i> {{msg.story_back_to_dashboard}}
+		</a>
+
 		<!-- Story Header -->
-		<div class="story-header">
-			<a href="/dashboard" class="back-link">
-				<i class="fas fa-arrow-left"></i> {{msg.story_back_to_dashboard}}
-			</a>
+		<header class="story-hero{{#coverImageUrl}} story-hero--cover{{/coverImageUrl}}">
 			{{#coverImageUrl}}
 				<img class="story-cover" src="{{coverImageUrl}}" alt="">
 			{{/coverImageUrl}}
-			<h1 class="story-title">{{projectName}}</h1>
-		</div>
-
-		<!-- Main Layout: Story + Sidebar -->
-		<div class="story-layout">
-			<!-- Story Content Area -->
-			<div class="story-main">
-				{{#hasScenes}}
-					<!-- Scene Selector -->
-					<div class="scene-selector">
-						<label class="scene-selector__label" for="scene-select">
-							<i class="fas fa-book-open"></i>
-							{{msg.story_scene_selector_label}}
-						</label>
-						<select class="scene-selector__dropdown form-select"
-								id="scene-select"
-								name="sceneId"
-								hx-get="/story/{{projectNameForUrl}}/scene"
-								hx-target="#story-content-area"
-								hx-swap="innerHTML"
-								hx-indicator="#scene-loading">
-							<option value="all">{{msg.story_view_all}}</option>
-							{{#sceneHierarchy}}
-								<option value="{{id}}"
-										{{#isGroup}}class="scene-option--group"{{/isGroup}} {{#isSelected}}selected{{/isSelected}}>{{indent}}{{name}}</option>
-							{{/sceneHierarchy}}
-						</select>
-						<span class="scene-loading htmx-indicator" id="scene-loading">
-							<i class="fas fa-spinner fa-spin"></i>
-						</span>
+			<div class="story-hero__body">
+				<h1 class="story-title">{{projectName}}</h1>
+				{{#hasChapters}}
+					<div class="story-hero__actions" id="story-read-actions" data-project-key="{{projectKey}}"
+						 data-chapter-count="{{chapterCount}}"{{#coverImageUrl}} data-has-cover="true"{{/coverImageUrl}}>
+						<a href="{{readUrl}}" class="btn btn--accent story-hero__read">
+							<i class="fas fa-book-open" aria-hidden="true"></i> {{msg.story_read_button}}
+						</a>
+						<a href="{{readUrl}}" class="story-hero__continue" data-read-url="{{readUrl}}"
+						   data-continue-label="{{msg.story_read_continue}}" hidden></a>
 					</div>
-				{{/hasScenes}}
-
-				<!-- Story Content -->
-				<article class="story-content"{{#storyLanguage}} lang="{{storyLanguage}}"{{/storyLanguage}}
-						 id="story-content-area">
-					{{#hasContent}}
-						{{{storyHtml}}}
-					{{/hasContent}}
-					{{^hasContent}}
-						<div class="story-empty">
-							<p>{{msg.story_no_scenes}}</p>
-						</div>
-					{{/hasContent}}
-				</article>
+				{{/hasChapters}}
 			</div>
+		</header>
 
-			<!-- Settings Sidebar -->
-			<aside class="story-sidebar">
-				<!-- Info Panel -->
-				<div class="story-info-panel">
-					<div class="info-panel-header">
-						<span class="info-panel-icon"><i class="fas fa-info-circle"></i></span>
-						<span class="info-panel-title">{{msg.story_info_title}}</span>
-					</div>
-					<div class="info-panel-content">
-						<div class="info-item">
-							<span class="info-label">{{msg.story_info_scenes}}:</span>
-							<span class="info-value">{{sceneCount}}</span>
-						</div>
-						<div class="info-item">
-							<span class="info-label">{{msg.story_info_words}}:</span>
-							<span class="info-value">{{formattedWordCount}}</span>
-						</div>
-						<div class="info-item">
-							<span class="info-label">{{msg.story_info_last_sync}}:</span>
-							<span class="info-value">{{lastSync}}</span>
-						</div>
-					</div>
+		<!-- Headline numbers -->
+		<dl class="story-stats-strip">
+			<div class="story-stat">
+				<dt class="story-stat__label">{{msg.story_info_words}}</dt>
+				<dd class="story-stat__value">{{wordCount}}</dd>
+			</div>
+			<div class="story-stat">
+				<dt class="story-stat__label">{{msg.story_info_chapters}}</dt>
+				<dd class="story-stat__value">{{chapterCount}}</dd>
+			</div>
+			<div class="story-stat">
+				<dt class="story-stat__label">{{msg.story_info_scenes}}</dt>
+				<dd class="story-stat__value">{{sceneCount}}</dd>
+			</div>
+			{{#hasWords}}
+				<div class="story-stat">
+					<dt class="story-stat__label">{{msg.story_info_reading_time}}</dt>
+					<dd class="story-stat__value">{{readingTime}}</dd>
 				</div>
+			{{/hasWords}}
+			<div class="story-stat story-stat--sync">
+				<dt class="story-stat__label">{{msg.story_info_last_sync}}</dt>
+				<dd class="story-stat__value">{{lastSync}}</dd>
+			</div>
+		</dl>
 
+		{{^complete}}
+			<p class="reader-notice" role="status">
+				<i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
+				{{msg.story_read_incomplete}}
+			</p>
+		{{/complete}}
+
+		{{^hasChapters}}
+			<div class="story-empty story-empty--panel">
+				<p>{{msg.story_no_scenes}}</p>
+			</div>
+		{{/hasChapters}}
+
+		<!-- Panels -->
+		<div class="story-panels">
+			<div class="story-panels__column">
 				{{#hasPenName}}
-					<!-- Sharing Panel -->
-					<div class="story-settings-panel" id="story-settings-panel">
-						<button class="settings-toggle-btn" id="settings-toggle-btn" type="button" aria-expanded="false"
-								aria-controls="settings-content">
-							<span class="settings-toggle-icon"><i class="fas fa-cog"></i></span>
-							<span class="settings-toggle-text">{{msg.story_settings_title}}</span>
-							<span class="settings-chevron"><i class="fas fa-chevron-down"></i></span>
-						</button>
-
-						<div class="settings-content" id="settings-content" aria-hidden="true">
+					<section class="story-info-panel story-info-panel--sharing">
+						<div class="info-panel-header">
+							<span class="info-panel-icon"><i class="fas fa-share-nodes" aria-hidden="true"></i></span>
+							<h2 class="info-panel-title">{{msg.story_settings_title}}</h2>
+						</div>
+						<div class="info-panel-content">
 							{{> partials/story-publish}}
 						</div>
-					</div>
+					</section>
 				{{/hasPenName}}
 
+				<!-- Editorial Reviews Panel -->
+				<section class="story-info-panel review-panel">
+					<div class="info-panel-header">
+						<span class="info-panel-icon info-panel-icon--review"><i class="fas fa-pen-nib" aria-hidden="true"></i></span>
+						<h2 class="info-panel-title">{{msg.review_panel_title}}</h2>
+					</div>
+					{{> partials/review-panel}}
+				</section>
+			</div>
+
+			<div class="story-panels__column">
 				{{#hasAnyAccess}}
 					<!-- Readers Panel: all-time total + 30-day trend -->
-					<div class="story-info-panel story-info-panel--readers">
+					<section class="story-info-panel story-info-panel--readers">
 						<div class="info-panel-header">
-							<span class="info-panel-icon"><i class="fas fa-book-open-reader"></i></span>
-							<span class="info-panel-title">{{msg.story_readers_title}}</span>
+							<span class="info-panel-icon"><i class="fas fa-book-open-reader" aria-hidden="true"></i></span>
+							<h2 class="info-panel-title">{{msg.story_readers_title}}</h2>
 						</div>
 						<div class="info-panel-content">
 							<div class="reader-total">
@@ -118,25 +112,16 @@
 								<span class="reader-graph__caption">{{msg.story_readers_graph_caption}}</span>
 							{{/hasReaderBars}}
 						</div>
-					</div>
+					</section>
 				{{/hasAnyAccess}}
 
 				{{> partials/story-kudos-panel}}
-
-				<!-- Editorial Reviews Panel -->
-				<div class="story-info-panel review-panel">
-					<div class="info-panel-header">
-						<span class="info-panel-icon info-panel-icon--review"><i class="fas fa-pen-nib"></i></span>
-						<span class="info-panel-title">{{msg.review_panel_title}}</span>
-					</div>
-					{{> partials/review-panel}}
-				</div>
-			</aside>
+			</div>
 		</div>
 	</div>
 </main>
 
-<!-- Outside the sidebar: position:sticky there makes a stacking context the
+<!-- Outside the panels: a positioned ancestor makes a stacking context the
      overlay's z-index can't escape, which paints it under the site header. -->
 <div id="review-dialog-container"></div>
 <div id="share-dialog-container"></div>

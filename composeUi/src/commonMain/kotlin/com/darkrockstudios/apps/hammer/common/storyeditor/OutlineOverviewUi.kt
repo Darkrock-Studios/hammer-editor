@@ -37,7 +37,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdEndMark
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSceneBreak
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.romanNumeral
+import com.darkrockstudios.apps.hammer.base.romanNumeral
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
 import com.darkrockstudios.apps.hammer.common.data.SceneItem

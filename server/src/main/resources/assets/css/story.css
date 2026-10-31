@@ -14,29 +14,9 @@
 	box-sizing: border-box;
 }
 
-/* Story Layout - Side by side on wide screens */
-.story-layout {
-	display: flex;
-	flex-direction: column-reverse;
-	gap: 1.5rem;
-}
-
 @media only screen and (min-width: 1024px) {
-	.story-layout {
-		flex-direction: row;
-		align-items: flex-start;
-	}
-
 	.story-content {
-		flex: 1;
 		max-width: 800px;
-	}
-
-	.story-sidebar {
-		position: sticky;
-		top: 100px;
-		width: 320px;
-		flex-shrink: 0;
 	}
 }
 
@@ -78,6 +58,146 @@
 	margin: 0;
 	padding-bottom: 1rem;
 	border-bottom: 3px solid var(--accent);
+}
+
+/* ========================================
+   Story Dashboard
+   The author's overview of one story
+   ======================================== */
+
+.story-hero {
+	display: grid;
+	gap: 1.5rem;
+	align-items: end;
+	margin-bottom: 1.5rem;
+}
+
+.story-hero--cover {
+	grid-template-columns: auto 1fr;
+}
+
+.story-hero .story-cover {
+	margin-bottom: 0;
+	max-height: 200px;
+}
+
+.story-hero__body {
+	min-width: 0;
+}
+
+.story-hero__actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.75rem 1.25rem;
+	margin-top: 1.25rem;
+}
+
+.story-hero__read {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	text-decoration: none;
+}
+
+.story-hero__continue {
+	font-family: 'Kingthings Typewriter', monospace;
+	color: var(--accent-dark);
+	text-decoration-color: rgba(217, 119, 6, 0.4);
+	text-underline-offset: 0.2em;
+}
+
+.story-hero__continue:hover {
+	color: var(--accent);
+}
+
+.story-stats-strip {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+	margin: 0 0 1.5rem;
+	background: var(--surface-elevated);
+	border: 2px solid var(--neutral-200);
+	border-radius: 0.5rem;
+	box-shadow: var(--shadow-sm);
+	overflow: hidden;
+}
+
+.story-stat {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+	padding: 1rem 1.25rem;
+	/* Offset borders tuck under the strip's clipped edge, so only rules between stats show when it wraps */
+	border-left: 1px dashed var(--neutral-200);
+	border-top: 1px dashed var(--neutral-200);
+	margin-left: -1px;
+	margin-top: -1px;
+}
+
+.story-stat__label {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.75rem;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--text-secondary);
+}
+
+.story-stat__value {
+	margin: 0;
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 1.5rem;
+	line-height: 1.2;
+	color: var(--text-primary);
+	font-variant-numeric: tabular-nums;
+}
+
+.story-stat--sync .story-stat__value {
+	font-family: 'Lora', Georgia, serif;
+	font-size: 1rem;
+	line-height: 1.6;
+}
+
+.story-empty--panel {
+	margin-bottom: 1.5rem;
+	background: var(--surface-elevated);
+	border: 2px dashed var(--neutral-200);
+	border-radius: 0.5rem;
+}
+
+.story-panels {
+	display: grid;
+	gap: 1rem;
+	align-items: start;
+}
+
+@media only screen and (min-width: 900px) {
+	.story-panels {
+		grid-template-columns: 1fr 1fr;
+	}
+}
+
+.story-panels__column {
+	min-width: 0;
+}
+
+/* The publish partial brings its own section padding and rule for the old collapsible panel */
+.story-info-panel--sharing .settings-section {
+	padding: 0;
+	border-top: none;
+}
+
+.story-info-panel--sharing .publish-setting {
+	padding-top: 0;
+}
+
+@media only screen and (max-width: 600px) {
+	.story-hero--cover {
+		grid-template-columns: 1fr;
+	}
+
+	.story-title {
+		font-size: 2rem;
+	}
 }
 
 /* ========================================
@@ -397,150 +517,6 @@
 	font-style: italic;
 }
 
-/* ========================================
-   Story Main Container
-   Wraps scene selector and content
-   ======================================== */
-
-.story-main {
-	flex: 1;
-	display: flex;
-	flex-direction: column;
-	gap: 1rem;
-	min-width: 0;
-}
-
-@media only screen and (min-width: 1024px) {
-	.story-main {
-		max-width: 800px;
-	}
-}
-
-/* ========================================
-   Scene Selector
-   Dropdown to select individual scenes
-   ======================================== */
-
-.scene-selector {
-	display: flex;
-	align-items: center;
-	gap: 1rem;
-	padding: 1rem 1.25rem;
-	background: linear-gradient(135deg, rgba(255, 253, 250, 0.95) 0%, rgba(255, 250, 245, 0.98) 100%);
-	border: 2px solid var(--neutral-200);
-	border-radius: 0.5rem;
-	box-shadow: var(--shadow-sm);
-	position: relative;
-}
-
-/* Decorative accent bar at top */
-.scene-selector::before {
-	content: '';
-	position: absolute;
-	top: 0;
-	left: 0;
-	right: 0;
-	height: 3px;
-	background: linear-gradient(90deg,
-	var(--neutral-300) 0%,
-	var(--accent) 20%,
-	var(--accent) 80%,
-	var(--neutral-300) 100%
-	);
-	opacity: 0.7;
-	border-radius: 0.5rem 0.5rem 0 0;
-}
-
-.scene-selector__label {
-	display: flex;
-	align-items: center;
-	gap: 0.5rem;
-	font-family: 'Kingthings Typewriter', monospace;
-	font-size: 0.9375rem;
-	color: var(--text-secondary);
-	white-space: nowrap;
-}
-
-.scene-selector__label i {
-	color: var(--accent);
-	font-size: 1rem;
-}
-
-.scene-selector__dropdown {
-	flex: 1;
-	padding: 0.625rem 2.5rem 0.625rem 0.875rem;
-	font-family: 'Lora', Georgia, serif;
-	font-size: 0.9375rem;
-	color: var(--text-primary);
-	background-color: white;
-	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2378716c' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
-	background-repeat: no-repeat;
-	background-position: right 0.75rem center;
-	background-size: 12px;
-	border: 2px solid var(--neutral-200);
-	border-radius: 0.375rem;
-	cursor: pointer;
-	transition: all var(--transition-base);
-	appearance: none;
-	-webkit-appearance: none;
-	-moz-appearance: none;
-}
-
-.scene-selector__dropdown:hover {
-	border-color: var(--neutral-300);
-}
-
-.scene-selector__dropdown:focus {
-	outline: none;
-	border-color: var(--accent);
-	box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.1);
-}
-
-/* Group options styling (bold for chapters) */
-.scene-selector__dropdown option.scene-option--group {
-	font-weight: 600;
-	color: var(--text-primary);
-}
-
-/* Loading indicator */
-.scene-loading {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: 1.5rem;
-	height: 1.5rem;
-	color: var(--accent);
-	opacity: 0;
-	transition: opacity 0.2s ease;
-}
-
-.scene-loading.htmx-request {
-	opacity: 1;
-}
-
-/* Responsive scene selector */
-@media only screen and (max-width: 600px) {
-	.scene-selector {
-		flex-direction: column;
-		align-items: stretch;
-		gap: 0.75rem;
-	}
-
-	.scene-selector__label {
-		justify-content: center;
-	}
-
-	.scene-selector__dropdown {
-		width: 100%;
-	}
-
-	.scene-loading {
-		position: absolute;
-		top: 0.5rem;
-		right: 0.5rem;
-	}
-}
-
 /* Story Error Page */
 .story-error {
 	text-align: center;
@@ -631,6 +607,8 @@
 }
 
 .info-panel-title {
+	margin: 0;
+	line-height: 1.4;
 	font-family: 'Kingthings Typewriter', monospace;
 	font-size: 0.9375rem;
 	font-weight: 500;
@@ -724,136 +702,6 @@
 	font-size: 0.6875rem;
 	font-style: italic;
 	color: var(--text-secondary);
-}
-
-.info-item {
-	display: flex;
-	justify-content: space-between;
-	align-items: baseline;
-	padding: 0.5rem 0;
-	border-bottom: 1px dotted var(--neutral-200);
-}
-
-.info-item:last-child {
-	border-bottom: none;
-	padding-bottom: 0;
-}
-
-.info-item:first-child {
-	padding-top: 0;
-}
-
-.info-label {
-	font-family: 'Kingthings Typewriter', monospace;
-	font-size: 0.8125rem;
-	color: var(--text-secondary);
-}
-
-.info-value {
-	font-family: 'Lora', Georgia, serif;
-	font-size: 0.9375rem;
-	color: var(--text-primary);
-	font-weight: 500;
-}
-
-/* ========================================
-   Story Settings Panel
-   A refined, collapsible panel with
-   editorial-inspired design elements
-   ======================================== */
-
-.story-settings-panel {
-	background: linear-gradient(135deg, rgba(255, 253, 250, 0.95) 0%, rgba(255, 250, 245, 0.98) 100%);
-	border: 2px solid var(--neutral-200);
-	border-radius: 0.5rem;
-	overflow: hidden;
-	box-shadow: var(--shadow-sm);
-	position: relative;
-}
-
-/* Decorative top accent bar */
-.story-settings-panel::before {
-	content: '';
-	position: absolute;
-	top: 0;
-	left: 0;
-	right: 0;
-	height: 3px;
-	background: linear-gradient(90deg,
-	var(--neutral-300) 0%,
-	var(--accent) 20%,
-	var(--accent) 80%,
-	var(--neutral-300) 100%
-	);
-	opacity: 0.7;
-}
-
-/* Settings Toggle Button */
-.settings-toggle-btn {
-	width: 100%;
-	display: flex;
-	align-items: center;
-	gap: 0.75rem;
-	padding: 1rem 1.25rem;
-	background: transparent;
-	border: none;
-	cursor: pointer;
-	font-family: 'Kingthings Typewriter', monospace;
-	font-size: 1rem;
-	color: var(--text-secondary);
-	transition: all var(--transition-base);
-	text-align: left;
-}
-
-.settings-toggle-btn:hover {
-	background: rgba(217, 119, 6, 0.05);
-	color: var(--text-primary);
-}
-
-.settings-toggle-icon {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: 2rem;
-	height: 2rem;
-	background: var(--neutral-100);
-	border-radius: 50%;
-	color: var(--accent);
-	transition: all var(--transition-base);
-}
-
-.settings-toggle-btn:hover .settings-toggle-icon {
-	background: var(--accent);
-	color: white;
-	transform: rotate(90deg);
-}
-
-.settings-toggle-text {
-	flex: 1;
-	font-weight: 500;
-}
-
-.settings-chevron {
-	font-size: 0.75rem;
-	color: var(--neutral-400);
-	transition: transform var(--transition-base);
-}
-
-.settings-toggle-btn[aria-expanded="true"] .settings-chevron {
-	transform: rotate(180deg);
-}
-
-/* Settings Content Area */
-.settings-content {
-	max-height: 0;
-	overflow: hidden;
-	transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1),
-	padding 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-	background: rgba(255, 255, 255, 0.5);
-}
-
-.settings-content.open {
-	max-height: 2000px;
 }
 
 .settings-section {
@@ -1104,13 +952,6 @@
 	.copy-url-btn {
 		border-radius: 0 0 0.375rem 0.375rem;
 		padding: 0.75rem;
-	}
-}
-
-/* On mobile, ensure sidebar comes after content */
-@media only screen and (max-width: 1023px) {
-	.story-sidebar {
-		width: 100%;
 	}
 }
 
@@ -2782,4 +2623,364 @@
 
 .kudos-panel__toggle .publish-toggle-track {
 	flex: none;
+}
+
+/* ========================================
+   Chapter Reader
+   The author's chapter-at-a-time reading view
+   ======================================== */
+
+.reader {
+	--reader-font-size: 18px;
+	--reader-width: 52rem;
+	width: 100%;
+	max-width: var(--reader-width);
+	margin: 0 auto;
+	animation: fadeIn 0.5s ease-out;
+}
+
+.reader[data-width="narrow"] {
+	--reader-width: 42rem;
+}
+
+.reader[data-width="wide"] {
+	--reader-width: 70rem;
+}
+
+/* The prose column follows the reader's width setting, not the old sidebar layout's cap */
+.reader .story-content {
+	max-width: none;
+	font-size: var(--reader-font-size);
+}
+
+.reader-bar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.75rem 1rem;
+	margin-bottom: 1rem;
+}
+
+.reader-bar__back {
+	margin-bottom: 0;
+	min-width: 0;
+}
+
+.reader-bar__back span {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.reader-bar__position {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.875rem;
+	color: var(--text-secondary);
+}
+
+.reader-tools {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	margin-left: auto;
+}
+
+.reader-tools__group {
+	display: inline-flex;
+}
+
+.reader-tools__group .reader-tool {
+	border-radius: 0;
+}
+
+.reader-tools__group .reader-tool + .reader-tool {
+	border-left: none;
+}
+
+.reader-tools__group .reader-tool:first-child {
+	border-radius: 0.375rem 0 0 0.375rem;
+}
+
+.reader-tools__group .reader-tool:last-child {
+	border-radius: 0 0.375rem 0.375rem 0;
+}
+
+.reader-tool {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.4rem;
+	min-height: 2.25rem;
+	padding: 0.375rem 0.7rem;
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.9375rem;
+	color: var(--text-primary);
+	background: var(--surface-elevated);
+	border: 1px solid var(--neutral-300);
+	border-radius: 0.375rem;
+	cursor: pointer;
+	transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
+}
+
+.reader-tool:hover {
+	border-color: var(--accent);
+	color: var(--accent-dark);
+}
+
+.reader-tool:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+}
+
+.reader-tool[aria-pressed="true"] {
+	background: var(--accent);
+	border-color: var(--accent);
+	color: white;
+}
+
+.reader-tool--value {
+	min-width: 2.75rem;
+	font-variant-numeric: tabular-nums;
+}
+
+.reader-notice {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	margin: 0 0 1rem;
+	padding: 0.75rem 1rem;
+	background: rgba(245, 158, 11, 0.12);
+	border: 1px solid var(--accent-light);
+	border-radius: 0.5rem;
+	color: var(--accent-dark);
+}
+
+.reader-chapter__header {
+	text-align: center;
+	margin-bottom: 2.5rem;
+	padding-bottom: 1.5rem;
+	border-bottom: 1px solid var(--neutral-200);
+}
+
+.reader-chapter__eyebrow {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.8125rem;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var(--text-secondary);
+}
+
+.story-content .reader-chapter__title {
+	font-size: clamp(1.75rem, 4vw, 2.25rem);
+	font-weight: normal;
+	margin: 0.5rem 0 0;
+}
+
+.story-content .reader-scene__heading {
+	display: flex;
+	align-items: baseline;
+	gap: 0.75rem;
+	text-align: left;
+	font-size: 1.125rem;
+	margin: 2.5rem 0 1rem;
+	padding-top: 0;
+	border-top: none;
+}
+
+.story-content .reader-scene:first-of-type .reader-scene__heading {
+	margin-top: 0;
+}
+
+/* Clears the sticky site header when the contents dialog jumps to a scene */
+.reader-scene {
+	scroll-margin-top: 6rem;
+}
+
+.reader-scene__marker {
+	flex: none;
+	font-size: 0.8125rem;
+	letter-spacing: 0.08em;
+	color: var(--accent);
+}
+
+/* An empty-state line inside the prose column is not prose */
+.reader .story-content .story-empty {
+	text-indent: 0;
+	text-align: center;
+}
+
+.reader-scene__break {
+	margin: 2rem 0;
+	text-align: center;
+	letter-spacing: 0.5em;
+	color: var(--neutral-400);
+	user-select: none;
+}
+
+.reader[data-headings="off"] .reader-scene__heading,
+.reader[data-headings="on"] .reader-scene__break {
+	display: none;
+}
+
+.reader-cover {
+	display: flex;
+	justify-content: center;
+	margin: 1rem 0 0;
+}
+
+.reader-cover__image {
+	display: block;
+	max-width: 100%;
+	max-height: 75vh;
+	width: auto;
+	height: auto;
+	border-radius: 0.5rem;
+	box-shadow: var(--shadow-xl);
+}
+
+.reader-nav {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	margin-top: 1.5rem;
+}
+
+.reader-nav__link {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.625rem 1rem;
+	font-family: 'Kingthings Typewriter', monospace;
+	color: var(--accent-dark);
+	text-decoration: none;
+	background: var(--surface-elevated);
+	border: 1px solid var(--neutral-300);
+	border-radius: 0.5rem;
+	transition: border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.reader-nav__link:hover {
+	border-color: var(--accent);
+	color: var(--accent);
+}
+
+.reader-nav__end {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	font-family: 'Kingthings Typewriter', monospace;
+	color: var(--text-secondary);
+}
+
+/* The base reset zeroes margins, which would pin the modal to the top left instead of centring it */
+.reader-toc {
+	margin: auto;
+	width: calc(100% - 2rem);
+	max-width: 32rem;
+	max-height: 80vh;
+	padding: 0;
+	border: none;
+	border-radius: 0.75rem;
+	background: var(--paper-white);
+	box-shadow: var(--shadow-xl);
+	color: var(--text-primary);
+}
+
+.reader-toc[open] {
+	display: flex;
+	flex-direction: column;
+}
+
+.reader-toc::backdrop {
+	background: rgba(28, 25, 23, 0.45);
+}
+
+.reader-toc__header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 1rem 1.25rem;
+	border-bottom: 1px dashed var(--neutral-300);
+}
+
+.reader-toc__title {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 1.25rem;
+	margin: 0;
+}
+
+.reader-toc__list {
+	list-style: none;
+	margin: 0;
+	padding: 0.5rem 0;
+	overflow-y: auto;
+}
+
+.reader-toc__chapter {
+	display: grid;
+	grid-template-columns: 3.5rem 1fr auto;
+	align-items: baseline;
+	gap: 0.5rem;
+	padding: 0.625rem 1.25rem;
+	color: var(--text-primary);
+	text-decoration: none;
+	border-left: 3px solid transparent;
+}
+
+.reader-toc__chapter:hover,
+.reader-toc__chapter:focus-visible {
+	background: var(--neutral-100);
+	outline: none;
+}
+
+.reader-toc__item--current .reader-toc__chapter {
+	background: rgba(217, 119, 6, 0.08);
+	border-left-color: var(--accent);
+}
+
+.reader-toc__roman {
+	font-family: 'Kingthings Typewriter', monospace;
+	color: var(--accent);
+}
+
+.reader-toc__count {
+	font-size: 0.8125rem;
+	color: var(--text-secondary);
+	white-space: nowrap;
+}
+
+.reader-toc__scenes {
+	list-style: none;
+	margin: 0;
+	padding: 0 1.25rem 0.5rem 5.25rem;
+}
+
+.reader-toc__scene {
+	display: block;
+	padding: 0.25rem 0;
+	font-size: 0.9375rem;
+	color: var(--text-secondary);
+	text-decoration: none;
+}
+
+.reader-toc__scene:hover {
+	color: var(--accent-dark);
+	text-decoration: underline;
+}
+
+@media only screen and (max-width: 600px) {
+	.reader-tool__text {
+		display: none;
+	}
+
+	.reader-tools {
+		margin-left: 0;
+		width: 100%;
+		justify-content: space-between;
+	}
+
+	.reader-scene__marker {
+		display: none;
+	}
 }

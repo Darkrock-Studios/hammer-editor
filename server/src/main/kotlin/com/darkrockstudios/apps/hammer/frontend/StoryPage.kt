@@ -5,11 +5,16 @@ import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.database.ReaderDay
 import com.darkrockstudios.apps.hammer.frontend.utils.ProjectName
 import com.darkrockstudios.apps.hammer.frontend.utils.Toast
+import com.darkrockstudios.apps.hammer.frontend.utils.applyRevalidationHeaders
 import com.darkrockstudios.apps.hammer.frontend.utils.authenticatedOnly
 import com.darkrockstudios.apps.hammer.frontend.utils.findProjectByUrlSegment
 import com.darkrockstudios.apps.hammer.frontend.utils.formatInstant
 import com.darkrockstudios.apps.hammer.frontend.utils.formatSyncDate
+import com.darkrockstudios.apps.hammer.frontend.utils.getLocale
+import com.darkrockstudios.apps.hammer.frontend.utils.localizedMsg
+import com.darkrockstudios.apps.hammer.frontend.utils.matchesETag
 import com.darkrockstudios.apps.hammer.frontend.utils.msg
+import com.darkrockstudios.apps.hammer.frontend.utils.pageETag
 import com.darkrockstudios.apps.hammer.frontend.utils.renderTemplate
 import com.darkrockstudios.apps.hammer.frontend.utils.requireUser
 import com.darkrockstudios.apps.hammer.frontend.utils.respondHtmlWithToast
@@ -21,13 +26,10 @@ import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.project.ServerProjectDataRepository
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
-import com.darkrockstudios.apps.hammer.story.SceneHierarchyResult
-import com.darkrockstudios.apps.hammer.story.SingleSceneExportResult
 import com.darkrockstudios.apps.hammer.story.StoryImageLinks
 import com.darkrockstudios.apps.hammer.story.StoryImageService
-import com.darkrockstudios.apps.hammer.story.StoryRenderResult
 import com.darkrockstudios.apps.hammer.story.StoryRendererService
-import com.darkrockstudios.apps.hammer.story.WordCountUtils
+import com.darkrockstudios.apps.hammer.story.StoryResult
 import com.darkrockstudios.apps.hammer.utilities.ServerResult
 import com.darkrockstudios.apps.hammer.utilities.truncateToUtcDay
 import com.github.aymanizz.ktori18n.R
@@ -46,7 +48,9 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 import io.ktor.server.sessions.sessions
+import java.text.NumberFormat
 import java.time.ZoneOffset
+import java.util.Locale
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Instant
 
@@ -101,237 +105,109 @@ fun Route.storyPage(
 				val projectId = ProjectId(project.uuid)
 				val projectNameForUrl = ProjectName.projectSegment(project.name, project.uuid)
 
-				// Get scene hierarchy first to determine what to show
-				val hierarchyResult =
-					storyRendererService.getSceneHierarchy(session.userId, projectId)
-				val sceneHierarchyItems = when (hierarchyResult) {
-					is SceneHierarchyResult.Success -> hierarchyResult.scenes
-					else -> emptyList()
-				}
+				val account = accountsRepository.getAccount(session.userId)
+				val hasPenName = !account.pen_name.isNullOrBlank()
 
-				// If there are scenes, load the first one; otherwise load the full story (which will be empty)
-				val firstSceneId = sceneHierarchyItems.firstOrNull()?.id
-				val (storyHtml, hasContent) = if (firstSceneId != null) {
-					when (val sceneResult =
-						storyRendererService.renderSceneAsHtml(
-							session.userId,
-							projectId,
-							firstSceneId
-						)) {
-						is SingleSceneExportResult.Success ->
-							resolveAuthorImages(sceneResult.html, projectNameForUrl) to sceneResult.hasContent
-						else -> "" to false
-					}
+				val isPublished = projectAccessRepository.isPublished(session.userId, projectId)
+				val hasAnyAccess = projectAccessRepository.hasAnyAccess(session.userId, projectId)
+				val accessEntries = projectAccessRepository.getPrivateAccessEntries(session.userId, projectId)
+
+				val numericProjectId = projectsRepository.findProjectRowId(session.userId, projectId)
+				val totalReaders = numericProjectId
+					?.let { storyReaderRepository.totalReadersForProject(it) } ?: 0L
+				val readerBars = numericProjectId
+					?.let { storyReaderRepository.dailyReadersForProject(it, clock.now() - 30.days) }
+					?.let { buildReaderBars(it, clock.now()) }
+					?: emptyList()
+				val publicUrl = if (hasAnyAccess && hasPenName) {
+					call.constructPublicUrl(account.pen_name, project.name, project.uuid)
 				} else {
-					"" to false
+					""
 				}
 
-				// Get full story stats (for sidebar info)
-				val result = storyRendererService.renderStoryAsHtml(
-					userId = session.userId,
-					projectId = projectId
+				val reviewModels = call.reviewCards(reviewRepository, session.userId, projectId)
+				val coverImageId = storyCoverImageId(
+					serverProjectDataRepository,
+					storyImageService,
+					session.userId,
+					ProjectDefinition(name = project.name, uuid = projectId),
 				)
 
-				when (result) {
-					is StoryRenderResult.Success -> {
-						val account = accountsRepository.getAccount(session.userId)
-						val hasPenName = !account.pen_name.isNullOrBlank()
-
-						val isPublished = projectAccessRepository.isPublished(session.userId, projectId)
-						val hasAnyAccess = projectAccessRepository.hasAnyAccess(session.userId, projectId)
-						val accessEntries = projectAccessRepository.getPrivateAccessEntries(session.userId, projectId)
-
-						val numericProjectId = projectsRepository.findProjectRowId(session.userId, projectId)
-						val totalReaders = numericProjectId
-							?.let { storyReaderRepository.totalReadersForProject(it) } ?: 0L
-						val readerBars = numericProjectId
-							?.let { storyReaderRepository.dailyReadersForProject(it, clock.now() - 30.days) }
-							?.let { buildReaderBars(it, clock.now()) }
-							?: emptyList()
-						val publicUrl = if (hasAnyAccess && hasPenName) {
-							call.constructPublicUrl(account.pen_name, result.projectName, project.uuid)
-						} else {
-							""
-						}
-
-						val lastSyncFormatted = formatSyncDate(project.lastSync)
-
-						// Build scene hierarchy with selected state
-						val sceneHierarchy = sceneHierarchyItems.map { scene ->
-							mapOf(
-								"id" to scene.id,
-								"name" to scene.name,
-								"isGroup" to scene.isGroup,
-								"isScene" to scene.isScene,
-								"depth" to scene.depth,
-								"indent" to scene.getIndent(),
-								"isSelected" to (scene.id == firstSceneId)
-							)
-						}
-
-						val reviewModels = call.reviewCards(reviewRepository, session.userId, projectId)
-
-						// The public reader page declares the story's language on the prose; the
-						// author's own view has to as well, or the browser hyphenates a French
-						// story by the rules of whatever locale the author reads Hammer in.
-						val projectDef = ProjectDefinition(name = project.name, uuid = projectId)
-						val storyLanguage = serverProjectDataRepository.loadProjectLanguage(
-							userId = session.userId,
-							projectDef = projectDef,
-						)
-						val coverImageId = storyCoverImageId(
-							serverProjectDataRepository,
-							storyImageService,
-							session.userId,
-							projectDef,
-						)
-
-						val model = call.withDefaults(
-							mapOf(
-								"page_stylesheet" to "/assets/css/story.css",
-								"storyLanguage" to storyLanguage.orEmpty(),
-								"page_script" to "/assets/js/story.js",
-								"page_pre_script" to "/assets/js/review-form-logic.js",
-								"reviews" to reviewModels,
-								"hasReviews" to reviewModels.isNotEmpty(),
-								"projectName" to result.projectName,
-								"projectNameForUrl" to projectNameForUrl,
-								"storyHtml" to storyHtml,
-								"hasContent" to hasContent,
-								"hasPenName" to hasPenName,
-								"isPublished" to isPublished,
-								"hasAnyAccess" to hasAnyAccess,
-								"publicUrl" to publicUrl,
-								"lastSync" to lastSyncFormatted,
-								"sceneCount" to result.sceneCount,
-								"totalWordCount" to result.totalWordCount,
-								"formattedWordCount" to WordCountUtils.formatWordCount(result.totalWordCount),
-								"accessEntries" to accessEntries,
-								"hasAccessEntries" to accessEntries.isNotEmpty(),
-								"hasReaderStats" to (numericProjectId != null),
-								"totalReaders" to "%,d".format(totalReaders),
-								"readerBars" to readerBars,
-								"hasReaderBars" to readerBars.any { (it["height"] as Int) > 0 },
-								"sceneHierarchy" to sceneHierarchy,
-								"hasScenes" to sceneHierarchy.isNotEmpty()
-							)
-						)
-						if (coverImageId != null) {
-							model["coverImageUrl"] = "/story/$projectNameForUrl/image/$coverImageId"
-						}
-						if (numericProjectId != null) {
-							model.putAll(call.kudosPanelModel(storyKudosRepository, numericProjectId, isPublished, model))
-						}
-						call.respond(MustacheContent("story.mustache", model))
-					}
-
-					is StoryRenderResult.ProjectNotFound -> {
-						call.respond(HttpStatusCode.NotFound)
-					}
-
-					is StoryRenderResult.Error -> {
-						val model = call.withDefaults(
-							mapOf(
-								"page_stylesheet" to "/assets/css/story.css",
-								"errorMessage" to result.message,
-							)
-						)
-						call.respond(
-							HttpStatusCode.InternalServerError,
-							MustacheContent("storyerror.mustache", model)
-						)
-					}
-				}
-			}
-
-			hx.get("/scene") {
-				val session = call.sessions.requireUser()
-				val projectNameParam = call.parameters["projectName"]
-				val sceneIdStr = call.request.queryParameters["sceneId"]
-
-				if (projectNameParam.isNullOrBlank() || sceneIdStr.isNullOrBlank()) {
-					call.respond(HttpStatusCode.BadRequest)
-					return@get
-				}
-
-				val project = projectsRepository.findProjectByUrlSegment(session.userId, projectNameParam)
-				if (project == null) {
-					call.respond(HttpStatusCode.NotFound)
-					return@get
-				}
-
-				val projectId = ProjectId(project.uuid)
-
-				// Handle "all" as a special case for full story view
-				if (sceneIdStr == "all") {
-					val result = storyRendererService.renderStoryAsHtml(
-						userId = session.userId,
-						projectId = projectId
+				val locale = call.getLocale()
+				// Everything but the story's own numbers, which the story version below stands in for.
+				val model = call.withDefaults(
+					mapOf(
+						"page_stylesheet" to "/assets/css/story.css",
+						"page_script" to "/assets/js/story.js",
+						"page_pre_scripts" to listOf(
+							"/assets/js/review-form-logic.js",
+							"/assets/js/story-read-logic.js",
+						),
+						"reviews" to reviewModels,
+						"hasReviews" to reviewModels.isNotEmpty(),
+						"projectName" to project.name,
+						"projectNameForUrl" to projectNameForUrl,
+						"projectKey" to project.uuid,
+						"readUrl" to "/story/$projectNameForUrl/read",
+						"hasPenName" to hasPenName,
+						"isPublished" to isPublished,
+						"hasAnyAccess" to hasAnyAccess,
+						"publicUrl" to publicUrl,
+						"lastSync" to formatSyncDate(project.lastSync),
+						"accessEntries" to accessEntries,
+						"hasAccessEntries" to accessEntries.isNotEmpty(),
+						"hasReaderStats" to (numericProjectId != null),
+						"totalReaders" to NumberFormat.getIntegerInstance(locale).format(totalReaders),
+						"readerBars" to readerBars,
+						"hasReaderBars" to readerBars.any { (it["height"] as Int) > 0 },
 					)
-
-					when (result) {
-						is StoryRenderResult.Success -> {
-							val model = call.withDefaults(
-								mapOf(
-									"storyHtml" to resolveAuthorImages(
-										result.html,
-										ProjectName.projectSegment(project.name, project.uuid),
-									),
-									"hasContent" to result.hasContent
-								)
-							)
-							call.respond(MustacheContent("partials/story-content.mustache", model))
-						}
-
-						is StoryRenderResult.ProjectNotFound -> {
-							call.respond(HttpStatusCode.NotFound)
-						}
-
-						is StoryRenderResult.Error -> {
-							call.respond(HttpStatusCode.InternalServerError, result.message)
-						}
-					}
-					return@get
-				}
-
-				// Parse scene ID
-				val sceneId = sceneIdStr.toIntOrNull()
-				if (sceneId == null) {
-					call.respond(HttpStatusCode.BadRequest)
-					return@get
-				}
-
-				val result = storyRendererService.renderSceneAsHtml(
-					userId = session.userId,
-					projectId = projectId,
-					sceneId = sceneId
 				)
+				if (coverImageId != null) {
+					model["coverImageUrl"] = authorImageUrl(projectNameForUrl, coverImageId)
+				}
+				if (numericProjectId != null) {
+					model.putAll(call.kudosPanelModel(storyKudosRepository, numericProjectId, isPublished, model))
+				}
 
-				when (result) {
-					is SingleSceneExportResult.Success -> {
-						val model = call.withDefaults(
+				// An unchanged story is answered without reading or counting its scenes.
+				val etag = storyRendererService.prepareExport(session.userId, projectId)
+					?.let { pageETag(model, it.version) }
+				if (etag != null && call.matchesETag(etag)) {
+					call.applyRevalidationHeaders(etag)
+					call.respond(HttpStatusCode.NotModified)
+					return@get
+				}
+
+				val (status, content) = when (
+					val result = storyRendererService.storyOverview(session.userId, projectId)
+				) {
+					is StoryResult.Success -> {
+						val overview = result.value
+						model.putAll(
 							mapOf(
-								"storyHtml" to resolveAuthorImages(
-									result.html,
-									ProjectName.projectSegment(project.name, project.uuid),
-								),
-								"hasContent" to result.hasContent
+								"hasChapters" to overview.chapters.isNotEmpty(),
+								"hasWords" to (overview.totalWordCount > 0),
+								"complete" to overview.complete,
+								"wordCount" to NumberFormat.getIntegerInstance(locale).format(overview.totalWordCount),
+								"chapterCount" to overview.chapters.size,
+								"sceneCount" to overview.sceneCount,
+								"readingTime" to readingTime(locale, overview.readingTimeMinutes),
 							)
 						)
-						call.respond(MustacheContent("partials/story-content.mustache", model))
+						// A scene that failed to load would otherwise be pinned in the browser until an edit.
+						if (overview.complete) etag?.let { call.applyRevalidationHeaders(it) }
+						HttpStatusCode.OK to MustacheContent("story.mustache", model)
 					}
 
-					is SingleSceneExportResult.ProjectNotFound -> {
-						call.respond(HttpStatusCode.NotFound)
-					}
+					is StoryResult.ProjectNotFound -> HttpStatusCode.NotFound to null
 
-					is SingleSceneExportResult.SceneNotFound -> {
-						call.respond(HttpStatusCode.NotFound, "Scene not found")
-					}
+					is StoryResult.Error -> HttpStatusCode.InternalServerError to call.storyErrorContent(result.message)
+				}
 
-					is SingleSceneExportResult.Error -> {
-						call.respond(HttpStatusCode.InternalServerError, result.message)
-					}
+				if (content == null) {
+					call.respond(status)
+				} else {
+					call.respond(status, content)
 				}
 			}
 
@@ -454,7 +330,7 @@ fun Route.storyPage(
 				// A failed tree load must not render as an innocent empty tree: with the limit
 				// toggle on, an empty tree pins the submit button disabled with no explanation.
 				val scenes = when (hierarchyResult) {
-					is SceneHierarchyResult.Success -> hierarchyResult.scenes
+					is StoryResult.Success -> hierarchyResult.value.scenes
 					else -> {
 						respondHtmlWithToast(
 							content = "",
@@ -659,6 +535,13 @@ fun Route.storyPage(
 	}
 }
 
+/** [minutes] as "42 min", "3 h" or "3 h 5 min". */
+internal fun readingTime(locale: Locale, minutes: Int): String = when {
+	minutes < 60 -> localizedMsg(locale, "story_reading_minutes", minutes)
+	minutes % 60 == 0 -> localizedMsg(locale, "story_reading_whole_hours", minutes / 60)
+	else -> localizedMsg(locale, "story_reading_hours", minutes / 60, minutes % 60)
+}
+
 /**
  * Builds a fixed 30-slot (oldest→newest) per-day bar model for the reader trend
  * graph: heights are scaled 0–100 against the busiest day, with zero-filled gaps so
@@ -680,8 +563,22 @@ private fun buildReaderBars(daily: List<ReaderDay>, now: Instant): List<Map<Stri
 	}
 }
 
-private suspend fun resolveAuthorImages(html: String, projectNameForUrl: String): String =
-	StoryImageLinks.resolve(html) { imageId -> "/story/$projectNameForUrl/image/$imageId" }
+/** The author-only address of image [imageId] in the story at [projectNameForUrl]. */
+internal fun authorImageUrl(projectNameForUrl: String, imageId: Int): String =
+	"/story/$projectNameForUrl/image/$imageId"
+
+internal suspend fun resolveAuthorImages(html: String, projectNameForUrl: String): String =
+	StoryImageLinks.resolve(html) { imageId -> authorImageUrl(projectNameForUrl, imageId) }
+
+/** The story error page for [message], built on [model] when the page already has one. */
+internal suspend fun ApplicationCall.storyErrorContent(
+	message: String,
+	model: MutableMap<String, Any>? = null,
+): MustacheContent {
+	val page = model ?: withDefaults(mapOf("page_stylesheet" to "/assets/css/story.css"))
+	page["errorMessage"] = message
+	return MustacheContent("storyerror.mustache", page)
+}
 
 fun ApplicationCall.constructPublicUrl(penName: String, projectName: String, projectUuid: String): String {
 	return buildPublicUrl(

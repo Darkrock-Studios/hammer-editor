@@ -168,6 +168,7 @@ fun Route.frontend() {
 		reviewRepository,
 		storyReaderRepository, storyKudosRepository, serverProjectDataRepository, storyImageService, clock,
 	)
+	storyReadPage(storyRendererService, projectsRepository, serverProjectDataRepository, storyImageService)
 	reviewFrontend(
 		reviewRepository = reviewRepository,
 		projectsRepository = projectsRepository,

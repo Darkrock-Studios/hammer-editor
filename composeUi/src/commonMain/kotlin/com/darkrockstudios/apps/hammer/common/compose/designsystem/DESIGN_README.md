@@ -93,7 +93,7 @@ recognizable signal of the design.
 
 Section titles are introduced with a roman-numeral marker
 (`§ I  Structure`) — see [`HdSectionHeader`](HdSectionHeader.kt) and
-[`romanNumeral`](HdRomanNumeral.kt). Every section in a long-scrolling
+`romanNumeral` (in `base`, shared with the web reader). Every section in a long-scrolling
 screen gets one.
 
 ### 5. Color defaults from `MaterialTheme.colorScheme`

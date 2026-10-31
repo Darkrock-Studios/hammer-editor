@@ -1,139 +1,27 @@
 package com.darkrockstudios.apps.hammer.story
 
 import com.darkrockstudios.apps.hammer.base.ProjectId
+import com.darkrockstudios.apps.hammer.base.TreeChapter
+import com.darkrockstudios.apps.hammer.base.chapterScenes
+import com.darkrockstudios.apps.hammer.base.estimateReadingMinutes
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ApiSceneType
 import com.darkrockstudios.apps.hammer.base.http.EntityHash
 import com.darkrockstudios.apps.hammer.base.markdown.countWords
+import com.darkrockstudios.apps.hammer.base.storyChapters
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.project.ProjectEntityDatasource
 import com.darkrockstudios.apps.hammer.utilities.MarkdownRenderer
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
 import kotlinx.serialization.Serializable
+import org.slf4j.LoggerFactory
+import kotlin.coroutines.cancellation.CancellationException
 
 class StoryRendererService(
 	private val projectEntityDatasource: ProjectEntityDatasource,
 	private val markdownRenderer: MarkdownRenderer,
 	private val renderCache: StoryRenderCache? = null,
 ) {
-
-	suspend fun renderStoryAsHtml(
-		userId: Long,
-		projectId: ProjectId
-	): StoryRenderResult {
-		val projectDef = projectEntityDatasource.getProject(userId, projectId)
-			?: return StoryRenderResult.ProjectNotFound
-
-		return try {
-			val sceneDefs = projectEntityDatasource.getEntityDefsByType(
-				userId = userId,
-				projectDef = projectDef,
-				type = ApiProjectEntity.Type.SCENE
-			)
-
-			if (sceneDefs.isEmpty()) {
-				return StoryRenderResult.Success(
-					projectName = projectDef.name,
-					html = "",
-					hasContent = false,
-					sceneCount = 0,
-					totalWordCount = 0
-				)
-			}
-
-			val scenes: List<ApiProjectEntity.SceneEntity> = sceneDefs.mapNotNull { def ->
-				val result = projectEntityDatasource.loadEntity(
-					userId = userId,
-					projectDef = projectDef,
-					entityId = def.id,
-					entityType = ApiProjectEntity.Type.SCENE,
-					serializer = ApiProjectEntity.SceneEntity.serializer()
-				)
-				if (isSuccess(result)) result.data else null
-			}
-
-			val markdown = buildStoryMarkdown(projectDef.name, scenes)
-			val html = markdownRenderer.markdownToSafeHtml(markdown, preserveLineBreaks = true, images = true)
-
-			// Calculate total word count from scene content only (not group names)
-			val totalWordCount = scenes
-				.filter { it.sceneType == ApiSceneType.Scene }
-				.sumOf { countWords(it.content) }
-
-			StoryRenderResult.Success(
-				projectName = projectDef.name,
-				html = html,
-				hasContent = true,
-				sceneCount = scenes.size,
-				totalWordCount = totalWordCount
-			)
-			// Export boundary: any failure becomes a StoryExportResult.Error.
-		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-			StoryRenderResult.Error(e.message ?: "Unknown error occurred")
-		}
-	}
-
-	private fun buildStoryMarkdown(
-		projectName: String,
-		scenes: List<ApiProjectEntity.SceneEntity>
-	): String {
-		val builder = StringBuilder()
-		builder.append("# $projectName\n\n")
-
-		// Group scenes by parent (last element of path, or ROOT_KEY if empty)
-		val scenesByParent: Map<Int, List<ApiProjectEntity.SceneEntity>> = scenes.groupBy { scene ->
-			scene.path.lastOrNull() ?: ROOT_KEY
-		}
-
-		// Get root-level scenes (direct children of root)
-		val rootScenes = scenesByParent[0]?.sortedBy { it.order } ?: emptyList()
-
-		for (scene in rootScenes) {
-			// The author's own heading, verbatim: a story renders as written, never renumbered.
-			builder.append("## ${scene.name}\n\n")
-
-			if (scene.sceneType == ApiSceneType.Scene) {
-				// Write scene content directly
-				if (scene.content.isNotBlank()) {
-					builder.appendScene(scene.content)
-				}
-			} else {
-				// It's a Group - write all child scenes' content
-				writeGroupChildren(builder, scene.id, scenesByParent)
-			}
-		}
-
-		// A scene the walk can't reach still belongs to the author, and their readers can see it on
-		// the published page; it would be worse for it to be missing here than to sit at the end.
-		for (orphan in walkScenes(scenes).orphans) {
-			builder.append("## ${orphan.name}\n\n")
-			if (orphan.content.isNotBlank()) builder.appendScene(orphan.content)
-		}
-
-		return builder.toString()
-	}
-
-	/** Appends every scene under [parentId], depth first, and returns their total word count. */
-	private fun writeGroupChildren(
-		builder: StringBuilder,
-		parentId: Int,
-		scenesByParent: Map<Int, List<ApiProjectEntity.SceneEntity>>
-	): Int {
-		val children = scenesByParent[parentId]?.sortedBy { it.order } ?: return 0
-
-		var wordCount = 0
-		for (child in children) {
-			if (child.sceneType == ApiSceneType.Scene) {
-				if (child.content.isNotBlank()) {
-					builder.appendScene(child.content)
-					wordCount += countWords(child.content)
-				}
-			} else {
-				wordCount += writeGroupChildren(builder, child.id, scenesByParent)
-			}
-		}
-		return wordCount
-	}
 
 	/**
 	 * Scenes are separate passages. Without the blank line the last paragraph of one scene and the
@@ -225,13 +113,10 @@ class StoryRendererService(
 		page: Int = 1,
 		wordsPerPage: Int = DEFAULT_WORDS_PER_PAGE,
 		cacheable: Boolean = false,
-	): PaginatedExportResult {
-		val projectDef = projectEntityDatasource.getProject(userId, projectId)
-			?: return PaginatedExportResult.ProjectNotFound
+	): StoryResult<PaginatedStoryExportResult> = readProject(userId, projectId) { projectDef ->
 		// Hashes only identify a cache entry, so an uncached render never pays for them.
 		val sceneHashes = if (cacheable) sceneHashes(userId, projectDef) else emptyList()
-
-		return renderOrCache(userId, projectId, projectDef, sceneHashes, page, wordsPerPage, cacheable)
+		renderOrCache(userId, projectId, projectDef, sceneHashes, page, wordsPerPage, cacheable)
 	}
 
 	/** As [renderStoryAsHtmlPaginated], reusing a [PreparedExport] the caller already resolved. */
@@ -240,17 +125,19 @@ class StoryRendererService(
 		page: Int = 1,
 		wordsPerPage: Int = DEFAULT_WORDS_PER_PAGE,
 		cacheable: Boolean = false,
-	): PaginatedExportResult = renderOrCache(
-		userId = prepared.userId,
-		projectId = prepared.projectId,
-		projectDef = prepared.projectDef,
-		sceneHashes = prepared.sceneHashes,
-		page = page,
-		wordsPerPage = wordsPerPage,
-		cacheable = cacheable,
-		sceneFilter = prepared.sceneFilter,
-		preloaded = prepared.scenes?.let { PreloadedScenes(it, prepared.scenesComplete) },
-	)
+	): StoryResult<PaginatedStoryExportResult> = readSafely {
+		renderOrCache(
+			userId = prepared.userId,
+			projectId = prepared.projectId,
+			projectDef = prepared.projectDef,
+			sceneHashes = prepared.sceneHashes,
+			page = page,
+			wordsPerPage = wordsPerPage,
+			cacheable = cacheable,
+			sceneFilter = prepared.sceneFilter,
+			preloaded = prepared.scenes?.let { PreloadedScenes(it, prepared.scenesComplete) },
+		)
+	}
 
 	private suspend fun renderOrCache(
 		userId: Long,
@@ -262,25 +149,38 @@ class StoryRendererService(
 		cacheable: Boolean,
 		sceneFilter: Set<Int>? = null,
 		preloaded: PreloadedScenes? = null,
-	): PaginatedExportResult {
+	): PaginatedStoryExportResult {
 		val cache = renderCache.takeIf { cacheable }
-
-		return try {
-			val result = if (cache != null) {
-				cache.getOrRender(
-					projectId = projectId,
-					projectName = projectDef.name,
-					page = page,
-					wordsPerPage = wordsPerPage,
-					sceneHashes = sceneHashes,
-				) { renderPaginated(userId, projectDef, page, wordsPerPage, sceneFilter, preloaded) }
-			} else {
-				renderPaginated(userId, projectDef, page, wordsPerPage, sceneFilter, preloaded).result
-			}
-			PaginatedExportResult.Success(result)
-		} catch (e: Exception) {
-			PaginatedExportResult.Error(e.message ?: "Unknown error occurred")
+		return if (cache != null) {
+			cache.getOrRender(
+				projectId = projectId,
+				projectName = projectDef.name,
+				page = page,
+				wordsPerPage = wordsPerPage,
+				sceneHashes = sceneHashes,
+			) { renderPaginated(userId, projectDef, page, wordsPerPage, sceneFilter, preloaded) }
+		} else {
+			renderPaginated(userId, projectDef, page, wordsPerPage, sceneFilter, preloaded).result
 		}
+	}
+
+	/** Runs [read] on the project, turning a missing project and any failure into results. */
+	private suspend fun <T> readProject(
+		userId: Long,
+		projectId: ProjectId,
+		read: suspend (ProjectDefinition) -> T,
+	): StoryResult<T> {
+		val projectDef = projectEntityDatasource.getProject(userId, projectId) ?: return StoryResult.ProjectNotFound
+		return readSafely { read(projectDef) }
+	}
+
+	/** [read]'s value, or an [StoryResult.Error] for any failure; cancellation still propagates. */
+	private suspend fun <T> readSafely(read: suspend () -> T): StoryResult<T> = try {
+		StoryResult.Success(read())
+	} catch (e: CancellationException) {
+		throw e
+	} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+		StoryResult.Error(e.message ?: "Unknown error occurred")
 	}
 
 	private suspend fun sceneHashes(userId: Long, projectDef: ProjectDefinition): List<EntityHash> =
@@ -307,13 +207,9 @@ class StoryRendererService(
 			scenes = preloaded.scenes
 			complete = preloaded.complete
 		} else {
-			val sceneDefs = projectEntityDatasource.getEntityDefsByType(
-				userId = userId,
-				projectDef = projectDef,
-				type = ApiProjectEntity.Type.SCENE
-			)
-			scenes = loadScenes(userId, projectDef, sceneDefs.map { it.id })
-			complete = scenes.size == sceneDefs.size
+			val loaded = loadAllScenes(userId, projectDef)
+			scenes = loaded.scenes
+			complete = loaded.complete
 		}
 
 		if (scenes.isEmpty()) {
@@ -330,13 +226,13 @@ class StoryRendererService(
 					hasPrevPage = false,
 					nextPage = 1,
 					prevPage = 1,
-					estimatedReadingTimeMinutes = 1
+					estimatedReadingTimeMinutes = 0
 				),
 				complete = complete,
 			)
 		}
 
-		val selected = walkScenes(scenes).scenes
+		val selected = walkScenes(scenes)
 			.let { ordered -> if (sceneFilter == null) ordered else ordered.filter { it.id in sceneFilter } }
 
 		val processedScenes = selected.map { scene ->
@@ -348,7 +244,7 @@ class StoryRendererService(
 		}
 
 		val totalWordCount = processedScenes.sumOf { it.wordCount }
-		val estimatedReadingTime = WordCountUtils.estimateReadingTimeMinutes(totalWordCount)
+		val estimatedReadingTime = estimateReadingMinutes(totalWordCount)
 
 		// Group scenes into pages based on word count
 		val pages = paginateScenes(processedScenes, wordsPerPage)
@@ -386,36 +282,135 @@ class StoryRendererService(
 
 	/**
 	 * Flattens the scene tree to its leaf scenes in the order the author sees them: depth first,
-	 * siblings by [ApiProjectEntity.SceneEntity.order].
+	 * siblings by [ApiProjectEntity.SceneEntity.order], with unreachable scenes last.
 	 */
-	private fun walkScenes(scenes: List<ApiProjectEntity.SceneEntity>): SceneWalk {
-		val scenesByParent = scenes.groupBy { it.path.lastOrNull() ?: ROOT_KEY }
-		val ordered = mutableListOf<ApiProjectEntity.SceneEntity>()
-		val visited = mutableSetOf<Int>()
-
-		fun visit(parentId: Int) {
-			val children = scenesByParent[parentId] ?: return
-			for (scene in children.sortedBy { it.order }) {
-				// A path cycle would otherwise recurse forever.
-				if (!visited.add(scene.id)) continue
-				if (scene.sceneType == ApiSceneType.Scene) ordered += scene else visit(scene.id)
-			}
-		}
-		visit(ROOT_ID)
-
-		val orphans = scenes.filter { it.sceneType == ApiSceneType.Scene && it.id !in visited }
-		return SceneWalk(scenes = ordered + orphans, orphans = orphans)
-	}
+	private fun walkScenes(scenes: List<ApiProjectEntity.SceneEntity>): List<ApiProjectEntity.SceneEntity> =
+		collectChapters(scenes).flatMap { it.scenes }
 
 	/**
-	 * The story's leaf scenes in reading order. [orphans] are the ones the walk couldn't reach,
-	 * a scene whose parent group is missing; they land at the end of [scenes] so that nothing the
-	 * author wrote silently disappears from a render.
+	 * Splits the story into chapters by base's [storyChapters], the rules the app's reader uses.
+	 * Scenes the root can't reach follow as chapters of their own so nothing the author wrote goes
+	 * missing.
 	 */
-	private class SceneWalk(
-		val scenes: List<ApiProjectEntity.SceneEntity>,
-		val orphans: List<ApiProjectEntity.SceneEntity>,
-	)
+	private fun collectChapters(
+		scenes: List<ApiProjectEntity.SceneEntity>,
+	): List<TreeChapter<ApiProjectEntity.SceneEntity>> {
+		val byId = scenes.associateBy { it.id }
+		val scenesByParent = scenes.groupBy { it.path.lastOrNull() ?: ROOT_KEY }
+		val visited = mutableSetOf<Int>()
+
+		// Lists each scene at most once, so a path cycle can't recurse forever.
+		fun children(parent: ApiProjectEntity.SceneEntity?) =
+			scenesByParent[parent?.id ?: ROOT_ID].orEmpty().sortedBy { it.order }.filter { visited.add(it.id) }
+
+		val isScene = { scene: ApiProjectEntity.SceneEntity -> scene.sceneType == ApiSceneType.Scene }
+		val chapters = storyChapters(children(null), ::children, isScene).toMutableList()
+
+		// An unreachable scene stays with the outermost group still above it, so a group whose
+		// parent is missing reads as one chapter rather than one per scene.
+		for (scene in scenes) {
+			if (!isScene(scene) || scene.id in visited) continue
+			val group = outermostUnvisitedGroup(scene, byId, visited)
+			if (group != null) {
+				visited += group.id
+				chapterScenes(group, ::children, isScene)
+					.takeIf { it.isNotEmpty() }
+					?.let { chapters += TreeChapter(group, it) }
+			}
+			if (visited.add(scene.id)) chapters += TreeChapter(scene, listOf(scene))
+		}
+
+		return chapters
+	}
+
+	/** The outermost group on [scene]'s path whose chain down to the scene is intact and unvisited. */
+	private fun outermostUnvisitedGroup(
+		scene: ApiProjectEntity.SceneEntity,
+		byId: Map<Int, ApiProjectEntity.SceneEntity>,
+		visited: Set<Int>,
+	): ApiProjectEntity.SceneEntity? {
+		var anchor: ApiProjectEntity.SceneEntity? = null
+		for (id in scene.path.asReversed()) {
+			val group = byId[id]
+				?.takeIf { it.sceneType == ApiSceneType.Group && it.id !in visited }
+				?: break
+			anchor = group
+		}
+		return anchor
+	}
+
+	private fun chapterEntries(chapters: List<TreeChapter<ApiProjectEntity.SceneEntity>>): List<StoryChapter> =
+		chapters.mapIndexed { index, chapter ->
+			StoryChapter(number = index + 1, title = chapter.top.name, sceneCount = chapter.scenes.size)
+		}
+
+	/** Every scene entity in the project; [PreloadedScenes.complete] is false if any failed to load. */
+	private suspend fun loadAllScenes(userId: Long, projectDef: ProjectDefinition): PreloadedScenes {
+		val sceneDefs = projectEntityDatasource.getEntityDefsByType(
+			userId = userId,
+			projectDef = projectDef,
+			type = ApiProjectEntity.Type.SCENE
+		)
+		val scenes = loadScenes(userId, projectDef, sceneDefs.map { it.id })
+		if (scenes.size != sceneDefs.size) {
+			logger.warn(
+				"{} of {} scenes failed to load for project {}",
+				sceneDefs.size - scenes.size,
+				sceneDefs.size,
+				projectDef.uuid.id,
+			)
+		}
+		return PreloadedScenes(scenes, complete = scenes.size == sceneDefs.size)
+	}
+
+	/** The story's chapters and totals, without rendering any prose. */
+	suspend fun storyOverview(userId: Long, projectId: ProjectId): StoryResult<StoryOverview> =
+		readProject(userId, projectId) { projectDef ->
+			val loaded = loadAllScenes(userId, projectDef)
+			val chapters = collectChapters(loaded.scenes)
+			StoryOverview(
+				projectName = projectDef.name,
+				chapters = chapterEntries(chapters),
+				sceneCount = chapters.sumOf { it.scenes.size },
+				totalWordCount = chapters.sumOf { chapter -> chapter.scenes.sumOf { countWords(it.content) } },
+				complete = loaded.complete,
+			)
+		}
+
+	/**
+	 * Renders chapter [chapterNumber] (1-based, coerced into range) one scene at a time. Scene and
+	 * chapter names are left out of the HTML; the page renders them itself. Nothing is word
+	 * counted: the reader shows no counts, and counting a whole manuscript per page turn is costly.
+	 */
+	suspend fun renderChapter(userId: Long, projectId: ProjectId, chapterNumber: Int): StoryResult<ChapterRender> =
+		readProject(userId, projectId) { projectDef ->
+			val loaded = loadAllScenes(userId, projectDef)
+			val chapters = collectChapters(loaded.scenes)
+			val entries = chapterEntries(chapters)
+			if (chapters.isEmpty()) {
+				return@readProject ChapterRender(
+					projectDef.name,
+					entries,
+					chapter = null,
+					scenes = emptyList(),
+					loaded.complete,
+				)
+			}
+
+			val index = chapterNumber.coerceIn(1, chapters.size) - 1
+			val scenes = chapters[index].scenes.map { scene ->
+				ChapterScene(
+					id = scene.id,
+					name = scene.name,
+					html = if (scene.content.isBlank()) {
+						""
+					} else {
+						markdownRenderer.markdownToSafeHtml(scene.content, preserveLineBreaks = true, images = true)
+					},
+				)
+			}
+			ChapterRender(projectDef.name, entries, entries[index], scenes, loaded.complete)
+		}
 
 	private fun paginateScenes(
 		scenes: List<ProcessedScene>,
@@ -479,48 +474,13 @@ class StoryRendererService(
 	/**
 	 * Get the scene hierarchy for a project, suitable for populating a dropdown.
 	 */
-	suspend fun getSceneHierarchy(
-		userId: Long,
-		projectId: ProjectId
-	): SceneHierarchyResult {
-		val projectDef = projectEntityDatasource.getProject(userId, projectId)
-			?: return SceneHierarchyResult.ProjectNotFound
-
-		return try {
-			val sceneDefs = projectEntityDatasource.getEntityDefsByType(
-				userId = userId,
-				projectDef = projectDef,
-				type = ApiProjectEntity.Type.SCENE
-			)
-
-			if (sceneDefs.isEmpty()) {
-				return SceneHierarchyResult.Success(
-					projectName = projectDef.name,
-					scenes = emptyList()
-				)
-			}
-
-			val scenes: List<ApiProjectEntity.SceneEntity> = sceneDefs.mapNotNull { def ->
-				val result = projectEntityDatasource.loadEntity(
-					userId = userId,
-					projectDef = projectDef,
-					entityId = def.id,
-					entityType = ApiProjectEntity.Type.SCENE,
-					serializer = ApiProjectEntity.SceneEntity.serializer()
-				)
-				if (isSuccess(result)) result.data else null
-			}
-
-			val hierarchyItems = buildSceneHierarchy(scenes)
-
-			SceneHierarchyResult.Success(
+	suspend fun getSceneHierarchy(userId: Long, projectId: ProjectId): StoryResult<SceneHierarchy> =
+		readProject(userId, projectId) { projectDef ->
+			SceneHierarchy(
 				projectName = projectDef.name,
-				scenes = hierarchyItems
+				scenes = buildSceneHierarchy(loadAllScenes(userId, projectDef).scenes),
 			)
-		} catch (e: Exception) {
-			SceneHierarchyResult.Error(e.message ?: "Unknown error occurred")
 		}
-	}
 
 	/**
 	 * Build a flat list of scene hierarchy items from the scene list.
@@ -559,105 +519,13 @@ class StoryRendererService(
 		return result
 	}
 
-	/**
-	 * Export a single scene or group as HTML.
-	 * If sceneId is a group, renders all scenes within it.
-	 */
-	suspend fun renderSceneAsHtml(
-		userId: Long,
-		projectId: ProjectId,
-		sceneId: Int
-	): SingleSceneExportResult {
-		val projectDef = projectEntityDatasource.getProject(userId, projectId)
-			?: return SingleSceneExportResult.ProjectNotFound
-
-		return try {
-			val sceneDefs = projectEntityDatasource.getEntityDefsByType(
-				userId = userId,
-				projectDef = projectDef,
-				type = ApiProjectEntity.Type.SCENE
-			)
-
-			val scenes: List<ApiProjectEntity.SceneEntity> = sceneDefs.mapNotNull { def ->
-				val result = projectEntityDatasource.loadEntity(
-					userId = userId,
-					projectDef = projectDef,
-					entityId = def.id,
-					entityType = ApiProjectEntity.Type.SCENE,
-					serializer = ApiProjectEntity.SceneEntity.serializer()
-				)
-				if (isSuccess(result)) result.data else null
-			}
-
-			val targetScene = scenes.find { it.id == sceneId }
-				?: return SingleSceneExportResult.SceneNotFound
-
-			val scenesByParent: Map<Int, List<ApiProjectEntity.SceneEntity>> = scenes.groupBy { scene ->
-				scene.path.lastOrNull() ?: ROOT_KEY
-			}
-
-			val (markdown, wordCount) = if (targetScene.sceneType == ApiSceneType.Scene) {
-				// Single scene - just its content
-				val content = if (targetScene.content.isNotBlank()) {
-					"## ${targetScene.name}\n\n${targetScene.content.trimEnd()}\n"
-				} else {
-					"## ${targetScene.name}\n"
-				}
-				content to countWords(targetScene.content)
-			} else {
-				// Group - collect all child scenes' content
-				buildGroupMarkdown(targetScene, scenesByParent)
-			}
-
-			val html = markdownRenderer.markdownToSafeHtml(markdown, preserveLineBreaks = true, images = true)
-
-			SingleSceneExportResult.Success(
-				projectName = projectDef.name,
-				sceneName = targetScene.name,
-				html = html,
-				hasContent = markdown.isNotBlank() && wordCount > 0,
-				wordCount = wordCount
-			)
-		} catch (e: Exception) {
-			SingleSceneExportResult.Error(e.message ?: "Unknown error occurred")
-		}
-	}
-
-	/**
-	 * Build markdown content for a group and all its children.
-	 * Returns the markdown string and total word count.
-	 */
-	private fun buildGroupMarkdown(
-		group: ApiProjectEntity.SceneEntity,
-		scenesByParent: Map<Int, List<ApiProjectEntity.SceneEntity>>
-	): Pair<String, Int> {
-		val builder = StringBuilder()
-		builder.append("## ${group.name}\n\n")
-		val wordCount = writeGroupChildren(builder, group.id, scenesByParent)
-
-		return builder.toString() to wordCount
-	}
-
 	companion object {
 		/** Bucket for a scene with no path at all; distinct from the real root, which is id 0. */
 		private const val ROOT_KEY = -1
 		private const val ROOT_ID = 0
 		const val DEFAULT_WORDS_PER_PAGE = 2000
+		private val logger = LoggerFactory.getLogger(StoryRendererService::class.java)
 	}
-}
-
-sealed class StoryRenderResult {
-	data class Success(
-		val projectName: String,
-		val html: String,
-		val hasContent: Boolean,
-		val sceneCount: Int,
-		val totalWordCount: Int
-	) : StoryRenderResult()
-
-	data object ProjectNotFound : StoryRenderResult()
-
-	data class Error(val message: String) : StoryRenderResult()
 }
 
 /**
@@ -703,11 +571,52 @@ data class PaginatedStoryExportResult(
 	val estimatedReadingTimeMinutes: Int
 )
 
-sealed class PaginatedExportResult {
-	data class Success(val data: PaginatedStoryExportResult) : PaginatedExportResult()
-	data object ProjectNotFound : PaginatedExportResult()
-	data class Error(val message: String) : PaginatedExportResult()
+/** One chapter of the story; [number] is 1-based. */
+data class StoryChapter(
+	val number: Int,
+	val title: String,
+	val sceneCount: Int,
+)
+
+data class StoryOverview(
+	val projectName: String,
+	val chapters: List<StoryChapter>,
+	/** Leaf scenes only; groups are structure, not scenes. */
+	val sceneCount: Int,
+	val totalWordCount: Int,
+	/** False when a scene failed to load, so the chapters and totals leave it out. */
+	val complete: Boolean,
+) {
+	val readingTimeMinutes: Int
+		get() = estimateReadingMinutes(totalWordCount)
 }
+
+/** The outcome of reading a story; [Success.value] is what the read produced. */
+sealed interface StoryResult<out T> {
+	data class Success<out T>(val value: T) : StoryResult<T>
+	data object ProjectNotFound : StoryResult<Nothing>
+	data class Error(val message: String) : StoryResult<Nothing>
+}
+
+/** A scene's prose as HTML, empty when the scene has none. */
+data class ChapterScene(
+	val id: Int,
+	val name: String,
+	val html: String,
+)
+
+/**
+ * One chapter ready to read, with every chapter listed for navigation. [chapter] is null only when
+ * the story has no chapters at all; [complete] is false when a scene failed to load.
+ */
+data class ChapterRender(
+	val projectName: String,
+	val chapters: List<StoryChapter>,
+	val chapter: StoryChapter?,
+	val scenes: List<ChapterScene>,
+	val complete: Boolean,
+)
+
 
 /**
  * Represents a scene or group in the hierarchy for dropdown display.
@@ -721,39 +630,10 @@ data class SceneHierarchyItem(
 ) {
 	val isGroup: Boolean get() = type == ApiSceneType.Group
 	val isScene: Boolean get() = type == ApiSceneType.Scene
-
-	/**
-	 * Returns indentation string for dropdown display (using em-dashes).
-	 */
-	fun getIndent(): String = if (depth > 0) "\u2003".repeat(depth) + "— " else ""
 }
 
-/**
- * Result of getting the scene hierarchy for a project.
- */
-sealed class SceneHierarchyResult {
-	data class Success(
-		val projectName: String,
-		val scenes: List<SceneHierarchyItem>
-	) : SceneHierarchyResult()
-
-	data object ProjectNotFound : SceneHierarchyResult()
-	data class Error(val message: String) : SceneHierarchyResult()
-}
-
-/**
- * Result of rendering a single scene or group.
- */
-sealed class SingleSceneExportResult {
-	data class Success(
-		val projectName: String,
-		val sceneName: String,
-		val html: String,
-		val hasContent: Boolean,
-		val wordCount: Int
-	) : SingleSceneExportResult()
-
-	data object ProjectNotFound : SingleSceneExportResult()
-	data object SceneNotFound : SingleSceneExportResult()
-	data class Error(val message: String) : SingleSceneExportResult()
-}
+/** A project's scenes and groups in tree order, for the share and review scene pickers. */
+data class SceneHierarchy(
+	val projectName: String,
+	val scenes: List<SceneHierarchyItem>,
+)

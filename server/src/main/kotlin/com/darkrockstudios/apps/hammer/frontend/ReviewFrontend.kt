@@ -27,8 +27,8 @@ import com.darkrockstudios.apps.hammer.review.ReviewSubmittedMailer
 import com.darkrockstudios.apps.hammer.review.ReviewSuggestion
 import com.darkrockstudios.apps.hammer.review.ReviewSuggestionStatus
 import com.darkrockstudios.apps.hammer.review.ReviewSuggestionType
-import com.darkrockstudios.apps.hammer.story.SceneHierarchyResult
 import com.darkrockstudios.apps.hammer.story.StoryRendererService
+import com.darkrockstudios.apps.hammer.story.StoryResult
 import com.darkrockstudios.apps.hammer.utilities.MarkdownRenderer
 import com.darkrockstudios.apps.hammer.utilities.ServerResult
 import io.ktor.http.ContentType
@@ -75,7 +75,7 @@ fun Route.reviewFrontend(
 				val hierarchyResult =
 					storyRendererService.getSceneHierarchy(session.userId, ProjectId(project.uuid))
 				val scenes = when (hierarchyResult) {
-					is SceneHierarchyResult.Success -> hierarchyResult.scenes
+					is StoryResult.Success -> hierarchyResult.value.scenes
 					else -> emptyList()
 				}
 
