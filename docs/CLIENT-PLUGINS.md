@@ -537,6 +537,11 @@ class ExportInput(
   a cover page. A plugin exporter that declares `cover`, which needs `images`,
   is sent the cover's file with the other images and its id as
   `coverImageId`, and draws its own cover page, or none.
+- **Archives.** A plugin exporter whose manifest entry sets
+  `output = "archive"` returns a list of files, which the host checks and
+  zips, in order, into the one export file, so no plugin writes zip code. The
+  manifest still gives its `extension` and `mime`: `zip` and
+  `application/zip` suit it. See [Calling convention](#calling-convention).
 
 Importers have no plugin seam: `ImportFormat` is a closed enum.
 
@@ -1261,6 +1266,7 @@ label = "Word frequency (CSV)"
 input = "prose"               # optional: markdown, the default, or prose; see Calling convention
 images = true                 # optional: send the files of the images the story shows; false by default
 cover = true                  # optional, needs images: send the project cover too; false by default
+output = "archive"            # optional: file, the default, or archive; see Calling convention
 
 [[actions]]                   # optional; see Actions
 name = "report"
@@ -1347,16 +1353,17 @@ The Hammer-specific parts:
   input is `{"format", "projectName", "language", "topLevelAsChapters",
   "chapters": [{"name", "scenes": [markdown], "prose": []}], "images": [...],
   "coverImageId", "settings": {...}}`, the last holding every declared
-  setting's current value, and its output is the file's bytes. An exporter
-  whose manifest entry sets `input = "prose"` gets each scene in `prose`
-  instead of `scenes`: the host's own parse of its markdown, the one the
-  built-in formats render from, as blocks (`paragraph`, `blank`, `image`,
-  `heading`, `list`, `quote`, `code`, `rule`, `table`) of styled spans. A
-  project image is its name as text, except that for an exporter with
-  `images = true` a line holding only the image is an `image` block,
-  `{"type": "image", "id", "name"}`, whose `id` is always one in `images`. A
-  plugin then needs no markdown parser, and reads text exactly as the
-  built-in formats do. The C kit's `hammer_json.h` reads either form.
+  setting's current value, and its output is the file's bytes, or for
+  `output = "archive"` the archive reply. An exporter whose manifest entry
+  sets `input = "prose"` gets each scene in `prose` instead of `scenes`: the
+  host's own parse of its markdown, the one the built-in formats render from,
+  as blocks (`paragraph`, `blank`, `image`, `heading`, `list`, `quote`,
+  `code`, `rule`, `table`) of styled spans. A project image is its name as
+  text, except that for an exporter with `images = true` a line holding only
+  the image is an `image` block, `{"type": "image", "id", "name"}`, whose
+  `id` is always one in `images`. A plugin then needs no markdown parser, and
+  reads text exactly as the built-in formats do. The C kit's `hammer_json.h`
+  reads either form.
 - An exporter whose manifest entry sets `images = true` gets in `images` each
   project image the story refers to whose file Hammer could read, sorted by
   id, as `{"id", "name", "extension", "mimeType", "content"}`: `image.get`'s
@@ -1377,14 +1384,34 @@ The Hammer-specific parts:
   kernel is capped at 256 MiB or a sixteenth of the JVM's heap, whichever is
   less (16 MiB on a 256 MB Android heap; see [Host](#host)), and no manifest
   key raises that cap: an export whose request or output does not fit fails,
-  one whose request does not fit before the module runs. Inside the module,
-  a language that uses linear memory (C, Rust, Zig, AssemblyScript, Go)
-  should raise `[limits] memory` (64 MiB by default). As a rule of thumb,
-  the copy of the request (4/3 of the images' size), their decoded bytes,
-  and the output (at least their size again) are live at once, so plan for
-  about three and a half times the size of the story's images. A Kotlin/Wasm
-  plugin keeps its objects in the guest heap instead, where `[limits] memory`
-  does not apply; see [Languages](#languages).
+  one whose request does not fit before the module runs. An archive reply
+  sits in the kernel beside the request, so one that sends the story's images
+  back holds them twice, both as base64 (about 8/3 of their size), and fits
+  about half the images the request alone could carry. When that reply is
+  what does not fit, the export fails with the module's allocation error, not
+  the message that the images are too large. Inside the module, a language
+  that uses linear memory (C, Rust, Zig, AssemblyScript, Go) should raise
+  `[limits] memory` (64 MiB by default). As a rule of thumb, the copy of the
+  request (4/3 of the images' size), their decoded bytes, and the output (at
+  least their size again) are live at once, so plan for about three and a
+  half times the size of the story's images. A Kotlin/Wasm plugin keeps its
+  objects in the guest heap instead, where `[limits] memory` does not apply;
+  see [Languages](#languages).
+- An exporter whose manifest entry sets `output = "archive"` returns UTF-8
+  JSON, `{"files": [{"path": "story.md", "text": "..."},
+  {"path": "images/1.png", "content": "..."}]}`, and the host zips the files,
+  in order, into the export file. Each file has exactly one of `text`,
+  written as UTF-8, or `content`, its bytes in standard base64 with padding,
+  as `images` sends them. Text is compressed; `content`, usually an image
+  that already is, is not. A `path` is relative, with `/` between its
+  segments: not empty, not starting with `/`, no `\`, no empty segment (so no
+  `//` or trailing `/`), and no `.` or `..` segment. It is valid Unicode, and
+  at most 65535 bytes as UTF-8, the zip format's limit on an entry name. No
+  two files have the same path, and there is at least one file. The host
+  checks the whole reply before writing any of it: one that is not this JSON,
+  or that breaks a rule, fails the export with a message naming the plugin
+  and the path or problem. The kits' archive builders check the same path
+  rules, apart from the length and Unicode ones, as each file is added.
 - A function fails by returning non-zero or by trapping. Either way, the
   message it set with `error_set` is what the user sees, if it set one:
   AssemblyScript's `abort` sets one and then traps.
