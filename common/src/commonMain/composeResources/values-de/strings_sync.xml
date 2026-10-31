@@ -139,6 +139,7 @@
 	<string name="sync_log_entity_delete_success">ID %1$d auf dem Server gelöscht</string>
 	<string name="sync_log_entity_conflict">Konflikt für neue Entität aufgetreten, das sollte nicht möglich sein! ID: %1$d TYP: %2$s</string>
 	<string name="sync_log_entity_failed">Synchronisierung fehlgeschlagen: %1$s</string>
+	<string name="sync_log_duplicate_ids">Some files in this project share an id. Reopen the project to choose which copies to keep.</string>
 	<string name="sync_log_entities_transferred">Entitäten übertragen</string>
 	<string name="sync_log_finalized">Synchronisierung abgeschlossen</string>
 	<string name="sync_log_data_saved">Synchronisierungsdaten gespeichert</string>

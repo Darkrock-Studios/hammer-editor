@@ -6,6 +6,8 @@
 	<string name="ideas_header_meta">%1$d ІДЕЙ · %2$d ТЕГІВ</string>
 	<string name="ideas_list_empty">Ще немає ідей історій. Зафіксуйте свою першу іскру.</string>
 	<string name="ideas_list_empty_archived">Немає архівованих ідей.</string>
+	<string name="ideas_load_failed_label">COULDN'T READ IDEAS</string>
+	<string name="ideas_load_failed_message">Hammer couldn't read your ideas folder, so this list may be out of date or incomplete. Check that the folder exists and is accessible.</string>
 	<string name="ideas_word_count_short">%1$d СЛ</string>
 	<string name="ideas_tag_count_short">%1$d ТЕГІВ</string>
 	<string name="ideas_search_placeholder">Пошук ідей</string>

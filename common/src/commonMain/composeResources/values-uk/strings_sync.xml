@@ -139,6 +139,7 @@
 	<string name="sync_log_entity_delete_success">ID %1$d видалено на сервері</string>
 	<string name="sync_log_entity_conflict">Виникнув конфлікт для нової сутності, це не мало б бути можливим! ID: %1$d ТИП: %2$s</string>
 	<string name="sync_log_entity_failed">Синхронізацію не вдалося: %1$s</string>
+	<string name="sync_log_duplicate_ids">Some files in this project share an id. Reopen the project to choose which copies to keep.</string>
 	<string name="sync_log_entities_transferred">Сутності передано</string>
 	<string name="sync_log_finalized">Синхронізацію завершено</string>
 	<string name="sync_log_data_saved">Дані синхронізації збережено</string>
