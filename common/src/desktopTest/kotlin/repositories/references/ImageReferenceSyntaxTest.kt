@@ -248,6 +248,19 @@ class ImageReferenceSyntaxTest {
 	}
 
 	@Test
+	fun `replaceImages removes an image the replacement gives nothing for, as remove does`() {
+		val dropTwo = { id: Int, alt: String -> if (id == 2) null else "*$alt*" }
+		assertEquals(
+			"Before\n\nA *a* and  end.\n\nAfter\n",
+			ImageReferenceSyntax.replaceImages(
+				"Before\n\n![b](hammer://image/2)\n\nA ![a](hammer://image/1) and ![b][m] end.\n\n" +
+					"> ![b](hammer://image/2)\n\nAfter\n\n[m]: hammer://image/2\n",
+				dropTwo,
+			),
+		)
+	}
+
+	@Test
 	fun `replaceImages leaves other images, links and fenced code alone`() {
 		val text = "![web](https://example.com/a.png) [link](hammer://image/5)\n```\n![x](hammer://image/5)\n```\n"
 		assertSame(text, ImageReferenceSyntax.replaceImages(text, italicAlt))

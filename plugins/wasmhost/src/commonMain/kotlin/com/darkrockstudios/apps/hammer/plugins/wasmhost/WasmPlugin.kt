@@ -5,6 +5,7 @@ import com.darkrockstudios.apps.hammer.common.data.export.ExportImage
 import com.darkrockstudios.apps.hammer.common.data.export.ExportInput
 import com.darkrockstudios.apps.hammer.common.data.export.StoryExporter
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcher
+import com.darkrockstudios.apps.hammer.common.util.zip.writeZip
 import com.darkrockstudios.apps.hammer.operations.Base64Bytes
 import com.darkrockstudios.apps.hammer.operations.OperationException
 import com.darkrockstudios.apps.hammer.operations.OperationJson
@@ -460,8 +461,9 @@ class WasmPlugin(
 
 		override fun render(sink: BufferedSink, input: ExportInput) {
 			val prose = format.input == PluginManifest.INPUT_PROSE
-			val images = if (format.images) input.images.values.sortedBy { it.id }.map(ExportRequest::Image) else emptyList()
-			val delivered = images.mapTo(mutableSetOf()) { it.id }
+			val sent = if (format.images) input.images else emptyMap()
+			val images = sent.values.sortedBy { it.id }.map(ExportRequest::Image)
+			val delivered = sent.keys
 			val request = ExportRequest(
 				format = formatId,
 				projectName = input.projectName,
@@ -492,7 +494,18 @@ class WasmPlugin(
 				)
 			}
 			// Export renders on a background dispatcher already.
-			sink.write(callBlocking(EXPORT, encoded))
+			val reply = callBlocking(EXPORT, encoded)
+			if (format.output != PluginManifest.OUTPUT_ARCHIVE) {
+				sink.write(reply)
+				return
+			}
+			val entries = try {
+				archiveEntries(reply, sent)
+			} catch (e: ArchiveRefusal) {
+				val what = if (e is ArchiveRefusal.Malformed) "a malformed reply" else "an invalid archive"
+				throw PluginException("Plugin '$id' sent $what from export format '$formatId': ${e.message}")
+			}
+			writeZip(sink, entries)
 		}
 	}
 
@@ -693,7 +706,7 @@ class WasmPlugin(
 		/** The export that checks paragraphs for a text diagnostics check the manifest declares. */
 		const val DIAGNOSE = "diagnose"
 
-		private val ReplyJson = Json { ignoreUnknownKeys = true }
+		internal val ReplyJson = Json { ignoreUnknownKeys = true }
 		private const val SEVERITY_SUGGESTION = "suggestion"
 		private const val UNKNOWN_MIME_TYPE = "application/octet-stream"
 

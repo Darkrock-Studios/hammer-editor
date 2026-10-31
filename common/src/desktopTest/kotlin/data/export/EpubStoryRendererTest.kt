@@ -12,9 +12,9 @@ import okio.Buffer
 import org.w3c.dom.Document
 import org.w3c.dom.Element
 import org.xml.sax.InputSource
+import utils.unzip
 import java.io.ByteArrayInputStream
 import java.io.StringReader
-import java.util.zip.ZipInputStream
 import javax.xml.parsers.DocumentBuilderFactory
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
@@ -46,16 +46,7 @@ class EpubStoryRendererTest {
 			images = images,
 			imageNames = imageNames,
 		)
-
-		val entries = linkedMapOf<String, ByteArray>()
-		ZipInputStream(ByteArrayInputStream(buffer.readByteArray())).use { zis ->
-			var entry = zis.nextEntry
-			while (entry != null) {
-				if (!entry.isDirectory) entries[entry.name] = zis.readBytes()
-				entry = zis.nextEntry
-			}
-		}
-		return entries
+		return unzip(buffer.readByteArray())
 	}
 
 	/** Renders the EPUB and concatenates every text part (xhtml / opf / ncx / css) for content assertions. */

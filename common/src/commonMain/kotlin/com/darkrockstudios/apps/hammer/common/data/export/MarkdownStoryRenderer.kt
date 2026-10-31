@@ -1,23 +1,15 @@
 package com.darkrockstudios.apps.hammer.common.data.export
 
-import okio.BufferedSink
+internal fun storyMarkdown(input: ExportInput): String = buildString {
+	append("# ${input.projectName}\n\n")
 
-fun writeStoryAsMarkdown(
-	sink: BufferedSink,
-	projectName: String,
-	chapters: List<StoryChapter>,
-	treatTopLevelAsChapters: Boolean,
-	numberChapters: Boolean = false,
-) {
-	sink.writeUtf8("# $projectName\n\n")
-
-	chapters.forEachIndexed { index, chapter ->
-		if (treatTopLevelAsChapters) {
-			sink.writeUtf8("\n## ${chapterTitle(index, chapter, numberChapters)}\n\n")
+	input.chapters.forEachIndexed { index, chapter ->
+		if (input.treatTopLevelAsChapters) {
+			append("\n## ${chapterTitle(index, chapter, input.options.numberChapters)}\n\n")
 		} else if (index > 0) {
-			sink.writeUtf8("\n\n")
+			append("\n\n")
 		}
-		sink.writeUtf8(chapter.markdown)
-		sink.writeUtf8("\n")
+		append(chapter.markdown)
+		append("\n")
 	}
 }

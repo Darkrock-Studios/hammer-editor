@@ -58,6 +58,8 @@ data class PluginManifest(
 		val images: Boolean = false,
 		/** Whether the project cover is sent too; only with [images]. */
 		val cover: Boolean = false,
+		/** What the reply is: `file`, the export file's bytes, or `archive`, files the host zips into it. */
+		val output: String = OUTPUT_FILE,
 	)
 
 	/**
@@ -118,6 +120,8 @@ data class PluginManifest(
 		const val MAX_DESCRIPTION_LENGTH = 1000
 		const val INPUT_MARKDOWN = "markdown"
 		const val INPUT_PROSE = "prose"
+		const val OUTPUT_FILE = "file"
+		const val OUTPUT_ARCHIVE = "archive"
 		const val SCOPE_PARAGRAPH = "paragraph"
 		const val SCOPE_SCENE = "scene"
 

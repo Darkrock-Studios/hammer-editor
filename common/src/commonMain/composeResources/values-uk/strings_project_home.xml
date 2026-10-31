@@ -71,7 +71,7 @@
 	<string name="project_home_export_close">× ЗАКРИТИ</string>
 	<string name="project_home_export_chapters_label">Вважати сцени верхнього рівня розділами</string>
 	<string name="project_home_export_format_label">Формат</string>
-	<string name="project_home_export_format_markdown">Markdown (.md)</string>
+	<string name="project_home_export_format_markdown">Markdown (.zip)</string>
 	<string name="project_home_export_format_epub">EPub (.epub)</string>
 	<string name="project_home_export_format_pdf">PDF (.pdf)</string>
 	<string name="project_home_export_format_docx">Word (.docx)</string>
@@ -91,7 +91,7 @@
 	<string name="project_home_export_help_icon_description">Дізнатися про формати експорту</string>
 	<string name="project_home_export_help_title">Вибір формату експорту</string>
 	<string name="project_home_export_help_intro">Кожен формат підходить для різних цілей. Виберіть той, що відповідає тому, як ви плануєте використовувати експортовану історію.</string>
-	<string name="project_home_export_help_format_markdown">Простий текст із легким форматуванням; ідеальний для контролю версій, повторного імпорту чи інших інструментів письма.</string>
+	<string name="project_home_export_help_format_markdown">Простий текст із легким форматуванням, у ZIP-архіві з його зображеннями; ідеальний для контролю версій чи інших інструментів письма.</string>
 	<string name="project_home_export_help_format_epub">Стандартний формат електронних книг; найкращий для бета-читачів на електронних читалках і телефонах із переливним текстом.</string>
 	<string name="project_home_export_help_format_pdf">Фіксований макет сторінки, що виглядає однаково всюди; найкращий для друку чи надсилання остаточної копії лише для читання.</string>
 	<string name="project_home_export_help_format_docx">Відкривається у Word і Google Docs; найкращий для редакторів і бета-читачів, які залишають коментарі чи відстежують зміни.</string>

@@ -97,18 +97,10 @@ private object PdfStoryExporter : StoryExporter {
 
 private object MarkdownStoryExporter : StoryExporter {
 	override val formatId = BuiltInExportFormat.MARKDOWN
-	override val fileExtension = "md"
+	override val fileExtension = "zip"
+	override val mimeType = "application/zip"
+	override val embedsImages = true
+	override val embedsCover = true
 
-	// text/markdown is missing from MimeTypeMap on many Android versions and SAF providers; the
-	// ".md" extension on the suggested file name is what determines association.
-	override val mimeType = "text/plain"
-	override val needsProjectData = false
-
-	override fun render(sink: BufferedSink, input: ExportInput) = writeStoryAsMarkdown(
-		sink = sink,
-		projectName = input.projectName,
-		chapters = input.chapters,
-		treatTopLevelAsChapters = input.treatTopLevelAsChapters,
-		numberChapters = input.options.numberChapters,
-	)
+	override fun render(sink: BufferedSink, input: ExportInput) = writeStoryAsMarkdownZip(sink, input)
 }

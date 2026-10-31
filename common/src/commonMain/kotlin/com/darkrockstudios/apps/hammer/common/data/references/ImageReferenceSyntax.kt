@@ -69,14 +69,7 @@ object ImageReferenceSyntax {
 	 */
 	fun remove(text: String, imageId: Int): String {
 		if (imageId !in findIds(text)) return text
-
-		val id = "$imageId"
-		val wholeLine = Regex("""^$LINE_PREFIX${inlinePattern(destinationPattern(id))}[ \t]*$""")
-		return rewriteImages(text, id) { content, inline, labels ->
-			if (wholeLine.matches(content)) return@rewriteImages null
-			val stripped = replaceReferenceUses(inline.replace(content, ""), labels) { _, _ -> "" }
-			if (stripped != content && BLANK.matches(stripped) && !BLANK.matches(content)) null else stripped
-		}
+		return rewrite(text, "$imageId") { _, _ -> null }
 	}
 
 	/**
@@ -85,29 +78,25 @@ object ImageReferenceSyntax {
 	 * inline (`![alt](hammer://image/3)`) or uses a reference (`![alt][label]`). A reference
 	 * definition pointing at a project image is dropped, as [remove] drops one. Fenced code is left
 	 * alone.
+	 *
+	 * A [replacement] of null, or a result that leaves the line blank, removes the image as [remove]
+	 * removes one: the line is dropped along with a doubled blank line.
 	 */
-	fun replaceImages(text: String, replacement: (imageId: Int, alt: String) -> String): String {
-		if (findIds(text).isEmpty()) return text
-
-		return rewriteImages(text, """\d+""") { content, inline, labels ->
-			val inlineReplaced = inline.replace(content) { match ->
-				match.destinationId(2)?.let { replacement(it, match.groupValues[1]) } ?: match.value
-			}
-			replaceReferenceUses(inlineReplaced, labels, replacement)
-		}
+	fun replaceImages(text: String, replacement: (imageId: Int, alt: String) -> String?): String {
+		if (!text.contains(SCHEME_PREFIX)) return text
+		return rewrite(text, """\d+""", replacement)
 	}
 
 	/**
-	 * Drops every reference definition whose destination is an image matching [idPattern], then
-	 * passes each other line outside fenced code to [rewriteLine] with the inline image pattern and the
-	 * normalized labels of the dropped definitions, each mapped to the image id it names. [rewriteLine]
-	 * returns the line's new content, or null to drop the line. A definition whose id is too large to
-	 * name an image is left as written.
+	 * Drops every reference definition whose destination is an image matching [idPattern], and
+	 * replaces each image matching it outside fenced code with what [replacement] makes of its id and
+	 * alt text, or with nothing when that is null. A line left blank by that is dropped. A definition
+	 * or image whose id is too large to name an image is left as written.
 	 */
-	private inline fun rewriteImages(
+	private fun rewrite(
 		text: String,
 		idPattern: String,
-		rewriteLine: (content: String, inline: Regex, labels: Map<String, Int>) -> String?,
+		replacement: (imageId: Int, alt: String) -> String?,
 	): String {
 		val destination = destinationPattern(idPattern)
 		val inline = Regex(inlinePattern(destination))
@@ -135,7 +124,7 @@ object ImageReferenceSyntax {
 			val content = lines[i].content
 			val definitionId = definitions[i]
 			if (definitionId != null && definitionId < 0) continue
-			val rewritten = if (definitionId != null) null else rewriteLine(content, inline, labels)
+			val rewritten = if (definitionId != null) null else rewriteLine(content, inline, labels, replacement)
 			if (rewritten == null) {
 				dropped[i] = true
 				changed = true
@@ -150,6 +139,21 @@ object ImageReferenceSyntax {
 		return buildString {
 			lines.forEachIndexed { i, line -> if (!dropped[i]) append(line.content).append(line.terminator) }
 		}
+	}
+
+	// The line's new content, or null when the rewrite left a line that held something blank.
+	private fun rewriteLine(
+		content: String,
+		inline: Regex,
+		labels: Map<String, Int>,
+		replacement: (imageId: Int, alt: String) -> String?,
+	): String? {
+		val replace = { imageId: Int, alt: String -> replacement(imageId, alt).orEmpty() }
+		val inlineReplaced = inline.replace(content) { match ->
+			match.destinationId(2)?.let { replace(it, match.groupValues[1]) } ?: match.value
+		}
+		val replaced = replaceReferenceUses(inlineReplaced, labels, replace)
+		return if (BLANK.matches(replaced) && !BLANK.matches(content)) null else replaced
 	}
 
 	// Captures the id in one of two groups, one per spelling; see [destinationId].
