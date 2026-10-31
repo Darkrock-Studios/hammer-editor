@@ -1056,7 +1056,7 @@ class StoryRendererServiceTest {
 		val result = service.renderStoryAsHtmlPaginated(userId, projectId)
 
 		assertIs<StoryResult.Success<PaginatedStoryExportResult>>(result)
-		// 400 words at WordCountUtils' 225 wpm, rounded up
+		// 400 words at 225 wpm, rounded up
 		assertEquals(2, result.value.estimatedReadingTimeMinutes)
 	}
 

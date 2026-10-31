@@ -1,5 +1,5 @@
 /**
- * Pure reading-preference logic for the author's chapter reader: no DOM, no storage. Kept
+ * Pure reading-preference logic for the story readers: no DOM, and storage only as injected. Kept
  * DOM-free so it can be unit-tested under Node while still loading as a plain browser <script>
  * (see the dual export at the end). story-read.js supplies the browser wiring.
  *
@@ -91,6 +91,31 @@ function isChapterKey(event, targetIsInteractive) {
 	return event.key === 'ArrowLeft' || event.key === 'ArrowRight';
 }
 
+/**
+ * A get/set wrapper over a Web Storage area that never throws. Storage fails in some private
+ * modes, with storage disabled and in sandboxed frames; the page then works with defaults and
+ * simply forgets. [area] returns the storage area and is called on every use, because merely
+ * reading `localStorage` can throw.
+ */
+function bestEffortStorage(area) {
+	return {
+		get: function (key) {
+			try {
+				return area().getItem(key);
+			} catch (e) {
+				return null;
+			}
+		},
+		set: function (key, value) {
+			try {
+				area().setItem(key, value);
+			} catch (e) {
+				// Best effort only.
+			}
+		},
+	};
+}
+
 if (typeof module !== 'undefined' && module.exports) {
 	module.exports = {
 		READER_FONT_SIZES: READER_FONT_SIZES,
@@ -104,5 +129,6 @@ if (typeof module !== 'undefined' && module.exports) {
 		parseLastChapter: parseLastChapter,
 		continueChapter: continueChapter,
 		isChapterKey: isChapterKey,
+		bestEffortStorage: bestEffortStorage,
 	};
 }

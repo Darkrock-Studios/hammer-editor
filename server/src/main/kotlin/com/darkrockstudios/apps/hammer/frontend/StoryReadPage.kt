@@ -60,7 +60,7 @@ fun Route.storyReadPage(
 			val model = call.withDefaults(
 				mapOf(
 					"page_stylesheet" to "/assets/css/story.css",
-					"page_pre_scripts" to listOf("/assets/js/story-read-logic.js", "/assets/js/reader-prefs.js"),
+					"page_head_scripts" to READER_HEAD_SCRIPTS,
 					"page_script" to "/assets/js/story-read.js",
 					"projectKey" to project.uuid,
 					"dashboardUrl" to "/story/$projectSegment",
@@ -114,6 +114,12 @@ fun Route.storyReadPage(
 		}
 	}
 }
+
+/**
+ * Loaded in the head by both story readers, so the inline initReaderPrefs() call that follows
+ * their controls can apply the stored prefs before the prose paints.
+ */
+internal val READER_HEAD_SCRIPTS = listOf("/assets/js/story-read-logic.js", "/assets/js/reader-prefs.js")
 
 /** Fills [model] with the chapter, or the cover, that [render] holds. */
 private suspend fun ApplicationCall.addReaderModel(

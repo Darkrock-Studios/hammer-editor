@@ -1,31 +1,19 @@
 /**
  * Reading preferences shared by the author's chapter reader and the published story page: text
- * size everywhere, scene headings and column width where the page offers them. Applies the stored
- * prefs to the [data-reader-root] element and wires whichever data-reader-action buttons the page
- * has. The rules live in story-read-logic.js (DOM-free, unit-tested), loaded before this.
+ * size everywhere, scene headings and column width where the page offers them. Loaded in the head
+ * after story-read-logic.js (DOM-free, unit-tested, which holds the rules); the page calls
+ * initReaderPrefs() inline right after its controls, so the stored prefs apply before the prose
+ * paints.
  */
-/* global READER_PREFS_KEY, READER_DEFAULT_FONT_SIZE, parseReaderPrefs, stepFontSize, nextWidth */
+/* global READER_PREFS_KEY, READER_DEFAULT_FONT_SIZE, parseReaderPrefs, stepFontSize, nextWidth,
+   bestEffortStorage */
 
-// localStorage throws in some private modes and with storage disabled; the reader then works with
-// defaults and simply forgets.
-var readerStorage = {
-	get: function (key) {
-		try {
-			return localStorage.getItem(key);
-		} catch (e) {
-			return null;
-		}
-	},
-	set: function (key, value) {
-		try {
-			localStorage.setItem(key, value);
-		} catch (e) {
-			// Best effort only.
-		}
-	},
-};
+var readerStorage = bestEffortStorage(function () {
+	return localStorage;
+});
 
-(function () {
+/** Applies the stored prefs to the [data-reader-root] element and wires its controls. */
+function initReaderPrefs() {
 	var root = document.querySelector('[data-reader-root]');
 	if (!root) return;
 
@@ -78,4 +66,4 @@ var readerStorage = {
 		var action = button && actions.get(button.dataset.readerAction);
 		if (action) action();
 	});
-})();
+}

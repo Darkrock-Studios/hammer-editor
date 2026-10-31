@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.frontend.data.UserSession
 import com.darkrockstudios.apps.hammer.frontend.utils.ProjectName
 import com.darkrockstudios.apps.hammer.frontend.utils.applyRevalidationHeaders
 import com.darkrockstudios.apps.hammer.frontend.utils.canonicalUrl
+import com.darkrockstudios.apps.hammer.frontend.utils.getLocale
 import com.darkrockstudios.apps.hammer.frontend.utils.lookUpStory
 import com.darkrockstudios.apps.hammer.frontend.utils.matchesETag
 import com.darkrockstudios.apps.hammer.frontend.utils.metaDescription
@@ -23,7 +24,6 @@ import com.darkrockstudios.apps.hammer.story.StoryImageService
 import com.darkrockstudios.apps.hammer.story.StoryImageSigner
 import com.darkrockstudios.apps.hammer.story.StoryRendererService
 import com.darkrockstudios.apps.hammer.story.StoryResult
-import com.darkrockstudios.apps.hammer.story.WordCountUtils
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.htmx.hx
 import io.ktor.server.mustache.MustacheContent
@@ -144,11 +144,8 @@ fun Route.publicStoryPage(
 							} else {
 								call.canonicalUrl("/assets/images/og-story.png")
 							},
-							"page_pre_scripts" to listOf(
-								"/assets/js/story-reader-logic.js",
-								"/assets/js/story-read-logic.js",
-								"/assets/js/reader-prefs.js",
-							),
+							"page_head_scripts" to READER_HEAD_SCRIPTS,
+							"page_pre_script" to "/assets/js/story-reader-logic.js",
 							"page_script" to "/assets/js/story-reader.js",
 							"projectName" to projectName,
 							"authorPenName" to resolved.penName,
@@ -224,6 +221,8 @@ fun Route.publicStoryPage(
 
 					when (exportResult) {
 						is StoryResult.Success -> {
+							// The stats are the viewer's UI, so they take the viewer's locale, not the story's.
+							val viewerLocale = call.getLocale()
 							val data = exportResult.value
 
 							// The story's declared language, when set, becomes the page's content
@@ -246,8 +245,8 @@ fun Route.publicStoryPage(
 									"hasContent" to data.hasContent,
 									"sceneCount" to data.sceneCount,
 									"totalWordCount" to data.totalWordCount,
-									"formattedWordCount" to WordCountUtils.formatWordCount(data.totalWordCount),
-									"estimatedReadingTime" to data.estimatedReadingTimeMinutes,
+									"formattedWordCount" to formatCount(viewerLocale, data.totalWordCount),
+									"readingTime" to readingTime(viewerLocale, data.estimatedReadingTimeMinutes),
 									"currentPage" to data.currentPage,
 									"totalPages" to data.totalPages,
 									// The page nav also carries the way back to a cover; the count needs real pages.

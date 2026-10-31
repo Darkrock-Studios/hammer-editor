@@ -433,6 +433,22 @@ class PublicStoryPageTest : EndToEndTest() {
 	}
 
 	@Test
+	fun `the stats read like the author's dashboard`(): Unit = runBlocking {
+		doStartServer()
+		seedStory()
+		grantAccess(password = null)
+		val long = E2eTestData.createTestScene(1).copy(content = List(1_497) { "word" }.joinToString(" "))
+		database().serverDatabase.storyEntityQueries.deleteEntity(userId, projectRowId(), 1L)
+		E2eTestData.insertEntity(userId, projectRowId(), long, database(), encryptor())
+
+		val body = client().get(storyPath()).bodyAsText()
+
+		assertTrue(body.contains("1,497 words"), body)
+		assertTrue(body.contains("7 min"))
+		assertFalse(body.contains("1.5K"))
+	}
+
+	@Test
 	fun `a page of prose offers text size controls`(): Unit = runBlocking {
 		doStartServer()
 		seedStory()

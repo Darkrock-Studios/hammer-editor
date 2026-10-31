@@ -930,7 +930,9 @@ While the shared components cover most use cases, some pages have additional spe
   width in the chapter reader) live on whichever element carries `data-reader-root`: `data-*`
   attributes plus a `--reader-font-size` custom property. The chapter reader and the published
   story page share them through `reader-prefs.js` and the `partials/reader-*` templates (text size
-  buttons, the pre-paint prefs script, the cover page).
+  buttons, the inline `initReaderPrefs()` call, the cover page). Both pages load
+  `story-read-logic.js` and `reader-prefs.js` in the head through `page_head_scripts`, so that call
+  applies the stored prefs before the prose paints.
 - **error.css** - Colored sticky-note error cards with animations
 
 ---

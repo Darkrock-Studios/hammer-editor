@@ -76,6 +76,9 @@
 		<script>{{{analyticsBridge}}}</script>
 		<script defer src="/assets/js/analytics.js?v={{version}}"></script>
 	{{/analyticsEnabled}}
+	{{#page_head_scripts}}
+		<script src="{{.}}?v={{version}}"></script>
+	{{/page_head_scripts}}
 </head>
 <body>
 <header class="site-header">
