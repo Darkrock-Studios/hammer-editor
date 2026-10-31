@@ -390,6 +390,31 @@ class EpubStoryRendererTest {
 	}
 
 	@Test
+	fun `the package document writes its elements in the default namespace`() {
+		val entries = renderEntries(
+			listOf(StoryChapter("Alpha", "Body.")),
+			projectData = ProjectData(authorName = "Jane Doe", coverImageId = 3),
+			images = mapOf(3 to ExportImage(id = 3, name = "cat", fileExtension = "png", bytes = encoded("png"))),
+		)
+		val opf = entries.text("OEBPS/content.opf")
+
+		listOf("<manifest>", "<item ", "<spine", "<itemref ", "<guide>", "<reference ").forEach { tag ->
+			assertTrue(tag in opf, "$tag missing from\n$opf")
+		}
+		assertTrue("<opf:" !in opf, opf)
+		val ncxItem = assertNotNull(Regex("""<item [^>]*href="toc\.ncx"[^>]*>""").find(opf), opf).value
+		assertTrue("media-type=\"application/x-dtbncx+xml\"" in ncxItem, ncxItem)
+
+		listOf(opf, entries.text("OEBPS/toc.ncx")).forEach { document ->
+			val generator = assertNotNull(
+				Regex("""name="(?:dtb:)?generator" content="([^"]*)"""").find(document),
+				document,
+			).groupValues[1]
+			assertTrue(generator.startsWith("EPUB4KMP v") && generator != "EPUB4KMP v", generator)
+		}
+	}
+
+	@Test
 	fun `an image in a line of prose leaves its alt text in place`() {
 		val content = render(listOf(StoryChapter("Alpha", "See ![the map](https://example.com/map.png) here.")))
 
