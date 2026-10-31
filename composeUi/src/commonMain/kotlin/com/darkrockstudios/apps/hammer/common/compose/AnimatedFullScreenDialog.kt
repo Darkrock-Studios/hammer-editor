@@ -58,7 +58,8 @@ class AnimatedDialogScope internal constructor(
 /**
  * Shared shell that animates a [Dialog] in/out and wires predictive-back. Used by
  * [AnimatedFullScreenDialog] and [SimpleDialog] — most callers should reach for one of those
- * rather than this directly.
+ * rather than this directly. The content is kept below the window's own title bar
+ * ([LocalWindowTitleBarHeight]), which the dialog layer would otherwise cover.
  *
  * @param isOpen drives the enter/exit transition. Flip to `false` to start the exit animation.
  * @param onDismissRequest fires when the user requests dismissal (close button via
@@ -105,14 +106,19 @@ internal fun AnimatedDialogContainer(
 			}
 		}
 
-		AnimatedVisibility(
-			visibleState = transitionState,
-			enter = fadeIn(tween(ENTER_EXIT_MS)) +
-				scaleIn(initialScale = ENTER_INITIAL_SCALE, animationSpec = tween(ENTER_EXIT_MS)),
-			exit = fadeOut(tween(ENTER_EXIT_MS)) +
-				scaleOut(targetScale = ENTER_INITIAL_SCALE, animationSpec = tween(ENTER_EXIT_MS)),
+		Box(
+			modifier = Modifier.fillMaxSize().belowWindowChrome(),
+			contentAlignment = Alignment.Center,
 		) {
-			scope.content()
+			AnimatedVisibility(
+				visibleState = transitionState,
+				enter = fadeIn(tween(ENTER_EXIT_MS)) +
+					scaleIn(initialScale = ENTER_INITIAL_SCALE, animationSpec = tween(ENTER_EXIT_MS)),
+				exit = fadeOut(tween(ENTER_EXIT_MS)) +
+					scaleOut(targetScale = ENTER_INITIAL_SCALE, animationSpec = tween(ENTER_EXIT_MS)),
+			) {
+				scope.content()
+			}
 		}
 	}
 }

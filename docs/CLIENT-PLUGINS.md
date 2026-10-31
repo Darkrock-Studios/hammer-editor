@@ -179,7 +179,7 @@ Conventions:
   runtime plugins installed). Nothing in the
   operation API knows about agents; a plugin that serves them, like the MCP
   plugin, offers what its grants allow.
-- Operations whose input or output is a file (import, export, entry images)
+- Operations whose input or output is a file (import, export, images)
   carry the bytes. The CLI maps them to `--in FILE` and `--out FILE`, or to
   stdin and stdout.
 
@@ -244,7 +244,7 @@ Input that edits scene text in place is marked `@LiveEdit`: the whole input of
 `x-hammer-live`, so a client can tell an edit a writer reviews from one that
 lands in place.
 
-### Notes, encyclopedia, timeline
+### Notes, encyclopedia, images, timeline
 
 | Operation | Access | Notes |
 | --- | --- | --- |
@@ -254,13 +254,21 @@ lands in place.
 | `note.update` | Write | |
 | `note.delete` | Destructive | |
 | `entry.list` | Read | Each entry's aliases; optional type and tag filters |
-| `entry.read` | Read | Text, type, tags, whether it has an image, referencing scenes |
+| `entry.read` | Read | Text, type, tags, image ids (primary first), referencing scenes |
 | `entry.create` | Write | |
 | `entry.update` | Write | |
-| `entry.delete` | Destructive | |
-| `entry.image.get` | Read | Returns the image bytes and extension |
-| `entry.image.set` | Write | Takes the image bytes and extension |
-| `entry.image.remove` | Write | |
+| `entry.delete` | Destructive | The entry's images stay in the project |
+| `entry.images.list` | Read | Id, name and extension of each image, primary first |
+| `entry.images.add` | Write | Appends an image already in the project |
+| `entry.images.import` | Write | Takes image bytes and extension; creates the image, named after the entry, and appends it |
+| `entry.images.remove` | Write | Takes the image off the entry; it stays in the project |
+| `entry.images.primary` | Write | Moves an image the entry lists to the front |
+| `image.list` | Read | Id, name, extension, and whether anything uses it, of each image in the project |
+| `image.get` | Read | Name, extension, and base64 bytes of one image |
+| `image.add` | Write | Takes a name, extension, and base64 bytes; creates the image |
+| `image.replace` | Write | New bytes and extension for an image; its id stays, so everything using it follows |
+| `image.rename` | Write | |
+| `image.delete` | Destructive | Takes the image out of every entry and text using it, and off the project cover, first. `removedFrom` lists each with a `kind` and an `id`; kind `cover` has no id |
 | `timeline.list` | Read | |
 | `timeline.read` | Read | |
 | `timeline.create` | Write | |
@@ -461,6 +469,10 @@ class ExportInput(
 	val options: ExportOptions,
 	val language: String,
 	val strings: ExportStrings,
+	/** The project images the story refers to, by id; empty unless the exporter embeds images. */
+	val images: Map<Int, ExportImage> = emptyMap(),
+	/** The current name of each project image the story refers to, by id. */
+	val imageNames: Map<Int, String> = emptyMap(),
 ) {
 	fun requireProjectData(): ProjectData
 	/** [chapters], or one chapter named after the project when top-level nodes are not chapters. */
@@ -478,6 +490,35 @@ class ExportInput(
   file extension from it, and the Android save picker its MIME type.
 - **Labels.** Built-in labels are localized in `:composeUi`. A plugin format
   shows its manifest label, or its file extension in upper case.
+- **Images.** Chapter markdown embeds a project image as a line of its own,
+  `![image](hammer://image/<id>)`, which only Hammer can resolve: the app, and
+  the server's web reader, which serves the image itself. The alt text carries
+  no meaning: Hammer shows the image's current name wherever alt text would be
+  displayed, and the web reader passes the alt text through as written. The
+  EPUB format packages each referenced image in the book and writes an `img`
+  tag for it, described by the image's name. PDF, DOCX and RTF embed an image
+  that stands on its own line, centred at 70% of the text width as the editor
+  shows it and shrunk to fit 60% of the text height (of the page height in
+  PDF): PNG and JPEG as they are, WebP and a JPEG with an
+  EXIF rotation or flip re-encoded upright as PNG by the platform. PDF draws
+  an SVG as vector paths; DOCX and RTF write it as its name. An image anywhere
+  but on a plain line of its own is written as its name, as is one a format
+  cannot embed: an unsupported extension, a file whose header cannot be read,
+  a WebP or turned JPEG that does not decode, or an SVG with nothing to draw.
+  A PNG or JPEG whose header reads but whose body is corrupt is embedded as it
+  is: PDF leaves its slot empty, and a DOCX or RTF reader shows its
+  broken-image placeholder. The `prose` input of a plugin exporter
+  (`ExportInput.imageNames`) carries the image's name as text; all of these
+  leave out an image with no name to show. The Markdown format keeps the
+  reference as written.
+- **Cover.** A project cover opens the export with a cover page before the
+  title page. PDF fits it to the whole page, edge to edge and centred. DOCX
+  and RTF give it a page of its own at the full text width, narrowed if need
+  be to fit the text height. EPUB adds a cover page that scales it to the
+  screen as the first item of the reading order, kept out of the table of
+  contents, beside the book's `cover` metadata. A cover whose image is missing
+  or does not decode, or an SVG cover outside PDF, leaves the export without
+  a cover page.
 
 Importers have no plugin seam: `ImportFormat` is a closed enum.
 
@@ -1028,6 +1069,9 @@ cannot. A new entity type touches every one of:
 - `ProjectRootRouter.Config` and the navigation rail
 - `DataMigrator`
 
+That list is the short version; the full inventory is in
+[HOW-TO-ADD-AN-ENTITY-TYPE.md](HOW-TO-ADD-AN-ENTITY-TYPE.md).
+
 The rules that keep feature plugins possible are:
 
 1. Nothing in `ClientPlugin` or the operation API references any of the types
@@ -1115,10 +1159,24 @@ compiled fixtures (a few hundred bytes each) into its test resources.
 ### Words
 
 The kits' `words()` (`String.words()` in Kotlin, `words` in Rust, `hammer_words`
-in C) split text the same way Hammer counts words, so a plugin's counts match
-the app's. The kits are in `hammer-plugin-sdk`, and each must follow the rules
-here; Hammer's own implementation is `WordSegmentation.kt` in `base`'s
-`markdown` package.
+in C) segment raw text exactly as Hammer's `wordSpans` does, by the rules
+below. Hammer's word count (`countWords`) and writing-session credit also
+drop Markdown inline images, alt text and destination alike, and an image is
+a word boundary on both sides, so `cat![Cat](x)s` gives `cat` and `s`. An
+image is `![`, alt text in which brackets nest, `]`, then directly `(`, a
+destination, an optional title, and `)`. The destination is either `<...>`,
+which may hold spaces, or a run without spaces or tabs whose parentheses
+balance; the title is in `"..."`, `'...'`, or `(...)`; spaces or tabs may
+surround both. A backslash escapes the next character in the alt text,
+destination, and title, and no part may hold a line break. A `!` directly
+after a backslash does not start an image. The rule knows nothing of code, so
+an image inside a code span or code block counts no words either:
+`` `![a](b)` `` counts 0. A plugin that wants to match the app's displayed
+count must drop inline images the same way before calling `words()`. The kits
+are in `hammer-plugin-sdk`, and each must follow the rules here; Hammer's own
+implementation is `WordSegmentation.kt` in `base`'s `markdown` package, with
+the image grammar in `InlineImages.kt` and the loop that skips images in
+`WordCount.kt` beside it.
 
 The rules are Unicode 17's default word boundaries from UAX #29, rules WB1 to
 WB999, with no dictionary and no locale tailoring. A word is a segment between
@@ -1272,8 +1330,9 @@ The Hammer-specific parts:
   gets each scene in `prose` instead of `scenes`: the host's own parse of its
   markdown, the one the built-in formats render from, as blocks (`paragraph`,
   `blank`, `heading`, `list`, `quote`, `code`, `rule`, `table`) of styled
-  spans. A plugin then needs no markdown parser, and reads text exactly as the
-  built-in formats do. The C kit's `hammer_json.h` reads either form.
+  spans, with a project image as its name. A plugin then needs no markdown
+  parser, and reads text exactly as the built-in formats do. The C kit's
+  `hammer_json.h` reads either form.
 - A function fails by returning non-zero or by trapping. Either way, the
   message it set with `error_set` is what the user sees, if it set one:
   AssemblyScript's `abort` sets one and then traps.

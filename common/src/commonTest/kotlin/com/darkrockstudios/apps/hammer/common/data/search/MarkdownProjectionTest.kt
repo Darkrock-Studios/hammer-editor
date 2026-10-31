@@ -165,4 +165,63 @@ class MarkdownProjectionTest {
 	fun `an emphasized title keeps its words`() {
 		assertEquals("Once upon a time", markdownTitleLine("*Once upon a time*"))
 	}
+
+	private val names = mapOf(3 to "Cheshire Cat")
+
+	@Test
+	fun `a project image projects to its current name`() {
+		assertEquals("Cheshire Cat", projectMarkdownToPlainText("![image](hammer://image/3)", names::get))
+		assertEquals(
+			"Before\n\nCheshire Cat\n\nafter",
+			projectMarkdownToPlainText("Before\n\n![Old](hammer://image/3)\n\nafter", names::get),
+		)
+		assertEquals(
+			"See Cheshire Cat here",
+			projectMarkdownToPlainText("See ![**x**](<hammer://image/3> \"Title\") here", names::get),
+		)
+	}
+
+	@Test
+	fun `a project image without a name projects to nothing`() {
+		assertEquals("", projectMarkdownToPlainText("![image](hammer://image/3)"))
+		assertEquals("Before\n\n\n\nafter", projectMarkdownToPlainText("Before\n\n![Cat](hammer://image/3)\n\nafter"))
+		assertEquals("A  b", projectMarkdownToPlainText("A ![Cat](hammer://image/9) b", names::get))
+	}
+
+	@Test
+	fun `a name longer than its image still projects whole`() {
+		val name = "n".repeat(200)
+		assertEquals("$name tail", projectMarkdownToPlainText("![](hammer://image/3) tail") { name })
+	}
+
+	@Test
+	fun `any other image projects to its alt text with its own markup resolved`() {
+		assertEquals("A big cat", projectMarkdownToPlainText("![A **big** cat](https://e.com/cat.png \"Title\")"))
+		assertEquals("See [x] here", projectMarkdownToPlainText("See ![\\[x\\]](<https://e.com/x.png>) here"))
+		assertEquals("Cat", projectMarkdownToPlainText("![Cat](hammer://image/12x)", names::get))
+	}
+
+	@Test
+	fun `text that is not a whole image is left as written`() {
+		assertEquals("![Cat](hammer://image/3", projectMarkdownToPlainText("![Cat](hammer://image/3"))
+		assertEquals("![Cat](hammer://image/3)", projectMarkdownToPlainText("\\![Cat](hammer://image/3)"))
+		assertEquals("Wow! [link](x)", projectMarkdownToPlainText("Wow! [link](x)"))
+	}
+
+	@Test
+	fun `a title line that opens with an image is the image's name`() {
+		assertEquals("Cheshire Cat", markdownTitleLine("![Cat](hammer://image/3)\n\nBody", names::get))
+		assertEquals("Cheshire…", markdownTitle("![Cat](hammer://image/3)\n\nBody", 8, names::get))
+	}
+
+	@Test
+	fun `a title line that opens with an unnamed image is the next line`() {
+		assertEquals("Body", markdownTitleLine("![Cat](hammer://image/3)\n\nBody"))
+	}
+
+	@Test
+	fun `a note holding only an unnamed image has no title`() {
+		assertEquals("", markdownTitleLine("![image](hammer://image/3)"))
+		assertEquals("", markdownTitleLine("\n![image](hammer://image/3)\n", { id -> if (id == 4) "Dog" else null }))
+	}
 }

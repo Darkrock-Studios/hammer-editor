@@ -89,6 +89,7 @@ kotlin {
 				api(libs.filekit.dialogs.compose)
 				api(libs.coil.compose)
 				api(libs.coil.svg)
+				implementation(libs.telephoto.zoomable)
 				api(libs.kmpalette.core)
 				api(libs.kmpalette.extensions.file)
 				implementation(libs.colorpicker.compose)

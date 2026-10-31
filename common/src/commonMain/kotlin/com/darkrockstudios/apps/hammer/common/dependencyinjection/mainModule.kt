@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.base.di.dispatcherModule
 import com.darkrockstudios.apps.hammer.base.http.NetworkJsonQualifier
 import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.base.http.createNetworkJsonSerializer
+import com.darkrockstudios.apps.hammer.common.components.images.ImagePickRequests
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ImportStoryUseCase
 import com.darkrockstudios.apps.hammer.common.data.ProjectsDirectory
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -26,6 +27,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.Glo
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.GlobalSettingsFilesystemDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectPluginsDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectPluginsRepository
+import com.darkrockstudios.apps.hammer.common.data.references.ImageReferenceRewriter
 import com.darkrockstudios.apps.hammer.common.data.secrets.secretDatasourceModule
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.ServerSettingsDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.ServerSettingsFilesystemDatasource
@@ -33,6 +35,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.aut
 import com.darkrockstudios.apps.hammer.common.data.groupmetadata.GroupMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.id.datasources.EncyclopediaIdDatasource
+import com.darkrockstudios.apps.hammer.common.data.id.datasources.ImageIdDatasource
 import com.darkrockstudios.apps.hammer.common.data.id.datasources.NotesIdDatasource
 import com.darkrockstudios.apps.hammer.common.data.id.datasources.SceneDraftIdDatasource
 import com.darkrockstudios.apps.hammer.common.data.id.datasources.SceneIdDatasource
@@ -46,6 +49,9 @@ import com.darkrockstudios.apps.hammer.common.data.importer.RtfStoryImporter
 import com.darkrockstudios.apps.hammer.common.data.importer.StoryImporterRegistry
 import com.darkrockstudios.apps.hammer.common.data.export.ExportStoryUseCase
 import com.darkrockstudios.apps.hammer.common.data.export.StoryExporterRegistry
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesDatasource
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesRepository
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesService
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesDatasource
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupService
@@ -110,6 +116,7 @@ import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.P
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.ProjectDataSyncOperation
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.WritingActivitySyncOperation
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientEncyclopediaSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientImageSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientNoteSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientSceneDraftSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientSceneSynchronizer
@@ -322,6 +329,7 @@ val mainModule = module {
 				exporters = get(),
 				projectPlugins = get(),
 				projectDataDatasource = get(),
+				imagesRepository = get(),
 				fileSystem = get(named(RAW_FILESYSTEM)),
 				localeResolver = get(),
 				strRes = get(),
@@ -337,10 +345,16 @@ val mainModule = module {
 		factory<EncyclopediaIdDatasource>()
 		factory<TimeLineEventIdDatasource>()
 		factory<SceneDraftIdDatasource>()
+		factory<ImageIdDatasource>()
 		scoped<IdAllocator>()
 
 		scoped<NotesDatasource>()
 		scoped<NotesRepository>()
+
+		factory<ImagesDatasource>()
+		scoped<ImagesRepository>()
+		scoped<ImagesService>()
+		scoped<ImagePickRequests>()
 
 		factory<EncyclopediaDatasource>()
 		scoped<EncyclopediaRepository>()
@@ -378,6 +392,7 @@ val mainModule = module {
 		scoped<RenameEntryUseCase>()
 		scoped<CleanupReferencesOnEntryDeleteUseCase>()
 		scoped<SceneMetadataReferenceRemapper>() bind ReferenceRemapper::class
+		scoped<ImageReferenceRewriter>()
 
 		scoped<SyncJournalDatasource>()
 
@@ -386,6 +401,7 @@ val mainModule = module {
 		scoped<ClientTimelineSynchronizer>()
 		scoped<ClientEncyclopediaSynchronizer>()
 		scoped<ClientSceneDraftSynchronizer>()
+		scoped<ClientImageSynchronizer>()
 
 		factory<PrepareForSyncOperation>()
 		factory<FetchLocalDataOperation>()

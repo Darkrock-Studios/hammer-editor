@@ -5,6 +5,7 @@ import com.darkrockstudios.apps.hammer.base.GroupId
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.MAX_GROUP_NESTING_DEPTH
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
+import com.darkrockstudios.apps.hammer.base.validate.FilenameEncoding
 import com.darkrockstudios.apps.hammer.base.validate.ProjectNameValidationResult
 import com.darkrockstudios.apps.hammer.base.validate.ProjectNameValidator
 import com.darkrockstudios.apps.hammer.base.validate.validateProjectName
@@ -20,6 +21,7 @@ import com.darkrockstudios.apps.hammer.common.data.groupmetadata.GroupMetadataDa
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.migrator.Migration3_4
 import com.darkrockstudios.apps.hammer.common.data.migrator.PROJECT_DATA_VERSION
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesDatasource
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectdata.StoredProjectData
@@ -924,44 +926,17 @@ class ProjectsRepository(
 			NotesDatasource.NOTES_DIRECTORY,
 			EncyclopediaDatasource.ENCYCLOPEDIA_DIRECTORY,
 			TimeLineDatasource.TIMELINE_DIRECTORY,
+			ImagesDatasource.IMAGES_DIRECTORY,
 			ProjectDataDatasource.FILENAME,
 			Migration3_4.LEGACY_PROJECT_SETTINGS_FILENAME,
 			SyncJournalDatasource.SYNC_FILE_NAME,
 		)
 
-		// Bidirectional map: user-typed OS-forbidden char -> visually similar safe Unicode.
-		// Filenames produced by encodeForFilename are safe on Windows/macOS/Linux/iOS.
-		private val encodeMap: Map<Char, Char> = mapOf(
-			':' to '꞉',  // Modifier Letter Colon
-			'?' to '？',  // Fullwidth Question Mark
-			'/' to '⁄',  // Fraction Slash
-			'\\' to '⧹', // Big Reverse Solidus
-			'*' to '∗',  // Asterisk Operator
-			'"' to '＂',  // Fullwidth Quotation Mark
-			'|' to '｜',  // Fullwidth Vertical Line
-			'<' to '‹',  // Single Left-Pointing Angle Quotation
-			'>' to '›',  // Single Right-Pointing Angle Quotation
-		)
-		private val decodeMap: Map<Char, Char> = encodeMap.entries.associate { (k, v) -> v to k }
+		/** See [FilenameEncoding.encode]. */
+		fun encodeForFilename(displayName: String): String = FilenameEncoding.encode(displayName)
 
-		/**
-		 * Encodes a display name into a filesystem-safe form. OS-forbidden ASCII chars are
-		 * replaced with visually similar Unicode lookalikes; trailing `.` and ` ` are trimmed
-		 * (Windows constraint). The result still looks essentially like the original to a human.
-		 */
-		fun encodeForFilename(displayName: String): String {
-			val mapped = buildString(displayName.length) {
-				for (ch in displayName) append(encodeMap[ch] ?: ch)
-			}
-			return mapped.trimEnd('.', ' ')
-		}
-
-		/** Inverse of [encodeForFilename]. Safe to call on names that were never encoded. */
-		fun decodeFromFilename(rawName: String): String {
-			return buildString(rawName.length) {
-				for (ch in rawName) append(decodeMap[ch] ?: ch)
-			}
-		}
+		/** See [FilenameEncoding.decode]. */
+		fun decodeFromFilename(rawName: String): String = FilenameEncoding.decode(rawName)
 
 		/**
 		 * Replaces any character not allowed by [validateFileName] with a space, collapses runs of

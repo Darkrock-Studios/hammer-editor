@@ -5,7 +5,13 @@ import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectTheme
 import com.darkrockstudios.apps.hammer.base.http.projectdata.WordCountGoal
 import com.darkrockstudios.apps.hammer.base.http.storyideas.StoryIdea
+import com.darkrockstudios.apps.hammer.common.components.images.ImagePickRequests
+import com.darkrockstudios.apps.hammer.common.components.images.ImagePickTarget
+import com.darkrockstudios.apps.hammer.common.components.projecthome.CoverImage
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectSettingsComponent
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesService
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageDef
+import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeasRepository
@@ -24,11 +30,14 @@ import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectDictionaryUseCas
 import com.darkrockstudios.apps.hammer.common.util.AvailableLocalesProvider
 import com.darkrockstudios.apps.hammer.common.util.Locale
 import com.darkrockstudios.libs.platformspellchecker.PlatformSpellCheckerFactory
+import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import net.peanuuutz.tomlkt.Toml
@@ -37,7 +46,9 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.koin.dsl.module
 import utils.ComponentTest
+import utils.TestComponentContext
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Instant
@@ -49,6 +60,9 @@ class ProjectSettingsComponentTest : ComponentTest() {
 	private lateinit var toml: Toml
 	private lateinit var datasource: ProjectDataDatasource
 	private lateinit var ideasFlow: MutableStateFlow<List<StoryIdea>>
+	private lateinit var imagesService: ImagesService
+	private lateinit var pickRequests: ImagePickRequests
+	private val images = mutableMapOf<Int, ImageDef>()
 
 	@BeforeEach
 	override fun setup() {
@@ -59,6 +73,18 @@ class ProjectSettingsComponentTest : ComponentTest() {
 		toml = createTomlSerializer()
 
 		ideasFlow = MutableStateFlow(emptyList())
+
+		images.clear()
+		pickRequests = ImagePickRequests()
+		imagesService = mockk()
+		every { imagesService.imageChangedFlow } returns MutableSharedFlow()
+		coEvery { imagesService.ensureImagesLoaded() } answers { images.values.toList() }
+		every { imagesService.findImage(any()) } answers { images[firstArg()] }
+		every { imagesService.imagePath(any()) } answers {
+			val def = firstArg<ImageDef>()
+			HPath(path = coverPath(def), name = "${def.id}~${def.name}.png", isAbsolute = true)
+		}
+		every { imagesService.cacheVersion(any()) } answers { "h${firstArg<ImageDef>().id}" }
 		val ideasRepository = mockk<IdeasRepository>()
 		every { ideasRepository.ideasFlow } returns ideasFlow
 
@@ -88,16 +114,22 @@ class ProjectSettingsComponentTest : ComponentTest() {
 				scoped { ProjectDataRepository(datasource, projectDef) }
 				scoped { ProjectDictionaryUseCase(get()) }
 				scoped<SyncJournalDatasource> { mockk(relaxed = true) }
+				scoped { imagesService }
+				scoped { pickRequests }
 			}
 		})
 
 		datasource = ProjectDataDatasource(ffs, toml, projectDef)
 	}
 
-	private fun newComponent() = ProjectSettingsComponent(
-		componentContext = context,
+	private fun newComponent(componentContext: TestComponentContext = context) = ProjectSettingsComponent(
+		componentContext = componentContext,
 		projectDef = projectDef,
 	)
+
+	private fun coverPath(def: ImageDef) = "/images/${def.id}~${def.name}.png"
+
+	private fun cover(def: ImageDef) = CoverImage(def = def, path = coverPath(def), version = "h${def.id}")
 
 	private fun idea(vararg tags: String) = StoryIdea(
 		id = IdeaId.randomUUID(),
@@ -337,5 +369,93 @@ class ProjectSettingsComponentTest : ComponentTest() {
 		advanceUntilIdle()
 
 		assertEquals(listOf("ghost"), comp.suggestProjectTags("g"))
+	}
+
+	@Test
+	fun `Picking a cover asks the gallery and stores the picked image`() = runTest(mainTestDispatcher) {
+		images[4] = ImageDef(4, "Cover", "png")
+		val requested = mutableListOf<ImagePickTarget>()
+		backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { pickRequests.requests.collect { requested += it } }
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		comp.pickCoverImage()
+		advanceUntilIdle()
+		assertEquals(listOf<ImagePickTarget>(ImagePickTarget.ProjectCover), requested)
+		assertTrue(comp.projectInfoState.value.pendingCoverPick)
+
+		comp.pickCoverImage()
+		advanceUntilIdle()
+		assertEquals(1, requested.size, "a second pick while one is pending is ignored")
+
+		pickRequests.deliver(ImagePickTarget.ProjectCover, 4)
+		advanceUntilIdle()
+
+		assertFalse(comp.projectInfoState.value.pendingCoverPick)
+		assertEquals(4, datasource.load().data.coverImageId)
+		assertEquals(4, comp.projectInfoState.value.data.coverImageId)
+		assertEquals(cover(images.getValue(4)), comp.projectInfoState.value.coverImage)
+	}
+
+	@Test
+	fun `A cancelled or vanished pick leaves the cover alone`() = runTest(mainTestDispatcher) {
+		datasource.save(StoredProjectData(data = ProjectData(coverImageId = 2)))
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		comp.pickCoverImage()
+		advanceUntilIdle()
+		pickRequests.deliver(ImagePickTarget.ProjectCover, null)
+		advanceUntilIdle()
+		assertFalse(comp.projectInfoState.value.pendingCoverPick)
+
+		comp.pickCoverImage()
+		advanceUntilIdle()
+		pickRequests.deliver(ImagePickTarget.ProjectCover, 99)
+		advanceUntilIdle()
+
+		assertFalse(comp.projectInfoState.value.pendingCoverPick)
+		assertEquals(2, datasource.load().data.coverImageId)
+	}
+
+	@Test
+	fun `clearCoverImage removes the cover`() = runTest(mainTestDispatcher) {
+		images[4] = ImageDef(4, "Cover", "png")
+		datasource.save(StoredProjectData(data = ProjectData(coverImageId = 4)))
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		assertEquals(4, comp.projectInfoState.value.coverImage?.def?.id)
+
+		comp.clearCoverImage()
+		advanceUntilIdle()
+
+		assertNull(datasource.load().data.coverImageId)
+		assertNull(comp.projectInfoState.value.coverImage)
+	}
+
+	@Test
+	fun `A cover pick survives process death`() = runTest(mainTestDispatcher) {
+		images[4] = ImageDef(4, "Cover", "png")
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.pickCoverImage()
+		advanceUntilIdle()
+
+		val restoredContext = context.saveAndRecreate()
+		context.destroy()
+		val restored = newComponent(restoredContext)
+		restoredContext.resume()
+		advanceUntilIdle()
+		assertTrue(restored.projectInfoState.value.pendingCoverPick)
+
+		pickRequests.deliver(ImagePickTarget.ProjectCover, 4)
+		advanceUntilIdle()
+
+		assertFalse(restored.projectInfoState.value.pendingCoverPick)
+		assertEquals(4, datasource.load().data.coverImageId)
 	}
 }

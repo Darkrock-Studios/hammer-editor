@@ -2,30 +2,41 @@ package data.export
 
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectTheme
+import com.darkrockstudios.apps.hammer.common.data.export.ExportImage
 import com.darkrockstudios.apps.hammer.common.data.export.StoryChapter
 import com.darkrockstudios.apps.hammer.common.data.export.ExportStrings
 import com.darkrockstudios.apps.hammer.common.data.export.writeStoryAsDocx
 import com.darkrockstudios.apps.hammer.common.data.ExportFont
 import com.darkrockstudios.apps.hammer.common.data.ExportOptions
 import okio.Buffer
+import org.apache.poi.xwpf.usermodel.ParagraphAlignment
 import org.apache.poi.xwpf.usermodel.XWPFDocument
 import org.apache.poi.xwpf.usermodel.XWPFHyperlinkRun
 import org.apache.poi.xwpf.usermodel.XWPFParagraph
 import org.junit.jupiter.api.Test
+import org.w3c.dom.Document
+import org.w3c.dom.Element
 import java.io.ByteArrayInputStream
+import java.util.zip.ZipInputStream
+import javax.xml.parsers.DocumentBuilderFactory
+import kotlin.math.roundToLong
+import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class DocxStoryRendererTest {
 
-	private fun render(
+	private fun renderBytes(
 		chapters: List<StoryChapter>,
 		projectName: String = "Test Project",
 		projectData: ProjectData = ProjectData(authorName = "Test Author"),
 		options: ExportOptions = ExportOptions(),
-	): XWPFDocument {
+		imageNames: Map<Int, String> = emptyMap(),
+		images: Map<Int, ExportImage> = emptyMap(),
+	): ByteArray {
 		val buffer = Buffer()
 		val author = projectData.authorName?.takeIf { it.isNotBlank() }
 		writeStoryAsDocx(
@@ -35,9 +46,22 @@ class DocxStoryRendererTest {
 			chapters = chapters,
 			strings = ExportStrings(contentsTitle = "Contents", authorByline = author?.let { "by $it" }),
 			options = options,
+			imageNames = imageNames,
+			images = images,
 		)
-		return XWPFDocument(ByteArrayInputStream(buffer.readByteArray()))
+		return buffer.readByteArray()
 	}
+
+	private fun render(
+		chapters: List<StoryChapter>,
+		projectName: String = "Test Project",
+		projectData: ProjectData = ProjectData(authorName = "Test Author"),
+		options: ExportOptions = ExportOptions(),
+		imageNames: Map<Int, String> = emptyMap(),
+		images: Map<Int, ExportImage> = emptyMap(),
+	): XWPFDocument = XWPFDocument(
+		ByteArrayInputStream(renderBytes(chapters, projectName, projectData, options, imageNames, images)),
+	)
 
 	private fun XWPFDocument.paragraphTexts(): List<String> = paragraphs.map { it.text }
 
@@ -410,5 +434,366 @@ class DocxStoryRendererTest {
 		val second = texts.indexOf("Second passage.")
 		assertEquals(first + 2, second, "Expected one empty paragraph between the passages, got $texts")
 		assertEquals("", texts[first + 1])
+	}
+
+	@Test
+	fun `a project image is written as its current name, or not at all without one`() {
+		val doc = render(
+			listOf(StoryChapter("Alpha", "![image](hammer://image/3)\n\n![Old](hammer://image/9)")),
+			imageNames = mapOf(3 to "Cheshire Cat"),
+		)
+
+		assertEquals(listOf("Cheshire Cat"), doc.bodyParagraphs().map { it.text }.filter { it.isNotBlank() })
+	}
+
+	@Test
+	fun `an image with no file to embed is written exactly as a line of its name`() {
+		fun body(markdown: String) = render(
+			listOf(StoryChapter("Alpha", markdown)),
+			imageNames = mapOf(3 to "Cheshire Cat"),
+		).bodyParagraphs().map { it.ctp.xmlText() }
+
+		assertEquals(
+			body("Before.\n\nCheshire Cat\nAfter."),
+			body("Before.\n\n![image](hammer://image/3)\nAfter."),
+		)
+	}
+
+	/** The package's parts by name. */
+	private fun unzip(bytes: ByteArray): Map<String, ByteArray> {
+		val parts = linkedMapOf<String, ByteArray>()
+		ZipInputStream(ByteArrayInputStream(bytes)).use { zip ->
+			while (true) {
+				val entry = zip.nextEntry ?: break
+				parts[entry.name] = zip.readBytes()
+			}
+		}
+		return parts
+	}
+
+	private fun parseXml(bytes: ByteArray): Document =
+		DocumentBuilderFactory.newInstance().apply { isNamespaceAware = true }
+			.newDocumentBuilder()
+			.parse(ByteArrayInputStream(bytes))
+
+	private fun Document.elements(namespace: String, name: String): List<Element> =
+		getElementsByTagNameNS(namespace, name).let { nodes -> List(nodes.length) { nodes.item(it) as Element } }
+
+	private fun Element.child(namespace: String, name: String): Element =
+		getElementsByTagNameNS(namespace, name).item(0) as Element
+
+	private fun image(id: Int, name: String, extension: String, bytes: ByteArray): Pair<Int, ExportImage> =
+		id to ExportImage(id, name, extension, bytes)
+
+	/** The package of one chapter showing each of [ids] on a line of its own. */
+	private fun renderImages(ids: List<Int>, images: Map<Int, ExportImage>): Map<String, ByteArray> {
+		val markdown = ids.joinToString("\n\n", prefix = "Before.\n\n", postfix = "\n\nAfter.") {
+			"![image](hammer://image/$it)"
+		}
+		val names = images.mapValues { it.value.name }
+		return unzip(renderBytes(listOf(StoryChapter("Alpha", markdown)), imageNames = names, images = images))
+	}
+
+	private class Drawing(val cx: Long, val cy: Long, val embed: String, val docPrId: String, val name: String)
+
+	private fun drawings(parts: Map<String, ByteArray>): List<Drawing> =
+		parseXml(assertNotNull(parts["word/document.xml"])).elements(WP_NS, "inline").map { inline ->
+			val extent = inline.child(WP_NS, "extent")
+			val docPr = inline.child(WP_NS, "docPr")
+			Drawing(
+				cx = extent.getAttribute("cx").toLong(),
+				cy = extent.getAttribute("cy").toLong(),
+				embed = inline.child(A_NS, "blip").getAttributeNS(R_NS, "embed"),
+				docPrId = docPr.getAttribute("id"),
+				name = docPr.getAttribute("name"),
+			)
+		}
+
+	/** The relationships of document.xml, by id, in document order. */
+	private fun documentRels(parts: Map<String, ByteArray>): Map<String, Element> =
+		parseXml(assertNotNull(parts["word/_rels/document.xml.rels"]))
+			.elements(PACKAGE_RELS_NS, "Relationship")
+			.associateBy { it.getAttribute("Id") }
+
+	/** The text width and height of the document's page setup, in EMUs. */
+	private fun textArea(parts: Map<String, ByteArray>): Pair<Long, Long> {
+		val document = parseXml(assertNotNull(parts["word/document.xml"]))
+		val pgSz = document.elements(W_NS, "pgSz").single()
+		val pgMar = document.elements(W_NS, "pgMar").single()
+		fun Element.twips(name: String) = getAttributeNS(W_NS, name).toLong()
+		val width = pgSz.twips("w") - pgMar.twips("left") - pgMar.twips("right")
+		val height = pgSz.twips("h") - pgMar.twips("top") - pgMar.twips("bottom")
+		return width * EMU_PER_TWIP to height * EMU_PER_TWIP
+	}
+
+	private fun contentTypeDefaults(parts: Map<String, ByteArray>): Map<String, String> =
+		parseXml(assertNotNull(parts["[Content_Types].xml"]))
+			.elements(CONTENT_TYPES_NS, "Default")
+			.associate { it.getAttribute("Extension") to it.getAttribute("ContentType") }
+
+	@Test
+	fun `a png and a jpeg are each embedded at 70 percent of the text width`() {
+		val parts = renderImages(
+			listOf(3, 4),
+			mapOf(image(3, "Cat", "png", encoded("png")), image(4, "Dog", "jpg", encoded("jpg"))),
+		)
+
+		assertEquals(
+			listOf("word/media/image1.png", "word/media/image2.jpeg"),
+			parts.keys.filter { it.startsWith("word/media/") },
+		)
+		val (textWidth, _) = textArea(parts)
+		val width = (textWidth * 0.7).roundToLong()
+		val rels = documentRels(parts)
+		val drawings = drawings(parts)
+		assertEquals(listOf("Cat", "Dog"), drawings.map { it.name })
+		assertEquals(listOf("1", "2"), drawings.map { it.docPrId })
+		drawings.zip(listOf("media/image1.png", "media/image2.jpeg")).forEach { (drawing, target) ->
+			assertEquals(width, drawing.cx)
+			assertEquals((width * 0.5).roundToLong(), drawing.cy)
+			val rel = assertNotNull(rels[drawing.embed])
+			assertEquals(IMAGE_REL_TYPE, rel.getAttribute("Type"))
+			assertEquals(target, rel.getAttribute("Target"))
+		}
+	}
+
+	@Test
+	fun `an embedded image sits centred in place of its name`() {
+		val doc = render(
+			listOf(StoryChapter("Alpha", "Before.\n\n![image](hammer://image/3)\n\nAfter.")),
+			imageNames = mapOf(3 to "Cat"),
+			images = mapOf(image(3, "Cat", "png", encoded("png"))),
+		)
+
+		val body = doc.bodyParagraphs()
+		assertTrue(body.none { it.text == "Cat" }, "The name should not be written")
+		val picture = body.single { paragraph -> paragraph.runs.any { it.embeddedPictures.isNotEmpty() } }
+		assertEquals(ParagraphAlignment.CENTER, picture.alignment)
+		assertEquals(1, doc.allPictures.size)
+	}
+
+	@Test
+	fun `an embedded image is a paragraph gap from prose but not from a typed blank line`() {
+		fun spacing(markdown: String): Pair<Int?, Int?> {
+			val picture = render(
+				listOf(StoryChapter("Alpha", markdown)),
+				imageNames = mapOf(3 to "Cat"),
+				images = mapOf(image(3, "Cat", "png", encoded("png"))),
+			).bodyParagraphs().single { paragraph -> paragraph.runs.any { it.embeddedPictures.isNotEmpty() } }
+			val spacing = picture.ctp.pPr?.spacing
+			fun Any?.twips() = (this as? java.math.BigInteger)?.toInt()
+			return spacing?.before.twips() to spacing?.after.twips()
+		}
+
+		assertEquals(160 to 160, spacing("Before.\n![image](hammer://image/3)\nAfter."))
+		assertEquals(0 to 0, spacing("Before.\n\n![image](hammer://image/3)\n\nAfter."))
+	}
+
+	@Test
+	fun `a tall image is held to 60 percent of the text height`() {
+		val parts = renderImages(listOf(3), mapOf(image(3, "Tower", "png", encoded("png", width = 20, height = 80))))
+
+		val (_, textHeight) = textArea(parts)
+		val height = (textHeight * 0.6).roundToLong()
+		val drawing = drawings(parts).single()
+		assertEquals(height, drawing.cy)
+		assertEquals((height / 4.0).roundToLong(), drawing.cx)
+	}
+
+	@Test
+	fun `an embedded image is inline with no wrap distance and a locked aspect ratio`() {
+		val parts = renderImages(listOf(3), mapOf(image(3, "Cat", "png", encoded("png"))))
+		val inline = parseXml(assertNotNull(parts["word/document.xml"])).elements(WP_NS, "inline").single()
+
+		assertEquals(listOf("0", "0", "0", "0"), listOf("distT", "distB", "distL", "distR").map(inline::getAttribute))
+		val children = (0 until inline.childNodes.length).map { inline.childNodes.item(it) }.filterIsInstance<Element>()
+		assertEquals(listOf("extent", "docPr", "cNvGraphicFramePr", "graphic"), children.map { it.localName })
+		assertEquals("1", inline.child(A_NS, "graphicFrameLocks").getAttribute("noChangeAspect"))
+		assertEquals("1", inline.child(A_NS, "picLocks").getAttribute("noChangeAspect"))
+	}
+
+	@Test
+	fun `a webp is embedded as a png`() {
+		val parts = renderImages(listOf(3), mapOf(image(3, "Cat", "webp", webp())))
+
+		val png = assertNotNull(parts["word/media/image1.png"])
+		assertEquals(0x89.toByte(), png[0])
+		assertEquals("PNG", png.copyOfRange(1, 4).decodeToString())
+		assertTrue(parts.keys.none { it.endsWith(".webp") })
+		assertEquals(1, drawings(parts).size)
+	}
+
+	@Test
+	fun `an svg or an unreadable image is written as its name`() {
+		val svg = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 10"><rect width="20" height="10"/></svg>"""
+		val images = mapOf(
+			image(3, "Vector", "svg", svg.encodeToByteArray()),
+			image(4, "Broken", "png", "not an image".encodeToByteArray()),
+		)
+		val bytes = renderBytes(
+			listOf(StoryChapter("Alpha", "![image](hammer://image/3)\n\n![image](hammer://image/4)")),
+			imageNames = images.mapValues { it.value.name },
+			images = images,
+		)
+
+		val parts = unzip(bytes)
+		assertTrue(parts.keys.none { it.startsWith("word/media/") })
+		assertTrue(drawings(parts).isEmpty())
+		assertTrue(documentRels(parts).values.none { it.getAttribute("Type") == IMAGE_REL_TYPE })
+		val texts = XWPFDocument(ByteArrayInputStream(bytes)).bodyParagraphs().map { it.text }
+		assertEquals(listOf("Vector", "Broken"), texts.filter { it.isNotBlank() })
+	}
+
+	@Test
+	fun `an image shown twice is packaged once`() {
+		val parts = renderImages(listOf(3, 3), mapOf(image(3, "Cat", "png", encoded("png"))))
+
+		assertEquals(listOf("word/media/image1.png"), parts.keys.filter { it.startsWith("word/media/") })
+		val drawings = drawings(parts)
+		assertEquals(2, drawings.size)
+		assertEquals(1, drawings.map { it.embed }.distinct().size)
+		assertEquals(2, drawings.map { it.docPrId }.distinct().size)
+		assertEquals(1, documentRels(parts).values.count { it.getAttribute("Type") == IMAGE_REL_TYPE })
+	}
+
+	@Test
+	fun `content types declare only the image formats the package holds`() {
+		val both = contentTypeDefaults(
+			renderImages(
+				listOf(3, 4),
+				mapOf(image(3, "Cat", "png", encoded("png")), image(4, "Dog", "jpeg", encoded("jpg"))),
+			),
+		)
+		assertEquals("image/png", both["png"])
+		assertEquals("image/jpeg", both["jpeg"])
+
+		val none = contentTypeDefaults(renderImages(emptyList(), emptyMap()))
+		assertNull(none["png"])
+		assertNull(none["jpeg"])
+	}
+
+	@Test
+	fun `hyperlinks and images share one run of relationship ids`() {
+		val markdown = "[one](https://example.com/1)\n\n![image](hammer://image/3)\n\n[two](https://example.com/2)"
+		val bytes = renderBytes(
+			listOf(StoryChapter("Alpha", markdown)),
+			imageNames = mapOf(3 to "Cat"),
+			images = mapOf(image(3, "Cat", "png", encoded("png"))),
+		)
+
+		val rels = documentRels(unzip(bytes))
+		assertEquals(listOf("rId1", "rId2", "rId3", "rId4", "rId5"), rels.keys.toList())
+		assertEquals("https://example.com/1", rels.getValue("rId3").getAttribute("Target"))
+		assertEquals("media/image1.png", rels.getValue("rId4").getAttribute("Target"))
+		assertEquals("https://example.com/2", rels.getValue("rId5").getAttribute("Target"))
+
+		val doc = XWPFDocument(ByteArrayInputStream(bytes))
+		val links = doc.bodyParagraphs().flatMap { it.runs }.filterIsInstance<XWPFHyperlinkRun>()
+		assertEquals(listOf("https://example.com/1", "https://example.com/2"), links.map { it.getHyperlink(doc).url })
+		assertEquals(1, doc.allPictures.size)
+	}
+
+	@Test
+	fun `every xml part of a package with images parses`() {
+		val parts = renderImages(
+			listOf(3, 4, 5),
+			mapOf(
+				image(3, "Cat & <Dog>", "png", encoded("png")),
+				image(4, "Dog", "jpg", encoded("jpg")),
+				image(5, "Bird", "webp", webp()),
+			),
+		)
+
+		val xmlParts = parts.filterKeys { it.endsWith(".xml") || it.endsWith(".rels") }
+		assertEquals(8, xmlParts.size, "Expected every package part, got ${parts.keys}")
+		xmlParts.forEach { (name, bytes) -> assertNotNull(runCatching { parseXml(bytes) }.getOrNull(), name) }
+		assertEquals("Cat & <Dog>", drawings(parts).first().name)
+	}
+
+	/** The package of a one-chapter story showing [markdown] whose project cover is image 3. */
+	private fun renderCover(
+		images: Map<Int, ExportImage>,
+		coverImageId: Int? = 3,
+		markdown: String = "Body.",
+	): ByteArray = renderBytes(
+		listOf(StoryChapter("Alpha", markdown)),
+		projectData = ProjectData(authorName = "Test Author", coverImageId = coverImageId),
+		imageNames = images.mapValues { it.value.name },
+		images = images,
+	)
+
+	@Test
+	fun `a cover fills the text width of the first page before the title page`() {
+		val bytes = renderCover(mapOf(image(3, "Cover", "png", encoded("png", width = 40, height = 20))))
+
+		val parts = unzip(bytes)
+		val (textWidth, _) = textArea(parts)
+		val drawing = drawings(parts).single()
+		assertEquals(textWidth, drawing.cx)
+		assertEquals(textWidth / 2, drawing.cy)
+		assertEquals("Cover", drawing.name)
+
+		val doc = XWPFDocument(ByteArrayInputStream(bytes))
+		val cover = doc.paragraphs[0]
+		assertEquals(1, cover.runs.sumOf { it.embeddedPictures.size })
+		assertEquals(ParagraphAlignment.CENTER, cover.alignment)
+		assertEquals("", cover.text)
+		val title = doc.paragraphs[1]
+		assertEquals("Title", title.style)
+		assertEquals("Test Project", title.text)
+		assertTrue(title.isPageBreak, "The title page should start on a fresh page")
+	}
+
+	@Test
+	fun `a tall cover is held to the text height`() {
+		val parts = unzip(renderCover(mapOf(image(3, "Cover", "png", encoded("png", width = 20, height = 80)))))
+
+		val (_, textHeight) = textArea(parts)
+		val drawing = drawings(parts).single()
+		assertEquals(textHeight, drawing.cy)
+		assertEquals((textHeight / 4.0).roundToLong(), drawing.cx)
+	}
+
+	@Test
+	fun `a cover the story also shows is packaged once`() {
+		val parts = unzip(
+			renderCover(mapOf(image(3, "Cover", "png", encoded("png"))), markdown = "![image](hammer://image/3)"),
+		)
+
+		assertEquals(listOf("word/media/image1.png"), parts.keys.filter { it.startsWith("word/media/") })
+		val drawings = drawings(parts)
+		assertEquals(2, drawings.size)
+		assertEquals(1, drawings.map { it.embed }.distinct().size)
+		assertEquals(listOf("1", "2"), drawings.map { it.docPrId })
+	}
+
+	@Test
+	fun `a cover that is missing or not a raster leaves the document as it is without one`() {
+		val svg = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 10"><rect width="20" height="10"/></svg>"""
+		val without = unzip(renderCover(emptyMap(), coverImageId = null))
+
+		for (images in listOf(
+			emptyMap(),
+			mapOf(image(3, "Cover", "svg", svg.encodeToByteArray())),
+			mapOf(image(3, "Cover", "png", "not an image".encodeToByteArray())),
+		)) {
+			val parts = unzip(renderCover(images))
+
+			assertEquals(without.keys, parts.keys, images.toString())
+			without.forEach { (name, bytes) -> assertContentEquals(bytes, parts[name], "$name with $images") }
+		}
+	}
+
+	private companion object {
+		const val W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+		const val R_NS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+		const val WP_NS = "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"
+		const val A_NS = "http://schemas.openxmlformats.org/drawingml/2006/main"
+		const val PACKAGE_RELS_NS = "http://schemas.openxmlformats.org/package/2006/relationships"
+		const val CONTENT_TYPES_NS = "http://schemas.openxmlformats.org/package/2006/content-types"
+		const val IMAGE_REL_TYPE = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image"
+
+		/** 914400 EMUs per inch over 1440 twips per inch. */
+		const val EMU_PER_TWIP = 635L
 	}
 }

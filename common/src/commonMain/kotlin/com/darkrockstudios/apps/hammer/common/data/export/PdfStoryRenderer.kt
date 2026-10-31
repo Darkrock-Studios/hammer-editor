@@ -2,12 +2,15 @@ package com.darkrockstudios.apps.hammer.common.data.export
 
 import com.conamobile.pdfkmp.PdfDocument
 import com.conamobile.pdfkmp.defaultPdfDriverFactory
+import com.conamobile.pdfkmp.dsl.DocumentScope
 import com.conamobile.pdfkmp.geometry.Padding
 import com.conamobile.pdfkmp.geometry.PageSize
 import com.conamobile.pdfkmp.layout.PageBreakStrategy
 import com.conamobile.pdfkmp.metadata.PdfMetadata
 import com.conamobile.pdfkmp.pdf
+import com.conamobile.pdfkmp.render.PdfDriverFactory
 import com.conamobile.pdfkmp.style.PdfColor
+import com.conamobile.pdfkmp.unit.Dp
 import com.conamobile.pdfkmp.unit.dp
 import com.conamobile.pdfkmp.unit.sp
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
@@ -20,11 +23,13 @@ internal val STORY_PAGE_SIZE = PageSize.A4
 internal val STORY_PAGE_PADDING = Padding.symmetric(horizontal = 56.dp, vertical = 64.dp)
 
 /**
- * Renders the story as a PDF mirroring the EPUB layout: a title page, a clickable table of contents,
- * then one auto-paginating section per chapter. Chapter bodies are rendered from markdown with book
- * typography (first-line paragraph indents) via [proseMarkdown]. Like the EPUB stylesheet, the
- * project theme's primary color accents the title page, contents, chapter headings, and links;
- * secondary accents h2 headings within chapters.
+ * Renders the story as a PDF mirroring the EPUB layout: a cover page when [images] holds a project
+ * cover pdfkmp can draw, a title page, a clickable table of contents, then one auto-paginating
+ * section per chapter. Chapter bodies are rendered from markdown with book typography (first-line
+ * paragraph indents) via [proseMarkdown]. Like the EPUB stylesheet, the project theme's primary
+ * color accents the title page, contents, chapter headings, and links; secondary accents h2
+ * headings within chapters. A project image on a line of its own is drawn from
+ * [images]; one missing there, or in a format it cannot draw, is written as its name.
  */
 fun writeStoryAsPdf(
 	sink: BufferedSink,
@@ -33,8 +38,10 @@ fun writeStoryAsPdf(
 	chapters: List<StoryChapter>,
 	strings: ExportStrings,
 	options: ExportOptions = ExportOptions(),
+	imageNames: Map<Int, String> = emptyMap(),
+	images: Map<Int, ExportImage> = emptyMap(),
 ) {
-	sink.write(buildStoryPdf(projectName, projectData, chapters, strings, options).toByteArray())
+	sink.write(buildStoryPdf(projectName, projectData, chapters, strings, options, imageNames, images).toByteArray())
 }
 
 internal fun buildStoryPdf(
@@ -43,6 +50,9 @@ internal fun buildStoryPdf(
 	chapters: List<StoryChapter>,
 	strings: ExportStrings,
 	options: ExportOptions = ExportOptions(),
+	imageNames: Map<Int, String> = emptyMap(),
+	images: Map<Int, ExportImage> = emptyMap(),
+	factory: PdfDriverFactory = defaultPdfDriverFactory(),
 ): PdfDocument {
 	val authorName = projectData.authorName?.takeIf { it.isNotBlank() }
 	val effective = chapters.ifEmpty { listOf(StoryChapter(projectName, "")) }
@@ -51,16 +61,32 @@ internal fun buildStoryPdf(
 	val proseColors = ProseColors(primary = primary, secondary = secondary)
 
 	val contentWidth = STORY_PAGE_SIZE.width.value - STORY_PAGE_PADDING.left.value - STORY_PAGE_PADDING.right.value
-	val measuringDriver = defaultPdfDriverFactory().create(PdfMetadata(), emptyList())
+	// Decoded once per image, however often the story shows it.
+	val pictures = mutableMapOf<Int, ProsePicture?>()
+	val picture = { imageId: Int ->
+		if (imageId !in pictures) pictures[imageId] = images[imageId]?.let(::prosePicture)
+		pictures[imageId]
+	}
+	val cover = exportCover(projectData, images) { image -> picture(image.id)?.let { image.name to it } }
+	val measuringDriver = factory.create(PdfMetadata(), emptyList())
 	val prose = try {
 		effective.map {
-			prepareProse(it.markdown, proseColors, measuringDriver.fontMetrics, contentWidth, options.keepBlankLines)
+			prepareProse(
+				it.markdown,
+				proseColors,
+				measuringDriver.fontMetrics,
+				contentWidth,
+				options.keepBlankLines,
+				imageNames::get,
+				picture,
+				maxImageHeight = STORY_PAGE_SIZE.height.value * MAX_IMAGE_HEIGHT_FRACTION,
+			)
 		}
 	} finally {
 		measuringDriver.close()
 	}
 
-	return pdf {
+	return pdf(factory) {
 		// Bottom/side margins so text doesn't run to the page edge; Slice lets long bodies flow
 		// onto new pages at line boundaries instead of being clipped at the bottom.
 		defaultPagePadding = STORY_PAGE_PADDING
@@ -70,6 +96,8 @@ internal fun buildStoryPdf(
 			title = projectName
 			authorName?.let { author = it }
 		}
+
+		cover?.let { (name, coverPicture) -> coverPage(coverPicture, name) }
 
 		// Title page — accent rule under the title mirrors the EPUB's title-page hr.
 		page(STORY_PAGE_SIZE) {
@@ -124,6 +152,26 @@ internal fun buildStoryPdf(
 					proseMarkdown(prose[index], proseColors)
 				}
 			}
+		}
+	}
+}
+
+/** [cover] as large as it fits on the page, edge to edge, centred both ways. */
+private fun DocumentScope.coverPage(cover: ProsePicture, name: String) {
+	val pageWidth = STORY_PAGE_SIZE.width.value
+	val pageHeight = STORY_PAGE_SIZE.height.value
+	var width = pageWidth
+	var height = width * cover.aspectRatio
+	if (height > pageHeight) {
+		height = pageHeight
+		width = height / cover.aspectRatio
+	}
+	page(STORY_PAGE_SIZE) {
+		padding = Padding.Zero
+		// Rounding can leave a full-height cover a hair over the page; this keeps it from spilling a blank page.
+		pageBreakStrategy = PageBreakStrategy.MoveToNextPage
+		column(padding = Padding(left = Dp((pageWidth - width) / 2), top = Dp((pageHeight - height) / 2))) {
+			picture(cover, width, height, altText = name)
 		}
 	}
 }

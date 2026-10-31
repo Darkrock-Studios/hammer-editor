@@ -24,8 +24,6 @@
 	<string name="encyclopedia_create_entry_image_browse_button">Parcourir les fichiers</string>
 	<string name="encyclopedia_create_entry_image_attached">1 pièce jointe</string>
 	<string name="encyclopedia_create_entry_image_replace">Remplacer</string>
-	<string name="encyclopedia_create_entry_image_too_large">L'image est trop volumineuse. La taille maximale est de %1$d Mo.</string>
-	<string name="encyclopedia_create_entry_image_load_failed">Impossible de lire l'image sélectionnée.</string>
 	<string name="encyclopedia_create_entry_create_button">Créer une entrée</string>
 	<string name="encyclopedia_create_entry_cancel_button">Annuler</string>
 	<string name="encyclopedia_create_entry_toast_success">Entrée créée</string>
@@ -53,8 +51,6 @@
 	<string name="encyclopedia_entry_delete_title">Supprimer l'entrée ?</string>
 	<string name="encyclopedia_entry_delete_message">Cette action est irréversible !</string>
 	<string name="encyclopedia_entry_delete_toast">Entrée supprimée</string>
-	<string name="encyclopedia_entry_delete_image_title">Supprimer l'image ?</string>
-	<string name="encyclopedia_entry_delete_image_message">Cette action est irréversible !</string>
 	<string name="encyclopedia_entry_name_hint">Nom</string>
 	<string name="encyclopedia_entry_close_button">Fermer l'entrée</string>
 	<string name="encyclopedia_entry_menu_group">Entrée</string>
@@ -73,9 +69,7 @@
 	<string name="encyclopedia_entry_tags_label">Étiquettes</string>
 	<string name="encyclopedia_entry_add_tag_chip">étiquette</string>
 	<string name="encyclopedia_entry_add_alias_chip">alias</string>
-	<string name="encyclopedia_entry_figure_caption">Fig. I · Entrée</string>
 	<string name="encyclopedia_entry_figure_label">Fig. I</string>
-	<string name="encyclopedia_entry_figure_add">+ Ajouter</string>
 	<string name="encyclopedia_entry_folio_format">Fol. %1$s · Ent-%2$s</string>
 	<string name="encyclopedia_entry_scene_index_format">Sc.%1$s</string>
 	<string name="encyclopedia_entry_colophon_label">Entrée · Fiche de catalogue</string>

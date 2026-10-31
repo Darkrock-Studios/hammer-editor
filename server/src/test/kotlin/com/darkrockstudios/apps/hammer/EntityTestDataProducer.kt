@@ -52,7 +52,6 @@ class EntityTestDataProducer {
 		entryType = type,
 		text = "Entry $id content",
 		tags = setOf("tag$id"),
-		image = null
 	)
 
 	private fun createTimeline(id: Int) = ApiProjectEntity.TimelineEventEntity(

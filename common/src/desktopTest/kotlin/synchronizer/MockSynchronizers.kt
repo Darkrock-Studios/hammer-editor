@@ -21,6 +21,9 @@ class MockSynchronizers(relaxed: Boolean) {
 	@MockK
 	lateinit var sceneDraftSynchronizer: ClientSceneDraftSynchronizer
 
+	@MockK
+	lateinit var imageSynchronizer: ClientImageSynchronizer
+
 	init {
 		MockKAnnotations.init(this, relaxed = relaxed)
 	}
@@ -31,6 +34,7 @@ class MockSynchronizers(relaxed: Boolean) {
 		timelineSynchronizer,
 		encyclopediaSynchronizer,
 		sceneDraftSynchronizer,
+		imageSynchronizer,
 	)
 }
 
@@ -40,4 +44,5 @@ fun ScopeDSL.addSynchronizers(mockSynchronizers: MockSynchronizers) {
 	scoped { mockSynchronizers.timelineSynchronizer }
 	scoped { mockSynchronizers.encyclopediaSynchronizer }
 	scoped { mockSynchronizers.sceneDraftSynchronizer }
+	scoped { mockSynchronizers.imageSynchronizer }
 }

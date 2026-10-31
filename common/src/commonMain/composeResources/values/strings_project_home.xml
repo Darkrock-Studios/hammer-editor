@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <resources>
 	<string name="project_home_stat_created">Created: %1$s</string>
+	<string name="project_home_cover_description">Book cover</string>
 	<string name="project_home_loading_stats">Calculating statistics...</string>
 	<string name="project_home_refresh_stats_button">Refresh statistics</string>
 	<string name="project_home_stats_dirty_indicator">Statistics may be out of date</string>
@@ -143,4 +144,5 @@
 	<string name="project_home_action_settings_button">Settings</string>
 
 	<string name="project_home_menu_button">Project menu</string>
+	<string name="project_home_menu_images">Images</string>
 </resources>

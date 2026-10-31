@@ -15,6 +15,8 @@ data class ProjectData(
 	val encyclopediaDictionary: Boolean = true,
 	/** User-added spell-check words. Unlike [tags], a conflict merges both sides by union. */
 	val dictionaryWords: Set<String> = emptySet(),
+	/** Image entity id of the book cover; null when unset. */
+	val coverImageId: Int? = null,
 )
 
 /** Picked as a unit during conflict resolution — one device's primary paired with another's secondary is undesigned. */

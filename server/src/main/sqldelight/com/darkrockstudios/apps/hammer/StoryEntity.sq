@@ -28,6 +28,12 @@ FROM story_entity
 WHERE user_id = :userId AND project_id = :projectId AND id = :id
 LIMIT 1;
 
+getEntityHashOfType:
+SELECT hash
+FROM story_entity
+WHERE user_id = :userId AND project_id = :projectId AND id = :id AND type = :type
+LIMIT 1;
+
 getEntityHashes:
 SELECT id, hash
 FROM story_entity

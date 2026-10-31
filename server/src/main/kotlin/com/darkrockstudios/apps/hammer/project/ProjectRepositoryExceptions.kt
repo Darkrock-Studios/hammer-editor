@@ -23,6 +23,12 @@ class EntityTooLargeException(
 	val maxSize: Int,
 ) : Exception("Entity $id too large: $size bytes (max $maxSize)")
 
+/** The entity's content breaks a rule for its type, such as an image that is not one. */
+class EntityValidationException(
+	val id: Int,
+	val reason: String,
+) : Exception("Entity $id rejected: $reason")
+
 class ProjectNotFound(val projectId: ProjectId) :
 	Exception("Project $projectId not found on server") {
 	constructor(projectDef: ProjectDefinition) : this(projectDef.uuid)

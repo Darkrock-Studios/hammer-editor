@@ -44,6 +44,17 @@
 	margin-bottom: 2rem;
 }
 
+.story-cover {
+	display: block;
+	max-width: 100%;
+	max-height: 240px;
+	width: auto;
+	height: auto;
+	margin-bottom: 1rem;
+	border-radius: 0.5rem;
+	box-shadow: var(--shadow-lg);
+}
+
 .back-link {
 	font-family: 'Kingthings Typewriter', monospace;
 	font-size: 1rem;
@@ -285,6 +296,17 @@
 	color: var(--accent);
 	font-size: 0.75rem;
 	line-height: 1;
+}
+
+/* ----------------------------------------
+   Images
+   ---------------------------------------- */
+
+.story-content img {
+	display: block;
+	max-width: 100%;
+	height: auto;
+	margin: 1.5rem auto;
 }
 
 /* ----------------------------------------

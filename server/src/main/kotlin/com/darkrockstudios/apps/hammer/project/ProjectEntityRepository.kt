@@ -7,6 +7,7 @@ import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECTS_SYNC_MANAGER
 import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECT_SYNC_MANAGER
 import com.darkrockstudios.apps.hammer.project.synchronizers.ServerEncyclopediaSynchronizer
 import com.darkrockstudios.apps.hammer.project.synchronizers.ServerNoteSynchronizer
+import com.darkrockstudios.apps.hammer.project.synchronizers.ServerImageSynchronizer
 import com.darkrockstudios.apps.hammer.project.synchronizers.ServerSceneDraftSynchronizer
 import com.darkrockstudios.apps.hammer.project.synchronizers.ServerSceneSynchronizer
 import com.darkrockstudios.apps.hammer.project.synchronizers.ServerTimelineSynchronizer
@@ -31,6 +32,7 @@ class ProjectEntityRepository(
 	private val timelineEventSynchronizer: ServerTimelineSynchronizer by inject()
 	private val encyclopediaSynchronizer: ServerEncyclopediaSynchronizer by inject()
 	private val sceneDraftSynchronizer: ServerSceneDraftSynchronizer by inject()
+	private val imageSynchronizer: ServerImageSynchronizer by inject()
 
 	private val projectsSessions: SyncSessionManager<Long, ProjectsSynchronizationSession> by KoinJavaComponent.inject(
 		clazz = SyncSessionManager::class.java,
@@ -227,6 +229,14 @@ class ProjectEntityRepository(
 				originalHash,
 				force
 			)
+
+			is ApiProjectEntity.ImageEntity -> imageSynchronizer.saveEntity(
+				userId,
+				projectDef,
+				entity,
+				originalHash,
+				force
+			)
 		}
 		return result
 	}
@@ -269,6 +279,12 @@ class ProjectEntityRepository(
 			)
 
 			ApiProjectEntity.Type.SCENE_DRAFT -> sceneDraftSynchronizer.deleteEntity(
+				userId,
+				projectDef,
+				entityId
+			)
+
+			ApiProjectEntity.Type.IMAGE -> imageSynchronizer.deleteEntity(
 				userId,
 				projectDef,
 				entityId
@@ -323,6 +339,12 @@ class ProjectEntityRepository(
 				projectDef,
 				entityId
 			)
+
+			ApiProjectEntity.Type.IMAGE -> imageSynchronizer.loadEntity(
+				userId,
+				projectDef,
+				entityId
+			)
 		}
 	}
 
@@ -344,6 +366,8 @@ class ProjectEntityRepository(
 	): List<Int> {
 		val updateSequence = mutableSetOf<Int>()
 		if (lite.not()) {
+			// Images first: every other type can reference them.
+			updateSequence += imageSynchronizer.getUpdateSequence(userId, projectDef, clientState)
 			updateSequence += sceneSynchronizer.getUpdateSequence(userId, projectDef, clientState)
 			updateSequence += sceneDraftSynchronizer.getUpdateSequence(
 				userId,

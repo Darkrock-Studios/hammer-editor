@@ -72,10 +72,16 @@ class RenameEntryUseCaseTest : BaseIntegrationTest() {
 		encyclopediaRepository = EncyclopediaRepository(
 			projectDef = projectDef,
 			idAllocator = idAllocator,
-			datasource = EncyclopediaDatasource(projectDef, toml, ffs, mockk(relaxed = true)),
+			datasource = EncyclopediaDatasource(projectDef, toml, ffs),
 			syncJournal = syncJournal,
 		)
-		encyclopediaService = EncyclopediaService(encyclopediaRepository, statisticsRepository, referenceIndexRepository)
+		encyclopediaService = EncyclopediaService(
+			encyclopediaRepository,
+			statisticsRepository,
+			referenceIndexRepository,
+			imagesRepository = mockk(relaxed = true),
+			externalFileIo = mockk(relaxed = true),
+		)
 		notesRepository = NotesRepository(projectDef, idAllocator, syncJournal, NotesDatasource(projectDef, ffs, toml))
 		timeLineRepository = TimeLineRepository(projectDef, idAllocator, TimeLineDatasource(ffs, toml)).initialize()
 		drafts = SceneDraftRepository(

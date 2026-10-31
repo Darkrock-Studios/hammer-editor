@@ -53,7 +53,6 @@ class DuplicateIdsComponent(
 		_state.update { old ->
 			val current = old.current ?: return@update old
 			val keep = when {
-				!current.canKeepSeveral -> setOf(path)
 				path in old.keep -> old.keep - path
 				else -> old.keep + path
 			}

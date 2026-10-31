@@ -79,7 +79,6 @@
 	<string name="sync_conflict_encyclopedia_label_image">Image :</string>
 	<string name="sync_conflict_encyclopedia_label_content">Contenu :</string>
 	<string name="sync_conflict_encyclopedia_label_tags">Tags :</string>
-	<string name="sync_conflict_encyclopedia_has_image">Avec image</string>
 	<string name="sync_conflict_title_scene_field_name">Nom</string>
 	<string name="sync_conflict_title_scene_field_content">Contenu de la scène</string>
 	<string name="sync_conflict_title_scene_field_outline">Plan</string>
@@ -146,7 +145,6 @@
 	<string name="sync_log_data_save_failed">Données de synchronisation non enregistrées en raison d'erreurs</string>
 	<string name="sync_log_failed">Échec de la fin de la synchronisation</string>
 	<string name="sync_draft_rejected_invalid_name">Brouillon %1$d du serveur rejeté : nom de brouillon dangereux</string>
-	<string name="sync_encyclopedia_image_rejected_invalid_extension">Image de l'entrée d'encyclopédie %1$d du serveur ignorée : extension de fichier dangereuse</string>
 	<string name="sync_encyclopedia_deleted">Entrée d'encyclopédie ID %1$d supprimée du client</string>
 	<string name="sync_note_deleted">Note ID %1$d supprimée du client</string>
 	<string name="sync_draft_deleted">Brouillon %1$d supprimé du client</string>

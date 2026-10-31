@@ -25,13 +25,12 @@ class ProjectFileRationalizer(
 	private val fileSystem: FileSystem,
 	private val toml: Toml,
 ) {
-	// Entries before images: resolving an entry can move or delete images.
 	private val handlers: Map<DuplicateIdKind, DuplicateIdHandler> = listOf(
 		EntryDuplicateIdHandler(projectDef, fileSystem, toml),
-		EntryImageDuplicateIdHandler(projectDef, fileSystem),
 		SceneDuplicateIdHandler(projectDef, fileSystem),
 		DraftDuplicateIdHandler(projectDef, fileSystem),
 		NoteDuplicateIdHandler(projectDef, fileSystem, toml),
+		ImageDuplicateIdHandler(projectDef, fileSystem),
 	).associateBy { it.kind }
 
 	fun findDuplicates(): List<DuplicateIdSet> = handlers.values.flatMap { it.findDuplicates() }
@@ -99,7 +98,6 @@ class ProjectFileRationalizer(
 		val keptCopies = set.copies.filter { it.path in keep }
 		require(keptCopies.isNotEmpty()) { "At least one copy must be kept" }
 		require(keptCopies.size == keep.size) { "Kept paths must be copies in the set" }
-		require(set.canKeepSeveral || keptCopies.size == 1) { "Only one ${set.kind} copy can be kept" }
 
 		if (set !in handlers.getValue(set.kind).findDuplicates()) throw StaleDuplicateIdSet(set)
 

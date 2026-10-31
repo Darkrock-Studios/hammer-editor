@@ -10,6 +10,9 @@ import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.ComponentToaster
 import com.darkrockstudios.apps.hammer.common.components.ComponentToasterImpl
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
+import com.darkrockstudios.apps.hammer.common.components.images.ImagePickSession
+import com.darkrockstudios.apps.hammer.common.components.images.ImagePickTarget
+import com.darkrockstudios.apps.hammer.common.components.images.findPickedImage
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.scenemetadata.SceneMetadataPanel
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.scenemetadata.SceneMetadataPanelComponent
 import com.darkrockstudios.apps.hammer.common.data.*
@@ -19,6 +22,7 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings.Companion.DEFAULT_EDITOR_WIDTH
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings.Companion.DEFAULT_FONT_SIZE
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesService
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.references.AutoConfirmReferencesUseCase
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
@@ -28,6 +32,7 @@ import io.github.aakira.napier.Napier
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.builtins.serializer
 import org.koin.core.component.inject
 import kotlin.time.Clock
 
@@ -53,6 +58,14 @@ class SceneEditorComponent(
 
 	private val spellCheckService: ProjectSpellCheckService by projectInject()
 	private val projectDictionary: ProjectDictionaryUseCase by projectInject()
+	private val imagesService: ImagesService by projectInject()
+	private val imagePick = ImagePickSession(
+		requests = projectInject(),
+		stateKeeper = stateKeeper,
+		key = IMAGE_PICK_KEY,
+		scope = scope,
+		mainDispatcher = dispatcherMain,
+	)
 
 	private val _state = MutableValue(
 		SceneEditor.State(
@@ -81,6 +94,7 @@ class SceneEditorComponent(
 
 		loadSceneContent()
 		subscribeToBufferUpdates()
+		restoreImagePick()
 		watchSettings()
 		sceneEditor.subscribeToSceneUpdates(scope, ::onSceneTreeUpdate)
 
@@ -516,6 +530,33 @@ class SceneEditorComponent(
 		scope.launch { projectDictionary.addWord(word) }
 	}
 
+	private fun imagePickTarget() = ImagePickTarget.EditorInsert(sceneDef.id)
+
+	private fun restoreImagePick() {
+		val pendingImageId = stateKeeper.consume(PENDING_IMAGE_KEY, Int.serializer())
+		stateKeeper.register(PENDING_IMAGE_KEY, Int.serializer()) { state.value.pendingImageInsert?.id }
+		pendingImageId?.let { id ->
+			scope.launch {
+				val image = findPickedImage(id, imagesService)
+				withContext(dispatcherMain) { _state.update { it.copy(pendingImageInsert = image) } }
+			}
+		}
+		imagePick.restore(imagePickTarget(), ::offerImageForInsert)
+	}
+
+	override fun pickImageForInsert() {
+		imagePick.start(imagePickTarget(), ::offerImageForInsert)
+	}
+
+	private suspend fun offerImageForInsert(imageId: Int) {
+		val image = findPickedImage(imageId, imagesService) ?: return
+		withContext(dispatcherMain) { _state.update { it.copy(pendingImageInsert = image) } }
+	}
+
+	override fun consumePendingImageInsert() {
+		_state.update { it.copy(pendingImageInsert = null) }
+	}
+
 	override fun decreaseTextSize() {
 		scope.launch {
 			val size = decreaseEditorTextSize(state.value.textSize)
@@ -552,5 +593,7 @@ class SceneEditorComponent(
 
 	companion object {
 		const val VIEW_DRAFTS_MENU_ITEM_ID = "scene-editor-view-drafts"
+		private const val IMAGE_PICK_KEY = "scene_editor_image_pick"
+		private const val PENDING_IMAGE_KEY = "scene_editor_pending_image"
 	}
 }

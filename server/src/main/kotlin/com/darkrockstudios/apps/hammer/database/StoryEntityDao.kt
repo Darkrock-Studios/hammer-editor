@@ -192,6 +192,12 @@ class StoryEntityDao(
 				.executeAsOneOrNull()
 		}
 
+	suspend fun getEntityHash(userId: Long, projectId: Long, id: Long, type: ApiProjectEntity.Type): String? =
+		withContext(ioDispatcher) {
+			queries.getEntityHashOfType(userId = userId, projectId = projectId, id = id, type = type.toStringId())
+				.executeAsOneOrNull()
+		}
+
 	suspend fun getEntityHashes(userId: Long, projectId: Long): List<EntityHash> =
 		withContext(ioDispatcher) {
 			queries.getEntityHashes(userId = userId, projectId = projectId).executeAsList().map {

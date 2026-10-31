@@ -20,10 +20,13 @@ import com.darkrockstudios.libs.rtfparserkmp.writer.RtfInline
 import com.darkrockstudios.libs.rtfparserkmp.writer.RtfPageBreak
 import com.darkrockstudios.libs.rtfparserkmp.writer.RtfParagraph
 import com.darkrockstudios.libs.rtfparserkmp.writer.RtfParagraphStyle
+import com.darkrockstudios.libs.rtfparserkmp.writer.RtfPicture
+import com.darkrockstudios.libs.rtfparserkmp.writer.RtfPictureFormat
 import com.darkrockstudios.libs.rtfparserkmp.writer.RtfSpanStyle
 import com.darkrockstudios.libs.rtfparserkmp.writer.RtfTab
 import com.darkrockstudios.libs.rtfparserkmp.writer.RtfTextRun
 import okio.BufferedSink
+import kotlin.math.roundToInt
 
 private fun ExportFont.toRtfFont(): RtfFont = RtfFont(
 	faceName,
@@ -51,11 +54,19 @@ private const val SECTION_SPACE = 240
 private const val QUOTE_INDENT = 720
 private const val LIST_INDENT_PER_LEVEL = 360
 
+// The document sets no page size or margins, so readers take the RTF defaults: US Letter, 12240 by
+// 15840 twips, with 1800 twip side margins and 1440 top and bottom, leaving 8640 by 12960 of text.
+private const val TEXT_WIDTH = 8640
+private const val TEXT_HEIGHT = 12960
+private val IMAGE_WIDTH = (TEXT_WIDTH * IMAGE_WIDTH_FRACTION).roundToInt()
+private val MAX_IMAGE_HEIGHT = (TEXT_HEIGHT * MAX_IMAGE_HEIGHT_FRACTION).roundToInt()
+
 /**
- * Renders the story as a Rich Text Format (.rtf) document mirroring the EPUB/DOCX layout: a title
- * page, a Contents page of links to chapter bookmarks, then one chapter per top-level node starting
- * on a fresh page. Chapter bodies are rendered from markdown into formatted RTF runs. Heading and
- * link colors pick up the project theme's accent colors.
+ * Renders the story as a Rich Text Format (.rtf) document mirroring the EPUB/DOCX layout: a cover
+ * page when [images] holds a project cover [exportRaster] can read, a title page, a Contents page of
+ * links to chapter bookmarks, then one chapter per top-level node starting on a fresh page. Chapter
+ * bodies are rendered from markdown into formatted RTF runs. Heading and link colors pick up the
+ * project theme's accent colors.
  *
  * The document is assembled as a strongly-typed [RtfDocument] and serialized by [RtfDocumentWriter],
  * which keeps the output 7-bit ASCII (non-ASCII as `\uN` escapes) and portable across readers.
@@ -67,30 +78,56 @@ fun writeStoryAsRtf(
 	chapters: List<StoryChapter>,
 	strings: ExportStrings,
 	options: ExportOptions = ExportOptions(),
+	imageNames: Map<Int, String> = emptyMap(),
+	images: Map<Int, ExportImage> = emptyMap(),
 ) {
+	val document = buildStoryRtf(projectName, projectData, chapters, strings, options, imageNames, images)
+	sink.writeUtf8(RtfDocumentWriter().write(document))
+}
+
+internal fun buildStoryRtf(
+	projectName: String,
+	projectData: ProjectData,
+	chapters: List<StoryChapter>,
+	strings: ExportStrings,
+	options: ExportOptions = ExportOptions(),
+	imageNames: Map<Int, String> = emptyMap(),
+	images: Map<Int, ExportImage> = emptyMap(),
+): RtfDocument {
 	val authorName = projectData.authorName?.takeIf { it.isNotBlank() }
 	val effective = chapters.ifEmpty { listOf(StoryChapter(projectName, "")) }
 	val primary = themeColor(projectData.theme?.primary)
 	val secondary = themeColor(projectData.theme?.secondary)
 
+	val picture = decodedOnce(images)
+
 	val blocks = buildList {
-		addAll(titlePage(projectName, strings.authorByline, primary))
+		val cover = exportCover(projectData, images) { picture(it.id) }
+		cover?.let { add(coverPicture(it)) }
+		// The title breaks the page itself: Word lays a bare \page after the cover out on the cover's
+		// page, which can push the title past a blank page.
+		addAll(titlePage(projectName, strings.authorByline, primary, newPage = cover != null))
 		addAll(contentsPage(effective, strings.contentsTitle, primary, options.numberChapters))
-		effective.forEachIndexed { index, chapter -> addAll(chapterBlocks(index, chapter, primary, secondary, options)) }
+		effective.forEachIndexed { index, chapter ->
+			addAll(chapterBlocks(index, chapter, primary, secondary, options, imageNames, picture))
+		}
 	}
 
-	val document = RtfDocument(
+	return RtfDocument(
 		blocks = blocks,
 		defaultFont = options.font.toRtfFont(),
 		defaultFontSizeHalfPoints = BODY_HALF_POINTS,
 		info = RtfInfo(title = projectName, author = authorName),
 		generator = "Hammer ${BuildMetadata.APP_VERSION}",
 	)
-
-	sink.writeUtf8(RtfDocumentWriter().write(document))
 }
 
-private fun titlePage(projectName: String, authorByline: String?, primary: RtfColor?): List<RtfBlock> = buildList {
+private fun titlePage(
+	projectName: String,
+	authorByline: String?,
+	primary: RtfColor?,
+	newPage: Boolean,
+): List<RtfBlock> = buildList {
 	add(
 		RtfParagraph(
 			content = listOf(
@@ -103,6 +140,7 @@ private fun titlePage(projectName: String, authorByline: String?, primary: RtfCo
 				alignment = RtfAlignment.Center,
 				spaceBeforeTwips = TITLE_SPACE_BEFORE,
 				spaceAfterTwips = SECTION_SPACE,
+				pageBreakBefore = newPage,
 			),
 		),
 	)
@@ -158,6 +196,8 @@ private fun chapterBlocks(
 	primary: RtfColor?,
 	secondary: RtfColor?,
 	options: ExportOptions,
+	imageNames: Map<Int, String>,
+	picture: (Int) -> ExportRaster?,
 ): List<RtfBlock> = buildList {
 	add(RtfPageBreak)
 	add(
@@ -181,7 +221,7 @@ private fun chapterBlocks(
 		),
 	)
 	if (chapter.markdown.isNotBlank()) {
-		addAll(renderMarkdownRtf(chapter.markdown, primary, secondary, options.keepBlankLines))
+		addAll(renderMarkdownRtf(chapter.markdown, primary, secondary, options.keepBlankLines, imageNames, picture))
 	}
 }
 
@@ -196,16 +236,19 @@ private fun themeColor(argb: String?): RtfColor? {
  * Renders a chapter's markdown into [RtfBlock]s by consuming the shared [parseProseMarkdown] model.
  * Block kinds map onto paragraph properties; inline spans become styled [RtfTextRun]s, with
  * consecutive same-link spans grouped into a single [RtfHyperlink]. Hard line breaks ride along as
- * `\n` in run text — the rtf-writer escaper turns those into `\line`.
+ * `\n` in run text: the rtf-writer escaper turns those into `\line`. An image on a line of its
+ * own is embedded as an [RtfPicture] when [picture] has one for it, else written as its name.
  */
 private fun renderMarkdownRtf(
 	markdown: String,
 	primary: RtfColor?,
 	secondary: RtfColor?,
 	keepBlankLines: Boolean,
+	imageNames: Map<Int, String>,
+	picture: (Int) -> ExportRaster?,
 ): List<RtfBlock> {
 	val blocks = mutableListOf<RtfBlock>()
-	val parsed = parseProseMarkdown(markdown, keepBlankLines)
+	val parsed = parseProseMarkdown(markdown, keepBlankLines, imageNames::get)
 	parsed.forEachIndexed { index, block ->
 		// Prose runs tight: the indent parts one line from the next, and the space a passage break
 		// wants is a blank line the author actually typed. Space after is for leaving prose behind.
@@ -213,6 +256,9 @@ private fun renderMarkdownRtf(
 		val proseSpaceAfter = if (runsOn) 0 else PARAGRAPH_SPACE_AFTER
 		when (block) {
 			is ProseBlock.Paragraph -> blocks += bodyParagraph(block.spans, primary, proseSpaceAfter)
+			is ProseBlock.Image -> blocks += picture(block.imageId)?.let {
+				pictureBlock(it, previous = parsed.getOrNull(index - 1), next = parsed.getOrNull(index + 1))
+			} ?: bodyParagraph(block.spans, primary, proseSpaceAfter)
 			ProseBlock.Blank -> blocks += bodyParagraph(emptyList(), primary, proseSpaceAfter)
 			is ProseBlock.Heading -> blocks += headingParagraph(block, primary, secondary)
 			is ProseBlock.Listing -> {
@@ -240,6 +286,61 @@ private fun bodyParagraph(
 		spaceAfterTwips = spaceAfterTwips,
 	),
 )
+
+/** [images] as [decode] gives them, each decoded at most once however often the story shows it. */
+internal fun decodedOnce(
+	images: Map<Int, ExportImage>,
+	decode: (ExportImage) -> ExportRaster? = ::exportRaster,
+): (imageId: Int) -> ExportRaster? {
+	val rasters = mutableMapOf<Int, ExportRaster?>()
+	// Not getOrPut, which would take a cached failure for a miss and decode the image again.
+	return { id -> if (id in rasters) rasters[id] else images[id]?.let(decode).also { rasters[id] = it } }
+}
+
+/** A centred picture set a paragraph gap from its neighbours, unless a blank line already parts them. */
+private fun pictureBlock(image: ExportRaster, previous: ProseBlock?, next: ProseBlock?): RtfPicture = rtfPicture(
+	image,
+	maxWidth = IMAGE_WIDTH,
+	maxHeight = MAX_IMAGE_HEIGHT,
+	spaceBeforeTwips = if (previous == ProseBlock.Blank) 0 else PARAGRAPH_SPACE_AFTER,
+	spaceAfterTwips = if (next == ProseBlock.Blank) 0 else PARAGRAPH_SPACE_AFTER,
+)
+
+/** [image] filling the text width, or as much of it as keeps within the text height. */
+private fun coverPicture(image: ExportRaster): RtfPicture =
+	rtfPicture(image, maxWidth = TEXT_WIDTH, maxHeight = TEXT_HEIGHT, spaceBeforeTwips = 0, spaceAfterTwips = 0)
+
+/** [image] centred at [maxWidth] twips wide, narrowed if need be to keep within [maxHeight]. */
+private fun rtfPicture(
+	image: ExportRaster,
+	maxWidth: Int,
+	maxHeight: Int,
+	spaceBeforeTwips: Int,
+	spaceAfterTwips: Int,
+): RtfPicture {
+	var width = maxWidth
+	var height = (width * image.aspectRatio).roundToInt()
+	if (height > maxHeight) {
+		height = maxHeight
+		width = (height / image.aspectRatio).roundToInt()
+	}
+	return RtfPicture(
+		bytes = image.bytes,
+		format = when (image.format) {
+			ExportRaster.Format.Png -> RtfPictureFormat.Png
+			ExportRaster.Format.Jpeg -> RtfPictureFormat.Jpeg
+		},
+		widthPx = image.widthPx,
+		heightPx = image.heightPx,
+		goalWidthTwips = width.coerceAtLeast(1),
+		goalHeightTwips = height.coerceAtLeast(1),
+		style = RtfParagraphStyle(
+			alignment = RtfAlignment.Center,
+			spaceBeforeTwips = spaceBeforeTwips,
+			spaceAfterTwips = spaceAfterTwips,
+		),
+	)
+}
 
 private fun headingParagraph(block: ProseBlock.Heading, primary: RtfColor?, secondary: RtfColor?): RtfParagraph {
 	val halfPoints = HEADING_HALF_POINTS[(block.level - 1).coerceIn(0, HEADING_HALF_POINTS.lastIndex)]

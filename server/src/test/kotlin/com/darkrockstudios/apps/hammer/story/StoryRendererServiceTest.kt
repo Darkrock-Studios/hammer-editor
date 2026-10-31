@@ -679,6 +679,28 @@ class StoryRendererServiceTest {
 		assertTrue(result.html.contains("Orphaned content"), result.html)
 	}
 
+	@Test
+	fun `a scene that embeds an image renders the image reference`() = runTest {
+		val scene = createScene(
+			id = 1,
+			name = "Chapter One",
+			content = "The road north.\n\n![Map](hammer://image/7)\n\nThey set out.",
+			order = 0,
+		)
+		setupMocksForScenes(listOf(scene))
+
+		val whole = service.renderStoryAsHtml(userId, projectId)
+		val single = service.renderSceneAsHtml(userId, projectId, sceneId = 1)
+		val paginated = service.renderStoryAsHtmlPaginated(userId, projectId)
+
+		assertIs<StoryRenderResult.Success>(whole)
+		assertIs<SingleSceneExportResult.Success>(single)
+		assertIs<PaginatedExportResult.Success>(paginated)
+		for (html in listOf(whole.html, single.html, paginated.data.pageHtml)) {
+			assertTrue(html.contains("""<img src="hammer://image/7" alt="Map" />"""), html)
+		}
+	}
+
 	private fun createScene(
 		id: Int,
 		name: String,

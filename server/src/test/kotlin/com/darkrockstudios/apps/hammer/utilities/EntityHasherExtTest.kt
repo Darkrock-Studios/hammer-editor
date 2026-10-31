@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.utilities
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ApiSceneType
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
+import korlibs.crypto.encoding.Base64
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.time.Instant
@@ -212,6 +213,30 @@ class EntityHasherExtTest {
 	}
 
 	@Test
+	fun `hashEntity extension must match direct call for Image variations`() {
+		val testImages = listOf(
+			byteArrayOf() to ApiProjectEntity.ImageEntity(id = 1, name = "Empty", fileExtension = "png", base64 = ""),
+			byteArrayOf(0x47, 0x49, 0x46, 0x38, -1) to ApiProjectEntity.ImageEntity(
+				id = 2,
+				name = "Unicode éèêë",
+				fileExtension = "gif",
+				base64 = Base64.encode(byteArrayOf(0x47, 0x49, 0x46, 0x38, -1), url = true),
+			),
+		)
+
+		testImages.forEach { (bytes, image) ->
+			val hashDirect = EntityHasher.hashImage(
+				id = image.id,
+				name = image.name,
+				fileExtension = image.fileExtension,
+				bytes = bytes,
+			)
+
+			assertEquals(hashDirect, image.hash(), "Extension function hash must match direct call for image ID ${image.id}")
+		}
+	}
+
+	@Test
 	fun `hashEntity extension must match direct call for Note variations`() {
 		val testNotes = listOf(
 			// Minimal note
@@ -335,7 +360,6 @@ class EntityHasherExtTest {
 				entryType = "person",
 				text = "",
 				tags = emptySet(),
-				image = null
 			),
 			// Entry with all text fields
 			ApiProjectEntity.EncyclopediaEntryEntity(
@@ -344,19 +368,15 @@ class EntityHasherExtTest {
 				entryType = "place",
 				text = "Detailed description\nwith multiple lines\nand special chars: !@#$%",
 				tags = setOf("tag1", "tag2", "tag3"),
-				image = null
 			),
-			// Entry with image
+			// Entry with images
 			ApiProjectEntity.EncyclopediaEntryEntity(
 				id = 3,
 				name = "Entry with Image",
 				entryType = "item",
 				text = "Entry with an image",
 				tags = setOf("important", "visual"),
-				image = ApiProjectEntity.EncyclopediaEntryEntity.Image(
-					base64 = "iVBORw0KGgoAAAANSUhEUgAAAAUA",
-					fileExtension = "png"
-				)
+				images = listOf(12),
 			),
 			// Entry with unicode and complex tags
 			ApiProjectEntity.EncyclopediaEntryEntity(
@@ -365,10 +385,7 @@ class EntityHasherExtTest {
 				entryType = "concept",
 				text = "Text with unicode: \u00E9\u00E8\u00EA\u00EB",
 				tags = setOf("unicode", "special-chars", "tag with spaces"),
-				image = ApiProjectEntity.EncyclopediaEntryEntity.Image(
-					base64 = "base64encodedstringhere==",
-					fileExtension = "jpg"
-				)
+				images = listOf(9, 4, 30),
 			),
 			// Entry with many tags
 			ApiProjectEntity.EncyclopediaEntryEntity(
@@ -377,19 +394,16 @@ class EntityHasherExtTest {
 				entryType = "event",
 				text = "Entry with many tags",
 				tags = setOf("a", "b", "c", "d", "e", "f", "g", "h", "i", "j"),
-				image = null
 			),
-			// Entry with different image extension
+			// Entry excluded from the dictionary, with images
 			ApiProjectEntity.EncyclopediaEntryEntity(
 				id = 6,
-				name = "JPEG Image",
+				name = "Hidden",
 				entryType = "person",
-				text = "Has a JPEG",
+				text = "Not in the dictionary",
 				tags = setOf("image"),
-				image = ApiProjectEntity.EncyclopediaEntryEntity.Image(
-					base64 = "/9j/4AAQSkZJRgABAQEAYABgAAD/2wBD",
-					fileExtension = "jpeg"
-				)
+				excludeFromDictionary = true,
+				images = listOf(2, 1),
 			),
 			// Entry with aliases
 			ApiProjectEntity.EncyclopediaEntryEntity(
@@ -398,7 +412,6 @@ class EntityHasherExtTest {
 				entryType = "person",
 				text = "A character with nicknames",
 				tags = setOf("protagonist"),
-				image = null,
 				aliases = listOf("Bob", "Bobby", "Rob"),
 			),
 		)
@@ -412,8 +425,9 @@ class EntityHasherExtTest {
 				entryType = entry.entryType,
 				text = entry.text,
 				tags = entry.tags,
-				image = entry.image,
 				aliases = entry.aliases,
+				excludeFromDictionary = entry.excludeFromDictionary,
+				images = entry.images,
 			)
 
 			assertEquals(

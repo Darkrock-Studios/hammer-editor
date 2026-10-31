@@ -23,6 +23,8 @@ import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.story.SceneHierarchyResult
 import com.darkrockstudios.apps.hammer.story.SingleSceneExportResult
+import com.darkrockstudios.apps.hammer.story.StoryImageLinks
+import com.darkrockstudios.apps.hammer.story.StoryImageService
 import com.darkrockstudios.apps.hammer.story.StoryRenderResult
 import com.darkrockstudios.apps.hammer.story.StoryRendererService
 import com.darkrockstudios.apps.hammer.story.WordCountUtils
@@ -57,10 +59,30 @@ fun Route.storyPage(
 	storyReaderRepository: StoryReaderRepository,
 	storyKudosRepository: StoryKudosRepository,
 	serverProjectDataRepository: ServerProjectDataRepository,
+	storyImageService: StoryImageService,
 	clock: kotlin.time.Clock,
 ) {
 	authenticatedOnly {
 		route("/story/{projectName}") {
+			// The author may see every image in their own project, so these links are unsigned.
+			get("/image/{imageId}") {
+				val session = call.sessions.requireUser()
+				val imageId = call.parameters["imageId"]?.toIntOrNull()
+				val project = call.parameters["projectName"]
+					?.let { projectsRepository.findProjectByUrlSegment(session.userId, it) }
+				if (imageId == null || project == null) {
+					call.respond(HttpStatusCode.NotFound)
+					return@get
+				}
+
+				call.respondStoryImage(
+					storyImageService = storyImageService,
+					userId = session.userId,
+					projectDef = ProjectDefinition(name = project.name, uuid = ProjectId(project.uuid)),
+					imageId = imageId,
+				)
+			}
+
 			get {
 				val session = call.sessions.requireUser()
 				val projectNameParam = call.parameters["projectName"]
@@ -96,7 +118,8 @@ fun Route.storyPage(
 							projectId,
 							firstSceneId
 						)) {
-						is SingleSceneExportResult.Success -> sceneResult.html to sceneResult.hasContent
+						is SingleSceneExportResult.Success ->
+							resolveAuthorImages(sceneResult.html, projectNameForUrl) to sceneResult.hasContent
 						else -> "" to false
 					}
 				} else {
@@ -151,9 +174,16 @@ fun Route.storyPage(
 						// The public reader page declares the story's language on the prose; the
 						// author's own view has to as well, or the browser hyphenates a French
 						// story by the rules of whatever locale the author reads Hammer in.
+						val projectDef = ProjectDefinition(name = project.name, uuid = projectId)
 						val storyLanguage = serverProjectDataRepository.loadProjectLanguage(
 							userId = session.userId,
-							projectDef = ProjectDefinition(name = project.name, uuid = projectId),
+							projectDef = projectDef,
+						)
+						val coverImageId = storyCoverImageId(
+							serverProjectDataRepository,
+							storyImageService,
+							session.userId,
+							projectDef,
 						)
 
 						val model = call.withDefaults(
@@ -186,6 +216,9 @@ fun Route.storyPage(
 								"hasScenes" to sceneHierarchy.isNotEmpty()
 							)
 						)
+						if (coverImageId != null) {
+							model["coverImageUrl"] = "/story/$projectNameForUrl/image/$coverImageId"
+						}
 						if (numericProjectId != null) {
 							model.putAll(call.kudosPanelModel(storyKudosRepository, numericProjectId, isPublished, model))
 						}
@@ -240,7 +273,10 @@ fun Route.storyPage(
 						is StoryRenderResult.Success -> {
 							val model = call.withDefaults(
 								mapOf(
-									"storyHtml" to result.html,
+									"storyHtml" to resolveAuthorImages(
+										result.html,
+										ProjectName.projectSegment(project.name, project.uuid),
+									),
 									"hasContent" to result.hasContent
 								)
 							)
@@ -275,7 +311,10 @@ fun Route.storyPage(
 					is SingleSceneExportResult.Success -> {
 						val model = call.withDefaults(
 							mapOf(
-								"storyHtml" to result.html,
+								"storyHtml" to resolveAuthorImages(
+									result.html,
+									ProjectName.projectSegment(project.name, project.uuid),
+								),
 								"hasContent" to result.hasContent
 							)
 						)
@@ -640,6 +679,9 @@ private fun buildReaderBars(daily: List<ReaderDay>, now: Instant): List<Map<Stri
 		)
 	}
 }
+
+private suspend fun resolveAuthorImages(html: String, projectNameForUrl: String): String =
+	StoryImageLinks.resolve(html) { imageId -> "/story/$projectNameForUrl/image/$imageId" }
 
 fun ApplicationCall.constructPublicUrl(penName: String, projectName: String, projectUuid: String): String {
 	return buildPublicUrl(

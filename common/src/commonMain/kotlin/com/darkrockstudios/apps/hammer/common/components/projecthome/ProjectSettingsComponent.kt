@@ -7,9 +7,13 @@ import com.arkivanov.decompose.value.getAndUpdate
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectTheme
 import com.darkrockstudios.apps.hammer.base.http.projectdata.WordCountGoal
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
+import com.darkrockstudios.apps.hammer.common.components.images.ImagePickSession
+import com.darkrockstudios.apps.hammer.common.components.images.ImagePickTarget
+import com.darkrockstudios.apps.hammer.common.components.images.findPickedImage
 import com.darkrockstudios.apps.hammer.common.components.spellchecksettings.SpellCheckSettings
 import com.darkrockstudios.apps.hammer.common.components.spellchecksettings.SpellCheckSettingsComponent
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesService
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
 import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectPluginsRepository
@@ -34,6 +38,7 @@ class ProjectSettingsComponent(
 	private val accountTagService: AccountTagService by inject()
 	private val availableLocalesProvider: AvailableLocalesProvider by inject()
 	private val projectPlugins: ProjectPluginsRepository by inject()
+	private val imagesService: ImagesService by projectInject()
 
 	override val projectName: String = projectDef.name
 
@@ -44,6 +49,15 @@ class ProjectSettingsComponent(
 
 	private val _disabledPlugins = MutableValue(emptySet<String>())
 	override val disabledPlugins: Value<Set<String>> = _disabledPlugins
+
+	private val coverPick = ImagePickSession(
+		requests = projectInject(),
+		stateKeeper = stateKeeper,
+		key = COVER_PICK_KEY,
+		scope = scope,
+		mainDispatcher = mainDispatcher,
+		onInProgressChange = { pending -> _projectInfoState.getAndUpdate { it.copy(pendingCoverPick = pending) } },
+	)
 
 	init {
 		scope.launch { accountTagService.refreshProjectTags() }
@@ -63,6 +77,29 @@ class ProjectSettingsComponent(
 					}
 				}
 			}
+		}
+		scope.launch {
+			coverImageFlow(projectDataRepository, imagesService).collect { cover ->
+				withContext(mainDispatcher) {
+					_projectInfoState.getAndUpdate { it.copy(coverImage = cover) }
+				}
+			}
+		}
+		coverPick.restore(ImagePickTarget.ProjectCover, ::setCover)
+	}
+
+	override fun pickCoverImage() {
+		coverPick.start(ImagePickTarget.ProjectCover, ::setCover)
+	}
+
+	private suspend fun setCover(imageId: Int) {
+		val image = findPickedImage(imageId, imagesService) ?: return
+		projectDataRepository.updateData { it.copy(coverImageId = image.id) }
+	}
+
+	override fun clearCoverImage() {
+		scope.launch {
+			projectDataRepository.updateData { it.copy(coverImageId = null) }
 		}
 	}
 
@@ -132,3 +169,5 @@ class ProjectSettingsComponent(
 			.map { it.tag }
 	}
 }
+
+private const val COVER_PICK_KEY = "project_settings_cover_pick"

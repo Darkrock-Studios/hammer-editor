@@ -16,7 +16,6 @@ import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournalD
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
-import com.darkrockstudios.apps.hammer.common.fileio.ExternalFileIo
 import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectSpellCheckService
 import com.darkrockstudios.apps.hammer.common.spellcheck.SpellCheckRepository
 import com.darkrockstudios.apps.hammer.common.util.Locale
@@ -124,7 +123,6 @@ class ProjectSpellCheckSessionWordsTest : BaseTest() {
 					projectDef = projectDef,
 					toml = toml,
 					fileSystem = fileSystem,
-					externalFileIo = mockk<ExternalFileIo>(),
 				),
 				syncJournal = syncJournal,
 			)
@@ -155,7 +153,6 @@ class ProjectSpellCheckSessionWordsTest : BaseTest() {
 			type = type,
 			text = "text",
 			tags = emptySet(),
-			imagePath = null,
 			aliases = aliases,
 			excludeFromDictionary = excludeFromDictionary,
 		)
@@ -210,6 +207,7 @@ class ProjectSpellCheckSessionWordsTest : BaseTest() {
 			text = "new text",
 			tags = emptySet(),
 			excludeFromDictionary = false,
+			images = emptyList(),
 		)
 		advanceUntilIdle()
 
@@ -357,6 +355,7 @@ class ProjectSpellCheckSessionWordsTest : BaseTest() {
 			text = "text",
 			tags = emptySet(),
 			excludeFromDictionary = false,
+			images = emptyList(),
 		)
 		advanceUntilIdle()
 

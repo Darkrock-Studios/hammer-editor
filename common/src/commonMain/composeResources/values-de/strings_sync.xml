@@ -79,7 +79,6 @@
 	<string name="sync_conflict_encyclopedia_label_image">Bild:</string>
 	<string name="sync_conflict_encyclopedia_label_content">Inhalt:</string>
 	<string name="sync_conflict_encyclopedia_label_tags">Tags:</string>
-	<string name="sync_conflict_encyclopedia_has_image">Mit Bild</string>
 	<string name="sync_conflict_title_scene_field_name">Name</string>
 	<string name="sync_conflict_title_scene_field_content">Szeneninhalt</string>
 	<string name="sync_conflict_title_scene_field_outline">Gliederung</string>
@@ -146,7 +145,6 @@
 	<string name="sync_log_data_save_failed">Synchronisierungsdaten wegen Fehlern nicht gespeichert</string>
 	<string name="sync_log_failed">Synchronisierung konnte nicht beendet werden</string>
 	<string name="sync_draft_rejected_invalid_name">Entwurf %1$d vom Server abgelehnt: unsicherer Entwurfsname</string>
-	<string name="sync_encyclopedia_image_rejected_invalid_extension">Bild für Lexikon-Eintrag %1$d vom Server übersprungen: unsichere Dateiendung</string>
 	<string name="sync_encyclopedia_deleted">Lexikon-ID %1$d vom Client gelöscht</string>
 	<string name="sync_note_deleted">Notiz-ID %1$d vom Client gelöscht</string>
 	<string name="sync_draft_deleted">Entwurf %1$d vom Client gelöscht</string>

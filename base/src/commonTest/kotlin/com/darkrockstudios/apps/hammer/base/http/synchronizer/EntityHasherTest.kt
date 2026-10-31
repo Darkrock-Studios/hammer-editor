@@ -2,6 +2,9 @@ package com.darkrockstudios.apps.hammer.base.http.synchronizer
 
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ApiSceneType
+import korlibs.crypto.encoding.Base64
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
@@ -46,20 +49,58 @@ class EntityHasherTest {
 
 	@Test
 	fun hashEncyclopediaEntry() {
-		val hash = EntityHasher.hashEncyclopediaEntry(
+		val hash = entryHash(images = listOf(7, 3))
+
+		assertEquals("jquhxHz81aFulUhzRdatNQ", hash)
+	}
+
+	// These are hashes already stored by servers and clients: an entry without images must keep
+	// producing them.
+	@Test
+	fun `hashEncyclopediaEntry without images keeps its stored hash`() {
+		assertEquals("M7sPNEDlP3y88o9a8VE8Lw", entryHash())
+		assertEquals(
+			"BQIQf-DRJ1heCdp7diwSpg",
+			entryHash(aliases = listOf("Debate"), excludeFromDictionary = true),
+		)
+	}
+
+	@Test
+	fun `EncyclopediaEntryEntity hash matches hashEncyclopediaEntry`() {
+		val entity = ApiProjectEntity.EncyclopediaEntryEntity(
 			id = 2,
 			name = "The Great Debate",
 			entryType = "person",
 			text = "Some great content",
 			tags = setOf("tag1", "tag2"),
-			image = ApiProjectEntity.EncyclopediaEntryEntity.Image(
-				base64 = "skjdnviouwenvipnsdv",
-				fileExtension = "jpg"
-			),
-			aliases = emptyList(),
+			images = listOf(7, 3),
 		)
+		assertEquals(entryHash(images = listOf(7, 3)), entity.hash())
+		assertEquals(entryHash(), entity.copy(images = emptyList()).hash())
+	}
 
-		assertEquals("3ovnUSjH8YPOwpe4yUxUww", hash)
+	@Test
+	fun `hashEncyclopediaEntry differs when an image is added`() {
+		assertNotEquals(entryHash(images = listOf(7)), entryHash(images = listOf(7, 3)))
+		assertNotEquals(entryHash(), entryHash(images = listOf(7)))
+	}
+
+	@Test
+	fun `hashEncyclopediaEntry image order is significant`() {
+		// The first image is the primary one, so reordering is a user-visible change that must sync.
+		assertNotEquals(entryHash(images = listOf(7, 3)), entryHash(images = listOf(3, 7)))
+	}
+
+	@Test
+	fun `hashEncyclopediaEntry images and excludeFromDictionary contribute distinctly`() {
+		assertNotEquals(
+			entryHash(excludeFromDictionary = true),
+			entryHash(images = listOf(1)),
+		)
+		assertNotEquals(
+			entryHash(excludeFromDictionary = true, images = listOf(5)),
+			entryHash(images = listOf(1, 5)),
+		)
 	}
 
 	@Test
@@ -74,6 +115,66 @@ class EntityHasherTest {
 		)
 
 		assertEquals("lGUFzy0jQtYbLHWa998BfA", hash)
+	}
+
+	@Test
+	fun hashImage() {
+		val hash = EntityHasher.hashImage(
+			id = 7,
+			name = "Castle Map",
+			fileExtension = "png",
+			bytes = byteArrayOf(0x89.toByte(), 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 1, 2, 3),
+		)
+
+		assertEquals("1jWFiWJPKpy7Db-32vCaQQ", hash)
+	}
+
+	@Test
+	fun `hashImage of empty bytes`() {
+		val hash = EntityHasher.hashImage(id = 1, name = "", fileExtension = "jpg", bytes = ByteArray(0))
+		assertEquals("L8xYoT-YxVjqc30-RvPPFg", hash)
+	}
+
+	@Test
+	fun `hashImage name and extension do not bleed into each other`() {
+		val a = EntityHasher.hashImage(id = 1, name = "ab", fileExtension = "c", bytes = byteArrayOf(1))
+		val b = EntityHasher.hashImage(id = 1, name = "a", fileExtension = "bc", bytes = byteArrayOf(1))
+		assertNotEquals(a, b)
+	}
+
+	@Test
+	fun `ImageEntity hash decodes base64 and hashes the raw bytes`() {
+		val bytes = byteArrayOf(0x47, 0x49, 0x46, 0x38, -1, -2, -3)
+		val entity = ApiProjectEntity.ImageEntity(
+			id = 3,
+			name = "Portrait",
+			fileExtension = "gif",
+			base64 = Base64.encode(bytes, url = true),
+		)
+		assertEquals(
+			EntityHasher.hashImage(id = 3, name = "Portrait", fileExtension = "gif", bytes = bytes),
+			entity.hash(),
+		)
+	}
+
+	@Test
+	fun `ImageEntity hash survives a serialization round trip and its cache is not serialized`() {
+		val bytes = byteArrayOf(0x47, 0x49, 0x46, 0x38, -1, -2, -3)
+		val entity = ApiProjectEntity.ImageEntity(
+			id = 3,
+			name = "Portrait",
+			fileExtension = "gif",
+			base64 = Base64.encode(bytes, url = true),
+		)
+		val expected = entity.hash()
+
+		val json = Json.encodeToString(ApiProjectEntity.ImageEntity.serializer(), entity)
+		val decoded = Json.decodeFromString(ApiProjectEntity.ImageEntity.serializer(), json)
+
+		assertEquals(Json.parseToJsonElement(json).jsonObject.keys, setOf("id", "name", "fileExtension", "base64"))
+		assertEquals(entity, decoded)
+		assertEquals(expected, decoded.hash())
+		assertNotEquals(expected, entity.copy(name = "Other").hash())
 	}
 
 	@Test
@@ -125,12 +226,12 @@ class EntityHasherTest {
 	fun `hashEncyclopediaEntry differs when aliases differ`() {
 		val base = EntityHasher.hashEncyclopediaEntry(
 			id = 2, name = "Robert", entryType = "person",
-			text = "text", tags = emptySet(), image = null,
+			text = "text", tags = emptySet(),
 			aliases = listOf("Bob"),
 		)
 		val different = EntityHasher.hashEncyclopediaEntry(
 			id = 2, name = "Robert", entryType = "person",
-			text = "text", tags = emptySet(), image = null,
+			text = "text", tags = emptySet(),
 			aliases = listOf("Bob", "Bobby"),
 		)
 		assertNotEquals(base, different, "hashEncyclopediaEntry must include aliases in the digest")
@@ -140,13 +241,13 @@ class EntityHasherTest {
 	fun `hashEncyclopediaEntry differs when excludeFromDictionary differs`() {
 		val included = EntityHasher.hashEncyclopediaEntry(
 			id = 2, name = "Robert", entryType = "person",
-			text = "text", tags = emptySet(), image = null,
+			text = "text", tags = emptySet(),
 			aliases = emptyList(),
 			excludeFromDictionary = false,
 		)
 		val excluded = EntityHasher.hashEncyclopediaEntry(
 			id = 2, name = "Robert", entryType = "person",
-			text = "text", tags = emptySet(), image = null,
+			text = "text", tags = emptySet(),
 			aliases = emptyList(),
 			excludeFromDictionary = true,
 		)
@@ -159,12 +260,12 @@ class EntityHasherTest {
 		// propagate through sync so two clients with reordered aliases don't silently diverge.
 		val a = EntityHasher.hashEncyclopediaEntry(
 			id = 2, name = "Robert", entryType = "person",
-			text = "text", tags = emptySet(), image = null,
+			text = "text", tags = emptySet(),
 			aliases = listOf("Bob", "Bobby"),
 		)
 		val b = EntityHasher.hashEncyclopediaEntry(
 			id = 2, name = "Robert", entryType = "person",
-			text = "text", tags = emptySet(), image = null,
+			text = "text", tags = emptySet(),
 			aliases = listOf("Bobby", "Bob"),
 		)
 		assertNotEquals(
@@ -220,6 +321,21 @@ class EntityHasherTest {
 			"null lastEdited must hash differently from epoch 0",
 		)
 	}
+
+	private fun entryHash(
+		aliases: List<String> = emptyList(),
+		excludeFromDictionary: Boolean = false,
+		images: List<Int> = emptyList(),
+	): String = EntityHasher.hashEncyclopediaEntry(
+		id = 2,
+		name = "The Great Debate",
+		entryType = "person",
+		text = "Some great content",
+		tags = setOf("tag1", "tag2"),
+		aliases = aliases,
+		excludeFromDictionary = excludeFromDictionary,
+		images = images,
+	)
 
 	// Test-only defaults. Production [EntityHasher.hashScene] has none on purpose.
 	private fun sceneHash(

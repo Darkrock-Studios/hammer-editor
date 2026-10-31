@@ -1,6 +1,5 @@
 package com.darkrockstudios.apps.hammer.common.data.encyclopediarepository
 
-import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.validate.ProjectNameValidationResult
 import com.darkrockstudios.apps.hammer.base.validate.ProjectNameValidator
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -14,7 +13,6 @@ import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.data.tagindex.cleanTags
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
-import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import korlibs.io.async.launch
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
@@ -72,14 +70,6 @@ class EncyclopediaRepository(
 		}
 	}
 
-	suspend fun removeEntryImage(entryDef: EntryDef): Boolean {
-		val result = datasource.removeEntryImage(entryDef)
-		if (result) {
-			markForSynchronization(entryDef)
-		}
-		return result
-	}
-
 	suspend fun updateEntry(
 		oldEntryDef: EntryDef,
 		name: String,
@@ -87,6 +77,7 @@ class EncyclopediaRepository(
 		tags: Set<String>,
 		aliases: List<String> = emptyList(),
 		excludeFromDictionary: Boolean,
+		images: List<Int>,
 	): EntryResult {
 		val result = validateEntry(name, oldEntryDef.type, text, tags, aliases)
 		if (result != EntryError.NONE) return EntryResult(result)
@@ -102,6 +93,7 @@ class EncyclopediaRepository(
 			tags = cleanedTags,
 			aliases = cleanedAliases,
 			excludeFromDictionary = excludeFromDictionary,
+			images = images,
 		)
 
 		_entryContentChangedFlow.emit(Unit)
@@ -169,10 +161,10 @@ class EncyclopediaRepository(
 		type: EntryType,
 		text: String,
 		tags: Set<String>,
-		imagePath: String?,
 		forceId: Int? = null,
 		aliases: List<String> = emptyList(),
 		excludeFromDictionary: Boolean = false,
+		images: List<Int> = emptyList(),
 	): EntryResult {
 		val result = validateEntry(name, type, text, tags, aliases)
 		if (result != EntryError.NONE) return EntryResult(result)
@@ -189,14 +181,11 @@ class EncyclopediaRepository(
 			tags = cleanedTags,
 			aliases = cleanedAliases,
 			excludeFromDictionary = excludeFromDictionary,
+			images = images,
 		)
 		val container = EntryContainer(entry)
 
 		val newDef = datasource.createEntry(container)
-
-		if (imagePath != null) {
-			datasource.setEntryImage(container.toDef(projectDef), imagePath)
-		}
 
 		if (forceId == null) markForSynchronization(newDef)
 
@@ -213,48 +202,49 @@ class EncyclopediaRepository(
 		return true
 	}
 
-	/**
-	 * Replaces the entry's image; false for an unsupported extension, an image over the size limit,
-	 * or bytes that are not that kind of image. The old image goes only once the new one is written.
-	 */
-	suspend fun setEntryImage(entryDef: EntryDef, extension: String, image: ByteArray): Boolean {
-		val normalized = extension.removePrefix(".").lowercase()
-		if (!EncyclopediaDatasource.isImage(image, normalized)) return false
-		if (image.size > EncyclopediaDatasource.MAX_IMAGE_SIZE_BYTES) return false
-		markForSynchronization(entryDef)
-		val previous = datasource.findEntryImageExtension(entryDef)
-		datasource.writeEntryImage(entryDef, image, normalized)
-		if (previous != null && !previous.equals(normalized, ignoreCase = true)) {
-			datasource.deleteEntryImage(entryDef, previous)
-		}
-		return true
-	}
-
-	suspend fun setEntryImage(entryDef: EntryDef, imagePath: String?) {
-		markForSynchronization(entryDef)
-		datasource.setEntryImage(entryDef, imagePath)
-	}
-
 	suspend fun reIdEntry(oldId: Int, newId: Int) = datasource.reIdEntry(oldId, newId)
 
-	fun hasEntryImage(entryDef: EntryDef, fileExension: String): Boolean =
-		datasource.hasEntryImage(entryDef, fileExension)
+	/** Appends image [imageId] to the entry's images; false when the entry already has it. */
+	suspend fun addEntryImage(entryDef: EntryDef, imageId: Int): Boolean =
+		changeImages(entryDef) { images -> if (imageId in images) images else images + imageId }
 
-	fun findEntryImagePath(entryDef: EntryDef): HPath? =
-		datasource.findEntryImagePath(entryDef)
+	/** Detaches image [imageId] from the entry. The Image entity itself is left alone. */
+	suspend fun removeEntryImage(entryDef: EntryDef, imageId: Int): Boolean =
+		changeImages(entryDef) { images -> images.filterNot { it == imageId } }
 
-	fun findEntryImageExtension(entryDef: EntryDef): String? =
-		datasource.findEntryImageExtension(entryDef)
+	/** Moves image [imageId] to the front of the entry's images; false when the entry does not have it. */
+	suspend fun setPrimaryImage(entryDef: EntryDef, imageId: Int): Boolean =
+		changeImages(entryDef) { images ->
+			if (imageId in images) listOf(imageId) + images.filterNot { it == imageId } else images
+		}
 
-	suspend fun calculateEntryImageHash(entryDef: EntryDef, fileExension: String): String? {
-		return datasource.hashEntryImage(entryDef, fileExension)
+	/** Puts image [imageId] first in the entry's images, adding it when the entry does not have it. */
+	suspend fun addPrimaryImage(entryDef: EntryDef, imageId: Int): Boolean =
+		changeImages(entryDef) { images -> listOf(imageId) + images.filterNot { it == imageId } }
+
+	private suspend fun changeImages(entryDef: EntryDef, change: (List<Int>) -> List<Int>): Boolean =
+		rewriteEntry(entryDef) { entry -> entry.copy(images = change(entry.images)) }
+
+	/**
+	 * Writes [transform] of the entry's stored content without validating it, so a legacy entry that
+	 * would fail [validateEntry] can still be rewritten. The name must not change. False, and nothing
+	 * written, when [transform] returns the content unchanged.
+	 */
+	suspend fun rewriteEntry(entryDef: EntryDef, transform: (EntryContent) -> EntryContent): Boolean {
+		val current = loadEntry(entryDef).entry
+		val updated = transform(current)
+		if (updated == current) return false
+		require(updated.id == current.id && updated.name == current.name && updated.type == current.type) {
+			"rewriteEntry may not change an entry's id, name or type"
+		}
+
+		markForSynchronization(entryDef)
+		datasource.writeEntry(entryDef, updated)
+
+		_entryContentChangedFlow.emit(Unit)
+		_entryChangedFlow.emit(entryDef.id)
+		return true
 	}
-
-	fun getEntryImagePath(entryDef: EntryDef, fileExtension: String): HPath =
-		datasource.getEntryImagePath(entryDef, fileExtension)
-
-	fun loadEntryImage(entryDef: EntryDef, fileExtension: String): ByteArray =
-		datasource.loadEntryImage(entryDef, fileExtension)
 
 	fun getEntryDef(id: Int): EntryDef = datasource.getEntryDef(id)
 	fun findEntryDef(id: Int): EntryDef? = datasource.findEntryDef(id)

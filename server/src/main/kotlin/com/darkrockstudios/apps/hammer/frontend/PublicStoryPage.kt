@@ -19,6 +19,9 @@ import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.project.access.PublicProjectResult
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.story.PaginatedExportResult
+import com.darkrockstudios.apps.hammer.story.StoryImageLinks
+import com.darkrockstudios.apps.hammer.story.StoryImageService
+import com.darkrockstudios.apps.hammer.story.StoryImageSigner
 import com.darkrockstudios.apps.hammer.story.StoryRendererService
 import com.darkrockstudios.apps.hammer.story.WordCountUtils
 import io.ktor.http.HttpStatusCode
@@ -45,6 +48,8 @@ fun Route.publicStoryPage(
 	accountsRepository: AccountsRepository,
 	projectsRepository: ProjectsRepository,
 	serverProjectDataRepository: ServerProjectDataRepository,
+	storyImageService: StoryImageService,
+	storyImageSigner: StoryImageSigner,
 	serverConfig: ServerConfig,
 ) {
 	route("/a/{penName}/{projectName}") {
@@ -129,7 +134,17 @@ fun Route.publicStoryPage(
 						model["kudosFragmentUrl"] = "/a/$penNameForUrl/$projectNameForUrl/kudos"
 					}
 
-					// Resolved once and reused by the render below, so the ETag costs no extra queries.
+					suspend fun signedImageUrl(imageId: Int): String {
+						val signature = storyImageSigner.sign(resolved.projectUuid, imageId)
+						return "/a/$penNameForUrl/$projectNameForUrl/image/$imageId?s=$signature$passwordParam"
+					}
+
+					// In the shell, so the validator changes when the cover is set or cleared, and when
+					// its image reaches the server or leaves it.
+					storyCoverImageId(serverProjectDataRepository, storyImageService, resolved.userId, projectDef)
+						?.let { model["coverImageUrl"] = signedImageUrl(it) }
+
+					// Resolved once and reused by the render below.
 					// A scene-limited share prepares only its scene subset; if every selected scene
 					// is gone this returns null and the link 404s like a nonexistent share.
 					val prepared = storyRendererService.prepareExport(
@@ -138,16 +153,24 @@ fun Route.publicStoryPage(
 						resolved.sceneIds,
 					)
 
-					// Stands in for everything project-data carries (notably the declared story
-					// language rendered below): a hash-only lookup, so the revalidation path never
-					// transfers or parses the data blob.
+					// Stands in for the rest of project data (notably the declared story language
+					// rendered below), so it need not be read before deciding on a 304.
 					val projectDataHash = serverProjectDataRepository.loadDataHash(resolved.userId, projectDef)
 
 					// A reader who already holds this exact page is answered without rendering it.
 					// `indexable` is an explicit input: it gates the JSON-LD block but never reaches
-					// the shell model.
+					// the shell model. The signing key generation is too, so rotating the key
+					// reissues the page's signed image links before the old generation is retired.
 					val etag = prepared?.let {
-						pageETag(model, it.version, page, passwordParam, indexable, projectDataHash)
+						pageETag(
+							model,
+							it.version,
+							page,
+							passwordParam,
+							indexable,
+							projectDataHash,
+							storyImageSigner.keyGeneration(),
+						)
 					}
 					if (etag != null && call.matchesETag(etag)) {
 						call.applyRevalidationHeaders(etag)
@@ -193,7 +216,7 @@ fun Route.publicStoryPage(
 
 							model.putAll(
 								mapOf(
-									"storyHtml" to data.pageHtml,
+									"storyHtml" to StoryImageLinks.resolve(data.pageHtml, ::signedImageUrl),
 									"hasContent" to data.hasContent,
 									"sceneCount" to data.sceneCount,
 									"totalWordCount" to data.totalWordCount,
@@ -239,6 +262,32 @@ fun Route.publicStoryPage(
 					}
 				}
 			}
+		}
+
+		// Only an image the server itself linked from a page this reader could open is served: the
+		// signature stands in for checking the prose for a reference, which would mean decrypting it.
+		get("/image/{imageId}") {
+			val imageId = call.parameters["imageId"]?.toIntOrNull()
+			val signature = call.request.queryParameters["s"]
+			if (imageId == null || signature.isNullOrBlank()) {
+				call.respond(HttpStatusCode.NotFound)
+				return@get
+			}
+
+			val password = call.request.queryParameters["p"]
+			val resolved = call.lookUpStory(accountsRepository, projectsRepository, projectAccessRepository, password)
+				?.result as? PublicProjectResult.Success
+			if (resolved == null || !storyImageSigner.verify(resolved.projectUuid, imageId, signature)) {
+				call.respond(HttpStatusCode.NotFound)
+				return@get
+			}
+
+			call.respondStoryImage(
+				storyImageService = storyImageService,
+				userId = resolved.userId,
+				projectDef = ProjectDefinition(name = resolved.projectName, uuid = resolved.projectUuid),
+				imageId = imageId,
+			)
 		}
 
 		hx.post {

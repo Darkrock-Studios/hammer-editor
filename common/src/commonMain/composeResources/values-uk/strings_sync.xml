@@ -79,7 +79,6 @@
 	<string name="sync_conflict_encyclopedia_label_image">Зображення:</string>
 	<string name="sync_conflict_encyclopedia_label_content">Вміст:</string>
 	<string name="sync_conflict_encyclopedia_label_tags">Теги:</string>
-	<string name="sync_conflict_encyclopedia_has_image">Із зображенням</string>
 	<string name="sync_conflict_title_scene_field_name">Назва</string>
 	<string name="sync_conflict_title_scene_field_content">Вміст сцени</string>
 	<string name="sync_conflict_title_scene_field_outline">План</string>
@@ -146,7 +145,6 @@
 	<string name="sync_log_data_save_failed">Дані синхронізації не збережено через помилки</string>
 	<string name="sync_log_failed">Не вдалося завершити синхронізацію</string>
 	<string name="sync_draft_rejected_invalid_name">Чернетку %1$d із сервера відхилено: небезпечна назва чернетки</string>
-	<string name="sync_encyclopedia_image_rejected_invalid_extension">Зображення для запису енциклопедії %1$d із сервера пропущено: небезпечне розширення файлу</string>
 	<string name="sync_encyclopedia_deleted">Запис енциклопедії ID %1$d видалено з клієнта</string>
 	<string name="sync_note_deleted">Нотатку ID %1$d видалено з клієнта</string>
 	<string name="sync_draft_deleted">Чернетку %1$d видалено з клієнта</string>

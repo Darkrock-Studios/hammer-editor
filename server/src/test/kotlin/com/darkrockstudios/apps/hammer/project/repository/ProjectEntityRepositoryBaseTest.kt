@@ -38,6 +38,7 @@ abstract class ProjectEntityRepositoryBaseTest : BaseTest() {
 	protected lateinit var timelineEventSynchronizer: ServerTimelineSynchronizer
 	protected lateinit var encyclopediaSynchronizer: ServerEncyclopediaSynchronizer
 	protected lateinit var sceneDraftSynchronizer: ServerSceneDraftSynchronizer
+	protected lateinit var imageSynchronizer: ServerImageSynchronizer
 	protected lateinit var projectEntityDatasource: ProjectEntityDatasource
 
 	protected lateinit var clientState: ClientEntityState
@@ -57,6 +58,7 @@ abstract class ProjectEntityRepositoryBaseTest : BaseTest() {
 		timelineEventSynchronizer = mockk()
 		encyclopediaSynchronizer = mockk()
 		sceneDraftSynchronizer = mockk()
+		imageSynchronizer = mockk()
 		projectEntityDatasource = mockk()
 
 		clientState = mockk()
@@ -100,6 +102,13 @@ abstract class ProjectEntityRepositoryBaseTest : BaseTest() {
 				clientState
 			)
 		} returns emptyList()
+		coEvery {
+			imageSynchronizer.getUpdateSequence(
+				userId,
+				projectDefinition,
+				clientState
+			)
+		} returns emptyList()
 
 		val testModule = module {
 			single { fileSystem } bind FileSystem::class
@@ -109,6 +118,7 @@ abstract class ProjectEntityRepositoryBaseTest : BaseTest() {
 			single { timelineEventSynchronizer }
 			single { encyclopediaSynchronizer }
 			single { sceneDraftSynchronizer }
+			single { imageSynchronizer }
 			single { clock } bind TestClock::class
 
 			single<SyncSessionManager<Long, ProjectsSynchronizationSession>>(

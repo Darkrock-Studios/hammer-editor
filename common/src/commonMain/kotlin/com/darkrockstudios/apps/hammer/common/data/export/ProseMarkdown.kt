@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.data.export
 
 import com.darkrockstudios.apps.hammer.base.markdown.ProseHtml
+import com.darkrockstudios.apps.hammer.common.data.references.ImageReferenceSyntax
 import com.darkrockstudios.apps.hammer.common.data.search.unescapeMarkdown
 import org.intellij.markdown.IElementType
 import org.intellij.markdown.MarkdownElementTypes
@@ -48,6 +49,15 @@ sealed interface ProseBlock {
 	data class CodeBlock(val code: String) : ProseBlock
 	data object Rule : ProseBlock
 	data class Table(val header: List<List<ProseSpan>>, val rows: List<List<List<ProseSpan>>>) : ProseBlock
+
+	/**
+	 * A line that holds only a project image. It sits in running prose like a [Paragraph], so a
+	 * format that cannot draw it writes [spans] in its place.
+	 */
+	data class Image(val imageId: Int, val name: String) : ProseBlock {
+		/** The image's name as a line of prose. */
+		val spans: List<ProseSpan> get() = listOf(ProseSpan(name))
+	}
 }
 
 /**
@@ -60,11 +70,19 @@ sealed interface ProseBlock {
  *
  * With [keepBlankLines] off a lone blank line is dropped, leaving paragraphs to run together, and a
  * run of two or more is reduced to one: the break between passages or scenes.
+ *
+ * A line holding nothing but a project image that [imageName] names becomes a [ProseBlock.Image].
+ * Any other image becomes text: a project image the name [imageName] gives it, or nothing when it
+ * gives none, since its alt text carries no meaning; any other image its alt text.
  */
-fun parseProseMarkdown(markdown: String, keepBlankLines: Boolean = true): List<ProseBlock> {
+fun parseProseMarkdown(
+	markdown: String,
+	keepBlankLines: Boolean = true,
+	imageName: (imageId: Int) -> String? = { null },
+): List<ProseBlock> {
 	val source = ProseHtml.normalizeLineEndings(markdown)
 	val root = MarkdownParser(GFMFlavourDescriptor()).buildMarkdownTreeFromString(source)
-	val blocks = ProseWalker(source).blocks(root)
+	val blocks = ProseWalker(source, imageName).blocks(root)
 	return if (keepBlankLines) blocks else blocks.withoutParagraphGaps()
 }
 
@@ -85,7 +103,7 @@ private fun List<ProseBlock>.withoutParagraphGaps(): List<ProseBlock> {
 
 /** True for the block kinds that make up running prose, as opposed to a structural block. */
 internal val ProseBlock.isProseLine: Boolean
-	get() = this is ProseBlock.Paragraph || this is ProseBlock.Blank
+	get() = this is ProseBlock.Paragraph || this is ProseBlock.Blank || this is ProseBlock.Image
 
 // ---------------------------------------------------------------------------
 // AST walking
@@ -102,7 +120,10 @@ private val HEADING_LEVELS: Map<IElementType, Int> = mapOf(
 	MarkdownElementTypes.SETEXT_2 to 2,
 )
 
-private class ProseWalker(private val source: String) {
+private class ProseWalker(
+	private val source: String,
+	private val imageName: (imageId: Int) -> String?,
+) {
 
 	/**
 	 * Walks the top level, keeping the blank lines between prose passages. A run of newlines
@@ -164,26 +185,28 @@ private class ProseWalker(private val source: String) {
 	}
 
 	/** A paragraph node, split into one block per line the author typed. */
-	private fun paragraphs(node: ASTNode): List<ProseBlock.Paragraph> =
+	private fun paragraphs(node: ASTNode): List<ProseBlock> =
 		if (node.children.isEmpty()) {
 			listOfNotNull(inline(node).ifEmpty { null }?.let { ProseBlock.Paragraph(it) })
 		} else {
-			lines(node).map { ProseBlock.Paragraph(it) }
+			lineNodes(node).mapNotNull { line ->
+				imageLine(line) ?: lineSpans(line).ifEmpty { null }?.let { ProseBlock.Paragraph(it) }
+			}
 		}
 
 	/** The inline content of [holder], cut at every newline the author typed. */
-	private fun lines(holder: ASTNode): List<List<ProseSpan>> {
-		val lines = mutableListOf<List<ProseSpan>>()
-		var current = mutableListOf<ProseSpan>()
+	private fun lines(holder: ASTNode): List<List<ProseSpan>> =
+		lineNodes(holder).mapNotNull { lineSpans(it).ifEmpty { null } }
 
-		fun endLine() {
-			normalise(current).ifEmpty { null }?.let { lines += it }
-			current = mutableListOf()
-		}
-
+	private fun lineNodes(holder: ASTNode): List<List<ASTNode>> {
+		val lines = mutableListOf<List<ASTNode>>()
+		var current = mutableListOf<ASTNode>()
 		for (child in holder.children) {
 			when (child.type) {
-				MarkdownTokenTypes.EOL -> endLine()
+				MarkdownTokenTypes.EOL -> {
+					lines += current
+					current = mutableListOf()
+				}
 
 				// The trailing spaces of a hard break are redundant: the newline itself breaks here.
 				MarkdownTokenTypes.HARD_LINE_BREAK -> Unit
@@ -191,12 +214,35 @@ private class ProseWalker(private val source: String) {
 				// A quote's own '>' markers sit inside the paragraph, on every line but the first.
 				MarkdownTokenTypes.BLOCK_QUOTE -> Unit
 
-				else -> collect(child, Flags(), current)
+				else -> current += child
 			}
 		}
-		endLine()
-
+		lines += current
 		return lines
+	}
+
+	private fun lineSpans(line: List<ASTNode>): List<ProseSpan> {
+		val spans = mutableListOf<ProseSpan>()
+		line.forEach { collect(it, Flags(), spans) }
+		return normalise(spans)
+	}
+
+	/**
+	 * The [ProseBlock.Image] for a line that is one named project image and nothing else. Its name
+	 * is normalised as the line's text would be, so [ProseBlock.Image.spans] match that text exactly.
+	 */
+	private fun imageLine(line: List<ASTNode>): ProseBlock.Image? {
+		val image = line.filter { it.type != MarkdownTokenTypes.WHITE_SPACE }.singleOrNull()
+			?.takeIf { it.type == MarkdownElementTypes.IMAGE }
+			?: return null
+		val imageId = image.findChildOfType(MarkdownElementTypes.INLINE_LINK)
+			?.let(::linkDestination)
+			?.let(ImageReferenceSyntax::parseId)
+			?: return null
+		val name = imageName(imageId)
+			?.let { normalise(listOf(ProseSpan(it))).singleOrNull()?.text }
+			?: return null
+		return ProseBlock.Image(imageId, name)
 	}
 
 	private fun heading(node: ASTNode): ProseBlock? {
@@ -352,11 +398,15 @@ private class ProseWalker(private val source: String) {
 			MarkdownElementTypes.SHORT_REFERENCE_LINK,
 			-> linkText(node)?.let { collect(it, flags, out) }
 
-			// Images degrade to their alt text.
-			MarkdownElementTypes.IMAGE ->
-				node.findChildOfType(MarkdownElementTypes.INLINE_LINK)
-					?.let { linkText(it) }
-					?.let { collect(it, flags, out) }
+			MarkdownElementTypes.IMAGE -> {
+				val link = node.findChildOfType(MarkdownElementTypes.INLINE_LINK)
+				val imageId = link?.let(::linkDestination)?.let(ImageReferenceSyntax::parseId)
+				if (imageId != null) {
+					imageName(imageId)?.let { out += span(it, flags) }
+				} else {
+					link?.let(::linkText)?.let { collect(it, flags, out) }
+				}
+			}
 
 			MarkdownElementTypes.LINK_TEXT ->
 				node.children.drop(1).dropLast(1).forEach { collect(it, flags, out) }

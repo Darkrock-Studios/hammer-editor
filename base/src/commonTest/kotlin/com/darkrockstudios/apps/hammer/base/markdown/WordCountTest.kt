@@ -81,6 +81,32 @@ class WordCountTest {
 	}
 
 	@Test
+	fun `an image counts for nothing`() {
+		assertEquals(0, countWords("![Cat](hammer://image/3)"))
+		assertEquals(0, countWords("![A black cat](hammer://image/3 \"On the mat\")"))
+		assertEquals(2, countWords("Before\n\n![Black cat](hammer://image/3)\n\nafter"))
+	}
+
+	@Test
+	fun `an image inside a line leaves the words around it`() {
+		assertEquals(3, countWords("one ![two three](https://example.com/a(b).png) four five"))
+		assertEquals(2, countWords("see ![a [nested] alt](<hammer://image/3>) here"))
+		assertEquals(2, countWords("Figure: ![Figure 12, plate 4](hammer://image/42) above"))
+	}
+
+	@Test
+	fun `an image ends the word before it`() {
+		assertEquals(2, countWords("cat![Cat](hammer://image/3)s"))
+	}
+
+	@Test
+	fun `text that only looks like an image still counts`() {
+		assertEquals(2, countWords("\\![not](x)"))
+		assertEquals(4, countWords("![open alt](no close"))
+		assertEquals(5, countWords("![split\nalt](hammer://image/3)"))
+	}
+
+	@Test
 	fun `a hyphen separates words`() {
 		assertEquals(2, countWords("well-known"))
 	}
@@ -126,5 +152,35 @@ class WordCountTest {
 	@Test
 	fun `a lone combining mark is not a word`() {
 		assertEquals(1, countWords("a \u0301"))
+	}
+
+	@Test
+	fun `counted word spans of empty text are empty`() {
+		assertEquals(emptyList<IntRange>(), countedWordSpans("").toList())
+	}
+
+	@Test
+	fun `counted word spans index the original string around an image`() {
+		val text = "cat![Cat](hammer://image/3)s and ![dog](x) more"
+		val spans = countedWordSpans(text).toList()
+		assertEquals(listOf(0..2, 27..27, 29..31, 43..46), spans)
+		assertEquals(listOf("cat", "s", "and", "more"), spans.map { text.substring(it) })
+	}
+
+	@Test
+	fun `counted word spans without an image are the word spans`() {
+		val text = "one \\![not](x) two"
+		assertEquals(4, countedWordSpans(text).count())
+		assertEquals(wordSpans(text).toList(), countedWordSpans(text).toList())
+	}
+
+	@Test
+	fun `counted word spans start right after back-to-back images`() {
+		assertEquals(listOf(15..15), countedWordSpans("![a](x)![b](y) z").toList())
+	}
+
+	@Test
+	fun `counted word spans skip an image inside a code span`() {
+		assertEquals(listOf(10..10), countedWordSpans("`![a](b)` c").toList())
 	}
 }

@@ -8,9 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.unit.dp
@@ -40,7 +38,6 @@ import com.darkrockstudios.cairn.CairnAppId
 import com.darkrockstudios.cairn.CairnConfig
 import dev.nucleusframework.application.NucleusApplicationScope
 import dev.nucleusframework.window.material.MaterialDecoratedWindow
-import dev.nucleusframework.window.material.MaterialTitleBar
 import org.jetbrains.compose.resources.painterResource
 
 @ExperimentalMaterialApi
@@ -99,17 +96,12 @@ internal fun NucleusApplicationScope.ProjectSelectionWindow(
 		}
 	) {
 		RaiseOnRequest(raiseRequests)
-		MaterialTitleBar {
-			Text(
-				text = title,
-				color = MaterialTheme.colorScheme.onSurface,
-				modifier = Modifier.align(Alignment.CenterHorizontally),
-			)
-		}
-		// Tao windows are their own ComposeScene: locals provided outside the
-		// window (AppTheme in Main.kt) don't reach this content, so re-apply.
-		AppTheme(useDarkTheme = darkMode, settings = settings) {
-			Content(component)
+		TitledWindowContent(title) {
+			// Tao windows are their own ComposeScene: locals provided outside the
+			// window (AppTheme in Main.kt) don't reach this content, so re-apply.
+			AppTheme(useDarkTheme = darkMode, settings = settings) {
+				Content(component)
+			}
 		}
 	}
 }

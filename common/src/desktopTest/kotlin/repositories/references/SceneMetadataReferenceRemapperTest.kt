@@ -131,9 +131,10 @@ class SceneMetadataReferenceRemapperTest : BaseTest() {
 		metadataDatasource.storeMetadata(SceneMetadata(confirmedReferences = setOf(7)), 10)
 		metadataDatasource.storeMetadata(SceneMetadata(confirmedReferences = setOf(99)), 11)
 
-		makeRemapper().remapEntryReferences(oldEntryId = 7, newEntryId = 42)
+		val rewritten = makeRemapper().remapEntryReferences(oldEntryId = 7, newEntryId = 42)
 
 		assertEquals(setOf(99), metadataDatasource.loadMetadata(11)?.confirmedReferences)
+		assertEquals(setOf(10), rewritten, "Only the scenes actually rewritten are reported")
 	}
 
 	@Test

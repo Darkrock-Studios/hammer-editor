@@ -1,5 +1,8 @@
 package com.darkrockstudios.apps.hammer.common.data.search
 
+import com.darkrockstudios.apps.hammer.base.markdown.inlineImageAltEnd
+import com.darkrockstudios.apps.hammer.base.markdown.inlineImageDestinationEnd
+import com.darkrockstudios.apps.hammer.common.data.references.ImageReferenceSyntax
 import com.darkrockstudios.apps.hammer.common.util.ScanBuffers
 
 private const val FLAG_CAN_OPEN = 1
@@ -30,9 +33,14 @@ private fun Char.isSpaceOrTabChar(): Boolean = this == ' ' || this == '\t'
  * the delimiter runs live in parallel primitive arrays rather than objects, and the projected prose
  * lands in a char buffer that is matched against in place rather than being turned into a String.
  *
+ * A project image projects to the name [imageName] gives its id, or to nothing when it gives none.
+ *
  * Not thread safe. A concurrent scan needs its own instance.
  */
-class MarkdownProjector(initialCapacity: Int = INITIAL_OUT) : ScanBuffers {
+class MarkdownProjector(
+	initialCapacity: Int = INITIAL_OUT,
+	private val imageName: (imageId: Int) -> String? = { null },
+) : ScanBuffers {
 
 	/**
 	 * The source is copied in and then indexed as a flat array: the scan and the render each walk
@@ -43,9 +51,13 @@ class MarkdownProjector(initialCapacity: Int = INITIAL_OUT) : ScanBuffers {
 
 	private var rawBytes = ByteArray(0)
 
-	/** The projection only ever deletes, so it can never outgrow the source it came from. */
+	/**
+	 * The projection deletes everything but the image names it writes, so it never outgrows the
+	 * source by more than [namesLength]; the buffer is always at least that long.
+	 */
 	private var out = CharArray(initialCapacity)
 	private var outLength = 0
+	private var namesLength = 0
 
 	/**
 	 * Sized from the document rather than a fixed floor, so projecting one short note does not pay
@@ -106,6 +118,7 @@ class MarkdownProjector(initialCapacity: Int = INITIAL_OUT) : ScanBuffers {
 	fun projectSource(length: Int): Int {
 		srcLength = length
 		outLength = 0
+		namesLength = 0
 		ensureOut(length)
 		scanDelimiterRuns()
 		resolveCodeSpans()
@@ -425,6 +438,13 @@ class MarkdownProjector(initialCapacity: Int = INITIAL_OUT) : ScanBuffers {
 		outLength++
 	}
 
+	private fun appendName(name: String) {
+		namesLength += name.length
+		val needed = srcLength + namesLength
+		if (out.size < needed) out = out.copyOf(maxOf(needed, out.size * 2))
+		for (c in name) appendOut(c)
+	}
+
 	private fun appendOut(from: Int, to: Int) {
 		var i = from
 		while (i < to) {
@@ -434,11 +454,17 @@ class MarkdownProjector(initialCapacity: Int = INITIAL_OUT) : ScanBuffers {
 		}
 	}
 
+	/**
+	 * A project image renders as its name, or as nothing. Any other image renders as its alt text: the
+	 * `![` is dropped, and so is everything from the `]` on.
+	 */
 	private fun render() {
 		val length = srcLength
 		var i = 0
 		var r = 0
 		var atLineStart = true
+		var imageAltEnd = -1
+		var imageEnd = -1
 		while (i < length) {
 			if (atLineStart) {
 				atLineStart = false
@@ -450,6 +476,13 @@ class MarkdownProjector(initialCapacity: Int = INITIAL_OUT) : ScanBuffers {
 				}
 			}
 
+			if (i == imageAltEnd) {
+				i = imageEnd
+				imageAltEnd = -1
+				while (r < runCount && runStart[r] < i) r++
+				continue
+			}
+
 			if (r < runCount && i == runStart[r]) {
 				appendOut(runStart[r] + runDropFront[r], runEnd[r] - runDropBack[r])
 				i = runEnd[r]
@@ -458,6 +491,23 @@ class MarkdownProjector(initialCapacity: Int = INITIAL_OUT) : ScanBuffers {
 			}
 
 			val c = src[i]
+			if (c == '!' && imageAltEnd < 0) {
+				val altEnd = inlineImageAltEnd(i, length) { src[it] }
+				val end = if (altEnd < 0) -1 else inlineImageDestinationEnd(altEnd, length) { src[it] }
+				if (end > 0) {
+					val imageId = projectImageId(altEnd, end)
+					if (imageId >= 0) {
+						imageName(imageId)?.let(::appendName)
+						i = end
+						while (r < runCount && runStart[r] < i) r++
+						continue
+					}
+					imageAltEnd = altEnd
+					imageEnd = end
+					i += 2
+					continue
+				}
+			}
 			if (c == '\n') atLineStart = true
 			if (c == '\\' && i + 1 < length && src[i + 1].isAsciiPunctuation()) {
 				appendOut(src[i + 1])
@@ -467,5 +517,33 @@ class MarkdownProjector(initialCapacity: Int = INITIAL_OUT) : ScanBuffers {
 				i++
 			}
 		}
+	}
+
+	/**
+	 * The id of the project image named by the destination of the image whose alt text closes at
+	 * [altEnd] and which ends at [end], or -1 when the destination is not `hammer://image/<id>`.
+	 */
+	private fun projectImageId(altEnd: Int, end: Int): Int {
+		var i = altEnd + 2
+		while (i < end && src[i].isSpaceOrTabChar()) i++
+		val bracketed = i < end && src[i] == '<'
+		if (bracketed) i++
+		val prefix = ImageReferenceSyntax.SCHEME_PREFIX
+		if (end - i < prefix.length) return -1
+		for (k in prefix.indices) {
+			if (src[i + k] != prefix[k]) return -1
+		}
+		i += prefix.length
+		var id = 0L
+		val digitsStart = i
+		while (i < end && src[i] in '0'..'9') {
+			id = id * 10 + (src[i] - '0')
+			if (id > Int.MAX_VALUE) return -1
+			i++
+		}
+		if (i == digitsStart || i >= end) return -1
+		val next = src[i]
+		val closes = if (bracketed) next == '>' else next.isSpaceOrTabChar() || next == ')'
+		return if (closes) id.toInt() else -1
 	}
 }

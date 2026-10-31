@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryResult
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImageAddResult
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagSuggesting
 
 interface ViewEntry : TagSuggesting {
@@ -17,11 +18,16 @@ interface ViewEntry : TagSuggesting {
 
 	data class State(
 		val entryDef: EntryDef,
-		val entryImagePath: String? = null,
-		val entryImageHash: String? = null,
+		/** The entry's images that exist in the project, primary first. */
+		val images: List<EntryImage> = emptyList(),
+		/** The index in [images] of the image on show. */
+		val currentImageIndex: Int = 0,
 		val content: EntryContent? = null,
 		val showAddImageDialog: Boolean = false,
-		val showDeleteImageDialog: Boolean = false,
+		/** The gallery is open to pick an image from the project for this entry. */
+		val pendingLibraryPick: Boolean = false,
+		/** The image waiting on confirmation before it is removed from the entry. */
+		val removeImageConfirm: Int? = null,
 		val showDeleteEntryDialog: Boolean = false,
 		val editText: Boolean = false,
 		val editName: Boolean = false,
@@ -34,6 +40,14 @@ interface ViewEntry : TagSuggesting {
 		val dictionaryFeatureEnabled: Boolean = true,
 	)
 
+	/** [hash] changes whenever the image's bytes do, so it keys image caches. */
+	data class EntryImage(
+		val id: Int,
+		val name: String,
+		val path: String,
+		val hash: String?,
+	)
+
 	data class Appearance(
 		val name: String,
 		val sceneItem: SceneItem,
@@ -44,17 +58,25 @@ interface ViewEntry : TagSuggesting {
 		Scene,
 	}
 
-	fun getImagePath(entryDef: EntryDef): String?
 	suspend fun loadEntryContent(entryDef: EntryDef): EntryContent
 	suspend fun deleteEntry(entryDef: EntryDef): Boolean
 	suspend fun updateEntry(name: String, text: String, tags: Set<String>): EntryResult
-	suspend fun removeEntryImage(): Boolean
-	suspend fun setImage(path: String)
+
+	/** Imports the file at [path] as a new Image and adds it after the entry's other images. */
+	suspend fun importImage(path: String): ImageAddResult
+
+	/** Opens the image gallery to pick an image already in the project, and adds it after the entry's other images. */
+	fun addImageFromLibrary()
+
+	/** Detaches image [id] from the entry; the Image stays in the project. */
+	suspend fun removeImage(id: Int): Boolean
+	suspend fun setPrimaryImage(id: Int): Boolean
+	fun showImageAt(index: Int)
 
 	fun showDeleteEntryDialog()
 	fun closeDeleteEntryDialog()
-	fun showDeleteImageDialog()
-	fun closeDeleteImageDialog()
+	fun showRemoveImageConfirm(id: Int)
+	fun dismissRemoveImageConfirm()
 	fun showAddImageDialog()
 	fun closeAddImageDialog()
 

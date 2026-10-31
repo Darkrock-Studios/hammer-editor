@@ -53,7 +53,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -62,12 +61,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil3.ImageLoader
-import coil3.compose.AsyncImage
-import coil3.compose.LocalPlatformContext
-import coil3.memory.MemoryCache
-import coil3.request.ImageRequest
-import coil3.request.crossfade
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.ViewEntry
@@ -82,7 +75,6 @@ import com.darkrockstudios.apps.hammer.common.compose.SimpleDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdCrumbBackLink
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDetailStampRow
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdEngravingPlaceholder
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineGrid
@@ -94,26 +86,28 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagChip
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagSuggestionStrip
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.glyph
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.rememberTagSuggestions
+import com.darkrockstudios.apps.hammer.common.compose.images.StagedImage
+import com.darkrockstudios.apps.hammer.common.compose.images.imageAddResultMessage
+import com.darkrockstudios.apps.hammer.common.compose.images.pickImageFile
+import com.darkrockstudios.apps.hammer.common.compose.images.stageImage
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownEditField
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownView
 import com.darkrockstudios.apps.hammer.common.compose.rememberDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.rememberIoDispatcher
-import com.darkrockstudios.apps.hammer.common.compose.rememberKoinInject
 import com.darkrockstudios.apps.hammer.common.compose.rememberMainDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
-import com.darkrockstudios.apps.hammer.common.compose.stageIntoCache
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
-import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaDatasource
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryError
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryResult
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImageAddResult
+import com.darkrockstudios.apps.hammer.common.images.ImageViewerDialog
+import com.darkrockstudios.apps.hammer.common.images.ImageViewerItem
 import com.darkrockstudios.apps.hammer.common.data.tagindex.replaceTagPrefix
 import com.darkrockstudios.apps.hammer.common.util.StrRes
-import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_image_load_failed
-import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_image_too_large
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_tags_label
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_toast_alias_too_long
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_toast_invalid_name
@@ -139,8 +133,6 @@ import com.darkrockstudios.apps.hammer.encyclopedia_entry_colophon_end
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_colophon_label
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_colophon_label_compact
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_crumb_root
-import com.darkrockstudios.apps.hammer.encyclopedia_entry_delete_image_message
-import com.darkrockstudios.apps.hammer.encyclopedia_entry_delete_image_title
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_delete_message
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_delete_title
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_delete_toast
@@ -150,9 +142,6 @@ import com.darkrockstudios.apps.hammer.encyclopedia_entry_edit_button
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_edit_cancel_button
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_edit_save_button
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_edit_save_toast
-import com.darkrockstudios.apps.hammer.encyclopedia_entry_figure_add
-import com.darkrockstudios.apps.hammer.encyclopedia_entry_figure_caption
-import com.darkrockstudios.apps.hammer.encyclopedia_entry_figure_label
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_folio_format
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_name_hint
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_particulars_aliases
@@ -160,15 +149,11 @@ import com.darkrockstudios.apps.hammer.encyclopedia_entry_particulars_label
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_particulars_scenes
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_particulars_tags
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_particulars_type
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_remove_image_message
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_remove_image_title
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_scene_index_format
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_tags_label
-import io.github.aakira.napier.Napier
-import io.github.vinceglb.filekit.FileKit
-import io.github.vinceglb.filekit.dialogs.FileKitPickerException
-import io.github.vinceglb.filekit.dialogs.FileKitType
-import io.github.vinceglb.filekit.dialogs.openFilePicker
-import io.github.vinceglb.filekit.path
-import io.github.vinceglb.filekit.size
+import io.github.vinceglb.filekit.PlatformFile
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -188,7 +173,6 @@ internal fun ViewEntryUi(
 	sharedTransitionScope: SharedTransitionScope,
 	animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
-	val imageLoader = rememberKoinInject<ImageLoader>()
 	val strRes = rememberStrRes()
 	val dispatcherMain = rememberMainDispatcher()
 	val dispatcherDefault = rememberDefaultDispatcher()
@@ -245,6 +229,44 @@ internal fun ViewEntryUi(
 		entryText = content.text
 		component.finishNameEdit()
 		component.finishTextEdit()
+	}
+
+	suspend fun reportImage(result: ImageAddResult) {
+		imageAddResultMessage(result, strRes)?.let { rootSnackbar.showSnackbar(it) }
+	}
+
+	suspend fun importPicked(file: PlatformFile) {
+		val result = when (val staged = file.stageImage(dispatcherIo)) {
+			is StagedImage.Staged -> component.importImage(staged.path)
+			is StagedImage.Failed -> staged.result
+		}
+		reportImage(result)
+	}
+
+	val primaryImageModifier = with(sharedTransitionScope) {
+		Modifier.sharedElement(
+			sharedContentState = rememberSharedContentState(
+				key = "encyclopedia-image-${state.entryDef.id}",
+			),
+			animatedVisibilityScope = animatedVisibilityScope,
+		)
+	}
+	var viewerIndex by remember { mutableStateOf<Int?>(null) }
+	val figure: @Composable (Modifier) -> Unit = { figureModifier ->
+		EntryImagePager(
+			entryName = state.entryDef.name,
+			images = state.images,
+			currentIndex = state.currentImageIndex,
+			onShowIndex = component::showImageAt,
+			onAdd = component::showAddImageDialog,
+			onAddFromLibrary = component::addImageFromLibrary,
+			onOpenImage = { viewerIndex = it },
+			onFilesDropped = { files -> scope.launch { files.forEach { importPicked(it) } } },
+			onSetPrimary = { id -> scope.launch { component.setPrimaryImage(id) } },
+			onRemove = component::showRemoveImageConfirm,
+			modifier = figureModifier,
+			primaryImageModifier = primaryImageModifier,
+		)
 	}
 
 	val outerScrollState = rememberScrollState()
@@ -347,8 +369,7 @@ internal fun ViewEntryUi(
 							entryText = entryText,
 							setEntryText = { entryText = it },
 							onStartTextEdit = component::startTextEdit,
-							onShowDeleteImage = component::showDeleteImageDialog,
-							onAddImage = component::showAddImageDialog,
+							figure = figure,
 							outerModifier = bodyOuterModifier,
 							sharedTransitionScope = sharedTransitionScope,
 							animatedVisibilityScope = animatedVisibilityScope,
@@ -359,8 +380,7 @@ internal fun ViewEntryUi(
 							entryText = entryText,
 							setEntryText = { entryText = it },
 							onStartTextEdit = component::startTextEdit,
-							onShowDeleteImage = component::showDeleteImageDialog,
-							onAddImage = component::showAddImageDialog,
+							figure = figure,
 							outerModifier = bodyOuterModifier,
 							sharedTransitionScope = sharedTransitionScope,
 							animatedVisibilityScope = animatedVisibilityScope,
@@ -427,52 +447,29 @@ internal fun ViewEntryUi(
 
 	LaunchedEffect(state.showAddImageDialog) {
 		if (state.showAddImageDialog) {
-			val file = try {
-				FileKit.openFilePicker(type = FileKitType.File(EncyclopediaDatasource.IMAGE_EXTENSIONS))
-			} catch (e: FileKitPickerException) {
-				Napier.e("Image picker failed", e)
-				rootSnackbar.showSnackbar(
-					strRes.get(Res.string.encyclopedia_create_entry_image_load_failed)
-				)
-				null
-			}
-			if (file != null) {
-				if (file.size() > EncyclopediaDatasource.MAX_IMAGE_SIZE_BYTES) {
-					rootSnackbar.showSnackbar(
-						strRes.get(
-							Res.string.encyclopedia_create_entry_image_too_large,
-							EncyclopediaDatasource.MAX_IMAGE_SIZE_MB,
-						)
-					)
-				} else {
-					val localCopy = withContext(dispatcherIo) { file.stageIntoCache() }
-					if (localCopy != null) {
-						scope.launch { component.setImage(localCopy.path) }
-					} else {
-						rootSnackbar.showSnackbar(
-							strRes.get(Res.string.encyclopedia_create_entry_image_load_failed)
-						)
-					}
-				}
-			}
+			val file = pickImageFile(::reportImage)
+			// Imported outside this effect: closing the dialog below restarts it.
+			if (file != null) scope.launch { importPicked(file) }
 			component.closeAddImageDialog()
 		}
 	}
 
-	if (state.showDeleteImageDialog) {
+	viewerIndex?.let { index ->
+		ImageViewerDialog(
+			items = state.images.map { ImageViewerItem.ofFile(it.path, it.hash, it.name) },
+			initialIndex = index,
+			onDismissed = { viewerIndex = null },
+		)
+	}
+
+	state.removeImageConfirm?.let { imageId ->
 		SimpleConfirm(
-			title = Res.string.encyclopedia_entry_delete_image_title.get(),
-			message = Res.string.encyclopedia_entry_delete_image_message.get(),
-			onDismiss = { component.closeDeleteImageDialog() },
+			title = Res.string.encyclopedia_entry_remove_image_title.get(),
+			message = Res.string.encyclopedia_entry_remove_image_message.get(),
+			onDismiss = { component.dismissRemoveImageConfirm() },
 			onConfirm = {
-				scope.launch {
-					component.removeEntryImage()
-					state.entryImagePath?.let { path ->
-						imageLoader.diskCache?.remove(path)
-						imageLoader.memoryCache?.remove(MemoryCache.Key(path))
-					}
-				}
-				component.closeDeleteImageDialog()
+				scope.launch { component.removeImage(imageId) }
+				component.dismissRemoveImageConfirm()
 			},
 		)
 	}
@@ -732,8 +729,7 @@ private fun WideBody(
 	entryText: String,
 	setEntryText: (String) -> Unit,
 	onStartTextEdit: () -> Unit,
-	onShowDeleteImage: () -> Unit,
-	onAddImage: () -> Unit,
+	figure: @Composable (Modifier) -> Unit,
 	outerModifier: Modifier,
 	sharedTransitionScope: SharedTransitionScope,
 	animatedVisibilityScope: AnimatedVisibilityScope,
@@ -755,25 +751,7 @@ private fun WideBody(
 			animatedVisibilityScope = animatedVisibilityScope,
 			sharedTransitionScope = sharedTransitionScope,
 		)
-		Column(
-			modifier = Modifier.width(InsetFigureWidth),
-			verticalArrangement = Arrangement.spacedBy(Ui.Padding.M),
-		) {
-			InsetFigure(
-				state = state,
-				onShowDeleteImage = onShowDeleteImage,
-				onAddImage = onAddImage,
-				sharedTransitionScope = sharedTransitionScope,
-				animatedVisibilityScope = animatedVisibilityScope,
-				modifier = Modifier
-					.fillMaxWidth()
-					.height(InsetFigureHeight),
-			)
-			HdMonoLabel(
-				text = Res.string.encyclopedia_entry_figure_caption.get() + " · ↗",
-				color = MaterialTheme.colorScheme.onSurfaceVariant,
-			)
-		}
+		figure(Modifier.width(InsetFigureWidth).height(InsetFigureHeight))
 	}
 }
 
@@ -784,8 +762,7 @@ private fun CompactBody(
 	entryText: String,
 	setEntryText: (String) -> Unit,
 	onStartTextEdit: () -> Unit,
-	onShowDeleteImage: () -> Unit,
-	onAddImage: () -> Unit,
+	figure: @Composable (Modifier) -> Unit,
 	outerModifier: Modifier,
 	sharedTransitionScope: SharedTransitionScope,
 	animatedVisibilityScope: AnimatedVisibilityScope,
@@ -798,19 +775,10 @@ private fun CompactBody(
 		verticalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 	) {
 		if (!editing) {
-			InsetFigure(
-				state = state,
-				onShowDeleteImage = onShowDeleteImage,
-				onAddImage = onAddImage,
-				sharedTransitionScope = sharedTransitionScope,
-				animatedVisibilityScope = animatedVisibilityScope,
-				modifier = Modifier
+			figure(
+				Modifier
 					.fillMaxWidth()
-					.height(240.dp),
-			)
-			HdMonoLabel(
-				text = Res.string.encyclopedia_entry_figure_caption.get() + " · ↗",
-				color = MaterialTheme.colorScheme.onSurfaceVariant,
+					.height(240.dp)
 			)
 		}
 		BodyTextZone(
@@ -887,84 +855,6 @@ private fun BodyTextZone(
 						)
 						.clickable(onClick = onStartTextEdit),
 				)
-			}
-		}
-	}
-}
-
-@OptIn(ExperimentalSharedTransitionApi::class)
-@Composable
-private fun InsetFigure(
-	state: ViewEntry.State,
-	onShowDeleteImage: () -> Unit,
-	onAddImage: () -> Unit,
-	sharedTransitionScope: SharedTransitionScope,
-	animatedVisibilityScope: AnimatedVisibilityScope,
-	modifier: Modifier = Modifier,
-) {
-	val ruleColor = MaterialTheme.colorScheme.outlineVariant
-	val imagePath = state.entryImagePath
-	Box(
-		modifier = modifier
-			.border(width = Dp.Hairline, color = ruleColor, shape = RectangleShape)
-			.background(MaterialTheme.colorScheme.surfaceContainerLow),
-	) {
-		if (imagePath != null) {
-			val context = LocalPlatformContext.current
-			with(sharedTransitionScope) {
-				AsyncImage(
-					model = remember(imagePath, state.entryImageHash) {
-						ImageRequest.Builder(context)
-							.data(imagePath)
-							.memoryCacheKeyExtras(
-								mapOf("hash" to state.entryImageHash.toString()),
-							)
-							.placeholderMemoryCacheKey(imagePath)
-							.crossfade(false)
-							.build()
-					},
-					contentDescription = null,
-					modifier = Modifier
-						.fillMaxSize()
-						.sharedElement(
-							sharedContentState = rememberSharedContentState(
-								key = "encyclopedia-image-${state.entryDef.id}",
-							),
-							animatedVisibilityScope = animatedVisibilityScope,
-						)
-						.clickable(onClick = onShowDeleteImage),
-					contentScale = ContentScale.Fit,
-				)
-			}
-		} else {
-			Column(
-				modifier = Modifier
-					.fillMaxSize()
-					.clickable(onClick = onAddImage),
-			) {
-				HdEngravingPlaceholder(
-					label = state.entryDef.name.uppercase(),
-					modifier = Modifier
-						.fillMaxWidth()
-						.weight(1f),
-				)
-				HorizontalDivider(thickness = Dp.Hairline, color = ruleColor)
-				Row(
-					modifier = Modifier
-						.fillMaxWidth()
-						.padding(horizontal = Ui.Padding.L, vertical = Ui.Padding.M),
-					horizontalArrangement = Arrangement.SpaceBetween,
-					verticalAlignment = Alignment.CenterVertically,
-				) {
-					HdMonoLabel(
-						text = Res.string.encyclopedia_entry_figure_label.get(),
-						color = MaterialTheme.colorScheme.onSurfaceVariant,
-					)
-					HdMonoLabel(
-						text = Res.string.encyclopedia_entry_figure_add.get(),
-						color = MaterialTheme.colorScheme.onSurfaceVariant,
-					)
-				}
 			}
 		}
 	}

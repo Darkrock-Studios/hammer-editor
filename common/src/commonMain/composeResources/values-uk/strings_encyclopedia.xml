@@ -24,8 +24,6 @@
 	<string name="encyclopedia_create_entry_image_browse_button">Огляд файлів</string>
 	<string name="encyclopedia_create_entry_image_attached">1 долучено</string>
 	<string name="encyclopedia_create_entry_image_replace">Замінити</string>
-	<string name="encyclopedia_create_entry_image_too_large">Зображення завелике. Максимальний розмір — %1$d МБ.</string>
-	<string name="encyclopedia_create_entry_image_load_failed">Не вдалося прочитати вибране зображення.</string>
 	<string name="encyclopedia_create_entry_create_button">Створити запис</string>
 	<string name="encyclopedia_create_entry_cancel_button">Скасувати</string>
 	<string name="encyclopedia_create_entry_toast_success">Запис створено</string>
@@ -53,8 +51,6 @@
 	<string name="encyclopedia_entry_delete_title">Видалити запис?</string>
 	<string name="encyclopedia_entry_delete_message">Цю дію неможливо скасувати!</string>
 	<string name="encyclopedia_entry_delete_toast">Запис видалено</string>
-	<string name="encyclopedia_entry_delete_image_title">Видалити зображення?</string>
-	<string name="encyclopedia_entry_delete_image_message">Цю дію неможливо скасувати!</string>
 	<string name="encyclopedia_entry_name_hint">Назва</string>
 	<string name="encyclopedia_entry_close_button">Закрити запис</string>
 	<string name="encyclopedia_entry_menu_group">Запис</string>
@@ -73,9 +69,7 @@
 	<string name="encyclopedia_entry_tags_label">Теги</string>
 	<string name="encyclopedia_entry_add_tag_chip">тег</string>
 	<string name="encyclopedia_entry_add_alias_chip">псевдонім</string>
-	<string name="encyclopedia_entry_figure_caption">Рис. I · Запис</string>
 	<string name="encyclopedia_entry_figure_label">Рис. I</string>
-	<string name="encyclopedia_entry_figure_add">+ Додати</string>
 	<string name="encyclopedia_entry_folio_format">Арк. %1$s · Зап-%2$s</string>
 	<string name="encyclopedia_entry_scene_index_format">Сц.%1$s</string>
 	<string name="encyclopedia_entry_colophon_label">Запис · Каталожна картка</string>

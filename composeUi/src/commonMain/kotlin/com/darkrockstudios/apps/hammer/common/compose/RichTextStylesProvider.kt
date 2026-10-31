@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.common.compose
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -11,6 +12,7 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.texteditor.RichTextStyles
+import com.darkrockstudios.texteditor.richstyle.ImageProvider
 
 /**
  * Heading sizes are relative to the editor's text style, so the body size lives in
@@ -32,6 +34,18 @@ val HammerRichTextStylesDark = HammerRichTextStyles.copy(
 )
 
 val LocalRichTextStyles = compositionLocalOf { HammerRichTextStyles }
+
+/**
+ * Resolves the image blocks markdown editors and views show. Null outside an open project, where
+ * an image line stays plain text.
+ */
+val LocalImageProvider = staticCompositionLocalOf<ImageProvider?> { null }
+
+/**
+ * The current name of the project image with an id, or null when the id names none. Names nothing
+ * outside an open project.
+ */
+val LocalImageNames = compositionLocalOf<(imageId: Int) -> String?> { { null } }
 
 /** The editor's body text style; every rich text size scales from it. */
 val LocalEditorTextStyle = compositionLocalOf {

@@ -4,6 +4,9 @@
 	<div class="story-container">
 		<!-- Story Header -->
 		<div class="story-header">
+			{{#coverImageUrl}}
+				<img class="story-cover" src="{{coverImageUrl}}" alt="" fetchpriority="high">
+			{{/coverImageUrl}}
 			<div class="public-story-attribution">
 				<span class="by-line">{{msg.public_story_by}}</span>
 				<a href="/a/{{authorPenNameUrl}}" class="author-name">{{authorPenName}}</a>

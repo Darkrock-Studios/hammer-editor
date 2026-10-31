@@ -459,7 +459,10 @@ class WasmPlugin(
 				topLevelAsChapters = input.treatTopLevelAsChapters,
 				chapters = input.bookChapters().map { chapter ->
 					if (prose) {
-						ExportRequest.Chapter(chapter.name, prose = chapter.scenes.map(::proseOf))
+						ExportRequest.Chapter(
+							chapter.name,
+							prose = chapter.scenes.map { proseOf(it, input.imageNames::get) },
+						)
 					} else {
 						ExportRequest.Chapter(chapter.name, scenes = chapter.scenes)
 					}

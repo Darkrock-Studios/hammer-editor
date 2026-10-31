@@ -1,10 +1,22 @@
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.unit.height
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.preview.fakeProjectData
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import com.darkrockstudios.apps.hammer.common.projectselection.ProjectCardCoverTestTag
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectCardTestTag
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectIndexRow
 import io.mockk.*
@@ -102,4 +114,58 @@ class ProjectCardTest {
 
 		assertEquals(listOf(data.definition), moved)
 	}
+
+	@Test
+	fun `Project Card shows a cover only when it has one`() {
+		var data by mutableStateOf(fakeProjectData())
+
+		compose.setContent {
+			ProjectIndexRow(
+				isWide = true,
+				index = 0,
+				projectData = data,
+				onProjectClick = {},
+				onProjectAltClick = {},
+				onProjectRenameClick = {},
+			)
+		}
+
+		compose.onNodeWithTag(ProjectCardCoverTestTag, useUnmergedTree = true).assertDoesNotExist()
+		data = data.copy(coverImagePath = "/projects/Test/images/4~Cover.png", coverImageVersion = "stamp:10-20")
+		compose.onNodeWithTag(ProjectCardCoverTestTag, useUnmergedTree = true).assertExists()
+	}
+
+	@Test
+	fun `Project Card with a cover keeps the height of one without`() {
+		val plain = fakeProjectData()
+		val covered = plain.copy(coverImagePath = "/projects/Test/images/4~Cover.png", coverImageVersion = "stamp:10-20")
+
+		// A scrolling column gives the rows unbounded height, as the project list does.
+		compose.setContent {
+			Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+				for (isWide in listOf(true, false)) {
+					for (data in listOf(plain, covered)) {
+						Box(modifier = Modifier.testTag(rowTag(isWide, data.coverImagePath != null))) {
+							ProjectIndexRow(
+								isWide = isWide,
+								index = 0,
+								projectData = data,
+								onProjectClick = {},
+								onProjectAltClick = {},
+								onProjectRenameClick = {},
+							)
+						}
+					}
+				}
+			}
+		}
+
+		for (isWide in listOf(true, false)) {
+			val plainHeight = compose.onNodeWithTag(rowTag(isWide, hasCover = false)).getUnclippedBoundsInRoot().height
+			val coveredHeight = compose.onNodeWithTag(rowTag(isWide, hasCover = true)).getUnclippedBoundsInRoot().height
+			assertEquals(plainHeight, coveredHeight, "isWide=$isWide")
+		}
+	}
+
+	private fun rowTag(isWide: Boolean, hasCover: Boolean) = "row-wide-$isWide-cover-$hasCover"
 }

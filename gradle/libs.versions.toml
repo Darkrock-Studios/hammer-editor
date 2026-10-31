@@ -36,8 +36,8 @@ clikt = "5.1.0"
 kotlinx_atomicfu = "0.33.0"
 kotlinx_collections_immutable = "0.5.2"
 markdown = "0.7.16"
-rtfParserKmp = "0.2.2"
-epub4kmp = "0.3.0"
+rtfParserKmp = "1.1.0"
+epub4kmp = "1.0.0"
 pdfkmp = "1.3.0"
 xmlutil = "1.0.2.1"
 poi = "5.5.1"
@@ -62,6 +62,7 @@ essenty = "2.5.0" # This should match whatever decompose is referncing internall
 filekit = "0.16.0"
 koalaplot-core = "0.11.2"
 coil = "3.6.3"
+telephoto = "0.19.0"
 kmpalette = "3.1.0"
 
 koin_bom = "4.2.2"
@@ -110,7 +111,7 @@ korge-core = "6.0.0"
 bouncycastle = "1.86"
 kotlinx-io-okio = "0.9.1"
 
-compose-texteditor = "3.1.0"
+compose-texteditor = "3.2.0"
 kotlin-multiplatform-diff = "1.4.0"
 platform-spellcheckerkt = "1.4.0"
 nucleus = "2.5.18"
@@ -149,6 +150,7 @@ jetbrains_compose_ui_tooling_preview = { module = "org.jetbrains.compose.ui:ui-t
 jetbrains_compose_ui_test_junit4 = { module = "org.jetbrains.compose.ui:ui-test-junit4", version.ref = "jetbrains_compose" }
 jetbrains_compose_components_resources = { module = "org.jetbrains.compose.components:components-resources", version.ref = "jetbrains_compose" }
 jetbrains_compose_components_ui_tooling_preview = { module = "org.jetbrains.compose.components:components-ui-tooling-preview", version.ref = "jetbrains_compose" }
+jetbrains_compose_ui_graphics = { module = "org.jetbrains.compose.ui:ui-graphics", version.ref = "jetbrains_compose" }
 jetbrains_compose_ui_util = { module = "org.jetbrains.compose.ui:ui-util", version.ref = "jetbrains_compose" }
 jetbrains_compose_ui_text = { module = "org.jetbrains.compose.ui:ui-text", version.ref = "jetbrains_compose" }
 jetbrains_compose_ui_backhandler = { module = "org.jetbrains.compose.ui:ui-backhandler", version.ref = "jetbrains_compose" }
@@ -156,6 +158,7 @@ jetbrains_compose_ui_backhandler = { module = "org.jetbrains.compose.ui:ui-backh
 coil_compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil" }
 coil_network_ktor = { group = "io.coil-kt.coil3", name = "coil-network-ktor3", version.ref = "coil" }
 coil_svg = { group = "io.coil-kt.coil3", name = "coil-svg", version.ref = "coil" }
+telephoto_zoomable = { group = "me.saket.telephoto", name = "zoomable", version.ref = "telephoto" }
 
 kmpalette_core = { group = "com.kmpalette", name = "kmpalette-core", version.ref = "kmpalette" }
 kmpalette_extensions_file = { group = "com.kmpalette", name = "extensions-file", version.ref = "kmpalette" }

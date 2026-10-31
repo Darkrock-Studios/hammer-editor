@@ -49,6 +49,8 @@ import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
 import com.darkrockstudios.apps.hammer.secret.KeyringManager
+import com.darkrockstudios.apps.hammer.story.StoryImageService
+import com.darkrockstudios.apps.hammer.story.StoryImageSigner
 import com.darkrockstudios.apps.hammer.story.StoryRendererService
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
 import com.darkrockstudios.apps.hammer.utilities.MarkdownRenderer
@@ -110,6 +112,8 @@ fun Route.frontend() {
 	val storyReaderCollector: StoryReaderCollector by inject()
 	val storyKudosRepository: StoryKudosRepository by inject()
 	val serverProjectDataRepository: com.darkrockstudios.apps.hammer.project.ServerProjectDataRepository by inject()
+	val storyImageService: StoryImageService by inject()
+	val storyImageSigner: StoryImageSigner by inject()
 	val recurringTaskRegistry: com.darkrockstudios.apps.hammer.scheduling.RecurringTaskRegistry by inject()
 	val clock: kotlin.time.Clock by inject()
 	val projectsSyncManager: SyncSessionManager<Long, ProjectsSynchronizationSession> by inject(named(PROJECTS_SYNC_MANAGER))
@@ -162,7 +166,7 @@ fun Route.frontend() {
 		projectsRepository,
 		accountsRepository,
 		reviewRepository,
-		storyReaderRepository, storyKudosRepository, serverProjectDataRepository, clock,
+		storyReaderRepository, storyKudosRepository, serverProjectDataRepository, storyImageService, clock,
 	)
 	reviewFrontend(
 		reviewRepository = reviewRepository,
@@ -182,6 +186,8 @@ fun Route.frontend() {
 		accountsRepository,
 		projectsRepository,
 		serverProjectDataRepository,
+		storyImageService,
+		storyImageSigner,
 		serverConfig,
 	)
 	storyKudosRoutes(

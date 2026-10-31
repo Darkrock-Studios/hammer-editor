@@ -394,7 +394,8 @@ screen that surfaces them.
   image is set so the card never feels half-formed.
 - **[`HdEngravingPlaceholder`](HdEngravingPlaceholder.kt)** — 45°
   hatched stripes + `[ENGRAVING · NAME]`. The "no image" placeholder
-  inside detail layouts.
+  inside detail layouts. `compact = true` shows a centred `[NAME]` for
+  narrow frames such as the book cover.
 
 ### Cards & charts
 

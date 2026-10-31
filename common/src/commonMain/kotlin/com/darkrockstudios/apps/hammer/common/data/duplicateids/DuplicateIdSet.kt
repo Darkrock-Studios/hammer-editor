@@ -4,10 +4,10 @@ import com.darkrockstudios.apps.hammer.common.fileio.HPath
 
 enum class DuplicateIdKind {
 	Entry,
-	EntryImage,
 	Scene,
 	Draft,
 	Note,
+	Image,
 }
 
 /** One file (or scene group directory) claiming an id. */
@@ -36,9 +36,6 @@ data class DuplicateIdSet(
 	val copies: List<DuplicateCopy>,
 ) {
 	val inUse: DuplicateCopy get() = copies.first()
-
-	/** Whether more than one copy may be kept, each extra one under a fresh id. */
-	val canKeepSeveral: Boolean get() = kind != DuplicateIdKind.EntryImage
 }
 
 class StaleDuplicateIdSet(set: DuplicateIdSet) :

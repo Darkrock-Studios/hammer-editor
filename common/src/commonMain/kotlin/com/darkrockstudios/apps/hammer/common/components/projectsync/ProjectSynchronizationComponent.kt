@@ -7,12 +7,14 @@ import com.arkivanov.decompose.value.getAndUpdate
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
+import com.darkrockstudios.apps.hammer.base.image.ImageFormat
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftsDatasource
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaService
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesRepository
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NoteError
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
@@ -47,6 +49,7 @@ class ProjectSynchronizationComponent(
 	private val notesRepository: NotesRepository by projectInject()
 	private val timeLineRepository: TimeLineRepository by projectInject()
 	private val sceneDraftRepository: SceneDraftRepository by projectInject()
+	private val imagesRepository: ImagesRepository by projectInject()
 	private val projectSynchronizer: ClientProjectSynchronizer by projectInject()
 	private val projectDataConflictBroker: ProjectDataConflictBroker by projectInject()
 
@@ -61,6 +64,12 @@ class ProjectSynchronizationComponent(
 	init {
 		conflictListenerJob = scope.launch {
 			for (conflict in projectDataConflictBroker.conflicts) {
+				val coverIds = listOfNotNull(conflict.local.coverImageId, conflict.server.coverImageId)
+				val localImages = if (coverIds.isEmpty()) {
+					emptyMap()
+				} else {
+					imagesRepository.findImageFiles(coverIds).associateBy { it.def.id }
+				}
 				withContext(mainDispatcher) {
 					_state.getAndUpdate {
 						it.copy(
@@ -68,6 +77,7 @@ class ProjectSynchronizationComponent(
 								local = conflict.local,
 								server = conflict.server,
 								serverHash = conflict.serverHash,
+								localImages = localImages,
 							),
 							conflictTitle = Res.string.sync_conflict_project_data_title,
 						)
@@ -155,6 +165,10 @@ class ProjectSynchronizationComponent(
 
 			is ApiProjectEntity.TimelineEventEntity -> {
 				validateTimelineEventEntity(resolvedEntity)
+			}
+
+			is ApiProjectEntity.ImageEntity -> {
+				validateImage(resolvedEntity)
 			}
 		}
 
@@ -263,6 +277,7 @@ class ProjectSynchronizationComponent(
 			is ApiProjectEntity.TimelineEventEntity -> onTimelineEventConflict(serverEntity)
 			is ApiProjectEntity.EncyclopediaEntryEntity -> onEncyclopediaEntryConflict(serverEntity)
 			is ApiProjectEntity.SceneDraftEntity -> onSceneDraftConflict(serverEntity)
+			is ApiProjectEntity.ImageEntity -> onImageConflict(serverEntity)
 		}
 	}
 
@@ -317,33 +332,18 @@ class ProjectSynchronizationComponent(
 
 	private suspend fun onEncyclopediaEntryConflict(serverEntity: ApiProjectEntity.EncyclopediaEntryEntity) {
 		val local = encyclopediaService.loadEntry(serverEntity.id).entry
-		val def = local.toDef(projectDef)
-		val imageExtension = encyclopediaService.findEntryImageExtension(def)
-		val image = if (imageExtension != null) {
-			val imageBytes = encyclopediaService.loadEntryImage(def, imageExtension)
-			val imageBase64 = Base64.encode(imageBytes, url = true)
-			ApiProjectEntity.EncyclopediaEntryEntity.Image(imageBase64, imageExtension)
-		} else {
-			null
-		}
 
-		val localEntity = ApiProjectEntity.EncyclopediaEntryEntity(
-			id = local.id,
-			name = local.name,
-			entryType = local.type.text,
-			text = local.text,
-			tags = local.tags,
-			image = image,
-			aliases = local.aliases,
-			excludeFromDictionary = local.excludeFromDictionary,
-		)
+		val localEntity = local.toApiEntity()
+		val localImages = imagesRepository.findImageFiles(local.images + serverEntity.images)
+			.associateBy { it.def.id }
 
 		withContext(mainDispatcher) {
 			_state.getAndUpdate {
 				it.copy(
 					entityConflict = ProjectSynchronization.EntityConflict.EncyclopediaEntryConflict(
 						serverEntry = serverEntity,
-						clientEntry = localEntity
+						clientEntry = localEntity,
+						localImages = localImages,
 					),
 					conflictTitle = Res.string.sync_conflict_encyclopedia_title
 				)
@@ -373,6 +373,33 @@ class ProjectSynchronizationComponent(
 						clientEntry = localEntity
 					),
 					conflictTitle = Res.string.sync_conflict_scene_draft_title
+				)
+			}
+		}
+	}
+
+	private suspend fun onImageConflict(serverEntity: ApiProjectEntity.ImageEntity) {
+		val local = imagesRepository.findImage(serverEntity.id)
+			?: error("Failed to get local image")
+		val localBytes = imagesRepository.loadImageBytes(local)
+			?: error("Failed to read local image")
+
+		val localEntity = ApiProjectEntity.ImageEntity(
+			id = local.id,
+			name = local.name,
+			fileExtension = local.fileExtension,
+			base64 = Base64.encode(localBytes, url = true),
+		)
+
+		withContext(mainDispatcher) {
+			_state.getAndUpdate {
+				it.copy(
+					entityConflict = ProjectSynchronization.EntityConflict.ImageConflict(
+						serverImage = serverEntity,
+						clientImage = localEntity,
+						clientImagePath = imagesRepository.getImagePath(local),
+					),
+					conflictTitle = Res.string.sync_conflict_image_title
 				)
 			}
 		}
@@ -463,6 +490,16 @@ class ProjectSynchronizationComponent(
 		} else {
 			ProjectSynchronization.EntityMergeError.SceneMergeError(
 				nameError = result.displayMessage
+			)
+		}
+	}
+
+	private fun validateImage(resolvedEntity: ApiProjectEntity.ImageEntity): ProjectSynchronization.EntityMergeError.ImageMergeError? {
+		return if (ImageFormat.isValidName(resolvedEntity.name)) {
+			null
+		} else {
+			ProjectSynchronization.EntityMergeError.ImageMergeError(
+				nameError = Res.string.sync_conflict_image_name_invalid.toMsg()
 			)
 		}
 	}

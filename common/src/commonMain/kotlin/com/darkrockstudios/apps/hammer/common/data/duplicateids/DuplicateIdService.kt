@@ -5,6 +5,7 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
@@ -41,6 +42,7 @@ class DuplicateIdService(
 	private val sceneRepository: SceneRepository by projectInject()
 	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
 	private val notesRepository: NotesRepository by projectInject()
+	private val imagesRepository: ImagesRepository by projectInject()
 	private val entitySynchronizers: EntitySynchronizers by projectInject()
 
 	private val _unresolved = MutableStateFlow<List<DuplicateIdSet>>(emptyList())
@@ -93,7 +95,9 @@ class DuplicateIdService(
 				for (type in types - keeper) {
 					val newId = idAllocator.claimNextId()
 					Napier.i("$type $id shares its id with $keeper $id; renumbering it to $newId")
+					// Rewritten referrers must upload, or the next sync downloads the server copy over them.
 					entitySynchronizers[type].reIdEntity(oldId = id, newId = newId)
+						.forEach { syncJournal.markEntityAsDirty(it) }
 				}
 			}
 		}
@@ -147,16 +151,19 @@ class DuplicateIdService(
 
 	private suspend fun reload(kind: DuplicateIdKind) {
 		when (kind) {
-			DuplicateIdKind.Entry, DuplicateIdKind.EntryImage -> encyclopediaRepository.loadEntries()
+			DuplicateIdKind.Entry -> encyclopediaRepository.loadEntries()
 			DuplicateIdKind.Scene -> sceneRepository.reloadTreeFromDisk()
 			DuplicateIdKind.Note -> notesRepository.loadNotes()
 			DuplicateIdKind.Draft -> Unit
+			DuplicateIdKind.Image -> imagesRepository.loadImages()
 		}
 	}
 
 	private companion object {
-		// Scenes own drafts, metadata and buffers by id, and scene metadata points at entries.
+		// Other entities reference images by id. Scenes own drafts, metadata and buffers by id, and
+		// scene metadata points at entries.
 		val CROSS_TYPE_PRECEDENCE = listOf(
+			EntityType.Image,
 			EntityType.Scene,
 			EntityType.EncyclopediaEntry,
 			EntityType.TimelineEvent,

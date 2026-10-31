@@ -13,6 +13,7 @@ import com.darkrockstudios.apps.hammer.common.preview.TABLET_TALL_HEIGHT_DP
 import com.darkrockstudios.apps.hammer.common.preview.TABLET_WIDTH_DP
 import com.darkrockstudios.apps.hammer.common.preview.TabletPreviewSurface
 import com.darkrockstudios.apps.hammer.common.preview.fakeViewEntryComponent
+import com.darkrockstudios.apps.hammer.common.preview.fakeViewEntryComponentWithImages
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Preview
@@ -48,6 +49,29 @@ fun ScreenViewEntryUiTabletPreview() {
 				AnimatedVisibility(visible = true) {
 					ViewEntryUi(
 						component = fakeViewEntryComponent,
+						scope = scope,
+						rootSnackbar = rememberRootSnackbarHostState(),
+						closeEntry = {},
+						sharedTransitionScope = this@SharedTransitionLayout,
+						animatedVisibilityScope = this@AnimatedVisibility,
+					)
+				}
+			}
+		}
+	}
+}
+@OptIn(ExperimentalSharedTransitionApi::class)
+@Preview(widthDp = TABLET_WIDTH_DP, heightDp = TABLET_TALL_HEIGHT_DP)
+@Composable
+fun ScreenViewEntryUiImagesPreview() {
+	val scope = rememberCoroutineScope()
+
+	KoinApplicationPreview {
+		TabletPreviewSurface {
+			SharedTransitionLayout {
+				AnimatedVisibility(visible = true) {
+					ViewEntryUi(
+						component = fakeViewEntryComponentWithImages,
 						scope = scope,
 						rootSnackbar = rememberRootSnackbarHostState(),
 						closeEntry = {},

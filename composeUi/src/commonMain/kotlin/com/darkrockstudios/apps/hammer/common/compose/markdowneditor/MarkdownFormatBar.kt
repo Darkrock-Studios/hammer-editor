@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.FormatListNumbered
 import androidx.compose.material.icons.filled.FormatQuote
 import androidx.compose.material.icons.filled.Highlight
 import androidx.compose.material.icons.filled.HorizontalRule
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.TableChart
@@ -42,6 +43,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -58,6 +60,7 @@ import com.darkrockstudios.apps.hammer.common.compose.icons.IconTextDecrease
 import com.darkrockstudios.apps.hammer.common.compose.icons.IconTextIncrease
 import com.darkrockstudios.apps.hammer.common.compose.icons.IconTextReset
 import com.darkrockstudios.apps.hammer.common.compose.icons.IconUndo
+import com.darkrockstudios.apps.hammer.common.compose.insertImageShortcutModifier
 import com.darkrockstudios.apps.hammer.common.compose.italicShortcutModifier
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.strikethroughShortcutModifier
@@ -70,6 +73,7 @@ import com.darkrockstudios.apps.hammer.markdown_format_bar_find_replace
 import com.darkrockstudios.apps.hammer.markdown_format_bar_heading
 import com.darkrockstudios.apps.hammer.markdown_format_bar_highlight
 import com.darkrockstudios.apps.hammer.markdown_format_bar_horizontal_rule
+import com.darkrockstudios.apps.hammer.markdown_format_bar_image
 import com.darkrockstudios.apps.hammer.markdown_format_bar_increase_text_size
 import com.darkrockstudios.apps.hammer.markdown_format_bar_italic
 import com.darkrockstudios.apps.hammer.markdown_format_bar_numbered_list
@@ -118,10 +122,12 @@ import com.darkrockstudios.texteditor.state.setTableColumnAlignment
 import com.darkrockstudios.texteditor.state.tableCellAt
 import com.darkrockstudios.texteditor.state.toggleSpanStyle
 
+const val MARKDOWN_FORMAT_BAR_INSERT_IMAGE_TAG = "markdown-format-bar-insert-image"
+
 /**
  * The editor's format bar. [extended] adds highlight, task lists and tables, which the
  * exporters don't render as Hammer shows them: for text that is never exported (notes,
- * entries, ideas, events), not scenes.
+ * entries, ideas, events), not scenes. [onInsertImage] adds an insert image button.
  */
 @Composable
 fun MarkdownFormatBar(
@@ -132,6 +138,7 @@ fun MarkdownFormatBar(
 	increaseTextSize: (() -> Unit)? = null,
 	resetTextSize: (() -> Unit)? = null,
 	onFindReplace: (() -> Unit)? = null,
+	onInsertImage: (() -> Unit)? = null,
 ) {
 	var isBoldActive by remember { mutableStateOf(false) }
 	var isItalicActive by remember { mutableStateOf(false) }
@@ -187,6 +194,7 @@ fun MarkdownFormatBar(
 	LaunchedEffect(Unit) {
 		state.editOperations.collect {
 			reconcileHorizontalRules(state)
+			reconcileImageBlocks(state)
 			// A table edit can leave the caret where it was.
 			readCaretLine(state.cursorPosition.line, state.selector.selection)
 		}
@@ -218,6 +226,7 @@ fun MarkdownFormatBar(
 				tableLine = tableLine,
 				blocksRefused = blocksRefused,
 				ruleRefused = ruleRefused,
+				onInsertImage = onInsertImage,
 			)
 
 			if (compact) {
@@ -256,6 +265,7 @@ private fun RowScope.FormatButtons(
 	tableLine: Int?,
 	blocksRefused: Boolean,
 	ruleRefused: Boolean,
+	onInsertImage: (() -> Unit)?,
 ) {
 	EditorTooltip("${Res.string.markdown_format_bar_bold.get()} (${shortcutHint("B")})") {
 		EditorAction(
@@ -352,6 +362,20 @@ private fun RowScope.FormatButtons(
 			enabled = !ruleRefused,
 		) {
 			insertHorizontalRule(state)
+		}
+	}
+	if (onInsertImage != null) {
+		EditorTooltip("${Res.string.markdown_format_bar_image.get()} (${shortcutHint("I", shift = true)})") {
+			Box(modifier = Modifier.testTag(MARKDOWN_FORMAT_BAR_INSERT_IMAGE_TAG)) {
+				// An image is a block of its own, refused where a rule is.
+				EditorAction(
+					icon = Icons.Default.Image,
+					active = false,
+					enabled = !ruleRefused,
+				) {
+					onInsertImage()
+				}
+			}
 		}
 	}
 	if (extended) TableMenu(state, tableLine)
@@ -541,13 +565,18 @@ private fun TextSizeMenuRow(
 /**
  * Hooks Ctrl/Cmd+B, Ctrl/Cmd+I and Ctrl/Cmd+Shift+X up to bold, italic and
  * strikethrough so the inline styles in the format bar are also reachable from
- * the keyboard. Apply to an ancestor of the editor (the events are caught in the
- * preview phase, before the editor's own key handling sees them).
+ * the keyboard, and Ctrl/Cmd+Shift+I to [onInsertImage] when there is one. Apply to
+ * an ancestor of the editor (the events are caught in the preview phase, before the
+ * editor's own key handling sees them).
  */
-fun Modifier.markdownFormatShortcuts(markdownExtension: MarkdownExtension): Modifier {
+fun Modifier.markdownFormatShortcuts(
+	markdownExtension: MarkdownExtension,
+	onInsertImage: (() -> Unit)? = null,
+): Modifier {
 	val state = markdownExtension.editorState
 	return this
 		.boldShortcutModifier { state.toggleSpanStyle(state.richTextStyles.boldStyle) }
 		.italicShortcutModifier { state.toggleSpanStyle(state.richTextStyles.italicStyle) }
 		.strikethroughShortcutModifier { state.toggleSpanStyle(state.richTextStyles.strikethroughStyle) }
+		.then(if (onInsertImage != null) Modifier.insertImageShortcutModifier(onInsertImage) else Modifier)
 }

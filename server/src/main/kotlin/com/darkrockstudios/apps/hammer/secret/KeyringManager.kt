@@ -50,6 +50,9 @@ class KeyringManager(
 	/** The active token-HMAC key, or null when no keyring is available. */
 	fun tokenHmacKeyOrNull(): String? = keyring?.tokenHmac?.activeKey()
 
+	/** The active token-HMAC key id, or null when no keyring is available. */
+	fun tokenHmacKeyIdOrNull(): String? = keyring?.tokenHmac?.active
+
 	/** Every token-HMAC generation still in the keyring, or null when no keyring is available. */
 	fun tokenHmacKeysOrNull(): List<String>? = keyring?.tokenHmac?.keys?.values?.toList()
 

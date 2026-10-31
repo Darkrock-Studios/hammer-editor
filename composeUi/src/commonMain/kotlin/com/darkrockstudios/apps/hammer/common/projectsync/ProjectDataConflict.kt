@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.verticalScroll
@@ -36,6 +37,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdConflictFie
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageFile
 import com.darkrockstudios.apps.hammer.common.data.projectdata.mergeDictionaryWords
 import com.darkrockstudios.apps.hammer.sync_conflict_project_data_cadence_day
 import com.darkrockstudios.apps.hammer.sync_conflict_project_data_cadence_week
@@ -55,8 +57,9 @@ import com.darkrockstudios.apps.hammer.sync_conflict_project_data_value_on
 import com.darkrockstudios.apps.hammer.sync_conflict_project_data_value_unset
 import com.darkrockstudios.apps.hammer.sync_conflict_tab_local
 import com.darkrockstudios.apps.hammer.sync_conflict_tab_remote
+import com.darkrockstudios.apps.hammer.sync_conflict_title_project_data_field_cover
 
-private enum class DataChoice { LOCAL, REMOTE }
+internal enum class DataChoice { LOCAL, REMOTE }
 
 @Composable
 internal fun ProjectDataConflict(
@@ -70,6 +73,7 @@ internal fun ProjectDataConflict(
 	var tagsChoice by remember { mutableStateOf(DataChoice.LOCAL) }
 	var languageChoice by remember { mutableStateOf(DataChoice.LOCAL) }
 	var dictionaryChoice by remember { mutableStateOf(DataChoice.LOCAL) }
+	var coverChoice by remember { mutableStateOf(DataChoice.LOCAL) }
 
 	val authorConflict = conflictState.local.authorName != conflictState.server.authorName
 	val themeConflict = conflictState.local.theme != conflictState.server.theme
@@ -78,6 +82,7 @@ internal fun ProjectDataConflict(
 	val languageConflict = conflictState.local.language != conflictState.server.language
 	val dictionaryConflict =
 		conflictState.local.encyclopediaDictionary != conflictState.server.encyclopediaDictionary
+	val coverConflict = conflictState.local.coverImageId != conflictState.server.coverImageId
 
 	val unsetLabel = Res.string.sync_conflict_project_data_value_unset.get()
 	val onLabel = Res.string.sync_conflict_project_data_value_on.get()
@@ -173,6 +178,18 @@ internal fun ProjectDataConflict(
 			stackVertical = stackVertical,
 		)
 
+		PerFieldChoice(
+			label = Res.string.sync_conflict_title_project_data_field_cover.get(),
+			conflict = coverConflict,
+			selected = coverChoice,
+			onSelect = { coverChoice = it },
+			localLabel = localLabel,
+			remoteLabel = remoteLabel,
+			stackVertical = stackVertical,
+			localContent = { CoverValue(conflictState.local.coverImageId, conflictState.localImages, unsetLabel) },
+			serverContent = { CoverValue(conflictState.server.coverImageId, conflictState.localImages, unsetLabel) },
+		)
+
 		if (conflictState.local.dictionaryWords != conflictState.server.dictionaryWords) {
 			Text(
 				text = Res.string.sync_conflict_project_data_dictionary_merged.get(),
@@ -198,6 +215,7 @@ internal fun ProjectDataConflict(
 							tagsChoice = tagsChoice,
 							languageChoice = languageChoice,
 							dictionaryChoice = dictionaryChoice,
+							coverChoice = coverChoice,
 						)
 					)
 				},
@@ -219,22 +237,47 @@ private fun PerFieldChoice(
 	remoteLabel: String,
 	stackVertical: Boolean,
 ) {
+	PerFieldChoice(
+		label = label,
+		conflict = conflict,
+		selected = selected,
+		onSelect = onSelect,
+		localLabel = localLabel,
+		remoteLabel = remoteLabel,
+		stackVertical = stackVertical,
+		localContent = { ValueText(localValue) },
+		serverContent = { ValueText(serverValue) },
+	)
+}
+
+@Composable
+private fun PerFieldChoice(
+	label: String,
+	conflict: Boolean,
+	selected: DataChoice,
+	onSelect: (DataChoice) -> Unit,
+	localLabel: String,
+	remoteLabel: String,
+	stackVertical: Boolean,
+	localContent: @Composable () -> Unit,
+	serverContent: @Composable () -> Unit,
+) {
 	HdConflictField(label = label, conflict = conflict) {
 		if (stackVertical) {
 			Column(verticalArrangement = Arrangement.spacedBy(Ui.Padding.M)) {
 				DataChoiceCell(
 					heading = localLabel,
-					value = localValue,
 					selected = selected == DataChoice.LOCAL,
 					onClick = { onSelect(DataChoice.LOCAL) },
 					modifier = Modifier.fillMaxWidth(),
+					content = localContent,
 				)
 				DataChoiceCell(
 					heading = remoteLabel,
-					value = serverValue,
 					selected = selected == DataChoice.REMOTE,
 					onClick = { onSelect(DataChoice.REMOTE) },
 					modifier = Modifier.fillMaxWidth(),
+					content = serverContent,
 				)
 			}
 		} else {
@@ -244,17 +287,17 @@ private fun PerFieldChoice(
 			) {
 				DataChoiceCell(
 					heading = localLabel,
-					value = localValue,
 					selected = selected == DataChoice.LOCAL,
 					onClick = { onSelect(DataChoice.LOCAL) },
 					modifier = Modifier.weight(1f),
+					content = localContent,
 				)
 				DataChoiceCell(
 					heading = remoteLabel,
-					value = serverValue,
 					selected = selected == DataChoice.REMOTE,
 					onClick = { onSelect(DataChoice.REMOTE) },
 					modifier = Modifier.weight(1f),
+					content = serverContent,
 				)
 			}
 		}
@@ -264,10 +307,10 @@ private fun PerFieldChoice(
 @Composable
 private fun DataChoiceCell(
 	heading: String,
-	value: String,
 	selected: Boolean,
 	onClick: () -> Unit,
 	modifier: Modifier = Modifier,
+	content: @Composable () -> Unit,
 ) {
 	val borderColor = if (selected) MaterialTheme.colorScheme.onSurface
 	else MaterialTheme.colorScheme.outlineVariant
@@ -285,15 +328,39 @@ private fun DataChoiceCell(
 			text = heading,
 			color = MaterialTheme.colorScheme.onSurfaceVariant,
 		)
-		Text(
-			text = value,
-			style = MaterialTheme.typography.bodyLarge,
-			color = MaterialTheme.colorScheme.onSurface,
+		content()
+	}
+}
+
+@Composable
+private fun ValueText(value: String) {
+	Text(
+		text = value,
+		style = MaterialTheme.typography.bodyLarge,
+		color = MaterialTheme.colorScheme.onSurface,
+	)
+}
+
+/** A cover this device does not have yet shows as a tile with its id. */
+@Composable
+private fun CoverValue(coverImageId: Int?, localImages: Map<Int, ImageFile>, unsetLabel: String) {
+	if (coverImageId == null) {
+		ValueText(unsetLabel)
+	} else {
+		ImageThumb(
+			id = coverImageId,
+			file = localImages[coverImageId],
+			modifier = Modifier
+				.size(width = CoverThumbWidth, height = CoverThumbHeight)
+				.border(Dp.Hairline, MaterialTheme.colorScheme.outlineVariant, RectangleShape),
 		)
 	}
 }
 
-private fun buildResolved(
+private val CoverThumbWidth = 56.dp
+private val CoverThumbHeight = 84.dp
+
+internal fun buildResolved(
 	local: ProjectData,
 	server: ProjectData,
 	authorChoice: DataChoice,
@@ -302,6 +369,7 @@ private fun buildResolved(
 	tagsChoice: DataChoice,
 	languageChoice: DataChoice,
 	dictionaryChoice: DataChoice,
+	coverChoice: DataChoice,
 ): ProjectData = ProjectData(
 	authorName = if (authorChoice == DataChoice.LOCAL) local.authorName else server.authorName,
 	theme = if (themeChoice == DataChoice.LOCAL) local.theme else server.theme,
@@ -310,6 +378,7 @@ private fun buildResolved(
 	language = if (languageChoice == DataChoice.LOCAL) local.language else server.language,
 	encyclopediaDictionary = if (dictionaryChoice == DataChoice.LOCAL) local.encyclopediaDictionary else server.encyclopediaDictionary,
 	dictionaryWords = mergeDictionaryWords(local, server),
+	coverImageId = if (coverChoice == DataChoice.LOCAL) local.coverImageId else server.coverImageId,
 )
 
 private fun displayString(value: String?, unsetLabel: String): String =

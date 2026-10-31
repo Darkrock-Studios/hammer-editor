@@ -94,6 +94,7 @@ import com.darkrockstudios.apps.hammer.project.ServerWritingActivityRepository
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.project.synchronizers.ServerEncyclopediaSynchronizer
 import com.darkrockstudios.apps.hammer.project.synchronizers.ServerNoteSynchronizer
+import com.darkrockstudios.apps.hammer.project.synchronizers.ServerImageSynchronizer
 import com.darkrockstudios.apps.hammer.project.synchronizers.ServerSceneDraftSynchronizer
 import com.darkrockstudios.apps.hammer.project.synchronizers.ServerSceneSynchronizer
 import com.darkrockstudios.apps.hammer.project.synchronizers.ServerTimelineSynchronizer
@@ -108,7 +109,9 @@ import com.darkrockstudios.apps.hammer.secret.KeyringCodec
 import com.darkrockstudios.apps.hammer.secret.KeyringManager
 import com.darkrockstudios.apps.hammer.secret.ServerSecretProvider
 import com.darkrockstudios.apps.hammer.secret.buildSecretProvider
+import com.darkrockstudios.apps.hammer.story.StoryImageSigner
 import com.darkrockstudios.apps.hammer.story.StoryRenderCache
+import com.darkrockstudios.apps.hammer.story.StoryImageService
 import com.darkrockstudios.apps.hammer.story.StoryRendererService
 import com.darkrockstudios.apps.hammer.storyideas.ServerIdeasRepository
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
@@ -262,6 +265,7 @@ fun mainModule(
 	single { DiskCachePruneJob(listOf(get<OgImageService>(), get<StoryRenderCache>()), get()) }
 	// Explicit ctor: renderCache defaults to null, which the constructor DSL would honor over injection.
 	single { StoryRendererService(get(), get(), get()) }
+	single<StoryImageService>()
 	factory<PenNameUseCase>()
 	factory<ReleasePenNameUseCase>()
 	single<BioService>()
@@ -306,6 +310,7 @@ fun mainModule(
 	single { EncryptionConvergence(get(), get(), get()) }
 	single { EncryptionBootstrap(get(), get(), get(), get(), get(), get()) }
 	single<TokenHasher>()
+	single<StoryImageSigner>()
 
 	single<EmailService> {
 		val serverConfig = get<ServerConfig>()
@@ -332,6 +337,7 @@ fun mainModule(
 	single<ServerTimelineSynchronizer>()
 	single<ServerEncyclopediaSynchronizer>()
 	single<ServerSceneDraftSynchronizer>()
+	single<ServerImageSynchronizer>()
 
 	single<SyncSessionManager<Long, ProjectsSynchronizationSession>>(named(PROJECTS_SYNC_MANAGER)) {
 		SyncSessionManager(get(), get())

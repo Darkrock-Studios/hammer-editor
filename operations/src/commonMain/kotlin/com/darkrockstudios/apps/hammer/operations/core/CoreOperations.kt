@@ -16,6 +16,7 @@ fun coreOperations(): List<Operation<*, *>> =
 		sceneWriteOperations() +
 		contentOperations() +
 		contentWriteOperations() +
+		imageOperations() +
 		ideaOperations() +
 		searchOperations() +
 		statsOperations() +

@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.timeline
 
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageDef
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionPlace
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
@@ -138,6 +139,7 @@ fun ViewTimeLineEventUi(
 						onEventTextChanged = { component.onEventTextChanged(it) },
 						suggestTags = component::suggestTags,
 						enableSpellChecking = state.spellCheckAllowed,
+						imagePicker = component::pickImageForText,
 						modifier = Modifier.weight(1f),
 					)
 
@@ -390,6 +392,7 @@ private fun EditBody(
 	onEventTextChanged: (String) -> Unit,
 	suggestTags: (prefix: String) -> List<String>,
 	enableSpellChecking: Boolean,
+	imagePicker: suspend () -> ImageDef?,
 	modifier: Modifier = Modifier,
 ) {
 	// Date hides while the body editor has focus, like the tags; kept visible while it holds focus
@@ -436,6 +439,7 @@ private fun EditBody(
 			initialMarkdown = eventText,
 			onMarkdownChanged = onEventTextChanged,
 			enableSpellChecking = enableSpellChecking,
+			imagePicker = imagePicker,
 			contentPadding = PaddingValues(Ui.Padding.XL),
 			modifier = Modifier
 				.fillMaxWidth()

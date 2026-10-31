@@ -24,8 +24,6 @@
 	<string name="encyclopedia_create_entry_image_browse_button">Sfoglia i file</string>
 	<string name="encyclopedia_create_entry_image_attached">1 allegata</string>
 	<string name="encyclopedia_create_entry_image_replace">Sostituisci</string>
-	<string name="encyclopedia_create_entry_image_too_large">L’immagine è troppo grande. La dimensione massima è %1$d MB.</string>
-	<string name="encyclopedia_create_entry_image_load_failed">Impossibile leggere l’immagine selezionata.</string>
 	<string name="encyclopedia_create_entry_create_button">Crea voce</string>
 	<string name="encyclopedia_create_entry_cancel_button">Annulla</string>
 	<string name="encyclopedia_create_entry_toast_success">Voce creata</string>
@@ -53,8 +51,6 @@
 	<string name="encyclopedia_entry_delete_title">Eliminare la voce?</string>
 	<string name="encyclopedia_entry_delete_message">Questa azione non può essere annullata!</string>
 	<string name="encyclopedia_entry_delete_toast">Voce eliminata</string>
-	<string name="encyclopedia_entry_delete_image_title">Eliminare l’immagine?</string>
-	<string name="encyclopedia_entry_delete_image_message">Questa azione non può essere annullata!</string>
 	<string name="encyclopedia_entry_name_hint">Nome</string>
 	<string name="encyclopedia_entry_close_button">Chiudi la voce</string>
 	<string name="encyclopedia_entry_menu_group">Voce</string>
@@ -73,9 +69,7 @@
 	<string name="encyclopedia_entry_tags_label">Tag</string>
 	<string name="encyclopedia_entry_add_tag_chip">tag</string>
 	<string name="encyclopedia_entry_add_alias_chip">alias</string>
-	<string name="encyclopedia_entry_figure_caption">Fig. I · Voce</string>
 	<string name="encyclopedia_entry_figure_label">Fig. I</string>
-	<string name="encyclopedia_entry_figure_add">+ Aggiungi</string>
 	<string name="encyclopedia_entry_folio_format">Fol. %1$s · Voce-%2$s</string>
 	<string name="encyclopedia_entry_scene_index_format">Sc.%1$s</string>
 	<string name="encyclopedia_entry_colophon_label">Voce · Scheda di catalogo</string>

@@ -10,6 +10,8 @@ import com.darkrockstudios.apps.hammer.common.components.duplicateids.DuplicateI
 import com.darkrockstudios.apps.hammer.common.components.globalsearch.GlobalSearchComponent
 import com.darkrockstudios.apps.hammer.common.components.globalsearch.GlobalSearchState
 import com.darkrockstudios.apps.hammer.common.components.globalsearch.SearchResult
+import com.darkrockstudios.apps.hammer.common.components.images.ImageGalleryComponent
+import com.darkrockstudios.apps.hammer.common.components.images.ImageGalleryMode
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot.ModalDestination.*
 import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSynchronizationComponent
 import com.darkrockstudios.apps.hammer.common.components.protocolmismatch.ProtocolMismatchComponent
@@ -98,6 +100,15 @@ class ProjectRootModalRouter(
 				)
 			)
 
+			is Config.ImageGallery -> ImageGalleryModal(
+				ImageGalleryComponent(
+					componentContext,
+					projectDef,
+					config.mode,
+					onDismiss = ::dismissImageGallery,
+				)
+			)
+
 			is Config.ProtocolMismatch -> ProtocolMismatchModal(
 				ProtocolMismatchComponent(
 					componentContext,
@@ -155,6 +166,14 @@ class ProjectRootModalRouter(
 		navigation.activate(Config.None)
 	}
 
+	fun showImageGallery(mode: ImageGalleryMode) {
+		navigation.activate(Config.ImageGallery(mode))
+	}
+
+	fun dismissImageGallery() {
+		navigation.activate(Config.None)
+	}
+
 	fun showFocusMode(sceneItem: SceneItem) {
 		navigation.activate(Config.FocusMode(sceneItem))
 	}
@@ -186,6 +205,9 @@ class ProjectRootModalRouter(
 
 		@Serializable
 		data object DuplicateIds : Config()
+
+		@Serializable
+		data class ImageGallery(val mode: ImageGalleryMode) : Config()
 
 		@Serializable
 		data class ProtocolMismatch(

@@ -9,6 +9,16 @@ import kotlin.test.assertNotEquals
 
 class ProjectDataHasherTest {
 
+	private val fullyPopulated = ProjectData(
+		authorName = "Pat",
+		theme = ProjectTheme(primary = "#FF112233", secondary = "#FFAABBCC"),
+		wordCountGoal = WordCountGoal(WordCountGoal.Cadence.WEEK, 3000),
+		tags = setOf("fantasy", "draft"),
+		language = "en-US",
+		encyclopediaDictionary = false,
+		dictionaryWords = setOf("Kvothe", "Denna"),
+	)
+
 	// Golden values captured before the tags field existed. Tag-less data must hash to these
 	// exact literals forever: stored lastSyncedHash baselines and server-side row hashes were
 	// computed by the old algorithm, and a drift here makes every synced project look edited.
@@ -25,6 +35,33 @@ class ProjectDataHasherTest {
 			wordCountGoal = WordCountGoal(WordCountGoal.Cadence.DAY, 500),
 		)
 		assertEquals("WEYYxe1FU1Tf_4kU69k4uw", ProjectDataHasher.hash(data))
+	}
+
+	// Captured before coverImageId existed: cover-less data must keep this hash.
+	@Test
+	fun `golden pin - fully populated cover-less data hash never changes`() {
+		assertEquals("nbYnmMgYj3EBpu07uPuYzw", ProjectDataHasher.hash(fullyPopulated))
+	}
+
+	@Test
+	fun `golden pin - data with a cover`() {
+		assertEquals("oH3kRhN7S92hSeTfQbJ82Q", ProjectDataHasher.hash(fullyPopulated.copy(coverImageId = 7)))
+	}
+
+	@Test
+	fun `cover affects hash`() {
+		val without = ProjectData(authorName = "Pat")
+		val with = without.copy(coverImageId = 3)
+		assertNotEquals(ProjectDataHasher.hash(without), ProjectDataHasher.hash(with))
+		assertNotEquals(ProjectDataHasher.hash(with), ProjectDataHasher.hash(without.copy(coverImageId = 4)))
+	}
+
+	@Test
+	fun `cover block does not collide with other optional blocks`() {
+		val cover = ProjectDataHasher.hash(ProjectData(coverImageId = 0))
+		assertNotEquals(ProjectDataHasher.hash(ProjectData()), cover)
+		assertNotEquals(ProjectDataHasher.hash(ProjectData(encyclopediaDictionary = false)), cover)
+		assertNotEquals(ProjectDataHasher.hash(ProjectData(language = "")), cover)
 	}
 
 	@Test

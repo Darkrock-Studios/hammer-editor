@@ -35,6 +35,8 @@
 	<string name="markdown_format_bar_bullet_list">Маркований список</string>
 	<string name="markdown_format_bar_numbered_list">Нумерований список</string>
 	<string name="markdown_format_bar_horizontal_rule">Горизонтальна лінія</string>
+	<string name="markdown_format_bar_image">Вставити зображення</string>
+	<string name="markdown_preview_image">Зображення</string>
 	<string name="markdown_format_bar_undo">Скасувати</string>
 	<string name="markdown_format_bar_redo">Повторити</string>
 	<string name="form_dialog_keyboard_hint">ESC скасувати</string>

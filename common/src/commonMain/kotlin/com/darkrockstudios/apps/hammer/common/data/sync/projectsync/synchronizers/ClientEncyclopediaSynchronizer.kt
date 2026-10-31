@@ -4,10 +4,8 @@ import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.EntityHash
 import com.darkrockstudios.apps.hammer.base.http.EntityType
-import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
-import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaDatasource
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaService
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
@@ -17,14 +15,10 @@ import com.darkrockstudios.apps.hammer.common.data.references.ReferenceRemapper
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntitySynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.OnSyncLog
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogI
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogW
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.apps.hammer.sync_encyclopedia_deleted
-import com.darkrockstudios.apps.hammer.sync_encyclopedia_image_rejected_invalid_extension
-import io.github.aakira.napier.Napier
-import korlibs.crypto.encoding.Base64
 import kotlinx.coroutines.flow.first
 
 class ClientEncyclopediaSynchronizer(
@@ -39,7 +33,6 @@ class ClientEncyclopediaSynchronizer(
 	override val projectScope = ProjectDefScope(projectDef)
 	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
 	private val encyclopediaService: EncyclopediaService by projectInject()
-	private val encyclopediaDatasource: EncyclopediaDatasource by projectInject()
 	private val referenceRemapper: ReferenceRemapper by projectInject()
 
 	private suspend fun getEntity(id: Int): EntryDef? {
@@ -55,53 +48,14 @@ class ClientEncyclopediaSynchronizer(
 		return getEntity(id) != null
 	}
 
-	override suspend fun getEntityHash(id: Int): String {
-		val entity = createEntityForId(id)
+	override suspend fun getEntityHash(id: Int): String = createEntityForId(id).hash()
 
-		return EntityHasher.hashEncyclopediaEntry(
-			id = entity.id,
-			name = entity.name,
-			entryType = entity.entryType,
-			text = entity.text,
-			tags = entity.tags,
-			image = entity.image,
-			aliases = entity.aliases,
-			excludeFromDictionary = entity.excludeFromDictionary,
-		)
-	}
+	override suspend fun createEntityForId(id: Int): ApiProjectEntity.EncyclopediaEntryEntity =
+		encyclopediaRepository.loadEntry(id).entry.toApiEntity()
 
-	override suspend fun createEntityForId(id: Int): ApiProjectEntity.EncyclopediaEntryEntity {
-		val entry = encyclopediaRepository.loadEntry(id).entry
-		val def = entry.toDef(projectDef)
-
-		val imageExtension = encyclopediaDatasource.findEntryImageExtension(def)
-		val image = if (imageExtension != null) {
-			val imageBytes = encyclopediaDatasource.loadEntryImage(def, imageExtension)
-			val imageBase64 = Base64.encode(imageBytes, url = true)
-
-			ApiProjectEntity.EncyclopediaEntryEntity.Image(
-				base64 = imageBase64,
-				fileExtension = imageExtension,
-			)
-		} else {
-			null
-		}
-
-		return ApiProjectEntity.EncyclopediaEntryEntity(
-			id = id,
-			name = entry.name,
-			entryType = entry.type.text,
-			text = entry.text,
-			tags = entry.tags,
-			image = image,
-			aliases = entry.aliases,
-			excludeFromDictionary = entry.excludeFromDictionary,
-		)
-	}
-
-	override suspend fun reIdEntity(oldId: Int, newId: Int) {
+	override suspend fun reIdEntity(oldId: Int, newId: Int): Set<Int> {
 		encyclopediaRepository.reIdEntry(oldId, newId)
-		referenceRemapper.remapEntryReferences(oldId, newId)
+		return referenceRemapper.remapEntryReferences(oldId, newId)
 	}
 
 	override suspend fun finalizeSync() {
@@ -133,15 +87,8 @@ class ClientEncyclopediaSynchronizer(
 		onLog: OnSyncLog
 	): Boolean {
 		val oldDef = encyclopediaRepository.findEntryDef(serverEntity.id)
-		val serverDef = EntryDef(
-			projectDef = projectDef,
-			id = serverEntity.id,
-			name = serverEntity.name,
-			type = EntryType.fromString(serverEntity.entryType),
-		)
 
-		handleImage(oldDef, serverDef, serverEntity, onLog)
-
+		// Image ids are stored as given: an image the entry lists may not have arrived yet.
 		if (oldDef != null) {
 			encyclopediaService.updateEntry(
 				oldEntryDef = oldDef,
@@ -150,6 +97,7 @@ class ClientEncyclopediaSynchronizer(
 				tags = serverEntity.tags,
 				aliases = serverEntity.aliases,
 				excludeFromDictionary = serverEntity.excludeFromDictionary,
+				images = serverEntity.images,
 			)
 		} else {
 			encyclopediaService.createEntry(
@@ -157,46 +105,14 @@ class ClientEncyclopediaSynchronizer(
 				text = serverEntity.text,
 				tags = serverEntity.tags,
 				type = EntryType.fromString(serverEntity.entryType),
-				imagePath = null, // Always pass null here, we wrote the image our selves
+				imagePath = null,
 				forceId = serverEntity.id,
 				aliases = serverEntity.aliases,
 				excludeFromDictionary = serverEntity.excludeFromDictionary,
+				images = serverEntity.images,
 			)
 		}
 
 		return true
-	}
-
-	private suspend fun handleImage(
-		oldDef: EntryDef?,
-		serverDef: EntryDef,
-		serverEntity: ApiProjectEntity.EncyclopediaEntryEntity,
-		onLog: OnSyncLog,
-	) {
-		val image = serverEntity.image
-		if (image != null) {
-			if (image.fileExtension.lowercase() !in ALLOWED_IMAGE_EXTENSIONS) {
-				Napier.w("Skipped synced image for entry ${serverEntity.id}: invalid file extension '${image.fileExtension}'")
-				onLog(
-					syncLogW(
-						strRes.get(Res.string.sync_encyclopedia_image_rejected_invalid_extension, serverEntity.id),
-						projectDef
-					)
-				)
-				return
-			}
-			val imageBytes = Base64.decode(image.base64, url = true)
-			// Clear any prior image first so a changed extension can't leave an orphan file.
-			encyclopediaDatasource.removeEntryImage(serverDef)
-			encyclopediaDatasource.writeEntryImage(serverDef, imageBytes, image.fileExtension)
-		} else if (oldDef != null && encyclopediaDatasource.hasEntryImage(oldDef)) {
-			// Server reports no image; drop the local one. Raw datasource delete (no
-			// sync-marking) since we're applying server state, not making a local edit.
-			encyclopediaDatasource.removeEntryImage(oldDef)
-		}
-	}
-
-	companion object {
-		val ALLOWED_IMAGE_EXTENSIONS = EncyclopediaDatasource.IMAGE_EXTENSIONS
 	}
 }

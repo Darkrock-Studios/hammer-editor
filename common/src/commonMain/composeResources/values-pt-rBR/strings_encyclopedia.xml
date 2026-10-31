@@ -24,8 +24,6 @@
 	<string name="encyclopedia_create_entry_image_browse_button">Procurar arquivos</string>
 	<string name="encyclopedia_create_entry_image_attached">1 anexada</string>
 	<string name="encyclopedia_create_entry_image_replace">Substituir</string>
-	<string name="encyclopedia_create_entry_image_too_large">A imagem é grande demais. O tamanho máximo é %1$d MB.</string>
-	<string name="encyclopedia_create_entry_image_load_failed">Não foi possível ler a imagem selecionada.</string>
 	<string name="encyclopedia_create_entry_create_button">Criar Verbete</string>
 	<string name="encyclopedia_create_entry_cancel_button">Cancelar</string>
 	<string name="encyclopedia_create_entry_toast_success">Verbete Criado</string>
@@ -53,8 +51,6 @@
 	<string name="encyclopedia_entry_delete_title">Excluir Verbete?</string>
 	<string name="encyclopedia_entry_delete_message">Essa ação não pode ser desfeita!</string>
 	<string name="encyclopedia_entry_delete_toast">Verbete Excluído</string>
-	<string name="encyclopedia_entry_delete_image_title">Excluir Imagem?</string>
-	<string name="encyclopedia_entry_delete_image_message">Esta ação não pode ser desfeita!</string>
 	<string name="encyclopedia_entry_name_hint">Nome</string>
 	<string name="encyclopedia_entry_close_button">Fechar Verbete</string>
 	<string name="encyclopedia_entry_menu_group">Verbete</string>
@@ -73,9 +69,7 @@
 	<string name="encyclopedia_entry_tags_label">Etiquetas</string>
 	<string name="encyclopedia_entry_add_tag_chip">etiqueta</string>
 	<string name="encyclopedia_entry_add_alias_chip">apelido</string>
-	<string name="encyclopedia_entry_figure_caption">Fig. I · Verbete</string>
 	<string name="encyclopedia_entry_figure_label">Fig. I</string>
-	<string name="encyclopedia_entry_figure_add">+ Adicionar</string>
 	<string name="encyclopedia_entry_folio_format">Fol. %1$s · Verb-%2$s</string>
 	<string name="encyclopedia_entry_scene_index_format">Cn.%1$s</string>
 	<string name="encyclopedia_entry_colophon_label">Verbete · Ficha de catálogo</string>

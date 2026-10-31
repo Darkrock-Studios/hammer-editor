@@ -13,6 +13,7 @@ import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogKind
 import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogRef
 import com.darkrockstudios.apps.hammer.common.data.entitycatalog.filterCatalog
 import com.darkrockstudios.apps.hammer.common.data.entitycatalog.find
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContainer
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
@@ -49,6 +50,7 @@ class EntityCatalogTest : BaseTest() {
 	private lateinit var notes: NotesRepository
 	private lateinit var timeline: TimeLineRepository
 	private lateinit var tagIndex: TagIndexService
+	private lateinit var images: ImagesRepository
 
 	@BeforeEach
 	override fun setup() {
@@ -59,6 +61,8 @@ class EntityCatalogTest : BaseTest() {
 		notes = mockk(relaxed = true)
 		timeline = mockk(relaxed = true)
 		tagIndex = mockk(relaxed = true)
+		images = mockk(relaxed = true)
+		coEvery { images.imageNames() } returns emptyMap()
 
 		// Part One holds Chapter 1, which holds the first two scenes; a third scene is at the top level.
 		every { scenes.getSceneTree() } returns tree(
@@ -96,7 +100,7 @@ class EntityCatalogTest : BaseTest() {
 		every { encyclopedia.loadEntry(rabbit.toDef(projectDef)) } throws IllegalStateException("corrupt")
 	}
 
-	private fun catalog() = BuildEntityCatalogUseCase(encyclopedia, scenes, notes, timeline, tagIndex)
+	private fun catalog() = BuildEntityCatalogUseCase(encyclopedia, scenes, notes, timeline, tagIndex, images)
 
 	private fun item(id: Int, type: SceneItem.Type, name: String) =
 		SceneItem(projectDef = projectDef, type = type, id = id, name = name, order = id)
@@ -142,6 +146,22 @@ class EntityCatalogTest : BaseTest() {
 			),
 			items,
 		)
+	}
+
+	@Test
+	fun `a note or event opening with an image is named by the image's current name`() = runTest(mainTestDispatcher) {
+		coEvery { images.imageNames() } returns mapOf(3 to "Cheshire Cat")
+		every { notes.notesListFlow } returns MutableStateFlow(
+			listOf(
+				NoteContainer(NoteContent(5, Clock.System.now(), "![image](hammer://image/3)\n\nGrin")),
+				NoteContainer(NoteContent(4, Clock.System.now(), "![image](hammer://image/9)\n\nUnknown")),
+				NoteContainer(NoteContent(6, Clock.System.now(), "![image](hammer://image/9)")),
+			)
+		)
+
+		val items = catalog().items(setOf(CatalogKind.Note))
+
+		assertEquals(listOf("(empty note)", "Cheshire Cat", "Unknown"), items.map { it.name })
 	}
 
 	@Test

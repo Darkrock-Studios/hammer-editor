@@ -35,6 +35,8 @@
 	<string name="markdown_format_bar_bullet_list">Lista con viñetas</string>
 	<string name="markdown_format_bar_numbered_list">Lista numerada</string>
 	<string name="markdown_format_bar_horizontal_rule">Línea horizontal</string>
+	<string name="markdown_format_bar_image">Insertar imagen</string>
+	<string name="markdown_preview_image">Imagen</string>
 	<string name="markdown_format_bar_undo">Deshacer</string>
 	<string name="markdown_format_bar_redo">Rehacer</string>
 	<string name="form_dialog_keyboard_hint">ESC cancelar</string>

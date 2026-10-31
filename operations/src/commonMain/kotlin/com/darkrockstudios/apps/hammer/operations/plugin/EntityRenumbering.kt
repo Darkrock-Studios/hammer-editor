@@ -16,22 +16,22 @@ import kotlinx.serialization.json.intOrNull
  * [newId]. The old id now names an item the server had, so anything still holding it points at that.
  */
 data class EntityRenumbering(val projectId: ProjectId, val type: EntityType, val oldId: Int, val newId: Int) {
-	/** Where an action run from the entity is run from; a draft is no place. */
+	/** Where an action run from the entity is run from; a draft or an image is no place. */
 	val place: ActionPlace? = when (type) {
 		EntityType.Scene -> ActionPlace.Scene
 		EntityType.Note -> ActionPlace.Note
 		EntityType.EncyclopediaEntry -> ActionPlace.Entry
 		EntityType.TimelineEvent -> ActionPlace.Event
-		EntityType.SceneDraft -> null
+		EntityType.SceneDraft, EntityType.Image -> null
 	}
 
-	/** The kind an entity field picks the entity as; a draft cannot be picked. */
+	/** The kind an entity field picks the entity as; a draft or an image cannot be picked. */
 	val kind: CatalogKind? = when (type) {
 		EntityType.Scene -> CatalogKind.Scene
 		EntityType.Note -> CatalogKind.Note
 		EntityType.EncyclopediaEntry -> CatalogKind.Entry
 		EntityType.TimelineEvent -> CatalogKind.Event
-		EntityType.SceneDraft -> null
+		EntityType.SceneDraft, EntityType.Image -> null
 	}
 
 	/** The id of the item a run from [place] is about, the new one if it is the entity. */

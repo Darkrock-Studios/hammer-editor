@@ -12,14 +12,16 @@ private const val MAX_RETAINED = 8
  * A projector cannot be a plain field on the use case: cancelling a search is cooperative, so the
  * outgoing scan can still be running when the next one starts, and the two would share a buffer.
  * Borrowing serializes that without forcing the scans themselves to run one at a time.
+ *
+ * Every projector names project images with [imageName].
  */
-class MarkdownProjectorPool {
+class MarkdownProjectorPool(private val imageName: (imageId: Int) -> String? = { null }) {
 
 	private val mutex = Mutex()
 	private val available = mutableListOf<MarkdownProjector>()
 
 	suspend fun <T> borrow(block: suspend (MarkdownProjector) -> T): T {
-		val projector = mutex.withLock { available.removeLastOrNull() } ?: MarkdownProjector()
+		val projector = mutex.withLock { available.removeLastOrNull() } ?: MarkdownProjector(imageName = imageName)
 		try {
 			return block(projector)
 		} finally {

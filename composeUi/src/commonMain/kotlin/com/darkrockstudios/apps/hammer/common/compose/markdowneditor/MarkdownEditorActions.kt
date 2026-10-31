@@ -1,9 +1,13 @@
 package com.darkrockstudios.apps.hammer.common.compose.markdowneditor
 
+import com.darkrockstudios.apps.hammer.common.data.references.ImageReferenceSyntax
 import com.darkrockstudios.texteditor.CharLineOffset
 import com.darkrockstudios.texteditor.TextEditorRange
 import com.darkrockstudios.texteditor.richstyle.HR_PLACEHOLDER
 import com.darkrockstudios.texteditor.richstyle.HorizontalRuleSpanStyle
+import com.darkrockstudios.texteditor.richstyle.IMAGE_PLACEHOLDER
+import com.darkrockstudios.texteditor.richstyle.ImageBlockSpanStyle
+import com.darkrockstudios.texteditor.richstyle.ImageProvider
 import com.darkrockstudios.texteditor.state.TextEditorState
 import com.darkrockstudios.texteditor.state.headerLevel
 import com.darkrockstudios.texteditor.state.isTableCell
@@ -13,11 +17,15 @@ import com.darkrockstudios.texteditor.state.toggleHeader
 import com.darkrockstudios.texteditor.state.toggleOrderedList
 import com.darkrockstudios.texteditor.state.toggleTaskList
 
-internal fun insertHorizontalRule(state: TextEditorState) {
-	// A table cell holds inline text alone, and a rule would break the table apart.
+// A table cell holds inline text alone, and a block would break the table apart.
+private fun touchesTableCell(state: TextEditorState): Boolean {
 	val selection = state.selector.selection
 	val touched = selection?.let { listOf(it.start.line, it.end.line) } ?: listOf(state.cursorPosition.line)
-	if (touched.any { state.isTableCell(it) }) return
+	return touched.any { state.isTableCell(it) }
+}
+
+internal fun insertHorizontalRule(state: TextEditorState) {
+	if (touchesTableCell(state)) return
 	state.insertNewlineAtCursor()
 	val hrLine = state.cursorPosition.line
 	state.insertStringAtCursor(HR_PLACEHOLDER)
@@ -27,6 +35,63 @@ internal fun insertHorizontalRule(state: TextEditorState) {
 		end = CharLineOffset(hrLine, HR_PLACEHOLDER.length),
 		style = HorizontalRuleSpanStyle,
 	)
+}
+
+/**
+ * Inserts image [imageId] as a block on its own line at the caret and leaves the caret on the line
+ * below. Returns false, inserting nothing, in a table cell.
+ */
+internal fun insertImageBlock(state: TextEditorState, provider: ImageProvider, imageId: Int): Boolean {
+	if (touchesTableCell(state)) return false
+	// At the start of a line the image can take the line, pushing its text down.
+	if (state.selector.selection != null || state.cursorPosition.char > 0) state.insertNewlineAtCursor()
+	val imageLine = state.cursorPosition.line
+	state.insertStringAtCursor(IMAGE_PLACEHOLDER)
+	state.insertNewlineAtCursor()
+	state.addRichSpan(
+		start = CharLineOffset(imageLine, 0),
+		end = CharLineOffset(imageLine, IMAGE_PLACEHOLDER.length),
+		style = ImageBlockSpanStyle(
+			source = ImageReferenceSyntax.reference(imageId),
+			alt = ImageReferenceSyntax.PLACEHOLDER_ALT,
+			provider = provider,
+		),
+	)
+	return true
+}
+
+/**
+ * Keeps an image block's line holding its placeholder alone, as export writes that line as the image
+ * and nothing else: text typed onto the line moves to a line of its own beside the image, and a line
+ * whose placeholder was deleted loses its image.
+ */
+internal fun reconcileImageBlocks(state: TextEditorState) {
+	val imageSpans = state.richSpanManager.getAllRichSpans()
+		.filter { it.style is ImageBlockSpanStyle }
+		// Bottom up, so splitting a line never moves one still to be checked.
+		.sortedByDescending { it.range.start.line }
+	imageSpans.forEach { span ->
+		val line = span.range.start.line
+		val text = state.textLines.getOrNull(line)?.text ?: return@forEach
+		if (text == IMAGE_PLACEHOLDER) return@forEach
+
+		val placeholder = span.range.start.char.takeIf { text.getOrNull(it) == ' ' }
+		if (placeholder == null) {
+			state.removeRichSpan(span)
+			return@forEach
+		}
+		val before = text.substring(0, placeholder)
+		val after = text.substring(placeholder + 1)
+		if (after.isNotEmpty()) {
+			state.replace(
+				TextEditorRange(CharLineOffset(line, placeholder + 1), CharLineOffset(line, text.length)),
+				"\n$after",
+			)
+		}
+		if (before.isNotEmpty()) {
+			state.replace(TextEditorRange(CharLineOffset(line, 0), CharLineOffset(line, placeholder)), "$before\n")
+		}
+	}
 }
 
 // Once a user types on an HR line, the placeholder space is gone — drop the rule and

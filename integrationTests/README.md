@@ -48,6 +48,9 @@ one of these:
 - `TwoDeviceSyncTest` (`independent edits…`) — two devices, disjoint edits, converge
 - `IndependentEditsTest`, `ClientDeletionTest`, `ClientUploadsEntityTest`, `ServerOriginatedEntitiesTest` — specific transitions
 - `ConflictPickClientTest`, `ConflictPickServerTest` — the conflict sub-case (both sides touch one entity)
+- `ImageReIdRewritesReferencesTest`: a re-IDed image takes the references to it along; deleting a used image removes it from the text on every device
+- `EntryImageUpgradeTest`: a migrated entry image uploads without conflict, with or without another device repairing the entry's server hash first
+- `ProjectCoverSyncTest`: a cover follows its image to another device and is cleared when the image is deleted
 - `SyncFuzzTest` — single-entity edit/rename fuzz (legacy; `MixedSyncFuzzTest` is the broader net)
 
 ## Adding tests

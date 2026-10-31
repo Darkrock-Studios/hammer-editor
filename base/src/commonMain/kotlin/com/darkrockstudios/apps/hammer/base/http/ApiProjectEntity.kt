@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.base.http
 
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
+import korlibs.crypto.encoding.Base64
 import kotlinx.serialization.Polymorphic
 import kotlinx.serialization.Serializable
 import kotlin.time.Instant
@@ -97,25 +98,20 @@ sealed interface ApiProjectEntity {
 		val entryType: String,
 		val text: String,
 		val tags: Set<String>,
-		val image: Image?,
 		val aliases: List<String> = emptyList(),
 		val excludeFromDictionary: Boolean = false,
+		/** Image entity ids in display order; the first is the primary image. */
+		val images: List<Int> = emptyList(),
 	) : ApiProjectEntity {
-		@Serializable
-		data class Image(
-			val base64: String,
-			val fileExtension: String,
-		)
-
 		override fun hash(): String = EntityHasher.hashEncyclopediaEntry(
 			id = id,
 			name = name,
 			entryType = entryType,
 			text = text,
 			tags = tags,
-			image = image,
 			aliases = aliases,
 			excludeFromDictionary = excludeFromDictionary,
+			images = images,
 		)
 	}
 
@@ -137,12 +133,36 @@ sealed interface ApiProjectEntity {
 		)
 	}
 
+	@Serializable
+	data class ImageEntity(
+		override val type: Type = Type.IMAGE,
+		override val id: Int,
+		val name: String,
+		val fileExtension: String,
+		/** URL-safe base64 of the raw image bytes. */
+		val base64: String,
+	) : ApiProjectEntity {
+		// Decoding and hashing the whole image is costly and sync asks more than once. A delegated
+		// property is not serialized and is not part of data class equality.
+		private val cachedHash by lazy {
+			EntityHasher.hashImage(
+				id = id,
+				name = name,
+				fileExtension = fileExtension,
+				bytes = Base64.decode(base64, url = true),
+			)
+		}
+
+		override fun hash(): String = cachedHash
+	}
+
 	enum class Type(val id: Int) {
 		SCENE(0),
 		NOTE(1),
 		TIMELINE_EVENT(2),
 		ENCYCLOPEDIA_ENTRY(3),
-		SCENE_DRAFT(4);
+		SCENE_DRAFT(4),
+		IMAGE(5);
 
 		fun toStringId() = when (this) {
 			SCENE -> "scene"
@@ -150,6 +170,7 @@ sealed interface ApiProjectEntity {
 			TIMELINE_EVENT -> "timeline_event"
 			ENCYCLOPEDIA_ENTRY -> "encyclopedia_entry"
 			SCENE_DRAFT -> "scene_draft"
+			IMAGE -> "image"
 		}
 
 		companion object {
@@ -160,6 +181,7 @@ sealed interface ApiProjectEntity {
 					"timeline_event" -> TIMELINE_EVENT
 					"encyclopedia_entry" -> ENCYCLOPEDIA_ENTRY
 					"scene_draft" -> SCENE_DRAFT
+					"image" -> IMAGE
 					else -> null
 				}
 			}

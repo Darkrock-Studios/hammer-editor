@@ -1,28 +1,45 @@
 package com.darkrockstudios.apps.hammer.common.data.encyclopediarepository
 
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContainer
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImageAddOutcome
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImageAddResult
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesDatasource
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesRepository
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageDef
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageFile
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexRepository
-import com.darkrockstudios.apps.hammer.common.fileio.HPath
+import com.darkrockstudios.apps.hammer.common.fileio.ExternalFileIo
+import io.github.aakira.napier.Napier
 import kotlinx.coroutines.flow.SharedFlow
+import okio.IOException
 
 /**
  * The Component-facing API for the encyclopedia domain. Components and UI talk only to this
  * service; [EncyclopediaRepository] is a lower-level building block. The service owns write
- * orchestration — applying the cross-cutting side-effects (statistics, reference index) that
- * the repository deliberately does not reach sideways to perform — and delegates reads
- * one-to-one. Lower-level data consumers (services, use-cases, sync) still use the repository.
+ * orchestration: it applies the cross-cutting side-effects (statistics, reference index, the Image
+ * entities an entry shows) that the repository deliberately does not reach sideways to perform,
+ * and delegates reads one-to-one. Lower-level data consumers (services, use-cases, sync) still use
+ * the repository.
  */
 class EncyclopediaService(
 	private val repository: EncyclopediaRepository,
 	private val statisticsRepository: StatisticsRepository,
 	private val referenceIndexRepository: ReferenceIndexRepository,
+	private val imagesRepository: ImagesRepository,
+	private val externalFileIo: ExternalFileIo,
 ) {
 
 	// region Writes / orchestration
 
+	/**
+	 * Creates an entry. With [imagePath], the picked file then becomes a new Image entity named
+	 * after the entry and is the entry's primary image; an image that cannot be read or is not a
+	 * valid image is skipped and the entry keeps only [images].
+	 */
 	suspend fun createEntry(
 		name: String,
 		type: EntryType,
@@ -32,11 +49,31 @@ class EncyclopediaService(
 		forceId: Int? = null,
 		aliases: List<String> = emptyList(),
 		excludeFromDictionary: Boolean = false,
+		images: List<Int> = emptyList(),
 	): EntryResult {
-		val result =
-			repository.createEntry(name, type, text, tags, imagePath, forceId, aliases, excludeFromDictionary)
-		if (result.error == EntryError.NONE) statisticsRepository.markDirty()
-		return result
+		val result = repository.createEntry(
+			name = name,
+			type = type,
+			text = text,
+			tags = tags,
+			forceId = forceId,
+			aliases = aliases,
+			excludeFromDictionary = excludeFromDictionary,
+			images = images,
+		)
+		val entry = result.instance?.entry
+		if (result.error != EntryError.NONE || entry == null) return result
+		statisticsRepository.markDirty()
+
+		val image = imagePath?.let { importImage(entry.name, it).image } ?: return result
+		val attached = try {
+			repository.addPrimaryImage(repository.getEntryDef(entry.id), image.id)
+		} catch (e: IOException) {
+			Napier.w("Failed to list image ${image.id} in new entry ${entry.id}", e)
+			false
+		}
+		if (!attached) return result
+		return EntryResult(EntryContainer(entry.copy(images = listOf(image.id) + entry.images)), EntryError.NONE)
 	}
 
 	suspend fun updateEntry(
@@ -46,8 +83,10 @@ class EncyclopediaService(
 		tags: Set<String>,
 		aliases: List<String> = emptyList(),
 		excludeFromDictionary: Boolean,
+		images: List<Int>,
 	): EntryResult {
-		val result = repository.updateEntry(oldEntryDef, name, text, tags, aliases, excludeFromDictionary)
+		val result =
+			repository.updateEntry(oldEntryDef, name, text, tags, aliases, excludeFromDictionary, images)
 		if (result.error == EntryError.NONE) statisticsRepository.markDirty()
 		return result
 	}
@@ -61,14 +100,54 @@ class EncyclopediaService(
 		return deleted
 	}
 
-	suspend fun setEntryImage(entryDef: EntryDef, imagePath: String?) =
-		repository.setEntryImage(entryDef, imagePath)
+	suspend fun addEntryImage(entryDef: EntryDef, imageId: Int): Boolean =
+		repository.addEntryImage(entryDef, imageId)
 
-	suspend fun setEntryImage(entryDef: EntryDef, extension: String, image: ByteArray): Boolean =
-		repository.setEntryImage(entryDef, extension, image)
+	/** Detaches the image from the entry; the Image entity stays in the project. */
+	suspend fun removeEntryImage(entryDef: EntryDef, imageId: Int): Boolean =
+		repository.removeEntryImage(entryDef, imageId)
 
-	suspend fun removeEntryImage(entryDef: EntryDef): Boolean =
-		repository.removeEntryImage(entryDef)
+	suspend fun setPrimaryImage(entryDef: EntryDef, imageId: Int): Boolean =
+		repository.setPrimaryImage(entryDef, imageId)
+
+	/**
+	 * Imports the file at [imagePath] as a new Image entity named after the entry and adds it to the
+	 * end of the entry's images, so it is the primary image only when the entry had none.
+	 */
+	suspend fun importEntryImage(entryDef: EntryDef, imagePath: String): ImageAddOutcome {
+		val outcome = importImage(entryDef.name, imagePath)
+		outcome.image?.let { repository.addEntryImage(entryDef, it.id) }
+		return outcome
+	}
+
+	/** [importEntryImage] for image bytes already in hand. */
+	suspend fun importEntryImage(entryDef: EntryDef, extension: String, bytes: ByteArray): ImageAddOutcome {
+		val outcome = imagesRepository.create(
+			name = ImagesDatasource.validImageName(entryDef.name),
+			bytes = bytes,
+			fileExtension = extension.removePrefix("."),
+		)
+		outcome.image?.let { repository.addEntryImage(entryDef, it.id) }
+		return outcome
+	}
+
+	private suspend fun importImage(entryName: String, imagePath: String): ImageAddOutcome {
+		val bytes = try {
+			externalFileIo.readExternalFile(imagePath)
+		} catch (e: IOException) {
+			Napier.w("Failed to read entry image: $imagePath", e)
+			return ImageAddOutcome(ImageAddResult.ReadFailed)
+		}
+		val outcome = imagesRepository.create(
+			name = ImagesDatasource.validImageName(entryName),
+			bytes = bytes,
+			fileExtension = imagePath.substringAfterLast('.', ""),
+		)
+		if (outcome.result != ImageAddResult.Ok) {
+			Napier.w("Ignoring entry image $imagePath: ${outcome.result}")
+		}
+		return outcome
+	}
 
 	// endregion
 
@@ -88,23 +167,23 @@ class EncyclopediaService(
 
 	fun findEntryDef(id: Int): EntryDef? = repository.findEntryDef(id)
 
-	fun hasEntryImage(entryDef: EntryDef, fileExtension: String): Boolean =
-		repository.hasEntryImage(entryDef, fileExtension)
+	/** The first of [imageIds] that exists in the project, or null. */
+	suspend fun findPrimaryImage(imageIds: List<Int>): ImageDef? {
+		if (imageIds.isEmpty()) return null
+		val loaded = imagesRepository.ensureImagesLoaded().associateBy { it.id }
+		return imageIds.firstNotNullOfOrNull { loaded[it] }
+	}
 
-	fun findEntryImagePath(entryDef: EntryDef): HPath? =
-		repository.findEntryImagePath(entryDef)
+	/** The file of [entry]'s primary image, or null when it has none. */
+	suspend fun primaryImageFile(entry: EntryContent): ImageFile? =
+		findPrimaryImage(entry.images)?.let(imagesRepository::imageFile)
 
-	fun findEntryImageExtension(entryDef: EntryDef): String? =
-		repository.findEntryImageExtension(entryDef)
+	/** The files of [entry]'s images that exist in the project, primary first. */
+	suspend fun entryImageFiles(entry: EntryContent): List<ImageFile> =
+		imagesRepository.findImageFiles(entry.images)
 
-	suspend fun calculateEntryImageHash(entryDef: EntryDef, fileExtension: String): String? =
-		repository.calculateEntryImageHash(entryDef, fileExtension)
-
-	fun getEntryImagePath(entryDef: EntryDef, fileExtension: String): HPath =
-		repository.getEntryImagePath(entryDef, fileExtension)
-
-	fun loadEntryImage(entryDef: EntryDef, fileExtension: String): ByteArray =
-		repository.loadEntryImage(entryDef, fileExtension)
+	/** Emits the id of an image whose bytes, name or id changed, or that was deleted. */
+	val imageChangedFlow: SharedFlow<Int> get() = imagesRepository.imageChangedFlow
 
 	// endregion
 }

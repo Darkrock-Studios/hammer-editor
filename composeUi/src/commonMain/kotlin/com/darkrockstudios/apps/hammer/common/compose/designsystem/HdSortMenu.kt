@@ -22,6 +22,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.compose.Ui
@@ -51,32 +52,11 @@ fun <T : HdSortOption> HdSortMenu(
 ) {
 	var expanded by remember { mutableStateOf(false) }
 	Box(modifier = modifier) {
-		Row(
-			modifier = Modifier
-				.height(32.dp)
-				.border(
-					width = Dp.Hairline,
-					color = MaterialTheme.colorScheme.outlineVariant,
-					shape = RectangleShape,
-				)
-				.clickable { expanded = true }
-				.padding(horizontal = Ui.Padding.L),
-			verticalAlignment = Alignment.CenterVertically,
-			horizontalArrangement = Arrangement.spacedBy(Ui.Padding.S),
-		) {
-			HdMonoLabel(
-				text = label.get(),
-				color = MaterialTheme.colorScheme.onSurfaceVariant,
-				maxLines = 1,
-				softWrap = false,
-			)
-			HdMonoLabel(
-				text = selected.glyphRes.get(),
-				color = MaterialTheme.colorScheme.onSurface,
-				maxLines = 1,
-				softWrap = false,
-			)
-		}
+		HdSortPill(
+			label = label.get(),
+			value = selected.glyphRes.get(),
+			onClick = { expanded = true },
+		)
 		DropdownMenu(
 			expanded = expanded,
 			onDismissRequest = { expanded = false },
@@ -109,5 +89,41 @@ fun <T : HdSortOption> HdSortMenu(
 				)
 			}
 		}
+	}
+}
+
+/** The hairline "LABEL  VALUE" pill that [HdSortMenu] opens its menu from. */
+@Composable
+fun HdSortPill(
+	label: String,
+	value: String,
+	onClick: () -> Unit,
+	modifier: Modifier = Modifier,
+	onClickLabel: String? = null,
+) {
+	Row(
+		modifier = modifier
+			.height(32.dp)
+			.border(
+				width = Dp.Hairline,
+				color = MaterialTheme.colorScheme.outlineVariant,
+				shape = RectangleShape,
+			)
+			.clickable(onClickLabel = onClickLabel, role = Role.Button, onClick = onClick)
+			.padding(horizontal = Ui.Padding.L),
+		verticalAlignment = Alignment.CenterVertically,
+		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.S),
+	) {
+		HdMonoLabel(
+			text = label,
+			maxLines = 1,
+			softWrap = false,
+		)
+		HdMonoLabel(
+			text = value,
+			color = MaterialTheme.colorScheme.onSurface,
+			maxLines = 1,
+			softWrap = false,
+		)
 	}
 }

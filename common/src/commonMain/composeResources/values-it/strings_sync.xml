@@ -79,7 +79,6 @@
 	<string name="sync_conflict_encyclopedia_label_image">Immagine:</string>
 	<string name="sync_conflict_encyclopedia_label_content">Contenuto:</string>
 	<string name="sync_conflict_encyclopedia_label_tags">Tag:</string>
-	<string name="sync_conflict_encyclopedia_has_image">Con immagine</string>
 	<string name="sync_conflict_title_scene_field_name">Nome</string>
 	<string name="sync_conflict_title_scene_field_content">Contenuto della scena</string>
 	<string name="sync_conflict_title_scene_field_outline">Scaletta</string>
@@ -146,7 +145,6 @@
 	<string name="sync_log_data_save_failed">Dati di sincronizzazione non salvati a causa di errori</string>
 	<string name="sync_log_failed">Impossibile terminare la sincronizzazione</string>
 	<string name="sync_draft_rejected_invalid_name">Bozza %1$d dal server rifiutata: nome della bozza non sicuro</string>
-	<string name="sync_encyclopedia_image_rejected_invalid_extension">Immagine della voce di enciclopedia %1$d dal server ignorata: estensione file non sicura</string>
 	<string name="sync_encyclopedia_deleted">Voce di enciclopedia ID %1$d eliminata dal client</string>
 	<string name="sync_note_deleted">Nota ID %1$d eliminata dal client</string>
 	<string name="sync_draft_deleted">Bozza %1$d eliminata dal client</string>

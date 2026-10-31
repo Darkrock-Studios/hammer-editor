@@ -19,6 +19,7 @@ class EntitySynchronizers(private val projectDef: ProjectDef) : ProjectScoped {
 	val timelineSynchronizer: ClientTimelineSynchronizer by projectInject()
 	val encyclopediaSynchronizer: ClientEncyclopediaSynchronizer by projectInject()
 	val sceneDraftSynchronizer: ClientSceneDraftSynchronizer by projectInject()
+	val imageSynchronizer: ClientImageSynchronizer by projectInject()
 
 	val synchronizers: Map<EntityType, EntitySynchronizer<out ApiProjectEntity>> by lazy {
 		mapOf(
@@ -26,7 +27,8 @@ class EntitySynchronizers(private val projectDef: ProjectDef) : ProjectScoped {
 			EntityType.Note to noteSynchronizer,
 			EntityType.TimelineEvent to timelineSynchronizer,
 			EntityType.EncyclopediaEntry to encyclopediaSynchronizer,
-			EntityType.SceneDraft to sceneDraftSynchronizer
+			EntityType.SceneDraft to sceneDraftSynchronizer,
+			EntityType.Image to imageSynchronizer,
 		)
 	}
 
@@ -37,6 +39,7 @@ class EntitySynchronizers(private val projectDef: ProjectDef) : ProjectScoped {
 			EntityType.TimelineEvent -> timelineSynchronizer
 			EntityType.EncyclopediaEntry -> encyclopediaSynchronizer
 			EntityType.SceneDraft -> sceneDraftSynchronizer
+			EntityType.Image -> imageSynchronizer
 		}
 	}
 
@@ -62,6 +65,9 @@ class EntitySynchronizers(private val projectDef: ProjectDef) : ProjectScoped {
 
 			is ApiProjectEntity.SceneDraftEntity ->
 				sceneDraftSynchronizer.conflictResolution.send(conflict)
+
+			is ApiProjectEntity.ImageEntity ->
+				imageSynchronizer.conflictResolution.send(conflict)
 		}
 	}
 
@@ -75,7 +81,7 @@ class EntitySynchronizers(private val projectDef: ProjectDef) : ProjectScoped {
 			Napier.w("reId skipped: no local entity owns $oldId")
 			return null
 		}
-		when (type) {
+		val rewrittenReferrers = when (type) {
 			EntityType.Scene -> sceneSynchronizer.reIdEntity(oldId = oldId, newId = newId)
 			EntityType.Note -> noteSynchronizer.reIdEntity(oldId = oldId, newId = newId)
 			EntityType.TimelineEvent -> timelineSynchronizer.reIdEntity(
@@ -89,8 +95,9 @@ class EntitySynchronizers(private val projectDef: ProjectDef) : ProjectScoped {
 			)
 
 			EntityType.SceneDraft -> sceneDraftSynchronizer.reIdEntity(oldId = oldId, newId = newId)
+			EntityType.Image -> imageSynchronizer.reIdEntity(oldId = oldId, newId = newId)
 		}
-		return EntityIdChange(type, oldId, newId)
+		return EntityIdChange(type, oldId, newId, rewrittenReferrers)
 	}
 
 	/** Tells every [EntityIdChangeListener] bound in Koin of a sync's [changes], unless there are none. */
@@ -130,6 +137,7 @@ class EntitySynchronizers(private val projectDef: ProjectDef) : ProjectScoped {
 				EntityType.TimelineEvent -> timelineSynchronizer.getEntityHash(id)
 				EntityType.EncyclopediaEntry -> encyclopediaSynchronizer.getEntityHash(id)
 				EntityType.SceneDraft -> sceneDraftSynchronizer.getEntityHash(id)
+				EntityType.Image -> imageSynchronizer.getEntityHash(id)
 			}
 		}
 	}

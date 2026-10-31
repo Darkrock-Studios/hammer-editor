@@ -52,6 +52,9 @@ fun Modifier.italicShortcutModifier(onItalic: () -> Unit): Modifier =
 fun Modifier.strikethroughShortcutModifier(onStrikethrough: () -> Unit): Modifier =
 	onKeyShortcut(Key.X, ctrl = true, shift = true, action = onStrikethrough)
 
+fun Modifier.insertImageShortcutModifier(onInsertImage: () -> Unit): Modifier =
+	onKeyShortcut(Key.I, ctrl = true, shift = true, action = onInsertImage)
+
 /** Ctrl/Cmd with Plus, Minus and 0, as browsers zoom. Plus is Shift+Equals on most layouts. */
 fun Modifier.textSizeShortcutModifier(
 	onIncrease: () -> Unit,

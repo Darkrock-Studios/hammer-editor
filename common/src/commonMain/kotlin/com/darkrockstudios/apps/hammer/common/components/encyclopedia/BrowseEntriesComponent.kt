@@ -13,6 +13,7 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageFile
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.search.parseQuery
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndex
@@ -165,14 +166,8 @@ class BrowseEntriesComponent(
 		}
 	}
 
-	override fun getImagePath(entryDef: EntryDef): String? {
-		return encyclopediaService.findEntryImagePath(entryDef)?.path
-	}
-
-	override suspend fun calculateEntryImageHash(entryDef: EntryDef): String? {
-		return encyclopediaService.findEntryImageExtension(entryDef)
-			?.let { ext -> encyclopediaService.calculateEntryImageHash(entryDef, ext) }
-	}
+	override suspend fun loadEntryImage(entry: EntryContent): ImageFile? =
+		encyclopediaService.primaryImageFile(entry)
 
 	override fun clearFilterText() {
 		_filterText.update { "" }

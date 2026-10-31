@@ -29,6 +29,10 @@ interface ProjectSettings : HammerComponent {
 
 	fun setEncyclopediaDictionaryEnabled(enabled: Boolean)
 
+	/** Opens the image gallery to pick the book cover; ignored while a pick is pending. */
+	fun pickCoverImage()
+	fun clearCoverImage()
+
 	/** Input that normalizes to nothing storable is ignored. */
 	fun addDictionaryWord(word: String)
 	fun removeDictionaryWord(word: String)
@@ -47,6 +51,9 @@ interface ProjectSettings : HammerComponent {
 	data class ProjectInfoState(
 		val data: ProjectData = ProjectData(),
 		val isLoaded: Boolean = false,
+		/** The image of [ProjectData.coverImageId]; null when unset or this device lacks the image. */
+		val coverImage: CoverImage? = null,
+		val pendingCoverPick: Boolean = false,
 	)
 
 	companion object {

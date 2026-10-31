@@ -7,8 +7,9 @@ import com.darkrockstudios.apps.hammer.operations.OperationException
 import com.darkrockstudios.apps.hammer.operations.core.Entries
 import com.darkrockstudios.apps.hammer.operations.core.Entry
 import com.darkrockstudios.apps.hammer.operations.core.EntryCreateInput
-import com.darkrockstudios.apps.hammer.operations.core.EntryImage
-import com.darkrockstudios.apps.hammer.operations.core.EntryImageSetInput
+import com.darkrockstudios.apps.hammer.operations.core.EntryImageImportInput
+import com.darkrockstudios.apps.hammer.operations.core.EntryImageInput
+import com.darkrockstudios.apps.hammer.operations.core.EntryImages
 import com.darkrockstudios.apps.hammer.operations.core.EntryKind
 import com.darkrockstudios.apps.hammer.operations.core.EntryListInput
 import com.darkrockstudios.apps.hammer.operations.core.EntrySummary
@@ -29,7 +30,6 @@ import okio.Path.Companion.toPath
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.koin.core.component.get
-import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
@@ -67,7 +67,7 @@ class ContentWriteOperationsTest : KoinOperationsTest() {
 	}
 
 	@Test
-	fun `entries are created, updated, given images, and deleted`() = onTestThread {
+	fun `entries are created, updated, and deleted`() = onTestThread {
 		val entry = run<EntryCreateInput, Entry>(
 			"entry.create",
 			EntryCreateInput(PROJECT, "Alice", EntryKind.Person, "The keeper.", tags = listOf("cast"), aliases = listOf("Al")),
@@ -79,15 +79,53 @@ class ContentWriteOperationsTest : KoinOperationsTest() {
 		assertEquals("The lighthouse keeper.", updated.text)
 		assertEquals(listOf("cast"), updated.tags)
 
-		run<EntryImageSetInput, Entry>("entry.image.set", EntryImageSetInput(PROJECT, entry.id, "jpg", JPEG))
-		assertTrue(run<EntryImageSetInput, Entry>("entry.image.set", EntryImageSetInput(PROJECT, entry.id, "PNG", IMAGE)).hasImage)
-		val image = run<ProjectItemInput, EntryImage>("entry.image.get", ProjectItemInput(PROJECT, entry.id))
-		assertEquals("png", image.extension)
-		assertContentEquals(IMAGE, image.content)
-		assertFalse(run<ProjectItemInput, Entry>("entry.image.remove", ProjectItemInput(PROJECT, entry.id)).hasImage)
-
 		run<ProjectItemInput, EntrySummary>("entry.delete", ProjectItemInput(PROJECT, entry.id))
 		assertEquals(emptyList(), run<EntryListInput, Entries>("entry.list", EntryListInput(PROJECT)).entries)
+	}
+
+	@Test
+	fun `entry images are imported, added, reordered, and removed`() = onTestThread {
+		val alice = run<EntryCreateInput, Entry>("entry.create", EntryCreateInput(PROJECT, "Alice", EntryKind.Person, ""))
+		val point = run<EntryCreateInput, Entry>("entry.create", EntryCreateInput(PROJECT, "Point", EntryKind.Place, ""))
+
+		// Each import appends, so the first stays primary.
+		val first = run<EntryImageImportInput, EntryImages>("entry.images.import", EntryImageImportInput(PROJECT, alice.id, "jpg", JPEG))
+		val both = run<EntryImageImportInput, EntryImages>("entry.images.import", EntryImageImportInput(PROJECT, alice.id, "PNG", IMAGE))
+		val portrait = first.images.single()
+		val sketch = both.images.last()
+		assertEquals(listOf(portrait, sketch), both.images)
+		assertEquals(listOf("Alice" to "jpg", "Alice" to "png"), both.images.map { it.name to it.extension })
+		assertEquals(listOf(portrait.id, sketch.id), run<ProjectItemInput, Entry>("entry.read", ProjectItemInput(PROJECT, alice.id)).images)
+
+		val primary = run<EntryImageInput, EntryImages>("entry.images.primary", EntryImageInput(PROJECT, alice.id, sketch.id))
+		assertEquals(listOf(sketch.id, portrait.id), primary.images.map { it.id })
+
+		val shared = run<EntryImageInput, EntryImages>("entry.images.add", EntryImageInput(PROJECT, point.id, portrait.id))
+		assertEquals(listOf(portrait.id), shared.images.map { it.id })
+
+		val removed = run<EntryImageInput, EntryImages>("entry.images.remove", EntryImageInput(PROJECT, alice.id, portrait.id))
+		assertEquals(listOf(sketch.id), removed.images.map { it.id })
+		// Removing only detaches: the image is still in the project, on the other entry.
+		assertEquals(listOf(portrait.id), run<ProjectItemInput, EntryImages>("entry.images.list", ProjectItemInput(PROJECT, point.id)).images.map { it.id })
+		assertTrue(run<EntryImageInput, EntryImages>("entry.images.remove", EntryImageInput(PROJECT, alice.id, sketch.id)).images.isEmpty())
+		assertFalse(run<ProjectItemInput, Entry>("entry.read", ProjectItemInput(PROJECT, alice.id)).hasImage)
+	}
+
+	@Test
+	fun `entry images that are not there are not found`() {
+		val entry = onTestThread { run<EntryCreateInput, Entry>("entry.create", EntryCreateInput(PROJECT, "Point", EntryKind.Place, "")) }
+		val missing = listOf(
+			"entry.images.add" to EntryImageInput(PROJECT, entry.id, 404),
+			"entry.images.remove" to EntryImageInput(PROJECT, entry.id, 404),
+			"entry.images.primary" to EntryImageInput(PROJECT, entry.id, 404),
+			"entry.images.add" to EntryImageInput(PROJECT, 999, 404),
+		)
+		missing.forEach { (name, input) ->
+			onTestThread {
+				val error = assertFailsWith<OperationException> { run<EntryImageInput, EntryImages>(name, input) }
+				assertEquals(OperationException.Kind.NotFound, error.kind, name)
+			}
+		}
 	}
 
 	@Test
@@ -109,8 +147,9 @@ class ContentWriteOperationsTest : KoinOperationsTest() {
 	fun `bad entry names and images are invalid`() {
 		invalid { run<EntryCreateInput, Entry>("entry.create", EntryCreateInput(PROJECT, "bad~name", EntryKind.Place, "")) }
 		val entry = onTestThread { run<EntryCreateInput, Entry>("entry.create", EntryCreateInput(PROJECT, "Point", EntryKind.Place, "")) }
-		invalid { run<EntryImageSetInput, Entry>("entry.image.set", EntryImageSetInput(PROJECT, entry.id, "gif", IMAGE)) }
-		invalid { run<EntryImageSetInput, Entry>("entry.image.set", EntryImageSetInput(PROJECT, entry.id, "jpg", IMAGE)) }
+		invalid { run<EntryImageImportInput, EntryImages>("entry.images.import", EntryImageImportInput(PROJECT, entry.id, "gif", IMAGE)) }
+		invalid { run<EntryImageImportInput, EntryImages>("entry.images.import", EntryImageImportInput(PROJECT, entry.id, "jpg", IMAGE)) }
+		invalid { run<EntryImageImportInput, EntryImages>("entry.images.import", EntryImageImportInput(PROJECT, entry.id, "png", TOO_LARGE)) }
 	}
 
 	@Test
@@ -143,5 +182,6 @@ class ContentWriteOperationsTest : KoinOperationsTest() {
 		const val PROJECT = "Storm Novel"
 		val JPEG = byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 0xFF.toByte(), 0)
 		val IMAGE = byteArrayOf(0x89.toByte(), 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 1, 2)
+		val TOO_LARGE = IMAGE + ByteArray(9 * 1024 * 1024)
 	}
 }

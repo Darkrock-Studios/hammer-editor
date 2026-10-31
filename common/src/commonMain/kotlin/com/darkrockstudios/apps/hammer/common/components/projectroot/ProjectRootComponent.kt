@@ -14,6 +14,8 @@ import com.darkrockstudios.apps.hammer.common.components.globalsearch.GlobalSear
 import com.darkrockstudios.apps.hammer.common.components.globalsearch.GlobalSearchSavedState
 import com.darkrockstudios.apps.hammer.common.components.globalsearch.GlobalSearchState
 import com.darkrockstudios.apps.hammer.common.components.globalsearch.SearchResult
+import com.darkrockstudios.apps.hammer.common.components.images.ImageGalleryMode
+import com.darkrockstudios.apps.hammer.common.components.images.ImagePickRequests
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.duplicateids.DuplicateIdService
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaService
@@ -27,6 +29,8 @@ import com.darkrockstudios.apps.hammer.common.data.protocolmismatch.ProtocolMism
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
+import com.darkrockstudios.apps.hammer.images_menu_group
+import com.darkrockstudios.apps.hammer.images_menu_item
 import com.darkrockstudios.apps.hammer.sync_menu_group
 import com.darkrockstudios.apps.hammer.sync_menu_item
 import io.github.aakira.napier.Napier
@@ -56,6 +60,7 @@ class ProjectRootComponent(
 	private val searchProjectUseCase: SearchProjectUseCase by projectInject()
 	private val protocolMismatchRepository: ProtocolMismatchRepository by inject()
 	private val duplicateIdService: DuplicateIdService by projectInject()
+	private val imagePickRequests: ImagePickRequests by projectInject()
 
 	// Retained on this long-lived parent so search state survives the modal being dismissed/reopened
 	// and config changes; stateKeeper carries the query/filter slice across process death.
@@ -110,6 +115,7 @@ class ProjectRootComponent(
 		::startProjectSync,
 		::showGlobalSearch,
 		::showGlobalSearchForTag,
+		::showImageGallery,
 		::showFocusMode,
 		::showEncyclopediaEntry,
 		::showEditorScene,
@@ -182,6 +188,14 @@ class ProjectRootComponent(
 			protocolMismatchRepository.mismatches.collect { info ->
 				withContext(dispatcherMain) {
 					modalRouter.showProtocolMismatch(info)
+				}
+			}
+		}
+
+		scope.launch {
+			imagePickRequests.requests.collect { target ->
+				withContext(dispatcherMain) {
+					modalRouter.showImageGallery(ImageGalleryMode.Pick(target))
 				}
 			}
 		}
@@ -284,6 +298,8 @@ class ProjectRootComponent(
 	}
 
 	override fun dismissFocusMode() = modalRouter.dismissFocusMode()
+
+	override fun showImageGallery() = modalRouter.showImageGallery(ImageGalleryMode.Browse)
 
 	private fun reopenSceneAfterFocusMode(sceneItem: SceneItem) {
 		(routerState.value.active.instance as? ProjectRoot.Destination.EditorDestination)
@@ -418,6 +434,21 @@ class ProjectRootComponent(
 	}
 
 	private fun addMenuItems() {
+		addMenu(
+			MenuDescriptor(
+				id = IMAGES_MENU_ID,
+				label = Res.string.images_menu_group,
+				items = listOf(
+					MenuItemDescriptor(
+						id = "project-root-images-gallery",
+						label = Res.string.images_menu_item,
+						icon = "",
+						action = { showImageGallery() }
+					)
+				)
+			)
+		)
+
 		if (syncJournal.isServerSynchronized()) {
 			addMenu(
 				MenuDescriptor(
@@ -438,6 +469,7 @@ class ProjectRootComponent(
 	}
 
 	private fun removeMenuItems() {
+		removeMenu(IMAGES_MENU_ID)
 		if (syncJournal.isServerSynchronized()) {
 			removeMenu(SYNC_MENU_ID)
 		}
@@ -445,5 +477,6 @@ class ProjectRootComponent(
 
 	companion object {
 		const val SYNC_MENU_ID = "project-root-sync"
+		const val IMAGES_MENU_ID = "project-root-images"
 	}
 }

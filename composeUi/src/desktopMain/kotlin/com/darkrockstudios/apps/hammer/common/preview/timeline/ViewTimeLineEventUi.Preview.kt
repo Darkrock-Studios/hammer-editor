@@ -11,6 +11,7 @@ import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.components.timeline.ViewTimeLineEvent
 import com.darkrockstudios.apps.hammer.common.compose.rememberRootSnackbarHostState
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageDef
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.preview.KoinApplicationPreview
 import com.darkrockstudios.apps.hammer.common.preview.TABLET_HEIGHT_DP
@@ -100,5 +101,6 @@ private val component = object : ViewTimeLineEvent {
 	override fun confirmClose() {}
 	override fun cancelClose() {}
 	override fun closeEvent() {}
+	override suspend fun pickImageForText(): ImageDef? = null
 	override fun suggestTags(prefix: String, limit: Int): List<String> = emptyList()
 }

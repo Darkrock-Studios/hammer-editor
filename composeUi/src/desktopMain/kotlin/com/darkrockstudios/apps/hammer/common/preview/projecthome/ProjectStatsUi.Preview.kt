@@ -120,6 +120,7 @@ private val component = object : ProjectHome {
 	override fun startProjectSync() {}
 	override fun showGlobalSearch() {}
 	override fun showGlobalSearchForTag(tag: String) {}
+	override fun showImageGallery() {}
 	override fun showLongestScene() {}
 	override fun showLastEditedScene() {}
 	override fun showEntry(entry: EntryAppearance) {}

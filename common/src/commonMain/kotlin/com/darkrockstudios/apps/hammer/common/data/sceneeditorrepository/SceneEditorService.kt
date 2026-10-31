@@ -268,6 +268,16 @@ class SceneEditorService(
 		return storeSceneBuffer(sceneItem)
 	}
 
+	/**
+	 * Rewrites unsaved edits left by an earlier session that this scope has not restored, so restoring
+	 * them later brings back the rewritten text. Returns true when they changed.
+	 */
+	fun updateUnrestoredEdits(sceneItem: SceneItem, transform: (String) -> String): Boolean =
+		sceneContentRepository.updateUnrestoredEdits(sceneItem, transform)
+
+	/** Unsaved edits left by an earlier session that this scope has not restored, or null. */
+	fun loadUnrestoredEdits(sceneItem: SceneItem): String? = sceneContentRepository.loadUnrestoredEdits(sceneItem)
+
 	suspend fun storeAllBuffers() {
 		sceneContentRepository.forEachDirtyBuffer { scene -> storeSceneBuffer(scene) }
 	}

@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.frontend.utils
 
+import com.darkrockstudios.apps.hammer.utilities.escapeHtml
 import com.github.mustachejava.DefaultMustacheFactory
 import io.ktor.htmx.HxResponseHeaders
 import io.ktor.htmx.HxSwap
@@ -29,11 +30,7 @@ enum class Toast(val cssClass: String, val icon: String) {
  * The toast will be appended to #toast-container and auto-dismissed after 5 seconds.
  */
 fun toastHtml(message: String, toast: Toast = Toast.Success): String {
-	val escapedMessage = message
-		.replace("&", "&amp;")
-		.replace("<", "&lt;")
-		.replace(">", "&gt;")
-		.replace("\"", "&quot;")
+	val escapedMessage = escapeHtml(message)
 
 	return """
 		<div id="toast-container" hx-swap-oob="beforeend">

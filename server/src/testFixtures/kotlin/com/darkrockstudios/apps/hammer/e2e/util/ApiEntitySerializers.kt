@@ -10,5 +10,6 @@ fun getSerializerForType(type: ApiProjectEntity.Type): KSerializer<ApiProjectEnt
 		ApiProjectEntity.Type.TIMELINE_EVENT -> ApiProjectEntity.TimelineEventEntity.serializer() as KSerializer<ApiProjectEntity>
 		ApiProjectEntity.Type.ENCYCLOPEDIA_ENTRY -> ApiProjectEntity.EncyclopediaEntryEntity.serializer() as KSerializer<ApiProjectEntity>
 		ApiProjectEntity.Type.SCENE_DRAFT -> ApiProjectEntity.SceneDraftEntity.serializer() as KSerializer<ApiProjectEntity>
+		ApiProjectEntity.Type.IMAGE -> ApiProjectEntity.ImageEntity.serializer() as KSerializer<ApiProjectEntity>
 	}
 }

@@ -5,7 +5,9 @@ import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.common.data.Msg
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageFile
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessage
+import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import org.jetbrains.compose.resources.StringResource
 
 interface ProjectSynchronization {
@@ -43,6 +45,8 @@ interface ProjectSynchronization {
 		val local: ProjectData,
 		val server: ProjectData,
 		val serverHash: String,
+		/** Either side's cover image, when this device has it. */
+		val localImages: Map<Int, ImageFile> = emptyMap(),
 	)
 
 	sealed class EntityConflict<T : ApiProjectEntity>(
@@ -66,13 +70,25 @@ interface ProjectSynchronization {
 
 		class EncyclopediaEntryConflict(
 			serverEntry: ApiProjectEntity.EncyclopediaEntryEntity,
-			clientEntry: ApiProjectEntity.EncyclopediaEntryEntity
+			clientEntry: ApiProjectEntity.EncyclopediaEntryEntity,
+			/**
+			 * The images either side lists that are on this device, by id. A server-side id may be
+			 * missing when that image has not been downloaded.
+			 */
+			val localImages: Map<Int, ImageFile> = emptyMap(),
 		) : EntityConflict<ApiProjectEntity.EncyclopediaEntryEntity>(serverEntry, clientEntry)
 
 		class SceneDraftConflict(
 			serverEntry: ApiProjectEntity.SceneDraftEntity,
 			clientEntry: ApiProjectEntity.SceneDraftEntity
 		) : EntityConflict<ApiProjectEntity.SceneDraftEntity>(serverEntry, clientEntry)
+
+		class ImageConflict(
+			serverImage: ApiProjectEntity.ImageEntity,
+			clientImage: ApiProjectEntity.ImageEntity,
+			/** The local image file, for display without decoding the base64 copy. */
+			val clientImagePath: HPath,
+		) : EntityConflict<ApiProjectEntity.ImageEntity>(serverImage, clientImage)
 	}
 
 	sealed class EntityMergeError {
@@ -94,6 +110,10 @@ interface ProjectSynchronization {
 		) : EntityMergeError()
 
 		class SceneDraftMergeError(
+			val nameError: Msg? = null,
+		) : EntityMergeError()
+
+		class ImageMergeError(
 			val nameError: Msg? = null,
 		) : EntityMergeError()
 	}

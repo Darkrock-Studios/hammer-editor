@@ -63,8 +63,12 @@ fun parseQuery(query: String): ParsedQuery {
  * typing one. Markers the projection leaves alone, `5*4` and `user_name`, match where they sit,
  * because there they are prose.
  *
+ * A project image matches nothing here: there are no image names to show for it, and its alt text
+ * carries no meaning.
+ *
  * Global search needs offsets rather than a boolean, so it projects and matches separately in
- * `SearchProjectUseCase.findMarkdownMatch`. `MarkdownContainsTest` pins the two to the same answer.
+ * `SearchProjectUseCase.findMarkdownMatch`. `SearchProjectUseCaseTest` pins the two to the same
+ * answer for everything but project images, which global search finds by their names.
  */
 fun markdownContains(content: String, query: String): Boolean =
 	projectMarkdownToPlainText(content).contains(query, ignoreCase = true)

@@ -59,7 +59,9 @@ class Migration3_4Test : BaseTest() {
 	private fun read(path: Path): String = ffs.read(path) { readUtf8() }
 
 	private fun migrator(vararg migrations: Pair<Int, Migration>) =
-		object : DataMigrator(mockk(relaxed = true), mockk(relaxed = true), metadataDatasource()) {
+		object : DataMigrator(mockk(relaxed = true), mockk(relaxed = true), metadataDatasource(), mockk(relaxed = true)) {
+			// Stops at this migration; later ones are covered by their own tests.
+			override val latestProjectDataVersion: Int = migrations.maxOf { it.first }
 			override fun getMigrators(): Map<Int, Migration> = migrations.toMap()
 		}
 

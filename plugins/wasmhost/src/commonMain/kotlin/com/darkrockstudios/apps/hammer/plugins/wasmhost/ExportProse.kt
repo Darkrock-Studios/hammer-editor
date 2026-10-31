@@ -10,11 +10,16 @@ import kotlinx.serialization.Serializable
 
 /**
  * A scene as an exporter with `input = "prose"` receives it: the host's own reading of its markdown,
- * the one the built-in formats render from, so a plugin needs no markdown parser of its own.
+ * the one the built-in formats render from, so a plugin needs no markdown parser of its own. A project
+ * image arrives as the name [imageName] gives it, or not at all when it gives none.
  */
-internal fun proseOf(markdown: String): List<ExportBlock> = parseProseMarkdown(markdown).map { block ->
+internal fun proseOf(
+	markdown: String,
+	imageName: (imageId: Int) -> String? = { null },
+): List<ExportBlock> = parseProseMarkdown(markdown, imageName = imageName).map { block ->
 	when (block) {
 		is ProseBlock.Paragraph -> ExportBlock.Paragraph(block.spans.map(::ExportSpan))
+		is ProseBlock.Image -> ExportBlock.Paragraph(block.spans.map(::ExportSpan))
 		ProseBlock.Blank -> ExportBlock.Blank
 		is ProseBlock.Heading -> ExportBlock.Heading(block.level, block.spans.map(::ExportSpan))
 		is ProseBlock.Listing -> ExportBlock.Listing(

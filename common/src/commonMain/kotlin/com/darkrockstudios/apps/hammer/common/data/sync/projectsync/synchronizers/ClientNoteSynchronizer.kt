@@ -84,8 +84,9 @@ class ClientNoteSynchronizer(
 		return true
 	}
 
-	override suspend fun reIdEntity(oldId: Int, newId: Int) {
+	override suspend fun reIdEntity(oldId: Int, newId: Int): Set<Int> {
 		notesRepository.reIdNote(oldId, newId)
+		return emptySet()
 	}
 
 	override suspend fun finalizeSync() {

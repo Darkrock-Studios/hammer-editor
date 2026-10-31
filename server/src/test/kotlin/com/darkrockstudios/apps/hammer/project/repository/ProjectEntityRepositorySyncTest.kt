@@ -157,6 +157,7 @@ class ProjectEntityRepositorySyncTest : ProjectEntityRepositoryBaseTest() {
 
 		mockCreateSession(syncId)
 
+		coEvery { imageSynchronizer.getUpdateSequence(any(), any(), any()) } returns listOf(15, 1)
 		coEvery { sceneSynchronizer.getUpdateSequence(any(), any(), any()) } returns listOf(1, 2, 3)
 		coEvery {
 			sceneDraftSynchronizer.getUpdateSequence(any(), any(), any())
@@ -175,7 +176,8 @@ class ProjectEntityRepositorySyncTest : ProjectEntityRepositoryBaseTest() {
 			assertTrue(isSuccess(result))
 			val syncBegan = result.data
 			assertEquals(syncId, syncBegan.syncId)
-			assertEquals((1..14).toList(), syncBegan.idSequence)
+			// Images come first: other entities reference them.
+			assertEquals(listOf(15) + (1..14).toList(), syncBegan.idSequence)
 		}
 	}
 

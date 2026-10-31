@@ -33,7 +33,7 @@ fun ProjectCardPreview() {
 
 		AppTheme(globalSettingsPreview, true) {
 			Box(modifier = Modifier.background(MaterialTheme.colorScheme.background)) {
-				ProjectIndexRow(true, 0, data, {}, {}, {})
+				ProjectIndexRow(true, 0, data.copy(coverImagePath = "/preview/cover.png"), {}, {}, {})
 			}
 		}
 	}
@@ -49,7 +49,7 @@ fun ProjectCardCompactPreview() {
 		AppTheme(globalSettingsPreview, true) {
 			Column(modifier = Modifier.background(MaterialTheme.colorScheme.background)) {
 				ProjectIndexRow(false, 0, data, {}, {}, {})
-				ProjectIndexRow(false, 1, data, {}, {}, {})
+				ProjectIndexRow(false, 1, data.copy(coverImagePath = "/preview/cover.png"), {}, {}, {})
 			}
 		}
 	}

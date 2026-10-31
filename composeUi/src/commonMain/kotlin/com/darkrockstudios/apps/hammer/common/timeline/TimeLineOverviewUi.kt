@@ -78,6 +78,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSearchRow
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSectionHeader
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagChip
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownView
+import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.rememberMarkdownPreview
 import com.darkrockstudios.apps.hammer.common.compose.reorderable.DragDropList
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
@@ -474,16 +475,7 @@ internal fun EventCard(
 					color = MaterialTheme.colorScheme.outlineVariant,
 				)
 
-				val previewMarkdown by remember(event.content) {
-					derivedStateOf {
-						val trimmed = event.content.trim()
-						if (trimmed.length > EVENT_CARD_MAX_CONTENT_LENGTH) {
-							trimmed.substring(0, EVENT_CARD_MAX_CONTENT_LENGTH - 1) + "…"
-						} else {
-							trimmed
-						}
-					}
-				}
+				val previewMarkdown = rememberMarkdownPreview(event.content, EVENT_CARD_MAX_CONTENT_LENGTH)
 				MarkdownView(
 					markdown = previewMarkdown,
 					modifier = Modifier

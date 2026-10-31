@@ -7,6 +7,7 @@ import com.darkrockstudios.apps.hammer.common.data.references.BackfillEntryRefer
 import com.darkrockstudios.apps.hammer.common.data.references.CleanupReferencesOnEntryDeleteUseCase
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexService
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
+import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -36,8 +37,8 @@ class ViewEntryComponentExternalChangeTest : ComponentTest() {
 		entryChangedFlow = MutableSharedFlow(extraBufferCapacity = 8)
 		encyclopediaService = mockk(relaxed = true)
 		every { encyclopediaService.entryChangedFlow } returns entryChangedFlow
-		every { encyclopediaService.findEntryImagePath(any()) } returns null
-		every { encyclopediaService.findEntryImageExtension(any()) } returns null
+		every { encyclopediaService.imageChangedFlow } returns MutableSharedFlow()
+		coEvery { encyclopediaService.entryImageFiles(any()) } returns emptyList()
 
 		val referenceIndexService = mockk<ReferenceIndexService>(relaxed = true)
 		every { referenceIndexService.flowForEntry(any()) } returns emptyFlow()

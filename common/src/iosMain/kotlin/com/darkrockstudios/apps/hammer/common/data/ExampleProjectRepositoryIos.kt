@@ -1,12 +1,9 @@
 package com.darkrockstudios.apps.hammer.common.data
 
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.util.toByteArray
 import com.darkrockstudios.apps.hammer.common.util.zip.unzipBytesToDirectory
 import io.github.aakira.napier.Napier
-import kotlinx.cinterop.ExperimentalForeignApi
-import kotlinx.cinterop.addressOf
-import kotlinx.cinterop.convert
-import kotlinx.cinterop.usePinned
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
 import org.koin.dsl.bind
@@ -15,7 +12,6 @@ import org.koin.plugin.module.dsl.single
 import platform.Foundation.NSBundle
 import platform.Foundation.NSData
 import platform.Foundation.dataWithContentsOfFile
-import platform.posix.memcpy
 import kotlin.time.Clock
 
 actual val exampleProjectModule = module {
@@ -52,15 +48,4 @@ private class ExampleProjectRepositoryiOs(
 			?: error("Failed to read $EXAMPLE_PROJECT_FILE_NAME at $path")
 		return data.toByteArray()
 	}
-}
-
-@OptIn(ExperimentalForeignApi::class)
-private fun NSData.toByteArray(): ByteArray {
-	val size = length.toInt()
-	val out = ByteArray(size)
-	if (size == 0) return out
-	out.usePinned { pinned ->
-		memcpy(pinned.addressOf(0), bytes, length.convert())
-	}
-	return out
 }

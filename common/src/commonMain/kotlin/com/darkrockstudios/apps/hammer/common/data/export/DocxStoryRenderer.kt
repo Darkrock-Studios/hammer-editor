@@ -12,6 +12,7 @@ import nl.adaptivity.xmlutil.smartStartTag
 import no.synth.kmpzip.zip.ZipEntry
 import no.synth.kmpzip.zip.ZipOutputStream
 import okio.BufferedSink
+import kotlin.math.roundToLong
 import no.synth.kmpzip.okio.ZipOutputStream as OkioZipOutputStream
 
 private const val W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
@@ -23,6 +24,9 @@ private const val CORE_PROPS_NS =
 private const val DC_NS = "http://purl.org/dc/elements/1.1/"
 private const val APP_PROPS_NS =
 	"http://schemas.openxmlformats.org/officeDocument/2006/extended-properties"
+private const val WP_NS = "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"
+private const val A_NS = "http://schemas.openxmlformats.org/drawingml/2006/main"
+private const val PIC_NS = "http://schemas.openxmlformats.org/drawingml/2006/picture"
 
 private const val REL_TYPE_DOCUMENT =
 	"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument"
@@ -36,6 +40,8 @@ private const val REL_TYPE_NUMBERING =
 	"http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering"
 private const val REL_TYPE_HYPERLINK =
 	"http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink"
+private const val REL_TYPE_IMAGE =
+	"http://schemas.openxmlformats.org/officeDocument/2006/relationships/image"
 
 private const val DEFAULT_LINK_COLOR = "0563C1"
 
@@ -43,14 +49,29 @@ private const val BULLET_NUM_ID = 1
 private const val BULLET_ABSTRACT_ID = 0
 private const val DECIMAL_ABSTRACT_ID = 1
 
-/** Relationship ids rId1/rId2 in document.xml.rels are styles and numbering; hyperlinks follow. */
-private const val FIRST_HYPERLINK_REL_ID = 3
+/** Relationship ids rId1/rId2 in document.xml.rels are styles and numbering; hyperlinks and images follow. */
+private const val FIRST_BODY_REL_ID = 3
+
+/** US Letter with one-inch margins, in twips. */
+private const val PAGE_WIDTH_TWIPS = 12240
+private const val PAGE_HEIGHT_TWIPS = 15840
+private const val PAGE_MARGIN_TWIPS = 1440
+
+private const val EMU_PER_TWIP = 635L
+
+/** The document default space after a paragraph, in twips. */
+private const val PARAGRAPH_SPACE = "160"
 
 /**
  * Renders the story as an OOXML WordprocessingML (.docx) package mirroring the EPUB layout:
- * a title page, a Contents page of hyperlinks to chapter bookmarks, then one chapter per
- * top-level node starting on a fresh page. Chapter bodies are rendered from markdown into
- * styled paragraphs and runs. Heading styles pick up the project theme's accent colors.
+ * a cover page when [images] holds a project cover [exportRaster] can read, a title page, a
+ * Contents page of hyperlinks to chapter bookmarks, then one chapter per top-level node starting
+ * on a fresh page. Chapter bodies are rendered from markdown into styled paragraphs and runs.
+ * Heading styles pick up the project theme's accent colors.
+ *
+ * A project image on a line of its own is embedded from [images], centred at 70% of the text width
+ * and no taller than 60% of the text height. One missing there, an SVG, or one [exportRaster] cannot
+ * read is written as its name.
  */
 fun writeStoryAsDocx(
 	sink: BufferedSink,
@@ -59,17 +80,20 @@ fun writeStoryAsDocx(
 	chapters: List<StoryChapter>,
 	strings: ExportStrings,
 	options: ExportOptions = ExportOptions(),
+	imageNames: Map<Int, String> = emptyMap(),
+	images: Map<Int, ExportImage> = emptyMap(),
 ) {
 	val authorName = projectData.authorName?.takeIf { it.isNotBlank() }
 	val effective = chapters.ifEmpty { listOf(StoryChapter(projectName, "")) }
 
 	// The body walk collects hyperlink targets and ordered-list instances that
 	// document.xml.rels and numbering.xml must declare, so it runs first.
-	val ctx = DocxRenderContext()
-	val documentXml = buildXmlPart { writeDocument(it, ctx, projectName, strings, effective, options) }
+	val ctx = DocxRenderContext(imageNames, images)
+	val documentXml = buildXmlPart { writeDocument(it, ctx, projectName, projectData, strings, effective, options) }
 
 	val zip = OkioZipOutputStream(sink)
-	zip.putEntry("[Content_Types].xml", buildXmlPart(::writeContentTypes))
+	val mediaFormats = ctx.media.map { it.raster.format }.toSet()
+	zip.putEntry("[Content_Types].xml", buildXmlPart { writeContentTypes(it, mediaFormats) })
 	zip.putEntry("_rels/.rels", buildXmlPart(::writePackageRels))
 	zip.putEntry("docProps/core.xml", buildXmlPart { writeCoreProps(it, projectName, authorName) })
 	zip.putEntry("docProps/app.xml", buildXmlPart(::writeAppProps))
@@ -77,8 +101,9 @@ fun writeStoryAsDocx(
 	zip.putEntry("word/numbering.xml", buildXmlPart { writeNumbering(it, ctx.orderedListLevels) })
 	zip.putEntry(
 		"word/_rels/document.xml.rels",
-		buildXmlPart { writeDocumentRels(it, ctx.hyperlinkUrls) })
+		buildXmlPart { writeDocumentRels(it, ctx.relationships) })
 	zip.putEntry("word/document.xml", documentXml)
+	ctx.media.forEach { zip.putEntry("word/${it.target}", it.raster.bytes) }
 	zip.finish()
 	zip.flush()
 }
@@ -99,15 +124,46 @@ private fun buildXmlPart(block: (XmlWriter) -> Unit): ByteArray {
 	return out.toString().encodeToByteArray()
 }
 
-private class DocxRenderContext {
-	val hyperlinkUrls = mutableListOf<String>()
+/** A relationship of document.xml; its id is `rId` and its index plus [FIRST_BODY_REL_ID]. */
+private class DocxRelationship(val type: String, val target: String, val external: Boolean)
+
+/** An image part, at [target] relative to `word/`, and the id of the relationship that points at it. */
+private class DocxMedia(val target: String, val relId: String, val raster: ExportRaster)
+
+private class DocxRenderContext(val imageNames: Map<Int, String>, val images: Map<Int, ExportImage>) {
+	/** Hyperlinks and images in the order the body first refers to them. */
+	val relationships = mutableListOf<DocxRelationship>()
+
+	val media = mutableListOf<DocxMedia>()
+
+	/** Null for an image that is written as its name. */
+	private val mediaByImageId = mutableMapOf<Int, DocxMedia?>()
+
+	private var drawingCount = 0
 
 	/** One entry per ordered list in the document, holding its indent level; entry index maps to its numId. */
 	val orderedListLevels = mutableListOf<Int>()
 
-	fun addHyperlink(url: String): String {
-		hyperlinkUrls += url
-		return "rId${hyperlinkUrls.size - 1 + FIRST_HYPERLINK_REL_ID}"
+	fun addHyperlink(url: String): String = addRelationship(DocxRelationship(REL_TYPE_HYPERLINK, url, external = true))
+
+	/** The part for [imageId], added the first time the body shows it, or null when it has none. */
+	fun mediaFor(imageId: Int): DocxMedia? {
+		if (imageId !in mediaByImageId) {
+			mediaByImageId[imageId] = images[imageId]?.let(::exportRaster)?.let { raster ->
+				val target = "media/image${media.size + 1}.${raster.format.extension}"
+				val relId = addRelationship(DocxRelationship(REL_TYPE_IMAGE, target, external = false))
+				DocxMedia(target, relId, raster).also { media += it }
+			}
+		}
+		return mediaByImageId[imageId]
+	}
+
+	/** Unique per `wp:docPr`, as Word requires. */
+	fun nextDrawingId(): Int = ++drawingCount
+
+	private fun addRelationship(relationship: DocxRelationship): String {
+		relationships += relationship
+		return "rId${relationships.size - 1 + FIRST_BODY_REL_ID}"
 	}
 
 	/** Each ordered list gets its own num instance so numbering restarts per list. */
@@ -134,7 +190,7 @@ private fun XmlWriter.attr(name: String, value: String) =
 private fun XmlWriter.preserveSpace() =
 	attribute(XMLConstants.XML_NS_URI, "space", "xml", "preserve")
 
-private fun writeContentTypes(writer: XmlWriter) {
+private fun writeContentTypes(writer: XmlWriter, mediaFormats: Set<ExportRaster.Format>) {
 	fun XmlWriter.default(extension: String, contentType: String) =
 		smartStartTag(CONTENT_TYPES_NS, "Default", "") {
 			attr("Extension", extension)
@@ -150,6 +206,7 @@ private fun writeContentTypes(writer: XmlWriter) {
 	writer.smartStartTag(CONTENT_TYPES_NS, "Types", "") {
 		default("rels", "application/vnd.openxmlformats-package.relationships+xml")
 		default("xml", "application/xml")
+		ExportRaster.Format.entries.filter { it in mediaFormats }.forEach { default(it.extension, it.mimeType) }
 		override(
 			"/word/document.xml",
 			"application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"
@@ -191,17 +248,12 @@ private fun writePackageRels(writer: XmlWriter) {
 	}
 }
 
-private fun writeDocumentRels(writer: XmlWriter, hyperlinkUrls: List<String>) {
+private fun writeDocumentRels(writer: XmlWriter, relationships: List<DocxRelationship>) {
 	writer.smartStartTag(PACKAGE_RELS_NS, "Relationships", "") {
 		relationship("rId1", REL_TYPE_STYLES, "styles.xml")
 		relationship("rId2", REL_TYPE_NUMBERING, "numbering.xml")
-		hyperlinkUrls.forEachIndexed { index, url ->
-			relationship(
-				"rId${index + FIRST_HYPERLINK_REL_ID}",
-				REL_TYPE_HYPERLINK,
-				url,
-				external = true
-			)
+		relationships.forEachIndexed { index, it ->
+			relationship("rId${index + FIRST_BODY_REL_ID}", it.type, it.target, it.external)
 		}
 	}
 }
@@ -261,7 +313,7 @@ private fun writeStyles(writer: XmlWriter, theme: ProjectTheme?, bodyFont: Strin
 			}
 			w("pPrDefault") {
 				w("pPr") {
-					w("spacing") { wAttr("after", "160") }
+					w("spacing") { wAttr("after", PARAGRAPH_SPACE) }
 				}
 			}
 		}
@@ -394,28 +446,34 @@ private fun writeDocument(
 	writer: XmlWriter,
 	ctx: DocxRenderContext,
 	projectName: String,
+	projectData: ProjectData,
 	strings: ExportStrings,
 	chapters: List<StoryChapter>,
 	options: ExportOptions,
 ) {
 	writer.smartStartTag(W_NS, "document", "w") {
 		namespaceAttr("r", R_NS)
+		namespaceAttr("wp", WP_NS)
+		namespaceAttr("a", A_NS)
+		namespaceAttr("pic", PIC_NS)
 		w("body") {
-			writeTitlePage(projectName, strings.authorByline)
+			val cover = exportCover(projectData, ctx.images) { ctx.mediaFor(it.id)?.let { media -> it.name to media } }
+			cover?.let { (name, media) -> writeCoverPage(ctx, name, media) }
+			writeTitlePage(projectName, strings.authorByline, pageBreakBefore = cover != null)
 			writeContentsPage(chapters, strings.contentsTitle, options.numberChapters)
 			chapters.forEachIndexed { index, chapter ->
 				writeChapter(ctx, index, chapter, options)
 			}
 			w("sectPr") {
 				w("pgSz") {
-					wAttr("w", "12240")
-					wAttr("h", "15840")
+					wAttr("w", PAGE_WIDTH_TWIPS.toString())
+					wAttr("h", PAGE_HEIGHT_TWIPS.toString())
 				}
 				w("pgMar") {
-					wAttr("top", "1440")
-					wAttr("right", "1440")
-					wAttr("bottom", "1440")
-					wAttr("left", "1440")
+					wAttr("top", PAGE_MARGIN_TWIPS.toString())
+					wAttr("right", PAGE_MARGIN_TWIPS.toString())
+					wAttr("bottom", PAGE_MARGIN_TWIPS.toString())
+					wAttr("left", PAGE_MARGIN_TWIPS.toString())
 					wAttr("header", "720")
 					wAttr("footer", "720")
 					wAttr("gutter", "0")
@@ -425,9 +483,18 @@ private fun writeDocument(
 	}
 }
 
-private fun XmlWriter.writeTitlePage(projectName: String, authorByline: String?) {
+/** [media] filling the text width of the first page, or as much of it as keeps within the text height. */
+private fun XmlWriter.writeCoverPage(ctx: DocxRenderContext, name: String, media: DocxMedia) {
+	val (cx, cy) = imageExtent(media.raster.aspectRatio, widthFraction = 1f, maxHeightFraction = 1f)
+	picture(name, media, ctx.nextDrawingId(), cx, cy, spaceBefore = "0", spaceAfter = "0")
+}
+
+private fun XmlWriter.writeTitlePage(projectName: String, authorByline: String?, pageBreakBefore: Boolean) {
 	w("p") {
-		w("pPr") { wVal("pStyle", "Title") }
+		w("pPr") {
+			wVal("pStyle", "Title")
+			if (pageBreakBefore) wVal("pageBreakBefore", "true")
+		}
 		w("r") {
 			w("t") {
 				preserveSpace()
@@ -525,7 +592,7 @@ private class MarkdownDocxWriter(
 	private val keepBlankLines: Boolean,
 ) {
 	fun render(markdown: String) {
-		val blocks = parseProseMarkdown(markdown, keepBlankLines)
+		val blocks = parseProseMarkdown(markdown, keepBlankLines, ctx.imageNames::get)
 		blocks.forEachIndexed { index, block ->
 			// Prose runs tight: the indent parts one line from the next, and the space a passage
 			// break wants is a blank line the author typed. Space after is for leaving prose behind.
@@ -533,6 +600,20 @@ private class MarkdownDocxWriter(
 			when (block) {
 				is ProseBlock.Paragraph ->
 					paragraph(style = null, numId = null, tight = runsOn) { runs(block.spans) }
+
+				is ProseBlock.Image -> {
+					val media = ctx.mediaFor(block.imageId)
+					if (media != null) {
+						picture(
+							block.name,
+							media,
+							previous = blocks.getOrNull(index - 1),
+							next = blocks.getOrNull(index + 1),
+						)
+					} else {
+						paragraph(style = null, numId = null, tight = runsOn) { runs(block.spans) }
+					}
+				}
 
 				ProseBlock.Blank -> paragraph(style = null, numId = null, tight = runsOn) {}
 				is ProseBlock.Heading -> paragraph(style = "Heading${block.level}", numId = null) { runs(block.spans) }
@@ -639,6 +720,24 @@ private class MarkdownDocxWriter(
 		}
 	}
 
+	/**
+	 * [media] as a [picture] paragraph a paragraph gap from its neighbours, unless a blank line already
+	 * parts them. Prose beside an image runs on into it and leaves no gap of its own, so the picture
+	 * supplies both.
+	 */
+	private fun picture(name: String, media: DocxMedia, previous: ProseBlock?, next: ProseBlock?) {
+		val (cx, cy) = imageExtent(media.raster.aspectRatio, IMAGE_WIDTH_FRACTION, MAX_IMAGE_HEIGHT_FRACTION)
+		writer.picture(
+			name = name,
+			media = media,
+			drawingId = ctx.nextDrawingId(),
+			cx = cx,
+			cy = cy,
+			spaceBefore = if (previous == ProseBlock.Blank) "0" else PARAGRAPH_SPACE,
+			spaceAfter = if (next == ProseBlock.Blank) "0" else PARAGRAPH_SPACE,
+		)
+	}
+
 	private fun paragraph(
 		style: String?,
 		numId: Int?,
@@ -665,6 +764,103 @@ private class MarkdownDocxWriter(
 			body()
 		}
 	}
+}
+
+/** A centred paragraph holding [media] inline at [cx] by [cy] EMUs, described by [name]. */
+private fun XmlWriter.picture(
+	name: String,
+	media: DocxMedia,
+	drawingId: Int,
+	cx: Long,
+	cy: Long,
+	spaceBefore: String,
+	spaceAfter: String,
+) {
+	w("p") {
+		w("pPr") {
+			w("spacing") {
+				wAttr("before", spaceBefore)
+				wAttr("after", spaceAfter)
+			}
+			wVal("jc", "center")
+		}
+		w("r") {
+			w("drawing") {
+				smartStartTag(WP_NS, "inline", "wp") {
+					for (side in listOf("distT", "distB", "distL", "distR")) attr(side, "0")
+					smartStartTag(WP_NS, "extent", "wp") {
+						attr("cx", cx.toString())
+						attr("cy", cy.toString())
+					}
+					smartStartTag(WP_NS, "docPr", "wp") {
+						attr("id", drawingId.toString())
+						attr("name", name)
+						attr("descr", name)
+					}
+					smartStartTag(WP_NS, "cNvGraphicFramePr", "wp") {
+						smartStartTag(A_NS, "graphicFrameLocks", "a") { attr("noChangeAspect", "1") }
+					}
+					smartStartTag(A_NS, "graphic", "a") {
+						smartStartTag(A_NS, "graphicData", "a") {
+							attr("uri", PIC_NS)
+							pic(name, media.relId, cx, cy)
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+private fun XmlWriter.pic(name: String, relId: String, cx: Long, cy: Long) =
+	smartStartTag(PIC_NS, "pic", "pic") {
+		smartStartTag(PIC_NS, "nvPicPr", "pic") {
+			smartStartTag(PIC_NS, "cNvPr", "pic") {
+				attr("id", "0")
+				attr("name", name)
+			}
+			smartStartTag(PIC_NS, "cNvPicPr", "pic") {
+				smartStartTag(A_NS, "picLocks", "a") { attr("noChangeAspect", "1") }
+			}
+		}
+		smartStartTag(PIC_NS, "blipFill", "pic") {
+			smartStartTag(A_NS, "blip", "a") { attribute(R_NS, "embed", "r", relId) }
+			smartStartTag(A_NS, "stretch", "a") { smartStartTag(A_NS, "fillRect", "a") {} }
+		}
+		smartStartTag(PIC_NS, "spPr", "pic") {
+			smartStartTag(A_NS, "xfrm", "a") {
+				smartStartTag(A_NS, "off", "a") {
+					attr("x", "0")
+					attr("y", "0")
+				}
+				smartStartTag(A_NS, "ext", "a") {
+					attr("cx", cx.toString())
+					attr("cy", cy.toString())
+				}
+			}
+			smartStartTag(A_NS, "prstGeom", "a") {
+				attr("prst", "rect")
+				smartStartTag(A_NS, "avLst", "a") {}
+			}
+		}
+	}
+
+/**
+ * The size, in EMUs, of an image of [aspectRatio] (height over width): [widthFraction] of the text
+ * width, scaling a small image up, then narrowed if need be to keep within [maxHeightFraction] of the
+ * text height.
+ */
+private fun imageExtent(aspectRatio: Float, widthFraction: Float, maxHeightFraction: Float): Pair<Long, Long> {
+	val textWidth = (PAGE_WIDTH_TWIPS - PAGE_MARGIN_TWIPS * 2) * EMU_PER_TWIP
+	val maxHeight = (PAGE_HEIGHT_TWIPS - PAGE_MARGIN_TWIPS * 2) * EMU_PER_TWIP * maxHeightFraction.toDouble()
+	var width = textWidth * widthFraction.toDouble()
+	var height = width * aspectRatio
+	if (height > maxHeight) {
+		height = maxHeight
+		width = maxHeight / aspectRatio
+	}
+	// A crafted header can give an aspect ratio extreme enough to round one side to nothing.
+	return width.roundToLong().coerceAtLeast(1) to height.roundToLong().coerceAtLeast(1)
 }
 
 /**

@@ -18,6 +18,8 @@ import com.darkrockstudios.apps.hammer.common.data.ClientResult
 import com.darkrockstudios.apps.hammer.common.data.ImportOptions
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.findImageFile
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.readImageFileStamp
 import com.darkrockstudios.apps.hammer.common.data.importer.ImportPreview
 import com.darkrockstudios.apps.hammer.common.data.importer.StoryImporterRegistry
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
@@ -227,11 +229,15 @@ class ProjectsListComponent(
 					null
 				}
 				if (metadata != null) {
+					val storedData = loadStoredProjectData(projectDef)
+					val cover = storedData.coverImageId?.let { findCover(projectDef, it) }
 					ProjectData(
 						definition = projectDef,
 						metadata = metadata,
-						storedData = loadStoredProjectData(projectDef),
+						storedData = storedData,
 						totalWords = statisticsCacheReader.loadTotalWords(projectDef),
+						coverImagePath = cover?.first,
+						coverImageVersion = cover?.second,
 					)
 				} else {
 					Napier.d { "Failed to load metadata for project: ${projectDef.name}" }
@@ -249,13 +255,26 @@ class ProjectsListComponent(
 	}
 
 	/**
-	 * Reads `settings.toml` (author, theme, word-count goal) via the datasource's
+	 * Reads `settings.toml` (author, theme, word-count goal, cover) via the datasource's
 	 * scope-less helper — the projects list previews many projects and a full
 	 * per-project Koin scope per row would be wasteful. Blocking variant because
 	 * [loadProjectList]'s parallelMap workers are not a coroutine context.
 	 */
 	private fun loadStoredProjectData(projectDef: ProjectDef): StoredData =
 		readStoredProjectData(projectDef, fileSystem, toml).data
+
+	/**
+	 * The cover's path and a version token from its file stamp, found without a project scope for
+	 * the same reason as [loadStoredProjectData]. Null when the image is not on this device.
+	 */
+	private fun findCover(projectDef: ProjectDef, coverImageId: Int): Pair<String, String?>? = try {
+		findImageFile(projectDef, coverImageId, fileSystem)?.let { path ->
+			val stamp = readImageFileStamp(path, fileSystem)
+			path.path to stamp?.cacheToken
+		}
+	} catch (_: IOException) {
+		null
+	}
 
 	private fun updateLastAccessed(projectDef: ProjectDef) {
 		projectsRepository.updateProjectMetadata(projectDef) { metadata ->

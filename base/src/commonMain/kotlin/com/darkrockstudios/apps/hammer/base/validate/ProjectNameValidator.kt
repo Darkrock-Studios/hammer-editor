@@ -20,7 +20,7 @@ enum class ProjectNameValidationResult {
  *
  * This object only defines what a user is allowed to *type*. The client additionally maps a few
  * OS-forbidden characters to filesystem-safe lookalikes when storing a project on disk (see
- * `ProjectsRepository` in `:common`); that encoding is a storage concern and lives there.
+ * [FilenameEncoding]).
  */
 object ProjectNameValidator {
 	const val MAX_LENGTH = 128

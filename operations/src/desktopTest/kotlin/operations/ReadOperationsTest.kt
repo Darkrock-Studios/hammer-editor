@@ -12,6 +12,7 @@ import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeasRepository
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
@@ -34,7 +35,8 @@ import com.darkrockstudios.apps.hammer.operations.core.DraftText
 import com.darkrockstudios.apps.hammer.operations.core.Drafts
 import com.darkrockstudios.apps.hammer.operations.core.Entries
 import com.darkrockstudios.apps.hammer.operations.core.Entry
-import com.darkrockstudios.apps.hammer.operations.core.EntryImage
+import com.darkrockstudios.apps.hammer.operations.core.EntryImageSummary
+import com.darkrockstudios.apps.hammer.operations.core.EntryImages
 import com.darkrockstudios.apps.hammer.operations.core.EntryKind
 import com.darkrockstudios.apps.hammer.operations.core.EntityKind
 import com.darkrockstudios.apps.hammer.operations.core.EntryListInput
@@ -81,7 +83,6 @@ import kotlinx.serialization.json.put
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.koin.core.component.get
-import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
@@ -137,11 +138,12 @@ class ReadOperationsTest : KoinOperationsTest() {
 			notes.createNote("Rename the boat")
 
 			val encyclopedia = scope.get<EncyclopediaRepository>()
-			val alice = encyclopedia.createEntry("Alice", EntryType.PERSON, "The keeper.", setOf("cast"), null, aliases = listOf("Ally"))
+			val alice = encyclopedia.createEntry("Alice", EntryType.PERSON, "The keeper.", setOf("cast"), aliases = listOf("Ally"))
 				.instance!!.entry
-			encyclopedia.createEntry("Lighthouse", EntryType.PLACE, "On the point.", setOf("weather"), null)
+			encyclopedia.createEntry("Lighthouse", EntryType.PLACE, "On the point.", setOf("weather"))
 			val aliceDef = alice.toDef(def)
-			ffs.write(encyclopedia.getEntryImagePath(aliceDef, "png").toOkioPath()) { write(IMAGE) }
+			val portrait = scope.get<ImagesRepository>().create("Alice", IMAGE, "png").image!!
+			encyclopedia.addEntryImage(aliceDef, portrait.id)
 
 			val timeline = scope.get<TimeLineRepository>()
 			timeline.createEvent("The storm makes landfall", "Day 2", tags = setOf("weather"))
@@ -348,15 +350,14 @@ class ReadOperationsTest : KoinOperationsTest() {
 	}
 
 	@Test
-	fun `entry read and image`() = onTestThread {
+	fun `entry read and images`() = onTestThread {
 		val entry = run<ProjectItemInput, Entry>("entry.read", ProjectItemInput(PROJECT, ids.entryId))
 		assertEquals("The keeper.", entry.text)
 		assertEquals(EntryKind.Person, entry.type)
 		assertTrue(entry.hasImage)
 
-		val image = run<ProjectItemInput, EntryImage>("entry.image.get", ProjectItemInput(PROJECT, ids.entryId))
-		assertEquals("png", image.extension)
-		assertContentEquals(IMAGE, image.content)
+		val images = run<ProjectItemInput, EntryImages>("entry.images.list", ProjectItemInput(PROJECT, ids.entryId))
+		assertEquals(listOf(EntryImageSummary(entry.images.single(), "Alice", "png")), images.images)
 	}
 
 	@Test
@@ -524,6 +525,6 @@ class ReadOperationsTest : KoinOperationsTest() {
 		const val PROJECT = "Storm Novel"
 		val DAY_ONE = LocalDate(2026, 3, 1)
 		val DAY_TWO = LocalDate(2026, 3, 2)
-		val IMAGE = byteArrayOf(1, 2, 3, 4)
+		val IMAGE = byteArrayOf(0x89.toByte(), 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 1, 2, 3, 4)
 	}
 }

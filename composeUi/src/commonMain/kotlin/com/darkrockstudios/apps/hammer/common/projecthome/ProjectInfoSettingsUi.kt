@@ -519,18 +519,26 @@ fun ProjectInfoSettingsUi(component: ProjectSettings) {
 			options = component.availableLanguages,
 			onChange = component::setProjectLanguage,
 		)
-		CustomThemeSection(
+		CoverImageSection(
 			section = 1,
+			coverImageId = state.data.coverImageId,
+			coverImage = state.coverImage,
+			pickPending = state.pendingCoverPick,
+			onPick = component::pickCoverImage,
+			onClear = component::clearCoverImage,
+		)
+		CustomThemeSection(
+			section = 2,
 			theme = state.data.theme,
 			onChange = component::setTheme,
 		)
 		WordCountGoalSection(
-			section = 2,
+			section = 3,
 			goal = state.data.wordCountGoal,
 			onChange = component::setWordCountGoal,
 		)
 		ProjectTagsSection(
-			section = 3,
+			section = 4,
 			tags = state.data.tags,
 			onChange = component::setTags,
 			suggest = component::suggestProjectTags,

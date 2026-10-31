@@ -346,7 +346,7 @@ class ClientSceneSynchronizer(
 		)
 	}
 
-	override suspend fun reIdEntity(oldId: Int, newId: Int) {
+	override suspend fun reIdEntity(oldId: Int, newId: Int): Set<Int> {
 		Napier.d("Re-Id Scene $oldId to $newId")
 
 		sceneEditorService.reIdScene(oldId, newId)
@@ -355,6 +355,7 @@ class ClientSceneSynchronizer(
 			oldId = oldId,
 			newId = newId,
 		)
+		return emptySet()
 	}
 
 	override suspend fun finalizeSync() {

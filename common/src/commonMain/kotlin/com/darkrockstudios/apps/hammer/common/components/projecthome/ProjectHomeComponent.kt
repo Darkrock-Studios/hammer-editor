@@ -15,8 +15,10 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.Encycl
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesService
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupDef
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupService
+import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
 import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectPluginsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.EntryAppearance
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.ProjectStatisticsUseCase
@@ -48,6 +50,7 @@ class ProjectHomeComponent(
 	private val requestProjectSync: () -> Unit,
 	private val onShowGlobalSearch: () -> Unit,
 	private val onShowGlobalSearchForTag: (String) -> Unit,
+	private val onShowImageGallery: () -> Unit,
 	private val onShowScene: (SceneItem) -> Unit,
 	private val onShowEntry: (EntryDef) -> Unit,
 	private val onCloseProject: (() -> Unit)? = null,
@@ -67,6 +70,8 @@ class ProjectHomeComponent(
 	private val projectStatistics: ProjectStatisticsUseCase by projectInject()
 	private val tagIndexService: TagIndexService by projectInject()
 	private val projectPlugins: ProjectPluginsRepository by inject()
+	private val projectDataRepository: ProjectDataRepository by projectInject()
+	private val imagesService: ImagesService by projectInject()
 
 	// Read on export lookups, which cannot wait on a file.
 	private var disabledPlugins = emptySet<String>()
@@ -206,6 +211,8 @@ class ProjectHomeComponent(
 
 	override fun showGlobalSearchForTag(tag: String) = onShowGlobalSearchForTag(tag)
 
+	override fun showImageGallery() = onShowImageGallery()
+
 	override fun showLongestScene() {
 		val id = _state.value.longestSceneId ?: return
 		val sceneItem = sceneEditorRepository.getSceneItemFromId(id) ?: return
@@ -251,6 +258,13 @@ class ProjectHomeComponent(
 		subscribeToStats()
 		loadData()
 		listenForSyncEvents()
+		scope.launch {
+			coverImageFlow(projectDataRepository, imagesService).collect { cover ->
+				withContext(dispatcherMain) {
+					_state.getAndUpdate { it.copy(coverImage = cover) }
+				}
+			}
+		}
 		scope.launch {
 			// The registry's changes never emit when it has no sources.
 			combine(exporters.changes.onStart { emit(Unit) }, projectPlugins.disabledPlugins(projectDef.id)) { _, disabled ->

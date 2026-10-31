@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.data.export
 
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
+import com.darkrockstudios.apps.hammer.base.image.ImageFormat
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectTheme
 import com.darkrockstudios.apps.hammer.common.data.ExportFont
 import com.darkrockstudios.apps.hammer.common.data.ExportOptions
@@ -10,12 +11,19 @@ import kotlinx.html.*
 import kotlinx.html.stream.appendHTML
 import okio.BufferedSink
 import com.darkrockstudios.apps.hammer.base.markdown.ProseHtml
+import com.darkrockstudios.apps.hammer.common.data.references.ImageReferenceSyntax
+import org.intellij.markdown.MarkdownElementTypes
+import org.intellij.markdown.ast.ASTNode
 import org.intellij.markdown.flavours.gfm.GFMFlavourDescriptor
 import org.intellij.markdown.html.HtmlGenerator
+import org.intellij.markdown.html.ImageGeneratingProvider
 import org.intellij.markdown.parser.LinkMap
 import org.intellij.markdown.parser.MarkdownParser
 
 private data class TocEntry(val title: String, val href: String)
+
+/** An image packaged in the book; [href] is relative to the chapter files. */
+private class PackagedImage(val name: String, val href: String, val resource: Resource)
 
 fun writeStoryAsEpub(
 	sink: BufferedSink,
@@ -25,8 +33,11 @@ fun writeStoryAsEpub(
 	language: String,
 	strings: ExportStrings,
 	options: ExportOptions = ExportOptions(),
+	images: Map<Int, ExportImage> = emptyMap(),
+	imageNames: Map<Int, String> = emptyMap(),
 ) {
 	val authorName = projectData.authorName?.takeIf { it.isNotBlank() }
+	val packagedImages = images.values.mapNotNull { image -> packageImage(image)?.let { image.id to it } }.toMap()
 
 	val book = Book().apply {
 		metadata.addTitle(projectName)
@@ -34,6 +45,18 @@ fun writeStoryAsEpub(
 		metadata.language = language
 
 		addStylesheet(buildStylesheet(projectData.theme, options.font))
+
+		packagedImages.values.forEach { addResource(it.resource) }
+		projectData.coverImageId?.let(packagedImages::get)?.let { coverImage = it.resource }
+
+		// The cover page leads the spine but stays out of the table of contents.
+		exportCover(projectData, images) { image ->
+			val packaged = packagedImages[image.id] ?: return@exportCover null
+			exportRaster(image)?.let { coverPageResource(projectName, packaged, it) }
+		}?.let { page ->
+			coverPage = page
+			spine.addResource(page)
+		}
 
 		val effective = chapters.ifEmpty { listOf(StoryChapter(projectName, "")) }
 		val tocEntries = effective.mapIndexed { index, chapter ->
@@ -69,7 +92,9 @@ fun writeStoryAsEpub(
 					id = "ch${index + 1}",
 					href = entry.href,
 					title = chapter.name,
-					bodyBuilder = { chapterBody(entry.title, chapter.markdown, options.keepBlankLines) },
+					bodyBuilder = {
+						chapterBody(entry.title, chapter.markdown, options.keepBlankLines, packagedImages, imageNames)
+					},
 				),
 			)
 		}
@@ -99,10 +124,11 @@ private fun buildStylesheet(theme: ProjectTheme?, font: ExportFont): Stylesheet 
 		p.book-author { font-size: 1.2em; font-style: italic; margin: 0.5em 0; }
 		body.toc-page h1.toc-title { text-align: center; margin-bottom: 1.5em; }
 		h1.chapter-title { page-break-before: auto; }
-		nav.toc ol.toc-list { list-style: none; padding: 0; margin: 0; }
-		nav.toc li.toc-item { margin: 0.6em 0; text-indent: 0; }
-		nav.toc li.toc-item a { text-decoration: none; }
+		div.toc ol.toc-list { list-style: none; padding: 0; margin: 0; }
+		div.toc li.toc-item { margin: 0.6em 0; text-indent: 0; }
+		div.toc li.toc-item a { text-decoration: none; }
 		.user-del { text-decoration: line-through; }
+		img { display: block; max-width: 100%; height: auto; margin: 1em auto; }
 		""".trimIndent(),
 	)
 
@@ -135,16 +161,25 @@ internal fun argbHexToCssHex(argb: String): String? {
 
 private fun Char.isHexDigit(): Boolean = this in '0'..'9' || this in 'a'..'f' || this in 'A'..'F'
 
+/** The DOCTYPE an EPUB 2 (OPS 2.0.1) content document declares; Apple Books rejects pages without it. */
+private const val XHTML11_DOCTYPE =
+	"<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.1//EN\" \"http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd\">"
+
 private fun buildXhtmlResource(
 	id: String,
 	href: String,
 	title: String,
+	css: String? = null,
 	bodyBuilder: BODY.() -> Unit,
 ): Resource {
 	val xhtml = buildString {
 		append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
+		append(XHTML11_DOCTYPE).append('\n')
 		appendHTML(xhtmlCompatible = true).html(namespace = "http://www.w3.org/1999/xhtml") {
-			head { title { +title } }
+			head {
+				title { +title }
+				css?.let { style(type = "text/css") { unsafe { +it } } }
+			}
 			body { bodyBuilder() }
 		}
 	}
@@ -152,10 +187,34 @@ private fun buildXhtmlResource(
 		.apply { mediaType = MediaTypes.XHTML }
 }
 
+/**
+ * A page showing [image] as large as the reader's viewport allows, at [raster]'s aspect ratio. An SVG
+ * wrapper is what scales a cover to the screen across EPUB 2 readers; CSS viewport units are not
+ * reliable there. The class selectors outrank the book stylesheet, which is linked after this one.
+ * The XHTML 1.1 DTD has no `svg` element, but OPS 2.0.1 permits inline SVG in content documents.
+ */
+private fun coverPageResource(projectName: String, image: PackagedImage, raster: ExportRaster): Resource =
+	buildXhtmlResource(
+		id = "cover",
+		href = "cover.xhtml",
+		title = projectName,
+		css = "@page { margin: 0; } html { height: 100%; } " +
+			"body.cover-page { height: 100%; margin: 0; padding: 0; text-align: center; } div.cover { height: 100%; } div.cover svg { display: block; }",
+	) {
+		classes = setOf("cover-page")
+		val width = raster.widthPx
+		val height = raster.heightPx
+		val svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" " +
+			"version=\"1.1\" width=\"100%\" height=\"100%\" viewBox=\"0 0 $width $height\" " +
+			"preserveAspectRatio=\"xMidYMid meet\">" +
+			"<image width=\"$width\" height=\"$height\" xlink:href=\"${escapeXml(image.href)}\"/></svg>"
+		div(classes = "cover") { unsafe { +svg } }
+	}
+
 private fun BODY.tocPageBody(contentsTitle: String, entries: List<TocEntry>) {
 	classes = setOf("toc-page")
 	h1(classes = "toc-title") { +contentsTitle }
-	nav(classes = "toc") {
+	div(classes = "toc") {
 		ol(classes = "toc-list") {
 			entries.forEach { entry ->
 				li(classes = "toc-item") {
@@ -177,15 +236,70 @@ private fun BODY.titlePageBody(projectName: String, authorName: String?) {
 	}
 }
 
-private fun BODY.chapterBody(chapterTitle: String, markdown: String, keepBlankLines: Boolean) {
+private fun BODY.chapterBody(
+	chapterTitle: String,
+	markdown: String,
+	keepBlankLines: Boolean,
+	images: Map<Int, PackagedImage>,
+	imageNames: Map<Int, String>,
+) {
 	h1(classes = "chapter-title") { +chapterTitle }
 	val flavour = GFMFlavourDescriptor()
 	val source = ProseHtml.normalizeLineEndings(markdown)
 	val parsed = MarkdownParser(flavour).buildMarkdownTreeFromString(source)
-	val providers = ProseHtml.providers(flavour, LinkMap.buildLinkMap(parsed, source), keepBlankLines)
+	val linkMap = LinkMap.buildLinkMap(parsed, source)
+	val providers = ProseHtml.providers(flavour, linkMap, keepBlankLines) +
+		(MarkdownElementTypes.IMAGE to EpubImageProvider(linkMap, images, imageNames))
 	val htmlBody = HtmlGenerator(source, parsed, providers).generateHtml()
 	val xhtmlBody = htmlBody.selfCloseHtmlVoidTags()
 	unsafe { +xhtmlBody }
+}
+
+/**
+ * Writes a `hammer://image` reference to a packaged image as an `img` of it described by the image's
+ * name, and one to an image that could not be packaged as the name from [imageNames] in plain text, or
+ * as nothing without one: its alt text carries no meaning. Any other image is written as its alt text,
+ * as an EPUB reader loads only resources packaged in the book.
+ */
+private class EpubImageProvider(
+	linkMap: LinkMap,
+	private val images: Map<Int, PackagedImage>,
+	private val imageNames: Map<Int, String>,
+) : ImageGeneratingProvider(linkMap, null) {
+	override fun renderLink(
+		visitor: HtmlGenerator.HtmlGeneratingVisitor,
+		text: String,
+		node: ASTNode,
+		info: RenderInfo,
+	) {
+		val imageId = ImageReferenceSyntax.parseId(info.destination.toString())
+		val image = imageId?.let(images::get)
+		when {
+			// Written as an HTML void tag; selfCloseHtmlVoidTags closes it for XHTML.
+			image != null ->
+				visitor.consumeTagOpen(node, "img", "src=\"${image.href}\"", "alt=\"${escapeXml(image.name)}\"")
+
+			imageId != null -> imageNames[imageId]?.let { visitor.consumeHtml(escapeXml(it)) }
+			else -> labelProvider.processNode(visitor, text, info.label)
+		}
+	}
+}
+
+private fun escapeXml(value: String): String = value
+	.replace("&", "&amp;")
+	.replace("<", "&lt;")
+	.replace(">", "&gt;")
+	.replace("\"", "&quot;")
+
+private fun packageImage(image: ExportImage): PackagedImage? {
+	val extension = image.fileExtension.lowercase()
+	val mimeType = ImageFormat.mimeType(extension) ?: return null
+	// epub4kmp tells bitmaps apart by the identity of its own constants, so reuse them where one exists.
+	val mediaType = MediaTypes.getMediaTypeByName(mimeType) ?: MediaType(mimeType, ".$extension")
+	val href = "images/${image.id}.$extension"
+	val resource = Resource(id = "img${image.id}", data = image.bytes, href = href)
+		.apply { this.mediaType = mediaType }
+	return PackagedImage(image.name, href, resource)
 }
 
 private val voidTagPattern = Regex(

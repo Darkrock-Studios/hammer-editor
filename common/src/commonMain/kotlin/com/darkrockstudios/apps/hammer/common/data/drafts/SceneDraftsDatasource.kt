@@ -183,6 +183,21 @@ class SceneDraftsDatasource(
 		return draftDef
 	}
 
+	/** Overwrites an existing draft's text. Returns false when the draft has no file. */
+	fun updateDraftContent(draftDef: DraftDef, content: String): Boolean {
+		val path = getDraftPath(draftDef).toOkioPath()
+		val draftsRoot = getSceneDraftsDirectory(draftDef.sceneId).toOkioPath()
+		if (!path.isWithin(draftsRoot)) {
+			error("Refusing to write draft outside its drafts directory: $path")
+		}
+		if (!fileSystem.exists(path)) return false
+
+		fileSystem.write(path, false) {
+			writeUtf8(content)
+		}
+		return true
+	}
+
 	suspend fun reIdDraft(oldId: Int, newId: Int) {
 		val draftDef = getDraftDef(oldId) ?: error("Draft not found: $oldId")
 		val oldPath = getDraftPath(draftDef).toOkioPath()

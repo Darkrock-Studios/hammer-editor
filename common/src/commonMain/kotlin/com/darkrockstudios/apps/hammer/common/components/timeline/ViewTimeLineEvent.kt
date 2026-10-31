@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.common.components.timeline
 
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.data.MenuItemDescriptor
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageDef
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagSuggesting
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 
@@ -41,4 +42,7 @@ interface ViewTimeLineEvent : TagSuggesting {
 	fun confirmClose()
 	fun cancelClose()
 	fun closeEvent()
+
+	/** Opens the gallery to pick an image to embed in the text; null when the pick was cancelled. */
+	suspend fun pickImageForText(): ImageDef?
 }

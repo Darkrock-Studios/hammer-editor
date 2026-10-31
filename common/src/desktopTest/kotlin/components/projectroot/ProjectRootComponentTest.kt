@@ -1,9 +1,14 @@
 package components.projectroot
 
+import com.darkrockstudios.apps.hammer.common.components.images.ImageGalleryMode
+import com.darkrockstudios.apps.hammer.common.components.images.ImagePickRequests
+import com.darkrockstudios.apps.hammer.common.components.images.ImagePickResult
+import com.darkrockstudios.apps.hammer.common.components.images.ImagePickTarget
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectDeepLink
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRootComponent
+import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRootModalRouter
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
@@ -15,6 +20,7 @@ import com.darkrockstudios.apps.hammer.common.components.storyeditor.focusmode.F
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.InitialProjectScreen
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesService
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupService
 import com.darkrockstudios.apps.hammer.common.data.duplicateids.DuplicateIdService
@@ -51,6 +57,8 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import okio.fakefilesystem.FakeFileSystem
@@ -76,6 +84,7 @@ class ProjectRootComponentTest : ComponentTest() {
 	private lateinit var protocolMismatchRepository: ProtocolMismatchRepository
 	private lateinit var projectFiles: FakeFileSystem
 	private lateinit var duplicateIdService: DuplicateIdService
+	private lateinit var imagePickRequests: ImagePickRequests
 
 	private val addedMenus = mutableListOf<MenuDescriptor>()
 	private val removedMenuIds = mutableListOf<String>()
@@ -127,6 +136,10 @@ class ProjectRootComponentTest : ComponentTest() {
 		val tagIndexService = mockk<TagIndexService>(relaxed = true)
 		every { tagIndexService.tagIndex } returns MutableStateFlow(mockk(relaxed = true))
 
+		imagePickRequests = ImagePickRequests()
+		val imagesService = mockk<ImagesService>(relaxed = true)
+		every { imagesService.imagesFlow } returns MutableSharedFlow()
+
 		val spellCheckRepository = mockk<SpellCheckRepository>(relaxed = true)
 		every { spellCheckRepository.dictionaryFlow } returns MutableSharedFlow()
 
@@ -158,6 +171,8 @@ class ProjectRootComponentTest : ComponentTest() {
 				scoped { notesRepository }
 				scoped { timeLineRepository }
 				scoped<SceneDraftRepository> { mockk(relaxed = true) }
+				scoped { imagePickRequests }
+				scoped { imagesService }
 			}
 		})
 
@@ -598,8 +613,56 @@ class ProjectRootComponentTest : ComponentTest() {
 		context.resume()
 		advanceUntilIdle()
 
-		assertTrue(addedMenus.isEmpty())
+		assertTrue(addedMenus.none { it.id == ProjectRootComponent.SYNC_MENU_ID })
 	}
+
+	@Test
+	fun `The images menu opens the gallery to browse`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		val menu = addedMenus.single { it.id == ProjectRootComponent.IMAGES_MENU_ID }
+		menu.items.single().let { it.action(it.id) }
+		advanceUntilIdle()
+
+		assertEquals(
+			ProjectRootModalRouter.Config.ImageGallery(ImageGalleryMode.Browse),
+			comp.modalRouterState.value.child?.configuration,
+		)
+		assertIs<ProjectRoot.ModalDestination.ImageGalleryModal>(comp.modalRouterState.value.child?.instance)
+
+		context.stop()
+		advanceUntilIdle()
+		assertTrue(ProjectRootComponent.IMAGES_MENU_ID in removedMenuIds)
+	}
+
+	@Test
+	fun `An image pick request opens the gallery to pick, and closing it answers the request`() =
+		runTest(mainTestDispatcher) {
+			val results = mutableListOf<ImagePickResult>()
+			backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+				imagePickRequests.results.collect { results += it }
+			}
+			val target = ImagePickTarget.EntryImage(entryId = 4)
+			val comp = newComponent()
+			context.resume()
+			advanceUntilIdle()
+
+			imagePickRequests.request(target)
+			advanceUntilIdle()
+
+			val modal = assertIs<ProjectRoot.ModalDestination.ImageGalleryModal>(
+				comp.modalRouterState.value.child?.instance
+			)
+			assertEquals(ImageGalleryMode.Pick(target), modal.component.state.value.mode)
+
+			modal.component.dismiss()
+			advanceUntilIdle()
+
+			assertEquals(listOf(ImagePickResult(target, null)), results)
+			assertIs<ProjectRoot.ModalDestination.None>(comp.modalRouterState.value.child?.instance)
+		}
 
 	@Test
 	fun `Unsaved buffer queries delegate to the scene editor`() = runTest(mainTestDispatcher) {

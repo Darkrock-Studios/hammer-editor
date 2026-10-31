@@ -81,8 +81,9 @@ class ClientSceneDraftSynchronizer(
 		}
 	}
 
-	override suspend fun reIdEntity(oldId: Int, newId: Int) {
+	override suspend fun reIdEntity(oldId: Int, newId: Int): Set<Int> {
 		sceneDraftRepository.reIdDraft(oldId, newId)
+		return emptySet()
 	}
 
 	override suspend fun storeEntity(

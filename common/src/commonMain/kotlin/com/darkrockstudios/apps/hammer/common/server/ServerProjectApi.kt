@@ -105,6 +105,7 @@ class ServerProjectApi(
 					is ApiProjectEntity.TimelineEventEntity -> setBody(entity)
 					is ApiProjectEntity.EncyclopediaEntryEntity -> setBody(entity)
 					is ApiProjectEntity.SceneDraftEntity -> setBody(entity)
+					is ApiProjectEntity.ImageEntity -> setBody(entity)
 				}
 			},
 			failureHandler = { response ->
@@ -140,6 +141,12 @@ class ServerProjectApi(
 								jsonStr
 							)
 						)
+
+						ApiProjectEntity.Type.IMAGE -> EntityConflictException.ImageConflictException(
+							json.decodeFromString<ApiProjectEntity.ImageEntity>(
+								jsonStr
+							)
+						)
 					}
 				} else {
 					defaultFailureHandler(response, strRes)
@@ -170,6 +177,7 @@ class ServerProjectApi(
 					ApiProjectEntity.Type.TIMELINE_EVENT -> LoadEntityResponse(response.body<ApiProjectEntity.TimelineEventEntity>())
 					ApiProjectEntity.Type.ENCYCLOPEDIA_ENTRY -> LoadEntityResponse(response.body<ApiProjectEntity.EncyclopediaEntryEntity>())
 					ApiProjectEntity.Type.SCENE_DRAFT -> LoadEntityResponse(response.body<ApiProjectEntity.SceneDraftEntity>())
+					ApiProjectEntity.Type.IMAGE -> LoadEntityResponse(response.body<ApiProjectEntity.ImageEntity>())
 				}
 			},
 			failureHandler = { response ->

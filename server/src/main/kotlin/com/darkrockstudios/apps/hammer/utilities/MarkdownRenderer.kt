@@ -5,8 +5,10 @@ import org.intellij.markdown.flavours.gfm.GFMFlavourDescriptor
 import org.intellij.markdown.html.HtmlGenerator
 import org.intellij.markdown.parser.LinkMap
 import org.intellij.markdown.parser.MarkdownParser
+import org.owasp.html.ElementPolicy
 import org.owasp.html.HtmlPolicyBuilder
 import org.owasp.html.PolicyFactory
+import java.util.function.Predicate
 import java.util.regex.Pattern
 
 /**
@@ -34,7 +36,27 @@ class MarkdownRenderer {
 	 * unwrapped, so a stripped table reads as its cells run together. Everything GFM emits is
 	 * either allowed here or, like an image or a task-list checkbox, deliberately left out.
 	 */
-	private val sanitizer: PolicyFactory = HtmlPolicyBuilder()
+	private val sanitizer: PolicyFactory = basePolicy()
+		.allowUrlProtocols("http", "https")
+		.toFactory()
+
+	/**
+	 * [sanitizer] plus the project's own images. An image's source must be exactly a
+	 * `hammer://image/<id>` reference, which the page resolves to a URL when it is served; anything
+	 * else, an external URL above all, is dropped, so an author can neither track readers nor show
+	 * an image that is not part of the project.
+	 */
+	private val imageSanitizer: PolicyFactory = basePolicy()
+		// The protocol guard covers every URL attribute, so `hammer` is let through here and
+		// narrowed per attribute: to image references on `src`, and out of `href` entirely.
+		.allowUrlProtocols("http", "https", HAMMER_PROTOCOL)
+		.allowAttributes("href").matching(NOT_HAMMER_URL).onElements("a")
+		.allowElements(REQUIRE_SRC, "img")
+		.allowAttributes("src").matching(IMAGE_REFERENCE).onElements("img")
+		.allowAttributes("alt").onElements("img")
+		.toFactory()
+
+	private fun basePolicy(): HtmlPolicyBuilder = HtmlPolicyBuilder()
 		.allowElements(
 			"p", "br", "strong", "em", "b", "i", "u", "del",
 			"ul", "ol", "li",
@@ -43,13 +65,11 @@ class MarkdownRenderer {
 			"table", "thead", "tbody", "tr", "th", "td",
 			"a", "hr"
 		)
-		.allowUrlProtocols("http", "https")
 		.allowAttributes("href").onElements("a")
 		// A list that starts at 5 has to say so, or it renders as 1.
 		.allowAttributes("start").matching(ORDERED_LIST_START).onElements("ol")
 		.allowAttributes("align").matching(COLUMN_ALIGNMENT).onElements("th", "td")
 		.requireRelNofollowOnLinks()
-		.toFactory()
 
 	/**
 	 * Converts markdown text to sanitized HTML.
@@ -62,9 +82,15 @@ class MarkdownRenderer {
 	 * new line and every blank line is a blank line, which is what the editor shows them. Story prose
 	 * opts in; anywhere the markdown is a short piece of writing rather than a story, such as a bio or
 	 * a policy page, wants CommonMark's usual reflowing.
+	 * @param images Keep embedded project images as `<img src="hammer://image/<id>">`. Only story
+	 * prose opts in; the caller must resolve those sources before the HTML reaches a browser.
 	 * @return Sanitized HTML string safe for rendering
 	 */
-	fun markdownToSafeHtml(markdown: String, preserveLineBreaks: Boolean = false): String {
+	fun markdownToSafeHtml(
+		markdown: String,
+		preserveLineBreaks: Boolean = false,
+		images: Boolean = false,
+	): String {
 		if (markdown.isBlank()) return ""
 
 		val source = ProseHtml.normalizeLineEndings(markdown)
@@ -77,7 +103,8 @@ class MarkdownRenderer {
 		}
 
 		val unsafeHtml = HtmlGenerator(source, parsedTree, providers).generateHtml()
-		return sanitizer.sanitize(unsafeHtml.strikethroughAsDel())
+		val policy = if (images) imageSanitizer else sanitizer
+		return policy.sanitize(unsafeHtml.strikethroughAsDel())
 	}
 
 	/**
@@ -94,5 +121,15 @@ class MarkdownRenderer {
 
 		private val ORDERED_LIST_START: Pattern = Pattern.compile("[0-9]{1,9}")
 		private val COLUMN_ALIGNMENT: Pattern = Pattern.compile("left|center|right")
+
+		private const val HAMMER_PROTOCOL = "hammer"
+		private val IMAGE_REFERENCE: Pattern = Pattern.compile("hammer://image/[0-9]{1,9}")
+		private val NOT_HAMMER_URL = Predicate<String> { !it.trim().startsWith("$HAMMER_PROTOCOL:", ignoreCase = true) }
+
+		// The policy runs after the attributes are filtered, so this sees whether `src` survived.
+		// An image without one would otherwise still render as a broken image with its alt text.
+		private val REQUIRE_SRC = ElementPolicy { name, attrs ->
+			name.takeIf { (attrs.indices step 2).any { attrs[it] == "src" } }
+		}
 	}
 }

@@ -11,6 +11,7 @@ import com.darkrockstudios.apps.hammer.common.data.importer.RtfStoryImporter
 import okio.Buffer
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class RtfStoryRendererTest {
@@ -20,6 +21,8 @@ class RtfStoryRendererTest {
 		projectName: String = "Test Project",
 		projectData: ProjectData = ProjectData(authorName = "Test Author"),
 		options: ExportOptions = ExportOptions(),
+		imageNames: Map<Int, String> = emptyMap(),
+		images: Map<Int, ExportImage> = emptyMap(),
 	): String {
 		val buffer = Buffer()
 		val author = projectData.authorName?.takeIf { it.isNotBlank() }
@@ -30,6 +33,8 @@ class RtfStoryRendererTest {
 			chapters = chapters,
 			strings = ExportStrings(contentsTitle = "Contents", authorByline = author?.let { "by $it" }),
 			options = options,
+			imageNames = imageNames,
+			images = images,
 		)
 		return buffer.readByteArray().decodeToString()
 	}
@@ -240,5 +245,39 @@ class RtfStoryRendererTest {
 			scene.markdown.contains("The quick brown fox jumped."),
 			"Chapter body should survive the export/import round-trip, got: ${scene.markdown}",
 		)
+	}
+
+	@Test
+	fun `a project image is written as its current name or dropped without one`() {
+		val rtf = render(
+			listOf(StoryChapter("Alpha", "![image](hammer://image/3)\n\n![Old](hammer://image/9)")),
+			imageNames = mapOf(3 to "Cheshire Cat"),
+		)
+
+		val body = rtf.substring(rtf.indexOf("Cheshire Cat"))
+		assertTrue(!body.contains("Old"), rtf)
+		assertTrue(!body.contains("image"), rtf)
+	}
+
+	@Test
+	fun `an image RTF cannot embed is written exactly as a line of its name`() {
+		fun rtf(markdown: String, image: ExportImage? = null) = render(
+			listOf(StoryChapter("Alpha", markdown)),
+			imageNames = mapOf(3 to "Cheshire Cat"),
+			images = listOfNotNull(image).associateBy { it.id },
+		)
+		val svg = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 10"><rect width="20" height="10"/></svg>"""
+		val plain = rtf("Before.\n\nCheshire Cat\nAfter.")
+
+		for (image in listOf(
+			null,
+			ExportImage(3, "Cheshire Cat", "svg", svg.encodeToByteArray()),
+			ExportImage(3, "Cheshire Cat", "png", "not an image".encodeToByteArray()),
+			ExportImage(3, "Cheshire Cat", "bmp", byteArrayOf(0x42, 0x4D, 0, 0, 0, 0, 0, 0)),
+		)) {
+			val withImage = rtf("Before.\n\n![image](hammer://image/3)\nAfter.", image)
+			assertEquals(plain, withImage, "${image?.fileExtension}")
+			assertFalse(withImage.contains("\\pict"), withImage)
+		}
 	}
 }

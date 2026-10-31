@@ -166,6 +166,32 @@ abstract class ServerEntitySynchronizerTest<C : ApiProjectEntity, T : ServerEnti
 	}
 
 	@Test
+	fun `Save Entity - Stale stored hash, content matches baseline`() = runTest {
+		val userId = 1L
+		val existingEntity = createExistingEntity()
+		val newEntity = createNewEntity()
+
+		val synchronizer = createSynchronizer()
+		// The client saw exactly the stored content; only the hash column is out of date.
+		val originalHash = synchronizer.hashEntity(existingEntity)
+
+		coEvery {
+			datasource.loadEntity(any(), any(), any(), any(), entityClazz.serializer())
+		} returns SResult.success(existingEntity)
+		coEvery {
+			datasource.storeEntity(any(), any(), newEntity, any(), entityClazz.serializer())
+		} returns SResult.success(Unit)
+		coEvery {
+			datasource.loadEntityHash(any(), any(), any())
+		} returns SResult.success("stale-column-hash")
+
+		val result = synchronizer.saveEntity(userId, mockk(), newEntity, originalHash, false)
+
+		assertTrue(isSuccess(result))
+		coVerify { datasource.storeEntity(userId, any(), newEntity, any(), entityClazz.serializer()) }
+	}
+
+	@Test
 	fun `Load Entity`() = runTest {
 		val userId = 1L
 		val entityId = 1

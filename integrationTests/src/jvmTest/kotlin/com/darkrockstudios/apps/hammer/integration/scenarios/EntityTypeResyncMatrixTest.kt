@@ -3,14 +3,19 @@ package com.darkrockstudios.apps.hammer.integration.scenarios
 import com.darkrockstudios.apps.hammer.common.data.SceneContent
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImageAddResult
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.integration.RoundTripTestBase
+import com.darkrockstudios.apps.hammer.integration.TestImages
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Timeout
+import kotlin.test.assertContentEquals
+import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
@@ -73,7 +78,6 @@ class EntityTypeResyncMatrixTest : RoundTripTestBase() {
 			type = EntryType.PERSON,
 			text = "a brave hero",
 			tags = setOf("hero"),
-			imagePath = null,
 		)
 		val container = assertNotNull(created.instance, "entry should be created")
 		assertTrue(client.sync(), "first sync should succeed")
@@ -87,9 +91,49 @@ class EntityTypeResyncMatrixTest : RoundTripTestBase() {
 			text = "a very brave hero",
 			tags = setOf("hero", "legend"),
 			excludeFromDictionary = false,
+			images = container.entry.images,
 		)
 		assertTrue(client.syncNoConflict(), "resync should succeed")
 		assertNotEquals(before, serverEntityHash(project, container.entry.id), "edit must reach the server")
+	}
+
+	@Test
+	@Timeout(value = 60)
+	fun `encyclopedia entry image list edits reach the other device without conflict`() = runBlocking {
+		val project = "entry images matrix"
+		val first = newClient(project)
+		val images: ImagesRepository = first.scope.get()
+		val encyclopedia: EncyclopediaRepository = first.scope.get()
+		encyclopedia.ensureEntriesLoaded()
+		val portrait = assertNotNull(images.create("Portrait", TestImages.png(1), "png").image)
+		val entry = assertNotNull(encyclopedia.createEntry("Hero", EntryType.PERSON, "brave", emptySet()).instance)
+		val def = entry.toDef(first.projectDef)
+		assertTrue(encyclopedia.addEntryImage(def, portrait.id))
+		assertTrue(first.syncNoConflict(), "first sync should succeed")
+		val before = assertNotNull(serverEntityHash(project, entry.entry.id))
+
+		val sketch = assertNotNull(images.create("Sketch", TestImages.jpeg(2), "jpg").image)
+		assertTrue(encyclopedia.addEntryImage(def, sketch.id))
+		assertTrue(encyclopedia.setPrimaryImage(def, sketch.id))
+		assertTrue(first.syncNoConflict(), "resync should succeed")
+		assertNotEquals(before, serverEntityHash(project, entry.entry.id), "the list edit must reach the server")
+
+		val second = secondDeviceFor(first, "entry images matrix b")
+		assertTrue(second.syncNoConflict(), "second device sync should succeed")
+		val secondEncyclopedia: EncyclopediaRepository = second.scope.get()
+		assertEquals(listOf(sketch.id, portrait.id), secondEncyclopedia.loadEntry(entry.entry.id).entry.images)
+		val secondImages: ImagesRepository = second.scope.get()
+		assertNotNull(secondImages.findImage(sketch.id))
+		assertNotNull(secondImages.findImage(portrait.id))
+
+		assertTrue(encyclopedia.removeEntryImage(def, portrait.id))
+		assertTrue(first.syncNoConflict(), "removal sync should succeed")
+		assertTrue(second.syncNoConflict(), "second device should take the removal")
+		assertEquals(listOf(sketch.id), secondEncyclopedia.loadEntry(entry.entry.id).entry.images)
+
+		assertConverged(project, first, second)
+		assertResyncSilent(first)
+		assertResyncSilent(second)
 	}
 
 	@Test
@@ -110,6 +154,70 @@ class EntityTypeResyncMatrixTest : RoundTripTestBase() {
 		assertTrue(client.sync(), "draft sync should succeed")
 		assertNotNull(serverEntityHash(project, draft.id), "draft should be on the server")
 		assertTrue(client.syncNoConflict(), "a later resync should not conflict")
+	}
+
+	@Test
+	@Timeout(value = 60)
+	fun `image replace and rename resync does not conflict`() = runBlocking {
+		val project = "image matrix"
+		val client = newClient(project)
+		val images: ImagesRepository = client.scope.get()
+
+		val created = assertNotNull(images.create("Map", TestImages.png(1), "png").image)
+		assertTrue(client.sync(), "first sync should succeed")
+		val before = serverEntityHash(project, created.id)
+		assertNotNull(before, "image should be on the server after the first sync")
+
+		assertEquals(ImageAddResult.Ok, images.replace(created.id, TestImages.jpeg(2), "jpg").result)
+		assertTrue(client.syncNoConflict(), "replace resync should succeed")
+		val afterReplace = serverEntityHash(project, created.id)
+		assertNotEquals(before, afterReplace, "replacement must reach the server")
+
+		assertEquals(ImageAddResult.Ok, images.rename(created.id, "Atlas").result)
+		assertTrue(client.syncNoConflict(), "rename resync should succeed")
+		assertNotEquals(afterReplace, serverEntityHash(project, created.id), "rename must reach the server")
+		assertResyncSilent(client)
+	}
+
+	@Test
+	@Timeout(value = 60)
+	fun `image edited on one device reaches the other`() = runBlocking {
+		val project = "image two devices"
+		val first = newClient(project)
+		val images: ImagesRepository = first.scope.get()
+		val created = assertNotNull(images.create("Map", TestImages.png(1), "png").image)
+		assertTrue(first.sync(), "first device sync should succeed")
+
+		val second = secondDeviceFor(first, "image two devices b")
+		assertTrue(second.syncNoConflict(), "second device sync should succeed")
+		val secondImages: ImagesRepository = second.scope.get()
+		assertEquals(created, secondImages.findImage(created.id))
+
+		assertEquals(ImageAddResult.Ok, secondImages.replace(created.id, TestImages.jpeg(3), "jpg").result)
+		assertTrue(second.syncNoConflict(), "second device edit sync should succeed")
+		assertTrue(first.syncNoConflict(), "first device pull should succeed")
+
+		val pulled = assertNotNull(images.findImage(created.id))
+		assertEquals("jpg", pulled.fileExtension)
+		assertContentEquals(TestImages.jpeg(3), images.loadImageBytes(pulled))
+		assertConverged(project, first, second)
+		assertResyncSilent(first)
+		assertResyncSilent(second)
+	}
+
+	@Test
+	@Timeout(value = 60)
+	fun `deleting an image and resyncing removes it from the server without conflict`() = runBlocking {
+		val project = "image delete matrix"
+		val client = newClient(project)
+		val images: ImagesRepository = client.scope.get()
+		val created = assertNotNull(images.create("Doomed", TestImages.png(), "png").image)
+		assertTrue(client.sync(), "first sync should succeed")
+		assertNotNull(serverEntityHash(project, created.id), "image should exist on the server")
+
+		assertTrue(images.delete(created.id), "local delete should succeed")
+		assertTrue(client.syncNoConflict(), "delete resync should succeed")
+		assertNull(serverEntityHash(project, created.id), "server should have deleted the image")
 	}
 
 	@Test

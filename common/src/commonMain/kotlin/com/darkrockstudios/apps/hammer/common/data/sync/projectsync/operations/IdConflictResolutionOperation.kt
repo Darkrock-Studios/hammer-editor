@@ -25,8 +25,12 @@ class IdConflictResolutionOperation(
 		state as CollateIdsState
 
 		// Resolve ID conflicts
-		val resolvedClientSyncData =
-			handleIdConflicts(state.clientSyncData, state.serverSyncData, onLog)
+		val resolvedClientSyncData = handleIdConflicts(
+			state.clientSyncData,
+			state.serverSyncData,
+			state.collatedIds.rewrittenIds,
+			onLog,
+		)
 		val currentMaxId: Int = idAllocator.let {
 			it.findNextId()
 			it.peekLastId()
@@ -61,9 +65,11 @@ class IdConflictResolutionOperation(
 		}
 	}
 
+	/** Ids of entities whose content a re-ID rewrote are added to [rewrittenIds]. */
 	private suspend fun handleIdConflicts(
 		clientSyncData: ProjectSynchronizationData,
 		serverSyncData: ProjectSynchronizationBegan,
+		rewrittenIds: MutableSet<Int>,
 		onLog: OnSyncLog
 	): ProjectSynchronizationData {
 
@@ -93,6 +99,7 @@ class IdConflictResolutionOperation(
 
 				val localDeletedIds = clientSyncData.deletedIds.toMutableSet()
 				val changes = mutableListOf<EntityIdChange>()
+				val reassigned = mutableMapOf<Int, Int>()
 
 				for ((ii, id) in clientSyncData.newIds.withIndex()) {
 					if (id <= serverSyncData.lastId) {
@@ -107,6 +114,7 @@ class IdConflictResolutionOperation(
 						// Re-ID this currently local only Entity
 						entitySynchronizers.reIdEntry(id, newId)?.let(changes::add)
 						updatedNewIds[ii] = newId
+						reassigned[id] = newId
 
 						// If we have a dirty record for this ID, update it
 						val dirtyIndex = clientSyncData.dirty.indexOfFirst { it.id == id }
@@ -122,6 +130,15 @@ class IdConflictResolutionOperation(
 						}
 					}
 				}
+
+				// A referrer may itself be re-IDed later in the loop, so resolve through the final mapping.
+				val referrers = changes.flatMap { it.rewrittenReferrers }.map { reassigned[it] ?: it }.toSet()
+				for (referrer in referrers) {
+					if (updatedDirty.none { it.id == referrer }) {
+						updatedDirty += EntityOriginalState(referrer, clientSyncData.syncedHashes[referrer])
+					}
+				}
+				rewrittenIds += referrers
 
 				entitySynchronizers.notifyEntityIdsChanged(changes)
 

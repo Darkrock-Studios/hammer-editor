@@ -37,6 +37,10 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesRepository
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageDef
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageFile
+import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.koin.dsl.module
@@ -60,6 +64,7 @@ class ProjectSynchronizationComponentTest : ComponentTest() {
 	private lateinit var sceneDraftRepository: SceneDraftRepository
 	private lateinit var synchronizer: ClientProjectSynchronizer
 	private lateinit var conflictBroker: ProjectDataConflictBroker
+	private lateinit var imagesRepository: ImagesRepository
 
 	private var dismissed = false
 	private var reauthorized = false
@@ -89,6 +94,7 @@ class ProjectSynchronizationComponentTest : ComponentTest() {
 		sceneDraftRepository = mockk()
 		synchronizer = mockk()
 		conflictBroker = ProjectDataConflictBroker(projectDef)
+		imagesRepository = mockk()
 
 		setupComponentKoin(module {
 			single { globalSettingsStore }
@@ -100,6 +106,7 @@ class ProjectSynchronizationComponentTest : ComponentTest() {
 				scoped { sceneDraftRepository }
 				scoped { synchronizer }
 				scoped { conflictBroker }
+				scoped { imagesRepository }
 			}
 		})
 	}
@@ -512,6 +519,27 @@ class ProjectSynchronizationComponentTest : ComponentTest() {
 		assertNull(comp.state.value.projectDataConflict)
 		assertNull(comp.state.value.conflictTitle)
 		assertEquals(server, conflictBroker.awaitResolution())
+	}
+
+	@Test
+	fun `A project data conflict carries the covers this device has`() = runTest(mainTestDispatcher) {
+		val cover = ImageFile(
+			def = ImageDef(id = 4, name = "Cover", fileExtension = "png"),
+			path = HPath(path = "/images/4~Cover.png", name = "4~Cover.png", isAbsolute = true),
+			contentHash = "h4",
+		)
+		coEvery { imagesRepository.findImageFiles(listOf(4, 9)) } returns listOf(cover)
+
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		conflictBroker.reportConflict(
+			ProjectDataConflict(ProjectData(coverImageId = 4), ProjectData(coverImageId = 9), "hash")
+		)
+		advanceUntilIdle()
+
+		assertEquals(mapOf(4 to cover), assertNotNull(comp.state.value.projectDataConflict).localImages)
 	}
 
 	@Test

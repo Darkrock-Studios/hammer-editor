@@ -1,0 +1,248 @@
+package com.darkrockstudios.apps.hammer.common.data.references
+
+/**
+ * How Markdown refers to an Image entity: `![image](hammer://image/<id>)`. The alt text carries no
+ * meaning: Hammer shows the image's current name wherever alt text would be displayed. Every function
+ * returns the identical String instance when it changes nothing, so callers can skip the write.
+ */
+object ImageReferenceSyntax {
+	const val SCHEME_PREFIX = "hammer://image/"
+
+	/** The alt text Hammer writes for every image. */
+	const val PLACEHOLDER_ALT = "image"
+
+	fun reference(imageId: Int): String = "$SCHEME_PREFIX$imageId"
+
+	/** The image id an image source such as `hammer://image/3` names, or null when it names none. */
+	fun parseId(source: String): Int? {
+		if (!source.startsWith(SCHEME_PREFIX)) return null
+		val digits = source.substring(SCHEME_PREFIX.length)
+		if (digits.isEmpty() || !digits.all { it in '0'..'9' }) return null
+		return digits.toIntOrNull()
+	}
+
+	// The id runs to the last digit and must not continue into a word ("hammer://image/12x" is not
+	// image 12), and the scheme must not be the tail of a longer one.
+	private val ID_PATTERN = Regex("""(?<![\w+.-])hammer://image/(\d+)(?!\w)""")
+
+	// Link text with backslash escapes and one level of nested brackets, as Markdown writers emit.
+	private const val ALT = """(?:\\.|[^\[\]\\\r\n]|\[(?:\\.|[^\[\]\\\r\n])*\])*"""
+	private const val TITLE = """(?:"(?:\\.|[^"\\\r\n])*"|'(?:\\.|[^'\\\r\n])*'|\((?:\\.|[^()\\\r\n])*\))"""
+	private const val LABEL = """(?:\\.|[^\[\]\\\r\n])+"""
+
+	// Blockquote markers and indentation in front of a block.
+	private const val LINE_PREFIX = """[ \t]*(?:>[ \t]*)*"""
+
+	private val FENCE = Regex("""^[ \t]{0,3}(`{3,}|~{3,})(.*)$""")
+	private val BLANK = Regex("""^[ \t]*(?:>[ \t]*)*$""")
+	private val LINE = Regex("""[^\r\n]*(?:\r\n|\n|\r)?""")
+	private val REFERENCE_USE = Regex("""!\[($ALT)\](?:\[($LABEL)?\])?(?![\[(:])""")
+	private val WHITESPACE = Regex("""\s+""")
+
+	/** Every image id the text refers to, including inside code. */
+	fun findIds(text: String): Set<Int> {
+		if (!text.contains(SCHEME_PREFIX)) return emptySet()
+		return ID_PATTERN.findAll(text).mapNotNull { it.groupValues[1].toIntOrNull() }.toSet()
+	}
+
+	/** Rewrites every reference to a key of [idMap] in one pass, so `{1 -> 2, 2 -> 3}` never chains. */
+	fun remap(text: String, idMap: Map<Int, Int>): String {
+		if (idMap.isEmpty() || !text.contains(SCHEME_PREFIX)) return text
+
+		var changed = false
+		val result = ID_PATTERN.replace(text) { match ->
+			val newId = match.groupValues[1].toIntOrNull()?.let(idMap::get)
+			if (newId == null) {
+				match.value
+			} else {
+				changed = true
+				reference(newId)
+			}
+		}
+		return if (changed && result != text) result else text
+	}
+
+	/**
+	 * Removes the images that show [imageId]. A line holding only such an image (or a reference
+	 * definition pointing at it) is dropped, and a blank line left doubled by that is dropped too.
+	 * An image sharing its line with other content is cut out of the line. Fenced code is left alone.
+	 */
+	fun remove(text: String, imageId: Int): String {
+		if (imageId !in findIds(text)) return text
+
+		val id = "$imageId"
+		val wholeLine = Regex("""^$LINE_PREFIX${inlinePattern(destinationPattern(id))}[ \t]*$""")
+		return rewriteImages(text, id) { content, inline, labels ->
+			if (wholeLine.matches(content)) return@rewriteImages null
+			val stripped = replaceReferenceUses(inline.replace(content, ""), labels) { _, _ -> "" }
+			if (stripped != content && BLANK.matches(stripped) && !BLANK.matches(content)) null else stripped
+		}
+	}
+
+	/**
+	 * Replaces every image that shows a project image with what [replacement] makes of its id and
+	 * alt text, whether the image stands on a line of its own or sits inside prose, and whether it is
+	 * inline (`![alt](hammer://image/3)`) or uses a reference (`![alt][label]`). A reference
+	 * definition pointing at a project image is dropped, as [remove] drops one. Fenced code is left
+	 * alone.
+	 */
+	fun replaceImages(text: String, replacement: (imageId: Int, alt: String) -> String): String {
+		if (findIds(text).isEmpty()) return text
+
+		return rewriteImages(text, """\d+""") { content, inline, labels ->
+			val inlineReplaced = inline.replace(content) { match ->
+				match.destinationId(2)?.let { replacement(it, match.groupValues[1]) } ?: match.value
+			}
+			replaceReferenceUses(inlineReplaced, labels, replacement)
+		}
+	}
+
+	/**
+	 * Drops every reference definition whose destination is an image matching [idPattern], then
+	 * passes each other line outside fenced code to [rewriteLine] with the inline image pattern and the
+	 * normalized labels of the dropped definitions, each mapped to the image id it names. [rewriteLine]
+	 * returns the line's new content, or null to drop the line. A definition whose id is too large to
+	 * name an image is left as written.
+	 */
+	private inline fun rewriteImages(
+		text: String,
+		idPattern: String,
+		rewriteLine: (content: String, inline: Regex, labels: Map<String, Int>) -> String?,
+	): String {
+		val destination = destinationPattern(idPattern)
+		val inline = Regex(inlinePattern(destination))
+		val definition = definitionPattern(destination)
+
+		val lines = splitLines(text)
+		val code = fencedLines(lines)
+
+		val labels = mutableMapOf<String, Int>()
+		val definitions = arrayOfNulls<Int>(lines.size)
+		for (i in lines.indices) {
+			if (code[i]) continue
+			val match = definition.matchEntire(lines[i].content) ?: continue
+			// -1 marks a definition whose id overflows: it names no image, so the line is left alone.
+			val imageId = match.destinationId(2) ?: -1
+			definitions[i] = imageId
+			// The first definition of a label is the one Markdown uses.
+			if (imageId >= 0) labels.getOrPut(normalizeLabel(match.groupValues[1])) { imageId }
+		}
+
+		val dropped = BooleanArray(lines.size)
+		var changed = false
+		for (i in lines.indices) {
+			if (code[i]) continue
+			val content = lines[i].content
+			val definitionId = definitions[i]
+			if (definitionId != null && definitionId < 0) continue
+			val rewritten = if (definitionId != null) null else rewriteLine(content, inline, labels)
+			if (rewritten == null) {
+				dropped[i] = true
+				changed = true
+			} else if (rewritten != content) {
+				lines[i] = lines[i].copy(content = rewritten)
+				changed = true
+			}
+		}
+		if (!changed) return text
+
+		collapseBlankLines(lines, dropped)
+		return buildString {
+			lines.forEachIndexed { i, line -> if (!dropped[i]) append(line.content).append(line.terminator) }
+		}
+	}
+
+	// Captures the id in one of two groups, one per spelling; see [destinationId].
+	private fun destinationPattern(id: String): String = """(?:<hammer://image/($id)>|hammer://image/($id))"""
+
+	/** The id [destinationPattern] captured, given the index of its first group, or null when it overflows. */
+	private fun MatchResult.destinationId(firstGroup: Int): Int? =
+		(groups[firstGroup] ?: groups[firstGroup + 1])!!.value.toIntOrNull()
+
+	private fun inlinePattern(destination: String): String =
+		"""!\[($ALT)\]\([ \t]*$destination(?:[ \t]+$TITLE)?[ \t]*\)"""
+
+	private fun definitionPattern(destination: String): Regex =
+		Regex("""^$LINE_PREFIX\[($LABEL)\]:[ \t]*$destination(?:[ \t]+$TITLE)?[ \t]*$""")
+
+	private fun replaceReferenceUses(
+		content: String,
+		labels: Map<String, Int>,
+		replacement: (imageId: Int, alt: String) -> String,
+	): String {
+		if (labels.isEmpty()) return content
+		return REFERENCE_USE.replace(content) { match ->
+			val label = match.groups[2]?.value ?: match.groupValues[1]
+			val imageId = labels[normalizeLabel(label)]
+			if (imageId != null) replacement(imageId, match.groupValues[1]) else match.value
+		}
+	}
+
+	// Markdown matches reference labels case-insensitively with runs of whitespace collapsed.
+	private fun normalizeLabel(label: String): String = label.trim().replace(WHITESPACE, " ").lowercase()
+
+	/**
+	 * Each run of dropped lines also takes one neighbouring blank line when it sat between two, or
+	 * between a blank line and either end of the text.
+	 */
+	private fun collapseBlankLines(lines: List<Line>, dropped: BooleanArray) {
+		var i = 0
+		while (i < lines.size) {
+			if (!dropped[i]) {
+				i++
+				continue
+			}
+			var end = i
+			while (end + 1 < lines.size && dropped[end + 1]) end++
+
+			val before = (i - 1 downTo 0).firstOrNull { !dropped[it] }
+			val after = (end + 1).takeIf { it < lines.size }
+			val blankBefore = before == null || BLANK.matches(lines[before].content)
+			val blankAfter = after != null && BLANK.matches(lines[after].content)
+			if (blankBefore && blankAfter) {
+				dropped[after] = true
+				// The blank line just dropped is not a new run to collapse around.
+				end = after
+			} else if (after == null && before != null && blankBefore) {
+				dropped[before] = true
+			}
+			i = end + 1
+		}
+	}
+
+	private fun fencedLines(lines: List<Line>): BooleanArray {
+		val code = BooleanArray(lines.size)
+		var fence: String? = null
+		for (i in lines.indices) {
+			val match = FENCE.matchEntire(lines[i].content)
+			val open = fence
+			if (open == null) {
+				if (match != null) {
+					fence = match.groupValues[1]
+					code[i] = true
+				}
+			} else {
+				code[i] = true
+				if (match != null && isClosingFence(match, open)) fence = null
+			}
+		}
+		return code
+	}
+
+	private fun isClosingFence(match: MatchResult, open: String): Boolean {
+		val marker = match.groupValues[1]
+		return marker[0] == open[0] && marker.length >= open.length && match.groupValues[2].isBlank()
+	}
+
+	private data class Line(val content: String, val terminator: String)
+
+	private fun splitLines(text: String): MutableList<Line> =
+		LINE.findAll(text)
+			.map { it.value }
+			.filter { it.isNotEmpty() }
+			.map { raw ->
+				val content = raw.trimEnd('\r', '\n')
+				Line(content, raw.substring(content.length))
+			}
+			.toMutableList()
+}

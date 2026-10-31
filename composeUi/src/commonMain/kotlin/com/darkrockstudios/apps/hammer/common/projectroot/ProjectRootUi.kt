@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.projectroot
 
+import com.darkrockstudios.apps.hammer.common.compose.images.ProvideProjectImages
 import com.darkrockstudios.apps.hammer.common.compose.plugin.PluginActionHost
 import com.darkrockstudios.apps.hammer.common.compose.plugin.openActionTarget
 import androidx.compose.foundation.layout.Arrangement
@@ -35,6 +36,7 @@ import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.encyclopedia.BrowseEntriesFab
 import com.darkrockstudios.apps.hammer.common.encyclopedia.EncyclopediaUi
 import com.darkrockstudios.apps.hammer.common.globalsearch.GlobalSearchUi
+import com.darkrockstudios.apps.hammer.common.images.ImageGalleryModalContent
 import com.darkrockstudios.apps.hammer.common.notes.NotesFab
 import com.darkrockstudios.apps.hammer.common.notes.NotesUi
 import com.darkrockstudios.apps.hammer.common.projecthome.ProjectHomeUi
@@ -113,18 +115,20 @@ fun ProjectRootUi(
 	}
 
 	val disabledPlugins by component.disabledPlugins.subscribeAsState()
-	PluginActionHost(component.projectDef, disabledPlugins, rootSnackbar, navigate = component::openActionTarget) {
-		SetScreenCharacteristics(WIDE_SCREEN_THRESHOLD) {
-			FeatureContent(
-				modifier.fillMaxSize(),
-				component,
-				rootSnackbar,
-				navWidth,
-			)
-		}
+	ProvideProjectImages(component.projectDef) {
+		PluginActionHost(component.projectDef, disabledPlugins, rootSnackbar, navigate = component::openActionTarget) {
+			SetScreenCharacteristics(WIDE_SCREEN_THRESHOLD) {
+				FeatureContent(
+					modifier.fillMaxSize(),
+					component,
+					rootSnackbar,
+					navWidth,
+				)
+			}
 
-		ModalContent(component) { message ->
-			rootSnackbar.showSnackbar(message)
+			ModalContent(component) { message ->
+				rootSnackbar.showSnackbar(message)
+			}
 		}
 	}
 }
@@ -192,6 +196,10 @@ fun ModalContent(component: ProjectRoot, showSnackbar: (String) -> Unit) {
 
 		is ProjectRoot.ModalDestination.DuplicateIdsModal -> {
 			DuplicateIdsDialog(overlay.component)
+		}
+
+		is ProjectRoot.ModalDestination.ImageGalleryModal -> {
+			ImageGalleryModalContent(overlay.component)
 		}
 	}
 }

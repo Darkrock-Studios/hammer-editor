@@ -614,12 +614,16 @@ proxy_set_header X-Forwarded-For $remote_addr;
 
 Create your base file. Make sure to change `hammer.example.com` to your domain!
 
+Nginx rejects request bodies over 1 MB by default. Images sync as base64 inside the request
+(up to 8 MB raw, about 11 MB encoded), so raise the limit with `client_max_body_size`.
+
 `nano /etc/nginx/sites-available/hammer`
 
 ```nginx
 server {
 	listen 80;
 	server_name hammer.example.com;
+	client_max_body_size 16m;
 
     location / {
         proxy_set_header Host $host;
@@ -656,6 +660,7 @@ server {
 	ssl_certificate_key /etc/letsencrypt/live/hammer.example.com/privkey.pem;
 
 	server_name hammer.example.com;
+	client_max_body_size 16m;
 
 	location / {
         proxy_set_header Host $host;

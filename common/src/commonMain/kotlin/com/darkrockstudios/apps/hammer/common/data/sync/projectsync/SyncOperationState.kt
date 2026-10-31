@@ -83,6 +83,11 @@ data class CollateIdsState(
 		val serverDeletedIds: Set<Int>,
 		val newlyDeletedIds: Set<Int>,
 		val dirtyEntities: MutableList<EntityOriginalState>,
+		/**
+		 * Entities whose content id resolution rewrote (references to a re-IDed entity). They may be
+		 * absent from the server's id sequence, so the transfer visits them explicitly.
+		 */
+		val rewrittenIds: MutableSet<Int> = mutableSetOf(),
 	)
 }
 

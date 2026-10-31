@@ -20,6 +20,9 @@ abstract class ServerEntitySynchronizer<T : ApiProjectEntity>(
 	abstract val entityClazz: KClass<T>
 	abstract val pathStub: String
 
+	/** Why [entity] must not be stored, or null when it may be. Runs before the conflict check. */
+	protected open fun validate(entity: T): Exception? = null
+
 	private suspend fun hashEntity(
 		userId: Long,
 		projectDef: ProjectDefinition,
@@ -63,7 +66,15 @@ abstract class ServerEntitySynchronizer<T : ApiProjectEntity>(
 					entityClazz.serializer()
 				)
 				if (isSuccess(existingEntityResult)) {
-					EntityConflictException.fromEntity(existingEntityResult.data)
+					val existingEntity = existingEntityResult.data
+					// The stored hash column can be stale (written by an older hash algorithm). When the
+					// stored content still hashes to the client's baseline, the client saw this exact
+					// version, so it is not a conflict; storing repairs the column.
+					if (hashEntity(existingEntity) == originalHash) {
+						null
+					} else {
+						EntityConflictException.fromEntity(existingEntity)
+					}
 				} else {
 					null
 				}
@@ -83,6 +94,8 @@ abstract class ServerEntitySynchronizer<T : ApiProjectEntity>(
 		originalHash: String?,
 		force: Boolean,
 	): SResult<Unit> {
+		validate(entity)?.let { return SResult.failure(it) }
+
 		val conflict = checkForConflict(
 			userId,
 			projectDef,

@@ -15,6 +15,8 @@ import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.rename.RenameEntry
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.rename.RenameEntryComponent
+import com.darkrockstudios.apps.hammer.common.components.images.ImagePickSession
+import com.darkrockstudios.apps.hammer.common.components.images.ImagePickTarget
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.MenuItemDescriptor
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
@@ -24,6 +26,8 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryL
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryResult
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImageAddResult
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesService
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.references.BackfillEntryReferencesUseCase
 import com.darkrockstudios.apps.hammer.common.data.references.CleanupReferencesOnEntryDeleteUseCase
@@ -61,6 +65,16 @@ class ViewEntryComponent(
 	private val sceneEditorRepository: SceneEditorService by projectInject()
 	private val backfillEntryReferences: BackfillEntryReferencesUseCase by projectInject()
 	private val cleanupReferencesOnDelete: CleanupReferencesOnEntryDeleteUseCase by projectInject()
+	private val imagesService: ImagesService by projectInject()
+
+	private val libraryPick = ImagePickSession(
+		requests = projectInject(),
+		stateKeeper = stateKeeper,
+		key = LIBRARY_PICK_KEY,
+		scope = scope,
+		mainDispatcher = dispatcherMain,
+		onInProgressChange = { pending -> _state.getAndUpdate { it.copy(pendingLibraryPick = pending) } },
+	)
 
 	private val reloadMutex = Mutex()
 
@@ -131,6 +145,26 @@ class ViewEntryComponent(
 
 		reload()
 		watchEntry()
+		watchImages()
+		libraryPick.restore(libraryPickTarget(), ::addLibraryImage)
+	}
+
+	private fun libraryPickTarget() = ImagePickTarget.EntryImage(state.value.entryDef.id)
+
+	override fun addImageFromLibrary() {
+		libraryPick.start(libraryPickTarget(), ::addLibraryImage)
+	}
+
+	private suspend fun addLibraryImage(imageId: Int) {
+		try {
+			// Already listed, it is not added twice, but it is still the one shown.
+			encyclopediaService.addEntryImage(state.value.entryDef, imageId)
+			loadEntryState(showImageId = imageId)
+		} catch (e: EntryLoadError) {
+			Napier.w("Failed to add a library image to entry ${state.value.entryDef.id}", e)
+		} catch (e: IOException) {
+			Napier.w("Failed to add a library image to entry ${state.value.entryDef.id}", e)
+		}
 	}
 
 	// Follows writes made elsewhere (sync), including a rename that moves the entry's file.
@@ -155,31 +189,52 @@ class ViewEntryComponent(
 		}
 	}
 
+	// Follows an image of this entry being replaced, renamed or deleted, by sync or elsewhere.
+	private fun watchImages() {
+		scope.launch {
+			encyclopediaService.imageChangedFlow
+				.filter { id -> state.value.content?.images?.contains(id) == true }
+				.collect {
+					try {
+						loadEntryState()
+					} catch (e: EntryLoadError) {
+						Napier.w("Failed to refresh the images of entry ${state.value.entryDef.id}", e)
+					} catch (e: IOException) {
+						Napier.w("Failed to refresh the images of entry ${state.value.entryDef.id}", e)
+					}
+				}
+		}
+	}
+
 	private fun reload() {
 		scope.launch { loadEntryState() }
 	}
 
-	// Serialized so overlapping reloads can't land out of order.
-	private suspend fun loadEntryState() = reloadMutex.withLock {
-		val entryDef = state.value.entryDef
-		val entryImagePath = getImagePath(entryDef)
-		val imageHash = encyclopediaService.findEntryImageExtension(entryDef)
-			?.let { ext -> encyclopediaService.calculateEntryImageHash(entryDef, ext) }
-
-		val content = loadEntryContent(entryDef)
+	/**
+	 * Reloads the entry; with [showImageId], the image on show becomes that one when it is listed.
+	 * Serialized so overlapping reloads can't land out of order.
+	 */
+	private suspend fun loadEntryState(showImageId: Int? = null) = reloadMutex.withLock {
+		val content = loadEntryContent(state.value.entryDef)
+		val images = encyclopediaService.entryImageFiles(content).map { file ->
+			ViewEntry.EntryImage(
+				id = file.def.id,
+				name = file.def.name,
+				path = file.path.path,
+				hash = file.contentHash,
+			)
+		}
 		withContext(dispatcherMain) {
 			_state.getAndUpdate {
+				val shown = images.indexOfFirst { image -> image.id == showImageId }
+				val index = if (shown >= 0) shown else it.currentImageIndex
 				it.copy(
-					entryImagePath = entryImagePath,
-					entryImageHash = imageHash,
+					images = images,
+					currentImageIndex = index.coerceIn(0, (images.size - 1).coerceAtLeast(0)),
 					content = content
 				)
 			}
 		}
-	}
-
-	override fun getImagePath(entryDef: EntryDef): String? {
-		return encyclopediaService.findEntryImagePath(entryDef)?.path
 	}
 
 	override suspend fun loadEntryContent(entryDef: EntryDef): EntryContent {
@@ -193,16 +248,26 @@ class ViewEntryComponent(
 		return true
 	}
 
-	override suspend fun removeEntryImage(): Boolean {
-		if (encyclopediaService.removeEntryImage(state.value.entryDef)) {
-			reload()
-		}
-		return true
+	override suspend fun importImage(path: String): ImageAddResult = withContext(dispatcherDefault) {
+		val outcome = encyclopediaService.importEntryImage(state.value.entryDef, path)
+		outcome.image?.let { loadEntryState(showImageId = it.id) }
+		outcome.result
 	}
 
-	override suspend fun setImage(path: String) {
-		encyclopediaService.setEntryImage(state.value.entryDef, path)
-		reload()
+	override suspend fun removeImage(id: Int): Boolean = withContext(dispatcherDefault) {
+		val removed = encyclopediaService.removeEntryImage(state.value.entryDef, id)
+		if (removed) loadEntryState()
+		removed
+	}
+
+	override suspend fun setPrimaryImage(id: Int): Boolean = withContext(dispatcherDefault) {
+		val moved = encyclopediaService.setPrimaryImage(state.value.entryDef, id)
+		if (moved) loadEntryState(showImageId = id)
+		moved
+	}
+
+	override fun showImageAt(index: Int) {
+		_state.getAndUpdate { it.copy(currentImageIndex = index) }
 	}
 
 	override fun showDeleteEntryDialog() {
@@ -217,16 +282,12 @@ class ViewEntryComponent(
 		}
 	}
 
-	override fun showDeleteImageDialog() {
-		_state.getAndUpdate {
-			it.copy(showDeleteImageDialog = true)
-		}
+	override fun showRemoveImageConfirm(id: Int) {
+		_state.getAndUpdate { it.copy(removeImageConfirm = id) }
 	}
 
-	override fun closeDeleteImageDialog() {
-		_state.getAndUpdate {
-			it.copy(showDeleteImageDialog = false)
-		}
+	override fun dismissRemoveImageConfirm() {
+		_state.getAndUpdate { it.copy(removeImageConfirm = null) }
 	}
 
 	override fun showAddImageDialog() {
@@ -286,6 +347,7 @@ class ViewEntryComponent(
 			tags = updated.tags,
 			aliases = updated.aliases,
 			excludeFromDictionary = updated.excludeFromDictionary,
+			images = updated.images,
 		)
 	}
 
@@ -440,7 +502,7 @@ class ViewEntryComponent(
 			Res.string.encyclopedia_entry_menu_remove_image,
 			"",
 		) {
-			_state.getAndUpdate { it.copy(showDeleteImageDialog = true) }
+			_state.getAndUpdate { it.copy(removeImageConfirm = it.images.getOrNull(it.currentImageIndex)?.id) }
 		}
 
 		val rename = MenuItemDescriptor(
@@ -493,3 +555,5 @@ class ViewEntryComponent(
 
 @Serializable
 data class RenameConfig(val entryId: Int)
+
+private const val LIBRARY_PICK_KEY = "view_entry_library_pick"

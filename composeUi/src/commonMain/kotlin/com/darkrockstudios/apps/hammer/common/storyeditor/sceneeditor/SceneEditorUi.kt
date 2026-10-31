@@ -50,9 +50,12 @@ import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor
 import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialog
 import com.darkrockstudios.apps.hammer.common.compose.ComposeRichText
 import com.darkrockstudios.apps.hammer.common.compose.LocalEditorTextStyle
+import com.darkrockstudios.apps.hammer.common.compose.LocalImageProvider
 import com.darkrockstudios.apps.hammer.common.compose.LocalRichTextStyles
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
-import com.darkrockstudios.apps.hammer.common.compose.markdown.HammerMarkdownConfiguration
+import com.darkrockstudios.apps.hammer.common.compose.markdown.rememberHammerEditorStyle
+import com.darkrockstudios.apps.hammer.common.compose.markdown.rememberHammerMarkdown
+import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.insertImageBlock
 import com.darkrockstudios.apps.hammer.common.compose.plugin.rememberPluginTextDiagnostics
 import com.darkrockstudios.apps.hammer.common.compose.rememberDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.Toaster
@@ -74,8 +77,6 @@ import com.darkrockstudios.apps.hammer.common.utils.toEditorSpellChecker
 import com.darkrockstudios.apps.hammer.scene_editor_add_to_dictionary
 import com.darkrockstudios.texteditor.find.FindBar
 import com.darkrockstudios.texteditor.find.rememberFindState
-import com.darkrockstudios.texteditor.markdown.withMarkdown
-import com.darkrockstudios.texteditor.rememberTextEditorStyle
 import com.darkrockstudios.texteditor.spellcheck.SpellCheckMode
 import com.darkrockstudios.texteditor.spellcheck.SpellCheckingTextEditor
 import com.darkrockstudios.texteditor.spellcheck.rememberSpellCheckState
@@ -96,6 +97,7 @@ fun SceneEditorUi(
 	val state by component.state.subscribeAsState()
 	val lastForceUpdate by component.lastForceUpdate.subscribeAsState()
 	val richTextStyles = LocalRichTextStyles.current
+	val imageProvider = LocalImageProvider.current
 	val scope = rememberCoroutineScope()
 	val defaultDispatcher = rememberDefaultDispatcher()
 
@@ -112,10 +114,8 @@ fun SceneEditorUi(
 		enableSpellChecking = state.spellCheckingEnabled,
 		spellCheckMode = SpellCheckMode.Word,
 	)
-	val markdownExtension = remember {
-		textEditorState.textState.richTextStyles = richTextStyles
-		textEditorState.textState.withMarkdown(HammerMarkdownConfiguration)
-	}
+	val markdownExtension = textEditorState.textState.rememberHammerMarkdown(richTextStyles)
+	val onInsertImage: (() -> Unit)? = if (imageProvider != null) component::pickImageForInsert else null
 
 	val findState = rememberFindState(textEditorState.textState)
 	val textDiagnostics = rememberPluginTextDiagnostics(textEditorState.textState, state.sceneItem.projectDef.name, state.language, state.languageLoaded)
@@ -152,6 +152,15 @@ fun SceneEditorUi(
 					component.onContentChanged(ComposeRichText(markdownExtension))
 				}
 		}
+	}
+
+	// The picked image waits in the component until the text it goes into is loaded.
+	LaunchedEffect(state.pendingImageInsert, hasReceivedInitialBuffer, imageProvider) {
+		val image = state.pendingImageInsert ?: return@LaunchedEffect
+		val provider = imageProvider ?: return@LaunchedEffect
+		if (!hasReceivedInitialBuffer) return@LaunchedEffect
+		insertImageBlock(textEditorState.textState, provider, image.id)
+		component.consumePendingImageInsert()
 	}
 
 	Toaster(component, rootSnackbar)
@@ -195,7 +204,7 @@ fun SceneEditorUi(
 						onReset = component::resetTextSize,
 					)
 					.saveShortcutModifier { scope.launch { component.storeSceneContent() } }
-					.markdownFormatShortcuts(markdownExtension)
+					.markdownFormatShortcuts(markdownExtension, onInsertImage)
 			) {
 				EditorTopBar(
 					component = component,
@@ -214,6 +223,7 @@ fun SceneEditorUi(
 					increaseTextSize = component::increaseTextSize,
 					resetTextSize = component::resetTextSize,
 					onFindReplace = { showFindBar = true },
+					onInsertImage = onInsertImage,
 				)
 
 				AnimatedVisibility(
@@ -245,7 +255,7 @@ fun SceneEditorUi(
 						enabled = hasReceivedInitialBuffer,
 						spellCheckMenuItems = spellCheckMenuItems,
 						diagnostics = textDiagnostics,
-						style = rememberTextEditorStyle(
+						style = rememberHammerEditorStyle(
 							textStyle = LocalEditorTextStyle.current.withParagraphIndent(),
 							focusedBorderColor = Color.Transparent,
 							unfocusedBorderColor = Color.Transparent,

@@ -49,7 +49,7 @@ class EncyclopediaDatasourceDuplicateIdTest : BaseTest() {
 		super.setup()
 		ffs = FakeFileSystem()
 		ffs.createDirectories(projectDef.path.toOkioPath())
-		datasource = EncyclopediaDatasource(projectDef, createTomlSerializer(), ffs, mockk())
+		datasource = EncyclopediaDatasource(projectDef, createTomlSerializer(), ffs)
 		personDir = projectDef.path.toOkioPath() / "encyclopedia" / "person"
 	}
 
@@ -81,16 +81,5 @@ class EncyclopediaDatasourceDuplicateIdTest : BaseTest() {
 
 		assertEquals("person~5~Bob.toml", datasource.findEntryPath(5)?.name)
 		assertEquals("The real Bob", datasource.loadEntry(datasource.getEntryPath(5)).entry.text)
-	}
-
-	@Test
-	fun `Find entry image ignores a sync conflict copy of the image`() = runTest {
-		datasource.createEntry(EntryContainer(bob))
-		ffs.write(personDir / "person~5~image.webp") { writeUtf8("real") }
-		ffs.write(personDir / "person~5~image.sync-conflict-20261024-173944-53PQXWR.webp") { writeUtf8("other") }
-
-		val def = bob.toDef(projectDef)
-
-		assertEquals("person~5~image.webp", datasource.findEntryImagePath(def)?.name)
 	}
 }

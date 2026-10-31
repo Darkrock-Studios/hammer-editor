@@ -8,7 +8,6 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
-import com.darkrockstudios.apps.hammer.common.fileio.ExternalFileIo
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import createProject
 import getProjectDef
@@ -36,8 +35,6 @@ class EncyclopediaEntryNameTest : BaseTest() {
 	@MockK
 	lateinit var idAllocator: IdAllocator
 
-	@MockK
-	lateinit var externalFileIo: ExternalFileIo
 
 	@MockK
 	lateinit var syncJournal: SyncJournal
@@ -63,7 +60,6 @@ class EncyclopediaEntryNameTest : BaseTest() {
 			projectDef = projDef,
 			toml = toml,
 			fileSystem = fileSystem,
-			externalFileIo = externalFileIo,
 		)
 		return EncyclopediaRepository(
 			projectDef = projDef,
@@ -79,7 +75,6 @@ class EncyclopediaEntryNameTest : BaseTest() {
 			type = EntryType.PERSON,
 			text = "text",
 			tags = emptySet(),
-			imagePath = null,
 			forceId = id,
 		)
 
@@ -194,6 +189,7 @@ class EncyclopediaEntryNameTest : BaseTest() {
 			text = "legacy",
 			tags = emptySet(),
 			excludeFromDictionary = false,
+			images = emptyList(),
 		)
 
 		assertEquals(EntryError.NONE, result.error)

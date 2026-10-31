@@ -58,6 +58,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineBut
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineDialogShell
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineToggleRow
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
+import com.darkrockstudios.apps.hammer.common.compose.lastOf
 import com.darkrockstudios.apps.hammer.common.compose.linkify
 import com.darkrockstudios.apps.hammer.common.compose.plugin.PluginSettingsPane
 import com.darkrockstudios.apps.hammer.common.compose.rememberIoDispatcher
@@ -367,9 +368,7 @@ private fun InstallDialog(
 	onConfirm: (PendingInstall) -> Unit,
 	onDismiss: () -> Unit,
 ) {
-	// Kept after pending clears, so the dialog still has its content while it animates out.
-	var shown by remember { mutableStateOf(pending) }
-	if (pending != null) shown = pending
+	val shown = lastOf(pending)
 	AnimatedDialog(visible = pending != null, onCloseRequest = onDismiss) {
 		val install = shown ?: return@AnimatedDialog
 		val manifest = install.plugin.manifest
@@ -705,9 +704,7 @@ private fun languageNames(tags: Collection<String>): String =
 
 @Composable
 private fun DetailsDialog(plugin: InstalledPlugin?, operations: OperationRegistry, onDismiss: () -> Unit) {
-	// Kept after plugin clears, so the dialog still has its content while it animates out.
-	var shown by remember { mutableStateOf(plugin) }
-	if (plugin != null) shown = plugin
+	val shown = lastOf(plugin)
 	AnimatedDialog(visible = plugin != null, onCloseRequest = onDismiss) {
 		val installed = shown ?: return@AnimatedDialog
 		val manifest = installed.manifest ?: return@AnimatedDialog

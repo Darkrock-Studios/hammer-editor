@@ -15,6 +15,7 @@ open class DataMigrator(
 	private val globalSettingsStore: GlobalSettingsStore,
 	private val projectsRepository: ProjectsRepository,
 	private val projectMetadataDatasource: ProjectMetadataDatasource,
+	private val entryImagePromoter: EntryImagePromoter,
 ) {
 	protected open val latestProjectDataVersion: Int = PROJECT_DATA_VERSION
 	protected open fun getMigrators(): Map<Int, Migration> {
@@ -24,6 +25,7 @@ open class DataMigrator(
 		getKoin().get<Migration1_2>().addToMap(migrators)
 		getKoin().get<Migration2_3>().addToMap(migrators)
 		getKoin().get<Migration3_4>().addToMap(migrators)
+		getKoin().get<Migration4_5>().addToMap(migrators)
 
 		return migrators
 	}
@@ -46,6 +48,7 @@ open class DataMigrator(
 		} else {
 			Napier.d("No projects need migration. Skipping.")
 		}
+		repairMigratedProjects()
 
 		// Migration3_4 moves a pre-4 settings file, stale sync baseline included, into place only
 		// after the heal reset the project's sync state.
@@ -69,6 +72,13 @@ open class DataMigrator(
 		projects.forEach { projectData ->
 			migrateProject(projectData, migrators)
 		}
+	}
+
+	/** Finishes what a migration logged and skipped, such as an entry image a sync tool held locked. */
+	private fun repairMigratedProjects() {
+		getProjects()
+			.filter { it.projectMetadata.info.dataVersion >= ENTRY_IMAGES_PROMOTED_VERSION }
+			.forEach { entryImagePromoter.promote(it.projectDef) }
 	}
 
 	/** Brings one project up to the current data version, e.g. one just restored from a backup. */
@@ -102,6 +112,8 @@ open class DataMigrator(
 		}
 	}
 }
+
+private const val ENTRY_IMAGES_PROMOTED_VERSION = 5
 
 private fun Migration.addToMap(migrators: MutableMap<Int, Migration>) {
 	migrators[toVersion] = this

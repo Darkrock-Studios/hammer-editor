@@ -79,7 +79,6 @@
 	<string name="sync_conflict_encyclopedia_label_image">Imagen:</string>
 	<string name="sync_conflict_encyclopedia_label_content">Contenido:</string>
 	<string name="sync_conflict_encyclopedia_label_tags">Etiquetas:</string>
-	<string name="sync_conflict_encyclopedia_has_image">Con imagen</string>
 	<string name="sync_conflict_title_scene_field_name">Nombre</string>
 	<string name="sync_conflict_title_scene_field_content">Contenido de la escena</string>
 	<string name="sync_conflict_title_scene_field_outline">Esquema</string>
@@ -146,7 +145,6 @@
 	<string name="sync_log_data_save_failed">Datos de sincronización no guardados debido a errores</string>
 	<string name="sync_log_failed">No se pudo finalizar la sincronización</string>
 	<string name="sync_draft_rejected_invalid_name">Borrador %1$d del servidor rechazado: nombre de borrador no seguro</string>
-	<string name="sync_encyclopedia_image_rejected_invalid_extension">Imagen de la entrada de enciclopedia %1$d del servidor omitida: extensión de archivo no segura</string>
 	<string name="sync_encyclopedia_deleted">Entrada de enciclopedia ID %1$d eliminada del cliente</string>
 	<string name="sync_note_deleted">Nota ID %1$d eliminada del cliente</string>
 	<string name="sync_draft_deleted">Borrador %1$d eliminado del cliente</string>

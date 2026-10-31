@@ -1,9 +1,7 @@
 package com.darkrockstudios.apps.hammer.base.http.synchronizer
 
 import com.appmattus.crypto.Algorithm
-import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ApiSceneType
-import korlibs.crypto.encoding.Base64
 import korlibs.crypto.encoding.base64Url
 import kotlin.time.Instant
 
@@ -97,9 +95,9 @@ object EntityHasher {
 		entryType: String,
 		text: String,
 		tags: Set<String>,
-		image: ApiProjectEntity.EncyclopediaEntryEntity.Image?,
 		aliases: List<String>,
 		excludeFromDictionary: Boolean = false,
+		images: List<Int> = emptyList(),
 	): String {
 		val buf = buff()
 		val d = Algorithm.MurmurHash3_X64_128().createDigest()
@@ -117,14 +115,16 @@ object EntityHasher {
 			d.update(alias, buf)
 		}
 
-		if (image != null) {
-			d.update(Base64.decode(image.base64, url = true))
-			d.update(image.fileExtension, buf)
-		}
-
 		// Zero bytes at the default (false): pre-existing hashes must stay identical.
 		if (excludeFromDictionary) {
 			d.update(1, buf)
+		}
+
+		// Zero bytes when empty, so entries without images keep their stored hash. Not sorted: the
+		// order is the display order and the first image is the primary one.
+		if (images.isNotEmpty()) {
+			d.update(images.size, buf)
+			images.forEach { d.update(it, buf) }
 		}
 
 		return d.digest().base64Url
@@ -144,6 +144,26 @@ object EntityHasher {
 		d.update(created.epochSeconds, buf)
 		d.update(name, buf)
 		d.update(content, buf)
+		return d.digest().base64Url
+	}
+
+	/** [bytes] are the decoded raw image bytes, not the base64 wire form. */
+	fun hashImage(
+		id: Int,
+		name: String,
+		fileExtension: String,
+		bytes: ByteArray,
+	): String {
+		val buf = buff()
+		val d = Algorithm.MurmurHash3_X64_128().createDigest()
+		d.update(id, buf)
+		// Length prefixes keep adjacent fields from bleeding into each other ("ab"+"c" vs "a"+"bc").
+		d.update(name.length, buf)
+		d.update(name, buf)
+		d.update(fileExtension.length, buf)
+		d.update(fileExtension, buf)
+		d.update(bytes.size, buf)
+		d.update(bytes)
 		return d.digest().base64Url
 	}
 }

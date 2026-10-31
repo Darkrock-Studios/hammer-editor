@@ -74,6 +74,12 @@ object ProjectDataHasher {
 			}
 		}
 
+		// Zero bytes when null, same rule as tags. -4 marker: -1 through -3 are taken.
+		if (data.coverImageId != null) {
+			d.update(-4, buf)
+			d.update(data.coverImageId, buf)
+		}
+
 		return d.digest().base64Url
 	}
 }

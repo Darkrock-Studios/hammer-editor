@@ -7,9 +7,7 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.InvalidSceneFilename
-import com.darkrockstudios.apps.hammer.common.fileio.ExternalFileIo
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
-import com.darkrockstudios.apps.hammer.common.fileio.okio.isWithin
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import io.github.aakira.napier.Napier
@@ -23,7 +21,6 @@ class EncyclopediaDatasource(
 	private val projectDef: ProjectDef,
 	private val toml: Toml,
 	private val fileSystem: FileSystem,
-	private val externalFileIo: ExternalFileIo,
 ) {
 	private fun getTypeDirectory(type: EntryType): HPath {
 		return getTypeDirectory(projectDef, type, fileSystem)
@@ -62,77 +59,6 @@ class EncyclopediaDatasource(
 
 	private fun listEntryPaths(): Sequence<Path> =
 		fileSystem.listRecursively(getEncyclopediaDirectory().toOkioPath()).filterEntryPathsOkio()
-
-	fun getEntryImagePath(entryDef: EntryDef, fileExtension: String): HPath {
-		val dir = getTypeDirectory(entryDef.type).toOkioPath()
-		val existing = resolveEntryImagePath(entryDef, fileExtension)
-		val path = existing ?: dir / getEntryImageFilename(entryDef, fileExtension)
-		return path.toHPath()
-	}
-
-	fun hasEntryImage(entryDef: EntryDef, fileExtension: String): Boolean =
-		resolveEntryImagePath(entryDef, fileExtension) != null
-
-	fun hasEntryImage(entryDef: EntryDef): Boolean = findEntryImagePath(entryDef) != null
-
-	/**
-	 * Locates an entry's stored image of a specific extension, preferring the current filename
-	 * format and falling back to the pre-v3 `-`-delimited one.
-	 */
-	private fun resolveEntryImagePath(entryDef: EntryDef, fileExtension: String): Path? {
-		val dir = getTypeDirectory(entryDef.type).toOkioPath()
-		return entryImagePrefixes(entryDef)
-			.map { prefix -> dir / "$prefix$fileExtension" }
-			.firstOrNull { fileSystem.exists(it) }
-	}
-
-	/** Locates an entry's stored image regardless of its file extension. */
-	fun findEntryImagePath(entryDef: EntryDef): HPath? {
-		val dir = getTypeDirectory(entryDef.type).toOkioPath()
-		val prefixes = entryImagePrefixes(entryDef)
-		return fileSystem.list(dir)
-			.firstOrNull { path ->
-				prefixes.any { prefix ->
-					path.name.startsWith(prefix) &&
-						path.name.removePrefix(prefix).lowercase() in IMAGE_EXTENSIONS
-				}
-			}
-			?.toHPath()
-	}
-
-	fun findEntryImageExtension(entryDef: EntryDef): String? =
-		findEntryImagePath(entryDef)?.name?.substringAfterLast('.')
-
-	fun deleteEntryImage(entryDef: EntryDef, fileExtension: String) {
-		resolveEntryImagePath(entryDef, fileExtension)?.let(fileSystem::delete)
-	}
-
-	suspend fun removeEntryImage(entryDef: EntryDef): Boolean {
-		val imagePath = findEntryImagePath(entryDef)?.toOkioPath() ?: return false
-
-		return try {
-			fileSystem.delete(imagePath)
-			true
-		} catch (e: IOException) {
-			Napier.w("Message: " + e.message)
-			Napier.w("Failed to delete Entry Image: $imagePath", e)
-			false
-		}
-	}
-
-	suspend fun hashEntryImage(entryDef: EntryDef, fileExtension: String): String? {
-		val path = resolveEntryImagePath(entryDef, fileExtension) ?: return null
-		return calculateFileMd5(fileSystem, path)
-	}
-
-	private fun calculateFileMd5(fileSystem: FileSystem, path: Path): String {
-		HashingSink.md5(blackholeSink()).use { hashingSink ->
-			fileSystem.source(path).buffer().use { source ->
-				source.readAll(hashingSink)
-			}
-			return hashingSink.hash.hex()
-		}
-	}
 
 	/** One entry per id: the first path in [listEntryPaths] order wins. */
 	suspend fun loadEntriesImperative(): List<EntryDef> {
@@ -180,12 +106,6 @@ class EncyclopediaDatasource(
 	suspend fun reIdEntry(oldId: Int, newId: Int) {
 		val oldDef = getEntryDef(oldId)
 		val newDef = oldDef.copy(id = newId)
-		val oldImagePath = findEntryImagePath(oldDef)
-		if (oldImagePath != null) {
-			val extension = oldImagePath.name.substringAfterLast('.')
-			val newImagePath = getEntryImagePath(newDef, extension).toOkioPath()
-			fileSystem.atomicMove(oldImagePath.toOkioPath(), newImagePath)
-		}
 
 		val oldPath = getEntryPath(oldDef).toOkioPath()
 		val newPath = getEntryPath(newDef).toOkioPath()
@@ -196,7 +116,7 @@ class EncyclopediaDatasource(
 			null
 		}
 		fileSystem.atomicMove(oldPath, newPath)
-		// The id inside the file is what the entry's image and sync entity are looked up by.
+		// The id inside the file is what the entry's sync entity is looked up by.
 		if (content != null) {
 			fileSystem.write(newPath) {
 				writeUtf8(toml.encodeToString(EntryContainer(content.copy(id = newId))))
@@ -224,13 +144,6 @@ class EncyclopediaDatasource(
 		}
 	}
 
-	fun loadEntryImage(entryDef: EntryDef, fileExtension: String): ByteArray {
-		val imagePath = getEntryImagePath(entryDef, fileExtension).toOkioPath()
-		fileSystem.read(imagePath) {
-			return readByteArray()
-		}
-	}
-
 	suspend fun createEntry(container: EntryContainer): EntryDef {
 		val entryToml = toml.encodeToString(container)
 
@@ -243,58 +156,9 @@ class EncyclopediaDatasource(
 		return container.entry.toDef(projectDef)
 	}
 
-	suspend fun setEntryImage(entryDef: EntryDef, imagePath: String?) {
-		if (imagePath == null) {
-			removeEntryImage(entryDef)
-			return
-		}
-
-		val extension = imageExtensionOf(imagePath)
-		if (extension == null) {
-			Napier.w("Ignoring entry image with unsupported extension: $imagePath")
-			return
-		}
-
-		val pixelData = externalFileIo.readExternalFile(imagePath)
-		if (pixelData.size > MAX_IMAGE_SIZE_BYTES) {
-			Napier.w("Ignoring entry image over ${MAX_IMAGE_SIZE_MB}MB: $imagePath")
-			return
-		}
-
-		removeEntryImage(entryDef)
-		val targetPath = getEntryImagePath(entryDef, extension).toOkioPath()
-		fileSystem.write(targetPath) {
-			write(pixelData)
-		}
-	}
-
-	private fun imageExtensionOf(sourcePath: String): String? {
-		val extension = sourcePath.substringAfterLast('.', "").lowercase()
-		return if (extension in IMAGE_EXTENSIONS) extension else null
-	}
-
-	/** Writes raw image bytes (e.g. an image pulled from the server during sync) to the entry's image path. */
-	suspend fun writeEntryImage(entryDef: EntryDef, imageBytes: ByteArray, fileExtension: String) {
-		val targetPath = getEntryImagePath(entryDef, fileExtension).toOkioPath()
-
-		val typeDir = getTypeDirectory(entryDef.type).toOkioPath()
-		if (!targetPath.isWithin(typeDir)) {
-			error("Refusing to write entry image outside its type directory: $targetPath")
-		}
-
-		fileSystem.write(targetPath) {
-			write(imageBytes)
-		}
-	}
-
 	suspend fun deleteEntry(entryDef: EntryDef): Boolean {
 		val path = findEntryPath(entryDef.id)?.toOkioPath() ?: getEntryPath(entryDef).toOkioPath()
 		fileSystem.delete(path)
-
-		findEntryImagePath(entryDef)?.let { imagePath ->
-			fileSystem.delete(imagePath.toOkioPath())
-		}
-
 		return true
 	}
 
@@ -305,10 +169,8 @@ class EncyclopediaDatasource(
 		tags: Set<String>,
 		aliases: List<String>,
 		excludeFromDictionary: Boolean,
+		images: List<Int>,
 	): EntryContainer {
-		val oldPath = getEntryPath(oldEntryDef.id).toOkioPath()
-		fileSystem.delete(oldPath)
-
 		val entry = EntryContent(
 			id = oldEntryDef.id,
 			name = name.trim(),
@@ -317,7 +179,16 @@ class EncyclopediaDatasource(
 			tags = tags,
 			aliases = aliases,
 			excludeFromDictionary = excludeFromDictionary,
+			images = images,
 		)
+		return writeEntry(oldEntryDef, entry)
+	}
+
+	/** Replaces the entry at [oldEntryDef] with [entry], whose name may differ. No validation. */
+	fun writeEntry(oldEntryDef: EntryDef, entry: EntryContent): EntryContainer {
+		val oldPath = getEntryPath(oldEntryDef.id).toOkioPath()
+		fileSystem.delete(oldPath)
+
 		val container = EntryContainer(entry)
 		val entryToml = toml.encodeToString(container)
 
@@ -339,6 +210,9 @@ class EncyclopediaDatasource(
 		// Pre-v3 patterns. Kept for read compatibility (e.g. fixtures, projects mid-migration).
 		// Old name set was the restricted `[\d\p{L}+ _']` so `-` is unambiguously a delimiter.
 		val LEGACY_ENTRY_FILENAME_PATTERN = Regex("""([a-zA-Z]+)-(\d+)-([\d\p{L}+ _']+)\.toml""")
+
+		// Per-entry image files from before images were their own entity (data v5). Only the
+		// migrations read them.
 		val LEGACY_ENTRY_IMAGE_FILENAME_PATTERN = Regex("""([a-zA-Z]+)-(\d+)-image\.([a-zA-Z0-9]+)""")
 		val ENTRY_IMAGE_FILENAME_PATTERN = Regex("""([a-zA-Z]+)~(\d+)~image\.([a-zA-Z0-9]+)""")
 
@@ -349,13 +223,6 @@ class EncyclopediaDatasource(
 				id = entryDef.id,
 				type = entryDef.type,
 				name = entryDef.name
-			)
-
-		fun getEntryImageFilename(entryDef: EntryDef, fileExtension: String): String =
-			getEntryImageFilename(
-				id = entryDef.id,
-				type = entryDef.type,
-				fileExtension = fileExtension
 			)
 
 		fun getEntryFilename(entry: EntryContent): String =
@@ -369,19 +236,9 @@ class EncyclopediaDatasource(
 			return "${type.text}~$id~${ProjectsRepository.encodeForFilename(name)}.toml"
 		}
 
-		fun getEntryImageFilename(id: Int, type: EntryType, fileExtension: String): String {
-			return "${type.text}~$id~image.$fileExtension"
-		}
-
 		private fun getLegacyEntryFilename(id: Int, type: EntryType, name: String): String {
 			return "${type.text}-$id-$name.toml"
 		}
-
-		/** Image filename prefixes an entry's image may carry on disk, newest format first. */
-		private fun entryImagePrefixes(entryDef: EntryDef): List<String> = listOf(
-			"${entryDef.type.text}~${entryDef.id}~image.",
-			"${entryDef.type.text}-${entryDef.id}-image.",
-		)
 
 		private fun matchEntryFilename(fileName: String): MatchResult? =
 			ENTRY_FILENAME_PATTERN.matchEntire(fileName)
@@ -425,26 +282,6 @@ class EncyclopediaDatasource(
 				throw InvalidEntryFilename("Invalid filename", fileName, e)
 			} catch (e: IllegalArgumentException) {
 				throw InvalidEntryFilename(e.message ?: "Invalid filename argument", fileName, cause = e)
-			}
-		}
-
-		// Raster formats Coil renders on every target (Android BitmapFactory + desktop/iOS Skia).
-		// Doubles as the allowlist for server-supplied sync image extensions.
-		val IMAGE_EXTENSIONS = setOf("jpg", "jpeg", "png", "webp")
-
-		const val MAX_IMAGE_SIZE_MB = 16
-		const val MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024L * 1024
-
-		/** Whether [bytes] start the way an image of [extension] does. */
-		fun isImage(bytes: ByteArray, extension: String): Boolean {
-			fun startsWith(offset: Int, vararg signature: Int) =
-				bytes.size >= offset + signature.size &&
-					signature.indices.all { bytes[offset + it] == signature[it].toByte() }
-			return when (extension.lowercase()) {
-				"png" -> startsWith(0, 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A)
-				"jpg", "jpeg" -> startsWith(0, 0xFF, 0xD8, 0xFF)
-				"webp" -> startsWith(0, 0x52, 0x49, 0x46, 0x46) && startsWith(8, 0x57, 0x45, 0x42, 0x50)
-				else -> false
 			}
 		}
 

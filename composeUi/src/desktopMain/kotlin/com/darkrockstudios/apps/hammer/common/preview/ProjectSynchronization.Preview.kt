@@ -151,7 +151,6 @@ fun EncyclopediaEntryConflictCompactPreview() {
 		entryType = "person",
 		text = "A nervous, waistcoated rabbit who carries a pocket-watch and is always late.",
 		tags = setOf("wonderland", "guide"),
-		image = null,
 		aliases = listOf("The Rabbit"),
 	)
 	val clientEntity = serverEntity.copy(
@@ -178,17 +177,14 @@ fun EncyclopediaEntryConflictPreview() {
 		entryType = "person",
 		text = "A nervous, waistcoated rabbit who carries a pocket-watch and is always late. Functions as Alice's reluctant guide into Wonderland.",
 		tags = setOf("wonderland", "guide", "anthropomorphic"),
-		image = ApiProjectEntity.EncyclopediaEntryEntity.Image(
-			base64 = "",
-			fileExtension = "png",
-		),
+		images = listOf(12, 14),
 		aliases = listOf("The Rabbit", "Mr. Rabbit"),
 	)
 	val clientEntity = serverEntity.copy(
 		name = "White Rabbit (the Herald)",
 		text = "A pocket-watch-carrying rabbit acting as a herald between worlds. Revised in draft 3 to give him a formal title at court.",
 		tags = setOf("wonderland", "herald", "court"),
-		image = null,
+		images = listOf(12),
 		aliases = listOf("The Rabbit", "The Herald", "His Excellency"),
 	)
 
@@ -231,12 +227,14 @@ fun ProjectDataConflictPreview() {
 		theme = ProjectTheme(primary = "#3F51B5", secondary = "#FFC107"),
 		wordCountGoal = WordCountGoal(cadence = WordCountGoal.Cadence.DAY, count = 500),
 		tags = setOf("fantasy", "classic"),
+		coverImageId = 3,
 	)
 	val server = ProjectData(
 		authorName = "Charles Dodgson",
 		theme = ProjectTheme(primary = "#009688", secondary = "#E91E63"),
 		wordCountGoal = WordCountGoal(cadence = WordCountGoal.Cadence.WEEK, count = 3500),
 		tags = setOf("fantasy", "children"),
+		coverImageId = 9,
 	)
 
 	val conflictState = ProjectSynchronization.ProjectDataConflictState(

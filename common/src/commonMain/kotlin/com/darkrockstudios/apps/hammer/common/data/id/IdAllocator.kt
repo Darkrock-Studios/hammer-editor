@@ -84,6 +84,7 @@ class IdAllocator(private val projectDef: ProjectDef) : ProjectScoped {
 						EntityType.TimelineEvent -> projectScope.get<TimeLineEventIdDatasource>()
 						EntityType.EncyclopediaEntry -> projectScope.get<EncyclopediaIdDatasource>()
 						EntityType.SceneDraft -> projectScope.get<SceneDraftIdDatasource>()
+						EntityType.Image -> projectScope.get<ImageIdDatasource>()
 					}
 				}.toSet()
 		}

@@ -52,7 +52,7 @@ class EntityDeleteOperationTest : BaseTest() {
 
 		coEvery { mockSynchronizers.sceneSynchronizer.ownsEntity(11) } returns true
 		coEvery { mockSynchronizers.sceneSynchronizer.deleteEntityLocal(any(), any()) } just Runs
-		coEvery { mockSynchronizers.sceneSynchronizer.reIdEntity(any(), any()) } just Runs
+		coEvery { mockSynchronizers.sceneSynchronizer.reIdEntity(any(), any()) } returns emptySet()
 
 		val onProgress = mockk<suspend (Float, SyncLogMessage?) -> Unit>(relaxed = true)
 		val onLog = mockk<OnSyncLog>(relaxed = true)

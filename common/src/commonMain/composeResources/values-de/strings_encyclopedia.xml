@@ -24,8 +24,6 @@
 	<string name="encyclopedia_create_entry_image_browse_button">Dateien durchsuchen</string>
 	<string name="encyclopedia_create_entry_image_attached">1 angehängt</string>
 	<string name="encyclopedia_create_entry_image_replace">Ersetzen</string>
-	<string name="encyclopedia_create_entry_image_too_large">Das Bild ist zu groß. Maximale Größe: %1$d MB.</string>
-	<string name="encyclopedia_create_entry_image_load_failed">Das ausgewählte Bild konnte nicht gelesen werden.</string>
 	<string name="encyclopedia_create_entry_create_button">Eintrag erstellen</string>
 	<string name="encyclopedia_create_entry_cancel_button">Abbruch</string>
 	<string name="encyclopedia_create_entry_toast_success">Eintrag erstellt</string>
@@ -53,8 +51,6 @@
 	<string name="encyclopedia_entry_delete_title">Eintrag löschen?</string>
 	<string name="encyclopedia_entry_delete_message">Dies kann nicht rückgängig gemacht werden!</string>
 	<string name="encyclopedia_entry_delete_toast">Eintrag gelöscht</string>
-	<string name="encyclopedia_entry_delete_image_title">Bild löschen?</string>
-	<string name="encyclopedia_entry_delete_image_message">Dies kann nicht rückgängig gemacht werden!</string>
 	<string name="encyclopedia_entry_name_hint">Name</string>
 	<string name="encyclopedia_entry_close_button">Eintrag schließen</string>
 	<string name="encyclopedia_entry_menu_group">Eintrag</string>
@@ -73,9 +69,7 @@
 	<string name="encyclopedia_entry_tags_label">Tags</string>
 	<string name="encyclopedia_entry_add_tag_chip">Tag</string>
 	<string name="encyclopedia_entry_add_alias_chip">Alias</string>
-	<string name="encyclopedia_entry_figure_caption">Abb. I · Eintrag</string>
 	<string name="encyclopedia_entry_figure_label">Abb. I</string>
-	<string name="encyclopedia_entry_figure_add">+ Hinzufügen</string>
 	<string name="encyclopedia_entry_folio_format">Fol. %1$s · Ein-%2$s</string>
 	<string name="encyclopedia_entry_scene_index_format">Sz.%1$s</string>
 	<string name="encyclopedia_entry_colophon_label">Eintrag · Katalogkarte</string>

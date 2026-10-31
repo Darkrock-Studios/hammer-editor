@@ -22,6 +22,8 @@ private object EpubStoryExporter : StoryExporter {
 	override val formatId = BuiltInExportFormat.EPUB
 	override val fileExtension = "epub"
 	override val mimeType = "application/epub+zip"
+	override val embedsImages = true
+	override val embedsCover = true
 
 	override fun render(sink: BufferedSink, input: ExportInput) = writeStoryAsEpub(
 		sink = sink,
@@ -31,6 +33,8 @@ private object EpubStoryExporter : StoryExporter {
 		language = input.language,
 		strings = input.strings,
 		options = input.options,
+		images = input.images,
+		imageNames = input.imageNames,
 	)
 }
 
@@ -38,6 +42,8 @@ private object DocxStoryExporter : StoryExporter {
 	override val formatId = BuiltInExportFormat.DOCX
 	override val fileExtension = "docx"
 	override val mimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+	override val embedsImages = true
+	override val embedsCover = true
 
 	override fun render(sink: BufferedSink, input: ExportInput) = writeStoryAsDocx(
 		sink = sink,
@@ -46,6 +52,8 @@ private object DocxStoryExporter : StoryExporter {
 		chapters = input.bookChapters(),
 		strings = input.strings,
 		options = input.options,
+		imageNames = input.imageNames,
+		images = input.images,
 	)
 }
 
@@ -53,6 +61,8 @@ private object RtfStoryExporter : StoryExporter {
 	override val formatId = BuiltInExportFormat.RTF
 	override val fileExtension = "rtf"
 	override val mimeType = "application/rtf"
+	override val embedsImages = true
+	override val embedsCover = true
 
 	override fun render(sink: BufferedSink, input: ExportInput) = writeStoryAsRtf(
 		sink = sink,
@@ -61,6 +71,8 @@ private object RtfStoryExporter : StoryExporter {
 		chapters = input.bookChapters(),
 		strings = input.strings,
 		options = input.options,
+		imageNames = input.imageNames,
+		images = input.images,
 	)
 }
 
@@ -68,6 +80,8 @@ private object PdfStoryExporter : StoryExporter {
 	override val formatId = BuiltInExportFormat.PDF
 	override val fileExtension = "pdf"
 	override val mimeType = "application/pdf"
+	override val embedsImages = true
+	override val embedsCover = true
 
 	override fun render(sink: BufferedSink, input: ExportInput) = writeStoryAsPdf(
 		sink = sink,
@@ -76,6 +90,8 @@ private object PdfStoryExporter : StoryExporter {
 		chapters = input.bookChapters(),
 		strings = input.strings,
 		options = input.options,
+		imageNames = input.imageNames,
+		images = input.images,
 	)
 }
 

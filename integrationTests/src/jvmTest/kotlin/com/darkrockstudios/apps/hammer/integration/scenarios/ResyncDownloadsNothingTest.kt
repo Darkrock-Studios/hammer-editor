@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.integration.scenarios
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.e2e.util.E2eTestData
 import com.darkrockstudios.apps.hammer.integration.RoundTripTestBase
+import com.darkrockstudios.apps.hammer.integration.TestImages
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Timeout
@@ -53,9 +54,10 @@ class ResyncDownloadsNothingTest : RoundTripTestBase() {
 				name = "Draft One",
 				content = "draft body",
 			),
+			TestImages.entity(id = 6, name = "Map", fileExtension = "png", bytes = TestImages.png()),
 		)
 		seeded.forEach { seedServerEntity(pid, it) }
-		database().execute("UPDATE project SET last_id = 5 WHERE id = $pid;")
+		database().execute("UPDATE project SET last_id = 6 WHERE id = $pid;")
 
 		// The scene was seeded with null timestamps; remember its hash so we can prove the heal.
 		val seededSceneHash = (seeded.first() as ApiProjectEntity.SceneEntity).hash()
@@ -65,7 +67,7 @@ class ResyncDownloadsNothingTest : RoundTripTestBase() {
 		// First real sync: every seeded entity should come down.
 		assertTrue(client.syncNoConflict(), "download sync should succeed")
 		assertEquals(
-			setOf(1, 2, 3, 4, 5),
+			setOf(1, 2, 3, 4, 5, 6),
 			wire.entitiesPulled().toSet(),
 			"first sync should have downloaded every server entity",
 		)

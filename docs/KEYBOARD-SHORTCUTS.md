@@ -55,12 +55,28 @@ composable they are attached to.
 | `Ctrl+S` | Save the current item | `saveShortcutModifier` via `SceneEditorUi.kt`, `ViewNoteUi.kt`, `ViewTimeLineEventUi.kt`, `StoryIdeasUi.kt` |
 | `Ctrl+F` | Open find bar         | `findShortcutModifier` via `SceneEditorUi.kt`, `FocusModeUi.kt`                                             |
 
+## Image viewer
+
+The full-screen viewer opened from the image gallery, an entry's images, or an image sync
+conflict (`ImageViewerDialog.kt`).
+
+| Shortcut | Action              |
+|----------|---------------------|
+| `Left`   | Previous image      |
+| `Right`  | Next image          |
+| `Esc`    | Close the viewer    |
+
 ## Rich Text Formatting
 
 Available anywhere `MarkdownFormatBar.kt` is used (scene, note, and encyclopedia editors).
 
-| Shortcut       | Action               |
-|----------------|----------------------|
-| `Ctrl+B`       | Toggle bold          |
-| `Ctrl+I`       | Toggle italic        |
-| `Ctrl+Shift+X` | Toggle strikethrough |
+| Shortcut       | Action                                   |
+|----------------|------------------------------------------|
+| `Ctrl+B`       | Toggle bold                              |
+| `Ctrl+I`       | Toggle italic                            |
+| `Ctrl+Shift+X` | Toggle strikethrough                     |
+| `Ctrl+Shift+I` | Insert an image from the project gallery |
+
+`Ctrl+Shift+I` is bound only where the format bar offers the insert image button: the scene
+editor, and the note, timeline event and encyclopedia entry text editors. Focus mode has no
+image insertion, as it fills the project's single modal slot that the gallery needs.
