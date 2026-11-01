@@ -22,6 +22,8 @@ import io.ktor.server.plugins.hsts.HSTS
 import io.ktor.server.plugins.httpsredirect.HttpsRedirect
 import io.ktor.server.request.path
 import io.ktor.server.routing.IgnoreTrailingSlash
+import java.security.MessageDigest
+import java.util.Base64
 
 fun Application.configureHTTP(config: ServerConfig) {
 	if (config.trustProxyForwarding) {
@@ -34,6 +36,9 @@ fun Application.configureHTTP(config: ServerConfig) {
 
 	val analyticsProvider = config.analytics.provider
 	val analyticsScriptHosts = analyticsProvider?.scriptSrcHosts().orEmpty()
+	val analyticsScriptHashes = analyticsProvider?.inlineScripts().orEmpty()
+		.filter { it.isNotBlank() }
+		.map { cspHash(it) }
 	val analyticsConnectHosts = analyticsProvider?.connectSrcHosts().orEmpty()
 	val analyticsImgHosts = analyticsProvider?.imgSrcHosts().orEmpty()
 
@@ -53,9 +58,9 @@ fun Application.configureHTTP(config: ServerConfig) {
 		// Control referrer information to protect privacy
 		header("Referrer-Policy", "strict-origin-when-cross-origin")
 
-		// Content Security Policy - relaxed for compatibility
-		val scriptSrc = (listOf("'self'", "https://unpkg.com", "'unsafe-inline'", "'unsafe-eval'") + analyticsScriptHosts)
-			.joinToString(" ") // HTMX + inline scripts + dynamic eval + analytics
+		// Scripts are external only; the analytics provider's inline snippets are allowed by hash.
+		val scriptSrc = (listOf("'self'", "https://unpkg.com") + analyticsScriptHosts + analyticsScriptHashes)
+			.joinToString(" ")
 		val connectSrc = (listOf("'self'") + analyticsConnectHosts)
 			.joinToString(" ") // HTMX requests stay on same origin + analytics event endpoint
 		val imgSrc = (listOf("'self'", "data:") + analyticsImgHosts)
@@ -161,4 +166,9 @@ private object ImmutableCacheControl : CacheControl(CacheControl.Visibility.Publ
 	private const val ONE_YEAR_SECONDS = 31_536_000
 
 	override fun toString() = "max-age=$ONE_YEAR_SECONDS, public, immutable"
+}
+
+private fun cspHash(script: String): String {
+	val digest = MessageDigest.getInstance("SHA-256").digest(script.toByteArray(Charsets.UTF_8))
+	return "'sha256-${Base64.getEncoder().encodeToString(digest)}'"
 }

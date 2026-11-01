@@ -12,7 +12,7 @@
 			<span class="whitelist-controls__filter">
 				{{msg.admin_allowedusers_search_filtered_by}} <code>{{search}}</code>
 				<button type="button" class="btn btn--ghost whitelist-controls__filter-clear"
-						onclick="clearWhitelistSearch()"
+						data-on-click="clearWhitelistSearch()"
 						aria-label="{{msg.admin_allowedusers_search_clear}}">
 					<i class="fa-solid fa-xmark"></i>
 				</button>
@@ -76,7 +76,7 @@
 						data-page="{{currentPage}}"
 						data-sort-oldest-first="{{sortOldestFirst}}"
 						data-q="{{search}}"
-						onclick="openEditReasonDialog(this)">
+						data-on-click="openEditReasonDialog(this)">
 					<i class="fa-solid fa-pen"></i>
 					{{msg.admin_allowedusers_edit_button}}
 				</button>
@@ -88,7 +88,7 @@
 							data-page="{{currentPage}}"
 							data-sort-oldest-first="{{sortOldestFirst}}"
 							data-q="{{search}}"
-							onclick="openEditExpiryDialog(this)">
+							data-on-click="openEditExpiryDialog(this)">
 						<i class="fa-solid fa-hourglass-half"></i>
 						{{msg.admin_allowedusers_edit_expiry_button}}
 					</button>
@@ -112,7 +112,7 @@
 			{{#hasSearch}}
 				<p>{{msg.admin_allowedusers_search_empty}}</p>
 				<button type="button" class="btn btn--ghost"
-						onclick="clearWhitelistSearch()">{{msg.admin_allowedusers_search_clear}}</button>
+						data-on-click="clearWhitelistSearch()">{{msg.admin_allowedusers_search_clear}}</button>
 			{{/hasSearch}}
 			{{^hasSearch}}
 				<p>{{msg.admin_allowedusers_empty}}</p>

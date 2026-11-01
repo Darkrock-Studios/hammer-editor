@@ -12,6 +12,8 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.testing.*
 import org.junit.jupiter.api.Test
+import java.security.MessageDigest
+import java.util.Base64
 import kotlin.test.assertContains
 import kotlin.test.assertFalse
 
@@ -64,8 +66,36 @@ class AnalyticsCspTest {
 	@Test
 	fun `csp is unchanged when analytics disabled`() = testApplication {
 		val csp = cspFor(ServerConfig())
-		assertContains(csp, "script-src 'self' https://unpkg.com 'unsafe-inline' 'unsafe-eval'")
+		assertContains(csp, "script-src 'self' https://unpkg.com;")
 		assertContains(csp, "connect-src 'self'")
 		assertFalse(csp.contains("umami"))
+	}
+
+	@Test
+	fun `scripts are never allowed inline or by eval`() = testApplication {
+		val config = ServerConfig(
+			analytics = AnalyticsConfig(
+				type = AnalyticsProviderType.GOOGLE,
+				google = GoogleConfig(measurementId = "G-ABC123"),
+			)
+		)
+		val scriptSrc = cspFor(config).split(";").first { it.trim().startsWith("script-src") }
+		assertFalse(scriptSrc.contains("'unsafe-inline'"))
+		assertFalse(scriptSrc.contains("'unsafe-eval'"))
+	}
+
+	@Test
+	fun `google inline snippets are allowed by hash`() = testApplication {
+		val config = ServerConfig(
+			analytics = AnalyticsConfig(
+				type = AnalyticsProviderType.GOOGLE,
+				google = GoogleConfig(measurementId = "G-ABC123"),
+			)
+		)
+		val scriptSrc = cspFor(config).split(";").first { it.trim().startsWith("script-src") }
+		config.analytics.provider!!.inlineScripts().forEach { script ->
+			val digest = MessageDigest.getInstance("SHA-256").digest(script.toByteArray())
+			assertContains(scriptSrc, "'sha256-${Base64.getEncoder().encodeToString(digest)}'")
+		}
 	}
 }

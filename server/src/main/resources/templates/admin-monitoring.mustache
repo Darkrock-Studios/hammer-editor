@@ -132,7 +132,8 @@
 						</article>
 					</div>
 					<h3 class="mon-users-trend-title">{{msg.admin_mon_active_users_trend}}</h3>
-					<div class="mon-chart" id="mon-active-users-chart"></div>
+					<div class="mon-chart" id="mon-active-users-chart" data-chart="{{activeUsersChartJson}}"
+						 data-label-0="{{msg.admin_mon_active_users_sync}}" data-label-1="{{msg.admin_mon_active_users_web}}"></div>
 				{{/hasActiveUsers}}
 				{{^hasActiveUsers}}
 					<div class="empty-state">
@@ -184,7 +185,8 @@
 						</article>
 					</div>
 					<h3 class="mon-users-trend-title">{{msg.admin_mon_readers_trend}}</h3>
-					<div class="mon-chart" id="mon-readers-chart"></div>
+					<div class="mon-chart" id="mon-readers-chart" data-chart="{{readersChartJson}}"
+						 data-label-0="{{msg.admin_mon_readers_unique}}"></div>
 				{{/hasReaders}}
 				{{^hasReaders}}
 					<div class="empty-state">
@@ -199,7 +201,8 @@
 				<div class="section-header">
 					<h2 class="section-header__title">{{msg.admin_mon_traffic_title}}</h2>
 				</div>
-				<div class="mon-chart" id="mon-requests-chart"></div>
+				<div class="mon-chart" id="mon-requests-chart" data-chart="{{chartJson}}" data-empty="{{msg.admin_mon_no_data}}"
+					 data-label-0="{{msg.admin_mon_stat_requests}}" data-label-1="{{msg.admin_mon_errors}}"></div>
 			</section>
 
 			<!-- Slowest endpoints -->
@@ -230,76 +233,6 @@
 </main>
 
 <script src="/assets/js/frappe-charts.min.js?v={{version}}"></script>
-<script>
-	(function () {
-		var data = {{{chartJson}}};
-		var el = document.getElementById("mon-requests-chart");
-		if (!el || !data.labels || !data.labels.length) {
-			if (el) el.innerHTML = '<p class="mon-chart__empty">{{msg.admin_mon_no_data}}</p>';
-			return;
-		}
-		var ChartCtor = (window.frappe && window.frappe.Chart) || window.Chart;
-		if (!ChartCtor) return;
-		new ChartCtor(el, {
-			data: {
-				labels: data.labels,
-				datasets: [
-					{ name: "{{msg.admin_mon_stat_requests}}", values: data.requests },
-					{ name: "{{msg.admin_mon_errors}}", values: data.errors }
-				]
-			},
-			type: "line",
-			height: 240,
-			colors: ["#d97706", "#ef4444"],
-			axisOptions: { xAxisMode: "tick", xIsSeries: true },
-			lineOptions: { hideDots: 0, regionFill: 0 }
-		});
-	})();
-
-	(function () {
-		var el = document.getElementById("mon-active-users-chart");
-		if (!el) return;
-		var data = {{{activeUsersChartJson}}};
-		if (!data.labels || !data.labels.length) return;
-		var ChartCtor = (window.frappe && window.frappe.Chart) || window.Chart;
-		if (!ChartCtor) return;
-		new ChartCtor(el, {
-			data: {
-				labels: data.labels,
-				datasets: [
-					{ name: "{{msg.admin_mon_active_users_sync}}", values: data.sync },
-					{ name: "{{msg.admin_mon_active_users_web}}", values: data.web }
-				]
-			},
-			type: "line",
-			height: 240,
-			colors: ["#d97706", "#2563eb"],
-			axisOptions: { xAxisMode: "tick", xIsSeries: true },
-			lineOptions: { hideDots: 0, regionFill: 0 }
-		});
-	})();
-
-	(function () {
-		var el = document.getElementById("mon-readers-chart");
-		if (!el) return;
-		var data = {{{readersChartJson}}};
-		if (!data.labels || !data.labels.length) return;
-		var ChartCtor = (window.frappe && window.frappe.Chart) || window.Chart;
-		if (!ChartCtor) return;
-		new ChartCtor(el, {
-			data: {
-				labels: data.labels,
-				datasets: [
-					{ name: "{{msg.admin_mon_readers_unique}}", values: data.readers }
-				]
-			},
-			type: "line",
-			height: 240,
-			colors: ["#d97706"],
-			axisOptions: { xAxisMode: "tick", xIsSeries: true },
-			lineOptions: { hideDots: 0, regionFill: 0 }
-		});
-	})();
-</script>
+<script src="/assets/js/admin-charts.js?v={{version}}"></script>
 
 {{> footer}}

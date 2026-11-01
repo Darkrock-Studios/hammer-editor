@@ -1,10 +1,10 @@
 <!-- No stopPropagation on the dialog: the scene-select handlers are delegated to
      document, and closeShareDialog already ignores bubbled clicks from inside. -->
-<div class="dialog-overlay" id="share-dialog-overlay" onclick="closeShareDialog(event)">
+<div class="dialog-overlay" id="share-dialog-overlay" data-on-click="closeShareDialog(event)">
 	<div class="dialog dialog--sheet">
 		<div class="dialog__header">
 			<h3>{{msg.story_share_private_title}}</h3>
-			<button type="button" class="dialog__close" onclick="closeShareDialog()">
+			<button type="button" class="dialog__close" data-on-click="closeShareDialog()">
 				<i class="fas fa-times"></i>
 			</button>
 		</div>
@@ -60,7 +60,7 @@
 				</div>
 			</div>
 			<div class="dialog__actions">
-				<button type="button" class="btn btn--ghost" onclick="closeShareDialog()">
+				<button type="button" class="btn btn--ghost" data-on-click="closeShareDialog()">
 					{{msg.story_cancel}}
 				</button>
 				<button type="submit" class="btn btn--accent" data-scene-submit>

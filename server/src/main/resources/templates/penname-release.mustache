@@ -22,14 +22,14 @@
 					   id="release-confirm-field"
 					   placeholder="{{msg.penname_release_confirm_placeholder}}"
 					   autocomplete="off"
-					   oninput="onReleaseConfirmInput(this.value)">
+					   data-on-input="onReleaseConfirmInput(value)">
 			</div>
 		</div>
 		<div class="danger-zone-actions">
 			<form id="release-form"
 				  hx-delete="/dashboard/penname"
 				  hx-swap="none"
-				  onsubmit="return confirmRelease()">
+				  data-on-submit="confirmRelease()">
 				<button type="submit"
 						class="release-btn"
 						id="release-btn"
@@ -37,7 +37,7 @@
 					{{msg.penname_release_confirm_button}}
 				</button>
 			</form>
-			<button type="button" class="cancel-btn" onclick="exitReleaseMode()">
+			<button type="button" class="cancel-btn" data-on-click="exitReleaseMode()">
 				{{msg.penname_cancel_button}}
 			</button>
 		</div>

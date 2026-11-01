@@ -29,6 +29,12 @@ interface AnalyticsProvider {
 	 */
 	fun eventBridge(): String
 
+	/**
+	 * Bodies of the inline `<script>` blocks this provider injects (those of [headSnippet] and
+	 * [eventBridge]). The CSP allows each by hash, so they must match the emitted text exactly.
+	 */
+	fun inlineScripts(): List<String>
+
 	/** Origins (scheme://host[:port], no path) to add to the CSP `script-src`. */
 	fun scriptSrcHosts(): List<String>
 
@@ -51,6 +57,8 @@ internal class UmamiAnalyticsProvider(config: UmamiConfig) : AnalyticsProvider {
 	override fun eventBridge(): String =
 		"window.hammerTrack=function(n,d){window.umami&&window.umami.track(n,d)};"
 
+	override fun inlineScripts(): List<String> = listOf(eventBridge())
+
 	override fun scriptSrcHosts(): List<String> = listOf(origin)
 
 	// An explicit config override always wins. Otherwise: self-hosted Umami posts events to
@@ -67,16 +75,19 @@ internal class UmamiAnalyticsProvider(config: UmamiConfig) : AnalyticsProvider {
 internal class GoogleAnalyticsProvider(config: GoogleConfig) : AnalyticsProvider {
 	// Validated to ^G-[A-Za-z0-9]+$, so it is safe to interpolate into both the attribute and the inline script.
 	private val id = escapeHtml(config.measurementId)
+	private val initScript = "window.dataLayer=window.dataLayer||[];" +
+		"function gtag(){dataLayer.push(arguments);}" +
+		"gtag('js',new Date());gtag('config','$id');"
 	private val snippet =
 		"""<script async src="https://www.googletagmanager.com/gtag/js?id=$id"></script>""" +
-			"<script>window.dataLayer=window.dataLayer||[];" +
-			"function gtag(){dataLayer.push(arguments);}" +
-			"gtag('js',new Date());gtag('config','$id');</script>"
+			"<script>$initScript</script>"
 
 	override fun headSnippet(): String = snippet
 
 	override fun eventBridge(): String =
 		"window.hammerTrack=function(n,d){window.gtag&&window.gtag('event',n,d)};"
+
+	override fun inlineScripts(): List<String> = listOf(initScript, eventBridge())
 
 	override fun scriptSrcHosts(): List<String> = GOOGLE_SCRIPT_HOSTS
 

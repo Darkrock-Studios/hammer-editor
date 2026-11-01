@@ -16,6 +16,7 @@ Writer's Desk" aesthetic with a unified component library using BEM naming conve
 - [Utility Classes](#utility-classes)
 - [Responsive Design](#responsive-design)
 - [Accessibility](#accessibility)
+- [Scripts and CSP](#scripts-and-csp)
 
 ---
 
@@ -915,6 +916,25 @@ All interactive elements have visible focus states:
 
 ---
 
+## Scripts and CSP
+
+`script-src` allows `'self'` and unpkg (HTMX) only: no inline script, no inline handler, no eval.
+`StrictCspTemplatesTest` fails the build if a template reintroduces one.
+
+- Put behaviour in `assets/js/` and load it with `<script src="/assets/js/foo.js?v={{version}}">`.
+- Wire events with `data-on-click`, `data-on-input`, `data-on-change` or `data-on-submit` instead of
+  `onclick=` and friends, e.g. `data-on-click="closeShareDialog(event)"`. `events.js` documents the
+  argument forms (`this`, `event`, `value`, `checked`, quoted strings); content swapped in by HTMX is
+  wired automatically.
+- Pass server data to scripts through `data-*` attributes (Mustache escapes them), not by
+  interpolating into a `<script>`. JSON islands (`type="application/json"`) are fine.
+- HTMX runs with `allowEval: false`: no `hx-on:*`, no `js:` in `hx-vals`/`hx-headers`, no `[filter]`
+  in `hx-trigger`. Listen for `htmx:*` events in a script instead.
+- The analytics provider's inline snippets are allowed by hash (`AnalyticsProvider.inlineScripts()`).
+- `style-src` still allows `'unsafe-inline'` (a few `style="..."` attributes remain).
+
+---
+
 ## Page-Specific Extensions
 
 While the shared components cover most use cases, some pages have additional specific styles:
@@ -930,7 +950,7 @@ While the shared components cover most use cases, some pages have additional spe
   width in the chapter reader) live on whichever element carries `data-reader-root`: `data-*`
   attributes plus a `--reader-font-size` custom property. The chapter reader and the published
   story page share them through `reader-prefs.js` and the `partials/reader-*` templates (text size
-  buttons, the inline `initReaderPrefs()` call, the cover page). Both pages load
+  buttons, the `reader-prefs-init.js` call, the cover page). Both pages load
   `story-read-logic.js` and `reader-prefs.js` in the head through `page_head_scripts`, so that call
   applies the stored prefs before the prose paints.
 - **error.css** - Colored sticky-note error cards with animations
