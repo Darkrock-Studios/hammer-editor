@@ -760,7 +760,7 @@ Both routes answer `404` for every failure. The image's stored hash is its weak 
 
 ## Project Data Sync (non-entity blob)
 
-In addition to entity sync, each project has a single per-project blob holding user-authored settings (author name, theme colors, word-count goal, tags, language, spell-check dictionary, book cover). This blob is synced as its own phase, inserted into the pipeline *before* the entity phases (entity deletion, then entity transfer) so the project's identity is settled before any entity churn.
+In addition to entity sync, each project has a single per-project blob holding user-authored settings (author name, theme colors, word-count goal, tags, language, spell-check dictionary, book cover, timeline settings). This blob is synced as its own phase, inserted into the pipeline *before* the entity phases (entity deletion, then entity transfer) so the project's identity is settled before any entity churn.
 
 The blob is a structured object — see `ProjectData` in the `base` module — but is treated as a single unit at the sync layer. Conflict detection is hash-based, mirroring entity sync: the client persists the `lastSyncedHash` it most recently agreed on with the server and replays it on the next upload.
 
@@ -803,7 +803,8 @@ resurrected if the other device conflicts before the deletion syncs; that is acc
 
 Sync writes never clobber a concurrent local edit: the client snapshots the blob when the phase
 starts, and when it installs the server-agreed state it re-applies any field the user changed since
-that snapshot (dictionary words as an add/remove delta). Those edits then differ from the recorded
+that snapshot (dictionary words as an add/remove delta; timelines per def by id, where a local add,
+change or removal wins and the other defs take the server copy). Those edits then differ from the recorded
 `lastSyncedHash`, so the next sync uploads them.
 
 Unlike writing-activity sync (which swallows errors and continues), a non-conflict failure on the project-data phase fails the whole sync — the data is user-authored and silent loss is unacceptable.
@@ -826,6 +827,7 @@ so older hashes stay byte-identical and no block can be read as the tail of anot
 | `encyclopediaDictionary` | nothing when `true`; else `-2` | per-field pick |
 | `dictionaryWords` | nothing when empty; else `-3`, size, then each sorted word as length and string | union of both sides |
 | `coverImageId` | nothing when null; else `-4`, then the id | per-field pick |
+| `timelines` | nothing when empty; else `-5`, size, then each def in list order: id and name (length and string), mode code, calendar presence byte (then preset code and optional epoch name and coarsest unit), lane count and each lane | per-field pick, then union by id: the chosen side's defs plus the defs only the other side has |
 
 `coverImageId` holds an Image entity id. The client rewrites it like any other image reference: a
 re-ID during id resolution remaps it and deleting the image clears it, both through the project data

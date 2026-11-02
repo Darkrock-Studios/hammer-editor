@@ -97,6 +97,16 @@
 	<string name="sync_conflict_project_data_cadence_week">week</string>
 	<string name="sync_conflict_project_data_dictionary_merged">Project dictionary words from both sides are kept.</string>
 	<string name="sync_conflict_project_data_resolve_button">Resolve</string>
+	<string name="sync_conflict_project_data_field_timelines">Timelines</string>
+	<string name="sync_conflict_project_data_timeline_manual">manual</string>
+	<string name="sync_conflict_project_data_timeline_dated">dated</string>
+	<string name="sync_conflict_project_data_timeline_calendar_story">Story calendar</string>
+	<string name="sync_conflict_project_data_timeline_calendar_gregorian">Gregorian calendar</string>
+	<string name="sync_conflict_project_data_timeline_coarsest_unit">from %1$s</string>
+	<plurals name="sync_conflict_project_data_timeline_lanes">
+		<item quantity="one">%1$d lane</item>
+		<item quantity="other">%1$d lanes</item>
+	</plurals>
 
 
 	<string name="sync_conflict_encyclopedia_label_name">Name:</string>

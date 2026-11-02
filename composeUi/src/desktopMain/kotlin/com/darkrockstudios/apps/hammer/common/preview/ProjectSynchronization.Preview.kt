@@ -16,6 +16,10 @@ import com.darkrockstudios.apps.hammer.base.http.ApiSceneType
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectTheme
 import com.darkrockstudios.apps.hammer.base.http.projectdata.WordCountGoal
+import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
+import com.darkrockstudios.apps.hammer.base.timeline.CalendarPreset
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSynchronization
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogLevel
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessage
@@ -228,6 +232,13 @@ fun ProjectDataConflictPreview() {
 		wordCountGoal = WordCountGoal(cadence = WordCountGoal.Cadence.DAY, count = 500),
 		tags = setOf("fantasy", "classic"),
 		coverImageId = 3,
+		timelines = listOf(
+			TimelineDef.DEFAULT.copy(
+				mode = TimelineMode.DATED,
+				calendar = CalendarDef(CalendarPreset.STORY, epochName = "the Fall"),
+				laneOrder = listOf("Alice", "White Rabbit"),
+			)
+		),
 	)
 	val server = ProjectData(
 		authorName = "Charles Dodgson",
@@ -235,6 +246,7 @@ fun ProjectDataConflictPreview() {
 		wordCountGoal = WordCountGoal(cadence = WordCountGoal.Cadence.WEEK, count = 3500),
 		tags = setOf("fantasy", "children"),
 		coverImageId = 9,
+		timelines = listOf(TimelineDef.DEFAULT.copy(laneOrder = listOf("Alice"))),
 	)
 
 	val conflictState = ProjectSynchronization.ProjectDataConflictState(

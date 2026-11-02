@@ -1,6 +1,10 @@
 package repositories.projectdata
 
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
+import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
+import com.darkrockstudios.apps.hammer.base.timeline.CalendarPreset
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
@@ -167,6 +171,49 @@ class ProjectDataRepositoryTest : BaseTest() {
 
 		assertEquals("Legacy", loaded.data.authorName)
 		assertEquals(emptySet(), loaded.data.tags)
+	}
+
+	@Test
+	fun `updateData persists timelines and they round-trip through settings toml`() = runTest {
+		datasource.save(StoredProjectData(ProjectData(authorName = "Pat"), "synced-hash"))
+		val timelines = listOf(
+			TimelineDef.DEFAULT.copy(
+				mode = TimelineMode.DATED,
+				calendar = CalendarDef(CalendarPreset.STORY, epochName = "Landing", coarsestUnit = "day"),
+				laneOrder = listOf("Alice", "Bob"),
+			),
+			TimelineDef(
+				id = "b2c3d4e5",
+				name = "Real world",
+				mode = TimelineMode.DATED,
+				calendar = CalendarDef(CalendarPreset.GREGORIAN),
+			),
+		)
+
+		repository.updateData { it.copy(timelines = timelines) }
+
+		val onDisk = datasource.load()
+		assertEquals(timelines, onDisk.data.timelines)
+		assertEquals("Pat", onDisk.data.authorName)
+		coVerify(exactly = 1) { syncJournalDatasource.invalidateProjectHash() }
+	}
+
+	@Test
+	fun `a pre-timelines settings toml loads with empty timelines`() = runTest {
+		val legacyToml = """
+			|[data]
+			|authorName = "Legacy"
+			|tags = ["fantasy"]
+			|
+		""".trimMargin()
+		fileSystem.write(datasource.getPath()) {
+			writeUtf8(legacyToml)
+		}
+
+		val loaded = repository.load()
+
+		assertEquals("Legacy", loaded.data.authorName)
+		assertEquals(emptyList(), loaded.data.timelines)
 	}
 
 	@Test

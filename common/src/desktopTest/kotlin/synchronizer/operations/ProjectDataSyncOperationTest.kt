@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectDataConflict
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectDataDto
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectDataConflictException
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectDataHasher
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.isFailure
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
@@ -217,6 +218,38 @@ class ProjectDataSyncOperationTest : BaseTest() {
 			// unknown field server-side.
 			assertTrue(isSuccess(createOperation().run()))
 			coVerify(exactly = 0) { api.uploadProjectData(any(), any(), any(), any()) }
+	}
+
+	@Test
+	fun `a timeline edited locally during sync survives a fast-forward`() = runTest {
+		val main = TimelineDef.DEFAULT
+		val local = ProjectData(authorName = "Author", timelines = listOf(main))
+		datasource.save(StoredProjectData(local, lastSyncedHash = ProjectDataHasher.hash(local)))
+		val serverOnly = TimelineDef(id = "b2c3d4e5", name = "Second")
+		val server = ProjectData(authorName = "Server Author", timelines = listOf(main, serverOnly))
+		coEvery { api.getProjectData(any(), any()) } returns
+			Result.success(ProjectDataDto(server, "server-hash"))
+		val edited = main.copy(laneOrder = listOf("Alice"))
+
+		// Queued now, it first runs while the phase reads settings.toml: after the snapshot is
+		// taken and before the server copy is installed. A replacing transform, so an edit that
+		// landed after the install instead would drop the server's new timeline.
+		val editor = launch {
+			repository.updateData { it.copy(timelines = listOf(edited)) }
+		}
+
+		val result = createOperation().run()
+		editor.join()
+
+		assertTrue(isSuccess(result))
+		assertEquals(
+			StoredProjectData(
+				ProjectData(authorName = "Server Author", timelines = listOf(edited, serverOnly)),
+				ProjectDataHasher.hash(server),
+			),
+			repository.state.value,
+		)
+		coVerify(exactly = 0) { api.uploadProjectData(any(), any(), any(), any()) }
 	}
 
 	@Test

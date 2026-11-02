@@ -1,6 +1,10 @@
 package com.darkrockstudios.apps.hammer.common.data.projectdata
 
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
+import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
+import com.darkrockstudios.apps.hammer.base.timeline.CalendarPreset
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -83,5 +87,99 @@ class ProjectDataMergeTest {
 		val incoming = ProjectData(coverImageId = 3)
 
 		assertEquals(3, reapplyLocalEdits(base, local, incoming).coverImageId)
+	}
+
+	private val main = TimelineDef.DEFAULT
+	private val dated = main.copy(
+		mode = TimelineMode.DATED,
+		calendar = CalendarDef(CalendarPreset.STORY, epochName = "Landing"),
+	)
+	private val second = TimelineDef(id = "b2c3d4e5", name = "Second")
+	private val third = TimelineDef(id = "c3d4e5f6", name = "Third")
+
+	private fun reapplyTimelines(
+		base: List<TimelineDef>,
+		local: List<TimelineDef>,
+		incoming: List<TimelineDef>,
+	): List<TimelineDef> = reapplyLocalEdits(
+		ProjectData(timelines = base),
+		ProjectData(timelines = local),
+		ProjectData(timelines = incoming),
+	).timelines
+
+	@Test
+	fun `a timeline added locally survives incoming`() {
+		assertEquals(
+			listOf(main, second),
+			reapplyTimelines(base = listOf(main), local = listOf(main, second), incoming = listOf(main)),
+		)
+	}
+
+	@Test
+	fun `a timeline changed locally beats the incoming change`() {
+		val incomingChange = main.copy(laneOrder = listOf("Alice"))
+
+		assertEquals(
+			listOf(dated),
+			reapplyTimelines(base = listOf(main), local = listOf(dated), incoming = listOf(incomingChange)),
+		)
+	}
+
+	@Test
+	fun `a timeline removed locally is removed`() {
+		assertEquals(
+			listOf(main),
+			reapplyTimelines(base = listOf(main, second), local = listOf(main), incoming = listOf(main, second)),
+		)
+	}
+
+	@Test
+	fun `a timeline untouched locally takes incoming`() {
+		assertEquals(
+			listOf(dated),
+			reapplyTimelines(base = listOf(main), local = listOf(main), incoming = listOf(dated)),
+		)
+	}
+
+	@Test
+	fun `a timeline removed incoming stays removed when untouched locally`() {
+		assertEquals(
+			listOf(main),
+			reapplyTimelines(base = listOf(main, second), local = listOf(main, second), incoming = listOf(main)),
+		)
+	}
+
+	@Test
+	fun `timelines added on both sides are both kept`() {
+		assertEquals(
+			listOf(main, third, second),
+			reapplyTimelines(base = listOf(main), local = listOf(main, second), incoming = listOf(main, third)),
+		)
+	}
+
+	@Test
+	fun `merged timelines follow incoming order then local-only defs`() {
+		val renamedSecond = second.copy(name = "Renamed")
+
+		assertEquals(
+			listOf(third, renamedSecond, main),
+			reapplyTimelines(
+				base = listOf(second),
+				local = listOf(renamedSecond, main),
+				incoming = listOf(third, second),
+			),
+		)
+	}
+
+	@Test
+	fun `timelines by choice keep a def only one side has`() {
+		assertEquals(listOf(main, second), mergeTimelinesByChoice(listOf(main), listOf(second), preferLocal = true))
+		assertEquals(listOf(second, main), mergeTimelinesByChoice(listOf(main), listOf(second), preferLocal = false))
+	}
+
+	@Test
+	fun `timelines by choice take the chosen side on a same-id difference`() {
+		assertEquals(listOf(dated), mergeTimelinesByChoice(listOf(dated), listOf(main), preferLocal = true))
+		assertEquals(listOf(main), mergeTimelinesByChoice(listOf(dated), listOf(main), preferLocal = false))
 	}
 }
