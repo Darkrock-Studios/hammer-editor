@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.base.image.ImageFormat
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineEntityRules
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
@@ -308,7 +309,7 @@ class ProjectSynchronizationComponent(
 
 	private suspend fun onTimelineEventConflict(serverEntity: ApiProjectEntity.TimelineEventEntity) {
 		val local = timeLineRepository.getTimelineEvent(serverEntity.id)
-			?: error("Failed to get local note")
+			?: error("Failed to get local timeline event")
 
 		val localEntity = local.toApiEntity()
 
@@ -470,11 +471,18 @@ class ProjectSynchronizationComponent(
 	private fun validateTimelineEventEntity(
 		resolvedEntity: ApiProjectEntity.TimelineEventEntity,
 	): ProjectSynchronization.EntityMergeError.TimelineEventMergeError? {
-		return when (timeLineRepository.validateTags(resolvedEntity.tags)) {
+		val ruleProblem = TimelineEntityRules.problem(resolvedEntity)
+		val tagError = when (timeLineRepository.validateTags(resolvedEntity.tags)) {
 			TimeLineEventError.NONE -> null
-			TimeLineEventError.TAG_TOO_LONG -> ProjectSynchronization.EntityMergeError.TimelineEventMergeError(
-				tagError = Res.string.timeline_create_toast_tag_too_long.toMsg()
+			TimeLineEventError.TAG_TOO_LONG -> Res.string.timeline_create_toast_tag_too_long.toMsg()
+		}
+		return if (ruleProblem != null || tagError != null) {
+			ProjectSynchronization.EntityMergeError.TimelineEventMergeError(
+				tagError = tagError,
+				ruleProblem = ruleProblem,
 			)
+		} else {
+			null
 		}
 	}
 

@@ -3,6 +3,8 @@ package components.projectsync
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ApiSceneType
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
+import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSynchronization
 import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSynchronizationComponent
 import com.darkrockstudios.apps.hammer.common.data.ClientResult
@@ -492,6 +494,56 @@ class ProjectSynchronizationComponentTest : ComponentTest() {
 		val error = comp.resolveConflict(resolved)
 
 		assertIs<ProjectSynchronization.EntityMergeError.TimelineEventMergeError>(error)
+	}
+
+	@Test
+	fun `Resolving a scene placement that has content returns a rule problem`() = runTest(mainTestDispatcher) {
+		every { timeLineRepository.validateTags(any()) } returns TimeLineEventError.NONE
+
+		val comp = newComponent()
+		context.resume()
+
+		val resolved = ApiProjectEntity.TimelineEventEntity(
+			id = 4,
+			order = 0,
+			label = null,
+			content = "placements have no words of their own",
+			kind = TimelineKind.SCENE,
+			subject = 12,
+		)
+		val error = comp.resolveConflict(resolved)
+
+		val mergeError = assertIs<ProjectSynchronization.EntityMergeError.TimelineEventMergeError>(error)
+		assertEquals("a placement cannot have content", mergeError.ruleProblem)
+		assertNull(mergeError.tagError)
+		verify(exactly = 0) { synchronizer.resolveConflict(any()) }
+	}
+
+	@Test
+	fun `Resolving a valid dated event forwards it`() = runTest(mainTestDispatcher) {
+		every { timeLineRepository.validateTags(any()) } returns TimeLineEventError.NONE
+		every { synchronizer.resolveConflict(any()) } just Runs
+
+		val comp = newComponent()
+		context.resume()
+
+		val resolved = ApiProjectEntity.TimelineEventEntity(
+			id = 5,
+			order = 0,
+			label = null,
+			title = "The croquet match",
+			content = "The Queen calls for croquet.",
+			tags = setOf("queen"),
+			references = setOf(2),
+			lane = "Court",
+			milestone = true,
+			start = StoryDate(mapOf("year" to 97L, "day" to 214L)),
+			end = StoryDate(mapOf("year" to 97L, "day" to 215L)),
+		)
+		val error = comp.resolveConflict(resolved)
+
+		assertNull(error)
+		verify(exactly = 1) { synchronizer.resolveConflict(resolved) }
 	}
 
 	@Test

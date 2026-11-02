@@ -2,27 +2,136 @@ package com.darkrockstudios.apps.hammer.common.projectsync
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import com.darkrockstudios.apps.hammer.common.compose.WindowSizeClass
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.style.TextOverflow
 import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
+import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSynchronization
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.WindowSizeClass
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HD_EVENT_GLYPH
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HD_SCENE_GLYPH
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdConflictField
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdConflictFieldSpacing
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdEntityId
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineToggleRow
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.glyph
+import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.parseStoryDateText
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.toCompactText
+import com.darkrockstudios.apps.hammer.sync_conflict_timeline_event_date_hint
+import com.darkrockstudios.apps.hammer.sync_conflict_timeline_event_empty
+import com.darkrockstudios.apps.hammer.sync_conflict_timeline_event_invalid_date
+import com.darkrockstudios.apps.hammer.sync_conflict_timeline_event_milestone_off
+import com.darkrockstudios.apps.hammer.sync_conflict_timeline_event_milestone_on
+import com.darkrockstudios.apps.hammer.sync_conflict_timeline_event_milestone_toggle
 import com.darkrockstudios.apps.hammer.sync_conflict_timeline_event_missing_date
+import com.darkrockstudios.apps.hammer.sync_conflict_timeline_event_placement_no_text
 import com.darkrockstudios.apps.hammer.sync_conflict_title_timeline_event_field_content
-import com.darkrockstudios.apps.hammer.sync_conflict_title_timeline_event_field_date
+import com.darkrockstudios.apps.hammer.sync_conflict_title_timeline_event_field_end
+import com.darkrockstudios.apps.hammer.sync_conflict_title_timeline_event_field_label
+import com.darkrockstudios.apps.hammer.sync_conflict_title_timeline_event_field_lane
+import com.darkrockstudios.apps.hammer.sync_conflict_title_timeline_event_field_milestone
+import com.darkrockstudios.apps.hammer.sync_conflict_title_timeline_event_field_references
+import com.darkrockstudios.apps.hammer.sync_conflict_title_timeline_event_field_start
+import com.darkrockstudios.apps.hammer.sync_conflict_title_timeline_event_field_tags
+import com.darkrockstudios.apps.hammer.sync_conflict_title_timeline_event_field_title
+import kotlinx.coroutines.launch
+
+internal const val TIMELINE_CONFLICT_START_TAG = "timeline-conflict-start"
+internal const val TIMELINE_CONFLICT_END_TAG = "timeline-conflict-end"
+
+/** The local pane's fields as typed. */
+internal data class TimelineEventEdits(
+	val title: String,
+	val label: String,
+	val content: String,
+	val lane: String,
+	val milestone: Boolean,
+	val start: String,
+	val end: String,
+)
+
+internal sealed interface LocalTimelineEvent {
+	data class Resolved(val entity: ApiProjectEntity.TimelineEventEntity) : LocalTimelineEvent
+
+	/** A date field holds text that is neither blank nor a readable date. */
+	data class UnreadableDates(val start: Boolean, val end: Boolean) : LocalTimelineEvent
+}
+
+internal fun ApiProjectEntity.TimelineEventEntity.toEdits() = TimelineEventEdits(
+	title = title.orEmpty(),
+	label = label.orEmpty(),
+	content = content,
+	lane = lane.orEmpty(),
+	milestone = milestone,
+	start = start?.toCompactText().orEmpty(),
+	end = end?.toCompactText().orEmpty(),
+)
+
+/**
+ * The client copy with [edits] applied. Kind, subject, tags and references stay as the client has
+ * them, and a placement keeps its content because it has none to edit.
+ */
+internal fun buildLocalTimelineEvent(
+	client: ApiProjectEntity.TimelineEventEntity,
+	edits: TimelineEventEdits,
+): LocalTimelineEvent {
+	val start = readDateField(edits.start)
+	val end = readDateField(edits.end)
+	if (start is DateField.Unreadable || end is DateField.Unreadable) {
+		return LocalTimelineEvent.UnreadableDates(
+			start = start is DateField.Unreadable,
+			end = end is DateField.Unreadable,
+		)
+	}
+	return LocalTimelineEvent.Resolved(
+		client.copy(
+			title = edits.title.ifBlank { null },
+			label = edits.label.ifBlank { null },
+			content = if (client.kind == TimelineKind.EVENT) edits.content else client.content,
+			lane = edits.lane.trim().ifEmpty { null },
+			milestone = edits.milestone,
+			start = (start as DateField.Read).date,
+			end = (end as DateField.Read).date,
+		)
+	)
+}
+
+private sealed interface DateField {
+	data class Read(val date: StoryDate?) : DateField
+	data object Unreadable : DateField
+}
+
+private fun readDateField(text: String): DateField =
+	if (text.isBlank()) {
+		DateField.Read(null)
+	} else {
+		parseStoryDateText(text)?.let { DateField.Read(it) } ?: DateField.Unreadable
+	}
 
 @Composable
 internal fun TimelineEventConflict(
@@ -30,20 +139,42 @@ internal fun TimelineEventConflict(
 	component: ProjectSynchronization,
 	screenCharacteristics: WindowSizeClass
 ) {
+	val scope = rememberCoroutineScope()
+	val strRes = rememberStrRes()
 	val client = entityConflict.clientEntity
-	var dateTextValue by rememberSaveable(client) { mutableStateOf(client.label.orEmpty()) }
-	var contentTextValue by rememberSaveable(client) { mutableStateOf(client.content) }
+	val initial = remember(client) { client.toEdits() }
+	var title by rememberSaveable(client) { mutableStateOf(initial.title) }
+	var label by rememberSaveable(client) { mutableStateOf(initial.label) }
+	var content by rememberSaveable(client) { mutableStateOf(initial.content) }
+	var lane by rememberSaveable(client) { mutableStateOf(initial.lane) }
+	var milestone by rememberSaveable(client) { mutableStateOf(initial.milestone) }
+	var start by rememberSaveable(client) { mutableStateOf(initial.start) }
+	var end by rememberSaveable(client) { mutableStateOf(initial.end) }
+	var startUnreadable by rememberSaveable(client) { mutableStateOf(false) }
+	var endUnreadable by rememberSaveable(client) { mutableStateOf(false) }
+	var tagError by rememberSaveable(client) { mutableStateOf<String?>(null) }
+	var ruleProblem by rememberSaveable(client) { mutableStateOf<String?>(null) }
 
-	val contentDiff = rememberContentDiff(entityConflict.serverEntity.content, contentTextValue)
+	val contentDiff = rememberContentDiff(entityConflict.serverEntity.content, content)
 
-	val useLocal = {
-		component.resolveConflict(
-			client.copy(
-				label = dateTextValue.ifBlank { null },
-				content = contentTextValue,
-			)
-		)
-		Unit
+	val useLocal: () -> Unit = {
+		val edits = TimelineEventEdits(title, label, content, lane, milestone, start, end)
+		when (val local = buildLocalTimelineEvent(client, edits)) {
+			is LocalTimelineEvent.UnreadableDates -> {
+				startUnreadable = local.start
+				endUnreadable = local.end
+			}
+
+			is LocalTimelineEvent.Resolved -> {
+				startUnreadable = false
+				endUnreadable = false
+				val error = component.resolveConflict(local.entity)
+				if (error is ProjectSynchronization.EntityMergeError.TimelineEventMergeError) {
+					ruleProblem = error.ruleProblem
+					scope.launch { tagError = error.tagError?.text(strRes) }
+				}
+			}
+		}
 	}
 	val useRemote = { component.resolveConflict(entityConflict.serverEntity); Unit }
 
@@ -54,63 +185,247 @@ internal fun TimelineEventConflict(
 		onUseLocal = useLocal,
 		onUseRemote = useRemote,
 		LocalBody = { m, c, _ ->
-			Column(
-				modifier = m
-					.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L)
-					.verticalScroll(rememberScrollState()),
-				verticalArrangement = Arrangement.spacedBy(HdConflictFieldSpacing),
-			) {
+			val server = c.serverEntity
+			val invalidDate = Res.string.sync_conflict_timeline_event_invalid_date.get()
+			val dateHint = Res.string.sync_conflict_timeline_event_date_hint.get()
+			TimelineEventPane(m) {
+				TimelineEventHeader(client)
+				ruleProblem?.let { HdMonoLabel(text = it, color = MaterialTheme.colorScheme.error) }
 				HdConflictField(
-					label = Res.string.sync_conflict_title_timeline_event_field_date.get(),
-					conflict = c.serverEntity.label != c.clientEntity.label,
+					label = Res.string.sync_conflict_title_timeline_event_field_title.get(),
+					conflict = server.title != client.title,
 				) {
-					HdHairlineField(
-						label = "",
-						value = dateTextValue,
-						onValueChange = { dateTextValue = it },
-						singleLine = true,
-						modifier = Modifier.fillMaxWidth(),
+					HdHairlineField(label = "", value = title, onValueChange = { title = it })
+				}
+				HdConflictField(
+					label = Res.string.sync_conflict_title_timeline_event_field_label.get(),
+					conflict = server.label != client.label,
+				) {
+					HdHairlineField(label = "", value = label, onValueChange = { label = it })
+				}
+				HdConflictField(
+					label = Res.string.sync_conflict_title_timeline_event_field_start.get(),
+					conflict = server.start != client.start,
+				) {
+					StoryDateTextField(
+						value = start,
+						onValueChange = { start = it },
+						hint = dateHint,
+						error = invalidDate.takeIf { startUnreadable },
+						testTag = TIMELINE_CONFLICT_START_TAG,
 					)
 				}
-				val contentTransformation = rememberLocalDiffHighlight(contentDiff)
+				HdConflictField(
+					label = Res.string.sync_conflict_title_timeline_event_field_end.get(),
+					conflict = server.end != client.end,
+				) {
+					StoryDateTextField(
+						value = end,
+						onValueChange = { end = it },
+						hint = dateHint,
+						error = invalidDate.takeIf { endUnreadable },
+						testTag = TIMELINE_CONFLICT_END_TAG,
+					)
+				}
+				HdConflictField(
+					label = Res.string.sync_conflict_title_timeline_event_field_lane.get(),
+					conflict = server.lane != client.lane,
+				) {
+					HdHairlineField(label = "", value = lane, onValueChange = { lane = it })
+				}
+				HdConflictField(
+					label = Res.string.sync_conflict_title_timeline_event_field_milestone.get(),
+					conflict = server.milestone != client.milestone,
+				) {
+					HdHairlineToggleRow(
+						checked = milestone,
+						onCheckedChange = { milestone = it },
+						label = Res.string.sync_conflict_timeline_event_milestone_toggle.get(),
+					)
+				}
 				HdConflictField(
 					label = Res.string.sync_conflict_title_timeline_event_field_content.get(),
-					conflict = c.serverEntity.content != c.clientEntity.content,
+					conflict = server.content != client.content,
 				) {
-					HdHairlineField(
-						label = "",
-						value = contentTextValue,
-						onValueChange = { contentTextValue = it },
-						singleLine = false,
-						minLines = 6,
-						visualTransformation = contentTransformation,
-						modifier = Modifier.fillMaxWidth(),
-					)
+					if (client.kind == TimelineKind.EVENT) {
+						HdHairlineField(
+							label = "",
+							value = content,
+							onValueChange = { content = it },
+							singleLine = false,
+							minLines = 6,
+							visualTransformation = rememberLocalDiffHighlight(contentDiff),
+							modifier = Modifier.fillMaxWidth(),
+						)
+					} else {
+						PlacementHasNoText()
+					}
 				}
+				CountFields(server = server, client = client, shown = client, tagError = tagError)
 			}
 		},
 		RemoteBody = { m, c, _ ->
-			val missingDateLabel = Res.string.sync_conflict_timeline_event_missing_date.get()
-			Column(
-				modifier = m
-					.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L)
-					.verticalScroll(rememberScrollState()),
-				verticalArrangement = Arrangement.spacedBy(HdConflictFieldSpacing),
-			) {
+			val server = c.serverEntity
+			val noDate = Res.string.sync_conflict_timeline_event_missing_date.get()
+			val none = Res.string.sync_conflict_timeline_event_empty.get()
+			TimelineEventPane(m) {
+				TimelineEventHeader(server)
 				HdConflictField(
-					label = Res.string.sync_conflict_title_timeline_event_field_date.get(),
-					conflict = c.serverEntity.label != c.clientEntity.label,
+					label = Res.string.sync_conflict_title_timeline_event_field_title.get(),
+					conflict = server.title != client.title,
 				) {
-					ReadOnlyLine(c.serverEntity.label?.takeIf { it.isNotBlank() } ?: missingDateLabel)
+					ReadOnlyLine(server.title?.takeIf { it.isNotBlank() } ?: none)
 				}
-				val highlighted = rememberRemoteDiffHighlight(c.serverEntity.content, contentDiff)
+				HdConflictField(
+					label = Res.string.sync_conflict_title_timeline_event_field_label.get(),
+					conflict = server.label != client.label,
+				) {
+					ReadOnlyLine(server.label?.takeIf { it.isNotBlank() } ?: noDate)
+				}
+				HdConflictField(
+					label = Res.string.sync_conflict_title_timeline_event_field_start.get(),
+					conflict = server.start != client.start,
+				) {
+					ReadOnlyLine(server.start?.toCompactText() ?: noDate)
+				}
+				HdConflictField(
+					label = Res.string.sync_conflict_title_timeline_event_field_end.get(),
+					conflict = server.end != client.end,
+				) {
+					ReadOnlyLine(server.end?.toCompactText() ?: noDate)
+				}
+				HdConflictField(
+					label = Res.string.sync_conflict_title_timeline_event_field_lane.get(),
+					conflict = server.lane != client.lane,
+				) {
+					ReadOnlyLine(server.lane ?: none)
+				}
+				HdConflictField(
+					label = Res.string.sync_conflict_title_timeline_event_field_milestone.get(),
+					conflict = server.milestone != client.milestone,
+				) {
+					ReadOnlyLine(
+						if (server.milestone) {
+							Res.string.sync_conflict_timeline_event_milestone_on.get()
+						} else {
+							Res.string.sync_conflict_timeline_event_milestone_off.get()
+						}
+					)
+				}
 				HdConflictField(
 					label = Res.string.sync_conflict_title_timeline_event_field_content.get(),
-					conflict = c.serverEntity.content != c.clientEntity.content,
+					conflict = server.content != client.content,
 				) {
-					ReadOnlyBlock(highlighted)
+					if (server.kind == TimelineKind.EVENT) {
+						ReadOnlyBlock(rememberRemoteDiffHighlight(server.content, contentDiff))
+					} else {
+						PlacementHasNoText()
+					}
 				}
+				CountFields(server = server, client = client, shown = server, tagError = null)
 			}
 		},
 	)
+}
+
+@Composable
+private fun TimelineEventPane(modifier: Modifier, content: @Composable ColumnScope.() -> Unit) {
+	Column(
+		modifier = modifier
+			.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L)
+			.verticalScroll(rememberScrollState()),
+		verticalArrangement = Arrangement.spacedBy(HdConflictFieldSpacing),
+		content = content,
+	)
+}
+
+/** Kind glyph, subject id and the subject's cached title; these come with whichever side is used. */
+@Composable
+private fun TimelineEventHeader(entity: ApiProjectEntity.TimelineEventEntity) {
+	Row(
+		verticalAlignment = Alignment.CenterVertically,
+		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M),
+	) {
+		Text(
+			text = entity.kind.glyph(),
+			style = MaterialTheme.typography.titleMedium,
+			color = MaterialTheme.colorScheme.onSurfaceVariant,
+		)
+		entity.subject?.let { subject ->
+			HdEntityId(prefix = entity.kind.subjectPrefix(), id = subject)
+		}
+		entity.cachedTitle?.takeIf { it.isNotBlank() }?.let { cachedTitle ->
+			Text(
+				text = cachedTitle,
+				style = MaterialTheme.typography.bodyLarge,
+				color = MaterialTheme.colorScheme.onSurface,
+				maxLines = 1,
+				overflow = TextOverflow.Ellipsis,
+			)
+		}
+	}
+}
+
+private fun TimelineKind.glyph(): String = when (this) {
+	TimelineKind.EVENT -> HD_EVENT_GLYPH
+	TimelineKind.SCENE -> HD_SCENE_GLYPH
+	TimelineKind.ENTRY -> EntryType.EVENT.glyph()
+}
+
+private fun TimelineKind.subjectPrefix(): String = when (this) {
+	TimelineKind.EVENT -> "EVT"
+	TimelineKind.SCENE -> "SCN"
+	TimelineKind.ENTRY -> "ENT"
+}
+
+@Composable
+private fun StoryDateTextField(
+	value: String,
+	onValueChange: (String) -> Unit,
+	hint: String,
+	error: String?,
+	testTag: String,
+) {
+	HdHairlineField(
+		label = "",
+		value = value,
+		onValueChange = onValueChange,
+		placeholder = hint,
+		error = error,
+		capitalization = KeyboardCapitalization.None,
+		autoCorrectEnabled = false,
+		testTag = testTag,
+	)
+}
+
+@Composable
+private fun PlacementHasNoText() {
+	Text(
+		text = Res.string.sync_conflict_timeline_event_placement_no_text.get(),
+		style = MaterialTheme.typography.bodyMedium,
+		color = MaterialTheme.colorScheme.onSurfaceVariant,
+	)
+}
+
+/** Tags and references are not merged here; [shown]'s sets ride along with its side. */
+@Composable
+private fun CountFields(
+	server: ApiProjectEntity.TimelineEventEntity,
+	client: ApiProjectEntity.TimelineEventEntity,
+	shown: ApiProjectEntity.TimelineEventEntity,
+	tagError: String?,
+) {
+	HdConflictField(
+		label = Res.string.sync_conflict_title_timeline_event_field_tags.get(),
+		conflict = server.tags != client.tags,
+	) {
+		ReadOnlyLine(shown.tags.size.toString())
+		tagError?.let { HdMonoLabel(text = it, color = MaterialTheme.colorScheme.error) }
+	}
+	HdConflictField(
+		label = Res.string.sync_conflict_title_timeline_event_field_references.get(),
+		conflict = server.references != client.references,
+	) {
+		ReadOnlyLine(shown.references.size.toString())
+	}
 }

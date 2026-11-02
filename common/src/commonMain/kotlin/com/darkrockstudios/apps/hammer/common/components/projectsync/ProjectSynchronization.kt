@@ -102,6 +102,8 @@ interface ProjectSynchronization {
 
 		class TimelineEventMergeError(
 			val tagError: Msg? = null,
+			/** The broken shape rule, in plain English, from `TimelineEntityRules`. */
+			val ruleProblem: String? = null,
 		) : EntityMergeError()
 
 		class EncyclopediaEntryMergeError(

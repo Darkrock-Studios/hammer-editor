@@ -137,6 +137,21 @@
 
 	<string name="sync_conflict_title_timeline_event_field_date">Date</string>
 	<string name="sync_conflict_title_timeline_event_field_content">Event Content</string>
+	<string name="sync_conflict_title_timeline_event_field_label">Label</string>
+	<string name="sync_conflict_title_timeline_event_field_title">Title</string>
+	<string name="sync_conflict_title_timeline_event_field_lane">Lane</string>
+	<string name="sync_conflict_title_timeline_event_field_milestone">Milestone</string>
+	<string name="sync_conflict_title_timeline_event_field_start">Start</string>
+	<string name="sync_conflict_title_timeline_event_field_end">End</string>
+	<string name="sync_conflict_title_timeline_event_field_references">References</string>
+	<string name="sync_conflict_title_timeline_event_field_tags">Tags</string>
+	<string name="sync_conflict_timeline_event_placement_no_text">Placements have no text</string>
+	<string name="sync_conflict_timeline_event_date_hint">year=97 day=210</string>
+	<string name="sync_conflict_timeline_event_invalid_date">Write the date as unit=number pairs, like year=97 day=210</string>
+	<string name="sync_conflict_timeline_event_milestone_toggle">Mark as a milestone</string>
+	<string name="sync_conflict_timeline_event_milestone_on">Milestone</string>
+	<string name="sync_conflict_timeline_event_milestone_off">Not a milestone</string>
+	<string name="sync_conflict_timeline_event_empty">None</string>
 
 	<string name="sync_conflict_title_image_field_name">Name</string>
 	<string name="sync_conflict_image_name_invalid">Image names cannot be blank, end with a dot or space, or contain ~</string>
