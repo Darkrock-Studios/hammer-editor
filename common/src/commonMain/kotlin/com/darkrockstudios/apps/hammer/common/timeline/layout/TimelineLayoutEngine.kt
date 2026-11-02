@@ -483,13 +483,13 @@ object TimelineLayoutEngine {
 					?: return emptyList()
 				val positions = ArrayList<Long>()
 				if (segments.isEmpty()) {
-					positions += tickPositions(lo..hi, step.unit, step.step)
+					positions += scheme.positionsIn(lo..hi, step.unit, step.step)
 				} else {
 					for (s in segments) {
 						val inSegment = if (s.fold) {
-							foldedEnds.filter { (it == s.a || it == s.b) && it.mod(step.size) == 0L }
+							foldedEnds.filter { (it == s.a || it == s.b) && scheme.positionsIn(it..it, step.unit, step.step).isNotEmpty() }
 						} else {
-							tickPositions(s.a..s.b, step.unit, step.step)
+							scheme.positionsIn(s.a..s.b, step.unit, step.step)
 						}
 						for (p in inSegment) {
 							if (positions.isEmpty() || p > positions.last()) positions += p

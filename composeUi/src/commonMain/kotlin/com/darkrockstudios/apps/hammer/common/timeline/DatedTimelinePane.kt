@@ -23,9 +23,13 @@ import com.darkrockstudios.apps.hammer.common.timeline.drawing.TimelineDrawingPa
 import com.darkrockstudios.apps.hammer.common.timeline.drawing.rememberTimelineTextMeasurer
 import com.darkrockstudios.apps.hammer.common.timeline.layout.HitTarget
 import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineLayoutEngine
+import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineLayoutInput
 import com.darkrockstudios.apps.hammer.timeline_lane_filter_description
+import kotlin.math.floor
 
 private const val FALLBACK_WIDTH_DP = 840f
+private const val WIDTH_STEP_DP = 8f
+private const val MIN_LANE_WIDTH_DP = 72f
 
 /** The drawing of a DATED timeline's [rows], laid out to the width it is given. */
 @Composable
@@ -45,18 +49,20 @@ internal fun DatedTimelinePane(
 
 	BoxWithConstraints(modifier = modifier.fillMaxSize().testTag(TIMELINE_DRAWING_TAG)) {
 		val widthDp = if (maxWidth.value.isFinite()) (maxWidth - MpScrollBarGutter).value.coerceAtLeast(0f) else FALLBACK_WIDTH_DP
-		val layout = remember(rows, state.lanes, state.laneFilter, state.view, calendar, widthDp, phone, words, measurer) {
+		// Stepped so that resizing the window does not lay the timeline out again on every frame.
+		val steppedWidthDp = floor(widthDp / WIDTH_STEP_DP) * WIDTH_STEP_DP
+		val layout = remember(rows, state.lanes, state.laneFilter, state.view, calendar, steppedWidthDp, phone, words, measurer) {
 			val input = toLayoutInput(
 				rows = rows,
 				lanes = state.lanes,
 				laneFilter = state.laneFilter,
 				calendar = calendar,
 				view = state.view,
-				widthDp = widthDp,
+				widthDp = steppedWidthDp,
 				phone = phone,
 				words = words,
 			)
-			TimelineLayoutEngine.layout(input, measurer)
+			TimelineLayoutEngine.layout(input.copy(widthDp = maxOf(steppedWidthDp, minimumWidthDp(input))), measurer)
 		}
 		// The layout numbers only the lanes it draws; a lane's colour follows its place in the full list.
 		val paletteIndex = remember(layout, state.lanes) {
@@ -73,6 +79,16 @@ internal fun DatedTimelinePane(
 			laneHeaderDescription = describeLane,
 			measurer = measurer,
 			modifier = Modifier.fillMaxSize(),
+			contentWidth = layout.widthDp.takeIf { it > widthDp }?.dp,
 		)
 	}
+}
+
+/** Wide enough for every drawn lane to get [MIN_LANE_WIDTH_DP]; phone lanes are fixed-width rails. */
+private fun minimumWidthDp(input: TimelineLayoutInput): Float {
+	if (input.phone) return 0f
+	val lanes = input.events.mapNotNullTo(HashSet()) { it.lane }.size
+	if (lanes == 0) return 0f
+	val m = input.metrics
+	return m.axisWidth + lanes * MIN_LANE_WIDTH_DP + m.ledgerMax + m.padRight
 }

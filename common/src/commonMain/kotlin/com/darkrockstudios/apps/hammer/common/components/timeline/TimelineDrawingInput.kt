@@ -3,8 +3,10 @@ package com.darkrockstudios.apps.hammer.common.components.timeline
 import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
 import com.darkrockstudios.apps.hammer.base.timeline.CalendarPreset
 import com.darkrockstudios.apps.hammer.base.timeline.StoryCalendar
+import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.StoryDateWords
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.advanceStoryDate
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.entryUnits
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.formatStoryDateTick
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.storyDateAt
@@ -15,14 +17,15 @@ import com.darkrockstudios.apps.hammer.common.timeline.layout.TickUnit
 import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineFrame
 import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineLayoutInput
 import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineView
+import com.darkrockstudios.apps.hammer.common.timeline.layout.tickPositions
 
 private const val MINUTES_PER_DAY = 24L * 60L
 
-// Gregorian years and months vary in length; ticks step by the mean, and labels snap to the
-// boundary the mean lands next to.
+// Gregorian years and months vary in length; the mean only chooses the unit and step, ticks fall
+// on the civil boundaries.
 private const val GREGORIAN_YEAR_MINUTES = 525_949L
 private const val GREGORIAN_MONTH_MINUTES = GREGORIAN_YEAR_MINUTES / 12
-private const val GREGORIAN_SNAP_MINUTES = 3 * MINUTES_PER_DAY
+private const val TICK_LIMIT = 1000
 
 /**
  * The layout input for a dated timeline's [rows]. Rows without a start that resolves on [calendar]
@@ -88,19 +91,38 @@ private fun TimelineKind.toLayoutKind(): LayoutKind = when (this) {
 
 /** Ticks in the units a date on [calendar] is entered in, coarsest first, labelled in [words]. */
 fun timelineTickScheme(calendar: CalendarDef, words: StoryDateWords = StoryDateWords.English): TickScheme {
-	val gregorian = calendar.preset == CalendarPreset.GREGORIAN
 	val units = entryUnits(calendar).map { TickUnit(it.name, unitMinutes(calendar.preset, it.name)) }
-	return TickScheme(units) { position, unit, short ->
-		val date = if (gregorian && (unit.name == StoryCalendar.YEAR || unit.name == StoryCalendar.MONTH)) {
-			// A tick stepped by the mean length sits up to a few days before the boundary it stands for.
-			val next = storyDateAt(calendar, position + GREGORIAN_SNAP_MINUTES, unit.name)
-			val boundary = StoryCalendar.position(calendar, next)!!
-			if (boundary > position) next else storyDateAt(calendar, position, unit.name)
-		} else {
-			storyDateAt(calendar, position, unit.name)
-		}
-		formatStoryDateTick(calendar, date, short, words)
+	val positions: ((LongRange, TickUnit, Long) -> List<Long>)? = if (calendar.preset == CalendarPreset.GREGORIAN) {
+		{ range, unit, step -> gregorianTickPositions(calendar, range, unit, step) }
+	} else {
+		null
 	}
+	return TickScheme(units, positions) { position, unit, short ->
+		formatStoryDateTick(calendar, storyDateAt(calendar, position, unit.name), short, words)
+	}
+}
+
+/**
+ * The year or month starts inside [range] whose count from year 0 is a multiple of [step]; finer
+ * units have a fixed length and tick on multiples of it.
+ */
+private fun gregorianTickPositions(calendar: CalendarDef, range: LongRange, unit: TickUnit, step: Long): List<Long> {
+	val index: (StoryDate) -> Long = when (unit.name) {
+		StoryCalendar.YEAR -> { date -> date[StoryCalendar.YEAR]!! }
+		StoryCalendar.MONTH -> { date -> date[StoryCalendar.YEAR]!! * 12 + date[StoryCalendar.MONTH]!! - 1 }
+		else -> return tickPositions(range, unit, step)
+	}
+	if (step <= 0) return emptyList()
+	val truncated = storyDateAt(calendar, range.first, unit.name)
+	var date = advanceStoryDate(calendar, truncated, unit.name, -index(truncated).mod(step))
+	val out = ArrayList<Long>()
+	while (out.size < TICK_LIMIT) {
+		val p = StoryCalendar.position(calendar, date) ?: break
+		if (p > range.last) break
+		if (p >= range.first) out += p
+		date = advanceStoryDate(calendar, date, unit.name, step)
+	}
+	return out
 }
 
 private fun unitMinutes(preset: CalendarPreset, unit: String): Long = when (unit) {

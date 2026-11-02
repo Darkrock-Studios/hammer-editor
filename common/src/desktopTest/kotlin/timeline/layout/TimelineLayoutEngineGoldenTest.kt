@@ -1,12 +1,21 @@
 package timeline.layout
 
+import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
+import com.darkrockstudios.apps.hammer.base.timeline.CalendarPreset
+import com.darkrockstudios.apps.hammer.base.timeline.StoryCalendar
+import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
+import com.darkrockstudios.apps.hammer.common.components.timeline.timelineTickScheme
 import com.darkrockstudios.apps.hammer.common.timeline.layout.BandLabel
 import com.darkrockstudios.apps.hammer.common.timeline.layout.HitRegion
 import com.darkrockstudios.apps.hammer.common.timeline.layout.HitTarget
+import com.darkrockstudios.apps.hammer.common.timeline.layout.LayoutEvent
+import com.darkrockstudios.apps.hammer.common.timeline.layout.LayoutKind
 import com.darkrockstudios.apps.hammer.common.timeline.layout.MonospaceEstimateMeasurer
 import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineLayout
 import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineLayoutEngine
+import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineFrame
 import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineLayoutInput
+import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineView
 import com.darkrockstudios.apps.hammer.common.timeline.layout.samples.TimelineLayoutSamples
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -71,7 +80,42 @@ class TimelineLayoutEngineGoldenTest {
 			desktop = Shape(99, 18, 269, 119, 47, 6, 33404f),
 			phone = Shape(99, 18, 269, 500, 47, 6, 33398f),
 		) { phone, id -> TimelineLayoutSamples.stress(phone = phone, selectedId = id) },
+		Sample(
+			"regency", 3,
+			desktop = Shape(2, 0, 2, 2, 1, 1, 263.6f),
+			phone = Shape(2, 0, 2, 5, 1, 1, 252.6f),
+		) { phone, id -> regency(phone, id) },
 	)
+
+	private val gregorian = CalendarDef(CalendarPreset.GREGORIAN)
+
+	private fun gregorianAt(year: Long, month: Long = 1, day: Long = 1): Long {
+		val date = StoryDate(linkedMapOf(StoryCalendar.YEAR to year, StoryCalendar.MONTH to month, StoryCalendar.DAY to day))
+		return StoryCalendar.position(gregorian, date)!!
+	}
+
+	/** A Gregorian decade in two lanes, ticked by the app's calendar scheme. */
+	private fun regency(phone: Boolean, selectedId: Int?): TimelineLayoutInput {
+		fun event(id: Int, title: String, start: Long, end: Long? = null, lane: String? = null, milestone: Boolean = false) =
+			LayoutEvent(id, LayoutKind.EVENT, title, null, lane, milestone, id, start, end)
+		val events = listOf(
+			event(1, "Bennet entail settled", gregorianAt(1800, 3, 14), lane = "Longbourn"),
+			event(2, "Militia at Meryton", gregorianAt(1803, 9, 1), gregorianAt(1805, 4, 30), lane = "Meryton"),
+			event(3, "Netherfield let", gregorianAt(1806, 10, 2), lane = "Longbourn", milestone = true),
+			event(4, "The Pemberley visit", gregorianAt(1808, 7, 20), gregorianAt(1808, 8, 10), lane = "Longbourn"),
+			event(5, "Peace with France", gregorianAt(1810, 1, 1)),
+		)
+		return TimelineLayoutInput(
+			events = events,
+			laneOrder = listOf("Longbourn", "Meryton"),
+			view = TimelineView.TO_SCALE,
+			frame = TimelineFrame.Everything,
+			widthDp = if (phone) 360f else 840f,
+			phone = phone,
+			ticks = timelineTickScheme(gregorian),
+			selectedId = selectedId,
+		)
+	}
 
 	private fun forEachLayout(block: (sample: Sample, phone: Boolean, layout: TimelineLayout) -> Unit) {
 		for (sample in samples) {
@@ -169,6 +213,18 @@ class TimelineLayoutEngineGoldenTest {
 				val layout = TimelineLayoutEngine.layout(sample.build(phone, sample.selectId), measurer)
 
 				assertEquals(sample.selectId, assertNotNull(layout.projection, "${sample.name} phone=$phone").eventId)
+			}
+		}
+	}
+
+	@Test
+	fun `gregorian ticks fall on the boundaries they name`() {
+		for (phone in listOf(false, true)) {
+			val ticks = TimelineLayoutEngine.layout(regency(phone, null), measurer).axis.ticks
+
+			assertTrue(ticks.size >= 4, "phone=$phone: ${ticks.size} ticks")
+			for (tick in ticks) {
+				assertEquals(gregorianAt(tick.label.toLong()), tick.position, "phone=$phone tick ${tick.label}")
 			}
 		}
 	}

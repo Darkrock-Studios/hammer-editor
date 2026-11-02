@@ -1,10 +1,15 @@
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
@@ -16,16 +21,22 @@ import com.darkrockstudios.apps.hammer.common.components.timeline.LaneCount
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineOverview
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimelineRow
 import com.darkrockstudios.apps.hammer.common.compose.LocalImageNames
+import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
+import com.darkrockstudios.apps.hammer.common.compose.ScreenCharacteristics
+import com.darkrockstudios.apps.hammer.common.compose.WindowHeightSizeClass
+import com.darkrockstudios.apps.hammer.common.compose.WindowWidthSizeClass
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagCount
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.timeline.*
 import com.darkrockstudios.apps.hammer.common.timeline.drawing.TIMELINE_DRAWING_TAG
+import com.darkrockstudios.apps.hammer.common.timeline.drawing.TIMELINE_HORIZONTAL_SCROLL_TAG
 import com.darkrockstudios.apps.hammer.common.timeline.drawing.testTag
 import com.darkrockstudios.apps.hammer.common.timeline.layout.HitTarget
 import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineView
 import org.junit.Rule
 import org.junit.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class TimeLineOverviewUiTest : BaseTest() {
 	@get:Rule
@@ -387,6 +398,48 @@ class TimeLineOverviewUiTest : BaseTest() {
 		compose.onNodeWithTag(HitTarget.Ledger(7).testTag()).performClick()
 
 		assertEquals(listOf(7), opened)
+	}
+
+	private fun showDatedPane(laneCount: Int, width: Dp) {
+		val calendar = CalendarDef()
+		val lanes = (1..laneCount).map { LaneCount("Lane $it", 1) }
+		val rows = lanes.mapIndexed { i, lane ->
+			row(TimeLineEvent(id = i + 1, order = i, title = "Event ${i + 1}", lane = lane.lane), laneIndex = i).copy(
+				start = StoryDate(mapOf("year" to i + 1L)),
+				calendar = calendar,
+			)
+		}
+		val state = TimeLineOverview.State(rows = rows, lanes = lanes, mode = TimelineMode.DATED, calendar = calendar)
+		compose.setContent {
+			CompositionLocalProvider(
+				LocalScreenCharacteristic provides ScreenCharacteristics(
+					isWide = true,
+					windowWidthClass = WindowWidthSizeClass.Expanded,
+					windowHeightClass = WindowHeightSizeClass.Expanded,
+					needsExplicitClose = false,
+				),
+			) {
+				Box(modifier = Modifier.requiredSize(width, 700.dp)) {
+					DatedTimelinePane(state = state, rows = rows, onTap = {})
+				}
+			}
+		}
+	}
+
+	@Test
+	fun `A dated timeline too narrow for its lanes scrolls sideways`() {
+		showDatedPane(laneCount = 14, width = 600.dp)
+
+		compose.onNodeWithTag(TIMELINE_HORIZONTAL_SCROLL_TAG).assertExists()
+		val lastHeader = compose.onNodeWithTag(HitTarget.LaneHeader("Lane 14").testTag()).getUnclippedBoundsInRoot()
+		assertTrue(lastHeader.right > 600.dp, "the last lane ends at ${lastHeader.right}")
+	}
+
+	@Test
+	fun `A dated timeline wide enough for its lanes does not scroll sideways`() {
+		showDatedPane(laneCount = 3, width = 900.dp)
+
+		compose.onNodeWithTag(TIMELINE_HORIZONTAL_SCROLL_TAG).assertDoesNotExist()
 	}
 
 	@Test

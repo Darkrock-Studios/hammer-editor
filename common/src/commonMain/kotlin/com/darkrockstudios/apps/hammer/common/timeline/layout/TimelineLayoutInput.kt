@@ -52,11 +52,17 @@ data class TickUnit(val name: String, val sizeInBase: Long)
 /**
  * The units an axis may tick in, coarsest first, and how to label a tick. [format] receives the
  * tick's position, the unit it was derived in, and whether the short (phone) form is wanted.
+ * [positions] places the ticks inside a range for a unit and step; without it ticks fall on
+ * multiples of the step's size (see [tickPositions]).
  */
 class TickScheme(
 	val units: List<TickUnit>,
+	val positions: ((range: LongRange, unit: TickUnit, step: Long) -> List<Long>)? = null,
 	val format: (position: Long, unit: TickUnit, short: Boolean) -> String,
-)
+) {
+	fun positionsIn(range: LongRange, unit: TickUnit, step: Long): List<Long> =
+		positions?.invoke(range, unit, step) ?: tickPositions(range, unit, step)
+}
 
 /** Every distance is in dp. */
 data class LayoutMetrics(

@@ -146,20 +146,54 @@ class TimelineDrawingInputTest {
 		assertEquals("Hour 30", scheme.format(30 * hour + 12, scheme.units[0], false))
 	}
 
+	private val gregorian = CalendarDef(CalendarPreset.GREGORIAN)
+
+	private fun gregorianAt(vararg rungs: Pair<String, Long>): Long = StoryCalendar.position(gregorian, date(*rungs))!!
+
 	@Test
-	fun `gregorian year ticks snap to the year they stand for`() {
-		val scheme = timelineTickScheme(CalendarDef(CalendarPreset.GREGORIAN))
+	fun `gregorian year ticks land on the first of January`() {
+		val scheme = timelineTickScheme(gregorian)
 		val yearUnit = scheme.units.first()
 		assertEquals("year", yearUnit.name)
-		// Four mean years from 1970 land late on 31 December 1973.
-		assertEquals("1974", scheme.format(4 * yearUnit.sizeInBase, yearUnit, false))
-		assertEquals("1970", scheme.format(0, yearUnit, false))
-		assertEquals("12 May 1802", scheme.format(gregorianMay12_1802(), scheme.units[2], false))
+		val range = gregorianAt("year" to 1800)..gregorianAt("year" to 1810)
+
+		val positions = scheme.positionsIn(range, yearUnit, 1)
+
+		assertEquals((1800L..1810L).map { gregorianAt("year" to it) }, positions)
+		assertEquals((1800..1810).map { "$it" }, positions.map { scheme.format(it, yearUnit, false) })
 	}
 
-	private fun gregorianMay12_1802(): Long =
-		StoryCalendar.position(
-			CalendarDef(CalendarPreset.GREGORIAN),
-			date("year" to 1802, "month" to 5, "day" to 12, "hour" to 6),
-		)!!
+	@Test
+	fun `gregorian year ticks step from a multiple of the step`() {
+		val scheme = timelineTickScheme(gregorian)
+		val yearUnit = scheme.units.first()
+		val range = gregorianAt("year" to 1803, "month" to 6)..gregorianAt("year" to 1821)
+
+		val positions = scheme.positionsIn(range, yearUnit, 5)
+
+		assertEquals(listOf(1805L, 1810L, 1815L, 1820L).map { gregorianAt("year" to it) }, positions)
+	}
+
+	@Test
+	fun `gregorian month ticks land on the first of each month`() {
+		val scheme = timelineTickScheme(gregorian)
+		val monthUnit = scheme.units.single { it.name == "month" }
+		val range = gregorianAt("year" to 1802, "month" to 1, "day" to 15)..gregorianAt("year" to 1802, "month" to 6, "day" to 1)
+
+		val positions = scheme.positionsIn(range, monthUnit, 1)
+
+		assertEquals((2L..6L).map { gregorianAt("year" to 1802, "month" to it) }, positions)
+		assertEquals(
+			listOf("February 1802", "March 1802", "April 1802", "May 1802", "June 1802"),
+			positions.map { scheme.format(it, monthUnit, false) },
+		)
+	}
+
+	@Test
+	fun `gregorian day ticks label the day`() {
+		val scheme = timelineTickScheme(gregorian)
+		val dayUnit = scheme.units.single { it.name == "day" }
+
+		assertEquals("12 May 1802", scheme.format(gregorianAt("year" to 1802, "month" to 5, "day" to 12, "hour" to 6), dayUnit, false))
+	}
 }

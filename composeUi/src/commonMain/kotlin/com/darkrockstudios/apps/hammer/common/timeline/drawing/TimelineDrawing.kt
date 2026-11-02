@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.timeline.drawing
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -38,6 +40,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarColumn
@@ -61,6 +64,9 @@ import com.darkrockstudios.apps.hammer.common.timeline.layout.RectDp
 import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineLayout
 
 const val TIMELINE_DRAWING_TAG = "Timeline Drawing"
+
+/** The horizontal scroll a [TimelineDrawingPane] adds when its drawing is wider than the pane. */
+const val TIMELINE_HORIZONTAL_SCROLL_TAG = "Timeline Horizontal Scroll"
 
 /** Each hit region is tagged with this prefix and its target, e.g. `Timeline Hit Ledger 4`. */
 const val TIMELINE_HIT_TAG = "Timeline Hit"
@@ -141,7 +147,10 @@ fun TimelineDrawing(
 	}
 }
 
-/** [TimelineDrawing] in a vertical scroll with the platform scrollbar. */
+/**
+ * [TimelineDrawing] in a vertical scroll with the platform scrollbar. A non-null [contentWidth]
+ * draws at that width and scrolls horizontally as well.
+ */
 @Composable
 fun TimelineDrawingPane(
 	layout: TimelineLayout,
@@ -149,18 +158,26 @@ fun TimelineDrawingPane(
 	selectedId: Int?,
 	onTap: (HitTarget) -> Unit,
 	modifier: Modifier = Modifier,
+	contentWidth: Dp? = null,
 	titles: Map<Int, String> = emptyMap(),
 	laneHeaderDescription: (String) -> String = { it },
 	measurer: ComposeTimelineTextMeasurer = rememberTimelineTextMeasurer(),
 ) {
 	val scrollState = rememberScrollState()
+	val horizontalState = rememberScrollState()
+	val horizontal = if (contentWidth != null) {
+		Modifier.testTag(TIMELINE_HORIZONTAL_SCROLL_TAG).horizontalScroll(horizontalState)
+	} else {
+		Modifier
+	}
 	Box(modifier = modifier) {
-		Column(modifier = Modifier.fillMaxSize().verticalScroll(scrollState)) {
+		Column(modifier = Modifier.fillMaxSize().verticalScroll(scrollState).then(horizontal)) {
 			TimelineDrawing(
 				layout = layout,
 				laneColor = laneColor,
 				selectedId = selectedId,
 				onTap = onTap,
+				modifier = if (contentWidth != null) Modifier.width(contentWidth) else Modifier,
 				titles = titles,
 				laneHeaderDescription = laneHeaderDescription,
 				measurer = measurer,
@@ -266,8 +283,11 @@ private class TimelinePainter(
 	private fun text(text: String, style: LabelStyle): TextLayoutResult =
 		texts.getOrPut(text to style) { measurer.measure(text, style) }
 
-	private fun DrawScope.drawTextAt(result: TextLayoutResult, x: Float, baseline: Float, color: Color) {
-		drawText(result, color, Offset(px(x), px(baseline) - result.firstBaseline))
+	/** With [halo], the text is ringed in the surface colour so it reads over a fill or a rule. */
+	private fun DrawScope.drawTextAt(result: TextLayoutResult, x: Float, baseline: Float, color: Color, halo: Boolean = false) {
+		val topLeft = Offset(px(x), px(baseline) - result.firstBaseline)
+		if (halo) for (offset in haloOffsets()) drawText(result, ink.surface, topLeft + offset)
+		drawText(result, color, topLeft)
 	}
 
 	private fun DrawScope.dotted(): PathEffect = PathEffect.dashPathEffect(floatArrayOf(px(1f), px(2f)))
@@ -438,9 +458,7 @@ private class TimelinePainter(
 
 	/** Text over a lane fill, ringed in the surface colour so it reads on any shade. */
 	private fun DrawScope.drawHaloText(result: TextLayoutResult, x: Float, baseline: Float) {
-		val topLeft = Offset(px(x), px(baseline) - result.firstBaseline)
-		for (offset in haloOffsets()) drawText(result, ink.surface, topLeft + offset)
-		drawText(result, ink.onSurface, topLeft)
+		drawTextAt(result, x, baseline, ink.onSurface, halo = true)
 	}
 
 	private fun DrawScope.drawLeaderLabel(label: LeaderLabel, leaderColor: Color) {
@@ -550,12 +568,14 @@ private class TimelinePainter(
 				LedgerStyle.LaneCallout -> LabelStyle.Ledger to ink.onSurface
 			}
 			val lineColor = if (row.eventId == selectedId) ink.onSurface else color
+			// A milestone's text sits on its own dotted rule.
+			val halo = row.style == LedgerStyle.Milestone
 			row.lines.forEachIndexed { i, line ->
-				drawTextAt(text(line, style), layout.ledgerTextXDp, row.textYDp + i * LedgerLineHeight, lineColor)
+				drawTextAt(text(line, style), layout.ledgerTextXDp, row.textYDp + i * LedgerLineHeight, lineColor, halo)
 			}
 			row.sub?.let { sub ->
 				val baseline = row.textYDp + row.lines.size * LedgerLineHeight
-				drawTextAt(text(sub, LabelStyle.LedgerSub), layout.ledgerTextXDp, baseline, ink.onSurfaceVariant)
+				drawTextAt(text(sub, LabelStyle.LedgerSub), layout.ledgerTextXDp, baseline, ink.onSurfaceVariant, halo)
 			}
 		}
 	}
