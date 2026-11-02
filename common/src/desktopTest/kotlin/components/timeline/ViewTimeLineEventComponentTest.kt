@@ -1,120 +1,197 @@
 package components.timeline
 
-import PROJECT_EMPTY_NAME
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.common.components.timeline.ViewTimeLineEventComponent
-import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineContainer
-import getProjectDef
-import io.mockk.coEvery
-import io.mockk.coVerify
-import kotlinx.coroutines.ExperimentalCoroutinesApi
+import com.darkrockstudios.apps.hammer.common.data.SceneItem
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.SubjectSummary
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEventError
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineEventDraft
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineResult
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
-import repositories.timeline.TimeLineTestBase
-import repositories.timeline.fakeEvents
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
-@OptIn(ExperimentalCoroutinesApi::class)
-class ViewTimeLineEventComponentTest : TimeLineTestBase() {
+class ViewTimeLineEventComponentTest : TimelineComponentTestBase() {
 
-	@Test
-	fun `Update event`() = runTest {
-		coEvery { timelineRepo.updateEvent(any()) } returns true
-
-		val eventId = 0
-
-		val originalEvents = fakeEvents()
-		val timeline = TimeLineContainer(originalEvents)
-
-		val component = ViewTimeLineEventComponent(
-			componentContext = context,
-			projectDef = getProjectDef(PROJECT_EMPTY_NAME),
-			eventId = eventId,
-			onCloseEvent = {},
-			addMenu = {},
-			removeMenu = {},
-			updateShouldClose = {},
-			onShowGlobalSearchForTag = {},
-		)
-		lifecycleCallbacks[1].onCreate()
-		advanceUntilIdle()
-
-		timelineRepoCollectCallback.captured.emit(timeline)
-		advanceUntilIdle()
-
-		val event = originalEvents.first()
-		assertEquals(event, component.state.value.event, "Initial event did not load from the timeline")
-
-		component.beginEdit()
-		assertTrue(component.state.value.isEditing)
-
-		val date = "updated date"
-		val content = "updated content"
-		val updatedEvent = event.copy(
-			label = date,
-			content = content
-		)
-		coEvery { timelineRepo.getTimelineEvent(eventId) } returns updatedEvent
-		val success = component.storeEvent(updatedEvent)
-		assertTrue(success, "Update event failed")
-
-		// After the update, it should save back to repository
-		coVerify(exactly = 1) { timelineRepo.updateEvent(updatedEvent) }
-		assertFalse(component.state.value.isEditing, "storeEvent should exit edit mode")
-		assertEquals(updatedEvent, component.state.value.event, "State should refresh to the stored event")
-	}
+	private val shownScenes = mutableListOf<SceneItem>()
+	private val shownEntries = mutableListOf<EntryDef>()
 
 	private fun newComponent(eventId: Int) = ViewTimeLineEventComponent(
 		componentContext = context,
-		projectDef = getProjectDef(PROJECT_EMPTY_NAME),
+		projectDef = projectDef,
 		eventId = eventId,
 		onCloseEvent = {},
 		addMenu = {},
 		removeMenu = {},
 		updateShouldClose = {},
 		onShowGlobalSearchForTag = {},
+		onShowScene = { shownScenes += it },
+		onShowEntry = { shownEntries += it },
 	)
 
+	private fun TimelineResult.event(): TimeLineEvent = (this as TimelineResult.Ok).event!!
+
 	@Test
-	fun `An event changed elsewhere refreshes the open view`() = runTest {
-		val events = fakeEvents()
-		val component = newComponent(eventId = 0)
-		lifecycleCallbacks[1].onCreate()
+	fun `a scene placement shows its chapter, excerpt and cast with people first`() = runTest(mainTestDispatcher) {
+		givenProject()
+		sceneMetadataRepository.storeMetadata(SceneMetadata(confirmedReferences = setOf(WONDERLAND, ALICE)), sceneId = 4)
+		val placed = timelineService.placeScene(4, null, null, lane = "Alice", milestone = false).event()
+
+		val component = newComponent(placed.id)
+		context.resume()
 		advanceUntilIdle()
 
-		timelineRepoCollectCallback.captured.emit(TimeLineContainer(events))
+		val state = component.state.value
+		assertEquals(TimelineKind.SCENE, state.kind)
+		val subject = assertIs<SubjectSummary.Scene>(state.subject)
+		assertEquals("Chapter ID 2", subject.chapterPath)
+		assertEquals("Content of scene id 4", subject.excerpt)
+		assertEquals(listOf(ALICE, WONDERLAND), state.references.map { it.id })
+		assertEquals("Scene ID 4", state.displayTitle)
+		assertEquals(0, state.laneIndex)
+
+		component.openSubject()
+		assertEquals(listOf(4), shownScenes.map { it.id })
+	}
+
+	@Test
+	fun `an event shows its references and edits them`() = runTest(mainTestDispatcher) {
+		givenProject()
+		val event = timelineService.createEvent(TimelineEventDraft(title = "Storm", references = setOf(ALICE, 4))).event()
+
+		val component = newComponent(event.id)
+		context.resume()
+		advanceUntilIdle()
+		assertEquals(setOf(ALICE, 4), component.state.value.references.map { it.id }.toSet())
+
+		component.beginEdit()
+		component.addReference(catalogItem(WONDERLAND))
+		component.removeReference(4)
+		assertTrue(component.isEditingAndDirty())
+		assertEquals(TimeLineEventError.NONE, component.saveEdit())
+		advanceUntilIdle()
+
+		assertEquals(setOf(ALICE, WONDERLAND), timeLineRepository.getTimelineEvent(event.id)?.references)
+		assertEquals(setOf(ALICE, WONDERLAND), component.state.value.references.map { it.id }.toSet())
+		assertFalse(component.state.value.isEditing)
+
+		component.openReference(catalogItem(ALICE))
+		advanceUntilIdle()
+		assertEquals(listOf(ALICE), shownEntries.map { it.id })
+	}
+
+	@Test
+	fun `saving an event stores its text, when, title, lane and milestone`() = runTest(mainTestDispatcher) {
+		givenProject()
+		val event = timelineService.createEvent(TimelineEventDraft(content = "original", label = "Dawn")).event()
+
+		val component = newComponent(event.id)
+		context.resume()
+		advanceUntilIdle()
+
+		component.beginEdit()
+		component.onEventTextChanged("updated content")
+		component.onDateTextChanged("Dusk")
+		component.onTitleChanged("Storm")
+		component.onLaneChanged("Alice")
+		component.onMilestoneChanged(true)
+		assertEquals(TimeLineEventError.NONE, component.saveEdit())
+		advanceUntilIdle()
+
+		val stored = timeLineRepository.getTimelineEvent(event.id)!!
+		assertEquals("updated content", stored.content)
+		assertEquals("Dusk", stored.label)
+		assertEquals("Storm", stored.title)
+		assertEquals("Alice", stored.lane)
+		assertTrue(stored.milestone)
+		assertEquals(stored, component.state.value.event)
+		assertFalse(component.state.value.isEditing)
+	}
+
+	@Test
+	fun `a placement edits only its placement fields and when`() = runTest(mainTestDispatcher) {
+		givenProject()
+		val placed = timelineService.placeEntry(TEA_PARTY, null, null, lane = null, milestone = false).event()
+
+		val component = newComponent(placed.id)
+		context.resume()
+		advanceUntilIdle()
+		assertIs<SubjectSummary.Entry>(component.state.value.subject)
+
+		component.beginEdit()
+		component.onLaneChanged("Hatter")
+		component.onMilestoneChanged(true)
+		component.onDateTextChanged("Six o'clock")
+		assertEquals(TimeLineEventError.NONE, component.saveEdit())
+		advanceUntilIdle()
+
+		val stored = timeLineRepository.getTimelineEvent(placed.id)!!
+		assertEquals("Hatter", stored.lane)
+		assertTrue(stored.milestone)
+		assertEquals("Six o'clock", stored.label)
+		assertEquals(TimelineKind.ENTRY, stored.kind)
+		assertEquals(TEA_PARTY, stored.subject)
+
+		component.openSubject()
+		assertEquals(listOf(TEA_PARTY), shownEntries.map { it.id })
+	}
+
+	@Test
+	fun `a placement without its subject reports it missing`() = runTest(mainTestDispatcher) {
+		givenProject()
+		val orphan = timeLineRepository.createEvent(
+			TimelineEventDraft(kind = TimelineKind.SCENE, subject = 999, cachedTitle = "Gone scene")
+		)
+
+		val component = newComponent(orphan.id)
+		context.resume()
+		advanceUntilIdle()
+
+		assertEquals(SubjectSummary.Missing, component.state.value.subject)
+		assertEquals("Gone scene", component.state.value.displayTitle)
+
+		component.deleteEvent()
+		assertEquals(emptyList(), timeLineRepository.currentEvents())
+	}
+
+	@Test
+	fun `an event changed elsewhere refreshes the open view`() = runTest(mainTestDispatcher) {
+		givenProject()
+		val event = timelineService.createEvent(TimelineEventDraft(content = "Event 0", label = "First date")).event()
+
+		val component = newComponent(event.id)
+		context.resume()
 		advanceUntilIdle()
 		assertEquals("Event 0", component.contentText.value)
 
-		val synced = events.first().copy(label = "server date", content = "server content")
-		timelineRepoCollectCallback.captured.emit(TimeLineContainer(listOf(synced) + events.drop(1)))
+		timelineService.updateEvent(event.copy(label = "server date", content = "server content"))
 		advanceUntilIdle()
 
-		assertEquals(synced, component.state.value.event)
 		assertEquals("server content", component.contentText.value)
 		assertEquals("server date", component.dateText.value)
 	}
 
 	@Test
-	fun `An event changed elsewhere replaces an untouched edit`() = runTest {
-		val events = fakeEvents()
-		// Event 1 has no date, which must not read as a dirty edit.
-		val component = newComponent(eventId = 1)
-		lifecycleCallbacks[1].onCreate()
-		advanceUntilIdle()
+	fun `an event changed elsewhere replaces an untouched edit`() = runTest(mainTestDispatcher) {
+		givenProject()
+		// No label, which must not read as a dirty edit.
+		val event = timelineService.createEvent(TimelineEventDraft(content = "Event 1")).event()
 
-		timelineRepoCollectCallback.captured.emit(TimeLineContainer(events))
+		val component = newComponent(event.id)
+		context.resume()
 		advanceUntilIdle()
 
 		component.beginEdit()
 		assertFalse(component.isEditingAndDirty())
 
-		val synced = events[1].copy(content = "server content")
-		timelineRepoCollectCallback.captured.emit(
-			TimeLineContainer(events.map { if (it.id == 1) synced else it })
-		)
+		timelineService.updateEvent(event.copy(content = "server content"))
 		advanceUntilIdle()
 
 		assertTrue(component.state.value.isEditing)
@@ -123,23 +200,21 @@ class ViewTimeLineEventComponentTest : TimeLineTestBase() {
 	}
 
 	@Test
-	fun `An event changed elsewhere while editing keeps the draft`() = runTest {
-		val events = fakeEvents()
-		val component = newComponent(eventId = 0)
-		lifecycleCallbacks[1].onCreate()
-		advanceUntilIdle()
+	fun `an event changed elsewhere while editing keeps the draft`() = runTest(mainTestDispatcher) {
+		givenProject()
+		val event = timelineService.createEvent(TimelineEventDraft(content = "Event 0")).event()
 
-		timelineRepoCollectCallback.captured.emit(TimeLineContainer(events))
+		val component = newComponent(event.id)
+		context.resume()
 		advanceUntilIdle()
 
 		component.beginEdit()
 		component.onEventTextChanged("my draft")
 
-		val synced = events.first().copy(content = "server content")
-		timelineRepoCollectCallback.captured.emit(TimeLineContainer(listOf(synced) + events.drop(1)))
+		timelineService.updateEvent(event.copy(content = "server content"))
 		advanceUntilIdle()
 
-		assertEquals(synced, component.state.value.event)
+		assertEquals("server content", component.state.value.event?.content)
 		assertEquals("my draft", component.contentText.value)
 
 		component.discardEdit()

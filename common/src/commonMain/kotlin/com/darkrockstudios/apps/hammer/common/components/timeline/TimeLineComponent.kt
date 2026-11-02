@@ -13,6 +13,8 @@ import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.SceneItem
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 
 class TimeLineComponent(
 	componentContext: ComponentContext,
@@ -21,6 +23,8 @@ class TimeLineComponent(
 	private val addMenu: (menu: MenuDescriptor) -> Unit,
 	private val removeMenu: (id: String) -> Unit,
 	private val onShowGlobalSearchForTag: (String) -> Unit,
+	private val onShowScene: (SceneItem) -> Unit,
+	private val onShowEntry: (EntryDef) -> Unit,
 ) : ProjectComponentBase(projectDef, componentContext), TimeLine {
 
 	private val navigation = StackNavigation<TimeLine.Config>()
@@ -78,6 +82,8 @@ class TimeLineComponent(
 			removeMenu = removeMenu,
 			updateShouldClose = updateShouldClose,
 			onShowGlobalSearchForTag = onShowGlobalSearchForTag,
+			onShowScene = onShowScene,
+			onShowEntry = onShowEntry,
 		)
 	}
 

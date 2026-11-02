@@ -1,88 +1,58 @@
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
-import com.arkivanov.decompose.Cancellation
+import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
+import com.darkrockstudios.apps.hammer.common.components.timeline.LaneCount
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineOverview
+import com.darkrockstudios.apps.hammer.common.components.timeline.TimelineRow
 import com.darkrockstudios.apps.hammer.common.compose.LocalImageNames
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagCount
-import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineContainer
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.timeline.*
-import io.mockk.*
 import org.junit.Rule
 import org.junit.Test
+import kotlin.test.assertEquals
 
 class TimeLineOverviewUiTest : BaseTest() {
 	@get:Rule
 	val compose = createComposeRule()
 
-	private fun componentSetup(data: TimeLineOverview.State): TimeLineOverview {
-		val component: TimeLineOverview = mockk()
+	private class FakeOverview(
+		rows: List<TimelineRow>,
+		lanes: List<LaneCount> = emptyList(),
+	) : TimeLineOverview {
+		private val _state = MutableValue(TimeLineOverview.State(rows = rows, lanes = lanes))
+		override val state: Value<TimeLineOverview.State> = _state
+		override val rankedTags: Value<List<TagCount>> = MutableValue(emptyList())
 
-		val observer = slot<(TimeLineOverview.State) -> Unit>()
-		val stateValue: Value<TimeLineOverview.State> = mockk()
-		every { stateValue.subscribe(capture(observer)) } returns mockk<Cancellation>().apply {
-			every { cancel() } just Runs
+		override suspend fun moveEvent(event: TimeLineEvent, toIndex: Int, after: Boolean): Boolean = true
+
+		override fun setLaneFilter(lanes: Set<String>) {
+			_state.value = _state.value.copy(laneFilter = lanes)
 		}
-		every { stateValue.value } returns data
-		every { component.state } returns stateValue
 
-		val tagsObserver = slot<(List<TagCount>) -> Unit>()
-		val tagsValue: Value<List<TagCount>> = mockk()
-		every { tagsValue.subscribe(capture(tagsObserver)) } returns mockk<Cancellation>().apply {
-			every { cancel() } just Runs
+		override fun toggleLane(lane: String) {
+			val filter = _state.value.laneFilter
+			setLaneFilter(if (lane in filter) filter - lane else filter + lane)
 		}
-		every { tagsValue.value } returns emptyList()
-		every { component.rankedTags } returns tagsValue
-
-		return component
 	}
+
+	private fun row(event: TimeLineEvent, title: String = event.title.orEmpty(), laneIndex: Int? = null) = TimelineRow(
+		event = event,
+		title = title,
+		subtitle = null,
+		whenText = event.label.orEmpty(),
+		laneIndex = laneIndex,
+	)
 
 	@OptIn(ExperimentalSharedTransitionApi::class)
-	@Test
-	fun `Event Overview No Events`() {
-		val data = TimeLineOverview.State(
-			timeLine = TimeLineContainer(
-				events = emptyList()
-			)
-		)
-		val component = componentSetup(data)
-
-		compose.setContent {
-			SharedTransitionLayout {
-				AnimatedVisibility(visible = true) {
-					TimeLineOverviewUi(
-						component = component,
-						scope = scope,
-						showCreate = {},
-						viewEvent = {},
-						sharedTransitionScope = this@SharedTransitionLayout,
-						animatedVisibilityScope = this@AnimatedVisibility,
-					)
-				}
-			}
-		}
-
-		compose.onNodeWithText("No Events").assertIsDisplayed()
-	}
-
-	@OptIn(ExperimentalTestApi::class, ExperimentalSharedTransitionApi::class)
-	@Test
-	fun `Event Overview Events`() {
-		val viewEvent = mockk<(Int) -> Unit>()
-		every { viewEvent.invoke(any()) } just Runs
-
-		val data = TimeLineOverview.State(
-			timeLine = TimeLineContainer(
-				events = fakeEvents()
-			)
-		)
-		val component = componentSetup(data)
-
+	private fun showOverview(component: TimeLineOverview, viewEvent: (Int) -> Unit = {}) {
 		compose.setContent {
 			SharedTransitionLayout {
 				AnimatedVisibility(visible = true) {
@@ -97,74 +67,57 @@ class TimeLineOverviewUiTest : BaseTest() {
 				}
 			}
 		}
-
-		compose.onNodeWithText("No Events").assertDoesNotExist()
-		compose.onNodeWithTag(TIME_LINE_LIST_TAG).assertIsDisplayed()
-		compose.onAllNodesWithTag(EVENT_CARD_TAG).apply {
-			get(0).performClick()
-			verify(exactly = 1) { viewEvent.invoke(0) }
-		}
-		/*
-		compose.onNodeWithTag(TIME_LINE_LIST_TAG).performMouseInput {
-			dragAndDrop()
-		}
-		*/
 	}
 
-	/*
-	@Test
-	fun `Event Overview Show Create`() {
-		val data = TimeLineOverview.State(
-			timeLine = TimeLineContainer(
-				events = emptyList()
-			)
-		)
-		val component = componentSetup(data)
-
-		val showCreate = mockk<() -> Unit>()
-		every { showCreate.invoke() } just Runs
-
+	@OptIn(ExperimentalSharedTransitionApi::class)
+	private fun showCard(row: TimelineRow, onClick: () -> Unit = {}, wrap: @Composable (@Composable () -> Unit) -> Unit = { it() }) {
 		compose.setContent {
-			TimeLineOverviewUi(
-				component = component,
-				scope = scope,
-				showCreate = showCreate,
-				viewEvent = {}
-			)
-		}
-
-		compose.onNodeWithTag(TIME_LINE_CREATE_TAG).performClick()
-		verify(exactly = 1) { showCreate.invoke() }
-	}
-	*/
-
-	@OptIn(ExperimentalTestApi::class, ExperimentalSharedTransitionApi::class)
-	@Test
-	fun `Search filters the list on the prose a reader sees`() {
-		val data = TimeLineOverview.State(
-			timeLine = TimeLineContainer(
-				events = listOf(
-					TimeLineEvent(id = 0, order = 0, label = null, content = "A well\\-known road"),
-					TimeLineEvent(id = 1, order = 1, label = null, content = "An unrelated event"),
-				)
-			)
-		)
-		val component = componentSetup(data)
-
-		compose.setContent {
-			SharedTransitionLayout {
-				AnimatedVisibility(visible = true) {
-					TimeLineOverviewUi(
-						component = component,
-						scope = scope,
-						showCreate = {},
-						viewEvent = {},
-						sharedTransitionScope = this@SharedTransitionLayout,
-						animatedVisibilityScope = this@AnimatedVisibility,
-					)
+			wrap {
+				SharedTransitionLayout {
+					AnimatedVisibility(visible = true) {
+						EventCard(
+							row = row,
+							isLast = true,
+							activeTags = emptySet(),
+							onTagClick = {},
+							onClick = onClick,
+							sharedTransitionScope = this@SharedTransitionLayout,
+							animatedVisibilityScope = this@AnimatedVisibility,
+						)
+					}
 				}
 			}
 		}
+	}
+
+	@Test
+	fun `Event Overview No Events`() {
+		showOverview(FakeOverview(emptyList()))
+
+		compose.onNodeWithText("No Events").assertIsDisplayed()
+	}
+
+	@Test
+	fun `Event Overview Events`() {
+		val viewed = mutableListOf<Int>()
+		showOverview(FakeOverview(fakeEvents().map { row(it) }), viewEvent = { viewed += it })
+
+		compose.onNodeWithText("No Events").assertDoesNotExist()
+		compose.onNodeWithTag(TIME_LINE_LIST_TAG).assertIsDisplayed()
+		compose.onAllNodesWithTag(EVENT_CARD_TAG)[0].performClick()
+		assertEquals(listOf(0), viewed)
+	}
+
+	@Test
+	fun `Search filters the list on the prose a reader sees`() {
+		showOverview(
+			FakeOverview(
+				listOf(
+					row(TimeLineEvent(id = 0, order = 0, label = null, content = "A well\\-known road")),
+					row(TimeLineEvent(id = 1, order = 1, label = null, content = "An unrelated event")),
+				)
+			)
+		)
 
 		compose.onNodeWithContentDescription("Search timeline").performClick()
 		compose.onNodeWithTag(TIME_LINE_SEARCH_TAG).performTextInput("well-known")
@@ -174,134 +127,124 @@ class TimeLineOverviewUiTest : BaseTest() {
 		compose.onNodeWithText("An unrelated event").assertDoesNotExist()
 	}
 
-	@OptIn(ExperimentalSharedTransitionApi::class)
 	@Test
-	fun `Event Card Click`() {
-		val viewEvent = mockk<(Int) -> Unit>()
-		every { viewEvent.invoke(any()) } just Runs
+	fun `Search matches a placement on its subject's name`() {
+		showOverview(
+			FakeOverview(
+				listOf(
+					row(TimeLineEvent(id = 0, order = 0, kind = TimelineKind.SCENE, subject = 4), title = "The Pool of Tears"),
+					row(TimeLineEvent(id = 1, order = 1, content = "An unrelated event")),
+				)
+			)
+		)
 
-		val date = "test date"
-		val content = "test content"
+		compose.onNodeWithContentDescription("Search timeline").performClick()
+		compose.onNodeWithTag(TIME_LINE_SEARCH_TAG).performTextInput("pool")
+
+		compose.onAllNodesWithTag(EVENT_CARD_TAG).assertCountEquals(1)
+		compose.onNodeWithText("The Pool of Tears").assertIsDisplayed()
+	}
+
+	@Test
+	fun `A lane chip filters the cards to that lane`() {
+		val component = FakeOverview(
+			rows = listOf(
+				row(TimeLineEvent(id = 0, order = 0, title = "Fall", lane = "Alice"), laneIndex = 0),
+				row(TimeLineEvent(id = 1, order = 1, title = "Croquet", lane = "Queen"), laneIndex = 1),
+				row(TimeLineEvent(id = 2, order = 2, title = "Unlaned")),
+			),
+			lanes = listOf(LaneCount("Alice", 1), LaneCount("Queen", 1)),
+		)
+		showOverview(component)
+		compose.onAllNodesWithTag(EVENT_CARD_TAG).assertCountEquals(3)
+
+		compose.onNodeWithTag(TIME_LINE_LANE_FILTER_TAG).assertIsDisplayed()
+		compose.onNodeWithText("Queen · 1").performClick()
+
+		assertEquals(setOf("Queen"), component.state.value.laneFilter)
+		compose.onAllNodesWithTag(EVENT_CARD_TAG).assertCountEquals(1)
+		compose.onNodeWithText("Croquet").assertIsDisplayed()
+		compose.onNodeWithText("Fall").assertDoesNotExist()
+	}
+
+	@Test
+	fun `A card shows its kind glyph, lane swatch and milestone mark`() {
 		val event = TimeLineEvent(
 			id = 0,
 			order = 0,
-			label = date,
-			content = content
+			kind = TimelineKind.SCENE,
+			subject = 4,
+			label = "Noon",
+			lane = "Alice",
+			milestone = true,
 		)
+		showCard(TimelineRow(event, title = "Down the hole", subtitle = "Chapter I", whenText = "Noon", laneIndex = 0))
 
-		compose.setContent {
-			SharedTransitionLayout {
-				AnimatedVisibility(visible = true) {
-					EventCard(
-						event = event,
-						isLast = true,
-						activeTags = emptySet(),
-						onTagClick = {},
-						onClick = { viewEvent(event.id) },
-						sharedTransitionScope = this@SharedTransitionLayout,
-						animatedVisibilityScope = this@AnimatedVisibility,
-					)
-				}
-			}
-		}
+		compose.onNodeWithTag(EVENT_CARD_KIND_TAG, useUnmergedTree = true)
+			.assertIsDisplayed()
+			.assertContentDescriptionEquals("Scene")
+		compose.onNodeWithText("§", useUnmergedTree = true).assertIsDisplayed()
+		compose.onNodeWithTag(EVENT_CARD_LANE_TAG, useUnmergedTree = true).assertIsDisplayed()
+		compose.onNodeWithTag(EVENT_CARD_MILESTONE_TAG, useUnmergedTree = true).assertIsDisplayed()
+		compose.onNodeWithText("Down the hole", useUnmergedTree = true).assertIsDisplayed()
+		compose.onNodeWithText("CHAPTER I", useUnmergedTree = true).assertIsDisplayed()
+		compose.onNodeWithTag(EVENT_CARD_CONTENT_TAG, useUnmergedTree = true).assertDoesNotExist()
+	}
 
-		compose.onNodeWithText(date.uppercase()).assertIsDisplayed()
+	@Test
+	fun `A plain card has no lane swatch or milestone mark`() {
+		showCard(row(TimeLineEvent(id = 0, order = 0, content = "Rain")))
+
+		compose.onNodeWithTag(EVENT_CARD_KIND_TAG, useUnmergedTree = true).assertContentDescriptionEquals("Event")
+		compose.onNodeWithTag(EVENT_CARD_LANE_TAG, useUnmergedTree = true).assertDoesNotExist()
+		compose.onNodeWithTag(EVENT_CARD_MILESTONE_TAG, useUnmergedTree = true).assertDoesNotExist()
+	}
+
+	@Test
+	fun `A placement whose subject is gone says so`() {
+		val event = TimeLineEvent(id = 0, order = 0, kind = TimelineKind.ENTRY, subject = 9, cachedTitle = "Lost")
+		showCard(TimelineRow(event, title = "Lost", subtitle = null, whenText = "", laneIndex = null, subjectMissing = true))
+
+		compose.onNodeWithText("SUBJECT MISSING", useUnmergedTree = true).assertIsDisplayed()
+		compose.onNodeWithText("Lost", useUnmergedTree = true).assertIsDisplayed()
+	}
+
+	@Test
+	fun `Event Card Click`() {
+		var clicked = 0
+		val event = TimeLineEvent(id = 0, order = 0, label = "test date", content = "test content")
+		showCard(row(event), onClick = { clicked++ })
+
+		compose.onNodeWithText("TEST DATE").assertIsDisplayed()
 		compose.onNodeWithText(event.content).assertIsDisplayed()
 
 		compose.onNodeWithTag(EVENT_CARD_TAG).performClick()
-		verify(exactly = 1) { viewEvent.invoke(event.id) }
+		assertEquals(1, clicked)
 	}
 
-	@OptIn(ExperimentalSharedTransitionApi::class)
 	@Test
 	fun `Event Card Content and Date`() {
-		val date = "test date"
-		val content = "test content"
-		val event = TimeLineEvent(
-			id = 0,
-			order = 0,
-			label = date,
-			content = content
-		)
+		val event = TimeLineEvent(id = 0, order = 0, label = "test date", content = "test content")
+		showCard(row(event))
 
-		compose.setContent {
-			SharedTransitionLayout {
-				AnimatedVisibility(visible = true) {
-					EventCard(
-						event = event,
-						isLast = true,
-						activeTags = emptySet(),
-						onTagClick = {},
-						onClick = {},
-						sharedTransitionScope = this@SharedTransitionLayout,
-						animatedVisibilityScope = this@AnimatedVisibility,
-					)
-				}
-			}
-		}
-
-		compose.onNodeWithText(date.uppercase()).assertIsDisplayed()
+		compose.onNodeWithText("TEST DATE").assertIsDisplayed()
 		compose.onNodeWithText(event.content).assertIsDisplayed()
 	}
 
-	@OptIn(ExperimentalSharedTransitionApi::class)
 	@Test
 	fun `Event Card Content No Date`() {
-		val content = "test content"
-		val event = TimeLineEvent(
-			id = 0,
-			order = 0,
-			label = null,
-			content = content
-		)
-
-		compose.setContent {
-			SharedTransitionLayout {
-				AnimatedVisibility(visible = true) {
-					EventCard(
-						event = event,
-						isLast = true,
-						activeTags = emptySet(),
-						onTagClick = {},
-						onClick = {},
-						sharedTransitionScope = this@SharedTransitionLayout,
-						animatedVisibilityScope = this@AnimatedVisibility,
-					)
-				}
-			}
-		}
+		val event = TimeLineEvent(id = 0, order = 0, label = null, content = "test content")
+		showCard(row(event))
 
 		compose.onNodeWithTag(EVENT_CARD_DATE_TAG, useUnmergedTree = true).assertIsDisplayed()
 		compose.onNodeWithText("UNDATED").assertIsDisplayed()
 		compose.onNodeWithText(event.content).assertIsDisplayed()
 	}
 
-	@OptIn(ExperimentalSharedTransitionApi::class)
 	@Test
 	fun `Event Card Content Truncate`() {
-		val content = "x".repeat(EVENT_CARD_MAX_CONTENT_LENGTH + 1)
-		val event = TimeLineEvent(
-			id = 0,
-			order = 0,
-			label = null,
-			content = content
-		)
-
-		compose.setContent {
-			SharedTransitionLayout {
-				AnimatedVisibility(visible = true) {
-					EventCard(
-						event = event,
-						isLast = true,
-						activeTags = emptySet(),
-						onTagClick = {},
-						onClick = {},
-						sharedTransitionScope = this@SharedTransitionLayout,
-						animatedVisibilityScope = this@AnimatedVisibility,
-					)
-				}
-			}
-		}
+		val event = TimeLineEvent(id = 0, order = 0, label = null, content = "x".repeat(EVENT_CARD_MAX_CONTENT_LENGTH + 1))
+		showCard(row(event))
 
 		compose
 			.onNodeWithTag(EVENT_CARD_CONTENT_TAG, useUnmergedTree = true)
@@ -311,32 +254,10 @@ class TimeLineOverviewUiTest : BaseTest() {
 			}
 	}
 
-	@OptIn(ExperimentalSharedTransitionApi::class)
 	@Test
 	fun `Event Card never shows an image's alt text`() {
 		val content = "x ".repeat(100) + "\n\n![Cheshire Cat](hammer://image/3)\n\n" + "tail ".repeat(20)
-		val event = TimeLineEvent(
-			id = 0,
-			order = 0,
-			label = null,
-			content = content
-		)
-
-		compose.setContent {
-			SharedTransitionLayout {
-				AnimatedVisibility(visible = true) {
-					EventCard(
-						event = event,
-						isLast = true,
-						activeTags = emptySet(),
-						onTagClick = {},
-						onClick = {},
-						sharedTransitionScope = this@SharedTransitionLayout,
-						animatedVisibilityScope = this@AnimatedVisibility,
-					)
-				}
-			}
-		}
+		showCard(row(TimeLineEvent(id = 0, order = 0, label = null, content = content)))
 
 		compose
 			.onNodeWithTag(EVENT_CARD_CONTENT_TAG, useUnmergedTree = true)
@@ -349,28 +270,14 @@ class TimeLineOverviewUiTest : BaseTest() {
 			}
 	}
 
-	@OptIn(ExperimentalSharedTransitionApi::class)
 	@Test
 	fun `Event Card shows an image by its current name`() {
 		val event = TimeLineEvent(id = 0, order = 0, label = null, content = "Met\n\n![image](hammer://image/3)")
-
-		compose.setContent {
+		showCard(row(event), wrap = { content ->
 			CompositionLocalProvider(LocalImageNames provides { id -> if (id == 3) "Cheshire Cat" else null }) {
-				SharedTransitionLayout {
-					AnimatedVisibility(visible = true) {
-						EventCard(
-							event = event,
-							isLast = true,
-							activeTags = emptySet(),
-							onTagClick = {},
-							onClick = {},
-							sharedTransitionScope = this@SharedTransitionLayout,
-							animatedVisibilityScope = this@AnimatedVisibility,
-						)
-					}
-				}
+				content()
 			}
-		}
+		})
 
 		compose
 			.onNodeWithTag(EVENT_CARD_CONTENT_TAG, useUnmergedTree = true)

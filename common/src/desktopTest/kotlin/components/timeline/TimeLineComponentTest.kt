@@ -3,55 +3,27 @@ package components.timeline
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLine
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineComponent
-import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndexService
-import com.darkrockstudios.apps.hammer.common.data.tagindex.TaggedEntityType
-import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineContainer
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
-import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
-import io.mockk.coEvery
-import io.mockk.every
-import io.mockk.mockk
-import kotlinx.coroutines.flow.MutableStateFlow
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineEventDraft
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineResult
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.koin.dsl.bind
-import org.koin.dsl.module
-import utils.ComponentTest
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 
-class TimeLineComponentTest : ComponentTest() {
+class TimeLineComponentTest : TimelineComponentTestBase() {
 
-	private lateinit var timelineRepo: TimeLineRepository
-	private lateinit var timelineFlow: MutableStateFlow<TimeLineContainer>
+	private lateinit var event: TimeLineEvent
 
-	private val event = TimeLineEvent(
-		id = 1,
-		order = 0,
-		label = "original date",
-		content = "original content",
-		tags = emptySet(),
-	)
-
-	@BeforeEach
-	override fun setup() {
-		super.setup()
-
-		timelineFlow = MutableStateFlow(TimeLineContainer(listOf(event)))
-		timelineRepo = mockk(relaxed = true)
-		every { timelineRepo.timelineFlow } returns timelineFlow
-		coEvery { timelineRepo.getTimelineEvent(event.id) } returns event
-
-		val tagIndexService = mockk<TagIndexService>(relaxed = true)
-		every { tagIndexService.tagIndex } returns MutableStateFlow(mockk(relaxed = true))
-		every { tagIndexService.getRankedTags(any<TaggedEntityType>(), any()) } returns emptyList()
-
-		setupComponentKoin(module {
-			single { timelineRepo } bind TimeLineRepository::class
-			single { tagIndexService } bind TagIndexService::class
-		})
+	private suspend fun TestScope.givenEvent() {
+		givenProject()
+		val created = timelineService.createEvent(
+			TimelineEventDraft(label = "original date", content = "original content")
+		)
+		event = (created as TimelineResult.Ok).event!!
+		advanceUntilIdle()
 	}
 
 	private fun newComponent() = TimeLineComponent(
@@ -61,6 +33,8 @@ class TimeLineComponentTest : ComponentTest() {
 		addMenu = {},
 		removeMenu = {},
 		onShowGlobalSearchForTag = {},
+		onShowScene = {},
+		onShowEntry = {},
 	)
 
 	private fun viewEvent(component: TimeLineComponent) =
@@ -68,6 +42,7 @@ class TimeLineComponentTest : ComponentTest() {
 
 	@Test
 	fun `shouldConfirmClose is empty on the overview`() = runTest(mainTestDispatcher) {
+		givenEvent()
 		val component = newComponent()
 		context.resume()
 		advanceUntilIdle()
@@ -78,6 +53,7 @@ class TimeLineComponentTest : ComponentTest() {
 	@Test
 	fun `shouldConfirmClose is empty when viewing an event but not editing`() =
 		runTest(mainTestDispatcher) {
+			givenEvent()
 			val component = newComponent()
 			context.resume()
 			component.showViewEvent(event.id)
@@ -89,6 +65,7 @@ class TimeLineComponentTest : ComponentTest() {
 	@Test
 	fun `shouldConfirmClose flags an in-progress timeline event edit`() =
 		runTest(mainTestDispatcher) {
+			givenEvent()
 			val component = newComponent()
 			context.resume()
 			component.showViewEvent(event.id)
@@ -104,6 +81,7 @@ class TimeLineComponentTest : ComponentTest() {
 
 	@Test
 	fun `discardUnsaved reverts a dirty timeline event edit`() = runTest(mainTestDispatcher) {
+		givenEvent()
 		val component = newComponent()
 		context.resume()
 		component.showViewEvent(event.id)
@@ -123,6 +101,7 @@ class TimeLineComponentTest : ComponentTest() {
 
 	@Test
 	fun `discardUnsaved pops an open create event screen`() = runTest(mainTestDispatcher) {
+		givenEvent()
 		val component = newComponent()
 		context.resume()
 		component.showCreateEvent()

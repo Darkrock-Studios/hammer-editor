@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -40,7 +41,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
-import com.darkrockstudios.apps.hammer.common.compose.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -56,15 +56,23 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineOverview
+import com.darkrockstudios.apps.hammer.common.components.timeline.TimelineRow
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarList
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.WindowWidthSizeClass
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdActiveFiltersStrip
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdCollapsingStrip
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDragHandle
@@ -83,16 +91,20 @@ import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
 import com.darkrockstudios.apps.hammer.common.data.search.markdownContains
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
+import com.darkrockstudios.apps.hammer.timeline_dated_marker
+import com.darkrockstudios.apps.hammer.timeline_entry_subtitle
 import com.darkrockstudios.apps.hammer.timeline_filter_all
 import com.darkrockstudios.apps.hammer.timeline_filter_clear_all
 import com.darkrockstudios.apps.hammer.timeline_filter_filtered
 import com.darkrockstudios.apps.hammer.timeline_header
 import com.darkrockstudios.apps.hammer.timeline_header_meta
+import com.darkrockstudios.apps.hammer.timeline_lane_filter_description
 import com.darkrockstudios.apps.hammer.timeline_no_events
 import com.darkrockstudios.apps.hammer.timeline_search_button
 import com.darkrockstudios.apps.hammer.timeline_search_clear
 import com.darkrockstudios.apps.hammer.timeline_search_close
 import com.darkrockstudios.apps.hammer.timeline_search_placeholder
+import com.darkrockstudios.apps.hammer.timeline_subject_missing
 import com.darkrockstudios.apps.hammer.timeline_view_undated
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -102,13 +114,24 @@ internal fun eventMatchesQuery(event: TimeLineEvent, query: String): Boolean =
 	markdownContains(event.content, query) ||
 		event.label?.contains(query, ignoreCase = true) == true
 
+/** A row also matches on the title it shows, which for a placement is its subject's name. */
+internal fun rowMatchesQuery(row: TimelineRow, query: String): Boolean =
+	eventMatchesQuery(row.event, query) || row.title.contains(query, ignoreCase = true)
+
 const val TIME_LINE_CREATE_TAG = "Timeline Overview Create"
 const val TIME_LINE_LIST_TAG = "Timeline Overview List"
 const val TIME_LINE_SEARCH_TAG = "Timeline Overview Search"
+const val TIME_LINE_LANE_FILTER_TAG = "Timeline Lane Filter"
 const val EVENT_CARD_TAG = "Timeline Event Card"
 const val EVENT_CARD_DATE_TAG = "Timeline Event Card Date"
 const val EVENT_CARD_CONTENT_TAG = "Timeline Event Card Content"
+const val EVENT_CARD_TITLE_TAG = "Timeline Event Card Title"
+const val EVENT_CARD_KIND_TAG = "Timeline Event Card Kind"
+const val EVENT_CARD_LANE_TAG = "Timeline Event Card Lane"
+const val EVENT_CARD_MILESTONE_TAG = "Timeline Event Card Milestone"
 const val EVENT_CARD_MAX_CONTENT_LENGTH = 256
+
+private val LaneStripeWidth = 4.dp
 
 @OptIn(
 	ExperimentalSharedTransitionApi::class,
@@ -133,29 +156,34 @@ fun TimeLineOverviewUi(
 	var activeTags by remember { mutableStateOf<Set<String>>(emptySet()) }
 	var showSearchBar by rememberSaveable { mutableStateOf(false) }
 
-	val events = state.timeLine?.events ?: emptyList()
+	val rows = state.rows.orEmpty()
+	val laneFilter = state.laneFilter
 
-	val visibleEvents by remember(events, searchQuery, activeTags) {
+	val visibleRows by remember(rows, searchQuery, activeTags, laneFilter) {
 		derivedStateOf {
 			val byText = if (searchQuery.isBlank()) {
-				events
+				rows
 			} else {
 				val query = searchQuery.trim()
-				events.filter { eventMatchesQuery(it, query) }
+				rows.filter { rowMatchesQuery(it, query) }
 			}
 			val byTags = if (activeTags.isEmpty()) {
 				byText
 			} else {
-				byText.filter { event -> activeTags.all { it in event.tags } }
+				byText.filter { row -> activeTags.all { it in row.event.tags } }
 			}
-			byTags.sortedBy { it.order }
+			if (laneFilter.isEmpty()) byTags else byTags.filter { it.event.lane in laneFilter }
 		}
 	}
 
 	val toggleTag: (String) -> Unit = { tag ->
 		activeTags = if (tag in activeTags) activeTags - tag else activeTags + tag
 	}
-	val clearTags: () -> Unit = { activeTags = emptySet() }
+	val clearFilters: () -> Unit = {
+		activeTags = emptySet()
+		component.setLaneFilter(emptySet())
+	}
+	val anyFilter = activeTags.isNotEmpty() || laneFilter.isNotEmpty()
 
 	val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(
 		state = rememberTopAppBarState(),
@@ -204,12 +232,20 @@ fun TimeLineOverviewUi(
 						modifier = Modifier.weight(1f),
 						trailing = {
 							if (isWide) {
-								HdMonoLabel(
-									text = Res.string.timeline_header_meta.get(
-										events.size,
-										tagIndex.size,
-									),
-								)
+								Row(
+									verticalAlignment = Alignment.CenterVertically,
+									horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
+								) {
+									HdMonoLabel(
+										text = Res.string.timeline_header_meta.get(
+											rows.size,
+											tagIndex.size,
+										),
+									)
+									if (state.mode == TimelineMode.DATED) {
+										HdMonoLabel(text = Res.string.timeline_dated_marker.get())
+									}
+								}
 							}
 						},
 					)
@@ -253,26 +289,59 @@ fun TimeLineOverviewUi(
 				}
 			}
 
+			val laneChips: (@Composable () -> Unit)? = if (state.lanes.isEmpty()) {
+				null
+			} else {
+				{
+					LaneFilterChips(
+						lanes = state.lanes.map { it.lane to it.count },
+						active = laneFilter,
+						onToggle = component::toggleLane,
+					)
+				}
+			}
+			val leading: (@Composable () -> Unit)? = when {
+				isExpanded && laneChips != null -> {
+					{
+						Row(
+							verticalAlignment = Alignment.CenterVertically,
+							horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M),
+						) {
+							searchField()
+							Box(
+								modifier = Modifier
+									.height(20.dp)
+									.width(Dp.Hairline)
+									.background(MaterialTheme.colorScheme.outlineVariant),
+							)
+							laneChips()
+						}
+					}
+				}
+
+				isExpanded -> {
+					{ searchField() }
+				}
+
+				else -> laneChips
+			}
+
 			HdTagFilterBar(
 				tags = tagIndex,
-				allLabel = "${Res.string.timeline_filter_all.get()} · ${events.size}",
+				allLabel = "${Res.string.timeline_filter_all.get()} · ${rows.size}",
 				activeTags = activeTags,
 				onToggle = toggleTag,
-				onClear = clearTags,
-				leading = if (isExpanded) {
-					{ searchField() }
-				} else {
-					null
-				},
+				onClear = clearFilters,
+				leading = leading,
 			)
 
-			AnimatedVisibility(visible = activeTags.isNotEmpty()) {
+			AnimatedVisibility(visible = anyFilter) {
 				HdActiveFiltersStrip(
 					activeTags = activeTags,
-					filteredLabel = Res.string.timeline_filter_filtered.get(visibleEvents.size, events.size),
+					filteredLabel = Res.string.timeline_filter_filtered.get(visibleRows.size, rows.size),
 					clearAllLabel = Res.string.timeline_filter_clear_all.get(),
 					onToggle = toggleTag,
-					onClear = clearTags,
+					onClear = clearFilters,
 				)
 			}
 
@@ -287,29 +356,29 @@ fun TimeLineOverviewUi(
 			vertical = Ui.Padding.L,
 		)
 
-		val eventRow: @Composable (event: TimeLineEvent, draggable: Boolean) -> Unit =
-			{ event, draggable ->
-			val isLast = visibleEvents.lastOrNull()?.id == event.id
-			Box(
-				modifier = Modifier
-					.fillMaxWidth()
-					.widthIn(max = 980.dp),
-			) {
-				EventCard(
-					event = event,
-					isLast = isLast,
-					activeTags = activeTags,
-					onTagClick = toggleTag,
-					onClick = { viewEvent(event.id) },
-					isDraggable = draggable,
-					sharedTransitionScope = sharedTransitionScope,
-					animatedVisibilityScope = animatedVisibilityScope,
-				)
+		val eventRow: @Composable (row: TimelineRow, draggable: Boolean) -> Unit =
+			{ row, draggable ->
+				val isLast = visibleRows.lastOrNull()?.event?.id == row.event.id
+				Box(
+					modifier = Modifier
+						.fillMaxWidth()
+						.widthIn(max = 980.dp),
+				) {
+					EventCard(
+						row = row,
+						isLast = isLast,
+						activeTags = activeTags,
+						onTagClick = toggleTag,
+						onClick = { viewEvent(row.event.id) },
+						isDraggable = draggable,
+						sharedTransitionScope = sharedTransitionScope,
+						animatedVisibilityScope = animatedVisibilityScope,
+					)
+				}
 			}
-		}
 
 		when {
-			visibleEvents.isEmpty() -> {
+			visibleRows.isEmpty() -> {
 				Box(
 					modifier = Modifier
 						.fillMaxSize()
@@ -325,23 +394,23 @@ fun TimeLineOverviewUi(
 					)
 				}
 			}
-			// Reordering maps display indices to stored order, which only holds
-			// when nothing is filtered out. Filtered views fall back to a static list.
-			searchQuery.isBlank() && activeTags.isEmpty() -> {
+			// Reordering maps display indices to stored order, which only holds when nothing is
+			// filtered out and the order is manual. Other views fall back to a static list.
+			state.mode == TimelineMode.MANUAL && searchQuery.isBlank() && !anyFilter -> {
 				DragDropList(
-					items = visibleEvents,
-					key = { _, item -> item.id },
+					items = visibleRows,
+					key = { _, item -> item.event.id },
 					onMove = { from, to ->
-						visibleEvents.getOrNull(from)?.let { event ->
-							scope.launch { component.moveEvent(event, to, from < to) }
+						visibleRows.getOrNull(from)?.let { row ->
+							scope.launch { component.moveEvent(row.event, to, from < to) }
 						}
 					},
 					modifier = Modifier
 						.fillMaxSize()
 						.testTag(TIME_LINE_LIST_TAG),
 					contentPadding = listContentPadding,
-				) { event, _ ->
-					eventRow(event, true)
+				) { row, _ ->
+					eventRow(row, true)
 				}
 			}
 
@@ -356,10 +425,10 @@ fun TimeLineOverviewUi(
 						contentPadding = listContentPadding,
 					) {
 						items(
-							items = visibleEvents,
-							key = { event -> event.id },
-						) { event ->
-							eventRow(event, false)
+							items = visibleRows,
+							key = { row -> row.event.id },
+						) { row ->
+							eventRow(row, false)
 						}
 					}
 
@@ -373,10 +442,36 @@ fun TimeLineOverviewUi(
 	}
 }
 
+/** One `HdTagChip` per lane, its swatch in the lane's colour: `▪ Alice · 4`. */
+@Composable
+private fun LaneFilterChips(
+	lanes: List<Pair<String, Int>>,
+	active: Set<String>,
+	onToggle: (String) -> Unit,
+) {
+	val colors = LocalHammerColors.current
+	Row(
+		modifier = Modifier.testTag(TIME_LINE_LANE_FILTER_TAG),
+		verticalAlignment = Alignment.CenterVertically,
+		horizontalArrangement = Arrangement.spacedBy(6.dp),
+	) {
+		lanes.forEachIndexed { index, (lane, count) ->
+			val description = Res.string.timeline_lane_filter_description.get(lane)
+			HdTagChip(
+				label = "$lane · $count",
+				active = lane in active,
+				accent = colors.laneColor(index),
+				onClick = { onToggle(lane) },
+				modifier = Modifier.semantics { contentDescription = description },
+			)
+		}
+	}
+}
+
 @OptIn(ExperimentalSharedTransitionApi::class, ExperimentalLayoutApi::class)
 @Composable
 internal fun EventCard(
-	event: TimeLineEvent,
+	row: TimelineRow,
 	isLast: Boolean,
 	activeTags: Set<String>,
 	onTagClick: (String) -> Unit,
@@ -385,12 +480,13 @@ internal fun EventCard(
 	animatedVisibilityScope: AnimatedVisibilityScope,
 	isDraggable: Boolean = false,
 ) {
-	val hammerColors = LocalHammerColors.current
+	val event = row.event
 	val railColor = MaterialTheme.colorScheme.outlineVariant
 	val dotColor = MaterialTheme.colorScheme.onSurfaceVariant
 	val surfaceColor = MaterialTheme.colorScheme.surface
 	val railColumnWidth = 40.dp
 	val railGutter = Ui.Padding.L
+	val laneIndex = row.laneIndex
 
 	// Rail is drawn behind the row's full height (including the inter-card
 	// gap), so the line reads as one continuous chronology instead of a
@@ -426,7 +522,7 @@ internal fun EventCard(
 			.padding(bottom = Ui.Padding.L),
 	) {
 		with(sharedTransitionScope) {
-			Column(
+			Box(
 				modifier = Modifier
 					.fillMaxWidth()
 					.padding(start = railColumnWidth + railGutter)
@@ -444,71 +540,186 @@ internal fun EventCard(
 					.clickable(onClick = onClick)
 					.testTag(EVENT_CARD_TAG),
 			) {
-				Row(
+				Column(
 					modifier = Modifier
 						.fillMaxWidth()
-						.padding(horizontal = Ui.Padding.L, vertical = Ui.Padding.M),
-					verticalAlignment = Alignment.CenterVertically,
+						.padding(start = if (laneIndex != null) LaneStripeWidth else 0.dp),
 				) {
-					HdMonoLabel(
-						text = event.label?.takeIf { it.isNotBlank() }
-							?: Res.string.timeline_view_undated.get(),
-						modifier = Modifier
-							.sharedElement(
-								sharedContentState = rememberSharedContentState(key = "timeline-date-${event.id}"),
-								animatedVisibilityScope = animatedVisibilityScope,
-							)
-							.testTag(EVENT_CARD_DATE_TAG),
+					CardHeader(
+						row = row,
+						isDraggable = isDraggable,
+						sharedTransitionScope = sharedTransitionScope,
+						animatedVisibilityScope = animatedVisibilityScope,
 					)
-					Spacer(modifier = Modifier.weight(1f))
-					if (isDraggable) {
-						HdDragHandle()
-					}
+
+					HorizontalDivider(
+						thickness = Dp.Hairline,
+						color = MaterialTheme.colorScheme.outlineVariant,
+					)
+
+					CardBody(
+						row = row,
+						activeTags = activeTags,
+						onTagClick = onTagClick,
+						sharedTransitionScope = sharedTransitionScope,
+						animatedVisibilityScope = animatedVisibilityScope,
+					)
 				}
 
-				HorizontalDivider(
-					thickness = Dp.Hairline,
-					color = MaterialTheme.colorScheme.outlineVariant,
-				)
-
-				val previewMarkdown = rememberMarkdownPreview(event.content, EVENT_CARD_MAX_CONTENT_LENGTH)
-				MarkdownView(
-					markdown = previewMarkdown,
-					modifier = Modifier
-						.fillMaxWidth()
-						.padding(
-							horizontal = Ui.Padding.L,
-							vertical = Ui.Padding.M,
+				if (laneIndex != null) {
+					// Measured after the card, so it spans the card's full height.
+					Box(modifier = Modifier.matchParentSize()) {
+						Box(
+							modifier = Modifier
+								.fillMaxHeight()
+								.width(LaneStripeWidth)
+								.background(LocalHammerColors.current.laneColor(laneIndex))
+								.testTag(EVENT_CARD_LANE_TAG),
 						)
-						.sharedElement(
-							sharedContentState = rememberSharedContentState(key = "timeline-content-${event.id}"),
-							animatedVisibilityScope = animatedVisibilityScope,
-						)
-						.testTag(EVENT_CARD_CONTENT_TAG),
-				)
-
-				if (event.tags.isNotEmpty()) {
-					FlowRow(
-						modifier = Modifier
-							.fillMaxWidth()
-							.padding(
-								start = Ui.Padding.L,
-								end = Ui.Padding.L,
-								bottom = Ui.Padding.L,
-							),
-						horizontalArrangement = Arrangement.spacedBy(6.dp),
-						verticalArrangement = Arrangement.spacedBy(6.dp),
-					) {
-						event.tags.sorted().forEach { tag ->
-							val isActive = tag in activeTags
-							HdTagChip(
-								label = tag,
-								active = isActive,
-								onClick = { onTagClick(tag) },
-							)
-						}
 					}
 				}
+			}
+		}
+	}
+}
+
+@OptIn(ExperimentalSharedTransitionApi::class)
+@Composable
+private fun CardHeader(
+	row: TimelineRow,
+	isDraggable: Boolean,
+	sharedTransitionScope: SharedTransitionScope,
+	animatedVisibilityScope: AnimatedVisibilityScope,
+) {
+	val event = row.event
+	Row(
+		modifier = Modifier
+			.fillMaxWidth()
+			.padding(horizontal = Ui.Padding.L, vertical = Ui.Padding.M),
+		verticalAlignment = Alignment.CenterVertically,
+		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M),
+	) {
+		TimelineKindMark(kind = event.kind, modifier = Modifier.testTag(EVENT_CARD_KIND_TAG))
+		if (event.milestone) {
+			MilestoneMark(modifier = Modifier.testTag(EVENT_CARD_MILESTONE_TAG))
+		}
+		val labelStyle = MaterialTheme.typography.labelSmall.let {
+			if (event.milestone) it.copy(fontWeight = FontWeight.Bold) else it
+		}
+		with(sharedTransitionScope) {
+			HdMonoLabel(
+				text = row.whenText.ifBlank { Res.string.timeline_view_undated.get() },
+				style = labelStyle,
+				color = if (event.milestone) {
+					MaterialTheme.colorScheme.onSurface
+				} else {
+					MaterialTheme.colorScheme.onSurfaceVariant
+				},
+				modifier = Modifier
+					.sharedElement(
+						sharedContentState = rememberSharedContentState(key = "timeline-date-${event.id}"),
+						animatedVisibilityScope = animatedVisibilityScope,
+					)
+					.testTag(EVENT_CARD_DATE_TAG),
+			)
+		}
+		Spacer(modifier = Modifier.weight(1f))
+		if (isDraggable) {
+			HdDragHandle()
+		}
+	}
+}
+
+@OptIn(ExperimentalSharedTransitionApi::class, ExperimentalLayoutApi::class)
+@Composable
+private fun CardBody(
+	row: TimelineRow,
+	activeTags: Set<String>,
+	onTagClick: (String) -> Unit,
+	sharedTransitionScope: SharedTransitionScope,
+	animatedVisibilityScope: AnimatedVisibilityScope,
+) {
+	val event = row.event
+	val placed = event.kind.isPlacement
+	// A plain event without a title is named by its first line, which the preview already shows.
+	val showTitle = row.title.isNotBlank() && (placed || !event.title.isNullOrBlank())
+
+	if (row.subjectMissing) {
+		HdMonoLabel(
+			text = Res.string.timeline_subject_missing.get(),
+			color = LocalHammerColors.current.warning,
+			modifier = Modifier.padding(start = Ui.Padding.L, end = Ui.Padding.L, top = Ui.Padding.M),
+		)
+	}
+
+	if (showTitle) {
+		Text(
+			text = row.title,
+			style = MaterialTheme.typography.titleMedium,
+			color = MaterialTheme.colorScheme.onSurface,
+			maxLines = 2,
+			overflow = TextOverflow.Ellipsis,
+			modifier = Modifier
+				.fillMaxWidth()
+				.padding(start = Ui.Padding.L, end = Ui.Padding.L, top = Ui.Padding.M)
+				.testTag(EVENT_CARD_TITLE_TAG),
+		)
+	}
+
+	if (placed) {
+		val subtitle = when (event.kind) {
+			TimelineKind.SCENE -> row.subtitle
+			TimelineKind.ENTRY -> Res.string.timeline_entry_subtitle.get()
+			TimelineKind.EVENT -> null
+		}
+		if (subtitle != null && !row.subjectMissing) {
+			HdMonoLabel(
+				text = subtitle,
+				maxLines = 1,
+				overflow = TextOverflow.Ellipsis,
+				modifier = Modifier.padding(start = Ui.Padding.L, end = Ui.Padding.L, top = 4.dp),
+			)
+		}
+		Spacer(modifier = Modifier.height(Ui.Padding.M))
+		return
+	}
+
+	with(sharedTransitionScope) {
+		val previewMarkdown = rememberMarkdownPreview(event.content, EVENT_CARD_MAX_CONTENT_LENGTH)
+		MarkdownView(
+			markdown = previewMarkdown,
+			modifier = Modifier
+				.fillMaxWidth()
+				.padding(
+					horizontal = Ui.Padding.L,
+					vertical = Ui.Padding.M,
+				)
+				.sharedElement(
+					sharedContentState = rememberSharedContentState(key = "timeline-content-${event.id}"),
+					animatedVisibilityScope = animatedVisibilityScope,
+				)
+				.testTag(EVENT_CARD_CONTENT_TAG),
+		)
+	}
+
+	if (event.tags.isNotEmpty()) {
+		FlowRow(
+			modifier = Modifier
+				.fillMaxWidth()
+				.padding(
+					start = Ui.Padding.L,
+					end = Ui.Padding.L,
+					bottom = Ui.Padding.L,
+				),
+			horizontalArrangement = Arrangement.spacedBy(6.dp),
+			verticalArrangement = Arrangement.spacedBy(6.dp),
+		) {
+			event.tags.sorted().forEach { tag ->
+				HdTagChip(
+					label = tag,
+					active = tag in activeTags,
+					onClick = { onTagClick(tag) },
+				)
 			}
 		}
 	}

@@ -1,218 +1,151 @@
 package components.timeline
 
-import PROJECT_EMPTY_NAME
-import com.arkivanov.decompose.ComponentContext
-import com.arkivanov.essenty.lifecycle.Lifecycle
-import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
+import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
+import com.darkrockstudios.apps.hammer.common.components.timeline.LaneCount
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineOverviewComponent
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
-import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
-import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndex
-import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndexService
-import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineContainer
-import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
-import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
-import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
-import getProjectDef
-import io.mockk.*
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.FlowCollector
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.test.TestScope
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineEventDraft
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineResult
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
-import kotlinx.serialization.json.Json
-import net.peanuuutz.tomlkt.Toml
-import okio.fakefilesystem.FakeFileSystem
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.koin.dsl.bind
-import org.koin.dsl.module
-import repositories.timeline.fakeEvents
-import utils.BaseTest
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-@OptIn(ExperimentalCoroutinesApi::class)
-class TimeLineOverviewComponentTest : BaseTest() {
+class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 
-	lateinit var ffs: FakeFileSystem
-	lateinit var toml: Toml
-	lateinit var json: Json
-	lateinit var idRepo: IdAllocator
-	lateinit var context: ComponentContext
-	lateinit var lifecycle: Lifecycle
-	lateinit var lifecycleCallbacks: MutableList<Lifecycle.Callbacks>
-	lateinit var timelineRepoCollectCallback: CapturingSlot<FlowCollector<TimeLineContainer>>
-	lateinit var timelineRepo: TimeLineRepository
-	lateinit var globalSettingsRepo: GlobalSettingsStore
-	lateinit var globalSettingsFlow: SharedFlow<GlobalSettings>
-	lateinit var tagIndexService: TagIndexService
+	private fun newComponent() = TimeLineOverviewComponent(
+		componentContext = context,
+		projectDef = projectDef,
+		addMenu = {},
+		removeMenu = {},
+	)
 
-	@BeforeEach
-	override fun setup() {
-		super.setup()
+	@Test
+	fun `rows are empty until the timeline loads, then follow it`() = runTest(mainTestDispatcher) {
+		givenProject()
+		val component = newComponent()
+		assertNull(component.state.value.rows)
 
-		ffs = FakeFileSystem()
-		toml = createTomlSerializer()
-		json = createJsonSerializer()
+		context.resume()
+		advanceUntilIdle()
+		assertEquals(emptyList(), component.state.value.rows)
 
-		timelineRepo = mockk()
-		idRepo = mockk()
-		context = mockk()
-		lifecycle = mockk()
-
-		globalSettingsRepo = mockk()
-		globalSettingsFlow = mockk()
-		every { globalSettingsRepo.globalSettingsUpdates } returns globalSettingsFlow
-
-		tagIndexService = mockk(relaxed = true)
-		every { tagIndexService.tagIndex } returns MutableStateFlow(TagIndex.EMPTY)
-
-		lifecycleCallbacks = mutableListOf()
-
-		val testModule = module {
-			single { timelineRepo } bind TimeLineRepository::class
-			single { idRepo } bind IdAllocator::class
-			single { globalSettingsRepo }
-			single { tagIndexService } bind TagIndexService::class
-		}
-		setupKoin(testModule)
-
-		every { lifecycle.state } returns Lifecycle.State.STARTED
-		every { context.lifecycle } returns lifecycle
-		every {
-			lifecycle.subscribe(capture(lifecycleCallbacks))
-		} just Runs
-
-		every { lifecycle.unsubscribe(any()) } just Runs
-
-		timelineRepoCollectCallback = slot()
-		val timelineFlow: MutableSharedFlow<TimeLineContainer> = mockk()
-		coJustAwait { timelineFlow.collect(capture(timelineRepoCollectCallback)) }
-
-		every { timelineRepo.timelineFlow } returns timelineFlow
-
-		val eventContent = slot<String>()
-		val eventDate = slot<String>()
-		val eventId = slot<Int>()
-		val eventOrder = slot<Int>()
-		val eventTags = slot<Set<String>>()
-		coEvery {
-			timelineRepo.createEvent(
-				capture(eventContent),
-				capture(eventDate),
-				capture(eventId),
-				capture(eventOrder),
-				capture(eventTags),
-			)
-		} coAnswers {
-			val event = TimeLineEvent(
-				id = 0,
-				order = 0,
-				label = eventDate.captured,
-				content = eventContent.captured,
-				tags = eventTags.captured,
-			)
-			val timeline = TimeLineContainer(
-				events = listOf(event)
-			)
-
-			scope.launch {
-				timelineRepoCollectCallback.captured.emit(timeline)
-			}
-
-			event
-		}
-	}
-
-	private fun verifyEventSequence(events: List<TimeLineEvent>, vararg expectedIds: Int) {
-		assertEquals(expectedIds.size, events.size, "Event list was not of expected size")
-
-		events.forEachIndexed { index, event ->
-			val info = if (event.id != expectedIds[index]) {
-				val actual = events.map { it.id }.joinToString()
-				val expected = expectedIds.joinToString()
-				"expected: $expected\n  actual: $actual"
-			} else {
-				""
-			}
-			assertEquals(event.id, expectedIds[index], "Timeline events out of order\n$info\n")
-		}
-	}
-
-	suspend fun TestScope.defaultTestComponent(
-		originalEvents: List<TimeLineEvent> = emptyList()
-	): TimeLineOverviewComponent {
-		coEvery { globalSettingsFlow.collect(any()) } just Awaits
-
-		val component = TimeLineOverviewComponent(
-			componentContext = context,
-			projectDef = getProjectDef(PROJECT_EMPTY_NAME),
-			addMenu = {},
-			removeMenu = {}
-		)
-		lifecycleCallbacks[1].onCreate()
+		timelineService.createEvent(TimelineEventDraft(content = "Rain falls"))
 		advanceUntilIdle()
 
-		val timeline = TimeLineContainer(events = originalEvents)
-		timelineRepoCollectCallback.captured.emit(timeline)
-		advanceUntilIdle()
-
-		return component
+		assertEquals(listOf("Rain falls"), component.state.value.rows?.map { it.title })
 	}
 
 	@Test
-	fun `TimeLine Component onCreate`() = runTest {
-		val component = TimeLineOverviewComponent(
-			componentContext = context,
-			projectDef = getProjectDef(PROJECT_EMPTY_NAME),
-			addMenu = {},
-			removeMenu = {}
-		)
+	fun `rows resolve titles, subtitles and lane indices`() = runTest(mainTestDispatcher) {
+		givenProject()
+		timelineService.placeScene(4, null, null, lane = "Alice", milestone = true)
+		timelineService.placeEntry(TEA_PARTY, null, null, lane = "Hatter", milestone = false)
+		timelineService.createEvent(TimelineEventDraft(title = "Storm", label = "Night", lane = "Alice"))
+		timelineService.createEvent(TimelineEventDraft(content = "Rain falls"))
 
-		// 1 from decompose, 1 from our component
-		assertEquals(2, lifecycleCallbacks.size, "Two callbacks should be captured")
-
-		// First callback is from decompose
-		lifecycleCallbacks[1].onCreate()
-
+		val component = newComponent()
+		context.resume()
 		advanceUntilIdle()
 
-		assertTrue("TimeLine repo flow should have been subscribed to") { timelineRepoCollectCallback.isCaptured }
+		val rows = component.state.value.rows!!
+		assertEquals(listOf("Scene ID 4", "Tea Party", "Storm", "Rain falls"), rows.map { it.title })
+		assertEquals(listOf(TimelineKind.SCENE, TimelineKind.ENTRY, TimelineKind.EVENT, TimelineKind.EVENT), rows.map { it.event.kind })
+		assertEquals(listOf("Chapter ID 2", null, null, null), rows.map { it.subtitle })
+		assertEquals(listOf(0, 1, 0, null), rows.map { it.laneIndex })
+		assertEquals(listOf("", "", "Night", ""), rows.map { it.whenText })
+		assertTrue(rows.none { it.subjectMissing })
+		assertEquals(listOf(LaneCount("Alice", 2), LaneCount("Hatter", 1)), component.state.value.lanes)
+		assertEquals(TimelineMode.MANUAL, component.state.value.mode)
 	}
 
 	@Test
-	fun `Initial data from repo`() = runTest {
-		val component = TimeLineOverviewComponent(
-			componentContext = context,
-			projectDef = getProjectDef(PROJECT_EMPTY_NAME),
-			addMenu = {},
-			removeMenu = {}
-		)
+	fun `lane indices follow the lane order before the alphabet`() = runTest(mainTestDispatcher) {
+		givenProject()
+		timelineService.updateDefinition { it.copy(laneOrder = listOf("Queen")) }
+		timelineService.createEvent(TimelineEventDraft(title = "Croquet", lane = "Queen"))
+		timelineService.createEvent(TimelineEventDraft(title = "Fall", lane = "Alice"))
 
-		// First callback is from decompose
-		lifecycleCallbacks[1].onCreate()
-
+		val component = newComponent()
+		context.resume()
 		advanceUntilIdle()
 
-		assertNull(component.state.value.timeLine, "Timeline hasn't been emitted yet, should be null")
+		assertEquals(listOf("Queen", "Alice"), component.state.value.lanes.map { it.lane })
+		assertEquals(listOf(0, 1), component.state.value.rows!!.map { it.laneIndex })
+	}
 
-		val timeline = TimeLineContainer(
-			events = fakeEvents()
+	@Test
+	fun `a placement whose subject is gone keeps its cached title`() = runTest(mainTestDispatcher) {
+		givenProject()
+		timeLineRepository.createEvent(
+			TimelineEventDraft(kind = TimelineKind.SCENE, subject = 999, cachedTitle = "Gone scene")
 		)
 
-		// Mocked repo emits a timeline
-		timelineRepoCollectCallback.captured.emit(timeline)
-
+		val component = newComponent()
+		context.resume()
 		advanceUntilIdle()
 
-		// Component's state should now have that timeline
-		assertEquals(timeline, component.state.value.timeLine, "Timeline did not propogate")
+		val row = component.state.value.rows!!.single()
+		assertTrue(row.subjectMissing)
+		assertEquals("Gone scene", row.title)
+	}
+
+	@Test
+	fun `toggling a lane filters by it and toggling again clears it`() = runTest(mainTestDispatcher) {
+		givenProject()
+		timelineService.createEvent(TimelineEventDraft(title = "Croquet", lane = "Queen"))
+		timelineService.createEvent(TimelineEventDraft(title = "Fall", lane = "Alice"))
+
+		val component = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		component.toggleLane("Queen")
+		assertEquals(setOf("Queen"), component.state.value.laneFilter)
+		component.toggleLane("Alice")
+		assertEquals(setOf("Queen", "Alice"), component.state.value.laneFilter)
+		component.toggleLane("Queen")
+		assertEquals(setOf("Alice"), component.state.value.laneFilter)
+		component.setLaneFilter(emptySet())
+		assertEquals(emptySet(), component.state.value.laneFilter)
+	}
+
+	@Test
+	fun `a lane that leaves the timeline leaves the filter`() = runTest(mainTestDispatcher) {
+		givenProject()
+		val croquet = (timelineService.createEvent(TimelineEventDraft(title = "Croquet", lane = "Queen")) as TimelineResult.Ok).event!!
+
+		val component = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		component.toggleLane("Queen")
+
+		timelineService.setLane(croquet.id, null)
+		advanceUntilIdle()
+
+		assertEquals(emptySet(), component.state.value.laneFilter)
+	}
+
+	@Test
+	fun `moving is refused on a dated timeline`() = runTest(mainTestDispatcher) {
+		givenProject()
+		val first = (timelineService.createEvent(TimelineEventDraft(title = "One")) as TimelineResult.Ok).event!!
+		timelineService.createEvent(TimelineEventDraft(title = "Two"))
+
+		val component = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		assertTrue(component.moveEvent(first, 1, after = true))
+
+		timelineService.switchToDated(CalendarDef())
+		advanceUntilIdle()
+
+		assertEquals(TimelineMode.DATED, component.state.value.mode)
+		assertFalse(component.moveEvent(first, 0, after = false))
+		assertTrue(component.state.value.rows!!.all { it.whenText.isNotEmpty() }, "Dated rows show their start")
 	}
 }

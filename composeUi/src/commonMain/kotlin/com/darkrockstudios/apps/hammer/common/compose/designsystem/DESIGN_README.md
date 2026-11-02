@@ -301,6 +301,12 @@ The handwriting of the system. Reach for these instead of styling
 - **[`HdHairlineTagField`](HdHairlineTagField.kt)** — same vocabulary
   but the value is a `List<String>` of `HdTagChip`s; Enter / comma
   adds a tag, Backspace on empty removes the last.
+- **[`HdHairlineSuggestField`](HdHairlineSuggestField.kt)**: an
+  `HdHairlineField` for free text with known values offered as chips
+  under it (a timeline lane, say). Tapping a chip fills the field;
+  typing something new is fine. `suggestionAccent` colours each chip's
+  swatch, so lane suggestions show their lane colour, and `trailing`
+  holds a swatch once the text matches a known value.
 - **[`HdHairlineWordListField`](HdHairlineWordListField.kt)**: the
   tag field's shape for a plain word list (the project dictionary):
   neutral `#` chips that wrap instead of scrolling, Enter / comma /
@@ -383,7 +389,9 @@ screen that surfaces them.
   `⚑`), a plain timeline event `◷` (`HD_EVENT_GLYPH`). Entries sit on
   their type colour; the other kinds on a neutral swatch
   (`hdSwatchColor()` / `hdGlyphColor()`). Reach for these constants
-  rather than typing the character.
+  rather than typing the character. `TimelineKind.hdMark()` gives a
+  timeline entry the same glyph by kind: `◷` event, `§` placed scene,
+  `⚑` placed EVENT entry.
 - **[`HdCategorySwatch`](HdCategorySwatch.kt)** /
   **`HdCategoryChip`** — the colored square + mono name. Use for
   inline category indicators.

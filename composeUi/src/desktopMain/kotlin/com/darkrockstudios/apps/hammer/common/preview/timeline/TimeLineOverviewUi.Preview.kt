@@ -10,7 +10,6 @@ import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineOverview
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagCount
-import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineContainer
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.preview.KoinApplicationPreview
 import com.darkrockstudios.apps.hammer.common.preview.TABLET_HEIGHT_DP
@@ -64,41 +63,21 @@ fun ScreenTimeLineOverviewUiTabletPreview() {
 	}
 }
 
-private val events = listOf(
-	TimeLineEvent(
-		id = 1,
-		order = 0,
-		label = "Spring, Year One",
-		content = "The keeper arrives at the lighthouse and meets the villagers.",
-		tags = setOf("act-one"),
-	),
-	TimeLineEvent(
-		id = 2,
-		order = 1,
-		label = "Midsummer",
-		content = "The lamp goes dark for the first time and a ship runs aground.",
-		tags = setOf("act-one", "turning-point"),
-	),
-	TimeLineEvent(
-		id = 3,
-		order = 2,
-		label = null,
-		content = "An undated rumour spreads through the harbour town.",
-	),
-)
-
 private val component = object : TimeLineOverview {
 	override val state: Value<TimeLineOverview.State> = MutableValue(
 		TimeLineOverview.State(
-			timeLine = TimeLineContainer(events = events),
+			rows = previewRows,
+			lanes = previewLaneCounts,
 		)
 	)
 	override val rankedTags: Value<List<TagCount>> = MutableValue(
 		listOf(
-			TagCount("act-one", 2),
+			TagCount("act-one", 1),
 			TagCount("turning-point", 1),
 		)
 	)
 
 	override suspend fun moveEvent(event: TimeLineEvent, toIndex: Int, after: Boolean): Boolean = false
+	override fun setLaneFilter(lanes: Set<String>) {}
+	override fun toggleLane(lane: String) {}
 }

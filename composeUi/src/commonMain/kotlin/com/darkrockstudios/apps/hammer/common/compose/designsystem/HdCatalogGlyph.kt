@@ -3,7 +3,9 @@ package com.darkrockstudios.apps.hammer.common.compose.designsystem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogItem
 import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogKind
 
@@ -22,6 +24,13 @@ fun CatalogItem.hdMark(): String = entryType?.glyph() ?: when (kind) {
 	CatalogKind.Note -> HD_NOTE_GLYPH
 	CatalogKind.Entry -> HD_ALL_GLYPH
 	CatalogKind.Event -> HD_EVENT_GLYPH
+}
+
+/** A timeline entry's glyph: a plain event, a placed scene, or a placed EVENT entry. */
+fun TimelineKind.hdMark(): String = when (this) {
+	TimelineKind.EVENT -> HD_EVENT_GLYPH
+	TimelineKind.SCENE -> HD_SCENE_GLYPH
+	TimelineKind.ENTRY -> EntryType.EVENT.glyph()
 }
 
 /** The swatch behind [hdMark]: an entry's type colour, a neutral ink for the other kinds. */

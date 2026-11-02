@@ -1,7 +1,5 @@
 package com.darkrockstudios.apps.hammer.common.timeline
 
-import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageDef
-import com.darkrockstudios.apps.hammer.operations.plugin.ActionPlace
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
@@ -10,29 +8,46 @@ import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.base.markdown.countWords
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.common.TextEditorDefaults
 import com.darkrockstudios.apps.hammer.common.components.timeline.ViewTimeLineEvent
 import com.darkrockstudios.apps.hammer.common.compose.*
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
+import com.darkrockstudios.apps.hammer.common.compose.entitypicker.EntityPickerDialog
+import com.darkrockstudios.apps.hammer.common.compose.images.rememberImageRequest
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownEditField
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownView
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogItem
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.SubjectSummary
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEventError
+import com.darkrockstudios.apps.hammer.operations.plugin.ActionPlace
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
+const val TIME_LINE_VIEW_OPEN_SUBJECT_TAG = "timeline-view-open-subject"
+const val TIME_LINE_VIEW_SUBJECT_MISSING_TAG = "timeline-view-subject-missing"
+const val TIME_LINE_VIEW_LANE_TAG = "timeline-view-lane"
+const val TIME_LINE_VIEW_MILESTONE_TAG = "timeline-view-milestone"
+
 private val ModalMaxWidth = TextEditorDefaults.MAX_WIDTH * 1.25f
 private val ModalMaxHeight = 760.dp
+private val SubjectImageHeight = 220.dp
 
 @OptIn(ExperimentalSharedTransitionApi::class, ExperimentalLayoutApi::class)
 @Composable
@@ -51,22 +66,19 @@ fun ViewTimeLineEventUi(
 	val eventText by component.contentText.subscribeAsState()
 	val event = state.event
 	val isEditing = state.isEditing
+	val isEvent = state.kind == TimelineKind.EVENT
+	var pickingReferences by remember { mutableStateOf(false) }
 
 	val saveChanges: () -> Unit = {
 		if (event != null) {
 			scope.launch(dispatcherDefault) {
-				val success = component.storeEvent(
-					event.copy(
-						label = dateText,
-						content = eventText,
-						tags = state.tags,
-					)
-				)
-				if (success) {
-					launch { rootSnackbar.showSnackbar(strRes.get(Res.string.timeline_view_toast_save_success)) }
+				val error = component.saveEdit()
+				val message = if (error == TimeLineEventError.NONE) {
+					strRes.get(Res.string.timeline_view_toast_save_success)
 				} else {
-					launch { rootSnackbar.showSnackbar(strRes.get(Res.string.timeline_view_toast_save_failure)) }
+					error.toastText(strRes) ?: strRes.get(Res.string.timeline_view_toast_save_failure)
 				}
+				launch { rootSnackbar.showSnackbar(message) }
 			}
 		}
 	}
@@ -85,7 +97,7 @@ fun ViewTimeLineEventUi(
 					.widthIn(max = ModalMaxWidth)
 					.heightIn(max = ModalMaxHeight)
 					.fillMaxWidth()
-					.then(if (isEditing) Modifier.fillMaxHeight() else Modifier)
+					.then(if (isEditing && isEvent) Modifier.fillMaxHeight() else Modifier)
 					.background(MaterialTheme.colorScheme.surface)
 					.border(
 						width = Dp.Hairline,
@@ -115,7 +127,7 @@ fun ViewTimeLineEventUi(
 
 				StampRow(
 					isEditing = isEditing,
-					event = event,
+					state = state,
 					savedDate = event?.label,
 					sharedTransitionScope = sharedTransitionScope,
 					animatedVisibilityScope = animatedVisibilityScope,
@@ -129,38 +141,72 @@ fun ViewTimeLineEventUi(
 					color = MaterialTheme.colorScheme.outline,
 				)
 
-				if (isEditing) {
-					EditBody(
-						dateText = dateText,
-						onDateChanged = { component.onDateTextChanged(it) },
-						tags = state.tags.toList(),
-						onTagsChanged = { component.onTagsChanged(it.toSet()) },
-						eventText = eventText,
-						onEventTextChanged = { component.onEventTextChanged(it) },
-						suggestTags = component::suggestTags,
-						enableSpellChecking = state.spellCheckAllowed,
-						imagePicker = component::pickImageForText,
-						modifier = Modifier.weight(1f),
-					)
+				when {
+					isEditing && isEvent -> {
+						EditBody(
+							state = state,
+							component = component,
+							dateText = dateText,
+							eventText = eventText,
+							onAddReferences = { pickingReferences = true },
+							modifier = Modifier.weight(1f),
+						)
 
-					EditStatusFooter(text = eventText)
-				} else {
-					ViewBody(
-						event = event,
-						eventText = eventText,
-						onEnterEdit = { component.beginEdit() },
-						onTagClick = component::showGlobalSearchForTag,
-						onTagRemove = { tag -> scope.launch { component.removeTag(tag) } },
-						sharedTransitionScope = sharedTransitionScope,
-						animatedVisibilityScope = animatedVisibilityScope,
-						modifier = Modifier.weight(1f, fill = false),
-					)
+						EditStatusFooter(text = eventText)
+					}
 
-					ViewFolioFooter(event = event, eventText = eventText)
+					isEditing -> {
+						PlacementFields(
+							state = state,
+							component = component,
+							dateText = dateText,
+							modifier = Modifier.padding(Ui.Padding.XL),
+						)
+					}
+
+					isEvent -> {
+						ViewBody(
+							state = state,
+							eventText = eventText,
+							onEnterEdit = { component.beginEdit() },
+							onTagClick = component::showGlobalSearchForTag,
+							onTagRemove = { tag -> scope.launch { component.removeTag(tag) } },
+							onOpenReference = component::openReference,
+							sharedTransitionScope = sharedTransitionScope,
+							animatedVisibilityScope = animatedVisibilityScope,
+							modifier = Modifier.weight(1f, fill = false),
+						)
+
+						ViewFolioFooter(event = event, eventText = eventText)
+					}
+
+					else -> {
+						PlacementBody(
+							state = state,
+							onOpenSubject = component::openSubject,
+							onOpenReference = component::openReference,
+							modifier = Modifier.weight(1f, fill = false),
+						)
+
+						ViewFolioFooter(event = event, eventText = null)
+					}
 				}
 			}
 		}
 	}
+
+	EntityPickerDialog(
+		visible = pickingReferences,
+		title = Res.string.timeline_references_pick_title.get(),
+		items = state.catalog.filter { it.id != event?.id },
+		filter = ReferenceFilter,
+		multiple = true,
+		selected = state.references.map { it.ref },
+		onSelectedChange = { refs ->
+			applyReferencePicks(state.references, refs, state.catalog, component::addReference, component::removeReference)
+		},
+		onDismiss = { pickingReferences = false },
+	)
 
 	if (state.confirmClose) {
 		SimpleConfirm(
@@ -221,7 +267,7 @@ private fun CrumbRow(
 @Composable
 private fun StampRow(
 	isEditing: Boolean,
-	event: TimeLineEvent?,
+	state: ViewTimeLineEvent.State,
 	savedDate: String?,
 	sharedTransitionScope: SharedTransitionScope,
 	animatedVisibilityScope: AnimatedVisibilityScope,
@@ -229,10 +275,11 @@ private fun StampRow(
 	onSave: () -> Unit,
 	onCancel: () -> Unit,
 ) {
+	val event = state.event
 	val sectionTitle = if (isEditing) {
 		Res.string.timeline_view_label_editing.get()
 	} else {
-		Res.string.timeline_view_header.get()
+		state.kind.label()
 	}
 
 	HdDetailStampRow(
@@ -248,12 +295,7 @@ private fun StampRow(
 			}
 		},
 		meta = {
-			Box(
-				modifier = Modifier
-					.height(14.dp)
-					.width(Dp.Hairline)
-					.background(MaterialTheme.colorScheme.outlineVariant),
-			)
+			MetaRule()
 
 			val metaText = if (isEditing) {
 				Res.string.timeline_view_status_unsaved.get()
@@ -270,6 +312,14 @@ private fun StampRow(
 						animatedVisibilityScope = animatedVisibilityScope,
 					),
 				)
+			}
+
+			val lane = event?.lane
+			if (!isEditing && lane != null) {
+				MetaRule()
+				val index = state.laneIndex
+				if (index != null) LaneSwatch(lane = lane, index = index)
+				HdMonoLabel(text = lane, maxLines = 1)
 			}
 		},
 		actions = {
@@ -294,6 +344,16 @@ private fun StampRow(
 }
 
 @Composable
+private fun MetaRule() {
+	Box(
+		modifier = Modifier
+			.height(14.dp)
+			.width(Dp.Hairline)
+			.background(MaterialTheme.colorScheme.outlineVariant),
+	)
+}
+
+@Composable
 private fun PulsingDot() {
 	val transition = rememberInfiniteTransition(label = "timelineEditingPulse")
 	val alpha by transition.animateFloat(
@@ -313,18 +373,36 @@ private fun PulsingDot() {
 	)
 }
 
+/** `◆ MILESTONE` when the event is one; the lane sits in the stamp row. */
+@Composable
+private fun MilestoneLine(event: TimeLineEvent?) {
+	if (event?.milestone != true) return
+	Row(
+		modifier = Modifier
+			.padding(bottom = Ui.Padding.L)
+			.testTag(TIME_LINE_VIEW_MILESTONE_TAG),
+		verticalAlignment = Alignment.CenterVertically,
+		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M),
+	) {
+		MilestoneMark()
+		HdMonoLabel(text = Res.string.timeline_milestone_label.get(), color = MaterialTheme.colorScheme.onSurface)
+	}
+}
+
 @OptIn(ExperimentalSharedTransitionApi::class, ExperimentalLayoutApi::class)
 @Composable
 private fun ViewBody(
-	event: TimeLineEvent?,
+	state: ViewTimeLineEvent.State,
 	eventText: String,
 	onEnterEdit: () -> Unit,
 	onTagClick: (String) -> Unit,
 	onTagRemove: (String) -> Unit,
+	onOpenReference: (CatalogItem) -> Unit,
 	sharedTransitionScope: SharedTransitionScope,
 	animatedVisibilityScope: AnimatedVisibilityScope,
 	modifier: Modifier = Modifier,
 ) {
+	val event = state.event
 	val scrollState = rememberScrollState()
 	Box(modifier = modifier) {
 		Column(
@@ -333,6 +411,18 @@ private fun ViewBody(
 				.verticalScroll(scrollState)
 				.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.XL),
 		) {
+			MilestoneLine(event)
+
+			val title = event?.title
+			if (!title.isNullOrBlank()) {
+				Text(
+					text = title,
+					style = MaterialTheme.typography.headlineSmall,
+					color = MaterialTheme.colorScheme.onSurface,
+					modifier = Modifier.padding(bottom = Ui.Padding.L),
+				)
+			}
+
 			val eventTags = event?.tags
 			if (!eventTags.isNullOrEmpty()) {
 				FlowRow(
@@ -373,6 +463,104 @@ private fun ViewBody(
 						.clickable(onClick = onEnterEdit),
 				)
 			}
+
+			if (state.references.isNotEmpty()) {
+				HorizontalDivider(
+					thickness = Dp.Hairline,
+					color = MaterialTheme.colorScheme.outlineVariant,
+					modifier = Modifier.padding(vertical = Ui.Padding.L),
+				)
+				ReferencesSection(
+					references = state.references,
+					onAdd = {},
+					onRemove = null,
+					onOpen = onOpenReference,
+				)
+			}
+		}
+
+		MpScrollBarColumn(
+			modifier = scrollBarOverlay(),
+			state = scrollState,
+		)
+	}
+}
+
+/** A placement, read-only: what it places, with a way to open it. */
+@Composable
+private fun PlacementBody(
+	state: ViewTimeLineEvent.State,
+	onOpenSubject: () -> Unit,
+	onOpenReference: (CatalogItem) -> Unit,
+	modifier: Modifier = Modifier,
+) {
+	val scrollState = rememberScrollState()
+	Box(modifier = modifier) {
+		Column(
+			modifier = Modifier
+				.fillMaxWidth()
+				.verticalScroll(scrollState)
+				.padding(Ui.Padding.XL),
+			verticalArrangement = Arrangement.spacedBy(Ui.Padding.L),
+		) {
+			MilestoneLine(state.event)
+
+			when (val subject = state.subject) {
+				is SubjectSummary.Entry -> {
+					val image = state.subjectImage
+					if (image != null) {
+						AsyncImage(
+							model = rememberImageRequest(path = image.path, version = image.version),
+							contentDescription = image.name,
+							contentScale = ContentScale.Fit,
+							modifier = Modifier
+								.fillMaxWidth()
+								.height(SubjectImageHeight)
+								.border(Dp.Hairline, MaterialTheme.colorScheme.outlineVariant, RectangleShape)
+								.background(MaterialTheme.colorScheme.surfaceContainerLow),
+						)
+					}
+					SubjectHeading(title = subject.entry.name, caption = Res.string.timeline_entry_subtitle.get())
+					Excerpt(subject.excerpt)
+					HdHairlineButton(
+						label = Res.string.timeline_open_entry.get(),
+						onClick = onOpenSubject,
+						modifier = Modifier.testTag(TIME_LINE_VIEW_OPEN_SUBJECT_TAG),
+					)
+				}
+
+				is SubjectSummary.Scene -> {
+					SubjectHeading(title = subject.scene.name, caption = subject.chapterPath.ifBlank { null })
+					Excerpt(subject.excerpt)
+					if (state.references.isNotEmpty()) {
+						HdMonoLabel(text = Res.string.timeline_cast_header.get())
+						TimelineReferenceBuckets(
+							items = state.references,
+							onOpen = onOpenReference,
+							onRemove = null,
+							removeDescription = "",
+						)
+					}
+					if (!subject.scene.archived) {
+						HdHairlineButton(
+							label = Res.string.timeline_open_scene.get(),
+							onClick = onOpenSubject,
+							modifier = Modifier.testTag(TIME_LINE_VIEW_OPEN_SUBJECT_TAG),
+						)
+					}
+				}
+
+				SubjectSummary.Missing -> {
+					HdWarningNotice(
+						label = Res.string.timeline_subject_missing.get(),
+						message = Res.string.timeline_subject_missing_message.get(),
+						modifier = Modifier.testTag(TIME_LINE_VIEW_SUBJECT_MISSING_TAG),
+					)
+					SubjectHeading(title = state.displayTitle, caption = null)
+				}
+
+				null -> Unit
+			}
 		}
 
 		MpScrollBarColumn(
@@ -383,50 +571,127 @@ private fun ViewBody(
 }
 
 @Composable
-private fun EditBody(
+private fun SubjectHeading(title: String, caption: String?) {
+	Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+		Text(
+			text = title,
+			style = MaterialTheme.typography.headlineSmall,
+			color = MaterialTheme.colorScheme.onSurface,
+		)
+		if (caption != null) HdMonoLabel(text = caption)
+	}
+}
+
+@Composable
+private fun Excerpt(text: String) {
+	if (text.isBlank()) return
+	Text(
+		text = text,
+		style = MaterialTheme.typography.bodyMedium,
+		color = MaterialTheme.colorScheme.onSurface,
+	)
+}
+
+/** The fields every kind has: when, lane and milestone. */
+@Composable
+private fun PlacementFields(
+	state: ViewTimeLineEvent.State,
+	component: ViewTimeLineEvent,
 	dateText: String,
-	onDateChanged: (String) -> Unit,
-	tags: List<String>,
-	onTagsChanged: (List<String>) -> Unit,
+	modifier: Modifier = Modifier,
+	onFocusChanged: (Boolean) -> Unit = {},
+) {
+	var dateFocused by remember { mutableStateOf(false) }
+	var laneFocused by remember { mutableStateOf(false) }
+	Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Ui.Padding.L)) {
+		HdHairlineField(
+			label = Res.string.timeline_when_label.get(),
+			value = dateText,
+			onValueChange = component::onDateTextChanged,
+			hint = Res.string.timeline_view_date_hint.get(),
+			placeholder = Res.string.timeline_view_date_placeholder.get(),
+			onFocusChanged = {
+				dateFocused = it
+				onFocusChanged(dateFocused || laneFocused)
+			},
+		)
+		LaneField(
+			value = state.lane,
+			onValueChange = component::onLaneChanged,
+			lanes = state.lanes,
+			suggest = component::suggestLanes,
+			onFocusChanged = {
+				laneFocused = it
+				onFocusChanged(dateFocused || laneFocused)
+			},
+			testTag = TIME_LINE_VIEW_LANE_TAG,
+		)
+		HdHairlineToggleRow(
+			checked = state.milestone,
+			onCheckedChange = component::onMilestoneChanged,
+			label = Res.string.timeline_milestone_label.get(),
+			hint = Res.string.timeline_milestone_hint.get(),
+		)
+	}
+}
+
+@Composable
+private fun EditBody(
+	state: ViewTimeLineEvent.State,
+	component: ViewTimeLineEvent,
+	dateText: String,
 	eventText: String,
-	onEventTextChanged: (String) -> Unit,
-	suggestTags: (prefix: String) -> List<String>,
-	enableSpellChecking: Boolean,
-	imagePicker: suspend () -> ImageDef?,
+	onAddReferences: () -> Unit,
 	modifier: Modifier = Modifier,
 ) {
-	// Date hides while the body editor has focus, like the tags; kept visible while it holds focus
-	// itself so it stays reachable. CollapseWhileTyping centralizes the IME + debounce rules.
-	var dateFocused by remember { mutableStateOf(false) }
+	// Each field hides while the body editor has focus, like the tags; kept visible while it holds
+	// focus itself so it stays reachable. CollapseWhileTyping centralizes the IME + debounce rules.
+	var titleFocused by remember { mutableStateOf(false) }
+	var placementFocused by remember { mutableStateOf(false) }
+	val fieldPadding = Modifier.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L)
 
 	Column(modifier = modifier.fillMaxWidth()) {
-		CollapseWhileTyping(keepVisible = dateFocused) {
+		CollapseWhileTyping(keepVisible = titleFocused) {
 			HdHairlineField(
-				label = Res.string.timeline_view_date_label.get(),
-				value = dateText,
-				onValueChange = onDateChanged,
-				hint = Res.string.timeline_view_date_hint.get(),
-				placeholder = Res.string.timeline_view_date_placeholder.get(),
-				onFocusChanged = { dateFocused = it },
-				modifier = Modifier.padding(
-					horizontal = Ui.Padding.XL,
-					vertical = Ui.Padding.L,
-				),
+				label = Res.string.timeline_title_label.get(),
+				value = state.title,
+				onValueChange = component::onTitleChanged,
+				hint = Res.string.timeline_title_hint.get(),
+				placeholder = Res.string.timeline_title_placeholder.get(),
+				onFocusChanged = { titleFocused = it },
+				modifier = fieldPadding,
+			)
+		}
+
+		CollapseWhileTyping(keepVisible = placementFocused) {
+			PlacementFields(
+				state = state,
+				component = component,
+				dateText = dateText,
+				onFocusChanged = { placementFocused = it },
+				modifier = fieldPadding,
 			)
 		}
 
 		HdHairlineTagField(
 			label = Res.string.timeline_create_tags_label.get(),
-			tags = tags,
-			onTagsChange = onTagsChanged,
+			tags = state.tags.toList(),
+			onTagsChange = { component.onTagsChanged(it.toSet()) },
 			hint = Res.string.timeline_create_tags_hint.get(),
 			placeholder = Res.string.timeline_create_tags_placeholder.get(),
-			suggestTags = suggestTags,
-			modifier = Modifier.padding(
-				horizontal = Ui.Padding.XL,
-				vertical = Ui.Padding.L,
-			),
+			suggestTags = component::suggestTags,
+			modifier = fieldPadding,
 		)
+
+		CollapseWhileTyping {
+			ReferencesSection(
+				references = state.references,
+				onAdd = onAddReferences,
+				onRemove = { component.removeReference(it.id) },
+				onOpen = component::openReference,
+				modifier = fieldPadding,
+			)
+		}
 
 		CollapseWhileTyping {
 			HorizontalDivider(
@@ -437,9 +702,9 @@ private fun EditBody(
 
 		MarkdownEditField(
 			initialMarkdown = eventText,
-			onMarkdownChanged = onEventTextChanged,
-			enableSpellChecking = enableSpellChecking,
-			imagePicker = imagePicker,
+			onMarkdownChanged = component::onEventTextChanged,
+			enableSpellChecking = state.spellCheckAllowed,
+			imagePicker = component::pickImageForText,
 			contentPadding = PaddingValues(Ui.Padding.XL),
 			modifier = Modifier
 				.fillMaxWidth()
@@ -449,8 +714,7 @@ private fun EditBody(
 }
 
 @Composable
-private fun ViewFolioFooter(event: TimeLineEvent?, eventText: String) {
-	val words = countWords(eventText)
+private fun ViewFolioFooter(event: TimeLineEvent?, eventText: String?) {
 	HorizontalDivider(
 		thickness = Dp.Hairline,
 		color = MaterialTheme.colorScheme.outlineVariant,
@@ -466,17 +730,14 @@ private fun ViewFolioFooter(event: TimeLineEvent?, eventText: String) {
 			HdEntityId(prefix = "TIME", id = id)
 		}
 		Spacer(modifier = Modifier.weight(1f))
-		HdMonoLabel(
-			text = Res.string.timeline_view_word_count_short.get(words),
-		)
+		if (eventText != null) {
+			HdMonoLabel(
+				text = Res.string.timeline_view_word_count_short.get(countWords(eventText)),
+			)
+		}
 		val tagCount = event?.tags?.size ?: 0
 		if (tagCount > 0) {
-			Box(
-				modifier = Modifier
-					.height(14.dp)
-					.width(Dp.Hairline)
-					.background(MaterialTheme.colorScheme.outlineVariant),
-			)
+			MetaRule()
 			HdMonoLabel(text = Res.string.timeline_view_tag_count_short.get(tagCount))
 		}
 	}

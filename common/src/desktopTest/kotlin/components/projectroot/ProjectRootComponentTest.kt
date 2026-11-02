@@ -39,6 +39,7 @@ import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjec
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndexService
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineService
 import com.darkrockstudios.apps.hammer.common.data.versioncheck.VersionCheckRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.APP_SCOPE
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
@@ -132,6 +133,8 @@ class ProjectRootComponentTest : ComponentTest() {
 
 		val timeLineRepository = mockk<TimeLineRepository>(relaxed = true)
 		every { timeLineRepository.timelineFlow } returns MutableSharedFlow()
+		val timelineService = mockk<TimelineService>(relaxed = true)
+		every { timelineService.timelineFlow } returns MutableSharedFlow()
 
 		val tagIndexService = mockk<TagIndexService>(relaxed = true)
 		every { tagIndexService.tagIndex } returns MutableStateFlow(mockk(relaxed = true))
@@ -170,6 +173,7 @@ class ProjectRootComponentTest : ComponentTest() {
 				scoped<ExportStoryUseCase> { mockk(relaxed = true) }
 				scoped { notesRepository }
 				scoped { timeLineRepository }
+				scoped { timelineService }
 				scoped<SceneDraftRepository> { mockk(relaxed = true) }
 				scoped { imagePickRequests }
 				scoped { imagesService }
