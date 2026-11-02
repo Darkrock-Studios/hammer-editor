@@ -5,6 +5,7 @@ import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientSceneSynchronizer
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
+import com.darkrockstudios.apps.hammer.common.data.references.TimelineReferenceRemapper
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
@@ -43,6 +44,7 @@ class ArchiveSyncIntegrationTest : BaseIntegrationTest() {
 			draftRepository = draftRepository,
 			serverProjectApi = serverProjectApi,
 			projectMetadataDatasource = projectMetadataDatasource,
+			timelineReferenceRemapper = TimelineReferenceRemapper(mockk(relaxed = true)),
 			strRes = strRes,
 		)
 	}

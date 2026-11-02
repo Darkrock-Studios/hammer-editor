@@ -2,12 +2,14 @@ package synchronizer
 
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ApiSceneType
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.Info
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.SceneItem.Companion.ROOT_ID
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
+import com.darkrockstudios.apps.hammer.common.data.references.TimelineReferenceRemapper
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.findById
@@ -15,22 +17,32 @@ import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.sceneme
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogLevel
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessage
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientSceneSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineDatasource
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.data.tree.Tree
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.util.StrRes
+import PROJECT_1_NAME
+import createProject
 import getProject1Def
 import io.mockk.MockKAnnotations
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.impl.annotations.MockK
+import io.mockk.mockk
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
+import okio.fakefilesystem.FakeFileSystem
 import org.jetbrains.compose.resources.PluralStringResource
 import org.jetbrains.compose.resources.StringResource
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import repositories.timeline.writeEventsToDisk
 import utils.BaseTest
 import utils.fromApiEntity
 import kotlin.test.assertEquals
@@ -88,13 +100,16 @@ class SceneSynchronizerTest : BaseTest() {
 			ProjectMetadata(Info(created = Instant.fromEpochSeconds(1_600_000_000)))
 	}
 
-	private fun defaultSceneSynchronizer() = ClientSceneSynchronizer(
+	private fun defaultSceneSynchronizer(
+		timeLineRepository: TimeLineRepository = mockk(relaxed = true),
+	) = ClientSceneSynchronizer(
 		projectDef = def,
 		sceneEditorRepository = sceneEditorRepository,
 		sceneEditorService = sceneEditorService,
 		draftRepository = draftRepository,
 		serverProjectApi = serverProjectApi,
 		projectMetadataDatasource = projectMetadataDatasource,
+		timelineReferenceRemapper = TimelineReferenceRemapper(timeLineRepository),
 		strRes = strRes,
 	)
 
@@ -751,12 +766,13 @@ class SceneSynchronizerTest : BaseTest() {
 		)
 
 		every { sceneEditorRepository.getSceneItemFromId(sceneId) } returns sceneItem
-		coEvery { sceneEditorService.deleteScene(sceneItem) } returns true
+		coEvery { sceneEditorService.deleteScene(sceneItem, detachTimeline = false) } returns true
 
 		val sync = defaultSceneSynchronizer()
 		sync.deleteEntityLocal(sceneId, onLog = {})
 
-		coVerify(exactly = 1) { sceneEditorService.deleteScene(sceneItem) }
+		// The deleting device already detached the timeline and uploaded the result.
+		coVerify(exactly = 1) { sceneEditorService.deleteScene(sceneItem, detachTimeline = false) }
 	}
 
 	@Test
@@ -773,12 +789,12 @@ class SceneSynchronizerTest : BaseTest() {
 
 		every { sceneEditorRepository.getSceneItemFromId(sceneId) } returns null
 		every { sceneEditorRepository.getArchivedSceneFromId(sceneId) } returns archivedItem
-		coEvery { sceneEditorService.deleteScene(archivedItem) } returns true
+		coEvery { sceneEditorService.deleteScene(archivedItem, detachTimeline = false) } returns true
 
 		val sync = defaultSceneSynchronizer()
 		sync.deleteEntityLocal(sceneId, onLog = {})
 
-		coVerify(exactly = 1) { sceneEditorService.deleteScene(archivedItem) }
+		coVerify(exactly = 1) { sceneEditorService.deleteScene(archivedItem, detachTimeline = false) }
 	}
 
 	@Test
@@ -792,7 +808,7 @@ class SceneSynchronizerTest : BaseTest() {
 		val sync = defaultSceneSynchronizer()
 		sync.deleteEntityLocal(sceneId, onLog = { logs.add(it) })
 
-		coVerify(exactly = 0) { sceneEditorService.deleteScene(any()) }
+		coVerify(exactly = 0) { sceneEditorService.deleteScene(any(), any()) }
 		assertEquals(SyncLogLevel.ERROR, logs.single().level)
 	}
 
@@ -874,6 +890,34 @@ class SceneSynchronizerTest : BaseTest() {
 
 		assertTrue(stored)
 		coVerify(exactly = 1) { sceneEditorService.unarchiveScene(archivedItem) }
+	}
+
+	@Test
+	fun `reIdEntity - returns the timeline events that place or reference the scene`() = runTest {
+		setupKoin()
+		val ffs = FakeFileSystem()
+		val toml = createTomlSerializer()
+		createProject(ffs, PROJECT_1_NAME)
+		writeEventsToDisk(
+			def,
+			listOf(
+				TimeLineEvent(id = 20, order = 0, kind = TimelineKind.SCENE, subject = 4, cachedTitle = "Landfall"),
+				TimeLineEvent(id = 21, order = 1, title = "Storm", references = setOf(4, 7)),
+				TimeLineEvent(id = 22, order = 2, title = "Unrelated", references = setOf(7)),
+			),
+			ffs,
+			toml,
+		)
+		val timeline = TimeLineRepository(def, mockk(), TimeLineDatasource(ffs, toml)).initialize()
+		advanceUntilIdle()
+
+		val referrers = defaultSceneSynchronizer(timeline).reIdEntity(oldId = 4, newId = 9)
+
+		assertEquals(setOf(20, 21), referrers)
+		val events = timeline.loadTimeline().events.associateBy { it.id }
+		assertEquals(9, events.getValue(20).subject)
+		assertEquals(setOf(9, 7), events.getValue(21).references)
+		assertEquals(setOf(7), events.getValue(22).references)
 	}
 
 	@Test

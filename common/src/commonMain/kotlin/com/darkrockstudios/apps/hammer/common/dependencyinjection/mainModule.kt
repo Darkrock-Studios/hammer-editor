@@ -82,6 +82,7 @@ import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexServ
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceRemapper
 import com.darkrockstudios.apps.hammer.common.data.references.SceneMetadataReferenceRemapper
 import com.darkrockstudios.apps.hammer.common.data.references.ScrubInvalidReferencesUseCase
+import com.darkrockstudios.apps.hammer.common.data.references.TimelineReferenceRemapper
 import com.darkrockstudios.apps.hammer.common.data.references.WholeWordCaseSensitiveMatcher
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneContentRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
@@ -394,6 +395,7 @@ val mainModule = module {
 		scoped<CleanupReferencesOnEntryDeleteUseCase>()
 		scoped<SceneMetadataReferenceRemapper>() bind ReferenceRemapper::class
 		scoped<ImageReferenceRewriter>()
+		scoped<TimelineReferenceRemapper>()
 
 		scoped<SyncJournalDatasource>()
 

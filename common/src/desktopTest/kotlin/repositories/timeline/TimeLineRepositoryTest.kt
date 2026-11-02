@@ -3,6 +3,9 @@ package repositories.timeline
 import PROJECT_EMPTY_NAME
 import app.cash.turbine.test
 import com.darkrockstudios.apps.hammer.base.http.readToml
+import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineLimits
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
@@ -13,11 +16,14 @@ import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import createProject
 import getProjectDef
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -31,6 +37,7 @@ import org.koin.dsl.module
 import utils.BaseTest
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -353,5 +360,128 @@ class TimeLineRepositoryTest : BaseTest() {
 			repo.deleteEvent(event = created)
 			awaitItem()
 		}
+	}
+
+	private fun referenceEvents() = listOf(
+		TimeLineEvent(id = 20, order = 0, kind = TimelineKind.SCENE, subject = 4, lane = "Keep", cachedTitle = "Landfall"),
+		TimeLineEvent(
+			id = 21,
+			order = 1,
+			kind = TimelineKind.ENTRY,
+			subject = 5,
+			milestone = true,
+			start = StoryDate(mapOf("year" to 97L)),
+			end = StoryDate(mapOf("year" to 98L)),
+		),
+		TimeLineEvent(id = 22, order = 2, title = "Storm", content = "Wind", references = setOf(4, 9)),
+		TimeLineEvent(id = 23, order = 3, title = "Unrelated", tags = setOf("x"), references = setOf(9)),
+	)
+
+	private fun TestScope.referenceRepo(projDef: ProjectDef): TimeLineRepository {
+		setupTimelne(projDef, referenceEvents())
+		val repo = TimeLineRepository(
+			projectDef = projDef,
+			idAllocator = mockk(),
+			datasource = datasource,
+		).initialize()
+		advanceUntilIdle()
+		return repo
+	}
+
+	private fun storedEvents(projDef: ProjectDef): Map<Int, TimeLineEvent> {
+		val file = TimeLineDatasource.getTimelineFilePath(projDef).toOkioPath()
+		return ffs.readToml<TimeLineContainer>(file, toml).events.associateBy { it.id }
+	}
+
+	@Test
+	fun `findPlacement finds the placement of a subject and ignores references`() = runTest {
+		createProject(ffs, PROJECT_EMPTY_NAME)
+		val repo = referenceRepo(getProjectDef(PROJECT_EMPTY_NAME))
+
+		assertEquals(20, repo.findPlacement(4)?.id)
+		assertEquals(21, repo.findPlacement(5)?.id)
+		assertNull(repo.findPlacement(9))
+	}
+
+	@Test
+	fun `remapReferencedId rewrites subjects and references without marking them dirty`() = runTest {
+		createProject(ffs, PROJECT_EMPTY_NAME)
+		val projDef = getProjectDef(PROJECT_EMPTY_NAME)
+		val repo = referenceRepo(projDef)
+
+		val touched = repo.remapReferencedId(oldId = 4, newId = 40)
+
+		assertEquals(setOf(20, 22), touched)
+		val stored = storedEvents(projDef)
+		assertEquals(referenceEvents()[0].copy(subject = 40), stored[20])
+		assertEquals(referenceEvents()[2].copy(references = setOf(40, 9)), stored[22])
+		assertEquals(referenceEvents()[1], stored[21])
+		assertEquals(referenceEvents()[3], stored[23])
+		assertEquals(stored.values.toSet(), repo.timelineFlow.first().events.toSet())
+		coVerify(exactly = 0) { syncJournal.markEntityAsDirty(any()) }
+	}
+
+	@Test
+	fun `remapReferencedId touches nothing when no event refers to the id`() = runTest {
+		createProject(ffs, PROJECT_EMPTY_NAME)
+		val projDef = getProjectDef(PROJECT_EMPTY_NAME)
+		val repo = referenceRepo(projDef)
+
+		assertEquals(emptySet(), repo.remapReferencedId(oldId = 77, newId = 78))
+		assertEquals(referenceEvents().associateBy { it.id }, storedEvents(projDef))
+	}
+
+	@Test
+	fun `detachSubject turns placements into plain events and strips references`() = runTest {
+		every { syncJournal.isServerSynchronized() } returns true
+		coEvery { syncJournal.isEntityDirty(any()) } returns false
+		coEvery { syncJournal.markEntityAsDirty(any()) } returns Unit
+		createProject(ffs, PROJECT_EMPTY_NAME)
+		val projDef = getProjectDef(PROJECT_EMPTY_NAME)
+		val repo = referenceRepo(projDef)
+
+		val touched = repo.detachSubject(subjectId = 4, titleFallback = "Scene name", markForSync = true)
+
+		assertEquals(setOf(20, 22), touched)
+		val stored = storedEvents(projDef)
+		// Placement data stays; the cached title wins over the fallback.
+		assertEquals(
+			TimeLineEvent(id = 20, order = 0, title = "Landfall", lane = "Keep", cachedTitle = "Landfall"),
+			stored[20],
+		)
+		assertEquals(referenceEvents()[2].copy(references = setOf(9)), stored[22])
+		assertEquals(referenceEvents()[1], stored[21])
+		assertEquals(referenceEvents()[3], stored[23])
+		coVerify(exactly = 1) { syncJournal.markEntityAsDirty(20) }
+		coVerify(exactly = 1) { syncJournal.markEntityAsDirty(22) }
+		coVerify(exactly = 0) { syncJournal.markEntityAsDirty(21) }
+		coVerify(exactly = 0) { syncJournal.markEntityAsDirty(23) }
+	}
+
+	@Test
+	fun `detachSubject titles a placement with no cached title from the fallback`() = runTest {
+		createProject(ffs, PROJECT_EMPTY_NAME)
+		val projDef = getProjectDef(PROJECT_EMPTY_NAME)
+		val repo = referenceRepo(projDef)
+
+		val touched = repo.detachSubject(subjectId = 5, titleFallback = "The Siege", markForSync = false)
+
+		assertEquals(setOf(21), touched)
+		assertEquals(
+			referenceEvents()[1].copy(kind = TimelineKind.EVENT, subject = null, title = "The Siege"),
+			storedEvents(projDef)[21],
+		)
+		coVerify(exactly = 0) { syncJournal.markEntityAsDirty(any()) }
+	}
+
+	@Test
+	fun `detachSubject caps a long title at the shared limit`() = runTest {
+		createProject(ffs, PROJECT_EMPTY_NAME)
+		val projDef = getProjectDef(PROJECT_EMPTY_NAME)
+		val repo = referenceRepo(projDef)
+
+		repo.detachSubject(subjectId = 5, titleFallback = "x".repeat(TimelineLimits.MAX_TITLE + 10), markForSync = false)
+
+		assertEquals("x".repeat(TimelineLimits.MAX_TITLE), storedEvents(projDef).getValue(21).title)
 	}
 }

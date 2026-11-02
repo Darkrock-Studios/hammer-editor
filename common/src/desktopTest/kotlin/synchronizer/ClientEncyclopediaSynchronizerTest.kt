@@ -4,6 +4,7 @@ import ENCYCLOPEDIA_ONLY_PROJECT_NAME
 import com.darkrockstudios.apps.hammer.base.http.SaveEntityResponse
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityConflictException
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaDatasource
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaService
@@ -13,9 +14,13 @@ import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsR
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexDatasource
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexRepository
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceRemapper
+import com.darkrockstudios.apps.hammer.common.data.references.TimelineReferenceRemapper
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessage
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientEncyclopediaSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineDatasource
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.ExternalFileIo
@@ -87,6 +92,7 @@ class ClientEncyclopediaSynchronizerTest : BaseTest() {
 	private lateinit var repository: EncyclopediaRepository
 	private lateinit var service: EncyclopediaService
 	private lateinit var remapper: RecordingReferenceRemapper
+	private lateinit var timeLineRepository: TimeLineRepository
 
 	private class RecordingReferenceRemapper : ReferenceRemapper {
 		val remaps = mutableListOf<Pair<Int, Int>>()
@@ -118,6 +124,8 @@ class ClientEncyclopediaSynchronizerTest : BaseTest() {
 				scoped { service }
 				scoped { datasource }
 				scoped<ReferenceRemapper> { remapper }
+				scoped { TimelineReferenceRemapper(timeLineRepository) }
+				scoped { syncJournal }
 			}
 		})
 
@@ -134,12 +142,14 @@ class ClientEncyclopediaSynchronizerTest : BaseTest() {
 		)
 		val referenceIndexDatasource = ReferenceIndexDatasource(fileSystem, toml, projectDef)
 		val referenceIndexRepository = ReferenceIndexRepository(projectDef, referenceIndexDatasource)
+		timeLineRepository = TimeLineRepository(projectDef, idAllocator, TimeLineDatasource(fileSystem, toml)).initialize()
 		service = EncyclopediaService(
 			repository = repository,
 			statisticsRepository = statisticsRepository,
 			referenceIndexRepository = referenceIndexRepository,
 			imagesRepository = mockk(relaxed = true),
 			externalFileIo = externalFileIo,
+			timeLineRepository = timeLineRepository,
 		)
 		remapper = RecordingReferenceRemapper()
 	}
@@ -299,6 +309,38 @@ class ClientEncyclopediaSynchronizerTest : BaseTest() {
 
 		assertNull(repository.findEntryDef(entry1().id))
 		assertEquals(1, logs.size)
+	}
+
+	@Test
+	fun `deleteEntityLocal leaves the timeline to the deleting device`() = runTest {
+		val placement = TimeLineEvent(id = 20, order = 0, kind = TimelineKind.ENTRY, subject = entry1().id)
+		timeLineRepository.updateEvent(placement, markForSync = false)
+
+		newSynchronizer().deleteEntityLocal(entry1().id, onLog = {})
+
+		assertNull(repository.findEntryDef(entry1().id))
+		assertEquals(placement, timeLineRepository.loadTimeline().events.single())
+	}
+
+	@Test
+	fun `reIdEntity returns scene and timeline referrers together`() = runTest {
+		timeLineRepository.updateEvent(
+			TimeLineEvent(id = 20, order = 0, kind = TimelineKind.ENTRY, subject = entry2().id),
+			markForSync = false,
+		)
+		timeLineRepository.updateEvent(
+			TimeLineEvent(id = 21, order = 1, title = "Siege", references = setOf(entry2().id)),
+			markForSync = false,
+		)
+		timeLineRepository.updateEvent(TimeLineEvent(id = 22, order = 2, title = "Other"), markForSync = false)
+		remapper.rewritten = setOf(3, 4)
+
+		val referrers = newSynchronizer().reIdEntity(oldId = entry2().id, newId = 7)
+
+		assertEquals(setOf(3, 4, 20, 21), referrers)
+		val events = timeLineRepository.loadTimeline().events.associateBy { it.id }
+		assertEquals(7, events.getValue(20).subject)
+		assertEquals(setOf(7), events.getValue(21).references)
 	}
 
 	@Test

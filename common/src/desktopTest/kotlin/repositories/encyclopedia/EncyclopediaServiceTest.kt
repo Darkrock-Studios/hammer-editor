@@ -1,6 +1,7 @@
 package repositories.encyclopedia
 
 import ENCYCLOPEDIA_ONLY_PROJECT_NAME
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaDatasource
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaService
@@ -13,6 +14,9 @@ import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndex
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexDatasource
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineDatasource
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.ExternalFileIo
 import createProject
@@ -24,6 +28,7 @@ import net.peanuuutz.tomlkt.Toml
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.koin.dsl.module
 import utils.BaseTest
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -55,6 +60,7 @@ class EncyclopediaServiceTest : BaseTest() {
 	private lateinit var datasource: EncyclopediaDatasource
 	private lateinit var referenceIndexDatasource: ReferenceIndexDatasource
 	private lateinit var referenceIndexRepository: ReferenceIndexRepository
+	private lateinit var timeLineRepository: TimeLineRepository
 
 	private lateinit var fileSystem: FakeFileSystem
 	private lateinit var toml: Toml
@@ -65,7 +71,7 @@ class EncyclopediaServiceTest : BaseTest() {
 
 		MockKAnnotations.init(this, relaxUnitFun = true)
 
-		setupKoin()
+		setupKoin(module { single { syncJournal } })
 
 		every { syncJournal.isServerSynchronized() } returns false
 		fileSystem = FakeFileSystem()
@@ -87,12 +93,14 @@ class EncyclopediaServiceTest : BaseTest() {
 			datasource = datasource,
 			syncJournal = syncJournal,
 		)
+		timeLineRepository = TimeLineRepository(projDef, idAllocator, TimeLineDatasource(fileSystem, toml)).initialize()
 		return EncyclopediaService(
 			repository = repository,
 			statisticsRepository = statisticsRepository,
 			referenceIndexRepository = referenceIndexRepository,
 			imagesRepository = imagesRepository,
 			externalFileIo = externalFileIo,
+			timeLineRepository = timeLineRepository,
 		)
 	}
 
@@ -184,5 +192,49 @@ class EncyclopediaServiceTest : BaseTest() {
 		val saved = referenceIndexDatasource.loadIndex()
 		assertEquals(null, saved?.entryToScenes?.get(entry1().id))
 		assertEquals(setOf(100), saved?.entryToScenes?.get(99))
+	}
+
+	private suspend fun placeEntryOnTimeline() {
+		timeLineRepository.updateEvent(
+			TimeLineEvent(id = 20, order = 0, kind = TimelineKind.ENTRY, subject = entry1().id, lane = "Keep"),
+			markForSync = false,
+		)
+		timeLineRepository.updateEvent(
+			TimeLineEvent(id = 21, order = 1, title = "Siege", references = setOf(entry1().id, 2)),
+			markForSync = false,
+		)
+	}
+
+	@Test
+	fun `deleteEntry detaches the entry from the timeline and marks the events dirty`() = runTest {
+		coEvery { syncJournal.recordIdDeletion(any()) } just Runs
+		every { syncJournal.isServerSynchronized() } returns true
+		coEvery { syncJournal.isEntityDirty(any()) } returns false
+		coEvery { syncJournal.markEntityAsDirty(any()) } just Runs
+		val service = createService()
+		placeEntryOnTimeline()
+
+		assertTrue(service.deleteEntry(entry1().toDef(projDef)))
+
+		val events = timeLineRepository.loadTimeline().events.associateBy { it.id }
+		assertEquals(
+			TimeLineEvent(id = 20, order = 0, title = entry1().name, lane = "Keep"),
+			events.getValue(20),
+		)
+		assertEquals(setOf(2), events.getValue(21).references)
+		coVerify(exactly = 1) { syncJournal.markEntityAsDirty(20) }
+		coVerify(exactly = 1) { syncJournal.markEntityAsDirty(21) }
+	}
+
+	@Test
+	fun `deleteEntry without detachTimeline leaves the timeline alone`() = runTest {
+		coEvery { syncJournal.recordIdDeletion(any()) } just Runs
+		val service = createService()
+		placeEntryOnTimeline()
+		val before = timeLineRepository.loadTimeline().events
+
+		assertTrue(service.deleteEntry(entry1().toDef(projDef), detachTimeline = false))
+
+		assertEquals(before, timeLineRepository.loadTimeline().events)
 	}
 }

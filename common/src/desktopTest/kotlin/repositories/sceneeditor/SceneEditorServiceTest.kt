@@ -2,6 +2,7 @@ package repositories.sceneeditor
 
 import PROJECT_1_NAME
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.Info
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.*
@@ -14,6 +15,9 @@ import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.sceneme
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.toApiType
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineDatasource
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.data.tree.NodeCoordinates
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingSessionTracker
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
@@ -33,6 +37,7 @@ import okio.fakefilesystem.FakeFileSystem
 import org.jetbrains.compose.resources.StringResource
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.koin.dsl.module
 import utils.BaseTest
 import kotlin.test.*
 import kotlin.time.Clock
@@ -68,6 +73,7 @@ class SceneEditorServiceTest : BaseTest() {
 	private lateinit var repo: SceneRepository
 	private lateinit var sceneMetadataRepository: SceneMetadataRepository
 	private lateinit var sceneContentRepository: SceneContentRepository
+	private lateinit var timeLineRepository: TimeLineRepository
 
 	private var nextId = 100
 
@@ -77,7 +83,7 @@ class SceneEditorServiceTest : BaseTest() {
 		ffs = FakeFileSystem()
 		toml = createTomlSerializer()
 		MockKAnnotations.init(this, relaxUnitFun = true)
-		setupKoin()
+		setupKoin(module { single { syncJournal } })
 
 		statisticsRepository = mockk(relaxed = true)
 		referenceIndexRepository = mockk(relaxed = true)
@@ -124,6 +130,7 @@ class SceneEditorServiceTest : BaseTest() {
 			sceneDatasource = sceneDatasource,
 			clock = Clock.System,
 		)
+		timeLineRepository = TimeLineRepository(projectDef, idAllocator, TimeLineDatasource(ffs, toml)).initialize()
 		return SceneEditorService(
 			sceneEditorRepository = repo,
 			sceneContentRepository = sceneContentRepository,
@@ -131,6 +138,7 @@ class SceneEditorServiceTest : BaseTest() {
 			referenceIndexRepository = referenceIndexRepository,
 			statisticsRepository = statisticsRepository,
 			writingSessionTracker = writingSessionTracker,
+			timeLineRepository = timeLineRepository,
 		)
 	}
 
@@ -197,6 +205,52 @@ class SceneEditorServiceTest : BaseTest() {
 			coVerify { referenceIndexRepository.markSceneDeleted(1) }
 			coVerify { writingSessionTracker.forgetBaseline(1) }
 		}
+
+	private suspend fun placeSceneOneOnTimeline() {
+		timeLineRepository.updateEvent(
+			TimeLineEvent(id = 901, order = 0, kind = TimelineKind.SCENE, subject = 1, cachedTitle = "Landfall"),
+			markForSync = false,
+		)
+		timeLineRepository.updateEvent(
+			TimeLineEvent(id = 902, order = 1, title = "Storm", references = setOf(1, 2)),
+			markForSync = false,
+		)
+		timeLineRepository.updateEvent(
+			TimeLineEvent(id = 903, order = 2, kind = TimelineKind.SCENE, subject = 2),
+			markForSync = false,
+		)
+	}
+
+	@Test
+	fun `Delete scene turns its placement into a plain event and drops references to it`() =
+		runTest(mainTestDispatcher) {
+			coEvery { syncJournal.isServerSynchronized() } returns true
+			val service = initializedService()
+			placeSceneOneOnTimeline()
+			val unrelated = timeLineRepository.getTimelineEvent(903)
+
+			assertTrue(service.deleteScene(service.getSceneItemFromId(1)!!))
+
+			val events = timeLineRepository.loadTimeline().events.associateBy { it.id }
+			// The cached title wins over the scene's current name.
+			assertEquals(TimeLineEvent(id = 901, order = 0, title = "Landfall", cachedTitle = "Landfall"), events.getValue(901))
+			assertEquals(setOf(2), events.getValue(902).references)
+			assertEquals(unrelated, events.getValue(903))
+			coVerify(exactly = 1) { syncJournal.markEntityAsDirty(901) }
+			coVerify(exactly = 1) { syncJournal.markEntityAsDirty(902) }
+			coVerify(exactly = 0) { syncJournal.markEntityAsDirty(903) }
+		}
+
+	@Test
+	fun `Delete scene without detachTimeline leaves the timeline alone`() = runTest(mainTestDispatcher) {
+		val service = initializedService()
+		placeSceneOneOnTimeline()
+		val before = timeLineRepository.loadTimeline().events
+
+		assertTrue(service.deleteScene(service.getSceneItemFromId(1)!!, detachTimeline = false))
+
+		assertEquals(before, timeLineRepository.loadTimeline().events)
+	}
 
 	@Test
 	fun `Delete group removes an empty group from the tree`() = runTest(mainTestDispatcher) {

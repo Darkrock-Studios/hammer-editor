@@ -1,5 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.data.timelinerepository
 
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineLimits
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
@@ -170,6 +172,69 @@ class TimeLineRepository(
 
 	suspend fun getTimelineEvent(id: Int): TimeLineEvent? {
 		return timelineFlow.first().events.firstOrNull { it.id == id }
+	}
+
+	suspend fun findPlacement(subjectId: Int): TimeLineEvent? =
+		timelineFlow.first().events.firstOrNull { it.kind.isPlacement && it.subject == subjectId }
+
+	/**
+	 * Points every placement of [oldId] and every reference to it at [newId]. Returns the ids of the
+	 * events it rewrote; marking them for sync is left to the caller.
+	 */
+	suspend fun remapReferencedId(oldId: Int, newId: Int): Set<Int> {
+		if (oldId == newId) return emptySet()
+		return rewriteEvents { event ->
+			val placed = event.subject == oldId
+			val referenced = oldId in event.references
+			if (!placed && !referenced) {
+				null
+			} else {
+				event.copy(
+					subject = if (placed) newId else event.subject,
+					references = if (referenced) event.references - oldId + newId else event.references,
+				)
+			}
+		}.mapTo(mutableSetOf()) { it.id }
+	}
+
+	/**
+	 * For a deleted subject: its placements become plain events titled from [TimeLineEvent.cachedTitle],
+	 * or [titleFallback] when there is none, and every event drops it from its references. Returns the
+	 * ids of the events it rewrote.
+	 */
+	suspend fun detachSubject(subjectId: Int, titleFallback: String?, markForSync: Boolean): Set<Int> {
+		val originals = rewriteEvents { event ->
+			val placed = event.kind.isPlacement && event.subject == subjectId
+			val referenced = subjectId in event.references
+			when {
+				placed -> event.copy(
+					kind = TimelineKind.EVENT,
+					subject = null,
+					// Capped so the server accepts the converted event.
+					title = (event.cachedTitle ?: titleFallback)?.take(TimelineLimits.MAX_TITLE),
+					references = event.references - subjectId,
+				)
+
+				referenced -> event.copy(references = event.references - subjectId)
+				else -> null
+			}
+		}
+		if (markForSync) originals.forEach { markForSynchronization(it) }
+		return originals.mapTo(mutableSetOf()) { it.id }
+	}
+
+	/**
+	 * Replaces each event [rewrite] returns non-null for, then stores and emits once if any changed.
+	 * Returns the original of every event it replaced.
+	 */
+	private suspend fun rewriteEvents(rewrite: (TimeLineEvent) -> TimeLineEvent?): List<TimeLineEvent> {
+		val timeline = timelineFlow.first()
+		val originals = mutableListOf<TimeLineEvent>()
+		val events = timeline.events.map { event ->
+			rewrite(event)?.also { originals += event } ?: event
+		}
+		if (originals.isNotEmpty()) storeAndEmitTimeline(timeline.copy(events = events))
+		return originals
 	}
 
 	suspend fun reIdEvent(oldId: Int, newId: Int) {

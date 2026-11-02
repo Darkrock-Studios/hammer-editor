@@ -12,6 +12,7 @@ import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.UpdateSource
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
+import com.darkrockstudios.apps.hammer.common.data.references.TimelineReferenceRemapper
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.findById
@@ -28,6 +29,7 @@ class ClientSceneSynchronizer(
 	private val draftRepository: SceneDraftRepository,
 	serverProjectApi: ServerProjectApi,
 	private val projectMetadataDatasource: ProjectMetadataDatasource,
+	private val timelineReferenceRemapper: TimelineReferenceRemapper,
 	private val strRes: StrRes,
 ) : EntitySynchronizer<ApiProjectEntity.SceneEntity>(
 	projectDef, serverProjectApi
@@ -355,7 +357,7 @@ class ClientSceneSynchronizer(
 			oldId = oldId,
 			newId = newId,
 		)
-		return emptySet()
+		return timelineReferenceRemapper.remap(oldId, newId)
 	}
 
 	override suspend fun finalizeSync() {
@@ -369,7 +371,7 @@ class ClientSceneSynchronizer(
 	override suspend fun deleteEntityLocal(id: Int, onLog: OnSyncLog) {
 		val sceneItem = sceneEditorRepository.getSceneItemFromId(id)
 		if (sceneItem != null) {
-			if (sceneEditorService.deleteScene(sceneItem)) {
+			if (sceneEditorService.deleteScene(sceneItem, detachTimeline = false)) {
 				onLog(syncLogI(strRes.get(Res.string.sync_scene_deleted, id), projectDef))
 			} else {
 				onLog(syncLogE(strRes.get(Res.string.sync_scene_delete_failed, id), projectDef))
@@ -379,7 +381,7 @@ class ClientSceneSynchronizer(
 
 		val archivedScene = sceneEditorRepository.getArchivedSceneFromId(id)
 		if (archivedScene != null) {
-			if (sceneEditorService.deleteScene(archivedScene)) {
+			if (sceneEditorService.deleteScene(archivedScene, detachTimeline = false)) {
 				onLog(syncLogI(strRes.get(Res.string.sync_scene_deleted, id), projectDef))
 			} else {
 				onLog(syncLogE(strRes.get(Res.string.sync_scene_delete_failed, id), projectDef))

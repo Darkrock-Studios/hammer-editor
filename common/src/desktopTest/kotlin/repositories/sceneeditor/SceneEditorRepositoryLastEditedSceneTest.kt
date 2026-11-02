@@ -101,6 +101,7 @@ class SceneEditorRepositoryLastEditedSceneTest : BaseTest() {
 			referenceIndexRepository = referenceIndexRepository,
 			statisticsRepository = statisticsRepository,
 			writingSessionTracker = writingSessionTracker,
+			timeLineRepository = mockk(relaxed = true),
 		)
 		return repo
 	}
