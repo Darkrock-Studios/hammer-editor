@@ -1,6 +1,9 @@
 package com.darkrockstudios.apps.hammer.operations.core
 
 import com.darkrockstudios.apps.hammer.base.image.ImageFormat
+import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineLimits
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.data.ClientResult
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaService
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryError
@@ -11,6 +14,8 @@ import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteCont
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEventError
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineEventDraft
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineResult
 import com.darkrockstudios.apps.hammer.operations.Access
 import com.darkrockstudios.apps.hammer.operations.Base64Bytes
 import com.darkrockstudios.apps.hammer.operations.FromStdin
@@ -171,58 +176,93 @@ internal fun contentWriteOperations(): List<Operation<*, *>> = listOf(
 	},
 	operation<TimelineCreateInput, TimelineEntry>(
 		name = "timeline.create",
-		description = "Add an event to a project's timeline, at the end unless an index is given.",
+		description = "Add a plain event to a project's timeline, at the end unless an index is given. " +
+			"A dated timeline needs a start and takes no index. Entries and scenes are added with timeline.place.",
 		access = Access.Write,
 		scope = OperationScope.Content,
 	) { input ->
 		projects.withProject(input.project) { project ->
-			val timeline = project.scope.get<TimeLineRepository>()
-			val count = project.events().size
-			if (input.index != null && input.index !in 0..count) invalidInput("index must be from 0 to $count")
-			timeline.validateTags(input.tags.toSet()).requireNone()
-			val event = timeline.createEvent(content = input.content, label = input.date.orBlankNull(), tags = input.tags.toSet())
+			val timeline = project.timelineService()
+			val view = timeline.view()
+			val count = view.events.size
+			if (input.index != null) {
+				if (view.def.mode == TimelineMode.DATED) invalidInput(DATED_ORDER)
+				if (input.index !in 0..count) invalidInput("index must be from 0 to $count")
+			}
+			val draft = TimelineEventDraft(
+				title = input.title.orBlankNull(),
+				label = (input.label ?: input.date).orBlankNull(),
+				content = input.content,
+				tags = input.tags.toSet(),
+				references = input.references.toSet(),
+				lane = input.lane,
+				milestone = input.milestone,
+				start = input.start.toStoryDate(),
+				end = input.end.toStoryDate(),
+			)
+			val event = timeline.createEvent(draft).requireOk() ?: error("The timeline did not return the new event")
 			if (input.index != null && input.index != count) project.moveEvent(event.id, input.index)
-			TimelineEntry(project.requireEvent(event.id))
+			project.timelineEntry(event.id)
 		}
 	},
 	operation<TimelineUpdateInput, TimelineEntry>(
 		name = "timeline.update",
-		description = "Replace a timeline event's text, and its date or tags when given. An empty date clears it.",
+		description = "Replace a timeline event's text, and any other field given; an empty value clears it. " +
+			"A placement takes only lane, milestone, start, and end, and empty text.",
 		access = Access.Write,
 		scope = OperationScope.Content,
 	) { input ->
 		projects.withProject(input.project) { project ->
-			val timeline = project.scope.get<TimeLineRepository>()
 			val event = project.requireEvent(input.id)
-			val tags = input.tags?.toSet() ?: event.tags
-			timeline.validateTags(tags).requireNone()
-			val label = if (input.date == null) event.label else input.date.orBlankNull()
-			timeline.updateEvent(event.copy(content = input.content, label = label, tags = tags))
-			TimelineEntry(project.requireEvent(input.id))
+			val label = input.label ?: input.date
+			val updated = if (event.kind.isPlacement) {
+				if (input.content.isNotBlank() || !input.tags.isNullOrEmpty() || !input.references.isNullOrEmpty()) {
+					invalidInput(PLACEMENT_FIELDS)
+				}
+				if (!input.title.isNullOrEmpty() || !label.isNullOrEmpty()) invalidInput(PLACEMENT_FIELDS)
+				event
+			} else {
+				event.copy(
+					content = input.content,
+					title = input.title.orKeep(event.title),
+					label = label.orKeep(event.label),
+					tags = input.tags?.toSet() ?: event.tags,
+					references = input.references?.toSet() ?: event.references,
+				)
+			}.copy(
+				lane = input.lane.orKeep(event.lane),
+				milestone = input.milestone ?: event.milestone,
+				start = input.start.orKeep(event.start),
+				end = input.end.orKeep(event.end),
+			)
+			project.timelineService().updateEvent(updated).requireOk()
+			project.timelineEntry(input.id)
 		}
 	},
 	operation<TimelineMoveInput, TimelineEntry>(
 		name = "timeline.move",
-		description = "Move a timeline event to a position; index is its position after the move.",
+		description = "Move a timeline event to a position; index is its position after the move. " +
+			"A dated timeline is ordered by its dates, so nothing can be moved on it.",
 		access = Access.Write,
 		scope = OperationScope.Content,
 	) { input ->
 		projects.withProject(input.project) { project ->
 			project.requireEvent(input.id)
 			project.moveEvent(input.id, input.index)
-			TimelineEntry(project.requireEvent(input.id))
+			project.timelineEntry(input.id)
 		}
 	},
 	operation<ProjectItemInput, TimelineEntry>(
 		name = "timeline.delete",
-		description = "Delete a timeline event for good.",
+		description = "Delete a timeline event for good. Deleting a placement leaves its entry or scene alone.",
 		access = Access.Destructive,
 		scope = OperationScope.Content,
 	) { input ->
 		projects.withProject(input.project) { project ->
 			val event = project.requireEvent(input.id)
+			val deleted = TimelineEntry(event, project.timelineService().displayTitle(event))
 			project.scope.get<TimeLineRepository>().deleteEvent(event)
-			TimelineEntry(event)
+			deleted
 		}
 	},
 )
@@ -266,29 +306,65 @@ private fun EntryError.requireNone() {
 	}
 }
 
-private suspend fun OpenProject.events(): List<TimeLineEvent> =
-	scope.get<TimeLineRepository>().timelineFlow.loaded("Timeline").events.sortedBy { it.order }
-
-private suspend fun OpenProject.requireEvent(id: Int): TimeLineEvent =
-	events().find { it.id == id } ?: notFound("No timeline event $id")
-
 /** Moves the event so it ends up at [index] in timeline order. */
 private suspend fun OpenProject.moveEvent(id: Int, index: Int) {
-	val events = events()
+	val timeline = timelineService()
+	val view = timeline.view()
+	if (view.def.mode == TimelineMode.DATED) invalidInput(DATED_ORDER)
+	val events = view.events
 	if (index !in events.indices) invalidInput("index must be from 0 to ${events.size - 1}")
 	val from = events.indexOfFirst { it.id == id }
 	if (from == index) return
 	// moveEvent inserts after toIndex when moving later, and before it when moving earlier.
-	if (!scope.get<TimeLineRepository>().moveEvent(events[from], index, after = index > from)) {
-		error("Could not move timeline event $id")
+	timeline.moveEvent(events[from], index, after = index > from).requireOk()
+}
+
+internal const val DATED_ORDER = "The timeline is dated; order follows dates"
+
+internal const val PLACEMENT_FIELDS =
+	"A placement takes only lane, milestone, start, and end; its words come from its entry or scene"
+
+internal fun TimeLineEventError.requireNone() {
+	when (this) {
+		TimeLineEventError.NONE -> Unit
+		TimeLineEventError.TAG_TOO_LONG -> invalidInput("A tag can be at most ${TimelineLimits.MAX_TAG} characters")
+		TimeLineEventError.LANE_INVALID -> invalidInput("A lane cannot be blank or longer than ${TimelineLimits.MAX_LANE} characters")
+		TimeLineEventError.TITLE_TOO_LONG -> invalidInput("A title can be at most ${TimelineLimits.MAX_TITLE} characters")
+		TimeLineEventError.LABEL_TOO_LONG -> invalidInput("A label can be at most ${TimelineLimits.MAX_LABEL} characters")
+		TimeLineEventError.SUBJECT_REQUIRED -> invalidInput("A placement needs a subject")
+		TimeLineEventError.SUBJECT_NOT_ALLOWED -> invalidInput("A plain event has no subject, and a placement's subject cannot change")
+		TimeLineEventError.SUBJECT_WRONG_TYPE -> invalidInput("Only a scene, or an encyclopedia entry of type event, can be placed")
+		TimeLineEventError.SUBJECT_NOT_FOUND -> notFound("No such scene or entry to place")
+		TimeLineEventError.REFERENCE_NOT_FOUND -> invalidInput("A reference names no scene or entry in the project")
+		TimeLineEventError.REFERENCES_NOT_ALLOWED -> invalidInput("A placement cannot have references")
+		TimeLineEventError.SELF_REFERENCE -> invalidInput("An event cannot reference itself")
+		TimeLineEventError.DUPLICATE_PLACEMENT -> invalidInput("That entry or scene is already placed on the timeline")
+		TimeLineEventError.DATE_INVALID -> invalidInput("A date or calendar does not fit; see timeline.settings.read for the calendar")
+		TimeLineEventError.DATE_REQUIRED -> invalidInput("A start is required on a dated timeline, and whenever an end is given")
+		TimeLineEventError.END_BEFORE_START -> invalidInput("The end is before the start")
+		TimeLineEventError.MOVE_NOT_ALLOWED -> invalidInput(DATED_ORDER)
+		TimeLineEventError.EVENT_NOT_FOUND -> notFound("No such timeline event")
 	}
 }
 
-private fun TimeLineEventError.requireNone() {
-	if (this == TimeLineEventError.TAG_TOO_LONG) invalidInput("A tag is too long")
+/** The event the service returned, which is null for a settings change. */
+internal fun TimelineResult.requireOk(): TimeLineEvent? = when (this) {
+	is TimelineResult.Ok -> event
+	is TimelineResult.Invalid -> {
+		error.requireNone()
+		throw IllegalStateException("Timeline error NONE reported as invalid")
+	}
 }
 
-private fun String?.orBlankNull(): String? = this?.trim()?.takeIf { it.isNotEmpty() }
+internal fun String?.orBlankNull(): String? = this?.trim()?.takeIf { it.isNotEmpty() }
+
+/** Null keeps [current]; blank clears it. */
+internal fun String?.orKeep(current: String?): String? = if (this == null) current else orBlankNull()
+
+/** Null keeps [current]; empty clears it. */
+internal fun Map<String, Long>?.orKeep(current: StoryDate?): StoryDate? = if (this == null) current else toStoryDate()
+
+internal fun Map<String, Long>?.toStoryDate(): StoryDate? = this?.takeIf { it.isNotEmpty() }?.let(::StoryDate)
 
 @Serializable
 data class NoteCreateInput(
@@ -350,21 +426,48 @@ class EntryImageImportInput(
 data class TimelineCreateInput(
 	val project: String,
 	@FromStdin val content: String,
-	/** Free text, such as "Day 3" or "Spring, 1802". */
+	/** Deprecated alias of label; label wins when both are given. */
 	val date: String? = null,
 	val tags: List<String> = emptyList(),
-	/** Its position in the timeline; left out, the end. */
+	/** Its position in the timeline; left out, the end. A dated timeline takes none. */
 	val index: Int? = null,
+	/** Its own title; left out, the content's first line is shown. */
+	val title: String? = null,
+	/** Free-text "when" a manual timeline shows, such as "Day 3" or "Spring, 1802". */
+	val label: String? = null,
+	/** The lane it runs in. */
+	val lane: String? = null,
+	/** A turning point, marked across every lane. */
+	val milestone: Boolean = false,
+	/** When it starts on the timeline's calendar, such as {"year": 97, "day": 210}; required on a dated timeline. */
+	val start: Map<String, Long>? = null,
+	/** When it ends, in the same form as start; needs a start. */
+	val end: Map<String, Long>? = null,
+	/** Scene and entry ids it refers to. */
+	val references: List<Int> = emptyList(),
 )
 
+/** Every field but the text is left unchanged when left out, and cleared by an empty string, map, or list. */
 @Serializable
 data class TimelineUpdateInput(
 	val project: String,
 	val id: Int,
+	/** The plain event's markdown; must be empty for a placement. */
 	@FromStdin val content: String,
-	/** Left out, unchanged; empty, cleared. */
+	/** Deprecated alias of label; label wins when both are given. */
 	val date: String? = null,
 	val tags: List<String>? = null,
+	val title: String? = null,
+	/** Free-text "when" a manual timeline shows. */
+	val label: String? = null,
+	val lane: String? = null,
+	val milestone: Boolean? = null,
+	/** When it starts on the timeline's calendar, such as {"year": 97, "day": 210}. */
+	val start: Map<String, Long>? = null,
+	/** When it ends, in the same form as start. */
+	val end: Map<String, Long>? = null,
+	/** Scene and entry ids it refers to. */
+	val references: List<Int>? = null,
 )
 
 @Serializable

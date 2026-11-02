@@ -72,6 +72,8 @@ import com.darkrockstudios.apps.hammer.operations.core.TaggedEntity
 import com.darkrockstudios.apps.hammer.operations.core.Tags
 import com.darkrockstudios.apps.hammer.operations.core.Timeline
 import com.darkrockstudios.apps.hammer.operations.core.TimelineEntry
+import com.darkrockstudios.apps.hammer.operations.core.TimelineKindDto
+import com.darkrockstudios.apps.hammer.operations.core.TimelinePlaceInput
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
@@ -371,6 +373,31 @@ class ReadOperationsTest : KoinOperationsTest() {
 			ProjectItemInput(PROJECT, timeline.events.first().id),
 		)
 		assertEquals("Day 2", event.date)
+	}
+
+	@Test
+	fun `timeline entries carry kind, dates, and display titles`() = onTestThread {
+		val start = mapOf("year" to 1L, "day" to 3L)
+		run<TimelinePlaceInput, TimelineEntry>(
+			"timeline.place",
+			TimelinePlaceInput(PROJECT, TimelineKindDto.Scene, ids.storm.id, start = start, lane = "Alice"),
+		)
+
+		val events = run<ProjectInput, Timeline>("timeline.list", ProjectInput(PROJECT)).events
+
+		val storm = events.first()
+		assertEquals(TimelineKindDto.Event to "The storm makes landfall", storm.kind to storm.displayTitle)
+		assertEquals("Day 2", storm.label)
+		assertEquals(storm.label, storm.date)
+		val placed = events.last()
+		assertEquals(TimelineKindDto.Scene, placed.kind)
+		assertEquals(ids.storm.id, placed.subject)
+		assertEquals("Landfall", placed.displayTitle)
+		assertEquals(start, placed.start)
+		assertNull(placed.end)
+		assertEquals("Alice", placed.lane)
+		assertEquals("", placed.content)
+		assertEquals(placed, run<ProjectItemInput, TimelineEntry>("timeline.read", ProjectItemInput(PROJECT, placed.id)))
 	}
 
 	@Test
