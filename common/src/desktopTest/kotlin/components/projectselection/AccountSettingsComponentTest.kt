@@ -268,6 +268,26 @@ class AccountSettingsComponentTest : BaseTest() {
 		assertFalse(component.state.value.serverIsConfigured)
 	}
 
+	@Test
+	fun `Removing the server no longer reads as configured`() = runTest {
+		serverSettingsUpdates.emit(
+			ServerSettings(
+				url = "example.com",
+				email = "writer@example.com",
+				userId = 1L,
+				bearerToken = null,
+				refreshToken = null,
+			)
+		)
+		val component = newComponent()
+		advanceUntilIdle()
+
+		serverSettingsUpdates.emit(null)
+		advanceUntilIdle()
+
+		assertFalse(component.state.value.serverIsConfigured)
+	}
+
 
 	@Test
 	fun `Creating a new account clears stale server project IDs`() = runTest {
