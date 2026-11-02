@@ -18,6 +18,7 @@ import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.components.timeline.LaneCount
+import com.darkrockstudios.apps.hammer.common.components.timeline.SelectionSummary
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineOverview
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimelineRow
 import com.darkrockstudios.apps.hammer.common.compose.LocalImageNames
@@ -25,6 +26,9 @@ import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.ScreenCharacteristics
 import com.darkrockstudios.apps.hammer.common.compose.WindowHeightSizeClass
 import com.darkrockstudios.apps.hammer.common.compose.WindowWidthSizeClass
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
+import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogItem
+import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogKind
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagCount
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.timeline.*
@@ -32,10 +36,12 @@ import com.darkrockstudios.apps.hammer.common.timeline.drawing.TIMELINE_DRAWING_
 import com.darkrockstudios.apps.hammer.common.timeline.drawing.TIMELINE_HORIZONTAL_SCROLL_TAG
 import com.darkrockstudios.apps.hammer.common.timeline.drawing.testTag
 import com.darkrockstudios.apps.hammer.common.timeline.layout.HitTarget
+import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineFrame
 import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineView
 import org.junit.Rule
 import org.junit.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class TimeLineOverviewUiTest : BaseTest() {
@@ -47,9 +53,17 @@ class TimeLineOverviewUiTest : BaseTest() {
 		lanes: List<LaneCount> = emptyList(),
 		mode: TimelineMode = TimelineMode.MANUAL,
 		undatedIds: List<Int> = emptyList(),
+		storyFrameAvailable: Boolean = false,
+		private val references: Map<Int, List<CatalogItem>> = emptyMap(),
 	) : TimeLineOverview {
 		private val _state = MutableValue(
-			TimeLineOverview.State(rows = rows, lanes = lanes, mode = mode, undatedIds = undatedIds)
+			TimeLineOverview.State(
+				rows = rows,
+				lanes = lanes,
+				mode = mode,
+				undatedIds = undatedIds,
+				storyFrameAvailable = storyFrameAvailable,
+			)
 		)
 		override val state: Value<TimeLineOverview.State> = _state
 		override val rankedTags: Value<List<TagCount>> = MutableValue(emptyList())
@@ -67,6 +81,21 @@ class TimeLineOverviewUiTest : BaseTest() {
 
 		override fun setView(view: TimelineView) {
 			_state.value = _state.value.copy(view = view)
+		}
+
+		override fun select(eventId: Int?) {
+			val state = _state.value
+			val id = eventId?.takeIf { it != state.selectedId }
+			val summary = id?.let { selected ->
+				state.rows?.firstOrNull { it.event.id == selected }?.let { row ->
+					SelectionSummary(row, references[selected].orEmpty(), excerpt = null)
+				}
+			}
+			_state.value = state.copy(selectedId = id, selectionSummary = summary)
+		}
+
+		override fun setFrame(frame: TimelineFrame) {
+			_state.value = _state.value.copy(frame = frame)
 		}
 	}
 
@@ -384,20 +413,164 @@ class TimeLineOverviewUiTest : BaseTest() {
 		assertEquals(TimelineView.TO_SCALE, component.state.value.view)
 	}
 
-	@Test
-	fun `Tapping a drawn row opens its event`() {
-		val opened = mutableListOf<Int>()
-		val rows = listOf(
-			row(TimeLineEvent(id = 7, order = 0, title = "Croquet")).copy(
-				start = StoryDate(mapOf("year" to 1L)),
-				calendar = CalendarDef(),
-			),
+	private fun datedRow(event: TimeLineEvent, year: Long, endYear: Long? = null, laneIndex: Int? = null) =
+		row(event, laneIndex = laneIndex).copy(
+			start = StoryDate(mapOf("year" to year)),
+			end = endYear?.let { StoryDate(mapOf("year" to it)) },
+			calendar = CalendarDef(),
 		)
-		showOverview(FakeOverview(rows, mode = TimelineMode.DATED), viewEvent = { opened += it })
+
+	private fun inSummary(text: String) = hasText(text) and hasAnyAncestor(hasTestTag(TIME_LINE_SELECTION_TAG))
+
+	private fun inFramePicker(text: String) = hasText(text) and hasAnyAncestor(hasTestTag(TIME_LINE_FRAME_PICKER_TAG))
+
+	@Test
+	fun `Tapping a drawn row selects it and shows its summary`() {
+		val opened = mutableListOf<Int>()
+		val component = FakeOverview(
+			listOf(datedRow(TimeLineEvent(id = 7, order = 0, title = "Croquet"), year = 1)),
+			mode = TimelineMode.DATED,
+		)
+		showOverview(component, viewEvent = { opened += it })
+		compose.onNodeWithTag(TIME_LINE_SELECTION_TAG).assertDoesNotExist()
 
 		compose.onNodeWithTag(HitTarget.Ledger(7).testTag()).performClick()
+		compose.waitForIdle()
+
+		assertEquals(7, component.state.value.selectedId)
+		assertEquals(emptyList(), opened, "A single tap selects; it does not open")
+		compose.onNodeWithTag(TIME_LINE_SELECTION_TAG).assertIsDisplayed()
+		compose.onNode(inSummary("Croquet"), useUnmergedTree = true).assertIsDisplayed()
+	}
+
+	@Test
+	fun `Clear in the summary drops the selection`() {
+		val component = FakeOverview(
+			listOf(datedRow(TimeLineEvent(id = 7, order = 0, title = "Croquet"), year = 1)),
+			mode = TimelineMode.DATED,
+		)
+		showOverview(component)
+		compose.runOnIdle { component.select(7) }
+
+		compose.onNode(inSummary("Clear")).performClick()
+
+		assertNull(component.state.value.selectedId)
+		compose.onNodeWithTag(TIME_LINE_SELECTION_TAG).assertDoesNotExist()
+	}
+
+	@Test
+	fun `Open in the summary opens the selected event`() {
+		val opened = mutableListOf<Int>()
+		val component = FakeOverview(
+			listOf(datedRow(TimeLineEvent(id = 7, order = 0, title = "Croquet"), year = 1)),
+			mode = TimelineMode.DATED,
+		)
+		showOverview(component, viewEvent = { opened += it })
+		compose.runOnIdle { component.select(7) }
+
+		compose.onNode(inSummary("Open")).performClick()
 
 		assertEquals(listOf(7), opened)
+	}
+
+	@Test
+	fun `The summary shows six references and counts the rest`() {
+		val references = (1..8).map { CatalogItem(CatalogKind.Entry, 100 + it, "Person $it", entryType = EntryType.PERSON) }
+		val component = FakeOverview(
+			listOf(datedRow(TimeLineEvent(id = 7, order = 0, title = "Croquet"), year = 1)),
+			mode = TimelineMode.DATED,
+			references = mapOf(7 to references),
+		)
+		showOverview(component)
+		compose.runOnIdle { component.select(7) }
+
+		compose.onNode(inSummary("Person 6"), useUnmergedTree = true).assertExists()
+		compose.onNode(inSummary("Person 7"), useUnmergedTree = true).assertDoesNotExist()
+		compose.onNode(inSummary("+2"), useUnmergedTree = true).assertExists()
+	}
+
+	@Test
+	fun `Double-clicking a drawn row opens its event`() {
+		val opened = mutableListOf<Int>()
+		showOverview(
+			FakeOverview(
+				listOf(datedRow(TimeLineEvent(id = 7, order = 0, title = "Croquet"), year = 1)),
+				mode = TimelineMode.DATED,
+			),
+			viewEvent = { opened += it },
+		)
+
+		compose.onNodeWithTag(HitTarget.Ledger(7).testTag()).performTouchInput { doubleClick() }
+		compose.waitForIdle()
+
+		assertEquals(listOf(7), opened)
+	}
+
+	@Test
+	fun `Double-clicking a band opens it`() {
+		val opened = mutableListOf<Int>()
+		val rows = listOf(
+			datedRow(TimeLineEvent(id = 3, order = 0, title = "The Siege", lane = "Keep"), year = 1, endYear = 4, laneIndex = 0),
+			datedRow(TimeLineEvent(id = 4, order = 1, title = "Croquet"), year = 6),
+		)
+		val component = FakeOverview(rows, lanes = listOf(LaneCount("Keep", 1)), mode = TimelineMode.DATED)
+		showOverview(component, viewEvent = { opened += it })
+
+		compose.onNodeWithTag(HitTarget.Band(3).testTag()).performTouchInput { doubleClick() }
+		compose.waitForIdle()
+
+		assertEquals(listOf(3), opened)
+		assertEquals(TimelineFrame.Everything, component.state.value.frame, "Opening drops the pending frame")
+	}
+
+	@Test
+	fun `The frame picker offers the story frame only with placed scenes`() {
+		val rows = listOf(datedRow(TimeLineEvent(id = 1, order = 0, title = "Storm"), year = 1))
+		showOverview(FakeOverview(rows, mode = TimelineMode.DATED))
+
+		compose.onNodeWithTag(TIME_LINE_FRAME_PICKER_TAG).assertIsDisplayed()
+		compose.onNode(inFramePicker("STORY")).assertIsNotEnabled()
+	}
+
+	@Test
+	fun `The frame picker switches to the story frame`() {
+		val rows = listOf(
+			datedRow(TimeLineEvent(id = 1, order = 0, title = "Storm"), year = 1),
+			datedRow(TimeLineEvent(id = 2, order = 1, kind = TimelineKind.SCENE, subject = 4), year = 2),
+		)
+		val component = FakeOverview(rows, mode = TimelineMode.DATED, storyFrameAvailable = true)
+		showOverview(component)
+
+		compose.onNode(inFramePicker("STORY")).assertIsEnabled().performClick()
+
+		assertEquals(TimelineFrame.Story, component.state.value.frame)
+	}
+
+	@Test
+	fun `Tapping a band frames it and its clear glyph returns to everything`() {
+		val rows = listOf(
+			datedRow(TimeLineEvent(id = 3, order = 0, title = "The Siege", lane = "Keep"), year = 1, endYear = 4, laneIndex = 0),
+			datedRow(TimeLineEvent(id = 4, order = 1, title = "Croquet"), year = 6),
+		)
+		val component = FakeOverview(rows, lanes = listOf(LaneCount("Keep", 1)), mode = TimelineMode.DATED)
+		showOverview(component)
+		compose.onNodeWithTag(TIME_LINE_FRAME_BAND_TAG).assertDoesNotExist()
+
+		compose.onNodeWithTag(HitTarget.Band(3).testTag()).performClick()
+		// On desktop the frame waits out the double-click timeout.
+		compose.mainClock.advanceTimeBy(1_000)
+		compose.waitForIdle()
+
+		assertEquals(TimelineFrame.Band(3), component.state.value.frame)
+		assertEquals(3, component.state.value.selectedId)
+		compose.onNodeWithTag(TIME_LINE_FRAME_BAND_TAG)
+			.assertIsDisplayed()
+			.assertContentDescriptionContains("Framed on The Siege")
+
+		compose.onNodeWithTag(TIME_LINE_FRAME_CLEAR_TAG).performClick()
+
+		assertEquals(TimelineFrame.Everything, component.state.value.frame)
+		compose.onNodeWithTag(TIME_LINE_FRAME_BAND_TAG).assertDoesNotExist()
 	}
 
 	private fun showDatedPane(laneCount: Int, width: Dp) {

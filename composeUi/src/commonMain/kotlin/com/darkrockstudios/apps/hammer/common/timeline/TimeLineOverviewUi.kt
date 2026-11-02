@@ -46,6 +46,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -55,6 +56,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -68,6 +70,7 @@ import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
+import com.darkrockstudios.apps.hammer.common.components.timeline.SelectionSummary
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineOverview
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimelineRow
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
@@ -75,17 +78,22 @@ import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarList
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.WindowWidthSizeClass
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdActiveFiltersStrip
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdClearGlyph
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdCollapsingStrip
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDragHandle
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineSegmentedPicker
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNoticeStrip
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdReferenceChip
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSearchField
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSearchRow
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSectionHeader
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagChip
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagFilterBar
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdGlyphColor
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdMark
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdSwatchColor
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.rememberStoryDateWords
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownView
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.rememberMarkdownPreview
@@ -93,15 +101,22 @@ import com.darkrockstudios.apps.hammer.common.compose.reorderable.DragDropList
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
+import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogItem
 import com.darkrockstudios.apps.hammer.common.data.search.markdownContains
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.formatStoryDateRange
+import com.darkrockstudios.apps.hammer.common.timeline.drawing.timelineOpensOnDoubleClick
 import com.darkrockstudios.apps.hammer.common.timeline.layout.HitTarget
+import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineFrame
 import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineView
 import com.darkrockstudios.apps.hammer.timeline_entry_subtitle
 import com.darkrockstudios.apps.hammer.timeline_filter_all
 import com.darkrockstudios.apps.hammer.timeline_filter_clear_all
 import com.darkrockstudios.apps.hammer.timeline_filter_filtered
+import com.darkrockstudios.apps.hammer.timeline_frame_back_to_everything
+import com.darkrockstudios.apps.hammer.timeline_frame_band_description
+import com.darkrockstudios.apps.hammer.timeline_frame_everything
+import com.darkrockstudios.apps.hammer.timeline_frame_story
 import com.darkrockstudios.apps.hammer.timeline_header
 import com.darkrockstudios.apps.hammer.timeline_header_meta
 import com.darkrockstudios.apps.hammer.timeline_lane_filter_description
@@ -110,6 +125,9 @@ import com.darkrockstudios.apps.hammer.timeline_search_button
 import com.darkrockstudios.apps.hammer.timeline_search_clear
 import com.darkrockstudios.apps.hammer.timeline_search_close
 import com.darkrockstudios.apps.hammer.timeline_search_placeholder
+import com.darkrockstudios.apps.hammer.timeline_selection_clear
+import com.darkrockstudios.apps.hammer.timeline_selection_more
+import com.darkrockstudios.apps.hammer.timeline_selection_open
 import com.darkrockstudios.apps.hammer.timeline_subject_missing
 import com.darkrockstudios.apps.hammer.timeline_undated_detail
 import com.darkrockstudios.apps.hammer.timeline_undated_open
@@ -118,6 +136,8 @@ import com.darkrockstudios.apps.hammer.timeline_view_sequence
 import com.darkrockstudios.apps.hammer.timeline_view_to_scale
 import com.darkrockstudios.apps.hammer.timeline_view_undated
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.pluralStringResource
 
@@ -137,6 +157,10 @@ const val TIME_LINE_LANE_FILTER_TAG = "Timeline Lane Filter"
 const val TIME_LINE_CALENDAR_TAG = "Timeline Calendar"
 const val TIME_LINE_UNDATED_TAG = "Timeline Undated Notice"
 const val TIME_LINE_VIEW_PICKER_TAG = "Timeline View Picker"
+const val TIME_LINE_FRAME_PICKER_TAG = "Timeline Frame Picker"
+const val TIME_LINE_FRAME_BAND_TAG = "Timeline Frame Band"
+const val TIME_LINE_FRAME_CLEAR_TAG = "Timeline Frame Clear"
+const val TIME_LINE_SELECTION_TAG = "Timeline Selection Summary"
 const val EVENT_CARD_TAG = "Timeline Event Card"
 const val EVENT_CARD_DATE_TAG = "Timeline Event Card Date"
 const val EVENT_CARD_CONTENT_TAG = "Timeline Event Card Content"
@@ -173,6 +197,9 @@ fun TimeLineOverviewUi(
 
 	val rows = state.rows.orEmpty()
 	val laneFilter = state.laneFilter
+	val frameScope = rememberCoroutineScope()
+	var pendingFrame by remember { mutableStateOf<Job?>(null) }
+	val doubleClickTimeout = LocalViewConfiguration.current.doubleTapTimeoutMillis
 
 	// Search and tags; the drawing applies the lane filter itself, keeping scenes in its ledger.
 	val matchedRows by remember(rows, searchQuery, activeTags) {
@@ -303,20 +330,12 @@ fun TimeLineOverviewUi(
 			}
 
 			if (dated) {
-				HdHairlineSegmentedPicker(
-					options = TimelineView.entries,
-					selected = state.view,
-					onSelect = component::setView,
-					label = { view ->
-						when (view) {
-							TimelineView.SEQUENCE -> Res.string.timeline_view_sequence.get()
-							TimelineView.TO_SCALE -> Res.string.timeline_view_to_scale.get()
-						}
-					},
-					modifier = Modifier
-						.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.M)
-						.then(if (isWide) Modifier.width(280.dp) else Modifier.fillMaxWidth())
-						.testTag(TIME_LINE_VIEW_PICKER_TAG),
+				DrawingPickers(
+					state = state,
+					rows = rows,
+					isWide = isWide,
+					onView = component::setView,
+					onFrame = component::setFrame,
 				)
 			}
 
@@ -436,18 +455,43 @@ fun TimeLineOverviewUi(
 
 		when {
 			dated && matchedRows.isNotEmpty() -> {
-				DatedTimelinePane(
-					state = state,
-					rows = matchedRows,
-					onTap = { target ->
-						when (target) {
-							is HitTarget.Band -> viewEvent(target.eventId)
-							is HitTarget.Point -> viewEvent(target.eventId)
-							is HitTarget.Ledger -> viewEvent(target.eventId)
-							is HitTarget.LaneHeader -> component.toggleLane(target.lane)
-						}
-					},
-				)
+				Box(modifier = Modifier.fillMaxSize()) {
+					DatedTimelinePane(
+						state = state,
+						rows = matchedRows,
+						onTap = { target ->
+							when (target) {
+								is HitTarget.Band -> {
+									if (state.selectedId != target.eventId) component.select(target.eventId)
+									// Framing moves the band, so it waits until a second click could no longer open it.
+									pendingFrame?.cancel()
+									pendingFrame = frameScope.launch {
+										if (timelineOpensOnDoubleClick) delay(doubleClickTimeout)
+										component.setFrame(TimelineFrame.Band(target.eventId))
+									}
+								}
+
+								is HitTarget.Point -> component.select(target.eventId)
+								is HitTarget.Ledger -> component.select(target.eventId)
+								is HitTarget.LaneHeader -> component.toggleLane(target.lane)
+							}
+						},
+						onOpen = { eventId ->
+							pendingFrame?.cancel()
+							viewEvent(eventId)
+						},
+					)
+					val selected = state.selectedId?.let { id -> rows.firstOrNull { it.event.id == id } }
+					if (selected != null) {
+						SelectionStrip(
+							row = selected,
+							summary = state.selectionSummary?.takeIf { it.row.event.id == selected.event.id },
+							onOpen = { viewEvent(selected.event.id) },
+							onClear = { component.select(null) },
+							modifier = Modifier.align(Alignment.BottomCenter),
+						)
+					}
+				}
 			}
 
 			visibleRows.isEmpty() -> {
@@ -510,6 +554,198 @@ fun TimeLineOverviewUi(
 					)
 				}
 			}
+		}
+	}
+}
+
+/** The view picker and the frame picker, side by side when there is room. */
+@Composable
+private fun DrawingPickers(
+	state: TimeLineOverview.State,
+	rows: List<TimelineRow>,
+	isWide: Boolean,
+	onView: (TimelineView) -> Unit,
+	onFrame: (TimelineFrame) -> Unit,
+) {
+	val viewPicker: @Composable (Modifier) -> Unit = { modifier ->
+		HdHairlineSegmentedPicker(
+			options = TimelineView.entries,
+			selected = state.view,
+			onSelect = onView,
+			label = { view ->
+				when (view) {
+					TimelineView.SEQUENCE -> Res.string.timeline_view_sequence.get()
+					TimelineView.TO_SCALE -> Res.string.timeline_view_to_scale.get()
+				}
+			},
+			modifier = modifier.testTag(TIME_LINE_VIEW_PICKER_TAG),
+		)
+	}
+	val band = state.frame as? TimelineFrame.Band
+	val bandTitle = band?.let { frame -> rows.firstOrNull { it.event.id == frame.eventId }?.title }.orEmpty()
+	val framePicker: @Composable (Modifier) -> Unit = { modifier ->
+		FramePicker(
+			frame = state.frame,
+			storyAvailable = state.storyFrameAvailable,
+			bandTitle = bandTitle,
+			onSelect = onFrame,
+			modifier = modifier,
+		)
+	}
+	if (isWide) {
+		Row(
+			modifier = Modifier.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.M),
+			horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
+			verticalAlignment = Alignment.CenterVertically,
+		) {
+			viewPicker(Modifier.width(280.dp))
+			framePicker(Modifier.width(if (band != null) 420.dp else 280.dp))
+		}
+	} else {
+		Column(
+			modifier = Modifier.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.M),
+			verticalArrangement = Arrangement.spacedBy(Ui.Padding.M),
+		) {
+			viewPicker(Modifier.fillMaxWidth())
+			framePicker(Modifier.fillMaxWidth())
+		}
+	}
+}
+
+/** `[ EVERYTHING │ STORY ]`, plus the framed band's cell with a clear glyph while one is framed. */
+@Composable
+private fun FramePicker(
+	frame: TimelineFrame,
+	storyAvailable: Boolean,
+	bandTitle: String,
+	onSelect: (TimelineFrame) -> Unit,
+	modifier: Modifier = Modifier,
+) {
+	val options = buildList {
+		add(TimelineFrame.Everything)
+		add(TimelineFrame.Story)
+		if (frame is TimelineFrame.Band) add(frame)
+	}
+	val bandDescription = Res.string.timeline_frame_band_description.get(bandTitle)
+	val backDescription = Res.string.timeline_frame_back_to_everything.get()
+	HdHairlineSegmentedPicker(
+		options = options,
+		selected = frame,
+		onSelect = onSelect,
+		label = { option ->
+			when (option) {
+				TimelineFrame.Everything -> Res.string.timeline_frame_everything.get()
+				TimelineFrame.Story -> Res.string.timeline_frame_story.get()
+				is TimelineFrame.Band -> bandTitle.ellipsize(BAND_CELL_CHARS)
+			}
+		},
+		isEnabled = { option -> option != TimelineFrame.Story || storyAvailable },
+		trailing = { option ->
+			if (option is TimelineFrame.Band) {
+				{
+					HdClearGlyph(
+						onClick = { onSelect(TimelineFrame.Everything) },
+						contentDescription = backDescription,
+						modifier = Modifier.testTag(TIME_LINE_FRAME_CLEAR_TAG),
+					)
+				}
+			} else {
+				null
+			}
+		},
+		cellModifier = { option ->
+			if (option is TimelineFrame.Band) {
+				Modifier
+					.testTag(TIME_LINE_FRAME_BAND_TAG)
+					.semantics { contentDescription = bandDescription }
+			} else {
+				Modifier
+			}
+		},
+		modifier = modifier.testTag(TIME_LINE_FRAME_PICKER_TAG),
+	)
+}
+
+private const val BAND_CELL_CHARS = 18
+private const val SUMMARY_CHIPS = 6
+
+private fun String.ellipsize(max: Int): String = if (length <= max) this else take(max - 1).trimEnd() + "…"
+
+/**
+ * The selected event over the bottom of the drawing: its title, when and lane, then its references
+ * (or a placed entry's opening line), with Open and Clear.
+ */
+@Composable
+private fun SelectionStrip(
+	row: TimelineRow,
+	summary: SelectionSummary?,
+	onOpen: () -> Unit,
+	onClear: () -> Unit,
+	modifier: Modifier = Modifier,
+) {
+	val words = rememberStoryDateWords()
+	val start = row.start
+	val whenText = if (start != null) {
+		formatStoryDateRange(row.calendar ?: CalendarDef(), start, row.end, words)
+	} else {
+		row.whenText.ifBlank { null }
+	}
+	val lane = row.event.lane?.takeIf { it.isNotBlank() }
+	val references = summary?.references.orEmpty()
+	val excerpt = summary?.excerpt
+	HdNoticeStrip(
+		title = row.title,
+		detail = listOfNotNull(whenText, lane).joinToString(" · ").ifBlank { null },
+		primaryLabel = Res.string.timeline_selection_open.get(),
+		onPrimary = onOpen,
+		secondaryLabel = Res.string.timeline_selection_clear.get(),
+		onSecondary = onClear,
+		modifier = modifier.testTag(TIME_LINE_SELECTION_TAG),
+		content = when {
+			references.isNotEmpty() -> {
+				{ SummaryChips(references = references, onClick = onOpen) }
+			}
+
+			excerpt != null -> {
+				{
+					Text(
+						text = excerpt,
+						style = MaterialTheme.typography.bodySmall,
+						color = MaterialTheme.colorScheme.onSurfaceVariant,
+						maxLines = 1,
+						overflow = TextOverflow.Ellipsis,
+					)
+				}
+			}
+
+			else -> null
+		},
+	)
+}
+
+/** Up to [SUMMARY_CHIPS] read-only reference chips, then `+N` for the rest. */
+@Composable
+private fun SummaryChips(references: List<CatalogItem>, onClick: () -> Unit) {
+	Row(
+		modifier = Modifier.padding(top = 4.dp),
+		verticalAlignment = Alignment.CenterVertically,
+		horizontalArrangement = Arrangement.spacedBy(6.dp),
+	) {
+		references.take(SUMMARY_CHIPS).forEach { item ->
+			HdReferenceChip(
+				glyph = item.hdMark(),
+				swatchColor = item.hdSwatchColor(),
+				glyphColor = item.hdGlyphColor(),
+				name = item.name,
+				onClick = onClick,
+				onAction = null,
+				actionContentDescription = "",
+				modifier = Modifier.weight(1f, fill = false),
+			)
+		}
+		val more = references.size - SUMMARY_CHIPS
+		if (more > 0) {
+			HdMonoLabel(text = Res.string.timeline_selection_more.get(more))
 		}
 	}
 }

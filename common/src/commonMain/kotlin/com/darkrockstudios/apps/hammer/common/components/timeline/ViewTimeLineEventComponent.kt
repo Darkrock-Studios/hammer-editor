@@ -249,15 +249,8 @@ class ViewTimeLineEventComponent(
 		_state.getAndUpdate { it.copy(references = referencesOf(it)) }
 	}
 
-	private fun referencesOf(state: ViewTimeLineEvent.State): List<CatalogItem> {
-		val subject = state.subject
-		if (subject is SubjectSummary.Scene) {
-			return subject.cast.map { CatalogItem(CatalogKind.Entry, it.id, it.name, entryType = it.type) }
-		}
-		if (state.kind != TimelineKind.EVENT) return emptyList()
-		val byId = state.catalog.associateBy { it.id }
-		return state.referenceIds.mapNotNull { byId[it] }
-	}
+	private fun referencesOf(state: ViewTimeLineEvent.State): List<CatalogItem> =
+		timelineReferenceItems(state.kind, state.subject, state.referenceIds, state.catalog)
 
 	private fun loadCatalogOnce() {
 		if (catalogRequested) return

@@ -174,4 +174,12 @@
 	</plurals>
 	<string name="timeline_preset_warning_confirm">Switch calendar</string>
 	<string name="timeline_preset_warning_cancel">Keep calendar</string>
+
+	<string name="timeline_frame_everything">Everything</string>
+	<string name="timeline_frame_story">Story</string>
+	<string name="timeline_frame_band_description">Framed on %1$s</string>
+	<string name="timeline_frame_back_to_everything">Back to everything</string>
+	<string name="timeline_selection_open">Open</string>
+	<string name="timeline_selection_clear">Clear</string>
+	<string name="timeline_selection_more">+%1$d</string>
 </resources>

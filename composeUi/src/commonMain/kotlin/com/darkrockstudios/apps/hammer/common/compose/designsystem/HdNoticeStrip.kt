@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.common.compose.designsystem
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -17,8 +18,9 @@ import androidx.compose.ui.unit.dp
 
 /**
  * A full-width notice pinned above a list: a title line, an optional detail line, an optional
- * hairline progress bar, and up to two hairline actions. Hairline rules top and bottom over a
- * `surfaceContainerLow` fill separate it from the page without elevation.
+ * hairline progress bar, optional [content] such as a chip row, and up to two hairline actions.
+ * Hairline rules top and bottom over a `surfaceContainerLow` fill separate it from the page
+ * without elevation.
  */
 @Composable
 fun HdNoticeStrip(
@@ -31,6 +33,7 @@ fun HdNoticeStrip(
 	secondaryLabel: String? = null,
 	onSecondary: () -> Unit = {},
 	actionsEnabled: Boolean = true,
+	content: (@Composable ColumnScope.() -> Unit)? = null,
 ) {
 	val rule = MaterialTheme.colorScheme.outlineVariant
 	Column(
@@ -68,6 +71,7 @@ fun HdNoticeStrip(
 						modifier = Modifier.padding(top = 4.dp),
 					)
 				}
+				content?.invoke(this)
 			}
 			if (secondaryLabel != null) {
 				HdHairlineButton(

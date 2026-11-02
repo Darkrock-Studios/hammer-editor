@@ -22,6 +22,8 @@ import com.darkrockstudios.apps.hammer.common.timeline.layout.samples.TimelineLa
 import org.junit.Rule
 import org.junit.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class TimelineDrawingUiTest {
@@ -31,14 +33,18 @@ class TimelineDrawingUiTest {
 	private val input = TimelineLayoutSamples.hollowmere()
 	private val layout: TimelineLayout = TimelineLayoutEngine.layout(input, MonospaceEstimateMeasurer())
 
-	private fun show(onTap: (HitTarget) -> Unit = {}) {
+	private fun show(
+		layout: TimelineLayout = this.layout,
+		selectedId: Int? = null,
+		onTap: (HitTarget) -> Unit = {},
+	) {
 		compose.setContent {
 			MaterialTheme {
 				Box(modifier = Modifier.requiredWidth(layout.widthDp.dp)) {
 					TimelineDrawing(
 						layout = layout,
 						laneColor = { Color.Gray },
-						selectedId = null,
+						selectedId = selectedId,
 						onTap = onTap,
 						titles = input.events.associate { it.id to it.title },
 					)
@@ -54,7 +60,7 @@ class TimelineDrawingUiTest {
 	@Test
 	fun `Tapping a ledger row reports its event`() {
 		val tapped = mutableListOf<HitTarget>()
-		show { tapped += it }
+		show(onTap = { tapped += it })
 		val row = layout.ledgerRows.minBy { it.anchorYDp }
 
 		compose.onNodeWithTag(HitTarget.Ledger(row.eventId).testTag()).performClick()
@@ -65,7 +71,7 @@ class TimelineDrawingUiTest {
 	@Test
 	fun `Tapping a band reports its event`() {
 		val tapped = mutableListOf<HitTarget>()
-		show { tapped += it }
+		show(onTap = { tapped += it })
 		val band = layout.bands.minBy { it.rect.y }
 
 		compose.onNodeWithTag(HitTarget.Band(band.eventId).testTag()).performClick()
@@ -76,7 +82,7 @@ class TimelineDrawingUiTest {
 	@Test
 	fun `Tapping a lane header reports its lane`() {
 		val tapped = mutableListOf<HitTarget>()
-		show { tapped += it }
+		show(onTap = { tapped += it })
 
 		compose.onNodeWithTag(HitTarget.LaneHeader(TimelineLayoutSamples.HOLLOWMERE_HAYES).testTag()).performClick()
 
@@ -99,5 +105,23 @@ class TimelineDrawingUiTest {
 				"$tag is not a button",
 			)
 		}
+	}
+
+	@Test
+	fun `A selected span is projected across the lanes from its start to its end`() {
+		val band = layout.bands
+			.filter { band -> input.events.first { it.id == band.eventId }.end != null }
+			.maxBy { it.rect.height }
+		assertNull(layout.projection, "Nothing is projected without a selection")
+		val selected = TimelineLayoutEngine.layout(input.copy(selectedId = band.eventId), MonospaceEstimateMeasurer())
+
+		show(layout = selected, selectedId = band.eventId)
+
+		val projection = assertNotNull(selected.projection)
+		assertEquals(band.eventId, projection.eventId)
+		assertEquals(band.rect.y, projection.yDp, absoluteTolerance = 1f)
+		assertEquals(band.rect.bottom, assertNotNull(projection.y1Dp), absoluteTolerance = 1f)
+		assertEquals(selected.laneRegion.width, projection.rect.width)
+		compose.onNodeWithTag(HitTarget.Band(band.eventId).testTag()).assertExists()
 	}
 }

@@ -356,7 +356,10 @@ The handwriting of the system. Reach for these instead of styling
   borders by overlapping 1dp; selected cell takes `onSurface` border
   and label color, the rest stay muted. Use for small enums (3–4
   values) where a dropdown would feel out of vocabulary. `enabled =
-  false` dims it and ignores clicks, as the dropdown does.
+  false` dims it and ignores clicks, as the dropdown does; `isEnabled`
+  does the same per cell. `trailing` puts a small affordance after a
+  cell's label, e.g. an `HdClearGlyph` on a transient option
+  (`[ EVERYTHING │ STORY │ THE STORM × ]`).
 - **[`HdHairlineDropdown`](HdHairlineDropdown.kt)** — generic
   full-width hairline pill `[ Markdown            ▾ ]` opening a
   `DropdownMenu`. Same signature as `HdHairlineSegmentedPicker`, so

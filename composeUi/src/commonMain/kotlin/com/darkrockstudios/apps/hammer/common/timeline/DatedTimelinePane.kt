@@ -2,8 +2,13 @@ package com.darkrockstudios.apps.hammer.common.timeline
 
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
@@ -31,13 +36,17 @@ private const val FALLBACK_WIDTH_DP = 840f
 private const val WIDTH_STEP_DP = 8f
 private const val MIN_LANE_WIDTH_DP = 72f
 
-/** The drawing of a DATED timeline's [rows], laid out to the width it is given. */
+/**
+ * The drawing of a DATED timeline's [rows] in the state's frame, laid out to the width it is given.
+ * A new frame starts scrolled to the top.
+ */
 @Composable
 internal fun DatedTimelinePane(
 	state: TimeLineOverview.State,
 	rows: List<TimelineRow>,
 	onTap: (HitTarget) -> Unit,
 	modifier: Modifier = Modifier,
+	onOpen: ((Int) -> Unit)? = null,
 ) {
 	val words = rememberStoryDateWords()
 	val measurer = rememberTimelineTextMeasurer()
@@ -47,11 +56,32 @@ internal fun DatedTimelinePane(
 	val laneDescriptions = state.lanes.associate { it.lane to Res.string.timeline_lane_filter_description.get(it.lane) }
 	val describeLane: (String) -> String = { lane -> laneDescriptions[lane] ?: lane }
 
+	val scrollState = rememberScrollState()
+	var shownFrame by remember { mutableStateOf(state.frame) }
+	LaunchedEffect(state.frame) {
+		if (state.frame != shownFrame) {
+			shownFrame = state.frame
+			scrollState.scrollTo(0)
+		}
+	}
+
 	BoxWithConstraints(modifier = modifier.fillMaxSize().testTag(TIMELINE_DRAWING_TAG)) {
 		val widthDp = if (maxWidth.value.isFinite()) (maxWidth - MpScrollBarGutter).value.coerceAtLeast(0f) else FALLBACK_WIDTH_DP
 		// Stepped so that resizing the window does not lay the timeline out again on every frame.
 		val steppedWidthDp = floor(widthDp / WIDTH_STEP_DP) * WIDTH_STEP_DP
-		val layout = remember(rows, state.lanes, state.laneFilter, state.view, calendar, steppedWidthDp, phone, words, measurer) {
+		val layout = remember(
+			rows,
+			state.lanes,
+			state.laneFilter,
+			state.view,
+			state.frame,
+			state.selectedId,
+			calendar,
+			steppedWidthDp,
+			phone,
+			words,
+			measurer,
+		) {
 			val input = toLayoutInput(
 				rows = rows,
 				lanes = state.lanes,
@@ -60,6 +90,8 @@ internal fun DatedTimelinePane(
 				view = state.view,
 				widthDp = steppedWidthDp,
 				phone = phone,
+				frame = state.frame,
+				selectedId = state.selectedId,
 				words = words,
 			)
 			TimelineLayoutEngine.layout(input.copy(widthDp = maxOf(steppedWidthDp, minimumWidthDp(input))), measurer)
@@ -73,13 +105,15 @@ internal fun DatedTimelinePane(
 		TimelineDrawingPane(
 			layout = layout,
 			laneColor = { index -> colors.laneColor(paletteIndex.getOrElse(index) { index }) },
-			selectedId = null,
+			selectedId = state.selectedId,
 			onTap = onTap,
+			onOpen = onOpen,
 			titles = titles,
 			laneHeaderDescription = describeLane,
 			measurer = measurer,
 			modifier = Modifier.fillMaxSize(),
 			contentWidth = layout.widthDp.takeIf { it > widthDp }?.dp,
+			scrollState = scrollState,
 		)
 	}
 }

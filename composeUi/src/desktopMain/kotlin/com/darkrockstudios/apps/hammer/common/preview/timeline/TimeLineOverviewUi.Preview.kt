@@ -18,6 +18,7 @@ import com.darkrockstudios.apps.hammer.common.preview.TABLET_HEIGHT_DP
 import com.darkrockstudios.apps.hammer.common.preview.TABLET_WIDTH_DP
 import com.darkrockstudios.apps.hammer.common.preview.TabletPreviewSurface
 import com.darkrockstudios.apps.hammer.common.timeline.TimeLineOverviewUi
+import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineFrame
 import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineView
 
 @OptIn(ExperimentalSharedTransitionApi::class)
@@ -113,4 +114,6 @@ private class PreviewOverview(initial: TimeLineOverview.State) : TimeLineOvervie
 	override fun setLaneFilter(lanes: Set<String>) {}
 	override fun toggleLane(lane: String) {}
 	override fun setView(view: TimelineView) {}
+	override fun select(eventId: Int?) {}
+	override fun setFrame(frame: TimelineFrame) {}
 }

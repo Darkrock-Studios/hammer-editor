@@ -4,8 +4,10 @@ import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
 import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
+import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogItem
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagCount
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
+import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineFrame
 import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineView
 
 interface TimeLineOverview {
@@ -21,6 +23,12 @@ interface TimeLineOverview {
 	/** Which drawing a DATED timeline shows. */
 	fun setView(view: TimelineView)
 
+	/** Selects [eventId] on the drawing; null, or the event already selected, clears the selection. */
+	fun select(eventId: Int?)
+
+	/** Which stretch of a DATED timeline the drawing shows. [TimelineFrame.Story] needs a placed scene. */
+	fun setFrame(frame: TimelineFrame)
+
 	data class State(
 		/** Null until the timeline has loaded. */
 		val rows: List<TimelineRow>? = null,
@@ -33,8 +41,24 @@ interface TimeLineOverview {
 		val lanes: List<LaneCount> = emptyList(),
 		val laneFilter: Set<String> = emptySet(),
 		val view: TimelineView = TimelineView.SEQUENCE,
+		/** The event the drawing projects across its lanes. Not saved. */
+		val selectedId: Int? = null,
+		/** What the strip under the drawing shows for [selectedId]; null until it has been read. */
+		val selectionSummary: SelectionSummary? = null,
+		val frame: TimelineFrame = TimelineFrame.Everything,
+		/** Whether some placed scene has a start, which [TimelineFrame.Story] frames. */
+		val storyFrameAvailable: Boolean = false,
 	)
 }
+
+/** The selected event as the strip under the drawing shows it. */
+data class SelectionSummary(
+	val row: TimelineRow,
+	/** A plain event's references or a placed scene's cast: people, places, other entries, then scenes. */
+	val references: List<CatalogItem>,
+	/** A placed entry's opening text; null for the other kinds or an empty entry. */
+	val excerpt: String?,
+)
 
 /** One event as the list shows it, in display order. */
 data class TimelineRow(

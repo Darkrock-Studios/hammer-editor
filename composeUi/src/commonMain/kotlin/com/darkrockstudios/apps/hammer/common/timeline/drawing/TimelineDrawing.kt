@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.timeline.drawing
 
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
@@ -33,6 +34,7 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -62,6 +64,9 @@ import com.darkrockstudios.apps.hammer.common.timeline.layout.PointDp
 import com.darkrockstudios.apps.hammer.common.timeline.layout.PointGlyph
 import com.darkrockstudios.apps.hammer.common.timeline.layout.RectDp
 import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineLayout
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.TimeSource
 
 const val TIMELINE_DRAWING_TAG = "Timeline Drawing"
 
@@ -70,6 +75,15 @@ const val TIMELINE_HORIZONTAL_SCROLL_TAG = "Timeline Horizontal Scroll"
 
 /** Each hit region is tagged with this prefix and its target, e.g. `Timeline Hit Ledger 4`. */
 const val TIMELINE_HIT_TAG = "Timeline Hit"
+
+/** The event a target stands for; null for a lane header. */
+private val HitTarget.eventId: Int?
+	get() = when (this) {
+		is HitTarget.Band -> eventId
+		is HitTarget.Point -> eventId
+		is HitTarget.Ledger -> eventId
+		is HitTarget.LaneHeader -> null
+	}
 
 fun HitTarget.testTag(): String = when (this) {
 	is HitTarget.Band -> "$TIMELINE_HIT_TAG Band $eventId"
@@ -91,8 +105,11 @@ private const val LEDGER_MARK_INSET = 4f
 private const val LEDGER_TICK = 4f
 
 // The desktop scrollbar takes a gutter; touch platforms overlay a transient one. Hover tooltips
-// follow the same split.
+// and double-click to open follow the same split.
 private val hoverTooltips: Boolean get() = MpScrollBarGutter > 0.dp
+
+/** Whether a double click on an event opens it, as it does where a pointer hovers. */
+internal val timelineOpensOnDoubleClick: Boolean get() = hoverTooltips
 
 /** The theme colours a drawing uses, read once per composition. */
 @Immutable
@@ -107,7 +124,8 @@ private class TimelineInk(
 /**
  * A dated timeline drawn from [layout]: one canvas for the ink plus a transparent hit layer with a
  * button per [HitRegion]. [laneColor] maps a layout lane index to its colour; [titles] names events
- * for screen readers and tooltips where the layout only holds a fitted label.
+ * for screen readers and tooltips where the layout only holds a fitted label. On desktop a double
+ * click on an event opens it through [onOpen].
  */
 @Composable
 fun TimelineDrawing(
@@ -116,6 +134,7 @@ fun TimelineDrawing(
 	selectedId: Int?,
 	onTap: (HitTarget) -> Unit,
 	modifier: Modifier = Modifier,
+	onOpen: ((Int) -> Unit)? = null,
 	titles: Map<Int, String> = emptyMap(),
 	laneHeaderDescription: (String) -> String = { it },
 	measurer: ComposeTimelineTextMeasurer = rememberTimelineTextMeasurer(),
@@ -125,6 +144,7 @@ fun TimelineDrawing(
 		TimelineInk(scheme.surface, scheme.onSurface, scheme.onSurfaceVariant, scheme.outlineVariant, scheme.primary)
 	}
 	val descriptions = remember(layout, titles) { describeTargets(layout, titles) }
+	val clicks = remember { DoubleClickDetector() }
 
 	Box(modifier = modifier.fillMaxWidth().height(layout.heightDp.dp)) {
 		Spacer(
@@ -142,6 +162,9 @@ fun TimelineDrawing(
 				description = descriptions.describe(region.target, laneHeaderDescription),
 				tooltip = hoverTooltips && (region.target is HitTarget.Ledger || region.target is HitTarget.Band),
 				onTap = onTap,
+				// Touch platforms open from the selection's summary instead.
+				onOpen = onOpen?.takeIf { timelineOpensOnDoubleClick },
+				clicks = clicks,
 			)
 		}
 	}
@@ -158,12 +181,13 @@ fun TimelineDrawingPane(
 	selectedId: Int?,
 	onTap: (HitTarget) -> Unit,
 	modifier: Modifier = Modifier,
+	onOpen: ((Int) -> Unit)? = null,
 	contentWidth: Dp? = null,
 	titles: Map<Int, String> = emptyMap(),
 	laneHeaderDescription: (String) -> String = { it },
 	measurer: ComposeTimelineTextMeasurer = rememberTimelineTextMeasurer(),
+	scrollState: ScrollState = rememberScrollState(),
 ) {
-	val scrollState = rememberScrollState()
 	val horizontalState = rememberScrollState()
 	val horizontal = if (contentWidth != null) {
 		Modifier.testTag(TIMELINE_HORIZONTAL_SCROLL_TAG).horizontalScroll(horizontalState)
@@ -178,6 +202,7 @@ fun TimelineDrawingPane(
 				selectedId = selectedId,
 				onTap = onTap,
 				modifier = if (contentWidth != null) Modifier.width(contentWidth) else Modifier,
+				onOpen = onOpen,
 				titles = titles,
 				laneHeaderDescription = laneHeaderDescription,
 				measurer = measurer,
@@ -229,15 +254,25 @@ private fun HitBox(
 	description: String,
 	tooltip: Boolean,
 	onTap: (HitTarget) -> Unit,
+	onOpen: ((Int) -> Unit)?,
+	clicks: DoubleClickDetector,
 ) {
 	val rect = region.rect
 	val place = Modifier
 		.offset(rect.x.dp, rect.y.dp)
 		.size(rect.width.dp, rect.height.dp)
+	val eventId = region.target.eventId
+	val doubleClickTimeout = LocalViewConfiguration.current.doubleTapTimeoutMillis.milliseconds
 	val target = Modifier
 		.testTag(region.target.testTag())
 		.semantics { contentDescription = description }
-		.clickable(role = Role.Button) { onTap(region.target) }
+		.clickable(role = Role.Button) {
+			if (onOpen != null && eventId != null && clicks.isSecondClick(eventId, doubleClickTimeout)) {
+				onOpen(eventId)
+			} else {
+				onTap(region.target)
+			}
+		}
 	if (tooltip && description.isNotBlank()) {
 		TooltipBox(
 			positionProvider = TooltipDefaults.rememberTooltipPositionProvider(),
@@ -249,6 +284,25 @@ private fun HitBox(
 		}
 	} else {
 		Box(modifier = place.then(target))
+	}
+}
+
+/**
+ * Tells a double click from two single ones without holding back the first, as a double-click
+ * gesture detector would: the first click acts at once and the second only opens. Keyed by event,
+ * not by hit region, since the first click may lay the drawing out again (a band tap frames it).
+ */
+private class DoubleClickDetector {
+	private var lastId: Int? = null
+	private var last: TimeSource.Monotonic.ValueTimeMark? = null
+
+	/** Records a click on [eventId]; true when it follows a click on the same event within [timeout]. */
+	fun isSecondClick(eventId: Int, timeout: Duration): Boolean {
+		val previous = last
+		val second = lastId == eventId && previous != null && previous.elapsedNow() <= timeout
+		lastId = if (second) null else eventId
+		last = if (second) null else TimeSource.Monotonic.markNow()
+		return second
 	}
 }
 
