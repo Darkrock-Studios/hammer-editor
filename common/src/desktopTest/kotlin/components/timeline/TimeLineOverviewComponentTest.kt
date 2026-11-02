@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.common.components.timeline.LaneCount
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineOverviewComponent
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineEventDraft
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineResult
+import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineView
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
@@ -171,5 +172,18 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 		assertEquals(listOf(CalendarDef(epochName = "Landing"), CalendarDef(epochName = "Landing"), null), state.rows.map { it.calendar })
 		assertEquals(listOf("Dawn", "", ""), state.rows.map { it.whenText }, "The label stays as the fallback")
 		assertEquals(listOf(legacy.id), state.undatedIds)
+	}
+
+	@Test
+	fun `the drawing starts in sequence and follows the chosen view`() = runTest(mainTestDispatcher) {
+		givenProject()
+		val component = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		assertEquals(TimelineView.SEQUENCE, component.state.value.view)
+
+		component.setView(TimelineView.TO_SCALE)
+
+		assertEquals(TimelineView.TO_SCALE, component.state.value.view)
 	}
 }

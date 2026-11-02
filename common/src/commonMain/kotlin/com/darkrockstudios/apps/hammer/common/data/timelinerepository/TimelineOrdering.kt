@@ -129,7 +129,8 @@ private fun advanceGregorian(origin: StoryDate, unit: String, amount: Long): Sto
 	}
 }
 
-private fun gregorianDate(minutes: Long, finest: String): StoryDate {
+/** The Gregorian date at [minutes] from 1970-01-01, with rungs down to [finest] but at least the day. */
+internal fun gregorianDate(minutes: Long, finest: String): StoryDate {
 	val days = minutes.floorDiv(MINUTES_PER_DAY)
 	val ofDay = minutes.mod(MINUTES_PER_DAY)
 

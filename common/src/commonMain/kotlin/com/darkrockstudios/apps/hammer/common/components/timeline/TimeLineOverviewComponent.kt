@@ -20,8 +20,10 @@ import com.darkrockstudios.apps.hammer.common.data.tagindex.TaggedEntityType
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineService
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineView
+import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineView as DrawingView
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.builtins.serializer
 
 class TimeLineOverviewComponent(
 	componentContext: ComponentContext,
@@ -35,11 +37,21 @@ class TimeLineOverviewComponent(
 	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
 	private val tagIndexService: TagIndexService by projectInject()
 
-	private val _state = MutableValue(TimeLineOverview.State())
+	private val _state = MutableValue(
+		TimeLineOverview.State(
+			view = stateKeeper.consume(VIEW_KEY, String.serializer())
+				?.let { saved -> DrawingView.entries.firstOrNull { it.name == saved } }
+				?: DrawingView.SEQUENCE,
+		)
+	)
 	override val state: Value<TimeLineOverview.State> = _state
 
 	private val _rankedTags = MutableValue<List<TagCount>>(emptyList())
 	override val rankedTags: Value<List<TagCount>> = _rankedTags
+
+	init {
+		stateKeeper.register(VIEW_KEY, String.serializer()) { _state.value.view.name }
+	}
 
 	override fun onCreate() {
 		super.onCreate()
@@ -126,5 +138,13 @@ class TimeLineOverviewComponent(
 			val filter = if (lane in it.laneFilter) it.laneFilter - lane else it.laneFilter + lane
 			it.copy(laneFilter = filter)
 		}
+	}
+
+	override fun setView(view: DrawingView) {
+		_state.getAndUpdate { it.copy(view = view) }
+	}
+
+	private companion object {
+		const val VIEW_KEY = "timeline_overview_view"
 	}
 }

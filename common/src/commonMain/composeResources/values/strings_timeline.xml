@@ -141,6 +141,8 @@
 	</plurals>
 	<string name="timeline_undated_detail">A dated timeline orders entries by their start. Give these one to put them in place.</string>
 	<string name="timeline_undated_open">Open first</string>
+	<string name="timeline_view_sequence">Sequence</string>
+	<string name="timeline_view_to_scale">To scale</string>
 
 	<string name="timeline_settings_section_title">Timeline</string>
 	<string name="timeline_settings_caption">How the timeline orders its entries. A manual timeline follows the order you drag them into; a dated one orders them by their dates.</string>

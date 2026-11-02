@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagCount
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
+import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineView
 
 interface TimeLineOverview {
 	val state: Value<State>
@@ -16,6 +17,9 @@ interface TimeLineOverview {
 
 	fun setLaneFilter(lanes: Set<String>)
 	fun toggleLane(lane: String)
+
+	/** Which drawing a DATED timeline shows. */
+	fun setView(view: TimelineView)
 
 	data class State(
 		/** Null until the timeline has loaded. */
@@ -28,6 +32,7 @@ interface TimeLineOverview {
 		/** In lane order; a lane's position here is its colour index. */
 		val lanes: List<LaneCount> = emptyList(),
 		val laneFilter: Set<String> = emptySet(),
+		val view: TimelineView = TimelineView.SEQUENCE,
 	)
 }
 

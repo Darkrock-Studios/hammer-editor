@@ -121,3 +121,59 @@ private fun formatGregorian(date: StoryDate, words: StoryDateWords): String {
 
 private fun clock(hour: Long, minute: Long): String =
 	"${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}"
+
+/**
+ * An axis label for [date], a tick truncated to its unit. The long form keeps the two finest parts
+ * (`Year 12 · Day 40`, `Day 40 · 06:00`, `12 May · 06:00`); the short form drops the unit words
+ * (`12 · 40`, `06:00`, `12 May`).
+ */
+fun formatStoryDateTick(
+	calendar: CalendarDef,
+	date: StoryDate,
+	short: Boolean,
+	words: StoryDateWords = StoryDateWords.English,
+): String {
+	if (StoryCalendar.validate(calendar, date) != null) return date.toCompactText()
+	return when (calendar.preset) {
+		CalendarPreset.STORY -> storyTick(calendar, date, short, words)
+		CalendarPreset.GREGORIAN -> gregorianTick(date, short, words)
+	}
+}
+
+private fun storyTick(calendar: CalendarDef, date: StoryDate, short: Boolean, words: StoryDateWords): String {
+	val filled = StoryCalendar.units(calendar.preset).map { it.name }.filter { date[it] != null }
+	val leading = filled.first()
+	val epoch = calendar.epochName?.trim()?.takeIf { it.isNotEmpty() }
+	val parts = mutableListOf<String>()
+	var endsInClock = false
+	for (unit in filled) {
+		val value = date[unit]!!
+		when {
+			unit == StoryCalendar.HOUR && unit != leading -> {
+				parts += clock(value, date[StoryCalendar.MINUTE] ?: 0)
+				endsInClock = true
+			}
+
+			unit == StoryCalendar.MINUTE && endsInClock -> Unit
+			short -> parts += value.toString()
+			unit == leading && value < 0 && epoch != null -> parts += words.beforeEpoch("${words.unit(unit)} ${-value}", epoch)
+			else -> parts += "${words.unit(unit)} $value"
+		}
+	}
+	return if (short && endsInClock) parts.last() else parts.takeLast(2).joinToString(SEPARATOR)
+}
+
+private fun gregorianTick(date: StoryDate, short: Boolean, words: StoryDateWords): String {
+	val year = date[StoryCalendar.YEAR]!!
+	val yearText = if (year > 0) year.toString() else words.bce(1 - year)
+	val month = date[StoryCalendar.MONTH]?.toInt() ?: return yearText
+	val monthText = if (short) words.month(month).take(3) else words.month(month)
+	val day = date[StoryCalendar.DAY] ?: return "$monthText $yearText"
+	val hour = date[StoryCalendar.HOUR]
+	return when {
+		hour == null && short -> "$day $monthText"
+		hour == null -> "$day $monthText $yearText"
+		short -> clock(hour, date[StoryCalendar.MINUTE] ?: 0)
+		else -> "$day $monthText$SEPARATOR${clock(hour, date[StoryCalendar.MINUTE] ?: 0)}"
+	}
+}

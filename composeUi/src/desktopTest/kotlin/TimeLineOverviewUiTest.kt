@@ -19,6 +19,10 @@ import com.darkrockstudios.apps.hammer.common.compose.LocalImageNames
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagCount
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.timeline.*
+import com.darkrockstudios.apps.hammer.common.timeline.drawing.TIMELINE_DRAWING_TAG
+import com.darkrockstudios.apps.hammer.common.timeline.drawing.testTag
+import com.darkrockstudios.apps.hammer.common.timeline.layout.HitTarget
+import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineView
 import org.junit.Rule
 import org.junit.Test
 import kotlin.test.assertEquals
@@ -48,6 +52,10 @@ class TimeLineOverviewUiTest : BaseTest() {
 		override fun toggleLane(lane: String) {
 			val filter = _state.value.laneFilter
 			setLaneFilter(if (lane in filter) filter - lane else filter + lane)
+		}
+
+		override fun setView(view: TimelineView) {
+			_state.value = _state.value.copy(view = view)
 		}
 	}
 
@@ -338,5 +346,55 @@ class TimeLineOverviewUiTest : BaseTest() {
 		showOverview(FakeOverview(listOf(row(TimeLineEvent(id = 1, order = 0, title = "One")))))
 
 		compose.onNodeWithTag(TIME_LINE_UNDATED_TAG).assertDoesNotExist()
+	}
+
+	@Test
+	fun `A dated timeline draws its rows and offers the view picker`() {
+		val calendar = CalendarDef()
+		val rows = listOf(
+			row(TimeLineEvent(id = 1, order = 0, title = "Fall", lane = "Alice")).copy(
+				start = StoryDate(mapOf("year" to 1L)),
+				calendar = calendar,
+				laneIndex = 0,
+			),
+			row(TimeLineEvent(id = 2, order = 1, title = "Croquet")).copy(
+				start = StoryDate(mapOf("year" to 2L)),
+				calendar = calendar,
+			),
+		)
+		val component = FakeOverview(rows, lanes = listOf(LaneCount("Alice", 1)), mode = TimelineMode.DATED)
+		showOverview(component)
+
+		compose.onNodeWithTag(TIMELINE_DRAWING_TAG).assertIsDisplayed()
+		compose.onNodeWithTag(TIME_LINE_LIST_TAG).assertDoesNotExist()
+		compose.onNodeWithTag(TIME_LINE_VIEW_PICKER_TAG).assertIsDisplayed()
+
+		compose.onNodeWithText("TO SCALE").performClick()
+		assertEquals(TimelineView.TO_SCALE, component.state.value.view)
+	}
+
+	@Test
+	fun `Tapping a drawn row opens its event`() {
+		val opened = mutableListOf<Int>()
+		val rows = listOf(
+			row(TimeLineEvent(id = 7, order = 0, title = "Croquet")).copy(
+				start = StoryDate(mapOf("year" to 1L)),
+				calendar = CalendarDef(),
+			),
+		)
+		showOverview(FakeOverview(rows, mode = TimelineMode.DATED), viewEvent = { opened += it })
+
+		compose.onNodeWithTag(HitTarget.Ledger(7).testTag()).performClick()
+
+		assertEquals(listOf(7), opened)
+	}
+
+	@Test
+	fun `A manual timeline shows the list and no view picker`() {
+		showOverview(FakeOverview(listOf(row(TimeLineEvent(id = 1, order = 0, title = "One")))))
+
+		compose.onNodeWithTag(TIME_LINE_LIST_TAG).assertIsDisplayed()
+		compose.onNodeWithTag(TIMELINE_DRAWING_TAG).assertDoesNotExist()
+		compose.onNodeWithTag(TIME_LINE_VIEW_PICKER_TAG).assertDoesNotExist()
 	}
 }

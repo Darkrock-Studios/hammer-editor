@@ -78,6 +78,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdActiveFilte
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdCollapsingStrip
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDragHandle
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineSegmentedPicker
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNoticeStrip
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSearchField
@@ -95,6 +96,8 @@ import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
 import com.darkrockstudios.apps.hammer.common.data.search.markdownContains
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.formatStoryDateRange
+import com.darkrockstudios.apps.hammer.common.timeline.layout.HitTarget
+import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineView
 import com.darkrockstudios.apps.hammer.timeline_entry_subtitle
 import com.darkrockstudios.apps.hammer.timeline_filter_all
 import com.darkrockstudios.apps.hammer.timeline_filter_clear_all
@@ -111,6 +114,8 @@ import com.darkrockstudios.apps.hammer.timeline_subject_missing
 import com.darkrockstudios.apps.hammer.timeline_undated_detail
 import com.darkrockstudios.apps.hammer.timeline_undated_open
 import com.darkrockstudios.apps.hammer.timeline_undated_title
+import com.darkrockstudios.apps.hammer.timeline_view_sequence
+import com.darkrockstudios.apps.hammer.timeline_view_to_scale
 import com.darkrockstudios.apps.hammer.timeline_view_undated
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -131,6 +136,7 @@ const val TIME_LINE_SEARCH_TAG = "Timeline Overview Search"
 const val TIME_LINE_LANE_FILTER_TAG = "Timeline Lane Filter"
 const val TIME_LINE_CALENDAR_TAG = "Timeline Calendar"
 const val TIME_LINE_UNDATED_TAG = "Timeline Undated Notice"
+const val TIME_LINE_VIEW_PICKER_TAG = "Timeline View Picker"
 const val EVENT_CARD_TAG = "Timeline Event Card"
 const val EVENT_CARD_DATE_TAG = "Timeline Event Card Date"
 const val EVENT_CARD_CONTENT_TAG = "Timeline Event Card Content"
@@ -168,7 +174,8 @@ fun TimeLineOverviewUi(
 	val rows = state.rows.orEmpty()
 	val laneFilter = state.laneFilter
 
-	val visibleRows by remember(rows, searchQuery, activeTags, laneFilter) {
+	// Search and tags; the drawing applies the lane filter itself, keeping scenes in its ledger.
+	val matchedRows by remember(rows, searchQuery, activeTags) {
 		derivedStateOf {
 			val byText = if (searchQuery.isBlank()) {
 				rows
@@ -176,14 +183,19 @@ fun TimeLineOverviewUi(
 				val query = searchQuery.trim()
 				rows.filter { rowMatchesQuery(it, query) }
 			}
-			val byTags = if (activeTags.isEmpty()) {
+			if (activeTags.isEmpty()) {
 				byText
 			} else {
 				byText.filter { row -> activeTags.all { it in row.event.tags } }
 			}
-			if (laneFilter.isEmpty()) byTags else byTags.filter { it.event.lane in laneFilter }
 		}
 	}
+	val visibleRows by remember(matchedRows, laneFilter) {
+		derivedStateOf {
+			if (laneFilter.isEmpty()) matchedRows else matchedRows.filter { it.event.lane in laneFilter }
+		}
+	}
+	val dated = state.mode == TimelineMode.DATED
 
 	val toggleTag: (String) -> Unit = { tag ->
 		activeTags = if (tag in activeTags) activeTags - tag else activeTags + tag
@@ -290,6 +302,24 @@ fun TimeLineOverviewUi(
 				)
 			}
 
+			if (dated) {
+				HdHairlineSegmentedPicker(
+					options = TimelineView.entries,
+					selected = state.view,
+					onSelect = component::setView,
+					label = { view ->
+						when (view) {
+							TimelineView.SEQUENCE -> Res.string.timeline_view_sequence.get()
+							TimelineView.TO_SCALE -> Res.string.timeline_view_to_scale.get()
+						}
+					},
+					modifier = Modifier
+						.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.M)
+						.then(if (isWide) Modifier.width(280.dp) else Modifier.fillMaxWidth())
+						.testTag(TIME_LINE_VIEW_PICKER_TAG),
+				)
+			}
+
 			if (isWide && !isExpanded) {
 				Row(
 					modifier = Modifier
@@ -364,7 +394,7 @@ fun TimeLineOverviewUi(
 		}
 
 		val firstUndated = state.undatedIds.firstOrNull()
-		if (state.mode == TimelineMode.DATED && firstUndated != null) {
+		if (dated && firstUndated != null) {
 			HdNoticeStrip(
 				title = pluralStringResource(
 					Res.plurals.timeline_undated_title,
@@ -405,6 +435,21 @@ fun TimeLineOverviewUi(
 			}
 
 		when {
+			dated && matchedRows.isNotEmpty() -> {
+				DatedTimelinePane(
+					state = state,
+					rows = matchedRows,
+					onTap = { target ->
+						when (target) {
+							is HitTarget.Band -> viewEvent(target.eventId)
+							is HitTarget.Point -> viewEvent(target.eventId)
+							is HitTarget.Ledger -> viewEvent(target.eventId)
+							is HitTarget.LaneHeader -> component.toggleLane(target.lane)
+						}
+					},
+				)
+			}
+
 			visibleRows.isEmpty() -> {
 				Box(
 					modifier = Modifier
