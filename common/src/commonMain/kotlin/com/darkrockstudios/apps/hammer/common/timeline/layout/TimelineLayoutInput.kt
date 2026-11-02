@@ -7,7 +7,10 @@ enum class TimelineView { SEQUENCE, TO_SCALE }
 sealed class TimelineFrame {
 	data object Everything : TimelineFrame()
 
-	/** The extent of the placed scenes; falls back to [Everything] when there are none. */
+	/**
+	 * The extent of the placed scenes, widened to take in milestones lying within a tenth of its
+	 * length past either end; falls back to [Everything] when no scene is placed.
+	 */
 	data object Story : TimelineFrame()
 
 	/** One event's span, padded so its edges are visible. */

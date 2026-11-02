@@ -11,6 +11,7 @@ import com.darkrockstudios.apps.hammer.operations.core.EntryCreateInput
 import com.darkrockstudios.apps.hammer.operations.core.EntryKind
 import com.darkrockstudios.apps.hammer.operations.core.EvenSpacingDto
 import com.darkrockstudios.apps.hammer.operations.core.ProjectInput
+import com.darkrockstudios.apps.hammer.operations.core.ProjectItemInput
 import com.darkrockstudios.apps.hammer.operations.core.SceneCreateInput
 import com.darkrockstudios.apps.hammer.operations.core.SceneItemRef
 import com.darkrockstudios.apps.hammer.operations.core.Timeline
@@ -79,6 +80,17 @@ class TimelineOperationsTest : KoinOperationsTest() {
 		val landfall = onTestThread { scene("Landfall") }
 		onTestThread { place(TimelineKindDto.Scene, landfall.id) }
 		invalid { place(TimelineKindDto.Scene, landfall.id) }
+	}
+
+	@Test
+	fun `placing an archived scene asks for it to be unarchived`() = onTestThread {
+		val landfall = scene("Landfall")
+		run<ProjectItemInput, SceneItemRef>("scene.archive", ProjectItemInput(PROJECT, landfall.id))
+
+		val failure = assertFailsWith<OperationException> { place(TimelineKindDto.Scene, landfall.id) }
+
+		assertEquals(OperationException.Kind.InvalidInput, failure.kind)
+		assertEquals("Unarchive the scene to place it on the timeline", failure.message)
 	}
 
 	@Test
@@ -204,6 +216,18 @@ class TimelineOperationsTest : KoinOperationsTest() {
 		assertEquals(listOf(early.id to 0, late.id to 1), events.map { it.id to it.order })
 		run<TimelineMoveInput, TimelineEntry>("timeline.move", TimelineMoveInput(PROJECT, late.id, 0))
 		assertEquals(listOf(late.id, early.id), events().map { it.id })
+	}
+
+	@Test
+	fun `switching to manual writes the dates of unlabelled events as labels`() = onTestThread {
+		val dated = create("Storm", start = mapOf("year" to 9L, "day" to 3L))
+		settings(TimelineSettingsWriteInput(PROJECT, mode = TimelineModeDto.Dated, calendar = CalendarDto(CalendarPresetDto.Story)))
+
+		settings(TimelineSettingsWriteInput(PROJECT, mode = TimelineModeDto.Manual))
+
+		val event = events().single { it.id == dated.id }
+		assertEquals("Year 9 · Day 3", event.label)
+		assertEquals(mapOf("year" to 9L, "day" to 3L), event.start)
 	}
 
 	@Test

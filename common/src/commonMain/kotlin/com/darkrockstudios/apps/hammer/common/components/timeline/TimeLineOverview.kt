@@ -76,6 +76,8 @@ data class TimelineRow(
 	val laneIndex: Int?,
 	/** A placement whose scene or entry is gone; [title] is then its cached title. */
 	val subjectMissing: Boolean = false,
+	/** A placed scene that is archived; it is listed but not drawn until the scene is unarchived. */
+	val subjectArchived: Boolean = false,
 	/** On a DATED timeline, a start that fits [calendar]; null otherwise. The UI formats it with [end]. */
 	val start: StoryDate? = null,
 	val end: StoryDate? = null,

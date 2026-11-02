@@ -335,6 +335,7 @@ internal fun TimeLineEventError.requireNone() {
 		TimeLineEventError.SUBJECT_NOT_ALLOWED -> invalidInput("A plain event has no subject, and a placement's subject cannot change")
 		TimeLineEventError.SUBJECT_WRONG_TYPE -> invalidInput("Only a scene, or an encyclopedia entry of type event, can be placed")
 		TimeLineEventError.SUBJECT_NOT_FOUND -> notFound("No such scene or entry to place")
+		TimeLineEventError.SUBJECT_ARCHIVED -> invalidInput("Unarchive the scene to place it on the timeline")
 		TimeLineEventError.REFERENCE_NOT_FOUND -> invalidInput("A reference names no scene or entry in the project")
 		TimeLineEventError.REFERENCES_NOT_ALLOWED -> invalidInput("A placement cannot have references")
 		TimeLineEventError.CONTENT_NOT_ALLOWED,

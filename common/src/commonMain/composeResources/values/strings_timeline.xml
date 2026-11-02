@@ -87,6 +87,8 @@
 	<string name="timeline_entry_subtitle">Encyclopedia event</string>
 	<string name="timeline_subject_missing">Subject missing</string>
 	<string name="timeline_subject_missing_message">What this placed is no longer in the project. It keeps the last title it had, and can still be deleted.</string>
+	<string name="timeline_subject_archived">Archived</string>
+	<string name="timeline_subject_archived_message">This scene is in the archive, so it is not drawn on the timeline. Unarchive the scene to restore it.</string>
 	<string name="timeline_lane_filter_description">Show only lane %1$s</string>
 	<string name="timeline_lane_swatch_description">Lane %1$s</string>
 	<string name="timeline_error_tag_too_long">Tag was too long (max %1$d)</string>
@@ -96,6 +98,7 @@
 	<string name="timeline_error_subject_required">Choose what to place first</string>
 	<string name="timeline_error_subject_wrong_type">Only encyclopedia entries of type Event can be placed</string>
 	<string name="timeline_error_subject_not_found">That is no longer in the project</string>
+	<string name="timeline_error_subject_archived">That scene is archived. Unarchive it to place it on the timeline</string>
 	<string name="timeline_error_duplicate_placement">That is already on the timeline</string>
 	<string name="timeline_error_reference_not_found">A reference is no longer in the project</string>
 	<string name="timeline_error_date_required">Every entry on a dated timeline needs a date</string>

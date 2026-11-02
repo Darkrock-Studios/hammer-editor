@@ -15,10 +15,12 @@ import com.darkrockstudios.apps.hammer.common.components.projecthome.timelineset
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.EvenSpacing
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.StrResStoryDateWords
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineResult
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineService
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.entryUnits
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.APP_SCOPE
+import com.darkrockstudios.apps.hammer.common.util.StrRes
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -37,6 +39,7 @@ class TimelineSettingsComponent(
 	private val timelineService: TimelineService by projectInject()
 
 	private val appScope: CoroutineScope by inject(named(APP_SCOPE))
+	private val strRes: StrRes by inject()
 
 	@Volatile
 	private var pendingEpoch: String? = null
@@ -90,7 +93,7 @@ class TimelineSettingsComponent(
 					EvenSpacing(unit = prompt.selectedUnit, step = 1, origin = spacingOrigin(prompt.calendar)),
 				)
 
-				ModeSwitchPrompt.ToManual -> timelineService.switchToManual()
+				ModeSwitchPrompt.ToManual -> timelineService.switchToManual(StrResStoryDateWords(strRes))
 			}
 		}
 	}
@@ -117,7 +120,7 @@ class TimelineSettingsComponent(
 		scope.launch {
 			val lost = timelineService.countDatesLostBySwitch(calendar)
 			if (lost == 0) {
-				apply(timelineService.switchPreset(calendar))
+				apply(timelineService.switchPreset(calendar, StrResStoryDateWords(strRes)))
 				withContext(dispatcherMain) {
 					_state.getAndUpdate { it.copy(pendingCalendar = null, datesLostOnPresetSwitch = null) }
 				}
@@ -132,7 +135,7 @@ class TimelineSettingsComponent(
 	override fun confirmPresetSwitch() {
 		val calendar = _state.value.pendingCalendar ?: return
 		_state.getAndUpdate { it.copy(pendingCalendar = null, datesLostOnPresetSwitch = null) }
-		write { timelineService.switchPreset(calendar) }
+		write { timelineService.switchPreset(calendar, StrResStoryDateWords(strRes)) }
 	}
 
 	override fun cancelPresetSwitch() {

@@ -8,7 +8,7 @@ data class TickStep(val unit: TickUnit, val step: Long) {
 /** The positions a [frame] shows, before any padding the scale adds in dp. */
 fun resolveFrame(events: List<LayoutEvent>, frame: TimelineFrame): LongRange = when (frame) {
 	TimelineFrame.Everything -> extent(events) ?: 0L..0L
-	TimelineFrame.Story -> extent(events.filter { it.kind == LayoutKind.SCENE }) ?: resolveFrame(events, TimelineFrame.Everything)
+	TimelineFrame.Story -> storyFrame(events) ?: resolveFrame(events, TimelineFrame.Everything)
 	is TimelineFrame.Band -> {
 		val event = events.firstOrNull { it.id == frame.eventId }
 		if (event == null) {
@@ -22,6 +22,25 @@ fun resolveFrame(events: List<LayoutEvent>, frame: TimelineFrame): LongRange = w
 }
 
 private const val BAND_PAD_DIVISOR = 20L
+private const val STORY_REACH_DIVISOR = 10L
+
+/**
+ * The scenes' extent, widened to the milestones that start or end within a tenth of its length
+ * (at least 1) past either end. A milestone is taken only as far as that reach.
+ */
+private fun storyFrame(events: List<LayoutEvent>): LongRange? {
+	val scenes = extent(events.filter { it.kind == LayoutKind.SCENE }) ?: return null
+	val reach = maxOf(1L, (scenes.last - scenes.first) / STORY_REACH_DIVISOR)
+	val window = (scenes.first - reach)..(scenes.last + reach)
+	var lo = scenes.first
+	var hi = scenes.last
+	for (e in events) {
+		if (!e.milestone || (e.start !in window && e.extentEnd !in window)) continue
+		lo = minOf(lo, e.start.coerceIn(window))
+		hi = maxOf(hi, e.extentEnd.coerceIn(window))
+	}
+	return lo..hi
+}
 
 private fun extent(events: List<LayoutEvent>): LongRange? {
 	if (events.isEmpty()) return null

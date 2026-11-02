@@ -63,6 +63,9 @@ sealed class SubjectSummary {
 
 	data class Entry(val entry: EntryDef, val primaryImageId: Int?, val excerpt: String) : SubjectSummary()
 
+	/** A placed scene that has since been archived; unarchiving it brings the placement back. */
+	data class Archived(val scene: SceneItem) : SubjectSummary()
+
 	data object Missing : SubjectSummary()
 }
 
@@ -131,7 +134,7 @@ class TimelineService(
 		TimelineResult.Ok(timeLineRepository.createEvent(prepared))
 	}
 
-	/** Places a scene, live or archived. */
+	/** Places a scene; an archived one must be unarchived first. */
 	suspend fun placeScene(
 		sceneId: Int,
 		start: StoryDate?,
@@ -144,6 +147,7 @@ class TimelineService(
 		val subjectError = when {
 			scene == null -> TimeLineEventError.SUBJECT_NOT_FOUND
 			scene.type != SceneItem.Type.Scene -> TimeLineEventError.SUBJECT_WRONG_TYPE
+			scene.archived -> TimeLineEventError.SUBJECT_ARCHIVED
 			else -> TimeLineEventError.NONE
 		}
 		return place(TimelineKind.SCENE, sceneId, scene?.name, subjectError, start, end, lane, milestone, label)
@@ -335,10 +339,18 @@ class TimelineService(
 		updateDefinition { it.copy(mode = TimelineMode.DATED, calendar = calendar) }
 	}
 
-	/** Stores the current display order as the manual order, then the timeline becomes MANUAL. Dates stay. */
-	suspend fun switchToManual(): TimelineResult = writeLock.withLock {
-		val frozen = freezeOrder(currentDisplayOrder())
-		timeLineRepository.renumber(frozen.entries.sortedBy { it.value }.map { it.key })
+	/**
+	 * Stores the current display order as the manual order, then the timeline becomes MANUAL. Dates
+	 * stay; a dated event without a label gets its dates, written in [words], as one.
+	 */
+	suspend fun switchToManual(words: StoryDateWords = StoryDateWords.English): TimelineResult = writeLock.withLock {
+		val calendar = definition().calendar
+		val ordered = currentDisplayOrder()
+		val frozen = freezeOrder(ordered)
+		val updates = ordered.map { event ->
+			event.copy(order = frozen.getValue(event.id), label = labelOrDates(event, calendar, words))
+		}
+		timeLineRepository.updateEvents(updates)
 		updateDefinition { it.copy(mode = TimelineMode.MANUAL) }
 	}
 
@@ -348,11 +360,16 @@ class TimelineService(
 
 	/**
 	 * Moves the timeline to [calendar]. An event whose start does not fit it loses its dates and, when
-	 * it has no label, keeps the old start as one. An end that no longer fits is dropped.
+	 * it has no label, keeps the old start, written in [words], as one. An end that no longer fits is
+	 * dropped.
 	 */
-	suspend fun switchPreset(calendar: CalendarDef): TimelineResult = writeLock.withLock {
+	suspend fun switchPreset(
+		calendar: CalendarDef,
+		words: StoryDateWords = StoryDateWords.English,
+	): TimelineResult = writeLock.withLock {
 		if (StoryCalendar.validate(calendar) != null) return invalid(TimeLineEventError.DATE_INVALID)
 
+		val previous = definition().calendar
 		val updates = timeLineRepository.currentEvents().mapNotNull { event ->
 			val start = event.start
 			val end = event.end
@@ -361,7 +378,8 @@ class TimelineService(
 					start = null,
 					end = null,
 					label = event.label?.takeIf { it.isNotBlank() }
-						?: start.toCompactText().take(TimelineLimits.MAX_LABEL),
+						?: (previous?.let { formatStoryDate(it, start, words) } ?: start.toCompactText())
+							.take(TimelineLimits.MAX_LABEL),
 				)
 
 				end != null && (start == null || !endFits(calendar, start, end)) -> event.copy(end = null)
@@ -377,7 +395,10 @@ class TimelineService(
 
 	// region Reading
 
-	/** Null for a plain event; [SubjectSummary.Missing] when the subject is gone. */
+	/**
+	 * Null for a plain event; [SubjectSummary.Missing] when the subject is gone, and
+	 * [SubjectSummary.Archived] for a scene in the archive.
+	 */
 	suspend fun resolveSubject(event: TimeLineEvent): SubjectSummary? {
 		val subject = event.subject
 		return when (event.kind) {
@@ -414,6 +435,7 @@ class TimelineService(
 	private suspend fun sceneSummary(sceneId: Int): SubjectSummary = withContext(dispatcherIo) {
 		val scene = sceneRepository.getSceneItemFromIdIncludingArchived(sceneId)
 		if (scene == null || scene.type != SceneItem.Type.Scene) return@withContext SubjectSummary.Missing
+		if (scene.archived) return@withContext SubjectSummary.Archived(scene)
 
 		val text = sceneRepository.resolveScenePathFromFilesystemIncludingArchived(scene.id)
 			?.let { sceneRepository.loadSceneMarkdownRaw(scene, it) }
@@ -496,11 +518,13 @@ class TimelineService(
 		return displayOrder(timeLineRepository.currentEvents(), def.mode, def.calendar)
 	}
 
+	/** Every reference names a live scene or an entry; an archived scene does not count. */
 	private suspend fun referenceProblem(references: Set<Int>): TimeLineEventError {
 		if (references.isEmpty()) return TimeLineEventError.NONE
 		return withContext(dispatcherIo) {
 			val notScenes = references.filter { id ->
-				sceneRepository.getSceneItemFromIdIncludingArchived(id)?.type != SceneItem.Type.Scene
+				val scene = sceneRepository.getSceneItemFromIdIncludingArchived(id)
+				scene?.type != SceneItem.Type.Scene || scene.archived
 			}
 			val entryIds = if (notScenes.isEmpty()) emptySet() else encyclopediaRepository.readEntryDefs().map { it.id }
 			if (notScenes.all { it in entryIds }) TimeLineEventError.NONE else TimeLineEventError.REFERENCE_NOT_FOUND
@@ -571,6 +595,14 @@ class TimelineService(
 			end = end,
 			cachedTitle = cachedTitle,
 		)
+
+		/** The event's label, or when it has none, its dates on [calendar] if they fit it. */
+		fun labelOrDates(event: TimeLineEvent, calendar: CalendarDef?, words: StoryDateWords): String? {
+			if (!event.label.isNullOrBlank()) return event.label
+			val start = event.start
+			if (calendar == null || start == null || !hasValidStart(event, calendar)) return event.label
+			return formatStoryDateRange(calendar, start, event.end, words).take(TimelineLimits.MAX_LABEL)
+		}
 
 		fun hasValidStart(event: TimeLineEvent, calendar: CalendarDef): Boolean =
 			event.start?.let { StoryCalendar.validate(calendar, it) == null } == true

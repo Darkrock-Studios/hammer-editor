@@ -69,6 +69,8 @@ class TimelineLayoutEngineGoldenTest {
 			desktop = Shape(10, 0, 8, 4, 2, 2, 1288f),
 			phone = Shape(10, 0, 8, 20, 2, 2, 1288f),
 		) { phone, id -> TimelineLayoutSamples.insurgencyEverything(phone, id) },
+		// The election milestone (year 144) is about 70% of the scenes' extent past them, beyond the
+		// Story frame's reach, so no milestone rule is drawn.
 		Sample(
 			"insurgencyStory", 21,
 			desktop = Shape(1, 0, 7, 14, 0, 0, 941f),

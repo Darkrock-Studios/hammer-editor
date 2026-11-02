@@ -391,9 +391,9 @@ class ViewTimeLineEventComponent(
 
 	override fun openSubject() {
 		when (val subject = state.value.subject) {
-			is SubjectSummary.Scene -> if (!subject.scene.archived) onShowScene(subject.scene)
+			is SubjectSummary.Scene -> onShowScene(subject.scene)
 			is SubjectSummary.Entry -> onShowEntry(subject.entry)
-			SubjectSummary.Missing, null -> Unit
+			is SubjectSummary.Archived, SubjectSummary.Missing, null -> Unit
 		}
 	}
 

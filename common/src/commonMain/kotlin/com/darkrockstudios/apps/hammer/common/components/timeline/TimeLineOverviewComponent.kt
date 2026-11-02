@@ -31,6 +31,9 @@ import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineVi
 import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineFrame
 import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineView as DrawingView
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
@@ -88,15 +91,17 @@ class TimeLineOverviewComponent(
 
 	private fun watchTimeLine() {
 		scope.launch {
-			timelineService.timelineFlow.collect { view ->
+			// The scene tree is watched too, so a placed scene that is archived or unarchived redraws.
+			val sceneTree = sceneRepository.sceneTreeUpdates.map { }.onStart { emit(Unit) }
+			combine(timelineService.timelineFlow, sceneTree) { view, _ -> view }.collect { view ->
 				val built = buildRows(view)
 				withContext(dispatcherMain) {
 					val before = _state.value
 					_state.getAndUpdate { current ->
 						val laneNames = built.lanes.mapTo(HashSet()) { it.lane }
-						// Only events with a start are drawn, so only they can be selected or framed.
-						val drawn = built.rows.mapNotNullTo(HashSet()) { row -> row.event.id.takeIf { row.start != null } }
-						val storyAvailable = built.rows.any { it.event.kind == TimelineKind.SCENE && it.start != null }
+						// Only drawn events (dated, and not an archived scene) can be selected or framed.
+						val drawn = built.rows.mapNotNullTo(HashSet()) { row -> row.event.id.takeIf { row.isDrawn } }
+						val storyAvailable = built.rows.any { it.event.kind == TimelineKind.SCENE && it.isDrawn }
 						val frame = when (val frame = current.frame) {
 							TimelineFrame.Everything -> frame
 							TimelineFrame.Story -> frame.takeIf { storyAvailable }
@@ -146,6 +151,7 @@ class TimeLineOverviewComponent(
 				whenText = event.label?.trim().orEmpty(),
 				laneIndex = event.lane?.let { laneIndex[it] },
 				subjectMissing = glance?.missing == true,
+				subjectArchived = glance?.archived == true,
 				start = start,
 				end = event.end.takeIf { start != null },
 				calendar = calendar.takeIf { start != null },
@@ -155,6 +161,8 @@ class TimeLineOverviewComponent(
 		val undated = if (dated) events.filterNot { hasValidStart(it, calendar) }.map { it.id } else emptyList()
 		return Built(rows, lanes.map { LaneCount(it, counts[it] ?: 0) }, undated)
 	}
+
+	private val TimelineRow.isDrawn: Boolean get() = start != null && !subjectArchived
 
 	private fun hasValidStart(event: TimeLineEvent, calendar: CalendarDef): Boolean =
 		event.start?.let { StoryCalendar.validate(calendar, it) == null } == true

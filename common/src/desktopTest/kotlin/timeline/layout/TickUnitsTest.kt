@@ -22,8 +22,14 @@ class TickUnitsTest {
 	private val dayClock = TimelineLayoutSamples.dayClockTicks.units
 	private val years = TimelineLayoutSamples.landingYearTicks.units
 
-	private fun event(id: Int, start: Long, end: Long? = null, kind: LayoutKind = LayoutKind.EVENT, extent: Long = 1) =
-		LayoutEvent(id, kind, "Event $id", null, null, false, id, start, end, extent)
+	private fun event(
+		id: Int,
+		start: Long,
+		end: Long? = null,
+		kind: LayoutKind = LayoutKind.EVENT,
+		extent: Long = 1,
+		milestone: Boolean = false,
+	) = LayoutEvent(id, kind, "Event $id", null, null, milestone, id, start, end, extent)
 
 	@Test
 	fun `a nine day frame ticks in days`() {
@@ -112,6 +118,39 @@ class TickUnitsTest {
 		val events = listOf(event(1, 0, 1000), event(2, 100, kind = LayoutKind.SCENE), event(3, 300, 400, LayoutKind.SCENE))
 
 		assertEquals(100L..400L, resolveFrame(events, TimelineFrame.Story))
+	}
+
+	@Test
+	fun `story takes in a milestone just past the last scene`() {
+		val scenes = listOf(event(2, 100, kind = LayoutKind.SCENE), event(3, 300, 400, LayoutKind.SCENE))
+		val near = event(4, 415, milestone = true)
+		val far = event(5, 550, milestone = true)
+		val notMilestone = event(6, 410)
+
+		assertEquals(100L..415L, resolveFrame(scenes + near + far + notMilestone, TimelineFrame.Story))
+	}
+
+	@Test
+	fun `story leaves out a milestone half its length past the scenes`() {
+		val events = listOf(
+			event(2, 100, kind = LayoutKind.SCENE),
+			event(3, 300, 400, LayoutKind.SCENE),
+			event(4, -50, milestone = true),
+			event(5, 550, milestone = true),
+		)
+
+		assertEquals(100L..400L, resolveFrame(events, TimelineFrame.Story))
+	}
+
+	@Test
+	fun `story widens only as far as its reach for a long milestone`() {
+		val events = listOf(
+			event(2, 100, kind = LayoutKind.SCENE),
+			event(3, 300, 400, LayoutKind.SCENE),
+			event(4, 380, 2000, milestone = true),
+		)
+
+		assertEquals(100L..430L, resolveFrame(events, TimelineFrame.Story))
 	}
 
 	@Test

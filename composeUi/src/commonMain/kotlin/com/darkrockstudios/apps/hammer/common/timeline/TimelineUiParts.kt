@@ -63,6 +63,7 @@ import com.darkrockstudios.apps.hammer.timeline_error_label_too_long
 import com.darkrockstudios.apps.hammer.timeline_error_lane_invalid
 import com.darkrockstudios.apps.hammer.timeline_error_not_allowed
 import com.darkrockstudios.apps.hammer.timeline_error_reference_not_found
+import com.darkrockstudios.apps.hammer.timeline_error_subject_archived
 import com.darkrockstudios.apps.hammer.timeline_error_subject_not_found
 import com.darkrockstudios.apps.hammer.timeline_error_subject_required
 import com.darkrockstudios.apps.hammer.timeline_error_subject_wrong_type
@@ -218,6 +219,7 @@ internal suspend fun TimeLineEventError.toastText(strRes: StrRes): String? = whe
 	TimeLineEventError.SUBJECT_REQUIRED -> strRes.get(Res.string.timeline_error_subject_required)
 	TimeLineEventError.SUBJECT_WRONG_TYPE -> strRes.get(Res.string.timeline_error_subject_wrong_type)
 	TimeLineEventError.SUBJECT_NOT_FOUND -> strRes.get(Res.string.timeline_error_subject_not_found)
+	TimeLineEventError.SUBJECT_ARCHIVED -> strRes.get(Res.string.timeline_error_subject_archived)
 	TimeLineEventError.DUPLICATE_PLACEMENT -> strRes.get(Res.string.timeline_error_duplicate_placement)
 	TimeLineEventError.REFERENCE_NOT_FOUND -> strRes.get(Res.string.timeline_error_reference_not_found)
 	TimeLineEventError.DATE_REQUIRED -> strRes.get(Res.string.timeline_error_date_required)

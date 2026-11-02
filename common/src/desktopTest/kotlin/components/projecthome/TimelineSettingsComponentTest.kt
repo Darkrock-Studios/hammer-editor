@@ -149,6 +149,27 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 	}
 
 	@Test
+	fun `switching to manual labels the dates in the app's words`() = runTest(mainTestDispatcher) {
+		givenProject()
+		val labelled = createEvent("Feast")
+		val unlabelled = createEvent("Storm")
+		timelineService.switchToDated(CalendarDef(CalendarPreset.GREGORIAN))
+		timelineService.setDates(unlabelled, date("year" to 1811, "month" to 11), null)
+		timelineService.setLabel(labelled, "Midsummer")
+		val component = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		component.requestMode(TimelineMode.MANUAL)
+		component.confirmModeSwitch()
+		advanceUntilIdle()
+
+		val labels = timeLineRepository.currentEvents().associate { it.id to it.label }
+		assertEquals("<timeline_month_11> 1811", labels[unlabelled])
+		assertEquals("Midsummer", labels[labelled])
+	}
+
+	@Test
 	fun `a preset switch that loses dates waits for confirmation and keeps them as labels`() =
 		runTest(mainTestDispatcher) {
 			givenProject()
@@ -173,7 +194,7 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 			assertNull(component.state.value.pendingCalendar)
 			val stored = timeLineRepository.currentEvents().single()
 			assertNull(stored.start)
-			assertEquals("year=5 day=10", stored.label)
+			assertEquals("<timeline_unit_year> 5 · <timeline_unit_day> 10", stored.label, "In the app's words")
 		}
 
 	@Test

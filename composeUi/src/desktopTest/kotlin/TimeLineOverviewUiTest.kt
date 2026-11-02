@@ -323,6 +323,16 @@ class TimeLineOverviewUiTest : BaseTest() {
 	}
 
 	@Test
+	fun `A placed scene that is archived says so`() {
+		val event = TimeLineEvent(id = 0, order = 0, kind = TimelineKind.SCENE, subject = 9)
+		showCard(TimelineRow(event, title = "Landfall", subtitle = null, whenText = "", laneIndex = null, subjectArchived = true))
+
+		compose.onNodeWithTag(EVENT_CARD_ARCHIVED_TAG, useUnmergedTree = true).assertIsDisplayed()
+		compose.onNodeWithText("ARCHIVED", useUnmergedTree = true).assertIsDisplayed()
+		compose.onNodeWithText("Landfall", useUnmergedTree = true).assertIsDisplayed()
+	}
+
+	@Test
 	fun `Event Card Click`() {
 		var clicked = 0
 		val event = TimeLineEvent(id = 0, order = 0, label = "test date", content = "test content")

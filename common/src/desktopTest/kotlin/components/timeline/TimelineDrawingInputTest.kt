@@ -36,12 +36,14 @@ class TimelineDrawingInputTest {
 		lane: String? = null,
 		milestone: Boolean = false,
 		subtitle: String? = null,
+		archived: Boolean = false,
 	) = TimelineRow(
 		event = TimeLineEvent(id = id, order = id, kind = kind, title = "Event $id", lane = lane, milestone = milestone, start = start, end = end),
 		title = "Event $id",
 		subtitle = subtitle,
 		whenText = "",
 		laneIndex = null,
+		subjectArchived = archived,
 		start = start,
 		end = end,
 		calendar = story.takeIf { start != null },
@@ -214,5 +216,15 @@ class TimelineDrawingInputTest {
 		val dayUnit = scheme.units.single { it.name == "day" }
 
 		assertEquals("12 May 1802", scheme.format(gregorianAt("year" to 1802, "month" to 5, "day" to 12, "hour" to 6), dayUnit, false))
+	}
+
+	@Test
+	fun `an archived scene is not drawn`() {
+		val rows = listOf(
+			row(1, date("year" to 1L), kind = TimelineKind.SCENE),
+			row(2, date("year" to 2L), kind = TimelineKind.SCENE, archived = true),
+		)
+
+		assertEquals(listOf(1), input(rows).events.map { it.id })
 	}
 }

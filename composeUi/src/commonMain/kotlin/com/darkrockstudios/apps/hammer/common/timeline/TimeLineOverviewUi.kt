@@ -133,6 +133,7 @@ import com.darkrockstudios.apps.hammer.timeline_search_placeholder
 import com.darkrockstudios.apps.hammer.timeline_selection_clear
 import com.darkrockstudios.apps.hammer.timeline_selection_more
 import com.darkrockstudios.apps.hammer.timeline_selection_open
+import com.darkrockstudios.apps.hammer.timeline_subject_archived
 import com.darkrockstudios.apps.hammer.timeline_subject_missing
 import com.darkrockstudios.apps.hammer.timeline_undated_detail
 import com.darkrockstudios.apps.hammer.timeline_undated_open
@@ -170,6 +171,7 @@ const val EVENT_CARD_TAG = "Timeline Event Card"
 const val EVENT_CARD_DATE_TAG = "Timeline Event Card Date"
 const val EVENT_CARD_CONTENT_TAG = "Timeline Event Card Content"
 const val EVENT_CARD_TITLE_TAG = "Timeline Event Card Title"
+const val EVENT_CARD_ARCHIVED_TAG = "Timeline Event Card Archived"
 const val EVENT_CARD_KIND_TAG = "Timeline Event Card Kind"
 const val EVENT_CARD_LANE_TAG = "Timeline Event Card Lane"
 const val EVENT_CARD_MILESTONE_TAG = "Timeline Event Card Milestone"
@@ -1049,6 +1051,14 @@ private fun CardBody(
 			text = Res.string.timeline_subject_missing.get(),
 			color = LocalHammerColors.current.warning,
 			modifier = Modifier.padding(start = Ui.Padding.L, end = Ui.Padding.L, top = Ui.Padding.M),
+		)
+	} else if (row.subjectArchived) {
+		HdMonoLabel(
+			text = Res.string.timeline_subject_archived.get(),
+			color = LocalHammerColors.current.warning,
+			modifier = Modifier
+				.padding(start = Ui.Padding.L, end = Ui.Padding.L, top = Ui.Padding.M)
+				.testTag(EVENT_CARD_ARCHIVED_TAG),
 		)
 	}
 

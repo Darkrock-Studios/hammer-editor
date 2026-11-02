@@ -45,6 +45,7 @@ import kotlinx.coroutines.launch
 
 const val TIME_LINE_VIEW_OPEN_SUBJECT_TAG = "timeline-view-open-subject"
 const val TIME_LINE_VIEW_SUBJECT_MISSING_TAG = "timeline-view-subject-missing"
+const val TIME_LINE_VIEW_SUBJECT_ARCHIVED_TAG = "timeline-view-subject-archived"
 const val TIME_LINE_VIEW_LANE_TAG = "timeline-view-lane"
 const val TIME_LINE_VIEW_MILESTONE_TAG = "timeline-view-milestone"
 const val TIME_LINE_VIEW_START_TAG = "timeline-view-start"
@@ -547,13 +548,20 @@ private fun PlacementBody(
 							removeDescription = "",
 						)
 					}
-					if (!subject.scene.archived) {
-						HdHairlineButton(
-							label = Res.string.timeline_open_scene.get(),
-							onClick = onOpenSubject,
-							modifier = Modifier.testTag(TIME_LINE_VIEW_OPEN_SUBJECT_TAG),
-						)
-					}
+					HdHairlineButton(
+						label = Res.string.timeline_open_scene.get(),
+						onClick = onOpenSubject,
+						modifier = Modifier.testTag(TIME_LINE_VIEW_OPEN_SUBJECT_TAG),
+					)
+				}
+
+				is SubjectSummary.Archived -> {
+					HdWarningNotice(
+						label = Res.string.timeline_subject_archived.get(),
+						message = Res.string.timeline_subject_archived_message.get(),
+						modifier = Modifier.testTag(TIME_LINE_VIEW_SUBJECT_ARCHIVED_TAG),
+					)
+					SubjectHeading(title = subject.scene.name, caption = null)
 				}
 
 				SubjectSummary.Missing -> {

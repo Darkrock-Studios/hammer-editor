@@ -22,6 +22,7 @@ import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.sceneme
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournalDatasource
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.EvenSpacing
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.StoryDateWords
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.SubjectSummary
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineDatasource
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
@@ -75,6 +76,7 @@ class TimelineServiceTest : BaseTest() {
 	private lateinit var ffs: FakeFileSystem
 	private lateinit var toml: Toml
 	private lateinit var timeLineRepository: TimeLineRepository
+	private lateinit var sceneRepository: SceneRepository
 	private lateinit var sceneMetadataRepository: SceneMetadataRepository
 	private lateinit var encyclopediaRepository: EncyclopediaRepository
 
@@ -106,7 +108,7 @@ class TimelineServiceTest : BaseTest() {
 		wrapEncyclopedia: (EncyclopediaRepository) -> EncyclopediaRepository = { it },
 	): TimelineService {
 		val sceneMetadataDatasource = SceneMetadataDatasource(ffs, toml, projDef)
-		val sceneRepository = SceneRepository(
+		sceneRepository = SceneRepository(
 			projectDef = projDef,
 			idAllocator = idAllocator,
 			syncJournal = syncJournal,
@@ -177,6 +179,35 @@ class TimelineServiceTest : BaseTest() {
 			TimeLineEventError.DUPLICATE_PLACEMENT,
 			service.placeScene(4, start = null, end = null, lane = null, milestone = false).error(),
 		)
+	}
+
+	@Test
+	fun `an archived scene cannot be placed or referenced`() = runTest(mainTestDispatcher) {
+		val service = createService()
+		sceneRepository.archiveScene(sceneRepository.getSceneItemFromId(4)!!)
+
+		assertEquals(TimeLineEventError.SUBJECT_ARCHIVED, service.placeScene(4, null, null, null, false).error())
+		assertEquals(
+			TimeLineEventError.REFERENCE_NOT_FOUND,
+			service.createEvent(TimelineEventDraft(title = "Storm", references = setOf(4))).error(),
+		)
+		assertEquals(emptyList(), timeLineRepository.currentEvents())
+	}
+
+	@Test
+	fun `a placed scene that is archived resolves as archived until it is unarchived`() = runTest(mainTestDispatcher) {
+		val service = createService()
+		val placed = service.placeScene(4, null, null, null, false).event()
+
+		sceneRepository.archiveScene(sceneRepository.getSceneItemFromId(4)!!)
+
+		val archived = assertIs<SubjectSummary.Archived>(service.resolveSubject(stored(placed.id)))
+		assertEquals(4, archived.scene.id)
+		assertEquals("Scene ID 4", service.displayTitle(stored(placed.id)))
+
+		sceneRepository.unarchiveScene(sceneRepository.getArchivedSceneFromId(4)!!)
+
+		assertIs<SubjectSummary.Scene>(service.resolveSubject(stored(placed.id)))
 	}
 
 	@Test
@@ -394,6 +425,41 @@ class TimelineServiceTest : BaseTest() {
 	}
 
 	@Test
+	fun `switchToManual writes the dates of an unlabelled event as its label`() = runTest(mainTestDispatcher) {
+		val service = createService()
+		service.datedStory(CalendarDef(epochName = "Landing"))
+		val span = service.createEvent(
+			TimelineEventDraft(title = "Siege", start = date("year" to -3, "day" to 4), end = date("year" to -3, "day" to 9))
+		).event()
+		val point = service.createEvent(TimelineEventDraft(title = "Storm", start = date("year" to 2))).event()
+		val labelled = service.createEvent(TimelineEventDraft(title = "Feast", label = "Midsummer", start = date("year" to 5))).event()
+
+		assertEquals(TimelineResult.Ok(null), service.switchToManual())
+
+		assertEquals("Year 3 before Landing · Day 4 → Year 3 before Landing · Day 9", stored(span.id).label)
+		assertEquals(date("year" to -3, "day" to 4), stored(span.id).start, "Dates stay")
+		assertEquals("Year 2", stored(point.id).label)
+		assertEquals("Midsummer", stored(labelled.id).label)
+		assertEquals(listOf(span.id, point.id, labelled.id), service.timelineFlow.first().events.map { it.id })
+	}
+
+	@Test
+	fun `switchToManual writes labels in the words it is given`() = runTest(mainTestDispatcher) {
+		val service = createService()
+		service.datedStory(CalendarDef(CalendarPreset.GREGORIAN))
+		val event = service.createEvent(
+			TimelineEventDraft(title = "Ball", start = date("year" to 1811, "month" to 11, "day" to 26))
+		).event()
+		val french = object : StoryDateWords by StoryDateWords.English {
+			override fun month(month: Int): String = "novembre"
+		}
+
+		service.switchToManual(french)
+
+		assertEquals("26 novembre 1811", stored(event.id).label)
+	}
+
+	@Test
 	fun `switchPreset clears dates the new calendar cannot hold and keeps them as labels`() =
 		runTest(mainTestDispatcher) {
 			val service = createService()
@@ -408,7 +474,7 @@ class TimelineServiceTest : BaseTest() {
 			assertEquals(2, service.countDatesLostBySwitch(gregorian))
 			assertEquals(TimelineResult.Ok(null), service.switchPreset(gregorian))
 
-			assertEquals(lost.copy(start = null, label = "year=97 day=210"), stored(lost.id))
+			assertEquals(lost.copy(start = null, label = "Year 97 · Day 210"), stored(lost.id))
 			assertEquals(kept, stored(kept.id))
 			assertEquals(labelled.copy(start = null), stored(labelled.id))
 			assertEquals(gregorian, service.definition().calendar)

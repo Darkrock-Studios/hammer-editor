@@ -28,6 +28,7 @@ import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineSe
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.APP_SCOPE
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectSpellCheckService
+import com.darkrockstudios.apps.hammer.common.util.StrRes
 import createProject
 import getProject1Def
 import io.mockk.Runs
@@ -44,6 +45,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
 import utils.ComponentTest
+import utils.KeyStrRes
 import kotlin.time.Clock
 
 /**
@@ -104,6 +106,7 @@ abstract class TimelineComponentTestBase : ComponentTest() {
 			single<EntityCatalog> { catalog }
 			single<ImagesService> { mockk(relaxed = true) }
 			single<ImagePickRequests> { mockk(relaxed = true) }
+			single<StrRes> { KeyStrRes() }
 		})
 
 		createProject(ffs, PROJECT_1_NAME)

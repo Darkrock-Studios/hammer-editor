@@ -11,7 +11,7 @@ import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEv
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.timelineCastRank
 
 /** What the list needs to know about a placement's subject without reading its text. */
-internal data class SubjectGlance(val chapterPath: String?, val missing: Boolean)
+internal data class SubjectGlance(val chapterPath: String?, val missing: Boolean, val archived: Boolean = false)
 
 /**
  * [SubjectGlance] for every placement in [events], by event id, reading the scene tree, the archive
@@ -44,7 +44,8 @@ internal suspend fun glanceSubjects(
 					SubjectGlance(path.ifEmpty { null }, missing = scene.type != SceneItem.Type.Scene)
 				}
 
-				else -> SubjectGlance(null, missing = archived[sceneId]?.type != SceneItem.Type.Scene)
+				archived[sceneId]?.type == SceneItem.Type.Scene -> SubjectGlance(null, missing = false, archived = true)
+				else -> SubjectGlance(null, missing = true)
 			}
 		}
 	}

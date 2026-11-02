@@ -109,6 +109,33 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 	}
 
 	@Test
+	fun `a placed scene that is archived is flagged, not drawn, and returns when unarchived`() = runTest(mainTestDispatcher) {
+		givenProject()
+		timelineService.switchToDated(CalendarDef())
+		timelineService.placeScene(4, StoryDate(mapOf("year" to 3L)), null, lane = null, milestone = false)
+		val component = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		component.setFrame(TimelineFrame.Story)
+
+		sceneRepository.archiveScene(sceneRepository.getSceneItemFromId(4)!!)
+		advanceUntilIdle()
+
+		val archived = component.state.value.rows!!.single()
+		assertTrue(archived.subjectArchived)
+		assertFalse(archived.subjectMissing)
+		assertEquals("Scene ID 4", archived.title)
+		assertFalse(component.state.value.storyFrameAvailable)
+		assertEquals(TimelineFrame.Everything, component.state.value.frame)
+
+		sceneRepository.unarchiveScene(sceneRepository.getArchivedSceneFromId(4)!!)
+		advanceUntilIdle()
+
+		assertFalse(component.state.value.rows!!.single().subjectArchived)
+		assertTrue(component.state.value.storyFrameAvailable)
+	}
+
+	@Test
 	fun `toggling a lane filters by it and toggling again clears it`() = runTest(mainTestDispatcher) {
 		givenProject()
 		timelineService.createEvent(TimelineEventDraft(title = "Croquet", lane = "Queen"))

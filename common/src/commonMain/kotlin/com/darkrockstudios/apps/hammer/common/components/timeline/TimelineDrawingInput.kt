@@ -29,8 +29,8 @@ private const val TICK_LIMIT = 1000
 
 /**
  * The layout input for a dated timeline's [rows]. Rows without a start that resolves on [calendar]
- * are left out (the overview already counts them as undated). A non-empty [laneFilter] drops the
- * events of every other lane; scenes and unlaned events stay in the ledger.
+ * are left out (the overview already counts them as undated), as are archived scenes. A non-empty
+ * [laneFilter] drops the events of every other lane; scenes and unlaned events stay in the ledger.
  */
 fun toLayoutInput(
 	rows: List<TimelineRow>,
@@ -45,6 +45,7 @@ fun toLayoutInput(
 	words: StoryDateWords = StoryDateWords.English,
 ): TimelineLayoutInput {
 	val events = rows.mapNotNull { row ->
+		if (row.subjectArchived) return@mapNotNull null
 		val event = row.event
 		val lane = event.lane?.takeIf { it.isNotBlank() }
 		if (laneFilter.isNotEmpty() && event.kind != TimelineKind.SCENE && lane != null && lane !in laneFilter) {
