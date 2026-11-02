@@ -201,7 +201,12 @@ class TimeLineOverviewComponent(
 	}
 
 	override fun select(eventId: Int?) {
-		_state.getAndUpdate { it.copy(selectedId = eventId?.takeIf { id -> id != it.selectedId }) }
+		_state.getAndUpdate {
+			val selected = eventId?.takeIf { id -> id != it.selectedId }
+			// A band frame comes with the tap that selected it, so clearing the selection leaves the frame too.
+			val frame = if (selected == null && it.frame is TimelineFrame.Band) TimelineFrame.Everything else it.frame
+			it.copy(selectedId = selected, frame = frame)
+		}
 		refreshSummary()
 	}
 

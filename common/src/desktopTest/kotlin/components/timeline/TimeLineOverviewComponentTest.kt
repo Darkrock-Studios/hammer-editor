@@ -250,6 +250,27 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 	}
 
 	@Test
+	fun `clearing the selection leaves a band frame but keeps the story frame`() = runTest(mainTestDispatcher) {
+		givenProject()
+		val storm = timelineService.createEvent(TimelineEventDraft(title = "Storm")).event()
+		timelineService.switchToDated(CalendarDef())
+		val component = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		component.select(storm.id)
+		component.setFrame(TimelineFrame.Band(storm.id))
+		component.select(null)
+		assertNull(component.state.value.selectedId)
+		assertEquals(TimelineFrame.Everything, component.state.value.frame)
+
+		component.select(storm.id)
+		component.setFrame(TimelineFrame.Band(storm.id))
+		component.select(storm.id)
+		assertEquals(TimelineFrame.Everything, component.state.value.frame)
+	}
+
+	@Test
 	fun `a deleted selection is cleared`() = runTest(mainTestDispatcher) {
 		givenProject()
 		val storm = timelineService.createEvent(TimelineEventDraft(title = "Storm")).event()
