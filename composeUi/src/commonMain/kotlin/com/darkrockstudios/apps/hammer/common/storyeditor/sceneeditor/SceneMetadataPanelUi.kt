@@ -22,12 +22,13 @@ import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.scenemetadata.SceneMetadataPanel
 import com.darkrockstudios.apps.hammer.common.compose.*
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
+import com.darkrockstudios.apps.hammer.common.compose.references.EntryReferenceBuckets
 import com.darkrockstudios.apps.hammer.common.compose.references.ReferenceBucket
+import com.darkrockstudios.apps.hammer.common.compose.references.entryTypes
 import com.darkrockstudios.apps.hammer.common.compose.references.label
 import com.darkrockstudios.apps.hammer.common.compose.references.referenceBucket
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
-import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.tagindex.replaceTagPrefix
 import com.darkrockstudios.apps.hammer.common.encyclopedia.EntryRefChipLabel
 import com.darkrockstudios.apps.hammer.common.util.format
@@ -37,12 +38,6 @@ import kotlin.time.Instant
 
 val SCENE_METADATA_MIN_WIDTH = 300.dp
 val SCENE_METADATA_MAX_WIDTH = 600.dp
-
-/** The buckets an entry can fall in, one tab each in [AddReferenceDialog]. */
-private val EntryBuckets = ReferenceBucket.entries - ReferenceBucket.Scenes
-
-private fun ReferenceBucket.types(): Set<EntryType> =
-	EntryType.entries.filterTo(mutableSetOf()) { it.referenceBucket() == this }
 
 @Composable
 private fun ReferenceBucket.searchPlaceholder(): String = when (this) {
@@ -327,7 +322,7 @@ private fun EntryRefBuckets(
 ) {
 	val byId = remember(refs) { refs.associateBy { it.id } }
 	val grouped = remember(refs) { refs.groupBy { it.type.referenceBucket() } }
-	ReferenceBucket.entries.forEach { bucket ->
+	EntryReferenceBuckets.forEach { bucket ->
 		val bucketRefs = grouped[bucket] ?: return@forEach
 		HdReferenceChipBucket(
 			label = bucket.label(),
@@ -426,7 +421,7 @@ private fun AddReferenceDialog(
 	var tab by rememberSaveable { mutableStateOf(ReferenceBucket.Characters) }
 
 	val suggestions = remember(query, tab) {
-		component.searchEntriesForAdd(query, types = tab.types())
+		component.searchEntriesForAdd(query, types = tab.entryTypes())
 	}
 
 	AnimatedDialog(
@@ -440,7 +435,7 @@ private fun AddReferenceDialog(
 			closeContentDescription = Res.string.scene_editor_metadata_references_add_dialog_close.get(),
 		) {
 			Row(modifier = Modifier.fillMaxWidth()) {
-				EntryBuckets.forEach { bucket ->
+				EntryReferenceBuckets.forEach { bucket ->
 					HdTabPill(
 						label = bucket.label(),
 						active = tab == bucket,

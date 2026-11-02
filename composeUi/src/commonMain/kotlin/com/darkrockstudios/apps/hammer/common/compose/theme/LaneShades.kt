@@ -3,7 +3,6 @@ package com.darkrockstudios.apps.hammer.common.compose.theme
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.colorspace.ColorSpaces
 import androidx.compose.ui.graphics.lerp
-import kotlin.math.pow
 
 /** The three tones a lane colour takes, so abutting band segments always differ. */
 enum class LaneShade { Base, TowardSurface, TowardInk }
@@ -13,12 +12,6 @@ fun laneShade(base: Color, shade: LaneShade, surface: Color, ink: Color): Color 
 	LaneShade.Base -> base
 	LaneShade.TowardSurface -> lerp(base, surface, 0.35f)
 	LaneShade.TowardInk -> lerp(base, ink, 0.25f)
-}
-
-/** WCAG relative luminance, 0 for black to 1 for white. */
-fun relativeLuminance(c: Color): Float {
-	val srgb = c.convert(ColorSpaces.Srgb)
-	return 0.2126f * linear(srgb.red) + 0.7152f * linear(srgb.green) + 0.0722f * linear(srgb.blue)
 }
 
 /** HSL hue in degrees, 0 until 360; 0 for a grey. */
@@ -37,6 +30,3 @@ fun hueDegrees(c: Color): Float {
 	}
 	return sector * 60f
 }
-
-private fun linear(channel: Float): Float =
-	if (channel <= 0.04045f) channel / 12.92f else ((channel + 0.055f) / 1.055f).pow(2.4f)

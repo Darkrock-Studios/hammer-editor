@@ -1,4 +1,5 @@
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import com.darkrockstudios.apps.hammer.common.compose.theme.DarkHammerColors
 import com.darkrockstudios.apps.hammer.common.compose.theme.HammerExtendedColors
 import com.darkrockstudios.apps.hammer.common.compose.theme.LaneShade
@@ -9,7 +10,6 @@ import com.darkrockstudios.apps.hammer.common.compose.theme.md_theme_dark_onSurf
 import com.darkrockstudios.apps.hammer.common.compose.theme.md_theme_dark_surface
 import com.darkrockstudios.apps.hammer.common.compose.theme.md_theme_light_onSurface
 import com.darkrockstudios.apps.hammer.common.compose.theme.md_theme_light_surface
-import com.darkrockstudios.apps.hammer.common.compose.theme.relativeLuminance
 import org.junit.Test
 import kotlin.math.abs
 import kotlin.test.assertEquals
@@ -29,7 +29,7 @@ class LanePaletteTest {
 		for (theme in themes) {
 			theme.colors.lanePalette.forEachIndexed { index, base ->
 				val luminances = LaneShade.entries.associateWith {
-					relativeLuminance(laneShade(base, it, theme.surface, theme.ink))
+					laneShade(base, it, theme.surface, theme.ink).luminance()
 				}
 				for (a in LaneShade.entries) for (b in LaneShade.entries) {
 					if (a >= b) continue

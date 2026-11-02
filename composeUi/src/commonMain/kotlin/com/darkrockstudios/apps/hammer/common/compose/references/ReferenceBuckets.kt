@@ -12,10 +12,20 @@ import com.darkrockstudios.apps.hammer.scene_editor_metadata_references_scenes_l
 /** The groups a list of references is shown in, in display order. */
 enum class ReferenceBucket { Characters, Locations, Other, Scenes }
 
+/** The buckets an encyclopedia entry can fall in: every one but [ReferenceBucket.Scenes]. */
+val EntryReferenceBuckets: List<ReferenceBucket> =
+	listOf(ReferenceBucket.Characters, ReferenceBucket.Locations, ReferenceBucket.Other)
+
 fun EntryType.referenceBucket(): ReferenceBucket = when (this) {
 	EntryType.PERSON -> ReferenceBucket.Characters
 	EntryType.PLACE -> ReferenceBucket.Locations
 	else -> ReferenceBucket.Other
+}
+
+/** The entry types that fall in this bucket; only defined for [EntryReferenceBuckets]. */
+fun ReferenceBucket.entryTypes(): Set<EntryType> {
+	if (this == ReferenceBucket.Scenes) error("Scenes is not an entry bucket")
+	return EntryType.entries.filterTo(mutableSetOf()) { it.referenceBucket() == this }
 }
 
 @Composable
