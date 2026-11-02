@@ -22,6 +22,9 @@ import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.scenemetadata.SceneMetadataPanel
 import com.darkrockstudios.apps.hammer.common.compose.*
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
+import com.darkrockstudios.apps.hammer.common.compose.references.ReferenceBucket
+import com.darkrockstudios.apps.hammer.common.compose.references.label
+import com.darkrockstudios.apps.hammer.common.compose.references.referenceBucket
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
@@ -35,29 +38,17 @@ import kotlin.time.Instant
 val SCENE_METADATA_MIN_WIDTH = 300.dp
 val SCENE_METADATA_MAX_WIDTH = 600.dp
 
-private enum class RefBucket { Characters, Locations, Other }
+/** The buckets an entry can fall in, one tab each in [AddReferenceDialog]. */
+private val EntryBuckets = ReferenceBucket.entries - ReferenceBucket.Scenes
 
-private fun EntryType.bucket(): RefBucket = when (this) {
-	EntryType.PERSON -> RefBucket.Characters
-	EntryType.PLACE -> RefBucket.Locations
-	else -> RefBucket.Other
-}
-
-private fun RefBucket.types(): Set<EntryType> =
-	EntryType.entries.filterTo(mutableSetOf()) { it.bucket() == this }
+private fun ReferenceBucket.types(): Set<EntryType> =
+	EntryType.entries.filterTo(mutableSetOf()) { it.referenceBucket() == this }
 
 @Composable
-private fun RefBucket.label(): String = when (this) {
-	RefBucket.Characters -> Res.string.scene_editor_metadata_references_characters_label.get()
-	RefBucket.Locations -> Res.string.scene_editor_metadata_references_locations_label.get()
-	RefBucket.Other -> Res.string.scene_editor_metadata_references_other_label.get()
-}
-
-@Composable
-private fun RefBucket.searchPlaceholder(): String = when (this) {
-	RefBucket.Characters -> Res.string.scene_editor_metadata_references_add_dialog_search_characters.get()
-	RefBucket.Locations -> Res.string.scene_editor_metadata_references_add_dialog_search_locations.get()
-	RefBucket.Other -> Res.string.scene_editor_metadata_references_add_dialog_search_other.get()
+private fun ReferenceBucket.searchPlaceholder(): String = when (this) {
+	ReferenceBucket.Characters -> Res.string.scene_editor_metadata_references_add_dialog_search_characters.get()
+	ReferenceBucket.Locations -> Res.string.scene_editor_metadata_references_add_dialog_search_locations.get()
+	ReferenceBucket.Other, ReferenceBucket.Scenes -> Res.string.scene_editor_metadata_references_add_dialog_search_other.get()
 }
 
 @Composable
@@ -286,7 +277,6 @@ fun SceneMetadataPanelUi(
 	)
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ReferencesBody(
 	state: SceneMetadataPanel.State,
@@ -301,76 +291,54 @@ private fun ReferencesBody(
 			)
 			return@Column
 		}
-		val grouped = remember(state.confirmedRefs) {
-			state.confirmedRefs.groupBy { it.type.bucket() }
-		}
-		RefBucket.entries.forEach { bucket ->
-			val refs = grouped[bucket] ?: return@forEach
-			RefChipBucket(
-				label = bucket.label(),
-				refs = refs,
-				variant = HdReferenceChipVariant.Active,
-				onClickRef = component::navigateToEntry,
-				onActionRef = component::dismissReference,
-				actionDescription = Res.string.scene_editor_metadata_references_dismiss.get(),
-			)
-		}
+		EntryRefBuckets(
+			refs = state.confirmedRefs,
+			variant = HdReferenceChipVariant.Active,
+			onClickRef = component::navigateToEntry,
+			onActionRef = component::dismissReference,
+			actionDescription = Res.string.scene_editor_metadata_references_dismiss.get(),
+		)
 	}
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun DismissedBody(
 	state: SceneMetadataPanel.State,
 	component: SceneMetadataPanel,
 ) {
 	Column(modifier = Modifier.padding(top = Ui.Padding.M)) {
-		val grouped = remember(state.dismissedRefs) {
-			state.dismissedRefs.groupBy { it.type.bucket() }
-		}
-		RefBucket.entries.forEach { bucket ->
-			val refs = grouped[bucket] ?: return@forEach
-			RefChipBucket(
-				label = bucket.label(),
-				refs = refs,
-				variant = HdReferenceChipVariant.Dismissed,
-				onClickRef = component::navigateToEntry,
-				onActionRef = component::restoreDismissedReference,
-				actionDescription = Res.string.scene_editor_metadata_references_restore.get(),
-			)
-		}
+		EntryRefBuckets(
+			refs = state.dismissedRefs,
+			variant = HdReferenceChipVariant.Dismissed,
+			onClickRef = component::navigateToEntry,
+			onActionRef = component::restoreDismissedReference,
+			actionDescription = Res.string.scene_editor_metadata_references_restore.get(),
+		)
 	}
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun RefChipBucket(
-	label: String,
+private fun EntryRefBuckets(
 	refs: List<EntryDef>,
 	variant: HdReferenceChipVariant,
 	onClickRef: (EntryDef) -> Unit,
 	onActionRef: (Int) -> Unit,
 	actionDescription: String,
 ) {
-	HdMonoLabel(text = label)
-	SpacerM()
-	FlowRow(
-		modifier = Modifier.fillMaxWidth(),
-		horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.Start),
-		verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Top),
-	) {
-		for (ref in refs) {
-			HdReferenceChip(
-				type = ref.type,
-				name = ref.name,
-				onClick = { onClickRef(ref) },
-				onAction = { onActionRef(ref.id) },
-				actionContentDescription = actionDescription,
-				variant = variant,
-			)
-		}
+	val byId = remember(refs) { refs.associateBy { it.id } }
+	val grouped = remember(refs) { refs.groupBy { it.type.referenceBucket() } }
+	ReferenceBucket.entries.forEach { bucket ->
+		val bucketRefs = grouped[bucket] ?: return@forEach
+		HdReferenceChipBucket(
+			label = bucket.label(),
+			chips = bucketRefs.map { hdEntryChipModel(key = it.id, type = it.type, name = it.name) },
+			onClick = { chip -> byId[chip.key]?.let(onClickRef) },
+			onAction = { chip -> byId[chip.key]?.let { onActionRef(it.id) } },
+			actionContentDescription = actionDescription,
+			variant = variant,
+		)
+		SpacerL()
 	}
-	SpacerL()
 }
 
 @Composable
@@ -455,7 +423,7 @@ private fun AddReferenceDialog(
 	onDismiss: () -> Unit,
 ) {
 	var query by rememberSaveable { mutableStateOf("") }
-	var tab by rememberSaveable { mutableStateOf(RefBucket.Characters) }
+	var tab by rememberSaveable { mutableStateOf(ReferenceBucket.Characters) }
 
 	val suggestions = remember(query, tab) {
 		component.searchEntriesForAdd(query, types = tab.types())
@@ -472,7 +440,7 @@ private fun AddReferenceDialog(
 			closeContentDescription = Res.string.scene_editor_metadata_references_add_dialog_close.get(),
 		) {
 			Row(modifier = Modifier.fillMaxWidth()) {
-				RefBucket.entries.forEach { bucket ->
+				EntryBuckets.forEach { bucket ->
 					HdTabPill(
 						label = bucket.label(),
 						active = tab == bucket,

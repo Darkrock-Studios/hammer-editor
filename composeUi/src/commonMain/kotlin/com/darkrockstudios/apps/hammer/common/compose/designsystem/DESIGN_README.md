@@ -75,6 +75,16 @@ it's never decoration.
 - Per-character tinting (timeline, attribution charts) uses
   `LocalHammerColors.colorForCharacter(name)` — a hashed slot from a
   shared palette, also stable across runs.
+- **Lane colours.** A timeline lane takes
+  `LocalHammerColors.laneColor(index)`, by its position in the lane
+  list, never by its name: the `lanePalette` is ordered so neighbouring
+  lanes sit far apart in hue, which a name hash would throw away. Band
+  segments in a lane step through a three-tone ramp
+  ([`laneShade`](../theme/LaneShades.kt): base, toward surface, toward
+  ink) and leave a 1dp `surface` gap wherever two segments abut, so
+  touching segments always read as two. `LanePaletteTest` holds the
+  minimum luminance step of the ramp and the hue spacing of neighbours
+  in both themes; retune the palette rather than loosen it.
 
 ### 4. Editorial typography
 
@@ -366,6 +376,14 @@ screen that surfaces them.
 - **[`EntryType.glyph()`](HdEntryGlyph.kt)** — single-character glyph
   per type (☉ ◇ ✦ ⚑ ✶) plus `HD_ALL_GLYPH = "∗"` for the unfiltered
   position.
+- **[`CatalogItem.hdMark()`](HdCatalogGlyph.kt)**: the one glyph
+  vocabulary for anything a project holds, used by the entity picker,
+  reference chips and the timeline. Scene `§` (`HD_SCENE_GLYPH`), note
+  `¶` (`HD_NOTE_GLYPH`), an entry its type glyph (so an EVENT entry is
+  `⚑`), a plain timeline event `◷` (`HD_EVENT_GLYPH`). Entries sit on
+  their type colour; the other kinds on a neutral swatch
+  (`hdSwatchColor()` / `hdGlyphColor()`). Reach for these constants
+  rather than typing the character.
 - **[`HdCategorySwatch`](HdCategorySwatch.kt)** /
   **`HdCategoryChip`** — the colored square + mono name. Use for
   inline category indicators.
@@ -378,6 +396,21 @@ screen that surfaces them.
   entry card; tapping it re-runs the filter, not the card open.
 - **[`HdTagChip`](HdTagChip.kt)** — `# label` chip with optional `×`
   remove. The tag primitive used inside cards and tag fields.
+- **[`HdReferenceChip`](HdReferenceChip.kt)**: glyph swatch + name +
+  trailing `×` (or `↺` when dismissed) for a reference to an entry,
+  scene or other item. Pass a null `onAction` for a read-only chip.
+- **[`HdReferenceChipBucket`](HdReferenceChipBucket.kt)**: a mono
+  label over a wrapping row of `HdReferenceChip`s, one bucket per
+  group. Group with `ReferenceBucket`
+  ([`compose/references`](../references/ReferenceBuckets.kt):
+  Characters, Locations, Other, Scenes) so every reference list orders
+  and labels its groups the same way; build entry chips with
+  `hdEntryChipModel`.
+
+      CHARACTERS
+      [☉│ Alice ×]  [☉│ White Rabbit ×]
+      LOCATIONS
+      [◇│ The Pool of Tears ×]
 - **[`HdClearGlyph`](HdClearGlyph.kt)** — the small `×` clear/remove
   affordance, drawn as two strokes so it stays geometrically centered
   (a font-rendered `×` sits low in a small box). Use this instead of
@@ -661,7 +694,7 @@ of the filter row (sort, "+ new") or behind the title-row icon
 toggle (search).
 
 **2. Scroll-collapsing strip.** The whole filter strip is wrapped in
-a private `CollapsingStrip(scrollBehavior)` that translates the strip
+[`HdCollapsingStrip(scrollBehavior)`](HdCollapsingStrip.kt), which translates the strip
 by `scrollBehavior.heightOffset` and reduces its reported height to
 match, so the content grid below slides up under it. Driven by
 [
@@ -672,9 +705,11 @@ gives the strip the same scroll-away semantics as an M3 TopAppBar
 without inheriting its chrome. Title row + folio divider stay put as
 the masthead.
 
-The `CollapsingStrip` helper is currently duplicated — a private
-copy lives in each browse screen. Lift it into `HdCollapsingStrip`
-the next time a third browse screen needs it.
+Inside the strip, [`HdTagFilterBar`](HdTagFilterBar.kt) is the
+`ALL · n │ # tag · n …` row and
+[`HdActiveFiltersStrip`](HdActiveFiltersStrip.kt) the
+`FILTERED n / m  # tag ×  CLEAR ALL` summary under it, shown only while
+a tag is active. Notes, Story Ideas and Timeline share all three.
 
 ### Collapse chrome while typing
 

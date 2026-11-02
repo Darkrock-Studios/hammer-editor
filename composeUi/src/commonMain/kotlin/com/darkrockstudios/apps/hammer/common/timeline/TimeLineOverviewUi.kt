@@ -28,7 +28,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
@@ -40,7 +39,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.rememberTopAppBarState
 import com.darkrockstudios.apps.hammer.common.compose.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
@@ -52,14 +50,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -70,6 +65,8 @@ import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineOvervi
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarList
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdActiveFiltersStrip
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdCollapsingStrip
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDragHandle
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
@@ -77,6 +74,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSearchField
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSearchRow
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSectionHeader
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagChip
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagFilterBar
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownView
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.rememberMarkdownPreview
 import com.darkrockstudios.apps.hammer.common.compose.reorderable.DragDropList
@@ -84,7 +82,6 @@ import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
 import com.darkrockstudios.apps.hammer.common.data.search.markdownContains
-import com.darkrockstudios.apps.hammer.common.data.tagindex.TagCount
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.timeline_filter_all
 import com.darkrockstudios.apps.hammer.timeline_filter_clear_all
@@ -99,7 +96,6 @@ import com.darkrockstudios.apps.hammer.timeline_search_placeholder
 import com.darkrockstudios.apps.hammer.timeline_view_undated
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import kotlin.math.roundToInt
 
 /** An event matches on its body read as prose, or on its plain-text date. */
 internal fun eventMatchesQuery(event: TimeLineEvent, query: String): Boolean =
@@ -232,7 +228,7 @@ fun TimeLineOverviewUi(
 
 		HdFolioDivider()
 
-		CollapsingStrip(scrollBehavior = scrollBehavior) {
+		HdCollapsingStrip(scrollBehavior = scrollBehavior) {
 			val searchField: @Composable () -> Unit = {
 				HdSearchField(
 					value = searchQuery,
@@ -257,9 +253,9 @@ fun TimeLineOverviewUi(
 				}
 			}
 
-			TagFilterBar(
+			HdTagFilterBar(
 				tags = tagIndex,
-				total = events.size,
+				allLabel = "${Res.string.timeline_filter_all.get()} · ${events.size}",
 				activeTags = activeTags,
 				onToggle = toggleTag,
 				onClear = clearTags,
@@ -271,10 +267,10 @@ fun TimeLineOverviewUi(
 			)
 
 			AnimatedVisibility(visible = activeTags.isNotEmpty()) {
-				ActiveFiltersStrip(
+				HdActiveFiltersStrip(
 					activeTags = activeTags,
-					hits = visibleEvents.size,
-					total = events.size,
+					filteredLabel = Res.string.timeline_filter_filtered.get(visibleEvents.size, events.size),
+					clearAllLabel = Res.string.timeline_filter_clear_all.get(),
 					onToggle = toggleTag,
 					onClear = clearTags,
 				)
@@ -513,167 +509,6 @@ internal fun EventCard(
 						}
 					}
 				}
-			}
-		}
-	}
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun CollapsingStrip(
-	scrollBehavior: TopAppBarScrollBehavior,
-	content: @Composable () -> Unit,
-) {
-	Layout(
-		modifier = Modifier
-			.fillMaxWidth()
-			.background(MaterialTheme.colorScheme.surface)
-			.clipToBounds(),
-		content = content,
-	) { measurables, constraints ->
-		val placeables = measurables.map { it.measure(constraints) }
-		val totalHeight = placeables.sumOf { it.height }
-		scrollBehavior.state.heightOffsetLimit = -totalHeight.toFloat()
-		val offset = scrollBehavior.state.heightOffset.roundToInt()
-		val visibleHeight = (totalHeight + offset).coerceAtLeast(0)
-		val width = placeables.maxOfOrNull { it.width } ?: constraints.minWidth
-		layout(width, visibleHeight) {
-			var y = offset
-			placeables.forEach { placeable ->
-				placeable.place(0, y)
-				y += placeable.height
-			}
-		}
-	}
-}
-
-@Composable
-private fun TagFilterBar(
-	tags: List<TagCount>,
-	total: Int,
-	activeTags: Set<String>,
-	onToggle: (String) -> Unit,
-	onClear: () -> Unit,
-	leading: (@Composable () -> Unit)? = null,
-) {
-	val hammerColors = LocalHammerColors.current
-	val allActive = activeTags.isEmpty()
-	Row(
-		modifier = Modifier
-			.fillMaxWidth()
-			.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.S),
-		verticalAlignment = Alignment.CenterVertically,
-		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M),
-	) {
-		if (leading != null) {
-			leading()
-			Box(
-				modifier = Modifier
-					.height(20.dp)
-					.width(Dp.Hairline)
-					.background(MaterialTheme.colorScheme.outlineVariant),
-			)
-		}
-		AllChip(
-			label = "${Res.string.timeline_filter_all.get()} · $total",
-			active = allActive,
-			onClick = onClear,
-		)
-		Box(
-			modifier = Modifier
-				.height(20.dp)
-				.width(Dp.Hairline)
-				.background(MaterialTheme.colorScheme.outlineVariant),
-		)
-		LazyRow(
-			modifier = Modifier.weight(1f),
-			horizontalArrangement = Arrangement.spacedBy(6.dp),
-			verticalAlignment = Alignment.CenterVertically,
-		) {
-			items(count = tags.size) { i ->
-				val (label, count) = tags[i]
-				val isActive = label in activeTags
-				HdTagChip(
-					label = "$label · $count",
-					active = isActive,
-					onClick = { onToggle(label) },
-				)
-			}
-		}
-	}
-}
-
-@Composable
-private fun AllChip(
-	label: String,
-	active: Boolean,
-	onClick: () -> Unit,
-) {
-	val background = if (active) {
-		MaterialTheme.colorScheme.surfaceContainerHigh
-	} else {
-		Color.Transparent
-	}
-	val labelColor = if (active) {
-		MaterialTheme.colorScheme.onSurface
-	} else {
-		MaterialTheme.colorScheme.onSurfaceVariant
-	}
-	Box(
-		modifier = Modifier
-			.height(28.dp)
-			.background(background, RectangleShape)
-			.clickable(onClick = onClick)
-			.padding(horizontal = Ui.Padding.L),
-		contentAlignment = Alignment.Center,
-	) {
-		HdMonoLabel(text = label, color = labelColor)
-	}
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun ActiveFiltersStrip(
-	activeTags: Set<String>,
-	hits: Int,
-	total: Int,
-	onToggle: (String) -> Unit,
-	onClear: () -> Unit,
-) {
-	val hammerColors = LocalHammerColors.current
-	Column(modifier = Modifier.fillMaxWidth()) {
-		HorizontalDivider(
-			thickness = Dp.Hairline,
-			color = MaterialTheme.colorScheme.outlineVariant,
-		)
-		FlowRow(
-			modifier = Modifier
-				.fillMaxWidth()
-				.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.S),
-			horizontalArrangement = Arrangement.spacedBy(6.dp),
-			verticalArrangement = Arrangement.spacedBy(6.dp),
-		) {
-			HdMonoLabel(
-				text = Res.string.timeline_filter_filtered.get(hits, total),
-				modifier = Modifier
-					.padding(end = Ui.Padding.S)
-					.align(Alignment.CenterVertically),
-			)
-			activeTags.sorted().forEach { tag ->
-				HdTagChip(
-					label = tag,
-					active = true,
-					onClick = { onToggle(tag) },
-					onRemove = { onToggle(tag) },
-				)
-			}
-			Box(
-				modifier = Modifier
-					.clickable(onClick = onClear)
-					.padding(horizontal = Ui.Padding.S, vertical = Ui.Padding.S),
-				contentAlignment = Alignment.Center,
-			) {
-				HdMonoLabel(text = Res.string.timeline_filter_clear_all.get())
 			}
 		}
 	}

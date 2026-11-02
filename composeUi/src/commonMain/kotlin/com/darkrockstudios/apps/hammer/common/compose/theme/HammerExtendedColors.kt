@@ -18,6 +18,8 @@ data class HammerExtendedColors(
 	val moved: Color,
 	val characterPalette: List<Color>,
 	val tagPalette: List<Color>,
+	/** Ordered so neighbours are far apart in hue; see [laneColor]. */
+	val lanePalette: List<Color>,
 ) {
 	fun colorFor(type: EntryType): Color = when (type) {
 		EntryType.PERSON -> person
@@ -32,6 +34,9 @@ data class HammerExtendedColors(
 	fun colorForCharacter(name: String): Color = characterPalette.pickByHash(name)
 
 	fun tagColor(tag: String): Color = tagPalette.pickByHash(tag)
+
+	/** A timeline lane's colour by its position in the lane list, never by its name. */
+	fun laneColor(index: Int): Color = lanePalette[index.mod(lanePalette.size)]
 }
 
 private fun List<Color>.pickByHash(key: Any): Color =
@@ -93,6 +98,30 @@ private val DarkTagPalette = listOf(
 	Color(0xFFFFB4A2), // blush
 )
 
+// Lighter than the character palette so each lane keeps a visible three-step ramp (LaneShades.kt);
+// LanePaletteTest holds the luminance and hue spacing.
+private val LightLanePalette = listOf(
+	Color(0xFFD0663F), // brick
+	Color(0xFF3A8AC4), // cobalt
+	Color(0xFF5E9445), // moss
+	Color(0xFF9C76CC), // amethyst
+	Color(0xFFC28A2E), // ochre
+	Color(0xFF2E9690), // teal
+	Color(0xFFD6586C), // crimson
+	Color(0xFF6E78D8), // indigo
+)
+
+private val DarkLanePalette = listOf(
+	Color(0xFFD8765A), // brick
+	Color(0xFF58A0D8), // cobalt
+	Color(0xFF74A460), // moss
+	Color(0xFFA084D0), // amethyst
+	Color(0xFFC8964A), // ochre
+	Color(0xFF48A69E), // teal
+	Color(0xFFE07082), // crimson
+	Color(0xFF7C82DE), // indigo
+)
+
 val LightHammerColors = HammerExtendedColors(
 	person = Color(0xFFB14A2C),
 	place = Color(0xFF4F7A3A),
@@ -105,6 +134,7 @@ val LightHammerColors = HammerExtendedColors(
 	moved = Color(0xFF3A5FA0),
 	characterPalette = LightCharacterPalette,
 	tagPalette = LightTagPalette,
+	lanePalette = LightLanePalette,
 )
 
 val DarkHammerColors = HammerExtendedColors(
@@ -119,6 +149,7 @@ val DarkHammerColors = HammerExtendedColors(
 	moved = Color(0xFF7B9FD4),
 	characterPalette = DarkCharacterPalette,
 	tagPalette = DarkTagPalette,
+	lanePalette = DarkLanePalette,
 )
 
 val LocalHammerColors = staticCompositionLocalOf { DarkHammerColors }

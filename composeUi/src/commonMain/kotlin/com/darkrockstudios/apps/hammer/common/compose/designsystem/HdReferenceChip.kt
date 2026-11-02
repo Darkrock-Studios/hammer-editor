@@ -80,7 +80,7 @@ fun HdReferenceChip(
 
 /**
  * The same chip for something other than an entry, such as a scene: [glyph] in [glyphColor] on a
- * [swatchColor] swatch.
+ * [swatchColor] swatch. A null [onAction] leaves the trailing action off, for read-only lists.
  */
 @Composable
 fun HdReferenceChip(
@@ -89,7 +89,7 @@ fun HdReferenceChip(
 	glyphColor: Color,
 	name: String,
 	onClick: () -> Unit,
-	onAction: () -> Unit,
+	onAction: (() -> Unit)?,
 	actionContentDescription: String,
 	modifier: Modifier = Modifier,
 	variant: HdReferenceChipVariant = HdReferenceChipVariant.Active,
@@ -147,19 +147,21 @@ fun HdReferenceChip(
 		}
 
 		// Trailing action — × for active (dismiss), ↺ for dismissed (restore).
-		Box(
-			modifier = Modifier
-				.fillMaxHeight()
-				.clickable(onClick = onAction)
-				.padding(horizontal = 6.dp),
-			contentAlignment = Alignment.Center,
-		) {
-			Icon(
-				imageVector = actionIcon,
-				contentDescription = actionContentDescription,
-				tint = onSurfaceMuted,
-				modifier = Modifier.size(ActionIconSize),
-			)
+		if (onAction != null) {
+			Box(
+				modifier = Modifier
+					.fillMaxHeight()
+					.clickable(onClick = onAction)
+					.padding(horizontal = 6.dp),
+				contentAlignment = Alignment.Center,
+			) {
+				Icon(
+					imageVector = actionIcon,
+					contentDescription = actionContentDescription,
+					tint = onSurfaceMuted,
+					modifier = Modifier.size(ActionIconSize),
+				)
+			}
 		}
 	}
 }

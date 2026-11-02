@@ -73,6 +73,7 @@
 	<string name="scene_editor_metadata_references_characters_label">Characters</string>
 	<string name="scene_editor_metadata_references_locations_label">Locations</string>
 	<string name="scene_editor_metadata_references_other_label">Other</string>
+	<string name="scene_editor_metadata_references_scenes_label">Scenes</string>
 	<string name="scene_editor_metadata_references_add_button">+ Add reference</string>
 	<string name="scene_editor_metadata_references_add_dialog_title">Add reference</string>
 	<string name="scene_editor_metadata_references_add_dialog_done">Done</string>
