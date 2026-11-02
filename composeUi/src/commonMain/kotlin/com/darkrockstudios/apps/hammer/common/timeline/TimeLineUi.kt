@@ -1,7 +1,12 @@
 package com.darkrockstudios.apps.hammer.common.timeline
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
@@ -19,6 +24,7 @@ import com.arkivanov.decompose.extensions.compose.experimental.stack.animation.s
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLine
+import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineOverview
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFab
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
@@ -93,14 +99,9 @@ fun TimelineFab(
 	modifier: Modifier = Modifier,
 ) {
 	val stack by component.stack.subscribeAsState()
-	when (stack.active.instance) {
+	when (val dest = stack.active.instance) {
 		is TimeLine.Destination.TimeLineOverviewDestination -> {
-			HdFab(
-				onClick = component::showCreateEvent,
-				icon = Icons.Default.Create,
-				contentDescription = Res.string.timeline_create_event_button.get(),
-				modifier = modifier.testTag(TIME_LINE_CREATE_TAG),
-			)
+			OverviewFab(overview = dest.component, onCreate = component::showCreateEvent, modifier = modifier)
 		}
 
 		is TimeLine.Destination.CreateEventDestination -> {
@@ -110,5 +111,30 @@ fun TimelineFab(
 		is TimeLine.Destination.ViewEventDestination -> {
 
 		}
+	}
+}
+
+/**
+ * Slides away while the reader scrolls down and returns as they scroll up; hidden while something is
+ * selected, so it does not cover the selection strip.
+ */
+@Composable
+private fun OverviewFab(
+	overview: TimeLineOverview,
+	onCreate: () -> Unit,
+	modifier: Modifier = Modifier,
+) {
+	val state by overview.state.subscribeAsState()
+	AnimatedVisibility(
+		visible = state.selectedId == null && !state.scrolledDown,
+		enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+		exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
+	) {
+		HdFab(
+			onClick = onCreate,
+			icon = Icons.Default.Create,
+			contentDescription = Res.string.timeline_create_event_button.get(),
+			modifier = modifier.testTag(TIME_LINE_CREATE_TAG),
+		)
 	}
 }

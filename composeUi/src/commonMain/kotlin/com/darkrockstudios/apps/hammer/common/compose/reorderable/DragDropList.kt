@@ -8,7 +8,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -36,6 +38,7 @@ fun <T> DragDropList(
 	onMove: (Int, Int) -> Unit,
 	modifier: Modifier = Modifier,
 	contentPadding: PaddingValues = PaddingValues(),
+	lazyListState: LazyListState = rememberLazyListState(),
 	itemContent: @Composable (item: T, dragging: Boolean) -> Unit
 ) {
 	val scope = rememberCoroutineScope()
@@ -61,6 +64,7 @@ fun <T> DragDropList(
 	// stale closure and moves the wrong item once the list order has changed.
 	val currentOnMove by rememberUpdatedState(onMove)
 	val dragDropListState = rememberDragDropListState(
+		lazyListState = lazyListState,
 		confirmReorder = { from, to -> currentOnMove(from, to) },
 		onMove = { from, to ->
 			data = data.toMutableList().apply {

@@ -11,7 +11,8 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class PiecewiseScaleTest {
-	private val metrics = LayoutMetrics()
+	// The worked numbers below assume a 40dp gap cap.
+	private val metrics = LayoutMetrics(maxGap = 40f)
 
 	@Test
 	fun `y never decreases with position`() {

@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.common.timeline.layout.BandLabel
 import com.darkrockstudios.apps.hammer.common.timeline.layout.LabelStyle
 import com.darkrockstudios.apps.hammer.common.timeline.layout.LayoutEvent
 import com.darkrockstudios.apps.hammer.common.timeline.layout.LayoutKind
+import com.darkrockstudios.apps.hammer.common.timeline.layout.LayoutMetrics
 import com.darkrockstudios.apps.hammer.common.timeline.layout.LedgerMark
 import com.darkrockstudios.apps.hammer.common.timeline.layout.LedgerStyle
 import com.darkrockstudios.apps.hammer.common.timeline.layout.MonospaceEstimateMeasurer
@@ -127,9 +128,10 @@ class TimelineLayoutEngineTest {
 		val narrow = TimelineLayoutEngine.layout(input(short), measurer)
 		val wide = TimelineLayoutEngine.layout(input(long), measurer)
 
-		assertEquals(96f, narrow.ledgerWidthDp, 1e-3f)
-		assertEquals(36f + measurer.widthDp("answers the…", LabelStyle.LedgerMilestone), wide.ledgerWidthDp, 1e-3f)
-		assertEquals(listOf("Canterbury", "answers the…"), wide.ledgerRows.single { it.eventId == 2 }.lines)
+		val metrics = LayoutMetrics()
+		assertEquals(metrics.ledgerMin, narrow.ledgerWidthDp, 1e-3f)
+		assertEquals(metrics.ledgerPad + measurer.widthDp("Canterbury answers", LabelStyle.LedgerMilestone), wide.ledgerWidthDp, 1e-3f)
+		assertEquals(listOf("Canterbury answers", "the Scopuli"), wide.ledgerRows.single { it.eventId == 2 }.lines)
 	}
 
 	@Test
@@ -178,6 +180,6 @@ class TimelineLayoutEngineTest {
 		val layout = TimelineLayoutEngine.layout(input(emptyList()), measurer)
 
 		assertTrue(layout.lanes.isEmpty() && layout.ledgerRows.isEmpty() && layout.bands.isEmpty())
-		assertEquals(48f, layout.heightDp)
+		assertEquals(LayoutMetrics().let { it.padTop + it.padBottom }, layout.heightDp)
 	}
 }

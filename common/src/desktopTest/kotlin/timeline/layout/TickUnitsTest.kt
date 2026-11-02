@@ -65,6 +65,19 @@ class TickUnitsTest {
 	}
 
 	@Test
+	fun `a unit's own steps come before the 1 2 5 ladder`() {
+		val clock = listOf(
+			TickUnit("hour", HOUR, listOf(1, 2, 3, 6, 12)),
+			TickUnit("minute", 1, listOf(1, 2, 5, 10, 15, 30)),
+		)
+
+		assertEquals(15, deriveTickUnit(150L, clock, 8)!!.step)
+		assertEquals(30, deriveTickUnit(200L, clock, 8)!!.step)
+		// Past the unit's own steps the ladder carries on above the last of them.
+		assertEquals(50, deriveTickUnit(500L, listOf(clock[1]), 8)!!.step)
+	}
+
+	@Test
 	fun `no units means no ticks`() {
 		assertEquals(null, deriveTickUnit(100L, emptyList(), 8))
 	}

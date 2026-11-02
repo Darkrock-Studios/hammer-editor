@@ -38,12 +38,14 @@ class LedgerPlacerTest {
 
 	/** Unpinned rows crowded together, with pinned rows at least a full row apart from each other. */
 	private fun randomCandidates(random: Random): List<LedgerCandidate> {
+		// Two title lines and a subtitle.
+		val fullRow = 3 * metrics.ledgerLineHeight + 4f
 		val out = ArrayList<LedgerCandidate>()
 		var pinnedAnchor = random.nextFloat() * 50f
 		var id = 0
 		while (pinnedAnchor < 1500f) {
 			out += candidate(id++, pinnedAnchor, pinned = true, sub = if (random.nextBoolean()) "Ch 3" else null)
-			pinnedAnchor += 40f + random.nextFloat() * 200f
+			pinnedAnchor += fullRow + random.nextFloat() * 200f
 		}
 		repeat(random.nextInt(5, 60)) {
 			out += candidate(id++, random.nextFloat() * 1500f, sub = if (random.nextBoolean()) "Ch 1 · the opening" else null)
@@ -123,18 +125,20 @@ class LedgerPlacerTest {
 
 		val (wrapped, single) = rows
 		assertEquals(2, wrapped.lines.size)
-		assertEquals(2 * 11f + 11f + 4f, wrapped.height)
-		assertEquals(11f + 4f, single.height)
+		val line = metrics.ledgerLineHeight
+		assertEquals(2 * line + line + 4f, wrapped.height)
+		assertEquals(line + 4f, single.height)
 	}
 
 	@Test
 	fun `ledger width follows the widest fitted line within its bounds`() {
-		assertEquals(96f, LedgerPlacer.ledgerWidth(listOf(candidate(3, 0f)), measurer, metrics))
-		// "Canterbury answers the Scopuli" wraps at 82dp to "Canterbury" and "answers the…".
-		val wrapped = measurer.widthDp("answers the…", LabelStyle.Ledger)
+		assertEquals(metrics.ledgerMin, LedgerPlacer.ledgerWidth(listOf(candidate(3, 0f)), measurer, metrics))
+		// "Canterbury answers the Scopuli" wraps at 156dp to "Canterbury answers" and "the Scopuli".
+		val wrapped = measurer.widthDp("Canterbury answers", LabelStyle.Ledger)
 		assertEquals(metrics.ledgerPad + wrapped, LedgerPlacer.ledgerWidth(listOf(candidate(2, 0f)), measurer, metrics), epsilon)
-		val subWidth = measurer.widthDp("Ch 3 · Pike t", LabelStyle.LedgerSub)
-		assertEquals(metrics.ledgerPad + subWidth, LedgerPlacer.ledgerWidth(listOf(candidate(0, 0f, sub = "Ch 3 · Pike t")), measurer, metrics), epsilon)
+		val sub = "Ch 3 · Pike at the gate"
+		val subWidth = measurer.widthDp(sub, LabelStyle.LedgerSub)
+		assertEquals(metrics.ledgerPad + subWidth, LedgerPlacer.ledgerWidth(listOf(candidate(0, 0f, sub = sub)), measurer, metrics), epsilon)
 	}
 
 	@Test
@@ -143,7 +147,7 @@ class LedgerPlacerTest {
 
 		val width = LedgerPlacer.ledgerWidth(listOf(candidate(3, 0f, sub = sub)), measurer, metrics)
 
-		val fitted = measurer.widthDp(sub.take(14) + "…", LabelStyle.LedgerSub)
+		val fitted = measurer.widthDp(sub.take(22) + "…", LabelStyle.LedgerSub)
 		assertEquals(metrics.ledgerPad + fitted, width, epsilon)
 	}
 }

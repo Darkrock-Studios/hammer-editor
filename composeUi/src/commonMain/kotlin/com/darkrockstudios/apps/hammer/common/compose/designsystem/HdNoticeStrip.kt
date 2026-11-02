@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 /**
  * A full-width notice pinned above a list: a title line, an optional detail line, an optional
  * hairline progress bar, optional [content] such as a chip row, and up to two hairline actions.
+ * [trailing] sits after the actions at the strip's end, e.g. an [HdClearGlyph] to dismiss it.
  * Hairline rules top and bottom over a `surfaceContainerLow` fill separate it from the page
  * without elevation.
  */
@@ -33,6 +34,7 @@ fun HdNoticeStrip(
 	secondaryLabel: String? = null,
 	onSecondary: () -> Unit = {},
 	actionsEnabled: Boolean = true,
+	trailing: (@Composable () -> Unit)? = null,
 	content: (@Composable ColumnScope.() -> Unit)? = null,
 ) {
 	val rule = MaterialTheme.colorScheme.outlineVariant
@@ -88,6 +90,7 @@ fun HdNoticeStrip(
 					enabled = actionsEnabled,
 				)
 			}
+			trailing?.invoke()
 		}
 		HorizontalDivider(thickness = Dp.Hairline, color = rule)
 	}

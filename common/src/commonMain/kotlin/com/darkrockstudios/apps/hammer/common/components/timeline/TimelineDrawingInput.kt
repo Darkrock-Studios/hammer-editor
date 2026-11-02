@@ -90,9 +90,19 @@ private fun TimelineKind.toLayoutKind(): LayoutKind = when (this) {
 	TimelineKind.SCENE -> LayoutKind.SCENE
 }
 
+// Clock units tick on the quarter and half hour, and on hours that divide a day.
+private val MINUTE_STEPS = listOf(1L, 2L, 5L, 10L, 15L, 30L)
+private val HOUR_STEPS = listOf(1L, 2L, 3L, 6L, 12L)
+
+private fun clockSteps(unit: String): List<Long> = when (unit) {
+	StoryCalendar.MINUTE -> MINUTE_STEPS
+	StoryCalendar.HOUR -> HOUR_STEPS
+	else -> emptyList()
+}
+
 /** Ticks in the units a date on [calendar] is entered in, coarsest first, labelled in [words]. */
 fun timelineTickScheme(calendar: CalendarDef, words: StoryDateWords = StoryDateWords.English): TickScheme {
-	val units = entryUnits(calendar).map { TickUnit(it.name, unitMinutes(calendar.preset, it.name)) }
+	val units = entryUnits(calendar).map { TickUnit(it.name, unitMinutes(calendar.preset, it.name), clockSteps(it.name)) }
 	val positions: ((LongRange, TickUnit, Long) -> List<Long>)? = if (calendar.preset == CalendarPreset.GREGORIAN) {
 		{ range, unit, step -> gregorianTickPositions(calendar, range, unit, step) }
 	} else {

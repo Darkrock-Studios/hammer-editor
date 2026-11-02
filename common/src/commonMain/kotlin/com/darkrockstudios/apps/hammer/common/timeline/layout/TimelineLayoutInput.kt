@@ -50,7 +50,12 @@ data class LayoutEvent(
 	internal val laneName: String? get() = lane?.takeIf { it.isNotBlank() }
 }
 
-data class TickUnit(val name: String, val sizeInBase: Long)
+/**
+ * A unit an axis may tick in. [steps] are the counts of it a tick may step by, finest first, where
+ * the unit has natural ones (a quarter hour); past the last, or without any, steps run 1, 2, 5,
+ * 10, 25, 50, ...
+ */
+data class TickUnit(val name: String, val sizeInBase: Long, val steps: List<Long> = emptyList())
 
 /**
  * The units an axis may tick in, coarsest first, and how to label a tick. [format] receives the
@@ -69,31 +74,31 @@ class TickScheme(
 
 /** Every distance is in dp. */
 data class LayoutMetrics(
-	val padTop: Float = 28f,
+	val padTop: Float = 36f,
 	val padBottom: Float = 20f,
 	val padRight: Float = 10f,
-	val axisWidth: Float = 78f,
+	val axisWidth: Float = 92f,
 	val axisWidthPhone: Float = 64f,
-	val maxGap: Float = 40f,
+	val maxGap: Float = 56f,
 	val coveredGapFactor: Float = 4f,
 	val foldThreshold: Float = 1.5f,
 	val minSpanHeight: Float = 8f,
-	val bandMin: Float = 48f,
-	val bandMax: Float = 104f,
+	val bandMin: Float = 56f,
+	val bandMax: Float = 120f,
 	val bandLaneFraction: Float = .45f,
 	val barWidth: Float = 10f,
-	val barStep: Float = 16f,
+	val barStep: Float = 20f,
 	val barOffset: Float = 6f,
 	val railWidth: Float = 22f,
 	val railBand: Float = 14f,
 	val railBar: Float = 6f,
-	val ledgerMin: Float = 96f,
-	val ledgerMax: Float = 118f,
-	val ledgerPad: Float = 36f,
-	val ledgerLineHeight: Float = 11f,
+	val ledgerMin: Float = 140f,
+	val ledgerMax: Float = 200f,
+	val ledgerPad: Float = 44f,
+	val ledgerLineHeight: Float = 17f,
 	val ledgerGutter: Float = 14f,
 	val leaderThreshold: Float = 6f,
-	val sequenceRowStep: Float = 28f,
+	val sequenceRowStep: Float = 40f,
 	val hitSize: Float = 16f,
 	val targetTicks: Int = 8,
 )

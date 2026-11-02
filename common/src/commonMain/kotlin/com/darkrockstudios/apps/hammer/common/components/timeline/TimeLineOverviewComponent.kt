@@ -196,6 +196,10 @@ class TimeLineOverviewComponent(
 		_state.getAndUpdate { it.copy(view = view) }
 	}
 
+	override fun setScrolledDown(scrolledDown: Boolean) {
+		_state.getAndUpdate { it.copy(scrolledDown = scrolledDown) }
+	}
+
 	override fun select(eventId: Int?) {
 		_state.getAndUpdate { it.copy(selectedId = eventId?.takeIf { id -> id != it.selectedId }) }
 		refreshSummary()

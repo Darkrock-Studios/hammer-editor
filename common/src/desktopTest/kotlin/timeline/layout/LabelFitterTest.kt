@@ -14,7 +14,7 @@ class LabelFitterTest {
 
 	@Test
 	fun `a roomy band wraps the title inside`() {
-		val label = LabelFitter.fitBandLabel("The drawing room at night", 104f, 60f, measurer)
+		val label = LabelFitter.fitBandLabel("The drawing room at night", 124f, 60f, measurer)
 
 		val lines = assertIs<BandLabel.Lines>(label)
 		assertEquals(listOf("The drawing", "room at night"), lines.lines)
@@ -69,7 +69,7 @@ class LabelFitterTest {
 
 	@Test
 	fun `a cut wrap ends in an ellipsis`() {
-		val lines = LabelFitter.wrapToWidth("one two three four five six", 60f, LabelStyle.Ledger, measurer, 2)
+		val lines = LabelFitter.wrapToWidth("one two three four five six", 79f, LabelStyle.Ledger, measurer, 2)
 
 		assertEquals(listOf("one two", "three fou…"), lines)
 	}

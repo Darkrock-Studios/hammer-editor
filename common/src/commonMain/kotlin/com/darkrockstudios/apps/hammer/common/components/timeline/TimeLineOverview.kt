@@ -32,6 +32,9 @@ interface TimeLineOverview {
 	/** Shows a referenced scene or entry from the selection's summary. */
 	fun openReference(item: CatalogItem)
 
+	/** Set by the UI as the reader scrolls the list or drawing down, cleared as they scroll back up. */
+	fun setScrolledDown(scrolledDown: Boolean)
+
 	data class State(
 		/** Null until the timeline has loaded. */
 		val rows: List<TimelineRow>? = null,
@@ -51,6 +54,8 @@ interface TimeLineOverview {
 		val frame: TimelineFrame = TimelineFrame.Everything,
 		/** Whether some placed scene has a start, which [TimelineFrame.Story] frames. */
 		val storyFrameAvailable: Boolean = false,
+		/** The reader last scrolled down; the create button stays out of the way until they scroll up. */
+		val scrolledDown: Boolean = false,
 	)
 }
 

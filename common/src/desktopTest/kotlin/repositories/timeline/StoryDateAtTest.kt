@@ -66,8 +66,8 @@ class StoryDateAtTest {
 	fun `tick labels keep the two finest parts, or the values alone when short`() {
 		val landing = CalendarDef(epochName = "Landing")
 		assertEquals("Year 12 · Day 40", formatStoryDateTick(landing, date("year" to 12, "day" to 40), short = false))
-		assertEquals("Day 40 · 06:00", formatStoryDateTick(landing, date("year" to 12, "day" to 40, "hour" to 6), short = false))
-		assertEquals("06:00", formatStoryDateTick(landing, date("year" to 12, "day" to 40, "hour" to 6), short = true))
+		assertEquals("Day 40 · 6:00", formatStoryDateTick(landing, date("year" to 12, "day" to 40, "hour" to 6), short = false))
+		assertEquals("6:00", formatStoryDateTick(landing, date("year" to 12, "day" to 40, "hour" to 6), short = true))
 		assertEquals("12 · 40", formatStoryDateTick(landing, date("year" to 12, "day" to 40), short = true))
 		assertEquals("Year 3 before Landing", formatStoryDateTick(landing, date("year" to -3), short = false))
 		assertEquals("May 1802", formatStoryDateTick(gregorian, date("year" to 1802, "month" to 5), short = false))

@@ -30,6 +30,7 @@ import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
 import com.darkrockstudios.apps.hammer.common.preview.globalSettingsPreview
 import com.darkrockstudios.apps.hammer.common.timeline.drawing.TimelineDrawing
 import com.darkrockstudios.apps.hammer.common.timeline.drawing.TimelineDrawingPane
+import com.darkrockstudios.apps.hammer.common.timeline.drawing.rememberTimelineTextMeasurer
 import com.darkrockstudios.apps.hammer.common.timeline.layout.MonospaceEstimateMeasurer
 import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineLayoutEngine
 import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineLayoutInput
@@ -40,11 +41,14 @@ private const val DESKTOP_WIDTH = 840
 private const val PHONE_WIDTH = 360
 private const val TALL = 1400
 
+private fun estimateMeasurer(phone: Boolean) =
+	if (phone) MonospaceEstimateMeasurer(MonospaceEstimateMeasurer.PHONE_FONT_SIZES) else MonospaceEstimateMeasurer()
+
 /** Laid out with the estimate measurer, as the geometry goldens are, so the shapes match them. */
 @Composable
 private fun SampleDrawing(input: TimelineLayoutInput, dark: Boolean = false) {
 	AppTheme(globalSettingsPreview, dark) {
-		val layout = remember(input) { TimelineLayoutEngine.layout(input, MonospaceEstimateMeasurer()) }
+		val layout = remember(input) { TimelineLayoutEngine.layout(input, estimateMeasurer(input.phone)) }
 		val colors = LocalHammerColors.current
 		Box(modifier = Modifier.width(input.widthDp.dp).background(MaterialTheme.colorScheme.surface)) {
 			TimelineDrawing(
@@ -53,6 +57,7 @@ private fun SampleDrawing(input: TimelineLayoutInput, dark: Boolean = false) {
 				selectedId = input.selectedId,
 				onTap = {},
 				titles = input.events.associate { it.id to it.title },
+				measurer = rememberTimelineTextMeasurer(input.phone),
 			)
 		}
 	}
@@ -146,7 +151,7 @@ private fun PhoneSelectionDrawing(dark: Boolean) {
 	val input = remember { TimelineLayoutSamples.hollowmere(phone = true, selectedId = HOLLOWMERE_FINDS_BODY) }
 	KoinApplicationPreview {
 		AppTheme(globalSettingsPreview, dark) {
-			val layout = remember(input) { TimelineLayoutEngine.layout(input, MonospaceEstimateMeasurer()) }
+			val layout = remember(input) { TimelineLayoutEngine.layout(input, estimateMeasurer(phone = true)) }
 			val colors = LocalHammerColors.current
 			val density = LocalDensity.current
 			var stripHeight by remember { mutableStateOf(0.dp) }
@@ -157,6 +162,7 @@ private fun PhoneSelectionDrawing(dark: Boolean) {
 					selectedId = input.selectedId,
 					onTap = {},
 					titles = input.events.associate { it.id to it.title },
+					measurer = rememberTimelineTextMeasurer(phone = true),
 					bottomPadding = stripHeight,
 					modifier = Modifier.fillMaxSize(),
 				)

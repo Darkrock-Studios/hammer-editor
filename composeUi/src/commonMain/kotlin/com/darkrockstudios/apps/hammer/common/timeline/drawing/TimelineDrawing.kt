@@ -9,8 +9,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -34,6 +32,7 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
@@ -42,6 +41,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -163,7 +163,7 @@ fun TimelineDrawing(
 					onDrawBehind { with(painter) { draw() } }
 				},
 		)
-		for (region in layout.hitRegions) {
+		HitLayer(regions = layout.hitRegions, modifier = Modifier.matchParentSize()) { region ->
 			HitBox(
 				region = region,
 				description = descriptions.describe(region.target, laneHeaderDescription),
@@ -173,6 +173,35 @@ fun TimelineDrawing(
 				onOpen = onOpen?.takeIf { timelineOpensOnDoubleClick },
 				clicks = clicks,
 			)
+		}
+	}
+}
+
+/**
+ * Places one child per region at the region's rect. Placing the child itself, rather than offsetting
+ * it, keeps a tooltip's anchor on the region. Each [content] call must emit exactly one layout node.
+ */
+@Composable
+private fun HitLayer(
+	regions: List<HitRegion>,
+	modifier: Modifier = Modifier,
+	content: @Composable (HitRegion) -> Unit,
+) {
+	Layout(
+		modifier = modifier,
+		content = { for (region in regions) content(region) },
+	) { measurables, constraints ->
+		val placeables = measurables.mapIndexed { i, measurable ->
+			val rect = regions[i].rect
+			val width = rect.width.dp.roundToPx().coerceAtLeast(0)
+			val height = rect.height.dp.roundToPx().coerceAtLeast(0)
+			measurable.measure(Constraints.fixed(width, height))
+		}
+		layout(constraints.maxWidth, constraints.maxHeight) {
+			placeables.forEachIndexed { i, placeable ->
+				val rect = regions[i].rect
+				placeable.placeRelative(rect.x.dp.roundToPx(), rect.y.dp.roundToPx())
+			}
 		}
 	}
 }
@@ -267,10 +296,6 @@ private fun HitBox(
 	onOpen: ((Int) -> Unit)?,
 	clicks: DoubleClickDetector,
 ) {
-	val rect = region.rect
-	val place = Modifier
-		.offset(rect.x.dp, rect.y.dp)
-		.size(rect.width.dp, rect.height.dp)
 	val eventId = region.target.eventId
 	val doubleClickTimeout = LocalViewConfiguration.current.doubleTapTimeoutMillis.milliseconds
 	val target = Modifier
@@ -288,12 +313,12 @@ private fun HitBox(
 			positionProvider = TooltipDefaults.rememberTooltipPositionProvider(),
 			tooltip = { PlainTooltip { Text(description) } },
 			state = rememberTooltipState(),
-			modifier = place,
+			modifier = Modifier.fillMaxSize(),
 		) {
 			Box(modifier = Modifier.fillMaxSize().then(target))
 		}
 	} else {
-		Box(modifier = place.then(target))
+		Box(modifier = Modifier.fillMaxSize().then(target))
 	}
 }
 

@@ -22,6 +22,18 @@ class MonospaceEstimateMeasurer(
 		private const val LINE = 1.2f
 
 		val DEFAULT_FONT_SIZES: Map<LabelStyle, Float> = mapOf(
+			LabelStyle.Axis to 12f,
+			LabelStyle.LaneHeader to 11f,
+			LabelStyle.BandLabel to 13f,
+			LabelStyle.BandLabelSmall to 11f,
+			LabelStyle.BarLabel to 12f,
+			LabelStyle.Ledger to 13f,
+			LabelStyle.LedgerMilestone to 13f,
+			LabelStyle.LedgerSub to 11f,
+		)
+
+		/** The smaller labels a phone draws beside its rails. */
+		val PHONE_FONT_SIZES: Map<LabelStyle, Float> = mapOf(
 			LabelStyle.Axis to 11f,
 			LabelStyle.LaneHeader to 10f,
 			LabelStyle.BandLabel to 11f,

@@ -38,25 +38,39 @@ class ComposeTimelineTextMeasurer(
 		lineHeights.getOrPut(style) { measure("Ag", style).size.height / density.density }
 }
 
+/** Phone labels stay small so the ledger fits beside the rails; desktop labels are larger. */
 @Composable
-fun rememberTimelineTextMeasurer(): ComposeTimelineTextMeasurer {
+fun rememberTimelineTextMeasurer(phone: Boolean = false): ComposeTimelineTextMeasurer {
 	val textMeasurer = rememberTextMeasurer(cacheSize = 512)
 	val density = LocalDensity.current
 	val mono = MaterialTheme.typography.labelSmall.fontFamily
 	val body = MaterialTheme.typography.bodySmall.fontFamily
-	return remember(textMeasurer, density, mono, body) {
+	return remember(textMeasurer, density, mono, body, phone) {
 		val monoStyle = TextStyle(fontFamily = mono, letterSpacing = 0.sp)
 		val bodyStyle = TextStyle(fontFamily = body, letterSpacing = 0.sp)
-		val styles = mapOf(
-			LabelStyle.Axis to monoStyle.copy(fontSize = 11.sp),
-			LabelStyle.LaneHeader to monoStyle.copy(fontSize = 10.sp, letterSpacing = 0.5.sp),
-			LabelStyle.BandLabel to bodyStyle.copy(fontSize = 11.sp, fontWeight = FontWeight.Medium),
-			LabelStyle.BandLabelSmall to bodyStyle.copy(fontSize = 9.sp, fontWeight = FontWeight.Medium),
-			LabelStyle.BarLabel to monoStyle.copy(fontSize = 10.sp),
-			LabelStyle.Ledger to monoStyle.copy(fontSize = 10.sp),
-			LabelStyle.LedgerMilestone to monoStyle.copy(fontSize = 10.sp, fontWeight = FontWeight.SemiBold),
-			LabelStyle.LedgerSub to monoStyle.copy(fontSize = 9.sp),
-		)
+		val styles = if (phone) {
+			mapOf(
+				LabelStyle.Axis to monoStyle.copy(fontSize = 11.sp),
+				LabelStyle.LaneHeader to monoStyle.copy(fontSize = 10.sp, letterSpacing = 0.5.sp),
+				LabelStyle.BandLabel to bodyStyle.copy(fontSize = 11.sp, fontWeight = FontWeight.Medium),
+				LabelStyle.BandLabelSmall to bodyStyle.copy(fontSize = 9.sp, fontWeight = FontWeight.Medium),
+				LabelStyle.BarLabel to monoStyle.copy(fontSize = 10.sp),
+				LabelStyle.Ledger to monoStyle.copy(fontSize = 10.sp),
+				LabelStyle.LedgerMilestone to monoStyle.copy(fontSize = 10.sp, fontWeight = FontWeight.SemiBold),
+				LabelStyle.LedgerSub to monoStyle.copy(fontSize = 9.sp),
+			)
+		} else {
+			mapOf(
+				LabelStyle.Axis to monoStyle.copy(fontSize = 12.sp),
+				LabelStyle.LaneHeader to monoStyle.copy(fontSize = 11.sp, letterSpacing = 0.8.sp),
+				LabelStyle.BandLabel to bodyStyle.copy(fontSize = 13.sp, fontWeight = FontWeight.Medium),
+				LabelStyle.BandLabelSmall to bodyStyle.copy(fontSize = 11.sp, fontWeight = FontWeight.Medium),
+				LabelStyle.BarLabel to monoStyle.copy(fontSize = 12.sp),
+				LabelStyle.Ledger to monoStyle.copy(fontSize = 13.sp),
+				LabelStyle.LedgerMilestone to monoStyle.copy(fontSize = 13.sp, fontWeight = FontWeight.SemiBold),
+				LabelStyle.LedgerSub to monoStyle.copy(fontSize = 11.sp),
+			)
+		}
 		ComposeTimelineTextMeasurer(textMeasurer, density) { styles.getValue(it) }
 	}
 }

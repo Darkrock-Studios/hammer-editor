@@ -11,6 +11,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
+import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
@@ -20,6 +21,7 @@ import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.components.timeline.LaneCount
 import com.darkrockstudios.apps.hammer.common.components.timeline.SelectionSummary
+import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLine
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineOverview
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimelineRow
 import com.darkrockstudios.apps.hammer.common.compose.LocalImageNames
@@ -32,6 +34,7 @@ import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogItem
 import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogKind
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagCount
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
+import com.darkrockstudios.apps.hammer.common.preview.fakeProjectDef
 import com.darkrockstudios.apps.hammer.common.timeline.*
 import com.darkrockstudios.apps.hammer.common.timeline.drawing.TIMELINE_BOTTOM_PADDING_TAG
 import com.darkrockstudios.apps.hammer.common.timeline.drawing.TIMELINE_DRAWING_TAG
@@ -40,6 +43,8 @@ import com.darkrockstudios.apps.hammer.common.timeline.drawing.testTag
 import com.darkrockstudios.apps.hammer.common.timeline.layout.HitTarget
 import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineFrame
 import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineView
+import io.mockk.every
+import io.mockk.mockk
 import org.junit.Rule
 import org.junit.Test
 import kotlin.test.assertEquals
@@ -104,6 +109,10 @@ class TimeLineOverviewUiTest : BaseTest() {
 
 		override fun openReference(item: CatalogItem) {
 			openedReferences += item
+		}
+
+		override fun setScrolledDown(scrolledDown: Boolean) {
+			_state.value = _state.value.copy(scrolledDown = scrolledDown)
 		}
 	}
 
@@ -519,7 +528,7 @@ class TimeLineOverviewUiTest : BaseTest() {
 		showOverview(component)
 		compose.runOnIdle { component.select(7) }
 
-		compose.onNode(inSummary("Clear")).performClick()
+		compose.onNode(hasContentDescription("Clear") and hasAnyAncestor(hasTestTag(TIME_LINE_SELECTION_TAG))).performClick()
 
 		assertNull(component.state.value.selectedId)
 		compose.onNodeWithTag(TIME_LINE_SELECTION_TAG).assertDoesNotExist()
@@ -810,5 +819,113 @@ class TimeLineOverviewUiTest : BaseTest() {
 		compose.onNodeWithTag(TIME_LINE_LIST_TAG).assertIsDisplayed()
 		compose.onNodeWithTag(TIMELINE_DRAWING_TAG).assertDoesNotExist()
 		compose.onNodeWithTag(TIME_LINE_VIEW_PICKER_TAG).assertDoesNotExist()
+	}
+
+	private fun showFab(overview: TimeLineOverview) {
+		val timeline = mockk<TimeLine>(relaxed = true)
+		every { timeline.stack } returns MutableValue(
+			ChildStack(
+				configuration = TimeLine.Config.TimeLineOverviewConfig(fakeProjectDef()),
+				instance = TimeLine.Destination.TimeLineOverviewDestination(overview),
+			)
+		)
+		compose.setContent { TimelineFab(timeline) }
+	}
+
+	@Test
+	fun `The create FAB shows while nothing is selected`() {
+		val component = FakeOverview(listOf(row(TimeLineEvent(id = 7, order = 0, title = "Croquet"))))
+
+		showFab(component)
+
+		compose.onNodeWithTag(TIME_LINE_CREATE_TAG).assertIsDisplayed()
+	}
+
+	@Test
+	fun `The create FAB hides while something is selected`() {
+		val component = FakeOverview(listOf(row(TimeLineEvent(id = 7, order = 0, title = "Croquet"))))
+		showFab(component)
+
+		compose.runOnIdle { component.select(7) }
+		compose.waitForIdle()
+
+		compose.onNodeWithTag(TIME_LINE_CREATE_TAG).assertDoesNotExist()
+	}
+
+	@Test
+	fun `The create FAB hides while scrolled down`() {
+		val component = FakeOverview(listOf(row(TimeLineEvent(id = 7, order = 0, title = "Croquet"))))
+		showFab(component)
+
+		compose.runOnIdle { component.setScrolledDown(true) }
+		compose.waitForIdle()
+		compose.onNodeWithTag(TIME_LINE_CREATE_TAG).assertDoesNotExist()
+
+		compose.runOnIdle { component.setScrolledDown(false) }
+		compose.waitForIdle()
+		compose.onNodeWithTag(TIME_LINE_CREATE_TAG).assertIsDisplayed()
+	}
+
+	private fun longLanedList() = FakeOverview(
+		rows = (0 until 30).map { i ->
+			val lane = if (i < 2) "Alice" else "Queen"
+			row(TimeLineEvent(id = i, order = i, title = "Event $i", lane = lane), laneIndex = if (i < 2) 0 else 1)
+		},
+		lanes = listOf(LaneCount("Alice", 2), LaneCount("Queen", 28)),
+	)
+
+	@Test
+	fun `Scrolling the list down and back up reports it for the create FAB`() {
+		val component = longLanedList()
+		showOverview(component, size = DpSize(800.dp, 600.dp))
+
+		compose.onNodeWithTag(TIME_LINE_LIST_TAG).performTouchInput { swipeUp() }
+		compose.waitForIdle()
+		assertTrue(component.state.value.scrolledDown, "scrolled down")
+
+		compose.onNodeWithTag(TIME_LINE_LIST_TAG).performTouchInput { swipeDown() }
+		compose.waitForIdle()
+		assertEquals(false, component.state.value.scrolledDown)
+	}
+
+	@Test
+	fun `A filter that leaves the list short brings the collapsed strip back`() {
+		val component = longLanedList()
+		showOverview(component, size = DpSize(800.dp, 600.dp))
+		compose.onNodeWithTag(TIME_LINE_LIST_TAG).performTouchInput { swipeUp() }
+		compose.waitForIdle()
+		compose.onNodeWithTag(TIME_LINE_LANE_FILTER_TAG).assertIsNotDisplayed()
+
+		compose.runOnIdle { component.setLaneFilter(setOf("Alice")) }
+		compose.waitForIdle()
+		compose.onNodeWithTag(TIME_LINE_LIST_TAG).performTouchInput { swipeUp() }
+		compose.waitForIdle()
+
+		compose.onAllNodesWithTag(EVENT_CARD_TAG).assertCountEquals(2)
+		compose.onNodeWithTag(TIME_LINE_LANE_FILTER_TAG).assertIsDisplayed()
+		assertEquals(false, component.state.value.scrolledDown)
+	}
+
+	@Test
+	fun `A framed band shows a pill on the drawing that returns to everything`() {
+		val component = FakeOverview(
+			listOf(
+				datedRow(TimeLineEvent(id = 7, order = 0, title = "The siege", lane = "Alice"), year = 1, endYear = 4, laneIndex = 0),
+				datedRow(TimeLineEvent(id = 8, order = 1, title = "Croquet"), year = 6),
+			),
+			lanes = listOf(LaneCount("Alice", 1)),
+			mode = TimelineMode.DATED,
+		)
+		showOverview(component, screen = desktopScreen)
+		compose.onNodeWithTag(TIME_LINE_FRAME_PILL_TAG).assertDoesNotExist()
+
+		compose.runOnIdle { component.setFrame(TimelineFrame.Band(7)) }
+		compose.onNodeWithTag(TIME_LINE_FRAME_PILL_TAG).assertIsDisplayed()
+		compose.onNode(hasText("THE SIEGE") and hasAnyAncestor(hasTestTag(TIME_LINE_FRAME_PILL_TAG)), useUnmergedTree = true).assertExists()
+
+		compose.onNodeWithTag(TIME_LINE_FRAME_PILL_TAG).performClick()
+
+		assertEquals(TimelineFrame.Everything, component.state.value.frame)
+		compose.onNodeWithTag(TIME_LINE_FRAME_PILL_TAG).assertDoesNotExist()
 	}
 }

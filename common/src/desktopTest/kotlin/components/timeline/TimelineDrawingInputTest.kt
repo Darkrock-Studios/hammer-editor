@@ -139,8 +139,8 @@ class TimelineDrawingInputTest {
 		val hourUnit = scheme.units[2]
 		assertEquals("Year 12 · Day 40", scheme.format(12 * year + 40 * day + 5 * hour, dayUnit, false))
 		assertEquals("12 · 40", scheme.format(12 * year + 40 * day, dayUnit, true))
-		assertEquals("Day 40 · 03:00", scheme.format(12 * year + 40 * day + 3 * hour + 15, hourUnit, false))
-		assertEquals("03:00", scheme.format(12 * year + 40 * day + 3 * hour, hourUnit, true))
+		assertEquals("Day 40 · 3:00", scheme.format(12 * year + 40 * day + 3 * hour + 15, hourUnit, false))
+		assertEquals("3:00", scheme.format(12 * year + 40 * day + 3 * hour, hourUnit, true))
 		assertEquals("Year 3 before Landing", scheme.format(-3 * year, scheme.units[0], false))
 	}
 
@@ -155,16 +155,18 @@ class TimelineDrawingInputTest {
 		val phone = axis(phone = true)
 		assertEquals(64f, phone.xDp)
 		assertTrue(phone.ticks.isNotEmpty())
-		phone.ticks.forEach { assertTrue(it.label.matches(Regex("\\d{2}:\\d{2}")), "phone tick ${it.label}") }
+		phone.ticks.forEach { assertTrue(it.label.matches(Regex("\\d{1,2}:\\d{2}")), "phone tick ${it.label}") }
 		val desktop = axis(phone = false)
 		assertTrue(desktop.ticks.all { it.label.startsWith("Day 40 · ") }, "desktop ticks ${desktop.ticks.map { it.label }}")
 	}
 
 	@Test
-	fun `a story told in hours ticks in hours and minutes`() {
+	fun `a story told in hours ticks as a clock`() {
 		val scheme = timelineTickScheme(CalendarDef(coarsestUnit = "hour"))
 		assertEquals(listOf("hour", "minute"), scheme.units.map { it.name })
-		assertEquals("Hour 30", scheme.format(30 * hour + 12, scheme.units[0], false))
+		assertEquals("30:00", scheme.format(30 * hour + 12, scheme.units[0], false))
+		assertEquals("30:12", scheme.format(30 * hour + 12, scheme.units[1], false))
+		assertEquals("30:12", scheme.format(30 * hour + 12, scheme.units[1], true))
 	}
 
 	private val gregorian = CalendarDef(CalendarPreset.GREGORIAN)

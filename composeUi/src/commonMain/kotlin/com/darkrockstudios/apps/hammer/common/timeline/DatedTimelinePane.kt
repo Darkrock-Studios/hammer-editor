@@ -8,6 +8,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -40,6 +41,7 @@ private const val MIN_LANE_WIDTH_DP = 72f
 /**
  * The drawing of a DATED timeline's [rows] in the state's frame, laid out to the width it is given.
  * A new frame starts scrolled to the top. [bottomPadding] keeps the last rows clear of an overlay.
+ * [onContentHeight] hears the drawing's full height, padding included.
  *
  * On a phone (Compact width) lanes are 22dp rails with every label in the ledger. Only the lanes in
  * the lane filter are drawn (all of them while it is empty), so the lane chips are how a writer picks
@@ -53,11 +55,12 @@ internal fun DatedTimelinePane(
 	modifier: Modifier = Modifier,
 	onOpen: ((Int) -> Unit)? = null,
 	bottomPadding: Dp = 0.dp,
+	onContentHeight: (Dp) -> Unit = {},
 ) {
 	val words = rememberStoryDateWords()
-	val measurer = rememberTimelineTextMeasurer()
 	val colors = LocalHammerColors.current
 	val phone = LocalScreenCharacteristic.current.windowWidthClass == WindowWidthSizeClass.Compact
+	val measurer = rememberTimelineTextMeasurer(phone)
 	val calendar = state.calendar ?: CalendarDef()
 	val laneDescriptions = state.lanes.associate { it.lane to Res.string.timeline_lane_filter_description.get(it.lane) }
 	val describeLane: (String) -> String = { lane -> laneDescriptions[lane] ?: lane }
@@ -107,6 +110,9 @@ internal fun DatedTimelinePane(
 			layout.lanes.map { lane -> state.lanes.indexOfFirst { it.lane == lane.name }.takeIf { it >= 0 } ?: lane.index }
 		}
 		val titles = remember(rows) { rows.associate { it.event.id to it.title } }
+		val contentHeight = layout.heightDp.dp + bottomPadding
+		val reportContentHeight by rememberUpdatedState(onContentHeight)
+		LaunchedEffect(contentHeight) { reportContentHeight(contentHeight) }
 
 		TimelineDrawingPane(
 			layout = layout,

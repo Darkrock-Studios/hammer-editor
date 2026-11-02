@@ -6,7 +6,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -14,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.timeline.drawing.TIMELINE_HIT_TAG
 import com.darkrockstudios.apps.hammer.common.timeline.drawing.TimelineDrawing
 import com.darkrockstudios.apps.hammer.common.timeline.drawing.testTag
+import com.darkrockstudios.apps.hammer.common.timeline.layout.HitRegion
 import com.darkrockstudios.apps.hammer.common.timeline.layout.HitTarget
 import com.darkrockstudios.apps.hammer.common.timeline.layout.MonospaceEstimateMeasurer
 import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineLayout
@@ -25,6 +28,8 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+
+private const val HOST_TAG = "Timeline Host"
 
 class TimelineDrawingUiTest {
 	@get:Rule
@@ -40,7 +45,7 @@ class TimelineDrawingUiTest {
 	) {
 		compose.setContent {
 			MaterialTheme {
-				Box(modifier = Modifier.requiredWidth(layout.widthDp.dp)) {
+				Box(modifier = Modifier.requiredWidth(layout.widthDp.dp).testTag(HOST_TAG)) {
 					TimelineDrawing(
 						layout = layout,
 						laneColor = { Color.Gray },
@@ -51,6 +56,16 @@ class TimelineDrawingUiTest {
 				}
 			}
 		}
+	}
+
+	private fun assertPlacedOn(region: HitRegion) {
+		val host = compose.onNodeWithTag(HOST_TAG).getBoundsInRoot()
+		val bounds = compose.onNodeWithTag(region.target.testTag()).getBoundsInRoot()
+		val tolerance = 1f
+		assertEquals(region.rect.x, (bounds.left - host.left).value, absoluteTolerance = tolerance)
+		assertEquals(region.rect.y, (bounds.top - host.top).value, absoluteTolerance = tolerance)
+		assertEquals(region.rect.width, (bounds.right - bounds.left).value, absoluteTolerance = tolerance)
+		assertEquals(region.rect.height, (bounds.bottom - bounds.top).value, absoluteTolerance = tolerance)
 	}
 
 	private val hitNodes = SemanticsMatcher("is a hit region") { node ->
@@ -87,6 +102,22 @@ class TimelineDrawingUiTest {
 		compose.onNodeWithTag(HitTarget.LaneHeader(TimelineLayoutSamples.HOLLOWMERE_HAYES).testTag()).performClick()
 
 		assertEquals(listOf<HitTarget>(HitTarget.LaneHeader(TimelineLayoutSamples.HOLLOWMERE_HAYES)), tapped)
+	}
+
+	@Test
+	fun `A ledger row's hit box covers its region`() {
+		show()
+		val row = layout.ledgerRows.maxBy { it.anchorYDp }
+
+		assertPlacedOn(layout.hitRegions.first { it.target == HitTarget.Ledger(row.eventId) })
+	}
+
+	@Test
+	fun `A band's hit box covers its region`() {
+		show()
+		val band = layout.bands.maxBy { it.rect.y }
+
+		assertPlacedOn(layout.hitRegions.first { it.target == HitTarget.Band(band.eventId) })
 	}
 
 	@Test

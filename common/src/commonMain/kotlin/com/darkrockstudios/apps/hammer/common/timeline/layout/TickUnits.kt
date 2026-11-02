@@ -58,18 +58,23 @@ fun deriveTickUnit(range: LongRange, units: List<TickUnit>, targetTicks: Int): T
 
 /**
  * The coarsest unit giving at least half of [targetTicks] across [length], then the smallest step
- * from 1, 2, 5, 10, 25, 50, 100, 250, 500, ... that keeps the count, plus [extraTicks] placed
- * outside [length], at or under 1.5 times [targetTicks].
+ * from the unit's [TickUnit.steps] (else 1, 2, 5, 10, 25, 50, 100, 250, 500, ...) that keeps the
+ * count, plus [extraTicks] placed outside [length], at or under 1.5 times [targetTicks].
  */
 fun deriveTickUnit(length: Long, units: List<TickUnit>, targetTicks: Int, extraTicks: Int = 0): TickStep? {
 	if (units.isEmpty()) return null
 	val minCount = targetTicks / 2.0
 	val unit = units.firstOrNull { length.toDouble() / it.sizeInBase >= minCount } ?: units.last()
 	val maxCount = targetTicks * 1.5
-	for (step in tickSteps()) {
+	for (step in tickSteps(unit.steps)) {
 		if (length.toDouble() / (unit.sizeInBase.toDouble() * step) + extraTicks <= maxCount) return TickStep(unit, step)
 	}
 	return TickStep(unit, Long.MAX_VALUE / unit.sizeInBase)
+}
+
+private fun tickSteps(preferred: List<Long>): Sequence<Long> {
+	val last = preferred.lastOrNull() ?: return tickSteps()
+	return preferred.asSequence() + tickSteps().filter { it > last }
 }
 
 private fun tickSteps(): Sequence<Long> = sequence {

@@ -124,8 +124,9 @@ private fun clock(hour: Long, minute: Long): String =
 
 /**
  * An axis label for [date], a tick truncated to its unit. The long form keeps the two finest parts
- * (`Year 12 · Day 40`, `Day 40 · 06:00`, `12 May · 06:00`); the short form drops the unit words
- * (`12 · 40`, `06:00`, `12 May`).
+ * (`Year 12 · Day 40`, `Day 40 · 6:00`, `12 May · 06:00`); the short form drops the unit words
+ * (`12 · 40`, `6:00`, `12 May`). A STORY calendar's hour reads as a clock time with its minute,
+ * `1:42`, even when the hour is the coarsest unit the story is told in.
  */
 fun formatStoryDateTick(
 	calendar: CalendarDef,
@@ -148,20 +149,24 @@ private fun storyTick(calendar: CalendarDef, date: StoryDate, short: Boolean, wo
 	var endsInClock = false
 	for (unit in filled) {
 		val value = date[unit]!!
+		val beforeEpoch = unit == leading && value < 0 && epoch != null
 		when {
-			unit == StoryCalendar.HOUR && unit != leading -> {
-				parts += clock(value, date[StoryCalendar.MINUTE] ?: 0)
+			unit == StoryCalendar.HOUR && !beforeEpoch -> {
+				parts += tickClock(value, date[StoryCalendar.MINUTE] ?: 0)
 				endsInClock = true
 			}
 
 			unit == StoryCalendar.MINUTE && endsInClock -> Unit
 			short -> parts += value.toString()
-			unit == leading && value < 0 && epoch != null -> parts += words.beforeEpoch("${words.unit(unit)} ${-value}", epoch)
+			beforeEpoch -> parts += words.beforeEpoch("${words.unit(unit)} ${-value}", epoch)
 			else -> parts += "${words.unit(unit)} $value"
 		}
 	}
 	return if (short && endsInClock) parts.last() else parts.takeLast(2).joinToString(SEPARATOR)
 }
+
+/** `1:42`, `2:00`: an axis reads the hour unpadded. */
+private fun tickClock(hour: Long, minute: Long): String = "$hour:${minute.toString().padStart(2, '0')}"
 
 private fun gregorianTick(date: StoryDate, short: Boolean, words: StoryDateWords): String {
 	val year = date[StoryCalendar.YEAR]!!

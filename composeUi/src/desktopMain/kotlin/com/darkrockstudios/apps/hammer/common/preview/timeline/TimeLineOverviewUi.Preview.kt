@@ -176,4 +176,5 @@ private class PreviewOverview(initial: TimeLineOverview.State) : TimeLineOvervie
 	override fun select(eventId: Int?) {}
 	override fun setFrame(frame: TimelineFrame) {}
 	override fun openReference(item: CatalogItem) {}
+	override fun setScrolledDown(scrolledDown: Boolean) {}
 }

@@ -12,6 +12,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,6 +31,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListLayoutInfo
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
@@ -43,6 +45,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -50,12 +54,20 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.layout.SubcomposeLayout
@@ -63,7 +75,9 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -79,6 +93,7 @@ import com.darkrockstudios.apps.hammer.common.components.timeline.SelectionSumma
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineOverview
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimelineRow
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
+import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarGutter
 import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarList
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.WindowWidthSizeClass
@@ -99,6 +114,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagFilterBa
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdGlyphColor
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdMark
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdSwatchColor
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.rememberHdScrollAwayFooterState
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.rememberStoryDateWords
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownView
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.rememberMarkdownPreview
@@ -166,6 +182,7 @@ const val TIME_LINE_VIEW_PICKER_TAG = "Timeline View Picker"
 const val TIME_LINE_FRAME_PICKER_TAG = "Timeline Frame Picker"
 const val TIME_LINE_FRAME_BAND_TAG = "Timeline Frame Band"
 const val TIME_LINE_FRAME_CLEAR_TAG = "Timeline Frame Clear"
+const val TIME_LINE_FRAME_PILL_TAG = "Timeline Frame Pill"
 const val TIME_LINE_SELECTION_TAG = "Timeline Selection Summary"
 const val EVENT_CARD_TAG = "Timeline Event Card"
 const val EVENT_CARD_DATE_TAG = "Timeline Event Card Date"
@@ -241,14 +258,46 @@ fun TimeLineOverviewUi(
 	}
 	val anyFilter = activeTags.isNotEmpty() || laneFilter.isNotEmpty()
 
+	val branch = when {
+		dated && matchedRows.isNotEmpty() -> OverviewContent.Drawing
+		visibleRows.isEmpty() -> OverviewContent.Empty
+		else -> OverviewContent.List
+	}
+	val listState = rememberLazyListState()
+	var paneHeightPx by remember { mutableStateOf(0) }
+	var drawingHeightPx by remember { mutableStateOf(0) }
+	val stripState = rememberTopAppBarState()
+	// Measured against the viewport with the strip fully shown, so collapsing it cannot flip this.
+	val contentFits by remember(branch) {
+		derivedStateOf {
+			when (branch) {
+				OverviewContent.Drawing -> drawingHeightPx <= paneHeightPx + stripState.heightOffset
+				OverviewContent.Empty -> true
+				OverviewContent.List -> listState.layoutInfo.fitsIn(listState.layoutInfo.viewportSize.height + stripState.heightOffset)
+			}
+		}
+	}
+	// Content that does not overflow cannot scroll the strip back, so it never hides it.
 	val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(
-		state = rememberTopAppBarState(),
+		state = stripState,
+		canScroll = { !contentFits },
 	)
+	LaunchedEffect(contentFits) {
+		if (contentFits) stripState.heightOffset = 0f
+	}
+	val scrollAway = rememberHdScrollAwayFooterState()
+	LaunchedEffect(component, scrollAway) {
+		snapshotFlow { scrollAway.isHiddenByScroll && !contentFits }.collect(component::setScrolledDown)
+	}
+	DisposableEffect(component) {
+		onDispose { component.setScrolledDown(false) }
+	}
 
 	Column(
 		modifier = Modifier
 			.fillMaxSize()
-			.nestedScroll(scrollBehavior.nestedScrollConnection),
+			.nestedScroll(scrollBehavior.nestedScrollConnection)
+			.nestedScroll(scrollAway.nestedScrollConnection),
 	) {
 		// Title row — section header with entries/tags meta. Narrow widths
 		// swap the title for a search field on tap.
@@ -470,11 +519,31 @@ fun TimeLineOverviewUi(
 			}
 
 		when {
-			dated && matchedRows.isNotEmpty() -> {
+			branch == OverviewContent.Drawing -> {
 				val selected = state.selectedId?.let { id -> rows.firstOrNull { it.event.id == id } }
 				var stripHeight by remember { mutableStateOf(0.dp) }
 				val density = LocalDensity.current
-				Box(modifier = Modifier.fillMaxSize()) {
+				val framed = state.frame != TimelineFrame.Everything
+				val focusRequester = remember { FocusRequester() }
+				LaunchedEffect(framed) {
+					// Takes focus so Escape returns to Everything.
+					if (framed) focusRequester.requestFocus()
+				}
+				Box(
+					modifier = Modifier
+						.fillMaxSize()
+						.onSizeChanged { paneHeightPx = it.height }
+						.onPreviewKeyEvent { event ->
+							if (framed && event.type == KeyEventType.KeyDown && event.key == Key.Escape) {
+								component.setFrame(TimelineFrame.Everything)
+								true
+							} else {
+								false
+							}
+						}
+						.focusRequester(focusRequester)
+						.focusable(),
+				) {
 					DatedTimelinePane(
 						state = state,
 						rows = matchedRows,
@@ -500,7 +569,19 @@ fun TimeLineOverviewUi(
 							viewEvent(eventId)
 						},
 						bottomPadding = if (selected != null) stripHeight else 0.dp,
+						onContentHeight = { drawingHeightPx = with(density) { it.roundToPx() } },
 					)
+					if (framed) {
+						val bandTitle = (state.frame as? TimelineFrame.Band)
+							?.let { frame -> rows.firstOrNull { it.event.id == frame.eventId }?.title }
+						FramePill(
+							label = bandTitle?.ellipsize(BAND_CELL_CHARS) ?: Res.string.timeline_frame_story.get(),
+							onClear = { component.setFrame(TimelineFrame.Everything) },
+							modifier = Modifier
+								.align(Alignment.TopEnd)
+								.padding(top = Ui.Padding.M, end = Ui.Padding.L + MpScrollBarGutter),
+						)
+					}
 					if (selected != null) {
 						// The fill runs under the system navigation; the strip's content stays above it.
 						Box(
@@ -524,7 +605,7 @@ fun TimeLineOverviewUi(
 				}
 			}
 
-			visibleRows.isEmpty() -> {
+			branch == OverviewContent.Empty -> {
 				Box(
 					modifier = Modifier
 						.fillMaxSize()
@@ -555,13 +636,13 @@ fun TimeLineOverviewUi(
 						.fillMaxSize()
 						.testTag(TIME_LINE_LIST_TAG),
 					contentPadding = listContentPadding,
+					lazyListState = listState,
 				) { row, _ ->
 					eventRow(row, true)
 				}
 			}
 
 			else -> {
-				val listState = rememberLazyListState()
 				Box {
 					LazyColumn(
 						state = listState,
@@ -585,6 +666,43 @@ fun TimeLineOverviewUi(
 				}
 			}
 		}
+	}
+}
+
+private enum class OverviewContent { Drawing, Empty, List }
+
+/** Whether every item is laid out and the whole list, padding included, fits [viewportPx]. */
+private fun LazyListLayoutInfo.fitsIn(viewportPx: Float): Boolean {
+	val first = visibleItemsInfo.firstOrNull() ?: return true
+	val last = visibleItemsInfo.last()
+	if (first.index != 0 || last.index != totalItemsCount - 1) return false
+	val content = last.offset + last.size - first.offset + beforeContentPadding + afterContentPadding
+	return content <= viewportPx
+}
+
+/**
+ * The frame the drawing is on, over its top corner where it never scrolls away; tapping it returns
+ * to Everything.
+ */
+@Composable
+private fun FramePill(label: String, onClear: () -> Unit, modifier: Modifier = Modifier) {
+	val description = Res.string.timeline_frame_back_to_everything.get()
+	Row(
+		modifier = modifier
+			.testTag(TIME_LINE_FRAME_PILL_TAG)
+			.border(Dp.Hairline, MaterialTheme.colorScheme.outline, RectangleShape)
+			.background(MaterialTheme.colorScheme.surface)
+			.clickable(onClick = onClear)
+			.semantics(mergeDescendants = true) {
+				contentDescription = description
+				role = Role.Button
+			}
+			.padding(start = Ui.Padding.M, end = 2.dp),
+		verticalAlignment = Alignment.CenterVertically,
+		horizontalArrangement = Arrangement.spacedBy(2.dp),
+	) {
+		HdMonoLabel(text = label, maxLines = 1, overflow = TextOverflow.Ellipsis)
+		HdClearGlyph(onClick = null)
 	}
 }
 
@@ -706,7 +824,7 @@ private fun String.ellipsize(max: Int): String = if (length <= max) this else ta
 
 /**
  * The selected event over the bottom of the drawing: its title, when and lane, then up to [maxChips]
- * of its references (or a placed entry's opening line), with Open and Clear. A reference chip opens
+ * of its references (or a placed entry's opening line), with Open and a clear glyph. A reference chip opens
  * that reference through [onReference].
  */
 @Composable
@@ -734,8 +852,14 @@ internal fun SelectionStrip(
 		detail = listOfNotNull(whenText, lane).joinToString(" · ").ifBlank { null },
 		primaryLabel = Res.string.timeline_selection_open.get(),
 		onPrimary = onOpen,
-		secondaryLabel = Res.string.timeline_selection_clear.get(),
-		onSecondary = onClear,
+		trailing = {
+			HdClearGlyph(
+				onClick = onClear,
+				contentDescription = Res.string.timeline_selection_clear.get(),
+				boxSize = 32.dp,
+				glyphSize = 9.dp,
+			)
+		},
 		modifier = modifier.testTag(TIME_LINE_SELECTION_TAG),
 		content = when {
 			references.isNotEmpty() -> {
