@@ -85,6 +85,9 @@ it's never decoration.
   touching segments always read as two. `LanePaletteTest` holds the
   minimum luminance step of the ramp and the hue spacing of neighbours
   in both themes; retune the palette rather than loosen it.
+  On a phone a lane is a 22dp rail under a cap in its colour, and only
+  the lanes in the lane filter are drawn (all while it is empty), so the
+  lane chips are how a writer picks rails on a crowded timeline.
 
 ### 4. Editorial typography
 
@@ -738,6 +741,10 @@ Inside the strip, [`HdTagFilterBar`](HdTagFilterBar.kt) is the
 [`HdActiveFiltersStrip`](HdActiveFiltersStrip.kt) the
 `FILTERED n / m  # tag ×  CLEAR ALL` summary under it, shown only while
 a tag is active. Notes, Story Ideas and Timeline share all three.
+A second set of filter chips (the timeline's lanes) goes in the bar's
+`leading` slot only where it fits pinned; on a Compact width it goes in
+`scrollingLeading`, so it scrolls with the tag chips instead of
+clipping.
 
 ### Collapse chrome while typing
 

@@ -11,6 +11,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
@@ -38,7 +39,11 @@ private const val MIN_LANE_WIDTH_DP = 72f
 
 /**
  * The drawing of a DATED timeline's [rows] in the state's frame, laid out to the width it is given.
- * A new frame starts scrolled to the top.
+ * A new frame starts scrolled to the top. [bottomPadding] keeps the last rows clear of an overlay.
+ *
+ * On a phone (Compact width) lanes are 22dp rails with every label in the ledger. Only the lanes in
+ * the lane filter are drawn (all of them while it is empty), so the lane chips are how a writer picks
+ * the rails on a crowded timeline; rails that still do not fit scroll sideways.
  */
 @Composable
 internal fun DatedTimelinePane(
@@ -47,6 +52,7 @@ internal fun DatedTimelinePane(
 	onTap: (HitTarget) -> Unit,
 	modifier: Modifier = Modifier,
 	onOpen: ((Int) -> Unit)? = null,
+	bottomPadding: Dp = 0.dp,
 ) {
 	val words = rememberStoryDateWords()
 	val measurer = rememberTimelineTextMeasurer()
@@ -114,15 +120,19 @@ internal fun DatedTimelinePane(
 			modifier = Modifier.fillMaxSize(),
 			contentWidth = layout.widthDp.takeIf { it > widthDp }?.dp,
 			scrollState = scrollState,
+			bottomPadding = bottomPadding,
 		)
 	}
 }
 
-/** Wide enough for every drawn lane to get [MIN_LANE_WIDTH_DP]; phone lanes are fixed-width rails. */
+/**
+ * Wide enough for every drawn lane to get [MIN_LANE_WIDTH_DP], or on a phone its rail, beside a
+ * ledger that can still be read.
+ */
 private fun minimumWidthDp(input: TimelineLayoutInput): Float {
-	if (input.phone) return 0f
 	val lanes = input.events.mapNotNullTo(HashSet()) { it.lane }.size
 	if (lanes == 0) return 0f
 	val m = input.metrics
+	if (input.phone) return m.axisWidthPhone + lanes * m.railWidth + 2 * m.ledgerGutter + m.ledgerMin + m.padRight
 	return m.axisWidth + lanes * MIN_LANE_WIDTH_DP + m.ledgerMax + m.padRight
 }

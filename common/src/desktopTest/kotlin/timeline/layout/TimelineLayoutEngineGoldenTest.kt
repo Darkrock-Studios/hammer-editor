@@ -10,7 +10,11 @@ import com.darkrockstudios.apps.hammer.common.timeline.layout.HitRegion
 import com.darkrockstudios.apps.hammer.common.timeline.layout.HitTarget
 import com.darkrockstudios.apps.hammer.common.timeline.layout.LayoutEvent
 import com.darkrockstudios.apps.hammer.common.timeline.layout.LayoutKind
+import com.darkrockstudios.apps.hammer.common.timeline.layout.LayoutMetrics
+import com.darkrockstudios.apps.hammer.common.timeline.layout.LedgerMark
+import com.darkrockstudios.apps.hammer.common.timeline.layout.LedgerStyle
 import com.darkrockstudios.apps.hammer.common.timeline.layout.MonospaceEstimateMeasurer
+import com.darkrockstudios.apps.hammer.common.timeline.layout.RectDp
 import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineLayout
 import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineLayoutEngine
 import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineFrame
@@ -181,6 +185,49 @@ class TimelineLayoutEngineGoldenTest {
 		}
 		assertTrue(layout.bands.all { it.label == BandLabel.None }, "${sample.name} has a band label on phone")
 		assertTrue(layout.bars.all { it.label == null } && layout.points.all { it.label == null }, "${sample.name} has a lane label on phone")
+	}
+
+	@Test
+	fun `each phone rail has a cap to tap above the drawing`() = forEachLayout { sample, phone, layout ->
+		if (!phone) return@forEachLayout
+
+		val caps = layout.hitRegions.filter { it.target is HitTarget.LaneHeader }
+		assertEquals(layout.lanes.map { it.name }, caps.map { (it.target as HitTarget.LaneHeader).lane }, sample.name)
+		// The first moment sits at the top padding, so a cap above it never covers a mark.
+		val top = LayoutMetrics().padTop
+		caps.zip(layout.lanes).forEach { (cap, lane) ->
+			assertEquals(RectDp(lane.xDp, cap.rect.y, 22f, 12f), cap.rect, "${sample.name} cap of ${lane.name}")
+			assertTrue(cap.rect.bottom <= top, "${sample.name} cap of ${lane.name} reaches into the drawing")
+		}
+		assertTrue(
+			layout.bands.none { it.label is BandLabel.Lines || it.label is BandLabel.Rotated },
+			"${sample.name} labels a band inside its rail",
+		)
+	}
+
+	@Test
+	fun `every phone lane label is a ledger callout led from its rail`() {
+		for (sample in samples) {
+			val input = sample.build(true, null)
+			val layout = TimelineLayoutEngine.layout(input, measurer)
+			val inLanes = (layout.bands.map { it.eventId } + layout.bars.map { it.eventId } + layout.points.map { it.eventId }).toSet()
+			val labelled = input.events
+				.filter { it.id in inLanes && !it.milestone && it.title.isNotBlank() }
+				.map { it.id }
+				.toSet()
+			val callouts = layout.ledgerRows.filter { it.style == LedgerStyle.LaneCallout }
+
+			assertEquals(labelled, callouts.map { it.eventId }.toSet(), sample.name)
+			for (row in callouts) {
+				assertEquals(LedgerMark.LaneSwatch, row.mark, "${sample.name} row ${row.eventId}")
+				val lane = layout.lanes[assertNotNull(row.laneIndex, "${sample.name} row ${row.eventId}")]
+				val source = assertNotNull(row.leader, "${sample.name} row ${row.eventId}").first()
+				assertTrue(
+					source.x >= lane.xDp && source.x <= lane.xDp + lane.widthDp,
+					"${sample.name} row ${row.eventId} is led from outside its rail",
+				)
+			}
+		}
 	}
 
 	@Test

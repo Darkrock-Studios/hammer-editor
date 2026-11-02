@@ -9,6 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
@@ -32,6 +33,7 @@ import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogKind
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagCount
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.timeline.*
+import com.darkrockstudios.apps.hammer.common.timeline.drawing.TIMELINE_BOTTOM_PADDING_TAG
 import com.darkrockstudios.apps.hammer.common.timeline.drawing.TIMELINE_DRAWING_TAG
 import com.darkrockstudios.apps.hammer.common.timeline.drawing.TIMELINE_HORIZONTAL_SCROLL_TAG
 import com.darkrockstudios.apps.hammer.common.timeline.drawing.testTag
@@ -97,6 +99,12 @@ class TimeLineOverviewUiTest : BaseTest() {
 		override fun setFrame(frame: TimelineFrame) {
 			_state.value = _state.value.copy(frame = frame)
 		}
+
+		val openedReferences = mutableListOf<CatalogItem>()
+
+		override fun openReference(item: CatalogItem) {
+			openedReferences += item
+		}
 	}
 
 	private fun row(event: TimeLineEvent, title: String = event.title.orEmpty(), laneIndex: Int? = null) = TimelineRow(
@@ -107,23 +115,55 @@ class TimeLineOverviewUiTest : BaseTest() {
 		laneIndex = laneIndex,
 	)
 
+	private val desktopScreen = ScreenCharacteristics(
+		isWide = true,
+		windowWidthClass = WindowWidthSizeClass.Expanded,
+		windowHeightClass = WindowHeightSizeClass.Expanded,
+		needsExplicitClose = false,
+	)
+
+	private val phoneScreen = ScreenCharacteristics(
+		isWide = false,
+		windowWidthClass = WindowWidthSizeClass.Compact,
+		windowHeightClass = WindowHeightSizeClass.Medium,
+		needsExplicitClose = false,
+	)
+
+	/** Without a [screen] the overview sees the default screen characteristics. */
 	@OptIn(ExperimentalSharedTransitionApi::class)
-	private fun showOverview(component: TimeLineOverview, viewEvent: (Int) -> Unit = {}) {
+	private fun showOverview(
+		component: TimeLineOverview,
+		viewEvent: (Int) -> Unit = {},
+		screen: ScreenCharacteristics? = null,
+		size: DpSize? = null,
+	) {
 		compose.setContent {
-			SharedTransitionLayout {
-				AnimatedVisibility(visible = true) {
-					TimeLineOverviewUi(
-						component = component,
-						scope = scope,
-						showCreate = {},
-						viewEvent = viewEvent,
-						sharedTransitionScope = this@SharedTransitionLayout,
-						animatedVisibilityScope = this@AnimatedVisibility,
-					)
+			val content: @Composable () -> Unit = {
+				Box(modifier = if (size != null) Modifier.requiredSize(size) else Modifier) {
+					SharedTransitionLayout {
+						AnimatedVisibility(visible = true) {
+							TimeLineOverviewUi(
+								component = component,
+								scope = scope,
+								showCreate = {},
+								viewEvent = viewEvent,
+								sharedTransitionScope = this@SharedTransitionLayout,
+								animatedVisibilityScope = this@AnimatedVisibility,
+							)
+						}
+					}
 				}
+			}
+			if (screen != null) {
+				CompositionLocalProvider(LocalScreenCharacteristic provides screen, content = content)
+			} else {
+				content()
 			}
 		}
 	}
+
+	private fun showPhoneOverview(component: TimeLineOverview, viewEvent: (Int) -> Unit = {}) =
+		showOverview(component, viewEvent, phoneScreen, DpSize(360.dp, 760.dp))
 
 	@OptIn(ExperimentalSharedTransitionApi::class)
 	private fun showCard(row: TimelineRow, onClick: () -> Unit = {}, wrap: @Composable (@Composable () -> Unit) -> Unit = { it() }) {
@@ -221,6 +261,23 @@ class TimeLineOverviewUiTest : BaseTest() {
 		compose.onAllNodesWithTag(EVENT_CARD_TAG).assertCountEquals(1)
 		compose.onNodeWithText("Croquet").assertIsDisplayed()
 		compose.onNodeWithText("Fall").assertDoesNotExist()
+	}
+
+	@Test
+	fun `On a phone every lane chip scrolls into reach`() {
+		val lanes = listOf("Alice", "The Queen of Hearts", "The Mock Turtle", "The Cheshire Cat")
+		val component = FakeOverview(
+			rows = lanes.mapIndexed { i, lane ->
+				row(TimeLineEvent(id = i, order = i, title = "Event $i", lane = lane), laneIndex = i)
+			},
+			lanes = lanes.map { LaneCount(it, 1) },
+		)
+		showPhoneOverview(component)
+
+		lanes.forEach { lane -> compose.onNodeWithText("$lane · 1").assertExists() }
+		compose.onNodeWithText("The Cheshire Cat · 1").performScrollTo().assertIsDisplayed().performClick()
+
+		assertEquals(setOf("The Cheshire Cat"), component.state.value.laneFilter)
 	}
 
 	@Test
@@ -473,20 +530,101 @@ class TimeLineOverviewUiTest : BaseTest() {
 		assertEquals(listOf(7), opened)
 	}
 
+	private val eightPeople = (1..8).map { CatalogItem(CatalogKind.Entry, 100 + it, "Person $it", entryType = EntryType.PERSON) }
+
+	private fun croquetWithPeople() = FakeOverview(
+		listOf(datedRow(TimeLineEvent(id = 7, order = 0, title = "Croquet"), year = 1)),
+		mode = TimelineMode.DATED,
+		references = mapOf(7 to eightPeople),
+	)
+
 	@Test
 	fun `The summary shows six references and counts the rest`() {
-		val references = (1..8).map { CatalogItem(CatalogKind.Entry, 100 + it, "Person $it", entryType = EntryType.PERSON) }
-		val component = FakeOverview(
-			listOf(datedRow(TimeLineEvent(id = 7, order = 0, title = "Croquet"), year = 1)),
-			mode = TimelineMode.DATED,
-			references = mapOf(7 to references),
-		)
-		showOverview(component)
+		val component = croquetWithPeople()
+		showOverview(component, screen = desktopScreen)
 		compose.runOnIdle { component.select(7) }
 
 		compose.onNode(inSummary("Person 6"), useUnmergedTree = true).assertExists()
 		compose.onNode(inSummary("Person 7"), useUnmergedTree = true).assertDoesNotExist()
 		compose.onNode(inSummary("+2"), useUnmergedTree = true).assertExists()
+	}
+
+	@Test
+	fun `On a phone the summary names at most four references and counts the rest`() {
+		val component = croquetWithPeople()
+		showPhoneOverview(component)
+		compose.runOnIdle { component.select(7) }
+
+		compose.onNode(inSummary("Person 1"), useUnmergedTree = true).assertIsDisplayed()
+		compose.onNode(inSummary("Person 5"), useUnmergedTree = true).assertDoesNotExist()
+		val named = (1..4).count { n ->
+			compose.onAllNodes(inSummary("Person $n"), useUnmergedTree = true)
+				.fetchSemanticsNodes().any { it.layoutInfo.isPlaced }
+		}
+		compose.onNode(inSummary("+${eightPeople.size - named}"), useUnmergedTree = true).assertIsDisplayed()
+		compose.onNode(inSummary("Open")).assertIsDisplayed()
+	}
+
+	@Test
+	fun `A summary chip ellipsizes a long name`() {
+		val component = FakeOverview(
+			listOf(datedRow(TimeLineEvent(id = 7, order = 0, title = "Croquet"), year = 1)),
+			mode = TimelineMode.DATED,
+			references = mapOf(
+				7 to listOf(CatalogItem(CatalogKind.Entry, 101, "The Queen of Hearts", entryType = EntryType.PERSON)),
+			),
+		)
+		showPhoneOverview(component)
+		compose.runOnIdle { component.select(7) }
+
+		compose.onNode(inSummary("The Queen o…"), useUnmergedTree = true).assertIsDisplayed()
+	}
+
+	@Test
+	fun `A reference chip in the summary opens that reference`() {
+		val opened = mutableListOf<Int>()
+		val component = croquetWithPeople()
+		showOverview(component, viewEvent = { opened += it }, screen = desktopScreen)
+		compose.runOnIdle { component.select(7) }
+
+		compose.onNode(inSummary("Person 2"), useUnmergedTree = true).performClick()
+
+		assertEquals(listOf(eightPeople[1]), component.openedReferences)
+		assertEquals(emptyList(), opened, "A chip opens its reference, not the event")
+	}
+
+	@Test
+	fun `On a phone the summary sits at the foot of the drawing, which scrolls clear of it`() {
+		val component = croquetWithPeople()
+		showPhoneOverview(component)
+		compose.onNodeWithTag(TIMELINE_BOTTOM_PADDING_TAG, useUnmergedTree = true)
+			.assertHeightIsEqualTo(0.dp)
+
+		compose.runOnIdle { component.select(7) }
+		compose.waitForIdle()
+
+		val pane = compose.onNodeWithTag(TIMELINE_DRAWING_TAG).getUnclippedBoundsInRoot()
+		val strip = compose.onNodeWithTag(TIME_LINE_SELECTION_TAG).getUnclippedBoundsInRoot()
+		assertTrue(strip.bottom <= pane.bottom, "the strip ends at ${strip.bottom}, below the pane at ${pane.bottom}")
+		assertEquals(pane.bottom.value, strip.bottom.value, absoluteTolerance = 1f)
+		compose.onNodeWithTag(TIMELINE_BOTTOM_PADDING_TAG, useUnmergedTree = true)
+			.assertHeightIsEqualTo(strip.bottom - strip.top)
+	}
+
+	@Test
+	fun `On a phone the drawing pickers stack under the lane chips`() {
+		val rows = listOf(
+			datedRow(TimeLineEvent(id = 1, order = 0, title = "Fall", lane = "Alice"), year = 1, laneIndex = 0),
+			datedRow(TimeLineEvent(id = 2, order = 1, title = "Croquet"), year = 2),
+		)
+		showPhoneOverview(FakeOverview(rows, lanes = listOf(LaneCount("Alice", 1)), mode = TimelineMode.DATED))
+
+		val chips = compose.onNodeWithTag(TIME_LINE_LANE_FILTER_TAG).getUnclippedBoundsInRoot()
+		val view = compose.onNodeWithTag(TIME_LINE_VIEW_PICKER_TAG).assertIsDisplayed().getUnclippedBoundsInRoot()
+		val frame = compose.onNodeWithTag(TIME_LINE_FRAME_PICKER_TAG).assertIsDisplayed().getUnclippedBoundsInRoot()
+		assertTrue(view.top >= chips.bottom, "the view picker at ${view.top} is above the lane chips ending ${chips.bottom}")
+		assertTrue(frame.top >= view.bottom, "the frame picker at ${frame.top} is beside the view picker ending ${view.bottom}")
+		compose.onNodeWithTag(TIME_LINE_CALENDAR_TAG).assertDoesNotExist()
 	}
 
 	@Test
@@ -573,7 +711,12 @@ class TimeLineOverviewUiTest : BaseTest() {
 		compose.onNodeWithTag(TIME_LINE_FRAME_BAND_TAG).assertDoesNotExist()
 	}
 
-	private fun showDatedPane(laneCount: Int, width: Dp) {
+	private fun showDatedPane(
+		laneCount: Int,
+		width: Dp,
+		screen: ScreenCharacteristics = desktopScreen,
+		laneFilter: Set<String> = emptySet(),
+	) {
 		val calendar = CalendarDef()
 		val lanes = (1..laneCount).map { LaneCount("Lane $it", 1) }
 		val rows = lanes.mapIndexed { i, lane ->
@@ -582,16 +725,15 @@ class TimeLineOverviewUiTest : BaseTest() {
 				calendar = calendar,
 			)
 		}
-		val state = TimeLineOverview.State(rows = rows, lanes = lanes, mode = TimelineMode.DATED, calendar = calendar)
+		val state = TimeLineOverview.State(
+			rows = rows,
+			lanes = lanes,
+			mode = TimelineMode.DATED,
+			calendar = calendar,
+			laneFilter = laneFilter,
+		)
 		compose.setContent {
-			CompositionLocalProvider(
-				LocalScreenCharacteristic provides ScreenCharacteristics(
-					isWide = true,
-					windowWidthClass = WindowWidthSizeClass.Expanded,
-					windowHeightClass = WindowHeightSizeClass.Expanded,
-					needsExplicitClose = false,
-				),
-			) {
+			CompositionLocalProvider(LocalScreenCharacteristic provides screen) {
 				Box(modifier = Modifier.requiredSize(width, 700.dp)) {
 					DatedTimelinePane(state = state, rows = rows, onTap = {})
 				}
@@ -613,6 +755,42 @@ class TimeLineOverviewUiTest : BaseTest() {
 		showDatedPane(laneCount = 3, width = 900.dp)
 
 		compose.onNodeWithTag(TIMELINE_HORIZONTAL_SCROLL_TAG).assertDoesNotExist()
+	}
+
+	private fun drawnRails(): List<String> = (1..6).map { "Lane $it" }.filter { lane ->
+		compose.onAllNodesWithTag(HitTarget.LaneHeader(lane).testTag()).fetchSemanticsNodes().isNotEmpty()
+	}
+
+	@Test
+	fun `A phone draws a rail for every lane while the lane filter is empty`() {
+		showDatedPane(laneCount = 6, width = 360.dp, screen = phoneScreen)
+
+		assertEquals((1..6).map { "Lane $it" }, drawnRails())
+		compose.onNodeWithTag(HitTarget.LaneHeader("Lane 3").testTag())
+			.assertContentDescriptionContains("Lane 3", substring = true)
+			.assertWidthIsEqualTo(22.dp)
+	}
+
+	@Test
+	fun `A phone with many lanes draws only the filtered rails`() {
+		showDatedPane(laneCount = 6, width = 360.dp, screen = phoneScreen, laneFilter = setOf("Lane 2", "Lane 5"))
+
+		assertEquals(listOf("Lane 2", "Lane 5"), drawnRails())
+		compose.onNodeWithTag(TIMELINE_HORIZONTAL_SCROLL_TAG).assertDoesNotExist()
+	}
+
+	@Test
+	fun `Tapping a rail cap on a phone toggles its lane`() {
+		val rows = listOf(
+			datedRow(TimeLineEvent(id = 1, order = 0, title = "Fall", lane = "Alice"), year = 1, laneIndex = 0),
+			datedRow(TimeLineEvent(id = 2, order = 1, title = "Tarts", lane = "Queen"), year = 2, laneIndex = 1),
+		)
+		val component = FakeOverview(rows, lanes = listOf(LaneCount("Alice", 1), LaneCount("Queen", 1)), mode = TimelineMode.DATED)
+		showPhoneOverview(component)
+
+		compose.onNodeWithTag(HitTarget.LaneHeader("Queen").testTag()).performClick()
+
+		assertEquals(setOf("Queen"), component.state.value.laneFilter)
 	}
 
 	@Test

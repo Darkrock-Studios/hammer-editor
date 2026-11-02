@@ -33,6 +33,13 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import org.koin.core.component.KoinComponent
 
+/** Where an entry of [type] sorts in a cast or reference list: people, then places, then the rest. */
+fun timelineCastRank(type: EntryType): Int = when (type) {
+	EntryType.PERSON -> 0
+	EntryType.PLACE -> 1
+	else -> 2
+}
+
 /** A timeline's settings and its events in display order. */
 data class TimelineView(val def: TimelineDef, val events: List<TimeLineEvent>)
 
@@ -417,7 +424,7 @@ class TimelineService(
 		} else {
 			val entries = encyclopediaRepository.readEntryDefs().associateBy { it.id }
 			confirmed.mapNotNull { entries[it] }
-				.sortedWith(compareBy<EntryDef>({ castRank(it.type) }, { it.name.lowercase() }, { it.id }))
+				.sortedWith(compareBy<EntryDef>({ timelineCastRank(it.type) }, { it.name.lowercase() }, { it.id }))
 		}
 		SubjectSummary.Scene(scene, chapterPath(scene), excerpt(text), cast)
 	}
@@ -599,12 +606,6 @@ class TimelineService(
 
 		fun List<TimeLineEvent>.subjectIds(kind: TimelineKind): Set<Int> =
 			filter { it.kind == kind }.mapNotNullTo(HashSet()) { it.subject }
-
-		fun castRank(type: EntryType): Int = when (type) {
-			EntryType.PERSON -> 0
-			EntryType.PLACE -> 1
-			else -> 2
-		}
 
 		fun excerpt(markdown: String): String {
 			if (markdown.isBlank()) return ""

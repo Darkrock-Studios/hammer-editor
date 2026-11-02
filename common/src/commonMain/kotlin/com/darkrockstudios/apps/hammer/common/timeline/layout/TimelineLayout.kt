@@ -17,7 +17,7 @@ data class AxisTick(val yDp: Float, val label: String, val position: Long)
 /** [xDp] is the axis line; tick labels end left of it. [foldGlyphYs] are the centres of the breaks. */
 data class AxisLayout(val xDp: Float, val ticks: List<AxisTick>, val foldGlyphYs: List<Float>)
 
-/** [header] is null on phone, where lanes are rails without a heading. */
+/** [header] is null on phone, where lanes are rails with only a cap in their colour. */
 data class LaneColumn(
 	val name: String,
 	val index: Int,
@@ -118,6 +118,7 @@ sealed class HitTarget {
 	data class Band(val eventId: Int) : HitTarget()
 	data class Point(val eventId: Int) : HitTarget()
 	data class Ledger(val eventId: Int) : HitTarget()
+	/** A lane's header, or a phone rail's cap. */
 	data class LaneHeader(val lane: String) : HitTarget()
 }
 

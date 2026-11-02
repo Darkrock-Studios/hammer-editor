@@ -13,7 +13,10 @@ import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
+import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogItem
 import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogKind
 import com.darkrockstudios.apps.hammer.common.data.entitycatalog.EntityCatalog
 import com.darkrockstudios.apps.hammer.common.data.projectInject
@@ -37,7 +40,9 @@ class TimeLineOverviewComponent(
 	componentContext: ComponentContext,
 	projectDef: ProjectDef,
 	addMenu: (menu: MenuDescriptor) -> Unit,
-	removeMenu: (id: String) -> Unit
+	removeMenu: (id: String) -> Unit,
+	private val onShowScene: (SceneItem) -> Unit,
+	private val onShowEntry: (EntryDef) -> Unit,
 ) : ProjectComponentBase(projectDef, componentContext), TimeLineOverview {
 
 	private val timelineService: TimelineService by projectInject()
@@ -86,6 +91,7 @@ class TimeLineOverviewComponent(
 			timelineService.timelineFlow.collect { view ->
 				val built = buildRows(view)
 				withContext(dispatcherMain) {
+					val before = _state.value
 					_state.getAndUpdate { current ->
 						val laneNames = built.lanes.mapTo(HashSet()) { it.lane }
 						// Only events with a start are drawn, so only they can be selected or framed.
@@ -108,11 +114,16 @@ class TimeLineOverviewComponent(
 							storyFrameAvailable = storyAvailable,
 						)
 					}
-					refreshSummary()
+					// Resolving a summary reads the subject, so only a changed selection earns one.
+					val after = _state.value
+					if (after.selectedId == null || after.selectedEvent() != before.selectedEvent()) refreshSummary()
 				}
 			}
 		}
 	}
+
+	private fun TimeLineOverview.State.selectedEvent(): TimeLineEvent? =
+		selectedId?.let { id -> rows?.firstOrNull { it.event.id == id }?.event }
 
 	private data class Built(val rows: List<TimelineRow>, val lanes: List<LaneCount>, val undatedIds: List<Int>)
 
@@ -185,6 +196,24 @@ class TimeLineOverviewComponent(
 	override fun setFrame(frame: TimelineFrame) {
 		_state.getAndUpdate {
 			if (frame == TimelineFrame.Story && !it.storyFrameAvailable) it else it.copy(frame = frame)
+		}
+	}
+
+	override fun openReference(item: CatalogItem) {
+		scope.launch {
+			when (item.kind) {
+				CatalogKind.Scene -> {
+					val scene = sceneRepository.getSceneItemFromId(item.id) ?: return@launch
+					withContext(dispatcherMain) { onShowScene(scene) }
+				}
+
+				CatalogKind.Entry -> {
+					val entry = withContext(dispatcherIo) { encyclopediaRepository.findEntryDef(item.id) } ?: return@launch
+					withContext(dispatcherMain) { onShowEntry(entry) }
+				}
+
+				else -> Unit
+			}
 		}
 	}
 

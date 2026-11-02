@@ -1,5 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.preview.timeline
 
+import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
+import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.common.components.timeline.LaneCount
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimelineRow
@@ -90,3 +92,19 @@ internal val previewRows = listOf(
 		subjectMissing = true,
 	),
 )
+
+internal val previewCalendar = CalendarDef(epochName = "The Landing")
+
+private fun yearDay(year: Long, day: Long) = StoryDate(linkedMapOf("year" to year, "day" to day))
+
+/** [previewRows] placed on [previewCalendar]; the rumour stays undated. */
+internal val previewDatedRows = previewRows.map { row ->
+	val (start, end) = when (row.event.id) {
+		1 -> yearDay(1, 12) to null
+		2 -> yearDay(1, 180) to null
+		3 -> yearDay(1, 182) to yearDay(1, 200)
+		5 -> yearDay(1, 250) to yearDay(1, 262)
+		else -> return@map row
+	}
+	row.copy(start = start, end = end, calendar = previewCalendar)
+}

@@ -6,6 +6,8 @@ import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.components.timeline.LaneCount
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineOverviewComponent
+import com.darkrockstudios.apps.hammer.common.data.SceneItem
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineEventDraft
@@ -17,16 +19,23 @@ import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
+
+	private val shownScenes = mutableListOf<SceneItem>()
+	private val shownEntries = mutableListOf<EntryDef>()
 
 	private fun newComponent() = TimeLineOverviewComponent(
 		componentContext = context,
 		projectDef = projectDef,
 		addMenu = {},
 		removeMenu = {},
+		onShowScene = { shownScenes += it },
+		onShowEntry = { shownEntries += it },
 	)
 
 	@Test
@@ -245,7 +254,7 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 		component.setFrame(TimelineFrame.Band(storm.id))
 		assertEquals(TimelineFrame.Band(storm.id), component.state.value.frame)
 
-		val restored = TimeLineOverviewComponent(context.saveAndRecreate(), projectDef, {}, {})
+		val restored = TimeLineOverviewComponent(context.saveAndRecreate(), projectDef, {}, {}, {}, {})
 		assertEquals(TimelineFrame.Band(storm.id), restored.state.value.frame)
 
 		assertTrue(context.back())
@@ -343,5 +352,57 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 		val summary = component.state.value.selectionSummary!!
 		assertEquals("The Hatter pours tea.", summary.excerpt)
 		assertEquals(emptyList(), summary.references)
+	}
+
+	@Test
+	fun `a change elsewhere on the timeline keeps the selection's summary`() = runTest(mainTestDispatcher) {
+		givenProject()
+		val storm = timelineService.createEvent(TimelineEventDraft(title = "Storm", references = linkedSetOf(ALICE))).event()
+		val rain = timelineService.createEvent(TimelineEventDraft(title = "Rain")).event()
+		timelineService.switchToDated(CalendarDef())
+		val component = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		component.select(storm.id)
+		advanceUntilIdle()
+		val summary = assertNotNull(component.state.value.selectionSummary)
+
+		timelineService.updateEvent(timeLineRepository.getTimelineEvent(rain.id)!!.copy(title = "Hail"))
+		advanceUntilIdle()
+
+		assertEquals("Hail", component.state.value.rows!!.first { it.event.id == rain.id }.title)
+		assertSame(summary, component.state.value.selectionSummary)
+	}
+
+	@Test
+	fun `a change to the selected event refreshes its summary`() = runTest(mainTestDispatcher) {
+		givenProject()
+		val storm = timelineService.createEvent(TimelineEventDraft(title = "Storm", references = linkedSetOf(ALICE))).event()
+		timelineService.switchToDated(CalendarDef())
+		val component = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		component.select(storm.id)
+		advanceUntilIdle()
+
+		timelineService.updateEvent(timeLineRepository.getTimelineEvent(storm.id)!!.copy(references = setOf(WONDERLAND, ALICE)))
+		advanceUntilIdle()
+
+		assertEquals(listOf(ALICE, WONDERLAND), component.state.value.selectionSummary!!.references.map { it.id })
+	}
+
+	@Test
+	fun `a reference in the summary opens its entry or scene`() = runTest(mainTestDispatcher) {
+		givenProject()
+		val component = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		component.openReference(catalogItem(ALICE))
+		component.openReference(catalogItem(4))
+		advanceUntilIdle()
+
+		assertEquals(listOf(ALICE), shownEntries.map { it.id })
+		assertEquals(listOf(4), shownScenes.map { it.id })
 	}
 }

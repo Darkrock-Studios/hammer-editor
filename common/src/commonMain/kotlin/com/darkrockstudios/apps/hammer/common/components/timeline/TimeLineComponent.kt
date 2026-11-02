@@ -65,7 +65,9 @@ class TimeLineComponent(
 			componentContext = componentContext,
 			projectDef = config.projectDef,
 			addMenu = addMenu,
-			removeMenu = removeMenu
+			removeMenu = removeMenu,
+			onShowScene = onShowScene,
+			onShowEntry = onShowEntry,
 		)
 	}
 

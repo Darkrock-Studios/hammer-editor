@@ -29,6 +29,9 @@ interface TimeLineOverview {
 	/** Which stretch of a DATED timeline the drawing shows. [TimelineFrame.Story] needs a placed scene. */
 	fun setFrame(frame: TimelineFrame)
 
+	/** Shows a referenced scene or entry from the selection's summary. */
+	fun openReference(item: CatalogItem)
+
 	data class State(
 		/** Null until the timeline has loaded. */
 		val rows: List<TimelineRow>? = null,

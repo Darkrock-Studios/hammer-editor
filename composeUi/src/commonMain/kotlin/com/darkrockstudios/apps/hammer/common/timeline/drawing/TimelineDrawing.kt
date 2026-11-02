@@ -76,6 +76,9 @@ const val TIMELINE_HORIZONTAL_SCROLL_TAG = "Timeline Horizontal Scroll"
 /** Each hit region is tagged with this prefix and its target, e.g. `Timeline Hit Ledger 4`. */
 const val TIMELINE_HIT_TAG = "Timeline Hit"
 
+/** The space a [TimelineDrawingPane] leaves under its drawing for an overlay. */
+const val TIMELINE_BOTTOM_PADDING_TAG = "Timeline Bottom Padding"
+
 /** The event a target stands for; null for a lane header. */
 private val HitTarget.eventId: Int?
 	get() = when (this) {
@@ -97,12 +100,16 @@ private const val LANE_INSET = 8f
 private const val HEADER_BASELINE = 13f
 private const val CAP_Y = 18f
 private const val CAP_HEIGHT = 2f
+private const val RAIL_CAP_INSET = 3f
 private const val AXIS_TOP = 24f
 private const val AXIS_LABEL_GAP = 10f
 private const val AXIS_TICK = 4f
 private const val FOLD_HALF = 3f
 private const val LEDGER_MARK_INSET = 4f
 private const val LEDGER_TICK = 4f
+
+// The leader's elbow sits this far above a ledger row's first baseline.
+private const val LEDGER_LINE_MID = 4f
 
 // The desktop scrollbar takes a gutter; touch platforms overlay a transient one. Hover tooltips
 // and double-click to open follow the same split.
@@ -172,7 +179,8 @@ fun TimelineDrawing(
 
 /**
  * [TimelineDrawing] in a vertical scroll with the platform scrollbar. A non-null [contentWidth]
- * draws at that width and scrolls horizontally as well.
+ * draws at that width and scrolls horizontally as well. [bottomPadding] lets the last rows scroll
+ * clear of an overlay at the bottom of the pane.
  */
 @Composable
 fun TimelineDrawingPane(
@@ -187,6 +195,7 @@ fun TimelineDrawingPane(
 	laneHeaderDescription: (String) -> String = { it },
 	measurer: ComposeTimelineTextMeasurer = rememberTimelineTextMeasurer(),
 	scrollState: ScrollState = rememberScrollState(),
+	bottomPadding: Dp = 0.dp,
 ) {
 	val horizontalState = rememberScrollState()
 	val horizontal = if (contentWidth != null) {
@@ -207,6 +216,7 @@ fun TimelineDrawingPane(
 				laneHeaderDescription = laneHeaderDescription,
 				measurer = measurer,
 			)
+			Spacer(modifier = Modifier.height(bottomPadding).testTag(TIMELINE_BOTTOM_PADDING_TAG))
 		}
 		MpScrollBarColumn(modifier = scrollBarOverlay(), state = scrollState)
 	}
@@ -371,12 +381,16 @@ private class TimelinePainter(
 		val region = layout.laneRegion
 		for (lane in layout.lanes) {
 			if (lane.index > 0) hairline(ink.outlineVariant, lane.xDp, 0f, lane.xDp, height)
-			val header = lane.header ?: continue
-			drawTextAt(text(header, LabelStyle.LaneHeader), lane.xDp + LANE_INSET, HEADER_BASELINE, ink.onSurfaceVariant)
+			val header = lane.header
+			// A phone rail has no heading, only its cap.
+			val inset = if (header != null) LANE_INSET else RAIL_CAP_INSET
+			if (header != null) {
+				drawTextAt(text(header, LabelStyle.LaneHeader), lane.xDp + LANE_INSET, HEADER_BASELINE, ink.onSurfaceVariant)
+			}
 			drawRect(
 				color = laneColor(lane.index),
-				topLeft = at(lane.xDp + LANE_INSET, CAP_Y),
-				size = Size(px(maxOf(0f, lane.widthDp - 2 * LANE_INSET)), px(CAP_HEIGHT)),
+				topLeft = at(lane.xDp + inset, CAP_Y),
+				size = Size(px(maxOf(0f, lane.widthDp - 2 * inset)), px(CAP_HEIGHT)),
 			)
 		}
 		if (region.width > 0f) hairline(ink.outlineVariant, region.right, 0f, region.right, height)
@@ -587,7 +601,16 @@ private class TimelinePainter(
 			if (row.style == LedgerStyle.Muted && hasLanes) {
 				hairline(ink.outlineVariant, boundary - LEDGER_TICK, y, boundary + LEDGER_TICK, y)
 			}
-			row.leader?.let { polyline(it, ink.onSurfaceVariant.copy(alpha = .4f), 1f) }
+			val laneInk = row.laneIndex?.let(laneColor)
+			row.leader?.let { leader ->
+				// A lane callout's leader runs from its mark in the rail, so it takes the lane's colour.
+				val leaderColor = if (row.style == LedgerStyle.LaneCallout && laneInk != null) {
+					laneInk.copy(alpha = .7f)
+				} else {
+					ink.onSurfaceVariant.copy(alpha = .4f)
+				}
+				polyline(leader, leaderColor, 1f)
+			}
 			when (row.mark) {
 				LedgerMark.None -> Unit
 				LedgerMark.Pilcrow -> {
@@ -610,9 +633,10 @@ private class TimelinePainter(
 				}
 
 				LedgerMark.Dot -> drawRect(ink.onSurfaceVariant, at(cx - 2f, y - 2f), Size(px(4f), px(4f)))
+				// On the row's own line, where its leader ends.
 				LedgerMark.LaneSwatch -> {
-					val color = row.laneIndex?.let(laneColor) ?: ink.onSurfaceVariant
-					drawRect(color, at(cx - 3f, y - 3f), Size(px(6f), px(6f)))
+					val sy = row.textYDp - LEDGER_LINE_MID
+					drawRect(laneInk ?: ink.onSurfaceVariant, at(cx - 3f, sy - 3f), Size(px(6f), px(6f)))
 				}
 			}
 

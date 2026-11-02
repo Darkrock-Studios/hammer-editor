@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
@@ -56,6 +57,10 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.layout.Placeable
+import androidx.compose.ui.layout.SubcomposeLayout
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
@@ -190,6 +195,7 @@ fun TimeLineOverviewUi(
 	val screen = LocalScreenCharacteristic.current
 	val isWide = screen.isWide
 	val isExpanded = screen.windowWidthClass == WindowWidthSizeClass.Expanded
+	val phone = screen.windowWidthClass == WindowWidthSizeClass.Compact
 
 	var searchQuery by rememberSaveable { mutableStateOf("") }
 	var activeTags by remember { mutableStateOf<Set<String>>(emptySet()) }
@@ -329,15 +335,19 @@ fun TimeLineOverviewUi(
 				)
 			}
 
-			if (dated) {
-				DrawingPickers(
-					state = state,
-					rows = rows,
-					isWide = isWide,
-					onView = component::setView,
-					onFrame = component::setFrame,
-				)
+			val pickers: @Composable () -> Unit = {
+				if (dated) {
+					DrawingPickers(
+						state = state,
+						rows = rows,
+						isWide = isWide,
+						onView = component::setView,
+						onFrame = component::setFrame,
+					)
+				}
 			}
+			// A phone filters first and picks the drawing under its chips.
+			if (!phone) pickers()
 
 			if (isWide && !isExpanded) {
 				Row(
@@ -384,7 +394,8 @@ fun TimeLineOverviewUi(
 					{ searchField() }
 				}
 
-				else -> laneChips
+				isWide -> laneChips
+				else -> null
 			}
 
 			HdTagFilterBar(
@@ -394,6 +405,7 @@ fun TimeLineOverviewUi(
 				onToggle = toggleTag,
 				onClear = clearFilters,
 				leading = leading,
+				scrollingLeading = if (isWide) null else laneChips,
 			)
 
 			AnimatedVisibility(visible = anyFilter) {
@@ -405,6 +417,8 @@ fun TimeLineOverviewUi(
 					onClear = clearFilters,
 				)
 			}
+
+			if (phone) pickers()
 
 			HorizontalDivider(
 				thickness = Dp.Hairline,
@@ -455,6 +469,9 @@ fun TimeLineOverviewUi(
 
 		when {
 			dated && matchedRows.isNotEmpty() -> {
+				val selected = state.selectedId?.let { id -> rows.firstOrNull { it.event.id == id } }
+				var stripHeight by remember { mutableStateOf(0.dp) }
+				val density = LocalDensity.current
 				Box(modifier = Modifier.fillMaxSize()) {
 					DatedTimelinePane(
 						state = state,
@@ -480,16 +497,27 @@ fun TimeLineOverviewUi(
 							pendingFrame?.cancel()
 							viewEvent(eventId)
 						},
+						bottomPadding = if (selected != null) stripHeight else 0.dp,
 					)
-					val selected = state.selectedId?.let { id -> rows.firstOrNull { it.event.id == id } }
 					if (selected != null) {
-						SelectionStrip(
-							row = selected,
-							summary = state.selectionSummary?.takeIf { it.row.event.id == selected.event.id },
-							onOpen = { viewEvent(selected.event.id) },
-							onClear = { component.select(null) },
-							modifier = Modifier.align(Alignment.BottomCenter),
-						)
+						// The fill runs under the system navigation; the strip's content stays above it.
+						Box(
+							modifier = Modifier
+								.align(Alignment.BottomCenter)
+								.fillMaxWidth()
+								.onSizeChanged { stripHeight = with(density) { it.height.toDp() } }
+								.background(MaterialTheme.colorScheme.surfaceContainerLow)
+								.navigationBarsPadding(),
+						) {
+							SelectionStrip(
+								row = selected,
+								summary = state.selectionSummary?.takeIf { it.row.event.id == selected.event.id },
+								onOpen = { viewEvent(selected.event.id) },
+								onClear = { component.select(null) },
+								onReference = component::openReference,
+								maxChips = if (phone) SUMMARY_CHIPS_PHONE else SUMMARY_CHIPS,
+							)
+						}
 					}
 				}
 			}
@@ -668,20 +696,26 @@ private fun FramePicker(
 
 private const val BAND_CELL_CHARS = 18
 private const val SUMMARY_CHIPS = 6
+private const val SUMMARY_CHIPS_PHONE = 4
+private const val SUMMARY_CHIP_LINES = 2
+private const val SUMMARY_CHIP_NAME_CHARS = 12
 
 private fun String.ellipsize(max: Int): String = if (length <= max) this else take(max - 1).trimEnd() + "…"
 
 /**
- * The selected event over the bottom of the drawing: its title, when and lane, then its references
- * (or a placed entry's opening line), with Open and Clear.
+ * The selected event over the bottom of the drawing: its title, when and lane, then up to [maxChips]
+ * of its references (or a placed entry's opening line), with Open and Clear. A reference chip opens
+ * that reference through [onReference].
  */
 @Composable
-private fun SelectionStrip(
+internal fun SelectionStrip(
 	row: TimelineRow,
 	summary: SelectionSummary?,
 	onOpen: () -> Unit,
 	onClear: () -> Unit,
+	onReference: (CatalogItem) -> Unit,
 	modifier: Modifier = Modifier,
+	maxChips: Int = SUMMARY_CHIPS,
 ) {
 	val words = rememberStoryDateWords()
 	val start = row.start
@@ -703,7 +737,7 @@ private fun SelectionStrip(
 		modifier = modifier.testTag(TIME_LINE_SELECTION_TAG),
 		content = when {
 			references.isNotEmpty() -> {
-				{ SummaryChips(references = references, onClick = onOpen) }
+				{ SummaryChips(references = references, max = maxChips, onClick = onReference) }
 			}
 
 			excerpt != null -> {
@@ -723,31 +757,82 @@ private fun SelectionStrip(
 	)
 }
 
-/** Up to [SUMMARY_CHIPS] read-only reference chips, then `+N` for the rest. */
+/**
+ * Up to [max] read-only reference chips, glyph and name, on at most [SUMMARY_CHIP_LINES] lines,
+ * then `+N` for every reference not shown, whether past [max] or past the last line.
+ */
 @Composable
-private fun SummaryChips(references: List<CatalogItem>, onClick: () -> Unit) {
-	Row(
-		modifier = Modifier.padding(top = 4.dp),
-		verticalAlignment = Alignment.CenterVertically,
-		horizontalArrangement = Arrangement.spacedBy(6.dp),
-	) {
-		references.take(SUMMARY_CHIPS).forEach { item ->
-			HdReferenceChip(
-				glyph = item.hdMark(),
-				swatchColor = item.hdSwatchColor(),
-				glyphColor = item.hdGlyphColor(),
-				name = item.name,
-				onClick = onClick,
-				onAction = null,
-				actionContentDescription = "",
-				modifier = Modifier.weight(1f, fill = false),
-			)
+private fun SummaryChips(references: List<CatalogItem>, max: Int, onClick: (CatalogItem) -> Unit) {
+	val shown = references.take(max)
+	SubcomposeLayout(modifier = Modifier.padding(top = 4.dp)) { constraints ->
+		val gap = 6.dp.roundToPx()
+		val loose = constraints.copy(minWidth = 0, minHeight = 0)
+		val chips = subcompose("chips") {
+			shown.forEach { item ->
+				HdReferenceChip(
+					glyph = item.hdMark(),
+					swatchColor = item.hdSwatchColor(),
+					glyphColor = item.hdGlyphColor(),
+					name = item.name.ellipsize(SUMMARY_CHIP_NAME_CHARS),
+					onClick = { onClick(item) },
+					onAction = null,
+					actionContentDescription = "",
+				)
+			}
+		}.map { it.measure(loose) }
+
+		// The most chips that fit with the `+N` for the rest after them.
+		var lines: List<List<Placeable>>? = null
+		var count = chips.size
+		while (lines == null) {
+			val hidden = references.size - count
+			val more = if (hidden > 0) {
+				subcompose("more-$hidden") { SummaryMore(hidden) }.single().measure(loose)
+			} else {
+				null
+			}
+			lines = wrapLines(chips.take(count) + listOfNotNull(more), constraints.maxWidth, gap)
+				.takeIf { it.size <= SUMMARY_CHIP_LINES || count == 0 }
+			count--
 		}
-		val more = references.size - SUMMARY_CHIPS
-		if (more > 0) {
-			HdMonoLabel(text = Res.string.timeline_selection_more.get(more))
+
+		val heights = lines.map { line -> line.maxOf { it.height } }
+		val height = heights.sum() + gap * (lines.size - 1).coerceAtLeast(0)
+		val width = lines.maxOfOrNull { line -> line.sumOf { it.width } + gap * (line.size - 1) } ?: 0
+		layout(width.coerceIn(constraints.minWidth, constraints.maxWidth), height.coerceAtLeast(constraints.minHeight)) {
+			var y = 0
+			lines.forEachIndexed { index, line ->
+				var x = 0
+				line.forEach { placeable ->
+					placeable.placeRelative(x, y + (heights[index] - placeable.height) / 2)
+					x += placeable.width + gap
+				}
+				y += heights[index] + gap
+			}
 		}
 	}
+}
+
+/** [items] wrapped into lines no wider than [maxWidth], one item a line where an item alone is wider. */
+private fun wrapLines(items: List<Placeable>, maxWidth: Int, gap: Int): List<List<Placeable>> {
+	val lines = mutableListOf<MutableList<Placeable>>()
+	var x = 0
+	items.forEach { item ->
+		val line = lines.lastOrNull()
+		if (line != null && x + gap + item.width <= maxWidth) {
+			line += item
+			x += gap + item.width
+		} else {
+			lines += mutableListOf(item)
+			x = item.width
+		}
+	}
+	return lines
+}
+
+@Composable
+private fun SummaryMore(count: Int) {
+	HdMonoLabel(text = Res.string.timeline_selection_more.get(count))
 }
 
 /** One `HdTagChip` per lane, its swatch in the lane's colour: `▪ Alice · 4`. */

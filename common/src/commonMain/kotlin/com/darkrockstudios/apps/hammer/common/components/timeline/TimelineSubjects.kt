@@ -3,12 +3,12 @@ package com.darkrockstudios.apps.hammer.common.components.timeline
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
-import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogItem
 import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogKind
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.SubjectSummary
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.timelineCastRank
 
 /** What the list needs to know about a placement's subject without reading its text. */
 internal data class SubjectGlance(val chapterPath: String?, val missing: Boolean)
@@ -78,12 +78,13 @@ internal fun timelineReferenceItems(
 /** People, then places, then other entries, then scenes; the order within each is kept. */
 internal fun List<CatalogItem>.inCastOrder(): List<CatalogItem> = sortedBy { item ->
 	when {
-		item.kind != CatalogKind.Entry -> 3
-		item.entryType == EntryType.PERSON -> 0
-		item.entryType == EntryType.PLACE -> 1
-		else -> 2
+		item.kind != CatalogKind.Entry -> CAST_RANK_SCENE
+		else -> item.entryType?.let(::timelineCastRank) ?: CAST_RANK_OTHER_ENTRY
 	}
 }
+
+private const val CAST_RANK_OTHER_ENTRY = 2
+private const val CAST_RANK_SCENE = 3
 
 // As TimelineService joins a chapter path.
 private const val CHAPTER_SEPARATOR = " › "

@@ -11,9 +11,12 @@ import com.darkrockstudios.apps.hammer.common.components.timeline.timelineTickSc
 import com.darkrockstudios.apps.hammer.common.components.timeline.toLayoutInput
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.timeline.layout.LayoutKind
+import com.darkrockstudios.apps.hammer.common.timeline.layout.MonospaceEstimateMeasurer
+import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineLayoutEngine
 import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineView
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class TimelineDrawingInputTest {
 
@@ -137,6 +140,22 @@ class TimelineDrawingInputTest {
 		assertEquals("Day 40 · 03:00", scheme.format(12 * year + 40 * day + 3 * hour + 15, hourUnit, false))
 		assertEquals("03:00", scheme.format(12 * year + 40 * day + 3 * hour, hourUnit, true))
 		assertEquals("Year 3 before Landing", scheme.format(-3 * year, scheme.units[0], false))
+	}
+
+	@Test
+	fun `a phone axis is narrow and labels its ticks in the short form`() {
+		val rows = (1L..8L).map { h -> row(h.toInt(), date("year" to 12, "day" to 40, "hour" to h)) }
+		fun axis(phone: Boolean) = TimelineLayoutEngine.layout(
+			toLayoutInput(rows, emptyList(), emptySet(), story, TimelineView.TO_SCALE, if (phone) 360f else 840f, phone),
+			MonospaceEstimateMeasurer(),
+		).axis
+
+		val phone = axis(phone = true)
+		assertEquals(64f, phone.xDp)
+		assertTrue(phone.ticks.isNotEmpty())
+		phone.ticks.forEach { assertTrue(it.label.matches(Regex("\\d{2}:\\d{2}")), "phone tick ${it.label}") }
+		val desktop = axis(phone = false)
+		assertTrue(desktop.ticks.all { it.label.startsWith("Day 40 · ") }, "desktop ticks ${desktop.ticks.map { it.label }}")
 	}
 
 	@Test

@@ -15,6 +15,10 @@ object TimelineLayoutEngine {
 	private const val LANE_INSET = 8f
 	private const val LANE_HEADER_PAD = 18f
 	private const val LANE_HEADER_HEIGHT = 24f
+
+	/** The phone rail's cap target, around the 2dp cap the renderer draws at 18dp. */
+	private const val PHONE_CAP_TOP = 12f
+	private const val PHONE_CAP_HEIGHT = 12f
 	private const val POINT_INSET = 8f
 	private const val MARK_REACH = 6f
 	private const val LABEL_GAP = 12f
@@ -75,9 +79,12 @@ object TimelineLayoutEngine {
 
 		val hits = ArrayList<HitRegion>()
 		for (lane in lanes) {
-			if (lane.header != null) {
-				hits += HitRegion(RectDp(lane.xDp, 0f, lane.widthDp, LANE_HEADER_HEIGHT), HitTarget.LaneHeader(lane.name))
+			val rect = if (lane.header != null) {
+				RectDp(lane.xDp, 0f, lane.widthDp, LANE_HEADER_HEIGHT)
+			} else {
+				RectDp(lane.xDp, PHONE_CAP_TOP, lane.widthDp, PHONE_CAP_HEIGHT)
 			}
+			hits += HitRegion(rect, HitTarget.LaneHeader(lane.name))
 		}
 
 		val bands = ArrayList<BandShape>()

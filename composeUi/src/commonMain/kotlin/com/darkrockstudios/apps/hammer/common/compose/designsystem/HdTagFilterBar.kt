@@ -24,9 +24,12 @@ import com.darkrockstudios.apps.hammer.common.data.tagindex.TagCount
 /**
  * The tag-count filter row of a browse screen: an "all" cell, a hairline separator, then one
  * [HdTagChip] per tag (`label · count`) in a horizontally scrolling row. Optional [leading]
- * slot (e.g. an inline search field on Expanded widths) and [trailing] slot (e.g. a sort menu).
+ * slot (e.g. an inline search field on Expanded widths) and [trailing] slot (e.g. a sort menu),
+ * both pinned. [scrollingLeading] opens the scrolling row behind its own hairline, for a second
+ * set of filter chips that would not fit pinned on a narrow screen.
  *
  *     [⌕ search] │ ALL · 12 │ # gothic · 3  # coastal · 1 …   [SORT ▾]
+ *     ALL · 12 │ ▪ Alice · 4  ▪ Queen · 2 │ # gothic · 3 …     (scrollingLeading)
  *
  * The row always renders even with no tags, so the trailing affordance has a stable home.
  * [allLabel] arrives pre-formatted (`"ALL · 12"`) so the component stays string-resource free.
@@ -40,6 +43,7 @@ fun HdTagFilterBar(
 	onClear: () -> Unit,
 	modifier: Modifier = Modifier,
 	leading: (@Composable () -> Unit)? = null,
+	scrollingLeading: (@Composable () -> Unit)? = null,
 	trailing: @Composable () -> Unit = {},
 ) {
 	val allActive = activeTags.isEmpty()
@@ -65,6 +69,14 @@ fun HdTagFilterBar(
 			horizontalArrangement = Arrangement.spacedBy(6.dp),
 			verticalAlignment = Alignment.CenterVertically,
 		) {
+			if (scrollingLeading != null) {
+				item(key = SCROLLING_LEADING_KEY) { scrollingLeading() }
+				if (tags.isNotEmpty()) {
+					item(key = SCROLLING_LEADING_RULE_KEY) {
+						VerticalHairline(modifier = Modifier.padding(horizontal = Ui.Padding.M - 6.dp))
+					}
+				}
+			}
 			items(count = tags.size) { i ->
 				val (label, count) = tags[i]
 				val isActive = label in activeTags
@@ -79,10 +91,13 @@ fun HdTagFilterBar(
 	}
 }
 
+private const val SCROLLING_LEADING_KEY = "scrolling-leading"
+private const val SCROLLING_LEADING_RULE_KEY = "scrolling-leading-rule"
+
 @Composable
-private fun VerticalHairline() {
+private fun VerticalHairline(modifier: Modifier = Modifier) {
 	Box(
-		modifier = Modifier
+		modifier = modifier
 			.height(20.dp)
 			.width(Dp.Hairline)
 			.background(MaterialTheme.colorScheme.outlineVariant),
