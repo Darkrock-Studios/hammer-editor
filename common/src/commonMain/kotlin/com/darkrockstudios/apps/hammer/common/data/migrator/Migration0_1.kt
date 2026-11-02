@@ -4,9 +4,11 @@ import com.darkrockstudios.apps.hammer.base.http.writeToml
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineContainer
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineDatasource
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import io.github.aakira.napier.Napier
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import net.peanuuutz.tomlkt.Toml
@@ -55,7 +57,7 @@ class Migration0_1(
 			fileSystem.read(path) {
 				val timelineToml = readUtf8()
 				if (timelineToml.isNotBlank()) {
-					json.decodeFromString(timelineToml)
+					json.decodeFromString<LegacyJsonTimeline>(timelineToml).toContainer()
 				} else {
 					TimeLineContainer(emptyList())
 				}
@@ -65,3 +67,20 @@ class Migration0_1(
 		}
 	}
 }
+
+/** The JSON shape this migration reads; events stored their free-text "when" as `date`. */
+@Serializable
+private data class LegacyJsonTimeline(val events: List<LegacyJsonEvent>) {
+	fun toContainer() = TimeLineContainer(
+		events.map { TimeLineEvent(id = it.id, order = it.order, label = it.date, content = it.content, tags = it.tags) }
+	)
+}
+
+@Serializable
+private data class LegacyJsonEvent(
+	val id: Int,
+	val order: Int,
+	val date: String? = null,
+	val content: String,
+	val tags: Set<String> = emptySet(),
+)

@@ -196,8 +196,8 @@ internal fun contentWriteOperations(): List<Operation<*, *>> = listOf(
 			val event = project.requireEvent(input.id)
 			val tags = input.tags?.toSet() ?: event.tags
 			timeline.validateTags(tags).requireNone()
-			val date = if (input.date == null) event.date else input.date.orBlankNull()
-			timeline.updateEvent(event.copy(content = input.content, date = date, tags = tags))
+			val label = if (input.date == null) event.label else input.date.orBlankNull()
+			timeline.updateEvent(event.copy(content = input.content, label = label, tags = tags))
 			TimelineEntry(project.requireEvent(input.id))
 		}
 	},

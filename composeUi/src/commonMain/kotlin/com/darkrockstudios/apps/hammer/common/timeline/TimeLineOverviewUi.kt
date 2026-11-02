@@ -104,7 +104,7 @@ import kotlin.math.roundToInt
 /** An event matches on its body read as prose, or on its plain-text date. */
 internal fun eventMatchesQuery(event: TimeLineEvent, query: String): Boolean =
 	markdownContains(event.content, query) ||
-		event.date?.contains(query, ignoreCase = true) == true
+		event.label?.contains(query, ignoreCase = true) == true
 
 const val TIME_LINE_CREATE_TAG = "Timeline Overview Create"
 const val TIME_LINE_LIST_TAG = "Timeline Overview List"
@@ -455,7 +455,7 @@ internal fun EventCard(
 					verticalAlignment = Alignment.CenterVertically,
 				) {
 					HdMonoLabel(
-						text = event.date?.takeIf { it.isNotBlank() }
+						text = event.label?.takeIf { it.isNotBlank() }
 							?: Res.string.timeline_view_undated.get(),
 						modifier = Modifier
 							.sharedElement(

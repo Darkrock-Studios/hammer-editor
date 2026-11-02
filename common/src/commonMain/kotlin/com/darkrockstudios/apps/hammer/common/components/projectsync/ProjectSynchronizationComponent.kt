@@ -24,6 +24,7 @@ import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEd
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEventError
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.toApiEntity
 import com.darkrockstudios.apps.hammer.common.data.toMsg
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import io.github.aakira.napier.Napier
@@ -309,13 +310,7 @@ class ProjectSynchronizationComponent(
 		val local = timeLineRepository.getTimelineEvent(serverEntity.id)
 			?: error("Failed to get local note")
 
-		val localEntity = ApiProjectEntity.TimelineEventEntity(
-			id = local.id,
-			label = local.date,
-			content = local.content,
-			order = local.order,
-			tags = local.tags,
-		)
+		val localEntity = local.toApiEntity()
 
 		withContext(mainDispatcher) {
 			_state.getAndUpdate {

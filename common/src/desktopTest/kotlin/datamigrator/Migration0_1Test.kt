@@ -56,7 +56,7 @@ class Migration0_1Test : BaseTest() {
 			TimeLineEvent(
 				id = 1,
 				order = 0,
-				date = "Date 1",
+				label = "Date 1",
 				content = "Content 1",
 			),
 			timeLineContainer.events[0]
@@ -66,7 +66,7 @@ class Migration0_1Test : BaseTest() {
 			TimeLineEvent(
 				id = 2,
 				order = 1,
-				date = "Date 2",
+				label = "Date 2",
 				content = "Content 2",
 			),
 			timeLineContainer.events[1]
@@ -76,7 +76,7 @@ class Migration0_1Test : BaseTest() {
 			TimeLineEvent(
 				id = 3,
 				order = 2,
-				date = "Date 3",
+				label = "Date 3",
 				content = "Content 3",
 			),
 			timeLineContainer.events[2]

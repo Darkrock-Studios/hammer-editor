@@ -77,7 +77,7 @@ class TimeLineRepository(
 			id = eventId,
 			order = order ?: timeline.events.size,
 			content = content,
-			date = date,
+			label = date,
 			tags = cleanTags(tags),
 		)
 

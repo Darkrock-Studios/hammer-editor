@@ -115,7 +115,7 @@ class TimeLineOverviewComponentTest : BaseTest() {
 			val event = TimeLineEvent(
 				id = 0,
 				order = 0,
-				date = eventDate.captured,
+				label = eventDate.captured,
 				content = eventContent.captured,
 				tags = eventTags.captured,
 			)

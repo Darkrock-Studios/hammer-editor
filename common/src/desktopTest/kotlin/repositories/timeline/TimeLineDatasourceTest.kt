@@ -1,8 +1,11 @@
 package repositories.timeline
 
 import com.darkrockstudios.apps.hammer.base.http.readToml
+import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineContainer
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineDatasource
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import getProject1Def
@@ -10,6 +13,7 @@ import kotlinx.coroutines.test.runTest
 import net.peanuuutz.tomlkt.Toml
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.Assertions.assertTrue
+import kotlin.test.assertNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.koin.dsl.module
@@ -80,5 +84,79 @@ class TimeLineDatasourceTest : BaseTest() {
 
 		val loadedContainer: TimeLineContainer = ffs.readToml(filePath, toml)
 		assertEquals(events, loadedContainer.events)
+	}
+
+	@Test
+	fun `Round trip keeps every Timeline 2 field`() = runTest(mainTestDispatcher) {
+		val projDef = getProject1Def()
+		val events = listOf(
+			TimeLineEvent(
+				id = 4,
+				order = 0,
+				title = "The storm",
+				label = "Late autumn",
+				content = "Wind takes the roof.\nSecond line.",
+				tags = setOf("weather"),
+				references = setOf(12, 31),
+				lane = "The Keep",
+				milestone = true,
+				start = StoryDate(mapOf("year" to 97L, "day" to 210L)),
+				end = StoryDate(mapOf("year" to 97L, "day" to 212L, "hour" to 6L)),
+			),
+			TimeLineEvent(
+				id = 9,
+				order = 1,
+				kind = TimelineKind.SCENE,
+				subject = 31,
+				lane = "Alice",
+				cachedTitle = "Landfall",
+				start = StoryDate(mapOf("year" to -3L, "day" to 214L, "hour" to 6L)),
+			),
+			TimeLineEvent(
+				id = 10,
+				order = 2,
+				kind = TimelineKind.ENTRY,
+				subject = 34,
+				start = StoryDate(mapOf("year" to 97L)),
+				end = StoryDate(mapOf("year" to 98L)),
+			),
+		)
+
+		TimeLineDatasource.storeTimeline(
+			TimeLineDatasource.getTimelineFilePath(projDef).also {
+				ffs.createDirectories(it.toOkioPath().parent!!)
+			},
+			ffs,
+			toml,
+			TimeLineContainer(events),
+		)
+
+		val timeline = datasource.loadTimeline(projDef)
+		assertEquals(events, timeline.events)
+	}
+
+	@Test
+	fun `Legacy timeline with date keys still loads`() = runTest(mainTestDispatcher) {
+		val projDef = getProject1Def()
+		val file = TimeLineDatasource.getTimelineFilePath(projDef).toOkioPath()
+		ffs.createDirectories(file.parent!!)
+		ffs.write(file) {
+			writeUtf8(
+				"""
+				[[events]]
+				id = 0
+				order = 0
+				date = "First date"
+				content = "Event 0"
+				""".trimIndent()
+			)
+		}
+
+		val timeline = datasource.loadTimeline(projDef)
+
+		val event = timeline.events.single()
+		assertEquals(0, event.id)
+		assertEquals("Event 0", event.content)
+		assertNull(event.label)
 	}
 }

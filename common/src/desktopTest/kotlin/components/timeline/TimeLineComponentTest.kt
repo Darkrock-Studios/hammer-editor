@@ -30,7 +30,7 @@ class TimeLineComponentTest : ComponentTest() {
 	private val event = TimeLineEvent(
 		id = 1,
 		order = 0,
-		date = "original date",
+		label = "original date",
 		content = "original content",
 		tags = emptySet(),
 	)

@@ -1,0 +1,22 @@
+[[events]]
+id = 4
+order = 0
+title = "The storm"
+label = "Late autumn"
+content = """
+Wind takes the roof."""
+tags = [ "weather" ]
+references = [ 12, 31 ]
+lane = "Keep"
+milestone = true
+start = { year = 97, day = 210 }
+end = { year = 97, day = 212 }
+
+[[events]]
+id = 9
+order = 1
+kind = "scene"
+subject = 31
+lane = "Alice"
+cachedTitle = "Landfall"
+start = { year = 97, day = 214, hour = 6 }

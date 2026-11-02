@@ -26,6 +26,7 @@ open class DataMigrator(
 		getKoin().get<Migration2_3>().addToMap(migrators)
 		getKoin().get<Migration3_4>().addToMap(migrators)
 		getKoin().get<Migration4_5>().addToMap(migrators)
+		getKoin().get<Migration5_6>().addToMap(migrators)
 
 		return migrators
 	}

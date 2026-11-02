@@ -4,14 +4,14 @@ import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.EntityHash
 import com.darkrockstudios.apps.hammer.base.http.EntityType
-import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntitySynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.OnSyncLog
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogE
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogI
-import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.toApiEntity
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.toTimeLineEvent
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.apps.hammer.sync_event_delete_failed
@@ -40,18 +40,7 @@ class ClientTimelineSynchronizer(
 	}
 
 	override suspend fun getEntityHash(id: Int): String? {
-		val event = timeLineRepository.getTimelineEvent(id)
-		return if (event != null) {
-			EntityHasher.hashTimelineEvent(
-				id = event.id,
-				order = event.order,
-				label = event.date,
-				content = event.content,
-				tags = event.tags,
-			)
-		} else {
-			null
-		}
+		return timeLineRepository.getTimelineEvent(id)?.toApiEntity()?.hash()
 	}
 
 	override suspend fun createEntityForId(id: Int): ApiProjectEntity.TimelineEventEntity {
@@ -59,13 +48,7 @@ class ClientTimelineSynchronizer(
 			timeLineRepository.getTimelineEvent(id)
 				?: throw IllegalStateException("Timeline event $id not found")
 
-		return ApiProjectEntity.TimelineEventEntity(
-			id = id,
-			order = event.order,
-			label = event.date,
-			content = event.content,
-			tags = event.tags,
-		)
+		return event.toApiEntity()
 	}
 
 	override suspend fun reIdEntity(oldId: Int, newId: Int): Set<Int> {
@@ -78,15 +61,7 @@ class ClientTimelineSynchronizer(
 		syncId: String,
 		onLog: OnSyncLog
 	): Boolean {
-		val event = TimeLineEvent(
-			id = serverEntity.id,
-			order = serverEntity.order,
-			date = serverEntity.label,
-			content = serverEntity.content,
-			tags = serverEntity.tags,
-		)
-
-		timeLineRepository.updateEventForSync(event)
+		timeLineRepository.updateEventForSync(serverEntity.toTimeLineEvent())
 
 		return true
 	}

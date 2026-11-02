@@ -57,7 +57,7 @@ fun ViewTimeLineEventUi(
 			scope.launch(dispatcherDefault) {
 				val success = component.storeEvent(
 					event.copy(
-						date = dateText,
+						label = dateText,
 						content = eventText,
 						tags = state.tags,
 					)
@@ -116,7 +116,7 @@ fun ViewTimeLineEventUi(
 				StampRow(
 					isEditing = isEditing,
 					event = event,
-					savedDate = event?.date,
+					savedDate = event?.label,
 					sharedTransitionScope = sharedTransitionScope,
 					animatedVisibilityScope = animatedVisibilityScope,
 					onEdit = { component.beginEdit() },

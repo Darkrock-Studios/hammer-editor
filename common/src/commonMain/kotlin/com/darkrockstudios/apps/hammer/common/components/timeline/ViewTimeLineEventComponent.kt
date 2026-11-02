@@ -110,7 +110,7 @@ class ViewTimeLineEventComponent(
 						// A dirty edit keeps its draft; otherwise follow the stored event.
 						if (!keepDraft && updatedEvent != null) {
 							_contentText.update { updatedEvent.content }
-							_dateText.update { updatedEvent.date ?: "" }
+							_dateText.update { updatedEvent.label ?: "" }
 						}
 					}
 				}
@@ -132,7 +132,7 @@ class ViewTimeLineEventComponent(
 				}
 				if (restoredDraft == null) {
 					_contentText.update { event?.content ?: "" }
-					_dateText.update { event?.date ?: "" }
+					_dateText.update { event?.label ?: "" }
 				}
 			}
 		}
@@ -251,7 +251,7 @@ class ViewTimeLineEventComponent(
 		// Baseline not loaded yet (e.g. restored mid-edit): assume dirty so we don't silently discard.
 		val event = state.value.event ?: return true
 		return event.content != contentText.value ||
-			(event.date ?: "") != dateText.value ||
+			(event.label ?: "") != dateText.value ||
 			event.tags != state.value.tags
 	}
 
@@ -294,7 +294,7 @@ class ViewTimeLineEventComponent(
 			)
 		}
 		_contentText.update { event?.content ?: "" }
-		_dateText.update { event?.date ?: "" }
+		_dateText.update { event?.label ?: "" }
 		updateShouldClose()
 	}
 

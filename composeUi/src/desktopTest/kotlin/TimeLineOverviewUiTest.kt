@@ -144,8 +144,8 @@ class TimeLineOverviewUiTest : BaseTest() {
 		val data = TimeLineOverview.State(
 			timeLine = TimeLineContainer(
 				events = listOf(
-					TimeLineEvent(id = 0, order = 0, date = null, content = "A well\\-known road"),
-					TimeLineEvent(id = 1, order = 1, date = null, content = "An unrelated event"),
+					TimeLineEvent(id = 0, order = 0, label = null, content = "A well\\-known road"),
+					TimeLineEvent(id = 1, order = 1, label = null, content = "An unrelated event"),
 				)
 			)
 		)
@@ -185,7 +185,7 @@ class TimeLineOverviewUiTest : BaseTest() {
 		val event = TimeLineEvent(
 			id = 0,
 			order = 0,
-			date = date,
+			label = date,
 			content = content
 		)
 
@@ -220,7 +220,7 @@ class TimeLineOverviewUiTest : BaseTest() {
 		val event = TimeLineEvent(
 			id = 0,
 			order = 0,
-			date = date,
+			label = date,
 			content = content
 		)
 
@@ -251,7 +251,7 @@ class TimeLineOverviewUiTest : BaseTest() {
 		val event = TimeLineEvent(
 			id = 0,
 			order = 0,
-			date = null,
+			label = null,
 			content = content
 		)
 
@@ -283,7 +283,7 @@ class TimeLineOverviewUiTest : BaseTest() {
 		val event = TimeLineEvent(
 			id = 0,
 			order = 0,
-			date = null,
+			label = null,
 			content = content
 		)
 
@@ -318,7 +318,7 @@ class TimeLineOverviewUiTest : BaseTest() {
 		val event = TimeLineEvent(
 			id = 0,
 			order = 0,
-			date = null,
+			label = null,
 			content = content
 		)
 
@@ -352,7 +352,7 @@ class TimeLineOverviewUiTest : BaseTest() {
 	@OptIn(ExperimentalSharedTransitionApi::class)
 	@Test
 	fun `Event Card shows an image by its current name`() {
-		val event = TimeLineEvent(id = 0, order = 0, date = null, content = "Met\n\n![image](hammer://image/3)")
+		val event = TimeLineEvent(id = 0, order = 0, label = null, content = "Met\n\n![image](hammer://image/3)")
 
 		compose.setContent {
 			CompositionLocalProvider(LocalImageNames provides { id -> if (id == 3) "Cheshire Cat" else null }) {

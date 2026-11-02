@@ -1,5 +1,7 @@
 package com.darkrockstudios.apps.hammer.integration.scenarios
 
+import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.common.data.SceneContent
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImageAddResult
@@ -100,6 +102,36 @@ class UploadResyncStabilityMatrixTest : RoundTripTestBase() {
 				val timeline: TimeLineRepository = client.scope.get()
 				timeline.initialize()
 				timeline.createEvent(content = "event", date = "1920", tags = setOf("war"))
+			},
+			Case("timeline event, dated milestone with references") { client ->
+				val timeline: TimeLineRepository = client.scope.get()
+				timeline.initialize()
+				val event = timeline.createEvent(content = "event", date = "  Late autumn  ", tags = setOf("war"))
+				timeline.updateEvent(
+					event.copy(
+						title = " The storm ",
+						references = setOf(12, 31),
+						lane = "The  Keep",
+						milestone = true,
+						start = StoryDate(mapOf("year" to -97L, "day" to 210L)),
+						end = StoryDate(mapOf("year" to -97L, "day" to 212L, "hour" to 6L)),
+					)
+				)
+			},
+			Case("timeline scene placement with cachedTitle") { client ->
+				val scene = newScene(client, "Landfall", "body")
+				val timeline: TimeLineRepository = client.scope.get()
+				timeline.initialize()
+				val event = timeline.createEvent(content = "", date = null)
+				timeline.updateEvent(
+					event.copy(
+						kind = TimelineKind.SCENE,
+						subject = scene.id,
+						lane = "Alice",
+						cachedTitle = "Landfall",
+						start = StoryDate(mapOf("year" to 97L, "day" to 214L, "hour" to 6L, "minute" to 30L)),
+					)
+				)
 			},
 			Case("encyclopedia entry, minimal") { client ->
 				val encyclopedia: EncyclopediaRepository = client.scope.get()

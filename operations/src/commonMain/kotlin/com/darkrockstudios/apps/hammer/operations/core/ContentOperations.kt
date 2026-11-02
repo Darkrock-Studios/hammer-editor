@@ -253,7 +253,7 @@ data class TimelineEntry(
 	val content: String,
 	val tags: List<String>,
 ) {
-	constructor(event: TimeLineEvent) : this(event.id, event.order, event.date, event.content, event.tags.sorted())
+	constructor(event: TimeLineEvent) : this(event.id, event.order, event.label, event.content, event.tags.sorted())
 }
 
 @Serializable

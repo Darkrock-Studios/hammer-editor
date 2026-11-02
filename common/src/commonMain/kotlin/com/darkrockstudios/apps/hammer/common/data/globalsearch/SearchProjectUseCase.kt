@@ -113,11 +113,11 @@ class SearchProjectUseCase(
 		timeline.events
 			.filter { it.tags.matchesAllTags(parsed.tags) }
 			.mapNotNull { event ->
-				val snippet = matchTimelineEvent(projector, event.date, event.content, parsed.text)
+				val snippet = matchTimelineEvent(projector, event.label, event.content, parsed.text)
 					?: return@mapNotNull null
 				SearchResult.TimelineEvent(
 					eventId = event.id,
-					title = event.date?.takeIf { it.isNotBlank() }
+					title = event.label?.takeIf { it.isNotBlank() }
 						?: firstLineTitle(projector, event.content, fallback = "(empty event)"),
 					snippet = snippet,
 				)

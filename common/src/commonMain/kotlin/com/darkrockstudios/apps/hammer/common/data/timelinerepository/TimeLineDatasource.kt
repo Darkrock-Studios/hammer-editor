@@ -38,11 +38,7 @@ class TimeLineDatasource(
 
 	suspend fun storeTimeline(timeLine: TimeLineContainer, projectDef: ProjectDef): Unit =
 		withContext(ioDispatcher) {
-			val path = getTimelineFile(projectDef).toOkioPath()
-			fileSystem.write(path) {
-				val timeLineToml = toml.encodeToString(timeLine)
-				writeUtf8(timeLineToml)
-			}
+			storeTimeline(getTimelineFile(projectDef), fileSystem, toml, timeLine)
 		}
 
 	companion object {
@@ -55,6 +51,13 @@ class TimeLineDatasource(
 
 		fun getTimelineFilePath(projectDef: ProjectDef): HPath {
 			return (getTimelineDir(projectDef).toOkioPath() / TIMELINE_FILENAME).toHPath()
+		}
+
+		/** The caller makes sure the parent directory exists. */
+		fun storeTimeline(hpath: HPath, fileSystem: FileSystem, toml: Toml, container: TimeLineContainer) {
+			fileSystem.write(hpath.toOkioPath()) {
+				writeUtf8(toml.encodeToString(container))
+			}
 		}
 
 		/** Missing or corrupt file means an empty timeline. */

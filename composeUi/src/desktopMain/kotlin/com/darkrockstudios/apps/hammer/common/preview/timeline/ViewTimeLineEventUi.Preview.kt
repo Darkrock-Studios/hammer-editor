@@ -68,7 +68,7 @@ fun ScreenViewTimeLineEventUiTabletPreview() {
 private val event = TimeLineEvent(
 	id = 1,
 	order = 1,
-	date = "Midsummer",
+	label = "Midsummer",
 	content = "The lamp goes dark for the first time and a ship runs aground on the rocks below the cliff.",
 	tags = setOf("act-one", "turning-point"),
 )
@@ -81,7 +81,7 @@ private val component = object : ViewTimeLineEvent {
 			tags = event.tags,
 		)
 	)
-	override val dateText: Value<String> = MutableValue(event.date.orEmpty())
+	override val dateText: Value<String> = MutableValue(event.label.orEmpty())
 	override val contentText: Value<String> = MutableValue(event.content)
 
 	override fun onEventTextChanged(text: String) {}

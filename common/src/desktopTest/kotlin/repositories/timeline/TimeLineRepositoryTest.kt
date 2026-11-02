@@ -216,7 +216,7 @@ class TimeLineRepositoryTest : BaseTest() {
 		}
 
 		val updatedEvent = oldEvents[2].copy(
-			date = "Updated Name",
+			label = "Updated Name",
 			content = "Updated Content",
 		)
 

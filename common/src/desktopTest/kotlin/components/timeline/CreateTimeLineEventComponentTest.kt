@@ -33,7 +33,7 @@ class CreateTimeLineEventComponentTest : TimeLineTestBase() {
 		} returns TimeLineEvent(
 			id = id + 1,
 			order = 1,
-			date = date,
+			label = date,
 			content = content
 		)
 

@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.integration.scenarios
 
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
+import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
 import com.darkrockstudios.apps.hammer.e2e.util.E2eTestData
 import com.darkrockstudios.apps.hammer.integration.RoundTripTestBase
 import com.darkrockstudios.apps.hammer.integration.TestImages
@@ -45,6 +46,13 @@ class ResyncDownloadsNothingTest : RoundTripTestBase() {
 				order = 0,
 				label = "1920",
 				content = "a battle",
+				tags = setOf("war"),
+				title = "The battle",
+				references = setOf(1, 4),
+				lane = "Front line",
+				milestone = true,
+				start = StoryDate(mapOf("year" to 1920L, "day" to 12L)),
+				end = StoryDate(mapOf("year" to 1920L, "day" to 14L)),
 			),
 			E2eTestData.createTestEncyclopediaEntry(id = 4),
 			ApiProjectEntity.SceneDraftEntity(

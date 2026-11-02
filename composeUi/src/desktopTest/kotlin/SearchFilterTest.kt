@@ -24,7 +24,7 @@ class SearchFilterTest {
 		NoteContent(id = 1, created = Clock.System.now(), content = content)
 
 	private fun event(content: String, date: String? = null) =
-		TimeLineEvent(id = 1, order = 0, date = date, content = content)
+		TimeLineEvent(id = 1, order = 0, label = date, content = content)
 
 	private fun idea(content: String, title: String? = null) = StoryIdea(
 		id = IdeaId("00000000-0000-0000-0000-000000000001"),

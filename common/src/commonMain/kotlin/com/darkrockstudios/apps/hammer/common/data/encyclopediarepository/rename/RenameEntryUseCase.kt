@@ -138,7 +138,7 @@ class RenameEntryUseCase(
 			step()
 		}
 		for (event in events) {
-			scan(RenameItemKey(RenamePlace.TIMELINE_EVENT, event.id), event.date ?: firstLine(event.content), event.content)
+			scan(RenameItemKey(RenamePlace.TIMELINE_EVENT, event.id), event.label ?: firstLine(event.content), event.content)
 			step()
 		}
 		for (entry in entries) {

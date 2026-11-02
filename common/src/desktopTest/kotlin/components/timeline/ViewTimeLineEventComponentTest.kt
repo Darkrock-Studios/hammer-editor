@@ -53,7 +53,7 @@ class ViewTimeLineEventComponentTest : TimeLineTestBase() {
 		val date = "updated date"
 		val content = "updated content"
 		val updatedEvent = event.copy(
-			date = date,
+			label = date,
 			content = content
 		)
 		coEvery { timelineRepo.getTimelineEvent(eventId) } returns updatedEvent
@@ -88,7 +88,7 @@ class ViewTimeLineEventComponentTest : TimeLineTestBase() {
 		advanceUntilIdle()
 		assertEquals("Event 0", component.contentText.value)
 
-		val synced = events.first().copy(date = "server date", content = "server content")
+		val synced = events.first().copy(label = "server date", content = "server content")
 		timelineRepoCollectCallback.captured.emit(TimeLineContainer(listOf(synced) + events.drop(1)))
 		advanceUntilIdle()
 

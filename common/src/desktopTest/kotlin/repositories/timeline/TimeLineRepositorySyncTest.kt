@@ -91,7 +91,7 @@ class TimeLineRepositorySyncTest : BaseTest() {
 		setupTimeline(projDef, fakeEvents())
 
 		val repo = initializedRepo(projDef)
-		val replacement = TimeLineEvent(id = 4, order = 4, date = "synced", content = "From server")
+		val replacement = TimeLineEvent(id = 4, order = 4, label = "synced", content = "From server")
 		repo.updateEventForSync(replacement)
 		advanceUntilIdle()
 
@@ -106,7 +106,7 @@ class TimeLineRepositorySyncTest : BaseTest() {
 		setupTimeline(projDef, fakeEvents())
 
 		val repo = initializedRepo(projDef)
-		val newEvent = TimeLineEvent(id = 999, order = 99, date = null, content = "Brand new")
+		val newEvent = TimeLineEvent(id = 999, order = 99, label = null, content = "Brand new")
 		repo.updateEventForSync(newEvent)
 		advanceUntilIdle()
 
@@ -123,7 +123,7 @@ class TimeLineRepositorySyncTest : BaseTest() {
 
 		val repo = initializedRepo(projDef)
 		// updateEventForSync mutates memory only; storeTimeline must flush it.
-		repo.updateEventForSync(TimeLineEvent(id = 4, order = 4, date = null, content = "Flushed"))
+		repo.updateEventForSync(TimeLineEvent(id = 4, order = 4, label = null, content = "Flushed"))
 		advanceUntilIdle()
 		repo.storeTimeline()
 

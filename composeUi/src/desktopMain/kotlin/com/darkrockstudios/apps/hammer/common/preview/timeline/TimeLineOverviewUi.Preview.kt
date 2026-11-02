@@ -68,21 +68,21 @@ private val events = listOf(
 	TimeLineEvent(
 		id = 1,
 		order = 0,
-		date = "Spring, Year One",
+		label = "Spring, Year One",
 		content = "The keeper arrives at the lighthouse and meets the villagers.",
 		tags = setOf("act-one"),
 	),
 	TimeLineEvent(
 		id = 2,
 		order = 1,
-		date = "Midsummer",
+		label = "Midsummer",
 		content = "The lamp goes dark for the first time and a ship runs aground.",
 		tags = setOf("act-one", "turning-point"),
 	),
 	TimeLineEvent(
 		id = 3,
 		order = 2,
-		date = null,
+		label = null,
 		content = "An undated rumour spreads through the harbour town.",
 	),
 )

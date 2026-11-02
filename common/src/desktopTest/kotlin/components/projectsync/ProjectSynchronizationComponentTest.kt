@@ -307,7 +307,7 @@ class ProjectSynchronizationComponentTest : ComponentTest() {
 		coEvery { timeLineRepository.getTimelineEvent(3) } returns TimeLineEvent(
 			id = 3,
 			order = 2,
-			date = "1067",
+			label = "1067",
 			content = "local event",
 		)
 

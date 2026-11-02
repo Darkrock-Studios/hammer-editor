@@ -1,0 +1,22 @@
+[[events]]
+id = 3
+order = 0
+date = "Sep 1, 1865"
+content = """
+Alice follows the White Rabbit."""
+tags = [ "opening", "white-rabbit" ]
+
+[[events]]
+id = 7
+order = 2
+content = """
+An undated event.
+
+With a second paragraph."""
+
+[[events]]
+id = 5
+order = 1
+date = "  Teatime  "
+content = """
+The Mad Tea Party."""

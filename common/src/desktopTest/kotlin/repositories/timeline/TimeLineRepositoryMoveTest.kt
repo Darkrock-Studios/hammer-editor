@@ -155,9 +155,9 @@ class TimeLineRepositoryMoveTest : BaseTest() {
 		// Serialized/file order differs from the order field; the UI displays
 		// events sorted by order and sends move indices in that sorted space.
 		val onDisk = listOf(
-			TimeLineEvent(id = 2, order = 2, date = null, content = "Event 2"),
-			TimeLineEvent(id = 0, order = 0, date = null, content = "Event 0"),
-			TimeLineEvent(id = 1, order = 1, date = null, content = "Event 1"),
+			TimeLineEvent(id = 2, order = 2, label = null, content = "Event 2"),
+			TimeLineEvent(id = 0, order = 0, label = null, content = "Event 0"),
+			TimeLineEvent(id = 1, order = 1, label = null, content = "Event 1"),
 		)
 		val repository = defaultRepository(getProject1Def(), onDisk)
 
