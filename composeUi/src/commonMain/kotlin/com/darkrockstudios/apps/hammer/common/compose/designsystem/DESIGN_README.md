@@ -307,6 +307,22 @@ The handwriting of the system. Reach for these instead of styling
   typing something new is fine. `suggestionAccent` colours each chip's
   swatch, so lane suggestions show their lane colour, and `trailing`
   holds a swatch once the text matches a known value.
+- **[`HdRungDateField`](HdRungDateField.kt)**: a story date as one
+  narrow numeric `HdHairlineField` per calendar unit, coarsest first
+  (a STORY calendar's `coarsestUnit`, else the year) down to the
+  minute, each captioned with its unit. Trailing units may stay empty;
+  the filled ones are the precision. A STORY calendar with an epoch
+  adds a `BEFORE <EPOCH>` toggle cell that negates the coarsest rung.
+  A "Shows as" line renders the date through `formatStoryDate`, or the
+  problem with it. It emits null while empty or invalid, so a caller
+  never holds a stale date. `rememberStoryDateWords()` gives the
+  formatter translated unit and month names elsewhere.
+
+      START
+      YEAR     DAY    HOUR   MINUTE   ┌────────────────┐
+      12       40                     │ BEFORE LANDING │
+      ──────   ────   ────   ────     └────────────────┘
+      SHOWS AS  Year 12 · Day 40
 - **[`HdHairlineWordListField`](HdHairlineWordListField.kt)**: the
   tag field's shape for a plain word list (the project dictionary):
   neutral `#` chips that wrap instead of scrolling, Enter / comma /
@@ -339,7 +355,8 @@ The handwriting of the system. Reach for these instead of styling
   generic segmented hairline picker `[ DAY │ WEEK ]`. Cells share
   borders by overlapping 1dp; selected cell takes `onSurface` border
   and label color, the rest stay muted. Use for small enums (3–4
-  values) where a dropdown would feel out of vocabulary.
+  values) where a dropdown would feel out of vocabulary. `enabled =
+  false` dims it and ignores clicks, as the dropdown does.
 - **[`HdHairlineDropdown`](HdHairlineDropdown.kt)** — generic
   full-width hairline pill `[ Markdown            ▾ ]` opening a
   `DropdownMenu`. Same signature as `HdHairlineSegmentedPicker`, so

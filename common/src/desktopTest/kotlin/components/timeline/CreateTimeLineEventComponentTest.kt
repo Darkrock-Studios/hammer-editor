@@ -1,6 +1,10 @@
 package components.timeline
 
+import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
+import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineLimits
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.components.timeline.CreateTimeLineEventComponent
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEventError
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineEventDraft
@@ -9,6 +13,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import utils.TestComponentContext
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -160,5 +165,78 @@ class CreateTimeLineEventComponentTest : TimelineComponentTestBase() {
 		assertEquals(4, state.subject?.id)
 		assertEquals("Alice", state.lane)
 		assertTrue(state.milestone)
+	}
+
+	@Test
+	fun `a dated timeline needs a start`() = runTest(mainTestDispatcher) {
+		givenProject()
+		timelineService.switchToDated(CalendarDef())
+		val component = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		assertEquals(TimelineMode.DATED, component.state.value.mode)
+		assertEquals(CalendarDef(), component.state.value.calendar)
+		assertFalse(component.state.value.canCreate)
+
+		assertEquals(TimeLineEventError.DATE_REQUIRED, component.create(null, "Rain", emptySet()))
+		assertEquals(emptyList(), timeLineRepository.currentEvents())
+	}
+
+	@Test
+	fun `on a dated timeline the start and end reach the stored event`() = runTest(mainTestDispatcher) {
+		givenProject()
+		timelineService.switchToDated(CalendarDef())
+		val component = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		val start = StoryDate(mapOf("year" to 12L, "day" to 40L))
+		val end = StoryDate(mapOf("year" to 12L, "day" to 41L))
+		component.setStart(start)
+		component.setEnd(end)
+		assertTrue(component.state.value.canCreate)
+		assertEquals(TimeLineEventError.NONE, component.create(null, "Rain", emptySet()))
+
+		component.setKind(TimelineKind.SCENE)
+		component.setSubject(catalogItem(4))
+		component.setStart(start)
+		assertEquals(TimeLineEventError.NONE, component.create("Tea time", "", emptySet()))
+
+		val (event, scene) = timeLineRepository.currentEvents().sortedBy { it.id }
+		assertEquals(start, event.start)
+		assertEquals(end, event.end)
+		assertEquals(start, scene.start)
+		assertNull(scene.end)
+		assertEquals("Tea time", scene.label)
+		assertNull(component.state.value.start, "A created draft is cleared")
+	}
+
+	@Test
+	fun `on a manual timeline the drafted dates are left off`() = runTest(mainTestDispatcher) {
+		givenProject()
+		val component = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		component.setStart(StoryDate(mapOf("year" to 1L)))
+		assertEquals(TimeLineEventError.NONE, component.create("Dawn", "Rain", emptySet()))
+
+		val stored = timeLineRepository.currentEvents().single()
+		assertNull(stored.start)
+		assertEquals("Dawn", stored.label)
+	}
+
+	@Test
+	fun `a placement's label is checked by the service`() = runTest(mainTestDispatcher) {
+		givenProject()
+		val component = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		component.setKind(TimelineKind.SCENE)
+		component.setSubject(catalogItem(4))
+		val result = component.create("x".repeat(TimelineLimits.MAX_LABEL + 1), "", emptySet())
+
+		assertEquals(TimeLineEventError.LABEL_TOO_LONG, result)
 	}
 }

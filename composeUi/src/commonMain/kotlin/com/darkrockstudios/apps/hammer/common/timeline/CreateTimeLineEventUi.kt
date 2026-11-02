@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.Dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.base.markdown.countWords
+import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.common.TextEditorDefaults
 import com.darkrockstudios.apps.hammer.common.components.timeline.CreateTimeLineEvent
@@ -46,6 +47,9 @@ const val TIME_LINE_CREATE_TITLE_TAG = "timeline-create-title"
 const val TIME_LINE_CREATE_LANE_TAG = "timeline-create-lane"
 const val TIME_LINE_CREATE_MILESTONE_TAG = "timeline-create-milestone"
 const val TIME_LINE_REFERENCES_TAG = "timeline-references"
+const val TIME_LINE_CREATE_START_TAG = "timeline-create-start"
+const val TIME_LINE_CREATE_END_TAG = "timeline-create-end"
+const val TIME_LINE_CREATE_ADD_END_TAG = "timeline-create-add-end"
 
 private val Kinds = listOf(TimelineKind.EVENT, TimelineKind.SCENE, TimelineKind.ENTRY)
 
@@ -84,13 +88,14 @@ fun CreateTimeLineEventUi(
 	var dateFocused by remember { mutableStateOf(false) }
 	var titleFocused by remember { mutableStateOf(false) }
 	var laneFocused by remember { mutableStateOf(false) }
+	var datesFocused by remember { mutableStateOf(false) }
 	var resetVersion by remember { mutableStateOf(0) }
 	var pickingSubject by remember { mutableStateOf(false) }
 	var pickingReferences by remember { mutableStateOf(false) }
 	val tags = rememberSaveableStringList()
 
 	val isEvent = state.kind == TimelineKind.EVENT
-	val canCreate = isEvent || state.subject != null
+	val canCreate = state.canCreate
 	val wordCount = remember(contentText) { countWords(contentText) }
 	val charCount = contentText.length
 
@@ -171,16 +176,32 @@ fun CreateTimeLineEventUi(
 					)
 				}
 
-				CollapseWhileTyping(keepVisible = dateFocused) {
-					HdHairlineField(
-						label = Res.string.timeline_when_label.get(),
-						value = dateText,
-						onValueChange = { dateText = it },
-						hint = Res.string.timeline_create_date_hint.get(),
-						placeholder = Res.string.timeline_create_date_placeholder.get(),
-						onFocusChanged = { dateFocused = it },
-						testTag = TIME_LINE_CREATE_DATE_TAG,
-					)
+				if (state.isDated) {
+					CollapseWhileTyping(keepVisible = datesFocused) {
+						DateRows(
+							calendar = state.calendar ?: CalendarDef(),
+							start = state.start,
+							end = state.end,
+							onStartChange = component::setStart,
+							onEndChange = component::setEnd,
+							onFocusChanged = { datesFocused = it },
+							startTag = TIME_LINE_CREATE_START_TAG,
+							endTag = TIME_LINE_CREATE_END_TAG,
+							addEndTag = TIME_LINE_CREATE_ADD_END_TAG,
+						)
+					}
+				} else {
+					CollapseWhileTyping(keepVisible = dateFocused) {
+						HdHairlineField(
+							label = Res.string.timeline_when_label.get(),
+							value = dateText,
+							onValueChange = { dateText = it },
+							hint = Res.string.timeline_create_date_hint.get(),
+							placeholder = Res.string.timeline_create_date_placeholder.get(),
+							onFocusChanged = { dateFocused = it },
+							testTag = TIME_LINE_CREATE_DATE_TAG,
+						)
+					}
 				}
 
 				CollapseWhileTyping(keepVisible = laneFocused) {

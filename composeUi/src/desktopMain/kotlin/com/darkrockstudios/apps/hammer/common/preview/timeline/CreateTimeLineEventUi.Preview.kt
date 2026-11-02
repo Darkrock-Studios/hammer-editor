@@ -12,7 +12,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
+import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
+import com.darkrockstudios.apps.hammer.base.timeline.CalendarPreset
+import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.components.timeline.CreateTimeLineEvent
 import com.darkrockstudios.apps.hammer.common.compose.rememberRootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
@@ -82,6 +86,43 @@ fun ScreenCreateTimeLineEventUiEntryPreview() {
 	)
 }
 
+@Preview
+@Composable
+fun ScreenCreateTimeLineEventUiDatedPreview() {
+	CreatePreview(
+		PreviewCreateTimeLineEvent(
+			CreateTimeLineEvent.State(
+				projectDef = fakeProjectDef(),
+				kind = TimelineKind.SCENE,
+				subject = previewCatalog.first { it.id == 11 },
+				lane = "Keeper",
+				start = StoryDate(mapOf("year" to 1L, "day" to 80L)),
+				end = StoryDate(mapOf("year" to 1L, "day" to 82L)),
+				mode = TimelineMode.DATED,
+				calendar = CalendarDef(epochName = "The Landing"),
+				catalog = previewCatalog,
+				lanes = previewLanes,
+			)
+		)
+	)
+}
+
+@Preview
+@Composable
+fun ScreenCreateTimeLineEventUiGregorianPreview() {
+	CreatePreview(
+		PreviewCreateTimeLineEvent(
+			CreateTimeLineEvent.State(
+				projectDef = fakeProjectDef(),
+				mode = TimelineMode.DATED,
+				calendar = CalendarDef(CalendarPreset.GREGORIAN),
+				lanes = previewLanes,
+			)
+		),
+		narrow = true,
+	)
+}
+
 @Composable
 private fun CreatePreview(component: CreateTimeLineEvent, narrow: Boolean = false) {
 	val scope = rememberCoroutineScope()
@@ -132,6 +173,14 @@ private class PreviewCreateTimeLineEvent(initial: CreateTimeLineEvent.State) : C
 
 	override fun setTitle(title: String) {
 		_state.value = _state.value.copy(title = title)
+	}
+
+	override fun setStart(start: StoryDate?) {
+		_state.value = _state.value.copy(start = start)
+	}
+
+	override fun setEnd(end: StoryDate?) {
+		_state.value = _state.value.copy(end = end)
 	}
 
 	override fun addReference(item: CatalogItem) {

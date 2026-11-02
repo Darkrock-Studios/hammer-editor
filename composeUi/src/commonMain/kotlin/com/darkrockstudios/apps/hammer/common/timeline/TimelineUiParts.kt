@@ -8,6 +8,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
@@ -17,10 +23,15 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
+import com.darkrockstudios.apps.hammer.base.timeline.CalendarPreset
+import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineLimits
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineSuggestField
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdRungDateField
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdReferenceChipBucket
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdReferenceChipModel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdGlyphColor
@@ -36,6 +47,13 @@ import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogItem
 import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogKind
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEventError
 import com.darkrockstudios.apps.hammer.common.util.StrRes
+import com.darkrockstudios.apps.hammer.timeline_calendar_gregorian
+import com.darkrockstudios.apps.hammer.timeline_calendar_story
+import com.darkrockstudios.apps.hammer.timeline_calendar_story_epoch
+import com.darkrockstudios.apps.hammer.timeline_date_add_end
+import com.darkrockstudios.apps.hammer.timeline_date_end
+import com.darkrockstudios.apps.hammer.timeline_date_remove_end
+import com.darkrockstudios.apps.hammer.timeline_date_start
 import com.darkrockstudios.apps.hammer.timeline_error_date_invalid
 import com.darkrockstudios.apps.hammer.timeline_error_date_required
 import com.darkrockstudios.apps.hammer.timeline_error_duplicate_placement
@@ -213,4 +231,72 @@ internal suspend fun TimeLineEventError.toastText(strRes: StrRes): String? = whe
 	TimeLineEventError.SELF_REFERENCE,
 	TimeLineEventError.MOVE_NOT_ALLOWED,
 	TimeLineEventError.MOVE_FAILED -> strRes.get(Res.string.timeline_error_not_allowed)
+}
+
+/** Start, then End behind a `+ end` affordance until it has a value. */
+@Composable
+internal fun DateRows(
+	calendar: CalendarDef,
+	start: StoryDate?,
+	end: StoryDate?,
+	onStartChange: (StoryDate?) -> Unit,
+	onEndChange: (StoryDate?) -> Unit,
+	modifier: Modifier = Modifier,
+	onFocusChanged: (Boolean) -> Unit = {},
+	startTag: String? = null,
+	endTag: String? = null,
+	addEndTag: String? = null,
+) {
+	var endShown by rememberSaveable { mutableStateOf(end != null) }
+	var startFocused by remember { mutableStateOf(false) }
+	var endFocused by remember { mutableStateOf(false) }
+	Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(Ui.Padding.L)) {
+		HdRungDateField(
+			label = Res.string.timeline_date_start.get(),
+			calendar = calendar,
+			value = start,
+			onValueChange = onStartChange,
+			onFocusChanged = {
+				startFocused = it
+				onFocusChanged(startFocused || endFocused)
+			},
+			testTag = startTag,
+		)
+		if (endShown || end != null) {
+			HdRungDateField(
+				label = Res.string.timeline_date_end.get(),
+				calendar = calendar,
+				value = end,
+				onValueChange = onEndChange,
+				onFocusChanged = {
+					endFocused = it
+					onFocusChanged(startFocused || endFocused)
+				},
+				testTag = endTag,
+			)
+			HdHairlineButton(
+				label = Res.string.timeline_date_remove_end.get(),
+				onClick = {
+					endShown = false
+					onEndChange(null)
+				},
+			)
+		} else {
+			HdHairlineButton(
+				label = Res.string.timeline_date_add_end.get(),
+				onClick = { endShown = true },
+				modifier = if (addEndTag != null) Modifier.testTag(addEndTag) else Modifier,
+			)
+		}
+	}
+}
+
+/** `Story calendar · Landing`, `Story calendar` or `Gregorian`. */
+@Composable
+internal fun CalendarDef.displayName(): String = when (preset) {
+	CalendarPreset.STORY -> epochName?.trim()?.takeIf { it.isNotEmpty() }
+		?.let { Res.string.timeline_calendar_story_epoch.get(it) }
+		?: Res.string.timeline_calendar_story.get()
+
+	CalendarPreset.GREGORIAN -> Res.string.timeline_calendar_gregorian.get()
 }

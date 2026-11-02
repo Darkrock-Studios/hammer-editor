@@ -8,6 +8,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.tooling.preview.Preview
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
+import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineOverview
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagCount
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
@@ -63,13 +65,42 @@ fun ScreenTimeLineOverviewUiTabletPreview() {
 	}
 }
 
-private val component = object : TimeLineOverview {
-	override val state: Value<TimeLineOverview.State> = MutableValue(
-		TimeLineOverview.State(
-			rows = previewRows,
-			lanes = previewLaneCounts,
-		)
-	)
+@OptIn(ExperimentalSharedTransitionApi::class)
+@Preview(widthDp = TABLET_WIDTH_DP, heightDp = TABLET_HEIGHT_DP)
+@Composable
+fun ScreenTimeLineOverviewUiDatedPreview() {
+	val scope = rememberCoroutineScope()
+
+	KoinApplicationPreview {
+		TabletPreviewSurface {
+			SharedTransitionLayout {
+				AnimatedVisibility(visible = true) {
+					TimeLineOverviewUi(
+						component = PreviewOverview(
+							TimeLineOverview.State(
+								rows = previewRows,
+								mode = TimelineMode.DATED,
+								calendar = CalendarDef(epochName = "The Landing"),
+								undatedIds = listOf(4),
+								lanes = previewLaneCounts,
+							)
+						),
+						scope = scope,
+						showCreate = {},
+						viewEvent = {},
+						sharedTransitionScope = this@SharedTransitionLayout,
+						animatedVisibilityScope = this@AnimatedVisibility,
+					)
+				}
+			}
+		}
+	}
+}
+
+private val component = PreviewOverview(TimeLineOverview.State(rows = previewRows, lanes = previewLaneCounts))
+
+private class PreviewOverview(initial: TimeLineOverview.State) : TimeLineOverview {
+	override val state: Value<TimeLineOverview.State> = MutableValue(initial)
 	override val rankedTags: Value<List<TagCount>> = MutableValue(
 		listOf(
 			TagCount("act-one", 1),

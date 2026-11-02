@@ -148,4 +148,22 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 		assertFalse(component.moveEvent(first, 0, after = false))
 		assertTrue(component.state.value.rows!!.all { it.whenText.isNotEmpty() }, "Dated rows show their start")
 	}
+
+	@Test
+	fun `dated rows read their dates and undated legacy events are listed`() = runTest(mainTestDispatcher) {
+		givenProject()
+		timelineService.createEvent(TimelineEventDraft(title = "One", label = "Dawn"))
+		timelineService.createEvent(TimelineEventDraft(title = "Two"))
+		timelineService.switchToDated(CalendarDef(epochName = "Landing"))
+		val legacy = timeLineRepository.createEvent(TimelineEventDraft(title = "Legacy"))
+
+		val component = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		val state = component.state.value
+		assertEquals(CalendarDef(epochName = "Landing"), state.calendar)
+		assertEquals(listOf("Year 0", "Year 1", ""), state.rows!!.map { it.whenText })
+		assertEquals(listOf(legacy.id), state.undatedIds)
+	}
 }

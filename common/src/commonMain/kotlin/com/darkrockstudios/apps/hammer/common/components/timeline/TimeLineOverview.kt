@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.components.timeline
 
 import com.arkivanov.decompose.value.Value
+import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagCount
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
@@ -19,6 +20,10 @@ interface TimeLineOverview {
 		/** Null until the timeline has loaded. */
 		val rows: List<TimelineRow>? = null,
 		val mode: TimelineMode = TimelineMode.MANUAL,
+		/** The timeline's calendar; null until a timeline has had one. */
+		val calendar: CalendarDef? = null,
+		/** On a DATED timeline, the events without a valid start, in display order. Only legacy data has any. */
+		val undatedIds: List<Int> = emptyList(),
 		/** In lane order; a lane's position here is its colour index. */
 		val lanes: List<LaneCount> = emptyList(),
 		val laneFilter: Set<String> = emptySet(),
@@ -32,7 +37,7 @@ data class TimelineRow(
 	val title: String,
 	/** A placed scene's chapter path; null for anything else. */
 	val subtitle: String?,
-	/** The label in MANUAL mode; in DATED mode the start date when there is no label. Blank when undated. */
+	/** The label in MANUAL mode; in DATED mode the start date (and end), else the label. Blank when neither. */
 	val whenText: String,
 	/** Position of the event's lane in [TimeLineOverview.State.lanes]; null when it has none. */
 	val laneIndex: Int?,

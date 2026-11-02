@@ -23,6 +23,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectPlugins
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournalDatasource
 import com.darkrockstudios.apps.hammer.common.data.tagindex.AccountTagService
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineService
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
@@ -36,6 +37,7 @@ import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -116,6 +118,9 @@ class ProjectSettingsComponentTest : ComponentTest() {
 				scoped<SyncJournalDatasource> { mockk(relaxed = true) }
 				scoped { imagesService }
 				scoped { pickRequests }
+				scoped<TimelineService> {
+					mockk(relaxed = true) { every { timelineFlow } returns emptyFlow() }
+				}
 			}
 		})
 

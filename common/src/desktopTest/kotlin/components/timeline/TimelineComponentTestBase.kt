@@ -95,6 +95,7 @@ abstract class TimelineComponentTestBase : ComponentTest() {
 			single { timeLineRepository }
 			single { timelineService }
 			single { sceneRepository }
+			single { sceneMetadataRepository }
 			single { encyclopediaRepository }
 			single<EntityCatalog> { catalog }
 			single<ImagesService> { mockk(relaxed = true) }

@@ -6,9 +6,14 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextClearance
+import androidx.compose.ui.test.performTextInput
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
+import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
+import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.components.timeline.CreateTimeLineEvent
 import com.darkrockstudios.apps.hammer.common.compose.rememberRootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.preview.fakeProjectDef
@@ -19,7 +24,10 @@ import com.darkrockstudios.apps.hammer.common.preview.KoinApplicationPreview
 import com.darkrockstudios.apps.hammer.common.timeline.CreateTimeLineEventUi
 import com.darkrockstudios.apps.hammer.common.timeline.TIME_LINE_CREATE_CONFIRM_TAG
 import com.darkrockstudios.apps.hammer.common.timeline.TIME_LINE_CREATE_CONTENT_TAG
+import com.darkrockstudios.apps.hammer.common.timeline.TIME_LINE_CREATE_ADD_END_TAG
 import com.darkrockstudios.apps.hammer.common.timeline.TIME_LINE_CREATE_DATE_TAG
+import com.darkrockstudios.apps.hammer.common.timeline.TIME_LINE_CREATE_END_TAG
+import com.darkrockstudios.apps.hammer.common.timeline.TIME_LINE_CREATE_START_TAG
 import com.darkrockstudios.apps.hammer.common.timeline.TIME_LINE_CREATE_LANE_TAG
 import com.darkrockstudios.apps.hammer.common.timeline.TIME_LINE_CREATE_SUBJECT_TAG
 import com.darkrockstudios.apps.hammer.common.timeline.TIME_LINE_CREATE_TAGS_TAG
@@ -55,6 +63,14 @@ class CreateTimeLineEventUiTest : BaseTest() {
 
 		override fun setMilestone(milestone: Boolean) {}
 		override fun setTitle(title: String) {}
+		override fun setStart(start: StoryDate?) {
+			_state.value = _state.value.copy(start = start)
+		}
+
+		override fun setEnd(end: StoryDate?) {
+			_state.value = _state.value.copy(end = end)
+		}
+
 		override fun addReference(item: CatalogItem) {}
 		override fun removeReference(id: Int) {}
 		override fun suggestLanes(prefix: String): List<String> =
@@ -140,5 +156,41 @@ class CreateTimeLineEventUiTest : BaseTest() {
 
 		assertEquals("Queen", component.state.value.lane)
 		compose.onNodeWithTag(TIME_LINE_CREATE_LANE_TAG).assertExists()
+	}
+
+	@Test
+	fun `A dated timeline shows the date row and disables Create until the start is valid`() {
+		val component = FakeCreate(
+			CreateTimeLineEvent.State(
+				projectDef = projectDef,
+				mode = TimelineMode.DATED,
+				calendar = CalendarDef(epochName = "Landing"),
+			)
+		)
+		show(component)
+
+		compose.onNodeWithTag(TIME_LINE_CREATE_DATE_TAG).assertDoesNotExist()
+		compose.onNodeWithTag("$TIME_LINE_CREATE_START_TAG-year").assertExists()
+		compose.onNodeWithTag(TIME_LINE_CREATE_END_TAG + "-year").assertDoesNotExist()
+		compose.onNodeWithTag(TIME_LINE_CREATE_CONFIRM_TAG).assertIsNotEnabled()
+
+		compose.onNodeWithTag("$TIME_LINE_CREATE_START_TAG-day").performTextInput("400")
+		compose.waitForIdle()
+		compose.onNodeWithTag(TIME_LINE_CREATE_CONFIRM_TAG).assertIsNotEnabled()
+
+		compose.onNodeWithTag("$TIME_LINE_CREATE_START_TAG-year").performTextInput("12")
+		compose.waitForIdle()
+		compose.onNodeWithTag(TIME_LINE_CREATE_CONFIRM_TAG).assertIsNotEnabled()
+
+		compose.onNodeWithTag("$TIME_LINE_CREATE_START_TAG-day").performTextClearance()
+		compose.onNodeWithTag("$TIME_LINE_CREATE_START_TAG-day").performTextInput("40")
+		compose.waitForIdle()
+
+		assertEquals(StoryDate(mapOf("year" to 12L, "day" to 40L)), component.state.value.start)
+		compose.onNodeWithTag(TIME_LINE_CREATE_CONFIRM_TAG).assertIsEnabled()
+
+		compose.onNodeWithTag(TIME_LINE_CREATE_ADD_END_TAG).performClick()
+		compose.waitForIdle()
+		compose.onNodeWithTag("$TIME_LINE_CREATE_END_TAG-year").assertExists()
 	}
 }

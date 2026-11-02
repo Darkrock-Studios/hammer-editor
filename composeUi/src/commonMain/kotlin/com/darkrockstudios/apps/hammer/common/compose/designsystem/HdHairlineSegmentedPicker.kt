@@ -8,6 +8,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -21,7 +22,8 @@ import com.darkrockstudios.apps.hammer.common.compose.Ui
  * and label color, the rest stay muted.
  *
  * The optional [title] renders as an [HdMonoLabel] above the row, with
- * 8dp spacing.
+ * 8dp spacing. A disabled picker dims and ignores clicks, as
+ * [HdHairlineDropdown] does.
  */
 @Composable
 fun <T> HdHairlineSegmentedPicker(
@@ -31,9 +33,10 @@ fun <T> HdHairlineSegmentedPicker(
 	label: @Composable (T) -> String,
 	modifier: Modifier = Modifier,
 	title: String? = null,
+	enabled: Boolean = true,
 ) {
 	Column(
-		modifier = modifier,
+		modifier = modifier.alpha(if (enabled) 1f else 0.45f),
 		verticalArrangement = Arrangement.spacedBy(8.dp),
 	) {
 		if (title != null) {
@@ -45,6 +48,7 @@ fun <T> HdHairlineSegmentedPicker(
 					label = label(option),
 					selected = option == selected,
 					onClick = { onSelect(option) },
+					enabled = enabled,
 					modifier = Modifier
 						.weight(1f)
 						.offset(x = if (index == 0) 0.dp else (-1).dp),
@@ -59,6 +63,7 @@ private fun HdSegmentedCell(
 	label: String,
 	selected: Boolean,
 	onClick: () -> Unit,
+	enabled: Boolean,
 	modifier: Modifier = Modifier,
 ) {
 	val borderColor = if (selected) MaterialTheme.colorScheme.onSurface
@@ -69,7 +74,7 @@ private fun HdSegmentedCell(
 		modifier = modifier
 			.heightIn(min = 36.dp)
 			.border(width = Dp.Hairline, color = borderColor, shape = RectangleShape)
-			.clickable(onClick = onClick)
+			.clickable(enabled = enabled, onClick = onClick)
 			.padding(horizontal = Ui.Padding.M, vertical = 6.dp),
 		contentAlignment = Alignment.Center,
 	) {

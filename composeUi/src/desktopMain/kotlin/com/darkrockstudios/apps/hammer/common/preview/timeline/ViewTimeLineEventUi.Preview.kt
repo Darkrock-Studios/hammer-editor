@@ -9,7 +9,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
+import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
+import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.components.timeline.ViewTimeLineEvent
 import com.darkrockstudios.apps.hammer.common.compose.rememberRootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
@@ -56,6 +59,18 @@ fun ScreenViewTimeLineEventUiEntryPreview() {
 @Composable
 fun ScreenViewTimeLineEventUiMissingPreview() {
 	ViewPreview(missingState)
+}
+
+@Preview
+@Composable
+fun ScreenViewTimeLineEventUiDatedPreview() {
+	ViewPreview(datedSceneState)
+}
+
+@Preview
+@Composable
+fun ScreenViewTimeLineEventUiDatedEditingPreview() {
+	ViewPreview(datedSceneState.copy(isEditing = true))
 }
 
 @OptIn(ExperimentalSharedTransitionApi::class)
@@ -138,6 +153,17 @@ private val sceneState = ViewTimeLineEvent.State(
 	),
 )
 
+private val datedStart = StoryDate(mapOf("year" to 1L, "day" to 80L, "hour" to 6L, "minute" to 30L))
+private val datedEnd = StoryDate(mapOf("year" to 1L, "day" to 82L))
+
+private val datedSceneState = sceneState.copy(
+	event = sceneEvent.copy(start = datedStart, end = datedEnd),
+	start = datedStart,
+	end = datedEnd,
+	mode = TimelineMode.DATED,
+	calendar = CalendarDef(epochName = "The Landing"),
+)
+
 private val entryEvent = TimeLineEvent(id = 3, order = 2, kind = TimelineKind.ENTRY, subject = 24, lane = "Village")
 
 private val entryState = ViewTimeLineEvent.State(
@@ -182,6 +208,8 @@ private class PreviewViewTimeLineEvent(initial: ViewTimeLineEvent.State) : ViewT
 	override fun onTitleChanged(text: String) {}
 	override fun onLaneChanged(text: String) {}
 	override fun onMilestoneChanged(milestone: Boolean) {}
+	override fun onStartChanged(start: StoryDate?) {}
+	override fun onEndChanged(end: StoryDate?) {}
 	override fun addReference(item: CatalogItem) {}
 	override fun removeReference(id: Int) {}
 	override fun suggestLanes(prefix: String): List<String> = emptyList()

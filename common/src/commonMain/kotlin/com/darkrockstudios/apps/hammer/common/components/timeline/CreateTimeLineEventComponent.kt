@@ -7,8 +7,9 @@ import com.arkivanov.decompose.value.getAndUpdate
 import com.arkivanov.decompose.value.subscribe
 import com.arkivanov.decompose.value.update
 import com.arkivanov.essenty.backhandler.BackCallback
+import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
-import com.darkrockstudios.apps.hammer.base.timeline.TimelineLimits
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogItem
@@ -17,13 +18,14 @@ import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogRef
 import com.darkrockstudios.apps.hammer.common.data.entitycatalog.EntityCatalog
 import com.darkrockstudios.apps.hammer.common.data.entitycatalog.find
 import com.darkrockstudios.apps.hammer.common.data.projectInject
-import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEventError
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineEventDraft
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineResult
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineService
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
@@ -51,6 +53,8 @@ class CreateTimeLineEventComponent(
 			title = restored?.title.orEmpty(),
 			lane = restored?.lane.orEmpty(),
 			milestone = restored?.milestone ?: false,
+			start = restored?.start,
+			end = restored?.end,
 		)
 	)
 	override val state: Value<CreateTimeLineEvent.State> = _state
@@ -73,6 +77,8 @@ class CreateTimeLineEventComponent(
 				milestone = current.milestone,
 				references = (current.references.map { it.ref } + pendingReferences).map(::SavedRef),
 				contentText = _contentText.value,
+				start = current.start,
+				end = current.end,
 			)
 		}
 	}
@@ -89,6 +95,17 @@ class CreateTimeLineEventComponent(
 		}
 
 		loadChoices()
+		watchDefinition()
+	}
+
+	private fun watchDefinition() {
+		scope.launch {
+			timelineService.timelineFlow.map { it.def }.distinctUntilChanged().collect { def ->
+				withContext(dispatcherMain) {
+					_state.getAndUpdate { it.copy(mode = def.mode, calendar = def.calendar) }
+				}
+			}
+		}
 	}
 
 	private fun updateBackHandler() {
@@ -102,7 +119,9 @@ class CreateTimeLineEventComponent(
 			current.title.isNotBlank() ||
 			current.lane.isNotBlank() ||
 			current.milestone ||
-			current.references.isNotEmpty()
+			current.references.isNotEmpty() ||
+			current.start != null ||
+			current.end != null
 	}
 
 	private fun loadChoices() {
@@ -156,6 +175,14 @@ class CreateTimeLineEventComponent(
 		_state.getAndUpdate { it.copy(title = title) }
 	}
 
+	override fun setStart(start: StoryDate?) {
+		_state.getAndUpdate { it.copy(start = start) }
+	}
+
+	override fun setEnd(end: StoryDate?) {
+		_state.getAndUpdate { it.copy(end = end) }
+	}
+
 	override fun addReference(item: CatalogItem) {
 		_state.getAndUpdate {
 			if (it.references.any { ref -> ref.ref == item.ref }) it else it.copy(references = it.references + item)
@@ -175,7 +202,10 @@ class CreateTimeLineEventComponent(
 	): TimeLineEventError {
 		val draft = _state.value
 		val shownWhen = label?.trim()?.ifEmpty { null }
-		if ((shownWhen?.length ?: 0) > TimelineLimits.MAX_LABEL) return TimeLineEventError.LABEL_TOO_LONG
+		val dated = draft.mode == TimelineMode.DATED
+		if (dated && draft.start == null) return TimeLineEventError.DATE_REQUIRED
+		val start = if (dated) draft.start else null
+		val end = if (dated) draft.end else null
 
 		val result = when (draft.kind) {
 			TimelineKind.EVENT -> {
@@ -191,18 +221,20 @@ class CreateTimeLineEventComponent(
 						references = draft.references.mapTo(LinkedHashSet()) { it.id },
 						lane = draft.lane,
 						milestone = draft.milestone,
+						start = start,
+						end = end,
 					)
 				)
 			}
 
 			TimelineKind.SCENE -> {
 				val subject = draft.subject ?: return TimeLineEventError.SUBJECT_REQUIRED
-				timelineService.placeScene(subject.id, null, null, draft.lane, draft.milestone)
+				timelineService.placeScene(subject.id, start, end, draft.lane, draft.milestone)
 			}
 
 			TimelineKind.ENTRY -> {
 				val subject = draft.subject ?: return TimeLineEventError.SUBJECT_REQUIRED
-				timelineService.placeEntry(subject.id, null, null, draft.lane, draft.milestone)
+				timelineService.placeEntry(subject.id, start, end, draft.lane, draft.milestone)
 			}
 		}
 
@@ -210,23 +242,31 @@ class CreateTimeLineEventComponent(
 			is TimelineResult.Invalid -> return result.error
 			is TimelineResult.Ok -> result.event
 		}
-		if (created != null && created.kind.isPlacement && shownWhen != null) labelPlacement(created, shownWhen)
 		Napier.i { "Time Line event created! ${created?.id}" }
+		// The service places without a label, so a placement's "when" is a second write.
+		if (created != null && created.kind.isPlacement && shownWhen != null) {
+			val labelled = timelineService.setLabel(created.id, shownWhen)
+			if (labelled is TimelineResult.Invalid) return labelled.error
+		}
 
 		withContext(dispatcherMain) {
 			_contentText.update { "" }
 			_state.getAndUpdate {
-				it.copy(subject = null, title = "", lane = "", milestone = false, references = emptyList())
+				it.cleared()
 			}
 		}
 		return TimeLineEventError.NONE
 	}
 
-	// The service places without a label, so a placement's "when" is written afterwards.
-	private suspend fun labelPlacement(placed: TimeLineEvent, label: String) {
-		val labelled = placed.copy(label = label)
-		if (timeLineRepository.validate(labelled).isSuccess) timeLineRepository.updateEvent(labelled)
-	}
+	private fun CreateTimeLineEvent.State.cleared() = copy(
+		subject = null,
+		title = "",
+		lane = "",
+		milestone = false,
+		references = emptyList(),
+		start = null,
+		end = null,
+	)
 
 	override fun confirmDiscard() {
 		_state.getAndUpdate { it.copy(confirmDiscard = true) }
@@ -247,7 +287,7 @@ class CreateTimeLineEventComponent(
 	override fun discardAndClose() {
 		_contentText.update { "" }
 		_state.getAndUpdate {
-			it.copy(subject = null, title = "", lane = "", milestone = false, references = emptyList(), confirmDiscard = false)
+			it.cleared().copy(confirmDiscard = false)
 		}
 		onClose()
 	}
@@ -268,6 +308,8 @@ class CreateTimeLineEventComponent(
 		val milestone: Boolean,
 		val references: List<SavedRef>,
 		val contentText: String,
+		val start: StoryDate? = null,
+		val end: StoryDate? = null,
 	)
 
 	private companion object {

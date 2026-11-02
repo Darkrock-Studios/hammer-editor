@@ -1,7 +1,10 @@
 package com.darkrockstudios.apps.hammer.common.components.timeline
 
 import com.arkivanov.decompose.value.Value
+import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
+import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.data.MenuItemDescriptor
 import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogItem
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageDef
@@ -20,6 +23,10 @@ interface ViewTimeLineEvent : TagSuggesting {
 	fun onTitleChanged(text: String)
 	fun onLaneChanged(text: String)
 	fun onMilestoneChanged(milestone: Boolean)
+
+	/** Null while the date field is empty or invalid. */
+	fun onStartChanged(start: StoryDate?)
+	fun onEndChanged(end: StoryDate?)
 	fun addReference(item: CatalogItem)
 	fun removeReference(id: Int)
 
@@ -29,7 +36,10 @@ interface ViewTimeLineEvent : TagSuggesting {
 	suspend fun removeTag(tag: String)
 	fun showGlobalSearchForTag(tag: String)
 
-	/** Stores the edit in progress and leaves editing; a placement stores only its placement fields and "when". */
+	/**
+	 * Stores the edit in progress and leaves editing; a placement stores only its placement fields and
+	 * "when". The drafted dates are stored on a DATED timeline; a MANUAL one keeps the stored dates.
+	 */
 	suspend fun saveEdit(): TimeLineEventError
 	fun startDeleteEvent()
 	fun endDeleteEvent()
@@ -63,6 +73,12 @@ interface ViewTimeLineEvent : TagSuggesting {
 		val title: String = "",
 		val lane: String = "",
 		val milestone: Boolean = false,
+		/** The drafted dates while editing, else the stored ones. */
+		val start: StoryDate? = null,
+		val end: StoryDate? = null,
+		val mode: TimelineMode = TimelineMode.MANUAL,
+		/** The timeline's calendar; null until a timeline has had one. */
+		val calendar: CalendarDef? = null,
 		val referenceIds: Set<Int> = emptySet(),
 		/** An event's references (the draft's while editing), or a placed scene's cast. */
 		val references: List<CatalogItem> = emptyList(),
@@ -72,7 +88,9 @@ interface ViewTimeLineEvent : TagSuggesting {
 		val lanes: List<String> = emptyList(),
 		/** Scenes and entries to add as references; only loaded for a plain event. */
 		val catalog: List<CatalogItem> = emptyList(),
-	)
+	) {
+		val isDated: Boolean get() = mode == TimelineMode.DATED
+	}
 
 	/** [version] changes whenever the image's bytes do. */
 	data class SubjectImage(val name: String, val path: String, val version: String?)

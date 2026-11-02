@@ -65,6 +65,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineOverview
@@ -78,6 +79,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdCollapsingS
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDragHandle
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNoticeStrip
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSearchField
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSearchRow
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSectionHeader
@@ -91,7 +93,6 @@ import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
 import com.darkrockstudios.apps.hammer.common.data.search.markdownContains
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
-import com.darkrockstudios.apps.hammer.timeline_dated_marker
 import com.darkrockstudios.apps.hammer.timeline_entry_subtitle
 import com.darkrockstudios.apps.hammer.timeline_filter_all
 import com.darkrockstudios.apps.hammer.timeline_filter_clear_all
@@ -105,9 +106,13 @@ import com.darkrockstudios.apps.hammer.timeline_search_clear
 import com.darkrockstudios.apps.hammer.timeline_search_close
 import com.darkrockstudios.apps.hammer.timeline_search_placeholder
 import com.darkrockstudios.apps.hammer.timeline_subject_missing
+import com.darkrockstudios.apps.hammer.timeline_undated_detail
+import com.darkrockstudios.apps.hammer.timeline_undated_open
+import com.darkrockstudios.apps.hammer.timeline_undated_title
 import com.darkrockstudios.apps.hammer.timeline_view_undated
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.pluralStringResource
 
 /** An event matches on its body read as prose, or on its plain-text date. */
 internal fun eventMatchesQuery(event: TimeLineEvent, query: String): Boolean =
@@ -122,6 +127,8 @@ const val TIME_LINE_CREATE_TAG = "Timeline Overview Create"
 const val TIME_LINE_LIST_TAG = "Timeline Overview List"
 const val TIME_LINE_SEARCH_TAG = "Timeline Overview Search"
 const val TIME_LINE_LANE_FILTER_TAG = "Timeline Lane Filter"
+const val TIME_LINE_CALENDAR_TAG = "Timeline Calendar"
+const val TIME_LINE_UNDATED_TAG = "Timeline Undated Notice"
 const val EVENT_CARD_TAG = "Timeline Event Card"
 const val EVENT_CARD_DATE_TAG = "Timeline Event Card Date"
 const val EVENT_CARD_CONTENT_TAG = "Timeline Event Card Content"
@@ -243,7 +250,10 @@ fun TimeLineOverviewUi(
 										),
 									)
 									if (state.mode == TimelineMode.DATED) {
-										HdMonoLabel(text = Res.string.timeline_dated_marker.get())
+										HdMonoLabel(
+											text = (state.calendar ?: CalendarDef()).displayName(),
+											modifier = Modifier.testTag(TIME_LINE_CALENDAR_TAG),
+										)
 									}
 								}
 							}
@@ -348,6 +358,21 @@ fun TimeLineOverviewUi(
 			HorizontalDivider(
 				thickness = Dp.Hairline,
 				color = MaterialTheme.colorScheme.outlineVariant,
+			)
+		}
+
+		val firstUndated = state.undatedIds.firstOrNull()
+		if (state.mode == TimelineMode.DATED && firstUndated != null) {
+			HdNoticeStrip(
+				title = pluralStringResource(
+					Res.plurals.timeline_undated_title,
+					state.undatedIds.size,
+					state.undatedIds.size,
+				),
+				detail = Res.string.timeline_undated_detail.get(),
+				primaryLabel = Res.string.timeline_undated_open.get(),
+				onPrimary = { viewEvent(firstUndated) },
+				modifier = Modifier.testTag(TIME_LINE_UNDATED_TAG),
 			)
 		}
 

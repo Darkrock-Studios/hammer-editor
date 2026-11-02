@@ -22,6 +22,8 @@ import coil3.compose.AsyncImage
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.base.markdown.countWords
+import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
+import com.darkrockstudios.apps.hammer.base.timeline.StoryCalendar
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.common.TextEditorDefaults
 import com.darkrockstudios.apps.hammer.common.components.timeline.ViewTimeLineEvent
@@ -36,6 +38,7 @@ import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogItem
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.SubjectSummary
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEventError
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.formatStoryDateRange
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionPlace
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -44,6 +47,9 @@ const val TIME_LINE_VIEW_OPEN_SUBJECT_TAG = "timeline-view-open-subject"
 const val TIME_LINE_VIEW_SUBJECT_MISSING_TAG = "timeline-view-subject-missing"
 const val TIME_LINE_VIEW_LANE_TAG = "timeline-view-lane"
 const val TIME_LINE_VIEW_MILESTONE_TAG = "timeline-view-milestone"
+const val TIME_LINE_VIEW_START_TAG = "timeline-view-start"
+const val TIME_LINE_VIEW_END_TAG = "timeline-view-end"
+const val TIME_LINE_VIEW_WHEN_TAG = "timeline-view-when"
 
 private val ModalMaxWidth = TextEditorDefaults.MAX_WIDTH * 1.25f
 private val ModalMaxHeight = 760.dp
@@ -128,7 +134,7 @@ fun ViewTimeLineEventUi(
 				StampRow(
 					isEditing = isEditing,
 					state = state,
-					savedDate = event?.label,
+					savedDate = storedWhen(state),
 					sharedTransitionScope = sharedTransitionScope,
 					animatedVisibilityScope = animatedVisibilityScope,
 					onEdit = { component.beginEdit() },
@@ -592,7 +598,21 @@ private fun Excerpt(text: String) {
 	)
 }
 
-/** The fields every kind has: when, lane and milestone. */
+/** The stored "when": the dates on a DATED timeline when they fit its calendar, else the label. */
+@Composable
+private fun storedWhen(state: ViewTimeLineEvent.State): String? {
+	val event = state.event ?: return null
+	val start = event.start
+	if (state.isDated && start != null) {
+		val calendar = state.calendar ?: CalendarDef()
+		if (StoryCalendar.validate(calendar, start) == null) {
+			return formatStoryDateRange(calendar, start, event.end, rememberStoryDateWords())
+		}
+	}
+	return event.label
+}
+
+/** The fields every kind has: when (dates on a DATED timeline), lane and milestone. */
 @Composable
 private fun PlacementFields(
 	state: ViewTimeLineEvent.State,
@@ -604,17 +624,34 @@ private fun PlacementFields(
 	var dateFocused by remember { mutableStateOf(false) }
 	var laneFocused by remember { mutableStateOf(false) }
 	Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Ui.Padding.L)) {
-		HdHairlineField(
-			label = Res.string.timeline_when_label.get(),
-			value = dateText,
-			onValueChange = component::onDateTextChanged,
-			hint = Res.string.timeline_view_date_hint.get(),
-			placeholder = Res.string.timeline_view_date_placeholder.get(),
-			onFocusChanged = {
-				dateFocused = it
-				onFocusChanged(dateFocused || laneFocused)
-			},
-		)
+		if (state.isDated) {
+			DateRows(
+				calendar = state.calendar ?: CalendarDef(),
+				start = state.start,
+				end = state.end,
+				onStartChange = component::onStartChanged,
+				onEndChange = component::onEndChanged,
+				onFocusChanged = {
+					dateFocused = it
+					onFocusChanged(dateFocused || laneFocused)
+				},
+				startTag = TIME_LINE_VIEW_START_TAG,
+				endTag = TIME_LINE_VIEW_END_TAG,
+			)
+		} else {
+			HdHairlineField(
+				label = Res.string.timeline_when_label.get(),
+				value = dateText,
+				onValueChange = component::onDateTextChanged,
+				hint = Res.string.timeline_view_date_hint.get(),
+				placeholder = Res.string.timeline_view_date_placeholder.get(),
+				onFocusChanged = {
+					dateFocused = it
+					onFocusChanged(dateFocused || laneFocused)
+				},
+				testTag = TIME_LINE_VIEW_WHEN_TAG,
+			)
+		}
 		LaneField(
 			value = state.lane,
 			onValueChange = component::onLaneChanged,

@@ -8,6 +8,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.components.timeline.LaneCount
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineOverview
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimelineRow
@@ -26,8 +27,12 @@ class TimeLineOverviewUiTest : BaseTest() {
 	private class FakeOverview(
 		rows: List<TimelineRow>,
 		lanes: List<LaneCount> = emptyList(),
+		mode: TimelineMode = TimelineMode.MANUAL,
+		undatedIds: List<Int> = emptyList(),
 	) : TimeLineOverview {
-		private val _state = MutableValue(TimeLineOverview.State(rows = rows, lanes = lanes))
+		private val _state = MutableValue(
+			TimeLineOverview.State(rows = rows, lanes = lanes, mode = mode, undatedIds = undatedIds)
+		)
 		override val state: Value<TimeLineOverview.State> = _state
 		override val rankedTags: Value<List<TagCount>> = MutableValue(emptyList())
 
@@ -282,5 +287,27 @@ class TimeLineOverviewUiTest : BaseTest() {
 		compose
 			.onNodeWithTag(EVENT_CARD_CONTENT_TAG, useUnmergedTree = true)
 			.assertTextSatisfies { text -> text.text == "Met\n\n*Cheshire Cat*" }
+	}
+
+	@Test
+	fun `A dated timeline with undated entries offers to open the first`() {
+		val opened = mutableListOf<Int>()
+		val rows = listOf(
+			row(TimeLineEvent(id = 1, order = 0, title = "Dated")),
+			row(TimeLineEvent(id = 2, order = 1, title = "Legacy")),
+		)
+		showOverview(FakeOverview(rows, mode = TimelineMode.DATED, undatedIds = listOf(2)), viewEvent = { opened += it })
+
+		compose.onNodeWithText("1 entry has no date").assertIsDisplayed()
+		compose.onNodeWithText("Open first").performClick()
+
+		assertEquals(listOf(2), opened)
+	}
+
+	@Test
+	fun `A manual timeline shows no undated notice`() {
+		showOverview(FakeOverview(listOf(row(TimeLineEvent(id = 1, order = 0, title = "One")))))
+
+		compose.onNodeWithTag(TIME_LINE_UNDATED_TAG).assertDoesNotExist()
 	}
 }

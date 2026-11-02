@@ -8,8 +8,8 @@ import com.arkivanov.decompose.value.subscribe
 import com.arkivanov.decompose.value.update
 import com.arkivanov.essenty.backhandler.BackCallback
 import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
-import com.darkrockstudios.apps.hammer.base.timeline.TimelineLimits
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.components.images.ImagePickRequests
 import com.darkrockstudios.apps.hammer.common.components.images.ImagePickTarget
@@ -26,6 +26,7 @@ import com.darkrockstudios.apps.hammer.common.data.entitycatalog.EntityCatalog
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesService
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageDef
 import com.darkrockstudios.apps.hammer.common.data.projectInject
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.SubjectSummary
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
@@ -36,8 +37,11 @@ import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineSe
 import com.darkrockstudios.apps.hammer.timeline_view_menu_delete
 import com.darkrockstudios.apps.hammer.timeline_view_menu_group
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.concurrent.Volatile
 import kotlinx.serialization.Serializable
 
 class ViewTimeLineEventComponent(
@@ -56,6 +60,7 @@ class ViewTimeLineEventComponent(
 	private val timeLineRepository: TimeLineRepository by projectInject()
 	private val timelineService: TimelineService by projectInject()
 	private val sceneRepository: SceneRepository by projectInject()
+	private val sceneMetadataRepository: SceneMetadataRepository by projectInject()
 	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
 	private val entityCatalog: EntityCatalog by projectInject()
 	private val imagePickRequests: ImagePickRequests by projectInject()
@@ -73,6 +78,8 @@ class ViewTimeLineEventComponent(
 			lane = restoredDraft?.lane.orEmpty(),
 			milestone = restoredDraft?.milestone ?: false,
 			referenceIds = restoredDraft?.references?.toSet().orEmpty(),
+			start = restoredDraft?.start,
+			end = restoredDraft?.end,
 		)
 	)
 	override val state: Value<ViewTimeLineEvent.State> = _state
@@ -84,6 +91,10 @@ class ViewTimeLineEventComponent(
 	override val contentText: Value<String> = _contentText
 
 	private var catalogRequested = false
+
+	// The placed scene's branch of the scene tree when its summary was last resolved.
+	@Volatile
+	private var subjectBranch: List<SceneItem>? = null
 
 	private val backButtonHandler = BackCallback(isEnabled = false) {
 		if (isEditingAndDirty()) {
@@ -105,6 +116,8 @@ class ViewTimeLineEventComponent(
 				lane = current.lane,
 				milestone = current.milestone,
 				references = current.referenceIds.toList(),
+				start = current.start,
+				end = current.end,
 			)
 		}
 	}
@@ -118,6 +131,7 @@ class ViewTimeLineEventComponent(
 		}
 
 		watchTimeLine()
+		watchSubject()
 
 		watchSpellCheckAllowed { allowed ->
 			_state.getAndUpdate { it.copy(spellCheckAllowed = allowed) }
@@ -130,19 +144,70 @@ class ViewTimeLineEventComponent(
 				val updatedEvent = view.events.find { it.id == eventId }
 				val lanes = timelineService.lanes()
 				val changed = updatedEvent != state.value.event
-				val subject = if (changed && updatedEvent != null) timelineService.resolveSubject(updatedEvent) else null
+				val subject = if (changed && updatedEvent != null) resolveSubject(updatedEvent) else null
 				val image = if (changed) subjectImage(subject) else null
 				val title = if (changed && updatedEvent != null) timelineService.displayTitle(updatedEvent) else null
 				if (updatedEvent?.kind == TimelineKind.EVENT) loadCatalogOnce()
 
 				withContext(dispatcherMain) {
 					_state.getAndUpdate {
-						it.copy(lanes = lanes, laneIndex = updatedEvent?.lane?.let { lane -> lanes.indexOf(lane).takeIf { i -> i >= 0 } })
+						it.copy(
+							lanes = lanes,
+							laneIndex = updatedEvent?.lane?.let { lane -> lanes.indexOf(lane).takeIf { i -> i >= 0 } },
+							mode = view.def.mode,
+							calendar = view.def.calendar,
+						)
 					}
 					if (changed) applyEvent(updatedEvent, subject, image, title)
 				}
 			}
 		}
+	}
+
+	/**
+	 * Re-resolves a placement's summary when its subject changes on its own: the scene is renamed,
+	 * moved or its cast changes, or the entry is edited. Signals for other subjects are dropped first.
+	 */
+	private fun watchSubject() {
+		scope.launch {
+			merge(
+				sceneRepository.sceneTreeUpdates.map { SubjectSignal.SceneTree },
+				sceneMetadataRepository.metadataUpdateFlow.map { SubjectSignal.SceneMetadata(it.sceneId) },
+				encyclopediaRepository.entryChangedFlow.map { SubjectSignal.Entry(it) },
+			).collect { signal ->
+				val event = state.value.event ?: return@collect
+				val subjectId = event.subject ?: return@collect
+				val affected = when (signal) {
+					SubjectSignal.SceneTree -> event.kind == TimelineKind.SCENE && sceneBranch(subjectId) != subjectBranch
+					is SubjectSignal.SceneMetadata -> event.kind == TimelineKind.SCENE && signal.sceneId == subjectId
+					is SubjectSignal.Entry -> event.kind == TimelineKind.ENTRY && signal.entryId == subjectId
+				}
+				if (!affected) return@collect
+
+				val subject = resolveSubject(event)
+				val image = subjectImage(subject)
+				val title = timelineService.displayTitle(event)
+				withContext(dispatcherMain) {
+					if (state.value.event?.id != event.id) return@withContext
+					_state.getAndUpdate { it.copy(subject = subject, subjectImage = image, displayTitle = title) }
+					refreshReferences()
+				}
+			}
+		}
+	}
+
+	private sealed interface SubjectSignal {
+		data object SceneTree : SubjectSignal
+		data class SceneMetadata(val sceneId: Int) : SubjectSignal
+		data class Entry(val entryId: Int) : SubjectSignal
+	}
+
+	private fun sceneBranch(sceneId: Int): List<SceneItem>? =
+		sceneRepository.rawTree.getBranchOrNull(excludeLeaf = false) { it.id == sceneId }?.map { it.value }
+
+	private suspend fun resolveSubject(event: TimeLineEvent): SubjectSummary? {
+		if (event.kind == TimelineKind.SCENE) subjectBranch = event.subject?.let(::sceneBranch)
+		return timelineService.resolveSubject(event)
 	}
 
 	/** Takes [event] as stored; a dirty edit keeps its draft, otherwise the draft follows it. */
@@ -176,6 +241,8 @@ class ViewTimeLineEventComponent(
 		lane = event.lane.orEmpty(),
 		milestone = event.milestone,
 		referenceIds = event.references,
+		start = event.start,
+		end = event.end,
 	)
 
 	private fun refreshReferences() {
@@ -250,6 +317,16 @@ class ViewTimeLineEventComponent(
 		updateShouldClose()
 	}
 
+	override fun onStartChanged(start: StoryDate?) {
+		_state.getAndUpdate { it.copy(start = start) }
+		updateShouldClose()
+	}
+
+	override fun onEndChanged(end: StoryDate?) {
+		_state.getAndUpdate { it.copy(end = end) }
+		updateShouldClose()
+	}
+
 	override fun addReference(item: CatalogItem) {
 		if (item.id == eventId) return
 		_state.getAndUpdate { it.copy(referenceIds = it.referenceIds + item.id) }
@@ -285,6 +362,8 @@ class ViewTimeLineEventComponent(
 		val current = state.value
 		val event = current.event ?: return TimeLineEventError.EVENT_NOT_FOUND
 		val label = _dateText.value.trim().ifEmpty { null }
+		val start = if (current.isDated) current.start else event.start
+		val end = if (current.isDated) current.end else event.end
 
 		val result = if (event.kind == TimelineKind.EVENT) {
 			timelineService.updateEvent(
@@ -296,17 +375,17 @@ class ViewTimeLineEventComponent(
 					references = current.referenceIds,
 					lane = current.lane,
 					milestone = current.milestone,
+					start = start,
+					end = end,
 				)
 			)
 		} else {
-			if ((label?.length ?: 0) > TimelineLimits.MAX_LABEL) return TimeLineEventError.LABEL_TOO_LONG
-			timelineService.updatePlacement(event.id, event.start, event.end, current.lane, current.milestone)
-				.also { placed -> if (placed is TimelineResult.Ok) labelPlacement(placed.event, label) }
+			timelineService.updatePlacement(event.id, start, end, current.lane, current.milestone, label)
 		}
 		if (result is TimelineResult.Invalid) return result.error
 
 		val stored = timeLineRepository.getTimelineEvent(event.id)
-		val subject = stored?.let { timelineService.resolveSubject(it) }
+		val subject = stored?.let { resolveSubject(it) }
 		val image = subjectImage(subject)
 		val title = stored?.let { timelineService.displayTitle(it) }
 		withContext(dispatcherMain) {
@@ -315,13 +394,6 @@ class ViewTimeLineEventComponent(
 			updateShouldClose()
 		}
 		return TimeLineEventError.NONE
-	}
-
-	// The service's placement update leaves the label alone, so a placement's "when" is written here.
-	private suspend fun labelPlacement(placed: TimeLineEvent?, label: String?) {
-		if (placed == null || placed.label == label) return
-		val labelled = placed.copy(label = label)
-		if (timeLineRepository.validate(labelled).isSuccess) timeLineRepository.updateEvent(labelled)
 	}
 
 	override fun openSubject() {
@@ -395,7 +467,9 @@ class ViewTimeLineEventComponent(
 		val event = current.event ?: return true
 		val placementDirty = (event.label ?: "") != dateText.value ||
 			(event.lane ?: "") != current.lane ||
-			event.milestone != current.milestone
+			event.milestone != current.milestone ||
+			event.start != current.start ||
+			event.end != current.end
 		if (event.kind.isPlacement) return placementDirty
 		return placementDirty ||
 			event.content != contentText.value ||
@@ -475,6 +549,8 @@ class ViewTimeLineEventComponent(
 		val lane: String = "",
 		val milestone: Boolean = false,
 		val references: List<Int> = emptyList(),
+		val start: StoryDate? = null,
+		val end: StoryDate? = null,
 	)
 
 	private companion object {

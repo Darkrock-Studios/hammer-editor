@@ -4,6 +4,7 @@ import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectTheme
 import com.darkrockstudios.apps.hammer.base.http.projectdata.WordCountGoal
+import com.darkrockstudios.apps.hammer.common.components.projecthome.timelinesettings.TimelineSettings
 import com.darkrockstudios.apps.hammer.common.components.spellchecksettings.SpellCheckSettings
 import com.darkrockstudios.apps.hammer.common.data.tagindex.cleanTags
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponent
@@ -11,6 +12,7 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponen
 interface ProjectSettings : HammerComponent {
 	val projectName: String
 	val spellCheckSettings: SpellCheckSettings
+	val timelineSettings: TimelineSettings
 	val projectInfoState: Value<ProjectInfoState>
 
 	/** Ids of the plugins turned off for this project on this device. */
