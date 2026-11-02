@@ -417,7 +417,7 @@ private fun rememberConflictSummary(
 			is ProjectSynchronization.EntityConflict.TimelineEventConflict -> ConflictSummary(
 				label = timelineLabel,
 				name = entity.serverEntity.content.firstNonBlankLine().truncateWithEllipsis(40),
-				meta = entity.serverEntity.date?.takeIf { it.isNotBlank() },
+				meta = entity.serverEntity.label?.takeIf { it.isNotBlank() },
 			)
 			is ProjectSynchronization.EntityConflict.EncyclopediaEntryConflict -> ConflictSummary(
 				label = encyclopediaLabel,

@@ -1,7 +1,10 @@
 package com.darkrockstudios.apps.hammer.base.http.synchronizer
 
 import com.appmattus.crypto.Algorithm
+import com.appmattus.crypto.Digest
 import com.darkrockstudios.apps.hammer.base.http.ApiSceneType
+import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import korlibs.crypto.encoding.base64Url
 import kotlin.time.Instant
 
@@ -76,17 +79,78 @@ object EntityHasher {
 		id: Int,
 		order: Int,
 		content: String,
-		date: String?,
+		label: String?,
 		tags: Set<String>,
+		kind: TimelineKind = TimelineKind.EVENT,
+		subject: Int? = null,
+		references: Set<Int> = emptySet(),
+		lane: String? = null,
+		milestone: Boolean = false,
+		start: StoryDate? = null,
+		end: StoryDate? = null,
+		title: String? = null,
+		cachedTitle: String? = null,
 	): String {
 		val buf = buff()
 		val d = Algorithm.MurmurHash3_X64_128().createDigest()
 		d.update(id, buf)
 		d.update(order, buf)
 		d.update(content, buf)
-		if (date != null) d.update(date, buf)
+		if (label != null) d.update(label, buf)
 		tags.sorted().forEach { tag -> d.update(tag, buf) }
+
+		// Each block below contributes zero bytes at its default, so events from before these
+		// fields keep their stored hash. The negative markers cannot be read as a char code
+		// continuing the bare tags above, and keep the blocks apart from each other.
+		if (kind != TimelineKind.EVENT) {
+			d.update(-1, buf)
+			d.update(kind.code, buf)
+		}
+		if (subject != null) {
+			d.update(-2, buf)
+			d.update(subject, buf)
+		}
+		if (references.isNotEmpty()) {
+			d.update(-3, buf)
+			d.update(references.size, buf)
+			references.sorted().forEach { d.update(it, buf) }
+		}
+		if (lane != null) {
+			d.update(-4, buf)
+			d.update(lane.length, buf)
+			d.update(lane, buf)
+		}
+		if (milestone) {
+			d.update(-5, buf)
+		}
+		if (start != null) {
+			d.update(-6, buf)
+			d.updateStoryDate(start, buf)
+		}
+		if (end != null) {
+			d.update(-7, buf)
+			d.updateStoryDate(end, buf)
+		}
+		if (title != null) {
+			d.update(-8, buf)
+			d.update(title.length, buf)
+			d.update(title, buf)
+		}
+		if (cachedTitle != null) {
+			d.update(-9, buf)
+			d.update(cachedTitle.length, buf)
+			d.update(cachedTitle, buf)
+		}
 		return d.digest().base64Url
+	}
+
+	private fun Digest<*>.updateStoryDate(date: StoryDate, buf: ByteArray) {
+		update(date.rungs.size, buf)
+		date.rungs.keys.sorted().forEach { unit ->
+			update(unit.length, buf)
+			update(unit, buf)
+			update(date.rungs.getValue(unit), buf)
+		}
 	}
 
 	fun hashEncyclopediaEntry(

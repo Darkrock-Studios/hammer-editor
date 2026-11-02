@@ -311,7 +311,7 @@ class ProjectSynchronizationComponent(
 
 		val localEntity = ApiProjectEntity.TimelineEventEntity(
 			id = local.id,
-			date = local.date,
+			label = local.date,
 			content = local.content,
 			order = local.order,
 			tags = local.tags,

@@ -119,12 +119,12 @@ class ResyncStabilityMatrixTest : RoundTripTestBase() {
 			),
 			one(
 				"timeline event, null date",
-				ApiProjectEntity.TimelineEventEntity(id = 1, order = 0, date = null, content = "event"),
+				ApiProjectEntity.TimelineEventEntity(id = 1, order = 0, label = null, content = "event"),
 			),
 			one(
 				"timeline event, with date and tags",
 				ApiProjectEntity.TimelineEventEntity(
-					id = 1, order = 0, date = "1920", content = "event", tags = setOf("war"),
+					id = 1, order = 0, label = "1920", content = "event", tags = setOf("war"),
 				),
 			),
 			one(

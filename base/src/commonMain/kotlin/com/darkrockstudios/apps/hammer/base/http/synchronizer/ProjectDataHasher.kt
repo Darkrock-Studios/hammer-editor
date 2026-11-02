@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.base.http.synchronizer
 
 import com.appmattus.crypto.Algorithm
+import com.appmattus.crypto.Digest
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import korlibs.crypto.encoding.base64Url
 
@@ -80,6 +81,43 @@ object ProjectDataHasher {
 			d.update(data.coverImageId, buf)
 		}
 
+		// Zero bytes when empty, same rule as tags. -5 marker: -1 through -4 are taken. List order
+		// is kept: it is the display order. Every string carries its length.
+		if (data.timelines.isNotEmpty()) {
+			d.update(-5, buf)
+			d.update(data.timelines.size, buf)
+			data.timelines.forEach { def ->
+				d.updateSized(def.id, buf)
+				d.updateSized(def.name, buf)
+				d.update(def.mode.code, buf)
+				val calendar = def.calendar
+				if (calendar != null) {
+					d.update(1, buf)
+					d.update(calendar.preset.code, buf)
+					d.updateOptionalSized(calendar.epochName, buf)
+					d.updateOptionalSized(calendar.coarsestUnit, buf)
+				} else {
+					d.update(0, buf)
+				}
+				d.update(def.laneOrder.size, buf)
+				def.laneOrder.forEach { lane -> d.updateSized(lane, buf) }
+			}
+		}
+
 		return d.digest().base64Url
+	}
+
+	private fun Digest<*>.updateSized(value: String, buf: ByteArray) {
+		update(value.length, buf)
+		update(value, buf)
+	}
+
+	private fun Digest<*>.updateOptionalSized(value: String?, buf: ByteArray) {
+		if (value != null) {
+			update(1, buf)
+			updateSized(value, buf)
+		} else {
+			update(0, buf)
+		}
 	}
 }

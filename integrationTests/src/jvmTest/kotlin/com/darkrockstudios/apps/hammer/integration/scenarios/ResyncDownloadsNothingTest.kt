@@ -43,7 +43,7 @@ class ResyncDownloadsNothingTest : RoundTripTestBase() {
 			ApiProjectEntity.TimelineEventEntity(
 				id = 3,
 				order = 0,
-				date = "1920",
+				label = "1920",
 				content = "a battle",
 			),
 			E2eTestData.createTestEncyclopediaEntry(id = 4),

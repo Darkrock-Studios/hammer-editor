@@ -301,7 +301,7 @@ class ProjectSynchronizationComponentTest : ComponentTest() {
 		val serverEvent = ApiProjectEntity.TimelineEventEntity(
 			id = 3,
 			order = 1,
-			date = "1066",
+			label = "1066",
 			content = "server event",
 		)
 		coEvery { timeLineRepository.getTimelineEvent(3) } returns TimeLineEvent(
@@ -324,7 +324,7 @@ class ProjectSynchronizationComponentTest : ComponentTest() {
 		val conflict = comp.state.value.entityConflict
 		assertIs<ProjectSynchronization.EntityConflict.TimelineEventConflict>(conflict)
 		assertEquals("local event", conflict.clientEntity.content)
-		assertEquals("1067", conflict.clientEntity.date)
+		assertEquals("1067", conflict.clientEntity.label)
 	}
 
 	@Test
@@ -485,7 +485,7 @@ class ProjectSynchronizationComponentTest : ComponentTest() {
 		val resolved = ApiProjectEntity.TimelineEventEntity(
 			id = 3,
 			order = 0,
-			date = null,
+			label = null,
 			content = "content",
 			tags = setOf("much too long"),
 		)

@@ -124,13 +124,13 @@ fun TimelineConflictPreview() {
 	val serverEntity = ApiProjectEntity.TimelineEventEntity(
 		id = 1,
 		content = "Alice follows the White Rabbit down the hole and lands in the long hallway of doors.",
-		date = "May 4th, afternoon",
+		label = "May 4th, afternoon",
 		order = 1,
 		tags = setOf("alice", "rabbit-hole"),
 	)
 	val clientEntity = serverEntity.copy(
 		content = "Alice chases the March Hare into the warren and emerges in the corridor of doors.",
-		date = "May 4th, late afternoon",
+		label = "May 4th, late afternoon",
 		tags = setOf("alice", "hare", "corridor"),
 	)
 

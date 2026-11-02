@@ -2,6 +2,8 @@ package com.darkrockstudios.apps.hammer.base.http.synchronizer
 
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ApiSceneType
+import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import korlibs.crypto.encoding.Base64
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
@@ -40,11 +42,149 @@ class EntityHasherTest {
 			id = 2,
 			order = 1,
 			content = "Content",
-			date = "The Futuer",
+			label = "The Futuer",
 			tags = emptySet(),
 		)
 
 		assertEquals("SAH6B_pamg_T5MCpWZM6vQ", hash)
+	}
+
+	// Events stored before Timeline 2.0 must keep their hash.
+	@Test
+	fun `hashTimelineEvent defaults add zero bytes`() {
+		val hash = EntityHasher.hashTimelineEvent(
+			id = 2,
+			order = 1,
+			content = "Content",
+			label = "The Futuer",
+			tags = emptySet(),
+			kind = TimelineKind.EVENT,
+			subject = null,
+			references = emptySet(),
+			lane = null,
+			milestone = false,
+			start = null,
+			end = null,
+			title = null,
+			cachedTitle = null,
+		)
+
+		assertEquals("SAH6B_pamg_T5MCpWZM6vQ", hash)
+	}
+
+	@Test
+	fun `hashTimelineEvent fully populated`() {
+		assertEquals(TIMELINE_POPULATED_PIN, timelineHash())
+	}
+
+	@Test
+	fun `TimelineEventEntity hash matches hashTimelineEvent`() {
+		val entity = ApiProjectEntity.TimelineEventEntity(
+			id = 4,
+			order = 3,
+			label = "Late autumn",
+			content = "Wind takes the roof.",
+			tags = setOf("weather", "storm"),
+			kind = TimelineKind.SCENE,
+			subject = 31,
+			references = setOf(12, 31),
+			lane = "Keep",
+			milestone = true,
+			start = StoryDate(mapOf("year" to 97L, "day" to 210L)),
+			end = StoryDate(mapOf("year" to 97L, "day" to 212L)),
+			title = "The storm",
+			cachedTitle = "Landfall",
+		)
+		assertEquals(TIMELINE_POPULATED_PIN, entity.hash())
+	}
+
+	@Test
+	fun `hashTimelineEvent each new field changes the hash`() {
+		val minimal = ApiProjectEntity.TimelineEventEntity(
+			id = 4,
+			order = 3,
+			label = "Late autumn",
+			content = "Wind takes the roof.",
+			tags = setOf("weather"),
+		)
+		val year0 = StoryDate(mapOf("year" to 0L))
+		val variants = listOf(
+			minimal.copy(kind = TimelineKind.ENTRY),
+			minimal.copy(subject = 0),
+			minimal.copy(references = setOf(0)),
+			minimal.copy(lane = ""),
+			minimal.copy(milestone = true),
+			minimal.copy(start = year0),
+			minimal.copy(end = year0),
+			minimal.copy(title = ""),
+			minimal.copy(cachedTitle = ""),
+		).map { it.hash() }
+
+		variants.forEach { assertNotEquals(minimal.hash(), it) }
+		assertEquals(variants.size, variants.toSet().size, "each new field must hash distinctly from the others")
+	}
+
+	@Test
+	fun `hashTimelineEvent start rung order does not affect hash`() {
+		val yearFirst = StoryDate(linkedMapOf("year" to 97L, "day" to 210L, "hour" to 23L))
+		val hourFirst = StoryDate(linkedMapOf("hour" to 23L, "day" to 210L, "year" to 97L))
+		assertEquals(timelineHash(start = yearFirst), timelineHash(start = hourFirst))
+		assertEquals(timelineHash(end = yearFirst), timelineHash(end = hourFirst))
+	}
+
+	@Test
+	fun `hashTimelineEvent references order does not affect hash`() {
+		assertEquals(
+			timelineHash(references = linkedSetOf(1, 2, 3)),
+			timelineHash(references = linkedSetOf(3, 1, 2)),
+		)
+	}
+
+	@Test
+	fun `hashTimelineEvent start and end do not collide`() {
+		val date = StoryDate(mapOf("year" to 97L))
+		assertNotEquals(
+			timelineHash(start = date, end = null),
+			timelineHash(start = null, end = date),
+		)
+	}
+
+	@Test
+	fun `hashTimelineEvent lane and title do not bleed`() {
+		assertNotEquals(
+			timelineHash(lane = "ab", title = "c"),
+			timelineHash(lane = "a", title = "bc"),
+		)
+		assertNotEquals(
+			timelineHash(title = "ab", cachedTitle = "c"),
+			timelineHash(title = "a", cachedTitle = "bc"),
+		)
+	}
+
+	@Test
+	fun `hashTimelineEvent rung boundaries do not bleed`() {
+		assertNotEquals(
+			timelineHash(start = StoryDate(mapOf("ab" to 1L, "c" to 2L))),
+			timelineHash(start = StoryDate(mapOf("a" to 1L, "bc" to 2L))),
+		)
+	}
+
+	@Test
+	fun `hashTimelineEvent rung values use all 64 bits`() {
+		assertNotEquals(
+			timelineHash(start = StoryDate(mapOf("year" to 1L))),
+			timelineHash(start = StoryDate(mapOf("year" to 1L + (1L shl 32)))),
+		)
+	}
+
+	@Test
+	fun `kind codes are stable`() {
+		assertEquals(0, TimelineKind.EVENT.code)
+		assertEquals(1, TimelineKind.ENTRY.code)
+		assertEquals(2, TimelineKind.SCENE.code)
+		assertEquals(TimelineKind.entries.size, TimelineKind.entries.map { it.code }.toSet().size)
+		val hashes = TimelineKind.entries.map { timelineHash(kind = it) }
+		assertEquals(hashes.size, hashes.toSet().size)
 	}
 
 	@Test
@@ -322,6 +462,34 @@ class EntityHasherTest {
 		)
 	}
 
+	// Test-only defaults: every new field populated.
+	private fun timelineHash(
+		kind: TimelineKind = TimelineKind.SCENE,
+		subject: Int? = 31,
+		references: Set<Int> = setOf(12, 31),
+		lane: String? = "Keep",
+		milestone: Boolean = true,
+		start: StoryDate? = StoryDate(mapOf("year" to 97L, "day" to 210L)),
+		end: StoryDate? = StoryDate(mapOf("year" to 97L, "day" to 212L)),
+		title: String? = "The storm",
+		cachedTitle: String? = "Landfall",
+	): String = EntityHasher.hashTimelineEvent(
+		id = 4,
+		order = 3,
+		content = "Wind takes the roof.",
+		label = "Late autumn",
+		tags = setOf("weather", "storm"),
+		kind = kind,
+		subject = subject,
+		references = references,
+		lane = lane,
+		milestone = milestone,
+		start = start,
+		end = end,
+		title = title,
+		cachedTitle = cachedTitle,
+	)
+
 	private fun entryHash(
 		aliases: List<String> = emptyList(),
 		excludeFromDictionary: Boolean = false,
@@ -369,4 +537,9 @@ class EntityHasherTest {
 		created = created,
 		lastEdited = lastEdited,
 	)
+
+	private companion object {
+		// Pinned once from the first implementation: a change means stored hashes of 2.0 events drift.
+		const val TIMELINE_POPULATED_PIN = "r9hoH-FCjJS-0uZeZPfgug"
+	}
 }

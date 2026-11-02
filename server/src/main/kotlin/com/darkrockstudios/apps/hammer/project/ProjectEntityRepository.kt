@@ -375,12 +375,13 @@ class ProjectEntityRepository(
 				clientState
 			)
 			updateSequence += noteSynchronizer.getUpdateSequence(userId, projectDef, clientState)
-			updateSequence += timelineEventSynchronizer.getUpdateSequence(
+			updateSequence += encyclopediaSynchronizer.getUpdateSequence(
 				userId,
 				projectDef,
 				clientState
 			)
-			updateSequence += encyclopediaSynchronizer.getUpdateSequence(
+			// After scenes and entries: timeline events reference both.
+			updateSequence += timelineEventSynchronizer.getUpdateSequence(
 				userId,
 				projectDef,
 				clientState

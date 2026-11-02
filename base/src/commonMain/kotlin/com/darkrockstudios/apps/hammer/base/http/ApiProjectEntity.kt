@@ -1,8 +1,11 @@
 package com.darkrockstudios.apps.hammer.base.http
 
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
+import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import korlibs.crypto.encoding.Base64
 import kotlinx.serialization.Polymorphic
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlin.time.Instant
 
@@ -77,16 +80,38 @@ sealed interface ApiProjectEntity {
 		override val type: Type = Type.TIMELINE_EVENT,
 		override val id: Int,
 		val order: Int,
-		val date: String?,
+		/** Free-text "when" shown in manual mode. */
+		@SerialName("date")
+		val label: String?,
 		val content: String,
 		val tags: Set<String> = emptySet(),
+		val kind: TimelineKind = TimelineKind.EVENT,
+		/** The placed scene or entry; null for [TimelineKind.EVENT]. */
+		val subject: Int? = null,
+		val references: Set<Int> = emptySet(),
+		val lane: String? = null,
+		val milestone: Boolean = false,
+		val start: StoryDate? = null,
+		val end: StoryDate? = null,
+		val title: String? = null,
+		/** The subject's title when last seen, kept so a placement outliving its subject has a name. */
+		val cachedTitle: String? = null,
 	) : ApiProjectEntity {
 		override fun hash(): String = EntityHasher.hashTimelineEvent(
 			id = id,
 			order = order,
 			content = content,
-			date = date,
+			label = label,
 			tags = tags,
+			kind = kind,
+			subject = subject,
+			references = references,
+			lane = lane,
+			milestone = milestone,
+			start = start,
+			end = end,
+			title = title,
+			cachedTitle = cachedTitle,
 		)
 	}
 

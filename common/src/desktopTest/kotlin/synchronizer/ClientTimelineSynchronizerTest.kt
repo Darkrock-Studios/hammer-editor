@@ -78,7 +78,7 @@ class ClientTimelineSynchronizerTest {
 		assertEquals(5, entity.id)
 		assertEquals(3, entity.order)
 		assertEquals("battle", entity.content)
-		assertEquals("1920", entity.date)
+		assertEquals("1920", entity.label)
 		assertEquals(setOf("a"), entity.tags)
 	}
 
@@ -93,7 +93,7 @@ class ClientTimelineSynchronizerTest {
 		val serverEntity = ApiProjectEntity.TimelineEventEntity(
 			id = 5,
 			order = 2,
-			date = "1850",
+			label = "1850",
 			content = "server content",
 			tags = setOf("srv"),
 		)

@@ -31,7 +31,7 @@ internal fun TimelineEventConflict(
 	screenCharacteristics: WindowSizeClass
 ) {
 	val client = entityConflict.clientEntity
-	var dateTextValue by rememberSaveable(client) { mutableStateOf(client.date.orEmpty()) }
+	var dateTextValue by rememberSaveable(client) { mutableStateOf(client.label.orEmpty()) }
 	var contentTextValue by rememberSaveable(client) { mutableStateOf(client.content) }
 
 	val contentDiff = rememberContentDiff(entityConflict.serverEntity.content, contentTextValue)
@@ -39,7 +39,7 @@ internal fun TimelineEventConflict(
 	val useLocal = {
 		component.resolveConflict(
 			client.copy(
-				date = dateTextValue.ifBlank { null },
+				label = dateTextValue.ifBlank { null },
 				content = contentTextValue,
 			)
 		)
@@ -62,7 +62,7 @@ internal fun TimelineEventConflict(
 			) {
 				HdConflictField(
 					label = Res.string.sync_conflict_title_timeline_event_field_date.get(),
-					conflict = c.serverEntity.date != c.clientEntity.date,
+					conflict = c.serverEntity.label != c.clientEntity.label,
 				) {
 					HdHairlineField(
 						label = "",
@@ -99,9 +99,9 @@ internal fun TimelineEventConflict(
 			) {
 				HdConflictField(
 					label = Res.string.sync_conflict_title_timeline_event_field_date.get(),
-					conflict = c.serverEntity.date != c.clientEntity.date,
+					conflict = c.serverEntity.label != c.clientEntity.label,
 				) {
-					ReadOnlyLine(c.serverEntity.date?.takeIf { it.isNotBlank() } ?: missingDateLabel)
+					ReadOnlyLine(c.serverEntity.label?.takeIf { it.isNotBlank() } ?: missingDateLabel)
 				}
 				val highlighted = rememberRemoteDiffHighlight(c.serverEntity.content, contentDiff)
 				HdConflictField(

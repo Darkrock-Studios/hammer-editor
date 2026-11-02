@@ -45,7 +45,7 @@ class ClientTimelineSynchronizer(
 			EntityHasher.hashTimelineEvent(
 				id = event.id,
 				order = event.order,
-				date = event.date,
+				label = event.date,
 				content = event.content,
 				tags = event.tags,
 			)
@@ -62,7 +62,7 @@ class ClientTimelineSynchronizer(
 		return ApiProjectEntity.TimelineEventEntity(
 			id = id,
 			order = event.order,
-			date = event.date,
+			label = event.date,
 			content = event.content,
 			tags = event.tags,
 		)
@@ -81,7 +81,7 @@ class ClientTimelineSynchronizer(
 		val event = TimeLineEvent(
 			id = serverEntity.id,
 			order = serverEntity.order,
-			date = serverEntity.date,
+			date = serverEntity.label,
 			content = serverEntity.content,
 			tags = serverEntity.tags,
 		)
