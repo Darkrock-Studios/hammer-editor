@@ -215,10 +215,21 @@ class StoryCalendarTest {
 	}
 
 	@Test
-	fun `unknown coarsestUnit behaves as unset`() {
+	fun `unknown coarsestUnit is a calendar problem`() {
 		val odd = CalendarDef(preset = STORY, coarsestUnit = "fortnight")
-		assertEquals(StoryDateProblem.NotAPrefix, StoryCalendar.validate(odd, date("hour" to 5)))
-		assertNull(StoryCalendar.validate(odd, date("year" to 5)))
+		assertEquals(StoryDateProblem.UnknownCoarsestUnit("fortnight"), StoryCalendar.validate(odd))
+		assertEquals(StoryDateProblem.UnknownCoarsestUnit("fortnight"), StoryCalendar.validate(odd, date("hour" to 5)))
+		assertEquals(StoryDateProblem.UnknownCoarsestUnit("fortnight"), StoryCalendar.validate(odd, date("year" to 5)))
+		assertNull(StoryCalendar.position(odd, date("year" to 5)))
+		assertNull(StoryCalendar.span(odd, date("year" to 5)))
+		assertNull(StoryCalendar.precision(odd, date("year" to 5)))
+	}
+
+	@Test
+	fun `story calendars with a known or no coarsestUnit are valid`() {
+		assertNull(StoryCalendar.validate(CalendarDef(preset = STORY)))
+		assertNull(StoryCalendar.validate(hourStory))
+		assertNull(StoryCalendar.validate(CalendarDef(preset = STORY, coarsestUnit = "year")))
 	}
 
 	// ---- GREGORIAN -------------------------------------------------------------------------
@@ -356,13 +367,24 @@ class StoryCalendarTest {
 	}
 
 	@Test
-	fun `gregorian coarsestUnit fills omitted units with their lowest value`() {
-		val dayStory = CalendarDef(preset = GREGORIAN, coarsestUnit = "day")
-		assertNull(StoryCalendar.validate(dayStory, date("day" to 31, "hour" to 3)))
-		assertEquals(
-			StoryCalendar.position(GREGORIAN, date("year" to 0, "month" to 1, "day" to 31, "hour" to 3)),
-			StoryCalendar.position(dayStory, date("day" to 31, "hour" to 3)),
-		)
-		assertEquals(StoryDateProblem.OutOfRange("day", 32), StoryCalendar.validate(dayStory, date("day" to 32)))
+	fun `gregorian does not support coarsestUnit`() {
+		assertNull(StoryCalendar.validate(CalendarDef(preset = GREGORIAN)))
+		for (unit in listOf("year", "day", "fortnight")) {
+			val calendar = CalendarDef(preset = GREGORIAN, coarsestUnit = unit)
+			assertEquals(StoryDateProblem.CoarsestUnitNotSupported, StoryCalendar.validate(calendar))
+			assertEquals(
+				StoryDateProblem.CoarsestUnitNotSupported,
+				StoryCalendar.validate(calendar, date("year" to 2024, "month" to 1, "day" to 31)),
+			)
+			assertNull(StoryCalendar.position(calendar, date("year" to 2024)))
+		}
+	}
+
+	@Test
+	fun `gregorian dates always start at the year`() {
+		val calendar = CalendarDef(preset = GREGORIAN, epochName = "Landing")
+		assertEquals(StoryDateProblem.NotAPrefix, StoryCalendar.validate(calendar, date("day" to 31, "hour" to 3)))
+		assertEquals(StoryDateProblem.NotAPrefix, StoryCalendar.validate(calendar, date("hour" to 3)))
+		assertNull(StoryCalendar.validate(calendar, date("year" to 2024, "month" to 1, "day" to 31, "hour" to 3)))
 	}
 }

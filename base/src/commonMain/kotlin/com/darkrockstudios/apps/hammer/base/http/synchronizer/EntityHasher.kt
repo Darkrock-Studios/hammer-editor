@@ -117,8 +117,7 @@ object EntityHasher {
 		}
 		if (lane != null) {
 			d.update(-4, buf)
-			d.update(lane.length, buf)
-			d.update(lane, buf)
+			d.updateSized(lane, buf)
 		}
 		if (milestone) {
 			d.update(-5, buf)
@@ -133,13 +132,11 @@ object EntityHasher {
 		}
 		if (title != null) {
 			d.update(-8, buf)
-			d.update(title.length, buf)
-			d.update(title, buf)
+			d.updateSized(title, buf)
 		}
 		if (cachedTitle != null) {
 			d.update(-9, buf)
-			d.update(cachedTitle.length, buf)
-			d.update(cachedTitle, buf)
+			d.updateSized(cachedTitle, buf)
 		}
 		return d.digest().base64Url
 	}
@@ -147,8 +144,7 @@ object EntityHasher {
 	private fun Digest<*>.updateStoryDate(date: StoryDate, buf: ByteArray) {
 		update(date.rungs.size, buf)
 		date.rungs.keys.sorted().forEach { unit ->
-			update(unit.length, buf)
-			update(unit, buf)
+			updateSized(unit, buf)
 			update(date.rungs.getValue(unit), buf)
 		}
 	}

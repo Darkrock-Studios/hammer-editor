@@ -59,7 +59,7 @@ class TimelineEventEntityWireTest {
 			id = TimelineDef.MAIN_ID,
 			name = "Main",
 			mode = TimelineMode.DATED,
-			calendar = CalendarDef(preset = CalendarPreset.GREGORIAN, epochName = "Landing", coarsestUnit = "hour"),
+			calendar = CalendarDef(preset = CalendarPreset.STORY, epochName = "Landing", coarsestUnit = "hour"),
 			laneOrder = listOf("Keep", "Alice"),
 		)
 		val encoded = json.encodeToString(TimelineDef.serializer(), def)

@@ -1,7 +1,6 @@
 package com.darkrockstudios.apps.hammer.base.http.synchronizer
 
 import com.appmattus.crypto.Algorithm
-import com.appmattus.crypto.Digest
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import korlibs.crypto.encoding.base64Url
 
@@ -105,19 +104,5 @@ object ProjectDataHasher {
 		}
 
 		return d.digest().base64Url
-	}
-
-	private fun Digest<*>.updateSized(value: String, buf: ByteArray) {
-		update(value.length, buf)
-		update(value, buf)
-	}
-
-	private fun Digest<*>.updateOptionalSized(value: String?, buf: ByteArray) {
-		if (value != null) {
-			update(1, buf)
-			updateSized(value, buf)
-		} else {
-			update(0, buf)
-		}
 	}
 }

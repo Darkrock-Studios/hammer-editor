@@ -17,8 +17,8 @@ data class CalendarDef(
 	val preset: CalendarPreset = CalendarPreset.STORY,
 	val epochName: String? = null,
 	/**
-	 * The coarsest unit the story is told in, so a one-day story can run in hours and minutes. Dates
-	 * may omit the units above it.
+	 * STORY only: the coarsest unit the story is told in, so a one-day story can run in hours and
+	 * minutes. Dates may omit the units above it. Must be null for GREGORIAN.
 	 */
 	val coarsestUnit: String? = null,
 )
@@ -28,6 +28,12 @@ data class CalendarUnit(val name: String, val perParent: Long?)
 
 sealed interface StoryDateProblem {
 	data class UnknownUnit(val unit: String) : StoryDateProblem
+
+	/** [CalendarDef.coarsestUnit] is not a unit of the preset's chain. */
+	data class UnknownCoarsestUnit(val unit: String) : StoryDateProblem
+
+	/** [CalendarDef.coarsestUnit] is set on a preset that does not support it. */
+	data object CoarsestUnitNotSupported : StoryDateProblem
 
 	/** The filled rungs are not a contiguous run down the unit chain from an allowed top. */
 	data object NotAPrefix : StoryDateProblem
@@ -39,11 +45,11 @@ sealed interface StoryDateProblem {
  * Validation and arithmetic for [StoryDate]s. Positions are minutes from the epoch (STORY) or from
  * 1970-01-01 (GREGORIAN).
  *
- * A date must fill a contiguous run of the unit chain. The run starts at the top unit, or, when the
- * calendar has a [CalendarDef.coarsestUnit], at any unit down to it; omitted leading units take
- * their lowest value (STORY 0; GREGORIAN year 0, month 1, day 1). In STORY a date that omits the
- * leading units has an unbounded first rung, like year, so "hour 30" or "hour -2" are valid in a
- * story told in hours. GREGORIAN always applies its month and day ranges.
+ * A date must fill a contiguous run of the unit chain. The run starts at the top unit, or, when a
+ * STORY calendar has a [CalendarDef.coarsestUnit], at any unit down to it; omitted leading units
+ * count as 0. A date that omits the leading units has an unbounded first rung, like year, so
+ * "hour 30" or "hour -2" are valid in a story told in hours. GREGORIAN dates always start at the
+ * year.
  */
 object StoryCalendar {
 	const val YEAR = "year"
@@ -71,11 +77,29 @@ object StoryCalendar {
 		CalendarUnit(MINUTE, 60),
 	)
 
+	private val storyIndex = storyUnits.withIndex().associate { (i, unit) -> unit.name to i }
+	private val gregorianIndex = gregorianUnits.withIndex().associate { (i, unit) -> unit.name to i }
+
 	private const val MINUTES_PER_DAY = 24L * 60L
 
 	fun units(preset: CalendarPreset): List<CalendarUnit> = when (preset) {
 		CalendarPreset.STORY -> storyUnits
 		CalendarPreset.GREGORIAN -> gregorianUnits
+	}
+
+	private fun unitIndex(preset: CalendarPreset): Map<String, Int> = when (preset) {
+		CalendarPreset.STORY -> storyIndex
+		CalendarPreset.GREGORIAN -> gregorianIndex
+	}
+
+	/** Problems with [calendar] itself, independent of any date. */
+	fun validate(calendar: CalendarDef): StoryDateProblem? {
+		val coarsest = calendar.coarsestUnit ?: return null
+		return when {
+			calendar.preset == CalendarPreset.GREGORIAN -> StoryDateProblem.CoarsestUnitNotSupported
+			coarsest !in unitIndex(calendar.preset) -> StoryDateProblem.UnknownCoarsestUnit(coarsest)
+			else -> null
+		}
 	}
 
 	fun validate(preset: CalendarPreset, date: StoryDate): StoryDateProblem? =
@@ -147,18 +171,19 @@ object StoryCalendar {
 	private fun invalid(problem: StoryDateProblem) = Resolution(null, problem)
 
 	private fun resolve(calendar: CalendarDef, date: StoryDate): Resolution {
-		val chain = units(calendar.preset)
-		val indexOf = chain.withIndex().associate { (i, unit) -> unit.name to i }
+		validate(calendar)?.let { return invalid(it) }
 
-		date.rungs.keys.sorted().forEach { key ->
-			if (key !in indexOf) return invalid(StoryDateProblem.UnknownUnit(key))
-		}
+		val chain = units(calendar.preset)
+		val indexOf = unitIndex(calendar.preset)
+
+		date.rungs.keys.filter { it !in indexOf }.minOrNull()?.let { return invalid(StoryDateProblem.UnknownUnit(it)) }
 
 		val indices = date.rungs.keys.map { indexOf.getValue(it) }.sorted()
 		val first = indices.first()
 		val finest = indices.last()
-		val coarsestAllowed = calendar.coarsestUnit?.let { indexOf[it] } ?: 0
-		if (first > coarsestAllowed || indices != (first..finest).toList()) {
+		val coarsestAllowed = calendar.coarsestUnit?.let { indexOf.getValue(it) } ?: 0
+		// Indices are distinct, so a sorted run with no gaps has exactly this many entries.
+		if (first > coarsestAllowed || indices.size != finest - first + 1) {
 			return invalid(StoryDateProblem.NotAPrefix)
 		}
 
