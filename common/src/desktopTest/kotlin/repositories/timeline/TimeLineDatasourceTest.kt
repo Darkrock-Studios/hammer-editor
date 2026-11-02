@@ -3,6 +3,7 @@ package repositories.timeline
 import com.darkrockstudios.apps.hammer.base.http.readToml
 import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
+import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineContainer
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineDatasource
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
@@ -13,6 +14,7 @@ import kotlinx.coroutines.test.runTest
 import net.peanuuutz.tomlkt.Toml
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.Assertions.assertTrue
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -136,6 +138,82 @@ class TimeLineDatasourceTest : BaseTest() {
 	}
 
 	@Test
+	fun `Plain events store only the fields they set`() = runTest(mainTestDispatcher) {
+		val projDef = getProject1Def()
+		val events = listOf(
+			TimeLineEvent(id = 0, order = 0, content = "Event 0", tags = setOf("opening")),
+			TimeLineEvent(id = 1, order = 1, content = "Event 1"),
+		)
+
+		datasource.storeTimeline(TimeLineContainer(events), projDef)
+
+		val text = readTimelineText(projDef)
+		assertFalse(text.contains("null"))
+		assertEquals(
+			listOf(setOf("id", "order", "content", "tags"), setOf("id", "order", "content")),
+			eventKeys(text),
+		)
+		assertEquals(events, datasource.loadTimeline(projDef).events)
+	}
+
+	@Test
+	fun `Fully populated event round trips`() = runTest(mainTestDispatcher) {
+		val projDef = getProject1Def()
+		val event = TimeLineEvent(
+			id = 9,
+			order = 3,
+			kind = TimelineKind.SCENE,
+			subject = 31,
+			title = "Landfall",
+			label = "Dawn",
+			content = "They reach the shore.",
+			tags = setOf("sea"),
+			references = setOf(12),
+			lane = "Alice",
+			milestone = true,
+			start = StoryDate(mapOf("year" to 97L, "day" to 214L)),
+			end = StoryDate(mapOf("year" to 97L, "day" to 215L)),
+			cachedTitle = "Landfall",
+		)
+
+		datasource.storeTimeline(TimeLineContainer(listOf(event)), projDef)
+
+		assertEquals(listOf(event), datasource.loadTimeline(projDef).events)
+	}
+
+	@Test
+	fun `Timeline with explicit nulls still loads`() = runTest(mainTestDispatcher) {
+		val projDef = getProject1Def()
+		val file = TimeLineDatasource.getTimelineFilePath(projDef).toOkioPath()
+		ffs.createDirectories(file.parent!!)
+		ffs.write(file) {
+			writeUtf8(
+				"""
+				[[events]]
+				id = 0
+				order = 0
+				kind = "event"
+				subject = null
+				title = null
+				label = null
+				content = "Event 0"
+				tags = [ ]
+				references = [ ]
+				lane = null
+				milestone = false
+				start = null
+				end = null
+				cachedTitle = null
+				""".trimIndent()
+			)
+		}
+
+		val timeline = datasource.loadTimeline(projDef)
+
+		assertEquals(listOf(TimeLineEvent(id = 0, order = 0, content = "Event 0")), timeline.events)
+	}
+
+	@Test
 	fun `Legacy timeline with date keys still loads`() = runTest(mainTestDispatcher) {
 		val projDef = getProject1Def()
 		val file = TimeLineDatasource.getTimelineFilePath(projDef).toOkioPath()
@@ -158,5 +236,17 @@ class TimeLineDatasourceTest : BaseTest() {
 		assertEquals(0, event.id)
 		assertEquals("Event 0", event.content)
 		assertNull(event.label)
+	}
+
+	private fun readTimelineText(projDef: ProjectDef): String =
+		ffs.read(TimeLineDatasource.getTimelineFilePath(projDef).toOkioPath()) { readUtf8() }
+
+	private fun eventKeys(text: String): List<Set<String>> =
+		text.split("[[events]]").drop(1).map { block ->
+			block.lines().mapNotNull { KEY_LINE.find(it)?.groupValues?.get(1) }.toSet()
+		}
+
+	private companion object {
+		val KEY_LINE = Regex("""^\s*(\w+)\s*=""")
 	}
 }

@@ -74,6 +74,16 @@ class Migration5_6Test : BaseTest() {
 	}
 
 	@Test
+	fun `Migrated file has no explicit nulls`() {
+		val projDef = getProjectDef(MIGRATION_5_6)
+		createProject(ffs, MIGRATION_5_6)
+
+		migrate(projDef)
+
+		assertFalse(ffs.read(timelinePath(projDef)) { readUtf8() }.contains("= null"))
+	}
+
+	@Test
 	fun `Every event keeps its hash`() {
 		val projDef = getProjectDef(MIGRATION_5_6)
 		createProject(ffs, MIGRATION_5_6)

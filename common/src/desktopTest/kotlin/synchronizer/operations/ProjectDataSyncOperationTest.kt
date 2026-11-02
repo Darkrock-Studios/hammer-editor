@@ -28,6 +28,10 @@ import io.mockk.MockKAnnotations
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.impl.annotations.MockK
+import io.mockk.spyk
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import net.peanuuutz.tomlkt.Toml
@@ -230,15 +234,27 @@ class ProjectDataSyncOperationTest : BaseTest() {
 		coEvery { api.getProjectData(any(), any()) } returns
 			Result.success(ProjectDataDto(server, "server-hash"))
 		val edited = main.copy(laneOrder = listOf("Alice"))
+		val snapshotTaken = CompletableDeferred<Unit>()
+		val releaseSnapshot = CompletableDeferred<Unit>()
+		val gatedDatasource = spyk(datasource)
+		coEvery { gatedDatasource.load() } coAnswers {
+			val loaded = datasource.load()
+			snapshotTaken.complete(Unit)
+			releaseSnapshot.await()
+			loaded
+		}
+		repository = ProjectDataRepository(gatedDatasource, projectDef)
 
-		// Queued now, it first runs while the phase reads settings.toml: after the snapshot is
-		// taken and before the server copy is installed. A replacing transform, so an edit that
-		// landed after the install instead would drop the server's new timeline.
-		val editor = launch {
+		val sync = async { createOperation().run() }
+		snapshotTaken.await()
+		// Queues on the repository lock the snapshot read still holds; the lock is FIFO, so the
+		// edit lands before the install. A replacing transform, so an edit after the install
+		// would drop the server's new timeline.
+		val editor = launch(start = CoroutineStart.UNDISPATCHED) {
 			repository.updateData { it.copy(timelines = listOf(edited)) }
 		}
-
-		val result = createOperation().run()
+		releaseSnapshot.complete(Unit)
+		val result = sync.await()
 		editor.join()
 
 		assertTrue(isSuccess(result))

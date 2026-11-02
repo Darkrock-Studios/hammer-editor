@@ -53,10 +53,13 @@ class TimeLineDatasource(
 			return (getTimelineDir(projectDef).toOkioPath() / TIMELINE_FILENAME).toHPath()
 		}
 
+		/** Leaves null fields out of the file; decoding with any [Toml] still accepts them. */
+		private fun timelineToml(toml: Toml): Toml = Toml(from = toml) { explicitNulls = false }
+
 		/** The caller makes sure the parent directory exists. */
 		fun storeTimeline(hpath: HPath, fileSystem: FileSystem, toml: Toml, container: TimeLineContainer) {
 			fileSystem.write(hpath.toOkioPath()) {
-				writeUtf8(toml.encodeToString(container))
+				writeUtf8(timelineToml(toml).encodeToString(container))
 			}
 		}
 

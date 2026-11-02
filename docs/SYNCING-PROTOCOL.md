@@ -800,6 +800,9 @@ dictionary) is merged by union on both paths. When a `409` differs from the loca
 field, the client merges and re-uploads without involving the user; when other fields also differ, the
 resolver appears for those and the dictionary is still unioned. A word deleted on one device is therefore
 resurrected if the other device conflicts before the deletion syncs; that is accepted for a word list.
+`timelines` gets no such exemption: any difference in the list counts as a conflict, and the per-field
+choice then picks whole definitions by id. Merging fields inside one definition is deferred to
+multiple-timeline support.
 
 Sync writes never clobber a concurrent local edit: the client snapshots the blob when the phase
 starts, and when it installs the server-agreed state it re-applies any field the user changed since
