@@ -93,7 +93,9 @@ internal fun contentOperations(): List<Operation<*, *>> = listOf(
 	) { input ->
 		projects.withProject(input.project) { project ->
 			val timeline = project.timelineService()
-			Timeline(timeline.view().events.map { TimelineEntry(it, timeline.displayTitle(it)) })
+			val events = timeline.view().events
+			val titles = timeline.displayTitles(events)
+			Timeline(events.map { TimelineEntry(it, titles.getValue(it.id)) })
 		}
 	},
 	operation<ProjectItemInput, TimelineEntry>(

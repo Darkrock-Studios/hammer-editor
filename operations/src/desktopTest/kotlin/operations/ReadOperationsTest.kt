@@ -35,6 +35,7 @@ import com.darkrockstudios.apps.hammer.operations.core.DraftText
 import com.darkrockstudios.apps.hammer.operations.core.Drafts
 import com.darkrockstudios.apps.hammer.operations.core.Entries
 import com.darkrockstudios.apps.hammer.operations.core.Entry
+import com.darkrockstudios.apps.hammer.operations.core.EntryCreateInput
 import com.darkrockstudios.apps.hammer.operations.core.EntryImageSummary
 import com.darkrockstudios.apps.hammer.operations.core.EntryImages
 import com.darkrockstudios.apps.hammer.operations.core.EntryKind
@@ -382,14 +383,20 @@ class ReadOperationsTest : KoinOperationsTest() {
 			"timeline.place",
 			TimelinePlaceInput(PROJECT, TimelineKindDto.Scene, ids.storm.id, start = start, lane = "Alice"),
 		)
+		val siege = run<EntryCreateInput, Entry>("entry.create", EntryCreateInput(PROJECT, "The Siege", EntryKind.Event, ""))
+		run<TimelinePlaceInput, TimelineEntry>("timeline.place", TimelinePlaceInput(PROJECT, TimelineKindDto.Entry, siege.id))
 
 		val events = run<ProjectInput, Timeline>("timeline.list", ProjectInput(PROJECT)).events
 
+		assertEquals(
+			listOf("The storm makes landfall", "Alice arrives", "Landfall", "The Siege"),
+			events.map { it.displayTitle },
+		)
 		val storm = events.first()
 		assertEquals(TimelineKindDto.Event to "The storm makes landfall", storm.kind to storm.displayTitle)
 		assertEquals("Day 2", storm.label)
 		assertEquals(storm.label, storm.date)
-		val placed = events.last()
+		val placed = events[2]
 		assertEquals(TimelineKindDto.Scene, placed.kind)
 		assertEquals(ids.storm.id, placed.subject)
 		assertEquals("Landfall", placed.displayTitle)

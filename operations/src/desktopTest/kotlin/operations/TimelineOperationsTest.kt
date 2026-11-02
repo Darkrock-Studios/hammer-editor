@@ -107,6 +107,30 @@ class TimelineOperationsTest : KoinOperationsTest() {
 	}
 
 	@Test
+	fun `a placement's label is set and cleared, but not its title`() {
+		val placed = onTestThread { place(TimelineKindDto.Scene, scene("Landfall").id) }
+
+		val labeled = onTestThread {
+			run<TimelineSetInput, TimelineEntry>("timeline.set", TimelineSetInput(PROJECT, placed.id, label = "Late autumn"))
+		}
+		assertEquals("Late autumn", labeled.label)
+		assertEquals("Landfall", labeled.displayTitle)
+
+		val cleared = onTestThread {
+			run<TimelineSetInput, TimelineEntry>("timeline.set", TimelineSetInput(PROJECT, placed.id, clear = listOf("label")))
+		}
+		assertNull(cleared.label)
+
+		val updated = onTestThread {
+			run<TimelineUpdateInput, TimelineEntry>("timeline.update", TimelineUpdateInput(PROJECT, placed.id, "", label = "Dusk"))
+		}
+		assertEquals("Dusk", updated.label)
+
+		invalid { run<TimelineSetInput, TimelineEntry>("timeline.set", TimelineSetInput(PROJECT, placed.id, clear = listOf("title"))) }
+		invalid { run<TimelineUpdateInput, TimelineEntry>("timeline.update", TimelineUpdateInput(PROJECT, placed.id, "", title = "Mine")) }
+	}
+
+	@Test
 	fun `timeline set changes single fields and clears a lane`() = onTestThread {
 		val event = run<TimelineCreateInput, TimelineEntry>(
 			"timeline.create",

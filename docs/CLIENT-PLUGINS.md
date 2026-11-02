@@ -272,19 +272,20 @@ lands in place.
 | `timeline.list` | Read | Events in display order, each with `kind`, `subject`, `displayTitle`, `title`, `label`, `lane`, `milestone`, `start`, `end`, `references`, `cachedTitle`. `date` is a deprecated alias of `label` |
 | `timeline.read` | Read | One event, as `timeline.list` shows it |
 | `timeline.create` | Write | A plain event: text, plus optional title, label, tags, references, lane, milestone, start, end, and `index` (manual timelines only) |
-| `timeline.update` | Write | Replaces the text; other fields change only when given, and an empty value clears one. A placement takes empty text and only lane, milestone, start, end |
+| `timeline.update` | Write | For plain events: the text (stdin) is always required and replaced; other fields change only when given, and an empty value clears one. Edit a placement with `timeline.set` |
 | `timeline.move` | Write | Manual timelines only |
 | `timeline.delete` | Destructive | Deleting a placement leaves its entry or scene alone |
 | `timeline.place` | Write | Places an encyclopedia entry of type event, or a scene, once each |
-| `timeline.set` | Write | Sets single fields of any event; `clear` names fields to empty: title, label, lane, start, end |
+| `timeline.set` | Write | Sets single fields of any event, and is how a placement is edited; `clear` names fields to empty: title, label, lane, start, end. A placement takes only label, lane, milestone, start, end |
 | `timeline.settings.read` | Read | Name, mode (`manual` or `dated`), calendar, lane order |
 | `timeline.settings.write` | Write | Mode, calendar, name, lane order; `spacing` when switching to dated |
 
 A timeline event has a `kind`: `event` (authored, with its own words), `entry`
 (an encyclopedia entry of type event, placed), or `scene` (a scene, placed). A
 placement takes its name and words from its subject; `displayTitle` resolves
-that for every kind. Dates (`start`, `end`) are maps of calendar units to
-whole numbers, coarsest first, such as `{"year": 97, "day": 210}`; see
+that for every kind. Every kind has its own `label`, `lane`, `milestone`, and
+dates. Dates (`start`, `end`) are maps of calendar units to whole numbers,
+coarsest first, such as `{"year": 97, "day": 210}`; see
 `timeline.settings.read` for the calendar.
 
 A `manual` timeline is ordered by hand: `index` and `timeline.move` place

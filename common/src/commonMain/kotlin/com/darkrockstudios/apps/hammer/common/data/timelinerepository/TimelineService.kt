@@ -201,10 +201,24 @@ class TimelineService(
 		editPlacement(eventId) { it.copy(start = start, end = end, lane = lane, milestone = milestone) }
 	}
 
+	/** [updatePlacement] that also sets the label; null clears it. */
+	suspend fun updatePlacement(
+		eventId: Int,
+		start: StoryDate?,
+		end: StoryDate?,
+		lane: String?,
+		milestone: Boolean,
+		label: String?,
+	): TimelineResult = writeLock.withLock {
+		editPlacement(eventId) {
+			it.copy(start = start, end = end, lane = lane, milestone = milestone, label = label)
+		}
+	}
+
 	/**
 	 * Replaces a plain event, fully validated. The kind and subject cannot change; for a placement only
-	 * the placement fields are taken from [event]. References already on the event are kept even when
-	 * their target is gone, only new ones must exist.
+	 * the placement fields, label included, are taken from [event]. References already on the event are
+	 * kept even when their target is gone, only new ones must exist.
 	 */
 	suspend fun updateEvent(event: TimeLineEvent): TimelineResult = writeLock.withLock {
 		val existing = findEvent(event.id) ?: return invalid(TimeLineEventError.EVENT_NOT_FOUND)
@@ -213,7 +227,13 @@ class TimelineService(
 		}
 		if (existing.kind.isPlacement) {
 			return editPlacement(event.id) {
-				it.copy(start = event.start, end = event.end, lane = event.lane, milestone = event.milestone)
+				it.copy(
+					start = event.start,
+					end = event.end,
+					lane = event.lane,
+					milestone = event.milestone,
+					label = event.label,
+				)
 			}
 		}
 
@@ -239,6 +259,11 @@ class TimelineService(
 		editPlacement(eventId) { it.copy(milestone = milestone) }
 	}
 
+	/** The free-text "when" a manual timeline shows; any kind has one. */
+	suspend fun setLabel(eventId: Int, label: String?): TimelineResult = writeLock.withLock {
+		editPlacement(eventId) { it.copy(label = label) }
+	}
+
 	/** The caller holds [writeLock]. */
 	private suspend fun editPlacement(eventId: Int, edit: (TimeLineEvent) -> TimeLineEvent): TimelineResult {
 		val existing = findEvent(eventId) ?: return invalid(TimeLineEventError.EVENT_NOT_FOUND)
@@ -248,6 +273,7 @@ class TimelineService(
 			end = edited.end,
 			lane = normalizeLane(edited.lane),
 			milestone = edited.milestone,
+			label = edited.label,
 			cachedTitle = subjectName(existing)?.take(TimelineLimits.MAX_TITLE) ?: existing.cachedTitle,
 		)
 		val error = timeLineRepository.validate(updated).orElse { dateProblem(definition(), updated.start, updated.end) }
@@ -260,6 +286,10 @@ class TimelineService(
 	/** Drag reordering; only a MANUAL timeline has an order of its own. */
 	suspend fun moveEvent(event: TimeLineEvent, toIndex: Int, after: Boolean): TimelineResult = writeLock.withLock {
 		if (definition().mode == TimelineMode.DATED) return invalid(TimeLineEventError.MOVE_NOT_ALLOWED)
+		val events = timeLineRepository.currentEvents()
+		if (events.none { it.id == event.id }) return invalid(TimeLineEventError.EVENT_NOT_FOUND)
+		if (toIndex !in events.indices) return invalid(TimeLineEventError.MOVE_FAILED)
+		// With the event present and the index in range, the repository refuses only a move to where it already is.
 		timeLineRepository.moveEvent(event, toIndex, after)
 		TimelineResult.Ok(findEvent(event.id))
 	}

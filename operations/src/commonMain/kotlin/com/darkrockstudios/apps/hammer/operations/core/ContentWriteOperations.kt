@@ -207,8 +207,8 @@ internal fun contentWriteOperations(): List<Operation<*, *>> = listOf(
 	},
 	operation<TimelineUpdateInput, TimelineEntry>(
 		name = "timeline.update",
-		description = "Replace a timeline event's text, and any other field given; an empty value clears it. " +
-			"A placement takes only lane, milestone, start, and end, and empty text.",
+		description = "Replace a plain event's text, and any other field given; an empty value clears it. " +
+			"The text is always required, so every call replaces it. Edit a placement with timeline.set.",
 		access = Access.Write,
 		scope = OperationScope.Content,
 	) { input ->
@@ -216,20 +216,20 @@ internal fun contentWriteOperations(): List<Operation<*, *>> = listOf(
 			val event = project.requireEvent(input.id)
 			val label = input.label ?: input.date
 			val updated = if (event.kind.isPlacement) {
-				if (input.content.isNotBlank() || !input.tags.isNullOrEmpty() || !input.references.isNullOrEmpty()) {
+				val words = input.content.isNotBlank() || !input.title.isNullOrEmpty()
+				if (words || !input.tags.isNullOrEmpty() || !input.references.isNullOrEmpty()) {
 					invalidInput(PLACEMENT_FIELDS)
 				}
-				if (!input.title.isNullOrEmpty() || !label.isNullOrEmpty()) invalidInput(PLACEMENT_FIELDS)
 				event
 			} else {
 				event.copy(
 					content = input.content,
 					title = input.title.orKeep(event.title),
-					label = label.orKeep(event.label),
 					tags = input.tags?.toSet() ?: event.tags,
 					references = input.references?.toSet() ?: event.references,
 				)
 			}.copy(
+				label = label.orKeep(event.label),
 				lane = input.lane.orKeep(event.lane),
 				milestone = input.milestone ?: event.milestone,
 				start = input.start.orKeep(event.start),
@@ -322,7 +322,7 @@ private suspend fun OpenProject.moveEvent(id: Int, index: Int) {
 internal const val DATED_ORDER = "The timeline is dated; order follows dates"
 
 internal const val PLACEMENT_FIELDS =
-	"A placement takes only lane, milestone, start, and end; its words come from its entry or scene"
+	"A placement takes only label, lane, milestone, start, and end; its title and text come from its entry or scene"
 
 internal fun TimeLineEventError.requireNone() {
 	when (this) {
@@ -337,12 +337,15 @@ internal fun TimeLineEventError.requireNone() {
 		TimeLineEventError.SUBJECT_NOT_FOUND -> notFound("No such scene or entry to place")
 		TimeLineEventError.REFERENCE_NOT_FOUND -> invalidInput("A reference names no scene or entry in the project")
 		TimeLineEventError.REFERENCES_NOT_ALLOWED -> invalidInput("A placement cannot have references")
+		TimeLineEventError.CONTENT_NOT_ALLOWED,
+		TimeLineEventError.TAGS_NOT_ALLOWED -> invalidInput(PLACEMENT_FIELDS)
 		TimeLineEventError.SELF_REFERENCE -> invalidInput("An event cannot reference itself")
 		TimeLineEventError.DUPLICATE_PLACEMENT -> invalidInput("That entry or scene is already placed on the timeline")
 		TimeLineEventError.DATE_INVALID -> invalidInput("A date or calendar does not fit; see timeline.settings.read for the calendar")
 		TimeLineEventError.DATE_REQUIRED -> invalidInput("A start is required on a dated timeline, and whenever an end is given")
 		TimeLineEventError.END_BEFORE_START -> invalidInput("The end is before the start")
 		TimeLineEventError.MOVE_NOT_ALLOWED -> invalidInput(DATED_ORDER)
+		TimeLineEventError.MOVE_FAILED -> invalidInput("The event cannot move to that position")
 		TimeLineEventError.EVENT_NOT_FOUND -> notFound("No such timeline event")
 	}
 }
@@ -452,7 +455,7 @@ data class TimelineCreateInput(
 data class TimelineUpdateInput(
 	val project: String,
 	val id: Int,
-	/** The plain event's markdown; must be empty for a placement. */
+	/** The plain event's markdown; must be empty for a placement, which is edited with timeline.set. */
 	@FromStdin val content: String,
 	/** Deprecated alias of label; label wins when both are given. */
 	val date: String? = null,

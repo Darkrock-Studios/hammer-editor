@@ -296,6 +296,39 @@ class TimelineServiceTest : BaseTest() {
 	}
 
 	@Test
+	fun `a placement's label is set, kept, and cleared`() = runTest(mainTestDispatcher) {
+		val service = createService()
+		val placed = service.placeScene(4, start = null, end = null, lane = null, milestone = false).event()
+
+		service.updatePlacement(placed.id, start = null, end = null, lane = "Alice", milestone = false, label = "Dusk").event()
+		assertEquals("Alice" to "Dusk", stored(placed.id).lane to stored(placed.id).label)
+
+		service.updatePlacement(placed.id, start = null, end = null, lane = "Queen", milestone = true).event()
+		assertEquals("Dusk", stored(placed.id).label)
+
+		service.updateEvent(stored(placed.id).copy(label = "Dawn", title = "Ignored")).event()
+		assertEquals("Dawn", stored(placed.id).label)
+		assertNull(stored(placed.id).title)
+
+		service.setLabel(placed.id, null).event()
+		assertNull(stored(placed.id).label)
+	}
+
+	@Test
+	fun `moving an unknown event or to a position past the end is invalid`() = runTest(mainTestDispatcher) {
+		val service = createService()
+		val first = service.createEvent(TimelineEventDraft(title = "First")).event()
+		service.createEvent(TimelineEventDraft(title = "Second")).event()
+
+		assertEquals(
+			TimeLineEventError.EVENT_NOT_FOUND,
+			service.moveEvent(first.copy(id = 999), toIndex = 0, after = false).error(),
+		)
+		assertEquals(TimeLineEventError.MOVE_FAILED, service.moveEvent(first, toIndex = 2, after = false).error())
+		assertEquals(first.id, service.moveEvent(first, toIndex = 0, after = false).event().id)
+	}
+
+	@Test
 	fun `switchToDated spaces undated events evenly and derives the order from the dates`() =
 		runTest(mainTestDispatcher) {
 			val service = createService()

@@ -51,7 +51,7 @@ internal fun timelineOperations(): List<Operation<*, *>> = listOf(
 	operation<TimelineSetInput, TimelineEntry>(
 		name = "timeline.set",
 		description = "Set single fields of any timeline event, or clear them by name, leaving the rest alone. " +
-			"A placement takes only lane, milestone, start, and end.",
+			"A placement takes only label, lane, milestone, start, and end. This is how a placement is edited.",
 		access = Access.Write,
 		scope = OperationScope.Content,
 	) { input ->
@@ -71,8 +71,7 @@ internal fun timelineOperations(): List<Operation<*, *>> = listOf(
 
 		projects.withProject(input.project) { project ->
 			val event = project.requireEvent(input.id)
-			val words = setOf("title", "label")
-			if (event.kind.isPlacement && (given + clear).any { it in words }) invalidInput(PLACEMENT_FIELDS)
+			if (event.kind.isPlacement && "title" in given + clear) invalidInput(PLACEMENT_FIELDS)
 
 			val updated = event.copy(
 				title = if ("title" in clear) null else input.title.orKeep(event.title),
@@ -226,7 +225,7 @@ data class TimelineSetInput(
 	val id: Int,
 	/** A plain event's own title. */
 	val title: String? = null,
-	/** A plain event's free-text "when", shown on a manual timeline. */
+	/** The free-text "when", shown on a manual timeline. */
 	val label: String? = null,
 	/** The lane it runs in. */
 	val lane: String? = null,
