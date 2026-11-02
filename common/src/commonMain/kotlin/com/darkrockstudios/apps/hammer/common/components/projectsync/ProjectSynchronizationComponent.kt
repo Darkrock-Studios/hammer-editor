@@ -8,7 +8,12 @@ import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.base.image.ImageFormat
+import com.darkrockstudios.apps.hammer.base.timeline.StoryCalendar
+import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineDateField
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineEntityRules
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
@@ -21,6 +26,7 @@ import com.darkrockstudios.apps.hammer.common.data.notesrepository.NoteError
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataConflictBroker
+import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEventError
@@ -54,6 +60,7 @@ class ProjectSynchronizationComponent(
 	private val imagesRepository: ImagesRepository by projectInject()
 	private val projectSynchronizer: ClientProjectSynchronizer by projectInject()
 	private val projectDataConflictBroker: ProjectDataConflictBroker by projectInject()
+	private val projectDataRepository: ProjectDataRepository by projectInject()
 
 	private var syncJob: Job? = null
 	private var conflictListenerJob: Job? = null
@@ -312,6 +319,8 @@ class ProjectSynchronizationComponent(
 			?: error("Failed to get local timeline event")
 
 		val localEntity = local.toApiEntity()
+		// Loaded before the conflict is shown, so the non-suspend resolveConflict can read the calendar.
+		projectDataRepository.load()
 
 		withContext(mainDispatcher) {
 			_state.getAndUpdate {
@@ -476,14 +485,38 @@ class ProjectSynchronizationComponent(
 			TimeLineEventError.NONE -> null
 			TimeLineEventError.TAG_TOO_LONG -> Res.string.timeline_create_toast_tag_too_long.toMsg()
 		}
-		return if (ruleProblem != null || tagError != null) {
+		val dateProblem = timelineDateProblem(resolvedEntity.start, resolvedEntity.end)
+		return if (ruleProblem != null || tagError != null || dateProblem != null) {
 			ProjectSynchronization.EntityMergeError.TimelineEventMergeError(
 				tagError = tagError,
 				ruleProblem = ruleProblem,
+				dateProblem = dateProblem,
 			)
 		} else {
 			null
 		}
+	}
+
+	private fun timelineDateProblem(start: StoryDate?, end: StoryDate?): ProjectSynchronization.TimelineDateProblem? {
+		val timelines = projectDataRepository.state.value?.data?.timelines.orEmpty()
+		val main = timelines.firstOrNull { it.id == TimelineDef.MAIN_ID } ?: TimelineDef.DEFAULT
+		if (main.mode != TimelineMode.DATED) return null
+		val calendar = main.calendar ?: return null
+
+		start?.let { StoryCalendar.validate(calendar, it) }?.let {
+			return ProjectSynchronization.TimelineDateProblem.Invalid(TimelineDateField.START, it)
+		}
+		end?.let { StoryCalendar.validate(calendar, it) }?.let {
+			return ProjectSynchronization.TimelineDateProblem.Invalid(TimelineDateField.END, it)
+		}
+		if (start != null && end != null) {
+			val startPosition = StoryCalendar.position(calendar, start)
+			val endPosition = StoryCalendar.position(calendar, end)
+			if (startPosition != null && endPosition != null && endPosition < startPosition) {
+				return ProjectSynchronization.TimelineDateProblem.EndBeforeStart
+			}
+		}
+		return null
 	}
 
 	private fun validateScene(resolvedEntity: ApiProjectEntity.SceneEntity): ProjectSynchronization.EntityMergeError.SceneMergeError? {

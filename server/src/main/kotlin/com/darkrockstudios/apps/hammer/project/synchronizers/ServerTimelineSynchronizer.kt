@@ -13,5 +13,5 @@ class ServerTimelineSynchronizer(
 	override val pathStub = ApiProjectEntity.Type.TIMELINE_EVENT.name.lowercase()
 
 	override fun validate(entity: ApiProjectEntity.TimelineEventEntity): Exception? =
-		TimelineEntityRules.problem(entity)?.let { reason -> EntityValidationException(entity.id, reason) }
+		TimelineEntityRules.problem(entity)?.let { problem -> EntityValidationException(entity.id, problem.message) }
 }

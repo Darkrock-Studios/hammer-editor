@@ -135,7 +135,6 @@
 
 	<string name="sync_conflict_title_note_field_name">Note Content</string>
 
-	<string name="sync_conflict_title_timeline_event_field_date">Date</string>
 	<string name="sync_conflict_title_timeline_event_field_content">Event Content</string>
 	<string name="sync_conflict_title_timeline_event_field_label">Label</string>
 	<string name="sync_conflict_title_timeline_event_field_title">Title</string>
@@ -152,6 +151,28 @@
 	<string name="sync_conflict_timeline_event_milestone_on">Milestone</string>
 	<string name="sync_conflict_timeline_event_milestone_off">Not a milestone</string>
 	<string name="sync_conflict_timeline_event_empty">None</string>
+	<string name="sync_conflict_timeline_rule_subject_is_reference">The subject cannot also be a reference.</string>
+	<string name="sync_conflict_timeline_rule_self_reference">An event cannot reference itself.</string>
+	<string name="sync_conflict_timeline_rule_event_has_subject">An event cannot have a subject.</string>
+	<string name="sync_conflict_timeline_rule_placement_needs_subject">A placement needs a subject.</string>
+	<string name="sync_conflict_timeline_rule_placement_own_subject">A placement cannot be its own subject.</string>
+	<string name="sync_conflict_timeline_rule_placement_has_references">A placement cannot have references.</string>
+	<string name="sync_conflict_timeline_rule_placement_has_content">A placement cannot have content.</string>
+	<string name="sync_conflict_timeline_rule_placement_has_tags">A placement cannot have tags.</string>
+	<string name="sync_conflict_timeline_rule_lane_blank">The lane cannot be blank.</string>
+	<string name="sync_conflict_timeline_rule_lane_too_long">The lane is longer than %1$d characters.</string>
+	<string name="sync_conflict_timeline_rule_title_too_long">The title is longer than %1$d characters.</string>
+	<string name="sync_conflict_timeline_rule_cached_title_too_long">The scene title is longer than %1$d characters.</string>
+	<string name="sync_conflict_timeline_rule_label_too_long">The label is longer than %1$d characters.</string>
+	<string name="sync_conflict_timeline_rule_tag_too_long">A tag is longer than %1$d characters.</string>
+	<string name="sync_conflict_timeline_rule_too_many_rungs">%1$s has more than %2$d units.</string>
+	<string name="sync_conflict_timeline_rule_blank_unit">%1$s has a blank unit name.</string>
+	<string name="sync_conflict_timeline_rule_unit_too_long">%1$s has a unit name longer than %2$d characters.</string>
+	<string name="sync_conflict_timeline_date_unknown_unit">%1$s uses a unit this calendar does not have: %2$s</string>
+	<string name="sync_conflict_timeline_date_not_a_prefix">%1$s must fill its units in order from the largest, with no gaps.</string>
+	<string name="sync_conflict_timeline_date_out_of_range">%1$s has %2$s out of range: %3$s</string>
+	<string name="sync_conflict_timeline_date_bad_calendar">The timeline calendar is not valid.</string>
+	<string name="sync_conflict_timeline_date_end_before_start">End is before start.</string>
 
 	<string name="sync_conflict_title_image_field_name">Name</string>
 	<string name="sync_conflict_image_name_invalid">Image names cannot be blank, end with a dot or space, or contain ~</string>

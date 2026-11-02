@@ -3,6 +3,9 @@ package com.darkrockstudios.apps.hammer.common.components.projectsync
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
+import com.darkrockstudios.apps.hammer.base.timeline.StoryDateProblem
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineDateField
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineRuleProblem
 import com.darkrockstudios.apps.hammer.common.data.Msg
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageFile
@@ -91,6 +94,11 @@ interface ProjectSynchronization {
 		) : EntityConflict<ApiProjectEntity.ImageEntity>(serverImage, clientImage)
 	}
 
+	sealed interface TimelineDateProblem {
+		data class Invalid(val field: TimelineDateField, val problem: StoryDateProblem) : TimelineDateProblem
+		data object EndBeforeStart : TimelineDateProblem
+	}
+
 	sealed class EntityMergeError {
 		class SceneMergeError(
 			val nameError: Msg? = null,
@@ -102,8 +110,9 @@ interface ProjectSynchronization {
 
 		class TimelineEventMergeError(
 			val tagError: Msg? = null,
-			/** The broken shape rule, in plain English, from `TimelineEntityRules`. */
-			val ruleProblem: String? = null,
+			val ruleProblem: TimelineRuleProblem? = null,
+			/** Only checked against a DATED main timeline's calendar. */
+			val dateProblem: TimelineDateProblem? = null,
 		) : EntityMergeError()
 
 		class EncyclopediaEntryMergeError(

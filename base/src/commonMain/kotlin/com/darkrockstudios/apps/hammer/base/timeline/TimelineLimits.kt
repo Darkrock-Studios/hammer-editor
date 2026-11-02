@@ -11,61 +11,129 @@ object TimelineLimits {
 	const val MAX_UNIT_NAME = 32
 }
 
+enum class TimelineDateField {
+	START,
+	END,
+}
+
+/** A broken [TimelineEntityRules] rule. [message] is English, for logs and API error bodies. */
+sealed interface TimelineRuleProblem {
+	val message: String
+
+	data object SubjectIsReference : TimelineRuleProblem {
+		override val message = "the subject cannot also be a reference"
+	}
+
+	data object SelfReference : TimelineRuleProblem {
+		override val message = "an event cannot reference itself"
+	}
+
+	data object EventHasSubject : TimelineRuleProblem {
+		override val message = "an event cannot have a subject"
+	}
+
+	data class PlacementNeedsSubject(val kind: TimelineKind) : TimelineRuleProblem {
+		override val message get() = "a ${kind.name.lowercase()} placement needs a subject"
+	}
+
+	data object PlacementIsOwnSubject : TimelineRuleProblem {
+		override val message = "a placement cannot be its own subject"
+	}
+
+	data object PlacementHasReferences : TimelineRuleProblem {
+		override val message = "a placement cannot have references"
+	}
+
+	data object PlacementHasContent : TimelineRuleProblem {
+		override val message = "a placement cannot have content"
+	}
+
+	data object PlacementHasTags : TimelineRuleProblem {
+		override val message = "a placement cannot have tags"
+	}
+
+	data object LaneBlank : TimelineRuleProblem {
+		override val message = "lane is blank"
+	}
+
+	data object LaneTooLong : TimelineRuleProblem {
+		override val message = "lane is longer than ${TimelineLimits.MAX_LANE}"
+	}
+
+	data object TitleTooLong : TimelineRuleProblem {
+		override val message = "title is longer than ${TimelineLimits.MAX_TITLE}"
+	}
+
+	data object CachedTitleTooLong : TimelineRuleProblem {
+		override val message = "cachedTitle is longer than ${TimelineLimits.MAX_TITLE}"
+	}
+
+	data object LabelTooLong : TimelineRuleProblem {
+		override val message = "label is longer than ${TimelineLimits.MAX_LABEL}"
+	}
+
+	data object TagTooLong : TimelineRuleProblem {
+		override val message = "a tag is longer than ${TimelineLimits.MAX_TAG}"
+	}
+
+	data class TooManyRungs(val field: TimelineDateField) : TimelineRuleProblem {
+		override val message get() = "${field.name.lowercase()} has more than ${TimelineLimits.MAX_RUNGS} rungs"
+	}
+
+	data class BlankUnitName(val field: TimelineDateField) : TimelineRuleProblem {
+		override val message get() = "${field.name.lowercase()} has a blank unit name"
+	}
+
+	data class UnitNameTooLong(val field: TimelineDateField) : TimelineRuleProblem {
+		override val message get() =
+			"${field.name.lowercase()} has a unit name longer than ${TimelineLimits.MAX_UNIT_NAME}"
+	}
+}
+
 /**
  * Shape rules for a timeline entity that hold without looking at the rest of the project. Shared by
  * the server's upload validation and the client's conflict validation.
  */
 object TimelineEntityRules {
-	/** The first broken rule as a short English reason, or null when [entity] is well formed. */
-	fun problem(entity: ApiProjectEntity.TimelineEventEntity): String? {
+	/** The first broken rule, or null when [entity] is well formed. */
+	fun problem(entity: ApiProjectEntity.TimelineEventEntity): TimelineRuleProblem? {
 		val subject = entity.subject
-		if (subject != null && subject in entity.references) return "the subject cannot also be a reference"
-		if (entity.id in entity.references) return "an event cannot reference itself"
+		if (subject != null && subject in entity.references) return TimelineRuleProblem.SubjectIsReference
+		if (entity.id in entity.references) return TimelineRuleProblem.SelfReference
 
 		if (entity.kind == TimelineKind.EVENT) {
-			if (subject != null) return "an event cannot have a subject"
+			if (subject != null) return TimelineRuleProblem.EventHasSubject
 		} else {
-			val kindName = entity.kind.name.lowercase()
-			if (subject == null) return "a $kindName placement needs a subject"
-			if (subject == entity.id) return "a placement cannot be its own subject"
-			if (entity.references.isNotEmpty()) return "a placement cannot have references"
-			if (entity.content.isNotEmpty()) return "a placement cannot have content"
-			if (entity.tags.isNotEmpty()) return "a placement cannot have tags"
+			if (subject == null) return TimelineRuleProblem.PlacementNeedsSubject(entity.kind)
+			if (subject == entity.id) return TimelineRuleProblem.PlacementIsOwnSubject
+			if (entity.references.isNotEmpty()) return TimelineRuleProblem.PlacementHasReferences
+			if (entity.content.isNotEmpty()) return TimelineRuleProblem.PlacementHasContent
+			if (entity.tags.isNotEmpty()) return TimelineRuleProblem.PlacementHasTags
 		}
 
 		entity.lane?.let { lane ->
-			if (lane.isBlank()) return "lane is blank"
-			if (lane.length > TimelineLimits.MAX_LANE) return "lane is longer than ${TimelineLimits.MAX_LANE}"
+			if (lane.isBlank()) return TimelineRuleProblem.LaneBlank
+			if (lane.length > TimelineLimits.MAX_LANE) return TimelineRuleProblem.LaneTooLong
 		}
-		if ((entity.title?.length ?: 0) > TimelineLimits.MAX_TITLE) {
-			return "title is longer than ${TimelineLimits.MAX_TITLE}"
-		}
+		if ((entity.title?.length ?: 0) > TimelineLimits.MAX_TITLE) return TimelineRuleProblem.TitleTooLong
 		if ((entity.cachedTitle?.length ?: 0) > TimelineLimits.MAX_TITLE) {
-			return "cachedTitle is longer than ${TimelineLimits.MAX_TITLE}"
+			return TimelineRuleProblem.CachedTitleTooLong
 		}
-		if ((entity.label?.length ?: 0) > TimelineLimits.MAX_LABEL) {
-			return "label is longer than ${TimelineLimits.MAX_LABEL}"
-		}
-		if (entity.tags.any { it.length > TimelineLimits.MAX_TAG }) {
-			return "a tag is longer than ${TimelineLimits.MAX_TAG}"
-		}
+		if ((entity.label?.length ?: 0) > TimelineLimits.MAX_LABEL) return TimelineRuleProblem.LabelTooLong
+		if (entity.tags.any { it.length > TimelineLimits.MAX_TAG }) return TimelineRuleProblem.TagTooLong
 
-		dateProblem("start", entity.start)?.let { return it }
-		dateProblem("end", entity.end)?.let { return it }
+		dateProblem(TimelineDateField.START, entity.start)?.let { return it }
+		dateProblem(TimelineDateField.END, entity.end)?.let { return it }
 
 		return null
 	}
 
-	private fun dateProblem(field: String, date: StoryDate?): String? {
+	private fun dateProblem(field: TimelineDateField, date: StoryDate?): TimelineRuleProblem? {
 		if (date == null) return null
-		if (date.rungs.size > TimelineLimits.MAX_RUNGS) {
-			return "$field has more than ${TimelineLimits.MAX_RUNGS} rungs"
-		}
+		if (date.rungs.size > TimelineLimits.MAX_RUNGS) return TimelineRuleProblem.TooManyRungs(field)
 		date.rungs.keys.forEach { unit ->
-			if (unit.isBlank()) return "$field has a blank unit name"
-			if (unit.length > TimelineLimits.MAX_UNIT_NAME) {
-				return "$field has a unit name longer than ${TimelineLimits.MAX_UNIT_NAME}"
-			}
+			if (unit.isBlank()) return TimelineRuleProblem.BlankUnitName(field)
+			if (unit.length > TimelineLimits.MAX_UNIT_NAME) return TimelineRuleProblem.UnitNameTooLong(field)
 		}
 		return null
 	}

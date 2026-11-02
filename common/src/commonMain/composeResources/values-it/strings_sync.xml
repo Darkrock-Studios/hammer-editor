@@ -93,7 +93,6 @@
 	<string name="sync_conflict_title_scene_draft_field_name">Nome</string>
 	<string name="sync_conflict_title_scene_draft_field_content">Contenuto della scena</string>
 	<string name="sync_conflict_title_note_field_name">Contenuto della nota</string>
-	<string name="sync_conflict_title_timeline_event_field_date">Data</string>
 	<string name="sync_conflict_title_timeline_event_field_content">Contenuto dell’evento</string>
 	<string name="sync_menu_group">Sincronizzazione</string>
 	<string name="sync_menu_item">Avvia sincronizzazione</string>

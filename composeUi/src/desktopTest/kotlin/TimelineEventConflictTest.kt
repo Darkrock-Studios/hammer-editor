@@ -8,7 +8,10 @@ import com.arkivanov.decompose.value.MutableValue
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
+import com.darkrockstudios.apps.hammer.base.timeline.StoryDateProblem
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineDateField
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineRuleProblem
 import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSynchronization
 import com.darkrockstudios.apps.hammer.common.compose.WindowSizeClass
 import com.darkrockstudios.apps.hammer.common.preview.KoinApplicationPreview
@@ -140,7 +143,7 @@ class TimelineEventConflictTest : BaseTest() {
 	fun `A rule problem from the component is shown`() {
 		val component = RecordingSync(
 			error = ProjectSynchronization.EntityMergeError.TimelineEventMergeError(
-				ruleProblem = "a placement cannot have content",
+				ruleProblem = TimelineRuleProblem.PlacementHasContent,
 			)
 		)
 		showConflict(server = placement.copy(lane = "Wonderland"), client = placement, component = component)
@@ -148,7 +151,25 @@ class TimelineEventConflictTest : BaseTest() {
 		compose.onNodeWithText("LOCAL").performClick()
 		compose.onNodeWithText("USE").performClick()
 
-		compose.onNodeWithText("a placement cannot have content", ignoreCase = true).assertExists()
+		compose.onNodeWithText("A placement cannot have content.", ignoreCase = true).assertExists()
+	}
+
+	@Test
+	fun `A date problem from the component is shown`() {
+		val component = RecordingSync(
+			error = ProjectSynchronization.EntityMergeError.TimelineEventMergeError(
+				dateProblem = ProjectSynchronization.TimelineDateProblem.Invalid(
+					TimelineDateField.START,
+					StoryDateProblem.OutOfRange("day", 400),
+				),
+			)
+		)
+		showConflict(server = event.copy(lane = "Wonderland"), client = event, component = component)
+
+		compose.onNodeWithText("LOCAL").performClick()
+		compose.onNodeWithText("USE").performClick()
+
+		compose.onNodeWithText("Start has day out of range: 400", ignoreCase = true).assertExists()
 	}
 
 	private fun showConflict(

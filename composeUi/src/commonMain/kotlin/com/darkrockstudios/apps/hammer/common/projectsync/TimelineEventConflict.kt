@@ -24,6 +24,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
+import com.darkrockstudios.apps.hammer.base.timeline.StoryDateProblem
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineDateField
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineLimits
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineRuleProblem
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSynchronization
 import com.darkrockstudios.apps.hammer.common.compose.Ui
@@ -48,6 +52,28 @@ import com.darkrockstudios.apps.hammer.sync_conflict_timeline_event_invalid_date
 import com.darkrockstudios.apps.hammer.sync_conflict_timeline_event_milestone_off
 import com.darkrockstudios.apps.hammer.sync_conflict_timeline_event_milestone_on
 import com.darkrockstudios.apps.hammer.sync_conflict_timeline_event_milestone_toggle
+import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_subject_is_reference
+import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_self_reference
+import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_event_has_subject
+import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_placement_needs_subject
+import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_placement_own_subject
+import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_placement_has_references
+import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_placement_has_content
+import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_placement_has_tags
+import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_lane_blank
+import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_lane_too_long
+import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_title_too_long
+import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_cached_title_too_long
+import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_label_too_long
+import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_tag_too_long
+import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_too_many_rungs
+import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_blank_unit
+import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_unit_too_long
+import com.darkrockstudios.apps.hammer.sync_conflict_timeline_date_unknown_unit
+import com.darkrockstudios.apps.hammer.sync_conflict_timeline_date_not_a_prefix
+import com.darkrockstudios.apps.hammer.sync_conflict_timeline_date_out_of_range
+import com.darkrockstudios.apps.hammer.sync_conflict_timeline_date_bad_calendar
+import com.darkrockstudios.apps.hammer.sync_conflict_timeline_date_end_before_start
 import com.darkrockstudios.apps.hammer.sync_conflict_timeline_event_missing_date
 import com.darkrockstudios.apps.hammer.sync_conflict_timeline_event_placement_no_text
 import com.darkrockstudios.apps.hammer.sync_conflict_title_timeline_event_field_content
@@ -153,7 +179,8 @@ internal fun TimelineEventConflict(
 	var startUnreadable by rememberSaveable(client) { mutableStateOf(false) }
 	var endUnreadable by rememberSaveable(client) { mutableStateOf(false) }
 	var tagError by rememberSaveable(client) { mutableStateOf<String?>(null) }
-	var ruleProblem by rememberSaveable(client) { mutableStateOf<String?>(null) }
+	var ruleProblem by remember(client) { mutableStateOf<TimelineRuleProblem?>(null) }
+	var dateProblem by remember(client) { mutableStateOf<ProjectSynchronization.TimelineDateProblem?>(null) }
 
 	val contentDiff = rememberContentDiff(entityConflict.serverEntity.content, content)
 
@@ -171,6 +198,7 @@ internal fun TimelineEventConflict(
 				val error = component.resolveConflict(local.entity)
 				if (error is ProjectSynchronization.EntityMergeError.TimelineEventMergeError) {
 					ruleProblem = error.ruleProblem
+					dateProblem = error.dateProblem
 					scope.launch { tagError = error.tagError?.text(strRes) }
 				}
 			}
@@ -190,7 +218,8 @@ internal fun TimelineEventConflict(
 			val dateHint = Res.string.sync_conflict_timeline_event_date_hint.get()
 			TimelineEventPane(m) {
 				TimelineEventHeader(client)
-				ruleProblem?.let { HdMonoLabel(text = it, color = MaterialTheme.colorScheme.error) }
+				ruleProblem?.let { HdMonoLabel(text = it.text(), color = MaterialTheme.colorScheme.error) }
+				dateProblem?.let { HdMonoLabel(text = it.text(), color = MaterialTheme.colorScheme.error) }
 				HdConflictField(
 					label = Res.string.sync_conflict_title_timeline_event_field_title.get(),
 					conflict = server.title != client.title,
@@ -428,4 +457,54 @@ private fun CountFields(
 	) {
 		ReadOnlyLine(shown.references.size.toString())
 	}
+}
+
+@Composable
+internal fun TimelineRuleProblem.text(): String = when (this) {
+	TimelineRuleProblem.SubjectIsReference -> Res.string.sync_conflict_timeline_rule_subject_is_reference.get()
+	TimelineRuleProblem.SelfReference -> Res.string.sync_conflict_timeline_rule_self_reference.get()
+	TimelineRuleProblem.EventHasSubject -> Res.string.sync_conflict_timeline_rule_event_has_subject.get()
+	is TimelineRuleProblem.PlacementNeedsSubject -> Res.string.sync_conflict_timeline_rule_placement_needs_subject.get()
+	TimelineRuleProblem.PlacementIsOwnSubject -> Res.string.sync_conflict_timeline_rule_placement_own_subject.get()
+	TimelineRuleProblem.PlacementHasReferences -> Res.string.sync_conflict_timeline_rule_placement_has_references.get()
+	TimelineRuleProblem.PlacementHasContent -> Res.string.sync_conflict_timeline_rule_placement_has_content.get()
+	TimelineRuleProblem.PlacementHasTags -> Res.string.sync_conflict_timeline_rule_placement_has_tags.get()
+	TimelineRuleProblem.LaneBlank -> Res.string.sync_conflict_timeline_rule_lane_blank.get()
+	TimelineRuleProblem.LaneTooLong -> Res.string.sync_conflict_timeline_rule_lane_too_long.get(TimelineLimits.MAX_LANE)
+	TimelineRuleProblem.TitleTooLong -> Res.string.sync_conflict_timeline_rule_title_too_long.get(TimelineLimits.MAX_TITLE)
+	TimelineRuleProblem.CachedTitleTooLong ->
+		Res.string.sync_conflict_timeline_rule_cached_title_too_long.get(TimelineLimits.MAX_TITLE)
+
+	TimelineRuleProblem.LabelTooLong -> Res.string.sync_conflict_timeline_rule_label_too_long.get(TimelineLimits.MAX_LABEL)
+	TimelineRuleProblem.TagTooLong -> Res.string.sync_conflict_timeline_rule_tag_too_long.get(TimelineLimits.MAX_TAG)
+	is TimelineRuleProblem.TooManyRungs ->
+		Res.string.sync_conflict_timeline_rule_too_many_rungs.get(field.label(), TimelineLimits.MAX_RUNGS)
+
+	is TimelineRuleProblem.BlankUnitName -> Res.string.sync_conflict_timeline_rule_blank_unit.get(field.label())
+	is TimelineRuleProblem.UnitNameTooLong ->
+		Res.string.sync_conflict_timeline_rule_unit_too_long.get(field.label(), TimelineLimits.MAX_UNIT_NAME)
+}
+
+@Composable
+internal fun ProjectSynchronization.TimelineDateProblem.text(): String = when (this) {
+	ProjectSynchronization.TimelineDateProblem.EndBeforeStart ->
+		Res.string.sync_conflict_timeline_date_end_before_start.get()
+
+	is ProjectSynchronization.TimelineDateProblem.Invalid -> when (val p = problem) {
+		is StoryDateProblem.UnknownUnit ->
+			Res.string.sync_conflict_timeline_date_unknown_unit.get(field.label(), p.unit)
+
+		StoryDateProblem.NotAPrefix -> Res.string.sync_conflict_timeline_date_not_a_prefix.get(field.label())
+		is StoryDateProblem.OutOfRange ->
+			Res.string.sync_conflict_timeline_date_out_of_range.get(field.label(), p.unit, p.value.toString())
+
+		is StoryDateProblem.UnknownCoarsestUnit,
+		StoryDateProblem.CoarsestUnitNotSupported -> Res.string.sync_conflict_timeline_date_bad_calendar.get()
+	}
+}
+
+@Composable
+private fun TimelineDateField.label(): String = when (this) {
+	TimelineDateField.START -> Res.string.sync_conflict_title_timeline_event_field_start.get()
+	TimelineDateField.END -> Res.string.sync_conflict_title_timeline_event_field_end.get()
 }

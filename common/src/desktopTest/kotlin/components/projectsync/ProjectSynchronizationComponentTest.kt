@@ -3,8 +3,14 @@ package components.projectsync
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ApiSceneType
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
+import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
 import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
+import com.darkrockstudios.apps.hammer.base.timeline.StoryDateProblem
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineDateField
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineRuleProblem
 import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSynchronization
 import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSynchronizationComponent
 import com.darkrockstudios.apps.hammer.common.data.ClientResult
@@ -20,6 +26,9 @@ import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteCont
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataConflict
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataConflictBroker
+import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
+import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
+import com.darkrockstudios.apps.hammer.common.data.projectdata.StoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer
@@ -29,6 +38,8 @@ import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEv
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEventError
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
+import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.every
@@ -37,12 +48,14 @@ import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesRepository
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageDef
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageFile
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
+import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.koin.dsl.module
@@ -67,6 +80,7 @@ class ProjectSynchronizationComponentTest : ComponentTest() {
 	private lateinit var synchronizer: ClientProjectSynchronizer
 	private lateinit var conflictBroker: ProjectDataConflictBroker
 	private lateinit var imagesRepository: ImagesRepository
+	private lateinit var projectDataDatasource: ProjectDataDatasource
 
 	private var dismissed = false
 	private var reauthorized = false
@@ -98,6 +112,10 @@ class ProjectSynchronizationComponentTest : ComponentTest() {
 		conflictBroker = ProjectDataConflictBroker(projectDef)
 		imagesRepository = mockk()
 
+		val ffs = FakeFileSystem()
+		ffs.createDirectories(projectDef.path.toOkioPath())
+		projectDataDatasource = ProjectDataDatasource(ffs, createTomlSerializer(), projectDef)
+
 		setupComponentKoin(module {
 			single { globalSettingsStore }
 			scope<ProjectDefScope> {
@@ -109,6 +127,7 @@ class ProjectSynchronizationComponentTest : ComponentTest() {
 				scoped { synchronizer }
 				scoped { conflictBroker }
 				scoped { imagesRepository }
+				scoped { ProjectDataRepository(projectDataDatasource, projectDef) }
 			}
 		})
 	}
@@ -514,7 +533,7 @@ class ProjectSynchronizationComponentTest : ComponentTest() {
 		val error = comp.resolveConflict(resolved)
 
 		val mergeError = assertIs<ProjectSynchronization.EntityMergeError.TimelineEventMergeError>(error)
-		assertEquals("a placement cannot have content", mergeError.ruleProblem)
+		assertEquals(TimelineRuleProblem.PlacementHasContent, mergeError.ruleProblem)
 		assertNull(mergeError.tagError)
 		verify(exactly = 0) { synchronizer.resolveConflict(any()) }
 	}
@@ -539,6 +558,58 @@ class ProjectSynchronizationComponentTest : ComponentTest() {
 			milestone = true,
 			start = StoryDate(mapOf("year" to 97L, "day" to 214L)),
 			end = StoryDate(mapOf("year" to 97L, "day" to 215L)),
+		)
+		val error = comp.resolveConflict(resolved)
+
+		assertNull(error)
+		verify(exactly = 1) { synchronizer.resolveConflict(resolved) }
+	}
+
+	@Test
+	fun `A dated project rejects a start the calendar cannot hold`() = runTest(mainTestDispatcher) {
+		saveMainTimeline(TimelineDef.DEFAULT.copy(mode = TimelineMode.DATED, calendar = CalendarDef()))
+		every { timeLineRepository.validateTags(any()) } returns TimeLineEventError.NONE
+		val comp = showTimelineConflict()
+
+		val resolved = timelineEvent.copy(start = StoryDate(mapOf("hour" to 30L)))
+		val error = comp.resolveConflict(resolved)
+
+		val mergeError = assertIs<ProjectSynchronization.EntityMergeError.TimelineEventMergeError>(error)
+		assertEquals(
+			ProjectSynchronization.TimelineDateProblem.Invalid(TimelineDateField.START, StoryDateProblem.NotAPrefix),
+			mergeError.dateProblem,
+		)
+		assertNull(mergeError.ruleProblem)
+		verify(exactly = 0) { synchronizer.resolveConflict(any()) }
+	}
+
+	@Test
+	fun `A dated project rejects an end before the start`() = runTest(mainTestDispatcher) {
+		saveMainTimeline(TimelineDef.DEFAULT.copy(mode = TimelineMode.DATED, calendar = CalendarDef()))
+		every { timeLineRepository.validateTags(any()) } returns TimeLineEventError.NONE
+		val comp = showTimelineConflict()
+
+		val resolved = timelineEvent.copy(
+			start = StoryDate(mapOf("year" to 97L, "day" to 214L)),
+			end = StoryDate(mapOf("year" to 97L, "day" to 3L)),
+		)
+		val error = comp.resolveConflict(resolved)
+
+		val mergeError = assertIs<ProjectSynchronization.EntityMergeError.TimelineEventMergeError>(error)
+		assertEquals(ProjectSynchronization.TimelineDateProblem.EndBeforeStart, mergeError.dateProblem)
+		verify(exactly = 0) { synchronizer.resolveConflict(any()) }
+	}
+
+	@Test
+	fun `A manual project accepts any well formed date`() = runTest(mainTestDispatcher) {
+		saveMainTimeline(TimelineDef.DEFAULT.copy(mode = TimelineMode.MANUAL, calendar = CalendarDef()))
+		every { timeLineRepository.validateTags(any()) } returns TimeLineEventError.NONE
+		every { synchronizer.resolveConflict(any()) } just Runs
+		val comp = showTimelineConflict()
+
+		val resolved = timelineEvent.copy(
+			start = StoryDate(mapOf("hour" to 30L)),
+			end = StoryDate(mapOf("fortnight" to 1L)),
 		)
 		val error = comp.resolveConflict(resolved)
 
@@ -643,6 +714,37 @@ class ProjectSynchronizationComponentTest : ComponentTest() {
 
 		comp.showLog(false)
 		assertFalse(comp.state.value.showLog)
+	}
+
+	private val timelineEvent = ApiProjectEntity.TimelineEventEntity(
+		id = 3,
+		order = 1,
+		label = null,
+		content = "server event",
+	)
+
+	private suspend fun saveMainTimeline(main: TimelineDef) {
+		projectDataDatasource.save(StoredProjectData(data = ProjectData(timelines = listOf(main))))
+	}
+
+	private suspend fun TestScope.showTimelineConflict(): ProjectSynchronizationComponent {
+		coEvery { timeLineRepository.getTimelineEvent(timelineEvent.id) } returns TimeLineEvent(
+			id = timelineEvent.id,
+			order = timelineEvent.order,
+			label = null,
+			content = "local event",
+		)
+		stubSync { callbacks ->
+			callbacks.onConflict(timelineEvent)
+			awaitCancellation()
+		}
+
+		val comp = newComponent()
+		context.resume()
+		comp.syncProject { }
+		advanceUntilIdle()
+		assertIs<ProjectSynchronization.EntityConflict.TimelineEventConflict>(comp.state.value.entityConflict)
+		return comp
 	}
 
 	private fun setupNoteConflict() {
