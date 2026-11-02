@@ -74,7 +74,7 @@ class CreateTimeLineEventComponent(
 
 		val event = timeLineRepository.createEvent(
 			content = contentText,
-			date = date,
+			label = date,
 			tags = tags,
 		)
 

@@ -96,17 +96,17 @@ class UploadResyncStabilityMatrixTest : RoundTripTestBase() {
 			Case("timeline event without date") { client ->
 				val timeline: TimeLineRepository = client.scope.get()
 				timeline.initialize()
-				timeline.createEvent(content = "event", date = null)
+				timeline.createEvent(content = "event", label = null)
 			},
 			Case("timeline event with date and tags") { client ->
 				val timeline: TimeLineRepository = client.scope.get()
 				timeline.initialize()
-				timeline.createEvent(content = "event", date = "1920", tags = setOf("war"))
+				timeline.createEvent(content = "event", label = "1920", tags = setOf("war"))
 			},
 			Case("timeline event, dated milestone with references") { client ->
 				val timeline: TimeLineRepository = client.scope.get()
 				timeline.initialize()
-				val event = timeline.createEvent(content = "event", date = "  Late autumn  ", tags = setOf("war"))
+				val event = timeline.createEvent(content = "event", label = "  Late autumn  ", tags = setOf("war"))
 				timeline.updateEvent(
 					event.copy(
 						title = " The storm ",
@@ -122,7 +122,7 @@ class UploadResyncStabilityMatrixTest : RoundTripTestBase() {
 				val scene = newScene(client, "Landfall", "body")
 				val timeline: TimeLineRepository = client.scope.get()
 				timeline.initialize()
-				val event = timeline.createEvent(content = "", date = null)
+				val event = timeline.createEvent(content = "", label = null)
 				timeline.updateEvent(
 					event.copy(
 						kind = TimelineKind.SCENE,

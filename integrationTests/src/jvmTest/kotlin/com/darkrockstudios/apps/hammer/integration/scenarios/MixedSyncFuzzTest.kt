@@ -68,7 +68,7 @@ class MixedSyncFuzzTest : RoundTripTestBase() {
 				0 -> newScene(client, scenes, "Scene $i", "content $i")
 				1 -> notes.createNote("note $i", tags = randomTags(rng))
 					.let { if (isSuccess(it)) noteState[it.data.id] = it.data }
-				2 -> timeline.createEvent(content = "event $i", date = if (rng.nextBoolean()) "$i" else null)
+				2 -> timeline.createEvent(content = "event $i", label = if (rng.nextBoolean()) "$i" else null)
 					.let { eventState[it.id] = it }
 				3 -> encyclopedia.createEntry("Entry $i", EntryType.PERSON, "about $i", randomTags(rng))
 					.instance?.entry?.id?.let { entries.add(it) }

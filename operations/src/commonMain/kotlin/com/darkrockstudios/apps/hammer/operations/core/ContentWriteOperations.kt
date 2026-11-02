@@ -180,7 +180,7 @@ internal fun contentWriteOperations(): List<Operation<*, *>> = listOf(
 			val count = project.events().size
 			if (input.index != null && input.index !in 0..count) invalidInput("index must be from 0 to $count")
 			timeline.validateTags(input.tags.toSet()).requireNone()
-			val event = timeline.createEvent(content = input.content, date = input.date.orBlankNull(), tags = input.tags.toSet())
+			val event = timeline.createEvent(content = input.content, label = input.date.orBlankNull(), tags = input.tags.toSet())
 			if (input.index != null && input.index != count) project.moveEvent(event.id, input.index)
 			TimelineEntry(project.requireEvent(event.id))
 		}

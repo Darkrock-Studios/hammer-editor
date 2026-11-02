@@ -481,9 +481,10 @@ class ProjectSynchronizationComponent(
 		resolvedEntity: ApiProjectEntity.TimelineEventEntity,
 	): ProjectSynchronization.EntityMergeError.TimelineEventMergeError? {
 		val ruleProblem = TimelineEntityRules.problem(resolvedEntity)
-		val tagError = when (timeLineRepository.validateTags(resolvedEntity.tags)) {
-			TimeLineEventError.NONE -> null
-			TimeLineEventError.TAG_TOO_LONG -> Res.string.timeline_create_toast_tag_too_long.toMsg()
+		val tagError = if (timeLineRepository.validateTags(resolvedEntity.tags) == TimeLineEventError.NONE) {
+			null
+		} else {
+			Res.string.timeline_create_toast_tag_too_long.toMsg()
 		}
 		val dateProblem = timelineDateProblem(resolvedEntity.start, resolvedEntity.end)
 		return if (ruleProblem != null || tagError != null || dateProblem != null) {

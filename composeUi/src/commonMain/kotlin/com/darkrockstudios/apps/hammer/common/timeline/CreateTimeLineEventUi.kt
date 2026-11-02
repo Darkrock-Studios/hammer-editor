@@ -196,6 +196,8 @@ fun CreateTimeLineEventUi(
 										)
 									}
 								}
+
+								else -> Unit
 							}
 						}
 					},

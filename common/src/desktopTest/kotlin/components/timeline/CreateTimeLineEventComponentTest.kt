@@ -27,7 +27,7 @@ class CreateTimeLineEventComponentTest : TimeLineTestBase() {
 		coEvery {
 			timelineRepo.createEvent(
 				content = any(),
-				date = any(),
+				label = any(),
 				tags = any(),
 			)
 		} returns TimeLineEvent(
@@ -50,7 +50,7 @@ class CreateTimeLineEventComponentTest : TimeLineTestBase() {
 		coVerify(exactly = 1) {
 			timelineRepo.createEvent(
 				content = capture(eventContent),
-				date = capture(eventDate),
+				label = capture(eventDate),
 				tags = capture(eventTags),
 			)
 		}

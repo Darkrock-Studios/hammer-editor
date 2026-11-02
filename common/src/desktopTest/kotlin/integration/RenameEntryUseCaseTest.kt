@@ -138,7 +138,7 @@ class RenameEntryUseCaseTest : BaseIntegrationTest() {
 		sceneEditorService.archiveScene(scene(4))
 
 		noteId = (notesRepository.createNote("Robert Tallow owes money.") as ClientResult.Success).data.id
-		eventId = timeLineRepository.createEvent("Robert Tallow is born.", date = "Year 1").id
+		eventId = timeLineRepository.createEvent("Robert Tallow is born.", label = "Year 1").id
 		advanceUntilIdle()
 	}
 

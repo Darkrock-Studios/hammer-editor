@@ -173,7 +173,7 @@ class TimeLineRepositoryTest : BaseTest() {
 		val madeEvent = repo.createEvent(
 			id = id,
 			content = content,
-			date = date
+			label = date
 		)
 
 		advanceUntilIdle()
@@ -273,7 +273,7 @@ class TimeLineRepositoryTest : BaseTest() {
 
 		val created = repo.createEvent(
 			content = "An event",
-			date = "Year 1",
+			label = "Year 1",
 			tags = setOf("  alpha  ", "#beta", "alpha", "with space", ""),
 		)
 
@@ -351,7 +351,7 @@ class TimeLineRepositoryTest : BaseTest() {
 		advanceUntilIdle()
 
 		repo.eventContentChangedFlow.test {
-			val created = repo.createEvent(content = "c", date = null)
+			val created = repo.createEvent(content = "c", label = null)
 			awaitItem()
 
 			repo.updateEvent(event = created.copy(content = "c2"))
@@ -522,6 +522,123 @@ class TimeLineRepositoryTest : BaseTest() {
 		assertEquals(
 			referenceEvents()[1].copy(kind = TimelineKind.EVENT, subject = null, title = "The Siege"),
 			storedEvents(projDef)[21],
+		)
+	}
+
+	@Test
+	fun `createEvent from a draft stores every field and trims the lane`() = runTest {
+		every { syncJournal.isServerSynchronized() } returns false
+		createProject(ffs, PROJECT_EMPTY_NAME)
+		val projDef = getProjectDef(PROJECT_EMPTY_NAME)
+		val repo = referenceRepo(projDef)
+		val start = StoryDate(mapOf("year" to 97L, "day" to 210L))
+		val end = StoryDate(mapOf("year" to 97L, "day" to 212L))
+
+		val created = repo.createEvent(
+			TimelineEventDraft(
+				title = "The storm",
+				label = "Late autumn",
+				content = "Wind takes the roof.",
+				tags = setOf(" #weather "),
+				references = setOf(4),
+				lane = "  Keep  ",
+				milestone = true,
+				start = start,
+				end = end,
+				id = 30,
+			)
+		)
+
+		val expected = TimeLineEvent(
+			id = 30,
+			order = 4,
+			title = "The storm",
+			label = "Late autumn",
+			content = "Wind takes the roof.",
+			tags = setOf("weather"),
+			references = setOf(4),
+			lane = "Keep",
+			milestone = true,
+			start = start,
+			end = end,
+		)
+		assertEquals(expected, created)
+		assertEquals(expected, storedEvents(projDef)[30])
+	}
+
+	@Test
+	fun `updateEvent clears a blank lane but updateEventForSync keeps it`() = runTest {
+		createProject(ffs, PROJECT_EMPTY_NAME)
+		val projDef = getProjectDef(PROJECT_EMPTY_NAME)
+		val repo = referenceRepo(projDef)
+		val storm = referenceEvents()[2]
+
+		repo.updateEvent(storm.copy(lane = "   "), markForSync = false)
+		assertNull(repo.currentEvents().first { it.id == 22 }.lane)
+
+		repo.updateEventForSync(storm.copy(lane = " Keep "))
+		assertEquals(" Keep ", repo.currentEvents().first { it.id == 22 }.lane)
+	}
+
+	@Test
+	fun `renumber puts the listed events first and the rest after them in their old order`() = runTest {
+		every { syncJournal.isServerSynchronized() } returns true
+		coEvery { syncJournal.isEntityDirty(any()) } returns false
+		coEvery { syncJournal.markEntityAsDirty(any()) } returns Unit
+		createProject(ffs, PROJECT_EMPTY_NAME)
+		val projDef = getProjectDef(PROJECT_EMPTY_NAME)
+		val repo = referenceRepo(projDef)
+
+		repo.renumber(listOf(23, 21))
+
+		val orders = storedEvents(projDef).mapValues { it.value.order }
+		assertEquals(mapOf(23 to 0, 21 to 1, 20 to 2, 22 to 3), orders)
+		assertEquals(listOf(23, 21, 20, 22), repo.timelineFlow.first().events.map { it.id })
+		coVerify(exactly = 1) { syncJournal.markEntityAsDirty(23) }
+		coVerify(exactly = 1) { syncJournal.markEntityAsDirty(20) }
+		coVerify(exactly = 1) { syncJournal.markEntityAsDirty(22) }
+		// Already at index 1.
+		coVerify(exactly = 0) { syncJournal.markEntityAsDirty(21) }
+	}
+
+	@Test
+	fun `validate checks the shape of an event`() {
+		val repo = TimeLineRepository(
+			projectDef = getProjectDef(PROJECT_EMPTY_NAME),
+			idAllocator = mockk(),
+			datasource = datasource,
+		)
+		val event = TimeLineEvent(id = 1, order = 0)
+		val placement = TimeLineEvent(id = 2, order = 0, kind = TimelineKind.SCENE, subject = 4)
+
+		assertEquals(TimeLineEventError.NONE, repo.validate(event))
+		assertEquals(TimeLineEventError.NONE, repo.validate(placement))
+		assertEquals(TimeLineEventError.SUBJECT_REQUIRED, repo.validate(placement.copy(subject = null)))
+		assertEquals(TimeLineEventError.SUBJECT_NOT_ALLOWED, repo.validate(event.copy(subject = 4)))
+		assertEquals(TimeLineEventError.REFERENCES_NOT_ALLOWED, repo.validate(placement.copy(references = setOf(5))))
+		assertEquals(TimeLineEventError.SELF_REFERENCE, repo.validate(event.copy(references = setOf(1))))
+		assertEquals(
+			TimeLineEventError.TAG_TOO_LONG,
+			repo.validate(event.copy(tags = setOf("x".repeat(TimelineLimits.MAX_TAG + 1)))),
+		)
+		assertEquals(TimeLineEventError.LANE_INVALID, repo.validate(event.copy(lane = " ")))
+		assertEquals(
+			TimeLineEventError.LANE_INVALID,
+			repo.validate(event.copy(lane = "x".repeat(TimelineLimits.MAX_LANE + 1))),
+		)
+		assertEquals(
+			TimeLineEventError.TITLE_TOO_LONG,
+			repo.validate(event.copy(title = "x".repeat(TimelineLimits.MAX_TITLE + 1))),
+		)
+		assertEquals(
+			TimeLineEventError.LABEL_TOO_LONG,
+			repo.validate(event.copy(label = "x".repeat(TimelineLimits.MAX_LABEL + 1))),
+		)
+		val tooManyRungs = StoryDate((0..TimelineLimits.MAX_RUNGS).associate { "unit$it" to 0L })
+		assertEquals(TimeLineEventError.DATE_INVALID, repo.validate(event.copy(start = tooManyRungs)))
+		assertEquals(
+			TimeLineEventError.DATE_INVALID,
+			repo.validate(event.copy(end = StoryDate(mapOf("x".repeat(TimelineLimits.MAX_UNIT_NAME + 1) to 1L)))),
 		)
 	}
 
