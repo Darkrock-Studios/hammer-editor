@@ -1,8 +1,11 @@
 package timeline.layout
 
+import com.darkrockstudios.apps.hammer.common.timeline.layout.BandLabel
+import com.darkrockstudios.apps.hammer.common.timeline.layout.LabelStyle
 import com.darkrockstudios.apps.hammer.common.timeline.layout.LayoutEvent
 import com.darkrockstudios.apps.hammer.common.timeline.layout.LayoutKind
 import com.darkrockstudios.apps.hammer.common.timeline.layout.LedgerMark
+import com.darkrockstudios.apps.hammer.common.timeline.layout.LedgerStyle
 import com.darkrockstudios.apps.hammer.common.timeline.layout.MonospaceEstimateMeasurer
 import com.darkrockstudios.apps.hammer.common.timeline.layout.PointGlyph
 import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineFrame
@@ -10,8 +13,11 @@ import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineLayoutEngi
 import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineLayoutInput
 import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineView
 import com.darkrockstudios.apps.hammer.common.timeline.layout.samples.TimelineLayoutSamples
+import com.darkrockstudios.apps.hammer.common.timeline.layout.samples.TimelineLayoutSamples.DAY
+import com.darkrockstudios.apps.hammer.common.timeline.layout.samples.TimelineLayoutSamples.HOUR
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 
 class TimelineLayoutEngineTest {
@@ -25,10 +31,15 @@ class TimelineLayoutEngineTest {
 		kind: LayoutKind = LayoutKind.EVENT,
 		milestone: Boolean = false,
 		extent: Long = 1,
-	) = LayoutEvent(id, kind, "Event $id", null, lane, milestone, id, start, end, extent)
+		title: String = "Event $id",
+	) = LayoutEvent(id, kind, title, null, lane, milestone, id, start, end, extent)
 
-	private fun input(events: List<LayoutEvent>, frame: TimelineFrame = TimelineFrame.Everything, laneOrder: List<String> = emptyList()) =
-		TimelineLayoutInput(events, laneOrder, TimelineView.TO_SCALE, frame, 840f, false, TimelineLayoutSamples.dayClockTicks)
+	private fun input(
+		events: List<LayoutEvent>,
+		frame: TimelineFrame = TimelineFrame.Everything,
+		laneOrder: List<String> = emptyList(),
+		view: TimelineView = TimelineView.TO_SCALE,
+	) = TimelineLayoutInput(events, laneOrder, view, frame, 840f, false, TimelineLayoutSamples.dayClockTicks)
 
 	@Test
 	fun `a date with coarse precision lays out as a circa span`() {
@@ -106,6 +117,60 @@ class TimelineLayoutEngineTest {
 		val ys = layout.axis.ticks.map { it.yDp }
 		assertEquals(sample.events.map { it.start }.distinct().size, ys.size)
 		ys.zipWithNext().forEach { (a, b) -> assertTrue(b - a >= 28f - 1e-3f) }
+	}
+
+	@Test
+	fun `a laned milestone's long title widens the ledger`() {
+		val short = listOf(event(1, 0), event(2, 100, milestone = true, title = "Siege"))
+		val long = listOf(event(1, 0), event(2, 100, milestone = true, title = "Canterbury answers the Scopuli"))
+
+		val narrow = TimelineLayoutEngine.layout(input(short), measurer)
+		val wide = TimelineLayoutEngine.layout(input(long), measurer)
+
+		assertEquals(96f, narrow.ledgerWidthDp, 1e-3f)
+		assertEquals(36f + measurer.widthDp("answers the…", LabelStyle.LedgerMilestone), wide.ledgerWidthDp, 1e-3f)
+		assertEquals(listOf("Canterbury", "answers the…"), wide.ledgerRows.single { it.eventId == 2 }.lines)
+	}
+
+	@Test
+	fun `a laned milestone span keeps its band label and gets a ledger row`() {
+		val events = listOf(event(1, 0, 2 * DAY, milestone = true, title = "Siege"), event(2, 3 * DAY))
+
+		val layout = TimelineLayoutEngine.layout(input(events), measurer)
+
+		assertTrue(layout.bands.single().label is BandLabel.Lines)
+		val row = layout.ledgerRows.single { it.eventId == 1 }
+		assertEquals(LedgerStyle.Milestone, row.style)
+		assertEquals(LedgerMark.None, row.mark)
+		assertEquals(layout.milestoneRules.single().yDp, row.anchorYDp)
+	}
+
+	@Test
+	fun `sequence ticks use the coarsest unit that tells the closest moments apart`() {
+		val events = listOf(event(1, 0), event(2, 12 * HOUR), event(3, DAY))
+
+		val labels = TimelineLayoutEngine.layout(input(events, view = TimelineView.SEQUENCE), measurer).axis.ticks.map { it.label }
+
+		assertEquals(listOf("Day 1 · 00:00", "Day 1 · 12:00", "Day 2 · 00:00"), labels)
+	}
+
+	@Test
+	fun `the sequence view never repeats an axis label on consecutive ticks`() {
+		val samples = listOf(
+			TimelineLayoutSamples.minimal(),
+			TimelineLayoutSamples.hollowmere(),
+			TimelineLayoutSamples.leviathan(),
+			TimelineLayoutSamples.insurgencyEverything(),
+			TimelineLayoutSamples.insurgencyStory(),
+			TimelineLayoutSamples.overlappingStack(),
+			TimelineLayoutSamples.stress(),
+		)
+
+		for ((i, sample) in samples.withIndex()) {
+			val labels = TimelineLayoutEngine.layout(sample.copy(view = TimelineView.SEQUENCE), measurer).axis.ticks.map { it.label }
+
+			labels.zipWithNext().forEach { (a, b) -> assertNotEquals(a, b, "sample $i repeats $a") }
+		}
 	}
 
 	@Test

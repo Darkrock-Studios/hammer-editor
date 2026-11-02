@@ -48,7 +48,7 @@ class TimelineLayoutEngineGoldenTest {
 		) { phone, id -> TimelineLayoutSamples.hollowmere(phone, id) },
 		Sample(
 			"leviathan", 8,
-			desktop = Shape(20, 0, 7, 9, 2, 5, 1375f),
+			desktop = Shape(20, 0, 7, 9, 2, 5, 1386f),
 			phone = Shape(20, 0, 7, 32, 2, 5, 1375f),
 		) { phone, id -> TimelineLayoutSamples.leviathan(phone, id) },
 		Sample(

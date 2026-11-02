@@ -128,10 +128,22 @@ class LedgerPlacerTest {
 	}
 
 	@Test
-	fun `ledger width follows the widest title within its bounds`() {
+	fun `ledger width follows the widest fitted line within its bounds`() {
 		assertEquals(96f, LedgerPlacer.ledgerWidth(listOf(candidate(3, 0f)), measurer, metrics))
-		assertEquals(118f, LedgerPlacer.ledgerWidth(listOf(candidate(2, 0f)), measurer, metrics))
+		// "Canterbury answers the Scopuli" wraps at 82dp to "Canterbury" and "answers the…".
+		val wrapped = measurer.widthDp("answers the…", LabelStyle.Ledger)
+		assertEquals(metrics.ledgerPad + wrapped, LedgerPlacer.ledgerWidth(listOf(candidate(2, 0f)), measurer, metrics), epsilon)
 		val subWidth = measurer.widthDp("Ch 3 · Pike t", LabelStyle.LedgerSub)
 		assertEquals(metrics.ledgerPad + subWidth, LedgerPlacer.ledgerWidth(listOf(candidate(0, 0f, sub = "Ch 3 · Pike t")), measurer, metrics), epsilon)
+	}
+
+	@Test
+	fun `a long subtitle is measured as ellipsized`() {
+		val sub = "Chapter 12 · Holden and Naomi on the Rocinante"
+
+		val width = LedgerPlacer.ledgerWidth(listOf(candidate(3, 0f, sub = sub)), measurer, metrics)
+
+		val fitted = measurer.widthDp(sub.take(14) + "…", LabelStyle.LedgerSub)
+		assertEquals(metrics.ledgerPad + fitted, width, epsilon)
 	}
 }

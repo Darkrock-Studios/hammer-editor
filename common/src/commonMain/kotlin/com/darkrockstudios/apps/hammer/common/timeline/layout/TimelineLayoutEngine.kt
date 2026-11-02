@@ -43,12 +43,16 @@ object TimelineLayoutEngine {
 
 		val aside = placed.filter { it.event.kind == LayoutKind.SCENE || it.event.laneName == null }
 		val asideCandidates = aside.map { p -> asideCandidate(p, scale, laneIndex) }
+		// Every titled laned milestone gets a ledger row at its rule, even when its band is labelled.
+		val milestoneCandidates = placed
+			.filter { it.event.milestone && it.event.kind != LayoutKind.SCENE && it.event.laneName != null && it.event.title.isNotBlank() }
+			.map { p -> laneMilestoneCandidate(p, scale, laneIndex) }
 
 		val axisX = if (phone) m.axisWidthPhone else m.axisWidth
 		val laneRegionWidth = when {
 			laneNames.isEmpty() -> 0f
 			phone -> laneNames.size * m.railWidth
-			else -> maxOf(0f, width - axisX - m.padRight - LedgerPlacer.ledgerWidth(asideCandidates, measurer, m))
+			else -> maxOf(0f, width - axisX - m.padRight - LedgerPlacer.ledgerWidth(asideCandidates + milestoneCandidates, measurer, m))
 		}
 		val laneRight = axisX + laneRegionWidth
 		val ledgerX = laneRight + m.ledgerGutter
@@ -92,7 +96,7 @@ object TimelineLayoutEngine {
 		}
 
 		val ledgerRows = layoutLedger(
-			candidates = asideCandidates + laneCandidates,
+			candidates = asideCandidates + milestoneCandidates + laneCandidates,
 			width = width,
 			ledgerX = ledgerX,
 			ledgerTextX = ledgerTextX,
@@ -213,6 +217,23 @@ object TimelineLayoutEngine {
 		)
 	}
 
+	private fun laneMilestoneCandidate(p: Placed, scale: PiecewiseScale, laneIndex: Map<String, Int>): LedgerCandidate {
+		val e = p.event
+		return LedgerCandidate(
+			eventId = e.id,
+			kind = e.kind,
+			anchorY = scale.y(p.start),
+			anchorY1 = null,
+			title = e.title,
+			sub = e.subtitle,
+			style = LedgerStyle.Milestone,
+			mark = LedgerMark.None,
+			laneIndex = laneIndex.getValue(e.laneName!!),
+			pinned = true,
+			order = e.order,
+		)
+	}
+
 	/**
 	 * Lays out one lane's spans and points, appending to the output lists. Returns the bottom of
 	 * the lowest leader label.
@@ -291,22 +312,8 @@ object TimelineLayoutEngine {
 
 			val labelled = bandLabel != BandLabel.None
 			var leader: LeaderLabel? = null
-			if (!labelled && e.title.isNotBlank()) {
+			if (!labelled && !e.milestone && e.title.isNotBlank()) {
 				when {
-					e.milestone -> ledgerCandidates += LedgerCandidate(
-						eventId = e.id,
-						kind = e.kind,
-						anchorY = y0,
-						anchorY1 = null,
-						title = e.title,
-						sub = e.subtitle,
-						style = LedgerStyle.Milestone,
-						mark = LedgerMark.None,
-						laneIndex = lane.index,
-						pinned = true,
-						order = e.order,
-					)
-
 					phone -> ledgerCandidates += LedgerCandidate(
 						eventId = e.id,
 						kind = e.kind,
@@ -433,6 +440,16 @@ object TimelineLayoutEngine {
 		}
 	}
 
+	/**
+	 * The coarsest unit whose size divides the gap between the two closest of the ascending
+	 * [positions], so consecutive rows read differently; the finest unit when none does.
+	 */
+	private fun sequenceTickUnit(positions: List<Long>, units: List<TickUnit>): TickUnit? {
+		if (units.isEmpty()) return null
+		val gap = positions.zipWithNext { a, b -> b - a }.minOrNull() ?: return units.last()
+		return units.firstOrNull { gap % it.sizeInBase == 0L } ?: units.last()
+	}
+
 	private fun axisTicks(
 		input: TimelineLayoutInput,
 		placed: List<Placed>,
@@ -444,8 +461,14 @@ object TimelineLayoutEngine {
 		val short = input.phone
 		return when (input.view) {
 			TimelineView.SEQUENCE -> {
-				val unit = deriveTickUnit(hi - lo, scheme.units, input.metrics.targetTicks)?.unit ?: return emptyList()
-				placed.map { it.start }.distinct().map { p -> AxisTick(scale.y(p), scheme.format(p, unit, short), p) }
+				val positions = placed.map { it.start }.distinct()
+				val unit = sequenceTickUnit(positions, scheme.units) ?: return emptyList()
+				val ticks = ArrayList<AxisTick>(positions.size)
+				for (p in positions) {
+					val label = scheme.format(p, unit, short)
+					if (ticks.isEmpty() || ticks.last().label != label) ticks += AxisTick(scale.y(p), label, p)
+				}
+				ticks
 			}
 
 			TimelineView.TO_SCALE -> {

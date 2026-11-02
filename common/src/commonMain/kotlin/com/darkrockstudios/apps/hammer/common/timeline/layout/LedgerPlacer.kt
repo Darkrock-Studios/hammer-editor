@@ -50,10 +50,7 @@ object LedgerPlacer {
 		val baselineOffset = lineHeight + 1f
 		val sorted = candidates.sortedWith(compareBy<LedgerCandidate>({ it.anchorY }, { it.order }, { it.eventId }))
 
-		val lines = sorted.map { c ->
-			val style = if (c.style == LedgerStyle.Milestone) LabelStyle.LedgerMilestone else LabelStyle.Ledger
-			LabelFitter.wrapToWidth(c.title, textWidth, style, measurer, MAX_TITLE_LINES)
-		}
+		val lines = sorted.map { c -> LabelFitter.wrapToWidth(c.title, textWidth, c.titleStyle, measurer, MAX_TITLE_LINES) }
 		val subs = sorted.map { c -> c.sub?.let { LabelFitter.ellipsize(it, textWidth, LabelStyle.LedgerSub, measurer) } }
 		val heights = FloatArray(sorted.size) { i ->
 			lines[i].size * lineHeight + (if (subs[i] != null) lineHeight else 0f) + ROW_PAD
@@ -96,13 +93,26 @@ object LedgerPlacer {
 		}
 	}
 
-	/** Desktop ledger width: the widest title or subtitle plus padding, clamped to the metric range. */
+	/**
+	 * Desktop ledger width: the widest line of any title or subtitle as fitted to the widest ledger,
+	 * plus padding, clamped to the metric range.
+	 */
 	fun ledgerWidth(candidates: List<LedgerCandidate>, measurer: TimelineTextMeasurer, metrics: LayoutMetrics): Float {
+		val fitWidth = metrics.ledgerMax - metrics.ledgerPad
 		var widest = 0f
 		for (c in candidates) {
-			widest = maxOf(widest, measurer.widthDp(c.title, LabelStyle.Ledger))
-			c.sub?.let { widest = maxOf(widest, measurer.widthDp(it, LabelStyle.LedgerSub)) }
+			val style = c.titleStyle
+			for (line in LabelFitter.wrapToWidth(c.title, fitWidth, style, measurer, MAX_TITLE_LINES)) {
+				widest = maxOf(widest, measurer.widthDp(line, style))
+			}
+			c.sub?.let {
+				val sub = LabelFitter.ellipsize(it, fitWidth, LabelStyle.LedgerSub, measurer)
+				widest = maxOf(widest, measurer.widthDp(sub, LabelStyle.LedgerSub))
+			}
 		}
 		return (widest + metrics.ledgerPad).coerceIn(metrics.ledgerMin, metrics.ledgerMax)
 	}
+
+	private val LedgerCandidate.titleStyle: LabelStyle
+		get() = if (style == LedgerStyle.Milestone) LabelStyle.LedgerMilestone else LabelStyle.Ledger
 }
