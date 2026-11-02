@@ -2,10 +2,13 @@ package repositories.timeline
 
 import PROJECT_EMPTY_NAME
 import app.cash.turbine.test
+import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.readToml
 import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineEntityRules
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineLimits
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineRuleProblem
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
@@ -36,6 +39,7 @@ import org.junit.jupiter.api.Test
 import org.koin.dsl.module
 import utils.BaseTest
 import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -640,6 +644,46 @@ class TimeLineRepositoryTest : BaseTest() {
 			TimeLineEventError.DATE_INVALID,
 			repo.validate(event.copy(end = StoryDate(mapOf("x".repeat(TimelineLimits.MAX_UNIT_NAME + 1) to 1L)))),
 		)
+	}
+
+	@Test
+	fun `validate maps every shared rule problem to an error`() {
+		val repo = TimeLineRepository(
+			projectDef = getProjectDef(PROJECT_EMPTY_NAME),
+			idAllocator = mockk(),
+			datasource = datasource,
+		)
+		val event = ApiProjectEntity.TimelineEventEntity(id = 1, order = 0, label = null, content = "")
+		val placement = event.copy(kind = TimelineKind.SCENE, subject = 4)
+		val longUnit = "x".repeat(TimelineLimits.MAX_UNIT_NAME + 1)
+		val tooManyRungs = StoryDate((0..TimelineLimits.MAX_RUNGS).associate { "unit$it" to 0L })
+		val oneEntityPerRule = listOf(
+			placement.copy(references = setOf(4)),
+			event.copy(references = setOf(1)),
+			event.copy(subject = 4),
+			placement.copy(subject = null),
+			placement.copy(subject = 1),
+			placement.copy(references = setOf(5)),
+			placement.copy(content = "Text"),
+			placement.copy(tags = setOf("tag")),
+			event.copy(lane = " "),
+			event.copy(lane = "x".repeat(TimelineLimits.MAX_LANE + 1)),
+			event.copy(title = "x".repeat(TimelineLimits.MAX_TITLE + 1)),
+			event.copy(cachedTitle = "x".repeat(TimelineLimits.MAX_TITLE + 1)),
+			event.copy(label = "x".repeat(TimelineLimits.MAX_LABEL + 1)),
+			event.copy(tags = setOf("x".repeat(TimelineLimits.MAX_TAG + 1))),
+			event.copy(start = tooManyRungs),
+			event.copy(start = StoryDate(mapOf(" " to 1L))),
+			event.copy(end = StoryDate(mapOf(longUnit to 1L))),
+		)
+
+		val problems = oneEntityPerRule.map { assertNotNull(TimelineEntityRules.problem(it)) }
+
+		assertEquals(TimelineRuleProblem::class.sealedSubclasses.toSet(), problems.map { it::class }.toSet())
+		problems.zip(oneEntityPerRule).forEach { (problem, entity) ->
+			assertNotEquals(TimeLineEventError.NONE, problem.toEventError(), "$problem")
+			assertEquals(problem.toEventError(), repo.validate(entity.toTimeLineEvent()), "$problem")
+		}
 	}
 
 	@Test

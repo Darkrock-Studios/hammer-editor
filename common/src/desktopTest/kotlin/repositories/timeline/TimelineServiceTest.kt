@@ -35,10 +35,12 @@ import getProject1Def
 import io.mockk.MockKAnnotations
 import io.mockk.Runs
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.impl.annotations.MockK
 import io.mockk.just
 import io.mockk.mockk
+import io.mockk.spyk
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import net.peanuuutz.tomlkt.Toml
@@ -99,7 +101,9 @@ class TimelineServiceTest : BaseTest() {
 		createProject(ffs, PROJECT_1_NAME)
 	}
 
-	private suspend fun createService(): TimelineService {
+	private suspend fun createService(
+		wrapEncyclopedia: (EncyclopediaRepository) -> EncyclopediaRepository = { it },
+	): TimelineService {
 		val sceneMetadataDatasource = SceneMetadataDatasource(ffs, toml, projDef)
 		val sceneRepository = SceneRepository(
 			projectDef = projDef,
@@ -142,7 +146,7 @@ class TimelineServiceTest : BaseTest() {
 			projectDataRepository = ProjectDataRepository(ProjectDataDatasource(ffs, toml, projDef), projDef),
 			sceneRepository = sceneRepository,
 			sceneMetadataRepository = sceneMetadataRepository,
-			encyclopediaRepository = encyclopediaRepository,
+			encyclopediaRepository = wrapEncyclopedia(encyclopediaRepository),
 		)
 	}
 
@@ -208,6 +212,10 @@ class TimelineServiceTest : BaseTest() {
 		assertEquals(
 			TimeLineEventError.REFERENCE_NOT_FOUND,
 			service.createEvent(TimelineEventDraft(references = setOf(4, 999))).error(),
+		)
+		assertEquals(
+			TimeLineEventError.REFERENCE_NOT_FOUND,
+			service.createEvent(TimelineEventDraft(references = setOf(2))).error(),
 		)
 		assertEquals(
 			TimeLineEventError.SELF_REFERENCE,
@@ -406,6 +414,86 @@ class TimelineServiceTest : BaseTest() {
 			service.displayTitle(TimeLineEvent(id = 51, order = 0, kind = TimelineKind.SCENE, subject = 999, cachedTitle = "Gone")),
 		)
 		assertEquals("", service.displayTitle(event.copy(title = null, content = "", cachedTitle = null)))
+	}
+
+	@Test
+	fun `a manual timeline without a calendar takes any well formed date`() = runTest(mainTestDispatcher) {
+		val service = createService()
+
+		val created = service.createEvent(TimelineEventDraft(start = date("year" to 2024, "month" to 5))).event()
+
+		assertEquals(date("year" to 2024, "month" to 5), stored(created.id).start)
+		assertEquals(
+			TimeLineEventError.DATE_REQUIRED,
+			service.createEvent(TimelineEventDraft(end = date("year" to 2024))).error(),
+		)
+	}
+
+	@Test
+	fun `a manual timeline with a calendar validates dates against it`() = runTest(mainTestDispatcher) {
+		val service = createService()
+		assertEquals(
+			TimelineResult.Ok(null),
+			service.updateDefinition { it.copy(calendar = CalendarDef(CalendarPreset.GREGORIAN)) },
+		)
+
+		assertEquals(TimeLineEventError.DATE_INVALID, service.createEvent(TimelineEventDraft(start = date("hour" to 30))).error())
+		assertEquals(
+			TimeLineEventError.DATE_INVALID,
+			service.createEvent(TimelineEventDraft(start = date("year" to 2024, "month" to 5, "day" to 1, "hour" to 30))).error(),
+		)
+	}
+
+	@Test
+	fun `switchToDated spaces by the coarsest unit of a story told in hours`() = runTest(mainTestDispatcher) {
+		val service = createService()
+		val a = service.createEvent(TimelineEventDraft(title = "A")).event()
+		val b = service.createEvent(TimelineEventDraft(title = "B")).event()
+		val c = service.createEvent(TimelineEventDraft(title = "C")).event()
+
+		assertEquals(TimelineResult.Ok(null), service.switchToDated(CalendarDef(coarsestUnit = "hour")))
+
+		assertEquals(date("hour" to 0), stored(a.id).start)
+		assertEquals(date("hour" to 1), stored(b.id).start)
+		assertEquals(date("hour" to 2), stored(c.id).start)
+	}
+
+	@Test
+	fun `displayTitles resolves a mixed list in one call`() = runTest(mainTestDispatcher) {
+		val service = createService()
+		val scene = service.placeScene(4, null, null, null, false).event()
+		val entry = service.placeEntry(TEA_PARTY, null, null, null, false).event()
+		val titled = TimeLineEvent(id = 60, order = 0, title = "Storm")
+		val contentOnly = TimeLineEvent(id = 61, order = 0, content = "# Calm\nAfter")
+		val orphan = TimeLineEvent(id = 62, order = 0, kind = TimelineKind.ENTRY, subject = 999, cachedTitle = "Gone")
+
+		val titles = service.displayTitles(listOf(scene, entry, titled, contentOnly, orphan))
+
+		assertEquals(
+			mapOf(
+				scene.id to "Scene ID 4",
+				entry.id to "Tea Party",
+				titled.id to "Storm",
+				contentOnly.id to "Calm",
+				orphan.id to "Gone",
+			),
+			titles,
+		)
+	}
+
+	@Test
+	fun `displayTitles reads the entry list once for many entry placements`() = runTest(mainTestDispatcher) {
+		lateinit var spy: EncyclopediaRepository
+		val service = createService { real -> spyk(real).also { spy = it } }
+		val placements = listOf(TEA_PARTY, ALICE, BOB, TEAPOT).mapIndexed { index, subject ->
+			TimeLineEvent(id = 70 + index, order = index, kind = TimelineKind.ENTRY, subject = subject)
+		}
+
+		val titles = service.displayTitles(placements)
+
+		assertEquals(listOf("Tea Party", "Alice", "Bob", "Teapot"), placements.map { titles.getValue(it.id) })
+		coVerify(atMost = 1) { spy.readEntryDefs() }
+		coVerify(exactly = 0) { spy.findEntryDef(any()) }
 	}
 
 	@Test

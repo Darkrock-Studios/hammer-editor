@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.timelinerepository
 
-import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineEntityRules
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineLimits
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -411,34 +411,11 @@ class TimeLineRepository(
 	}
 
 	/**
-	 * Shape checks that need nothing but [event] itself. Whether its subject, references and dates
-	 * make sense for the project is [TimelineService]'s concern.
+	 * The shared [TimelineEntityRules], which need nothing but [event] itself. Whether its subject,
+	 * references and dates make sense for the project is [TimelineService]'s concern.
 	 */
-	fun validate(event: TimeLineEvent): TimeLineEventError {
-		val subject = event.subject
-		val placement = event.kind.isPlacement
-		return when {
-			placement && subject == null -> TimeLineEventError.SUBJECT_REQUIRED
-			!placement && subject != null -> TimeLineEventError.SUBJECT_NOT_ALLOWED
-			placement && event.references.isNotEmpty() -> TimeLineEventError.REFERENCES_NOT_ALLOWED
-			event.id in event.references || subject == event.id -> TimeLineEventError.SELF_REFERENCE
-			!validateTags(event.tags).isSuccess -> TimeLineEventError.TAG_TOO_LONG
-			event.lane != null && !isValidLane(event.lane) -> TimeLineEventError.LANE_INVALID
-			longerThan(event.title, TimelineLimits.MAX_TITLE) -> TimeLineEventError.TITLE_TOO_LONG
-			longerThan(event.cachedTitle, TimelineLimits.MAX_TITLE) -> TimeLineEventError.TITLE_TOO_LONG
-			longerThan(event.label, TimelineLimits.MAX_LABEL) -> TimeLineEventError.LABEL_TOO_LONG
-			!isWellFormed(event.start) || !isWellFormed(event.end) -> TimeLineEventError.DATE_INVALID
-			else -> TimeLineEventError.NONE
-		}
-	}
-
-	private fun isValidLane(lane: String): Boolean = lane.isNotBlank() && lane.length <= TimelineLimits.MAX_LANE
-
-	private fun longerThan(text: String?, max: Int): Boolean = text != null && text.length > max
-
-	private fun isWellFormed(date: StoryDate?): Boolean =
-		date == null || date.rungs.size <= TimelineLimits.MAX_RUNGS &&
-			date.rungs.keys.all { it.isNotBlank() && it.length <= TimelineLimits.MAX_UNIT_NAME }
+	fun validate(event: TimeLineEvent): TimeLineEventError =
+		TimelineEntityRules.problem(event.toApiEntity())?.toEventError() ?: TimeLineEventError.NONE
 
 	/**
 	 * Sort the states by their order value, rather than the actual place in the serialized file.

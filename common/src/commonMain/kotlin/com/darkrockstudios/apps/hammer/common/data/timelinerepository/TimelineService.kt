@@ -347,12 +347,15 @@ class TimelineService(
 	}
 
 	/** The subject's name, else the title, the content's first line, the cached title, or "". */
-	suspend fun displayTitle(event: TimeLineEvent): String =
-		subjectName(event)
-			?: event.title?.takeIf { it.isNotBlank() }
-			?: markdownTitleLine(event.content).takeIf { it.isNotBlank() }
-			?: event.cachedTitle
-			?: ""
+	suspend fun displayTitle(event: TimeLineEvent): String = displayTitles(listOf(event)).getValue(event.id)
+
+	/** [displayTitle] for every event, by id, reading the scene tree and the entry list once. */
+	suspend fun displayTitles(events: List<TimeLineEvent>): Map<Int, String> {
+		val names = subjectNames(events)
+		return events.associate { event ->
+			event.id to titleOf(event, event.subject?.let { names[event.kind]?.get(it) })
+		}
+	}
 
 	/** The definition's lane order, then any other lane in use, alphabetically. */
 	suspend fun lanes(): List<String> {
@@ -418,6 +421,32 @@ class TimelineService(
 		}
 	}
 
+	/** Subject id to name, per placement kind. Archived scenes are read only for ids not in the tree. */
+	private suspend fun subjectNames(events: List<TimeLineEvent>): Map<TimelineKind, Map<Int, String>> {
+		val sceneIds = events.subjectIds(TimelineKind.SCENE)
+		val entryIds = events.subjectIds(TimelineKind.ENTRY)
+		return withContext(dispatcherIo) {
+			val sceneNames = if (sceneIds.isEmpty()) {
+				emptyMap()
+			} else {
+				val inTree = sceneRepository.rawTree.map { it.value }.filter { it.id in sceneIds }
+				val missing = sceneIds - inTree.mapTo(HashSet()) { it.id }
+				val archived = if (missing.isEmpty()) {
+					emptyList()
+				} else {
+					sceneRepository.getArchivedScenes().filter { it.id in missing }
+				}
+				(inTree + archived).filter { it.type == SceneItem.Type.Scene }.associate { it.id to it.name }
+			}
+			val entryNames = if (entryIds.isEmpty()) {
+				emptyMap()
+			} else {
+				encyclopediaRepository.readEntryDefs().filter { it.id in entryIds }.associate { it.id to it.name }
+			}
+			mapOf(TimelineKind.SCENE to sceneNames, TimelineKind.ENTRY to entryNames)
+		}
+	}
+
 	private suspend fun findEvent(id: Int): TimeLineEvent? =
 		timeLineRepository.currentEvents().firstOrNull { it.id == id }
 
@@ -430,8 +459,7 @@ class TimelineService(
 		if (references.isEmpty()) return TimeLineEventError.NONE
 		return withContext(dispatcherIo) {
 			val notScenes = references.filter { id ->
-				val scene = sceneRepository.getSceneItemFromIdIncludingArchived(id)
-				scene == null || scene.isRootScene
+				sceneRepository.getSceneItemFromIdIncludingArchived(id)?.type != SceneItem.Type.Scene
 			}
 			val entryIds = if (notScenes.isEmpty()) emptySet() else encyclopediaRepository.readEntryDefs().map { it.id }
 			if (notScenes.all { it in entryIds }) TimeLineEventError.NONE else TimeLineEventError.REFERENCE_NOT_FOUND
@@ -448,11 +476,12 @@ class TimelineService(
 		}
 	}
 
+	/** Without a calendar the dates are free-form: only their shape and "end requires start" apply. */
 	private fun dateProblem(def: TimelineDef, start: StoryDate?, end: StoryDate?): TimeLineEventError {
-		val calendar = def.calendar ?: CalendarDef()
+		val calendar = def.calendar
 		return when {
 			start == null && (def.mode == TimelineMode.DATED || end != null) -> TimeLineEventError.DATE_REQUIRED
-			start == null -> TimeLineEventError.NONE
+			start == null || calendar == null -> TimeLineEventError.NONE
 			StoryCalendar.validate(calendar, start) != null -> TimeLineEventError.DATE_INVALID
 			end == null -> TimeLineEventError.NONE
 			StoryCalendar.validate(calendar, end) != null -> TimeLineEventError.DATE_INVALID
@@ -512,19 +541,30 @@ class TimelineService(
 			return endSpan.last >= startAt
 		}
 
-		fun defaultSpacing(calendar: CalendarDef): EvenSpacing {
-			val unit = calendar.coarsestUnit ?: StoryCalendar.units(calendar.preset).first().name
-			val origin = when (calendar.preset) {
-				CalendarPreset.STORY -> 0L
-				CalendarPreset.GREGORIAN -> 1L
+		fun defaultSpacing(calendar: CalendarDef): EvenSpacing = when (calendar.preset) {
+			CalendarPreset.STORY -> {
+				val unit = calendar.coarsestUnit ?: StoryCalendar.units(calendar.preset).first().name
+				EvenSpacing(unit = unit, origin = StoryDate(mapOf(unit to 0L)))
 			}
-			return EvenSpacing(unit = unit, origin = StoryDate(mapOf(unit to origin)))
+
+			CalendarPreset.GREGORIAN ->
+				EvenSpacing(unit = StoryCalendar.YEAR, origin = StoryDate(mapOf(StoryCalendar.YEAR to 1L)))
 		}
 
 		fun isValidSpacing(spacing: EvenSpacing, calendar: CalendarDef): Boolean =
 			spacing.step > 0 &&
 				StoryCalendar.units(calendar.preset).any { it.name == spacing.unit } &&
 				StoryCalendar.validate(calendar, spacing.origin) == null
+
+		fun titleOf(event: TimeLineEvent, subjectName: String?): String =
+			subjectName
+				?: event.title?.takeIf { it.isNotBlank() }
+				?: markdownTitleLine(event.content).takeIf { it.isNotBlank() }
+				?: event.cachedTitle
+				?: ""
+
+		fun List<TimeLineEvent>.subjectIds(kind: TimelineKind): Set<Int> =
+			filter { it.kind == kind }.mapNotNullTo(HashSet()) { it.subject }
 
 		fun castRank(type: EntryType): Int = when (type) {
 			EntryType.PERSON -> 0
