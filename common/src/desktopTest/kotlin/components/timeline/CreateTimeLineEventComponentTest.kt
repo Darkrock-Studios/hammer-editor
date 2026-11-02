@@ -227,7 +227,7 @@ class CreateTimeLineEventComponentTest : TimelineComponentTestBase() {
 	}
 
 	@Test
-	fun `a placement's label is checked by the service`() = runTest(mainTestDispatcher) {
+	fun `a placement with a label too long is not placed at all`() = runTest(mainTestDispatcher) {
 		givenProject()
 		val component = newComponent()
 		context.resume()
@@ -238,5 +238,24 @@ class CreateTimeLineEventComponentTest : TimelineComponentTestBase() {
 		val result = component.create("x".repeat(TimelineLimits.MAX_LABEL + 1), "", emptySet())
 
 		assertEquals(TimeLineEventError.LABEL_TOO_LONG, result)
+		assertEquals(emptyList(), timeLineRepository.currentEvents())
+	}
+
+	@Test
+	fun `an entry placed with a label is one event with that label`() = runTest(mainTestDispatcher) {
+		givenProject()
+		val component = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		component.setKind(TimelineKind.ENTRY)
+		component.setSubject(catalogItem(TEA_PARTY))
+		val result = component.create(label = " Half past six ", content = "", tags = emptySet())
+
+		assertEquals(TimeLineEventError.NONE, result)
+		val stored = timeLineRepository.currentEvents().single()
+		assertEquals(TimelineKind.ENTRY, stored.kind)
+		assertEquals(TEA_PARTY, stored.subject)
+		assertEquals("Half past six", stored.label)
 	}
 }

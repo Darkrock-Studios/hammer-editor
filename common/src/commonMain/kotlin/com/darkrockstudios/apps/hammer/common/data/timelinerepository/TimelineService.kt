@@ -131,6 +131,7 @@ class TimelineService(
 		end: StoryDate?,
 		lane: String?,
 		milestone: Boolean,
+		label: String? = null,
 	): TimelineResult {
 		val scene = withContext(dispatcherIo) { sceneRepository.getSceneItemFromIdIncludingArchived(sceneId) }
 		val subjectError = when {
@@ -138,7 +139,7 @@ class TimelineService(
 			scene.type != SceneItem.Type.Scene -> TimeLineEventError.SUBJECT_WRONG_TYPE
 			else -> TimeLineEventError.NONE
 		}
-		return place(TimelineKind.SCENE, sceneId, scene?.name, subjectError, start, end, lane, milestone)
+		return place(TimelineKind.SCENE, sceneId, scene?.name, subjectError, start, end, lane, milestone, label)
 	}
 
 	/** Places an encyclopedia entry; only EVENT entries can be placed. */
@@ -148,6 +149,7 @@ class TimelineService(
 		end: StoryDate?,
 		lane: String?,
 		milestone: Boolean,
+		label: String? = null,
 	): TimelineResult {
 		val entry = withContext(dispatcherIo) { encyclopediaRepository.findEntryDef(entryId) }
 		val subjectError = when {
@@ -155,7 +157,7 @@ class TimelineService(
 			entry.type != EntryType.EVENT -> TimeLineEventError.SUBJECT_WRONG_TYPE
 			else -> TimeLineEventError.NONE
 		}
-		return place(TimelineKind.ENTRY, entryId, entry?.name, subjectError, start, end, lane, milestone)
+		return place(TimelineKind.ENTRY, entryId, entry?.name, subjectError, start, end, lane, milestone, label)
 	}
 
 	private suspend fun place(
@@ -167,6 +169,7 @@ class TimelineService(
 		end: StoryDate?,
 		lane: String?,
 		milestone: Boolean,
+		label: String?,
 	): TimelineResult = writeLock.withLock {
 		if (!subjectError.isSuccess) return invalid(subjectError)
 		if (timeLineRepository.findPlacement(subject) != null) return invalid(TimeLineEventError.DUPLICATE_PLACEMENT)
@@ -174,6 +177,7 @@ class TimelineService(
 		val draft = TimelineEventDraft(
 			kind = kind,
 			subject = subject,
+			label = label,
 			lane = normalizeLane(lane),
 			milestone = milestone,
 			start = start,

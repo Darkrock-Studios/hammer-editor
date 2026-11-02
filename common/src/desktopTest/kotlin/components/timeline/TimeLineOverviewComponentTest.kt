@@ -1,6 +1,7 @@
 package components.timeline
 
 import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
+import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.components.timeline.LaneCount
@@ -146,7 +147,7 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 
 		assertEquals(TimelineMode.DATED, component.state.value.mode)
 		assertFalse(component.moveEvent(first, 0, after = false))
-		assertTrue(component.state.value.rows!!.all { it.whenText.isNotEmpty() }, "Dated rows show their start")
+		assertTrue(component.state.value.rows!!.all { it.start != null }, "Dated rows carry their start")
 	}
 
 	@Test
@@ -163,7 +164,12 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 
 		val state = component.state.value
 		assertEquals(CalendarDef(epochName = "Landing"), state.calendar)
-		assertEquals(listOf("Year 0", "Year 1", ""), state.rows!!.map { it.whenText })
+		assertEquals(
+			listOf(StoryDate(mapOf("year" to 0L)), StoryDate(mapOf("year" to 1L)), null),
+			state.rows!!.map { it.start },
+		)
+		assertEquals(listOf(CalendarDef(epochName = "Landing"), CalendarDef(epochName = "Landing"), null), state.rows.map { it.calendar })
+		assertEquals(listOf("Dawn", "", ""), state.rows.map { it.whenText }, "The label stays as the fallback")
 		assertEquals(listOf(legacy.id), state.undatedIds)
 	}
 }

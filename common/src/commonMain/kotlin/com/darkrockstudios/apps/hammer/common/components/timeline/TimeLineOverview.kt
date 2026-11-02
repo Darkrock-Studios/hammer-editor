@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.common.components.timeline
 
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
+import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagCount
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
@@ -37,12 +38,16 @@ data class TimelineRow(
 	val title: String,
 	/** A placed scene's chapter path; null for anything else. */
 	val subtitle: String?,
-	/** The label in MANUAL mode; in DATED mode the start date (and end), else the label. Blank when neither. */
+	/** The event's label, shown when there is no [start]. Blank when it has none. */
 	val whenText: String,
 	/** Position of the event's lane in [TimeLineOverview.State.lanes]; null when it has none. */
 	val laneIndex: Int?,
 	/** A placement whose scene or entry is gone; [title] is then its cached title. */
 	val subjectMissing: Boolean = false,
+	/** On a DATED timeline, a start that fits [calendar]; null otherwise. The UI formats it with [end]. */
+	val start: StoryDate? = null,
+	val end: StoryDate? = null,
+	val calendar: CalendarDef? = null,
 )
 
 data class LaneCount(val lane: String, val count: Int)

@@ -85,6 +85,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSearchRow
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSectionHeader
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagChip
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagFilterBar
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.rememberStoryDateWords
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownView
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.rememberMarkdownPreview
 import com.darkrockstudios.apps.hammer.common.compose.reorderable.DragDropList
@@ -93,6 +94,7 @@ import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
 import com.darkrockstudios.apps.hammer.common.data.search.markdownContains
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.formatStoryDateRange
 import com.darkrockstudios.apps.hammer.timeline_entry_subtitle
 import com.darkrockstudios.apps.hammer.timeline_filter_all
 import com.darkrockstudios.apps.hammer.timeline_filter_clear_all
@@ -631,9 +633,16 @@ private fun CardHeader(
 		val labelStyle = MaterialTheme.typography.labelSmall.let {
 			if (event.milestone) it.copy(fontWeight = FontWeight.Bold) else it
 		}
+		val words = rememberStoryDateWords()
+		val start = row.start
+		val whenText = if (start != null) {
+			formatStoryDateRange(row.calendar ?: CalendarDef(), start, row.end, words)
+		} else {
+			row.whenText.ifBlank { Res.string.timeline_view_undated.get() }
+		}
 		with(sharedTransitionScope) {
 			HdMonoLabel(
-				text = row.whenText.ifBlank { Res.string.timeline_view_undated.get() },
+				text = whenText,
 				style = labelStyle,
 				color = if (event.milestone) {
 					MaterialTheme.colorScheme.onSurface

@@ -7,6 +7,9 @@ import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
+import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
+import com.darkrockstudios.apps.hammer.base.timeline.CalendarPreset
+import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.components.timeline.LaneCount
@@ -234,6 +237,32 @@ class TimeLineOverviewUiTest : BaseTest() {
 
 		compose.onNodeWithText("TEST DATE").assertIsDisplayed()
 		compose.onNodeWithText(event.content).assertIsDisplayed()
+	}
+
+	@Test
+	fun `A dated card formats its start and end in the calendar's words`() {
+		val event = TimeLineEvent(id = 0, order = 0, label = "Spring", content = "Arrival")
+		val row = row(event).copy(
+			start = StoryDate(linkedMapOf("year" to 1802L, "month" to 5L, "day" to 12L)),
+			end = StoryDate(linkedMapOf("year" to 1802L, "month" to 5L, "day" to 14L)),
+			calendar = CalendarDef(CalendarPreset.GREGORIAN),
+		)
+		showCard(row)
+
+		compose.onNodeWithText("12 MAY 1802 → 14 MAY 1802").assertIsDisplayed()
+		compose.onNodeWithText("SPRING").assertDoesNotExist()
+	}
+
+	@Test
+	fun `A dated story card names the epoch`() {
+		val event = TimeLineEvent(id = 0, order = 0, content = "Before")
+		val row = row(event).copy(
+			start = StoryDate(linkedMapOf("year" to -3L, "day" to 2L)),
+			calendar = CalendarDef(epochName = "Landing"),
+		)
+		showCard(row)
+
+		compose.onNodeWithText("YEAR 3 BEFORE LANDING · DAY 2").assertIsDisplayed()
 	}
 
 	@Test

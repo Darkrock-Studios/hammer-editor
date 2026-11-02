@@ -6,6 +6,7 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
 import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
 import com.darkrockstudios.apps.hammer.base.timeline.CalendarPreset
+import com.darkrockstudios.apps.hammer.base.timeline.CalendarUnit
 import com.darkrockstudios.apps.hammer.base.timeline.StoryCalendar
 import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
@@ -17,8 +18,16 @@ import com.darkrockstudios.apps.hammer.common.data.timelinerepository.EvenSpacin
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineResult
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineService
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.entryUnits
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.APP_SCOPE
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.koin.core.component.inject
+import org.koin.core.qualifier.named
+import kotlin.concurrent.Volatile
+import kotlin.time.Duration.Companion.milliseconds
 
 class TimelineSettingsComponent(
 	componentContext: ComponentContext,
@@ -26,6 +35,12 @@ class TimelineSettingsComponent(
 ) : ProjectComponentBase(projectDef, componentContext), TimelineSettings {
 
 	private val timelineService: TimelineService by projectInject()
+
+	private val appScope: CoroutineScope by inject(named(APP_SCOPE))
+
+	@Volatile
+	private var pendingEpoch: String? = null
+	private var epochWrite: Job? = null
 
 	private val _state = MutableValue(TimelineSettings.State())
 	override val state: Value<TimelineSettings.State> = _state
@@ -49,7 +64,7 @@ class TimelineSettingsComponent(
 			TimelineMode.DATED -> {
 				val calendar = def.calendar ?: CalendarDef(CalendarPreset.STORY)
 				val units = entryUnits(calendar)
-				ModeSwitchPrompt.ToDated(units = units, selectedUnit = units.first().name, calendar = calendar)
+				ModeSwitchPrompt.ToDated(units = units, selectedUnit = spacingUnit(calendar, units), calendar = calendar)
 			}
 
 			TimelineMode.MANUAL -> ModeSwitchPrompt.ToManual
@@ -125,13 +140,29 @@ class TimelineSettingsComponent(
 	}
 
 	override fun setEpochName(name: String) {
-		val epoch = name.trim().ifEmpty { null }
-		write {
-			timelineService.updateDefinition { def ->
-				val calendar = def.calendar ?: CalendarDef()
-				if (calendar.preset != CalendarPreset.STORY) def else def.copy(calendar = calendar.copy(epochName = epoch))
-			}
+		pendingEpoch = name
+		epochWrite?.cancel()
+		epochWrite = scope.launch {
+			delay(EPOCH_DEBOUNCE)
+			flushEpoch()?.let { apply(it) }
 		}
+	}
+
+	/** Writes the epoch waiting on the debounce, if any. */
+	private suspend fun flushEpoch(): TimelineResult? {
+		val name = pendingEpoch ?: return null
+		val epoch = name.trim().ifEmpty { null }
+		val result = timelineService.updateDefinition { def ->
+			val calendar = def.calendar ?: CalendarDef()
+			if (calendar.preset != CalendarPreset.STORY) def else def.copy(calendar = calendar.copy(epochName = epoch))
+		}
+		if (pendingEpoch == name) pendingEpoch = null
+		return result
+	}
+
+	override fun onDestroy() {
+		super.onDestroy()
+		if (pendingEpoch != null) appScope.launch { flushEpoch() }
 	}
 
 	override fun setLaneOrder(order: List<String>) {
@@ -150,6 +181,15 @@ class TimelineSettingsComponent(
 	}
 
 	private companion object {
+		/** The epoch field writes on every keystroke; this keeps that to one write per pause. */
+		val EPOCH_DEBOUNCE = 600.milliseconds
+
+		/** The story's own coarsest unit when it names one, else a day, as long as the calendar offers it. */
+		fun spacingUnit(calendar: CalendarDef, units: List<CalendarUnit>): String {
+			val preferred = calendar.coarsestUnit?.takeIf { calendar.preset == CalendarPreset.STORY } ?: StoryCalendar.DAY
+			return units.firstOrNull { it.name == preferred }?.name ?: units.first().name
+		}
+
 		/** Day zero of a STORY calendar's entry units, or 1 January of year 1. */
 		fun spacingOrigin(calendar: CalendarDef): StoryDate = when (calendar.preset) {
 			CalendarPreset.STORY -> StoryDate(mapOf(entryUnits(calendar).first().name to 0L))

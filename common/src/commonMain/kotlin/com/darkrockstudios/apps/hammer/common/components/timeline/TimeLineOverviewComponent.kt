@@ -6,7 +6,6 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
 import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
 import com.darkrockstudios.apps.hammer.base.timeline.StoryCalendar
-import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
@@ -21,7 +20,6 @@ import com.darkrockstudios.apps.hammer.common.data.tagindex.TaggedEntityType
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineService
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineView
-import com.darkrockstudios.apps.hammer.common.data.timelinerepository.formatStoryDateRange
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -79,34 +77,27 @@ class TimeLineOverviewComponent(
 		val lanes = timelineService.lanes()
 		val laneIndex = lanes.withIndex().associate { (index, lane) -> lane to index }
 		val glances = withContext(dispatcherIo) { glanceSubjects(events, sceneRepository, encyclopediaRepository) }
+		val dated = view.def.mode == TimelineMode.DATED
+		val calendar = view.def.calendar ?: CalendarDef()
 
 		val rows = events.map { event ->
 			val glance = glances[event.id]
+			val start = event.start?.takeIf { dated && hasValidStart(event, calendar) }
 			TimelineRow(
 				event = event,
 				title = titles[event.id].orEmpty(),
 				subtitle = if (event.kind == TimelineKind.SCENE) glance?.chapterPath else null,
-				whenText = whenText(event, view.def),
+				whenText = event.label?.trim().orEmpty(),
 				laneIndex = event.lane?.let { laneIndex[it] },
 				subjectMissing = glance?.missing == true,
+				start = start,
+				end = event.end.takeIf { start != null },
+				calendar = calendar.takeIf { start != null },
 			)
 		}
 		val counts = events.mapNotNull { it.lane }.groupingBy { it }.eachCount()
-		val undated = if (view.def.mode == TimelineMode.DATED) {
-			val calendar = view.def.calendar ?: CalendarDef()
-			events.filterNot { hasValidStart(it, calendar) }.map { it.id }
-		} else {
-			emptyList()
-		}
+		val undated = if (dated) events.filterNot { hasValidStart(it, calendar) }.map { it.id } else emptyList()
 		return Built(rows, lanes.map { LaneCount(it, counts[it] ?: 0) }, undated)
-	}
-
-	private fun whenText(event: TimeLineEvent, def: TimelineDef): String {
-		val label = event.label?.trim().orEmpty()
-		if (def.mode == TimelineMode.MANUAL) return label
-		val calendar = def.calendar ?: CalendarDef()
-		val start = event.start?.takeIf { hasValidStart(event, calendar) } ?: return label
-		return formatStoryDateRange(calendar, start, event.end)
 	}
 
 	private fun hasValidStart(event: TimeLineEvent, calendar: CalendarDef): Boolean =

@@ -9,7 +9,13 @@ import com.darkrockstudios.apps.hammer.common.components.projecthome.timelineset
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineEventDraft
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineResult
 import components.timeline.TimelineComponentTestBase
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
@@ -26,7 +32,7 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 		(timelineService.createEvent(TimelineEventDraft(title = title, start = start)) as TimelineResult.Ok).event!!.id
 
 	@Test
-	fun `requesting dated opens the prompt with the coarsest unit selected`() = runTest(mainTestDispatcher) {
+	fun `requesting dated opens the prompt with a day selected`() = runTest(mainTestDispatcher) {
 		givenProject()
 		val component = newComponent()
 		context.resume()
@@ -36,7 +42,7 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 
 		val prompt = assertIs<ModeSwitchPrompt.ToDated>(component.state.value.pendingModeSwitch)
 		assertEquals(CalendarDef(CalendarPreset.STORY), prompt.calendar)
-		assertEquals("year", prompt.selectedUnit)
+		assertEquals("day", prompt.selectedUnit)
 		assertEquals(listOf("year", "day", "hour", "minute"), prompt.units.map { it.name })
 
 		component.cancelModeSwitch()
@@ -57,6 +63,20 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 		val prompt = assertIs<ModeSwitchPrompt.ToDated>(component.state.value.pendingModeSwitch)
 		assertEquals("hour", prompt.selectedUnit)
 		assertEquals(listOf("hour", "minute"), prompt.units.map { it.name })
+	}
+
+	@Test
+	fun `a gregorian calendar spaces by the day unless told otherwise`() = runTest(mainTestDispatcher) {
+		givenProject()
+		timelineService.updateDefinition { it.copy(calendar = CalendarDef(CalendarPreset.GREGORIAN)) }
+		val component = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		component.requestMode(TimelineMode.DATED)
+
+		val prompt = assertIs<ModeSwitchPrompt.ToDated>(component.state.value.pendingModeSwitch)
+		assertEquals("day", prompt.selectedUnit)
 	}
 
 	@Test
@@ -211,6 +231,49 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 		component.setCoarsestUnit("year")
 		advanceUntilIdle()
 		assertNull(timelineService.definition().calendar?.coarsestUnit)
+	}
+
+	@Test
+	fun `typing an epoch writes once, after the typing pauses`() = runTest(mainTestDispatcher) {
+		givenProject()
+		timelineService.switchToDated(CalendarDef())
+		val component = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		val stored = mutableListOf<String?>()
+		backgroundScope.launch {
+			timelineService.timelineFlow.map { it.def.calendar?.epochName }.distinctUntilChanged().toList(stored)
+		}
+		runCurrent()
+
+		component.setEpochName("L")
+		advanceTimeBy(100)
+		component.setEpochName("La")
+		advanceTimeBy(100)
+		component.setEpochName("Lan")
+		advanceTimeBy(599)
+		runCurrent()
+		assertNull(timelineService.definition().calendar?.epochName, "Nothing is written while typing")
+
+		advanceUntilIdle()
+
+		assertEquals("Lan", timelineService.definition().calendar?.epochName)
+		assertEquals(listOf(null, "Lan"), stored)
+	}
+
+	@Test
+	fun `an epoch still waiting is written when the settings close`() = runTest(mainTestDispatcher) {
+		givenProject()
+		timelineService.switchToDated(CalendarDef())
+		val component = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		component.setEpochName("Landing")
+		context.destroy()
+		advanceUntilIdle()
+
+		assertEquals("Landing", timelineService.definition().calendar?.epochName)
 	}
 
 	@Test

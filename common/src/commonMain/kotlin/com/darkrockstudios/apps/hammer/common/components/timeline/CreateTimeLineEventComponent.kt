@@ -229,12 +229,12 @@ class CreateTimeLineEventComponent(
 
 			TimelineKind.SCENE -> {
 				val subject = draft.subject ?: return TimeLineEventError.SUBJECT_REQUIRED
-				timelineService.placeScene(subject.id, start, end, draft.lane, draft.milestone)
+				timelineService.placeScene(subject.id, start, end, draft.lane, draft.milestone, shownWhen)
 			}
 
 			TimelineKind.ENTRY -> {
 				val subject = draft.subject ?: return TimeLineEventError.SUBJECT_REQUIRED
-				timelineService.placeEntry(subject.id, start, end, draft.lane, draft.milestone)
+				timelineService.placeEntry(subject.id, start, end, draft.lane, draft.milestone, shownWhen)
 			}
 		}
 
@@ -243,11 +243,6 @@ class CreateTimeLineEventComponent(
 			is TimelineResult.Ok -> result.event
 		}
 		Napier.i { "Time Line event created! ${created?.id}" }
-		// The service places without a label, so a placement's "when" is a second write.
-		if (created != null && created.kind.isPlacement && shownWhen != null) {
-			val labelled = timelineService.setLabel(created.id, shownWhen)
-			if (labelled is TimelineResult.Invalid) return labelled.error
-		}
 
 		withContext(dispatcherMain) {
 			_contentText.update { "" }

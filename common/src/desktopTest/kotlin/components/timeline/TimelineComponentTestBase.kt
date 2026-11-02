@@ -25,6 +25,7 @@ import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndexService
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineDatasource
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineService
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.APP_SCOPE
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectSpellCheckService
 import createProject
@@ -34,11 +35,13 @@ import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
 import net.peanuuutz.tomlkt.Toml
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.BeforeEach
+import org.koin.core.qualifier.named
 import org.koin.dsl.module
 import utils.ComponentTest
 import kotlin.time.Clock
@@ -84,6 +87,7 @@ abstract class TimelineComponentTestBase : ComponentTest() {
 		every { tagIndexService.tagIndex } returns MutableStateFlow(TagIndex.EMPTY)
 
 		setupKoin(module {
+			single<CoroutineScope>(named(APP_SCOPE)) { scope }
 			single { syncJournal }
 			single { syncJournalDatasource }
 			single { tagIndexService }

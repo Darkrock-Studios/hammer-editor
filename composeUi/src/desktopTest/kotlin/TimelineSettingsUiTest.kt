@@ -42,7 +42,7 @@ class TimelineSettingsUiTest : BaseTest() {
 				TimelineMode.DATED -> {
 					val calendar = _state.value.def.calendar ?: CalendarDef()
 					val units = entryUnits(calendar)
-					ModeSwitchPrompt.ToDated(units, units.first().name, calendar)
+					ModeSwitchPrompt.ToDated(units, "day", calendar)
 				}
 
 				TimelineMode.MANUAL -> ModeSwitchPrompt.ToManual
@@ -82,7 +82,7 @@ class TimelineSettingsUiTest : BaseTest() {
 	}
 
 	@Test
-	fun `Picking Dated opens the dialog with Space evenly by the coarsest unit`() {
+	fun `Picking Dated opens the dialog with Space evenly by the preselected unit`() {
 		val component = FakeSettings(TimelineSettings.State(isLoaded = true))
 		show(component)
 
@@ -92,7 +92,7 @@ class TimelineSettingsUiTest : BaseTest() {
 		compose.onNodeWithText("Switch to a dated timeline").assertIsDisplayed()
 		compose.onNodeWithText("SPACE EVENLY BY").assertIsDisplayed()
 		compose.onNodeWithTag(TIMELINE_MODE_DIALOG_UNIT_TAG).assertIsDisplayed()
-		compose.onNodeWithText("Year").assertIsDisplayed()
+		compose.onNodeWithText("Day").assertIsDisplayed()
 
 		compose.onNodeWithTag(TIMELINE_MODE_DIALOG_CONFIRM_TAG).performClick()
 		compose.waitForIdle()

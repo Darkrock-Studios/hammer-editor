@@ -31,7 +31,7 @@ interface TimelineSettings {
 	fun confirmPresetSwitch()
 	fun cancelPresetSwitch()
 
-	/** STORY only; blank clears it. */
+	/** STORY only; blank clears it. Written once calls pause, so a text field can call it per keystroke. */
 	fun setEpochName(name: String)
 
 	/** Every lane, in the order to show them; a lane's position is its colour index. */

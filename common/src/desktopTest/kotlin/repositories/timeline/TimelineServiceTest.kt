@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.base.timeline.CalendarPreset
 import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineLimits
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaDatasource
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
@@ -200,6 +201,19 @@ class TimelineServiceTest : BaseTest() {
 		assertEquals(TimeLineEventError.SUBJECT_NOT_FOUND, service.placeEntry(999, null, null, null, false).error())
 		assertEquals(TimeLineEventError.SUBJECT_WRONG_TYPE, service.placeScene(2, null, null, null, false).error())
 		assertEquals(emptyList(), timeLineRepository.currentEvents())
+	}
+
+	@Test
+	fun `a placement takes its label in the same write`() = runTest(mainTestDispatcher) {
+		val service = createService()
+		val tooLong = "x".repeat(TimelineLimits.MAX_LABEL + 1)
+
+		assertEquals(TimeLineEventError.LABEL_TOO_LONG, service.placeScene(4, null, null, null, false, tooLong).error())
+		assertEquals(TimeLineEventError.LABEL_TOO_LONG, service.placeEntry(TEA_PARTY, null, null, null, false, tooLong).error())
+		assertEquals(emptyList(), timeLineRepository.currentEvents())
+
+		val placed = service.placeScene(4, null, null, null, false, label = "At dawn").event()
+		assertEquals("At dawn", stored(placed.id).label)
 	}
 
 	@Test
