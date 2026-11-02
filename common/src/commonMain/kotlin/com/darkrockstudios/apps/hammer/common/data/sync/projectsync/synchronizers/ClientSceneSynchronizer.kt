@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.base.http.ApiSceneType
 import com.darkrockstudios.apps.hammer.base.http.EntityHash
 import com.darkrockstudios.apps.hammer.base.http.EntityType
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneContent
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
@@ -357,7 +358,7 @@ class ClientSceneSynchronizer(
 			oldId = oldId,
 			newId = newId,
 		)
-		return timelineReferenceRemapper.remap(oldId, newId)
+		return timelineReferenceRemapper.remap(oldId, newId, TimelineKind.SCENE)
 	}
 
 	override suspend fun finalizeSync() {

@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository
 
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
@@ -135,7 +136,12 @@ class SceneEditorService(
 			referenceIndexRepository.markSceneDeleted(scene.id)
 			writingSessionTracker.forgetBaseline(scene.id)
 			if (detachTimeline) {
-				timeLineRepository.detachSubject(scene.id, titleFallback = scene.name, markForSync = true)
+				timeLineRepository.detachSubject(
+					scene.id,
+					TimelineKind.SCENE,
+					titleFallback = scene.name,
+					markForSync = true,
+				)
 			}
 		}
 		return deleted

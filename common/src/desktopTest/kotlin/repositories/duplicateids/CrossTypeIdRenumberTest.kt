@@ -327,4 +327,23 @@ class CrossTypeIdRenumberTest : RationalizerTestBase() {
 		coVerify(exactly = 1) { syncJournal.markEntityAsDirty(1) }
 		coVerify(exactly = 1) { syncJournal.markEntityAsDirty(2) }
 	}
+
+	@Test
+	fun `Renumbering an entry moves only the entry placement when a scene shares its id`() = runTest {
+		write("scenes/0~Duel~7.md", "En garde")
+		write("encyclopedia/person/person~7~Bob.toml", entryToml(7, "Bob", "A blacksmith"))
+		writeTimeline(
+			TimeLineEvent(id = 1, order = 0, kind = TimelineKind.SCENE, subject = 7, cachedTitle = "Duel"),
+			TimeLineEvent(id = 2, order = 1, kind = TimelineKind.ENTRY, subject = 7, cachedTitle = "Bob"),
+		)
+		openStores()
+
+		service.resolveCrossTypeIds()
+
+		assertEquals(listOf("0~Duel~7.md"), filesIn("scenes"))
+		assertEquals(listOf("person/person~8~Bob.toml"), filesIn("encyclopedia"))
+		val timeline = storedTimeline()
+		assertEquals(7, timeline.getValue(1).subject)
+		assertEquals(8, timeline.getValue(2).subject)
+	}
 }

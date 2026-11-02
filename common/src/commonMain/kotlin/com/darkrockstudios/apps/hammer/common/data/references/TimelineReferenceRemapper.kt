@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.references
 
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CancellationException
@@ -11,9 +12,9 @@ import kotlinx.coroutines.CancellationException
 class TimelineReferenceRemapper(private val timeLineRepository: TimeLineRepository) {
 	/** Returns the ids of the timeline events that were rewritten. */
 	@Suppress("TooGenericExceptionCaught")
-	suspend fun remap(oldId: Int, newId: Int): Set<Int> =
+	suspend fun remap(oldId: Int, newId: Int, subjectKind: TimelineKind): Set<Int> =
 		try {
-			timeLineRepository.remapReferencedId(oldId, newId)
+			timeLineRepository.remapReferencedId(oldId, newId, subjectKind)
 		} catch (e: CancellationException) {
 			throw e
 		} catch (e: Exception) {

@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.encyclopediarepository
 
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContainer
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
@@ -103,7 +104,12 @@ class EncyclopediaService(
 			statisticsRepository.markDirty()
 			referenceIndexRepository.markEntryDeleted(entryDef.id)
 			if (detachTimeline) {
-				timeLineRepository.detachSubject(entryDef.id, titleFallback = entryDef.name, markForSync = true)
+				timeLineRepository.detachSubject(
+					entryDef.id,
+					TimelineKind.ENTRY,
+					titleFallback = entryDef.name,
+					markForSync = true,
+				)
 			}
 		}
 		return deleted

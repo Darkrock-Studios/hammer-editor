@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.EntityHash
 import com.darkrockstudios.apps.hammer.base.http.EntityType
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
@@ -57,7 +58,8 @@ class ClientEncyclopediaSynchronizer(
 
 	override suspend fun reIdEntity(oldId: Int, newId: Int): Set<Int> {
 		encyclopediaRepository.reIdEntry(oldId, newId)
-		return referenceRemapper.remapEntryReferences(oldId, newId) + timelineReferenceRemapper.remap(oldId, newId)
+		return referenceRemapper.remapEntryReferences(oldId, newId) +
+			timelineReferenceRemapper.remap(oldId, newId, TimelineKind.ENTRY)
 	}
 
 	override suspend fun finalizeSync() {

@@ -409,7 +409,7 @@ class TimeLineRepositoryTest : BaseTest() {
 		val projDef = getProjectDef(PROJECT_EMPTY_NAME)
 		val repo = referenceRepo(projDef)
 
-		val touched = repo.remapReferencedId(oldId = 4, newId = 40)
+		val touched = repo.remapReferencedId(oldId = 4, newId = 40, subjectKind = TimelineKind.SCENE)
 
 		assertEquals(setOf(20, 22), touched)
 		val stored = storedEvents(projDef)
@@ -427,7 +427,7 @@ class TimeLineRepositoryTest : BaseTest() {
 		val projDef = getProjectDef(PROJECT_EMPTY_NAME)
 		val repo = referenceRepo(projDef)
 
-		assertEquals(emptySet(), repo.remapReferencedId(oldId = 77, newId = 78))
+		assertEquals(emptySet(), repo.remapReferencedId(oldId = 77, newId = 78, subjectKind = TimelineKind.SCENE))
 		assertEquals(referenceEvents().associateBy { it.id }, storedEvents(projDef))
 	}
 
@@ -440,7 +440,12 @@ class TimeLineRepositoryTest : BaseTest() {
 		val projDef = getProjectDef(PROJECT_EMPTY_NAME)
 		val repo = referenceRepo(projDef)
 
-		val touched = repo.detachSubject(subjectId = 4, titleFallback = "Scene name", markForSync = true)
+		val touched = repo.detachSubject(
+			subjectId = 4,
+			subjectKind = TimelineKind.SCENE,
+			titleFallback = "Scene name",
+			markForSync = true,
+		)
 
 		assertEquals(setOf(20, 22), touched)
 		val stored = storedEvents(projDef)
@@ -464,7 +469,12 @@ class TimeLineRepositoryTest : BaseTest() {
 		val projDef = getProjectDef(PROJECT_EMPTY_NAME)
 		val repo = referenceRepo(projDef)
 
-		val touched = repo.detachSubject(subjectId = 5, titleFallback = "The Siege", markForSync = false)
+		val touched = repo.detachSubject(
+			subjectId = 5,
+			subjectKind = TimelineKind.ENTRY,
+			titleFallback = "The Siege",
+			markForSync = false,
+		)
 
 		assertEquals(setOf(21), touched)
 		assertEquals(
@@ -480,8 +490,61 @@ class TimeLineRepositoryTest : BaseTest() {
 		val projDef = getProjectDef(PROJECT_EMPTY_NAME)
 		val repo = referenceRepo(projDef)
 
-		repo.detachSubject(subjectId = 5, titleFallback = "x".repeat(TimelineLimits.MAX_TITLE + 10), markForSync = false)
+		repo.detachSubject(
+			subjectId = 5,
+			subjectKind = TimelineKind.ENTRY,
+			titleFallback = "x".repeat(TimelineLimits.MAX_TITLE + 10),
+			markForSync = false,
+		)
 
 		assertEquals("x".repeat(TimelineLimits.MAX_TITLE), storedEvents(projDef).getValue(21).title)
+	}
+
+	@Test
+	fun `detachSubject converts the placement on a repository that was never initialised`() = runTest {
+		createProject(ffs, PROJECT_EMPTY_NAME)
+		val projDef = getProjectDef(PROJECT_EMPTY_NAME)
+		setupTimelne(projDef, referenceEvents())
+		val repo = TimeLineRepository(
+			projectDef = projDef,
+			idAllocator = mockk(),
+			datasource = datasource,
+		)
+
+		val touched = repo.detachSubject(
+			subjectId = 5,
+			subjectKind = TimelineKind.ENTRY,
+			titleFallback = "The Siege",
+			markForSync = false,
+		)
+
+		assertEquals(setOf(21), touched)
+		assertEquals(
+			referenceEvents()[1].copy(kind = TimelineKind.EVENT, subject = null, title = "The Siege"),
+			storedEvents(projDef)[21],
+		)
+	}
+
+	@Test
+	fun `Concurrent updates to different events both persist`() = runTest {
+		every { syncJournal.isServerSynchronized() } returns false
+		createProject(ffs, PROJECT_EMPTY_NAME)
+		val projDef = getProjectDef(PROJECT_EMPTY_NAME)
+		val oldEvents = fakeEvents()
+		setupTimelne(projDef, oldEvents)
+		val repo = TimeLineRepository(
+			projectDef = projDef,
+			idAllocator = mockk(),
+			datasource = datasource,
+		).initialize()
+		advanceUntilIdle()
+
+		launch { repo.updateEvent(oldEvents[1].copy(content = "First")) }
+		launch { repo.updateEvent(oldEvents[2].copy(content = "Second")) }
+		advanceUntilIdle()
+
+		val stored = storedEvents(projDef)
+		assertEquals("First", stored.getValue(oldEvents[1].id).content)
+		assertEquals("Second", stored.getValue(oldEvents[2].id).content)
 	}
 }
