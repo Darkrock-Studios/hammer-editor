@@ -134,7 +134,7 @@ class TimelineDrawingInputTest {
 	}
 
 	@Test
-	fun `a coarse end draws through the end of its span`() {
+	fun `an end that holds the start draws through the end of its span`() {
 		val rows = listOf(
 			row(1, date("year" to 5, "day" to 10), end = date("year" to 5)),
 			row(2, date("year" to 5, "day" to 10, "hour" to 6), end = date("year" to 5, "day" to 10)),
