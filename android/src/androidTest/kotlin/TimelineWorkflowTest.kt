@@ -3,7 +3,6 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -48,10 +47,10 @@ class TimelineWorkflowTest {
 			composeRule.onAllNodesWithTag(TIME_LINE_CREATE_DATE_TAG).fetchSemanticsNodes().isNotEmpty()
 		}
 		composeRule.onNodeWithTag(TIME_LINE_CREATE_DATE_TAG).performTextInput("Year One")
-		composeRule.onNodeWithTag(TIME_LINE_CREATE_CONFIRM_TAG).performClick()
 
-		// Back on the overview, the new event card appears.
-		composeRule.waitUntil(10_000) {
+		// The keyboard is still sliding in from the typing above, so the tap can land where the
+		// button was a frame ago. Back on the overview, the new event card appears.
+		composeRule.clickUntil(hasTestTag(TIME_LINE_CREATE_CONFIRM_TAG)) {
 			composeRule.onAllNodesWithTag(EVENT_CARD_TAG).fetchSemanticsNodes().isNotEmpty()
 		}
 		composeRule.onAllNodesWithTag(EVENT_CARD_TAG)[0].assertIsDisplayed()
