@@ -130,7 +130,29 @@ class TimelineDrawingInputTest {
 		val events = input(listOf(row(1, date("year" to 1), end = date("year" to 3)))).events
 
 		assertEquals(1L, events.single().precisionExtent)
-		assertEquals(3 * year, events.single().end)
+		assertEquals(4 * year, events.single().end)
+	}
+
+	@Test
+	fun `a coarse end draws through the end of its span`() {
+		val rows = listOf(
+			row(1, date("year" to 5, "day" to 10), end = date("year" to 5)),
+			row(2, date("year" to 5, "day" to 10, "hour" to 6), end = date("year" to 5, "day" to 10)),
+			row(
+				3,
+				date("year" to 5, "day" to 10, "hour" to 6, "minute" to 0),
+				end = date("year" to 5, "day" to 10, "hour" to 8, "minute" to 30),
+			),
+		)
+
+		val layoutInput = input(rows)
+		val ends = layoutInput.events.associate { it.id to it.end }
+
+		assertEquals(6 * year, ends[1], "A year-precise end closes at the end of that year")
+		assertEquals(5 * year + 11 * day, ends[2], "A day-precise end on the start's day closes at its end")
+		assertEquals(5 * year + 10 * day + 8 * hour + 30, ends[3], "A minute-precise end is an instant")
+		val anchor = TimelineLayoutEngine.layout(layoutInput, MonospaceEstimateMeasurer()).anchors.getValue(1)
+		assertTrue(anchor.y1Dp!! > anchor.yDp, "the span is drawn with a length")
 	}
 
 	@Test

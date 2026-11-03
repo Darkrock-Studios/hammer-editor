@@ -7,6 +7,7 @@ import com.arkivanov.decompose.value.getAndUpdate
 import com.arkivanov.decompose.value.subscribe
 import com.arkivanov.essenty.backhandler.BackCallback
 import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
+import com.darkrockstudios.apps.hammer.base.timeline.StoryCalendar
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
@@ -194,7 +195,10 @@ class TimeLineOverviewComponent(
 		if (current.mode != TimelineMode.DATED || current.frame == TimelineFrame.Band(eventId)) return false
 		val row = current.rows?.firstOrNull { it.event.id == eventId }?.takeIf { it.isDrawn } ?: return false
 		val start = row.start ?: return false
-		return row.end != null || precisionExtent(row.calendar ?: CalendarDef(), start) > 1
+		val calendar = row.calendar ?: CalendarDef()
+		val end = row.end?.let { rangeEnd(calendar, it) } ?: return precisionExtent(calendar, start) > 1
+		val startAt = StoryCalendar.position(calendar, start) ?: return false
+		return end > startAt
 	}
 
 	override fun setFrame(frame: TimelineFrame) {

@@ -3,8 +3,7 @@ package com.darkrockstudios.apps.hammer.common.components.projectsync
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
-import com.darkrockstudios.apps.hammer.base.timeline.StoryDateProblem
-import com.darkrockstudios.apps.hammer.base.timeline.TimelineDateField
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineDateProblem
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineRuleProblem
 import com.darkrockstudios.apps.hammer.common.data.Msg
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
@@ -92,11 +91,6 @@ interface ProjectSynchronization {
 			/** The local image file, for display without decoding the base64 copy. */
 			val clientImagePath: HPath,
 		) : EntityConflict<ApiProjectEntity.ImageEntity>(serverImage, clientImage)
-	}
-
-	sealed interface TimelineDateProblem {
-		data class Invalid(val field: TimelineDateField, val problem: StoryDateProblem) : TimelineDateProblem
-		data object EndBeforeStart : TimelineDateProblem
 	}
 
 	sealed class EntityMergeError {

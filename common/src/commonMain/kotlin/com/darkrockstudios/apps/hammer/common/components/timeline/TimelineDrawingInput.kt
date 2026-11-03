@@ -50,7 +50,7 @@ fun toLayoutInput(
 		val lane = event.lane?.takeIf { it.isNotBlank() }
 		val start = row.start ?: return@mapNotNull null
 		val startPosition = StoryCalendar.position(calendar, start) ?: return@mapNotNull null
-		val end = row.end?.let { StoryCalendar.position(calendar, it) }
+		val end = row.end?.let { rangeEnd(calendar, it) }
 		val extent = if (end == null) precisionExtent(calendar, start) else 1L
 		val boxedPoint = lane != null && end == null && extent <= 1L
 		val marked = entryMark != null && event.kind == TimelineKind.ENTRY && !boxedPoint && row.title.isNotBlank()
@@ -85,6 +85,15 @@ internal fun precisionExtent(calendar: CalendarDef, start: StoryDate): Long =
 	} else {
 		1L
 	}
+
+/**
+ * Where a range closed by [end] stops: the end of [end]'s span, so "year 5" closes when year 5 does.
+ * A minute-precise end is an instant and stops where it starts. Null when [end] is invalid.
+ */
+internal fun rangeEnd(calendar: CalendarDef, end: StoryDate): Long? {
+	val span = StoryCalendar.span(calendar, end) ?: return null
+	return if (StoryCalendar.precision(calendar, end)?.name == StoryCalendar.MINUTE) span.first else span.last + 1
+}
 
 private fun TimelineKind.toLayoutKind(): LayoutKind = when (this) {
 	TimelineKind.EVENT -> LayoutKind.EVENT

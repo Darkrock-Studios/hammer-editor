@@ -26,6 +26,7 @@ import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
 import com.darkrockstudios.apps.hammer.base.timeline.StoryDateProblem
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineDateField
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineDateProblem
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineLimits
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineRuleProblem
@@ -177,7 +178,7 @@ internal fun TimelineEventConflict(
 	var endUnreadable by rememberSaveable(client) { mutableStateOf(false) }
 	var tagError by rememberSaveable(client) { mutableStateOf<String?>(null) }
 	var ruleProblem by remember(client) { mutableStateOf<TimelineRuleProblem?>(null) }
-	var dateProblem by remember(client) { mutableStateOf<ProjectSynchronization.TimelineDateProblem?>(null) }
+	var dateProblem by remember(client) { mutableStateOf<TimelineDateProblem?>(null) }
 
 	val contentDiff = rememberContentDiff(entityConflict.serverEntity.content, content)
 
@@ -477,11 +478,11 @@ internal fun TimelineRuleProblem.text(): String = when (this) {
 }
 
 @Composable
-internal fun ProjectSynchronization.TimelineDateProblem.text(): String = when (this) {
-	ProjectSynchronization.TimelineDateProblem.EndBeforeStart ->
+internal fun TimelineDateProblem.text(): String = when (this) {
+	TimelineDateProblem.EndBeforeStart ->
 		Res.string.sync_conflict_timeline_date_end_before_start.get()
 
-	is ProjectSynchronization.TimelineDateProblem.Invalid -> when (val p = problem) {
+	is TimelineDateProblem.Invalid -> when (val p = problem) {
 		is StoryDateProblem.UnknownUnit ->
 			Res.string.sync_conflict_timeline_date_unknown_unit.get(field.label(), p.unit)
 

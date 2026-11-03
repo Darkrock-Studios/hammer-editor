@@ -276,6 +276,8 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 				start = StoryDate(mapOf("year" to 2L, "day" to 3L, "hour" to 4L, "minute" to 5L)),
 			)
 		).event()
+		val instant = StoryDate(mapOf("year" to 2L, "day" to 3L, "hour" to 4L, "minute" to 5L))
+		val moment = timelineService.createEvent(TimelineEventDraft(title = "Moment", start = instant, end = instant)).event()
 		val component = newComponent()
 		context.resume()
 		advanceUntilIdle()
@@ -283,6 +285,7 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 		assertTrue(component.canFrame(siege.id))
 		assertTrue(component.canFrame(winter.id))
 		assertFalse(component.canFrame(bell.id))
+		assertFalse(component.canFrame(moment.id), "a range that starts and ends on the same minute draws no span")
 		assertFalse(component.canFrame(999), "no such event")
 
 		component.setFrame(TimelineFrame.Band(siege.id))

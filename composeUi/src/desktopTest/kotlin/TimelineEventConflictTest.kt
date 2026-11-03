@@ -10,6 +10,7 @@ import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
 import com.darkrockstudios.apps.hammer.base.timeline.StoryDateProblem
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineDateField
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineDateProblem
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineRuleProblem
 import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSynchronization
@@ -158,7 +159,7 @@ class TimelineEventConflictTest : BaseTest() {
 	fun `A date problem from the component is shown`() {
 		val component = RecordingSync(
 			error = ProjectSynchronization.EntityMergeError.TimelineEventMergeError(
-				dateProblem = ProjectSynchronization.TimelineDateProblem.Invalid(
+				dateProblem = TimelineDateProblem.Invalid(
 					TimelineDateField.START,
 					StoryDateProblem.OutOfRange("day", 400),
 				),

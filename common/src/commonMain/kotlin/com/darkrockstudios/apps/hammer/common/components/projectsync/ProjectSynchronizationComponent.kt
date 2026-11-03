@@ -10,7 +10,7 @@ import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.base.image.ImageFormat
 import com.darkrockstudios.apps.hammer.base.timeline.StoryCalendar
 import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
-import com.darkrockstudios.apps.hammer.base.timeline.TimelineDateField
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineDateProblem
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineEntityRules
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
@@ -499,21 +499,11 @@ class ProjectSynchronizationComponent(
 		}
 	}
 
-	private fun timelineDateProblem(start: StoryDate?, end: StoryDate?): ProjectSynchronization.TimelineDateProblem? {
+	private fun timelineDateProblem(start: StoryDate?, end: StoryDate?): TimelineDateProblem? {
 		val main = projectDataRepository.state.value?.data?.mainTimeline() ?: TimelineDef.DEFAULT
 		if (main.mode != TimelineMode.DATED) return null
 		val calendar = main.calendar ?: return null
-
-		start?.let { StoryCalendar.validate(calendar, it) }?.let {
-			return ProjectSynchronization.TimelineDateProblem.Invalid(TimelineDateField.START, it)
-		}
-		end?.let { StoryCalendar.validate(calendar, it) }?.let {
-			return ProjectSynchronization.TimelineDateProblem.Invalid(TimelineDateField.END, it)
-		}
-		if (start != null && end != null && !StoryCalendar.endFits(calendar, start, end)) {
-			return ProjectSynchronization.TimelineDateProblem.EndBeforeStart
-		}
-		return null
+		return StoryCalendar.rangeProblem(calendar, start, end)
 	}
 
 	private fun validateScene(resolvedEntity: ApiProjectEntity.SceneEntity): ProjectSynchronization.EntityMergeError.SceneMergeError? {

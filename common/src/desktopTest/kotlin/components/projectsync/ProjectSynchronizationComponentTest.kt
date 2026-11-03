@@ -7,6 +7,7 @@ import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
 import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
 import com.darkrockstudios.apps.hammer.base.timeline.StoryDateProblem
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineDateField
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineDateProblem
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
@@ -576,7 +577,7 @@ class ProjectSynchronizationComponentTest : ComponentTest() {
 
 		val mergeError = assertIs<ProjectSynchronization.EntityMergeError.TimelineEventMergeError>(error)
 		assertEquals(
-			ProjectSynchronization.TimelineDateProblem.Invalid(TimelineDateField.START, StoryDateProblem.NotAPrefix),
+			TimelineDateProblem.Invalid(TimelineDateField.START, StoryDateProblem.NotAPrefix),
 			mergeError.dateProblem,
 		)
 		assertNull(mergeError.ruleProblem)
@@ -596,7 +597,7 @@ class ProjectSynchronizationComponentTest : ComponentTest() {
 		val error = comp.resolveConflict(resolved)
 
 		val mergeError = assertIs<ProjectSynchronization.EntityMergeError.TimelineEventMergeError>(error)
-		assertEquals(ProjectSynchronization.TimelineDateProblem.EndBeforeStart, mergeError.dateProblem)
+		assertEquals(TimelineDateProblem.EndBeforeStart, mergeError.dateProblem)
 		verify(exactly = 0) { synchronizer.resolveConflict(any()) }
 	}
 

@@ -41,6 +41,14 @@ sealed interface StoryDateProblem {
 	data class OutOfRange(val unit: String, val value: Long) : StoryDateProblem
 }
 
+/** Why a start and end are not a valid range on a calendar. */
+sealed interface TimelineDateProblem {
+	data class Invalid(val field: TimelineDateField, val problem: StoryDateProblem) : TimelineDateProblem
+
+	/** The end's whole span falls before the start. */
+	data object EndBeforeStart : TimelineDateProblem
+}
+
 /**
  * Validation and arithmetic for [StoryDate]s. Positions are minutes from the epoch (STORY) or from
  * 1970-01-01 (GREGORIAN).
@@ -164,13 +172,26 @@ object StoryCalendar {
 	}
 
 	/**
-	 * Whether [end] can close a range opened by [start]: both are valid and [end]'s span reaches
-	 * [start], so a day-precise end may close an hour-precise start on the same day.
+	 * Whether [end] can close a range opened by [start]: [end]'s span reaches [start], so a
+	 * day-precise end may close an hour-precise start on the same day. False when either date is
+	 * invalid, since neither then has a position.
 	 */
 	fun endFits(calendar: CalendarDef, start: StoryDate, end: StoryDate): Boolean {
 		val startAt = position(calendar, start) ?: return false
 		val endSpan = span(calendar, end) ?: return false
 		return endSpan.last >= startAt
+	}
+
+	/**
+	 * The first problem with [start] and [end] as one range on [calendar]: an invalid start, an
+	 * invalid end, then an end that does not [fit][endFits]. Either date may be absent; whether one
+	 * is required is the caller's rule.
+	 */
+	fun rangeProblem(calendar: CalendarDef, start: StoryDate?, end: StoryDate?): TimelineDateProblem? {
+		start?.let { validate(calendar, it) }?.let { return TimelineDateProblem.Invalid(TimelineDateField.START, it) }
+		end?.let { validate(calendar, it) }?.let { return TimelineDateProblem.Invalid(TimelineDateField.END, it) }
+		if (start != null && end != null && !endFits(calendar, start, end)) return TimelineDateProblem.EndBeforeStart
+		return null
 	}
 
 	/** A full value per chain unit (omitted units at their lowest) and the finest filled index. */

@@ -5,6 +5,7 @@ import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
 import com.darkrockstudios.apps.hammer.base.timeline.CalendarPreset
 import com.darkrockstudios.apps.hammer.base.timeline.StoryCalendar
 import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineDateProblem
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineLimits
@@ -596,11 +597,11 @@ class TimelineService(
 		return when {
 			start == null && (def.mode == TimelineMode.DATED || end != null) -> TimeLineEventError.DATE_REQUIRED
 			start == null || calendar == null -> TimeLineEventError.NONE
-			StoryCalendar.validate(calendar, start) != null -> TimeLineEventError.DATE_INVALID
-			end == null -> TimeLineEventError.NONE
-			StoryCalendar.validate(calendar, end) != null -> TimeLineEventError.DATE_INVALID
-			!StoryCalendar.endFits(calendar, start, end) -> TimeLineEventError.END_BEFORE_START
-			else -> TimeLineEventError.NONE
+			else -> when (StoryCalendar.rangeProblem(calendar, start, end)) {
+				null -> TimeLineEventError.NONE
+				is TimelineDateProblem.Invalid -> TimeLineEventError.DATE_INVALID
+				TimelineDateProblem.EndBeforeStart -> TimeLineEventError.END_BEFORE_START
+			}
 		}
 	}
 

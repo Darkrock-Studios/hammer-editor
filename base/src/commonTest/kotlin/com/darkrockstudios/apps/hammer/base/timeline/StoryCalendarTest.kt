@@ -108,6 +108,51 @@ class StoryCalendarTest {
 	}
 
 	@Test
+	fun `a gregorian end fits when its span reaches the start`() {
+		val gregorian = CalendarDef(GREGORIAN)
+		val start = date("year" to 1850, "month" to 3, "day" to 14)
+		assertTrue(StoryCalendar.endFits(gregorian, start, date("year" to 1850, "month" to 3)))
+		assertTrue(StoryCalendar.endFits(gregorian, start, date("year" to 1850)))
+		assertFalse(StoryCalendar.endFits(gregorian, start, date("year" to 1850, "month" to 2)))
+		assertFalse(StoryCalendar.endFits(gregorian, start, date("year" to 1850, "month" to 3, "day" to 13)))
+	}
+
+	@Test
+	fun `a gregorian end before the common era fits by the same rule`() {
+		val gregorian = CalendarDef(GREGORIAN)
+		// Year -1 is 2 BCE.
+		val start = date("year" to -1, "month" to 6, "day" to 1)
+		assertTrue(StoryCalendar.endFits(gregorian, start, date("year" to -1)))
+		assertTrue(StoryCalendar.endFits(gregorian, start, date("year" to 0)))
+		assertFalse(StoryCalendar.endFits(gregorian, start, date("year" to -2)))
+		assertFalse(StoryCalendar.endFits(gregorian, start, date("year" to -1, "month" to 5)))
+	}
+
+	@Test
+	fun `a range reports an invalid start, then an invalid end, then an end before its start`() {
+		val calendar = CalendarDef(STORY)
+		val bad = date("day" to 3)
+		assertEquals(
+			TimelineDateProblem.Invalid(TimelineDateField.START, StoryDateProblem.NotAPrefix),
+			StoryCalendar.rangeProblem(calendar, bad, bad),
+		)
+		assertEquals(
+			TimelineDateProblem.Invalid(TimelineDateField.END, StoryDateProblem.NotAPrefix),
+			StoryCalendar.rangeProblem(calendar, date("year" to 5), bad),
+		)
+		assertEquals(
+			TimelineDateProblem.Invalid(TimelineDateField.END, StoryDateProblem.NotAPrefix),
+			StoryCalendar.rangeProblem(calendar, null, bad),
+		)
+		assertEquals(
+			TimelineDateProblem.EndBeforeStart,
+			StoryCalendar.rangeProblem(calendar, date("year" to 5, "day" to 10), date("year" to 4)),
+		)
+		assertNull(StoryCalendar.rangeProblem(calendar, date("year" to 5, "day" to 10), date("year" to 5)))
+		assertNull(StoryCalendar.rangeProblem(calendar, null, null))
+	}
+
+	@Test
 	fun `an invalid date never fits`() {
 		assertFalse(StoryCalendar.endFits(CalendarDef(STORY), date("day" to 3), date("year" to 5)))
 		assertFalse(StoryCalendar.endFits(CalendarDef(STORY), date("year" to 5), date("day" to 3)))
