@@ -343,22 +343,28 @@ class SceneRepository(
 		return fullPath.toHPath()
 	}
 
+	/**
+	 * Only [sceneItem]'s id is trusted. Callers such as an open editor hold a copy from before
+	 * earlier renames or reorders, and building the source path from it targets a file that is gone.
+	 */
 	suspend fun renameScene(sceneItem: SceneItem, newName: String): Boolean {
 		if (validateSceneName(newName).isFailure) return false
 
-		markForSynchronization(sceneItem)
+		val node = getSceneNodeFromId(sceneItem.id)
+			?: error("Failed to get scene for renaming: ${sceneItem.id}")
+		val current = node.value
+
+		markForSynchronization(current)
 
 		val cleanedNamed = newName.trim()
 
-		val oldPath = getSceneFilePath(sceneItem)
-		val newDef = sceneItem.copy(name = cleanedNamed)
+		val oldPath = resolveSceneContentPath(current)
+		val newDef = current.copy(name = cleanedNamed)
 
 		val newPath = getSceneFilePath(newDef)
 
 		sceneDatasource.moveScene(oldPath, newPath)
 
-		val node = getSceneNodeFromId(sceneItem.id)
-			?: error("Failed to get scene for renaming: ${sceneItem.id}")
 		node.value = newDef
 
 		reloadScenes()
