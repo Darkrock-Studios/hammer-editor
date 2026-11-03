@@ -130,7 +130,7 @@ class TimelineDrawingInputTest {
 		val events = input(listOf(row(1, date("year" to 1), end = date("year" to 3)))).events
 
 		assertEquals(1L, events.single().precisionExtent)
-		assertEquals(4 * year, events.single().end)
+		assertEquals(3 * year, events.single().end)
 	}
 
 	@Test
@@ -153,6 +153,28 @@ class TimelineDrawingInputTest {
 		assertEquals(5 * year + 10 * day + 8 * hour + 30, ends[3], "A minute-precise end is an instant")
 		val anchor = TimelineLayoutEngine.layout(layoutInput, MonospaceEstimateMeasurer()).anchors.getValue(1)
 		assertTrue(anchor.y1Dp!! > anchor.yDp, "the span is drawn with a length")
+	}
+
+	@Test
+	fun `ranges that hand off on the same day abut and share a band`() {
+		val rows = listOf(
+			row(1, date("year" to 1, "day" to 0), end = date("year" to 1, "day" to 2), lane = "Alice"),
+			row(2, date("year" to 1, "day" to 2), end = date("year" to 1, "day" to 5), lane = "Alice"),
+		)
+
+		val layoutInput = input(rows)
+		val layout = TimelineLayoutEngine.layout(layoutInput, MonospaceEstimateMeasurer())
+
+		assertEquals(year + 2 * day, layoutInput.events.single { it.id == 1 }.end)
+		assertEquals(listOf(1, 2), layout.bands.map { it.eventId }.sorted())
+		assertTrue(layout.bars.isEmpty())
+	}
+
+	@Test
+	fun `a range that starts and ends on the same day covers that day`() {
+		val events = input(listOf(row(1, date("year" to 1, "day" to 2), end = date("year" to 1, "day" to 2)))).events
+
+		assertEquals(year + 3 * day, events.single().end)
 	}
 
 	@Test

@@ -64,7 +64,7 @@ fun TimelineRow.toLayoutEvent(calendar: CalendarDef, laneFilter: Set<String>, en
 	if (subjectArchived || !passesLaneFilter(laneFilter)) return null
 	val startDate = start ?: return null
 	val startPosition = StoryCalendar.position(calendar, startDate) ?: return null
-	val endPosition = end?.let { rangeEnd(calendar, it) }
+	val endPosition = end?.let { rangeEnd(calendar, startPosition, it) }
 	val laid = LayoutEvent(
 		id = event.id,
 		kind = event.kind.toLayoutKind(),

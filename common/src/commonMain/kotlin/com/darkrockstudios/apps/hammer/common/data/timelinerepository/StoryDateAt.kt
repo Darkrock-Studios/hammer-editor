@@ -32,12 +32,18 @@ fun storyDateAt(calendar: CalendarDef, position: Long, unit: String): StoryDate 
 }
 
 /**
- * Where a range closed by [end] stops: the end of [end]'s span, so "year 5" closes when year 5 does.
- * A minute-precise end is an instant and stops where it starts. Null when [end] is invalid.
+ * Where a range from [startAt] closed by [end] stops: where [end] starts, so ranges that hand off on
+ * the same date abut. A range that starts inside [end]'s span ("year 5 day 10" to "year 5", or day 2
+ * to day 2) runs to the end of that span instead. A minute-precise end is an instant. Null when
+ * [end] is invalid.
  */
-fun rangeEnd(calendar: CalendarDef, end: StoryDate): Long? {
+fun rangeEnd(calendar: CalendarDef, startAt: Long, end: StoryDate): Long? {
 	val span = StoryCalendar.span(calendar, end) ?: return null
-	return if (StoryCalendar.precision(calendar, end)?.name == StoryCalendar.MINUTE) span.first else span.last + 1
+	return when {
+		StoryCalendar.precision(calendar, end)?.name == StoryCalendar.MINUTE -> span.first
+		span.first > startAt -> span.first
+		else -> span.last + 1
+	}
 }
 
 /**
@@ -47,7 +53,7 @@ fun rangeEnd(calendar: CalendarDef, end: StoryDate): Long? {
  */
 fun isMomentRange(calendar: CalendarDef, start: StoryDate, end: StoryDate): Boolean {
 	val startAt = StoryCalendar.position(calendar, start) ?: return false
-	val stop = rangeEnd(calendar, end) ?: return false
+	val stop = rangeEnd(calendar, startAt, end) ?: return false
 	return stop <= startAt
 }
 
