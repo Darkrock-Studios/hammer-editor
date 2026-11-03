@@ -14,7 +14,6 @@ import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.components.timeline.EventPreview
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineOverview
 import com.darkrockstudios.apps.hammer.common.components.timeline.basicPreview
-import com.darkrockstudios.apps.hammer.common.compose.rememberRootFabState
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagCount
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
@@ -43,7 +42,6 @@ fun ScreenTimeLineOverviewUiPreview() {
 					viewEvent = {},
 					sharedTransitionScope = this@SharedTransitionLayout,
 					animatedVisibilityScope = this@AnimatedVisibility,
-					rootFab = rememberRootFabState(),
 				)
 			}
 		}
@@ -67,7 +65,6 @@ fun ScreenTimeLineOverviewUiTabletPreview() {
 						viewEvent = {},
 						sharedTransitionScope = this@SharedTransitionLayout,
 						animatedVisibilityScope = this@AnimatedVisibility,
-						rootFab = rememberRootFabState(),
 					)
 				}
 			}
@@ -100,7 +97,6 @@ fun ScreenTimeLineOverviewUiDatedPreview() {
 						viewEvent = {},
 						sharedTransitionScope = this@SharedTransitionLayout,
 						animatedVisibilityScope = this@AnimatedVisibility,
-						rootFab = rememberRootFabState(),
 					)
 				}
 			}
@@ -135,7 +131,6 @@ private fun PhoneDatedOverview(dark: Boolean) {
 							viewEvent = {},
 							sharedTransitionScope = this@SharedTransitionLayout,
 							animatedVisibilityScope = this@AnimatedVisibility,
-							rootFab = rememberRootFabState(),
 						)
 					}
 				}

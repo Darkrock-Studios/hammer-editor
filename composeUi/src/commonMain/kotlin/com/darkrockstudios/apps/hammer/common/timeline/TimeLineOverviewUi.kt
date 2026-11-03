@@ -84,10 +84,10 @@ import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineOvervi
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimelineRow
 import com.darkrockstudios.apps.hammer.common.components.timeline.isDrawn
 import com.darkrockstudios.apps.hammer.common.components.timeline.passesLaneFilter
+import com.darkrockstudios.apps.hammer.common.compose.LocalRootFabState
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarGutter
 import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarList
-import com.darkrockstudios.apps.hammer.common.compose.RootFabState
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.WindowWidthSizeClass
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdActiveFiltersStrip
@@ -196,7 +196,6 @@ fun TimeLineOverviewUi(
 	viewEvent: (eventId: Int) -> Unit,
 	sharedTransitionScope: SharedTransitionScope,
 	animatedVisibilityScope: AnimatedVisibilityScope,
-	rootFab: RootFabState,
 	openEvent: (eventId: Int) -> Unit = viewEvent,
 	openedEventId: Int? = null,
 ) {
@@ -305,11 +304,13 @@ fun TimeLineOverviewUi(
 		}.collect(scrollStrip::followScrollPosition)
 	}
 	val scrollAway = rememberHdScrollAwayFooterState()
+	val rootFab = LocalRootFabState.current
 	LaunchedEffect(rootFab, scrollAway) {
+		rootFab ?: return@LaunchedEffect
 		snapshotFlow { scrollAway.isHiddenByScroll && !contentFits }.collect { rootFab.scrolledDown = it }
 	}
 	DisposableEffect(rootFab) {
-		onDispose { rootFab.scrolledDown = false }
+		onDispose { rootFab?.scrolledDown = false }
 	}
 
 	Column(

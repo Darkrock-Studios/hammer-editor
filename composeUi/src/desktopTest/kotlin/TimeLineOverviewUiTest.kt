@@ -32,6 +32,7 @@ import com.darkrockstudios.apps.hammer.common.components.timeline.ViewTimeLineEv
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimelineRow
 import com.darkrockstudios.apps.hammer.common.components.timeline.basicPreview
 import com.darkrockstudios.apps.hammer.common.compose.LocalImageNames
+import com.darkrockstudios.apps.hammer.common.compose.LocalRootFabState
 import com.darkrockstudios.apps.hammer.common.compose.RootFabState
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.ScreenCharacteristics
@@ -162,16 +163,17 @@ class TimeLineOverviewUiTest : BaseTest() {
 								viewEvent = viewEvent,
 								sharedTransitionScope = this@SharedTransitionLayout,
 								animatedVisibilityScope = this@AnimatedVisibility,
-								rootFab = rootFab,
 							)
 						}
 					}
 				}
 			}
-			if (screen != null) {
-				CompositionLocalProvider(LocalScreenCharacteristic provides screen, content = content)
-			} else {
-				content()
+			CompositionLocalProvider(LocalRootFabState provides rootFab) {
+				if (screen != null) {
+					CompositionLocalProvider(LocalScreenCharacteristic provides screen, content = content)
+				} else {
+					content()
+				}
 			}
 		}
 	}
@@ -839,7 +841,9 @@ class TimeLineOverviewUiTest : BaseTest() {
 			)
 		)
 		every { timeline.eventDialog } returns eventDialog
-		compose.setContent { TimelineFab(timeline, rootFab) }
+		compose.setContent {
+			CompositionLocalProvider(LocalRootFabState provides rootFab) { TimelineFab(timeline) }
+		}
 	}
 
 	private val eventDialog = MutableValue<ChildSlot<TimeLine.EventDialogConfig, ViewTimeLineEvent>>(ChildSlot())

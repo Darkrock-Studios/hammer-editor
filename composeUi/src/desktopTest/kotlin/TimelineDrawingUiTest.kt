@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.timeline.drawing.TIMELINE_HIT_TAG
 import com.darkrockstudios.apps.hammer.common.timeline.drawing.TimelineDrawing
 import com.darkrockstudios.apps.hammer.common.timeline.drawing.testTag
+import com.darkrockstudios.apps.hammer.common.timeline.layout.BandShape
 import com.darkrockstudios.apps.hammer.common.timeline.layout.HitRegion
 import com.darkrockstudios.apps.hammer.common.timeline.layout.HitTarget
 import com.darkrockstudios.apps.hammer.common.timeline.layout.MonospaceEstimateMeasurer
@@ -32,6 +33,7 @@ import com.darkrockstudios.apps.hammer.common.timeline.layout.samples.TimelineLa
 import org.junit.Rule
 import org.junit.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
@@ -45,21 +47,19 @@ class TimelineDrawingUiTest {
 	private val layout: TimelineLayout = TimelineLayoutEngine.layout(input, MonospaceEstimateMeasurer())
 
 	private fun show(
-		layout: TimelineLayout = this.layout,
-		selectedId: Int? = null,
+		layout: () -> TimelineLayout = { this.layout },
+		initialPeekId: Int? = null,
 		onTap: (HitTarget) -> Unit = {},
-		onPeek: (Int?) -> Unit = {},
 		highlighted: Set<Int> = emptySet(),
 	) {
 		compose.setContent {
 			MaterialTheme {
-				Box(modifier = Modifier.requiredWidth(layout.widthDp.dp).testTag(HOST_TAG)) {
+				Box(modifier = Modifier.requiredWidth(layout().widthDp.dp).testTag(HOST_TAG)) {
 					TimelineDrawing(
-						layout = layout,
+						layout = layout(),
 						laneColor = { Color.Gray },
-						selectedId = selectedId,
 						onTap = onTap,
-						onPeek = onPeek,
+						initialPeekId = initialPeekId,
 						highlighted = highlighted,
 						focusedId = highlighted.firstOrNull(),
 						titles = input.events.associate { it.id to it.title },
@@ -78,6 +78,24 @@ class TimelineDrawingUiTest {
 		assertEquals(region.rect.width, (bounds.right - bounds.left).value, absoluteTolerance = tolerance)
 		assertEquals(region.rect.height, (bounds.bottom - bounds.top).value, absoluteTolerance = tolerance)
 	}
+
+	/**
+	 * The drawing's pixels across the other lanes level with the middle of [band], which its projection
+	 * tints. The host, not the root: a tooltip opens a second root.
+	 */
+	private fun besideBand(band: BandShape): List<Int> {
+		val density = compose.density.density
+		val pixels = compose.onNodeWithTag(HOST_TAG).captureToImage().toPixelMap()
+		val y = ((band.rect.y + band.rect.height / 2f) * density).toInt()
+		val x0 = ((layout.laneRegion.x + 2f) * density).toInt()
+		val x1 = ((layout.laneRegion.right - 2f) * density).toInt()
+		val ownLane = ((band.rect.x - 2f) * density).toInt()..((band.rect.right + 2f) * density).toInt()
+		return (x0 until x1).filter { it !in ownLane }.map { pixels[it, y].hashCode() }
+	}
+
+	private fun drawn(): IntArray = compose.onNodeWithTag(HOST_TAG).captureToImage().toPixelMap().buffer
+
+	private val tallBand get() = layout.bands.filter { it.rect.height > 12f }.minBy { it.rect.y }
 
 	private val hitNodes = SemanticsMatcher("is a hit region") { node ->
 		node.config.getOrNull(SemanticsProperties.TestTag)?.startsWith(TIMELINE_HIT_TAG) == true
@@ -106,36 +124,69 @@ class TimelineDrawingUiTest {
 	}
 
 	@Test
-	fun `A long press peeks at its event until the press is released`() {
+	fun `A long press projects its event until the press is released`() {
 		val tapped = mutableListOf<HitTarget>()
-		val peeks = mutableListOf<Int?>()
-		show(onTap = { tapped += it }, onPeek = { peeks += it })
-		val band = layout.bands.minBy { it.rect.y }
+		show(onTap = { tapped += it })
+		val band = tallBand
+		val before = besideBand(band)
 		val node = compose.onNodeWithTag(HitTarget.Band(band.eventId).testTag())
 
 		node.performTouchInput { down(center) }
 		compose.mainClock.advanceTimeBy(1_000)
 		compose.waitForIdle()
 
-		assertEquals(listOf<Int?>(band.eventId), peeks)
+		assertNotEquals(before, besideBand(band), "the held event is projected")
 
 		node.performTouchInput { up() }
 		compose.waitForIdle()
 
-		assertEquals(listOf(band.eventId, null), peeks)
+		assertEquals(before, besideBand(band), "the projection ends on release")
 		assertEquals(emptyList(), tapped, "A long press does not tap")
 	}
 
 	@Test
 	fun `A tap does not peek`() {
-		val peeks = mutableListOf<Int?>()
-		show(onPeek = { peeks += it })
-		val row = layout.ledgerRows.minBy { it.anchorYDp }
+		show()
+		val band = tallBand
+		val before = besideBand(band)
 
-		compose.onNodeWithTag(HitTarget.Ledger(row.eventId).testTag()).performClick()
+		compose.onNodeWithTag(HitTarget.Band(band.eventId).testTag()).performClick()
 		compose.waitForIdle()
 
-		assertEquals(emptyList(), peeks)
+		assertEquals(before, besideBand(band))
+	}
+
+	@Test
+	fun `A relayout that drops the held event ends the peek, for every box and for the event's return`() {
+		val band = tallBand
+		val held = layout.hitRegions.indexOfFirst { it.target == HitTarget.Band(band.eventId) }
+		val without = TimelineLayoutEngine.layout(
+			input.copy(events = input.events.filter { it.id != band.eventId }),
+			MonospaceEstimateMeasurer(),
+		)
+		val successor = without.hitRegions.getOrNull(held)?.target
+		assertTrue(successor != null && successor !is HitTarget.LaneHeader, "another event's box takes the held box's place")
+		var shown by mutableStateOf(without)
+		show(layout = { shown })
+		val withoutAtRest = drawn()
+		compose.runOnIdle { shown = layout }
+		compose.waitForIdle()
+		val atRest = drawn()
+
+		val node = compose.onNodeWithTag(HitTarget.Band(band.eventId).testTag())
+		node.performTouchInput { down(center) }
+		compose.mainClock.advanceTimeBy(1_000)
+		compose.waitForIdle()
+		assertTrue(!atRest.contentEquals(drawn()), "the held event is projected")
+
+		compose.runOnIdle { shown = without }
+		compose.waitForIdle()
+		assertTrue(withoutAtRest.contentEquals(drawn()), "nothing is peeked once the held event leaves")
+
+		compose.runOnIdle { shown = layout }
+		compose.waitForIdle()
+		assertTrue(atRest.contentEquals(drawn()), "the press is still held, but its peek ended")
+		node.performTouchInput { up() }
 	}
 
 	@Test
@@ -185,7 +236,7 @@ class TimelineDrawingUiTest {
 	@Test
 	fun `A search veils everything but its matches`() {
 		val (match, other) = layout.bands.filter { it.rect.height > 12f }.sortedBy { it.rect.y }.take(2)
-		fun centre(band: com.darkrockstudios.apps.hammer.common.timeline.layout.BandShape): androidx.compose.ui.graphics.Color {
+		fun centre(band: BandShape): androidx.compose.ui.graphics.Color {
 			val density = compose.density.density
 			val pixels = compose.onNodeWithTag(HOST_TAG).captureToImage().toPixelMap()
 			return pixels[((band.rect.x + band.rect.width / 2f) * density).toInt(), ((band.rect.y + band.rect.height / 2f) * density).toInt()]
@@ -197,7 +248,6 @@ class TimelineDrawingUiTest {
 					TimelineDrawing(
 						layout = layout,
 						laneColor = { Color(0xFF3366CC) },
-						selectedId = null,
 						onTap = {},
 						highlighted = highlighted,
 						focusedId = highlighted.firstOrNull(),
@@ -216,11 +266,11 @@ class TimelineDrawingUiTest {
 	}
 
 	@Test
-	fun `A selected span is projected across the lanes from its start to its end`() {
+	fun `A peeked span is projected across the lanes from its start to its end`() {
 		val band = layout.bands
 			.filter { band -> input.events.first { it.id == band.eventId }.end != null }
 			.maxBy { it.rect.height }
-		show(selectedId = band.eventId)
+		show(initialPeekId = band.eventId)
 
 		val projection = assertNotNull(layout.projectionOf(band.eventId))
 		assertEquals(band.eventId, projection.eventId)

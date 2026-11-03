@@ -134,12 +134,6 @@ internal fun DatedTimelinePane(
 			scrollState.animateScrollTo((top - viewportPx / 3f).roundToInt().coerceIn(0, scrollState.maxValue))
 		}
 
-		var peekedId by remember { mutableStateOf<Int?>(null) }
-		// An event that leaves the drawing mid-peek ends the peek, so it cannot come back projected.
-		LaunchedEffect(layout) {
-			if (peekedId?.let(layout::projectionOf) == null) peekedId = null
-		}
-
 		// Until its preview arrives a card shows what the row already knows.
 		val rowsById = remember(rows) { rows.associateBy { it.event.id } }
 		val previews = remember(rows) { mutableStateMapOf<Int, EventPreview>() }
@@ -156,9 +150,7 @@ internal fun DatedTimelinePane(
 		TimelineDrawingPane(
 			layout = layout,
 			laneColor = { index -> colors.laneColor(paletteIndex.getOrElse(index) { index }) },
-			selectedId = peekedId,
 			onTap = onTap,
-			onPeek = { peekedId = it },
 			eventSource = eventSource,
 			titles = titles,
 			laneHeaderDescription = describeLane,

@@ -42,7 +42,6 @@ private fun SampleDrawing(input: TimelineLayoutInput, dark: Boolean = false) {
 			TimelineDrawing(
 				layout = layout,
 				laneColor = colors::laneColor,
-				selectedId = null,
 				onTap = {},
 				titles = input.events.associate { it.id to it.title },
 				measurer = rememberTimelineTextMeasurer(input.phone),
@@ -123,8 +122,8 @@ private fun PhoneSelectionDrawing(dark: Boolean) {
 				TimelineDrawingPane(
 					layout = layout,
 					laneColor = colors::laneColor,
-					selectedId = HOLLOWMERE_FINDS_BODY,
 					onTap = {},
+					initialPeekId = HOLLOWMERE_FINDS_BODY,
 					titles = input.events.associate { it.id to it.title },
 					measurer = rememberTimelineTextMeasurer(phone = true),
 					modifier = Modifier.fillMaxSize(),

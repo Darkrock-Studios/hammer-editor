@@ -23,14 +23,13 @@ import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
 import com.darkrockstudios.apps.hammer.common.compose.ProjectShortcutHost
-import com.darkrockstudios.apps.hammer.common.compose.RootFabState
+import com.darkrockstudios.apps.hammer.common.compose.ProvideRootFabState
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.defaultScaffold
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdBottomBar
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNavRail
 import com.darkrockstudios.apps.hammer.common.compose.fab
-import com.darkrockstudios.apps.hammer.common.compose.rememberRootFabState
 import com.darkrockstudios.apps.hammer.common.compose.rememberRootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.rememberWindowSizeClass
 import com.darkrockstudios.apps.hammer.common.compose.rootElement
@@ -53,16 +52,17 @@ fun ProjectRootScaffold(
 	val shouldConfirmClose by component.closeRequestHandlers.subscribeAsState()
 	val themeState by component.projectTheme.subscribeAsState()
 	val rootSnackbar = rememberRootSnackbarHostState()
-	val rootFab = rememberRootFabState()
 	val coroutineScope = rememberCoroutineScope()
 
 	ProjectThemeOverride(themeState.theme) {
-		BoxWithConstraints {
-			val windowSizeClass = rememberWindowSizeClass(constraints)
-			when (windowSizeClass.widthSizeClass) {
-				WindowWidthSizeClass.Compact -> CompactNavigation(component, rootSnackbar, rootFab, shortcutHost)
-				WindowWidthSizeClass.Medium,
-				WindowWidthSizeClass.Expanded -> RailNavigation(component, rootSnackbar, rootFab, shortcutHost)
+		ProvideRootFabState {
+			BoxWithConstraints {
+				val windowSizeClass = rememberWindowSizeClass(constraints)
+				when (windowSizeClass.widthSizeClass) {
+					WindowWidthSizeClass.Compact -> CompactNavigation(component, rootSnackbar, shortcutHost)
+					WindowWidthSizeClass.Medium,
+					WindowWidthSizeClass.Expanded -> RailNavigation(component, rootSnackbar, shortcutHost)
+				}
 			}
 		}
 
@@ -83,7 +83,6 @@ fun ProjectRootScaffold(
 private fun CompactNavigation(
 	component: ProjectRoot,
 	rootSnackbar: RootSnackbarHostState,
-	rootFab: RootFabState,
 	shortcutHost: ProjectShortcutHost?,
 ) {
 	val router by component.routerState.subscribeAsState()
@@ -95,7 +94,6 @@ private fun CompactNavigation(
 			ProjectRootUi(
 				component,
 				rootSnackbar,
-				rootFab,
 				modifier = Modifier.rootElement(scaffoldPadding),
 				navWidth = 0.dp,
 				shortcutHost = shortcutHost,
@@ -111,7 +109,7 @@ private fun CompactNavigation(
 			)
 		},
 		floatingActionButton = {
-			ProjectRootFab(component, rootFab, Modifier.fab())
+			ProjectRootFab(component, Modifier.fab())
 		}
 	)
 }
@@ -120,7 +118,6 @@ private fun CompactNavigation(
 private fun RailNavigation(
 	component: ProjectRoot,
 	rootSnackbar: RootSnackbarHostState,
-	rootFab: RootFabState,
 	shortcutHost: ProjectShortcutHost?,
 ) {
 	val router by component.routerState.subscribeAsState()
@@ -156,7 +153,6 @@ private fun RailNavigation(
 				ProjectRootUi(
 					component,
 					rootSnackbar,
-					rootFab,
 					navRailWidth,
 					Modifier.padding(scaffoldPadding),
 					shortcutHost = shortcutHost,
@@ -164,7 +160,7 @@ private fun RailNavigation(
 			}
 		},
 		floatingActionButton = {
-			ProjectRootFab(component, rootFab, Modifier.fab())
+			ProjectRootFab(component, Modifier.fab())
 		}
 	)
 }

@@ -32,7 +32,7 @@ import com.arkivanov.decompose.extensions.compose.experimental.stack.animation.s
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLine
-import com.darkrockstudios.apps.hammer.common.compose.RootFabState
+import com.darkrockstudios.apps.hammer.common.compose.LocalRootFabState
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFab
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
@@ -51,7 +51,6 @@ private const val DIALOG_FADE_IN_MS = 180
 fun TimeLineUi(
 	component: TimeLine,
 	rootSnackbar: RootSnackbarHostState,
-	rootFab: RootFabState,
 	modifier: Modifier = Modifier,
 ) {
 	val scope = rememberCoroutineScope()
@@ -82,7 +81,6 @@ fun TimeLineUi(
 							viewEvent = component::showViewEvent,
 							openEvent = component::showEventDialog,
 							openedEventId = dialog.child?.instance?.eventId,
-							rootFab = rootFab,
 							sharedTransitionScope = this@SharedTransitionLayout,
 							animatedVisibilityScope = this@ChildStack,
 						)
@@ -190,7 +188,6 @@ private fun rememberDialogBackProgress(component: TimeLine, dialog: ViewTimeLine
 @Composable
 fun TimelineFab(
 	component: TimeLine,
-	rootFab: RootFabState,
 	modifier: Modifier = Modifier,
 ) {
 	val stack by component.stack.subscribeAsState()
@@ -198,7 +195,11 @@ fun TimelineFab(
 	when (stack.active.instance) {
 		is TimeLine.Destination.TimeLineOverviewDestination -> {
 			if (dialog.child == null) {
-				OverviewFab(scrolledDown = rootFab.scrolledDown, onCreate = component::showCreateEvent, modifier = modifier)
+				OverviewFab(
+					scrolledDown = LocalRootFabState.current?.scrolledDown == true,
+					onCreate = component::showCreateEvent,
+					modifier = modifier,
+				)
 			}
 		}
 

@@ -152,20 +152,21 @@ private class TimelineInk(
  * A dated timeline drawn from [layout]: one canvas for the ink plus a transparent hit layer with a
  * button per [HitRegion]. [laneColor] maps a layout lane index to its colour; [titles] names events
  * for screen readers and tooltips where the layout only holds a fitted label. A long press on an
- * event tells [onPeek] its id, and its release tells [onPeek] null. Hovering an event on desktop, or
- * a long press on touch, shows [hoverCard] for it in a rich tooltip at the event, after telling
- * [onHoverStart] so the card's content can be fetched. [eventSource] is drawn inside each event's
- * mark, the first hit box drawn for it, so a transition can start from it. [highlighted] events are
- * ringed in the accent colour, and [focusedId] more heavily, as search matches.
+ * event peeks at it: the event is projected across the lanes until the press is released, or until a
+ * relayout drops or moves the held box. [initialPeekId] starts the drawing peeking at an event, for
+ * previews. Hovering an event on desktop, or a long press on touch, shows [hoverCard] for it in a
+ * rich tooltip at the event, after telling [onHoverStart] so the card's content can be fetched.
+ * [eventSource] is drawn inside each event's mark, the first hit box drawn for it, so a transition can
+ * start from it. [highlighted] events are ringed in the accent colour, and [focusedId] more heavily,
+ * as search matches.
  */
 @Composable
 fun TimelineDrawing(
 	layout: TimelineLayout,
 	laneColor: (Int) -> Color,
-	selectedId: Int?,
 	onTap: (HitTarget) -> Unit,
 	modifier: Modifier = Modifier,
-	onPeek: (eventId: Int?) -> Unit = {},
+	initialPeekId: Int? = null,
 	titles: Map<Int, String> = emptyMap(),
 	laneHeaderDescription: (String) -> String = { it },
 	measurer: ComposeTimelineTextMeasurer = rememberTimelineTextMeasurer(),
@@ -180,28 +181,30 @@ fun TimelineDrawing(
 		TimelineInk(scheme.surface, scheme.onSurface, scheme.onSurfaceVariant, scheme.outlineVariant, scheme.primary)
 	}
 	val descriptions = remember(layout, titles) { describeTargets(layout, titles) }
-	// Outlives the draw cache, which a selection, hover or search change rebuilds.
+	// Outlives the draw cache, which a peek, hover or search change rebuilds.
 	val texts = remember(layout, measurer) { HashMap<Pair<String, LabelStyle>, TextLayoutResult>() }
 	val marks = remember(layout) {
 		val seen = HashSet<Int>()
 		layout.hitRegions.mapIndexedNotNullTo(HashSet()) { i, region -> i.takeIf { region.target.eventId?.let(seen::add) == true } }
 	}
 	var hoveredLedgerId by remember { mutableStateOf<Int?>(null) }
-	val currentOnPeek by rememberUpdatedState(onPeek)
 	// The pressed hit box, not its event: an event's mark and its label are separate boxes.
-	var peekedIndex by remember { mutableStateOf<Int?>(null) }
-	// Watches every gesture without consuming it, so a peek ends on release wherever the pointer is,
-	// even when the peek lays the drawing out again under it.
+	var peeked by remember {
+		mutableStateOf(initialPeekId?.let { id -> layout.hitRegions.firstOrNull { it.target.eventId == id } })
+	}
+	// Only a box this layout still draws, where it was pressed, is held; any other peek ends.
+	val held = remember(layout, peeked) { peeked?.takeIf { it in layout.hitRegions } }
+	LaunchedEffect(held) {
+		if (held == null) peeked = null
+	}
+	// Watches every gesture without consuming it, so a peek ends on release wherever the pointer is.
 	val peekRelease = Modifier.pointerInput(Unit) {
 		awaitEachGesture {
 			awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Final)
 			do {
 				val event = awaitPointerEvent(PointerEventPass.Final)
 			} while (event.changes.any { it.pressed })
-			if (peekedIndex != null) {
-				peekedIndex = null
-				currentOnPeek(null)
-			}
+			peeked = null
 		}
 	}
 
@@ -210,7 +213,7 @@ fun TimelineDrawing(
 			modifier = Modifier
 				.matchParentSize()
 				.drawWithCache {
-					val painter = TimelinePainter(layout, ink, laneColor, selectedId, measurer, texts, highlighted, focusedId)
+					val painter = TimelinePainter(layout, ink, laneColor, held?.target?.eventId, measurer, texts, highlighted, focusedId)
 					// Read while drawing, so a hover only redraws.
 					onDrawBehind { with(painter) { draw(hoveredLedgerId) } }
 				},
@@ -229,12 +232,11 @@ fun TimelineDrawing(
 					hoverTooltips && (target is HitTarget.Ledger || target is HitTarget.Band) -> HitTooltip.Description
 					else -> null
 				},
-				peeked = index == peekedIndex,
+				peeked = region == held,
 				onTap = onTap,
 				onPeek = { id ->
-					peekedIndex = index
+					peeked = region
 					onHoverStart(id)
-					onPeek(id)
 				},
 				onHover = if (hoverTooltips && target.eventId != null) {
 					{ id, hovered ->
@@ -290,10 +292,9 @@ private fun HitLayer(
 fun TimelineDrawingPane(
 	layout: TimelineLayout,
 	laneColor: (Int) -> Color,
-	selectedId: Int?,
 	onTap: (HitTarget) -> Unit,
 	modifier: Modifier = Modifier,
-	onPeek: (eventId: Int?) -> Unit = {},
+	initialPeekId: Int? = null,
 	contentWidth: Dp? = null,
 	titles: Map<Int, String> = emptyMap(),
 	laneHeaderDescription: (String) -> String = { it },
@@ -318,10 +319,9 @@ fun TimelineDrawingPane(
 			TimelineDrawing(
 				layout = layout,
 				laneColor = laneColor,
-				selectedId = selectedId,
 				onTap = onTap,
 				modifier = if (contentWidth != null) Modifier.width(contentWidth) else Modifier,
-				onPeek = onPeek,
+				initialPeekId = initialPeekId,
 				titles = titles,
 				laneHeaderDescription = laneHeaderDescription,
 				measurer = measurer,
@@ -465,7 +465,7 @@ private class TimelinePainter(
 	private val layout: TimelineLayout,
 	private val ink: TimelineInk,
 	private val laneColor: (Int) -> Color,
-	private val selectedId: Int?,
+	private val peekedId: Int?,
 	private val measurer: ComposeTimelineTextMeasurer,
 	private val texts: HashMap<Pair<String, LabelStyle>, TextLayoutResult>,
 	private val highlighted: Set<Int>,
@@ -473,7 +473,7 @@ private class TimelinePainter(
 ) {
 	private var glyphText: TextLayoutResult? = null
 
-	/** [hoveredLedgerId] is the ledger row under the pointer, projected more lightly than the selection. */
+	/** [hoveredLedgerId] is the ledger row under the pointer, projected more lightly than the peek. */
 	fun DrawScope.draw(hoveredLedgerId: Int?) {
 		drawChrome()
 		for (band in layout.bands) drawBand(band.rect, band.laneIndex, band.shadeIndex, band.circa, band.eventId)
@@ -484,7 +484,7 @@ private class TimelinePainter(
 		for (point in layout.points) point.label?.let { drawLeaderLabel(it, laneColor(point.laneIndex)) }
 		drawMilestoneRules()
 		drawLedger()
-		if (hoveredLedgerId != selectedId) drawHoverProjection(hoveredLedgerId)
+		if (hoveredLedgerId != peekedId) drawHoverProjection(hoveredLedgerId)
 		drawProjection()
 		drawMatches()
 	}
@@ -633,7 +633,7 @@ private class TimelinePainter(
 		} else {
 			drawRect(fill, at(rect.x, top), Size(px(rect.width), px(height)))
 		}
-		if (eventId == selectedId) drawSelection(rect)
+		if (eventId == peekedId) drawSelection(rect)
 	}
 
 	private fun DrawScope.drawBar(rect: RectDp, laneIndex: Int, circa: Boolean, eventId: Int) {
@@ -644,7 +644,7 @@ private class TimelinePainter(
 		} else {
 			drawRect(base.copy(alpha = .7f), at(rect.x, rect.y), Size(px(rect.width), px(rect.height)))
 		}
-		if (eventId == selectedId) drawSelection(rect)
+		if (eventId == peekedId) drawSelection(rect)
 	}
 
 	private fun DrawScope.drawSelection(rect: RectDp) {
@@ -749,7 +749,7 @@ private class TimelinePainter(
 				)
 			}
 		}
-		if (eventId == selectedId) {
+		if (eventId == peekedId) {
 			drawRect(ink.onSurface, at(x - 9f, y - 9f), Size(px(18f), px(18f)), style = Stroke(px(1f)))
 		}
 	}
@@ -827,7 +827,7 @@ private class TimelinePainter(
 				LedgerStyle.Milestone -> LabelStyle.LedgerMilestone to ink.onSurface
 				LedgerStyle.LaneCallout -> LabelStyle.Ledger to ink.onSurface
 			}
-			val lineColor = if (row.eventId == selectedId) ink.onSurface else color
+			val lineColor = if (row.eventId == peekedId) ink.onSurface else color
 			// A milestone's text sits on its own dotted rule.
 			val halo = row.style == LedgerStyle.Milestone
 			row.lines.forEachIndexed { i, line ->
@@ -858,7 +858,7 @@ private class TimelinePainter(
 	}
 
 	private fun DrawScope.drawProjection() {
-		val projection = layout.projectionOf(selectedId) ?: return
+		val projection = layout.projectionOf(peekedId) ?: return
 		val region = layout.laneRegion
 		val x0 = region.x
 		val x1 = if (region.width > 0f) region.right else layout.widthDp
