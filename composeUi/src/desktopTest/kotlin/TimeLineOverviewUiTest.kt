@@ -20,10 +20,11 @@ import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.components.timeline.LaneCount
-import com.darkrockstudios.apps.hammer.common.components.timeline.SelectionSummary
+import com.darkrockstudios.apps.hammer.common.components.timeline.EventPreview
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLine
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineOverview
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimelineRow
+import com.darkrockstudios.apps.hammer.common.components.timeline.basicPreview
 import com.darkrockstudios.apps.hammer.common.compose.LocalImageNames
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.ScreenCharacteristics
@@ -62,6 +63,7 @@ class TimeLineOverviewUiTest : BaseTest() {
 		undatedIds: List<Int> = emptyList(),
 		storyFrameAvailable: Boolean = false,
 		private val references: Map<Int, List<CatalogItem>> = emptyMap(),
+		private val excerpts: Map<Int, String> = emptyMap(),
 	) : TimeLineOverview {
 		private val _state = MutableValue(
 			TimeLineOverview.State(
@@ -93,13 +95,17 @@ class TimeLineOverviewUiTest : BaseTest() {
 		override fun select(eventId: Int?) {
 			val state = _state.value
 			val id = eventId?.takeIf { it != state.selectedId }
-			val summary = id?.let { selected ->
-				state.rows?.firstOrNull { it.event.id == selected }?.let { row ->
-					SelectionSummary(row, references[selected].orEmpty(), excerpt = null)
-				}
-			}
-			_state.value = state.copy(selectedId = id, selectionSummary = summary)
+			val preview = id?.let { previewOf(it) }
+			_state.value = state.copy(selectedId = id, selectionPreview = preview)
 		}
+
+		private fun previewOf(eventId: Int): EventPreview? =
+			_state.value.rows?.firstOrNull { it.event.id == eventId }?.basicPreview()?.copy(
+				excerpt = excerpts[eventId],
+				references = references[eventId].orEmpty(),
+			)
+
+		override suspend fun preview(eventId: Int): EventPreview? = previewOf(eventId)
 
 		override fun setFrame(frame: TimelineFrame) {
 			_state.value = _state.value.copy(frame = frame)
@@ -677,7 +683,7 @@ class TimeLineOverviewUiTest : BaseTest() {
 		compose.waitForIdle()
 
 		assertEquals(listOf(3), opened)
-		assertEquals(TimelineFrame.Everything, component.state.value.frame, "Opening drops the pending frame")
+		assertEquals(TimelineFrame.Everything, component.state.value.frame, "Neither click frames the band")
 	}
 
 	@Test
@@ -703,31 +709,93 @@ class TimeLineOverviewUiTest : BaseTest() {
 		assertEquals(TimelineFrame.Story, component.state.value.frame)
 	}
 
-	@Test
-	fun `Tapping a band frames it and its clear glyph returns to everything`() {
-		val rows = listOf(
+	private fun siegeAndCroquet(excerpts: Map<Int, String> = emptyMap()) = FakeOverview(
+		listOf(
 			datedRow(TimeLineEvent(id = 3, order = 0, title = "The Siege", lane = "Keep"), year = 1, endYear = 4, laneIndex = 0),
-			datedRow(TimeLineEvent(id = 4, order = 1, title = "Croquet"), year = 6),
-		)
-		val component = FakeOverview(rows, lanes = listOf(LaneCount("Keep", 1)), mode = TimelineMode.DATED)
+			// To the minute, so it is drawn as a point rather than spanning its year.
+			row(TimeLineEvent(id = 4, order = 1, title = "Croquet", lane = "Keep"), laneIndex = 0).copy(
+				start = StoryDate(mapOf("year" to 6L, "day" to 10L, "hour" to 6L, "minute" to 30L)),
+				calendar = CalendarDef(),
+			),
+		),
+		lanes = listOf(LaneCount("Keep", 2)),
+		mode = TimelineMode.DATED,
+		excerpts = excerpts,
+	)
+
+	@Test
+	fun `Tapping a band selects it without framing it`() {
+		val component = siegeAndCroquet()
 		showOverview(component)
-		compose.onNodeWithTag(TIME_LINE_FRAME_BAND_TAG).assertDoesNotExist()
 
 		compose.onNodeWithTag(HitTarget.Band(3).testTag()).performClick()
-		// On desktop the frame waits out the double-click timeout.
 		compose.mainClock.advanceTimeBy(1_000)
 		compose.waitForIdle()
+
+		assertEquals(3, component.state.value.selectedId)
+		assertEquals(TimelineFrame.Everything, component.state.value.frame)
+		compose.onNodeWithTag(TIME_LINE_FRAME_BAND_TAG).assertDoesNotExist()
+	}
+
+	@Test
+	fun `The strip frames a selected span and the band's clear glyph returns to everything`() {
+		val component = siegeAndCroquet()
+		showOverview(component, screen = desktopScreen)
+		compose.runOnIdle { component.select(3) }
+
+		compose.onNode(inSummary("Frame")).performClick()
 
 		assertEquals(TimelineFrame.Band(3), component.state.value.frame)
 		assertEquals(3, component.state.value.selectedId)
 		compose.onNodeWithTag(TIME_LINE_FRAME_BAND_TAG)
 			.assertIsDisplayed()
 			.assertContentDescriptionContains("Framed on The Siege")
+		compose.onNode(inSummary("Frame")).assertDoesNotExist()
 
 		compose.onNodeWithTag(TIME_LINE_FRAME_CLEAR_TAG).performClick()
 
 		assertEquals(TimelineFrame.Everything, component.state.value.frame)
 		compose.onNodeWithTag(TIME_LINE_FRAME_BAND_TAG).assertDoesNotExist()
+	}
+
+	@Test
+	fun `The strip offers no frame for a point`() {
+		val component = siegeAndCroquet()
+		showOverview(component, screen = desktopScreen)
+		compose.runOnIdle { component.select(4) }
+
+		compose.onNode(inSummary("Open")).assertIsDisplayed()
+		compose.onNode(inSummary("Frame")).assertDoesNotExist()
+	}
+
+	@Test
+	fun `The strip shows the selection's excerpt`() {
+		val component = siegeAndCroquet(excerpts = mapOf(3 to "The walls held for three winters."))
+		showOverview(component, screen = desktopScreen)
+		compose.runOnIdle { component.select(3) }
+
+		compose.onNode(inSummary("The walls held for three winters."), useUnmergedTree = true).assertIsDisplayed()
+	}
+
+	@Test
+	fun `Hovering a drawn row shows its preview in a tooltip`() {
+		val excerpt = "Mallets are flamingos and the balls are hedgehogs."
+		val component = FakeOverview(
+			listOf(datedRow(TimeLineEvent(id = 7, order = 0, title = "Croquet"), year = 1)),
+			mode = TimelineMode.DATED,
+			excerpts = mapOf(7 to excerpt),
+		)
+		showOverview(component, screen = desktopScreen)
+		compose.onNode(hasText(excerpt, substring = true), useUnmergedTree = true).assertDoesNotExist()
+
+		compose.onNodeWithTag(HitTarget.Ledger(7).testTag()).performMouseInput { enter(center) }
+		compose.waitForIdle()
+
+		compose.onNode(
+			hasText(excerpt, substring = true) and hasAnyAncestor(hasTestTag(EVENT_PREVIEW_CARD_TAG)),
+			useUnmergedTree = true,
+		).assertExists()
+		assertNull(component.state.value.selectedId, "Hovering does not select")
 	}
 
 	private fun showDatedPane(

@@ -67,7 +67,13 @@ class TimeLineOverviewComponent(
 	private val _rankedTags = MutableValue<List<TagCount>>(emptyList())
 	override val rankedTags: Value<List<TagCount>> = _rankedTags
 
-	private var summaryJob: Job? = null
+	private var selectionJob: Job? = null
+
+	/** Read and written on the main thread only. */
+	private val previews = HashMap<Int, CachedPreview>()
+
+	/** A preview stays good while its event's row is unchanged. */
+	private class CachedPreview(val row: TimelineRow, val preview: EventPreview)
 
 	private val frameBackCallback = BackCallback(isEnabled = false) {
 		setFrame(TimelineFrame.Everything)
@@ -96,7 +102,8 @@ class TimeLineOverviewComponent(
 			combine(timelineService.timelineFlow, sceneTree) { view, _ -> view }.collect { view ->
 				val built = buildRows(view)
 				withContext(dispatcherMain) {
-					val before = _state.value
+					val rowsById = built.rows.associateBy { it.event.id }
+					previews.entries.removeAll { (id, cached) -> rowsById[id] != cached.row }
 					_state.getAndUpdate { current ->
 						val laneNames = built.lanes.mapTo(HashSet()) { it.lane }
 						// Only drawn events (dated, and not an archived scene) can be selected or framed.
@@ -119,16 +126,11 @@ class TimeLineOverviewComponent(
 							storyFrameAvailable = storyAvailable,
 						)
 					}
-					// Resolving a summary reads the subject, so only a changed selection earns one.
-					val after = _state.value
-					if (after.selectedId == null || after.selectedEvent() != before.selectedEvent()) refreshSummary()
+					refreshSelectionPreview()
 				}
 			}
 		}
 	}
-
-	private fun TimeLineOverview.State.selectedEvent(): TimeLineEvent? =
-		selectedId?.let { id -> rows?.firstOrNull { it.event.id == id }?.event }
 
 	private data class Built(val rows: List<TimelineRow>, val lanes: List<LaneCount>, val undatedIds: List<Int>)
 
@@ -203,11 +205,11 @@ class TimeLineOverviewComponent(
 	override fun select(eventId: Int?) {
 		_state.getAndUpdate {
 			val selected = eventId?.takeIf { id -> id != it.selectedId }
-			// A band frame comes with the tap that selected it, so clearing the selection leaves the frame too.
+			// A band is framed from the selection, so clearing the selection leaves the frame too.
 			val frame = if (selected == null && it.frame is TimelineFrame.Band) TimelineFrame.Everything else it.frame
 			it.copy(selectedId = selected, frame = frame)
 		}
-		refreshSummary()
+		refreshSelectionPreview()
 	}
 
 	override fun setFrame(frame: TimelineFrame) {
@@ -234,24 +236,44 @@ class TimeLineOverviewComponent(
 		}
 	}
 
-	/** Resolves the selection's summary off the main thread; a stale one is dropped at once. */
-	private fun refreshSummary() {
-		summaryJob?.cancel()
-		val state = _state.value
-		val row = state.selectedId?.let { id -> state.rows?.firstOrNull { it.event.id == id } }
-		if (state.selectionSummary != null && state.selectionSummary.row.event.id != row?.event?.id) {
-			_state.getAndUpdate { it.copy(selectionSummary = null) }
+	override suspend fun preview(eventId: Int): EventPreview? {
+		var cached: EventPreview? = null
+		val row = withContext(dispatcherMain) {
+			_state.value.rows?.firstOrNull { it.event.id == eventId }?.also { row ->
+				cached = previews[eventId]?.takeIf { it.row == row }?.preview
+			}
+		} ?: return null
+		cached?.let { return it }
+
+		val preview = resolvePreview(row)
+		withContext(dispatcherMain) {
+			if (_state.value.rows?.firstOrNull { it.event.id == eventId } == row) {
+				previews[eventId] = CachedPreview(row, preview)
+			}
 		}
-		if (row == null) return
-		summaryJob = scope.launch {
-			val summary = summarize(row)
+		return preview
+	}
+
+	/** Brings the selection's preview up to date off the main thread; a stale one is dropped at once. */
+	private fun refreshSelectionPreview() {
+		selectionJob?.cancel()
+		val state = _state.value
+		val selectedId = state.selectedId
+		if (state.selectionPreview != null && state.selectionPreview.eventId != selectedId) {
+			_state.getAndUpdate { it.copy(selectionPreview = null) }
+		}
+		if (selectedId == null) return
+		selectionJob = scope.launch {
+			val preview = preview(selectedId)
 			withContext(dispatcherMain) {
-				_state.getAndUpdate { if (it.selectedId == row.event.id) it.copy(selectionSummary = summary) else it }
+				_state.getAndUpdate {
+					if (it.selectedId == selectedId && it.selectionPreview !== preview) it.copy(selectionPreview = preview) else it
+				}
 			}
 		}
 	}
 
-	private suspend fun summarize(row: TimelineRow): SelectionSummary {
+	private suspend fun resolvePreview(row: TimelineRow): EventPreview {
 		val event = row.event
 		val subject = timelineService.resolveSubject(event)
 		val catalog = if (event.kind == TimelineKind.EVENT && event.references.isNotEmpty()) {
@@ -259,10 +281,22 @@ class TimeLineOverviewComponent(
 		} else {
 			emptyList()
 		}
-		return SelectionSummary(
-			row = row,
+		val excerpt = when (subject) {
+			// A plain event without a title is titled by its first line, which the excerpt then skips.
+			null -> eventExcerpt(event.content, skipTitle = row.title.takeIf { event.title.isNullOrBlank() })
+			is SubjectSummary.Scene -> subject.excerpt
+			is SubjectSummary.Entry -> subject.excerpt
+			is SubjectSummary.Archived, SubjectSummary.Missing -> null
+		}
+		return row.basicPreview().copy(
+			excerpt = excerpt?.takeIf { it.isNotBlank() },
+			imageId = (subject as? SubjectSummary.Entry)?.primaryImageId,
 			references = timelineReferenceItems(event.kind, subject, event.references, catalog).inCastOrder(),
-			excerpt = (subject as? SubjectSummary.Entry)?.excerpt?.takeIf { it.isNotBlank() },
+			subjectState = when (subject) {
+				SubjectSummary.Missing -> EventPreview.SubjectState.Missing
+				is SubjectSummary.Archived -> EventPreview.SubjectState.Archived
+				else -> EventPreview.SubjectState.Present
+			},
 		)
 	}
 

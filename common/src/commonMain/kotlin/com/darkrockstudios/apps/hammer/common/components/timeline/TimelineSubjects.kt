@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.Encycl
 import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogItem
 import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogKind
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
+import com.darkrockstudios.apps.hammer.common.data.search.MarkdownProjector
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.SubjectSummary
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.timelineCastRank
@@ -83,6 +84,25 @@ internal fun List<CatalogItem>.inCastOrder(): List<CatalogItem> = sortedBy { ite
 		else -> item.entryType?.let(::timelineCastRank) ?: CAST_RANK_OTHER_ENTRY
 	}
 }
+
+/**
+ * Up to [EVENT_EXCERPT_CHARS] of [markdown] as plain prose, whitespace collapsed, or null when it has
+ * none. A leading [skipTitle] is dropped, for an event already titled by its first line.
+ */
+internal fun eventExcerpt(markdown: String, skipTitle: String? = null): String? {
+	if (markdown.isBlank()) return null
+	val projector = MarkdownProjector(markdown.length)
+	projector.project(markdown)
+	val preview = projector.collapsedPreview(EVENT_EXCERPT_CHARS)
+	val body = if (!skipTitle.isNullOrBlank() && preview.startsWith(skipTitle)) {
+		preview.removePrefix(skipTitle).trimStart()
+	} else {
+		preview
+	}
+	return body.takeIf { it.isNotBlank() && it != "…" }
+}
+
+private const val EVENT_EXCERPT_CHARS = 240
 
 private const val CAST_RANK_OTHER_ENTRY = 2
 private const val CAST_RANK_SCENE = 3

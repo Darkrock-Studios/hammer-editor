@@ -11,8 +11,9 @@ import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
-import com.darkrockstudios.apps.hammer.common.components.timeline.SelectionSummary
+import com.darkrockstudios.apps.hammer.common.components.timeline.EventPreview
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineOverview
+import com.darkrockstudios.apps.hammer.common.components.timeline.basicPreview
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogItem
 import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogKind
@@ -126,10 +127,8 @@ private fun PhoneDatedOverview(dark: Boolean) {
 									lanes = previewLaneCounts,
 									view = TimelineView.TO_SCALE,
 									selectedId = selected.event.id,
-									selectionSummary = SelectionSummary(
-										row = selected,
+									selectionPreview = selected.basicPreview().copy(
 										references = previewCatalog.filter { it.kind == CatalogKind.Entry } + previewCatalog.first(),
-										excerpt = null,
 									),
 									storyFrameAvailable = true,
 								)
@@ -176,5 +175,8 @@ private class PreviewOverview(initial: TimeLineOverview.State) : TimeLineOvervie
 	override fun select(eventId: Int?) {}
 	override fun setFrame(frame: TimelineFrame) {}
 	override fun openReference(item: CatalogItem) {}
+	override suspend fun preview(eventId: Int): EventPreview? =
+		state.value.rows?.firstOrNull { it.event.id == eventId }?.basicPreview()
+
 	override fun setScrolledDown(scrolledDown: Boolean) {}
 }

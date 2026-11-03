@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.common.components.timeline
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
 import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogItem
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagCount
@@ -29,8 +30,14 @@ interface TimeLineOverview {
 	/** Which stretch of a DATED timeline the drawing shows. [TimelineFrame.Story] needs a placed scene. */
 	fun setFrame(frame: TimelineFrame)
 
-	/** Shows a referenced scene or entry from the selection's summary. */
+	/** Shows a referenced scene or entry from an event's preview. */
 	fun openReference(item: CatalogItem)
+
+	/**
+	 * [eventId]'s preview, read once and then served from a cache until the event or its row changes.
+	 * Null when the timeline has no such event.
+	 */
+	suspend fun preview(eventId: Int): EventPreview?
 
 	/** Set by the UI as the reader scrolls the list or drawing down, cleared as they scroll back up. */
 	fun setScrolledDown(scrolledDown: Boolean)
@@ -50,7 +57,7 @@ interface TimeLineOverview {
 		/** The event the drawing projects across its lanes. Not saved. */
 		val selectedId: Int? = null,
 		/** What the strip under the drawing shows for [selectedId]; null until it has been read. */
-		val selectionSummary: SelectionSummary? = null,
+		val selectionPreview: EventPreview? = null,
 		val frame: TimelineFrame = TimelineFrame.Everything,
 		/** Whether some placed scene has a start, which [TimelineFrame.Story] frames. */
 		val storyFrameAvailable: Boolean = false,
@@ -59,14 +66,29 @@ interface TimeLineOverview {
 	)
 }
 
-/** The selected event as the strip under the drawing shows it. */
-data class SelectionSummary(
-	val row: TimelineRow,
+/** An event as its hover card and the selection strip show it. */
+data class EventPreview(
+	val eventId: Int,
+	val kind: TimelineKind,
+	val title: String,
+	/** The event's label, shown when there is no [start]. Blank when it has none. */
+	val whenText: String,
+	/** As [TimelineRow.start], [TimelineRow.end] and [TimelineRow.calendar]: the UI formats them. */
+	val start: StoryDate? = null,
+	val end: StoryDate? = null,
+	val calendar: CalendarDef? = null,
+	val lane: String? = null,
+	/** Plain text: a plain event's own content, else its scene's or entry's opening. Null when empty. */
+	val excerpt: String? = null,
+	/** A placed entry's primary image. */
+	val imageId: Int? = null,
 	/** A plain event's references or a placed scene's cast: people, places, other entries, then scenes. */
-	val references: List<CatalogItem>,
-	/** A placed entry's opening text; null for the other kinds or an empty entry. */
-	val excerpt: String?,
-)
+	val references: List<CatalogItem> = emptyList(),
+	val subjectState: SubjectState = SubjectState.Present,
+) {
+	/** Whether a placement's scene or entry is still there; a plain event's is always [Present]. */
+	enum class SubjectState { Present, Missing, Archived }
+}
 
 /** One event as the list shows it, in display order. */
 data class TimelineRow(
@@ -87,6 +109,23 @@ data class TimelineRow(
 	val start: StoryDate? = null,
 	val end: StoryDate? = null,
 	val calendar: CalendarDef? = null,
+)
+
+/** What the row alone says of its event: everything but the excerpt, image and references. */
+fun TimelineRow.basicPreview(): EventPreview = EventPreview(
+	eventId = event.id,
+	kind = event.kind,
+	title = title,
+	whenText = whenText,
+	start = start,
+	end = end,
+	calendar = calendar,
+	lane = event.lane?.takeIf { it.isNotBlank() },
+	subjectState = when {
+		subjectMissing -> EventPreview.SubjectState.Missing
+		subjectArchived -> EventPreview.SubjectState.Archived
+		else -> EventPreview.SubjectState.Present
+	},
 )
 
 data class LaneCount(val lane: String, val count: Int)

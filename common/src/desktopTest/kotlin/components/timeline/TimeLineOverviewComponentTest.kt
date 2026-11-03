@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
 import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
+import com.darkrockstudios.apps.hammer.common.components.timeline.EventPreview
 import com.darkrockstudios.apps.hammer.common.components.timeline.LaneCount
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineOverviewComponent
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
@@ -285,7 +286,7 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 		advanceUntilIdle()
 
 		assertNull(component.state.value.selectedId)
-		assertNull(component.state.value.selectionSummary)
+		assertNull(component.state.value.selectionPreview)
 	}
 
 	@Test
@@ -361,11 +362,11 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 		component.select(placed.id)
 		advanceUntilIdle()
 
-		val summary = component.state.value.selectionSummary!!
-		assertEquals(placed.id, summary.row.event.id)
-		assertEquals("Scene ID 4", summary.row.title)
+		val summary = component.state.value.selectionPreview!!
+		assertEquals(placed.id, summary.eventId)
+		assertEquals("Scene ID 4", summary.title)
 		assertEquals(listOf(ALICE, WONDERLAND, TEA_PARTY), summary.references.map { it.id })
-		assertNull(summary.excerpt)
+		assertNull(summary.imageId)
 	}
 
 	@Test
@@ -382,7 +383,7 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 		component.select(storm.id)
 		advanceUntilIdle()
 
-		assertEquals(listOf(ALICE, WONDERLAND, 4), component.state.value.selectionSummary!!.references.map { it.id })
+		assertEquals(listOf(ALICE, WONDERLAND, 4), component.state.value.selectionPreview!!.references.map { it.id })
 	}
 
 	@Test
@@ -397,7 +398,7 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 		component.select(placed.id)
 		advanceUntilIdle()
 
-		val summary = component.state.value.selectionSummary!!
+		val summary = component.state.value.selectionPreview!!
 		assertEquals("The Hatter pours tea.", summary.excerpt)
 		assertEquals(emptyList(), summary.references)
 	}
@@ -413,13 +414,13 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 		advanceUntilIdle()
 		component.select(storm.id)
 		advanceUntilIdle()
-		val summary = assertNotNull(component.state.value.selectionSummary)
+		val summary = assertNotNull(component.state.value.selectionPreview)
 
 		timelineService.updateEvent(timeLineRepository.getTimelineEvent(rain.id)!!.copy(title = "Hail"))
 		advanceUntilIdle()
 
 		assertEquals("Hail", component.state.value.rows!!.first { it.event.id == rain.id }.title)
-		assertSame(summary, component.state.value.selectionSummary)
+		assertSame(summary, component.state.value.selectionPreview)
 	}
 
 	@Test
@@ -436,7 +437,127 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 		timelineService.updateEvent(timeLineRepository.getTimelineEvent(storm.id)!!.copy(references = setOf(WONDERLAND, ALICE)))
 		advanceUntilIdle()
 
-		assertEquals(listOf(ALICE, WONDERLAND), component.state.value.selectionSummary!!.references.map { it.id })
+		assertEquals(listOf(ALICE, WONDERLAND), component.state.value.selectionPreview!!.references.map { it.id })
+	}
+
+	@Test
+	fun `selecting a span does not frame it`() = runTest(mainTestDispatcher) {
+		givenProject()
+		timelineService.switchToDated(CalendarDef())
+		val siege = timelineService.createEvent(
+			TimelineEventDraft(title = "Siege", lane = "Keep", start = StoryDate(mapOf("year" to 1L)), end = StoryDate(mapOf("year" to 4L)))
+		).event()
+		val component = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		component.select(siege.id)
+		advanceUntilIdle()
+
+		assertEquals(siege.id, component.state.value.selectedId)
+		assertEquals(TimelineFrame.Everything, component.state.value.frame)
+	}
+
+	@Test
+	fun `framing the selection frames its band and keeps it selected`() = runTest(mainTestDispatcher) {
+		givenProject()
+		timelineService.switchToDated(CalendarDef())
+		val siege = timelineService.createEvent(
+			TimelineEventDraft(title = "Siege", lane = "Keep", start = StoryDate(mapOf("year" to 1L)), end = StoryDate(mapOf("year" to 4L)))
+		).event()
+		val component = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		component.select(siege.id)
+
+		component.setFrame(TimelineFrame.Band(siege.id))
+
+		assertEquals(TimelineFrame.Band(siege.id), component.state.value.frame)
+		assertEquals(siege.id, component.state.value.selectedId)
+	}
+
+	@Test
+	fun `a plain event's preview has its content as plain text and its references`() = runTest(mainTestDispatcher) {
+		givenProject()
+		val storm = timelineService.createEvent(
+			TimelineEventDraft(
+				title = "Storm",
+				content = "The **sky** splits and _rain_ falls.\n\nAlice runs for the keep.",
+				lane = "Keep",
+				references = linkedSetOf(4, ALICE),
+			)
+		).event()
+		val component = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		val preview = assertNotNull(component.preview(storm.id))
+
+		assertEquals("Storm", preview.title)
+		assertEquals("Keep", preview.lane)
+		assertEquals("The sky splits and rain falls. Alice runs for the keep.", preview.excerpt)
+		assertEquals(listOf(ALICE, 4), preview.references.map { it.id })
+		assertNull(preview.imageId)
+		assertEquals(EventPreview.SubjectState.Present, preview.subjectState)
+	}
+
+	@Test
+	fun `an untitled event's preview does not repeat its first line`() = runTest(mainTestDispatcher) {
+		givenProject()
+		val rain = timelineService.createEvent(TimelineEventDraft(content = "Rain falls\n\nAll night long.")).event()
+		val component = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		val preview = assertNotNull(component.preview(rain.id))
+
+		assertEquals("Rain falls", preview.title)
+		assertEquals("All night long.", preview.excerpt)
+	}
+
+	@Test
+	fun `a placed entry's preview carries its primary image and opening text`() = runTest(mainTestDispatcher) {
+		givenProject()
+		encyclopediaRepository.addEntryImage(encyclopediaRepository.getEntryDef(TEA_PARTY), 77)
+		val placed = timelineService.placeEntry(TEA_PARTY, null, null, lane = null, milestone = false).event()
+		val component = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		val preview = assertNotNull(component.preview(placed.id))
+
+		assertEquals(77, preview.imageId)
+		assertEquals("The Hatter pours tea.", preview.excerpt)
+		assertEquals(emptyList(), preview.references)
+	}
+
+	@Test
+	fun `a preview is cached until its event changes`() = runTest(mainTestDispatcher) {
+		givenProject()
+		val storm = timelineService.createEvent(TimelineEventDraft(title = "Storm", content = "Thunder.")).event()
+		val rain = timelineService.createEvent(TimelineEventDraft(title = "Rain")).event()
+		val component = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		val first = assertNotNull(component.preview(storm.id))
+
+		timelineService.updateEvent(timeLineRepository.getTimelineEvent(rain.id)!!.copy(title = "Hail"))
+		advanceUntilIdle()
+		assertSame(first, component.preview(storm.id), "A change to another event keeps the preview")
+
+		timelineService.updateEvent(timeLineRepository.getTimelineEvent(storm.id)!!.copy(content = "Lightning."))
+		advanceUntilIdle()
+		assertEquals("Lightning.", component.preview(storm.id)?.excerpt)
+	}
+
+	@Test
+	fun `there is no preview for an event the timeline does not have`() = runTest(mainTestDispatcher) {
+		givenProject()
+		val component = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		assertNull(component.preview(999))
 	}
 
 	@Test

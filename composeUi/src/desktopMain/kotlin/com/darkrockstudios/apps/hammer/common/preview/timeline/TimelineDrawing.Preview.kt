@@ -17,8 +17,8 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.darkrockstudios.apps.hammer.common.components.timeline.SelectionSummary
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimelineRow
+import com.darkrockstudios.apps.hammer.common.components.timeline.basicPreview
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogItem
@@ -173,12 +173,15 @@ private fun PhoneSelectionDrawing(dark: Boolean) {
 						.onSizeChanged { stripHeight = with(density) { it.height.toDp() } },
 				) {
 					SelectionStrip(
-						row = hollowmereSelection,
-						summary = SelectionSummary(hollowmereSelection, hollowmereReferences, excerpt = null),
+						preview = hollowmereSelection.basicPreview().copy(
+							excerpt = "The ice gives up what the lake kept all winter, and the keep's watch is the first to see it.",
+							references = hollowmereReferences,
+						),
+						onFrame = {},
 						onOpen = {},
 						onClear = {},
 						onReference = {},
-						maxChips = 4,
+						phone = true,
 					)
 				}
 			}

@@ -4,6 +4,8 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -16,8 +18,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
+import com.darkrockstudios.apps.hammer.common.components.timeline.EventPreview
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineOverview
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimelineRow
+import com.darkrockstudios.apps.hammer.common.components.timeline.basicPreview
 import com.darkrockstudios.apps.hammer.common.components.timeline.toLayoutInput
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarGutter
@@ -31,6 +35,7 @@ import com.darkrockstudios.apps.hammer.common.timeline.drawing.rememberTimelineT
 import com.darkrockstudios.apps.hammer.common.timeline.layout.HitTarget
 import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineLayoutEngine
 import com.darkrockstudios.apps.hammer.timeline_lane_filter_description
+import kotlinx.coroutines.launch
 import kotlin.math.floor
 
 private const val FALLBACK_WIDTH_DP = 840f
@@ -39,7 +44,8 @@ private const val WIDTH_STEP_DP = 8f
 /**
  * The drawing of a DATED timeline's [rows] in the state's frame, laid out to the width it is given.
  * A new frame starts scrolled to the top. [bottomPadding] keeps the last rows clear of an overlay.
- * [onContentHeight] hears the drawing's full height, padding included.
+ * [onContentHeight] hears the drawing's full height, padding included, and [onSpans] the events it
+ * draws as spans. Where a pointer hovers, an event's hover card shows what [preview] reads for it.
  *
  * On a phone (Compact width) lanes are 22dp rails with every label in the ledger. Only the lanes in
  * the lane filter are drawn (all of them while it is empty), so the lane chips are how a writer picks
@@ -54,6 +60,8 @@ internal fun DatedTimelinePane(
 	onOpen: ((Int) -> Unit)? = null,
 	bottomPadding: Dp = 0.dp,
 	onContentHeight: (Dp) -> Unit = {},
+	preview: (suspend (eventId: Int) -> EventPreview?)? = null,
+	onSpans: (Set<Int>) -> Unit = {},
 ) {
 	val words = rememberStoryDateWords()
 	val colors = LocalHammerColors.current
@@ -111,6 +119,29 @@ internal fun DatedTimelinePane(
 		val contentHeight = layout.heightDp.dp + bottomPadding
 		val reportContentHeight by rememberUpdatedState(onContentHeight)
 		LaunchedEffect(contentHeight) { reportContentHeight(contentHeight) }
+		val reportSpans by rememberUpdatedState(onSpans)
+		LaunchedEffect(layout) {
+			reportSpans(
+				buildSet {
+					layout.bands.forEach { add(it.eventId) }
+					layout.bars.forEach { add(it.eventId) }
+					layout.ledgerRows.forEach { if (it.anchorY1Dp != null) add(it.eventId) }
+				}
+			)
+		}
+
+		// Until its preview arrives a card shows what the row already knows.
+		val rowsById = remember(rows) { rows.associateBy { it.event.id } }
+		val previews = remember(rows) { mutableStateMapOf<Int, EventPreview>() }
+		val previewScope = rememberCoroutineScope()
+		val readPreview by rememberUpdatedState(preview)
+		val hoverCard: (@Composable (Int) -> Unit)? = if (preview != null) {
+			{ id ->
+				(previews[id] ?: rowsById[id]?.basicPreview())?.let { EventPreviewCard(it, compact = true) }
+			}
+		} else {
+			null
+		}
 
 		TimelineDrawingPane(
 			layout = layout,
@@ -125,6 +156,10 @@ internal fun DatedTimelinePane(
 			contentWidth = layout.widthDp.takeIf { it > widthDp }?.dp,
 			scrollState = scrollState,
 			bottomPadding = bottomPadding,
+			hoverCard = hoverCard,
+			onHoverStart = { id ->
+				previewScope.launch { readPreview?.invoke(id)?.let { previews[id] = it } }
+			},
 		)
 	}
 }

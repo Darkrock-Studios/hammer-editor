@@ -51,7 +51,6 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
@@ -69,11 +68,8 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.layout.Placeable
-import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -89,9 +85,10 @@ import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
-import com.darkrockstudios.apps.hammer.common.components.timeline.SelectionSummary
+import com.darkrockstudios.apps.hammer.common.components.timeline.EventPreview
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineOverview
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimelineRow
+import com.darkrockstudios.apps.hammer.common.components.timeline.basicPreview
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarGutter
 import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarList
@@ -105,15 +102,11 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivide
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineSegmentedPicker
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNoticeStrip
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdReferenceChip
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSearchField
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSearchRow
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSectionHeader
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagChip
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagFilterBar
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdGlyphColor
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdMark
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdSwatchColor
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.rememberHdScrollAwayFooterState
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.rememberStoryDateWords
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownView
@@ -126,7 +119,6 @@ import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogItem
 import com.darkrockstudios.apps.hammer.common.data.search.markdownContains
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.formatStoryDateRange
-import com.darkrockstudios.apps.hammer.common.timeline.drawing.timelineOpensOnDoubleClick
 import com.darkrockstudios.apps.hammer.common.timeline.layout.HitTarget
 import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineFrame
 import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineView
@@ -147,7 +139,7 @@ import com.darkrockstudios.apps.hammer.timeline_search_clear
 import com.darkrockstudios.apps.hammer.timeline_search_close
 import com.darkrockstudios.apps.hammer.timeline_search_placeholder
 import com.darkrockstudios.apps.hammer.timeline_selection_clear
-import com.darkrockstudios.apps.hammer.timeline_selection_more
+import com.darkrockstudios.apps.hammer.timeline_selection_frame
 import com.darkrockstudios.apps.hammer.timeline_selection_open
 import com.darkrockstudios.apps.hammer.timeline_subject_archived
 import com.darkrockstudios.apps.hammer.timeline_subject_missing
@@ -158,8 +150,6 @@ import com.darkrockstudios.apps.hammer.timeline_view_sequence
 import com.darkrockstudios.apps.hammer.timeline_view_to_scale
 import com.darkrockstudios.apps.hammer.timeline_view_undated
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.pluralStringResource
 
@@ -222,9 +212,6 @@ fun TimeLineOverviewUi(
 
 	val rows = state.rows.orEmpty()
 	val laneFilter = state.laneFilter
-	val frameScope = rememberCoroutineScope()
-	var pendingFrame by remember { mutableStateOf<Job?>(null) }
-	val doubleClickTimeout = LocalViewConfiguration.current.doubleTapTimeoutMillis
 
 	// Search and tags; the drawing applies the lane filter itself, keeping scenes in its ledger.
 	val matchedRows by remember(rows, searchQuery, activeTags) {
@@ -522,6 +509,7 @@ fun TimeLineOverviewUi(
 			branch == OverviewContent.Drawing -> {
 				val selected = state.selectedId?.let { id -> rows.firstOrNull { it.event.id == id } }
 				var stripHeight by remember { mutableStateOf(0.dp) }
+				var spanIds by remember { mutableStateOf(emptySet<Int>()) }
 				val density = LocalDensity.current
 				val framed = state.frame != TimelineFrame.Everything
 				val focusRequester = remember { FocusRequester() }
@@ -549,25 +537,15 @@ fun TimeLineOverviewUi(
 						rows = matchedRows,
 						onTap = { target ->
 							when (target) {
-								is HitTarget.Band -> {
-									if (state.selectedId != target.eventId) component.select(target.eventId)
-									// Framing moves the band, so it waits until a second click could no longer open it.
-									pendingFrame?.cancel()
-									pendingFrame = frameScope.launch {
-										if (timelineOpensOnDoubleClick) delay(doubleClickTimeout)
-										component.setFrame(TimelineFrame.Band(target.eventId))
-									}
-								}
-
+								is HitTarget.Band -> component.select(target.eventId)
 								is HitTarget.Point -> component.select(target.eventId)
 								is HitTarget.Ledger -> component.select(target.eventId)
 								is HitTarget.LaneHeader -> component.toggleLane(target.lane)
 							}
 						},
-						onOpen = { eventId ->
-							pendingFrame?.cancel()
-							viewEvent(eventId)
-						},
+						onOpen = viewEvent,
+						preview = component::preview,
+						onSpans = { spanIds = it },
 						bottomPadding = if (selected != null) stripHeight else 0.dp,
 						onContentHeight = { drawingHeightPx = with(density) { it.roundToPx() } },
 					)
@@ -592,13 +570,19 @@ fun TimeLineOverviewUi(
 								.background(MaterialTheme.colorScheme.surfaceContainerLow)
 								.navigationBarsPadding(),
 						) {
+							val id = selected.event.id
+							val frameable = (selected.end != null || id in spanIds) && state.frame != TimelineFrame.Band(id)
 							SelectionStrip(
-								row = selected,
-								summary = state.selectionSummary?.takeIf { it.row.event.id == selected.event.id },
-								onOpen = { viewEvent(selected.event.id) },
+								preview = state.selectionPreview?.takeIf { it.eventId == id } ?: selected.basicPreview(),
+								onFrame = if (frameable) {
+									{ component.setFrame(TimelineFrame.Band(id)) }
+								} else {
+									null
+								},
+								onOpen = { viewEvent(id) },
 								onClear = { component.select(null) },
 								onReference = component::openReference,
-								maxChips = if (phone) SUMMARY_CHIPS_PHONE else SUMMARY_CHIPS,
+								phone = phone,
 							)
 						}
 					}
@@ -815,43 +799,27 @@ private fun FramePicker(
 }
 
 private const val BAND_CELL_CHARS = 18
-private const val SUMMARY_CHIPS = 6
-private const val SUMMARY_CHIPS_PHONE = 4
-private const val SUMMARY_CHIP_LINES = 2
-private const val SUMMARY_CHIP_NAME_CHARS = 12
-
-private fun String.ellipsize(max: Int): String = if (length <= max) this else take(max - 1).trimEnd() + "…"
-
 /**
- * The selected event over the bottom of the drawing: its title, when and lane, then up to [maxChips]
- * of its references (or a placed entry's opening line), with Open and a clear glyph. A reference chip opens
- * that reference through [onReference].
+ * The selected event over the bottom of the drawing as an [EventPreviewCard], with Frame (when
+ * [onFrame] is given, for an event drawn as a span), Open and a clear glyph. A reference chip opens
+ * that reference through [onReference]. On a [phone] the actions sit under the card.
  */
 @Composable
 internal fun SelectionStrip(
-	row: TimelineRow,
-	summary: SelectionSummary?,
+	preview: EventPreview,
 	onOpen: () -> Unit,
 	onClear: () -> Unit,
 	onReference: (CatalogItem) -> Unit,
 	modifier: Modifier = Modifier,
-	maxChips: Int = SUMMARY_CHIPS,
+	onFrame: (() -> Unit)? = null,
+	phone: Boolean = false,
 ) {
-	val words = rememberStoryDateWords()
-	val start = row.start
-	val whenText = if (start != null) {
-		formatStoryDateRange(row.calendar ?: CalendarDef(), start, row.end, words)
-	} else {
-		row.whenText.ifBlank { null }
-	}
-	val lane = row.event.lane?.takeIf { it.isNotBlank() }
-	val references = summary?.references.orEmpty()
-	val excerpt = summary?.excerpt
 	HdNoticeStrip(
-		title = row.title,
-		detail = listOfNotNull(whenText, lane).joinToString(" · ").ifBlank { null },
+		modifier = modifier.testTag(TIME_LINE_SELECTION_TAG),
 		primaryLabel = Res.string.timeline_selection_open.get(),
 		onPrimary = onOpen,
+		secondaryLabel = onFrame?.let { Res.string.timeline_selection_frame.get() },
+		onSecondary = { onFrame?.invoke() },
 		trailing = {
 			HdClearGlyph(
 				onClick = onClear,
@@ -860,105 +828,15 @@ internal fun SelectionStrip(
 				glyphSize = 9.dp,
 			)
 		},
-		modifier = modifier.testTag(TIME_LINE_SELECTION_TAG),
-		content = when {
-			references.isNotEmpty() -> {
-				{ SummaryChips(references = references, max = maxChips, onClick = onReference) }
-			}
-
-			excerpt != null -> {
-				{
-					Text(
-						text = excerpt,
-						style = MaterialTheme.typography.bodySmall,
-						color = MaterialTheme.colorScheme.onSurfaceVariant,
-						maxLines = 1,
-						overflow = TextOverflow.Ellipsis,
-					)
-				}
-			}
-
-			else -> null
-		},
-	)
-}
-
-/**
- * Up to [max] read-only reference chips, glyph and name, on at most [SUMMARY_CHIP_LINES] lines,
- * then `+N` for every reference not shown, whether past [max] or past the last line.
- */
-@Composable
-private fun SummaryChips(references: List<CatalogItem>, max: Int, onClick: (CatalogItem) -> Unit) {
-	val shown = references.take(max)
-	SubcomposeLayout(modifier = Modifier.padding(top = 4.dp)) { constraints ->
-		val gap = 6.dp.roundToPx()
-		val loose = constraints.copy(minWidth = 0, minHeight = 0)
-		val chips = subcompose("chips") {
-			shown.forEach { item ->
-				HdReferenceChip(
-					glyph = item.hdMark(),
-					swatchColor = item.hdSwatchColor(),
-					glyphColor = item.hdGlyphColor(),
-					name = item.name.ellipsize(SUMMARY_CHIP_NAME_CHARS),
-					onClick = { onClick(item) },
-					onAction = null,
-					actionContentDescription = "",
-				)
-			}
-		}.map { it.measure(loose) }
-
-		// The most chips that fit with the `+N` for the rest after them.
-		var lines: List<List<Placeable>>? = null
-		var count = chips.size
-		while (lines == null) {
-			val hidden = references.size - count
-			val more = if (hidden > 0) {
-				subcompose("more-$hidden") { SummaryMore(hidden) }.single().measure(loose)
-			} else {
-				null
-			}
-			lines = wrapLines(chips.take(count) + listOfNotNull(more), constraints.maxWidth, gap)
-				.takeIf { it.size <= SUMMARY_CHIP_LINES || count == 0 }
-			count--
-		}
-
-		val heights = lines.map { line -> line.maxOf { it.height } }
-		val height = heights.sum() + gap * (lines.size - 1).coerceAtLeast(0)
-		val width = lines.maxOfOrNull { line -> line.sumOf { it.width } + gap * (line.size - 1) } ?: 0
-		layout(width.coerceIn(constraints.minWidth, constraints.maxWidth), height.coerceAtLeast(constraints.minHeight)) {
-			var y = 0
-			lines.forEachIndexed { index, line ->
-				var x = 0
-				line.forEach { placeable ->
-					placeable.placeRelative(x, y + (heights[index] - placeable.height) / 2)
-					x += placeable.width + gap
-				}
-				y += heights[index] + gap
-			}
-		}
+		actionsBelow = phone,
+	) {
+		EventPreviewCard(
+			preview = preview,
+			compact = false,
+			maxChips = if (phone) SUMMARY_CHIPS_PHONE else SUMMARY_CHIPS,
+			onReference = onReference,
+		)
 	}
-}
-
-/** [items] wrapped into lines no wider than [maxWidth], one item a line where an item alone is wider. */
-private fun wrapLines(items: List<Placeable>, maxWidth: Int, gap: Int): List<List<Placeable>> {
-	val lines = mutableListOf<MutableList<Placeable>>()
-	var x = 0
-	items.forEach { item ->
-		val line = lines.lastOrNull()
-		if (line != null && x + gap + item.width <= maxWidth) {
-			line += item
-			x += gap + item.width
-		} else {
-			lines += mutableListOf(item)
-			x = item.width
-		}
-	}
-	return lines
-}
-
-@Composable
-private fun SummaryMore(count: Int) {
-	HdMonoLabel(text = Res.string.timeline_selection_more.get(count))
 }
 
 /** One `HdTagChip` per lane, its swatch in the lane's colour: `▪ Alice · 4`. */

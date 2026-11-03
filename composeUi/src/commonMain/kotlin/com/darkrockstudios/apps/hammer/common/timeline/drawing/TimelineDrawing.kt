@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.timeline.drawing
 
 import androidx.compose.foundation.ScrollState
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
@@ -15,15 +16,18 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PlainTooltip
+import androidx.compose.material3.RichTooltip
 import androidx.compose.material3.Text
 import androidx.compose.material3.TooltipBox
 import androidx.compose.material3.TooltipDefaults
+import androidx.compose.material3.TooltipScope
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithCache
@@ -32,6 +36,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
@@ -137,7 +142,8 @@ private class TimelineInk(
  * A dated timeline drawn from [layout]: one canvas for the ink plus a transparent hit layer with a
  * button per [HitRegion]. [laneColor] maps a layout lane index to its colour; [titles] names events
  * for screen readers and tooltips where the layout only holds a fitted label. On desktop a double
- * click on an event opens it through [onOpen].
+ * click on an event opens it through [onOpen], and hovering an event shows [hoverCard] for it in a
+ * rich tooltip, after telling [onHoverStart] so the card's content can be fetched.
  */
 @Composable
 fun TimelineDrawing(
@@ -150,6 +156,8 @@ fun TimelineDrawing(
 	titles: Map<Int, String> = emptyMap(),
 	laneHeaderDescription: (String) -> String = { it },
 	measurer: ComposeTimelineTextMeasurer = rememberTimelineTextMeasurer(),
+	hoverCard: (@Composable (eventId: Int) -> Unit)? = null,
+	onHoverStart: (eventId: Int) -> Unit = {},
 ) {
 	val scheme = MaterialTheme.colorScheme
 	val ink = remember(scheme.surface, scheme.onSurface, scheme.onSurfaceVariant, scheme.outlineVariant, scheme.primary) {
@@ -171,17 +179,26 @@ fun TimelineDrawing(
 				},
 		)
 		HitLayer(regions = layout.hitRegions, modifier = Modifier.matchParentSize()) { region ->
+			val target = region.target
 			HitBox(
 				region = region,
-				description = descriptions.describe(region.target, laneHeaderDescription),
-				tooltip = hoverTooltips && (region.target is HitTarget.Ledger || region.target is HitTarget.Band),
+				description = descriptions.describe(target, laneHeaderDescription),
+				tooltip = when {
+					!hoverTooltips || target.eventId == null -> null
+					hoverCard != null -> HitTooltip.Card(hoverCard)
+					target is HitTarget.Ledger || target is HitTarget.Band -> HitTooltip.Description
+					else -> null
+				},
 				onTap = onTap,
-				// Touch platforms open from the selection's summary instead.
+				// Touch platforms open from the selection strip instead.
 				onOpen = onOpen?.takeIf { timelineOpensOnDoubleClick },
 				clicks = clicks,
-				onHover = if (hoverTooltips && region.target is HitTarget.Ledger) {
+				onHover = if (hoverTooltips && target.eventId != null) {
 					{ id, hovered ->
-						if (hovered) hoveredLedgerId = id else if (hoveredLedgerId == id) hoveredLedgerId = null
+						if (hovered) onHoverStart(id)
+						if (target is HitTarget.Ledger) {
+							if (hovered) hoveredLedgerId = id else if (hoveredLedgerId == id) hoveredLedgerId = null
+						}
 					}
 				} else {
 					null
@@ -239,6 +256,8 @@ fun TimelineDrawingPane(
 	measurer: ComposeTimelineTextMeasurer = rememberTimelineTextMeasurer(),
 	scrollState: ScrollState = rememberScrollState(),
 	bottomPadding: Dp = 0.dp,
+	hoverCard: (@Composable (eventId: Int) -> Unit)? = null,
+	onHoverStart: (eventId: Int) -> Unit = {},
 ) {
 	val horizontalState = rememberScrollState()
 	val horizontal = if (contentWidth != null) {
@@ -258,6 +277,8 @@ fun TimelineDrawingPane(
 				titles = titles,
 				laneHeaderDescription = laneHeaderDescription,
 				measurer = measurer,
+				hoverCard = hoverCard,
+				onHoverStart = onHoverStart,
 			)
 			Spacer(modifier = Modifier.height(bottomPadding).testTag(TIMELINE_BOTTOM_PADDING_TAG))
 		}
@@ -300,12 +321,18 @@ private fun describeTargets(layout: TimelineLayout, titles: Map<Int, String>): T
 	)
 }
 
+/** What a hit box shows on hover: its description as plain text, or an event's card. */
+private sealed interface HitTooltip {
+	data object Description : HitTooltip
+	class Card(val content: @Composable (eventId: Int) -> Unit) : HitTooltip
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun HitBox(
 	region: HitRegion,
 	description: String,
-	tooltip: Boolean,
+	tooltip: HitTooltip?,
 	onTap: (HitTarget) -> Unit,
 	onOpen: ((Int) -> Unit)?,
 	clicks: DoubleClickDetector,
@@ -313,13 +340,14 @@ private fun HitBox(
 ) {
 	val eventId = region.target.eventId
 	val doubleClickTimeout = LocalViewConfiguration.current.doubleTapTimeoutMillis.milliseconds
+	val currentOnHover by rememberUpdatedState(onHover)
 	val hover = if (onHover != null && eventId != null) {
 		Modifier.pointerInput(eventId) {
 			awaitPointerEventScope {
 				while (true) {
 					when (awaitPointerEvent().type) {
-						PointerEventType.Enter -> onHover(eventId, true)
-						PointerEventType.Exit -> onHover(eventId, false)
+						PointerEventType.Enter -> currentOnHover?.invoke(eventId, true)
+						PointerEventType.Exit -> currentOnHover?.invoke(eventId, false)
 					}
 				}
 			}
@@ -338,10 +366,33 @@ private fun HitBox(
 				onTap(region.target)
 			}
 		}
-	if (tooltip && description.isNotBlank()) {
+	val tooltipContent: (@Composable TooltipScope.() -> Unit)? = when {
+		tooltip is HitTooltip.Card && eventId != null -> {
+			{
+				RichTooltip(
+					modifier = Modifier.border(Dp.Hairline, MaterialTheme.colorScheme.outlineVariant, RectangleShape),
+					shape = RectangleShape,
+					colors = TooltipDefaults.richTooltipColors(
+						containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+						contentColor = MaterialTheme.colorScheme.onSurface,
+					),
+					shadowElevation = 0.dp,
+				) {
+					tooltip.content(eventId)
+				}
+			}
+		}
+
+		tooltip == HitTooltip.Description && description.isNotBlank() -> {
+			{ PlainTooltip { Text(description) } }
+		}
+
+		else -> null
+	}
+	if (tooltipContent != null) {
 		TooltipBox(
 			positionProvider = TooltipDefaults.rememberTooltipPositionProvider(),
-			tooltip = { PlainTooltip { Text(description) } },
+			tooltip = tooltipContent,
 			state = rememberTooltipState(),
 			modifier = Modifier.fillMaxSize(),
 		) {
@@ -355,7 +406,7 @@ private fun HitBox(
 /**
  * Tells a double click from two single ones without holding back the first, as a double-click
  * gesture detector would: the first click acts at once and the second only opens. Keyed by event,
- * not by hit region, since the first click may lay the drawing out again (a band tap frames it).
+ * not by hit region, since the first click may lay the drawing out again (a selection redraws it).
  */
 private class DoubleClickDetector {
 	private var lastId: Int? = null
