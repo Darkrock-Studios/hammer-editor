@@ -137,12 +137,14 @@ internal fun DatedTimelinePane(
 
 		// Until its preview arrives a card shows what the row already knows.
 		val rowsById = remember(rows) { rows.associateBy { it.event.id } }
-		// Each card observes the previews itself, so one arriving recomposes only the card.
-		val hoverCard: (@Composable (Int) -> Unit)? = remember(previews, rowsById) {
+		val currentRowsById by rememberUpdatedState(rowsById)
+		// Each card observes the previews and rows itself, so the lambda stays the same across
+		// timeline updates and only the cards recompose.
+		val hoverCard: (@Composable (Int) -> Unit)? = remember(previews) {
 			previews?.let { loaded ->
 				val card: @Composable (Int) -> Unit = { id ->
 					val shown by loaded.subscribeAsState()
-					(shown[id] ?: rowsById[id]?.basicPreview())?.let { EventPreviewCard(it) }
+					(shown[id] ?: currentRowsById[id]?.basicPreview())?.let { EventPreviewCard(it) }
 				}
 				card
 			}

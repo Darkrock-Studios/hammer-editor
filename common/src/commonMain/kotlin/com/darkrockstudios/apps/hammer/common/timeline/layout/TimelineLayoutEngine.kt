@@ -150,19 +150,31 @@ object TimelineLayoutEngine {
 		)
 	}
 
+	/**
+	 * Whether laying out [events] in [frame] draws [eventId] as a span: it is one, and the frame does
+	 * not clip it out. Frame is offered for an event exactly when this holds.
+	 */
+	fun drawsSpan(events: List<LayoutEvent>, frame: TimelineFrame, eventId: Int): Boolean {
+		val event = events.firstOrNull { it.id == eventId } ?: return false
+		val range = resolveFrame(events, frame)
+		return place(event, range.first, range.last)?.end != null
+	}
+
 	/** Drops events wholly outside [lo, hi] and clamps the rest to it, in (start, order, id) order. */
 	private fun clipToFrame(events: List<LayoutEvent>, lo: Long, hi: Long): List<Placed> {
-		val out = ArrayList<Placed>(events.size)
-		for (e in events) {
-			val end = e.spanEnd
-			if (end == null) {
-				if (e.start in lo..hi) out += Placed(e, e.start, end)
-			} else if (end > lo && e.start < hi) {
-				out += Placed(e, maxOf(e.start, lo), minOf(end, hi))
-			}
-		}
+		val out = events.mapNotNullTo(ArrayList(events.size)) { place(it, lo, hi) }
 		out.sortWith(compareBy<Placed>({ it.start }, { it.event.order }, { it.event.id }))
 		return out
+	}
+
+	/** [event] clamped to [lo, hi], or null when it lies wholly outside. */
+	private fun place(event: LayoutEvent, lo: Long, hi: Long): Placed? {
+		val end = event.spanEnd
+		return when {
+			end == null -> if (event.start in lo..hi) Placed(event, event.start, null) else null
+			end > lo && event.start < hi -> Placed(event, maxOf(event.start, lo), minOf(end, hi))
+			else -> null
+		}
 	}
 
 	/** Lanes from [laneOrder] that some event uses, then the remaining used lanes alphabetically. */

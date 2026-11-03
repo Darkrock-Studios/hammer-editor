@@ -80,6 +80,15 @@ class StoryDateFormatTest {
 	}
 
 	@Test
+	fun `A range that ends where it starts reads as one moment`() {
+		val instant = date("year" to 2, "day" to 3, "hour" to 4, "minute" to 5)
+		assertEquals("Year 2 · Day 3 · 04:05", formatStoryDateRange(story, instant, instant))
+		assertEquals("Year 2 · Day 3", formatStoryDateRange(story, date("year" to 2, "day" to 3), date("year" to 2, "day" to 3, "hour" to 0, "minute" to 0)))
+		assertEquals("Year 2 · Day 3 → Year 2 · Day 3", formatStoryDateRange(story, date("year" to 2, "day" to 3), date("year" to 2, "day" to 3)))
+		assertEquals("Year 2 · Day 3 · 04:05 → Year 2 · Day 3 · 04:06", formatStoryDateRange(story, instant, date("year" to 2, "day" to 3, "hour" to 4, "minute" to 6)))
+	}
+
+	@Test
 	fun `Entry units start at the coarsest unit a story is told in`() {
 		assertEquals(listOf("year", "day", "hour", "minute"), entryUnits(story).map { it.name })
 		assertEquals(listOf("day", "hour", "minute"), entryUnits(CalendarDef(coarsestUnit = "day")).map { it.name })

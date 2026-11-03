@@ -9,6 +9,7 @@ import com.darkrockstudios.apps.hammer.common.data.timelinerepository.StoryDateW
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.advanceStoryDate
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.entryUnits
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.formatStoryDateTick
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.rangeEnd
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.storyDateAt
 import com.darkrockstudios.apps.hammer.common.timeline.layout.LayoutEvent
 import com.darkrockstudios.apps.hammer.common.timeline.layout.LayoutKind
@@ -88,15 +89,6 @@ internal fun precisionExtent(calendar: CalendarDef, start: StoryDate): Long =
 	} else {
 		1L
 	}
-
-/**
- * Where a range closed by [end] stops: the end of [end]'s span, so "year 5" closes when year 5 does.
- * A minute-precise end is an instant and stops where it starts. Null when [end] is invalid.
- */
-internal fun rangeEnd(calendar: CalendarDef, end: StoryDate): Long? {
-	val span = StoryCalendar.span(calendar, end) ?: return null
-	return if (StoryCalendar.precision(calendar, end)?.name == StoryCalendar.MINUTE) span.first else span.last + 1
-}
 
 private fun TimelineKind.toLayoutKind(): LayoutKind = when (this) {
 	TimelineKind.EVENT -> LayoutKind.EVENT

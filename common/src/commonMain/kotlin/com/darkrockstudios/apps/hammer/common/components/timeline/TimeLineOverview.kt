@@ -29,7 +29,7 @@ interface TimeLineOverview {
 	/** Which drawing a DATED timeline shows. */
 	fun setView(view: TimelineView)
 
-	/** Whether the drawing, under the current filters, draws [eventId] as a span, and it is not already framed. */
+	/** Whether the drawing, under the current filters and frame, draws [eventId] as a span, and it is not already framed. */
 	fun canFrame(eventId: Int): Boolean
 
 	/** Which stretch of a DATED timeline the drawing shows. [TimelineFrame.Story] needs a placed scene. */

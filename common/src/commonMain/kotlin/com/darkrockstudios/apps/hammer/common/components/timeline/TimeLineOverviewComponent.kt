@@ -25,7 +25,10 @@ import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineSe
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineView
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.hasValidStart
 import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineFrame
+import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineLayoutEngine
 import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineView as DrawingView
+import io.github.aakira.napier.Napier
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
@@ -207,8 +210,9 @@ class TimeLineOverviewComponent(
 	override fun canFrame(eventId: Int): Boolean {
 		val current = _state.value
 		if (current.mode != TimelineMode.DATED || current.frame == TimelineFrame.Band(eventId)) return false
-		val row = current.filtered.drawingRows.firstOrNull { it.event.id == eventId } ?: return false
-		return row.toLayoutEvent(current.calendar ?: CalendarDef(), current.laneFilter)?.isSpan == true
+		val calendar = current.calendar ?: CalendarDef()
+		val events = current.filtered.drawingRows.mapNotNull { it.toLayoutEvent(calendar, current.laneFilter) }
+		return TimelineLayoutEngine.drawsSpan(events, current.frame, eventId)
 	}
 
 	override fun setFrame(frame: TimelineFrame) {
@@ -228,6 +232,11 @@ class TimeLineOverviewComponent(
 					previewRows[eventId] = row
 					_previews.value += eventId to preview
 				}
+			} catch (e: CancellationException) {
+				throw e
+			} catch (e: Exception) {
+				// The card keeps the row's basic preview, and a later request reads again.
+				Napier.w("Failed to read the preview of timeline event $eventId", e)
 			} finally {
 				if (readingPreviews[eventId] == row) readingPreviews -= eventId
 			}

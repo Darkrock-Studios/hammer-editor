@@ -48,7 +48,7 @@ data class LayoutEvent(
 
 	/**
 	 * Whether the drawing draws this event as a span (a band, a bar, or a ledger row with an end)
-	 * rather than a point, and so whether it can be framed.
+	 * rather than a point, wherever a frame does not clip it out.
 	 */
 	val isSpan: Boolean get() = spanEnd != null
 

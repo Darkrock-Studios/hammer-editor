@@ -68,7 +68,7 @@ fun formatStoryDate(
 	}
 }
 
-/** `start → end`, or just the start when there is no end. */
+/** `start → end`, or just the start when there is no end or the range [is a moment][isMomentRange]. */
 fun formatStoryDateRange(
 	calendar: CalendarDef,
 	start: StoryDate,
@@ -76,7 +76,7 @@ fun formatStoryDateRange(
 	words: StoryDateWords = StoryDateWords.English,
 ): String {
 	val from = formatStoryDate(calendar, start, words)
-	return if (end == null) from else "$from → ${formatStoryDate(calendar, end, words)}"
+	return if (end == null || isMomentRange(calendar, start, end)) from else "$from → ${formatStoryDate(calendar, end, words)}"
 }
 
 private fun formatStory(calendar: CalendarDef, date: StoryDate, words: StoryDateWords): String {

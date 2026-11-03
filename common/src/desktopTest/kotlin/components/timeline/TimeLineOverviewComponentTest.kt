@@ -466,30 +466,45 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 			TimelineEventDraft(title = "Chime", start = instant),
 			TimelineEventDraft(title = "Moment", lane = "Keep", start = instant, end = instant),
 			TimelineEventDraft(title = "Blink", start = instant, end = instant),
+			TimelineEventDraft(title = "Exile", lane = "Keep", start = StoryDate(mapOf("year" to 10L)), end = StoryDate(mapOf("year" to 12L))),
+			TimelineEventDraft(title = "Wander", start = StoryDate(mapOf("year" to 10L)), end = StoryDate(mapOf("year" to 12L))),
 		)
-		val ids = drafts.associate { draft -> draft.title!! to timelineService.createEvent(draft).event().id }
+		val ids = drafts.associate { draft -> draft.title!! to timelineService.createEvent(draft).event().id } +
+			("Scene" to timelineService.placeScene(4, year2, null, lane = null, milestone = false).event().id)
 		val component = newComponent()
 		context.resume()
 		advanceUntilIdle()
 
-		val state = component.state.value
-		val input = toLayoutInput(
-			rows = state.filtered.drawingRows,
-			lanes = state.lanes,
-			laneFilter = state.laneFilter,
-			calendar = state.calendar!!,
-			view = TimelineView.TO_SCALE,
-			widthDp = 840f,
-			phone = false,
-		)
-		val layout = TimelineLayoutEngine.layout(input, MonospaceEstimateMeasurer())
-		fun drawnAsSpan(id: Int) = layout.bands.any { it.eventId == id } ||
-			layout.bars.any { it.eventId == id } ||
-			layout.ledgerRows.any { it.eventId == id && it.anchorY1Dp != null }
+		fun drawnAsSpans(): Set<String> {
+			val state = component.state.value
+			val input = toLayoutInput(
+				rows = state.filtered.drawingRows,
+				lanes = state.lanes,
+				laneFilter = state.laneFilter,
+				calendar = state.calendar!!,
+				view = TimelineView.TO_SCALE,
+				widthDp = 840f,
+				phone = false,
+				frame = state.frame,
+			)
+			val layout = TimelineLayoutEngine.layout(input, MonospaceEstimateMeasurer())
+			return ids.filterValues { id ->
+				layout.bands.any { it.eventId == id } ||
+					layout.bars.any { it.eventId == id } ||
+					layout.ledgerRows.any { it.eventId == id && it.anchorY1Dp != null }
+			}.keys
+		}
 
+		val spans = setOf("Siege", "Watch", "March", "Winter", "Thaw", "Season", "Scene")
 		val framable = ids.filterValues { component.canFrame(it) }.keys
-		assertEquals(setOf("Siege", "Watch", "March", "Winter", "Thaw", "Season"), framable)
-		assertEquals(framable, ids.filterValues { drawnAsSpan(it) }.keys)
+		assertEquals(spans + setOf("Exile", "Wander"), framable)
+		assertEquals(framable, drawnAsSpans())
+
+		component.setFrame(TimelineFrame.Story)
+
+		val framableInStory = ids.filterValues { component.canFrame(it) }.keys
+		assertEquals(spans, framableInStory, "the story frame clips out the spans past the scenes")
+		assertEquals(framableInStory, drawnAsSpans())
 	}
 
 	@Test
@@ -655,6 +670,26 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 		advanceUntilIdle()
 
 		assertEquals(listOf(ALICE, WONDERLAND), previewOf(component, storm.id)!!.references.map { it.id })
+	}
+
+	@Test
+	fun `a preview that cannot be read stays absent and the timeline keeps updating`() = runTest(mainTestDispatcher) {
+		givenProject()
+		val storm = timelineService.createEvent(TimelineEventDraft(title = "Storm", references = linkedSetOf(ALICE))).event()
+		val component = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		catalog.failure = IllegalStateException("catalog unreadable")
+
+		assertNull(previewOf(component, storm.id))
+
+		timelineService.createEvent(TimelineEventDraft(title = "Rain"))
+		advanceUntilIdle()
+		assertEquals(listOf("Storm", "Rain"), component.state.value.rows?.map { it.title })
+		assertNull(component.previews.value[storm.id])
+
+		catalog.failure = null
+		assertEquals(listOf(ALICE), previewOf(component, storm.id)?.references?.map { it.id })
 	}
 
 	@Test

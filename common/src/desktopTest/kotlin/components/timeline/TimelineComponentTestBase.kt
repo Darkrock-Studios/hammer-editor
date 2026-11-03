@@ -165,7 +165,12 @@ abstract class TimelineComponentTestBase : ComponentTest() {
 	}
 }
 
-/** The project's pickable items, as the tests set them. */
+/** The project's pickable items, as the tests set them; reading throws [failure] while it is set. */
 class FakeEntityCatalog(var items: List<CatalogItem> = emptyList()) : EntityCatalog {
-	override suspend fun items(kinds: Set<CatalogKind>): List<CatalogItem> = items.filter { it.kind in kinds }
+	var failure: Throwable? = null
+
+	override suspend fun items(kinds: Set<CatalogKind>): List<CatalogItem> {
+		failure?.let { throw it }
+		return items.filter { it.kind in kinds }
+	}
 }
