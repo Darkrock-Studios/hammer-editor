@@ -149,10 +149,6 @@ class CreateTimeLineEventComponent(
 		_contentText.update { newText }
 	}
 
-	override fun clearContent() {
-		_contentText.update { "" }
-	}
-
 	override fun setKind(kind: TimelineKind) {
 		_state.getAndUpdate {
 			if (it.kind == kind) it else it.copy(kind = kind, subject = null)

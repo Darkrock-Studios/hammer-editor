@@ -7,13 +7,11 @@ import com.arkivanov.decompose.value.getAndUpdate
 import com.arkivanov.decompose.value.subscribe
 import com.arkivanov.essenty.backhandler.BackCallback
 import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
-import com.darkrockstudios.apps.hammer.base.timeline.StoryCalendar
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogKind
 import com.darkrockstudios.apps.hammer.common.data.entitycatalog.EntityCatalog
 import com.darkrockstudios.apps.hammer.common.data.projectInject
@@ -25,6 +23,7 @@ import com.darkrockstudios.apps.hammer.common.data.timelinerepository.SubjectSum
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineService
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineView
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.hasValidStart
 import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineFrame
 import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineView as DrawingView
 import kotlinx.coroutines.flow.combine
@@ -44,7 +43,6 @@ class TimeLineOverviewComponent(
 
 	private val timelineService: TimelineService by projectInject()
 	private val sceneRepository: SceneRepository by projectInject()
-	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
 	private val tagIndexService: TagIndexService by projectInject()
 	private val entityCatalog: EntityCatalog by projectInject()
 
@@ -127,10 +125,9 @@ class TimeLineOverviewComponent(
 
 	private suspend fun buildRows(view: TimelineView): Built {
 		val events = view.events
-		val titles = timelineService.displayTitles(events)
+		val glances = timelineService.glances(events)
 		val lanes = timelineService.lanes()
 		val laneIndex = lanes.withIndex().associate { (index, lane) -> lane to index }
-		val glances = withContext(dispatcherIo) { glanceSubjects(events, sceneRepository, encyclopediaRepository) }
 		val dated = view.def.mode == TimelineMode.DATED
 		val calendar = view.def.calendar ?: CalendarDef()
 
@@ -139,7 +136,7 @@ class TimeLineOverviewComponent(
 			val start = event.start?.takeIf { dated && hasValidStart(event, calendar) }
 			TimelineRow(
 				event = event,
-				title = titles[event.id].orEmpty(),
+				title = glance?.title.orEmpty(),
 				subtitle = if (event.kind == TimelineKind.SCENE) glance?.chapterPath else null,
 				whenText = event.label?.trim().orEmpty(),
 				laneIndex = event.lane?.let { laneIndex[it] },
@@ -151,14 +148,9 @@ class TimeLineOverviewComponent(
 			)
 		}
 		val counts = events.mapNotNull { it.lane }.groupingBy { it }.eachCount()
-		val undated = if (dated) events.filterNot { hasValidStart(it, calendar) }.map { it.id } else emptyList()
+		val undated = if (dated) rows.filter { it.start == null }.map { it.event.id } else emptyList()
 		return Built(rows, lanes.map { LaneCount(it, counts[it] ?: 0) }, undated)
 	}
-
-	private val TimelineRow.isDrawn: Boolean get() = start != null && !subjectArchived
-
-	private fun hasValidStart(event: TimeLineEvent, calendar: CalendarDef): Boolean =
-		event.start?.let { StoryCalendar.validate(calendar, it) == null } == true
 
 	private fun watchTags() {
 		scope.launch {
@@ -210,7 +202,6 @@ class TimeLineOverviewComponent(
 			if (frame == TimelineFrame.Story && !it.storyFrameAvailable) it else it.copy(frame = frame)
 		}
 	}
-
 
 	override suspend fun preview(eventId: Int): EventPreview? {
 		var cached: EventPreview? = null

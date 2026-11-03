@@ -99,9 +99,9 @@ fun rememberHdScrollAwayStripState(): HdScrollAwayStripState {
 
 /**
  * A browse screen's filter strip laid over the top of its scrolling content, sliding away as soon as
- * the content starts scrolling down and back as soon as it starts scrolling up. [content] gets the strip's full height to use as
- * its top padding, so the strip covers nothing when the content is at its top, and hiding or
- * showing the strip never changes how far the content can scroll:
+ * the content starts scrolling down and back as soon as it starts scrolling up. [content] gets the
+ * strip's full height to use as its top padding, so the strip covers nothing when the content is at
+ * its top, and hiding or showing the strip never changes how far the content can scroll:
  *
  *     § IV  Timeline ────────── 50 · 12     ← masthead, stays put
  *     ════════════════════════════════

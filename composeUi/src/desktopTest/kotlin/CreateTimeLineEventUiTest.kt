@@ -81,7 +81,6 @@ class CreateTimeLineEventUiTest : BaseTest() {
 		override fun confirmDiscard() {}
 		override fun cancelDiscard() {}
 		override fun onContentChanged(newText: String) {}
-		override fun clearContent() {}
 		override fun suggestTags(prefix: String, limit: Int): List<String> = emptyList()
 	}
 

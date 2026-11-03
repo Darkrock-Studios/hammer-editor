@@ -41,6 +41,7 @@ import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
 import com.darkrockstudios.apps.hammer.base.timeline.StoryDateProblem
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.StoryDateWords
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.StrResStoryDateWords
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.entryUnits
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.formatStoryDate
 import com.darkrockstudios.apps.hammer.timeline_date_bce
@@ -299,17 +300,9 @@ fun rememberStoryDateWords(): StoryDateWords {
 		Res.string.timeline_month_7.get(), Res.string.timeline_month_8.get(), Res.string.timeline_month_9.get(),
 		Res.string.timeline_month_10.get(), Res.string.timeline_month_11.get(), Res.string.timeline_month_12.get(),
 	)
-	// Templates, filled in per call: the words are used outside composition.
 	val beforeTemplate = Res.string.timeline_date_before_epoch.get()
 	val bceTemplate = Res.string.timeline_date_bce.get()
 	return remember(units, months, beforeTemplate, bceTemplate) {
-		object : StoryDateWords {
-			override fun unit(unit: String): String = units[unit] ?: StoryDateWords.English.unit(unit)
-			override fun month(month: Int): String = months.getOrElse(month - 1) { month.toString() }
-			override fun beforeEpoch(text: String, epoch: String): String =
-				beforeTemplate.replace("%1\$s", text).replace("%2\$s", epoch)
-
-			override fun bce(year: Long): String = bceTemplate.replace("%1\$d", year.toString())
-		}
+		StrResStoryDateWords(units, months, beforeTemplate, bceTemplate)
 	}
 }

@@ -13,8 +13,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.compose.CollapseWhileTyping
+import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
 import com.darkrockstudios.apps.hammer.common.data.tagindex.isTagSeparator
 import com.darkrockstudios.apps.hammer.common.data.tagindex.parseTagInput
 import com.darkrockstudios.apps.hammer.common.data.tagindex.replaceTagPrefix
@@ -121,12 +123,17 @@ fun rememberTagSuggestions(
 	else suggestTags(prefix).filter { it !in applied }
 }
 
+/**
+ * Tappable suggestion chips that never take focus. [accent] colours each chip's swatch, null for a
+ * neutral `#`; without it each tag takes its own colour.
+ */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun HdTagSuggestionStrip(
 	suggestions: List<String>,
 	onSelect: (String) -> Unit,
 	modifier: Modifier = Modifier,
+	accent: ((String) -> Color?)? = null,
 ) {
 	if (suggestions.isEmpty()) return
 	FlowRow(
@@ -142,6 +149,7 @@ fun HdTagSuggestionStrip(
 				active = false,
 				onClick = { onSelect(tag) },
 				modifier = Modifier.focusProperties { canFocus = false },
+				accent = if (accent != null) accent(tag) else LocalHammerColors.current.tagColor(tag),
 			)
 		}
 	}

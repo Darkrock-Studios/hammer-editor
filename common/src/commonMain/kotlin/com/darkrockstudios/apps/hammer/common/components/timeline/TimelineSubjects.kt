@@ -1,63 +1,11 @@
 package com.darkrockstudios.apps.hammer.common.components.timeline
 
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
-import com.darkrockstudios.apps.hammer.common.data.SceneItem
-import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogItem
 import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogKind
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
-import com.darkrockstudios.apps.hammer.common.data.search.MarkdownProjector
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.SubjectSummary
-import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.markdownExcerpt
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.timelineCastRank
-
-/** What the list needs to know about a placement's subject without reading its text. */
-internal data class SubjectGlance(val chapterPath: String?, val missing: Boolean, val archived: Boolean = false)
-
-/**
- * [SubjectGlance] for every placement in [events], by event id, reading the scene tree, the archive
- * and the entry list at most once each. Blocking: call it off the main thread.
- */
-internal suspend fun glanceSubjects(
-	events: List<TimeLineEvent>,
-	sceneRepository: SceneRepository,
-	encyclopediaRepository: EncyclopediaRepository,
-): Map<Int, SubjectGlance> {
-	val scenes = events.filter { it.kind == TimelineKind.SCENE }
-	val entries = events.filter { it.kind == TimelineKind.ENTRY }
-	if (scenes.isEmpty() && entries.isEmpty()) return emptyMap()
-
-	val glances = HashMap<Int, SubjectGlance>()
-	if (scenes.isNotEmpty()) {
-		val tree = sceneRepository.rawTree
-		val archived by lazy { sceneRepository.getArchivedScenes().associateBy { it.id } }
-		scenes.forEach { event ->
-			val sceneId = event.subject
-			val branch = sceneId?.let { id -> tree.getBranchOrNull(excludeLeaf = false) { it.id == id } }
-			glances[event.id] = when {
-				sceneId == null -> SubjectGlance(null, missing = true)
-				branch != null -> {
-					val scene = branch.last().value
-					val path = branch.dropLast(1)
-						.map { it.value }
-						.filter { it.type == SceneItem.Type.Group }
-						.joinToString(CHAPTER_SEPARATOR) { it.name }
-					SubjectGlance(path.ifEmpty { null }, missing = scene.type != SceneItem.Type.Scene)
-				}
-
-				archived[sceneId]?.type == SceneItem.Type.Scene -> SubjectGlance(null, missing = false, archived = true)
-				else -> SubjectGlance(null, missing = true)
-			}
-		}
-	}
-	if (entries.isNotEmpty()) {
-		val entryIds = encyclopediaRepository.readEntryDefs().mapTo(HashSet()) { it.id }
-		entries.forEach { event ->
-			glances[event.id] = SubjectGlance(null, missing = event.subject !in entryIds)
-		}
-	}
-	return glances
-}
 
 /**
  * The references an event of [kind] shows: a placed scene's cast from [subject], else a plain event's
@@ -91,9 +39,7 @@ internal fun List<CatalogItem>.inCastOrder(): List<CatalogItem> = sortedBy { ite
  */
 internal fun eventExcerpt(markdown: String, skipTitle: String? = null): String? {
 	if (markdown.isBlank()) return null
-	val projector = MarkdownProjector(markdown.length)
-	projector.project(markdown)
-	val preview = projector.collapsedPreview(EVENT_EXCERPT_CHARS)
+	val preview = markdownExcerpt(markdown, EVENT_EXCERPT_CHARS)
 	val body = if (!skipTitle.isNullOrBlank() && preview.startsWith(skipTitle)) {
 		preview.removePrefix(skipTitle).trimStart()
 	} else {
@@ -106,6 +52,3 @@ private const val EVENT_EXCERPT_CHARS = 240
 
 private const val CAST_RANK_OTHER_ENTRY = 2
 private const val CAST_RANK_SCENE = 3
-
-// As TimelineService joins a chapter path.
-private const val CHAPTER_SEPARATOR = " › "

@@ -78,7 +78,7 @@ private fun fakeComponent(language: String?) = object : ProjectSettings {
 	override val projectName: String = "The Lighthouse"
 	override val spellCheckSettings: SpellCheckSettings = fakeSpellCheckSettings
 	override val timelineSettings: TimelineSettings =
-		PreviewTimelineSettings(TimelineSettings.State(lanes = listOf("Keeper", "The Sea"), isLoaded = true))
+		PreviewTimelineSettings(TimelineSettings.State(lanes = listOf("Keeper", "The Sea")))
 	override val projectInfoState: Value<ProjectSettings.ProjectInfoState> = MutableValue(
 		ProjectSettings.ProjectInfoState(
 			data = ProjectData(

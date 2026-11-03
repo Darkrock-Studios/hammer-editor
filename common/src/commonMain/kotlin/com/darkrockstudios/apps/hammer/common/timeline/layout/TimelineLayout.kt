@@ -5,9 +5,6 @@ data class RectDp(val x: Float, val y: Float, val width: Float, val height: Floa
 	val bottom: Float get() = y + height
 
 	fun contains(px: Float, py: Float): Boolean = px >= x && px <= right && py >= y && py <= bottom
-
-	fun intersects(other: RectDp): Boolean =
-		x < other.right && other.x < right && y < other.bottom && other.y < bottom
 }
 
 data class PointDp(val x: Float, val y: Float)
@@ -148,12 +145,11 @@ data class TimelineLayout(
 	val bars: List<BarShape>,
 	val points: List<PointMark>,
 	val ledgerRows: List<LedgerRow>,
-	val projection: ProjectionOverlay?,
 	val hitRegions: List<HitRegion>,
 	/** Every drawn event's place on the axis, so any of them can be projected without a new layout. */
 	val anchors: Map<Int, EventAnchor> = emptyMap(),
 ) {
-	/** [eventId] projected across the lanes, as [projection] is for the input's selection. */
+	/** [eventId] projected across the lanes; null when it is not drawn. */
 	fun projectionOf(eventId: Int?): ProjectionOverlay? {
 		val anchor = eventId?.let(anchors::get) ?: return null
 		val height = (anchor.y1Dp ?: anchor.yDp) - anchor.yDp

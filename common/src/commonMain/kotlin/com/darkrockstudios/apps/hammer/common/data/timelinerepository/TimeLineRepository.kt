@@ -94,22 +94,8 @@ class TimeLineRepository(
 		return mutex.withLock {
 			val timeline = currentTimeline()
 
-			val event = TimeLineEvent(
-				id = eventId,
-				order = draft.order ?: timeline.events.size,
-				kind = draft.kind,
-				subject = draft.subject,
-				title = draft.title,
-				label = draft.label,
-				content = draft.content,
-				tags = cleanTags(draft.tags),
-				references = draft.references,
-				lane = normalizeLane(draft.lane),
-				milestone = draft.milestone,
-				start = draft.start,
-				end = draft.end,
-				cachedTitle = draft.cachedTitle,
-			)
+			val event = draft.toEvent(eventId, draft.order ?: timeline.events.size)
+				.let { it.copy(tags = cleanTags(it.tags), lane = normalizeLane(it.lane)) }
 
 			storeAndEmitTimeline(timeline.copy(events = timeline.events + event))
 
@@ -158,46 +144,18 @@ class TimeLineRepository(
 	}
 
 	/**
-	 * Replaces every listed event that exists, storing once. Unknown ids are ignored. Returns the ids
-	 * it changed.
+	 * Replaces every listed event that exists, storing once and marking the changed ones for sync.
+	 * Unknown ids are ignored.
 	 */
-	suspend fun updateEvents(updates: Collection<TimeLineEvent>, markForSync: Boolean = true): Set<Int> {
+	suspend fun updateEvents(updates: Collection<TimeLineEvent>) {
 		val byId = updates.associateBy { it.id }
-		return mutex.withLock {
+		mutex.withLock {
 			val originals = rewriteEvents { event ->
 				byId[event.id]
 					?.let { it.copy(tags = cleanTags(it.tags), lane = normalizeLane(it.lane)) }
 					?.takeIf { it != event }
 			}
-			if (markForSync) originals.forEach { markForSynchronization(it) }
-			originals.mapTo(mutableSetOf()) { it.id }
-		}
-	}
-
-	/**
-	 * Sets each listed event's order to its index in [orderedIds]; the rest follow in their current
-	 * order. Changed events are marked for sync.
-	 */
-	suspend fun renumber(orderedIds: List<Int>) = mutex.withLock {
-		val timeline = currentTimeline()
-		val rank = HashMap<Int, Int>()
-		orderedIds.forEach { id -> rank.getOrPut(id) { rank.size } }
-
-		val (listed, rest) = timeline.events.partition { it.id in rank }
-		val sequence = listed.sortedBy { rank.getValue(it.id) } + rest.sortedBy { it.order }
-
-		val changed = mutableListOf<TimeLineEvent>()
-		val events = sequence.mapIndexed { index, event ->
-			if (event.order == index) {
-				event
-			} else {
-				changed += event
-				event.copy(order = index)
-			}
-		}
-		if (changed.isNotEmpty()) {
-			storeAndEmitTimeline(timeline.copy(events = events))
-			changed.forEach { markForSynchronization(it) }
+			originals.forEach { markForSynchronization(it) }
 		}
 	}
 

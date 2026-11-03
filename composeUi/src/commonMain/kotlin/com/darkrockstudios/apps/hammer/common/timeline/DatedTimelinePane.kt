@@ -6,20 +6,22 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateMapOf
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.common.components.timeline.EventPreview
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineOverview
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimelineRow
@@ -28,11 +30,13 @@ import com.darkrockstudios.apps.hammer.common.components.timeline.toLayoutInput
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarGutter
 import com.darkrockstudios.apps.hammer.common.compose.WindowWidthSizeClass
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdMark
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.rememberStoryDateWords
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
 import com.darkrockstudios.apps.hammer.common.timeline.drawing.TIMELINE_DRAWING_TAG
 import com.darkrockstudios.apps.hammer.common.timeline.drawing.TimelineDrawingPane
+import com.darkrockstudios.apps.hammer.common.timeline.drawing.eventId
 import com.darkrockstudios.apps.hammer.common.timeline.drawing.rememberTimelineTextMeasurer
 import com.darkrockstudios.apps.hammer.common.timeline.layout.HitTarget
 import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineLayoutEngine
@@ -40,10 +44,6 @@ import com.darkrockstudios.apps.hammer.timeline_lane_filter_description
 import kotlinx.coroutines.launch
 import kotlin.math.floor
 import kotlin.math.roundToInt
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.glyph
-import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
-import com.darkrockstudios.apps.hammer.common.timeline.drawing.eventId
-import androidx.compose.ui.platform.LocalDensity
 
 private const val FALLBACK_WIDTH_DP = 840f
 private const val WIDTH_STEP_DP = 8f
@@ -79,7 +79,7 @@ internal fun DatedTimelinePane(
 	val measurer = rememberTimelineTextMeasurer(phone)
 	val calendar = state.calendar ?: CalendarDef()
 	val laneDescriptions = state.lanes.associate { it.lane to Res.string.timeline_lane_filter_description.get(it.lane) }
-	val describeLane: (String) -> String = { lane -> laneDescriptions[lane] ?: lane }
+	val describeLane = remember(laneDescriptions) { { lane: String -> laneDescriptions[lane] ?: lane } }
 
 	var shownFrame by remember { mutableStateOf(state.frame) }
 	LaunchedEffect(state.frame) {
@@ -115,7 +115,7 @@ internal fun DatedTimelinePane(
 				phone = phone,
 				frame = state.frame,
 				words = words,
-				entryMark = EntryType.EVENT.glyph(),
+				entryMark = TimelineKind.ENTRY.hdMark(),
 			)
 			TimelineLayoutEngine.layout(input.copy(widthDp = maxOf(steppedWidthDp, TimelineLayoutEngine.minimumWidthDp(input, measurer))), measurer)
 		}
@@ -166,7 +166,7 @@ internal fun DatedTimelinePane(
 			focusedId = focusedId,
 			hoverCard = hoverCard,
 			onHoverStart = { id ->
-				previewScope.launch { readPreview?.invoke(id)?.let { previews[id] = it } }
+				if (id !in previews) previewScope.launch { readPreview?.invoke(id)?.let { previews[id] = it } }
 			},
 		)
 	}

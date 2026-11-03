@@ -19,8 +19,6 @@ import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineLayoutInpu
 import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineView
 import com.darkrockstudios.apps.hammer.common.timeline.layout.tickPositions
 
-private const val MINUTES_PER_DAY = 24L * 60L
-
 // Gregorian years and months vary in length; the mean only chooses the unit and step, ticks fall
 // on the civil boundaries.
 private const val GREGORIAN_YEAR_MINUTES = 525_949L
@@ -43,17 +41,13 @@ fun toLayoutInput(
 	widthDp: Float,
 	phone: Boolean,
 	frame: TimelineFrame = TimelineFrame.Everything,
-	selectedId: Int? = null,
 	words: StoryDateWords = StoryDateWords.English,
 	entryMark: String? = null,
 ): TimelineLayoutInput {
 	val events = rows.mapNotNull { row ->
-		if (row.subjectArchived) return@mapNotNull null
+		if (row.subjectArchived || !row.passesLaneFilter(laneFilter)) return@mapNotNull null
 		val event = row.event
 		val lane = event.lane?.takeIf { it.isNotBlank() }
-		if (laneFilter.isNotEmpty() && event.kind != TimelineKind.SCENE && lane != null && lane !in laneFilter) {
-			return@mapNotNull null
-		}
 		val start = row.start ?: return@mapNotNull null
 		val startPosition = StoryCalendar.position(calendar, start) ?: return@mapNotNull null
 		val end = row.end?.let { StoryCalendar.position(calendar, it) }
@@ -81,7 +75,6 @@ fun toLayoutInput(
 		widthDp = widthDp,
 		phone = phone,
 		ticks = timelineTickScheme(calendar, words),
-		selectedId = selectedId,
 	)
 }
 
@@ -148,7 +141,7 @@ private fun gregorianTickPositions(calendar: CalendarDef, range: LongRange, unit
 private fun unitMinutes(preset: CalendarPreset, unit: String): Long = when (unit) {
 	StoryCalendar.MINUTE -> 1L
 	StoryCalendar.HOUR -> 60L
-	StoryCalendar.DAY -> MINUTES_PER_DAY
+	StoryCalendar.DAY -> StoryCalendar.MINUTES_PER_DAY
 	StoryCalendar.MONTH -> GREGORIAN_MONTH_MINUTES
-	else -> if (preset == CalendarPreset.GREGORIAN) GREGORIAN_YEAR_MINUTES else 365 * MINUTES_PER_DAY
+	else -> if (preset == CalendarPreset.GREGORIAN) GREGORIAN_YEAR_MINUTES else 365 * StoryCalendar.MINUTES_PER_DAY
 }

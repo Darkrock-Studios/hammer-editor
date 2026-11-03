@@ -109,6 +109,18 @@ data class TimelineRow(
 	val calendar: CalendarDef? = null,
 )
 
+/** Whether the drawing shows this row: it has a start, and is not an archived scene. */
+val TimelineRow.isDrawn: Boolean get() = start != null && !subjectArchived
+
+/**
+ * Whether the drawing keeps this row under [laneFilter]: an empty filter keeps everything, and scenes
+ * and unlaned events always stay, in the ledger.
+ */
+fun TimelineRow.passesLaneFilter(laneFilter: Set<String>): Boolean {
+	val lane = event.lane?.takeIf { it.isNotBlank() }
+	return laneFilter.isEmpty() || event.kind == TimelineKind.SCENE || lane == null || lane in laneFilter
+}
+
 /** What the row alone says of its event: everything but the excerpt, image and references. */
 fun TimelineRow.basicPreview(): EventPreview = EventPreview(
 	eventId = event.id,

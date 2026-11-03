@@ -48,7 +48,6 @@ interface CreateTimeLineEvent : TagSuggesting {
 	fun confirmDiscard()
 	fun cancelDiscard()
 	fun onContentChanged(newText: String)
-	fun clearContent()
 
 	data class State(
 		val projectDef: ProjectDef,

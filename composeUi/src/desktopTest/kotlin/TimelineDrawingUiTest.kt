@@ -33,7 +33,6 @@ import org.junit.Rule
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
-import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 private const val HOST_TAG = "Timeline Host"
@@ -221,16 +220,13 @@ class TimelineDrawingUiTest {
 		val band = layout.bands
 			.filter { band -> input.events.first { it.id == band.eventId }.end != null }
 			.maxBy { it.rect.height }
-		assertNull(layout.projection, "Nothing is projected without a selection")
-		val selected = TimelineLayoutEngine.layout(input.copy(selectedId = band.eventId), MonospaceEstimateMeasurer())
+		show(selectedId = band.eventId)
 
-		show(layout = selected, selectedId = band.eventId)
-
-		val projection = assertNotNull(selected.projection)
+		val projection = assertNotNull(layout.projectionOf(band.eventId))
 		assertEquals(band.eventId, projection.eventId)
 		assertEquals(band.rect.y, projection.yDp, absoluteTolerance = 1f)
 		assertEquals(band.rect.bottom, assertNotNull(projection.y1Dp), absoluteTolerance = 1f)
-		assertEquals(selected.laneRegion.width, projection.rect.width)
+		assertEquals(layout.laneRegion.width, projection.rect.width)
 		compose.onNodeWithTag(HitTarget.Band(band.eventId).testTag()).assertExists()
 	}
 

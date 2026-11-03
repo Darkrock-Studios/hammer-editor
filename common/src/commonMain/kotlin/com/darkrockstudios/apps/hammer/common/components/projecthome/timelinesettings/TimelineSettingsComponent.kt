@@ -54,7 +54,7 @@ class TimelineSettingsComponent(
 			timelineService.timelineFlow.collect { view ->
 				val lanes = timelineService.lanes()
 				withContext(dispatcherMain) {
-					_state.getAndUpdate { it.copy(def = view.def, lanes = lanes, isLoaded = true) }
+					_state.getAndUpdate { it.copy(def = view.def, lanes = lanes) }
 				}
 			}
 		}

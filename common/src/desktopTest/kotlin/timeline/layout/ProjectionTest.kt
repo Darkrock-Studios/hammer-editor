@@ -16,9 +16,9 @@ class ProjectionTest {
 
 	@Test
 	fun `a selected scene projects its moment across the lanes`() {
-		val result = layout(TimelineLayoutSamples.leviathan(selectedId = 18))
+		val result = layout(TimelineLayoutSamples.leviathan())
 
-		val projection = assertNotNull(result.projection)
+		val projection = assertNotNull(result.projectionOf(18))
 		val row = result.ledgerRows.single { it.eventId == 18 }
 		assertEquals(row.anchorYDp, projection.yDp)
 		assertNull(projection.y1Dp)
@@ -29,9 +29,9 @@ class ProjectionTest {
 
 	@Test
 	fun `a selected span tints its whole stretch`() {
-		val result = layout(TimelineLayoutSamples.hollowmere(selectedId = 2))
+		val result = layout(TimelineLayoutSamples.hollowmere())
 
-		val projection = assertNotNull(result.projection)
+		val projection = assertNotNull(result.projectionOf(2))
 		val row = result.ledgerRows.single { it.eventId == 2 }
 		assertEquals(row.anchorYDp, projection.yDp)
 		assertEquals(row.anchorY1Dp, projection.y1Dp)
@@ -40,20 +40,20 @@ class ProjectionTest {
 
 	@Test
 	fun `a selected laned span projects from its band`() {
-		val result = layout(TimelineLayoutSamples.hollowmere(selectedId = 10))
+		val result = layout(TimelineLayoutSamples.hollowmere())
 
 		val band = result.bands.single { it.eventId == 10 }
-		assertEquals(band.rect.y, assertNotNull(result.projection).yDp)
+		assertEquals(band.rect.y, assertNotNull(result.projectionOf(10)).yDp)
 	}
 
 	@Test
 	fun `no selection, no projection`() {
-		assertNull(layout(TimelineLayoutSamples.hollowmere()).projection)
+		assertNull(layout(TimelineLayoutSamples.hollowmere()).projectionOf(null))
 	}
 
 	@Test
 	fun `a selection outside the frame or unknown is not projected`() {
-		assertNull(layout(TimelineLayoutSamples.insurgencyStory(selectedId = 4)).projection, "Gen 5 due lies after the story")
-		assertNull(layout(TimelineLayoutSamples.hollowmere(selectedId = 999)).projection)
+		assertNull(layout(TimelineLayoutSamples.insurgencyStory()).projectionOf(4), "Gen 5 due lies after the story")
+		assertNull(layout(TimelineLayoutSamples.hollowmere()).projectionOf(999))
 	}
 }

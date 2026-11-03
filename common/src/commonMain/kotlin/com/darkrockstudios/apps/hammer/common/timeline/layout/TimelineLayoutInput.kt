@@ -116,6 +116,5 @@ data class TimelineLayoutInput(
 	val widthDp: Float,
 	val phone: Boolean,
 	val ticks: TickScheme,
-	val selectedId: Int? = null,
 	val metrics: LayoutMetrics = LayoutMetrics(),
 )

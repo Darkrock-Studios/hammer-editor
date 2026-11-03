@@ -26,56 +26,53 @@ import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
 import com.darkrockstudios.apps.hammer.base.timeline.StoryDateProblem
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineDateField
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineLimits
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineRuleProblem
-import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSynchronization
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.WindowSizeClass
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HD_EVENT_GLYPH
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HD_SCENE_GLYPH
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdConflictField
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdConflictFieldSpacing
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdEntityId
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineToggleRow
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.glyph
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdMark
 import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
-import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.parseStoryDateText
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.toCompactText
+import com.darkrockstudios.apps.hammer.sync_conflict_timeline_date_bad_calendar
+import com.darkrockstudios.apps.hammer.sync_conflict_timeline_date_end_before_start
+import com.darkrockstudios.apps.hammer.sync_conflict_timeline_date_not_a_prefix
+import com.darkrockstudios.apps.hammer.sync_conflict_timeline_date_out_of_range
+import com.darkrockstudios.apps.hammer.sync_conflict_timeline_date_unknown_unit
 import com.darkrockstudios.apps.hammer.sync_conflict_timeline_event_date_hint
 import com.darkrockstudios.apps.hammer.sync_conflict_timeline_event_empty
 import com.darkrockstudios.apps.hammer.sync_conflict_timeline_event_invalid_date
 import com.darkrockstudios.apps.hammer.sync_conflict_timeline_event_milestone_off
 import com.darkrockstudios.apps.hammer.sync_conflict_timeline_event_milestone_on
 import com.darkrockstudios.apps.hammer.sync_conflict_timeline_event_milestone_toggle
-import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_subject_is_reference
-import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_self_reference
-import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_event_has_subject
-import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_placement_needs_subject
-import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_placement_own_subject
-import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_placement_has_references
-import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_placement_has_content
-import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_placement_has_tags
-import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_lane_blank
-import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_lane_too_long
-import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_title_too_long
-import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_cached_title_too_long
-import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_label_too_long
-import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_tag_too_long
-import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_too_many_rungs
-import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_blank_unit
-import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_unit_too_long
-import com.darkrockstudios.apps.hammer.sync_conflict_timeline_date_unknown_unit
-import com.darkrockstudios.apps.hammer.sync_conflict_timeline_date_not_a_prefix
-import com.darkrockstudios.apps.hammer.sync_conflict_timeline_date_out_of_range
-import com.darkrockstudios.apps.hammer.sync_conflict_timeline_date_bad_calendar
-import com.darkrockstudios.apps.hammer.sync_conflict_timeline_date_end_before_start
 import com.darkrockstudios.apps.hammer.sync_conflict_timeline_event_missing_date
 import com.darkrockstudios.apps.hammer.sync_conflict_timeline_event_placement_no_text
+import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_blank_unit
+import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_cached_title_too_long
+import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_event_has_subject
+import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_label_too_long
+import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_lane_blank
+import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_lane_too_long
+import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_placement_has_content
+import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_placement_has_references
+import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_placement_has_tags
+import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_placement_needs_subject
+import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_placement_own_subject
+import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_self_reference
+import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_subject_is_reference
+import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_tag_too_long
+import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_title_too_long
+import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_too_many_rungs
+import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_unit_too_long
 import com.darkrockstudios.apps.hammer.sync_conflict_title_timeline_event_field_content
 import com.darkrockstudios.apps.hammer.sync_conflict_title_timeline_event_field_end
 import com.darkrockstudios.apps.hammer.sync_conflict_title_timeline_event_field_label
@@ -376,7 +373,7 @@ private fun TimelineEventHeader(entity: ApiProjectEntity.TimelineEventEntity) {
 		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M),
 	) {
 		Text(
-			text = entity.kind.glyph(),
+			text = entity.kind.hdMark(),
 			style = MaterialTheme.typography.titleMedium,
 			color = MaterialTheme.colorScheme.onSurfaceVariant,
 		)
@@ -393,12 +390,6 @@ private fun TimelineEventHeader(entity: ApiProjectEntity.TimelineEventEntity) {
 			)
 		}
 	}
-}
-
-private fun TimelineKind.glyph(): String = when (this) {
-	TimelineKind.EVENT -> HD_EVENT_GLYPH
-	TimelineKind.SCENE -> HD_SCENE_GLYPH
-	TimelineKind.ENTRY -> EntryType.EVENT.glyph()
 }
 
 private fun TimelineKind.subjectPrefix(): String = when (this) {

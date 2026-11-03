@@ -47,7 +47,6 @@ interface TimelineSettings {
 		/** How many entries [pendingCalendar] would take the start from; they keep it as a label. */
 		val datesLostOnPresetSwitch: Int? = null,
 		val error: TimeLineEventError? = null,
-		val isLoaded: Boolean = false,
 	)
 
 	sealed interface ModeSwitchPrompt {

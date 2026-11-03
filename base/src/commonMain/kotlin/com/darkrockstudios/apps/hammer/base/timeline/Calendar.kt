@@ -80,7 +80,7 @@ object StoryCalendar {
 	private val storyIndex = storyUnits.withIndex().associate { (i, unit) -> unit.name to i }
 	private val gregorianIndex = gregorianUnits.withIndex().associate { (i, unit) -> unit.name to i }
 
-	private const val MINUTES_PER_DAY = 24L * 60L
+	const val MINUTES_PER_DAY = 24L * 60L
 
 	fun units(preset: CalendarPreset): List<CalendarUnit> = when (preset) {
 		CalendarPreset.STORY -> storyUnits

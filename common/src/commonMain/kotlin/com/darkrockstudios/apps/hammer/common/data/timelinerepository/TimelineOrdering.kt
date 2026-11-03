@@ -89,8 +89,6 @@ private fun advanceStory(
 	return StoryDate((first..last).associateTo(LinkedHashMap()) { chain[it].name to values[it - first] })
 }
 
-private const val MINUTES_PER_DAY = 24L * 60L
-
 private fun advanceGregorian(origin: StoryDate, unit: String, amount: Long): StoryDate {
 	val year = origin[StoryCalendar.YEAR]!!
 	val month = origin[StoryCalendar.MONTH] ?: 1L
@@ -117,7 +115,7 @@ private fun advanceGregorian(origin: StoryDate, unit: String, amount: Long): Sto
 				)
 			)
 			val unitMinutes = when (unit) {
-				StoryCalendar.DAY -> MINUTES_PER_DAY
+				StoryCalendar.DAY -> StoryCalendar.MINUTES_PER_DAY
 				StoryCalendar.HOUR -> 60L
 				else -> 1L
 			}
@@ -131,8 +129,8 @@ private fun advanceGregorian(origin: StoryDate, unit: String, amount: Long): Sto
 
 /** The Gregorian date at [minutes] from 1970-01-01, with rungs down to [finest] but at least the day. */
 internal fun gregorianDate(minutes: Long, finest: String): StoryDate {
-	val days = minutes.floorDiv(MINUTES_PER_DAY)
-	val ofDay = minutes.mod(MINUTES_PER_DAY)
+	val days = minutes.floorDiv(StoryCalendar.MINUTES_PER_DAY)
+	val ofDay = minutes.mod(StoryCalendar.MINUTES_PER_DAY)
 
 	// Howard Hinnant's civil_from_days.
 	val z = days + 719468

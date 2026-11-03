@@ -31,6 +31,7 @@ import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEd
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEventError
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.mainTimeline
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.toApiEntity
 import com.darkrockstudios.apps.hammer.common.data.toMsg
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
@@ -499,8 +500,7 @@ class ProjectSynchronizationComponent(
 	}
 
 	private fun timelineDateProblem(start: StoryDate?, end: StoryDate?): ProjectSynchronization.TimelineDateProblem? {
-		val timelines = projectDataRepository.state.value?.data?.timelines.orEmpty()
-		val main = timelines.firstOrNull { it.id == TimelineDef.MAIN_ID } ?: TimelineDef.DEFAULT
+		val main = projectDataRepository.state.value?.data?.mainTimeline() ?: TimelineDef.DEFAULT
 		if (main.mode != TimelineMode.DATED) return null
 		val calendar = main.calendar ?: return null
 

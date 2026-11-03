@@ -42,7 +42,7 @@ private fun SampleDrawing(input: TimelineLayoutInput, dark: Boolean = false) {
 			TimelineDrawing(
 				layout = layout,
 				laneColor = colors::laneColor,
-				selectedId = input.selectedId,
+				selectedId = null,
 				onTap = {},
 				titles = input.events.associate { it.id to it.title },
 				measurer = rememberTimelineTextMeasurer(input.phone),
@@ -114,7 +114,7 @@ private const val HOLLOWMERE_FINDS_BODY = 25
 /** The phone drawing while a long press holds an event, projected across the rails. */
 @Composable
 private fun PhoneSelectionDrawing(dark: Boolean) {
-	val input = remember { TimelineLayoutSamples.hollowmere(phone = true, selectedId = HOLLOWMERE_FINDS_BODY) }
+	val input = remember { TimelineLayoutSamples.hollowmere(phone = true) }
 	KoinApplicationPreview {
 		AppTheme(globalSettingsPreview, dark) {
 			val layout = remember(input) { TimelineLayoutEngine.layout(input, estimateMeasurer(phone = true)) }
@@ -123,7 +123,7 @@ private fun PhoneSelectionDrawing(dark: Boolean) {
 				TimelineDrawingPane(
 					layout = layout,
 					laneColor = colors::laneColor,
-					selectedId = input.selectedId,
+					selectedId = HOLLOWMERE_FINDS_BODY,
 					onTap = {},
 					titles = input.events.associate { it.id to it.title },
 					measurer = rememberTimelineTextMeasurer(phone = true),

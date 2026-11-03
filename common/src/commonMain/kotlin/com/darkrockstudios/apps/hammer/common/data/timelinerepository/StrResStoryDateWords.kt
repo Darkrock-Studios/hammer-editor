@@ -24,10 +24,11 @@ import com.darkrockstudios.apps.hammer.timeline_unit_month
 import com.darkrockstudios.apps.hammer.timeline_unit_year
 
 /**
- * [StoryDateWords] in the app's language, for code outside composition. The strings are read once
- * when it is made, since [StrRes] is suspending and the words are not.
+ * [StoryDateWords] in the app's language. The strings are read once when it is made, from [StrRes]
+ * outside composition, since [StrRes] is suspending and the words are not. [beforeTemplate] and
+ * [bceTemplate] are the raw templates, filled in per call.
  */
-class StrResStoryDateWords private constructor(
+class StrResStoryDateWords(
 	private val units: Map<String, String>,
 	private val months: List<String>,
 	private val beforeTemplate: String,
@@ -56,7 +57,6 @@ class StrResStoryDateWords private constructor(
 				Res.string.timeline_month_7, Res.string.timeline_month_8, Res.string.timeline_month_9,
 				Res.string.timeline_month_10, Res.string.timeline_month_11, Res.string.timeline_month_12,
 			).map { strRes.get(it) },
-			// Read as templates and filled per call, as the Compose words do.
 			beforeTemplate = strRes.get(Res.string.timeline_date_before_epoch),
 			bceTemplate = strRes.get(Res.string.timeline_date_bce),
 		)

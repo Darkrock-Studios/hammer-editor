@@ -585,27 +585,6 @@ class TimeLineRepositoryTest : BaseTest() {
 	}
 
 	@Test
-	fun `renumber puts the listed events first and the rest after them in their old order`() = runTest {
-		every { syncJournal.isServerSynchronized() } returns true
-		coEvery { syncJournal.isEntityDirty(any()) } returns false
-		coEvery { syncJournal.markEntityAsDirty(any()) } returns Unit
-		createProject(ffs, PROJECT_EMPTY_NAME)
-		val projDef = getProjectDef(PROJECT_EMPTY_NAME)
-		val repo = referenceRepo(projDef)
-
-		repo.renumber(listOf(23, 21))
-
-		val orders = storedEvents(projDef).mapValues { it.value.order }
-		assertEquals(mapOf(23 to 0, 21 to 1, 20 to 2, 22 to 3), orders)
-		assertEquals(listOf(23, 21, 20, 22), repo.timelineFlow.first().events.map { it.id })
-		coVerify(exactly = 1) { syncJournal.markEntityAsDirty(23) }
-		coVerify(exactly = 1) { syncJournal.markEntityAsDirty(20) }
-		coVerify(exactly = 1) { syncJournal.markEntityAsDirty(22) }
-		// Already at index 1.
-		coVerify(exactly = 0) { syncJournal.markEntityAsDirty(21) }
-	}
-
-	@Test
 	fun `validate checks the shape of an event`() {
 		val repo = TimeLineRepository(
 			projectDef = getProjectDef(PROJECT_EMPTY_NAME),

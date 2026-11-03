@@ -2,9 +2,9 @@ package com.darkrockstudios.apps.hammer.common.timeline
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.ExitTransition
-import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.SizeTransform
@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
@@ -33,8 +34,11 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -46,6 +50,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -58,7 +63,6 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
@@ -69,6 +73,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.Res
@@ -77,6 +82,8 @@ import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineOverview
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimelineRow
+import com.darkrockstudios.apps.hammer.common.components.timeline.isDrawn
+import com.darkrockstudios.apps.hammer.common.components.timeline.passesLaneFilter
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarGutter
 import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarList
@@ -84,14 +91,15 @@ import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.WindowWidthSizeClass
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdActiveFiltersStrip
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdClearGlyph
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdScrollAwayStrip
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDragHandle
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNoticeStrip
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdScrollAwayStrip
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSearchField
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSearchRow
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSectionHeader
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSortPill
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagChip
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagFilterBar
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.rememberHdScrollAwayFooterState
@@ -103,12 +111,18 @@ import com.darkrockstudios.apps.hammer.common.compose.reorderable.DragDropList
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
+import com.darkrockstudios.apps.hammer.common.compose.truncateWithEllipsis
 import com.darkrockstudios.apps.hammer.common.data.search.markdownContains
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.StoryDateWords
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.formatStoryDateRange
+import com.darkrockstudios.apps.hammer.common.timeline.drawing.eventId
 import com.darkrockstudios.apps.hammer.common.timeline.layout.HitTarget
 import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineFrame
 import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineView
+import com.darkrockstudios.apps.hammer.timeline_drawing_menu
+import com.darkrockstudios.apps.hammer.timeline_drawing_menu_frame
+import com.darkrockstudios.apps.hammer.timeline_drawing_menu_view
 import com.darkrockstudios.apps.hammer.timeline_entry_subtitle
 import com.darkrockstudios.apps.hammer.timeline_filter_all
 import com.darkrockstudios.apps.hammer.timeline_filter_clear_all
@@ -124,6 +138,7 @@ import com.darkrockstudios.apps.hammer.timeline_no_events
 import com.darkrockstudios.apps.hammer.timeline_search_button
 import com.darkrockstudios.apps.hammer.timeline_search_clear
 import com.darkrockstudios.apps.hammer.timeline_search_close
+import com.darkrockstudios.apps.hammer.timeline_search_matches
 import com.darkrockstudios.apps.hammer.timeline_search_placeholder
 import com.darkrockstudios.apps.hammer.timeline_subject_archived
 import com.darkrockstudios.apps.hammer.timeline_subject_missing
@@ -137,17 +152,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.pluralStringResource
 import kotlin.math.roundToInt
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.rememberScrollState
-import com.darkrockstudios.apps.hammer.timeline_drawing_menu_frame
-import com.darkrockstudios.apps.hammer.timeline_drawing_menu_view
-import com.darkrockstudios.apps.hammer.timeline_drawing_menu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.DropdownMenu
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSortPill
-import androidx.compose.runtime.mutableIntStateOf
-import com.darkrockstudios.apps.hammer.timeline_search_matches
 
 /** An event matches on its body read as prose, or on its plain-text date. */
 internal fun eventMatchesQuery(event: TimeLineEvent, query: String): Boolean =
@@ -232,18 +236,19 @@ fun TimeLineOverviewUi(
 			} else {
 				val query = searchQuery.trim()
 				taggedRows.filter { row ->
-					val drawn = row.start != null && !row.subjectArchived
-					val inLane = laneFilter.isEmpty() || row.event.kind == TimelineKind.SCENE ||
-						row.event.lane.isNullOrBlank() || row.event.lane in laneFilter
-					drawn && inLane && rowMatchesQuery(row, query)
+					row.isDrawn && row.passesLaneFilter(laneFilter) && rowMatchesQuery(row, query)
 				}.map { it.event.id }
 			}
 		}
 	}
+	val highlighted = remember(searchMatches) { searchMatches.toSet() }
 	var matchIndex by remember(searchMatches) { mutableIntStateOf(0) }
 	val focusedMatch = searchMatches.getOrNull(matchIndex)
-	val nextMatch: () -> Unit = {
-		if (searchMatches.isNotEmpty()) matchIndex = (matchIndex + 1) % searchMatches.size
+	// On the drawing Enter steps through the matches, counted beside the field.
+	val nextMatch: ((String) -> Unit)? = if (dated) {
+		{ if (searchMatches.isNotEmpty()) matchIndex = (matchIndex + 1) % searchMatches.size }
+	} else {
+		null
 	}
 	val matchCounter = if (dated && searchQuery.isNotBlank()) {
 		Res.string.timeline_search_matches.get(if (searchMatches.isEmpty()) 0 else matchIndex + 1, searchMatches.size)
@@ -264,6 +269,9 @@ fun TimeLineOverviewUi(
 		component.setLaneFilter(emptySet())
 	}
 	val anyFilter = activeTags.isNotEmpty() || laneFilter.isNotEmpty()
+	val bandTitle = (state.frame as? TimelineFrame.Band)
+		?.let { frame -> rows.firstOrNull { it.event.id == frame.eventId }?.title }
+	val words = rememberStoryDateWords()
 
 	val branch = when {
 		dated && matchedRows.isNotEmpty() -> OverviewContent.Drawing
@@ -333,11 +341,7 @@ fun TimeLineOverviewUi(
 					collapseContentDescription = Res.string.timeline_search_close.get(),
 					modifier = Modifier.fillMaxSize(),
 					testTag = TIME_LINE_SEARCH_TAG,
-					onSearch = if (dated) {
-						{ nextMatch() }
-					} else {
-						null
-					},
+					onSearch = nextMatch,
 					status = matchCounter,
 					statusTestTag = TIME_LINE_SEARCH_MATCHES_TAG,
 				)
@@ -362,7 +366,7 @@ fun TimeLineOverviewUi(
 											tagIndex.size,
 										),
 									)
-									if (state.mode == TimelineMode.DATED) {
+									if (dated) {
 										HdMonoLabel(
 											text = (state.calendar ?: CalendarDef()).displayName(),
 											modifier = Modifier.testTag(TIME_LINE_CALENDAR_TAG),
@@ -391,7 +395,6 @@ fun TimeLineOverviewUi(
 			state = scrollStrip,
 			modifier = Modifier.weight(1f),
 			strip = {
-				// On the drawing Enter steps through the matches, counted beside the field.
 				val searchField: @Composable () -> Unit = {
 					Row(
 						modifier = if (isExpanded) Modifier else Modifier.fillMaxWidth(),
@@ -403,11 +406,7 @@ fun TimeLineOverviewUi(
 							onValueChange = { searchQuery = it },
 							modifier = if (isExpanded) Modifier.width(280.dp) else Modifier.weight(1f),
 							placeholder = Res.string.timeline_search_placeholder.get(),
-							onSearch = if (dated) {
-								{ nextMatch() }
-							} else {
-								null
-							},
+							onSearch = nextMatch,
 							onClear = { searchQuery = "" },
 							clearContentDescription =
 								Res.string.timeline_search_clear.get(),
@@ -479,7 +478,7 @@ fun TimeLineOverviewUi(
 						if (dated) {
 							DrawingMenu(
 								state = state,
-								rows = rows,
+								bandTitle = bandTitle,
 								onView = component::setView,
 								onFrame = component::setFrame,
 							)
@@ -496,7 +495,6 @@ fun TimeLineOverviewUi(
 						onClear = clearFilters,
 					)
 				}
-
 
 				HorizontalDivider(
 					thickness = Dp.Hairline,
@@ -541,6 +539,7 @@ fun TimeLineOverviewUi(
 							onTagClick = toggleTag,
 							onClick = { viewEvent(row.event.id) },
 							isDraggable = draggable,
+							words = words,
 							sharedTransitionScope = sharedTransitionScope,
 							animatedVisibilityScope = animatedVisibilityScope,
 						)
@@ -556,10 +555,8 @@ fun TimeLineOverviewUi(
 							rows = matchedRows,
 							onTap = { target ->
 								when (target) {
-									is HitTarget.Band -> openEvent(target.eventId)
-									is HitTarget.Point -> openEvent(target.eventId)
-									is HitTarget.Ledger -> openEvent(target.eventId)
 									is HitTarget.LaneHeader -> component.toggleLane(target.lane)
+									else -> target.eventId?.let(openEvent)
 								}
 							},
 							onPeek = component::select,
@@ -576,14 +573,12 @@ fun TimeLineOverviewUi(
 							preview = component::preview,
 							scrollState = drawingScroll,
 							topPadding = topPadding,
-							highlighted = searchMatches.toSet(),
+							highlighted = highlighted,
 							focusedId = focusedMatch,
 						)
 						if (framed) {
-							val bandTitle = (state.frame as? TimelineFrame.Band)
-								?.let { frame -> rows.firstOrNull { it.event.id == frame.eventId }?.title }
 							FramePill(
-								label = bandTitle?.ellipsize(BAND_CELL_CHARS) ?: Res.string.timeline_frame_story.get(),
+								label = bandTitle?.truncateWithEllipsis(BAND_CELL_CHARS) ?: Res.string.timeline_frame_story.get(),
 								onClear = { component.setFrame(TimelineFrame.Everything) },
 								modifier = Modifier
 									.align(Alignment.TopEnd)
@@ -723,7 +718,7 @@ private fun FramePill(label: String, onClear: () -> Unit, modifier: Modifier = M
 @Composable
 private fun DrawingMenu(
 	state: TimeLineOverview.State,
-	rows: List<TimelineRow>,
+	bandTitle: String?,
 	onView: (TimelineView) -> Unit,
 	onFrame: (TimelineFrame) -> Unit,
 ) {
@@ -732,8 +727,6 @@ private fun DrawingMenu(
 	val toScale = Res.string.timeline_view_to_scale.get()
 	val everything = Res.string.timeline_frame_everything.get()
 	val story = Res.string.timeline_frame_story.get()
-	val bandTitle = (state.frame as? TimelineFrame.Band)
-		?.let { frame -> rows.firstOrNull { it.event.id == frame.eventId }?.title }
 	val bandDescription = bandTitle?.let { Res.string.timeline_frame_band_description.get(it) }
 	val viewLabel: (TimelineView) -> String = { view ->
 		when (view) {
@@ -745,7 +738,7 @@ private fun DrawingMenu(
 		when (frame) {
 			TimelineFrame.Everything -> everything
 			TimelineFrame.Story -> story
-			is TimelineFrame.Band -> bandTitle.orEmpty().ellipsize(BAND_CELL_CHARS)
+			is TimelineFrame.Band -> bandTitle.orEmpty().truncateWithEllipsis(BAND_CELL_CHARS)
 		}
 	}
 	Box {
@@ -807,7 +800,6 @@ internal fun menuChoiceTag(label: String) = "Timeline Drawing Menu: $label"
 
 private const val BAND_CELL_CHARS = 18
 
-
 /** One `HdTagChip` per lane, its swatch in the lane's colour: `▪ Alice · 4`. */
 @Composable
 private fun LaneFilterChips(
@@ -845,6 +837,7 @@ internal fun EventCard(
 	sharedTransitionScope: SharedTransitionScope,
 	animatedVisibilityScope: AnimatedVisibilityScope,
 	isDraggable: Boolean = false,
+	words: StoryDateWords = rememberStoryDateWords(),
 ) {
 	val event = row.event
 	val railColor = MaterialTheme.colorScheme.outlineVariant
@@ -914,6 +907,7 @@ internal fun EventCard(
 					CardHeader(
 						row = row,
 						isDraggable = isDraggable,
+						words = words,
 						sharedTransitionScope = sharedTransitionScope,
 						animatedVisibilityScope = animatedVisibilityScope,
 					)
@@ -954,6 +948,7 @@ internal fun EventCard(
 private fun CardHeader(
 	row: TimelineRow,
 	isDraggable: Boolean,
+	words: StoryDateWords,
 	sharedTransitionScope: SharedTransitionScope,
 	animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
@@ -972,7 +967,6 @@ private fun CardHeader(
 		val labelStyle = MaterialTheme.typography.labelSmall.let {
 			if (event.milestone) it.copy(fontWeight = FontWeight.Bold) else it
 		}
-		val words = rememberStoryDateWords()
 		val start = row.start
 		val whenText = if (start != null) {
 			formatStoryDateRange(row.calendar ?: CalendarDef(), start, row.end, words)

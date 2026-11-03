@@ -106,7 +106,6 @@ object TimelineLayoutSamples {
 		phone: Boolean,
 		frame: TimelineFrame = TimelineFrame.Everything,
 		view: TimelineView = TimelineView.TO_SCALE,
-		selectedId: Int? = null,
 	) = TimelineLayoutInput(
 		events = events,
 		laneOrder = lanes,
@@ -115,11 +114,10 @@ object TimelineLayoutSamples {
 		widthDp = if (phone) 360f else 840f,
 		phone = phone,
 		ticks = ticks,
-		selectedId = selectedId,
 	)
 
 	/** No lanes: a milestone, two unlaned spans, two scenes and a point, all in the ledger. */
-	fun minimal(phone: Boolean = false, selectedId: Int? = null): TimelineLayoutInput {
+	fun minimal(phone: Boolean = false): TimelineLayoutInput {
 		val b = Builder(HOUR.toDouble())
 		b.add(1, "Storm closes the pass", 24.0, milestone = true)
 		b.add(2, "The Ferris wedding", 24.0 * 2 + 14, 24.0 * 2 + 22)
@@ -127,7 +125,7 @@ object TimelineLayoutSamples {
 		b.add(4, "Mara leaves town", 24.0 * 3 + 6, kind = LayoutKind.SCENE, sub = "Ch 1")
 		b.add(5, "The letter arrives", 24.0 * 5 + 9, kind = LayoutKind.SCENE, sub = "Ch 2")
 		b.add(6, "Bridge reopens", 24.0 * 7 + 12)
-		return input(b.events, emptyList(), dayClockTicks, phone, selectedId = selectedId)
+		return input(b.events, emptyList(), dayClockTicks, phone)
 	}
 
 	const val HOLLOWMERE_LORD = "Lord Hollowmere"
@@ -136,7 +134,7 @@ object TimelineLayoutSamples {
 	const val HOLLOWMERE_PIKE = "Pike"
 
 	/** One evening in a country house: four whereabouts lanes, scenes and sounds in the ledger. */
-	fun hollowmere(phone: Boolean = false, selectedId: Int? = null): TimelineLayoutInput {
+	fun hollowmere(phone: Boolean = false): TimelineLayoutInput {
 		val v = HOLLOWMERE_LORD
 		val h = HOLLOWMERE_HAYES
 		val w = HOLLOWMERE_WARD
@@ -172,11 +170,11 @@ object TimelineLayoutSamples {
 		b.add(27, "Dead by now (Ashby)", 21.5, milestone = true)
 		b.add(28, "Power fails", 22.75)
 		b.add(29, "\"Gunshot\"", 23.2)
-		return input(b.events, listOf(v, h, w, p), dayClockTicks, phone, selectedId = selectedId)
+		return input(b.events, listOf(v, h, w, p), dayClockTicks, phone)
 	}
 
 	/** Leviathan Wakes: eight years of prehistory folded away above sixty dense days. */
-	fun leviathan(phone: Boolean = false, selectedId: Int? = null): TimelineLayoutInput {
+	fun leviathan(phone: Boolean = false): TimelineLayoutInput {
 		val j = "Julie & the Scopuli"
 		val h = "Holden & crew"
 		val m = "Miller"
@@ -214,13 +212,13 @@ object TimelineLayoutSamples {
 		b.add(30, "Consuming Eros", 25.0, 40.0, lane = p)
 		b.add(31, "Eros moves", 40.0, lane = p, milestone = true)
 		b.add(32, "Eros hits Venus", 60.0, milestone = true)
-		return input(b.events, listOf(j, h, m, p), signedDayTicks, phone, selectedId = selectedId)
+		return input(b.events, listOf(j, h, m, p), signedDayTicks, phone)
 	}
 
 	private val insurgencyLanes = listOf("The Plan", "Politics", "Technology")
 
 	/** Insurgency, Everything frame: millennia of transit and terraforming, then generations. */
-	fun insurgencyEverything(phone: Boolean = false, selectedId: Int? = null): TimelineLayoutInput {
+	fun insurgencyEverything(phone: Boolean = false): TimelineLayoutInput {
 		val (plan, politics, tech) = insurgencyLanes
 		val b = Builder(YEAR.toDouble())
 		b.add(1, "Transit", -1800.0, -800.0, lane = plan)
@@ -243,11 +241,11 @@ object TimelineLayoutSamples {
 		b.add(18, "Firearms", 140.0, lane = tech)
 		b.add(19, "Ch 1 · Ship Arrival", -800.0, 0.0, LayoutKind.SCENE, sub = "the only scene up here")
 		b.add(20, "Chapters 2–4", 140.0, 143.0, sub = "the book")
-		return input(b.events, insurgencyLanes, landingYearTicks, phone, selectedId = selectedId)
+		return input(b.events, insurgencyLanes, landingYearTicks, phone)
 	}
 
 	/** Insurgency, Story frame: the years the book's scenes cover. */
-	fun insurgencyStory(phone: Boolean = false, selectedId: Int? = null): TimelineLayoutInput {
+	fun insurgencyStory(phone: Boolean = false): TimelineLayoutInput {
 		val (plan, politics, tech) = insurgencyLanes
 		val scene = LayoutKind.SCENE
 		val b = Builder(YEAR.toDouble())
@@ -282,7 +280,7 @@ object TimelineLayoutSamples {
 		b.add(29, "Caravan Intro", 141.42, kind = scene, sub = "Ch 3")
 		b.add(30, "Racism at the bar", 141.43, kind = scene, sub = "Ch 3")
 		b.add(31, "City trip (planned)", 142.3, 142.4, scene, sub = "Ch 4")
-		return input(b.events, insurgencyLanes, landingYearTicks, phone, TimelineFrame.Story, selectedId = selectedId)
+		return input(b.events, insurgencyLanes, landingYearTicks, phone, TimelineFrame.Story)
 	}
 
 	const val STACK_LANE = "Stack"
@@ -291,18 +289,18 @@ object TimelineLayoutSamples {
 	 * One lane, five spans overlapping in a staircase. Span 2 alone outlasts every chain of the
 	 * others, so it takes the band although span 1 starts first; the rest need two sub-columns.
 	 */
-	fun overlappingStack(phone: Boolean = false, selectedId: Int? = null): TimelineLayoutInput {
+	fun overlappingStack(phone: Boolean = false): TimelineLayoutInput {
 		val b = Builder(HOUR.toDouble())
 		b.add(1, "Early and short", 0.0, 2.0, lane = STACK_LANE)
 		b.add(2, "The long one", 1.0, 16.0, lane = STACK_LANE)
 		b.add(3, "Third step", 2.0, 6.0, lane = STACK_LANE)
 		b.add(4, "Fourth step", 5.0, 9.0, lane = STACK_LANE)
 		b.add(5, "Fifth step", 8.0, 14.0, lane = STACK_LANE)
-		return input(b.events, listOf(STACK_LANE), dayClockTicks, phone, selectedId = selectedId)
+		return input(b.events, listOf(STACK_LANE), dayClockTicks, phone)
 	}
 
 	/** [n] pseudo-random events over a year in six lanes, the same for every call. */
-	fun stress(n: Int = 500, phone: Boolean = false, selectedId: Int? = null): TimelineLayoutInput {
+	fun stress(n: Int = 500, phone: Boolean = false): TimelineLayoutInput {
 		var seed = 0x5EED_1234_ABCDL
 		fun next(bound: Long): Long {
 			seed = seed * 6364136223846793005L + 1442695040888963407L
@@ -332,6 +330,6 @@ object TimelineLayoutSamples {
 				precisionExtent = if (end == null && i % 23 == 0) DAY else 1,
 			)
 		}
-		return input(events, lanes, dayClockTicks, phone, selectedId = selectedId)
+		return input(events, lanes, dayClockTicks, phone)
 	}
 }

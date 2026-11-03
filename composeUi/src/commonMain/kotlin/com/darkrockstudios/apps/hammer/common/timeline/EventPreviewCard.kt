@@ -49,8 +49,6 @@ private const val SHOWN_REFERENCES = 3
 
 private val ThumbnailSize = 56.dp
 
-internal fun String.ellipsize(max: Int): String = if (length <= max) this else take(max - 1).trimEnd() + "…"
-
 /**
  * An event as its preview card shows it, on hover or while a long press holds it:
  *

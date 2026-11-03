@@ -83,7 +83,7 @@ class TimelineSettingsUiTest : BaseTest() {
 
 	@Test
 	fun `Picking Dated opens the dialog with Space evenly by the preselected unit`() {
-		val component = FakeSettings(TimelineSettings.State(isLoaded = true))
+		val component = FakeSettings(TimelineSettings.State())
 		show(component)
 
 		compose.onNodeWithText("DATED").performClick()
@@ -105,7 +105,7 @@ class TimelineSettingsUiTest : BaseTest() {
 			mode = TimelineMode.DATED,
 			calendar = CalendarDef(epochName = "Landing", coarsestUnit = "day"),
 		)
-		show(FakeSettings(TimelineSettings.State(def = def, lanes = listOf("Alice", "Queen"), isLoaded = true)))
+		show(FakeSettings(TimelineSettings.State(def = def, lanes = listOf("Alice", "Queen"))))
 
 		compose.onNodeWithTag(TIMELINE_SETTINGS_EPOCH_TAG).assertExists()
 		compose.onNodeWithText("Day").assertIsDisplayed()
@@ -121,7 +121,6 @@ class TimelineSettingsUiTest : BaseTest() {
 				def = def,
 				pendingCalendar = CalendarDef(CalendarPreset.GREGORIAN),
 				datesLostOnPresetSwitch = 2,
-				isLoaded = true,
 			)
 		)
 		show(component)

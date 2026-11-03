@@ -40,6 +40,22 @@ fun timelineCastRank(type: EntryType): Int = when (type) {
 	else -> 2
 }
 
+/** The main timeline's definition, or the default before one is stored. */
+fun ProjectData.mainTimeline(): TimelineDef =
+	timelines.firstOrNull { it.id == TimelineDef.MAIN_ID } ?: TimelineDef.DEFAULT
+
+/** Whether [event] has a start, and it is a valid date on [calendar]. */
+fun hasValidStart(event: TimeLineEvent, calendar: CalendarDef): Boolean =
+	event.start?.let { StoryCalendar.validate(calendar, it) == null } == true
+
+/** Up to [chars] of [markdown] as plain prose with whitespace collapsed; blank for blank markdown. */
+internal fun markdownExcerpt(markdown: String, chars: Int): String {
+	if (markdown.isBlank()) return ""
+	val projector = MarkdownProjector(markdown.length)
+	projector.project(markdown)
+	return projector.collapsedPreview(chars)
+}
+
 /** A timeline's settings and its events in display order. */
 data class TimelineView(val def: TimelineDef, val events: List<TimeLineEvent>)
 
@@ -68,6 +84,18 @@ sealed class SubjectSummary {
 
 	data object Missing : SubjectSummary()
 }
+
+/** What a list row shows of an event without reading any text. */
+data class EventGlance(
+	/** As [TimelineService.displayTitle]. */
+	val title: String,
+	/** The groups above a placed scene in the tree, outermost first; null when there are none. */
+	val chapterPath: String? = null,
+	/** A placement whose scene or entry is gone. */
+	val missing: Boolean = false,
+	/** A placed scene that is in the archive. */
+	val archived: Boolean = false,
+)
 
 /**
  * The timeline's API for components and operations. Every rule that needs more than the event itself
@@ -412,10 +440,57 @@ class TimelineService(
 	suspend fun displayTitle(event: TimeLineEvent): String = displayTitles(listOf(event)).getValue(event.id)
 
 	/** [displayTitle] for every event, by id, reading the scene tree and the entry list once. */
-	suspend fun displayTitles(events: List<TimeLineEvent>): Map<Int, String> {
-		val names = subjectNames(events)
-		return events.associate { event ->
-			event.id to titleOf(event, event.subject?.let { names[event.kind]?.get(it) })
+	suspend fun displayTitles(events: List<TimeLineEvent>): Map<Int, String> =
+		glances(events).mapValues { it.value.title }
+
+	/**
+	 * [EventGlance] for every event, by id, reading the scene tree, the archive and the entry list
+	 * at most once each.
+	 */
+	suspend fun glances(events: List<TimeLineEvent>): Map<Int, EventGlance> = withContext(dispatcherIo) {
+		val tree by lazy { sceneRepository.rawTree }
+		var archived: Map<Int, SceneItem>? = null
+		var entryNames: Map<Int, String>? = null
+		events.associate { event ->
+			val subject = event.subject
+			val glance = when (event.kind) {
+				TimelineKind.EVENT -> EventGlance(titleOf(event, null))
+				TimelineKind.SCENE -> {
+					val branch = subject?.let { id -> tree.getBranchOrNull(excludeLeaf = false) { it.id == id } }
+					if (branch != null) {
+						val scene = branch.last().value
+						val isScene = scene.type == SceneItem.Type.Scene
+						val path = branch.dropLast(1)
+							.map { it.value }
+							.filter { it.type == SceneItem.Type.Group }
+							.joinToString(CHAPTER_SEPARATOR) { it.name }
+						EventGlance(
+							title = titleOf(event, scene.name.takeIf { isScene }),
+							chapterPath = path.ifEmpty { null },
+							missing = !isScene,
+						)
+					} else {
+						val inArchive = subject?.let {
+							val byId = archived ?: sceneRepository.getArchivedScenes().associateBy { it.id }
+								.also { archived = it }
+							byId[it]?.takeIf { scene -> scene.type == SceneItem.Type.Scene }
+						}
+						EventGlance(
+							title = titleOf(event, inArchive?.name),
+							missing = inArchive == null,
+							archived = inArchive != null,
+						)
+					}
+				}
+
+				TimelineKind.ENTRY -> {
+					val names = entryNames ?: encyclopediaRepository.readEntryDefs().associate { it.id to it.name }
+						.also { entryNames = it }
+					val name = subject?.let(names::get)
+					EventGlance(titleOf(event, name), missing = name == null)
+				}
+			}
+			event.id to glance
 		}
 	}
 
@@ -448,7 +523,7 @@ class TimelineService(
 			confirmed.mapNotNull { entries[it] }
 				.sortedWith(compareBy<EntryDef>({ timelineCastRank(it.type) }, { it.name.lowercase() }, { it.id }))
 		}
-		SubjectSummary.Scene(scene, chapterPath(scene), excerpt(text), cast)
+		SubjectSummary.Scene(scene, chapterPath(scene), markdownExcerpt(text, EXCERPT_CHARS), cast)
 	}
 
 	private suspend fun entrySummary(entryId: Int): SubjectSummary = withContext(dispatcherIo) {
@@ -459,7 +534,7 @@ class TimelineService(
 			Napier.w(e) { "Could not read entry $entryId for the timeline" }
 			null
 		}
-		SubjectSummary.Entry(def, content?.images?.firstOrNull(), excerpt(content?.text.orEmpty()))
+		SubjectSummary.Entry(def, content?.images?.firstOrNull(), markdownExcerpt(content?.text.orEmpty(), EXCERPT_CHARS))
 	}
 
 	private fun chapterPath(scene: SceneItem): String {
@@ -481,32 +556,6 @@ class TimelineService(
 
 				TimelineKind.ENTRY -> encyclopediaRepository.findEntryDef(subject)?.name
 			}
-		}
-	}
-
-	/** Subject id to name, per placement kind. Archived scenes are read only for ids not in the tree. */
-	private suspend fun subjectNames(events: List<TimeLineEvent>): Map<TimelineKind, Map<Int, String>> {
-		val sceneIds = events.subjectIds(TimelineKind.SCENE)
-		val entryIds = events.subjectIds(TimelineKind.ENTRY)
-		return withContext(dispatcherIo) {
-			val sceneNames = if (sceneIds.isEmpty()) {
-				emptyMap()
-			} else {
-				val inTree = sceneRepository.rawTree.map { it.value }.filter { it.id in sceneIds }
-				val missing = sceneIds - inTree.mapTo(HashSet()) { it.id }
-				val archived = if (missing.isEmpty()) {
-					emptyList()
-				} else {
-					sceneRepository.getArchivedScenes().filter { it.id in missing }
-				}
-				(inTree + archived).filter { it.type == SceneItem.Type.Scene }.associate { it.id to it.name }
-			}
-			val entryNames = if (entryIds.isEmpty()) {
-				emptyMap()
-			} else {
-				encyclopediaRepository.readEntryDefs().filter { it.id in entryIds }.associate { it.id to it.name }
-			}
-			mapOf(TimelineKind.SCENE to sceneNames, TimelineKind.ENTRY to entryNames)
 		}
 	}
 
@@ -570,31 +619,13 @@ class TimelineService(
 		inline fun TimeLineEventError.orElse(next: () -> TimeLineEventError): TimeLineEventError =
 			if (isSuccess) next() else this
 
-		fun ProjectData.mainTimeline(): TimelineDef =
-			timelines.firstOrNull { it.id == TimelineDef.MAIN_ID } ?: TimelineDef.DEFAULT
-
 		fun ProjectData.withTimeline(def: TimelineDef): ProjectData {
 			val index = timelines.indexOfFirst { it.id == def.id }
 			val next = if (index < 0) timelines + def else timelines.toMutableList().also { it[index] = def }
 			return copy(timelines = next)
 		}
 
-		fun TimelineEventDraft.preview() = TimeLineEvent(
-			id = id ?: NO_ID,
-			order = order ?: 0,
-			kind = kind,
-			subject = subject,
-			title = title,
-			label = label,
-			content = content,
-			tags = tags,
-			references = references,
-			lane = lane,
-			milestone = milestone,
-			start = start,
-			end = end,
-			cachedTitle = cachedTitle,
-		)
+		fun TimelineEventDraft.preview() = toEvent(id ?: NO_ID, order ?: 0)
 
 		/** The event's label, or when it has none, its dates on [calendar] if they fit it. */
 		fun labelOrDates(event: TimeLineEvent, calendar: CalendarDef?, words: StoryDateWords): String? {
@@ -603,9 +634,6 @@ class TimelineService(
 			if (calendar == null || start == null || !hasValidStart(event, calendar)) return event.label
 			return formatStoryDateRange(calendar, start, event.end, words).take(TimelineLimits.MAX_LABEL)
 		}
-
-		fun hasValidStart(event: TimeLineEvent, calendar: CalendarDef): Boolean =
-			event.start?.let { StoryCalendar.validate(calendar, it) == null } == true
 
 		/** [end] is valid and its span reaches [start]: a day-precise end may close an hour-precise start. */
 		fun endFits(calendar: CalendarDef, start: StoryDate, end: StoryDate): Boolean {
@@ -635,15 +663,5 @@ class TimelineService(
 				?: markdownTitleLine(event.content).takeIf { it.isNotBlank() }
 				?: event.cachedTitle
 				?: ""
-
-		fun List<TimeLineEvent>.subjectIds(kind: TimelineKind): Set<Int> =
-			filter { it.kind == kind }.mapNotNullTo(HashSet()) { it.subject }
-
-		fun excerpt(markdown: String): String {
-			if (markdown.isBlank()) return ""
-			val projector = MarkdownProjector(markdown.length)
-			projector.project(markdown)
-			return projector.collapsedPreview(EXCERPT_CHARS)
-		}
 	}
 }

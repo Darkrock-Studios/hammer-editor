@@ -34,6 +34,7 @@ import com.darkrockstudios.apps.hammer.common.components.projecthome.timelineset
 import com.darkrockstudios.apps.hammer.common.components.projecthome.timelinesettings.TimelineSettings.ModeSwitchPrompt
 import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.lastOf
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDragHandle
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineDialogShell
@@ -299,9 +300,7 @@ private fun ModeSwitchDialog(
 	onConfirm: () -> Unit,
 	onCancel: () -> Unit,
 ) {
-	// Kept after the prompt clears, so the dialog still has its content while it animates out.
-	var shown by remember { mutableStateOf(prompt) }
-	if (prompt != null) shown = prompt
+	val shown = lastOf(prompt)
 	AnimatedDialog(visible = prompt != null, onCloseRequest = onCancel) {
 		val current = shown ?: return@AnimatedDialog
 		val title = when (current) {

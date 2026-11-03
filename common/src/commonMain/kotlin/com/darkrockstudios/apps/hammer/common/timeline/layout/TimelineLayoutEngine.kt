@@ -126,9 +126,6 @@ object TimelineLayoutEngine {
 		)
 
 		val anchors = placed.associate { p -> p.event.id to EventAnchor(scale.y(p.start), p.end?.let { scale.y(it) }) }
-		val projection = input.selectedId?.let { id ->
-			anchors[id]?.let { a -> ProjectionOverlay(id, a.yDp, a.y1Dp, RectDp(axisX, a.yDp, laneRegionWidth, (a.y1Dp ?: a.yDp) - a.yDp)) }
-		}
 
 		val ledgerBottom = ledgerRows.maxOfOrNull { it.hitRect.bottom } ?: Float.NEGATIVE_INFINITY
 		val height = maxOf(scale.height, ledgerBottom + m.padBottom, labelBottom + m.padBottom)
@@ -148,7 +145,6 @@ object TimelineLayoutEngine {
 			bars = bars,
 			points = points,
 			ledgerRows = ledgerRows,
-			projection = projection,
 			hitRegions = hits,
 			anchors = anchors,
 		)

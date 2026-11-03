@@ -37,12 +37,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.graphics.PathOperation
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.PathOperation
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -62,16 +62,19 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarColumn
 import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarGutter
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.glyph
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HD_SCENE_GLYPH
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdMark
 import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
 import com.darkrockstudios.apps.hammer.common.compose.theme.LaneShade
+import com.darkrockstudios.apps.hammer.common.compose.theme.hueDegrees
 import com.darkrockstudios.apps.hammer.common.compose.theme.laneShade
-import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.timeline.layout.BandLabel
 import com.darkrockstudios.apps.hammer.common.timeline.layout.HitRegion
 import com.darkrockstudios.apps.hammer.common.timeline.layout.HitTarget
+import com.darkrockstudios.apps.hammer.common.timeline.layout.LabelFitter
 import com.darkrockstudios.apps.hammer.common.timeline.layout.LabelStyle
 import com.darkrockstudios.apps.hammer.common.timeline.layout.LayoutMetrics
 import com.darkrockstudios.apps.hammer.common.timeline.layout.LeaderLabel
@@ -89,8 +92,6 @@ const val TIMELINE_HORIZONTAL_SCROLL_TAG = "Timeline Horizontal Scroll"
 
 /** Each hit region is tagged with this prefix and its target, e.g. `Timeline Hit Ledger 4`. */
 const val TIMELINE_HIT_TAG = "Timeline Hit"
-
-/** The space a [TimelineDrawingPane] leaves under its drawing for an overlay. */
 
 /** The event a target stands for; null for a lane header. */
 internal val HitTarget.eventId: Int?
@@ -124,23 +125,11 @@ private const val MATCH_RING = 1.5f
 private const val MATCH_RING_FOCUSED = 3f
 private const val MATCH_GAP = 2f
 private const val MATCH_VEIL_ALPHA = .62f
+private const val AXIS_SEPARATOR = " · "
 
 /** [color]'s opposite on the colour wheel, saturated and mid-light so it reads on light and dark. */
-private fun complement(color: Color): Color {
-	val r = color.red
-	val g = color.green
-	val b = color.blue
-	val max = maxOf(r, g, b)
-	val min = minOf(r, g, b)
-	val delta = max - min
-	val hue = when {
-		delta == 0f -> 0f
-		max == r -> 60f * (((g - b) / delta) % 6f)
-		max == g -> 60f * (((b - r) / delta) + 2f)
-		else -> 60f * (((r - g) / delta) + 4f)
-	}
-	return Color.hsl((hue + 180f + 360f) % 360f, saturation = .85f, lightness = .6f)
-}
+private fun complement(color: Color): Color =
+	Color.hsl((hueDegrees(color) + 180f) % 360f, saturation = .85f, lightness = .6f)
 
 // The leader's elbow sits this far above a ledger row's first baseline.
 private const val LEDGER_LINE_MID = 4f
@@ -191,6 +180,8 @@ fun TimelineDrawing(
 		TimelineInk(scheme.surface, scheme.onSurface, scheme.onSurfaceVariant, scheme.outlineVariant, scheme.primary)
 	}
 	val descriptions = remember(layout, titles) { describeTargets(layout, titles) }
+	// Outlives the draw cache, which a selection, hover or search change rebuilds.
+	val texts = remember(layout, measurer) { HashMap<Pair<String, LabelStyle>, TextLayoutResult>() }
 	val marks = remember(layout) {
 		val seen = HashSet<Int>()
 		layout.hitRegions.mapIndexedNotNullTo(HashSet()) { i, region -> i.takeIf { region.target.eventId?.let(seen::add) == true } }
@@ -219,7 +210,6 @@ fun TimelineDrawing(
 			modifier = Modifier
 				.matchParentSize()
 				.drawWithCache {
-					val texts = HashMap<Pair<String, LabelStyle>, TextLayoutResult>()
 					val painter = TimelinePainter(layout, ink, laneColor, selectedId, measurer, texts, highlighted, focusedId)
 					// Read while drawing, so a hover only redraws.
 					onDrawBehind { with(painter) { draw(hoveredLedgerId) } }
@@ -384,7 +374,7 @@ private fun describeTargets(layout: TimelineLayout, titles: Map<Int, String>): T
 /** What a hit box shows on hover: its description as plain text, or an event's card. */
 private sealed interface HitTooltip {
 	data object Description : HitTooltip
-	class Card(val content: @Composable (eventId: Int) -> Unit) : HitTooltip
+	data class Card(val content: @Composable (eventId: Int) -> Unit) : HitTooltip
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -619,25 +609,11 @@ private class TimelinePainter(
 		}
 	}
 
-	/** Splits an axis label at its ` · ` separators, then at spaces, until each line fits. */
+	/** Splits an axis label at its ` · ` separators, or failing those at spaces, until each line fits. */
 	private fun wrapAxisLabel(label: String, available: Float): List<String> {
 		if (measurer.widthDp(label, LabelStyle.Axis) <= available) return listOf(label)
-		val parts = label.split(" · ")
-		val pieces = if (parts.size > 1) parts else label.split(' ')
-		val joiner = if (parts.size > 1) " · " else " "
-		val lines = ArrayList<String>()
-		var current = ""
-		for (piece in pieces) {
-			val candidate = if (current.isEmpty()) piece else current + joiner + piece
-			if (current.isEmpty() || measurer.widthDp(candidate, LabelStyle.Axis) <= available) {
-				current = candidate
-			} else {
-				lines += current
-				current = piece
-			}
-		}
-		if (current.isNotEmpty()) lines += current
-		return lines
+		val separator = if (AXIS_SEPARATOR in label) AXIS_SEPARATOR else " "
+		return LabelFitter.wrapWords(label, available, LabelStyle.Axis, measurer, separator)
 	}
 
 	private fun DrawScope.drawBand(rect: RectDp, laneIndex: Int, shadeIndex: Int, circa: Boolean, eventId: Int) {
@@ -762,7 +738,7 @@ private class TimelinePainter(
 				drawRect(ink.surface, at(x - half, y - half), Size(px(2 * half), px(2 * half)))
 				drawRect(color, at(x - half, y - half), Size(px(2 * half), px(2 * half)), style = Stroke(px(1f)))
 				val result = glyphText ?: measurer.textMeasurer.measure(
-					EntryType.EVENT.glyph(),
+					TimelineKind.ENTRY.hdMark(),
 					TextStyle(fontSize = 9.sp),
 					density = this,
 				).also { glyphText = it }
@@ -820,7 +796,7 @@ private class TimelinePainter(
 			when (row.mark) {
 				LedgerMark.None -> Unit
 				LedgerMark.Pilcrow -> {
-					val result = text("§", LabelStyle.LedgerSub)
+					val result = text(HD_SCENE_GLYPH, LabelStyle.LedgerSub)
 					drawText(
 						result,
 						ink.onSurfaceVariant,
@@ -882,7 +858,7 @@ private class TimelinePainter(
 	}
 
 	private fun DrawScope.drawProjection() {
-		val projection = (layout.projection?.takeIf { it.eventId == selectedId } ?: layout.projectionOf(selectedId)) ?: return
+		val projection = layout.projectionOf(selectedId) ?: return
 		val region = layout.laneRegion
 		val x0 = region.x
 		val x1 = if (region.width > 0f) region.right else layout.widthDp

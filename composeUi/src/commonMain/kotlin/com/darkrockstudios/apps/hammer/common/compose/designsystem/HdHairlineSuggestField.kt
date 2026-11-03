@@ -1,14 +1,10 @@
 package com.darkrockstudios.apps.hammer.common.compose.designsystem
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
@@ -26,7 +22,6 @@ import androidx.compose.ui.unit.dp
  * [suggestionAccent] colours each chip's swatch; null shows a neutral `#`. [trailing] sits at the
  * end of the input, e.g. a swatch for a value that matches a known one.
  */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun HdHairlineSuggestField(
 	label: String,
@@ -54,26 +49,14 @@ fun HdHairlineSuggestField(
 			trailing = trailing,
 			testTag = testTag,
 		)
-		if (suggestions.isNotEmpty()) {
-			FlowRow(
-				modifier = Modifier
-					.fillMaxWidth()
-					.padding(top = 6.dp)
-					.then(if (testTag != null) Modifier.testTag("$testTag$SUGGESTIONS_TAG_SUFFIX") else Modifier),
-				horizontalArrangement = Arrangement.spacedBy(6.dp),
-				verticalArrangement = Arrangement.spacedBy(6.dp),
-			) {
-				suggestions.forEach { suggestion ->
-					// Not focusable, so pressing a chip doesn't pull focus from the field first.
-					HdTagChip(
-						label = suggestion,
-						onClick = { onValueChange(suggestion) },
-						accent = suggestionAccent(suggestion),
-						modifier = Modifier.focusProperties { canFocus = false },
-					)
-				}
-			}
-		}
+		HdTagSuggestionStrip(
+			suggestions = suggestions,
+			onSelect = onValueChange,
+			accent = suggestionAccent,
+			modifier = Modifier
+				.padding(top = 6.dp)
+				.then(if (testTag != null) Modifier.testTag("$testTag$SUGGESTIONS_TAG_SUFFIX") else Modifier),
+		)
 	}
 }
 

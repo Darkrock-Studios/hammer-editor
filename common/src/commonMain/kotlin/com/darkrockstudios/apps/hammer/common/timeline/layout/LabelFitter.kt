@@ -13,13 +13,22 @@ object LabelFitter {
 	private const val ROTATE_MIN_WIDTH = 18f
 	private const val ROTATE_PAD = 12f
 
-	/** Greedy word wrap with no limit; a word wider than [maxWidth] stays whole on its own line. */
-	fun wrapWords(text: String, maxWidth: Float, style: LabelStyle, measurer: TimelineTextMeasurer): List<String> {
+	/**
+	 * Greedy wrap at [separator] with no limit; a word wider than [maxWidth] stays whole on its own
+	 * line. The separator is kept between the words of a line and dropped at a break.
+	 */
+	fun wrapWords(
+		text: String,
+		maxWidth: Float,
+		style: LabelStyle,
+		measurer: TimelineTextMeasurer,
+		separator: String = " ",
+	): List<String> {
 		val lines = ArrayList<String>()
 		var current = ""
-		for (word in text.split(' ')) {
+		for (word in text.split(separator)) {
 			if (word.isEmpty()) continue
-			val candidate = if (current.isEmpty()) word else "$current $word"
+			val candidate = if (current.isEmpty()) word else current + separator + word
 			if (current.isEmpty() || measurer.widthDp(candidate, style) <= maxWidth) {
 				current = candidate
 			} else {

@@ -48,7 +48,7 @@ class TimelineLayoutEngineGoldenTest {
 		val selectId: Int,
 		val desktop: Shape,
 		val phone: Shape,
-		val build: (phone: Boolean, selectedId: Int?) -> TimelineLayoutInput,
+		val build: (phone: Boolean) -> TimelineLayoutInput,
 	)
 
 	private val samples = listOf(
@@ -56,44 +56,44 @@ class TimelineLayoutEngineGoldenTest {
 			"minimal", 4,
 			desktop = Shape(0, 0, 0, 6, 2, 1, 430.1f),
 			phone = Shape(0, 0, 0, 6, 2, 1, 430.1f),
-		) { phone, id -> TimelineLayoutSamples.minimal(phone, id) },
+		) { phone -> TimelineLayoutSamples.minimal(phone) },
 		Sample(
 			"hollowmere", 2,
 			desktop = Shape(17, 0, 2, 11, 0, 2, 1512f),
 			phone = Shape(17, 0, 2, 29, 0, 2, 1512f),
-		) { phone, id -> TimelineLayoutSamples.hollowmere(phone, id) },
+		) { phone -> TimelineLayoutSamples.hollowmere(phone) },
 		Sample(
 			"leviathan", 8,
 			desktop = Shape(20, 0, 7, 11, 2, 5, 1911f),
 			phone = Shape(20, 0, 7, 32, 2, 5, 1911f),
-		) { phone, id -> TimelineLayoutSamples.leviathan(phone, id) },
+		) { phone -> TimelineLayoutSamples.leviathan(phone) },
 		Sample(
 			"insurgencyEverything", 19,
 			desktop = Shape(10, 0, 8, 5, 2, 2, 1792f),
 			phone = Shape(10, 0, 8, 20, 2, 2, 1792f),
-		) { phone, id -> TimelineLayoutSamples.insurgencyEverything(phone, id) },
+		) { phone -> TimelineLayoutSamples.insurgencyEverything(phone) },
 		// The election milestone (year 144) is about 70% of the scenes' extent past them, beyond the
 		// Story frame's reach, so no milestone rule is drawn.
 		Sample(
 			"insurgencyStory", 21,
 			desktop = Shape(1, 0, 7, 14, 0, 0, 1307f),
 			phone = Shape(1, 0, 7, 22, 0, 0, 1295f),
-		) { phone, id -> TimelineLayoutSamples.insurgencyStory(phone, id) },
+		) { phone -> TimelineLayoutSamples.insurgencyStory(phone) },
 		Sample(
 			"overlappingStack", 2,
 			desktop = Shape(1, 4, 0, 0, 0, 0, 653.3f),
 			phone = Shape(1, 4, 0, 5, 0, 0, 653.3f),
-		) { phone, id -> TimelineLayoutSamples.overlappingStack(phone, id) },
+		) { phone -> TimelineLayoutSamples.overlappingStack(phone) },
 		Sample(
 			"stress", 1,
 			desktop = Shape(99, 18, 269, 407, 47, 6, 46744.8f),
 			phone = Shape(99, 18, 269, 500, 47, 6, 46744.8f),
-		) { phone, id -> TimelineLayoutSamples.stress(phone = phone, selectedId = id) },
+		) { phone -> TimelineLayoutSamples.stress(phone = phone) },
 		Sample(
 			"regency", 3,
 			desktop = Shape(2, 0, 2, 2, 1, 1, 339.7f),
 			phone = Shape(2, 0, 2, 5, 1, 1, 339.7f),
-		) { phone, id -> regency(phone, id) },
+		) { phone -> regency(phone) },
 	)
 
 	private val gregorian = CalendarDef(CalendarPreset.GREGORIAN)
@@ -104,7 +104,7 @@ class TimelineLayoutEngineGoldenTest {
 	}
 
 	/** A Gregorian decade in two lanes, ticked by the app's calendar scheme. */
-	private fun regency(phone: Boolean, selectedId: Int?): TimelineLayoutInput {
+	private fun regency(phone: Boolean): TimelineLayoutInput {
 		fun event(id: Int, title: String, start: Long, end: Long? = null, lane: String? = null, milestone: Boolean = false) =
 			LayoutEvent(id, LayoutKind.EVENT, title, null, lane, milestone, id, start, end)
 		val events = listOf(
@@ -122,14 +122,13 @@ class TimelineLayoutEngineGoldenTest {
 			widthDp = if (phone) 360f else 840f,
 			phone = phone,
 			ticks = timelineTickScheme(gregorian),
-			selectedId = selectedId,
 		)
 	}
 
 	private fun forEachLayout(block: (sample: Sample, phone: Boolean, layout: TimelineLayout) -> Unit) {
 		for (sample in samples) {
 			for (phone in listOf(false, true)) {
-				block(sample, phone, TimelineLayoutEngine.layout(sample.build(phone, null), measurer(phone)))
+				block(sample, phone, TimelineLayoutEngine.layout(sample.build(phone), measurer(phone)))
 			}
 		}
 	}
@@ -213,7 +212,7 @@ class TimelineLayoutEngineGoldenTest {
 	@Test
 	fun `every phone lane label is a ledger callout led from its rail`() {
 		for (sample in samples) {
-			val input = sample.build(true, null)
+			val input = sample.build(true)
 			val layout = TimelineLayoutEngine.layout(input, phoneMeasurer)
 			val inLanes = (layout.bands.map { it.eventId } + layout.bars.map { it.eventId } + layout.points.map { it.eventId }).toSet()
 			val labelled = input.events
@@ -263,9 +262,9 @@ class TimelineLayoutEngineGoldenTest {
 	fun `a selection is projected`() {
 		for (sample in samples) {
 			for (phone in listOf(false, true)) {
-				val layout = TimelineLayoutEngine.layout(sample.build(phone, sample.selectId), measurer(phone))
+				val layout = TimelineLayoutEngine.layout(sample.build(phone), measurer(phone))
 
-				assertEquals(sample.selectId, assertNotNull(layout.projection, "${sample.name} phone=$phone").eventId)
+				assertEquals(sample.selectId, assertNotNull(layout.projectionOf(sample.selectId), "${sample.name} phone=$phone").eventId)
 			}
 		}
 	}
@@ -273,7 +272,7 @@ class TimelineLayoutEngineGoldenTest {
 	@Test
 	fun `gregorian ticks fall on the boundaries they name`() {
 		for (phone in listOf(false, true)) {
-			val ticks = TimelineLayoutEngine.layout(regency(phone, null), measurer(phone)).axis.ticks
+			val ticks = TimelineLayoutEngine.layout(regency(phone), measurer(phone)).axis.ticks
 
 			assertTrue(ticks.size >= 4, "phone=$phone: ${ticks.size} ticks")
 			for (tick in ticks) {

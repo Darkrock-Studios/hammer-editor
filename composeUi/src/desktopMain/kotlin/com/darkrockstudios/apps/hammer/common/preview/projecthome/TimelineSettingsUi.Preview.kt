@@ -29,7 +29,7 @@ private val previewLanes = listOf("Keeper", "Village", "The Sea", "Maren")
 @Preview
 @Composable
 fun TimelineSettingsUiManualPreview() {
-	SettingsPreview(TimelineSettings.State(def = TimelineDef.DEFAULT, lanes = previewLanes, isLoaded = true))
+	SettingsPreview(TimelineSettings.State(def = TimelineDef.DEFAULT, lanes = previewLanes))
 }
 
 @Preview
@@ -39,7 +39,6 @@ fun TimelineSettingsUiDatedStoryPreview() {
 		TimelineSettings.State(
 			def = TimelineDef.DEFAULT.copy(mode = TimelineMode.DATED, calendar = storyCalendar, laneOrder = previewLanes),
 			lanes = previewLanes,
-			isLoaded = true,
 		)
 	)
 }
@@ -53,7 +52,6 @@ fun TimelineSettingsUiPresetWarningPreview() {
 			lanes = previewLanes,
 			pendingCalendar = CalendarDef(CalendarPreset.GREGORIAN),
 			datesLostOnPresetSwitch = 3,
-			isLoaded = true,
 		)
 	)
 }
@@ -67,7 +65,6 @@ fun TimelineSettingsUiModeDialogPreview() {
 			def = TimelineDef.DEFAULT,
 			lanes = previewLanes,
 			pendingModeSwitch = ModeSwitchPrompt.ToDated(units, units.first().name, storyCalendar),
-			isLoaded = true,
 		)
 	)
 }

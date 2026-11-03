@@ -23,13 +23,7 @@ import com.darkrockstudios.apps.hammer.common.compose.Ui
  *
  * The optional [title] renders as an [HdMonoLabel] above the row, with
  * 8dp spacing. A disabled picker dims and ignores clicks, as
- * [HdHairlineDropdown] does; [isEnabled] does the same for one cell.
- * [trailing] adds a small affordance after a cell's label, such as an
- * [HdClearGlyph] that dismisses that option:
- *
- *     [ EVERYTHING │ STORY │ THE STORM  × ]
- *
- * [cellModifier] reaches one cell, for a test tag or a description.
+ * [HdHairlineDropdown] does.
  */
 @Composable
 fun <T> HdHairlineSegmentedPicker(
@@ -40,9 +34,6 @@ fun <T> HdHairlineSegmentedPicker(
 	modifier: Modifier = Modifier,
 	title: String? = null,
 	enabled: Boolean = true,
-	isEnabled: (T) -> Boolean = { true },
-	trailing: (T) -> (@Composable () -> Unit)? = { null },
-	cellModifier: @Composable (T) -> Modifier = { Modifier },
 ) {
 	Column(
 		modifier = modifier.alpha(if (enabled) 1f else 0.45f),
@@ -53,18 +44,14 @@ fun <T> HdHairlineSegmentedPicker(
 		}
 		Row(modifier = Modifier.fillMaxWidth()) {
 			options.forEachIndexed { index, option ->
-				val cellEnabled = isEnabled(option)
 				HdSegmentedCell(
 					label = label(option),
 					selected = option == selected,
 					onClick = { onSelect(option) },
-					enabled = enabled && cellEnabled,
-					trailing = trailing(option),
+					enabled = enabled,
 					modifier = Modifier
 						.weight(1f)
-						.offset(x = if (index == 0) 0.dp else (-1).dp)
-						.alpha(if (cellEnabled) 1f else 0.45f)
-						.then(cellModifier(option)),
+						.offset(x = if (index == 0) 0.dp else (-1).dp),
 				)
 			}
 		}
@@ -77,7 +64,6 @@ private fun HdSegmentedCell(
 	selected: Boolean,
 	onClick: () -> Unit,
 	enabled: Boolean,
-	trailing: (@Composable () -> Unit)?,
 	modifier: Modifier = Modifier,
 ) {
 	val borderColor = if (selected) MaterialTheme.colorScheme.onSurface
@@ -92,20 +78,13 @@ private fun HdSegmentedCell(
 			.padding(horizontal = Ui.Padding.M, vertical = 6.dp),
 		contentAlignment = Alignment.Center,
 	) {
-		Row(verticalAlignment = Alignment.CenterVertically) {
-			Text(
-				text = label.uppercase(),
-				style = MaterialTheme.typography.labelMedium,
-				color = labelColor,
-				maxLines = 1,
-				softWrap = false,
-				overflow = TextOverflow.Ellipsis,
-				modifier = Modifier.weight(1f, fill = false),
-			)
-			if (trailing != null) {
-				Spacer(Modifier.width(4.dp))
-				trailing()
-			}
-		}
+		Text(
+			text = label.uppercase(),
+			style = MaterialTheme.typography.labelMedium,
+			color = labelColor,
+			maxLines = 1,
+			softWrap = false,
+			overflow = TextOverflow.Ellipsis,
+		)
 	}
 }

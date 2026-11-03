@@ -20,3 +20,21 @@ data class TimelineEventDraft(
 	val order: Int? = null,
 	val id: Int? = null,
 )
+
+/** The event this draft describes, as [id] at [order], with its fields taken as they are. */
+fun TimelineEventDraft.toEvent(id: Int, order: Int) = TimeLineEvent(
+	id = id,
+	order = order,
+	kind = kind,
+	subject = subject,
+	title = title,
+	label = label,
+	content = content,
+	tags = tags,
+	references = references,
+	lane = lane,
+	milestone = milestone,
+	start = start,
+	end = end,
+	cachedTitle = cachedTitle,
+)
