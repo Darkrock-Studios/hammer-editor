@@ -56,6 +56,8 @@ fun TimeLineUi(
 	val scope = rememberCoroutineScope()
 	val state by component.stack.subscribeAsState()
 	val dialog by component.eventDialog.subscribeAsState()
+	// Outlives the overview while an event or the create screen covers it.
+	val lastLayout = remember(component) { LastTimelineLayout() }
 
 	SharedTransitionLayout(modifier = modifier.fillMaxSize()) {
 		Box(modifier = Modifier.fillMaxSize()) {
@@ -81,6 +83,7 @@ fun TimeLineUi(
 							viewEvent = component::showViewEvent,
 							openEvent = component::showEventDialog,
 							openedEventId = dialog.child?.instance?.eventId,
+							lastLayout = lastLayout,
 							sharedTransitionScope = this@SharedTransitionLayout,
 							animatedVisibilityScope = this@ChildStack,
 						)

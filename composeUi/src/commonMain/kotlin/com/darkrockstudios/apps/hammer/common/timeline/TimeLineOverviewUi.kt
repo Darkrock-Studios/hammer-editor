@@ -185,6 +185,7 @@ fun TimeLineOverviewUi(
 	animatedVisibilityScope: AnimatedVisibilityScope,
 	openEvent: (eventId: Int) -> Unit = viewEvent,
 	openedEventId: Int? = null,
+	lastLayout: LastTimelineLayout = remember { LastTimelineLayout() },
 ) {
 	val state by component.state.subscribeAsState()
 	val tagIndex by component.rankedTags.subscribeAsState()
@@ -528,6 +529,7 @@ fun TimeLineOverviewUi(
 							topPadding = topPadding,
 							highlighted = highlighted,
 							focusedId = focusedMatch,
+							lastLayout = lastLayout,
 						)
 						if (framed) {
 							FramePill(

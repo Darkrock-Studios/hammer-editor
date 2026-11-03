@@ -6,6 +6,7 @@ import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.tooling.preview.Preview
 import com.arkivanov.decompose.value.MutableValue
@@ -23,7 +24,8 @@ import com.darkrockstudios.apps.hammer.common.preview.TABLET_WIDTH_DP
 import com.darkrockstudios.apps.hammer.common.preview.TabletPreviewSurface
 import com.darkrockstudios.apps.hammer.common.preview.globalSettingsPreview
 import com.darkrockstudios.apps.hammer.common.timeline.TimeLineOverviewUi
-import com.darkrockstudios.apps.hammer.common.timeline.drawing.LocalTimelineLayoutContext
+import com.darkrockstudios.apps.hammer.common.timeline.drawing.LocalTimelineLayoutHost
+import com.darkrockstudios.apps.hammer.common.timeline.drawing.TimelineLayoutHost
 import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineFrame
 import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineView
 import kotlin.coroutines.EmptyCoroutineContext
@@ -82,7 +84,7 @@ fun ScreenTimeLineOverviewUiDatedPreview() {
 
 	KoinApplicationPreview {
 		// Lays the drawing out on the preview's own thread, so it is drawn in the first frames.
-		CompositionLocalProvider(LocalTimelineLayoutContext provides EmptyCoroutineContext) {
+		CompositionLocalProvider(LocalTimelineLayoutHost provides remember { TimelineLayoutHost(EmptyCoroutineContext) }) {
 			TabletPreviewSurface {
 				SharedTransitionLayout {
 					AnimatedVisibility(visible = true) {
@@ -116,7 +118,7 @@ private fun PhoneDatedOverview(dark: Boolean) {
 	val scope = rememberCoroutineScope()
 	KoinApplicationPreview {
 		// Lays the drawing out on the preview's own thread, so it is drawn in the first frames.
-		CompositionLocalProvider(LocalTimelineLayoutContext provides EmptyCoroutineContext) {
+		CompositionLocalProvider(LocalTimelineLayoutHost provides remember { TimelineLayoutHost(EmptyCoroutineContext) }) {
 			AppTheme(globalSettingsPreview, dark) {
 				Surface {
 					SharedTransitionLayout {

@@ -7,7 +7,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
+import androidx.compose.material3.Text
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toPixelMap
@@ -20,6 +23,9 @@ import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.Child
 import com.arkivanov.decompose.router.slot.ChildSlot
 import com.arkivanov.decompose.router.stack.ChildStack
+import com.arkivanov.decompose.extensions.compose.experimental.stack.ChildStack as AnimatedChildStack
+import com.arkivanov.decompose.extensions.compose.experimental.stack.animation.fade
+import com.arkivanov.decompose.extensions.compose.experimental.stack.animation.stackAnimation
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
@@ -48,7 +54,8 @@ import com.darkrockstudios.apps.hammer.common.data.tagindex.TagCount
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.preview.fakeProjectDef
 import com.darkrockstudios.apps.hammer.common.timeline.*
-import com.darkrockstudios.apps.hammer.common.timeline.drawing.LocalTimelineLayoutContext
+import com.darkrockstudios.apps.hammer.common.timeline.drawing.LocalTimelineLayoutHost
+import com.darkrockstudios.apps.hammer.common.timeline.drawing.TimelineLayoutHost
 import com.darkrockstudios.apps.hammer.common.timeline.drawing.TIMELINE_DRAWING_TAG
 import com.darkrockstudios.apps.hammer.common.timeline.drawing.TIMELINE_HORIZONTAL_SCROLL_TAG
 import com.darkrockstudios.apps.hammer.common.timeline.drawing.testTag
@@ -177,8 +184,12 @@ class TimeLineOverviewUiTest : BaseTest() {
 		size: DpSize? = null,
 		rootFab: RootFabState = RootFabState(),
 		shown: () -> Boolean = { true },
+		layoutHost: TimelineLayoutHost = TimelineLayoutHost(EmptyCoroutineContext),
+		lastLayout: LastTimelineLayout? = null,
 	) {
 		compose.setContent {
+			// Keeps saved state while the overview is hidden, as the timeline's stack does.
+			val saved = rememberSaveableStateHolder()
 			val content: @Composable () -> Unit = {
 				Box(modifier = if (size != null) Modifier.requiredSize(size) else Modifier) {
 					SharedTransitionLayout {
@@ -190,16 +201,21 @@ class TimeLineOverviewUiTest : BaseTest() {
 								viewEvent = viewEvent,
 								sharedTransitionScope = this@SharedTransitionLayout,
 								animatedVisibilityScope = this@AnimatedVisibility,
+								lastLayout = lastLayout ?: remember { LastTimelineLayout() },
 							)
 						}
 					}
 				}
 			}
-			CompositionLocalProvider(LocalRootFabState provides rootFab, LocalTimelineLayoutContext provides EmptyCoroutineContext) {
-				when {
-					!shown() -> {}
-					screen != null -> CompositionLocalProvider(LocalScreenCharacteristic provides screen, content = content)
-					else -> content()
+			CompositionLocalProvider(LocalRootFabState provides rootFab, LocalTimelineLayoutHost provides layoutHost) {
+				if (shown()) {
+					saved.SaveableStateProvider("overview") {
+						if (screen != null) {
+							CompositionLocalProvider(LocalScreenCharacteristic provides screen, content = content)
+						} else {
+							content()
+						}
+					}
 				}
 			}
 		}
@@ -817,7 +833,7 @@ class TimeLineOverviewUiTest : BaseTest() {
 		width: Dp,
 		screen: ScreenCharacteristics = desktopScreen,
 		laneFilter: () -> Set<String> = { emptySet() },
-		layoutContext: CoroutineContext = EmptyCoroutineContext,
+		layoutHost: TimelineLayoutHost = TimelineLayoutHost(EmptyCoroutineContext),
 	) {
 		val calendar = CalendarDef()
 		val lanes = (1..laneCount).map { LaneCount("Lane $it", 1) }
@@ -835,7 +851,7 @@ class TimeLineOverviewUiTest : BaseTest() {
 				calendar = calendar,
 				laneFilter = laneFilter(),
 			)
-			CompositionLocalProvider(LocalScreenCharacteristic provides screen, LocalTimelineLayoutContext provides layoutContext) {
+			CompositionLocalProvider(LocalScreenCharacteristic provides screen, LocalTimelineLayoutHost provides layoutHost) {
 				Box(modifier = Modifier.requiredSize(width, 700.dp)) {
 					DatedTimelinePane(state = state, rows = rows, onTap = {})
 				}
@@ -900,7 +916,7 @@ class TimeLineOverviewUiTest : BaseTest() {
 	fun `A dated timeline keeps its last layout until the next is ready and never shows one it has moved past`() {
 		val layouts = HeldDispatcher()
 		var laneFilter by mutableStateOf(emptySet<String>())
-		showDatedPane(laneCount = 3, width = 900.dp, laneFilter = { laneFilter }, layoutContext = layouts)
+		showDatedPane(laneCount = 3, width = 900.dp, laneFilter = { laneFilter }, layoutHost = TimelineLayoutHost(layouts))
 		compose.waitForIdle()
 		assertEquals(emptyList(), drawnRails())
 
@@ -921,6 +937,98 @@ class TimeLineOverviewUiTest : BaseTest() {
 		compose.runOnIdle { layouts.runAll() }
 		compose.waitForIdle()
 		assertEquals(listOf("Lane 3"), drawnRails())
+	}
+
+	private fun ledgerTop(eventId: Int) =
+		compose.onNodeWithTag(HitTarget.Ledger(eventId).testTag()).getUnclippedBoundsInRoot().top
+
+	@Test
+	fun `A dated timeline that returns draws its last layout, where it was left, while the next is computed`() {
+		val layouts = HeldDispatcher()
+		val lastLayout = LastTimelineLayout()
+		var shown by mutableStateOf(true)
+		showOverview(
+			longDrawing(),
+			screen = desktopScreen,
+			size = DpSize(800.dp, 600.dp),
+			shown = { shown },
+			layoutHost = TimelineLayoutHost(layouts),
+			lastLayout = lastLayout,
+		)
+		compose.onNodeWithTag(HitTarget.Ledger(30).testTag()).assertDoesNotExist()
+		compose.runOnIdle { layouts.runAll() }
+		compose.waitForIdle()
+		compose.onNodeWithTag(TIMELINE_DRAWING_TAG).performMouseInput {
+			moveTo(center)
+			scroll(5f)
+		}
+		compose.waitForIdle()
+		val scrolled = ledgerTop(30)
+
+		// As when an event opened from the list covers the overview, and is closed again.
+		compose.runOnIdle { shown = false }
+		compose.waitForIdle()
+		compose.runOnIdle { shown = true }
+		compose.waitForIdle()
+
+		assertEquals(scrolled, ledgerTop(30))
+		compose.runOnIdle { layouts.runAll() }
+		compose.waitForIdle()
+		assertEquals(scrolled, ledgerTop(30))
+	}
+
+	@OptIn(ExperimentalSharedTransitionApi::class)
+	@Test
+	fun `A drawing scrolled down is where it was left when the timeline stack returns to it`() {
+		val layouts = HeldDispatcher()
+		val layoutHost = TimelineLayoutHost(layouts)
+		val overview = longDrawing()
+		val overviewChild = Child.Created<String, String>("overview", "overview")
+		val stack = MutableValue(ChildStack(overviewChild))
+		compose.setContent {
+			CompositionLocalProvider(LocalScreenCharacteristic provides desktopScreen, LocalTimelineLayoutHost provides layoutHost) {
+				Box(modifier = Modifier.requiredSize(800.dp, 600.dp)) {
+					SharedTransitionLayout {
+						// The timeline's own stack and animation, with a stand-in for the event screen.
+						AnimatedChildStack(stack = stack, animation = stackAnimation(animator = fade())) { child ->
+							if (child.instance == "overview") {
+								TimeLineOverviewUi(
+									component = overview,
+									scope = scope,
+									showCreate = {},
+									viewEvent = {},
+									sharedTransitionScope = this@SharedTransitionLayout,
+									animatedVisibilityScope = this,
+								)
+							} else {
+								Text("Event")
+							}
+						}
+					}
+				}
+			}
+		}
+		compose.runOnIdle { layouts.runAll() }
+		compose.waitForIdle()
+		val atTop = ledgerTop(30)
+		compose.onNodeWithTag(TIMELINE_DRAWING_TAG).performMouseInput {
+			moveTo(center)
+			scroll(5f)
+		}
+		compose.waitForIdle()
+		val scrolled = ledgerTop(30)
+		assertTrue(scrolled < atTop, "scrolled down")
+
+		compose.runOnIdle { stack.value = ChildStack(Child.Created("event", "event"), backStack = listOf(overviewChild)) }
+		compose.waitForIdle()
+		compose.onNodeWithTag(TIMELINE_DRAWING_TAG).assertDoesNotExist()
+		compose.runOnIdle { stack.value = ChildStack(overviewChild) }
+		compose.waitForIdle()
+		compose.onNodeWithTag(HitTarget.Ledger(30).testTag()).assertDoesNotExist()
+		compose.runOnIdle { layouts.runAll() }
+		compose.waitForIdle()
+
+		assertEquals(scrolled, ledgerTop(30))
 	}
 
 	@Test

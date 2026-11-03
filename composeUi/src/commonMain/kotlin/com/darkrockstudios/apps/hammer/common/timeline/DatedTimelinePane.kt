@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -35,11 +36,12 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdMark
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.rememberStoryDateWords
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
-import com.darkrockstudios.apps.hammer.common.timeline.drawing.LocalTimelineLayoutContext
+import com.darkrockstudios.apps.hammer.common.timeline.drawing.LocalTimelineLayoutHost
 import com.darkrockstudios.apps.hammer.common.timeline.drawing.TIMELINE_DRAWING_TAG
 import com.darkrockstudios.apps.hammer.common.timeline.drawing.TimelineDrawingPane
 import com.darkrockstudios.apps.hammer.common.timeline.drawing.eventId
-import com.darkrockstudios.apps.hammer.common.timeline.drawing.rememberTimelineLayoutMeasurer
+import com.darkrockstudios.apps.hammer.common.timeline.drawing.rememberBackgroundFontFamilyResolverFactory
+import com.darkrockstudios.apps.hammer.common.timeline.drawing.rememberTimelineLabelFonts
 import com.darkrockstudios.apps.hammer.common.timeline.drawing.rememberTimelineTextMeasurer
 import com.darkrockstudios.apps.hammer.common.timeline.layout.HitTarget
 import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineLayout
@@ -53,6 +55,15 @@ private const val FALLBACK_WIDTH_DP = 840f
 private const val WIDTH_STEP_DP = 8f
 
 /**
+ * The layout a dated timeline last drew. Remembered where it outlives the drawing, so a drawing that
+ * leaves and returns shows it while its fresh layout is computed.
+ */
+@Stable
+class LastTimelineLayout {
+	internal var layout: TimelineLayout? = null
+}
+
+/**
  * The drawing of a DATED timeline's [rows] in the state's frame, laid out to the width it is given.
  * A new frame starts scrolled to the top, and [topPadding] lets the drawing start under an overlay. An
  * event's preview card shows its entry in [previews], asked for through [requestPreview], where a
@@ -60,8 +71,8 @@ private const val WIDTH_STEP_DP = 8f
  * until it is released. Without [previews] no card is shown.
  * [highlighted] events are ringed as search matches, and the drawing scrolls [focusedId] into view.
  *
- * The layout is computed on [LocalTimelineLayoutContext]. Until the first one is ready the pane is
- * empty; after that it keeps showing the last layout while the next is computed.
+ * The layout is computed on [LocalTimelineLayoutHost]. Until it is ready the pane shows the layout in
+ * [lastLayout], so a drawing that returns is drawn at once; with none yet the pane is empty.
  *
  * On a phone (Compact width) lanes are 22dp rails with every label in the ledger. Only the lanes in
  * the lane filter are drawn (all of them while it is empty), so the lane chips are how a writer picks
@@ -80,13 +91,15 @@ internal fun DatedTimelinePane(
 	focusedId: Int? = null,
 	previews: Value<Map<Int, EventPreview>>? = null,
 	requestPreview: (eventId: Int) -> Unit = {},
+	lastLayout: LastTimelineLayout = remember { LastTimelineLayout() },
 ) {
 	val words = rememberStoryDateWords()
 	val colors = LocalHammerColors.current
 	val phone = LocalScreenCharacteristic.current.windowWidthClass == WindowWidthSizeClass.Compact
 	val measurer = rememberTimelineTextMeasurer(phone)
-	val layoutMeasurer = rememberTimelineLayoutMeasurer(phone)
-	val layoutContext = LocalTimelineLayoutContext.current
+	val labelFonts = rememberTimelineLabelFonts(phone)
+	val layoutHost = LocalTimelineLayoutHost.current
+	val newFontResolver = rememberBackgroundFontFamilyResolverFactory()
 	val calendar = state.calendar ?: CalendarDef()
 	val laneDescriptions = state.lanes.associate { it.lane to Res.string.timeline_lane_filter_description.get(it.lane) }
 	val describeLane = remember(laneDescriptions) { { lane: String -> laneDescriptions[lane] ?: lane } }
@@ -109,8 +122,8 @@ internal fun DatedTimelinePane(
 		val frame = state.frame
 		val entryMark = TimelineKind.ENTRY.hdMark()
 		// A change of input cancels the layout in progress; a cancelled layout is never shown.
-		val laidOut by produceState<TimelineLayout?>(
-			null,
+		val laidOut by produceState(
+			lastLayout.layout,
 			rows,
 			lanes,
 			laneFilter,
@@ -120,10 +133,11 @@ internal fun DatedTimelinePane(
 			steppedWidthDp,
 			phone,
 			words,
-			layoutMeasurer,
-			layoutContext,
+			labelFonts,
+			layoutHost,
 		) {
-			value = withContext(layoutContext) {
+			val layout = withContext(layoutHost.context) {
+				val layoutMeasurer = layoutHost.measurer(labelFonts, newFontResolver)
 				val input = toLayoutInput(
 					rows = rows,
 					lanes = lanes,
@@ -139,6 +153,8 @@ internal fun DatedTimelinePane(
 				val width = maxOf(steppedWidthDp, TimelineLayoutEngine.minimumWidthDp(input, layoutMeasurer))
 				TimelineLayoutEngine.layout(input.copy(widthDp = width), layoutMeasurer)
 			}
+			lastLayout.layout = layout
+			value = layout
 		}
 		// Brings a newly focused match a third of the way down the pane, once there is a layout to find it in.
 		val density = LocalDensity.current
