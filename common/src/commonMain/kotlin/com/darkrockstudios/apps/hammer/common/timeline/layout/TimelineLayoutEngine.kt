@@ -53,29 +53,40 @@ object TimelineLayoutEngine {
 			.map { p -> laneMilestoneCandidate(p, scale, laneIndex) }
 
 		val axisX = if (phone) m.axisWidthPhone else m.axisWidth
-		val laneRegionWidth = when {
-			laneNames.isEmpty() -> 0f
-			phone -> laneNames.size * m.railWidth
-			else -> maxOf(0f, width - axisX - m.padRight - LedgerPlacer.ledgerWidth(asideCandidates + milestoneCandidates, measurer, m))
+		val sizes = when {
+			laneNames.isEmpty() -> emptyList()
+			phone -> List(laneNames.size) { LaneSize(m.railWidth, m.railBand) }
+			else -> {
+				val ledger = ledgerTexts(input.events)
+				val desired = LedgerPlacer.ledgerWidth(ledger, measurer, m)
+				sizeLanes(
+					profiles = laneProfiles(input.events, laneNames),
+					available = maxOf(0f, width - axisX - m.padRight - desired),
+					ledgerRoom = LedgerPlacer.naturalLedgerWidth(ledger, measurer, m) - desired,
+					m = m,
+				)
+			}
 		}
-		val laneRight = axisX + laneRegionWidth
-		val ledgerX = laneRight + m.ledgerGutter
-		val ledgerTextX = ledgerX + m.ledgerGutter
-		val laneWidth = if (laneNames.isEmpty()) 0f else laneRegionWidth / laneNames.size
 
+		var nextX = axisX
 		val lanes = laneNames.mapIndexed { i, name ->
+			val laneWidth = sizes[i].width
 			val header = if (phone) null else {
 				LabelFitter.ellipsize(name.uppercase(), laneWidth - LANE_HEADER_PAD, LabelStyle.LaneHeader, measurer)
 			}
 			LaneColumn(
 				name = name,
 				index = i,
-				xDp = axisX + i * laneWidth,
+				xDp = nextX,
 				widthDp = laneWidth,
 				header = header,
 				headerTruncated = header != null && header != name.uppercase(),
-			)
+			).also { nextX += laneWidth }
 		}
+		val laneRight = nextX
+		val laneRegionWidth = laneRight - axisX
+		val ledgerX = laneRight + m.ledgerGutter
+		val ledgerTextX = ledgerX + m.ledgerGutter
 
 		val hits = ArrayList<HitRegion>()
 		for (lane in lanes) {
@@ -98,7 +109,7 @@ object TimelineLayoutEngine {
 			val items = byLane[lane.index] ?: continue
 			labelBottom = maxOf(
 				labelBottom,
-				layoutLane(input, measurer, scale, lane, items, bands, bars, points, laneCandidates, hits),
+				layoutLane(input, measurer, scale, lane, sizes[lane.index].band, items, bands, bars, points, laneCandidates, hits),
 			)
 		}
 
@@ -178,6 +189,113 @@ object TimelineLayoutEngine {
 		return ordered + rest
 	}
 
+	/**
+	 * The narrowest width at which every lane gets its minimum (on a phone, its rail) beside a ledger
+	 * that can still be read. Below it desktop lanes fall back to an even split.
+	 */
+	fun minimumWidthDp(input: TimelineLayoutInput, measurer: TimelineTextMeasurer): Float {
+		val laneNames = laneList(input.events, input.laneOrder)
+		if (laneNames.isEmpty()) return 0f
+		val m = input.metrics
+		if (input.phone) return m.axisWidthPhone + laneNames.size * m.railWidth + 2 * m.ledgerGutter + m.ledgerMin + m.padRight
+		var lanes = 0f
+		for (profile in laneProfiles(input.events, laneNames)) lanes += minimumLaneWidth(profile, m)
+		return m.axisWidth + lanes + LedgerPlacer.ledgerWidth(ledgerTexts(input.events), measurer, m) + m.padRight
+	}
+
+	/** What a desktop lane holds over the whole input, which sizes its column the same in every frame. */
+	private class LaneProfile(val subColumns: Int, val needsLabels: Boolean)
+
+	private class LaneSize(val width: Float, val band: Float)
+
+	private fun laneProfiles(events: List<LayoutEvent>, laneNames: List<String>): List<LaneProfile> {
+		val byLane = events
+			.filter { it.kind != LayoutKind.SCENE && it.laneName != null }
+			.sortedWith(compareBy<LayoutEvent>({ it.start }, { it.order }, { it.id }))
+			.groupBy { it.laneName!! }
+		return laneNames.map { laneProfile(byLane[it].orEmpty()) }
+	}
+
+	/**
+	 * Packs the lane's spans by position rather than by drawn height, so the result does not depend
+	 * on the frame. A lane needs leader labels when it has a titled bar or point that is not a
+	 * milestone; a band whose title will not fit inside is not foreseen.
+	 */
+	private fun laneProfile(events: List<LayoutEvent>): LaneProfile {
+		val spans = events.filter { it.spanEnd != null }
+		// Ranks keep the order and ties of positions that a Float would round together.
+		val ranks = spans.flatMap { listOf(it.start, it.extentEnd) }.distinct().sorted()
+		fun rank(position: Long): Float = ranks.binarySearch(position).toFloat()
+		val packing = LanePacker.pack(spans.map { PackItem(rank(it.start), rank(it.extentEnd), it.extentEnd - it.start, it.start) })
+		fun labelled(e: LayoutEvent) = !e.milestone && e.title.isNotBlank()
+		val needsLabels = events.any { it.spanEnd == null && labelled(it) } ||
+			spans.indices.any { packing.columns[it] > 0 && labelled(spans[it]) }
+		return LaneProfile(maxOf(0, packing.columnCount - 1), needsLabels)
+	}
+
+	/** A lane's insets and sub-columns: everything but its band and label room. */
+	private fun fixedLaneWidth(profile: LaneProfile, m: LayoutMetrics): Float =
+		2 * LANE_INSET + if (profile.subColumns > 0) m.barOffset + profile.subColumns * m.barStep else 0f
+
+	private fun minimumLaneWidth(profile: LaneProfile, m: LayoutMetrics): Float =
+		maxOf(m.laneMinWidth, fixedLaneWidth(profile, m) + m.bandMin)
+
+	/**
+	 * Desktop lane widths within [available]. Each lane asks for its band at [LayoutMetrics.bandMax],
+	 * its sub-columns, and [LayoutMetrics.laneLabelRoom] when it needs labels. When that does not
+	 * fit, label room shrinks first, then the bands toward [LayoutMetrics.bandMin], then the lanes
+	 * split evenly. Spare room goes to label room (up to as much again), then to the ledger up to
+	 * [ledgerRoom], then evenly to every lane.
+	 */
+	private fun sizeLanes(profiles: List<LaneProfile>, available: Float, ledgerRoom: Float, m: LayoutMetrics): List<LaneSize> {
+		val n = profiles.size
+		val fixed = profiles.map { fixedLaneWidth(it, m) }
+		val fixedTotal = fixed.sum()
+		val labelled = profiles.count { it.needsLabels }
+		val withBands = fixedTotal + n * m.bandMax
+		val full = withBands + labelled * m.laneLabelRoom
+
+		fun sized(band: Float, labelRoom: Float, even: Float = 0f) = profiles.mapIndexed { i, p ->
+			LaneSize(fixed[i] + band + (if (p.needsLabels) labelRoom else 0f) + even, band)
+		}
+
+		return when {
+			full <= available -> {
+				var spare = available - full
+				val extra = if (labelled > 0) minOf(m.laneLabelRoom, spare / labelled) else 0f
+				spare -= extra * labelled
+				spare -= spare.coerceAtMost(maxOf(0f, ledgerRoom))
+				sized(m.bandMax, m.laneLabelRoom + extra, spare / n)
+			}
+
+			withBands <= available -> sized(m.bandMax, (available - withBands) / labelled)
+			fixedTotal + n * m.bandMin <= available -> sized((available - fixedTotal) / n, 0f)
+			else -> {
+				val width = available / n
+				List(n) { LaneSize(width, floor(width * m.bandLaneFraction).coerceIn(m.bandMin, m.bandMax)) }
+			}
+		}
+	}
+
+	/** Every row the desktop ledger could show in any frame, so it is sized the same in all of them. */
+	private fun ledgerTexts(events: List<LayoutEvent>): List<LedgerCandidate> = events.mapNotNull { e ->
+		val aside = e.kind == LayoutKind.SCENE || e.laneName == null
+		if (!aside && !(e.milestone && e.title.isNotBlank())) return@mapNotNull null
+		LedgerCandidate(
+			eventId = e.id,
+			kind = e.kind,
+			anchorY = 0f,
+			anchorY1 = null,
+			title = e.title,
+			sub = e.subtitle,
+			style = if (e.milestone) LedgerStyle.Milestone else LedgerStyle.Muted,
+			mark = LedgerMark.None,
+			laneIndex = null,
+			pinned = e.milestone,
+			order = e.order,
+		)
+	}
+
 	private fun buildScaleFor(input: TimelineLayoutInput, placed: List<Placed>, lo: Long, hi: Long): PiecewiseScale {
 		var count = 0
 		for (p in placed) count += if (p.end != null) 2 else 1
@@ -250,6 +368,7 @@ object TimelineLayoutEngine {
 		measurer: TimelineTextMeasurer,
 		scale: PiecewiseScale,
 		lane: LaneColumn,
+		bandWidth: Float,
 		items: List<Placed>,
 		bands: MutableList<BandShape>,
 		bars: MutableList<BarShape>,
@@ -260,9 +379,6 @@ object TimelineLayoutEngine {
 		val m = input.metrics
 		val phone = input.phone
 		val x0 = lane.xDp + if (phone) PHONE_LANE_INSET else LANE_INSET
-		val bandWidth = if (phone) m.railBand else {
-			floor(lane.widthDp * m.bandLaneFraction).coerceIn(m.bandMin, m.bandMax)
-		}
 		val barWidth = if (phone) m.railBar else m.barWidth
 		val barStep = if (phone) 0f else m.barStep
 		val barX0 = x0 + bandWidth + if (phone) PHONE_BAR_GAP else m.barOffset

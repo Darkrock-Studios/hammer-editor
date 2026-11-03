@@ -30,13 +30,11 @@ import com.darkrockstudios.apps.hammer.common.timeline.drawing.TimelineDrawingPa
 import com.darkrockstudios.apps.hammer.common.timeline.drawing.rememberTimelineTextMeasurer
 import com.darkrockstudios.apps.hammer.common.timeline.layout.HitTarget
 import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineLayoutEngine
-import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineLayoutInput
 import com.darkrockstudios.apps.hammer.timeline_lane_filter_description
 import kotlin.math.floor
 
 private const val FALLBACK_WIDTH_DP = 840f
 private const val WIDTH_STEP_DP = 8f
-private const val MIN_LANE_WIDTH_DP = 72f
 
 /**
  * The drawing of a DATED timeline's [rows] in the state's frame, laid out to the width it is given.
@@ -103,7 +101,7 @@ internal fun DatedTimelinePane(
 				selectedId = state.selectedId,
 				words = words,
 			)
-			TimelineLayoutEngine.layout(input.copy(widthDp = maxOf(steppedWidthDp, minimumWidthDp(input))), measurer)
+			TimelineLayoutEngine.layout(input.copy(widthDp = maxOf(steppedWidthDp, TimelineLayoutEngine.minimumWidthDp(input, measurer))), measurer)
 		}
 		// The layout numbers only the lanes it draws; a lane's colour follows its place in the full list.
 		val paletteIndex = remember(layout, state.lanes) {
@@ -129,16 +127,4 @@ internal fun DatedTimelinePane(
 			bottomPadding = bottomPadding,
 		)
 	}
-}
-
-/**
- * Wide enough for every drawn lane to get [MIN_LANE_WIDTH_DP], or on a phone its rail, beside a
- * ledger that can still be read.
- */
-private fun minimumWidthDp(input: TimelineLayoutInput): Float {
-	val lanes = input.events.mapNotNullTo(HashSet()) { it.lane }.size
-	if (lanes == 0) return 0f
-	val m = input.metrics
-	if (input.phone) return m.axisWidthPhone + lanes * m.railWidth + 2 * m.ledgerGutter + m.ledgerMin + m.padRight
-	return m.axisWidth + lanes * MIN_LANE_WIDTH_DP + m.ledgerMax + m.padRight
 }

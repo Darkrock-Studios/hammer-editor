@@ -21,7 +21,10 @@ import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
@@ -32,6 +35,8 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.platform.testTag
@@ -152,6 +157,7 @@ fun TimelineDrawing(
 	}
 	val descriptions = remember(layout, titles) { describeTargets(layout, titles) }
 	val clicks = remember { DoubleClickDetector() }
+	var hoveredLedgerId by remember { mutableStateOf<Int?>(null) }
 
 	Box(modifier = modifier.fillMaxWidth().height(layout.heightDp.dp)) {
 		Spacer(
@@ -160,7 +166,8 @@ fun TimelineDrawing(
 				.drawWithCache {
 					val texts = HashMap<Pair<String, LabelStyle>, TextLayoutResult>()
 					val painter = TimelinePainter(layout, ink, laneColor, selectedId, measurer, texts)
-					onDrawBehind { with(painter) { draw() } }
+					// Read while drawing, so a hover only redraws.
+					onDrawBehind { with(painter) { draw(hoveredLedgerId) } }
 				},
 		)
 		HitLayer(regions = layout.hitRegions, modifier = Modifier.matchParentSize()) { region ->
@@ -172,6 +179,13 @@ fun TimelineDrawing(
 				// Touch platforms open from the selection's summary instead.
 				onOpen = onOpen?.takeIf { timelineOpensOnDoubleClick },
 				clicks = clicks,
+				onHover = if (hoverTooltips && region.target is HitTarget.Ledger) {
+					{ id, hovered ->
+						if (hovered) hoveredLedgerId = id else if (hoveredLedgerId == id) hoveredLedgerId = null
+					}
+				} else {
+					null
+				},
 			)
 		}
 	}
@@ -295,11 +309,27 @@ private fun HitBox(
 	onTap: (HitTarget) -> Unit,
 	onOpen: ((Int) -> Unit)?,
 	clicks: DoubleClickDetector,
+	onHover: ((eventId: Int, hovered: Boolean) -> Unit)? = null,
 ) {
 	val eventId = region.target.eventId
 	val doubleClickTimeout = LocalViewConfiguration.current.doubleTapTimeoutMillis.milliseconds
+	val hover = if (onHover != null && eventId != null) {
+		Modifier.pointerInput(eventId) {
+			awaitPointerEventScope {
+				while (true) {
+					when (awaitPointerEvent().type) {
+						PointerEventType.Enter -> onHover(eventId, true)
+						PointerEventType.Exit -> onHover(eventId, false)
+					}
+				}
+			}
+		}
+	} else {
+		Modifier
+	}
 	val target = Modifier
 		.testTag(region.target.testTag())
+		.then(hover)
 		.semantics { contentDescription = description }
 		.clickable(role = Role.Button) {
 			if (onOpen != null && eventId != null && clicks.isSecondClick(eventId, doubleClickTimeout)) {
@@ -352,7 +382,8 @@ private class TimelinePainter(
 ) {
 	private var glyphText: TextLayoutResult? = null
 
-	fun DrawScope.draw() {
+	/** [hoveredLedgerId] is the ledger row under the pointer, projected more lightly than the selection. */
+	fun DrawScope.draw(hoveredLedgerId: Int?) {
 		drawChrome()
 		for (band in layout.bands) drawBand(band.rect, band.laneIndex, band.shadeIndex, band.circa, band.eventId)
 		for (bar in layout.bars) drawBar(bar.rect, bar.laneIndex, bar.circa, bar.eventId)
@@ -362,6 +393,7 @@ private class TimelinePainter(
 		for (point in layout.points) point.label?.let { drawLeaderLabel(it, laneColor(point.laneIndex)) }
 		drawMilestoneRules()
 		drawLedger()
+		if (hoveredLedgerId != selectedId) drawHoverProjection(hoveredLedgerId)
 		drawProjection()
 	}
 
@@ -681,6 +713,23 @@ private class TimelinePainter(
 				drawTextAt(text(sub, LabelStyle.LedgerSub), layout.ledgerTextXDp, baseline, ink.onSurfaceVariant, halo)
 			}
 		}
+	}
+
+	private fun DrawScope.drawHoverProjection(eventId: Int?) {
+		val row = eventId?.let { id -> layout.ledgerRows.firstOrNull { it.eventId == id } } ?: return
+		val region = layout.laneRegion
+		val x0 = region.x
+		val x1 = if (region.width > 0f) region.right else layout.widthDp
+		row.anchorY1Dp?.let { y1 ->
+			drawRect(ink.primary.copy(alpha = .06f), at(x0, row.anchorYDp), Size(px(x1 - x0), px(y1 - row.anchorYDp)))
+		}
+		drawLine(
+			ink.primary.copy(alpha = .5f),
+			at(x0, row.anchorYDp),
+			at(x1, row.anchorYDp),
+			strokeWidth = px(1f),
+			pathEffect = dotted(),
+		)
 	}
 
 	private fun DrawScope.drawProjection() {

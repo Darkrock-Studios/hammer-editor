@@ -113,6 +113,16 @@ object LedgerPlacer {
 		return (widest + metrics.ledgerPad).coerceIn(metrics.ledgerMin, metrics.ledgerMax)
 	}
 
+	/** The ledger width at which no title wraps and no subtitle is cut, at least [LayoutMetrics.ledgerMin]. */
+	fun naturalLedgerWidth(candidates: List<LedgerCandidate>, measurer: TimelineTextMeasurer, metrics: LayoutMetrics): Float {
+		var widest = 0f
+		for (c in candidates) {
+			widest = maxOf(widest, measurer.widthDp(c.title, c.titleStyle))
+			c.sub?.let { widest = maxOf(widest, measurer.widthDp(it, LabelStyle.LedgerSub)) }
+		}
+		return maxOf(metrics.ledgerMin, widest + metrics.ledgerPad)
+	}
+
 	private val LedgerCandidate.titleStyle: LabelStyle
 		get() = if (style == LedgerStyle.Milestone) LabelStyle.LedgerMilestone else LabelStyle.Ledger
 }

@@ -40,7 +40,8 @@ class TimelineLayoutEngineTest {
 		frame: TimelineFrame = TimelineFrame.Everything,
 		laneOrder: List<String> = emptyList(),
 		view: TimelineView = TimelineView.TO_SCALE,
-	) = TimelineLayoutInput(events, laneOrder, view, frame, 840f, false, TimelineLayoutSamples.dayClockTicks)
+		width: Float = 840f,
+	) = TimelineLayoutInput(events, laneOrder, view, frame, width, false, TimelineLayoutSamples.dayClockTicks)
 
 	@Test
 	fun `a date with coarse precision lays out as a circa span`() {
@@ -125,13 +126,24 @@ class TimelineLayoutEngineTest {
 		val short = listOf(event(1, 0), event(2, 100, milestone = true, title = "Siege"))
 		val long = listOf(event(1, 0), event(2, 100, milestone = true, title = "Canterbury answers the Scopuli"))
 
-		val narrow = TimelineLayoutEngine.layout(input(short), measurer)
-		val wide = TimelineLayoutEngine.layout(input(long), measurer)
+		val narrow = TimelineLayoutEngine.layout(input(short, width = 640f), measurer)
+		val wide = TimelineLayoutEngine.layout(input(long, width = 640f), measurer)
 
 		val metrics = LayoutMetrics()
 		assertEquals(metrics.ledgerMin, narrow.ledgerWidthDp, 1e-3f)
 		assertEquals(metrics.ledgerPad + measurer.widthDp("Canterbury answers", LabelStyle.LedgerMilestone), wide.ledgerWidthDp, 1e-3f)
 		assertEquals(listOf("Canterbury answers", "the Scopuli"), wide.ledgerRows.single { it.eventId == 2 }.lines)
+	}
+
+	@Test
+	fun `spare width lets the ledger grow until its titles no longer wrap`() {
+		val long = listOf(event(1, 0), event(2, 100, milestone = true, title = "Canterbury answers the Scopuli"))
+
+		val layout = TimelineLayoutEngine.layout(input(long), measurer)
+
+		val metrics = LayoutMetrics()
+		assertEquals(metrics.ledgerPad + measurer.widthDp("Canterbury answers the Scopuli", LabelStyle.LedgerMilestone), layout.ledgerWidthDp, 1e-3f)
+		assertEquals(listOf("Canterbury answers the Scopuli"), layout.ledgerRows.single { it.eventId == 2 }.lines)
 	}
 
 	@Test

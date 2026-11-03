@@ -86,6 +86,9 @@ data class LayoutMetrics(
 	val bandMin: Float = 56f,
 	val bandMax: Float = 140f,
 	val bandLaneFraction: Float = .56f,
+	val laneMinWidth: Float = 72f,
+	/** Room a desktop lane keeps beside its band and bars for leader labels. */
+	val laneLabelRoom: Float = 150f,
 	val barWidth: Float = 10f,
 	val barStep: Float = 20f,
 	val barOffset: Float = 6f,

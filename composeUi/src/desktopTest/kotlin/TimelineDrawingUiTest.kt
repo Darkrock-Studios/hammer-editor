@@ -7,11 +7,14 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performMouseInput
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.timeline.drawing.TIMELINE_HIT_TAG
 import com.darkrockstudios.apps.hammer.common.timeline.drawing.TimelineDrawing
@@ -154,5 +157,34 @@ class TimelineDrawingUiTest {
 		assertEquals(band.rect.bottom, assertNotNull(projection.y1Dp), absoluteTolerance = 1f)
 		assertEquals(selected.laneRegion.width, projection.rect.width)
 		compose.onNodeWithTag(HitTarget.Band(band.eventId).testTag()).assertExists()
+	}
+
+	@Test
+	fun `Hovering a ledger row projects its moment across the lanes until the pointer leaves`() {
+		val row = layout.ledgerRows.filter { it.anchorY1Dp != null }.minBy { it.anchorYDp }
+		val y1 = assertNotNull(row.anchorY1Dp)
+		show()
+		val rowNode = compose.onNodeWithTag(HitTarget.Ledger(row.eventId).testTag())
+
+		// The host, not the root: a hovered row's tooltip opens a second root.
+		fun strip(): List<Int> {
+			val density = compose.density.density
+			val pixels = compose.onNodeWithTag(HOST_TAG).captureToImage().toPixelMap()
+			val y = ((row.anchorYDp + y1) / 2f * density).toInt()
+			val x0 = ((layout.laneRegion.x + 2f) * density).toInt()
+			val x1 = ((layout.laneRegion.right - 2f) * density).toInt()
+			return (x0 until x1).map { pixels[it, y].hashCode() }
+		}
+
+		val before = strip()
+		rowNode.performMouseInput { enter(center) }
+		compose.waitForIdle()
+		val hovered = strip()
+		rowNode.performMouseInput { exit() }
+		compose.waitForIdle()
+		val after = strip()
+
+		assertTrue(before != hovered, "the hovered row's span is not tinted across the lanes")
+		assertEquals(before, after, "the tint stays after the pointer leaves")
 	}
 }
