@@ -46,6 +46,7 @@ const val TIME_LINE_VIEW_START_TAG = "timeline-view-start"
 const val TIME_LINE_VIEW_END_TAG = "timeline-view-end"
 const val TIME_LINE_VIEW_WHEN_TAG = "timeline-view-when"
 const val TIME_LINE_VIEW_FRAME_TAG = "timeline-view-frame"
+const val TIME_LINE_VIEW_BODY_TAG = "timeline-view-body"
 
 private val ModalMaxWidth = TextEditorDefaults.MAX_WIDTH * 1.25f
 private val ModalMaxHeight = 760.dp
@@ -205,7 +206,10 @@ fun ViewTimeLineEventUi(
 							state = state,
 							component = component,
 							dateText = dateText,
-							modifier = Modifier.padding(Ui.Padding.XL),
+							modifier = Modifier
+								.weight(1f, fill = false)
+								.verticalScroll(rememberScrollState())
+								.padding(Ui.Padding.XL),
 						)
 					}
 

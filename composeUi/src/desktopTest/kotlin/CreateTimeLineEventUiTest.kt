@@ -1,5 +1,18 @@
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.height
+import com.darkrockstudios.apps.hammer.common.timeline.EventBodyMinHeight
+import com.darkrockstudios.apps.hammer.common.timeline.TIME_LINE_CREATE_BODY_TAG
+import com.darkrockstudios.apps.hammer.common.timeline.TIME_LINE_CREATE_MILESTONE_TAG
+import com.darkrockstudios.apps.hammer.common.timeline.TIME_LINE_REFERENCES_TAG
+import kotlin.test.assertTrue
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -35,6 +48,8 @@ import com.darkrockstudios.apps.hammer.common.timeline.TIME_LINE_CREATE_TITLE_TA
 import org.junit.Rule
 import org.junit.Test
 import kotlin.test.assertEquals
+
+private const val WINDOW_TAG = "test-window"
 
 class CreateTimeLineEventUiTest : BaseTest() {
 	@get:Rule
@@ -84,17 +99,87 @@ class CreateTimeLineEventUiTest : BaseTest() {
 		override fun suggestTags(prefix: String, limit: Int): List<String> = emptyList()
 	}
 
-	private fun show(component: CreateTimeLineEvent) {
+	private fun show(component: CreateTimeLineEvent, size: DpSize? = null) {
 		compose.setContent {
 			KoinApplicationPreview {
-				CreateTimeLineEventUi(
-					component = component,
-					scope = scope,
-					modifier = Modifier,
-					rootSnackbar = rememberRootSnackbarHostState(),
-				)
+				Box(modifier = if (size != null) Modifier.requiredSize(size).testTag(WINDOW_TAG) else Modifier) {
+					CreateTimeLineEventUi(
+						component = component,
+						scope = scope,
+						modifier = Modifier,
+						rootSnackbar = rememberRootSnackbarHostState(),
+					)
+				}
 			}
 		}
+	}
+
+	private fun datedEvent() = FakeCreate(
+		CreateTimeLineEvent.State(
+			projectDef = projectDef,
+			mode = TimelineMode.DATED,
+			calendar = CalendarDef(epochName = "Landing"),
+			lanes = listOf("Alice", "Queen"),
+		)
+	)
+
+	private fun bounds(tag: String) = compose.onNodeWithTag(tag).getUnclippedBoundsInRoot()
+
+	/** The body keeps its minimum, Create stays inside the window, and the fields scroll into view. */
+	private fun assertPhoneLayout() {
+		val window = bounds(WINDOW_TAG)
+		val body = bounds(TIME_LINE_CREATE_BODY_TAG)
+		assertTrue(body.height >= EventBodyMinHeight, "body is ${body.height}")
+		assertTrue(body.bottom <= window.bottom, "body ends at ${body.bottom}, window at ${window.bottom}")
+
+		val create = compose.onNodeWithTag(TIME_LINE_CREATE_CONFIRM_TAG).assertIsDisplayed().getUnclippedBoundsInRoot()
+		assertTrue(create.top >= body.bottom, "Create starts at ${create.top}, above the body's end ${body.bottom}")
+		assertTrue(create.bottom <= window.bottom, "Create ends at ${create.bottom}, window at ${window.bottom}")
+
+		// Labels, not the fields: a single line text field scrolls itself, so performScrollTo stops there.
+		compose.onNodeWithTag(TIME_LINE_REFERENCES_TAG).performScrollTo().assertIsDisplayed()
+		compose.onNodeWithText("Tags", ignoreCase = true).performScrollTo().assertIsDisplayed()
+		compose.onNodeWithText("Start", ignoreCase = true).performScrollTo().assertIsDisplayed()
+
+		assertEquals(body, bounds(TIME_LINE_CREATE_BODY_TAG))
+		compose.onNodeWithTag(TIME_LINE_CREATE_CONFIRM_TAG).assertIsDisplayed()
+	}
+
+	@Test
+	fun `On a phone the body keeps its height and the fields scroll above it`() {
+		show(datedEvent(), DpSize(360.dp, 640.dp))
+		assertPhoneLayout()
+	}
+
+	@Test
+	fun `With the keyboard up on a phone the body keeps its height and Create stays in the window`() {
+		show(datedEvent(), DpSize(360.dp, 400.dp))
+		assertPhoneLayout()
+	}
+
+	@Test
+	fun `A tall window shows every field and gives the body the rest`() {
+		show(datedEvent(), DpSize(900.dp, 1100.dp))
+
+		val references = compose.onNodeWithTag(TIME_LINE_REFERENCES_TAG).assertIsDisplayed().getUnclippedBoundsInRoot()
+		val body = bounds(TIME_LINE_CREATE_BODY_TAG)
+		val create = bounds(TIME_LINE_CREATE_CONFIRM_TAG)
+		assertTrue(body.height > EventBodyMinHeight, "body is ${body.height}")
+		assertTrue(references.bottom <= body.top, "references end at ${references.bottom}, body starts at ${body.top}")
+		// The footer's padding and rule are all that sit between the body and Create.
+		assertTrue(create.top - body.bottom < 48.dp, "gap of ${create.top - body.bottom} between body and Create")
+	}
+
+	@Test
+	fun `A placement on a short window scrolls its fields and keeps Create in the window`() {
+		val component = datedEvent()
+		component.setKind(TimelineKind.SCENE)
+		show(component, DpSize(360.dp, 400.dp))
+
+		val window = bounds(WINDOW_TAG)
+		val create = compose.onNodeWithTag(TIME_LINE_CREATE_CONFIRM_TAG).assertIsDisplayed().getUnclippedBoundsInRoot()
+		assertTrue(create.bottom <= window.bottom, "Create ends at ${create.bottom}, window at ${window.bottom}")
+		compose.onNodeWithTag(TIME_LINE_CREATE_MILESTONE_TAG).performScrollTo().assertIsDisplayed()
 	}
 
 	@Test

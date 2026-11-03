@@ -50,6 +50,7 @@ const val TIME_LINE_REFERENCES_TAG = "timeline-references"
 const val TIME_LINE_CREATE_START_TAG = "timeline-create-start"
 const val TIME_LINE_CREATE_END_TAG = "timeline-create-end"
 const val TIME_LINE_CREATE_ADD_END_TAG = "timeline-create-add-end"
+const val TIME_LINE_CREATE_BODY_TAG = "timeline-create-body"
 
 private val Kinds = listOf(TimelineKind.EVENT, TimelineKind.SCENE, TimelineKind.ENTRY)
 
@@ -136,145 +137,157 @@ fun CreateTimeLineEventUi(
 				}
 			}
 
-			Column(
-				modifier = Modifier
-					.fillMaxWidth()
-					.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L),
-				verticalArrangement = Arrangement.spacedBy(Ui.Padding.L),
-			) {
-				CollapseWhileTyping {
-					HdHairlineSegmentedPicker(
-						options = Kinds,
-						selected = state.kind,
-						onSelect = component::setKind,
-						label = { it.label() },
-						title = Res.string.timeline_kind_label.get(),
-						modifier = Modifier.testTag(TIME_LINE_CREATE_KIND_TAG),
-					)
-				}
-
-				// Each field below hides while the body editor has focus, but stays while it holds focus
-				// itself so it remains reachable.
-				if (isEvent) {
-					CollapseWhileTyping(keepVisible = titleFocused) {
-						HdHairlineField(
-							label = Res.string.timeline_title_label.get(),
-							value = state.title,
-							onValueChange = component::setTitle,
-							hint = Res.string.timeline_title_hint.get(),
-							placeholder = Res.string.timeline_title_placeholder.get(),
-							onFocusChanged = { titleFocused = it },
-							testTag = TIME_LINE_CREATE_TITLE_TAG,
-						)
-					}
-				} else {
-					SubjectRow(
-						kind = state.kind,
-						subject = state.subject,
-						onChoose = { pickingSubject = true },
-						onClear = { component.setSubject(null) },
-					)
-				}
-
-				if (state.isDated) {
-					CollapseWhileTyping(keepVisible = datesFocused) {
-						DateRows(
-							calendar = state.calendar ?: CalendarDef(),
-							start = state.start,
-							end = state.end,
-							onStartChange = component::setStart,
-							onEndChange = component::setEnd,
-							onFocusChanged = { datesFocused = it },
-							startTag = TIME_LINE_CREATE_START_TAG,
-							endTag = TIME_LINE_CREATE_END_TAG,
-							addEndTag = TIME_LINE_CREATE_ADD_END_TAG,
-						)
-					}
-				} else {
-					CollapseWhileTyping(keepVisible = dateFocused) {
-						HdHairlineField(
-							label = Res.string.timeline_when_label.get(),
-							value = dateText,
-							onValueChange = { dateText = it },
-							hint = Res.string.timeline_create_date_hint.get(),
-							placeholder = Res.string.timeline_create_date_placeholder.get(),
-							onFocusChanged = { dateFocused = it },
-							testTag = TIME_LINE_CREATE_DATE_TAG,
-						)
-					}
-				}
-
-				CollapseWhileTyping(keepVisible = laneFocused) {
-					Column(verticalArrangement = Arrangement.spacedBy(Ui.Padding.L)) {
-						LaneField(
-							value = state.lane,
-							onValueChange = component::setLane,
-							lanes = state.lanes,
-							suggest = component::suggestLanes,
-							onFocusChanged = { laneFocused = it },
-							testTag = TIME_LINE_CREATE_LANE_TAG,
-						)
-						HdHairlineToggleRow(
-							checked = state.milestone,
-							onCheckedChange = component::setMilestone,
-							label = Res.string.timeline_milestone_label.get(),
-							hint = Res.string.timeline_milestone_hint.get(),
-							modifier = Modifier.testTag(TIME_LINE_CREATE_MILESTONE_TAG),
-						)
-					}
-				}
-
-				if (isEvent) {
-					HdHairlineTagField(
-						label = Res.string.timeline_create_tags_label.get(),
-						tags = tags,
-						onTagsChange = {
-							tags.clear()
-							tags.addAll(it)
-						},
-						hint = Res.string.timeline_create_tags_hint.get(),
-						placeholder = Res.string.timeline_create_tags_placeholder.get(),
-						suggestTags = component::suggestTags,
-						testTag = TIME_LINE_CREATE_TAGS_TAG,
-					)
-
-					CollapseWhileTyping {
-						ReferencesSection(
-							references = state.references,
-							onAdd = { pickingReferences = true },
-							onRemove = { component.removeReference(it.id) },
-						)
-					}
-				}
-			}
-
-			if (isEvent) {
-				Box(
+			val fields: @Composable () -> Unit = {
+				Column(
 					modifier = Modifier
-						.padding(horizontal = Ui.Padding.XL)
-						.padding(bottom = Ui.Padding.L)
 						.fillMaxWidth()
-						.weight(1f, fill = true)
-						.border(
-							width = Dp.Hairline,
-							color = MaterialTheme.colorScheme.outlineVariant,
-							shape = RectangleShape,
-						),
+						.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L),
+					verticalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 				) {
-					key(resetVersion) {
-						MarkdownEditField(
-							initialMarkdown = contentText,
-							onMarkdownChanged = { component.onContentChanged(it) },
-							enableSpellChecking = state.spellCheckAllowed,
-							contentPadding = PaddingValues(Ui.Padding.XL),
-							testTag = TIME_LINE_CREATE_CONTENT_TAG,
-							modifier = Modifier
-								.fillMaxWidth()
-								.widthIn(max = TextEditorDefaults.MAX_WIDTH),
+					CollapseWhileTyping {
+						HdHairlineSegmentedPicker(
+							options = Kinds,
+							selected = state.kind,
+							onSelect = component::setKind,
+							label = { it.label() },
+							title = Res.string.timeline_kind_label.get(),
+							modifier = Modifier.testTag(TIME_LINE_CREATE_KIND_TAG),
 						)
+					}
+
+					// Each field below hides while the body editor has focus, but stays while it holds focus
+					// itself so it remains reachable.
+					if (isEvent) {
+						CollapseWhileTyping(keepVisible = titleFocused) {
+							HdHairlineField(
+								label = Res.string.timeline_title_label.get(),
+								value = state.title,
+								onValueChange = component::setTitle,
+								hint = Res.string.timeline_title_hint.get(),
+								placeholder = Res.string.timeline_title_placeholder.get(),
+								onFocusChanged = { titleFocused = it },
+								testTag = TIME_LINE_CREATE_TITLE_TAG,
+							)
+						}
+					} else {
+						SubjectRow(
+							kind = state.kind,
+							subject = state.subject,
+							onChoose = { pickingSubject = true },
+							onClear = { component.setSubject(null) },
+						)
+					}
+
+					if (state.isDated) {
+						CollapseWhileTyping(keepVisible = datesFocused) {
+							DateRows(
+								calendar = state.calendar ?: CalendarDef(),
+								start = state.start,
+								end = state.end,
+								onStartChange = component::setStart,
+								onEndChange = component::setEnd,
+								onFocusChanged = { datesFocused = it },
+								startTag = TIME_LINE_CREATE_START_TAG,
+								endTag = TIME_LINE_CREATE_END_TAG,
+								addEndTag = TIME_LINE_CREATE_ADD_END_TAG,
+							)
+						}
+					} else {
+						CollapseWhileTyping(keepVisible = dateFocused) {
+							HdHairlineField(
+								label = Res.string.timeline_when_label.get(),
+								value = dateText,
+								onValueChange = { dateText = it },
+								hint = Res.string.timeline_create_date_hint.get(),
+								placeholder = Res.string.timeline_create_date_placeholder.get(),
+								onFocusChanged = { dateFocused = it },
+								testTag = TIME_LINE_CREATE_DATE_TAG,
+							)
+						}
+					}
+
+					CollapseWhileTyping(keepVisible = laneFocused) {
+						Column(verticalArrangement = Arrangement.spacedBy(Ui.Padding.L)) {
+							LaneField(
+								value = state.lane,
+								onValueChange = component::setLane,
+								lanes = state.lanes,
+								suggest = component::suggestLanes,
+								onFocusChanged = { laneFocused = it },
+								testTag = TIME_LINE_CREATE_LANE_TAG,
+							)
+							HdHairlineToggleRow(
+								checked = state.milestone,
+								onCheckedChange = component::setMilestone,
+								label = Res.string.timeline_milestone_label.get(),
+								hint = Res.string.timeline_milestone_hint.get(),
+								modifier = Modifier.testTag(TIME_LINE_CREATE_MILESTONE_TAG),
+							)
+						}
+					}
+
+					if (isEvent) {
+						HdHairlineTagField(
+							label = Res.string.timeline_create_tags_label.get(),
+							tags = tags,
+							onTagsChange = {
+								tags.clear()
+								tags.addAll(it)
+							},
+							hint = Res.string.timeline_create_tags_hint.get(),
+							placeholder = Res.string.timeline_create_tags_placeholder.get(),
+							suggestTags = component::suggestTags,
+							testTag = TIME_LINE_CREATE_TAGS_TAG,
+						)
+
+						CollapseWhileTyping {
+							ReferencesSection(
+								references = state.references,
+								onAdd = { pickingReferences = true },
+								onRemove = { component.removeReference(it.id) },
+							)
+						}
 					}
 				}
 			}
+
+			// One FieldsOverBody for every kind, so switching kind keeps the fields' own state.
+			FieldsOverBody(
+				bodyMinHeight = EventBodyMinHeight + Ui.Padding.L,
+				modifier = Modifier.weight(1f, fill = isEvent),
+				fields = fields,
+				body = if (isEvent) {
+					{
+						Box(
+							modifier = Modifier
+								.padding(horizontal = Ui.Padding.XL)
+								.padding(bottom = Ui.Padding.L)
+								.fillMaxWidth()
+								.border(
+									width = Dp.Hairline,
+									color = MaterialTheme.colorScheme.outlineVariant,
+									shape = RectangleShape,
+								)
+								.testTag(TIME_LINE_CREATE_BODY_TAG),
+						) {
+							key(resetVersion) {
+								MarkdownEditField(
+									initialMarkdown = contentText,
+									onMarkdownChanged = { component.onContentChanged(it) },
+									enableSpellChecking = state.spellCheckAllowed,
+									contentPadding = PaddingValues(Ui.Padding.XL),
+									testTag = TIME_LINE_CREATE_CONTENT_TAG,
+									modifier = Modifier
+										.fillMaxWidth()
+										.widthIn(max = TextEditorDefaults.MAX_WIDTH),
+								)
+							}
+						}
+					}
+				} else {
+					null
+				},
+			)
 
 			HorizontalDivider(
 				thickness = Dp.Hairline,
