@@ -29,6 +29,8 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -85,6 +87,9 @@ sealed class SubjectSummary {
 
 	data object Missing : SubjectSummary()
 }
+
+/** A placement's subject as resolved again after it changed, with the title that follows from it. */
+data class PlacedSubject(val summary: SubjectSummary, val displayTitle: String)
 
 /** What a list row shows of an event without reading any text. */
 data class EventGlance(
@@ -327,6 +332,13 @@ class TimelineService(
 		return TimelineResult.Ok(findEvent(eventId))
 	}
 
+	/** Removes the event; a placement's scene or entry is left alone. */
+	suspend fun deleteEvent(eventId: Int): TimelineResult = writeLock.withLock {
+		val existing = findEvent(eventId) ?: return invalid(TimeLineEventError.EVENT_NOT_FOUND)
+		timeLineRepository.deleteEvent(existing)
+		TimelineResult.Ok(null)
+	}
+
 	/** Drag reordering; only a MANUAL timeline has an order of its own. */
 	suspend fun moveEvent(event: TimeLineEvent, toIndex: Int, after: Boolean): TimelineResult = writeLock.withLock {
 		if (definition().mode == TimelineMode.DATED) return invalid(TimeLineEventError.MOVE_NOT_ALLOWED)
@@ -437,6 +449,42 @@ class TimelineService(
 		}
 	}
 
+	/**
+	 * Event [eventId]'s subject, resolved again each time it changes on its own: the placed scene is
+	 * renamed, moved, archived or deleted or its cast changes, or the placed entry is edited or
+	 * deleted. Changes to other scenes and entries are dropped before resolving; a plain event never
+	 * emits.
+	 */
+	fun subjectUpdates(eventId: Int): Flow<PlacedSubject> = flow {
+		// The placed scene's branch of the tree when last resolved, so a tree change elsewhere is ignored.
+		var branch = findEvent(eventId)?.let { placedSceneBranch(it) }
+		merge(
+			sceneRepository.sceneTreeUpdates.map { SubjectSignal.SceneTree },
+			sceneMetadataRepository.metadataUpdateFlow.map { SubjectSignal.SceneMetadata(it.sceneId) },
+			encyclopediaRepository.entryChangedFlow.map { SubjectSignal.Entry(it) },
+		).collect { signal ->
+			val event = findEvent(eventId) ?: return@collect
+			val subjectId = event.subject ?: return@collect
+			val affected = when (signal) {
+				SubjectSignal.SceneTree -> event.kind == TimelineKind.SCENE && placedSceneBranch(event) != branch
+				is SubjectSignal.SceneMetadata -> event.kind == TimelineKind.SCENE && signal.sceneId == subjectId
+				is SubjectSignal.Entry -> event.kind == TimelineKind.ENTRY && signal.entryId == subjectId
+			}
+			if (!affected) return@collect
+
+			if (event.kind == TimelineKind.SCENE) branch = placedSceneBranch(event)
+			val summary = resolveSubject(event) ?: return@collect
+			emit(PlacedSubject(summary, displayTitle(event)))
+		}
+	}
+
+	/** The live scene with [id], or null when it is gone, archived or a group. */
+	suspend fun findScene(id: Int): SceneItem? = withContext(dispatcherIo) {
+		sceneRepository.getSceneItemFromId(id)?.takeIf { it.type == SceneItem.Type.Scene }
+	}
+
+	suspend fun findEntry(id: Int): EntryDef? = withContext(dispatcherIo) { encyclopediaRepository.findEntryDef(id) }
+
 	/** The subject's name, else the title, the content's first line, the cached title, or "". */
 	suspend fun displayTitle(event: TimeLineEvent): String = displayTitles(listOf(event)).getValue(event.id)
 
@@ -536,6 +584,18 @@ class TimelineService(
 			null
 		}
 		SubjectSummary.Entry(def, content?.images?.firstOrNull(), markdownExcerpt(content?.text.orEmpty(), EXCERPT_CHARS))
+	}
+
+	private fun placedSceneBranch(event: TimeLineEvent): List<SceneItem>? {
+		if (event.kind != TimelineKind.SCENE) return null
+		val sceneId = event.subject ?: return null
+		return sceneRepository.rawTree.getBranchOrNull(excludeLeaf = false) { it.id == sceneId }?.map { it.value }
+	}
+
+	private sealed interface SubjectSignal {
+		data object SceneTree : SubjectSignal
+		data class SceneMetadata(val sceneId: Int) : SubjectSignal
+		data class Entry(val entryId: Int) : SubjectSignal
 	}
 
 	private fun chapterPath(scene: SceneItem): String {

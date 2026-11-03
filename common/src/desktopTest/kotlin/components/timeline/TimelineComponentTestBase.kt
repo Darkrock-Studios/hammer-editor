@@ -65,6 +65,7 @@ abstract class TimelineComponentTestBase : ComponentTest() {
 	protected lateinit var encyclopediaRepository: EncyclopediaRepository
 	protected lateinit var timelineService: TimelineService
 	protected val catalog = FakeEntityCatalog()
+	protected val imagesService: ImagesService = mockk(relaxed = true)
 
 	private val syncJournal: SyncJournal = mockk()
 	private val idAllocator: IdAllocator = mockk()
@@ -104,7 +105,7 @@ abstract class TimelineComponentTestBase : ComponentTest() {
 			single { sceneMetadataRepository }
 			single { encyclopediaRepository }
 			single<EntityCatalog> { catalog }
-			single<ImagesService> { mockk(relaxed = true) }
+			single<ImagesService> { imagesService }
 			single<ImagePickRequests> { mockk(relaxed = true) }
 			single<StrRes> { KeyStrRes() }
 		})

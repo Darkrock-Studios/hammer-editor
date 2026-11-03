@@ -22,6 +22,7 @@ import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.sceneme
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournalDatasource
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.EvenSpacing
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.PlacedSubject
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.StoryDateWords
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.SubjectSummary
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineDatasource
@@ -44,6 +45,9 @@ import io.mockk.just
 import io.mockk.mockk
 import io.mockk.spyk
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import net.peanuuutz.tomlkt.Toml
 import okio.fakefilesystem.FakeFileSystem
@@ -637,6 +641,68 @@ class TimelineServiceTest : BaseTest() {
 		service.createEvent(TimelineEventDraft(lane = "Hatter"))
 
 		assertEquals(listOf("Queen", "Alice", "Hatter", "rabbit"), service.lanes())
+	}
+
+	@Test
+	fun `subjectUpdates follows only the placed subject`() = runTest(mainTestDispatcher) {
+		val service = createService()
+		val placed = service.placeScene(4, null, null, null, false).event()
+		val plain = service.createEvent(TimelineEventDraft(title = "Storm")).event()
+		val updates = mutableListOf<PlacedSubject>()
+		val plainUpdates = mutableListOf<PlacedSubject>()
+		val collectors = listOf(
+			launch { service.subjectUpdates(placed.id).toList(updates) },
+			launch { service.subjectUpdates(plain.id).toList(plainUpdates) },
+		)
+		advanceUntilIdle()
+
+		sceneRepository.renameScene(sceneRepository.getSceneItemFromId(6)!!, "Elsewhere")
+		sceneMetadataRepository.storeMetadata(SceneMetadata(confirmedReferences = setOf(ALICE)), sceneId = 5)
+		val alice = encyclopediaRepository.findEntryDef(ALICE)!!
+		encyclopediaRepository.updateEntry(
+			alice,
+			name = alice.name,
+			text = "Older now.",
+			tags = emptySet(),
+			excludeFromDictionary = false,
+			images = emptyList(),
+		)
+		advanceUntilIdle()
+		assertEquals(emptyList(), updates)
+
+		sceneRepository.renameScene(sceneRepository.getSceneItemFromId(4)!!, "Down the Hole")
+		advanceUntilIdle()
+
+		val update = updates.single()
+		assertEquals("Down the Hole", assertIs<SubjectSummary.Scene>(update.summary).scene.name)
+		assertEquals("Down the Hole", update.displayTitle)
+		assertEquals(emptyList(), plainUpdates)
+		collectors.forEach { it.cancel() }
+	}
+
+	@Test
+	fun `deleteEvent removes a placement and leaves its scene alone`() = runTest(mainTestDispatcher) {
+		val service = createService()
+		val placed = service.placeScene(4, null, null, null, false).event()
+
+		assertEquals(TimelineResult.Ok(null), service.deleteEvent(placed.id))
+
+		assertEquals(emptyList(), timeLineRepository.currentEvents())
+		assertEquals("Scene ID 4", sceneRepository.getSceneItemFromId(4)?.name)
+		assertEquals(TimeLineEventError.EVENT_NOT_FOUND, service.deleteEvent(placed.id).error())
+	}
+
+	@Test
+	fun `findScene finds only live scenes`() = runTest(mainTestDispatcher) {
+		val service = createService()
+		sceneRepository.archiveScene(sceneRepository.getSceneItemFromId(7)!!)
+
+		assertEquals("Scene ID 4", service.findScene(4)?.name)
+		assertNull(service.findScene(2))
+		assertNull(service.findScene(7))
+		assertNull(service.findScene(999))
+		assertEquals("Alice", service.findEntry(ALICE)?.name)
+		assertNull(service.findEntry(999))
 	}
 
 	private companion object {

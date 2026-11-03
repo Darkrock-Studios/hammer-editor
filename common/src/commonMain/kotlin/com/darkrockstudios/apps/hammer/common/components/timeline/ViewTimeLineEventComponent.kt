@@ -18,7 +18,6 @@ import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.MenuItemDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
-import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogItem
 import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogKind
@@ -26,22 +25,16 @@ import com.darkrockstudios.apps.hammer.common.data.entitycatalog.EntityCatalog
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesService
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageDef
 import com.darkrockstudios.apps.hammer.common.data.projectInject
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataRepository
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.SubjectSummary
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEventError
-import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineResult
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineService
 import com.darkrockstudios.apps.hammer.timeline_view_menu_delete
 import com.darkrockstudios.apps.hammer.timeline_view_menu_group
 import io.github.aakira.napier.Napier
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlin.concurrent.Volatile
 import kotlinx.serialization.Serializable
 
 class ViewTimeLineEventComponent(
@@ -57,11 +50,7 @@ class ViewTimeLineEventComponent(
 	private val onShowEntry: (EntryDef) -> Unit,
 ) : ProjectComponentBase(projectDef, componentContext), ViewTimeLineEvent {
 
-	private val timeLineRepository: TimeLineRepository by projectInject()
 	private val timelineService: TimelineService by projectInject()
-	private val sceneRepository: SceneRepository by projectInject()
-	private val sceneMetadataRepository: SceneMetadataRepository by projectInject()
-	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
 	private val entityCatalog: EntityCatalog by projectInject()
 	private val imagePickRequests: ImagePickRequests by projectInject()
 	private val imagesService: ImagesService by projectInject()
@@ -91,10 +80,6 @@ class ViewTimeLineEventComponent(
 	override val contentText: Value<String> = _contentText
 
 	private var catalogRequested = false
-
-	// The placed scene's branch of the scene tree when its summary was last resolved.
-	@Volatile
-	private var subjectBranch: List<SceneItem>? = null
 
 	private val backButtonHandler = BackCallback(isEnabled = false) {
 		if (isEditingAndDirty()) {
@@ -144,7 +129,7 @@ class ViewTimeLineEventComponent(
 				val updatedEvent = view.events.find { it.id == eventId }
 				val lanes = timelineService.lanes()
 				val changed = updatedEvent != state.value.event
-				val subject = if (changed && updatedEvent != null) resolveSubject(updatedEvent) else null
+				val subject = if (changed && updatedEvent != null) timelineService.resolveSubject(updatedEvent) else null
 				val image = if (changed) subjectImage(subject) else null
 				val title = if (changed && updatedEvent != null) timelineService.displayTitle(updatedEvent) else null
 				if (updatedEvent?.kind == TimelineKind.EVENT) loadCatalogOnce()
@@ -164,50 +149,19 @@ class ViewTimeLineEventComponent(
 		}
 	}
 
-	/**
-	 * Re-resolves a placement's summary when its subject changes on its own: the scene is renamed,
-	 * moved or its cast changes, or the entry is edited. Signals for other subjects are dropped first.
-	 */
+	/** Re-resolves a placement's summary when its scene or entry changes on its own. */
 	private fun watchSubject() {
 		scope.launch {
-			merge(
-				sceneRepository.sceneTreeUpdates.map { SubjectSignal.SceneTree },
-				sceneMetadataRepository.metadataUpdateFlow.map { SubjectSignal.SceneMetadata(it.sceneId) },
-				encyclopediaRepository.entryChangedFlow.map { SubjectSignal.Entry(it) },
-			).collect { signal ->
-				val event = state.value.event ?: return@collect
-				val subjectId = event.subject ?: return@collect
-				val affected = when (signal) {
-					SubjectSignal.SceneTree -> event.kind == TimelineKind.SCENE && sceneBranch(subjectId) != subjectBranch
-					is SubjectSignal.SceneMetadata -> event.kind == TimelineKind.SCENE && signal.sceneId == subjectId
-					is SubjectSignal.Entry -> event.kind == TimelineKind.ENTRY && signal.entryId == subjectId
-				}
-				if (!affected) return@collect
-
-				val subject = resolveSubject(event)
-				val image = subjectImage(subject)
-				val title = timelineService.displayTitle(event)
+			timelineService.subjectUpdates(eventId).collect { update ->
+				val image = subjectImage(update.summary)
 				withContext(dispatcherMain) {
-					if (state.value.event?.id != event.id) return@withContext
-					_state.getAndUpdate { it.copy(subject = subject, subjectImage = image, displayTitle = title) }
+					_state.getAndUpdate {
+						it.copy(subject = update.summary, subjectImage = image, displayTitle = update.displayTitle)
+					}
 					refreshReferences()
 				}
 			}
 		}
-	}
-
-	private sealed interface SubjectSignal {
-		data object SceneTree : SubjectSignal
-		data class SceneMetadata(val sceneId: Int) : SubjectSignal
-		data class Entry(val entryId: Int) : SubjectSignal
-	}
-
-	private fun sceneBranch(sceneId: Int): List<SceneItem>? =
-		sceneRepository.rawTree.getBranchOrNull(excludeLeaf = false) { it.id == sceneId }?.map { it.value }
-
-	private suspend fun resolveSubject(event: TimeLineEvent): SubjectSummary? {
-		if (event.kind == TimelineKind.SCENE) subjectBranch = event.subject?.let(::sceneBranch)
-		return timelineService.resolveSubject(event)
 	}
 
 	/** Takes [event] as stored; a dirty edit keeps its draft, otherwise the draft follows it. */
@@ -375,10 +329,11 @@ class ViewTimeLineEventComponent(
 		} else {
 			timelineService.updatePlacement(event.id, start, end, current.lane, current.milestone, label)
 		}
-		if (result is TimelineResult.Invalid) return result.error
-
-		val stored = timeLineRepository.getTimelineEvent(event.id)
-		val subject = stored?.let { resolveSubject(it) }
+		val stored = when (result) {
+			is TimelineResult.Invalid -> return result.error
+			is TimelineResult.Ok -> result.event
+		}
+		val subject = stored?.let { timelineService.resolveSubject(it) }
 		val image = subjectImage(subject)
 		val title = stored?.let { timelineService.displayTitle(it) }
 		withContext(dispatcherMain) {
@@ -401,12 +356,12 @@ class ViewTimeLineEventComponent(
 		scope.launch {
 			when (item.kind) {
 				CatalogKind.Scene -> {
-					val scene = sceneRepository.getSceneItemFromId(item.id) ?: return@launch
+					val scene = timelineService.findScene(item.id) ?: return@launch
 					withContext(dispatcherMain) { onShowScene(scene) }
 				}
 
 				CatalogKind.Entry -> {
-					val entry = withContext(dispatcherIo) { encyclopediaRepository.findEntryDef(item.id) } ?: return@launch
+					val entry = timelineService.findEntry(item.id) ?: return@launch
 					withContext(dispatcherMain) { onShowEntry(entry) }
 				}
 
@@ -424,13 +379,11 @@ class ViewTimeLineEventComponent(
 	}
 
 	override suspend fun deleteEvent() {
-		val event = state.value.event
-		if (event != null) {
-			timeLineRepository.deleteEvent(event)
+		val result = timelineService.deleteEvent(eventId)
+		if (result is TimelineResult.Invalid) Napier.w("Failed to delete event $eventId: ${result.error}")
+		withContext(dispatcherMain) {
 			endDeleteEvent()
-			closeEvent()
-		} else {
-			Napier.w("Failed to delete event, none loaded")
+			if (result.isSuccess) closeEvent()
 		}
 	}
 
