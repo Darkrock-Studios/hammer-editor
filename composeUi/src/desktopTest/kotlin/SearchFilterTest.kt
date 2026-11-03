@@ -1,10 +1,10 @@
 import com.darkrockstudios.apps.hammer.base.IdeaId
 import com.darkrockstudios.apps.hammer.base.http.storyideas.StoryIdea
+import com.darkrockstudios.apps.hammer.common.components.timeline.eventMatchesQuery
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.notes.noteMatchesQuery
 import com.darkrockstudios.apps.hammer.common.projectselection.storyideas.ideaMatchesQuery
-import com.darkrockstudios.apps.hammer.common.timeline.eventMatchesQuery
 import org.junit.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue

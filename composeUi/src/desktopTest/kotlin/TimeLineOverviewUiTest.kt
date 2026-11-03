@@ -5,6 +5,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toPixelMap
@@ -31,6 +34,7 @@ import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineOvervi
 import com.darkrockstudios.apps.hammer.common.components.timeline.ViewTimeLineEvent
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimelineRow
 import com.darkrockstudios.apps.hammer.common.components.timeline.basicPreview
+import com.darkrockstudios.apps.hammer.common.components.timeline.refiltered
 import com.darkrockstudios.apps.hammer.common.compose.LocalImageNames
 import com.darkrockstudios.apps.hammer.common.compose.LocalRootFabState
 import com.darkrockstudios.apps.hammer.common.compose.RootFabState
@@ -69,6 +73,7 @@ class TimeLineOverviewUiTest : BaseTest() {
 		mode: TimelineMode = TimelineMode.MANUAL,
 		undatedIds: List<Int> = emptyList(),
 		storyFrameAvailable: Boolean = false,
+		tags: List<TagCount> = emptyList(),
 		private val references: Map<Int, List<CatalogItem>> = emptyMap(),
 		private val excerpts: Map<Int, String> = emptyMap(),
 	) : TimeLineOverview {
@@ -79,20 +84,33 @@ class TimeLineOverviewUiTest : BaseTest() {
 				mode = mode,
 				undatedIds = undatedIds,
 				storyFrameAvailable = storyFrameAvailable,
-			)
+			).refiltered()
 		)
 		override val state: Value<TimeLineOverview.State> = _state
-		override val rankedTags: Value<List<TagCount>> = MutableValue(emptyList())
+		override val rankedTags: Value<List<TagCount>> = MutableValue(tags)
 
 		override suspend fun moveEvent(event: TimeLineEvent, toIndex: Int, after: Boolean): Boolean = true
 
-		override fun setLaneFilter(lanes: Set<String>) {
-			_state.value = _state.value.copy(laneFilter = lanes)
+		fun setLaneFilter(lanes: Set<String>) {
+			_state.value = _state.value.copy(laneFilter = lanes).refiltered()
+		}
+
+		override fun setSearchQuery(query: String) {
+			_state.value = _state.value.copy(searchQuery = query).refiltered()
+		}
+
+		override fun toggleTag(tag: String) {
+			val filter = _state.value.tagFilter
+			_state.value = _state.value.copy(tagFilter = if (tag in filter) filter - tag else filter + tag).refiltered()
 		}
 
 		override fun toggleLane(lane: String) {
 			val filter = _state.value.laneFilter
 			setLaneFilter(if (lane in filter) filter - lane else filter + lane)
+		}
+
+		override fun clearFilters() {
+			_state.value = _state.value.copy(tagFilter = emptySet(), laneFilter = emptySet()).refiltered()
 		}
 
 		override fun setView(view: TimelineView) {
@@ -116,7 +134,7 @@ class TimeLineOverviewUiTest : BaseTest() {
 
 		/** Rows arriving after the first frame, as they do from the timeline service. */
 		fun load(rows: List<TimelineRow>) {
-			_state.value = _state.value.copy(rows = rows)
+			_state.value = _state.value.copy(rows = rows).refiltered()
 		}
 	}
 
@@ -150,6 +168,7 @@ class TimeLineOverviewUiTest : BaseTest() {
 		screen: ScreenCharacteristics? = null,
 		size: DpSize? = null,
 		rootFab: RootFabState = RootFabState(),
+		shown: () -> Boolean = { true },
 	) {
 		compose.setContent {
 			val content: @Composable () -> Unit = {
@@ -169,10 +188,10 @@ class TimeLineOverviewUiTest : BaseTest() {
 				}
 			}
 			CompositionLocalProvider(LocalRootFabState provides rootFab) {
-				if (screen != null) {
-					CompositionLocalProvider(LocalScreenCharacteristic provides screen, content = content)
-				} else {
-					content()
+				when {
+					!shown() -> {}
+					screen != null -> CompositionLocalProvider(LocalScreenCharacteristic provides screen, content = content)
+					else -> content()
 				}
 			}
 		}
@@ -277,6 +296,34 @@ class TimeLineOverviewUiTest : BaseTest() {
 		compose.onAllNodesWithTag(EVENT_CARD_TAG).assertCountEquals(1)
 		compose.onNodeWithText("Croquet").assertIsDisplayed()
 		compose.onNodeWithText("Fall").assertDoesNotExist()
+	}
+
+	@Test
+	fun `The filters and search survive the overview leaving composition`() {
+		val component = FakeOverview(
+			rows = listOf(
+				row(TimeLineEvent(id = 0, order = 0, title = "Fall", lane = "Alice", tags = setOf("act-one")), laneIndex = 0),
+				row(TimeLineEvent(id = 1, order = 1, title = "Croquet", lane = "Queen", tags = setOf("act-one")), laneIndex = 1),
+				row(TimeLineEvent(id = 2, order = 2, title = "Tea", lane = "Alice", tags = setOf("act-one")), laneIndex = 0),
+				row(TimeLineEvent(id = 3, order = 3, title = "Trial", lane = "Alice")),
+			),
+			lanes = listOf(LaneCount("Alice", 3), LaneCount("Queen", 1)),
+			tags = listOf(TagCount("act-one", 3)),
+		)
+		var shown by mutableStateOf(true)
+		showOverview(component, screen = desktopScreen, shown = { shown })
+		compose.onNodeWithText("act-one · 3").performClick()
+		compose.onNodeWithText("Alice · 3").performClick()
+		compose.onNode(hasSetTextAction()).performTextInput("tea")
+		compose.onAllNodesWithTag(EVENT_CARD_TAG).assertCountEquals(1)
+
+		// As when an event opened from the list covers the overview, and is closed again.
+		compose.runOnIdle { shown = false }
+		compose.onNodeWithTag(TIME_LINE_LIST_TAG).assertDoesNotExist()
+		compose.runOnIdle { shown = true }
+
+		compose.onAllNodesWithTag(EVENT_CARD_TAG).assertCountEquals(1)
+		compose.onNodeWithText("Tea").assertIsDisplayed()
 	}
 
 	@Test

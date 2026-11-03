@@ -146,7 +146,7 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 		assertEquals(setOf("Queen", "Alice"), component.state.value.laneFilter)
 		component.toggleLane("Queen")
 		assertEquals(setOf("Alice"), component.state.value.laneFilter)
-		component.setLaneFilter(emptySet())
+		component.clearFilters()
 		assertEquals(emptySet(), component.state.value.laneFilter)
 	}
 
@@ -164,6 +164,167 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 		advanceUntilIdle()
 
 		assertEquals(emptySet(), component.state.value.laneFilter)
+	}
+
+	private fun TimeLineOverviewComponent.listed(): List<String> = state.value.filtered.listRows.map { it.title }
+
+	@Test
+	fun `on a manual timeline the search narrows the list to what it matches`() = runTest(mainTestDispatcher) {
+		givenProject()
+		timelineService.createEvent(TimelineEventDraft(title = "Squall", content = "A well\\-known storm"))
+		timelineService.createEvent(TimelineEventDraft(title = "Croquet", label = "Storm season"))
+		timelineService.placeEntry(TEA_PARTY, null, null, lane = null, milestone = false)
+		val component = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		assertEquals(listOf("Squall", "Croquet", "Tea Party"), component.listed())
+		assertTrue(component.state.value.filtered.reorderable)
+
+		component.setSearchQuery("  storm ")
+		assertEquals(listOf("Squall", "Croquet"), component.listed(), "on the body or the label, trimmed")
+		assertFalse(component.state.value.filtered.reorderable)
+		assertEquals("  storm ", component.state.value.searchQuery)
+
+		component.setSearchQuery("well-known")
+		assertEquals(listOf("Squall"), component.listed(), "across a stored escape")
+
+		component.setSearchQuery("tea party")
+		assertEquals(listOf("Tea Party"), component.listed(), "on a placement's subject name")
+
+		component.setSearchQuery(" ")
+		assertEquals(listOf("Squall", "Croquet", "Tea Party"), component.listed())
+		assertTrue(component.state.value.filtered.reorderable)
+		assertEquals(emptyList(), component.state.value.filtered.searchMatches, "only a dated drawing rings matches")
+		assertEquals(emptyList(), component.state.value.filtered.drawingRows)
+	}
+
+	@Test
+	fun `a tag filter lists only rows with every chosen tag`() = runTest(mainTestDispatcher) {
+		givenProject()
+		timelineService.createEvent(TimelineEventDraft(title = "Fall", tags = setOf("act-one", "storm")))
+		timelineService.createEvent(TimelineEventDraft(title = "Tea", tags = setOf("act-one")))
+		timelineService.createEvent(TimelineEventDraft(title = "Trial"))
+		val component = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		component.toggleTag("act-one")
+		assertEquals(listOf("Fall", "Tea"), component.listed())
+		assertFalse(component.state.value.filtered.reorderable)
+
+		component.toggleTag("storm")
+		assertEquals(listOf("Fall"), component.listed())
+
+		component.toggleTag("act-one")
+		assertEquals(setOf("storm"), component.state.value.tagFilter)
+		assertEquals(listOf("Fall"), component.listed())
+
+		component.clearFilters()
+		assertEquals(listOf("Fall", "Tea", "Trial"), component.listed())
+		assertTrue(component.state.value.filtered.reorderable)
+	}
+
+	@Test
+	fun `a lane filter lists only the events in its lanes`() = runTest(mainTestDispatcher) {
+		givenProject()
+		timelineService.createEvent(TimelineEventDraft(title = "Croquet", lane = "Queen"))
+		timelineService.createEvent(TimelineEventDraft(title = "Fall", lane = "Alice"))
+		timelineService.createEvent(TimelineEventDraft(title = "Rain"))
+		val component = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		component.toggleLane("Queen")
+		assertEquals(listOf("Croquet"), component.listed())
+		assertFalse(component.state.value.filtered.reorderable)
+
+		component.toggleLane("Alice")
+		assertEquals(listOf("Croquet", "Fall"), component.listed())
+	}
+
+	@Test
+	fun `the search, tags and lanes narrow the list together, and clearing the filters keeps the search`() =
+		runTest(mainTestDispatcher) {
+			givenProject()
+			timelineService.createEvent(TimelineEventDraft(title = "Storm", lane = "Alice", tags = setOf("act-one")))
+			timelineService.createEvent(TimelineEventDraft(title = "Storm at court", lane = "Queen", tags = setOf("act-one")))
+			timelineService.createEvent(TimelineEventDraft(title = "Storm again", lane = "Alice"))
+			timelineService.createEvent(TimelineEventDraft(title = "Calm", lane = "Alice", tags = setOf("act-one")))
+			val component = newComponent()
+			context.resume()
+			advanceUntilIdle()
+
+			component.setSearchQuery("storm")
+			component.toggleTag("act-one")
+			component.toggleLane("Alice")
+			assertEquals(listOf("Storm"), component.listed())
+
+			component.clearFilters()
+			assertEquals("storm", component.state.value.searchQuery)
+			assertEquals(listOf("Storm", "Storm at court", "Storm again"), component.listed())
+		}
+
+	@Test
+	fun `on a dated timeline the search rings drawn matches in the lane filter without narrowing anything`() =
+		runTest(mainTestDispatcher) {
+			givenProject()
+			timelineService.switchToDated(CalendarDef())
+			fun year(y: Long) = StoryDate(mapOf("year" to y))
+			suspend fun create(title: String, start: Int?, lane: String? = null, tags: Set<String> = setOf("act-one")) =
+				timelineService.createEvent(TimelineEventDraft(title = title, lane = lane, tags = tags, start = start?.let { year(it.toLong()) })).event()
+			val sea = create("Storm at sea", 3, lane = "Alice")
+			create("Croquet", 2, lane = "Queen")
+			val teacup = create("Storm in a teacup", 1, lane = "Queen")
+			val unlaned = create("Storm unlaned", 4)
+			val untagged = create("Storm untagged", 5, tags = emptySet())
+			timeLineRepository.createEvent(TimelineEventDraft(title = "Storm undated", tags = setOf("act-one")))
+			val component = newComponent()
+			context.resume()
+			advanceUntilIdle()
+			fun filtered() = component.state.value.filtered
+
+			component.setSearchQuery("storm")
+			assertEquals(listOf(teacup.id, sea.id, unlaned.id, untagged.id), filtered().searchMatches, "drawn, in display order")
+			assertEquals(6, filtered().drawingRows.size, "the drawing keeps every event")
+			assertEquals(6, filtered().listRows.size)
+			assertFalse(filtered().reorderable)
+
+			component.toggleTag("act-one")
+			assertEquals(listOf(teacup.id, sea.id, unlaned.id), filtered().searchMatches)
+			assertEquals(
+				listOf("Storm in a teacup", "Croquet", "Storm at sea", "Storm unlaned", "Storm undated"),
+				filtered().drawingRows.map { it.title },
+			)
+
+			component.toggleLane("Alice")
+			assertEquals(listOf(sea.id, unlaned.id), filtered().searchMatches, "unlaned events stay in the drawing's ledger")
+			assertEquals(5, filtered().drawingRows.size, "the drawing filters lanes itself")
+			assertEquals(listOf("Storm at sea"), filtered().listRows.map { it.title })
+		}
+
+	@Test
+	fun `the search and filters survive recreation`() = runTest(mainTestDispatcher) {
+		givenProject()
+		timelineService.createEvent(TimelineEventDraft(title = "Storm", lane = "Alice", tags = setOf("act-one", "weather")))
+		timelineService.createEvent(TimelineEventDraft(title = "Storm at court", lane = "Queen", tags = setOf("act-one")))
+		timelineService.createEvent(TimelineEventDraft(title = "Calm", lane = "Alice", tags = setOf("act-one", "weather")))
+		val component = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		component.setSearchQuery("storm")
+		component.toggleTag("weather")
+		component.toggleTag("act-one")
+		component.toggleLane("Alice")
+
+		val recreated = context.saveAndRecreate()
+		val restored = TimeLineOverviewComponent(recreated, projectDef, {}, {})
+		recreated.resume()
+		advanceUntilIdle()
+
+		assertEquals("storm", restored.state.value.searchQuery)
+		assertEquals(listOf("weather", "act-one"), restored.state.value.tagFilter.toList(), "in the order chosen")
+		assertEquals(setOf("Alice"), restored.state.value.laneFilter)
+		assertEquals(listOf("Storm"), restored.listed())
 	}
 
 	@Test

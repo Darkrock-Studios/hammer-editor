@@ -18,8 +18,12 @@ interface TimeLineOverview {
 	/** False when the move was refused, as it is on a DATED timeline. */
 	suspend fun moveEvent(event: TimeLineEvent, toIndex: Int, after: Boolean): Boolean
 
-	fun setLaneFilter(lanes: Set<String>)
+	fun setSearchQuery(query: String)
+	fun toggleTag(tag: String)
 	fun toggleLane(lane: String)
+
+	/** Clears the tag and lane filters; the search stays. */
+	fun clearFilters()
 
 	/** Which drawing a DATED timeline shows. */
 	fun setView(view: TimelineView)
@@ -46,7 +50,13 @@ interface TimeLineOverview {
 		val undatedIds: List<Int> = emptyList(),
 		/** In lane order; a lane's position here is its colour index. */
 		val lanes: List<LaneCount> = emptyList(),
+		/** As typed. */
+		val searchQuery: String = "",
+		/** Rows must carry every one of these tags to be listed or drawn. */
+		val tagFilter: Set<String> = emptySet(),
 		val laneFilter: Set<String> = emptySet(),
+		/** What the search and filters leave of [rows]; see [refiltered]. */
+		val filtered: FilteredRows = FilteredRows(),
 		val view: TimelineView = TimelineView.SEQUENCE,
 		val frame: TimelineFrame = TimelineFrame.Everything,
 		/** Whether some placed scene has a start, which [TimelineFrame.Story] frames. */

@@ -47,14 +47,7 @@ class TimeLineOverviewComponent(
 	private val tagIndexService: TagIndexService by projectInject()
 	private val entityCatalog: EntityCatalog by projectInject()
 
-	private val _state = MutableValue(
-		TimeLineOverview.State(
-			view = stateKeeper.consume(VIEW_KEY, String.serializer())
-				?.let { saved -> DrawingView.entries.firstOrNull { it.name == saved } }
-				?: DrawingView.SEQUENCE,
-			frame = stateKeeper.consume(FRAME_KEY, SavedFrame.serializer())?.toFrame() ?: TimelineFrame.Everything,
-		)
-	)
+	private val _state = MutableValue(restoredState())
 	override val state: Value<TimeLineOverview.State> = _state
 
 	private val _rankedTags = MutableValue<List<TagCount>>(emptyList())
@@ -73,10 +66,26 @@ class TimeLineOverviewComponent(
 	init {
 		stateKeeper.register(VIEW_KEY, String.serializer()) { _state.value.view.name }
 		stateKeeper.register(FRAME_KEY, SavedFrame.serializer()) { SavedFrame.of(_state.value.frame) }
+		stateKeeper.register(FILTERS_KEY, SavedFilters.serializer()) {
+			_state.value.let { SavedFilters(it.searchQuery, it.tagFilter.toList(), it.laneFilter.toList()) }
+		}
 		backHandler.register(frameBackCallback)
 		state.subscribe(lifecycle) {
 			frameBackCallback.isEnabled = it.frame != TimelineFrame.Everything
 		}
+	}
+
+	private fun restoredState(): TimeLineOverview.State {
+		val filters = stateKeeper.consume(FILTERS_KEY, SavedFilters.serializer()) ?: SavedFilters()
+		return TimeLineOverview.State(
+			searchQuery = filters.query,
+			tagFilter = filters.tags.toCollection(LinkedHashSet()),
+			laneFilter = filters.lanes.toCollection(LinkedHashSet()),
+			view = stateKeeper.consume(VIEW_KEY, String.serializer())
+				?.let { saved -> DrawingView.entries.firstOrNull { it.name == saved } }
+				?: DrawingView.SEQUENCE,
+			frame = stateKeeper.consume(FRAME_KEY, SavedFrame.serializer())?.toFrame() ?: TimelineFrame.Everything,
+		)
 	}
 
 	override fun onCreate() {
@@ -114,7 +123,7 @@ class TimeLineOverviewComponent(
 							laneFilter = current.laneFilter.filterTo(LinkedHashSet()) { it in laneNames },
 							frame = frame ?: TimelineFrame.Everything,
 							storyFrameAvailable = storyAvailable,
-						)
+						).refiltered()
 					}
 				}
 			}
@@ -166,16 +175,23 @@ class TimeLineOverviewComponent(
 	override suspend fun moveEvent(event: TimeLineEvent, toIndex: Int, after: Boolean): Boolean =
 		timelineService.moveEvent(event, toIndex, after).isSuccess
 
-	override fun setLaneFilter(lanes: Set<String>) {
-		_state.getAndUpdate { it.copy(laneFilter = lanes) }
+	override fun setSearchQuery(query: String) {
+		_state.getAndUpdate { if (it.searchQuery == query) it else it.copy(searchQuery = query).refiltered() }
+	}
+
+	override fun toggleTag(tag: String) {
+		_state.getAndUpdate { it.copy(tagFilter = it.tagFilter.toggled(tag)).refiltered() }
 	}
 
 	override fun toggleLane(lane: String) {
-		_state.getAndUpdate {
-			val filter = if (lane in it.laneFilter) it.laneFilter - lane else it.laneFilter + lane
-			it.copy(laneFilter = filter)
-		}
+		_state.getAndUpdate { it.copy(laneFilter = it.laneFilter.toggled(lane)).refiltered() }
 	}
+
+	override fun clearFilters() {
+		_state.getAndUpdate { it.copy(tagFilter = emptySet(), laneFilter = emptySet()).refiltered() }
+	}
+
+	private fun Set<String>.toggled(item: String): Set<String> = if (item in this) this - item else this + item
 
 	override fun setView(view: DrawingView) {
 		_state.getAndUpdate { it.copy(view = view) }
@@ -261,8 +277,16 @@ class TimeLineOverviewComponent(
 		}
 	}
 
+	@Serializable
+	private data class SavedFilters(
+		val query: String = "",
+		val tags: List<String> = emptyList(),
+		val lanes: List<String> = emptyList(),
+	)
+
 	private companion object {
 		const val VIEW_KEY = "timeline_overview_view"
 		const val FRAME_KEY = "timeline_overview_frame"
+		const val FILTERS_KEY = "timeline_overview_filters"
 	}
 }

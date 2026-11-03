@@ -14,6 +14,7 @@ import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.components.timeline.EventPreview
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineOverview
 import com.darkrockstudios.apps.hammer.common.components.timeline.basicPreview
+import com.darkrockstudios.apps.hammer.common.components.timeline.refiltered
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagCount
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
@@ -153,7 +154,7 @@ private const val PHONE_HEIGHT_DP = 760
 private val component = PreviewOverview(TimeLineOverview.State(rows = previewRows, lanes = previewLaneCounts))
 
 private class PreviewOverview(initial: TimeLineOverview.State) : TimeLineOverview {
-	override val state: Value<TimeLineOverview.State> = MutableValue(initial)
+	override val state: Value<TimeLineOverview.State> = MutableValue(initial.refiltered())
 	override val rankedTags: Value<List<TagCount>> = MutableValue(
 		listOf(
 			TagCount("act-one", 1),
@@ -162,8 +163,10 @@ private class PreviewOverview(initial: TimeLineOverview.State) : TimeLineOvervie
 	)
 
 	override suspend fun moveEvent(event: TimeLineEvent, toIndex: Int, after: Boolean): Boolean = false
-	override fun setLaneFilter(lanes: Set<String>) {}
+	override fun setSearchQuery(query: String) {}
+	override fun toggleTag(tag: String) {}
 	override fun toggleLane(lane: String) {}
+	override fun clearFilters() {}
 	override fun setView(view: TimelineView) {}
 	override fun canFrame(eventId: Int): Boolean = false
 	override fun setFrame(frame: TimelineFrame) {}

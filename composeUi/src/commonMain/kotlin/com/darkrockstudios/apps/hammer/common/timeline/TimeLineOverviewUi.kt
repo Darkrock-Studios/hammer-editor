@@ -82,8 +82,6 @@ import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineOverview
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimelineRow
-import com.darkrockstudios.apps.hammer.common.components.timeline.isDrawn
-import com.darkrockstudios.apps.hammer.common.components.timeline.passesLaneFilter
 import com.darkrockstudios.apps.hammer.common.compose.LocalRootFabState
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarGutter
@@ -113,9 +111,7 @@ import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
 import com.darkrockstudios.apps.hammer.common.compose.truncateWithEllipsis
-import com.darkrockstudios.apps.hammer.common.data.search.markdownContains
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.StoryDateWords
-import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.formatStoryDateRange
 import com.darkrockstudios.apps.hammer.common.timeline.drawing.eventId
 import com.darkrockstudios.apps.hammer.common.timeline.layout.HitTarget
@@ -153,15 +149,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.pluralStringResource
 import kotlin.math.roundToInt
-
-/** An event matches on its body read as prose, or on its plain-text date. */
-internal fun eventMatchesQuery(event: TimeLineEvent, query: String): Boolean =
-	markdownContains(event.content, query) ||
-		event.label?.contains(query, ignoreCase = true) == true
-
-/** A row also matches on the title it shows, which for a placement is its subject's name. */
-internal fun rowMatchesQuery(row: TimelineRow, query: String): Boolean =
-	eventMatchesQuery(row.event, query) || row.title.contains(query, ignoreCase = true)
 
 const val TIME_LINE_CREATE_TAG = "Timeline Overview Create"
 const val TIME_LINE_LIST_TAG = "Timeline Overview List"
@@ -205,43 +192,16 @@ fun TimeLineOverviewUi(
 	val isWide = screen.isWide
 	val isExpanded = screen.windowWidthClass == WindowWidthSizeClass.Expanded
 
-	var searchQuery by rememberSaveable { mutableStateOf("") }
-	var activeTags by remember { mutableStateOf<Set<String>>(emptySet()) }
 	var showSearchBar by rememberSaveable { mutableStateOf(false) }
 
 	val rows = state.rows.orEmpty()
+	val searchQuery = state.searchQuery
+	val activeTags = state.tagFilter
 	val laneFilter = state.laneFilter
+	val visibleRows = state.filtered.listRows
+	val searchMatches = state.filtered.searchMatches
 
 	val dated = state.mode == TimelineMode.DATED
-	val taggedRows by remember(rows, activeTags) {
-		derivedStateOf {
-			if (activeTags.isEmpty()) rows else rows.filter { row -> activeTags.all { it in row.event.tags } }
-		}
-	}
-	// The list narrows to what the search matches. The drawing keeps every event, applies the lane
-	// filter itself (keeping scenes in its ledger), and rings the matches instead.
-	val matchedRows by remember(taggedRows, searchQuery, dated) {
-		derivedStateOf {
-			if (dated || searchQuery.isBlank()) {
-				taggedRows
-			} else {
-				val query = searchQuery.trim()
-				taggedRows.filter { rowMatchesQuery(it, query) }
-			}
-		}
-	}
-	val searchMatches by remember(taggedRows, searchQuery, dated, laneFilter) {
-		derivedStateOf {
-			if (!dated || searchQuery.isBlank()) {
-				emptyList()
-			} else {
-				val query = searchQuery.trim()
-				taggedRows.filter { row ->
-					row.isDrawn && row.passesLaneFilter(laneFilter) && rowMatchesQuery(row, query)
-				}.map { it.event.id }
-			}
-		}
-	}
 	val highlighted = remember(searchMatches) { searchMatches.toSet() }
 	var matchIndex by remember(searchMatches) { mutableIntStateOf(0) }
 	val focusedMatch = searchMatches.getOrNull(matchIndex)
@@ -256,26 +216,15 @@ fun TimeLineOverviewUi(
 	} else {
 		null
 	}
-	val visibleRows by remember(matchedRows, laneFilter) {
-		derivedStateOf {
-			if (laneFilter.isEmpty()) matchedRows else matchedRows.filter { it.event.lane in laneFilter }
-		}
-	}
-
-	val toggleTag: (String) -> Unit = { tag ->
-		activeTags = if (tag in activeTags) activeTags - tag else activeTags + tag
-	}
-	val clearFilters: () -> Unit = {
-		activeTags = emptySet()
-		component.setLaneFilter(emptySet())
-	}
+	val toggleTag: (String) -> Unit = component::toggleTag
+	val clearFilters: () -> Unit = component::clearFilters
 	val anyFilter = activeTags.isNotEmpty() || laneFilter.isNotEmpty()
 	val bandTitle = (state.frame as? TimelineFrame.Band)
 		?.let { frame -> rows.firstOrNull { it.event.id == frame.eventId }?.title }
 	val words = rememberStoryDateWords()
 
 	val branch = when {
-		dated && matchedRows.isNotEmpty() -> OverviewContent.Drawing
+		dated && state.filtered.drawingRows.isNotEmpty() -> OverviewContent.Drawing
 		visibleRows.isEmpty() -> OverviewContent.Empty
 		else -> OverviewContent.List
 	}
@@ -334,12 +283,12 @@ fun TimeLineOverviewUi(
 			if (searching) {
 				HdSearchRow(
 					query = searchQuery,
-					onQueryChange = { searchQuery = it },
+					onQueryChange = component::setSearchQuery,
 					placeholder = Res.string.timeline_search_placeholder.get(),
 					clearContentDescription = Res.string.timeline_search_clear.get(),
 					onCollapse = {
 						showSearchBar = false
-						searchQuery = ""
+						component.setSearchQuery("")
 					},
 					collapseContentDescription = Res.string.timeline_search_close.get(),
 					modifier = Modifier.fillMaxSize(),
@@ -406,11 +355,11 @@ fun TimeLineOverviewUi(
 					) {
 						HdSearchField(
 							value = searchQuery,
-							onValueChange = { searchQuery = it },
+							onValueChange = component::setSearchQuery,
 							modifier = if (isExpanded) Modifier.width(280.dp) else Modifier.weight(1f),
 							placeholder = Res.string.timeline_search_placeholder.get(),
 							onSearch = nextMatch,
-							onClear = { searchQuery = "" },
+							onClear = { component.setSearchQuery("") },
 							clearContentDescription =
 								Res.string.timeline_search_clear.get(),
 						)
@@ -555,7 +504,7 @@ fun TimeLineOverviewUi(
 					Box(modifier = Modifier.fillMaxSize()) {
 						DatedTimelinePane(
 							state = state,
-							rows = matchedRows,
+							rows = state.filtered.drawingRows,
 							onTap = { target ->
 								when (target) {
 									is HitTarget.LaneHeader -> component.toggleLane(target.lane)
@@ -609,9 +558,7 @@ fun TimeLineOverviewUi(
 						)
 					}
 				}
-				// Reordering maps display indices to stored order, which only holds when nothing is
-				// filtered out and the order is manual. Other views fall back to a static list.
-				state.mode == TimelineMode.MANUAL && searchQuery.isBlank() && !anyFilter -> {
+				state.filtered.reorderable -> {
 					DragDropList(
 						items = visibleRows,
 						key = { _, item -> item.event.id },
