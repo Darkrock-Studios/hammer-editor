@@ -64,12 +64,12 @@ class TimelineLayoutEngineGoldenTest {
 		) { phone, id -> TimelineLayoutSamples.hollowmere(phone, id) },
 		Sample(
 			"leviathan", 8,
-			desktop = Shape(20, 0, 7, 9, 2, 5, 1911f),
+			desktop = Shape(20, 0, 7, 11, 2, 5, 1911f),
 			phone = Shape(20, 0, 7, 32, 2, 5, 1911f),
 		) { phone, id -> TimelineLayoutSamples.leviathan(phone, id) },
 		Sample(
 			"insurgencyEverything", 19,
-			desktop = Shape(10, 0, 8, 4, 2, 2, 1792f),
+			desktop = Shape(10, 0, 8, 5, 2, 2, 1792f),
 			phone = Shape(10, 0, 8, 20, 2, 2, 1792f),
 		) { phone, id -> TimelineLayoutSamples.insurgencyEverything(phone, id) },
 		// The election milestone (year 144) is about 70% of the scenes' extent past them, beyond the
@@ -86,7 +86,7 @@ class TimelineLayoutEngineGoldenTest {
 		) { phone, id -> TimelineLayoutSamples.overlappingStack(phone, id) },
 		Sample(
 			"stress", 1,
-			desktop = Shape(99, 18, 269, 119, 47, 6, 46756.8f),
+			desktop = Shape(99, 18, 269, 407, 47, 6, 46744.8f),
 			phone = Shape(99, 18, 269, 500, 47, 6, 46744.8f),
 		) { phone, id -> TimelineLayoutSamples.stress(phone = phone, selectedId = id) },
 		Sample(

@@ -89,6 +89,8 @@ data class LayoutMetrics(
 	val laneMinWidth: Float = 72f,
 	/** Room a desktop lane keeps beside its band and bars for leader labels. */
 	val laneLabelRoom: Float = 150f,
+	/** Below this much label room a desktop lane's leader labels move to the ledger as callouts. */
+	val minLeaderLabelWidth: Float = 72f,
 	val barWidth: Float = 10f,
 	val barStep: Float = 20f,
 	val barOffset: Float = 6f,

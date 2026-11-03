@@ -1,8 +1,11 @@
 package timeline.layout
 
+import com.darkrockstudios.apps.hammer.common.timeline.layout.BandLabel
 import com.darkrockstudios.apps.hammer.common.timeline.layout.LayoutEvent
 import com.darkrockstudios.apps.hammer.common.timeline.layout.LayoutKind
 import com.darkrockstudios.apps.hammer.common.timeline.layout.LayoutMetrics
+import com.darkrockstudios.apps.hammer.common.timeline.layout.LedgerMark
+import com.darkrockstudios.apps.hammer.common.timeline.layout.LedgerStyle
 import com.darkrockstudios.apps.hammer.common.timeline.layout.MonospaceEstimateMeasurer
 import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineFrame
 import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineLayout
@@ -12,6 +15,7 @@ import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineView
 import com.darkrockstudios.apps.hammer.common.timeline.layout.samples.TimelineLayoutSamples
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class LaneWidthTest {
@@ -95,21 +99,83 @@ class LaneWidthTest {
 	}
 
 	@Test
-	fun `tight lanes give up label room before their bands`() {
-		val bandNeed = 2 * 8f + metrics.bandMax
+	fun `tight lanes shrink their bands before their label room`() {
+		val bandFixed = 2 * 8f
 		val barsFixed = 2 * 8f + metrics.barOffset + metrics.barStep
-		val ledger = metrics.ledgerMin
-		val chrome = metrics.axisWidth + metrics.padRight + ledger
-
-		val halfLabels = layout(bandAndBars(chrome + bandNeed + barsFixed + metrics.bandMax + metrics.laneLabelRoom / 2f))
-		assertEquals(listOf(metrics.bandMax), halfLabels.bandWidths())
-		assertEquals(barsFixed + metrics.bandMax + metrics.laneLabelRoom / 2f, halfLabels.lane(BARS).widthDp, 1e-2f)
+		val chrome = metrics.axisWidth + metrics.padRight + metrics.ledgerMin
 
 		val band = 100f
-		val noLabels = layout(bandAndBars(chrome + 2 * 8f + band + barsFixed + band))
-		noLabels.bands.forEach { assertEquals(band, it.rect.width, 1e-2f) }
-		assertEquals(2 * 8f + band, noLabels.lane(BAND).widthDp, 1e-2f)
-		assertEquals(barsFixed + band, noLabels.lane(BARS).widthDp, 1e-2f)
+		val narrowBands = layout(bandAndBars(chrome + bandFixed + band + barsFixed + band + metrics.laneLabelRoom))
+		narrowBands.bands.forEach { assertEquals(band, it.rect.width, 1e-2f) }
+		assertEquals(barsFixed + band + metrics.laneLabelRoom, narrowBands.lane(BARS).widthDp, 1e-2f)
+
+		val halfLabels = layout(bandAndBars(chrome + bandFixed + barsFixed + 2 * metrics.bandMin + metrics.laneLabelRoom / 2f))
+		halfLabels.bands.forEach { assertEquals(metrics.bandMin, it.rect.width, 1e-2f) }
+		assertEquals(barsFixed + metrics.bandMin + metrics.laneLabelRoom / 2f, halfLabels.lane(BARS).widthDp, 1e-2f)
+	}
+
+	@Test
+	fun `label room shrinks only once the bands are at their minimum`() {
+		val barsFixed = 2 * 8f + metrics.barOffset + metrics.barStep
+		val input = bandAndBars(0f)
+		val from = TimelineLayoutEngine.minimumWidthDp(input, measurer).toInt()
+
+		for (width in from..1000 step 5) {
+			val layout = layout(input.copy(widthDp = width.toFloat()))
+
+			val band = layout.bands.first().rect.width
+			val labelRoom = layout.lane(BARS).widthDp - barsFixed - band
+			assertTrue(band >= metrics.bandMin - 1e-3f, "width $width: band $band")
+			if (labelRoom < metrics.laneLabelRoom - 1e-2f) assertEquals(metrics.bandMin, band, 1e-2f, "width $width")
+		}
+	}
+
+	@Test
+	fun `hollowmere at 840 keeps its bands at least at their minimum`() {
+		val layout = layout(TimelineLayoutSamples.hollowmere().copy(widthDp = 840f))
+
+		assertTrue(layout.bands.isNotEmpty())
+		layout.bands.forEach { assertTrue(it.rect.width >= metrics.bandMin - 1e-3f, "band ${it.eventId}: ${it.rect.width}") }
+	}
+
+	@Test
+	fun `hollowmere at 840 has no empty leader label`() {
+		val layout = layout(TimelineLayoutSamples.hollowmere().copy(widthDp = 840f))
+
+		val leaders = layout.bands.mapNotNull { (it.label as? BandLabel.Leader)?.label } +
+			layout.bars.mapNotNull { it.label } +
+			layout.points.mapNotNull { it.label }
+		leaders.forEach { assertTrue(it.lines.any { line -> line.isNotBlank() }, "empty leader label for ${it.fullText}") }
+		val billiards = assertNotNull(layout.points.single { it.eventId == PASSES_BILLIARDS }.label)
+		assertEquals(listOf("Passes billiards"), billiards.lines)
+	}
+
+	@Test
+	fun `a squeezed lane moves its leader labels into the ledger`() {
+		val layout = layout(TimelineLayoutSamples.hollowmere().copy(widthDp = 640f))
+
+		val leaders = layout.bands.mapNotNull { (it.label as? BandLabel.Leader)?.label } +
+			layout.bars.mapNotNull { it.label } +
+			layout.points.mapNotNull { it.label }
+		leaders.forEach { assertTrue(it.lines.any { line -> line.isNotBlank() }, "empty leader label for ${it.fullText}") }
+
+		val ward = layout.lane(TimelineLayoutSamples.HOLLOWMERE_WARD)
+		val billiards = layout.ledgerRows.single { it.eventId == PASSES_BILLIARDS }
+		assertEquals(LedgerStyle.LaneCallout, billiards.style)
+		assertEquals(LedgerMark.LaneSwatch, billiards.mark)
+		assertEquals(ward.index, billiards.laneIndex)
+		assertEquals(null, layout.points.single { it.eventId == PASSES_BILLIARDS }.label)
+		val source = assertNotNull(billiards.leader).first()
+		assertTrue(source.x >= ward.xDp && source.x <= ward.xDp + ward.widthDp, "callout led from ${source.x}, outside ${ward.name}")
+	}
+
+	@Test
+	fun `a wide lane keeps its leader labels`() {
+		val layout = layout(TimelineLayoutSamples.hollowmere().copy(widthDp = 1400f))
+
+		val label = assertNotNull(layout.points.single { it.eventId == PASSES_BILLIARDS }.label)
+		assertEquals("Passes billiards", label.fullText)
+		assertTrue(layout.ledgerRows.none { it.style == LedgerStyle.LaneCallout })
 	}
 
 	@Test
@@ -131,5 +197,6 @@ class LaneWidthTest {
 	private companion object {
 		const val BAND = "Band"
 		const val BARS = "Bars"
+		const val PASSES_BILLIARDS = 18
 	}
 }
