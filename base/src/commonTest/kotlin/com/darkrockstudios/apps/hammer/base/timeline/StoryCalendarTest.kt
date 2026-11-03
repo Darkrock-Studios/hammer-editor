@@ -5,7 +5,9 @@ import com.darkrockstudios.apps.hammer.base.timeline.CalendarPreset.STORY
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class StoryCalendarTest {
 	private fun date(vararg rungs: Pair<String, Long>) = StoryDate(linkedMapOf(*rungs))
@@ -94,6 +96,21 @@ class StoryCalendarTest {
 	fun `story last day of a year ends where the next year starts`() {
 		val lastDay = StoryCalendar.span(STORY, date("year" to 3, "day" to 364))!!
 		assertEquals(StoryCalendar.position(STORY, date("year" to 4)), lastDay.last + 1)
+	}
+
+	@Test
+	fun `an end fits when its span reaches the start`() {
+		val start = date("year" to 5, "day" to 10)
+		assertTrue(StoryCalendar.endFits(CalendarDef(STORY), start, date("year" to 5)))
+		assertTrue(StoryCalendar.endFits(CalendarDef(STORY), start, date("year" to 5, "day" to 10)))
+		assertFalse(StoryCalendar.endFits(CalendarDef(STORY), start, date("year" to 5, "day" to 9)))
+		assertFalse(StoryCalendar.endFits(CalendarDef(STORY), start, date("year" to 4)))
+	}
+
+	@Test
+	fun `an invalid date never fits`() {
+		assertFalse(StoryCalendar.endFits(CalendarDef(STORY), date("day" to 3), date("year" to 5)))
+		assertFalse(StoryCalendar.endFits(CalendarDef(STORY), date("year" to 5), date("day" to 3)))
 	}
 
 	@Test

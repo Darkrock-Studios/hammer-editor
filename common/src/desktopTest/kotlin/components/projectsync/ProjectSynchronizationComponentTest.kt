@@ -601,6 +601,23 @@ class ProjectSynchronizationComponentTest : ComponentTest() {
 	}
 
 	@Test
+	fun `A dated project accepts a coarser end whose span reaches the start`() = runTest(mainTestDispatcher) {
+		saveMainTimeline(TimelineDef.DEFAULT.copy(mode = TimelineMode.DATED, calendar = CalendarDef()))
+		every { timeLineRepository.validateTags(any()) } returns TimeLineEventError.NONE
+		every { synchronizer.resolveConflict(any()) } just Runs
+		val comp = showTimelineConflict()
+
+		val resolved = timelineEvent.copy(
+			start = StoryDate(mapOf("year" to 5L, "day" to 10L)),
+			end = StoryDate(mapOf("year" to 5L)),
+		)
+		val error = comp.resolveConflict(resolved)
+
+		assertNull(error)
+		verify(exactly = 1) { synchronizer.resolveConflict(resolved) }
+	}
+
+	@Test
 	fun `A manual project accepts any well formed date`() = runTest(mainTestDispatcher) {
 		saveMainTimeline(TimelineDef.DEFAULT.copy(mode = TimelineMode.MANUAL, calendar = CalendarDef()))
 		every { timeLineRepository.validateTags(any()) } returns TimeLineEventError.NONE

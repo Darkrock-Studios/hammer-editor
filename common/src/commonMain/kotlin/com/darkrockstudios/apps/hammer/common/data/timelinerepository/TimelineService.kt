@@ -359,7 +359,7 @@ class TimelineService(
 			val updates = undated.map { event ->
 				val start = dates.getValue(event.id)
 				if (StoryCalendar.validate(calendar, start) != null) return invalid(TimeLineEventError.DATE_INVALID)
-				event.copy(start = start, end = event.end?.takeIf { endFits(calendar, start, it) })
+				event.copy(start = start, end = event.end?.takeIf { StoryCalendar.endFits(calendar, start, it) })
 			}
 			timeLineRepository.updateEvents(updates)
 		}
@@ -410,7 +410,7 @@ class TimelineService(
 							.take(TimelineLimits.MAX_LABEL),
 				)
 
-				end != null && (start == null || !endFits(calendar, start, end)) -> event.copy(end = null)
+				end != null && (start == null || !StoryCalendar.endFits(calendar, start, end)) -> event.copy(end = null)
 				else -> null
 			}
 		}
@@ -599,7 +599,7 @@ class TimelineService(
 			StoryCalendar.validate(calendar, start) != null -> TimeLineEventError.DATE_INVALID
 			end == null -> TimeLineEventError.NONE
 			StoryCalendar.validate(calendar, end) != null -> TimeLineEventError.DATE_INVALID
-			!endFits(calendar, start, end) -> TimeLineEventError.END_BEFORE_START
+			!StoryCalendar.endFits(calendar, start, end) -> TimeLineEventError.END_BEFORE_START
 			else -> TimeLineEventError.NONE
 		}
 	}
@@ -633,13 +633,6 @@ class TimelineService(
 			val start = event.start
 			if (calendar == null || start == null || !hasValidStart(event, calendar)) return event.label
 			return formatStoryDateRange(calendar, start, event.end, words).take(TimelineLimits.MAX_LABEL)
-		}
-
-		/** [end] is valid and its span reaches [start]: a day-precise end may close an hour-precise start. */
-		fun endFits(calendar: CalendarDef, start: StoryDate, end: StoryDate): Boolean {
-			val startAt = StoryCalendar.position(calendar, start) ?: return false
-			val endSpan = StoryCalendar.span(calendar, end) ?: return false
-			return endSpan.last >= startAt
 		}
 
 		fun defaultSpacing(calendar: CalendarDef): EvenSpacing = when (calendar.preset) {

@@ -510,12 +510,8 @@ class ProjectSynchronizationComponent(
 		end?.let { StoryCalendar.validate(calendar, it) }?.let {
 			return ProjectSynchronization.TimelineDateProblem.Invalid(TimelineDateField.END, it)
 		}
-		if (start != null && end != null) {
-			val startPosition = StoryCalendar.position(calendar, start)
-			val endPosition = StoryCalendar.position(calendar, end)
-			if (startPosition != null && endPosition != null && endPosition < startPosition) {
-				return ProjectSynchronization.TimelineDateProblem.EndBeforeStart
-			}
+		if (start != null && end != null && !StoryCalendar.endFits(calendar, start, end)) {
+			return ProjectSynchronization.TimelineDateProblem.EndBeforeStart
 		}
 		return null
 	}

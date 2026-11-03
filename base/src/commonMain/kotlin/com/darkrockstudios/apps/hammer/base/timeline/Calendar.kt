@@ -163,6 +163,16 @@ object StoryCalendar {
 		}
 	}
 
+	/**
+	 * Whether [end] can close a range opened by [start]: both are valid and [end]'s span reaches
+	 * [start], so a day-precise end may close an hour-precise start on the same day.
+	 */
+	fun endFits(calendar: CalendarDef, start: StoryDate, end: StoryDate): Boolean {
+		val startAt = position(calendar, start) ?: return false
+		val endSpan = span(calendar, end) ?: return false
+		return endSpan.last >= startAt
+	}
+
 	/** A full value per chain unit (omitted units at their lowest) and the finest filled index. */
 	private class Resolved(val values: LongArray, val finest: Int)
 
