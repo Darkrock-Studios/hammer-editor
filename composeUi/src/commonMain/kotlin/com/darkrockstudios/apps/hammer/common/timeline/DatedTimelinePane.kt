@@ -8,10 +8,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -19,6 +17,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.arkivanov.decompose.extensions.compose.subscribeAsState
+import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
@@ -41,7 +41,6 @@ import com.darkrockstudios.apps.hammer.common.timeline.drawing.rememberTimelineT
 import com.darkrockstudios.apps.hammer.common.timeline.layout.HitTarget
 import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineLayoutEngine
 import com.darkrockstudios.apps.hammer.timeline_lane_filter_description
-import kotlinx.coroutines.launch
 import kotlin.math.floor
 import kotlin.math.roundToInt
 
@@ -51,8 +50,9 @@ private const val WIDTH_STEP_DP = 8f
 /**
  * The drawing of a DATED timeline's [rows] in the state's frame, laid out to the width it is given.
  * A new frame starts scrolled to the top, and [topPadding] lets the drawing start under an overlay. An
- * event's preview card shows what [preview] reads for it, where a pointer hovers or a long press
- * holds, and the event a long press holds is projected across the lanes until it is released.
+ * event's preview card shows its entry in [previews], asked for through [requestPreview], where a
+ * pointer hovers or a long press holds; the event a long press holds is projected across the lanes
+ * until it is released. Without [previews] no card is shown.
  * [highlighted] events are ringed as search matches, and the drawing scrolls [focusedId] into view.
  *
  * On a phone (Compact width) lanes are 22dp rails with every label in the ledger. Only the lanes in
@@ -70,7 +70,8 @@ internal fun DatedTimelinePane(
 	topPadding: Dp = 0.dp,
 	highlighted: Set<Int> = emptySet(),
 	focusedId: Int? = null,
-	preview: (suspend (eventId: Int) -> EventPreview?)? = null,
+	previews: Value<Map<Int, EventPreview>>? = null,
+	requestPreview: (eventId: Int) -> Unit = {},
 ) {
 	val words = rememberStoryDateWords()
 	val colors = LocalHammerColors.current
@@ -136,15 +137,15 @@ internal fun DatedTimelinePane(
 
 		// Until its preview arrives a card shows what the row already knows.
 		val rowsById = remember(rows) { rows.associateBy { it.event.id } }
-		val previews = remember(rows) { mutableStateMapOf<Int, EventPreview>() }
-		val previewScope = rememberCoroutineScope()
-		val readPreview by rememberUpdatedState(preview)
-		val hoverCard: (@Composable (Int) -> Unit)? = if (preview != null) {
-			{ id ->
-				(previews[id] ?: rowsById[id]?.basicPreview())?.let { EventPreviewCard(it) }
+		// Each card observes the previews itself, so one arriving recomposes only the card.
+		val hoverCard: (@Composable (Int) -> Unit)? = remember(previews, rowsById) {
+			previews?.let { loaded ->
+				val card: @Composable (Int) -> Unit = { id ->
+					val shown by loaded.subscribeAsState()
+					(shown[id] ?: rowsById[id]?.basicPreview())?.let { EventPreviewCard(it) }
+				}
+				card
 			}
-		} else {
-			null
 		}
 
 		TimelineDrawingPane(
@@ -162,9 +163,7 @@ internal fun DatedTimelinePane(
 			highlighted = highlighted,
 			focusedId = focusedId,
 			hoverCard = hoverCard,
-			onHoverStart = { id ->
-				if (id !in previews) previewScope.launch { readPreview?.invoke(id)?.let { previews[id] = it } }
-			},
+			onHoverStart = requestPreview,
 		)
 	}
 }

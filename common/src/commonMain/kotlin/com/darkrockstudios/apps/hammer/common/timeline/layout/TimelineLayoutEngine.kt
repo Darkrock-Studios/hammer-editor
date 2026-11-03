@@ -155,7 +155,7 @@ object TimelineLayoutEngine {
 		val out = ArrayList<Placed>(events.size)
 		for (e in events) {
 			val end = e.spanEnd
-			if (end == null || end == e.start) {
+			if (end == null) {
 				if (e.start in lo..hi) out += Placed(e, e.start, end)
 			} else if (end > lo && e.start < hi) {
 				out += Placed(e, maxOf(e.start, lo), minOf(end, hi))

@@ -522,7 +522,8 @@ fun TimeLineOverviewUi(
 									modifier = Modifier.matchParentSize(),
 								)
 							},
-							preview = component::preview,
+							previews = component.previews,
+							requestPreview = component::requestPreview,
 							scrollState = drawingScroll,
 							topPadding = topPadding,
 							highlighted = highlighted,

@@ -124,7 +124,12 @@ class TimeLineOverviewUiTest : BaseTest() {
 				references = references[eventId].orEmpty(),
 			)
 
-		override suspend fun preview(eventId: Int): EventPreview? = previewOf(eventId)
+		private val _previews = MutableValue<Map<Int, EventPreview>>(emptyMap())
+		override val previews: Value<Map<Int, EventPreview>> = _previews
+
+		override fun requestPreview(eventId: Int) {
+			previewOf(eventId)?.let { _previews.value += eventId to it }
+		}
 
 		override fun setFrame(frame: TimelineFrame) {
 			_state.value = _state.value.copy(frame = frame)

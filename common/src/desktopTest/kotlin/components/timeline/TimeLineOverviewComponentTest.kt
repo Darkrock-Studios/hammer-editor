@@ -7,12 +7,16 @@ import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.components.timeline.EventPreview
 import com.darkrockstudios.apps.hammer.common.components.timeline.LaneCount
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineOverviewComponent
+import com.darkrockstudios.apps.hammer.common.components.timeline.toLayoutInput
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineEventDraft
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineResult
+import com.darkrockstudios.apps.hammer.common.timeline.layout.MonospaceEstimateMeasurer
 import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineFrame
+import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineLayoutEngine
 import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineView
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
@@ -32,6 +36,12 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 		addMenu = {},
 		removeMenu = {},
 	)
+
+	private fun TestScope.previewOf(component: TimeLineOverviewComponent, eventId: Int): EventPreview? {
+		component.requestPreview(eventId)
+		advanceUntilIdle()
+		return component.previews.value[eventId]
+	}
 
 	@Test
 	fun `rows are empty until the timeline loads, then follow it`() = runTest(mainTestDispatcher) {
@@ -439,6 +449,76 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 	}
 
 	@Test
+	fun `an event can be framed exactly when the drawing draws it as a span`() = runTest(mainTestDispatcher) {
+		givenProject()
+		timelineService.switchToDated(CalendarDef())
+		val instant = StoryDate(mapOf("year" to 2L, "day" to 3L, "hour" to 4L, "minute" to 5L))
+		val later = StoryDate(mapOf("year" to 2L, "day" to 3L, "hour" to 6L, "minute" to 0L))
+		val year2 = StoryDate(mapOf("year" to 2L))
+		val drafts = listOf(
+			TimelineEventDraft(title = "Siege", lane = "Keep", start = StoryDate(mapOf("year" to 1L)), end = StoryDate(mapOf("year" to 4L))),
+			TimelineEventDraft(title = "Watch", lane = "Keep", start = instant, end = later),
+			TimelineEventDraft(title = "March", start = instant, end = later),
+			TimelineEventDraft(title = "Winter", lane = "Keep", start = year2),
+			TimelineEventDraft(title = "Thaw", start = year2),
+			TimelineEventDraft(title = "Season", lane = "Keep", start = year2, end = year2),
+			TimelineEventDraft(title = "Bell", lane = "Keep", start = instant),
+			TimelineEventDraft(title = "Chime", start = instant),
+			TimelineEventDraft(title = "Moment", lane = "Keep", start = instant, end = instant),
+			TimelineEventDraft(title = "Blink", start = instant, end = instant),
+		)
+		val ids = drafts.associate { draft -> draft.title!! to timelineService.createEvent(draft).event().id }
+		val component = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		val state = component.state.value
+		val input = toLayoutInput(
+			rows = state.filtered.drawingRows,
+			lanes = state.lanes,
+			laneFilter = state.laneFilter,
+			calendar = state.calendar!!,
+			view = TimelineView.TO_SCALE,
+			widthDp = 840f,
+			phone = false,
+		)
+		val layout = TimelineLayoutEngine.layout(input, MonospaceEstimateMeasurer())
+		fun drawnAsSpan(id: Int) = layout.bands.any { it.eventId == id } ||
+			layout.bars.any { it.eventId == id } ||
+			layout.ledgerRows.any { it.eventId == id && it.anchorY1Dp != null }
+
+		val framable = ids.filterValues { component.canFrame(it) }.keys
+		assertEquals(setOf("Siege", "Watch", "March", "Winter", "Thaw", "Season"), framable)
+		assertEquals(framable, ids.filterValues { drawnAsSpan(it) }.keys)
+	}
+
+	@Test
+	fun `an event the filters keep out of the drawing cannot be framed`() = runTest(mainTestDispatcher) {
+		givenProject()
+		timelineService.switchToDated(CalendarDef())
+		val years = { from: Long, to: Long -> StoryDate(mapOf("year" to from)) to StoryDate(mapOf("year" to to)) }
+		val (siegeStart, siegeEnd) = years(1L, 4L)
+		val siege = timelineService.createEvent(
+			TimelineEventDraft(title = "Siege", lane = "Keep", tags = setOf("war"), start = siegeStart, end = siegeEnd)
+		).event()
+		val (feastStart, feastEnd) = years(2L, 3L)
+		timelineService.createEvent(
+			TimelineEventDraft(title = "Feast", lane = "Hall", tags = setOf("peace"), start = feastStart, end = feastEnd)
+		)
+		val component = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		assertTrue(component.canFrame(siege.id))
+
+		component.toggleLane("Hall")
+		assertFalse(component.canFrame(siege.id), "the lane filter hides it")
+
+		component.clearFilters()
+		component.toggleTag("peace")
+		assertFalse(component.canFrame(siege.id), "the tag filter hides it")
+	}
+
+	@Test
 	fun `framing a band survives recreation and back returns to everything`() = runTest(mainTestDispatcher) {
 		givenProject()
 		val storm = timelineService.createEvent(TimelineEventDraft(title = "Storm", lane = "Keep")).event()
@@ -508,7 +588,7 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 		context.resume()
 		advanceUntilIdle()
 
-		val summary = component.preview(placed.id)!!
+		val summary = previewOf(component, placed.id)!!
 		assertEquals(placed.id, summary.eventId)
 		assertEquals("Scene ID 4", summary.title)
 		assertEquals(listOf(ALICE, WONDERLAND, TEA_PARTY), summary.references.map { it.id })
@@ -526,7 +606,7 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 		context.resume()
 		advanceUntilIdle()
 
-		assertEquals(listOf(ALICE, WONDERLAND, 4), component.preview(storm.id)!!.references.map { it.id })
+		assertEquals(listOf(ALICE, WONDERLAND, 4), previewOf(component, storm.id)!!.references.map { it.id })
 	}
 
 	@Test
@@ -538,7 +618,7 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 		context.resume()
 		advanceUntilIdle()
 
-		val summary = component.preview(placed.id)!!
+		val summary = previewOf(component, placed.id)!!
 		assertEquals("The Hatter pours tea.", summary.excerpt)
 		assertEquals(emptyList(), summary.references)
 	}
@@ -552,13 +632,13 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 		val component = newComponent()
 		context.resume()
 		advanceUntilIdle()
-		val summary = assertNotNull(component.preview(storm.id))
+		val summary = assertNotNull(previewOf(component, storm.id))
 
 		timelineService.updateEvent(timeLineRepository.getTimelineEvent(rain.id)!!.copy(title = "Hail"))
 		advanceUntilIdle()
 
 		assertEquals("Hail", component.state.value.rows!!.first { it.event.id == rain.id }.title)
-		assertSame(summary, component.preview(storm.id))
+		assertSame(summary, previewOf(component, storm.id))
 	}
 
 	@Test
@@ -569,12 +649,12 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 		val component = newComponent()
 		context.resume()
 		advanceUntilIdle()
-		component.preview(storm.id)
+		previewOf(component, storm.id)
 
 		timelineService.updateEvent(timeLineRepository.getTimelineEvent(storm.id)!!.copy(references = setOf(WONDERLAND, ALICE)))
 		advanceUntilIdle()
 
-		assertEquals(listOf(ALICE, WONDERLAND), component.preview(storm.id)!!.references.map { it.id })
+		assertEquals(listOf(ALICE, WONDERLAND), previewOf(component, storm.id)!!.references.map { it.id })
 	}
 
 	@Test
@@ -592,7 +672,7 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 		context.resume()
 		advanceUntilIdle()
 
-		val preview = assertNotNull(component.preview(storm.id))
+		val preview = assertNotNull(previewOf(component, storm.id))
 
 		assertEquals("Storm", preview.title)
 		assertEquals("Keep", preview.lane)
@@ -610,7 +690,7 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 		context.resume()
 		advanceUntilIdle()
 
-		val preview = assertNotNull(component.preview(rain.id))
+		val preview = assertNotNull(previewOf(component, rain.id))
 
 		assertEquals("Rain falls", preview.title)
 		assertEquals("All night long.", preview.excerpt)
@@ -625,7 +705,7 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 		context.resume()
 		advanceUntilIdle()
 
-		val preview = assertNotNull(component.preview(placed.id))
+		val preview = assertNotNull(previewOf(component, placed.id))
 
 		assertEquals(77, preview.imageId)
 		assertEquals("The Hatter pours tea.", preview.excerpt)
@@ -640,15 +720,33 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 		val component = newComponent()
 		context.resume()
 		advanceUntilIdle()
-		val first = assertNotNull(component.preview(storm.id))
+		val first = assertNotNull(previewOf(component, storm.id))
 
 		timelineService.updateEvent(timeLineRepository.getTimelineEvent(rain.id)!!.copy(title = "Hail"))
 		advanceUntilIdle()
-		assertSame(first, component.preview(storm.id), "A change to another event keeps the preview")
+		assertSame(first, previewOf(component, storm.id), "A change to another event keeps the preview")
 
 		timelineService.updateEvent(timeLineRepository.getTimelineEvent(storm.id)!!.copy(content = "Lightning."))
 		advanceUntilIdle()
-		assertEquals("Lightning.", component.preview(storm.id)?.excerpt)
+		assertNull(component.previews.value[storm.id], "The changed event's preview leaves until it is asked for again")
+		assertEquals("Lightning.", previewOf(component, storm.id)?.excerpt)
+	}
+
+	@Test
+	fun `nothing is read until a preview is asked for`() = runTest(mainTestDispatcher) {
+		givenProject()
+		val storm = timelineService.createEvent(TimelineEventDraft(title = "Storm", content = "Thunder.")).event()
+		val rain = timelineService.createEvent(TimelineEventDraft(title = "Rain", content = "Drizzle.")).event()
+		val component = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		assertEquals(emptyMap(), component.previews.value)
+
+		component.requestPreview(storm.id)
+		component.requestPreview(rain.id)
+		advanceUntilIdle()
+
+		assertEquals(mapOf(storm.id to "Thunder.", rain.id to "Drizzle."), component.previews.value.mapValues { it.value.excerpt })
 	}
 
 	@Test
@@ -658,6 +756,6 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 		context.resume()
 		advanceUntilIdle()
 
-		assertNull(component.preview(999))
+		assertNull(previewOf(component, 999))
 	}
 }

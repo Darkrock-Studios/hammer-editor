@@ -13,7 +13,6 @@ import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.components.timeline.EventPreview
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineOverview
-import com.darkrockstudios.apps.hammer.common.components.timeline.basicPreview
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagCount
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
@@ -169,6 +168,6 @@ private class PreviewOverview(initial: TimeLineOverview.State) : TimeLineOvervie
 	override fun setView(view: TimelineView) {}
 	override fun canFrame(eventId: Int): Boolean = false
 	override fun setFrame(frame: TimelineFrame) {}
-	override suspend fun preview(eventId: Int): EventPreview? =
-		state.value.rows?.firstOrNull { it.event.id == eventId }?.basicPreview()
+	override val previews: Value<Map<Int, EventPreview>> = MutableValue(emptyMap())
+	override fun requestPreview(eventId: Int) {}
 }

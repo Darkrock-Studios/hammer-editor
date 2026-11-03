@@ -156,6 +156,22 @@ class TimelineDrawingInputTest {
 	}
 
 	@Test
+	fun `a range that starts and ends on the same minute is drawn as a point`() {
+		val instant = date("year" to 5, "day" to 10, "hour" to 6, "minute" to 0)
+		val rows = listOf(
+			row(1, instant, end = instant, lane = "Alice"),
+			row(2, instant, end = instant),
+		)
+
+		val layout = TimelineLayoutEngine.layout(input(rows), MonospaceEstimateMeasurer())
+
+		assertEquals(listOf(1), layout.points.map { it.eventId })
+		assertTrue(layout.bands.isEmpty() && layout.bars.isEmpty())
+		assertEquals(null, layout.ledgerRows.single { it.eventId == 2 }.anchorY1Dp)
+		assertEquals(null, layout.anchors.getValue(1).y1Dp)
+	}
+
+	@Test
 	fun `undated and unresolvable starts are left out`() {
 		val rows = listOf(
 			row(1, date("year" to 1)),

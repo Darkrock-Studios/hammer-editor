@@ -29,8 +29,7 @@ private const val TICK_LIMIT = 1000
  * The layout input for a dated timeline's [rows]. Rows without a start that resolves on [calendar]
  * are left out (the overview already counts them as undated), as are archived scenes. A non-empty
  * [laneFilter] drops the events of every other lane; scenes and unlaned events stay in the ledger.
- * A placed entry's title leads with [entryMark] wherever it is written out, on a span or in the
- * ledger; a point in a lane is drawn in its own entry box and keeps its plain title.
+ * See [toLayoutEvent] for [entryMark].
  */
 fun toLayoutInput(
 	rows: List<TimelineRow>,
@@ -43,32 +42,9 @@ fun toLayoutInput(
 	frame: TimelineFrame = TimelineFrame.Everything,
 	words: StoryDateWords = StoryDateWords.English,
 	entryMark: String? = null,
-): TimelineLayoutInput {
-	val events = rows.mapNotNull { row ->
-		if (row.subjectArchived || !row.passesLaneFilter(laneFilter)) return@mapNotNull null
-		val event = row.event
-		val lane = event.lane?.takeIf { it.isNotBlank() }
-		val start = row.start ?: return@mapNotNull null
-		val startPosition = StoryCalendar.position(calendar, start) ?: return@mapNotNull null
-		val end = row.end?.let { rangeEnd(calendar, it) }
-		val extent = if (end == null) precisionExtent(calendar, start) else 1L
-		val boxedPoint = lane != null && end == null && extent <= 1L
-		val marked = entryMark != null && event.kind == TimelineKind.ENTRY && !boxedPoint && row.title.isNotBlank()
-		LayoutEvent(
-			id = event.id,
-			kind = event.kind.toLayoutKind(),
-			title = if (marked) "$entryMark ${row.title}" else row.title,
-			subtitle = row.subtitle,
-			lane = lane,
-			milestone = event.milestone,
-			order = event.order,
-			start = startPosition,
-			end = end,
-			precisionExtent = extent,
-		)
-	}
-	return TimelineLayoutInput(
-		events = events,
+): TimelineLayoutInput =
+	TimelineLayoutInput(
+		events = rows.mapNotNull { it.toLayoutEvent(calendar, laneFilter, entryMark) },
 		laneOrder = lanes.map { it.lane },
 		view = view,
 		frame = frame,
@@ -76,6 +52,33 @@ fun toLayoutInput(
 		phone = phone,
 		ticks = timelineTickScheme(calendar, words),
 	)
+
+/**
+ * This row as the drawing lays it out, or null when the drawing leaves it out: it has no start that
+ * resolves on [calendar], is an archived scene, or is in a lane [laneFilter] drops. A placed entry's
+ * title leads with [entryMark] wherever it is written out, on a span or in the ledger; a point in a
+ * lane is drawn in its own entry box and keeps its plain title.
+ */
+fun TimelineRow.toLayoutEvent(calendar: CalendarDef, laneFilter: Set<String>, entryMark: String? = null): LayoutEvent? {
+	if (subjectArchived || !passesLaneFilter(laneFilter)) return null
+	val startDate = start ?: return null
+	val startPosition = StoryCalendar.position(calendar, startDate) ?: return null
+	val endPosition = end?.let { rangeEnd(calendar, it) }
+	val laid = LayoutEvent(
+		id = event.id,
+		kind = event.kind.toLayoutKind(),
+		title = title,
+		subtitle = subtitle,
+		lane = event.lane?.takeIf { it.isNotBlank() },
+		milestone = event.milestone,
+		order = event.order,
+		start = startPosition,
+		end = endPosition,
+		precisionExtent = if (endPosition == null) precisionExtent(calendar, startDate) else 1L,
+	)
+	val boxedPoint = laid.lane != null && !laid.isSpan
+	val marked = entryMark != null && event.kind == TimelineKind.ENTRY && !boxedPoint && title.isNotBlank()
+	return if (marked) laid.copy(title = "$entryMark $title") else laid
 }
 
 /** How many minutes [start] covers: one when it is given to the minute, more when it stops at a coarser unit. */

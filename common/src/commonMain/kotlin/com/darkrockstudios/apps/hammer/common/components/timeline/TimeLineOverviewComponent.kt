@@ -7,7 +7,6 @@ import com.arkivanov.decompose.value.getAndUpdate
 import com.arkivanov.decompose.value.subscribe
 import com.arkivanov.essenty.backhandler.BackCallback
 import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
-import com.darkrockstudios.apps.hammer.base.timeline.StoryCalendar
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
@@ -53,11 +52,13 @@ class TimeLineOverviewComponent(
 	private val _rankedTags = MutableValue<List<TagCount>>(emptyList())
 	override val rankedTags: Value<List<TagCount>> = _rankedTags
 
-	/** Read and written on the main thread only. */
-	private val previews = HashMap<Int, CachedPreview>()
+	private val _previews = MutableValue<Map<Int, EventPreview>>(emptyMap())
+	override val previews: Value<Map<Int, EventPreview>> = _previews
 
-	/** A preview stays good while its event's row is unchanged. */
-	private class CachedPreview(val row: TimelineRow, val preview: EventPreview)
+	// The row each preview was read from, which it stays good for, and the rows being read.
+	// Both are read and written on the main thread only.
+	private val previewRows = HashMap<Int, TimelineRow>()
+	private val readingPreviews = HashMap<Int, TimelineRow>()
 
 	private val frameBackCallback = BackCallback(isEnabled = false) {
 		setFrame(TimelineFrame.Everything)
@@ -103,7 +104,11 @@ class TimeLineOverviewComponent(
 				val built = buildRows(view)
 				withContext(dispatcherMain) {
 					val rowsById = built.rows.associateBy { it.event.id }
-					previews.entries.removeAll { (id, cached) -> rowsById[id] != cached.row }
+					val stale = previewRows.filter { (id, row) -> rowsById[id] != row }.keys
+					if (stale.isNotEmpty()) {
+						_previews.value -= stale
+						previewRows -= stale
+					}
 					_state.getAndUpdate { current ->
 						val laneNames = built.lanes.mapTo(HashSet()) { it.lane }
 						val tagNames = built.rows.flatMapTo(HashSet()) { it.event.tags }
@@ -202,12 +207,8 @@ class TimeLineOverviewComponent(
 	override fun canFrame(eventId: Int): Boolean {
 		val current = _state.value
 		if (current.mode != TimelineMode.DATED || current.frame == TimelineFrame.Band(eventId)) return false
-		val row = current.rows?.firstOrNull { it.event.id == eventId }?.takeIf { it.isDrawn } ?: return false
-		val start = row.start ?: return false
-		val calendar = row.calendar ?: CalendarDef()
-		val end = row.end?.let { rangeEnd(calendar, it) } ?: return precisionExtent(calendar, start) > 1
-		val startAt = StoryCalendar.position(calendar, start) ?: return false
-		return end > startAt
+		val row = current.filtered.drawingRows.firstOrNull { it.event.id == eventId } ?: return false
+		return row.toLayoutEvent(current.calendar ?: CalendarDef(), current.laneFilter)?.isSpan == true
 	}
 
 	override fun setFrame(frame: TimelineFrame) {
@@ -216,23 +217,24 @@ class TimeLineOverviewComponent(
 		}
 	}
 
-	override suspend fun preview(eventId: Int): EventPreview? {
-		var cached: EventPreview? = null
-		val row = withContext(dispatcherMain) {
-			_state.value.rows?.firstOrNull { it.event.id == eventId }?.also { row ->
-				cached = previews[eventId]?.takeIf { it.row == row }?.preview
-			}
-		} ?: return null
-		cached?.let { return it }
-
-		val preview = resolvePreview(row)
-		withContext(dispatcherMain) {
-			if (_state.value.rows?.firstOrNull { it.event.id == eventId } == row) {
-				previews[eventId] = CachedPreview(row, preview)
+	override fun requestPreview(eventId: Int) {
+		val row = rowOf(eventId) ?: return
+		if (previewRows[eventId] == row || readingPreviews[eventId] == row) return
+		readingPreviews[eventId] = row
+		scope.launch(dispatcherMain) {
+			try {
+				val preview = withContext(dispatcherDefault) { resolvePreview(row) }
+				if (rowOf(eventId) == row) {
+					previewRows[eventId] = row
+					_previews.value += eventId to preview
+				}
+			} finally {
+				if (readingPreviews[eventId] == row) readingPreviews -= eventId
 			}
 		}
-		return preview
 	}
+
+	private fun rowOf(eventId: Int): TimelineRow? = _state.value.rows?.firstOrNull { it.event.id == eventId }
 
 	private suspend fun resolvePreview(row: TimelineRow): EventPreview {
 		val event = row.event

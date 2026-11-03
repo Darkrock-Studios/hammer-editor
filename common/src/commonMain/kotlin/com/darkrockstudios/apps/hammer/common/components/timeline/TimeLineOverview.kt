@@ -29,17 +29,23 @@ interface TimeLineOverview {
 	/** Which drawing a DATED timeline shows. */
 	fun setView(view: TimelineView)
 
-	/** Whether [eventId] is drawn as a span the drawing can frame, and is not already framed. */
+	/** Whether the drawing, under the current filters, draws [eventId] as a span, and it is not already framed. */
 	fun canFrame(eventId: Int): Boolean
 
 	/** Which stretch of a DATED timeline the drawing shows. [TimelineFrame.Story] needs a placed scene. */
 	fun setFrame(frame: TimelineFrame)
 
 	/**
-	 * [eventId]'s preview, read once and then served from a cache until the event or its row changes.
-	 * Null when the timeline has no such event.
+	 * The previews read so far, by event id. Each stays until its event's row changes; until one is
+	 * here, [TimelineRow.basicPreview] is what is known.
 	 */
-	suspend fun preview(eventId: Int): EventPreview?
+	val previews: Value<Map<Int, EventPreview>>
+
+	/**
+	 * Reads [eventId]'s preview into [previews], unless it is there or being read already. Does
+	 * nothing for an event the timeline does not have.
+	 */
+	fun requestPreview(eventId: Int)
 
 	data class State(
 		/** Null until the timeline has loaded. */

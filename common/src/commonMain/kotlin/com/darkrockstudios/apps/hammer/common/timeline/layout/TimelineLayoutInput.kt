@@ -21,7 +21,8 @@ sealed class TimelineFrame {
  * One timeline entry, already resolved to positions in the calendar's base unit.
  *
  * [precisionExtent] is how many base units the start date covers (a "year only" date covers a
- * year). A point with an extent above 1 lays out as a circa span over that extent.
+ * year). A point with an extent above 1 lays out as a circa span over that extent. An [end] that is
+ * not past [start] draws no span: the event is a point.
  */
 data class LayoutEvent(
 	val id: Int,
@@ -40,10 +41,16 @@ data class LayoutEvent(
 	/** End of the drawn span, or null for a point. */
 	internal val spanEnd: Long?
 		get() = when {
-			end != null -> maxOf(end, start)
+			end != null -> end.takeIf { it > start }
 			precisionExtent > 1 -> start + precisionExtent
 			else -> null
 		}
+
+	/**
+	 * Whether the drawing draws this event as a span (a band, a bar, or a ledger row with an end)
+	 * rather than a point, and so whether it can be framed.
+	 */
+	val isSpan: Boolean get() = spanEnd != null
 
 	internal val extentEnd: Long get() = spanEnd ?: start
 
