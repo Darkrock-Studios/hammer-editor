@@ -3,16 +3,22 @@ package com.darkrockstudios.apps.hammer.common.timeline.drawing
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFontFamilyResolver
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.sp
 import com.darkrockstudios.apps.hammer.common.timeline.layout.LabelStyle
 import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineTextMeasurer
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
+import kotlin.coroutines.CoroutineContext
 
 /**
  * Measures timeline labels with the fonts they are drawn in, so the geometry wraps and ellipsizes
@@ -38,11 +44,21 @@ class ComposeTimelineTextMeasurer(
 		lineHeights.getOrPut(style) { measure("Ag", style).size.height / density.density }
 }
 
-/** Phone labels stay small so the ledger fits beside the rails; desktop labels are larger. */
+/**
+ * Phone labels stay small so the ledger fits beside the rails; desktop labels are larger. Every call
+ * returns its own measurer, caches included, so one used off the main thread shares nothing mutable
+ * with one used to draw, apart from what [fontFamilyResolver] shares.
+ */
 @Composable
-fun rememberTimelineTextMeasurer(phone: Boolean = false): ComposeTimelineTextMeasurer {
-	val textMeasurer = rememberTextMeasurer(cacheSize = 512)
+fun rememberTimelineTextMeasurer(
+	phone: Boolean = false,
+	fontFamilyResolver: FontFamily.Resolver = LocalFontFamilyResolver.current,
+): ComposeTimelineTextMeasurer {
 	val density = LocalDensity.current
+	val layoutDirection = LocalLayoutDirection.current
+	val textMeasurer = remember(fontFamilyResolver, density, layoutDirection) {
+		TextMeasurer(fontFamilyResolver, density, layoutDirection, cacheSize = 512)
+	}
 	val mono = MaterialTheme.typography.labelSmall.fontFamily
 	val body = MaterialTheme.typography.bodySmall.fontFamily
 	return remember(textMeasurer, density, mono, body, phone) {
@@ -74,3 +90,26 @@ fun rememberTimelineTextMeasurer(phone: Boolean = false): ComposeTimelineTextMea
 		ComposeTimelineTextMeasurer(textMeasurer, density) { styles.getValue(it) }
 	}
 }
+
+/**
+ * A measurer for laying a timeline out on [LocalTimelineLayoutContext], away from the main thread.
+ * It resolves fonts through a resolver of its own, so text measured here shares no unsynchronized
+ * font cache with the rest of the UI.
+ */
+@Composable
+internal fun rememberTimelineLayoutMeasurer(phone: Boolean): ComposeTimelineTextMeasurer =
+	rememberTimelineTextMeasurer(phone, rememberBackgroundFontFamilyResolver())
+
+/** A font resolver for measuring text off the main thread, owned by its caller. */
+@Composable
+internal expect fun rememberBackgroundFontFamilyResolver(): FontFamily.Resolver
+
+/** Runs one timeline layout at a time, so a layout measurer is never used by two threads at once. */
+val TimelineLayoutDispatcher: CoroutineDispatcher = Dispatchers.Default.limitedParallelism(1)
+
+/**
+ * Where timeline layouts are computed. Tests and previews provide
+ * [kotlin.coroutines.EmptyCoroutineContext] to lay out on the composition's own thread, under its
+ * clock.
+ */
+val LocalTimelineLayoutContext = staticCompositionLocalOf<CoroutineContext> { TimelineLayoutDispatcher }

@@ -48,6 +48,7 @@ import com.darkrockstudios.apps.hammer.common.data.tagindex.TagCount
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.preview.fakeProjectDef
 import com.darkrockstudios.apps.hammer.common.timeline.*
+import com.darkrockstudios.apps.hammer.common.timeline.drawing.LocalTimelineLayoutContext
 import com.darkrockstudios.apps.hammer.common.timeline.drawing.TIMELINE_DRAWING_TAG
 import com.darkrockstudios.apps.hammer.common.timeline.drawing.TIMELINE_HORIZONTAL_SCROLL_TAG
 import com.darkrockstudios.apps.hammer.common.timeline.drawing.testTag
@@ -58,6 +59,9 @@ import io.mockk.every
 import io.mockk.mockk
 import org.junit.Rule
 import org.junit.Test
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
@@ -191,7 +195,7 @@ class TimeLineOverviewUiTest : BaseTest() {
 					}
 				}
 			}
-			CompositionLocalProvider(LocalRootFabState provides rootFab) {
+			CompositionLocalProvider(LocalRootFabState provides rootFab, LocalTimelineLayoutContext provides EmptyCoroutineContext) {
 				when {
 					!shown() -> {}
 					screen != null -> CompositionLocalProvider(LocalScreenCharacteristic provides screen, content = content)
@@ -812,7 +816,8 @@ class TimeLineOverviewUiTest : BaseTest() {
 		laneCount: Int,
 		width: Dp,
 		screen: ScreenCharacteristics = desktopScreen,
-		laneFilter: Set<String> = emptySet(),
+		laneFilter: () -> Set<String> = { emptySet() },
+		layoutContext: CoroutineContext = EmptyCoroutineContext,
 	) {
 		val calendar = CalendarDef()
 		val lanes = (1..laneCount).map { LaneCount("Lane $it", 1) }
@@ -822,15 +827,15 @@ class TimeLineOverviewUiTest : BaseTest() {
 				calendar = calendar,
 			)
 		}
-		val state = TimeLineOverview.State(
-			rows = rows,
-			lanes = lanes,
-			mode = TimelineMode.DATED,
-			calendar = calendar,
-			laneFilter = laneFilter,
-		)
 		compose.setContent {
-			CompositionLocalProvider(LocalScreenCharacteristic provides screen) {
+			val state = TimeLineOverview.State(
+				rows = rows,
+				lanes = lanes,
+				mode = TimelineMode.DATED,
+				calendar = calendar,
+				laneFilter = laneFilter(),
+			)
+			CompositionLocalProvider(LocalScreenCharacteristic provides screen, LocalTimelineLayoutContext provides layoutContext) {
 				Box(modifier = Modifier.requiredSize(width, 700.dp)) {
 					DatedTimelinePane(state = state, rows = rows, onTap = {})
 				}
@@ -870,10 +875,52 @@ class TimeLineOverviewUiTest : BaseTest() {
 
 	@Test
 	fun `A phone with many lanes draws only the filtered rails`() {
-		showDatedPane(laneCount = 6, width = 360.dp, screen = phoneScreen, laneFilter = setOf("Lane 2", "Lane 5"))
+		showDatedPane(laneCount = 6, width = 360.dp, screen = phoneScreen, laneFilter = { setOf("Lane 2", "Lane 5") })
 
 		assertEquals(listOf("Lane 2", "Lane 5"), drawnRails())
 		compose.onNodeWithTag(TIMELINE_HORIZONTAL_SCROLL_TAG).assertDoesNotExist()
+	}
+
+	/** Runs what it is given only when told to, so a test can hold a layout in progress. */
+	private class HeldDispatcher : CoroutineDispatcher() {
+		private val held = ArrayDeque<Runnable>()
+
+		override fun dispatch(context: CoroutineContext, block: Runnable) {
+			held.addLast(block)
+		}
+
+		fun runNext() = held.removeFirst().run()
+
+		fun runAll() {
+			while (held.isNotEmpty()) runNext()
+		}
+	}
+
+	@Test
+	fun `A dated timeline keeps its last layout until the next is ready and never shows one it has moved past`() {
+		val layouts = HeldDispatcher()
+		var laneFilter by mutableStateOf(emptySet<String>())
+		showDatedPane(laneCount = 3, width = 900.dp, laneFilter = { laneFilter }, layoutContext = layouts)
+		compose.waitForIdle()
+		assertEquals(emptyList(), drawnRails())
+
+		compose.runOnIdle { layouts.runAll() }
+		compose.waitForIdle()
+		assertEquals(listOf("Lane 1", "Lane 2", "Lane 3"), drawnRails())
+
+		laneFilter = setOf("Lane 2")
+		compose.waitForIdle()
+		laneFilter = setOf("Lane 3")
+		compose.waitForIdle()
+		assertEquals(listOf("Lane 1", "Lane 2", "Lane 3"), drawnRails())
+
+		compose.runOnIdle { layouts.runNext() }
+		compose.waitForIdle()
+		assertEquals(listOf("Lane 1", "Lane 2", "Lane 3"), drawnRails())
+
+		compose.runOnIdle { layouts.runAll() }
+		compose.waitForIdle()
+		assertEquals(listOf("Lane 3"), drawnRails())
 	}
 
 	@Test
