@@ -61,6 +61,35 @@ class TimelineDrawingInputTest {
 		)
 
 	@Test
+	fun `a placed entry's title leads with the entry mark unless it is a point drawn in its own box`() {
+		val exact = date("year" to 1, "day" to 2, "hour" to 3, "minute" to 4)
+		val rows = listOf(
+			row(1, exact, end = date("year" to 1, "day" to 9, "hour" to 0, "minute" to 0), kind = TimelineKind.ENTRY, lane = "Alice"),
+			row(2, exact, kind = TimelineKind.ENTRY, lane = "Alice"),
+			row(3, exact, kind = TimelineKind.ENTRY),
+			row(4, date("year" to 2), kind = TimelineKind.ENTRY, lane = "Queen"),
+			row(5, exact, end = date("year" to 1, "day" to 9, "hour" to 0, "minute" to 0), lane = "Queen"),
+		)
+
+		val titles = toLayoutInput(
+			rows = rows,
+			lanes = listOf(LaneCount("Alice", 2), LaneCount("Queen", 2)),
+			laneFilter = emptySet(),
+			calendar = story,
+			view = TimelineView.TO_SCALE,
+			widthDp = 840f,
+			phone = false,
+			entryMark = "⚑",
+		).events.associate { it.id to it.title }
+
+		assertEquals("⚑ Event 1", titles[1], "a span")
+		assertEquals("Event 2", titles[2], "a point in a lane")
+		assertEquals("⚑ Event 3", titles[3], "a point in the ledger")
+		assertEquals("⚑ Event 4", titles[4], "a year-only date, drawn as a span")
+		assertEquals("Event 5", titles[5], "a plain event")
+	}
+
+	@Test
 	fun `events carry their positions, kinds and placement data`() {
 		val rows = listOf(
 			row(1, date("year" to 2, "day" to 3, "hour" to 4, "minute" to 5), lane = "Alice", milestone = true),

@@ -2,6 +2,8 @@ package com.darkrockstudios.apps.hammer.common.timeline
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
@@ -12,7 +14,6 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -31,7 +32,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListLayoutInfo
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
@@ -42,8 +42,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -57,16 +55,10 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.onPreviewKeyEvent
-import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
@@ -96,7 +88,7 @@ import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.WindowWidthSizeClass
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdActiveFiltersStrip
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdClearGlyph
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdCollapsingStrip
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdScrollAwayStrip
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDragHandle
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineSegmentedPicker
@@ -108,6 +100,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSectionHead
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagChip
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagFilterBar
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.rememberHdScrollAwayFooterState
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.rememberHdScrollAwayStripState
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.rememberStoryDateWords
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownView
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.rememberMarkdownPreview
@@ -138,9 +131,6 @@ import com.darkrockstudios.apps.hammer.timeline_search_button
 import com.darkrockstudios.apps.hammer.timeline_search_clear
 import com.darkrockstudios.apps.hammer.timeline_search_close
 import com.darkrockstudios.apps.hammer.timeline_search_placeholder
-import com.darkrockstudios.apps.hammer.timeline_selection_clear
-import com.darkrockstudios.apps.hammer.timeline_selection_frame
-import com.darkrockstudios.apps.hammer.timeline_selection_open
 import com.darkrockstudios.apps.hammer.timeline_subject_archived
 import com.darkrockstudios.apps.hammer.timeline_subject_missing
 import com.darkrockstudios.apps.hammer.timeline_undated_detail
@@ -152,6 +142,18 @@ import com.darkrockstudios.apps.hammer.timeline_view_undated
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.pluralStringResource
+import kotlin.math.roundToInt
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.rememberScrollState
+import com.darkrockstudios.apps.hammer.timeline_drawing_menu_frame
+import com.darkrockstudios.apps.hammer.timeline_drawing_menu_view
+import com.darkrockstudios.apps.hammer.timeline_drawing_menu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.DropdownMenu
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSortPill
+import androidx.compose.runtime.mutableIntStateOf
+import com.darkrockstudios.apps.hammer.timeline_search_matches
 
 /** An event matches on its body read as prose, or on its plain-text date. */
 internal fun eventMatchesQuery(event: TimeLineEvent, query: String): Boolean =
@@ -168,12 +170,9 @@ const val TIME_LINE_SEARCH_TAG = "Timeline Overview Search"
 const val TIME_LINE_LANE_FILTER_TAG = "Timeline Lane Filter"
 const val TIME_LINE_CALENDAR_TAG = "Timeline Calendar"
 const val TIME_LINE_UNDATED_TAG = "Timeline Undated Notice"
-const val TIME_LINE_VIEW_PICKER_TAG = "Timeline View Picker"
-const val TIME_LINE_FRAME_PICKER_TAG = "Timeline Frame Picker"
-const val TIME_LINE_FRAME_BAND_TAG = "Timeline Frame Band"
-const val TIME_LINE_FRAME_CLEAR_TAG = "Timeline Frame Clear"
+const val TIME_LINE_DRAWING_MENU_TAG = "Timeline Drawing Menu"
+const val TIME_LINE_SEARCH_MATCHES_TAG = "Timeline Search Matches"
 const val TIME_LINE_FRAME_PILL_TAG = "Timeline Frame Pill"
-const val TIME_LINE_SELECTION_TAG = "Timeline Selection Summary"
 const val EVENT_CARD_TAG = "Timeline Event Card"
 const val EVENT_CARD_DATE_TAG = "Timeline Event Card Date"
 const val EVENT_CARD_CONTENT_TAG = "Timeline Event Card Content"
@@ -198,6 +197,8 @@ fun TimeLineOverviewUi(
 	viewEvent: (eventId: Int) -> Unit,
 	sharedTransitionScope: SharedTransitionScope,
 	animatedVisibilityScope: AnimatedVisibilityScope,
+	openEvent: (eventId: Int) -> Unit = viewEvent,
+	openedEventId: Int? = null,
 ) {
 	val state by component.state.subscribeAsState()
 	val tagIndex by component.rankedTags.subscribeAsState()
@@ -213,28 +214,54 @@ fun TimeLineOverviewUi(
 	val rows = state.rows.orEmpty()
 	val laneFilter = state.laneFilter
 
-	// Search and tags; the drawing applies the lane filter itself, keeping scenes in its ledger.
-	val matchedRows by remember(rows, searchQuery, activeTags) {
+	val dated = state.mode == TimelineMode.DATED
+	val taggedRows by remember(rows, activeTags) {
 		derivedStateOf {
-			val byText = if (searchQuery.isBlank()) {
-				rows
+			if (activeTags.isEmpty()) rows else rows.filter { row -> activeTags.all { it in row.event.tags } }
+		}
+	}
+	// The list narrows to what the search matches. The drawing keeps every event, applies the lane
+	// filter itself (keeping scenes in its ledger), and rings the matches instead.
+	val matchedRows by remember(taggedRows, searchQuery, dated) {
+		derivedStateOf {
+			if (dated || searchQuery.isBlank()) {
+				taggedRows
 			} else {
 				val query = searchQuery.trim()
-				rows.filter { rowMatchesQuery(it, query) }
-			}
-			if (activeTags.isEmpty()) {
-				byText
-			} else {
-				byText.filter { row -> activeTags.all { it in row.event.tags } }
+				taggedRows.filter { rowMatchesQuery(it, query) }
 			}
 		}
+	}
+	val searchMatches by remember(taggedRows, searchQuery, dated, laneFilter) {
+		derivedStateOf {
+			if (!dated || searchQuery.isBlank()) {
+				emptyList()
+			} else {
+				val query = searchQuery.trim()
+				taggedRows.filter { row ->
+					val drawn = row.start != null && !row.subjectArchived
+					val inLane = laneFilter.isEmpty() || row.event.kind == TimelineKind.SCENE ||
+						row.event.lane.isNullOrBlank() || row.event.lane in laneFilter
+					drawn && inLane && rowMatchesQuery(row, query)
+				}.map { it.event.id }
+			}
+		}
+	}
+	var matchIndex by remember(searchMatches) { mutableIntStateOf(0) }
+	val focusedMatch = searchMatches.getOrNull(matchIndex)
+	val nextMatch: () -> Unit = {
+		if (searchMatches.isNotEmpty()) matchIndex = (matchIndex + 1) % searchMatches.size
+	}
+	val matchCounter = if (dated && searchQuery.isNotBlank()) {
+		Res.string.timeline_search_matches.get(if (searchMatches.isEmpty()) 0 else matchIndex + 1, searchMatches.size)
+	} else {
+		null
 	}
 	val visibleRows by remember(matchedRows, laneFilter) {
 		derivedStateOf {
 			if (laneFilter.isEmpty()) matchedRows else matchedRows.filter { it.event.lane in laneFilter }
 		}
 	}
-	val dated = state.mode == TimelineMode.DATED
 
 	val toggleTag: (String) -> Unit = { tag ->
 		activeTags = if (tag in activeTags) activeTags - tag else activeTags + tag
@@ -251,26 +278,26 @@ fun TimeLineOverviewUi(
 		else -> OverviewContent.List
 	}
 	val listState = rememberLazyListState()
-	var paneHeightPx by remember { mutableStateOf(0) }
-	var drawingHeightPx by remember { mutableStateOf(0) }
-	val stripState = rememberTopAppBarState()
-	// Measured against the viewport with the strip fully shown, so collapsing it cannot flip this.
+	val drawingScroll = rememberScrollState()
+	val scrollStrip = rememberHdScrollAwayStripState()
+	// Content that cannot scroll has no scroll position to keep the strip or the create button hidden.
 	val contentFits by remember(branch) {
 		derivedStateOf {
 			when (branch) {
-				OverviewContent.Drawing -> drawingHeightPx <= paneHeightPx + stripState.heightOffset
+				OverviewContent.Drawing -> drawingScroll.maxValue == 0
 				OverviewContent.Empty -> true
-				OverviewContent.List -> listState.layoutInfo.fitsIn(listState.layoutInfo.viewportSize.height + stripState.heightOffset)
+				OverviewContent.List -> !listState.canScrollForward && !listState.canScrollBackward
 			}
 		}
 	}
-	// Content that does not overflow cannot scroll the strip back, so it never hides it.
-	val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(
-		state = stripState,
-		canScroll = { !contentFits },
-	)
-	LaunchedEffect(contentFits) {
-		if (contentFits) stripState.heightOffset = 0f
+	LaunchedEffect(branch, scrollStrip) {
+		snapshotFlow {
+			when (branch) {
+				OverviewContent.Drawing -> drawingScroll.value
+				OverviewContent.Empty -> 0
+				OverviewContent.List -> if (listState.firstVisibleItemIndex == 0) listState.firstVisibleItemScrollOffset else Int.MAX_VALUE
+			}
+		}.collect(scrollStrip::followScrollPosition)
 	}
 	val scrollAway = rememberHdScrollAwayFooterState()
 	LaunchedEffect(component, scrollAway) {
@@ -283,7 +310,6 @@ fun TimeLineOverviewUi(
 	Column(
 		modifier = Modifier
 			.fillMaxSize()
-			.nestedScroll(scrollBehavior.nestedScrollConnection)
 			.nestedScroll(scrollAway.nestedScrollConnection),
 	) {
 		// Title row — section header with entries/tags meta. Narrow widths
@@ -359,294 +385,274 @@ fun TimeLineOverviewUi(
 
 		HdFolioDivider()
 
-		HdCollapsingStrip(scrollBehavior = scrollBehavior) {
-			val searchField: @Composable () -> Unit = {
-				HdSearchField(
-					value = searchQuery,
-					onValueChange = { searchQuery = it },
-					modifier = Modifier
-						.then(if (isExpanded) Modifier.width(280.dp) else Modifier.fillMaxWidth()),
-					placeholder = Res.string.timeline_search_placeholder.get(),
-					onClear = { searchQuery = "" },
-					clearContentDescription =
-						Res.string.timeline_search_clear.get(),
-				)
-			}
-
-			val pickers: @Composable () -> Unit = {
-				if (dated) {
-					DrawingPickers(
-						state = state,
-						rows = rows,
-						isWide = isWide,
-						onView = component::setView,
-						onFrame = component::setFrame,
-					)
-				}
-			}
-			// A phone filters first and picks the drawing under its chips.
-			if (!phone) pickers()
-
-			if (isWide && !isExpanded) {
-				Row(
-					modifier = Modifier
-						.fillMaxWidth()
-						.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.M),
-					verticalAlignment = Alignment.CenterVertically,
-				) {
-					searchField()
-				}
-			}
-
-			val laneChips: (@Composable () -> Unit)? = if (state.lanes.isEmpty()) {
-				null
-			} else {
-				{
-					LaneFilterChips(
-						lanes = state.lanes.map { it.lane to it.count },
-						active = laneFilter,
-						onToggle = component::toggleLane,
-					)
-				}
-			}
-			val leading: (@Composable () -> Unit)? = when {
-				isExpanded && laneChips != null -> {
-					{
-						Row(
-							verticalAlignment = Alignment.CenterVertically,
-							horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M),
-						) {
-							searchField()
-							Box(
-								modifier = Modifier
-									.height(20.dp)
-									.width(Dp.Hairline)
-									.background(MaterialTheme.colorScheme.outlineVariant),
-							)
-							laneChips()
+		HdScrollAwayStrip(
+			state = scrollStrip,
+			modifier = Modifier.weight(1f),
+			strip = {
+				// On the drawing Enter steps through the matches, counted beside the field.
+				val searchField: @Composable () -> Unit = {
+					Row(
+						modifier = if (isExpanded) Modifier else Modifier.fillMaxWidth(),
+						verticalAlignment = Alignment.CenterVertically,
+						horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M),
+					) {
+						HdSearchField(
+							value = searchQuery,
+							onValueChange = { searchQuery = it },
+							modifier = if (isExpanded) Modifier.width(280.dp) else Modifier.weight(1f),
+							placeholder = Res.string.timeline_search_placeholder.get(),
+							onSearch = if (dated) {
+								{ nextMatch() }
+							} else {
+								null
+							},
+							onClear = { searchQuery = "" },
+							clearContentDescription =
+								Res.string.timeline_search_clear.get(),
+						)
+						if (matchCounter != null) {
+							HdMonoLabel(text = matchCounter, modifier = Modifier.testTag(TIME_LINE_SEARCH_MATCHES_TAG))
 						}
 					}
 				}
 
-				isExpanded -> {
-					{ searchField() }
+				if (isWide && !isExpanded) {
+					Row(
+						modifier = Modifier
+							.fillMaxWidth()
+							.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.M),
+						verticalAlignment = Alignment.CenterVertically,
+					) {
+						searchField()
+					}
 				}
 
-				isWide -> laneChips
-				else -> null
-			}
-
-			HdTagFilterBar(
-				tags = tagIndex,
-				allLabel = "${Res.string.timeline_filter_all.get()} · ${rows.size}",
-				activeTags = activeTags,
-				onToggle = toggleTag,
-				onClear = clearFilters,
-				leading = leading,
-				scrollingLeading = if (isWide) null else laneChips,
-			)
-
-			AnimatedVisibility(visible = anyFilter) {
-				HdActiveFiltersStrip(
-					activeTags = activeTags,
-					filteredLabel = Res.string.timeline_filter_filtered.get(visibleRows.size, rows.size),
-					clearAllLabel = Res.string.timeline_filter_clear_all.get(),
-					onToggle = toggleTag,
-					onClear = clearFilters,
-				)
-			}
-
-			if (phone) pickers()
-
-			HorizontalDivider(
-				thickness = Dp.Hairline,
-				color = MaterialTheme.colorScheme.outlineVariant,
-			)
-		}
-
-		val firstUndated = state.undatedIds.firstOrNull()
-		if (dated && firstUndated != null) {
-			HdNoticeStrip(
-				title = pluralStringResource(
-					Res.plurals.timeline_undated_title,
-					state.undatedIds.size,
-					state.undatedIds.size,
-				),
-				detail = Res.string.timeline_undated_detail.get(),
-				primaryLabel = Res.string.timeline_undated_open.get(),
-				onPrimary = { viewEvent(firstUndated) },
-				modifier = Modifier.testTag(TIME_LINE_UNDATED_TAG),
-			)
-		}
-
-		val listContentPadding = PaddingValues(
-			horizontal = Ui.Padding.XL,
-			vertical = Ui.Padding.L,
-		)
-
-		val eventRow: @Composable (row: TimelineRow, draggable: Boolean) -> Unit =
-			{ row, draggable ->
-				val isLast = visibleRows.lastOrNull()?.event?.id == row.event.id
-				Box(
-					modifier = Modifier
-						.fillMaxWidth()
-						.widthIn(max = 980.dp),
-				) {
-					EventCard(
-						row = row,
-						isLast = isLast,
-						activeTags = activeTags,
-						onTagClick = toggleTag,
-						onClick = { viewEvent(row.event.id) },
-						isDraggable = draggable,
-						sharedTransitionScope = sharedTransitionScope,
-						animatedVisibilityScope = animatedVisibilityScope,
-					)
-				}
-			}
-
-		when {
-			branch == OverviewContent.Drawing -> {
-				val selected = state.selectedId?.let { id -> rows.firstOrNull { it.event.id == id } }
-				var stripHeight by remember { mutableStateOf(0.dp) }
-				var spanIds by remember { mutableStateOf(emptySet<Int>()) }
-				val density = LocalDensity.current
-				val framed = state.frame != TimelineFrame.Everything
-				val focusRequester = remember { FocusRequester() }
-				LaunchedEffect(framed) {
-					// Takes focus so Escape returns to Everything.
-					if (framed) focusRequester.requestFocus()
-				}
-				Box(
-					modifier = Modifier
-						.fillMaxSize()
-						.onSizeChanged { paneHeightPx = it.height }
-						.onPreviewKeyEvent { event ->
-							if (framed && event.type == KeyEventType.KeyDown && event.key == Key.Escape) {
-								component.setFrame(TimelineFrame.Everything)
-								true
-							} else {
-								false
-							}
-						}
-						.focusRequester(focusRequester)
-						.focusable(),
-				) {
-					DatedTimelinePane(
-						state = state,
-						rows = matchedRows,
-						onTap = { target ->
-							when (target) {
-								is HitTarget.Band -> component.select(target.eventId)
-								is HitTarget.Point -> component.select(target.eventId)
-								is HitTarget.Ledger -> component.select(target.eventId)
-								is HitTarget.LaneHeader -> component.toggleLane(target.lane)
-							}
-						},
-						onOpen = viewEvent,
-						preview = component::preview,
-						onSpans = { spanIds = it },
-						bottomPadding = if (selected != null) stripHeight else 0.dp,
-						onContentHeight = { drawingHeightPx = with(density) { it.roundToPx() } },
-					)
-					if (framed) {
-						val bandTitle = (state.frame as? TimelineFrame.Band)
-							?.let { frame -> rows.firstOrNull { it.event.id == frame.eventId }?.title }
-						FramePill(
-							label = bandTitle?.ellipsize(BAND_CELL_CHARS) ?: Res.string.timeline_frame_story.get(),
-							onClear = { component.setFrame(TimelineFrame.Everything) },
-							modifier = Modifier
-								.align(Alignment.TopEnd)
-								.padding(top = Ui.Padding.M, end = Ui.Padding.L + MpScrollBarGutter),
+				val laneChips: (@Composable () -> Unit)? = if (state.lanes.isEmpty()) {
+					null
+				} else {
+					{
+						LaneFilterChips(
+							lanes = state.lanes.map { it.lane to it.count },
+							active = laneFilter,
+							onToggle = component::toggleLane,
 						)
 					}
-					if (selected != null) {
-						// The fill runs under the system navigation; the strip's content stays above it.
-						Box(
-							modifier = Modifier
-								.align(Alignment.BottomCenter)
-								.fillMaxWidth()
-								.onSizeChanged { stripHeight = with(density) { it.height.toDp() } }
-								.background(MaterialTheme.colorScheme.surfaceContainerLow)
-								.navigationBarsPadding(),
-						) {
-							val id = selected.event.id
-							val frameable = (selected.end != null || id in spanIds) && state.frame != TimelineFrame.Band(id)
-							SelectionStrip(
-								preview = state.selectionPreview?.takeIf { it.eventId == id } ?: selected.basicPreview(),
-								onFrame = if (frameable) {
-									{ component.setFrame(TimelineFrame.Band(id)) }
-								} else {
-									null
-								},
-								onOpen = { viewEvent(id) },
-								onClear = { component.select(null) },
-								onReference = component::openReference,
-								phone = phone,
+				}
+				val leading: (@Composable () -> Unit)? = when {
+					isExpanded && laneChips != null -> {
+						{
+							Row(
+								verticalAlignment = Alignment.CenterVertically,
+								horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M),
+							) {
+								searchField()
+								Box(
+									modifier = Modifier
+										.height(20.dp)
+										.width(Dp.Hairline)
+										.background(MaterialTheme.colorScheme.outlineVariant),
+								)
+								laneChips()
+							}
+						}
+					}
+
+					isExpanded -> {
+						{ searchField() }
+					}
+
+					isWide -> laneChips
+					else -> null
+				}
+
+				HdTagFilterBar(
+					tags = tagIndex,
+					allLabel = "${Res.string.timeline_filter_all.get()} · ${rows.size}",
+					activeTags = activeTags,
+					onToggle = toggleTag,
+					onClear = clearFilters,
+					leading = leading,
+					scrollingLeading = if (isWide) null else laneChips,
+					trailing = {
+						if (dated) {
+							DrawingMenu(
+								state = state,
+								rows = rows,
+								onView = component::setView,
+								onFrame = component::setFrame,
+							)
+						}
+					},
+				)
+
+				AnimatedVisibility(visible = anyFilter) {
+					HdActiveFiltersStrip(
+						activeTags = activeTags,
+						filteredLabel = Res.string.timeline_filter_filtered.get(visibleRows.size, rows.size),
+						clearAllLabel = Res.string.timeline_filter_clear_all.get(),
+						onToggle = toggleTag,
+						onClear = clearFilters,
+					)
+				}
+
+
+				HorizontalDivider(
+					thickness = Dp.Hairline,
+					color = MaterialTheme.colorScheme.outlineVariant,
+				)
+
+				val firstUndated = state.undatedIds.firstOrNull()
+				if (dated && firstUndated != null) {
+					HdNoticeStrip(
+						title = pluralStringResource(
+							Res.plurals.timeline_undated_title,
+							state.undatedIds.size,
+							state.undatedIds.size,
+						),
+						detail = Res.string.timeline_undated_detail.get(),
+						primaryLabel = Res.string.timeline_undated_open.get(),
+						onPrimary = { openEvent(firstUndated) },
+						modifier = Modifier.testTag(TIME_LINE_UNDATED_TAG),
+					)
+				}
+			},
+		) { topPadding ->
+			val listContentPadding = PaddingValues(
+				start = Ui.Padding.XL,
+				top = Ui.Padding.L + topPadding,
+				end = Ui.Padding.XL,
+				bottom = Ui.Padding.L,
+			)
+
+			val eventRow: @Composable (row: TimelineRow, draggable: Boolean) -> Unit =
+				{ row, draggable ->
+					val isLast = visibleRows.lastOrNull()?.event?.id == row.event.id
+					Box(
+						modifier = Modifier
+							.fillMaxWidth()
+							.widthIn(max = 980.dp),
+					) {
+						EventCard(
+							row = row,
+							isLast = isLast,
+							activeTags = activeTags,
+							onTagClick = toggleTag,
+							onClick = { viewEvent(row.event.id) },
+							isDraggable = draggable,
+							sharedTransitionScope = sharedTransitionScope,
+							animatedVisibilityScope = animatedVisibilityScope,
+						)
+					}
+				}
+
+			when {
+				branch == OverviewContent.Drawing -> {
+					val framed = state.frame != TimelineFrame.Everything
+					Box(modifier = Modifier.fillMaxSize()) {
+						DatedTimelinePane(
+							state = state,
+							rows = matchedRows,
+							onTap = { target ->
+								when (target) {
+									is HitTarget.Band -> openEvent(target.eventId)
+									is HitTarget.Point -> openEvent(target.eventId)
+									is HitTarget.Ledger -> openEvent(target.eventId)
+									is HitTarget.LaneHeader -> component.toggleLane(target.lane)
+								}
+							},
+							onPeek = component::select,
+							// The event's mark hands its bounds to the dialog opened from it, and takes them back.
+							// Its own visibility transition is what drives the shrink back into it on close.
+							eventSource = { id ->
+								EventMarkSource(
+									eventId = id,
+									visible = openedEventId != id,
+									sharedTransitionScope = sharedTransitionScope,
+									modifier = Modifier.matchParentSize(),
+								)
+							},
+							preview = component::preview,
+							scrollState = drawingScroll,
+							topPadding = topPadding,
+							highlighted = searchMatches.toSet(),
+							focusedId = focusedMatch,
+						)
+						if (framed) {
+							val bandTitle = (state.frame as? TimelineFrame.Band)
+								?.let { frame -> rows.firstOrNull { it.event.id == frame.eventId }?.title }
+							FramePill(
+								label = bandTitle?.ellipsize(BAND_CELL_CHARS) ?: Res.string.timeline_frame_story.get(),
+								onClear = { component.setFrame(TimelineFrame.Everything) },
+								modifier = Modifier
+									.align(Alignment.TopEnd)
+									// Rides just under whatever part of the strip is showing.
+									.offset { IntOffset(0, scrollStrip.visibleHeight.roundToInt()) }
+									.padding(top = Ui.Padding.M, end = Ui.Padding.L + MpScrollBarGutter),
 							)
 						}
 					}
 				}
-			}
 
-			branch == OverviewContent.Empty -> {
-				Box(
-					modifier = Modifier
-						.fillMaxSize()
-						.testTag(TIME_LINE_LIST_TAG)
-						.padding(vertical = Ui.Padding.XXL),
-					contentAlignment = Alignment.Center,
-				) {
-					Text(
-						text = Res.string.timeline_no_events.get(),
-						style = MaterialTheme.typography.headlineSmall,
-						color = MaterialTheme.colorScheme.onSurfaceVariant,
-						textAlign = TextAlign.Center,
-					)
+				branch == OverviewContent.Empty -> {
+					Box(
+						modifier = Modifier
+							.fillMaxSize()
+							.testTag(TIME_LINE_LIST_TAG)
+							.padding(top = topPadding)
+							.padding(vertical = Ui.Padding.XXL),
+						contentAlignment = Alignment.Center,
+					) {
+						Text(
+							text = Res.string.timeline_no_events.get(),
+							style = MaterialTheme.typography.headlineSmall,
+							color = MaterialTheme.colorScheme.onSurfaceVariant,
+							textAlign = TextAlign.Center,
+						)
+					}
 				}
-			}
-			// Reordering maps display indices to stored order, which only holds when nothing is
-			// filtered out and the order is manual. Other views fall back to a static list.
-			state.mode == TimelineMode.MANUAL && searchQuery.isBlank() && !anyFilter -> {
-				DragDropList(
-					items = visibleRows,
-					key = { _, item -> item.event.id },
-					onMove = { from, to ->
-						visibleRows.getOrNull(from)?.let { row ->
-							scope.launch { component.moveEvent(row.event, to, from < to) }
-						}
-					},
-					modifier = Modifier
-						.fillMaxSize()
-						.testTag(TIME_LINE_LIST_TAG),
-					contentPadding = listContentPadding,
-					lazyListState = listState,
-				) { row, _ ->
-					eventRow(row, true)
-				}
-			}
-
-			else -> {
-				Box {
-					LazyColumn(
-						state = listState,
+				// Reordering maps display indices to stored order, which only holds when nothing is
+				// filtered out and the order is manual. Other views fall back to a static list.
+				state.mode == TimelineMode.MANUAL && searchQuery.isBlank() && !anyFilter -> {
+					DragDropList(
+						items = visibleRows,
+						key = { _, item -> item.event.id },
+						onMove = { from, to ->
+							visibleRows.getOrNull(from)?.let { row ->
+								scope.launch { component.moveEvent(row.event, to, from < to) }
+							}
+						},
 						modifier = Modifier
 							.fillMaxSize()
 							.testTag(TIME_LINE_LIST_TAG),
 						contentPadding = listContentPadding,
-					) {
-						items(
-							items = visibleRows,
-							key = { row -> row.event.id },
-						) { row ->
-							eventRow(row, false)
-						}
+						lazyListState = listState,
+					) { row, _ ->
+						eventRow(row, true)
 					}
+				}
 
-					MpScrollBarList(
-						modifier = scrollBarOverlay(),
-						state = listState,
-					)
+				else -> {
+					Box {
+						LazyColumn(
+							state = listState,
+							modifier = Modifier
+								.fillMaxSize()
+								.testTag(TIME_LINE_LIST_TAG),
+							contentPadding = listContentPadding,
+						) {
+							items(
+								items = visibleRows,
+								key = { row -> row.event.id },
+							) { row ->
+								eventRow(row, false)
+							}
+						}
+
+						MpScrollBarList(
+							modifier = scrollBarOverlay(),
+							state = listState,
+						)
+					}
 				}
 			}
 		}
@@ -655,13 +661,30 @@ fun TimeLineOverviewUi(
 
 private enum class OverviewContent { Drawing, Empty, List }
 
-/** Whether every item is laid out and the whole list, padding included, fits [viewportPx]. */
-private fun LazyListLayoutInfo.fitsIn(viewportPx: Float): Boolean {
-	val first = visibleItemsInfo.firstOrNull() ?: return true
-	val last = visibleItemsInfo.last()
-	if (first.index != 0 || last.index != totalItemsCount - 1) return false
-	val content = last.offset + last.size - first.offset + beforeContentPadding + afterContentPadding
-	return content <= viewportPx
+/**
+ * An invisible stand-in for an event's mark that the dialog opened from it grows out of. Hidden while
+ * that dialog is open; its reappearance is the transition the dialog shrinks back into.
+ */
+@OptIn(ExperimentalSharedTransitionApi::class)
+@Composable
+private fun EventMarkSource(
+	eventId: Int,
+	visible: Boolean,
+	sharedTransitionScope: SharedTransitionScope,
+	modifier: Modifier = Modifier,
+) {
+	AnimatedVisibility(visible = visible, enter = EnterTransition.None, exit = ExitTransition.None, modifier = modifier) {
+		with(sharedTransitionScope) {
+			Box(
+				modifier = Modifier
+					.fillMaxSize()
+					.sharedElement(
+						sharedContentState = rememberSharedContentState(eventDialogKey(eventId)),
+						animatedVisibilityScope = this@AnimatedVisibility,
+					),
+			)
+		}
+	}
 }
 
 /**
@@ -690,154 +713,98 @@ private fun FramePill(label: String, onClear: () -> Unit, modifier: Modifier = M
 	}
 }
 
-/** The view picker and the frame picker, side by side when there is room. */
+/**
+ * `VIEW  SEQUENCE · EVERYTHING` at the end of the filter row, opening one menu with the drawing
+ * (Sequence or To scale) above the frame (Everything or Story). A framed band shows its title as the
+ * frame; the pill on the drawing returns it to Everything.
+ */
 @Composable
-private fun DrawingPickers(
+private fun DrawingMenu(
 	state: TimeLineOverview.State,
 	rows: List<TimelineRow>,
-	isWide: Boolean,
 	onView: (TimelineView) -> Unit,
 	onFrame: (TimelineFrame) -> Unit,
 ) {
-	val viewPicker: @Composable (Modifier) -> Unit = { modifier ->
-		HdHairlineSegmentedPicker(
-			options = TimelineView.entries,
-			selected = state.view,
-			onSelect = onView,
-			label = { view ->
-				when (view) {
-					TimelineView.SEQUENCE -> Res.string.timeline_view_sequence.get()
-					TimelineView.TO_SCALE -> Res.string.timeline_view_to_scale.get()
-				}
-			},
-			modifier = modifier.testTag(TIME_LINE_VIEW_PICKER_TAG),
-		)
-	}
-	val band = state.frame as? TimelineFrame.Band
-	val bandTitle = band?.let { frame -> rows.firstOrNull { it.event.id == frame.eventId }?.title }.orEmpty()
-	val framePicker: @Composable (Modifier) -> Unit = { modifier ->
-		FramePicker(
-			frame = state.frame,
-			storyAvailable = state.storyFrameAvailable,
-			bandTitle = bandTitle,
-			onSelect = onFrame,
-			modifier = modifier,
-		)
-	}
-	if (isWide) {
-		Row(
-			modifier = Modifier.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.M),
-			horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
-			verticalAlignment = Alignment.CenterVertically,
-		) {
-			viewPicker(Modifier.width(280.dp))
-			framePicker(Modifier.width(if (band != null) 420.dp else 280.dp))
+	var expanded by remember { mutableStateOf(false) }
+	val sequence = Res.string.timeline_view_sequence.get()
+	val toScale = Res.string.timeline_view_to_scale.get()
+	val everything = Res.string.timeline_frame_everything.get()
+	val story = Res.string.timeline_frame_story.get()
+	val bandTitle = (state.frame as? TimelineFrame.Band)
+		?.let { frame -> rows.firstOrNull { it.event.id == frame.eventId }?.title }
+	val bandDescription = bandTitle?.let { Res.string.timeline_frame_band_description.get(it) }
+	val viewLabel: (TimelineView) -> String = { view ->
+		when (view) {
+			TimelineView.SEQUENCE -> sequence
+			TimelineView.TO_SCALE -> toScale
 		}
-	} else {
-		Column(
-			modifier = Modifier.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.M),
-			verticalArrangement = Arrangement.spacedBy(Ui.Padding.M),
-		) {
-			viewPicker(Modifier.fillMaxWidth())
-			framePicker(Modifier.fillMaxWidth())
+	}
+	val frameLabel: (TimelineFrame) -> String = { frame ->
+		when (frame) {
+			TimelineFrame.Everything -> everything
+			TimelineFrame.Story -> story
+			is TimelineFrame.Band -> bandTitle.orEmpty().ellipsize(BAND_CELL_CHARS)
+		}
+	}
+	Box {
+		HdSortPill(
+			label = Res.string.timeline_drawing_menu.get(),
+			value = "${viewLabel(state.view)} · ${frameLabel(state.frame)}",
+			onClick = { expanded = true },
+			modifier = Modifier
+				.testTag(TIME_LINE_DRAWING_MENU_TAG)
+				.then(if (bandDescription != null) Modifier.semantics { contentDescription = bandDescription } else Modifier),
+		)
+		DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+			MenuSection(Res.string.timeline_drawing_menu_view.get())
+			TimelineView.entries.forEach { view ->
+				MenuChoice(label = viewLabel(view), selected = view == state.view) {
+					onView(view)
+					expanded = false
+				}
+			}
+			HorizontalDivider(thickness = Dp.Hairline, color = MaterialTheme.colorScheme.outlineVariant)
+			MenuSection(Res.string.timeline_drawing_menu_frame.get())
+			listOf(TimelineFrame.Everything, TimelineFrame.Story).forEach { frame ->
+				MenuChoice(
+					label = frameLabel(frame),
+					selected = frame == state.frame,
+					enabled = frame != TimelineFrame.Story || state.storyFrameAvailable,
+				) {
+					onFrame(frame)
+					expanded = false
+				}
+			}
 		}
 	}
 }
 
-/** `[ EVERYTHING │ STORY ]`, plus the framed band's cell with a clear glyph while one is framed. */
 @Composable
-private fun FramePicker(
-	frame: TimelineFrame,
-	storyAvailable: Boolean,
-	bandTitle: String,
-	onSelect: (TimelineFrame) -> Unit,
-	modifier: Modifier = Modifier,
-) {
-	val options = buildList {
-		add(TimelineFrame.Everything)
-		add(TimelineFrame.Story)
-		if (frame is TimelineFrame.Band) add(frame)
-	}
-	val bandDescription = Res.string.timeline_frame_band_description.get(bandTitle)
-	val backDescription = Res.string.timeline_frame_back_to_everything.get()
-	HdHairlineSegmentedPicker(
-		options = options,
-		selected = frame,
-		onSelect = onSelect,
-		label = { option ->
-			when (option) {
-				TimelineFrame.Everything -> Res.string.timeline_frame_everything.get()
-				TimelineFrame.Story -> Res.string.timeline_frame_story.get()
-				is TimelineFrame.Band -> bandTitle.ellipsize(BAND_CELL_CHARS)
-			}
+private fun MenuSection(title: String) {
+	HdMonoLabel(text = title, modifier = Modifier.padding(horizontal = Ui.Padding.L, vertical = Ui.Padding.S))
+}
+
+@Composable
+private fun MenuChoice(label: String, selected: Boolean, enabled: Boolean = true, onClick: () -> Unit) {
+	DropdownMenuItem(
+		text = {
+			Text(
+				text = label,
+				style = MaterialTheme.typography.bodyMedium,
+				color = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+				fontWeight = if (selected) FontWeight.Bold else null,
+			)
 		},
-		isEnabled = { option -> option != TimelineFrame.Story || storyAvailable },
-		trailing = { option ->
-			if (option is TimelineFrame.Band) {
-				{
-					HdClearGlyph(
-						onClick = { onSelect(TimelineFrame.Everything) },
-						contentDescription = backDescription,
-						modifier = Modifier.testTag(TIME_LINE_FRAME_CLEAR_TAG),
-					)
-				}
-			} else {
-				null
-			}
-		},
-		cellModifier = { option ->
-			if (option is TimelineFrame.Band) {
-				Modifier
-					.testTag(TIME_LINE_FRAME_BAND_TAG)
-					.semantics { contentDescription = bandDescription }
-			} else {
-				Modifier
-			}
-		},
-		modifier = modifier.testTag(TIME_LINE_FRAME_PICKER_TAG),
+		onClick = onClick,
+		enabled = enabled,
+		modifier = Modifier.testTag(menuChoiceTag(label)),
 	)
 }
 
+internal fun menuChoiceTag(label: String) = "Timeline Drawing Menu: $label"
+
 private const val BAND_CELL_CHARS = 18
-/**
- * The selected event over the bottom of the drawing as an [EventPreviewCard], with Frame (when
- * [onFrame] is given, for an event drawn as a span), Open and a clear glyph. A reference chip opens
- * that reference through [onReference]. On a [phone] the actions sit under the card.
- */
-@Composable
-internal fun SelectionStrip(
-	preview: EventPreview,
-	onOpen: () -> Unit,
-	onClear: () -> Unit,
-	onReference: (CatalogItem) -> Unit,
-	modifier: Modifier = Modifier,
-	onFrame: (() -> Unit)? = null,
-	phone: Boolean = false,
-) {
-	HdNoticeStrip(
-		modifier = modifier.testTag(TIME_LINE_SELECTION_TAG),
-		primaryLabel = Res.string.timeline_selection_open.get(),
-		onPrimary = onOpen,
-		secondaryLabel = onFrame?.let { Res.string.timeline_selection_frame.get() },
-		onSecondary = { onFrame?.invoke() },
-		trailing = {
-			HdClearGlyph(
-				onClick = onClear,
-				contentDescription = Res.string.timeline_selection_clear.get(),
-				boxSize = 32.dp,
-				glyphSize = 9.dp,
-			)
-		},
-		actionsBelow = phone,
-	) {
-		EventPreviewCard(
-			preview = preview,
-			compact = false,
-			maxChips = if (phone) SUMMARY_CHIPS_PHONE else SUMMARY_CHIPS,
-			onReference = onReference,
-		)
-	}
-}
+
 
 /** One `HdTagChip` per lane, its swatch in the lane's colour: `▪ Alice · 4`. */
 @Composable

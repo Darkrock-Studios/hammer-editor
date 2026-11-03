@@ -24,8 +24,11 @@ interface TimeLineOverview {
 	/** Which drawing a DATED timeline shows. */
 	fun setView(view: TimelineView)
 
-	/** Selects [eventId] on the drawing; null, or the event already selected, clears the selection. */
+	/** Selects [eventId] on the drawing, projecting it and showing its summary; null clears the selection. */
 	fun select(eventId: Int?)
+
+	/** Whether [eventId] is drawn as a span the drawing can frame, and is not already framed. */
+	fun canFrame(eventId: Int): Boolean
 
 	/** Which stretch of a DATED timeline the drawing shows. [TimelineFrame.Story] needs a placed scene. */
 	fun setFrame(frame: TimelineFrame)
@@ -56,8 +59,6 @@ interface TimeLineOverview {
 		val view: TimelineView = TimelineView.SEQUENCE,
 		/** The event the drawing projects across its lanes. Not saved. */
 		val selectedId: Int? = null,
-		/** What the strip under the drawing shows for [selectedId]; null until it has been read. */
-		val selectionPreview: EventPreview? = null,
 		val frame: TimelineFrame = TimelineFrame.Everything,
 		/** Whether some placed scene has a start, which [TimelineFrame.Story] frames. */
 		val storyFrameAvailable: Boolean = false,
@@ -66,7 +67,7 @@ interface TimeLineOverview {
 	)
 }
 
-/** An event as its hover card and the selection strip show it. */
+/** An event as its preview card shows it, on hover or a long press. */
 data class EventPreview(
 	val eventId: Int,
 	val kind: TimelineKind,

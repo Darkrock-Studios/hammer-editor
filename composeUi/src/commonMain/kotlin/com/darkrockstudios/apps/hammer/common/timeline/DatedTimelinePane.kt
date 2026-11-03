@@ -1,5 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.timeline
 
+import androidx.compose.foundation.ScrollState
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.rememberScrollState
@@ -37,15 +39,21 @@ import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineLayoutEngi
 import com.darkrockstudios.apps.hammer.timeline_lane_filter_description
 import kotlinx.coroutines.launch
 import kotlin.math.floor
+import kotlin.math.roundToInt
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.glyph
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
+import com.darkrockstudios.apps.hammer.common.timeline.drawing.eventId
+import androidx.compose.ui.platform.LocalDensity
 
 private const val FALLBACK_WIDTH_DP = 840f
 private const val WIDTH_STEP_DP = 8f
 
 /**
  * The drawing of a DATED timeline's [rows] in the state's frame, laid out to the width it is given.
- * A new frame starts scrolled to the top. [bottomPadding] keeps the last rows clear of an overlay.
- * [onContentHeight] hears the drawing's full height, padding included, and [onSpans] the events it
- * draws as spans. Where a pointer hovers, an event's hover card shows what [preview] reads for it.
+ * A new frame starts scrolled to the top, and [topPadding] lets the drawing start under an overlay. An
+ * event's preview card shows what [preview] reads for it, where a pointer hovers or a long press
+ * holds; [onPeek] hears the event a long press holds, then null on release. [highlighted] events
+ * are ringed as search matches, and the drawing scrolls [focusedId] into view.
  *
  * On a phone (Compact width) lanes are 22dp rails with every label in the ledger. Only the lanes in
  * the lane filter are drawn (all of them while it is empty), so the lane chips are how a writer picks
@@ -57,11 +65,13 @@ internal fun DatedTimelinePane(
 	rows: List<TimelineRow>,
 	onTap: (HitTarget) -> Unit,
 	modifier: Modifier = Modifier,
-	onOpen: ((Int) -> Unit)? = null,
-	bottomPadding: Dp = 0.dp,
-	onContentHeight: (Dp) -> Unit = {},
+	onPeek: (eventId: Int?) -> Unit = {},
+	eventSource: (@Composable BoxScope.(eventId: Int) -> Unit)? = null,
+	scrollState: ScrollState = rememberScrollState(),
+	topPadding: Dp = 0.dp,
+	highlighted: Set<Int> = emptySet(),
+	focusedId: Int? = null,
 	preview: (suspend (eventId: Int) -> EventPreview?)? = null,
-	onSpans: (Set<Int>) -> Unit = {},
 ) {
 	val words = rememberStoryDateWords()
 	val colors = LocalHammerColors.current
@@ -71,7 +81,6 @@ internal fun DatedTimelinePane(
 	val laneDescriptions = state.lanes.associate { it.lane to Res.string.timeline_lane_filter_description.get(it.lane) }
 	val describeLane: (String) -> String = { lane -> laneDescriptions[lane] ?: lane }
 
-	val scrollState = rememberScrollState()
 	var shownFrame by remember { mutableStateOf(state.frame) }
 	LaunchedEffect(state.frame) {
 		if (state.frame != shownFrame) {
@@ -108,6 +117,7 @@ internal fun DatedTimelinePane(
 				frame = state.frame,
 				selectedId = state.selectedId,
 				words = words,
+				entryMark = EntryType.EVENT.glyph(),
 			)
 			TimelineLayoutEngine.layout(input.copy(widthDp = maxOf(steppedWidthDp, TimelineLayoutEngine.minimumWidthDp(input, measurer))), measurer)
 		}
@@ -116,18 +126,15 @@ internal fun DatedTimelinePane(
 			layout.lanes.map { lane -> state.lanes.indexOfFirst { it.lane == lane.name }.takeIf { it >= 0 } ?: lane.index }
 		}
 		val titles = remember(rows) { rows.associate { it.event.id to it.title } }
-		val contentHeight = layout.heightDp.dp + bottomPadding
-		val reportContentHeight by rememberUpdatedState(onContentHeight)
-		LaunchedEffect(contentHeight) { reportContentHeight(contentHeight) }
-		val reportSpans by rememberUpdatedState(onSpans)
-		LaunchedEffect(layout) {
-			reportSpans(
-				buildSet {
-					layout.bands.forEach { add(it.eventId) }
-					layout.bars.forEach { add(it.eventId) }
-					layout.ledgerRows.forEach { if (it.anchorY1Dp != null) add(it.eventId) }
-				}
-			)
+		// Brings a newly focused match a third of the way down the pane.
+		val density = LocalDensity.current
+		val viewportPx = with(density) { maxHeight.toPx() }
+		val currentLayout by rememberUpdatedState(layout)
+		LaunchedEffect(focusedId) {
+			val id = focusedId ?: return@LaunchedEffect
+			val rect = currentLayout.hitRegions.firstOrNull { it.target.eventId == id }?.rect ?: return@LaunchedEffect
+			val top = with(density) { (rect.y.dp + topPadding).toPx() }
+			scrollState.animateScrollTo((top - viewportPx / 3f).roundToInt().coerceIn(0, scrollState.maxValue))
 		}
 
 		// Until its preview arrives a card shows what the row already knows.
@@ -137,7 +144,7 @@ internal fun DatedTimelinePane(
 		val readPreview by rememberUpdatedState(preview)
 		val hoverCard: (@Composable (Int) -> Unit)? = if (preview != null) {
 			{ id ->
-				(previews[id] ?: rowsById[id]?.basicPreview())?.let { EventPreviewCard(it, compact = true) }
+				(previews[id] ?: rowsById[id]?.basicPreview())?.let { EventPreviewCard(it) }
 			}
 		} else {
 			null
@@ -148,14 +155,17 @@ internal fun DatedTimelinePane(
 			laneColor = { index -> colors.laneColor(paletteIndex.getOrElse(index) { index }) },
 			selectedId = state.selectedId,
 			onTap = onTap,
-			onOpen = onOpen,
+			onPeek = onPeek,
+			eventSource = eventSource,
 			titles = titles,
 			laneHeaderDescription = describeLane,
 			measurer = measurer,
 			modifier = Modifier.fillMaxSize(),
 			contentWidth = layout.widthDp.takeIf { it > widthDp }?.dp,
 			scrollState = scrollState,
-			bottomPadding = bottomPadding,
+			topPadding = topPadding,
+			highlighted = highlighted,
+			focusedId = focusedId,
 			hoverCard = hoverCard,
 			onHoverStart = { id ->
 				previewScope.launch { readPreview?.invoke(id)?.let { previews[id] = it } }

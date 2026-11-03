@@ -237,6 +237,18 @@ These set up the page. Use them before reaching for raw `Column` /
       ┆ ⌄ Chapter II                 2 SCN
       ┆ ┆   The Pool of Tears
 
+- **[`HdScrollAwayStrip`](HdScrollAwayStrip.kt)**: a browse screen's
+  filter strip laid **over** the top of its scrolling content. The
+  content takes the strip's full height as top padding, so showing or
+  hiding the strip never changes how far the content can scroll. It
+  slides away as the content starts scrolling down and back as it starts
+  scrolling up, counting only scrolling the content really did. Feed the
+  content's scroll position to `followScrollPosition` so the strip is
+  always shown with the content at its top, including after jumps that
+  are not gestures (a filter, a jump to the top). Prefer it to `HdCollapsingStrip` wherever the
+  content can be only slightly taller than the pane: a strip that takes
+  layout space can hide itself into content that then fits, leaving
+  nothing to scroll it back.
 - **[`HdScrollAwayFooter`](HdScrollAwayFooter.kt)**: hairline action
   strip that floats over the bottom of a scrolling pane and slides away
   as the reader scrolls down. It is an **overlay**, never a sibling in

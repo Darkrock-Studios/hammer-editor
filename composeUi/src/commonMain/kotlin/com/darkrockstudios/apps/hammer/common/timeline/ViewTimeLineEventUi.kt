@@ -3,8 +3,11 @@ package com.darkrockstudios.apps.hammer.common.timeline
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -13,6 +16,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
@@ -51,10 +57,20 @@ const val TIME_LINE_VIEW_MILESTONE_TAG = "timeline-view-milestone"
 const val TIME_LINE_VIEW_START_TAG = "timeline-view-start"
 const val TIME_LINE_VIEW_END_TAG = "timeline-view-end"
 const val TIME_LINE_VIEW_WHEN_TAG = "timeline-view-when"
+const val TIME_LINE_VIEW_FRAME_TAG = "timeline-view-frame"
 
 private val ModalMaxWidth = TextEditorDefaults.MAX_WIDTH * 1.25f
 private val ModalMaxHeight = 760.dp
 private val SubjectImageHeight = 220.dp
+private const val DIALOG_SCRIM_ALPHA = 0.32f
+private const val DIALOG_CARD_FADE_MS = 140
+private const val DIALOG_BACK_SHRINK = 0.1f
+
+/** How long the dialog takes to grow out of an event's mark, or shrink back into it. */
+internal const val DIALOG_MORPH_MS = 320
+
+/** The shared bounds an event's mark on the drawing hands to the dialog opened from it. */
+internal fun eventDialogKey(eventId: Int) = "timeline-event-dialog-$eventId"
 
 @OptIn(ExperimentalSharedTransitionApi::class, ExperimentalLayoutApi::class)
 @Composable
@@ -65,6 +81,9 @@ fun ViewTimeLineEventUi(
 	rootSnackbar: RootSnackbarHostState,
 	sharedTransitionScope: SharedTransitionScope,
 	animatedVisibilityScope: AnimatedVisibilityScope,
+	dialog: Boolean = false,
+	onFrame: (() -> Unit)? = null,
+	dialogBackProgress: () -> Float = { 0f },
 ) {
 	val strRes = rememberStrRes()
 	val dispatcherDefault = rememberDefaultDispatcher()
@@ -90,11 +109,21 @@ fun ViewTimeLineEventUi(
 		}
 	}
 
+	// As a dialog the event sits on a scrim over the drawing; a tap on the scrim closes it.
+	val scrim = MaterialTheme.colorScheme.scrim
+	val backdrop = if (dialog) {
+		Modifier
+			// Thins as a back gesture pulls the dialog away.
+			.drawBehind { drawRect(scrim.copy(alpha = DIALOG_SCRIM_ALPHA * (1f - dialogBackProgress() / 2f))) }
+			.clickable(interactionSource = null, indication = null) { component.confirmClose() }
+	} else {
+		Modifier.background(MaterialTheme.colorScheme.surfaceDim)
+	}
 	Box(
 		modifier = modifier
 			.fillMaxSize()
 			.saveShortcutModifier { if (isEditing) saveChanges() }
-			.background(MaterialTheme.colorScheme.surfaceDim),
+			.then(backdrop),
 		contentAlignment = Alignment.TopCenter,
 	) {
 		with(sharedTransitionScope) {
@@ -105,23 +134,45 @@ fun ViewTimeLineEventUi(
 					.heightIn(max = ModalMaxHeight)
 					.fillMaxWidth()
 					.then(if (isEditing && isEvent) Modifier.fillMaxHeight() else Modifier)
-					.background(MaterialTheme.colorScheme.surface)
-					.border(
-						width = Dp.Hairline,
-						color = MaterialTheme.colorScheme.outlineVariant,
-						shape = RectangleShape,
-					)
-					.sharedElement(
-						sharedContentState = rememberSharedContentState(
-							key = "timeline-card-${event?.id}",
-						),
-						animatedVisibilityScope = animatedVisibilityScope,
+					.then(
+						if (dialog) {
+							// The whole card, frame and all, grows out of the event's mark on the drawing
+							// and shrinks back into it, laid out afresh at each size and staying opaque
+							// until it has nearly landed. A back gesture shrinks it as it pulls, and a tap
+							// on the card is kept from reaching the scrim.
+							Modifier
+								.sharedBounds(
+									sharedContentState = rememberSharedContentState(eventDialogKey(component.eventId)),
+									animatedVisibilityScope = animatedVisibilityScope,
+									enter = fadeIn(tween(DIALOG_CARD_FADE_MS)),
+									exit = fadeOut(tween(DIALOG_CARD_FADE_MS, delayMillis = DIALOG_MORPH_MS - DIALOG_CARD_FADE_MS)),
+									boundsTransform = { _, _ -> tween(DIALOG_MORPH_MS, easing = FastOutSlowInEasing) },
+									resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds,
+								)
+								.graphicsLayer {
+									val scale = 1f - DIALOG_BACK_SHRINK * dialogBackProgress()
+									scaleX = scale
+									scaleY = scale
+								}
+								.cardFrame()
+								.pointerInput(Unit) { detectTapGestures() }
+						} else {
+							Modifier
+								.cardFrame()
+								.sharedElement(
+									sharedContentState = rememberSharedContentState(
+										key = "timeline-card-${event?.id}",
+									),
+									animatedVisibilityScope = animatedVisibilityScope,
+								)
+						}
 					),
 			) {
 				CollapseWhileTyping(enabled = isEditing) {
 					Column {
 						CrumbRow(
 							onClose = { component.confirmClose() },
+							onFrame = onFrame.takeIf { !isEditing },
 							menuSlot = { DetailViewDropdownMenu(state.menuItems, ActionPlace.Event, event?.id) },
 						)
 
@@ -248,9 +299,16 @@ fun ViewTimeLineEventUi(
 	}
 }
 
+/** The card's surface and hairline frame. */
+@Composable
+private fun Modifier.cardFrame(): Modifier = this
+	.background(MaterialTheme.colorScheme.surface)
+	.border(width = Dp.Hairline, color = MaterialTheme.colorScheme.outlineVariant, shape = RectangleShape)
+
 @Composable
 private fun CrumbRow(
 	onClose: () -> Unit,
+	onFrame: (() -> Unit)?,
 	menuSlot: @Composable () -> Unit,
 ) {
 	Row(
@@ -266,6 +324,13 @@ private fun CrumbRow(
 			onClickLabel = Res.string.timeline_view_close_button.get(),
 		)
 		Spacer(modifier = Modifier.weight(1f))
+		if (onFrame != null) {
+			HdHairlineButton(
+				label = Res.string.timeline_selection_frame.get(),
+				onClick = onFrame,
+				modifier = Modifier.testTag(TIME_LINE_VIEW_FRAME_TAG),
+			)
+		}
 		menuSlot()
 	}
 }

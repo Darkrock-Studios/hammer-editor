@@ -9,8 +9,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.unit.Dp
+import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
+import com.arkivanov.decompose.Child
+import com.arkivanov.decompose.router.slot.ChildSlot
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
@@ -23,6 +26,7 @@ import com.darkrockstudios.apps.hammer.common.components.timeline.LaneCount
 import com.darkrockstudios.apps.hammer.common.components.timeline.EventPreview
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLine
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineOverview
+import com.darkrockstudios.apps.hammer.common.components.timeline.ViewTimeLineEvent
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimelineRow
 import com.darkrockstudios.apps.hammer.common.components.timeline.basicPreview
 import com.darkrockstudios.apps.hammer.common.compose.LocalImageNames
@@ -37,7 +41,6 @@ import com.darkrockstudios.apps.hammer.common.data.tagindex.TagCount
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.preview.fakeProjectDef
 import com.darkrockstudios.apps.hammer.common.timeline.*
-import com.darkrockstudios.apps.hammer.common.timeline.drawing.TIMELINE_BOTTOM_PADDING_TAG
 import com.darkrockstudios.apps.hammer.common.timeline.drawing.TIMELINE_DRAWING_TAG
 import com.darkrockstudios.apps.hammer.common.timeline.drawing.TIMELINE_HORIZONTAL_SCROLL_TAG
 import com.darkrockstudios.apps.hammer.common.timeline.drawing.testTag
@@ -93,11 +96,10 @@ class TimeLineOverviewUiTest : BaseTest() {
 		}
 
 		override fun select(eventId: Int?) {
-			val state = _state.value
-			val id = eventId?.takeIf { it != state.selectedId }
-			val preview = id?.let { previewOf(it) }
-			_state.value = state.copy(selectedId = id, selectionPreview = preview)
+			_state.value = _state.value.copy(selectedId = eventId)
 		}
+
+		override fun canFrame(eventId: Int): Boolean = false
 
 		private fun previewOf(eventId: Int): EventPreview? =
 			_state.value.rows?.firstOrNull { it.event.id == eventId }?.basicPreview()?.copy(
@@ -489,9 +491,9 @@ class TimeLineOverviewUiTest : BaseTest() {
 
 		compose.onNodeWithTag(TIMELINE_DRAWING_TAG).assertIsDisplayed()
 		compose.onNodeWithTag(TIME_LINE_LIST_TAG).assertDoesNotExist()
-		compose.onNodeWithTag(TIME_LINE_VIEW_PICKER_TAG).assertIsDisplayed()
+		compose.onNodeWithTag(TIME_LINE_DRAWING_MENU_TAG).assertIsDisplayed()
 
-		compose.onNodeWithText("TO SCALE").performClick()
+		chooseInDrawingMenu("To scale")
 		assertEquals(TimelineView.TO_SCALE, component.state.value.view)
 	}
 
@@ -502,142 +504,83 @@ class TimeLineOverviewUiTest : BaseTest() {
 			calendar = CalendarDef(),
 		)
 
-	private fun inSummary(text: String) = hasText(text) and hasAnyAncestor(hasTestTag(TIME_LINE_SELECTION_TAG))
+	private fun inCard(text: String) = hasText(text, substring = true) and hasAnyAncestor(hasTestTag(EVENT_PREVIEW_CARD_TAG))
 
-	private fun inFramePicker(text: String) = hasText(text) and hasAnyAncestor(hasTestTag(TIME_LINE_FRAME_PICKER_TAG))
+	private fun showPreviewCard(preview: EventPreview) {
+		compose.setContent {
+			Box(modifier = Modifier.requiredWidth(520.dp)) {
+				EventPreviewCard(preview = preview)
+			}
+		}
+	}
+
+	private val croquetPreview = EventPreview(eventId = 7, kind = TimelineKind.EVENT, title = "Croquet", whenText = "")
+
+	private fun chooseInDrawingMenu(label: String) {
+		compose.onNodeWithTag(TIME_LINE_DRAWING_MENU_TAG).performClick()
+		compose.onNodeWithTag(menuChoiceTag(label)).performClick()
+		compose.waitForIdle()
+	}
 
 	@Test
-	fun `Tapping a drawn row selects it and shows its summary`() {
+	fun `Clicking a drawn row opens its event without selecting it`() {
 		val opened = mutableListOf<Int>()
 		val component = FakeOverview(
 			listOf(datedRow(TimeLineEvent(id = 7, order = 0, title = "Croquet"), year = 1)),
 			mode = TimelineMode.DATED,
 		)
 		showOverview(component, viewEvent = { opened += it })
-		compose.onNodeWithTag(TIME_LINE_SELECTION_TAG).assertDoesNotExist()
 
 		compose.onNodeWithTag(HitTarget.Ledger(7).testTag()).performClick()
 		compose.waitForIdle()
 
-		assertEquals(7, component.state.value.selectedId)
-		assertEquals(emptyList(), opened, "A single tap selects; it does not open")
-		compose.onNodeWithTag(TIME_LINE_SELECTION_TAG).assertIsDisplayed()
-		compose.onNode(inSummary("Croquet"), useUnmergedTree = true).assertIsDisplayed()
-	}
-
-	@Test
-	fun `Clear in the summary drops the selection`() {
-		val component = FakeOverview(
-			listOf(datedRow(TimeLineEvent(id = 7, order = 0, title = "Croquet"), year = 1)),
-			mode = TimelineMode.DATED,
-		)
-		showOverview(component)
-		compose.runOnIdle { component.select(7) }
-
-		compose.onNode(hasContentDescription("Clear") and hasAnyAncestor(hasTestTag(TIME_LINE_SELECTION_TAG))).performClick()
-
+		assertEquals(listOf(7), opened)
 		assertNull(component.state.value.selectedId)
-		compose.onNodeWithTag(TIME_LINE_SELECTION_TAG).assertDoesNotExist()
 	}
 
 	@Test
-	fun `Open in the summary opens the selected event`() {
+	fun `A long press selects its event until it is released`() {
 		val opened = mutableListOf<Int>()
 		val component = FakeOverview(
 			listOf(datedRow(TimeLineEvent(id = 7, order = 0, title = "Croquet"), year = 1)),
 			mode = TimelineMode.DATED,
 		)
 		showOverview(component, viewEvent = { opened += it })
-		compose.runOnIdle { component.select(7) }
+		val ledger = compose.onNodeWithTag(HitTarget.Ledger(7).testTag())
 
-		compose.onNode(inSummary("Open")).performClick()
+		ledger.performTouchInput { down(center) }
+		compose.mainClock.advanceTimeBy(1_000)
+		compose.waitForIdle()
 
-		assertEquals(listOf(7), opened)
+		assertEquals(7, component.state.value.selectedId)
+
+		ledger.performTouchInput { up() }
+		compose.waitForIdle()
+
+		assertNull(component.state.value.selectedId)
+		assertEquals(emptyList(), opened, "A long press does not open the event")
 	}
 
 	private val eightPeople = (1..8).map { CatalogItem(CatalogKind.Entry, 100 + it, "Person $it", entryType = EntryType.PERSON) }
 
-	private fun croquetWithPeople() = FakeOverview(
-		listOf(datedRow(TimeLineEvent(id = 7, order = 0, title = "Croquet"), year = 1)),
-		mode = TimelineMode.DATED,
-		references = mapOf(7 to eightPeople),
-	)
-
 	@Test
-	fun `The summary shows six references and counts the rest`() {
-		val component = croquetWithPeople()
-		showOverview(component, screen = desktopScreen)
-		compose.runOnIdle { component.select(7) }
+	fun `A preview card names three references and counts the rest`() {
+		showPreviewCard(croquetPreview.copy(references = eightPeople))
 
-		compose.onNode(inSummary("Person 6"), useUnmergedTree = true).assertExists()
-		compose.onNode(inSummary("Person 7"), useUnmergedTree = true).assertDoesNotExist()
-		compose.onNode(inSummary("+2"), useUnmergedTree = true).assertExists()
+		val line = hasText("Person 3", substring = true) and hasText("+5", substring = true)
+		compose.onNode(line and hasAnyAncestor(hasTestTag(EVENT_PREVIEW_CARD_TAG)), useUnmergedTree = true).assertExists()
+		compose.onNode(inCard("Person 4"), useUnmergedTree = true).assertDoesNotExist()
 	}
 
 	@Test
-	fun `On a phone the summary names at most four references and counts the rest`() {
-		val component = croquetWithPeople()
-		showPhoneOverview(component)
-		compose.runOnIdle { component.select(7) }
+	fun `A preview card shows the event's excerpt`() {
+		showPreviewCard(croquetPreview.copy(excerpt = "The walls held for three winters."))
 
-		compose.onNode(inSummary("Person 1"), useUnmergedTree = true).assertIsDisplayed()
-		compose.onNode(inSummary("Person 5"), useUnmergedTree = true).assertDoesNotExist()
-		val named = (1..4).count { n ->
-			compose.onAllNodes(inSummary("Person $n"), useUnmergedTree = true)
-				.fetchSemanticsNodes().any { it.layoutInfo.isPlaced }
-		}
-		compose.onNode(inSummary("+${eightPeople.size - named}"), useUnmergedTree = true).assertIsDisplayed()
-		compose.onNode(inSummary("Open")).assertIsDisplayed()
+		compose.onNode(inCard("The walls held for three winters."), useUnmergedTree = true).assertIsDisplayed()
 	}
 
 	@Test
-	fun `A summary chip ellipsizes a long name`() {
-		val component = FakeOverview(
-			listOf(datedRow(TimeLineEvent(id = 7, order = 0, title = "Croquet"), year = 1)),
-			mode = TimelineMode.DATED,
-			references = mapOf(
-				7 to listOf(CatalogItem(CatalogKind.Entry, 101, "The Queen of Hearts", entryType = EntryType.PERSON)),
-			),
-		)
-		showPhoneOverview(component)
-		compose.runOnIdle { component.select(7) }
-
-		compose.onNode(inSummary("The Queen o…"), useUnmergedTree = true).assertIsDisplayed()
-	}
-
-	@Test
-	fun `A reference chip in the summary opens that reference`() {
-		val opened = mutableListOf<Int>()
-		val component = croquetWithPeople()
-		showOverview(component, viewEvent = { opened += it }, screen = desktopScreen)
-		compose.runOnIdle { component.select(7) }
-
-		compose.onNode(inSummary("Person 2"), useUnmergedTree = true).performClick()
-
-		assertEquals(listOf(eightPeople[1]), component.openedReferences)
-		assertEquals(emptyList(), opened, "A chip opens its reference, not the event")
-	}
-
-	@Test
-	fun `On a phone the summary sits at the foot of the drawing, which scrolls clear of it`() {
-		val component = croquetWithPeople()
-		showPhoneOverview(component)
-		compose.onNodeWithTag(TIMELINE_BOTTOM_PADDING_TAG, useUnmergedTree = true)
-			.assertHeightIsEqualTo(0.dp)
-
-		compose.runOnIdle { component.select(7) }
-		compose.waitForIdle()
-
-		val pane = compose.onNodeWithTag(TIMELINE_DRAWING_TAG).getUnclippedBoundsInRoot()
-		val strip = compose.onNodeWithTag(TIME_LINE_SELECTION_TAG).getUnclippedBoundsInRoot()
-		assertTrue(strip.bottom <= pane.bottom, "the strip ends at ${strip.bottom}, below the pane at ${pane.bottom}")
-		assertEquals(pane.bottom.value, strip.bottom.value, absoluteTolerance = 1f)
-		compose.onNodeWithTag(TIMELINE_BOTTOM_PADDING_TAG, useUnmergedTree = true)
-			.assertHeightIsEqualTo(strip.bottom - strip.top)
-	}
-
-	@Test
-	fun `On a phone the drawing pickers stack under the lane chips`() {
+	fun `On a phone the drawing menu shares the row with the lane chips`() {
 		val rows = listOf(
 			datedRow(TimeLineEvent(id = 1, order = 0, title = "Fall", lane = "Alice"), year = 1, laneIndex = 0),
 			datedRow(TimeLineEvent(id = 2, order = 1, title = "Croquet"), year = 2),
@@ -645,32 +588,13 @@ class TimeLineOverviewUiTest : BaseTest() {
 		showPhoneOverview(FakeOverview(rows, lanes = listOf(LaneCount("Alice", 1)), mode = TimelineMode.DATED))
 
 		val chips = compose.onNodeWithTag(TIME_LINE_LANE_FILTER_TAG).getUnclippedBoundsInRoot()
-		val view = compose.onNodeWithTag(TIME_LINE_VIEW_PICKER_TAG).assertIsDisplayed().getUnclippedBoundsInRoot()
-		val frame = compose.onNodeWithTag(TIME_LINE_FRAME_PICKER_TAG).assertIsDisplayed().getUnclippedBoundsInRoot()
-		assertTrue(view.top >= chips.bottom, "the view picker at ${view.top} is above the lane chips ending ${chips.bottom}")
-		assertTrue(frame.top >= view.bottom, "the frame picker at ${frame.top} is beside the view picker ending ${view.bottom}")
+		val menu = compose.onNodeWithTag(TIME_LINE_DRAWING_MENU_TAG).assertIsDisplayed().getUnclippedBoundsInRoot()
+		assertTrue(menu.top < chips.bottom && menu.bottom > chips.top, "the menu at ${menu.top} is not in the chips' row")
 		compose.onNodeWithTag(TIME_LINE_CALENDAR_TAG).assertDoesNotExist()
 	}
 
 	@Test
-	fun `Double-clicking a drawn row opens its event`() {
-		val opened = mutableListOf<Int>()
-		showOverview(
-			FakeOverview(
-				listOf(datedRow(TimeLineEvent(id = 7, order = 0, title = "Croquet"), year = 1)),
-				mode = TimelineMode.DATED,
-			),
-			viewEvent = { opened += it },
-		)
-
-		compose.onNodeWithTag(HitTarget.Ledger(7).testTag()).performTouchInput { doubleClick() }
-		compose.waitForIdle()
-
-		assertEquals(listOf(7), opened)
-	}
-
-	@Test
-	fun `Double-clicking a band opens it`() {
+	fun `Clicking a band opens it without framing it`() {
 		val opened = mutableListOf<Int>()
 		val rows = listOf(
 			datedRow(TimeLineEvent(id = 3, order = 0, title = "The Siege", lane = "Keep"), year = 1, endYear = 4, laneIndex = 0),
@@ -679,24 +603,26 @@ class TimeLineOverviewUiTest : BaseTest() {
 		val component = FakeOverview(rows, lanes = listOf(LaneCount("Keep", 1)), mode = TimelineMode.DATED)
 		showOverview(component, viewEvent = { opened += it })
 
-		compose.onNodeWithTag(HitTarget.Band(3).testTag()).performTouchInput { doubleClick() }
+		compose.onNodeWithTag(HitTarget.Band(3).testTag()).performClick()
 		compose.waitForIdle()
 
 		assertEquals(listOf(3), opened)
-		assertEquals(TimelineFrame.Everything, component.state.value.frame, "Neither click frames the band")
+		assertEquals(TimelineFrame.Everything, component.state.value.frame)
+		compose.onNodeWithTag(TIME_LINE_FRAME_PILL_TAG).assertDoesNotExist()
 	}
 
 	@Test
-	fun `The frame picker offers the story frame only with placed scenes`() {
+	fun `The drawing menu offers the story frame only with placed scenes`() {
 		val rows = listOf(datedRow(TimeLineEvent(id = 1, order = 0, title = "Storm"), year = 1))
 		showOverview(FakeOverview(rows, mode = TimelineMode.DATED))
 
-		compose.onNodeWithTag(TIME_LINE_FRAME_PICKER_TAG).assertIsDisplayed()
-		compose.onNode(inFramePicker("STORY")).assertIsNotEnabled()
+		compose.onNodeWithTag(TIME_LINE_DRAWING_MENU_TAG).performClick()
+
+		compose.onNodeWithTag(menuChoiceTag("Story")).assertIsNotEnabled()
 	}
 
 	@Test
-	fun `The frame picker switches to the story frame`() {
+	fun `The drawing menu switches to the story frame`() {
 		val rows = listOf(
 			datedRow(TimeLineEvent(id = 1, order = 0, title = "Storm"), year = 1),
 			datedRow(TimeLineEvent(id = 2, order = 1, kind = TimelineKind.SCENE, subject = 4), year = 2),
@@ -704,7 +630,7 @@ class TimeLineOverviewUiTest : BaseTest() {
 		val component = FakeOverview(rows, mode = TimelineMode.DATED, storyFrameAvailable = true)
 		showOverview(component)
 
-		compose.onNode(inFramePicker("STORY")).assertIsEnabled().performClick()
+		chooseInDrawingMenu("Story")
 
 		assertEquals(TimelineFrame.Story, component.state.value.frame)
 	}
@@ -724,57 +650,40 @@ class TimeLineOverviewUiTest : BaseTest() {
 	)
 
 	@Test
-	fun `Tapping a band selects it without framing it`() {
-		val component = siegeAndCroquet()
-		showOverview(component)
-
-		compose.onNodeWithTag(HitTarget.Band(3).testTag()).performClick()
-		compose.mainClock.advanceTimeBy(1_000)
-		compose.waitForIdle()
-
-		assertEquals(3, component.state.value.selectedId)
-		assertEquals(TimelineFrame.Everything, component.state.value.frame)
-		compose.onNodeWithTag(TIME_LINE_FRAME_BAND_TAG).assertDoesNotExist()
-	}
-
-	@Test
-	fun `The strip frames a selected span and the band's clear glyph returns to everything`() {
+	fun `The drawing menu names a framed band, and Everything leaves it`() {
 		val component = siegeAndCroquet()
 		showOverview(component, screen = desktopScreen)
-		compose.runOnIdle { component.select(3) }
+		compose.runOnIdle { component.setFrame(TimelineFrame.Band(3)) }
 
-		compose.onNode(inSummary("Frame")).performClick()
-
-		assertEquals(TimelineFrame.Band(3), component.state.value.frame)
-		assertEquals(3, component.state.value.selectedId)
-		compose.onNodeWithTag(TIME_LINE_FRAME_BAND_TAG)
+		compose.onNodeWithTag(TIME_LINE_DRAWING_MENU_TAG)
 			.assertIsDisplayed()
 			.assertContentDescriptionContains("Framed on The Siege")
-		compose.onNode(inSummary("Frame")).assertDoesNotExist()
 
-		compose.onNodeWithTag(TIME_LINE_FRAME_CLEAR_TAG).performClick()
+		chooseInDrawingMenu("Everything")
 
 		assertEquals(TimelineFrame.Everything, component.state.value.frame)
-		compose.onNodeWithTag(TIME_LINE_FRAME_BAND_TAG).assertDoesNotExist()
+		compose.onNodeWithTag(TIME_LINE_FRAME_PILL_TAG).assertDoesNotExist()
 	}
 
 	@Test
-	fun `The strip offers no frame for a point`() {
-		val component = siegeAndCroquet()
-		showOverview(component, screen = desktopScreen)
-		compose.runOnIdle { component.select(4) }
+	fun `Searching the drawing keeps every event and steps through the matches`() {
+		val rows = listOf(
+			datedRow(TimeLineEvent(id = 1, order = 0, title = "Storm at sea"), year = 1),
+			datedRow(TimeLineEvent(id = 2, order = 1, title = "Croquet"), year = 2),
+			datedRow(TimeLineEvent(id = 3, order = 2, title = "Storm in a teacup"), year = 3),
+		)
+		showOverview(FakeOverview(rows, mode = TimelineMode.DATED), screen = desktopScreen)
 
-		compose.onNode(inSummary("Open")).assertIsDisplayed()
-		compose.onNode(inSummary("Frame")).assertDoesNotExist()
-	}
+		compose.onNode(hasSetTextAction()).performTextInput("storm")
+		compose.waitForIdle()
 
-	@Test
-	fun `The strip shows the selection's excerpt`() {
-		val component = siegeAndCroquet(excerpts = mapOf(3 to "The walls held for three winters."))
-		showOverview(component, screen = desktopScreen)
-		compose.runOnIdle { component.select(3) }
+		compose.onNodeWithTag(HitTarget.Ledger(2).testTag()).assertExists()
+		compose.onNodeWithTag(TIME_LINE_SEARCH_MATCHES_TAG).assertTextEquals("1 OF 2")
 
-		compose.onNode(inSummary("The walls held for three winters."), useUnmergedTree = true).assertIsDisplayed()
+		compose.onNode(hasSetTextAction()).performImeAction()
+		compose.waitForIdle()
+
+		compose.onNodeWithTag(TIME_LINE_SEARCH_MATCHES_TAG).assertTextEquals("2 OF 2")
 	}
 
 	@Test
@@ -886,7 +795,7 @@ class TimeLineOverviewUiTest : BaseTest() {
 
 		compose.onNodeWithTag(TIME_LINE_LIST_TAG).assertIsDisplayed()
 		compose.onNodeWithTag(TIMELINE_DRAWING_TAG).assertDoesNotExist()
-		compose.onNodeWithTag(TIME_LINE_VIEW_PICKER_TAG).assertDoesNotExist()
+		compose.onNodeWithTag(TIME_LINE_DRAWING_MENU_TAG).assertDoesNotExist()
 	}
 
 	private fun showFab(overview: TimeLineOverview) {
@@ -897,7 +806,25 @@ class TimeLineOverviewUiTest : BaseTest() {
 				instance = TimeLine.Destination.TimeLineOverviewDestination(overview),
 			)
 		)
+		every { timeline.eventDialog } returns eventDialog
 		compose.setContent { TimelineFab(timeline) }
+	}
+
+	private val eventDialog = MutableValue<ChildSlot<TimeLine.EventDialogConfig, ViewTimeLineEvent>>(ChildSlot())
+
+	@Test
+	fun `The create FAB hides while an event is open over the drawing`() {
+		val component = FakeOverview(listOf(row(TimeLineEvent(id = 7, order = 0, title = "Croquet"))))
+		showFab(component)
+
+		compose.runOnIdle {
+			eventDialog.value = ChildSlot(
+				Child.Created(TimeLine.EventDialogConfig(fakeProjectDef(), 7), mockk<ViewTimeLineEvent>(relaxed = true))
+			)
+		}
+		compose.waitForIdle()
+
+		compose.onNodeWithTag(TIME_LINE_CREATE_TAG).assertDoesNotExist()
 	}
 
 	@Test
@@ -907,17 +834,6 @@ class TimeLineOverviewUiTest : BaseTest() {
 		showFab(component)
 
 		compose.onNodeWithTag(TIME_LINE_CREATE_TAG).assertIsDisplayed()
-	}
-
-	@Test
-	fun `The create FAB hides while something is selected`() {
-		val component = FakeOverview(listOf(row(TimeLineEvent(id = 7, order = 0, title = "Croquet"))))
-		showFab(component)
-
-		compose.runOnIdle { component.select(7) }
-		compose.waitForIdle()
-
-		compose.onNodeWithTag(TIME_LINE_CREATE_TAG).assertDoesNotExist()
 	}
 
 	@Test

@@ -183,7 +183,9 @@
 	<string name="timeline_frame_band_description">Framed on %1$s</string>
 	<string name="timeline_frame_back_to_everything">Back to everything</string>
 	<string name="timeline_selection_frame">Frame</string>
-	<string name="timeline_selection_open">Open</string>
-	<string name="timeline_selection_clear">Clear</string>
 	<string name="timeline_selection_more">+%1$d</string>
+	<string name="timeline_drawing_menu">View</string>
+	<string name="timeline_drawing_menu_view">Drawing</string>
+	<string name="timeline_drawing_menu_frame">Frame</string>
+	<string name="timeline_search_matches">%1$d of %2$d</string>
 </resources>

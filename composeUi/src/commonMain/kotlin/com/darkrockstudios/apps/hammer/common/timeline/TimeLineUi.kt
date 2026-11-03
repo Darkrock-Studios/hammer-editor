@@ -1,8 +1,12 @@
 package com.darkrockstudios.apps.hammer.common.timeline
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.togetherWith
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -12,7 +16,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Create
 import androidx.compose.runtime.Composable
+import androidx.compose.animation.core.Animatable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -28,7 +36,16 @@ import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineOvervi
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFab
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineFrame
 import com.darkrockstudios.apps.hammer.timeline_create_event_button
+import com.arkivanov.essenty.backhandler.BackCallback
+import com.darkrockstudios.apps.hammer.common.components.timeline.ViewTimeLineEvent
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
+
+const val TIME_LINE_EVENT_DIALOG_TAG = "timeline-event-dialog"
+
+private const val DIALOG_FADE_IN_MS = 180
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
@@ -39,6 +56,7 @@ fun TimeLineUi(
 ) {
 	val scope = rememberCoroutineScope()
 	val state by component.stack.subscribeAsState()
+	val dialog by component.eventDialog.subscribeAsState()
 
 	SharedTransitionLayout(modifier = modifier.fillMaxSize()) {
 		Box(modifier = Modifier.fillMaxSize()) {
@@ -62,6 +80,8 @@ fun TimeLineUi(
 							scope = scope,
 							showCreate = component::showCreateEvent,
 							viewEvent = component::showViewEvent,
+							openEvent = component::showEventDialog,
+							openedEventId = dialog.child?.instance?.eventId,
 							sharedTransitionScope = this@SharedTransitionLayout,
 							animatedVisibilityScope = this@ChildStack,
 						)
@@ -88,10 +108,89 @@ fun TimeLineUi(
 					}
 				}
 			}
+
+			EventDialog(component = component, scope = scope, rootSnackbar = rootSnackbar)
 		}
 	}
 }
 
+/**
+ * The event opened from the drawing, over the drawing on a scrim. Back (Escape on desktop) or a tap
+ * on the scrim closes it, and a predictive back gesture shrinks it as it pulls. A span the drawing can frame gets a
+ * Frame action that frames it and closes the dialog.
+ */
+@OptIn(ExperimentalSharedTransitionApi::class)
+@Composable
+private fun SharedTransitionScope.EventDialog(
+	component: TimeLine,
+	scope: CoroutineScope,
+	rootSnackbar: RootSnackbarHostState,
+) {
+	val slot by component.eventDialog.subscribeAsState()
+	val stack by component.stack.subscribeAsState()
+	val overview = (stack.items.first().instance as? TimeLine.Destination.TimeLineOverviewDestination)?.component
+	AnimatedContent(
+		targetState = slot.child?.instance,
+		modifier = Modifier.fillMaxSize(),
+		// No size transform: the scrim fills the pane from the first frame rather than growing into it.
+		transitionSpec = {
+			(fadeIn(tween(DIALOG_FADE_IN_MS)) togetherWith fadeOut(tween(DIALOG_MORPH_MS))).using(null)
+		},
+		contentKey = { it?.eventId },
+		label = "timeline-event-dialog",
+	) { dialog ->
+		if (dialog == null) return@AnimatedContent
+		val backProgress = rememberDialogBackProgress(component, dialog, isOpen = slot.child?.instance === dialog)
+		val overviewState = overview?.state?.subscribeAsState()?.value
+		val eventId = dialog.eventId
+		val canFrame = remember(overviewState) { overview?.canFrame(eventId) == true }
+		ViewTimeLineEventUi(
+			component = dialog,
+			scope = scope,
+			rootSnackbar = rootSnackbar,
+			sharedTransitionScope = this@EventDialog,
+			animatedVisibilityScope = this,
+			dialog = true,
+			dialogBackProgress = { backProgress.value },
+			onFrame = if (overview != null && canFrame) {
+				{
+					overview.setFrame(TimelineFrame.Band(eventId))
+					component.closeEventDialog()
+				}
+			} else {
+				null
+			},
+			modifier = Modifier.testTag(TIME_LINE_EVENT_DIALOG_TAG),
+		)
+	}
+}
+
+
+/**
+ * Follows a predictive back gesture over [dialog] while it is [isOpen] and not editing: the progress
+ * rises as the gesture pulls, eases back to zero if it is cancelled, and holds where it was when the
+ * gesture commits, so the closing card shrinks on from there. An edit keeps its own back handling,
+ * which asks before discarding.
+ */
+@Composable
+private fun rememberDialogBackProgress(component: TimeLine, dialog: ViewTimeLineEvent, isOpen: Boolean): Animatable<Float, *> {
+	val progress = remember(dialog) { Animatable(0f) }
+	val scope = rememberCoroutineScope()
+	val editing = dialog.state.subscribeAsState().value.isEditing
+	val callback = remember(dialog) {
+		BackCallback(
+			onBackProgressed = { event -> scope.launch { progress.snapTo(event.progress) } },
+			onBackCancelled = { scope.launch { progress.animateTo(0f) } },
+			onBack = component::closeEventDialog,
+		)
+	}
+	SideEffect { callback.isEnabled = isOpen && !editing }
+	DisposableEffect(callback) {
+		component.backHandler.register(callback)
+		onDispose { component.backHandler.unregister(callback) }
+	}
+	return progress
+}
 
 @Composable
 fun TimelineFab(
@@ -99,9 +198,12 @@ fun TimelineFab(
 	modifier: Modifier = Modifier,
 ) {
 	val stack by component.stack.subscribeAsState()
+	val dialog by component.eventDialog.subscribeAsState()
 	when (val dest = stack.active.instance) {
 		is TimeLine.Destination.TimeLineOverviewDestination -> {
-			OverviewFab(overview = dest.component, onCreate = component::showCreateEvent, modifier = modifier)
+			if (dialog.child == null) {
+				OverviewFab(overview = dest.component, onCreate = component::showCreateEvent, modifier = modifier)
+			}
 		}
 
 		is TimeLine.Destination.CreateEventDestination -> {
@@ -114,10 +216,7 @@ fun TimelineFab(
 	}
 }
 
-/**
- * Slides away while the reader scrolls down and returns as they scroll up; hidden while something is
- * selected, so it does not cover the selection strip.
- */
+/** Slides away while the reader scrolls down and returns as they scroll up. */
 @Composable
 private fun OverviewFab(
 	overview: TimeLineOverview,
@@ -126,7 +225,7 @@ private fun OverviewFab(
 ) {
 	val state by overview.state.subscribeAsState()
 	AnimatedVisibility(
-		visible = state.selectedId == null && !state.scrolledDown,
+		visible = !state.scrolledDown,
 		enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
 		exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
 	) {

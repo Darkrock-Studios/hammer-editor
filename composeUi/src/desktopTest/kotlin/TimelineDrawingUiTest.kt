@@ -1,6 +1,9 @@
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
@@ -15,6 +18,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performMouseInput
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.timeline.drawing.TIMELINE_HIT_TAG
 import com.darkrockstudios.apps.hammer.common.timeline.drawing.TimelineDrawing
@@ -45,6 +49,8 @@ class TimelineDrawingUiTest {
 		layout: TimelineLayout = this.layout,
 		selectedId: Int? = null,
 		onTap: (HitTarget) -> Unit = {},
+		onPeek: (Int?) -> Unit = {},
+		highlighted: Set<Int> = emptySet(),
 	) {
 		compose.setContent {
 			MaterialTheme {
@@ -54,6 +60,9 @@ class TimelineDrawingUiTest {
 						laneColor = { Color.Gray },
 						selectedId = selectedId,
 						onTap = onTap,
+						onPeek = onPeek,
+						highlighted = highlighted,
+						focusedId = highlighted.firstOrNull(),
 						titles = input.events.associate { it.id to it.title },
 					)
 				}
@@ -98,6 +107,39 @@ class TimelineDrawingUiTest {
 	}
 
 	@Test
+	fun `A long press peeks at its event until the press is released`() {
+		val tapped = mutableListOf<HitTarget>()
+		val peeks = mutableListOf<Int?>()
+		show(onTap = { tapped += it }, onPeek = { peeks += it })
+		val band = layout.bands.minBy { it.rect.y }
+		val node = compose.onNodeWithTag(HitTarget.Band(band.eventId).testTag())
+
+		node.performTouchInput { down(center) }
+		compose.mainClock.advanceTimeBy(1_000)
+		compose.waitForIdle()
+
+		assertEquals(listOf<Int?>(band.eventId), peeks)
+
+		node.performTouchInput { up() }
+		compose.waitForIdle()
+
+		assertEquals(listOf(band.eventId, null), peeks)
+		assertEquals(emptyList(), tapped, "A long press does not tap")
+	}
+
+	@Test
+	fun `A tap does not peek`() {
+		val peeks = mutableListOf<Int?>()
+		show(onPeek = { peeks += it })
+		val row = layout.ledgerRows.minBy { it.anchorYDp }
+
+		compose.onNodeWithTag(HitTarget.Ledger(row.eventId).testTag()).performClick()
+		compose.waitForIdle()
+
+		assertEquals(emptyList(), peeks)
+	}
+
+	@Test
 	fun `Tapping a lane header reports its lane`() {
 		val tapped = mutableListOf<HitTarget>()
 		show(onTap = { tapped += it })
@@ -139,6 +181,39 @@ class TimelineDrawingUiTest {
 				"$tag is not a button",
 			)
 		}
+	}
+
+	@Test
+	fun `A search veils everything but its matches`() {
+		val (match, other) = layout.bands.filter { it.rect.height > 12f }.sortedBy { it.rect.y }.take(2)
+		fun centre(band: com.darkrockstudios.apps.hammer.common.timeline.layout.BandShape): androidx.compose.ui.graphics.Color {
+			val density = compose.density.density
+			val pixels = compose.onNodeWithTag(HOST_TAG).captureToImage().toPixelMap()
+			return pixels[((band.rect.x + band.rect.width / 2f) * density).toInt(), ((band.rect.y + band.rect.height / 2f) * density).toInt()]
+		}
+		var highlighted by mutableStateOf(emptySet<Int>())
+		compose.setContent {
+			MaterialTheme {
+				Box(modifier = Modifier.requiredWidth(layout.widthDp.dp).testTag(HOST_TAG)) {
+					TimelineDrawing(
+						layout = layout,
+						laneColor = { Color(0xFF3366CC) },
+						selectedId = null,
+						onTap = {},
+						highlighted = highlighted,
+						focusedId = highlighted.firstOrNull(),
+					)
+				}
+			}
+		}
+		val matchBefore = centre(match)
+		val otherBefore = centre(other)
+
+		highlighted = setOf(match.eventId)
+		compose.waitForIdle()
+
+		assertEquals(matchBefore, centre(match), "the match keeps its colour")
+		assertTrue(centre(other) != otherBefore, "everything else is veiled")
 	}
 
 	@Test

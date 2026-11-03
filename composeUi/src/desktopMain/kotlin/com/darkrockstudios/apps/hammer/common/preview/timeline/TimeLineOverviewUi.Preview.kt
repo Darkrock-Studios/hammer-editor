@@ -127,9 +127,6 @@ private fun PhoneDatedOverview(dark: Boolean) {
 									lanes = previewLaneCounts,
 									view = TimelineView.TO_SCALE,
 									selectedId = selected.event.id,
-									selectionPreview = selected.basicPreview().copy(
-										references = previewCatalog.filter { it.kind == CatalogKind.Entry } + previewCatalog.first(),
-									),
 									storyFrameAvailable = true,
 								)
 							),
@@ -173,6 +170,7 @@ private class PreviewOverview(initial: TimeLineOverview.State) : TimeLineOvervie
 	override fun toggleLane(lane: String) {}
 	override fun setView(view: TimelineView) {}
 	override fun select(eventId: Int?) {}
+	override fun canFrame(eventId: Int): Boolean = false
 	override fun setFrame(frame: TimelineFrame) {}
 	override fun openReference(item: CatalogItem) {}
 	override suspend fun preview(eventId: Int): EventPreview? =

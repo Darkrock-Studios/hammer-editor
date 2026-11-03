@@ -2,9 +2,12 @@ package com.darkrockstudios.apps.hammer.common.timeline.drawing
 
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -24,7 +27,9 @@ import androidx.compose.material3.TooltipScope
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -35,15 +40,17 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.PathOperation
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.Layout
-import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -74,9 +81,6 @@ import com.darkrockstudios.apps.hammer.common.timeline.layout.PointDp
 import com.darkrockstudios.apps.hammer.common.timeline.layout.PointGlyph
 import com.darkrockstudios.apps.hammer.common.timeline.layout.RectDp
 import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineLayout
-import kotlin.time.Duration
-import kotlin.time.Duration.Companion.milliseconds
-import kotlin.time.TimeSource
 
 const val TIMELINE_DRAWING_TAG = "Timeline Drawing"
 
@@ -87,10 +91,9 @@ const val TIMELINE_HORIZONTAL_SCROLL_TAG = "Timeline Horizontal Scroll"
 const val TIMELINE_HIT_TAG = "Timeline Hit"
 
 /** The space a [TimelineDrawingPane] leaves under its drawing for an overlay. */
-const val TIMELINE_BOTTOM_PADDING_TAG = "Timeline Bottom Padding"
 
 /** The event a target stands for; null for a lane header. */
-private val HitTarget.eventId: Int?
+internal val HitTarget.eventId: Int?
 	get() = when (this) {
 		is HitTarget.Band -> eventId
 		is HitTarget.Point -> eventId
@@ -117,16 +120,34 @@ private const val AXIS_TICK = 4f
 private const val FOLD_HALF = 3f
 private const val LEDGER_MARK_INSET = 4f
 private const val LEDGER_TICK = 4f
+private const val MATCH_RING = 1.5f
+private const val MATCH_RING_FOCUSED = 3f
+private const val MATCH_GAP = 2f
+private const val MATCH_VEIL_ALPHA = .62f
+
+/** [color]'s opposite on the colour wheel, saturated and mid-light so it reads on light and dark. */
+private fun complement(color: Color): Color {
+	val r = color.red
+	val g = color.green
+	val b = color.blue
+	val max = maxOf(r, g, b)
+	val min = minOf(r, g, b)
+	val delta = max - min
+	val hue = when {
+		delta == 0f -> 0f
+		max == r -> 60f * (((g - b) / delta) % 6f)
+		max == g -> 60f * (((b - r) / delta) + 2f)
+		else -> 60f * (((r - g) / delta) + 4f)
+	}
+	return Color.hsl((hue + 180f + 360f) % 360f, saturation = .85f, lightness = .6f)
+}
 
 // The leader's elbow sits this far above a ledger row's first baseline.
 private const val LEDGER_LINE_MID = 4f
 
 // The desktop scrollbar takes a gutter; touch platforms overlay a transient one. Hover tooltips
-// and double-click to open follow the same split.
+// follow the same split.
 private val hoverTooltips: Boolean get() = MpScrollBarGutter > 0.dp
-
-/** Whether a double click on an event opens it, as it does where a pointer hovers. */
-internal val timelineOpensOnDoubleClick: Boolean get() = hoverTooltips
 
 /** The theme colours a drawing uses, read once per composition. */
 @Immutable
@@ -141,9 +162,12 @@ private class TimelineInk(
 /**
  * A dated timeline drawn from [layout]: one canvas for the ink plus a transparent hit layer with a
  * button per [HitRegion]. [laneColor] maps a layout lane index to its colour; [titles] names events
- * for screen readers and tooltips where the layout only holds a fitted label. On desktop a double
- * click on an event opens it through [onOpen], and hovering an event shows [hoverCard] for it in a
- * rich tooltip, after telling [onHoverStart] so the card's content can be fetched.
+ * for screen readers and tooltips where the layout only holds a fitted label. A long press on an
+ * event tells [onPeek] its id, and its release tells [onPeek] null. Hovering an event on desktop, or
+ * a long press on touch, shows [hoverCard] for it in a rich tooltip at the event, after telling
+ * [onHoverStart] so the card's content can be fetched. [eventSource] is drawn inside each event's
+ * mark, the first hit box drawn for it, so a transition can start from it. [highlighted] events are
+ * ringed in the accent colour, and [focusedId] more heavily, as search matches.
  */
 @Composable
 fun TimelineDrawing(
@@ -152,47 +176,75 @@ fun TimelineDrawing(
 	selectedId: Int?,
 	onTap: (HitTarget) -> Unit,
 	modifier: Modifier = Modifier,
-	onOpen: ((Int) -> Unit)? = null,
+	onPeek: (eventId: Int?) -> Unit = {},
 	titles: Map<Int, String> = emptyMap(),
 	laneHeaderDescription: (String) -> String = { it },
 	measurer: ComposeTimelineTextMeasurer = rememberTimelineTextMeasurer(),
 	hoverCard: (@Composable (eventId: Int) -> Unit)? = null,
 	onHoverStart: (eventId: Int) -> Unit = {},
+	eventSource: (@Composable BoxScope.(eventId: Int) -> Unit)? = null,
+	highlighted: Set<Int> = emptySet(),
+	focusedId: Int? = null,
 ) {
 	val scheme = MaterialTheme.colorScheme
 	val ink = remember(scheme.surface, scheme.onSurface, scheme.onSurfaceVariant, scheme.outlineVariant, scheme.primary) {
 		TimelineInk(scheme.surface, scheme.onSurface, scheme.onSurfaceVariant, scheme.outlineVariant, scheme.primary)
 	}
 	val descriptions = remember(layout, titles) { describeTargets(layout, titles) }
-	val clicks = remember { DoubleClickDetector() }
+	val marks = remember(layout) {
+		val seen = HashSet<Int>()
+		layout.hitRegions.mapIndexedNotNullTo(HashSet()) { i, region -> i.takeIf { region.target.eventId?.let(seen::add) == true } }
+	}
 	var hoveredLedgerId by remember { mutableStateOf<Int?>(null) }
+	val currentOnPeek by rememberUpdatedState(onPeek)
+	var peekedId by remember { mutableStateOf<Int?>(null) }
+	// Watches every gesture without consuming it, so a peek ends on release wherever the pointer is,
+	// even when the peek lays the drawing out again under it.
+	val peekRelease = Modifier.pointerInput(Unit) {
+		awaitEachGesture {
+			awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Final)
+			do {
+				val event = awaitPointerEvent(PointerEventPass.Final)
+			} while (event.changes.any { it.pressed })
+			if (peekedId != null) {
+				peekedId = null
+				currentOnPeek(null)
+			}
+		}
+	}
 
-	Box(modifier = modifier.fillMaxWidth().height(layout.heightDp.dp)) {
+	Box(modifier = modifier.fillMaxWidth().height(layout.heightDp.dp).then(peekRelease)) {
 		Spacer(
 			modifier = Modifier
 				.matchParentSize()
 				.drawWithCache {
 					val texts = HashMap<Pair<String, LabelStyle>, TextLayoutResult>()
-					val painter = TimelinePainter(layout, ink, laneColor, selectedId, measurer, texts)
+					val painter = TimelinePainter(layout, ink, laneColor, selectedId, measurer, texts, highlighted, focusedId)
 					// Read while drawing, so a hover only redraws.
 					onDrawBehind { with(painter) { draw(hoveredLedgerId) } }
 				},
 		)
-		HitLayer(regions = layout.hitRegions, modifier = Modifier.matchParentSize()) { region ->
+		HitLayer(regions = layout.hitRegions, modifier = Modifier.matchParentSize()) { index, region ->
 			val target = region.target
 			HitBox(
 				region = region,
+				source = eventSource?.let { source ->
+					target.eventId?.takeIf { index in marks }?.let { id -> { source(id) } }
+				},
 				description = descriptions.describe(target, laneHeaderDescription),
 				tooltip = when {
-					!hoverTooltips || target.eventId == null -> null
+					target.eventId == null -> null
 					hoverCard != null -> HitTooltip.Card(hoverCard)
-					target is HitTarget.Ledger || target is HitTarget.Band -> HitTooltip.Description
+					hoverTooltips && (target is HitTarget.Ledger || target is HitTarget.Band) -> HitTooltip.Description
 					else -> null
 				},
+				peeked = target.eventId != null && target.eventId == peekedId,
 				onTap = onTap,
-				// Touch platforms open from the selection strip instead.
-				onOpen = onOpen?.takeIf { timelineOpensOnDoubleClick },
-				clicks = clicks,
+				onPeek = { id ->
+					peekedId = id
+					onHoverStart(id)
+					onPeek(id)
+				},
 				onHover = if (hoverTooltips && target.eventId != null) {
 					{ id, hovered ->
 						if (hovered) onHoverStart(id)
@@ -216,11 +268,12 @@ fun TimelineDrawing(
 private fun HitLayer(
 	regions: List<HitRegion>,
 	modifier: Modifier = Modifier,
-	content: @Composable (HitRegion) -> Unit,
+	content: @Composable (index: Int, region: HitRegion) -> Unit,
 ) {
 	Layout(
 		modifier = modifier,
-		content = { for (region in regions) content(region) },
+		// Keyed so a box keeps its gesture state when a relayout reorders the regions.
+		content = { regions.forEachIndexed { i, region -> key(region.target) { content(i, region) } } },
 	) { measurables, constraints ->
 		val placeables = measurables.mapIndexed { i, measurable ->
 			val rect = regions[i].rect
@@ -239,8 +292,8 @@ private fun HitLayer(
 
 /**
  * [TimelineDrawing] in a vertical scroll with the platform scrollbar. A non-null [contentWidth]
- * draws at that width and scrolls horizontally as well. [bottomPadding] lets the last rows scroll
- * clear of an overlay at the bottom of the pane.
+ * draws at that width and scrolls horizontally as well. [topPadding] is blank space above the drawing,
+ * inside the scroll, for an overlay at the top of the pane to rest over.
  */
 @Composable
 fun TimelineDrawingPane(
@@ -249,15 +302,18 @@ fun TimelineDrawingPane(
 	selectedId: Int?,
 	onTap: (HitTarget) -> Unit,
 	modifier: Modifier = Modifier,
-	onOpen: ((Int) -> Unit)? = null,
+	onPeek: (eventId: Int?) -> Unit = {},
 	contentWidth: Dp? = null,
 	titles: Map<Int, String> = emptyMap(),
 	laneHeaderDescription: (String) -> String = { it },
 	measurer: ComposeTimelineTextMeasurer = rememberTimelineTextMeasurer(),
 	scrollState: ScrollState = rememberScrollState(),
-	bottomPadding: Dp = 0.dp,
+	topPadding: Dp = 0.dp,
 	hoverCard: (@Composable (eventId: Int) -> Unit)? = null,
 	onHoverStart: (eventId: Int) -> Unit = {},
+	eventSource: (@Composable BoxScope.(eventId: Int) -> Unit)? = null,
+	highlighted: Set<Int> = emptySet(),
+	focusedId: Int? = null,
 ) {
 	val horizontalState = rememberScrollState()
 	val horizontal = if (contentWidth != null) {
@@ -267,20 +323,23 @@ fun TimelineDrawingPane(
 	}
 	Box(modifier = modifier) {
 		Column(modifier = Modifier.fillMaxSize().verticalScroll(scrollState).then(horizontal)) {
+			Spacer(modifier = Modifier.height(topPadding))
 			TimelineDrawing(
 				layout = layout,
 				laneColor = laneColor,
 				selectedId = selectedId,
 				onTap = onTap,
 				modifier = if (contentWidth != null) Modifier.width(contentWidth) else Modifier,
-				onOpen = onOpen,
+				onPeek = onPeek,
 				titles = titles,
 				laneHeaderDescription = laneHeaderDescription,
 				measurer = measurer,
 				hoverCard = hoverCard,
 				onHoverStart = onHoverStart,
+				eventSource = eventSource,
+				highlighted = highlighted,
+				focusedId = focusedId,
 			)
-			Spacer(modifier = Modifier.height(bottomPadding).testTag(TIMELINE_BOTTOM_PADDING_TAG))
 		}
 		MpScrollBarColumn(modifier = scrollBarOverlay(), state = scrollState)
 	}
@@ -331,16 +390,17 @@ private sealed interface HitTooltip {
 @Composable
 private fun HitBox(
 	region: HitRegion,
+	source: (@Composable BoxScope.() -> Unit)?,
 	description: String,
 	tooltip: HitTooltip?,
+	peeked: Boolean,
 	onTap: (HitTarget) -> Unit,
-	onOpen: ((Int) -> Unit)?,
-	clicks: DoubleClickDetector,
+	onPeek: (eventId: Int) -> Unit,
 	onHover: ((eventId: Int, hovered: Boolean) -> Unit)? = null,
 ) {
 	val eventId = region.target.eventId
-	val doubleClickTimeout = LocalViewConfiguration.current.doubleTapTimeoutMillis.milliseconds
 	val currentOnHover by rememberUpdatedState(onHover)
+
 	val hover = if (onHover != null && eventId != null) {
 		Modifier.pointerInput(eventId) {
 			awaitPointerEventScope {
@@ -359,13 +419,11 @@ private fun HitBox(
 		.testTag(region.target.testTag())
 		.then(hover)
 		.semantics { contentDescription = description }
-		.clickable(role = Role.Button) {
-			if (onOpen != null && eventId != null && clicks.isSecondClick(eventId, doubleClickTimeout)) {
-				onOpen(eventId)
-			} else {
-				onTap(region.target)
-			}
-		}
+		.combinedClickable(
+			role = Role.Button,
+			onLongClick = eventId?.let { id -> { onPeek(id) } },
+			onClick = { onTap(region.target) },
+		)
 	val tooltipContent: (@Composable TooltipScope.() -> Unit)? = when {
 		tooltip is HitTooltip.Card && eventId != null -> {
 			{
@@ -390,39 +448,28 @@ private fun HitBox(
 		else -> null
 	}
 	if (tooltipContent != null) {
+		// Hover drives the tooltip where a pointer hovers; on touch it shows while a long press holds.
+		val state = rememberTooltipState(isPersistent = !hoverTooltips)
+		if (!hoverTooltips) {
+			LaunchedEffect(peeked) {
+				if (peeked) state.show() else state.dismiss()
+			}
+		}
 		TooltipBox(
 			positionProvider = TooltipDefaults.rememberTooltipPositionProvider(),
 			tooltip = tooltipContent,
-			state = rememberTooltipState(),
+			state = state,
 			modifier = Modifier.fillMaxSize(),
+			enableUserInput = hoverTooltips,
 		) {
-			Box(modifier = Modifier.fillMaxSize().then(target))
+			Box(modifier = Modifier.fillMaxSize().then(target)) { source?.invoke(this) }
 		}
 	} else {
-		Box(modifier = Modifier.fillMaxSize().then(target))
+		Box(modifier = Modifier.fillMaxSize().then(target)) { source?.invoke(this) }
 	}
 }
 
-/**
- * Tells a double click from two single ones without holding back the first, as a double-click
- * gesture detector would: the first click acts at once and the second only opens. Keyed by event,
- * not by hit region, since the first click may lay the drawing out again (a selection redraws it).
- */
-private class DoubleClickDetector {
-	private var lastId: Int? = null
-	private var last: TimeSource.Monotonic.ValueTimeMark? = null
-
-	/** Records a click on [eventId]; true when it follows a click on the same event within [timeout]. */
-	fun isSecondClick(eventId: Int, timeout: Duration): Boolean {
-		val previous = last
-		val second = lastId == eventId && previous != null && previous.elapsedNow() <= timeout
-		lastId = if (second) null else eventId
-		last = if (second) null else TimeSource.Monotonic.markNow()
-		return second
-	}
-}
-
-/** Draws [layout] in z order: chrome, spans, folds, labels, points, rules, ledger, projection. */
+/** Draws [layout] in z order: chrome, spans, folds, labels, points, rules, ledger, projection, matches. */
 private class TimelinePainter(
 	private val layout: TimelineLayout,
 	private val ink: TimelineInk,
@@ -430,6 +477,8 @@ private class TimelinePainter(
 	private val selectedId: Int?,
 	private val measurer: ComposeTimelineTextMeasurer,
 	private val texts: HashMap<Pair<String, LabelStyle>, TextLayoutResult>,
+	private val highlighted: Set<Int>,
+	private val focusedId: Int?,
 ) {
 	private var glyphText: TextLayoutResult? = null
 
@@ -446,7 +495,55 @@ private class TimelinePainter(
 		drawLedger()
 		if (hoveredLedgerId != selectedId) drawHoverProjection(hoveredLedgerId)
 		drawProjection()
+		drawMatches()
 	}
+
+	/**
+	 * Spotlights the search matches: everything else sinks under a veil of the surface colour, every
+	 * match keeps its full colour and is ringed in the accent, and the focused match takes a heavy
+	 * ring in the hue opposite its lane's, which no lane shade can blend into.
+	 */
+	private fun DrawScope.drawMatches() {
+		if (highlighted.isEmpty()) return
+		// Cut-outs are joined first, so matches that touch or overlap stay clear between them.
+		val clear = Path()
+		for (region in layout.hitRegions) {
+			if (region.target.eventId !in highlighted) continue
+			val r = region.rect
+			clear.addRect(Rect(px(r.x - MATCH_GAP), px(r.y - MATCH_GAP), px(r.right + MATCH_GAP), px(r.y + r.height + MATCH_GAP)))
+		}
+		val veil = Path().apply {
+			op(Path().apply { addRect(Rect(0f, 0f, size.width, size.height)) }, clear, PathOperation.Difference)
+		}
+		drawPath(veil, ink.surface.copy(alpha = MATCH_VEIL_ALPHA))
+
+		val ringed = HashSet<Int>()
+		for (region in layout.hitRegions) {
+			val id = region.target.eventId ?: continue
+			if (id !in highlighted || !ringed.add(id)) continue
+			val focused = id == focusedId
+			val width = if (focused) MATCH_RING_FOCUSED else MATCH_RING
+			val color = if (focused) laneIndexOf(id)?.let { complement(laneColor(it)) } ?: ink.primary else ink.primary
+			val r = region.rect
+			val out = MATCH_GAP + width / 2f
+			drawRect(
+				color,
+				at(r.x - out, r.y - out),
+				Size(px(r.width + 2 * out), px(r.height + 2 * out)),
+				style = Stroke(width = px(width)),
+			)
+		}
+	}
+
+	private val laneByEvent: Map<Int, Int> by lazy {
+		buildMap {
+			layout.bands.forEach { put(it.eventId, it.laneIndex) }
+			layout.bars.forEach { put(it.eventId, it.laneIndex) }
+			layout.points.forEach { put(it.eventId, it.laneIndex) }
+		}
+	}
+
+	private fun laneIndexOf(eventId: Int): Int? = laneByEvent[eventId]
 
 	private fun DrawScope.px(dp: Float): Float = dp * density
 

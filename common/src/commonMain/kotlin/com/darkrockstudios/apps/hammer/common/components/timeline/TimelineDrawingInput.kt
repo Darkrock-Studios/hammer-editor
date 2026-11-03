@@ -31,6 +31,8 @@ private const val TICK_LIMIT = 1000
  * The layout input for a dated timeline's [rows]. Rows without a start that resolves on [calendar]
  * are left out (the overview already counts them as undated), as are archived scenes. A non-empty
  * [laneFilter] drops the events of every other lane; scenes and unlaned events stay in the ledger.
+ * A placed entry's title leads with [entryMark] wherever it is written out, on a span or in the
+ * ledger; a point in a lane is drawn in its own entry box and keeps its plain title.
  */
 fun toLayoutInput(
 	rows: List<TimelineRow>,
@@ -43,6 +45,7 @@ fun toLayoutInput(
 	frame: TimelineFrame = TimelineFrame.Everything,
 	selectedId: Int? = null,
 	words: StoryDateWords = StoryDateWords.English,
+	entryMark: String? = null,
 ): TimelineLayoutInput {
 	val events = rows.mapNotNull { row ->
 		if (row.subjectArchived) return@mapNotNull null
@@ -54,15 +57,13 @@ fun toLayoutInput(
 		val start = row.start ?: return@mapNotNull null
 		val startPosition = StoryCalendar.position(calendar, start) ?: return@mapNotNull null
 		val end = row.end?.let { StoryCalendar.position(calendar, it) }
-		val extent = if (end == null && StoryCalendar.precision(calendar, start)?.name != StoryCalendar.MINUTE) {
-			StoryCalendar.span(calendar, start)?.let { it.last - it.first + 1 } ?: 1L
-		} else {
-			1L
-		}
+		val extent = if (end == null) precisionExtent(calendar, start) else 1L
+		val boxedPoint = lane != null && end == null && extent <= 1L
+		val marked = entryMark != null && event.kind == TimelineKind.ENTRY && !boxedPoint && row.title.isNotBlank()
 		LayoutEvent(
 			id = event.id,
 			kind = event.kind.toLayoutKind(),
-			title = row.title,
+			title = if (marked) "$entryMark ${row.title}" else row.title,
 			subtitle = row.subtitle,
 			lane = lane,
 			milestone = event.milestone,
@@ -83,6 +84,14 @@ fun toLayoutInput(
 		selectedId = selectedId,
 	)
 }
+
+/** How many minutes [start] covers: one when it is given to the minute, more when it stops at a coarser unit. */
+internal fun precisionExtent(calendar: CalendarDef, start: StoryDate): Long =
+	if (StoryCalendar.precision(calendar, start)?.name != StoryCalendar.MINUTE) {
+		StoryCalendar.span(calendar, start)?.let { it.last - it.first + 1 } ?: 1L
+	} else {
+		1L
+	}
 
 private fun TimelineKind.toLayoutKind(): LayoutKind = when (this) {
 	TimelineKind.EVENT -> LayoutKind.EVENT

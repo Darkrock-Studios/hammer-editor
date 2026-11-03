@@ -30,7 +30,6 @@ import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineSe
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineView
 import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineFrame
 import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineView as DrawingView
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
@@ -66,8 +65,6 @@ class TimeLineOverviewComponent(
 
 	private val _rankedTags = MutableValue<List<TagCount>>(emptyList())
 	override val rankedTags: Value<List<TagCount>> = _rankedTags
-
-	private var selectionJob: Job? = null
 
 	/** Read and written on the main thread only. */
 	private val previews = HashMap<Int, CachedPreview>()
@@ -126,7 +123,6 @@ class TimeLineOverviewComponent(
 							storyFrameAvailable = storyAvailable,
 						)
 					}
-					refreshSelectionPreview()
 				}
 			}
 		}
@@ -203,13 +199,15 @@ class TimeLineOverviewComponent(
 	}
 
 	override fun select(eventId: Int?) {
-		_state.getAndUpdate {
-			val selected = eventId?.takeIf { id -> id != it.selectedId }
-			// A band is framed from the selection, so clearing the selection leaves the frame too.
-			val frame = if (selected == null && it.frame is TimelineFrame.Band) TimelineFrame.Everything else it.frame
-			it.copy(selectedId = selected, frame = frame)
-		}
-		refreshSelectionPreview()
+		_state.getAndUpdate { it.copy(selectedId = eventId) }
+	}
+
+	override fun canFrame(eventId: Int): Boolean {
+		val current = _state.value
+		if (current.mode != TimelineMode.DATED || current.frame == TimelineFrame.Band(eventId)) return false
+		val row = current.rows?.firstOrNull { it.event.id == eventId }?.takeIf { it.isDrawn } ?: return false
+		val start = row.start ?: return false
+		return row.end != null || precisionExtent(row.calendar ?: CalendarDef(), start) > 1
 	}
 
 	override fun setFrame(frame: TimelineFrame) {
@@ -252,25 +250,6 @@ class TimeLineOverviewComponent(
 			}
 		}
 		return preview
-	}
-
-	/** Brings the selection's preview up to date off the main thread; a stale one is dropped at once. */
-	private fun refreshSelectionPreview() {
-		selectionJob?.cancel()
-		val state = _state.value
-		val selectedId = state.selectedId
-		if (state.selectionPreview != null && state.selectionPreview.eventId != selectedId) {
-			_state.getAndUpdate { it.copy(selectionPreview = null) }
-		}
-		if (selectedId == null) return
-		selectionJob = scope.launch {
-			val preview = preview(selectedId)
-			withContext(dispatcherMain) {
-				_state.getAndUpdate {
-					if (it.selectedId == selectedId && it.selectionPreview !== preview) it.copy(selectionPreview = preview) else it
-				}
-			}
-		}
 	}
 
 	private suspend fun resolvePreview(row: TimelineRow): EventPreview {
