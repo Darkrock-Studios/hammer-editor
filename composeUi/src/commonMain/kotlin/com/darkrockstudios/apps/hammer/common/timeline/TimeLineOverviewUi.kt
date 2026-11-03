@@ -48,6 +48,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
@@ -273,9 +274,11 @@ fun TimeLineOverviewUi(
 	val drawingScroll = rememberScrollState()
 	val scrollStrip = rememberHdScrollAwayStripState()
 	// Content that cannot scroll has no scroll position to keep the strip or the create button hidden.
-	val contentFits by remember(branch) {
+	// One derived state follows the branch, since the effect below holds on to it as the timeline loads.
+	val currentBranch by rememberUpdatedState(branch)
+	val contentFits by remember {
 		derivedStateOf {
-			when (branch) {
+			when (currentBranch) {
 				OverviewContent.Drawing -> drawingScroll.maxValue == 0
 				OverviewContent.Empty -> true
 				OverviewContent.List -> !listState.canScrollForward && !listState.canScrollBackward

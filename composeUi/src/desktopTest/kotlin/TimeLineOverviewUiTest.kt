@@ -114,6 +114,11 @@ class TimeLineOverviewUiTest : BaseTest() {
 		}
 
 
+		/** Rows arriving after the first frame, as they do from the timeline service. */
+		fun load(rows: List<TimelineRow>) {
+			_state.value = _state.value.copy(rows = rows)
+		}
+
 		override fun setScrolledDown(scrolledDown: Boolean) {
 			_state.value = _state.value.copy(scrolledDown = scrolledDown)
 		}
@@ -852,6 +857,47 @@ class TimeLineOverviewUiTest : BaseTest() {
 		},
 		lanes = listOf(LaneCount("Alice", 2), LaneCount("Queen", 28)),
 	)
+
+	private fun longDrawing() = FakeOverview(
+		rows = (0 until 40).map { i -> datedRow(TimeLineEvent(id = i, order = i, title = "Event $i"), year = i.toLong()) },
+		mode = TimelineMode.DATED,
+	)
+
+	@Test
+	fun `Swiping the drawing down and back up reports it for the create FAB`() {
+		val component = longDrawing()
+		showOverview(component, screen = desktopScreen, size = DpSize(800.dp, 600.dp))
+
+		compose.onNodeWithTag(TIMELINE_DRAWING_TAG).performTouchInput { swipeUp() }
+		compose.waitForIdle()
+		assertTrue(component.state.value.scrolledDown, "scrolled down")
+
+		compose.onNodeWithTag(TIMELINE_DRAWING_TAG).performTouchInput { swipeDown() }
+		compose.waitForIdle()
+		assertEquals(false, component.state.value.scrolledDown)
+	}
+
+	@Test
+	fun `A drawing that loads after the first frame still reports scrolling for the create FAB`() {
+		val component = FakeOverview(emptyList(), mode = TimelineMode.DATED)
+		showOverview(component, screen = desktopScreen, size = DpSize(800.dp, 600.dp))
+		compose.runOnIdle { component.load(longDrawing().state.value.rows!!) }
+		compose.waitForIdle()
+
+		compose.onNodeWithTag(TIMELINE_DRAWING_TAG).performMouseInput {
+			moveTo(center)
+			scroll(5f)
+		}
+		compose.waitForIdle()
+		assertTrue(component.state.value.scrolledDown, "scrolled down")
+
+		compose.onNodeWithTag(TIMELINE_DRAWING_TAG).performMouseInput {
+			moveTo(center)
+			scroll(-2f)
+		}
+		compose.waitForIdle()
+		assertEquals(false, component.state.value.scrolledDown)
+	}
 
 	@Test
 	fun `Scrolling the list down and back up reports it for the create FAB`() {
