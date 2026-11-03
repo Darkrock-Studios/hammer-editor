@@ -17,6 +17,7 @@ import com.darkrockstudios.apps.hammer.common.data.id.datasources.NotesIdDatasou
 import com.darkrockstudios.apps.hammer.common.data.id.datasources.SceneDraftIdDatasource
 import com.darkrockstudios.apps.hammer.common.data.id.datasources.SceneIdDatasource
 import com.darkrockstudios.apps.hammer.common.data.id.datasources.TimeLineEventIdDatasource
+import com.darkrockstudios.apps.hammer.common.data.imagesrepository.findImageFile
 import com.darkrockstudios.apps.hammer.common.data.migrator.PROJECT_DATA_VERSION
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
@@ -140,6 +141,7 @@ class ExampleProjectTimelineTest : BaseTest() {
 		assertEquals("en-US", data.language)
 		assertNotNull(data.theme)
 		assertNotNull(data.wordCountGoal)
+		assertNotNull(findImageFile(projDef, assertNotNull(data.coverImageId), ffs), "cover image must exist")
 	}
 
 	@Test
@@ -170,7 +172,7 @@ class ExampleProjectTimelineTest : BaseTest() {
 		).mapValues { (_, source) -> assertNotNull(source.findIds(projDef)) }
 		val timelineIds = assertNotNull(TimeLineEventIdDatasource(ffs, toml).findIds(projDef))
 
-		assertEquals(5, sources.getValue("images").size, "every entry image is promoted to an Image")
+		assertEquals(6, sources.getValue("images").size, "every entry image is promoted to an Image, plus the cover")
 		sources.forEach { (name, ids) ->
 			assertTrue((ids intersect timelineIds).isEmpty(), "timeline ids collide with $name")
 		}
