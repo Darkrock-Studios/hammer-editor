@@ -668,16 +668,54 @@ class TimelineServiceTest : BaseTest() {
 			images = emptyList(),
 		)
 		advanceUntilIdle()
-		assertEquals(emptyList(), updates)
+		assertEquals(listOf("Scene ID 4"), updates.map { it.displayTitle })
 
 		sceneRepository.renameScene(sceneRepository.getSceneItemFromId(4)!!, "Down the Hole")
 		advanceUntilIdle()
 
-		val update = updates.single()
+		val update = updates.last()
+		assertEquals(2, updates.size)
 		assertEquals("Down the Hole", assertIs<SubjectSummary.Scene>(update.summary).scene.name)
 		assertEquals("Down the Hole", update.displayTitle)
 		assertEquals(emptyList(), plainUpdates)
 		collectors.forEach { it.cancel() }
+	}
+
+	@Test
+	fun `subjectUpdates starts with the current subject`() = runTest(mainTestDispatcher) {
+		val service = createService()
+		val scenePlacement = service.placeScene(4, null, null, null, false).event()
+		val entryPlacement = service.placeEntry(TEA_PARTY, null, null, null, false).event()
+		val orphan = timeLineRepository.createEvent(TimelineEventDraft(kind = TimelineKind.ENTRY, subject = 999, title = "Gone"))
+
+		val scene = service.subjectUpdates(scenePlacement.id).first()
+		val entry = service.subjectUpdates(entryPlacement.id).first()
+		val missing = service.subjectUpdates(orphan.id).first()
+
+		assertEquals("Chapter ID 2", assertIs<SubjectSummary.Scene>(scene.summary).chapterPath)
+		assertEquals("Scene ID 4", scene.displayTitle)
+		assertEquals("The Hatter pours tea.", assertIs<SubjectSummary.Entry>(entry.summary).excerpt)
+		assertEquals("Tea Party", entry.displayTitle)
+		assertEquals(PlacedSubject(SubjectSummary.Missing, "Gone"), missing)
+	}
+
+	@Test
+	fun `subjectUpdates emits a change that lands right after the first subject`() = runTest(mainTestDispatcher) {
+		val service = createService()
+		val placed = service.placeScene(4, null, null, null, false).event()
+		val updates = mutableListOf<PlacedSubject>()
+		val collector = launch {
+			service.subjectUpdates(placed.id).collect { update ->
+				updates += update
+				if (updates.size == 1) {
+					sceneRepository.renameScene(sceneRepository.getSceneItemFromId(4)!!, "Down the Hole")
+				}
+			}
+		}
+		advanceUntilIdle()
+
+		assertEquals(listOf("Scene ID 4", "Down the Hole"), updates.map { it.displayTitle })
+		collector.cancel()
 	}
 
 	@Test
@@ -690,19 +728,6 @@ class TimelineServiceTest : BaseTest() {
 		assertEquals(emptyList(), timeLineRepository.currentEvents())
 		assertEquals("Scene ID 4", sceneRepository.getSceneItemFromId(4)?.name)
 		assertEquals(TimeLineEventError.EVENT_NOT_FOUND, service.deleteEvent(placed.id).error())
-	}
-
-	@Test
-	fun `findScene finds only live scenes`() = runTest(mainTestDispatcher) {
-		val service = createService()
-		sceneRepository.archiveScene(sceneRepository.getSceneItemFromId(7)!!)
-
-		assertEquals("Scene ID 4", service.findScene(4)?.name)
-		assertNull(service.findScene(2))
-		assertNull(service.findScene(7))
-		assertNull(service.findScene(999))
-		assertEquals("Alice", service.findEntry(ALICE)?.name)
-		assertNull(service.findEntry(999))
 	}
 
 	private companion object {

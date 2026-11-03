@@ -23,14 +23,21 @@ import com.darkrockstudios.apps.hammer.common.data.search.markdownTitleLine
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository.Companion.normalizeLane
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcher
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.merge
+import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -88,7 +95,7 @@ sealed class SubjectSummary {
 	data object Missing : SubjectSummary()
 }
 
-/** A placement's subject as resolved again after it changed, with the title that follows from it. */
+/** A placement's subject as resolved, with the title that follows from it. */
 data class PlacedSubject(val summary: SubjectSummary, val displayTitle: String)
 
 /** What a list row shows of an event without reading any text. */
@@ -123,12 +130,14 @@ class TimelineService(
 	// check such as one placement per subject. Not reentrant: locked bodies call only private helpers.
 	private val writeLock = Mutex()
 
+	// Loads the timeline when nothing has yet, so the repository's flow has a value to replay.
+	private val storedTimeline: Flow<TimeLineContainer> = flow {
+		timeLineRepository.currentEvents()
+		emitAll(timeLineRepository.timelineFlow)
+	}
+
 	val timelineFlow: Flow<TimelineView> = combine(
-		flow {
-			// Loads the timeline when nothing has yet, so the repository's flow has a value to replay.
-			timeLineRepository.currentEvents()
-			emitAll(timeLineRepository.timelineFlow)
-		},
+		storedTimeline,
 		flow {
 			projectDataRepository.load()
 			emitAll(projectDataRepository.state.filterNotNull())
@@ -450,40 +459,58 @@ class TimelineService(
 	}
 
 	/**
-	 * Event [eventId]'s subject, resolved again each time it changes on its own: the placed scene is
-	 * renamed, moved, archived or deleted or its cast changes, or the placed entry is edited or
-	 * deleted. Changes to other scenes and entries are dropped before resolving; a plain event never
-	 * emits.
+	 * Placement [eventId]'s subject as it is when collection starts, then again each time it changes:
+	 * the placed scene is renamed, moved, archived or deleted or its cast changes, the placed entry
+	 * is edited or deleted, or the placement itself is edited. Signals about other scenes and entries
+	 * are dropped before anything is read. A plain event, or one that is gone, never emits.
 	 */
-	fun subjectUpdates(eventId: Int): Flow<PlacedSubject> = flow {
-		// The placed scene's branch of the tree when last resolved, so a tree change elsewhere is ignored.
-		var branch = findEvent(eventId)?.let { placedSceneBranch(it) }
-		merge(
-			sceneRepository.sceneTreeUpdates.map { SubjectSignal.SceneTree },
-			sceneMetadataRepository.metadataUpdateFlow.map { SubjectSignal.SceneMetadata(it.sceneId) },
-			encyclopediaRepository.entryChangedFlow.map { SubjectSignal.Entry(it) },
-		).collect { signal ->
-			val event = findEvent(eventId) ?: return@collect
-			val subjectId = event.subject ?: return@collect
-			val affected = when (signal) {
-				SubjectSignal.SceneTree -> event.kind == TimelineKind.SCENE && placedSceneBranch(event) != branch
-				is SubjectSignal.SceneMetadata -> event.kind == TimelineKind.SCENE && signal.sceneId == subjectId
-				is SubjectSignal.Entry -> event.kind == TimelineKind.ENTRY && signal.entryId == subjectId
+	@OptIn(ExperimentalCoroutinesApi::class)
+	fun subjectUpdates(eventId: Int): Flow<PlacedSubject> =
+		storedTimeline
+			.map { timeline -> timeline.events.firstOrNull { it.id == eventId }?.takeIf { it.kind.isPlacement } }
+			.distinctUntilChanged()
+			.flatMapLatest { placement ->
+				if (placement == null) {
+					emptyFlow()
+				} else {
+					subjectChanges(placement).conflate().mapNotNull {
+						resolveSubject(placement)?.let { PlacedSubject(it, displayTitle(placement)) }
+					}
+				}
 			}
-			if (!affected) return@collect
 
-			if (event.kind == TimelineKind.SCENE) branch = placedSceneBranch(event)
-			val summary = resolveSubject(event) ?: return@collect
-			emit(PlacedSubject(summary, displayTitle(event)))
+	/**
+	 * Fires once every source is subscribed, then whenever [placement]'s subject may read differently.
+	 * Sources are subscribed undispatched so nothing that lands before the first signal is missed.
+	 */
+	private fun subjectChanges(placement: TimeLineEvent): Flow<Unit> = channelFlow {
+		val subjectId = placement.subject
+		when {
+			subjectId == null -> Unit
+
+			placement.kind == TimelineKind.SCENE -> {
+				var branch = sceneBranch(subjectId)
+				launch(start = CoroutineStart.UNDISPATCHED) {
+					sceneMetadataRepository.metadataUpdateFlow.collect { if (it.sceneId == subjectId) send(Unit) }
+				}
+				// Tree changes elsewhere leave the branch as it was; the replayed tree matches the baseline.
+				launch(start = CoroutineStart.UNDISPATCHED) {
+					sceneRepository.sceneTreeUpdates.collect {
+						val current = sceneBranch(subjectId)
+						if (current != branch) {
+							branch = current
+							send(Unit)
+						}
+					}
+				}
+			}
+
+			else -> launch(start = CoroutineStart.UNDISPATCHED) {
+				encyclopediaRepository.entryChangedFlow.collect { if (it == subjectId) send(Unit) }
+			}
 		}
+		send(Unit)
 	}
-
-	/** The live scene with [id], or null when it is gone, archived or a group. */
-	suspend fun findScene(id: Int): SceneItem? = withContext(dispatcherIo) {
-		sceneRepository.getSceneItemFromId(id)?.takeIf { it.type == SceneItem.Type.Scene }
-	}
-
-	suspend fun findEntry(id: Int): EntryDef? = withContext(dispatcherIo) { encyclopediaRepository.findEntryDef(id) }
 
 	/** The subject's name, else the title, the content's first line, the cached title, or "". */
 	suspend fun displayTitle(event: TimeLineEvent): String = displayTitles(listOf(event)).getValue(event.id)
@@ -586,17 +613,9 @@ class TimelineService(
 		SubjectSummary.Entry(def, content?.images?.firstOrNull(), markdownExcerpt(content?.text.orEmpty(), EXCERPT_CHARS))
 	}
 
-	private fun placedSceneBranch(event: TimeLineEvent): List<SceneItem>? {
-		if (event.kind != TimelineKind.SCENE) return null
-		val sceneId = event.subject ?: return null
-		return sceneRepository.rawTree.getBranchOrNull(excludeLeaf = false) { it.id == sceneId }?.map { it.value }
-	}
-
-	private sealed interface SubjectSignal {
-		data object SceneTree : SubjectSignal
-		data class SceneMetadata(val sceneId: Int) : SubjectSignal
-		data class Entry(val entryId: Int) : SubjectSignal
-	}
+	/** Scene [sceneId] and the groups above it in the live tree, or null when it is not there. */
+	private fun sceneBranch(sceneId: Int): List<SceneItem>? =
+		sceneRepository.rawTree.getBranchOrNull(excludeLeaf = false) { it.id == sceneId }?.map { it.value }
 
 	private fun chapterPath(scene: SceneItem): String {
 		if (scene.archived) return ""

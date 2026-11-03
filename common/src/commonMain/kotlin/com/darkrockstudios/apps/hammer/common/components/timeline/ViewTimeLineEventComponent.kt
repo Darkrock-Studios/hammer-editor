@@ -18,6 +18,7 @@ import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.MenuItemDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogItem
 import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogKind
@@ -25,6 +26,7 @@ import com.darkrockstudios.apps.hammer.common.data.entitycatalog.EntityCatalog
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesService
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageDef
 import com.darkrockstudios.apps.hammer.common.data.projectInject
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.SubjectSummary
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEventError
@@ -52,6 +54,8 @@ class ViewTimeLineEventComponent(
 
 	private val timelineService: TimelineService by projectInject()
 	private val entityCatalog: EntityCatalog by projectInject()
+	private val sceneRepository: SceneRepository by projectInject()
+	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
 	private val imagePickRequests: ImagePickRequests by projectInject()
 	private val imagesService: ImagesService by projectInject()
 
@@ -129,9 +133,12 @@ class ViewTimeLineEventComponent(
 				val updatedEvent = view.events.find { it.id == eventId }
 				val lanes = timelineService.lanes()
 				val changed = updatedEvent != state.value.event
-				val subject = if (changed && updatedEvent != null) timelineService.resolveSubject(updatedEvent) else null
-				val image = if (changed) subjectImage(subject) else null
-				val title = if (changed && updatedEvent != null) timelineService.displayTitle(updatedEvent) else null
+				// A placement's subject and title come from watchSubject.
+				val shown = when {
+					!changed || updatedEvent?.kind?.isPlacement == true -> null
+					updatedEvent == null -> ShownSubject(null, null, null)
+					else -> ShownSubject(null, null, timelineService.displayTitle(updatedEvent))
+				}
 				if (updatedEvent?.kind == TimelineKind.EVENT) loadCatalogOnce()
 
 				withContext(dispatcherMain) {
@@ -143,43 +150,47 @@ class ViewTimeLineEventComponent(
 							calendar = view.def.calendar,
 						)
 					}
-					if (changed) applyEvent(updatedEvent, subject, image, title)
+					if (changed) applyEvent(updatedEvent, shown)
 				}
 			}
 		}
 	}
 
-	/** Re-resolves a placement's summary when its scene or entry changes on its own. */
+	/** Shows a placement's subject as it is now and again whenever it changes. */
 	private fun watchSubject() {
 		scope.launch {
 			timelineService.subjectUpdates(eventId).collect { update ->
 				val image = subjectImage(update.summary)
 				withContext(dispatcherMain) {
-					_state.getAndUpdate {
-						it.copy(subject = update.summary, subjectImage = image, displayTitle = update.displayTitle)
-					}
+					_state.getAndUpdate { it.withSubject(ShownSubject(update.summary, image, update.displayTitle)) }
 					refreshReferences()
 				}
 			}
 		}
 	}
 
-	/** Takes [event] as stored; a dirty edit keeps its draft, otherwise the draft follows it. */
-	private fun applyEvent(
-		event: TimeLineEvent?,
-		subject: SubjectSummary?,
-		image: ViewTimeLineEvent.SubjectImage?,
-		title: String?,
-	) {
+	/** A subject as the view shows it; a null [displayTitle] keeps the current one. */
+	private class ShownSubject(
+		val summary: SubjectSummary?,
+		val image: ViewTimeLineEvent.SubjectImage?,
+		val displayTitle: String?,
+	)
+
+	private fun ViewTimeLineEvent.State.withSubject(shown: ShownSubject) = copy(
+		subject = shown.summary,
+		subjectImage = shown.image,
+		displayTitle = shown.displayTitle ?: displayTitle,
+	)
+
+	/**
+	 * Takes [event] as stored, with [shown] as its subject or, when null, the subject already shown.
+	 * A dirty edit keeps its draft, otherwise the draft follows the event.
+	 */
+	private fun applyEvent(event: TimeLineEvent?, shown: ShownSubject?) {
 		val keepDraft = isEditingAndDirty()
 		_state.getAndUpdate {
-			val next = it.copy(
-				event = event,
-				kind = event?.kind ?: it.kind,
-				subject = subject,
-				subjectImage = image,
-				displayTitle = title ?: it.displayTitle,
-			)
+			val placed = it.copy(event = event, kind = event?.kind ?: it.kind)
+			val next = if (shown == null) placed else placed.withSubject(shown)
 			if (keepDraft || event == null) next else next.withDraftFrom(event)
 		}
 		if (!keepDraft && event != null) {
@@ -334,11 +345,10 @@ class ViewTimeLineEventComponent(
 			is TimelineResult.Ok -> result.event
 		}
 		val subject = stored?.let { timelineService.resolveSubject(it) }
-		val image = subjectImage(subject)
-		val title = stored?.let { timelineService.displayTitle(it) }
+		val shown = ShownSubject(subject, subjectImage(subject), stored?.let { timelineService.displayTitle(it) })
 		withContext(dispatcherMain) {
 			_state.getAndUpdate { it.copy(isEditing = false) }
-			applyEvent(stored, subject, image, title)
+			applyEvent(stored, shown)
 			updateShouldClose()
 		}
 		return TimeLineEventError.NONE
@@ -356,12 +366,14 @@ class ViewTimeLineEventComponent(
 		scope.launch {
 			when (item.kind) {
 				CatalogKind.Scene -> {
-					val scene = timelineService.findScene(item.id) ?: return@launch
+					// Only a live scene opens: archived scenes are not in the tree, and groups are skipped.
+					val scene = sceneRepository.getSceneItemFromId(item.id)
+						?.takeIf { it.type == SceneItem.Type.Scene } ?: return@launch
 					withContext(dispatcherMain) { onShowScene(scene) }
 				}
 
 				CatalogKind.Entry -> {
-					val entry = timelineService.findEntry(item.id) ?: return@launch
+					val entry = withContext(dispatcherIo) { encyclopediaRepository.findEntryDef(item.id) } ?: return@launch
 					withContext(dispatcherMain) { onShowEntry(entry) }
 				}
 
@@ -378,12 +390,15 @@ class ViewTimeLineEventComponent(
 		_state.getAndUpdate { it.copy(confirmDelete = false) }
 	}
 
+	/** Closes the view once the event is gone, including when something else removed it first. */
 	override suspend fun deleteEvent() {
 		val result = timelineService.deleteEvent(eventId)
-		if (result is TimelineResult.Invalid) Napier.w("Failed to delete event $eventId: ${result.error}")
+		val error = (result as? TimelineResult.Invalid)?.error
+		val gone = error == null || error == TimeLineEventError.EVENT_NOT_FOUND
+		if (!gone) Napier.w("Failed to delete event $eventId: $error")
 		withContext(dispatcherMain) {
 			endDeleteEvent()
-			if (result.isSuccess) closeEvent()
+			if (gone) closeEvent()
 		}
 	}
 

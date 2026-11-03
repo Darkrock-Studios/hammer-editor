@@ -23,6 +23,7 @@ import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineRe
 import com.darkrockstudios.apps.hammer.common.data.tree.NodeCoordinates
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import io.mockk.every
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -697,19 +698,23 @@ class ViewTimeLineEventComponentTest : TimelineComponentTestBase() {
 	// region Opening
 
 	@Test
-	fun `opening a referenced scene shows it, and a gone one does nothing`() = runTest(mainTestDispatcher) {
+	fun `opening a reference shows a live scene or entry, and anything else does nothing`() = runTest(mainTestDispatcher) {
 		givenProject()
-		val event = timelineService.createEvent(TimelineEventDraft(title = "Storm", references = setOf(4))).event()
+		val event = timelineService.createEvent(TimelineEventDraft(title = "Storm", references = setOf(4, ALICE))).event()
+		sceneRepository.archiveScene(sceneRepository.getSceneItemFromId(7)!!)
 		val component = opened(event.id)
 
 		component.openReference(catalogItem(4))
+		component.openReference(catalogItem(ALICE))
+		component.openReference(CatalogItem(CatalogKind.Scene, 2, "Chapter ID 2"))
+		component.openReference(CatalogItem(CatalogKind.Scene, 7, "Scene ID 7"))
 		component.openReference(CatalogItem(CatalogKind.Scene, 999, "Ghost"))
 		component.openReference(CatalogItem(CatalogKind.Entry, 998, "Ghost"))
 		component.openReference(CatalogItem(CatalogKind.Note, 1, "A note"))
 		advanceUntilIdle()
 
 		assertEquals(listOf(4), shownScenes.map { it.id })
-		assertEquals(emptyList(), shownEntries)
+		assertEquals(listOf(ALICE), shownEntries.map { it.id })
 	}
 
 	@Test
@@ -781,7 +786,7 @@ class ViewTimeLineEventComponentTest : TimelineComponentTestBase() {
 	}
 
 	@Test
-	fun `deleting an event that is already gone keeps the view open`() = runTest(mainTestDispatcher) {
+	fun `deleting an event that is already gone closes the view`() = runTest(mainTestDispatcher) {
 		givenProject()
 		val event = timelineService.createEvent(TimelineEventDraft(title = "Storm")).event()
 		val component = opened(event.id)
@@ -793,7 +798,7 @@ class ViewTimeLineEventComponentTest : TimelineComponentTestBase() {
 		component.deleteEvent()
 
 		assertFalse(component.state.value.confirmDelete)
-		assertEquals(0, closes)
+		assertEquals(1, closes)
 	}
 
 	@Test
@@ -907,6 +912,39 @@ class ViewTimeLineEventComponentTest : TimelineComponentTestBase() {
 
 		assertEquals(SubjectSummary.Missing, component.state.value.subject)
 		assertEquals("Tea Party", component.state.value.displayTitle)
+	}
+
+	@Test
+	fun `a change to the placed entry while the view first shows it reaches the view`() = runTest(mainTestDispatcher) {
+		givenProject()
+		val image = ImageDef(7, "rabbit", "png")
+		var edited = false
+		every { imagesService.findImage(7) } answers {
+			if (!edited) {
+				edited = true
+				launch {
+					val def = encyclopediaRepository.findEntryDef(TEA_PARTY)!!
+					encyclopediaRepository.updateEntry(
+						oldEntryDef = def,
+						name = def.name,
+						text = "The March Hare spills the milk.",
+						tags = emptySet(),
+						excludeFromDictionary = false,
+						images = listOf(7),
+					)
+				}
+			}
+			image
+		}
+		every { imagesService.imagePath(image) } returns HPath("/images/7.png", "7.png", true)
+		encyclopediaRepository.addPrimaryImage(encyclopediaRepository.findEntryDef(TEA_PARTY)!!, 7)
+		val placed = timelineService.placeEntry(TEA_PARTY, null, null, lane = null, milestone = false).event()
+
+		val component = opened(placed.id)
+
+		assertTrue(edited)
+		val subject = assertIs<SubjectSummary.Entry>(component.state.value.subject)
+		assertEquals("The March Hare spills the milk.", subject.excerpt)
 	}
 
 	@Test
