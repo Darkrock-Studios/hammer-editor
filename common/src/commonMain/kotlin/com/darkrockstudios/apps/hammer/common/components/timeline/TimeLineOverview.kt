@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogItem
+import com.darkrockstudios.apps.hammer.common.data.search.projectMarkdownToPlainText
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagCount
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineFrame
@@ -55,13 +56,14 @@ interface TimeLineOverview {
 		/** Rows must carry every one of these tags to be listed or drawn. */
 		val tagFilter: Set<String> = emptySet(),
 		val laneFilter: Set<String> = emptySet(),
-		/** What the search and filters leave of [rows]; see [refiltered]. */
-		val filtered: FilteredRows = FilteredRows(),
 		val view: TimelineView = TimelineView.SEQUENCE,
 		val frame: TimelineFrame = TimelineFrame.Everything,
 		/** Whether some placed scene has a start, which [TimelineFrame.Story] frames. */
 		val storyFrameAvailable: Boolean = false,
-	)
+	) {
+		/** What the search and filters leave of [rows], worked out on first read. */
+		val filtered: FilteredRows by lazy { filterRows(rows.orEmpty(), mode, searchQuery, tagFilter, laneFilter) }
+	}
 }
 
 /** An event as its preview card shows it, on hover or a long press. */
@@ -107,7 +109,10 @@ data class TimelineRow(
 	val start: StoryDate? = null,
 	val end: StoryDate? = null,
 	val calendar: CalendarDef? = null,
-)
+) {
+	/** [event]'s body as the prose a reader sees, which the search matches. Worked out once, as the row is built. */
+	internal val bodyText: String = projectMarkdownToPlainText(event.content)
+}
 
 /** Whether the drawing shows this row: it has a start, and is not an archived scene. */
 val TimelineRow.isDrawn: Boolean get() = start != null && !subjectArchived

@@ -1,17 +1,15 @@
 package com.darkrockstudios.apps.hammer.common.components.timeline
 
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
-import com.darkrockstudios.apps.hammer.common.data.search.markdownContains
-import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 
-/** An event matches on its body read as prose, or on its plain-text date. */
-fun eventMatchesQuery(event: TimeLineEvent, query: String): Boolean =
-	markdownContains(event.content, query) ||
-		event.label?.contains(query, ignoreCase = true) == true
-
-/** A row also matches on the title it shows, which for a placement is its subject's name. */
+/**
+ * A row matches on its event's body read as prose, on its plain-text date, or on the title it shows,
+ * which for a placement is its subject's name.
+ */
 fun rowMatchesQuery(row: TimelineRow, query: String): Boolean =
-	eventMatchesQuery(row.event, query) || row.title.contains(query, ignoreCase = true)
+	row.bodyText.contains(query, ignoreCase = true) ||
+		row.event.label?.contains(query, ignoreCase = true) == true ||
+		row.title.contains(query, ignoreCase = true)
 
 /** What the overview's search, tag filter and lane filter leave of a timeline's rows. */
 data class FilteredRows(
@@ -60,7 +58,3 @@ fun filterRows(
 		reorderable = !dated && search == null && tagFilter.isEmpty() && laneFilter.isEmpty(),
 	)
 }
-
-/** This state with [TimeLineOverview.State.filtered] worked out again from its rows, mode, search and filters. */
-fun TimeLineOverview.State.refiltered(): TimeLineOverview.State =
-	copy(filtered = filterRows(rows.orEmpty(), mode, searchQuery, tagFilter, laneFilter))

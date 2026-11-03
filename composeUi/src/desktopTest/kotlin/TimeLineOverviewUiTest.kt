@@ -34,7 +34,6 @@ import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineOvervi
 import com.darkrockstudios.apps.hammer.common.components.timeline.ViewTimeLineEvent
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimelineRow
 import com.darkrockstudios.apps.hammer.common.components.timeline.basicPreview
-import com.darkrockstudios.apps.hammer.common.components.timeline.refiltered
 import com.darkrockstudios.apps.hammer.common.compose.LocalImageNames
 import com.darkrockstudios.apps.hammer.common.compose.LocalRootFabState
 import com.darkrockstudios.apps.hammer.common.compose.RootFabState
@@ -84,7 +83,7 @@ class TimeLineOverviewUiTest : BaseTest() {
 				mode = mode,
 				undatedIds = undatedIds,
 				storyFrameAvailable = storyFrameAvailable,
-			).refiltered()
+			)
 		)
 		override val state: Value<TimeLineOverview.State> = _state
 		override val rankedTags: Value<List<TagCount>> = MutableValue(tags)
@@ -92,16 +91,16 @@ class TimeLineOverviewUiTest : BaseTest() {
 		override suspend fun moveEvent(event: TimeLineEvent, toIndex: Int, after: Boolean): Boolean = true
 
 		fun setLaneFilter(lanes: Set<String>) {
-			_state.value = _state.value.copy(laneFilter = lanes).refiltered()
+			_state.value = _state.value.copy(laneFilter = lanes)
 		}
 
 		override fun setSearchQuery(query: String) {
-			_state.value = _state.value.copy(searchQuery = query).refiltered()
+			_state.value = _state.value.copy(searchQuery = query)
 		}
 
 		override fun toggleTag(tag: String) {
 			val filter = _state.value.tagFilter
-			_state.value = _state.value.copy(tagFilter = if (tag in filter) filter - tag else filter + tag).refiltered()
+			_state.value = _state.value.copy(tagFilter = if (tag in filter) filter - tag else filter + tag)
 		}
 
 		override fun toggleLane(lane: String) {
@@ -110,7 +109,7 @@ class TimeLineOverviewUiTest : BaseTest() {
 		}
 
 		override fun clearFilters() {
-			_state.value = _state.value.copy(tagFilter = emptySet(), laneFilter = emptySet()).refiltered()
+			_state.value = _state.value.copy(tagFilter = emptySet(), laneFilter = emptySet())
 		}
 
 		override fun setView(view: TimelineView) {
@@ -134,7 +133,7 @@ class TimeLineOverviewUiTest : BaseTest() {
 
 		/** Rows arriving after the first frame, as they do from the timeline service. */
 		fun load(rows: List<TimelineRow>) {
-			_state.value = _state.value.copy(rows = rows).refiltered()
+			_state.value = _state.value.copy(rows = rows)
 		}
 	}
 
@@ -274,6 +273,22 @@ class TimeLineOverviewUiTest : BaseTest() {
 
 		compose.onAllNodesWithTag(EVENT_CARD_TAG).assertCountEquals(1)
 		compose.onNodeWithText("The Pool of Tears").assertIsDisplayed()
+	}
+
+	@Test
+	fun `On a phone a kept search shows its field from the first frame`() {
+		val component = FakeOverview(
+			listOf(
+				row(TimeLineEvent(id = 0, order = 0, kind = TimelineKind.SCENE, subject = 4), title = "The Pool of Tears"),
+				row(TimeLineEvent(id = 1, order = 1, content = "An unrelated event")),
+			)
+		)
+		component.setSearchQuery("pool")
+
+		showPhoneOverview(component)
+
+		compose.onNodeWithTag(TIME_LINE_SEARCH_TAG).assertIsDisplayed().assertTextContains("pool")
+		compose.onAllNodesWithTag(EVENT_CARD_TAG).assertCountEquals(1)
 	}
 
 	@Test

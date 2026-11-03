@@ -328,6 +328,27 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 	}
 
 	@Test
+	fun `a kept tag that no event carries any more leaves the filter`() = runTest(mainTestDispatcher) {
+		givenProject()
+		val fall = timelineService.createEvent(TimelineEventDraft(title = "Fall", tags = setOf("storm", "act-one"))).event()
+		timelineService.createEvent(TimelineEventDraft(title = "Tea", tags = setOf("act-one")))
+		val component = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		component.toggleTag("storm")
+		component.toggleTag("act-one")
+
+		val recreated = context.saveAndRecreate()
+		timelineService.updateEvent(fall.copy(tags = setOf("act-one")))
+		val restored = TimeLineOverviewComponent(recreated, projectDef, {}, {})
+		recreated.resume()
+		advanceUntilIdle()
+
+		assertEquals(setOf("act-one"), restored.state.value.tagFilter)
+		assertEquals(listOf("Fall", "Tea"), restored.listed())
+	}
+
+	@Test
 	fun `moving is refused on a dated timeline`() = runTest(mainTestDispatcher) {
 		givenProject()
 		val first = (timelineService.createEvent(TimelineEventDraft(title = "One")) as TimelineResult.Ok).event!!

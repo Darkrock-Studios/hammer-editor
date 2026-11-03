@@ -106,6 +106,7 @@ class TimeLineOverviewComponent(
 					previews.entries.removeAll { (id, cached) -> rowsById[id] != cached.row }
 					_state.getAndUpdate { current ->
 						val laneNames = built.lanes.mapTo(HashSet()) { it.lane }
+						val tagNames = built.rows.flatMapTo(HashSet()) { it.event.tags }
 						// Only drawn events (dated, and not an archived scene) can be framed.
 						val drawn = built.rows.mapNotNullTo(HashSet()) { row -> row.event.id.takeIf { row.isDrawn } }
 						val storyAvailable = built.rows.any { it.event.kind == TimelineKind.SCENE && it.isDrawn }
@@ -120,10 +121,11 @@ class TimeLineOverviewComponent(
 							calendar = view.def.calendar,
 							undatedIds = built.undatedIds,
 							lanes = built.lanes,
+							tagFilter = current.tagFilter.filterTo(LinkedHashSet()) { it in tagNames },
 							laneFilter = current.laneFilter.filterTo(LinkedHashSet()) { it in laneNames },
 							frame = frame ?: TimelineFrame.Everything,
 							storyFrameAvailable = storyAvailable,
-						).refiltered()
+						)
 					}
 				}
 			}
@@ -176,19 +178,19 @@ class TimeLineOverviewComponent(
 		timelineService.moveEvent(event, toIndex, after).isSuccess
 
 	override fun setSearchQuery(query: String) {
-		_state.getAndUpdate { if (it.searchQuery == query) it else it.copy(searchQuery = query).refiltered() }
+		_state.getAndUpdate { if (it.searchQuery == query) it else it.copy(searchQuery = query) }
 	}
 
 	override fun toggleTag(tag: String) {
-		_state.getAndUpdate { it.copy(tagFilter = it.tagFilter.toggled(tag)).refiltered() }
+		_state.getAndUpdate { it.copy(tagFilter = it.tagFilter.toggled(tag)) }
 	}
 
 	override fun toggleLane(lane: String) {
-		_state.getAndUpdate { it.copy(laneFilter = it.laneFilter.toggled(lane)).refiltered() }
+		_state.getAndUpdate { it.copy(laneFilter = it.laneFilter.toggled(lane)) }
 	}
 
 	override fun clearFilters() {
-		_state.getAndUpdate { it.copy(tagFilter = emptySet(), laneFilter = emptySet()).refiltered() }
+		_state.getAndUpdate { it.copy(tagFilter = emptySet(), laneFilter = emptySet()) }
 	}
 
 	private fun Set<String>.toggled(item: String): Set<String> = if (item in this) this - item else this + item

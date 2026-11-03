@@ -270,7 +270,8 @@ fun TimeLineOverviewUi(
 		// Title row — section header with entries/tags meta. Narrow widths
 		// swap the title for a search field on tap.
 		AnimatedContent(
-			targetState = showSearchBar && !isWide,
+			// A kept search shows its field, so what narrows the results can be seen and cleared.
+			targetState = (showSearchBar || searchQuery.isNotBlank()) && !isWide,
 			modifier = Modifier
 				.fillMaxWidth()
 				.height(Ui.TOP_BAR_HEIGHT)
