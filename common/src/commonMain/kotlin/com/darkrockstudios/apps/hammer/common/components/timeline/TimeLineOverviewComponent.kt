@@ -13,10 +13,7 @@ import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
-import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
-import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogItem
 import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogKind
 import com.darkrockstudios.apps.hammer.common.data.entitycatalog.EntityCatalog
 import com.darkrockstudios.apps.hammer.common.data.projectInject
@@ -43,8 +40,6 @@ class TimeLineOverviewComponent(
 	projectDef: ProjectDef,
 	addMenu: (menu: MenuDescriptor) -> Unit,
 	removeMenu: (id: String) -> Unit,
-	private val onShowScene: (SceneItem) -> Unit,
-	private val onShowEntry: (EntryDef) -> Unit,
 ) : ProjectComponentBase(projectDef, componentContext), TimeLineOverview {
 
 	private val timelineService: TimelineService by projectInject()
@@ -216,23 +211,6 @@ class TimeLineOverviewComponent(
 		}
 	}
 
-	override fun openReference(item: CatalogItem) {
-		scope.launch {
-			when (item.kind) {
-				CatalogKind.Scene -> {
-					val scene = sceneRepository.getSceneItemFromId(item.id) ?: return@launch
-					withContext(dispatcherMain) { onShowScene(scene) }
-				}
-
-				CatalogKind.Entry -> {
-					val entry = withContext(dispatcherIo) { encyclopediaRepository.findEntryDef(item.id) } ?: return@launch
-					withContext(dispatcherMain) { onShowEntry(entry) }
-				}
-
-				else -> Unit
-			}
-		}
-	}
 
 	override suspend fun preview(eventId: Int): EventPreview? {
 		var cached: EventPreview? = null

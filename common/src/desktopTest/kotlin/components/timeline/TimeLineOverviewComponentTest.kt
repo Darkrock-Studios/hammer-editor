@@ -7,8 +7,6 @@ import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.components.timeline.EventPreview
 import com.darkrockstudios.apps.hammer.common.components.timeline.LaneCount
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineOverviewComponent
-import com.darkrockstudios.apps.hammer.common.data.SceneItem
-import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineEventDraft
@@ -27,16 +25,12 @@ import kotlin.test.assertTrue
 
 class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 
-	private val shownScenes = mutableListOf<SceneItem>()
-	private val shownEntries = mutableListOf<EntryDef>()
 
 	private fun newComponent() = TimeLineOverviewComponent(
 		componentContext = context,
 		projectDef = projectDef,
 		addMenu = {},
 		removeMenu = {},
-		onShowScene = { shownScenes += it },
-		onShowEntry = { shownEntries += it },
 	)
 
 	@Test
@@ -327,7 +321,7 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 		component.setFrame(TimelineFrame.Band(storm.id))
 		assertEquals(TimelineFrame.Band(storm.id), component.state.value.frame)
 
-		val restored = TimeLineOverviewComponent(context.saveAndRecreate(), projectDef, {}, {}, {}, {})
+		val restored = TimeLineOverviewComponent(context.saveAndRecreate(), projectDef, {}, {})
 		assertEquals(TimelineFrame.Band(storm.id), restored.state.value.frame)
 
 		assertTrue(context.back())
@@ -534,20 +528,5 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 		advanceUntilIdle()
 
 		assertNull(component.preview(999))
-	}
-
-	@Test
-	fun `a reference in the summary opens its entry or scene`() = runTest(mainTestDispatcher) {
-		givenProject()
-		val component = newComponent()
-		context.resume()
-		advanceUntilIdle()
-
-		component.openReference(catalogItem(ALICE))
-		component.openReference(catalogItem(4))
-		advanceUntilIdle()
-
-		assertEquals(listOf(ALICE), shownEntries.map { it.id })
-		assertEquals(listOf(4), shownScenes.map { it.id })
 	}
 }

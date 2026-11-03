@@ -37,7 +37,7 @@ import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogItem
 import com.darkrockstudios.apps.hammer.common.data.references.ImageReferenceSyntax
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.formatStoryDateRange
-import com.darkrockstudios.apps.hammer.timeline_selection_more
+import com.darkrockstudios.apps.hammer.timeline_preview_more
 import com.darkrockstudios.apps.hammer.timeline_subject_archived
 import com.darkrockstudios.apps.hammer.timeline_subject_missing
 import com.darkrockstudios.texteditor.richstyle.ImageBlockResource
@@ -142,7 +142,7 @@ private fun ReferenceLine(references: List<CatalogItem>) {
 	val shown = references.take(SHOWN_REFERENCES)
 	val glyphColors = shown.map { it.hdSwatchColor() }
 	val hidden = references.size - shown.size
-	val more = if (hidden > 0) Res.string.timeline_selection_more.get(hidden) else null
+	val more = if (hidden > 0) Res.string.timeline_preview_more.get(hidden) else null
 	val text = buildAnnotatedString {
 		shown.forEachIndexed { i, item ->
 			if (i > 0) append(", ")

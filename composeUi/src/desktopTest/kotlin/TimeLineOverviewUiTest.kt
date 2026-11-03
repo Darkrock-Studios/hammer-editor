@@ -113,11 +113,6 @@ class TimeLineOverviewUiTest : BaseTest() {
 			_state.value = _state.value.copy(frame = frame)
 		}
 
-		val openedReferences = mutableListOf<CatalogItem>()
-
-		override fun openReference(item: CatalogItem) {
-			openedReferences += item
-		}
 
 		override fun setScrolledDown(scrolledDown: Boolean) {
 			_state.value = _state.value.copy(scrolledDown = scrolledDown)

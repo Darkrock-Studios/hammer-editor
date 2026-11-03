@@ -99,7 +99,6 @@ internal fun DatedTimelinePane(
 			state.laneFilter,
 			state.view,
 			state.frame,
-			state.selectedId,
 			calendar,
 			steppedWidthDp,
 			phone,
@@ -115,7 +114,6 @@ internal fun DatedTimelinePane(
 				widthDp = steppedWidthDp,
 				phone = phone,
 				frame = state.frame,
-				selectedId = state.selectedId,
 				words = words,
 				entryMark = EntryType.EVENT.glyph(),
 			)

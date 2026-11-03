@@ -114,6 +114,9 @@ data class LedgerRow(
 /** The selected moment projected across the lanes; [rect] is the tint (zero height for a point). */
 data class ProjectionOverlay(val eventId: Int, val yDp: Float, val y1Dp: Float?, val rect: RectDp)
 
+/** Where an event sits on the drawing's time axis: its start, and its end when it spans. */
+data class EventAnchor(val yDp: Float, val y1Dp: Float?)
+
 sealed class HitTarget {
 	data class Band(val eventId: Int) : HitTarget()
 	data class Point(val eventId: Int) : HitTarget()
@@ -147,4 +150,13 @@ data class TimelineLayout(
 	val ledgerRows: List<LedgerRow>,
 	val projection: ProjectionOverlay?,
 	val hitRegions: List<HitRegion>,
-)
+	/** Every drawn event's place on the axis, so any of them can be projected without a new layout. */
+	val anchors: Map<Int, EventAnchor> = emptyMap(),
+) {
+	/** [eventId] projected across the lanes, as [projection] is for the input's selection. */
+	fun projectionOf(eventId: Int?): ProjectionOverlay? {
+		val anchor = eventId?.let(anchors::get) ?: return null
+		val height = (anchor.y1Dp ?: anchor.yDp) - anchor.yDp
+		return ProjectionOverlay(eventId, anchor.yDp, anchor.y1Dp, RectDp(laneRegion.x, anchor.yDp, laneRegion.width, height))
+	}
+}

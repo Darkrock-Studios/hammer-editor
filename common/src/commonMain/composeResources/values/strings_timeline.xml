@@ -182,8 +182,8 @@
 	<string name="timeline_frame_story">Story</string>
 	<string name="timeline_frame_band_description">Framed on %1$s</string>
 	<string name="timeline_frame_back_to_everything">Back to everything</string>
-	<string name="timeline_selection_frame">Frame</string>
-	<string name="timeline_selection_more">+%1$d</string>
+	<string name="timeline_event_frame">Frame</string>
+	<string name="timeline_preview_more">+%1$d</string>
 	<string name="timeline_drawing_menu">View</string>
 	<string name="timeline_drawing_menu_view">Drawing</string>
 	<string name="timeline_drawing_menu_frame">Frame</string>

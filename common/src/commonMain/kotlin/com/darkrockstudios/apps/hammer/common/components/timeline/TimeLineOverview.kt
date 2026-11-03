@@ -24,7 +24,7 @@ interface TimeLineOverview {
 	/** Which drawing a DATED timeline shows. */
 	fun setView(view: TimelineView)
 
-	/** Selects [eventId] on the drawing, projecting it and showing its summary; null clears the selection. */
+	/** Selects [eventId] on the drawing, which projects it across the lanes; null clears the selection. */
 	fun select(eventId: Int?)
 
 	/** Whether [eventId] is drawn as a span the drawing can frame, and is not already framed. */
@@ -32,9 +32,6 @@ interface TimeLineOverview {
 
 	/** Which stretch of a DATED timeline the drawing shows. [TimelineFrame.Story] needs a placed scene. */
 	fun setFrame(frame: TimelineFrame)
-
-	/** Shows a referenced scene or entry from an event's preview. */
-	fun openReference(item: CatalogItem)
 
 	/**
 	 * [eventId]'s preview, read once and then served from a cache until the event or its row changes.

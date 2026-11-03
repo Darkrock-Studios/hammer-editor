@@ -26,7 +26,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
@@ -60,8 +59,6 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -77,10 +74,8 @@ import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
-import com.darkrockstudios.apps.hammer.common.components.timeline.EventPreview
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineOverview
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimelineRow
-import com.darkrockstudios.apps.hammer.common.components.timeline.basicPreview
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarGutter
 import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarList
@@ -91,7 +86,6 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdClearGlyph
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdScrollAwayStrip
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDragHandle
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineSegmentedPicker
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNoticeStrip
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSearchField
@@ -108,7 +102,6 @@ import com.darkrockstudios.apps.hammer.common.compose.reorderable.DragDropList
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
-import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogItem
 import com.darkrockstudios.apps.hammer.common.data.search.markdownContains
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.formatStoryDateRange
@@ -205,7 +198,6 @@ fun TimeLineOverviewUi(
 	val screen = LocalScreenCharacteristic.current
 	val isWide = screen.isWide
 	val isExpanded = screen.windowWidthClass == WindowWidthSizeClass.Expanded
-	val phone = screen.windowWidthClass == WindowWidthSizeClass.Compact
 
 	var searchQuery by rememberSaveable { mutableStateOf("") }
 	var activeTags by remember { mutableStateOf<Set<String>>(emptySet()) }
@@ -338,6 +330,13 @@ fun TimeLineOverviewUi(
 					collapseContentDescription = Res.string.timeline_search_close.get(),
 					modifier = Modifier.fillMaxSize(),
 					testTag = TIME_LINE_SEARCH_TAG,
+					onSearch = if (dated) {
+						{ nextMatch() }
+					} else {
+						null
+					},
+					status = matchCounter,
+					statusTestTag = TIME_LINE_SEARCH_MATCHES_TAG,
 				)
 			} else {
 				Row(

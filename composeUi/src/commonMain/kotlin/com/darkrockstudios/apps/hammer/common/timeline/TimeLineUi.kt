@@ -36,7 +36,6 @@ import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineOvervi
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFab
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
-import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineFrame
 import com.darkrockstudios.apps.hammer.timeline_create_event_button
 import com.arkivanov.essenty.backhandler.BackCallback
 import com.darkrockstudios.apps.hammer.common.components.timeline.ViewTimeLineEvent
@@ -116,8 +115,8 @@ fun TimeLineUi(
 
 /**
  * The event opened from the drawing, over the drawing on a scrim. Back (Escape on desktop) or a tap
- * on the scrim closes it, and a predictive back gesture shrinks it as it pulls. A span the drawing can frame gets a
- * Frame action that frames it and closes the dialog.
+ * on the scrim closes it, and a predictive back gesture shrinks it as it pulls. A span the drawing
+ * can frame gets a Frame action that frames it and closes the dialog.
  */
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
@@ -127,8 +126,6 @@ private fun SharedTransitionScope.EventDialog(
 	rootSnackbar: RootSnackbarHostState,
 ) {
 	val slot by component.eventDialog.subscribeAsState()
-	val stack by component.stack.subscribeAsState()
-	val overview = (stack.items.first().instance as? TimeLine.Destination.TimeLineOverviewDestination)?.component
 	AnimatedContent(
 		targetState = slot.child?.instance,
 		modifier = Modifier.fillMaxSize(),
@@ -141,9 +138,8 @@ private fun SharedTransitionScope.EventDialog(
 	) { dialog ->
 		if (dialog == null) return@AnimatedContent
 		val backProgress = rememberDialogBackProgress(component, dialog, isOpen = slot.child?.instance === dialog)
-		val overviewState = overview?.state?.subscribeAsState()?.value
 		val eventId = dialog.eventId
-		val canFrame = remember(overviewState) { overview?.canFrame(eventId) == true }
+		val canFrame = remember(dialog) { component.canFrameEvent(eventId) }
 		ViewTimeLineEventUi(
 			component = dialog,
 			scope = scope,
@@ -152,11 +148,8 @@ private fun SharedTransitionScope.EventDialog(
 			animatedVisibilityScope = this,
 			dialog = true,
 			dialogBackProgress = { backProgress.value },
-			onFrame = if (overview != null && canFrame) {
-				{
-					overview.setFrame(TimelineFrame.Band(eventId))
-					component.closeEventDialog()
-				}
+			onFrame = if (canFrame) {
+				{ component.frameEvent(eventId) }
 			} else {
 				null
 			},

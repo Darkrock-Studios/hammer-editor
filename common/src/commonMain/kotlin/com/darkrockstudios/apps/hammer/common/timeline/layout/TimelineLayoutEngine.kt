@@ -125,12 +125,9 @@ object TimelineLayoutEngine {
 			foldGlyphYs = folds.map { (it.y0 + it.y1) / 2f },
 		)
 
+		val anchors = placed.associate { p -> p.event.id to EventAnchor(scale.y(p.start), p.end?.let { scale.y(it) }) }
 		val projection = input.selectedId?.let { id ->
-			placed.firstOrNull { it.event.id == id }?.let { p ->
-				val y = scale.y(p.start)
-				val y1 = p.end?.let { scale.y(it) }
-				ProjectionOverlay(id, y, y1, RectDp(axisX, y, laneRegionWidth, (y1 ?: y) - y))
-			}
+			anchors[id]?.let { a -> ProjectionOverlay(id, a.yDp, a.y1Dp, RectDp(axisX, a.yDp, laneRegionWidth, (a.y1Dp ?: a.yDp) - a.yDp)) }
 		}
 
 		val ledgerBottom = ledgerRows.maxOfOrNull { it.hitRect.bottom } ?: Float.NEGATIVE_INFINITY
@@ -153,6 +150,7 @@ object TimelineLayoutEngine {
 			ledgerRows = ledgerRows,
 			projection = projection,
 			hitRegions = hits,
+			anchors = anchors,
 		)
 	}
 

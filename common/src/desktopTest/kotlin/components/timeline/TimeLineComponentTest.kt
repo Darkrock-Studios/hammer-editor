@@ -1,5 +1,8 @@
 package components.timeline
 
+import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
+import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
+import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineFrame
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLine
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineComponent
@@ -189,5 +192,28 @@ class TimeLineComponentTest : TimelineComponentTestBase() {
 
 		assertEquals(listOf("storm"), searched)
 		assertNull(component.eventDialog.value.child)
+	}
+
+	@Test
+	fun `framing from an event dialog frames the drawing on its band and closes the dialog`() = runTest(mainTestDispatcher) {
+		givenProject()
+		timelineService.switchToDated(CalendarDef())
+		val siege = (timelineService.createEvent(
+			TimelineEventDraft(title = "Siege", start = StoryDate(mapOf("year" to 1L)), end = StoryDate(mapOf("year" to 4L)))
+		) as TimelineResult.Ok).event!!
+		val component = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		component.showEventDialog(siege.id)
+		advanceUntilIdle()
+
+		assertTrue(component.canFrameEvent(siege.id))
+		component.frameEvent(siege.id)
+		advanceUntilIdle()
+
+		val overview = (component.stack.value.active.instance as TimeLine.Destination.TimeLineOverviewDestination).component
+		assertEquals(TimelineFrame.Band(siege.id), overview.state.value.frame)
+		assertNull(component.eventDialog.value.child)
+		assertFalse(component.canFrameEvent(siege.id), "already framed")
 	}
 }

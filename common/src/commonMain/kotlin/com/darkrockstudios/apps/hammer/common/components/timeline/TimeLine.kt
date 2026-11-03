@@ -45,4 +45,10 @@ interface TimeLine : Router, BackHandlerOwner {
 
 	/** Closes the event dialog, asking first when it holds unsaved edits. */
 	fun closeEventDialog()
+
+	/** Whether the drawing can frame [eventId]'s band: a span, not already framed. */
+	fun canFrameEvent(eventId: Int): Boolean
+
+	/** Frames the drawing on [eventId]'s band and closes the event dialog. */
+	fun frameEvent(eventId: Int)
 }

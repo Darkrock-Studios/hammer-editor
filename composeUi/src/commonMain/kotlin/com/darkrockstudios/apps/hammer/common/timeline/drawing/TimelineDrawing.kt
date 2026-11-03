@@ -197,7 +197,8 @@ fun TimelineDrawing(
 	}
 	var hoveredLedgerId by remember { mutableStateOf<Int?>(null) }
 	val currentOnPeek by rememberUpdatedState(onPeek)
-	var peekedId by remember { mutableStateOf<Int?>(null) }
+	// The pressed hit box, not its event: an event's mark and its label are separate boxes.
+	var peekedIndex by remember { mutableStateOf<Int?>(null) }
 	// Watches every gesture without consuming it, so a peek ends on release wherever the pointer is,
 	// even when the peek lays the drawing out again under it.
 	val peekRelease = Modifier.pointerInput(Unit) {
@@ -206,8 +207,8 @@ fun TimelineDrawing(
 			do {
 				val event = awaitPointerEvent(PointerEventPass.Final)
 			} while (event.changes.any { it.pressed })
-			if (peekedId != null) {
-				peekedId = null
+			if (peekedIndex != null) {
+				peekedIndex = null
 				currentOnPeek(null)
 			}
 		}
@@ -238,10 +239,10 @@ fun TimelineDrawing(
 					hoverTooltips && (target is HitTarget.Ledger || target is HitTarget.Band) -> HitTooltip.Description
 					else -> null
 				},
-				peeked = target.eventId != null && target.eventId == peekedId,
+				peeked = index == peekedIndex,
 				onTap = onTap,
 				onPeek = { id ->
-					peekedId = id
+					peekedIndex = index
 					onHoverStart(id)
 					onPeek(id)
 				},
@@ -881,7 +882,7 @@ private class TimelinePainter(
 	}
 
 	private fun DrawScope.drawProjection() {
-		val projection = layout.projection ?: return
+		val projection = (layout.projection?.takeIf { it.eventId == selectedId } ?: layout.projectionOf(selectedId)) ?: return
 		val region = layout.laneRegion
 		val x0 = region.x
 		val x1 = if (region.width > 0f) region.right else layout.widthDp

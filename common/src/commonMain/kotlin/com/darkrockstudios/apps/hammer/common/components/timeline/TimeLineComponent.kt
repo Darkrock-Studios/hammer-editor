@@ -21,6 +21,7 @@ import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
+import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineFrame
 
 class TimeLineComponent(
 	componentContext: ComponentContext,
@@ -85,8 +86,6 @@ class TimeLineComponent(
 			projectDef = config.projectDef,
 			addMenu = addMenu,
 			removeMenu = removeMenu,
-			onShowScene = onShowScene,
-			onShowEntry = onShowEntry,
 		)
 	}
 
@@ -164,6 +163,16 @@ class TimeLineComponent(
 
 	override fun closeEventDialog() {
 		eventDialog.value.child?.instance?.confirmClose()
+	}
+
+	private val overview: TimeLineOverview?
+		get() = stack.value.items.firstNotNullOfOrNull { (it.instance as? TimeLine.Destination.TimeLineOverviewDestination)?.component }
+
+	override fun canFrameEvent(eventId: Int): Boolean = overview?.canFrame(eventId) == true
+
+	override fun frameEvent(eventId: Int) {
+		overview?.setFrame(TimelineFrame.Band(eventId))
+		dialogNavigation.dismiss()
 	}
 
 	override fun isAtRoot(): Boolean {

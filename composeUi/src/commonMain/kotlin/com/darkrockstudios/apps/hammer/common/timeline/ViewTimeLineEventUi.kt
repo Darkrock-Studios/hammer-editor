@@ -326,7 +326,7 @@ private fun CrumbRow(
 		Spacer(modifier = Modifier.weight(1f))
 		if (onFrame != null) {
 			HdHairlineButton(
-				label = Res.string.timeline_selection_frame.get(),
+				label = Res.string.timeline_event_frame.get(),
 				onClick = onFrame,
 				modifier = Modifier.testTag(TIME_LINE_VIEW_FRAME_TAG),
 			)
