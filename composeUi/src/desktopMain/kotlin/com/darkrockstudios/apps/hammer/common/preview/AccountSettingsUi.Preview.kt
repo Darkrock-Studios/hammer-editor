@@ -45,6 +45,7 @@ internal fun ScreenAccountSettingsUiTabletPreview() {
 	val component = accountSettingsComponent(
 		defaultAccountSettingsComponentState.copy(
 			serverSetup = false,
+			serverIsConfigured = true,
 			serverIsLoggedIn = true,
 			currentEmail = "admin@example.com",
 			currentUrl = "https://hammer-server.com",
@@ -66,6 +67,7 @@ internal fun ScreenAccountSettingsUiServerConfiguredPreview() {
 	val component = accountSettingsComponent(
 		defaultAccountSettingsComponentState.copy(
 			serverSetup = false,
+			serverIsConfigured = true,
 			serverIsLoggedIn = true,
 			currentEmail = "admin@example.com",
 			currentUrl = "https://hammer-server.com",

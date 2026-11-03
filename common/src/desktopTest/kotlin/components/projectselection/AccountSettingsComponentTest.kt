@@ -232,6 +232,64 @@ class AccountSettingsComponentTest : BaseTest() {
 	}
 
 	@Test
+	fun `A configured server with no auth token still reads as configured`() = runTest {
+		serverSettingsUpdates.emit(
+			ServerSettings(
+				url = "example.com",
+				email = "writer@example.com",
+				userId = 1L,
+				bearerToken = null,
+				refreshToken = null,
+			)
+		)
+
+		val component = newComponent()
+		advanceUntilIdle()
+
+		assertTrue(component.state.value.serverIsConfigured)
+		assertFalse(component.state.value.serverIsLoggedIn)
+	}
+
+	@Test
+	fun `Provisional settings from an unfinished setup do not read as configured`() = runTest {
+		serverSettingsUpdates.emit(
+			ServerSettings(
+				url = "example.com",
+				email = "writer@example.com",
+				userId = -1L,
+				bearerToken = null,
+				refreshToken = null,
+			)
+		)
+
+		val component = newComponent()
+		advanceUntilIdle()
+
+		assertFalse(component.state.value.serverIsConfigured)
+	}
+
+	@Test
+	fun `Removing the server no longer reads as configured`() = runTest {
+		serverSettingsUpdates.emit(
+			ServerSettings(
+				url = "example.com",
+				email = "writer@example.com",
+				userId = 1L,
+				bearerToken = null,
+				refreshToken = null,
+			)
+		)
+		val component = newComponent()
+		advanceUntilIdle()
+
+		serverSettingsUpdates.emit(null)
+		advanceUntilIdle()
+
+		assertFalse(component.state.value.serverIsConfigured)
+	}
+
+
+	@Test
 	fun `Creating a new account clears stale server project IDs`() = runTest {
 		seedProject(PROJECT_A)
 		seedProject(PROJECT_B)
