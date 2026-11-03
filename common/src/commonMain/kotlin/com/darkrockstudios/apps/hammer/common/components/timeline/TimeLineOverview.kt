@@ -24,9 +24,6 @@ interface TimeLineOverview {
 	/** Which drawing a DATED timeline shows. */
 	fun setView(view: TimelineView)
 
-	/** Selects [eventId] on the drawing, which projects it across the lanes; null clears the selection. */
-	fun select(eventId: Int?)
-
 	/** Whether [eventId] is drawn as a span the drawing can frame, and is not already framed. */
 	fun canFrame(eventId: Int): Boolean
 
@@ -38,9 +35,6 @@ interface TimeLineOverview {
 	 * Null when the timeline has no such event.
 	 */
 	suspend fun preview(eventId: Int): EventPreview?
-
-	/** Set by the UI as the reader scrolls the list or drawing down, cleared as they scroll back up. */
-	fun setScrolledDown(scrolledDown: Boolean)
 
 	data class State(
 		/** Null until the timeline has loaded. */
@@ -54,13 +48,9 @@ interface TimeLineOverview {
 		val lanes: List<LaneCount> = emptyList(),
 		val laneFilter: Set<String> = emptySet(),
 		val view: TimelineView = TimelineView.SEQUENCE,
-		/** The event the drawing projects across its lanes. Not saved. */
-		val selectedId: Int? = null,
 		val frame: TimelineFrame = TimelineFrame.Everything,
 		/** Whether some placed scene has a start, which [TimelineFrame.Story] frames. */
 		val storyFrameAvailable: Boolean = false,
-		/** The reader last scrolled down; the create button stays out of the way until they scroll up. */
-		val scrolledDown: Boolean = false,
 	)
 }
 

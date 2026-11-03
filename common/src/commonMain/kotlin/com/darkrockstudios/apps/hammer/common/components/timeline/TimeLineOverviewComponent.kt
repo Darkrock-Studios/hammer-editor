@@ -97,7 +97,7 @@ class TimeLineOverviewComponent(
 					previews.entries.removeAll { (id, cached) -> rowsById[id] != cached.row }
 					_state.getAndUpdate { current ->
 						val laneNames = built.lanes.mapTo(HashSet()) { it.lane }
-						// Only drawn events (dated, and not an archived scene) can be selected or framed.
+						// Only drawn events (dated, and not an archived scene) can be framed.
 						val drawn = built.rows.mapNotNullTo(HashSet()) { row -> row.event.id.takeIf { row.isDrawn } }
 						val storyAvailable = built.rows.any { it.event.kind == TimelineKind.SCENE && it.isDrawn }
 						val frame = when (val frame = current.frame) {
@@ -112,7 +112,6 @@ class TimeLineOverviewComponent(
 							undatedIds = built.undatedIds,
 							lanes = built.lanes,
 							laneFilter = current.laneFilter.filterTo(LinkedHashSet()) { it in laneNames },
-							selectedId = current.selectedId?.takeIf { it in drawn },
 							frame = frame ?: TimelineFrame.Everything,
 							storyFrameAvailable = storyAvailable,
 						)
@@ -180,14 +179,6 @@ class TimeLineOverviewComponent(
 
 	override fun setView(view: DrawingView) {
 		_state.getAndUpdate { it.copy(view = view) }
-	}
-
-	override fun setScrolledDown(scrolledDown: Boolean) {
-		_state.getAndUpdate { it.copy(scrolledDown = scrolledDown) }
-	}
-
-	override fun select(eventId: Int?) {
-		_state.getAndUpdate { it.copy(selectedId = eventId) }
 	}
 
 	override fun canFrame(eventId: Int): Boolean {

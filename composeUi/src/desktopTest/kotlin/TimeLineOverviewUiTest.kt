@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.unit.Dp
@@ -30,6 +32,7 @@ import com.darkrockstudios.apps.hammer.common.components.timeline.ViewTimeLineEv
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimelineRow
 import com.darkrockstudios.apps.hammer.common.components.timeline.basicPreview
 import com.darkrockstudios.apps.hammer.common.compose.LocalImageNames
+import com.darkrockstudios.apps.hammer.common.compose.RootFabState
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.ScreenCharacteristics
 import com.darkrockstudios.apps.hammer.common.compose.WindowHeightSizeClass
@@ -52,7 +55,7 @@ import io.mockk.mockk
 import org.junit.Rule
 import org.junit.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNull
+import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 
 class TimeLineOverviewUiTest : BaseTest() {
@@ -95,10 +98,6 @@ class TimeLineOverviewUiTest : BaseTest() {
 			_state.value = _state.value.copy(view = view)
 		}
 
-		override fun select(eventId: Int?) {
-			_state.value = _state.value.copy(selectedId = eventId)
-		}
-
 		override fun canFrame(eventId: Int): Boolean = false
 
 		private fun previewOf(eventId: Int): EventPreview? =
@@ -117,10 +116,6 @@ class TimeLineOverviewUiTest : BaseTest() {
 		/** Rows arriving after the first frame, as they do from the timeline service. */
 		fun load(rows: List<TimelineRow>) {
 			_state.value = _state.value.copy(rows = rows)
-		}
-
-		override fun setScrolledDown(scrolledDown: Boolean) {
-			_state.value = _state.value.copy(scrolledDown = scrolledDown)
 		}
 	}
 
@@ -153,6 +148,7 @@ class TimeLineOverviewUiTest : BaseTest() {
 		viewEvent: (Int) -> Unit = {},
 		screen: ScreenCharacteristics? = null,
 		size: DpSize? = null,
+		rootFab: RootFabState = RootFabState(),
 	) {
 		compose.setContent {
 			val content: @Composable () -> Unit = {
@@ -166,6 +162,7 @@ class TimeLineOverviewUiTest : BaseTest() {
 								viewEvent = viewEvent,
 								sharedTransitionScope = this@SharedTransitionLayout,
 								animatedVisibilityScope = this@AnimatedVisibility,
+								rootFab = rootFab,
 							)
 						}
 					}
@@ -522,43 +519,79 @@ class TimeLineOverviewUiTest : BaseTest() {
 		compose.waitForIdle()
 	}
 
-	@Test
-	fun `Clicking a drawn row opens its event without selecting it`() {
-		val opened = mutableListOf<Int>()
-		val component = FakeOverview(
-			listOf(datedRow(TimeLineEvent(id = 7, order = 0, title = "Croquet"), year = 1)),
-			mode = TimelineMode.DATED,
-		)
-		showOverview(component, viewEvent = { opened += it })
+	/** The Siege spans years one to four in the Keep; the Moat's lane is empty beside it. */
+	private fun siegeBesideTheMoat() = FakeOverview(
+		listOf(
+			datedRow(TimeLineEvent(id = 3, order = 0, title = "The Siege", lane = "Keep"), year = 1, endYear = 4, laneIndex = 0),
+			datedRow(TimeLineEvent(id = 5, order = 1, title = "Flood", lane = "Moat"), year = 9, laneIndex = 1),
+		),
+		lanes = listOf(LaneCount("Keep", 1), LaneCount("Moat", 1)),
+		mode = TimelineMode.DATED,
+	)
 
-		compose.onNodeWithTag(HitTarget.Ledger(7).testTag()).performClick()
-		compose.waitForIdle()
-
-		assertEquals(listOf(7), opened)
-		assertNull(component.state.value.selectedId)
+	/** The drawing's colour in the Moat's lane level with the middle of the Siege, which the Siege's projection tints. */
+	private fun besideTheSiege(): Color {
+		val drawing = compose.onNodeWithTag(TIMELINE_DRAWING_TAG)
+		val origin = drawing.getBoundsInRoot()
+		val siege = compose.onNodeWithTag(HitTarget.Band(3).testTag()).getBoundsInRoot()
+		val moat = compose.onNodeWithTag(HitTarget.LaneHeader("Moat").testTag()).getBoundsInRoot()
+		val density = compose.density.density
+		val x = (((moat.left + moat.right) / 2 - origin.left).value * density).toInt()
+		val y = (((siege.top + siege.bottom) / 2 - origin.top).value * density).toInt()
+		// The drawing, not the root: the Siege's preview card opens a second root.
+		return drawing.captureToImage().toPixelMap()[x, y]
 	}
 
 	@Test
-	fun `A long press selects its event until it is released`() {
+	fun `Clicking a drawn event opens it without projecting it`() {
 		val opened = mutableListOf<Int>()
-		val component = FakeOverview(
-			listOf(datedRow(TimeLineEvent(id = 7, order = 0, title = "Croquet"), year = 1)),
-			mode = TimelineMode.DATED,
-		)
-		showOverview(component, viewEvent = { opened += it })
-		val ledger = compose.onNodeWithTag(HitTarget.Ledger(7).testTag())
+		showOverview(siegeBesideTheMoat(), viewEvent = { opened += it }, screen = desktopScreen)
+		val before = besideTheSiege()
 
-		ledger.performTouchInput { down(center) }
+		compose.onNodeWithTag(HitTarget.Band(3).testTag()).performClick()
+		compose.waitForIdle()
+
+		assertEquals(listOf(3), opened)
+		assertEquals(before, besideTheSiege())
+	}
+
+	@Test
+	fun `A long press projects its event across the lanes until it is released`() {
+		val opened = mutableListOf<Int>()
+		showOverview(siegeBesideTheMoat(), viewEvent = { opened += it }, screen = desktopScreen)
+		val before = besideTheSiege()
+		val siege = compose.onNodeWithTag(HitTarget.Band(3).testTag())
+
+		siege.performTouchInput { down(center) }
 		compose.mainClock.advanceTimeBy(1_000)
 		compose.waitForIdle()
 
-		assertEquals(7, component.state.value.selectedId)
+		assertNotEquals(before, besideTheSiege(), "the held event is projected")
 
-		ledger.performTouchInput { up() }
+		siege.performTouchInput { up() }
 		compose.waitForIdle()
 
-		assertNull(component.state.value.selectedId)
+		assertEquals(before, besideTheSiege(), "the projection ends on release")
 		assertEquals(emptyList(), opened, "A long press does not open the event")
+	}
+
+	@Test
+	fun `An event that leaves the drawing during a long press is not projected when it returns`() {
+		val component = siegeBesideTheMoat()
+		val rows = component.state.value.rows!!
+		showOverview(component, screen = desktopScreen)
+		val before = besideTheSiege()
+		compose.onNodeWithTag(HitTarget.Band(3).testTag()).performTouchInput { down(center) }
+		compose.mainClock.advanceTimeBy(1_000)
+		compose.waitForIdle()
+
+		compose.runOnIdle { component.load(rows.filter { it.event.id != 3 }) }
+		compose.waitForIdle()
+		compose.runOnIdle { component.load(rows) }
+		compose.waitForIdle()
+
+		assertEquals(before, besideTheSiege(), "the press is still held, but its peek ended")
+		compose.onNodeWithTag(HitTarget.Band(3).testTag()).performTouchInput { up() }
 	}
 
 	private val eightPeople = (1..8).map { CatalogItem(CatalogKind.Entry, 100 + it, "Person $it", entryType = EntryType.PERSON) }
@@ -704,7 +737,6 @@ class TimeLineOverviewUiTest : BaseTest() {
 			hasText(excerpt, substring = true) and hasAnyAncestor(hasTestTag(EVENT_PREVIEW_CARD_TAG)),
 			useUnmergedTree = true,
 		).assertExists()
-		assertNull(component.state.value.selectedId, "Hovering does not select")
 	}
 
 	private fun showDatedPane(
@@ -798,7 +830,7 @@ class TimeLineOverviewUiTest : BaseTest() {
 		compose.onNodeWithTag(TIME_LINE_DRAWING_MENU_TAG).assertDoesNotExist()
 	}
 
-	private fun showFab(overview: TimeLineOverview) {
+	private fun showFab(overview: TimeLineOverview, rootFab: RootFabState = RootFabState()) {
 		val timeline = mockk<TimeLine>(relaxed = true)
 		every { timeline.stack } returns MutableValue(
 			ChildStack(
@@ -807,7 +839,7 @@ class TimeLineOverviewUiTest : BaseTest() {
 			)
 		)
 		every { timeline.eventDialog } returns eventDialog
-		compose.setContent { TimelineFab(timeline) }
+		compose.setContent { TimelineFab(timeline, rootFab) }
 	}
 
 	private val eventDialog = MutableValue<ChildSlot<TimeLine.EventDialogConfig, ViewTimeLineEvent>>(ChildSlot())
@@ -828,7 +860,7 @@ class TimeLineOverviewUiTest : BaseTest() {
 	}
 
 	@Test
-	fun `The create FAB shows while nothing is selected`() {
+	fun `The create FAB shows while the timeline is at rest`() {
 		val component = FakeOverview(listOf(row(TimeLineEvent(id = 7, order = 0, title = "Croquet"))))
 
 		showFab(component)
@@ -838,14 +870,14 @@ class TimeLineOverviewUiTest : BaseTest() {
 
 	@Test
 	fun `The create FAB hides while scrolled down`() {
-		val component = FakeOverview(listOf(row(TimeLineEvent(id = 7, order = 0, title = "Croquet"))))
-		showFab(component)
+		val rootFab = RootFabState()
+		showFab(FakeOverview(listOf(row(TimeLineEvent(id = 7, order = 0, title = "Croquet")))), rootFab)
 
-		compose.runOnIdle { component.setScrolledDown(true) }
+		compose.runOnIdle { rootFab.scrolledDown = true }
 		compose.waitForIdle()
 		compose.onNodeWithTag(TIME_LINE_CREATE_TAG).assertDoesNotExist()
 
-		compose.runOnIdle { component.setScrolledDown(false) }
+		compose.runOnIdle { rootFab.scrolledDown = false }
 		compose.waitForIdle()
 		compose.onNodeWithTag(TIME_LINE_CREATE_TAG).assertIsDisplayed()
 	}
@@ -865,22 +897,23 @@ class TimeLineOverviewUiTest : BaseTest() {
 
 	@Test
 	fun `Swiping the drawing down and back up reports it for the create FAB`() {
-		val component = longDrawing()
-		showOverview(component, screen = desktopScreen, size = DpSize(800.dp, 600.dp))
+		val rootFab = RootFabState()
+		showOverview(longDrawing(), screen = desktopScreen, size = DpSize(800.dp, 600.dp), rootFab = rootFab)
 
 		compose.onNodeWithTag(TIMELINE_DRAWING_TAG).performTouchInput { swipeUp() }
 		compose.waitForIdle()
-		assertTrue(component.state.value.scrolledDown, "scrolled down")
+		assertTrue(rootFab.scrolledDown, "scrolled down")
 
 		compose.onNodeWithTag(TIMELINE_DRAWING_TAG).performTouchInput { swipeDown() }
 		compose.waitForIdle()
-		assertEquals(false, component.state.value.scrolledDown)
+		assertEquals(false, rootFab.scrolledDown)
 	}
 
 	@Test
 	fun `A drawing that loads after the first frame still reports scrolling for the create FAB`() {
 		val component = FakeOverview(emptyList(), mode = TimelineMode.DATED)
-		showOverview(component, screen = desktopScreen, size = DpSize(800.dp, 600.dp))
+		val rootFab = RootFabState()
+		showOverview(component, screen = desktopScreen, size = DpSize(800.dp, 600.dp), rootFab = rootFab)
 		compose.runOnIdle { component.load(longDrawing().state.value.rows!!) }
 		compose.waitForIdle()
 
@@ -889,34 +922,35 @@ class TimeLineOverviewUiTest : BaseTest() {
 			scroll(5f)
 		}
 		compose.waitForIdle()
-		assertTrue(component.state.value.scrolledDown, "scrolled down")
+		assertTrue(rootFab.scrolledDown, "scrolled down")
 
 		compose.onNodeWithTag(TIMELINE_DRAWING_TAG).performMouseInput {
 			moveTo(center)
 			scroll(-2f)
 		}
 		compose.waitForIdle()
-		assertEquals(false, component.state.value.scrolledDown)
+		assertEquals(false, rootFab.scrolledDown)
 	}
 
 	@Test
 	fun `Scrolling the list down and back up reports it for the create FAB`() {
-		val component = longLanedList()
-		showOverview(component, size = DpSize(800.dp, 600.dp))
+		val rootFab = RootFabState()
+		showOverview(longLanedList(), size = DpSize(800.dp, 600.dp), rootFab = rootFab)
 
 		compose.onNodeWithTag(TIME_LINE_LIST_TAG).performTouchInput { swipeUp() }
 		compose.waitForIdle()
-		assertTrue(component.state.value.scrolledDown, "scrolled down")
+		assertTrue(rootFab.scrolledDown, "scrolled down")
 
 		compose.onNodeWithTag(TIME_LINE_LIST_TAG).performTouchInput { swipeDown() }
 		compose.waitForIdle()
-		assertEquals(false, component.state.value.scrolledDown)
+		assertEquals(false, rootFab.scrolledDown)
 	}
 
 	@Test
 	fun `A filter that leaves the list short brings the collapsed strip back`() {
 		val component = longLanedList()
-		showOverview(component, size = DpSize(800.dp, 600.dp))
+		val rootFab = RootFabState()
+		showOverview(component, size = DpSize(800.dp, 600.dp), rootFab = rootFab)
 		compose.onNodeWithTag(TIME_LINE_LIST_TAG).performTouchInput { swipeUp() }
 		compose.waitForIdle()
 		compose.onNodeWithTag(TIME_LINE_LANE_FILTER_TAG).assertIsNotDisplayed()
@@ -928,7 +962,7 @@ class TimeLineOverviewUiTest : BaseTest() {
 
 		compose.onAllNodesWithTag(EVENT_CARD_TAG).assertCountEquals(2)
 		compose.onNodeWithTag(TIME_LINE_LANE_FILTER_TAG).assertIsDisplayed()
-		assertEquals(false, component.state.value.scrolledDown)
+		assertEquals(false, rootFab.scrolledDown)
 	}
 
 	@Test

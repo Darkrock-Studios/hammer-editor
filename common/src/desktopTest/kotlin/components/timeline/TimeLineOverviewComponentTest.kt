@@ -224,43 +224,6 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 	private fun TimelineResult.event(): TimeLineEvent = (this as TimelineResult.Ok).event!!
 
 	@Test
-	fun `selecting an event holds it until the selection is cleared`() = runTest(mainTestDispatcher) {
-		givenProject()
-		val storm = timelineService.createEvent(TimelineEventDraft(title = "Storm")).event()
-		val rain = timelineService.createEvent(TimelineEventDraft(title = "Rain")).event()
-		timelineService.switchToDated(CalendarDef())
-		val component = newComponent()
-		context.resume()
-		advanceUntilIdle()
-
-		component.select(storm.id)
-		assertEquals(storm.id, component.state.value.selectedId)
-		component.select(rain.id)
-		assertEquals(rain.id, component.state.value.selectedId)
-		component.select(rain.id)
-		assertEquals(rain.id, component.state.value.selectedId)
-		component.select(null)
-		assertNull(component.state.value.selectedId)
-	}
-
-	@Test
-	fun `clearing the selection keeps the frame`() = runTest(mainTestDispatcher) {
-		givenProject()
-		val storm = timelineService.createEvent(TimelineEventDraft(title = "Storm")).event()
-		timelineService.switchToDated(CalendarDef())
-		val component = newComponent()
-		context.resume()
-		advanceUntilIdle()
-
-		component.setFrame(TimelineFrame.Band(storm.id))
-		component.select(storm.id)
-		component.select(null)
-
-		assertNull(component.state.value.selectedId)
-		assertEquals(TimelineFrame.Band(storm.id), component.state.value.frame)
-	}
-
-	@Test
 	fun `a span or a coarse date can be framed, a minute cannot, nor the band already framed`() = runTest(mainTestDispatcher) {
 		givenProject()
 		timelineService.switchToDated(CalendarDef())
@@ -291,23 +254,6 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 		component.setFrame(TimelineFrame.Band(siege.id))
 
 		assertFalse(component.canFrame(siege.id))
-	}
-
-	@Test
-	fun `a deleted selection is cleared`() = runTest(mainTestDispatcher) {
-		givenProject()
-		val storm = timelineService.createEvent(TimelineEventDraft(title = "Storm")).event()
-		timelineService.switchToDated(CalendarDef())
-		val component = newComponent()
-		context.resume()
-		advanceUntilIdle()
-		component.select(storm.id)
-		advanceUntilIdle()
-
-		timeLineRepository.deleteEvent(storm)
-		advanceUntilIdle()
-
-		assertNull(component.state.value.selectedId)
 	}
 
 	@Test

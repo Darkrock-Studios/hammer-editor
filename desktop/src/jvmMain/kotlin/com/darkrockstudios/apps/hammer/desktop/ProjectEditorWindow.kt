@@ -263,6 +263,7 @@ private fun AppContent(component: ProjectRoot, shortcutHost: ProjectShortcutHost
 	val themeState by component.projectTheme.subscribeAsState()
 	val navRailState by component.navRailState.subscribeAsState()
 	val rootSnackbar = rememberRootSnackbarHostState()
+	val rootFab = rememberRootFabState()
 
 	val destinations = ProjectRoot.DestinationTypes.entries.map { it.toHdNavRailDestination() }
 
@@ -283,7 +284,7 @@ private fun AppContent(component: ProjectRoot, shortcutHost: ProjectShortcutHost
 					},
 				)
 
-				ProjectRootUi(component, rootSnackbar, shortcutHost = shortcutHost)
+				ProjectRootUi(component, rootSnackbar, rootFab, shortcutHost = shortcutHost)
 			}
 
 			SnackbarHost(
@@ -294,9 +295,7 @@ private fun AppContent(component: ProjectRoot, shortcutHost: ProjectShortcutHost
 			)
 
 			Box(modifier = Modifier.align(Alignment.BottomEnd).padding(Ui.Padding.L)) {
-				ProjectRootFab(
-					component
-				)
+				ProjectRootFab(component, rootFab)
 			}
 		}
 	}

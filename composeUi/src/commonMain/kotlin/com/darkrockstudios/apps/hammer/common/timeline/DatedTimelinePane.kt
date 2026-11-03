@@ -52,8 +52,8 @@ private const val WIDTH_STEP_DP = 8f
  * The drawing of a DATED timeline's [rows] in the state's frame, laid out to the width it is given.
  * A new frame starts scrolled to the top, and [topPadding] lets the drawing start under an overlay. An
  * event's preview card shows what [preview] reads for it, where a pointer hovers or a long press
- * holds; [onPeek] hears the event a long press holds, then null on release. [highlighted] events
- * are ringed as search matches, and the drawing scrolls [focusedId] into view.
+ * holds, and the event a long press holds is projected across the lanes until it is released.
+ * [highlighted] events are ringed as search matches, and the drawing scrolls [focusedId] into view.
  *
  * On a phone (Compact width) lanes are 22dp rails with every label in the ledger. Only the lanes in
  * the lane filter are drawn (all of them while it is empty), so the lane chips are how a writer picks
@@ -65,7 +65,6 @@ internal fun DatedTimelinePane(
 	rows: List<TimelineRow>,
 	onTap: (HitTarget) -> Unit,
 	modifier: Modifier = Modifier,
-	onPeek: (eventId: Int?) -> Unit = {},
 	eventSource: (@Composable BoxScope.(eventId: Int) -> Unit)? = null,
 	scrollState: ScrollState = rememberScrollState(),
 	topPadding: Dp = 0.dp,
@@ -135,6 +134,12 @@ internal fun DatedTimelinePane(
 			scrollState.animateScrollTo((top - viewportPx / 3f).roundToInt().coerceIn(0, scrollState.maxValue))
 		}
 
+		var peekedId by remember { mutableStateOf<Int?>(null) }
+		// An event that leaves the drawing mid-peek ends the peek, so it cannot come back projected.
+		LaunchedEffect(layout) {
+			if (peekedId?.let(layout::projectionOf) == null) peekedId = null
+		}
+
 		// Until its preview arrives a card shows what the row already knows.
 		val rowsById = remember(rows) { rows.associateBy { it.event.id } }
 		val previews = remember(rows) { mutableStateMapOf<Int, EventPreview>() }
@@ -151,9 +156,9 @@ internal fun DatedTimelinePane(
 		TimelineDrawingPane(
 			layout = layout,
 			laneColor = { index -> colors.laneColor(paletteIndex.getOrElse(index) { index }) },
-			selectedId = state.selectedId,
+			selectedId = peekedId,
 			onTap = onTap,
-			onPeek = onPeek,
+			onPeek = { peekedId = it },
 			eventSource = eventSource,
 			titles = titles,
 			laneHeaderDescription = describeLane,

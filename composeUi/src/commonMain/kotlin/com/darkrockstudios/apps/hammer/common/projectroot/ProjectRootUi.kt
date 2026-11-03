@@ -25,6 +25,7 @@ import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.focusmode.FocusMode
 import com.darkrockstudios.apps.hammer.common.compose.AnimatedFullScreenDialog
+import com.darkrockstudios.apps.hammer.common.compose.RootFabState
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.SetScreenCharacteristics
 import com.darkrockstudios.apps.hammer.common.compose.Ui
@@ -92,6 +93,7 @@ fun ProjectRoot.DestinationTypes.toHdBottomBarDestination(): HdBottomBarDestinat
 fun ProjectRootUi(
 	component: ProjectRoot,
 	rootSnackbar: RootSnackbarHostState,
+	rootFab: RootFabState,
 	navWidth: Dp = Dp.Unspecified,
 	modifier: Modifier = Modifier,
 	shortcutHost: ProjectShortcutHost? = null,
@@ -122,6 +124,7 @@ fun ProjectRootUi(
 					modifier.fillMaxSize(),
 					component,
 					rootSnackbar,
+					rootFab,
 					navWidth,
 				)
 			}
@@ -138,6 +141,7 @@ fun FeatureContent(
 	modifier: Modifier,
 	component: ProjectRoot,
 	rootSnackbar: RootSnackbarHostState,
+	rootFab: RootFabState,
 	navWidth: Dp = Dp.Unspecified,
 ) {
 	val routerState by component.routerState.subscribeAsState()
@@ -161,7 +165,7 @@ fun FeatureContent(
 				EncyclopediaUi(child.component, rootSnackbar)
 
 			is ProjectRoot.Destination.TimeLineDestination ->
-				TimeLineUi(child.component, rootSnackbar)
+				TimeLineUi(child.component, rootSnackbar, rootFab)
 
 			is ProjectRoot.Destination.HomeDestination ->
 				ProjectHomeUi(child.component, rootSnackbar)
@@ -219,6 +223,7 @@ private fun FocusModeModalContent(component: FocusMode) {
 @Composable
 fun ProjectRootFab(
 	component: ProjectRoot,
+	rootFab: RootFabState,
 	modifier: Modifier = Modifier,
 ) {
 	val routerState by component.routerState.subscribeAsState()
@@ -233,7 +238,7 @@ fun ProjectRootFab(
 			is ProjectRoot.Destination.EditorDestination -> {}
 			is ProjectRoot.Destination.NotesDestination -> NotesFab(instance.component, Modifier)
 			is ProjectRoot.Destination.EncyclopediaDestination -> BrowseEntriesFab(instance.component, Modifier)
-			is ProjectRoot.Destination.TimeLineDestination -> TimelineFab(instance.component, Modifier)
+			is ProjectRoot.Destination.TimeLineDestination -> TimelineFab(instance.component, rootFab, Modifier)
 			is ProjectRoot.Destination.HomeDestination -> {}
 		}
 	}

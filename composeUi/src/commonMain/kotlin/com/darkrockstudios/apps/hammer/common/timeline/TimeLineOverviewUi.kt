@@ -87,6 +87,7 @@ import com.darkrockstudios.apps.hammer.common.components.timeline.passesLaneFilt
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarGutter
 import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarList
+import com.darkrockstudios.apps.hammer.common.compose.RootFabState
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.WindowWidthSizeClass
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdActiveFiltersStrip
@@ -195,6 +196,7 @@ fun TimeLineOverviewUi(
 	viewEvent: (eventId: Int) -> Unit,
 	sharedTransitionScope: SharedTransitionScope,
 	animatedVisibilityScope: AnimatedVisibilityScope,
+	rootFab: RootFabState,
 	openEvent: (eventId: Int) -> Unit = viewEvent,
 	openedEventId: Int? = null,
 ) {
@@ -303,11 +305,11 @@ fun TimeLineOverviewUi(
 		}.collect(scrollStrip::followScrollPosition)
 	}
 	val scrollAway = rememberHdScrollAwayFooterState()
-	LaunchedEffect(component, scrollAway) {
-		snapshotFlow { scrollAway.isHiddenByScroll && !contentFits }.collect(component::setScrolledDown)
+	LaunchedEffect(rootFab, scrollAway) {
+		snapshotFlow { scrollAway.isHiddenByScroll && !contentFits }.collect { rootFab.scrolledDown = it }
 	}
-	DisposableEffect(component) {
-		onDispose { component.setScrolledDown(false) }
+	DisposableEffect(rootFab) {
+		onDispose { rootFab.scrolledDown = false }
 	}
 
 	Column(
@@ -559,7 +561,6 @@ fun TimeLineOverviewUi(
 									else -> target.eventId?.let(openEvent)
 								}
 							},
-							onPeek = component::select,
 							// The event's mark hands its bounds to the dialog opened from it, and takes them back.
 							// Its own visibility transition is what drives the shrink back into it on close.
 							eventSource = { id ->

@@ -14,6 +14,7 @@ import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.components.timeline.EventPreview
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineOverview
 import com.darkrockstudios.apps.hammer.common.components.timeline.basicPreview
+import com.darkrockstudios.apps.hammer.common.compose.rememberRootFabState
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagCount
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
@@ -42,6 +43,7 @@ fun ScreenTimeLineOverviewUiPreview() {
 					viewEvent = {},
 					sharedTransitionScope = this@SharedTransitionLayout,
 					animatedVisibilityScope = this@AnimatedVisibility,
+					rootFab = rememberRootFabState(),
 				)
 			}
 		}
@@ -65,6 +67,7 @@ fun ScreenTimeLineOverviewUiTabletPreview() {
 						viewEvent = {},
 						sharedTransitionScope = this@SharedTransitionLayout,
 						animatedVisibilityScope = this@AnimatedVisibility,
+						rootFab = rememberRootFabState(),
 					)
 				}
 			}
@@ -97,6 +100,7 @@ fun ScreenTimeLineOverviewUiDatedPreview() {
 						viewEvent = {},
 						sharedTransitionScope = this@SharedTransitionLayout,
 						animatedVisibilityScope = this@AnimatedVisibility,
+						rootFab = rememberRootFabState(),
 					)
 				}
 			}
@@ -104,12 +108,11 @@ fun ScreenTimeLineOverviewUiDatedPreview() {
 	}
 }
 
-/** A phone's overview of a dated timeline with a selection: filters, then the stacked pickers, then the strip. */
+/** A phone's overview of a dated timeline: filters, then the stacked pickers, then the strip. */
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 private fun PhoneDatedOverview(dark: Boolean) {
 	val scope = rememberCoroutineScope()
-	val selected = previewDatedRows.first { it.event.id == 2 }
 	KoinApplicationPreview {
 		AppTheme(globalSettingsPreview, dark) {
 			Surface {
@@ -124,7 +127,6 @@ private fun PhoneDatedOverview(dark: Boolean) {
 									undatedIds = listOf(4),
 									lanes = previewLaneCounts,
 									view = TimelineView.TO_SCALE,
-									selectedId = selected.event.id,
 									storyFrameAvailable = true,
 								)
 							),
@@ -133,6 +135,7 @@ private fun PhoneDatedOverview(dark: Boolean) {
 							viewEvent = {},
 							sharedTransitionScope = this@SharedTransitionLayout,
 							animatedVisibilityScope = this@AnimatedVisibility,
+							rootFab = rememberRootFabState(),
 						)
 					}
 				}
@@ -167,11 +170,8 @@ private class PreviewOverview(initial: TimeLineOverview.State) : TimeLineOvervie
 	override fun setLaneFilter(lanes: Set<String>) {}
 	override fun toggleLane(lane: String) {}
 	override fun setView(view: TimelineView) {}
-	override fun select(eventId: Int?) {}
 	override fun canFrame(eventId: Int): Boolean = false
 	override fun setFrame(frame: TimelineFrame) {}
 	override suspend fun preview(eventId: Int): EventPreview? =
 		state.value.rows?.firstOrNull { it.event.id == eventId }?.basicPreview()
-
-	override fun setScrolledDown(scrolledDown: Boolean) {}
 }
