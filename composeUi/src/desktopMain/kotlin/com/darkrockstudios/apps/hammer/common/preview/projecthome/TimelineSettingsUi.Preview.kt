@@ -17,6 +17,7 @@ import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.components.projecthome.timelinesettings.TimelineSettings
 import com.darkrockstudios.apps.hammer.common.components.projecthome.timelinesettings.TimelineSettings.ModeSwitchPrompt
+import com.darkrockstudios.apps.hammer.common.components.timeline.TimelineSwitcher
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.entryUnits
 import com.darkrockstudios.apps.hammer.common.preview.KoinApplicationPreview
@@ -175,17 +176,23 @@ internal class PreviewTimelineSettings(initial: TimelineSettings.State) : Timeli
 		_state.value = _state.value.copy(editingId = id, def = def)
 	}
 
-	override fun createTimeline(name: String, mode: TimelineMode, preset: CalendarPreset) {}
-	override fun renameTimeline(id: String, name: String) {}
+	override fun requestCreate() = setSwitcher(TimelineSwitcher(TimelineSwitcher.Dialog.Create()))
+	override fun createTimeline(name: String, mode: TimelineMode, preset: CalendarPreset) = dismissDialog()
+	override fun requestRename(id: String) {
+		val def = _state.value.timelines.firstOrNull { it.def.id == id }?.def ?: return
+		setSwitcher(TimelineSwitcher(TimelineSwitcher.Dialog.Rename(def.id, def.name)))
+	}
+
+	override fun renameTimeline(name: String) = dismissDialog()
 	override fun requestDelete(id: String) {
-		_state.value = _state.value.copy(pendingDelete = _state.value.timelines.firstOrNull { it.def.id == id })
+		val summary = _state.value.timelines.firstOrNull { it.def.id == id } ?: return
+		setSwitcher(TimelineSwitcher(TimelineSwitcher.Dialog.Delete(summary.def.id, summary.def.name, summary.eventCount)))
 	}
 
-	override fun confirmDelete() {
-		_state.value = _state.value.copy(pendingDelete = null)
-	}
+	override fun confirmDelete() = dismissDialog()
+	override fun dismissDialog() = setSwitcher(TimelineSwitcher())
 
-	override fun cancelDelete() {
-		_state.value = _state.value.copy(pendingDelete = null)
+	private fun setSwitcher(switcher: TimelineSwitcher) {
+		_state.value = _state.value.copy(switcher = switcher)
 	}
 }

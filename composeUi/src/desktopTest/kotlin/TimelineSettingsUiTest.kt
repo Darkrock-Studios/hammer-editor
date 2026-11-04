@@ -23,10 +23,10 @@ import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.components.projecthome.timelinesettings.TimelineSettings
 import com.darkrockstudios.apps.hammer.common.components.projecthome.timelinesettings.TimelineSettings.ModeSwitchPrompt
+import com.darkrockstudios.apps.hammer.common.components.timeline.TimelineSwitcher
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEventError
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineSummary
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.entryUnits
-import com.darkrockstudios.apps.hammer.common.preview.KoinApplicationPreview
 import com.darkrockstudios.apps.hammer.common.projecthome.TIMELINE_MODE_DIALOG_CONFIRM_TAG
 import com.darkrockstudios.apps.hammer.common.projecthome.TIMELINE_MODE_DIALOG_COUNT_TAG
 import com.darkrockstudios.apps.hammer.common.projecthome.TIMELINE_SETTINGS_EDITING_TAG
@@ -43,9 +43,15 @@ import com.darkrockstudios.apps.hammer.common.projecthome.TIMELINE_MODE_DIALOG_U
 import com.darkrockstudios.apps.hammer.common.projecthome.TIMELINE_SETTINGS_EPOCH_TAG
 import com.darkrockstudios.apps.hammer.common.projecthome.TIMELINE_SETTINGS_PRESET_WARNING_TAG
 import com.darkrockstudios.apps.hammer.common.projecthome.TimelineSettingsUi
+import com.darkrockstudios.apps.hammer.common.util.StrRes
+import com.darkrockstudios.apps.hammer.common.util.StrResImpl
 import org.junit.Rule
+import org.koin.compose.KoinApplication
+import org.koin.dsl.module
 import org.junit.Test
 import kotlin.test.assertEquals
+
+private const val NAME_ERROR = "A timeline needs a name"
 
 class TimelineSettingsUiTest : BaseTest() {
 	@get:Rule
@@ -103,11 +109,14 @@ class TimelineSettingsUiTest : BaseTest() {
 			selected += id
 		}
 
+		override fun requestCreate() = setSwitcher(TimelineSwitcher(TimelineSwitcher.Dialog.Create()))
+
 		override fun createTimeline(name: String, mode: TimelineMode, preset: CalendarPreset) {
 			created += name
+			val draft = TimelineSwitcher.Dialog.Create(name, mode, preset)
 			val refusal = createRefusal
 			if (refusal != null) {
-				_state.value = _state.value.copy(error = refusal)
+				setSwitcher(TimelineSwitcher(draft, refusal))
 				return
 			}
 			val def = TimelineDef(id = "new${created.size}", name = name, mode = mode)
@@ -115,30 +124,40 @@ class TimelineSettingsUiTest : BaseTest() {
 				timelines = _state.value.timelines + TimelineSummary(def, 0),
 				editingId = def.id,
 				def = def,
-				error = null,
+				switcher = TimelineSwitcher(),
 			)
 		}
 
-		override fun renameTimeline(id: String, name: String) {
-			renamed += id to name
+		override fun requestRename(id: String) {
+			val def = _state.value.timelines.first { it.def.id == id }.def
+			setSwitcher(TimelineSwitcher(TimelineSwitcher.Dialog.Rename(def.id, def.name)))
+		}
+
+		override fun renameTimeline(name: String) {
+			val open = _state.value.switcher.dialog as TimelineSwitcher.Dialog.Rename
+			renamed += open.timelineId to name
 			_state.value = _state.value.copy(
 				timelines = _state.value.timelines.map {
-					if (it.def.id == id) it.copy(def = it.def.copy(name = name)) else it
+					if (it.def.id == open.timelineId) it.copy(def = it.def.copy(name = name)) else it
 				},
+				switcher = TimelineSwitcher(),
 			)
 		}
 
 		override fun requestDelete(id: String) {
-			_state.value = _state.value.copy(pendingDelete = _state.value.timelines.first { it.def.id == id })
+			val summary = _state.value.timelines.first { it.def.id == id }
+			setSwitcher(TimelineSwitcher(TimelineSwitcher.Dialog.Delete(summary.def.id, summary.def.name, summary.eventCount)))
 		}
 
 		override fun confirmDelete() {
 			deleteConfirmed++
-			_state.value = _state.value.copy(pendingDelete = null)
+			setSwitcher(TimelineSwitcher())
 		}
 
-		override fun cancelDelete() {
-			_state.value = _state.value.copy(pendingDelete = null)
+		override fun dismissDialog() = setSwitcher(TimelineSwitcher())
+
+		private fun setSwitcher(switcher: TimelineSwitcher) {
+			_state.value = _state.value.copy(switcher = switcher)
 		}
 	}
 
@@ -165,11 +184,19 @@ class TimelineSettingsUiTest : BaseTest() {
 
 	private fun show(component: TimelineSettings) {
 		compose.setContent {
-			KoinApplicationPreview {
+			// The real strings, so a refusal's reason can be read.
+			KoinApplication(application = { modules(module { single<StrRes> { StrResImpl() } }) }) {
 				Box(modifier = Modifier.width(720.dp)) {
 					TimelineSettingsUi(component = component, section = 6)
 				}
 			}
+		}
+	}
+
+	/** The error text is read from resources after the dialog shows it. */
+	private fun awaitNameError() {
+		compose.waitUntil(timeoutMillis = 10_000) {
+			compose.onAllNodesWithText(NAME_ERROR, substring = true, ignoreCase = true).fetchSemanticsNodes().isNotEmpty()
 		}
 	}
 
@@ -226,7 +253,7 @@ class TimelineSettingsUiTest : BaseTest() {
 	}
 
 	@Test
-	fun `Lists every timeline with its mode and event count, and main cannot be deleted`() {
+	fun `Lists every timeline with its mode and event count and main cannot be deleted`() {
 		show(threeTimelines())
 
 		compose.onNodeWithText("TIMELINES").assertIsDisplayed()
@@ -262,7 +289,7 @@ class TimelineSettingsUiTest : BaseTest() {
 	}
 
 	@Test
-	fun `Deleting a timeline asks first, counting its events`() {
+	fun `Deleting a timeline asks first and counts its events`() {
 		val component = threeTimelines()
 		show(component)
 
@@ -281,7 +308,7 @@ class TimelineSettingsUiTest : BaseTest() {
 	}
 
 	@Test
-	fun `A new timeline is created from the list, and the dialog closes once it exists`() {
+	fun `A new timeline is created from the list and the dialog closes once it exists`() {
 		val component = threeTimelines()
 		show(component)
 
@@ -297,7 +324,7 @@ class TimelineSettingsUiTest : BaseTest() {
 	}
 
 	@Test
-	fun `A refused name keeps the new timeline dialog open`() {
+	fun `A refused name keeps the new timeline dialog open with the reason under the field`() {
 		val component = threeTimelines().apply { createRefusal = TimeLineEventError.TIMELINE_NAME_INVALID }
 		show(component)
 
@@ -309,6 +336,25 @@ class TimelineSettingsUiTest : BaseTest() {
 
 		assertEquals(listOf("Main"), component.created)
 		compose.onNodeWithTag(TIME_LINE_NEW_NAME_TAG).assertIsDisplayed()
+		awaitNameError()
+		compose.onNodeWithText(NAME_ERROR, substring = true, ignoreCase = true).assertIsDisplayed()
+	}
+
+	@Test
+	fun `Cancelling a refused new timeline leaves no error in the section`() {
+		val component = threeTimelines().apply { createRefusal = TimeLineEventError.TIMELINE_NAME_INVALID }
+		show(component)
+
+		compose.onNodeWithTag(TIMELINE_SETTINGS_NEW_TAG).performClick()
+		compose.waitForIdle()
+		compose.onNodeWithTag(TIME_LINE_NEW_NAME_TAG).performTextInput("Main")
+		compose.onNodeWithTag(TIME_LINE_NEW_CONFIRM_TAG).performClick()
+		awaitNameError()
+		compose.onNodeWithText("Cancel").performClick()
+		compose.waitForIdle()
+
+		compose.onNodeWithTag(TIME_LINE_NEW_NAME_TAG).assertDoesNotExist()
+		compose.onNodeWithText(NAME_ERROR, substring = true, ignoreCase = true).assertDoesNotExist()
 	}
 
 	@Test

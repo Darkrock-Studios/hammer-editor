@@ -7,6 +7,7 @@ import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.components.projecthome.timelinesettings.TimelineSettings.ModeSwitchPrompt
 import com.darkrockstudios.apps.hammer.common.components.projecthome.timelinesettings.TimelineSettingsComponent
+import com.darkrockstudios.apps.hammer.common.components.timeline.TimelineSwitcher
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEventError
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineDefResult
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineEventDraft
@@ -442,38 +443,124 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 	}
 
 	@Test
-	fun `a created timeline is edited next, and a refused one reports why`() = runTest(mainTestDispatcher) {
+	fun `requesting a new timeline opens an empty create dialog`() = runTest(mainTestDispatcher) {
 		givenProject()
 		val component = newComponent()
 		context.resume()
 		advanceUntilIdle()
 
+		component.requestCreate()
+
+		assertEquals(TimelineSwitcher(dialog = TimelineSwitcher.Dialog.Create()), component.state.value.switcher)
+	}
+
+	@Test
+	fun `a created timeline closes the dialog and is edited next`() = runTest(mainTestDispatcher) {
+		givenProject()
+		val component = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		component.requestCreate()
 		component.createTimeline("Before", TimelineMode.DATED, CalendarPreset.GREGORIAN)
 		advanceUntilIdle()
 
 		val created = component.state.value.timelines.single { it.def.name == "Before" }.def
+		assertEquals(TimelineSwitcher(), component.state.value.switcher)
 		assertEquals(created.id, component.state.value.editingId)
 		assertEquals(created, component.state.value.def)
 		assertEquals(CalendarDef(CalendarPreset.GREGORIAN), created.calendar)
-
-		component.createTimeline("before", TimelineMode.MANUAL, CalendarPreset.STORY)
-		advanceUntilIdle()
-		assertEquals(TimeLineEventError.TIMELINE_NAME_INVALID, component.state.value.error)
 	}
 
 	@Test
-	fun `a timeline is renamed`() = runTest(mainTestDispatcher) {
+	fun `a refused name keeps the dialog open with its own error`() = runTest(mainTestDispatcher) {
+		givenProject()
+		newTimeline("Before")
+		val component = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		component.requestCreate()
+		component.createTimeline("before", TimelineMode.MANUAL, CalendarPreset.STORY)
+		advanceUntilIdle()
+
+		val switcher = component.state.value.switcher
+		assertEquals(TimelineSwitcher.Dialog.Create("before", TimelineMode.MANUAL, CalendarPreset.STORY), switcher.dialog)
+		assertEquals(TimeLineEventError.TIMELINE_NAME_INVALID, switcher.error)
+		assertNull(component.state.value.error)
+		assertEquals(TimelineDef.MAIN_ID, component.state.value.editingId)
+	}
+
+	@Test
+	fun `dismissing a refused dialog clears its error`() = runTest(mainTestDispatcher) {
+		givenProject()
+		val component = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		component.requestCreate()
+		component.createTimeline("Main", TimelineMode.MANUAL, CalendarPreset.STORY)
+		advanceUntilIdle()
+		assertEquals(TimeLineEventError.TIMELINE_NAME_INVALID, component.state.value.switcher.error)
+
+		component.dismissDialog()
+
+		assertEquals(TimelineSwitcher(), component.state.value.switcher)
+		assertNull(component.state.value.error)
+	}
+
+	@Test
+	fun `a refusal for a dialog replaced while it ran is dropped`() = runTest(mainTestDispatcher) {
 		givenProject()
 		val before = newTimeline("Before")
 		val component = newComponent()
 		context.resume()
 		advanceUntilIdle()
 
-		component.renameTimeline(before.id, "Before the evening")
+		component.requestCreate()
+		component.createTimeline("Main", TimelineMode.MANUAL, CalendarPreset.STORY)
+		component.requestRename(before.id)
+		advanceUntilIdle()
+
+		assertEquals(
+			TimelineSwitcher(dialog = TimelineSwitcher.Dialog.Rename(before.id, "Before")),
+			component.state.value.switcher,
+		)
+	}
+
+	@Test
+	fun `a timeline is renamed and the dialog closes`() = runTest(mainTestDispatcher) {
+		givenProject()
+		val before = newTimeline("Before")
+		val component = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		component.requestRename(before.id)
+		assertEquals(TimelineSwitcher.Dialog.Rename(before.id, "Before"), component.state.value.switcher.dialog)
+		component.renameTimeline("Before the evening")
 		advanceUntilIdle()
 
 		assertEquals("Before the evening", component.state.value.timelines.last().def.name)
-		assertNull(component.state.value.error)
+		assertEquals(TimelineSwitcher(), component.state.value.switcher)
+	}
+
+	@Test
+	fun `a refused rename keeps the dialog open with its error`() = runTest(mainTestDispatcher) {
+		givenProject()
+		val before = newTimeline("Before")
+		val component = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		component.requestRename(before.id)
+		component.renameTimeline("main")
+		advanceUntilIdle()
+
+		val switcher = component.state.value.switcher
+		assertEquals(TimelineSwitcher.Dialog.Rename(before.id, "main"), switcher.dialog)
+		assertEquals(TimeLineEventError.TIMELINE_NAME_INVALID, switcher.error)
+		assertEquals("Before", timelineService.definition(before.id)?.name)
 	}
 
 	@Test
@@ -504,7 +591,7 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 	}
 
 	@Test
-	fun `deleting the edited timeline asks first, then edits main`() = runTest(mainTestDispatcher) {
+	fun `deleting the edited timeline asks first then edits main`() = runTest(mainTestDispatcher) {
 		givenProject()
 		val before = newTimeline("Before")
 		createEvent("One", timeline = before.id)
@@ -514,17 +601,18 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 		advanceUntilIdle()
 
 		component.requestDelete(TimelineDef.MAIN_ID)
-		assertNull(component.state.value.pendingDelete)
+		assertNull(component.state.value.switcher.dialog)
 		component.requestDelete(before.id)
-		assertEquals(TimelineSummary(before, 1), component.state.value.pendingDelete)
-		component.cancelDelete()
-		assertNull(component.state.value.pendingDelete)
+		assertEquals(TimelineSwitcher.Dialog.Delete(before.id, "Before", 1), component.state.value.switcher.dialog)
+		component.dismissDialog()
+		assertNull(component.state.value.switcher.dialog)
 
 		component.requestDelete(before.id)
 		component.confirmDelete()
 		advanceUntilIdle()
 
 		assertNull(timelineService.definition(before.id))
+		assertEquals(TimelineSwitcher(), component.state.value.switcher)
 		assertEquals(TimelineDef.MAIN_ID, component.state.value.editingId)
 		assertEquals(TimelineDef.DEFAULT, component.state.value.def)
 		assertEquals(listOf(TimelineDef.MAIN_ID), component.state.value.timelines.map { it.def.id })

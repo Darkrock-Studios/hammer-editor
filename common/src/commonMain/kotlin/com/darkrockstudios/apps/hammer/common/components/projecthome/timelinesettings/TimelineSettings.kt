@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.base.timeline.CalendarPreset
 import com.darkrockstudios.apps.hammer.base.timeline.CalendarUnit
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
+import com.darkrockstudios.apps.hammer.common.components.timeline.TimelineSwitcher
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEventError
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineSummary
 
@@ -16,14 +17,17 @@ interface TimelineSettings {
 	/** Edits timeline [id]; the settings below then apply to it. */
 	fun selectTimeline(id: String)
 
-	/** Creates a timeline, DATED ones on [preset], and edits it. */
+	fun requestCreate()
+
+	/** Creates a timeline, DATED ones on [preset], and edits it; a refusal stays in [State.switcher] with the dialog open. */
 	fun createTimeline(name: String, mode: TimelineMode, preset: CalendarPreset)
-	fun renameTimeline(id: String, name: String)
+	fun requestRename(id: String)
+	fun renameTimeline(name: String)
 
 	/** Asks before deleting timeline [id] and its events; main cannot be deleted. */
 	fun requestDelete(id: String)
 	fun confirmDelete()
-	fun cancelDelete()
+	fun dismissDialog()
 
 	/** Opens the prompt for switching to [mode]; nothing happens when the timeline is in it already. */
 	fun requestMode(mode: TimelineMode)
@@ -65,8 +69,9 @@ interface TimelineSettings {
 		val datesLostOnPresetSwitch: Int? = null,
 		/** The timeline [pendingCalendar] is for. */
 		val presetSwitchTimeline: TimelineDef? = null,
-		/** A timeline waiting on confirmation to be deleted with its events. */
-		val pendingDelete: TimelineSummary? = null,
+		/** The create, rename and delete dialogs, each with its own error. */
+		val switcher: TimelineSwitcher = TimelineSwitcher(),
+		/** Why the last mode, calendar or lane change was refused. */
 		val error: TimeLineEventError? = null,
 	)
 

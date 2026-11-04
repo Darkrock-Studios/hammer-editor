@@ -13,6 +13,7 @@ import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.components.projecthome.timelinesettings.TimelineSettings.ModeSwitchPrompt
+import com.darkrockstudios.apps.hammer.common.components.timeline.TimelineSwitcher
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.EvenSpacing
@@ -103,41 +104,88 @@ class TimelineSettingsComponent(
 		editingId.value = target
 	}
 
+	override fun requestCreate() {
+		setSwitcher(TimelineSwitcher(dialog = TimelineSwitcher.Dialog.Create()))
+	}
+
 	override fun createTimeline(name: String, mode: TimelineMode, preset: CalendarPreset) {
+		val draft = TimelineSwitcher.Dialog.Create(name, mode, preset)
+		setSwitcher(TimelineSwitcher(dialog = draft))
 		scope.launch {
 			val calendar = if (mode == TimelineMode.DATED) CalendarDef(preset) else null
 			val result = timelineService.createTimeline(name, mode, calendar)
 			withContext(dispatcherMain) {
 				when (result) {
 					is TimelineDefResult.Ok -> {
-						_state.getAndUpdate { it.copy(error = null) }
+						closeIfOpen(draft)
 						edit(result.def.id)
 					}
 
-					is TimelineDefResult.Invalid -> _state.getAndUpdate { it.copy(error = result.error) }
+					is TimelineDefResult.Invalid -> refused(draft, result)
 				}
 			}
 		}
 	}
 
-	override fun renameTimeline(id: String, name: String) {
-		scope.launch { applyDef(timelineService.renameTimeline(id, name)) }
+	override fun requestRename(id: String) {
+		val def = _state.value.timelines.firstOrNull { it.def.id == id }?.def ?: return
+		setSwitcher(TimelineSwitcher(dialog = TimelineSwitcher.Dialog.Rename(def.id, def.name)))
+	}
+
+	override fun renameTimeline(name: String) {
+		val open = _state.value.switcher.dialog as? TimelineSwitcher.Dialog.Rename ?: return
+		val draft = open.copy(name = name)
+		setSwitcher(TimelineSwitcher(dialog = draft))
+		scope.launch {
+			val result = timelineService.renameTimeline(draft.timelineId, name)
+			withContext(dispatcherMain) {
+				when (result) {
+					is TimelineDefResult.Ok -> closeIfOpen(draft)
+					is TimelineDefResult.Invalid -> refused(draft, result)
+				}
+			}
+		}
 	}
 
 	override fun requestDelete(id: String) {
 		if (id == TimelineDef.MAIN_ID) return
 		val summary = _state.value.timelines.firstOrNull { it.def.id == id } ?: return
-		_state.getAndUpdate { it.copy(pendingDelete = summary, error = null) }
+		setSwitcher(
+			TimelineSwitcher(dialog = TimelineSwitcher.Dialog.Delete(summary.def.id, summary.def.name, summary.eventCount))
+		)
 	}
 
 	override fun confirmDelete() {
-		val pending = _state.value.pendingDelete ?: return
-		_state.getAndUpdate { it.copy(pendingDelete = null) }
-		scope.launch { applyDef(timelineService.deleteTimeline(pending.def.id)) }
+		val open = _state.value.switcher.dialog as? TimelineSwitcher.Dialog.Delete ?: return
+		setSwitcher(TimelineSwitcher(dialog = open))
+		scope.launch {
+			val result = timelineService.deleteTimeline(open.timelineId)
+			withContext(dispatcherMain) {
+				when (result) {
+					is TimelineDefResult.Ok -> closeIfOpen(open)
+					is TimelineDefResult.Invalid -> refused(open, result)
+				}
+			}
+		}
 	}
 
-	override fun cancelDelete() {
-		_state.getAndUpdate { it.copy(pendingDelete = null) }
+	override fun dismissDialog() {
+		setSwitcher(TimelineSwitcher())
+	}
+
+	private fun setSwitcher(switcher: TimelineSwitcher) {
+		_state.getAndUpdate { it.copy(switcher = switcher) }
+	}
+
+	// A dialog closed or replaced while its request ran is left as it is.
+	private fun closeIfOpen(dialog: TimelineSwitcher.Dialog) {
+		_state.getAndUpdate { if (it.switcher.dialog == dialog) it.copy(switcher = TimelineSwitcher()) else it }
+	}
+
+	private fun refused(dialog: TimelineSwitcher.Dialog, result: TimelineDefResult.Invalid) {
+		_state.getAndUpdate {
+			if (it.switcher.dialog == dialog) it.copy(switcher = it.switcher.copy(error = result.error)) else it
+		}
 	}
 
 	override fun requestMode(mode: TimelineMode) {
@@ -277,13 +325,6 @@ class TimelineSettingsComponent(
 
 	private suspend fun apply(result: TimelineResult) {
 		val error = (result as? TimelineResult.Invalid)?.error
-		withContext(dispatcherMain) {
-			_state.getAndUpdate { it.copy(error = error) }
-		}
-	}
-
-	private suspend fun applyDef(result: TimelineDefResult) {
-		val error = (result as? TimelineDefResult.Invalid)?.error
 		withContext(dispatcherMain) {
 			_state.getAndUpdate { it.copy(error = error) }
 		}

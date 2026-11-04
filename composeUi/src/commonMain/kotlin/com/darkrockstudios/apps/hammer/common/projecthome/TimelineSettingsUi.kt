@@ -34,7 +34,6 @@ import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.components.projecthome.timelinesettings.TimelineSettings
 import com.darkrockstudios.apps.hammer.common.components.projecthome.timelinesettings.TimelineSettings.ModeSwitchPrompt
-import com.darkrockstudios.apps.hammer.common.components.timeline.TimelineSwitcher
 import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.lastOf
@@ -130,7 +129,6 @@ fun TimelineSettingsUi(
 	val calendar = def.calendar ?: CalendarDef()
 	// Timelines go by name once there is more than one; until then the prompts say "the timeline".
 	val named = state.timelines.size >= 2
-	var nameDialog by remember { mutableStateOf<NameDialog?>(null) }
 
 	HdHairlineSection(
 		modifier = modifier,
@@ -141,10 +139,8 @@ fun TimelineSettingsUi(
 		if (state.timelines.isNotEmpty()) {
 			TimelineList(
 				timelines = state.timelines,
-				onNew = { nameDialog = NameDialog(TimelineSwitcher.Dialog.Create(), state.timelineIds()) },
-				onRename = { summary ->
-					nameDialog = NameDialog(TimelineSwitcher.Dialog.Rename(summary.def.id, summary.def.name), state.timelineIds())
-				},
+				onNew = component::requestCreate,
+				onRename = { summary -> component.requestRename(summary.def.id) },
 				onDelete = { summary -> component.requestDelete(summary.def.id) },
 			)
 		}
@@ -228,75 +224,12 @@ fun TimelineSettingsUi(
 		onCancel = component::cancelModeSwitch,
 	)
 
-	TimelineDialogs(
-		state = state,
-		nameDialog = nameDialog,
-		onNameDialogChange = { nameDialog = it },
-		component = component,
-	)
-}
-
-private fun TimelineSettings.State.timelineIds(): Set<String> = timelines.mapTo(mutableSetOf()) { it.def.id }
-
-/**
- * A create or rename dialog and the timelines there were when it opened. It closes once what it
- * [asked] for shows up; until it has asked, the settings' error is not its own.
- */
-private data class NameDialog(
-	val dialog: TimelineSwitcher.Dialog,
-	val knownIds: Set<String>,
-	val asked: String? = null,
-)
-
-/** The create, rename and delete dialogs, in the switcher's style. */
-@Composable
-private fun TimelineDialogs(
-	state: TimelineSettings.State,
-	nameDialog: NameDialog?,
-	onNameDialogChange: (NameDialog?) -> Unit,
-	component: TimelineSettings,
-) {
-	val current = nameDialog
-
-	LaunchedEffect(current, state.editingId, state.timelines) {
-		val asked = current?.asked ?: return@LaunchedEffect
-		val done = when (val dialog = current.dialog) {
-			// The settings move on to the timeline they create.
-			is TimelineSwitcher.Dialog.Create -> state.editingId !in current.knownIds
-			is TimelineSwitcher.Dialog.Rename ->
-				state.timelines.any { it.def.id == dialog.timelineId && it.def.name == asked.trim() }
-
-			is TimelineSwitcher.Dialog.Delete -> false
-		}
-		if (done) onNameDialogChange(null)
-	}
-
-	val pendingDelete = state.pendingDelete
-	val dialog = when {
-		pendingDelete != null -> TimelineSwitcher.Dialog.Delete(
-			timelineId = pendingDelete.def.id,
-			name = pendingDelete.def.name,
-			eventCount = pendingDelete.eventCount,
-		)
-
-		else -> current?.dialog
-	}
-	val error = state.error.takeIf { pendingDelete == null && current?.asked != null }
 	TimelineSwitcherDialogs(
-		switcher = TimelineSwitcher(dialog = dialog, error = error),
-		onCreate = { name, mode, preset ->
-			onNameDialogChange(current?.copy(asked = name))
-			component.createTimeline(name, mode, preset)
-		},
-		onRename = { name ->
-			val rename = current?.dialog as? TimelineSwitcher.Dialog.Rename ?: return@TimelineSwitcherDialogs
-			onNameDialogChange(current.copy(asked = name))
-			component.renameTimeline(rename.timelineId, name)
-		},
+		switcher = state.switcher,
+		onCreate = component::createTimeline,
+		onRename = component::renameTimeline,
 		onConfirmDelete = component::confirmDelete,
-		onDismiss = {
-			if (pendingDelete != null) component.cancelDelete() else onNameDialogChange(null)
-		},
+		onDismiss = component::dismissDialog,
 	)
 }
 
