@@ -17,14 +17,18 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.EvenSpacing
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.StrResStoryDateWords
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineDefResult
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineResult
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineService
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.entryUnits
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.APP_SCOPE
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.core.component.inject
@@ -42,36 +46,112 @@ class TimelineSettingsComponent(
 	private val appScope: CoroutineScope by inject(named(APP_SCOPE))
 	private val strRes: StrRes by inject()
 
+	/** An epoch typed for [timelineId], waiting on the debounce. */
+	private data class PendingEpoch(val timelineId: String, val name: String)
+
 	@Volatile
-	private var pendingEpoch: String? = null
+	private var pendingEpoch: PendingEpoch? = null
 	private var epochWrite: Job? = null
 
 	private val _state = MutableValue(TimelineSettings.State())
 	override val state: Value<TimelineSettings.State> = _state
 
+	private val editingId = MutableStateFlow(_state.value.editingId)
+
+	@OptIn(ExperimentalCoroutinesApi::class)
 	override fun onCreate() {
 		super.onCreate()
 		scope.launch {
-			timelineService.timelineFlow(TimelineDef.MAIN_ID).collect { view ->
-				val lanes = timelineService.lanes()
+			editingId.flatMapLatest { timelineService.timelineFlow(it) }.collect { view ->
+				val lanes = timelineService.lanes(view.def.id)
 				withContext(dispatcherMain) {
-					_state.getAndUpdate { it.copy(def = view.def, lanes = lanes) }
+					_state.getAndUpdate { if (it.editingId != view.def.id) it else it.copy(def = view.def, lanes = lanes) }
+				}
+			}
+		}
+		scope.launch {
+			timelineService.summaries.collect { timelines ->
+				withContext(dispatcherMain) {
+					_state.getAndUpdate { it.copy(timelines = timelines) }
+					// The edited timeline was deleted, here or on another device.
+					if (timelines.none { it.def.id == _state.value.editingId }) selectTimeline(TimelineDef.MAIN_ID)
 				}
 			}
 		}
 	}
 
+	override fun selectTimeline(id: String) {
+		if (_state.value.editingId == id) return
+		_state.getAndUpdate { current ->
+			current.copy(
+				editingId = id,
+				def = current.timelines.firstOrNull { it.def.id == id }?.def ?: current.def,
+				pendingModeSwitch = null,
+				pendingCalendar = null,
+				datesLostOnPresetSwitch = null,
+				presetSwitchTimeline = null,
+				error = null,
+			)
+		}
+		editingId.value = id
+	}
+
+	override fun createTimeline(name: String, mode: TimelineMode, preset: CalendarPreset) {
+		scope.launch {
+			val calendar = if (mode == TimelineMode.DATED) CalendarDef(preset) else null
+			val result = timelineService.createTimeline(name, mode, calendar)
+			withContext(dispatcherMain) {
+				when (result) {
+					is TimelineDefResult.Ok -> {
+						_state.getAndUpdate { it.copy(error = null) }
+						selectTimeline(result.def.id)
+					}
+
+					is TimelineDefResult.Invalid -> _state.getAndUpdate { it.copy(error = result.error) }
+				}
+			}
+		}
+	}
+
+	override fun renameTimeline(id: String, name: String) {
+		scope.launch { applyDef(timelineService.renameTimeline(id, name)) }
+	}
+
+	override fun requestDelete(id: String) {
+		if (id == TimelineDef.MAIN_ID) return
+		val summary = _state.value.timelines.firstOrNull { it.def.id == id } ?: return
+		_state.getAndUpdate { it.copy(pendingDelete = summary, error = null) }
+	}
+
+	override fun confirmDelete() {
+		val pending = _state.value.pendingDelete ?: return
+		_state.getAndUpdate { it.copy(pendingDelete = null) }
+		scope.launch { applyDef(timelineService.deleteTimeline(pending.def.id)) }
+	}
+
+	override fun cancelDelete() {
+		_state.getAndUpdate { it.copy(pendingDelete = null) }
+	}
+
 	override fun requestMode(mode: TimelineMode) {
-		val def = _state.value.def
+		val current = _state.value
+		val def = current.def
 		if (def.mode == mode) return
+		val count = current.timelines.firstOrNull { it.def.id == def.id }?.eventCount ?: 0
 		val prompt = when (mode) {
 			TimelineMode.DATED -> {
 				val calendar = def.calendar ?: CalendarDef(CalendarPreset.STORY)
 				val units = entryUnits(calendar)
-				ModeSwitchPrompt.ToDated(units = units, selectedUnit = spacingUnit(calendar, units), calendar = calendar)
+				ModeSwitchPrompt.ToDated(
+					units = units,
+					selectedUnit = spacingUnit(calendar, units),
+					calendar = calendar,
+					timeline = def,
+					eventCount = count,
+				)
 			}
 
-			TimelineMode.MANUAL -> ModeSwitchPrompt.ToManual
+			TimelineMode.MANUAL -> ModeSwitchPrompt.ToManual(timeline = def, eventCount = count)
 		}
 		_state.getAndUpdate { it.copy(pendingModeSwitch = prompt, error = null) }
 	}
@@ -92,9 +172,10 @@ class TimelineSettingsComponent(
 				is ModeSwitchPrompt.ToDated -> timelineService.switchToDated(
 					prompt.calendar,
 					EvenSpacing(unit = prompt.selectedUnit, step = 1, origin = spacingOrigin(prompt.calendar)),
+					prompt.timeline.id,
 				)
 
-				ModeSwitchPrompt.ToManual -> timelineService.switchToManual(StrResStoryDateWords(strRes))
+				is ModeSwitchPrompt.ToManual -> timelineService.switchToManual(StrResStoryDateWords(strRes), prompt.timeline.id)
 			}
 		}
 	}
@@ -118,16 +199,19 @@ class TimelineSettingsComponent(
 	}
 
 	private fun requestCalendar(calendar: CalendarDef) {
+		val def = _state.value.def
 		scope.launch {
-			val lost = timelineService.countDatesLostBySwitch(calendar)
+			val lost = timelineService.countDatesLostBySwitch(calendar, def.id)
 			if (lost == 0) {
-				apply(timelineService.switchPreset(calendar, StrResStoryDateWords(strRes)))
+				apply(timelineService.switchPreset(calendar, StrResStoryDateWords(strRes), def.id))
 				withContext(dispatcherMain) {
-					_state.getAndUpdate { it.copy(pendingCalendar = null, datesLostOnPresetSwitch = null) }
+					_state.getAndUpdate { it.copy(pendingCalendar = null, datesLostOnPresetSwitch = null, presetSwitchTimeline = null) }
 				}
 			} else {
 				withContext(dispatcherMain) {
-					_state.getAndUpdate { it.copy(pendingCalendar = calendar, datesLostOnPresetSwitch = lost, error = null) }
+					_state.getAndUpdate {
+						it.copy(pendingCalendar = calendar, datesLostOnPresetSwitch = lost, presetSwitchTimeline = def, error = null)
+					}
 				}
 			}
 		}
@@ -135,16 +219,22 @@ class TimelineSettingsComponent(
 
 	override fun confirmPresetSwitch() {
 		val calendar = _state.value.pendingCalendar ?: return
-		_state.getAndUpdate { it.copy(pendingCalendar = null, datesLostOnPresetSwitch = null) }
-		write { timelineService.switchPreset(calendar, StrResStoryDateWords(strRes)) }
+		val timeline = _state.value.presetSwitchTimeline?.id ?: _state.value.editingId
+		cancelPresetSwitch()
+		write { timelineService.switchPreset(calendar, StrResStoryDateWords(strRes), timeline) }
 	}
 
 	override fun cancelPresetSwitch() {
-		_state.getAndUpdate { it.copy(pendingCalendar = null, datesLostOnPresetSwitch = null) }
+		_state.getAndUpdate { it.copy(pendingCalendar = null, datesLostOnPresetSwitch = null, presetSwitchTimeline = null) }
 	}
 
 	override fun setEpochName(name: String) {
-		pendingEpoch = name
+		val next = PendingEpoch(_state.value.editingId, name)
+		// An epoch still waiting for another timeline is written now rather than dropped.
+		pendingEpoch?.takeIf { it.timelineId != next.timelineId }?.let { other ->
+			scope.launch { flushEpoch(other)?.let { apply(it) } }
+		}
+		pendingEpoch = next
 		epochWrite?.cancel()
 		epochWrite = scope.launch {
 			delay(EPOCH_DEBOUNCE)
@@ -152,15 +242,15 @@ class TimelineSettingsComponent(
 		}
 	}
 
-	/** Writes the epoch waiting on the debounce, if any. */
-	private suspend fun flushEpoch(): TimelineResult? {
-		val name = pendingEpoch ?: return null
-		val epoch = name.trim().ifEmpty { null }
-		val result = timelineService.updateDefinition { def ->
+	/** Writes [pending], by default the epoch waiting on the debounce, to the timeline it was typed for. */
+	private suspend fun flushEpoch(pending: PendingEpoch? = pendingEpoch): TimelineResult? {
+		pending ?: return null
+		val epoch = pending.name.trim().ifEmpty { null }
+		val result = timelineService.updateDefinition(pending.timelineId) { def ->
 			val calendar = def.calendar ?: CalendarDef()
 			if (calendar.preset != CalendarPreset.STORY) def else def.copy(calendar = calendar.copy(epochName = epoch))
 		}
-		if (pendingEpoch == name) pendingEpoch = null
+		if (pendingEpoch == pending) pendingEpoch = null
 		return result
 	}
 
@@ -170,7 +260,8 @@ class TimelineSettingsComponent(
 	}
 
 	override fun setLaneOrder(order: List<String>) {
-		write { timelineService.updateDefinition { it.copy(laneOrder = order) } }
+		val timeline = _state.value.editingId
+		write { timelineService.updateDefinition(timeline) { it.copy(laneOrder = order) } }
 	}
 
 	private fun write(block: suspend () -> TimelineResult) {
@@ -179,6 +270,13 @@ class TimelineSettingsComponent(
 
 	private suspend fun apply(result: TimelineResult) {
 		val error = (result as? TimelineResult.Invalid)?.error
+		withContext(dispatcherMain) {
+			_state.getAndUpdate { it.copy(error = error) }
+		}
+	}
+
+	private suspend fun applyDef(result: TimelineDefResult) {
+		val error = (result as? TimelineDefResult.Invalid)?.error
 		withContext(dispatcherMain) {
 			_state.getAndUpdate { it.copy(error = error) }
 		}

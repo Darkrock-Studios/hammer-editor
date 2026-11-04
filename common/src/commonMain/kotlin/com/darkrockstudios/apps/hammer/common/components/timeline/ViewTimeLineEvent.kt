@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.common.components.timeline
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
 import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.data.MenuItemDescriptor
@@ -54,6 +55,23 @@ interface ViewTimeLineEvent : TagSuggesting {
 	fun confirmDiscard()
 	fun cancelDiscard()
 
+	/** Opens the move to another timeline. */
+	fun startMove()
+	fun cancelMove()
+
+	/**
+	 * Moves the event to live timeline [target], keeping its dates where they fit there. A DATED target
+	 * whose calendar the dates do not fit refuses with [TimeLineEventError.DATE_REQUIRED] or
+	 * [TimeLineEventError.DATE_INVALID] until a [start] is given; [start] replaces both dates.
+	 */
+	suspend fun moveToTimeline(target: String, start: StoryDate? = null, end: StoryDate? = null): TimeLineEventError
+
+	/** Opens [placement] on its own timeline. */
+	fun showPlacement(placement: OtherPlacement)
+
+	/** The same subject placed on another timeline. */
+	data class OtherPlacement(val timelineId: String, val name: String, val eventId: Int)
+
 	data class State(
 		val event: TimeLineEvent? = null,
 		val tags: Set<String> = emptySet(),
@@ -88,6 +106,13 @@ interface ViewTimeLineEvent : TagSuggesting {
 		val lanes: List<String> = emptyList(),
 		/** Scenes and entries to add as references; only loaded for a plain event. */
 		val catalog: List<CatalogItem> = emptyList(),
+		/** The live timeline the event is on; null for one whose timeline was deleted, and until it loads. */
+		val timeline: TimelineDef? = null,
+		/** For a placement, the other timelines its subject is placed on, in timeline order. */
+		val alsoOn: List<OtherPlacement> = emptyList(),
+		/** The live timelines the event can move to. */
+		val moveTargets: List<TimelineDef> = emptyList(),
+		val confirmMove: Boolean = false,
 	) {
 		val isDated: Boolean get() = mode == TimelineMode.DATED
 	}

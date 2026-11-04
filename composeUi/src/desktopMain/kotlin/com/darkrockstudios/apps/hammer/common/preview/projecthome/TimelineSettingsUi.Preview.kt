@@ -94,7 +94,7 @@ internal class PreviewTimelineSettings(initial: TimelineSettings.State) : Timeli
 		val units = entryUnits(calendar)
 		val prompt = when (mode) {
 			TimelineMode.DATED -> ModeSwitchPrompt.ToDated(units, units.first().name, calendar)
-			TimelineMode.MANUAL -> ModeSwitchPrompt.ToManual
+			TimelineMode.MANUAL -> ModeSwitchPrompt.ToManual()
 		}
 		if (mode != _state.value.def.mode) _state.value = _state.value.copy(pendingModeSwitch = prompt)
 	}
@@ -136,5 +136,24 @@ internal class PreviewTimelineSettings(initial: TimelineSettings.State) : Timeli
 	override fun setEpochName(name: String) {}
 	override fun setLaneOrder(order: List<String>) {
 		_state.value = _state.value.copy(lanes = order)
+	}
+
+	override fun selectTimeline(id: String) {
+		val def = _state.value.timelines.firstOrNull { it.def.id == id }?.def ?: return
+		_state.value = _state.value.copy(editingId = id, def = def)
+	}
+
+	override fun createTimeline(name: String, mode: TimelineMode, preset: CalendarPreset) {}
+	override fun renameTimeline(id: String, name: String) {}
+	override fun requestDelete(id: String) {
+		_state.value = _state.value.copy(pendingDelete = _state.value.timelines.firstOrNull { it.def.id == id })
+	}
+
+	override fun confirmDelete() {
+		_state.value = _state.value.copy(pendingDelete = null)
+	}
+
+	override fun cancelDelete() {
+		_state.value = _state.value.copy(pendingDelete = null)
 	}
 }

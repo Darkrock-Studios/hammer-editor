@@ -8,7 +8,6 @@ import com.arkivanov.decompose.value.subscribe
 import com.arkivanov.decompose.value.update
 import com.arkivanov.essenty.backhandler.BackCallback
 import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
-import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
@@ -25,15 +24,15 @@ import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineEv
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineResult
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineService
 import io.github.aakira.napier.Napier
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 
+/** Creates on timeline [timelineId], with its mode and calendar. */
 class CreateTimeLineEventComponent(
 	componentContext: ComponentContext,
 	projectDef: ProjectDef,
+	private val timelineId: String,
 	private val onClose: () -> Unit,
 ) : ProjectComponentBase(projectDef, componentContext), CreateTimeLineEvent {
 
@@ -101,9 +100,17 @@ class CreateTimeLineEventComponent(
 
 	private fun watchDefinition() {
 		scope.launch {
-			timelineService.timelineFlow(TimelineDef.MAIN_ID).map { it.def }.distinctUntilChanged().collect { def ->
+			timelineService.timelineFlow(timelineId).collect { view ->
+				val placed = view.events.mapNotNullTo(HashSet()) { event ->
+					val subject = event.subject ?: return@mapNotNullTo null
+					when (event.kind) {
+						TimelineKind.SCENE -> CatalogRef(CatalogKind.Scene, subject)
+						TimelineKind.ENTRY -> CatalogRef(CatalogKind.Entry, subject)
+						TimelineKind.EVENT -> null
+					}
+				}
 				withContext(dispatcherMain) {
-					_state.getAndUpdate { it.copy(mode = def.mode, calendar = def.calendar) }
+					_state.getAndUpdate { it.copy(mode = view.def.mode, calendar = view.def.calendar, placedSubjects = placed) }
 				}
 			}
 		}
@@ -127,7 +134,7 @@ class CreateTimeLineEventComponent(
 
 	private fun loadChoices() {
 		scope.launch {
-			val lanes = timelineService.lanes()
+			val lanes = timelineService.lanes(timelineId)
 			val catalog = entityCatalog.items(setOf(CatalogKind.Scene, CatalogKind.Entry))
 			withContext(dispatcherMain) {
 				val subject = pendingSubject?.let { catalog.find(it) }
@@ -220,18 +227,19 @@ class CreateTimeLineEventComponent(
 						milestone = draft.milestone,
 						start = start,
 						end = end,
+						timeline = timelineId,
 					)
 				)
 			}
 
 			TimelineKind.SCENE -> {
 				val subject = draft.subject ?: return TimeLineEventError.SUBJECT_REQUIRED
-				timelineService.placeScene(subject.id, start, end, draft.lane, draft.milestone, shownWhen)
+				timelineService.placeScene(subject.id, start, end, draft.lane, draft.milestone, shownWhen, timelineId)
 			}
 
 			TimelineKind.ENTRY -> {
 				val subject = draft.subject ?: return TimeLineEventError.SUBJECT_REQUIRED
-				timelineService.placeEntry(subject.id, start, end, draft.lane, draft.milestone, shownWhen)
+				timelineService.placeEntry(subject.id, start, end, draft.lane, draft.milestone, shownWhen, timelineId)
 			}
 		}
 

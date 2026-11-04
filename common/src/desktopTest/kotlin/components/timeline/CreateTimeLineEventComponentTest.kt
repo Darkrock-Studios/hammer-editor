@@ -1,13 +1,17 @@
 package components.timeline
 
 import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
+import com.darkrockstudios.apps.hammer.base.timeline.CalendarPreset
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
 import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineLimits
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.components.timeline.CreateTimeLineEventComponent
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEventError
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineDefResult
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineEventDraft
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.timelineId
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
@@ -21,11 +25,13 @@ class CreateTimeLineEventComponentTest : TimelineComponentTestBase() {
 
 	private var closed = 0
 
-	private fun newComponent(ctx: TestComponentContext = context) = CreateTimeLineEventComponent(
-		componentContext = ctx,
-		projectDef = projectDef,
-		onClose = { closed++ },
-	)
+	private fun newComponent(ctx: TestComponentContext = context, timelineId: String = TimelineDef.MAIN_ID) =
+		CreateTimeLineEventComponent(
+			componentContext = ctx,
+			projectDef = projectDef,
+			timelineId = timelineId,
+			onClose = { closed++ },
+		)
 
 	@Test
 	fun `creating an event stores every field of the draft`() = runTest(mainTestDispatcher) {
@@ -258,4 +264,60 @@ class CreateTimeLineEventComponentTest : TimelineComponentTestBase() {
 		assertEquals(TEA_PARTY, stored.subject)
 		assertEquals("Half past six", stored.label)
 	}
+
+	// region Target timeline
+
+	private suspend fun gregorianTimeline(): String = (timelineService.createTimeline(
+		"Before",
+		TimelineMode.DATED,
+		CalendarDef(CalendarPreset.GREGORIAN),
+	) as TimelineDefResult.Ok).def.id
+
+	@Test
+	fun `the target timeline's mode and calendar apply, and the event lands there`() = runTest(mainTestDispatcher) {
+		givenProject()
+		val before = gregorianTimeline()
+		val component = newComponent(timelineId = before)
+		context.resume()
+		advanceUntilIdle()
+
+		assertEquals(TimelineMode.DATED, component.state.value.mode)
+		assertEquals(CalendarDef(CalendarPreset.GREGORIAN), component.state.value.calendar)
+
+		component.setTitle("Loan")
+		component.setStart(StoryDate(linkedMapOf("year" to 1919L)))
+		assertEquals(TimeLineEventError.NONE, component.create(label = null, content = ""))
+
+		val stored = timeLineRepository.currentEvents().single()
+		assertEquals(before, stored.timelineId)
+		assertEquals(StoryDate(linkedMapOf("year" to 1919L)), stored.start)
+	}
+
+	@Test
+	fun `a subject already placed on the target timeline cannot be picked, but one placed elsewhere can`() =
+		runTest(mainTestDispatcher) {
+			givenProject()
+			val before = gregorianTimeline()
+			timelineService.placeScene(4, null, null, lane = null, milestone = false)
+			timelineService.placeEntry(TEA_PARTY, StoryDate(linkedMapOf("year" to 1923L)), null, lane = null, milestone = false, timeline = before)
+			val component = newComponent(timelineId = before)
+			context.resume()
+			advanceUntilIdle()
+
+			val choices = component.state.value.subjectChoices.map { it.id }
+			assertTrue(4 in choices, "placed on main only")
+			assertFalse(TEA_PARTY in choices)
+			assertTrue(TEA_PARTY in component.state.value.catalog.map { it.id }, "still a reference")
+
+			component.setKind(TimelineKind.SCENE)
+			component.setSubject(catalogItem(4))
+			component.setStart(StoryDate(linkedMapOf("year" to 1923L)))
+			assertEquals(TimeLineEventError.NONE, component.create(label = null, content = ""))
+			advanceUntilIdle()
+
+			assertFalse(4 in component.state.value.subjectChoices.map { it.id })
+			assertEquals(2, timeLineRepository.placementsOf(TimelineKind.SCENE, 4).size)
+		}
+
+	// endregion
 }

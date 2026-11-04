@@ -1,10 +1,13 @@
 package components.timeline
 
 import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
+import com.darkrockstudios.apps.hammer.base.timeline.CalendarPreset
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
 import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineLimits
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
+import com.darkrockstudios.apps.hammer.common.components.timeline.ViewTimeLineEvent
 import com.darkrockstudios.apps.hammer.common.components.timeline.ViewTimeLineEventComponent
 import com.darkrockstudios.apps.hammer.common.data.InsertPosition
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
@@ -18,7 +21,9 @@ import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.sceneme
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.SubjectSummary
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEventError
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineDefResult
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineEventDraft
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.timelineId
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineResult
 import com.darkrockstudios.apps.hammer.common.data.tree.NodeCoordinates
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -43,6 +48,7 @@ class ViewTimeLineEventComponentTest : TimelineComponentTestBase() {
 	private val searchedTags = mutableListOf<String>()
 	private val addedMenus = mutableListOf<MenuDescriptor>()
 	private val removedMenus = mutableListOf<String>()
+	private val shownOn = mutableListOf<Pair<String, Int>>()
 	private var closes = 0
 	private var shouldCloseUpdates = 0
 
@@ -58,6 +64,7 @@ class ViewTimeLineEventComponentTest : TimelineComponentTestBase() {
 			onShowGlobalSearchForTag = { searchedTags += it },
 			onShowScene = { shownScenes += it },
 			onShowEntry = { shownEntries += it },
+			onShowEventOn = { timeline, event -> shownOn += timeline to event },
 		)
 
 	private fun TestScope.opened(eventId: Int): ViewTimeLineEventComponent {
@@ -802,16 +809,18 @@ class ViewTimeLineEventComponentTest : TimelineComponentTestBase() {
 	}
 
 	@Test
-	fun `the delete menu is offered while the view is shown`() = runTest(mainTestDispatcher) {
+	fun `the move and delete menu is offered while the view is shown`() = runTest(mainTestDispatcher) {
 		givenProject()
 		val event = timelineService.createEvent(TimelineEventDraft(title = "Storm")).event()
 		val component = opened(event.id)
 
 		val menu = addedMenus.single()
-		val delete = menu.items.single()
-		assertEquals(setOf(delete), component.state.value.menuItems)
+		val (move, delete) = menu.items
+		assertEquals(setOf(move, delete), component.state.value.menuItems)
 		delete.action(delete.id)
 		assertTrue(component.state.value.confirmDelete)
+		move.action(move.id)
+		assertTrue(component.state.value.confirmMove)
 
 		context.stop()
 		assertEquals(listOf(menu.id), removedMenus)
@@ -968,6 +977,138 @@ class ViewTimeLineEventComponentTest : TimelineComponentTestBase() {
 		advanceUntilIdle()
 
 		assertTrue(before === component.state.value.subject)
+	}
+
+	// endregion
+
+	// region Timelines
+
+	private suspend fun gregorianTimeline(name: String = "Before"): TimelineDef = (timelineService.createTimeline(
+		name,
+		TimelineMode.DATED,
+		CalendarDef(CalendarPreset.GREGORIAN),
+	) as TimelineDefResult.Ok).def
+
+	private fun gregorian(vararg rungs: Pair<String, Long>) = StoryDate(linkedMapOf(*rungs))
+
+	@Test
+	fun `an event on another timeline follows that timeline's mode, calendar and lanes`() = runTest(mainTestDispatcher) {
+		givenProject()
+		val before = gregorianTimeline()
+		timelineService.updateDefinition(before.id) { it.copy(laneOrder = listOf("Hayes", "Ward")) }
+		timelineService.createEvent(TimelineEventDraft(title = "On main", lane = "Pike"))
+		val loan = timelineService.createEvent(
+			TimelineEventDraft(title = "Loan", lane = "Ward", start = gregorian("year" to 1919L), timeline = before.id)
+		).event()
+
+		val state = opened(loan.id).state.value
+
+		assertEquals(loan, state.event)
+		assertEquals(before.id, state.timeline?.id)
+		assertEquals(TimelineMode.DATED, state.mode)
+		assertEquals(CalendarDef(CalendarPreset.GREGORIAN), state.calendar)
+		assertEquals(listOf("Hayes", "Ward"), state.lanes)
+		assertEquals(1, state.laneIndex)
+		assertEquals(listOf(TimelineDef.MAIN_ID), state.moveTargets.map { it.id })
+	}
+
+	@Test
+	fun `a straggler shows as manual with no timeline and can still be edited`() = runTest(mainTestDispatcher) {
+		givenProject()
+		timelineService.switchToDated(CalendarDef())
+		val stray = timeLineRepository.createEvent(TimelineEventDraft(title = "Stray", timeline = "gone0001"))
+		val component = opened(stray.id)
+
+		assertEquals(stray, component.state.value.event)
+		assertNull(component.state.value.timeline)
+		assertEquals(TimelineMode.MANUAL, component.state.value.mode)
+		assertEquals(listOf(TimelineDef.MAIN_ID), component.state.value.moveTargets.map { it.id })
+
+		component.beginEdit()
+		component.onTitleChanged("Found")
+		assertEquals(TimeLineEventError.NONE, component.saveEdit())
+		assertEquals("Found", timeLineRepository.getTimelineEvent(stray.id)?.title)
+	}
+
+	@Test
+	fun `a placement lists the other timelines its subject is on, and opens one`() = runTest(mainTestDispatcher) {
+		givenProject()
+		val before = gregorianTimeline()
+		val scratch = (timelineService.createTimeline("Scratch") as TimelineDefResult.Ok).def
+		val onMain = timelineService.placeScene(4, null, null, lane = null, milestone = false).event()
+		val onScratch = timelineService.placeScene(4, null, null, lane = null, milestone = false, timeline = scratch.id).event()
+		val onBefore = timelineService.placeScene(
+			4, gregorian("year" to 1923L), null, lane = null, milestone = false, timeline = before.id
+		).event()
+		timelineService.placeScene(5, null, null, lane = null, milestone = false, timeline = before.id)
+		val component = opened(onMain.id)
+
+		assertEquals(
+			listOf(
+				ViewTimeLineEvent.OtherPlacement(before.id, "Before", onBefore.id),
+				ViewTimeLineEvent.OtherPlacement(scratch.id, "Scratch", onScratch.id),
+			),
+			component.state.value.alsoOn,
+		)
+
+		component.showPlacement(component.state.value.alsoOn.first())
+		assertEquals(listOf(before.id to onBefore.id), shownOn)
+
+		timelineService.deleteTimeline(scratch.id)
+		advanceUntilIdle()
+		assertEquals(listOf(before.id), component.state.value.alsoOn.map { it.timelineId })
+	}
+
+	@Test
+	fun `a plain event is on no other timeline`() = runTest(mainTestDispatcher) {
+		givenProject()
+		gregorianTimeline()
+		val event = timelineService.createEvent(TimelineEventDraft(title = "Storm")).event()
+
+		assertEquals(emptyList(), opened(event.id).state.value.alsoOn)
+	}
+
+	@Test
+	fun `moving to a dated timeline asks for a date the old one does not give, then moves`() = runTest(mainTestDispatcher) {
+		givenProject()
+		timelineService.switchToDated(CalendarDef(coarsestUnit = "hour"))
+		val before = gregorianTimeline()
+		val letter = timelineService.createEvent(
+			TimelineEventDraft(title = "Letter", start = StoryDate(linkedMapOf("hour" to 22L)))
+		).event()
+		val component = opened(letter.id)
+		component.startMove()
+		assertTrue(component.state.value.confirmMove)
+
+		assertEquals(TimeLineEventError.DATE_INVALID, component.moveToTimeline(before.id))
+		assertTrue(component.state.value.confirmMove)
+		assertEquals(TimelineDef.MAIN_ID, timeLineRepository.getTimelineEvent(letter.id)?.timelineId)
+
+		val start = gregorian("year" to 1923L, "month" to 11L, "day" to 11L)
+		assertEquals(TimeLineEventError.NONE, component.moveToTimeline(before.id, start))
+		advanceUntilIdle()
+
+		val moved = timeLineRepository.getTimelineEvent(letter.id)!!
+		assertEquals(before.id, moved.timelineId)
+		assertEquals(start, moved.start)
+		assertFalse(component.state.value.confirmMove)
+		assertEquals(before.id, component.state.value.timeline?.id)
+		assertEquals(CalendarDef(CalendarPreset.GREGORIAN), component.state.value.calendar)
+		assertEquals(listOf(TimelineDef.MAIN_ID), component.state.value.moveTargets.map { it.id })
+	}
+
+	@Test
+	fun `a cancelled move changes nothing`() = runTest(mainTestDispatcher) {
+		givenProject()
+		gregorianTimeline()
+		val event = timelineService.createEvent(TimelineEventDraft(title = "Storm")).event()
+		val component = opened(event.id)
+
+		component.startMove()
+		component.cancelMove()
+
+		assertFalse(component.state.value.confirmMove)
+		assertEquals(TimelineDef.MAIN_ID, timeLineRepository.getTimelineEvent(event.id)?.timelineId)
 	}
 
 	// endregion

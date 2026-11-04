@@ -45,7 +45,7 @@ class TimelineSettingsUiTest : BaseTest() {
 					ModeSwitchPrompt.ToDated(units, "day", calendar)
 				}
 
-				TimelineMode.MANUAL -> ModeSwitchPrompt.ToManual
+				TimelineMode.MANUAL -> ModeSwitchPrompt.ToManual()
 			}
 			_state.value = _state.value.copy(pendingModeSwitch = prompt)
 		}
@@ -69,6 +69,12 @@ class TimelineSettingsUiTest : BaseTest() {
 		override fun cancelPresetSwitch() {}
 		override fun setEpochName(name: String) {}
 		override fun setLaneOrder(order: List<String>) {}
+		override fun selectTimeline(id: String) {}
+		override fun createTimeline(name: String, mode: TimelineMode, preset: CalendarPreset) {}
+		override fun renameTimeline(id: String, name: String) {}
+		override fun requestDelete(id: String) {}
+		override fun confirmDelete() {}
+		override fun cancelDelete() {}
 	}
 
 	private fun show(component: TimelineSettings) {

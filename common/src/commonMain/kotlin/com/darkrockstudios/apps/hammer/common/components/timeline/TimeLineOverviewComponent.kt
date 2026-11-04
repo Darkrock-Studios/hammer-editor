@@ -6,49 +6,64 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
 import com.arkivanov.decompose.value.subscribe
 import com.arkivanov.essenty.backhandler.BackCallback
+import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
+import com.darkrockstudios.apps.hammer.common.data.MenuItemDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogKind
 import com.darkrockstudios.apps.hammer.common.data.entitycatalog.EntityCatalog
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagCount
-import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndexService
-import com.darkrockstudios.apps.hammer.common.data.tagindex.TaggedEntityType
+import com.darkrockstudios.apps.hammer.common.data.tagindex.toRankedTagCounts
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.StrResStoryDateWords
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.SubjectSummary
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineService
-import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineView
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.hasValidStart
 import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineFrame
 import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineLayoutEngine
 import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineView as DrawingView
+import com.darkrockstudios.apps.hammer.common.util.StrRes
+import com.darkrockstudios.apps.hammer.timeline_menu_group
+import com.darkrockstudios.apps.hammer.timeline_switcher_new
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.serializer
+import org.koin.core.component.inject
 
+/** Follows [selection]: switching resets the frame and keeps the drawing, search and filters, which prune themselves. */
 class TimeLineOverviewComponent(
 	componentContext: ComponentContext,
 	projectDef: ProjectDef,
-	addMenu: (menu: MenuDescriptor) -> Unit,
-	removeMenu: (id: String) -> Unit,
+	private val selection: Value<TimelineSelection>,
+	private val addMenu: (menu: MenuDescriptor) -> Unit,
+	private val removeMenu: (id: String) -> Unit,
+	private val onRequestNewTimeline: () -> Unit,
 ) : ProjectComponentBase(projectDef, componentContext), TimeLineOverview {
 
 	private val timelineService: TimelineService by projectInject()
 	private val sceneRepository: SceneRepository by projectInject()
-	private val tagIndexService: TagIndexService by projectInject()
 	private val entityCatalog: EntityCatalog by projectInject()
+	private val strRes: StrRes by inject()
+
+	private val selectionFlow = MutableStateFlow(selection.value)
 
 	private val _state = MutableValue(restoredState())
 	override val state: Value<TimeLineOverview.State> = _state
@@ -78,6 +93,14 @@ class TimeLineOverviewComponent(
 		state.subscribe(lifecycle) {
 			frameBackCallback.isEnabled = it.frame != TimelineFrame.Everything
 		}
+		selection.subscribe(lifecycle) { onSelected(it) }
+	}
+
+	private fun onSelected(selected: TimelineSelection) {
+		selectionFlow.value = selected
+		_state.getAndUpdate {
+			if (it.selection == selected) it else it.copy(selection = selected, rows = null, frame = TimelineFrame.Everything)
+		}
 	}
 
 	private fun restoredState(): TimeLineOverview.State {
@@ -90,6 +113,7 @@ class TimeLineOverviewComponent(
 				?.let { saved -> DrawingView.entries.firstOrNull { it.name == saved } }
 				?: DrawingView.SEQUENCE,
 			frame = stateKeeper.consume(FRAME_KEY, SavedFrame.serializer())?.toFrame() ?: TimelineFrame.Everything,
+			selection = selection.value,
 		)
 	}
 
@@ -97,16 +121,45 @@ class TimeLineOverviewComponent(
 		super.onCreate()
 
 		watchTimeLine()
-		watchTags()
+		watchTimelines()
+	}
+
+	override fun onStart() {
+		super.onStart()
+		val newTimeline = MenuItemDescriptor(NEW_TIMELINE_ITEM_ID, Res.string.timeline_switcher_new, "") {
+			onRequestNewTimeline()
+		}
+		addMenu(MenuDescriptor(MENU_ID, Res.string.timeline_menu_group, listOf(newTimeline)))
+	}
+
+	override fun onStop() {
+		super.onStop()
+		removeMenu(MENU_ID)
+	}
+
+	/** What [selection] shows: its def, or for the deleted-timeline bucket a manual one without a calendar. */
+	private data class Shown(val selection: TimelineSelection, val def: TimelineDef, val events: List<TimeLineEvent>)
+
+	@OptIn(ExperimentalCoroutinesApi::class)
+	private fun shownFlow(): Flow<Shown> = selectionFlow.flatMapLatest { selected ->
+		when (selected) {
+			is TimelineSelection.Def -> timelineService.timelineFlow(selected.id).map { Shown(selected, it.def, it.events) }
+			TimelineSelection.Orphans -> timelineService.orphansFlow.map { Shown(selected, ORPHANS_DEF, it) }
+		}
 	}
 
 	private fun watchTimeLine() {
 		scope.launch {
 			// The scene tree is watched too, so a placed scene that is archived or unarchived redraws.
 			val sceneTree = sceneRepository.sceneTreeUpdates.map { }.onStart { emit(Unit) }
-			combine(timelineService.timelineFlow(TimelineDef.MAIN_ID), sceneTree) { view, _ -> view }.collect { view ->
+			combine(shownFlow(), sceneTree) { shown, _ -> shown }.collect { view ->
 				val built = buildRows(view)
+				val ranked = built.rows.flatMap { it.event.tags }.groupingBy { it }.eachCount()
+					.toRankedTagCounts(Int.MAX_VALUE) { it }
 				withContext(dispatcherMain) {
+					// A timeline switched away from while its rows were built.
+					if (_state.value.selection != view.selection) return@withContext
+					if (ranked != _rankedTags.value) _rankedTags.value = ranked
 					val rowsById = built.rows.associateBy { it.event.id }
 					val stale = previewRows.filter { (id, row) -> rowsById[id] != row }.keys
 					if (stale.isNotEmpty()) {
@@ -143,10 +196,14 @@ class TimeLineOverviewComponent(
 
 	private data class Built(val rows: List<TimelineRow>, val lanes: List<LaneCount>, val undatedIds: List<Int>)
 
-	private suspend fun buildRows(view: TimelineView): Built {
+	private suspend fun buildRows(view: Shown): Built {
 		val events = view.events
 		val glances = timelineService.glances(events)
-		val lanes = timelineService.lanes()
+		val lanes = if (view.selection is TimelineSelection.Def) {
+			timelineService.lanes(view.def.id)
+		} else {
+			events.mapNotNull { it.lane }.distinct().sortedWith(compareBy<String> { it.lowercase() }.thenBy { it })
+		}
 		val laneIndex = lanes.withIndex().associate { (index, lane) -> lane to index }
 		val dated = view.def.mode == TimelineMode.DATED
 		val calendar = view.def.calendar ?: CalendarDef()
@@ -172,19 +229,31 @@ class TimeLineOverviewComponent(
 		return Built(rows, lanes.map { LaneCount(it, counts[it] ?: 0) }, undated)
 	}
 
-	private fun watchTags() {
+	private fun watchTimelines() {
 		scope.launch {
-			tagIndexService.tagIndex.collect {
-				val ranked = tagIndexService.getRankedTags(TaggedEntityType.TimelineEvent)
+			combine(timelineService.summaries, timelineService.orphansFlow) { timelines, orphans ->
+				timelines to orphans.size
+			}.collect { (timelines, orphanCount) ->
 				withContext(dispatcherMain) {
-					if (ranked != _rankedTags.value) _rankedTags.value = ranked
+					_state.getAndUpdate { it.copy(timelines = timelines, orphanCount = orphanCount) }
 				}
 			}
 		}
 	}
 
-	override suspend fun moveEvent(event: TimeLineEvent, toIndex: Int, after: Boolean): Boolean =
-		timelineService.moveEvent(event, toIndex, after).isSuccess
+	override suspend fun moveEvent(event: TimeLineEvent, toIndex: Int, after: Boolean): Boolean {
+		if (_state.value.isOrphans) return false
+		return timelineService.moveEvent(event, toIndex, after).isSuccess
+	}
+
+	override suspend fun moveOrphansTo(target: String): Int {
+		val words = StrResStoryDateWords(strRes)
+		return timelineService.orphansFlow.first().count { orphan ->
+			timelineService.moveToTimeline(orphan.id, target, allowUndated = true, words = words).isSuccess
+		}
+	}
+
+	override suspend fun deleteOrphans(): Int = timelineService.deleteOrphans()
 
 	override fun setSearchQuery(query: String) {
 		_state.getAndUpdate { if (it.searchQuery == query) it else it.copy(searchQuery = query) }
@@ -299,6 +368,12 @@ class TimeLineOverviewComponent(
 	)
 
 	private companion object {
+		const val MENU_ID = "timeline-overview"
+		const val NEW_TIMELINE_ITEM_ID = "timeline-overview-new-timeline"
+
+		// Stragglers have no live def; they read as a manual timeline without a calendar.
+		val ORPHANS_DEF = TimelineDef(id = "", name = "")
+
 		const val VIEW_KEY = "timeline_overview_view"
 		const val FRAME_KEY = "timeline_overview_frame"
 		const val FILTERS_KEY = "timeline_overview_filters"

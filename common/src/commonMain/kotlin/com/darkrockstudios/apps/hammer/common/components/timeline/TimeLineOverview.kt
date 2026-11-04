@@ -9,15 +9,28 @@ import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogItem
 import com.darkrockstudios.apps.hammer.common.data.search.projectMarkdownToPlainText
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagCount
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineSummary
 import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineFrame
 import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineView
 
+/** The selected timeline's events, or those in the deleted-timeline bucket. */
 interface TimeLineOverview {
 	val state: Value<State>
+
+	/** The selected timeline's tags, most used first. */
 	val rankedTags: Value<List<TagCount>>
 
-	/** False when the move was refused, as it is on a DATED timeline. */
+	/** False when the move was refused, as it is on a DATED timeline and in the deleted-timeline bucket. */
 	suspend fun moveEvent(event: TimeLineEvent, toIndex: Int, after: Boolean): Boolean
+
+	/**
+	 * Moves every event in the deleted-timeline bucket to [target], undated where its dates do not fit
+	 * there. A placement whose subject is already on [target] stays behind. Returns how many moved.
+	 */
+	suspend fun moveOrphansTo(target: String): Int
+
+	/** Deletes every event in the deleted-timeline bucket, on every synced device. Returns how many. */
+	suspend fun deleteOrphans(): Int
 
 	fun setSearchQuery(query: String)
 	fun toggleTag(tag: String)
@@ -66,9 +79,24 @@ interface TimeLineOverview {
 		val frame: TimelineFrame = TimelineFrame.Everything,
 		/** Whether some placed scene has a start, which [TimelineFrame.Story] frames. */
 		val storyFrameAvailable: Boolean = false,
+		/** The live timelines, main first. */
+		val timelines: List<TimelineSummary> = emptyList(),
+		val selection: TimelineSelection = TimelineSelection.Main,
+		/** How many events are in the deleted-timeline bucket. */
+		val orphanCount: Int = 0,
 	) {
+		/** The deleted-timeline bucket is shown: a read-only list, with no drawing, drag or create. */
+		val isOrphans: Boolean get() = selection == TimelineSelection.Orphans
+
+		/** The selected timeline; null in the deleted-timeline bucket and until the timelines load. */
+		val selectedTimeline: TimelineSummary?
+			get() = (selection as? TimelineSelection.Def)?.let { def -> timelines.firstOrNull { it.def.id == def.id } }
+
 		/** What the search and filters leave of [rows], worked out on first read. */
-		val filtered: FilteredRows by lazy { filterRows(rows.orEmpty(), mode, searchQuery, tagFilter, laneFilter) }
+		val filtered: FilteredRows by lazy {
+			val filtered = filterRows(rows.orEmpty(), mode, searchQuery, tagFilter, laneFilter)
+			if (isOrphans) filtered.copy(reorderable = false) else filtered
+		}
 	}
 }
 

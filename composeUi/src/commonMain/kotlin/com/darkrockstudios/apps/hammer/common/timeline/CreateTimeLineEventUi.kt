@@ -344,7 +344,7 @@ fun CreateTimeLineEventUi(
 			} else {
 				Res.string.timeline_pick_entry_title.get()
 			},
-			items = state.catalog,
+			items = state.subjectChoices,
 			filter = subjectFilter(subjectKind),
 			multiple = false,
 			selected = listOfNotNull(state.subject?.ref),

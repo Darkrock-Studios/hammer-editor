@@ -305,7 +305,7 @@ private fun ModeSwitchDialog(
 		val current = shown ?: return@AnimatedDialog
 		val title = when (current) {
 			is ModeSwitchPrompt.ToDated -> Res.string.timeline_mode_dialog_dated_title.get()
-			ModeSwitchPrompt.ToManual -> Res.string.timeline_mode_dialog_manual_title.get()
+			is ModeSwitchPrompt.ToManual -> Res.string.timeline_mode_dialog_manual_title.get()
 		}
 		HdHairlineDialogShell(
 			title = title,
@@ -329,7 +329,7 @@ private fun ModeSwitchDialog(
 						)
 					}
 
-					ModeSwitchPrompt.ToManual -> Text(
+					is ModeSwitchPrompt.ToManual -> Text(
 						text = Res.string.timeline_mode_dialog_manual_message.get(),
 						style = MaterialTheme.typography.bodyMedium,
 					)

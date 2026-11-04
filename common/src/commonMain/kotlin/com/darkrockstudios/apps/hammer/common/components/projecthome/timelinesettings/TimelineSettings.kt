@@ -7,10 +7,23 @@ import com.darkrockstudios.apps.hammer.base.timeline.CalendarUnit
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEventError
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineSummary
 
-/** The project's timeline settings: mode, calendar and lane order. */
+/** The project's timelines, and the mode, calendar and lane order of the one being edited. */
 interface TimelineSettings {
 	val state: Value<State>
+
+	/** Edits timeline [id]; the settings below then apply to it. */
+	fun selectTimeline(id: String)
+
+	/** Creates a timeline, DATED ones on [preset], and edits it. */
+	fun createTimeline(name: String, mode: TimelineMode, preset: CalendarPreset)
+	fun renameTimeline(id: String, name: String)
+
+	/** Asks before deleting timeline [id] and its events; main cannot be deleted. */
+	fun requestDelete(id: String)
+	fun confirmDelete()
+	fun cancelDelete()
 
 	/** Opens the prompt for switching to [mode]; nothing happens when the timeline is in it already. */
 	fun requestMode(mode: TimelineMode)
@@ -38,6 +51,10 @@ interface TimelineSettings {
 	fun setLaneOrder(order: List<String>)
 
 	data class State(
+		/** The live timelines, main first. */
+		val timelines: List<TimelineSummary> = emptyList(),
+		val editingId: String = TimelineDef.MAIN_ID,
+		/** The timeline being edited. */
 		val def: TimelineDef = TimelineDef.DEFAULT,
 		/** The lane order, then any other lane in use. */
 		val lanes: List<String> = emptyList(),
@@ -46,17 +63,30 @@ interface TimelineSettings {
 		val pendingCalendar: CalendarDef? = null,
 		/** How many entries [pendingCalendar] would take the start from; they keep it as a label. */
 		val datesLostOnPresetSwitch: Int? = null,
+		/** The timeline [pendingCalendar] is for. */
+		val presetSwitchTimeline: TimelineDef? = null,
+		/** A timeline waiting on confirmation to be deleted with its events. */
+		val pendingDelete: TimelineSummary? = null,
 		val error: TimeLineEventError? = null,
 	)
 
+	/** A mode switch for [timeline], which holds [eventCount] entries. */
 	sealed interface ModeSwitchPrompt {
+		val timeline: TimelineDef
+		val eventCount: Int
+
 		/** [units] are the calendar's entry units; [selectedUnit] spaces the undated entries. */
 		data class ToDated(
 			val units: List<CalendarUnit>,
 			val selectedUnit: String,
 			val calendar: CalendarDef,
+			override val timeline: TimelineDef = TimelineDef.DEFAULT,
+			override val eventCount: Int = 0,
 		) : ModeSwitchPrompt
 
-		data object ToManual : ModeSwitchPrompt
+		data class ToManual(
+			override val timeline: TimelineDef = TimelineDef.DEFAULT,
+			override val eventCount: Int = 0,
+		) : ModeSwitchPrompt
 	}
 }

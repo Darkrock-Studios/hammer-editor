@@ -172,6 +172,8 @@ private class PreviewOverview(initial: TimeLineOverview.State) : TimeLineOvervie
 	)
 
 	override suspend fun moveEvent(event: TimeLineEvent, toIndex: Int, after: Boolean): Boolean = false
+	override suspend fun moveOrphansTo(target: String): Int = 0
+	override suspend fun deleteOrphans(): Int = 0
 	override fun setSearchQuery(query: String) {}
 	override fun toggleTag(tag: String) {}
 	override fun toggleLane(lane: String) {}

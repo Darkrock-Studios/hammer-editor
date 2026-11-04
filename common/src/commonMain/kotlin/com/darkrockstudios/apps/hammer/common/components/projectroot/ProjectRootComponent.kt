@@ -119,6 +119,7 @@ class ProjectRootComponent(
 		::showFocusMode,
 		::showEncyclopediaEntry,
 		::showEditorScene,
+		::showTimelineSettings,
 		onCloseProject,
 		scope,
 		dispatcherMain,
@@ -248,6 +249,12 @@ class ProjectRootComponent(
 		router.showHome()
 	}
 
+	private fun showTimelineSettings() {
+		showHome()
+		(routerState.value.active.instance as? ProjectRoot.Destination.HomeDestination)
+			?.component?.showProjectSettings()
+	}
+
 	override fun showTimeLine() {
 		router.showTimeLine()
 	}
@@ -363,7 +370,7 @@ class ProjectRootComponent(
 				withContext(dispatcherMain) {
 					showTimeLine()
 					(routerState.value.active.instance as? ProjectRoot.Destination.TimeLineDestination)
-						?.component?.showViewEvent(link.eventId)
+						?.component?.showEvent(link.eventId)
 				}
 			}
 		}

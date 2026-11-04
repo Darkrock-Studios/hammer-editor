@@ -223,6 +223,12 @@ private class PreviewViewTimeLineEvent(initial: ViewTimeLineEvent.State) : ViewT
 	override fun openReference(item: CatalogItem) {}
 	override fun confirmDiscard() {}
 	override fun cancelDiscard() {}
+	override fun startMove() {}
+	override fun cancelMove() {}
+	override suspend fun moveToTimeline(target: String, start: StoryDate?, end: StoryDate?): TimeLineEventError =
+		TimeLineEventError.NONE
+
+	override fun showPlacement(placement: ViewTimeLineEvent.OtherPlacement) {}
 	override fun isEditingAndDirty(): Boolean = false
 	override fun discardEdit() {}
 	override fun beginEdit() {}

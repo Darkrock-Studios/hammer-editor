@@ -12,16 +12,33 @@ import com.arkivanov.decompose.router.stack.childStack
 import com.arkivanov.decompose.router.stack.pop
 import com.arkivanov.decompose.router.stack.popWhile
 import com.arkivanov.decompose.router.stack.push
+import com.arkivanov.decompose.router.stack.pushToFront
+import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
+import com.arkivanov.decompose.value.getAndUpdate
 import com.arkivanov.decompose.value.subscribe
 import com.arkivanov.essenty.backhandler.BackCallback
+import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
+import com.darkrockstudios.apps.hammer.base.timeline.CalendarPreset
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
+import com.darkrockstudios.apps.hammer.common.data.projectInject
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineDefResult
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineSelectionSetting
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineService
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.timelineId
 import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineFrame
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.koin.core.component.inject
 
 class TimeLineComponent(
 	componentContext: ComponentContext,
@@ -32,7 +49,23 @@ class TimeLineComponent(
 	private val onShowGlobalSearchForTag: (String) -> Unit,
 	private val onShowScene: (SceneItem) -> Unit,
 	private val onShowEntry: (EntryDef) -> Unit,
+	private val onShowTimelineSettings: () -> Unit,
 ) : ProjectComponentBase(projectDef, componentContext), TimeLine {
+
+	private val timelineService: TimelineService by projectInject()
+	private val selectionSetting: TimelineSelectionSetting by inject()
+
+	private val _selection = MutableValue(restoredSelection())
+	override val selection: Value<TimelineSelection> = _selection
+
+	private val _switcher = MutableValue(TimelineSwitcher())
+	override val switcher: Value<TimelineSwitcher> = _switcher
+
+	// The state keeper first, so a restore keeps the deleted-timeline bucket; then the last timeline shown.
+	private fun restoredSelection(): TimelineSelection =
+		stateKeeper.consume(SELECTION_KEY, TimelineSelection.serializer())
+			?: selectionSetting.load(projectDef.id)?.let { TimelineSelection.Def(it) }
+			?: TimelineSelection.Main
 
 	private val navigation = StackNavigation<TimeLine.Config>()
 
@@ -84,8 +117,10 @@ class TimeLineComponent(
 		return TimeLineOverviewComponent(
 			componentContext = componentContext,
 			projectDef = config.projectDef,
+			selection = selection,
 			addMenu = addMenu,
 			removeMenu = removeMenu,
+			onRequestNewTimeline = ::requestCreateTimeline,
 		)
 	}
 
@@ -104,6 +139,7 @@ class TimeLineComponent(
 			onShowGlobalSearchForTag = onShowGlobalSearchForTag,
 			onShowScene = onShowScene,
 			onShowEntry = onShowEntry,
+			onShowEventOn = ::showEventOn,
 		)
 	}
 
@@ -131,6 +167,7 @@ class TimeLineComponent(
 				dialogNavigation.dismiss()
 				onShowEntry(entry)
 			},
+			onShowEventOn = ::showEventOn,
 		)
 	}
 
@@ -141,6 +178,7 @@ class TimeLineComponent(
 		return CreateTimeLineEventComponent(
 			componentContext = componentContext,
 			projectDef = config.projectDef,
+			timelineId = config.timelineId,
 			onClose = ::showOverview
 		)
 	}
@@ -154,7 +192,8 @@ class TimeLineComponent(
 	}
 
 	override fun showCreateEvent() {
-		navigation.push(TimeLine.Config.CreateEventConfig(projectDef))
+		val selected = _selection.value as? TimelineSelection.Def ?: return
+		navigation.push(TimeLine.Config.CreateEventConfig(projectDef, selected.id))
 	}
 
 	override fun showEventDialog(eventId: Int) {
@@ -168,11 +207,149 @@ class TimeLineComponent(
 	private val overview: TimeLineOverview?
 		get() = stack.value.items.firstNotNullOfOrNull { (it.instance as? TimeLine.Destination.TimeLineOverviewDestination)?.component }
 
-	override fun canFrameEvent(eventId: Int): Boolean = overview?.canFrame(eventId) == true
+	// The overview may be showing another timeline than the event's.
+	private fun onSelectedTimeline(eventId: Int): Boolean =
+		overview?.state?.value?.rows?.any { it.event.id == eventId } == true
+
+	override fun canFrameEvent(eventId: Int): Boolean =
+		onSelectedTimeline(eventId) && overview?.canFrame(eventId) == true
 
 	override fun frameEvent(eventId: Int) {
+		if (!onSelectedTimeline(eventId)) return
 		overview?.setFrame(TimelineFrame.Band(eventId))
 		dialogNavigation.dismiss()
+	}
+
+	override fun selectTimeline(selection: TimelineSelection) {
+		if (_selection.value == selection) return
+		_selection.value = selection
+		if (selection is TimelineSelection.Def) selectionSetting.save(projectDef.id, selection.id)
+	}
+
+	override fun showEvent(eventId: Int) {
+		scope.launch {
+			val event = timelineService.event(eventId) ?: return@launch
+			val def = timelineService.definition(event.timelineId)
+			withContext(dispatcherMain) {
+				selectTimeline(def?.let { TimelineSelection.Def(it.id) } ?: TimelineSelection.Orphans)
+				navigation.pushToFront(TimeLine.Config.ViewEventConfig(projectDef, eventId))
+			}
+		}
+	}
+
+	override fun showEventOn(timelineId: String, eventId: Int) {
+		selectTimeline(TimelineSelection.Def(timelineId))
+		if (eventDialog.value.child != null) {
+			dialogNavigation.activate(TimeLine.EventDialogConfig(projectDef, eventId))
+		} else {
+			navigation.pushToFront(TimeLine.Config.ViewEventConfig(projectDef, eventId))
+		}
+	}
+
+	override fun showTimelineSettings() {
+		onShowTimelineSettings()
+	}
+
+	override fun requestCreateTimeline() {
+		_switcher.value = TimelineSwitcher(dialog = TimelineSwitcher.Dialog.Create())
+	}
+
+	override fun createTimeline(name: String, mode: TimelineMode, preset: CalendarPreset) {
+		val draft = TimelineSwitcher.Dialog.Create(name, mode, preset)
+		_switcher.value = TimelineSwitcher(dialog = draft)
+		scope.launch {
+			val calendar = if (mode == TimelineMode.DATED) CalendarDef(preset) else null
+			val result = timelineService.createTimeline(name, mode, calendar)
+			withContext(dispatcherMain) {
+				when (result) {
+					is TimelineDefResult.Ok -> {
+						_switcher.value = TimelineSwitcher()
+						selectTimeline(TimelineSelection.Def(result.def.id))
+					}
+
+					is TimelineDefResult.Invalid -> refused(draft, result)
+				}
+			}
+		}
+	}
+
+	override fun requestRenameTimeline(timelineId: String) {
+		scope.launch {
+			val def = timelineService.definition(timelineId) ?: return@launch
+			withContext(dispatcherMain) {
+				_switcher.value = TimelineSwitcher(dialog = TimelineSwitcher.Dialog.Rename(def.id, def.name))
+			}
+		}
+	}
+
+	override fun renameTimeline(name: String) {
+		val open = _switcher.value.dialog as? TimelineSwitcher.Dialog.Rename ?: return
+		val draft = open.copy(name = name)
+		_switcher.value = TimelineSwitcher(dialog = draft)
+		scope.launch {
+			val result = timelineService.renameTimeline(draft.timelineId, name)
+			withContext(dispatcherMain) {
+				when (result) {
+					is TimelineDefResult.Ok -> _switcher.value = TimelineSwitcher()
+					is TimelineDefResult.Invalid -> refused(draft, result)
+				}
+			}
+		}
+	}
+
+	override fun requestDeleteTimeline(timelineId: String) {
+		if (timelineId == TimelineDef.MAIN_ID) return
+		scope.launch {
+			val summary = timelineService.summaries.first().firstOrNull { it.def.id == timelineId } ?: return@launch
+			withContext(dispatcherMain) {
+				_switcher.value = TimelineSwitcher(
+					dialog = TimelineSwitcher.Dialog.Delete(summary.def.id, summary.def.name, summary.eventCount)
+				)
+			}
+		}
+	}
+
+	override fun confirmDeleteTimeline() {
+		val open = _switcher.value.dialog as? TimelineSwitcher.Dialog.Delete ?: return
+		scope.launch {
+			val result = timelineService.deleteTimeline(open.timelineId)
+			withContext(dispatcherMain) {
+				when (result) {
+					is TimelineDefResult.Ok -> {
+						_switcher.value = TimelineSwitcher()
+						if (_selection.value == TimelineSelection.Def(open.timelineId)) selectTimeline(TimelineSelection.Main)
+					}
+
+					is TimelineDefResult.Invalid -> refused(open, result)
+				}
+			}
+		}
+	}
+
+	override fun dismissTimelineDialog() {
+		_switcher.value = TimelineSwitcher()
+	}
+
+	// A dialog closed or replaced while the request ran is left as it is.
+	private fun refused(dialog: TimelineSwitcher.Dialog, result: TimelineDefResult.Invalid) {
+		_switcher.getAndUpdate { if (it.dialog == dialog) it.copy(error = result.error) else it }
+	}
+
+	/** Falls back to main once the selected timeline is gone, or the deleted-timeline bucket is empty. */
+	private fun watchSelectionStillThere() {
+		scope.launch {
+			combine(timelineService.timelines, timelineService.orphansFlow) { defs, orphans ->
+				defs.mapTo(HashSet()) { it.id } to orphans.isNotEmpty()
+			}.collect { (live, hasOrphans) ->
+				withContext(dispatcherMain) {
+					val gone = when (val current = _selection.value) {
+						is TimelineSelection.Def -> current.id !in live
+						TimelineSelection.Orphans -> !hasOrphans
+					}
+					if (gone) selectTimeline(TimelineSelection.Main)
+				}
+			}
+		}
 	}
 
 	override fun isAtRoot(): Boolean {
@@ -213,7 +390,13 @@ class TimeLineComponent(
 		}
 	}
 
+	override fun onCreate() {
+		super.onCreate()
+		watchSelectionStillThere()
+	}
+
 	init {
+		stateKeeper.register(SELECTION_KEY, TimelineSelection.serializer()) { _selection.value }
 		backHandler.register(dialogBackCallback)
 		stack.subscribe(lifecycle) {
 			updateShouldClose()
@@ -222,5 +405,9 @@ class TimeLineComponent(
 			dialogBackCallback.isEnabled = it.child != null
 			updateShouldClose()
 		}
+	}
+
+	private companion object {
+		const val SELECTION_KEY = "timeline_selected"
 	}
 }

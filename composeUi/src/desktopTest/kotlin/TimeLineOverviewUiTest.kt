@@ -102,6 +102,8 @@ class TimeLineOverviewUiTest : BaseTest() {
 		override val rankedTags: Value<List<TagCount>> = MutableValue(tags)
 
 		override suspend fun moveEvent(event: TimeLineEvent, toIndex: Int, after: Boolean): Boolean = true
+		override suspend fun moveOrphansTo(target: String): Int = 0
+		override suspend fun deleteOrphans(): Int = 0
 
 		fun setLaneFilter(lanes: Set<String>) {
 			_state.value = _state.value.copy(laneFilter = lanes)

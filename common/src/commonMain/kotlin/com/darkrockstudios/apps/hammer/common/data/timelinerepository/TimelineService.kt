@@ -87,6 +87,22 @@ internal fun markdownExcerpt(markdown: String, chars: Int, imageName: (imageId: 
 /** A timeline's settings and its events in display order. */
 data class TimelineView(val def: TimelineDef, val events: List<TimeLineEvent>)
 
+/** A live timeline and how many events it holds. */
+data class TimelineSummary(val def: TimelineDef, val eventCount: Int)
+
+/** Placement [eventId] of the same subject on another live timeline. */
+data class TimelinePlacement(val def: TimelineDef, val eventId: Int)
+
+/**
+ * An event with the live timeline it is on, null for a straggler, and for a placement the other
+ * live timelines its subject is placed on, in timeline order.
+ */
+data class TimelineEventView(
+	val event: TimeLineEvent,
+	val def: TimelineDef?,
+	val alsoOn: List<TimelinePlacement> = emptyList(),
+)
+
 sealed interface TimelineResult {
 	val isSuccess: Boolean get() = this is Ok
 
@@ -187,6 +203,32 @@ class TimelineService(
 		val live = data.liveTimelines().mapTo(mutableSetOf()) { it.id }
 		timeline.events.filter { it.timelineId !in live }.sortedBy { it.order }
 	}.distinctUntilChanged()
+
+	/** The live timelines, main first, each with how many events it holds. */
+	val summaries: Flow<List<TimelineSummary>> = combine(storedTimeline, projectData) { timeline, data ->
+		val counts = timeline.events.groupingBy { it.timelineId }.eachCount()
+		data.liveTimelines().map { TimelineSummary(it, counts[it.id] ?: 0) }
+	}.distinctUntilChanged()
+
+	/** Event [eventId] as [TimelineEventView], or null while there is no such event. */
+	fun eventFlow(eventId: Int): Flow<TimelineEventView?> = combine(storedTimeline, projectData) { timeline, data ->
+		timeline.events.firstOrNull { it.id == eventId }?.let { event ->
+			val live = data.liveTimelines()
+			val subject = event.subject
+			val alsoOn = if (event.kind.isPlacement && subject != null) {
+				val others = timeline.events.filter {
+					it.id != event.id && it.kind == event.kind && it.subject == subject && it.timelineId != event.timelineId
+				}
+				live.mapNotNull { def -> others.firstOrNull { it.timelineId == def.id }?.let { TimelinePlacement(def, it.id) } }
+			} else {
+				emptyList()
+			}
+			TimelineEventView(event, live.firstOrNull { it.id == event.timelineId }, alsoOn)
+		}
+	}.distinctUntilChanged()
+
+	/** Event [eventId], on any timeline, or null when there is none. */
+	suspend fun event(eventId: Int): TimeLineEvent? = findEvent(eventId)
 
 	/** Live timeline [timeline], or null when there is none. Main is always there. */
 	suspend fun definition(timeline: String = TimelineDef.MAIN_ID): TimelineDef? =

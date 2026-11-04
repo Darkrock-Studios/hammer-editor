@@ -196,4 +196,7 @@
 	<string name="timeline_error_main_not_deletable">The main timeline cannot be deleted</string>
 	<string name="sync_conflict_timeline_field_timeline">Timeline</string>
 	<string name="timeline_deleted_bucket">Deleted timeline</string>
+	<string name="timeline_menu_group">Timeline</string>
+	<string name="timeline_switcher_new">New timeline…</string>
+	<string name="timeline_view_menu_move">Move to timeline…</string>
 </resources>
