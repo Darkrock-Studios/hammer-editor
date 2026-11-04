@@ -80,22 +80,28 @@ internal fun timelineOperations(): List<Operation<*, *>> = listOf(
 			if (found.kind.isPlacement && "title" in given + clear) invalidInput(PLACEMENT_FIELDS)
 			val target = input.timeline?.let { project.requireTimeline(it).id }
 
-			val event = if (target == null || target == found.timelineId) {
-				found
-			} else {
-				project.timelineService()
-					.moveToTimeline(input.id, target, start = input.start.toStoryDate(), end = input.end.toStoryDate())
-					.requireOk() ?: project.requireEvent(input.id)
+			val edit = { event: TimeLineEvent ->
+				event.copy(
+					title = if ("title" in clear) null else input.title.orKeep(event.title),
+					label = if ("label" in clear) null else input.label.orKeep(event.label),
+					lane = if ("lane" in clear) null else input.lane.orKeep(event.lane),
+					milestone = input.milestone ?: event.milestone,
+					start = if ("start" in clear) null else input.start.orKeep(event.start),
+					end = if ("end" in clear) null else input.end.orKeep(event.end),
+				)
 			}
-			val updated = event.copy(
-				title = if ("title" in clear) null else input.title.orKeep(event.title),
-				label = if ("label" in clear) null else input.label.orKeep(event.label),
-				lane = if ("lane" in clear) null else input.lane.orKeep(event.lane),
-				milestone = input.milestone ?: event.milestone,
-				start = if ("start" in clear) null else input.start.orKeep(event.start),
-				end = if ("end" in clear) null else input.end.orKeep(event.end),
-			)
-			project.timelineService().updateEvent(updated).requireOk()
+			val timeline = project.timelineService()
+			if (target == null || target == found.timelineId) {
+				timeline.updateEvent(edit(found)).requireOk()
+			} else {
+				timeline.moveToTimeline(
+					input.id,
+					target,
+					start = input.start.toStoryDate(),
+					end = input.end.toStoryDate(),
+					edit = edit,
+				).requireOk()
+			}
 			project.timelineEntry(input.id)
 		}
 	},

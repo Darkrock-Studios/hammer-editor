@@ -356,6 +356,10 @@ class TimelineService(
 	 * the event undated. On a MANUAL target the dates are kept where its calendar holds them, and an
 	 * event without a label gets its dates on the old calendar, written in [words], as one. A given
 	 * [start] replaces both dates with [start] and [end]; [end] alone is ignored.
+	 *
+	 * [edit] sees the event as it lands on [target] and may change its fields as [updateEvent] would,
+	 * except its timeline and order. The edited event is validated against [target] as one write, so a
+	 * refused edit leaves the event where it was.
 	 */
 	suspend fun moveToTimeline(
 		eventId: Int,
@@ -364,6 +368,7 @@ class TimelineService(
 		end: StoryDate? = null,
 		allowUndated: Boolean = false,
 		words: StoryDateWords = StoryDateWords.English,
+		edit: (TimeLineEvent) -> TimeLineEvent = { it },
 	): TimelineResult = writeLock.withLock {
 		val events = timeLineRepository.currentEvents()
 		val existing = events.firstOrNull { it.id == eventId } ?: return invalid(TimeLineEventError.EVENT_NOT_FOUND)
@@ -387,17 +392,37 @@ class TimelineService(
 		} else {
 			existing.label
 		}
-		val moved = existing.copy(
+		val carried = existing.copy(
 			timeline = normalizeTimeline(targetDef.id),
 			order = events.nextOrder(normalizeTimeline(targetDef.id)),
 			start = dates.start,
 			end = dates.end,
 			label = label,
 		)
+		val edited = edit(carried)
+		if (edited.kind != carried.kind || edited.subject != carried.subject) {
+			return invalid(TimeLineEventError.SUBJECT_NOT_ALLOWED)
+		}
+		val moved = if (carried.kind.isPlacement) {
+			carried.copy(
+				start = edited.start,
+				end = edited.end,
+				lane = normalizeLane(edited.lane),
+				milestone = edited.milestone,
+				label = edited.label,
+			)
+		} else {
+			edited.copy(
+				id = carried.id,
+				timeline = carried.timeline,
+				order = carried.order,
+				lane = normalizeLane(edited.lane),
+			)
+		}
 		val undatedAllowed = allowUndated && moved.start == null
 		val error = timeLineRepository.validate(moved).orElse {
 			if (undatedAllowed) TimeLineEventError.NONE else dateProblem(targetDef, moved.start, moved.end)
-		}
+		}.orElse { referenceProblem(moved.references - existing.references) }
 		if (!error.isSuccess) return invalid(error)
 
 		timeLineRepository.updateEvent(moved)

@@ -1,5 +1,6 @@
 package operations
 
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineLimits
 import com.darkrockstudios.apps.hammer.common.data.ClientResult
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
@@ -456,6 +457,31 @@ class TimelineOperationsTest : KoinOperationsTest() {
 		assertEquals(start to "Col. Hayes", moved.start to moved.lane)
 		assertEquals(emptyList(), onTestThread { events() })
 		assertEquals(listOf(event.id), onTestThread { events(other) }.map { it.id })
+	}
+
+	@Test
+	fun `timeline set refuses a move with a field that does not fit and leaves the event alone`() {
+		val (other, before) = onTestThread {
+			newTimeline("Before").id to create("Hayes signs the note").let { read(it.id) }
+		}
+
+		invalid { set(TimelineSetInput(PROJECT, before.id, timeline = other, label = "x".repeat(TimelineLimits.MAX_LABEL + 1))) }
+		invalid { set(TimelineSetInput(PROJECT, before.id, timeline = other, lane = "x".repeat(TimelineLimits.MAX_LANE + 1))) }
+
+		assertEquals(before, onTestThread { read(before.id) })
+		assertEquals(emptyList(), onTestThread { events(other) })
+	}
+
+	@Test
+	fun `timeline set applies a label and title together with the move`() = onTestThread {
+		val other = newTimeline("Before").id
+		val event = create("Hayes signs the note")
+
+		val moved = set(TimelineSetInput(PROJECT, event.id, timeline = other, title = "The note", label = "Late autumn"))
+
+		assertEquals(Triple(other, "The note", "Late autumn"), Triple(moved.timeline, moved.title, moved.label))
+		assertEquals(moved, read(event.id))
+		assertEquals(emptyList(), events())
 	}
 
 	@Test

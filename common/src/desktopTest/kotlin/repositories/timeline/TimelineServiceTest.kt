@@ -1266,6 +1266,63 @@ class TimelineServiceTest : BaseTest() {
 		assertEquals("Year 97 · Day 210" to null, stored(old.id).label to stored(old.id).start)
 	}
 
+	@Test
+	fun `a move with an edit that does not validate changes nothing`() = runTest(mainTestDispatcher) {
+		val service = createService()
+		val backstory = service.createTimeline("Backstory").def()
+		val event = service.createEvent(TimelineEventDraft(title = "Storm", lane = "Alice")).event()
+
+		assertEquals(
+			TimeLineEventError.LABEL_TOO_LONG,
+			service.moveToTimeline(event.id, backstory.id) {
+				it.copy(label = "x".repeat(TimelineLimits.MAX_LABEL + 1))
+			}.error(),
+		)
+		assertEquals(
+			TimeLineEventError.LANE_INVALID,
+			service.moveToTimeline(event.id, backstory.id) {
+				it.copy(lane = "x".repeat(TimelineLimits.MAX_LANE + 1))
+			}.error(),
+		)
+		assertEquals(event, stored(event.id))
+	}
+
+	@Test
+	fun `a move applies its edit to the carried event in the same write`() = runTest(mainTestDispatcher) {
+		val service = createService()
+		service.datedStory()
+		val loose = service.createTimeline("Loose").def()
+		val event = service.createEvent(TimelineEventDraft(title = "Storm", start = date("year" to 2))).event()
+		every { syncJournal.isServerSynchronized() } returns true
+		var seen: TimeLineEvent? = null
+
+		val moved = service.moveToTimeline(event.id, loose.id) {
+			seen = it
+			it.copy(title = "Squall", lane = " Alice ", milestone = true, timeline = null, order = 99)
+		}.event()
+
+		assertEquals("Year 2", seen?.label, "The edit sees the dates written into the label")
+		assertEquals(
+			event.copy(title = "Squall", label = "Year 2", lane = "Alice", milestone = true, timeline = loose.id),
+			moved,
+		)
+		assertEquals(moved, stored(event.id))
+		coVerify(exactly = 1) { syncJournal.markEntityAsDirty(event.id) }
+	}
+
+	@Test
+	fun `a placement moved with an edit takes only its placement fields`() = runTest(mainTestDispatcher) {
+		val service = createService()
+		val backstory = service.createTimeline("Backstory").def()
+		val placed = service.placeScene(4, null, null, null, false).event()
+
+		val moved = service.moveToTimeline(placed.id, backstory.id) {
+			it.copy(title = "Mine", content = "Words", label = "Dusk", lane = "Alice")
+		}.event()
+
+		assertEquals(placed.copy(label = "Dusk", lane = "Alice", timeline = backstory.id), moved)
+	}
+
 	// endregion
 
 	private companion object {
