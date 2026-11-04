@@ -229,7 +229,7 @@ class ExampleProjectTimelineTest : BaseTest() {
 	@Test
 	fun `lanes follow the lane order`() = runTest(mainTestDispatcher) {
 		val service = createService()
-		val laneOrder = service.definition().laneOrder
+		val laneOrder = service.definition()!!.laneOrder
 
 		assertEquals(laneOrder, service.lanes())
 		assertEquals(laneOrder.toSet(), loadTimeline().events.mapNotNullTo(HashSet()) { it.lane })

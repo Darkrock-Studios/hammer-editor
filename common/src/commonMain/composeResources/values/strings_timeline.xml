@@ -191,4 +191,7 @@
 		<item quantity="one">%1$d timeline deleted</item>
 		<item quantity="other">%1$d timelines deleted</item>
 	</plurals>
+	<string name="timeline_error_timeline_name">A timeline needs a name of up to %1$d characters that no other timeline has</string>
+	<string name="timeline_error_duplicate_placement_here">That is already on this timeline</string>
+	<string name="timeline_error_main_not_deletable">The main timeline cannot be deleted</string>
 </resources>

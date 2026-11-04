@@ -136,7 +136,7 @@ class ProjectRootComponentTest : ComponentTest() {
 		val timeLineRepository = mockk<TimeLineRepository>(relaxed = true)
 		every { timeLineRepository.timelineFlow } returns MutableSharedFlow()
 		val timelineService = mockk<TimelineService>(relaxed = true)
-		every { timelineService.timelineFlow } returns MutableSharedFlow()
+		every { timelineService.timelineFlow(any()) } returns MutableSharedFlow()
 		val sceneRepository = mockk<SceneRepository>(relaxed = true)
 		every { sceneRepository.sceneTreeUpdates } returns MutableSharedFlow()
 

@@ -451,7 +451,7 @@ class TimeLineRepository(
 			copy(tags = cleanTags(tags), lane = normalizeLane(lane), timeline = normalizeTimeline(timeline))
 
 		/** One past the highest order on [timeline] (null for main), or 0 when it has no events. */
-		private fun List<TimeLineEvent>.nextOrder(timeline: String?): Int {
+		internal fun List<TimeLineEvent>.nextOrder(timeline: String?): Int {
 			val timelineId = timeline ?: TimelineDef.MAIN_ID
 			return filter { it.timelineId == timelineId }.maxOfOrNull { it.order + 1 } ?: 0
 		}

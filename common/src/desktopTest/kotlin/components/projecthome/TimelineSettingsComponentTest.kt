@@ -3,6 +3,7 @@ package components.projecthome
 import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
 import com.darkrockstudios.apps.hammer.base.timeline.CalendarPreset
 import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.components.projecthome.timelinesettings.TimelineSettings.ModeSwitchPrompt
 import com.darkrockstudios.apps.hammer.common.components.projecthome.timelinesettings.TimelineSettingsComponent
@@ -47,7 +48,7 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 
 		component.cancelModeSwitch()
 		assertNull(component.state.value.pendingModeSwitch)
-		assertEquals(TimelineMode.MANUAL, timelineService.definition().mode)
+		assertEquals(TimelineMode.MANUAL, timelineService.definition()?.mode)
 	}
 
 	@Test
@@ -94,7 +95,7 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 		component.confirmModeSwitch()
 		advanceUntilIdle()
 
-		val def = timelineService.definition()
+		val def = timelineService.definition()!!
 		assertEquals(TimelineMode.DATED, def.mode)
 		assertEquals(CalendarDef(), def.calendar)
 		assertEquals(TimelineMode.DATED, component.state.value.def.mode)
@@ -142,7 +143,7 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 		component.confirmModeSwitch()
 		advanceUntilIdle()
 
-		assertEquals(TimelineMode.MANUAL, timelineService.definition().mode)
+		assertEquals(TimelineMode.MANUAL, timelineService.definition()?.mode)
 		val ordered = timeLineRepository.currentEvents().sortedBy { it.order }
 		assertEquals(listOf(early, late), ordered.map { it.id })
 		assertEquals(date("year" to 9), ordered.last().start, "Dates stay")
@@ -185,12 +186,12 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 
 			assertEquals(CalendarDef(CalendarPreset.GREGORIAN), component.state.value.pendingCalendar)
 			assertEquals(1, component.state.value.datesLostOnPresetSwitch)
-			assertEquals(CalendarPreset.STORY, timelineService.definition().calendar?.preset)
+			assertEquals(CalendarPreset.STORY, timelineService.definition()?.calendar?.preset)
 
 			component.confirmPresetSwitch()
 			advanceUntilIdle()
 
-			assertEquals(CalendarPreset.GREGORIAN, timelineService.definition().calendar?.preset)
+			assertEquals(CalendarPreset.GREGORIAN, timelineService.definition()?.calendar?.preset)
 			assertNull(component.state.value.pendingCalendar)
 			val stored = timeLineRepository.currentEvents().single()
 			assertNull(stored.start)
@@ -210,7 +211,7 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 		advanceUntilIdle()
 
 		assertNull(component.state.value.pendingCalendar)
-		assertEquals(CalendarPreset.GREGORIAN, timelineService.definition().calendar?.preset)
+		assertEquals(CalendarPreset.GREGORIAN, timelineService.definition()?.calendar?.preset)
 		assertEquals(CalendarPreset.GREGORIAN, component.state.value.def.calendar?.preset)
 	}
 
@@ -230,7 +231,7 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 		advanceUntilIdle()
 
 		assertNull(component.state.value.pendingCalendar)
-		assertEquals(CalendarPreset.STORY, timelineService.definition().calendar?.preset)
+		assertEquals(CalendarPreset.STORY, timelineService.definition()?.calendar?.preset)
 		assertEquals(date("year" to 5, "day" to 10), timeLineRepository.currentEvents().single().start)
 	}
 
@@ -247,11 +248,11 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 		component.setCoarsestUnit("hour")
 		advanceUntilIdle()
 
-		assertEquals(CalendarDef(epochName = "The Landing", coarsestUnit = "hour"), timelineService.definition().calendar)
+		assertEquals(CalendarDef(epochName = "The Landing", coarsestUnit = "hour"), timelineService.definition()?.calendar)
 
 		component.setCoarsestUnit("year")
 		advanceUntilIdle()
-		assertNull(timelineService.definition().calendar?.coarsestUnit)
+		assertNull(timelineService.definition()?.calendar?.coarsestUnit)
 	}
 
 	@Test
@@ -263,7 +264,7 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 		advanceUntilIdle()
 		val stored = mutableListOf<String?>()
 		backgroundScope.launch {
-			timelineService.timelineFlow.map { it.def.calendar?.epochName }.distinctUntilChanged().toList(stored)
+			timelineService.timelineFlow(TimelineDef.MAIN_ID).map { it.def.calendar?.epochName }.distinctUntilChanged().toList(stored)
 		}
 		runCurrent()
 
@@ -274,11 +275,11 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 		component.setEpochName("Lan")
 		advanceTimeBy(599)
 		runCurrent()
-		assertNull(timelineService.definition().calendar?.epochName, "Nothing is written while typing")
+		assertNull(timelineService.definition()?.calendar?.epochName, "Nothing is written while typing")
 
 		advanceUntilIdle()
 
-		assertEquals("Lan", timelineService.definition().calendar?.epochName)
+		assertEquals("Lan", timelineService.definition()?.calendar?.epochName)
 		assertEquals(listOf(null, "Lan"), stored)
 	}
 
@@ -294,7 +295,7 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 		context.destroy()
 		advanceUntilIdle()
 
-		assertEquals("Landing", timelineService.definition().calendar?.epochName)
+		assertEquals("Landing", timelineService.definition()?.calendar?.epochName)
 	}
 
 	@Test
@@ -310,7 +311,7 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 		component.setLaneOrder(listOf("Queen", "Alice"))
 		advanceUntilIdle()
 
-		assertEquals(listOf("Queen", "Alice"), timelineService.definition().laneOrder)
+		assertEquals(listOf("Queen", "Alice"), timelineService.definition()?.laneOrder)
 		assertEquals(listOf("Queen", "Alice"), component.state.value.lanes)
 	}
 }

@@ -7,6 +7,7 @@ import com.arkivanov.decompose.value.getAndUpdate
 import com.arkivanov.decompose.value.subscribe
 import com.arkivanov.essenty.backhandler.BackCallback
 import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
@@ -103,7 +104,7 @@ class TimeLineOverviewComponent(
 		scope.launch {
 			// The scene tree is watched too, so a placed scene that is archived or unarchived redraws.
 			val sceneTree = sceneRepository.sceneTreeUpdates.map { }.onStart { emit(Unit) }
-			combine(timelineService.timelineFlow, sceneTree) { view, _ -> view }.collect { view ->
+			combine(timelineService.timelineFlow(TimelineDef.MAIN_ID), sceneTree) { view, _ -> view }.collect { view ->
 				val built = buildRows(view)
 				withContext(dispatcherMain) {
 					val rowsById = built.rows.associateBy { it.event.id }

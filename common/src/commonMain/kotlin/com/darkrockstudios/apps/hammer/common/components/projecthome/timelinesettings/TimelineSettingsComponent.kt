@@ -9,6 +9,7 @@ import com.darkrockstudios.apps.hammer.base.timeline.CalendarPreset
 import com.darkrockstudios.apps.hammer.base.timeline.CalendarUnit
 import com.darkrockstudios.apps.hammer.base.timeline.StoryCalendar
 import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.components.projecthome.timelinesettings.TimelineSettings.ModeSwitchPrompt
@@ -51,7 +52,7 @@ class TimelineSettingsComponent(
 	override fun onCreate() {
 		super.onCreate()
 		scope.launch {
-			timelineService.timelineFlow.collect { view ->
+			timelineService.timelineFlow(TimelineDef.MAIN_ID).collect { view ->
 				val lanes = timelineService.lanes()
 				withContext(dispatcherMain) {
 					_state.getAndUpdate { it.copy(def = view.def, lanes = lanes) }

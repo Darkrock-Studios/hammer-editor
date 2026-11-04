@@ -8,6 +8,7 @@ import com.arkivanov.decompose.value.subscribe
 import com.arkivanov.decompose.value.update
 import com.arkivanov.essenty.backhandler.BackCallback
 import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
@@ -100,7 +101,7 @@ class CreateTimeLineEventComponent(
 
 	private fun watchDefinition() {
 		scope.launch {
-			timelineService.timelineFlow.map { it.def }.distinctUntilChanged().collect { def ->
+			timelineService.timelineFlow(TimelineDef.MAIN_ID).map { it.def }.distinctUntilChanged().collect { def ->
 				withContext(dispatcherMain) {
 					_state.getAndUpdate { it.copy(mode = def.mode, calendar = def.calendar) }
 				}

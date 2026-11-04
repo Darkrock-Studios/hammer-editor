@@ -9,6 +9,7 @@ import com.arkivanov.decompose.value.update
 import com.arkivanov.essenty.backhandler.BackCallback
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.components.images.ImagePickRequests
@@ -129,7 +130,7 @@ class ViewTimeLineEventComponent(
 
 	private fun watchTimeLine() {
 		scope.launch {
-			timelineService.timelineFlow.collect { view ->
+			timelineService.timelineFlow(TimelineDef.MAIN_ID).collect { view ->
 				val updatedEvent = view.events.find { it.id == eventId }
 				val lanes = timelineService.lanes()
 				val changed = updatedEvent != state.value.event

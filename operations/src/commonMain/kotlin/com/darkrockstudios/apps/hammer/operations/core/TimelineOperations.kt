@@ -111,7 +111,7 @@ internal fun timelineOperations(): List<Operation<*, *>> = listOf(
 
 		projects.withProject(input.project) { project ->
 			val timeline = project.timelineService()
-			val current = timeline.definition()
+			val current = timeline.definition() ?: notFound("No such timeline")
 			val toDated = input.mode == TimelineModeDto.Dated && current.mode == TimelineMode.MANUAL
 			if (input.spacing != null && !toDated) {
 				invalidInput("spacing is used only when switching a manual timeline to dated")
@@ -140,7 +140,7 @@ internal fun timelineOperations(): List<Operation<*, *>> = listOf(
 internal fun OpenProject.timelineService(): TimelineService = scope.get<TimelineService>()
 
 /** The main timeline's settings and its events in display order. */
-internal suspend fun TimelineService.view(): TimelineView = timelineFlow.loaded("Timeline")
+internal suspend fun TimelineService.view(): TimelineView = timelineFlow(TimelineDef.MAIN_ID).loaded("Timeline")
 
 internal suspend fun OpenProject.requireEvent(id: Int): TimeLineEvent =
 	timelineService().view().events.find { it.id == id } ?: notFound("No timeline event $id")
@@ -151,7 +151,7 @@ internal suspend fun OpenProject.timelineEntry(id: Int): TimelineEntry {
 }
 
 private suspend fun OpenProject.timelineSettings(): TimelineSettings =
-	TimelineSettings(listOf(TimelineDefDto(timelineService().definition())))
+	TimelineSettings(listOf(TimelineDefDto(timelineService().definition() ?: TimelineDef.DEFAULT)))
 
 private val CLEARABLE = setOf("title", "label", "lane", "start", "end")
 

@@ -342,7 +342,7 @@ internal fun TimeLineEventError.requireNone() {
 		TimeLineEventError.CONTENT_NOT_ALLOWED,
 		TimeLineEventError.TAGS_NOT_ALLOWED -> invalidInput(PLACEMENT_FIELDS)
 		TimeLineEventError.SELF_REFERENCE -> invalidInput("An event cannot reference itself")
-		TimeLineEventError.DUPLICATE_PLACEMENT -> invalidInput("That entry or scene is already placed on the timeline")
+		TimeLineEventError.DUPLICATE_PLACEMENT -> invalidInput("That entry or scene is already placed on that timeline")
 		TimeLineEventError.DATE_INVALID -> invalidInput("A date or calendar does not fit; see timeline.settings.read for the calendar")
 		TimeLineEventError.DATE_REQUIRED -> invalidInput("A start is required on a dated timeline, and whenever an end is given")
 		TimeLineEventError.END_BEFORE_START -> invalidInput("The end is before the start")
@@ -350,6 +350,12 @@ internal fun TimeLineEventError.requireNone() {
 		TimeLineEventError.MOVE_FAILED -> invalidInput("The event cannot move to that position")
 		TimeLineEventError.EVENT_NOT_FOUND -> notFound("No such timeline event")
 		TimeLineEventError.TIMELINE_NOT_FOUND -> notFound("No such timeline")
+		TimeLineEventError.TIMELINE_NAME_INVALID -> invalidInput(
+			"A timeline name must be 1 to ${TimelineLimits.MAX_TIMELINE_NAME} characters and differ from every other timeline's, ignoring case"
+		)
+
+		TimeLineEventError.MAIN_NOT_DELETABLE -> invalidInput("The main timeline cannot be deleted")
+		TimeLineEventError.SAME_TIMELINE -> invalidInput("The event is already on that timeline")
 	}
 }
 

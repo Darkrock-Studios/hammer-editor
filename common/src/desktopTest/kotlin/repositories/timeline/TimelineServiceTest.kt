@@ -29,6 +29,7 @@ import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineDa
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEventError
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineDefResult
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineEventDraft
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineResult
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineService
@@ -163,6 +164,15 @@ class TimelineServiceTest : BaseTest() {
 	private fun TimelineResult.event(): TimeLineEvent = assertIs<TimelineResult.Ok>(this).event!!
 
 	private fun TimelineResult.error(): TimeLineEventError = assertIs<TimelineResult.Invalid>(this).error
+
+	private fun TimelineDefResult.def(): TimelineDef = assertIs<TimelineDefResult.Ok>(this).def
+
+	private fun TimelineDefResult.error(): TimeLineEventError = assertIs<TimelineDefResult.Invalid>(this).error
+
+	private suspend fun TimelineService.datedTimeline(name: String, calendar: CalendarDef = CalendarDef()): TimelineDef =
+		createTimeline(name, TimelineMode.DATED, calendar).def()
+
+	private suspend fun storedData() = ProjectDataDatasource(ffs, toml, projDef).load().data
 
 	private suspend fun TimelineService.datedStory(calendar: CalendarDef = CalendarDef()) {
 		assertEquals(TimelineResult.Ok(null), updateDefinition { it.copy(mode = TimelineMode.DATED, calendar = calendar) })
@@ -425,7 +435,8 @@ class TimelineServiceTest : BaseTest() {
 		val service = createService()
 		val first = service.createEvent(TimelineEventDraft(title = "First")).event()
 		service.createEvent(TimelineEventDraft(title = "Second")).event()
-		service.createEvent(TimelineEventDraft(title = "Elsewhere", timeline = "a3f09c1e")).event()
+		val other = service.createTimeline("Backstory").def()
+		service.createEvent(TimelineEventDraft(title = "Elsewhere", timeline = other.id)).event()
 
 		assertEquals(TimeLineEventError.MOVE_FAILED, service.moveEvent(first, toIndex = 2, after = false).error())
 		service.moveEvent(first, toIndex = 1, after = true).event()
@@ -446,7 +457,7 @@ class TimelineServiceTest : BaseTest() {
 			assertEquals(date("year" to 0), stored(a.id).start)
 			assertEquals(date("year" to 5), stored(b.id).start)
 			assertEquals(date("year" to 2), stored(c.id).start)
-			val view = service.timelineFlow.first()
+			val view = service.timelineFlow(TimelineDef.MAIN_ID).first()
 			assertEquals(TimelineMode.DATED, view.def.mode)
 			assertEquals(listOf(a.id, c.id, b.id), view.events.map { it.id })
 		}
@@ -478,7 +489,7 @@ class TimelineServiceTest : BaseTest() {
 		assertEquals(0, stored(early.id).order)
 		assertEquals(1, stored(late.id).order)
 		assertEquals(date("year" to 9), stored(late.id).start)
-		val view = service.timelineFlow.first()
+		val view = service.timelineFlow(TimelineDef.MAIN_ID).first()
 		assertEquals(TimelineMode.MANUAL, view.def.mode)
 		assertEquals(CalendarDef(), view.def.calendar)
 		assertEquals(listOf(early.id, late.id), view.events.map { it.id })
@@ -500,7 +511,7 @@ class TimelineServiceTest : BaseTest() {
 		assertEquals(date("year" to -3, "day" to 4), stored(span.id).start, "Dates stay")
 		assertEquals("Year 2", stored(point.id).label)
 		assertEquals("Midsummer", stored(labelled.id).label)
-		assertEquals(listOf(span.id, point.id, labelled.id), service.timelineFlow.first().events.map { it.id })
+		assertEquals(listOf(span.id, point.id, labelled.id), service.timelineFlow(TimelineDef.MAIN_ID).first().events.map { it.id })
 	}
 
 	@Test
@@ -537,7 +548,7 @@ class TimelineServiceTest : BaseTest() {
 			assertEquals(lost.copy(start = null, label = "Year 97 · Day 210"), stored(lost.id))
 			assertEquals(kept, stored(kept.id))
 			assertEquals(labelled.copy(start = null), stored(labelled.id))
-			assertEquals(gregorian, service.definition().calendar)
+			assertEquals(gregorian, service.definition()?.calendar)
 		}
 
 	@Test
@@ -672,13 +683,13 @@ class TimelineServiceTest : BaseTest() {
 	@Test
 	fun `updateDefinition writes settings through project data and the flow follows`() = runTest(mainTestDispatcher) {
 		val service = createService()
-		assertEquals(TimelineDef.DEFAULT, service.timelineFlow.first().def)
+		assertEquals(TimelineDef.DEFAULT, service.timelineFlow(TimelineDef.MAIN_ID).first().def)
 		val calendar = CalendarDef(epochName = "The Fall", coarsestUnit = "hour")
 
 		service.datedStory(calendar)
 
 		val expected = TimelineDef.DEFAULT.copy(mode = TimelineMode.DATED, calendar = calendar)
-		assertEquals(expected, service.timelineFlow.first { it.def.mode == TimelineMode.DATED }.def)
+		assertEquals(expected, service.timelineFlow(TimelineDef.MAIN_ID).first { it.def.mode == TimelineMode.DATED }.def)
 		assertEquals(listOf(expected), ProjectDataDatasource(ffs, toml, projDef).load().data.timelines)
 		assertEquals(
 			TimeLineEventError.DATE_INVALID,
@@ -785,6 +796,406 @@ class TimelineServiceTest : BaseTest() {
 		assertEquals("Scene ID 4", sceneRepository.getSceneItemFromId(4)?.name)
 		assertEquals(TimeLineEventError.EVENT_NOT_FOUND, service.deleteEvent(placed.id).error())
 	}
+
+
+	// region Multiple timelines
+
+	@Test
+	fun `a new timeline is trimmed and listed after main`() = runTest(mainTestDispatcher) {
+		val service = createService()
+
+		val created = service.createTimeline("  Backstory ").def()
+
+		assertEquals(TimelineDef(id = created.id, name = "Backstory"), created)
+		assertEquals(listOf(TimelineDef.DEFAULT, created), service.timelines.first())
+		assertEquals(created, service.definition(created.id))
+		assertEquals(listOf(created), storedData().timelines)
+	}
+
+	@Test
+	fun `a timeline name is non-blank short and unique ignoring case`() = runTest(mainTestDispatcher) {
+		val service = createService()
+		val backstory = service.createTimeline("Backstory").def()
+
+		assertEquals(TimeLineEventError.TIMELINE_NAME_INVALID, service.createTimeline("   ").error())
+		assertEquals(
+			TimeLineEventError.TIMELINE_NAME_INVALID,
+			service.createTimeline("x".repeat(TimelineLimits.MAX_TIMELINE_NAME + 1)).error(),
+		)
+		assertEquals(TimeLineEventError.TIMELINE_NAME_INVALID, service.createTimeline("BACKSTORY").error())
+		assertEquals(TimeLineEventError.TIMELINE_NAME_INVALID, service.createTimeline("main").error())
+		assertEquals(TimeLineEventError.DATE_REQUIRED, service.createTimeline("Dated", TimelineMode.DATED).error())
+		service.createTimeline("x".repeat(TimelineLimits.MAX_TIMELINE_NAME)).def()
+
+		assertEquals(TimeLineEventError.TIMELINE_NAME_INVALID, service.renameTimeline(backstory.id, " Main ").error())
+		assertEquals("BackStory", service.renameTimeline(backstory.id, "BackStory").def().name)
+		assertEquals("Later", service.renameTimeline(backstory.id, " Later ").def().name)
+		assertEquals("Later", service.definition(backstory.id)?.name)
+		assertEquals(TimeLineEventError.TIMELINE_NOT_FOUND, service.renameTimeline("gone0001", "Gone").error())
+	}
+
+	@Test
+	fun `deleting a timeline deletes its events and keeps its id as deleted`() = runTest(mainTestDispatcher) {
+		val service = createService()
+		val backstory = service.createTimeline("Backstory").def()
+		val kept = service.createEvent(TimelineEventDraft(title = "Main")).event()
+		val first = service.createEvent(TimelineEventDraft(title = "A", timeline = backstory.id)).event()
+		val placed = service.placeScene(4, null, null, null, false, timeline = backstory.id).event()
+
+		assertEquals(TimeLineEventError.MAIN_NOT_DELETABLE, service.deleteTimeline(TimelineDef.MAIN_ID).error())
+		val deleted = assertIs<TimelineDefResult.Ok>(service.deleteTimeline(backstory.id))
+
+		assertEquals(TimelineDefResult.Ok(backstory, deletedEvents = 2), deleted)
+		assertEquals(listOf(kept.id), timeLineRepository.currentEvents().map { it.id })
+		coVerify { syncJournal.recordIdDeletion(first.id) }
+		coVerify { syncJournal.recordIdDeletion(placed.id) }
+		coVerify(exactly = 0) { syncJournal.recordIdDeletion(kept.id) }
+		assertEquals(emptyList(), storedData().timelines)
+		assertEquals(setOf(backstory.id), storedData().deletedTimelines)
+		assertEquals(listOf(TimelineDef.DEFAULT), service.timelines.first())
+		assertNull(service.definition(backstory.id))
+		assertEquals(TimeLineEventError.TIMELINE_NOT_FOUND, service.deleteTimeline(backstory.id).error())
+		assertEquals(TimeLineEventError.TIMELINE_NOT_FOUND, service.renameTimeline(backstory.id, "Back").error())
+	}
+
+	@Test
+	fun `a new timeline id is never main a live id or a deleted one`() = runTest(mainTestDispatcher) {
+		val service = createService()
+		val draws = ArrayDeque(listOf("main", "aaaa0001", "aaaa0001", "aaaa0002", "aaaa0001", "aaaa0002", "aaaa0003"))
+		service.nextTimelineId = { draws.removeFirst() }
+
+		val first = service.createTimeline("First").def()
+		val second = service.createTimeline("Second").def()
+		service.deleteTimeline(first.id).def()
+		val third = service.createTimeline("Third").def()
+
+		assertEquals(listOf("aaaa0001", "aaaa0002", "aaaa0003"), listOf(first.id, second.id, third.id))
+		assertEquals(emptyList(), draws.toList())
+	}
+
+	@Test
+	fun `events on a timeline that is not live are stragglers until deleted`() = runTest(mainTestDispatcher) {
+		val service = createService()
+		val backstory = service.createTimeline("Backstory").def()
+		val gone = service.createTimeline("Gone").def()
+		service.deleteTimeline(gone.id).def()
+		val main = service.createEvent(TimelineEventDraft(title = "Main")).event()
+		val live = service.createEvent(TimelineEventDraft(title = "Live", timeline = backstory.id)).event()
+		// As sync stores an event created offline on another device.
+		val late = timeLineRepository.createEvent(TimelineEventDraft(title = "Late", timeline = gone.id))
+		val unknown = timeLineRepository.createEvent(TimelineEventDraft(title = "Unknown", timeline = "zzzz9999"))
+
+		assertEquals(listOf(late.id, unknown.id), service.orphansFlow.first().map { it.id })
+		assertEquals(listOf(main.id), service.timelineFlow(TimelineDef.MAIN_ID).first().events.map { it.id })
+		assertEquals(listOf(live.id), service.timelineFlow(backstory.id).first().events.map { it.id })
+		assertEquals(
+			TimeLineEventError.TIMELINE_NOT_FOUND,
+			service.createEvent(TimelineEventDraft(title = "No", timeline = gone.id)).error(),
+		)
+
+		assertEquals(2, service.deleteOrphans())
+
+		assertEquals(emptyList(), service.orphansFlow.first())
+		assertEquals(setOf(main.id, live.id), timeLineRepository.currentEvents().mapTo(HashSet()) { it.id })
+		coVerify { syncJournal.recordIdDeletion(late.id) }
+		assertEquals(0, service.deleteOrphans())
+	}
+
+	@Test
+	fun `a straggler can still be edited`() = runTest(mainTestDispatcher) {
+		val service = createService()
+		service.datedStory(CalendarDef(CalendarPreset.GREGORIAN))
+		val straggler = timeLineRepository.createEvent(
+			TimelineEventDraft(title = "Lost", timeline = "zzzz9999", start = date("year" to 97, "day" to 210))
+		)
+
+		service.setLabel(straggler.id, "Long ago").event()
+		service.updateEvent(stored(straggler.id).copy(title = "Found", lane = "Alice")).event()
+		service.setDates(straggler.id, start = null, end = null).event()
+
+		assertEquals(
+			straggler.copy(title = "Found", label = "Long ago", lane = "Alice", start = null),
+			stored(straggler.id),
+		)
+	}
+
+	@Test
+	fun `a subject can be placed once on each timeline`() = runTest(mainTestDispatcher) {
+		val service = createService()
+		val backstory = service.createTimeline("Backstory").def()
+
+		val onMain = service.placeScene(4, null, null, null, false).event()
+		val onBackstory = service.placeScene(4, null, null, null, false, timeline = backstory.id).event()
+		service.placeEntry(TEA_PARTY, null, null, null, false, timeline = backstory.id).event()
+
+		assertNull(onMain.timeline)
+		assertEquals(backstory.id, onBackstory.timeline)
+		assertEquals(
+			TimeLineEventError.DUPLICATE_PLACEMENT,
+			service.placeScene(4, null, null, null, false, timeline = backstory.id).error(),
+		)
+		assertEquals(
+			TimeLineEventError.DUPLICATE_PLACEMENT,
+			service.placeEntry(TEA_PARTY, null, null, null, false, timeline = backstory.id).error(),
+		)
+		assertEquals(
+			TimeLineEventError.TIMELINE_NOT_FOUND,
+			service.placeScene(5, null, null, null, false, timeline = "zzzz9999").error(),
+		)
+		assertEquals(3, timeLineRepository.currentEvents().size)
+	}
+
+	@Test
+	fun `a draft may spell main out and is stored as main`() = runTest(mainTestDispatcher) {
+		val service = createService()
+
+		val created = service.createEvent(TimelineEventDraft(title = "Storm", timeline = TimelineDef.MAIN_ID)).event()
+
+		assertNull(stored(created.id).timeline)
+		assertEquals(
+			listOf(created.id),
+			service.timelineFlow(TimelineDef.MAIN_ID).first().events.map { it.id },
+		)
+	}
+
+	@Test
+	fun `each event follows the date rules of its own timeline`() = runTest(mainTestDispatcher) {
+		val service = createService()
+		val backstory = service.datedTimeline("Backstory", CalendarDef(CalendarPreset.GREGORIAN))
+		val monthly = date("year" to 1923, "month" to 11)
+
+		val onMain = service.createEvent(TimelineEventDraft(title = "Undated")).event()
+		assertEquals(
+			TimeLineEventError.DATE_REQUIRED,
+			service.createEvent(TimelineEventDraft(title = "Undated", timeline = backstory.id)).error(),
+		)
+		val onBackstory = service.createEvent(TimelineEventDraft(start = monthly, timeline = backstory.id)).event()
+		assertEquals(
+			TimeLineEventError.DATE_REQUIRED,
+			service.placeScene(4, null, null, null, false, timeline = backstory.id).error(),
+		)
+
+		service.datedStory()
+		assertEquals(
+			TimeLineEventError.DATE_INVALID,
+			service.createEvent(TimelineEventDraft(start = monthly)).error(),
+		)
+		assertEquals(TimeLineEventError.DATE_REQUIRED, service.setLabel(onMain.id, "Later").error())
+		assertEquals(TimeLineEventError.DATE_REQUIRED, service.setDates(onBackstory.id, null, null).error())
+		service.setDates(onBackstory.id, date("year" to 1923, "month" to 12), null).event()
+		assertEquals(
+			TimeLineEventError.DATE_INVALID,
+			service.updateEvent(stored(onBackstory.id).copy(start = date("year" to 1, "day" to 400))).error(),
+		)
+	}
+
+	@Test
+	fun `updateEvent cannot move an event to another timeline`() = runTest(mainTestDispatcher) {
+		val service = createService()
+		val backstory = service.createTimeline("Backstory").def()
+		val created = service.createEvent(TimelineEventDraft(title = "Storm")).event()
+
+		service.updateEvent(stored(created.id).copy(title = "Gale", timeline = backstory.id)).event()
+
+		assertEquals("Gale", stored(created.id).title)
+		assertNull(stored(created.id).timeline)
+	}
+
+	@Test
+	fun `a drag is refused on a dated timeline while main is manual`() = runTest(mainTestDispatcher) {
+		val service = createService()
+		val backstory = service.datedTimeline("Backstory")
+		val late = service.createEvent(TimelineEventDraft(start = date("year" to 9), timeline = backstory.id)).event()
+		service.createEvent(TimelineEventDraft(start = date("year" to 1), timeline = backstory.id)).event()
+		val first = service.createEvent(TimelineEventDraft(title = "First")).event()
+		service.createEvent(TimelineEventDraft(title = "Second")).event()
+
+		assertEquals(TimeLineEventError.MOVE_NOT_ALLOWED, service.moveEvent(late, toIndex = 0, after = false).error())
+		service.moveEvent(first, toIndex = 1, after = true).event()
+	}
+
+	@Test
+	fun `a mode or calendar switch on one timeline leaves main untouched`() = runTest(mainTestDispatcher) {
+		val service = createService()
+		val backstory = service.createTimeline("Backstory").def()
+		service.createEvent(TimelineEventDraft(title = "Main undated")).event()
+		service.createEvent(TimelineEventDraft(title = "Main old", start = date("year" to 97, "day" to 210))).event()
+		val a = service.createEvent(TimelineEventDraft(title = "A", timeline = backstory.id)).event()
+		val b = service.createEvent(TimelineEventDraft(title = "B", timeline = backstory.id)).event()
+		val mainBefore = timeLineRepository.currentEvents().filter { it.timeline == null }
+		val gregorian = CalendarDef(CalendarPreset.GREGORIAN)
+
+		assertEquals(TimelineResult.Ok(null), service.switchToDated(CalendarDef(), timeline = backstory.id))
+		assertEquals(date("year" to 0), stored(a.id).start)
+		assertEquals(date("year" to 1), stored(b.id).start)
+		assertEquals(0, service.countDatesLostBySwitch(gregorian, timeline = backstory.id))
+		assertEquals(1, service.countDatesLostBySwitch(gregorian))
+
+		assertEquals(TimelineResult.Ok(null), service.switchPreset(gregorian, timeline = backstory.id))
+		assertEquals(TimelineResult.Ok(null), service.switchToManual(timeline = backstory.id))
+
+		assertEquals(TimelineDef(backstory.id, "Backstory", TimelineMode.MANUAL, gregorian), service.definition(backstory.id))
+		assertEquals(TimelineDef.DEFAULT, service.definition())
+		assertEquals(mainBefore, timeLineRepository.currentEvents().filter { it.timeline == null })
+		assertEquals(
+			TimeLineEventError.TIMELINE_NOT_FOUND,
+			service.switchToDated(CalendarDef(), timeline = "zzzz9999").error(),
+		)
+	}
+
+	@Test
+	fun `lanes and the flow are scoped to one timeline`() = runTest(mainTestDispatcher) {
+		val service = createService()
+		val backstory = service.createTimeline("Backstory").def()
+		service.updateDefinition { it.copy(laneOrder = listOf("Queen")) }
+		service.updateDefinition(backstory.id) { it.copy(laneOrder = listOf("Hatter")) }
+		service.createEvent(TimelineEventDraft(lane = "Alice"))
+		val rabbit = service.createEvent(TimelineEventDraft(lane = "rabbit", timeline = backstory.id)).event()
+
+		assertEquals(listOf("Queen", "Alice"), service.lanes())
+		assertEquals(listOf("Hatter", "rabbit"), service.lanes(backstory.id))
+		val view = service.timelineFlow(backstory.id).first()
+		assertEquals(listOf("Hatter"), view.def.laneOrder)
+		assertEquals(listOf(rabbit.id), view.events.map { it.id })
+		assertEquals(listOf("Queen"), service.definition()?.laneOrder)
+		assertEquals(
+			TimeLineEventError.TIMELINE_NOT_FOUND,
+			service.updateDefinition("zzzz9999") { it.copy(laneOrder = listOf("X")) }.error(),
+		)
+	}
+
+	@Test
+	fun `a move needs another live timeline that does not hold the subject`() = runTest(mainTestDispatcher) {
+		val service = createService()
+		val backstory = service.createTimeline("Backstory").def()
+		val event = service.createEvent(TimelineEventDraft(title = "Storm")).event()
+		val placed = service.placeScene(4, null, null, null, false).event()
+		service.placeScene(4, null, null, null, false, timeline = backstory.id).event()
+
+		assertEquals(TimeLineEventError.SAME_TIMELINE, service.moveToTimeline(event.id, TimelineDef.MAIN_ID).error())
+		assertEquals(TimeLineEventError.TIMELINE_NOT_FOUND, service.moveToTimeline(event.id, "zzzz9999").error())
+		assertEquals(TimeLineEventError.EVENT_NOT_FOUND, service.moveToTimeline(999, backstory.id).error())
+		assertEquals(TimeLineEventError.DUPLICATE_PLACEMENT, service.moveToTimeline(placed.id, backstory.id).error())
+		assertNull(stored(placed.id).timeline)
+	}
+
+	@Test
+	fun `a move appends at the target and keeps the rest of the event`() = runTest(mainTestDispatcher) {
+		val service = createService()
+		val backstory = service.createTimeline("Backstory").def()
+		service.createEvent(TimelineEventDraft(title = "A", timeline = backstory.id)).event()
+		service.createEvent(TimelineEventDraft(title = "B", timeline = backstory.id)).event()
+		val event = service.createEvent(
+			TimelineEventDraft(
+				title = "Storm",
+				content = "Rain.",
+				tags = setOf("weather"),
+				references = setOf(ALICE),
+				lane = "Alice",
+				milestone = true,
+			)
+		).event()
+		every { syncJournal.isServerSynchronized() } returns true
+
+		val moved = service.moveToTimeline(event.id, backstory.id).event()
+
+		assertEquals(event.copy(timeline = backstory.id, order = 2), moved)
+		assertEquals(moved, stored(event.id))
+		coVerify(exactly = 1) { syncJournal.markEntityAsDirty(event.id) }
+		assertEquals(emptyList(), service.timelineFlow(TimelineDef.MAIN_ID).first().events)
+		assertEquals(event.id, service.timelineFlow(backstory.id).first().events.last().id)
+
+		service.moveToTimeline(event.id, TimelineDef.MAIN_ID).event()
+		assertNull(stored(event.id).timeline)
+	}
+
+	@Test
+	fun `a move to a dated timeline keeps a valid start and drops an end that no longer fits`() =
+		runTest(mainTestDispatcher) {
+			val service = createService()
+			val backstory = service.datedTimeline("Backstory", CalendarDef(CalendarPreset.GREGORIAN))
+			val start = date("year" to 1923, "month" to 11, "day" to 14)
+			val early = service.createEvent(
+				TimelineEventDraft(title = "Early", start = start, end = date("year" to 1923, "month" to 11, "day" to 10))
+			).event()
+			val span = service.createEvent(
+				TimelineEventDraft(title = "Span", start = start, end = date("year" to 1923, "month" to 11, "day" to 15))
+			).event()
+
+			service.moveToTimeline(early.id, backstory.id).event()
+			service.moveToTimeline(span.id, backstory.id).event()
+
+			assertEquals(start to null, stored(early.id).start to stored(early.id).end)
+			assertEquals(date("year" to 1923, "month" to 11, "day" to 15), stored(span.id).end)
+			assertNull(stored(early.id).label, "A dated target needs no label")
+		}
+
+	@Test
+	fun `a move to a dated timeline needs a start that fits unless one is given or undated is allowed`() =
+		runTest(mainTestDispatcher) {
+			val service = createService()
+			val backstory = service.datedTimeline("Backstory", CalendarDef(CalendarPreset.GREGORIAN))
+			val undated = service.createEvent(TimelineEventDraft(title = "Undated")).event()
+			val story = service.createEvent(
+				TimelineEventDraft(title = "Story", start = date("year" to 97, "day" to 210), end = date("year" to 98))
+			).event()
+			val given = date("year" to 1923, "month" to 11, "day" to 11)
+
+			assertEquals(TimeLineEventError.DATE_REQUIRED, service.moveToTimeline(undated.id, backstory.id).error())
+			assertEquals(TimeLineEventError.DATE_INVALID, service.moveToTimeline(story.id, backstory.id).error())
+			assertEquals(
+				TimeLineEventError.DATE_INVALID,
+				service.moveToTimeline(story.id, backstory.id, start = date("year" to 1, "day" to 400)).error(),
+			)
+			assertEquals(
+				TimeLineEventError.END_BEFORE_START,
+				service.moveToTimeline(story.id, backstory.id, start = given, end = date("year" to 1900)).error(),
+			)
+			assertEquals(2, timeLineRepository.currentEvents().count { it.timeline == null })
+
+			service.moveToTimeline(story.id, backstory.id, start = given).event()
+			assertEquals(given to null, stored(story.id).start to stored(story.id).end)
+
+			service.moveToTimeline(undated.id, backstory.id, allowUndated = true).event()
+			assertEquals(backstory.id, stored(undated.id).timeline)
+			assertNull(stored(undated.id).start)
+		}
+
+	@Test
+	fun `an allowed undated move drops a start the target cannot hold`() = runTest(mainTestDispatcher) {
+		val service = createService()
+		val backstory = service.datedTimeline("Backstory", CalendarDef(CalendarPreset.GREGORIAN))
+		val story = service.createEvent(
+			TimelineEventDraft(title = "Story", start = date("year" to 97, "day" to 210), end = date("year" to 98))
+		).event()
+
+		service.moveToTimeline(story.id, backstory.id, allowUndated = true).event()
+
+		assertEquals(null to null, stored(story.id).start to stored(story.id).end)
+	}
+
+	@Test
+	fun `a move to a manual timeline writes the dates into a blank label`() = runTest(mainTestDispatcher) {
+		val service = createService()
+		service.datedStory()
+		val loose = service.createTimeline("Loose").def()
+		val strict = service.createTimeline("Strict", calendar = CalendarDef(CalendarPreset.GREGORIAN)).def()
+		val point = service.createEvent(TimelineEventDraft(title = "Storm", start = date("year" to 2))).event()
+		val labelled = service.createEvent(
+			TimelineEventDraft(title = "Feast", label = "Midsummer", start = date("year" to 5))
+		).event()
+		val old = service.createEvent(TimelineEventDraft(title = "Old", start = date("year" to 97, "day" to 210))).event()
+
+		service.moveToTimeline(point.id, loose.id).event()
+		service.moveToTimeline(labelled.id, loose.id).event()
+		service.moveToTimeline(old.id, strict.id).event()
+
+		assertEquals("Year 2" to date("year" to 2), stored(point.id).label to stored(point.id).start)
+		assertEquals("Midsummer", stored(labelled.id).label)
+		assertEquals("Year 97 · Day 210" to null, stored(old.id).label to stored(old.id).start)
+	}
+
+	// endregion
 
 	private companion object {
 		const val ALICE = 50
