@@ -52,9 +52,11 @@ class DragDropListState(
 	private var overscrollJob by mutableStateOf<Job?>(null)
 
 	fun onDragStart(offset: Offset): Boolean {
+		// Item offsets start after the list's top content padding; the pointer's start at its edge.
+		val y = offset.y.toInt() + lazyListState.layoutInfo.viewportStartOffset
 		val itemInfo = lazyListState.layoutInfo.visibleItemsInfo
 			.firstOrNull { item ->
-				offset.y.toInt() in item.offset..(item.offset + item.size)
+				y in item.offset..(item.offset + item.size)
 			}
 
 		return if (itemInfo != null) {
