@@ -208,6 +208,33 @@ fun TimelineDatedMilestoneConflictPreview() {
 
 @Preview
 @Composable
+fun TimelineDifferentTimelinesConflictPreview() {
+	val evening = TimelineDef(id = "b1e4c0de", name = "Before the evening")
+	val serverEntity = ApiProjectEntity.TimelineEventEntity(
+		id = 6,
+		order = 4,
+		label = "Teatime",
+		title = "The mad tea party",
+		content = "Alice joins the Hatter and the March Hare at the long table.",
+		lane = "Alice",
+		timeline = evening.id,
+	)
+	val clientEntity = serverEntity.copy(
+		label = "Six o'clock",
+		timeline = null,
+	)
+
+	val conflict = ProjectSynchronization.EntityConflict.TimelineEventConflict(
+		serverEvent = serverEntity,
+		clientEvent = clientEntity,
+		liveTimelines = listOf(TimelineDef.DEFAULT, evening),
+	)
+
+	ProjectSynchronizationPreview(conflict, Res.string.sync_conflict_timeline_title, expandedSize())
+}
+
+@Preview
+@Composable
 fun EncyclopediaEntryConflictCompactPreview() {
 	val serverEntity = ApiProjectEntity.EncyclopediaEntryEntity(
 		id = 1,

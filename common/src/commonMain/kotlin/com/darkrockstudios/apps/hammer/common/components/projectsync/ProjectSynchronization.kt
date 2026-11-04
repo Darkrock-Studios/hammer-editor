@@ -4,6 +4,7 @@ import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineDateProblem
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineRuleProblem
 import com.darkrockstudios.apps.hammer.common.data.Msg
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
@@ -67,7 +68,9 @@ interface ProjectSynchronization {
 
 		class TimelineEventConflict(
 			serverEvent: ApiProjectEntity.TimelineEventEntity,
-			clientEvent: ApiProjectEntity.TimelineEventEntity
+			clientEvent: ApiProjectEntity.TimelineEventEntity,
+			/** This device's live timelines, main first, for naming each side's timeline. */
+			val liveTimelines: List<TimelineDef> = listOf(TimelineDef.DEFAULT),
 		) : EntityConflict<ApiProjectEntity.TimelineEventEntity>(serverEvent, clientEvent)
 
 		class EncyclopediaEntryConflict(
@@ -105,7 +108,7 @@ interface ProjectSynchronization {
 		class TimelineEventMergeError(
 			val tagError: Msg? = null,
 			val ruleProblem: TimelineRuleProblem? = null,
-			/** Only checked against a DATED main timeline's calendar. */
+			/** Only checked when the event's timeline is live and DATED, against its calendar. */
 			val dateProblem: TimelineDateProblem? = null,
 		) : EntityMergeError()
 

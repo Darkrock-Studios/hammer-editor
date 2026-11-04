@@ -11,6 +11,7 @@ import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
 import com.darkrockstudios.apps.hammer.base.timeline.StoryDateProblem
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineDateField
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineDateProblem
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineRuleProblem
 import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSynchronization
@@ -27,6 +28,8 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+
+private const val TIMELINE_ROW = "TIMELINE · CHANGED"
 
 class TimelineEventConflictTest : BaseTest() {
 
@@ -45,6 +48,8 @@ class TimelineEventConflictTest : BaseTest() {
 		milestone = true,
 		start = StoryDate(mapOf("year" to 97L, "day" to 214L)),
 	)
+
+	private val evening = TimelineDef(id = "b1e4c0de", name = "Before the evening")
 
 	private val placement = ApiProjectEntity.TimelineEventEntity(
 		id = 4,
@@ -100,6 +105,15 @@ class TimelineEventConflictTest : BaseTest() {
 		assertEquals(TimelineKind.SCENE, resolved.kind)
 		assertEquals(12, resolved.subject)
 		assertNull(resolved.start)
+	}
+
+	@Test
+	fun `The chosen timeline replaces the client's`() {
+		val edits = event.toEdits().copy(timeline = evening.id)
+
+		val resolved = assertIs<LocalTimelineEvent.Resolved>(buildLocalTimelineEvent(event, edits)).entity
+
+		assertEquals(evening.id, resolved.timeline)
 	}
 
 	@Test
@@ -173,10 +187,53 @@ class TimelineEventConflictTest : BaseTest() {
 		compose.onNodeWithText("Start has day out of range: 400", ignoreCase = true).assertExists()
 	}
 
+	@Test
+	fun `No timeline row is shown when both sides share a timeline`() {
+		showConflict(
+			server = placement.copy(lane = "Wonderland", timeline = evening.id),
+			client = placement.copy(timeline = evening.id),
+			component = RecordingSync(),
+		)
+
+		compose.onNodeWithText(TIMELINE_ROW).assertDoesNotExist()
+		compose.onNodeWithText("LOCAL").performClick()
+		compose.onNodeWithText(TIMELINE_ROW).assertDoesNotExist()
+	}
+
+	@Test
+	fun `Each side's timeline is named and an unknown id is a deleted timeline`() {
+		showConflict(
+			server = placement.copy(timeline = "0badf00d"),
+			client = placement,
+			component = RecordingSync(),
+		)
+
+		compose.onNodeWithText(TIMELINE_ROW).assertExists()
+		compose.onNodeWithText("Deleted timeline").assertExists()
+		compose.onNodeWithText("LOCAL").performClick()
+		compose.onNodeWithText(TIMELINE_ROW).assertExists()
+		compose.onNodeWithText("DELETED TIMELINE").assertExists()
+		compose.onNodeWithText("MAIN").assertExists()
+	}
+
+	@Test
+	fun `Using local keeps the client's timeline unless the other side is picked`() {
+		val component = RecordingSync()
+		showConflict(server = placement.copy(timeline = evening.id), client = placement, component = component)
+
+		compose.onNodeWithText("LOCAL").performClick()
+		compose.onNodeWithText("USE").performClick()
+		compose.onNodeWithText("BEFORE THE EVENING").performClick()
+		compose.onNodeWithText("USE").performClick()
+
+		assertEquals(listOf(null, evening.id), component.resolved.map { (it as ApiProjectEntity.TimelineEventEntity).timeline })
+	}
+
 	private fun showConflict(
 		server: ApiProjectEntity.TimelineEventEntity,
 		client: ApiProjectEntity.TimelineEventEntity,
 		component: ProjectSynchronization,
+		liveTimelines: List<TimelineDef> = listOf(TimelineDef.DEFAULT, evening),
 	) {
 		val compact = WindowSizeClass.calculateFromSize(widthPx = 420, heightPx = 900, density = Density(1f))
 		compose.setContent {
@@ -185,6 +242,7 @@ class TimelineEventConflictTest : BaseTest() {
 					entityConflict = ProjectSynchronization.EntityConflict.TimelineEventConflict(
 						serverEvent = server,
 						clientEvent = client,
+						liveTimelines = liveTimelines,
 					),
 					component = component,
 					screenCharacteristics = compact,

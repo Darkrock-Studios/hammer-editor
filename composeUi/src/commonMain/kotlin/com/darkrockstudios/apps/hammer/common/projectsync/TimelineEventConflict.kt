@@ -27,6 +27,7 @@ import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
 import com.darkrockstudios.apps.hammer.base.timeline.StoryDateProblem
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineDateField
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineDateProblem
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineLimits
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineRuleProblem
@@ -37,6 +38,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdConflictFie
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdConflictFieldSpacing
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdEntityId
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineSegmentedPicker
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineToggleRow
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdMark
@@ -50,6 +52,7 @@ import com.darkrockstudios.apps.hammer.sync_conflict_timeline_date_not_a_prefix
 import com.darkrockstudios.apps.hammer.sync_conflict_timeline_date_out_of_range
 import com.darkrockstudios.apps.hammer.sync_conflict_timeline_date_unknown_unit
 import com.darkrockstudios.apps.hammer.sync_conflict_timeline_event_date_hint
+import com.darkrockstudios.apps.hammer.sync_conflict_timeline_field_timeline
 import com.darkrockstudios.apps.hammer.sync_conflict_timeline_event_empty
 import com.darkrockstudios.apps.hammer.sync_conflict_timeline_event_invalid_date
 import com.darkrockstudios.apps.hammer.sync_conflict_timeline_event_milestone_off
@@ -84,6 +87,7 @@ import com.darkrockstudios.apps.hammer.sync_conflict_title_timeline_event_field_
 import com.darkrockstudios.apps.hammer.sync_conflict_title_timeline_event_field_start
 import com.darkrockstudios.apps.hammer.sync_conflict_title_timeline_event_field_tags
 import com.darkrockstudios.apps.hammer.sync_conflict_title_timeline_event_field_title
+import com.darkrockstudios.apps.hammer.timeline_deleted_bucket
 import kotlinx.coroutines.launch
 
 internal const val TIMELINE_CONFLICT_START_TAG = "timeline-conflict-start"
@@ -98,6 +102,8 @@ internal data class TimelineEventEdits(
 	val milestone: Boolean,
 	val start: String,
 	val end: String,
+	/** The chosen side's timeline id; null is main. */
+	val timeline: String?,
 )
 
 internal sealed interface LocalTimelineEvent {
@@ -115,6 +121,7 @@ internal fun ApiProjectEntity.TimelineEventEntity.toEdits() = TimelineEventEdits
 	milestone = milestone,
 	start = start?.toCompactText().orEmpty(),
 	end = end?.toCompactText().orEmpty(),
+	timeline = timeline,
 )
 
 /**
@@ -142,6 +149,7 @@ internal fun buildLocalTimelineEvent(
 			milestone = edits.milestone,
 			start = (start as DateField.Read).date,
 			end = (end as DateField.Read).date,
+			timeline = edits.timeline,
 		)
 	)
 }
@@ -175,6 +183,7 @@ internal fun TimelineEventConflict(
 	var milestone by rememberSaveable(client) { mutableStateOf(initial.milestone) }
 	var start by rememberSaveable(client) { mutableStateOf(initial.start) }
 	var end by rememberSaveable(client) { mutableStateOf(initial.end) }
+	var timeline by rememberSaveable(client) { mutableStateOf(initial.timeline) }
 	var startUnreadable by rememberSaveable(client) { mutableStateOf(false) }
 	var endUnreadable by rememberSaveable(client) { mutableStateOf(false) }
 	var tagError by rememberSaveable(client) { mutableStateOf<String?>(null) }
@@ -184,7 +193,7 @@ internal fun TimelineEventConflict(
 	val contentDiff = rememberContentDiff(entityConflict.serverEntity.content, content)
 
 	val useLocal: () -> Unit = {
-		val edits = TimelineEventEdits(title, label, content, lane, milestone, start, end)
+		val edits = TimelineEventEdits(title, label, content, lane, milestone, start, end, timeline)
 		when (val local = buildLocalTimelineEvent(client, edits)) {
 			is LocalTimelineEvent.UnreadableDates -> {
 				startUnreadable = local.start
@@ -219,6 +228,19 @@ internal fun TimelineEventConflict(
 				TimelineEventHeader(client)
 				ruleProblem?.let { HdMonoLabel(text = it.text(), color = MaterialTheme.colorScheme.error) }
 				dateProblem?.let { HdMonoLabel(text = it.text(), color = MaterialTheme.colorScheme.error) }
+				if (server.timeline != client.timeline) {
+					HdConflictField(
+						label = Res.string.sync_conflict_timeline_field_timeline.get(),
+						conflict = true,
+					) {
+						HdHairlineSegmentedPicker(
+							options = listOf(server.timeline, client.timeline),
+							selected = timeline,
+							onSelect = { timeline = it },
+							label = { timelineName(it, entityConflict.liveTimelines) },
+						)
+					}
+				}
 				HdConflictField(
 					label = Res.string.sync_conflict_title_timeline_event_field_title.get(),
 					conflict = server.title != client.title,
@@ -298,6 +320,14 @@ internal fun TimelineEventConflict(
 			val none = Res.string.sync_conflict_timeline_event_empty.get()
 			TimelineEventPane(m) {
 				TimelineEventHeader(server)
+				if (server.timeline != client.timeline) {
+					HdConflictField(
+						label = Res.string.sync_conflict_timeline_field_timeline.get(),
+						conflict = true,
+					) {
+						ReadOnlyLine(timelineName(server.timeline, entityConflict.liveTimelines))
+					}
+				}
 				HdConflictField(
 					label = Res.string.sync_conflict_title_timeline_event_field_title.get(),
 					conflict = server.title != client.title,
@@ -393,6 +423,12 @@ private fun TimelineEventHeader(entity: ApiProjectEntity.TimelineEventEntity) {
 		}
 	}
 }
+
+/** [id]'s name among [liveTimelines] (null is main), or the deleted label for a straggler's id. */
+@Composable
+private fun timelineName(id: String?, liveTimelines: List<TimelineDef>): String =
+	liveTimelines.firstOrNull { it.id == (id ?: TimelineDef.MAIN_ID) }?.name
+		?: Res.string.timeline_deleted_bucket.get()
 
 private fun TimelineKind.subjectPrefix(): String = when (this) {
 	TimelineKind.EVENT -> "EVT"

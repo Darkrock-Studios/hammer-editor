@@ -194,4 +194,6 @@
 	<string name="timeline_error_timeline_name">A timeline needs a name of up to %1$d characters that no other timeline has</string>
 	<string name="timeline_error_duplicate_placement_here">That is already on this timeline</string>
 	<string name="timeline_error_main_not_deletable">The main timeline cannot be deleted</string>
+	<string name="sync_conflict_timeline_field_timeline">Timeline</string>
+	<string name="timeline_deleted_bucket">Deleted timeline</string>
 </resources>
