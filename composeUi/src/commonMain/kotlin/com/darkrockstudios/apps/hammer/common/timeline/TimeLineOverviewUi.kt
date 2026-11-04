@@ -132,6 +132,7 @@ fun TimeLineOverviewUi(
 ) {
 	val state by component.state.subscribeAsState()
 	val tagIndex by component.rankedTags.subscribeAsState()
+	val previews by component.previews.subscribeAsState()
 	val screen = LocalScreenCharacteristic.current
 	val isWide = screen.isWide
 	val isExpanded = screen.windowWidthClass == WindowWidthSizeClass.Expanded
@@ -409,21 +410,27 @@ fun TimeLineOverviewUi(
 				bottom = Ui.Padding.L,
 			)
 
+			// Judged on every row, not the filtered ones, so the list does not shift as filters change.
+			val whenColumn = isWide && (dated || rows.any { it.whenText.isNotBlank() })
 			val eventRow: @Composable (row: TimelineRow, draggable: Boolean) -> Unit =
 				{ row, draggable ->
-					val isLast = visibleRows.lastOrNull()?.event?.id == row.event.id
+					val placed = row.event.kind.isPlacement
+					if (placed) {
+						LaunchedEffect(row) { component.requestPreview(row.event.id) }
+					}
 					Box(
 						modifier = Modifier
 							.fillMaxWidth()
 							.widthIn(max = 980.dp),
 					) {
-						EventCard(
+						TimelineRailRow(
 							row = row,
-							isLast = isLast,
-							activeTags = activeTags,
-							onTagClick = toggleTag,
+							laneCount = state.lanes.size,
+							whenColumn = whenColumn,
 							onClick = { viewEvent(row.event.id) },
+							dated = dated,
 							isDraggable = draggable,
+							placementExcerpt = if (placed) previews[row.event.id]?.excerpt else null,
 							words = words,
 							sharedTransitionScope = sharedTransitionScope,
 							animatedVisibilityScope = animatedVisibilityScope,

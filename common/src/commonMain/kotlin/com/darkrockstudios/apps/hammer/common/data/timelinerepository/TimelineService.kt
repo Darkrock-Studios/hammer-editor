@@ -58,10 +58,13 @@ fun ProjectData.mainTimeline(): TimelineDef =
 fun hasValidStart(event: TimeLineEvent, calendar: CalendarDef): Boolean =
 	event.start?.let { StoryCalendar.validate(calendar, it) == null } == true
 
-/** Up to [chars] of [markdown] as plain prose with whitespace collapsed; blank for blank markdown. */
-internal fun markdownExcerpt(markdown: String, chars: Int): String {
+/**
+ * Up to [chars] of [markdown] as plain prose with whitespace collapsed; blank for blank markdown. A
+ * project image reads as the name [imageName] gives it.
+ */
+internal fun markdownExcerpt(markdown: String, chars: Int, imageName: (imageId: Int) -> String? = { null }): String {
 	if (markdown.isBlank()) return ""
-	val projector = MarkdownProjector(markdown.length)
+	val projector = MarkdownProjector(markdown.length, imageName)
 	projector.project(markdown)
 	return projector.collapsedPreview(chars)
 }

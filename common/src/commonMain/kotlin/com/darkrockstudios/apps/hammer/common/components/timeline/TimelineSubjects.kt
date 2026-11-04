@@ -35,11 +35,12 @@ internal fun List<CatalogItem>.inCastOrder(): List<CatalogItem> = sortedBy { ite
 
 /**
  * Up to [EVENT_EXCERPT_CHARS] of [markdown] as plain prose, whitespace collapsed, or null when it has
- * none. A leading [skipTitle] is dropped, for an event already titled by its first line.
+ * none. A leading [skipTitle] is dropped, for an event already titled by its first line. A project
+ * image reads as the name [imageName] gives it.
  */
-internal fun eventExcerpt(markdown: String, skipTitle: String? = null): String? {
+fun eventExcerpt(markdown: String, skipTitle: String? = null, imageName: (imageId: Int) -> String? = { null }): String? {
 	if (markdown.isBlank()) return null
-	val preview = markdownExcerpt(markdown, EVENT_EXCERPT_CHARS)
+	val preview = markdownExcerpt(markdown, EVENT_EXCERPT_CHARS, imageName)
 	val body = if (!skipTitle.isNullOrBlank() && preview.startsWith(skipTitle)) {
 		preview.removePrefix(skipTitle).trimStart()
 	} else {

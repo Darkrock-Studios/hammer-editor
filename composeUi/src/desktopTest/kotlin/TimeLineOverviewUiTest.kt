@@ -227,17 +227,25 @@ class TimeLineOverviewUiTest : BaseTest() {
 		showOverview(component, viewEvent, phoneScreen, DpSize(360.dp, 760.dp))
 
 	@OptIn(ExperimentalSharedTransitionApi::class)
-	private fun showCard(row: TimelineRow, onClick: () -> Unit = {}, wrap: @Composable (@Composable () -> Unit) -> Unit = { it() }) {
+	private fun showCard(
+		row: TimelineRow,
+		onClick: () -> Unit = {},
+		whenColumn: Boolean = true,
+		dated: Boolean = false,
+		placementExcerpt: String? = null,
+		wrap: @Composable (@Composable () -> Unit) -> Unit = { it() },
+	) {
 		compose.setContent {
 			wrap {
 				SharedTransitionLayout {
 					AnimatedVisibility(visible = true) {
-						EventCard(
+						TimelineRailRow(
 							row = row,
-							isLast = true,
-							activeTags = emptySet(),
-							onTagClick = {},
+							laneCount = 2,
+							whenColumn = whenColumn,
 							onClick = onClick,
+							dated = dated,
+							placementExcerpt = placementExcerpt,
 							sharedTransitionScope = this@SharedTransitionLayout,
 							animatedVisibilityScope = this@AnimatedVisibility,
 						)
@@ -408,39 +416,66 @@ class TimeLineOverviewUiTest : BaseTest() {
 		assertEquals(setOf("The Ring builders"), component.state.value.laneFilter)
 	}
 
-	private fun textLayout(text: String): TextLayoutResult {
+	private fun textLayout(text: String): TextLayoutResult = textLayout(compose.onNodeWithText(text, useUnmergedTree = true))
+
+	private fun textLayout(node: SemanticsNodeInteraction): TextLayoutResult {
 		val results = mutableListOf<TextLayoutResult>()
-		compose.onNodeWithText(text, useUnmergedTree = true)
-			.performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(results) }
+		node.performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(results) }
 		return results.single()
 	}
 
 	@Test
-	fun `A card shows its kind glyph, lane swatch and milestone mark`() {
-		val event = TimeLineEvent(
-			id = 0,
-			order = 0,
-			kind = TimelineKind.SCENE,
-			subject = 4,
-			label = "Noon",
-			lane = "Alice",
-			milestone = true,
+	fun `A wide list has a label column only when some entry has a label`() {
+		val unlabelled = FakeOverview(listOf(row(TimeLineEvent(id = 0, order = 0, title = "Fall"))))
+		showOverview(unlabelled, screen = desktopScreen, size = DpSize(1000.dp, 700.dp))
+		// With no column, the kind line carries the (empty) label, as on a phone.
+		compose.onNodeWithTag(EVENT_CARD_DATE_TAG, useUnmergedTree = true).assertTextEquals("EVENT")
+
+		val labelled = FakeOverview(
+			listOf(
+				row(TimeLineEvent(id = 0, order = 0, title = "Fall")),
+				row(TimeLineEvent(id = 1, order = 1, title = "Tea", label = "Six o'clock")),
+			),
 		)
-		showCard(TimelineRow(event, title = "Down the hole", subtitle = "Chapter I", whenText = "Noon", laneIndex = 0))
+		showOverview(labelled, screen = desktopScreen, size = DpSize(1000.dp, 700.dp))
+		compose.onNodeWithText("SIX O'CLOCK", useUnmergedTree = true).assertIsDisplayed()
+		compose.onAllNodesWithText("EVENT", useUnmergedTree = true).assertCountEquals(2)
+	}
+
+	@Test
+	fun `A placed scene sits on its lane's rail with its chapter and excerpt`() {
+		val event = TimeLineEvent(id = 0, order = 0, kind = TimelineKind.SCENE, subject = 4, label = "Noon", lane = "Alice")
+		showCard(
+			TimelineRow(event, title = "Down the hole", subtitle = "Chapter I", whenText = "Noon", laneIndex = 0),
+			placementExcerpt = "Alice was beginning to get very tired",
+		)
 
 		compose.onNodeWithTag(EVENT_CARD_KIND_TAG, useUnmergedTree = true)
 			.assertIsDisplayed()
 			.assertContentDescriptionEquals("Scene")
 		compose.onNodeWithText("§", useUnmergedTree = true).assertIsDisplayed()
-		compose.onNodeWithTag(EVENT_CARD_LANE_TAG, useUnmergedTree = true).assertIsDisplayed()
-		compose.onNodeWithTag(EVENT_CARD_MILESTONE_TAG, useUnmergedTree = true).assertIsDisplayed()
+		compose.onNodeWithTag(EVENT_CARD_LANE_TAG, useUnmergedTree = true).assertContentDescriptionEquals("Lane Alice")
+		compose.onNodeWithTag(EVENT_CARD_MILESTONE_TAG, useUnmergedTree = true).assertDoesNotExist()
+		compose.onNodeWithText("NOON", useUnmergedTree = true).assertIsDisplayed()
+		compose.onNodeWithText("§ SCENE · CHAPTER I", useUnmergedTree = true).assertIsDisplayed()
 		compose.onNodeWithText("Down the hole", useUnmergedTree = true).assertIsDisplayed()
-		compose.onNodeWithText("CHAPTER I", useUnmergedTree = true).assertIsDisplayed()
-		compose.onNodeWithTag(EVENT_CARD_CONTENT_TAG, useUnmergedTree = true).assertDoesNotExist()
+		compose.onNodeWithTag(EVENT_CARD_CONTENT_TAG, useUnmergedTree = true)
+			.assertTextEquals("Alice was beginning to get very tired")
 	}
 
 	@Test
-	fun `A plain card has no lane swatch or milestone mark`() {
+	fun `A milestone rules across the row`() {
+		val event = TimeLineEvent(id = 0, order = 0, title = "The storm", content = "Wind takes the roof.", milestone = true)
+		showCard(row(event))
+
+		compose.onNodeWithTag(EVENT_CARD_MILESTONE_TAG, useUnmergedTree = true)
+			.assertIsDisplayed()
+			.assertContentDescriptionEquals("Milestone")
+		compose.onNodeWithTag(EVENT_CARD_KIND_TAG, useUnmergedTree = true).assertContentDescriptionEquals("Event")
+	}
+
+	@Test
+	fun `A plain event on the spine has no lane`() {
 		showCard(row(TimeLineEvent(id = 0, order = 0, content = "Rain")))
 
 		compose.onNodeWithTag(EVENT_CARD_KIND_TAG, useUnmergedTree = true).assertContentDescriptionEquals("Event")
@@ -449,11 +484,19 @@ class TimeLineOverviewUiTest : BaseTest() {
 	}
 
 	@Test
+	fun `On a phone the label and lane join the kind line`() {
+		val event = TimeLineEvent(id = 0, order = 0, title = "Fall", label = "Noon", lane = "Alice", content = "Down she went.")
+		showCard(row(event, laneIndex = 0), whenColumn = false)
+
+		compose.onNodeWithTag(EVENT_CARD_DATE_TAG, useUnmergedTree = true).assertTextEquals("NOON · EVENT · ALICE")
+	}
+
+	@Test
 	fun `A placement whose subject is gone says so`() {
 		val event = TimeLineEvent(id = 0, order = 0, kind = TimelineKind.ENTRY, subject = 9, cachedTitle = "Lost")
 		showCard(TimelineRow(event, title = "Lost", subtitle = null, whenText = "", laneIndex = null, subjectMissing = true))
 
-		compose.onNodeWithText("SUBJECT MISSING", useUnmergedTree = true).assertIsDisplayed()
+		compose.onNodeWithText(" · SUBJECT MISSING", useUnmergedTree = true).assertIsDisplayed()
 		compose.onNodeWithText("Lost", useUnmergedTree = true).assertIsDisplayed()
 	}
 
@@ -462,8 +505,7 @@ class TimeLineOverviewUiTest : BaseTest() {
 		val event = TimeLineEvent(id = 0, order = 0, kind = TimelineKind.SCENE, subject = 9)
 		showCard(TimelineRow(event, title = "Landfall", subtitle = null, whenText = "", laneIndex = null, subjectArchived = true))
 
-		compose.onNodeWithTag(EVENT_CARD_ARCHIVED_TAG, useUnmergedTree = true).assertIsDisplayed()
-		compose.onNodeWithText("ARCHIVED", useUnmergedTree = true).assertIsDisplayed()
+		compose.onNodeWithTag(EVENT_CARD_ARCHIVED_TAG, useUnmergedTree = true).assertTextEquals(" · ARCHIVED")
 		compose.onNodeWithText("Landfall", useUnmergedTree = true).assertIsDisplayed()
 	}
 
@@ -473,20 +515,18 @@ class TimeLineOverviewUiTest : BaseTest() {
 		val event = TimeLineEvent(id = 0, order = 0, label = "test date", content = "test content")
 		showCard(row(event), onClick = { clicked++ })
 
-		compose.onNodeWithText("TEST DATE").assertIsDisplayed()
-		compose.onNodeWithText(event.content).assertIsDisplayed()
-
 		compose.onNodeWithTag(EVENT_CARD_TAG).performClick()
 		assertEquals(1, clicked)
 	}
 
 	@Test
-	fun `Event Card Content and Date`() {
-		val event = TimeLineEvent(id = 0, order = 0, label = "test date", content = "test content")
-		showCard(row(event))
+	fun `An untitled event is titled by its first line and excerpted from the rest`() {
+		val event = TimeLineEvent(id = 0, order = 0, label = "test date", content = "The storm\n\nWind takes the roof.")
+		showCard(row(event, title = "The storm"))
 
 		compose.onNodeWithText("TEST DATE").assertIsDisplayed()
-		compose.onNodeWithText(event.content).assertIsDisplayed()
+		compose.onNodeWithTag(EVENT_CARD_TITLE_TAG, useUnmergedTree = true).assertTextEquals("The storm")
+		compose.onNodeWithTag(EVENT_CARD_CONTENT_TAG, useUnmergedTree = true).assertTextEquals("Wind takes the roof.")
 	}
 
 	@Test
@@ -497,7 +537,7 @@ class TimeLineOverviewUiTest : BaseTest() {
 			end = StoryDate(linkedMapOf("year" to 1802L, "month" to 5L, "day" to 14L)),
 			calendar = CalendarDef(CalendarPreset.GREGORIAN),
 		)
-		showCard(row)
+		showCard(row, dated = true)
 
 		compose.onNodeWithText("12 MAY 1802 → 14 MAY 1802").assertIsDisplayed()
 		compose.onNodeWithText("SPRING").assertDoesNotExist()
@@ -510,54 +550,47 @@ class TimeLineOverviewUiTest : BaseTest() {
 			start = StoryDate(linkedMapOf("year" to -3L, "day" to 2L)),
 			calendar = CalendarDef(epochName = "Landing"),
 		)
-		showCard(row)
+		showCard(row, dated = true)
 
 		compose.onNodeWithText("YEAR 3 BEFORE LANDING · DAY 2").assertIsDisplayed()
 	}
 
 	@Test
-	fun `Event Card Content No Date`() {
-		val event = TimeLineEvent(id = 0, order = 0, label = null, content = "test content")
-		showCard(row(event))
+	fun `An entry with no start on a dated timeline is undated`() {
+		showCard(row(TimeLineEvent(id = 0, order = 0, label = null, content = "test content")), dated = true)
 
-		compose.onNodeWithTag(EVENT_CARD_DATE_TAG, useUnmergedTree = true).assertIsDisplayed()
-		compose.onNodeWithText("UNDATED").assertIsDisplayed()
-		compose.onNodeWithText(event.content).assertIsDisplayed()
+		compose.onNodeWithTag(EVENT_CARD_DATE_TAG, useUnmergedTree = true).assertTextEquals("UNDATED")
 	}
 
 	@Test
-	fun `Event Card Content Truncate`() {
-		val event = TimeLineEvent(id = 0, order = 0, label = null, content = "x".repeat(EVENT_CARD_MAX_CONTENT_LENGTH + 1))
-		showCard(row(event))
+	fun `A manual entry with no label leaves the label empty`() {
+		showCard(row(TimeLineEvent(id = 0, order = 0, label = null, content = "test content")))
+
+		compose.onNodeWithTag(EVENT_CARD_DATE_TAG, useUnmergedTree = true).assertTextEquals("")
+	}
+
+	@Test
+	fun `The excerpt keeps to one line`() {
+		val content = "Heading\n\n" + "word ".repeat(200)
+		showCard(row(TimeLineEvent(id = 0, order = 0, title = "Heading", content = content)))
+
+		assertEquals(1, textLayout(compose.onNodeWithTag(EVENT_CARD_CONTENT_TAG, useUnmergedTree = true)).lineCount)
+	}
+
+	@Test
+	fun `The excerpt never shows an image's alt text`() {
+		val content = "Met\n\n![Cheshire Cat](hammer://image/3)\n\ntail"
+		showCard(row(TimeLineEvent(id = 0, order = 0, title = "Met", content = content)))
 
 		compose
 			.onNodeWithTag(EVENT_CARD_CONTENT_TAG, useUnmergedTree = true)
-			.assertIsDisplayed()
-			.assertTextSatisfies { text ->
-				text.length <= EVENT_CARD_MAX_CONTENT_LENGTH
-			}
+			.assertTextSatisfies { text -> !text.contains("Cheshire Cat") && !text.contains("hammer://") }
 	}
 
 	@Test
-	fun `Event Card never shows an image's alt text`() {
-		val content = "x ".repeat(100) + "\n\n![Cheshire Cat](hammer://image/3)\n\n" + "tail ".repeat(20)
-		showCard(row(TimeLineEvent(id = 0, order = 0, label = null, content = content)))
-
-		compose
-			.onNodeWithTag(EVENT_CARD_CONTENT_TAG, useUnmergedTree = true)
-			.assertIsDisplayed()
-			.assertTextSatisfies { text ->
-				text.length <= EVENT_CARD_MAX_CONTENT_LENGTH &&
-					Regex("""\n\n\*[^*\n]+\*\n\n""").containsMatchIn(text) &&
-					!text.contains("Cheshire Cat") &&
-					!text.contains("hammer://")
-			}
-	}
-
-	@Test
-	fun `Event Card shows an image by its current name`() {
-		val event = TimeLineEvent(id = 0, order = 0, label = null, content = "Met\n\n![image](hammer://image/3)")
-		showCard(row(event), wrap = { content ->
+	fun `The excerpt names an image by its current name`() {
+		val event = TimeLineEvent(id = 0, order = 0, content = "Met\n\n![image](hammer://image/3)")
+		showCard(row(event, title = "Met"), wrap = { content ->
 			CompositionLocalProvider(LocalImageNames provides { id -> if (id == 3) "Cheshire Cat" else null }) {
 				content()
 			}
@@ -565,7 +598,7 @@ class TimeLineOverviewUiTest : BaseTest() {
 
 		compose
 			.onNodeWithTag(EVENT_CARD_CONTENT_TAG, useUnmergedTree = true)
-			.assertTextSatisfies { text -> text.text == "Met\n\n*Cheshire Cat*" }
+			.assertTextSatisfies { text -> text.text == "Cheshire Cat" }
 	}
 
 	@Test
