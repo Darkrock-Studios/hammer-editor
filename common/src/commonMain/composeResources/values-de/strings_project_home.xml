@@ -69,7 +69,6 @@
 	<string name="project_home_export_dialog_title">Geschichte exportieren</string>
 	<string name="project_home_export_section">EXPORT</string>
 	<string name="project_home_export_close">× SCHLIESSEN</string>
-	<string name="project_home_export_chapters_label">Szenen der obersten Ebene als Kapitel behandeln</string>
 	<string name="project_home_export_format_label">Format</string>
 	<string name="project_home_export_format_markdown">Markdown (.zip)</string>
 	<string name="project_home_export_format_epub">EPub (.epub)</string>

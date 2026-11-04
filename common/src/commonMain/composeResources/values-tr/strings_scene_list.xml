@@ -26,7 +26,6 @@
 	<string name="scene_list_outline_overview_jump_to">Jump to</string>
 	<string name="scene_list_outline_overview_stat_chapters">Chapters</string>
 	<string name="scene_list_outline_overview_stat_scenes">Scenes</string>
-	<string name="scene_list_outline_overview_chapter_eyebrow">Chapter %1$s · %2$d Scenes</string>
 	<string name="scene_list_outline_overview_scene_count">%1$d SCN</string>
 	<string name="scene_list_outline_overview_end">End of outline</string>
 	<string name="scene_list_outline_overview_position">%1$d/%2$d</string>
@@ -47,16 +46,12 @@
 	<string name="scene_list_item_action_move">Move To</string>
 	<string name="scene_move_dialog_destination_label">Destination</string>
 	<string name="scene_move_dialog_search_placeholder">Search groups</string>
-	<string name="scene_move_dialog_top_level">Top Level</string>
 	<string name="scene_move_dialog_no_results">No matching groups</string>
 	<string name="scene_move_dialog_position_label">Position (1–%1$d)</string>
 	<string name="scene_move_dialog_invalid_position">Enter a position between 1 and %1$d</string>
 	<string name="scene_move_dialog_move_button">Move</string>
 	<string name="scene_move_dialog_dismiss_button">Cancel</string>
-	<string name="scene_list_count_format">%1$d · %2$d GR</string>
 	<string name="scene_group_scene_count_format">%1$d SCN</string>
-	<string name="scene_list_create_menu_scene">New Scene</string>
-	<string name="scene_list_create_menu_group">New Group</string>
 	<string name="scene_list_add_button">Add</string>
 	<string name="scene_move_dialog_marker">Move</string>
 	<string name="scene_type_meta_scene">Scene</string>

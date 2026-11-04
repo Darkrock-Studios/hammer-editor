@@ -10,3 +10,7 @@ data class ChapterScenes(val chapter: SceneItem, val scenes: List<SceneItem>)
 fun ImmutableTree<SceneItem>.collectChapters(): List<ChapterScenes> =
 	storyChapters(root.children, { it.children }, { it.value.type == SceneItem.Type.Scene })
 		.map { chapter -> ChapterScenes(chapter = chapter.top.value, scenes = chapter.scenes.map { it.value }) }
+
+/** True when [item] sits directly under the root, which makes it a chapter. */
+fun ImmutableTree<SceneItem>.isChapter(item: SceneItem): Boolean =
+	root.children.any { it.value.id == item.id }

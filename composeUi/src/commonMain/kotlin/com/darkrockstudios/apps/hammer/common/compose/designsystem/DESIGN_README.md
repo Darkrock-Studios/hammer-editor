@@ -219,10 +219,16 @@ These set up the page. Use them before reaching for raw `Column` /
   parent's. The rails are the marginalia rule applied along the depth
   axis: without them 16dp steps stop being traceable past two levels.
 
-      ⌄ Chapter I                    3 SCN
-      ┆   At Home
-      ┆ ⌄ Chapter II                 2 SCN
-      ┆ ┆   The Pool of Tears
+      ⌄ 📖  Down the Rabbit Hole      3 SCN
+      ┆       At Home
+      ┆     ⌄ Act Two                 2 SCN
+      ┆     ┆   The Pool of Tears
+        📖  A Caucus Race
+
+  Every top-level row is a chapter, scene or group alike, and carries a
+  `ChapterMark` glyph after the disclosure column (see
+  `SceneGroupItem.kt`); nested rows never do. Chapters are not numbered:
+  a prologue would put every count off by one.
 
 - **[`HdScrollAwayFooter`](HdScrollAwayFooter.kt)**: hairline action
   strip that floats over the bottom of a scrolling pane and slides away

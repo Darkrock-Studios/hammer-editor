@@ -1223,9 +1223,9 @@ fun ChapterPiecesPreview() {
 	AppTheme(globalSettingsPreview, useDarkTheme = true) {
 		PreviewSurface {
 			HdChapterDropdown(rows = rows, selectedIndex = 1, onSelect = {})
-			HdChapterRailItem(index = 0, row = rows[0], selected = true, onClick = {})
-			HdChapterRailItem(index = 1, row = rows[1], selected = false, onClick = {})
-			HdChapterHeader(index = 1, title = "The Dark Night", sceneCount = 5, wide = false)
+			HdChapterRailItem(row = rows[0], selected = true, onClick = {})
+			HdChapterRailItem(row = rows[1], selected = false, onClick = {})
+			HdChapterHeader(title = "The Dark Night", sceneCount = 5, wide = false)
 			HdSceneBreak()
 			HdEndMark(label = "End of story")
 		}

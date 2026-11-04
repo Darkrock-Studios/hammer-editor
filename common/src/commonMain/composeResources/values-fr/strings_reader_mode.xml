@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 	<string name="reader_mode_section">Lecteur</string>
-	<string name="reader_mode_position">Chapitre %1$d sur %2$d</string>
 	<string name="reader_mode_edit">Modifier</string>
 	<string name="reader_mode_close">× Fermer</string>
 	<string name="reader_mode_decrease_font_size">Réduire la taille du texte</string>

@@ -59,7 +59,8 @@ import com.darkrockstudios.apps.hammer.common.data.export.BuiltInExportFormat
 import com.darkrockstudios.apps.hammer.project_home_export_blank_lines_hint
 import com.darkrockstudios.apps.hammer.project_home_export_blank_lines_label
 import com.darkrockstudios.apps.hammer.project_home_export_cancel
-import com.darkrockstudios.apps.hammer.project_home_export_chapters_label
+import com.darkrockstudios.apps.hammer.project_home_export_chapter_breaks_hint
+import com.darkrockstudios.apps.hammer.project_home_export_chapter_breaks_label
 import com.darkrockstudios.apps.hammer.project_home_export_close
 import com.darkrockstudios.apps.hammer.project_home_export_contact_address
 import com.darkrockstudios.apps.hammer.project_home_export_contact_email
@@ -225,7 +226,8 @@ internal fun ExportOptionsDialogContent(
 				HdHairlineToggleRow(
 					checked = shown.treatTopLevelAsChapters,
 					onCheckedChange = { onOptionsChanged(shown.copy(treatTopLevelAsChapters = it)) },
-					label = Res.string.project_home_export_chapters_label.get(),
+					label = Res.string.project_home_export_chapter_breaks_label.get(),
+					hint = Res.string.project_home_export_chapter_breaks_hint.get(),
 					enabled = editable,
 				)
 

@@ -4,9 +4,11 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -15,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdIndentStep
@@ -34,6 +37,8 @@ internal fun SceneItem(
 	hasDirtyBuffer: Boolean,
 	isSelected: Boolean,
 	shouldNux: Boolean,
+	/** A top-level scene stands alone as a chapter and is styled like a chapter group. */
+	isChapter: Boolean,
 	onSceneSelected: (SceneItem) -> Unit,
 	onSceneDeleteRequest: (SceneItem) -> Unit,
 	onSceneRenameRequest: (SceneItem) -> Unit,
@@ -61,29 +66,47 @@ internal fun SceneItem(
 				.leftBorder(2.dp, accent)
 				.combinedClickable(onClick = { onSceneSelected(scene) })
 		) {
-			Row(
-				modifier = Modifier
-					.fillMaxWidth()
-					.padding(
-						// Clears the disclosure column, so scene names line up with group names.
-						start = hdIndentFor(depth) + HdIndentStep,
-						end = Ui.Padding.XL,
-						top = Ui.Padding.M,
-						bottom = Ui.Padding.M,
-					),
-				verticalAlignment = Alignment.CenterVertically,
-			) {
-				Text(
-					text = scene.name,
-					style = MaterialTheme.typography.bodyMedium,
-					color = if (isSelected) {
-						MaterialTheme.colorScheme.onSurface
-					} else {
-						MaterialTheme.colorScheme.onSurfaceVariant
-					},
-					fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal,
-					modifier = Modifier.weight(1f),
-				)
+			Column(modifier = Modifier.fillMaxWidth()) {
+				// A one-scene chapter opens with the same full-width rule as a chapter group.
+				if (isChapter) {
+					HorizontalDivider(
+						thickness = Dp.Hairline,
+						color = MaterialTheme.colorScheme.outlineVariant,
+					)
+				}
+
+				Row(
+					modifier = Modifier
+						.fillMaxWidth()
+						.padding(
+							// Clears the disclosure column, so scene names line up with group names.
+							start = hdIndentFor(depth) + HdIndentStep,
+							end = Ui.Padding.XL,
+							top = if (isChapter) Ui.Padding.L else Ui.Padding.M,
+							bottom = if (isChapter) Ui.Padding.L else Ui.Padding.M,
+						),
+					verticalAlignment = Alignment.CenterVertically,
+				) {
+					if (isChapter) {
+						ChapterMark()
+					}
+
+					Text(
+						text = scene.name,
+						style = if (isChapter) {
+							MaterialTheme.typography.titleSmall
+						} else {
+							MaterialTheme.typography.bodyMedium
+						},
+						color = if (isSelected || isChapter) {
+							MaterialTheme.colorScheme.onSurface
+						} else {
+							MaterialTheme.colorScheme.onSurfaceVariant
+						},
+						fontWeight = if (isSelected || isChapter) FontWeight.Medium else FontWeight.Normal,
+						modifier = Modifier.weight(1f),
+					)
+				}
 			}
 
 			Unsaved(hasDirtyBuffer)

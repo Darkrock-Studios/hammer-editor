@@ -7,10 +7,12 @@ import com.darkrockstudios.apps.hammer.common.data.tree.ImmutableTree
 import com.darkrockstudios.apps.hammer.common.data.tree.Tree
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
 import com.darkrockstudios.apps.hammer.common.data.tree.collectChapters
+import com.darkrockstudios.apps.hammer.common.data.tree.isChapter
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import org.junit.jupiter.api.Test
 import testProjectId
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class SceneChaptersTest {
@@ -64,5 +66,16 @@ class SceneChaptersTest {
 	@Test
 	fun `an empty tree has no chapters`() {
 		assertTrue(tree().collectChapters().isEmpty())
+	}
+
+	@Test
+	fun `only children of the root are chapters`() {
+		val t = tree(scene(1), group(2, scene(3), group(4, scene(5))))
+
+		assertTrue(t.isChapter(t.findBy { it.id == 1 }!!.value))
+		assertTrue(t.isChapter(t.findBy { it.id == 2 }!!.value))
+		assertFalse(t.isChapter(t.findBy { it.id == 3 }!!.value))
+		assertFalse(t.isChapter(t.findBy { it.id == 4 }!!.value))
+		assertFalse(t.isChapter(t.root.value))
 	}
 }

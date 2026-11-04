@@ -25,7 +25,6 @@
 	<string name="scene_list_outline_overview_jump_to">Ir para</string>
 	<string name="scene_list_outline_overview_stat_chapters">Capítulos</string>
 	<string name="scene_list_outline_overview_stat_scenes">Cenas</string>
-	<string name="scene_list_outline_overview_chapter_eyebrow">Capítulo %1$s · %2$d Cenas</string>
 	<string name="scene_list_outline_overview_scene_count">%1$d CEN</string>
 	<string name="scene_list_outline_overview_end">Fim do esboço</string>
 	<string name="scene_list_outline_overview_position">%1$d/%2$d</string>
@@ -46,16 +45,12 @@
 	<string name="scene_list_item_action_move">Mover Para</string>
 	<string name="scene_move_dialog_destination_label">Destino</string>
 	<string name="scene_move_dialog_search_placeholder">Pesquisar grupos</string>
-	<string name="scene_move_dialog_top_level">Nível Superior</string>
 	<string name="scene_move_dialog_no_results">Nenhum grupo correspondente</string>
 	<string name="scene_move_dialog_position_label">Posição (1–%1$d)</string>
 	<string name="scene_move_dialog_invalid_position">Insira uma posição entre 1 e %1$d</string>
 	<string name="scene_move_dialog_move_button">Mover</string>
 	<string name="scene_move_dialog_dismiss_button">Cancelar</string>
-	<string name="scene_list_count_format">%1$d · %2$d GR</string>
 	<string name="scene_group_scene_count_format">%1$d CEN</string>
-	<string name="scene_list_create_menu_scene">Nova Cena</string>
-	<string name="scene_list_create_menu_group">Novo Grupo</string>
 	<string name="scene_list_add_button">Adicionar</string>
 	<string name="scene_move_dialog_marker">Mover</string>
 	<string name="scene_type_meta_scene">Cena</string>

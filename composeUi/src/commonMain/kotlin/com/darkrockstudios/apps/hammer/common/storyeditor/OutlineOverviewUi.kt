@@ -37,7 +37,6 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdEndMark
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSceneBreak
-import com.darkrockstudios.apps.hammer.base.romanNumeral
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
@@ -342,7 +341,6 @@ private fun ChapterRail(
 			) {
 				itemsIndexed(chapters, key = { idx, _ -> "rail-$idx" }) { index, ch ->
 					HdChapterRailItem(
-						index = index,
 						row = ch,
 						selected = index == activeChapterIndex,
 						onClick = { onJumpTo(index) },
@@ -459,16 +457,13 @@ private fun ChapterBlock(
 
 	Column(modifier = Modifier.fillMaxWidth().padding(bottom = 48.dp)) {
 		HdChapterHeader(
-			index = chapterIndex,
 			title = chapter.title(untitledChapter()),
 			sceneCount = chapter.scenes.size,
 			wide = wide,
 		)
 		Spacer(Modifier.height(Ui.Padding.XXL))
-		val chapterRoman = romanNumeral(chapterIndex + 1)
 		chapter.scenes.forEachIndexed { sceneIdx, scene ->
 			SceneBlock(
-				chapterRoman = chapterRoman,
 				sceneNumber = sceneIdx + 1,
 				scene = scene,
 				titleStyle = sceneTitleStyle,
@@ -488,7 +483,6 @@ private fun ChapterBlock(
 
 @Composable
 private fun SceneBlock(
-	chapterRoman: String,
 	sceneNumber: Int,
 	scene: OutlineOverview.OutlineItem.SceneOutline,
 	titleStyle: androidx.compose.ui.text.TextStyle,
@@ -506,7 +500,7 @@ private fun SceneBlock(
 			verticalAlignment = Alignment.Bottom,
 			horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 		) {
-			HdMonoLabel(text = "§ $chapterRoman.$sceneNumber")
+			HdMonoLabel(text = "§ $sceneNumber")
 			Text(
 				text = scene.sceneItem.name,
 				style = titleStyle,

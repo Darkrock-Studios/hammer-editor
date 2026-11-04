@@ -125,7 +125,7 @@ fun ReaderModeUi(component: ReaderMode, modifier: Modifier = Modifier) {
 			leadingMeta = if (compact || chapterIndex < 0) {
 				emptyList()
 			} else {
-				listOf(Res.string.reader_mode_position.get(chapterIndex + 1, state.chapters.size))
+				listOf(Res.string.reader_mode_list_position.get(chapterIndex + 1, state.chapters.size))
 			},
 			trailing = {
 				if (!compact) {
@@ -350,7 +350,6 @@ private fun ReadingColumn(
 		items(rows, key = { it.key }, contentType = { it::class }) { row ->
 			when (row) {
 				is ReaderRow.ChapterHeader -> HdChapterHeader(
-					index = chapterIndex,
 					title = chapter.chapter.name,
 					sceneCount = chapter.sceneCount,
 					wide = wide,
@@ -411,7 +410,7 @@ private fun SceneHeading(
 		verticalAlignment = Alignment.Bottom,
 		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 	) {
-		HdMonoLabel(text = "§ ${romanNumeral(chapterIndex + 1)}.${row.number}")
+		HdMonoLabel(text = "§ ${row.number}")
 		Text(
 			text = row.scene.name,
 			style = if (wide) MaterialTheme.typography.titleLarge else MaterialTheme.typography.titleMedium,

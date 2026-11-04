@@ -15,7 +15,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Folder
-import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -51,6 +51,7 @@ import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.computeMoveRequest
 import com.darkrockstudios.apps.hammer.common.data.movePositionCount
 import com.darkrockstudios.apps.hammer.common.data.tree.ImmutableTree
+import com.darkrockstudios.apps.hammer.common.data.tree.isChapter
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeValue
 import com.darkrockstudios.apps.hammer.common.data.validMoveDestinations
 import com.darkrockstudios.apps.hammer.common.storyeditor.sceneTypeMeta
@@ -62,7 +63,7 @@ import com.darkrockstudios.apps.hammer.scene_move_dialog_move_button
 import com.darkrockstudios.apps.hammer.scene_move_dialog_no_results
 import com.darkrockstudios.apps.hammer.scene_move_dialog_position_label
 import com.darkrockstudios.apps.hammer.scene_move_dialog_search_placeholder
-import com.darkrockstudios.apps.hammer.scene_move_dialog_top_level
+import com.darkrockstudios.apps.hammer.scene_move_dialog_chapters
 
 private fun moveDestinationTag(id: Int) = "move-dialog-destination-$id"
 
@@ -167,7 +168,7 @@ internal fun MoveSceneDialog(
 	FormDialog(
 		visible = true,
 		marker = "§ ${Res.string.scene_move_dialog_marker.get().uppercase()}",
-		meta = sceneTypeMeta(item),
+		meta = sceneTypeMeta(item, isChapter = tree.isChapter(item)),
 		title = item.name,
 		confirmLabel = Res.string.scene_move_dialog_move_button.get(),
 		cancelLabel = Res.string.scene_move_dialog_dismiss_button.get(),
@@ -185,7 +186,7 @@ internal fun ColumnScope.MoveSceneDialogBody(
 	state: MoveSceneDialogState,
 	onSubmit: () -> Unit,
 ) {
-	val topLevelLabel = Res.string.scene_move_dialog_top_level.get()
+	val topLevelLabel = Res.string.scene_move_dialog_chapters.get()
 
 	Column(verticalArrangement = Arrangement.spacedBy(Ui.Padding.M)) {
 		HdMonoLabel(text = Res.string.scene_move_dialog_destination_label.get())
@@ -252,7 +253,7 @@ private fun DestinationRow(
 	HdPickerRow(
 		label = if (isTopLevel) topLevelLabel else node.value.name,
 		depth = node.depth,
-		icon = if (isTopLevel) Icons.Outlined.Home else Icons.Filled.Folder,
+		icon = if (isTopLevel) Icons.AutoMirrored.Outlined.MenuBook else Icons.Filled.Folder,
 		modifier = Modifier
 			.background(bg)
 			.leftBorder(2.dp, accent)

@@ -71,6 +71,7 @@ import com.darkrockstudios.apps.hammer.common.compose.saveShortcutModifier
 import com.darkrockstudios.apps.hammer.common.compose.textSizeShortcutModifier
 import com.darkrockstudios.apps.hammer.common.compose.withParagraphIndent
 import com.darkrockstudios.apps.hammer.common.data.UpdateSource
+import com.darkrockstudios.apps.hammer.common.storyeditor.SceneKind
 import com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.SceneDeleteDialog
 import com.darkrockstudios.apps.hammer.common.utils.addToDictionaryMenuItems
 import com.darkrockstudios.apps.hammer.common.utils.toEditorSpellChecker
@@ -280,7 +281,7 @@ fun SceneEditorUi(
 	}
 
 	if (state.confirmDelete) {
-		SceneDeleteDialog(state.sceneItem) { doDelete ->
+		SceneDeleteDialog(state.sceneItem, SceneKind.Scene) { doDelete ->
 			if (doDelete) {
 				component.doDelete()
 			} else {
