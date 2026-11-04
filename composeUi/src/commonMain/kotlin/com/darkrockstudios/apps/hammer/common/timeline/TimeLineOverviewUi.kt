@@ -430,7 +430,7 @@ fun TimeLineOverviewUi(
 							onClick = { viewEvent(row.event.id) },
 							dated = dated,
 							isDraggable = draggable,
-							placementExcerpt = if (placed) previews[row.event.id]?.excerpt else null,
+							placementExcerpt = if (placed) previews[row.event.id]?.let { it.excerpt.orEmpty() } else null,
 							words = words,
 							sharedTransitionScope = sharedTransitionScope,
 							animatedVisibilityScope = animatedVisibilityScope,

@@ -464,6 +464,22 @@ class TimeLineOverviewUiTest : BaseTest() {
 	}
 
 	@Test
+	fun `A placement holds its excerpt line open while the excerpt is read`() {
+		val event = TimeLineEvent(id = 0, order = 0, kind = TimelineKind.SCENE, subject = 4)
+		showCard(TimelineRow(event, title = "Down the hole", subtitle = null, whenText = "", laneIndex = null))
+
+		compose.onNodeWithTag(EVENT_CARD_CONTENT_TAG, useUnmergedTree = true).assertTextEquals("")
+	}
+
+	@Test
+	fun `A placement with nothing to excerpt has no excerpt line`() {
+		val event = TimeLineEvent(id = 0, order = 0, kind = TimelineKind.SCENE, subject = 4)
+		showCard(TimelineRow(event, title = "Down the hole", subtitle = null, whenText = "", laneIndex = null), placementExcerpt = "")
+
+		compose.onNodeWithTag(EVENT_CARD_CONTENT_TAG, useUnmergedTree = true).assertDoesNotExist()
+	}
+
+	@Test
 	fun `A milestone rules across the row`() {
 		val event = TimeLineEvent(id = 0, order = 0, title = "The storm", content = "Wind takes the roof.", milestone = true)
 		showCard(row(event))

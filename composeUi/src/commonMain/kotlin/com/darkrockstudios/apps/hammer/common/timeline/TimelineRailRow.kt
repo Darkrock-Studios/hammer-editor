@@ -80,7 +80,7 @@ private const val RAIL_ALPHA = 0.22f
 private const val RULE_ALPHA = 0.35f
 
 /** The gutter's width: the spine, then one rail per lane. */
-internal fun railGutterWidth(laneCount: Int): Dp = if (laneCount == 0) RailStart - 2.dp else RailStart + RailPitch * laneCount
+private fun railGutterWidth(laneCount: Int): Dp = if (laneCount == 0) RailStart - 2.dp else RailStart + RailPitch * laneCount
 
 /**
  * One entry of a timeline drawn as a list, in the drawing's vocabulary: the "when" where the axis
@@ -89,7 +89,8 @@ internal fun railGutterWidth(laneCount: Int): Dp = if (laneCount == 0) RailStart
  * a dotted line across the row. Without [whenColumn] the "when" joins the kind line, as on a phone.
  *
  * A plain event's excerpt comes from its own text; a placement's is [placementExcerpt], read from its
- * subject. On a [dated] timeline an entry with no start says it is undated.
+ * subject: null while it is being read, which holds the line open so the row does not grow when it
+ * lands, and blank when there is none. On a [dated] timeline an entry with no start says it is undated.
  *
  *     LATE OCTOBER  │ ◆ │   EVENT
  *                   │ │ │   The first snow
@@ -189,9 +190,10 @@ internal fun TimelineRailRow(
 							modifier = Modifier.padding(top = 1.dp).testTag(EVENT_CARD_TITLE_TAG),
 						)
 					}
-					if (!excerpt.isNullOrBlank()) {
+					val pending = event.kind.isPlacement && placementExcerpt == null && !row.subjectMissing
+					if (!excerpt.isNullOrBlank() || pending) {
 						Text(
-							text = excerpt,
+							text = excerpt.orEmpty(),
 							style = MaterialTheme.typography.bodyMedium.copy(fontStyle = FontStyle.Italic),
 							color = MaterialTheme.colorScheme.onSurfaceVariant,
 							maxLines = 1,
