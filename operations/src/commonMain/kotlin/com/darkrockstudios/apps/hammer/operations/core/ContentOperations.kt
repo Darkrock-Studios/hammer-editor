@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.operations.core
 
 import com.darkrockstudios.apps.hammer.base.http.storyideas.StoryIdea
 import com.darkrockstudios.apps.hammer.base.image.ImageFormat
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaService
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryLoadError
@@ -16,10 +17,12 @@ import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexServ
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TaggedEntityType
 import com.darkrockstudios.apps.hammer.common.data.tagindex.normalizeTagNeedle
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.timelineId
 import com.darkrockstudios.apps.hammer.operations.Access
 import com.darkrockstudios.apps.hammer.operations.OpenProject
 import com.darkrockstudios.apps.hammer.operations.Operation
 import com.darkrockstudios.apps.hammer.operations.OperationScope
+import com.darkrockstudios.apps.hammer.operations.invalidInput
 import com.darkrockstudios.apps.hammer.operations.notFound
 import com.darkrockstudios.apps.hammer.operations.operation
 import io.github.aakira.napier.Napier
@@ -85,15 +88,22 @@ internal fun contentOperations(): List<Operation<*, *>> = listOf(
 	) { input ->
 		projects.withProject(input.project) { project -> project.entryImages(project.requireEntry(input.id)) }
 	},
-	operation<ProjectInput, Timeline>(
+	operation<TimelineListInput, Timeline>(
 		name = "timeline.list",
-		description = "A project's timeline events in display order: their manual order, or by start date on a dated timeline.",
+		description = "A timeline's events in display order: their manual order, or by start date on a dated timeline. " +
+			"The main timeline unless timeline names another; orphaned lists, by order, the events left on timelines " +
+			"deleted since, such as one made offline before a sync.",
 		access = Access.Read,
 		scope = OperationScope.Content,
 	) { input ->
+		if (input.orphaned && input.timeline != null) invalidInput("orphaned lists every deleted timeline; leave timeline out")
 		projects.withProject(input.project) { project ->
 			val timeline = project.timelineService()
-			val events = timeline.view().events
+			val events = if (input.orphaned) {
+				timeline.orphansFlow.loaded("Timeline")
+			} else {
+				project.view(input.timeline).events
+			}
 			val titles = timeline.displayTitles(events)
 			Timeline(events.map { TimelineEntry(it, titles.getValue(it.id)) })
 		}
@@ -239,6 +249,15 @@ data class EntryImageSummary(
 )
 
 @Serializable
+data class TimelineListInput(
+	val project: String,
+	/** The timeline's id; left out, or "main", the main timeline. */
+	val timeline: String? = null,
+	/** Instead, the events whose timeline was deleted. */
+	val orphaned: Boolean = false,
+)
+
+@Serializable
 data class Timeline(val events: List<TimelineEntry>)
 
 @Serializable
@@ -274,6 +293,8 @@ data class TimelineEntry(
 	val references: List<Int> = emptyList(),
 	/** A placement's subject name when last seen, kept in case the subject is deleted. */
 	val cachedTitle: String? = null,
+	/** The id of the timeline it is on, "main" for the main one; a straggler keeps its deleted timeline's. */
+	val timeline: String = TimelineDef.MAIN_ID,
 ) {
 	constructor(event: TimeLineEvent, displayTitle: String) : this(
 		id = event.id,
@@ -292,6 +313,7 @@ data class TimelineEntry(
 		end = event.end?.rungs,
 		references = event.references.sorted(),
 		cachedTitle = event.cachedTitle,
+		timeline = event.timelineId,
 	)
 }
 

@@ -11,9 +11,11 @@ import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.EvenSpacing
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEventError
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineDefResult
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineResult
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineService
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineView
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.timelineId
 import com.darkrockstudios.apps.hammer.operations.Access
 import com.darkrockstudios.apps.hammer.operations.OpenProject
 import com.darkrockstudios.apps.hammer.operations.Operation
@@ -27,19 +29,21 @@ import kotlinx.serialization.Serializable
 internal fun timelineOperations(): List<Operation<*, *>> = listOf(
 	operation<TimelinePlaceInput, TimelineEntry>(
 		name = "timeline.place",
-		description = "Place an encyclopedia entry of type event, or a scene, on a project's timeline. Each can be " +
-			"placed once, and its name and words come from it. A dated timeline needs a start.",
+		description = "Place an encyclopedia entry of type event, or a scene, on a project's timeline, main unless " +
+			"timeline names another. Each can be placed once on each timeline, and its name and words come from it. " +
+			"A dated timeline needs a start.",
 		access = Access.Write,
 		scope = OperationScope.Content,
 	) { input ->
 		projects.withProject(input.project) { project ->
 			val timeline = project.timelineService()
+			val target = project.requireTimeline(input.timeline).id
 			val start = input.start.toStoryDate()
 			val end = input.end.toStoryDate()
 			val result = when (input.kind) {
 				TimelineKindDto.Event -> invalidInput("Only an entry or a scene is placed; timeline.create adds a plain event")
-				TimelineKindDto.Entry -> timeline.placeEntry(input.subject, start, end, input.lane, input.milestone)
-				TimelineKindDto.Scene -> timeline.placeScene(input.subject, start, end, input.lane, input.milestone)
+				TimelineKindDto.Entry -> timeline.placeEntry(input.subject, start, end, input.lane, input.milestone, timeline = target)
+				TimelineKindDto.Scene -> timeline.placeScene(input.subject, start, end, input.lane, input.milestone, timeline = target)
 			}
 			if (result is TimelineResult.Invalid && result.error == TimeLineEventError.SUBJECT_NOT_FOUND) {
 				notFound("No ${input.kind.name.lowercase()} ${input.subject}")
@@ -51,7 +55,9 @@ internal fun timelineOperations(): List<Operation<*, *>> = listOf(
 	operation<TimelineSetInput, TimelineEntry>(
 		name = "timeline.set",
 		description = "Set single fields of any timeline event, or clear them by name, leaving the rest alone. " +
-			"A placement takes only label, lane, milestone, start, and end. This is how a placement is edited.",
+			"A placement takes only label, lane, milestone, start, and end. This is how a placement is edited. " +
+			"A timeline other than the event's own moves it there, with start and end, when given, as its dates on " +
+			"that timeline's calendar; a dated timeline refuses the move unless the event's start fits or one is given.",
 		access = Access.Write,
 		scope = OperationScope.Content,
 	) { input ->
@@ -70,9 +76,17 @@ internal fun timelineOperations(): List<Operation<*, *>> = listOf(
 		(given intersect clear).firstOrNull()?.let { invalidInput("$it is both set and cleared") }
 
 		projects.withProject(input.project) { project ->
-			val event = project.requireEvent(input.id)
-			if (event.kind.isPlacement && "title" in given + clear) invalidInput(PLACEMENT_FIELDS)
+			val found = project.requireEvent(input.id)
+			if (found.kind.isPlacement && "title" in given + clear) invalidInput(PLACEMENT_FIELDS)
+			val target = input.timeline?.let { project.requireTimeline(it).id }
 
+			val event = if (target == null || target == found.timelineId) {
+				found
+			} else {
+				project.timelineService()
+					.moveToTimeline(input.id, target, start = input.start.toStoryDate(), end = input.end.toStoryDate())
+					.requireOk() ?: project.requireEvent(input.id)
+			}
 			val updated = event.copy(
 				title = if ("title" in clear) null else input.title.orKeep(event.title),
 				label = if ("label" in clear) null else input.label.orKeep(event.label),
@@ -87,7 +101,8 @@ internal fun timelineOperations(): List<Operation<*, *>> = listOf(
 	},
 	operation<ProjectInput, TimelineSettings>(
 		name = "timeline.settings.read",
-		description = "A project's timeline settings: name, mode, calendar, and lane order.",
+		description = "A project's timelines, main first, each with its id, name, mode, calendar, and lane order, " +
+			"and how many events are left on timelines deleted since (see timeline.list orphaned).",
 		access = Access.Read,
 		scope = OperationScope.Content,
 	) { input ->
@@ -95,7 +110,8 @@ internal fun timelineOperations(): List<Operation<*, *>> = listOf(
 	},
 	operation<TimelineSettingsWriteInput, TimelineSettings>(
 		name = "timeline.settings.write",
-		description = "Change a project's timeline settings; fields left out stay as they are. Switching to dated " +
+		description = "Change one timeline's settings, main unless timeline names another; fields left out stay as " +
+			"they are, and name renames it. Switching to dated " +
 			"gives every event without a valid start one, spaced evenly in the current order; switching to manual " +
 			"keeps the date order as the manual order. A new calendar drops dates that do not fit it, keeping the " +
 			"start as the label of an event that has none.",
@@ -103,15 +119,13 @@ internal fun timelineOperations(): List<Operation<*, *>> = listOf(
 		scope = OperationScope.Content,
 	) { input ->
 		val name = input.name?.trim()?.also { if (it.isEmpty()) invalidInput("A timeline needs a name") }
-		val laneOrder = input.laneOrder?.map { it.trim() }?.distinct()
-		if (laneOrder != null && laneOrder.any { it.isEmpty() || it.length > TimelineLimits.MAX_LANE }) {
-			TimeLineEventError.LANE_INVALID.requireNone()
-		}
+		val laneOrder = input.laneOrder?.toLaneOrder()
 		val calendar = input.calendar?.toDef()?.also(::requireValidCalendar)
 
 		projects.withProject(input.project) { project ->
 			val timeline = project.timelineService()
-			val current = timeline.definition() ?: notFound("No such timeline")
+			val current = project.requireTimeline(input.timeline)
+			val id = current.id
 			val toDated = input.mode == TimelineModeDto.Dated && current.mode == TimelineMode.MANUAL
 			if (input.spacing != null && !toDated) {
 				invalidInput("spacing is used only when switching a manual timeline to dated")
@@ -119,39 +133,115 @@ internal fun timelineOperations(): List<Operation<*, *>> = listOf(
 
 			if (toDated) {
 				val target = calendar ?: current.calendar ?: invalidInput("A dated timeline needs a calendar")
-				timeline.switchToDated(target, input.spacing?.toSpacing(target)).requireOk()
+				timeline.switchToDated(target, input.spacing?.toSpacing(target), timeline = id).requireOk()
 			} else {
 				if (input.mode == TimelineModeDto.Manual && current.mode == TimelineMode.DATED) {
-					timeline.switchToManual().requireOk()
+					timeline.switchToManual(timeline = id).requireOk()
 				}
-				if (calendar != null && calendar != current.calendar) timeline.switchPreset(calendar).requireOk()
+				if (calendar != null && calendar != current.calendar) {
+					timeline.switchPreset(calendar, timeline = id).requireOk()
+				}
 			}
 
 			if (name != null || laneOrder != null) {
-				timeline.updateDefinition { def ->
+				timeline.updateDefinition(id) { def ->
 					def.copy(name = name ?: def.name, laneOrder = laneOrder ?: def.laneOrder)
 				}.requireOk()
 			}
 			project.timelineSettings()
 		}
 	},
+	operation<TimelineDefCreateInput, TimelineDefDto>(
+		name = "timeline.def.create",
+		description = "Add a timeline to a project, manual unless mode says otherwise; a dated one needs a calendar. " +
+			"Its name is trimmed and no other timeline may have it, ignoring case. Returns it with its id, which " +
+			"the timeline option of other operations takes.",
+		access = Access.Write,
+		scope = OperationScope.Content,
+	) { input ->
+		val mode = input.mode ?: TimelineModeDto.Manual
+		val calendar = input.calendar?.toDef()?.also(::requireValidCalendar)
+		if (mode == TimelineModeDto.Dated && calendar == null) invalidInput("A dated timeline needs a calendar")
+		val laneOrder = input.laneOrder.toLaneOrder()
+
+		projects.withProject(input.project) { project ->
+			val timeline = project.timelineService()
+			val created = when (val result = timeline.createTimeline(input.name, mode.toMode(), calendar)) {
+				is TimelineDefResult.Invalid -> {
+					result.error.requireNone()
+					error("Timeline error NONE reported as invalid")
+				}
+
+				is TimelineDefResult.Ok -> result.def
+			}
+			if (laneOrder.isNotEmpty()) {
+				timeline.updateDefinition(created.id) { it.copy(laneOrder = laneOrder) }.requireOk()
+			}
+			TimelineDefDto(timeline.definition(created.id) ?: created)
+		}
+	},
+	operation<TimelineDefDeleteInput, TimelineDefDeleted>(
+		name = "timeline.def.delete",
+		description = "Delete a timeline and every event on it for good; entries and scenes placed there are left " +
+			"alone. The main timeline cannot be deleted.",
+		access = Access.Destructive,
+		scope = OperationScope.Content,
+	) { input ->
+		val id = timelineId(input.timeline)
+		if (id == TimelineDef.MAIN_ID) TimeLineEventError.MAIN_NOT_DELETABLE.requireNone()
+
+		projects.withProject(input.project) { project ->
+			when (val result = project.timelineService().deleteTimeline(id)) {
+				is TimelineDefResult.Ok -> TimelineDefDeleted(id, result.deletedEvents)
+				is TimelineDefResult.Invalid ->
+					if (result.error == TimeLineEventError.TIMELINE_NOT_FOUND) {
+						notFound("No timeline $id")
+					} else {
+						result.error.requireNone()
+						error("Timeline error NONE reported as invalid")
+					}
+			}
+		}
+	},
 )
 
 internal fun OpenProject.timelineService(): TimelineService = scope.get<TimelineService>()
 
-/** The main timeline's settings and its events in display order. */
-internal suspend fun TimelineService.view(): TimelineView = timelineFlow(TimelineDef.MAIN_ID).loaded("Timeline")
+/** The id [timeline] names as input: null and "main" are the main timeline. */
+internal fun timelineId(timeline: String?): String = timeline?.trim() ?: TimelineDef.MAIN_ID
 
+/** The live timeline [timeline] names as input. */
+internal suspend fun OpenProject.requireTimeline(timeline: String?): TimelineDef {
+	val id = timelineId(timeline)
+	return timelineService().definition(id) ?: notFound("No timeline $id")
+}
+
+/** Live timeline [timeline]'s settings and its events in display order. */
+internal suspend fun OpenProject.view(timeline: String?): TimelineView =
+	timelineService().timelineFlow(requireTimeline(timeline).id).loaded("Timeline")
+
+/** Event [id], on whichever timeline holds it, a deleted one included. */
 internal suspend fun OpenProject.requireEvent(id: Int): TimeLineEvent =
-	timelineService().view().events.find { it.id == id } ?: notFound("No timeline event $id")
+	timelineService().event(id) ?: notFound("No timeline event $id")
 
 internal suspend fun OpenProject.timelineEntry(id: Int): TimelineEntry {
 	val event = requireEvent(id)
 	return TimelineEntry(event, timelineService().displayTitle(event))
 }
 
-private suspend fun OpenProject.timelineSettings(): TimelineSettings =
-	TimelineSettings(listOf(TimelineDefDto(timelineService().definition() ?: TimelineDef.DEFAULT)))
+private suspend fun OpenProject.timelineSettings(): TimelineSettings {
+	val timeline = timelineService()
+	return TimelineSettings(
+		timelines = timeline.timelines.loaded("Timelines").map(::TimelineDefDto),
+		orphaned = timeline.orphansFlow.loaded("Timeline").size,
+	)
+}
+
+private fun List<String>.toLaneOrder(): List<String> {
+	val lanes = map { it.trim() }.distinct()
+	if (lanes.any { it.isEmpty() || it.length > TimelineLimits.MAX_LANE }) TimeLineEventError.LANE_INVALID.requireNone()
+	return lanes
+}
 
 private val CLEARABLE = setOf("title", "label", "lane", "start", "end")
 
@@ -215,6 +305,8 @@ data class TimelinePlaceInput(
 	val lane: String? = null,
 	/** A turning point, marked across every lane. */
 	val milestone: Boolean = false,
+	/** The timeline's id, from timeline.settings.read; left out, or "main", the main timeline. */
+	val timeline: String? = null,
 )
 
 /** Fields left out stay as they are. */
@@ -237,6 +329,8 @@ data class TimelineSetInput(
 	val end: Map<String, Long>? = null,
 	/** Fields to clear, from title, label, lane, start, and end. */
 	val clear: List<String> = emptyList(),
+	/** Moves the event to this timeline, by id, "main" for the main one. */
+	val timeline: String? = null,
 )
 
 /** Whether order is kept by hand or follows dates. */
@@ -247,6 +341,11 @@ enum class TimelineModeDto {
 
 	/** Every event has a start date and the order follows it. */
 	@SerialName("dated") Dated;
+
+	fun toMode(): TimelineMode = when (this) {
+		Manual -> TimelineMode.MANUAL
+		Dated -> TimelineMode.DATED
+	}
 
 	companion object {
 		fun of(mode: TimelineMode): TimelineModeDto = when (mode) {
@@ -320,8 +419,10 @@ data class TimelineDefDto(
 
 @Serializable
 data class TimelineSettings(
-	/** The project's timelines; for now always one, the main timeline. */
+	/** The project's timelines: main first, then the others in the order they were made. */
 	val timelines: List<TimelineDefDto>,
+	/** Events whose timeline was deleted, such as one made offline before a sync; timeline.list orphaned lists them. */
+	val orphaned: Int = 0,
 )
 
 /** Dates for undated events when switching to dated: the n-th event in order is n × step units after origin. */
@@ -338,6 +439,7 @@ data class EvenSpacingDto(
 @Serializable
 data class TimelineSettingsWriteInput(
 	val project: String,
+	/** A new name, which renames the timeline. */
 	val name: String? = null,
 	/** Switching to dated needs a calendar, here or already set. */
 	val mode: TimelineModeDto? = null,
@@ -346,4 +448,33 @@ data class TimelineSettingsWriteInput(
 	val laneOrder: List<String>? = null,
 	/** Only when switching to dated; left out, events are one of the calendar's coarsest unit apart. */
 	val spacing: EvenSpacingDto? = null,
+	/** The timeline's id; left out, or "main", the main timeline. */
+	val timeline: String? = null,
+)
+
+@Serializable
+data class TimelineDefCreateInput(
+	val project: String,
+	val name: String,
+	/** Left out, manual. */
+	val mode: TimelineModeDto? = null,
+	/** Required for a dated timeline. */
+	val calendar: CalendarDto? = null,
+	/** Lanes in the order they are drawn. */
+	val laneOrder: List<String> = emptyList(),
+)
+
+@Serializable
+data class TimelineDefDeleteInput(
+	val project: String,
+	/** The timeline's id; main cannot be deleted. */
+	val timeline: String,
+)
+
+@Serializable
+data class TimelineDefDeleted(
+	/** The deleted timeline's id. */
+	val timeline: String,
+	/** How many events were on it, deleted with it. */
+	val deletedEvents: Int,
 )

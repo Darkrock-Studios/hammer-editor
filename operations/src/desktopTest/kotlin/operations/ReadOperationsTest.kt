@@ -73,6 +73,7 @@ import com.darkrockstudios.apps.hammer.operations.core.TaggedEntity
 import com.darkrockstudios.apps.hammer.operations.core.Tags
 import com.darkrockstudios.apps.hammer.operations.core.Timeline
 import com.darkrockstudios.apps.hammer.operations.core.TimelineEntry
+import com.darkrockstudios.apps.hammer.operations.core.TimelineListInput
 import com.darkrockstudios.apps.hammer.operations.core.TimelineKindDto
 import com.darkrockstudios.apps.hammer.operations.core.TimelinePlaceInput
 import kotlinx.datetime.LocalDate
@@ -366,7 +367,7 @@ class ReadOperationsTest : KoinOperationsTest() {
 
 	@Test
 	fun `timeline is in order`() = onTestThread {
-		val timeline = run<ProjectInput, Timeline>("timeline.list", ProjectInput(PROJECT))
+		val timeline = run<TimelineListInput, Timeline>("timeline.list", TimelineListInput(PROJECT))
 		assertEquals(listOf("The storm makes landfall", "Alice arrives"), timeline.events.map { it.content })
 
 		val event = run<ProjectItemInput, TimelineEntry>(
@@ -386,7 +387,7 @@ class ReadOperationsTest : KoinOperationsTest() {
 		val siege = run<EntryCreateInput, Entry>("entry.create", EntryCreateInput(PROJECT, "The Siege", EntryKind.Event, ""))
 		run<TimelinePlaceInput, TimelineEntry>("timeline.place", TimelinePlaceInput(PROJECT, TimelineKindDto.Entry, siege.id))
 
-		val events = run<ProjectInput, Timeline>("timeline.list", ProjectInput(PROJECT)).events
+		val events = run<TimelineListInput, Timeline>("timeline.list", TimelineListInput(PROJECT)).events
 
 		assertEquals(
 			listOf("The storm makes landfall", "Alice arrives", "Landfall", "The Siege"),

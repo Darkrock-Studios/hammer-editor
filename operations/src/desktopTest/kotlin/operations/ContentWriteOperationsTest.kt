@@ -19,11 +19,11 @@ import com.darkrockstudios.apps.hammer.operations.core.NoteCreateInput
 import com.darkrockstudios.apps.hammer.operations.core.NoteListInput
 import com.darkrockstudios.apps.hammer.operations.core.NoteUpdateInput
 import com.darkrockstudios.apps.hammer.operations.core.Notes
-import com.darkrockstudios.apps.hammer.operations.core.ProjectInput
 import com.darkrockstudios.apps.hammer.operations.core.ProjectItemInput
 import com.darkrockstudios.apps.hammer.operations.core.Timeline
 import com.darkrockstudios.apps.hammer.operations.core.TimelineCreateInput
 import com.darkrockstudios.apps.hammer.operations.core.TimelineEntry
+import com.darkrockstudios.apps.hammer.operations.core.TimelineListInput
 import com.darkrockstudios.apps.hammer.operations.core.TimelineMoveInput
 import com.darkrockstudios.apps.hammer.operations.core.TimelineUpdateInput
 import okio.Path.Companion.toPath
@@ -176,7 +176,7 @@ class ContentWriteOperationsTest : KoinOperationsTest() {
 		run<TimelineCreateInput, TimelineEntry>("timeline.create", TimelineCreateInput(PROJECT, "Too far", index = 1))
 	}
 
-	private suspend fun events() = run<ProjectInput, Timeline>("timeline.list", ProjectInput(PROJECT)).events.map { it.content }
+	private suspend fun events() = run<TimelineListInput, Timeline>("timeline.list", TimelineListInput(PROJECT)).events.map { it.content }
 
 	private companion object {
 		const val PROJECT = "Storm Novel"

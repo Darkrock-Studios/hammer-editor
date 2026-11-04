@@ -2,8 +2,11 @@ package operations
 
 import com.darkrockstudios.apps.hammer.common.data.ClientResult
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.data.temporaryProjectTask
 import com.darkrockstudios.apps.hammer.operations.OperationException
+import com.darkrockstudios.apps.hammer.operations.OperationRegistry
 import com.darkrockstudios.apps.hammer.operations.core.CalendarDto
 import com.darkrockstudios.apps.hammer.operations.core.CalendarPresetDto
 import com.darkrockstudios.apps.hammer.operations.core.Entry
@@ -16,9 +19,13 @@ import com.darkrockstudios.apps.hammer.operations.core.SceneCreateInput
 import com.darkrockstudios.apps.hammer.operations.core.SceneItemRef
 import com.darkrockstudios.apps.hammer.operations.core.Timeline
 import com.darkrockstudios.apps.hammer.operations.core.TimelineCreateInput
+import com.darkrockstudios.apps.hammer.operations.core.TimelineDefCreateInput
+import com.darkrockstudios.apps.hammer.operations.core.TimelineDefDeleteInput
+import com.darkrockstudios.apps.hammer.operations.core.TimelineDefDeleted
 import com.darkrockstudios.apps.hammer.operations.core.TimelineDefDto
 import com.darkrockstudios.apps.hammer.operations.core.TimelineEntry
 import com.darkrockstudios.apps.hammer.operations.core.TimelineKindDto
+import com.darkrockstudios.apps.hammer.operations.core.TimelineListInput
 import com.darkrockstudios.apps.hammer.operations.core.TimelineModeDto
 import com.darkrockstudios.apps.hammer.operations.core.TimelineMoveInput
 import com.darkrockstudios.apps.hammer.operations.core.TimelinePlaceInput
@@ -26,6 +33,11 @@ import com.darkrockstudios.apps.hammer.operations.core.TimelineSetInput
 import com.darkrockstudios.apps.hammer.operations.core.TimelineSettings
 import com.darkrockstudios.apps.hammer.operations.core.TimelineSettingsWriteInput
 import com.darkrockstudios.apps.hammer.operations.core.TimelineUpdateInput
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.put
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.koin.core.component.get
@@ -36,10 +48,13 @@ import kotlin.test.assertTrue
 
 class TimelineOperationsTest : KoinOperationsTest() {
 
+	private lateinit var def: ProjectDef
+
 	@BeforeEach
 	fun setUp() = onTestThread {
 		val created = get<ProjectsRepository>().createProject(PROJECT, seedDefaultLanguage = false)
 		check(created is ClientResult.Success<ProjectDef>)
+		def = created.data
 	}
 
 	private fun failsWith(kind: OperationException.Kind, block: suspend () -> Unit) = onTestThread {
@@ -54,13 +69,49 @@ class TimelineOperationsTest : KoinOperationsTest() {
 	private suspend fun entry(name: String, kind: EntryKind) =
 		run<EntryCreateInput, Entry>("entry.create", EntryCreateInput(PROJECT, name, kind, ""))
 
-	private suspend fun create(content: String, start: Map<String, Long>? = null) =
-		run<TimelineCreateInput, TimelineEntry>("timeline.create", TimelineCreateInput(PROJECT, content, start = start))
+	private suspend fun create(content: String, start: Map<String, Long>? = null, timeline: String? = null) =
+		run<TimelineCreateInput, TimelineEntry>(
+			"timeline.create",
+			TimelineCreateInput(PROJECT, content, start = start, timeline = timeline),
+		)
 
-	private suspend fun place(kind: TimelineKindDto, subject: Int, start: Map<String, Long>? = null) =
-		run<TimelinePlaceInput, TimelineEntry>("timeline.place", TimelinePlaceInput(PROJECT, kind, subject, start = start))
+	private suspend fun place(
+		kind: TimelineKindDto,
+		subject: Int,
+		start: Map<String, Long>? = null,
+		timeline: String? = null,
+	) = run<TimelinePlaceInput, TimelineEntry>(
+		"timeline.place",
+		TimelinePlaceInput(PROJECT, kind, subject, start = start, timeline = timeline),
+	)
 
-	private suspend fun events() = run<ProjectInput, Timeline>("timeline.list", ProjectInput(PROJECT)).events
+	private suspend fun events(timeline: String? = null) =
+		run<TimelineListInput, Timeline>("timeline.list", TimelineListInput(PROJECT, timeline)).events
+
+	private suspend fun orphans() =
+		run<TimelineListInput, Timeline>("timeline.list", TimelineListInput(PROJECT, orphaned = true)).events
+
+	private suspend fun read(id: Int) = run<ProjectItemInput, TimelineEntry>("timeline.read", ProjectItemInput(PROJECT, id))
+
+	private suspend fun set(input: TimelineSetInput) = run<TimelineSetInput, TimelineEntry>("timeline.set", input)
+
+	private suspend fun readSettings() = run<ProjectInput, TimelineSettings>("timeline.settings.read", ProjectInput(PROJECT))
+
+	private suspend fun newTimeline(
+		name: String,
+		mode: TimelineModeDto? = null,
+		calendar: CalendarDto? = null,
+		laneOrder: List<String> = emptyList(),
+	) = run<TimelineDefCreateInput, TimelineDefDto>(
+		"timeline.def.create",
+		TimelineDefCreateInput(PROJECT, name, mode, calendar, laneOrder),
+	)
+
+	private suspend fun deleteTimeline(timeline: String) =
+		run<TimelineDefDeleteInput, TimelineDefDeleted>("timeline.def.delete", TimelineDefDeleteInput(PROJECT, timeline))
+
+	private suspend fun gregorian(name: String = "Before the evening") =
+		newTimeline(name, TimelineModeDto.Dated, CalendarDto(CalendarPresetDto.Gregorian))
 
 	private suspend fun settings(input: TimelineSettingsWriteInput) =
 		run<TimelineSettingsWriteInput, TimelineSettings>("timeline.settings.write", input)
@@ -272,6 +323,235 @@ class TimelineOperationsTest : KoinOperationsTest() {
 		invalid { run<TimelineMoveInput, TimelineEntry>("timeline.move", TimelineMoveInput(PROJECT, first.id, 1)) }
 		invalid { run<TimelineCreateInput, TimelineEntry>("timeline.create", TimelineCreateInput(PROJECT, "Third", index = 0)) }
 		invalid { create("Undated") }
+	}
+
+	@Test
+	fun `timeline def create adds a timeline that settings read lists after main`() = onTestThread {
+		val created = newTimeline(
+			" Before the evening ",
+			TimelineModeDto.Dated,
+			CalendarDto(CalendarPresetDto.Gregorian),
+			laneOrder = listOf("Col. Hayes", " Pike "),
+		)
+
+		assertEquals("Before the evening", created.name)
+		assertEquals(TimelineModeDto.Dated to listOf("Col. Hayes", "Pike"), created.mode to created.laneOrder)
+		assertTrue(created.id != "main")
+		val settings = readSettings()
+		assertEquals(listOf("main", created.id), settings.timelines.map { it.id })
+		assertEquals(created, settings.timelines.last())
+		assertEquals(0, settings.orphaned)
+	}
+
+	@Test
+	fun `timeline def create refuses a taken name and a dated timeline without a calendar`() {
+		onTestThread { newTimeline("Before") }
+		invalid { newTimeline("before") }
+		invalid { newTimeline("Main") }
+		invalid { newTimeline("Later", TimelineModeDto.Dated) }
+		invalid { newTimeline("Later", laneOrder = listOf(" ")) }
+	}
+
+	@Test
+	fun `create, place, and list work on the timeline named, and entries say which`() = onTestThread {
+		val other = newTimeline("Before").id
+		val landfall = scene("Landfall").id
+		val onMain = place(TimelineKindDto.Scene, landfall)
+		val onOther = place(TimelineKindDto.Scene, landfall, timeline = other)
+		val plain = create("Hayes arrives", timeline = other)
+
+		assertEquals("main", onMain.timeline)
+		assertEquals(other to other, onOther.timeline to plain.timeline)
+		assertEquals(listOf(onMain.id), events().map { it.id })
+		assertEquals(events(), events("main"))
+		assertEquals(listOf(onOther.id, plain.id), events(other).map { it.id })
+		assertEquals(other, read(plain.id).timeline)
+	}
+
+	@Test
+	fun `main is spelled out on output`() = onTestThread {
+		create("Landfall")
+
+		val output = get<OperationRegistry>().dispatch("timeline.list", buildJsonObject { put("project", PROJECT) })
+
+		val entry = output.jsonObject.getValue("events").jsonArray.single().jsonObject
+		assertEquals(JsonPrimitive("main"), entry["timeline"])
+	}
+
+	@Test
+	fun `a placement is refused only on a timeline it is already on`() {
+		val (other, landfall) = onTestThread {
+			val other = newTimeline("Before").id
+			val landfall = scene("Landfall").id
+			place(TimelineKindDto.Scene, landfall, timeline = other)
+			other to landfall
+		}
+		invalid { place(TimelineKindDto.Scene, landfall, timeline = other) }
+		onTestThread { place(TimelineKindDto.Scene, landfall, timeline = "main") }
+	}
+
+	@Test
+	fun `an unknown timeline is not found`() {
+		val event = onTestThread { create("Landfall") }
+		val landfall = onTestThread { scene("Landfall").id }
+		val notFound = OperationException.Kind.NotFound
+		failsWith(notFound) { events("nope") }
+		failsWith(notFound) { create("Storm", timeline = "nope") }
+		failsWith(notFound) { place(TimelineKindDto.Scene, landfall, timeline = "nope") }
+		failsWith(notFound) { set(TimelineSetInput(PROJECT, event.id, timeline = "nope")) }
+		failsWith(notFound) { settings(TimelineSettingsWriteInput(PROJECT, name = "Story", timeline = "nope")) }
+		failsWith(notFound) { deleteTimeline("nope") }
+		val failure = onTestThread { assertFailsWith<OperationException> { events("nope") } }
+		assertEquals("No timeline nope", failure.message)
+	}
+
+	@Test
+	fun `index and move count only the event's own timeline`() = onTestThread {
+		val other = newTimeline("Before").id
+		create("Main one")
+		create("Main two")
+		val first = create("First", timeline = other)
+		val second = create("Second", timeline = other)
+
+		run<TimelineMoveInput, TimelineEntry>("timeline.move", TimelineMoveInput(PROJECT, second.id, 0))
+		val third = run<TimelineCreateInput, TimelineEntry>(
+			"timeline.create",
+			TimelineCreateInput(PROJECT, "Third", index = 1, timeline = other),
+		)
+
+		assertEquals(listOf(second.id, third.id, first.id), events(other).map { it.id })
+		assertEquals(listOf("Main one", "Main two"), events().map { it.content })
+	}
+
+	@Test
+	fun `an index past the named timeline's end is invalid`() {
+		val other = onTestThread {
+			create("Main one")
+			create("Main two")
+			newTimeline("Before").id
+		}
+		invalid {
+			run<TimelineCreateInput, TimelineEntry>("timeline.create", TimelineCreateInput(PROJECT, "Far", index = 1, timeline = other))
+		}
+	}
+
+	@Test
+	fun `timeline set moves an event, taking a start when its own does not fit the target`() {
+		val (other, event) = onTestThread {
+			gregorian().id to create("Hayes signs the note", start = mapOf("year" to 97L, "day" to 210L))
+		}
+
+		val refused = onTestThread {
+			assertFailsWith<OperationException> { set(TimelineSetInput(PROJECT, event.id, timeline = other)) }
+		}
+		assertEquals("A date or calendar does not fit; see timeline.settings.read for the calendar", refused.message)
+		assertEquals("main", onTestThread { read(event.id) }.timeline)
+
+		val start = mapOf("year" to 1922L, "month" to 9L, "day" to 14L)
+		val moved = onTestThread {
+			set(TimelineSetInput(PROJECT, event.id, timeline = other, start = start, lane = "Col. Hayes"))
+		}
+
+		assertEquals(other, moved.timeline)
+		assertEquals(start to "Col. Hayes", moved.start to moved.lane)
+		assertEquals(emptyList(), onTestThread { events() })
+		assertEquals(listOf(event.id), onTestThread { events(other) }.map { it.id })
+	}
+
+	@Test
+	fun `timeline set takes main by name and leaves an event on its own timeline`() = onTestThread {
+		val other = newTimeline("Before").id
+		val event = create("Landfall", timeline = other)
+
+		val laned = set(TimelineSetInput(PROJECT, event.id, timeline = other, lane = "Keep"))
+		assertEquals(other to "Keep", laned.timeline to laned.lane)
+
+		val back = set(TimelineSetInput(PROJECT, event.id, timeline = "main"))
+		assertEquals("main" to "Keep", back.timeline to back.lane)
+	}
+
+	@Test
+	fun `timeline settings write changes and renames only the timeline named`() {
+		val other = onTestThread {
+			val other = newTimeline("Before").id
+			create("Main event", start = mapOf("year" to 3L))
+
+			val written = settings(
+				TimelineSettingsWriteInput(
+					PROJECT,
+					name = "Long ago",
+					mode = TimelineModeDto.Dated,
+					calendar = CalendarDto(CalendarPresetDto.Gregorian),
+					laneOrder = listOf("Pike"),
+					timeline = other,
+				)
+			)
+
+			val (main, renamed) = written.timelines
+			assertEquals(TimelineDefDto("main", "Main", TimelineModeDto.Manual, null, emptyList()), main)
+			assertEquals(
+				TimelineDefDto(other, "Long ago", TimelineModeDto.Dated, CalendarDto(CalendarPresetDto.Gregorian), listOf("Pike")),
+				renamed,
+			)
+			assertEquals(mapOf("year" to 3L), events().single().start)
+			other
+		}
+
+		invalid { settings(TimelineSettingsWriteInput(PROJECT, name = "main", timeline = other)) }
+		onTestThread {
+			settings(TimelineSettingsWriteInput(PROJECT, name = "Story", timeline = "main"))
+			assertEquals(listOf("Story", "Long ago"), readSettings().timelines.map { it.name })
+		}
+	}
+
+	@Test
+	fun `timeline def delete deletes the timeline and its events but refuses main`() {
+		invalid { deleteTimeline("main") }
+
+		val (other, onOther, landfall) = onTestThread {
+			val other = newTimeline("Before").id
+			val landfall = scene("Landfall").id
+			create("Kept")
+			val onOther = listOf(create("Gone", timeline = other).id, place(TimelineKindDto.Scene, landfall, timeline = other).id)
+			Triple(other, onOther, landfall)
+		}
+
+		val deleted = onTestThread { deleteTimeline(other) }
+
+		assertEquals(TimelineDefDeleted(other, 2), deleted)
+		assertEquals(listOf("main"), onTestThread { readSettings() }.timelines.map { it.id })
+		assertEquals(listOf("Kept"), onTestThread { events() }.map { it.content })
+		onTestThread { assertEquals(0, readSettings().orphaned) }
+		onTestThread { assertEquals(listOf(), orphans()) }
+		onOther.forEach { id -> failsWith(OperationException.Kind.NotFound) { read(id) } }
+		failsWith(OperationException.Kind.NotFound) { deleteTimeline(other) }
+		onTestThread { place(TimelineKindDto.Scene, landfall) }
+	}
+
+	@Test
+	fun `events left on a deleted timeline are listed as orphaned, and can be read and moved`() {
+		val (other, straggler) = onTestThread {
+			val other = newTimeline("Before").id
+			val straggler = create("Made offline", timeline = other)
+			create("On main")
+			temporaryProjectTask(def) { scope ->
+				scope.get<ProjectDataRepository>().updateData { it.copy(deletedTimelines = it.deletedTimelines + other) }
+			}
+			other to straggler
+		}
+
+		onTestThread {
+			assertEquals(listOf(straggler.id to other), orphans().map { it.id to it.timeline })
+			assertEquals(1, readSettings().orphaned)
+			assertEquals(listOf("main"), readSettings().timelines.map { it.id })
+			assertEquals(other, read(straggler.id).timeline)
+		}
+		invalid { run<TimelineListInput, Timeline>("timeline.list", TimelineListInput(PROJECT, "main", orphaned = true)) }
+		failsWith(OperationException.Kind.NotFound) { events(other) }
+
+		val moved = onTestThread { set(TimelineSetInput(PROJECT, straggler.id, timeline = "main")) }
+		assertEquals("main", moved.timeline)
+		onTestThread { assertEquals(emptyList(), orphans()) }
 	}
 
 	private companion object {

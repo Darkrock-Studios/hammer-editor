@@ -269,16 +269,18 @@ lands in place.
 | `image.replace` | Write | New bytes and extension for an image; its id stays, so everything using it follows |
 | `image.rename` | Write | |
 | `image.delete` | Destructive | Takes the image out of every entry and text using it, and off the project cover, first. `removedFrom` lists each with a `kind` and an `id`; kind `cover` has no id |
-| `timeline.list` | Read | Events in display order, each with `kind`, `subject`, `displayTitle`, `title`, `label`, `lane`, `milestone`, `start`, `end`, `references`, `cachedTitle`. `date` is a deprecated alias of `label` |
-| `timeline.read` | Read | One event, as `timeline.list` shows it |
-| `timeline.create` | Write | A plain event: text, plus optional title, label, tags, references, lane, milestone, start, end, and `index` (manual timelines only) |
+| `timeline.list` | Read | One timeline's events in display order (`timeline`, default main), or with `orphaned` the stragglers. Each has `timeline`, `kind`, `subject`, `displayTitle`, `title`, `label`, `lane`, `milestone`, `start`, `end`, `references`, `cachedTitle`. `date` is a deprecated alias of `label` |
+| `timeline.read` | Read | One event on any timeline, as `timeline.list` shows it |
+| `timeline.create` | Write | A plain event on `timeline` (default main): text, plus optional title, label, tags, references, lane, milestone, start, end, and `index` (manual timelines only) |
 | `timeline.update` | Write | For plain events: the text (stdin) is always required and replaced; other fields change only when given, and an empty value clears one. Edit a placement with `timeline.set` |
-| `timeline.move` | Write | Manual timelines only |
+| `timeline.move` | Write | Within the event's own timeline; manual timelines only |
 | `timeline.delete` | Destructive | Deleting a placement leaves its entry or scene alone |
-| `timeline.place` | Write | Places an encyclopedia entry of type event, or a scene, once each |
-| `timeline.set` | Write | Sets single fields of any event, and is how a placement is edited; `clear` names fields to empty: title, label, lane, start, end. A placement takes only label, lane, milestone, start, end |
-| `timeline.settings.read` | Read | Name, mode (`manual` or `dated`), calendar, lane order |
-| `timeline.settings.write` | Write | Mode, calendar, name, lane order; `spacing` when switching to dated |
+| `timeline.place` | Write | Places an encyclopedia entry of type event, or a scene, on `timeline` (default main), once on each timeline |
+| `timeline.set` | Write | Sets single fields of any event, and is how a placement is edited; `clear` names fields to empty: title, label, lane, start, end. A placement takes only label, lane, milestone, start, end. `timeline` moves the event there, with `start` and `end` as its dates on that timeline's calendar |
+| `timeline.settings.read` | Read | Every timeline, main first: `id`, name, mode (`manual` or `dated`), calendar, lane order; and `orphaned`, the number of stragglers |
+| `timeline.settings.write` | Write | One timeline (`timeline`, default main): mode, calendar, name (a rename), lane order; `spacing` when switching to dated |
+| `timeline.def.create` | Write | A new timeline: `name`, optional `mode`, `calendar`, `laneOrder`. Returns it with its `id` |
+| `timeline.def.delete` | Destructive | Deletes `timeline` and every event on it; refuses main. Returns `timeline` and `deletedEvents` |
 
 A timeline event has a `kind`: `event` (authored, with its own words), `entry`
 (an encyclopedia entry of type event, placed), or `scene` (a scene, placed). A
@@ -288,6 +290,19 @@ dates. Dates (`start`, `end`) are maps of calendar units to whole numbers,
 coarsest first, such as `{"year": 97, "day": 210}`; see
 `timeline.settings.read` for the calendar. A timeline has at most 5 lanes; a
 write that would add a sixth is rejected.
+
+A project has a main timeline, id `"main"`, and any others made with
+`timeline.def.create`, each with its own name, mode, calendar, and lane order.
+`timeline.list`, `create`, `place`, and `settings.write` take `timeline`, a
+timeline's id; left out, it is main, and `"main"` is accepted too. An unknown
+id is not found. Operations on one event find it on whichever timeline holds
+it, and output always spells its timeline out, `"main"` included. An entry or
+a scene can be placed on several timelines, once on each. Deleting a timeline
+deletes every event on it, placements included, while their entries and
+scenes stay. A sync can leave stragglers: events made on another device in a
+timeline deleted since. They keep that timeline's id; `timeline.settings.read`
+counts them as `orphaned`, `timeline.list` with `orphaned` lists them, and
+`timeline.set` with `timeline` moves one to a live timeline.
 
 A `manual` timeline is ordered by hand: `index` and `timeline.move` place
 events, and `label` is the shown "when". A `dated` timeline is ordered by
