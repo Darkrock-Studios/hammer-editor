@@ -509,7 +509,7 @@ private fun DialogButtons(
 
 /** [error] as the toast would say it; null while there is none, or until it is read. */
 @Composable
-private fun errorText(error: TimeLineEventError?): String? {
+internal fun errorText(error: TimeLineEventError?): String? {
 	if (error == null || error.isSuccess) return null
 	val strRes = rememberStrRes()
 	var message by remember(error) { mutableStateOf<String?>(null) }

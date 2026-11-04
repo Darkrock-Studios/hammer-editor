@@ -36,6 +36,7 @@ import com.darkrockstudios.apps.hammer.common.data.timelinerepository.formatStor
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionPlace
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 const val TIME_LINE_VIEW_OPEN_SUBJECT_TAG = "timeline-view-open-subject"
 const val TIME_LINE_VIEW_SUBJECT_MISSING_TAG = "timeline-view-subject-missing"
@@ -47,6 +48,10 @@ const val TIME_LINE_VIEW_END_TAG = "timeline-view-end"
 const val TIME_LINE_VIEW_WHEN_TAG = "timeline-view-when"
 const val TIME_LINE_VIEW_FRAME_TAG = "timeline-view-frame"
 const val TIME_LINE_VIEW_BODY_TAG = "timeline-view-body"
+const val TIME_LINE_VIEW_MOVE_TAG = "timeline-view-move"
+const val TIME_LINE_VIEW_ALSO_ON_TAG = "timeline-view-also-on"
+
+fun timelineAlsoOnChipTag(timelineId: String) = "timeline-view-also-on-$timelineId"
 
 private val ModalMaxWidth = TextEditorDefaults.MAX_WIDTH * 1.25f
 private val ModalMaxHeight = 760.dp
@@ -180,6 +185,7 @@ fun ViewTimeLineEventUi(
 					onEdit = { component.beginEdit() },
 					onSave = saveChanges,
 					onCancel = { component.confirmDiscard() },
+					onMove = if (event != null && state.moveTargets.isNotEmpty()) component::startMove else null,
 				)
 
 				HorizontalDivider(
@@ -234,6 +240,7 @@ fun ViewTimeLineEventUi(
 							state = state,
 							onOpenSubject = component::openSubject,
 							onOpenReference = component::openReference,
+							onShowPlacement = component::showPlacement,
 							modifier = Modifier.weight(1f, fill = false),
 						)
 
@@ -255,6 +262,21 @@ fun ViewTimeLineEventUi(
 			applyReferencePicks(state.references, refs, state.catalog, component::addReference, component::removeReference)
 		},
 		onDismiss = { pickingReferences = false },
+	)
+
+	MoveToTimelineDialog(
+		visible = state.confirmMove,
+		targets = state.moveTargets,
+		onMove = { target, start, end ->
+			// Read before moving: the target leaves the move targets once the event is on it.
+			val name = state.moveTargets.firstOrNull { it.id == target }?.name.orEmpty()
+			val error = withContext(dispatcherDefault) { component.moveToTimeline(target, start, end) }
+			if (error == TimeLineEventError.NONE) {
+				scope.launch { rootSnackbar.showSnackbar(strRes.get(Res.string.timeline_move_done, name)) }
+			}
+			error
+		},
+		onDismiss = { component.cancelMove() },
 	)
 
 	if (state.confirmClose) {

@@ -67,6 +67,13 @@ fun ScreenViewTimeLineEventUiDatedPreview() {
 	ViewPreview(datedSceneState)
 }
 
+/** A scene placed on two other timelines too, with a way to move it. */
+@Preview
+@Composable
+fun ScreenViewTimeLineEventUiAlsoOnPreview() {
+	ViewPreview(alsoOnState)
+}
+
 @Preview
 @Composable
 fun ScreenViewTimeLineEventUiDatedEditingPreview() {
@@ -162,6 +169,18 @@ private val datedSceneState = sceneState.copy(
 	end = datedEnd,
 	mode = TimelineMode.DATED,
 	calendar = CalendarDef(epochName = "The Landing"),
+)
+
+private val alsoOnState = datedSceneState.copy(
+	alsoOn = listOf(
+		ViewTimeLineEvent.OtherPlacement(timelineId = "main", name = "Main", eventId = 7),
+		ViewTimeLineEvent.OtherPlacement(
+			timelineId = "scratch",
+			name = "Scratch: what the keeper remembers of the wreck",
+			eventId = 12,
+		),
+	),
+	moveTargets = previewMoveTargets,
 )
 
 private val entryEvent = TimeLineEvent(id = 3, order = 2, kind = TimelineKind.ENTRY, subject = 24, lane = "Village")

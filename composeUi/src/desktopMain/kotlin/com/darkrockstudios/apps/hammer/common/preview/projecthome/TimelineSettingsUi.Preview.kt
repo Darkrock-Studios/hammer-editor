@@ -21,6 +21,7 @@ import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.entryUnits
 import com.darkrockstudios.apps.hammer.common.preview.KoinApplicationPreview
 import com.darkrockstudios.apps.hammer.common.preview.globalSettingsPreview
+import com.darkrockstudios.apps.hammer.common.preview.timeline.previewThreeTimelines
 import com.darkrockstudios.apps.hammer.common.projecthome.TimelineSettingsUi
 
 private val storyCalendar = CalendarDef(CalendarPreset.STORY, epochName = "The Landing")
@@ -65,6 +66,37 @@ fun TimelineSettingsUiModeDialogPreview() {
 			def = TimelineDef.DEFAULT,
 			lanes = previewLanes,
 			pendingModeSwitch = ModeSwitchPrompt.ToDated(units, units.first().name, storyCalendar),
+		)
+	)
+}
+
+/** Main, a dated backstory being edited, and a scratch timeline. */
+@Preview
+@Composable
+fun TimelineSettingsUiThreeTimelinesPreview() {
+	val editing = previewThreeTimelines[1]
+	SettingsPreview(
+		TimelineSettings.State(
+			timelines = previewThreeTimelines,
+			editingId = editing.def.id,
+			def = editing.def,
+			lanes = previewLanes,
+		)
+	)
+}
+
+/** Switching the backstory to manual names it and counts only its entries. */
+@Preview
+@Composable
+fun TimelineSettingsUiNamedModeDialogPreview() {
+	val editing = previewThreeTimelines[1]
+	SettingsPreview(
+		TimelineSettings.State(
+			timelines = previewThreeTimelines,
+			editingId = editing.def.id,
+			def = editing.def,
+			lanes = previewLanes,
+			pendingModeSwitch = ModeSwitchPrompt.ToManual(timeline = editing.def, eventCount = editing.eventCount),
 		)
 	)
 }

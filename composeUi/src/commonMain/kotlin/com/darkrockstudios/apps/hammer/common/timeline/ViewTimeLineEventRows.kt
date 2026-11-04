@@ -65,6 +65,7 @@ internal fun StampRow(
 	onEdit: () -> Unit,
 	onSave: () -> Unit,
 	onCancel: () -> Unit,
+	onMove: (() -> Unit)? = null,
 ) {
 	val event = state.event
 	val sectionTitle = if (isEditing) {
@@ -73,8 +74,9 @@ internal fun StampRow(
 		state.kind.label()
 	}
 
+	val moveShown = !isEditing && onMove != null
 	HdDetailStampRow(
-		stackActionsWhenNarrow = isEditing,
+		stackActionsWhenNarrow = isEditing || moveShown,
 		leading = {
 			HdMonoLabel(
 				text = "§ III · $sectionTitle",
@@ -125,6 +127,13 @@ internal fun StampRow(
 					onClick = onCancel,
 				)
 			} else {
+				if (onMove != null) {
+					HdHairlineButton(
+						label = Res.string.timeline_view_menu_move.get(),
+						onClick = onMove,
+						modifier = Modifier.testTag(TIME_LINE_VIEW_MOVE_TAG),
+					)
+				}
 				HdHairlineButton(
 					label = Res.string.timeline_view_edit_button.get(),
 					onClick = onEdit,
