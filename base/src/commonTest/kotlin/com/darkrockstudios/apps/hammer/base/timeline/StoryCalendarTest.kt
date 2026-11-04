@@ -129,7 +129,7 @@ class StoryCalendarTest {
 	}
 
 	@Test
-	fun `a range reports an invalid start, then an invalid end, then an end before its start`() {
+	fun `a range reports an invalid start then an invalid end then an end before its start`() {
 		val calendar = CalendarDef(STORY)
 		val bad = date("day" to 3)
 		assertEquals(
