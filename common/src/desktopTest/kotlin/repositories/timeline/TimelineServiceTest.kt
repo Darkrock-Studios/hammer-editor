@@ -1,6 +1,7 @@
 package repositories.timeline
 
 import PROJECT_1_NAME
+import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
 import com.darkrockstudios.apps.hammer.base.timeline.CalendarPreset
 import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
@@ -14,6 +15,7 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
+import com.darkrockstudios.apps.hammer.common.data.projectdata.StoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
@@ -173,6 +175,10 @@ class TimelineServiceTest : BaseTest() {
 		createTimeline(name, TimelineMode.DATED, calendar).def()
 
 	private suspend fun storedData() = ProjectDataDatasource(ffs, toml, projDef).load().data
+
+	/** Writes [timelines] to settings.toml as sync or a hand edit could, bypassing the service's rules. */
+	private suspend fun storeTimelines(vararg timelines: TimelineDef) =
+		ProjectDataDatasource(ffs, toml, projDef).save(StoredProjectData(ProjectData(timelines = timelines.toList())))
 
 	private suspend fun TimelineService.datedStory(calendar: CalendarDef = CalendarDef()) {
 		assertEquals(TimelineResult.Ok(null), updateDefinition { it.copy(mode = TimelineMode.DATED, calendar = calendar) })
@@ -832,6 +838,51 @@ class TimelineServiceTest : BaseTest() {
 		assertEquals("Later", service.renameTimeline(backstory.id, " Later ").def().name)
 		assertEquals("Later", service.definition(backstory.id)?.name)
 		assertEquals(TimeLineEventError.TIMELINE_NOT_FOUND, service.renameTimeline("gone0001", "Gone").error())
+	}
+
+	@Test
+	fun `a stored timeline whose name or id breaks the rules can still be edited`() = runTest(mainTestDispatcher) {
+		val blank = TimelineDef(id = "aaaa0001", name = "  ")
+		val long = TimelineDef(id = "odd.id!", name = "x".repeat(TimelineLimits.MAX_TIMELINE_NAME + 1))
+		storeTimelines(blank, long)
+		val service = createService()
+		val calendar = CalendarDef(epochName = "Landing")
+
+		assertEquals(TimelineResult.Ok(null), service.updateDefinition(blank.id) { it.copy(laneOrder = listOf("North")) })
+		assertEquals(TimelineResult.Ok(null), service.switchToDated(calendar, timeline = long.id))
+
+		assertEquals(blank.copy(laneOrder = listOf("North")), service.definition(blank.id))
+		assertEquals(long.copy(mode = TimelineMode.DATED, calendar = calendar), service.definition(long.id))
+		assertEquals(TimeLineEventError.TIMELINE_NAME_INVALID, service.renameTimeline(blank.id, " ").error())
+		assertEquals(
+			TimeLineEventError.TIMELINE_NAME_INVALID,
+			service.renameTimeline(long.id, "y".repeat(TimelineLimits.MAX_TIMELINE_NAME + 1)).error(),
+		)
+		assertEquals("Fixed", service.renameTimeline(blank.id, " Fixed ").def().name)
+	}
+
+	@Test
+	fun `a switch the definition rules refuse leaves every event as it was`() = runTest(mainTestDispatcher) {
+		val backstory = TimelineDef(
+			id = "aaaa0001",
+			name = "Backstory",
+			mode = TimelineMode.DATED,
+			calendar = CalendarDef(),
+			laneOrder = listOf(" "),
+		)
+		storeTimelines(backstory)
+		val service = createService()
+		val event = service.createEvent(
+			TimelineEventDraft(title = "Old", start = date("year" to 97, "day" to 210), timeline = backstory.id)
+		).event()
+		val gregorian = CalendarDef(CalendarPreset.GREGORIAN)
+
+		assertEquals(TimeLineEventError.LANE_INVALID, service.switchToDated(gregorian, timeline = backstory.id).error())
+		assertEquals(TimeLineEventError.LANE_INVALID, service.switchPreset(gregorian, timeline = backstory.id).error())
+		assertEquals(TimeLineEventError.LANE_INVALID, service.switchToManual(timeline = backstory.id).error())
+
+		assertEquals(event, stored(event.id))
+		assertEquals(backstory, service.definition(backstory.id))
 	}
 
 	@Test

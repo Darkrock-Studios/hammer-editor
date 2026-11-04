@@ -194,8 +194,9 @@ class TimelineService(
 
 	/**
 	 * Writes the result of [transform] over live timeline [timeline]; its id cannot change. Rejects an
-	 * invalid calendar, a DATED def without one, a lane order that takes the timeline past
-	 * [TimelineLimits.MAX_LANES], and a name that is blank, too long or already taken.
+	 * invalid calendar, a DATED def without one, a bad lane, a lane order that takes the timeline past
+	 * [TimelineLimits.MAX_LANES], and a new name that is blank, too long or already taken. A stored name
+	 * is not checked unless it changes, so a def that arrived with one the rules refuse can still be edited.
 	 */
 	suspend fun updateDefinition(
 		timeline: String = TimelineDef.MAIN_ID,
@@ -209,13 +210,10 @@ class TimelineService(
 				error = TimeLineEventError.TIMELINE_NOT_FOUND
 				return@updateData data
 			}
-			val transformed = transform(current)
-			val next = transformed.copy(id = current.id, name = transformed.name.trim())
+			val next = revised(current, transform(current))
 			val eventLanes = events.filter { it.timelineId == current.id }.mapNotNullTo(HashSet()) { it.lane }
-			error = definitionProblem(next).orElse {
+			error = revisionProblem(data, current, next).orElse {
 				laneLimitProblem(eventLanes + current.laneOrder, eventLanes + next.laneOrder)
-			}.orElse {
-				if (next.name == current.name) TimeLineEventError.NONE else nameTaken(data, next.name, current.id)
 			}
 			if (!error.isSuccess || next == current) data else data.withTimeline(next)
 		}
@@ -240,7 +238,9 @@ class TimelineService(
 			while (id in taken) id = nextTimelineId()
 
 			val def = TimelineDef(id = id, name = name.trim(), mode = mode, calendar = calendar)
-			val error = definitionProblem(def).orElse { nameTaken(data, def.name, def.id) }
+			val error = (if (isValidTimelineId(def.id)) TimeLineEventError.NONE else TimeLineEventError.TIMELINE_NOT_FOUND)
+				.orElse { nameProblem(data, def.name, def.id) }
+				.orElse { definitionProblem(def) }
 			if (!error.isSuccess) {
 				outcome = TimelineDefResult.Invalid(error)
 				data
@@ -599,7 +599,8 @@ class TimelineService(
 		timeline: String = TimelineDef.MAIN_ID,
 	): TimelineResult = writeLock.withLock {
 		val def = liveDef(timeline) ?: return invalid(TimeLineEventError.TIMELINE_NOT_FOUND)
-		if (StoryCalendar.validate(calendar) != null) return invalid(TimeLineEventError.DATE_INVALID)
+		val revisionError = revisionProblem(def) { it.copy(mode = TimelineMode.DATED, calendar = calendar) }
+		if (!revisionError.isSuccess) return invalid(revisionError)
 
 		val ordered = currentDisplayOrder(def)
 		val undated = ordered.filterNot { hasValidStart(it, calendar) }
@@ -629,6 +630,9 @@ class TimelineService(
 		timeline: String = TimelineDef.MAIN_ID,
 	): TimelineResult = writeLock.withLock {
 		val def = liveDef(timeline) ?: return invalid(TimeLineEventError.TIMELINE_NOT_FOUND)
+		val revisionError = revisionProblem(def) { it.copy(mode = TimelineMode.MANUAL) }
+		if (!revisionError.isSuccess) return invalid(revisionError)
+
 		val calendar = def.calendar
 		val ordered = currentDisplayOrder(def)
 		val frozen = freezeOrder(ordered)
@@ -656,7 +660,8 @@ class TimelineService(
 		timeline: String = TimelineDef.MAIN_ID,
 	): TimelineResult = writeLock.withLock {
 		val def = liveDef(timeline) ?: return invalid(TimeLineEventError.TIMELINE_NOT_FOUND)
-		if (StoryCalendar.validate(calendar) != null) return invalid(TimeLineEventError.DATE_INVALID)
+		val revisionError = revisionProblem(def) { it.copy(calendar = calendar) }
+		if (!revisionError.isSuccess) return invalid(revisionError)
 
 		val previous = def.calendar
 		val updates = eventsOf(def.id).mapNotNull { event ->
@@ -902,13 +907,36 @@ class TimelineService(
 	private suspend fun currentDisplayOrder(def: TimelineDef): List<TimeLineEvent> =
 		displayOrder(eventsOf(def.id), def.mode, def.calendar)
 
-	/** [TimeLineEventError.TIMELINE_NAME_INVALID] when a live timeline other than [ownId] is called [name]. */
-	private fun nameTaken(data: ProjectData, name: String, ownId: String): TimeLineEventError =
-		if (data.liveTimelines().any { it.id != ownId && it.name.equals(name, ignoreCase = true) }) {
+	/**
+	 * [TimeLineEventError.TIMELINE_NAME_INVALID] when [name] is blank, too long, or what a live
+	 * timeline other than [ownId] is called, in any case.
+	 */
+	private fun nameProblem(data: ProjectData, name: String, ownId: String): TimeLineEventError =
+		if (
+			name.isBlank() ||
+			name.length > TimelineLimits.MAX_TIMELINE_NAME ||
+			data.liveTimelines().any { it.id != ownId && it.name.equals(name, ignoreCase = true) }
+		) {
 			TimeLineEventError.TIMELINE_NAME_INVALID
 		} else {
 			TimeLineEventError.NONE
 		}
+
+	/** [transformed] as [updateDefinition] would write it over [current]: same id, and a new name trimmed. */
+	private fun revised(current: TimelineDef, transformed: TimelineDef): TimelineDef = transformed.copy(
+		id = current.id,
+		name = if (transformed.name == current.name) current.name else transformed.name.trim(),
+	)
+
+	/** Why [updateDefinition] would refuse to replace [current] with [next], which [revised] made. */
+	private fun revisionProblem(data: ProjectData, current: TimelineDef, next: TimelineDef): TimeLineEventError =
+		definitionProblem(next).orElse {
+			if (next.name == current.name) TimeLineEventError.NONE else nameProblem(data, next.name, current.id)
+		}
+
+	/** [revisionProblem] for applying [transform] to [current] against the stored project data. */
+	private suspend fun revisionProblem(current: TimelineDef, transform: (TimelineDef) -> TimelineDef): TimeLineEventError =
+		revisionProblem(projectDataRepository.load().data, current, revised(current, transform(current)))
 
 	/** Every reference names a live scene or an entry; an archived scene does not count. */
 	private suspend fun referenceProblem(references: Set<Int>): TimeLineEventError {
@@ -939,13 +967,10 @@ class TimelineService(
 		return laneLimitProblem(current, next)
 	}
 
+	/** The rules on a def's settings; its id and name are checked where they are chosen. */
 	private fun definitionProblem(def: TimelineDef): TimeLineEventError {
 		val calendar = def.calendar
 		return when {
-			!isValidTimelineId(def.id) -> TimeLineEventError.TIMELINE_NOT_FOUND
-			def.name.isBlank() || def.name.length > TimelineLimits.MAX_TIMELINE_NAME ->
-				TimeLineEventError.TIMELINE_NAME_INVALID
-
 			calendar != null && StoryCalendar.validate(calendar) != null -> TimeLineEventError.DATE_INVALID
 			def.mode == TimelineMode.DATED && calendar == null -> TimeLineEventError.DATE_REQUIRED
 			def.laneOrder.any { it.isBlank() || it.length > TimelineLimits.MAX_LANE } -> TimeLineEventError.LANE_INVALID
