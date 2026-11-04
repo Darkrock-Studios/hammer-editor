@@ -67,6 +67,7 @@ class EntityHasherTest {
 			end = null,
 			title = null,
 			cachedTitle = null,
+			timeline = null,
 		)
 
 		assertEquals("SAH6B_pamg_T5MCpWZM6vQ", hash)
@@ -75,6 +76,11 @@ class EntityHasherTest {
 	@Test
 	fun `hashTimelineEvent fully populated`() {
 		assertEquals(TIMELINE_POPULATED_PIN, timelineHash())
+	}
+
+	@Test
+	fun `hashTimelineEvent on a timeline`() {
+		assertEquals(TIMELINE_ON_TIMELINE_PIN, timelineHash(timeline = "a3f09c1e"))
 	}
 
 	@Test
@@ -96,6 +102,7 @@ class EntityHasherTest {
 			cachedTitle = "Landfall",
 		)
 		assertEquals(TIMELINE_POPULATED_PIN, entity.hash())
+		assertEquals(TIMELINE_ON_TIMELINE_PIN, entity.copy(timeline = "a3f09c1e").hash())
 	}
 
 	@Test
@@ -118,6 +125,7 @@ class EntityHasherTest {
 			minimal.copy(end = year0),
 			minimal.copy(title = ""),
 			minimal.copy(cachedTitle = ""),
+			minimal.copy(timeline = ""),
 		).map { it.hash() }
 
 		variants.forEach { assertNotEquals(minimal.hash(), it) }
@@ -158,6 +166,22 @@ class EntityHasherTest {
 		assertNotEquals(
 			timelineHash(title = "ab", cachedTitle = "c"),
 			timelineHash(title = "a", cachedTitle = "bc"),
+		)
+	}
+
+	@Test
+	fun `hashTimelineEvent titles and timeline do not bleed`() {
+		assertNotEquals(
+			timelineHash(title = "x", cachedTitle = null),
+			timelineHash(title = null, cachedTitle = null, timeline = "x"),
+		)
+		assertNotEquals(
+			timelineHash(cachedTitle = "x"),
+			timelineHash(cachedTitle = null, timeline = "x"),
+		)
+		assertNotEquals(
+			timelineHash(cachedTitle = "ab", timeline = "c"),
+			timelineHash(cachedTitle = "a", timeline = "bc"),
 		)
 	}
 
@@ -473,6 +497,7 @@ class EntityHasherTest {
 		end: StoryDate? = StoryDate(mapOf("year" to 97L, "day" to 212L)),
 		title: String? = "The storm",
 		cachedTitle: String? = "Landfall",
+		timeline: String? = null,
 	): String = EntityHasher.hashTimelineEvent(
 		id = 4,
 		order = 3,
@@ -488,6 +513,7 @@ class EntityHasherTest {
 		end = end,
 		title = title,
 		cachedTitle = cachedTitle,
+		timeline = timeline,
 	)
 
 	private fun entryHash(
@@ -541,5 +567,8 @@ class EntityHasherTest {
 	private companion object {
 		// Pinned once from the first implementation: a change means stored hashes of 2.0 events drift.
 		const val TIMELINE_POPULATED_PIN = "r9hoH-FCjJS-0uZeZPfgug"
+
+		// The populated event on a non-main timeline.
+		const val TIMELINE_ON_TIMELINE_PIN = "ZA9fLBllhN_Hfj9VeePffg"
 	}
 }

@@ -176,6 +176,25 @@ class ServerProjectDataRepositoryTest : BaseTest() {
 	}
 
 	@Test
+	fun `timeline tombstones save and load back verbatim`() = runTest {
+		val data = sampleData.copy(
+			timelines = listOf(TimelineDef.DEFAULT),
+			deletedTimelines = setOf("5be210d4", "a3f09c1e"),
+		)
+		val dataJson = json.encodeToJsonElement(ProjectData.serializer(), data)
+		val hash = ProjectDataHasher.hash(data)
+
+		val saved = repository.save(userId, projectDef, dataJson, originalHash = null, clientHash = hash)
+		assertTrue(isSuccess(saved))
+		assertIs<ProjectDataSaveResult.Saved>(saved.data)
+
+		val loaded = repository.load(userId, projectDef)
+		assertTrue(isSuccess(loaded))
+		assertEquals(hash, loaded.data!!.hash)
+		assertEquals(data, json.decodeFromJsonElement(ProjectData.serializer(), loaded.data!!.data))
+	}
+
+	@Test
 	fun `save rejects a payload that does not decode as ProjectData`() = runTest {
 		// Well-formed JSON, wrong shape: tags must be an array.
 		val wrongShape = JsonObject(mapOf("tags" to JsonPrimitive(5)))

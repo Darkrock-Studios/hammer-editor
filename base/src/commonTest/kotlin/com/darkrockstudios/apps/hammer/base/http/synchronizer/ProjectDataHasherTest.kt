@@ -87,6 +87,42 @@ class ProjectDataHasherTest {
 	}
 
 	@Test
+	fun `golden pin - data with timeline tombstones`() {
+		val data = fullyPopulated.copy(
+			coverImageId = 7,
+			timelines = listOf(timeline),
+			deletedTimelines = setOf("5be210d4", "a3f09c1e"),
+		)
+		assertEquals(TOMBSTONES_PIN, ProjectDataHasher.hash(data))
+	}
+
+	@Test
+	fun `empty tombstones keep the previous hash`() {
+		val data = fullyPopulated.copy(coverImageId = 7, timelines = listOf(timeline), deletedTimelines = emptySet())
+		assertEquals(TIMELINES_PIN, ProjectDataHasher.hash(data))
+	}
+
+	@Test
+	fun `tombstones affect hash and are order independent`() {
+		val without = ProjectData(timelines = listOf(timeline))
+		val with = without.copy(deletedTimelines = linkedSetOf("b", "a"))
+		assertNotEquals(ProjectDataHasher.hash(without), ProjectDataHasher.hash(with))
+		assertEquals(ProjectDataHasher.hash(with), ProjectDataHasher.hash(without.copy(deletedTimelines = linkedSetOf("a", "b"))))
+	}
+
+	@Test
+	fun `tombstone boundaries do not bleed`() {
+		assertNotEquals(
+			ProjectDataHasher.hash(ProjectData(deletedTimelines = setOf("ab", "c"))),
+			ProjectDataHasher.hash(ProjectData(deletedTimelines = setOf("a", "bc"))),
+		)
+		assertNotEquals(
+			ProjectDataHasher.hash(ProjectData(dictionaryWords = setOf("a"))),
+			ProjectDataHasher.hash(ProjectData(deletedTimelines = setOf("a"))),
+		)
+	}
+
+	@Test
 	fun `timelines affect hash`() {
 		val without = ProjectData(authorName = "Pat")
 		val with = without.copy(timelines = listOf(TimelineDef.DEFAULT))
@@ -332,5 +368,6 @@ class ProjectDataHasherTest {
 
 	private companion object {
 		const val TIMELINES_PIN = "DB65MDfONovGwrcg_i7OFQ"
+		const val TOMBSTONES_PIN = "tFEPHpBnue8Bjd4gcwNlJw"
 	}
 }

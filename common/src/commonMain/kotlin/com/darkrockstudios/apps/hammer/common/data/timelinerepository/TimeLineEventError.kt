@@ -23,7 +23,8 @@ enum class TimeLineEventError {
 	END_BEFORE_START,
 	MOVE_NOT_ALLOWED,
 	MOVE_FAILED,
-	EVENT_NOT_FOUND;
+	EVENT_NOT_FOUND,
+	TIMELINE_NOT_FOUND;
 
 	val isSuccess: Boolean
 		get() = this == NONE

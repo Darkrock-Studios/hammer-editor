@@ -230,6 +230,7 @@ class EntityHashSensitivityTest {
 				"end" to base.copy(end = StoryDate(mapOf("year" to 97L, "day" to 212L, "hour" to 3L))),
 				"title" to base.copy(title = "The calm"),
 				"cachedTitle" to base.copy(cachedTitle = "Landing"),
+				"timeline" to base.copy(timeline = "a3f09c1e"),
 			),
 		)
 	}
@@ -351,6 +352,7 @@ class EntityHashSensitivityTest {
 				"dictionaryWords" to base.copy(dictionaryWords = setOf("different")),
 				"coverImageId" to base.copy(coverImageId = 2),
 				"timelines" to base.copy(timelines = listOf(base.timelines.single().copy(laneOrder = listOf("Alice", "Keep")))),
+				"deletedTimelines" to base.copy(deletedTimelines = setOf("5be210d4")),
 			),
 		)
 	}

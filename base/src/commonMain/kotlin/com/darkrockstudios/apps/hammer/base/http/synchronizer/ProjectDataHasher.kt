@@ -103,6 +103,13 @@ object ProjectDataHasher {
 			}
 		}
 
+		// Zero bytes when empty, same rule as tags. -6 marker: -1 through -5 are taken.
+		if (data.deletedTimelines.isNotEmpty()) {
+			d.update(-6, buf)
+			d.update(data.deletedTimelines.size, buf)
+			data.deletedTimelines.sorted().forEach { id -> d.updateSized(id, buf) }
+		}
+
 		return d.digest().base64Url
 	}
 }

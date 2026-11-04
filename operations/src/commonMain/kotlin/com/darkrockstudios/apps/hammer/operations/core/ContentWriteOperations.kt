@@ -349,6 +349,7 @@ internal fun TimeLineEventError.requireNone() {
 		TimeLineEventError.MOVE_NOT_ALLOWED -> invalidInput(DATED_ORDER)
 		TimeLineEventError.MOVE_FAILED -> invalidInput("The event cannot move to that position")
 		TimeLineEventError.EVENT_NOT_FOUND -> notFound("No such timeline event")
+		TimeLineEventError.TIMELINE_NOT_FOUND -> notFound("No such timeline")
 	}
 }
 

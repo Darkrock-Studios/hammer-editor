@@ -59,4 +59,6 @@ fun TimelineRuleProblem.toEventError(): TimeLineEventError = when (this) {
 	is TimelineRuleProblem.TooManyRungs,
 	is TimelineRuleProblem.BlankUnitName,
 	is TimelineRuleProblem.UnitNameTooLong -> TimeLineEventError.DATE_INVALID
+	TimelineRuleProblem.TimelineIdInvalid,
+	TimelineRuleProblem.MainSpelledOut -> TimeLineEventError.TIMELINE_NOT_FOUND
 }

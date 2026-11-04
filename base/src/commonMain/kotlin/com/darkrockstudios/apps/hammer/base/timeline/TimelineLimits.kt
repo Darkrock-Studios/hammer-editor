@@ -10,7 +10,15 @@ object TimelineLimits {
 	const val MAX_TAG = 32
 	const val MAX_RUNGS = 8
 	const val MAX_UNIT_NAME = 32
+	const val MAX_TIMELINE_ID = 32
+	const val MAX_TIMELINE_NAME = 64
 }
+
+/** Non-blank, at most [TimelineLimits.MAX_TIMELINE_ID] characters, and only `[A-Za-z0-9_-]`. */
+fun isValidTimelineId(id: String): Boolean =
+	id.isNotBlank() &&
+		id.length <= TimelineLimits.MAX_TIMELINE_ID &&
+		id.all { it in 'a'..'z' || it in 'A'..'Z' || it in '0'..'9' || it == '_' || it == '-' }
 
 enum class TimelineDateField {
 	START,
@@ -89,6 +97,16 @@ sealed interface TimelineRuleProblem {
 		override val message get() =
 			"${field.name.lowercase()} has a unit name longer than ${TimelineLimits.MAX_UNIT_NAME}"
 	}
+
+	data object TimelineIdInvalid : TimelineRuleProblem {
+		override val message =
+			"timeline must be 1 to ${TimelineLimits.MAX_TIMELINE_ID} characters of A-Z, a-z, 0-9, _ or -"
+	}
+
+	/** Main is stored as a null timeline, never as its id. */
+	data object MainSpelledOut : TimelineRuleProblem {
+		override val message = "timeline is \"${TimelineDef.MAIN_ID}\"; main is written as no timeline"
+	}
 }
 
 /**
@@ -122,6 +140,10 @@ object TimelineEntityRules {
 		}
 		if ((entity.label?.length ?: 0) > TimelineLimits.MAX_LABEL) return TimelineRuleProblem.LabelTooLong
 		if (entity.tags.any { it.length > TimelineLimits.MAX_TAG }) return TimelineRuleProblem.TagTooLong
+		entity.timeline?.let { timeline ->
+			if (timeline == TimelineDef.MAIN_ID) return TimelineRuleProblem.MainSpelledOut
+			if (!isValidTimelineId(timeline)) return TimelineRuleProblem.TimelineIdInvalid
+		}
 
 		dateProblem(TimelineDateField.START, entity.start)?.let { return it }
 		dateProblem(TimelineDateField.END, entity.end)?.let { return it }

@@ -71,6 +71,7 @@ import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_placement_own
 import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_self_reference
 import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_subject_is_reference
 import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_tag_too_long
+import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_timeline_invalid
 import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_title_too_long
 import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_too_many_rungs
 import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_unit_too_long
@@ -475,6 +476,9 @@ internal fun TimelineRuleProblem.text(): String = when (this) {
 	is TimelineRuleProblem.BlankUnitName -> Res.string.sync_conflict_timeline_rule_blank_unit.get(field.label())
 	is TimelineRuleProblem.UnitNameTooLong ->
 		Res.string.sync_conflict_timeline_rule_unit_too_long.get(field.label(), TimelineLimits.MAX_UNIT_NAME)
+
+	TimelineRuleProblem.TimelineIdInvalid,
+	TimelineRuleProblem.MainSpelledOut -> Res.string.sync_conflict_timeline_rule_timeline_invalid.get()
 }
 
 @Composable

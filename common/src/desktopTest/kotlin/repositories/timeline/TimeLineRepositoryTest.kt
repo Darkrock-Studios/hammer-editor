@@ -5,6 +5,7 @@ import app.cash.turbine.test
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.readToml
 import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineEntityRules
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineLimits
@@ -654,6 +655,8 @@ class TimeLineRepositoryTest : BaseTest() {
 			event.copy(start = tooManyRungs),
 			event.copy(start = StoryDate(mapOf(" " to 1L))),
 			event.copy(end = StoryDate(mapOf(longUnit to 1L))),
+			event.copy(timeline = "not valid"),
+			event.copy(timeline = TimelineDef.MAIN_ID),
 		)
 
 		val problems = oneEntityPerRule.map { assertNotNull(TimelineEntityRules.problem(it)) }
@@ -661,7 +664,10 @@ class TimeLineRepositoryTest : BaseTest() {
 		assertEquals(TimelineRuleProblem::class.sealedSubclasses.toSet(), problems.map { it::class }.toSet())
 		problems.zip(oneEntityPerRule).forEach { (problem, entity) ->
 			assertNotEquals(TimeLineEventError.NONE, problem.toEventError(), "$problem")
-			assertEquals(problem.toEventError(), repo.validate(entity.toTimeLineEvent()), "$problem")
+			// TimeLineEvent has no timeline field, so a timeline problem cannot reach validate.
+			if (entity.timeline == null) {
+				assertEquals(problem.toEventError(), repo.validate(entity.toTimeLineEvent()), "$problem")
+			}
 		}
 	}
 
