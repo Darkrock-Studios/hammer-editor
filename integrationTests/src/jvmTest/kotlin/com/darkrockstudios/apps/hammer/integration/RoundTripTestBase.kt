@@ -11,6 +11,12 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_IO
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_MAIN
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.mainModule
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
+import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
+import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataConflict
+import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataConflictBroker
+import com.darkrockstudios.apps.hammer.common.data.projectdata.mergeDeletedTimelines
+import com.darkrockstudios.apps.hammer.common.data.projectdata.mergeDictionaryWords
+import com.darkrockstudios.apps.hammer.common.data.projectdata.mergeTimelinesByChoice
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.apps.hammer.e2e.util.E2eTestData
 import com.darkrockstudios.apps.hammer.encryption.ContentEncryptor
@@ -27,6 +33,8 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.asCoroutineDispatcher
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import okio.FileSystem
@@ -299,6 +307,48 @@ abstract class RoundTripTestBase : EndToEndTest(), KoinTest {
 		return ok
 	}
 
+	/**
+	 * Runs a sync that answers every project data conflict with [resolve], as the conflict screen
+	 * would, and must not hit the entity conflict resolver. Returns the conflicts as the screen got
+	 * them; without a resolver a project data conflict would wait forever.
+	 */
+	protected suspend fun HeadlessClient.syncResolvingProjectData(
+		resolve: (ProjectDataConflict) -> ProjectData = { pickEveryLocalField(it) },
+	): List<ProjectDataConflict> {
+		val client = this
+		val broker: ProjectDataConflictBroker = scope.get()
+		val seen = mutableListOf<ProjectDataConflict>()
+		coroutineScope {
+			val answering = launch {
+				for (conflict in broker.conflicts) {
+					seen += conflict
+					broker.resolve(resolve(conflict))
+				}
+			}
+			try {
+				assertTrue(client.syncNoConflict(), "sync resolving project data should succeed")
+			} finally {
+				answering.cancel()
+			}
+		}
+		return seen.toList()
+	}
+
+	/**
+	 * The conflict screen's result with LOCAL picked for every field: `buildResolved` in composeUi's
+	 * ProjectDataConflict.kt, which this module cannot reach.
+	 */
+	protected fun pickEveryLocalField(conflict: ProjectDataConflict): ProjectData {
+		val local = conflict.local
+		val server = conflict.server
+		val deleted = mergeDeletedTimelines(local, server)
+		return local.copy(
+			dictionaryWords = mergeDictionaryWords(local, server),
+			timelines = mergeTimelinesByChoice(local.timelines, server.timelines, deleted, preferLocal = true),
+			deletedTimelines = deleted,
+		)
+	}
+
 	/** The live entity id→hash map the server currently holds for a project. */
 	protected fun serverEntityHashes(projectName: String): Map<Int, String> {
 		val projectId = serverNumericProjectIdFor(projectName) ?: return emptyMap()
@@ -344,6 +394,19 @@ abstract class RoundTripTestBase : EndToEndTest(), KoinTest {
 		assertEquals(emptyList(), wire.entitiesUploaded(), "resync re-uploaded an entity")
 	}
 
+	/**
+	 * [assertResyncSilent], and also no entity deleted and no project data uploaded: an immediate
+	 * extra sync moves nothing at all.
+	 */
+	protected suspend fun assertResyncMovesNothing(client: HeadlessClient) {
+		val wire = tapWire()
+		assertTrue(client.syncNoConflict(), "resync should succeed")
+		assertEquals(emptyList(), wire.entitiesPulled(), "resync re-downloaded an entity")
+		assertEquals(emptyList(), wire.entitiesUploaded(), "resync re-uploaded an entity")
+		assertEquals(emptyList(), wire.entitiesDeleted(), "resync deleted an entity")
+		assertEquals(emptyList(), wire.projectDataUploads(), "resync re-uploaded project data")
+	}
+
 	/** One HTTP request the client made, captured by [tapWire]. */
 	protected data class WireCall(val method: String, val path: String, val status: Int)
 
@@ -365,6 +428,15 @@ abstract class RoundTripTestBase : EndToEndTest(), KoinTest {
 		fun entitiesUploaded(): List<Int> = calls
 			.filter { it.path.contains("/upload_entity/") && it.status in 200..299 }
 			.mapNotNull { idFromPath(it.path) }
+
+		/** IDs the client asked the server to delete (delete_entity, any accepted status). */
+		fun entitiesDeleted(): List<Int> = calls
+			.filter { it.path.contains("/delete_entity/") && it.status in 200..299 }
+			.mapNotNull { idFromPath(it.path) }
+
+		/** Project data the client posted, accepted or refused. */
+		fun projectDataUploads(): List<WireCall> = calls
+			.filter { it.method == "POST" && it.path.substringBefore('?').endsWith("/project_data") }
 
 		// Paths can carry a query string; the id is the last path segment before any '?'.
 		private fun idFromPath(path: String): Int? =
