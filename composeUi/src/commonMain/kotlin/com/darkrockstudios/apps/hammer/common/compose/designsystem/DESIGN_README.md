@@ -750,10 +750,10 @@ Inside the strip, [`HdTagFilterBar`](HdTagFilterBar.kt) is the
 [`HdActiveFiltersStrip`](HdActiveFiltersStrip.kt) the
 `FILTERED n / m  # tag ×  CLEAR ALL` summary under it, shown only while
 a tag is active. Notes, Story Ideas and Timeline share all three.
-A second set of filter chips (the timeline's lanes) goes in the bar's
-`leading` slot only where it fits pinned; on a Compact width it goes in
-`scrollingLeading`, so it scrolls with the tag chips instead of
-clipping.
+A second set of filter chips (the timeline's lanes) goes in
+`scrollingLeading` at every width, so it scrolls with the tag chips
+instead of squeezing the pinned cells. Every chip in the bar keeps to
+one line; a long label ellipsizes.
 
 ### Collapse chrome while typing
 

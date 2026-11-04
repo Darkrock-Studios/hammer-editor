@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -16,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
@@ -27,7 +29,8 @@ import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
  * suppress the swatch and show a neutral `#` prefix. Active state fills
  * with `surfaceContainerHigh` and uses a stronger border so the user can
  * see which tag is currently filtering. When [onRemove] is non-null an
- * `×` affordance is appended after the label.
+ * `×` affordance is appended after the label. The label keeps to one line and ellipsizes past
+ * [MAX_TAG_CHIP_WIDTH].
  *
  *     ┌─────────────┐     ┌─────────────┐     ┌───────────┐
  *     │ ▪ animal   │     │ ▪ animal × │     │ # animal  │
@@ -62,6 +65,7 @@ fun HdTagChip(
 	Row(
 		modifier = modifier
 			.height(24.dp)
+			.widthIn(max = MAX_TAG_CHIP_WIDTH)
 			.background(background, RectangleShape)
 			.border(width = Dp.Hairline, color = borderColor, shape = RectangleShape)
 			.then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
@@ -84,8 +88,11 @@ fun HdTagChip(
 		}
 		Text(
 			text = label,
+			modifier = Modifier.weight(1f, fill = false),
 			style = MaterialTheme.typography.labelMedium,
 			color = labelColor,
+			maxLines = 1,
+			overflow = TextOverflow.Ellipsis,
 		)
 		if (onRemove != null) {
 			HdClearGlyph(
@@ -96,3 +103,5 @@ fun HdTagChip(
 		}
 	}
 }
+
+val MAX_TAG_CHIP_WIDTH = 220.dp

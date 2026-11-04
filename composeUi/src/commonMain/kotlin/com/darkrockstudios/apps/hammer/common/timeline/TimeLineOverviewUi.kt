@@ -9,7 +9,6 @@ import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -346,31 +345,10 @@ fun TimeLineOverviewUi(
 						)
 					}
 				}
-				val leading: (@Composable () -> Unit)? = when {
-					isExpanded && laneChips != null -> {
-						{
-							Row(
-								verticalAlignment = Alignment.CenterVertically,
-								horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M),
-							) {
-								searchField()
-								Box(
-									modifier = Modifier
-										.height(20.dp)
-										.width(Dp.Hairline)
-										.background(MaterialTheme.colorScheme.outlineVariant),
-								)
-								laneChips()
-							}
-						}
-					}
-
-					isExpanded -> {
-						{ searchField() }
-					}
-
-					isWide -> laneChips
-					else -> null
+				val leading: (@Composable () -> Unit)? = if (isExpanded) {
+					{ searchField() }
+				} else {
+					null
 				}
 
 				HdTagFilterBar(
@@ -380,7 +358,7 @@ fun TimeLineOverviewUi(
 					onToggle = toggleTag,
 					onClear = clearFilters,
 					leading = leading,
-					scrollingLeading = if (isWide) null else laneChips,
+					scrollingLeading = laneChips,
 					trailing = {
 						if (dated && isWide) {
 							DrawingMenu(

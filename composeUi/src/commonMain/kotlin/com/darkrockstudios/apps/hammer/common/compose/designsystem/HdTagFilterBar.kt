@@ -26,7 +26,7 @@ import com.darkrockstudios.apps.hammer.common.data.tagindex.TagCount
  * [HdTagChip] per tag (`label · count`) in a horizontally scrolling row. Optional [leading]
  * slot (e.g. an inline search field on Expanded widths) and [trailing] slot (e.g. a sort menu),
  * both pinned. [scrollingLeading] opens the scrolling row behind its own hairline, for a second
- * set of filter chips that would not fit pinned on a narrow screen.
+ * set of filter chips that may outgrow the row.
  *
  *     [⌕ search] │ ALL · 12 │ # gothic · 3  # coastal · 1 …   [SORT ▾]
  *     ALL · 12 │ ▪ Alice · 4  ▪ Queen · 2 │ # gothic · 3 …     (scrollingLeading)
@@ -128,6 +128,6 @@ private fun AllChip(
 			.padding(horizontal = Ui.Padding.L),
 		contentAlignment = Alignment.Center,
 	) {
-		HdMonoLabel(text = label, color = labelColor)
+		HdMonoLabel(text = label, color = labelColor, maxLines = 1, softWrap = false)
 	}
 }

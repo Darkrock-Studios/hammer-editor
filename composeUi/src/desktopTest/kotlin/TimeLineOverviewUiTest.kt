@@ -14,7 +14,9 @@ import androidx.compose.material3.Text
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toPixelMap
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.*
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.unit.Dp
 import androidx.compose.foundation.layout.requiredWidth
@@ -381,6 +383,36 @@ class TimeLineOverviewUiTest : BaseTest() {
 		compose.onNodeWithText("The Cheshire Cat · 1").performScrollTo().assertIsDisplayed().performClick()
 
 		assertEquals(setOf("The Cheshire Cat"), component.state.value.laneFilter)
+	}
+
+	@Test
+	fun `On a desktop many lanes keep every filter on one line`() {
+		val long = "The crew of the Rocinante and everyone they picked up along the way"
+		val lanes = listOf("Julie & the Scopuli", "Holden & crew", "Miller", "Protomolecule", "The Ring builders", long)
+		val component = FakeOverview(
+			rows = lanes.mapIndexed { i, lane ->
+				row(TimeLineEvent(id = i, order = i, title = "Event $i", lane = lane), laneIndex = i)
+			},
+			lanes = lanes.map { LaneCount(it, 1) },
+			tags = listOf(TagCount("act-one", 2)),
+		)
+		showOverview(component, screen = desktopScreen, size = DpSize(1000.dp, 700.dp))
+
+		(lanes.map { "$it · 1" } + "ALL · 6").forEach { label ->
+			val layout = textLayout(label)
+			assertEquals(1, layout.lineCount, "$label wrapped")
+			val fits = layout.multiParagraph.intrinsics.maxIntrinsicWidth <= layout.layoutInput.constraints.maxWidth
+			assertEquals(label != "$long · 1", fits, "$label is cut short: ${fits.not()}")
+		}
+		compose.onNodeWithText("The Ring builders · 1").performScrollTo().performClick()
+		assertEquals(setOf("The Ring builders"), component.state.value.laneFilter)
+	}
+
+	private fun textLayout(text: String): TextLayoutResult {
+		val results = mutableListOf<TextLayoutResult>()
+		compose.onNodeWithText(text, useUnmergedTree = true)
+			.performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(results) }
+		return results.single()
 	}
 
 	@Test
