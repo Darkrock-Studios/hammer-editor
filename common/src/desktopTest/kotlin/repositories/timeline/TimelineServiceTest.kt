@@ -421,6 +421,19 @@ class TimelineServiceTest : BaseTest() {
 	}
 
 	@Test
+	fun `a move position counts only the event's own timeline`() = runTest(mainTestDispatcher) {
+		val service = createService()
+		val first = service.createEvent(TimelineEventDraft(title = "First")).event()
+		service.createEvent(TimelineEventDraft(title = "Second")).event()
+		service.createEvent(TimelineEventDraft(title = "Elsewhere", timeline = "a3f09c1e")).event()
+
+		assertEquals(TimeLineEventError.MOVE_FAILED, service.moveEvent(first, toIndex = 2, after = false).error())
+		service.moveEvent(first, toIndex = 1, after = true).event()
+		val main = timeLineRepository.currentEvents().filter { it.timeline == null }.sortedBy { it.order }
+		assertEquals(listOf("Second", "First"), main.map { it.title })
+	}
+
+	@Test
 	fun `switchToDated spaces undated events evenly and derives the order from the dates`() =
 		runTest(mainTestDispatcher) {
 			val service = createService()

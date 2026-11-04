@@ -14,6 +14,7 @@ import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizer
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineDatasource
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.toApiEntity
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
@@ -214,6 +215,17 @@ class ClientTimelineSynchronizerTest : BaseTest() {
 				start = StoryDate(mapOf("year" to 97L)),
 				end = StoryDate(mapOf("year" to 98L, "day" to 3L)),
 			),
+			ApiProjectEntity.TimelineEventEntity(
+				id = 5,
+				order = 0,
+				label = null,
+				content = "",
+				kind = TimelineKind.SCENE,
+				subject = 31,
+				start = StoryDate(mapOf("year" to 1923L, "month" to 11L, "day" to 14L)),
+				cachedTitle = "Landfall",
+				timeline = "a3f09c1e",
+			),
 		)
 
 		val repo = TimeLineRepository(projDef, mockk<IdAllocator>(), TimeLineDatasource(ffs, toml)).initialize()
@@ -228,7 +240,10 @@ class ClientTimelineSynchronizerTest : BaseTest() {
 			assertEquals(serverEntity, sync.createEntityForId(id), "entity $id")
 			assertEquals(sync.createEntityForId(id).hash(), sync.getEntityHash(id), "entity $id")
 			assertEquals(serverEntity.hash(), sync.getEntityHash(id), "entity $id")
+			assertEquals(repo.getTimelineEvent(id)?.toApiEntity()?.hash(), sync.getEntityHash(id), "entity $id")
 		}
+		assertEquals("a3f09c1e", repo.getTimelineEvent(5)?.timeline)
+		assertNotEquals(serverEntities.last().copy(timeline = null).hash(), sync.getEntityHash(5), "timeline is hashed")
 
 		// Through the file too: a fresh repository reads back what was stored.
 		val reloaded = TimeLineRepository(projDef, mockk<IdAllocator>(), TimeLineDatasource(ffs, toml)).initialize()

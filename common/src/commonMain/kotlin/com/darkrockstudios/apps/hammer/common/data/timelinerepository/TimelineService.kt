@@ -236,7 +236,9 @@ class TimelineService(
 		label: String?,
 	): TimelineResult = writeLock.withLock {
 		if (!subjectError.isSuccess) return invalid(subjectError)
-		if (timeLineRepository.findPlacement(subject) != null) return invalid(TimeLineEventError.DUPLICATE_PLACEMENT)
+		if (timeLineRepository.findPlacement(kind, subject, TimelineDef.MAIN_ID) != null) {
+			return invalid(TimeLineEventError.DUPLICATE_PLACEMENT)
+		}
 
 		val draft = TimelineEventDraft(
 			kind = kind,
@@ -367,8 +369,10 @@ class TimelineService(
 	suspend fun moveEvent(event: TimeLineEvent, toIndex: Int, after: Boolean): TimelineResult = writeLock.withLock {
 		if (definition().mode == TimelineMode.DATED) return invalid(TimeLineEventError.MOVE_NOT_ALLOWED)
 		val events = timeLineRepository.currentEvents()
-		if (events.none { it.id == event.id }) return invalid(TimeLineEventError.EVENT_NOT_FOUND)
-		if (toIndex !in events.indices) return invalid(TimeLineEventError.MOVE_FAILED)
+		val stored = events.firstOrNull { it.id == event.id } ?: return invalid(TimeLineEventError.EVENT_NOT_FOUND)
+		// Indices are positions among the event's own timeline, which is all the repository moves.
+		val timelineSize = events.count { it.timelineId == stored.timelineId }
+		if (toIndex !in 0..<timelineSize) return invalid(TimeLineEventError.MOVE_FAILED)
 		// With the event present and the index in range, the repository refuses only a move to where it already is.
 		timeLineRepository.moveEvent(event, toIndex, after)
 		TimelineResult.Ok(findEvent(event.id))

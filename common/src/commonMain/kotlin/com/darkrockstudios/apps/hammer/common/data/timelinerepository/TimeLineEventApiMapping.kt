@@ -20,6 +20,7 @@ fun TimeLineEvent.toApiEntity(): ApiProjectEntity.TimelineEventEntity =
 		end = end,
 		title = title,
 		cachedTitle = cachedTitle,
+		timeline = timeline,
 	)
 
 fun ApiProjectEntity.TimelineEventEntity.toTimeLineEvent(): TimeLineEvent =
@@ -38,6 +39,7 @@ fun ApiProjectEntity.TimelineEventEntity.toTimeLineEvent(): TimeLineEvent =
 		start = start,
 		end = end,
 		cachedTitle = cachedTitle,
+		timeline = timeline,
 	)
 
 /** The closest client error for a broken shared rule; never [TimeLineEventError.NONE]. */

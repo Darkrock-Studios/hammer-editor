@@ -17,6 +17,8 @@ data class TimelineEventDraft(
 	val start: StoryDate? = null,
 	val end: StoryDate? = null,
 	val cachedTitle: String? = null,
+	/** Null means main. */
+	val timeline: String? = null,
 	val order: Int? = null,
 	val id: Int? = null,
 )
@@ -37,4 +39,5 @@ fun TimelineEventDraft.toEvent(id: Int, order: Int) = TimeLineEvent(
 	start = start,
 	end = end,
 	cachedTitle = cachedTitle,
+	timeline = timeline,
 )

@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.timelinerepository
 
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineEntityRules
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineLimits
@@ -94,8 +95,8 @@ class TimeLineRepository(
 		return mutex.withLock {
 			val timeline = currentTimeline()
 
-			val event = draft.toEvent(eventId, draft.order ?: timeline.events.size)
-				.let { it.copy(tags = cleanTags(it.tags), lane = normalizeLane(it.lane)) }
+			val order = draft.order ?: timeline.events.nextOrder(normalizeTimeline(draft.timeline))
+			val event = draft.toEvent(eventId, order).normalized()
 
 			storeAndEmitTimeline(timeline.copy(events = timeline.events + event))
 
@@ -114,7 +115,7 @@ class TimeLineRepository(
 	}
 
 	suspend fun updateEvent(event: TimeLineEvent, markForSync: Boolean = true): Boolean = mutex.withLock {
-		val cleaned = event.copy(tags = cleanTags(event.tags), lane = normalizeLane(event.lane))
+		val cleaned = event.normalized()
 		val timeline = currentTimeline()
 
 		val events = timeline.events.toMutableList()
@@ -152,7 +153,7 @@ class TimeLineRepository(
 		mutex.withLock {
 			val originals = rewriteEvents { event ->
 				byId[event.id]
-					?.let { it.copy(tags = cleanTags(it.tags), lane = normalizeLane(it.lane)) }
+					?.normalized()
 					?.takeIf { it != event }
 			}
 			originals.forEach { markForSynchronization(it) }
@@ -170,6 +171,18 @@ class TimeLineRepository(
 		syncJournal.recordIdDeletion(event.id)
 
 		true
+	}
+
+	/** Removes every listed event that exists in one store, recording each deletion for sync. */
+	suspend fun deleteEvents(events: Collection<TimeLineEvent>) {
+		val ids = events.mapTo(mutableSetOf()) { it.id }
+		mutex.withLock {
+			val timeline = currentTimeline()
+			val (removed, kept) = timeline.events.partition { it.id in ids }
+			if (removed.isEmpty()) return@withLock
+			storeAndEmitTimeline(timeline.copy(events = kept))
+			removed.forEach { syncJournal.recordIdDeletion(it.id) }
+		}
 	}
 
 	suspend fun updateEventForSync(event: TimeLineEvent) = mutex.withLock {
@@ -200,9 +213,22 @@ class TimeLineRepository(
 		return timelineFlow.first().events.firstOrNull { it.id == id }
 	}
 
-	suspend fun findPlacement(subjectId: Int): TimeLineEvent? = mutex.withLock {
-		currentTimeline().events.firstOrNull { it.kind.isPlacement && it.subject == subjectId }
+	/** The [kind] placement of [subjectId] on [timeline], given by id with main spelled out. */
+	suspend fun findPlacement(kind: TimelineKind, subjectId: Int, timeline: String): TimeLineEvent? {
+		require(kind.isPlacement) { "Not a placement kind: $kind" }
+		return mutex.withLock {
+			currentTimeline().events.firstOrNull { it.places(kind, subjectId) && it.timelineId == timeline }
+		}
 	}
+
+	/** Every [kind] placement of [subjectId], on any timeline. */
+	suspend fun placementsOf(kind: TimelineKind, subjectId: Int): List<TimeLineEvent> {
+		require(kind.isPlacement) { "Not a placement kind: $kind" }
+		return mutex.withLock { currentTimeline().events.filter { it.places(kind, subjectId) } }
+	}
+
+	private fun TimeLineEvent.places(kind: TimelineKind, subjectId: Int): Boolean =
+		this.kind == kind && subject == subjectId
 
 	/**
 	 * Points every [subjectKind] placement of [oldId] and every reference to [oldId] at [newId].
@@ -295,12 +321,20 @@ class TimeLineRepository(
 		storeAndEmitTimeline(updatedTimeline)
 	}
 
+	/**
+	 * Moves [event] within its own timeline. [toIndex] is a position among that timeline's events
+	 * sorted by order; only that timeline's events are renumbered and marked for sync.
+	 */
 	suspend fun moveEvent(event: TimeLineEvent, toIndex: Int, after: Boolean): Boolean = mutex.withLock {
 		val originalTimeline = currentTimeline()
+		val stored = originalTimeline.events.firstOrNull { it.id == event.id }
 
 		// Indices come from the order-sorted view the UI displays, which can differ
 		// from the serialized file order, so move within that same sorted sequence.
-		val events = originalTimeline.events.sortedBy { it.order }.toMutableList()
+		val events = originalTimeline.events
+			.filter { it.timelineId == stored?.timelineId }
+			.sortedBy { it.order }
+			.toMutableList()
 		val fromIndex = events.indexOfFirst { it.id == event.id }
 
 		if (fromIndex <= -1) {
@@ -310,7 +344,6 @@ class TimeLineRepository(
 			Napier.e { "moveEvent to invalid index: $toIndex" }
 			false
 		} else {
-			// Good to go
 			val computedToIndex = if (after) {
 				toIndex + 1
 			} else {
@@ -318,11 +351,10 @@ class TimeLineRepository(
 			}
 
 			val moved = if (computedToIndex < fromIndex) {
-				events.removeAt(fromIndex)
-				events.add(computedToIndex, event)
+				events.add(computedToIndex, events.removeAt(fromIndex))
 				true
 			} else if (computedToIndex > fromIndex) {
-				events.add(computedToIndex, event)
+				events.add(computedToIndex, events[fromIndex])
 				events.removeAt(fromIndex)
 				true
 			} else {
@@ -331,20 +363,18 @@ class TimeLineRepository(
 			}
 
 			if (moved) {
+				val renumbered = mutableMapOf<Int, TimeLineEvent>()
 				for (ii in 0..<events.size) {
 					val curEvent = events[ii]
 					if (curEvent.order != ii) {
-						// Set the correct new order for this event
-						events[ii] = curEvent.copy(order = ii)
-
-						// Mark for synchronization
+						renumbered[curEvent.id] = curEvent.copy(order = ii)
 						val originalEvent = originalTimeline.events.first { it.id == curEvent.id }
 						markForSynchronization(originalEvent)
 					}
 				}
 
 				val updatedTimeline = originalTimeline.copy(
-					events = events
+					events = originalTimeline.events.map { renumbered[it.id] ?: it }.sortedBy { it.order }
 				)
 
 				storeAndEmitTimeline(updatedTimeline)
@@ -413,5 +443,17 @@ class TimeLineRepository(
 
 		/** User write paths only; sync stores what the server sent. */
 		fun normalizeLane(lane: String?): String? = lane?.trim()?.ifBlank { null }
+
+		/** Main is stored as null, never spelled out. */
+		fun normalizeTimeline(timeline: String?): String? = timeline?.takeUnless { it == TimelineDef.MAIN_ID }
+
+		private fun TimeLineEvent.normalized(): TimeLineEvent =
+			copy(tags = cleanTags(tags), lane = normalizeLane(lane), timeline = normalizeTimeline(timeline))
+
+		/** One past the highest order on [timeline] (null for main), or 0 when it has no events. */
+		private fun List<TimeLineEvent>.nextOrder(timeline: String?): Int {
+			val timelineId = timeline ?: TimelineDef.MAIN_ID
+			return filter { it.timelineId == timelineId }.maxOfOrNull { it.order + 1 } ?: 0
+		}
 	}
 }

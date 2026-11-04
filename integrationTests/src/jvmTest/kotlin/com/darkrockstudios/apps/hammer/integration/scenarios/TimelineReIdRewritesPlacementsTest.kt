@@ -57,18 +57,33 @@ class TimelineReIdRewritesPlacementsTest : RoundTripTestBase() {
 				cachedTitle = "Placed",
 			)
 		)
+		// The same scene placed again on a second timeline.
+		timelineB.updateEvent(
+			TimeLineEvent(
+				id = b.scope.get<IdAllocator>().claimNextId(),
+				order = 0,
+				kind = TimelineKind.SCENE,
+				subject = placed.id,
+				cachedTitle = "Placed",
+				timeline = OTHER_TIMELINE,
+			)
+		)
 
 		assertTrue(b.syncNoConflict(), "B syncs its colliding scene without a conflict")
 
 		val newSceneId = sceneNamed(b, "Placed").id
 		assertNotEquals(2, newSceneId, "B's scene should have been re-IDed past the server's ids")
-		assertEquals(newSceneId, placementOn(b).subject)
-		assertEquals(newSceneId, timelineB.loadTimeline().events.single().subject, "the rewrite must be stored")
+		assertEquals(mapOf(null to newSceneId, OTHER_TIMELINE to newSceneId), placementsOn(b))
+		assertEquals(
+			mapOf(null to newSceneId, OTHER_TIMELINE to newSceneId),
+			timelineB.loadTimeline().events.associate { it.timeline to it.subject },
+			"the rewrite must be stored",
+		)
 
 		val c = secondDeviceFor(a, "timeline reid C")
 		assertTrue(c.syncNoConflict(), "C downloads the project")
 		assertEquals(newSceneId, sceneNamed(c, "Placed").id)
-		assertEquals(newSceneId, placementOn(c).subject)
+		assertEquals(mapOf(null to newSceneId, OTHER_TIMELINE to newSceneId), placementsOn(c))
 
 		assertConverged(a.projectDef.name, b, c)
 		assertResyncSilent(b)
@@ -78,6 +93,15 @@ class TimelineReIdRewritesPlacementsTest : RoundTripTestBase() {
 	private suspend fun sceneNamed(client: HeadlessClient, name: String): SceneItem =
 		client.sceneEditorService.getSceneTree().map { it.value }.single { it.name == name }
 
-	private suspend fun placementOn(client: HeadlessClient): TimeLineEvent =
-		client.scope.get<TimeLineRepository>().timelineFlow.first().events.single { it.kind == TimelineKind.SCENE }
+	/** Each scene placement's subject, keyed by its timeline. */
+	private suspend fun placementsOn(client: HeadlessClient): Map<String?, Int?> {
+		val placements = client.scope.get<TimeLineRepository>().timelineFlow.first().events
+			.filter { it.kind == TimelineKind.SCENE }
+		assertEquals(2, placements.size, "one placement per timeline")
+		return placements.associate { it.timeline to it.subject }
+	}
+
+	private companion object {
+		const val OTHER_TIMELINE = "a3f09c1e"
+	}
 }

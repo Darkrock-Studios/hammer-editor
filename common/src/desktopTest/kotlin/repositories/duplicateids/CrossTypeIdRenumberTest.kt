@@ -346,4 +346,37 @@ class CrossTypeIdRenumberTest : RationalizerTestBase() {
 		assertEquals(7, timeline.getValue(1).subject)
 		assertEquals(8, timeline.getValue(2).subject)
 	}
+
+	@Test
+	fun `A renumbered scene takes its placements on every timeline along and each goes dirty`() = runTest {
+		write("scenes/0~Duel~6.md", "En garde")
+		val image = projectDir / "images" / "6~Map.png"
+		ffs.createDirectories(image.parent!!)
+		ffs.write(image) { write(byteArrayOf(0x89.toByte(), 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A)) }
+		writeTimeline(
+			TimeLineEvent(id = 1, order = 0, kind = TimelineKind.SCENE, subject = 6, cachedTitle = "Duel"),
+			TimeLineEvent(
+				id = 2,
+				order = 0,
+				kind = TimelineKind.SCENE,
+				subject = 6,
+				cachedTitle = "Duel",
+				timeline = "a3f09c1e",
+			),
+			TimeLineEvent(id = 3, order = 1, title = "Unrelated", timeline = "a3f09c1e"),
+		)
+		openStores()
+
+		service.resolveCrossTypeIds()
+
+		assertEquals(listOf("0~Duel~7.md"), filesIn("scenes"))
+		val timeline = storedTimeline()
+		assertEquals(7, timeline.getValue(1).subject)
+		assertEquals(7, timeline.getValue(2).subject)
+		assertEquals(null, timeline.getValue(1).timeline)
+		assertEquals("a3f09c1e", timeline.getValue(2).timeline)
+		coVerify(exactly = 1) { syncJournal.markEntityAsDirty(1) }
+		coVerify(exactly = 1) { syncJournal.markEntityAsDirty(2) }
+		coVerify(exactly = 0) { syncJournal.markEntityAsDirty(3) }
+	}
 }

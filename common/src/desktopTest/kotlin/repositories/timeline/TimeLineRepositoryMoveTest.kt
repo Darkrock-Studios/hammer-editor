@@ -18,6 +18,7 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSeri
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import getProject1Def
 import io.mockk.Runs
+import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
@@ -309,5 +310,72 @@ class TimeLineRepositoryMoveTest : BaseTest() {
 
 		verifyEventSequence(newEvents, 0, 9, 1, 2, 3, 4, 5, 6, 7, 8)
 		assertEquals(1, newEvents.indexOfFirst { it.id == ten.id }, "Moved item was not at the correct position")
+	}
+
+	private fun interleavedEvents(): List<TimeLineEvent> {
+		val main = (0..4).map { TimeLineEvent(id = it, order = it, content = "Main $it") }
+		val other = (0..3).map { TimeLineEvent(id = 10 + it, order = it, content = "Other $it", timeline = OTHER) }
+		return listOf(main[0], other[0], main[1], other[1], main[2], other[2], main[3], other[3], main[4])
+	}
+
+	private fun dirtyIdsCollector(): MutableList<Int> {
+		val dirty = mutableListOf<Int>()
+		every { syncJournal.isServerSynchronized() } returns true
+		coEvery { syncJournal.isEntityDirty(any()) } returns false
+		coEvery { syncJournal.markEntityAsDirty(capture(dirty)) } returns Unit
+		return dirty
+	}
+
+	private fun List<TimeLineEvent>.on(timeline: String?) = filter { it.timeline == timeline }.sortedBy { it.order }
+
+	@Test
+	fun `Moving on one timeline renumbers and dirties only that timeline`() = runTest {
+		val dirty = dirtyIdsCollector()
+		val repository = defaultRepository(getProject1Def(), interleavedEvents())
+
+		// Other in order is [10, 11, 12, 13]; move 10 after index 2.
+		val moved = repository.moveEvent(interleavedEvents()[1], 2, true)
+		assertTrue(moved)
+
+		advanceUntilIdle()
+		val newEvents = repository.timelineFlow.first().events
+		verifyEventSequence(newEvents.on(OTHER), 11, 12, 10, 13)
+		assertEquals(interleavedEvents().on(null), newEvents.on(null), "main is untouched")
+		assertEquals(setOf(11, 12, 10), dirty.toSet())
+		assertEquals(3, dirty.size)
+
+		val file = TimeLineDatasource.getTimelineFilePath(getProject1Def()).toOkioPath()
+		val onDisk: TimeLineContainer = ffs.readToml(file, toml)
+		verifyEventSequence(onDisk.events.on(OTHER), 11, 12, 10, 13)
+		assertEquals(interleavedEvents().on(null), onDisk.events.on(null))
+	}
+
+	@Test
+	fun `Moving on main uses positions among main's events only`() = runTest {
+		val dirty = dirtyIdsCollector()
+		val repository = defaultRepository(getProject1Def(), interleavedEvents())
+
+		// Main in order is [0, 1, 2, 3, 4]; index 4 is main's last, not the file's fifth event.
+		val moved = repository.moveEvent(interleavedEvents()[0], 4, false)
+		assertTrue(moved)
+
+		advanceUntilIdle()
+		val newEvents = repository.timelineFlow.first().events
+		verifyEventSequence(newEvents.on(null), 1, 2, 3, 0, 4)
+		assertEquals(interleavedEvents().on(OTHER), newEvents.on(OTHER), "the other timeline is untouched")
+		assertEquals(setOf(0, 1, 2, 3), dirty.toSet())
+	}
+
+	@Test
+	fun `A move past the end of the event's own timeline fails`() = runTest {
+		val repository = defaultRepository(getProject1Def(), interleavedEvents())
+
+		// In range for the whole file, but the other timeline has only four events.
+		assertFalse(repository.moveEvent(interleavedEvents()[1], 4, false))
+		assertEquals(interleavedEvents(), repository.timelineFlow.first().events)
+	}
+
+	private companion object {
+		const val OTHER = "a3f09c1e"
 	}
 }

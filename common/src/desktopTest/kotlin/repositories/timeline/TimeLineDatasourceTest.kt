@@ -2,11 +2,13 @@ package repositories.timeline
 
 import com.darkrockstudios.apps.hammer.base.http.readToml
 import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineContainer
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineDatasource
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.timelineId
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import getProject1Def
@@ -236,6 +238,57 @@ class TimeLineDatasourceTest : BaseTest() {
 		assertEquals(0, event.id)
 		assertEquals("Event 0", event.content)
 		assertNull(event.label)
+	}
+
+	@Test
+	fun `Legacy event without a timeline key reads as main`() = runTest(mainTestDispatcher) {
+		val projDef = getProject1Def()
+		val file = TimeLineDatasource.getTimelineFilePath(projDef).toOkioPath()
+		ffs.createDirectories(file.parent!!)
+		ffs.write(file) {
+			writeUtf8(
+				"""
+				[[events]]
+				id = 30
+				order = 0
+				kind = "scene"
+				subject = 4
+				cachedTitle = "Dinner"
+				""".trimIndent()
+			)
+		}
+
+		val event = datasource.loadTimeline(projDef).events.single()
+
+		assertNull(event.timeline)
+		assertEquals(TimelineDef.MAIN_ID, event.timelineId)
+	}
+
+	@Test
+	fun `Timeline id round trips and is left out for main`() = runTest(mainTestDispatcher) {
+		val projDef = getProject1Def()
+		val events = listOf(
+			TimeLineEvent(id = 30, order = 0, kind = TimelineKind.SCENE, subject = 4, cachedTitle = "Dinner"),
+			TimeLineEvent(
+				id = 71,
+				order = 11,
+				kind = TimelineKind.SCENE,
+				subject = 4,
+				cachedTitle = "Dinner",
+				timeline = "a3f09c1e",
+			),
+		)
+
+		datasource.storeTimeline(TimeLineContainer(events), projDef)
+
+		val text = readTimelineText(projDef)
+		val keys = eventKeys(text)
+		assertFalse("timeline" in keys[0])
+		assertTrue("timeline" in keys[1])
+		assertTrue(text.contains("timeline = \"a3f09c1e\""))
+		val loaded = datasource.loadTimeline(projDef).events
+		assertEquals(events, loaded)
+		assertEquals(listOf(TimelineDef.MAIN_ID, "a3f09c1e"), loaded.map { it.timelineId })
 	}
 
 	private fun readTimelineText(projDef: ProjectDef): String =
