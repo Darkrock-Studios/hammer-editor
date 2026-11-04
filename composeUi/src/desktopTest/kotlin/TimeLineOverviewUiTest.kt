@@ -702,17 +702,25 @@ class TimeLineOverviewUiTest : BaseTest() {
 	}
 
 	@Test
-	fun `On a phone the drawing menu shares the row with the lane chips`() {
+	fun `On a phone the drawing menu sits beside search and leaves the strip to the chips`() {
 		val rows = listOf(
 			datedRow(TimeLineEvent(id = 1, order = 0, title = "Fall", lane = "Alice"), year = 1, laneIndex = 0),
 			datedRow(TimeLineEvent(id = 2, order = 1, title = "Croquet"), year = 2),
 		)
-		showPhoneOverview(FakeOverview(rows, lanes = listOf(LaneCount("Alice", 1)), mode = TimelineMode.DATED))
+		val component = FakeOverview(rows, lanes = listOf(LaneCount("Alice", 1)), mode = TimelineMode.DATED)
+		showPhoneOverview(component)
 
+		val search = compose.onNodeWithContentDescription("Search timeline").getUnclippedBoundsInRoot()
 		val chips = compose.onNodeWithTag(TIME_LINE_LANE_FILTER_TAG).getUnclippedBoundsInRoot()
 		val menu = compose.onNodeWithTag(TIME_LINE_DRAWING_MENU_TAG).assertIsDisplayed().getUnclippedBoundsInRoot()
-		assertTrue(menu.top < chips.bottom && menu.bottom > chips.top, "the menu at ${menu.top} is not in the chips' row")
+		assertTrue(menu.top < search.bottom && menu.bottom > search.top, "the menu at ${menu.top} is not in the search row")
+		assertTrue(menu.bottom <= chips.top, "the menu at ${menu.top} is not above the strip")
+		compose.onNodeWithText("Sequence", substring = true, ignoreCase = true).assertDoesNotExist()
 		compose.onNodeWithTag(TIME_LINE_CALENDAR_TAG).assertDoesNotExist()
+
+		chooseInDrawingMenu("To scale")
+
+		assertEquals(TimelineView.TO_SCALE, component.state.value.view)
 	}
 
 	@Test

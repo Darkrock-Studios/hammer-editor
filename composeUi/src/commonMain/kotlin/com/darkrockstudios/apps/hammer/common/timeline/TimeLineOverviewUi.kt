@@ -282,6 +282,15 @@ fun TimeLineOverviewUi(
 								tint = MaterialTheme.colorScheme.onSurface,
 							)
 						}
+						if (dated) {
+							DrawingMenu(
+								state = state,
+								bandTitle = bandTitle,
+								onView = component::setView,
+								onFrame = component::setFrame,
+								compact = true,
+							)
+						}
 					}
 				}
 			}
@@ -373,7 +382,7 @@ fun TimeLineOverviewUi(
 					leading = leading,
 					scrollingLeading = if (isWide) null else laneChips,
 					trailing = {
-						if (dated) {
+						if (dated && isWide) {
 							DrawingMenu(
 								state = state,
 								bandTitle = bandTitle,

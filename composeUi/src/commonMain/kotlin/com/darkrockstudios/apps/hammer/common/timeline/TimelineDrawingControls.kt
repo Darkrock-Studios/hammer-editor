@@ -13,9 +13,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -110,7 +114,8 @@ internal fun FramePill(label: String, onClear: () -> Unit, modifier: Modifier = 
 /**
  * `VIEW  SEQUENCE · EVERYTHING` at the end of the filter row, opening one menu with the drawing
  * (Sequence or To scale) above the frame (Everything or Story). A framed band shows its title as the
- * frame; the pill on the drawing returns it to Everything.
+ * frame; the pill on the drawing returns it to Everything. [compact] opens the same menu from a ⋮
+ * button, for a phone's header.
  */
 @Composable
 internal fun DrawingMenu(
@@ -118,6 +123,7 @@ internal fun DrawingMenu(
 	bandTitle: String?,
 	onView: (TimelineView) -> Unit,
 	onFrame: (TimelineFrame) -> Unit,
+	compact: Boolean = false,
 ) {
 	var expanded by remember { mutableStateOf(false) }
 	val sequence = Res.string.timeline_view_sequence.get()
@@ -138,15 +144,32 @@ internal fun DrawingMenu(
 			is TimelineFrame.Band -> bandTitle.orEmpty().truncateWithEllipsis(BAND_CELL_CHARS)
 		}
 	}
+	val menuLabel = Res.string.timeline_drawing_menu.get()
+	val current = "${viewLabel(state.view)} · ${frameLabel(state.frame)}"
 	Box {
-		HdSortPill(
-			label = Res.string.timeline_drawing_menu.get(),
-			value = "${viewLabel(state.view)} · ${frameLabel(state.frame)}",
-			onClick = { expanded = true },
-			modifier = Modifier
-				.testTag(TIME_LINE_DRAWING_MENU_TAG)
-				.then(if (bandDescription != null) Modifier.semantics { contentDescription = bandDescription } else Modifier),
-		)
+		if (compact) {
+			IconButton(
+				onClick = { expanded = true },
+				modifier = Modifier
+					.testTag(TIME_LINE_DRAWING_MENU_TAG)
+					.semantics { contentDescription = bandDescription ?: "$menuLabel: $current" },
+			) {
+				Icon(
+					imageVector = Icons.Default.MoreVert,
+					contentDescription = null,
+					tint = MaterialTheme.colorScheme.onSurface,
+				)
+			}
+		} else {
+			HdSortPill(
+				label = menuLabel,
+				value = current,
+				onClick = { expanded = true },
+				modifier = Modifier
+					.testTag(TIME_LINE_DRAWING_MENU_TAG)
+					.then(if (bandDescription != null) Modifier.semantics { contentDescription = bandDescription } else Modifier),
+			)
+		}
 		DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
 			MenuSection(Res.string.timeline_drawing_menu_view.get())
 			TimelineView.entries.forEach { view ->
