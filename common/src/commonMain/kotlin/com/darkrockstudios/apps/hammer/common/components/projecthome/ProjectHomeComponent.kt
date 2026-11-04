@@ -436,6 +436,12 @@ class ProjectHomeComponent(
 	override fun showProjectStats() = contentRouter.showProjectStats()
 	override fun showProjectSettings() = contentRouter.showProjectSettings()
 
+	override fun showTimelineSettings(timelineId: String) {
+		showProjectSettings()
+		(contentRouter.state.value.active.instance as? ProjectHome.ContentDestination.ProjectSettings)
+			?.component?.timelineSettings?.selectTimeline(timelineId)
+	}
+
 	override fun closeProject() {
 		onCloseProject?.invoke()
 	}

@@ -54,6 +54,9 @@ interface ProjectHome : Router, HammerComponent, BackHandlerOwner, ComponentToas
 	fun showProjectStats()
 	fun showProjectSettings()
 
+	/** Opens the project settings editing timeline [timelineId]. */
+	fun showTimelineSettings(timelineId: String)
+
 	fun closeProject()
 
 	fun onBack()

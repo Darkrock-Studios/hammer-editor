@@ -42,7 +42,7 @@ class TimeLineComponentTest : TimelineComponentTestBase() {
 		advanceUntilIdle()
 	}
 
-	private var settingsShown = 0
+	private val settingsShown = mutableListOf<String>()
 
 	private fun newComponent(componentContext: TestComponentContext = context) = TimeLineComponent(
 		componentContext = componentContext,
@@ -53,7 +53,7 @@ class TimeLineComponentTest : TimelineComponentTestBase() {
 		onShowGlobalSearchForTag = {},
 		onShowScene = {},
 		onShowEntry = {},
-		onShowTimelineSettings = { settingsShown++ },
+		onShowTimelineSettings = { settingsShown += it },
 	)
 
 	private suspend fun newTimeline(name: String, mode: TimelineMode = TimelineMode.MANUAL): String =
@@ -454,14 +454,28 @@ class TimeLineComponentTest : TimelineComponentTestBase() {
 	}
 
 	@Test
-	fun `the settings link opens timeline settings`() = runTest(mainTestDispatcher) {
+	fun `the settings link opens timeline settings on the selected timeline`() = runTest(mainTestDispatcher) {
 		givenProject()
+		val before = newTimeline("Before the evening")
 		val component = newComponent()
 		context.resume()
+		component.selectTimeline(TimelineSelection.Def(before))
 
 		component.showTimelineSettings()
 
-		assertEquals(1, settingsShown)
+		assertEquals(listOf(before), settingsShown)
+	}
+
+	@Test
+	fun `the settings link from the deleted-timeline bucket opens main`() = runTest(mainTestDispatcher) {
+		givenProject()
+		val component = newComponent()
+		context.resume()
+		component.selectTimeline(TimelineSelection.Orphans)
+
+		component.showTimelineSettings()
+
+		assertEquals(listOf(TimelineDef.MAIN_ID), settingsShown)
 	}
 
 	// endregion

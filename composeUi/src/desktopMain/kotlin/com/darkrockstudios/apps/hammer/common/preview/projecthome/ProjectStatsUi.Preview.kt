@@ -132,6 +132,7 @@ private val component = object : ProjectHome {
 	override fun refreshStatistics() {}
 	override fun showProjectStats() {}
 	override fun showProjectSettings() {}
+	override fun showTimelineSettings(timelineId: String) {}
 	override fun closeProject() {}
 	override fun onBack() {}
 	override fun isAtRoot(): Boolean = true

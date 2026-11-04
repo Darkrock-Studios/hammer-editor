@@ -49,7 +49,7 @@ class TimeLineComponent(
 	private val onShowGlobalSearchForTag: (String) -> Unit,
 	private val onShowScene: (SceneItem) -> Unit,
 	private val onShowEntry: (EntryDef) -> Unit,
-	private val onShowTimelineSettings: () -> Unit,
+	private val onShowTimelineSettings: (timelineId: String) -> Unit,
 ) : ProjectComponentBase(projectDef, componentContext), TimeLine {
 
 	private val timelineService: TimelineService by projectInject()
@@ -247,7 +247,7 @@ class TimeLineComponent(
 	}
 
 	override fun showTimelineSettings() {
-		onShowTimelineSettings()
+		onShowTimelineSettings((_selection.value as? TimelineSelection.Def)?.id ?: TimelineDef.MAIN_ID)
 	}
 
 	override fun requestCreateTimeline() {

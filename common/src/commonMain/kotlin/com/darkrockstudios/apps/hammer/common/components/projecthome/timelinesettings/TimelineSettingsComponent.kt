@@ -81,11 +81,18 @@ class TimelineSettingsComponent(
 	}
 
 	override fun selectTimeline(id: String) {
-		if (_state.value.editingId == id) return
+		val timelines = _state.value.timelines
+		// Before the list loads, the summaries collector falls back to main instead.
+		edit(id.takeIf { timelines.isEmpty() || timelines.any { it.def.id == id } } ?: TimelineDef.MAIN_ID)
+	}
+
+	/** Edits [target] without checking it is live, for a timeline the summaries may not list yet. */
+	private fun edit(target: String) {
+		if (_state.value.editingId == target) return
 		_state.getAndUpdate { current ->
 			current.copy(
-				editingId = id,
-				def = current.timelines.firstOrNull { it.def.id == id }?.def ?: current.def,
+				editingId = target,
+				def = current.timelines.firstOrNull { it.def.id == target }?.def ?: current.def,
 				pendingModeSwitch = null,
 				pendingCalendar = null,
 				datesLostOnPresetSwitch = null,
@@ -93,7 +100,7 @@ class TimelineSettingsComponent(
 				error = null,
 			)
 		}
-		editingId.value = id
+		editingId.value = target
 	}
 
 	override fun createTimeline(name: String, mode: TimelineMode, preset: CalendarPreset) {
@@ -104,7 +111,7 @@ class TimelineSettingsComponent(
 				when (result) {
 					is TimelineDefResult.Ok -> {
 						_state.getAndUpdate { it.copy(error = null) }
-						selectTimeline(result.def.id)
+						edit(result.def.id)
 					}
 
 					is TimelineDefResult.Invalid -> _state.getAndUpdate { it.copy(error = result.error) }

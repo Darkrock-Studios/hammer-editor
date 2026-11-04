@@ -249,10 +249,10 @@ class ProjectRootComponent(
 		router.showHome()
 	}
 
-	private fun showTimelineSettings() {
+	private fun showTimelineSettings(timelineId: String) {
 		showHome()
 		(routerState.value.active.instance as? ProjectRoot.Destination.HomeDestination)
-			?.component?.showProjectSettings()
+			?.component?.showTimelineSettings(timelineId)
 	}
 
 	override fun showTimeLine() {

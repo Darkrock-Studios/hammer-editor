@@ -41,9 +41,12 @@ import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjec
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndexService
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
+import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectHome
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLine
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimelineSelection
+import com.darkrockstudios.apps.hammer.common.data.tagindex.AccountTagService
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
+import com.darkrockstudios.libs.platformspellchecker.PlatformSpellCheckerFactory
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineSelectionSetting
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineService
@@ -175,6 +178,10 @@ class ProjectRootComponentTest : ComponentTest() {
 			single<UrlLauncher> { mockk(relaxed = true) }
 			single<VersionCheckRepository> { mockk(relaxed = true) }
 			single { TimelineSelectionSetting(PropertiesSettings(Properties())) }
+			single<AccountTagService> { mockk(relaxed = true) }
+			single<PlatformSpellCheckerFactory> {
+				mockk { every { availableLocales() } returns emptyList() }
+			}
 			scope<ProjectDefScope> {
 				scoped { ProjectDataConflictBroker(projectDef) }
 				scoped<AutoConfirmReferencesUseCase> { mockk(relaxed = true) }
@@ -348,6 +355,24 @@ class ProjectRootComponentTest : ComponentTest() {
 			assertEquals(TimelineSelection.Orphans, timeline.selection.value)
 			assertEquals(TimeLine.Config.ViewEventConfig(projectDef, 8), timeline.stack.value.active.configuration)
 		}
+
+	@Test
+	fun `Timeline settings open on the timeline the timeline screen shows`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.showDestination(ProjectRoot.DestinationTypes.TimeLine)
+		advanceUntilIdle()
+		val timeline = assertIs<ProjectRoot.Destination.TimeLineDestination>(comp.routerState.value.active.instance).component
+		timeline.selectTimeline(TimelineSelection.Def("a3f09c1e"))
+
+		timeline.showTimelineSettings()
+		advanceUntilIdle()
+
+		val home = assertIs<ProjectRoot.Destination.HomeDestination>(comp.routerState.value.active.instance).component
+		val settings = assertIs<ProjectHome.ContentDestination.ProjectSettings>(home.contentRouterState.value.active.instance)
+		assertEquals("a3f09c1e", settings.component.timelineSettings.state.value.editingId)
+	}
 
 	@Test
 	fun `Encyclopedia deep link for a missing entry stays on Home`() = runTest(mainTestDispatcher) {

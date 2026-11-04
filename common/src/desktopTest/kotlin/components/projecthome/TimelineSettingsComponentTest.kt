@@ -477,6 +477,33 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 	}
 
 	@Test
+	fun `a timeline selected as the screen opens is edited once the list loads`() = runTest(mainTestDispatcher) {
+		givenProject()
+		val before = newTimeline("Before the evening")
+		val component = newComponent()
+		context.resume()
+
+		component.selectTimeline(before.id)
+		advanceUntilIdle()
+
+		assertEquals(before.id, component.state.value.editingId)
+		assertEquals(before, component.state.value.def)
+	}
+
+	@Test
+	fun `selecting a timeline that is gone edits main`() = runTest(mainTestDispatcher) {
+		givenProject()
+		val component = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		component.selectTimeline("gone0001")
+		advanceUntilIdle()
+
+		assertEquals(TimelineDef.MAIN_ID, component.state.value.editingId)
+	}
+
+	@Test
 	fun `deleting the edited timeline asks first, then edits main`() = runTest(mainTestDispatcher) {
 		givenProject()
 		val before = newTimeline("Before")

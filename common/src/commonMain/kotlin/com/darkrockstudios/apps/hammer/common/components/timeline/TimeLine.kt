@@ -76,7 +76,7 @@ interface TimeLine : Router, BackHandlerOwner {
 	/** Selects [timelineId] and opens its event [eventId], where the current event is open. */
 	fun showEventOn(timelineId: String, eventId: Int)
 
-	/** Opens the project settings, where each timeline's mode, calendar and lanes are edited. */
+	/** Opens the project settings on the selected timeline, or main from the deleted-timeline bucket. */
 	fun showTimelineSettings()
 
 	fun requestCreateTimeline()
