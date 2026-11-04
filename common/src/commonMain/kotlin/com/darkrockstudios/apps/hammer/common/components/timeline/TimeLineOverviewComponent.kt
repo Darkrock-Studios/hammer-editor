@@ -56,6 +56,7 @@ class TimeLineOverviewComponent(
 	private val addMenu: (menu: MenuDescriptor) -> Unit,
 	private val removeMenu: (id: String) -> Unit,
 	private val onRequestNewTimeline: () -> Unit,
+	private val onSelectTimeline: (TimelineSelection) -> Unit,
 ) : ProjectComponentBase(projectDef, componentContext), TimeLineOverview {
 
 	private val timelineService: TimelineService by projectInject()
@@ -248,9 +249,14 @@ class TimeLineOverviewComponent(
 
 	override suspend fun moveOrphansTo(target: String): Int {
 		val words = StrResStoryDateWords(strRes)
-		return timelineService.orphansFlow.first().count { orphan ->
+		val targetSelection = TimelineSelection.Def(target)
+		// Selected before the moves, so the bucket emptying never triggers the fall back to main.
+		onSelectTimeline(targetSelection)
+		val moved = timelineService.orphansFlow.first().count { orphan ->
 			timelineService.moveToTimeline(orphan.id, target, allowUndated = true, words = words).isSuccess
 		}
+		if (moved == 0 && selection.value == targetSelection) onSelectTimeline(TimelineSelection.Orphans)
+		return moved
 	}
 
 	override suspend fun deleteOrphans(): Int = timelineService.deleteOrphans()

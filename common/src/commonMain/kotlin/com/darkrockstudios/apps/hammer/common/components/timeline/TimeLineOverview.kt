@@ -25,7 +25,8 @@ interface TimeLineOverview {
 
 	/**
 	 * Moves every event in the deleted-timeline bucket to [target], undated where its dates do not fit
-	 * there. A placement whose subject is already on [target] stays behind. Returns how many moved.
+	 * there. A placement whose subject is already on [target] stays behind. Selects [target] while the
+	 * events move, and the bucket again when none moved. Returns how many moved.
 	 */
 	suspend fun moveOrphansTo(target: String): Int
 

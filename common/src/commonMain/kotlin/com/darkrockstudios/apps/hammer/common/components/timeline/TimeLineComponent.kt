@@ -121,6 +121,7 @@ class TimeLineComponent(
 			addMenu = addMenu,
 			removeMenu = removeMenu,
 			onRequestNewTimeline = ::requestCreateTimeline,
+			onSelectTimeline = ::selectTimeline,
 		)
 	}
 

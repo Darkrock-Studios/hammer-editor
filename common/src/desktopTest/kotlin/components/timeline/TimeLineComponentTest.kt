@@ -3,6 +3,7 @@ package components.timeline
 import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
 import com.darkrockstudios.apps.hammer.base.timeline.CalendarPreset
 import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineFrame
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
@@ -344,6 +345,45 @@ class TimeLineComponentTest : TimelineComponentTestBase() {
 		advanceUntilIdle()
 
 		assertEquals(TimelineSelection.Main, component.selection.value)
+	}
+
+	@Test
+	fun `moving the bucket to a timeline shows that timeline without passing through main`() = runTest(mainTestDispatcher) {
+		givenProject()
+		val before = newTimeline("Before")
+		timeLineRepository.createEvent(TimelineEventDraft(title = "Stray", timeline = "gone0001"))
+		timeLineRepository.createEvent(TimelineEventDraft(title = "Lost", timeline = "gone0002"))
+		val component = newComponent()
+		context.resume()
+		component.selectTimeline(TimelineSelection.Orphans)
+		advanceUntilIdle()
+		val seen = mutableListOf<TimelineSelection>()
+		component.selection.subscribe { seen += it }
+
+		assertEquals(2, overview(component).moveOrphansTo(before))
+		advanceUntilIdle()
+
+		assertEquals(TimelineSelection.Def(before), component.selection.value)
+		assertFalse(TimelineSelection.Main in seen)
+		assertEquals(listOf("Stray", "Lost"), overview(component).state.value.rows?.map { it.title })
+	}
+
+	@Test
+	fun `a bucket move that moves nothing stays in the bucket`() = runTest(mainTestDispatcher) {
+		givenProject()
+		val before = newTimeline("Before")
+		timeLineRepository.createEvent(TimelineEventDraft(kind = TimelineKind.SCENE, subject = 1, timeline = before))
+		timeLineRepository.createEvent(TimelineEventDraft(kind = TimelineKind.SCENE, subject = 1, timeline = "gone0001"))
+		val component = newComponent()
+		context.resume()
+		component.selectTimeline(TimelineSelection.Orphans)
+		advanceUntilIdle()
+
+		assertEquals(0, overview(component).moveOrphansTo(before))
+		advanceUntilIdle()
+
+		assertEquals(TimelineSelection.Orphans, component.selection.value)
+		assertEquals(1, overview(component).state.value.orphanCount)
 	}
 
 	@Test

@@ -50,6 +50,7 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 		addMenu = { addedMenus += it },
 		removeMenu = { removedMenus += it },
 		onRequestNewTimeline = { newTimelineRequests++ },
+		onSelectTimeline = { selection.value = it },
 	)
 
 	private suspend fun newTimeline(name: String, mode: TimelineMode = TimelineMode.MANUAL): TimelineDef =
@@ -345,7 +346,7 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 		component.toggleLane("Alice")
 
 		val recreated = context.saveAndRecreate()
-		val restored = TimeLineOverviewComponent(recreated, projectDef, selection, {}, {}, {})
+		val restored = TimeLineOverviewComponent(recreated, projectDef, selection, {}, {}, {}, { selection.value = it })
 		recreated.resume()
 		advanceUntilIdle()
 
@@ -368,7 +369,7 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 
 		val recreated = context.saveAndRecreate()
 		timelineService.updateEvent(fall.copy(tags = setOf("act-one")))
-		val restored = TimeLineOverviewComponent(recreated, projectDef, selection, {}, {}, {})
+		val restored = TimeLineOverviewComponent(recreated, projectDef, selection, {}, {}, {}, { selection.value = it })
 		recreated.resume()
 		advanceUntilIdle()
 
@@ -565,7 +566,7 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 		component.setFrame(TimelineFrame.Band(storm.id))
 		assertEquals(TimelineFrame.Band(storm.id), component.state.value.frame)
 
-		val restored = TimeLineOverviewComponent(context.saveAndRecreate(), projectDef, selection, {}, {}, {})
+		val restored = TimeLineOverviewComponent(context.saveAndRecreate(), projectDef, selection, {}, {}, {}, { selection.value = it })
 		assertEquals(TimelineFrame.Band(storm.id), restored.state.value.frame)
 
 		assertTrue(context.back())
