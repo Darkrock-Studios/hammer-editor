@@ -12,8 +12,8 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataConflict
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataConflictBroker
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
-import com.darkrockstudios.apps.hammer.common.data.projectdata.differsOutsideDictionary
-import com.darkrockstudios.apps.hammer.common.data.projectdata.mergeDictionaryWords
+import com.darkrockstudios.apps.hammer.common.data.projectdata.differsOutsideAutoMerged
+import com.darkrockstudios.apps.hammer.common.data.projectdata.withAutoMerged
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityConflictHandler
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.IdConflictResolutionState
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.OnSyncLog
@@ -29,8 +29,9 @@ import io.github.aakira.napier.Napier
  * A non-conflict server error fails the whole sync — unlike writing-activity sync,
  * the data is user-authored and silent loss is unacceptable.
  *
- * A conflict confined to [ProjectData.dictionaryWords] is merged by union here and never
- * reaches the resolver; any other conflicting field still goes through the broker.
+ * A conflict confined to [ProjectData.dictionaryWords] and timeline deletions is merged here
+ * ([withAutoMerged]) and never reaches the resolver; any other conflicting field still goes
+ * through the broker.
  */
 class ProjectDataSyncOperation(
 	projectDef: ProjectDef,
@@ -122,7 +123,7 @@ class ProjectDataSyncOperation(
 		}
 
 		val server = conflict.conflict.server
-		val resolved = if (data.differsOutsideDictionary(server)) {
+		val resolved = if (data.differsOutsideAutoMerged(server)) {
 			onLog(syncLogW("Project data conflict detected", projectDef))
 			broker.reportConflict(
 				ProjectDataConflict(
@@ -133,8 +134,8 @@ class ProjectDataSyncOperation(
 			)
 			broker.awaitResolution()
 		} else {
-			onLog(syncLogI("Project data conflict: dictionary words merged", projectDef))
-			data.copy(dictionaryWords = mergeDictionaryWords(data, server))
+			onLog(syncLogI("Project data conflict: dictionary words and timeline deletions merged", projectDef))
+			data.withAutoMerged(server)
 		}
 
 		val resolveResult = api.uploadProjectData(

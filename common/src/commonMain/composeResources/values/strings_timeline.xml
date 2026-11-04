@@ -187,4 +187,8 @@
 	<string name="timeline_error_too_many_lanes">A timeline can have at most %1$d lanes</string>
 	<string name="timeline_error_timeline_not_found">That timeline is no longer in the project</string>
 	<string name="sync_conflict_timeline_rule_timeline_invalid">The timeline id is not valid.</string>
+	<plurals name="sync_conflict_project_data_timelines_deleted">
+		<item quantity="one">%1$d timeline deleted</item>
+		<item quantity="other">%1$d timelines deleted</item>
+	</plurals>
 </resources>

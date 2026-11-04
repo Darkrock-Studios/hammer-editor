@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.projectsync.DataChoice
 import com.darkrockstudios.apps.hammer.common.projectsync.TimelineSummaryLabels
 import com.darkrockstudios.apps.hammer.common.projectsync.buildResolved
+import com.darkrockstudios.apps.hammer.common.projectsync.timelinesDeletedOnlyBy
 import com.darkrockstudios.apps.hammer.common.projectsync.timelinesSummary
 import org.junit.Test
 import kotlin.test.assertEquals
@@ -80,22 +81,69 @@ class ProjectDataConflictResolveTest {
 		assertEquals(listOf(serverMain, serverOnly), resolve(timelines = DataChoice.REMOTE).timelines)
 	}
 
+	private val labels = TimelineSummaryLabels(
+		unset = "(not set)",
+		manual = "manual",
+		dated = "dated",
+		storyCalendar = "Story calendar",
+		gregorianCalendar = "Gregorian calendar",
+		coarsestUnit = { "from $it" },
+		lanes = { "$it lanes" },
+		deleted = { "$it timelines deleted" },
+	)
+
 	@Test
 	fun `timeline summary shows name, mode, calendar and lane count`() {
-		val labels = TimelineSummaryLabels(
-			unset = "(not set)",
-			manual = "manual",
-			dated = "dated",
-			storyCalendar = "Story calendar",
-			gregorianCalendar = "Gregorian calendar",
-			coarsestUnit = { "from $it" },
-			lanes = { "$it lanes" },
-		)
 		val hourScale = localMain.copy(calendar = CalendarDef(coarsestUnit = "hour"), laneOrder = emptyList())
 
-		assertEquals("Main · dated · Story calendar (Landing) · 2 lanes", timelinesSummary(listOf(localMain), labels))
-		assertEquals("Main · manual · 1 lanes\nSecond · manual", timelinesSummary(listOf(serverMain, serverOnly), labels))
-		assertEquals("Main · dated · Story calendar · from hour", timelinesSummary(listOf(hourScale), labels))
-		assertEquals("(not set)", timelinesSummary(emptyList(), labels))
+		assertEquals("Main · dated · Story calendar (Landing) · 2 lanes", timelinesSummary(listOf(localMain), 0, labels))
+		assertEquals("Main · manual · 1 lanes\nSecond · manual", timelinesSummary(listOf(serverMain, serverOnly), 0, labels))
+		assertEquals("Main · dated · Story calendar · from hour", timelinesSummary(listOf(hourScale), 0, labels))
+		assertEquals("(not set)", timelinesSummary(emptyList(), 0, labels))
+	}
+
+	@Test
+	fun `resolved data carries the union of tombstones and drops deleted defs`() {
+		val deletedHere = TimelineDef(id = "c3d4e5f6", name = "Third")
+		val withTombstones = { localChoice: DataChoice ->
+			buildResolved(
+				local = local.copy(timelines = listOf(localMain, serverOnly), deletedTimelines = setOf(deletedHere.id)),
+				server = server.copy(
+					timelines = listOf(serverMain, deletedHere),
+					deletedTimelines = setOf(serverOnly.id, TimelineDef.MAIN_ID),
+				),
+				authorChoice = DataChoice.LOCAL,
+				themeChoice = DataChoice.LOCAL,
+				goalChoice = DataChoice.LOCAL,
+				tagsChoice = DataChoice.LOCAL,
+				languageChoice = DataChoice.LOCAL,
+				dictionaryChoice = DataChoice.LOCAL,
+				coverChoice = DataChoice.LOCAL,
+				timelinesChoice = localChoice,
+			)
+		}
+
+		val keepLocal = withTombstones(DataChoice.LOCAL)
+		val takeServer = withTombstones(DataChoice.REMOTE)
+
+		assertEquals(listOf(localMain), keepLocal.timelines)
+		assertEquals(listOf(serverMain), takeServer.timelines)
+		assertEquals(setOf(deletedHere.id, serverOnly.id), keepLocal.deletedTimelines)
+		assertEquals(setOf(deletedHere.id, serverOnly.id), takeServer.deletedTimelines)
+	}
+
+	@Test
+	fun `timeline summary adds a line for timelines only this side deleted`() {
+		val deleter = ProjectData(timelines = listOf(serverMain), deletedTimelines = setOf("aaaaaaaa", "bbbbbbbb"))
+		val other = ProjectData(timelines = listOf(serverMain), deletedTimelines = setOf("aaaaaaaa"))
+
+		assertEquals(1, timelinesDeletedOnlyBy(deleter, other))
+		assertEquals(0, timelinesDeletedOnlyBy(other, deleter))
+		assertEquals(0, timelinesDeletedOnlyBy(ProjectData(deletedTimelines = setOf(TimelineDef.MAIN_ID)), other))
+		assertEquals(
+			"Main · manual · 1 lanes\n1 timelines deleted",
+			timelinesSummary(deleter.timelines, timelinesDeletedOnlyBy(deleter, other), labels),
+		)
+		assertEquals("(not set)\n2 timelines deleted", timelinesSummary(emptyList(), 2, labels))
 	}
 }

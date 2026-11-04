@@ -41,8 +41,10 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineBut
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageFile
+import com.darkrockstudios.apps.hammer.common.data.projectdata.mergeDeletedTimelines
 import com.darkrockstudios.apps.hammer.common.data.projectdata.mergeDictionaryWords
 import com.darkrockstudios.apps.hammer.common.data.projectdata.mergeTimelinesByChoice
+import com.darkrockstudios.apps.hammer.common.data.projectdata.withoutDeleted
 import com.darkrockstudios.apps.hammer.sync_conflict_project_data_cadence_day
 import com.darkrockstudios.apps.hammer.sync_conflict_project_data_cadence_week
 import com.darkrockstudios.apps.hammer.sync_conflict_project_data_dictionary_merged
@@ -63,6 +65,7 @@ import com.darkrockstudios.apps.hammer.sync_conflict_project_data_timeline_coars
 import com.darkrockstudios.apps.hammer.sync_conflict_project_data_timeline_dated
 import com.darkrockstudios.apps.hammer.sync_conflict_project_data_timeline_lanes
 import com.darkrockstudios.apps.hammer.sync_conflict_project_data_timeline_manual
+import com.darkrockstudios.apps.hammer.sync_conflict_project_data_timelines_deleted
 import com.darkrockstudios.apps.hammer.sync_conflict_project_data_value_off
 import com.darkrockstudios.apps.hammer.sync_conflict_project_data_value_on
 import com.darkrockstudios.apps.hammer.sync_conflict_project_data_value_unset
@@ -96,7 +99,13 @@ internal fun ProjectDataConflict(
 	val dictionaryConflict =
 		conflictState.local.encyclopediaDictionary != conflictState.server.encyclopediaDictionary
 	val coverConflict = conflictState.local.coverImageId != conflictState.server.coverImageId
-	val timelinesConflict = conflictState.local.timelines != conflictState.server.timelines
+	// Deletions apply whichever side is picked, so both sides show only the defs that survive.
+	val deletedTimelines = mergeDeletedTimelines(conflictState.local, conflictState.server)
+	val localTimelines = conflictState.local.timelines.withoutDeleted(deletedTimelines)
+	val serverTimelines = conflictState.server.timelines.withoutDeleted(deletedTimelines)
+	val localDeletedCount = timelinesDeletedOnlyBy(conflictState.local, conflictState.server)
+	val serverDeletedCount = timelinesDeletedOnlyBy(conflictState.server, conflictState.local)
+	val timelinesConflict = localTimelines != serverTimelines
 
 	val unsetLabel = Res.string.sync_conflict_project_data_value_unset.get()
 	val onLabel = Res.string.sync_conflict_project_data_value_on.get()
@@ -107,8 +116,9 @@ internal fun ProjectDataConflict(
 	val weekLabel = Res.string.sync_conflict_project_data_cadence_week.get()
 	val stackVertical = screenCharacteristics.widthSizeClass == WindowWidthSizeClass.Compact
 	val timelineLabels = timelineSummaryLabels(
-		conflictState.local.timelines + conflictState.server.timelines,
-		unsetLabel,
+		timelines = localTimelines + serverTimelines,
+		deletedCounts = listOf(localDeletedCount, serverDeletedCount),
+		unsetLabel = unsetLabel,
 	)
 
 	Column(
@@ -211,8 +221,8 @@ internal fun ProjectDataConflict(
 		PerFieldChoice(
 			label = Res.string.sync_conflict_project_data_field_timelines.get(),
 			conflict = timelinesConflict,
-			localValue = timelinesSummary(conflictState.local.timelines, timelineLabels),
-			serverValue = timelinesSummary(conflictState.server.timelines, timelineLabels),
+			localValue = timelinesSummary(localTimelines, localDeletedCount, timelineLabels),
+			serverValue = timelinesSummary(serverTimelines, serverDeletedCount, timelineLabels),
 			selected = timelinesChoice,
 			onSelect = { timelinesChoice = it },
 			localLabel = localLabel,
@@ -402,21 +412,30 @@ internal fun buildResolved(
 	dictionaryChoice: DataChoice,
 	coverChoice: DataChoice,
 	timelinesChoice: DataChoice,
-): ProjectData = ProjectData(
-	authorName = if (authorChoice == DataChoice.LOCAL) local.authorName else server.authorName,
-	theme = if (themeChoice == DataChoice.LOCAL) local.theme else server.theme,
-	wordCountGoal = if (goalChoice == DataChoice.LOCAL) local.wordCountGoal else server.wordCountGoal,
-	tags = if (tagsChoice == DataChoice.LOCAL) local.tags else server.tags,
-	language = if (languageChoice == DataChoice.LOCAL) local.language else server.language,
-	encyclopediaDictionary = if (dictionaryChoice == DataChoice.LOCAL) local.encyclopediaDictionary else server.encyclopediaDictionary,
-	dictionaryWords = mergeDictionaryWords(local, server),
-	coverImageId = if (coverChoice == DataChoice.LOCAL) local.coverImageId else server.coverImageId,
-	timelines = mergeTimelinesByChoice(
-		local = local.timelines,
-		server = server.timelines,
-		preferLocal = timelinesChoice == DataChoice.LOCAL,
-	),
-)
+): ProjectData {
+	val deletedTimelines = mergeDeletedTimelines(local, server)
+	return ProjectData(
+		authorName = if (authorChoice == DataChoice.LOCAL) local.authorName else server.authorName,
+		theme = if (themeChoice == DataChoice.LOCAL) local.theme else server.theme,
+		wordCountGoal = if (goalChoice == DataChoice.LOCAL) local.wordCountGoal else server.wordCountGoal,
+		tags = if (tagsChoice == DataChoice.LOCAL) local.tags else server.tags,
+		language = if (languageChoice == DataChoice.LOCAL) local.language else server.language,
+		encyclopediaDictionary = if (dictionaryChoice == DataChoice.LOCAL) local.encyclopediaDictionary else server.encyclopediaDictionary,
+		dictionaryWords = mergeDictionaryWords(local, server),
+		coverImageId = if (coverChoice == DataChoice.LOCAL) local.coverImageId else server.coverImageId,
+		timelines = mergeTimelinesByChoice(
+			local = local.timelines,
+			server = server.timelines,
+			deleted = deletedTimelines,
+			preferLocal = timelinesChoice == DataChoice.LOCAL,
+		),
+		deletedTimelines = deletedTimelines,
+	)
+}
+
+/** How many timelines [side] deleted that [other] still has no tombstone for. */
+internal fun timelinesDeletedOnlyBy(side: ProjectData, other: ProjectData): Int =
+	(mergeDeletedTimelines(side) - other.deletedTimelines).size
 
 private fun displayString(value: String?, unsetLabel: String): String =
 	if (value.isNullOrBlank()) unsetLabel else value
@@ -447,15 +466,23 @@ internal class TimelineSummaryLabels(
 	val gregorianCalendar: String,
 	val coarsestUnit: (String) -> String,
 	val lanes: (Int) -> String,
+	val deleted: (Int) -> String,
 )
 
 /** Resolves the lane-count and unit phrases [timelines] need up front, keeping [timelinesSummary] pure. */
 @Composable
-private fun timelineSummaryLabels(timelines: List<TimelineDef>, unsetLabel: String): TimelineSummaryLabels {
+private fun timelineSummaryLabels(
+	timelines: List<TimelineDef>,
+	deletedCounts: List<Int>,
+	unsetLabel: String,
+): TimelineSummaryLabels {
 	val laneCounts = timelines.map { it.laneOrder.size }.filter { it > 0 }.distinct()
 	val units = timelines.mapNotNull { it.calendar?.coarsestUnit }.distinct()
 	val laneLabels = laneCounts.associateWith {
 		pluralStringResource(Res.plurals.sync_conflict_project_data_timeline_lanes, it, it)
+	}
+	val deletedLabels = deletedCounts.filter { it > 0 }.distinct().associateWith {
+		pluralStringResource(Res.plurals.sync_conflict_project_data_timelines_deleted, it, it)
 	}
 	val unitLabels = units.associateWith { Res.string.sync_conflict_project_data_timeline_coarsest_unit.get(it) }
 	return TimelineSummaryLabels(
@@ -466,13 +493,23 @@ private fun timelineSummaryLabels(timelines: List<TimelineDef>, unsetLabel: Stri
 		gregorianCalendar = Res.string.sync_conflict_project_data_timeline_calendar_gregorian.get(),
 		coarsestUnit = { unitLabels[it] ?: it },
 		lanes = { laneLabels[it] ?: it.toString() },
+		deleted = { deletedLabels[it] ?: it.toString() },
 	)
 }
 
-/** One line per timeline, e.g. `Main · dated · Story calendar (Landing) · 2 lanes`. */
-internal fun timelinesSummary(timelines: List<TimelineDef>, labels: TimelineSummaryLabels): String =
-	if (timelines.isEmpty()) labels.unset
-	else timelines.joinToString("\n") { timelineSummary(it, labels) }
+/**
+ * One line per timeline, e.g. `Main · dated · Story calendar (Landing) · 2 lanes`, then a line
+ * counting the timelines this side deleted when [deletedCount] is above zero.
+ */
+internal fun timelinesSummary(
+	timelines: List<TimelineDef>,
+	deletedCount: Int,
+	labels: TimelineSummaryLabels,
+): String {
+	val lines = if (timelines.isEmpty()) listOf(labels.unset) else timelines.map { timelineSummary(it, labels) }
+	val deletedLine = if (deletedCount > 0) listOf(labels.deleted(deletedCount)) else emptyList()
+	return (lines + deletedLine).joinToString("\n")
+}
 
 private fun timelineSummary(def: TimelineDef, labels: TimelineSummaryLabels): String {
 	val parts = mutableListOf(def.name.ifBlank { def.id })
