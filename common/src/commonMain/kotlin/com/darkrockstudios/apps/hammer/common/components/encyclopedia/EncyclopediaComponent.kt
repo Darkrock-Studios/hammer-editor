@@ -19,6 +19,7 @@ class EncyclopediaComponent(
 	private val removeMenu: (id: String) -> Unit,
 	private val showScene: (SceneItem) -> Unit,
 	private val onShowGlobalSearchForTag: (String) -> Unit,
+	private val showTimelineEvent: (eventId: Int) -> Unit,
 ) : ProjectComponentBase(projectDef, componentContext), Encyclopedia {
 
 	private val navigation = StackNavigation<Encyclopedia.Config>()
@@ -110,6 +111,7 @@ class EncyclopediaComponent(
 			closeEntry = ::closeEntry,
 			showScene = showScene,
 			onShowGlobalSearchForTag = onShowGlobalSearchForTag,
+			onShowTimelineEvent = showTimelineEvent,
 		)
 	}
 

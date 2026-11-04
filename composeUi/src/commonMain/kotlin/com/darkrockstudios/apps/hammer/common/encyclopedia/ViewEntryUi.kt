@@ -105,6 +105,8 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryR
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImageAddResult
 import com.darkrockstudios.apps.hammer.common.images.ImageViewerDialog
+import com.darkrockstudios.apps.hammer.common.timeline.TimelinePlacementChips
+import com.darkrockstudios.apps.hammer.timeline_subject_timelines_label
 import com.darkrockstudios.apps.hammer.common.images.ImageViewerItem
 import com.darkrockstudios.apps.hammer.common.data.tagindex.replaceTagPrefix
 import com.darkrockstudios.apps.hammer.common.util.StrRes
@@ -404,6 +406,11 @@ internal fun ViewEntryUi(
 						)
 
 						AppearsInZone(
+							state = state,
+							component = component,
+						)
+
+						TimelinesZone(
 							state = state,
 							component = component,
 						)
@@ -1078,6 +1085,31 @@ private fun AppearsInZone(
 				}
 			}
 		}
+	}
+}
+
+/** The entry's placements, a chip per timeline; left out when it is on none. */
+@Composable
+private fun TimelinesZone(
+	state: ViewEntry.State,
+	component: ViewEntry,
+) {
+	if (state.timelines.isEmpty()) return
+	Column(
+		modifier = Modifier
+			.fillMaxWidth()
+			.padding(horizontal = Ui.Padding.XXL)
+			.padding(top = 28.dp),
+		verticalArrangement = Arrangement.spacedBy(Ui.Padding.L),
+	) {
+		HdSectionHeader(
+			marker = "—",
+			title = Res.string.timeline_subject_timelines_label.get(),
+		)
+		TimelinePlacementChips(
+			placements = state.timelines,
+			onShow = component::showTimelinePlacement,
+		)
 	}
 }
 

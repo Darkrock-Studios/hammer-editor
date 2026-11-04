@@ -15,6 +15,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.references.AutoConfirmReferencesUseCase
 import com.darkrockstudios.apps.hammer.common.data.references.ScrubInvalidReferencesUseCase
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineService
 import com.darkrockstudios.apps.hammer.common.data.tree.ImmutableTree
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeValue
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.APP_SCOPE
@@ -27,6 +28,7 @@ import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -86,6 +88,7 @@ class StoryEditorComponentTest : ComponentTest() {
 				scoped<AutoConfirmReferencesUseCase> { mockk(relaxed = true) }
 				scoped<ScrubInvalidReferencesUseCase> { mockk(relaxed = true) }
 				scoped { encyclopediaService }
+				scoped<TimelineService> { mockk { every { placementsFlow(any(), any()) } returns emptyFlow() } }
 			}
 		})
 	}
@@ -98,6 +101,7 @@ class StoryEditorComponentTest : ComponentTest() {
 		showFocusMode = { focusModeScene = it },
 		showEntry = { },
 		showGlobalSearchForTag = { },
+		showTimelineEvent = { },
 	)
 
 	private fun sceneItem(id: Int = 1) = SceneItem(

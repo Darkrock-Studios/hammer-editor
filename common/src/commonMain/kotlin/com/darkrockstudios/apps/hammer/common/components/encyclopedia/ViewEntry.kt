@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.common.components.encyclopedia
 import com.arkivanov.decompose.router.slot.ChildSlot
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.rename.RenameEntry
+import com.darkrockstudios.apps.hammer.common.components.timeline.TimelinePlacementLink
 import com.darkrockstudios.apps.hammer.common.data.MenuItemDescriptor
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryResult
@@ -36,6 +37,8 @@ interface ViewEntry : TagSuggesting {
 		val showAliasAdd: Boolean = false,
 		val menuItems: Set<MenuItemDescriptor> = emptySet(),
 		val appearsIn: List<Appearance> = emptyList(),
+		/** Every placement of this entry, on any timeline; only EVENT entries can be placed. */
+		val timelines: List<TimelinePlacementLink> = emptyList(),
 		val spellCheckAllowed: Boolean = true,
 		val dictionaryFeatureEnabled: Boolean = true,
 	)
@@ -100,6 +103,10 @@ interface ViewEntry : TagSuggesting {
 	fun removeAlias(alias: String)
 	suspend fun setExcludeFromDictionary(exclude: Boolean): EntryResult
 	fun navigateToAppearance(appearance: Appearance)
+
+	/** Opens [placement] on its own timeline. */
+	fun showTimelinePlacement(placement: TimelinePlacementLink)
+
 	fun showRename()
 	fun dismissRename()
 }

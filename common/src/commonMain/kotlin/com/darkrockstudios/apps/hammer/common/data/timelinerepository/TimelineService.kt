@@ -93,6 +93,9 @@ data class TimelineSummary(val def: TimelineDef, val eventCount: Int)
 /** Placement [eventId] of the same subject on another live timeline. */
 data class TimelinePlacement(val def: TimelineDef, val eventId: Int)
 
+/** A placement of a scene or entry with the live timeline it is on, null for a straggler. */
+data class SubjectPlacement(val event: TimeLineEvent, val def: TimelineDef?)
+
 /**
  * An event with the live timeline it is on, null for a straggler, and for a placement the other
  * live timelines its subject is placed on, in timeline order.
@@ -226,6 +229,18 @@ class TimelineService(
 			TimelineEventView(event, live.firstOrNull { it.id == event.timelineId }, alsoOn)
 		}
 	}.distinctUntilChanged()
+
+	/** Every [kind] placement of [subjectId]: on live timelines in timeline order, then stragglers. */
+	fun placementsFlow(kind: TimelineKind, subjectId: Int): Flow<List<SubjectPlacement>> {
+		require(kind.isPlacement) { "Not a placement kind: $kind" }
+		return combine(storedTimeline, projectData) { timeline, data ->
+			val placements = timeline.events.filter { it.kind == kind && it.subject == subjectId }.sortedBy { it.order }
+			val live = data.liveTimelines()
+			val liveIds = live.mapTo(mutableSetOf()) { it.id }
+			live.flatMap { def -> placements.filter { it.timelineId == def.id }.map { SubjectPlacement(it, def) } } +
+				placements.filter { it.timelineId !in liveIds }.map { SubjectPlacement(it, null) }
+		}.distinctUntilChanged()
+	}
 
 	/** Event [eventId], on any timeline, or null when there is none. */
 	suspend fun event(eventId: Int): TimeLineEvent? = findEvent(eventId)

@@ -31,6 +31,7 @@ import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.tagindex.replaceTagPrefix
 import com.darkrockstudios.apps.hammer.common.encyclopedia.EntryRefChipLabel
+import com.darkrockstudios.apps.hammer.common.timeline.TimelinePlacementChips
 import com.darkrockstudios.apps.hammer.common.util.format
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -215,6 +216,26 @@ fun SceneMetadataPanelUi(
 								}
 							},
 							body = { DismissedBody(state, component) }
+						)
+					}
+
+					if (state.timelines.isNotEmpty()) {
+						SpacerXL()
+						CollapsableSection(
+							startExpanded = true,
+							header = {
+								HdMonoLabel(
+									text = Res.string.timeline_subject_timelines_label.get(),
+									modifier = Modifier.padding(end = Ui.Padding.M),
+								)
+							},
+							body = {
+								TimelinePlacementChips(
+									placements = state.timelines,
+									onShow = component::showTimelinePlacement,
+									modifier = Modifier.padding(top = Ui.Padding.M),
+								)
+							},
 						)
 					}
 

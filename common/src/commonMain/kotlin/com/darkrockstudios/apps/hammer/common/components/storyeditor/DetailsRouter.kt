@@ -28,6 +28,7 @@ internal class DetailsRouter(
 	private val openFocusMode: (SceneItem) -> Unit,
 	private val openEntry: (EntryDef) -> Unit,
 	private val openGlobalSearchForTag: (String) -> Unit,
+	private val openTimelineEvent: (eventId: Int) -> Unit,
 	private val addMenu: (menu: MenuDescriptor) -> Unit,
 ) {
 
@@ -83,6 +84,7 @@ internal class DetailsRouter(
 			showReader = ::showReader,
 			showEntry = openEntry,
 			showGlobalSearchForTag = openGlobalSearchForTag,
+			showTimelineEvent = openTimelineEvent,
 		)
 
 	private fun draftsList(componentContext: ComponentContext, sceneDef: SceneItem): DraftsList =

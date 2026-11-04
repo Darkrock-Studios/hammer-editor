@@ -12,11 +12,14 @@ import com.arkivanov.decompose.value.getAndUpdate
 import com.arkivanov.decompose.value.subscribe
 import com.arkivanov.essenty.backhandler.BackCallback
 import com.darkrockstudios.apps.hammer.*
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.rename.RenameEntry
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.rename.RenameEntryComponent
 import com.darkrockstudios.apps.hammer.common.components.images.ImagePickSession
 import com.darkrockstudios.apps.hammer.common.components.images.ImagePickTarget
+import com.darkrockstudios.apps.hammer.common.components.timeline.TimelinePlacementLink
+import com.darkrockstudios.apps.hammer.common.components.timeline.placementLinks
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.MenuItemDescriptor
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
@@ -26,6 +29,7 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryL
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryResult
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImageAddResult
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesService
 import com.darkrockstudios.apps.hammer.common.data.projectInject
@@ -34,6 +38,7 @@ import com.darkrockstudios.apps.hammer.common.data.references.CleanupReferencesO
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexService
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.tagindex.parseTagInput
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineService
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
@@ -51,6 +56,7 @@ class ViewEntryComponent(
 	private val closeEntry: () -> Unit,
 	private val showScene: (SceneItem) -> Unit,
 	private val onShowGlobalSearchForTag: (String) -> Unit,
+	private val onShowTimelineEvent: (eventId: Int) -> Unit,
 ) : ProjectComponentBase(entryDef.projectDef, componentContext), ViewEntry {
 
 	private val _state = MutableValue(
@@ -66,6 +72,7 @@ class ViewEntryComponent(
 	private val backfillEntryReferences: BackfillEntryReferencesUseCase by projectInject()
 	private val cleanupReferencesOnDelete: CleanupReferencesOnEntryDeleteUseCase by projectInject()
 	private val imagesService: ImagesService by projectInject()
+	private val timelineService: TimelineService by projectInject()
 
 	private val libraryPick = ImagePickSession(
 		requests = projectInject(),
@@ -146,6 +153,7 @@ class ViewEntryComponent(
 		reload()
 		watchEntry()
 		watchImages()
+		watchTimelines()
 		libraryPick.restore(libraryPickTarget(), ::addLibraryImage)
 	}
 
@@ -185,6 +193,17 @@ class ViewEntryComponent(
 				} catch (e: IOException) {
 					Napier.w("Failed to refresh entry $entryId", e)
 				}
+			}
+		}
+	}
+
+	// Only an EVENT entry can be placed.
+	private fun watchTimelines() {
+		val entryDef = state.value.entryDef
+		if (entryDef.type != EntryType.EVENT) return
+		scope.launch {
+			timelineService.placementLinks(TimelineKind.ENTRY, entryDef.id).collect { links ->
+				withContext(dispatcherMain) { _state.getAndUpdate { it.copy(timelines = links) } }
 			}
 		}
 	}
@@ -468,6 +487,10 @@ class ViewEntryComponent(
 
 	override fun navigateToAppearance(appearance: ViewEntry.Appearance) {
 		showScene(appearance.sceneItem)
+	}
+
+	override fun showTimelinePlacement(placement: TimelinePlacementLink) {
+		onShowTimelineEvent(placement.eventId)
 	}
 
 	override fun showRename() {

@@ -250,4 +250,5 @@
 		<item quantity="other">%1$d entries</item>
 	</plurals>
 	<string name="timeline_preset_warning_label_named">Some dates on “%1$s” do not fit</string>
+	<string name="timeline_subject_timelines_label">Timelines</string>
 </resources>

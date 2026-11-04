@@ -89,6 +89,7 @@ class EncyclopediaComponentTest : ComponentTest() {
 		removeMenu = {},
 		showScene = {},
 		onShowGlobalSearchForTag = {},
+		showTimelineEvent = {},
 	)
 
 	@Test

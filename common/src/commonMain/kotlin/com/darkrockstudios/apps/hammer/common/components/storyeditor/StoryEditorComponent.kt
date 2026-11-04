@@ -28,6 +28,7 @@ class StoryEditorComponent(
 	showFocusMode: (SceneItem) -> Unit,
 	showEntry: (EntryDef) -> Unit,
 	showGlobalSearchForTag: (String) -> Unit,
+	showTimelineEvent: (eventId: Int) -> Unit,
 ) : ProjectComponentBase(projectDef, componentContext), StoryEditor {
 
 	private val sceneEditor: SceneEditorService by projectInject()
@@ -54,6 +55,7 @@ class StoryEditorComponent(
 			openFocusMode = showFocusMode,
 			openEntry = showEntry,
 			openGlobalSearchForTag = showGlobalSearchForTag,
+			openTimelineEvent = showTimelineEvent,
 		)
 
 	private val listRouter =

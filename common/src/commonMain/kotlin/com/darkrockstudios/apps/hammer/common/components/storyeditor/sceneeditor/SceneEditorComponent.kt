@@ -47,6 +47,7 @@ class SceneEditorComponent(
 	private val showReader: (SceneItem) -> Unit,
 	showEntry: (EntryDef) -> Unit,
 	showGlobalSearchForTag: (String) -> Unit,
+	showTimelineEvent: (eventId: Int) -> Unit,
 ) : ProjectComponentBase(originalSceneItem.projectDef, componentContext),
 	ComponentToaster by ComponentToasterImpl(),
 	SceneEditor {
@@ -85,6 +86,7 @@ class SceneEditorComponent(
 		originalSceneItem = originalSceneItem,
 		showEntry = showEntry,
 		onShowGlobalSearchForTag = showGlobalSearchForTag,
+		onShowTimelineEvent = showTimelineEvent,
 	)
 
 	private val sceneDef: SceneItem = state.value.sceneItem

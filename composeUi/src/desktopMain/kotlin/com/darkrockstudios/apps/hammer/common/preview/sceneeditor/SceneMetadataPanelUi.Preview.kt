@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import com.arkivanov.decompose.value.MutableValue
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.scenemetadata.SceneMetadataPanel
+import com.darkrockstudios.apps.hammer.common.components.timeline.TimelinePlacementLink
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
@@ -13,6 +14,7 @@ import com.darkrockstudios.apps.hammer.common.preview.KoinApplicationPreview
 import com.darkrockstudios.apps.hammer.common.preview.fakeProjectDef
 import com.darkrockstudios.apps.hammer.common.preview.fakeSceneItem
 import com.darkrockstudios.apps.hammer.common.preview.globalSettingsPreview
+import com.darkrockstudios.apps.hammer.common.preview.timeline.previewTimelinePlacements
 import com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor.SceneMetadataPanelUi
 
 private fun previewEntryDef(id: Int, name: String, type: EntryType) = EntryDef(
@@ -40,6 +42,7 @@ private val previewDismissedRefs = listOf(
 private fun previewComponent(
 	confirmedRefs: List<EntryDef>,
 	dismissedRefs: List<EntryDef>,
+	timelines: List<TimelinePlacementLink> = emptyList(),
 ) = object : SceneMetadataPanel {
 	override val state = MutableValue(
 		SceneMetadataPanel.State(
@@ -52,6 +55,7 @@ private fun previewComponent(
 			),
 			confirmedRefs = confirmedRefs,
 			dismissedRefs = dismissedRefs,
+			timelines = timelines,
 		)
 	)
 
@@ -71,6 +75,7 @@ private fun previewComponent(
 	override fun addTags(input: String) {}
 	override fun removeTag(tag: String) {}
 	override fun showGlobalSearchForTag(tag: String) {}
+	override fun showTimelinePlacement(placement: TimelinePlacementLink) {}
 	override fun suggestTags(prefix: String, limit: Int) = emptyList<String>()
 }
 
@@ -94,6 +99,19 @@ fun SceneMetadataPanelUiEmptyPreview() {
 		AppTheme(globalSettingsPreview) {
 			SceneMetadataPanelUi(
 				component = previewComponent(emptyList(), emptyList()),
+				closeMetadata = {},
+			)
+		}
+	}
+}
+
+@Preview
+@Composable
+fun SceneMetadataPanelUiTimelinesPreview() {
+	KoinApplicationPreview {
+		AppTheme(globalSettingsPreview) {
+			SceneMetadataPanelUi(
+				component = previewComponent(previewConfirmedRefs, emptyList(), previewTimelinePlacements),
 				closeMetadata = {},
 			)
 		}

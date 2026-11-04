@@ -120,6 +120,7 @@ class ProjectRootComponent(
 		::showEncyclopediaEntry,
 		::showEditorScene,
 		::showTimelineSettings,
+		::showTimelineEvent,
 		onCloseProject,
 		scope,
 		dispatcherMain,
@@ -257,6 +258,10 @@ class ProjectRootComponent(
 
 	override fun showTimeLine() {
 		router.showTimeLine()
+	}
+
+	private fun showTimelineEvent(eventId: Int) {
+		scope.launch { navigateToDeepLink(ProjectDeepLink.TimelineEvent(eventId)) }
 	}
 
 	override fun showDestination(type: ProjectRoot.DestinationTypes) {

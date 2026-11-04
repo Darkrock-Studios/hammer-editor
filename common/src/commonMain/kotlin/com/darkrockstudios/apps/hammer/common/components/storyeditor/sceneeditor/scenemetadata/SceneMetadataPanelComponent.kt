@@ -4,7 +4,10 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
+import com.darkrockstudios.apps.hammer.common.components.timeline.TimelinePlacementLink
+import com.darkrockstudios.apps.hammer.common.components.timeline.placementLinks
 import com.darkrockstudios.apps.hammer.common.data.SceneBuffer
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftsDatasource
@@ -18,6 +21,7 @@ import com.darkrockstudios.apps.hammer.common.data.references.ScrubInvalidRefere
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
 import com.darkrockstudios.apps.hammer.common.data.tagindex.parseTagInput
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineService
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.APP_SCOPE
 import com.darkrockstudios.apps.hammer.common.util.debounceUntilQuiescent
 import io.github.aakira.napier.Napier
@@ -42,6 +46,7 @@ class SceneMetadataPanelComponent(
 	private val originalSceneItem: SceneItem,
 	private val showEntry: (EntryDef) -> Unit,
 	private val onShowGlobalSearchForTag: (String) -> Unit,
+	private val onShowTimelineEvent: (eventId: Int) -> Unit,
 ) : ProjectComponentBase(originalSceneItem.projectDef, componentContext),
 	SceneMetadataPanel {
 
@@ -53,6 +58,7 @@ class SceneMetadataPanelComponent(
 	private val scrubInvalidReferences: ScrubInvalidReferencesUseCase = projectGet()
 
 	private val encyclopediaService: EncyclopediaService by projectInject()
+	private val timelineService: TimelineService by projectInject()
 
 	private val searchableEntries = MutableStateFlow<List<SearchableEntry>>(emptyList())
 
@@ -102,6 +108,12 @@ class SceneMetadataPanelComponent(
 			encyclopediaService.entryListFlow.collect { defs ->
 				rebuildSearchableEntries(defs)
 				refreshReferences()
+			}
+		}
+
+		scope.launch {
+			timelineService.placementLinks(TimelineKind.SCENE, originalSceneItem.id).collect { links ->
+				withContext(dispatcherMain) { _state.getAndUpdate { it.copy(timelines = links) } }
 			}
 		}
 
@@ -341,6 +353,10 @@ class SceneMetadataPanelComponent(
 
 	override fun showGlobalSearchForTag(tag: String) {
 		onShowGlobalSearchForTag(tag)
+	}
+
+	override fun showTimelinePlacement(placement: TimelinePlacementLink) {
+		onShowTimelineEvent(placement.eventId)
 	}
 
 	private fun mutateMetadata(transform: (SceneMetadata) -> SceneMetadata) {

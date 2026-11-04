@@ -103,6 +103,7 @@ class ViewEntryComponentImagesTest : ComponentTest() {
 		closeEntry = {},
 		showScene = {},
 		onShowGlobalSearchForTag = {},
+		onShowTimelineEvent = {},
 	)
 
 	@Test

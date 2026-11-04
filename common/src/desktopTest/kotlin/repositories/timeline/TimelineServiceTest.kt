@@ -997,6 +997,26 @@ class TimelineServiceTest : BaseTest() {
 	}
 
 	@Test
+	fun `a subject's placements list live timelines in order and then stragglers`() = runTest(mainTestDispatcher) {
+		val service = createService()
+		val backstory = service.createTimeline("Backstory").def()
+		val onBackstory = service.placeScene(4, null, null, null, false, timeline = backstory.id).event()
+		val onMain = service.placeScene(4, null, null, null, false).event()
+		service.placeScene(5, null, null, null, false).event()
+		service.placeEntry(TEA_PARTY, null, null, null, false).event()
+		// As sync stores a placement made offline on a timeline deleted since.
+		val straggler = timeLineRepository.createEvent(
+			TimelineEventDraft(kind = TimelineKind.SCENE, subject = 4, timeline = "zzzz9999")
+		)
+
+		val placements = service.placementsFlow(TimelineKind.SCENE, 4).first()
+
+		assertEquals(listOf(onMain.id, onBackstory.id, straggler.id), placements.map { it.event.id })
+		assertEquals(listOf(TimelineDef.MAIN_ID, backstory.id, null), placements.map { it.def?.id })
+		assertEquals(emptyList(), service.placementsFlow(TimelineKind.ENTRY, 4).first())
+	}
+
+	@Test
 	fun `a draft may spell main out and is stored as main`() = runTest(mainTestDispatcher) {
 		val service = createService()
 

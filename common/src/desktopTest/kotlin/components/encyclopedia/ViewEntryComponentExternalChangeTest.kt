@@ -66,6 +66,7 @@ class ViewEntryComponentExternalChangeTest : ComponentTest() {
 			closeEntry = {},
 			showScene = {},
 			onShowGlobalSearchForTag = {},
+			onShowTimelineEvent = {},
 		)
 		context.resume()
 		advanceUntilIdle()
@@ -98,6 +99,7 @@ class ViewEntryComponentExternalChangeTest : ComponentTest() {
 			closeEntry = {},
 			showScene = {},
 			onShowGlobalSearchForTag = {},
+			onShowTimelineEvent = {},
 		)
 		context.resume()
 		advanceUntilIdle()
@@ -129,6 +131,7 @@ class ViewEntryComponentExternalChangeTest : ComponentTest() {
 			closeEntry = {},
 			showScene = {},
 			onShowGlobalSearchForTag = {},
+			onShowTimelineEvent = {},
 		)
 		context.resume()
 		advanceUntilIdle()

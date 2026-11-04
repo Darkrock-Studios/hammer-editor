@@ -81,6 +81,7 @@ class ViewEntryComponentTest : ComponentTest() {
 			closeEntry = {},
 			showScene = {},
 			onShowGlobalSearchForTag = {},
+			onShowTimelineEvent = {},
 		)
 
 		val result = comp.updateEntry(
@@ -128,6 +129,7 @@ class ViewEntryComponentTest : ComponentTest() {
 			closeEntry = {},
 			showScene = {},
 			onShowGlobalSearchForTag = {},
+			onShowTimelineEvent = {},
 		)
 
 		val result = comp.updateEntry(
@@ -158,6 +160,7 @@ class ViewEntryComponentTest : ComponentTest() {
 			closeEntry = {},
 			showScene = {},
 			onShowGlobalSearchForTag = {},
+			onShowTimelineEvent = {},
 		)
 		comp.startNameEdit()
 		comp.startTextEdit()

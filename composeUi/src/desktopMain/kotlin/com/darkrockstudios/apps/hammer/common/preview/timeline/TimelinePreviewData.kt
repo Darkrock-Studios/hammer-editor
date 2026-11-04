@@ -1,11 +1,14 @@
 package com.darkrockstudios.apps.hammer.common.preview.timeline
 
 import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
+import com.darkrockstudios.apps.hammer.base.timeline.CalendarPreset
+import com.darkrockstudios.apps.hammer.base.timeline.StoryCalendar
 import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.components.timeline.LaneCount
+import com.darkrockstudios.apps.hammer.common.components.timeline.TimelinePlacementLink
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimelineRow
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogItem
@@ -122,4 +125,15 @@ internal val previewThreeTimelines = listOf(
 		13,
 	),
 	TimelineSummary(TimelineDef(id = "scratch", name = "Scratch: what the keeper remembers of the wreck"), 2),
+)
+
+/** A subject on main under a label, and on a dated timeline with a year. */
+internal val previewTimelinePlacements = listOf(
+	TimelinePlacementLink(eventId = 7, timelineName = "Main", label = "The evening"),
+	TimelinePlacementLink(
+		eventId = 12,
+		timelineName = "Before the evening",
+		start = StoryDate(mapOf(StoryCalendar.YEAR to 1907L)),
+		calendar = CalendarDef(CalendarPreset.GREGORIAN),
+	),
 )
