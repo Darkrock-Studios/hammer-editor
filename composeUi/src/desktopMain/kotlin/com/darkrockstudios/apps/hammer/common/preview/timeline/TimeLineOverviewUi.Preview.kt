@@ -23,7 +23,9 @@ import com.darkrockstudios.apps.hammer.common.preview.TABLET_HEIGHT_DP
 import com.darkrockstudios.apps.hammer.common.preview.TABLET_WIDTH_DP
 import com.darkrockstudios.apps.hammer.common.preview.TabletPreviewSurface
 import com.darkrockstudios.apps.hammer.common.preview.globalSettingsPreview
+import com.darkrockstudios.apps.hammer.common.components.timeline.TimelineSelection
 import com.darkrockstudios.apps.hammer.common.timeline.TimeLineOverviewUi
+import com.darkrockstudios.apps.hammer.common.timeline.TimelineSwitcherActions
 import com.darkrockstudios.apps.hammer.common.timeline.drawing.LocalTimelineLayoutHost
 import com.darkrockstudios.apps.hammer.common.timeline.drawing.TimelineLayoutHost
 import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineFrame
@@ -44,6 +46,7 @@ fun ScreenTimeLineOverviewUiPreview() {
 					scope = scope,
 					showCreate = {},
 					viewEvent = {},
+					switcher = TimelineSwitcherActions.None,
 					sharedTransitionScope = this@SharedTransitionLayout,
 					animatedVisibilityScope = this@AnimatedVisibility,
 				)
@@ -67,6 +70,7 @@ fun ScreenTimeLineOverviewUiTabletPreview() {
 						scope = scope,
 						showCreate = {},
 						viewEvent = {},
+						switcher = TimelineSwitcherActions.None,
 						sharedTransitionScope = this@SharedTransitionLayout,
 						animatedVisibilityScope = this@AnimatedVisibility,
 					)
@@ -101,6 +105,7 @@ fun ScreenTimeLineOverviewUiDatedPreview() {
 							scope = scope,
 							showCreate = {},
 							viewEvent = {},
+							switcher = TimelineSwitcherActions.None,
 							sharedTransitionScope = this@SharedTransitionLayout,
 							animatedVisibilityScope = this@AnimatedVisibility,
 						)
@@ -138,6 +143,7 @@ private fun PhoneDatedOverview(dark: Boolean) {
 								scope = scope,
 								showCreate = {},
 								viewEvent = {},
+								switcher = TimelineSwitcherActions.None,
 								sharedTransitionScope = this@SharedTransitionLayout,
 								animatedVisibilityScope = this@AnimatedVisibility,
 							)
@@ -159,6 +165,96 @@ fun ScreenTimeLineOverviewUiPhoneDatedDarkPreview() = PhoneDatedOverview(dark = 
 
 private const val PHONE_WIDTH_DP = 360
 private const val PHONE_HEIGHT_DP = 760
+
+/** A tablet overview of [state], with the switcher in its masthead. */
+@OptIn(ExperimentalSharedTransitionApi::class)
+@Composable
+private fun TabletOverview(state: TimeLineOverview.State) {
+	val scope = rememberCoroutineScope()
+	KoinApplicationPreview {
+		TabletPreviewSurface {
+			SharedTransitionLayout {
+				AnimatedVisibility(visible = true) {
+					TimeLineOverviewUi(
+						component = PreviewOverview(state),
+						scope = scope,
+						showCreate = {},
+						viewEvent = {},
+						switcher = TimelineSwitcherActions.None,
+						sharedTransitionScope = this@SharedTransitionLayout,
+						animatedVisibilityScope = this@AnimatedVisibility,
+					)
+				}
+			}
+		}
+	}
+}
+
+/** Main is the only timeline: the masthead says Timeline, with the switcher's chevron. */
+@Preview(widthDp = TABLET_WIDTH_DP, heightDp = TABLET_HEIGHT_DP)
+@Composable
+fun ScreenTimeLineOverviewUiMainOnlyPreview() = TabletOverview(
+	TimeLineOverview.State(rows = previewRows, lanes = previewLaneCounts, timelines = previewMainOnly)
+)
+
+/** Three timelines, the scratch one shown: the masthead names it. */
+@Preview(widthDp = TABLET_WIDTH_DP, heightDp = TABLET_HEIGHT_DP)
+@Composable
+fun ScreenTimeLineOverviewUiThreeTimelinesPreview() = TabletOverview(
+	TimeLineOverview.State(
+		rows = previewRows,
+		lanes = previewLaneCounts,
+		timelines = previewThreeTimelines,
+		selection = TimelineSelection.Def("scratch"),
+		orphanCount = 2,
+	)
+)
+
+/** The deleted-timeline bucket: its notice and a read-only list. */
+@Preview(widthDp = TABLET_WIDTH_DP, heightDp = TABLET_HEIGHT_DP)
+@Composable
+fun ScreenTimeLineOverviewUiOrphansPreview() = TabletOverview(
+	TimeLineOverview.State(
+		rows = previewRows.take(2),
+		timelines = previewThreeTimelines,
+		selection = TimelineSelection.Orphans,
+		orphanCount = 2,
+	)
+)
+
+/** A phone on the long-named scratch timeline: the title ellipsizes before the search button. */
+@OptIn(ExperimentalSharedTransitionApi::class)
+@Preview(widthDp = PHONE_WIDTH_DP, heightDp = PHONE_HEIGHT_DP)
+@Composable
+fun ScreenTimeLineOverviewUiPhoneSwitcherPreview() {
+	val scope = rememberCoroutineScope()
+	KoinApplicationPreview {
+		AppTheme(globalSettingsPreview) {
+			Surface {
+				SharedTransitionLayout {
+					AnimatedVisibility(visible = true) {
+						TimeLineOverviewUi(
+							component = PreviewOverview(
+								TimeLineOverview.State(
+									rows = previewRows,
+									lanes = previewLaneCounts,
+									timelines = previewThreeTimelines,
+									selection = TimelineSelection.Def("scratch"),
+								)
+							),
+							scope = scope,
+							showCreate = {},
+							viewEvent = {},
+							switcher = TimelineSwitcherActions.None,
+							sharedTransitionScope = this@SharedTransitionLayout,
+							animatedVisibilityScope = this@AnimatedVisibility,
+						)
+					}
+				}
+			}
+		}
+	}
+}
 
 private val component = PreviewOverview(TimeLineOverview.State(rows = previewRows, lanes = previewLaneCounts))
 

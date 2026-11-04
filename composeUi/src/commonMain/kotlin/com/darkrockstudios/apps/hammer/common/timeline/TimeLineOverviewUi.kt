@@ -72,7 +72,6 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNoticeStrip
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdScrollAwayStrip
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSearchField
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSearchRow
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSectionHeader
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagFilterBar
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.rememberHdScrollAwayFooterState
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.rememberHdScrollAwayStripState
@@ -88,7 +87,6 @@ import com.darkrockstudios.apps.hammer.timeline_filter_all
 import com.darkrockstudios.apps.hammer.timeline_filter_clear_all
 import com.darkrockstudios.apps.hammer.timeline_filter_filtered
 import com.darkrockstudios.apps.hammer.timeline_frame_story
-import com.darkrockstudios.apps.hammer.timeline_header
 import com.darkrockstudios.apps.hammer.timeline_header_meta
 import com.darkrockstudios.apps.hammer.timeline_no_events
 import com.darkrockstudios.apps.hammer.timeline_search_button
@@ -124,6 +122,7 @@ fun TimeLineOverviewUi(
 	scope: CoroutineScope,
 	showCreate: () -> Unit,
 	viewEvent: (eventId: Int) -> Unit,
+	switcher: TimelineSwitcherActions,
 	sharedTransitionScope: SharedTransitionScope,
 	animatedVisibilityScope: AnimatedVisibilityScope,
 	openEvent: (eventId: Int) -> Unit = viewEvent,
@@ -248,9 +247,9 @@ fun TimeLineOverviewUi(
 					modifier = Modifier.fillMaxSize(),
 					verticalAlignment = Alignment.CenterVertically,
 				) {
-					HdSectionHeader(
-						section = 4,
-						title = Res.string.timeline_header.get(),
+					TimelineSwitcherHeader(
+						state = state,
+						actions = switcher,
 						modifier = Modifier.weight(1f),
 						trailing = {
 							if (isWide) {
@@ -386,6 +385,14 @@ fun TimeLineOverviewUi(
 					thickness = Dp.Hairline,
 					color = MaterialTheme.colorScheme.outlineVariant,
 				)
+
+				if (state.isOrphans) {
+					DeletedTimelineNotice(
+						state = state,
+						onMoveAll = { target -> scope.launch { component.moveOrphansTo(target) } },
+						onDeleteAll = { scope.launch { component.deleteOrphans() } },
+					)
+				}
 
 				val firstUndated = state.undatedIds.firstOrNull()
 				if (dated && firstUndated != null) {

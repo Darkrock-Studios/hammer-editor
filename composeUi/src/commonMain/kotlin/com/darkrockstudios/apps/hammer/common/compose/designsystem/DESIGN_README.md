@@ -187,7 +187,11 @@ These set up the page. Use them before reaching for raw `Column` /
 - **[`HdSectionHeader`](HdSectionHeader.kt)** —
   `§ I  Title  ─────────  TRAILING META`. The default heading for any
   section in a scrolling screen. Pass an Int for auto-romanized
-  section numbers.
+  section numbers. `titleMenu = true` makes the title a menu anchor:
+  one line, ellipsized before it crowds out the rule, then a `▾`
+  chevron, the whole title calling `onTitleClick`. The caller places
+  its `DropdownMenu` beside the header. The timeline masthead's
+  switcher (`§ IV  Before the evening ▾  ───  13 ENTRIES`) uses it.
 - **[`HdHairlineSection`](HdHairlineSection.kt)** —
   `HdSectionHeader` + content with a left-side marginalia rule running
   the full section height. The default section unit on long-scrolling

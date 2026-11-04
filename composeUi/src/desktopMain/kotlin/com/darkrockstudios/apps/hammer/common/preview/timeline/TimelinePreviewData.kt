@@ -2,13 +2,16 @@ package com.darkrockstudios.apps.hammer.common.preview.timeline
 
 import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
 import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.components.timeline.LaneCount
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimelineRow
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogItem
 import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogKind
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineSummary
 
 internal val previewLanes = listOf("Keeper", "Village", "The Sea")
 
@@ -108,3 +111,15 @@ internal val previewDatedRows = previewRows.map { row ->
 	}
 	row.copy(start = start, end = end, calendar = previewCalendar)
 }
+
+internal val previewMainOnly = listOf(TimelineSummary(TimelineDef.DEFAULT, previewRows.size))
+
+/** Main, a dated backstory, and a long-named scratch timeline that ellipsizes in a phone's header. */
+internal val previewThreeTimelines = listOf(
+	TimelineSummary(TimelineDef.DEFAULT, previewRows.size),
+	TimelineSummary(
+		TimelineDef(id = "backstory", name = "Before the evening", mode = TimelineMode.DATED, calendar = previewCalendar),
+		13,
+	),
+	TimelineSummary(TimelineDef(id = "scratch", name = "Scratch: what the keeper remembers of the wreck"), 2),
+)

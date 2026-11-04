@@ -199,4 +199,33 @@
 	<string name="timeline_menu_group">Timeline</string>
 	<string name="timeline_switcher_new">New timeline…</string>
 	<string name="timeline_view_menu_move">Move to timeline…</string>
+	<string name="timeline_switcher_section">Timelines</string>
+	<string name="timeline_switcher_rename">Rename “%1$s”…</string>
+	<string name="timeline_switcher_delete">Delete “%1$s”…</string>
+	<string name="timeline_switcher_settings">Timeline settings…</string>
+	<string name="timeline_switcher_cancel">Cancel</string>
+	<string name="timeline_switcher_close">Close</string>
+	<plurals name="timeline_deleted_notice_title">
+		<item quantity="one">%1$d event was added on another device to a timeline that has since been deleted.</item>
+		<item quantity="other">%1$d events were added on another device to a timeline that has since been deleted.</item>
+	</plurals>
+	<string name="timeline_deleted_notice_detail">Move them to a timeline to keep them, or delete them.</string>
+	<string name="timeline_deleted_move_all">Move all to…</string>
+	<string name="timeline_deleted_delete_all">Delete all</string>
+	<plurals name="timeline_deleted_delete_title">
+		<item quantity="one">Delete %1$d event?</item>
+		<item quantity="other">Delete %1$d events?</item>
+	</plurals>
+	<string name="timeline_deleted_delete_detail">They are deleted on every synced device.</string>
+	<string name="timeline_new_title">New timeline</string>
+	<string name="timeline_new_confirm">Create</string>
+	<string name="timeline_name_label">Name</string>
+	<string name="timeline_rename_title">Rename timeline</string>
+	<string name="timeline_rename_confirm">Rename</string>
+	<string name="timeline_delete_title">Delete “%1$s”?</string>
+	<plurals name="timeline_delete_detail">
+		<item quantity="one">Its %1$d event is deleted with it, on every synced device.</item>
+		<item quantity="other">Its %1$d events are deleted with it, on every synced device.</item>
+	</plurals>
+	<string name="timeline_delete_confirm">Delete timeline</string>
 </resources>

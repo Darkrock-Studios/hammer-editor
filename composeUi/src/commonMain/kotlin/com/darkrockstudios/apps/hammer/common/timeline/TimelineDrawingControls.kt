@@ -195,7 +195,7 @@ internal fun DrawingMenu(
 }
 
 @Composable
-private fun MenuSection(title: String) {
+internal fun MenuSection(title: String) {
 	HdMonoLabel(text = title, modifier = Modifier.padding(horizontal = Ui.Padding.L, vertical = Ui.Padding.S))
 }
 
