@@ -422,9 +422,12 @@ class ViewTimeLineEventComponent(
 		}
 	}
 
-	/** A changed draft is not carried over a move: the discard prompt comes up instead, and a clean one is dropped. */
+	// Set while the discard prompt stands between a menu move and a changed draft.
+	private var moveAfterDiscard = false
+
 	override fun startMove() {
 		if (isEditingAndDirty()) {
+			moveAfterDiscard = true
 			confirmDiscard()
 			return
 		}
@@ -521,9 +524,14 @@ class ViewTimeLineEventComponent(
 		_dateText.update { event?.label ?: "" }
 		refreshReferences()
 		updateShouldClose()
+		if (moveAfterDiscard) {
+			moveAfterDiscard = false
+			_state.getAndUpdate { it.copy(confirmMove = true) }
+		}
 	}
 
 	override fun cancelDiscard() {
+		moveAfterDiscard = false
 		_state.getAndUpdate { it.copy(confirmDiscard = false) }
 	}
 

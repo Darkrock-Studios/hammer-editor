@@ -13,6 +13,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -220,8 +221,13 @@ internal fun TimelineEventConflict(
 			}
 		}
 	}
-	// A refused remote copy reports in the local pane, the only one with room for errors.
-	val useRemote = { showError(component.resolveConflict(entityConflict.serverEntity)) }
+	var remoteError by remember(client) {
+		mutableStateOf<ProjectSynchronization.EntityMergeError.TimelineEventMergeError?>(null)
+	}
+	val useRemote = {
+		remoteError = component.resolveConflict(entityConflict.serverEntity)
+			as? ProjectSynchronization.EntityMergeError.TimelineEventMergeError
+	}
 
 	EntityConflict(
 		entityConflict = entityConflict,
@@ -335,6 +341,7 @@ internal fun TimelineEventConflict(
 			val none = Res.string.sync_conflict_timeline_event_empty.get()
 			TimelineEventPane(m) {
 				TimelineEventHeader(server)
+				remoteError?.let { RemoteMergeError(it) }
 				if (server.timeline != client.timeline) {
 					HdConflictField(
 						label = Res.string.sync_conflict_timeline_field_timeline.get(),
@@ -437,6 +444,19 @@ private fun TimelineEventHeader(entity: ApiProjectEntity.TimelineEventEntity) {
 			)
 		}
 	}
+}
+
+/** Why the remote copy was refused, under its header. */
+@Composable
+private fun RemoteMergeError(error: ProjectSynchronization.EntityMergeError.TimelineEventMergeError) {
+	val strRes = rememberStrRes()
+	val tagText by produceState<String?>(null, error) { value = error.tagError?.text(strRes) }
+	listOfNotNull(
+		error.ruleProblem?.text(),
+		error.dateProblem?.text(),
+		Res.string.sync_conflict_timeline_rule_placement_taken.get().takeIf { error.placementTaken },
+		tagText,
+	).forEach { HdMonoLabel(text = it, color = MaterialTheme.colorScheme.error) }
 }
 
 /** [id]'s name among [liveTimelines] (null is main), or the deleted label for a straggler's id. */

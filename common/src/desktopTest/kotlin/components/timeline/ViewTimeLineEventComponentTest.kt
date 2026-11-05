@@ -1125,6 +1125,30 @@ class ViewTimeLineEventComponentTest : TimelineComponentTestBase() {
 		assertFalse(component.state.value.confirmMove)
 		assertTrue(component.state.value.confirmDiscard)
 		assertEquals("Squall", component.state.value.title)
+
+		component.discardEdit()
+
+		assertTrue(component.state.value.confirmMove)
+		assertEquals("Storm", component.state.value.title)
+	}
+
+	@Test
+	fun `keeping the draft at the discard prompt drops the menu move`() = runTest(mainTestDispatcher) {
+		givenProject()
+		gregorianTimeline()
+		val event = timelineService.createEvent(TimelineEventDraft(title = "Storm")).event()
+		val component = opened(event.id)
+
+		component.beginEdit()
+		component.onTitleChanged("Squall")
+		component.startMove()
+		component.cancelDiscard()
+		component.saveEdit()
+		advanceUntilIdle()
+		component.beginEdit()
+		component.discardEdit()
+
+		assertFalse(component.state.value.confirmMove)
 	}
 
 	@Test

@@ -55,7 +55,10 @@ interface ViewTimeLineEvent : TagSuggesting {
 	fun confirmDiscard()
 	fun cancelDiscard()
 
-	/** Opens the move to another timeline. */
+	/**
+	 * Opens the move to another timeline. A clean edit is dropped first; a changed one brings up the
+	 * discard prompt, and the move opens once it is discarded.
+	 */
 	fun startMove()
 	fun cancelMove()
 

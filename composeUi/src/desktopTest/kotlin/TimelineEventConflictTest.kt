@@ -213,6 +213,33 @@ class TimelineEventConflictTest : BaseTest() {
 	}
 
 	@Test
+	fun `A refused remote copy says why on the remote side`() {
+		val component = RecordingSync(
+			error = ProjectSynchronization.EntityMergeError.TimelineEventMergeError(placementTaken = true)
+		)
+		showConflict(server = placement.copy(timeline = evening.id), client = placement, component = component)
+
+		compose.onNodeWithText("USE").performClick()
+
+		compose.onNodeWithText("already placed on that timeline", substring = true, ignoreCase = true).assertExists()
+		compose.onNodeWithText("LOCAL").performClick()
+		compose.onNodeWithText("already placed on that timeline", substring = true, ignoreCase = true).assertDoesNotExist()
+	}
+
+	@Test
+	fun `Using local on the server's timeline sends the server's order`() {
+		val component = RecordingSync()
+		showConflict(server = placement.copy(order = 9, timeline = evening.id), client = placement, component = component)
+
+		compose.onNodeWithText("LOCAL").performClick()
+		compose.onNodeWithText("BEFORE THE EVENING").performClick()
+		compose.onNodeWithText("USE").performClick()
+
+		val resolved = component.resolved.single() as ApiProjectEntity.TimelineEventEntity
+		assertEquals(evening.id to 9, resolved.timeline to resolved.order)
+	}
+
+	@Test
 	fun `No timeline row is shown when both sides share a timeline`() {
 		showConflict(
 			server = placement.copy(lane = "Wonderland", timeline = evening.id),
