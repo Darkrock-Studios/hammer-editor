@@ -14,13 +14,16 @@ import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineSu
 interface TimelineSettings {
 	val state: Value<State>
 
+	/** The create, rename and delete dialogs, each with its own error. */
+	val switcher: Value<TimelineSwitcher>
+
 	/** Opens the editor on timeline [id], or on main when [id] is gone; the mode, calendar and lane calls apply to it. */
 	fun editTimeline(id: String)
 	fun closeEditor()
 
 	fun requestCreate()
 
-	/** Creates a timeline, DATED ones on [preset]; a refusal stays in [State.switcher] with the dialog open. */
+	/** Creates a timeline, DATED ones on [preset]; a refusal stays in [switcher] with the dialog open. */
 	fun createTimeline(name: String, mode: TimelineMode, preset: CalendarPreset)
 	fun requestRename(id: String)
 	fun renameTimeline(name: String)
@@ -70,8 +73,6 @@ interface TimelineSettings {
 		val pendingCalendar: CalendarDef? = null,
 		/** How many entries [pendingCalendar] would take the start from; they keep it as a label. */
 		val datesLostOnPresetSwitch: Int? = null,
-		/** The create, rename and delete dialogs, each with its own error. */
-		val switcher: TimelineSwitcher = TimelineSwitcher(),
 		/** Why the last mode, calendar or lane change was refused. */
 		val error: TimeLineEventError? = null,
 	)

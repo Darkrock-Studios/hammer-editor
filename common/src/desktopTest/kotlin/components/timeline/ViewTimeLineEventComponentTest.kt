@@ -264,7 +264,7 @@ class ViewTimeLineEventComponentTest : TimelineComponentTestBase() {
 		givenProject()
 		val event = timelineService.createEvent(TimelineEventDraft(title = "Storm")).event()
 		val placed = timelineService.placeScene(4, null, null, lane = null, milestone = false, timeline = TimelineDef.MAIN_ID).event()
-		timelineService.switchToDated(CalendarDef(), timeline = TimelineDef.MAIN_ID)
+		timelineService.switchToDated(TimelineDef.MAIN_ID, CalendarDef())
 
 		val component = newComponent(event.id)
 		context.resume()
@@ -305,7 +305,7 @@ class ViewTimeLineEventComponentTest : TimelineComponentTestBase() {
 	fun `a dated timeline refuses to save an edit without a start`() = runTest(mainTestDispatcher) {
 		givenProject()
 		val event = timelineService.createEvent(TimelineEventDraft(title = "Storm")).event()
-		timelineService.switchToDated(CalendarDef(), timeline = TimelineDef.MAIN_ID)
+		timelineService.switchToDated(TimelineDef.MAIN_ID, CalendarDef())
 
 		val component = newComponent(event.id)
 		context.resume()
@@ -591,7 +591,7 @@ class ViewTimeLineEventComponentTest : TimelineComponentTestBase() {
 	fun `a dated save with the end before the start is refused`() = runTest(mainTestDispatcher) {
 		givenProject()
 		val event = timelineService.createEvent(TimelineEventDraft(title = "Storm")).event()
-		timelineService.switchToDated(CalendarDef(), timeline = TimelineDef.MAIN_ID)
+		timelineService.switchToDated(TimelineDef.MAIN_ID, CalendarDef())
 		val component = opened(event.id)
 
 		component.beginEdit()
@@ -664,7 +664,7 @@ class ViewTimeLineEventComponentTest : TimelineComponentTestBase() {
 	fun `an entry placement on a dated timeline stores its drafted dates`() = runTest(mainTestDispatcher) {
 		givenProject()
 		val placed = timelineService.placeEntry(TEA_PARTY, null, null, lane = null, milestone = false, timeline = TimelineDef.MAIN_ID).event()
-		timelineService.switchToDated(CalendarDef(), timeline = TimelineDef.MAIN_ID)
+		timelineService.switchToDated(TimelineDef.MAIN_ID, CalendarDef())
 		val component = opened(placed.id)
 
 		val start = StoryDate(mapOf("year" to 2L, "day" to 3L))
@@ -1015,7 +1015,7 @@ class ViewTimeLineEventComponentTest : TimelineComponentTestBase() {
 	@Test
 	fun `a straggler shows as manual with no timeline and can still be edited`() = runTest(mainTestDispatcher) {
 		givenProject()
-		timelineService.switchToDated(CalendarDef(), timeline = TimelineDef.MAIN_ID)
+		timelineService.switchToDated(TimelineDef.MAIN_ID, CalendarDef())
 		val stray = timeLineRepository.createEvent(TimelineEventDraft(title = "Stray", timeline = "gone0001"))
 		val component = opened(stray.id)
 
@@ -1071,7 +1071,7 @@ class ViewTimeLineEventComponentTest : TimelineComponentTestBase() {
 	@Test
 	fun `moving to a dated timeline asks for a date the old one does not give, then moves`() = runTest(mainTestDispatcher) {
 		givenProject()
-		timelineService.switchToDated(CalendarDef(coarsestUnit = "hour"), timeline = TimelineDef.MAIN_ID)
+		timelineService.switchToDated(TimelineDef.MAIN_ID, CalendarDef(coarsestUnit = "hour"))
 		val before = gregorianTimeline()
 		val letter = timelineService.createEvent(
 			TimelineEventDraft(title = "Letter", start = StoryDate(linkedMapOf("hour" to 22L)))

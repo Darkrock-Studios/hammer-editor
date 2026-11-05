@@ -234,12 +234,12 @@ class CreateTimeLineEventComponent(
 
 			TimelineKind.SCENE -> {
 				val subject = draft.subject ?: return TimeLineEventError.SUBJECT_REQUIRED
-				timelineService.placeScene(subject.id, start, end, draft.lane, draft.milestone, shownWhen, timelineId)
+				timelineService.placeScene(subject.id, start, end, draft.lane, draft.milestone, timelineId, shownWhen)
 			}
 
 			TimelineKind.ENTRY -> {
 				val subject = draft.subject ?: return TimeLineEventError.SUBJECT_REQUIRED
-				timelineService.placeEntry(subject.id, start, end, draft.lane, draft.milestone, shownWhen, timelineId)
+				timelineService.placeEntry(subject.id, start, end, draft.lane, draft.milestone, timelineId, shownWhen)
 			}
 		}
 

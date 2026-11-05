@@ -259,8 +259,8 @@ class TimelineServiceTest : BaseTest() {
 		val service = createService()
 		val tooLong = "x".repeat(TimelineLimits.MAX_LABEL + 1)
 
-		assertEquals(TimeLineEventError.LABEL_TOO_LONG, service.placeScene(4, null, null, null, false, tooLong, timeline = TimelineDef.MAIN_ID).error())
-		assertEquals(TimeLineEventError.LABEL_TOO_LONG, service.placeEntry(TEA_PARTY, null, null, null, false, tooLong, timeline = TimelineDef.MAIN_ID).error())
+		assertEquals(TimeLineEventError.LABEL_TOO_LONG, service.placeScene(4, null, null, null, false, TimelineDef.MAIN_ID, tooLong).error())
+		assertEquals(TimeLineEventError.LABEL_TOO_LONG, service.placeEntry(TEA_PARTY, null, null, null, false, TimelineDef.MAIN_ID, tooLong).error())
 		assertEquals(emptyList(), timeLineRepository.currentEvents())
 
 		val placed = service.placeScene(4, null, null, null, false, label = "At dawn", timeline = TimelineDef.MAIN_ID).event()
@@ -458,7 +458,7 @@ class TimelineServiceTest : BaseTest() {
 			val b = service.createEvent(TimelineEventDraft(title = "B", start = date("year" to 5))).event()
 			val c = service.createEvent(TimelineEventDraft(title = "C")).event()
 
-			assertEquals(TimelineResult.Ok(null), service.switchToDated(CalendarDef(), spacing = null, timeline = TimelineDef.MAIN_ID))
+			assertEquals(TimelineResult.Ok(null), service.switchToDated(TimelineDef.MAIN_ID, CalendarDef(), spacing = null))
 
 			assertEquals(date("year" to 0), stored(a.id).start)
 			assertEquals(date("year" to 5), stored(b.id).start)
@@ -475,7 +475,7 @@ class TimelineServiceTest : BaseTest() {
 		val b = service.createEvent(TimelineEventDraft(title = "B")).event()
 		val calendar = CalendarDef(CalendarPreset.GREGORIAN)
 
-		service.switchToDated(calendar, EvenSpacing(unit = "day", step = 7, origin = date("year" to 1920, "month" to 12, "day" to 30)), timeline = TimelineDef.MAIN_ID)
+		service.switchToDated(TimelineDef.MAIN_ID, calendar, EvenSpacing(unit = "day", step = 7, origin = date("year" to 1920, "month" to 12, "day" to 30)))
 
 		assertEquals(date("year" to 1920, "month" to 12, "day" to 30), stored(a.id).start)
 		assertEquals(date("year" to 1921, "month" to 1, "day" to 6), stored(b.id).start)
@@ -490,7 +490,7 @@ class TimelineServiceTest : BaseTest() {
 		val early = service.createEvent(TimelineEventDraft(title = "Early", start = date("year" to 1))).event()
 		assertEquals(TimeLineEventError.MOVE_NOT_ALLOWED, service.moveEvent(late, toIndex = 1, after = true).error())
 
-		assertEquals(TimelineResult.Ok(null), service.switchToManual(timeline = TimelineDef.MAIN_ID))
+		assertEquals(TimelineResult.Ok(null), service.switchToManual(TimelineDef.MAIN_ID))
 
 		assertEquals(0, stored(early.id).order)
 		assertEquals(1, stored(late.id).order)
@@ -511,7 +511,7 @@ class TimelineServiceTest : BaseTest() {
 		val point = service.createEvent(TimelineEventDraft(title = "Storm", start = date("year" to 2))).event()
 		val labelled = service.createEvent(TimelineEventDraft(title = "Feast", label = "Midsummer", start = date("year" to 5))).event()
 
-		assertEquals(TimelineResult.Ok(null), service.switchToManual(timeline = TimelineDef.MAIN_ID))
+		assertEquals(TimelineResult.Ok(null), service.switchToManual(TimelineDef.MAIN_ID))
 
 		assertEquals("Year 3 before Landing · Day 4 → Year 3 before Landing · Day 9", stored(span.id).label)
 		assertEquals(date("year" to -3, "day" to 4), stored(span.id).start, "Dates stay")
@@ -531,7 +531,7 @@ class TimelineServiceTest : BaseTest() {
 			override fun month(month: Int): String = "novembre"
 		}
 
-		service.switchToManual(french, timeline = TimelineDef.MAIN_ID)
+		service.switchToManual(TimelineDef.MAIN_ID, french)
 
 		assertEquals("26 novembre 1811", stored(event.id).label)
 	}
@@ -548,8 +548,8 @@ class TimelineServiceTest : BaseTest() {
 			).event()
 			val gregorian = CalendarDef(CalendarPreset.GREGORIAN)
 
-			assertEquals(2, service.countDatesLostBySwitch(gregorian, timeline = TimelineDef.MAIN_ID))
-			assertEquals(TimelineResult.Ok(null), service.switchPreset(gregorian, timeline = TimelineDef.MAIN_ID))
+			assertEquals(2, service.countDatesLostBySwitch(TimelineDef.MAIN_ID, gregorian))
+			assertEquals(TimelineResult.Ok(null), service.switchPreset(TimelineDef.MAIN_ID, gregorian))
 
 			assertEquals(lost.copy(start = null, label = "Year 97 · Day 210"), stored(lost.id))
 			assertEquals(kept, stored(kept.id))
@@ -641,7 +641,7 @@ class TimelineServiceTest : BaseTest() {
 		val b = service.createEvent(TimelineEventDraft(title = "B")).event()
 		val c = service.createEvent(TimelineEventDraft(title = "C")).event()
 
-		assertEquals(TimelineResult.Ok(null), service.switchToDated(CalendarDef(coarsestUnit = "hour"), timeline = TimelineDef.MAIN_ID))
+		assertEquals(TimelineResult.Ok(null), service.switchToDated(TimelineDef.MAIN_ID, CalendarDef(coarsestUnit = "hour")))
 
 		assertEquals(date("hour" to 0), stored(a.id).start)
 		assertEquals(date("hour" to 1), stored(b.id).start)
@@ -849,7 +849,7 @@ class TimelineServiceTest : BaseTest() {
 		val calendar = CalendarDef(epochName = "Landing")
 
 		assertEquals(TimelineResult.Ok(null), service.updateDefinition(blank.id) { it.copy(laneOrder = listOf("North")) })
-		assertEquals(TimelineResult.Ok(null), service.switchToDated(calendar, timeline = long.id))
+		assertEquals(TimelineResult.Ok(null), service.switchToDated(long.id, calendar))
 
 		assertEquals(blank.copy(laneOrder = listOf("North")), service.definition(blank.id))
 		assertEquals(long.copy(mode = TimelineMode.DATED, calendar = calendar), service.definition(long.id))
@@ -877,9 +877,9 @@ class TimelineServiceTest : BaseTest() {
 		).event()
 		val gregorian = CalendarDef(CalendarPreset.GREGORIAN)
 
-		assertEquals(TimeLineEventError.LANE_INVALID, service.switchToDated(gregorian, timeline = backstory.id).error())
-		assertEquals(TimeLineEventError.LANE_INVALID, service.switchPreset(gregorian, timeline = backstory.id).error())
-		assertEquals(TimeLineEventError.LANE_INVALID, service.switchToManual(timeline = backstory.id).error())
+		assertEquals(TimeLineEventError.LANE_INVALID, service.switchToDated(backstory.id, gregorian).error())
+		assertEquals(TimeLineEventError.LANE_INVALID, service.switchPreset(backstory.id, gregorian).error())
+		assertEquals(TimeLineEventError.LANE_INVALID, service.switchToManual(backstory.id).error())
 
 		assertEquals(event, stored(event.id))
 		assertEquals(backstory, service.definition(backstory.id))
@@ -1140,21 +1140,21 @@ class TimelineServiceTest : BaseTest() {
 		val mainBefore = timeLineRepository.currentEvents().filter { it.timeline == null }
 		val gregorian = CalendarDef(CalendarPreset.GREGORIAN)
 
-		assertEquals(TimelineResult.Ok(null), service.switchToDated(CalendarDef(), timeline = backstory.id))
+		assertEquals(TimelineResult.Ok(null), service.switchToDated(backstory.id, CalendarDef()))
 		assertEquals(date("year" to 0), stored(a.id).start)
 		assertEquals(date("year" to 1), stored(b.id).start)
-		assertEquals(0, service.countDatesLostBySwitch(gregorian, timeline = backstory.id))
-		assertEquals(1, service.countDatesLostBySwitch(gregorian, timeline = TimelineDef.MAIN_ID))
+		assertEquals(0, service.countDatesLostBySwitch(backstory.id, gregorian))
+		assertEquals(1, service.countDatesLostBySwitch(TimelineDef.MAIN_ID, gregorian))
 
-		assertEquals(TimelineResult.Ok(null), service.switchPreset(gregorian, timeline = backstory.id))
-		assertEquals(TimelineResult.Ok(null), service.switchToManual(timeline = backstory.id))
+		assertEquals(TimelineResult.Ok(null), service.switchPreset(backstory.id, gregorian))
+		assertEquals(TimelineResult.Ok(null), service.switchToManual(backstory.id))
 
 		assertEquals(TimelineDef(backstory.id, "Backstory", TimelineMode.MANUAL, gregorian), service.definition(backstory.id))
 		assertEquals(TimelineDef.DEFAULT, service.definition(TimelineDef.MAIN_ID))
 		assertEquals(mainBefore, timeLineRepository.currentEvents().filter { it.timeline == null })
 		assertEquals(
 			TimeLineEventError.TIMELINE_NOT_FOUND,
-			service.switchToDated(CalendarDef(), timeline = "zzzz9999").error(),
+			service.switchToDated("zzzz9999", CalendarDef()).error(),
 		)
 	}
 

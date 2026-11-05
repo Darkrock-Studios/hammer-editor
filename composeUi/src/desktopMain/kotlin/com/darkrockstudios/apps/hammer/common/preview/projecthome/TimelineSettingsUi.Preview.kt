@@ -145,6 +145,8 @@ private fun EditorPreview(state: TimelineSettings.State) {
 internal class PreviewTimelineSettings(initial: TimelineSettings.State) : TimelineSettings {
 	private val _state = MutableValue(initial)
 	override val state: Value<TimelineSettings.State> = _state
+	private val _switcher = MutableValue(TimelineSwitcher())
+	override val switcher: Value<TimelineSwitcher> = _switcher
 
 	override fun requestMode(mode: TimelineMode) {
 		val calendar = _state.value.def.calendar ?: CalendarDef()
@@ -221,6 +223,6 @@ internal class PreviewTimelineSettings(initial: TimelineSettings.State) : Timeli
 	override fun dismissDialog() = setSwitcher(TimelineSwitcher())
 
 	private fun setSwitcher(switcher: TimelineSwitcher) {
-		_state.value = _state.value.copy(switcher = switcher)
+		_switcher.value = switcher
 	}
 }

@@ -135,7 +135,7 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 	@Test
 	fun `a placed scene that is archived is flagged, not drawn, and returns when unarchived`() = runTest(mainTestDispatcher) {
 		givenProject()
-		timelineService.switchToDated(CalendarDef(), timeline = TimelineDef.MAIN_ID)
+		timelineService.switchToDated(TimelineDef.MAIN_ID, CalendarDef())
 		timelineService.placeScene(4, StoryDate(mapOf("year" to 3L)), null, lane = null, milestone = false, timeline = TimelineDef.MAIN_ID)
 		val component = newComponent()
 		context.resume()
@@ -297,7 +297,7 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 	fun `on a dated timeline the search rings drawn matches in the lane filter without narrowing anything`() =
 		runTest(mainTestDispatcher) {
 			givenProject()
-			timelineService.switchToDated(CalendarDef(), timeline = TimelineDef.MAIN_ID)
+			timelineService.switchToDated(TimelineDef.MAIN_ID, CalendarDef())
 			fun year(y: Long) = StoryDate(mapOf("year" to y))
 			suspend fun create(title: String, start: Int?, lane: String? = null, tags: Set<String> = setOf("act-one")) =
 				timelineService.createEvent(TimelineEventDraft(title = title, lane = lane, tags = tags, start = start?.let { year(it.toLong()) })).event()
@@ -388,7 +388,7 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 		advanceUntilIdle()
 		assertTrue(component.moveEvent(first, 1, after = true))
 
-		timelineService.switchToDated(CalendarDef(), timeline = TimelineDef.MAIN_ID)
+		timelineService.switchToDated(TimelineDef.MAIN_ID, CalendarDef())
 		advanceUntilIdle()
 
 		assertEquals(TimelineMode.DATED, component.state.value.mode)
@@ -401,7 +401,7 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 		givenProject()
 		timelineService.createEvent(TimelineEventDraft(title = "One", label = "Dawn"))
 		timelineService.createEvent(TimelineEventDraft(title = "Two"))
-		timelineService.switchToDated(CalendarDef(epochName = "Landing"), timeline = TimelineDef.MAIN_ID)
+		timelineService.switchToDated(TimelineDef.MAIN_ID, CalendarDef(epochName = "Landing"))
 		val legacy = timeLineRepository.createEvent(TimelineEventDraft(title = "Legacy"))
 
 		val component = newComponent()
@@ -437,7 +437,7 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 	@Test
 	fun `a span or a coarse date can be framed, a minute cannot, nor the band already framed`() = runTest(mainTestDispatcher) {
 		givenProject()
-		timelineService.switchToDated(CalendarDef(), timeline = TimelineDef.MAIN_ID)
+		timelineService.switchToDated(TimelineDef.MAIN_ID, CalendarDef())
 		val siege = timelineService.createEvent(
 			TimelineEventDraft(title = "Siege", lane = "Keep", start = StoryDate(mapOf("year" to 1L)), end = StoryDate(mapOf("year" to 4L)))
 		).event()
@@ -470,7 +470,7 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 	@Test
 	fun `an event can be framed exactly when the drawing draws it as a span`() = runTest(mainTestDispatcher) {
 		givenProject()
-		timelineService.switchToDated(CalendarDef(), timeline = TimelineDef.MAIN_ID)
+		timelineService.switchToDated(TimelineDef.MAIN_ID, CalendarDef())
 		val instant = StoryDate(mapOf("year" to 2L, "day" to 3L, "hour" to 4L, "minute" to 5L))
 		val later = StoryDate(mapOf("year" to 2L, "day" to 3L, "hour" to 6L, "minute" to 0L))
 		val year2 = StoryDate(mapOf("year" to 2L))
@@ -529,7 +529,7 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 	@Test
 	fun `an event the filters keep out of the drawing cannot be framed`() = runTest(mainTestDispatcher) {
 		givenProject()
-		timelineService.switchToDated(CalendarDef(), timeline = TimelineDef.MAIN_ID)
+		timelineService.switchToDated(TimelineDef.MAIN_ID, CalendarDef())
 		val years = { from: Long, to: Long -> StoryDate(mapOf("year" to from)) to StoryDate(mapOf("year" to to)) }
 		val (siegeStart, siegeEnd) = years(1L, 4L)
 		val siege = timelineService.createEvent(
@@ -556,7 +556,7 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 	fun `framing a band survives recreation and back returns to everything`() = runTest(mainTestDispatcher) {
 		givenProject()
 		val storm = timelineService.createEvent(TimelineEventDraft(title = "Storm", lane = "Keep")).event()
-		timelineService.switchToDated(CalendarDef(), timeline = TimelineDef.MAIN_ID)
+		timelineService.switchToDated(TimelineDef.MAIN_ID, CalendarDef())
 		val component = newComponent()
 		context.resume()
 		advanceUntilIdle()
@@ -579,7 +579,7 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 		givenProject()
 		val storm = timelineService.createEvent(TimelineEventDraft(title = "Storm")).event()
 		timelineService.createEvent(TimelineEventDraft(title = "Rain"))
-		timelineService.switchToDated(CalendarDef(), timeline = TimelineDef.MAIN_ID)
+		timelineService.switchToDated(TimelineDef.MAIN_ID, CalendarDef())
 		val component = newComponent()
 		context.resume()
 		advanceUntilIdle()
@@ -595,7 +595,7 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 	fun `the story frame needs a placed scene`() = runTest(mainTestDispatcher) {
 		givenProject()
 		timelineService.createEvent(TimelineEventDraft(title = "Storm"))
-		timelineService.switchToDated(CalendarDef(), timeline = TimelineDef.MAIN_ID)
+		timelineService.switchToDated(TimelineDef.MAIN_ID, CalendarDef())
 		val component = newComponent()
 		context.resume()
 		advanceUntilIdle()
@@ -617,7 +617,7 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 		givenProject()
 		sceneMetadataRepository.storeMetadata(SceneMetadata(confirmedReferences = setOf(TEA_PARTY, WONDERLAND, ALICE)), sceneId = 4)
 		val placed = timelineService.placeScene(4, null, null, lane = "Alice", milestone = false, timeline = TimelineDef.MAIN_ID).event()
-		timelineService.switchToDated(CalendarDef(), timeline = TimelineDef.MAIN_ID)
+		timelineService.switchToDated(TimelineDef.MAIN_ID, CalendarDef())
 		val component = newComponent()
 		context.resume()
 		advanceUntilIdle()
@@ -635,7 +635,7 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 		val storm = timelineService.createEvent(
 			TimelineEventDraft(title = "Storm", references = linkedSetOf(4, WONDERLAND, ALICE))
 		).event()
-		timelineService.switchToDated(CalendarDef(), timeline = TimelineDef.MAIN_ID)
+		timelineService.switchToDated(TimelineDef.MAIN_ID, CalendarDef())
 		val component = newComponent()
 		context.resume()
 		advanceUntilIdle()
@@ -647,7 +647,7 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 	fun `the summary of a placed entry shows its opening text`() = runTest(mainTestDispatcher) {
 		givenProject()
 		val placed = timelineService.placeEntry(TEA_PARTY, null, null, lane = null, milestone = false, timeline = TimelineDef.MAIN_ID).event()
-		timelineService.switchToDated(CalendarDef(), timeline = TimelineDef.MAIN_ID)
+		timelineService.switchToDated(TimelineDef.MAIN_ID, CalendarDef())
 		val component = newComponent()
 		context.resume()
 		advanceUntilIdle()
@@ -662,7 +662,7 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 		givenProject()
 		val storm = timelineService.createEvent(TimelineEventDraft(title = "Storm", references = linkedSetOf(ALICE))).event()
 		val rain = timelineService.createEvent(TimelineEventDraft(title = "Rain")).event()
-		timelineService.switchToDated(CalendarDef(), timeline = TimelineDef.MAIN_ID)
+		timelineService.switchToDated(TimelineDef.MAIN_ID, CalendarDef())
 		val component = newComponent()
 		context.resume()
 		advanceUntilIdle()
@@ -679,7 +679,7 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 	fun `a change to an event refreshes its summary`() = runTest(mainTestDispatcher) {
 		givenProject()
 		val storm = timelineService.createEvent(TimelineEventDraft(title = "Storm", references = linkedSetOf(ALICE))).event()
-		timelineService.switchToDated(CalendarDef(), timeline = TimelineDef.MAIN_ID)
+		timelineService.switchToDated(TimelineDef.MAIN_ID, CalendarDef())
 		val component = newComponent()
 		context.resume()
 		advanceUntilIdle()
@@ -864,7 +864,7 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 	fun `a switch resets the frame and keeps the drawing and the search, and filters prune themselves`() =
 		runTest(mainTestDispatcher) {
 			givenProject()
-			timelineService.switchToDated(CalendarDef(), timeline = TimelineDef.MAIN_ID)
+			timelineService.switchToDated(TimelineDef.MAIN_ID, CalendarDef())
 			val before = newTimeline("Before", TimelineMode.DATED)
 			val year = { y: Long -> StoryDate(mapOf("year" to y)) }
 			val siege = timelineService.createEvent(
@@ -895,7 +895,7 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 	@Test
 	fun `the deleted-timeline bucket lists stragglers read-only`() = runTest(mainTestDispatcher) {
 		givenProject()
-		timelineService.switchToDated(CalendarDef(), timeline = TimelineDef.MAIN_ID)
+		timelineService.switchToDated(TimelineDef.MAIN_ID, CalendarDef())
 		timeLineRepository.createEvent(TimelineEventDraft(title = "Stray", lane = "Pike", timeline = "gone0001", start = StoryDate(mapOf("year" to 3L))))
 		timeLineRepository.createEvent(TimelineEventDraft(title = "Lost", timeline = "gone0002"))
 		val component = newComponent()

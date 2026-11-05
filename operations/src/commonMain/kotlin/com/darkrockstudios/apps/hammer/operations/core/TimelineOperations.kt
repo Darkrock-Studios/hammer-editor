@@ -139,13 +139,13 @@ internal fun timelineOperations(): List<Operation<*, *>> = listOf(
 
 			if (toDated) {
 				val target = calendar ?: current.calendar ?: invalidInput("A dated timeline needs a calendar")
-				timeline.switchToDated(target, input.spacing?.toSpacing(target), timeline = id).requireOk()
+				timeline.switchToDated(id, target, input.spacing?.toSpacing(target)).requireOk()
 			} else {
 				if (input.mode == TimelineModeDto.Manual && current.mode == TimelineMode.DATED) {
-					timeline.switchToManual(timeline = id).requireOk()
+					timeline.switchToManual(id).requireOk()
 				}
 				if (calendar != null && calendar != current.calendar) {
-					timeline.switchPreset(calendar, timeline = id).requireOk()
+					timeline.switchPreset(id, calendar).requireOk()
 				}
 			}
 

@@ -395,7 +395,8 @@ class TimelineService(
 		val data = projectDataRepository.load().data
 		val targetDef = data.timelineDef(target) ?: return 0
 		var events = timeLineRepository.currentEvents()
-		val moved = orphansOf(events).sortedBy { it.order }.mapNotNull { orphan ->
+		val live = data.liveTimelines().mapTo(mutableSetOf()) { it.id }
+		val moved = events.filter { it.timelineId !in live }.sortedBy { it.order }.mapNotNull { orphan ->
 			// Each landing sees the ones before it, for the next order and the placements already there.
 			val landing = landing(orphan, events, data, targetDef, allowUndated = true, words = words)
 			(landing as? Landing.Landed)?.event?.also { landed ->
@@ -519,8 +520,8 @@ class TimelineService(
 		end: StoryDate?,
 		lane: String?,
 		milestone: Boolean,
-		label: String? = null,
 		timeline: String,
+		label: String? = null,
 	): TimelineResult {
 		val scene = withContext(dispatcherIo) { sceneRepository.getSceneItemFromIdIncludingArchived(sceneId) }
 		val subjectError = when {
@@ -539,8 +540,8 @@ class TimelineService(
 		end: StoryDate?,
 		lane: String?,
 		milestone: Boolean,
-		label: String? = null,
 		timeline: String,
+		label: String? = null,
 	): TimelineResult {
 		val entry = withContext(dispatcherIo) { encyclopediaRepository.findEntryDef(entryId) }
 		val subjectError = when {
@@ -721,9 +722,9 @@ class TimelineService(
 	 * Only [timeline]'s events are touched.
 	 */
 	suspend fun switchToDated(
+		timeline: String,
 		calendar: CalendarDef,
 		spacing: EvenSpacing? = null,
-		timeline: String,
 	): TimelineResult = writeLock.withLock {
 		val def = liveDef(timeline) ?: return invalid(TimeLineEventError.TIMELINE_NOT_FOUND)
 		val revisionError = revisionProblem(def) { it.copy(mode = TimelineMode.DATED, calendar = calendar) }
@@ -753,8 +754,8 @@ class TimelineService(
 	 * events are touched.
 	 */
 	suspend fun switchToManual(
-		words: StoryDateWords = StoryDateWords.English,
 		timeline: String,
+		words: StoryDateWords = StoryDateWords.English,
 	): TimelineResult = writeLock.withLock {
 		val def = liveDef(timeline) ?: return invalid(TimeLineEventError.TIMELINE_NOT_FOUND)
 		val revisionError = revisionProblem(def) { it.copy(mode = TimelineMode.MANUAL) }
@@ -771,7 +772,7 @@ class TimelineService(
 	}
 
 	/** How many of [timeline]'s events [switchPreset] to [calendar] would take the start date from. */
-	suspend fun countDatesLostBySwitch(calendar: CalendarDef, timeline: String): Int =
+	suspend fun countDatesLostBySwitch(timeline: String, calendar: CalendarDef): Int =
 		timeLineRepository.currentEvents().count {
 			it.timelineId == timeline && it.start != null && !hasValidStart(it, calendar)
 		}
@@ -782,9 +783,9 @@ class TimelineService(
 	 * dropped. Only [timeline]'s events are touched.
 	 */
 	suspend fun switchPreset(
+		timeline: String,
 		calendar: CalendarDef,
 		words: StoryDateWords = StoryDateWords.English,
-		timeline: String,
 	): TimelineResult = writeLock.withLock {
 		val def = liveDef(timeline) ?: return invalid(TimeLineEventError.TIMELINE_NOT_FOUND)
 		val revisionError = revisionProblem(def) { it.copy(calendar = calendar) }

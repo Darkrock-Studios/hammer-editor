@@ -140,7 +140,7 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 		givenProject()
 		val late = createEvent("Late")
 		val early = createEvent("Early")
-		timelineService.switchToDated(CalendarDef(), timeline = TimelineDef.MAIN_ID)
+		timelineService.switchToDated(TimelineDef.MAIN_ID, CalendarDef())
 		timelineService.setDates(late, date("year" to 9), null)
 		timelineService.setDates(early, date("year" to 2), null)
 		val component = newComponent()
@@ -163,7 +163,7 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 		givenProject()
 		val labelled = createEvent("Feast")
 		val unlabelled = createEvent("Storm")
-		timelineService.switchToDated(CalendarDef(CalendarPreset.GREGORIAN), timeline = TimelineDef.MAIN_ID)
+		timelineService.switchToDated(TimelineDef.MAIN_ID, CalendarDef(CalendarPreset.GREGORIAN))
 		timelineService.setDates(unlabelled, date("year" to 1811, "month" to 11), null)
 		timelineService.setLabel(labelled, "Midsummer")
 		val component = newComponent()
@@ -184,7 +184,7 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 		runTest(mainTestDispatcher) {
 			givenProject()
 			val event = createEvent("Storm")
-			timelineService.switchToDated(CalendarDef(), timeline = TimelineDef.MAIN_ID)
+			timelineService.switchToDated(TimelineDef.MAIN_ID, CalendarDef())
 			timelineService.setDates(event, date("year" to 5, "day" to 10), null)
 			val component = newComponent()
 			context.resume()
@@ -211,7 +211,7 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 	fun `a preset switch that loses nothing applies at once`() = runTest(mainTestDispatcher) {
 		givenProject()
 		createEvent("Storm")
-		timelineService.switchToDated(CalendarDef(), timeline = TimelineDef.MAIN_ID)
+		timelineService.switchToDated(TimelineDef.MAIN_ID, CalendarDef())
 		val component = newComponent()
 		context.resume()
 		advanceUntilIdle()
@@ -228,7 +228,7 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 	fun `a cancelled preset switch changes nothing`() = runTest(mainTestDispatcher) {
 		givenProject()
 		val event = createEvent("Storm")
-		timelineService.switchToDated(CalendarDef(), timeline = TimelineDef.MAIN_ID)
+		timelineService.switchToDated(TimelineDef.MAIN_ID, CalendarDef())
 		timelineService.setDates(event, date("year" to 5, "day" to 10), null)
 		val component = newComponent()
 		context.resume()
@@ -247,7 +247,7 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 	@Test
 	fun `the epoch and the coarsest unit write through`() = runTest(mainTestDispatcher) {
 		givenProject()
-		timelineService.switchToDated(CalendarDef(), timeline = TimelineDef.MAIN_ID)
+		timelineService.switchToDated(TimelineDef.MAIN_ID, CalendarDef())
 		val component = newComponent()
 		context.resume()
 		advanceUntilIdle()
@@ -267,7 +267,7 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 	@Test
 	fun `typing an epoch writes once, after the typing pauses`() = runTest(mainTestDispatcher) {
 		givenProject()
-		timelineService.switchToDated(CalendarDef(), timeline = TimelineDef.MAIN_ID)
+		timelineService.switchToDated(TimelineDef.MAIN_ID, CalendarDef())
 		val component = newComponent()
 		context.resume()
 		advanceUntilIdle()
@@ -295,7 +295,7 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 	@Test
 	fun `an epoch still waiting is written when the settings close`() = runTest(mainTestDispatcher) {
 		givenProject()
-		timelineService.switchToDated(CalendarDef(), timeline = TimelineDef.MAIN_ID)
+		timelineService.switchToDated(TimelineDef.MAIN_ID, CalendarDef())
 		val component = newComponent()
 		context.resume()
 		advanceUntilIdle()
@@ -407,7 +407,7 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 	@Test
 	fun `a preset warning counts only the edited timeline's dates`() = runTest(mainTestDispatcher) {
 		givenProject()
-		timelineService.switchToDated(CalendarDef(), timeline = TimelineDef.MAIN_ID)
+		timelineService.switchToDated(TimelineDef.MAIN_ID, CalendarDef())
 		val before = newTimeline("Before", TimelineMode.DATED)
 		createEvent("Main", start = date("year" to 5, "day" to 3))
 		createEvent("Before", start = date("year" to 5, "day" to 3), timeline = before.id)
@@ -431,7 +431,7 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 	@Test
 	fun `a preset warning counted after another timeline opened is dropped`() = runTest(mainTestDispatcher) {
 		givenProject()
-		timelineService.switchToDated(CalendarDef(), timeline = TimelineDef.MAIN_ID)
+		timelineService.switchToDated(TimelineDef.MAIN_ID, CalendarDef())
 		val before = newTimeline("Before", TimelineMode.DATED)
 		createEvent("Before", start = date("year" to 5, "day" to 3), timeline = before.id)
 		val component = newComponent()
@@ -450,7 +450,7 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 	@Test
 	fun `an epoch typed before a switch is written to the timeline it was typed for`() = runTest(mainTestDispatcher) {
 		givenProject()
-		timelineService.switchToDated(CalendarDef(), timeline = TimelineDef.MAIN_ID)
+		timelineService.switchToDated(TimelineDef.MAIN_ID, CalendarDef())
 		val before = newTimeline("Before", TimelineMode.DATED)
 		val component = newComponent()
 		context.resume()
@@ -469,7 +469,7 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 	@Test
 	fun `an epoch waiting for one timeline is not lost to typing on another`() = runTest(mainTestDispatcher) {
 		givenProject()
-		timelineService.switchToDated(CalendarDef(), timeline = TimelineDef.MAIN_ID)
+		timelineService.switchToDated(TimelineDef.MAIN_ID, CalendarDef())
 		val before = newTimeline("Before", TimelineMode.DATED)
 		val component = newComponent()
 		context.resume()
@@ -494,7 +494,7 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 
 		component.requestCreate()
 
-		assertEquals(TimelineSwitcher(dialog = TimelineSwitcher.Dialog.Create()), component.state.value.switcher)
+		assertEquals(TimelineSwitcher(dialog = TimelineSwitcher.Dialog.Create()), component.switcher.value)
 	}
 
 	@Test
@@ -509,7 +509,7 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 		advanceUntilIdle()
 
 		val created = component.state.value.timelines.single { it.def.name == "Before" }.def
-		assertEquals(TimelineSwitcher(), component.state.value.switcher)
+		assertEquals(TimelineSwitcher(), component.switcher.value)
 		assertFalse(component.state.value.editorOpen)
 		assertEquals(CalendarDef(CalendarPreset.GREGORIAN), created.calendar)
 	}
@@ -526,7 +526,7 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 		component.createTimeline("before", TimelineMode.MANUAL, CalendarPreset.STORY)
 		advanceUntilIdle()
 
-		val switcher = component.state.value.switcher
+		val switcher = component.switcher.value
 		assertEquals(TimelineSwitcher.Dialog.Create("before", TimelineMode.MANUAL, CalendarPreset.STORY), switcher.dialog)
 		assertEquals(TimeLineEventError.TIMELINE_NAME_INVALID, switcher.error)
 		assertNull(component.state.value.error)
@@ -543,11 +543,11 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 		component.requestCreate()
 		component.createTimeline("Main", TimelineMode.MANUAL, CalendarPreset.STORY)
 		advanceUntilIdle()
-		assertEquals(TimeLineEventError.TIMELINE_NAME_INVALID, component.state.value.switcher.error)
+		assertEquals(TimeLineEventError.TIMELINE_NAME_INVALID, component.switcher.value.error)
 
 		component.dismissDialog()
 
-		assertEquals(TimelineSwitcher(), component.state.value.switcher)
+		assertEquals(TimelineSwitcher(), component.switcher.value)
 		assertNull(component.state.value.error)
 	}
 
@@ -566,7 +566,7 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 
 		assertEquals(
 			TimelineSwitcher(dialog = TimelineSwitcher.Dialog.Rename(before.id, "Before")),
-			component.state.value.switcher,
+			component.switcher.value,
 		)
 	}
 
@@ -579,12 +579,12 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 		advanceUntilIdle()
 
 		component.requestRename(before.id)
-		assertEquals(TimelineSwitcher.Dialog.Rename(before.id, "Before"), component.state.value.switcher.dialog)
+		assertEquals(TimelineSwitcher.Dialog.Rename(before.id, "Before"), component.switcher.value.dialog)
 		component.renameTimeline("Before the evening")
 		advanceUntilIdle()
 
 		assertEquals("Before the evening", component.state.value.timelines.last().def.name)
-		assertEquals(TimelineSwitcher(), component.state.value.switcher)
+		assertEquals(TimelineSwitcher(), component.switcher.value)
 	}
 
 	@Test
@@ -599,7 +599,7 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 		component.renameTimeline("main")
 		advanceUntilIdle()
 
-		val switcher = component.state.value.switcher
+		val switcher = component.switcher.value
 		assertEquals(TimelineSwitcher.Dialog.Rename(before.id, "main"), switcher.dialog)
 		assertEquals(TimeLineEventError.TIMELINE_NAME_INVALID, switcher.error)
 		assertEquals("Before", timelineService.definition(before.id)?.name)
@@ -643,18 +643,18 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 		advanceUntilIdle()
 
 		component.requestDelete(TimelineDef.MAIN_ID)
-		assertNull(component.state.value.switcher.dialog)
+		assertNull(component.switcher.value.dialog)
 		component.requestDelete(before.id)
-		assertEquals(TimelineSwitcher.Dialog.Delete(before.id, "Before", 1), component.state.value.switcher.dialog)
+		assertEquals(TimelineSwitcher.Dialog.Delete(before.id, "Before", 1), component.switcher.value.dialog)
 		component.dismissDialog()
-		assertNull(component.state.value.switcher.dialog)
+		assertNull(component.switcher.value.dialog)
 
 		component.requestDelete(before.id)
 		component.confirmDelete()
 		advanceUntilIdle()
 
 		assertNull(timelineService.definition(before.id))
-		assertEquals(TimelineSwitcher(), component.state.value.switcher)
+		assertEquals(TimelineSwitcher(), component.switcher.value)
 		assertFalse(component.state.value.editorOpen)
 		assertEquals(TimelineDef.MAIN_ID, component.state.value.editingId)
 		assertEquals(TimelineDef.DEFAULT, component.state.value.def)

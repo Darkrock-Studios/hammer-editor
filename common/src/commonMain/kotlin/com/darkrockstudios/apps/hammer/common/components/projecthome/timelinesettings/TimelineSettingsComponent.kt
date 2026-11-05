@@ -4,7 +4,6 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
-import com.arkivanov.decompose.value.subscribe
 import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
 import com.darkrockstudios.apps.hammer.base.timeline.CalendarPreset
 import com.darkrockstudios.apps.hammer.base.timeline.CalendarUnit
@@ -15,6 +14,7 @@ import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.components.projecthome.timelinesettings.TimelineSettings.ModeSwitchPrompt
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimelineDefDialogs
+import com.darkrockstudios.apps.hammer.common.components.timeline.TimelineSwitcher
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.EvenSpacing
@@ -60,10 +60,7 @@ class TimelineSettingsComponent(
 	private val editingId = MutableStateFlow(_state.value.editingId)
 
 	private val dialogs = TimelineDefDialogs(timelineService, scope, dispatcherMain)
-
-	init {
-		dialogs.state.subscribe(lifecycle) { switcher -> _state.getAndUpdate { it.copy(switcher = switcher) } }
-	}
+	override val switcher: Value<TimelineSwitcher> = dialogs.state
 
 	@OptIn(ExperimentalCoroutinesApi::class)
 	override fun onCreate() {
@@ -177,12 +174,12 @@ class TimelineSettingsComponent(
 		write {
 			when (prompt) {
 				is ModeSwitchPrompt.ToDated -> timelineService.switchToDated(
+					prompt.timeline.id,
 					prompt.calendar,
 					EvenSpacing(unit = prompt.selectedUnit, step = 1, origin = spacingOrigin(prompt.calendar)),
-					prompt.timeline.id,
 				)
 
-				is ModeSwitchPrompt.ToManual -> timelineService.switchToManual(StrResStoryDateWords(strRes), prompt.timeline.id)
+				is ModeSwitchPrompt.ToManual -> timelineService.switchToManual(prompt.timeline.id, StrResStoryDateWords(strRes))
 			}
 		}
 	}
@@ -208,9 +205,9 @@ class TimelineSettingsComponent(
 	private fun requestCalendar(calendar: CalendarDef) {
 		val def = _state.value.def
 		scope.launch {
-			val lost = timelineService.countDatesLostBySwitch(calendar, def.id)
+			val lost = timelineService.countDatesLostBySwitch(def.id, calendar)
 			if (lost == 0) {
-				apply(timelineService.switchPreset(calendar, StrResStoryDateWords(strRes), def.id))
+				apply(timelineService.switchPreset(def.id, calendar, StrResStoryDateWords(strRes)))
 				withContext(dispatcherMain) {
 					_state.getAndUpdate { it.copy(pendingCalendar = null, datesLostOnPresetSwitch = null) }
 				}
@@ -230,7 +227,7 @@ class TimelineSettingsComponent(
 		val calendar = _state.value.pendingCalendar ?: return
 		val timeline = _state.value.editingId
 		cancelPresetSwitch()
-		write { timelineService.switchPreset(calendar, StrResStoryDateWords(strRes), timeline) }
+		write { timelineService.switchPreset(timeline, calendar, StrResStoryDateWords(strRes)) }
 	}
 
 	override fun cancelPresetSwitch() {

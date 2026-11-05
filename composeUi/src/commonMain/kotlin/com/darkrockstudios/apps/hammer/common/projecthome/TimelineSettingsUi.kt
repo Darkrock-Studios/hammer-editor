@@ -167,8 +167,9 @@ fun TimelineSettingsUi(
 		onCancel = component::cancelModeSwitch,
 	)
 
+	val switcher by component.switcher.subscribeAsState()
 	TimelineSwitcherDialogs(
-		switcher = state.switcher,
+		switcher = switcher,
 		onCreate = component::createTimeline,
 		onRename = component::renameTimeline,
 		onConfirmDelete = component::confirmDelete,

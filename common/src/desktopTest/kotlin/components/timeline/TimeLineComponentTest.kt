@@ -220,7 +220,7 @@ class TimeLineComponentTest : TimelineComponentTestBase() {
 	@Test
 	fun `framing from an event dialog frames the drawing on its band and closes the dialog`() = runTest(mainTestDispatcher) {
 		givenProject()
-		timelineService.switchToDated(CalendarDef(), timeline = TimelineDef.MAIN_ID)
+		timelineService.switchToDated(TimelineDef.MAIN_ID, CalendarDef())
 		val siege = (timelineService.createEvent(
 			TimelineEventDraft(title = "Siege", start = StoryDate(mapOf("year" to 1L)), end = StoryDate(mapOf("year" to 4L)))
 		) as TimelineResult.Ok).event!!
@@ -478,7 +478,7 @@ class TimeLineComponentTest : TimelineComponentTestBase() {
 	@Test
 	fun `an event on another timeline cannot be framed`() = runTest(mainTestDispatcher) {
 		givenProject()
-		timelineService.switchToDated(CalendarDef(), timeline = TimelineDef.MAIN_ID)
+		timelineService.switchToDated(TimelineDef.MAIN_ID, CalendarDef())
 		val before = newTimeline("Before", TimelineMode.DATED)
 		val span = StoryDate(mapOf("year" to 1L))
 		val elsewhere = (timelineService.createEvent(

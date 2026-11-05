@@ -62,6 +62,8 @@ class TimelineSettingsUiTest : BaseTest() {
 	private class FakeSettings(initial: TimelineSettings.State) : TimelineSettings {
 		private val _state = MutableValue(initial)
 		override val state: Value<TimelineSettings.State> = _state
+		private val _switcher = MutableValue(TimelineSwitcher())
+		override val switcher: Value<TimelineSwitcher> = _switcher
 		var confirmed = 0
 		var presetConfirmed = 0
 		var deleteConfirmed = 0
@@ -132,8 +134,8 @@ class TimelineSettingsUiTest : BaseTest() {
 			val def = TimelineDef(id = "new${created.size}", name = name, mode = mode)
 			_state.value = _state.value.copy(
 				timelines = _state.value.timelines + TimelineSummary(def, 0),
-				switcher = TimelineSwitcher(),
 			)
+			setSwitcher(TimelineSwitcher())
 		}
 
 		override fun requestRename(id: String) {
@@ -142,14 +144,14 @@ class TimelineSettingsUiTest : BaseTest() {
 		}
 
 		override fun renameTimeline(name: String) {
-			val open = _state.value.switcher.dialog as TimelineSwitcher.Dialog.Rename
+			val open = switcher.value.dialog as TimelineSwitcher.Dialog.Rename
 			renamed += open.timelineId to name
 			_state.value = _state.value.copy(
 				timelines = _state.value.timelines.map {
 					if (it.def.id == open.timelineId) it.copy(def = it.def.copy(name = name)) else it
 				},
-				switcher = TimelineSwitcher(),
 			)
+			setSwitcher(TimelineSwitcher())
 		}
 
 		override fun requestDelete(id: String) {
@@ -165,7 +167,7 @@ class TimelineSettingsUiTest : BaseTest() {
 		override fun dismissDialog() = setSwitcher(TimelineSwitcher())
 
 		private fun setSwitcher(switcher: TimelineSwitcher) {
-			_state.value = _state.value.copy(switcher = switcher)
+			_switcher.value = switcher
 		}
 	}
 
