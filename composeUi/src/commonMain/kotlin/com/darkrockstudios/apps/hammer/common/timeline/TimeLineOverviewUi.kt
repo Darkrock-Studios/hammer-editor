@@ -128,6 +128,7 @@ fun TimeLineOverviewUi(
 	openEvent: (eventId: Int) -> Unit = viewEvent,
 	openedEventId: Int? = null,
 	lastLayout: LastTimelineLayout = remember { LastTimelineLayout() },
+	onOrphansLeft: (left: Int) -> Unit = {},
 ) {
 	val state by component.state.subscribeAsState()
 	val tagIndex by component.rankedTags.subscribeAsState()
@@ -389,7 +390,13 @@ fun TimeLineOverviewUi(
 				if (state.isOrphans) {
 					DeletedTimelineNotice(
 						state = state,
-						onMoveAll = { target -> scope.launch { component.moveOrphansTo(target) } },
+						onMoveAll = { target ->
+							val before = state.orphanCount
+							scope.launch {
+								val moved = component.moveOrphansTo(target)
+								if (moved < before) onOrphansLeft(before - moved)
+							}
+						},
 						onDeleteAll = { scope.launch { component.deleteOrphans() } },
 					)
 				}

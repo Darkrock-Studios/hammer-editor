@@ -258,6 +258,12 @@ class TimelineService(
 	suspend fun updateDefinition(
 		timeline: String,
 		transform: (TimelineDef) -> TimelineDef,
+	): TimelineResult = writeLock.withLock { writeDefinition(timeline, transform) }
+
+	/** [updateDefinition] for a caller that holds [writeLock], so the lane count sees no event write midway. */
+	private suspend fun writeDefinition(
+		timeline: String,
+		transform: (TimelineDef) -> TimelineDef,
 	): TimelineResult {
 		val events = timeLineRepository.currentEvents()
 		var error = TimeLineEventError.NONE
@@ -751,7 +757,7 @@ class TimelineService(
 			timeLineRepository.updateEvents(updates)
 		}
 
-		updateDefinition(def.id) { it.copy(mode = TimelineMode.DATED, calendar = calendar) }
+		writeDefinition(def.id) { it.copy(mode = TimelineMode.DATED, calendar = calendar) }
 	}
 
 	/**
@@ -774,7 +780,7 @@ class TimelineService(
 			event.copy(order = frozen.getValue(event.id), label = labelOrDates(event, calendar, words))
 		}
 		timeLineRepository.updateEvents(updates)
-		updateDefinition(def.id) { it.copy(mode = TimelineMode.MANUAL) }
+		writeDefinition(def.id) { it.copy(mode = TimelineMode.MANUAL) }
 	}
 
 	/** How many of [timeline]'s events [switchPreset] to [calendar] would take the start date from. */
@@ -816,7 +822,7 @@ class TimelineService(
 		}
 		if (updates.isNotEmpty()) timeLineRepository.updateEvents(updates)
 
-		updateDefinition(def.id) { it.copy(calendar = calendar) }
+		writeDefinition(def.id) { it.copy(calendar = calendar) }
 	}
 
 	// endregion

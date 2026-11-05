@@ -34,9 +34,11 @@ import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLine
 import com.darkrockstudios.apps.hammer.common.compose.LocalRootFabState
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
+import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFab
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.timeline_create_event_button
+import com.darkrockstudios.apps.hammer.timeline_deleted_left_behind
 import com.arkivanov.essenty.backhandler.BackCallback
 import com.darkrockstudios.apps.hammer.common.components.timeline.ViewTimeLineEvent
 import kotlinx.coroutines.CoroutineScope
@@ -54,6 +56,7 @@ fun TimeLineUi(
 	modifier: Modifier = Modifier,
 ) {
 	val scope = rememberCoroutineScope()
+	val strRes = rememberStrRes()
 	val state by component.stack.subscribeAsState()
 	val dialog by component.eventDialog.subscribeAsState()
 	val selection by component.selection.subscribeAsState()
@@ -90,6 +93,11 @@ fun TimeLineUi(
 							lastLayout = lastLayout,
 							sharedTransitionScope = this@SharedTransitionLayout,
 							animatedVisibilityScope = this@ChildStack,
+							onOrphansLeft = { left ->
+								scope.launch {
+									rootSnackbar.showSnackbar(strRes.get(Res.plurals.timeline_deleted_left_behind, left, left))
+								}
+							},
 						)
 					}
 

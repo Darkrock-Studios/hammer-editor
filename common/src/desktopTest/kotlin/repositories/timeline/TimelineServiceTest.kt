@@ -404,6 +404,18 @@ class TimelineServiceTest : BaseTest() {
 			TimeLineEventError.TOO_MANY_LANES,
 			service.createEvent(TimelineEventDraft(title = "Backstory lane", lane = "F")).error(),
 		)
+		// G has another entry, so moving this one to A would add a sixth lane.
+		service.createEvent(TimelineEventDraft(title = "Also G", lane = "G", timeline = backstory.id)).event()
+		assertEquals(
+			TimeLineEventError.TOO_MANY_LANES,
+			service.updateEvent(stored(onBackstory[1].id).copy(lane = "A")).error(),
+		)
+		assertEquals(
+			TimeLineEventError.TOO_MANY_LANES,
+			service.placeScene(4, null, null, lane = "A", milestone = false, timeline = backstory.id).error(),
+		)
+		// A placement may join a lane Backstory has, though Main uses none of them.
+		service.placeScene(4, null, null, lane = "G", milestone = false, timeline = backstory.id).event()
 		// Trading Backstory's only F entry for K keeps it at five.
 		service.setLane(onBackstory[0].id, "K").event()
 	}

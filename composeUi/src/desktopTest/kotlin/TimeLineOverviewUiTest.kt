@@ -115,10 +115,12 @@ class TimeLineOverviewUiTest : BaseTest() {
 		override suspend fun moveEvent(event: TimeLineEvent, toIndex: Int, after: Boolean): Boolean = true
 		val orphansMovedTo = mutableListOf<String>()
 		var orphansDeleted = 0
+		/** How many of the bucket's events a move leaves behind. */
+		var orphansStaying = 0
 
 		override suspend fun moveOrphansTo(target: String): Int {
 			orphansMovedTo += target
-			return _state.value.orphanCount
+			return _state.value.orphanCount - orphansStaying
 		}
 
 		override suspend fun deleteOrphans(): Int {
@@ -213,6 +215,7 @@ class TimeLineOverviewUiTest : BaseTest() {
 		lastLayout: LastTimelineLayout? = null,
 		switcher: TimelineSwitcherActions = TimelineSwitcherActions.None,
 		uiScope: CoroutineScope = scope,
+		onOrphansLeft: (Int) -> Unit = {},
 	) {
 		compose.setContent {
 			// Keeps saved state while the overview is hidden, as the timeline's stack does.
@@ -230,6 +233,7 @@ class TimeLineOverviewUiTest : BaseTest() {
 								sharedTransitionScope = this@SharedTransitionLayout,
 								animatedVisibilityScope = this@AnimatedVisibility,
 								lastLayout = lastLayout ?: remember { LastTimelineLayout() },
+								onOrphansLeft = onOrphansLeft,
 							)
 						}
 					}
@@ -1520,6 +1524,24 @@ class TimeLineOverviewUiTest : BaseTest() {
 		compose.waitForIdle()
 
 		assertEquals(listOf("backstory"), component.orphansMovedTo)
+	}
+
+	@Test
+	fun `Move all to reports the events it left behind`() {
+		val component = orphansOverview()
+		val left = mutableListOf<Int>()
+		showOverview(component, uiScope = CoroutineScope(Dispatchers.Unconfined), onOrphansLeft = { left += it })
+
+		compose.onNodeWithText("Move all to…").performClick()
+		compose.onNodeWithTag(timelineMoveAllTargetTag("backstory")).performClick()
+		compose.waitForIdle()
+		assertEquals(emptyList(), left)
+
+		component.orphansStaying = 1
+		compose.onNodeWithText("Move all to…").performClick()
+		compose.onNodeWithTag(timelineMoveAllTargetTag("backstory")).performClick()
+		compose.waitForIdle()
+		assertEquals(listOf(1), left)
 	}
 
 	@Test
