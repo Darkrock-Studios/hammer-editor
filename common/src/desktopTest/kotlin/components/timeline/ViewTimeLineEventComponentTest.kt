@@ -1111,5 +1111,35 @@ class ViewTimeLineEventComponentTest : TimelineComponentTestBase() {
 		assertEquals(TimelineDef.MAIN_ID, timeLineRepository.getTimelineEvent(event.id)?.timelineId)
 	}
 
+	@Test
+	fun `a move from the menu mid-edit asks to discard a changed draft first`() = runTest(mainTestDispatcher) {
+		givenProject()
+		gregorianTimeline()
+		val event = timelineService.createEvent(TimelineEventDraft(title = "Storm")).event()
+		val component = opened(event.id)
+
+		component.beginEdit()
+		component.onTitleChanged("Squall")
+		component.startMove()
+
+		assertFalse(component.state.value.confirmMove)
+		assertTrue(component.state.value.confirmDiscard)
+		assertEquals("Squall", component.state.value.title)
+	}
+
+	@Test
+	fun `a move from the menu mid-edit drops an unchanged draft`() = runTest(mainTestDispatcher) {
+		givenProject()
+		gregorianTimeline()
+		val event = timelineService.createEvent(TimelineEventDraft(title = "Storm")).event()
+		val component = opened(event.id)
+
+		component.beginEdit()
+		component.startMove()
+
+		assertTrue(component.state.value.confirmMove)
+		assertFalse(component.state.value.isEditing)
+	}
+
 	// endregion
 }

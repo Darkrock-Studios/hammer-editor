@@ -422,7 +422,13 @@ class ViewTimeLineEventComponent(
 		}
 	}
 
+	/** A changed draft is not carried over a move: the discard prompt comes up instead, and a clean one is dropped. */
 	override fun startMove() {
+		if (isEditingAndDirty()) {
+			confirmDiscard()
+			return
+		}
+		if (state.value.isEditing) discardEdit()
 		_state.getAndUpdate { it.copy(confirmMove = true) }
 	}
 
