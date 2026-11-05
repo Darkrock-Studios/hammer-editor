@@ -375,6 +375,84 @@ class TimelineServiceTest : BaseTest() {
 	}
 
 	@Test
+	fun `each timeline counts its own five lanes`() = runTest(mainTestDispatcher) {
+		val service = createService()
+		val backstory = service.createTimeline("Backstory").def()
+		listOf("A", "B", "C", "D", "E").forEach { lane ->
+			service.createEvent(TimelineEventDraft(title = "Main $lane", lane = lane)).event()
+		}
+		val onBackstory = listOf("F", "G", "H", "I", "J").map { lane ->
+			service.createEvent(TimelineEventDraft(title = "Backstory $lane", lane = lane, timeline = backstory.id)).event()
+		}
+
+		assertEquals(listOf("F", "G", "H", "I", "J"), service.lanes(backstory.id))
+		assertEquals(
+			TimeLineEventError.TOO_MANY_LANES,
+			service.createEvent(TimelineEventDraft(title = "Sixth", lane = "K", timeline = backstory.id)).error(),
+		)
+		assertEquals(
+			TimeLineEventError.TOO_MANY_LANES,
+			service.updateDefinition(backstory.id) { it.copy(laneOrder = listOf("K")) }.error(),
+		)
+		// A lane Main already has is still a sixth one on Backstory.
+		assertEquals(
+			TimeLineEventError.TOO_MANY_LANES,
+			service.createEvent(TimelineEventDraft(title = "Main lane", lane = "A", timeline = backstory.id)).error(),
+		)
+		// Main has room for none either, though Backstory's lanes are not Main's.
+		assertEquals(
+			TimeLineEventError.TOO_MANY_LANES,
+			service.createEvent(TimelineEventDraft(title = "Backstory lane", lane = "F")).error(),
+		)
+		// Trading Backstory's only F entry for K keeps it at five.
+		service.setLane(onBackstory[0].id, "K").event()
+	}
+
+	@Test
+	fun `a move refuses a lane that would be the target's sixth`() = runTest(mainTestDispatcher) {
+		val service = createService()
+		val backstory = service.createTimeline("Backstory").def()
+		listOf("A", "B", "C", "D", "E").forEach { lane ->
+			service.createEvent(TimelineEventDraft(title = "Backstory $lane", lane = lane, timeline = backstory.id)).event()
+		}
+		val sharedLane = service.createEvent(TimelineEventDraft(title = "Shared", lane = "C")).event()
+		val newLane = service.createEvent(TimelineEventDraft(title = "New", lane = "F")).event()
+
+		assertEquals(TimeLineEventError.TOO_MANY_LANES, service.moveToTimeline(newLane.id, backstory.id).error())
+		assertNull(stored(newLane.id).timeline)
+		service.moveToTimeline(sharedLane.id, backstory.id).event()
+		assertEquals(backstory.id, stored(sharedLane.id).timeline)
+	}
+
+	@Test
+	fun `moving stragglers leaves one whose lane would be the target's sixth`() = runTest(mainTestDispatcher) {
+		val service = createService()
+		val backstory = service.createTimeline("Backstory").def()
+		listOf("A", "B", "C", "D").forEach { lane ->
+			service.createEvent(TimelineEventDraft(title = "Backstory $lane", lane = lane, timeline = backstory.id)).event()
+		}
+		// As sync stores events made offline on a timeline deleted since.
+		val fifth = timeLineRepository.createEvent(TimelineEventDraft(title = "Fifth", lane = "E", timeline = "zzzz9999"))
+		val sixth = timeLineRepository.createEvent(TimelineEventDraft(title = "Sixth", lane = "F", timeline = "zzzz9999"))
+
+		assertEquals(1, service.moveOrphans(backstory.id))
+
+		assertEquals(backstory.id, stored(fifth.id).timeline)
+		assertEquals(listOf(sixth.id), service.orphansFlow.first().map { it.id })
+	}
+
+	@Test
+	fun `a new timeline starts with at most five lanes`() = runTest(mainTestDispatcher) {
+		val service = createService()
+
+		assertEquals(
+			TimelineDefResult.Invalid(TimeLineEventError.TOO_MANY_LANES),
+			service.createTimeline("Backstory", laneOrder = listOf("A", "B", "C", "D", "E", "F")),
+		)
+		service.createTimeline("Backstory", laneOrder = listOf("A", "B", "C", "D", "E")).def()
+	}
+
+	@Test
 	fun `a timeline already past five lanes keeps working but gains no lane`() = runTest(mainTestDispatcher) {
 		val service = createService()
 		// Two devices can each add a lane offline; sync then leaves six.

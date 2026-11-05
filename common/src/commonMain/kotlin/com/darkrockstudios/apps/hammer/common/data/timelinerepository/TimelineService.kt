@@ -281,7 +281,8 @@ class TimelineService(
 
 	/**
 	 * A new timeline named [name], trimmed, which no other live timeline has in any case, with lanes in
-	 * [laneOrder]. Its id is fresh: never a live one, nor one deleted before.
+	 * [laneOrder], at most [TimelineLimits.MAX_LANES]. Its id is fresh: never a live one, nor one deleted
+	 * before.
 	 */
 	suspend fun createTimeline(
 		name: String,
@@ -299,6 +300,7 @@ class TimelineService(
 			val error = (if (isValidTimelineId(def.id)) TimeLineEventError.NONE else TimeLineEventError.TIMELINE_NOT_FOUND)
 				.orElse { nameProblem(data, def.name, def.id) }
 				.orElse { definitionProblem(def) }
+				.orElse { laneLimitProblem(emptySet(), def.laneOrder.toSet()) }
 			if (!error.isSuccess) {
 				outcome = TimelineDefResult.Invalid(error)
 				data
@@ -350,7 +352,8 @@ class TimelineService(
 
 	/**
 	 * Moves event [eventId] to live timeline [target], appending it there and keeping everything but
-	 * its dates and order. A placement whose subject is already on [target] is refused.
+	 * its dates and order. A placement whose subject is already on [target], or an event whose lane would
+	 * take [target] past [TimelineLimits.MAX_LANES], is refused.
 	 *
 	 * On a DATED target the start, or [start] when given, must be valid on its calendar; an end that no
 	 * longer fits is dropped. Without a valid start the move is refused unless [allowUndated], which lands
@@ -389,7 +392,8 @@ class TimelineService(
 	/**
 	 * Moves every event whose timeline is not live to live timeline [target] in one write, as
 	 * [moveToTimeline] with allowUndated would. A placement whose subject is already on [target] stays
-	 * behind. Returns how many moved; none when [target] is not live.
+	 * behind, as does an event whose lane would take [target] past [TimelineLimits.MAX_LANES]. Returns
+	 * how many moved; none when [target] is not live.
 	 */
 	suspend fun moveOrphans(target: String, words: StoryDateWords = StoryDateWords.English): Int = writeLock.withLock {
 		val data = projectDataRepository.load().data
@@ -471,7 +475,8 @@ class TimelineService(
 		val undatedAllowed = allowUndated && moved.start == null
 		val error = timeLineRepository.validate(moved).orElse {
 			if (undatedAllowed) TimeLineEventError.NONE else dateProblem(targetDef, moved.start, moved.end)
-		}.orElse { referenceProblem(moved.references - existing.references) }
+		}.orElse { laneProblem(moved, targetDef, events) }
+			.orElse { referenceProblem(moved.references - existing.references) }
 		return if (error.isSuccess) Landing.Landed(moved) else Landing.Refused(error)
 	}
 
@@ -642,9 +647,10 @@ class TimelineService(
 
 		// The timeline is changed only by moveToTimeline, which applies the target's rules.
 		val updated = event.copy(lane = normalizeLane(event.lane), timeline = existing.timeline)
+		val def = defFor(existing)
 		val error = timeLineRepository.validate(updated)
-			.orElse { dateProblem(defFor(existing), updated.start, updated.end) }
-			.orElse { laneProblem(updated, defFor(existing)) }
+			.orElse { dateProblem(def, updated.start, updated.end) }
+			.orElse { laneProblem(updated, def) }
 			.orElse { referenceProblem(updated.references - existing.references) }
 		if (!error.isSuccess) return invalid(error)
 
