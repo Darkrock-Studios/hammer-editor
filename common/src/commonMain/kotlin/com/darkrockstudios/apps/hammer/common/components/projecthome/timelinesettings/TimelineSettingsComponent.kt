@@ -75,16 +75,33 @@ class TimelineSettingsComponent(
 				withContext(dispatcherMain) {
 					_state.getAndUpdate { it.copy(timelines = timelines) }
 					// The edited timeline was deleted, here or on another device.
-					if (timelines.none { it.def.id == _state.value.editingId }) selectTimeline(TimelineDef.MAIN_ID)
+					if (timelines.none { it.def.id == _state.value.editingId }) {
+						closeEditor()
+						edit(TimelineDef.MAIN_ID)
+					}
 				}
 			}
 		}
 	}
 
-	override fun selectTimeline(id: String) {
+	override fun editTimeline(id: String) {
 		val timelines = _state.value.timelines
 		// Before the list loads, the summaries collector falls back to main instead.
 		edit(id.takeIf { timelines.isEmpty() || timelines.any { it.def.id == id } } ?: TimelineDef.MAIN_ID)
+		_state.getAndUpdate { it.copy(editorOpen = true) }
+	}
+
+	override fun closeEditor() {
+		_state.getAndUpdate {
+			it.copy(
+				editorOpen = false,
+				pendingModeSwitch = null,
+				pendingCalendar = null,
+				datesLostOnPresetSwitch = null,
+				presetSwitchTimeline = null,
+				error = null,
+			)
+		}
 	}
 
 	/** Edits [target] without checking it is live, for a timeline the summaries may not list yet. */
@@ -116,10 +133,7 @@ class TimelineSettingsComponent(
 			val result = timelineService.createTimeline(name, mode, calendar)
 			withContext(dispatcherMain) {
 				when (result) {
-					is TimelineDefResult.Ok -> {
-						closeIfOpen(draft)
-						edit(result.def.id)
-					}
+					is TimelineDefResult.Ok -> closeIfOpen(draft)
 
 					is TimelineDefResult.Invalid -> refused(draft, result)
 				}

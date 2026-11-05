@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -77,7 +79,9 @@ import com.darkrockstudios.apps.hammer.timeline_preset_warning_message
 import com.darkrockstudios.apps.hammer.timeline_settings_caption
 import com.darkrockstudios.apps.hammer.timeline_settings_coarsest_label
 import com.darkrockstudios.apps.hammer.timeline_settings_delete
-import com.darkrockstudios.apps.hammer.timeline_settings_editing_label
+import com.darkrockstudios.apps.hammer.timeline_settings_edit
+import com.darkrockstudios.apps.hammer.timeline_settings_editor_close
+import com.darkrockstudios.apps.hammer.timeline_settings_editor_title
 import com.darkrockstudios.apps.hammer.timeline_settings_epoch_hint
 import com.darkrockstudios.apps.hammer.timeline_settings_epoch_label
 import com.darkrockstudios.apps.hammer.timeline_settings_epoch_placeholder
@@ -101,10 +105,11 @@ const val TIMELINE_SETTINGS_PRESET_WARNING_TAG = "timeline-settings-preset-warni
 const val TIMELINE_MODE_DIALOG_CONFIRM_TAG = "timeline-mode-dialog-confirm"
 const val TIMELINE_MODE_DIALOG_UNIT_TAG = "timeline-mode-dialog-unit"
 const val TIMELINE_MODE_DIALOG_COUNT_TAG = "timeline-mode-dialog-count"
-const val TIMELINE_SETTINGS_EDITING_TAG = "timeline-settings-editing"
+const val TIMELINE_SETTINGS_EDITOR_TAG = "timeline-settings-editor"
 const val TIMELINE_SETTINGS_NEW_TAG = "timeline-settings-new"
 
 fun timelineSettingsRowTag(timelineId: String) = "timeline-settings-row-$timelineId"
+fun timelineSettingsEditTag(timelineId: String) = "timeline-settings-edit-$timelineId"
 fun timelineSettingsRenameTag(timelineId: String) = "timeline-settings-rename-$timelineId"
 fun timelineSettingsDeleteTag(timelineId: String) = "timeline-settings-delete-$timelineId"
 
@@ -114,8 +119,8 @@ private val LaneRowHeight = 44.dp
 private const val MAX_VISIBLE_LANES = 8
 
 /**
- * The project's timelines, then the mode, calendar and lane order of the one being edited, as one
- * section of the project settings.
+ * The project's timelines as one section of the project settings; each one's mode, calendar and lane
+ * order are edited in a dialog of their own.
  */
 @Composable
 fun TimelineSettingsUi(
@@ -124,9 +129,6 @@ fun TimelineSettingsUi(
 	modifier: Modifier = Modifier,
 ) {
 	val state by component.state.subscribeAsState()
-	val def = state.def
-	val dated = def.mode == TimelineMode.DATED
-	val calendar = def.calendar ?: CalendarDef()
 	// Timelines go by name once there is more than one; until then the prompts say "the timeline".
 	val named = state.timelines.size >= 2
 
@@ -140,80 +142,20 @@ fun TimelineSettingsUi(
 			TimelineList(
 				timelines = state.timelines,
 				onNew = component::requestCreate,
+				onEdit = { summary -> component.editTimeline(summary.def.id) },
 				onRename = { summary -> component.requestRename(summary.def.id) },
 				onDelete = { summary -> component.requestDelete(summary.def.id) },
 			)
 		}
+	}
 
-		if (named) {
-			val editing = state.timelines.firstOrNull { it.def.id == state.editingId } ?: state.timelines.first()
-			HdHairlineDropdown(
-				options = state.timelines,
-				selected = editing,
-				onSelect = { component.selectTimeline(it.def.id) },
-				label = { it.def.name },
-				title = Res.string.timeline_settings_editing_label.get(),
-				modifier = Modifier.testTag(TIMELINE_SETTINGS_EDITING_TAG),
-			)
-		}
-
-		Text(
-			text = Res.string.timeline_settings_caption.get(),
-			style = MaterialTheme.typography.bodySmall,
-			color = MaterialTheme.colorScheme.onSurfaceVariant,
+	AnimatedDialog(visible = state.editorOpen, onCloseRequest = component::closeEditor) {
+		TimelineEditor(
+			component = component,
+			state = state,
+			named = named,
+			onClose = { requestDismiss() },
 		)
-
-		HdHairlineSegmentedPicker(
-			options = Modes,
-			selected = def.mode,
-			onSelect = component::requestMode,
-			label = { it.label() },
-			title = Res.string.timeline_settings_mode_label.get(),
-			modifier = Modifier.testTag(TIMELINE_SETTINGS_MODE_TAG),
-		)
-
-		HdHairlineSegmentedPicker(
-			options = Presets,
-			selected = calendar.preset,
-			onSelect = component::setPreset,
-			label = { it.label() },
-			title = Res.string.timeline_settings_preset_label.get(),
-			enabled = dated,
-			modifier = Modifier.testTag(TIMELINE_SETTINGS_PRESET_TAG),
-		)
-
-		val pending = state.pendingCalendar
-		val lost = state.datesLostOnPresetSwitch
-		if (pending != null && lost != null) {
-			PresetWarning(
-				lost = lost,
-				timelineName = state.presetSwitchTimeline?.name?.takeIf { named },
-				onConfirm = component::confirmPresetSwitch,
-				onCancel = component::cancelPresetSwitch,
-			)
-		}
-
-		if (dated && calendar.preset == CalendarPreset.STORY) {
-			EpochField(initial = calendar.epochName.orEmpty(), onChange = component::setEpochName)
-
-			val units = StoryCalendar.units(CalendarPreset.STORY).map { it.name }
-			HdHairlineDropdown(
-				options = units,
-				selected = calendar.coarsestUnit ?: units.first(),
-				onSelect = component::setCoarsestUnit,
-				label = { storyUnitName(it) },
-				title = Res.string.timeline_settings_coarsest_label.get(),
-			)
-		}
-
-		LaneOrder(lanes = state.lanes, onReorder = component::setLaneOrder)
-
-		state.error?.let { error ->
-			val strRes = rememberStrRes()
-			var message by remember { mutableStateOf<String?>(null) }
-			LaunchedEffect(error) { message = error.toastText(strRes) }
-			message?.let { HdMonoLabel(text = it, color = MaterialTheme.colorScheme.error) }
-		}
 	}
 
 	ModeSwitchDialog(
@@ -233,11 +175,95 @@ fun TimelineSettingsUi(
 	)
 }
 
-/** Every timeline with its mode and event count, rename and delete (never main's), then `+ New timeline`. */
+/** The mode, calendar and lane order of [TimelineSettings.State.def], in a dialog shell. */
+@Composable
+internal fun TimelineEditor(
+	component: TimelineSettings,
+	state: TimelineSettings.State,
+	named: Boolean,
+	onClose: () -> Unit,
+) {
+	val def = state.def
+	val dated = def.mode == TimelineMode.DATED
+	val calendar = def.calendar ?: CalendarDef()
+
+	HdHairlineDialogShell(
+		title = Res.string.timeline_settings_editor_title.get(def.name),
+		onClose = onClose,
+		closeContentDescription = Res.string.timeline_settings_editor_close.get(),
+		modifier = Modifier.testTag(TIMELINE_SETTINGS_EDITOR_TAG),
+	) {
+		Column(
+			modifier = Modifier.verticalScroll(rememberScrollState()),
+			verticalArrangement = Arrangement.spacedBy(18.dp),
+		) {
+			Text(
+				text = Res.string.timeline_settings_caption.get(),
+				style = MaterialTheme.typography.bodySmall,
+				color = MaterialTheme.colorScheme.onSurfaceVariant,
+			)
+
+			HdHairlineSegmentedPicker(
+				options = Modes,
+				selected = def.mode,
+				onSelect = component::requestMode,
+				label = { it.label() },
+				title = Res.string.timeline_settings_mode_label.get(),
+				modifier = Modifier.testTag(TIMELINE_SETTINGS_MODE_TAG),
+			)
+
+			HdHairlineSegmentedPicker(
+				options = Presets,
+				selected = calendar.preset,
+				onSelect = component::setPreset,
+				label = { it.label() },
+				title = Res.string.timeline_settings_preset_label.get(),
+				enabled = dated,
+				modifier = Modifier.testTag(TIMELINE_SETTINGS_PRESET_TAG),
+			)
+
+			val pending = state.pendingCalendar
+			val lost = state.datesLostOnPresetSwitch
+			if (pending != null && lost != null) {
+				PresetWarning(
+					lost = lost,
+					timelineName = state.presetSwitchTimeline?.name?.takeIf { named },
+					onConfirm = component::confirmPresetSwitch,
+					onCancel = component::cancelPresetSwitch,
+				)
+			}
+
+			if (dated && calendar.preset == CalendarPreset.STORY) {
+				EpochField(initial = calendar.epochName.orEmpty(), onChange = component::setEpochName)
+
+				val units = StoryCalendar.units(CalendarPreset.STORY).map { it.name }
+				HdHairlineDropdown(
+					options = units,
+					selected = calendar.coarsestUnit ?: units.first(),
+					onSelect = component::setCoarsestUnit,
+					label = { storyUnitName(it) },
+					title = Res.string.timeline_settings_coarsest_label.get(),
+				)
+			}
+
+			LaneOrder(lanes = state.lanes, onReorder = component::setLaneOrder)
+
+			state.error?.let { error ->
+				val strRes = rememberStrRes()
+				var message by remember { mutableStateOf<String?>(null) }
+				LaunchedEffect(error) { message = error.toastText(strRes) }
+				message?.let { HdMonoLabel(text = it, color = MaterialTheme.colorScheme.error) }
+			}
+		}
+	}
+}
+
+/** Every timeline with its mode and event count, edit, rename and delete (never main's), then `+ New timeline`. */
 @Composable
 private fun TimelineList(
 	timelines: List<TimelineSummary>,
 	onNew: () -> Unit,
+	onEdit: (TimelineSummary) -> Unit,
 	onRename: (TimelineSummary) -> Unit,
 	onDelete: (TimelineSummary) -> Unit,
 ) {
@@ -250,7 +276,12 @@ private fun TimelineList(
 		) {
 			timelines.forEachIndexed { index, summary ->
 				if (index > 0) HorizontalDivider(thickness = Dp.Hairline, color = MaterialTheme.colorScheme.outlineVariant)
-				TimelineRow(summary = summary, onRename = { onRename(summary) }, onDelete = { onDelete(summary) })
+				TimelineRow(
+					summary = summary,
+					onEdit = { onEdit(summary) },
+					onRename = { onRename(summary) },
+					onDelete = { onDelete(summary) },
+				)
 			}
 		}
 		HdHairlineButton(
@@ -262,7 +293,7 @@ private fun TimelineList(
 }
 
 @Composable
-private fun TimelineRow(summary: TimelineSummary, onRename: () -> Unit, onDelete: () -> Unit) {
+private fun TimelineRow(summary: TimelineSummary, onEdit: () -> Unit, onRename: () -> Unit, onDelete: () -> Unit) {
 	val def = summary.def
 	Row(
 		modifier = Modifier
@@ -289,6 +320,11 @@ private fun TimelineRow(summary: TimelineSummary, onRename: () -> Unit, onDelete
 				),
 			)
 		}
+		HdHairlineButton(
+			label = Res.string.timeline_settings_edit.get(),
+			onClick = onEdit,
+			modifier = Modifier.testTag(timelineSettingsEditTag(def.id)),
+		)
 		HdHairlineButton(
 			label = Res.string.timeline_settings_rename.get(),
 			onClick = onRename,
@@ -379,7 +415,7 @@ private fun LaneOrder(lanes: List<String>, onReorder: (List<String>) -> Unit) {
 			style = MaterialTheme.typography.bodySmall,
 			color = MaterialTheme.colorScheme.onSurfaceVariant,
 		)
-		// The settings page scrolls, so the list gets a bounded height of its own.
+		// The editor scrolls, so the list gets a bounded height of its own.
 		val visible = lanes.size.coerceAtMost(MAX_VISIBLE_LANES)
 		DragDropList(
 			items = lanes,

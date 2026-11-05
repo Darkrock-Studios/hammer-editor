@@ -235,7 +235,6 @@
 	<string name="timeline_move_done">Moved to “%1$s”</string>
 	<string name="timeline_also_on">Also on</string>
 	<string name="timeline_settings_timelines_label">Timelines</string>
-	<string name="timeline_settings_editing_label">Editing</string>
 	<string name="timeline_settings_new">+ New timeline</string>
 	<string name="timeline_settings_rename">Rename</string>
 	<string name="timeline_settings_delete">Delete</string>
@@ -251,4 +250,7 @@
 	</plurals>
 	<string name="timeline_preset_warning_label_named">Some dates on “%1$s” do not fit</string>
 	<string name="timeline_subject_timelines_label">Timelines</string>
+	<string name="timeline_settings_edit">Edit</string>
+	<string name="timeline_settings_editor_title">Edit “%1$s”</string>
+	<string name="timeline_settings_editor_close">Close</string>
 </resources>

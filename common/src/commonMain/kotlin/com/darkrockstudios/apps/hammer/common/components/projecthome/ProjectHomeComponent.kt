@@ -439,7 +439,7 @@ class ProjectHomeComponent(
 	override fun showTimelineSettings(timelineId: String) {
 		showProjectSettings()
 		(contentRouter.state.value.active.instance as? ProjectHome.ContentDestination.ProjectSettings)
-			?.component?.timelineSettings?.selectTimeline(timelineId)
+			?.component?.timelineSettings?.editTimeline(timelineId)
 	}
 
 	override fun closeProject() {

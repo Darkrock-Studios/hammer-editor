@@ -24,8 +24,10 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 
@@ -340,6 +342,28 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 		)
 		assertEquals(TimelineDef.MAIN_ID, component.state.value.editingId)
 		assertEquals(TimelineDef.DEFAULT, component.state.value.def)
+		assertFalse(component.state.value.editorOpen)
+	}
+
+	@Test
+	fun `editing a timeline opens the editor on it, and closing drops what was pending`() = runTest(mainTestDispatcher) {
+		givenProject()
+		val before = newTimeline("Before")
+		val component = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		component.editTimeline(before.id)
+		advanceUntilIdle()
+		assertTrue(component.state.value.editorOpen)
+		assertEquals(before, component.state.value.def)
+
+		component.requestMode(TimelineMode.DATED)
+		component.closeEditor()
+
+		assertFalse(component.state.value.editorOpen)
+		assertNull(component.state.value.pendingModeSwitch)
+		assertEquals(TimelineMode.MANUAL, timelineService.definition(before.id)?.mode)
 	}
 
 	@Test
@@ -354,7 +378,7 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 		context.resume()
 		advanceUntilIdle()
 
-		component.selectTimeline(before.id)
+		component.editTimeline(before.id)
 		advanceUntilIdle()
 		assertEquals(before, component.state.value.def)
 		assertEquals(listOf("Pike"), component.state.value.lanes)
@@ -389,7 +413,7 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 		createEvent("Before", start = date("year" to 5, "day" to 3), timeline = before.id)
 		val component = newComponent()
 		context.resume()
-		component.selectTimeline(before.id)
+		component.editTimeline(before.id)
 		advanceUntilIdle()
 
 		component.setPreset(CalendarPreset.GREGORIAN)
@@ -411,12 +435,12 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 		val before = newTimeline("Before", TimelineMode.DATED)
 		val component = newComponent()
 		context.resume()
-		component.selectTimeline(before.id)
+		component.editTimeline(before.id)
 		advanceUntilIdle()
 
 		component.setEpochName("The letter")
 		advanceTimeBy(100)
-		component.selectTimeline(TimelineDef.MAIN_ID)
+		component.editTimeline(TimelineDef.MAIN_ID)
 		advanceUntilIdle()
 
 		assertEquals("The letter", timelineService.definition(before.id)?.calendar?.epochName)
@@ -430,11 +454,11 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 		val before = newTimeline("Before", TimelineMode.DATED)
 		val component = newComponent()
 		context.resume()
-		component.selectTimeline(before.id)
+		component.editTimeline(before.id)
 		advanceUntilIdle()
 
 		component.setEpochName("The letter")
-		component.selectTimeline(TimelineDef.MAIN_ID)
+		component.editTimeline(TimelineDef.MAIN_ID)
 		component.setEpochName("The dinner bell")
 		advanceUntilIdle()
 
@@ -455,7 +479,7 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 	}
 
 	@Test
-	fun `a created timeline closes the dialog and is edited next`() = runTest(mainTestDispatcher) {
+	fun `a created timeline closes the dialog and leaves the editor shut`() = runTest(mainTestDispatcher) {
 		givenProject()
 		val component = newComponent()
 		context.resume()
@@ -467,8 +491,7 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 
 		val created = component.state.value.timelines.single { it.def.name == "Before" }.def
 		assertEquals(TimelineSwitcher(), component.state.value.switcher)
-		assertEquals(created.id, component.state.value.editingId)
-		assertEquals(created, component.state.value.def)
+		assertFalse(component.state.value.editorOpen)
 		assertEquals(CalendarDef(CalendarPreset.GREGORIAN), created.calendar)
 	}
 
@@ -564,13 +587,13 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 	}
 
 	@Test
-	fun `a timeline selected as the screen opens is edited once the list loads`() = runTest(mainTestDispatcher) {
+	fun `a timeline asked for as the screen opens is edited once the list loads`() = runTest(mainTestDispatcher) {
 		givenProject()
 		val before = newTimeline("Before the evening")
 		val component = newComponent()
 		context.resume()
 
-		component.selectTimeline(before.id)
+		component.editTimeline(before.id)
 		advanceUntilIdle()
 
 		assertEquals(before.id, component.state.value.editingId)
@@ -578,26 +601,26 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 	}
 
 	@Test
-	fun `selecting a timeline that is gone edits main`() = runTest(mainTestDispatcher) {
+	fun `editing a timeline that is gone edits main`() = runTest(mainTestDispatcher) {
 		givenProject()
 		val component = newComponent()
 		context.resume()
 		advanceUntilIdle()
 
-		component.selectTimeline("gone0001")
+		component.editTimeline("gone0001")
 		advanceUntilIdle()
 
 		assertEquals(TimelineDef.MAIN_ID, component.state.value.editingId)
 	}
 
 	@Test
-	fun `deleting the edited timeline asks first then edits main`() = runTest(mainTestDispatcher) {
+	fun `deleting the edited timeline asks first, then closes the editor and edits main`() = runTest(mainTestDispatcher) {
 		givenProject()
 		val before = newTimeline("Before")
 		createEvent("One", timeline = before.id)
 		val component = newComponent()
 		context.resume()
-		component.selectTimeline(before.id)
+		component.editTimeline(before.id)
 		advanceUntilIdle()
 
 		component.requestDelete(TimelineDef.MAIN_ID)
@@ -613,6 +636,7 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 
 		assertNull(timelineService.definition(before.id))
 		assertEquals(TimelineSwitcher(), component.state.value.switcher)
+		assertFalse(component.state.value.editorOpen)
 		assertEquals(TimelineDef.MAIN_ID, component.state.value.editingId)
 		assertEquals(TimelineDef.DEFAULT, component.state.value.def)
 		assertEquals(listOf(TimelineDef.MAIN_ID), component.state.value.timelines.map { it.def.id })

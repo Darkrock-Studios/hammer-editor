@@ -372,6 +372,7 @@ class ProjectRootComponentTest : ComponentTest() {
 		val home = assertIs<ProjectRoot.Destination.HomeDestination>(comp.routerState.value.active.instance).component
 		val settings = assertIs<ProjectHome.ContentDestination.ProjectSettings>(home.contentRouterState.value.active.instance)
 		assertEquals("a3f09c1e", settings.component.timelineSettings.state.value.editingId)
+		assertTrue(settings.component.timelineSettings.state.value.editorOpen)
 	}
 
 	@Test

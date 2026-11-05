@@ -10,12 +10,13 @@ import com.darkrockstudios.apps.hammer.common.components.timeline.TimelineSwitch
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEventError
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineSummary
 
-/** The project's timelines, and the mode, calendar and lane order of the one being edited. */
+/** The project's timelines, and an editor for the mode, calendar and lane order of one of them. */
 interface TimelineSettings {
 	val state: Value<State>
 
-	/** Edits timeline [id]; the settings below then apply to it. */
-	fun selectTimeline(id: String)
+	/** Opens the editor on timeline [id], or on main when [id] is gone; the settings below then apply to it. */
+	fun editTimeline(id: String)
+	fun closeEditor()
 
 	fun requestCreate()
 
@@ -58,6 +59,7 @@ interface TimelineSettings {
 		/** The live timelines, main first. */
 		val timelines: List<TimelineSummary> = emptyList(),
 		val editingId: String = TimelineDef.MAIN_ID,
+		val editorOpen: Boolean = false,
 		/** The timeline being edited. */
 		val def: TimelineDef = TimelineDef.DEFAULT,
 		/** The lane order, then any other lane in use. */

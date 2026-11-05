@@ -3,14 +3,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
-import androidx.compose.ui.test.hasAnyAncestor
-import androidx.compose.ui.test.hasTestTag
-import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onAllNodesWithText
-import androidx.compose.ui.test.onLast
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -29,9 +26,11 @@ import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineSu
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.entryUnits
 import com.darkrockstudios.apps.hammer.common.projecthome.TIMELINE_MODE_DIALOG_CONFIRM_TAG
 import com.darkrockstudios.apps.hammer.common.projecthome.TIMELINE_MODE_DIALOG_COUNT_TAG
-import com.darkrockstudios.apps.hammer.common.projecthome.TIMELINE_SETTINGS_EDITING_TAG
+import com.darkrockstudios.apps.hammer.common.projecthome.TIMELINE_SETTINGS_EDITOR_TAG
+import com.darkrockstudios.apps.hammer.common.projecthome.TIMELINE_SETTINGS_MODE_TAG
 import com.darkrockstudios.apps.hammer.common.projecthome.TIMELINE_SETTINGS_NEW_TAG
 import com.darkrockstudios.apps.hammer.common.projecthome.timelineSettingsDeleteTag
+import com.darkrockstudios.apps.hammer.common.projecthome.timelineSettingsEditTag
 import com.darkrockstudios.apps.hammer.common.projecthome.timelineSettingsRenameTag
 import com.darkrockstudios.apps.hammer.common.projecthome.timelineSettingsRowTag
 import com.darkrockstudios.apps.hammer.common.timeline.TIME_LINE_DELETE_CONFIRM_TAG
@@ -63,11 +62,12 @@ class TimelineSettingsUiTest : BaseTest() {
 		var confirmed = 0
 		var presetConfirmed = 0
 		var deleteConfirmed = 0
+		var closed = 0
 		val selected = mutableListOf<String>()
 		val created = mutableListOf<String>()
 		val renamed = mutableListOf<Pair<String, String>>()
 
-		/** What [createTimeline] answers with; null creates the timeline and edits it. */
+		/** What [createTimeline] answers with; null creates the timeline. */
 		var createRefusal: TimeLineEventError? = null
 
 		override fun requestMode(mode: TimelineMode) {
@@ -105,8 +105,15 @@ class TimelineSettingsUiTest : BaseTest() {
 		override fun cancelPresetSwitch() {}
 		override fun setEpochName(name: String) {}
 		override fun setLaneOrder(order: List<String>) {}
-		override fun selectTimeline(id: String) {
+		override fun editTimeline(id: String) {
 			selected += id
+			val def = _state.value.timelines.first { it.def.id == id }.def
+			_state.value = _state.value.copy(editingId = id, def = def, editorOpen = true)
+		}
+
+		override fun closeEditor() {
+			closed++
+			_state.value = _state.value.copy(editorOpen = false)
 		}
 
 		override fun requestCreate() = setSwitcher(TimelineSwitcher(TimelineSwitcher.Dialog.Create()))
@@ -122,8 +129,6 @@ class TimelineSettingsUiTest : BaseTest() {
 			val def = TimelineDef(id = "new${created.size}", name = name, mode = mode)
 			_state.value = _state.value.copy(
 				timelines = _state.value.timelines + TimelineSummary(def, 0),
-				editingId = def.id,
-				def = def,
 				switcher = TimelineSwitcher(),
 			)
 		}
@@ -173,12 +178,13 @@ class TimelineSettingsUiTest : BaseTest() {
 	)
 	private val scratch = TimelineSummary(TimelineDef(id = "scratch", name = "Scratch"), 1)
 
-	/** Three timelines, editing [editing]. */
-	private fun threeTimelines(editing: TimelineSummary = main) = FakeSettings(
+	/** Three timelines; with [editing], its editor is open. */
+	private fun threeTimelines(editing: TimelineSummary? = null) = FakeSettings(
 		TimelineSettings.State(
 			timelines = listOf(main, backstory, scratch),
-			editingId = editing.def.id,
-			def = editing.def,
+			editingId = (editing ?: main).def.id,
+			def = (editing ?: main).def,
+			editorOpen = editing != null,
 		)
 	)
 
@@ -202,7 +208,7 @@ class TimelineSettingsUiTest : BaseTest() {
 
 	@Test
 	fun `Picking Dated opens the dialog with Space evenly by the preselected unit`() {
-		val component = FakeSettings(TimelineSettings.State())
+		val component = FakeSettings(TimelineSettings.State(editorOpen = true))
 		show(component)
 
 		compose.onNodeWithText("DATED").performClick()
@@ -224,7 +230,7 @@ class TimelineSettingsUiTest : BaseTest() {
 			mode = TimelineMode.DATED,
 			calendar = CalendarDef(epochName = "Landing", coarsestUnit = "day"),
 		)
-		show(FakeSettings(TimelineSettings.State(def = def, lanes = listOf("Alice", "Queen"))))
+		show(FakeSettings(TimelineSettings.State(def = def, lanes = listOf("Alice", "Queen"), editorOpen = true)))
 
 		compose.onNodeWithTag(TIMELINE_SETTINGS_EPOCH_TAG).assertExists()
 		compose.onNodeWithText("Day").assertIsDisplayed()
@@ -238,6 +244,7 @@ class TimelineSettingsUiTest : BaseTest() {
 		val component = FakeSettings(
 			TimelineSettings.State(
 				def = def,
+				editorOpen = true,
 				pendingCalendar = CalendarDef(CalendarPreset.GREGORIAN),
 				datesLostOnPresetSwitch = 2,
 			)
@@ -268,24 +275,38 @@ class TimelineSettingsUiTest : BaseTest() {
 	}
 
 	@Test
-	fun `With one timeline there is nothing to pick for editing`() {
-		show(FakeSettings(TimelineSettings.State(timelines = listOf(main))))
+	fun `The section lists the timelines and leaves their settings to the editor`() {
+		show(threeTimelines())
 
-		compose.onNodeWithTag(timelineSettingsRowTag("main")).assertIsDisplayed()
-		compose.onNodeWithTag(TIMELINE_SETTINGS_EDITING_TAG).assertDoesNotExist()
+		compose.onNodeWithTag(timelineSettingsEditTag("main")).assertIsDisplayed()
+		compose.onNodeWithTag(TIMELINE_SETTINGS_EDITOR_TAG).assertDoesNotExist()
+		compose.onNodeWithTag(TIMELINE_SETTINGS_MODE_TAG).assertDoesNotExist()
 	}
 
 	@Test
-	fun `The Editing dropdown picks the timeline the settings below edit`() {
+	fun `Edit opens the editor on that timeline`() {
 		val component = threeTimelines()
 		show(component)
 
-		compose.onNodeWithText("EDITING").assertIsDisplayed()
-		compose.onNode(hasText("Main") and hasAnyAncestor(hasTestTag(TIMELINE_SETTINGS_EDITING_TAG))).performClick()
-		compose.onAllNodesWithText("Before the evening").onLast().performClick()
+		compose.onNodeWithTag(timelineSettingsEditTag("backstory")).performClick()
 		compose.waitForIdle()
 
 		assertEquals(listOf("backstory"), component.selected)
+		compose.onNodeWithText("Edit “Before the evening”").assertIsDisplayed()
+		compose.onNodeWithTag(TIMELINE_SETTINGS_MODE_TAG).assertIsDisplayed()
+	}
+
+	@Test
+	fun `Closing the editor leaves the list`() {
+		val component = threeTimelines(editing = backstory)
+		show(component)
+
+		compose.onNodeWithContentDescription("Close").performClick()
+		compose.waitForIdle()
+
+		assertEquals(1, component.closed)
+		compose.onNodeWithTag(TIMELINE_SETTINGS_EDITOR_TAG).assertDoesNotExist()
+		compose.onNodeWithTag(timelineSettingsRowTag("backstory")).assertIsDisplayed()
 	}
 
 	@Test
@@ -392,6 +413,7 @@ class TimelineSettingsUiTest : BaseTest() {
 					timelines = listOf(main, backstory, scratch),
 					editingId = backstory.def.id,
 					def = backstory.def,
+					editorOpen = true,
 					pendingCalendar = CalendarDef(CalendarPreset.STORY),
 					datesLostOnPresetSwitch = 3,
 					presetSwitchTimeline = backstory.def,

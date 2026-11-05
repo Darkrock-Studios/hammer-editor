@@ -23,6 +23,7 @@ import com.darkrockstudios.apps.hammer.common.data.timelinerepository.entryUnits
 import com.darkrockstudios.apps.hammer.common.preview.KoinApplicationPreview
 import com.darkrockstudios.apps.hammer.common.preview.globalSettingsPreview
 import com.darkrockstudios.apps.hammer.common.preview.timeline.previewThreeTimelines
+import com.darkrockstudios.apps.hammer.common.projecthome.TimelineEditor
 import com.darkrockstudios.apps.hammer.common.projecthome.TimelineSettingsUi
 
 private val storyCalendar = CalendarDef(CalendarPreset.STORY, epochName = "The Landing")
@@ -31,13 +32,13 @@ private val previewLanes = listOf("Keeper", "Village", "The Sea", "Maren")
 @Preview
 @Composable
 fun TimelineSettingsUiManualPreview() {
-	SettingsPreview(TimelineSettings.State(def = TimelineDef.DEFAULT, lanes = previewLanes))
+	EditorPreview(TimelineSettings.State(def = TimelineDef.DEFAULT, lanes = previewLanes))
 }
 
 @Preview
 @Composable
 fun TimelineSettingsUiDatedStoryPreview() {
-	SettingsPreview(
+	EditorPreview(
 		TimelineSettings.State(
 			def = TimelineDef.DEFAULT.copy(mode = TimelineMode.DATED, calendar = storyCalendar, laneOrder = previewLanes),
 			lanes = previewLanes,
@@ -48,7 +49,7 @@ fun TimelineSettingsUiDatedStoryPreview() {
 @Preview
 @Composable
 fun TimelineSettingsUiPresetWarningPreview() {
-	SettingsPreview(
+	EditorPreview(
 		TimelineSettings.State(
 			def = TimelineDef.DEFAULT.copy(mode = TimelineMode.DATED, calendar = storyCalendar),
 			lanes = previewLanes,
@@ -71,12 +72,19 @@ fun TimelineSettingsUiModeDialogPreview() {
 	)
 }
 
-/** Main, a dated backstory being edited, and a scratch timeline. */
+/** Main, a dated backstory and a scratch timeline. */
 @Preview
 @Composable
 fun TimelineSettingsUiThreeTimelinesPreview() {
+	SettingsPreview(TimelineSettings.State(timelines = previewThreeTimelines))
+}
+
+/** The editor on the dated backstory. */
+@Preview
+@Composable
+fun TimelineSettingsUiBackstoryEditorPreview() {
 	val editing = previewThreeTimelines[1]
-	SettingsPreview(
+	EditorPreview(
 		TimelineSettings.State(
 			timelines = previewThreeTimelines,
 			editingId = editing.def.id,
@@ -113,6 +121,22 @@ private fun SettingsPreview(state: TimelineSettings.State) {
 					.padding(24.dp),
 			) {
 				TimelineSettingsUi(component = PreviewTimelineSettings(state), section = 6)
+			}
+		}
+	}
+}
+
+@Composable
+private fun EditorPreview(state: TimelineSettings.State) {
+	KoinApplicationPreview {
+		AppTheme(globalSettingsPreview) {
+			Box(modifier = Modifier.background(MaterialTheme.colorScheme.background).padding(24.dp)) {
+				TimelineEditor(
+					component = PreviewTimelineSettings(state),
+					state = state,
+					named = state.timelines.size >= 2,
+					onClose = {},
+				)
 			}
 		}
 	}
@@ -171,9 +195,13 @@ internal class PreviewTimelineSettings(initial: TimelineSettings.State) : Timeli
 		_state.value = _state.value.copy(lanes = order)
 	}
 
-	override fun selectTimeline(id: String) {
+	override fun editTimeline(id: String) {
 		val def = _state.value.timelines.firstOrNull { it.def.id == id }?.def ?: return
-		_state.value = _state.value.copy(editingId = id, def = def)
+		_state.value = _state.value.copy(editingId = id, def = def, editorOpen = true)
+	}
+
+	override fun closeEditor() {
+		_state.value = _state.value.copy(editorOpen = false)
 	}
 
 	override fun requestCreate() = setSwitcher(TimelineSwitcher(TimelineSwitcher.Dialog.Create()))
