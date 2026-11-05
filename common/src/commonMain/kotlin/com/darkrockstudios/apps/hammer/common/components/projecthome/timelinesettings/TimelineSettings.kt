@@ -14,7 +14,7 @@ import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineSu
 interface TimelineSettings {
 	val state: Value<State>
 
-	/** Opens the editor on timeline [id], or on main when [id] is gone; the settings below then apply to it. */
+	/** Opens the editor on timeline [id], or on main when [id] is gone; the mode, calendar and lane calls apply to it. */
 	fun editTimeline(id: String)
 	fun closeEditor()
 
@@ -59,6 +59,7 @@ interface TimelineSettings {
 		/** The live timelines, main first. */
 		val timelines: List<TimelineSummary> = emptyList(),
 		val editingId: String = TimelineDef.MAIN_ID,
+		/** Whether the editor dialog for [editingId] is showing. */
 		val editorOpen: Boolean = false,
 		/** The timeline being edited. */
 		val def: TimelineDef = TimelineDef.DEFAULT,

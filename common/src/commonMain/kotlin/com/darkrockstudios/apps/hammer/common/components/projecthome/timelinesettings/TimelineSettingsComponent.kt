@@ -92,34 +92,29 @@ class TimelineSettingsComponent(
 	}
 
 	override fun closeEditor() {
-		_state.getAndUpdate {
-			it.copy(
-				editorOpen = false,
-				pendingModeSwitch = null,
-				pendingCalendar = null,
-				datesLostOnPresetSwitch = null,
-				presetSwitchTimeline = null,
-				error = null,
-			)
-		}
+		_state.getAndUpdate { it.withoutPending().copy(editorOpen = false) }
 	}
 
 	/** Edits [target] without checking it is live, for a timeline the summaries may not list yet. */
 	private fun edit(target: String) {
 		if (_state.value.editingId == target) return
 		_state.getAndUpdate { current ->
-			current.copy(
+			current.withoutPending().copy(
 				editingId = target,
 				def = current.timelines.firstOrNull { it.def.id == target }?.def ?: current.def,
-				pendingModeSwitch = null,
-				pendingCalendar = null,
-				datesLostOnPresetSwitch = null,
-				presetSwitchTimeline = null,
-				error = null,
 			)
 		}
 		editingId.value = target
 	}
+
+	/** Drops the prompts and error that belong to the timeline being edited. */
+	private fun TimelineSettings.State.withoutPending() = copy(
+		pendingModeSwitch = null,
+		pendingCalendar = null,
+		datesLostOnPresetSwitch = null,
+		presetSwitchTimeline = null,
+		error = null,
+	)
 
 	override fun requestCreate() {
 		setSwitcher(TimelineSwitcher(dialog = TimelineSwitcher.Dialog.Create()))

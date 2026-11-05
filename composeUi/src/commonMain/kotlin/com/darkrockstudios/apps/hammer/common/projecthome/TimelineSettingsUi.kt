@@ -3,8 +3,11 @@ package com.darkrockstudios.apps.hammer.common.projecthome
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -116,6 +119,7 @@ fun timelineSettingsDeleteTag(timelineId: String) = "timeline-settings-delete-$t
 private val Modes = listOf(TimelineMode.MANUAL, TimelineMode.DATED)
 private val Presets = listOf(CalendarPreset.STORY, CalendarPreset.GREGORIAN)
 private val LaneRowHeight = 44.dp
+private val RowStackThreshold = 480.dp
 private const val MAX_VISIBLE_LANES = 8
 
 /**
@@ -292,18 +296,12 @@ private fun TimelineList(
 	}
 }
 
+/** Below [RowStackThreshold] the buttons drop under the name, so a phone keeps the name readable. */
 @Composable
 private fun TimelineRow(summary: TimelineSummary, onEdit: () -> Unit, onRename: () -> Unit, onDelete: () -> Unit) {
 	val def = summary.def
-	Row(
-		modifier = Modifier
-			.fillMaxWidth()
-			.padding(horizontal = Ui.Padding.L, vertical = Ui.Padding.M)
-			.testTag(timelineSettingsRowTag(def.id)),
-		verticalAlignment = Alignment.CenterVertically,
-		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
-	) {
-		Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+	val name: @Composable () -> Unit = {
+		Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
 			Text(
 				text = def.name,
 				style = MaterialTheme.typography.bodyMedium,
@@ -320,6 +318,8 @@ private fun TimelineRow(summary: TimelineSummary, onEdit: () -> Unit, onRename: 
 				),
 			)
 		}
+	}
+	val buttons: @Composable RowScope.() -> Unit = {
 		HdHairlineButton(
 			label = Res.string.timeline_settings_edit.get(),
 			onClick = onEdit,
@@ -337,6 +337,31 @@ private fun TimelineRow(summary: TimelineSummary, onEdit: () -> Unit, onRename: 
 				danger = true,
 				modifier = Modifier.testTag(timelineSettingsDeleteTag(def.id)),
 			)
+		}
+	}
+	BoxWithConstraints(
+		modifier = Modifier
+			.fillMaxWidth()
+			.padding(horizontal = Ui.Padding.L, vertical = Ui.Padding.M)
+			.testTag(timelineSettingsRowTag(def.id)),
+	) {
+		if (maxWidth < RowStackThreshold) {
+			Column(verticalArrangement = Arrangement.spacedBy(Ui.Padding.M)) {
+				name()
+				Row(
+					modifier = Modifier.fillMaxWidth(),
+					horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M, Alignment.End),
+					content = buttons,
+				)
+			}
+		} else {
+			Row(
+				verticalAlignment = Alignment.CenterVertically,
+				horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
+			) {
+				Box(modifier = Modifier.weight(1f)) { name() }
+				buttons()
+			}
 		}
 	}
 }

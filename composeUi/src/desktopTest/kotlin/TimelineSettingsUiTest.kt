@@ -3,6 +3,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
@@ -11,6 +12,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
@@ -49,6 +51,7 @@ import org.koin.compose.KoinApplication
 import org.koin.dsl.module
 import org.junit.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 private const val NAME_ERROR = "A timeline needs a name"
 
@@ -188,11 +191,11 @@ class TimelineSettingsUiTest : BaseTest() {
 		)
 	)
 
-	private fun show(component: TimelineSettings) {
+	private fun show(component: TimelineSettings, width: Dp = 720.dp) {
 		compose.setContent {
 			// The real strings, so a refusal's reason can be read.
 			KoinApplication(application = { modules(module { single<StrRes> { StrResImpl() } }) }) {
-				Box(modifier = Modifier.width(720.dp)) {
+				Box(modifier = Modifier.width(width)) {
 					TimelineSettingsUi(component = component, section = 6)
 				}
 			}
@@ -281,6 +284,25 @@ class TimelineSettingsUiTest : BaseTest() {
 		compose.onNodeWithTag(timelineSettingsEditTag("main")).assertIsDisplayed()
 		compose.onNodeWithTag(TIMELINE_SETTINGS_EDITOR_TAG).assertDoesNotExist()
 		compose.onNodeWithTag(TIMELINE_SETTINGS_MODE_TAG).assertDoesNotExist()
+	}
+
+	@Test
+	fun `On a narrow screen a timeline's buttons sit under its name`() {
+		show(threeTimelines(), width = 360.dp)
+
+		val name = compose.onNodeWithText("Before the evening").getBoundsInRoot()
+		val edit = compose.onNodeWithTag(timelineSettingsEditTag("backstory")).getBoundsInRoot()
+		assertTrue(edit.top >= name.bottom)
+	}
+
+	@Test
+	fun `On a wide screen a timeline's buttons sit beside its name`() {
+		show(threeTimelines())
+
+		val name = compose.onNodeWithText("Before the evening").getBoundsInRoot()
+		val edit = compose.onNodeWithTag(timelineSettingsEditTag("backstory")).getBoundsInRoot()
+		assertTrue(edit.left >= name.right)
+		assertTrue(edit.top < name.bottom)
 	}
 
 	@Test
