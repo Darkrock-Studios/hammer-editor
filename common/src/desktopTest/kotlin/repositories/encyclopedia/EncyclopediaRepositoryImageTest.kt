@@ -97,6 +97,7 @@ class EncyclopediaRepositoryImageTest : BaseTest() {
 			referenceIndexRepository = mockk(relaxed = true),
 			imagesRepository = imagesRepository,
 			externalFileIo = externalFileIo,
+			timeLineRepository = mockk(relaxed = true),
 		)
 	}
 

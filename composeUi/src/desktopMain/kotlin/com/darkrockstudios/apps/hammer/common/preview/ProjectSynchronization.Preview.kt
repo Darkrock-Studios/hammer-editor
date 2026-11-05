@@ -16,6 +16,12 @@ import com.darkrockstudios.apps.hammer.base.http.ApiSceneType
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectTheme
 import com.darkrockstudios.apps.hammer.base.http.projectdata.WordCountGoal
+import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
+import com.darkrockstudios.apps.hammer.base.timeline.CalendarPreset
+import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSynchronization
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogLevel
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessage
@@ -124,13 +130,13 @@ fun TimelineConflictPreview() {
 	val serverEntity = ApiProjectEntity.TimelineEventEntity(
 		id = 1,
 		content = "Alice follows the White Rabbit down the hole and lands in the long hallway of doors.",
-		date = "May 4th, afternoon",
+		label = "May 4th, afternoon",
 		order = 1,
 		tags = setOf("alice", "rabbit-hole"),
 	)
 	val clientEntity = serverEntity.copy(
 		content = "Alice chases the March Hare into the warren and emerges in the corridor of doors.",
-		date = "May 4th, late afternoon",
+		label = "May 4th, late afternoon",
 		tags = setOf("alice", "hare", "corridor"),
 	)
 
@@ -140,6 +146,64 @@ fun TimelineConflictPreview() {
 	)
 
 	ProjectSynchronizationPreview(conflict, Res.string.sync_conflict_timeline_title, expandedSize())
+}
+
+@Preview
+@Composable
+fun TimelineScenePlacementConflictPreview() {
+	val serverEntity = ApiProjectEntity.TimelineEventEntity(
+		id = 4,
+		order = 2,
+		label = null,
+		content = "",
+		kind = TimelineKind.SCENE,
+		subject = 12,
+		cachedTitle = "Down the Rabbit-Hole",
+		lane = "Alice",
+		start = StoryDate(mapOf("year" to 97L, "day" to 210L)),
+	)
+	val clientEntity = serverEntity.copy(
+		lane = "Wonderland",
+		start = StoryDate(mapOf("year" to 97L, "day" to 211L, "hour" to 9L)),
+	)
+
+	val conflict = ProjectSynchronization.EntityConflict.TimelineEventConflict(
+		serverEvent = serverEntity,
+		clientEvent = clientEntity,
+	)
+
+	ProjectSynchronizationPreview(conflict, Res.string.sync_conflict_timeline_title, expandedSize())
+}
+
+@Preview
+@Composable
+fun TimelineDatedMilestoneConflictPreview() {
+	val serverEntity = ApiProjectEntity.TimelineEventEntity(
+		id = 5,
+		order = 3,
+		label = null,
+		title = "The Queen's croquet match",
+		content = "The Queen orders the croquet match and the Cheshire Cat appears over the ground.",
+		tags = setOf("queen"),
+		references = setOf(2, 7),
+		lane = "Court",
+		milestone = true,
+		start = StoryDate(mapOf("year" to 97L, "day" to 214L, "hour" to 14L)),
+		end = StoryDate(mapOf("year" to 97L, "day" to 214L, "hour" to 17L)),
+	)
+	val clientEntity = serverEntity.copy(
+		title = "The croquet match",
+		milestone = false,
+		end = StoryDate(mapOf("year" to 97L, "day" to 214L, "hour" to 18L)),
+		references = setOf(2),
+	)
+
+	val conflict = ProjectSynchronization.EntityConflict.TimelineEventConflict(
+		serverEvent = serverEntity,
+		clientEvent = clientEntity,
+	)
+
+	ProjectSynchronizationPreview(conflict, Res.string.sync_conflict_timeline_title, compactSize())
 }
 
 @Preview
@@ -228,6 +292,13 @@ fun ProjectDataConflictPreview() {
 		wordCountGoal = WordCountGoal(cadence = WordCountGoal.Cadence.DAY, count = 500),
 		tags = setOf("fantasy", "classic"),
 		coverImageId = 3,
+		timelines = listOf(
+			TimelineDef.DEFAULT.copy(
+				mode = TimelineMode.DATED,
+				calendar = CalendarDef(CalendarPreset.STORY, epochName = "the Fall"),
+				laneOrder = listOf("Alice", "White Rabbit"),
+			)
+		),
 	)
 	val server = ProjectData(
 		authorName = "Charles Dodgson",
@@ -235,6 +306,7 @@ fun ProjectDataConflictPreview() {
 		wordCountGoal = WordCountGoal(cadence = WordCountGoal.Cadence.WEEK, count = 3500),
 		tags = setOf("fantasy", "children"),
 		coverImageId = 9,
+		timelines = listOf(TimelineDef.DEFAULT.copy(laneOrder = listOf("Alice"))),
 	)
 
 	val conflictState = ProjectSynchronization.ProjectDataConflictState(

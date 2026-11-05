@@ -94,7 +94,6 @@
 	<string name="sync_conflict_title_scene_draft_field_name">Name</string>
 	<string name="sync_conflict_title_scene_draft_field_content">Scene Content</string>
 	<string name="sync_conflict_title_note_field_name">Note Content</string>
-	<string name="sync_conflict_title_timeline_event_field_date">Date</string>
 	<string name="sync_conflict_title_timeline_event_field_content">Event Content</string>
 	<string name="sync_menu_group">Sync</string>
 	<string name="sync_menu_item">Start Sync</string>

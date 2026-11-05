@@ -8,6 +8,22 @@ internal fun Digest<*>.update(string: String, buf: ByteArray = ByteArray(4)) {
 	}
 }
 
+/** Length-prefixed, so adjacent strings cannot bleed into each other ("ab"+"c" vs "a"+"bc"). */
+internal fun Digest<*>.updateSized(value: String, buf: ByteArray = ByteArray(4)) {
+	update(value.length, buf)
+	update(value, buf)
+}
+
+/** A `0`/`1` presence marker, then the length-prefixed value when present. */
+internal fun Digest<*>.updateOptionalSized(value: String?, buf: ByteArray = ByteArray(4)) {
+	if (value != null) {
+		update(1, buf)
+		updateSized(value, buf)
+	} else {
+		update(0, buf)
+	}
+}
+
 internal fun Digest<*>.update(data: Int, buffer: ByteArray = ByteArray(4)) {
 	buffer[0] = (data shr 0).toByte()
 	buffer[1] = (data shr 8).toByte()

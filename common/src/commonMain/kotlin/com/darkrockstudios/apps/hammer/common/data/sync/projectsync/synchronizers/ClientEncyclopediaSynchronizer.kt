@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.EntityHash
 import com.darkrockstudios.apps.hammer.base.http.EntityType
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
@@ -12,6 +13,7 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceRemapper
+import com.darkrockstudios.apps.hammer.common.data.references.TimelineReferenceRemapper
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntitySynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.OnSyncLog
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogI
@@ -34,6 +36,7 @@ class ClientEncyclopediaSynchronizer(
 	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
 	private val encyclopediaService: EncyclopediaService by projectInject()
 	private val referenceRemapper: ReferenceRemapper by projectInject()
+	private val timelineReferenceRemapper: TimelineReferenceRemapper by projectInject()
 
 	private suspend fun getEntity(id: Int): EntryDef? {
 		val entries = encyclopediaRepository.entryListFlow.first()
@@ -55,7 +58,8 @@ class ClientEncyclopediaSynchronizer(
 
 	override suspend fun reIdEntity(oldId: Int, newId: Int): Set<Int> {
 		encyclopediaRepository.reIdEntry(oldId, newId)
-		return referenceRemapper.remapEntryReferences(oldId, newId)
+		return referenceRemapper.remapEntryReferences(oldId, newId) +
+			timelineReferenceRemapper.remap(oldId, newId, TimelineKind.ENTRY)
 	}
 
 	override suspend fun finalizeSync() {
@@ -66,7 +70,7 @@ class ClientEncyclopediaSynchronizer(
 
 	override suspend fun deleteEntityLocal(id: Int, onLog: OnSyncLog) {
 		val def = encyclopediaRepository.getEntryDef(id)
-		encyclopediaService.deleteEntry(def)
+		encyclopediaService.deleteEntry(def, detachTimeline = false)
 
 		onLog(syncLogI(strRes.get(Res.string.sync_encyclopedia_deleted, id), def.projectDef.name))
 	}

@@ -1,57 +1,36 @@
 package components.timeline
 
+import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
+import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
+import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineFrame
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLine
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineComponent
-import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndexService
-import com.darkrockstudios.apps.hammer.common.data.tagindex.TaggedEntityType
-import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineContainer
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
-import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
-import io.mockk.coEvery
-import io.mockk.every
-import io.mockk.mockk
-import kotlinx.coroutines.flow.MutableStateFlow
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineEventDraft
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineResult
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.koin.dsl.bind
-import org.koin.dsl.module
-import utils.ComponentTest
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
-class TimeLineComponentTest : ComponentTest() {
+class TimeLineComponentTest : TimelineComponentTestBase() {
 
-	private lateinit var timelineRepo: TimeLineRepository
-	private lateinit var timelineFlow: MutableStateFlow<TimeLineContainer>
+	private lateinit var event: TimeLineEvent
 
-	private val event = TimeLineEvent(
-		id = 1,
-		order = 0,
-		date = "original date",
-		content = "original content",
-		tags = emptySet(),
-	)
-
-	@BeforeEach
-	override fun setup() {
-		super.setup()
-
-		timelineFlow = MutableStateFlow(TimeLineContainer(listOf(event)))
-		timelineRepo = mockk(relaxed = true)
-		every { timelineRepo.timelineFlow } returns timelineFlow
-		coEvery { timelineRepo.getTimelineEvent(event.id) } returns event
-
-		val tagIndexService = mockk<TagIndexService>(relaxed = true)
-		every { tagIndexService.tagIndex } returns MutableStateFlow(mockk(relaxed = true))
-		every { tagIndexService.getRankedTags(any<TaggedEntityType>(), any()) } returns emptyList()
-
-		setupComponentKoin(module {
-			single { timelineRepo } bind TimeLineRepository::class
-			single { tagIndexService } bind TagIndexService::class
-		})
+	private suspend fun TestScope.givenEvent() {
+		givenProject()
+		val created = timelineService.createEvent(
+			TimelineEventDraft(label = "original date", content = "original content")
+		)
+		event = (created as TimelineResult.Ok).event!!
+		advanceUntilIdle()
 	}
 
 	private fun newComponent() = TimeLineComponent(
@@ -61,6 +40,8 @@ class TimeLineComponentTest : ComponentTest() {
 		addMenu = {},
 		removeMenu = {},
 		onShowGlobalSearchForTag = {},
+		onShowScene = {},
+		onShowEntry = {},
 	)
 
 	private fun viewEvent(component: TimeLineComponent) =
@@ -68,6 +49,7 @@ class TimeLineComponentTest : ComponentTest() {
 
 	@Test
 	fun `shouldConfirmClose is empty on the overview`() = runTest(mainTestDispatcher) {
+		givenEvent()
 		val component = newComponent()
 		context.resume()
 		advanceUntilIdle()
@@ -78,6 +60,7 @@ class TimeLineComponentTest : ComponentTest() {
 	@Test
 	fun `shouldConfirmClose is empty when viewing an event but not editing`() =
 		runTest(mainTestDispatcher) {
+			givenEvent()
 			val component = newComponent()
 			context.resume()
 			component.showViewEvent(event.id)
@@ -89,6 +72,7 @@ class TimeLineComponentTest : ComponentTest() {
 	@Test
 	fun `shouldConfirmClose flags an in-progress timeline event edit`() =
 		runTest(mainTestDispatcher) {
+			givenEvent()
 			val component = newComponent()
 			context.resume()
 			component.showViewEvent(event.id)
@@ -104,6 +88,7 @@ class TimeLineComponentTest : ComponentTest() {
 
 	@Test
 	fun `discardUnsaved reverts a dirty timeline event edit`() = runTest(mainTestDispatcher) {
+		givenEvent()
 		val component = newComponent()
 		context.resume()
 		component.showViewEvent(event.id)
@@ -123,6 +108,7 @@ class TimeLineComponentTest : ComponentTest() {
 
 	@Test
 	fun `discardUnsaved pops an open create event screen`() = runTest(mainTestDispatcher) {
+		givenEvent()
 		val component = newComponent()
 		context.resume()
 		component.showCreateEvent()
@@ -134,5 +120,100 @@ class TimeLineComponentTest : ComponentTest() {
 
 		assertIs<TimeLine.Destination.TimeLineOverviewDestination>(component.stack.value.active.instance)
 		assertEquals(emptySet<CloseConfirm>(), component.shouldConfirmClose())
+	}
+
+	@Test
+	fun `an event opened over the drawing keeps the overview and back closes it`() = runTest(mainTestDispatcher) {
+		givenEvent()
+		val component = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		component.showEventDialog(event.id)
+		advanceUntilIdle()
+
+		assertEquals(event.id, component.eventDialog.value.child?.instance?.eventId)
+		assertIs<TimeLine.Destination.TimeLineOverviewDestination>(component.stack.value.active.instance)
+		assertFalse(component.isAtRoot())
+
+		component.onBack()
+		advanceUntilIdle()
+
+		assertNull(component.eventDialog.value.child)
+		assertTrue(component.isAtRoot())
+	}
+
+	@Test
+	fun `closing an event dialog with unsaved edits asks first`() = runTest(mainTestDispatcher) {
+		givenEvent()
+		val component = newComponent()
+		context.resume()
+		component.showEventDialog(event.id)
+		advanceUntilIdle()
+		val dialog = component.eventDialog.value.child!!.instance
+		dialog.beginEdit()
+		dialog.onEventTextChanged("a different body")
+		advanceUntilIdle()
+
+		assertEquals(setOf(CloseConfirm.Timeline), component.shouldConfirmClose())
+
+		component.closeEventDialog()
+		advanceUntilIdle()
+
+		assertTrue(dialog.state.value.confirmClose)
+		assertNotNull(component.eventDialog.value.child)
+
+		component.discardUnsaved(CloseConfirm.Timeline)
+		advanceUntilIdle()
+
+		assertEquals(emptySet<CloseConfirm>(), component.shouldConfirmClose())
+	}
+
+	@Test
+	fun `leaving the timeline from an event dialog closes the dialog`() = runTest(mainTestDispatcher) {
+		givenEvent()
+		val searched = mutableListOf<String>()
+		val component = TimeLineComponent(
+			componentContext = context,
+			projectDef = projectDef,
+			updateShouldClose = {},
+			addMenu = {},
+			removeMenu = {},
+			onShowGlobalSearchForTag = { searched += it },
+			onShowScene = {},
+			onShowEntry = {},
+		)
+		context.resume()
+		component.showEventDialog(event.id)
+		advanceUntilIdle()
+
+		component.eventDialog.value.child!!.instance.showGlobalSearchForTag("storm")
+		advanceUntilIdle()
+
+		assertEquals(listOf("storm"), searched)
+		assertNull(component.eventDialog.value.child)
+	}
+
+	@Test
+	fun `framing from an event dialog frames the drawing on its band and closes the dialog`() = runTest(mainTestDispatcher) {
+		givenProject()
+		timelineService.switchToDated(CalendarDef())
+		val siege = (timelineService.createEvent(
+			TimelineEventDraft(title = "Siege", start = StoryDate(mapOf("year" to 1L)), end = StoryDate(mapOf("year" to 4L)))
+		) as TimelineResult.Ok).event!!
+		val component = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		component.showEventDialog(siege.id)
+		advanceUntilIdle()
+
+		assertTrue(component.canFrameEvent(siege.id))
+		component.frameEvent(siege.id)
+		advanceUntilIdle()
+
+		val overview = (component.stack.value.active.instance as TimeLine.Destination.TimeLineOverviewDestination).component
+		assertEquals(TimelineFrame.Band(siege.id), overview.state.value.frame)
+		assertNull(component.eventDialog.value.child)
+		assertFalse(component.canFrameEvent(siege.id), "already framed")
 	}
 }

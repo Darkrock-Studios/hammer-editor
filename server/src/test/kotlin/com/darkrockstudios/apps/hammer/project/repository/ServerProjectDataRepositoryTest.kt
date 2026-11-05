@@ -8,6 +8,10 @@ import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectTheme
 import com.darkrockstudios.apps.hammer.base.http.projectdata.WordCountGoal
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectDataHasher
+import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
+import com.darkrockstudios.apps.hammer.base.timeline.CalendarPreset
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.database.ProjectDao
 import com.darkrockstudios.apps.hammer.database.ProjectDataDao
 import com.darkrockstudios.apps.hammer.e2e.util.SharedPostgresTestDatabase
@@ -143,6 +147,32 @@ class ServerProjectDataRepositoryTest : BaseTest() {
 			loaded.data!!.hash,
 			"the client-supplied hash must be stored verbatim"
 		)
+	}
+
+	@Test
+	fun `timelines with a calendar save and load back verbatim`() = runTest {
+		val data = sampleData.copy(
+			timelines = listOf(
+				TimelineDef.DEFAULT.copy(
+					mode = TimelineMode.DATED,
+					calendar = CalendarDef(CalendarPreset.STORY, epochName = "Landing", coarsestUnit = "hour"),
+					laneOrder = listOf("Alice", "Bob"),
+				),
+				TimelineDef(id = "b2c3d4e5", name = "Real world", calendar = CalendarDef(CalendarPreset.GREGORIAN)),
+			)
+		)
+		val dataJson = json.encodeToJsonElement(ProjectData.serializer(), data)
+		val hash = ProjectDataHasher.hash(data)
+
+		val saved = repository.save(userId, projectDef, dataJson, originalHash = null, clientHash = hash)
+		assertTrue(isSuccess(saved))
+		assertIs<ProjectDataSaveResult.Saved>(saved.data)
+
+		val loaded = repository.load(userId, projectDef)
+		assertTrue(isSuccess(loaded))
+		assertEquals(dataJson, loaded.data!!.data)
+		assertEquals(hash, loaded.data!!.hash)
+		assertEquals(data, json.decodeFromJsonElement(ProjectData.serializer(), loaded.data!!.data))
 	}
 
 	@Test

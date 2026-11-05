@@ -6,6 +6,11 @@ import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectTheme
 import com.darkrockstudios.apps.hammer.base.http.projectdata.WordCountGoal
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectDataHasher
+import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
+import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import korlibs.crypto.encoding.Base64
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.descriptors.SerialDescriptor
@@ -191,9 +196,18 @@ class EntityHashSensitivityTest {
 		val base = ApiProjectEntity.TimelineEventEntity(
 			id = 1,
 			order = 0,
-			date = "Year 1",
+			label = "Year 1",
 			content = "base content",
 			tags = setOf("base-tag"),
+			kind = TimelineKind.SCENE,
+			subject = 5,
+			references = setOf(7, 8),
+			lane = "Keep",
+			milestone = true,
+			start = StoryDate(mapOf("year" to 97L, "day" to 210L)),
+			end = StoryDate(mapOf("year" to 97L, "day" to 212L)),
+			title = "The storm",
+			cachedTitle = "Landfall",
 		)
 		Spec(
 			klass = ApiProjectEntity.TimelineEventEntity::class,
@@ -204,9 +218,18 @@ class EntityHashSensitivityTest {
 			mutations = mapOf(
 				"id" to base.copy(id = 999),
 				"order" to base.copy(order = 999),
-				"date" to base.copy(date = "Year 2"),
+				"date" to base.copy(label = "Year 2"),
 				"content" to base.copy(content = "different"),
 				"tags" to base.copy(tags = setOf("different")),
+				"kind" to base.copy(kind = TimelineKind.ENTRY),
+				"subject" to base.copy(subject = 6),
+				"references" to base.copy(references = setOf(7, 9)),
+				"lane" to base.copy(lane = "Tower"),
+				"milestone" to base.copy(milestone = false),
+				"start" to base.copy(start = StoryDate(mapOf("year" to 97L, "day" to 211L))),
+				"end" to base.copy(end = StoryDate(mapOf("year" to 97L, "day" to 212L, "hour" to 3L))),
+				"title" to base.copy(title = "The calm"),
+				"cachedTitle" to base.copy(cachedTitle = "Landing"),
 			),
 		)
 	}
@@ -298,6 +321,15 @@ class EntityHashSensitivityTest {
 			language = "en-US",
 			dictionaryWords = setOf("base-word"),
 			coverImageId = 1,
+			timelines = listOf(
+				TimelineDef(
+					id = TimelineDef.MAIN_ID,
+					name = "Main",
+					mode = TimelineMode.DATED,
+					calendar = CalendarDef(epochName = "Landing", coarsestUnit = "hour"),
+					laneOrder = listOf("Keep", "Alice"),
+				),
+			),
 		)
 		Spec(
 			klass = ProjectData::class,
@@ -318,6 +350,7 @@ class EntityHashSensitivityTest {
 				"encyclopediaDictionary" to base.copy(encyclopediaDictionary = false),
 				"dictionaryWords" to base.copy(dictionaryWords = setOf("different")),
 				"coverImageId" to base.copy(coverImageId = 2),
+				"timelines" to base.copy(timelines = listOf(base.timelines.single().copy(laneOrder = listOf("Alice", "Keep")))),
 			),
 		)
 	}

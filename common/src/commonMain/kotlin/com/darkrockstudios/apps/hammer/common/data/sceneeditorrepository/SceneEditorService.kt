@@ -1,10 +1,12 @@
 package com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository
 
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.data.tree.ImmutableTree
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingSessionTracker
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
@@ -43,6 +45,7 @@ class SceneEditorService(
 	private val referenceIndexRepository: ReferenceIndexRepository,
 	private val statisticsRepository: StatisticsRepository,
 	private val writingSessionTracker: WritingSessionTracker,
+	private val timeLineRepository: TimeLineRepository,
 ) : ScopeCallback, ProjectScoped, KoinComponent {
 
 	override val projectScope: ProjectDefScope get() = sceneEditorRepository.projectScope
@@ -121,13 +124,25 @@ class SceneEditorService(
 		return created
 	}
 
-	suspend fun deleteScene(scene: SceneItem): Boolean {
+	/**
+	 * With [detachTimeline], the scene's timeline placement becomes a plain event and references to it
+	 * are dropped. A delete arriving by sync passes false: the deleting device already did both.
+	 */
+	suspend fun deleteScene(scene: SceneItem, detachTimeline: Boolean = true): Boolean {
 		val deleted = sceneEditorRepository.deleteScene(scene)
 		if (deleted) {
 			sceneContentRepository.forgetBuffer(scene)
 			statisticsRepository.markDirty()
 			referenceIndexRepository.markSceneDeleted(scene.id)
 			writingSessionTracker.forgetBaseline(scene.id)
+			if (detachTimeline) {
+				timeLineRepository.detachSubject(
+					scene.id,
+					TimelineKind.SCENE,
+					titleFallback = scene.name,
+					markForSync = true,
+				)
+			}
 		}
 		return deleted
 	}

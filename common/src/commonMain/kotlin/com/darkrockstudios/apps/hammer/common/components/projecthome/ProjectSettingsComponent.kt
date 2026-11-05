@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.components.projecthome
 
 import com.arkivanov.decompose.ComponentContext
+import com.arkivanov.decompose.childContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
@@ -10,6 +11,8 @@ import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.components.images.ImagePickSession
 import com.darkrockstudios.apps.hammer.common.components.images.ImagePickTarget
 import com.darkrockstudios.apps.hammer.common.components.images.findPickedImage
+import com.darkrockstudios.apps.hammer.common.components.projecthome.timelinesettings.TimelineSettings
+import com.darkrockstudios.apps.hammer.common.components.projecthome.timelinesettings.TimelineSettingsComponent
 import com.darkrockstudios.apps.hammer.common.components.spellchecksettings.SpellCheckSettings
 import com.darkrockstudios.apps.hammer.common.components.spellchecksettings.SpellCheckSettingsComponent
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -43,6 +46,9 @@ class ProjectSettingsComponent(
 	override val projectName: String = projectDef.name
 
 	override val spellCheckSettings: SpellCheckSettings = SpellCheckSettingsComponent(componentContext)
+
+	override val timelineSettings: TimelineSettings =
+		TimelineSettingsComponent(childContext(TIMELINE_SETTINGS_KEY), projectDef)
 
 	private val _projectInfoState = MutableValue(ProjectSettings.ProjectInfoState())
 	override val projectInfoState: Value<ProjectSettings.ProjectInfoState> = _projectInfoState
@@ -171,3 +177,4 @@ class ProjectSettingsComponent(
 }
 
 private const val COVER_PICK_KEY = "project_settings_cover_pick"
+private const val TIMELINE_SETTINGS_KEY = "project_settings_timeline"

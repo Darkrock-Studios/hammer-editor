@@ -267,36 +267,36 @@ private fun AppContent(component: ProjectRoot, shortcutHost: ProjectShortcutHost
 	val destinations = ProjectRoot.DestinationTypes.entries.map { it.toHdNavRailDestination() }
 
 	ProjectThemeOverride(themeState.theme) {
-		Box {
-			Row(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-				HdNavRail(
-					destinations = destinations,
-					selectedId = router.active.instance.getLocationType(),
-					onSelect = { component.showDestination(it) },
-					expanded = navRailState.expanded,
-					onToggleExpanded = { component.toggleNavRailExpanded() },
-					footer = {
-						HdMonoLabel(
-							text = "v${BuildMetadata.APP_VERSION}",
-							color = MaterialTheme.colorScheme.onSurfaceVariant,
-						)
-					},
+		ProvideRootFabState {
+			Box {
+				Row(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+					HdNavRail(
+						destinations = destinations,
+						selectedId = router.active.instance.getLocationType(),
+						onSelect = { component.showDestination(it) },
+						expanded = navRailState.expanded,
+						onToggleExpanded = { component.toggleNavRailExpanded() },
+						footer = {
+							HdMonoLabel(
+								text = "v${BuildMetadata.APP_VERSION}",
+								color = MaterialTheme.colorScheme.onSurfaceVariant,
+							)
+						},
+					)
+
+					ProjectRootUi(component, rootSnackbar, shortcutHost = shortcutHost)
+				}
+
+				SnackbarHost(
+					rootSnackbar.snackbarHostState,
+					modifier = Modifier
+						.align(Alignment.BottomCenter)
+						.padding(bottom = Ui.Padding.XL)
 				)
 
-				ProjectRootUi(component, rootSnackbar, shortcutHost = shortcutHost)
-			}
-
-			SnackbarHost(
-				rootSnackbar.snackbarHostState,
-				modifier = Modifier
-					.align(Alignment.BottomCenter)
-					.padding(bottom = Ui.Padding.XL)
-			)
-
-			Box(modifier = Modifier.align(Alignment.BottomEnd).padding(Ui.Padding.L)) {
-				ProjectRootFab(
-					component
-				)
+				Box(modifier = Modifier.align(Alignment.BottomEnd).padding(Ui.Padding.L)) {
+					ProjectRootFab(component)
+				}
 			}
 		}
 	}

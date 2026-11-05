@@ -82,6 +82,7 @@ import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexServ
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceRemapper
 import com.darkrockstudios.apps.hammer.common.data.references.SceneMetadataReferenceRemapper
 import com.darkrockstudios.apps.hammer.common.data.references.ScrubInvalidReferencesUseCase
+import com.darkrockstudios.apps.hammer.common.data.references.TimelineReferenceRemapper
 import com.darkrockstudios.apps.hammer.common.data.references.WholeWordCaseSensitiveMatcher
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneContentRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
@@ -125,6 +126,7 @@ import com.darkrockstudios.apps.hammer.common.data.tagindex.AccountTagService
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndexService
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineDatasource
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineService
 import com.darkrockstudios.apps.hammer.common.data.versioncheck.GithubVersionCheckDatasource
 import com.darkrockstudios.apps.hammer.common.data.versioncheck.VersionCheckDatasource
 import com.darkrockstudios.apps.hammer.common.data.versioncheck.VersionCheckRepository
@@ -363,6 +365,7 @@ val mainModule = module {
 
 		scoped<TimeLineDatasource>()
 		scoped<TimeLineRepository>()
+		scoped<TimelineService>()
 
 		scoped<SearchProjectUseCase>()
 
@@ -394,6 +397,7 @@ val mainModule = module {
 		scoped<CleanupReferencesOnEntryDeleteUseCase>()
 		scoped<SceneMetadataReferenceRemapper>() bind ReferenceRemapper::class
 		scoped<ImageReferenceRewriter>()
+		scoped<TimelineReferenceRemapper>()
 
 		scoped<SyncJournalDatasource>()
 

@@ -25,7 +25,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -41,9 +40,10 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdReferenceChip
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSearchField
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTabPill
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.glyph
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdGlyphColor
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdMark
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdSwatchColor
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
-import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
 import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogFilter
 import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogItem
 import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogKind
@@ -212,11 +212,10 @@ fun EntityPickerDialog(
 /** A picked [item] as a chip, its glyph on its kind's swatch, with × calling [onRemove]. */
 @Composable
 fun EntityChip(item: CatalogItem, onClick: () -> Unit, onRemove: () -> Unit, modifier: Modifier = Modifier) {
-	val mark = item.mark()
 	HdReferenceChip(
-		glyph = mark.glyph,
-		swatchColor = mark.swatch,
-		glyphColor = mark.onSwatch,
+		glyph = item.hdMark(),
+		swatchColor = item.hdSwatchColor(),
+		glyphColor = item.hdGlyphColor(),
 		name = item.name,
 		onClick = onClick,
 		onAction = onRemove,
@@ -227,7 +226,6 @@ fun EntityChip(item: CatalogItem, onClick: () -> Unit, onRemove: () -> Unit, mod
 
 @Composable
 private fun PickerRow(item: CatalogItem, picked: Boolean, multiple: Boolean, onToggle: () -> Unit) {
-	val mark = item.mark()
 	val detail = listOfNotNull(
 		item.entryType?.toStringResource()?.get(),
 		item.detail,
@@ -242,10 +240,10 @@ private fun PickerRow(item: CatalogItem, picked: Boolean, multiple: Boolean, onT
 		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M),
 	) {
 		Box(
-			modifier = Modifier.size(22.dp).background(mark.swatch),
+			modifier = Modifier.size(22.dp).background(item.hdSwatchColor()),
 			contentAlignment = Alignment.Center,
 		) {
-			Text(text = mark.glyph, style = MaterialTheme.typography.labelMedium, color = mark.onSwatch)
+			Text(text = item.hdMark(), style = MaterialTheme.typography.labelMedium, color = item.hdGlyphColor())
 		}
 		Column(modifier = Modifier.weight(1f)) {
 			Text(
@@ -260,22 +258,6 @@ private fun PickerRow(item: CatalogItem, picked: Boolean, multiple: Boolean, onT
 		}
 		HdHairlineCheckbox(checked = picked)
 	}
-}
-
-private class KindMark(val glyph: String, val swatch: Color, val onSwatch: Color)
-
-/** An entry's type glyph on its type's color; the other kinds a glyph of their own on a neutral swatch. */
-@Composable
-private fun CatalogItem.mark(): KindMark {
-	val type = entryType
-	if (type != null) return KindMark(type.glyph(), LocalHammerColors.current.colorFor(type), MaterialTheme.colorScheme.onPrimary)
-	val glyph = when (kind) {
-		CatalogKind.Scene -> "§"
-		CatalogKind.Note -> "¶"
-		CatalogKind.Entry -> "∗"
-		CatalogKind.Event -> "◷"
-	}
-	return KindMark(glyph, MaterialTheme.colorScheme.onSurfaceVariant, MaterialTheme.colorScheme.surface)
 }
 
 @Composable

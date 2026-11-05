@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectDataConflict
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectDataDto
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectDataConflictException
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectDataHasher
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.isFailure
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
@@ -27,6 +28,10 @@ import io.mockk.MockKAnnotations
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.impl.annotations.MockK
+import io.mockk.spyk
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import net.peanuuutz.tomlkt.Toml
@@ -217,6 +222,50 @@ class ProjectDataSyncOperationTest : BaseTest() {
 			// unknown field server-side.
 			assertTrue(isSuccess(createOperation().run()))
 			coVerify(exactly = 0) { api.uploadProjectData(any(), any(), any(), any()) }
+	}
+
+	@Test
+	fun `a timeline edited locally during sync survives a fast-forward`() = runTest {
+		val main = TimelineDef.DEFAULT
+		val local = ProjectData(authorName = "Author", timelines = listOf(main))
+		datasource.save(StoredProjectData(local, lastSyncedHash = ProjectDataHasher.hash(local)))
+		val serverOnly = TimelineDef(id = "b2c3d4e5", name = "Second")
+		val server = ProjectData(authorName = "Server Author", timelines = listOf(main, serverOnly))
+		coEvery { api.getProjectData(any(), any()) } returns
+			Result.success(ProjectDataDto(server, "server-hash"))
+		val edited = main.copy(laneOrder = listOf("Alice"))
+		val snapshotTaken = CompletableDeferred<Unit>()
+		val releaseSnapshot = CompletableDeferred<Unit>()
+		val gatedDatasource = spyk(datasource)
+		coEvery { gatedDatasource.load() } coAnswers {
+			val loaded = datasource.load()
+			snapshotTaken.complete(Unit)
+			releaseSnapshot.await()
+			loaded
+		}
+		repository = ProjectDataRepository(gatedDatasource, projectDef)
+
+		val sync = async { createOperation().run() }
+		snapshotTaken.await()
+		// Queues on the repository lock the snapshot read still holds; the lock is FIFO, so the
+		// edit lands before the install. A replacing transform, so an edit after the install
+		// would drop the server's new timeline.
+		val editor = launch(start = CoroutineStart.UNDISPATCHED) {
+			repository.updateData { it.copy(timelines = listOf(edited)) }
+		}
+		releaseSnapshot.complete(Unit)
+		val result = sync.await()
+		editor.join()
+
+		assertTrue(isSuccess(result))
+		assertEquals(
+			StoredProjectData(
+				ProjectData(authorName = "Server Author", timelines = listOf(edited, serverOnly)),
+				ProjectDataHasher.hash(server),
+			),
+			repository.state.value,
+		)
+		coVerify(exactly = 0) { api.uploadProjectData(any(), any(), any(), any()) }
 	}
 
 	@Test

@@ -2,6 +2,8 @@ package com.darkrockstudios.apps.hammer.integration.scenarios
 
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ApiSceneType
+import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.integration.RoundTripTestBase
 import com.darkrockstudios.apps.hammer.integration.TestImages
 import kotlinx.coroutines.runBlocking
@@ -119,12 +121,32 @@ class ResyncStabilityMatrixTest : RoundTripTestBase() {
 			),
 			one(
 				"timeline event, null date",
-				ApiProjectEntity.TimelineEventEntity(id = 1, order = 0, date = null, content = "event"),
+				ApiProjectEntity.TimelineEventEntity(id = 1, order = 0, label = null, content = "event"),
 			),
 			one(
 				"timeline event, with date and tags",
 				ApiProjectEntity.TimelineEventEntity(
-					id = 1, order = 0, date = "1920", content = "event", tags = setOf("war"),
+					id = 1, order = 0, label = "1920", content = "event", tags = setOf("war"),
+				),
+			),
+			one(
+				"timeline event, dated milestone with references",
+				ApiProjectEntity.TimelineEventEntity(
+					id = 1, order = 0, label = "  Late autumn  ", content = "event", tags = setOf("war"),
+					title = " The storm ", references = setOf(12, 31), lane = "The  Keep", milestone = true,
+					start = StoryDate(mapOf("year" to -97L, "day" to 210L)),
+					end = StoryDate(mapOf("year" to -97L, "day" to 212L, "hour" to 6L)),
+				),
+			),
+			Case(
+				"timeline scene placement with cachedTitle",
+				listOf(
+					scene(id = 1),
+					ApiProjectEntity.TimelineEventEntity(
+						id = 2, order = 0, label = null, content = "", kind = TimelineKind.SCENE, subject = 1,
+						lane = "Alice", cachedTitle = "Landfall",
+						start = StoryDate(mapOf("year" to 97L, "day" to 214L, "hour" to 6L, "minute" to 30L)),
+					),
 				),
 			),
 			one(

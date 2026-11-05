@@ -23,6 +23,7 @@ import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
 import com.darkrockstudios.apps.hammer.common.compose.ProjectShortcutHost
+import com.darkrockstudios.apps.hammer.common.compose.ProvideRootFabState
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.defaultScaffold
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdBottomBar
@@ -54,12 +55,14 @@ fun ProjectRootScaffold(
 	val coroutineScope = rememberCoroutineScope()
 
 	ProjectThemeOverride(themeState.theme) {
-		BoxWithConstraints {
-			val windowSizeClass = rememberWindowSizeClass(constraints)
-			when (windowSizeClass.widthSizeClass) {
-				WindowWidthSizeClass.Compact -> CompactNavigation(component, rootSnackbar, shortcutHost)
-				WindowWidthSizeClass.Medium,
-				WindowWidthSizeClass.Expanded -> RailNavigation(component, rootSnackbar, shortcutHost)
+		ProvideRootFabState {
+			BoxWithConstraints {
+				val windowSizeClass = rememberWindowSizeClass(constraints)
+				when (windowSizeClass.widthSizeClass) {
+					WindowWidthSizeClass.Compact -> CompactNavigation(component, rootSnackbar, shortcutHost)
+					WindowWidthSizeClass.Medium,
+					WindowWidthSizeClass.Expanded -> RailNavigation(component, rootSnackbar, shortcutHost)
+				}
 			}
 		}
 

@@ -3,6 +3,8 @@ package com.darkrockstudios.apps.hammer.common.components.projectsync
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineDateProblem
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineRuleProblem
 import com.darkrockstudios.apps.hammer.common.data.Msg
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageFile
@@ -102,6 +104,9 @@ interface ProjectSynchronization {
 
 		class TimelineEventMergeError(
 			val tagError: Msg? = null,
+			val ruleProblem: TimelineRuleProblem? = null,
+			/** Only checked against a DATED main timeline's calendar. */
+			val dateProblem: TimelineDateProblem? = null,
 		) : EntityMergeError()
 
 		class EncyclopediaEntryMergeError(

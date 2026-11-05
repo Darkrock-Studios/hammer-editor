@@ -93,7 +93,6 @@
 	<string name="sync_conflict_title_scene_draft_field_name">Назва</string>
 	<string name="sync_conflict_title_scene_draft_field_content">Вміст сцени</string>
 	<string name="sync_conflict_title_note_field_name">Вміст нотатки</string>
-	<string name="sync_conflict_title_timeline_event_field_date">Дата</string>
 	<string name="sync_conflict_title_timeline_event_field_content">Вміст події</string>
 	<string name="sync_menu_group">Синхронізація</string>
 	<string name="sync_menu_item">Почати синхронізацію</string>

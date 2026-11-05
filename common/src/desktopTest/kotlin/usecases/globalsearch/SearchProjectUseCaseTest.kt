@@ -274,8 +274,8 @@ class SearchProjectUseCaseTest : BaseTest() {
 	fun `search matches timeline event content`() = runTest {
 		coEvery { timeLine.loadTimeline() } returns TimeLineContainer(
 			listOf(
-				TimeLineEvent(id = 21, order = 0, date = "Year 3", content = "Coronation"),
-				TimeLineEvent(id = 22, order = 1, date = null, content = "Boring meeting"),
+				TimeLineEvent(id = 21, order = 0, label = "Year 3", content = "Coronation"),
+				TimeLineEvent(id = 22, order = 1, label = null, content = "Boring meeting"),
 			)
 		)
 
@@ -601,7 +601,7 @@ class SearchProjectUseCaseTest : BaseTest() {
 	@Test
 	fun `timeline dates are not projected`() = runTest {
 		coEvery { timeLine.loadTimeline() } returns TimeLineContainer(
-			listOf(TimeLineEvent(id = 21, order = 0, date = "1990 _to_ 2000", content = "A long war")),
+			listOf(TimeLineEvent(id = 21, order = 0, label = "1990 _to_ 2000", content = "A long war")),
 		)
 
 		val verbatim = createUseCase().search("1990 _to_ 2000", GlobalSearchFilter.All)
@@ -737,7 +737,7 @@ class SearchProjectUseCaseTest : BaseTest() {
 	@Test
 	fun `timeline dates are not unescaped`() = runTest {
 		coEvery { timeLine.loadTimeline() } returns TimeLineContainer(
-			listOf(TimeLineEvent(id = 21, order = 0, date = "1990\\-2000", content = "A long war")),
+			listOf(TimeLineEvent(id = 21, order = 0, label = "1990\\-2000", content = "A long war")),
 		)
 
 		val verbatim = createUseCase().search("1990\\-2000", GlobalSearchFilter.All)
@@ -817,8 +817,8 @@ class SearchProjectUseCaseTest : BaseTest() {
 	fun `tag-only search returns timeline events with and without content`() = runTest {
 		coEvery { timeLine.loadTimeline() } returns TimeLineContainer(
 			listOf(
-				TimeLineEvent(id = 21, order = 0, date = null, content = "", tags = setOf("fantasy")),
-				TimeLineEvent(id = 22, order = 1, date = "Year 3", content = "Coronation", tags = setOf("fantasy")),
+				TimeLineEvent(id = 21, order = 0, label = null, content = "", tags = setOf("fantasy")),
+				TimeLineEvent(id = 22, order = 1, label = "Year 3", content = "Coronation", tags = setOf("fantasy")),
 			)
 		)
 

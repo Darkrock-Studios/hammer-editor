@@ -1,10 +1,11 @@
 import com.darkrockstudios.apps.hammer.base.IdeaId
 import com.darkrockstudios.apps.hammer.base.http.storyideas.StoryIdea
+import com.darkrockstudios.apps.hammer.common.components.timeline.TimelineRow
+import com.darkrockstudios.apps.hammer.common.components.timeline.rowMatchesQuery
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.notes.noteMatchesQuery
 import com.darkrockstudios.apps.hammer.common.projectselection.storyideas.ideaMatchesQuery
-import com.darkrockstudios.apps.hammer.common.timeline.eventMatchesQuery
 import org.junit.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -23,8 +24,13 @@ class SearchFilterTest {
 	private fun note(content: String) =
 		NoteContent(id = 1, created = Clock.System.now(), content = content)
 
-	private fun event(content: String, date: String? = null) =
-		TimeLineEvent(id = 1, order = 0, date = date, content = content)
+	private fun eventRow(content: String, date: String? = null) = TimelineRow(
+		event = TimeLineEvent(id = 1, order = 0, label = date, content = content),
+		title = "",
+		subtitle = null,
+		whenText = date.orEmpty(),
+		laneIndex = null,
+	)
 
 	private fun idea(content: String, title: String? = null) = StoryIdea(
 		id = IdeaId("00000000-0000-0000-0000-000000000001"),
@@ -43,14 +49,14 @@ class SearchFilterTest {
 
 	@Test
 	fun `timeline events match on the body across a stored escape`() {
-		assertTrue(eventMatchesQuery(event("A well\\-known war"), "well-known"))
+		assertTrue(rowMatchesQuery(eventRow("A well\\-known war"), "well-known"))
 	}
 
 	@Test
 	fun `timeline events match on the plain-text date as stored`() {
-		assertTrue(eventMatchesQuery(event("A long war", date = "1990-2000"), "1990-2000"))
+		assertTrue(rowMatchesQuery(eventRow("A long war", date = "1990-2000"), "1990-2000"))
 		// The date is not Markdown, so it is matched exactly as the user typed it.
-		assertTrue(eventMatchesQuery(event("A long war", date = "1990\\-2000"), "1990\\-2000"))
+		assertTrue(rowMatchesQuery(eventRow("A long war", date = "1990\\-2000"), "1990\\-2000"))
 	}
 
 	@Test
@@ -67,7 +73,7 @@ class SearchFilterTest {
 	@Test
 	fun `literal markup is not rewritten by any screen filter`() {
 		assertTrue(noteMatchesQuery(note("The cost is 5*4"), "5*4"))
-		assertTrue(eventMatchesQuery(event("the user_name field"), "user_name"))
+		assertTrue(rowMatchesQuery(eventRow("the user_name field"), "user_name"))
 		// Paired markers are gone from the prose on screen, so typing them finds nothing.
 		assertFalse(ideaMatchesQuery(idea("a **Chapter** heading"), "**Chapter**"))
 		assertTrue(ideaMatchesQuery(idea("a **Chapter** heading"), "Chapter heading"))

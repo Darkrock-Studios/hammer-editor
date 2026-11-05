@@ -125,6 +125,7 @@ class DataMigratorTest : BaseTest() {
 			factory<Migration2_3> { mockk(relaxed = true) }
 			factory<Migration3_4> { mockk(relaxed = true) }
 			factory<Migration4_5> { mockk(relaxed = true) }
+			factory<Migration5_6> { mockk(relaxed = true) }
 		}
 		setupKoin(testModule)
 
@@ -230,6 +231,7 @@ class DataMigratorTest : BaseTest() {
 			factory<Migration2_3> { mockk(relaxed = true) }
 			factory<Migration3_4> { mockk(relaxed = true) }
 			factory<Migration4_5> { mockk(relaxed = true) }
+			factory<Migration5_6> { mockk(relaxed = true) }
 		}
 		setupKoin(testModule)
 

@@ -29,6 +29,7 @@ import com.darkrockstudios.apps.hammer.common.compose.*
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessage
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.toCompactText
 import com.darkrockstudios.apps.hammer.common.projectselection.SyncLogMessageUi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -414,11 +415,16 @@ private fun rememberConflictSummary(
 				name = entity.serverEntity.content.firstNonBlankLine().truncateWithEllipsis(40),
 				meta = null,
 			)
-			is ProjectSynchronization.EntityConflict.TimelineEventConflict -> ConflictSummary(
-				label = timelineLabel,
-				name = entity.serverEntity.content.firstNonBlankLine().truncateWithEllipsis(40),
-				meta = entity.serverEntity.date?.takeIf { it.isNotBlank() },
-			)
+			is ProjectSynchronization.EntityConflict.TimelineEventConflict -> {
+				val event = entity.serverEntity
+				ConflictSummary(
+					label = timelineLabel,
+					name = (event.title?.takeIf { it.isNotBlank() }
+						?: event.cachedTitle?.takeIf { it.isNotBlank() }
+						?: event.content.firstNonBlankLine()).truncateWithEllipsis(40),
+					meta = event.label?.takeIf { it.isNotBlank() } ?: event.start?.toCompactText(),
+				)
+			}
 			is ProjectSynchronization.EntityConflict.EncyclopediaEntryConflict -> ConflictSummary(
 				label = encyclopediaLabel,
 				name = entity.serverEntity.name,

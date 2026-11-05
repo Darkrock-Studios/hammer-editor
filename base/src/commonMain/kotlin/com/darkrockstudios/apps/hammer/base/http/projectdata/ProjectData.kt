@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.base.http.projectdata
 
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -17,6 +18,8 @@ data class ProjectData(
 	val dictionaryWords: Set<String> = emptySet(),
 	/** Image entity id of the book cover; null when unset. */
 	val coverImageId: Int? = null,
+	/** Timeline settings, merged by id during conflict resolution. */
+	val timelines: List<TimelineDef> = emptyList(),
 )
 
 /** Picked as a unit during conflict resolution — one device's primary paired with another's secondary is undesigned. */

@@ -1,5 +1,6 @@
 package repositories.duplicateids
 
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.common.data.createProjectScope
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftsDatasource
@@ -21,6 +22,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetada
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexRepository
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceRemapper
+import com.darkrockstudios.apps.hammer.common.data.references.TimelineReferenceRemapper
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneContentRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
@@ -36,6 +38,10 @@ import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientSceneDraftSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientSceneSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientTimelineSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineContainer
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineDatasource
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingSessionTracker
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
@@ -69,6 +75,7 @@ class CrossTypeIdRenumberTest : RationalizerTestBase() {
 		syncJournal = mockk(relaxed = true)
 		every { syncJournal.isServerSynchronized() } returns false
 		referenceRemapper = mockk(relaxed = true)
+		coEvery { referenceRemapper.remapEntryReferences(any(), any()) } returns emptySet()
 		setupKoin(module {
 			scope<ProjectDefScope> {
 				scoped { projectDef }
@@ -98,13 +105,17 @@ class CrossTypeIdRenumberTest : RationalizerTestBase() {
 						referenceIndexRepository = mockk<ReferenceIndexRepository>(relaxed = true),
 						statisticsRepository = mockk<StatisticsRepository>(relaxed = true),
 						writingSessionTracker = mockk<WritingSessionTracker>(relaxed = true),
+						timeLineRepository = get(),
 					)
 				}
 				scoped { EncyclopediaDatasource(projectDef, toml, ffs) }
 				scoped { EncyclopediaRepository(projectDef, get(), get(), get()) }
 				scoped<EncyclopediaService> { mockk(relaxed = true) }
 				scoped { referenceRemapper }
-				scoped { ClientSceneSynchronizer(projectDef, get(), get(), get(), get(), get(), TestStrRes()) }
+				scoped { TimeLineDatasource(ffs, toml) }
+				scoped { TimeLineRepository(projectDef, get(), get()) }
+				scoped { TimelineReferenceRemapper(get()) }
+				scoped { ClientSceneSynchronizer(projectDef, get(), get(), get(), get(), get(), get(), TestStrRes()) }
 				scoped { ClientEncyclopediaSynchronizer(projectDef, get(), TestStrRes()) }
 				scoped<ClientNoteSynchronizer> { mockk(relaxed = true) }
 				scoped<ClientTimelineSynchronizer> { mockk(relaxed = true) }
@@ -137,7 +148,15 @@ class CrossTypeIdRenumberTest : RationalizerTestBase() {
 		projectScope.get<SceneRepository>().initializeSceneEditor()
 		projectScope.get<SceneContentRepository>().initialize()
 		projectScope.get<EncyclopediaRepository>().loadEntriesImperative()
+		projectScope.get<TimeLineRepository>().initialize()
 	}
+
+	private fun writeTimeline(vararg events: TimeLineEvent) {
+		write("timeline/timeline.toml", toml.encodeToString(TimeLineContainer.serializer(), TimeLineContainer(events.toList())))
+	}
+
+	private suspend fun storedTimeline(): Map<Int, TimeLineEvent> =
+		projectScope.get<TimeLineRepository>().loadTimeline().events.associateBy { it.id }
 
 	private fun serverLastSaw(id: Int, hash: String) {
 		every { syncJournal.isServerSynchronized() } returns true
@@ -268,5 +287,63 @@ class CrossTypeIdRenumberTest : RationalizerTestBase() {
 		assertEquals(null, buffers.getSceneBuffer(6))
 		assertEquals("Unsaved edits", buffers.getSceneBuffer(7)?.content?.markdown)
 		assertEquals(7, buffers.getSceneBuffer(7)?.content?.scene?.id)
+	}
+
+	@Test
+	fun `A renumbered entry takes its timeline placement along and the event goes dirty`() = runTest {
+		writeSceneAndEntrySharingSix()
+		writeTimeline(
+			TimeLineEvent(id = 1, order = 0, kind = TimelineKind.ENTRY, subject = 6, cachedTitle = "Bob"),
+			TimeLineEvent(id = 2, order = 1, title = "Unrelated", references = setOf(3)),
+		)
+		openStores()
+
+		service.resolveCrossTypeIds()
+
+		assertEquals(listOf("person/person~7~Bob.toml"), filesIn("encyclopedia"))
+		assertEquals(7, storedTimeline().getValue(1).subject)
+		coVerify(exactly = 1) { syncJournal.markEntityAsDirty(1) }
+		coVerify(exactly = 0) { syncJournal.markEntityAsDirty(2) }
+	}
+
+	@Test
+	fun `A renumbered scene takes its timeline placement along and the event goes dirty`() = runTest {
+		write("scenes/0~Duel~6.md", "En garde")
+		val image = projectDir / "images" / "6~Map.png"
+		ffs.createDirectories(image.parent!!)
+		ffs.write(image) { write(byteArrayOf(0x89.toByte(), 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A)) }
+		writeTimeline(
+			TimeLineEvent(id = 1, order = 0, kind = TimelineKind.SCENE, subject = 6, cachedTitle = "Duel"),
+			TimeLineEvent(id = 2, order = 1, title = "Before the duel", references = setOf(6)),
+		)
+		openStores()
+
+		service.resolveCrossTypeIds()
+
+		assertEquals(listOf("0~Duel~7.md"), filesIn("scenes"))
+		val timeline = storedTimeline()
+		assertEquals(7, timeline.getValue(1).subject)
+		assertEquals(setOf(7), timeline.getValue(2).references)
+		coVerify(exactly = 1) { syncJournal.markEntityAsDirty(1) }
+		coVerify(exactly = 1) { syncJournal.markEntityAsDirty(2) }
+	}
+
+	@Test
+	fun `Renumbering an entry moves only the entry placement when a scene shares its id`() = runTest {
+		write("scenes/0~Duel~7.md", "En garde")
+		write("encyclopedia/person/person~7~Bob.toml", entryToml(7, "Bob", "A blacksmith"))
+		writeTimeline(
+			TimeLineEvent(id = 1, order = 0, kind = TimelineKind.SCENE, subject = 7, cachedTitle = "Duel"),
+			TimeLineEvent(id = 2, order = 1, kind = TimelineKind.ENTRY, subject = 7, cachedTitle = "Bob"),
+		)
+		openStores()
+
+		service.resolveCrossTypeIds()
+
+		assertEquals(listOf("0~Duel~7.md"), filesIn("scenes"))
+		assertEquals(listOf("person/person~8~Bob.toml"), filesIn("encyclopedia"))
+		val timeline = storedTimeline()
+		assertEquals(7, timeline.getValue(1).subject)
+		assertEquals(8, timeline.getValue(2).subject)
 	}
 }

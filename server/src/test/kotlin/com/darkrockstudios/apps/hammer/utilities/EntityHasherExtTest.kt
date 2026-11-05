@@ -3,6 +3,8 @@ package com.darkrockstudios.apps.hammer.utilities
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ApiSceneType
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
+import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import korlibs.crypto.encoding.Base64
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
@@ -298,37 +300,64 @@ class EntityHasherExtTest {
 				id = 1,
 				order = 0,
 				content = "",
-				date = ""
+				label = ""
 			),
 			// Event with content and date
 			ApiProjectEntity.TimelineEventEntity(
 				id = 2,
 				order = 5,
 				content = "Event content",
-				date = "2024-01-15"
+				label = "2024-01-15"
 			),
 			// Event with complex date string
 			ApiProjectEntity.TimelineEventEntity(
 				id = 3,
 				order = 999,
 				content = "Multi-line\nevent\ncontent",
-				date = "The Year of the Dragon, 3rd moon"
+				label = "The Year of the Dragon, 3rd moon"
 			),
 			// Event with special characters
 			ApiProjectEntity.TimelineEventEntity(
 				id = 4,
 				order = -5,
 				content = "Content with unicode: éèêë and symbols: !@#$%",
-				date = "Stardate 47634.44"
+				label = "Stardate 47634.44"
 			),
 			// Event with tags
 			ApiProjectEntity.TimelineEventEntity(
 				id = 5,
 				order = 1,
 				content = "Tagged event",
-				date = null,
+				label = null,
 				tags = setOf("battle", "turning-point"),
-			)
+			),
+			// Authored event using every new field
+			ApiProjectEntity.TimelineEventEntity(
+				id = 6,
+				order = 2,
+				content = "Wind takes the roof.",
+				label = "Late autumn",
+				tags = setOf("weather"),
+				references = setOf(12, 31),
+				lane = "Keep",
+				milestone = true,
+				start = StoryDate(mapOf("year" to 97L, "day" to 210L)),
+				end = StoryDate(mapOf("year" to 97L, "day" to 212L)),
+				title = "The storm",
+			),
+			// Scene placement
+			ApiProjectEntity.TimelineEventEntity(
+				id = 9,
+				order = 3,
+				content = "",
+				label = null,
+				kind = TimelineKind.SCENE,
+				subject = 31,
+				lane = "Alice",
+				milestone = true,
+				start = StoryDate(mapOf("year" to 97L, "day" to 214L, "hour" to 6L)),
+				cachedTitle = "Landfall",
+			),
 		)
 
 		testEvents.forEach { event ->
@@ -338,8 +367,17 @@ class EntityHasherExtTest {
 				id = event.id,
 				order = event.order,
 				content = event.content,
-				date = event.date,
+				label = event.label,
 				tags = event.tags,
+				kind = event.kind,
+				subject = event.subject,
+				references = event.references,
+				lane = event.lane,
+				milestone = event.milestone,
+				start = event.start,
+				end = event.end,
+				title = event.title,
+				cachedTitle = event.cachedTitle,
 			)
 
 			assertEquals(

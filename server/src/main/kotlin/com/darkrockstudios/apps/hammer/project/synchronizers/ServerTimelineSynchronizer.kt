@@ -1,6 +1,8 @@
 package com.darkrockstudios.apps.hammer.project.synchronizers
 
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineEntityRules
+import com.darkrockstudios.apps.hammer.project.EntityValidationException
 import com.darkrockstudios.apps.hammer.project.ProjectEntityDatasource
 
 class ServerTimelineSynchronizer(
@@ -9,4 +11,7 @@ class ServerTimelineSynchronizer(
 	override val entityType = ApiProjectEntity.Type.TIMELINE_EVENT
 	override val entityClazz = ApiProjectEntity.TimelineEventEntity::class
 	override val pathStub = ApiProjectEntity.Type.TIMELINE_EVENT.name.lowercase()
+
+	override fun validate(entity: ApiProjectEntity.TimelineEventEntity): Exception? =
+		TimelineEntityRules.problem(entity)?.let { problem -> EntityValidationException(entity.id, problem.message) }
 }

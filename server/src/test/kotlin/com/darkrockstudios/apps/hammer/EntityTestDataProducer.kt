@@ -58,7 +58,7 @@ class EntityTestDataProducer {
 		id = id,
 		type = ApiProjectEntity.Type.TIMELINE_EVENT,
 		order = 0,
-		date = "Date $id",
+		label = "Date $id",
 		content = "Entry $id content"
 	)
 }

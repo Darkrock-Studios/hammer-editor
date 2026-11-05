@@ -55,12 +55,12 @@ class EntityTypeResyncMatrixTest : RoundTripTestBase() {
 		val timeline: TimeLineRepository = client.scope.get()
 		timeline.initialize()
 
-		val event = timeline.createEvent(content = "battle", date = "1920", tags = setOf("a"))
+		val event = timeline.createEvent(content = "battle", label = "1920", tags = setOf("a"))
 		assertTrue(client.sync(), "first sync should succeed")
 		val before = serverEntityHash(project, event.id)
 		assertNotNull(before, "event should be on the server after the first sync")
 
-		timeline.updateEvent(event.copy(content = "the great battle", date = "1921"))
+		timeline.updateEvent(event.copy(content = "the great battle", label = "1921"))
 		assertTrue(client.syncNoConflict(), "resync should succeed")
 		assertNotEquals(before, serverEntityHash(project, event.id), "edit must reach the server")
 	}

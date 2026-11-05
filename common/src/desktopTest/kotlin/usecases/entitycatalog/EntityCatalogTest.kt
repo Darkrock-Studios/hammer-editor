@@ -84,7 +84,7 @@ class EntityCatalogTest : BaseTest() {
 		every { timeline.timelineFlow } returns MutableStateFlow(
 			TimeLineContainer(
 				listOf(
-					TimeLineEvent(id = 9, order = 0, date = "1865", content = "Alice *falls*."),
+					TimeLineEvent(id = 9, order = 0, label = "1865", content = "Alice *falls*."),
 					TimeLineEvent(id = 8, order = 1, content = "The trial\nof the Knave"),
 				)
 			)

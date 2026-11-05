@@ -164,10 +164,10 @@ class ProjectEntityRepositorySyncTest : ProjectEntityRepositoryBaseTest() {
 		} returns listOf(4, 5, 6)
 		coEvery { noteSynchronizer.getUpdateSequence(any(), any(), any()) } returns listOf(6, 7, 8)
 		coEvery {
-			timelineEventSynchronizer.getUpdateSequence(any(), any(), any())
+			encyclopediaSynchronizer.getUpdateSequence(any(), any(), any())
 		} returns listOf(8, 9, 10, 11)
 		coEvery {
-			encyclopediaSynchronizer.getUpdateSequence(any(), any(), any())
+			timelineEventSynchronizer.getUpdateSequence(any(), any(), any())
 		} returns listOf(11, 12, 13, 14)
 
 		createProjectRepository().apply {
@@ -176,7 +176,7 @@ class ProjectEntityRepositorySyncTest : ProjectEntityRepositoryBaseTest() {
 			assertTrue(isSuccess(result))
 			val syncBegan = result.data
 			assertEquals(syncId, syncBegan.syncId)
-			// Images come first: other entities reference them.
+			// Images come first and timeline events last: referenced types precede their referrers.
 			assertEquals(listOf(15) + (1..14).toList(), syncBegan.idSequence)
 		}
 	}

@@ -16,7 +16,6 @@ import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexServ
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TaggedEntityType
 import com.darkrockstudios.apps.hammer.common.data.tagindex.normalizeTagNeedle
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
-import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.operations.Access
 import com.darkrockstudios.apps.hammer.operations.OpenProject
 import com.darkrockstudios.apps.hammer.operations.Operation
@@ -88,13 +87,15 @@ internal fun contentOperations(): List<Operation<*, *>> = listOf(
 	},
 	operation<ProjectInput, Timeline>(
 		name = "timeline.list",
-		description = "A project's timeline events in order.",
+		description = "A project's timeline events in display order: their manual order, or by start date on a dated timeline.",
 		access = Access.Read,
 		scope = OperationScope.Content,
 	) { input ->
 		projects.withProject(input.project) { project ->
-			val timeline = project.scope.get<TimeLineRepository>().timelineFlow.loaded("Timeline")
-			Timeline(timeline.events.sortedBy { it.order }.map(::TimelineEntry))
+			val timeline = project.timelineService()
+			val events = timeline.view().events
+			val titles = timeline.displayTitles(events)
+			Timeline(events.map { TimelineEntry(it, titles.getValue(it.id)) })
 		}
 	},
 	operation<ProjectItemInput, TimelineEntry>(
@@ -103,11 +104,7 @@ internal fun contentOperations(): List<Operation<*, *>> = listOf(
 		access = Access.Read,
 		scope = OperationScope.Content,
 	) { input ->
-		projects.withProject(input.project) { project ->
-			val timeline = project.scope.get<TimeLineRepository>().timelineFlow.loaded("Timeline")
-			val event = timeline.events.find { it.id == input.id } ?: notFound("No timeline event ${input.id}")
-			TimelineEntry(event)
-		}
+		projects.withProject(input.project) { project -> project.timelineEntry(input.id) }
 	},
 	operation<IdeaListInput, Ideas>(
 		name = "idea.list",
@@ -247,13 +244,55 @@ data class Timeline(val events: List<TimelineEntry>)
 @Serializable
 data class TimelineEntry(
 	val id: Int,
+	/** Manual position. A dated timeline orders by start date and uses this only to break ties. */
 	val order: Int,
-	/** Free text; timelines are not bound to a calendar. */
+	/** Deprecated alias of label, always equal to it. */
 	val date: String?,
+	/** A plain event's markdown; always empty for a placement. */
 	val content: String,
+	/** A plain event's tags; always empty for a placement. */
 	val tags: List<String>,
+	/** A plain event, or the placement of an encyclopedia entry or a scene. */
+	val kind: TimelineKindDto = TimelineKindDto.Event,
+	/** The placed entry or scene id; null for a plain event. */
+	val subject: Int? = null,
+	/** A plain event's own title. */
+	val title: String? = null,
+	/** Free-text "when" a manual timeline shows, such as "Day 3" or "Spring, 1802". */
+	val label: String? = null,
+	/** The name to show: the subject's name, else the title, the content's first line, or the cached title. */
+	val displayTitle: String = "",
+	/** The lane it runs in; null for none. */
+	val lane: String? = null,
+	/** A turning point, marked across every lane. */
+	val milestone: Boolean = false,
+	/** When it starts on the timeline's calendar, as filled units such as {"year": 97, "day": 210}. */
+	val start: Map<String, Long>? = null,
+	/** When it ends, in the same form as start; null for a moment. */
+	val end: Map<String, Long>? = null,
+	/** Scene and entry ids a plain event refers to. */
+	val references: List<Int> = emptyList(),
+	/** A placement's subject name when last seen, kept in case the subject is deleted. */
+	val cachedTitle: String? = null,
 ) {
-	constructor(event: TimeLineEvent) : this(event.id, event.order, event.date, event.content, event.tags.sorted())
+	constructor(event: TimeLineEvent, displayTitle: String) : this(
+		id = event.id,
+		order = event.order,
+		date = event.label,
+		content = event.content,
+		tags = event.tags.sorted(),
+		kind = TimelineKindDto.of(event.kind),
+		subject = event.subject,
+		title = event.title,
+		label = event.label,
+		displayTitle = displayTitle,
+		lane = event.lane,
+		milestone = event.milestone,
+		start = event.start?.rungs,
+		end = event.end?.rungs,
+		references = event.references.sorted(),
+		cachedTitle = event.cachedTitle,
+	)
 }
 
 @Serializable

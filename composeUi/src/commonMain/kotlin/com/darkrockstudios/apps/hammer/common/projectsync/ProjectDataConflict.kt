@@ -30,6 +30,9 @@ import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectTheme
 import com.darkrockstudios.apps.hammer.base.http.projectdata.WordCountGoal
+import com.darkrockstudios.apps.hammer.base.timeline.CalendarPreset
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSynchronization
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdConflictField
@@ -39,6 +42,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageFile
 import com.darkrockstudios.apps.hammer.common.data.projectdata.mergeDictionaryWords
+import com.darkrockstudios.apps.hammer.common.data.projectdata.mergeTimelinesByChoice
 import com.darkrockstudios.apps.hammer.sync_conflict_project_data_cadence_day
 import com.darkrockstudios.apps.hammer.sync_conflict_project_data_cadence_week
 import com.darkrockstudios.apps.hammer.sync_conflict_project_data_dictionary_merged
@@ -50,14 +54,22 @@ import com.darkrockstudios.apps.hammer.sync_conflict_project_data_field_dictiona
 import com.darkrockstudios.apps.hammer.sync_conflict_project_data_field_language
 import com.darkrockstudios.apps.hammer.sync_conflict_project_data_field_tags
 import com.darkrockstudios.apps.hammer.sync_conflict_project_data_field_theme
+import com.darkrockstudios.apps.hammer.sync_conflict_project_data_field_timelines
 import com.darkrockstudios.apps.hammer.sync_conflict_project_data_field_word_goal
 import com.darkrockstudios.apps.hammer.sync_conflict_project_data_resolve_button
+import com.darkrockstudios.apps.hammer.sync_conflict_project_data_timeline_calendar_gregorian
+import com.darkrockstudios.apps.hammer.sync_conflict_project_data_timeline_calendar_story
+import com.darkrockstudios.apps.hammer.sync_conflict_project_data_timeline_coarsest_unit
+import com.darkrockstudios.apps.hammer.sync_conflict_project_data_timeline_dated
+import com.darkrockstudios.apps.hammer.sync_conflict_project_data_timeline_lanes
+import com.darkrockstudios.apps.hammer.sync_conflict_project_data_timeline_manual
 import com.darkrockstudios.apps.hammer.sync_conflict_project_data_value_off
 import com.darkrockstudios.apps.hammer.sync_conflict_project_data_value_on
 import com.darkrockstudios.apps.hammer.sync_conflict_project_data_value_unset
 import com.darkrockstudios.apps.hammer.sync_conflict_tab_local
 import com.darkrockstudios.apps.hammer.sync_conflict_tab_remote
 import com.darkrockstudios.apps.hammer.sync_conflict_title_project_data_field_cover
+import org.jetbrains.compose.resources.pluralStringResource
 
 internal enum class DataChoice { LOCAL, REMOTE }
 
@@ -74,6 +86,7 @@ internal fun ProjectDataConflict(
 	var languageChoice by remember { mutableStateOf(DataChoice.LOCAL) }
 	var dictionaryChoice by remember { mutableStateOf(DataChoice.LOCAL) }
 	var coverChoice by remember { mutableStateOf(DataChoice.LOCAL) }
+	var timelinesChoice by remember { mutableStateOf(DataChoice.LOCAL) }
 
 	val authorConflict = conflictState.local.authorName != conflictState.server.authorName
 	val themeConflict = conflictState.local.theme != conflictState.server.theme
@@ -83,6 +96,7 @@ internal fun ProjectDataConflict(
 	val dictionaryConflict =
 		conflictState.local.encyclopediaDictionary != conflictState.server.encyclopediaDictionary
 	val coverConflict = conflictState.local.coverImageId != conflictState.server.coverImageId
+	val timelinesConflict = conflictState.local.timelines != conflictState.server.timelines
 
 	val unsetLabel = Res.string.sync_conflict_project_data_value_unset.get()
 	val onLabel = Res.string.sync_conflict_project_data_value_on.get()
@@ -92,6 +106,10 @@ internal fun ProjectDataConflict(
 	val dayLabel = Res.string.sync_conflict_project_data_cadence_day.get()
 	val weekLabel = Res.string.sync_conflict_project_data_cadence_week.get()
 	val stackVertical = screenCharacteristics.widthSizeClass == WindowWidthSizeClass.Compact
+	val timelineLabels = timelineSummaryLabels(
+		conflictState.local.timelines + conflictState.server.timelines,
+		unsetLabel,
+	)
 
 	Column(
 		modifier = Modifier
@@ -190,6 +208,18 @@ internal fun ProjectDataConflict(
 			serverContent = { CoverValue(conflictState.server.coverImageId, conflictState.localImages, unsetLabel) },
 		)
 
+		PerFieldChoice(
+			label = Res.string.sync_conflict_project_data_field_timelines.get(),
+			conflict = timelinesConflict,
+			localValue = timelinesSummary(conflictState.local.timelines, timelineLabels),
+			serverValue = timelinesSummary(conflictState.server.timelines, timelineLabels),
+			selected = timelinesChoice,
+			onSelect = { timelinesChoice = it },
+			localLabel = localLabel,
+			remoteLabel = remoteLabel,
+			stackVertical = stackVertical,
+		)
+
 		if (conflictState.local.dictionaryWords != conflictState.server.dictionaryWords) {
 			Text(
 				text = Res.string.sync_conflict_project_data_dictionary_merged.get(),
@@ -216,6 +246,7 @@ internal fun ProjectDataConflict(
 							languageChoice = languageChoice,
 							dictionaryChoice = dictionaryChoice,
 							coverChoice = coverChoice,
+							timelinesChoice = timelinesChoice,
 						)
 					)
 				},
@@ -370,6 +401,7 @@ internal fun buildResolved(
 	languageChoice: DataChoice,
 	dictionaryChoice: DataChoice,
 	coverChoice: DataChoice,
+	timelinesChoice: DataChoice,
 ): ProjectData = ProjectData(
 	authorName = if (authorChoice == DataChoice.LOCAL) local.authorName else server.authorName,
 	theme = if (themeChoice == DataChoice.LOCAL) local.theme else server.theme,
@@ -379,6 +411,11 @@ internal fun buildResolved(
 	encyclopediaDictionary = if (dictionaryChoice == DataChoice.LOCAL) local.encyclopediaDictionary else server.encyclopediaDictionary,
 	dictionaryWords = mergeDictionaryWords(local, server),
 	coverImageId = if (coverChoice == DataChoice.LOCAL) local.coverImageId else server.coverImageId,
+	timelines = mergeTimelinesByChoice(
+		local = local.timelines,
+		server = server.timelines,
+		preferLocal = timelinesChoice == DataChoice.LOCAL,
+	),
 )
 
 private fun displayString(value: String?, unsetLabel: String): String =
@@ -402,3 +439,56 @@ private fun displayWordGoal(goal: WordCountGoal?, unsetLabel: String, dayLabel: 
 	return "${goal.count} / $cadence"
 }
 
+internal class TimelineSummaryLabels(
+	val unset: String,
+	val manual: String,
+	val dated: String,
+	val storyCalendar: String,
+	val gregorianCalendar: String,
+	val coarsestUnit: (String) -> String,
+	val lanes: (Int) -> String,
+)
+
+/** Resolves the lane-count and unit phrases [timelines] need up front, keeping [timelinesSummary] pure. */
+@Composable
+private fun timelineSummaryLabels(timelines: List<TimelineDef>, unsetLabel: String): TimelineSummaryLabels {
+	val laneCounts = timelines.map { it.laneOrder.size }.filter { it > 0 }.distinct()
+	val units = timelines.mapNotNull { it.calendar?.coarsestUnit }.distinct()
+	val laneLabels = laneCounts.associateWith {
+		pluralStringResource(Res.plurals.sync_conflict_project_data_timeline_lanes, it, it)
+	}
+	val unitLabels = units.associateWith { Res.string.sync_conflict_project_data_timeline_coarsest_unit.get(it) }
+	return TimelineSummaryLabels(
+		unset = unsetLabel,
+		manual = Res.string.sync_conflict_project_data_timeline_manual.get(),
+		dated = Res.string.sync_conflict_project_data_timeline_dated.get(),
+		storyCalendar = Res.string.sync_conflict_project_data_timeline_calendar_story.get(),
+		gregorianCalendar = Res.string.sync_conflict_project_data_timeline_calendar_gregorian.get(),
+		coarsestUnit = { unitLabels[it] ?: it },
+		lanes = { laneLabels[it] ?: it.toString() },
+	)
+}
+
+/** One line per timeline, e.g. `Main · dated · Story calendar (Landing) · 2 lanes`. */
+internal fun timelinesSummary(timelines: List<TimelineDef>, labels: TimelineSummaryLabels): String =
+	if (timelines.isEmpty()) labels.unset
+	else timelines.joinToString("\n") { timelineSummary(it, labels) }
+
+private fun timelineSummary(def: TimelineDef, labels: TimelineSummaryLabels): String {
+	val parts = mutableListOf(def.name.ifBlank { def.id })
+	parts += when (def.mode) {
+		TimelineMode.MANUAL -> labels.manual
+		TimelineMode.DATED -> labels.dated
+	}
+	def.calendar?.let { calendar ->
+		val preset = when (calendar.preset) {
+			CalendarPreset.STORY -> labels.storyCalendar
+			CalendarPreset.GREGORIAN -> labels.gregorianCalendar
+		}
+		val epoch = calendar.epochName?.takeIf { it.isNotBlank() }
+		parts += if (epoch != null) "$preset ($epoch)" else preset
+		calendar.coarsestUnit?.let { parts += labels.coarsestUnit(it) }
+	}
+	if (def.laneOrder.isNotEmpty()) parts += labels.lanes(def.laneOrder.size)
+	return parts.joinToString(" · ")
+}

@@ -269,12 +269,34 @@ lands in place.
 | `image.replace` | Write | New bytes and extension for an image; its id stays, so everything using it follows |
 | `image.rename` | Write | |
 | `image.delete` | Destructive | Takes the image out of every entry and text using it, and off the project cover, first. `removedFrom` lists each with a `kind` and an `id`; kind `cover` has no id |
-| `timeline.list` | Read | |
-| `timeline.read` | Read | |
-| `timeline.create` | Write | |
-| `timeline.update` | Write | |
-| `timeline.move` | Write | |
-| `timeline.delete` | Destructive | |
+| `timeline.list` | Read | Events in display order, each with `kind`, `subject`, `displayTitle`, `title`, `label`, `lane`, `milestone`, `start`, `end`, `references`, `cachedTitle`. `date` is a deprecated alias of `label` |
+| `timeline.read` | Read | One event, as `timeline.list` shows it |
+| `timeline.create` | Write | A plain event: text, plus optional title, label, tags, references, lane, milestone, start, end, and `index` (manual timelines only) |
+| `timeline.update` | Write | For plain events: the text (stdin) is always required and replaced; other fields change only when given, and an empty value clears one. Edit a placement with `timeline.set` |
+| `timeline.move` | Write | Manual timelines only |
+| `timeline.delete` | Destructive | Deleting a placement leaves its entry or scene alone |
+| `timeline.place` | Write | Places an encyclopedia entry of type event, or a scene, once each |
+| `timeline.set` | Write | Sets single fields of any event, and is how a placement is edited; `clear` names fields to empty: title, label, lane, start, end. A placement takes only label, lane, milestone, start, end |
+| `timeline.settings.read` | Read | Name, mode (`manual` or `dated`), calendar, lane order |
+| `timeline.settings.write` | Write | Mode, calendar, name, lane order; `spacing` when switching to dated |
+
+A timeline event has a `kind`: `event` (authored, with its own words), `entry`
+(an encyclopedia entry of type event, placed), or `scene` (a scene, placed). A
+placement takes its name and words from its subject; `displayTitle` resolves
+that for every kind. Every kind has its own `label`, `lane`, `milestone`, and
+dates. Dates (`start`, `end`) are maps of calendar units to whole numbers,
+coarsest first, such as `{"year": 97, "day": 210}`; see
+`timeline.settings.read` for the calendar. A timeline has at most 5 lanes; a
+write that would add a sixth is rejected.
+
+A `manual` timeline is ordered by hand: `index` and `timeline.move` place
+events, and `label` is the shown "when". A `dated` timeline is ordered by
+`start`, which every event needs, so `index` and `timeline.move` are invalid
+there. Switching to dated gives each event without a valid start one, spaced
+evenly in the current order (`spacing` sets the unit, step, and origin);
+switching back to manual keeps the date order as the manual order. A new
+calendar drops dates that do not fit it, keeping the start as the label of an
+event that has none.
 
 ### Account-level content
 

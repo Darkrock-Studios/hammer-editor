@@ -118,7 +118,7 @@ class BuildEntityCatalogUseCase(
 
 	private suspend fun eventItems(imageNames: Map<Int, String>): List<CatalogItem> =
 		timeline.timelineFlow.first().events.map { event ->
-			val date = event.date?.trim()?.takeIf { it.isNotEmpty() }
+			val date = event.label?.trim()?.takeIf { it.isNotEmpty() }
 			val title = titleOf(event.content, imageNames)
 			CatalogItem(
 				kind = CatalogKind.Event,

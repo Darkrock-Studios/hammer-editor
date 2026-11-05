@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.encyclopediarepository
 
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContainer
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
@@ -12,6 +13,7 @@ import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageD
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageFile
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexRepository
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.fileio.ExternalFileIo
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.flow.SharedFlow
@@ -31,6 +33,7 @@ class EncyclopediaService(
 	private val referenceIndexRepository: ReferenceIndexRepository,
 	private val imagesRepository: ImagesRepository,
 	private val externalFileIo: ExternalFileIo,
+	private val timeLineRepository: TimeLineRepository,
 ) {
 
 	// region Writes / orchestration
@@ -91,11 +94,23 @@ class EncyclopediaService(
 		return result
 	}
 
-	suspend fun deleteEntry(entryDef: EntryDef): Boolean {
+	/**
+	 * With [detachTimeline], the entry's timeline placement becomes a plain event and references to it
+	 * are dropped. A delete arriving by sync passes false: the deleting device already did both.
+	 */
+	suspend fun deleteEntry(entryDef: EntryDef, detachTimeline: Boolean = true): Boolean {
 		val deleted = repository.deleteEntry(entryDef)
 		if (deleted) {
 			statisticsRepository.markDirty()
 			referenceIndexRepository.markEntryDeleted(entryDef.id)
+			if (detachTimeline) {
+				timeLineRepository.detachSubject(
+					entryDef.id,
+					TimelineKind.ENTRY,
+					titleFallback = entryDef.name,
+					markForSync = true,
+				)
+			}
 		}
 		return deleted
 	}

@@ -3,6 +3,9 @@ package operations
 import com.darkrockstudios.apps.hammer.operations.Base64Bytes
 import com.darkrockstudios.apps.hammer.operations.LIVE_EDIT_KEY
 import com.darkrockstudios.apps.hammer.operations.LiveEdit
+import com.darkrockstudios.apps.hammer.operations.core.CalendarPresetDto
+import com.darkrockstudios.apps.hammer.operations.core.TimelineModeDto
+import com.darkrockstudios.apps.hammer.operations.core.TimelinePlaceInput
 import com.darkrockstudios.apps.hammer.operations.jsonSchema
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -10,7 +13,9 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -90,6 +95,19 @@ class JsonSchemaTest {
 		assertEquals(JsonArray(listOf(JsonPrimitive("live"))), edit[LIVE_EDIT_KEY])
 		assertNull(jsonSchema(Edit.serializer().descriptor)[LIVE_EDIT_KEY])
 		assertEquals(JsonPrimitive(true), jsonSchema(Append.serializer().descriptor)[LIVE_EDIT_KEY])
+	}
+
+	@Test
+	fun `timeline dates are integer maps and timeline enums use their serial names`() {
+		val properties = jsonSchema(TimelinePlaceInput.serializer().descriptor)["properties"]!!.jsonObject
+		val date = parse("""{"anyOf": [{"type": "object", "additionalProperties": {"type": "integer"}}, {"type": "null"}]}""")
+		assertEquals(date, properties["start"])
+		assertEquals(date, properties["end"])
+
+		fun enumOf(schema: JsonObject) = schema["enum"]!!.jsonArray.map { it.jsonPrimitive.content }
+		assertEquals(listOf("event", "entry", "scene"), enumOf(properties["kind"]!!.jsonObject))
+		assertEquals(listOf("manual", "dated"), enumOf(jsonSchema(TimelineModeDto.serializer().descriptor)))
+		assertEquals(listOf("story", "gregorian"), enumOf(jsonSchema(CalendarPresetDto.serializer().descriptor)))
 	}
 
 	@Test

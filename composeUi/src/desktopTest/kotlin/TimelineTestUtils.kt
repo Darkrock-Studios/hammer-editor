@@ -5,7 +5,7 @@ fun fakeEvents(): List<TimeLineEvent> {
 		TimeLineEvent(
 			id = i,
 			order = i,
-			date = if (i % 2 == 0) "First date" else null,
+			label = if (i % 2 == 0) "First date" else null,
 			content = "Event $i"
 		)
 	}

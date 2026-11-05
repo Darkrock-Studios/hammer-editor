@@ -3,6 +3,10 @@ package com.darkrockstudios.apps.hammer.base.http.synchronizer
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectTheme
 import com.darkrockstudios.apps.hammer.base.http.projectdata.WordCountGoal
+import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
+import com.darkrockstudios.apps.hammer.base.timeline.CalendarPreset
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
@@ -17,6 +21,14 @@ class ProjectDataHasherTest {
 		language = "en-US",
 		encyclopediaDictionary = false,
 		dictionaryWords = setOf("Kvothe", "Denna"),
+	)
+
+	private val timeline = TimelineDef(
+		id = TimelineDef.MAIN_ID,
+		name = "Main",
+		mode = TimelineMode.DATED,
+		calendar = CalendarDef(preset = CalendarPreset.STORY, epochName = "Landing", coarsestUnit = "hour"),
+		laneOrder = listOf("Keep", "Alice"),
 	)
 
 	// Golden values captured before the tags field existed. Tag-less data must hash to these
@@ -62,6 +74,86 @@ class ProjectDataHasherTest {
 		assertNotEquals(ProjectDataHasher.hash(ProjectData()), cover)
 		assertNotEquals(ProjectDataHasher.hash(ProjectData(encyclopediaDictionary = false)), cover)
 		assertNotEquals(ProjectDataHasher.hash(ProjectData(language = "")), cover)
+	}
+
+	@Test
+	fun `golden pin - data with timelines`() {
+		assertEquals(TIMELINES_PIN, ProjectDataHasher.hash(fullyPopulated.copy(coverImageId = 7, timelines = listOf(timeline))))
+	}
+
+	@Test
+	fun `empty timelines keep the previous hash`() {
+		assertEquals("oH3kRhN7S92hSeTfQbJ82Q", ProjectDataHasher.hash(fullyPopulated.copy(coverImageId = 7, timelines = emptyList())))
+	}
+
+	@Test
+	fun `timelines affect hash`() {
+		val without = ProjectData(authorName = "Pat")
+		val with = without.copy(timelines = listOf(TimelineDef.DEFAULT))
+		assertNotEquals(ProjectDataHasher.hash(without), ProjectDataHasher.hash(with))
+	}
+
+	@Test
+	fun `each timeline field affects hash`() {
+		val base = ProjectData(timelines = listOf(timeline))
+		val variants = listOf(
+			timeline.copy(id = "other"),
+			timeline.copy(name = "Other"),
+			timeline.copy(mode = TimelineMode.MANUAL),
+			timeline.copy(calendar = null),
+			timeline.copy(calendar = timeline.calendar!!.copy(preset = CalendarPreset.GREGORIAN)),
+			timeline.copy(calendar = timeline.calendar!!.copy(epochName = null)),
+			timeline.copy(calendar = timeline.calendar!!.copy(epochName = "")),
+			timeline.copy(calendar = timeline.calendar!!.copy(coarsestUnit = null)),
+			timeline.copy(calendar = timeline.calendar!!.copy(coarsestUnit = "")),
+			timeline.copy(laneOrder = emptyList()),
+			timeline.copy(laneOrder = listOf("Alice", "Keep")),
+		).map { ProjectDataHasher.hash(ProjectData(timelines = listOf(it))) }
+
+		variants.forEach { assertNotEquals(ProjectDataHasher.hash(base), it) }
+		assertEquals(variants.size, variants.toSet().size)
+	}
+
+	@Test
+	fun `timeline list order affects hash`() {
+		val second = TimelineDef(id = "b1c2d3e4", name = "Second")
+		assertNotEquals(
+			ProjectDataHasher.hash(ProjectData(timelines = listOf(timeline, second))),
+			ProjectDataHasher.hash(ProjectData(timelines = listOf(second, timeline))),
+		)
+	}
+
+	@Test
+	fun `timeline string boundaries do not bleed`() {
+		fun hashOf(def: TimelineDef) = ProjectDataHasher.hash(ProjectData(timelines = listOf(def)))
+		assertNotEquals(hashOf(TimelineDef(id = "ab", name = "c")), hashOf(TimelineDef(id = "a", name = "bc")))
+		assertNotEquals(
+			hashOf(TimelineDef(id = "a", name = "b", laneOrder = listOf("ab", "c"))),
+			hashOf(TimelineDef(id = "a", name = "b", laneOrder = listOf("a", "bc"))),
+		)
+		assertNotEquals(
+			hashOf(TimelineDef(id = "a", name = "b", calendar = CalendarDef(epochName = "x"))),
+			hashOf(TimelineDef(id = "a", name = "b", calendar = CalendarDef(coarsestUnit = "x"))),
+		)
+	}
+
+	@Test
+	fun `timelines block does not collide with the cover block`() {
+		val timelines = ProjectDataHasher.hash(ProjectData(timelines = listOf(TimelineDef(id = "", name = ""))))
+		assertNotEquals(ProjectDataHasher.hash(ProjectData(coverImageId = 1)), timelines)
+		assertNotEquals(ProjectDataHasher.hash(ProjectData(coverImageId = -5)), timelines)
+		assertNotEquals(
+			ProjectDataHasher.hash(ProjectData(coverImageId = 7)),
+			ProjectDataHasher.hash(ProjectData(coverImageId = 7, timelines = listOf(TimelineDef(id = "", name = "")))),
+		)
+	}
+
+	@Test
+	fun `stable codes for hashed timeline enums`() {
+		assertEquals(0, TimelineMode.MANUAL.code)
+		assertEquals(1, TimelineMode.DATED.code)
+		assertEquals(0, CalendarPreset.STORY.code)
+		assertEquals(1, CalendarPreset.GREGORIAN.code)
 	}
 
 	@Test
@@ -236,5 +328,9 @@ class ProjectDataHasherTest {
 		)
 		val noTheme = full.copy(theme = null)
 		assertNotEquals(ProjectDataHasher.hash(full), ProjectDataHasher.hash(noTheme))
+	}
+
+	private companion object {
+		const val TIMELINES_PIN = "DB65MDfONovGwrcg_i7OFQ"
 	}
 }

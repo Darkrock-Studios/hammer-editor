@@ -13,6 +13,7 @@ import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectTheme
 import com.darkrockstudios.apps.hammer.base.http.projectdata.WordCountGoal
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectSettings
+import com.darkrockstudios.apps.hammer.common.components.projecthome.timelinesettings.TimelineSettings
 import com.darkrockstudios.apps.hammer.common.components.spellchecksettings.SpellCheckSettings
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.preview.KoinApplicationPreview
@@ -76,6 +77,8 @@ private val fakeSpellCheckSettings = object : SpellCheckSettings {
 private fun fakeComponent(language: String?) = object : ProjectSettings {
 	override val projectName: String = "The Lighthouse"
 	override val spellCheckSettings: SpellCheckSettings = fakeSpellCheckSettings
+	override val timelineSettings: TimelineSettings =
+		PreviewTimelineSettings(TimelineSettings.State(lanes = listOf("Keeper", "The Sea")))
 	override val projectInfoState: Value<ProjectSettings.ProjectInfoState> = MutableValue(
 		ProjectSettings.ProjectInfoState(
 			data = ProjectData(

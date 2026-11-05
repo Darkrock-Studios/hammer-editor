@@ -60,6 +60,7 @@ import com.darkrockstudios.apps.hammer.project_home_action_backup_toast_failure
 import com.darkrockstudios.apps.hammer.project_home_action_backup_toast_success
 import com.darkrockstudios.apps.hammer.project_home_action_export_toast_contact_failure
 import com.darkrockstudios.libs.platformspellchecker.PlatformSpellCheckerFactory
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineService
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -71,6 +72,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -225,6 +227,9 @@ class ProjectHomeComponentTest : ComponentTest() {
 				}
 				scoped { imagesService }
 				scoped { ImagePickRequests() }
+				scoped<TimelineService> {
+					mockk(relaxed = true) { every { timelineFlow } returns emptyFlow() }
+				}
 			}
 		})
 	}

@@ -75,6 +75,19 @@ it's never decoration.
 - Per-character tinting (timeline, attribution charts) uses
   `LocalHammerColors.colorForCharacter(name)` — a hashed slot from a
   shared palette, also stable across runs.
+- **Lane colours.** A timeline lane takes
+  `LocalHammerColors.laneColor(index)`, by its position in the lane
+  list, never by its name: the `lanePalette` is ordered so neighbouring
+  lanes sit far apart in hue, which a name hash would throw away. Band
+  segments in a lane step through a three-tone ramp
+  ([`laneShade`](../theme/LaneShades.kt): base, toward surface, toward
+  ink) and leave a 1dp `surface` gap wherever two segments abut, so
+  touching segments always read as two. `LanePaletteTest` holds the
+  minimum luminance step of the ramp and the hue spacing of neighbours
+  in both themes; retune the palette rather than loosen it.
+  On a phone a lane is a 22dp rail under a cap in its colour, and only
+  the lanes in the lane filter are drawn (all while it is empty), so the
+  lane chips are how a writer picks rails on a crowded timeline.
 
 ### 4. Editorial typography
 
@@ -224,6 +237,18 @@ These set up the page. Use them before reaching for raw `Column` /
       ┆ ⌄ Chapter II                 2 SCN
       ┆ ┆   The Pool of Tears
 
+- **[`HdScrollAwayStrip`](HdScrollAwayStrip.kt)**: a browse screen's
+  filter strip laid **over** the top of its scrolling content. The
+  content takes the strip's full height as top padding, so showing or
+  hiding the strip never changes how far the content can scroll. It
+  slides away as the content starts scrolling down and back as it starts
+  scrolling up, counting only scrolling the content really did. Feed the
+  content's scroll position to `followScrollPosition` so the strip is
+  always shown with the content at its top, including after jumps that
+  are not gestures (a filter, a jump to the top). Prefer it to `HdCollapsingStrip` wherever the
+  content can be only slightly taller than the pane: a strip that takes
+  layout space can hide itself into content that then fits, leaving
+  nothing to scroll it back.
 - **[`HdScrollAwayFooter`](HdScrollAwayFooter.kt)**: hairline action
   strip that floats over the bottom of a scrolling pane and slides away
   as the reader scrolls down. It is an **overlay**, never a sibling in
@@ -291,6 +316,28 @@ The handwriting of the system. Reach for these instead of styling
 - **[`HdHairlineTagField`](HdHairlineTagField.kt)** — same vocabulary
   but the value is a `List<String>` of `HdTagChip`s; Enter / comma
   adds a tag, Backspace on empty removes the last.
+- **[`HdHairlineSuggestField`](HdHairlineSuggestField.kt)**: an
+  `HdHairlineField` for free text with known values offered as chips
+  under it (a timeline lane, say). Tapping a chip fills the field;
+  typing something new is fine. `suggestionAccent` colours each chip's
+  swatch, so lane suggestions show their lane colour, and `trailing`
+  holds a swatch once the text matches a known value.
+- **[`HdRungDateField`](HdRungDateField.kt)**: a story date as one
+  narrow numeric `HdHairlineField` per calendar unit, coarsest first
+  (a STORY calendar's `coarsestUnit`, else the year) down to the
+  minute, each captioned with its unit. Trailing units may stay empty;
+  the filled ones are the precision. A STORY calendar with an epoch
+  adds a `BEFORE <EPOCH>` toggle cell that negates the coarsest rung.
+  A "Shows as" line renders the date through `formatStoryDate`, or the
+  problem with it. It emits null while empty or invalid, so a caller
+  never holds a stale date. `rememberStoryDateWords()` gives the
+  formatter translated unit and month names elsewhere.
+
+      START
+      YEAR     DAY    HOUR   MINUTE   ┌────────────────┐
+      12       40                     │ BEFORE LANDING │
+      ──────   ────   ────   ────     └────────────────┘
+      SHOWS AS  Year 12 · Day 40
 - **[`HdHairlineWordListField`](HdHairlineWordListField.kt)**: the
   tag field's shape for a plain word list (the project dictionary):
   neutral `#` chips that wrap instead of scrolling, Enter / comma /
@@ -323,7 +370,8 @@ The handwriting of the system. Reach for these instead of styling
   generic segmented hairline picker `[ DAY │ WEEK ]`. Cells share
   borders by overlapping 1dp; selected cell takes `onSurface` border
   and label color, the rest stay muted. Use for small enums (3–4
-  values) where a dropdown would feel out of vocabulary.
+  values) where a dropdown would feel out of vocabulary. `enabled =
+  false` dims it and ignores clicks, as the dropdown does.
 - **[`HdHairlineDropdown`](HdHairlineDropdown.kt)** — generic
   full-width hairline pill `[ Markdown            ▾ ]` opening a
   `DropdownMenu`. Same signature as `HdHairlineSegmentedPicker`, so
@@ -366,6 +414,16 @@ screen that surfaces them.
 - **[`EntryType.glyph()`](HdEntryGlyph.kt)** — single-character glyph
   per type (☉ ◇ ✦ ⚑ ✶) plus `HD_ALL_GLYPH = "∗"` for the unfiltered
   position.
+- **[`CatalogItem.hdMark()`](HdCatalogGlyph.kt)**: the one glyph
+  vocabulary for anything a project holds, used by the entity picker,
+  reference chips and the timeline. Scene `§` (`HD_SCENE_GLYPH`), note
+  `¶` (`HD_NOTE_GLYPH`), an entry its type glyph (so an EVENT entry is
+  `⚑`), a plain timeline event `◷` (`HD_EVENT_GLYPH`). Entries sit on
+  their type colour; the other kinds on a neutral swatch
+  (`hdSwatchColor()` / `hdGlyphColor()`). Reach for these constants
+  rather than typing the character. `TimelineKind.hdMark()` gives a
+  timeline entry the same glyph by kind: `◷` event, `§` placed scene,
+  `⚑` placed EVENT entry.
 - **[`HdCategorySwatch`](HdCategorySwatch.kt)** /
   **`HdCategoryChip`** — the colored square + mono name. Use for
   inline category indicators.
@@ -378,6 +436,21 @@ screen that surfaces them.
   entry card; tapping it re-runs the filter, not the card open.
 - **[`HdTagChip`](HdTagChip.kt)** — `# label` chip with optional `×`
   remove. The tag primitive used inside cards and tag fields.
+- **[`HdReferenceChip`](HdReferenceChip.kt)**: glyph swatch + name +
+  trailing `×` (or `↺` when dismissed) for a reference to an entry,
+  scene or other item. Pass a null `onAction` for a read-only chip.
+- **[`HdReferenceChipBucket`](HdReferenceChipBucket.kt)**: a mono
+  label over a wrapping row of `HdReferenceChip`s, one bucket per
+  group. Group with `ReferenceBucket`
+  ([`compose/references`](../references/ReferenceBuckets.kt):
+  Characters, Locations, Other, Scenes) so every reference list orders
+  and labels its groups the same way; build entry chips with
+  `hdEntryChipModel`.
+
+      CHARACTERS
+      [☉│ Alice ×]  [☉│ White Rabbit ×]
+      LOCATIONS
+      [◇│ The Pool of Tears ×]
 - **[`HdClearGlyph`](HdClearGlyph.kt)** — the small `×` clear/remove
   affordance, drawn as two strokes so it stays geometrically centered
   (a font-rendered `×` sits low in a small box). Use this instead of
@@ -661,7 +734,7 @@ of the filter row (sort, "+ new") or behind the title-row icon
 toggle (search).
 
 **2. Scroll-collapsing strip.** The whole filter strip is wrapped in
-a private `CollapsingStrip(scrollBehavior)` that translates the strip
+[`HdCollapsingStrip(scrollBehavior)`](HdCollapsingStrip.kt), which translates the strip
 by `scrollBehavior.heightOffset` and reduces its reported height to
 match, so the content grid below slides up under it. Driven by
 [
@@ -672,9 +745,15 @@ gives the strip the same scroll-away semantics as an M3 TopAppBar
 without inheriting its chrome. Title row + folio divider stay put as
 the masthead.
 
-The `CollapsingStrip` helper is currently duplicated — a private
-copy lives in each browse screen. Lift it into `HdCollapsingStrip`
-the next time a third browse screen needs it.
+Inside the strip, [`HdTagFilterBar`](HdTagFilterBar.kt) is the
+`ALL · n │ # tag · n …` row and
+[`HdActiveFiltersStrip`](HdActiveFiltersStrip.kt) the
+`FILTERED n / m  # tag ×  CLEAR ALL` summary under it, shown only while
+a tag is active. Notes, Story Ideas and Timeline share all three.
+A second set of filter chips (the timeline's lanes) goes in
+`scrollingLeading` at every width, so it scrolls with the tag chips
+instead of squeezing the pinned cells. Every chip in the bar keeps to
+one line; a long label ellipsizes.
 
 ### Collapse chrome while typing
 

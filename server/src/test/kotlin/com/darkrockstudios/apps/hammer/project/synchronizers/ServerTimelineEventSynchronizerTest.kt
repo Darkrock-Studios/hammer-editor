@@ -24,7 +24,7 @@ class ServerTimelineEventSynchronizerTest :
 	override fun createNewEntity(): ApiProjectEntity.TimelineEventEntity {
 		return ApiProjectEntity.TimelineEventEntity(
 			id = 1,
-			date = "July 4th",
+			label = "July 4th",
 			content = "Test Content",
 			order = 1,
 			tags = setOf("alpha", "beta"),
@@ -34,7 +34,7 @@ class ServerTimelineEventSynchronizerTest :
 	override fun createExistingEntity(): ApiProjectEntity.TimelineEventEntity {
 		return ApiProjectEntity.TimelineEventEntity(
 			id = 1,
-			date = "July 4th",
+			label = "July 4th",
 			content = "Test Content Different",
 			order = 3,
 			tags = setOf("alpha", "beta"),

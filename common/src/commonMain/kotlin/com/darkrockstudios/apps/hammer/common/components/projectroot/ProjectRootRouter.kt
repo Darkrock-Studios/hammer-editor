@@ -143,6 +143,8 @@ internal class ProjectRootRouter(
 			addMenu = addMenu,
 			removeMenu = removeMenu,
 			onShowGlobalSearchForTag = onShowGlobalSearchForTag,
+			onShowScene = showScene,
+			onShowEntry = showEntry,
 		)
 	}
 

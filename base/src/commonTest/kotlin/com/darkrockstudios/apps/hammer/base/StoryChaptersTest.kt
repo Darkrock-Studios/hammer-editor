@@ -15,7 +15,7 @@ class StoryChaptersTest {
 			.map { it.top.name to it.scenes.map { scene -> scene.name } }
 
 	@Test
-	fun `a top-level group is one chapter of its scenes, nested groups flattened depth first`() {
+	fun `a top-level group is one chapter of its scenes with nested groups flattened depth first`() {
 		val result = chapters(
 			group("Part One", scene("a"), group("Interlude", scene("b"), scene("c")), scene("d")),
 		)

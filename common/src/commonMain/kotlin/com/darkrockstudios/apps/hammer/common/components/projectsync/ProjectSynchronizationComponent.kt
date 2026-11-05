@@ -8,6 +8,12 @@ import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.base.image.ImageFormat
+import com.darkrockstudios.apps.hammer.base.timeline.StoryCalendar
+import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineDateProblem
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineEntityRules
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
@@ -20,10 +26,13 @@ import com.darkrockstudios.apps.hammer.common.data.notesrepository.NoteError
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataConflictBroker
+import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEventError
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.mainTimeline
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.toApiEntity
 import com.darkrockstudios.apps.hammer.common.data.toMsg
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import io.github.aakira.napier.Napier
@@ -52,6 +61,7 @@ class ProjectSynchronizationComponent(
 	private val imagesRepository: ImagesRepository by projectInject()
 	private val projectSynchronizer: ClientProjectSynchronizer by projectInject()
 	private val projectDataConflictBroker: ProjectDataConflictBroker by projectInject()
+	private val projectDataRepository: ProjectDataRepository by projectInject()
 
 	private var syncJob: Job? = null
 	private var conflictListenerJob: Job? = null
@@ -307,15 +317,11 @@ class ProjectSynchronizationComponent(
 
 	private suspend fun onTimelineEventConflict(serverEntity: ApiProjectEntity.TimelineEventEntity) {
 		val local = timeLineRepository.getTimelineEvent(serverEntity.id)
-			?: error("Failed to get local note")
+			?: error("Failed to get local timeline event")
 
-		val localEntity = ApiProjectEntity.TimelineEventEntity(
-			id = local.id,
-			date = local.date,
-			content = local.content,
-			order = local.order,
-			tags = local.tags,
-		)
+		val localEntity = local.toApiEntity()
+		// Loaded before the conflict is shown, so the non-suspend resolveConflict can read the calendar.
+		projectDataRepository.load()
 
 		withContext(mainDispatcher) {
 			_state.getAndUpdate {
@@ -475,12 +481,29 @@ class ProjectSynchronizationComponent(
 	private fun validateTimelineEventEntity(
 		resolvedEntity: ApiProjectEntity.TimelineEventEntity,
 	): ProjectSynchronization.EntityMergeError.TimelineEventMergeError? {
-		return when (timeLineRepository.validateTags(resolvedEntity.tags)) {
-			TimeLineEventError.NONE -> null
-			TimeLineEventError.TAG_TOO_LONG -> ProjectSynchronization.EntityMergeError.TimelineEventMergeError(
-				tagError = Res.string.timeline_create_toast_tag_too_long.toMsg()
-			)
+		val ruleProblem = TimelineEntityRules.problem(resolvedEntity)
+		val tagError = if (timeLineRepository.validateTags(resolvedEntity.tags) == TimeLineEventError.NONE) {
+			null
+		} else {
+			Res.string.timeline_create_toast_tag_too_long.toMsg()
 		}
+		val dateProblem = timelineDateProblem(resolvedEntity.start, resolvedEntity.end)
+		return if (ruleProblem != null || tagError != null || dateProblem != null) {
+			ProjectSynchronization.EntityMergeError.TimelineEventMergeError(
+				tagError = tagError,
+				ruleProblem = ruleProblem,
+				dateProblem = dateProblem,
+			)
+		} else {
+			null
+		}
+	}
+
+	private fun timelineDateProblem(start: StoryDate?, end: StoryDate?): TimelineDateProblem? {
+		val main = projectDataRepository.state.value?.data?.mainTimeline() ?: TimelineDef.DEFAULT
+		if (main.mode != TimelineMode.DATED) return null
+		val calendar = main.calendar ?: return null
+		return StoryCalendar.rangeProblem(calendar, start, end)
 	}
 
 	private fun validateScene(resolvedEntity: ApiProjectEntity.SceneEntity): ProjectSynchronization.EntityMergeError.SceneMergeError? {

@@ -68,6 +68,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdReferenceCh
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdReferenceChipVariant
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdResizeHandle
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdResponsiveStrip
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdRungDateField
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSceneBreak
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdScrollAwayFooter
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSearchField
@@ -80,6 +81,9 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdUnsavedBadg
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.rememberHdScrollAwayFooterState
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
+import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
+import com.darkrockstudios.apps.hammer.base.timeline.CalendarPreset
+import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.preview.globalSettingsPreview
 
@@ -1228,6 +1232,40 @@ fun ChapterPiecesPreview() {
 			HdChapterHeader(index = 1, title = "The Dark Night", sceneCount = 5, wide = false)
 			HdSceneBreak()
 			HdEndMark(label = "End of story")
+		}
+	}
+}
+
+@Preview
+@Composable
+fun RungDateFieldPreview() {
+	AppTheme(globalSettingsPreview, useDarkTheme = true) {
+		PreviewSurface {
+			HdRungDateField(
+				label = "Start",
+				calendar = CalendarDef(epochName = "The Landing"),
+				value = StoryDate(mapOf("year" to 12L, "day" to 40L)),
+				onValueChange = {},
+			)
+			HdRungDateField(
+				label = "Start",
+				calendar = CalendarDef(epochName = "The Landing"),
+				value = StoryDate(mapOf("year" to -3L)),
+				onValueChange = {},
+			)
+			HdRungDateField(
+				label = "End",
+				calendar = CalendarDef(CalendarPreset.GREGORIAN),
+				value = StoryDate(mapOf("year" to 1802L, "month" to 5L, "day" to 12L, "hour" to 14L, "minute" to 30L)),
+				onValueChange = {},
+			)
+			HdRungDateField(
+				label = "Start",
+				calendar = CalendarDef(coarsestUnit = "hour"),
+				value = null,
+				onValueChange = {},
+				error = "Every entry on a dated timeline needs a date",
+			)
 		}
 	}
 }
