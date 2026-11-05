@@ -65,7 +65,7 @@ class TimelineEventConflictTest : BaseTest() {
 
 	@Test
 	fun `Unchanged edits resolve to the client copy`() {
-		val local = buildLocalTimelineEvent(event, event.toEdits())
+		val local = buildLocalTimelineEvent(event, event.toEdits(), server = event)
 
 		assertEquals(event, assertIs<LocalTimelineEvent.Resolved>(local).entity)
 	}
@@ -82,7 +82,7 @@ class TimelineEventConflictTest : BaseTest() {
 			end = "year=97 day=216",
 		)
 
-		val resolved = assertIs<LocalTimelineEvent.Resolved>(buildLocalTimelineEvent(event, edits)).entity
+		val resolved = assertIs<LocalTimelineEvent.Resolved>(buildLocalTimelineEvent(event, edits, server = event)).entity
 
 		assertNull(resolved.title)
 		assertNull(resolved.label)
@@ -99,7 +99,7 @@ class TimelineEventConflictTest : BaseTest() {
 	fun `A placement keeps its content and subject`() {
 		val edits = placement.toEdits().copy(content = "typed into a placement", start = "")
 
-		val resolved = assertIs<LocalTimelineEvent.Resolved>(buildLocalTimelineEvent(placement, edits)).entity
+		val resolved = assertIs<LocalTimelineEvent.Resolved>(buildLocalTimelineEvent(placement, edits, server = placement)).entity
 
 		assertEquals("", resolved.content)
 		assertEquals(TimelineKind.SCENE, resolved.kind)
@@ -111,16 +111,27 @@ class TimelineEventConflictTest : BaseTest() {
 	fun `The chosen timeline replaces the client's`() {
 		val edits = event.toEdits().copy(timeline = evening.id)
 
-		val resolved = assertIs<LocalTimelineEvent.Resolved>(buildLocalTimelineEvent(event, edits)).entity
+		val resolved = assertIs<LocalTimelineEvent.Resolved>(buildLocalTimelineEvent(event, edits, server = event)).entity
 
 		assertEquals(evening.id, resolved.timeline)
+	}
+
+	@Test
+	fun `Picking the server's timeline takes the server's order there`() {
+		val server = event.copy(order = 7, timeline = evening.id)
+
+		val onServers = buildLocalTimelineEvent(event, event.toEdits().copy(timeline = evening.id), server)
+		val onOwn = buildLocalTimelineEvent(event, event.toEdits(), server)
+
+		assertEquals(7, assertIs<LocalTimelineEvent.Resolved>(onServers).entity.order)
+		assertEquals(event.order, assertIs<LocalTimelineEvent.Resolved>(onOwn).entity.order)
 	}
 
 	@Test
 	fun `Unreadable dates are reported instead of resolving`() {
 		val edits = event.toEdits().copy(start = "day two", end = "year=97")
 
-		val local = buildLocalTimelineEvent(event, edits)
+		val local = buildLocalTimelineEvent(event, edits, server = event)
 
 		assertEquals(LocalTimelineEvent.UnreadableDates(start = true, end = false), local)
 	}
@@ -185,6 +196,20 @@ class TimelineEventConflictTest : BaseTest() {
 		compose.onNodeWithText("USE").performClick()
 
 		compose.onNodeWithText("Start has day out of range: 400", ignoreCase = true).assertExists()
+	}
+
+	@Test
+	fun `A taken placement from the component is shown`() {
+		val component = RecordingSync(
+			error = ProjectSynchronization.EntityMergeError.TimelineEventMergeError(placementTaken = true)
+		)
+		showConflict(server = placement.copy(timeline = evening.id), client = placement, component = component)
+
+		compose.onNodeWithText("LOCAL").performClick()
+		compose.onNodeWithText("BEFORE THE EVENING").performClick()
+		compose.onNodeWithText("USE").performClick()
+
+		compose.onNodeWithText("already placed on that timeline", substring = true, ignoreCase = true).assertExists()
 	}
 
 	@Test

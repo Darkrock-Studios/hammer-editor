@@ -71,6 +71,8 @@ interface ProjectSynchronization {
 			clientEvent: ApiProjectEntity.TimelineEventEntity,
 			/** This device's live timelines, main first, for naming each side's timeline. */
 			val liveTimelines: List<TimelineDef> = listOf(TimelineDef.DEFAULT),
+			/** For a placement, the timelines (main spelled out) where another local event places its subject. */
+			val subjectPlacedOn: Set<String> = emptySet(),
 		) : EntityConflict<ApiProjectEntity.TimelineEventEntity>(serverEvent, clientEvent)
 
 		class EncyclopediaEntryConflict(
@@ -110,6 +112,8 @@ interface ProjectSynchronization {
 			val ruleProblem: TimelineRuleProblem? = null,
 			/** Only checked when the event's timeline is live and DATED, against its calendar. */
 			val dateProblem: TimelineDateProblem? = null,
+			/** The resolved timeline already holds another placement of the same subject. */
+			val placementTaken: Boolean = false,
 		) : EntityMergeError()
 
 		class EncyclopediaEntryMergeError(

@@ -32,6 +32,7 @@ import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEv
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.liveTimelines
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.timelineDef
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.timelineId
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.toApiEntity
 import com.darkrockstudios.apps.hammer.common.data.toMsg
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
@@ -320,8 +321,17 @@ class ProjectSynchronizationComponent(
 			?: error("Failed to get local timeline event")
 
 		val localEntity = local.toApiEntity()
-		// Loaded before the conflict is shown, so the non-suspend resolveConflict can read the calendars.
+		// Loaded before the conflict is shown, so the non-suspend resolveConflict can read the calendars
+		// and where the subject is placed.
 		val projectData = projectDataRepository.load().data
+		val subject = local.subject
+		val subjectPlacedOn = if (local.kind.isPlacement && subject != null) {
+			timeLineRepository.placementsOf(local.kind, subject)
+				.filter { it.id != local.id }
+				.mapTo(mutableSetOf()) { it.timelineId }
+		} else {
+			emptySet()
+		}
 
 		withContext(mainDispatcher) {
 			_state.getAndUpdate {
@@ -330,6 +340,7 @@ class ProjectSynchronizationComponent(
 						serverEvent = serverEntity,
 						clientEvent = localEntity,
 						liveTimelines = projectData.liveTimelines(),
+						subjectPlacedOn = subjectPlacedOn,
 					),
 					conflictTitle = Res.string.sync_conflict_timeline_title
 				)
@@ -489,11 +500,15 @@ class ProjectSynchronizationComponent(
 			Res.string.timeline_create_toast_tag_too_long.toMsg()
 		}
 		val dateProblem = timelineDateProblem(resolvedEntity)
-		return if (ruleProblem != null || tagError != null || dateProblem != null) {
+		val placedOn = (state.value.entityConflict as? ProjectSynchronization.EntityConflict.TimelineEventConflict)
+			?.subjectPlacedOn.orEmpty()
+		val placementTaken = (resolvedEntity.timeline ?: TimelineDef.MAIN_ID) in placedOn
+		return if (ruleProblem != null || tagError != null || dateProblem != null || placementTaken) {
 			ProjectSynchronization.EntityMergeError.TimelineEventMergeError(
 				tagError = tagError,
 				ruleProblem = ruleProblem,
 				dateProblem = dateProblem,
+				placementTaken = placementTaken,
 			)
 		} else {
 			null

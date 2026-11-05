@@ -253,4 +253,5 @@
 	<string name="timeline_settings_edit">Edit</string>
 	<string name="timeline_settings_editor_title">Edit “%1$s”</string>
 	<string name="timeline_settings_editor_close">Close</string>
+	<string name="sync_conflict_timeline_rule_placement_taken">This scene or entry is already placed on that timeline; keep it on the other one.</string>
 </resources>

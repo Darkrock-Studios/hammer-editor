@@ -71,6 +71,7 @@ import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_placement_has
 import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_placement_has_tags
 import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_placement_needs_subject
 import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_placement_own_subject
+import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_placement_taken
 import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_self_reference
 import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_subject_is_reference
 import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_tag_too_long
@@ -126,11 +127,13 @@ internal fun ApiProjectEntity.TimelineEventEntity.toEdits() = TimelineEventEdits
 
 /**
  * The client copy with [edits] applied. Kind, subject, tags and references stay as the client has
- * them, and a placement keeps its content because it has none to edit.
+ * them, and a placement keeps its content because it has none to edit. Picking [server]'s timeline
+ * takes its order too, as the client's order belongs to the client's timeline.
  */
 internal fun buildLocalTimelineEvent(
 	client: ApiProjectEntity.TimelineEventEntity,
 	edits: TimelineEventEdits,
+	server: ApiProjectEntity.TimelineEventEntity,
 ): LocalTimelineEvent {
 	val start = readDateField(edits.start)
 	val end = readDateField(edits.end)
@@ -150,6 +153,7 @@ internal fun buildLocalTimelineEvent(
 			start = (start as DateField.Read).date,
 			end = (end as DateField.Read).date,
 			timeline = edits.timeline,
+			order = if (edits.timeline != client.timeline && edits.timeline == server.timeline) server.order else client.order,
 		)
 	)
 }
@@ -189,12 +193,21 @@ internal fun TimelineEventConflict(
 	var tagError by rememberSaveable(client) { mutableStateOf<String?>(null) }
 	var ruleProblem by remember(client) { mutableStateOf<TimelineRuleProblem?>(null) }
 	var dateProblem by remember(client) { mutableStateOf<TimelineDateProblem?>(null) }
+	var placementTaken by remember(client) { mutableStateOf(false) }
+	val showError: (ProjectSynchronization.EntityMergeError?) -> Unit = { error ->
+		if (error is ProjectSynchronization.EntityMergeError.TimelineEventMergeError) {
+			ruleProblem = error.ruleProblem
+			dateProblem = error.dateProblem
+			placementTaken = error.placementTaken
+			scope.launch { tagError = error.tagError?.text(strRes) }
+		}
+	}
 
 	val contentDiff = rememberContentDiff(entityConflict.serverEntity.content, content)
 
 	val useLocal: () -> Unit = {
 		val edits = TimelineEventEdits(title, label, content, lane, milestone, start, end, timeline)
-		when (val local = buildLocalTimelineEvent(client, edits)) {
+		when (val local = buildLocalTimelineEvent(client, edits, entityConflict.serverEntity)) {
 			is LocalTimelineEvent.UnreadableDates -> {
 				startUnreadable = local.start
 				endUnreadable = local.end
@@ -203,16 +216,12 @@ internal fun TimelineEventConflict(
 			is LocalTimelineEvent.Resolved -> {
 				startUnreadable = false
 				endUnreadable = false
-				val error = component.resolveConflict(local.entity)
-				if (error is ProjectSynchronization.EntityMergeError.TimelineEventMergeError) {
-					ruleProblem = error.ruleProblem
-					dateProblem = error.dateProblem
-					scope.launch { tagError = error.tagError?.text(strRes) }
-				}
+				showError(component.resolveConflict(local.entity))
 			}
 		}
 	}
-	val useRemote = { component.resolveConflict(entityConflict.serverEntity); Unit }
+	// A refused remote copy reports in the local pane, the only one with room for errors.
+	val useRemote = { showError(component.resolveConflict(entityConflict.serverEntity)) }
 
 	EntityConflict(
 		entityConflict = entityConflict,
@@ -228,6 +237,12 @@ internal fun TimelineEventConflict(
 				TimelineEventHeader(client)
 				ruleProblem?.let { HdMonoLabel(text = it.text(), color = MaterialTheme.colorScheme.error) }
 				dateProblem?.let { HdMonoLabel(text = it.text(), color = MaterialTheme.colorScheme.error) }
+				if (placementTaken) {
+					HdMonoLabel(
+						text = Res.string.sync_conflict_timeline_rule_placement_taken.get(),
+						color = MaterialTheme.colorScheme.error,
+					)
+				}
 				if (server.timeline != client.timeline) {
 					HdConflictField(
 						label = Res.string.sync_conflict_timeline_field_timeline.get(),
