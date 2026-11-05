@@ -330,6 +330,49 @@ class TimelineServiceTest : BaseTest() {
 	}
 
 	@Test
+	fun `a timeline holds at most five lanes`() = runTest(mainTestDispatcher) {
+		val service = createService()
+		val events = listOf("A", "B", "C", "D", "E").map { lane ->
+			service.createEvent(TimelineEventDraft(title = "In $lane", lane = lane)).event()
+		}
+		val alsoInC = service.createEvent(TimelineEventDraft(title = "Also in C", lane = "C")).event()
+		service.createEvent(TimelineEventDraft(title = "Unlaned")).event()
+
+		assertEquals(
+			TimeLineEventError.TOO_MANY_LANES,
+			service.createEvent(TimelineEventDraft(title = "Sixth", lane = "F")).error(),
+		)
+		assertEquals(TimeLineEventError.TOO_MANY_LANES, service.setLane(alsoInC.id, "F").error())
+		assertEquals(
+			TimeLineEventError.TOO_MANY_LANES,
+			service.placeScene(4, null, null, lane = "F", milestone = false).error(),
+		)
+		assertEquals(
+			TimeLineEventError.TOO_MANY_LANES,
+			service.updateEvent(stored(alsoInC.id).copy(lane = "F")).error(),
+		)
+		assertEquals(TimeLineEventError.TOO_MANY_LANES, service.updateDefinition { it.copy(laneOrder = listOf("F")) }.error())
+
+		// Renaming E's only entry to F trades one lane for another.
+		service.setLane(events[4].id, "F").event()
+		assertEquals(listOf("A", "B", "C", "D", "F"), service.lanes())
+	}
+
+	@Test
+	fun `a timeline already past five lanes keeps working but gains no lane`() = runTest(mainTestDispatcher) {
+		val service = createService()
+		// Two devices can each add a lane offline; sync then leaves six.
+		val events = listOf("A", "B", "C", "D", "E", "F").map { lane ->
+			timeLineRepository.createEvent(TimelineEventDraft(title = "In $lane", lane = lane))
+		}
+
+		service.setLabel(events[0].id, "Dawn").event()
+		service.setLane(events[0].id, "B").event()
+		service.createEvent(TimelineEventDraft(title = "Also in C", lane = "C")).event()
+		assertEquals(TimeLineEventError.TOO_MANY_LANES, service.setLane(events[1].id, "G").error())
+	}
+
+	@Test
 	fun `updateEvent rejects a kind or subject change`() = runTest(mainTestDispatcher) {
 		val service = createService()
 		val created = service.createEvent(TimelineEventDraft(title = "Storm")).event()

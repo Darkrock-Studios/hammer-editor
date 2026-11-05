@@ -184,4 +184,5 @@
 	<string name="timeline_drawing_menu_view">Drawing</string>
 	<string name="timeline_drawing_menu_frame">Frame</string>
 	<string name="timeline_search_matches">%1$d of %2$d</string>
+	<string name="timeline_error_too_many_lanes">A timeline can have at most %1$d lanes</string>
 </resources>

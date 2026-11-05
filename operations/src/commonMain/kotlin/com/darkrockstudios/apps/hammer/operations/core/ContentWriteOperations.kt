@@ -329,6 +329,7 @@ internal fun TimeLineEventError.requireNone() {
 		TimeLineEventError.NONE -> Unit
 		TimeLineEventError.TAG_TOO_LONG -> invalidInput("A tag can be at most ${TimelineLimits.MAX_TAG} characters")
 		TimeLineEventError.LANE_INVALID -> invalidInput("A lane cannot be blank or longer than ${TimelineLimits.MAX_LANE} characters")
+		TimeLineEventError.TOO_MANY_LANES -> invalidInput("A timeline can have at most ${TimelineLimits.MAX_LANES} lanes")
 		TimeLineEventError.TITLE_TOO_LONG -> invalidInput("A title can be at most ${TimelineLimits.MAX_TITLE} characters")
 		TimeLineEventError.LABEL_TOO_LONG -> invalidInput("A label can be at most ${TimelineLimits.MAX_LABEL} characters")
 		TimeLineEventError.SUBJECT_REQUIRED -> invalidInput("A placement needs a subject")

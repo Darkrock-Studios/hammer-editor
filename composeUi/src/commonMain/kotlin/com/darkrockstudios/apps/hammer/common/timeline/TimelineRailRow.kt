@@ -37,10 +37,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.coerceAtMost
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineLimits
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimelineRow
 import com.darkrockstudios.apps.hammer.common.components.timeline.eventExcerpt
 import com.darkrockstudios.apps.hammer.common.compose.LocalImageNames
@@ -79,8 +81,15 @@ private val GripWidth = 34.dp
 private const val RAIL_ALPHA = 0.22f
 private const val RULE_ALPHA = 0.35f
 
+// A timeline synced past the lane limit squeezes its rails into the room the limit allows.
+private val MaxRailGutter = RailStart + RailPitch * TimelineLimits.MAX_LANES
+
 /** The gutter's width: the spine, then one rail per lane. */
-private fun railGutterWidth(laneCount: Int): Dp = if (laneCount == 0) RailStart - 2.dp else RailStart + RailPitch * laneCount
+private fun railGutterWidth(laneCount: Int): Dp =
+	if (laneCount == 0) RailStart - 2.dp else RailStart + railPitch(laneCount) * laneCount
+
+private fun railPitch(laneCount: Int): Dp =
+	if (laneCount == 0) RailPitch else minOf(RailPitch, (MaxRailGutter - RailStart) / laneCount)
 
 /**
  * One entry of a timeline drawn as a list, in the drawing's vocabulary: the "when" where the axis
@@ -258,15 +267,17 @@ private fun RailGutter(row: TimelineRow, laneCount: Int) {
 	val spine = MaterialTheme.colorScheme.outline
 	val laneIndex = row.laneIndex
 	val railColors = List(laneCount) { colors.laneColor(it) }
+	val pitch = railPitch(laneCount)
+	val gutter = railGutterWidth(laneCount)
 	Box(
 		modifier = Modifier
-			.width(railGutterWidth(laneCount))
+			.width(gutter)
 			.fillMaxHeight()
 			.drawBehind {
 				val spineX = SpineX.toPx()
 				drawLine(spine, Offset(spineX, 0f), Offset(spineX, size.height), strokeWidth = 1.dp.toPx())
 				railColors.forEachIndexed { i, color ->
-					val x = (RailStart + RailPitch * i + RailPitch / 2).toPx()
+					val x = (RailStart + pitch * i + pitch / 2).toPx()
 					drawLine(
 						color = color.copy(alpha = RAIL_ALPHA),
 						start = Offset(x, 0f),
@@ -276,7 +287,11 @@ private fun RailGutter(row: TimelineRow, laneCount: Int) {
 				}
 			},
 	) {
-		val centre = if (laneIndex != null) RailStart + RailPitch * laneIndex + RailPitch / 2 else SpineX
+		val centre = if (laneIndex != null) {
+			(RailStart + pitch * laneIndex + pitch / 2).coerceAtMost(gutter - MarkSize / 2)
+		} else {
+			SpineX
+		}
 		val markColor = laneIndex?.let(colors::laneColor)
 		val laneDescription = row.event.lane?.let { Res.string.timeline_lane_swatch_description.get(it) }
 		Box(

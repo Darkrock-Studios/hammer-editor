@@ -6,6 +6,7 @@ object TimelineLimits {
 	const val MAX_TITLE = 256
 	const val MAX_LABEL = 1024
 	const val MAX_LANE = 64
+	const val MAX_LANES = 5
 	const val MAX_TAG = 32
 	const val MAX_RUNGS = 8
 	const val MAX_UNIT_NAME = 32

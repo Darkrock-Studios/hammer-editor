@@ -68,6 +68,7 @@ import com.darkrockstudios.apps.hammer.timeline_error_subject_not_found
 import com.darkrockstudios.apps.hammer.timeline_error_subject_required
 import com.darkrockstudios.apps.hammer.timeline_error_subject_wrong_type
 import com.darkrockstudios.apps.hammer.timeline_error_tag_too_long
+import com.darkrockstudios.apps.hammer.timeline_error_too_many_lanes
 import com.darkrockstudios.apps.hammer.timeline_error_title_too_long
 import com.darkrockstudios.apps.hammer.timeline_kind_entry
 import com.darkrockstudios.apps.hammer.timeline_kind_event
@@ -214,6 +215,7 @@ internal suspend fun TimeLineEventError.toastText(strRes: StrRes): String? = whe
 	TimeLineEventError.NONE -> null
 	TimeLineEventError.TAG_TOO_LONG -> strRes.get(Res.string.timeline_error_tag_too_long, TimelineLimits.MAX_TAG)
 	TimeLineEventError.LANE_INVALID -> strRes.get(Res.string.timeline_error_lane_invalid, TimelineLimits.MAX_LANE)
+	TimeLineEventError.TOO_MANY_LANES -> strRes.get(Res.string.timeline_error_too_many_lanes, TimelineLimits.MAX_LANES)
 	TimeLineEventError.TITLE_TOO_LONG -> strRes.get(Res.string.timeline_error_title_too_long, TimelineLimits.MAX_TITLE)
 	TimeLineEventError.LABEL_TOO_LONG -> strRes.get(Res.string.timeline_error_label_too_long, TimelineLimits.MAX_LABEL)
 	TimeLineEventError.SUBJECT_REQUIRED -> strRes.get(Res.string.timeline_error_subject_required)

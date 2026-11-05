@@ -286,7 +286,8 @@ placement takes its name and words from its subject; `displayTitle` resolves
 that for every kind. Every kind has its own `label`, `lane`, `milestone`, and
 dates. Dates (`start`, `end`) are maps of calendar units to whole numbers,
 coarsest first, such as `{"year": 97, "day": 210}`; see
-`timeline.settings.read` for the calendar.
+`timeline.settings.read` for the calendar. A timeline has at most 5 lanes; a
+write that would add a sixth is rejected.
 
 A `manual` timeline is ordered by hand: `index` and `timeline.move` place
 events, and `label` is the shown "when". A `dated` timeline is ordered by

@@ -233,6 +233,7 @@ class TimeLineOverviewUiTest : BaseTest() {
 		whenColumn: Boolean = true,
 		dated: Boolean = false,
 		placementExcerpt: String? = null,
+		laneCount: Int = 2,
 		wrap: @Composable (@Composable () -> Unit) -> Unit = { it() },
 	) {
 		compose.setContent {
@@ -241,7 +242,7 @@ class TimeLineOverviewUiTest : BaseTest() {
 					AnimatedVisibility(visible = true) {
 						TimelineRailRow(
 							row = row,
-							laneCount = 2,
+							laneCount = laneCount,
 							whenColumn = whenColumn,
 							onClick = onClick,
 							dated = dated,
@@ -461,6 +462,23 @@ class TimeLineOverviewUiTest : BaseTest() {
 		compose.onNodeWithText("Down the hole", useUnmergedTree = true).assertIsDisplayed()
 		compose.onNodeWithTag(EVENT_CARD_CONTENT_TAG, useUnmergedTree = true)
 			.assertTextEquals("Alice was beginning to get very tired")
+	}
+
+	@Test
+	fun `On a phone many lanes leave the title most of the row`() {
+		val title = "The storm that took the roof off the mill and half the village with it"
+		val event = TimeLineEvent(id = 0, order = 0, title = title, lane = "Lane 20")
+		showCard(
+			TimelineRow(event, title = title, subtitle = null, whenText = "", laneIndex = 19),
+			whenColumn = false,
+			laneCount = 20,
+			wrap = { content -> Box(Modifier.requiredWidth(360.dp)) { content() } },
+		)
+
+		val titleNode = compose.onNodeWithTag(EVENT_CARD_TITLE_TAG, useUnmergedTree = true).fetchSemanticsNode()
+		val titleWidth = with(compose.density) { titleNode.boundsInRoot.width.toDp() }
+		assertTrue(titleWidth >= 180.dp, "title is only $titleWidth wide")
+		compose.onNodeWithTag(EVENT_CARD_LANE_TAG, useUnmergedTree = true).assertContentDescriptionEquals("Lane Lane 20")
 	}
 
 	@Test

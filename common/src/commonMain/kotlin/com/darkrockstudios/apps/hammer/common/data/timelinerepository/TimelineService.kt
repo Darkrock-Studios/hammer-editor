@@ -152,13 +152,19 @@ class TimelineService(
 
 	suspend fun definition(): TimelineDef = projectDataRepository.load().data.mainTimeline()
 
-	/** Upserts the result of [transform] by id. Rejects an invalid calendar or a DATED def without one. */
+	/**
+	 * Upserts the result of [transform] by id. Rejects an invalid calendar, a DATED def without one, or a
+	 * lane order that takes the timeline past [TimelineLimits.MAX_LANES].
+	 */
 	suspend fun updateDefinition(transform: (TimelineDef) -> TimelineDef): TimelineResult {
+		val eventLanes = timeLineRepository.currentEvents().mapNotNull { it.lane }.toSet()
 		var error = TimeLineEventError.NONE
 		projectDataRepository.updateData { data ->
 			val current = data.mainTimeline()
 			val next = transform(current)
-			error = definitionProblem(next)
+			error = definitionProblem(next).orElse {
+				laneLimitProblem(eventLanes + current.laneOrder, eventLanes + next.laneOrder)
+			}
 			if (!error.isSuccess || next == current) data else data.withTimeline(next)
 		}
 		return result(error)
@@ -174,6 +180,7 @@ class TimelineService(
 		val candidate = prepared.preview()
 		val error = timeLineRepository.validate(candidate)
 			.orElse { dateProblem(definition(), candidate.start, candidate.end) }
+			.orElse { laneProblem(candidate) }
 			.orElse { referenceProblem(candidate.references) }
 		if (!error.isSuccess) return invalid(error)
 
@@ -242,7 +249,9 @@ class TimelineService(
 			cachedTitle = subjectName?.take(TimelineLimits.MAX_TITLE),
 		)
 		val candidate = draft.preview()
-		val error = timeLineRepository.validate(candidate).orElse { dateProblem(definition(), start, end) }
+		val error = timeLineRepository.validate(candidate)
+			.orElse { dateProblem(definition(), start, end) }
+			.orElse { laneProblem(candidate) }
 		if (!error.isSuccess) return invalid(error)
 
 		TimelineResult.Ok(timeLineRepository.createEvent(draft))
@@ -301,6 +310,7 @@ class TimelineService(
 		val updated = event.copy(lane = normalizeLane(event.lane))
 		val error = timeLineRepository.validate(updated)
 			.orElse { dateProblem(definition(), updated.start, updated.end) }
+			.orElse { laneProblem(updated) }
 			.orElse { referenceProblem(updated.references - existing.references) }
 		if (!error.isSuccess) return invalid(error)
 
@@ -337,7 +347,9 @@ class TimelineService(
 			label = edited.label,
 			cachedTitle = subjectName(existing)?.take(TimelineLimits.MAX_TITLE) ?: existing.cachedTitle,
 		)
-		val error = timeLineRepository.validate(updated).orElse { dateProblem(definition(), updated.start, updated.end) }
+		val error = timeLineRepository.validate(updated)
+			.orElse { dateProblem(definition(), updated.start, updated.end) }
+			.orElse { laneProblem(updated) }
 		if (!error.isSuccess) return invalid(error)
 
 		if (updated != existing) timeLineRepository.updateEvent(updated)
@@ -663,6 +675,16 @@ class TimelineService(
 		}
 	}
 
+	/** Writing [event], new or replacing the one with its id, must not add a lane past the limit. */
+	private suspend fun laneProblem(event: TimeLineEvent): TimeLineEventError {
+		val lane = event.lane ?: return TimeLineEventError.NONE
+		val laneOrder = definition().laneOrder
+		val events = timeLineRepository.currentEvents()
+		val current = laneOrder.toSet() + events.mapNotNull { it.lane }
+		val next = laneOrder.toSet() + events.filter { it.id != event.id }.mapNotNull { it.lane } + lane
+		return laneLimitProblem(current, next)
+	}
+
 	private fun definitionProblem(def: TimelineDef): TimeLineEventError {
 		val calendar = def.calendar
 		return when {
@@ -695,6 +717,17 @@ class TimelineService(
 		const val NO_ID = -1
 
 		fun invalid(error: TimeLineEventError) = TimelineResult.Invalid(error)
+
+		/**
+		 * The server checks each entry alone and cannot count lanes, so offline edits on two devices can
+		 * sync a timeline past the limit. Such a timeline keeps its lanes; it just cannot gain one.
+		 */
+		fun laneLimitProblem(current: Set<String>, next: Set<String>): TimeLineEventError =
+			if (next.size > TimelineLimits.MAX_LANES && next.size > current.size) {
+				TimeLineEventError.TOO_MANY_LANES
+			} else {
+				TimeLineEventError.NONE
+			}
 
 		fun result(error: TimeLineEventError): TimelineResult =
 			if (error.isSuccess) TimelineResult.Ok(null) else TimelineResult.Invalid(error)
