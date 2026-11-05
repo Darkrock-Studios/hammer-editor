@@ -15,10 +15,8 @@ import com.arkivanov.decompose.router.stack.push
 import com.arkivanov.decompose.router.stack.pushToFront
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
-import com.arkivanov.decompose.value.getAndUpdate
 import com.arkivanov.decompose.value.subscribe
 import com.arkivanov.essenty.backhandler.BackCallback
-import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
 import com.darkrockstudios.apps.hammer.base.timeline.CalendarPreset
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
@@ -29,7 +27,6 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.projectInject
-import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineDefResult
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineSelectionSetting
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineService
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.timelineId
@@ -58,8 +55,14 @@ class TimeLineComponent(
 	private val _selection = MutableValue(restoredSelection())
 	override val selection: Value<TimelineSelection> = _selection
 
-	private val _switcher = MutableValue(TimelineSwitcher())
-	override val switcher: Value<TimelineSwitcher> = _switcher
+	private val dialogs = TimelineDefDialogs(
+		timelineService = timelineService,
+		scope = scope,
+		mainContext = dispatcherMain,
+		onCreated = { selectTimeline(TimelineSelection.Def(it.id)) },
+		onDeleted = { if (_selection.value == TimelineSelection.Def(it.id)) selectTimeline(TimelineSelection.Main) },
+	)
+	override val switcher: Value<TimelineSwitcher> = dialogs.state
 
 	// The state keeper first, so a restore keeps the deleted-timeline bucket; then the last timeline shown.
 	private fun restoredSelection(): TimelineSelection =
@@ -251,90 +254,30 @@ class TimeLineComponent(
 		onShowTimelineSettings((_selection.value as? TimelineSelection.Def)?.id ?: TimelineDef.MAIN_ID)
 	}
 
-	override fun requestCreateTimeline() {
-		_switcher.value = TimelineSwitcher(dialog = TimelineSwitcher.Dialog.Create())
-	}
+	override fun requestCreateTimeline() = dialogs.requestCreate()
 
-	override fun createTimeline(name: String, mode: TimelineMode, preset: CalendarPreset) {
-		val draft = TimelineSwitcher.Dialog.Create(name, mode, preset)
-		_switcher.value = TimelineSwitcher(dialog = draft)
-		scope.launch {
-			val calendar = if (mode == TimelineMode.DATED) CalendarDef(preset) else null
-			val result = timelineService.createTimeline(name, mode, calendar)
-			withContext(dispatcherMain) {
-				when (result) {
-					is TimelineDefResult.Ok -> {
-						_switcher.value = TimelineSwitcher()
-						selectTimeline(TimelineSelection.Def(result.def.id))
-					}
-
-					is TimelineDefResult.Invalid -> refused(draft, result)
-				}
-			}
-		}
-	}
+	override fun createTimeline(name: String, mode: TimelineMode, preset: CalendarPreset) =
+		dialogs.create(name, mode, preset)
 
 	override fun requestRenameTimeline(timelineId: String) {
 		scope.launch {
 			val def = timelineService.definition(timelineId) ?: return@launch
-			withContext(dispatcherMain) {
-				_switcher.value = TimelineSwitcher(dialog = TimelineSwitcher.Dialog.Rename(def.id, def.name))
-			}
+			withContext(dispatcherMain) { dialogs.requestRename(def) }
 		}
 	}
 
-	override fun renameTimeline(name: String) {
-		val open = _switcher.value.dialog as? TimelineSwitcher.Dialog.Rename ?: return
-		val draft = open.copy(name = name)
-		_switcher.value = TimelineSwitcher(dialog = draft)
-		scope.launch {
-			val result = timelineService.renameTimeline(draft.timelineId, name)
-			withContext(dispatcherMain) {
-				when (result) {
-					is TimelineDefResult.Ok -> _switcher.value = TimelineSwitcher()
-					is TimelineDefResult.Invalid -> refused(draft, result)
-				}
-			}
-		}
-	}
+	override fun renameTimeline(name: String) = dialogs.rename(name)
 
 	override fun requestDeleteTimeline(timelineId: String) {
-		if (timelineId == TimelineDef.MAIN_ID) return
 		scope.launch {
 			val summary = timelineService.summaries.first().firstOrNull { it.def.id == timelineId } ?: return@launch
-			withContext(dispatcherMain) {
-				_switcher.value = TimelineSwitcher(
-					dialog = TimelineSwitcher.Dialog.Delete(summary.def.id, summary.def.name, summary.eventCount)
-				)
-			}
+			withContext(dispatcherMain) { dialogs.requestDelete(summary) }
 		}
 	}
 
-	override fun confirmDeleteTimeline() {
-		val open = _switcher.value.dialog as? TimelineSwitcher.Dialog.Delete ?: return
-		scope.launch {
-			val result = timelineService.deleteTimeline(open.timelineId)
-			withContext(dispatcherMain) {
-				when (result) {
-					is TimelineDefResult.Ok -> {
-						_switcher.value = TimelineSwitcher()
-						if (_selection.value == TimelineSelection.Def(open.timelineId)) selectTimeline(TimelineSelection.Main)
-					}
+	override fun confirmDeleteTimeline() = dialogs.confirmDelete()
 
-					is TimelineDefResult.Invalid -> refused(open, result)
-				}
-			}
-		}
-	}
-
-	override fun dismissTimelineDialog() {
-		_switcher.value = TimelineSwitcher()
-	}
-
-	// A dialog closed or replaced while the request ran is left as it is.
-	private fun refused(dialog: TimelineSwitcher.Dialog, result: TimelineDefResult.Invalid) {
-		_switcher.getAndUpdate { if (it.dialog == dialog) it.copy(error = result.error) else it }
-	}
+	override fun dismissTimelineDialog() = dialogs.dismiss()
 
 	/** Falls back to main once the selected timeline is gone, or the deleted-timeline bucket is empty. */
 	private fun watchSelectionStillThere() {

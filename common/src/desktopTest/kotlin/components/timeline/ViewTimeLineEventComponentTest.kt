@@ -80,7 +80,7 @@ class ViewTimeLineEventComponentTest : TimelineComponentTestBase() {
 	fun `a scene placement shows its chapter, excerpt and cast with people first`() = runTest(mainTestDispatcher) {
 		givenProject()
 		sceneMetadataRepository.storeMetadata(SceneMetadata(confirmedReferences = setOf(WONDERLAND, ALICE)), sceneId = 4)
-		val placed = timelineService.placeScene(4, null, null, lane = "Alice", milestone = false).event()
+		val placed = timelineService.placeScene(4, null, null, lane = "Alice", milestone = false, timeline = TimelineDef.MAIN_ID).event()
 
 		val component = newComponent(placed.id)
 		context.resume()
@@ -156,7 +156,7 @@ class ViewTimeLineEventComponentTest : TimelineComponentTestBase() {
 	@Test
 	fun `a placement edits only its placement fields and when`() = runTest(mainTestDispatcher) {
 		givenProject()
-		val placed = timelineService.placeEntry(TEA_PARTY, null, null, lane = null, milestone = false).event()
+		val placed = timelineService.placeEntry(TEA_PARTY, null, null, lane = null, milestone = false, timeline = TimelineDef.MAIN_ID).event()
 
 		val component = newComponent(placed.id)
 		context.resume()
@@ -263,8 +263,8 @@ class ViewTimeLineEventComponentTest : TimelineComponentTestBase() {
 	fun `on a dated timeline an edit stores the drafted start and end`() = runTest(mainTestDispatcher) {
 		givenProject()
 		val event = timelineService.createEvent(TimelineEventDraft(title = "Storm")).event()
-		val placed = timelineService.placeScene(4, null, null, lane = null, milestone = false).event()
-		timelineService.switchToDated(CalendarDef())
+		val placed = timelineService.placeScene(4, null, null, lane = null, milestone = false, timeline = TimelineDef.MAIN_ID).event()
+		timelineService.switchToDated(CalendarDef(), timeline = TimelineDef.MAIN_ID)
 
 		val component = newComponent(event.id)
 		context.resume()
@@ -305,7 +305,7 @@ class ViewTimeLineEventComponentTest : TimelineComponentTestBase() {
 	fun `a dated timeline refuses to save an edit without a start`() = runTest(mainTestDispatcher) {
 		givenProject()
 		val event = timelineService.createEvent(TimelineEventDraft(title = "Storm")).event()
-		timelineService.switchToDated(CalendarDef())
+		timelineService.switchToDated(CalendarDef(), timeline = TimelineDef.MAIN_ID)
 
 		val component = newComponent(event.id)
 		context.resume()
@@ -321,7 +321,7 @@ class ViewTimeLineEventComponentTest : TimelineComponentTestBase() {
 	@Test
 	fun `renaming the placed scene refreshes the open view`() = runTest(mainTestDispatcher) {
 		givenProject()
-		val placed = timelineService.placeScene(4, null, null, lane = null, milestone = false).event()
+		val placed = timelineService.placeScene(4, null, null, lane = null, milestone = false, timeline = TimelineDef.MAIN_ID).event()
 
 		val component = newComponent(placed.id)
 		context.resume()
@@ -338,7 +338,7 @@ class ViewTimeLineEventComponentTest : TimelineComponentTestBase() {
 	@Test
 	fun `a change to the placed scene's cast refreshes the open view`() = runTest(mainTestDispatcher) {
 		givenProject()
-		val placed = timelineService.placeScene(4, null, null, lane = null, milestone = false).event()
+		val placed = timelineService.placeScene(4, null, null, lane = null, milestone = false, timeline = TimelineDef.MAIN_ID).event()
 
 		val component = newComponent(placed.id)
 		context.resume()
@@ -354,7 +354,7 @@ class ViewTimeLineEventComponentTest : TimelineComponentTestBase() {
 	@Test
 	fun `editing the placed entry refreshes the open view`() = runTest(mainTestDispatcher) {
 		givenProject()
-		val placed = timelineService.placeEntry(TEA_PARTY, null, null, lane = null, milestone = false).event()
+		val placed = timelineService.placeEntry(TEA_PARTY, null, null, lane = null, milestone = false, timeline = TimelineDef.MAIN_ID).event()
 
 		val component = newComponent(placed.id)
 		context.resume()
@@ -591,7 +591,7 @@ class ViewTimeLineEventComponentTest : TimelineComponentTestBase() {
 	fun `a dated save with the end before the start is refused`() = runTest(mainTestDispatcher) {
 		givenProject()
 		val event = timelineService.createEvent(TimelineEventDraft(title = "Storm")).event()
-		timelineService.switchToDated(CalendarDef())
+		timelineService.switchToDated(CalendarDef(), timeline = TimelineDef.MAIN_ID)
 		val component = opened(event.id)
 
 		component.beginEdit()
@@ -616,7 +616,7 @@ class ViewTimeLineEventComponentTest : TimelineComponentTestBase() {
 	@Test
 	fun `a placement's invalid lane is refused`() = runTest(mainTestDispatcher) {
 		givenProject()
-		val placed = timelineService.placeScene(4, null, null, lane = null, milestone = false).event()
+		val placed = timelineService.placeScene(4, null, null, lane = null, milestone = false, timeline = TimelineDef.MAIN_ID).event()
 		val component = opened(placed.id)
 
 		component.beginEdit()
@@ -633,7 +633,7 @@ class ViewTimeLineEventComponentTest : TimelineComponentTestBase() {
 	@Test
 	fun `a scene placement edits its placement fields and leaves the scene alone`() = runTest(mainTestDispatcher) {
 		givenProject()
-		val placed = timelineService.placeScene(4, null, null, lane = null, milestone = false).event()
+		val placed = timelineService.placeScene(4, null, null, lane = null, milestone = false, timeline = TimelineDef.MAIN_ID).event()
 		val component = opened(placed.id)
 
 		component.beginEdit()
@@ -663,8 +663,8 @@ class ViewTimeLineEventComponentTest : TimelineComponentTestBase() {
 	@Test
 	fun `an entry placement on a dated timeline stores its drafted dates`() = runTest(mainTestDispatcher) {
 		givenProject()
-		val placed = timelineService.placeEntry(TEA_PARTY, null, null, lane = null, milestone = false).event()
-		timelineService.switchToDated(CalendarDef())
+		val placed = timelineService.placeEntry(TEA_PARTY, null, null, lane = null, milestone = false, timeline = TimelineDef.MAIN_ID).event()
+		timelineService.switchToDated(CalendarDef(), timeline = TimelineDef.MAIN_ID)
 		val component = opened(placed.id)
 
 		val start = StoryDate(mapOf("year" to 2L, "day" to 3L))
@@ -690,7 +690,7 @@ class ViewTimeLineEventComponentTest : TimelineComponentTestBase() {
 		every { imagesService.imagePath(image) } returns HPath("/images/7.png", "7.png", true)
 		every { imagesService.cacheVersion(image) } returns "v1"
 		encyclopediaRepository.addPrimaryImage(encyclopediaRepository.findEntryDef(TEA_PARTY)!!, 7)
-		val placed = timelineService.placeEntry(TEA_PARTY, null, null, lane = null, milestone = false).event()
+		val placed = timelineService.placeEntry(TEA_PARTY, null, null, lane = null, milestone = false, timeline = TimelineDef.MAIN_ID).event()
 
 		val component = opened(placed.id)
 
@@ -729,7 +729,7 @@ class ViewTimeLineEventComponentTest : TimelineComponentTestBase() {
 		runTest(mainTestDispatcher) {
 			givenProject()
 			val event = timelineService.createEvent(TimelineEventDraft(title = "Storm")).event()
-			val placed = timelineService.placeScene(4, null, null, lane = null, milestone = false).event()
+			val placed = timelineService.placeScene(4, null, null, lane = null, milestone = false, timeline = TimelineDef.MAIN_ID).event()
 			val orphan = timeLineRepository.createEvent(TimelineEventDraft(kind = TimelineKind.ENTRY, subject = 999))
 			sceneRepository.archiveScene(sceneRepository.getSceneItemFromId(4)!!)
 
@@ -773,8 +773,8 @@ class ViewTimeLineEventComponentTest : TimelineComponentTestBase() {
 	@Test
 	fun `deleting a placement leaves its scene or entry alone`() = runTest(mainTestDispatcher) {
 		givenProject()
-		val scenePlacement = timelineService.placeScene(4, null, null, lane = null, milestone = false).event()
-		val entryPlacement = timelineService.placeEntry(TEA_PARTY, null, null, lane = null, milestone = false).event()
+		val scenePlacement = timelineService.placeScene(4, null, null, lane = null, milestone = false, timeline = TimelineDef.MAIN_ID).event()
+		val entryPlacement = timelineService.placeEntry(TEA_PARTY, null, null, lane = null, milestone = false, timeline = TimelineDef.MAIN_ID).event()
 
 		for (id in listOf(scenePlacement.id, entryPlacement.id)) {
 			val componentContext = TestComponentContext.create()
@@ -869,7 +869,7 @@ class ViewTimeLineEventComponentTest : TimelineComponentTestBase() {
 	@Test
 	fun `moving the placed scene out of its chapter refreshes the open view`() = runTest(mainTestDispatcher) {
 		givenProject()
-		val placed = timelineService.placeScene(4, null, null, lane = null, milestone = false).event()
+		val placed = timelineService.placeScene(4, null, null, lane = null, milestone = false, timeline = TimelineDef.MAIN_ID).event()
 		val component = opened(placed.id)
 		assertEquals("Chapter ID 2", assertIs<SubjectSummary.Scene>(component.state.value.subject).chapterPath)
 
@@ -887,7 +887,7 @@ class ViewTimeLineEventComponentTest : TimelineComponentTestBase() {
 	@Test
 	fun `archiving the placed scene shows it archived`() = runTest(mainTestDispatcher) {
 		givenProject()
-		val placed = timelineService.placeScene(4, null, null, lane = null, milestone = false).event()
+		val placed = timelineService.placeScene(4, null, null, lane = null, milestone = false, timeline = TimelineDef.MAIN_ID).event()
 		val component = opened(placed.id)
 
 		sceneRepository.archiveScene(sceneRepository.getSceneItemFromId(4)!!)
@@ -900,7 +900,7 @@ class ViewTimeLineEventComponentTest : TimelineComponentTestBase() {
 	@Test
 	fun `deleting the placed scene shows it missing`() = runTest(mainTestDispatcher) {
 		givenProject()
-		val placed = timelineService.placeScene(4, null, null, lane = null, milestone = false).event()
+		val placed = timelineService.placeScene(4, null, null, lane = null, milestone = false, timeline = TimelineDef.MAIN_ID).event()
 		val component = opened(placed.id)
 
 		sceneRepository.deleteScene(sceneRepository.getSceneItemFromId(4)!!)
@@ -913,7 +913,7 @@ class ViewTimeLineEventComponentTest : TimelineComponentTestBase() {
 	@Test
 	fun `deleting the placed entry shows it missing`() = runTest(mainTestDispatcher) {
 		givenProject()
-		val placed = timelineService.placeEntry(TEA_PARTY, null, null, lane = null, milestone = false).event()
+		val placed = timelineService.placeEntry(TEA_PARTY, null, null, lane = null, milestone = false, timeline = TimelineDef.MAIN_ID).event()
 		val component = opened(placed.id)
 
 		encyclopediaRepository.deleteEntry(encyclopediaRepository.findEntryDef(TEA_PARTY)!!)
@@ -947,7 +947,7 @@ class ViewTimeLineEventComponentTest : TimelineComponentTestBase() {
 		}
 		every { imagesService.imagePath(image) } returns HPath("/images/7.png", "7.png", true)
 		encyclopediaRepository.addPrimaryImage(encyclopediaRepository.findEntryDef(TEA_PARTY)!!, 7)
-		val placed = timelineService.placeEntry(TEA_PARTY, null, null, lane = null, milestone = false).event()
+		val placed = timelineService.placeEntry(TEA_PARTY, null, null, lane = null, milestone = false, timeline = TimelineDef.MAIN_ID).event()
 
 		val component = opened(placed.id)
 
@@ -959,7 +959,7 @@ class ViewTimeLineEventComponentTest : TimelineComponentTestBase() {
 	@Test
 	fun `changes to other scenes and entries leave the subject alone`() = runTest(mainTestDispatcher) {
 		givenProject()
-		val placed = timelineService.placeScene(4, null, null, lane = null, milestone = false).event()
+		val placed = timelineService.placeScene(4, null, null, lane = null, milestone = false, timeline = TimelineDef.MAIN_ID).event()
 		val component = opened(placed.id)
 		val before = component.state.value.subject
 
@@ -1015,7 +1015,7 @@ class ViewTimeLineEventComponentTest : TimelineComponentTestBase() {
 	@Test
 	fun `a straggler shows as manual with no timeline and can still be edited`() = runTest(mainTestDispatcher) {
 		givenProject()
-		timelineService.switchToDated(CalendarDef())
+		timelineService.switchToDated(CalendarDef(), timeline = TimelineDef.MAIN_ID)
 		val stray = timeLineRepository.createEvent(TimelineEventDraft(title = "Stray", timeline = "gone0001"))
 		val component = opened(stray.id)
 
@@ -1035,7 +1035,7 @@ class ViewTimeLineEventComponentTest : TimelineComponentTestBase() {
 		givenProject()
 		val before = gregorianTimeline()
 		val scratch = (timelineService.createTimeline("Scratch") as TimelineDefResult.Ok).def
-		val onMain = timelineService.placeScene(4, null, null, lane = null, milestone = false).event()
+		val onMain = timelineService.placeScene(4, null, null, lane = null, milestone = false, timeline = TimelineDef.MAIN_ID).event()
 		val onScratch = timelineService.placeScene(4, null, null, lane = null, milestone = false, timeline = scratch.id).event()
 		val onBefore = timelineService.placeScene(
 			4, gregorian("year" to 1923L), null, lane = null, milestone = false, timeline = before.id
@@ -1071,7 +1071,7 @@ class ViewTimeLineEventComponentTest : TimelineComponentTestBase() {
 	@Test
 	fun `moving to a dated timeline asks for a date the old one does not give, then moves`() = runTest(mainTestDispatcher) {
 		givenProject()
-		timelineService.switchToDated(CalendarDef(coarsestUnit = "hour"))
+		timelineService.switchToDated(CalendarDef(coarsestUnit = "hour"), timeline = TimelineDef.MAIN_ID)
 		val before = gregorianTimeline()
 		val letter = timelineService.createEvent(
 			TimelineEventDraft(title = "Letter", start = StoryDate(linkedMapOf("hour" to 22L)))

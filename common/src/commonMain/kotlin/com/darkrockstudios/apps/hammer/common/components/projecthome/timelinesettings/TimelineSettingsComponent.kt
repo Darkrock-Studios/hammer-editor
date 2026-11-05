@@ -4,6 +4,7 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
+import com.arkivanov.decompose.value.subscribe
 import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
 import com.darkrockstudios.apps.hammer.base.timeline.CalendarPreset
 import com.darkrockstudios.apps.hammer.base.timeline.CalendarUnit
@@ -13,12 +14,11 @@ import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.components.projecthome.timelinesettings.TimelineSettings.ModeSwitchPrompt
-import com.darkrockstudios.apps.hammer.common.components.timeline.TimelineSwitcher
+import com.darkrockstudios.apps.hammer.common.components.timeline.TimelineDefDialogs
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.EvenSpacing
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.StrResStoryDateWords
-import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineDefResult
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineResult
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineService
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.entryUnits
@@ -58,6 +58,12 @@ class TimelineSettingsComponent(
 	override val state: Value<TimelineSettings.State> = _state
 
 	private val editingId = MutableStateFlow(_state.value.editingId)
+
+	private val dialogs = TimelineDefDialogs(timelineService, scope, dispatcherMain)
+
+	init {
+		dialogs.state.subscribe(lifecycle) { switcher -> _state.getAndUpdate { it.copy(switcher = switcher) } }
+	}
 
 	@OptIn(ExperimentalCoroutinesApi::class)
 	override fun onCreate() {
@@ -112,90 +118,27 @@ class TimelineSettingsComponent(
 		pendingModeSwitch = null,
 		pendingCalendar = null,
 		datesLostOnPresetSwitch = null,
-		presetSwitchTimeline = null,
 		error = null,
 	)
 
-	override fun requestCreate() {
-		setSwitcher(TimelineSwitcher(dialog = TimelineSwitcher.Dialog.Create()))
-	}
+	override fun requestCreate() = dialogs.requestCreate()
 
-	override fun createTimeline(name: String, mode: TimelineMode, preset: CalendarPreset) {
-		val draft = TimelineSwitcher.Dialog.Create(name, mode, preset)
-		setSwitcher(TimelineSwitcher(dialog = draft))
-		scope.launch {
-			val calendar = if (mode == TimelineMode.DATED) CalendarDef(preset) else null
-			val result = timelineService.createTimeline(name, mode, calendar)
-			withContext(dispatcherMain) {
-				when (result) {
-					is TimelineDefResult.Ok -> closeIfOpen(draft)
-
-					is TimelineDefResult.Invalid -> refused(draft, result)
-				}
-			}
-		}
-	}
+	override fun createTimeline(name: String, mode: TimelineMode, preset: CalendarPreset) =
+		dialogs.create(name, mode, preset)
 
 	override fun requestRename(id: String) {
-		val def = _state.value.timelines.firstOrNull { it.def.id == id }?.def ?: return
-		setSwitcher(TimelineSwitcher(dialog = TimelineSwitcher.Dialog.Rename(def.id, def.name)))
+		_state.value.timelines.firstOrNull { it.def.id == id }?.let { dialogs.requestRename(it.def) }
 	}
 
-	override fun renameTimeline(name: String) {
-		val open = _state.value.switcher.dialog as? TimelineSwitcher.Dialog.Rename ?: return
-		val draft = open.copy(name = name)
-		setSwitcher(TimelineSwitcher(dialog = draft))
-		scope.launch {
-			val result = timelineService.renameTimeline(draft.timelineId, name)
-			withContext(dispatcherMain) {
-				when (result) {
-					is TimelineDefResult.Ok -> closeIfOpen(draft)
-					is TimelineDefResult.Invalid -> refused(draft, result)
-				}
-			}
-		}
-	}
+	override fun renameTimeline(name: String) = dialogs.rename(name)
 
 	override fun requestDelete(id: String) {
-		if (id == TimelineDef.MAIN_ID) return
-		val summary = _state.value.timelines.firstOrNull { it.def.id == id } ?: return
-		setSwitcher(
-			TimelineSwitcher(dialog = TimelineSwitcher.Dialog.Delete(summary.def.id, summary.def.name, summary.eventCount))
-		)
+		_state.value.timelines.firstOrNull { it.def.id == id }?.let(dialogs::requestDelete)
 	}
 
-	override fun confirmDelete() {
-		val open = _state.value.switcher.dialog as? TimelineSwitcher.Dialog.Delete ?: return
-		setSwitcher(TimelineSwitcher(dialog = open))
-		scope.launch {
-			val result = timelineService.deleteTimeline(open.timelineId)
-			withContext(dispatcherMain) {
-				when (result) {
-					is TimelineDefResult.Ok -> closeIfOpen(open)
-					is TimelineDefResult.Invalid -> refused(open, result)
-				}
-			}
-		}
-	}
+	override fun confirmDelete() = dialogs.confirmDelete()
 
-	override fun dismissDialog() {
-		setSwitcher(TimelineSwitcher())
-	}
-
-	private fun setSwitcher(switcher: TimelineSwitcher) {
-		_state.getAndUpdate { it.copy(switcher = switcher) }
-	}
-
-	// A dialog closed or replaced while its request ran is left as it is.
-	private fun closeIfOpen(dialog: TimelineSwitcher.Dialog) {
-		_state.getAndUpdate { if (it.switcher.dialog == dialog) it.copy(switcher = TimelineSwitcher()) else it }
-	}
-
-	private fun refused(dialog: TimelineSwitcher.Dialog, result: TimelineDefResult.Invalid) {
-		_state.getAndUpdate {
-			if (it.switcher.dialog == dialog) it.copy(switcher = it.switcher.copy(error = result.error)) else it
-		}
-	}
+	override fun dismissDialog() = dialogs.dismiss()
 
 	override fun requestMode(mode: TimelineMode) {
 		val current = _state.value
@@ -269,12 +212,14 @@ class TimelineSettingsComponent(
 			if (lost == 0) {
 				apply(timelineService.switchPreset(calendar, StrResStoryDateWords(strRes), def.id))
 				withContext(dispatcherMain) {
-					_state.getAndUpdate { it.copy(pendingCalendar = null, datesLostOnPresetSwitch = null, presetSwitchTimeline = null) }
+					_state.getAndUpdate { it.copy(pendingCalendar = null, datesLostOnPresetSwitch = null) }
 				}
 			} else {
 				withContext(dispatcherMain) {
+					// Dropped when another timeline was opened while the dates were counted.
 					_state.getAndUpdate {
-						it.copy(pendingCalendar = calendar, datesLostOnPresetSwitch = lost, presetSwitchTimeline = def, error = null)
+						if (it.editingId != def.id) it
+						else it.copy(pendingCalendar = calendar, datesLostOnPresetSwitch = lost, error = null)
 					}
 				}
 			}
@@ -283,13 +228,13 @@ class TimelineSettingsComponent(
 
 	override fun confirmPresetSwitch() {
 		val calendar = _state.value.pendingCalendar ?: return
-		val timeline = _state.value.presetSwitchTimeline?.id ?: _state.value.editingId
+		val timeline = _state.value.editingId
 		cancelPresetSwitch()
 		write { timelineService.switchPreset(calendar, StrResStoryDateWords(strRes), timeline) }
 	}
 
 	override fun cancelPresetSwitch() {
-		_state.getAndUpdate { it.copy(pendingCalendar = null, datesLostOnPresetSwitch = null, presetSwitchTimeline = null) }
+		_state.getAndUpdate { it.copy(pendingCalendar = null, datesLostOnPresetSwitch = null) }
 	}
 
 	override fun setEpochName(name: String) {

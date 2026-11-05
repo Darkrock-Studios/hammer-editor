@@ -438,7 +438,6 @@ class TimelineSettingsUiTest : BaseTest() {
 					editorOpen = true,
 					pendingCalendar = CalendarDef(CalendarPreset.STORY),
 					datesLostOnPresetSwitch = 3,
-					presetSwitchTimeline = backstory.def,
 				)
 			)
 		)

@@ -77,7 +77,7 @@ class SceneMetadataPanelTimelinesTest : TimelineComponentTestBase() {
 	@Test
 	fun `a scene on no timeline lists no timelines`() = runTest(mainTestDispatcher) {
 		givenProject()
-		timelineService.placeScene(5, null, null, null, false).event()
+		timelineService.placeScene(5, null, null, null, false, timeline = TimelineDef.MAIN_ID).event()
 
 		val component = opened(4)
 
@@ -91,7 +91,7 @@ class SceneMetadataPanelTimelinesTest : TimelineComponentTestBase() {
 		val before = timelineService.createTimeline("Before the evening", TimelineMode.DATED, gregorian).def()
 		val year = StoryDate(mapOf(StoryCalendar.YEAR to 1907L))
 		val onBefore = timelineService.placeScene(4, year, null, null, false, timeline = before.id).event()
-		val onMain = timelineService.placeScene(4, null, null, null, false, label = "Night").event()
+		val onMain = timelineService.placeScene(4, null, null, null, false, label = "Night", timeline = TimelineDef.MAIN_ID).event()
 
 		val component = opened(4)
 
@@ -110,7 +110,7 @@ class SceneMetadataPanelTimelinesTest : TimelineComponentTestBase() {
 		val backstory = timelineService.createTimeline("Backstory").def()
 		val component = opened(4)
 
-		val onMain = timelineService.placeScene(4, null, null, null, false).event()
+		val onMain = timelineService.placeScene(4, null, null, null, false, timeline = TimelineDef.MAIN_ID).event()
 		advanceUntilIdle()
 		assertEquals(listOf("Main"), component.state.value.timelines.map { it.timelineName })
 
@@ -130,7 +130,7 @@ class SceneMetadataPanelTimelinesTest : TimelineComponentTestBase() {
 	@Test
 	fun `a placement chip opens the event through the timeline deep link`() = runTest(mainTestDispatcher) {
 		givenProject()
-		val placed = timelineService.placeScene(4, null, null, null, false).event()
+		val placed = timelineService.placeScene(4, null, null, null, false, timeline = TimelineDef.MAIN_ID).event()
 		val component = opened(4)
 
 		component.showTimelinePlacement(component.state.value.timelines.single())

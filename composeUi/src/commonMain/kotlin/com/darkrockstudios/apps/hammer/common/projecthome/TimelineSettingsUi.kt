@@ -58,8 +58,8 @@ import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineSummary
 import com.darkrockstudios.apps.hammer.common.timeline.LaneSwatch
 import com.darkrockstudios.apps.hammer.common.timeline.TimelineSwitcherDialogs
+import com.darkrockstudios.apps.hammer.common.timeline.label
 import com.darkrockstudios.apps.hammer.common.timeline.toastText
-import com.darkrockstudios.apps.hammer.timeline_mode_dated
 import com.darkrockstudios.apps.hammer.timeline_mode_dialog_cancel
 import com.darkrockstudios.apps.hammer.timeline_mode_dialog_close
 import com.darkrockstudios.apps.hammer.timeline_mode_dialog_confirm
@@ -71,9 +71,6 @@ import com.darkrockstudios.apps.hammer.timeline_mode_dialog_manual_message
 import com.darkrockstudios.apps.hammer.timeline_mode_dialog_manual_title
 import com.darkrockstudios.apps.hammer.timeline_mode_dialog_manual_title_named
 import com.darkrockstudios.apps.hammer.timeline_mode_dialog_space_evenly
-import com.darkrockstudios.apps.hammer.timeline_mode_manual
-import com.darkrockstudios.apps.hammer.timeline_preset_gregorian
-import com.darkrockstudios.apps.hammer.timeline_preset_story
 import com.darkrockstudios.apps.hammer.timeline_preset_warning_cancel
 import com.darkrockstudios.apps.hammer.timeline_preset_warning_confirm
 import com.darkrockstudios.apps.hammer.timeline_preset_warning_label
@@ -231,7 +228,7 @@ internal fun TimelineEditor(
 			if (pending != null && lost != null) {
 				PresetWarning(
 					lost = lost,
-					timelineName = state.presetSwitchTimeline?.name?.takeIf { named },
+					timelineName = state.def.name.takeIf { named },
 					onConfirm = component::confirmPresetSwitch,
 					onCancel = component::cancelPresetSwitch,
 				)
@@ -365,18 +362,6 @@ private fun TimelineRow(summary: TimelineSummary, onEdit: () -> Unit, onRename: 
 		}
 	}
 }
-
-@Composable
-private fun TimelineMode.label(): String = when (this) {
-	TimelineMode.MANUAL -> Res.string.timeline_mode_manual
-	TimelineMode.DATED -> Res.string.timeline_mode_dated
-}.get()
-
-@Composable
-private fun CalendarPreset.label(): String = when (this) {
-	CalendarPreset.STORY -> Res.string.timeline_preset_story
-	CalendarPreset.GREGORIAN -> Res.string.timeline_preset_gregorian
-}.get()
 
 /** Commits trimmed text; keeps what is typed until the stored name changes to something else. */
 @Composable

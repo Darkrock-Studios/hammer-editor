@@ -20,7 +20,7 @@ interface TimelineSettings {
 
 	fun requestCreate()
 
-	/** Creates a timeline, DATED ones on [preset], and edits it; a refusal stays in [State.switcher] with the dialog open. */
+	/** Creates a timeline, DATED ones on [preset]; a refusal stays in [State.switcher] with the dialog open. */
 	fun createTimeline(name: String, mode: TimelineMode, preset: CalendarPreset)
 	fun requestRename(id: String)
 	fun renameTimeline(name: String)
@@ -66,12 +66,10 @@ interface TimelineSettings {
 		/** The lane order, then any other lane in use. */
 		val lanes: List<String> = emptyList(),
 		val pendingModeSwitch: ModeSwitchPrompt? = null,
-		/** A calendar change waiting on confirmation because it would take dates away. */
+		/** A calendar change for [editingId] waiting on confirmation because it would take dates away. */
 		val pendingCalendar: CalendarDef? = null,
 		/** How many entries [pendingCalendar] would take the start from; they keep it as a label. */
 		val datesLostOnPresetSwitch: Int? = null,
-		/** The timeline [pendingCalendar] is for. */
-		val presetSwitchTimeline: TimelineDef? = null,
 		/** The create, rename and delete dialogs, each with its own error. */
 		val switcher: TimelineSwitcher = TimelineSwitcher(),
 		/** Why the last mode, calendar or lane change was refused. */
@@ -88,12 +86,12 @@ interface TimelineSettings {
 			val units: List<CalendarUnit>,
 			val selectedUnit: String,
 			val calendar: CalendarDef,
-			override val timeline: TimelineDef = TimelineDef.DEFAULT,
+			override val timeline: TimelineDef,
 			override val eventCount: Int = 0,
 		) : ModeSwitchPrompt
 
 		data class ToManual(
-			override val timeline: TimelineDef = TimelineDef.DEFAULT,
+			override val timeline: TimelineDef,
 			override val eventCount: Int = 0,
 		) : ModeSwitchPrompt
 	}

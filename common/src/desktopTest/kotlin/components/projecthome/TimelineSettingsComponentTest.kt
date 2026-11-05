@@ -57,13 +57,13 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 
 		component.cancelModeSwitch()
 		assertNull(component.state.value.pendingModeSwitch)
-		assertEquals(TimelineMode.MANUAL, timelineService.definition()?.mode)
+		assertEquals(TimelineMode.MANUAL, timelineService.definition(TimelineDef.MAIN_ID)?.mode)
 	}
 
 	@Test
 	fun `a story told in hours offers its units from the hour`() = runTest(mainTestDispatcher) {
 		givenProject()
-		timelineService.updateDefinition { it.copy(calendar = CalendarDef(coarsestUnit = "hour")) }
+		timelineService.updateDefinition(TimelineDef.MAIN_ID) { it.copy(calendar = CalendarDef(coarsestUnit = "hour")) }
 		val component = newComponent()
 		context.resume()
 		advanceUntilIdle()
@@ -78,7 +78,7 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 	@Test
 	fun `a gregorian calendar spaces by the day unless told otherwise`() = runTest(mainTestDispatcher) {
 		givenProject()
-		timelineService.updateDefinition { it.copy(calendar = CalendarDef(CalendarPreset.GREGORIAN)) }
+		timelineService.updateDefinition(TimelineDef.MAIN_ID) { it.copy(calendar = CalendarDef(CalendarPreset.GREGORIAN)) }
 		val component = newComponent()
 		context.resume()
 		advanceUntilIdle()
@@ -104,7 +104,7 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 		component.confirmModeSwitch()
 		advanceUntilIdle()
 
-		val def = timelineService.definition()!!
+		val def = timelineService.definition(TimelineDef.MAIN_ID)!!
 		assertEquals(TimelineMode.DATED, def.mode)
 		assertEquals(CalendarDef(), def.calendar)
 		assertEquals(TimelineMode.DATED, component.state.value.def.mode)
@@ -118,7 +118,7 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 	@Test
 	fun `a gregorian switch starts at the first of January, year one`() = runTest(mainTestDispatcher) {
 		givenProject()
-		timelineService.updateDefinition { it.copy(calendar = CalendarDef(CalendarPreset.GREGORIAN)) }
+		timelineService.updateDefinition(TimelineDef.MAIN_ID) { it.copy(calendar = CalendarDef(CalendarPreset.GREGORIAN)) }
 		val first = createEvent("One")
 		val second = createEvent("Two")
 		val component = newComponent()
@@ -140,7 +140,7 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 		givenProject()
 		val late = createEvent("Late")
 		val early = createEvent("Early")
-		timelineService.switchToDated(CalendarDef())
+		timelineService.switchToDated(CalendarDef(), timeline = TimelineDef.MAIN_ID)
 		timelineService.setDates(late, date("year" to 9), null)
 		timelineService.setDates(early, date("year" to 2), null)
 		val component = newComponent()
@@ -152,7 +152,7 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 		component.confirmModeSwitch()
 		advanceUntilIdle()
 
-		assertEquals(TimelineMode.MANUAL, timelineService.definition()?.mode)
+		assertEquals(TimelineMode.MANUAL, timelineService.definition(TimelineDef.MAIN_ID)?.mode)
 		val ordered = timeLineRepository.currentEvents().sortedBy { it.order }
 		assertEquals(listOf(early, late), ordered.map { it.id })
 		assertEquals(date("year" to 9), ordered.last().start, "Dates stay")
@@ -163,7 +163,7 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 		givenProject()
 		val labelled = createEvent("Feast")
 		val unlabelled = createEvent("Storm")
-		timelineService.switchToDated(CalendarDef(CalendarPreset.GREGORIAN))
+		timelineService.switchToDated(CalendarDef(CalendarPreset.GREGORIAN), timeline = TimelineDef.MAIN_ID)
 		timelineService.setDates(unlabelled, date("year" to 1811, "month" to 11), null)
 		timelineService.setLabel(labelled, "Midsummer")
 		val component = newComponent()
@@ -184,7 +184,7 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 		runTest(mainTestDispatcher) {
 			givenProject()
 			val event = createEvent("Storm")
-			timelineService.switchToDated(CalendarDef())
+			timelineService.switchToDated(CalendarDef(), timeline = TimelineDef.MAIN_ID)
 			timelineService.setDates(event, date("year" to 5, "day" to 10), null)
 			val component = newComponent()
 			context.resume()
@@ -195,12 +195,12 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 
 			assertEquals(CalendarDef(CalendarPreset.GREGORIAN), component.state.value.pendingCalendar)
 			assertEquals(1, component.state.value.datesLostOnPresetSwitch)
-			assertEquals(CalendarPreset.STORY, timelineService.definition()?.calendar?.preset)
+			assertEquals(CalendarPreset.STORY, timelineService.definition(TimelineDef.MAIN_ID)?.calendar?.preset)
 
 			component.confirmPresetSwitch()
 			advanceUntilIdle()
 
-			assertEquals(CalendarPreset.GREGORIAN, timelineService.definition()?.calendar?.preset)
+			assertEquals(CalendarPreset.GREGORIAN, timelineService.definition(TimelineDef.MAIN_ID)?.calendar?.preset)
 			assertNull(component.state.value.pendingCalendar)
 			val stored = timeLineRepository.currentEvents().single()
 			assertNull(stored.start)
@@ -211,7 +211,7 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 	fun `a preset switch that loses nothing applies at once`() = runTest(mainTestDispatcher) {
 		givenProject()
 		createEvent("Storm")
-		timelineService.switchToDated(CalendarDef())
+		timelineService.switchToDated(CalendarDef(), timeline = TimelineDef.MAIN_ID)
 		val component = newComponent()
 		context.resume()
 		advanceUntilIdle()
@@ -220,7 +220,7 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 		advanceUntilIdle()
 
 		assertNull(component.state.value.pendingCalendar)
-		assertEquals(CalendarPreset.GREGORIAN, timelineService.definition()?.calendar?.preset)
+		assertEquals(CalendarPreset.GREGORIAN, timelineService.definition(TimelineDef.MAIN_ID)?.calendar?.preset)
 		assertEquals(CalendarPreset.GREGORIAN, component.state.value.def.calendar?.preset)
 	}
 
@@ -228,7 +228,7 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 	fun `a cancelled preset switch changes nothing`() = runTest(mainTestDispatcher) {
 		givenProject()
 		val event = createEvent("Storm")
-		timelineService.switchToDated(CalendarDef())
+		timelineService.switchToDated(CalendarDef(), timeline = TimelineDef.MAIN_ID)
 		timelineService.setDates(event, date("year" to 5, "day" to 10), null)
 		val component = newComponent()
 		context.resume()
@@ -240,14 +240,14 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 		advanceUntilIdle()
 
 		assertNull(component.state.value.pendingCalendar)
-		assertEquals(CalendarPreset.STORY, timelineService.definition()?.calendar?.preset)
+		assertEquals(CalendarPreset.STORY, timelineService.definition(TimelineDef.MAIN_ID)?.calendar?.preset)
 		assertEquals(date("year" to 5, "day" to 10), timeLineRepository.currentEvents().single().start)
 	}
 
 	@Test
 	fun `the epoch and the coarsest unit write through`() = runTest(mainTestDispatcher) {
 		givenProject()
-		timelineService.switchToDated(CalendarDef())
+		timelineService.switchToDated(CalendarDef(), timeline = TimelineDef.MAIN_ID)
 		val component = newComponent()
 		context.resume()
 		advanceUntilIdle()
@@ -257,17 +257,17 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 		component.setCoarsestUnit("hour")
 		advanceUntilIdle()
 
-		assertEquals(CalendarDef(epochName = "The Landing", coarsestUnit = "hour"), timelineService.definition()?.calendar)
+		assertEquals(CalendarDef(epochName = "The Landing", coarsestUnit = "hour"), timelineService.definition(TimelineDef.MAIN_ID)?.calendar)
 
 		component.setCoarsestUnit("year")
 		advanceUntilIdle()
-		assertNull(timelineService.definition()?.calendar?.coarsestUnit)
+		assertNull(timelineService.definition(TimelineDef.MAIN_ID)?.calendar?.coarsestUnit)
 	}
 
 	@Test
 	fun `typing an epoch writes once, after the typing pauses`() = runTest(mainTestDispatcher) {
 		givenProject()
-		timelineService.switchToDated(CalendarDef())
+		timelineService.switchToDated(CalendarDef(), timeline = TimelineDef.MAIN_ID)
 		val component = newComponent()
 		context.resume()
 		advanceUntilIdle()
@@ -284,18 +284,18 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 		component.setEpochName("Lan")
 		advanceTimeBy(599)
 		runCurrent()
-		assertNull(timelineService.definition()?.calendar?.epochName, "Nothing is written while typing")
+		assertNull(timelineService.definition(TimelineDef.MAIN_ID)?.calendar?.epochName, "Nothing is written while typing")
 
 		advanceUntilIdle()
 
-		assertEquals("Lan", timelineService.definition()?.calendar?.epochName)
+		assertEquals("Lan", timelineService.definition(TimelineDef.MAIN_ID)?.calendar?.epochName)
 		assertEquals(listOf(null, "Lan"), stored)
 	}
 
 	@Test
 	fun `an epoch still waiting is written when the settings close`() = runTest(mainTestDispatcher) {
 		givenProject()
-		timelineService.switchToDated(CalendarDef())
+		timelineService.switchToDated(CalendarDef(), timeline = TimelineDef.MAIN_ID)
 		val component = newComponent()
 		context.resume()
 		advanceUntilIdle()
@@ -304,7 +304,7 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 		context.destroy()
 		advanceUntilIdle()
 
-		assertEquals("Landing", timelineService.definition()?.calendar?.epochName)
+		assertEquals("Landing", timelineService.definition(TimelineDef.MAIN_ID)?.calendar?.epochName)
 	}
 
 	@Test
@@ -320,7 +320,7 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 		component.setLaneOrder(listOf("Queen", "Alice"))
 		advanceUntilIdle()
 
-		assertEquals(listOf("Queen", "Alice"), timelineService.definition()?.laneOrder)
+		assertEquals(listOf("Queen", "Alice"), timelineService.definition(TimelineDef.MAIN_ID)?.laneOrder)
 		assertEquals(listOf("Queen", "Alice"), component.state.value.lanes)
 	}
 
@@ -397,7 +397,7 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 		assertEquals(TimelineMode.DATED, edited.mode)
 		assertEquals(listOf("Pike", "Hayes"), edited.laneOrder)
 		assertEquals(TimelineMode.DATED, component.state.value.def.mode)
-		assertEquals(TimelineDef.DEFAULT, timelineService.definition())
+		assertEquals(TimelineDef.DEFAULT, timelineService.definition(TimelineDef.MAIN_ID))
 		val starts = timeLineRepository.currentEvents().associate { it.id to it.start }
 		assertEquals(date("year" to 0, "day" to 0), starts[first])
 		assertEquals(date("year" to 0, "day" to 1), starts[second])
@@ -407,7 +407,7 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 	@Test
 	fun `a preset warning counts only the edited timeline's dates`() = runTest(mainTestDispatcher) {
 		givenProject()
-		timelineService.switchToDated(CalendarDef())
+		timelineService.switchToDated(CalendarDef(), timeline = TimelineDef.MAIN_ID)
 		val before = newTimeline("Before", TimelineMode.DATED)
 		createEvent("Main", start = date("year" to 5, "day" to 3))
 		createEvent("Before", start = date("year" to 5, "day" to 3), timeline = before.id)
@@ -420,18 +420,37 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 		advanceUntilIdle()
 
 		assertEquals(1, component.state.value.datesLostOnPresetSwitch)
-		assertEquals(before.id, component.state.value.presetSwitchTimeline?.id)
+		assertEquals(before.id, component.state.value.editingId)
 		component.confirmPresetSwitch()
 		advanceUntilIdle()
 
 		assertEquals(CalendarPreset.GREGORIAN, timelineService.definition(before.id)?.calendar?.preset)
-		assertEquals(CalendarDef(), timelineService.definition()?.calendar)
+		assertEquals(CalendarDef(), timelineService.definition(TimelineDef.MAIN_ID)?.calendar)
+	}
+
+	@Test
+	fun `a preset warning counted after another timeline opened is dropped`() = runTest(mainTestDispatcher) {
+		givenProject()
+		timelineService.switchToDated(CalendarDef(), timeline = TimelineDef.MAIN_ID)
+		val before = newTimeline("Before", TimelineMode.DATED)
+		createEvent("Before", start = date("year" to 5, "day" to 3), timeline = before.id)
+		val component = newComponent()
+		context.resume()
+		component.editTimeline(before.id)
+		advanceUntilIdle()
+
+		component.setPreset(CalendarPreset.GREGORIAN)
+		component.editTimeline(TimelineDef.MAIN_ID)
+		advanceUntilIdle()
+
+		assertNull(component.state.value.pendingCalendar)
+		assertEquals(CalendarDef(), timelineService.definition(before.id)?.calendar)
 	}
 
 	@Test
 	fun `an epoch typed before a switch is written to the timeline it was typed for`() = runTest(mainTestDispatcher) {
 		givenProject()
-		timelineService.switchToDated(CalendarDef())
+		timelineService.switchToDated(CalendarDef(), timeline = TimelineDef.MAIN_ID)
 		val before = newTimeline("Before", TimelineMode.DATED)
 		val component = newComponent()
 		context.resume()
@@ -444,13 +463,13 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 		advanceUntilIdle()
 
 		assertEquals("The letter", timelineService.definition(before.id)?.calendar?.epochName)
-		assertNull(timelineService.definition()?.calendar?.epochName)
+		assertNull(timelineService.definition(TimelineDef.MAIN_ID)?.calendar?.epochName)
 	}
 
 	@Test
 	fun `an epoch waiting for one timeline is not lost to typing on another`() = runTest(mainTestDispatcher) {
 		givenProject()
-		timelineService.switchToDated(CalendarDef())
+		timelineService.switchToDated(CalendarDef(), timeline = TimelineDef.MAIN_ID)
 		val before = newTimeline("Before", TimelineMode.DATED)
 		val component = newComponent()
 		context.resume()
@@ -463,7 +482,7 @@ class TimelineSettingsComponentTest : TimelineComponentTestBase() {
 		advanceUntilIdle()
 
 		assertEquals("The letter", timelineService.definition(before.id)?.calendar?.epochName)
-		assertEquals("The dinner bell", timelineService.definition()?.calendar?.epochName)
+		assertEquals("The dinner bell", timelineService.definition(TimelineDef.MAIN_ID)?.calendar?.epochName)
 	}
 
 	@Test

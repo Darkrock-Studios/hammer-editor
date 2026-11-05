@@ -246,7 +246,7 @@ class TimelineService(
 	suspend fun event(eventId: Int): TimeLineEvent? = findEvent(eventId)
 
 	/** Live timeline [timeline], or null when there is none. Main is always there. */
-	suspend fun definition(timeline: String = TimelineDef.MAIN_ID): TimelineDef? =
+	suspend fun definition(timeline: String): TimelineDef? =
 		projectDataRepository.load().data.timelineDef(timeline)
 
 	/**
@@ -256,7 +256,7 @@ class TimelineService(
 	 * is not checked unless it changes, so a def that arrived with one the rules refuse can still be edited.
 	 */
 	suspend fun updateDefinition(
-		timeline: String = TimelineDef.MAIN_ID,
+		timeline: String,
 		transform: (TimelineDef) -> TimelineDef,
 	): TimelineResult {
 		val events = timeLineRepository.currentEvents()
@@ -280,13 +280,14 @@ class TimelineService(
 	// region Timelines
 
 	/**
-	 * A new timeline named [name], trimmed, which no other live timeline has in any case. Its id is
-	 * fresh: never a live one, nor one deleted before.
+	 * A new timeline named [name], trimmed, which no other live timeline has in any case, with lanes in
+	 * [laneOrder]. Its id is fresh: never a live one, nor one deleted before.
 	 */
 	suspend fun createTimeline(
 		name: String,
 		mode: TimelineMode = TimelineMode.MANUAL,
 		calendar: CalendarDef? = null,
+		laneOrder: List<String> = emptyList(),
 	): TimelineDefResult = writeLock.withLock {
 		var outcome: TimelineDefResult = TimelineDefResult.Invalid(TimeLineEventError.TIMELINE_NAME_INVALID)
 		projectDataRepository.updateData { data ->
@@ -294,7 +295,7 @@ class TimelineService(
 			var id = nextTimelineId()
 			while (id in taken) id = nextTimelineId()
 
-			val def = TimelineDef(id = id, name = name.trim(), mode = mode, calendar = calendar)
+			val def = TimelineDef(id = id, name = name.trim(), mode = mode, calendar = calendar, laneOrder = laneOrder)
 			val error = (if (isValidTimelineId(def.id)) TimeLineEventError.NONE else TimeLineEventError.TIMELINE_NOT_FOUND)
 				.orElse { nameProblem(data, def.name, def.id) }
 				.orElse { definitionProblem(def) }
@@ -375,16 +376,63 @@ class TimelineService(
 		val data = projectDataRepository.load().data
 		val targetDef = data.timelineDef(target) ?: return invalid(TimeLineEventError.TIMELINE_NOT_FOUND)
 		if (existing.timelineId == targetDef.id) return invalid(TimeLineEventError.SAME_TIMELINE)
+
+		when (val landing = landing(existing, events, data, targetDef, start, end, allowUndated, words, edit)) {
+			is Landing.Refused -> invalid(landing.error)
+			is Landing.Landed -> {
+				timeLineRepository.updateEvent(landing.event)
+				TimelineResult.Ok(findEvent(eventId))
+			}
+		}
+	}
+
+	/**
+	 * Moves every event whose timeline is not live to live timeline [target] in one write, as
+	 * [moveToTimeline] with allowUndated would. A placement whose subject is already on [target] stays
+	 * behind. Returns how many moved; none when [target] is not live.
+	 */
+	suspend fun moveOrphans(target: String, words: StoryDateWords = StoryDateWords.English): Int = writeLock.withLock {
+		val data = projectDataRepository.load().data
+		val targetDef = data.timelineDef(target) ?: return 0
+		var events = timeLineRepository.currentEvents()
+		val moved = orphansOf(events).sortedBy { it.order }.mapNotNull { orphan ->
+			// Each landing sees the ones before it, for the next order and the placements already there.
+			val landing = landing(orphan, events, data, targetDef, allowUndated = true, words = words)
+			(landing as? Landing.Landed)?.event?.also { landed ->
+				events = events.map { if (it.id == landed.id) landed else it }
+			}
+		}
+		if (moved.isNotEmpty()) timeLineRepository.updateEvents(moved)
+		moved.size
+	}
+
+	private sealed interface Landing {
+		data class Landed(val event: TimeLineEvent) : Landing
+		data class Refused(val error: TimeLineEventError) : Landing
+	}
+
+	/** [existing] as [moveToTimeline] would land it on [targetDef], among [events], or why it cannot. */
+	private suspend fun landing(
+		existing: TimeLineEvent,
+		events: List<TimeLineEvent>,
+		data: ProjectData,
+		targetDef: TimelineDef,
+		start: StoryDate? = null,
+		end: StoryDate? = null,
+		allowUndated: Boolean = false,
+		words: StoryDateWords = StoryDateWords.English,
+		edit: (TimeLineEvent) -> TimeLineEvent = { it },
+	): Landing {
 		val subject = existing.subject
-		if (existing.kind.isPlacement && subject != null &&
-			timeLineRepository.findPlacement(existing.kind, subject, targetDef.id) != null
+		if (existing.kind.isPlacement && subject != null && events.any {
+				it.id != existing.id && it.kind == existing.kind && it.subject == subject && it.timelineId == targetDef.id
+			}
 		) {
-			return invalid(TimeLineEventError.DUPLICATE_PLACEMENT)
+			return Landing.Refused(TimeLineEventError.DUPLICATE_PLACEMENT)
 		}
 
-		val given = start != null
-		val dates = if (given) DateRange(start, end) else carriedDates(existing, targetDef, allowUndated)
-			?: return invalid(
+		val dates = if (start != null) DateRange(start, end) else carriedDates(existing, targetDef, allowUndated)
+			?: return Landing.Refused(
 				if (existing.start == null) TimeLineEventError.DATE_REQUIRED else TimeLineEventError.DATE_INVALID
 			)
 		val label = if (targetDef.mode == TimelineMode.MANUAL) {
@@ -401,7 +449,7 @@ class TimelineService(
 		)
 		val edited = edit(carried)
 		if (edited.kind != carried.kind || edited.subject != carried.subject) {
-			return invalid(TimeLineEventError.SUBJECT_NOT_ALLOWED)
+			return Landing.Refused(TimeLineEventError.SUBJECT_NOT_ALLOWED)
 		}
 		val moved = if (carried.kind.isPlacement) {
 			carried.copy(
@@ -423,10 +471,7 @@ class TimelineService(
 		val error = timeLineRepository.validate(moved).orElse {
 			if (undatedAllowed) TimeLineEventError.NONE else dateProblem(targetDef, moved.start, moved.end)
 		}.orElse { referenceProblem(moved.references - existing.references) }
-		if (!error.isSuccess) return invalid(error)
-
-		timeLineRepository.updateEvent(moved)
-		TimelineResult.Ok(findEvent(eventId))
+		return if (error.isSuccess) Landing.Landed(moved) else Landing.Refused(error)
 	}
 
 	/**
@@ -475,7 +520,7 @@ class TimelineService(
 		lane: String?,
 		milestone: Boolean,
 		label: String? = null,
-		timeline: String = TimelineDef.MAIN_ID,
+		timeline: String,
 	): TimelineResult {
 		val scene = withContext(dispatcherIo) { sceneRepository.getSceneItemFromIdIncludingArchived(sceneId) }
 		val subjectError = when {
@@ -495,7 +540,7 @@ class TimelineService(
 		lane: String?,
 		milestone: Boolean,
 		label: String? = null,
-		timeline: String = TimelineDef.MAIN_ID,
+		timeline: String,
 	): TimelineResult {
 		val entry = withContext(dispatcherIo) { encyclopediaRepository.findEntryDef(entryId) }
 		val subjectError = when {
@@ -678,7 +723,7 @@ class TimelineService(
 	suspend fun switchToDated(
 		calendar: CalendarDef,
 		spacing: EvenSpacing? = null,
-		timeline: String = TimelineDef.MAIN_ID,
+		timeline: String,
 	): TimelineResult = writeLock.withLock {
 		val def = liveDef(timeline) ?: return invalid(TimeLineEventError.TIMELINE_NOT_FOUND)
 		val revisionError = revisionProblem(def) { it.copy(mode = TimelineMode.DATED, calendar = calendar) }
@@ -709,7 +754,7 @@ class TimelineService(
 	 */
 	suspend fun switchToManual(
 		words: StoryDateWords = StoryDateWords.English,
-		timeline: String = TimelineDef.MAIN_ID,
+		timeline: String,
 	): TimelineResult = writeLock.withLock {
 		val def = liveDef(timeline) ?: return invalid(TimeLineEventError.TIMELINE_NOT_FOUND)
 		val revisionError = revisionProblem(def) { it.copy(mode = TimelineMode.MANUAL) }
@@ -726,7 +771,7 @@ class TimelineService(
 	}
 
 	/** How many of [timeline]'s events [switchPreset] to [calendar] would take the start date from. */
-	suspend fun countDatesLostBySwitch(calendar: CalendarDef, timeline: String = TimelineDef.MAIN_ID): Int =
+	suspend fun countDatesLostBySwitch(calendar: CalendarDef, timeline: String): Int =
 		timeLineRepository.currentEvents().count {
 			it.timelineId == timeline && it.start != null && !hasValidStart(it, calendar)
 		}
@@ -739,7 +784,7 @@ class TimelineService(
 	suspend fun switchPreset(
 		calendar: CalendarDef,
 		words: StoryDateWords = StoryDateWords.English,
-		timeline: String = TimelineDef.MAIN_ID,
+		timeline: String,
 	): TimelineResult = writeLock.withLock {
 		val def = liveDef(timeline) ?: return invalid(TimeLineEventError.TIMELINE_NOT_FOUND)
 		val revisionError = revisionProblem(def) { it.copy(calendar = calendar) }
@@ -897,7 +942,7 @@ class TimelineService(
 	}
 
 	/** [timeline]'s lane order, then any other lane its events use, alphabetically. */
-	suspend fun lanes(timeline: String = TimelineDef.MAIN_ID): List<String> {
+	suspend fun lanes(timeline: String): List<String> {
 		val ordered = definition(timeline)?.laneOrder.orEmpty()
 		val others = eventsOf(timeline)
 			.mapNotNull { it.lane }

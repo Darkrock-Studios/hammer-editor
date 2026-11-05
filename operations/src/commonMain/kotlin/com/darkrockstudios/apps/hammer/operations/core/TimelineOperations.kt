@@ -171,19 +171,14 @@ internal fun timelineOperations(): List<Operation<*, *>> = listOf(
 		val laneOrder = input.laneOrder.toLaneOrder()
 
 		projects.withProject(input.project) { project ->
-			val timeline = project.timelineService()
-			val created = when (val result = timeline.createTimeline(input.name, mode.toMode(), calendar)) {
+			when (val result = project.timelineService().createTimeline(input.name, mode.toMode(), calendar, laneOrder)) {
 				is TimelineDefResult.Invalid -> {
 					result.error.requireNone()
 					error("Timeline error NONE reported as invalid")
 				}
 
-				is TimelineDefResult.Ok -> result.def
+				is TimelineDefResult.Ok -> TimelineDefDto(result.def)
 			}
-			if (laneOrder.isNotEmpty()) {
-				timeline.updateDefinition(created.id) { it.copy(laneOrder = laneOrder) }.requireOk()
-			}
-			TimelineDefDto(timeline.definition(created.id) ?: created)
 		}
 	},
 	operation<TimelineDefDeleteInput, TimelineDefDeleted>(

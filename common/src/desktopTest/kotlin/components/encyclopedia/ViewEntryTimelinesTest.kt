@@ -79,7 +79,7 @@ class ViewEntryTimelinesTest : TimelineComponentTestBase() {
 	fun `an event entry on two timelines lists both and follows a deletion`() = runTest(mainTestDispatcher) {
 		givenProject()
 		val backstory = timelineService.createTimeline("Backstory").def()
-		val onMain = timelineService.placeEntry(TEA_PARTY, null, null, null, false).event()
+		val onMain = timelineService.placeEntry(TEA_PARTY, null, null, null, false, timeline = TimelineDef.MAIN_ID).event()
 		val onBackstory = timelineService.placeEntry(TEA_PARTY, null, null, null, false, label = "Years before", timeline = backstory.id).event()
 
 		val component = opened(entry(TEA_PARTY))
@@ -104,7 +104,7 @@ class ViewEntryTimelinesTest : TimelineComponentTestBase() {
 		val component = opened(entry(TEA_PARTY))
 		assertEquals(emptyList(), component.state.value.timelines)
 
-		val placed = timelineService.placeEntry(TEA_PARTY, null, null, null, false).event()
+		val placed = timelineService.placeEntry(TEA_PARTY, null, null, null, false, timeline = TimelineDef.MAIN_ID).event()
 		advanceUntilIdle()
 
 		assertEquals(listOf(placed.id), component.state.value.timelines.map { it.eventId })
@@ -113,7 +113,7 @@ class ViewEntryTimelinesTest : TimelineComponentTestBase() {
 	@Test
 	fun `a placement chip opens the event through the timeline deep link`() = runTest(mainTestDispatcher) {
 		givenProject()
-		val placed = timelineService.placeEntry(TEA_PARTY, null, null, null, false).event()
+		val placed = timelineService.placeEntry(TEA_PARTY, null, null, null, false, timeline = TimelineDef.MAIN_ID).event()
 		val component = opened(entry(TEA_PARTY))
 
 		component.showTimelinePlacement(component.state.value.timelines.single())

@@ -67,7 +67,7 @@ fun TimelineSettingsUiModeDialogPreview() {
 		TimelineSettings.State(
 			def = TimelineDef.DEFAULT,
 			lanes = previewLanes,
-			pendingModeSwitch = ModeSwitchPrompt.ToDated(units, units.first().name, storyCalendar),
+			pendingModeSwitch = ModeSwitchPrompt.ToDated(units, units.first().name, storyCalendar, TimelineDef.DEFAULT),
 		)
 	)
 }
@@ -150,8 +150,8 @@ internal class PreviewTimelineSettings(initial: TimelineSettings.State) : Timeli
 		val calendar = _state.value.def.calendar ?: CalendarDef()
 		val units = entryUnits(calendar)
 		val prompt = when (mode) {
-			TimelineMode.DATED -> ModeSwitchPrompt.ToDated(units, units.first().name, calendar)
-			TimelineMode.MANUAL -> ModeSwitchPrompt.ToManual()
+			TimelineMode.DATED -> ModeSwitchPrompt.ToDated(units, units.first().name, calendar, _state.value.def)
+			TimelineMode.MANUAL -> ModeSwitchPrompt.ToManual(_state.value.def)
 		}
 		if (mode != _state.value.def.mode) _state.value = _state.value.copy(pendingModeSwitch = prompt)
 	}

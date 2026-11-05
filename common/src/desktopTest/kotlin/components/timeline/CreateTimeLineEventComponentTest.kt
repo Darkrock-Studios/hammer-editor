@@ -176,7 +176,7 @@ class CreateTimeLineEventComponentTest : TimelineComponentTestBase() {
 	@Test
 	fun `a dated timeline needs a start`() = runTest(mainTestDispatcher) {
 		givenProject()
-		timelineService.switchToDated(CalendarDef())
+		timelineService.switchToDated(CalendarDef(), timeline = TimelineDef.MAIN_ID)
 		val component = newComponent()
 		context.resume()
 		advanceUntilIdle()
@@ -191,7 +191,7 @@ class CreateTimeLineEventComponentTest : TimelineComponentTestBase() {
 	@Test
 	fun `on a dated timeline the start and end reach the stored event`() = runTest(mainTestDispatcher) {
 		givenProject()
-		timelineService.switchToDated(CalendarDef())
+		timelineService.switchToDated(CalendarDef(), timeline = TimelineDef.MAIN_ID)
 		val component = newComponent()
 		context.resume()
 		advanceUntilIdle()
@@ -298,7 +298,7 @@ class CreateTimeLineEventComponentTest : TimelineComponentTestBase() {
 		runTest(mainTestDispatcher) {
 			givenProject()
 			val before = gregorianTimeline()
-			timelineService.placeScene(4, null, null, lane = null, milestone = false)
+			timelineService.placeScene(4, null, null, lane = null, milestone = false, timeline = TimelineDef.MAIN_ID)
 			timelineService.placeEntry(TEA_PARTY, StoryDate(linkedMapOf("year" to 1923L)), null, lane = null, milestone = false, timeline = before)
 			val component = newComponent(timelineId = before)
 			context.resume()

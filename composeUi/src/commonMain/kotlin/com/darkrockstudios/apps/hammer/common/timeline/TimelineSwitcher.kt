@@ -518,13 +518,13 @@ internal fun errorText(error: TimeLineEventError?): String? {
 }
 
 @Composable
-private fun TimelineMode.label(): String = when (this) {
+internal fun TimelineMode.label(): String = when (this) {
 	TimelineMode.MANUAL -> Res.string.timeline_mode_manual
 	TimelineMode.DATED -> Res.string.timeline_mode_dated
 }.get()
 
 @Composable
-private fun CalendarPreset.label(): String = when (this) {
+internal fun CalendarPreset.label(): String = when (this) {
 	CalendarPreset.STORY -> Res.string.timeline_preset_story
 	CalendarPreset.GREGORIAN -> Res.string.timeline_preset_gregorian
 }.get()
