@@ -199,7 +199,7 @@ class PluginPackage(
 					is OperationGrant.Named -> grant.name in PLUGIN_WITHHELD_OPERATIONS
 					is OperationGrant.Scoped -> withheldOps.any { it.scope == grant.scope && it.access == grant.access }
 				}
-				if (withheld) throw PluginPackageException("'$entry' cannot be granted: plugins may not change the sync account or sync")
+				if (withheld) throw PluginPackageException("'$entry' cannot be granted: plugins may not change the sync account, sync, or install or remove plugins")
 			}
 			manifest.permissions.http.firstOrNull { !HOST_NAME.matches(it) }?.let {
 				throw PluginPackageException("'$it' in permissions.http is not a host name")

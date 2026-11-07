@@ -59,9 +59,16 @@ enum class OperationScope {
 /**
  * Operations no plugin may hold, by any grant. Logged in to a server of its choosing, a plugin could
  * sync every project there, and the app's own account screens apply safeguards these operations do
- * not, such as refusing while a project is open.
+ * not, such as refusing while a project is open. Installing grants a plugin its permissions with no
+ * prompt, so a plugin that could install one could grant itself anything.
  */
-val PLUGIN_WITHHELD_OPERATIONS: Set<String> = setOf("account.login", "account.logout", "sync.run")
+val PLUGIN_WITHHELD_OPERATIONS: Set<String> = setOf(
+	"account.login",
+	"account.logout",
+	"sync.run",
+	"plugin.install",
+	"plugin.uninstall",
+)
 
 /** Input of an operation that takes none; `{}` in JSON. */
 @Serializable

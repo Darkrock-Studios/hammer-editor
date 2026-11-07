@@ -13,8 +13,8 @@ import kotlinx.serialization.Serializable
 import okio.Path.Companion.toPath
 import org.koin.mp.KoinPlatform
 
-// Installing grants a plugin its manifest's permissions with no prompt, so both changes are Destructive:
-// the CLI asks for --confirm, and no plugin gets them through a scope.
+// Installing grants a plugin its manifest's permissions with no prompt, so both changes are Destructive,
+// for which the CLI asks for --confirm, and in PLUGIN_WITHHELD_OPERATIONS.
 internal fun pluginOperations(): List<Operation<*, *>> = listOf(
 	operation<NoInput, PluginList>(
 		name = "plugin.list",

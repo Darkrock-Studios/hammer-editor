@@ -390,8 +390,12 @@ the app runs its own sync and login, and refuses these over the socket (see
 | `plugin.uninstall` | Destructive | Removes the package, its cache, and its secrets; its other settings stay for a reinstall |
 
 These are the `plugins` scope. Installing grants a plugin its permissions with
-no prompt, so both changes are Destructive: the CLI asks for `--confirm`, and a
-plugin only gets them by naming them. The operations live in `:operations`
+no prompt, so both changes are Destructive, for which the CLI asks for
+`--confirm`. A plugin may list plugins, through `plugins:read` or by naming
+`plugin.list`, but never install or remove one: a plugin that could install
+another could grant itself anything, past the prompt the writer approves. Both
+are in `PLUGIN_WITHHELD_OPERATIONS`, which the test keeps to every change in
+this scope and `account`, so a package naming either is refused at install. The operations live in `:operations`
 behind `PluginInstaller`, which `RuntimePlugins` implements, since
 `:operations` cannot depend on `:plugins:wasmhost`. The path must be absolute,
 because a forwarded call resolves it in the app, not the shell.
@@ -891,8 +895,8 @@ Kotlin/Wasm. The host provides only generic pieces: plugin commands, scope
 grants, and `ops.list` filtered to the grants.
 
 Its manifest requests `content:read` and `plugins:read`, then by name the writes
-that organize a project, the deletes of everything inside one, and plugin
-install and uninstall, and declares a `mcp` command. An MCP client launches `hammer mcp` as a child process and
+that organize a project and the deletes of everything inside one, and declares
+a `mcp` command. An MCP client launches `hammer mcp` as a child process and
 speaks JSON-RPC over stdio, one message per line; the host hands each line to
 the plugin (see [Commands](#commands)). The plugin answers `initialize`,
 `ping`, `tools/list`, and `tools/call`, and ignores notifications.
@@ -917,16 +921,15 @@ which no scope grant covers, so a plugin reaches one only by naming it and the
 writer sees it at install under its own heading. The CLI still writes scenes
 for the writer's own scripts.
 
-**Settings.** Three settings, all off by default, gate what it does request.
+**Settings.** Two settings, both off by default, gate what it does request.
 "Let AI agents make changes" offers the writes: creating, renaming, moving, and
 archiving scenes, scene outlines, tags, and references, drafts as snapshots, notes,
 encyclopedia entries and their images, the timeline, ideas, projects, and
 backups. "Let AI agents delete things" offers the deletes, with MCP's
 `destructiveHint`, so a client can warn before running one; `project.delete` is
-never requested. "Let AI agents install and remove plugins", a `danger`
-setting, offers `plugin.install` and `plugin.uninstall`; `plugin.list` is
-always offered. While a setting is off, its tools are not tools at all.
-Granting by name at install, the setting, and the client's own prompt before a
+never requested. `plugin.list` is always offered; an agent that installs or
+removes plugins runs the CLI. While a setting is off, its tools are not tools
+at all. Granting by name at install, the setting, and the client's own prompt before a
 tool call stand in for the CLI's `--confirm`. Settings are read for every
 message, so turning one off applies to a running server; tools a setting adds
 appear once the client lists tools again, which most do on reconnecting.
@@ -2031,8 +2034,9 @@ Plugins are untrusted code:
   that asks to does not load, and Settings lists it as unreadable.
 - **Install and removal.** Manage plugins, from Settings or a project's
   settings, has install from file, enable and disable, and uninstall, with the
-  permission prompt at install. `hammer plugin install` and the MCP plugin's
-  tool install with no prompt, so they need `--confirm` or a `danger` setting.
+  permission prompt at install. `hammer plugin install` installs with no
+  prompt, so it needs `--confirm`. No plugin installs or removes one; see
+  [Plugins](#plugins).
 - **Unsigned packages.** A package is not signed: what protects the user is
   the sandbox and the permissions they approve at install.
 
