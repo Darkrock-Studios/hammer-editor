@@ -56,11 +56,12 @@ import com.darkrockstudios.apps.hammer.timeline_date_remove_end
 import com.darkrockstudios.apps.hammer.timeline_date_start
 import com.darkrockstudios.apps.hammer.timeline_error_date_invalid
 import com.darkrockstudios.apps.hammer.timeline_error_date_required
-import com.darkrockstudios.apps.hammer.timeline_error_duplicate_placement
+import com.darkrockstudios.apps.hammer.timeline_error_duplicate_placement_here
 import com.darkrockstudios.apps.hammer.timeline_error_end_before_start
 import com.darkrockstudios.apps.hammer.timeline_error_event_not_found
 import com.darkrockstudios.apps.hammer.timeline_error_label_too_long
 import com.darkrockstudios.apps.hammer.timeline_error_lane_invalid
+import com.darkrockstudios.apps.hammer.timeline_error_main_not_deletable
 import com.darkrockstudios.apps.hammer.timeline_error_not_allowed
 import com.darkrockstudios.apps.hammer.timeline_error_reference_not_found
 import com.darkrockstudios.apps.hammer.timeline_error_subject_archived
@@ -69,6 +70,8 @@ import com.darkrockstudios.apps.hammer.timeline_error_subject_required
 import com.darkrockstudios.apps.hammer.timeline_error_subject_wrong_type
 import com.darkrockstudios.apps.hammer.timeline_error_tag_too_long
 import com.darkrockstudios.apps.hammer.timeline_error_too_many_lanes
+import com.darkrockstudios.apps.hammer.timeline_error_timeline_name
+import com.darkrockstudios.apps.hammer.timeline_error_timeline_not_found
 import com.darkrockstudios.apps.hammer.timeline_error_title_too_long
 import com.darkrockstudios.apps.hammer.timeline_kind_entry
 import com.darkrockstudios.apps.hammer.timeline_kind_event
@@ -222,12 +225,18 @@ internal suspend fun TimeLineEventError.toastText(strRes: StrRes): String? = whe
 	TimeLineEventError.SUBJECT_WRONG_TYPE -> strRes.get(Res.string.timeline_error_subject_wrong_type)
 	TimeLineEventError.SUBJECT_NOT_FOUND -> strRes.get(Res.string.timeline_error_subject_not_found)
 	TimeLineEventError.SUBJECT_ARCHIVED -> strRes.get(Res.string.timeline_error_subject_archived)
-	TimeLineEventError.DUPLICATE_PLACEMENT -> strRes.get(Res.string.timeline_error_duplicate_placement)
+	TimeLineEventError.DUPLICATE_PLACEMENT,
+	TimeLineEventError.SAME_TIMELINE -> strRes.get(Res.string.timeline_error_duplicate_placement_here)
 	TimeLineEventError.REFERENCE_NOT_FOUND -> strRes.get(Res.string.timeline_error_reference_not_found)
 	TimeLineEventError.DATE_REQUIRED -> strRes.get(Res.string.timeline_error_date_required)
 	TimeLineEventError.DATE_INVALID -> strRes.get(Res.string.timeline_error_date_invalid)
 	TimeLineEventError.END_BEFORE_START -> strRes.get(Res.string.timeline_error_end_before_start)
 	TimeLineEventError.EVENT_NOT_FOUND -> strRes.get(Res.string.timeline_error_event_not_found)
+	TimeLineEventError.TIMELINE_NOT_FOUND -> strRes.get(Res.string.timeline_error_timeline_not_found)
+	TimeLineEventError.TIMELINE_NAME_INVALID ->
+		strRes.get(Res.string.timeline_error_timeline_name, TimelineLimits.MAX_TIMELINE_NAME)
+
+	TimeLineEventError.MAIN_NOT_DELETABLE -> strRes.get(Res.string.timeline_error_main_not_deletable)
 	TimeLineEventError.SUBJECT_NOT_ALLOWED,
 	TimeLineEventError.REFERENCES_NOT_ALLOWED,
 	TimeLineEventError.CONTENT_NOT_ALLOWED,

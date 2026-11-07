@@ -5,6 +5,7 @@ import app.cash.turbine.test
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.readToml
 import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineEntityRules
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineLimits
@@ -402,9 +403,172 @@ class TimeLineRepositoryTest : BaseTest() {
 		createProject(ffs, PROJECT_EMPTY_NAME)
 		val repo = referenceRepo(getProjectDef(PROJECT_EMPTY_NAME))
 
-		assertEquals(20, repo.findPlacement(4)?.id)
-		assertEquals(21, repo.findPlacement(5)?.id)
-		assertNull(repo.findPlacement(9))
+		assertEquals(20, repo.findPlacement(TimelineKind.SCENE, 4, TimelineDef.MAIN_ID)?.id)
+		assertEquals(21, repo.findPlacement(TimelineKind.ENTRY, 5, TimelineDef.MAIN_ID)?.id)
+		assertNull(repo.findPlacement(TimelineKind.SCENE, 9, TimelineDef.MAIN_ID))
+		assertNull(repo.findPlacement(TimelineKind.ENTRY, 4, TimelineDef.MAIN_ID), "kind is part of the match")
+	}
+
+	private fun twoTimelineEvents() = listOf(
+		TimeLineEvent(id = 20, order = 0, kind = TimelineKind.SCENE, subject = 4, cachedTitle = "Dinner"),
+		TimeLineEvent(id = 30, order = 0, kind = TimelineKind.SCENE, subject = 4, cachedTitle = "Dinner", timeline = OTHER),
+		TimeLineEvent(id = 21, order = 1, title = "Storm", references = setOf(4, 9)),
+		TimeLineEvent(id = 31, order = 1, title = "Before", references = setOf(4), timeline = OTHER),
+		TimeLineEvent(id = 32, order = 2, kind = TimelineKind.ENTRY, subject = 5, timeline = OTHER),
+	)
+
+	private fun TestScope.twoTimelineRepo(projDef: ProjectDef): TimeLineRepository {
+		setupTimelne(projDef, twoTimelineEvents())
+		val repo = TimeLineRepository(
+			projectDef = projDef,
+			idAllocator = mockk(),
+			datasource = datasource,
+		).initialize()
+		advanceUntilIdle()
+		return repo
+	}
+
+	@Test
+	fun `findPlacement is scoped to one timeline`() = runTest {
+		createProject(ffs, PROJECT_EMPTY_NAME)
+		val repo = twoTimelineRepo(getProjectDef(PROJECT_EMPTY_NAME))
+
+		assertEquals(20, repo.findPlacement(TimelineKind.SCENE, 4, TimelineDef.MAIN_ID)?.id)
+		assertEquals(30, repo.findPlacement(TimelineKind.SCENE, 4, OTHER)?.id)
+		assertEquals(32, repo.findPlacement(TimelineKind.ENTRY, 5, OTHER)?.id)
+		assertNull(repo.findPlacement(TimelineKind.ENTRY, 5, TimelineDef.MAIN_ID))
+		assertNull(repo.findPlacement(TimelineKind.SCENE, 4, "elsewhere"))
+	}
+
+	@Test
+	fun `placementsOf lists a subject's placements on every timeline`() = runTest {
+		createProject(ffs, PROJECT_EMPTY_NAME)
+		val repo = twoTimelineRepo(getProjectDef(PROJECT_EMPTY_NAME))
+
+		assertEquals(setOf(20, 30), repo.placementsOf(TimelineKind.SCENE, 4).mapTo(mutableSetOf()) { it.id })
+		assertEquals(listOf(32), repo.placementsOf(TimelineKind.ENTRY, 5).map { it.id })
+		assertEquals(emptyList(), repo.placementsOf(TimelineKind.ENTRY, 4))
+		assertEquals(emptyList(), repo.placementsOf(TimelineKind.SCENE, 9), "a reference is not a placement")
+	}
+
+	@Test
+	fun `deleteEvents removes them in one store and records each deletion`() = runTest {
+		coEvery { syncJournal.recordIdDeletion(any()) } returns Unit
+		createProject(ffs, PROJECT_EMPTY_NAME)
+		val projDef = getProjectDef(PROJECT_EMPTY_NAME)
+		val repo = twoTimelineRepo(projDef)
+		val onOther = twoTimelineEvents().filter { it.timeline == OTHER }
+
+		repo.eventContentChangedFlow.test {
+			repo.deleteEvents(onOther + TimeLineEvent(id = 99, order = 0))
+			awaitItem()
+			expectNoEvents()
+		}
+
+		assertEquals(setOf(20, 21), storedEvents(projDef).keys)
+		assertEquals(setOf(20, 21), repo.currentEvents().mapTo(mutableSetOf()) { it.id })
+		onOther.forEach { coVerify(exactly = 1) { syncJournal.recordIdDeletion(it.id) } }
+		coVerify(exactly = 0) { syncJournal.recordIdDeletion(99) }
+	}
+
+	@Test
+	fun `deleteEvents with nothing to delete stores nothing`() = runTest {
+		createProject(ffs, PROJECT_EMPTY_NAME)
+		val projDef = getProjectDef(PROJECT_EMPTY_NAME)
+		val repo = twoTimelineRepo(projDef)
+
+		repo.eventContentChangedFlow.test {
+			repo.deleteEvents(listOf(TimeLineEvent(id = 99, order = 0)))
+			expectNoEvents()
+		}
+		coVerify(exactly = 0) { syncJournal.recordIdDeletion(any()) }
+	}
+
+	@Test
+	fun `createEvent appends at the end of its own timeline`() = runTest {
+		every { syncJournal.isServerSynchronized() } returns false
+		createProject(ffs, PROJECT_EMPTY_NAME)
+		val projDef = getProjectDef(PROJECT_EMPTY_NAME)
+		val repo = twoTimelineRepo(projDef)
+
+		val onMain = repo.createEvent(TimelineEventDraft(title = "Main next", id = 40))
+		val onOther = repo.createEvent(TimelineEventDraft(title = "Other next", timeline = OTHER, id = 41))
+		val onNew = repo.createEvent(TimelineEventDraft(title = "First", timeline = "fresh", id = 42))
+
+		assertEquals(2, onMain.order)
+		assertEquals(3, onOther.order)
+		assertEquals(0, onNew.order)
+		val stored = storedEvents(projDef)
+		assertEquals(OTHER, stored.getValue(41).timeline)
+		assertEquals("fresh", stored.getValue(42).timeline)
+	}
+
+	@Test
+	fun `Writers store main as null`() = runTest {
+		every { syncJournal.isServerSynchronized() } returns false
+		createProject(ffs, PROJECT_EMPTY_NAME)
+		val projDef = getProjectDef(PROJECT_EMPTY_NAME)
+		val repo = twoTimelineRepo(projDef)
+
+		val created = repo.createEvent(TimelineEventDraft(title = "Spelled out", timeline = TimelineDef.MAIN_ID, id = 40))
+		assertNull(created.timeline)
+		assertEquals(2, created.order, "main spelled out still appends to main")
+
+		repo.updateEvent(twoTimelineEvents()[2].copy(timeline = TimelineDef.MAIN_ID), markForSync = false)
+		repo.updateEvents(listOf(twoTimelineEvents()[0].copy(timeline = TimelineDef.MAIN_ID)))
+
+		val stored = storedEvents(projDef)
+		assertNull(stored.getValue(40).timeline)
+		assertNull(stored.getValue(21).timeline)
+		assertNull(stored.getValue(20).timeline)
+		assertEquals(twoTimelineEvents()[0], stored[20], "an update that only spells out main changes nothing")
+	}
+
+	@Test
+	fun `detachSubject converts placements on every timeline and keeps their timeline`() = runTest {
+		every { syncJournal.isServerSynchronized() } returns true
+		coEvery { syncJournal.isEntityDirty(any()) } returns false
+		coEvery { syncJournal.markEntityAsDirty(any()) } returns Unit
+		createProject(ffs, PROJECT_EMPTY_NAME)
+		val projDef = getProjectDef(PROJECT_EMPTY_NAME)
+		val repo = twoTimelineRepo(projDef)
+
+		val touched = repo.detachSubject(
+			subjectId = 4,
+			subjectKind = TimelineKind.SCENE,
+			titleFallback = null,
+			markForSync = true,
+		)
+
+		assertEquals(setOf(20, 30, 21, 31), touched)
+		val stored = storedEvents(projDef)
+		assertEquals(TimeLineEvent(id = 20, order = 0, title = "Dinner", cachedTitle = "Dinner"), stored[20])
+		assertEquals(
+			TimeLineEvent(id = 30, order = 0, title = "Dinner", cachedTitle = "Dinner", timeline = OTHER),
+			stored[30],
+		)
+		assertEquals(setOf(9), stored.getValue(21).references)
+		assertEquals(twoTimelineEvents()[3].copy(references = emptySet()), stored[31])
+		assertEquals(twoTimelineEvents()[4], stored[32])
+		touched.forEach { coVerify(exactly = 1) { syncJournal.markEntityAsDirty(it) } }
+		coVerify(exactly = 0) { syncJournal.markEntityAsDirty(32) }
+	}
+
+	@Test
+	fun `remapReferencedId rewrites placements and references on every timeline`() = runTest {
+		createProject(ffs, PROJECT_EMPTY_NAME)
+		val projDef = getProjectDef(PROJECT_EMPTY_NAME)
+		val repo = twoTimelineRepo(projDef)
+
+		val touched = repo.remapReferencedId(oldId = 4, newId = 40, subjectKind = TimelineKind.SCENE)
+
+		assertEquals(setOf(20, 30, 21, 31), touched)
+		val stored = storedEvents(projDef)
+		assertEquals(twoTimelineEvents()[0].copy(subject = 40), stored[20])
+		assertEquals(twoTimelineEvents()[1].copy(subject = 40), stored[30])
+		assertEquals(setOf(40, 9), stored.getValue(21).references)
+		assertEquals(twoTimelineEvents()[3].copy(references = setOf(40)), stored[31])
+		assertEquals(twoTimelineEvents()[4], stored[32])
 	}
 
 	@Test
@@ -654,6 +818,8 @@ class TimeLineRepositoryTest : BaseTest() {
 			event.copy(start = tooManyRungs),
 			event.copy(start = StoryDate(mapOf(" " to 1L))),
 			event.copy(end = StoryDate(mapOf(longUnit to 1L))),
+			event.copy(timeline = "not valid"),
+			event.copy(timeline = TimelineDef.MAIN_ID),
 		)
 
 		val problems = oneEntityPerRule.map { assertNotNull(TimelineEntityRules.problem(it)) }
@@ -686,5 +852,9 @@ class TimeLineRepositoryTest : BaseTest() {
 		val stored = storedEvents(projDef)
 		assertEquals("First", stored.getValue(oldEvents[1].id).content)
 		assertEquals("Second", stored.getValue(oldEvents[2].id).content)
+	}
+
+	private companion object {
+		const val OTHER = "a3f09c1e"
 	}
 }

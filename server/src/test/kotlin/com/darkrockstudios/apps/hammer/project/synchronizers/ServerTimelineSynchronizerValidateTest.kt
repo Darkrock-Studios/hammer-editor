@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.project.synchronizers
 
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineLimits
 import com.darkrockstudios.apps.hammer.project.EntityValidationException
@@ -198,5 +199,33 @@ class ServerTimelineSynchronizerValidateTest : BaseTest() {
 	fun `Rejects a unit name over the limit`() = runTest {
 		val longUnit = StoryDate(mapOf(longString(TimelineLimits.MAX_UNIT_NAME + 1) to 1L))
 		assertRejected(event.copy(end = longUnit), "unit name longer")
+	}
+
+	@Test
+	fun `Accepts a timeline id it has never seen`() = runTest {
+		assertTrue(isSuccess(save(event.copy(timeline = "a3f09c1e"))))
+		assertTrue(isSuccess(save(placement.copy(timeline = longString(TimelineLimits.MAX_TIMELINE_ID)))))
+	}
+
+	@Test
+	fun `Rejects main spelled out`() = runTest {
+		assertRejected(event.copy(timeline = TimelineDef.MAIN_ID), "main is written as no timeline")
+	}
+
+	@Test
+	fun `Rejects a blank timeline`() = runTest {
+		assertRejected(event.copy(timeline = ""), "timeline must be")
+		assertRejected(event.copy(timeline = "  "), "timeline must be")
+	}
+
+	@Test
+	fun `Rejects a timeline id over the limit`() = runTest {
+		assertRejected(event.copy(timeline = longString(TimelineLimits.MAX_TIMELINE_ID + 1)), "timeline must be")
+	}
+
+	@Test
+	fun `Rejects a timeline id with other characters`() = runTest {
+		assertRejected(event.copy(timeline = "a3f0 9c1e"), "timeline must be")
+		assertRejected(placement.copy(timeline = "../main"), "timeline must be")
 	}
 }

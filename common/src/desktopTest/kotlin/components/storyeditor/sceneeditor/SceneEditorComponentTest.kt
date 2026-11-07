@@ -132,6 +132,7 @@ class SceneEditorComponentTest : ComponentTest() {
 		showReader = { readerShownFor = it },
 		showEntry = {},
 		showGlobalSearchForTag = {},
+		showTimelineEvent = {},
 	)
 
 	private fun buffer(source: UpdateSource) =

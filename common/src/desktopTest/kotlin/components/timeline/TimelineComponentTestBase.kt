@@ -24,11 +24,13 @@ import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndex
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndexService
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineDatasource
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineSelectionSetting
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineService
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.APP_SCOPE
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectSpellCheckService
 import com.darkrockstudios.apps.hammer.common.util.StrRes
+import com.russhwolf.settings.PropertiesSettings
 import createProject
 import getProject1Def
 import io.mockk.Runs
@@ -65,6 +67,10 @@ abstract class TimelineComponentTestBase : ComponentTest() {
 	protected lateinit var encyclopediaRepository: EncyclopediaRepository
 	protected lateinit var timelineService: TimelineService
 	protected val catalog = FakeEntityCatalog()
+
+	/** The platform settings the timeline selection is remembered in; kept across components in a test. */
+	protected val platformSettings = PropertiesSettings(java.util.Properties())
+	protected val selectionSetting = TimelineSelectionSetting(platformSettings)
 	protected val imagesService: ImagesService = mockk(relaxed = true)
 
 	private val syncJournal: SyncJournal = mockk()
@@ -108,6 +114,7 @@ abstract class TimelineComponentTestBase : ComponentTest() {
 			single<ImagesService> { imagesService }
 			single<ImagePickRequests> { mockk(relaxed = true) }
 			single<StrRes> { KeyStrRes() }
+			single { selectionSetting }
 		})
 
 		createProject(ffs, PROJECT_1_NAME)

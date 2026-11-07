@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
@@ -27,6 +28,7 @@ import com.darkrockstudios.apps.hammer.common.components.encyclopedia.Encycloped
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.ViewEntry
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.rename.RenameEntry
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
+import com.darkrockstudios.apps.hammer.common.components.timeline.TimelinePlacementLink
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.rememberRootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
@@ -42,6 +44,7 @@ import com.darkrockstudios.apps.hammer.common.encyclopedia.CreateEntryUi
 import com.darkrockstudios.apps.hammer.common.encyclopedia.EncyclopediaEntryItem
 import com.darkrockstudios.apps.hammer.common.encyclopedia.EncyclopediaUi
 import com.darkrockstudios.apps.hammer.common.encyclopedia.ViewEntryUi
+import com.darkrockstudios.apps.hammer.common.preview.timeline.previewTimelinePlacements
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Preview
@@ -292,6 +295,46 @@ fun ScreenViewEntryPreview() {
 	}
 }
 
+@OptIn(ExperimentalSharedTransitionApi::class)
+@Preview
+@Composable
+fun ScreenViewEntryTimelinesPreview() {
+	val scope = rememberCoroutineScope()
+	val rootSnackbar = rememberRootSnackbarHostState()
+	val component: ViewEntry = remember {
+		FakeViewEntryComponent(
+			ViewEntry.State(
+				entryDef = fakeEntryDef().copy(name = "The Long Silence", type = EntryType.EVENT),
+				content = fakeEntryContent().copy(name = "The Long Silence", type = EntryType.EVENT),
+				timelines = previewTimelinePlacements,
+			)
+		)
+	}
+
+	KoinApplicationPreview {
+		AppTheme(globalSettingsPreview) {
+			Box(
+				modifier = Modifier
+					.background(MaterialTheme.colorScheme.background)
+					.fillMaxSize()
+			) {
+				SharedTransitionLayout {
+					androidx.compose.animation.AnimatedVisibility(visible = true) {
+						ViewEntryUi(
+							component = component,
+							scope = scope,
+							closeEntry = {},
+							rootSnackbar = rootSnackbar,
+							sharedTransitionScope = this@SharedTransitionLayout,
+							animatedVisibilityScope = this@AnimatedVisibility,
+						)
+					}
+				}
+			}
+		}
+	}
+}
+
 val fakeViewEntryComponent: ViewEntry = FakeViewEntryComponent(
 	ViewEntry.State(
 		entryDef = fakeEntryDef(),
@@ -351,6 +394,7 @@ private class FakeViewEntryComponent(initial: ViewEntry.State) : ViewEntry {
 	override suspend fun setExcludeFromDictionary(exclude: Boolean) =
 		EntryResult(EntryContainer(fakeEntryContent()), EntryError.NONE)
 	override fun navigateToAppearance(appearance: ViewEntry.Appearance) {}
+	override fun showTimelinePlacement(placement: TimelinePlacementLink) {}
 	override val renameSlot: Value<ChildSlot<*, RenameEntry>> = MutableValue(ChildSlot<Any, RenameEntry>())
 	override fun showRename() {}
 	override fun dismissRename() {}

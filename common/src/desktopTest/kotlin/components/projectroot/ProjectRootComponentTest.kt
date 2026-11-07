@@ -40,8 +40,18 @@ import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRe
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndexService
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
+import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectHome
+import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLine
+import com.darkrockstudios.apps.hammer.common.components.timeline.TimelineSelection
+import com.darkrockstudios.apps.hammer.common.data.tagindex.AccountTagService
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
+import com.darkrockstudios.libs.platformspellchecker.PlatformSpellCheckerFactory
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineSelectionSetting
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineService
+import com.russhwolf.settings.PropertiesSettings
+import java.util.Properties
 import com.darkrockstudios.apps.hammer.common.data.versioncheck.VersionCheckRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.APP_SCOPE
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
@@ -88,6 +98,8 @@ class ProjectRootComponentTest : ComponentTest() {
 	private lateinit var projectFiles: FakeFileSystem
 	private lateinit var duplicateIdService: DuplicateIdService
 	private lateinit var imagePickRequests: ImagePickRequests
+	private lateinit var timeLineRepository: TimeLineRepository
+	private lateinit var timelineService: TimelineService
 
 	private val addedMenus = mutableListOf<MenuDescriptor>()
 	private val removedMenuIds = mutableListOf<String>()
@@ -133,10 +145,15 @@ class ProjectRootComponentTest : ComponentTest() {
 		val notesRepository = mockk<NotesRepository>(relaxed = true)
 		every { notesRepository.notesListFlow } returns MutableSharedFlow()
 
-		val timeLineRepository = mockk<TimeLineRepository>(relaxed = true)
+		timeLineRepository = mockk(relaxed = true)
 		every { timeLineRepository.timelineFlow } returns MutableSharedFlow()
-		val timelineService = mockk<TimelineService>(relaxed = true)
-		every { timelineService.timelineFlow } returns MutableSharedFlow()
+		timelineService = mockk(relaxed = true)
+		every { timelineService.timelineFlow(any()) } returns MutableSharedFlow()
+		every { timelineService.timelines } returns MutableSharedFlow()
+		every { timelineService.orphansFlow } returns MutableSharedFlow()
+		every { timelineService.summaries } returns MutableSharedFlow()
+		every { timelineService.eventFlow(any()) } returns MutableSharedFlow()
+		every { timelineService.subjectUpdates(any()) } returns MutableSharedFlow()
 		val sceneRepository = mockk<SceneRepository>(relaxed = true)
 		every { sceneRepository.sceneTreeUpdates } returns MutableSharedFlow()
 
@@ -160,6 +177,11 @@ class ProjectRootComponentTest : ComponentTest() {
 			single<FocusModeService> { mockk(relaxed = true) }
 			single<UrlLauncher> { mockk(relaxed = true) }
 			single<VersionCheckRepository> { mockk(relaxed = true) }
+			single { TimelineSelectionSetting(PropertiesSettings(Properties())) }
+			single<AccountTagService> { mockk(relaxed = true) }
+			single<PlatformSpellCheckerFactory> {
+				mockk { every { availableLocales() } returns emptyList() }
+			}
 			scope<ProjectDefScope> {
 				scoped { ProjectDataConflictBroker(projectDef) }
 				scoped<AutoConfirmReferencesUseCase> { mockk(relaxed = true) }
@@ -299,6 +321,58 @@ class ProjectRootComponentTest : ComponentTest() {
 		advanceUntilIdle()
 
 		assertIs<ProjectRoot.Destination.NotesDestination>(comp.routerState.value.active.instance)
+	}
+
+	@Test
+	fun `Timeline deep link opens the event on its own timeline`() = runTest(mainTestDispatcher) {
+		val event = TimeLineEvent(id = 7, order = 0, content = "Hayes signs the note of hand", timeline = "a3f09c1e")
+		coEvery { timeLineRepository.getTimelineEvent(7) } returns event
+		coEvery { timelineService.event(7) } returns event
+		coEvery { timelineService.definition("a3f09c1e") } returns TimelineDef(id = "a3f09c1e", name = "Before the evening")
+
+		val comp = newComponent(initialDeepLink = ProjectDeepLink.TimelineEvent(7))
+		context.resume()
+		advanceUntilIdle()
+
+		val timeline = assertIs<ProjectRoot.Destination.TimeLineDestination>(comp.routerState.value.active.instance).component
+		assertEquals(TimelineSelection.Def("a3f09c1e"), timeline.selection.value)
+		assertEquals(TimeLine.Config.ViewEventConfig(projectDef, 7), timeline.stack.value.active.configuration)
+	}
+
+	@Test
+	fun `Timeline deep link to an event whose timeline is gone opens the deleted-timeline bucket`() =
+		runTest(mainTestDispatcher) {
+			val event = TimeLineEvent(id = 8, order = 0, content = "Stray", timeline = "gone0001")
+			coEvery { timeLineRepository.getTimelineEvent(8) } returns event
+			coEvery { timelineService.event(8) } returns event
+			coEvery { timelineService.definition("gone0001") } returns null
+
+			val comp = newComponent(initialDeepLink = ProjectDeepLink.TimelineEvent(8))
+			context.resume()
+			advanceUntilIdle()
+
+			val timeline = assertIs<ProjectRoot.Destination.TimeLineDestination>(comp.routerState.value.active.instance).component
+			assertEquals(TimelineSelection.Orphans, timeline.selection.value)
+			assertEquals(TimeLine.Config.ViewEventConfig(projectDef, 8), timeline.stack.value.active.configuration)
+		}
+
+	@Test
+	fun `Timeline settings open on the timeline the timeline screen shows`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.showDestination(ProjectRoot.DestinationTypes.TimeLine)
+		advanceUntilIdle()
+		val timeline = assertIs<ProjectRoot.Destination.TimeLineDestination>(comp.routerState.value.active.instance).component
+		timeline.selectTimeline(TimelineSelection.Def("a3f09c1e"))
+
+		timeline.showTimelineSettings()
+		advanceUntilIdle()
+
+		val home = assertIs<ProjectRoot.Destination.HomeDestination>(comp.routerState.value.active.instance).component
+		val settings = assertIs<ProjectHome.ContentDestination.ProjectSettings>(home.contentRouterState.value.active.instance)
+		assertEquals("a3f09c1e", settings.component.timelineSettings.state.value.editingId)
+		assertTrue(settings.component.timelineSettings.state.value.editorOpen)
 	}
 
 	@Test

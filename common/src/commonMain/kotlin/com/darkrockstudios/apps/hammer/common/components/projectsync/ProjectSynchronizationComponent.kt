@@ -9,7 +9,6 @@ import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.base.image.ImageFormat
 import com.darkrockstudios.apps.hammer.base.timeline.StoryCalendar
-import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineDateProblem
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineEntityRules
@@ -31,7 +30,9 @@ import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEd
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEventError
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
-import com.darkrockstudios.apps.hammer.common.data.timelinerepository.mainTimeline
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.liveTimelines
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.timelineDef
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.timelineId
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.toApiEntity
 import com.darkrockstudios.apps.hammer.common.data.toMsg
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
@@ -320,15 +321,26 @@ class ProjectSynchronizationComponent(
 			?: error("Failed to get local timeline event")
 
 		val localEntity = local.toApiEntity()
-		// Loaded before the conflict is shown, so the non-suspend resolveConflict can read the calendar.
-		projectDataRepository.load()
+		// Loaded before the conflict is shown, so the non-suspend resolveConflict can read the calendars
+		// and where the subject is placed.
+		val projectData = projectDataRepository.load().data
+		val subject = local.subject
+		val subjectPlacedOn = if (local.kind.isPlacement && subject != null) {
+			timeLineRepository.placementsOf(local.kind, subject)
+				.filter { it.id != local.id }
+				.mapTo(mutableSetOf()) { it.timelineId }
+		} else {
+			emptySet()
+		}
 
 		withContext(mainDispatcher) {
 			_state.getAndUpdate {
 				it.copy(
 					entityConflict = ProjectSynchronization.EntityConflict.TimelineEventConflict(
 						serverEvent = serverEntity,
-						clientEvent = localEntity
+						clientEvent = localEntity,
+						liveTimelines = projectData.liveTimelines(),
+						subjectPlacedOn = subjectPlacedOn,
 					),
 					conflictTitle = Res.string.sync_conflict_timeline_title
 				)
@@ -487,23 +499,29 @@ class ProjectSynchronizationComponent(
 		} else {
 			Res.string.timeline_create_toast_tag_too_long.toMsg()
 		}
-		val dateProblem = timelineDateProblem(resolvedEntity.start, resolvedEntity.end)
-		return if (ruleProblem != null || tagError != null || dateProblem != null) {
+		val dateProblem = timelineDateProblem(resolvedEntity)
+		val placedOn = (state.value.entityConflict as? ProjectSynchronization.EntityConflict.TimelineEventConflict)
+			?.subjectPlacedOn.orEmpty()
+		val placementTaken = (resolvedEntity.timeline ?: TimelineDef.MAIN_ID) in placedOn
+		return if (ruleProblem != null || tagError != null || dateProblem != null || placementTaken) {
 			ProjectSynchronization.EntityMergeError.TimelineEventMergeError(
 				tagError = tagError,
 				ruleProblem = ruleProblem,
 				dateProblem = dateProblem,
+				placementTaken = placementTaken,
 			)
 		} else {
 			null
 		}
 	}
 
-	private fun timelineDateProblem(start: StoryDate?, end: StoryDate?): TimelineDateProblem? {
-		val main = projectDataRepository.state.value?.data?.mainTimeline() ?: TimelineDef.DEFAULT
-		if (main.mode != TimelineMode.DATED) return null
-		val calendar = main.calendar ?: return null
-		return StoryCalendar.rangeProblem(calendar, start, end)
+	/** A straggler, whose timeline is not live here, gets no date checks. */
+	private fun timelineDateProblem(entity: ApiProjectEntity.TimelineEventEntity): TimelineDateProblem? {
+		val data = projectDataRepository.state.value?.data ?: return null
+		val def = data.timelineDef(entity.timeline ?: TimelineDef.MAIN_ID) ?: return null
+		if (def.mode != TimelineMode.DATED) return null
+		val calendar = def.calendar ?: return null
+		return StoryCalendar.rangeProblem(calendar, entity.start, entity.end)
 	}
 
 	private fun validateScene(resolvedEntity: ApiProjectEntity.SceneEntity): ProjectSynchronization.EntityMergeError.SceneMergeError? {

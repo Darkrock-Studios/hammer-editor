@@ -3,17 +3,25 @@ import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import com.arkivanov.decompose.Cancellation
 import com.arkivanov.decompose.value.Value
+import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
+import com.darkrockstudios.apps.hammer.base.timeline.CalendarPreset
+import com.darkrockstudios.apps.hammer.base.timeline.StoryCalendar
+import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.scenemetadata.SceneMetadataPanel
+import com.darkrockstudios.apps.hammer.common.components.timeline.TimelinePlacementLink
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.preview.fakeProjectDef
 import com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor.SceneMetadataPanelUi
+import com.darkrockstudios.apps.hammer.common.timeline.TIMELINE_PLACEMENTS_TAG
+import com.darkrockstudios.apps.hammer.common.timeline.timelinePlacementChipTag
 import io.mockk.Runs
 import io.mockk.every
 import io.mockk.just
@@ -48,13 +56,24 @@ class SceneMetadataPanelUiTest : BaseTest() {
 		return component
 	}
 
+	private val onMain = TimelinePlacementLink(eventId = 7, timelineName = "Main", label = "The evening")
+	private val onBefore = TimelinePlacementLink(
+		eventId = 12,
+		timelineName = "Before the evening",
+		start = StoryDate(mapOf(StoryCalendar.YEAR to 1907L)),
+		calendar = CalendarDef(CalendarPreset.GREGORIAN),
+	)
+	private val straggler = TimelinePlacementLink(eventId = 15, timelineName = null)
+
 	private fun state(
 		confirmedRefs: List<EntryDef> = emptyList(),
 		dismissedRefs: List<EntryDef> = emptyList(),
+		timelines: List<TimelinePlacementLink> = emptyList(),
 	) = SceneMetadataPanel.State(
 		sceneItem = SceneItem(projectDef, SceneItem.Type.Scene, id = 1, name = "Tea Party", order = 0),
 		confirmedRefs = confirmedRefs,
 		dismissedRefs = dismissedRefs,
+		timelines = timelines,
 	)
 
 	@Test
@@ -113,5 +132,33 @@ class SceneMetadataPanelUiTest : BaseTest() {
 
 		verify(exactly = 1) { component.restoreDismissedReference(cheshireCat.id) }
 		verify(exactly = 0) { component.dismissReference(any()) }
+	}
+
+	@Test
+	fun `A scene on no timeline has no Timelines section`() {
+		val component = componentSetup(state(confirmedRefs = listOf(alice)))
+
+		compose.setContent { SceneMetadataPanelUi(component = component, closeMetadata = {}) }
+
+		compose.onNodeWithText("TIMELINES").assertDoesNotExist()
+		compose.onNodeWithTag(TIMELINE_PLACEMENTS_TAG).assertDoesNotExist()
+	}
+
+	@Test
+	fun `Each placement gets a chip naming its timeline and when and a chip opens it`() {
+		val component = componentSetup(state(timelines = listOf(onMain, onBefore, straggler)))
+
+		compose.setContent { SceneMetadataPanelUi(component = component, closeMetadata = {}) }
+
+		compose.onNodeWithText("TIMELINES").performScrollTo().assertIsDisplayed()
+		compose.onNodeWithText("Main · The evening").performScrollTo().assertIsDisplayed()
+		compose.onNodeWithText("Before the evening · 1907").performScrollTo().assertIsDisplayed()
+		compose.onNodeWithText("Deleted timeline").performScrollTo().assertIsDisplayed()
+
+		compose.onNodeWithTag(timelinePlacementChipTag(onBefore.eventId)).performScrollTo()
+		compose.onNodeWithText("Before the evening · 1907").performClick()
+
+		verify(exactly = 1) { component.showTimelinePlacement(onBefore) }
+		verify(exactly = 0) { component.showTimelinePlacement(onMain) }
 	}
 }

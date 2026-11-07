@@ -38,6 +38,8 @@ internal class ProjectRootRouter(
 	private val showFocusMode: (SceneItem) -> Unit,
 	private val showEntry: (EntryDef) -> Unit,
 	private val showScene: (SceneItem) -> Unit,
+	private val showTimelineSettings: (timelineId: String) -> Unit,
+	private val showTimelineEvent: (eventId: Int) -> Unit,
 	private val onCloseProject: (() -> Unit),
 	private val scope: CoroutineScope,
 	private val dispatcherMain: CoroutineContext,
@@ -98,6 +100,7 @@ internal class ProjectRootRouter(
 			showFocusMode = showFocusMode,
 			showEntry = showEntry,
 			showGlobalSearchForTag = onShowGlobalSearchForTag,
+			showTimelineEvent = showTimelineEvent,
 		)
 
 		scope.launch {
@@ -132,6 +135,7 @@ internal class ProjectRootRouter(
 			removeMenu = removeMenu,
 			showScene = showScene,
 			onShowGlobalSearchForTag = onShowGlobalSearchForTag,
+			showTimelineEvent = showTimelineEvent,
 		)
 	}
 
@@ -145,6 +149,7 @@ internal class ProjectRootRouter(
 			onShowGlobalSearchForTag = onShowGlobalSearchForTag,
 			onShowScene = showScene,
 			onShowEntry = showEntry,
+			onShowTimelineSettings = showTimelineSettings,
 		)
 	}
 

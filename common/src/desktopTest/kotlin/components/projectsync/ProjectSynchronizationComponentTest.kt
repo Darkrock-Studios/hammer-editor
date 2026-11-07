@@ -636,6 +636,89 @@ class ProjectSynchronizationComponentTest : ComponentTest() {
 	}
 
 	@Test
+	fun `A timeline conflict carries the live timelines`() = runTest(mainTestDispatcher) {
+		val evening = TimelineDef(id = "b1e4c0de", name = "Before the evening")
+		val gone = TimelineDef(id = "0badf00d", name = "Scratch")
+		projectDataDatasource.save(
+			StoredProjectData(
+				data = ProjectData(
+					timelines = listOf(TimelineDef.DEFAULT, evening, gone),
+					deletedTimelines = setOf(gone.id),
+				)
+			)
+		)
+		val comp = showTimelineConflict()
+
+		val conflict = assertIs<ProjectSynchronization.EntityConflict.TimelineEventConflict>(
+			comp.state.value.entityConflict
+		)
+		assertEquals(listOf(TimelineDef.DEFAULT, evening), conflict.liveTimelines)
+	}
+
+	@Test
+	fun `A dated non-main timeline rejects a start its calendar cannot hold`() = runTest(mainTestDispatcher) {
+		val evening = TimelineDef(id = "b1e4c0de", name = "Before the evening", mode = TimelineMode.DATED, calendar = CalendarDef())
+		projectDataDatasource.save(
+			StoredProjectData(data = ProjectData(timelines = listOf(TimelineDef.DEFAULT, evening)))
+		)
+		every { timeLineRepository.validateTags(any()) } returns TimeLineEventError.NONE
+		every { synchronizer.resolveConflict(any()) } just Runs
+		val comp = showTimelineConflict()
+		val badStart = StoryDate(mapOf("hour" to 30L))
+
+		val onMain = comp.resolveConflict(timelineEvent.copy(start = badStart))
+		val onEvening = comp.resolveConflict(timelineEvent.copy(start = badStart, timeline = evening.id))
+
+		assertNull(onMain)
+		val mergeError = assertIs<ProjectSynchronization.EntityMergeError.TimelineEventMergeError>(onEvening)
+		assertEquals(
+			TimelineDateProblem.Invalid(TimelineDateField.START, StoryDateProblem.NotAPrefix),
+			mergeError.dateProblem,
+		)
+	}
+
+	@Test
+	fun `A placement cannot resolve onto a timeline its subject is already placed on`() = runTest(mainTestDispatcher) {
+		val evening = TimelineDef(id = "b1e4c0de", name = "Before the evening")
+		projectDataDatasource.save(
+			StoredProjectData(data = ProjectData(timelines = listOf(TimelineDef.DEFAULT, evening)))
+		)
+		val local = TimeLineEvent(id = 4, order = 2, label = null, content = "", kind = TimelineKind.SCENE, subject = 12)
+		val onEvening = local.copy(id = 9, order = 0, timeline = evening.id)
+		coEvery { timeLineRepository.placementsOf(TimelineKind.SCENE, 12) } returns listOf(local, onEvening)
+		every { timeLineRepository.validateTags(any()) } returns TimeLineEventError.NONE
+		every { synchronizer.resolveConflict(any()) } just Runs
+		val server = ApiProjectEntity.TimelineEventEntity(
+			id = 4, order = 0, label = null, content = "", kind = TimelineKind.SCENE, subject = 12, timeline = evening.id,
+		)
+		val comp = showTimelineConflict(server = server, local = local)
+
+		val moved = comp.resolveConflict(server.copy(lane = "Alice"))
+		val kept = comp.resolveConflict(server.copy(timeline = null, order = 2))
+
+		assertEquals(
+			true,
+			assertIs<ProjectSynchronization.EntityMergeError.TimelineEventMergeError>(moved).placementTaken,
+		)
+		assertNull(kept)
+		verify(exactly = 1) { synchronizer.resolveConflict(any()) }
+	}
+
+	@Test
+	fun `A straggler gets no date checks`() = runTest(mainTestDispatcher) {
+		saveMainTimeline(TimelineDef.DEFAULT.copy(mode = TimelineMode.DATED, calendar = CalendarDef()))
+		every { timeLineRepository.validateTags(any()) } returns TimeLineEventError.NONE
+		every { synchronizer.resolveConflict(any()) } just Runs
+		val comp = showTimelineConflict()
+
+		val resolved = timelineEvent.copy(start = StoryDate(mapOf("hour" to 30L)), timeline = "0badf00d")
+		val error = comp.resolveConflict(resolved)
+
+		assertNull(error)
+		verify(exactly = 1) { synchronizer.resolveConflict(resolved) }
+	}
+
+	@Test
 	fun `Project data conflict surfaces in state and resolution flows back to the broker`() = runTest(mainTestDispatcher) {
 		val local = ProjectData(authorName = "Local Author")
 		val server = ProjectData(authorName = "Server Author")
@@ -745,15 +828,18 @@ class ProjectSynchronizationComponentTest : ComponentTest() {
 		projectDataDatasource.save(StoredProjectData(data = ProjectData(timelines = listOf(main))))
 	}
 
-	private suspend fun TestScope.showTimelineConflict(): ProjectSynchronizationComponent {
-		coEvery { timeLineRepository.getTimelineEvent(timelineEvent.id) } returns TimeLineEvent(
+	private suspend fun TestScope.showTimelineConflict(
+		server: ApiProjectEntity.TimelineEventEntity = timelineEvent,
+		local: TimeLineEvent = TimeLineEvent(
 			id = timelineEvent.id,
 			order = timelineEvent.order,
 			label = null,
 			content = "local event",
-		)
+		),
+	): ProjectSynchronizationComponent {
+		coEvery { timeLineRepository.getTimelineEvent(server.id) } returns local
 		stubSync { callbacks ->
-			callbacks.onConflict(timelineEvent)
+			callbacks.onConflict(server)
 			awaitCancellation()
 		}
 

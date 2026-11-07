@@ -16,6 +16,7 @@ import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEv
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineEventDraft
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineResult
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.timelineId
 import com.darkrockstudios.apps.hammer.operations.Access
 import com.darkrockstudios.apps.hammer.operations.Base64Bytes
 import com.darkrockstudios.apps.hammer.operations.FromStdin
@@ -176,14 +177,15 @@ internal fun contentWriteOperations(): List<Operation<*, *>> = listOf(
 	},
 	operation<TimelineCreateInput, TimelineEntry>(
 		name = "timeline.create",
-		description = "Add a plain event to a project's timeline, at the end unless an index is given. " +
-			"A dated timeline needs a start and takes no index. Entries and scenes are added with timeline.place.",
+		description = "Add a plain event to a project's timeline, main unless timeline names another, at the end " +
+			"unless an index is given. A dated timeline needs a start and takes no index. Entries and scenes are " +
+			"added with timeline.place.",
 		access = Access.Write,
 		scope = OperationScope.Content,
 	) { input ->
 		projects.withProject(input.project) { project ->
 			val timeline = project.timelineService()
-			val view = timeline.view()
+			val view = project.view(input.timeline)
 			val count = view.events.size
 			if (input.index != null) {
 				if (view.def.mode == TimelineMode.DATED) invalidInput(DATED_ORDER)
@@ -199,6 +201,7 @@ internal fun contentWriteOperations(): List<Operation<*, *>> = listOf(
 				milestone = input.milestone,
 				start = input.start.toStoryDate(),
 				end = input.end.toStoryDate(),
+				timeline = view.def.id,
 			)
 			val event = timeline.createEvent(draft).requireOk() ?: error("The timeline did not return the new event")
 			if (input.index != null && input.index != count) project.moveEvent(event.id, input.index)
@@ -241,8 +244,9 @@ internal fun contentWriteOperations(): List<Operation<*, *>> = listOf(
 	},
 	operation<TimelineMoveInput, TimelineEntry>(
 		name = "timeline.move",
-		description = "Move a timeline event to a position; index is its position after the move. " +
-			"A dated timeline is ordered by its dates, so nothing can be moved on it.",
+		description = "Move a timeline event to a position on its own timeline; index is its position after the move. " +
+			"A dated timeline is ordered by its dates, so nothing can be moved on it. timeline.set moves an event " +
+			"to another timeline.",
 		access = Access.Write,
 		scope = OperationScope.Content,
 	) { input ->
@@ -306,12 +310,17 @@ private fun EntryError.requireNone() {
 	}
 }
 
-/** Moves the event so it ends up at [index] in timeline order. */
+/** Moves the event so it ends up at [index] in its own timeline's order, a deleted timeline's included. */
 private suspend fun OpenProject.moveEvent(id: Int, index: Int) {
 	val timeline = timelineService()
-	val view = timeline.view()
-	if (view.def.mode == TimelineMode.DATED) invalidInput(DATED_ORDER)
-	val events = view.events
+	val timelineId = requireEvent(id).timelineId
+	val events = if (timeline.definition(timelineId) == null) {
+		timeline.orphansFlow.loaded("Timeline").filter { it.timelineId == timelineId }
+	} else {
+		val view = view(timelineId)
+		if (view.def.mode == TimelineMode.DATED) invalidInput(DATED_ORDER)
+		view.events
+	}
 	if (index !in events.indices) invalidInput("index must be from 0 to ${events.size - 1}")
 	val from = events.indexOfFirst { it.id == id }
 	if (from == index) return
@@ -342,13 +351,20 @@ internal fun TimeLineEventError.requireNone() {
 		TimeLineEventError.CONTENT_NOT_ALLOWED,
 		TimeLineEventError.TAGS_NOT_ALLOWED -> invalidInput(PLACEMENT_FIELDS)
 		TimeLineEventError.SELF_REFERENCE -> invalidInput("An event cannot reference itself")
-		TimeLineEventError.DUPLICATE_PLACEMENT -> invalidInput("That entry or scene is already placed on the timeline")
+		TimeLineEventError.DUPLICATE_PLACEMENT -> invalidInput("That entry or scene is already placed on that timeline")
 		TimeLineEventError.DATE_INVALID -> invalidInput("A date or calendar does not fit; see timeline.settings.read for the calendar")
 		TimeLineEventError.DATE_REQUIRED -> invalidInput("A start is required on a dated timeline, and whenever an end is given")
 		TimeLineEventError.END_BEFORE_START -> invalidInput("The end is before the start")
 		TimeLineEventError.MOVE_NOT_ALLOWED -> invalidInput(DATED_ORDER)
 		TimeLineEventError.MOVE_FAILED -> invalidInput("The event cannot move to that position")
 		TimeLineEventError.EVENT_NOT_FOUND -> notFound("No such timeline event")
+		TimeLineEventError.TIMELINE_NOT_FOUND -> notFound("No such timeline")
+		TimeLineEventError.TIMELINE_NAME_INVALID -> invalidInput(
+			"A timeline name must be 1 to ${TimelineLimits.MAX_TIMELINE_NAME} characters and differ from every other timeline's, ignoring case"
+		)
+
+		TimeLineEventError.MAIN_NOT_DELETABLE -> invalidInput("The main timeline cannot be deleted")
+		TimeLineEventError.SAME_TIMELINE -> invalidInput("The event is already on that timeline")
 	}
 }
 
@@ -450,6 +466,8 @@ data class TimelineCreateInput(
 	val end: Map<String, Long>? = null,
 	/** Scene and entry ids it refers to. */
 	val references: List<Int> = emptyList(),
+	/** The timeline's id, from timeline.settings.read; left out, or "main", the main timeline. */
+	val timeline: String? = null,
 )
 
 /** Every field but the text is left unchanged when left out, and cleared by an empty string, map, or list. */

@@ -34,9 +34,11 @@ import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLine
 import com.darkrockstudios.apps.hammer.common.compose.LocalRootFabState
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
+import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFab
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.timeline_create_event_button
+import com.darkrockstudios.apps.hammer.timeline_deleted_left_behind
 import com.arkivanov.essenty.backhandler.BackCallback
 import com.darkrockstudios.apps.hammer.common.components.timeline.ViewTimeLineEvent
 import kotlinx.coroutines.CoroutineScope
@@ -54,10 +56,14 @@ fun TimeLineUi(
 	modifier: Modifier = Modifier,
 ) {
 	val scope = rememberCoroutineScope()
+	val strRes = rememberStrRes()
 	val state by component.stack.subscribeAsState()
 	val dialog by component.eventDialog.subscribeAsState()
-	// Outlives the overview while an event or the create screen covers it.
-	val lastLayout = remember(component) { LastTimelineLayout() }
+	val selection by component.selection.subscribeAsState()
+	// Outlives the overview while an event or the create screen covers it, but not a switch of
+	// timeline, whose drawing would otherwise show the last one's layout while it is laid out.
+	val lastLayout = remember(component, selection) { LastTimelineLayout() }
+	val switcher = remember(component) { TimelineSwitcherActions.of(component) }
 
 	SharedTransitionLayout(modifier = modifier.fillMaxSize()) {
 		Box(modifier = Modifier.fillMaxSize()) {
@@ -81,11 +87,17 @@ fun TimeLineUi(
 							scope = scope,
 							showCreate = component::showCreateEvent,
 							viewEvent = component::showViewEvent,
+							switcher = switcher,
 							openEvent = component::showEventDialog,
 							openedEventId = dialog.child?.instance?.eventId,
 							lastLayout = lastLayout,
 							sharedTransitionScope = this@SharedTransitionLayout,
 							animatedVisibilityScope = this@ChildStack,
+							onOrphansLeft = { left ->
+								scope.launch {
+									rootSnackbar.showSnackbar(strRes.get(Res.plurals.timeline_deleted_left_behind, left, left))
+								}
+							},
 						)
 					}
 
@@ -112,6 +124,7 @@ fun TimeLineUi(
 			}
 
 			EventDialog(component = component, scope = scope, rootSnackbar = rootSnackbar)
+			TimelineSwitcherDialogs(component)
 		}
 	}
 }
@@ -195,9 +208,11 @@ fun TimelineFab(
 ) {
 	val stack by component.stack.subscribeAsState()
 	val dialog by component.eventDialog.subscribeAsState()
-	when (stack.active.instance) {
+	when (val destination = stack.active.instance) {
 		is TimeLine.Destination.TimeLineOverviewDestination -> {
-			if (dialog.child == null) {
+			val overview by destination.component.state.subscribeAsState()
+			// Nothing is created in the deleted-timeline bucket.
+			if (dialog.child == null && !overview.isOrphans) {
 				OverviewFab(
 					scrolledDown = LocalRootFabState.current?.scrolledDown == true,
 					onCreate = component::showCreateEvent,

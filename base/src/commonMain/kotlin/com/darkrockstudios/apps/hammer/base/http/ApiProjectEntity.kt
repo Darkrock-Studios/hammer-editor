@@ -96,6 +96,8 @@ sealed interface ApiProjectEntity {
 		val title: String? = null,
 		/** The subject's title when last seen, kept so a placement outliving its subject has a name. */
 		val cachedTitle: String? = null,
+		/** Id of the timeline holding this event; null means main, which is never spelled out. */
+		val timeline: String? = null,
 	) : ApiProjectEntity {
 		override fun hash(): String = EntityHasher.hashTimelineEvent(
 			id = id,
@@ -112,6 +114,7 @@ sealed interface ApiProjectEntity {
 			end = end,
 			title = title,
 			cachedTitle = cachedTitle,
+			timeline = timeline,
 		)
 	}
 

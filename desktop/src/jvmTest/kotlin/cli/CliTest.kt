@@ -68,6 +68,20 @@ class CliTest {
 	}
 
 	@Test
+	fun `timeline definitions are commands, and deleting one needs confirming`() {
+		assertEquals(Cli.EXIT_USAGE, run("timeline", "def", "delete", "--project", "X", "--timeline", "main"))
+		assertTrue("--confirm" in stderr.readUtf8())
+
+		assertEquals(Cli.EXIT_OK, run("timeline", "def", "create", "--help"))
+		val help = stdout.readUtf8()
+		assertTrue("--name <string> (required)" in help)
+		assertFalse("--confirm" in help)
+
+		assertEquals(Cli.EXIT_OK, run("timeline", "list", "--help"))
+		assertTrue("--orphaned" in stdout.readUtf8())
+	}
+
+	@Test
 	fun `writing a scene's prose needs no confirming`() {
 		assertEquals(Cli.EXIT_OK, run("scene", "append", "--help"))
 		assertFalse("--confirm" in stdout.readUtf8())

@@ -41,6 +41,9 @@ import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLine
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineOverview
 import com.darkrockstudios.apps.hammer.common.components.timeline.ViewTimeLineEvent
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimelineRow
+import com.darkrockstudios.apps.hammer.common.components.timeline.TimelineSelection
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineSummary
 import com.darkrockstudios.apps.hammer.common.components.timeline.basicPreview
 import com.darkrockstudios.apps.hammer.common.compose.LocalImageNames
 import com.darkrockstudios.apps.hammer.common.compose.LocalRootFabState
@@ -69,6 +72,8 @@ import io.mockk.mockk
 import org.junit.Rule
 import org.junit.Test
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.test.assertEquals
@@ -88,6 +93,9 @@ class TimeLineOverviewUiTest : BaseTest() {
 		tags: List<TagCount> = emptyList(),
 		private val references: Map<Int, List<CatalogItem>> = emptyMap(),
 		private val excerpts: Map<Int, String> = emptyMap(),
+		timelines: List<TimelineSummary> = emptyList(),
+		selection: TimelineSelection = TimelineSelection.Main,
+		orphanCount: Int = 0,
 	) : TimeLineOverview {
 		private val _state = MutableValue(
 			TimeLineOverview.State(
@@ -96,12 +104,29 @@ class TimeLineOverviewUiTest : BaseTest() {
 				mode = mode,
 				undatedIds = undatedIds,
 				storyFrameAvailable = storyFrameAvailable,
+				timelines = timelines,
+				selection = selection,
+				orphanCount = orphanCount,
 			)
 		)
 		override val state: Value<TimeLineOverview.State> = _state
 		override val rankedTags: Value<List<TagCount>> = MutableValue(tags)
 
 		override suspend fun moveEvent(event: TimeLineEvent, toIndex: Int, after: Boolean): Boolean = true
+		val orphansMovedTo = mutableListOf<String>()
+		var orphansDeleted = 0
+		/** How many of the bucket's events a move leaves behind. */
+		var orphansStaying = 0
+
+		override suspend fun moveOrphansTo(target: String): Int {
+			orphansMovedTo += target
+			return _state.value.orphanCount - orphansStaying
+		}
+
+		override suspend fun deleteOrphans(): Int {
+			orphansDeleted++
+			return _state.value.orphanCount
+		}
 
 		fun setLaneFilter(lanes: Set<String>) {
 			_state.value = _state.value.copy(laneFilter = lanes)
@@ -188,6 +213,9 @@ class TimeLineOverviewUiTest : BaseTest() {
 		shown: () -> Boolean = { true },
 		layoutHost: TimelineLayoutHost = TimelineLayoutHost(EmptyCoroutineContext),
 		lastLayout: LastTimelineLayout? = null,
+		switcher: TimelineSwitcherActions = TimelineSwitcherActions.None,
+		uiScope: CoroutineScope = scope,
+		onOrphansLeft: (Int) -> Unit = {},
 	) {
 		compose.setContent {
 			// Keeps saved state while the overview is hidden, as the timeline's stack does.
@@ -198,12 +226,14 @@ class TimeLineOverviewUiTest : BaseTest() {
 						AnimatedVisibility(visible = true) {
 							TimeLineOverviewUi(
 								component = component,
-								scope = scope,
+								scope = uiScope,
 								showCreate = {},
 								viewEvent = viewEvent,
+								switcher = switcher,
 								sharedTransitionScope = this@SharedTransitionLayout,
 								animatedVisibilityScope = this@AnimatedVisibility,
 								lastLayout = lastLayout ?: remember { LastTimelineLayout() },
+								onOrphansLeft = onOrphansLeft,
 							)
 						}
 					}
@@ -1104,6 +1134,7 @@ class TimeLineOverviewUiTest : BaseTest() {
 									scope = scope,
 									showCreate = {},
 									viewEvent = {},
+									switcher = TimelineSwitcherActions.None,
 									sharedTransitionScope = this@SharedTransitionLayout,
 									animatedVisibilityScope = this,
 								)
@@ -1319,5 +1350,283 @@ class TimeLineOverviewUiTest : BaseTest() {
 
 		assertEquals(TimelineFrame.Everything, component.state.value.frame)
 		compose.onNodeWithTag(TIME_LINE_FRAME_PILL_TAG).assertDoesNotExist()
+	}
+
+	private class RecordingSwitcher {
+		val selected = mutableListOf<TimelineSelection>()
+		var newRequests = 0
+		val renamed = mutableListOf<String>()
+		val deleted = mutableListOf<String>()
+		var settingsOpened = 0
+		val actions = TimelineSwitcherActions(
+			onSelect = { selected += it },
+			onNew = { newRequests++ },
+			onRename = { renamed += it },
+			onDelete = { deleted += it },
+			onSettings = { settingsOpened++ },
+		)
+	}
+
+	private val main = TimelineSummary(TimelineDef.DEFAULT, 3)
+	private val backstory = TimelineSummary(TimelineDef(id = "backstory", name = "Before the evening"), 13)
+	private val switcherRows = listOf(row(TimeLineEvent(id = 1, order = 0, title = "Croquet")))
+
+	private fun switcherTitle(title: String) = hasText(title) and hasText("▾") and hasClickAction()
+
+	@Test
+	fun `With only main the masthead says Timeline with a chevron and opens the switcher`() {
+		val switcher = RecordingSwitcher()
+		showOverview(FakeOverview(switcherRows, timelines = listOf(main)), switcher = switcher.actions, screen = desktopScreen)
+
+		compose.onNode(switcherTitle("Timeline")).assertIsDisplayed().performClick()
+		compose.onNodeWithTag(timelineSwitcherRowTag(TimelineDef.MAIN_ID)).assertIsDisplayed()
+		compose.onNodeWithTag(TIME_LINE_SWITCHER_NEW_TAG).performClick()
+
+		assertEquals(1, switcher.newRequests)
+	}
+
+	@Test
+	fun `With two timelines the masthead names the one shown`() {
+		showOverview(
+			FakeOverview(switcherRows, timelines = listOf(main, backstory), selection = TimelineSelection.Def("backstory")),
+			screen = desktopScreen,
+		)
+
+		compose.onNode(switcherTitle("Before the evening")).assertIsDisplayed()
+		compose.onNode(switcherTitle("Timeline")).assertDoesNotExist()
+	}
+
+	@Test
+	fun `With two timelines main is called by its name`() {
+		showOverview(FakeOverview(switcherRows, timelines = listOf(main, backstory)), screen = desktopScreen)
+
+		compose.onNode(switcherTitle("Main")).assertIsDisplayed()
+	}
+
+	@Test
+	fun `The switcher lists every timeline with its count and acts on the one shown`() {
+		val switcher = RecordingSwitcher()
+		showOverview(
+			FakeOverview(switcherRows, timelines = listOf(main, backstory), selection = TimelineSelection.Def("backstory")),
+			switcher = switcher.actions,
+			screen = desktopScreen,
+		)
+		compose.onNode(switcherTitle("Before the evening")).performClick()
+
+		compose.onNodeWithTag(timelineSwitcherRowTag("main")).assertTextContains("Main").assertTextContains("3")
+		compose.onNodeWithTag(timelineSwitcherRowTag("backstory")).assertTextContains("13")
+		compose.onNodeWithTag(TIME_LINE_SWITCHER_SETTINGS_TAG).assertIsDisplayed()
+		compose.onNodeWithTag(TIME_LINE_SWITCHER_DELETE_TAG).assertTextContains("Delete “Before the evening”…")
+		compose.onNodeWithTag(TIME_LINE_SWITCHER_RENAME_TAG).assertTextContains("Rename “Before the evening”…").performClick()
+
+		assertEquals(listOf("backstory"), switcher.renamed)
+	}
+
+	@Test
+	fun `Delete in the switcher asks about the timeline shown`() {
+		val switcher = RecordingSwitcher()
+		showOverview(
+			FakeOverview(switcherRows, timelines = listOf(main, backstory), selection = TimelineSelection.Def("backstory")),
+			switcher = switcher.actions,
+		)
+		compose.onNode(switcherTitle("Before the evening")).performClick()
+		compose.onNodeWithTag(TIME_LINE_SWITCHER_DELETE_TAG).performClick()
+
+		assertEquals(listOf("backstory"), switcher.deleted)
+	}
+
+	@Test
+	fun `Main cannot be deleted from the switcher`() {
+		showOverview(FakeOverview(switcherRows, timelines = listOf(main, backstory)))
+		compose.onNode(switcherTitle("Main")).performClick()
+
+		compose.onNodeWithTag(TIME_LINE_SWITCHER_RENAME_TAG).assertIsDisplayed()
+		compose.onNodeWithTag(TIME_LINE_SWITCHER_DELETE_TAG).assertDoesNotExist()
+	}
+
+	@Test
+	fun `Settings opens from the switcher`() {
+		val switcher = RecordingSwitcher()
+		showOverview(FakeOverview(switcherRows, timelines = listOf(main)), switcher = switcher.actions)
+		compose.onNode(switcherTitle("Timeline")).performClick()
+		compose.onNodeWithTag(TIME_LINE_SWITCHER_SETTINGS_TAG).performClick()
+
+		assertEquals(1, switcher.settingsOpened)
+	}
+
+	@Test
+	fun `The deleted bucket is in the switcher only while it holds events`() {
+		val component = FakeOverview(switcherRows, timelines = listOf(main, backstory))
+		showOverview(component)
+		compose.onNode(switcherTitle("Main")).performClick()
+		compose.onNodeWithTag(TIME_LINE_SWITCHER_DELETED_TAG).assertDoesNotExist()
+	}
+
+	@Test
+	fun `The deleted bucket is in the switcher with its count`() {
+		val switcher = RecordingSwitcher()
+		showOverview(FakeOverview(switcherRows, timelines = listOf(main), orphanCount = 2), switcher = switcher.actions)
+		compose.onNode(switcherTitle("Timeline")).performClick()
+
+		compose.onNodeWithTag(TIME_LINE_SWITCHER_DELETED_TAG)
+			.assertTextContains("Deleted timeline")
+			.assertTextContains("2")
+			.performClick()
+
+		assertEquals(listOf<TimelineSelection>(TimelineSelection.Orphans), switcher.selected)
+	}
+
+	@Test
+	fun `Choosing a timeline in the switcher selects it and closes the menu`() {
+		val switcher = RecordingSwitcher()
+		showOverview(FakeOverview(switcherRows, timelines = listOf(main, backstory)), switcher = switcher.actions)
+		compose.onNode(switcherTitle("Main")).performClick()
+		compose.onNodeWithTag(timelineSwitcherRowTag("backstory")).performClick()
+		compose.waitForIdle()
+
+		assertEquals(listOf<TimelineSelection>(TimelineSelection.Def("backstory")), switcher.selected)
+		compose.onNodeWithTag(timelineSwitcherRowTag("backstory")).assertDoesNotExist()
+	}
+
+	private fun orphansOverview() = FakeOverview(
+		listOf(
+			row(TimeLineEvent(id = 4, order = 0, title = "Made offline", timeline = "gone")),
+			row(TimeLineEvent(id = 5, order = 1, title = "Also offline", timeline = "gone")),
+		),
+		timelines = listOf(main, backstory),
+		selection = TimelineSelection.Orphans,
+		orphanCount = 2,
+	)
+
+	@Test
+	fun `The deleted bucket shows its notice over a list whose rows open their events`() {
+		val viewed = mutableListOf<Int>()
+		showOverview(orphansOverview(), viewEvent = { viewed += it }, screen = desktopScreen)
+
+		compose.onNode(switcherTitle("Deleted timeline")).assertIsDisplayed()
+		compose.onNodeWithTag(TIME_LINE_DELETED_NOTICE_TAG).assertIsDisplayed()
+		compose.onNodeWithText(
+			"2 events were added on another device to a timeline that has since been deleted."
+		).assertIsDisplayed()
+		compose.onNodeWithTag(TIMELINE_DRAWING_TAG).assertDoesNotExist()
+		compose.onNodeWithText("Also offline").performClick()
+
+		assertEquals(listOf(5), viewed)
+	}
+
+	@Test
+	fun `Move all to moves the deleted bucket to the timeline picked`() {
+		val component = orphansOverview()
+		showOverview(component, uiScope = CoroutineScope(Dispatchers.Unconfined))
+
+		compose.onNodeWithText("Move all to…").performClick()
+		compose.onNodeWithTag(timelineMoveAllTargetTag("backstory")).performClick()
+		compose.waitForIdle()
+
+		assertEquals(listOf("backstory"), component.orphansMovedTo)
+	}
+
+	@Test
+	fun `Move all to reports the events it left behind`() {
+		val component = orphansOverview()
+		val left = mutableListOf<Int>()
+		showOverview(component, uiScope = CoroutineScope(Dispatchers.Unconfined), onOrphansLeft = { left += it })
+
+		compose.onNodeWithText("Move all to…").performClick()
+		compose.onNodeWithTag(timelineMoveAllTargetTag("backstory")).performClick()
+		compose.waitForIdle()
+		assertEquals(emptyList(), left)
+
+		component.orphansStaying = 1
+		compose.onNodeWithText("Move all to…").performClick()
+		compose.onNodeWithTag(timelineMoveAllTargetTag("backstory")).performClick()
+		compose.waitForIdle()
+		assertEquals(listOf(1), left)
+	}
+
+	@Test
+	fun `Delete all asks before deleting the deleted bucket`() {
+		val component = orphansOverview()
+		showOverview(component, uiScope = CoroutineScope(Dispatchers.Unconfined))
+
+		compose.onNodeWithText("Delete all").performClick()
+		compose.waitForIdle()
+		assertEquals(0, component.orphansDeleted)
+
+		compose.onNodeWithText("Delete 2 events?").assertIsDisplayed()
+		compose.onNodeWithTag(TIME_LINE_DELETED_DELETE_CONFIRM_TAG).performClick()
+		compose.waitForIdle()
+
+		assertEquals(1, component.orphansDeleted)
+	}
+
+	@Test
+	fun `A timeline has no deleted bucket notice`() {
+		showOverview(FakeOverview(switcherRows, timelines = listOf(main), orphanCount = 2))
+
+		compose.onNodeWithTag(TIME_LINE_DELETED_NOTICE_TAG).assertDoesNotExist()
+	}
+
+	@Test
+	fun `The create FAB is hidden in the deleted bucket`() {
+		showFab(orphansOverview())
+
+		compose.onNodeWithTag(TIME_LINE_CREATE_TAG).assertDoesNotExist()
+	}
+
+	private val longName = TimelineSummary(
+		TimelineDef(id = "scratch", name = "Scratch: what the keeper remembers of the wreck of the Alba"),
+		2,
+	)
+
+	@Test
+	fun `On a phone the switcher sits beside search and ellipsizes a long name`() {
+		val switcher = RecordingSwitcher()
+		showOverview(
+			FakeOverview(switcherRows, timelines = listOf(main, longName), selection = TimelineSelection.Def("scratch")),
+			switcher = switcher.actions,
+			screen = phoneScreen,
+			size = DpSize(360.dp, 760.dp),
+		)
+
+		compose.onNodeWithContentDescription("Search timeline").assertIsDisplayed()
+		val title = compose.onNode(hasText(longName.def.name) and hasClickAction()).assertIsDisplayed()
+		val layouts = mutableListOf<TextLayoutResult>()
+		compose.onNode(hasText(longName.def.name) and !hasClickAction(), useUnmergedTree = true)
+			.performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
+		assertTrue(layouts.single().hasVisualOverflow, "the name is cut short")
+		assertEquals(1, layouts.single().lineCount)
+
+		title.performClick()
+		compose.onNodeWithTag(timelineSwitcherRowTag("main")).performClick()
+		assertEquals(listOf<TimelineSelection>(TimelineSelection.Main), switcher.selected)
+	}
+
+	@Test
+	fun `On a phone the switcher is hidden while searching`() {
+		showPhoneOverview(FakeOverview(switcherRows, timelines = listOf(main)))
+		compose.onNode(switcherTitle("Timeline")).assertIsDisplayed()
+
+		compose.onNodeWithContentDescription("Search timeline").performClick()
+		compose.waitForIdle()
+
+		compose.onNodeWithTag(TIME_LINE_SEARCH_TAG).assertIsDisplayed()
+		compose.onNode(switcherTitle("Timeline")).assertDoesNotExist()
+	}
+
+	@Test
+	fun `On a phone with only main the switcher still opens`() {
+		val switcher = RecordingSwitcher()
+		showOverview(
+			FakeOverview(switcherRows, timelines = listOf(main)),
+			switcher = switcher.actions,
+			screen = phoneScreen,
+			size = DpSize(360.dp, 760.dp),
+		)
+
+		compose.onNode(switcherTitle("Timeline")).performClick()
+		compose.onNodeWithTag(TIME_LINE_SWITCHER_NEW_TAG).performClick()
+
+		assertEquals(1, switcher.newRequests)
 	}
 }

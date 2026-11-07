@@ -4,6 +4,7 @@ import PROJECT_2_NAME
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectDataConflictDto
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectDataDto
+import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectTheme
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectDataConflictException
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectDataHasher
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
@@ -494,5 +495,82 @@ class ProjectDataSyncOperationTest : BaseTest() {
 		}
 
 		watcher.cancel()
+	}
+
+	@Test
+	fun `a deletion racing a theme edit keeps the theme and the deletion without a resolver`() = runTest {
+		val main = TimelineDef.DEFAULT
+		val doomed = TimelineDef(id = "b2c3d4e5", name = "Scratch")
+		val local = ProjectData(timelines = listOf(main, doomed))
+		datasource.save(StoredProjectData(local, lastSyncedHash = ProjectDataHasher.hash(local)))
+		val server = ProjectData(
+			theme = ProjectTheme(primary = "#112233", secondary = "#445566"),
+			timelines = listOf(main),
+			deletedTimelines = setOf(doomed.id),
+		)
+		coEvery { api.getProjectData(any(), any()) } returns
+			Result.success(ProjectDataDto(server, "server-hash"))
+		val snapshotTaken = CompletableDeferred<Unit>()
+		val releaseSnapshot = CompletableDeferred<Unit>()
+		val gatedDatasource = spyk(datasource)
+		coEvery { gatedDatasource.load() } coAnswers {
+			val loaded = datasource.load()
+			snapshotTaken.complete(Unit)
+			releaseSnapshot.await()
+			loaded
+		}
+		repository = ProjectDataRepository(gatedDatasource, projectDef)
+
+		val sync = async { createOperation().run() }
+		snapshotTaken.await()
+		// A rename of the deleted def lands while the sync holds its snapshot; the tombstone wins.
+		val editor = launch(start = CoroutineStart.UNDISPATCHED) {
+			repository.updateData { data ->
+				data.copy(timelines = data.timelines.map { if (it.id == doomed.id) it.copy(name = "Renamed") else it })
+			}
+		}
+		releaseSnapshot.complete(Unit)
+		val result = sync.await()
+		editor.join()
+
+		assertTrue(isSuccess(result))
+		assertEquals(StoredProjectData(server, ProjectDataHasher.hash(server)), repository.state.value)
+		assertTrue(broker.conflicts.tryReceive().isFailure, "no conflict should reach the resolver")
+		coVerify(exactly = 0) { api.uploadProjectData(any(), any(), any(), any()) }
+	}
+
+	@Test
+	fun `a 409 that differs only by a timeline deletion merges without a resolver`() = runTest {
+		val main = TimelineDef.DEFAULT
+		val doomed = TimelineDef(id = "b2c3d4e5", name = "Scratch")
+		val local = ProjectData(
+			authorName = "Author",
+			dictionaryWords = setOf("local"),
+			timelines = listOf(main, doomed.copy(name = "Renamed")),
+		)
+		datasource.save(StoredProjectData(local, lastSyncedHash = "stale-hash"))
+		val server = ProjectData(
+			authorName = "Author",
+			dictionaryWords = setOf("server"),
+			timelines = listOf(main),
+			deletedTimelines = setOf(doomed.id),
+		)
+		coEvery { api.getProjectData(any(), any()) } returns
+			Result.success(ProjectDataDto(server, "server-hash"))
+		coEvery {
+			api.uploadProjectData(any(), any(), local, "stale-hash")
+		} returns Result.failure(
+			ProjectDataConflictException(ProjectDataConflictDto(server, "server-hash"))
+		)
+		val merged = server.copy(dictionaryWords = setOf("local", "server"))
+		coEvery {
+			api.uploadProjectData(any(), any(), merged, "server-hash")
+		} returns Result.success(ProjectDataDto(merged, "merged-hash"))
+
+		val result = createOperation().run()
+
+		assertTrue(isSuccess(result))
+		assertEquals(StoredProjectData(merged, "merged-hash"), repository.state.value)
+		assertTrue(broker.conflicts.tryReceive().isFailure, "no conflict should reach the resolver")
 	}
 }

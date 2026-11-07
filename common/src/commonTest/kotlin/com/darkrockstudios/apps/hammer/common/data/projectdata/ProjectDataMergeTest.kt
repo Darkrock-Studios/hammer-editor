@@ -31,11 +31,11 @@ class ProjectDataMergeTest {
 	}
 
 	@Test
-	fun `differsOutsideDictionary ignores the dictionary and nothing else`() {
+	fun `differsOutsideAutoMerged ignores the dictionary and nothing else`() {
 		val base = ProjectData(authorName = "Pat", dictionaryWords = setOf("a"))
 
-		assertFalse(base.differsOutsideDictionary(base.copy(dictionaryWords = setOf("b"))))
-		assertTrue(base.differsOutsideDictionary(base.copy(authorName = "Sam")))
+		assertFalse(base.differsOutsideAutoMerged(base.copy(dictionaryWords = setOf("b"))))
+		assertTrue(base.differsOutsideAutoMerged(base.copy(authorName = "Sam")))
 	}
 
 	@Test
@@ -173,13 +173,104 @@ class ProjectDataMergeTest {
 
 	@Test
 	fun `timelines by choice keep a def only one side has`() {
-		assertEquals(listOf(main, second), mergeTimelinesByChoice(listOf(main), listOf(second), preferLocal = true))
-		assertEquals(listOf(second, main), mergeTimelinesByChoice(listOf(main), listOf(second), preferLocal = false))
+		assertEquals(listOf(main, second), mergeTimelinesByChoice(listOf(main), listOf(second), emptySet(), preferLocal = true))
+		assertEquals(listOf(second, main), mergeTimelinesByChoice(listOf(main), listOf(second), emptySet(), preferLocal = false))
 	}
 
 	@Test
 	fun `timelines by choice take the chosen side on a same-id difference`() {
-		assertEquals(listOf(dated), mergeTimelinesByChoice(listOf(dated), listOf(main), preferLocal = true))
-		assertEquals(listOf(main), mergeTimelinesByChoice(listOf(dated), listOf(main), preferLocal = false))
+		assertEquals(listOf(dated), mergeTimelinesByChoice(listOf(dated), listOf(main), emptySet(), preferLocal = true))
+		assertEquals(listOf(main), mergeTimelinesByChoice(listOf(dated), listOf(main), emptySet(), preferLocal = false))
+	}
+
+	@Test
+	fun `an incoming tombstone beats a local edit of the deleted def`() {
+		val renamed = second.copy(name = "Renamed")
+		val merged = reapplyLocalEdits(
+			base = ProjectData(timelines = listOf(main, second)),
+			local = ProjectData(timelines = listOf(main, renamed)),
+			incoming = ProjectData(timelines = listOf(main), deletedTimelines = setOf(second.id)),
+		)
+
+		assertEquals(listOf(main), merged.timelines)
+		assertEquals(setOf(second.id), merged.deletedTimelines)
+	}
+
+	@Test
+	fun `a local tombstone beats an incoming edit of the deleted def`() {
+		val renamed = second.copy(name = "Renamed")
+		val merged = reapplyLocalEdits(
+			base = ProjectData(timelines = listOf(main, second)),
+			local = ProjectData(timelines = listOf(main), deletedTimelines = setOf(second.id)),
+			incoming = ProjectData(timelines = listOf(main, renamed)),
+		)
+
+		assertEquals(listOf(main), merged.timelines)
+		assertEquals(setOf(second.id), merged.deletedTimelines)
+	}
+
+	@Test
+	fun `reapplyLocalEdits unions tombstones from base and local and incoming`() {
+		val merged = reapplyLocalEdits(
+			base = ProjectData(deletedTimelines = setOf("aaaaaaaa")),
+			local = ProjectData(deletedTimelines = setOf("aaaaaaaa", "bbbbbbbb")),
+			incoming = ProjectData(deletedTimelines = setOf("cccccccc")),
+		)
+
+		assertEquals(setOf("aaaaaaaa", "bbbbbbbb", "cccccccc"), merged.deletedTimelines)
+	}
+
+	@Test
+	fun `a tombstone beats the chosen side on the conflict screen`() {
+		assertEquals(
+			listOf(main),
+			mergeTimelinesByChoice(listOf(main, second), listOf(main), setOf(second.id), preferLocal = true),
+		)
+		assertEquals(
+			listOf(main, third),
+			mergeTimelinesByChoice(listOf(main, second), listOf(main, third), setOf(second.id), preferLocal = false),
+		)
+	}
+
+	@Test
+	fun `a main tombstone is ignored`() {
+		assertEquals(
+			setOf(second.id),
+			mergeDeletedTimelines(ProjectData(deletedTimelines = setOf(TimelineDef.MAIN_ID, second.id))),
+		)
+		val merged = reapplyLocalEdits(
+			base = ProjectData(timelines = listOf(main)),
+			local = ProjectData(timelines = listOf(dated)),
+			incoming = ProjectData(timelines = listOf(main), deletedTimelines = setOf(TimelineDef.MAIN_ID)),
+		)
+		assertEquals(listOf(dated), merged.timelines)
+		assertEquals(emptySet(), merged.deletedTimelines)
+		assertEquals(listOf(main), listOf(main).withoutDeleted(setOf(TimelineDef.MAIN_ID)))
+	}
+
+	@Test
+	fun `a deletion against an edit of the deleted def auto-merges`() {
+		val deleter = ProjectData(authorName = "Pat", timelines = listOf(main), deletedTimelines = setOf(second.id))
+		val editor = ProjectData(authorName = "Pat", timelines = listOf(main, second.copy(name = "Renamed")))
+
+		assertFalse(editor.differsOutsideAutoMerged(deleter))
+		assertFalse(deleter.differsOutsideAutoMerged(editor))
+		assertEquals(deleter, editor.withAutoMerged(deleter))
+	}
+
+	@Test
+	fun `auto-merge unions tombstones and still sees other differences`() {
+		val local = ProjectData(timelines = listOf(main, third), deletedTimelines = setOf(second.id))
+		val server = ProjectData(timelines = listOf(main, second), deletedTimelines = setOf("dddddddd"))
+
+		assertEquals(
+			local.copy(deletedTimelines = setOf(second.id, "dddddddd")),
+			local.withAutoMerged(server),
+		)
+		// third exists only locally and is not tombstoned, so the timelines still conflict.
+		assertTrue(local.differsOutsideAutoMerged(server))
+		assertFalse(
+			local.differsOutsideAutoMerged(server.copy(timelines = listOf(main, third))),
+		)
 	}
 }

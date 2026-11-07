@@ -6,10 +6,18 @@ import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.components.timeline.EventPreview
 import com.darkrockstudios.apps.hammer.common.components.timeline.LaneCount
+import com.arkivanov.decompose.value.MutableValue
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineOverviewComponent
+import com.darkrockstudios.apps.hammer.common.components.timeline.TimelineSelection
+import com.darkrockstudios.apps.hammer.common.components.timeline.isDrawn
 import com.darkrockstudios.apps.hammer.common.components.timeline.toLayoutInput
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
+import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
+import com.darkrockstudios.apps.hammer.common.data.tagindex.TagCount
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineDefResult
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineSummary
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineEventDraft
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineResult
 import com.darkrockstudios.apps.hammer.common.timeline.layout.MonospaceEstimateMeasurer
@@ -30,12 +38,23 @@ import kotlin.test.assertTrue
 class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 
 
+	private val selection = MutableValue<TimelineSelection>(TimelineSelection.Main)
+	private val addedMenus = mutableListOf<MenuDescriptor>()
+	private val removedMenus = mutableListOf<String>()
+	private var newTimelineRequests = 0
+
 	private fun newComponent() = TimeLineOverviewComponent(
 		componentContext = context,
 		projectDef = projectDef,
-		addMenu = {},
-		removeMenu = {},
+		selection = selection,
+		addMenu = { addedMenus += it },
+		removeMenu = { removedMenus += it },
+		onRequestNewTimeline = { newTimelineRequests++ },
+		onSelectTimeline = { selection.value = it },
 	)
+
+	private suspend fun newTimeline(name: String, mode: TimelineMode = TimelineMode.MANUAL): TimelineDef =
+		(timelineService.createTimeline(name, mode, CalendarDef().takeIf { mode == TimelineMode.DATED }) as TimelineDefResult.Ok).def
 
 	private fun TestScope.previewOf(component: TimeLineOverviewComponent, eventId: Int): EventPreview? {
 		component.requestPreview(eventId)
@@ -62,8 +81,8 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 	@Test
 	fun `rows resolve titles, subtitles and lane indices`() = runTest(mainTestDispatcher) {
 		givenProject()
-		timelineService.placeScene(4, null, null, lane = "Alice", milestone = true)
-		timelineService.placeEntry(TEA_PARTY, null, null, lane = "Hatter", milestone = false)
+		timelineService.placeScene(4, null, null, lane = "Alice", milestone = true, timeline = TimelineDef.MAIN_ID)
+		timelineService.placeEntry(TEA_PARTY, null, null, lane = "Hatter", milestone = false, timeline = TimelineDef.MAIN_ID)
 		timelineService.createEvent(TimelineEventDraft(title = "Storm", label = "Night", lane = "Alice"))
 		timelineService.createEvent(TimelineEventDraft(content = "Rain falls"))
 
@@ -85,7 +104,7 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 	@Test
 	fun `lane indices follow the lane order before the alphabet`() = runTest(mainTestDispatcher) {
 		givenProject()
-		timelineService.updateDefinition { it.copy(laneOrder = listOf("Queen")) }
+		timelineService.updateDefinition(TimelineDef.MAIN_ID) { it.copy(laneOrder = listOf("Queen")) }
 		timelineService.createEvent(TimelineEventDraft(title = "Croquet", lane = "Queen"))
 		timelineService.createEvent(TimelineEventDraft(title = "Fall", lane = "Alice"))
 
@@ -116,8 +135,8 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 	@Test
 	fun `a placed scene that is archived is flagged, not drawn, and returns when unarchived`() = runTest(mainTestDispatcher) {
 		givenProject()
-		timelineService.switchToDated(CalendarDef())
-		timelineService.placeScene(4, StoryDate(mapOf("year" to 3L)), null, lane = null, milestone = false)
+		timelineService.switchToDated(TimelineDef.MAIN_ID, CalendarDef())
+		timelineService.placeScene(4, StoryDate(mapOf("year" to 3L)), null, lane = null, milestone = false, timeline = TimelineDef.MAIN_ID)
 		val component = newComponent()
 		context.resume()
 		advanceUntilIdle()
@@ -183,7 +202,7 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 		givenProject()
 		timelineService.createEvent(TimelineEventDraft(title = "Squall", content = "A well\\-known storm"))
 		timelineService.createEvent(TimelineEventDraft(title = "Croquet", label = "Storm season"))
-		timelineService.placeEntry(TEA_PARTY, null, null, lane = null, milestone = false)
+		timelineService.placeEntry(TEA_PARTY, null, null, lane = null, milestone = false, timeline = TimelineDef.MAIN_ID)
 		val component = newComponent()
 		context.resume()
 		advanceUntilIdle()
@@ -278,7 +297,7 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 	fun `on a dated timeline the search rings drawn matches in the lane filter without narrowing anything`() =
 		runTest(mainTestDispatcher) {
 			givenProject()
-			timelineService.switchToDated(CalendarDef())
+			timelineService.switchToDated(TimelineDef.MAIN_ID, CalendarDef())
 			fun year(y: Long) = StoryDate(mapOf("year" to y))
 			suspend fun create(title: String, start: Int?, lane: String? = null, tags: Set<String> = setOf("act-one")) =
 				timelineService.createEvent(TimelineEventDraft(title = title, lane = lane, tags = tags, start = start?.let { year(it.toLong()) })).event()
@@ -327,7 +346,7 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 		component.toggleLane("Alice")
 
 		val recreated = context.saveAndRecreate()
-		val restored = TimeLineOverviewComponent(recreated, projectDef, {}, {})
+		val restored = TimeLineOverviewComponent(recreated, projectDef, selection, {}, {}, {}, { selection.value = it })
 		recreated.resume()
 		advanceUntilIdle()
 
@@ -350,7 +369,7 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 
 		val recreated = context.saveAndRecreate()
 		timelineService.updateEvent(fall.copy(tags = setOf("act-one")))
-		val restored = TimeLineOverviewComponent(recreated, projectDef, {}, {})
+		val restored = TimeLineOverviewComponent(recreated, projectDef, selection, {}, {}, {}, { selection.value = it })
 		recreated.resume()
 		advanceUntilIdle()
 
@@ -369,7 +388,7 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 		advanceUntilIdle()
 		assertTrue(component.moveEvent(first, 1, after = true))
 
-		timelineService.switchToDated(CalendarDef())
+		timelineService.switchToDated(TimelineDef.MAIN_ID, CalendarDef())
 		advanceUntilIdle()
 
 		assertEquals(TimelineMode.DATED, component.state.value.mode)
@@ -382,7 +401,7 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 		givenProject()
 		timelineService.createEvent(TimelineEventDraft(title = "One", label = "Dawn"))
 		timelineService.createEvent(TimelineEventDraft(title = "Two"))
-		timelineService.switchToDated(CalendarDef(epochName = "Landing"))
+		timelineService.switchToDated(TimelineDef.MAIN_ID, CalendarDef(epochName = "Landing"))
 		val legacy = timeLineRepository.createEvent(TimelineEventDraft(title = "Legacy"))
 
 		val component = newComponent()
@@ -418,7 +437,7 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 	@Test
 	fun `a span or a coarse date can be framed, a minute cannot, nor the band already framed`() = runTest(mainTestDispatcher) {
 		givenProject()
-		timelineService.switchToDated(CalendarDef())
+		timelineService.switchToDated(TimelineDef.MAIN_ID, CalendarDef())
 		val siege = timelineService.createEvent(
 			TimelineEventDraft(title = "Siege", lane = "Keep", start = StoryDate(mapOf("year" to 1L)), end = StoryDate(mapOf("year" to 4L)))
 		).event()
@@ -451,7 +470,7 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 	@Test
 	fun `an event can be framed exactly when the drawing draws it as a span`() = runTest(mainTestDispatcher) {
 		givenProject()
-		timelineService.switchToDated(CalendarDef())
+		timelineService.switchToDated(TimelineDef.MAIN_ID, CalendarDef())
 		val instant = StoryDate(mapOf("year" to 2L, "day" to 3L, "hour" to 4L, "minute" to 5L))
 		val later = StoryDate(mapOf("year" to 2L, "day" to 3L, "hour" to 6L, "minute" to 0L))
 		val year2 = StoryDate(mapOf("year" to 2L))
@@ -470,7 +489,7 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 			TimelineEventDraft(title = "Wander", start = StoryDate(mapOf("year" to 10L)), end = StoryDate(mapOf("year" to 12L))),
 		)
 		val ids = drafts.associate { draft -> draft.title!! to timelineService.createEvent(draft).event().id } +
-			("Scene" to timelineService.placeScene(4, year2, null, lane = null, milestone = false).event().id)
+			("Scene" to timelineService.placeScene(4, year2, null, lane = null, milestone = false, timeline = TimelineDef.MAIN_ID).event().id)
 		val component = newComponent()
 		context.resume()
 		advanceUntilIdle()
@@ -510,7 +529,7 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 	@Test
 	fun `an event the filters keep out of the drawing cannot be framed`() = runTest(mainTestDispatcher) {
 		givenProject()
-		timelineService.switchToDated(CalendarDef())
+		timelineService.switchToDated(TimelineDef.MAIN_ID, CalendarDef())
 		val years = { from: Long, to: Long -> StoryDate(mapOf("year" to from)) to StoryDate(mapOf("year" to to)) }
 		val (siegeStart, siegeEnd) = years(1L, 4L)
 		val siege = timelineService.createEvent(
@@ -537,7 +556,7 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 	fun `framing a band survives recreation and back returns to everything`() = runTest(mainTestDispatcher) {
 		givenProject()
 		val storm = timelineService.createEvent(TimelineEventDraft(title = "Storm", lane = "Keep")).event()
-		timelineService.switchToDated(CalendarDef())
+		timelineService.switchToDated(TimelineDef.MAIN_ID, CalendarDef())
 		val component = newComponent()
 		context.resume()
 		advanceUntilIdle()
@@ -547,7 +566,7 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 		component.setFrame(TimelineFrame.Band(storm.id))
 		assertEquals(TimelineFrame.Band(storm.id), component.state.value.frame)
 
-		val restored = TimeLineOverviewComponent(context.saveAndRecreate(), projectDef, {}, {})
+		val restored = TimeLineOverviewComponent(context.saveAndRecreate(), projectDef, selection, {}, {}, {}, { selection.value = it })
 		assertEquals(TimelineFrame.Band(storm.id), restored.state.value.frame)
 
 		assertTrue(context.back())
@@ -560,7 +579,7 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 		givenProject()
 		val storm = timelineService.createEvent(TimelineEventDraft(title = "Storm")).event()
 		timelineService.createEvent(TimelineEventDraft(title = "Rain"))
-		timelineService.switchToDated(CalendarDef())
+		timelineService.switchToDated(TimelineDef.MAIN_ID, CalendarDef())
 		val component = newComponent()
 		context.resume()
 		advanceUntilIdle()
@@ -576,7 +595,7 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 	fun `the story frame needs a placed scene`() = runTest(mainTestDispatcher) {
 		givenProject()
 		timelineService.createEvent(TimelineEventDraft(title = "Storm"))
-		timelineService.switchToDated(CalendarDef())
+		timelineService.switchToDated(TimelineDef.MAIN_ID, CalendarDef())
 		val component = newComponent()
 		context.resume()
 		advanceUntilIdle()
@@ -585,7 +604,7 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 		component.setFrame(TimelineFrame.Story)
 		assertEquals(TimelineFrame.Everything, component.state.value.frame)
 
-		timelineService.placeScene(4, StoryDate(mapOf("year" to 3L)), null, lane = null, milestone = false)
+		timelineService.placeScene(4, StoryDate(mapOf("year" to 3L)), null, lane = null, milestone = false, timeline = TimelineDef.MAIN_ID)
 		advanceUntilIdle()
 
 		assertTrue(component.state.value.storyFrameAvailable)
@@ -597,8 +616,8 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 	fun `the summary of a placed scene lists its cast, people first`() = runTest(mainTestDispatcher) {
 		givenProject()
 		sceneMetadataRepository.storeMetadata(SceneMetadata(confirmedReferences = setOf(TEA_PARTY, WONDERLAND, ALICE)), sceneId = 4)
-		val placed = timelineService.placeScene(4, null, null, lane = "Alice", milestone = false).event()
-		timelineService.switchToDated(CalendarDef())
+		val placed = timelineService.placeScene(4, null, null, lane = "Alice", milestone = false, timeline = TimelineDef.MAIN_ID).event()
+		timelineService.switchToDated(TimelineDef.MAIN_ID, CalendarDef())
 		val component = newComponent()
 		context.resume()
 		advanceUntilIdle()
@@ -616,7 +635,7 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 		val storm = timelineService.createEvent(
 			TimelineEventDraft(title = "Storm", references = linkedSetOf(4, WONDERLAND, ALICE))
 		).event()
-		timelineService.switchToDated(CalendarDef())
+		timelineService.switchToDated(TimelineDef.MAIN_ID, CalendarDef())
 		val component = newComponent()
 		context.resume()
 		advanceUntilIdle()
@@ -627,8 +646,8 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 	@Test
 	fun `the summary of a placed entry shows its opening text`() = runTest(mainTestDispatcher) {
 		givenProject()
-		val placed = timelineService.placeEntry(TEA_PARTY, null, null, lane = null, milestone = false).event()
-		timelineService.switchToDated(CalendarDef())
+		val placed = timelineService.placeEntry(TEA_PARTY, null, null, lane = null, milestone = false, timeline = TimelineDef.MAIN_ID).event()
+		timelineService.switchToDated(TimelineDef.MAIN_ID, CalendarDef())
 		val component = newComponent()
 		context.resume()
 		advanceUntilIdle()
@@ -643,7 +662,7 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 		givenProject()
 		val storm = timelineService.createEvent(TimelineEventDraft(title = "Storm", references = linkedSetOf(ALICE))).event()
 		val rain = timelineService.createEvent(TimelineEventDraft(title = "Rain")).event()
-		timelineService.switchToDated(CalendarDef())
+		timelineService.switchToDated(TimelineDef.MAIN_ID, CalendarDef())
 		val component = newComponent()
 		context.resume()
 		advanceUntilIdle()
@@ -660,7 +679,7 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 	fun `a change to an event refreshes its summary`() = runTest(mainTestDispatcher) {
 		givenProject()
 		val storm = timelineService.createEvent(TimelineEventDraft(title = "Storm", references = linkedSetOf(ALICE))).event()
-		timelineService.switchToDated(CalendarDef())
+		timelineService.switchToDated(TimelineDef.MAIN_ID, CalendarDef())
 		val component = newComponent()
 		context.resume()
 		advanceUntilIdle()
@@ -735,7 +754,7 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 	fun `a placed entry's preview carries its primary image and opening text`() = runTest(mainTestDispatcher) {
 		givenProject()
 		encyclopediaRepository.addEntryImage(encyclopediaRepository.getEntryDef(TEA_PARTY), 77)
-		val placed = timelineService.placeEntry(TEA_PARTY, null, null, lane = null, milestone = false).event()
+		val placed = timelineService.placeEntry(TEA_PARTY, null, null, lane = null, milestone = false, timeline = TimelineDef.MAIN_ID).event()
 		val component = newComponent()
 		context.resume()
 		advanceUntilIdle()
@@ -793,4 +812,162 @@ class TimeLineOverviewComponentTest : TimelineComponentTestBase() {
 
 		assertNull(previewOf(component, 999))
 	}
+
+	// region Timelines
+
+	@Test
+	fun `rows, tags and lanes come from the selected timeline only`() = runTest(mainTestDispatcher) {
+		givenProject()
+		val before = newTimeline("Before")
+		timelineService.updateDefinition(before.id) { it.copy(laneOrder = listOf("Hayes")) }
+		timelineService.createEvent(TimelineEventDraft(title = "Dinner", lane = "Ward", tags = setOf("dinner")))
+		timelineService.createEvent(TimelineEventDraft(title = "Toast", lane = "Ward", tags = setOf("dinner", "wine")))
+		timelineService.createEvent(TimelineEventDraft(title = "Loan", lane = "Pike", tags = setOf("debt"), timeline = before.id))
+		val component = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		assertEquals(listOf("Dinner", "Toast"), component.state.value.rows?.map { it.title })
+		assertEquals(listOf(LaneCount("Ward", 2)), component.state.value.lanes)
+		assertEquals(listOf(TagCount("dinner", 2), TagCount("wine", 1)), component.rankedTags.value)
+
+		selection.value = TimelineSelection.Def(before.id)
+		advanceUntilIdle()
+
+		assertEquals(listOf("Loan"), component.state.value.rows?.map { it.title })
+		assertEquals(listOf(LaneCount("Hayes", 0), LaneCount("Pike", 1)), component.state.value.lanes)
+		assertEquals(listOf(TagCount("debt", 1)), component.rankedTags.value)
+		assertEquals(TimelineSelection.Def(before.id), component.state.value.selection)
+	}
+
+	@Test
+	fun `the timelines are listed with their counts, main first`() = runTest(mainTestDispatcher) {
+		givenProject()
+		val before = newTimeline("Before")
+		timelineService.createEvent(TimelineEventDraft(title = "Dinner"))
+		timelineService.createEvent(TimelineEventDraft(title = "Loan", timeline = before.id))
+		timelineService.createEvent(TimelineEventDraft(title = "Note", timeline = before.id))
+		timeLineRepository.createEvent(TimelineEventDraft(title = "Stray", timeline = "gone0001"))
+		val component = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		assertEquals(
+			listOf(TimelineSummary(TimelineDef.DEFAULT, 1), TimelineSummary(before, 2)),
+			component.state.value.timelines,
+		)
+		assertEquals(1, component.state.value.orphanCount)
+		assertEquals(TimelineDef.DEFAULT, component.state.value.selectedTimeline?.def)
+	}
+
+	@Test
+	fun `a switch resets the frame and keeps the drawing and the search, and filters prune themselves`() =
+		runTest(mainTestDispatcher) {
+			givenProject()
+			timelineService.switchToDated(TimelineDef.MAIN_ID, CalendarDef())
+			val before = newTimeline("Before", TimelineMode.DATED)
+			val year = { y: Long -> StoryDate(mapOf("year" to y)) }
+			val siege = timelineService.createEvent(
+				TimelineEventDraft(title = "Siege", lane = "Keep", tags = setOf("war"), start = year(1), end = year(4))
+			).event()
+			timelineService.createEvent(TimelineEventDraft(title = "Loan", lane = "Bank", tags = setOf("debt"), start = year(2), timeline = before.id))
+			val component = newComponent()
+			context.resume()
+			advanceUntilIdle()
+			component.setView(TimelineView.TO_SCALE)
+			component.setSearchQuery("siege")
+			component.toggleTag("war")
+			component.toggleLane("Keep")
+			component.setFrame(TimelineFrame.Band(siege.id))
+
+			selection.value = TimelineSelection.Def(before.id)
+			advanceUntilIdle()
+
+			val state = component.state.value
+			assertEquals(TimelineFrame.Everything, state.frame)
+			assertEquals(TimelineView.TO_SCALE, state.view)
+			assertEquals("siege", state.searchQuery)
+			assertEquals(emptySet(), state.tagFilter)
+			assertEquals(emptySet(), state.laneFilter)
+			assertEquals(listOf("Loan"), state.rows?.map { it.title })
+		}
+
+	@Test
+	fun `the deleted-timeline bucket lists stragglers read-only`() = runTest(mainTestDispatcher) {
+		givenProject()
+		timelineService.switchToDated(TimelineDef.MAIN_ID, CalendarDef())
+		timeLineRepository.createEvent(TimelineEventDraft(title = "Stray", lane = "Pike", timeline = "gone0001", start = StoryDate(mapOf("year" to 3L))))
+		timeLineRepository.createEvent(TimelineEventDraft(title = "Lost", timeline = "gone0002"))
+		val component = newComponent()
+		context.resume()
+		selection.value = TimelineSelection.Orphans
+		advanceUntilIdle()
+
+		val state = component.state.value
+		assertTrue(state.isOrphans)
+		assertNull(state.selectedTimeline)
+		assertEquals(listOf("Stray", "Lost"), state.rows?.map { it.title })
+		assertEquals(TimelineMode.MANUAL, state.mode)
+		assertNull(state.calendar)
+		assertTrue(state.rows!!.none { it.isDrawn })
+		assertEquals(listOf(LaneCount("Pike", 1)), state.lanes)
+		assertFalse(state.filtered.reorderable)
+		assertFalse(component.moveEvent(state.rows!!.first().event, 1, after = true))
+	}
+
+	@Test
+	fun `everything in the bucket moves to a timeline, undated where its date does not fit`() = runTest(mainTestDispatcher) {
+		givenProject()
+		val before = newTimeline("Before", TimelineMode.DATED)
+		timeLineRepository.createEvent(TimelineEventDraft(title = "Dated", timeline = "gone0001", start = StoryDate(mapOf("year" to 3L))))
+		timeLineRepository.createEvent(TimelineEventDraft(title = "Undated", timeline = "gone0001"))
+		val component = newComponent()
+		context.resume()
+		selection.value = TimelineSelection.Orphans
+		advanceUntilIdle()
+
+		assertEquals(2, component.moveOrphansTo(before.id))
+		advanceUntilIdle()
+
+		assertEquals(0, component.state.value.orphanCount)
+		val moved = timeLineRepository.currentEvents().associate { it.title to it }
+		assertEquals(before.id, moved.getValue("Dated").timeline)
+		assertEquals(StoryDate(mapOf("year" to 3L)), moved.getValue("Dated").start)
+		assertEquals(before.id, moved.getValue("Undated").timeline)
+		assertNull(moved.getValue("Undated").start)
+	}
+
+	@Test
+	fun `everything in the bucket can be deleted`() = runTest(mainTestDispatcher) {
+		givenProject()
+		timelineService.createEvent(TimelineEventDraft(title = "Kept"))
+		timeLineRepository.createEvent(TimelineEventDraft(title = "Stray", timeline = "gone0001"))
+		val component = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		assertEquals(1, component.deleteOrphans())
+		advanceUntilIdle()
+
+		assertEquals(0, component.state.value.orphanCount)
+		assertEquals(listOf("Kept"), timeLineRepository.currentEvents().map { it.title })
+	}
+
+	@Test
+	fun `the desktop menu offers a new timeline while the overview is shown`() = runTest(mainTestDispatcher) {
+		givenProject()
+		newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		val menu = addedMenus.single()
+		val item = menu.items.single()
+		item.action(item.id)
+		assertEquals(1, newTimelineRequests)
+
+		context.stop()
+		assertEquals(listOf(menu.id), removedMenus)
+	}
+
+	// endregion
 }

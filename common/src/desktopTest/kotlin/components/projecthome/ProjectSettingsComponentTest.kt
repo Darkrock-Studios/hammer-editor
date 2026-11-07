@@ -119,7 +119,7 @@ class ProjectSettingsComponentTest : ComponentTest() {
 				scoped { imagesService }
 				scoped { pickRequests }
 				scoped<TimelineService> {
-					mockk(relaxed = true) { every { timelineFlow } returns emptyFlow() }
+					mockk(relaxed = true) { every { timelineFlow(any()) } returns emptyFlow() }
 				}
 			}
 		})

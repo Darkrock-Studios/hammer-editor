@@ -7,6 +7,7 @@ import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogItem
+import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogRef
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagSuggesting
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEventError
 
@@ -62,14 +63,19 @@ interface CreateTimeLineEvent : TagSuggesting {
 		val mode: TimelineMode = TimelineMode.MANUAL,
 		/** The timeline's calendar; null until a timeline has had one. */
 		val calendar: CalendarDef? = null,
-		/** Scenes and entries, to pick a subject or references from. */
+		/** Scenes and entries, to pick references from. */
 		val catalog: List<CatalogItem> = emptyList(),
+		/** The scenes and entries already placed on the target timeline, which cannot be placed again. */
+		val placedSubjects: Set<CatalogRef> = emptySet(),
 		/** Every lane in use, in lane order; a lane's position is its colour index. */
 		val lanes: List<String> = emptyList(),
 		val confirmDiscard: Boolean = false,
 		val spellCheckAllowed: Boolean = true,
 	) {
 		val isDated: Boolean get() = mode == TimelineMode.DATED
+
+		/** What can be picked as the subject: [catalog] without [placedSubjects]. */
+		val subjectChoices: List<CatalogItem> get() = catalog.filterNot { it.ref in placedSubjects }
 
 		/** A placement needs its subject, and a dated timeline a start. */
 		val canCreate: Boolean

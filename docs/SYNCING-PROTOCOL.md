@@ -795,19 +795,25 @@ sequenceDiagram
 
 Two further branches aren't diagrammed: if the server has no blob yet (`204`) and the local data is non-default, the client uploads with a null `originalHash` (the server accepts a baseline-less upload unchecked); and if the hashes already match, the phase is a no-op (re-recording `lastSyncedHash` if it was stale).
 
-One field is exempt from the per-field resolver: `dictionaryWords` (the project's user spell-check
-dictionary) is merged by union on both paths. When a `409` differs from the local copy *only* in that
-field, the client merges and re-uploads without involving the user; when other fields also differ, the
-resolver appears for those and the dictionary is still unioned. A word deleted on one device is therefore
-resurrected if the other device conflicts before the deletion syncs; that is accepted for a word list.
-`timelines` gets no such exemption: any difference in the list counts as a conflict, and the per-field
-choice then picks whole definitions by id. Merging fields inside one definition is deferred to
-multiple-timeline support.
+Two fields are exempt from the per-field resolver. `dictionaryWords` (the project's user spell-check
+dictionary) is merged by union on both paths. A word deleted on one device is therefore resurrected if
+the other device conflicts before the deletion syncs; that is accepted for a word list.
+`deletedTimelines` (tombstones of deleted timelines, kept forever) is also unioned, and a def whose id
+is tombstoned is dropped from every merge, so a deletion wins over a concurrent edit of that def. Main
+is never tombstoned; a `"main"` tombstone is ignored. When a `409` differs from the local copy only
+in these fields, once both sides are unioned and tombstoned defs dropped (`differsOutsideAutoMerged`),
+the client merges and re-uploads without involving the user. When other fields also differ, the
+resolver appears for those and the exempt fields are still merged.
+`timelines` is otherwise not exempt: any remaining difference in the list counts as a conflict, and
+the per-field choice picks whole definitions by id; fields inside one definition are not merged.
+A deletion racing an edit of another field (the theme, say) still asks about that field, because the
+`409` carries no common base to tell which side changed it.
 
 Sync writes never clobber a concurrent local edit: the client snapshots the blob when the phase
 starts, and when it installs the server-agreed state it re-applies any field the user changed since
-that snapshot (dictionary words as an add/remove delta; timelines per def by id, where a local add,
-change or removal wins and the other defs take the server copy). Those edits then differ from the recorded
+that snapshot (dictionary words as an add/remove delta; timeline tombstones unioned; timelines per def
+by id, where a local add, change or removal wins, the other defs take the server copy, and a
+tombstoned def is dropped). Those edits then differ from the recorded
 `lastSyncedHash`, so the next sync uploads them.
 
 Unlike writing-activity sync (which swallows errors and continues), a non-conflict failure on the project-data phase fails the whole sync — the data is user-authored and silent loss is unacceptable.
@@ -830,7 +836,8 @@ so older hashes stay byte-identical and no block can be read as the tail of anot
 | `encyclopediaDictionary` | nothing when `true`; else `-2` | per-field pick |
 | `dictionaryWords` | nothing when empty; else `-3`, size, then each sorted word as length and string | union of both sides |
 | `coverImageId` | nothing when null; else `-4`, then the id | per-field pick |
-| `timelines` | nothing when empty; else `-5`, size, then each def in list order: id and name (length and string), mode code, calendar presence byte (then preset code and optional epoch name and coarsest unit), lane count and each lane | per-field pick, then union by id: the chosen side's defs plus the defs only the other side has |
+| `timelines` | nothing when empty; else `-5`, size, then each def in list order: id and name (length and string), mode code, calendar presence byte (then preset code and optional epoch name and coarsest unit), lane count and each lane | per-field pick, then union by id: the chosen side's defs plus the defs only the other side has, minus any def in `deletedTimelines` |
+| `deletedTimelines` | nothing when empty; else `-6`, size, then each sorted id as length and string | union of both sides; never asks the user |
 
 `coverImageId` holds an Image entity id. The client rewrites it like any other image reference: a
 re-ID during id resolution remaps it and deleting the image clears it, both through the project data

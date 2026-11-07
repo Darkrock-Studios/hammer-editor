@@ -10,6 +10,7 @@ import com.arkivanov.essenty.backhandler.BackCallback
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.components.images.ImagePickRequests
 import com.darkrockstudios.apps.hammer.common.components.images.ImagePickTarget
@@ -27,17 +28,23 @@ import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesServic
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageDef
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.StrResStoryDateWords
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.SubjectSummary
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEventError
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineResult
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineService
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.timelineId
+import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.apps.hammer.timeline_view_menu_delete
 import com.darkrockstudios.apps.hammer.timeline_view_menu_group
+import com.darkrockstudios.apps.hammer.timeline_view_menu_move
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
+import org.koin.core.component.inject
 
 class ViewTimeLineEventComponent(
 	componentContext: ComponentContext,
@@ -50,6 +57,7 @@ class ViewTimeLineEventComponent(
 	private val onShowGlobalSearchForTag: (String) -> Unit,
 	private val onShowScene: (SceneItem) -> Unit,
 	private val onShowEntry: (EntryDef) -> Unit,
+	private val onShowEventOn: (timelineId: String, eventId: Int) -> Unit,
 ) : ProjectComponentBase(projectDef, componentContext), ViewTimeLineEvent {
 
 	private val timelineService: TimelineService by projectInject()
@@ -58,6 +66,7 @@ class ViewTimeLineEventComponent(
 	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
 	private val imagePickRequests: ImagePickRequests by projectInject()
 	private val imagesService: ImagesService by projectInject()
+	private val strRes: StrRes by inject()
 
 	// A restored in-progress edit, only present after process death while editing.
 	private val restoredDraft: SavedDraft? =
@@ -127,11 +136,14 @@ class ViewTimeLineEventComponent(
 		}
 	}
 
+	/** Follows the event on whichever timeline it is on, with that timeline's rules. */
 	private fun watchTimeLine() {
 		scope.launch {
-			timelineService.timelineFlow.collect { view ->
-				val updatedEvent = view.events.find { it.id == eventId }
-				val lanes = timelineService.lanes()
+			combine(timelineService.eventFlow(eventId), timelineService.timelines) { view, timelines ->
+				view to timelines
+			}.collect { (view, timelines) ->
+				val updatedEvent = view?.event
+				val lanes = updatedEvent?.let { timelineService.lanes(it.timelineId) }
 				val changed = updatedEvent != state.value.event
 				// A placement's subject and title come from watchSubject.
 				val shown = when {
@@ -143,11 +155,19 @@ class ViewTimeLineEventComponent(
 
 				withContext(dispatcherMain) {
 					_state.getAndUpdate {
+						// A deleted event keeps showing the rules it had.
+						if (view == null || lanes == null) return@getAndUpdate it
+						val def = view.def
 						it.copy(
 							lanes = lanes,
-							laneIndex = updatedEvent?.lane?.let { lane -> lanes.indexOf(lane).takeIf { i -> i >= 0 } },
-							mode = view.def.mode,
-							calendar = view.def.calendar,
+							laneIndex = view.event.lane?.let { lane -> lanes.indexOf(lane).takeIf { i -> i >= 0 } },
+							mode = def?.mode ?: TimelineMode.MANUAL,
+							calendar = def?.calendar,
+							timeline = def,
+							alsoOn = view.alsoOn.map { other ->
+								ViewTimeLineEvent.OtherPlacement(other.def.id, other.def.name, other.eventId)
+							},
+							moveTargets = timelines.filter { target -> target.id != view.event.timelineId },
 						)
 					}
 					if (changed) applyEvent(updatedEvent, shown)
@@ -402,6 +422,37 @@ class ViewTimeLineEventComponent(
 		}
 	}
 
+	// Set while the discard prompt stands between a menu move and a changed draft.
+	private var moveAfterDiscard = false
+
+	override fun startMove() {
+		if (isEditingAndDirty()) {
+			moveAfterDiscard = true
+			confirmDiscard()
+			return
+		}
+		if (state.value.isEditing) discardEdit()
+		_state.getAndUpdate { it.copy(confirmMove = true) }
+	}
+
+	override fun cancelMove() {
+		_state.getAndUpdate { it.copy(confirmMove = false) }
+	}
+
+	override suspend fun moveToTimeline(target: String, start: StoryDate?, end: StoryDate?): TimeLineEventError {
+		val result = timelineService.moveToTimeline(eventId, target, start, end, words = StrResStoryDateWords(strRes))
+		if (result is TimelineResult.Invalid) return result.error
+		withContext(dispatcherMain) { cancelMove() }
+		return TimeLineEventError.NONE
+	}
+
+	override fun showPlacement(placement: ViewTimeLineEvent.OtherPlacement) {
+		// Leaving would drop the draft; a dialog's is gone with it.
+		if (isEditingAndDirty()) return
+		if (state.value.isEditing) discardEdit()
+		onShowEventOn(placement.timelineId, placement.eventId)
+	}
+
 	private fun addEntryMenu() {
 		val deleteEntry = MenuItemDescriptor(
 			"view-timeline-event-delete",
@@ -410,8 +461,15 @@ class ViewTimeLineEventComponent(
 		) {
 			startDeleteEvent()
 		}
+		val moveEntry = MenuItemDescriptor(
+			"view-timeline-event-move",
+			Res.string.timeline_view_menu_move,
+			"",
+		) {
+			startMove()
+		}
 
-		val menuItems = setOf(deleteEntry)
+		val menuItems = setOf(moveEntry, deleteEntry)
 		val menu = MenuDescriptor(
 			getMenuId(),
 			Res.string.timeline_view_menu_group,
@@ -466,9 +524,14 @@ class ViewTimeLineEventComponent(
 		_dateText.update { event?.label ?: "" }
 		refreshReferences()
 		updateShouldClose()
+		if (moveAfterDiscard) {
+			moveAfterDiscard = false
+			_state.getAndUpdate { it.copy(confirmMove = true) }
+		}
 	}
 
 	override fun cancelDiscard() {
+		moveAfterDiscard = false
 		_state.getAndUpdate { it.copy(confirmDiscard = false) }
 	}
 

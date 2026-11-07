@@ -92,6 +92,15 @@ class ProjectDataDatasourceTest : BaseTest() {
 	}
 
 	@Test
+	fun `timeline tombstones round trip`() = runTest {
+		val stored = StoredProjectData(ProjectData(deletedTimelines = setOf("5be210d4", "a3f09c1e")))
+
+		datasource.save(stored)
+
+		assertEquals(stored, datasource.load())
+	}
+
+	@Test
 	fun `file lives in project root`() {
 		val path = datasource.getPath()
 		assertEquals(

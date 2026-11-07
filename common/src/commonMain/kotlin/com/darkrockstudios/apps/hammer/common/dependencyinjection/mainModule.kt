@@ -126,6 +126,7 @@ import com.darkrockstudios.apps.hammer.common.data.tagindex.AccountTagService
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndexService
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineDatasource
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineSelectionSetting
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineService
 import com.darkrockstudios.apps.hammer.common.data.versioncheck.GithubVersionCheckDatasource
 import com.darkrockstudios.apps.hammer.common.data.versioncheck.VersionCheckDatasource
@@ -307,6 +308,7 @@ val mainModule = module {
 	single<ProjectStatisticsCacheReader>()
 
 	single { create(::Settings) } bind Settings::class
+	single<TimelineSelectionSetting>()
 
 	includes(migratorModule)
 

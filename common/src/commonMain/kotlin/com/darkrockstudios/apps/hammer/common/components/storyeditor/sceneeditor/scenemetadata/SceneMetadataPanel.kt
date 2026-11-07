@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.scenemetadata
 
 import com.arkivanov.decompose.value.Value
+import com.darkrockstudios.apps.hammer.common.components.timeline.TimelinePlacementLink
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
@@ -54,6 +55,9 @@ interface SceneMetadataPanel : HammerComponent, TagSuggesting {
 	/** Open global search prefilled with `#<tag>`. */
 	fun showGlobalSearchForTag(tag: String)
 
+	/** Opens [placement] on its own timeline. */
+	fun showTimelinePlacement(placement: TimelinePlacementLink)
+
 	data class State(
 		val sceneItem: SceneItem,
 		val filename: String = "",
@@ -62,6 +66,8 @@ interface SceneMetadataPanel : HammerComponent, TagSuggesting {
 		val metadata: SceneMetadata = SceneMetadata(),
 		val confirmedRefs: List<EntryDef> = emptyList(),
 		val dismissedRefs: List<EntryDef> = emptyList(),
+		/** Every placement of this scene, on any timeline. */
+		val timelines: List<TimelinePlacementLink> = emptyList(),
 	)
 
 	data class AddSuggestion(

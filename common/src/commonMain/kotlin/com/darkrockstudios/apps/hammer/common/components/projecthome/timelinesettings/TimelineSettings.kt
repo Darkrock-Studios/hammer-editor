@@ -6,11 +6,32 @@ import com.darkrockstudios.apps.hammer.base.timeline.CalendarPreset
 import com.darkrockstudios.apps.hammer.base.timeline.CalendarUnit
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
+import com.darkrockstudios.apps.hammer.common.components.timeline.TimelineSwitcher
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEventError
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineSummary
 
-/** The project's timeline settings: mode, calendar and lane order. */
+/** The project's timelines, and an editor for the mode, calendar and lane order of one of them. */
 interface TimelineSettings {
 	val state: Value<State>
+
+	/** The create, rename and delete dialogs, each with its own error. */
+	val switcher: Value<TimelineSwitcher>
+
+	/** Opens the editor on timeline [id], or on main when [id] is gone; the mode, calendar and lane calls apply to it. */
+	fun editTimeline(id: String)
+	fun closeEditor()
+
+	fun requestCreate()
+
+	/** Creates a timeline, DATED ones on [preset]; a refusal stays in [switcher] with the dialog open. */
+	fun createTimeline(name: String, mode: TimelineMode, preset: CalendarPreset)
+	fun requestRename(id: String)
+	fun renameTimeline(name: String)
+
+	/** Asks before deleting timeline [id] and its events; main cannot be deleted. */
+	fun requestDelete(id: String)
+	fun confirmDelete()
+	fun dismissDialog()
 
 	/** Opens the prompt for switching to [mode]; nothing happens when the timeline is in it already. */
 	fun requestMode(mode: TimelineMode)
@@ -38,25 +59,41 @@ interface TimelineSettings {
 	fun setLaneOrder(order: List<String>)
 
 	data class State(
+		/** The live timelines, main first. */
+		val timelines: List<TimelineSummary> = emptyList(),
+		val editingId: String = TimelineDef.MAIN_ID,
+		/** Whether the editor dialog for [editingId] is showing. */
+		val editorOpen: Boolean = false,
+		/** The timeline being edited. */
 		val def: TimelineDef = TimelineDef.DEFAULT,
 		/** The lane order, then any other lane in use. */
 		val lanes: List<String> = emptyList(),
 		val pendingModeSwitch: ModeSwitchPrompt? = null,
-		/** A calendar change waiting on confirmation because it would take dates away. */
+		/** A calendar change for [editingId] waiting on confirmation because it would take dates away. */
 		val pendingCalendar: CalendarDef? = null,
 		/** How many entries [pendingCalendar] would take the start from; they keep it as a label. */
 		val datesLostOnPresetSwitch: Int? = null,
+		/** Why the last mode, calendar or lane change was refused. */
 		val error: TimeLineEventError? = null,
 	)
 
+	/** A mode switch for [timeline], which holds [eventCount] entries. */
 	sealed interface ModeSwitchPrompt {
+		val timeline: TimelineDef
+		val eventCount: Int
+
 		/** [units] are the calendar's entry units; [selectedUnit] spaces the undated entries. */
 		data class ToDated(
 			val units: List<CalendarUnit>,
 			val selectedUnit: String,
 			val calendar: CalendarDef,
+			override val timeline: TimelineDef,
+			override val eventCount: Int = 0,
 		) : ModeSwitchPrompt
 
-		data object ToManual : ModeSwitchPrompt
+		data class ToManual(
+			override val timeline: TimelineDef,
+			override val eventCount: Int = 0,
+		) : ModeSwitchPrompt
 	}
 }

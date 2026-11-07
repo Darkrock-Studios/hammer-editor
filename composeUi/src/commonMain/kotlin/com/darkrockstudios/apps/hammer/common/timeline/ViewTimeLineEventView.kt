@@ -149,6 +149,7 @@ internal fun PlacementBody(
 	state: ViewTimeLineEvent.State,
 	onOpenSubject: () -> Unit,
 	onOpenReference: (CatalogItem) -> Unit,
+	onShowPlacement: (ViewTimeLineEvent.OtherPlacement) -> Unit,
 	modifier: Modifier = Modifier,
 ) {
 	val scrollState = rememberScrollState()
@@ -225,12 +226,46 @@ internal fun PlacementBody(
 
 				null -> Unit
 			}
+
+			AlsoOnRow(placements = state.alsoOn, onShow = onShowPlacement)
 		}
 
 		MpScrollBarColumn(
 			modifier = scrollBarOverlay(),
 			state = scrollState,
 		)
+	}
+}
+
+/** `ALSO ON` and a chip per other timeline the subject is placed on; a chip opens it there. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun AlsoOnRow(
+	placements: List<ViewTimeLineEvent.OtherPlacement>,
+	onShow: (ViewTimeLineEvent.OtherPlacement) -> Unit,
+) {
+	if (placements.isEmpty()) return
+	FlowRow(
+		modifier = Modifier
+			.fillMaxWidth()
+			.testTag(TIME_LINE_VIEW_ALSO_ON_TAG),
+		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M),
+		verticalArrangement = Arrangement.spacedBy(Ui.Padding.M),
+		itemVerticalAlignment = Alignment.CenterVertically,
+	) {
+		HdMonoLabel(text = Res.string.timeline_also_on.get())
+		placements.forEach { placement ->
+			HdReferenceChip(
+				glyph = HD_EVENT_GLYPH,
+				swatchColor = MaterialTheme.colorScheme.onSurfaceVariant,
+				glyphColor = MaterialTheme.colorScheme.surface,
+				name = placement.name,
+				onClick = { onShow(placement) },
+				onAction = null,
+				actionContentDescription = "",
+				modifier = Modifier.testTag(timelineAlsoOnChipTag(placement.timelineId)),
+			)
+		}
 	}
 }
 

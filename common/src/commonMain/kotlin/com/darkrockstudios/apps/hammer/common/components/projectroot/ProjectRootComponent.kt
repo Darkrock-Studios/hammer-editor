@@ -119,6 +119,8 @@ class ProjectRootComponent(
 		::showFocusMode,
 		::showEncyclopediaEntry,
 		::showEditorScene,
+		::showTimelineSettings,
+		::showTimelineEvent,
 		onCloseProject,
 		scope,
 		dispatcherMain,
@@ -248,8 +250,18 @@ class ProjectRootComponent(
 		router.showHome()
 	}
 
+	private fun showTimelineSettings(timelineId: String) {
+		showHome()
+		(routerState.value.active.instance as? ProjectRoot.Destination.HomeDestination)
+			?.component?.showTimelineSettings(timelineId)
+	}
+
 	override fun showTimeLine() {
 		router.showTimeLine()
+	}
+
+	private fun showTimelineEvent(eventId: Int) {
+		scope.launch { navigateToDeepLink(ProjectDeepLink.TimelineEvent(eventId)) }
 	}
 
 	override fun showDestination(type: ProjectRoot.DestinationTypes) {
@@ -363,7 +375,7 @@ class ProjectRootComponent(
 				withContext(dispatcherMain) {
 					showTimeLine()
 					(routerState.value.active.instance as? ProjectRoot.Destination.TimeLineDestination)
-						?.component?.showViewEvent(link.eventId)
+						?.component?.showEvent(link.eventId)
 				}
 			}
 		}

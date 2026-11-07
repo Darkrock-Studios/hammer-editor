@@ -20,6 +20,8 @@ data class ProjectData(
 	val coverImageId: Int? = null,
 	/** Timeline settings, merged by id during conflict resolution. */
 	val timelines: List<TimelineDef> = emptyList(),
+	/** Ids of deleted timelines, kept forever so a deletion wins over any merge. */
+	val deletedTimelines: Set<String> = emptySet(),
 )
 
 /** Picked as a unit during conflict resolution — one device's primary paired with another's secondary is undesigned. */

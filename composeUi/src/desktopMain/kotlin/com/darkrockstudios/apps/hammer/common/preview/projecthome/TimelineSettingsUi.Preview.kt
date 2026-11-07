@@ -17,10 +17,13 @@ import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.common.components.projecthome.timelinesettings.TimelineSettings
 import com.darkrockstudios.apps.hammer.common.components.projecthome.timelinesettings.TimelineSettings.ModeSwitchPrompt
+import com.darkrockstudios.apps.hammer.common.components.timeline.TimelineSwitcher
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.entryUnits
 import com.darkrockstudios.apps.hammer.common.preview.KoinApplicationPreview
 import com.darkrockstudios.apps.hammer.common.preview.globalSettingsPreview
+import com.darkrockstudios.apps.hammer.common.preview.timeline.previewThreeTimelines
+import com.darkrockstudios.apps.hammer.common.projecthome.TimelineEditor
 import com.darkrockstudios.apps.hammer.common.projecthome.TimelineSettingsUi
 
 private val storyCalendar = CalendarDef(CalendarPreset.STORY, epochName = "The Landing")
@@ -29,13 +32,13 @@ private val previewLanes = listOf("Keeper", "Village", "The Sea", "Maren")
 @Preview
 @Composable
 fun TimelineSettingsUiManualPreview() {
-	SettingsPreview(TimelineSettings.State(def = TimelineDef.DEFAULT, lanes = previewLanes))
+	EditorPreview(TimelineSettings.State(def = TimelineDef.DEFAULT, lanes = previewLanes))
 }
 
 @Preview
 @Composable
 fun TimelineSettingsUiDatedStoryPreview() {
-	SettingsPreview(
+	EditorPreview(
 		TimelineSettings.State(
 			def = TimelineDef.DEFAULT.copy(mode = TimelineMode.DATED, calendar = storyCalendar, laneOrder = previewLanes),
 			lanes = previewLanes,
@@ -46,7 +49,7 @@ fun TimelineSettingsUiDatedStoryPreview() {
 @Preview
 @Composable
 fun TimelineSettingsUiPresetWarningPreview() {
-	SettingsPreview(
+	EditorPreview(
 		TimelineSettings.State(
 			def = TimelineDef.DEFAULT.copy(mode = TimelineMode.DATED, calendar = storyCalendar),
 			lanes = previewLanes,
@@ -64,7 +67,45 @@ fun TimelineSettingsUiModeDialogPreview() {
 		TimelineSettings.State(
 			def = TimelineDef.DEFAULT,
 			lanes = previewLanes,
-			pendingModeSwitch = ModeSwitchPrompt.ToDated(units, units.first().name, storyCalendar),
+			pendingModeSwitch = ModeSwitchPrompt.ToDated(units, units.first().name, storyCalendar, TimelineDef.DEFAULT),
+		)
+	)
+}
+
+/** Main, a dated backstory and a scratch timeline. */
+@Preview
+@Composable
+fun TimelineSettingsUiThreeTimelinesPreview() {
+	SettingsPreview(TimelineSettings.State(timelines = previewThreeTimelines))
+}
+
+/** The editor on the dated backstory. */
+@Preview
+@Composable
+fun TimelineSettingsUiBackstoryEditorPreview() {
+	val editing = previewThreeTimelines[1]
+	EditorPreview(
+		TimelineSettings.State(
+			timelines = previewThreeTimelines,
+			editingId = editing.def.id,
+			def = editing.def,
+			lanes = previewLanes,
+		)
+	)
+}
+
+/** Switching the backstory to manual names it and counts only its entries. */
+@Preview
+@Composable
+fun TimelineSettingsUiNamedModeDialogPreview() {
+	val editing = previewThreeTimelines[1]
+	SettingsPreview(
+		TimelineSettings.State(
+			timelines = previewThreeTimelines,
+			editingId = editing.def.id,
+			def = editing.def,
+			lanes = previewLanes,
+			pendingModeSwitch = ModeSwitchPrompt.ToManual(timeline = editing.def, eventCount = editing.eventCount),
 		)
 	)
 }
@@ -85,16 +126,34 @@ private fun SettingsPreview(state: TimelineSettings.State) {
 	}
 }
 
+@Composable
+private fun EditorPreview(state: TimelineSettings.State) {
+	KoinApplicationPreview {
+		AppTheme(globalSettingsPreview) {
+			Box(modifier = Modifier.background(MaterialTheme.colorScheme.background).padding(24.dp)) {
+				TimelineEditor(
+					component = PreviewTimelineSettings(state),
+					state = state,
+					named = state.timelines.size >= 2,
+					onClose = {},
+				)
+			}
+		}
+	}
+}
+
 internal class PreviewTimelineSettings(initial: TimelineSettings.State) : TimelineSettings {
 	private val _state = MutableValue(initial)
 	override val state: Value<TimelineSettings.State> = _state
+	private val _switcher = MutableValue(TimelineSwitcher())
+	override val switcher: Value<TimelineSwitcher> = _switcher
 
 	override fun requestMode(mode: TimelineMode) {
 		val calendar = _state.value.def.calendar ?: CalendarDef()
 		val units = entryUnits(calendar)
 		val prompt = when (mode) {
-			TimelineMode.DATED -> ModeSwitchPrompt.ToDated(units, units.first().name, calendar)
-			TimelineMode.MANUAL -> ModeSwitchPrompt.ToManual
+			TimelineMode.DATED -> ModeSwitchPrompt.ToDated(units, units.first().name, calendar, _state.value.def)
+			TimelineMode.MANUAL -> ModeSwitchPrompt.ToManual(_state.value.def)
 		}
 		if (mode != _state.value.def.mode) _state.value = _state.value.copy(pendingModeSwitch = prompt)
 	}
@@ -136,5 +195,34 @@ internal class PreviewTimelineSettings(initial: TimelineSettings.State) : Timeli
 	override fun setEpochName(name: String) {}
 	override fun setLaneOrder(order: List<String>) {
 		_state.value = _state.value.copy(lanes = order)
+	}
+
+	override fun editTimeline(id: String) {
+		val def = _state.value.timelines.firstOrNull { it.def.id == id }?.def ?: return
+		_state.value = _state.value.copy(editingId = id, def = def, editorOpen = true)
+	}
+
+	override fun closeEditor() {
+		_state.value = _state.value.copy(editorOpen = false)
+	}
+
+	override fun requestCreate() = setSwitcher(TimelineSwitcher(TimelineSwitcher.Dialog.Create()))
+	override fun createTimeline(name: String, mode: TimelineMode, preset: CalendarPreset) = dismissDialog()
+	override fun requestRename(id: String) {
+		val def = _state.value.timelines.firstOrNull { it.def.id == id }?.def ?: return
+		setSwitcher(TimelineSwitcher(TimelineSwitcher.Dialog.Rename(def.id, def.name)))
+	}
+
+	override fun renameTimeline(name: String) = dismissDialog()
+	override fun requestDelete(id: String) {
+		val summary = _state.value.timelines.firstOrNull { it.def.id == id } ?: return
+		setSwitcher(TimelineSwitcher(TimelineSwitcher.Dialog.Delete(summary.def.id, summary.def.name, summary.eventCount)))
+	}
+
+	override fun confirmDelete() = dismissDialog()
+	override fun dismissDialog() = setSwitcher(TimelineSwitcher())
+
+	private fun setSwitcher(switcher: TimelineSwitcher) {
+		_switcher.value = switcher
 	}
 }

@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.common.data.references.ScrubInvalidRefere
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataUpdate
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineService
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.APP_SCOPE
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import io.mockk.coEvery
@@ -18,6 +19,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
@@ -65,6 +67,7 @@ class SceneMetadataPanelComponentTest : ComponentTest() {
 				scoped { sceneEditor }
 				scoped { encyclopediaService }
 				scoped { ScrubInvalidReferencesUseCase(mockk(relaxed = true)) }
+				scoped<TimelineService> { mockk { every { placementsFlow(any(), any()) } returns emptyFlow() } }
 			}
 		})
 	}
@@ -74,6 +77,7 @@ class SceneMetadataPanelComponentTest : ComponentTest() {
 		originalSceneItem = sceneItem,
 		showEntry = { },
 		onShowGlobalSearchForTag = { },
+		onShowTimelineEvent = { },
 	)
 
 	@Test

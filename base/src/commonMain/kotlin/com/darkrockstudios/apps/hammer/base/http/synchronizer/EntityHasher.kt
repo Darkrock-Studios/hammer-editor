@@ -90,6 +90,7 @@ object EntityHasher {
 		end: StoryDate? = null,
 		title: String? = null,
 		cachedTitle: String? = null,
+		timeline: String? = null,
 	): String {
 		val buf = buff()
 		val d = Algorithm.MurmurHash3_X64_128().createDigest()
@@ -137,6 +138,10 @@ object EntityHasher {
 		if (cachedTitle != null) {
 			d.update(-9, buf)
 			d.updateSized(cachedTitle, buf)
+		}
+		if (timeline != null) {
+			d.update(-10, buf)
+			d.updateSized(timeline, buf)
 		}
 		return d.digest().base64Url
 	}

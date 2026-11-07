@@ -13,6 +13,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -27,6 +28,7 @@ import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
 import com.darkrockstudios.apps.hammer.base.timeline.StoryDateProblem
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineDateField
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineDateProblem
+import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineLimits
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineRuleProblem
@@ -37,6 +39,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdConflictFie
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdConflictFieldSpacing
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdEntityId
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineSegmentedPicker
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineToggleRow
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdMark
@@ -50,6 +53,7 @@ import com.darkrockstudios.apps.hammer.sync_conflict_timeline_date_not_a_prefix
 import com.darkrockstudios.apps.hammer.sync_conflict_timeline_date_out_of_range
 import com.darkrockstudios.apps.hammer.sync_conflict_timeline_date_unknown_unit
 import com.darkrockstudios.apps.hammer.sync_conflict_timeline_event_date_hint
+import com.darkrockstudios.apps.hammer.sync_conflict_timeline_field_timeline
 import com.darkrockstudios.apps.hammer.sync_conflict_timeline_event_empty
 import com.darkrockstudios.apps.hammer.sync_conflict_timeline_event_invalid_date
 import com.darkrockstudios.apps.hammer.sync_conflict_timeline_event_milestone_off
@@ -68,9 +72,11 @@ import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_placement_has
 import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_placement_has_tags
 import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_placement_needs_subject
 import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_placement_own_subject
+import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_placement_taken
 import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_self_reference
 import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_subject_is_reference
 import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_tag_too_long
+import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_timeline_invalid
 import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_title_too_long
 import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_too_many_rungs
 import com.darkrockstudios.apps.hammer.sync_conflict_timeline_rule_unit_too_long
@@ -83,6 +89,7 @@ import com.darkrockstudios.apps.hammer.sync_conflict_title_timeline_event_field_
 import com.darkrockstudios.apps.hammer.sync_conflict_title_timeline_event_field_start
 import com.darkrockstudios.apps.hammer.sync_conflict_title_timeline_event_field_tags
 import com.darkrockstudios.apps.hammer.sync_conflict_title_timeline_event_field_title
+import com.darkrockstudios.apps.hammer.timeline_deleted_bucket
 import kotlinx.coroutines.launch
 
 internal const val TIMELINE_CONFLICT_START_TAG = "timeline-conflict-start"
@@ -97,6 +104,8 @@ internal data class TimelineEventEdits(
 	val milestone: Boolean,
 	val start: String,
 	val end: String,
+	/** The chosen side's timeline id; null is main. */
+	val timeline: String?,
 )
 
 internal sealed interface LocalTimelineEvent {
@@ -114,15 +123,18 @@ internal fun ApiProjectEntity.TimelineEventEntity.toEdits() = TimelineEventEdits
 	milestone = milestone,
 	start = start?.toCompactText().orEmpty(),
 	end = end?.toCompactText().orEmpty(),
+	timeline = timeline,
 )
 
 /**
  * The client copy with [edits] applied. Kind, subject, tags and references stay as the client has
- * them, and a placement keeps its content because it has none to edit.
+ * them, and a placement keeps its content because it has none to edit. Picking [server]'s timeline
+ * takes its order too, as the client's order belongs to the client's timeline.
  */
 internal fun buildLocalTimelineEvent(
 	client: ApiProjectEntity.TimelineEventEntity,
 	edits: TimelineEventEdits,
+	server: ApiProjectEntity.TimelineEventEntity,
 ): LocalTimelineEvent {
 	val start = readDateField(edits.start)
 	val end = readDateField(edits.end)
@@ -141,6 +153,8 @@ internal fun buildLocalTimelineEvent(
 			milestone = edits.milestone,
 			start = (start as DateField.Read).date,
 			end = (end as DateField.Read).date,
+			timeline = edits.timeline,
+			order = if (edits.timeline != client.timeline && edits.timeline == server.timeline) server.order else client.order,
 		)
 	)
 }
@@ -174,17 +188,27 @@ internal fun TimelineEventConflict(
 	var milestone by rememberSaveable(client) { mutableStateOf(initial.milestone) }
 	var start by rememberSaveable(client) { mutableStateOf(initial.start) }
 	var end by rememberSaveable(client) { mutableStateOf(initial.end) }
+	var timeline by rememberSaveable(client) { mutableStateOf(initial.timeline) }
 	var startUnreadable by rememberSaveable(client) { mutableStateOf(false) }
 	var endUnreadable by rememberSaveable(client) { mutableStateOf(false) }
 	var tagError by rememberSaveable(client) { mutableStateOf<String?>(null) }
 	var ruleProblem by remember(client) { mutableStateOf<TimelineRuleProblem?>(null) }
 	var dateProblem by remember(client) { mutableStateOf<TimelineDateProblem?>(null) }
+	var placementTaken by remember(client) { mutableStateOf(false) }
+	val showError: (ProjectSynchronization.EntityMergeError?) -> Unit = { error ->
+		if (error is ProjectSynchronization.EntityMergeError.TimelineEventMergeError) {
+			ruleProblem = error.ruleProblem
+			dateProblem = error.dateProblem
+			placementTaken = error.placementTaken
+			scope.launch { tagError = error.tagError?.text(strRes) }
+		}
+	}
 
 	val contentDiff = rememberContentDiff(entityConflict.serverEntity.content, content)
 
 	val useLocal: () -> Unit = {
-		val edits = TimelineEventEdits(title, label, content, lane, milestone, start, end)
-		when (val local = buildLocalTimelineEvent(client, edits)) {
+		val edits = TimelineEventEdits(title, label, content, lane, milestone, start, end, timeline)
+		when (val local = buildLocalTimelineEvent(client, edits, entityConflict.serverEntity)) {
 			is LocalTimelineEvent.UnreadableDates -> {
 				startUnreadable = local.start
 				endUnreadable = local.end
@@ -193,16 +217,17 @@ internal fun TimelineEventConflict(
 			is LocalTimelineEvent.Resolved -> {
 				startUnreadable = false
 				endUnreadable = false
-				val error = component.resolveConflict(local.entity)
-				if (error is ProjectSynchronization.EntityMergeError.TimelineEventMergeError) {
-					ruleProblem = error.ruleProblem
-					dateProblem = error.dateProblem
-					scope.launch { tagError = error.tagError?.text(strRes) }
-				}
+				showError(component.resolveConflict(local.entity))
 			}
 		}
 	}
-	val useRemote = { component.resolveConflict(entityConflict.serverEntity); Unit }
+	var remoteError by remember(client) {
+		mutableStateOf<ProjectSynchronization.EntityMergeError.TimelineEventMergeError?>(null)
+	}
+	val useRemote = {
+		remoteError = component.resolveConflict(entityConflict.serverEntity)
+			as? ProjectSynchronization.EntityMergeError.TimelineEventMergeError
+	}
 
 	EntityConflict(
 		entityConflict = entityConflict,
@@ -218,6 +243,25 @@ internal fun TimelineEventConflict(
 				TimelineEventHeader(client)
 				ruleProblem?.let { HdMonoLabel(text = it.text(), color = MaterialTheme.colorScheme.error) }
 				dateProblem?.let { HdMonoLabel(text = it.text(), color = MaterialTheme.colorScheme.error) }
+				if (placementTaken) {
+					HdMonoLabel(
+						text = Res.string.sync_conflict_timeline_rule_placement_taken.get(),
+						color = MaterialTheme.colorScheme.error,
+					)
+				}
+				if (server.timeline != client.timeline) {
+					HdConflictField(
+						label = Res.string.sync_conflict_timeline_field_timeline.get(),
+						conflict = true,
+					) {
+						HdHairlineSegmentedPicker(
+							options = listOf(server.timeline, client.timeline),
+							selected = timeline,
+							onSelect = { timeline = it },
+							label = { timelineName(it, entityConflict.liveTimelines) },
+						)
+					}
+				}
 				HdConflictField(
 					label = Res.string.sync_conflict_title_timeline_event_field_title.get(),
 					conflict = server.title != client.title,
@@ -297,6 +341,15 @@ internal fun TimelineEventConflict(
 			val none = Res.string.sync_conflict_timeline_event_empty.get()
 			TimelineEventPane(m) {
 				TimelineEventHeader(server)
+				remoteError?.let { RemoteMergeError(it) }
+				if (server.timeline != client.timeline) {
+					HdConflictField(
+						label = Res.string.sync_conflict_timeline_field_timeline.get(),
+						conflict = true,
+					) {
+						ReadOnlyLine(timelineName(server.timeline, entityConflict.liveTimelines))
+					}
+				}
 				HdConflictField(
 					label = Res.string.sync_conflict_title_timeline_event_field_title.get(),
 					conflict = server.title != client.title,
@@ -393,6 +446,25 @@ private fun TimelineEventHeader(entity: ApiProjectEntity.TimelineEventEntity) {
 	}
 }
 
+/** Why the remote copy was refused, under its header. */
+@Composable
+private fun RemoteMergeError(error: ProjectSynchronization.EntityMergeError.TimelineEventMergeError) {
+	val strRes = rememberStrRes()
+	val tagText by produceState<String?>(null, error) { value = error.tagError?.text(strRes) }
+	listOfNotNull(
+		error.ruleProblem?.text(),
+		error.dateProblem?.text(),
+		Res.string.sync_conflict_timeline_rule_placement_taken.get().takeIf { error.placementTaken },
+		tagText,
+	).forEach { HdMonoLabel(text = it, color = MaterialTheme.colorScheme.error) }
+}
+
+/** [id]'s name among [liveTimelines] (null is main), or the deleted label for a straggler's id. */
+@Composable
+private fun timelineName(id: String?, liveTimelines: List<TimelineDef>): String =
+	liveTimelines.firstOrNull { it.id == (id ?: TimelineDef.MAIN_ID) }?.name
+		?: Res.string.timeline_deleted_bucket.get()
+
 private fun TimelineKind.subjectPrefix(): String = when (this) {
 	TimelineKind.EVENT -> "EVT"
 	TimelineKind.SCENE -> "SCN"
@@ -475,6 +547,9 @@ internal fun TimelineRuleProblem.text(): String = when (this) {
 	is TimelineRuleProblem.BlankUnitName -> Res.string.sync_conflict_timeline_rule_blank_unit.get(field.label())
 	is TimelineRuleProblem.UnitNameTooLong ->
 		Res.string.sync_conflict_timeline_rule_unit_too_long.get(field.label(), TimelineLimits.MAX_UNIT_NAME)
+
+	TimelineRuleProblem.TimelineIdInvalid,
+	TimelineRuleProblem.MainSpelledOut -> Res.string.sync_conflict_timeline_rule_timeline_invalid.get()
 }
 
 @Composable

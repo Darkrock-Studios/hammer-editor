@@ -7,6 +7,7 @@ import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.components.ToastMessage
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.SceneEditor
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.scenemetadata.SceneMetadataPanel
+import com.darkrockstudios.apps.hammer.common.components.timeline.TimelinePlacementLink
 import com.darkrockstudios.apps.hammer.common.compose.rememberRootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.Msg
@@ -87,6 +88,7 @@ internal fun fakeSceneEditor(
 		override fun addTags(input: String) {}
 		override fun removeTag(tag: String) {}
 		override fun showGlobalSearchForTag(tag: String) {}
+		override fun showTimelinePlacement(placement: TimelinePlacementLink) {}
 		override fun suggestTags(prefix: String, limit: Int) = emptyList<String>()
 	}
 
