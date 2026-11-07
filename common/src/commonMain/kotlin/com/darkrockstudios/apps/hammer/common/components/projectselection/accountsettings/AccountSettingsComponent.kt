@@ -135,6 +135,7 @@ class AccountSettingsComponent(
 							currentUserId = settings?.userId,
 							currentUrl = settings?.url,
 							currentEmail = settings?.email,
+							serverIsConfigured = settings != null && settings.userId >= 0,
 							serverIsLoggedIn = settings?.bearerToken?.isNotBlank() == true,
 						)
 					}
