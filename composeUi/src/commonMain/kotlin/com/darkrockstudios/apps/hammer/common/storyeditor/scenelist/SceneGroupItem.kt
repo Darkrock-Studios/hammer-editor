@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -30,6 +31,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdIndentRails
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeValue
+import com.darkrockstudios.apps.hammer.scene_chapter_mark
 import com.darkrockstudios.apps.hammer.scene_group_item_collapsed
 import com.darkrockstudios.apps.hammer.scene_group_item_expanded
 import com.darkrockstudios.apps.hammer.scene_group_scene_count_format
@@ -44,6 +46,7 @@ internal fun SceneGroupItem(
 	toggleExpand: (nodeId: Int) -> Unit,
 	collapsed: Boolean,
 	shouldNux: Boolean,
+	isChapter: Boolean,
 	onSceneDeleteRequest: (SceneItem) -> Unit,
 	onSceneRenameRequest: (SceneItem) -> Unit,
 	onSceneMoveRequest: (SceneItem) -> Unit,
@@ -51,7 +54,7 @@ internal fun SceneGroupItem(
 	onCreateGroupClick: (scene: SceneItem) -> Unit,
 ) {
 	val (scene: SceneItem, _, _, children: List<TreeValue<SceneItem>>) = sceneNode
-	val isTopLevel = sceneNode.depth <= 1
+	val isTopLevel = isChapter
 	val indent = hdIndentFor(sceneNode.depth)
 	val railColor = MaterialTheme.colorScheme.outlineVariant
 
@@ -107,6 +110,10 @@ internal fun SceneGroupItem(
 						modifier = Modifier.size(HdIndentStep),
 					)
 
+					if (isChapter) {
+						ChapterMark()
+					}
+
 					Text(
 						text = scene.name,
 						style = if (isTopLevel) {
@@ -132,4 +139,17 @@ internal fun SceneGroupItem(
 			Unsaved(groupHasDirtyBuffer)
 		}
 	}
+}
+
+/** Chapter glyph in a top-level row. Deliberately unnumbered: a prologue would put every count off by one. */
+@Composable
+internal fun ChapterMark() {
+	Icon(
+		imageVector = Icons.AutoMirrored.Outlined.MenuBook,
+		contentDescription = Res.string.scene_chapter_mark.get(),
+		tint = MaterialTheme.colorScheme.onSurfaceVariant,
+		modifier = Modifier
+			.padding(start = Ui.Padding.S, end = Ui.Padding.M)
+			.size(HdIndentStep),
+	)
 }

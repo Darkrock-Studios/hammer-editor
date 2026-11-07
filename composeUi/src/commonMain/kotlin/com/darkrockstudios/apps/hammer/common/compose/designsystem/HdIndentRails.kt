@@ -23,9 +23,9 @@ fun hdIndentFor(depth: Int, gutter: Dp = HdIndentStep, step: Dp = HdIndentStep):
  * child row reads as hanging off its parent's chevron.
  *
  * ```
- * ⌄ Chapter I
- * ┆  ⌄ Scene Group
- * ┆  ┆   Scene name
+ * ⌄ 📖 Chapter title
+ * ┆    ⌄ Scene Group
+ * ┆    ┆   Scene name
  * ```
  *
  * [levels] is the number of ancestors above this row: `depth - 1`.

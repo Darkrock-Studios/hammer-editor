@@ -85,7 +85,8 @@
 	<string name="project_home_export_dialog_title">Export Story</string>
 	<string name="project_home_export_section">EXPORT</string>
 	<string name="project_home_export_close">× CLOSE</string>
-	<string name="project_home_export_chapters_label">Treat top-level scenes as chapters</string>
+	<string name="project_home_export_chapter_breaks_label">Break the story into chapters</string>
+	<string name="project_home_export_chapter_breaks_hint">Each top-level scene or group becomes a titled chapter. Turn off to export one continuous text with no chapter titles.</string>
 	<string name="project_home_export_format_label">Format</string>
 	<string name="project_home_export_format_markdown">Markdown (.zip)</string>
 	<string name="project_home_export_format_epub">EPub (.epub)</string>

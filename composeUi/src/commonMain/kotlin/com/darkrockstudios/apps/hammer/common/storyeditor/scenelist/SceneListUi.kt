@@ -13,13 +13,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Archive
-import androidx.compose.material.icons.filled.CreateNewFolder
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.PostAdd
+import androidx.compose.material.icons.outlined.Bookmark
 import androidx.compose.material3.Badge
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -66,6 +66,9 @@ import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.SceneSummary
 import com.darkrockstudios.apps.hammer.common.data.emptySceneSummary
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeValue
+import com.darkrockstudios.apps.hammer.common.data.tree.isChapter
+import com.darkrockstudios.apps.hammer.common.storyeditor.SceneKind
+import com.darkrockstudios.apps.hammer.common.storyeditor.sceneKind
 import com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.scenetree.SceneTree
 import com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.scenetree.SceneTreeState
 import com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.scenetree.rememberReorderableLazyListState
@@ -75,10 +78,13 @@ import com.darkrockstudios.apps.hammer.more_menu_button
 import com.darkrockstudios.apps.hammer.scene_archived_snackbar
 import com.darkrockstudios.apps.hammer.scene_list_add_button
 import com.darkrockstudios.apps.hammer.scene_list_count_format
+import com.darkrockstudios.apps.hammer.scene_list_create_chapter_dialog_message
+import com.darkrockstudios.apps.hammer.scene_list_create_chapter_group_dialog_title
+import com.darkrockstudios.apps.hammer.scene_list_create_chapter_scene_dialog_title
 import com.darkrockstudios.apps.hammer.scene_list_create_group_dialog_message
 import com.darkrockstudios.apps.hammer.scene_list_create_group_dialog_title
-import com.darkrockstudios.apps.hammer.scene_list_create_menu_group
-import com.darkrockstudios.apps.hammer.scene_list_create_menu_scene
+import com.darkrockstudios.apps.hammer.scene_list_create_menu_chapter_group
+import com.darkrockstudios.apps.hammer.scene_list_create_menu_chapter_scene
 import com.darkrockstudios.apps.hammer.scene_list_create_scene_dialog_message
 import com.darkrockstudios.apps.hammer.scene_list_create_scene_dialog_title
 import com.darkrockstudios.apps.hammer.scene_list_header
@@ -163,9 +169,8 @@ fun SceneListUi(
 		color = surfaceColor,
 	) {
 		Column(modifier = Modifier.fillMaxSize()) {
-			val (sceneCount, groupCount) = remember(state.sceneSummary) {
-				countSceneAndGroupNodes(state.sceneSummary)
-			}
+			val sceneCount = remember(state.sceneSummary) { countScenes(state.sceneSummary) }
+			val chapterCount = treeState.summary.sceneTree.root.children.size
 
 			Row(
 				modifier = Modifier
@@ -180,7 +185,7 @@ fun SceneListUi(
 					verticalAlignment = Alignment.CenterVertically,
 					horizontalArrangement = Arrangement.spacedBy(Ui.Padding.S),
 				) {
-					HdMonoLabel(text = Res.string.scene_list_count_format.get(sceneCount, groupCount))
+					HdMonoLabel(text = Res.string.scene_list_count_format.get(chapterCount, sceneCount))
 					OverflowMenu(component, treeState)
 				}
 			}
@@ -209,6 +214,7 @@ fun SceneListUi(
 							toggleExpand = toggleExpanded,
 							collapsed = collapsed,
 							shouldNux = shouldNux,
+							isChapter = node.depth == 1,
 							sceneDefDeleteTarget = { deleteTarget ->
 								sceneDefDeleteTarget = deleteTarget
 							},
@@ -260,10 +266,10 @@ fun SceneListUi(
 						) {
 							DropdownMenuItem(
 								modifier = Modifier.testTag(SCENE_LIST_ADD_SCENE_TAG),
-								text = { Text(Res.string.scene_list_create_menu_scene.get()) },
+								text = { Text(Res.string.scene_list_create_menu_chapter_scene.get()) },
 								leadingIcon = {
 									Icon(
-										imageVector = Icons.Filled.PostAdd,
+										imageVector = Icons.Outlined.Bookmark,
 										contentDescription = null,
 									)
 								},
@@ -274,10 +280,10 @@ fun SceneListUi(
 							)
 							DropdownMenuItem(
 								modifier = Modifier.testTag(SCENE_LIST_ADD_GROUP_TAG),
-								text = { Text(Res.string.scene_list_create_menu_group.get()) },
+								text = { Text(Res.string.scene_list_create_menu_chapter_group.get()) },
 								leadingIcon = {
 									Icon(
-										imageVector = Icons.Filled.CreateNewFolder,
+										imageVector = Icons.AutoMirrored.Outlined.MenuBook,
 										contentDescription = null,
 									)
 								},
@@ -293,10 +299,25 @@ fun SceneListUi(
 		}
 	}
 
+	// Children of the root are chapters, so the dialogs say so when that is the parent. The parent
+	// is latched so the wording holds while the dialog animates closed.
+	val createParent = showCreateGroupDialog ?: showCreateSceneDialog
+	var lastCreateParent by remember { mutableStateOf(createParent) }
+	if (createParent != null) lastCreateParent = createParent
+	val creatingChapter = lastCreateParent?.isRootScene == true
+
 	CreateDialog(
 		show = showCreateGroupDialog != null,
-		title = Res.string.scene_list_create_group_dialog_title.get(),
-		textLabel = Res.string.scene_list_create_group_dialog_message.get()
+		title = if (creatingChapter) {
+			Res.string.scene_list_create_chapter_group_dialog_title.get()
+		} else {
+			Res.string.scene_list_create_group_dialog_title.get()
+		},
+		textLabel = if (creatingChapter) {
+			Res.string.scene_list_create_chapter_dialog_message.get()
+		} else {
+			Res.string.scene_list_create_group_dialog_message.get()
+		},
 	) { groupName ->
 		scope.launch {
 			Napier.d { "Create dialog close" }
@@ -311,8 +332,16 @@ fun SceneListUi(
 
 	CreateDialog(
 		show = showCreateSceneDialog != null,
-		title = Res.string.scene_list_create_scene_dialog_title.get(),
-		textLabel = Res.string.scene_list_create_scene_dialog_message.get()
+		title = if (creatingChapter) {
+			Res.string.scene_list_create_chapter_scene_dialog_title.get()
+		} else {
+			Res.string.scene_list_create_scene_dialog_title.get()
+		},
+		textLabel = if (creatingChapter) {
+			Res.string.scene_list_create_chapter_dialog_message.get()
+		} else {
+			Res.string.scene_list_create_scene_dialog_message.get()
+		},
 	) { sceneName ->
 		scope.launch {
 			Napier.d { "Create dialog close" }
@@ -332,7 +361,8 @@ fun SceneListUi(
 	}
 
 	sceneDefRenameTarget?.let { scene ->
-		RenameSceneDialog(scene, scope, component, mainDispatcher) {
+		val kind = sceneKind(scene, treeState.summary.sceneTree.isChapter(scene))
+		RenameSceneDialog(scene, kind, scope, component, mainDispatcher) {
 			sceneDefRenameTarget = null
 		}
 	}
@@ -367,18 +397,9 @@ fun SceneListUi(
 	}
 }
 
-private fun countSceneAndGroupNodes(summary: SceneSummary?): Pair<Int, Int> {
-	if (summary == null) return 0 to 0
-	var scenes = 0
-	var groups = 0
-	for (i in 0 until summary.sceneTree.totalNodes) {
-		when (summary.sceneTree[i].value.type) {
-			SceneItem.Type.Scene -> scenes++
-			SceneItem.Type.Group -> groups++
-			SceneItem.Type.Root -> Unit
-		}
-	}
-	return scenes to groups
+private fun countScenes(summary: SceneSummary?): Int {
+	if (summary == null) return 0
+	return (0 until summary.sceneTree.totalNodes).count { summary.sceneTree[it].value.type == SceneItem.Type.Scene }
 }
 
 @OptIn(ExperimentalMaterialApi::class, ExperimentalComposeApi::class)
@@ -392,12 +413,13 @@ private fun DeleteSceneDialog(
 	onDismiss: () -> Unit
 ) {
 	val node = treeState.getTree().find { it.value.id == scene.id }
+	val isChapter = treeState.summary.sceneTree.isChapter(scene)
 	if (scene.type == SceneItem.Type.Group && node?.children?.isEmpty() == false) {
-		GroupDeleteNotAllowedDialog(scene) {
+		GroupDeleteNotAllowedDialog(scene, isChapter) {
 			onDismiss()
 		}
 	} else {
-		SceneDeleteDialog(scene) { deleteScene ->
+		SceneDeleteDialog(scene, sceneKind(scene, isChapter)) { deleteScene ->
 			scope.launch {
 				if (deleteScene) {
 					component.deleteScene(scene)
@@ -413,12 +435,13 @@ private fun DeleteSceneDialog(
 @Composable
 private fun RenameSceneDialog(
 	scene: SceneItem,
+	kind: SceneKind,
 	scope: CoroutineScope,
 	component: SceneList,
 	mainDispatcher: CoroutineContext,
 	onDismiss: () -> Unit
 ) {
-	SceneRenameDialog(scene) { newName ->
+	SceneRenameDialog(scene, kind) { newName ->
 		scope.launch {
 			if (newName != null) {
 				component.renameScene(scene, newName)
@@ -517,6 +540,7 @@ private fun SceneNode(
 	toggleExpand: (nodeId: Int) -> Unit,
 	collapsed: Boolean,
 	shouldNux: Boolean,
+	isChapter: Boolean,
 	sceneDefDeleteTarget: (SceneItem) -> Unit,
 	sceneDefRenameTarget: (SceneItem) -> Unit,
 	sceneDefArchiveTarget: (SceneItem) -> Unit,
@@ -536,6 +560,7 @@ private fun SceneNode(
 			hasDirtyBuffer = summary.hasDirtyBuffer.contains(scene.id),
 			isSelected = isSelected,
 			shouldNux = doNux,
+			isChapter = isChapter,
 			onSceneSelected = component::onSceneSelected,
 			onSceneDeleteRequest = sceneDefDeleteTarget,
 			onSceneRenameRequest = sceneDefRenameTarget,
@@ -550,6 +575,7 @@ private fun SceneNode(
 			toggleExpand = toggleExpand,
 			collapsed = collapsed,
 			shouldNux = doNux,
+			isChapter = isChapter,
 			onSceneDeleteRequest = sceneDefDeleteTarget,
 			onSceneRenameRequest = sceneDefRenameTarget,
 			onSceneMoveRequest = sceneDefMoveTarget,

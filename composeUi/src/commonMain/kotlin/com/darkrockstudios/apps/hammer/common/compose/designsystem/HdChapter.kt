@@ -31,7 +31,7 @@ import com.darkrockstudios.apps.hammer.base.romanNumeral
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
-import com.darkrockstudios.apps.hammer.scene_list_outline_overview_chapter_eyebrow
+import com.darkrockstudios.apps.hammer.scene_list_outline_overview_chapter_scenes_eyebrow
 import com.darkrockstudios.apps.hammer.scene_list_outline_overview_jump_to
 import com.darkrockstudios.apps.hammer.scene_list_outline_overview_position
 import com.darkrockstudios.apps.hammer.scene_list_outline_overview_scene_count
@@ -41,12 +41,12 @@ import com.darkrockstudios.apps.hammer.scene_list_outline_overview_scene_count
 data class HdChapterRow(val title: String, val sceneCount: Int)
 
 /**
- * A chapter entry for a jump list: roman numeral, title and scene count,
- * with a primary-colored edge bar when [selected].
+ * A chapter entry for a jump list: title and scene count, with a primary-colored
+ * edge bar when [selected]. Deliberately unnumbered: a prologue would put every
+ * count off by one against the author's own chapter titles.
  */
 @Composable
 fun HdChapterRailItem(
-	index: Int,
 	row: HdChapterRow,
 	selected: Boolean,
 	onClick: () -> Unit,
@@ -85,17 +85,6 @@ fun HdChapterRailItem(
 			horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 			verticalAlignment = Alignment.Top,
 		) {
-			Text(
-				text = romanNumeral(index + 1),
-				style = MaterialTheme.typography.titleLarge,
-				fontWeight = FontWeight.Light,
-				color = if (selected) {
-					MaterialTheme.colorScheme.onSurface
-				} else {
-					MaterialTheme.colorScheme.onSurfaceVariant
-				},
-				modifier = Modifier.widthIn(min = 24.dp),
-			)
 			Column(
 				modifier = Modifier.weight(1f),
 				verticalArrangement = Arrangement.spacedBy(2.dp),
@@ -151,12 +140,6 @@ fun HdChapterDropdown(
 				horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M),
 			) {
 				Text(
-					text = romanNumeral(selectedIndex + 1),
-					style = MaterialTheme.typography.titleMedium,
-					fontWeight = FontWeight.Light,
-					color = MaterialTheme.colorScheme.onSurfaceVariant,
-				)
-				Text(
 					text = current?.title.orEmpty(),
 					style = MaterialTheme.typography.titleMedium,
 					fontWeight = FontWeight.Medium,
@@ -199,7 +182,6 @@ fun HdChapterDropdown(
 				LazyColumn(modifier = Modifier.fillMaxWidth()) {
 					itemsIndexed(rows, key = { idx, _ -> "drop-$idx" }) { idx, row ->
 						HdChapterRailItem(
-							index = idx,
 							row = row,
 							selected = idx == selectedIndex,
 							onClick = {
@@ -218,10 +200,9 @@ fun HdChapterDropdown(
 	}
 }
 
-/** Chapter opener: mono eyebrow with numeral and scene count, light title, hairline rule. */
+/** Chapter opener: mono eyebrow with scene count, light title, hairline rule. */
 @Composable
 fun HdChapterHeader(
-	index: Int,
 	title: String,
 	sceneCount: Int,
 	wide: Boolean,
@@ -234,10 +215,7 @@ fun HdChapterHeader(
 	}
 	Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(Ui.Padding.M)) {
 		HdMonoLabel(
-			text = Res.string.scene_list_outline_overview_chapter_eyebrow.get(
-				romanNumeral(index + 1),
-				sceneCount,
-			),
+			text = Res.string.scene_list_outline_overview_chapter_scenes_eyebrow.get(sceneCount),
 		)
 		Text(
 			text = title,

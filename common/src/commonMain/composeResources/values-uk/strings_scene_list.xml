@@ -25,7 +25,6 @@
 	<string name="scene_list_outline_overview_jump_to">Перейти до</string>
 	<string name="scene_list_outline_overview_stat_chapters">Розділи</string>
 	<string name="scene_list_outline_overview_stat_scenes">Сцени</string>
-	<string name="scene_list_outline_overview_chapter_eyebrow">Розділ %1$s · %2$d сцен</string>
 	<string name="scene_list_outline_overview_scene_count">%1$d СЦ</string>
 	<string name="scene_list_outline_overview_end">Кінець плану</string>
 	<string name="scene_list_outline_overview_position">%1$d/%2$d</string>
@@ -46,16 +45,12 @@
 	<string name="scene_list_item_action_move">Перемістити до</string>
 	<string name="scene_move_dialog_destination_label">Призначення</string>
 	<string name="scene_move_dialog_search_placeholder">Пошук груп</string>
-	<string name="scene_move_dialog_top_level">Верхній рівень</string>
 	<string name="scene_move_dialog_no_results">Немає відповідних груп</string>
 	<string name="scene_move_dialog_position_label">Позиція (1–%1$d)</string>
 	<string name="scene_move_dialog_invalid_position">Введіть позицію від 1 до %1$d</string>
 	<string name="scene_move_dialog_move_button">Перемістити</string>
 	<string name="scene_move_dialog_dismiss_button">Скасувати</string>
-	<string name="scene_list_count_format">%1$d · %2$d ГР</string>
 	<string name="scene_group_scene_count_format">%1$d СЦ</string>
-	<string name="scene_list_create_menu_scene">Нова сцена</string>
-	<string name="scene_list_create_menu_group">Нова група</string>
 	<string name="scene_list_add_button">Додати</string>
 	<string name="scene_move_dialog_marker">Перемістити</string>
 	<string name="scene_type_meta_scene">Сцена</string>

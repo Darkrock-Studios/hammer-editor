@@ -12,7 +12,12 @@ import com.darkrockstudios.apps.hammer.common.compose.NameKind
 import com.darkrockstudios.apps.hammer.common.compose.rememberNameValidation
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
-import com.darkrockstudios.apps.hammer.common.storyeditor.sceneTypeMeta
+import com.darkrockstudios.apps.hammer.common.storyeditor.SceneKind
+import com.darkrockstudios.apps.hammer.common.storyeditor.sceneKindMeta
+import com.darkrockstudios.apps.hammer.chapter_rename_dialog_label
+import com.darkrockstudios.apps.hammer.chapter_rename_dialog_title
+import com.darkrockstudios.apps.hammer.group_rename_dialog_label
+import com.darkrockstudios.apps.hammer.group_rename_dialog_title
 import com.darkrockstudios.apps.hammer.scene_delete_dialog_dismiss_button
 import com.darkrockstudios.apps.hammer.scene_rename_dialog_label
 import com.darkrockstudios.apps.hammer.scene_rename_dialog_rename_button
@@ -21,13 +26,24 @@ import com.darkrockstudios.apps.hammer.scene_rename_dialog_title
 @Composable
 internal fun SceneRenameDialog(
 	scene: SceneItem,
+	kind: SceneKind,
 	dismissDialog: (String?) -> Unit
 ) {
 	var nameText by rememberSaveable { mutableStateOf(scene.name) }
 
 	val validation = rememberNameValidation(nameText, NameKind.SceneItem)
 
-	val meta = sceneTypeMeta(scene)
+	val meta = sceneKindMeta(kind)
+	val title = when (kind) {
+		SceneKind.Chapter -> Res.string.chapter_rename_dialog_title
+		SceneKind.Group -> Res.string.group_rename_dialog_title
+		else -> Res.string.scene_rename_dialog_title
+	}
+	val label = when (kind) {
+		SceneKind.Chapter -> Res.string.chapter_rename_dialog_label
+		SceneKind.Group -> Res.string.group_rename_dialog_label
+		else -> Res.string.scene_rename_dialog_label
+	}
 
 	fun submit() {
 		if (validation.isValid) dismissDialog(nameText)
@@ -37,7 +53,7 @@ internal fun SceneRenameDialog(
 		visible = true,
 		marker = "§ RENAME",
 		meta = meta,
-		title = Res.string.scene_rename_dialog_title.get(),
+		title = title.get(),
 		confirmLabel = Res.string.scene_rename_dialog_rename_button.get(),
 		cancelLabel = Res.string.scene_delete_dialog_dismiss_button.get(),
 		onConfirm = ::submit,
@@ -48,7 +64,7 @@ internal fun SceneRenameDialog(
 		FormField(
 			value = nameText,
 			onValueChange = { nameText = it },
-			label = Res.string.scene_rename_dialog_label.get(),
+			label = label.get(),
 			autoFocus = true,
 			error = validation.fieldError(nameText),
 			onImeAction = ::submit,
