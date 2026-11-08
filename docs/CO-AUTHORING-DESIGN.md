@@ -40,17 +40,23 @@ the account, and anything not tied to a device is "the same user on another devi
    optional `owner`. A co-author's client uses it to offer *Leave* instead of *Delete*, to skip
    name-based adoption, and to label the project. Nothing else in the protocol changes shape.
 3. **A server-side action never deletes a co-author's local data.** Being removed, or the owner
-   deleting the project, turns the local copy into a local-only project with a clear log line.
-   Re-uploading it as the co-author's own project is an explicit choice, not the current silent
-   re-create.
-4. **Owner only: delete, rename, invite, remove, publish, share links, review requests.**
-   Co-authors sync content, place the project in their own groups, and see it on the website.
-5. **Invite by pen name, accept on the website.** Both accounts must be active and on the
-   whitelist. Membership is ignored for an inactive or deleted account, so losing whitelist
-   access revokes it too.
+   deleting the project, leaves the local copy in place. The next account sync takes the existing
+   unknown-project path and uploads it as the co-author's own project, and the sync log says why.
+   No new sync state: a per-project "do not sync" setting would be a feature of its own (see
+   Later).
+4. **Owner only: delete, rename, invite, remove, publish, kudos toggle.** Those put the owner's
+   name on something or end the project. Share links and review requests are open to every
+   author. Co-authors sync content, place the project in their own groups, and see it on the
+   website.
+5. **Invite by email, accept on the website.** The invite stores the address, not an account, and
+   the owner sees the same pending row whether or not an account exists, so inviting never
+   confirms one. Both accounts must be active and on the whitelist, and both need a pen name,
+   which is the label each side sees for the other. Membership is ignored for an inactive or
+   deleted account, so losing whitelist access revokes it too.
 6. **Attribution is metadata outside the synced blobs.** The server stamps who uploaded an entity
    or a writing-activity slot and returns it on download and conflict responses. Entity shapes
-   and hashes do not change.
+   and hashes do not change. Writing stats group by author, and keep doing so after an author is
+   removed, because the author's name is stored on the slot.
 7. **Ships in 4.0.0 under protocol version 4.** Protocol enforcement is exact-match, so every
    4.0.0 client understands the new optional fields. If this slips to a point release, bump
    `HAMMER_PROTOCOL_VERSION` so an older client never sees a shared project in its list (it would
@@ -74,10 +80,10 @@ CREATE TABLE project_member (
 CREATE TABLE project_invite (
   id BIGSERIAL PRIMARY KEY,
   project_id BIGINT NOT NULL REFERENCES project(id) ON DELETE CASCADE,
-  invitee_id BIGINT NOT NULL REFERENCES account(id) ON DELETE CASCADE,
+  email CITEXT NOT NULL,
   invited_by BIGINT NOT NULL REFERENCES account(id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  UNIQUE (project_id, invitee_id)
+  UNIQUE (project_id, email)
 );
 
 CREATE TABLE project_member_removed (
@@ -95,8 +101,9 @@ without a tombstone that would delete local data. A row is written on leave and 
 cleared if the user is invited again.
 
 For attribution (Phase 3), `story_entity` gains nullable `updated_by BIGINT` and
-`updated_at TIMESTAMPTZ`, and `writing_activity` gains nullable `uploaded_by BIGINT`. They are
-written on every store and never hashed.
+`updated_at TIMESTAMPTZ`, and `writing_activity` gains nullable `author_id BIGINT` and
+`author_name TEXT`. They are written on every store and never hashed. `author_name` is the pen
+name at upload time and has no foreign key, so a removed or deleted author keeps their label.
 
 ### Project resolution
 
@@ -185,21 +192,34 @@ re-creates it under their own account. That is acceptable and documented, not sp
 
 ### Website
 
-- **Invite:** on the story page, owner only, a dialog that takes a pen name and creates
-  `project_invite`. One pending invite per invitee per project. Invites are listed with the
-  members on the same page, each with a revoke/remove control.
-- **Accept/decline:** a dashboard notice for pending invites; accept inserts `project_member`,
-  deletes any `project_member_removed` row, and deletes the invite.
+- **Invite:** on the story page, owner only, a dialog that takes an email address and creates
+  `project_invite`. The owner must have a pen name (it is what the co-author's client shows as
+  `owner`). The response and the pending-invite row are the same whether or not an account holds
+  that address, and no mail is sent to an address without an account, so inviting confirms
+  nothing. Invites share the login rate limit. Invites are listed with the members on the same
+  page, each with a revoke/remove control; the owner's own address and existing members are
+  refused.
+- **Accept/decline:** a dashboard notice for invites whose `email` matches the session account.
+  Accepting requires a pen name (set inline if missing), inserts `project_member`, deletes any
+  `project_member_removed` row, and deletes the invite. Declining deletes the invite.
 - **Dashboard:** `getProjectsWithSyncDate(userId)` unions member projects, labelled "shared by
   {owner}". `findProjectByUrlSegment` resolves member projects too, so `/story/{segment}` and
   `/read` work for co-authors with the owner's rows.
-- **Owner-only on the story page:** publish, share links, kudos toggle, review requests, delete,
-  rename. Co-authors see a *Leave* control. Kudos: `giverId` is also refused when it is a member
-  of the project.
+- **Owner-only on the story page:** publish, kudos toggle, invite/remove, delete, rename.
+  Co-authors see a *Leave* control. Kudos: `giverId` is also refused when it is a member of the
+  project.
+- **Share links** are open to every author. `project_access` is keyed by project already and the
+  public URL uses the owner's pen name, so the only change is not adding an owner check. The
+  access list shows who created each link.
+- **Review requests** are open to every author. `ReviewRepository` splits the two ids it
+  conflates today: the requester (`review_request.user_id`, snapshot encryption, the invite
+  email's "from") and the owner (reading scenes, minting drafts on commit, the internal sync
+  session). Requests are listed per project, so both authors see them. Leaving or being removed
+  deletes the leaver's open requests.
 - **Admin:** project counts in the admin user list stay owner-based; the project list shows the
   member count.
-- Invite emails are optional (`email/project-invite.mustache`) and off for the first pass; the
-  dashboard notice is enough.
+- Notification mail to an invitee with an account (`email/project-invite.mustache`) is off for
+  the first pass; the dashboard notice is enough.
 
 ### Tests
 
@@ -246,21 +266,21 @@ unrelated local story into it through a full conflict check. Rules:
 
 ### Removed projects
 
-For each id in `removedProjects`: clear the project's `sync.json`, drop the project data
-baseline, log `sync_log_account_project_removed` ("You are no longer a co-author of %1$s. Your
-copy is kept as a local project; sync it again to upload it as your own."), and send `/delete`
-to acknowledge. The project then has an id the server does not know; the existing "neither
-listed nor tombstoned" path offers nothing special, so the next account sync would create it
-under the user's own account. To make that the explicit choice in decision 3, the client marks
-the project `localOnly` in the account baseline and skips it in `createProjectsOnServer` until
-the user re-enables sync for it from the project list (a small per-project toggle, which is also
-useful on its own).
+For each id in `removedProjects`: drop the `owner` from its baseline, log
+`sync_log_account_project_removed` ("You are no longer a co-author of %1$s. Your copy is now a
+project of your own."), and send `/delete` to acknowledge. The create phase of the same session
+then takes the existing unknown-project path: `create` answers `project_id_taken` because the
+owner still holds the id, the client re-mints once, `setProjectId` clears the sync baseline, and
+the project uploads under the user's own account. Nothing is special-cased after the log line.
+The owner-deleted case differs only in that the id is free, so no re-mint happens. If the user
+does not want the copy, they delete it as any other project.
 
 ### Tests
 
 - Account sync lists a shared project, creates it locally, places it in the caller's group.
 - Same-named local project is left alone; the shared one lands in `"{name} ({owner})"`.
-- `removedProjects` keeps the folder, clears the journal, marks it local-only, acknowledges.
+- `removedProjects` keeps the folder, logs, acknowledges, and the same session re-mints and
+  uploads the project as the user's own.
 - Delete on a shared project shows the leave dialog and sends `/delete`.
 - Component tests through the real `TestComponentContext` harness.
 
@@ -276,11 +296,18 @@ client passes them into `EntityConflict` and the conflict tabs read "Local" and 
 
 ### Writing activity
 
-The server stamps `writing_activity.uploaded_by` on POST and returns it per slot in
-`WritingActivityResponse` as an optional `author: String?` on `DeviceLog` (the server rewrites the
-stored JSON's wrapper, not the sessions). `StatisticsService` groups by author when more than one
-is present, so "Words by Device" becomes "Words by Author" with devices nested, and
-`stats.sessions` in the MCP tools gains the author. Old slots without an author count as the owner.
+`DeviceLog` gains `author: String? = null`. The server ignores whatever the client sends in it:
+on POST it stores `author_id` and `author_name` (the caller's pen name) on the row, and on GET it
+fills `author` in each slot from the row. The client writes the returned value into its local
+copy of every slot, its own included, so `{project}/scenes/.activity/{deviceId}.toml` carries the
+author and stats work offline. A slot with a null author is read as the owner's (legacy data,
+or the own slot before its first round trip).
+
+`StatisticsService` groups by author when more than one is present, so "Words by Device" becomes
+"Words by Author" with devices nested, and `stats.sessions` in the MCP tools gains the author.
+Because `author_name` is plain text on the row and in the local file, removing an author, or the
+author deleting their account, changes nothing in the stats of anyone who still has the project.
+Their devices simply stop adding sessions.
 
 ### Project list and home
 
@@ -297,12 +324,13 @@ Stacked on `4.0.0`, squash-merged bottom-up:
    No routes to add a member yet, so behaviour is unchanged for every existing client.
 2. **Server: account sync and leave.** `owner` and `removedProjects`, member placement, `/delete`
    as leave, owner delete writes removals, rename `403` for members.
-3. **Server: website invite, accept, members list, dashboard and story page changes.**
+3. **Server: website invite, accept, members list, dashboard and story page changes,** share
+   links and review requests for co-authors.
 4. **Clients: owner awareness.** `owner` in the baseline, leave dialog, no-adoption rule, folder
-   disambiguation, `removedProjects` handling, local-only toggle.
+   disambiguation, `removedProjects` handling.
 5. **Attribution.** Server stamps and headers, conflict tab label, writing-activity author.
 6. **Docs:** `SYNCING-PROTOCOL.md` sections for membership, `removedProjects`, leave, and the
-   session rules; `ARCHITECTURE.md` on the folder naming rule and `localOnly`.
+   session rules; `ARCHITECTURE.md` on the folder naming rule.
 
 Phases 1 to 3 ship without the clients changing; a co-author on a current 4.0.0 build would see
 the project, sync it, and would be able to delete locally only. Phase 4 should land before the
@@ -313,15 +341,16 @@ feature is announced, because of the name-adoption risk.
 - Soft "claimed" marker on a scene ("Alice is working on this") as project metadata outside the
   entity, to reduce whole-scene conflicts.
 - Roles (read-only co-author) on `project_member`.
+- A per-project "do not sync" setting. Independent of co-authoring, but once it exists a removed
+  co-author's copy could be left unsynced instead of uploaded as their own.
 - In-app invite management.
-- Invite emails.
+- Invite notification emails.
 - Per-project cipher secret, if owner-scoped encryption ever needs to be decoupled from the owner
   account (for example, transferring ownership).
 
 ## Open questions
 
-- Should a co-author be able to rename? The three-way attribute merge would carry it to everyone,
-  which is consistent with every other shared attribute, but it collides with both users' name
-  spaces. Owner-only is the simpler rule and is what this design assumes.
-- Should co-authors see the owner's writing stats on the website story page, or only in-app?
-- Does `removedProjects` need a reason (left, removed, owner deleted) for the log line?
+- Should co-authors see the project's writing stats on the website story page, or only in-app?
+- Does `removedProjects` need a reason (removed, owner deleted) for the log line? Leaving is
+  acknowledged in the same request, so it never appears in the list.
+- Should the owner be able to purge a removed co-author's writing-activity slots?
