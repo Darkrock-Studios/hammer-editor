@@ -517,4 +517,33 @@ class CoAuthoringTest : ProjectSyncTestBase() {
 			assertEquals(HttpStatusCode.OK, renamed.status)
 		}
 	}
+
+	@Test
+	fun `a member's create by name adopts their own same-named project, never the shared one`(): Unit = runBlocking {
+		setUpProject()
+		val ownId = ProjectId.fromUUID(Uuid.random())
+		database().serverDatabase.projectQueries.createProject(memberId, TestDataSet1.project1.name, ownId.id)
+
+		client().apply {
+			val syncId = beginAccountSync(memberId, memberToken)
+			val response = createRequest(
+				memberId, memberToken, syncId, TestDataSet1.project1.name, ProjectId.fromUUID(Uuid.random())
+			)
+
+			assertEquals(HttpStatusCode.OK, response.status)
+			assertEquals(CreateProjectResponse(ownId, alreadyExisted = true, groupId = null), response.body())
+		}
+	}
+
+	@Test
+	fun `a member's account sync drops the project once the owner is soft-deleted`(): Unit = runBlocking {
+		setUpProject()
+		database().serverDatabase.accountQueries.markDeleted(deletedAt = Clock.System.now(), userId = ownerId)
+
+		client().apply {
+			val memberSync = accountSync(memberId, memberToken)
+			assertTrue(memberSync.projects.none { it.uuid == sharedId })
+			assertTrue(sharedId !in memberSync.deletedProjects)
+		}
+	}
 }
