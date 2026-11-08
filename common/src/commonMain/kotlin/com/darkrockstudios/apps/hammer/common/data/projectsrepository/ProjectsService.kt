@@ -16,9 +16,11 @@ class ProjectsService(
 	fun renameProject(projectDef: ProjectDef, newName: String): CResult<ProjectDef> =
 		projectsRepository.renameProject(projectDef, newName)
 
+	/** A project with sync off on this device is deleted here only; the server keeps its copy. */
 	suspend fun deleteProject(projectDef: ProjectDef): Boolean {
+		val syncEnabled = projectsRepository.isSyncEnabled(projectDef)
 		val deleted = projectsRepository.deleteProject(projectDef)
-		if (deleted) {
+		if (deleted && syncEnabled) {
 			// Queued even when it never synced: account sync drops ids the server never knew.
 			accountSynchronizer.deleteProject(projectDef)
 		}

@@ -18,6 +18,7 @@ import com.darkrockstudios.apps.hammer.operations.Operation
 import com.darkrockstudios.apps.hammer.operations.OperationContext
 import com.darkrockstudios.apps.hammer.operations.OperationScope
 import com.darkrockstudios.apps.hammer.operations.OperationException
+import com.darkrockstudios.apps.hammer.operations.invalidInput
 import com.darkrockstudios.apps.hammer.operations.operation
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
@@ -37,7 +38,8 @@ internal fun syncOperations(): List<Operation<*, *>> = listOf(
 		access = Access.Read,
 		scope = OperationScope.Account,
 	) {
-		val projects = koinGet<ProjectsRepository>().getProjects().map { def ->
+		val repository = koinGet<ProjectsRepository>()
+		val projects = repository.getProjects().map { def ->
 			val journal = readJournal(def)
 			val lastSync = journal?.lastSync?.takeIf { it != Instant.DISTANT_PAST }
 			ProjectSyncStatus(
@@ -45,6 +47,7 @@ internal fun syncOperations(): List<Operation<*, *>> = listOf(
 				linked = lastSync != null,
 				lastSync = lastSync,
 				pendingChanges = journal?.let { (it.dirty.map { entity -> entity.id }.toSet() + it.newIds).size } ?: 0,
+				syncEnabled = repository.isSyncEnabled(def),
 			)
 		}
 		SyncStatus(projects.sortedBy { it.name.lowercase() })
@@ -87,6 +90,9 @@ private class SyncRunOperation : Operation<SyncRunInput, SyncRunResult> {
 			throw OperationException(OperationException.Kind.Unauthorized, "Not logged in. Run 'hammer account login' first.")
 		}
 		val only = input.project?.let(context.projects::resolve)
+		if (only != null && !koinGet<ProjectsRepository>().isSyncEnabled(only)) {
+			invalidInput("Sync is off for '${only.name}' on this device. Turn it on in the project's settings in Hammer.")
+		}
 		val filter: suspend (ProjectDef) -> Boolean = { only == null || it == only }
 
 		val log = mutableListOf<String>()
@@ -135,6 +141,8 @@ data class ProjectSyncStatus(
 	/** Null when never synced. */
 	val lastSync: Instant?,
 	val pendingChanges: Int,
+	/** False when the project is kept off the server from this device; sync.run skips it. */
+	val syncEnabled: Boolean = true,
 )
 
 @Serializable

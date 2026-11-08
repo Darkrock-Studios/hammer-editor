@@ -237,6 +237,49 @@ class SyncAccountUseCaseTest : BaseTest() {
 	}
 
 	@Test
+	fun `a project with sync off is skipped, kept out of the probe and never reported to the listener`() = runTest {
+		localProject("Alpha", "a")
+		val beta = localProject("Beta", "b")
+		projectsRepository.setSyncEnabled(beta, false)
+		projectSyncReturns("Alpha", true)
+		val betaSync = projectSyncReturns("Beta", true)
+		val discovered = mutableListOf<List<String>>()
+		val recording = object : SyncAccountListener by listener {
+			override suspend fun onProjectsDiscovered(projects: List<ProjectDef>) {
+				discovered += projects.map { it.name }
+			}
+		}
+
+		val result = useCase().execute(recording)
+
+		assertTrue(result.allSuccess)
+		assertEquals(ProjectSyncOutcome.Success, result.projects["Alpha"])
+		assertEquals(ProjectSyncOutcome.Skipped, result.projects["Beta"])
+		assertEquals(listOf(listOf("Alpha"), listOf("Alpha")), discovered)
+		assertFalse("Beta" in listener.outcomes)
+		coVerify(exactly = 0) { betaSync.sync(any(), any(), any(), any(), any(), any()) }
+		coVerify {
+			accountSynchronizer.probeUnchangedProjects(match { list -> list.map { it.id } == listOf(ProjectId("a")) })
+		}
+	}
+
+	@Test
+	fun `a project with sync off is skipped, not failed, when account sync fails`() = runTest {
+		localProject("Alpha", "a")
+		val beta = localProject("Beta", "b")
+		projectsRepository.setSyncEnabled(beta, false)
+		coEvery { accountSynchronizer.syncProjects(any(), any(), any(), any()) } returns false
+
+		val result = useCase().execute(listener)
+
+		assertEquals(
+			mapOf("Alpha" to ProjectSyncOutcome.Failed, "Beta" to ProjectSyncOutcome.Skipped),
+			result.projects,
+		)
+		assertEquals(mapOf("Alpha" to ProjectSyncOutcome.Failed), listener.outcomes.toMap())
+	}
+
+	@Test
 	fun `an exception in one project fails only that project`() = runTest {
 		localProject("Alpha", "a")
 		localProject("Beta", "b")

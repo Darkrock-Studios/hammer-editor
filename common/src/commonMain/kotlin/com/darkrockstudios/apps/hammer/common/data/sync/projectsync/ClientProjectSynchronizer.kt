@@ -7,6 +7,7 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.BackupOperation
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.CollateIdsOperation
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.EntityDeleteOperation
@@ -23,6 +24,7 @@ import com.darkrockstudios.apps.hammer.common.server.HttpFailureException
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.apps.hammer.sync_log_entity_failed
+import com.darkrockstudios.apps.hammer.sync_log_project_sync_disabled
 import io.github.aakira.napier.Napier
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.NonCancellable
@@ -42,6 +44,7 @@ class ClientProjectSynchronizer(
 	private val globalSettingsStore: GlobalSettingsStore,
 	private val serverProjectApi: ServerProjectApi,
 	private val syncGate: ProjectSyncGateRepository,
+	private val projectsRepository: ProjectsRepository,
 ) : ProjectScoped {
 
 	override val projectScope = ProjectDefScope(projectDef)
@@ -100,7 +103,11 @@ class ClientProjectSynchronizer(
 		conflictResolution.trySend(entity)
 	}
 
-	/** Waits for write operations on the project to finish, and keeps new ones out until it returns. */
+	/**
+	 * Waits for write operations on the project to finish, and keeps new ones out until it returns.
+	 * Refuses a project with sync off on this device without contacting the server; callers are
+	 * expected to have checked, this is the backstop.
+	 */
 	suspend fun execute(
 		initialState: SyncOperationState,
 		onProgress: suspend (Float, SyncLogMessage?) -> Unit,
@@ -108,8 +115,15 @@ class ClientProjectSynchronizer(
 		onConflict: EntityConflictHandler<ApiProjectEntity>,
 		onComplete: suspend (success: Boolean) -> Unit,
 		onUnauthorized: suspend () -> Unit = {}
-	): CResult<SyncOperationState> = syncGate.withSync(projectDef) {
-		runOperations(initialState, onProgress, onLog, onConflict, onComplete, onUnauthorized)
+	): CResult<SyncOperationState> {
+		if (!projectsRepository.isSyncEnabled(projectDef)) {
+			onLog(syncLogW(strRes.get(Res.string.sync_log_project_sync_disabled, projectDef.name), projectDef))
+			onComplete(false)
+			return CResult.failure(ProjectSyncDisabledException(projectDef.name))
+		}
+		return syncGate.withSync(projectDef) {
+			runOperations(initialState, onProgress, onLog, onConflict, onComplete, onUnauthorized)
+		}
 	}
 
 	// Must-not-crash sync boundary; failures handled, logged, returned as CResult.
@@ -204,3 +218,6 @@ class ClientProjectSynchronizer(
 		const val ENTITY_END = ENTITY_START + ENTITY_TOTAL
 	}
 }
+
+class ProjectSyncDisabledException(projectName: String) :
+	IllegalStateException("Sync is off for '$projectName' on this device")

@@ -228,7 +228,7 @@ private fun DashboardHeader(
 						tint = MaterialTheme.colorScheme.primary,
 					)
 				}
-				ProjectHomeMenu(component = component, hasServer = state.hasServer)
+				ProjectHomeMenu(component = component, canSync = state.hasServer && state.syncEnabled)
 			}
 		}
 		HdMonoLabel(
@@ -1373,7 +1373,7 @@ private fun EncyclopediaSliceTooltip(
 @Composable
 private fun ProjectHomeMenu(
 	component: ProjectHome,
-	hasServer: Boolean,
+	canSync: Boolean,
 ) {
 	var expanded by remember { mutableStateOf(false) }
 
@@ -1414,7 +1414,7 @@ private fun ProjectHomeMenu(
 				},
 			)
 
-			if (hasServer) {
+			if (canSync) {
 				DropdownMenuItem(
 					text = { Text(Res.string.project_home_action_sync.get()) },
 					onClick = {

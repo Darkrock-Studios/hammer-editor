@@ -95,6 +95,8 @@ interface ProjectHome : Router, HammerComponent, BackHandlerOwner, ComponentToas
 		val manuscriptContact: ManuscriptContact = ManuscriptContact(),
 		val exportableScenes: List<ExportableScene> = emptyList(),
 		val hasServer: Boolean = false,
+		/** Sync is on for this project on this device; meaningful only with [hasServer]. */
+		val syncEnabled: Boolean = true,
 		val isLoadingStats: Boolean = false,
 		val isStatsDirty: Boolean = false,
 		/** The book cover; null when unset or this device lacks the image. */

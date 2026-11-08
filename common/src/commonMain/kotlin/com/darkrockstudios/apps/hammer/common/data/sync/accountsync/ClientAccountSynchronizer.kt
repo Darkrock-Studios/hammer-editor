@@ -103,12 +103,20 @@ class ClientAccountSynchronizer(
 				val clientSyncData = accountSyncDatasource.load()
 				val serverKnownIds = serverSyncData.knownProjectIds()
 				val ledger = BaselineLedger()
+				val localProjects = projectsRepository.getProjectTree().projects
+				val excluded = localProjects
+					.filterNot(projectsRepository::isSyncEnabled)
+					.mapTo(mutableSetOf()) { it.id }
+
+				yield()
+
+				remintDeletedProjects(localProjects, clientSyncData, excluded, onLog)
 
 				yield()
 
 				// Deletions go first: a project name is unique per account on the server, so a
 				// rename into a name still held by a project queued for deletion is rejected.
-				syncDeletedProjects(clientSyncData, serverSyncData, serverKnownIds, ledger, onLog, onUnauthorized)
+				syncDeletedProjects(clientSyncData, serverSyncData, serverKnownIds, excluded, ledger, onLog, onUnauthorized)
 
 				yield()
 
@@ -137,7 +145,7 @@ class ClientAccountSynchronizer(
 					serverProjects = liveServerProjects,
 					serverGroups = serverSyncData.groups,
 					baselines = clientSyncData.projectBaselines + legacySeeds,
-					excluded = clientSyncData.projectsToDelete,
+					excluded = clientSyncData.projectsToDelete + excluded,
 					ledger = ledger,
 					onLog = onLog,
 					onUnauthorized = onUnauthorized,
@@ -149,6 +157,7 @@ class ClientAccountSynchronizer(
 					serverSyncData,
 					liveServerProjects,
 					serverKnownIds,
+					excluded,
 					ledger,
 					onLog,
 					onUnauthorized,
@@ -307,24 +316,64 @@ class ClientAccountSynchronizer(
 			}
 		}
 
+	/**
+	 * Retries [remintExcluded] for an excluded project whose deletion an earlier session recorded
+	 * while it was open.
+	 */
+	private suspend fun remintDeletedProjects(
+		localProjects: List<ProjectDef>,
+		clientSyncData: ProjectsSynchronizationData,
+		excluded: MutableSet<ProjectId>,
+		onLog: OnSyncLog,
+	) {
+		localProjects
+			.filter { it.id in clientSyncData.deletedProjects && it.id in excluded }
+			.forEach { remintExcluded(it, excluded, onLog) }
+	}
+
+	/**
+	 * Gives an excluded project the server deleted a fresh id, so turning sync back on uploads it as
+	 * a new project rather than being refused as `project_deleted`. The new id joins [excluded] so
+	 * the rest of the session still leaves it alone. False when it is open: its id is fixed until it
+	 * closes.
+	 */
+	private suspend fun remintExcluded(
+		projectDef: ProjectDef,
+		excluded: MutableSet<ProjectId>,
+		onLog: OnSyncLog,
+	): Boolean {
+		val reminted = try {
+			projectsRepository.setProjectId(projectDef, ProjectId.randomUUID())
+		} catch (_: ProjectInUseException) {
+			placer.logInUse(projectDef, onLog)
+			return false
+		}
+		excluded += reminted.id
+		onLog(syncAccLogW(strRes.get(Res.string.sync_log_account_project_delete_kept_excluded, projectDef.name)))
+		return true
+	}
+
 	private suspend fun syncDeletedProjects(
 		clientSyncData: ProjectsSynchronizationData,
 		serverSyncData: BeginProjectsSyncResponse,
 		serverKnownIds: Set<ProjectId>,
+		excluded: MutableSet<ProjectId>,
 		ledger: BaselineLedger,
 		onLog: OnSyncLog,
 		onUnauthorized: suspend () -> Unit = {},
 	) {
 		deleteServerProjects(clientSyncData, serverSyncData, serverKnownIds, ledger, onLog, onUnauthorized)
-		deleteLocalProjects(clientSyncData, serverSyncData, ledger, onLog)
+		deleteLocalProjects(clientSyncData, serverSyncData, excluded, ledger, onLog)
 	}
 
 	/**
-	 * Delete local projects which the server has deleted
+	 * Delete local projects which the server has deleted. An excluded project keeps its folder and
+	 * is re-minted, see [remintExcluded].
 	 */
 	private suspend fun deleteLocalProjects(
 		clientSyncData: ProjectsSynchronizationData,
 		serverSyncData: BeginProjectsSyncResponse,
+		excluded: MutableSet<ProjectId>,
 		ledger: BaselineLedger,
 		onLog: OnSyncLog
 	) {
@@ -333,7 +382,16 @@ class ClientAccountSynchronizer(
 			clientSyncData.deletedProjects.contains(project).not()
 		}
 
-		newlyDeletedProjects.forEach { projectId ->
+		val (keptProjects, deletedProjects) = newlyDeletedProjects.partition { it in excluded }
+		// Recorded only when it could not be re-minted, which keeps its folder from being deleted.
+		val stillDeleted = keptProjects.filterNot { projectId ->
+			projectsRepository.findProject(projectId)?.let { remintExcluded(it, excluded, onLog) } ?: true
+		}
+		if (stillDeleted.isNotEmpty()) {
+			accountSyncDatasource.update { it.copy(deletedProjects = it.deletedProjects + stillDeleted) }
+		}
+
+		deletedProjects.forEach { projectId ->
 			val projectDef = projectsRepository.findProject(projectId)
 			if (projectDef != null) {
 				onLog(
@@ -412,6 +470,7 @@ class ClientAccountSynchronizer(
 		serverSyncData: BeginProjectsSyncResponse,
 		liveServerProjects: List<ApiProjectDefinition>,
 		serverKnownIds: Set<ProjectId>,
+		excluded: Set<ProjectId>,
 		ledger: BaselineLedger,
 		onLog: OnSyncLog,
 		onUnauthorized: suspend () -> Unit = {},
@@ -428,6 +487,7 @@ class ClientAccountSynchronizer(
 		val claimedNames = createLocalProjectsFromServer(
 			newServerProjects,
 			liveServerIds,
+			excluded,
 			tree,
 			serverSyncData.groups.associateBy { it.uuid },
 			ledger,
@@ -439,6 +499,7 @@ class ClientAccountSynchronizer(
 			claimedNames,
 			serverSyncData,
 			serverKnownIds,
+			excluded,
 			ledger,
 			onLog,
 			onUnauthorized,
@@ -453,6 +514,7 @@ class ClientAccountSynchronizer(
 	 * [liveServerIds]: re-pointing it would abandon the server project holding its content, and
 	 * two server names can sanitize to a single local name. Tombstoned ids are absent from
 	 * [liveServerIds], so a project whose server copy was deleted elsewhere can still be claimed.
+	 * An [excluded] project is never claimed.
 	 *
 	 * Each project goes in its server group, or the nearest ancestor of it this device has. Its
 	 * baseline is recorded only when it lands in the server's group itself.
@@ -460,6 +522,7 @@ class ClientAccountSynchronizer(
 	private suspend fun createLocalProjectsFromServer(
 		newServerProjects: List<ApiProjectDefinition>,
 		liveServerIds: Set<ProjectId>,
+		excluded: Set<ProjectId>,
 		tree: ProjectTree,
 		serverGroups: Map<GroupId, ApiGroupDefinition>,
 		ledger: BaselineLedger,
@@ -475,6 +538,17 @@ class ClientAccountSynchronizer(
 			val baseline = ProjectBaseline(serverProject.name, serverProject.groupId)
 			val existingProject = localByName[localName]
 			if (existingProject != null) {
+				if (existingProject.id in excluded) {
+					onLog(
+						syncAccLogW(
+							strRes.get(
+								Res.string.sync_log_account_project_create_client_name_excluded,
+								serverProject.name
+							)
+						)
+					)
+					return@forEach
+				}
 				if (existingProject.id in liveServerIds) {
 					onLog(
 						syncAccLogW(
@@ -615,12 +689,13 @@ class ClientAccountSynchronizer(
 		claimedNames: Set<String>,
 		serverSyncData: BeginProjectsSyncResponse,
 		serverKnownIds: Set<ProjectId>,
+		excluded: Set<ProjectId>,
 		ledger: BaselineLedger,
 		onLog: OnSyncLog,
 		onUnauthorized: suspend () -> Unit = {},
 	) {
 		val localOnly = tree.projects.filter { def ->
-			def.id !in serverKnownIds && def.name !in claimedNames
+			def.id !in serverKnownIds && def.id !in excluded && def.name !in claimedNames
 		}
 
 		localOnly.forEach { projectDef ->

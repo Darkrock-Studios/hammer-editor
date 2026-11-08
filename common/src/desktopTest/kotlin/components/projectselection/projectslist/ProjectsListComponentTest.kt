@@ -152,6 +152,7 @@ class ProjectsListComponentTest : ComponentTest() {
 
 		globalSettingsStore = mockk(relaxed = true)
 		projectsRepository = mockk(relaxed = true)
+		every { projectsRepository.isSyncEnabled(any()) } returns true
 		synchronizer = mockk(relaxed = true)
 		networkConnectivity = mockk(relaxed = true)
 		statsReader = mockk(relaxed = true)

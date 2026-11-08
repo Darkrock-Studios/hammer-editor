@@ -1,5 +1,6 @@
 package components.projectroot
 
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.components.images.ImageGalleryMode
 import com.darkrockstudios.apps.hammer.common.components.images.ImagePickRequests
 import com.darkrockstudios.apps.hammer.common.components.images.ImagePickResult
@@ -88,6 +89,12 @@ import kotlin.test.assertTrue
 @OptIn(ExperimentalCoroutinesApi::class)
 class ProjectRootComponentTest : ComponentTest() {
 
+	private val projectSyncEnabled = MutableStateFlow(true)
+	private val projectsRepository = mockk<ProjectsRepository> {
+		every { isSyncEnabled(any()) } answers { projectSyncEnabled.value }
+		every { syncEnabledUpdates(any()) } returns projectSyncEnabled
+	}
+
 	private lateinit var globalSettingsStore: GlobalSettingsStore
 	private lateinit var settingsUpdates: MutableSharedFlow<GlobalSettings>
 	private lateinit var sceneEditor: SceneEditorService
@@ -170,6 +177,7 @@ class ProjectRootComponentTest : ComponentTest() {
 		setupComponentKoin(module {
 			single<CoroutineScope>(named(APP_SCOPE)) { scope }
 			single { globalSettingsStore }
+			single { projectsRepository }
 			single { ProjectPluginsRepository(ProjectPluginsDatasource(FakeFileSystem(), createTomlSerializer())) }
 			single { StoryExporterRegistry(emptyList()) }
 			single<ProjectBackupService> { mockk(relaxed = true) }
@@ -698,6 +706,45 @@ class ProjectRootComponentTest : ComponentTest() {
 		advanceUntilIdle()
 
 		assertTrue(addedMenus.none { it.id == ProjectRootComponent.SYNC_MENU_ID })
+	}
+
+	@Test
+	fun `Turning project sync off and on removes and restores the sync menu`() = runTest(mainTestDispatcher) {
+		every { syncJournal.isServerSynchronized() } returns true
+
+		newComponent()
+		context.resume()
+		advanceUntilIdle()
+		assertEquals(1, addedMenus.count { it.id == ProjectRootComponent.SYNC_MENU_ID })
+
+		projectSyncEnabled.value = false
+		advanceUntilIdle()
+		assertTrue(ProjectRootComponent.SYNC_MENU_ID in removedMenuIds)
+
+		projectSyncEnabled.value = true
+		advanceUntilIdle()
+		assertEquals(2, addedMenus.count { it.id == ProjectRootComponent.SYNC_MENU_ID })
+	}
+
+	@Test
+	fun `No sync menu, sync request or close sync when project sync is off`() = runTest(mainTestDispatcher) {
+		every { syncJournal.isServerSynchronized() } returns true
+		every { sceneEditor.hasDirtyBuffers() } returns false
+		coEvery { syncJournal.shouldAutoSync() } returns true
+		projectSyncEnabled.value = false
+
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		assertTrue(addedMenus.none { it.id == ProjectRootComponent.SYNC_MENU_ID })
+
+		comp.startProjectSync()
+		advanceUntilIdle()
+		assertTrue(comp.closeRequestHandlers.value.isEmpty())
+
+		comp.requestClose()
+		advanceUntilIdle()
+		assertEquals(setOf(CloseConfirm.Complete), comp.closeRequestHandlers.value)
 	}
 
 	@Test

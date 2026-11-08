@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.base.http.HttpResponseError
 import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.*
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
@@ -17,6 +18,7 @@ import io.ktor.http.*
 import io.mockk.MockKAnnotations
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.impl.annotations.MockK
 import io.mockk.mockk
 import kotlinx.coroutines.async
@@ -50,6 +52,10 @@ class ClientProjectSynchronizerTest : BaseTest() {
 	private lateinit var mockSynchronizers: MockSynchronizers
 
 	private val syncGate = ProjectSyncGateRepository()
+
+	private val projectsRepository = mockk<ProjectsRepository> {
+		every { isSyncEnabled(any()) } returns true
+	}
 
 	@MockK
 	private lateinit var prepareForSyncOperation: PrepareForSyncOperation
@@ -125,6 +131,7 @@ class ClientProjectSynchronizerTest : BaseTest() {
 			globalSettingsStore = globalSettingsStore,
 			serverProjectApi = serverProjectApi,
 			syncGate = syncGate,
+			projectsRepository = projectsRepository,
 		)
 	}
 
@@ -155,6 +162,18 @@ class ClientProjectSynchronizerTest : BaseTest() {
 		onComplete = {},
 		onUnauthorized = {},
 	)
+
+	@Test
+	fun `Sync refuses a project with sync off without contacting the server`() = runTest {
+		val projectDef = getProjectDef(PROJECT_2_NAME)
+		val syncer = createProjectSync(projectDef)
+		succeedEveryOperation()
+		every { projectsRepository.isSyncEnabled(projectDef) } returns false
+
+		assertFalse(syncer.syncQuietly())
+		coVerify(exactly = 0) { prepareForSyncOperation.execute(any(), any(), any(), any(), any()) }
+		coVerify(exactly = 0) { serverProjectApi.endProjectSync(any(), any(), any(), any(), any()) }
+	}
 
 	@Test
 	fun `Sync waits for a write in progress on the project`() = runTest {
