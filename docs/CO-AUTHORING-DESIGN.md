@@ -103,8 +103,12 @@ The cascades are the safety net, not the mechanism. `deleteProject` and `purgeUs
 foreign keys disabled.
 
 For attribution (Phase 3), `writing_activity` gains nullable `author_id BIGINT` and
-`author_name TEXT`, written on every store and never hashed. `author_name` is the pen name at
-upload time and has no foreign key, so a removed or deleted author keeps their label.
+`author_name TEXT` in the same migration, written on every store and never hashed. `author_name`
+is the pen name at upload time and has no foreign key, so a removed or deleted author keeps their
+label. The slot's unique key is not changed here: SQLDelight's Postgres parser rejects an
+expression conflict target, so Phase 3 gets its own migration that backfills
+`author_id = user_id`, makes it `NOT NULL`, and swaps the unique key to
+`(user_id, project_id, author_id, device_id)`.
 
 ### Project resolution
 
@@ -121,16 +125,21 @@ It looks the project up by `uuid` alone (`project_uuid_unique` already exists). 
 account is inactive or soft-deleted: `403` with body `{"error": "not_member"}`. The two must
 stay distinct; the client treats `410` as "free to create" and `403` as "exists, not yours".
 
-`OwnerId` has no public constructor outside the access check and the account-sync routes (where
-the caller is the owner by definition). Every project-scoped datasource interface
+`OwnerId` has a private constructor. `OwnerId.of(projectRow)` is the safe way to get one, and
+`OwnerId.unchecked(id)` exists behind an `@UncheckedOwner` opt-in for code that names the owner
+without a project row: the account-sync routes (the caller is the owner by definition),
+`UserSession.asOwner` on the owner-only website pages, share links, reviews, kudos and public
+pages. Every opt-in site is explicit and searchable. Stage 2 must switch
+`ProbeProjectChangesUseCase` from the caller to the resolved owner for member projects, and the
+co-author read page in stage 3 must not use `session.asOwner`. Every project-scoped datasource interface
 (`ProjectEntityDatasource`, `ProjectDataDatasource`, `ServerWritingActivityRepository`,
 `ProjectDao` project-level queries) changes its `userId: Long` parameter to `owner: OwnerId`,
 with no default value. This is a mechanical sweep of around fifty call sites and forty mocks; its
 point is that a missed site fails to compile rather than silently writing a shadow row under the
 wrong user with the wrong encryption key.
 
-`ProjectDao.updateSyncData` is keyed by `(user_id, name)` and must move to `uuid`, since the
-session key below no longer carries the owner's name.
+`ProjectDao.updateSyncData` is keyed by `(user_id, name)` and moves to `(owner, uuid)`, since
+the session key below no longer carries the owner's name.
 
 ### Sync sessions
 
@@ -138,11 +147,15 @@ session key below no longer carries the owner's name.
 per project regardless of who holds it; same-install reclaim keeps working because install ids
 are global UUIDs.
 
-`beginProjectSync` refuses (`409`) while the **owner's** account session is active, since that
-is the session that can rename or delete the project. `validateSyncId` is unchanged: checking
-the owner there would fail every co-author request while the owner has the app open. The
-invariant that matters is the reverse one: the owner's `delete`, `rename` and `move` refuse
-(`409`) while a project session is live, so a co-author mid-sync is not pulled out from under.
+`beginProjectSync` refuses with `409 project_sync_in_progress` when a **co-author** asks while
+the **owner's** account session is active, since that is the session that can rename or delete
+the project; it re-checks after claiming the slot, which closes the race with the owner's
+delete. The caller's own contention stays `400` as the protocol doc says. `validateSyncId` is
+unchanged: checking the owner there would fail every co-author request while the owner has the
+app open. The invariant that matters is the reverse one: the owner's `delete`, `rename` and
+`move` refuse (`409`) while someone other than the owner holds the project session, so a
+co-author mid-sync is not pulled out from under. The owner's own other devices behave as today;
+their sessions are already frozen by the owner's account session.
 
 `ProbeProjectChangesUseCase` and `ReviewRepository.withInternalSyncSession` use the same key.
 
@@ -361,8 +374,9 @@ carries the author and stats work offline. A slot with a null author is read as 
 (legacy data, or the own slot before its first round trip).
 
 Two accounts signed in on the same install share a `deviceId`. The server keys slots by
-`(owner, project, author_id, device_id)`, and the client refuses to merge a returned slot for its
-own `deviceId` whose `author_id` is not the signed-in account. Nothing is lost; the other
+`(owner, project, author_id, device_id)`, which needs the Phase 3 migration described under
+Schema (`author_id` backfilled and `NOT NULL`), and the client refuses to merge a returned slot
+for its own `deviceId` whose `author_id` is not the signed-in account. Nothing is lost; the other
 account's sessions simply do not appear in this account's local file.
 
 `StatisticsService` groups by `authorId` when more than one is present and displays the stored
@@ -382,10 +396,13 @@ stages below, in order, each landing as a series of checkpoint commits on the br
 1. **Server: membership resolution and owner-scoped storage.** Schema, `requireProjectAccess`
    with `403 not_member`, `OwnerId` through every project-scoped datasource, `ProjectSyncKey` by
    uuid, `updateSyncData` by uuid, session rules, explicit child deletes. No routes to add a
-   member yet, so behaviour is unchanged for every existing client.
+   member yet, so behaviour is unchanged for every existing client. Landed 2026-11-08 as
+   `fbec858d3`, `f53c79f8c`, `00ce71f20`, `25a3fe262`, `b09a7b110`.
 2. **Server: account sync and leave.** `ownerId`/`ownerName` in the response, member projects
    listed at the top level, `/delete` as leave without tombstone, `403` for member `rename` and
-   `move`, `403 not_member` on `create`, invite cap.
+   `move`, `403 not_member` on `create`, invite cap, probe resolves the owner for member projects.
+   Tests deferred from stage 1: owner delete leaves no member-visible tombstone, co-author
+   `delete` is leave, `create` answers `403 not_member`, sixth invite refused.
 3. **Server: website.** Invite, accept, members list with remove, dashboard label, reduced story
    page for co-authors with *Leave*.
 4. **Clients: per-project sync toggle.** `syncEnabled` in `project.toml`, the settings switch,
