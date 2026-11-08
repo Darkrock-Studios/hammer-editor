@@ -1,10 +1,12 @@
 package com.darkrockstudios.apps.hammer.project.repository
 
 import com.darkrockstudios.apps.hammer.project.OwnerId
+import com.darkrockstudios.apps.hammer.project.OwnerSyncInProgressException
 import com.darkrockstudios.apps.hammer.project.ProjectEntityRepository
 import com.darkrockstudios.apps.hammer.project.ProjectSyncData
 import com.darkrockstudios.apps.hammer.project.ProjectSyncKey
 import com.darkrockstudios.apps.hammer.project.ProjectSynchronizationSession
+import com.darkrockstudios.apps.hammer.utilities.ServerResult
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
 import io.mockk.coEvery
 import io.mockk.every
@@ -65,6 +67,25 @@ class ProjectEntityRepositorySyncTest : ProjectEntityRepositoryBaseTest() {
 			assertEquals(syncData.lastId, syncBegan.lastId)
 			assertEquals(syncData.lastSync, syncBegan.lastSync)
 			assertEquals(syncData.deletedIds, syncBegan.deletedIds)
+		}
+	}
+
+	@Test
+	fun `Begin Project Sync gives the slot back when the owner's account sync began meanwhile`() = runTest {
+		val memberId = 2L
+		val owner = OwnerId.unchecked(userId)
+
+		coEvery { projectsSessionManager.hasActiveSyncSession(memberId) } returns false
+		coEvery { projectsSessionManager.hasActiveSyncSession(userId) } returnsMany listOf(false, true)
+		coEvery { projectEntityDatasource.checkProjectExists(owner, projectDefinition) } returns true
+		every { projectSessionManager.terminateSession(any()) } returns true
+		mockCreateSession("sync-id")
+
+		createProjectRepository().apply {
+			val result = beginProjectSync(memberId, owner, projectDefinition, clientState, false)
+
+			assertTrue(result is ServerResult.Failure && result.exception is OwnerSyncInProgressException)
+			verify { projectSessionManager.terminateSession(ProjectSyncKey(projectDefinition.uuid)) }
 		}
 	}
 
