@@ -13,6 +13,11 @@ class ProjectMemberDao(database: Database) : KoinComponent {
 		queries.isMember(projectRowId, userId).executeAsOne()
 	}
 
+	/** False when the user was not a co-author on the project. */
+	suspend fun removeMember(projectRowId: Long, userId: Long): Boolean = withContext(ioDispatcher) {
+		queries.deleteMember(projectId = projectRowId, userId = userId).value > 0
+	}
+
 	suspend fun getMemberProjects(userId: Long): List<Project> = withContext(ioDispatcher) {
 		queries.getMemberProjects(userId).executeAsList()
 	}

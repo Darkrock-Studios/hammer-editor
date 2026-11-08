@@ -43,6 +43,7 @@ import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 import kotlin.time.Clock
 import kotlin.uuid.Uuid
 
@@ -420,6 +421,100 @@ class CoAuthoringTest : ProjectSyncTestBase() {
 				TestDataSet1.project1.name,
 				database().serverDatabase.projectQueries.getProject(ownerId, sharedId.id).executeAsOne().name,
 			)
+		}
+	}
+
+	private suspend fun HttpClient.accountSync(userId: Long, token: Token): BeginProjectsSyncResponse {
+		val response = post(api("projects/$userId/begin_sync")) { authHeaders(token) }
+		assertEquals(HttpStatusCode.OK, response.status)
+		return response.body()
+	}
+
+	private suspend fun HttpClient.endAccountSync(userId: Long, token: Token, syncId: String) {
+		val response = post(api("projects/$userId/end_sync")) {
+			authHeaders(token)
+			headers { append(HEADER_SYNC_ID, syncId) }
+		}
+		assertEquals(HttpStatusCode.OK, response.status)
+	}
+
+	@Test
+	fun `the owner's delete leaves the member nothing to find in either list`(): Unit = runBlocking {
+		setUpProject()
+
+		client().apply {
+			val ownerSync = accountSync(ownerId, ownerToken)
+			assertEquals(HttpStatusCode.OK, accountRequest("delete", ownerId, ownerToken, ownerSync.syncId).status)
+			endAccountSync(ownerId, ownerToken, ownerSync.syncId)
+
+			val memberSync = accountSync(memberId, memberToken)
+			assertTrue(memberSync.projects.none { it.uuid == sharedId })
+			assertTrue(sharedId !in memberSync.deletedProjects)
+			assertTrue(sharedId in accountSync(ownerId, ownerToken).deletedProjects)
+			assertFalse(database().serverDatabase.projectMemberQueries.isMember(projectRowId, memberId).executeAsOne())
+		}
+	}
+
+	@Test
+	fun `a member's delete is a leave, and their later create of that id is their own`(): Unit = runBlocking {
+		setUpProject()
+
+		client().apply {
+			val leaveSync = accountSync(memberId, memberToken)
+			assertEquals(HttpStatusCode.OK, accountRequest("delete", memberId, memberToken, leaveSync.syncId).status)
+			endAccountSync(memberId, memberToken, leaveSync.syncId)
+
+			val afterLeave = accountSync(memberId, memberToken)
+			assertTrue(afterLeave.projects.none { it.uuid == sharedId })
+			assertTrue(sharedId !in afterLeave.deletedProjects)
+			endAccountSync(memberId, memberToken, afterLeave.syncId)
+
+			val ownerSync = accountSync(ownerId, ownerToken)
+			assertTrue(ownerSync.projects.any { it.uuid == sharedId })
+			assertTrue(sharedId !in ownerSync.deletedProjects)
+			assertEquals(HttpStatusCode.OK, accountRequest("delete", ownerId, ownerToken, ownerSync.syncId).status)
+			endAccountSync(ownerId, ownerToken, ownerSync.syncId)
+
+			val createSync = accountSync(memberId, memberToken)
+			val created = createRequest(memberId, memberToken, createSync.syncId, TestDataSet1.project1.name, sharedId)
+			assertEquals(HttpStatusCode.OK, created.status)
+			assertEquals(CreateProjectResponse(sharedId, alreadyExisted = false, groupId = null), created.body())
+			assertNotNull(
+				database().serverDatabase.projectQueries.getProject(memberId, sharedId.id).executeAsOneOrNull()
+			)
+		}
+	}
+
+	@Test
+	fun `a stranger's delete is not_member and changes nothing`(): Unit = runBlocking {
+		setUpProject()
+		val strangerToken = strangerToken()
+
+		client().apply {
+			val syncId = beginAccountSync(strangerId, strangerToken)
+			val response = accountRequest("delete", strangerId, strangerToken, syncId)
+
+			assertEquals(HttpStatusCode.Forbidden, response.status)
+			assertEquals(ApiErrorCode.NOT_MEMBER, response.body<HttpResponseError>().errorCode)
+			assertNotNull(
+				database().serverDatabase.projectQueries.getProject(ownerId, sharedId.id).executeAsOneOrNull()
+			)
+			assertTrue(database().serverDatabase.deletedProjectQueries.getDeletedProjects(strangerId).executeAsList().isEmpty())
+		}
+	}
+
+	@Test
+	fun `a member's leave ends their project session, so the owner is not blocked`(): Unit = runBlocking {
+		setUpProject()
+
+		client().apply {
+			projectSynchronizationBegan(memberId, memberToken, emptyState)
+			val leaveSync = accountSync(memberId, memberToken)
+			assertEquals(HttpStatusCode.OK, accountRequest("delete", memberId, memberToken, leaveSync.syncId).status)
+
+			val ownerSyncId = beginAccountSync(ownerId, ownerToken)
+			val renamed = accountRequest("rename", ownerId, ownerToken, ownerSyncId, "projectName" to "Renamed")
+			assertEquals(HttpStatusCode.OK, renamed.status)
 		}
 	}
 }

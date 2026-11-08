@@ -1,19 +1,39 @@
 package com.darkrockstudios.apps.hammer.projects.repository
 
+import com.darkrockstudios.apps.hammer.Project
 import com.darkrockstudios.apps.hammer.base.ProjectId
+import com.darkrockstudios.apps.hammer.project.NotMemberException
 import com.darkrockstudios.apps.hammer.project.OwnerId
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.projects.ProjectsSyncData
 import com.darkrockstudios.apps.hammer.utilities.SResult
+import com.darkrockstudios.apps.hammer.utilities.ServerResult
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.Runs
+import io.mockk.every
+import io.mockk.just
+import io.mockk.verify
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
 import kotlin.test.assertTrue
 import kotlin.time.Instant
 
 class ProjectsRepositoryDeleteProjectTest : ProjectsRepositoryBaseTest() {
+
+	private val sharedRowId = 40L
+
+	private fun sharedRow(projectId: ProjectId) = Project(
+		id = sharedRowId,
+		uuid = projectId.id,
+		user_id = userId + 1,
+		name = "Shared",
+		last_id = 0,
+		last_sync = Instant.DISTANT_PAST,
+		group_id = null,
+	)
 
 	@Test
 	fun `Delete Project, conflicting projects sync session`() = runTest {
@@ -79,5 +99,53 @@ class ProjectsRepositoryDeleteProjectTest : ProjectsRepositoryBaseTest() {
 
 			assertEquals(expectedSyncData, updatedSyncData)
 		}
+	}
+
+	@Test
+	fun `Delete Project, a co-author's delete is a leave with no tombstone`() = runTest {
+		val syncId = "sync-id"
+		val projectId = ProjectId("2b1f3c4d-5e6f-4a1b-8c2d-3e4f5a6b7c8d")
+		coEvery { projectsSessionManager.validateSyncId(userId, syncId, any()) } returns true
+		coEvery { projectsDatasource.getProject(userId, projectId) } returns null
+		coEvery { projectDao.getProjectByUuid(projectId) } returns sharedRow(projectId)
+		coEvery { projectMemberDao.removeMember(sharedRowId, userId) } returns true
+		every { projectSessionManager.terminateSessions(any()) } just Runs
+
+		val result = createProjectsRepository().deleteProject(userId, syncId, projectId)
+
+		assertTrue(result.isSuccess)
+		verify { projectSessionManager.terminateSessions(any()) }
+		coVerify(exactly = 0) { projectEntityDatasource.deleteProject(any(), any()) }
+		coVerify(exactly = 0) { projectsDatasource.updateSyncData(any(), any()) }
+	}
+
+	@Test
+	fun `Delete Project, a stranger's delete is not_member with no tombstone`() = runTest {
+		val syncId = "sync-id"
+		val projectId = ProjectId("2b1f3c4d-5e6f-4a1b-8c2d-3e4f5a6b7c8d")
+		coEvery { projectsSessionManager.validateSyncId(userId, syncId, any()) } returns true
+		coEvery { projectsDatasource.getProject(userId, projectId) } returns null
+		coEvery { projectDao.getProjectByUuid(projectId) } returns sharedRow(projectId)
+
+		val result = createProjectsRepository().deleteProject(userId, syncId, projectId)
+
+		assertIs<NotMemberException>((result as ServerResult.Failure).exception)
+		coVerify(exactly = 0) { projectEntityDatasource.deleteProject(any(), any()) }
+		coVerify(exactly = 0) { projectsDatasource.updateSyncData(any(), any()) }
+	}
+
+	@Test
+	fun `Delete Project, an unknown id is tombstoned for the caller`() = runTest {
+		val syncId = "sync-id"
+		val projectId = ProjectId("2b1f3c4d-5e6f-4a1b-8c2d-3e4f5a6b7c8d")
+		coEvery { projectsSessionManager.validateSyncId(userId, syncId, any()) } returns true
+		coEvery { projectsDatasource.getProject(userId, projectId) } returns null
+		coEvery { projectDao.getProjectByUuid(projectId) } returns null
+		coEvery { projectsDatasource.updateSyncData(userId, any()) } returns ProjectsSyncData(deletedProjects = emptySet())
+
+		val result = createProjectsRepository().deleteProject(userId, syncId, projectId)
+
+		assertTrue(result.isSuccess)
+		coVerify { projectsDatasource.updateSyncData(userId, any()) }
 	}
 }

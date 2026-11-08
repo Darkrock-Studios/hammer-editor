@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.projects.repository
 
 import com.darkrockstudios.apps.hammer.database.ProjectDao
+import com.darkrockstudios.apps.hammer.database.ProjectMemberDao
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECTS_SYNC_MANAGER
 import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECT_SYNC_MANAGER
@@ -41,11 +42,12 @@ abstract class ProjectsRepositoryBaseTest : BaseTest() {
 	protected lateinit var serverProjectDataRepository: ServerProjectDataRepository
 	protected lateinit var projectDao: ProjectDao
 	protected lateinit var projectAccessResolver: ProjectAccessResolver
+	protected lateinit var projectMemberDao: ProjectMemberDao
 
 	protected val projectDefinition = ProjectDefinition("Test Project 1", ProjectId("test-uuid-1"))
 
 	protected fun createProjectsRepository(): ProjectsRepository {
-		return ProjectsRepository(clock, projectsDatasource, projectEntityDatasource, projectDao, projectAccessResolver)
+		return ProjectsRepository(clock, projectsDatasource, projectEntityDatasource, projectDao, projectAccessResolver, projectMemberDao)
 	}
 
 	@BeforeEach
@@ -69,6 +71,8 @@ abstract class ProjectsRepositoryBaseTest : BaseTest() {
 		projectAccessResolver = mockk()
 		coEvery { projectAccessResolver.resolve(any(), any()) } returns ProjectAccessResult.Unknown
 		coEvery { projectAccessResolver.memberProjects(any()) } returns emptyList()
+		projectMemberDao = mockk()
+		coEvery { projectMemberDao.removeMember(any(), any()) } returns false
 
 		val testModule = module {
 			single { Json } bind Json::class

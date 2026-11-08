@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.base.http.MAX_GROUP_DESCRIPTION_LENGTH
 import com.darkrockstudios.apps.hammer.base.http.MAX_GROUP_NESTING_DEPTH
 import com.darkrockstudios.apps.hammer.base.validate.validateProjectName
 import com.darkrockstudios.apps.hammer.database.ProjectDao
+import com.darkrockstudios.apps.hammer.database.ProjectMemberDao
 import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECTS_SYNC_MANAGER
 import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECT_SYNC_MANAGER
 import com.darkrockstudios.apps.hammer.project.*
@@ -24,6 +25,7 @@ class ProjectsRepository(
 	private val projectEntityDatasource: ProjectEntityDatasource,
 	private val projectDao: ProjectDao,
 	private val projectAccessResolver: ProjectAccessResolver,
+	private val projectMemberDao: ProjectMemberDao,
 ) {
 	private val syncSessionManager: SyncSessionManager<Long, ProjectsSynchronizationSession> by inject(
 		clazz = SyncSessionManager::class.java,
@@ -135,6 +137,10 @@ class ProjectsRepository(
 		return projectsDatasource.loadSyncData(userId).deletedProjects
 	}
 
+	/**
+	 * The owner's delete removes the project and tombstones it for the owner alone. A co-author's
+	 * delete is a leave and writes no tombstone, so the ex-member can still upload their copy.
+	 */
 	@OptIn(UncheckedOwner::class)
 	suspend fun deleteProject(userId: Long, syncId: String, projectId: ProjectId): SResult<Unit> {
 		val owner = OwnerId.unchecked(userId)
@@ -159,14 +165,30 @@ class ProjectsRepository(
 				SResult.failure(Exception("Server failed to delete project: $projectId"))
 			}
 		} else {
-			projectsDatasource.updateSyncData(userId) { data ->
-				data.copy(
-					deletedProjects = data.deletedProjects + projectId
-				)
+			val project = projectDao.getProjectByUuid(projectId)
+			when {
+				project == null -> {
+					projectsDatasource.updateSyncData(userId) { data ->
+						data.copy(
+							deletedProjects = data.deletedProjects + projectId
+						)
+					}
+					SResult.success()
+				}
+
+				projectMemberDao.removeMember(project.id, userId) -> {
+					endSessionOf(userId, ProjectId(project.uuid))
+					SResult.success()
+				}
+
+				else -> SResult.failure(NotMemberException(projectId))
 			}
-			SResult.success()
 		}
 	}
+
+	/** A session left behind would refuse the owner's delete, rename and move until it expired. */
+	private fun endSessionOf(userId: Long, projectId: ProjectId) =
+		projectSessions.terminateSessions { it.userId == userId && it.projectDef.uuid == projectId }
 
 	/**
 	 * Idempotent on [projectId]. When the account already has a project named [projectName] under a

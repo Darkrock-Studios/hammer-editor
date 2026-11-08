@@ -36,3 +36,7 @@ SELECT *
 FROM project
 WHERE id IN (SELECT project_id FROM project_member WHERE user_id = :userId)
   AND user_id != :userId;
+
+deleteMember:
+DELETE FROM project_member
+WHERE project_id = :projectId AND user_id = :userId;
