@@ -154,6 +154,7 @@ class ProjectHomeComponentTest : ComponentTest() {
 		projectClosed = false
 
 		globalSettingsStore = mockk(relaxed = true)
+		every { globalSettingsStore.serverSettingsUpdates } returns MutableStateFlow(null)
 		every { globalSettingsStore.globalSettings } returns GlobalSettings(projectsDirectory = "/projects")
 		every { globalSettingsStore.globalSettingsUpdates } returns MutableSharedFlow()
 		every { globalSettingsStore.serverSettings } returns null

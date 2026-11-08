@@ -78,6 +78,18 @@
 	<string name="project_settings_dictionary_placeholder">Words the spell checker should accept in this project</string>
 	<string name="project_settings_plugins_section_title">Plugins</string>
 	<string name="project_settings_plugins_caption">A plugin turned off here shows no actions, checks, or export formats in this project. It stays on in your other projects, and on your other devices. Installing, removing, and setting up a plugin changes it for every project.</string>
+	<string name="project_settings_sync_section_title">Sync</string>
+	<string name="project_settings_sync_toggle">Sync this project</string>
+	<string name="project_settings_sync_toggle_hint">When off, this project stays on this device only. Your other devices and the server are not changed.</string>
+	<string name="project_settings_sync_off_title">Stop syncing this project?</string>
+	<string name="project_settings_sync_off_unaffected">Only this device stops syncing it. Your other devices and the server keep their copies and go on syncing as before.</string>
+	<string name="project_settings_sync_off_delete">Deleting it on this device will not delete it on the server, and while the server still has it, the next sync brings it back here. When you delete it, you can choose to delete the server copy too.</string>
+	<string name="project_settings_sync_off_confirm">Stop syncing</string>
+	<string name="project_settings_sync_off_cancel">Keep syncing</string>
+	<string name="project_settings_sync_dialog_close">Close</string>
+	<string name="project_settings_sync_deleted_title">Deleted on the server</string>
+	<string name="project_settings_sync_deleted_body">This project was deleted on the server while it did not sync here. To upload it as a new project, close it, sync from the project list, then turn sync on again.</string>
+	<string name="project_settings_sync_deleted_ok">OK</string>
 	<string name="project_settings_folio_caption">Project Settings · %1$s</string>
 	<string name="project_settings_folio_section_count">§§ %1$d</string>
 

@@ -17,6 +17,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectCardCoverTestTag
+import com.darkrockstudios.apps.hammer.common.projectselection.ProjectCardSyncOffTestTag
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectCardTestTag
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectIndexRow
 import io.mockk.*
@@ -168,4 +169,24 @@ class ProjectCardTest {
 	}
 
 	private fun rowTag(isWide: Boolean, hasCover: Boolean) = "row-wide-$isWide-cover-$hasCover"
+
+	@Test
+	fun `Project Card shows the sync-off marker only when asked`() {
+		var syncOff by mutableStateOf(false)
+		compose.setContent {
+			ProjectIndexRow(
+				isWide = true,
+				index = 0,
+				projectData = fakeProjectData(),
+				onProjectClick = {},
+				onProjectAltClick = {},
+				onProjectRenameClick = {},
+				syncOff = syncOff,
+			)
+		}
+
+		compose.onNodeWithTag(ProjectCardSyncOffTestTag, useUnmergedTree = true).assertDoesNotExist()
+		syncOff = true
+		compose.onNodeWithTag(ProjectCardSyncOffTestTag, useUnmergedTree = true).assertIsDisplayed()
+	}
 }

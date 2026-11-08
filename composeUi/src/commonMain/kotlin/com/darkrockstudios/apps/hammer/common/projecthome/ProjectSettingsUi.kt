@@ -68,9 +68,27 @@ import com.darkrockstudios.apps.hammer.project_settings_spellcheck_encyclopedia_
 import com.darkrockstudios.apps.hammer.project_settings_spellcheck_encyclopedia_enable_hint
 import com.darkrockstudios.apps.hammer.project_settings_spellcheck_mismatch_caption
 import com.darkrockstudios.apps.hammer.project_settings_spellcheck_section_title
+import androidx.compose.ui.platform.testTag
+import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialog
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineDialogShell
+import com.darkrockstudios.apps.hammer.project_settings_sync_deleted_body
+import com.darkrockstudios.apps.hammer.project_settings_sync_deleted_ok
+import com.darkrockstudios.apps.hammer.project_settings_sync_deleted_title
+import com.darkrockstudios.apps.hammer.project_settings_sync_dialog_close
+import com.darkrockstudios.apps.hammer.project_settings_sync_off_cancel
+import com.darkrockstudios.apps.hammer.project_settings_sync_off_confirm
+import com.darkrockstudios.apps.hammer.project_settings_sync_off_delete
+import com.darkrockstudios.apps.hammer.project_settings_sync_off_title
+import com.darkrockstudios.apps.hammer.project_settings_sync_off_unaffected
+import com.darkrockstudios.apps.hammer.project_settings_sync_section_title
+import com.darkrockstudios.apps.hammer.project_settings_sync_toggle
+import com.darkrockstudios.apps.hammer.project_settings_sync_toggle_hint
 import org.koin.compose.koinInject
 
 private val MaxColumnWidth = 880.dp
+
+const val ProjectSyncToggleTestTag = "project-settings-sync-toggle"
 
 @Composable
 fun ProjectSettingsUi(
@@ -81,7 +99,9 @@ fun ProjectSettingsUi(
 	val state by component.projectInfoState.subscribeAsState()
 	val plugins = koinInject<PluginUiRegistry>().plugins()
 	val disabledPlugins by component.disabledPlugins.subscribeAsState()
-	val sectionCount = if (plugins.isEmpty()) 6 else 7
+	val syncState by component.syncState.subscribeAsState()
+	val syncSection = if (syncState.serverConfigured) 8 else null
+	val sectionCount = syncSection ?: if (plugins.isEmpty()) 6 else 7
 	val screen = LocalScreenCharacteristic.current
 	val isCompact = screen.windowWidthClass == WindowWidthSizeClass.Compact
 
@@ -161,6 +181,14 @@ fun ProjectSettingsUi(
 								disabled = disabledPlugins,
 								component = component,
 							)
+
+							if (syncSection != null) {
+								ProjectSync(
+									section = syncSection,
+									state = syncState,
+									component = component,
+								)
+							}
 						}
 
 						Spacer(Modifier.height(8.dp))
@@ -244,6 +272,89 @@ private fun ProjectPlugins(
 				label = plugin.name ?: plugin.id,
 				onCheckedChange = { component.setPluginEnabled(plugin.id, it) },
 			)
+		}
+	}
+}
+
+/** Whether this device syncs the project; turning it off first states what that means. */
+@Composable
+private fun ProjectSync(
+	section: Int,
+	state: ProjectSettings.SyncState,
+	component: ProjectSettings,
+) {
+	HdHairlineSection(
+		section = section,
+		title = Res.string.project_settings_sync_section_title.get(),
+		contentSpacing = 18.dp,
+	) {
+		HdHairlineToggleRow(
+			checked = state.syncEnabled,
+			label = Res.string.project_settings_sync_toggle.get(),
+			hint = Res.string.project_settings_sync_toggle_hint.get(),
+			onCheckedChange = component::setSyncEnabled,
+			modifier = Modifier.testTag(ProjectSyncToggleTestTag),
+		)
+	}
+
+	SyncNoticeDialog(
+		visible = state.confirmingOff,
+		title = Res.string.project_settings_sync_off_title.get(),
+		paragraphs = listOf(
+			Res.string.project_settings_sync_off_unaffected.get(),
+			Res.string.project_settings_sync_off_delete.get(),
+		),
+		confirmLabel = Res.string.project_settings_sync_off_confirm.get(),
+		onConfirm = component::confirmSyncOff,
+		cancelLabel = Res.string.project_settings_sync_off_cancel.get(),
+		onDismiss = component::dismissSyncDialog,
+	)
+
+	SyncNoticeDialog(
+		visible = state.deletedOnServer,
+		title = Res.string.project_settings_sync_deleted_title.get(),
+		paragraphs = listOf(Res.string.project_settings_sync_deleted_body.get()),
+		confirmLabel = Res.string.project_settings_sync_deleted_ok.get(),
+		onConfirm = component::dismissSyncDialog,
+		cancelLabel = null,
+		onDismiss = component::dismissSyncDialog,
+	)
+}
+
+@Composable
+private fun SyncNoticeDialog(
+	visible: Boolean,
+	title: String,
+	paragraphs: List<String>,
+	confirmLabel: String,
+	onConfirm: () -> Unit,
+	cancelLabel: String?,
+	onDismiss: () -> Unit,
+) {
+	AnimatedDialog(visible = visible, onCloseRequest = onDismiss) {
+		HdHairlineDialogShell(
+			title = title,
+			onClose = { requestDismiss() },
+			closeContentDescription = Res.string.project_settings_sync_dialog_close.get(),
+		) {
+			Column(verticalArrangement = Arrangement.spacedBy(Ui.Padding.L)) {
+				paragraphs.forEach { paragraph ->
+					Text(
+						text = paragraph,
+						style = MaterialTheme.typography.bodyMedium,
+						color = MaterialTheme.colorScheme.onSurfaceVariant,
+					)
+				}
+				Row(
+					modifier = Modifier.fillMaxWidth(),
+					horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M, Alignment.End),
+				) {
+					if (cancelLabel != null) {
+						HdHairlineButton(label = cancelLabel, onClick = { requestDismiss() })
+					}
+					HdHairlineButton(label = confirmLabel, onClick = onConfirm, emphasised = true)
+				}
+			}
 		}
 	}
 }

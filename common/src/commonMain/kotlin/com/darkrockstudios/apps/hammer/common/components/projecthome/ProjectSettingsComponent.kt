@@ -28,6 +28,10 @@ import com.darkrockstudios.apps.hammer.common.util.AvailableLocalesProvider
 import com.darkrockstudios.apps.hammer.common.util.Locale
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ProjectSyncToggle
+import io.github.aakira.napier.Napier
 import org.koin.core.component.inject
 
 class ProjectSettingsComponent(
@@ -42,6 +46,9 @@ class ProjectSettingsComponent(
 	private val availableLocalesProvider: AvailableLocalesProvider by inject()
 	private val projectPlugins: ProjectPluginsRepository by inject()
 	private val imagesService: ImagesService by projectInject()
+	private val globalSettingsStore: GlobalSettingsStore by inject()
+	private val projectsRepository: ProjectsRepository by inject()
+	private val syncToggle: ProjectSyncToggle by inject()
 
 	override val projectName: String = projectDef.name
 
@@ -52,6 +59,9 @@ class ProjectSettingsComponent(
 
 	private val _projectInfoState = MutableValue(ProjectSettings.ProjectInfoState())
 	override val projectInfoState: Value<ProjectSettings.ProjectInfoState> = _projectInfoState
+
+	private val _syncState = MutableValue(ProjectSettings.SyncState())
+	override val syncState: Value<ProjectSettings.SyncState> = _syncState
 
 	private val _disabledPlugins = MutableValue(emptySet<String>())
 	override val disabledPlugins: Value<Set<String>> = _disabledPlugins
@@ -91,7 +101,50 @@ class ProjectSettingsComponent(
 				}
 			}
 		}
+		scope.launch {
+			globalSettingsStore.serverSettingsUpdates.collect { settings ->
+				withContext(mainDispatcher) {
+					_syncState.getAndUpdate { it.copy(serverConfigured = settings != null) }
+				}
+			}
+		}
+		scope.launch {
+			projectsRepository.syncEnabledUpdates(projectDef).collect { enabled ->
+				withContext(mainDispatcher) {
+					_syncState.getAndUpdate { it.copy(syncEnabled = enabled) }
+				}
+			}
+		}
 		coverPick.restore(ImagePickTarget.ProjectCover, ::setCover)
+	}
+
+	override fun setSyncEnabled(enabled: Boolean) {
+		if (!enabled) {
+			_syncState.getAndUpdate { it.copy(confirmingOff = true) }
+			return
+		}
+		scope.launch {
+			val result = syncToggle.turnOn(projectDef)
+			if (result == ProjectSyncToggle.Result.Failed) Napier.w("Could not turn sync on for '${projectDef.name}'")
+			withContext(mainDispatcher) {
+				_syncState.getAndUpdate {
+					it.copy(deletedOnServer = result == ProjectSyncToggle.Result.DeletedOnServer)
+				}
+			}
+		}
+	}
+
+	override fun confirmSyncOff() {
+		_syncState.getAndUpdate { it.copy(confirmingOff = false) }
+		scope.launch {
+			if (syncToggle.turnOff(projectDef) == ProjectSyncToggle.Result.Failed) {
+				Napier.w("Could not turn sync off for '${projectDef.name}'")
+			}
+		}
+	}
+
+	override fun dismissSyncDialog() {
+		_syncState.getAndUpdate { it.copy(confirmingOff = false, deletedOnServer = false) }
 	}
 
 	override fun pickCoverImage() {

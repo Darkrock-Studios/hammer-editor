@@ -14,6 +14,7 @@ import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageD
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeasRepository
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
@@ -21,6 +22,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectdata.StoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectPluginsDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectPluginsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ProjectSyncToggle
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournalDatasource
 import com.darkrockstudios.apps.hammer.common.data.tagindex.AccountTagService
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineService
@@ -34,6 +36,7 @@ import com.darkrockstudios.libs.platformspellchecker.PlatformSpellCheckerFactory
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -65,6 +68,9 @@ class ProjectSettingsComponentTest : ComponentTest() {
 	private lateinit var imagesService: ImagesService
 	private lateinit var pickRequests: ImagePickRequests
 	private val images = mutableMapOf<Int, ImageDef>()
+	private lateinit var serverSettingsFlow: MutableSharedFlow<ServerSettings?>
+	private lateinit var projectSyncEnabled: MutableStateFlow<Boolean>
+	private lateinit var syncToggle: ProjectSyncToggle
 
 	@BeforeEach
 	override fun setup() {
@@ -90,15 +96,31 @@ class ProjectSettingsComponentTest : ComponentTest() {
 		val ideasRepository = mockk<IdeasRepository>()
 		every { ideasRepository.ideasFlow } returns ideasFlow
 
+		projectSyncEnabled = MutableStateFlow(true)
 		val projectsRepository = mockk<ProjectsRepository>()
 		every { projectsRepository.getProjects() } returns emptyList()
+		every { projectsRepository.syncEnabledUpdates(any()) } returns projectSyncEnabled
+		syncToggle = mockk()
+		every { syncToggle.turnOff(any()) } answers {
+			projectSyncEnabled.value = false
+			ProjectSyncToggle.Result.Done
+		}
+		coEvery { syncToggle.turnOn(any()) } answers {
+			projectSyncEnabled.value = true
+			ProjectSyncToggle.Result.Done
+		}
+		serverSettingsFlow = MutableSharedFlow(replay = 1)
+		serverSettingsFlow.tryEmit(null)
 
 		val globalSettingsStore = mockk<GlobalSettingsStore>()
 		every { globalSettingsStore.globalSettings } returns GlobalSettings(projectsDirectory = "/projects")
 		every { globalSettingsStore.globalSettingsUpdates } returns MutableSharedFlow()
+		every { globalSettingsStore.serverSettingsUpdates } returns serverSettingsFlow
 
 		setupComponentKoin(module {
 			single { globalSettingsStore }
+			single { projectsRepository }
+			single { syncToggle }
 			single { AccountTagService(ideasRepository, projectsRepository, ffs, toml) }
 			single { ProjectPluginsRepository(ProjectPluginsDatasource(ffs, toml)) }
 			single<PlatformSpellCheckerFactory> {
@@ -159,6 +181,76 @@ class ProjectSettingsComponentTest : ComponentTest() {
 		assertEquals("Jane", state.data.authorName)
 		assertEquals(setOf("gothic"), state.data.tags)
 		assertEquals("Test", comp.projectName)
+	}
+
+	@Test
+	fun `The sync switch is offered only with a sync server`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		assertFalse(comp.syncState.value.serverConfigured)
+
+		serverSettingsFlow.emit(
+			ServerSettings(url = "hammer.ink", email = "a@example.com", userId = 1, bearerToken = "t", refreshToken = "r")
+		)
+		advanceUntilIdle()
+		assertTrue(comp.syncState.value.serverConfigured)
+		assertTrue(comp.syncState.value.syncEnabled)
+	}
+
+	@Test
+	fun `Turning sync off asks first and changes nothing until confirmed`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		comp.setSyncEnabled(false)
+		advanceUntilIdle()
+		assertTrue(comp.syncState.value.confirmingOff)
+		assertTrue(comp.syncState.value.syncEnabled)
+		verify(exactly = 0) { syncToggle.turnOff(any()) }
+
+		comp.dismissSyncDialog()
+		assertFalse(comp.syncState.value.confirmingOff)
+
+		comp.setSyncEnabled(false)
+		comp.confirmSyncOff()
+		advanceUntilIdle()
+		assertFalse(comp.syncState.value.confirmingOff)
+		assertFalse(comp.syncState.value.syncEnabled)
+		verify(exactly = 1) { syncToggle.turnOff(projectDef) }
+	}
+
+	@Test
+	fun `Turning sync on takes effect at once`() = runTest(mainTestDispatcher) {
+		projectSyncEnabled.value = false
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		assertFalse(comp.syncState.value.syncEnabled)
+
+		comp.setSyncEnabled(true)
+		advanceUntilIdle()
+
+		assertTrue(comp.syncState.value.syncEnabled)
+		assertFalse(comp.syncState.value.deletedOnServer)
+	}
+
+	@Test
+	fun `Turning sync on for a project the server deleted explains it and leaves sync off`() = runTest(mainTestDispatcher) {
+		projectSyncEnabled.value = false
+		coEvery { syncToggle.turnOn(any()) } returns ProjectSyncToggle.Result.DeletedOnServer
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		comp.setSyncEnabled(true)
+		advanceUntilIdle()
+		assertTrue(comp.syncState.value.deletedOnServer)
+		assertFalse(comp.syncState.value.syncEnabled)
+
+		comp.dismissSyncDialog()
+		assertFalse(comp.syncState.value.deletedOnServer)
 	}
 
 	@Test

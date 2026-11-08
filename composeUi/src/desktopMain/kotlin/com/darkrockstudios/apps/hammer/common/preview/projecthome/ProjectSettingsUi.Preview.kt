@@ -91,6 +91,8 @@ private fun fakeComponent(language: String?) = object : ProjectSettings {
 		)
 	)
 	override val disabledPlugins: Value<Set<String>> = MutableValue(emptySet())
+	override val syncState: Value<ProjectSettings.SyncState> =
+		MutableValue(ProjectSettings.SyncState(serverConfigured = true, syncEnabled = false))
 	override val availableLanguages: List<ProjectSettings.LanguageOption> = listOf(
 		ProjectSettings.LanguageOption("en-US", "English (United States)"),
 		ProjectSettings.LanguageOption("fr-FR", "French (France)"),
@@ -108,6 +110,9 @@ private fun fakeComponent(language: String?) = object : ProjectSettings {
 	override fun addDictionaryWord(word: String) {}
 	override fun removeDictionaryWord(word: String) {}
 	override fun setPluginEnabled(pluginId: String, enabled: Boolean) {}
+	override fun setSyncEnabled(enabled: Boolean) {}
+	override fun confirmSyncOff() {}
+	override fun dismissSyncDialog() {}
 	override fun suggestProjectTags(prefix: String): List<String> =
 		listOf("fantasy", "sci-fi", "nanowrimo").filter { it.startsWith(prefix, ignoreCase = true) }
 }

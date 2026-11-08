@@ -308,6 +308,7 @@ fun ProjectListUi(
 							onProjectMoveClick = { component.showMoveToGroup(MoveTarget.Project(it)) },
 							depth = row.depth,
 							groupPath = row.groupPath,
+							syncOff = state.isServerSynced && !row.data.metadata.info.syncEnabled,
 						)
 					}
 				}

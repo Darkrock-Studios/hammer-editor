@@ -15,6 +15,8 @@ interface ProjectSettings : HammerComponent {
 	val timelineSettings: TimelineSettings
 	val projectInfoState: Value<ProjectInfoState>
 
+	val syncState: Value<SyncState>
+
 	/** Ids of the plugins turned off for this project on this device. */
 	val disabledPlugins: Value<Set<String>>
 
@@ -41,6 +43,21 @@ interface ProjectSettings : HammerComponent {
 
 	/** Turns the installed plugin [pluginId] on or off for this project, on this device only. */
 	fun setPluginEnabled(pluginId: String, enabled: Boolean)
+
+	/** On takes effect at once; off first asks, see [SyncState.confirmingOff]. */
+	fun setSyncEnabled(enabled: Boolean)
+	fun confirmSyncOff()
+	fun dismissSyncDialog()
+
+	data class SyncState(
+		/** The switch is shown only when a sync server is set up. */
+		val serverConfigured: Boolean = false,
+		val syncEnabled: Boolean = true,
+		/** The dialog stating what turning sync off means is open. */
+		val confirmingOff: Boolean = false,
+		/** Turning sync on was refused: the server deleted the project and it must close to take a new id. */
+		val deletedOnServer: Boolean = false,
+	)
 
 	data class LanguageOption(
 		val tag: String,

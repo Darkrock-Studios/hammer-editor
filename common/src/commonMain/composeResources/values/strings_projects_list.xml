@@ -10,6 +10,7 @@
 	<string name="projects_list_toast_delete_failed">Could not delete the project. Check that its folder is accessible and try again.</string>
 	<string name="projects_list_item_more_button">More</string>
 	<string name="projects_list_card_words">%1$s words</string>
+	<string name="projects_list_card_sync_off">Not synced on this device</string>
 	<string name="projects_list_card_by_author">by %1$s</string>
 	<string name="projects_list_card_created">Created %1$s</string>
 	<string name="projects_list_card_content_description">Project %1$s</string>

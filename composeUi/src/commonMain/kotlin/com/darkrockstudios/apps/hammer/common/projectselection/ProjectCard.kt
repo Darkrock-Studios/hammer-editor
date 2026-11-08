@@ -14,9 +14,11 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
@@ -64,6 +66,7 @@ import com.darkrockstudios.apps.hammer.project_select_card_rename_button
 import com.darkrockstudios.apps.hammer.projects_list_card_by_author
 import com.darkrockstudios.apps.hammer.projects_list_card_content_description
 import com.darkrockstudios.apps.hammer.projects_list_card_created
+import com.darkrockstudios.apps.hammer.projects_list_card_sync_off
 import com.darkrockstudios.apps.hammer.projects_list_card_words
 import com.darkrockstudios.apps.hammer.projects_list_item_more_button
 import kotlinx.datetime.TimeZone
@@ -73,6 +76,7 @@ import kotlin.time.Instant
 
 val ProjectCardTestTag = "project-card"
 const val ProjectCardCoverTestTag = "project-card-cover"
+const val ProjectCardSyncOffTestTag = "project-card-sync-off"
 
 private val StripeWidth: Dp = 4.dp
 private val NumberColumnWidth: Dp = 56.dp
@@ -112,6 +116,7 @@ fun ProjectIndexRow(
 	onProjectMoveClick: (projectDef: ProjectDef) -> Unit = {},
 	depth: Int = 0,
 	groupPath: List<String> = emptyList(),
+	syncOff: Boolean = false,
 ) {
 	val storedData = projectData.storedData
 	val author = storedData.authorName?.takeIf { it.isNotBlank() }
@@ -200,15 +205,31 @@ fun ProjectIndexRow(
 					.padding(vertical = Ui.Padding.XL),
 				verticalArrangement = Arrangement.spacedBy(2.dp),
 			) {
-				Text(
-					text = projectData.definition.name,
-					style = if (isWide) {
-						MaterialTheme.typography.headlineSmall
-					} else {
-						MaterialTheme.typography.titleMedium
-					},
-					color = MaterialTheme.colorScheme.onSurface,
-				)
+				Row(
+					verticalAlignment = Alignment.CenterVertically,
+					horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M),
+				) {
+					Text(
+						text = projectData.definition.name,
+						style = if (isWide) {
+							MaterialTheme.typography.headlineSmall
+						} else {
+							MaterialTheme.typography.titleMedium
+						},
+						color = MaterialTheme.colorScheme.onSurface,
+						modifier = Modifier.weight(1f, fill = false),
+					)
+					if (syncOff) {
+						Icon(
+							imageVector = Icons.Outlined.CloudOff,
+							contentDescription = Res.string.projects_list_card_sync_off.get(),
+							tint = MaterialTheme.colorScheme.onSurfaceVariant,
+							modifier = Modifier
+								.size(16.dp)
+								.testTag(ProjectCardSyncOffTestTag),
+						)
+					}
+				}
 				if (breadcrumb != null) {
 					HdMonoLabel(
 						text = breadcrumb,
