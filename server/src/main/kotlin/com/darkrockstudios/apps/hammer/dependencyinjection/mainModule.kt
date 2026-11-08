@@ -37,6 +37,7 @@ import com.darkrockstudios.apps.hammer.database.AccountRecoveryCodeDao
 import com.darkrockstudios.apps.hammer.database.MfaLoginChallengeDao
 import com.darkrockstudios.apps.hammer.database.ProjectAccessDao
 import com.darkrockstudios.apps.hammer.database.ProjectDao
+import com.darkrockstudios.apps.hammer.database.ProjectInviteDao
 import com.darkrockstudios.apps.hammer.database.ProjectMemberDao
 import com.darkrockstudios.apps.hammer.database.ProjectDataDao
 import com.darkrockstudios.apps.hammer.database.ProjectGroupDao
@@ -88,6 +89,7 @@ import com.darkrockstudios.apps.hammer.monitoring.UserActivityRepository
 import com.darkrockstudios.apps.hammer.project.ProjectEntityDatabaseDatasource
 import com.darkrockstudios.apps.hammer.project.ProjectEntityDatasource
 import com.darkrockstudios.apps.hammer.project.ProjectAccessResolver
+import com.darkrockstudios.apps.hammer.project.ProjectMemberRepository
 import com.darkrockstudios.apps.hammer.project.ProjectEntityRepository
 import com.darkrockstudios.apps.hammer.project.ProjectSyncKey
 import com.darkrockstudios.apps.hammer.project.ProjectSynchronizationSession
@@ -177,6 +179,7 @@ fun mainModule(
 	single<ProjectsDao>()
 	single<ProjectDao>()
 	single<ProjectMemberDao>()
+	single<ProjectInviteDao>()
 	single<ProjectGroupDao>()
 	single<DeletedProjectDao>()
 	single<DeletedEntityDao>()
@@ -210,6 +213,7 @@ fun mainModule(
 	}
 	single<ProjectEntityRepository>()
 	single<ProjectAccessResolver>()
+	single { ProjectMemberRepository(get(), get(), get(), get(), get(named(PROJECT_SYNC_MANAGER))) }
 	single<ProjectAccessRepository>()
 	single<ServerWritingActivityRepository>()
 	single<ServerProjectDataRepository>()

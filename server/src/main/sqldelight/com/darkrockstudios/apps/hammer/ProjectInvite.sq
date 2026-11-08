@@ -38,3 +38,32 @@ DELETE FROM project_invite WHERE email = CAST(:email AS CITEXT);
 deleteAllOnUserProjects:
 DELETE FROM project_invite
 WHERE project_id IN (SELECT id FROM project WHERE user_id = :userId);
+
+countInvites:
+SELECT count(*) FROM project_invite WHERE project_id = :projectId;
+
+isInvited:
+SELECT EXISTS(
+    SELECT 1 FROM project_invite WHERE project_id = :projectId AND email = CAST(:email AS CITEXT)
+);
+
+-- project_id scoping is the authorization check.
+deleteInvite:
+DELETE FROM project_invite WHERE id = :id AND project_id = :projectId;
+
+-- email scoping is the authorization check.
+getInviteForEmail:
+SELECT *
+FROM project_invite
+WHERE id = :id AND email = CAST(:email AS CITEXT);
+
+deleteInviteForEmail:
+DELETE FROM project_invite WHERE id = :id AND email = CAST(:email AS CITEXT);
+
+getInvitesForEmail:
+SELECT i.id, i.created_at, p.uuid AS project_uuid, p.name AS project_name, owner.pen_name AS owner_name
+FROM project_invite i
+JOIN project p ON p.id = i.project_id
+JOIN account owner ON owner.id = p.user_id
+WHERE i.email = CAST(:email AS CITEXT)
+ORDER BY i.created_at;

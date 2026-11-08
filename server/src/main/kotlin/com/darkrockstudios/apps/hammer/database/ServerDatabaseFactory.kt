@@ -16,6 +16,7 @@ import com.darkrockstudios.apps.hammer.Project
 import com.darkrockstudios.apps.hammer.Project_access
 import com.darkrockstudios.apps.hammer.Project_data
 import com.darkrockstudios.apps.hammer.Project_invite
+import com.darkrockstudios.apps.hammer.Project_member
 import com.darkrockstudios.apps.hammer.Published_story_reader
 import com.darkrockstudios.apps.hammer.Review_request
 import com.darkrockstudios.apps.hammer.Review_suggestion
@@ -67,6 +68,9 @@ fun buildServerDatabase(driver: SqlDriver): ServerDatabase {
 		),
 		project_inviteAdapter = Project_invite.Adapter(
 			created_atAdapter = instant,
+		),
+		project_memberAdapter = Project_member.Adapter(
+			joined_atAdapter = instant,
 		),
 		project_accessAdapter = Project_access.Adapter(
 			expires_atAdapter = instant,

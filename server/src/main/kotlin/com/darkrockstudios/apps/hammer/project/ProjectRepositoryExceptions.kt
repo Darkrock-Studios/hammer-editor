@@ -50,6 +50,14 @@ class NotMemberException(val projectId: ProjectId) :
 class NotOwnerException(val projectId: ProjectId) :
 	Exception("Project $projectId belongs to another account")
 
+enum class InviteRefusal { INVALID_EMAIL, OWNER_PEN_NAME_REQUIRED, OWN_ADDRESS, ALREADY_MEMBER, LIMIT_REACHED }
+
+class InviteRefusedException(val reason: InviteRefusal) : Exception("Invite refused: $reason")
+
+class InviteNotFoundException(val inviteId: Long) : Exception("No invite $inviteId for this account")
+
+class PenNameRequiredException : Exception("A pen name is required to join a project")
+
 class InvalidProjectName(val name: String) :
 	Exception("Invalid project name: $name")
 

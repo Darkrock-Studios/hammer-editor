@@ -1,13 +1,13 @@
 package com.darkrockstudios.apps.hammer.projects.repository
 
 import com.darkrockstudios.apps.hammer.database.ProjectDao
-import com.darkrockstudios.apps.hammer.database.ProjectMemberDao
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECTS_SYNC_MANAGER
 import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECT_SYNC_MANAGER
 import com.darkrockstudios.apps.hammer.project.ProjectAccessResolver
 import com.darkrockstudios.apps.hammer.project.ProjectAccessResult
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
+import com.darkrockstudios.apps.hammer.project.ProjectMemberRepository
 import com.darkrockstudios.apps.hammer.project.ProjectEntityDatasource
 import com.darkrockstudios.apps.hammer.project.ProjectSyncKey
 import com.darkrockstudios.apps.hammer.project.ProjectSynchronizationSession
@@ -42,12 +42,12 @@ abstract class ProjectsRepositoryBaseTest : BaseTest() {
 	protected lateinit var serverProjectDataRepository: ServerProjectDataRepository
 	protected lateinit var projectDao: ProjectDao
 	protected lateinit var projectAccessResolver: ProjectAccessResolver
-	protected lateinit var projectMemberDao: ProjectMemberDao
+	protected lateinit var projectMemberRepository: ProjectMemberRepository
 
 	protected val projectDefinition = ProjectDefinition("Test Project 1", ProjectId("test-uuid-1"))
 
 	protected fun createProjectsRepository(): ProjectsRepository {
-		return ProjectsRepository(clock, projectsDatasource, projectEntityDatasource, projectDao, projectAccessResolver, projectMemberDao)
+		return ProjectsRepository(clock, projectsDatasource, projectEntityDatasource, projectDao, projectAccessResolver, projectMemberRepository)
 	}
 
 	@BeforeEach
@@ -71,8 +71,8 @@ abstract class ProjectsRepositoryBaseTest : BaseTest() {
 		projectAccessResolver = mockk()
 		coEvery { projectAccessResolver.resolve(any(), any()) } returns ProjectAccessResult.Unknown
 		coEvery { projectAccessResolver.memberProjects(any()) } returns emptyList()
-		projectMemberDao = mockk()
-		coEvery { projectMemberDao.removeMember(any(), any()) } returns false
+		projectMemberRepository = mockk()
+		coEvery { projectMemberRepository.leave(any(), any()) } returns false
 
 		val testModule = module {
 			single { Json } bind Json::class

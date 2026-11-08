@@ -8,7 +8,6 @@ import com.darkrockstudios.apps.hammer.base.http.MAX_GROUP_DESCRIPTION_LENGTH
 import com.darkrockstudios.apps.hammer.base.http.MAX_GROUP_NESTING_DEPTH
 import com.darkrockstudios.apps.hammer.base.validate.validateProjectName
 import com.darkrockstudios.apps.hammer.database.ProjectDao
-import com.darkrockstudios.apps.hammer.database.ProjectMemberDao
 import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECTS_SYNC_MANAGER
 import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECT_SYNC_MANAGER
 import com.darkrockstudios.apps.hammer.project.*
@@ -25,7 +24,7 @@ class ProjectsRepository(
 	private val projectEntityDatasource: ProjectEntityDatasource,
 	private val projectDao: ProjectDao,
 	private val projectAccessResolver: ProjectAccessResolver,
-	private val projectMemberDao: ProjectMemberDao,
+	private val projectMemberRepository: ProjectMemberRepository,
 ) {
 	private val syncSessionManager: SyncSessionManager<Long, ProjectsSynchronizationSession> by inject(
 		clazz = SyncSessionManager::class.java,
@@ -176,19 +175,12 @@ class ProjectsRepository(
 					SResult.success()
 				}
 
-				projectMemberDao.removeMember(project.id, userId) -> {
-					endSessionOf(userId, ProjectId(project.uuid))
-					SResult.success()
-				}
+				projectMemberRepository.leave(project, userId) -> SResult.success()
 
 				else -> SResult.failure(NotMemberException(projectId))
 			}
 		}
 	}
-
-	/** A session left behind would refuse the owner's delete, rename and move until it expired. */
-	private fun endSessionOf(userId: Long, projectId: ProjectId) =
-		projectSessions.terminateSessions { it.userId == userId && it.projectDef.uuid == projectId }
 
 	/**
 	 * Idempotent on [projectId]. When the account already has a project named [projectName] under a

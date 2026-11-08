@@ -43,8 +43,8 @@ INSERT INTO project_access(project_id, access_password, expires_at)
 VALUES (?, ?, ?)
 RETURNING id;
 
--- Serializes share creation per project: taken inside the insert transaction so
--- two concurrent creates cannot both pass the duplicate-password check.
+-- Serializes share and invite creation per project: taken inside the insert
+-- transaction so two concurrent creates cannot both pass their check.
 lockProjectRow:
 SELECT id FROM project WHERE id = :projectId FOR UPDATE;
 

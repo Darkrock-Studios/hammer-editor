@@ -40,3 +40,21 @@ WHERE id IN (SELECT project_id FROM project_member WHERE user_id = :userId)
 deleteMember:
 DELETE FROM project_member
 WHERE project_id = :projectId AND user_id = :userId;
+
+getMembers:
+SELECT pm.user_id, a.pen_name, pm.joined_at
+FROM project_member pm
+JOIN account a ON a.id = pm.user_id
+WHERE pm.project_id = :projectId
+ORDER BY pm.joined_at;
+
+countMembers:
+SELECT count(*) FROM project_member WHERE project_id = :projectId;
+
+isMemberEmail:
+SELECT EXISTS(
+    SELECT 1
+    FROM project_member pm
+    JOIN account a ON a.id = pm.user_id
+    WHERE pm.project_id = :projectId AND a.email = CAST(:email AS CITEXT)
+);

@@ -10,10 +10,6 @@ import com.darkrockstudios.apps.hammer.utilities.SResult
 import com.darkrockstudios.apps.hammer.utilities.ServerResult
 import io.mockk.coEvery
 import io.mockk.coVerify
-import io.mockk.Runs
-import io.mockk.every
-import io.mockk.just
-import io.mockk.verify
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
@@ -23,10 +19,8 @@ import kotlin.time.Instant
 
 class ProjectsRepositoryDeleteProjectTest : ProjectsRepositoryBaseTest() {
 
-	private val sharedRowId = 40L
-
 	private fun sharedRow(projectId: ProjectId) = Project(
-		id = sharedRowId,
+		id = 40L,
 		uuid = projectId.id,
 		user_id = userId + 1,
 		name = "Shared",
@@ -108,13 +102,11 @@ class ProjectsRepositoryDeleteProjectTest : ProjectsRepositoryBaseTest() {
 		coEvery { projectsSessionManager.validateSyncId(userId, syncId, any()) } returns true
 		coEvery { projectsDatasource.getProject(userId, projectId) } returns null
 		coEvery { projectDao.getProjectByUuid(projectId) } returns sharedRow(projectId)
-		coEvery { projectMemberDao.removeMember(sharedRowId, userId) } returns true
-		every { projectSessionManager.terminateSessions(any()) } just Runs
+		coEvery { projectMemberRepository.leave(sharedRow(projectId), userId) } returns true
 
 		val result = createProjectsRepository().deleteProject(userId, syncId, projectId)
 
 		assertTrue(result.isSuccess)
-		verify { projectSessionManager.terminateSessions(any()) }
 		coVerify(exactly = 0) { projectEntityDatasource.deleteProject(any(), any()) }
 		coVerify(exactly = 0) { projectsDatasource.updateSyncData(any(), any()) }
 	}
