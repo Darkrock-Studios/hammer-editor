@@ -347,6 +347,19 @@ class SyncAccountUseCaseTest : BaseTest() {
 	}
 
 	@Test
+	fun `background sync through executeIfIdle skips a project with sync off`() = runTest {
+		val alpha = localProject("Alpha", "a")
+		projectsRepository.setSyncEnabled(alpha, false)
+		val alphaSync = projectSyncReturns("Alpha", true)
+
+		val result = useCase().executeIfIdle(listener)!!
+
+		assertEquals(mapOf("Alpha" to ProjectSyncOutcome.Skipped), result.projects)
+		coVerify(exactly = 0) { alphaSync.sync(any(), any(), any(), any(), any(), any()) }
+		coVerify { accountSynchronizer.probeUnchangedProjects(emptyList()) }
+	}
+
+	@Test
 	fun `executeIfIdle skips while another account sync is running`() = runTest {
 		localProject("Alpha", "a")
 		projectSyncReturns("Alpha", true)

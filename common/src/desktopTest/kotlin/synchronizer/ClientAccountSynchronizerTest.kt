@@ -1,5 +1,6 @@
 package synchronizer
 
+import com.darkrockstudios.apps.hammer.base.GroupId
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.*
 import com.darkrockstudios.apps.hammer.common.data.CResult
@@ -1382,5 +1383,24 @@ class ClientAccountSynchronizerTest : BaseTest() {
 		coVerify(exactly = 0) { projectsRepository.setProjectId(any(), any()) }
 		verify(exactly = 0) { projectsRepository.createProject(any(), any(), any(), any()) }
 		assertTrue(strRes.calls.any { it.first == Res.string.sync_log_account_project_create_client_name_excluded })
+	}
+
+	@Test
+	fun `a local move of an excluded project is not sent`() = runTest {
+		val id = ProjectId.randomUUID()
+		val groupId = GroupId.randomUUID()
+		val def = projectDef("Novel", id)
+		// Moved out of the group locally: the three-way rule would push the top level.
+		writeSyncData(emptySyncData().copy(projectBaselines = mapOf(id to ProjectBaseline("Novel", groupId))))
+		exclude(def)
+		stubLocalProjects(listOf(def))
+		coEvery { serverProjectsApi.beginProjectsSync() } returns Result.success(
+			emptyServerResponse().copy(projects = setOf(ApiProjectDefinition("Novel", id, groupId)))
+		)
+
+		createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
+
+		coVerify(exactly = 0) { serverProjectsApi.moveProject(any(), any(), any()) }
+		assertEquals(ProjectBaseline("Novel", groupId), readSyncData().projectBaselines[id])
 	}
 }
