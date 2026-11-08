@@ -374,9 +374,10 @@ the stats of anyone who still has the project. Their devices simply stop adding 
 The project card shows "Shared by {ownerName}" for a co-author, read from `project.toml`. The
 owner's in-app view of who is on the project is deferred; the website lists members.
 
-## Pull request plan
+## Work plan
 
-Stacked on `4.0.0`, squash-merged bottom-up:
+One branch, `4_0/coauthoring`, one pull request into `4.0.0` at the end. The work runs in the
+stages below, in order, each landing as a series of checkpoint commits on the branch:
 
 1. **Server: membership resolution and owner-scoped storage.** Schema, `requireProjectAccess`
    with `403 not_member`, `OwnerId` through every project-scoped datasource, `ProjectSyncKey` by
@@ -389,8 +390,7 @@ Stacked on `4.0.0`, squash-merged bottom-up:
    page for co-authors with *Leave*.
 4. **Clients: per-project sync toggle.** `syncEnabled` in `project.toml`, the settings switch,
    the card marker, the single enforcement point and its callers, the delete dialog's server
-   option, the re-mint on turn-on for a tombstoned id. Independent of co-authoring and shippable
-   on its own.
+   option, the re-mint on turn-on for a tombstoned id. Independent of co-authoring.
 5. **Clients: owner awareness.** `ownerId`/`ownerName` in `project.toml`, leave dialog,
    no-adoption and filesystem collision check, reconciler rules, parked projects, the
    "upload as my own" turn-on path, `buildSyncData` hardening.
@@ -399,15 +399,16 @@ Stacked on `4.0.0`, squash-merged bottom-up:
 7. **Docs:** `SYNCING-PROTOCOL.md` sections for membership, `403 not_member`, leave and the
    session rules; `ARCHITECTURE.md` on `project.toml`'s sync fields and parked projects.
 
-Protocol version 4 is the deployment gate (Decision 7), so the order above is safe to ship as
-written.
+Protocol version 4 is the deployment gate (Decision 7), and server and clients ship together in
+4.0.0, so nothing in the order above is load-bearing for deployment; it is the order that keeps
+each stage testable against the one before it.
 
 ### How the work runs
 
-Implementation sessions run on Opus 5.5 at high effort. Each PR is built as a series of
+Implementation sessions run on Opus 5.5 at high effort. Each stage is built as a series of
 checkpoint commits, one per coherent step (schema, resolution, sessions, and so on). After every
 checkpoint the diff gets a code review, and every finding is addressed before the next step
-starts. A PR is opened only once its last checkpoint has been reviewed clean.
+starts. The pull request is opened once the last stage has been reviewed clean.
 
 All web front-end work (the invite dialog, member list, dashboard notice, story page controls)
 follows [WEB-DESIGN-SYSTEM.md](WEB-DESIGN-SYSTEM.md) and is done with the `frontend-design`
