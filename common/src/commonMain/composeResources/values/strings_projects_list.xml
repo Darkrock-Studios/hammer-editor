@@ -55,6 +55,8 @@
 	<string name="delete_project_warning">This action cannot be undone. All project data will be permanently deleted.</string>
 	<string name="delete_project_confirm_hint">Type "%1$s" to confirm</string>
 	<string name="delete_project_confirm">Delete</string>
+	<string name="delete_project_also_server">Also delete on the server</string>
+	<string name="delete_project_also_server_hint">Sync is off for this project on this device, so only this copy is deleted unless you turn this on. Deleting the server copy also removes it from your other devices when they next sync.</string>
 	<string name="delete_project_cancel">Cancel</string>
 	<string name="rename_project_title">Rename Project</string>
 	<string name="rename_project_heading">New Project Name</string>

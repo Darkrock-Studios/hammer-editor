@@ -760,6 +760,7 @@ fun ModalContent(component: ProjectsList, rootSnackbar: RootSnackbarHostState) {
 			ProjectDeleteDialog(
 				component = component,
 				projectDef = overlay.projectDef,
+				offerServerDelete = overlay.offerServerDelete,
 				close = { component.dismissProjectDelete() }
 			)
 		}

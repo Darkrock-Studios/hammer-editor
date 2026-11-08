@@ -164,7 +164,7 @@ fun fakeProjectsList(
 	override fun updateImportOptions(options: ImportOptions) {}
 	override fun cancelImportDialog() {}
 	override suspend fun confirmImportDialog() {}
-	override fun deleteProject(projectDef: ProjectDef) {}
+	override fun deleteProject(projectDef: ProjectDef, alsoDeleteOnServer: Boolean) {}
 	override fun renameProject(projectDef: ProjectDef, newName: String) {}
 	override fun syncProjects(callback: (Boolean) -> Unit) {}
 	override fun showProjectsSync() {}

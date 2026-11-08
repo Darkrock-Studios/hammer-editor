@@ -1,5 +1,7 @@
 package operations
 
+import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.AccountSyncDatasource
+import com.darkrockstudios.apps.hammer.operations.core.ProjectDeleteInput
 import com.darkrockstudios.apps.hammer.common.data.closeProjectScope
 import com.darkrockstudios.apps.hammer.common.data.openProjectScope
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
@@ -44,8 +46,24 @@ class ProjectWriteOperationsTest : KoinOperationsTest() {
 		run<ProjectRenameInput, ProjectName>("project.rename", ProjectRenameInput("Storm Novel", "Calm Novel"))
 		assertEquals(listOf("Calm Novel"), projectNames())
 
-		run<ProjectInput, ProjectName>("project.delete", ProjectInput("Calm Novel"))
+		run<ProjectDeleteInput, ProjectName>("project.delete", ProjectDeleteInput("Calm Novel"))
 		assertEquals(emptyList(), projectNames())
+	}
+
+	@Test
+	fun `a project with sync off keeps its server copy unless asked`() = onTestThread {
+		run<ProjectCreateInput, ProjectName>("project.create", ProjectCreateInput("Kept"))
+		run<ProjectCreateInput, ProjectName>("project.create", ProjectCreateInput("Gone"))
+		val repository = get<ProjectsRepository>()
+		val kept = repository.findProject("Kept")!!
+		val gone = repository.findProject("Gone")!!
+		repository.setSyncEnabled(kept, false)
+		repository.setSyncEnabled(gone, false)
+
+		run<ProjectDeleteInput, ProjectName>("project.delete", ProjectDeleteInput("Kept"))
+		run<ProjectDeleteInput, ProjectName>("project.delete", ProjectDeleteInput("Gone", alsoDeleteOnServer = true))
+
+		assertEquals(setOf(gone.id), get<AccountSyncDatasource>().load().projectsToDelete)
 	}
 
 	@Test
@@ -55,7 +73,7 @@ class ProjectWriteOperationsTest : KoinOperationsTest() {
 		val scope = openProjectScope(def)
 
 		invalid { run<ProjectRenameInput, ProjectName>("project.rename", ProjectRenameInput("Storm Novel", "Calm Novel")) }
-		invalid { run<ProjectInput, ProjectName>("project.delete", ProjectInput("Storm Novel")) }
+		invalid { run<ProjectDeleteInput, ProjectName>("project.delete", ProjectDeleteInput("Storm Novel")) }
 
 		closeProjectScope(scope, def)
 		assertEquals(listOf("Storm Novel"), projectNames())

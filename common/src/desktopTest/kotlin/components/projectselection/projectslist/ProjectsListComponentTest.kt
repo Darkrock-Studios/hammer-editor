@@ -424,6 +424,53 @@ class ProjectsListComponentTest : ComponentTest() {
 		}
 
 	@Test
+	fun `deleteProject of a project with sync off keeps the server copy`() = runTest(mainTestDispatcher) {
+		every { projectsRepository.deleteProject(projectDefA) } returns true
+		every { projectsRepository.isSyncEnabled(projectDefA) } returns false
+		val comp = newComponent()
+
+		comp.deleteProject(projectDefA)
+		advanceUntilIdle()
+
+		verify { projectsRepository.deleteProject(projectDefA) }
+		coVerify(exactly = 0) { synchronizer.deleteProject(any()) }
+	}
+
+	@Test
+	fun `deleteProject of a project with sync off can also delete it on the server`() = runTest(mainTestDispatcher) {
+		every { projectsRepository.deleteProject(projectDefA) } returns true
+		every { projectsRepository.isSyncEnabled(projectDefA) } returns false
+		val comp = newComponent()
+
+		comp.deleteProject(projectDefA, alsoDeleteOnServer = true)
+		advanceUntilIdle()
+
+		coVerify { synchronizer.deleteProject(projectDefA) }
+	}
+
+	@Test
+	fun `The delete dialog offers the server copy only for a project with sync off the server holds`() =
+		runTest(mainTestDispatcher) {
+			every { synchronizer.isServerSynchronized() } returns true
+			coEvery { synchronizer.hasProjectBaseline(projectDefA) } returns true
+			val comp = newComponent()
+
+			comp.showProjectDelete(projectDefA)
+			advanceUntilIdle()
+			assertFalse(assertIs<ProjectsList.ModalDestination.ProjectDelete>(comp.modalRouterState.value.child?.instance).offerServerDelete)
+
+			every { projectsRepository.isSyncEnabled(projectDefA) } returns false
+			comp.showProjectDelete(projectDefA)
+			advanceUntilIdle()
+			assertTrue(assertIs<ProjectsList.ModalDestination.ProjectDelete>(comp.modalRouterState.value.child?.instance).offerServerDelete)
+
+			coEvery { synchronizer.hasProjectBaseline(projectDefA) } returns false
+			comp.showProjectDelete(projectDefA)
+			advanceUntilIdle()
+			assertFalse(assertIs<ProjectsList.ModalDestination.ProjectDelete>(comp.modalRouterState.value.child?.instance).offerServerDelete)
+		}
+
+	@Test
 	fun `deleteProject does not touch the filesystem on the calling thread`() = runTest(mainTestDispatcher) {
 		every { projectsRepository.deleteProject(projectDefA) } returns true
 		val comp = newComponent()
@@ -551,10 +598,12 @@ class ProjectsListComponentTest : ComponentTest() {
 		val comp = newComponent()
 
 		comp.showProjectDelete(projectDefA)
+		advanceUntilIdle()
 
 		val dest = comp.modalRouterState.value.child?.instance
 		assertIs<ProjectsList.ModalDestination.ProjectDelete>(dest)
 		assertEquals(projectDefA, dest.projectDef)
+		assertFalse(dest.offerServerDelete)
 
 		comp.dismissProjectDelete()
 		assertIs<ProjectsList.ModalDestination.None>(comp.modalRouterState.value.child?.instance)

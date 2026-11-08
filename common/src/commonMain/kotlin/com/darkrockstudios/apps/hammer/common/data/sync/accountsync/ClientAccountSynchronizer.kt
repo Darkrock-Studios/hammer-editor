@@ -771,6 +771,10 @@ class ClientAccountSynchronizer(
 		}
 	}
 
+	/** The account has synced this project's name and placement with the server, so the server holds it. */
+	suspend fun hasProjectBaseline(project: ProjectDef): Boolean =
+		project.id in accountSyncDatasource.load().projectBaselines
+
 	suspend fun deleteProject(project: ProjectDef) {
 		accountSyncDatasource.update { syncData ->
 			syncData.copy(

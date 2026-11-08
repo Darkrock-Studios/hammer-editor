@@ -16,14 +16,23 @@ class ProjectsService(
 	fun renameProject(projectDef: ProjectDef, newName: String): CResult<ProjectDef> =
 		projectsRepository.renameProject(projectDef, newName)
 
-	/** A project with sync off on this device is deleted here only; the server keeps its copy. */
-	suspend fun deleteProject(projectDef: ProjectDef): Boolean {
-		val syncEnabled = projectsRepository.isSyncEnabled(projectDef)
+	/**
+	 * A project with sync off on this device is deleted here only, so the server keeps its copy,
+	 * unless [alsoDeleteOnServer].
+	 */
+	suspend fun deleteProject(projectDef: ProjectDef, alsoDeleteOnServer: Boolean = false): Boolean {
+		val deleteOnServer = alsoDeleteOnServer || projectsRepository.isSyncEnabled(projectDef)
 		val deleted = projectsRepository.deleteProject(projectDef)
-		if (deleted && syncEnabled) {
+		if (deleted && deleteOnServer) {
 			// Queued even when it never synced: account sync drops ids the server never knew.
 			accountSynchronizer.deleteProject(projectDef)
 		}
 		return deleted
 	}
+
+	/** True for a project with sync off here that the server holds a copy of. */
+	suspend fun offersServerDelete(projectDef: ProjectDef): Boolean =
+		accountSynchronizer.isServerSynchronized() &&
+			!projectsRepository.isSyncEnabled(projectDef) &&
+			accountSynchronizer.hasProjectBaseline(projectDef)
 }

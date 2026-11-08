@@ -50,14 +50,15 @@ internal fun projectWriteOperations(): List<Operation<*, *>> = listOf(
 			}
 		}
 	},
-	operation<ProjectInput, ProjectName>(
+	operation<ProjectDeleteInput, ProjectName>(
 		name = "project.delete",
-		description = "Delete a project, and everything in it, for good. It must not be open in Hammer.",
+		description = "Delete a project, and everything in it, for good. It must not be open in Hammer. " +
+			"A project with sync off on this device keeps its server copy unless alsoDeleteOnServer is set.",
 		access = Access.Destructive,
 		scope = OperationScope.Content,
 	) { input ->
 		val def = requireClosed(projects.resolve(input.project))
-		if (!koinGet<ProjectsService>().deleteProject(def)) error("Could not delete '${def.name}'")
+		if (!koinGet<ProjectsService>().deleteProject(def, input.alsoDeleteOnServer)) error("Could not delete '${def.name}'")
 		ProjectName(def.name)
 	},
 	operation<ProjectImportInput, ProjectImported>(

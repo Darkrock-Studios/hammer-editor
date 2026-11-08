@@ -307,9 +307,9 @@ class ProjectsListComponent(
 			projectsService.createProject(projectName, group = parent)
 		}
 
-	override fun deleteProject(projectDef: ProjectDef) {
+	override fun deleteProject(projectDef: ProjectDef, alsoDeleteOnServer: Boolean) {
 		scope.launch(dispatcherIo) {
-			val deleted = projectsService.deleteProject(projectDef)
+			val deleted = projectsService.deleteProject(projectDef, alsoDeleteOnServer)
 
 			if (deleted) {
 				Napier.i("Project deleted: ${projectDef.name}")
@@ -834,7 +834,10 @@ class ProjectsListComponent(
 	}
 
 	override fun showProjectDelete(projectDef: ProjectDef) {
-		modalRouter.showProjectDelete(projectDef)
+		scope.launch(dispatcherIo) {
+			val offerServerDelete = projectsService.offersServerDelete(projectDef)
+			withContext(mainDispatcher) { modalRouter.showProjectDelete(projectDef, offerServerDelete) }
+		}
 	}
 
 	override fun dismissProjectDelete() {

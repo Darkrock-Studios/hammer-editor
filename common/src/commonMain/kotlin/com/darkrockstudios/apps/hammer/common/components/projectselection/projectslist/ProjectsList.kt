@@ -39,7 +39,8 @@ interface ProjectsList : HammerComponent, ComponentToaster {
 	fun updateImportOptions(options: ImportOptions)
 	fun cancelImportDialog()
 	suspend fun confirmImportDialog()
-	fun deleteProject(projectDef: ProjectDef)
+	/** [alsoDeleteOnServer] matters only for a project with sync off, see [ModalDestination.ProjectDelete]. */
+	fun deleteProject(projectDef: ProjectDef, alsoDeleteOnServer: Boolean = false)
 	fun renameProject(projectDef: ProjectDef, newName: String)
 	fun syncProjects(callback: (Boolean) -> Unit)
 	fun showProjectsSync()
@@ -125,7 +126,8 @@ interface ProjectsList : HammerComponent, ComponentToaster {
 		data object ProjectSync : ModalDestination()
 		data class ProjectRename(val projectDef: ProjectDef) : ModalDestination()
 		data class ProjectCreate(val parent: GroupDef? = null) : ModalDestination()
-		data class ProjectDelete(val projectDef: ProjectDef) : ModalDestination()
+		/** [offerServerDelete] for a project with sync off here that the server still holds. */
+		data class ProjectDelete(val projectDef: ProjectDef, val offerServerDelete: Boolean = false) : ModalDestination()
 		data class GroupCreate(val parent: GroupDef?) : ModalDestination()
 		data class GroupRename(val groupDef: GroupDef) : ModalDestination()
 		data class GroupDelete(val groupDef: GroupDef) : ModalDestination()
