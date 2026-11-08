@@ -16,6 +16,8 @@ class ProjectDao(
 ) : KoinComponent {
 	private val ioDispatcher by injectIoDispatcher()
 	private val queries = database.serverDatabase.projectQueries
+	private val memberQueries = database.serverDatabase.projectMemberQueries
+	private val inviteQueries = database.serverDatabase.projectInviteQueries
 
 	suspend fun getProjects(userId: Long): Set<ProjectDefinition> = withContext(ioDispatcher) {
 		val projects = queries.getProjects(userId).executeAsList()
@@ -144,6 +146,12 @@ class ProjectDao(
 	}
 
 	suspend fun deleteProject(userId: Long, projectId: ProjectId) = withContext(ioDispatcher) {
-		queries.deleteProject(userId, projectId.id)
+		queries.transaction {
+			queries.getProjectId(userId, projectId.id).executeAsOneOrNull()?.let { rowId ->
+				memberQueries.deleteAllForProject(rowId)
+				inviteQueries.deleteAllForProject(rowId)
+			}
+			queries.deleteProject(userId, projectId.id)
+		}
 	}
 }

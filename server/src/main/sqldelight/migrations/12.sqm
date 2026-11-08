@@ -1,0 +1,34 @@
+-- Migration 12 -> 13: co-authoring. Mirrors ProjectMember.sq, ProjectInvite.sq and the author
+-- columns in WritingActivity.sq for already-deployed databases.
+--
+-- project_invite.email is created as TEXT then promoted in place, matching what
+-- PostgresSchemaInitializer does for fresh installs.
+
+CREATE TABLE project_member (
+    project_id BIGINT NOT NULL,
+    user_id BIGINT NOT NULL,
+    joined_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (project_id, user_id),
+    FOREIGN KEY(project_id) REFERENCES project(id) ON DELETE CASCADE,
+    FOREIGN KEY(user_id) REFERENCES account(id) ON DELETE CASCADE
+);
+
+CREATE INDEX project_member_user_id_idx ON project_member (user_id);
+
+CREATE TABLE project_invite (
+    id BIGSERIAL PRIMARY KEY,
+    project_id BIGINT NOT NULL,
+    email TEXT NOT NULL,
+    invited_by BIGINT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    FOREIGN KEY(project_id) REFERENCES project(id) ON DELETE CASCADE,
+    FOREIGN KEY(invited_by) REFERENCES account(id) ON DELETE CASCADE,
+    UNIQUE(project_id, email)
+);
+
+CREATE INDEX project_invite_email_idx ON project_invite (email);
+
+ALTER TABLE project_invite ALTER COLUMN email TYPE CITEXT;
+
+ALTER TABLE writing_activity ADD COLUMN author_id BIGINT;
+ALTER TABLE writing_activity ADD COLUMN author_name TEXT;

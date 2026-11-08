@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.database
 
 import com.darkrockstudios.apps.hammer.base.GroupId
+import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.e2e.util.SharedPostgresTestDatabase
 import com.darkrockstudios.apps.hammer.utils.BaseTest
 import kotlinx.coroutines.test.runTest
@@ -49,6 +50,34 @@ class UserDataPurgeDaoTest : BaseTest() {
 
 		assertTrue(purgeDao.purgeUserData(userId))
 		assertEquals(emptyList(), groupDao.getGroups(userId))
+	}
+
+	@Test
+	fun `purgeUserData - deletes memberships and invites on both sides`() = runTest {
+		val owner = accountDao.createAccount("purge-owner@example.com", "hash", "secret", isAdmin = false)
+		val other = accountDao.createAccount("purge-other@example.com", "hash", "secret", isAdmin = false)
+		val projectDao = ProjectDao(db)
+		val ownedId = ProjectId.randomUUID()
+		val otherId = ProjectId.randomUUID()
+		projectDao.createProject(owner, ownedId, "Owned")
+		projectDao.createProject(other, otherId, "Other's")
+		val ownedRow = projectDao.getProjectId(owner, ownedId)
+		val otherRow = projectDao.getProjectId(other, otherId)
+
+		val members = db.serverDatabase.projectMemberQueries
+		val invites = db.serverDatabase.projectInviteQueries
+		members.insertMember(ownedRow, other)
+		members.insertMember(otherRow, owner)
+		invites.insertInvite(ownedRow, "someone@example.com", owner)
+		invites.insertInvite(otherRow, "someone-else@example.com", owner)
+		invites.insertInvite(otherRow, "Purge-Owner@example.com", other)
+		accountDao.markDeleted(owner, Clock.System.now())
+
+		assertTrue(purgeDao.purgeUserData(owner))
+		assertFalse(members.isMember(ownedRow, other).executeAsOne())
+		assertFalse(members.isMember(otherRow, owner).executeAsOne())
+		assertEquals(emptyList(), invites.getInvitesForProject(ownedRow).executeAsList())
+		assertEquals(emptyList(), invites.getInvitesForProject(otherRow).executeAsList())
 	}
 
 	@Test
