@@ -205,7 +205,8 @@ private suspend fun RoutingContext.handleBeginProjectsSync(
 		call.respond(
 			BeginProjectsSyncResponse(
 				syncId = syncData.syncId,
-				projects = syncData.projects.map { it.toApi(syncData.projectPlacements[it.uuid]) }.toSet(),
+				projects = syncData.projects.map { it.toApi(syncData.projectPlacements[it.uuid]) }.toSet() +
+					syncData.sharedProjects.map { it.toApi() },
 				deletedProjects = syncData.deletedProjects,
 				ideasStateHash = ideasRepository.getIdeasStateHash(principal.id),
 				groups = syncData.groups.map { it.toApi() }.toSet(),

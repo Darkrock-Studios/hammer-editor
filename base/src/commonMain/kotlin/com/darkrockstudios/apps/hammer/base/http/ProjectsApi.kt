@@ -12,8 +12,12 @@ const val MAX_GROUP_DESCRIPTION_LENGTH = 2000
 data class ApiProjectDefinition(
 	val name: String,
 	val uuid: ProjectId,
-	/** The group holding the project; null at the top level. */
+	/** The group holding the project; null at the top level, and always null for a shared project. */
 	val groupId: GroupId? = null,
+	/** Set when the caller is a co-author; null for the caller's own projects. */
+	val ownerId: Long? = null,
+	/** Owner's pen name at the time of the response, for display only. */
+	val ownerName: String? = null,
 )
 
 @Serializable

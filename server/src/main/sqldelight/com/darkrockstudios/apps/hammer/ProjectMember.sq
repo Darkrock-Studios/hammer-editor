@@ -29,3 +29,10 @@ DELETE FROM project_member WHERE user_id = :userId;
 deleteAllOnUserProjects:
 DELETE FROM project_member
 WHERE project_id IN (SELECT id FROM project WHERE user_id = :userId);
+
+-- Projects the user is a co-author on.
+getMemberProjects:
+SELECT *
+FROM project
+WHERE id IN (SELECT project_id FROM project_member WHERE user_id = :userId)
+  AND user_id != :userId;

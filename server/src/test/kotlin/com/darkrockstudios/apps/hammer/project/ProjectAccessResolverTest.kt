@@ -108,4 +108,24 @@ class ProjectAccessResolverTest : BaseTest() {
 
 		assertEquals(granted(isOwner = false), resolver.resolve(member, projectId))
 	}
+
+	@Test
+	fun `member projects carry the owner and their pen name`() = runTest {
+		seed()
+		accountDao.updatePenName(owner, "Owner Pen")
+
+		assertEquals(
+			listOf(SharedProject(projectDef, OwnerId.unchecked(owner), "Owner Pen")),
+			resolver.memberProjects(member),
+		)
+		assertEquals(emptyList(), resolver.memberProjects(owner))
+		assertEquals(emptyList(), resolver.memberProjects(stranger))
+	}
+
+	@Test
+	fun `member projects leave out an inactive owner's`() = runTest {
+		seed()
+		accountDao.markDeleted(owner, Clock.System.now())
+		assertEquals(emptyList(), resolver.memberProjects(member))
+	}
 }

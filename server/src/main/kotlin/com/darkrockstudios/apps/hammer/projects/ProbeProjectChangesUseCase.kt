@@ -3,8 +3,9 @@ package com.darkrockstudios.apps.hammer.projects
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.ProjectHashItem
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectContentHasher
-import com.darkrockstudios.apps.hammer.project.UncheckedOwner
 import com.darkrockstudios.apps.hammer.project.OwnerId
+import com.darkrockstudios.apps.hammer.project.ProjectAccessResolver
+import com.darkrockstudios.apps.hammer.project.ProjectAccessResult
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.project.ProjectEntityDatasource
 import com.darkrockstudios.apps.hammer.project.ProjectSyncKey
@@ -22,23 +23,24 @@ import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
  * project-data blob. Worst case is a redundant full sync, never a skipped-but-divergent project.
  */
 class ProbeProjectChangesUseCase(
-	private val projectsDatasource: ProjectsDatasource,
+	private val projectAccessResolver: ProjectAccessResolver,
 	private val projectEntityDatasource: ProjectEntityDatasource,
 	private val serverProjectDataRepository: ServerProjectDataRepository,
 	private val projectSyncSessionManager: SyncSessionManager<ProjectSyncKey, ProjectSynchronizationSession>,
 ) {
-	@OptIn(UncheckedOwner::class)
 	suspend operator fun invoke(
 		userId: Long,
 		items: List<ProjectHashItem>,
 	): Set<ProjectId> {
 		val unchanged = mutableSetOf<ProjectId>()
 		for (item in items) {
-			val projectDef = projectsDatasource.getProject(userId, item.projectId) ?: continue
+			val access = (projectAccessResolver.resolve(userId, item.projectId) as? ProjectAccessResult.Granted)
+				?.access ?: continue
+			val projectDef = access.projectDef
 			// A project with an in-flight sync (e.g. from another device) may have half-updated
 			// stored hashes, so we can't certify it "unchanged". Omit it → the client full-syncs.
 			if (projectSyncSessionManager.hasActiveSyncSession(ProjectSyncKey(projectDef.uuid))) continue
-			val serverHash = computeProjectContentHash(OwnerId.unchecked(userId), projectDef) ?: continue
+			val serverHash = computeProjectContentHash(access.owner, projectDef) ?: continue
 			if (serverHash == item.hash) {
 				unchanged += item.projectId
 			}

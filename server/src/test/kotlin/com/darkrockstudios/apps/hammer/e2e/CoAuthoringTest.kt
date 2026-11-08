@@ -1,6 +1,16 @@
 package com.darkrockstudios.apps.hammer.e2e
 
+import com.darkrockstudios.apps.hammer.base.GroupId
+import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.ApiErrorCode
+import com.darkrockstudios.apps.hammer.base.http.ApiProjectDefinition
+import com.darkrockstudios.apps.hammer.base.http.EntityHash
+import com.darkrockstudios.apps.hammer.base.http.ProjectHashItem
+import com.darkrockstudios.apps.hammer.base.http.ProjectsSyncProbeRequest
+import com.darkrockstudios.apps.hammer.base.http.ProjectsSyncProbeResponse
+import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
+import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectContentHasher
+import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectDataHasher
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.BeginProjectsSyncResponse
 import com.darkrockstudios.apps.hammer.base.http.ClientEntityState
@@ -21,6 +31,9 @@ import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.headers
 import io.ktor.client.request.parameter
 import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.http.ContentType
+import io.ktor.http.contentType
 import io.ktor.client.statement.HttpResponse
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.isSuccess
@@ -263,6 +276,57 @@ class CoAuthoringTest : ProjectSyncTestBase() {
 
 			val renamed = accountRequest("rename", ownerId, otherInstall, accountSyncId, "projectName" to "Renamed")
 			assertEquals(HttpStatusCode.OK, renamed.status)
+		}
+	}
+
+	@Test
+	fun `a member's account sync lists the shared project at the top level with its owner`(): Unit = runBlocking {
+		setUpProject()
+		val queries = database().serverDatabase
+		queries.accountQueries.updatePenName("Owner Pen", ownerId)
+		val group = Uuid.random().toString()
+		queries.projectGroupQueries.createGroup(ownerId, group, "Series", null, null)
+		val groupRowId = queries.projectGroupQueries.getGroup(ownerId, group).executeAsOne().id
+		queries.projectQueries.setProjectGroup(groupRowId, ownerId, TestDataSet1.project1.uuid.toString())
+
+		client().apply {
+			val memberProjects = post(api("projects/$memberId/begin_sync")) { authHeaders(memberToken) }
+				.body<BeginProjectsSyncResponse>().projects
+			assertEquals(
+				setOf(
+					ApiProjectDefinition(
+						name = TestDataSet1.project1.name,
+						uuid = ProjectId.fromUUID(TestDataSet1.project1.uuid),
+						groupId = null,
+						ownerId = ownerId,
+						ownerName = "Owner Pen",
+					)
+				),
+				memberProjects,
+			)
+
+			val ownerProject = post(api("projects/$ownerId/begin_sync")) { authHeaders(ownerToken) }
+				.body<BeginProjectsSyncResponse>().projects
+				.single { it.uuid == ProjectId.fromUUID(TestDataSet1.project1.uuid) }
+			assertEquals(null, ownerProject.ownerId)
+			assertEquals(GroupId(group), ownerProject.groupId)
+		}
+	}
+
+	@Test
+	fun `a member's sync probe hashes the owner's rows`(): Unit = runBlocking {
+		setUpProject()
+		val projectId = ProjectId.fromUUID(TestDataSet1.project1.uuid)
+		val entityHashes = TestDataSet1.user1Project1Entities.map { EntityHash(it.id, it.hash()) }
+		val hash = ProjectContentHasher.hash(entityHashes, ProjectDataHasher.hash(ProjectData()))
+
+		client().apply {
+			val response = post(api("projects/$memberId/sync_probe")) {
+				authHeaders(memberToken)
+				contentType(ContentType.Application.Json)
+				setBody(ProjectsSyncProbeRequest(listOf(ProjectHashItem(projectId, hash))))
+			}
+			assertEquals(setOf(projectId), response.body<ProjectsSyncProbeResponse>().unchangedProjects)
 		}
 	}
 }

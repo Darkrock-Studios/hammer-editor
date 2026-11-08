@@ -7,6 +7,8 @@ import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectContentHasher
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectDataHasher
 import com.darkrockstudios.apps.hammer.project.OwnerId
+import com.darkrockstudios.apps.hammer.project.ProjectAccess
+import com.darkrockstudios.apps.hammer.project.ProjectAccessResult
 import com.darkrockstudios.apps.hammer.project.ProjectSyncKey
 import com.darkrockstudios.apps.hammer.projects.ProbeProjectChangesUseCase
 import com.darkrockstudios.apps.hammer.project.RawProjectDataDto
@@ -20,7 +22,7 @@ import kotlin.test.assertTrue
 class ProbeProjectChangesUseCaseTest : ProjectsRepositoryBaseTest() {
 
 	private fun probe() = ProbeProjectChangesUseCase(
-		projectsDatasource,
+		projectAccessResolver,
 		projectEntityDatasource,
 		serverProjectDataRepository,
 		projectSessionManager,
@@ -29,7 +31,8 @@ class ProbeProjectChangesUseCaseTest : ProjectsRepositoryBaseTest() {
 	private val projectId = projectDefinition.uuid
 
 	private fun stubTwoEntities() {
-		coEvery { projectsDatasource.getProject(userId, projectId) } returns projectDefinition
+		coEvery { projectAccessResolver.resolve(userId, projectId) } returns
+			ProjectAccessResult.Granted(ProjectAccess(projectDefinition, OwnerId.unchecked(userId), isOwner = true))
 		coEvery { projectEntityDatasource.getEntityHashes(OwnerId.unchecked(userId), projectDefinition) } returns listOf(
 			EntityHash(1, "h1"),
 			EntityHash(2, "h2"),
@@ -79,10 +82,35 @@ class ProbeProjectChangesUseCaseTest : ProjectsRepositoryBaseTest() {
 
 	@Test
 	fun `unknown project is left out`() = runTest {
-		coEvery { projectsDatasource.getProject(userId, projectId) } returns null
+		coEvery { projectAccessResolver.resolve(userId, projectId) } returns ProjectAccessResult.Unknown
 
 		val result = probe()(userId, listOf(ProjectHashItem(projectId, "any")))
 		assertTrue(result.isEmpty())
+	}
+
+	@Test
+	fun `a project the caller may not use is left out`() = runTest {
+		stubTwoEntities()
+		coEvery { projectAccessResolver.resolve(userId, projectId) } returns ProjectAccessResult.NotMember
+
+		val result = probe()(userId, listOf(ProjectHashItem(projectId, expectedServerHash())))
+		assertTrue(result.isEmpty())
+	}
+
+	@Test
+	fun `a member project is hashed from the owner's rows`() = runTest {
+		val owner = OwnerId.unchecked(userId + 1)
+		coEvery { projectAccessResolver.resolve(userId, projectId) } returns
+			ProjectAccessResult.Granted(ProjectAccess(projectDefinition, owner, isOwner = false))
+		coEvery { projectEntityDatasource.getEntityHashes(owner, projectDefinition) } returns listOf(
+			EntityHash(1, "h1"),
+			EntityHash(2, "h2"),
+		)
+		coEvery { serverProjectDataRepository.loadVerifiedDataHash(owner, projectDefinition) } returns
+			ProjectDataHasher.hash(ProjectData())
+
+		val result = probe()(userId, listOf(ProjectHashItem(projectId, expectedServerHash())))
+		assertEquals(setOf(projectId), result)
 	}
 
 	@Test

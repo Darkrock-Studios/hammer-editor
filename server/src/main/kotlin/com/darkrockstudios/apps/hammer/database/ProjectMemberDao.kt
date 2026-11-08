@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.database
 
+import com.darkrockstudios.apps.hammer.Project
 import com.darkrockstudios.apps.hammer.utilities.injectIoDispatcher
 import kotlinx.coroutines.withContext
 import org.koin.core.component.KoinComponent
@@ -10,5 +11,9 @@ class ProjectMemberDao(database: Database) : KoinComponent {
 
 	suspend fun isMember(projectRowId: Long, userId: Long): Boolean = withContext(ioDispatcher) {
 		queries.isMember(projectRowId, userId).executeAsOne()
+	}
+
+	suspend fun getMemberProjects(userId: Long): List<Project> = withContext(ioDispatcher) {
+		queries.getMemberProjects(userId).executeAsList()
 	}
 }

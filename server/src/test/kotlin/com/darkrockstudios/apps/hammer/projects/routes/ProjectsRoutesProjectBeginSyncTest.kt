@@ -5,7 +5,9 @@ import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.ApiGroupDefinition
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectDefinition
 import com.darkrockstudios.apps.hammer.base.http.BeginProjectsSyncResponse
+import com.darkrockstudios.apps.hammer.project.OwnerId
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
+import com.darkrockstudios.apps.hammer.project.SharedProject
 import com.darkrockstudios.apps.hammer.projects.ProjectGroup
 import com.darkrockstudios.apps.hammer.projects.ProjectsBeginSyncData
 import com.darkrockstudios.apps.hammer.utilities.SResult
@@ -106,6 +108,40 @@ class ProjectsRoutesProjectBeginSyncTest : ProjectsRoutesBaseTest() {
 					groups,
 				)
 			}
+		}
+	}
+
+	@Test
+	fun `Projects - Begin Sync - Shared projects carry their owner at the top level`() = testApplication {
+		val userId = 0L
+		val trilogy = GroupId("5c0e7a2b-1d3f-4e5a-9b6c-7d8e9f0a1b2c")
+		val syncData = ProjectsBeginSyncData(
+			syncId = "syncId-test",
+			projects = setOf(ProjectDefinition("Mine", ProjectId("uuid-1"))),
+			sharedProjects = setOf(
+				SharedProject(ProjectDefinition("Theirs", ProjectId("uuid-2")), OwnerId.unchecked(7L), "Pat"),
+			),
+			deletedProjects = emptySet(),
+			projectPlacements = mapOf(ProjectId("uuid-1") to trilogy),
+		)
+
+		coEvery { accountsRepository.checkToken(userId, BEARER_TOKEN) } returns SResult.success(0L)
+		coEvery { projectsRepository.beginProjectsSync(userId, any()) } returns SResult.success(syncData)
+
+		defaultApplication()
+
+		client.post("api/projects/0/begin_sync") {
+			header("Authorization", "Bearer $BEARER_TOKEN")
+		}.apply {
+			assertEquals(HttpStatusCode.OK, status)
+
+			assertEquals(
+				setOf(
+					ApiProjectDefinition("Mine", ProjectId("uuid-1"), trilogy),
+					ApiProjectDefinition("Theirs", ProjectId("uuid-2"), null, ownerId = 7L, ownerName = "Pat"),
+				),
+				Json.decodeFromString<BeginProjectsSyncResponse>(bodyAsText()).projects,
+			)
 		}
 	}
 

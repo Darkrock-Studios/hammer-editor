@@ -23,6 +23,7 @@ class ProjectsRepository(
 	private val projectsDatasource: ProjectsDatasource,
 	private val projectEntityDatasource: ProjectEntityDatasource,
 	private val projectDao: ProjectDao,
+	private val projectAccessResolver: ProjectAccessResolver,
 ) {
 	private val syncSessionManager: SyncSessionManager<Long, ProjectsSynchronizationSession> by inject(
 		clazz = SyncSessionManager::class.java,
@@ -101,6 +102,7 @@ class ProjectsRepository(
 		val data = ProjectsBeginSyncData(
 			syncId = newSyncId,
 			projects = projects,
+			sharedProjects = projectAccessResolver.memberProjects(userId).toSet(),
 			deletedProjects = deletedProjects,
 			groups = projectsDatasource.getGroups(userId).toSet(),
 			projectPlacements = projectsDatasource.getProjectPlacements(userId),

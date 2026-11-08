@@ -2,7 +2,9 @@ package com.darkrockstudios.apps.hammer.projects.repository
 
 import com.darkrockstudios.apps.hammer.base.GroupId
 import com.darkrockstudios.apps.hammer.base.ProjectId
+import com.darkrockstudios.apps.hammer.project.OwnerId
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
+import com.darkrockstudios.apps.hammer.project.SharedProject
 import com.darkrockstudios.apps.hammer.projects.ProjectGroup
 import com.darkrockstudios.apps.hammer.projects.ProjectsBeginSyncData
 import com.darkrockstudios.apps.hammer.projects.ProjectsSyncData
@@ -88,5 +90,21 @@ class ProjectsRepositoryBeginSyncTest : ProjectsRepositoryBaseTest() {
 			assertEquals(setOf(parent, child), result.data.groups)
 			assertEquals(mapOf(ProjectId("uuid-1") to GroupId("group-2")), result.data.projectPlacements)
 		}
+	}
+
+	@Test
+	fun `Begin Sync, lists the projects the caller co-authors`() = runTest {
+		coEvery { projectsSessionManager.claimSession(any(), any(), any()) } returns "new-sync-id"
+		coEvery { projectsDatasource.getProjects(userId) } returns emptySet()
+		coEvery { projectsDatasource.loadSyncData(userId) } returns ProjectsSyncData(deletedProjects = emptySet())
+		coEvery { projectsDatasource.getGroups(userId) } returns emptyList()
+		coEvery { projectsDatasource.getProjectPlacements(userId) } returns emptyMap()
+		val shared = SharedProject(ProjectDefinition("Theirs", ProjectId("uuid-9")), OwnerId.unchecked(9L), "Pat")
+		coEvery { projectAccessResolver.memberProjects(userId) } returns listOf(shared)
+
+		val result = createProjectsRepository().beginProjectsSync(userId)
+
+		assertTrue(isSuccess(result))
+		assertEquals(setOf(shared), result.data.sharedProjects)
 	}
 }

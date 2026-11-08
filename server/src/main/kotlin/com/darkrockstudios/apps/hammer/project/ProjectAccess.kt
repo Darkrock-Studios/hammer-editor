@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.Project
 import com.darkrockstudios.apps.hammer.account.isActive
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.base.ProjectId
+import com.darkrockstudios.apps.hammer.base.http.ApiProjectDefinition
 import com.darkrockstudios.apps.hammer.database.AccountDao
 import com.darkrockstudios.apps.hammer.database.ProjectDao
 import com.darkrockstudios.apps.hammer.database.ProjectMemberDao
@@ -31,6 +32,18 @@ value class OwnerId private constructor(val id: Long) {
 }
 
 data class ProjectAccess(val projectDef: ProjectDefinition, val owner: OwnerId, val isOwner: Boolean)
+
+/** A project the caller co-authors. [ownerName] is the owner's current pen name. */
+data class SharedProject(val projectDef: ProjectDefinition, val owner: OwnerId, val ownerName: String?) {
+	/** At the top level: the owner's placement is private to the owner. */
+	fun toApi() = ApiProjectDefinition(
+		name = projectDef.name,
+		uuid = projectDef.uuid,
+		groupId = null,
+		ownerId = owner.id,
+		ownerName = ownerName,
+	)
+}
 
 sealed interface ProjectAccessResult {
 	data class Granted(val access: ProjectAccess) : ProjectAccessResult
@@ -60,6 +73,23 @@ class ProjectAccessResolver(
 				isOwner = isOwner,
 			)
 		)
+	}
+
+	/** Projects [callerId] co-authors, leaving out those whose owner is inactive, as [resolve] does. */
+	suspend fun memberProjects(callerId: Long): List<SharedProject> {
+		val projects = projectMemberDao.getMemberProjects(callerId)
+		val activeOwners = projects.map { it.user_id }.distinct()
+			.mapNotNull { accountDao.getAccount(it) }
+			.filter { it.isActive(whiteListRepository) }
+			.associateBy { it.id }
+		return projects.mapNotNull { project ->
+			val owner = activeOwners[project.user_id] ?: return@mapNotNull null
+			SharedProject(
+				projectDef = ProjectDefinition.wrap(project.name, project.uuid),
+				owner = OwnerId.of(project),
+				ownerName = owner.pen_name,
+			)
+		}
 	}
 
 	private suspend fun ownerIsActive(project: Project): Boolean =
