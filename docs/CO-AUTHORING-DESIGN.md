@@ -186,6 +186,13 @@ shared projects: adoption by name is per account and only among owned projects.
 
 `sync_probe` for a shared project works as for an owned one, with the owner's rows.
 
+With `403 not_member` on `create`, the server no longer answers `project_id_taken` for another
+account's id; that code is left only for an insert lost to a concurrent delete. Today's client
+re-mints only on `project_id_taken`, so stage 5 must also re-mint on `403 not_member` from
+`create` for a project without `ownerId`. The member listing and `create` apply the same
+owner-active rule as `requireProjectAccess`: a soft-deleted or delisted owner's projects are not
+listed, and `create` with their id answers `403`.
+
 ### Create, rename, delete, leave
 
 | Request | Owner | Co-author | Non-member |
@@ -198,6 +205,17 @@ shared projects: adoption by name is per account and only among owned projects.
 A co-author's `delete` writes nothing to `deleted_project`. A tombstone for the caller would make
 `create` answer `project_deleted` for ever after, and the client never re-mints on that code, so
 the kept copy could never be uploaded as the co-author's own.
+
+A co-author's `rename` and `move` answer `403` with `errorCode` `not_owner`
+(`ApiErrorCode.NOT_OWNER`), a stranger's `403 not_member`; an unknown id stays `404` as today.
+Leave also ends any project session the leaver holds on the project, since a session left behind
+would refuse the owner's `delete`, `rename` and `move` until it expired, and the leaver could no
+longer end it. Leave works whatever the owner's state, so a co-author who leaves while the owner
+is soft-deleted stays gone if the owner is restored. A `delete` for an unknown id still
+tombstones it for the caller as today, so a co-author's leave that reaches the server after the
+owner deleted the project lists the id under that co-author's `deletedProjects`; the client
+already drops queued deletes for ids the server does not list, and skips excluded projects in the
+delete phase.
 
 The owner's `delete` must not write any tombstone a member can see, so a member never finds the
 project under `deletedProjects` (which deletes the local folder). The owner deleting the project,
@@ -214,6 +232,12 @@ project routes answer `403` or `410`. The client handles all four with one rule 
   nothing. Invites share the login rate limit and refuse once members plus pending invites reach
   five. Invites are listed with the members on the same page, each with a revoke/remove control;
   the owner's own address and existing members are refused. Removing a member deletes the row.
+- **Repository:** `ProjectMemberRepository` (stage 2) holds the invite, member and accept
+  operations; the routes add authentication, rate limits and rendering. Addresses are stored
+  trimmed and lower-cased.
+  Re-inviting a pending address succeeds without a second row, even at the cap. Removing a
+  member ends their project session, as leave does. `receivedInvites` does not filter invites
+  from an owner who has since become inactive; the dashboard decides whether to show them.
 - **Accept/decline:** a dashboard notice for invites whose `email` matches the session account.
   Accepting requires a pen name (set inline if missing), inserts `project_member` and deletes the
   invite. Declining deletes the invite.
@@ -402,7 +426,8 @@ stages below, in order, each landing as a series of checkpoint commits on the br
    listed at the top level, `/delete` as leave without tombstone, `403` for member `rename` and
    `move`, `403 not_member` on `create`, invite cap, probe resolves the owner for member projects.
    Tests deferred from stage 1: owner delete leaves no member-visible tombstone, co-author
-   `delete` is leave, `create` answers `403 not_member`, sixth invite refused.
+   `delete` is leave, `create` answers `403 not_member`, sixth invite refused. Landed
+   2026-11-08 as `029b7529d`, `ffe2f958a`, `167e36a46`, `c05cbacd1`, `54f5ccd83`.
 3. **Server: website.** Invite, accept, members list with remove, dashboard label, reduced story
    page for co-authors with *Leave*.
 4. **Clients: per-project sync toggle.** `syncEnabled` in `project.toml`, the settings switch,
