@@ -307,19 +307,34 @@ The project settings screen shows a *Sync this project* switch, only when `serve
 set. The project card shows a cloud-off marker for an excluded project.
 
 There is one enforcement point: `ProjectsRepository.isSyncEnabled(projectDef)`, which reads
-`Info.syncEnabled`. `SyncAccountUseCase` filters excluded projects out before any phase runs,
-the delete phase included, exactly as it already filters projects that are open; the change
-probe, background sync, the Android note worker, the MCP sync operation and Wear all check the
-same function before touching a project; the editor's sync action is hidden. Nothing else
-changes: entities are still marked dirty in the project journal, so turning sync back on resumes
-with the normal conflict detection, like a device that has not synced in a while.
+`Info.syncEnabled`. `ClientAccountSynchronizer`, where the account phases live, collects the
+excluded ids at the start of each session and every phase leaves them alone: delete, rename and
+move in either direction, adoption by name (logged as name-taken) and create on either side.
+`SyncAccountUseCase` keeps them out of the change probe and the project phase (background sync
+runs through it), never reports them to its listener, and marks them `Skipped` in its result.
+The Android note worker checks the same function; Wear only syncs through the use case and has no
+switch. `ClientProjectSynchronizer` refuses an excluded project as a backstop. The editor's and
+project home's sync actions and the close-time sync are hidden or skipped. The MCP `sync.run`
+refuses an excluded `--project`, and `sync.status` reports `syncEnabled`. Nothing else changes:
+entities are still marked dirty in the project journal, so turning sync back on resumes with the
+normal conflict detection, like a device that has not synced in a while.
+
+The account `sync.json` lists under `deletedProjects` only ids this device deleted, never another
+device's deletes. So when the server lists an excluded project's id as deleted, the delete phase
+keeps the folder and re-mints it on the spot; the fresh id joins the session's excluded set. Only
+when the project is open, and so cannot change id, is the id recorded under `deletedProjects`,
+which keeps the folder safe, and a later session re-mints it once it is closed while still
+excluded. A project that syncs and whose id is recorded there is still never re-minted: that is a
+folder a file-sync tool put back after this device deleted it, and tombstones stay dead.
 
 Turning sync **off** states two consequences in the dialog:
 
 - Other devices and the server are unaffected. The switch means "not from this device".
 - Deleting an excluded project locally does not delete it on the server, and if the server still
   holds it, the next account sync re-creates it locally. The delete dialog for an excluded project
-  that has a sync baseline therefore offers *Also delete on the server*.
+  that has a sync baseline (an entry in the account `projectBaselines`) therefore offers *Also
+  delete on the server*, off by default; `project.delete` takes the same choice as
+  `alsoDeleteOnServer`.
 
 Turning sync **on**:
 
@@ -329,7 +344,9 @@ Turning sync **on**:
   and the normal create path uploads everything.
 - Otherwise, if the account `sync.json` lists the id under `deletedProjects`, the project was
   deleted on the server while excluded here; a fresh id is minted so the create path does not
-  answer `project_deleted`.
+  answer `project_deleted`. The switch lives in the open project, which cannot change id, so in
+  practice this refuses and asks the user to close the project and sync from the project list
+  (which re-mints it, above), then turn sync on.
 - Otherwise sync resumes. If the project was parked by the server (below) rather than by hand,
   `verifyAllEntities` is set first, as `markProjectRestored` does today.
 
@@ -449,7 +466,9 @@ stages below, in order, each landing as a series of checkpoint commits on the br
    `c08c67743`.
 4. **Clients: per-project sync toggle.** `syncEnabled` in `project.toml`, the settings switch,
    the card marker, the single enforcement point and its callers, the delete dialog's server
-   option, the re-mint on turn-on for a tombstoned id. Independent of co-authoring.
+   option, the re-mint on turn-on for a tombstoned id. Independent of co-authoring. `Info` also
+   gains `ownerId` and `ownerName`, unused until stage 5. Landed 2026-11-08 as `dcbbfbe66`,
+   `348cbe3cb`, `a09ad536e`, `bbe87e8a9`, `eb40470d5`.
 5. **Clients: owner awareness.** `ownerId`/`ownerName` in `project.toml`, leave dialog,
    no-adoption and filesystem collision check, reconciler rules, parked projects (including
    never deleting a folder with `ownerId` from the delete phase), re-mint on `403 not_member`
