@@ -379,6 +379,10 @@ checkpoint commits, one per coherent step (schema, resolution, sessions, and so 
 checkpoint the diff gets a code review, and every finding is addressed before the next step
 starts. A PR is opened only once its last checkpoint has been reviewed clean.
 
+All web front-end work (the invite dialog, member list, dashboard notice, story page controls)
+follows [WEB-DESIGN-SYSTEM.md](WEB-DESIGN-SYSTEM.md) and is done with the `frontend-design`
+skill loaded, so new partials match the existing Writer's Desk templates.
+
 ## Later, optional
 
 - Soft "claimed" marker on a scene ("Alice is working on this") as project metadata outside the
