@@ -57,6 +57,13 @@ import kotlinx.atomicfu.locks.reentrantLock
 import kotlinx.atomicfu.locks.withLock
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import net.peanuuutz.tomlkt.Toml
@@ -103,6 +110,11 @@ class ProjectsRepository(
 	private var idChangeListeners: List<ProjectIdChangeListener> = emptyList()
 	private val deletedListenersLock = reentrantLock()
 	private var deletedListeners: List<ProjectDeletedListener> = emptyList()
+	private val metadataWriteLock = reentrantLock()
+
+	// Collectors re-read the flag, so a dropped path loses nothing.
+	private val _syncEnabledChanges =
+		MutableSharedFlow<HPath>(extraBufferCapacity = 16, onBufferOverflow = BufferOverflow.DROP_OLDEST)
 
 	init {
 		watchSettings(globalSettingsStore)
@@ -283,7 +295,38 @@ class ProjectsRepository(
 		projectsMetadataDatasource.loadMetadata(projectDef)
 
 	fun updateProjectMetadata(projectDef: ProjectDef, block: (ProjectMetadata) -> ProjectMetadata) =
-		projectsMetadataDatasource.updateMetadata(projectDef, block)
+		metadataWriteLock.withLock { projectsMetadataDatasource.updateMetadata(projectDef, block) }
+
+	/**
+	 * The single check every sync entry point makes before touching a project. A missing or
+	 * unreadable `project.toml` reads as enabled, the default it would be recreated with.
+	 */
+	fun isSyncEnabled(projectDef: ProjectDef): Boolean =
+		projectsMetadataDatasource.readMetadata(projectDef)?.info?.syncEnabled ?: true
+
+	/**
+	 * Only the flag changes: the journal keeps recording edits, so turning sync back on resumes.
+	 * False when `project.toml` cannot be read; it is not recreated here, as that would mint a new id.
+	 */
+	fun setSyncEnabled(projectDef: ProjectDef, enabled: Boolean): Boolean {
+		metadataWriteLock.withLock {
+			val metadata = projectsMetadataDatasource.readMetadata(projectDef) ?: return false
+			projectsMetadataDatasource.saveMetadata(
+				metadata.copy(info = metadata.info.copy(syncEnabled = enabled)),
+				projectDef,
+			)
+		}
+		_syncEnabledChanges.tryEmit(projectDef.path)
+		return true
+	}
+
+	/** The current [isSyncEnabled] of the project at [projectDef]'s path, then each change to it. */
+	fun syncEnabledUpdates(projectDef: ProjectDef): Flow<Boolean> =
+		_syncEnabledChanges
+			.filter { it == projectDef.path }
+			.map { isSyncEnabled(projectDef) }
+			.onStart { emit(isSyncEnabled(projectDef)) }
+			.distinctUntilChanged()
 
 	/** True while the project is open in an editor or a temporary task; its id and name are then fixed. */
 	fun isProjectInUse(projectDir: HPath): Boolean =
