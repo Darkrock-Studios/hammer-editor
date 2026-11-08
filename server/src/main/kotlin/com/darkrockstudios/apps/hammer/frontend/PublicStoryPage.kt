@@ -117,7 +117,7 @@ fun Route.publicStoryPage(
 					val coverImageUrl = storyCoverImageId(
 						serverProjectDataRepository,
 						storyImageService,
-						resolved.userId,
+						resolved.owner,
 						projectDef,
 					)?.let { signedImageUrl(it) }
 					val isCoverPage = pageParam == null && coverImageUrl != null
@@ -178,14 +178,14 @@ fun Route.publicStoryPage(
 					// A scene-limited share prepares only its scene subset; if every selected scene
 					// is gone this returns null and the link 404s like a nonexistent share.
 					val prepared = storyRendererService.prepareExport(
-						resolved.userId,
+						resolved.owner,
 						resolved.projectUuid,
 						resolved.sceneIds,
 					)
 
 					// Stands in for the rest of project data (notably the declared story language
 					// rendered below), so it need not be read before deciding on a 304.
-					val projectDataHash = serverProjectDataRepository.loadDataHash(resolved.userId, projectDef)
+					val projectDataHash = serverProjectDataRepository.loadDataHash(resolved.owner, projectDef)
 
 					// A reader who already holds this exact page is answered without rendering it.
 					// `indexable` is an explicit input: it gates the JSON-LD block but never reaches
@@ -238,7 +238,7 @@ fun Route.publicStoryPage(
 							// header/footer extra links stay localized to the viewer's UI locale;
 							// the ETag covers it through projectDataHash above.
 							val storyLanguage = serverProjectDataRepository.loadProjectLanguage(
-								userId = resolved.userId,
+								owner = resolved.owner,
 								projectDef = projectDef,
 							)
 							if (storyLanguage != null) {
@@ -322,7 +322,7 @@ fun Route.publicStoryPage(
 
 			call.respondStoryImage(
 				storyImageService = storyImageService,
-				userId = resolved.userId,
+				owner = resolved.owner,
 				projectDef = ProjectDefinition(name = resolved.projectName, uuid = resolved.projectUuid),
 				imageId = imageId,
 			)

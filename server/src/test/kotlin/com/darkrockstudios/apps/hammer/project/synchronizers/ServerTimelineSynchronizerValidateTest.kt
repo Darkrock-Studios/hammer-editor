@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineLimits
 import com.darkrockstudios.apps.hammer.project.EntityValidationException
+import com.darkrockstudios.apps.hammer.project.OwnerId
 import com.darkrockstudios.apps.hammer.project.ProjectEntityDatasource
 import com.darkrockstudios.apps.hammer.utilities.SResult
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
@@ -70,7 +71,7 @@ class ServerTimelineSynchronizerValidateTest : BaseTest() {
 				ApiProjectEntity.TimelineEventEntity::class.serializer(),
 			)
 		} returns SResult.success(Unit)
-		return ServerTimelineSynchronizer(datasource).saveEntity(1L, mockk(), entity, null, false)
+		return ServerTimelineSynchronizer(datasource).saveEntity(OwnerId.unchecked(1L), mockk(), entity, null, false)
 	}
 
 	private suspend fun assertRejected(entity: ApiProjectEntity.TimelineEventEntity, reason: String) {

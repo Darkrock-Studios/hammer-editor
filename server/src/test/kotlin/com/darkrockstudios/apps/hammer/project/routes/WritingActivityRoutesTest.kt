@@ -135,7 +135,7 @@ class WritingActivityRoutesTest : BaseTest() {
 		coEvery { accountsRepository.getAccountOrNull(any()) } returns testAccount()
 
 		coEvery { projectAccessResolver.resolve(userId, projectId) } returns ProjectAccessResult.Granted(
-			ProjectAccess(ProjectDefinition(projectName, projectId), OwnerId.ofCaller(userId), isOwner = true)
+			ProjectAccess(ProjectDefinition(projectName, projectId), OwnerId.unchecked(userId), isOwner = true)
 		)
 
 		testModule = module {
@@ -188,7 +188,7 @@ class WritingActivityRoutesTest : BaseTest() {
 		coEvery { whiteListRepository.isOnWhiteList(any()) } returns true
 		coEvery {
 			serverWritingActivityRepository.loadAll(
-				userId,
+				OwnerId.unchecked(userId),
 				ProjectDefinition(projectName, projectId),
 			)
 		} returns SResult.success(expected)
@@ -249,7 +249,7 @@ class WritingActivityRoutesTest : BaseTest() {
 		coEvery { whiteListRepository.isOnWhiteList(any()) } returns true
 		coEvery {
 			serverWritingActivityRepository.saveDeviceLog(
-				userId = userId,
+				owner = OwnerId.unchecked(userId),
 				projectDef = ProjectDefinition(projectName, projectId),
 				deviceId = deviceId,
 				log = log,
@@ -274,7 +274,7 @@ class WritingActivityRoutesTest : BaseTest() {
 		assertTrue(response.status.isSuccess())
 		coVerify {
 			serverWritingActivityRepository.saveDeviceLog(
-				userId = userId,
+				owner = OwnerId.unchecked(userId),
 				projectDef = ProjectDefinition(projectName, projectId),
 				deviceId = deviceId,
 				log = log,

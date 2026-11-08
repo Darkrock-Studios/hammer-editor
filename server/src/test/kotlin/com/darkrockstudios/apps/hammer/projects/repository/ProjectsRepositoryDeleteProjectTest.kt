@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.projects.repository
 
 import com.darkrockstudios.apps.hammer.base.ProjectId
+import com.darkrockstudios.apps.hammer.project.OwnerId
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.projects.ProjectsSyncData
 import com.darkrockstudios.apps.hammer.utilities.SResult
@@ -39,7 +40,7 @@ class ProjectsRepositoryDeleteProjectTest : ProjectsRepositoryBaseTest() {
 		coEvery { projectsSessionManager.validateSyncId(userId, syncId, any()) } returns true
 		coEvery {
 			projectEntityDatasource.deleteProject(
-				userId,
+				OwnerId.unchecked(userId),
 				projectId
 			)
 		} returns SResult.success(
@@ -73,7 +74,7 @@ class ProjectsRepositoryDeleteProjectTest : ProjectsRepositoryBaseTest() {
 			val result = deleteProject(userId, syncId, projectId)
 
 			assertTrue(result.isSuccess)
-			coVerify { projectEntityDatasource.deleteProject(userId, projectDef.uuid) }
+			coVerify { projectEntityDatasource.deleteProject(OwnerId.unchecked(userId), projectDef.uuid) }
 			coVerify { projectsDatasource.updateSyncData(userId, any()) }
 
 			assertEquals(expectedSyncData, updatedSyncData)

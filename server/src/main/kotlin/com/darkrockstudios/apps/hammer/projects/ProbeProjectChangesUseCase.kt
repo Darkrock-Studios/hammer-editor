@@ -3,6 +3,8 @@ package com.darkrockstudios.apps.hammer.projects
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.ProjectHashItem
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectContentHasher
+import com.darkrockstudios.apps.hammer.project.UncheckedOwner
+import com.darkrockstudios.apps.hammer.project.OwnerId
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.project.ProjectEntityDatasource
 import com.darkrockstudios.apps.hammer.project.ProjectSyncKey
@@ -25,6 +27,7 @@ class ProbeProjectChangesUseCase(
 	private val serverProjectDataRepository: ServerProjectDataRepository,
 	private val projectSyncSessionManager: SyncSessionManager<ProjectSyncKey, ProjectSynchronizationSession>,
 ) {
+	@OptIn(UncheckedOwner::class)
 	suspend operator fun invoke(
 		userId: Long,
 		items: List<ProjectHashItem>,
@@ -35,7 +38,7 @@ class ProbeProjectChangesUseCase(
 			// A project with an in-flight sync (e.g. from another device) may have half-updated
 			// stored hashes, so we can't certify it "unchanged". Omit it → the client full-syncs.
 			if (projectSyncSessionManager.hasActiveSyncSession(ProjectSyncKey(userId, projectDef))) continue
-			val serverHash = computeProjectContentHash(userId, projectDef) ?: continue
+			val serverHash = computeProjectContentHash(OwnerId.unchecked(userId), projectDef) ?: continue
 			if (serverHash == item.hash) {
 				unchanged += item.projectId
 			}
@@ -49,13 +52,13 @@ class ProbeProjectChangesUseCase(
 	 * Returns null when the hash can't be computed reliably, so the caller treats the project as changed.
 	 */
 	private suspend fun computeProjectContentHash(
-		userId: Long,
+		owner: OwnerId,
 		projectDef: ProjectDefinition,
 	): String? {
 		// One query for all (id, hash) pairs rather than a per-entity lookup.
-		val entityHashes = projectEntityDatasource.getEntityHashes(userId, projectDef)
+		val entityHashes = projectEntityDatasource.getEntityHashes(owner, projectDef)
 
-		val projectDataHash = serverProjectDataRepository.loadVerifiedDataHash(userId, projectDef) ?: return null
+		val projectDataHash = serverProjectDataRepository.loadVerifiedDataHash(owner, projectDef) ?: return null
 
 		return ProjectContentHasher.hash(entityHashes, projectDataHash)
 	}

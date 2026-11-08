@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ApiSceneType
 import com.darkrockstudios.apps.hammer.project.EntityTypeConflictException
 import com.darkrockstudios.apps.hammer.project.InvalidSyncIdException
+import com.darkrockstudios.apps.hammer.project.OwnerId
 import com.darkrockstudios.apps.hammer.project.ProjectSyncData
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SynchronizationSession
 import com.darkrockstudios.apps.hammer.utilities.SResult
@@ -35,7 +36,7 @@ class ProjectEntityRepositoryEntityTest : ProjectEntityRepositoryBaseTest() {
 
 		mockCreateSession(syncId)
 
-		coEvery { sceneSynchronizer.loadEntity(userId, projectDefinition, entityId) } returns
+		coEvery { sceneSynchronizer.loadEntity(OwnerId.unchecked(userId), projectDefinition, entityId) } returns
 			SResult.success(createSceneEntity(entityId))
 
 		coEvery { projectsSessionManager.hasActiveSyncSession(any()) } returns false
@@ -44,26 +45,26 @@ class ProjectEntityRepositoryEntityTest : ProjectEntityRepositoryBaseTest() {
 
 		coEvery {
 			projectEntityDatasource.checkProjectExists(
-				userId,
+				OwnerId.unchecked(userId),
 				projectDefinition
 			)
 		} returns true
 
 		coEvery {
 			projectEntityDatasource.loadProjectSyncData(
-				userId,
+				OwnerId.unchecked(userId),
 				projectDefinition
 			)
 		} returns syncData
 
 		createProjectRepository().apply {
-			val beginResult = beginProjectSync(userId, projectDefinition, clientState, false)
+			val beginResult = beginProjectSync(OwnerId.unchecked(userId), projectDefinition, clientState, false)
 			assertTrue(isSuccess(beginResult))
 
 			val syncBegan = beginResult.data
 			clock.advanceTime(SynchronizationSession.EXPIRATION_TIME + 1.minutes)
 
-			val result = loadEntity(userId, projectDefinition, 1, syncBegan.syncId)
+			val result = loadEntity(OwnerId.unchecked(userId), projectDefinition, 1, syncBegan.syncId)
 			assertTrue(isFailure(result))
 
 			val exception = result.exception
@@ -85,21 +86,21 @@ class ProjectEntityRepositoryEntityTest : ProjectEntityRepositoryBaseTest() {
 		coEvery {
 			projectEntityDatasource.findEntityType(
 				entityId,
-				userId,
+				OwnerId.unchecked(userId),
 				projectDefinition
 			)
 		} returns ApiProjectEntity.Type.SCENE
 
 		coEvery {
 			sceneSynchronizer.loadEntity(
-				userId,
+				OwnerId.unchecked(userId),
 				projectDefinition,
 				entityId,
 			)
 		} returns SResult.success(sceneEntity)
 
 		createProjectRepository().apply {
-			val result = loadEntity(userId, projectDefinition, entityId, syncId)
+			val result = loadEntity(OwnerId.unchecked(userId), projectDefinition, entityId, syncId)
 			assertTrue(isSuccess(result))
 			assertEquals(sceneEntity, result.data)
 		}
@@ -124,7 +125,7 @@ class ProjectEntityRepositoryEntityTest : ProjectEntityRepositoryBaseTest() {
 
 		coEvery {
 			sceneSynchronizer.saveEntity(
-				userId,
+				OwnerId.unchecked(userId),
 				projectDefinition,
 				sceneEntity,
 				null,
@@ -134,13 +135,13 @@ class ProjectEntityRepositoryEntityTest : ProjectEntityRepositoryBaseTest() {
 
 		createProjectRepository().apply {
 			val result =
-				saveEntity(userId, projectDefinition, createSceneEntity(1), null, syncId, false)
+				saveEntity(OwnerId.unchecked(userId), projectDefinition, createSceneEntity(1), null, syncId, false)
 			assertTrue(isSuccess(result))
 		}
 
 		coVerify {
 			sceneSynchronizer.saveEntity(
-				userId,
+				OwnerId.unchecked(userId),
 				projectDefinition,
 				sceneEntity,
 				null,
@@ -170,7 +171,7 @@ class ProjectEntityRepositoryEntityTest : ProjectEntityRepositoryBaseTest() {
 
 		createProjectRepository().apply {
 			val result =
-				saveEntity(userId, projectDefinition, noteEntity, null, syncId, false)
+				saveEntity(OwnerId.unchecked(userId), projectDefinition, noteEntity, null, syncId, false)
 			assertFalse(isSuccess(result))
 			val exception = result.exception
 			assertTrue(exception is EntityTypeConflictException)
@@ -194,7 +195,7 @@ class ProjectEntityRepositoryEntityTest : ProjectEntityRepositoryBaseTest() {
 		coEvery { projectEntityDatasource.findEntityType(any(), any(), any()) } returns null
 		coEvery {
 			sceneSynchronizer.saveEntity(
-				userId,
+				OwnerId.unchecked(userId),
 				projectDefinition,
 				sceneEntity,
 				null,
@@ -204,13 +205,13 @@ class ProjectEntityRepositoryEntityTest : ProjectEntityRepositoryBaseTest() {
 
 		createProjectRepository().apply {
 			val result =
-				saveEntity(userId, projectDefinition, sceneEntity, null, syncId, false)
+				saveEntity(OwnerId.unchecked(userId), projectDefinition, sceneEntity, null, syncId, false)
 			assertTrue(isSuccess(result))
 		}
 
 		coVerify {
 			sceneSynchronizer.saveEntity(
-				userId,
+				OwnerId.unchecked(userId),
 				projectDefinition,
 				sceneEntity,
 				null,
@@ -228,7 +229,7 @@ class ProjectEntityRepositoryEntityTest : ProjectEntityRepositoryBaseTest() {
 		coEvery { projectSessionManager.validateSyncId(any(), any(), any()) } returns false
 
 		createProjectRepository().apply {
-			val result = deleteEntity(userId, projectDefinition, entityId, syncId)
+			val result = deleteEntity(OwnerId.unchecked(userId), projectDefinition, entityId, syncId)
 			assertFalse(isSuccess(result))
 		}
 	}
@@ -243,11 +244,11 @@ class ProjectEntityRepositoryEntityTest : ProjectEntityRepositoryBaseTest() {
 		coEvery { projectEntityDatasource.findEntityType(any(), any(), any()) } returns null
 		coEvery { projectEntityDatasource.updateSyncData(any(), any(), any()) } just Runs
 		coEvery {
-			sceneSynchronizer.deleteEntity(userId, projectDefinition, entityId)
+			sceneSynchronizer.deleteEntity(OwnerId.unchecked(userId), projectDefinition, entityId)
 		} returns SResult.success()
 
 		createProjectRepository().apply {
-			val result = deleteEntity(userId, projectDefinition, entityId, syncId)
+			val result = deleteEntity(OwnerId.unchecked(userId), projectDefinition, entityId, syncId)
 			assertTrue(isSuccess(result))
 		}
 
@@ -281,16 +282,16 @@ class ProjectEntityRepositoryEntityTest : ProjectEntityRepositoryBaseTest() {
 			updatedSyncData = lambda<(ProjectSyncData) -> ProjectSyncData>().captured.invoke(data)
 		}
 		coEvery {
-			sceneSynchronizer.deleteEntity(userId, projectDefinition, entityId)
+			sceneSynchronizer.deleteEntity(OwnerId.unchecked(userId), projectDefinition, entityId)
 		} returns SResult.success()
 
 		createProjectRepository().apply {
-			val result = deleteEntity(userId, projectDefinition, entityId, syncId)
+			val result = deleteEntity(OwnerId.unchecked(userId), projectDefinition, entityId, syncId)
 			assertTrue(isSuccess(result))
 		}
 
-		coVerify { projectEntityDatasource.updateSyncData(userId, projectDefinition, any()) }
-		coVerify { sceneSynchronizer.deleteEntity(userId, projectDefinition, entityId) }
+		coVerify { projectEntityDatasource.updateSyncData(OwnerId.unchecked(userId), projectDefinition, any()) }
+		coVerify { sceneSynchronizer.deleteEntity(OwnerId.unchecked(userId), projectDefinition, entityId) }
 
 		assertEquals(setOf(3, entityId), updatedSyncData.deletedIds)
 	}

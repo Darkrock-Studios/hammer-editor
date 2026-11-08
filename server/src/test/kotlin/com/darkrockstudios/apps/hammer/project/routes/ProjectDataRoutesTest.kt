@@ -21,8 +21,8 @@ import com.darkrockstudios.apps.hammer.plugins.configureLocalization
 import com.darkrockstudios.apps.hammer.plugins.configureRouting
 import com.darkrockstudios.apps.hammer.plugins.configureSecurity
 import com.darkrockstudios.apps.hammer.plugins.configureSerialization
-import com.darkrockstudios.apps.hammer.project.ProjectDataSaveResult
 import com.darkrockstudios.apps.hammer.project.OwnerId
+import com.darkrockstudios.apps.hammer.project.ProjectDataSaveResult
 import com.darkrockstudios.apps.hammer.project.ProjectAccess
 import com.darkrockstudios.apps.hammer.project.ProjectAccessResolver
 import com.darkrockstudios.apps.hammer.project.ProjectAccessResult
@@ -90,6 +90,7 @@ class ProjectDataRoutesTest : BaseTest() {
 
 	private val bearerToken = "token-test"
 	private val userId = 0L
+	private val owner = OwnerId.unchecked(userId)
 	private val projectName = "TestProject"
 	private val projectId = ProjectId("uuid-1")
 
@@ -112,7 +113,7 @@ class ProjectDataRoutesTest : BaseTest() {
 		coEvery { accountsRepository.getAccountOrNull(any()) } returns testAccount()
 
 		coEvery { projectAccessResolver.resolve(userId, projectId) } returns ProjectAccessResult.Granted(
-			ProjectAccess(ProjectDefinition(projectName, projectId), OwnerId.ofCaller(userId), isOwner = true)
+			ProjectAccess(ProjectDefinition(projectName, projectId), owner, isOwner = true)
 		)
 
 		testModule = module {
@@ -150,7 +151,7 @@ class ProjectDataRoutesTest : BaseTest() {
 		coEvery { accountsRepository.checkToken(userId, bearerToken) } returns SResult.success(0L)
 		coEvery { whiteListRepository.isOnWhiteList(any()) } returns true
 		coEvery {
-			serverProjectDataRepository.load(userId, ProjectDefinition(projectName, projectId))
+			serverProjectDataRepository.load(owner, ProjectDefinition(projectName, projectId))
 		} returns SResult.success(RawProjectDataDto(sampleJson, "hash-abc"))
 
 		application {
@@ -224,7 +225,7 @@ class ProjectDataRoutesTest : BaseTest() {
 		coEvery { whiteListRepository.isOnWhiteList(any()) } returns true
 		coEvery {
 			serverProjectDataRepository.save(
-				userId,
+				owner,
 				ProjectDefinition(projectName, projectId),
 				sampleJson,
 				null,
@@ -255,7 +256,7 @@ class ProjectDataRoutesTest : BaseTest() {
 		assertEquals("hash-new", dto.hash)
 		coVerify {
 			serverProjectDataRepository.save(
-				userId,
+				owner,
 				ProjectDefinition(projectName, projectId),
 				sampleJson,
 				null,

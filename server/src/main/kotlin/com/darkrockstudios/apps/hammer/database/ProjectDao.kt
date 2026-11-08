@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.GetProjectsWithSyncDate
 import com.darkrockstudios.apps.hammer.Project
 import com.darkrockstudios.apps.hammer.base.GroupId
 import com.darkrockstudios.apps.hammer.base.ProjectId
+import com.darkrockstudios.apps.hammer.project.OwnerId
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.utilities.injectIoDispatcher
 import kotlinx.coroutines.withContext
@@ -46,30 +47,30 @@ class ProjectDao(
 
 	/** False when nothing was inserted because some account, possibly this one, already holds [uuid]. */
 	suspend fun createProject(
-		userId: Long,
+		owner: OwnerId,
 		uuid: ProjectId,
 		projectName: String
 	): Boolean = withContext(ioDispatcher) {
 		queries.createProject(
-			userId = userId,
+			userId = owner.id,
 			name = projectName,
 			uuid = uuid.id,
 		).value > 0
 	}
 
-	suspend fun hasProject(userId: Long, projectId: ProjectId): Boolean =
+	suspend fun hasProject(owner: OwnerId, projectId: ProjectId): Boolean =
 		withContext(ioDispatcher) {
-			queries.hasProjectById(userId, projectId.id).executeAsOne()
+			queries.hasProjectById(owner.id, projectId.id).executeAsOne()
 		}
 
 	/** False when the account already has a project under [newName]; `project(name, user_id)` is unique. */
 	suspend fun updateProjectName(
-		userId: Long,
+		owner: OwnerId,
 		projectUuid: ProjectId,
 		newName: String
 	): Boolean = withContext(ioDispatcher) {
 		return@withContext try {
-			queries.updateProjectName(userId = userId, uuid = projectUuid.id, name = newName)
+			queries.updateProjectName(userId = owner.id, uuid = projectUuid.id, name = newName)
 			true
 		} catch (e: SQLException) {
 			if (e.isUniqueViolation()) false else throw e
@@ -79,13 +80,13 @@ class ProjectDao(
 	suspend fun updateSyncData(
 		lastId: Long,
 		lastSync: Instant,
-		userId: Long,
+		owner: OwnerId,
 		projectName: String,
 	) = withContext(ioDispatcher) {
 		queries.updateSyncData(
 			lastId = lastId,
 			lastSync = lastSync,
-			userId = userId,
+			userId = owner.id,
 			name = projectName,
 		)
 	}
@@ -99,10 +100,10 @@ class ProjectDao(
 	}
 
 	suspend fun getProjectData(
-		userId: Long,
+		owner: OwnerId,
 		projectUuid: ProjectId,
 	): Project? = withContext(ioDispatcher) {
-		queries.getProject(userId, projectUuid.id)
+		queries.getProject(owner.id, projectUuid.id)
 			.executeAsOneOrNull()
 	}
 
@@ -111,18 +112,18 @@ class ProjectDao(
 	}
 
 	suspend fun getProjectId(
-		userId: Long,
+		owner: OwnerId,
 		projectUuid: ProjectId,
 	): Long = withContext(ioDispatcher) {
-		queries.getProjectId(userId, projectUuid.id)
+		queries.getProjectId(owner.id, projectUuid.id)
 			.executeAsOne()
 	}
 
 	suspend fun getProjectIdOrNull(
-		userId: Long,
+		owner: OwnerId,
 		projectUuid: ProjectId,
 	): Long? = withContext(ioDispatcher) {
-		queries.getProjectId(userId, projectUuid.id)
+		queries.getProjectId(owner.id, projectUuid.id)
 			.executeAsOneOrNull()
 	}
 
@@ -149,13 +150,13 @@ class ProjectDao(
 		queries.setProjectGroup(groupId = groupRowId, userId = userId, uuid = projectId.id).value > 0
 	}
 
-	suspend fun deleteProject(userId: Long, projectId: ProjectId) = withContext(ioDispatcher) {
+	suspend fun deleteProject(owner: OwnerId, projectId: ProjectId) = withContext(ioDispatcher) {
 		queries.transaction {
-			queries.getProjectId(userId, projectId.id).executeAsOneOrNull()?.let { rowId ->
+			queries.getProjectId(owner.id, projectId.id).executeAsOneOrNull()?.let { rowId ->
 				memberQueries.deleteAllForProject(rowId)
 				inviteQueries.deleteAllForProject(rowId)
 			}
-			queries.deleteProject(userId, projectId.id)
+			queries.deleteProject(owner.id, projectId.id)
 		}
 	}
 }

@@ -5,6 +5,7 @@ import com.darkrockstudios.apps.hammer.base.http.ClientEntityState
 import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECTS_SYNC_MANAGER
 import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECT_SYNC_MANAGER
 import com.darkrockstudios.apps.hammer.project.*
+import com.darkrockstudios.apps.hammer.project.OwnerId
 import com.darkrockstudios.apps.hammer.project.synchronizers.*
 import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
@@ -69,42 +70,42 @@ abstract class ProjectEntityRepositoryBaseTest : BaseTest() {
 
 		coEvery {
 			sceneSynchronizer.getUpdateSequence(
-				userId,
+				OwnerId.unchecked(userId),
 				projectDefinition,
 				clientState
 			)
 		} returns emptyList()
 		coEvery {
 			noteSynchronizer.getUpdateSequence(
-				userId,
+				OwnerId.unchecked(userId),
 				projectDefinition,
 				clientState
 			)
 		} returns emptyList()
 		coEvery {
 			timelineEventSynchronizer.getUpdateSequence(
-				userId,
+				OwnerId.unchecked(userId),
 				projectDefinition,
 				clientState
 			)
 		} returns emptyList()
 		coEvery {
 			encyclopediaSynchronizer.getUpdateSequence(
-				userId,
+				OwnerId.unchecked(userId),
 				projectDefinition,
 				clientState
 			)
 		} returns emptyList()
 		coEvery {
 			sceneDraftSynchronizer.getUpdateSequence(
-				userId,
+				OwnerId.unchecked(userId),
 				projectDefinition,
 				clientState
 			)
 		} returns emptyList()
 		coEvery {
 			imageSynchronizer.getUpdateSequence(
-				userId,
+				OwnerId.unchecked(userId),
 				projectDefinition,
 				clientState
 			)

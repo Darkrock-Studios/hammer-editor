@@ -9,15 +9,15 @@ import com.darkrockstudios.apps.hammer.database.ProjectDao
 import com.darkrockstudios.apps.hammer.database.ProjectMemberDao
 
 /**
- * Marks code that treats the caller as a project's owner without resolving the project row: the
- * account-scoped routes and pages, where every project the caller can name is their own.
+ * Marks code that names a project's owner without requireProjectAccess(): account-scoped routes and
+ * pages, where every project the caller can name is their own, and reads of a project row's user_id.
  */
 @RequiresOptIn(
-	message = "Project routes must take the owner from requireProjectAccess(); only account-scoped code may assume the caller owns the project.",
+	message = "Project routes must take the owner from requireProjectAccess(); an unchecked OwnerId is only for the caller's own projects or a project row's user_id.",
 )
 @Retention(AnnotationRetention.BINARY)
-@Target(AnnotationTarget.FUNCTION)
-annotation class CallerIsOwner
+@Target(AnnotationTarget.FUNCTION, AnnotationTarget.PROPERTY)
+annotation class UncheckedOwner
 
 /** The account whose user id, rows and cipher secret hold a project's storage. */
 @JvmInline
@@ -25,8 +25,8 @@ value class OwnerId private constructor(val id: Long) {
 	companion object {
 		fun of(project: Project) = OwnerId(project.user_id)
 
-		@CallerIsOwner
-		fun ofCaller(userId: Long) = OwnerId(userId)
+		@UncheckedOwner
+		fun unchecked(userId: Long) = OwnerId(userId)
 	}
 }
 

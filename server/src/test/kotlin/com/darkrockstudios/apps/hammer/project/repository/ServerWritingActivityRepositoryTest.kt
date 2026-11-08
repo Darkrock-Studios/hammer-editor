@@ -9,6 +9,7 @@ import com.darkrockstudios.apps.hammer.base.http.writingactivity.WritingSession
 import com.darkrockstudios.apps.hammer.database.ProjectDao
 import com.darkrockstudios.apps.hammer.database.WritingActivityDao
 import com.darkrockstudios.apps.hammer.e2e.util.SharedPostgresTestDatabase
+import com.darkrockstudios.apps.hammer.project.OwnerId
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.project.ProjectNotFound
 import com.darkrockstudios.apps.hammer.project.ServerWritingActivityRepository
@@ -29,6 +30,7 @@ class ServerWritingActivityRepositoryTest : BaseTest() {
 	private lateinit var repository: ServerWritingActivityRepository
 
 	private val userId = 1L
+	private val owner = OwnerId.unchecked(userId)
 	private val projectDef = ProjectDefinition("Test Project", ProjectId("11111111-1111-1111-1111-111111111111"))
 	private val unknownProjectDef = ProjectDefinition("Other Project", ProjectId("22222222-2222-2222-2222-222222222222"))
 
@@ -52,7 +54,7 @@ class ServerWritingActivityRepositoryTest : BaseTest() {
 
 	@Test
 	fun `loadAll returns empty when no activity yet`() = runTest {
-		val result = repository.loadAll(userId, projectDef)
+		val result = repository.loadAll(owner, projectDef)
 		assertTrue(isSuccess(result))
 		assertTrue(result.data.devices.isEmpty())
 	}
@@ -71,10 +73,10 @@ class ServerWritingActivityRepositoryTest : BaseTest() {
 			),
 		)
 
-		val save = repository.saveDeviceLog(userId, projectDef, "device-a", log)
+		val save = repository.saveDeviceLog(owner, projectDef, "device-a", log)
 		assertTrue(isSuccess(save))
 
-		val load = repository.loadAll(userId, projectDef)
+		val load = repository.loadAll(owner, projectDef)
 		assertTrue(isSuccess(load))
 		assertEquals(mapOf("device-a" to log), load.data.devices)
 	}
@@ -88,7 +90,7 @@ class ServerWritingActivityRepositoryTest : BaseTest() {
 				wordsWritten = 50,
 			)
 		))
-		repository.saveDeviceLog(userId, projectDef, "device-a", initial)
+		repository.saveDeviceLog(owner, projectDef, "device-a", initial)
 
 		val updated = initial.copy(
 			sessions = initial.sessions + WritingSession(
@@ -97,9 +99,9 @@ class ServerWritingActivityRepositoryTest : BaseTest() {
 				wordsWritten = 80,
 			)
 		)
-		repository.saveDeviceLog(userId, projectDef, "device-a", updated)
+		repository.saveDeviceLog(owner, projectDef, "device-a", updated)
 
-		val load = repository.loadAll(userId, projectDef)
+		val load = repository.loadAll(owner, projectDef)
 		assertTrue(isSuccess(load))
 		assertEquals(mapOf("device-a" to updated), load.data.devices)
 	}
@@ -108,17 +110,17 @@ class ServerWritingActivityRepositoryTest : BaseTest() {
 	fun `loadAll returns each device under its own key`() = runTest {
 		val deviceA = DeviceLog(deviceLabel = "Desktop", sessions = emptyList())
 		val deviceB = DeviceLog(deviceLabel = "Phone", sessions = emptyList())
-		repository.saveDeviceLog(userId, projectDef, "device-a", deviceA)
-		repository.saveDeviceLog(userId, projectDef, "device-b", deviceB)
+		repository.saveDeviceLog(owner, projectDef, "device-a", deviceA)
+		repository.saveDeviceLog(owner, projectDef, "device-b", deviceB)
 
-		val load = repository.loadAll(userId, projectDef)
+		val load = repository.loadAll(owner, projectDef)
 		assertTrue(isSuccess(load))
 		assertEquals(setOf("device-a", "device-b"), load.data.devices.keys)
 	}
 
 	@Test
 	fun `loadAll fails ProjectNotFound for unknown project`() = runTest {
-		val result = repository.loadAll(userId, unknownProjectDef)
+		val result = repository.loadAll(owner, unknownProjectDef)
 		assertTrue(!isSuccess(result))
 		assertTrue(result.exception is ProjectNotFound)
 	}
@@ -126,7 +128,7 @@ class ServerWritingActivityRepositoryTest : BaseTest() {
 	@Test
 	fun `saveDeviceLog fails ProjectNotFound for unknown project`() = runTest {
 		val result = repository.saveDeviceLog(
-			userId,
+			owner,
 			unknownProjectDef,
 			"device-a",
 			DeviceLog(deviceLabel = "Desktop"),

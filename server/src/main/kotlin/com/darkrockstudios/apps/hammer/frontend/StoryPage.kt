@@ -24,6 +24,7 @@ import com.darkrockstudios.apps.hammer.kudos.StoryKudosRepository
 import com.darkrockstudios.apps.hammer.monitoring.StoryReaderRepository
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.project.ServerProjectDataRepository
+import com.darkrockstudios.apps.hammer.project.UncheckedOwner
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.story.StoryImageLinks
@@ -54,6 +55,7 @@ import java.util.Locale
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Instant
 
+@OptIn(UncheckedOwner::class)
 fun Route.storyPage(
 	storyRendererService: StoryRendererService,
 	projectAccessRepository: ProjectAccessRepository,
@@ -81,7 +83,7 @@ fun Route.storyPage(
 
 				call.respondStoryImage(
 					storyImageService = storyImageService,
-					userId = session.userId,
+					owner = session.asOwner,
 					projectDef = ProjectDefinition(name = project.name, uuid = ProjectId(project.uuid)),
 					imageId = imageId,
 				)
@@ -129,7 +131,7 @@ fun Route.storyPage(
 				val coverImageId = storyCoverImageId(
 					serverProjectDataRepository,
 					storyImageService,
-					session.userId,
+					session.asOwner,
 					ProjectDefinition(name = project.name, uuid = projectId),
 				)
 
@@ -170,7 +172,7 @@ fun Route.storyPage(
 				}
 
 				// An unchanged story is answered without reading or counting its scenes.
-				val etag = storyRendererService.prepareExport(session.userId, projectId)
+				val etag = storyRendererService.prepareExport(session.asOwner, projectId)
 					?.let { pageETag(model, it.version) }
 				if (etag != null && call.matchesETag(etag)) {
 					call.applyRevalidationHeaders(etag)
@@ -179,7 +181,7 @@ fun Route.storyPage(
 				}
 
 				val (status, content) = when (
-					val result = storyRendererService.storyOverview(session.userId, projectId)
+					val result = storyRendererService.storyOverview(session.asOwner, projectId)
 				) {
 					is StoryResult.Success -> {
 						val overview = result.value
@@ -326,7 +328,7 @@ fun Route.storyPage(
 				}
 
 				val hierarchyResult =
-					storyRendererService.getSceneHierarchy(session.userId, ProjectId(project.uuid))
+					storyRendererService.getSceneHierarchy(session.asOwner, ProjectId(project.uuid))
 				// A failed tree load must not render as an innocent empty tree: with the limit
 				// toggle on, an empty tree pins the submit button disabled with no explanation.
 				val scenes = when (hierarchyResult) {

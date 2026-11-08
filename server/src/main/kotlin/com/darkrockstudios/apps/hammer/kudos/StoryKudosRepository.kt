@@ -3,6 +3,8 @@ package com.darkrockstudios.apps.hammer.kudos
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.database.ProjectDao
 import com.darkrockstudios.apps.hammer.database.StoryKudosDao
+import com.darkrockstudios.apps.hammer.project.OwnerId
+import com.darkrockstudios.apps.hammer.project.UncheckedOwner
 
 sealed interface SetPicksResult {
 	data class Saved(val picks: Set<KudosKind>) : SetPicksResult
@@ -37,8 +39,9 @@ class StoryKudosRepository(
 ) {
 
 	/** The row ID kudos are keyed by, or null if the author has no such project. */
+	@OptIn(UncheckedOwner::class)
 	suspend fun findProjectId(authorId: Long, projectUuid: ProjectId): Long? =
-		projectDao.getProjectIdOrNull(authorId, projectUuid)
+		projectDao.getProjectIdOrNull(OwnerId.unchecked(authorId), projectUuid)
 
 	suspend fun picksFor(projectId: Long, userId: Long): Set<KudosKind> =
 		storyKudosDao.kindsForUser(projectId, userId).mapNotNullTo(mutableSetOf(), KudosKind::fromKey)

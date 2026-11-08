@@ -31,8 +31,9 @@ class ProjectsRepository(
 	suspend fun createUserData(userId: Long) = projectsDatasource.createUserData(userId)
 
 	/** The project's database row ID, which reviews and kudos are keyed by. */
+	@OptIn(UncheckedOwner::class)
 	suspend fun findProjectRowId(userId: Long, projectId: ProjectId): Long? =
-		projectDao.getProjectIdOrNull(userId, projectId)
+		projectDao.getProjectIdOrNull(OwnerId.unchecked(userId), projectId)
 
 	suspend fun getProjectByRowId(rowId: Long): Project? = projectDao.getProjectByRowId(rowId)
 
@@ -119,14 +120,16 @@ class ProjectsRepository(
 		return projectsDatasource.loadSyncData(userId).deletedProjects
 	}
 
+	@OptIn(UncheckedOwner::class)
 	suspend fun deleteProject(userId: Long, syncId: String, projectId: ProjectId): SResult<Unit> {
+		val owner = OwnerId.unchecked(userId)
 		if (syncSessionManager.validateSyncId(userId, syncId).not()) return SResult.failure(
 			InvalidSyncIdException()
 		)
 
 		val projectDef = projectsDatasource.getProject(userId, projectId)
 		return if (projectDef != null) {
-			val result = projectEntityDatasource.deleteProject(userId, projectDef.uuid)
+			val result = projectEntityDatasource.deleteProject(owner, projectDef.uuid)
 			if (result.isSuccess) {
 				projectsDatasource.updateSyncData(userId) { data ->
 					data.copy(
@@ -154,6 +157,7 @@ class ProjectsRepository(
 	 * [groupId] places a newly created project; an unknown group places it at the top level. An
 	 * existing project is never moved, and the result reports where it actually lives.
 	 */
+	@OptIn(UncheckedOwner::class)
 	suspend fun createProject(
 		userId: Long,
 		syncId: String,
@@ -161,24 +165,25 @@ class ProjectsRepository(
 		projectId: ProjectId,
 		groupId: GroupId? = null,
 	): SResult<ProjectCreatedResult> {
+		val owner = OwnerId.unchecked(userId)
 		if (syncSessionManager.validateSyncId(userId, syncId).not())
 			return SResult.failure(InvalidSyncIdException())
 
 		if (validateProjectName(projectName).not())
 			return SResult.failure(InvalidProjectName(projectName))
 
-		projectEntityDatasource.getProject(userId, projectId)?.let { existing ->
+		projectEntityDatasource.getProject(owner, projectId)?.let { existing ->
 			return SResult.success(existingProjectResult(userId, existing))
 		}
 
 		if (projectId in getDeletedProjects(userId))
 			return SResult.failure(ProjectDeletedException(projectId))
 
-		projectEntityDatasource.findProjectByName(userId, projectName)?.let { sameName ->
+		projectEntityDatasource.findProjectByName(owner, projectName)?.let { sameName ->
 			return SResult.success(existingProjectResult(userId, sameName))
 		}
 
-		projectEntityDatasource.createProject(userId, projectName, projectId)?.let { created ->
+		projectEntityDatasource.createProject(owner, projectName, projectId)?.let { created ->
 			val group = groupId?.let { projectsDatasource.getGroup(userId, it) }
 			if (group != null) projectsDatasource.setProjectGroup(userId, created.uuid, group.rowId)
 			return SResult.success(
@@ -187,7 +192,7 @@ class ProjectsRepository(
 		}
 
 		// A concurrent retry of this same create can win the insert; that is still idempotent.
-		return projectEntityDatasource.getProject(userId, projectId)
+		return projectEntityDatasource.getProject(owner, projectId)
 			?.let { SResult.success(existingProjectResult(userId, it)) }
 			?: SResult.failure(ProjectIdTakenException(projectId))
 	}
@@ -318,22 +323,24 @@ class ProjectsRepository(
 		}
 	}
 
+	@OptIn(UncheckedOwner::class)
 	suspend fun renameProject(
 		userId: Long,
 		syncId: String,
 		projectId: ProjectId,
 		newProjectName: String?,
 	): SResult<Unit> {
+		val owner = OwnerId.unchecked(userId)
 		if (syncSessionManager.validateSyncId(userId, syncId).not())
 			return SResult.failure(InvalidSyncIdException())
 
 		if (!validateProjectName(newProjectName))
 			return SResult.failure(InvalidProjectName(newProjectName ?: "null"))
 
-		val existingProject = projectEntityDatasource.checkProjectExists(userId, projectId)
+		val existingProject = projectEntityDatasource.checkProjectExists(owner, projectId)
 		if (existingProject.not()) return SResult.failure(ProjectNotFound(projectId))
 
-		return if (projectEntityDatasource.renameProject(userId, projectId, newProjectName)) {
+		return if (projectEntityDatasource.renameProject(owner, projectId, newProjectName)) {
 			SResult.success()
 		} else {
 			SResult.failure(ProjectNameTaken(newProjectName))

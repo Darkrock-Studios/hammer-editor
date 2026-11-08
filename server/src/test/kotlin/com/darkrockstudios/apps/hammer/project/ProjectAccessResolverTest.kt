@@ -46,8 +46,8 @@ class ProjectAccessResolverTest : BaseTest() {
 		owner = createWhitelisted("owner@example.com")
 		member = createWhitelisted("member@example.com")
 		stranger = createWhitelisted("stranger@example.com")
-		projectDao.createProject(owner, projectId, projectDef.name)
-		val rowId = projectDao.getProjectId(owner, projectId)
+		projectDao.createProject(OwnerId.unchecked(owner), projectId, projectDef.name)
+		val rowId = projectDao.getProjectId(OwnerId.unchecked(owner), projectId)
 		db.serverDatabase.projectMemberQueries.insertMember(rowId, member)
 	}
 
@@ -57,7 +57,7 @@ class ProjectAccessResolverTest : BaseTest() {
 	}
 
 	private fun granted(isOwner: Boolean) = ProjectAccessResult.Granted(
-		ProjectAccess(projectDef, OwnerId.ofCaller(owner), isOwner = isOwner)
+		ProjectAccess(projectDef, OwnerId.unchecked(owner), isOwner = isOwner)
 	)
 
 	@Test
@@ -103,8 +103,8 @@ class ProjectAccessResolverTest : BaseTest() {
 	fun `member of an admin's project is granted though the admin is not on the allowed list`() = runTest {
 		owner = accountDao.createAccount("admin-owner@example.com", "hash", "secret-admin", isAdmin = true)
 		member = createWhitelisted("member@example.com")
-		projectDao.createProject(owner, projectId, projectDef.name)
-		db.serverDatabase.projectMemberQueries.insertMember(projectDao.getProjectId(owner, projectId), member)
+		projectDao.createProject(OwnerId.unchecked(owner), projectId, projectDef.name)
+		db.serverDatabase.projectMemberQueries.insertMember(projectDao.getProjectId(OwnerId.unchecked(owner), projectId), member)
 
 		assertEquals(granted(isOwner = false), resolver.resolve(member, projectId))
 	}

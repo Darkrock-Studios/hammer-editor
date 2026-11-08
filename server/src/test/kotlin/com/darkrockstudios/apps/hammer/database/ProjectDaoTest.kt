@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.database
 
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.e2e.util.SharedPostgresTestDatabase
+import com.darkrockstudios.apps.hammer.project.OwnerId
 import com.darkrockstudios.apps.hammer.utils.BaseTest
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
@@ -33,17 +34,17 @@ class ProjectDaoTest : BaseTest() {
 		val owner = accountDao.createAccount("dao-owner@example.com", "hash", "secret", isAdmin = false)
 		val member = accountDao.createAccount("dao-member@example.com", "hash", "secret", isAdmin = false)
 		val projectId = ProjectId.randomUUID()
-		projectDao.createProject(owner, projectId, "Shared")
-		val rowId = projectDao.getProjectId(owner, projectId)
+		projectDao.createProject(OwnerId.unchecked(owner), projectId, "Shared")
+		val rowId = projectDao.getProjectId(OwnerId.unchecked(owner), projectId)
 
 		val members = db.serverDatabase.projectMemberQueries
 		val invites = db.serverDatabase.projectInviteQueries
 		members.insertMember(rowId, member)
 		invites.insertInvite(rowId, "invitee@example.com", owner)
 
-		projectDao.deleteProject(owner, projectId)
+		projectDao.deleteProject(OwnerId.unchecked(owner), projectId)
 
-		assertNull(projectDao.getProjectIdOrNull(owner, projectId))
+		assertNull(projectDao.getProjectIdOrNull(OwnerId.unchecked(owner), projectId))
 		assertFalse(members.isMember(rowId, member).executeAsOne())
 		assertEquals(emptyList(), invites.getInvitesForProject(rowId).executeAsList())
 	}

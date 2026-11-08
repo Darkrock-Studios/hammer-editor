@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.project.synchronizers
 
+import com.darkrockstudios.apps.hammer.project.OwnerId
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ClientEntityState
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityConflictException
@@ -24,13 +25,13 @@ abstract class ServerEntitySynchronizer<T : ApiProjectEntity>(
 	protected open fun validate(entity: T): Exception? = null
 
 	private suspend fun hashEntity(
-		userId: Long,
+		owner: OwnerId,
 		projectDef: ProjectDefinition,
 		entityId: Int
 	): String? {
 		val existingEntityResult =
 			datasource.loadEntity(
-				userId,
+				owner,
 				projectDef,
 				entityId,
 				entityType,
@@ -46,7 +47,7 @@ abstract class ServerEntitySynchronizer<T : ApiProjectEntity>(
 	}
 
 	private suspend fun checkForConflict(
-		userId: Long,
+		owner: OwnerId,
 		projectDef: ProjectDefinition,
 		entity: T,
 		originalHash: String?,
@@ -54,12 +55,12 @@ abstract class ServerEntitySynchronizer<T : ApiProjectEntity>(
 	): EntityConflictException? {
 		if (force) return null
 
-		val existingEntityHashResult = datasource.loadEntityHash(userId, projectDef, entity.id)
+		val existingEntityHashResult = datasource.loadEntityHash(owner, projectDef, entity.id)
 		return if (isSuccess(existingEntityHashResult)) {
 			val existingHash = existingEntityHashResult.data
 			if (originalHash != null && existingHash != originalHash) {
 				val existingEntityResult = datasource.loadEntity(
-					userId,
+					owner,
 					projectDef,
 					entity.id,
 					entityType,
@@ -88,7 +89,7 @@ abstract class ServerEntitySynchronizer<T : ApiProjectEntity>(
 
 	@OptIn(InternalSerializationApi::class)
 	suspend fun saveEntity(
-		userId: Long,
+		owner: OwnerId,
 		projectDef: ProjectDefinition,
 		entity: T,
 		originalHash: String?,
@@ -97,14 +98,14 @@ abstract class ServerEntitySynchronizer<T : ApiProjectEntity>(
 		validate(entity)?.let { return SResult.failure(it) }
 
 		val conflict = checkForConflict(
-			userId,
+			owner,
 			projectDef,
 			entity,
 			originalHash,
 			force,
 		)
 		return if (conflict == null) {
-			datasource.storeEntity(userId, projectDef, entity, entityType, entityClazz.serializer())
+			datasource.storeEntity(owner, projectDef, entity, entityType, entityClazz.serializer())
 		} else {
 			SResult.failure(conflict)
 		}
@@ -112,30 +113,30 @@ abstract class ServerEntitySynchronizer<T : ApiProjectEntity>(
 
 	@OptIn(InternalSerializationApi::class)
 	suspend fun loadEntity(
-		userId: Long,
+		owner: OwnerId,
 		projectDef: ProjectDefinition,
 		entityId: Int,
 	): SResult<T> =
-		datasource.loadEntity(userId, projectDef, entityId, entityType, entityClazz.serializer())
+		datasource.loadEntity(owner, projectDef, entityId, entityType, entityClazz.serializer())
 
 	suspend fun deleteEntity(
-		userId: Long,
+		owner: OwnerId,
 		projectDef: ProjectDefinition,
 		entityId: Int
 	): SResult<Unit> {
-		return datasource.deleteEntity(userId, entityType, projectDef, entityId)
+		return datasource.deleteEntity(owner, entityType, projectDef, entityId)
 	}
 
 	open suspend fun getUpdateSequence(
-		userId: Long,
+		owner: OwnerId,
 		projectDef: ProjectDefinition,
 		clientState: ClientEntityState?
 	): List<Int> {
-		val entitiesIds = datasource.getEntityDefsByType(userId, projectDef, entityType)
+		val entitiesIds = datasource.getEntityDefsByType(owner, projectDef, entityType)
 			.filter { def ->
 				val clientEntityState = clientState?.entities?.find { it.id == def.id }
 				if (clientEntityState != null) {
-					val hashResult = datasource.loadEntityHash(userId, projectDef, def.id)
+					val hashResult = datasource.loadEntityHash(owner, projectDef, def.id)
 					if (isSuccess(hashResult)) {
 						val serverHash = hashResult.data
 						clientEntityState.hash != serverHash

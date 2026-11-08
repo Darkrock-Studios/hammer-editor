@@ -7,8 +7,10 @@ import com.darkrockstudios.apps.hammer.database.CommunityFeedStory
 import com.darkrockstudios.apps.hammer.database.ProjectAccessDao
 import com.darkrockstudios.apps.hammer.database.ProjectDao
 import com.darkrockstudios.apps.hammer.database.PublishedStoryInfo
+import com.darkrockstudios.apps.hammer.project.OwnerId
 import com.darkrockstudios.apps.hammer.project.ProjectEntityDatasource
 import com.darkrockstudios.apps.hammer.project.SceneSetResult
+import com.darkrockstudios.apps.hammer.project.UncheckedOwner
 import com.darkrockstudios.apps.hammer.project.loadSceneSet
 import com.darkrockstudios.apps.hammer.utilities.Msg
 import com.darkrockstudios.apps.hammer.utilities.SResult
@@ -33,7 +35,11 @@ sealed class PublicProjectResult {
 		val isPublic: Boolean,
 		/** Scene ids this share is limited to; null exposes the entire story. */
 		val sceneIds: Set<Int>? = null,
-	) : PublicProjectResult()
+	) : PublicProjectResult() {
+		/** [userId] is read from the project row, so it is the owner. */
+		val owner: OwnerId
+			@OptIn(UncheckedOwner::class) get() = OwnerId.unchecked(userId)
+	}
 
 	data object NotFound : PublicProjectResult()
 
@@ -67,8 +73,12 @@ class ProjectAccessRepository(
 	private val projectEntityDatasource: ProjectEntityDatasource,
 	private val clock: Clock,
 ) {
+	/** Share links are owner-only, so the caller is the owner. */
+	@OptIn(UncheckedOwner::class)
+	private fun owner(userId: Long) = OwnerId.unchecked(userId)
+
 	suspend fun getAccessForProject(userId: Long, projectUuid: ProjectId): Project_access? {
-		val projectId = projectDao.getProjectId(userId, projectUuid)
+		val projectId = projectDao.getProjectId(owner(userId), projectUuid)
 		return projectAccessDao.getAccessForProject(projectId)
 	}
 
@@ -78,35 +88,35 @@ class ProjectAccessRepository(
 		password: String? = null,
 		expiresAt: Instant? = null,
 	) {
-		val projectId = projectDao.getProjectId(userId, projectUuid)
+		val projectId = projectDao.getProjectId(owner(userId), projectUuid)
 		projectAccessDao.updateAccess(projectId, password, expiresAt)
 	}
 
 	suspend fun deleteAccess(userId: Long, projectUuid: ProjectId) {
-		val projectId = projectDao.getProjectId(userId, projectUuid)
+		val projectId = projectDao.getProjectId(owner(userId), projectUuid)
 		projectAccessDao.deleteAccess(projectId)
 	}
 
 	suspend fun deleteAccessById(userId: Long, projectUuid: ProjectId, accessId: Long): Boolean {
-		val projectId = projectDao.getProjectId(userId, projectUuid)
+		val projectId = projectDao.getProjectId(owner(userId), projectUuid)
 		return projectAccessDao.deleteAccessById(accessId, projectId)
 	}
 
 	suspend fun isPublished(userId: Long, projectUuid: ProjectId): Boolean {
-		val projectId = projectDao.getProjectId(userId, projectUuid)
+		val projectId = projectDao.getProjectId(owner(userId), projectUuid)
 		val access = projectAccessDao.getPublicAccessForProject(projectId)
 		// Published means: has a record with null password
 		return access != null
 	}
 
 	suspend fun hasAnyAccess(userId: Long, projectUuid: ProjectId): Boolean {
-		val projectId = projectDao.getProjectId(userId, projectUuid)
+		val projectId = projectDao.getProjectId(owner(userId), projectUuid)
 		val allAccess = projectAccessDao.getAllAccessForProject(projectId)
 		return allAccess.isNotEmpty()
 	}
 
 	suspend fun publish(userId: Long, projectUuid: ProjectId) {
-		val projectId = projectDao.getProjectId(userId, projectUuid)
+		val projectId = projectDao.getProjectId(owner(userId), projectUuid)
 		// Only create public access if not already published
 		val existing = projectAccessDao.getPublicAccessForProject(projectId)
 		if (existing == null) {
@@ -115,7 +125,7 @@ class ProjectAccessRepository(
 	}
 
 	suspend fun unpublish(userId: Long, projectUuid: ProjectId) {
-		val projectId = projectDao.getProjectId(userId, projectUuid)
+		val projectId = projectDao.getProjectId(owner(userId), projectUuid)
 		projectAccessDao.deletePublicAccessForProject(projectId)
 	}
 
@@ -135,10 +145,10 @@ class ProjectAccessRepository(
 			return SResult.failure("No scenes selected", Msg.r("story_toast_access_no_scenes"))
 		}
 
-		val projectDef = projectEntityDatasource.getProject(userId, projectUuid)
+		val projectDef = projectEntityDatasource.getProject(owner(userId), projectUuid)
 			?: return SResult.failure("Project not found", Msg.r("api_access_create_error_project_not_found"))
 		if (sceneIds != null) {
-			when (val loaded = projectEntityDatasource.loadSceneSet(userId, projectDef, sceneIds)) {
+			when (val loaded = projectEntityDatasource.loadSceneSet(owner(userId), projectDef, sceneIds)) {
 				is SceneSetResult.InvalidId -> return SResult.failure(
 					"Invalid scene ${loaded.id}",
 					Msg.r("api_access_create_error_invalid_scene"),
@@ -154,7 +164,7 @@ class ProjectAccessRepository(
 			}
 		}
 
-		val projectId = projectDao.getProjectId(userId, projectUuid)
+		val projectId = projectDao.getProjectId(owner(userId), projectUuid)
 		val accessId = projectAccessDao.insertAccessWithScenes(
 			projectId = projectId,
 			password = password,
@@ -174,7 +184,7 @@ class ProjectAccessRepository(
 	}
 
 	suspend fun getPrivateAccessEntries(userId: Long, projectUuid: ProjectId): List<AccessEntryInfo> {
-		val projectId = projectDao.getProjectId(userId, projectUuid)
+		val projectId = projectDao.getProjectId(owner(userId), projectUuid)
 		val entries = projectAccessDao.getPrivateAccessForProject(projectId)
 		val restrictions = projectAccessDao.getSceneIdsForAccessIds(entries.map { it.id })
 		// Scene counts reflect scenes that still exist, so a share whose selection has been
@@ -182,10 +192,10 @@ class ProjectAccessRepository(
 		val liveSceneIds = if (restrictions.isEmpty()) {
 			emptySet()
 		} else {
-			val projectDef = projectEntityDatasource.getProject(userId, projectUuid)
+			val projectDef = projectEntityDatasource.getProject(owner(userId), projectUuid)
 			projectDef?.let { def ->
 				projectEntityDatasource.getEntityDefsByType(
-					userId = userId,
+					owner = owner(userId),
 					projectDef = def,
 					type = ApiProjectEntity.Type.SCENE,
 				).map { it.id }.toSet()

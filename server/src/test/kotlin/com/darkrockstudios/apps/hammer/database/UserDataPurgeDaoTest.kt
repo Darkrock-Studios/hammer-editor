@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.database
 import com.darkrockstudios.apps.hammer.base.GroupId
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.e2e.util.SharedPostgresTestDatabase
+import com.darkrockstudios.apps.hammer.project.OwnerId
 import com.darkrockstudios.apps.hammer.utils.BaseTest
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
@@ -59,10 +60,10 @@ class UserDataPurgeDaoTest : BaseTest() {
 		val projectDao = ProjectDao(db)
 		val ownedId = ProjectId.randomUUID()
 		val otherId = ProjectId.randomUUID()
-		projectDao.createProject(owner, ownedId, "Owned")
-		projectDao.createProject(other, otherId, "Other's")
-		val ownedRow = projectDao.getProjectId(owner, ownedId)
-		val otherRow = projectDao.getProjectId(other, otherId)
+		projectDao.createProject(OwnerId.unchecked(owner), ownedId, "Owned")
+		projectDao.createProject(OwnerId.unchecked(other), otherId, "Other's")
+		val ownedRow = projectDao.getProjectId(OwnerId.unchecked(owner), ownedId)
+		val otherRow = projectDao.getProjectId(OwnerId.unchecked(other), otherId)
 
 		val members = db.serverDatabase.projectMemberQueries
 		val invites = db.serverDatabase.projectInviteQueries

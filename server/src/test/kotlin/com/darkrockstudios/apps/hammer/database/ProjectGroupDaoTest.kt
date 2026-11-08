@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.database
 import com.darkrockstudios.apps.hammer.base.GroupId
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.e2e.util.SharedPostgresTestDatabase
+import com.darkrockstudios.apps.hammer.project.OwnerId
 import com.darkrockstudios.apps.hammer.utils.BaseTest
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
@@ -120,7 +121,7 @@ class ProjectGroupDaoTest : BaseTest() {
 		val childId = GroupId.randomUUID()
 		create("Book", parent = parent, id = childId)
 		val projectId = ProjectId.randomUUID()
-		projectDao.createProject(userId, projectId, "Novel")
+		projectDao.createProject(OwnerId.unchecked(userId), projectId, "Novel")
 		projectDao.setProjectGroup(userId, projectId, parent)
 
 		val group = assertNotNull(dao.getGroup(userId, parentId))
@@ -139,7 +140,7 @@ class ProjectGroupDaoTest : BaseTest() {
 		val childId = GroupId.randomUUID()
 		create("drafts", parent = parent, id = childId)
 		val projectId = ProjectId.randomUUID()
-		projectDao.createProject(userId, projectId, "Novel")
+		projectDao.createProject(OwnerId.unchecked(userId), projectId, "Novel")
 		projectDao.setProjectGroup(userId, projectId, parent)
 
 		val group = assertNotNull(dao.getGroup(userId, parentId))
@@ -167,8 +168,8 @@ class ProjectGroupDaoTest : BaseTest() {
 		val group = create("Trilogy", id = groupId)
 		val grouped = ProjectId.randomUUID()
 		val loose = ProjectId.randomUUID()
-		projectDao.createProject(userId, grouped, "Grouped")
-		projectDao.createProject(userId, loose, "Loose")
+		projectDao.createProject(OwnerId.unchecked(userId), grouped, "Grouped")
+		projectDao.createProject(OwnerId.unchecked(userId), loose, "Loose")
 
 		assertTrue(projectDao.setProjectGroup(userId, grouped, group))
 
@@ -181,7 +182,7 @@ class ProjectGroupDaoTest : BaseTest() {
 	fun `setProjectGroup to null moves a project to the top level`() = runTest {
 		val group = create("Trilogy")
 		val projectId = ProjectId.randomUUID()
-		projectDao.createProject(userId, projectId, "Novel")
+		projectDao.createProject(OwnerId.unchecked(userId), projectId, "Novel")
 		projectDao.setProjectGroup(userId, projectId, group)
 
 		assertTrue(projectDao.setProjectGroup(userId, projectId, null))

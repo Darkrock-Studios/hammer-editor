@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectContentHasher
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectDataHasher
+import com.darkrockstudios.apps.hammer.project.OwnerId
 import com.darkrockstudios.apps.hammer.project.ProjectSyncKey
 import com.darkrockstudios.apps.hammer.projects.ProbeProjectChangesUseCase
 import com.darkrockstudios.apps.hammer.project.RawProjectDataDto
@@ -29,11 +30,11 @@ class ProbeProjectChangesUseCaseTest : ProjectsRepositoryBaseTest() {
 
 	private fun stubTwoEntities() {
 		coEvery { projectsDatasource.getProject(userId, projectId) } returns projectDefinition
-		coEvery { projectEntityDatasource.getEntityHashes(userId, projectDefinition) } returns listOf(
+		coEvery { projectEntityDatasource.getEntityHashes(OwnerId.unchecked(userId), projectDefinition) } returns listOf(
 			EntityHash(1, "h1"),
 			EntityHash(2, "h2"),
 		)
-		coEvery { serverProjectDataRepository.loadVerifiedDataHash(userId, projectDefinition) } returns
+		coEvery { serverProjectDataRepository.loadVerifiedDataHash(OwnerId.unchecked(userId), projectDefinition) } returns
 			ProjectDataHasher.hash(ProjectData())
 	}
 
@@ -59,7 +60,7 @@ class ProbeProjectChangesUseCaseTest : ProjectsRepositoryBaseTest() {
 	@Test
 	fun `an unreadable project-data blob forces a full sync`() = runTest {
 		stubTwoEntities()
-		coEvery { serverProjectDataRepository.loadVerifiedDataHash(userId, projectDefinition) } returns null
+		coEvery { serverProjectDataRepository.loadVerifiedDataHash(OwnerId.unchecked(userId), projectDefinition) } returns null
 
 		val result = probe()(userId, listOf(ProjectHashItem(projectId, expectedServerHash())))
 		assertTrue(result.isEmpty(), "an uncomputable hash must never be reported as unchanged")
@@ -94,7 +95,7 @@ class ProbeProjectChangesUseCaseTest : ProjectsRepositoryBaseTest() {
 			),
 			hash = ProjectDataHasher.hash(ProjectData(authorName = "Pat")),
 		)
-		coEvery { serverProjectDataRepository.loadVerifiedDataHash(userId, projectDefinition) } returns withData.hash
+		coEvery { serverProjectDataRepository.loadVerifiedDataHash(OwnerId.unchecked(userId), projectDefinition) } returns withData.hash
 
 		val expected = ProjectContentHasher.hash(
 			listOf(EntityHash(1, "h1"), EntityHash(2, "h2")),

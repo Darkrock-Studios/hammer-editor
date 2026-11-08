@@ -94,7 +94,7 @@ private fun Route.beginProjectSync() {
 		}
 
 		val result = projectEntityRepository.beginProjectSync(
-			access.owner.id,
+			access.owner,
 			projectDef,
 			clientState,
 			lite,
@@ -152,7 +152,7 @@ private fun Route.endProjectSync() {
 		log.info("end_sync: parsed lastSync=$lastSync, lastId=$lastId")
 
 		val result = projectEntityRepository.endProjectSync(
-			access.owner.id,
+			access.owner,
 			projectDef,
 			syncId,
 			lastSync,
@@ -211,7 +211,7 @@ private fun Route.uploadEntity() {
 		val syncId = call.requireSyncId() ?: return@post
 
 		val result = projectEntityRepository.saveEntity(
-			access.owner.id,
+			access.owner,
 			projectDef,
 			entity,
 			originalHash,
@@ -309,7 +309,7 @@ private fun Route.downloadEntity(log: Logger) {
 		val entityId = call.requireEntityId() ?: return@get
 		val syncId = call.requireSyncId() ?: return@get
 
-		val result = projectEntityRepository.loadEntity(access.owner.id, projectDef, entityId, syncId)
+		val result = projectEntityRepository.loadEntity(access.owner, projectDef, entityId, syncId)
 
 		if (isSuccess(result)) {
 			respondDownloadedEntity(log, entityId, entityHash, result.data)
@@ -386,7 +386,7 @@ private fun Route.getWritingActivity() {
 		val access = call.requireProjectAccess() ?: return@get
 		val projectDef = access.projectDef
 
-		val result = repository.loadAll(access.owner.id, projectDef)
+		val result = repository.loadAll(access.owner, projectDef)
 		if (isSuccess(result)) {
 			call.respond(result.data)
 		} else {
@@ -414,7 +414,7 @@ private fun Route.uploadWritingActivity() {
 		}
 
 		val log = call.receive<DeviceLog>()
-		val result = repository.saveDeviceLog(access.owner.id, projectDef, deviceId, log)
+		val result = repository.saveDeviceLog(access.owner, projectDef, deviceId, log)
 		if (isSuccess(result)) {
 			call.respond(HttpStatusCode.OK)
 		} else {
@@ -436,7 +436,7 @@ private fun Route.getProjectData() {
 		val access = call.requireProjectAccess() ?: return@get
 		val projectDef = access.projectDef
 
-		val result = repository.load(access.owner.id, projectDef)
+		val result = repository.load(access.owner, projectDef)
 		if (isSuccess(result)) {
 			val dto = result.data
 			if (dto == null) {
@@ -465,7 +465,7 @@ private fun Route.uploadProjectData() {
 
 		val request = call.receive<RawProjectDataUploadRequest>()
 		val result = repository.save(
-			userId = access.owner.id,
+			owner = access.owner,
 			projectDef = projectDef,
 			data = request.data,
 			originalHash = request.originalHash,
@@ -503,7 +503,7 @@ private fun Route.deleteEntity() {
 		val entityId = call.requireEntityId(error = ERROR_MISSING_ENTITY_ID) ?: return@get
 		val syncId = call.requireSyncId() ?: return@get
 
-		val result = projectEntityRepository.deleteEntity(access.owner.id, projectDef, entityId, syncId)
+		val result = projectEntityRepository.deleteEntity(access.owner, projectDef, entityId, syncId)
 
 		if (isSuccess(result)) {
 			call.respond(HttpStatusCode.OK, DeleteIdsResponse(true))

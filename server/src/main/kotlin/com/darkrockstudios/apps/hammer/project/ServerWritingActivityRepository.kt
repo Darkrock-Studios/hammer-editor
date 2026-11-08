@@ -23,12 +23,12 @@ class ServerWritingActivityRepository(
 ) : KoinComponent {
 
 	suspend fun loadAll(
-		userId: Long,
+		owner: OwnerId,
 		projectDef: ProjectDefinition,
 	): SResult<WritingActivityResponse> {
-		val projectId = projectDao.getProjectIdOrNull(userId, projectDef.uuid)
+		val projectId = projectDao.getProjectIdOrNull(owner, projectDef.uuid)
 			?: return SResult.failure(ProjectNotFound(projectDef))
-		val rows = writingActivityDao.getAllForProject(userId, projectId)
+		val rows = writingActivityDao.getAllForProject(owner.id, projectId)
 
 		val devices = buildMap {
 			for (row in rows) {
@@ -36,7 +36,7 @@ class ServerWritingActivityRepository(
 					json.decodeFromString<DeviceLog>(row.content)
 				} catch (e: SerializationException) {
 					log.warn(
-						"Skipping malformed writing activity log for user=$userId project=${projectDef.name} device=${row.deviceId}",
+						"Skipping malformed writing activity log for user=${owner.id} project=${projectDef.name} device=${row.deviceId}",
 						e,
 					)
 					null
@@ -48,15 +48,15 @@ class ServerWritingActivityRepository(
 	}
 
 	suspend fun saveDeviceLog(
-		userId: Long,
+		owner: OwnerId,
 		projectDef: ProjectDefinition,
 		deviceId: String,
 		log: DeviceLog,
 	): SResult<Unit> {
-		val projectId = projectDao.getProjectIdOrNull(userId, projectDef.uuid)
+		val projectId = projectDao.getProjectIdOrNull(owner, projectDef.uuid)
 			?: return SResult.failure(ProjectNotFound(projectDef))
 		val content = json.encodeToString(log)
-		writingActivityDao.upsert(userId, projectId, deviceId, content)
+		writingActivityDao.upsert(owner.id, projectId, deviceId, content)
 		return SResult.success(Unit)
 	}
 }

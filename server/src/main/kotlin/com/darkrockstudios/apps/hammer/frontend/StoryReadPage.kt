@@ -13,6 +13,7 @@ import com.darkrockstudios.apps.hammer.frontend.utils.pageETag
 import com.darkrockstudios.apps.hammer.frontend.utils.requireUser
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.project.ServerProjectDataRepository
+import com.darkrockstudios.apps.hammer.project.UncheckedOwner
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.story.ChapterRender
 import com.darkrockstudios.apps.hammer.story.StoryImageService
@@ -31,6 +32,7 @@ import java.util.Locale
  * The author's own chapter-at-a-time reader, modelled on the app's reader mode. With no `chapter`
  * asked for, a story with a cover opens on the cover as its first page.
  */
+@OptIn(UncheckedOwner::class)
 fun Route.storyReadPage(
 	storyRendererService: StoryRendererService,
 	projectsRepository: ProjectsRepository,
@@ -51,7 +53,7 @@ fun Route.storyReadPage(
 			val projectSegment = ProjectName.projectSegment(project.name, project.uuid)
 			val projectDef = ProjectDefinition(name = project.name, uuid = projectId)
 			val chapterParam = call.request.queryParameters["chapter"]
-			val coverImageUrl = storyCoverImageId(serverProjectDataRepository, storyImageService, session.userId, projectDef)
+			val coverImageUrl = storyCoverImageId(serverProjectDataRepository, storyImageService, session.asOwner, projectDef)
 				?.let { authorImageUrl(projectSegment, it) }
 			val showCover = chapterParam == null && coverImageUrl != null
 			val requestedChapter = chapterParam?.toIntOrNull() ?: 1
@@ -70,14 +72,14 @@ fun Route.storyReadPage(
 
 			// The page follows from the story's version and these inputs, so an unchanged chapter is
 			// answered without decrypting the manuscript. The data hash stands in for the language.
-			val etag = storyRendererService.prepareExport(session.userId, projectId)?.let {
+			val etag = storyRendererService.prepareExport(session.asOwner, projectId)?.let {
 				pageETag(
 					model,
 					it.version,
 					showCover,
 					requestedChapter,
 					coverImageUrl,
-					serverProjectDataRepository.loadDataHash(session.userId, projectDef),
+					serverProjectDataRepository.loadDataHash(session.asOwner, projectDef),
 				)
 			}
 			if (etag != null && call.matchesETag(etag)) {
@@ -87,13 +89,13 @@ fun Route.storyReadPage(
 			}
 
 			val (status, content) = when (
-				val result = storyRendererService.renderChapter(session.userId, projectId, requestedChapter)
+				val result = storyRendererService.renderChapter(session.asOwner, projectId, requestedChapter)
 			) {
 				is StoryResult.Success -> {
 					val render = result.value
 					call.addReaderModel(model, render, projectSegment, readUrl, coverImageUrl, showCover)
 					serverProjectDataRepository.loadProjectLanguage(
-						userId = session.userId,
+						owner = session.asOwner,
 						projectDef = projectDef,
 					)?.let { model["storyLanguage"] = it }
 					// A scene that failed to load would otherwise be pinned in the browser until an edit.

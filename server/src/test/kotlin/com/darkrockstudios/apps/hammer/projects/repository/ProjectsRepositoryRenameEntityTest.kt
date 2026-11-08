@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.projects.repository
 
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.validate.MAX_PROJECT_NAME_LENGTH
+import com.darkrockstudios.apps.hammer.project.OwnerId
 import com.darkrockstudios.apps.hammer.project.ProjectNameTaken
 import com.darkrockstudios.apps.hammer.utilities.isFailure
 import io.mockk.coEvery
@@ -28,7 +29,7 @@ class ProjectsRepositoryRenameEntityTest : ProjectsRepositoryBaseTest() {
 		createProjectsRepository().apply {
 			val result = renameProject(userId, syncId, projectId, newProjectName)
 			assertTrue(result.isSuccess)
-			coVerify { projectEntityDatasource.renameProject(userId, projectId, newProjectName) }
+			coVerify { projectEntityDatasource.renameProject(OwnerId.unchecked(userId), projectId, newProjectName) }
 		}
 	}
 
