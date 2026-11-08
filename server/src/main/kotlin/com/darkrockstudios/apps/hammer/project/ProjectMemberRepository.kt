@@ -20,6 +20,7 @@ data class ReceivedInvite(
 	val id: Long,
 	val projectId: ProjectId,
 	val projectName: String,
+	val ownerId: Long,
 	val ownerName: String?,
 	val createdAt: Instant,
 )
@@ -91,6 +92,7 @@ class ProjectMemberRepository(
 				id = it.id,
 				projectId = ProjectId(it.project_uuid),
 				projectName = it.project_name,
+				ownerId = it.owner_id,
 				ownerName = it.owner_name,
 				createdAt = it.created_at,
 			)

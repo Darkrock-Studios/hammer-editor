@@ -164,6 +164,9 @@ fun Route.frontend() {
 		accountDeletionUseCase,
 		serverConfig,
 		markdownRenderer,
+		projectMemberRepository,
+		projectAccessResolver,
+		whiteListRepository,
 	)
 	storyPage(
 		storyRendererService,

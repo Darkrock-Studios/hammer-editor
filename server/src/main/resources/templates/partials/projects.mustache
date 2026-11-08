@@ -15,9 +15,11 @@
 		</div>
 	{{/hasProjects}}
 	{{^hasProjects}}
-		<div class="empty-state">
-			<p>{{msg.dashboard_no_projects}}</p>
-		</div>
+		{{^hasSharedProjects}}
+			<div class="empty-state">
+				<p>{{msg.dashboard_no_projects}}</p>
+			</div>
+		{{/hasSharedProjects}}
 	{{/hasProjects}}
 
 	{{#totalPages}}

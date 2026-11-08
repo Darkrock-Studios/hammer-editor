@@ -61,7 +61,7 @@ deleteInviteForEmail:
 DELETE FROM project_invite WHERE id = :id AND email = CAST(:email AS CITEXT);
 
 getInvitesForEmail:
-SELECT i.id, i.created_at, p.uuid AS project_uuid, p.name AS project_name, owner.pen_name AS owner_name
+SELECT i.id, i.created_at, p.uuid AS project_uuid, p.name AS project_name, p.user_id AS owner_id, owner.pen_name AS owner_name
 FROM project_invite i
 JOIN project p ON p.id = i.project_id
 JOIN account owner ON owner.id = p.user_id

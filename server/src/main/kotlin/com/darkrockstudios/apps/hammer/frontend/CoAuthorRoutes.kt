@@ -2,7 +2,6 @@ package com.darkrockstudios.apps.hammer.frontend
 
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.base.ProjectId
-import com.darkrockstudios.apps.hammer.frontend.utils.SWAP_ERROR_HEADER
 import com.darkrockstudios.apps.hammer.frontend.utils.StoryProject
 import com.darkrockstudios.apps.hammer.frontend.utils.Toast
 import com.darkrockstudios.apps.hammer.frontend.utils.authenticatedOnly
@@ -14,6 +13,7 @@ import com.darkrockstudios.apps.hammer.frontend.utils.msg
 import com.darkrockstudios.apps.hammer.frontend.utils.renderTemplate
 import com.darkrockstudios.apps.hammer.frontend.utils.requireUser
 import com.darkrockstudios.apps.hammer.frontend.utils.respondHtmlWithToast
+import com.darkrockstudios.apps.hammer.frontend.utils.respondInlineError
 import com.darkrockstudios.apps.hammer.frontend.utils.respondTemplateWithToast
 import com.darkrockstudios.apps.hammer.frontend.utils.respondToast
 import com.darkrockstudios.apps.hammer.plugins.LOGIN_RATE_LIMIT
@@ -27,7 +27,6 @@ import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.utilities.ServerResult
 import io.ktor.htmx.HxResponseHeaders
 import io.ktor.htmx.HxSwap
-import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.htmx.hx
@@ -37,7 +36,6 @@ import io.ktor.server.plugins.ratelimit.rateLimit
 import io.ktor.server.request.receiveParameters
 import io.ktor.server.response.header
 import io.ktor.server.response.respond
-import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.RoutingContext
 import io.ktor.server.routing.delete
@@ -152,10 +150,9 @@ private suspend fun RoutingContext.respondInviteRefused(project: StoryProject, e
 			"inviteError" to message,
 		)
 	)
-	call.response.header(SWAP_ERROR_HEADER, "true")
 	call.response.header(HxResponseHeaders.Retarget, "#coauthor-invite-form")
 	call.response.header(HxResponseHeaders.Reswap, HxSwap.outerHtml)
-	call.respondText(renderTemplate(INVITE_FORM, model), ContentType.Text.Html, HttpStatusCode.BadRequest)
+	respondInlineError(renderTemplate(INVITE_FORM, model))
 }
 
 /** The owner's Co-authors panel on the story page: members first, then pending invites. */
