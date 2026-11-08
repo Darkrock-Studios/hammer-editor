@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.kudos
 
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.database.ProjectDao
+import com.darkrockstudios.apps.hammer.database.ProjectMemberDao
 import com.darkrockstudios.apps.hammer.database.StoryKudosDao
 import com.darkrockstudios.apps.hammer.project.OwnerId
 import com.darkrockstudios.apps.hammer.project.UncheckedOwner
@@ -36,12 +37,17 @@ data class KudosTally(
 class StoryKudosRepository(
 	private val storyKudosDao: StoryKudosDao,
 	private val projectDao: ProjectDao,
+	private val projectMemberDao: ProjectMemberDao,
 ) {
 
 	/** The row ID kudos are keyed by, or null if the author has no such project. */
 	@OptIn(UncheckedOwner::class)
 	suspend fun findProjectId(authorId: Long, projectUuid: ProjectId): Long? =
 		projectDao.getProjectIdOrNull(OwnerId.unchecked(authorId), projectUuid)
+
+	/** The owner and co-authors write the story, so neither may give it kudos. */
+	suspend fun isStoryAuthor(projectId: Long, authorId: Long, userId: Long): Boolean =
+		userId == authorId || projectMemberDao.isMember(projectId, userId)
 
 	suspend fun picksFor(projectId: Long, userId: Long): Set<KudosKind> =
 		storyKudosDao.kindsForUser(projectId, userId).mapNotNullTo(mutableSetOf(), KudosKind::fromKey)
@@ -56,7 +62,7 @@ class StoryKudosRepository(
 		giverId: Long,
 		requested: Set<KudosKind>,
 	): SetPicksResult {
-		if (giverId == authorId) return SetPicksResult.OwnStory
+		if (isStoryAuthor(projectId, authorId, giverId)) return SetPicksResult.OwnStory
 		if (!isEnabled(projectId)) return SetPicksResult.Disabled
 
 		val previous = picksFor(projectId, giverId)

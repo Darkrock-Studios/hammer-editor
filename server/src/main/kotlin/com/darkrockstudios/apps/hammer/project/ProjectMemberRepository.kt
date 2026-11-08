@@ -132,6 +132,12 @@ class ProjectMemberRepository(
 		return true
 	}
 
+	/** [userId] leaving [projectId] themselves. False when they were not a member. */
+	suspend fun leaveProject(userId: Long, projectId: ProjectId): Boolean {
+		val project = projectDao.getProjectByUuid(projectId) ?: return false
+		return leave(project, userId)
+	}
+
 	private suspend fun ownedProject(callerId: Long, projectId: ProjectId): Result<Project> {
 		val project = projectDao.getProjectByUuid(projectId) ?: return Result.failure(ProjectNotFound(projectId))
 		return if (project.user_id == callerId) Result.success(project) else Result.failure(NotOwnerException(projectId))

@@ -175,10 +175,16 @@ fun Route.frontend() {
 		accountsRepository,
 		reviewRepository,
 		storyReaderRepository, storyKudosRepository, serverProjectDataRepository, storyImageService,
-		projectMemberRepository, clock,
+		projectMemberRepository, projectAccessResolver, clock,
 	)
 	coAuthorRoutes(projectsRepository, projectAccessResolver, projectMemberRepository, accountsRepository)
-	storyReadPage(storyRendererService, projectsRepository, serverProjectDataRepository, storyImageService)
+	storyReadPage(
+		storyRendererService,
+		projectsRepository,
+		projectAccessResolver,
+		serverProjectDataRepository,
+		storyImageService,
+	)
 	reviewFrontend(
 		reviewRepository = reviewRepository,
 		projectsRepository = projectsRepository,

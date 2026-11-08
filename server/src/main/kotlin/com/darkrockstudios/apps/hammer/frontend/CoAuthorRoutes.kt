@@ -48,21 +48,24 @@ private const val PANEL = "partials/coauthor-panel.mustache"
 private const val INVITE_FORM = "partials/coauthor-invite-form.mustache"
 private const val CLOSE_INVITE_DIALOG = """<div id="coauthor-dialog-container" hx-swap-oob="innerHTML"></div>"""
 
-/** The owner's management of who co-authors a story. Every route here is owner-only. */
+/** Who co-authors a story: the owner manages it, and a co-author can leave. */
 fun Route.coAuthorRoutes(
 	projectsRepository: ProjectsRepository,
 	projectAccessResolver: ProjectAccessResolver,
 	projectMemberRepository: ProjectMemberRepository,
 	accountsRepository: AccountsRepository,
 ) {
-	/** Answers 404 for a project the caller cannot see and 403 for one they co-author. */
-	suspend fun RoutingContext.ownedProject(): StoryProject? {
+	/**
+	 * The story at the route's segment when the caller is its owner ([asOwner]) or a co-author (not
+	 * [asOwner]). Answers 404 for a project the caller cannot see and 403 for the other role.
+	 */
+	suspend fun RoutingContext.storyProject(asOwner: Boolean): StoryProject? {
 		val session = call.sessions.requireUser()
 		val project = call.parameters["projectName"]
 			?.let { findStoryProject(projectsRepository, projectAccessResolver, session.userId, it) }
 		when {
 			project == null -> call.respond(HttpStatusCode.NotFound)
-			!project.isOwner -> call.respond(HttpStatusCode.Forbidden)
+			project.isOwner != asOwner -> call.respond(HttpStatusCode.Forbidden)
 			else -> return project
 		}
 		return null
@@ -77,9 +80,32 @@ fun Route.coAuthorRoutes(
 	}
 
 	authenticatedOnly {
+		route("/story/{projectName}") {
+			hx.get("/leave-dialog") {
+				val project = storyProject(asOwner = false) ?: return@get
+				val locale = call.getLocale()
+				val ownerName = project.ownerName ?: localizedMsg(locale, "dashboard_shared_by_unknown")
+				val model = call.withDefaults(
+					mapOf(
+						"projectNameForUrl" to project.segment,
+						"leaveTitle" to localizedMsg(locale, "story_leave_dialog_title", project.name),
+						"leaveOwnerCopy" to localizedMsg(locale, "story_leave_dialog_owner_copy", ownerName),
+					)
+				)
+				call.respond(MustacheContent("partials/coauthor-leave-dialog.mustache", model))
+			}
+
+			hx.post("/leave") {
+				val project = storyProject(asOwner = false) ?: return@post
+				projectMemberRepository.leaveProject(call.sessions.requireUser().userId, project.projectId)
+				call.response.header(HxResponseHeaders.Redirect, "/dashboard")
+				call.respond(HttpStatusCode.NoContent)
+			}
+		}
+
 		route("/story/{projectName}/coauthors") {
 			hx.get("/invite-dialog") {
-				val project = ownedProject() ?: return@get
+				val project = storyProject(asOwner = true) ?: return@get
 				val model = call.withDefaults(mapOf("projectNameForUrl" to project.segment))
 				call.respond(MustacheContent("partials/coauthor-invite-dialog.mustache", model))
 			}
@@ -87,7 +113,7 @@ fun Route.coAuthorRoutes(
 			// The design caps invites with the login limiter rather than one of their own.
 			rateLimit(RateLimitName(LOGIN_RATE_LIMIT)) {
 				hx.post("/invites") {
-					val project = ownedProject() ?: return@post
+					val project = storyProject(asOwner = true) ?: return@post
 					val userId = call.sessions.requireUser().userId
 					val email = call.receiveParameters()["email"]?.trim().orEmpty()
 
@@ -110,7 +136,7 @@ fun Route.coAuthorRoutes(
 			}
 
 			hx.delete("/invites/{inviteId}") {
-				val project = ownedProject() ?: return@delete
+				val project = storyProject(asOwner = true) ?: return@delete
 				val inviteId = call.parameters["inviteId"]?.toLongOrNull()
 				if (inviteId == null) {
 					call.respond(HttpStatusCode.BadRequest)
@@ -121,7 +147,7 @@ fun Route.coAuthorRoutes(
 			}
 
 			hx.delete("/members/{memberId}") {
-				val project = ownedProject() ?: return@delete
+				val project = storyProject(asOwner = true) ?: return@delete
 				val memberId = call.parameters["memberId"]?.toLongOrNull()
 				if (memberId == null) {
 					call.respond(HttpStatusCode.BadRequest)
