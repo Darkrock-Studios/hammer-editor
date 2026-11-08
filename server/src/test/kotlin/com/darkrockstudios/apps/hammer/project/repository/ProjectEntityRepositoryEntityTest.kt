@@ -58,13 +58,13 @@ class ProjectEntityRepositoryEntityTest : ProjectEntityRepositoryBaseTest() {
 		} returns syncData
 
 		createProjectRepository().apply {
-			val beginResult = beginProjectSync(OwnerId.unchecked(userId), projectDefinition, clientState, false)
+			val beginResult = beginProjectSync(userId, OwnerId.unchecked(userId), projectDefinition, clientState, false)
 			assertTrue(isSuccess(beginResult))
 
 			val syncBegan = beginResult.data
 			clock.advanceTime(SynchronizationSession.EXPIRATION_TIME + 1.minutes)
 
-			val result = loadEntity(OwnerId.unchecked(userId), projectDefinition, 1, syncBegan.syncId)
+			val result = loadEntity(userId, OwnerId.unchecked(userId), projectDefinition, 1, syncBegan.syncId)
 			assertTrue(isFailure(result))
 
 			val exception = result.exception
@@ -100,7 +100,7 @@ class ProjectEntityRepositoryEntityTest : ProjectEntityRepositoryBaseTest() {
 		} returns SResult.success(sceneEntity)
 
 		createProjectRepository().apply {
-			val result = loadEntity(OwnerId.unchecked(userId), projectDefinition, entityId, syncId)
+			val result = loadEntity(userId, OwnerId.unchecked(userId), projectDefinition, entityId, syncId)
 			assertTrue(isSuccess(result))
 			assertEquals(sceneEntity, result.data)
 		}
@@ -135,7 +135,7 @@ class ProjectEntityRepositoryEntityTest : ProjectEntityRepositoryBaseTest() {
 
 		createProjectRepository().apply {
 			val result =
-				saveEntity(OwnerId.unchecked(userId), projectDefinition, createSceneEntity(1), null, syncId, false)
+				saveEntity(userId, OwnerId.unchecked(userId), projectDefinition, createSceneEntity(1), null, syncId, false)
 			assertTrue(isSuccess(result))
 		}
 
@@ -171,7 +171,7 @@ class ProjectEntityRepositoryEntityTest : ProjectEntityRepositoryBaseTest() {
 
 		createProjectRepository().apply {
 			val result =
-				saveEntity(OwnerId.unchecked(userId), projectDefinition, noteEntity, null, syncId, false)
+				saveEntity(userId, OwnerId.unchecked(userId), projectDefinition, noteEntity, null, syncId, false)
 			assertFalse(isSuccess(result))
 			val exception = result.exception
 			assertTrue(exception is EntityTypeConflictException)
@@ -205,7 +205,7 @@ class ProjectEntityRepositoryEntityTest : ProjectEntityRepositoryBaseTest() {
 
 		createProjectRepository().apply {
 			val result =
-				saveEntity(OwnerId.unchecked(userId), projectDefinition, sceneEntity, null, syncId, false)
+				saveEntity(userId, OwnerId.unchecked(userId), projectDefinition, sceneEntity, null, syncId, false)
 			assertTrue(isSuccess(result))
 		}
 
@@ -229,7 +229,7 @@ class ProjectEntityRepositoryEntityTest : ProjectEntityRepositoryBaseTest() {
 		coEvery { projectSessionManager.validateSyncId(any(), any(), any()) } returns false
 
 		createProjectRepository().apply {
-			val result = deleteEntity(OwnerId.unchecked(userId), projectDefinition, entityId, syncId)
+			val result = deleteEntity(userId, OwnerId.unchecked(userId), projectDefinition, entityId, syncId)
 			assertFalse(isSuccess(result))
 		}
 	}
@@ -248,7 +248,7 @@ class ProjectEntityRepositoryEntityTest : ProjectEntityRepositoryBaseTest() {
 		} returns SResult.success()
 
 		createProjectRepository().apply {
-			val result = deleteEntity(OwnerId.unchecked(userId), projectDefinition, entityId, syncId)
+			val result = deleteEntity(userId, OwnerId.unchecked(userId), projectDefinition, entityId, syncId)
 			assertTrue(isSuccess(result))
 		}
 
@@ -286,7 +286,7 @@ class ProjectEntityRepositoryEntityTest : ProjectEntityRepositoryBaseTest() {
 		} returns SResult.success()
 
 		createProjectRepository().apply {
-			val result = deleteEntity(OwnerId.unchecked(userId), projectDefinition, entityId, syncId)
+			val result = deleteEntity(userId, OwnerId.unchecked(userId), projectDefinition, entityId, syncId)
 			assertTrue(isSuccess(result))
 		}
 

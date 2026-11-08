@@ -145,7 +145,7 @@ class ReviewRepository(
 
 			val mintedIds = mutableListOf<Int>()
 			for ((index, scene) in scenes.withIndex()) {
-				touchInternalSession(userId, projectDef)
+				touchInternalSession(projectDef)
 				val draft = ApiProjectEntity.SceneDraftEntity(
 					id = firstId + index,
 					sceneId = scene.id,
@@ -603,7 +603,7 @@ class ReviewRepository(
 				// failure here rolls back cleanly while the scenes are still untouched.
 				val minted = mutableListOf<Minted>()
 				for ((index, plan) in changed.withIndex()) {
-					touchInternalSession(userId, projectDef)
+					touchInternalSession(projectDef)
 					val currentResult = projectEntityDatasource.loadEntity(
 						owner, projectDef, plan.scene.sceneId,
 						ApiProjectEntity.Type.SCENE,
@@ -642,7 +642,7 @@ class ReviewRepository(
 				// Phase 2: overwrite clean working scenes. Every draft already exists,
 				// so a failure here needs no rollback — Draft Compare is the recovery.
 				for (m in minted) {
-					touchInternalSession(userId, projectDef)
+					touchInternalSession(projectDef)
 					results[m.plan.scene.id] = if (m.current.content == m.plan.scene.snapshotContent) {
 						val sceneResult = sceneSynchronizer.saveEntity(
 							owner, projectDef, m.current.copy(content = m.plan.revised),
@@ -723,16 +723,16 @@ class ReviewRepository(
 		projectDef: ProjectDefinition,
 		block: suspend () -> SResult<T>,
 	): SResult<T> {
-		val syncKey = ProjectSyncKey(userId, projectDef)
+		val syncKey = ProjectSyncKey(projectDef.uuid)
 		if (projectsSessions.hasActiveSyncSession(userId)) {
 			return SResult.failure("Project sync in progress", Msg.r("api_review_create_error_sync_busy"))
 		}
 
 		// Atomic claim; unique installId so a client's begin-sync can never reclaim this session.
-		projectSessions.claimSession(syncKey) { key, syncId ->
+		projectSessions.claimSession(syncKey) { _, syncId ->
 			ProjectSynchronizationSession(
-				userId = key.userId,
-				projectDef = key.projectDef,
+				userId = userId,
+				projectDef = projectDef,
 				started = clock.now(),
 				syncId = syncId,
 				installId = "$INTERNAL_INSTALL_PREFIX${UUID.randomUUID()}",
@@ -747,8 +747,8 @@ class ReviewRepository(
 	}
 
 	/** Keep the internal session from expiring during long per-scene mint/encrypt loops. */
-	private fun touchInternalSession(userId: Long, projectDef: ProjectDefinition) {
-		projectSessions.findSession(ProjectSyncKey(userId, projectDef))?.updateLastAccessed(clock)
+	private fun touchInternalSession(projectDef: ProjectDefinition) {
+		projectSessions.findSession(ProjectSyncKey(projectDef.uuid))?.updateLastAccessed(clock)
 	}
 
 	private fun ReviewRequestRow.toDomain() = ReviewRequest(

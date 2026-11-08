@@ -24,7 +24,7 @@ class ProjectEntityRepositorySyncTest : ProjectEntityRepositoryBaseTest() {
 		coEvery { projectSessionManager.validateSyncId(any(), any(), any()) } returns false
 
 		ProjectEntityRepository(clock, projectEntityDatasource).apply {
-			val result = getProjectSyncData(OwnerId.unchecked(userId), projectDefinition, "invalid-id")
+			val result = getProjectSyncData(userId, OwnerId.unchecked(userId), projectDefinition, "invalid-id")
 			assertFalse(result.isSuccess)
 		}
 	}
@@ -57,7 +57,7 @@ class ProjectEntityRepositorySyncTest : ProjectEntityRepositoryBaseTest() {
 		mockCreateSession(syncId)
 
 		createProjectRepository().apply {
-			val result = beginProjectSync(OwnerId.unchecked(userId), projectDefinition, clientState, false)
+			val result = beginProjectSync(userId, OwnerId.unchecked(userId), projectDefinition, clientState, false)
 
 			assertTrue(isSuccess(result))
 			val syncBegan = result.data
@@ -98,7 +98,7 @@ class ProjectEntityRepositorySyncTest : ProjectEntityRepositoryBaseTest() {
 		)
 
 		createProjectRepository().apply {
-			val result = beginProjectSync(OwnerId.unchecked(userId), projectDefinition, clientState, false, installId)
+			val result = beginProjectSync(userId, OwnerId.unchecked(userId), projectDefinition, clientState, false, installId)
 
 			assertTrue(isSuccess(result))
 			// A fresh syncId must be issued, not the stale session's id echoed back.
@@ -122,7 +122,7 @@ class ProjectEntityRepositorySyncTest : ProjectEntityRepositoryBaseTest() {
 		)
 
 		createProjectRepository().apply {
-			val result = beginProjectSync(OwnerId.unchecked(userId), projectDefinition, clientState, false, "install-1")
+			val result = beginProjectSync(userId, OwnerId.unchecked(userId), projectDefinition, clientState, false, "install-1")
 
 			assertFalse(isSuccess(result))
 		}
@@ -172,7 +172,7 @@ class ProjectEntityRepositorySyncTest : ProjectEntityRepositoryBaseTest() {
 		} returns listOf(11, 12, 13, 14)
 
 		createProjectRepository().apply {
-			val result = beginProjectSync(OwnerId.unchecked(userId), projectDefinition, clientState, false)
+			val result = beginProjectSync(userId, OwnerId.unchecked(userId), projectDefinition, clientState, false)
 
 			assertTrue(isSuccess(result))
 			val syncBegan = result.data
@@ -221,7 +221,7 @@ class ProjectEntityRepositorySyncTest : ProjectEntityRepositoryBaseTest() {
 
 			mockCreateSession(syncId)
 
-			val beginResult = beginProjectSync(OwnerId.unchecked(userId), projectDefinition, clientState, false)
+			val beginResult = beginProjectSync(userId, OwnerId.unchecked(userId), projectDefinition, clientState, false)
 
 			assertTrue(isSuccess(beginResult))
 
@@ -237,6 +237,7 @@ class ProjectEntityRepositorySyncTest : ProjectEntityRepositoryBaseTest() {
 			val endLastSync = syncBegan.lastSync + 5.minutes
 			val endLastId = 42
 			val endResult = endProjectSync(
+				userId,
 				OwnerId.unchecked(userId),
 				projectDefinition,
 				syncBegan.syncId,
@@ -249,7 +250,7 @@ class ProjectEntityRepositorySyncTest : ProjectEntityRepositoryBaseTest() {
 				syncData.copy(lastSync = endLastSync, lastId = endLastId),
 				updatedSyncData
 			)
-			verify { projectSessionManager.terminateSession(ProjectSyncKey(userId, projectDefinition)) }
+			verify { projectSessionManager.terminateSession(ProjectSyncKey(projectDefinition.uuid)) }
 		}
 	}
 
@@ -258,7 +259,7 @@ class ProjectEntityRepositorySyncTest : ProjectEntityRepositoryBaseTest() {
 		coEvery { projectSessionManager.findSession(any()) } returns null
 
 		createProjectRepository().apply {
-			val endResult = endProjectSync(OwnerId.unchecked(userId), projectDefinition, "invalid-id", null, null)
+			val endResult = endProjectSync(userId, OwnerId.unchecked(userId), projectDefinition, "invalid-id", null, null)
 			assertFalse { endResult.isSuccess }
 		}
 	}
@@ -272,7 +273,7 @@ class ProjectEntityRepositorySyncTest : ProjectEntityRepositoryBaseTest() {
 		coEvery { projectSessionManager.validateSyncId(any(), any(), false) } returns false
 
 		createProjectRepository().apply {
-			val result = getProjectSyncData(OwnerId.unchecked(userId), projectDefinition, "expired-sync-id")
+			val result = getProjectSyncData(userId, OwnerId.unchecked(userId), projectDefinition, "expired-sync-id")
 			assertFalse(result.isSuccess)
 		}
 	}
@@ -295,7 +296,7 @@ class ProjectEntityRepositorySyncTest : ProjectEntityRepositoryBaseTest() {
 		} returns syncData
 
 		createProjectRepository().apply {
-			val result = getProjectSyncData(OwnerId.unchecked(userId), projectDefinition, "valid-sync-id")
+			val result = getProjectSyncData(userId, OwnerId.unchecked(userId), projectDefinition, "valid-sync-id")
 			assertTrue(isSuccess(result))
 			assertEquals(syncData.lastId, result.data.lastId)
 			assertEquals(syncData.lastSync, result.data.lastSync)

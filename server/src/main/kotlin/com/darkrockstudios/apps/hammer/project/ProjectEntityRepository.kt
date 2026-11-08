@@ -45,6 +45,7 @@ class ProjectEntityRepository(
 	)
 
 	suspend fun beginProjectSync(
+		callerId: Long,
 		owner: OwnerId,
 		projectDef: ProjectDefinition,
 		clientState: ClientEntityState?,
@@ -52,16 +53,17 @@ class ProjectEntityRepository(
 		installId: String? = null,
 	): SResult<ProjectSynchronizationBegan> {
 
-		val syncKey = ProjectSyncKey(owner.id, projectDef)
+		val syncKey = ProjectSyncKey(projectDef.uuid)
 
 		// An in-progress account-level sync (creating/renaming/deleting projects) must not be
 		// raced by a project sync, so it still blocks beginning one.
-		if (projectsSessions.hasActiveSyncSession(owner.id)) {
+		if (projectsSessions.hasActiveSyncSession(callerId)) {
 			return SResult.failure(
 				"begin sync failure: existing account session",
-				Msg.r("api_project_sync_begin_error_session", owner.id)
+				Msg.r("api_project_sync_begin_error_session", callerId)
 			)
 		}
+		if (ownerAccountSyncing(callerId, owner)) return ownerSyncingFailure(callerId, projectDef)
 
 		if (projectEntityDatasource.checkProjectExists(owner, projectDef).not()) {
 			return SResult.failure(ProjectNotFound(projectDef))
@@ -71,18 +73,25 @@ class ProjectEntityRepository(
 		val newSyncId = sessionManager.claimSession(
 			syncKey,
 			canReplace = { it.installId == installId },
-		) { key: ProjectSyncKey, sync: String ->
+		) { _: ProjectSyncKey, sync: String ->
 			ProjectSynchronizationSession(
-				userId = key.userId,
-				projectDef = key.projectDef,
+				userId = callerId,
+				projectDef = projectDef,
 				started = clock.now(),
 				syncId = sync,
 				installId = installId,
 			)
 		} ?: return SResult.failure(
 			"begin sync failure: active session on another install",
-			Msg.r("api_project_sync_begin_error_session", owner.id)
+			Msg.r("api_project_sync_begin_error_session", callerId)
 		)
+
+		// The owner may have begun an account sync since the check above. Their delete, rename and
+		// move refuse while this session is live, so checking again after the claim closes the gap.
+		if (ownerAccountSyncing(callerId, owner)) {
+			sessionManager.terminateSession(syncKey)
+			return ownerSyncingFailure(callerId, projectDef)
+		}
 
 		var projectSyncData = projectEntityDatasource.loadProjectSyncData(owner, projectDef)
 
@@ -103,24 +112,25 @@ class ProjectEntityRepository(
 	}
 
 	suspend fun endProjectSync(
+		callerId: Long,
 		owner: OwnerId,
 		projectDef: ProjectDefinition,
 		syncId: String,
 		lastSync: Instant?,
 		lastId: Int?,
 	): SResult<Unit> {
-		val syncKey = ProjectSyncKey(owner.id, projectDef)
+		val syncKey = ProjectSyncKey(projectDef.uuid)
 		val session = sessionManager.findSession(syncKey)
 		return if (session == null) {
 			SResult.failure(
 				"begin sync failure: existing session",
-				Msg.r("api_project_sync_begin_error_session", owner.id)
+				Msg.r("api_project_sync_begin_error_session", callerId)
 			)
 		} else {
 			if (session.syncId != syncId) {
 				SResult.failure(
 					"end sync failure: invalid session id",
-					Msg.r("api_project_sync_end_invalidid", owner.id)
+					Msg.r("api_project_sync_end_invalidid", callerId)
 				)
 			} else {
 				// Update sync data if it was sent
@@ -140,14 +150,15 @@ class ProjectEntityRepository(
 	}
 
 	suspend fun getProjectSyncData(
+		callerId: Long,
 		owner: OwnerId,
 		projectDef: ProjectDefinition,
 		syncId: String
 	): SResult<ProjectServerState> {
-		if (validateSyncId(owner, projectDef, syncId).not())
+		if (validateSyncId(callerId, projectDef, syncId).not())
 			return SResult.failure(
 				"end sync failure: invalid session id",
-				Msg.r("api_project_sync_end_invalidid", owner.id)
+				Msg.r("api_project_sync_end_invalidid", callerId)
 			)
 
 		return if (projectEntityDatasource.checkProjectExists(owner, projectDef)) {
@@ -167,6 +178,7 @@ class ProjectEntityRepository(
 	}
 
 	suspend fun saveEntity(
+		callerId: Long,
 		owner: OwnerId,
 		projectDef: ProjectDefinition,
 		entity: ApiProjectEntity,
@@ -174,7 +186,7 @@ class ProjectEntityRepository(
 		syncId: String,
 		force: Boolean
 	): SResult<Unit> {
-		if (validateSyncId(owner, projectDef, syncId).not())
+		if (validateSyncId(callerId, projectDef, syncId).not())
 			return SResult.failure("Invalid SyncId", exception = InvalidSyncIdException())
 
 		val existingType = projectEntityDatasource.findEntityType(entity.id, owner, projectDef)
@@ -242,12 +254,13 @@ class ProjectEntityRepository(
 	}
 
 	suspend fun deleteEntity(
+		callerId: Long,
 		owner: OwnerId,
 		projectDef: ProjectDefinition,
 		entityId: Int,
 		syncId: String,
 	): SResult<Unit> {
-		if (validateSyncId(owner, projectDef, syncId).not())
+		if (validateSyncId(callerId, projectDef, syncId).not())
 			return SResult.failure("Invalid Sync ID", exception = InvalidSyncIdException())
 
 		val entityType: ApiProjectEntity.Type? =
@@ -303,12 +316,13 @@ class ProjectEntityRepository(
 	}
 
 	suspend fun loadEntity(
+		callerId: Long,
 		owner: OwnerId,
 		projectDef: ProjectDefinition,
 		entityId: Int,
 		syncId: String
 	): SResult<ApiProjectEntity> {
-		if (validateSyncId(owner, projectDef, syncId).not())
+		if (validateSyncId(callerId, projectDef, syncId).not())
 			return SResult.failure("Invalid sync id", exception = InvalidSyncIdException())
 
 		val type = projectEntityDatasource.findEntityType(entityId, owner, projectDef)
@@ -348,13 +362,27 @@ class ProjectEntityRepository(
 		}
 	}
 
-	private suspend fun validateSyncId(
-		owner: OwnerId,
+	/** The owner's account session can rename or delete the project under a co-author. */
+	private fun ownerAccountSyncing(callerId: Long, owner: OwnerId): Boolean =
+		owner.id != callerId && projectsSessions.hasActiveSyncSession(owner.id)
+
+	private fun ownerSyncingFailure(callerId: Long, projectDef: ProjectDefinition) = SResult.failure<ProjectSynchronizationBegan>(
+		"begin sync failure: owner's account session",
+		Msg.r("api_project_sync_begin_error_session", callerId),
+		OwnerSyncInProgressException(projectDef.uuid),
+	)
+
+	/**
+	 * Checks the caller's own account session, not the owner's: checking the owner would fail every
+	 * co-author request while the owner has the app open.
+	 */
+	private fun validateSyncId(
+		callerId: Long,
 		projectDef: ProjectDefinition,
 		syncId: String
 	): Boolean {
-		val syncKey = ProjectSyncKey(owner.id, projectDef)
-		return !projectsSessions.hasActiveSyncSession(owner.id) &&
+		val syncKey = ProjectSyncKey(projectDef.uuid)
+		return !projectsSessions.hasActiveSyncSession(callerId) &&
 			sessionManager.validateSyncId(syncKey, syncId)
 	}
 

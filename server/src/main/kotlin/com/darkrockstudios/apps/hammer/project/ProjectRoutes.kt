@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.project
 
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
+import com.darkrockstudios.apps.hammer.base.http.ApiErrorCode
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ClientEntityState
 import com.darkrockstudios.apps.hammer.base.http.DeleteIdsResponse
@@ -94,6 +95,7 @@ private fun Route.beginProjectSync() {
 		}
 
 		val result = projectEntityRepository.beginProjectSync(
+			principal.id,
 			access.owner,
 			projectDef,
 			clientState,
@@ -103,11 +105,13 @@ private fun Route.beginProjectSync() {
 		if (isSuccess(result)) {
 			call.respond(result.data)
 		} else {
+			val ownerSyncing = result.exception is OwnerSyncInProgressException
 			call.respond(
-				status = HttpStatusCode.BadRequest,
+				status = if (ownerSyncing) HttpStatusCode.Conflict else HttpStatusCode.BadRequest,
 				HttpResponseError(
 					error = "Failed to begin sync",
 					displayMessage = result.displayMessageText(call, R(ERR_KEY_UNKNOWN)),
+					errorCode = if (ownerSyncing) ApiErrorCode.PROJECT_SYNC_IN_PROGRESS else null,
 				),
 			)
 		}
@@ -152,6 +156,7 @@ private fun Route.endProjectSync() {
 		log.info("end_sync: parsed lastSync=$lastSync, lastId=$lastId")
 
 		val result = projectEntityRepository.endProjectSync(
+			principal.id,
 			access.owner,
 			projectDef,
 			syncId,
@@ -211,6 +216,7 @@ private fun Route.uploadEntity() {
 		val syncId = call.requireSyncId() ?: return@post
 
 		val result = projectEntityRepository.saveEntity(
+			principal.id,
 			access.owner,
 			projectDef,
 			entity,
@@ -309,7 +315,7 @@ private fun Route.downloadEntity(log: Logger) {
 		val entityId = call.requireEntityId() ?: return@get
 		val syncId = call.requireSyncId() ?: return@get
 
-		val result = projectEntityRepository.loadEntity(access.owner, projectDef, entityId, syncId)
+		val result = projectEntityRepository.loadEntity(principal.id, access.owner, projectDef, entityId, syncId)
 
 		if (isSuccess(result)) {
 			respondDownloadedEntity(log, entityId, entityHash, result.data)
@@ -503,7 +509,7 @@ private fun Route.deleteEntity() {
 		val entityId = call.requireEntityId(error = ERROR_MISSING_ENTITY_ID) ?: return@get
 		val syncId = call.requireSyncId() ?: return@get
 
-		val result = projectEntityRepository.deleteEntity(access.owner, projectDef, entityId, syncId)
+		val result = projectEntityRepository.deleteEntity(principal.id, access.owner, projectDef, entityId, syncId)
 
 		if (isSuccess(result)) {
 			call.respond(HttpStatusCode.OK, DeleteIdsResponse(true))

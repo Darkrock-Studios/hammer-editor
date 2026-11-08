@@ -57,7 +57,7 @@ class ReviewRepositoryTest : BaseTest() {
 	private val numericProjectId = 7L
 	private val projectId = ProjectId("test-uuid")
 	private val projectDef = ProjectDefinition("Test Project", projectId)
-	private val syncKey = ProjectSyncKey(userId, projectDef)
+	private val syncKey = ProjectSyncKey(projectDef.uuid)
 	private val cipherSecret = "cipher-secret"
 	private val testCipher = "AES/GCM/NoPadding"
 
@@ -247,8 +247,8 @@ class ReviewRepositoryTest : BaseTest() {
 	@Test
 	fun `create review request fails while a client sync session is active`() = runTest {
 		mockHappyPathProject(listOf(1))
-		projectSessions.createNewSession(syncKey) { key, syncId ->
-			ProjectSynchronizationSession(key.userId, key.projectDef, clock.now(), syncId, "client-install")
+		projectSessions.createNewSession(syncKey) { _, syncId ->
+			ProjectSynchronizationSession(userId, projectDef, clock.now(), syncId, "client-install")
 		}
 
 		val result = createRepository().createReviewRequest(

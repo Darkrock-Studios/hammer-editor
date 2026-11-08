@@ -70,7 +70,7 @@ class ProbeProjectChangesUseCaseTest : ProjectsRepositoryBaseTest() {
 	fun `a project with an in-flight sync session is left out`() = runTest {
 		stubTwoEntities()
 		every {
-			projectSessionManager.hasActiveSyncSession(ProjectSyncKey(userId, projectDefinition))
+			projectSessionManager.hasActiveSyncSession(ProjectSyncKey(projectDefinition.uuid))
 		} returns true
 
 		val result = probe()(userId, listOf(ProjectHashItem(projectId, expectedServerHash())))

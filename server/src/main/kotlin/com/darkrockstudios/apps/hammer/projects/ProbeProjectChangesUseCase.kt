@@ -37,7 +37,7 @@ class ProbeProjectChangesUseCase(
 			val projectDef = projectsDatasource.getProject(userId, item.projectId) ?: continue
 			// A project with an in-flight sync (e.g. from another device) may have half-updated
 			// stored hashes, so we can't certify it "unchanged". Omit it → the client full-syncs.
-			if (projectSyncSessionManager.hasActiveSyncSession(ProjectSyncKey(userId, projectDef))) continue
+			if (projectSyncSessionManager.hasActiveSyncSession(ProjectSyncKey(projectDef.uuid))) continue
 			val serverHash = computeProjectContentHash(OwnerId.unchecked(userId), projectDef) ?: continue
 			if (serverHash == item.hash) {
 				unchanged += item.projectId

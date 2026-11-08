@@ -149,7 +149,7 @@ abstract class ProjectEntityRepositoryBaseTest : BaseTest() {
 		val canReplaceSlot = slot<(ProjectSynchronizationSession) -> Boolean>()
 		val createSessionSlot =
 			slot<(key: ProjectSyncKey, syncId: String) -> ProjectSynchronizationSession>()
-		val key = ProjectSyncKey(userId, projectDefinition)
+		val key = ProjectSyncKey(projectDefinition.uuid)
 		coEvery {
 			projectSessionManager.claimSession(
 				key,

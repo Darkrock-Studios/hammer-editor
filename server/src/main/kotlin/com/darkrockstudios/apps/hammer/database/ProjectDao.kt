@@ -81,13 +81,13 @@ class ProjectDao(
 		lastId: Long,
 		lastSync: Instant,
 		owner: OwnerId,
-		projectName: String,
+		projectUuid: ProjectId,
 	) = withContext(ioDispatcher) {
 		queries.updateSyncData(
 			lastId = lastId,
 			lastSync = lastSync,
 			userId = owner.id,
-			name = projectName,
+			uuid = projectUuid.id,
 		)
 	}
 

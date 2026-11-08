@@ -9,6 +9,7 @@ import com.darkrockstudios.apps.hammer.base.http.MAX_GROUP_NESTING_DEPTH
 import com.darkrockstudios.apps.hammer.base.validate.validateProjectName
 import com.darkrockstudios.apps.hammer.database.ProjectDao
 import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECTS_SYNC_MANAGER
+import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECT_SYNC_MANAGER
 import com.darkrockstudios.apps.hammer.project.*
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
 import com.darkrockstudios.apps.hammer.utilities.Msg
@@ -27,6 +28,18 @@ class ProjectsRepository(
 		clazz = SyncSessionManager::class.java,
 		qualifier = named(PROJECTS_SYNC_MANAGER)
 	)
+
+	private val projectSessions: SyncSessionManager<ProjectSyncKey, ProjectSynchronizationSession> by inject(
+		clazz = SyncSessionManager::class.java,
+		qualifier = named(PROJECT_SYNC_MANAGER)
+	)
+
+	/**
+	 * Whether a co-author holds a live session on [projectId]. The owner's own sessions need no check:
+	 * they already fail while the owner's account session is live.
+	 */
+	private fun coAuthorSyncing(owner: OwnerId, projectId: ProjectId): Boolean =
+		projectSessions.getActiveSyncSession(ProjectSyncKey(projectId))?.let { it.userId != owner.id } == true
 
 	suspend fun createUserData(userId: Long) = projectsDatasource.createUserData(userId)
 
@@ -128,6 +141,9 @@ class ProjectsRepository(
 		)
 
 		val projectDef = projectsDatasource.getProject(userId, projectId)
+		if (projectDef != null && coAuthorSyncing(owner, projectDef.uuid))
+			return SResult.failure(ProjectSyncInProgressException(projectId))
+
 		return if (projectDef != null) {
 			val result = projectEntityDatasource.deleteProject(owner, projectDef.uuid)
 			if (result.isSuccess) {
@@ -204,14 +220,19 @@ class ProjectsRepository(
 	)
 
 	/** An unknown [groupId] places the project at the top level. */
+	@OptIn(UncheckedOwner::class)
 	suspend fun moveProject(
 		userId: Long,
 		syncId: String,
 		projectId: ProjectId,
 		groupId: GroupId?,
 	): SResult<Unit> {
+		val owner = OwnerId.unchecked(userId)
 		if (syncSessionManager.validateSyncId(userId, syncId).not())
 			return SResult.failure(InvalidSyncIdException())
+
+		if (coAuthorSyncing(owner, projectId) && projectEntityDatasource.checkProjectExists(owner, projectId))
+			return SResult.failure(ProjectSyncInProgressException(projectId))
 
 		val group = groupId?.let { projectsDatasource.getGroup(userId, it) }
 		return if (projectsDatasource.setProjectGroup(userId, projectId, group?.rowId)) {
@@ -339,6 +360,7 @@ class ProjectsRepository(
 
 		val existingProject = projectEntityDatasource.checkProjectExists(owner, projectId)
 		if (existingProject.not()) return SResult.failure(ProjectNotFound(projectId))
+		if (coAuthorSyncing(owner, projectId)) return SResult.failure(ProjectSyncInProgressException(projectId))
 
 		return if (projectEntityDatasource.renameProject(owner, projectId, newProjectName)) {
 			SResult.success()

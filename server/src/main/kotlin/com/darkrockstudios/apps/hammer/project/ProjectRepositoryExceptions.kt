@@ -29,6 +29,14 @@ class EntityValidationException(
 	val reason: String,
 ) : Exception("Entity $id rejected: $reason")
 
+/** A project session cannot start while the owner's account session (which can rename or delete it) is live. */
+class OwnerSyncInProgressException(val projectId: ProjectId) :
+	Exception("The owner of project $projectId is syncing their account")
+
+/** The owner cannot delete, rename or move a project while a co-author holds a session on it. */
+class ProjectSyncInProgressException(val projectId: ProjectId) :
+	Exception("Project $projectId has a sync in progress")
+
 class ProjectNotFound(val projectId: ProjectId) :
 	Exception("Project $projectId not found on server") {
 	constructor(projectDef: ProjectDefinition) : this(projectDef.uuid)

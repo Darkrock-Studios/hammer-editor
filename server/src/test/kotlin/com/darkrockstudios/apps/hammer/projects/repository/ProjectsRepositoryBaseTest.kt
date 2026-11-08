@@ -54,6 +54,7 @@ abstract class ProjectsRepositoryBaseTest : BaseTest() {
 		projectSessionManager = mockk()
 		// Default: no in-flight project sync, so the probe gate lets projects through.
 		every { projectSessionManager.hasActiveSyncSession(any()) } returns false
+		every { projectSessionManager.getActiveSyncSession(any()) } returns null
 
 		projectsDatasource = mockk()
 		projectsRepository = mockk()

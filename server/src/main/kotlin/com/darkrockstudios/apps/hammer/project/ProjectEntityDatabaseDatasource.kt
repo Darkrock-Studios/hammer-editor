@@ -116,7 +116,7 @@ class ProjectEntityDatabaseDatasource(
 			lastId = updated.lastId.toLong(),
 			lastSync = updated.lastSync,
 			owner = owner,
-			projectName = projectDef.name,
+			projectUuid = projectDef.uuid,
 		)
 
 		val projectId = projectDao.getProjectId(owner, projectDef.uuid)

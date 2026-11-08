@@ -12,7 +12,6 @@ data class ProjectDefinition(
 ) {
 	fun toApi() = toApi(groupId = null)
 
-	// Placement is kept out of this class because it is part of ProjectSyncKey.
 	fun toApi(groupId: GroupId?) = ApiProjectDefinition(
 		name = name,
 		uuid = ProjectId(uuid.id),
