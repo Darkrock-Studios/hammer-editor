@@ -357,6 +357,11 @@ upload it as your own project."). The project journal is untouched: a rebuilt jo
 deletions from id gaps and marks nothing dirty, so clearing it would let a partial copy delete the
 owner's entities on re-invite and let the co-author's unsynced edits be downloaded over.
 
+The delete phase never deletes a folder whose `project.toml` has `ownerId` set, even when the id
+appears under `deletedProjects`; it parks it instead. This closes the one server-side path left
+(a leave that reaches the server after the owner already deleted the project tombstones the id
+for the leaver) and means no server state can ever remove a co-author's local copy.
+
 A project with `ownerId != null` never takes the unknown-project create path, whatever the
 response. This single rule covers removal, the owner deleting the project, the owner's account
 being soft-deleted (reversible for the retention window), the owner losing whitelist access, and
@@ -434,8 +439,10 @@ stages below, in order, each landing as a series of checkpoint commits on the br
    the card marker, the single enforcement point and its callers, the delete dialog's server
    option, the re-mint on turn-on for a tombstoned id. Independent of co-authoring.
 5. **Clients: owner awareness.** `ownerId`/`ownerName` in `project.toml`, leave dialog,
-   no-adoption and filesystem collision check, reconciler rules, parked projects, the
-   "upload as my own" turn-on path, `buildSyncData` hardening.
+   no-adoption and filesystem collision check, reconciler rules, parked projects (including
+   never deleting a folder with `ownerId` from the delete phase), re-mint on `403 not_member`
+   from `create` for a project without `ownerId`, the "upload as my own" turn-on path,
+   `buildSyncData` hardening.
 6. **Writing stats by author.** Server stamps, slot key, client merge rule, stats grouping, card
    label.
 7. **Docs:** `SYNCING-PROTOCOL.md` sections for membership, `403 not_member`, leave and the
