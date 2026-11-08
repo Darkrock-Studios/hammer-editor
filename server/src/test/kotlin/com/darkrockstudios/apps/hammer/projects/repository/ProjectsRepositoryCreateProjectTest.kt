@@ -3,7 +3,10 @@ package com.darkrockstudios.apps.hammer.projects.repository
 import com.darkrockstudios.apps.hammer.base.GroupId
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.project.InvalidProjectName
+import com.darkrockstudios.apps.hammer.project.NotMemberException
 import com.darkrockstudios.apps.hammer.project.OwnerId
+import com.darkrockstudios.apps.hammer.project.ProjectAccess
+import com.darkrockstudios.apps.hammer.project.ProjectAccessResult
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.project.ProjectDeletedException
 import com.darkrockstudios.apps.hammer.project.ProjectIdTakenException
@@ -205,6 +208,49 @@ class ProjectsRepositoryCreateProjectTest : ProjectsRepositoryBaseTest() {
 
 			assertTrue(isSuccess(result))
 			assertEquals(groupId, result.data.groupId)
+		}
+	}
+
+	@Test
+	fun `Create Project, a co-authored id is idempotent at the top level`() = runTest {
+		val shared = ProjectDefinition("Shared", projectId)
+		coEvery { projectAccessResolver.resolve(userId, projectId) } returns
+			ProjectAccessResult.Granted(ProjectAccess(shared, OwnerId.unchecked(userId + 1), isOwner = false))
+
+		createProjectsRepository().apply {
+			val result = createProject(userId, syncId, projectName, projectId, groupId)
+
+			assertTrue(isSuccess(result))
+			assertEquals(shared, result.data.project)
+			assertTrue(result.data.alreadyExisted)
+			assertNull(result.data.groupId)
+			coVerify(exactly = 0) { projectEntityDatasource.createProject(any(), any(), any()) }
+			coVerify(exactly = 0) { projectsDatasource.setProjectGroup(any(), any(), any()) }
+		}
+	}
+
+	@Test
+	fun `Create Project, an id held by an account the caller does not share with is not_member`() = runTest {
+		coEvery { projectAccessResolver.resolve(userId, projectId) } returns ProjectAccessResult.NotMember
+
+		createProjectsRepository().apply {
+			val result = createProject(userId, syncId, projectName, projectId)
+
+			assertIs<NotMemberException>((result as ServerResult.Failure).exception)
+			coVerify(exactly = 0) { projectEntityDatasource.createProject(any(), any(), any()) }
+		}
+	}
+
+	@Test
+	fun `Create Project, losing the insert to another account's project is not_member`() = runTest {
+		coEvery { projectEntityDatasource.createProject(OwnerId.unchecked(userId), projectName, projectId) } returns null
+		coEvery { projectAccessResolver.resolve(userId, projectId) } returnsMany
+			listOf(ProjectAccessResult.Unknown, ProjectAccessResult.NotMember)
+
+		createProjectsRepository().apply {
+			val result = createProject(userId, syncId, projectName, projectId)
+
+			assertIs<NotMemberException>((result as ServerResult.Failure).exception)
 		}
 	}
 }

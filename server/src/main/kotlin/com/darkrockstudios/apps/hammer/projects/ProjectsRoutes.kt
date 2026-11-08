@@ -22,6 +22,8 @@ import com.darkrockstudios.apps.hammer.project.InvalidProjectName
 import com.darkrockstudios.apps.hammer.project.InvalidSyncIdException
 import com.darkrockstudios.apps.hammer.monitoring.ActivityType
 import com.darkrockstudios.apps.hammer.monitoring.UserActivityCollector
+import com.darkrockstudios.apps.hammer.project.NotMemberException
+import com.darkrockstudios.apps.hammer.project.NotOwnerException
 import com.darkrockstudios.apps.hammer.project.ProjectDeletedException
 import com.darkrockstudios.apps.hammer.project.ProjectIdTakenException
 import com.darkrockstudios.apps.hammer.project.ProjectNameTaken
@@ -47,6 +49,8 @@ private const val ERR_KEY_PROJECT_NOT_FOUND = "api_project_getproject_error_notf
 private const val ERR_KEY_PROJECT_CREATE_DELETED = "api_projects_create_error_deleted"
 private const val ERR_KEY_PROJECT_CREATE_ID_TAKEN = "api_projects_create_error_id_taken"
 private const val ERR_KEY_PROJECT_SYNC_IN_PROGRESS = "api_projects_error_sync_in_progress"
+private const val ERR_KEY_NOT_MEMBER = "api_project_error_notmember"
+private const val ERR_KEY_NOT_OWNER = "api_projects_error_not_owner"
 internal const val ERR_KEY_GROUP_ID_MISSING = "api_projects_group_error_groupidmissing"
 private const val ERR_KEY_GROUP_INVALID_NAME = "api_projects_group_error_invalidname"
 private const val ERR_KEY_GROUP_INVALID_DESCRIPTION = "api_projects_group_error_invaliddescription"
@@ -123,6 +127,11 @@ private suspend fun ApplicationCall.respondNotAcceptable(messageKey: String) = r
 	HttpResponseError(error = ERROR_GENERIC, displayMessage = t(R(messageKey))),
 )
 
+private suspend fun ApplicationCall.respondForbidden(messageKey: String, errorCode: String) = respond(
+	status = HttpStatusCode.Forbidden,
+	HttpResponseError(error = errorCode, displayMessage = t(R(messageKey)), errorCode = errorCode),
+)
+
 private suspend fun ApplicationCall.respondConflict(messageKey: String, errorCode: String) = respond(
 	status = HttpStatusCode.Conflict,
 	HttpResponseError(error = ERROR_GENERIC, displayMessage = t(R(messageKey)), errorCode = errorCode),
@@ -136,6 +145,8 @@ internal suspend fun ApplicationCall.respondSyncFailure(exception: Throwable?) {
 
 		is ProjectDeletedException -> respondConflict(ERR_KEY_PROJECT_CREATE_DELETED, ApiErrorCode.PROJECT_DELETED)
 		is ProjectIdTakenException -> respondConflict(ERR_KEY_PROJECT_CREATE_ID_TAKEN, ApiErrorCode.PROJECT_ID_TAKEN)
+		is NotMemberException -> respondForbidden(ERR_KEY_NOT_MEMBER, ApiErrorCode.NOT_MEMBER)
+		is NotOwnerException -> respondForbidden(ERR_KEY_NOT_OWNER, ApiErrorCode.NOT_OWNER)
 		is ProjectSyncInProgressException ->
 			respondConflict(ERR_KEY_PROJECT_SYNC_IN_PROGRESS, ApiErrorCode.PROJECT_SYNC_IN_PROGRESS)
 

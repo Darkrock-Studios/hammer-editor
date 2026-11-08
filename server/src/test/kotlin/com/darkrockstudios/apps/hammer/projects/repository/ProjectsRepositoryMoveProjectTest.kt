@@ -3,6 +3,12 @@ package com.darkrockstudios.apps.hammer.projects.repository
 import com.darkrockstudios.apps.hammer.base.GroupId
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.project.InvalidSyncIdException
+import com.darkrockstudios.apps.hammer.project.NotMemberException
+import com.darkrockstudios.apps.hammer.project.NotOwnerException
+import com.darkrockstudios.apps.hammer.project.OwnerId
+import com.darkrockstudios.apps.hammer.project.ProjectAccess
+import com.darkrockstudios.apps.hammer.project.ProjectAccessResult
+import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.project.ProjectNotFound
 import com.darkrockstudios.apps.hammer.projects.ProjectGroup
 import com.darkrockstudios.apps.hammer.utilities.ServerResult
@@ -71,5 +77,27 @@ class ProjectsRepositoryMoveProjectTest : ProjectsRepositoryBaseTest() {
 		val result = createProjectsRepository().moveProject(userId, syncId, projectId, groupId)
 
 		assertIs<ProjectNotFound>((result as ServerResult.Failure).exception)
+	}
+
+	@Test
+	fun `a co-author cannot move the project`() = runTest {
+		coEvery { projectsDatasource.setProjectGroup(userId, projectId, any()) } returns false
+		coEvery { projectAccessResolver.resolve(userId, projectId) } returns ProjectAccessResult.Granted(
+			ProjectAccess(ProjectDefinition("Shared", projectId), OwnerId.unchecked(userId + 1), isOwner = false)
+		)
+
+		val result = createProjectsRepository().moveProject(userId, syncId, projectId, groupId)
+
+		assertIs<NotOwnerException>((result as ServerResult.Failure).exception)
+	}
+
+	@Test
+	fun `a non-member cannot move the project`() = runTest {
+		coEvery { projectsDatasource.setProjectGroup(userId, projectId, any()) } returns false
+		coEvery { projectAccessResolver.resolve(userId, projectId) } returns ProjectAccessResult.NotMember
+
+		val result = createProjectsRepository().moveProject(userId, syncId, projectId, groupId)
+
+		assertIs<NotMemberException>((result as ServerResult.Failure).exception)
 	}
 }

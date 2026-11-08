@@ -9,6 +9,7 @@ import com.darkrockstudios.apps.hammer.base.http.HttpResponseError
 import com.darkrockstudios.apps.hammer.project.InvalidProjectName
 import com.darkrockstudios.apps.hammer.project.InvalidSyncIdException
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
+import com.darkrockstudios.apps.hammer.project.NotMemberException
 import com.darkrockstudios.apps.hammer.project.ProjectDeletedException
 import com.darkrockstudios.apps.hammer.project.ProjectIdTakenException
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository.ProjectCreatedResult
@@ -192,6 +193,18 @@ class ProjectsRoutesCreateProjectTest : ProjectsRoutesBaseTest() {
 			assertEquals(HttpStatusCode.Conflict, status)
 			val error = Json.decodeFromString<HttpResponseError>(bodyAsText())
 			assertEquals(ApiErrorCode.PROJECT_ID_TAKEN, error.errorCode)
+		}
+	}
+
+	@Test
+	fun `Projects - Create Project - Failure - Not a member`() = testApplication {
+		stubResult(SResult.failure(NotMemberException(projectId)))
+		authorize()
+
+		postCreate().apply {
+			assertEquals(HttpStatusCode.Forbidden, status)
+			val error = Json.decodeFromString<HttpResponseError>(bodyAsText())
+			assertEquals(ApiErrorCode.NOT_MEMBER, error.errorCode)
 		}
 	}
 

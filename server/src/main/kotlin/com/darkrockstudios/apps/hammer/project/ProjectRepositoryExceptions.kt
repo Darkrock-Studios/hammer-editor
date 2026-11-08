@@ -42,6 +42,14 @@ class ProjectNotFound(val projectId: ProjectId) :
 	constructor(projectDef: ProjectDefinition) : this(projectDef.uuid)
 }
 
+/** The project exists, but the caller neither owns it nor co-authors it. */
+class NotMemberException(val projectId: ProjectId) :
+	Exception("Project $projectId is not shared with this account")
+
+/** Only the owner may rename, move or delete the project; a co-author's delete is a leave. */
+class NotOwnerException(val projectId: ProjectId) :
+	Exception("Project $projectId belongs to another account")
+
 class InvalidProjectName(val name: String) :
 	Exception("Invalid project name: $name")
 

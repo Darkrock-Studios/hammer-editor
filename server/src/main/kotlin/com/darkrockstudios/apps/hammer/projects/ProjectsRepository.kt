@@ -193,6 +193,7 @@ class ProjectsRepository(
 		projectEntityDatasource.getProject(owner, projectId)?.let { existing ->
 			return SResult.success(existingProjectResult(userId, existing))
 		}
+		createOnNotOwned(userId, projectId)?.let { return it }
 
 		if (projectId in getDeletedProjects(userId))
 			return SResult.failure(ProjectDeletedException(projectId))
@@ -212,8 +213,37 @@ class ProjectsRepository(
 		// A concurrent retry of this same create can win the insert; that is still idempotent.
 		return projectEntityDatasource.getProject(owner, projectId)
 			?.let { SResult.success(existingProjectResult(userId, it)) }
+			?: createOnNotOwned(userId, projectId)
 			?: SResult.failure(ProjectIdTakenException(projectId))
 	}
+
+	/**
+	 * The create result for a [projectId] the caller does not own: idempotent on a project they
+	 * co-author, refused on anyone else's, and null when no project holds it.
+	 */
+	private suspend fun createOnNotOwned(userId: Long, projectId: ProjectId): SResult<ProjectCreatedResult>? =
+		when (val access = projectAccessResolver.resolve(userId, projectId)) {
+			is ProjectAccessResult.Granted -> SResult.success(
+				if (access.access.isOwner) {
+					existingProjectResult(userId, access.access.projectDef)
+				} else {
+					ProjectCreatedResult(project = access.access.projectDef, alreadyExisted = true, groupId = null)
+				}
+			)
+
+			ProjectAccessResult.NotMember -> SResult.failure(NotMemberException(projectId))
+			ProjectAccessResult.Unknown -> null
+		}
+
+	/** Why the caller cannot rename or move [projectId], which they do not own. */
+	private suspend fun notOwnedFailure(userId: Long, projectId: ProjectId): Exception =
+		when (val access = projectAccessResolver.resolve(userId, projectId)) {
+			is ProjectAccessResult.Granted ->
+				if (access.access.isOwner) ProjectNotFound(projectId) else NotOwnerException(projectId)
+
+			ProjectAccessResult.NotMember -> NotMemberException(projectId)
+			ProjectAccessResult.Unknown -> ProjectNotFound(projectId)
+		}
 
 	private suspend fun existingProjectResult(userId: Long, project: ProjectDefinition) = ProjectCreatedResult(
 		project = project,
@@ -240,7 +270,7 @@ class ProjectsRepository(
 		return if (projectsDatasource.setProjectGroup(userId, projectId, group?.rowId)) {
 			SResult.success()
 		} else {
-			SResult.failure(ProjectNotFound(projectId))
+			SResult.failure(notOwnedFailure(userId, projectId))
 		}
 	}
 
@@ -361,7 +391,7 @@ class ProjectsRepository(
 			return SResult.failure(InvalidProjectName(newProjectName ?: "null"))
 
 		val existingProject = projectEntityDatasource.checkProjectExists(owner, projectId)
-		if (existingProject.not()) return SResult.failure(ProjectNotFound(projectId))
+		if (existingProject.not()) return SResult.failure(notOwnedFailure(userId, projectId))
 		if (coAuthorSyncing(owner, projectId)) return SResult.failure(ProjectSyncInProgressException(projectId))
 
 		return if (projectEntityDatasource.renameProject(owner, projectId, newProjectName)) {

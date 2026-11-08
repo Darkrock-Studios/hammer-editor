@@ -4,6 +4,8 @@ import com.darkrockstudios.apps.hammer.base.GroupId
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.HEADER_SYNC_ID
 import com.darkrockstudios.apps.hammer.project.InvalidSyncIdException
+import com.darkrockstudios.apps.hammer.project.NotMemberException
+import com.darkrockstudios.apps.hammer.project.NotOwnerException
 import com.darkrockstudios.apps.hammer.project.ProjectNotFound
 import com.darkrockstudios.apps.hammer.utilities.SResult
 import io.ktor.client.request.*
@@ -110,6 +112,8 @@ class ProjectsRoutesMoveProjectTest : ProjectsRoutesBaseTest() {
 		fun failures(): Stream<Arguments> = Stream.of(
 			Arguments.of(InvalidSyncIdException(), HttpStatusCode.BadRequest),
 			Arguments.of(ProjectNotFound(ProjectId("2b1f3c4d-5e6f-4a1b-8c2d-3e4f5a6b7c8d")), HttpStatusCode.NotFound),
+			Arguments.of(NotOwnerException(ProjectId("2b1f3c4d-5e6f-4a1b-8c2d-3e4f5a6b7c8d")), HttpStatusCode.Forbidden),
+			Arguments.of(NotMemberException(ProjectId("2b1f3c4d-5e6f-4a1b-8c2d-3e4f5a6b7c8d")), HttpStatusCode.Forbidden),
 			Arguments.of(Exception(), HttpStatusCode.InternalServerError),
 		)
 	}

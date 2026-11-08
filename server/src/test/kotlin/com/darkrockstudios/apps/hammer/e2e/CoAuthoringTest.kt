@@ -14,6 +14,7 @@ import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectDataHasher
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.BeginProjectsSyncResponse
 import com.darkrockstudios.apps.hammer.base.http.ClientEntityState
+import com.darkrockstudios.apps.hammer.base.http.CreateProjectResponse
 import com.darkrockstudios.apps.hammer.base.http.HAMMER_PROTOCOL_HEADER
 import com.darkrockstudios.apps.hammer.base.http.HAMMER_PROTOCOL_VERSION
 import com.darkrockstudios.apps.hammer.base.http.HEADER_SYNC_ID
@@ -93,6 +94,24 @@ class CoAuthoringTest : ProjectSyncTestBase() {
 		params.forEach { (key, value) -> parameter(key, value) }
 	}
 
+	private suspend fun HttpClient.createRequest(
+		userId: Long,
+		token: Token,
+		syncId: String,
+		name: String,
+		projectId: ProjectId,
+	): HttpResponse = post(api("projects/$userId/create")) {
+		authHeaders(token)
+		headers { append(HEADER_SYNC_ID, syncId) }
+		parameter("projectId", projectId.id)
+		parameter("projectName", name)
+	}
+
+	private fun strangerToken(): Token =
+		createAuthToken(strangerId, "stranger-install", database = database(), tokenHasher = tokenHasher())
+
+	private val sharedId get() = ProjectId.fromUUID(TestDataSet1.project1.uuid)
+
 	private fun HttpRequestBuilder.authHeaders(token: Token) = headers {
 		append(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
 		append("Authorization", "Bearer ${token.auth}")
@@ -150,8 +169,7 @@ class CoAuthoringTest : ProjectSyncTestBase() {
 	@Test
 	fun `a non-member is refused with not_member and an unknown id is gone`(): Unit = runBlocking {
 		setUpProject()
-		val strangerToken =
-			createAuthToken(strangerId, "stranger-install", database = database(), tokenHasher = tokenHasher())
+		val strangerToken = strangerToken()
 
 		client().apply {
 			val refused = projectSynchronizationBeganRequest(strangerId, strangerToken, emptyState)
@@ -327,6 +345,81 @@ class CoAuthoringTest : ProjectSyncTestBase() {
 				setBody(ProjectsSyncProbeRequest(listOf(ProjectHashItem(projectId, hash))))
 			}
 			assertEquals(setOf(projectId), response.body<ProjectsSyncProbeResponse>().unchangedProjects)
+		}
+	}
+
+	@Test
+	fun `a member's create of the shared id is idempotent and leaves it at the top level`(): Unit = runBlocking {
+		setUpProject()
+
+		client().apply {
+			val syncId = beginAccountSync(memberId, memberToken)
+			val response = createRequest(memberId, memberToken, syncId, "Anything", sharedId)
+
+			assertEquals(HttpStatusCode.OK, response.status)
+			assertEquals(CreateProjectResponse(sharedId, alreadyExisted = true, groupId = null), response.body())
+		}
+	}
+
+	@Test
+	fun `create with an id the caller does not share is not_member`(): Unit = runBlocking {
+		setUpProject()
+		val strangerToken = strangerToken()
+
+		client().apply {
+			val syncId = beginAccountSync(strangerId, strangerToken)
+			val response = createRequest(strangerId, strangerToken, syncId, "Anything", sharedId)
+
+			assertEquals(HttpStatusCode.Forbidden, response.status)
+			assertEquals(ApiErrorCode.NOT_MEMBER, response.body<HttpResponseError>().errorCode)
+		}
+	}
+
+	@Test
+	fun `a member's create under the shared project's name makes their own project`(): Unit = runBlocking {
+		setUpProject()
+		val ownId = ProjectId.fromUUID(Uuid.random())
+
+		client().apply {
+			val syncId = beginAccountSync(memberId, memberToken)
+			val response = createRequest(memberId, memberToken, syncId, TestDataSet1.project1.name, ownId)
+
+			assertEquals(HttpStatusCode.OK, response.status)
+			assertEquals(CreateProjectResponse(ownId, alreadyExisted = false, groupId = null), response.body())
+			assertNotNull(
+				database().serverDatabase.projectQueries.getProject(memberId, ownId.id).executeAsOneOrNull()
+			)
+		}
+	}
+
+	@Test
+	fun `a member's rename and move are not_owner, a stranger's are not_member`(): Unit = runBlocking {
+		setUpProject()
+		val strangerToken = strangerToken()
+
+		client().apply {
+			val memberSyncId = beginAccountSync(memberId, memberToken)
+			listOf(
+				accountRequest("rename", memberId, memberToken, memberSyncId, "projectName" to "Renamed"),
+				accountRequest("move", memberId, memberToken, memberSyncId),
+			).forEach { response ->
+				assertEquals(HttpStatusCode.Forbidden, response.status)
+				assertEquals(ApiErrorCode.NOT_OWNER, response.body<HttpResponseError>().errorCode)
+			}
+
+			val strangerSyncId = beginAccountSync(strangerId, strangerToken)
+			listOf(
+				accountRequest("rename", strangerId, strangerToken, strangerSyncId, "projectName" to "Renamed"),
+				accountRequest("move", strangerId, strangerToken, strangerSyncId),
+			).forEach { response ->
+				assertEquals(HttpStatusCode.Forbidden, response.status)
+				assertEquals(ApiErrorCode.NOT_MEMBER, response.body<HttpResponseError>().errorCode)
+			}
+
+			assertEquals(
+				TestDataSet1.project1.name,
+				database().serverDatabase.projectQueries.getProject(ownerId, sharedId.id).executeAsOne().name,
+			)
 		}
 	}
 }
