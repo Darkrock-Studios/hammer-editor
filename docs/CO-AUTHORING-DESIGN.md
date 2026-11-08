@@ -241,17 +241,28 @@ project routes answer `403` or `410`. The client handles all four with one rule 
 - **Accept/decline:** a dashboard notice for invites whose `email` matches the session account.
   Accepting requires a pen name (set inline if missing), inserts `project_member` and deletes the
   invite. Declining deletes the invite.
-- **Dashboard:** `getProjectsWithSyncDate(userId)` unions member projects, labelled "shared by
-  {owner}". Co-authors count towards nothing in the owner's project limits.
-- **Story page for a co-author:** `findProjectByUrlSegment` resolves member projects, and
-  `/story/{segment}` for a member renders a reduced page: title, owner, sync state, the *Read*
-  link, and a *Leave* control. Every other control on the story page (publish, kudos, share
-  links, review requests, rename, delete, invite) stays owner-only and is simply absent, so the
-  existing `session.userId` call sites behind those controls do not change. Kudos: `giverId` is
-  also refused when it is a member of the project.
+  Invites from an inactive owner are hidden and cannot be accepted (`ReceivedInvite` carries the
+  owner's id for this). Setting the pen name inline reloads the page, since the pen name shows in
+  several sections of the dashboard.
+- **Dashboard:** member projects are listed under *Shared with you*, labelled "Shared by
+  {owner}", below the owner's own paginated list and outside its paging.
+  `getProjectsWithSyncDate(userId)` stays owner-only, because it also backs the owner-only story
+  routes. Co-authors count towards nothing in the owner's project limits.
+- **Story page for a co-author:** `findProjectByUrlSegment` stays owner-only, so every owner
+  control's route still finds only owned projects. `findStoryProject` resolves owned and then
+  member projects, with the owner from membership, for `/story/{segment}`, the reader, author
+  images, leave and the owner's co-author routes. `/story/{segment}` for a member renders a reduced
+  page: title, owner, the stats strip (which holds the sync state; its counts come from the same
+  rows the member can read), the *Read* link, and a *Leave* control with a confirm step. Every
+  other control on the story page (publish, kudos, share links, review requests, rename, delete,
+  invite) stays owner-only and is simply absent, so the existing `session.userId` call sites
+  behind those controls do not change. Kudos: `giverId` is also refused when it is a member of
+  the project, and a member sees the public kudos section as the owner does, without chips.
+- **Owner's co-author routes:** an invite refusal renders inline in the open dialog; a co-author
+  gets `403` and a stranger `404`.
 - **Share links and review requests:** unchanged, owner only.
-- **Admin:** project counts in the admin user list stay owner-based; the project list shows the
-  member count.
+- **Admin:** project counts in the admin user list stay owner-based. There is no admin project
+  list, so the member count is not shown anywhere yet.
 - Notification mail to an invitee with an account (`email/project-invite.mustache`) is off for
   the first pass; the dashboard notice is enough.
 
@@ -434,7 +445,8 @@ stages below, in order, each landing as a series of checkpoint commits on the br
    `delete` is leave, `create` answers `403 not_member`, sixth invite refused. Landed
    2026-11-08 as `029b7529d`, `ffe2f958a`, `167e36a46`, `c05cbacd1`, `54f5ccd83`.
 3. **Server: website.** Invite, accept, members list with remove, dashboard label, reduced story
-   page for co-authors with *Leave*.
+   page for co-authors with *Leave*. Landed 2026-11-08 as `ad1dc60fd`, `ed09fb5d0`, `0ca15edb6`,
+   `c08c67743`.
 4. **Clients: per-project sync toggle.** `syncEnabled` in `project.toml`, the settings switch,
    the card marker, the single enforcement point and its callers, the delete dialog's server
    option, the re-mint on turn-on for a tombstoned id. Independent of co-authoring.
