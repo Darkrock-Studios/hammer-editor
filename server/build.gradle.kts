@@ -50,6 +50,10 @@ sqldelight {
 	}
 }
 
+tasks.named<org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask<*>>("compileTestKotlin") {
+	compilerOptions.optIn.add("com.darkrockstudios.apps.hammer.project.CallerIsOwner")
+}
+
 kover {
 	reports {
 		filters {

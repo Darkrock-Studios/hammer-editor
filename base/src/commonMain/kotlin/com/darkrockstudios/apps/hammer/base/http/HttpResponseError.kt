@@ -40,6 +40,8 @@ object ApiErrorCode {
 	const val PROJECT_DELETED = "project_deleted"
 	/** Create refused: another account already owns a project with that id. */
 	const val PROJECT_ID_TAKEN = "project_id_taken"
+	/** The project exists, but the caller neither owns it nor is a co-author on it. */
+	const val NOT_MEMBER = "not_member"
 	/** Upsert refused: a sibling group already has that name. Also on delete, when a child would collide. */
 	const val GROUP_NAME_TAKEN = "group_name_taken"
 	/** Upsert refused: the new parent is the group itself or one of its descendants. */

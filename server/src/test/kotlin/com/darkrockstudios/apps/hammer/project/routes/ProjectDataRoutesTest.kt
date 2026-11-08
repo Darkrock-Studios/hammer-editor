@@ -22,6 +22,10 @@ import com.darkrockstudios.apps.hammer.plugins.configureRouting
 import com.darkrockstudios.apps.hammer.plugins.configureSecurity
 import com.darkrockstudios.apps.hammer.plugins.configureSerialization
 import com.darkrockstudios.apps.hammer.project.ProjectDataSaveResult
+import com.darkrockstudios.apps.hammer.project.OwnerId
+import com.darkrockstudios.apps.hammer.project.ProjectAccess
+import com.darkrockstudios.apps.hammer.project.ProjectAccessResolver
+import com.darkrockstudios.apps.hammer.project.ProjectAccessResult
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.project.ProjectEntityDatasource
 import com.darkrockstudios.apps.hammer.project.ProjectEntityRepository
@@ -68,6 +72,7 @@ class ProjectDataRoutesTest : BaseTest() {
 	@MockK(relaxed = true) private lateinit var serverWritingActivityRepository: ServerWritingActivityRepository
 	@MockK(relaxed = true) private lateinit var projectEntityRepository: ProjectEntityRepository
 	@MockK(relaxed = true) private lateinit var projectEntityDatasource: ProjectEntityDatasource
+	@MockK(relaxed = true) private lateinit var projectAccessResolver: ProjectAccessResolver
 	@MockK(relaxed = true) private lateinit var projectAccessRepository: ProjectAccessRepository
 	@MockK(relaxed = true) private lateinit var projectsRepository: ProjectsRepository
 	@MockK(relaxed = true) private lateinit var accountsComponent: AccountsComponent
@@ -106,8 +111,9 @@ class ProjectDataRoutesTest : BaseTest() {
 		// The bearer gate loads the account after token validation; default to an active one.
 		coEvery { accountsRepository.getAccountOrNull(any()) } returns testAccount()
 
-		coEvery { projectEntityDatasource.getProject(userId, projectId) } returns
-			ProjectDefinition(projectName, projectId)
+		coEvery { projectAccessResolver.resolve(userId, projectId) } returns ProjectAccessResult.Granted(
+			ProjectAccess(ProjectDefinition(projectName, projectId), OwnerId.ofCaller(userId), isOwner = true)
+		)
 
 		testModule = module {
 			single { accountsRepository }
@@ -116,6 +122,7 @@ class ProjectDataRoutesTest : BaseTest() {
 			single { serverWritingActivityRepository }
 			single { projectEntityRepository }
 			single<ProjectEntityDatasource> { projectEntityDatasource }
+			single { projectAccessResolver }
 			single { projectAccessRepository }
 			single { projectsRepository }
 			single { accountsComponent }

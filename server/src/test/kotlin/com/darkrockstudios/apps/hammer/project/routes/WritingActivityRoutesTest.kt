@@ -11,6 +11,8 @@ import com.darkrockstudios.apps.hammer.admin.AdminComponent
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.base.ProjectId
+import com.darkrockstudios.apps.hammer.base.http.ApiErrorCode
+import com.darkrockstudios.apps.hammer.base.http.HttpResponseError
 import com.darkrockstudios.apps.hammer.base.http.writingactivity.DeviceLog
 import com.darkrockstudios.apps.hammer.base.http.writingactivity.WritingActivityResponse
 import com.darkrockstudios.apps.hammer.base.http.writingactivity.WritingSession
@@ -18,6 +20,10 @@ import com.darkrockstudios.apps.hammer.plugins.configureLocalization
 import com.darkrockstudios.apps.hammer.plugins.configureRouting
 import com.darkrockstudios.apps.hammer.plugins.configureSecurity
 import com.darkrockstudios.apps.hammer.plugins.configureSerialization
+import com.darkrockstudios.apps.hammer.project.OwnerId
+import com.darkrockstudios.apps.hammer.project.ProjectAccess
+import com.darkrockstudios.apps.hammer.project.ProjectAccessResolver
+import com.darkrockstudios.apps.hammer.project.ProjectAccessResult
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.project.ProjectEntityDatasource
 import com.darkrockstudios.apps.hammer.project.ProjectEntityRepository
@@ -78,6 +84,9 @@ class WritingActivityRoutesTest : BaseTest() {
 	private lateinit var projectEntityDatasource: ProjectEntityDatasource
 
 	@MockK(relaxed = true)
+	private lateinit var projectAccessResolver: ProjectAccessResolver
+
+	@MockK(relaxed = true)
 	private lateinit var projectAccessRepository: ProjectAccessRepository
 
 	@MockK(relaxed = true)
@@ -125,8 +134,9 @@ class WritingActivityRoutesTest : BaseTest() {
 		// The bearer gate loads the account after token validation; default to an active one.
 		coEvery { accountsRepository.getAccountOrNull(any()) } returns testAccount()
 
-		coEvery { projectEntityDatasource.getProject(userId, projectId) } returns
-			ProjectDefinition(projectName, projectId)
+		coEvery { projectAccessResolver.resolve(userId, projectId) } returns ProjectAccessResult.Granted(
+			ProjectAccess(ProjectDefinition(projectName, projectId), OwnerId.ofCaller(userId), isOwner = true)
+		)
 
 		testModule = module {
 			single { accountsRepository }
@@ -135,6 +145,7 @@ class WritingActivityRoutesTest : BaseTest() {
 			single { serverProjectDataRepository }
 			single { projectEntityRepository }
 			single<ProjectEntityDatasource> { projectEntityDatasource }
+			single { projectAccessResolver }
 			single { projectAccessRepository }
 			single { projectsRepository }
 			single { accountsComponent }
@@ -275,7 +286,7 @@ class WritingActivityRoutesTest : BaseTest() {
 	fun `GET writing_activity 410 Gone when project id unknown`() = testApplication {
 		coEvery { accountsRepository.checkToken(userId, bearerToken) } returns SResult.success(0L)
 		coEvery { whiteListRepository.isOnWhiteList(any()) } returns true
-		coEvery { projectEntityDatasource.getProject(userId, projectId) } returns null
+		coEvery { projectAccessResolver.resolve(userId, projectId) } returns ProjectAccessResult.Unknown
 
 		application {
 			setupKtorTestKoin(this@WritingActivityRoutesTest, testModule)
@@ -291,5 +302,31 @@ class WritingActivityRoutesTest : BaseTest() {
 		}
 
 		assertEquals(HttpStatusCode.Gone, response.status)
+	}
+
+	@Test
+	fun `GET writing_activity 403 not_member when the project is someone else's`() = testApplication {
+		coEvery { accountsRepository.checkToken(userId, bearerToken) } returns SResult.success(0L)
+		coEvery { whiteListRepository.isOnWhiteList(any()) } returns true
+		coEvery { projectAccessResolver.resolve(userId, projectId) } returns ProjectAccessResult.NotMember
+
+		application {
+			setupKtorTestKoin(this@WritingActivityRoutesTest, testModule)
+			configureSerialization()
+			configureLocalization()
+			configureSecurity()
+			configureRouting()
+		}
+		val testClient = createClient { install(ContentNegotiation) { json(json) } }
+
+		val response = testClient.get("api/project/$userId/${projectId.id}/writing_activity") {
+			header("Authorization", "Bearer $bearerToken")
+		}
+
+		assertEquals(HttpStatusCode.Forbidden, response.status)
+		val error = response.body<HttpResponseError>()
+		assertEquals(ApiErrorCode.NOT_MEMBER, error.error)
+		assertEquals(ApiErrorCode.NOT_MEMBER, error.errorCode)
+		coVerify(exactly = 0) { serverWritingActivityRepository.loadAll(any(), any()) }
 	}
 }

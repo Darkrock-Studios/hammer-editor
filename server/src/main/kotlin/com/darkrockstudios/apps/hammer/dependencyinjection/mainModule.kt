@@ -37,6 +37,7 @@ import com.darkrockstudios.apps.hammer.database.AccountRecoveryCodeDao
 import com.darkrockstudios.apps.hammer.database.MfaLoginChallengeDao
 import com.darkrockstudios.apps.hammer.database.ProjectAccessDao
 import com.darkrockstudios.apps.hammer.database.ProjectDao
+import com.darkrockstudios.apps.hammer.database.ProjectMemberDao
 import com.darkrockstudios.apps.hammer.database.ProjectDataDao
 import com.darkrockstudios.apps.hammer.database.ProjectGroupDao
 import com.darkrockstudios.apps.hammer.database.ProjectsDao
@@ -86,6 +87,7 @@ import com.darkrockstudios.apps.hammer.monitoring.UserActivityCollector
 import com.darkrockstudios.apps.hammer.monitoring.UserActivityRepository
 import com.darkrockstudios.apps.hammer.project.ProjectEntityDatabaseDatasource
 import com.darkrockstudios.apps.hammer.project.ProjectEntityDatasource
+import com.darkrockstudios.apps.hammer.project.ProjectAccessResolver
 import com.darkrockstudios.apps.hammer.project.ProjectEntityRepository
 import com.darkrockstudios.apps.hammer.project.ProjectSyncKey
 import com.darkrockstudios.apps.hammer.project.ProjectSynchronizationSession
@@ -174,6 +176,7 @@ fun mainModule(
 	single<StoryEntityDao>()
 	single<ProjectsDao>()
 	single<ProjectDao>()
+	single<ProjectMemberDao>()
 	single<ProjectGroupDao>()
 	single<DeletedProjectDao>()
 	single<DeletedEntityDao>()
@@ -206,6 +209,7 @@ fun mainModule(
 		ProbeProjectChangesUseCase(get(), get(), get(), get(named(PROJECT_SYNC_MANAGER)))
 	}
 	single<ProjectEntityRepository>()
+	single<ProjectAccessResolver>()
 	single<ProjectAccessRepository>()
 	single<ServerWritingActivityRepository>()
 	single<ServerProjectDataRepository>()

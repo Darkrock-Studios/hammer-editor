@@ -106,6 +106,10 @@ class ProjectDao(
 			.executeAsOneOrNull()
 	}
 
+	suspend fun getProjectByUuid(projectUuid: ProjectId): Project? = withContext(ioDispatcher) {
+		queries.getProjectByUuid(projectUuid.id).executeAsOneOrNull()
+	}
+
 	suspend fun getProjectId(
 		userId: Long,
 		projectUuid: ProjectId,

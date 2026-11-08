@@ -20,7 +20,7 @@ import com.darkrockstudios.apps.hammer.utilities.ServerResult
 import com.darkrockstudios.apps.hammer.utilities.coerceToStorableRange
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
 import com.darkrockstudios.apps.hammer.utilities.requireEntityId
-import com.darkrockstudios.apps.hammer.utilities.requireProjectDef
+import com.darkrockstudios.apps.hammer.utilities.requireProjectAccess
 import com.darkrockstudios.apps.hammer.utilities.requireSyncId
 import com.darkrockstudios.apps.hammer.utilities.respondMissingParameter
 import com.github.aymanizz.ktori18n.R
@@ -73,7 +73,8 @@ private fun Route.beginProjectSync() {
 
 	post("/begin_sync") {
 		val principal = call.principal<ServerUserIdPrincipal>()!!
-		val projectDef = call.requireProjectDef(principal.id) ?: return@post
+		val access = call.requireProjectAccess() ?: return@post
+		val projectDef = access.projectDef
 		val lite = call.parameters["lite"]?.toBoolean() ?: false
 
 		// Derived from the authenticated token (not client-asserted)
@@ -93,7 +94,7 @@ private fun Route.beginProjectSync() {
 		}
 
 		val result = projectEntityRepository.beginProjectSync(
-			principal.id,
+			access.owner.id,
 			projectDef,
 			clientState,
 			lite,
@@ -119,7 +120,8 @@ private fun Route.endProjectSync() {
 	post("/end_sync") {
 		val log = call.application.log
 		val principal = call.principal<ServerUserIdPrincipal>()!!
-		val projectDef = call.requireProjectDef(principal.id) ?: return@post
+		val access = call.requireProjectAccess() ?: return@post
+		val projectDef = access.projectDef
 		val syncId = call.requireSyncId() ?: return@post
 
 		log.info("end_sync: userId=${principal.id}, project=${projectDef.name}, projectId=${projectDef.uuid}, syncId=$syncId")
@@ -150,7 +152,7 @@ private fun Route.endProjectSync() {
 		log.info("end_sync: parsed lastSync=$lastSync, lastId=$lastId")
 
 		val result = projectEntityRepository.endProjectSync(
-			principal.id,
+			access.owner.id,
 			projectDef,
 			syncId,
 			lastSync,
@@ -203,12 +205,13 @@ private fun Route.uploadEntity() {
 			ApiProjectEntity.Type.IMAGE -> call.receive<ApiProjectEntity.ImageEntity>()
 		}
 
-		val projectDef = call.requireProjectDef(principal.id) ?: return@post
+		val access = call.requireProjectAccess() ?: return@post
+		val projectDef = access.projectDef
 		val entityId = call.requireEntityId() ?: return@post
 		val syncId = call.requireSyncId() ?: return@post
 
 		val result = projectEntityRepository.saveEntity(
-			principal.id,
+			access.owner.id,
 			projectDef,
 			entity,
 			originalHash,
@@ -301,11 +304,12 @@ private fun Route.downloadEntity(log: Logger) {
 		val principal = call.principal<ServerUserIdPrincipal>()!!
 		val entityHash = call.request.headers[HEADER_ENTITY_HASH]
 
-		val projectDef = call.requireProjectDef(principal.id) ?: return@get
+		val access = call.requireProjectAccess() ?: return@get
+		val projectDef = access.projectDef
 		val entityId = call.requireEntityId() ?: return@get
 		val syncId = call.requireSyncId() ?: return@get
 
-		val result = projectEntityRepository.loadEntity(principal.id, projectDef, entityId, syncId)
+		val result = projectEntityRepository.loadEntity(access.owner.id, projectDef, entityId, syncId)
 
 		if (isSuccess(result)) {
 			respondDownloadedEntity(log, entityId, entityHash, result.data)
@@ -379,10 +383,10 @@ private fun Route.getWritingActivity() {
 	val repository: ServerWritingActivityRepository = get()
 
 	get("/writing_activity") {
-		val principal = call.principal<ServerUserIdPrincipal>()!!
-		val projectDef = call.requireProjectDef(principal.id) ?: return@get
+		val access = call.requireProjectAccess() ?: return@get
+		val projectDef = access.projectDef
 
-		val result = repository.loadAll(principal.id, projectDef)
+		val result = repository.loadAll(access.owner.id, projectDef)
 		if (isSuccess(result)) {
 			call.respond(result.data)
 		} else {
@@ -401,8 +405,8 @@ private fun Route.uploadWritingActivity() {
 	val repository: ServerWritingActivityRepository = get()
 
 	post("/writing_activity/{deviceId}") {
-		val principal = call.principal<ServerUserIdPrincipal>()!!
-		val projectDef = call.requireProjectDef(principal.id) ?: return@post
+		val access = call.requireProjectAccess() ?: return@post
+		val projectDef = access.projectDef
 		val deviceId = call.parameters["deviceId"]
 		if (deviceId.isNullOrBlank()) {
 			call.respondMissingParameter("api_project_writingactivity_error_deviceidmissing")
@@ -410,7 +414,7 @@ private fun Route.uploadWritingActivity() {
 		}
 
 		val log = call.receive<DeviceLog>()
-		val result = repository.saveDeviceLog(principal.id, projectDef, deviceId, log)
+		val result = repository.saveDeviceLog(access.owner.id, projectDef, deviceId, log)
 		if (isSuccess(result)) {
 			call.respond(HttpStatusCode.OK)
 		} else {
@@ -429,10 +433,10 @@ private fun Route.getProjectData() {
 	val repository: ServerProjectDataRepository = get()
 
 	get("/project_data") {
-		val principal = call.principal<ServerUserIdPrincipal>()!!
-		val projectDef = call.requireProjectDef(principal.id) ?: return@get
+		val access = call.requireProjectAccess() ?: return@get
+		val projectDef = access.projectDef
 
-		val result = repository.load(principal.id, projectDef)
+		val result = repository.load(access.owner.id, projectDef)
 		if (isSuccess(result)) {
 			val dto = result.data
 			if (dto == null) {
@@ -456,12 +460,12 @@ private fun Route.uploadProjectData() {
 	val repository: ServerProjectDataRepository = get()
 
 	post("/project_data") {
-		val principal = call.principal<ServerUserIdPrincipal>()!!
-		val projectDef = call.requireProjectDef(principal.id) ?: return@post
+		val access = call.requireProjectAccess() ?: return@post
+		val projectDef = access.projectDef
 
 		val request = call.receive<RawProjectDataUploadRequest>()
 		val result = repository.save(
-			userId = principal.id,
+			userId = access.owner.id,
 			projectDef = projectDef,
 			data = request.data,
 			originalHash = request.originalHash,
@@ -494,11 +498,12 @@ private fun Route.deleteEntity() {
 
 	get("/delete_entity/{entityId}") {
 		val principal = call.principal<ServerUserIdPrincipal>()!!
-		val projectDef = call.requireProjectDef(principal.id) ?: return@get
+		val access = call.requireProjectAccess() ?: return@get
+		val projectDef = access.projectDef
 		val entityId = call.requireEntityId(error = ERROR_MISSING_ENTITY_ID) ?: return@get
 		val syncId = call.requireSyncId() ?: return@get
 
-		val result = projectEntityRepository.deleteEntity(principal.id, projectDef, entityId, syncId)
+		val result = projectEntityRepository.deleteEntity(access.owner.id, projectDef, entityId, syncId)
 
 		if (isSuccess(result)) {
 			call.respond(HttpStatusCode.OK, DeleteIdsResponse(true))

@@ -5,6 +5,7 @@ import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.account.AccountDeletionUseCase
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.account.BioService
+import com.darkrockstudios.apps.hammer.account.isActive
 import com.darkrockstudios.apps.hammer.account.PasswordResetRepository
 import com.darkrockstudios.apps.hammer.account.RequestPasswordResetUseCase
 import com.darkrockstudios.apps.hammer.account.PenNameUseCase
@@ -377,12 +378,7 @@ suspend fun sessionIsAuthorized(
 	whitelistRepo: WhiteListRepository,
 ): Boolean {
 	val account = runCatching { accountRepo.getAccount(session.userId) }.getOrNull()
-	return when {
-		account == null -> false
-		account.deleted_at != null -> false
-		account.is_admin -> true
-		else -> whitelistRepo.isOnWhiteList(account.email)
-	}
+	return account?.isActive(whitelistRepo) == true
 }
 
 private fun ExtraLink.toModel(locale: Locale): Map<String, Any> = mapOf(

@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.plugins
 
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
+import com.darkrockstudios.apps.hammer.account.isActive
 import com.darkrockstudios.apps.hammer.admin
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.base.http.AUTH_REALM
@@ -36,12 +37,8 @@ fun Application.configureSecurity() {
 				val userId = parameters["userId"]?.toLongOrNull() ?: INVALID_USER_ID
 				val result = accountRepo.checkToken(userId, tokenCredential.token)
 				if (isSuccess(result)) {
-					// deleted_at is checked before the admin allowance so a
-					// soft-deleted admin is locked out like anyone else.
 					val account = accountRepo.getAccountOrNull(result.data)
-					val okay = account != null &&
-						account.deleted_at == null &&
-						(account.is_admin || whitelistRepo.isOnWhiteList(account.email))
+					val okay = account?.isActive(whitelistRepo) == true
 
 					if (okay) {
 						ServerUserIdPrincipal(result.data)

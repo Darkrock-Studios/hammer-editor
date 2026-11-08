@@ -1,14 +1,18 @@
 package com.darkrockstudios.apps.hammer.utilities
 
 import com.darkrockstudios.apps.hammer.base.ProjectId
+import com.darkrockstudios.apps.hammer.base.http.ApiErrorCode
 import com.darkrockstudios.apps.hammer.base.http.HEADER_SYNC_ID
 import com.darkrockstudios.apps.hammer.base.http.HttpResponseError
-import com.darkrockstudios.apps.hammer.project.ProjectDefinition
-import com.darkrockstudios.apps.hammer.project.ProjectEntityDatasource
+import com.darkrockstudios.apps.hammer.plugins.ServerUserIdPrincipal
+import com.darkrockstudios.apps.hammer.project.ProjectAccess
+import com.darkrockstudios.apps.hammer.project.ProjectAccessResolver
+import com.darkrockstudios.apps.hammer.project.ProjectAccessResult
 import com.github.aymanizz.ktori18n.R
 import com.github.aymanizz.ktori18n.t
 import io.ktor.http.*
 import io.ktor.server.application.*
+import io.ktor.server.auth.principal
 import io.ktor.server.response.*
 import org.koin.ktor.ext.get
 import kotlin.uuid.Uuid
@@ -65,24 +69,38 @@ suspend fun ApplicationCall.respondProjectGone(messageKey: String) =
 	)
 
 /**
- * Reads `projectId` from path params and resolves the project from the database, scoped to
- * the authenticated [userId]. Responds 400 BadRequest if the id is missing or 410 Gone
- * if no such project exists for the user. Returns `null` after responding so the caller
- * should `return@get` / `return@post` immediately.
+ * Reads `projectId` from path params and resolves the caller's access to it, by id alone. Responds
+ * 400 if the id is missing, 410 Gone if no project holds it, and 403 `not_member` if the caller
+ * may not use it; the client treats 410 as free to create and 403 as someone else's. Returns `null`
+ * after responding so the caller should `return@get` / `return@post` immediately.
  */
-suspend fun ApplicationCall.requireProjectDef(userId: Long): ProjectDefinition? {
+suspend fun ApplicationCall.requireProjectAccess(): ProjectAccess? {
 	val projectIdRaw = parameters["projectId"]
 	if (projectIdRaw == null) {
 		respondMissingParameter(ERR_KEY_PROJECT_ID_MISSING)
 		return null
 	}
 
-	val projectDef = application.get<ProjectEntityDatasource>().getProject(userId, ProjectId(projectIdRaw))
-	if (projectDef == null) {
-		respondProjectGone("api_project_getproject_error_notfound")
-		return null
+	val callerId = principal<ServerUserIdPrincipal>()!!.id
+	return when (val result = application.get<ProjectAccessResolver>().resolve(callerId, ProjectId(projectIdRaw))) {
+		is ProjectAccessResult.Granted -> result.access
+		ProjectAccessResult.Unknown -> {
+			respondProjectGone("api_project_getproject_error_notfound")
+			null
+		}
+
+		ProjectAccessResult.NotMember -> {
+			respond(
+				status = HttpStatusCode.Forbidden,
+				HttpResponseError(
+					error = ApiErrorCode.NOT_MEMBER,
+					displayMessage = t(R("api_project_error_notmember")),
+					errorCode = ApiErrorCode.NOT_MEMBER,
+				),
+			)
+			null
+		}
 	}
-	return projectDef
 }
 
 /**

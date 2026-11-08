@@ -88,6 +88,12 @@ SELECT *
 FROM project
 WHERE user_id = :userId AND uuid = CAST(:uuid AS UUID);
 
+-- Any account's project; uuid is globally unique.
+getProjectByUuid:
+SELECT *
+FROM project
+WHERE uuid = CAST(:uuid AS UUID);
+
 getProjectId:
 SELECT id
 FROM project
