@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.base.http.ApiProjectDefinition
 import com.darkrockstudios.apps.hammer.database.AccountDao
 import com.darkrockstudios.apps.hammer.database.ProjectDao
 import com.darkrockstudios.apps.hammer.database.ProjectMemberDao
+import kotlin.time.Instant
 
 /**
  * Marks code that names a project's owner without requireProjectAccess(): account-scoped routes and
@@ -34,7 +35,12 @@ value class OwnerId private constructor(val id: Long) {
 data class ProjectAccess(val projectDef: ProjectDefinition, val owner: OwnerId, val isOwner: Boolean)
 
 /** A project the caller co-authors. [ownerName] is the owner's current pen name. */
-data class SharedProject(val projectDef: ProjectDefinition, val owner: OwnerId, val ownerName: String?) {
+data class SharedProject(
+	val projectDef: ProjectDefinition,
+	val owner: OwnerId,
+	val ownerName: String?,
+	val lastSync: Instant,
+) {
 	/** At the top level: the owner's placement is private to the owner. */
 	fun toApi() = ApiProjectDefinition(
 		name = projectDef.name,
@@ -88,6 +94,7 @@ class ProjectAccessResolver(
 				projectDef = ProjectDefinition.wrap(project.name, project.uuid),
 				owner = OwnerId.of(project),
 				ownerName = owner.pen_name,
+				lastSync = project.last_sync,
 			)
 		}
 	}

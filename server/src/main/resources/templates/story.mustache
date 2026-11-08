@@ -91,6 +91,8 @@
 			</div>
 
 			<div class="story-panels__column">
+				{{> partials/coauthor-panel}}
+
 				{{#hasAnyAccess}}
 					<!-- Readers Panel: all-time total + 30-day trend -->
 					<section class="story-info-panel story-info-panel--readers">
@@ -126,5 +128,6 @@
 <div id="review-dialog-container"></div>
 <div id="share-dialog-container"></div>
 <div id="publish-warning-container"></div>
+<div id="coauthor-dialog-container"></div>
 
 {{> footer}}

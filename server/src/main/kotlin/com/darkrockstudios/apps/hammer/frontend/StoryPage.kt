@@ -23,6 +23,7 @@ import com.darkrockstudios.apps.hammer.frontend.utils.sceneTreeModel
 import com.darkrockstudios.apps.hammer.kudos.StoryKudosRepository
 import com.darkrockstudios.apps.hammer.monitoring.StoryReaderRepository
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
+import com.darkrockstudios.apps.hammer.project.ProjectMemberRepository
 import com.darkrockstudios.apps.hammer.project.ServerProjectDataRepository
 import com.darkrockstudios.apps.hammer.project.UncheckedOwner
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
@@ -66,6 +67,7 @@ fun Route.storyPage(
 	storyKudosRepository: StoryKudosRepository,
 	serverProjectDataRepository: ServerProjectDataRepository,
 	storyImageService: StoryImageService,
+	projectMemberRepository: ProjectMemberRepository,
 	clock: kotlin.time.Clock,
 ) {
 	authenticatedOnly {
@@ -163,6 +165,9 @@ fun Route.storyPage(
 						"readerBars" to readerBars,
 						"hasReaderBars" to readerBars.any { (it["height"] as Int) > 0 },
 					)
+				)
+				model.putAll(
+					call.coAuthorPanelModel(projectMemberRepository, session.userId, projectId, projectNameForUrl, hasPenName)
 				)
 				if (coverImageId != null) {
 					model["coverImageUrl"] = authorImageUrl(projectNameForUrl, coverImageId)

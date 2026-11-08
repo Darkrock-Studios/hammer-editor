@@ -114,8 +114,9 @@ class ProjectAccessResolverTest : BaseTest() {
 		seed()
 		accountDao.updatePenName(owner, "Owner Pen")
 
+		val lastSync = projectDao.getProjectByUuid(projectId)!!.last_sync
 		assertEquals(
-			listOf(SharedProject(projectDef, OwnerId.unchecked(owner), "Owner Pen")),
+			listOf(SharedProject(projectDef, OwnerId.unchecked(owner), "Owner Pen", lastSync)),
 			resolver.memberProjects(member),
 		)
 		assertEquals(emptyList(), resolver.memberProjects(owner))

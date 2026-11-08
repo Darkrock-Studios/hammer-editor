@@ -20,6 +20,7 @@ import io.mockk.coVerify
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
+import kotlin.time.Instant
 
 class ProjectsRoutesProjectBeginSyncTest : ProjectsRoutesBaseTest() {
 
@@ -119,7 +120,7 @@ class ProjectsRoutesProjectBeginSyncTest : ProjectsRoutesBaseTest() {
 			syncId = "syncId-test",
 			projects = setOf(ProjectDefinition("Mine", ProjectId("uuid-1"))),
 			sharedProjects = setOf(
-				SharedProject(ProjectDefinition("Theirs", ProjectId("uuid-2")), OwnerId.unchecked(7L), "Pat"),
+				SharedProject(ProjectDefinition("Theirs", ProjectId("uuid-2")), OwnerId.unchecked(7L), "Pat", Instant.fromEpochSeconds(0)),
 			),
 			deletedProjects = emptySet(),
 			projectPlacements = mapOf(ProjectId("uuid-1") to trilogy),

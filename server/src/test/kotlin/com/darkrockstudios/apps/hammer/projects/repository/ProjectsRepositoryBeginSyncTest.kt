@@ -99,7 +99,7 @@ class ProjectsRepositoryBeginSyncTest : ProjectsRepositoryBaseTest() {
 		coEvery { projectsDatasource.loadSyncData(userId) } returns ProjectsSyncData(deletedProjects = emptySet())
 		coEvery { projectsDatasource.getGroups(userId) } returns emptyList()
 		coEvery { projectsDatasource.getProjectPlacements(userId) } returns emptyMap()
-		val shared = SharedProject(ProjectDefinition("Theirs", ProjectId("uuid-9")), OwnerId.unchecked(9L), "Pat")
+		val shared = SharedProject(ProjectDefinition("Theirs", ProjectId("uuid-9")), OwnerId.unchecked(9L), "Pat", Instant.fromEpochSeconds(0))
 		coEvery { projectAccessResolver.memberProjects(userId) } returns listOf(shared)
 
 		val result = createProjectsRepository().beginProjectsSync(userId)
