@@ -39,11 +39,12 @@ the account, and anything not tied to a device is "the same user on another devi
 2. **The client learns one fact per project: who owns it.** `ApiProjectDefinition` gains an
    optional `owner`. A co-author's client uses it to offer *Leave* instead of *Delete*, to skip
    name-based adoption, and to label the project. Nothing else in the protocol changes shape.
-3. **A server-side action never deletes a co-author's local data.** Being removed, or the owner
-   deleting the project, leaves the local copy in place. The next account sync takes the existing
-   unknown-project path and uploads it as the co-author's own project, and the sync log says why.
-   No new sync state: a per-project "do not sync" setting would be a feature of its own (see
-   Later).
+3. **A server-side action never deletes a co-author's local data, and never uploads it somewhere
+   new.** Being removed, or the owner deleting the project, leaves the local copy in place with
+   sync turned off for it. This uses a new per-project sync toggle, exposed in project settings
+   whenever a sync server is configured, which is useful on its own: a scratch project, or one the
+   author wants kept off the server. Turning sync back on uploads the copy as the author's own
+   project.
 4. **Owner only: delete, rename, invite, remove, publish, kudos toggle.** Those put the owner's
    name on something or end the project. Share links and review requests are open to every
    author. Co-authors sync content, place the project in their own groups, and see it on the
@@ -241,11 +242,41 @@ baseline (`ProjectBaseline` in the account `sync.json`), not into `project.toml`
 about the server relationship, like the baseline name. `ProjectsRepository` exposes it so the
 project list, project home and conflict UI can show "Shared by Alice".
 
+### Per-project sync toggle
+
+A project can be excluded from sync on this device. The flag lives in the account `sync.json`
+(`ProjectsSynchronizationData.localOnlyProjects: Set<ProjectId>`), next to the baselines: it is
+sync bookkeeping, per device, and `project.toml` stays identity-only. `ProjectsRepository`
+exposes it and the project settings screen shows a *Sync this project* switch, only when
+`serverSettings` is set. The project card shows a cloud-off marker for an excluded project.
+
+While excluded, the project is invisible to every sync path on this device: account sync neither
+creates, renames, moves nor deletes it on the server (it is filtered out before the phases run,
+like a project in use), the change probe and background sync skip it, and the editor's sync
+action is hidden. Nothing else changes; entities are still marked dirty in the project journal,
+so turning sync back on resumes with the normal conflict detection, exactly like a device that
+has not synced in a while.
+
+Two consequences worth stating in the dialog that turns sync off:
+
+- Other devices and the server are unaffected. The switch means "not from this device".
+- Deleting an excluded project locally does not delete it on the server, and if the server still
+  holds it, the next account sync re-creates it locally. The delete dialog for an excluded project
+  that has a sync baseline therefore offers *Also delete on the server*.
+
+A project that enters the set because of a removal loses its project `sync.json` (the baseline
+described a server project this device no longer follows) and its `ProjectBaseline` and `owner`.
+Turning sync on then takes the unknown-project path: the client creates it under its id,
+re-minting if the id is held elsewhere, and uploads everything. A project excluded by hand keeps
+its journal, so re-enabling it resumes where it left off.
+
 ### Leave vs delete
 
 `ProjectsService.deleteProject` on a shared project queues the same `/delete`, but the UI text
-changes: the confirm dialog says *Leave project*, explains that the owner's copy is untouched and
-that the local copy will be removed. The server interprets `/delete` from a member as leave. A
+changes: the confirm dialog says *Leave project*, explains that the owner's copy is untouched,
+and offers *Keep an unsynced copy on this device*, which moves the project into
+`localOnlyProjects` instead of deleting the folder. The server interprets `/delete` from a
+member as leave. A
 co-author cannot rename a shared project in the UI, and `ProjectAttributeReconciler` never emits
 `RenameOnServer` for one: a folder renamed outside the app is renamed back with `RenameLocally`
 to the server's name. Moves still reconcile both ways, since placement is per member.
@@ -266,21 +297,23 @@ unrelated local story into it through a full conflict check. Rules:
 
 ### Removed projects
 
-For each id in `removedProjects`: drop the `owner` from its baseline, log
-`sync_log_account_project_removed` ("You are no longer a co-author of %1$s. Your copy is now a
-project of your own."), and send `/delete` to acknowledge. The create phase of the same session
-then takes the existing unknown-project path: `create` answers `project_id_taken` because the
-owner still holds the id, the client re-mints once, `setProjectId` clears the sync baseline, and
-the project uploads under the user's own account. Nothing is special-cased after the log line.
-The owner-deleted case differs only in that the id is free, so no re-mint happens. If the user
-does not want the copy, they delete it as any other project.
+For each id in `removedProjects`: move the project into `localOnlyProjects` (which drops its
+baseline, `owner` and project journal as above), log `sync_log_account_project_removed` ("You are
+no longer a co-author of %1$s. Your copy is kept on this device and no longer syncs. Turn sync
+on in its settings to upload it as your own project."), and send `/delete` to acknowledge. The
+same session's create phase skips it, like any excluded project. The owner-deleted case is
+identical from the client's view. If the user does not want the copy, they delete it as any other
+project; if they want it, they flip the switch and the normal create path uploads it.
 
 ### Tests
 
 - Account sync lists a shared project, creates it locally, places it in the caller's group.
 - Same-named local project is left alone; the shared one lands in `"{name} ({owner})"`.
-- `removedProjects` keeps the folder, logs, acknowledges, and the same session re-mints and
-  uploads the project as the user's own.
+- An excluded project is skipped by account sync, the probe and background sync; its local
+  rename or delete sends nothing; a server rename of it is not applied.
+- Turning sync on for an excluded project with a stale journal creates it fresh on the server.
+- `removedProjects` keeps the folder, excludes it, logs, acknowledges; nothing is uploaded.
+- Leave with "keep a copy" excludes the project instead of deleting the folder.
 - Delete on a shared project shows the leave dialog and sends `/delete`.
 - Component tests through the real `TestComponentContext` harness.
 
@@ -326,23 +359,31 @@ Stacked on `4.0.0`, squash-merged bottom-up:
    as leave, owner delete writes removals, rename `403` for members.
 3. **Server: website invite, accept, members list, dashboard and story page changes,** share
    links and review requests for co-authors.
-4. **Clients: owner awareness.** `owner` in the baseline, leave dialog, no-adoption rule, folder
+4. **Clients: per-project sync toggle.** `localOnlyProjects`, the settings switch, the card
+   marker, exclusion from every sync path, the delete dialog's server option. Independent of
+   co-authoring and shippable on its own.
+5. **Clients: owner awareness.** `owner` in the baseline, leave dialog, no-adoption rule, folder
    disambiguation, `removedProjects` handling.
-5. **Attribution.** Server stamps and headers, conflict tab label, writing-activity author.
-6. **Docs:** `SYNCING-PROTOCOL.md` sections for membership, `removedProjects`, leave, and the
-   session rules; `ARCHITECTURE.md` on the folder naming rule.
+6. **Attribution.** Server stamps and headers, conflict tab label, writing-activity author.
+7. **Docs:** `SYNCING-PROTOCOL.md` sections for membership, `removedProjects`, leave, and the
+   session rules; `ARCHITECTURE.md` on the folder naming rule and `localOnlyProjects`.
 
-Phases 1 to 3 ship without the clients changing; a co-author on a current 4.0.0 build would see
-the project, sync it, and would be able to delete locally only. Phase 4 should land before the
+PRs 1 to 3 ship without the clients changing; a co-author on a current 4.0.0 build would see
+the project, sync it, and would be able to delete locally only. PR 5 should land before the
 feature is announced, because of the name-adoption risk.
+
+### How the work runs
+
+Implementation sessions run on Opus 5.5 at high effort. Each PR is built as a series of
+checkpoint commits, one per coherent step (schema, resolution, sessions, and so on). After every
+checkpoint the diff gets a code review, and every finding is addressed before the next step
+starts. A PR is opened only once its last checkpoint has been reviewed clean.
 
 ## Later, optional
 
 - Soft "claimed" marker on a scene ("Alice is working on this") as project metadata outside the
   entity, to reduce whole-scene conflicts.
 - Roles (read-only co-author) on `project_member`.
-- A per-project "do not sync" setting. Independent of co-authoring, but once it exists a removed
-  co-author's copy could be left unsynced instead of uploaded as their own.
 - In-app invite management.
 - Invite notification emails.
 - Per-project cipher secret, if owner-scoped encryption ever needs to be decoupled from the owner
