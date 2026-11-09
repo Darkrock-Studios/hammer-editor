@@ -281,17 +281,17 @@ private suspend fun RoutingContext.handleEndProjectsSync(projectsRepository: Pro
 }
 
 private fun Route.deleteProject() {
-	val projectsRepository: ProjectsRepository = get()
+	val deleteProject: DeleteProjectUseCase = get()
 
-	post("/delete") { handleDeleteProject(projectsRepository) }
+	post("/delete") { handleDeleteProject(deleteProject) }
 }
 
-private suspend fun RoutingContext.handleDeleteProject(projectsRepository: ProjectsRepository) {
+private suspend fun RoutingContext.handleDeleteProject(deleteProject: DeleteProjectUseCase) {
 	val principal = call.principal<ServerUserIdPrincipal>()!!
 	val projectId = call.requireProjectIdFromPath() ?: return
 	val syncId = call.requireSyncIdFromHeader() ?: return
 
-	val result = projectsRepository.deleteProject(principal.id, syncId, projectId)
+	val result = deleteProject(principal.id, syncId, projectId)
 	if (isSuccess(result)) {
 		call.respond("Success")
 	} else {

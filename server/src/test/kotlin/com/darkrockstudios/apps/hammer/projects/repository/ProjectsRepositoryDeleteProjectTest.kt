@@ -2,7 +2,7 @@ package com.darkrockstudios.apps.hammer.projects.repository
 
 import com.darkrockstudios.apps.hammer.Project
 import com.darkrockstudios.apps.hammer.base.ProjectId
-import com.darkrockstudios.apps.hammer.project.NotMemberException
+import com.darkrockstudios.apps.hammer.project.NotOwnerException
 import com.darkrockstudios.apps.hammer.project.OwnerId
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.projects.ProjectsSyncData
@@ -96,23 +96,7 @@ class ProjectsRepositoryDeleteProjectTest : ProjectsRepositoryBaseTest() {
 	}
 
 	@Test
-	fun `Delete Project, a co-author's delete is a leave with no tombstone`() = runTest {
-		val syncId = "sync-id"
-		val projectId = ProjectId("2b1f3c4d-5e6f-4a1b-8c2d-3e4f5a6b7c8d")
-		coEvery { projectsSessionManager.validateSyncId(userId, syncId, any()) } returns true
-		coEvery { projectsDatasource.getProject(userId, projectId) } returns null
-		coEvery { projectDao.getProjectByUuid(projectId) } returns sharedRow(projectId)
-		coEvery { projectMemberRepository.leave(sharedRow(projectId), userId) } returns true
-
-		val result = createProjectsRepository().deleteProject(userId, syncId, projectId)
-
-		assertTrue(result.isSuccess)
-		coVerify(exactly = 0) { projectEntityDatasource.deleteProject(any(), any()) }
-		coVerify(exactly = 0) { projectsDatasource.updateSyncData(any(), any()) }
-	}
-
-	@Test
-	fun `Delete Project, a stranger's delete is not_member with no tombstone`() = runTest {
+	fun `Delete Project, a project the caller does not own is not_owner with no tombstone`() = runTest {
 		val syncId = "sync-id"
 		val projectId = ProjectId("2b1f3c4d-5e6f-4a1b-8c2d-3e4f5a6b7c8d")
 		coEvery { projectsSessionManager.validateSyncId(userId, syncId, any()) } returns true
@@ -121,7 +105,7 @@ class ProjectsRepositoryDeleteProjectTest : ProjectsRepositoryBaseTest() {
 
 		val result = createProjectsRepository().deleteProject(userId, syncId, projectId)
 
-		assertIs<NotMemberException>((result as ServerResult.Failure).exception)
+		assertIs<NotOwnerException>((result as ServerResult.Failure).exception)
 		coVerify(exactly = 0) { projectEntityDatasource.deleteProject(any(), any()) }
 		coVerify(exactly = 0) { projectsDatasource.updateSyncData(any(), any()) }
 	}

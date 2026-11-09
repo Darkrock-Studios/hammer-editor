@@ -125,7 +125,7 @@ class ProjectMemberRepository(
 	 * otherwise refuse the owner's delete, rename and move until it expired. False when [userId]
 	 * was not a member.
 	 */
-	suspend fun leave(project: Project, userId: Long): Boolean {
+	private suspend fun leave(project: Project, userId: Long): Boolean {
 		if (!projectMemberDao.removeMember(project.id, userId)) return false
 		val projectId = ProjectId(project.uuid)
 		projectSessions.terminateSessions { it.userId == userId && it.projectDef.uuid == projectId }

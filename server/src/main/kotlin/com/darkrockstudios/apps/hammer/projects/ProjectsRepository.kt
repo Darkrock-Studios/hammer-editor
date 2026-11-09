@@ -24,7 +24,6 @@ class ProjectsRepository(
 	private val projectEntityDatasource: ProjectEntityDatasource,
 	private val projectDao: ProjectDao,
 	private val projectAccessResolver: ProjectAccessResolver,
-	private val projectMemberRepository: ProjectMemberRepository,
 ) {
 	private val syncSessionManager: SyncSessionManager<Long, ProjectsSynchronizationSession> by inject(
 		clazz = SyncSessionManager::class.java,
@@ -137,8 +136,9 @@ class ProjectsRepository(
 	}
 
 	/**
-	 * The owner's delete removes the project and tombstones it for the owner alone. A co-author's
-	 * delete is a leave and writes no tombstone, so the ex-member can still upload their copy.
+	 * The owner's delete removes the project and tombstones it for the owner alone. An existing
+	 * project the caller does not own is [NotOwnerException] and writes nothing; see
+	 * [DeleteProjectUseCase] for a co-author's leave. An unknown id is tombstoned for the caller.
 	 */
 	@OptIn(UncheckedOwner::class)
 	suspend fun deleteProject(userId: Long, syncId: String, projectId: ProjectId): SResult<Unit> {
@@ -164,20 +164,15 @@ class ProjectsRepository(
 				SResult.failure(Exception("Server failed to delete project: $projectId"))
 			}
 		} else {
-			val project = projectDao.getProjectByUuid(projectId)
-			when {
-				project == null -> {
-					projectsDatasource.updateSyncData(userId) { data ->
-						data.copy(
-							deletedProjects = data.deletedProjects + projectId
-						)
-					}
-					SResult.success()
+			if (projectDao.getProjectByUuid(projectId) == null) {
+				projectsDatasource.updateSyncData(userId) { data ->
+					data.copy(
+						deletedProjects = data.deletedProjects + projectId
+					)
 				}
-
-				projectMemberRepository.leave(project, userId) -> SResult.success()
-
-				else -> SResult.failure(NotMemberException(projectId))
+				SResult.success()
+			} else {
+				SResult.failure(NotOwnerException(projectId))
 			}
 		}
 	}

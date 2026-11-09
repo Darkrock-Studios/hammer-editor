@@ -18,6 +18,7 @@ import com.darkrockstudios.apps.hammer.project.ProjectEntityRepository
 import com.darkrockstudios.apps.hammer.project.ServerProjectDataRepository
 import com.darkrockstudios.apps.hammer.project.ServerWritingActivityRepository
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
+import com.darkrockstudios.apps.hammer.projects.DeleteProjectUseCase
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.story.StoryRendererService
 import com.darkrockstudios.apps.hammer.utilities.MarkdownRenderer
@@ -56,6 +57,9 @@ abstract class ProjectsRoutesBaseTest : BaseTest() {
 
 	@MockK(relaxed = true)
 	protected lateinit var projectsRepository: ProjectsRepository
+
+	@MockK(relaxed = true)
+	protected lateinit var deleteProjectUseCase: DeleteProjectUseCase
 
 	@MockK(relaxed = true)
 	protected lateinit var accountsComponent: AccountsComponent
@@ -107,6 +111,7 @@ abstract class ProjectsRoutesBaseTest : BaseTest() {
 			single { serverProjectDataRepository }
 			single { projectAccessRepository }
 			single { projectsRepository }
+			single { deleteProjectUseCase }
 			single { accountsComponent }
 			single { adminComponent }
 			single { configRepository }

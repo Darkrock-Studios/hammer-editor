@@ -21,6 +21,7 @@ import com.darkrockstudios.apps.hammer.project.ProjectAccessResolver
 import com.darkrockstudios.apps.hammer.project.ProjectMemberRepository
 import com.darkrockstudios.apps.hammer.project.ProjectSyncKey
 import com.darkrockstudios.apps.hammer.project.ProjectSynchronizationSession
+import com.darkrockstudios.apps.hammer.projects.DeleteProjectUseCase
 import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
 import com.darkrockstudios.apps.hammer.scheduling.RecurringTaskRegistry
 import com.darkrockstudios.apps.hammer.story.StoryImageService
@@ -167,6 +168,8 @@ fun Application.setupKtorTestKoin(baseTest: BaseTest, vararg modules: Module) {
 				// The story and co-author pages inject these; a test module that defines its own overrides them.
 				single<ProjectAccessResolver> { mockk(relaxed = true) }
 				single<ProjectMemberRepository> { mockk(relaxed = true) }
+				// The projects routes inject this.
+				single<DeleteProjectUseCase> { mockk(relaxed = true) }
 				single { RecurringTaskRegistry() }
 				single<SyncSessionManager<Long, ProjectsSynchronizationSession>>(named(PROJECTS_SYNC_MANAGER)) {
 					mockk(relaxed = true)

@@ -102,6 +102,7 @@ import com.darkrockstudios.apps.hammer.project.synchronizers.ServerImageSynchron
 import com.darkrockstudios.apps.hammer.project.synchronizers.ServerSceneDraftSynchronizer
 import com.darkrockstudios.apps.hammer.project.synchronizers.ServerSceneSynchronizer
 import com.darkrockstudios.apps.hammer.project.synchronizers.ServerTimelineSynchronizer
+import com.darkrockstudios.apps.hammer.projects.DeleteProjectUseCase
 import com.darkrockstudios.apps.hammer.projects.ProjectsDatabaseDatasource
 import com.darkrockstudios.apps.hammer.projects.ProjectsDatasource
 import com.darkrockstudios.apps.hammer.projects.ProbeProjectChangesUseCase
@@ -211,6 +212,7 @@ fun mainModule(
 	factory {
 		ProbeProjectChangesUseCase(get(), get(), get(), get(named(PROJECT_SYNC_MANAGER)))
 	}
+	factory<DeleteProjectUseCase>()
 	single<ProjectEntityRepository>()
 	single<ProjectAccessResolver>()
 	single { ProjectMemberRepository(get(), get(), get(), get(), get(named(PROJECT_SYNC_MANAGER))) }
