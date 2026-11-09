@@ -553,6 +553,8 @@ turning sync on never meets an open project (`7da56adf6`). Writing activity drop
 two-accounts-on-one-install set-aside and take-back: another account's own file is renamed to its
 synced slot and its unsynced sessions there are not restored.
 
+Two-account integration tests: `cc2b359ac`, with the resume fix `c0217a06c`.
+
 Protocol version 4 is the deployment gate (Decision 7), and server and clients ship together in
 4.0.0, so nothing in the order above is load-bearing for deployment; it is the order that keeps
 each stage testable against the one before it.
