@@ -3,6 +3,8 @@
 ## [4.0.0] - Unreleased
 
 New features
+- Co-authoring: invite another Hammer account by email from the website and they can write in your project, syncing it like another of your devices. Up to five co-authors per project; only the owner can rename, move, delete or share it. Writing statistics show words by author.
+- Sync: a project can be kept on this device only, from its settings, while the rest of your projects go on syncing.
 - Export: Word export produces Standard Manuscript Format for submitting to editors, agents and publishers. A title page (or a short story first page) with your contact details and word count, double spacing, a running header, and `#` between scenes. Options for the short story layout and Classic (Courier)
 
 Improvements

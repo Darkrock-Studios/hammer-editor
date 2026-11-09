@@ -200,9 +200,9 @@ listed, and `create` with their id answers `403`.
 | Request | Owner | Co-author | Non-member |
 |---|---|---|---|
 | `create` | as today | idempotent on the member project | `403 not_member` |
-| `rename` | as today; `409` while a project session is live | `403` | `403` |
-| `move` | as today; `409` while a project session is live | `403` | `403` |
-| `delete` | as today; member rows are deleted, the tombstone is written for the owner only | **leave**: delete the member row, `200`; no tombstone | `403` |
+| `rename` | as today; `409` while a non-owner holds the project session | `403` | `403` |
+| `move` | as today; `409` while a non-owner holds the project session | `403` | `403` |
+| `delete` | as today, `409` while a non-owner holds the project session; member rows are deleted, the tombstone is written for the owner only | **leave**: delete the member row, `200`; no tombstone | `403` |
 
 A co-author's `delete` writes nothing to `deleted_project`. A tombstone for the caller would make
 `create` answer `project_deleted` for ever after, and the client never re-mints on that code, so
