@@ -222,6 +222,9 @@ jobs:
 
           echo "File renamed successfully."
 
+      - name: Make DEB installable on Debian
+        run: .github/scripts/deb-make-portable.sh desktop/build/installers/main-release/deb/hammer.deb
+
       - name: Package Linux ".rpm" distribution
         uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
         with:
