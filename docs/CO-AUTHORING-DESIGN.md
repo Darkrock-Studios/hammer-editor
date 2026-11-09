@@ -539,6 +539,10 @@ the "upload as my own" turn-on path were removed, and parked became `ownerId != 
 !syncEnabled`. Landed 2026-11-08 as `2cb1b2b04` and `6dc9f5f4c`. A rebuilt `project.toml` comes
 up with sync off (Parked projects), landed as `04b05e83b`.
 
+Review fixes: stale owner marks cleared, atomic project journals with no inferred deletions,
+parked projects renamable, `403 not_member` leaves dropped, wording, and purge clearing pen names
+in other owners' stats. Landed 2026-11-09 as `1631a9729` and `ecbe7e56f`.
+
 Protocol version 4 is the deployment gate (Decision 7), and server and clients ship together in
 4.0.0, so nothing in the order above is load-bearing for deployment; it is the order that keeps
 each stage testable against the one before it.
