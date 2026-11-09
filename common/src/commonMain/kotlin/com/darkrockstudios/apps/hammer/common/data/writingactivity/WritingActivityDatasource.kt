@@ -76,8 +76,12 @@ class WritingActivityDatasource(
 		}
 	}
 
-	suspend fun deleteSlot(deviceId: String, authorId: Long): Unit = withContext(dispatcherIo) {
-		fileSystem.delete(getSlotPath(deviceId, authorId), mustExist = false)
+	/** False when there was no file to delete. */
+	suspend fun deleteSlot(deviceId: String, authorId: Long): Boolean = withContext(dispatcherIo) {
+		val path = getSlotPath(deviceId, authorId)
+		val existed = fileSystem.exists(path)
+		fileSystem.delete(path, mustExist = false)
+		existed
 	}
 
 	suspend fun saveSlot(slot: WritingActivitySlot): Unit = withContext(dispatcherIo) {

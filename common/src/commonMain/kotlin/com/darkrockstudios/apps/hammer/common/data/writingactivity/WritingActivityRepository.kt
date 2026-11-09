@@ -58,46 +58,30 @@ class WritingActivityRepository(
 	suspend fun loadAllLogs(): List<WritingActivitySlot> = datasource.loadAllDeviceLogs()
 
 	/**
-	 * Sync-only entry point: replace a slot this account does not own with the server's
-	 * version. Wholesale overwrite is intentional: we never merge or otherwise edit other
-	 * devices' slots. The pre-author file of another device is dropped once its authored
-	 * copy arrives. Another account's slot for this device was written here, so the local
-	 * copy may hold sessions that account has not uploaded yet; it is merged instead.
-	 * Returns whether anything stored here changed.
+	 * Sync only: overwrites a slot this account does not own, another account's for this device
+	 * included, and drops that device's pre-author file. Returns whether anything changed.
 	 */
 	suspend fun replaceRemoteSlot(slot: WritingActivitySlot): Boolean {
-		val authorId = slot.log.authorId
-		val ownDeviceId = ownDeviceId()
-		val local = datasource.loadSlot(slot.deviceId, authorId)
-		val incoming = if (authorId != null && slot.deviceId == ownDeviceId) {
-			slot.log.copy(sessions = mergeOwnSlotSessions(local?.sessions.orEmpty(), slot.log.sessions))
-		} else {
-			slot.log
-		}
-		datasource.saveSlot(slot.copy(log = incoming))
-		val droppedLegacy = authorId != null && slot.deviceId != ownDeviceId && datasource.deleteDeviceLog(slot.deviceId)
-		return incoming != local || droppedLegacy
+		val local = datasource.loadSlot(slot.deviceId, slot.log.authorId)
+		datasource.saveSlot(slot)
+		val droppedLegacy = slot.log.authorId != null && slot.deviceId != ownDeviceId() &&
+			datasource.deleteDeviceLog(slot.deviceId)
+		return slot.log != local || droppedLegacy
 	}
 
 	/**
-	 * Moves this device's slot aside as [log]'s author's slot, so the signed-in account
-	 * starts a fresh own log. For an own file written under another account on this install;
-	 * [takeSetAsideSessions] gives it back when that account signs in again.
+	 * An own file stamped with another account becomes that account's synced slot, and [userId]'s
+	 * synced copy of this device's slot is dropped. Returns whether a file changed.
 	 */
-	suspend fun setAsideOwnLog(log: DeviceLog) {
+	suspend fun claimOwnSlot(userId: Long): Boolean {
 		val deviceId = ownDeviceId()
-		val authorId = log.authorId ?: return
-		val earlier = datasource.loadSlot(deviceId, authorId)?.sessions.orEmpty()
-		val merged = log.copy(sessions = mergeOwnSlotSessions(earlier, log.sessions))
-		datasource.saveSlot(WritingActivitySlot(deviceId, merged))
-		datasource.deleteDeviceLog(deviceId)
-	}
-
-	/** Removes and returns the sessions [authorId] left on this device under another account. */
-	suspend fun takeSetAsideSessions(authorId: Long): List<WritingSession> {
-		val deviceId = ownDeviceId()
-		val log = datasource.loadSlot(deviceId, authorId) ?: return emptyList()
-		datasource.deleteSlot(deviceId, authorId)
-		return log.sessions
+		val own = datasource.loadDeviceLog(deviceId)
+		val author = own?.authorId
+		val renamed = own != null && author != null && author != userId
+		if (renamed) {
+			datasource.saveSlot(WritingActivitySlot(deviceId, own))
+			datasource.deleteDeviceLog(deviceId)
+		}
+		return datasource.deleteSlot(deviceId, userId) || renamed
 	}
 }

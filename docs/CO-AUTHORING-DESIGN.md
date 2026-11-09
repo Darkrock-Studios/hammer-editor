@@ -458,8 +458,8 @@ carries the author and stats work offline. A slot with a null author is read as 
 Two accounts signed in on the same install share a `deviceId`. The server keys slots by
 `(owner, project, author_id, device_id)`, which needs the Phase 3 migration described under
 Schema (`author_id` backfilled and `NOT NULL`), and the client refuses to merge a returned slot
-for its own `deviceId` whose `author_id` is not the signed-in account. Nothing is lost; the other
-account's sessions simply do not appear in this account's local file.
+for its own `deviceId` whose `author_id` is not the signed-in account. Nothing synced is lost; the
+other account's sessions simply do not appear in this account's local file.
 
 `StatisticsService` groups by `authorId` when more than one is present and displays the stored
 `authorName`, so "Words by Device" becomes "Words by Author" with devices nested, and
@@ -481,11 +481,11 @@ How stage 6 reads this:
 - Locally the own slot stays `{deviceId}.toml`; every synced slot is `{deviceId}.{authorId}.toml`,
   so two authors' slots for one device never share a file. A pre-author `{deviceId}.toml` of
   another device is dropped once its authored copy arrives.
-- "Refuses to merge" keeps another account's slot for this device as its own local slot. Since
-  this device is the only writer of that slot, the local copy is merged with the server's rather
-  than overwritten, and when that account signs in here again its sessions return to the own
-  file. An own file already stamped with another account (an account switch on one install) is
-  set aside under that account's slot, so it is never uploaded as the signed-in account's.
+- "Refuses to merge" keeps another account's slot for this device as its own local slot,
+  overwritten wholesale like any synced slot. An own file already stamped with another account
+  (an account switch on one install) is renamed to that account's synced slot, so it is never
+  uploaded as the signed-in account's; its unsynced sessions are lost. Two accounts on one
+  install only has to be safe, not seamless.
 - "The owner" for a slot with no author is `Info.ownerId` for a shared project and the signed-in
   account for an own one; with neither, the slot stays unattributed. The author's own slot gets
   its author from the next GET after its first upload, so it reads as the owner's for one sync.
@@ -544,7 +544,9 @@ in other owners' stats. Landed 2026-11-09 as `1631a9729` and `ecbe7e56f`.
 
 Simplifications: the sync switch moved from project settings to the project card's menu, where
 the project is closed, so account sync no longer re-mints an excluded id the server deleted and
-turning sync on never meets an open project.
+turning sync on never meets an open project (`7da56adf6`). Writing activity dropped the
+two-accounts-on-one-install set-aside and take-back: another account's own file is renamed to its
+synced slot and its unsynced sessions there are not restored.
 
 Protocol version 4 is the deployment gate (Decision 7), and server and clients ship together in
 4.0.0, so nothing in the order above is load-bearing for deployment; it is the order that keeps

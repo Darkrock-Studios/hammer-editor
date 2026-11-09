@@ -171,28 +171,30 @@ class WritingActivityAuthorSyncTest : BaseTest() {
 	}
 
 	@Test
-	fun `an own file stamped with another account is set aside, not uploaded as ours`() = runTest {
+	fun `an own file stamped with another account becomes its slot, not uploaded as ours`() = runTest {
 		datasource.saveDeviceLog(ownDeviceId, DeviceLog("Desktop", listOf(session(9, 10)), other, "Their Pen"))
+		datasource.saveSlot(WritingActivitySlot(ownDeviceId, DeviceLog("Desktop", listOf(session(8, 5)), other, "Their Pen")))
 
 		sync()
 
 		assertTrue(repository.loadOwnLog().sessions.isEmpty())
 		assertTrue(uploaded.captured.sessions.isEmpty())
-		val aside = repository.loadAllLogs().single { it.log.authorId == other }
-		assertEquals(listOf(session(9, 10)), aside.log.sessions)
+		val theirs = repository.loadAllLogs().single { it.log.authorId == other }
+		assertEquals(listOf(session(9, 10)), theirs.log.sessions)
+		verify(exactly = 1) { statisticsRepository.markDirty() }
 	}
 
 	@Test
-	fun `sessions set aside for another account return when it signs in again`() = runTest {
-		datasource.saveDeviceLog(ownDeviceId, DeviceLog("Desktop", listOf(session(9, 10), session(10, 20)), other, "Their Pen"))
-		val theirOlderServerCopy = DeviceLog("Desktop", listOf(session(9, 10)), other, "Their Pen")
+	fun `an account signing back in takes its slot from the server and drops its synced copy`() = runTest {
+		datasource.saveDeviceLog(ownDeviceId, DeviceLog("Desktop", listOf(session(9, 10)), other, "Their Pen"))
+		val theirServerCopy = DeviceLog("Desktop", listOf(session(8, 5)), other, "Their Pen")
 
-		sync(WritingActivitySlot(ownDeviceId, theirOlderServerCopy))
+		sync(WritingActivitySlot(ownDeviceId, theirServerCopy))
 		coEvery { globalSettingsStore.userIdOrThrow() } returns other
-		sync(WritingActivitySlot(ownDeviceId, theirOlderServerCopy))
+		sync(WritingActivitySlot(ownDeviceId, theirServerCopy))
 
-		assertEquals(listOf(session(9, 10), session(10, 20)), repository.loadOwnLog().sessions)
-		assertEquals(listOf(session(9, 10), session(10, 20)), uploaded.captured.sessions)
+		assertEquals(listOf(session(8, 5)), repository.loadOwnLog().sessions)
+		assertEquals(listOf(session(8, 5)), uploaded.captured.sessions)
 		assertEquals(1, repository.loadAllLogs().size)
 	}
 

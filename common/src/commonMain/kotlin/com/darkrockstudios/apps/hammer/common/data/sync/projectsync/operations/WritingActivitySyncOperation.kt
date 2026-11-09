@@ -23,6 +23,7 @@ import io.github.aakira.napier.Napier
  *  1. GET every slot from the server.
  *  2. Wholesale-overwrite local copies of slots we don't own: other devices', and
  *     another account's on this device (two accounts on one install share a device id).
+ *     An own file stamped with another account becomes that account's slot first.
  *  3. Merge the local copy of our own slot with the server's copy
  *     (deterministic union by `startedAt`), save the merged result both
  *     locally, with the author the server stamped, and back to the server.
@@ -66,15 +67,8 @@ class WritingActivitySyncOperation(
 				return CResult.success(state)
 			}
 
-			var changed = false
-			var localOwnLog = repository.loadOwnLog()
-			val localAuthor = localOwnLog.authorId
-			if (localAuthor != null && localAuthor != userId) {
-				Napier.w("Writing activity: own slot belongs to account $localAuthor, setting it aside")
-				repository.setAsideOwnLog(localOwnLog)
-				localOwnLog = repository.loadOwnLog()
-				changed = true
-			}
+			var changed = repository.claimOwnSlot(userId)
+			val localOwnLog = repository.loadOwnLog()
 
 			val isOwnSlot = { slot: WritingActivitySlot ->
 				slot.deviceId == ownDeviceId && (slot.log.authorId == null || slot.log.authorId == userId)
@@ -84,10 +78,8 @@ class WritingActivitySyncOperation(
 				if (!isOwnSlot(slot) && repository.replaceRemoteSlot(slot)) changed = true
 			}
 
-			val returning = repository.takeSetAsideSessions(userId)
-			val localSessions = mergeOwnSlotSessions(localOwnLog.sessions, returning)
 			val remoteOwnSessions = ownSlot?.log?.sessions ?: emptyList()
-			val mergedSessions = mergeOwnSlotSessions(localSessions, remoteOwnSessions)
+			val mergedSessions = mergeOwnSlotSessions(localOwnLog.sessions, remoteOwnSessions)
 			val ownAuthor = ownSlot?.log?.authorId?.let { SlotAuthor(it, ownSlot.log.authorName) }
 			repository.saveOwnLog(mergedSessions, ownAuthor)
 			val authorChanged = ownAuthor != null &&

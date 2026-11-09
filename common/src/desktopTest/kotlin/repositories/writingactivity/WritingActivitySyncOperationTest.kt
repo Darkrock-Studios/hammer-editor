@@ -78,7 +78,6 @@ class WritingActivitySyncOperationTest : BaseTest() {
 		coEvery { globalSettingsStore.userIdOrThrow() } returns userId
 		every { globalSettingsStore.deviceLabelOrDefault() } returns deviceLabel
 		coEvery { repository.ownDeviceId() } returns ownDeviceId
-		coEvery { repository.takeSetAsideSessions(any()) } returns emptyList()
 	}
 
 	private fun createOperation(): WritingActivitySyncOperation = WritingActivitySyncOperation(
