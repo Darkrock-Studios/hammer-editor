@@ -28,7 +28,8 @@ class ProjectSyncToggleTest : ProjectsRepositoryBaseTest() {
 		createProject(ffs, PROJECT_1_NAME)
 		val def = getProjectDef(PROJECT_1_NAME)
 		val repo = projectsRepository()
-		val toggle = ProjectSyncToggle(repo, accountSyncDatasource())
+		val datasource = accountSyncDatasource()
+		val toggle = ProjectSyncToggle(repo, datasource)
 		val journal = def.path.toOkioPath() / SyncJournalDatasource.SYNC_FILE_NAME
 		ffs.write(journal) { writeUtf8("""{"lastId":3,"newIds":[3],"lastSync":"2025-01-01T00:00:00Z","dirty":[],"deletedIds":[]}""") }
 		val before = ffs.read(journal) { readUtf8() }
@@ -40,6 +41,7 @@ class ProjectSyncToggleTest : ProjectsRepositoryBaseTest() {
 		assertTrue(repo.isSyncEnabled(def))
 		assertEquals(def.id, repo.listedProjectId(def))
 		assertEquals(before, ffs.read(journal) { readUtf8() })
+		assertEquals(setOf(def.id), datasource.load().resumedProjects)
 	}
 
 	@Test
@@ -56,6 +58,7 @@ class ProjectSyncToggleTest : ProjectsRepositoryBaseTest() {
 
 		assertTrue(repo.isSyncEnabled(def))
 		assertNotEquals(def.id, repo.listedProjectId(def))
+		assertTrue(datasource.load().resumedProjects.isEmpty())
 	}
 
 	@Test

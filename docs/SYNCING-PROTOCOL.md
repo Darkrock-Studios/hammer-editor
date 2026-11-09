@@ -375,6 +375,9 @@ checks, like a device that has not synced in a while.
   folder and records the ID in the account `deletedProjects`. Account sync never re-mints it.
 - Turning sync on for a project whose ID is in the account `deletedProjects` re-mints it first, so
   it uploads as new rather than being refused as `project_deleted`.
+  Otherwise the ID is recorded in the account `resumedProjects` until the next completed account
+  sync: if that sync finds a tombstone for it, the project is re-minted and uploaded as new rather
+  than deleted (an open project is kept with sync off instead).
 - A `project.toml` rebuilt because it was lost or corrupt comes up with sync off, under a fresh ID
   and with no owner fields, and the rebuild is logged. Nothing can tell whether the lost file
   belonged to a shared project, so the copy never uploads as this account's own until the user

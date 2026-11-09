@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Timeout
 import org.koin.test.get
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -326,6 +327,43 @@ class CoAuthoringSyncTest : CoAuthoringTestBase() {
 			val reopened = openClient(shared.name)
 			assertEquals("co-author edited while the owner was off", reopened.readScene(a))
 			assertConverged(shared.name, reopened)
+		}
+	}
+
+	@Test
+	@Timeout(value = 180)
+	fun `turning sync on for a project another install deleted keeps it under a new id`() = runBlocking {
+		val laptop = newDevice(owner, "owner-laptop")
+		val name = "deleted elsewhere"
+		val (oldId, sceneId) = on(ownerDevice) {
+			val client = newClient(name)
+			val scene = assertNotNull(client.sceneEditor.createScene(parent = null, sceneName = "Kept"))
+			client.writeScene(scene.id, "written before the delete")
+			assertTrue(client.syncNoConflict())
+			assertTrue(fullSync().allSuccess)
+			val def = assertNotNull(localProject(name))
+			assertEquals(ProjectSyncToggle.Result.Done, get<ProjectSyncToggle>().turnOff(def))
+			def.id to scene.id
+		}
+		on(laptop) {
+			assertTrue(fullSync().allSuccess)
+			assertTrue(get<ProjectsService>().deleteProject(assertNotNull(localProject(name))))
+			assertTrue(fullSync().accountSuccess)
+		}
+		assertNull(serverProjectRowId(oldId))
+
+		on(ownerDevice) {
+			assertEquals(ProjectSyncToggle.Result.Done, get<ProjectSyncToggle>().turnOn(assertNotNull(localProject(name))))
+			val result = fullSync()
+			assertTrue(result.accountSuccess)
+			assertEquals(ProjectSyncOutcome.Success, result.projects[name])
+			val def = assertNotNull(localProject(name))
+			assertNotEquals(oldId, def.id)
+			assertTrue(localInfo(def).syncEnabled)
+			assertNotNull(serverProjectRowId(def.id))
+			val client = openClient(name)
+			assertEquals("written before the delete", client.readScene(sceneId))
+			assertConverged(name, client)
 		}
 	}
 

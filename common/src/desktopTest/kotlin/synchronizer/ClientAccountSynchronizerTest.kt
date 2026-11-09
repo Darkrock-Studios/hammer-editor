@@ -48,6 +48,7 @@ import com.darkrockstudios.apps.hammer.sync_log_account_project_create_client_na
 import com.darkrockstudios.apps.hammer.sync_log_account_project_create_shared_name_taken
 import com.darkrockstudios.apps.hammer.sync_log_account_project_create_server_success
 import com.darkrockstudios.apps.hammer.sync_log_account_project_delete_kept_excluded
+import com.darkrockstudios.apps.hammer.sync_log_account_project_delete_reminted
 import com.darkrockstudios.apps.hammer.sync_log_account_project_deleted_elsewhere
 import com.darkrockstudios.apps.hammer.sync_log_account_project_id_reminted
 import com.darkrockstudios.apps.hammer.sync_log_account_project_in_use
@@ -1309,6 +1310,118 @@ class ClientAccountSynchronizerTest : BaseTest() {
 		coVerify(exactly = 0) { projectsRepository.setProjectId(any(), any()) }
 		coVerify(exactly = 0) { projectsRepository.deleteProject(any()) }
 		coVerify(exactly = 0) { serverProjectsApi.createProject(any(), any(), any(), any()) }
+	}
+
+	@Test
+	fun `a resumed project the server deleted is re-minted and created instead of deleted`() = runTest {
+		val id = ProjectId.randomUUID()
+		val def = projectDef("Scratch", id)
+		writeSyncData(emptySyncData().copy(resumedProjects = setOf(id)))
+		var local = def
+		every { projectsRepository.getProjectTree(any()) } answers {
+			ProjectTree(emptyList(), listOf(local), mapOf(local.id to null))
+		}
+		every { projectsRepository.findProject(id) } returns def
+		val newId = slot<ProjectId>()
+		coEvery { projectsRepository.setProjectId(def, capture(newId)) } answers {
+			def.copy(id = newId.captured).also { local = it }
+		}
+		coEvery { serverProjectsApi.beginProjectsSync() } returns
+			Result.success(emptyServerResponse().copy(deletedProjects = setOf(id)))
+		coEvery { serverProjectsApi.createProject("Scratch", any(), "sync-1") } answers {
+			Result.success(CreateProjectResponse(newId.captured, alreadyExisted = false))
+		}
+
+		val strRes = RecordingStrRes()
+		val result = createSynchronizer(strRes).syncProjects(onLog = {}, onUnauthorized = {})
+
+		assertTrue(result)
+		coVerify(exactly = 0) { projectsRepository.deleteProject(any()) }
+		assertNotEquals(id, newId.captured)
+		coVerify { serverProjectsApi.createProject("Scratch", newId.captured, "sync-1") }
+		assertTrue(strRes.calls.any { it.first == Res.string.sync_log_account_project_delete_reminted })
+		assertTrue(readSyncData().resumedProjects.isEmpty())
+	}
+
+	@Test
+	fun `a resumed project in use that the server deleted is kept with sync off`() = runTest {
+		val id = ProjectId.randomUUID()
+		val def = projectDef("Scratch", id)
+		writeSyncData(emptySyncData().copy(resumedProjects = setOf(id)))
+		stubLocalProjects(listOf(def))
+		every { projectsRepository.findProject(id) } returns def
+		coEvery { projectsRepository.setProjectId(def, any()) } throws ProjectInUseException("Scratch")
+		coEvery { serverProjectsApi.beginProjectsSync() } returns
+			Result.success(emptyServerResponse().copy(deletedProjects = setOf(id)))
+
+		val strRes = RecordingStrRes()
+		val result = createSynchronizer(strRes).syncProjects(onLog = {}, onUnauthorized = {})
+
+		assertTrue(result)
+		coVerify(exactly = 0) { projectsRepository.deleteProject(any()) }
+		verify { projectsRepository.setSyncEnabled(def, false) }
+		coVerify(exactly = 0) { serverProjectsApi.createProject(any(), any(), any(), any()) }
+		val sync = readSyncData()
+		assertEquals(setOf(id), sync.deletedProjects)
+		assertTrue(sync.resumedProjects.isEmpty())
+		assertTrue(strRes.calls.any { it.first == Res.string.sync_log_account_project_delete_kept_excluded })
+	}
+
+	@Test
+	fun `a resumed project whose tombstone a running sync recorded is re-minted next sync`() = runTest {
+		val id = ProjectId.randomUUID()
+		val def = projectDef("Scratch", id)
+		writeSyncData(emptySyncData().copy(deletedProjects = setOf(id), resumedProjects = setOf(id)))
+		stubLocalProjects(listOf(def))
+		every { projectsRepository.findProject(id) } returns def
+		val newId = slot<ProjectId>()
+		coEvery { projectsRepository.setProjectId(def, capture(newId)) } answers { def.copy(id = newId.captured) }
+		coEvery { serverProjectsApi.beginProjectsSync() } returns
+			Result.success(emptyServerResponse().copy(deletedProjects = setOf(id)))
+
+		val result = createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
+
+		assertTrue(result)
+		coVerify(exactly = 1) { projectsRepository.setProjectId(def, any()) }
+		coVerify(exactly = 0) { projectsRepository.deleteProject(any()) }
+	}
+
+	@Test
+	fun `a completed sync clears the resumed ids it started with`() = runTest {
+		val id = ProjectId.randomUUID()
+		val goneId = ProjectId.randomUUID()
+		val def = projectDef("Scratch", id)
+		writeSyncData(emptySyncData().copy(resumedProjects = setOf(id, goneId)))
+		stubLocalProjects(listOf(def))
+		coEvery { serverProjectsApi.beginProjectsSync() } returns Result.success(
+			emptyServerResponse().copy(projects = setOf(ApiProjectDefinition("Scratch", id)))
+		)
+
+		val result = createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
+
+		assertTrue(result)
+		assertTrue(readSyncData().resumedProjects.isEmpty())
+	}
+
+	@Test
+	fun `a project the server deleted after a resume was cleared is deleted`() = runTest {
+		val id = ProjectId.randomUUID()
+		val def = projectDef("Scratch", id)
+		writeSyncData(emptySyncData().copy(resumedProjects = setOf(id)))
+		stubLocalProjects(listOf(def))
+		coEvery { serverProjectsApi.beginProjectsSync() } returns Result.success(
+			emptyServerResponse().copy(projects = setOf(ApiProjectDefinition("Scratch", id)))
+		)
+		createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
+
+		every { projectsRepository.findProject(id) } returns def
+		coEvery { serverProjectsApi.beginProjectsSync() } returns
+			Result.success(emptyServerResponse("sync-2").copy(deletedProjects = setOf(id)))
+		val result = createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
+
+		assertTrue(result)
+		coVerify { projectsRepository.deleteProject(def) }
+		coVerify(exactly = 0) { projectsRepository.setProjectId(any(), any()) }
 	}
 
 	@Test

@@ -184,8 +184,14 @@ class ClientAccountSynchronizer(
 
 				yield()
 
-				// The legacy rename queue is cleared only here, once its seeds are safely stored.
-				accountSyncDatasource.update { ledger.applyTo(it).copy(projectsToRename = emptySet()) }
+				// The legacy rename queue is cleared only here, once its seeds are safely stored. Ids
+				// turned on during this run stay resumed until the next one.
+				accountSyncDatasource.update {
+					ledger.applyTo(it).copy(
+						projectsToRename = emptySet(),
+						resumedProjects = it.resumedProjects - clientSyncData.resumedProjects,
+					)
+				}
 
 				serverProjectsApi.endProjectsSync(syncId)
 				onLog(syncAccLogI(strRes.get(Res.string.sync_log_account_complete)))
@@ -381,7 +387,7 @@ class ClientAccountSynchronizer(
 		clientSyncData: ProjectsSynchronizationData,
 		serverSyncData: BeginProjectsSyncResponse,
 		serverKnownIds: Set<ProjectId>,
-		excluded: Set<ProjectId>,
+		excluded: MutableSet<ProjectId>,
 		ledger: BaselineLedger,
 		onLog: OnSyncLog,
 		onUnauthorized: suspend () -> Unit = {},
@@ -393,28 +399,39 @@ class ClientAccountSynchronizer(
 	/**
 	 * Delete local projects which the server has deleted. An excluded project keeps its folder and
 	 * its id is recorded deleted, so turning sync on re-mints it, see [ProjectSyncToggle.turnOn].
+	 * A resumed project is re-minted here instead, and the create phase uploads it as new.
 	 */
 	private suspend fun deleteLocalProjects(
 		clientSyncData: ProjectsSynchronizationData,
 		serverSyncData: BeginProjectsSyncResponse,
-		excluded: Set<ProjectId>,
+		excluded: MutableSet<ProjectId>,
 		ledger: BaselineLedger,
 		onLog: OnSyncLog
 	) {
 		serverSyncData.deletedProjects.forEach(ledger::retireProject)
+		// A recorded tombstone still counts for a project turned on while the sync recording it ran.
 		val newlyDeletedProjects = serverSyncData.deletedProjects
-			.filter { project -> clientSyncData.deletedProjects.contains(project).not() }
+			.filter { id ->
+				id !in clientSyncData.deletedProjects || (id in clientSyncData.resumedProjects && id !in excluded)
+			}
 			.map { it to projectsRepository.findProject(it) }
 			// The server never removes a co-author's copy, and a shared project keeps its id.
 			.filterNot { (_, projectDef) -> projectDef != null && projectsRepository.getOwner(projectDef) != null }
 
-		val (keptProjects, deletedProjects) = newlyDeletedProjects.partition { (id, _) -> id in excluded }
-		if (keptProjects.isNotEmpty()) {
-			accountSyncDatasource.update { it.copy(deletedProjects = it.deletedProjects + keptProjects.map { (id, _) -> id }) }
+		val (keptProjects, removedProjects) = newlyDeletedProjects.partition { (id, _) -> id in excluded }
+		val (resumedProjects, deletedProjects) = removedProjects.partition { (id, projectDef) ->
+			projectDef != null && id in clientSyncData.resumedProjects
 		}
-		keptProjects.forEach { (_, projectDef) ->
-			projectDef?.let {
-				onLog(syncAccLogW(strRes.get(Res.string.sync_log_account_project_delete_kept_excluded, it.name)))
+		keepExcluded(keptProjects, onLog)
+
+		resumedProjects.mapNotNull { (_, projectDef) -> projectDef }.forEach { projectDef ->
+			try {
+				projectsRepository.setProjectId(projectDef, ProjectId.randomUUID())
+				onLog(syncAccLogW(strRes.get(Res.string.sync_log_account_project_delete_reminted, projectDef.name)))
+			} catch (_: ProjectInUseException) {
+				projectsRepository.setSyncEnabled(projectDef, false)
+				excluded += projectDef.id
+				keepExcluded(listOf(projectDef.id to projectDef), onLog)
 			}
 		}
 
@@ -430,6 +447,16 @@ class ClientAccountSynchronizer(
 				)
 
 				projectsRepository.deleteProject(projectDef)
+			}
+		}
+	}
+
+	private suspend fun keepExcluded(kept: List<Pair<ProjectId, ProjectDef?>>, onLog: OnSyncLog) {
+		if (kept.isEmpty()) return
+		accountSyncDatasource.update { it.copy(deletedProjects = it.deletedProjects + kept.map { (id, _) -> id }) }
+		kept.forEach { (_, projectDef) ->
+			projectDef?.let {
+				onLog(syncAccLogW(strRes.get(Res.string.sync_log_account_project_delete_kept_excluded, it.name)))
 			}
 		}
 	}

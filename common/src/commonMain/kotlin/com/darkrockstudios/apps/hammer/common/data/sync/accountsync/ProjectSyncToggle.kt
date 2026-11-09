@@ -32,8 +32,9 @@ class ProjectSyncToggle(
 
 	/**
 	 * An id the account file lists as deleted is re-minted first, so the create path uploads the
-	 * project as new instead of being refused with `project_deleted`. Otherwise only the flag
-	 * changes and the next sync resumes from the journal.
+	 * project as new instead of being refused with `project_deleted`. Otherwise the id is recorded
+	 * in `resumedProjects`, for a tombstone this device has not seen yet, and the next sync resumes
+	 * from the journal.
 	 */
 	suspend fun turnOn(projectDef: ProjectDef): Result {
 		if (projectsRepository.getOwner(projectDef) != null) return Result.Failed
@@ -43,6 +44,8 @@ class ProjectSyncToggle(
 			} catch (_: ProjectInUseException) {
 				return Result.Failed
 			}
+		} else {
+			accountSyncDatasource.update { it.copy(resumedProjects = it.resumedProjects + projectDef.id) }
 		}
 		return if (projectsRepository.setSyncEnabled(projectDef, true)) Result.Done else Result.Failed
 	}

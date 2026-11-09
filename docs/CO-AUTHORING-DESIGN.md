@@ -337,6 +337,13 @@ never re-mints it; turning sync on does (below). A project that syncs and whose 
 there is never re-minted either: that is a folder a file-sync tool put back after this device
 deleted it, and tombstones stay dead.
 
+Turning sync on also records the id under `resumedProjects` in the account `sync.json`, since the
+server may have deleted the project after this device last synced. If the next account sync finds
+it deleted there, the delete phase re-mints the id instead of deleting the folder, and the create
+phase uploads it as new; a project open at that moment keeps its folder with sync off, as above.
+That holds even for a tombstone already recorded by a sync that ran while the switch was turned
+on. A completed account sync clears the ids it started with, so a later tombstone deletes as usual.
+
 Turning sync **off** states two consequences in the dialog:
 
 - Other devices and the server are unaffected. The switch means "not from this device".

@@ -243,6 +243,7 @@
 	<string name="sync_log_account_project_parked">%1$s is no longer shared with you. Your copy is kept on this device and no longer syncs. It syncs again if you are invited back.</string>
 	<string name="sync_log_account_project_resumed">%1$s is shared with you again and syncs once more. Every scene is checked against the server copy</string>
 	<string name="sync_log_account_project_delete_kept_excluded">Project %1$s was deleted on the server but does not sync on this device, so it is kept here. Turning sync on will upload it as a new project</string>
+	<string name="sync_log_account_project_delete_reminted">Project %1$s was deleted on the server, but sync was just turned on here, so it is kept and uploaded as a new project</string>
 
 	<string name="sync_log_account_project_move_server_success">Moved project on server: %1$s</string>
 	<string name="sync_log_account_project_move_server_failure">Failed to move project on server: %1$s</string>
