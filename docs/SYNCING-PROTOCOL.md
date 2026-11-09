@@ -353,9 +353,10 @@ the folder and refreshed for every listed shared project at the start of each se
 ### Per-project sync switch
 
 Any local project can be kept off the server from one device with `syncEnabled` in its
-`project.toml` (default true). Project settings show the switch for the account's own projects when
-a sync server is configured; a shared project has none, as it syncs while shared and not left. The
-switch means "not from this device": other devices and the server are unaffected.
+`project.toml` (default true). The project's menu on the project list shows the switch for the
+account's own projects when a sync server is configured; a shared project has none, as it syncs
+while shared and not left. The project is closed there, so its ID can always change. The switch
+means "not from this device": other devices and the server are unaffected.
 
 `ProjectsRepository.isSyncEnabled` is the single check. Account sync collects the projects with
 sync off at the start of each session (the excluded set, which parked projects join) and every
@@ -369,13 +370,9 @@ checks, like a device that has not synced in a while.
   *Also delete on the server* when the project has an account sync baseline; otherwise, if the
   server still holds it, the next account sync creates it locally again.
 - When the server lists an excluded project's ID under `deletedProjects`, the delete phase keeps the
-  folder and re-mints its ID on the spot, so turning sync on later uploads it as new rather than
-  being refused as `project_deleted`. An open project cannot change ID: its ID is recorded in the
-  account `deletedProjects`, which keeps the folder safe, and a later session re-mints it once it
-  is closed.
-- Turning sync on for a project whose ID is in the account `deletedProjects` re-mints it first. An
-  open project cannot be re-minted, so the switch asks the user to close it and sync from the
-  project list.
+  folder and records the ID in the account `deletedProjects`. Account sync never re-mints it.
+- Turning sync on for a project whose ID is in the account `deletedProjects` re-mints it first, so
+  it uploads as new rather than being refused as `project_deleted`.
 - A `project.toml` rebuilt because it was lost or corrupt comes up with sync off, under a fresh ID
   and with no owner fields, and the rebuild is logged. Nothing can tell whether the lost file
   belonged to a shared project, so the copy never uploads as this account's own until the user

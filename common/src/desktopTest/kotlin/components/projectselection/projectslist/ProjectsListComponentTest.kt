@@ -37,6 +37,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectstatistics.ProjectStat
 import com.darkrockstudios.apps.hammer.common.data.protocolmismatch.ProtocolMismatchRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ClientAccountSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.AccountSyncLock
+import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ProjectSyncToggle
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.SyncAccountUseCase
 import com.darkrockstudios.apps.hammer.common.data.toMsg
 import com.darkrockstudios.apps.hammer.common.data.versioncheck.VersionCheckDatasource
@@ -97,6 +98,7 @@ class ProjectsListComponentTest : ComponentTest() {
 	private lateinit var networkConnectivity: NetworkConnectivity
 	private lateinit var statsReader: ProjectStatisticsCacheReader
 	private lateinit var reauthUseCase: AccountReauthUseCase
+	private lateinit var syncToggle: ProjectSyncToggle
 
 	private lateinit var globalSettings: GlobalSettings
 	private lateinit var settingsUpdates: MutableSharedFlow<GlobalSettings>
@@ -159,6 +161,9 @@ class ProjectsListComponentTest : ComponentTest() {
 		networkConnectivity = mockk(relaxed = true)
 		statsReader = mockk(relaxed = true)
 		reauthUseCase = mockk(relaxed = true)
+		syncToggle = mockk()
+		every { syncToggle.turnOff(any()) } returns ProjectSyncToggle.Result.Done
+		coEvery { syncToggle.turnOn(any()) } returns ProjectSyncToggle.Result.Done
 
 		globalSettings = GlobalSettings(
 			projectsDirectory = "/projects",
@@ -183,6 +188,7 @@ class ProjectsListComponentTest : ComponentTest() {
 			single { networkConnectivity }
 			single { statsReader }
 			single { reauthUseCase }
+			single { syncToggle }
 			factory { SyncAccountUseCase(get(), get(), AccountSyncLock(), get()) }
 			single<FileSystem> { FakeFileSystem() }
 			single<Toml> { createTomlSerializer() }
@@ -410,6 +416,52 @@ class ProjectsListComponentTest : ComponentTest() {
 			assertTrue(comp.state.value.showImportDialog)
 			verify(exactly = 0) { projectsRepository.getProjectTree(any()) }
 		}
+
+	// --- project sync switch -------------------------------------------------
+
+	@Test
+	fun `Turning sync off from the menu asks first and changes nothing until confirmed`() =
+		runTest(mainTestDispatcher) {
+			val comp = newComponent()
+
+			comp.setProjectSync(projectDefA, enabled = false)
+			advanceUntilIdle()
+			val dialog = assertIs<ProjectsList.ModalDestination.ProjectSyncOff>(comp.modalRouterState.value.child?.instance)
+			assertEquals(projectDefA, dialog.projectDef)
+			verify(exactly = 0) { syncToggle.turnOff(any()) }
+
+			comp.confirmProjectSyncOff(projectDefA)
+			comp.dismissProjectSyncOff()
+			advanceUntilIdle()
+
+			verify(exactly = 1) { syncToggle.turnOff(projectDefA) }
+			assertIs<ProjectsList.ModalDestination.None>(comp.modalRouterState.value.child?.instance)
+			verify { projectsRepository.getProjectTree(any()) }
+		}
+
+	@Test
+	fun `Turning sync on from the menu takes effect at once`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+
+		comp.setProjectSync(projectDefA, enabled = true)
+		advanceUntilIdle()
+
+		coVerify(exactly = 1) { syncToggle.turnOn(projectDefA) }
+		assertIs<ProjectsList.ModalDestination.None>(comp.modalRouterState.value.child?.instance)
+		verify { projectsRepository.getProjectTree(any()) }
+	}
+
+	@Test
+	fun `A refused turn-on opens nothing and reloads the list`() = runTest(mainTestDispatcher) {
+		coEvery { syncToggle.turnOn(any()) } returns ProjectSyncToggle.Result.Failed
+		val comp = newComponent()
+
+		comp.setProjectSync(projectDefA, enabled = true)
+		advanceUntilIdle()
+
+		assertIs<ProjectsList.ModalDestination.None>(comp.modalRouterState.value.child?.instance)
+		verify { projectsRepository.getProjectTree(any()) }
+	}
 
 	// --- deleteProject -------------------------------------------------------
 

@@ -116,10 +116,6 @@ class ClientAccountSynchronizer(
 
 				yield()
 
-				remintDeletedProjects(localProjects, clientSyncData, excluded, onLog)
-
-				yield()
-
 				// Deletions go first: a project name is unique per account on the server, so a
 				// rename into a name still held by a project queued for deletion is rejected.
 				syncDeletedProjects(clientSyncData, serverSyncData, serverKnownIds, excluded, ledger, onLog, onUnauthorized)
@@ -381,46 +377,11 @@ class ClientAccountSynchronizer(
 		}
 	}
 
-	/** Retries [remintExcluded] for an excluded project whose deletion an earlier session recorded while it was open. */
-	private suspend fun remintDeletedProjects(
-		localProjects: List<ProjectDef>,
-		clientSyncData: ProjectsSynchronizationData,
-		excluded: MutableSet<ProjectId>,
-		onLog: OnSyncLog,
-	) {
-		localProjects
-			.filter { it.id in clientSyncData.deletedProjects && it.id in excluded }
-			.filter { projectsRepository.getOwner(it) == null }
-			.forEach { remintExcluded(it, excluded, onLog) }
-	}
-
-	/**
-	 * Gives an excluded project the server deleted a fresh id, so turning sync back on uploads it as
-	 * a new project rather than being refused as `project_deleted`. The new id joins [excluded] so
-	 * the rest of the session still leaves it alone. False when it is open: its id is fixed until it
-	 * closes.
-	 */
-	private suspend fun remintExcluded(
-		projectDef: ProjectDef,
-		excluded: MutableSet<ProjectId>,
-		onLog: OnSyncLog,
-	): Boolean {
-		val reminted = try {
-			projectsRepository.setProjectId(projectDef, ProjectId.randomUUID())
-		} catch (_: ProjectInUseException) {
-			placer.logInUse(projectDef, onLog)
-			return false
-		}
-		excluded += reminted.id
-		onLog(syncAccLogW(strRes.get(Res.string.sync_log_account_project_delete_kept_excluded, projectDef.name)))
-		return true
-	}
-
 	private suspend fun syncDeletedProjects(
 		clientSyncData: ProjectsSynchronizationData,
 		serverSyncData: BeginProjectsSyncResponse,
 		serverKnownIds: Set<ProjectId>,
-		excluded: MutableSet<ProjectId>,
+		excluded: Set<ProjectId>,
 		ledger: BaselineLedger,
 		onLog: OnSyncLog,
 		onUnauthorized: suspend () -> Unit = {},
@@ -431,12 +392,12 @@ class ClientAccountSynchronizer(
 
 	/**
 	 * Delete local projects which the server has deleted. An excluded project keeps its folder and
-	 * is re-minted, see [remintExcluded].
+	 * its id is recorded deleted, so turning sync on re-mints it, see [ProjectSyncToggle.turnOn].
 	 */
 	private suspend fun deleteLocalProjects(
 		clientSyncData: ProjectsSynchronizationData,
 		serverSyncData: BeginProjectsSyncResponse,
-		excluded: MutableSet<ProjectId>,
+		excluded: Set<ProjectId>,
 		ledger: BaselineLedger,
 		onLog: OnSyncLog
 	) {
@@ -448,12 +409,13 @@ class ClientAccountSynchronizer(
 			.filterNot { (_, projectDef) -> projectDef != null && projectsRepository.getOwner(projectDef) != null }
 
 		val (keptProjects, deletedProjects) = newlyDeletedProjects.partition { (id, _) -> id in excluded }
-		// Recorded only when it could not be re-minted, which keeps its folder from being deleted.
-		val stillDeleted = keptProjects
-			.filterNot { (_, projectDef) -> projectDef?.let { remintExcluded(it, excluded, onLog) } ?: true }
-			.map { (id, _) -> id }
-		if (stillDeleted.isNotEmpty()) {
-			accountSyncDatasource.update { it.copy(deletedProjects = it.deletedProjects + stillDeleted) }
+		if (keptProjects.isNotEmpty()) {
+			accountSyncDatasource.update { it.copy(deletedProjects = it.deletedProjects + keptProjects.map { (id, _) -> id }) }
+		}
+		keptProjects.forEach { (_, projectDef) ->
+			projectDef?.let {
+				onLog(syncAccLogW(strRes.get(Res.string.sync_log_account_project_delete_kept_excluded, it.name)))
+			}
 		}
 
 		deletedProjects.forEach { (_, projectDef) ->

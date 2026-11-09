@@ -1259,19 +1259,13 @@ class ClientAccountSynchronizerTest : BaseTest() {
 	}
 
 	@Test
-	fun `an excluded project the server deleted keeps its folder and takes a fresh id`() = runTest {
+	fun `an excluded project the server deleted keeps its folder and id and is recorded deleted`() = runTest {
 		writeSyncData(emptySyncData())
 		val id = ProjectId.randomUUID()
 		val def = projectDef("Scratch", id)
-		val reminted = projectDef("Scratch", ProjectId.randomUUID())
 		exclude(def)
-		exclude(reminted)
 		stubLocalProjects(listOf(def))
 		every { projectsRepository.findProject(id) } returns def
-		coEvery { projectsRepository.setProjectId(def, any()) } answers {
-			stubLocalProjects(listOf(reminted))
-			reminted
-		}
 		coEvery { serverProjectsApi.beginProjectsSync() } returns
 			Result.success(emptyServerResponse().copy(deletedProjects = setOf(id)))
 
@@ -1280,37 +1274,10 @@ class ClientAccountSynchronizerTest : BaseTest() {
 
 		assertTrue(result)
 		coVerify(exactly = 0) { projectsRepository.deleteProject(any()) }
-		coVerify(exactly = 1) { projectsRepository.setProjectId(def, any()) }
-		// Still excluded under its new id for the rest of the session.
+		coVerify(exactly = 0) { projectsRepository.setProjectId(any(), any()) }
 		coVerify(exactly = 0) { serverProjectsApi.createProject(any(), any(), any(), any()) }
-		assertTrue(readSyncData().deletedProjects.isEmpty())
-		assertTrue(strRes.calls.any { it.first == Res.string.sync_log_account_project_delete_kept_excluded })
-	}
-
-	@Test
-	fun `an open excluded project the server deleted is recorded deleted and re-minted once closed`() = runTest {
-		writeSyncData(emptySyncData())
-		val id = ProjectId.randomUUID()
-		val def = projectDef("Scratch", id)
-		exclude(def)
-		stubLocalProjects(listOf(def))
-		every { projectsRepository.findProject(id) } returns def
-		coEvery { projectsRepository.setProjectId(def, any()) } throws ProjectInUseException(def.name)
-		coEvery { serverProjectsApi.beginProjectsSync() } returns
-			Result.success(emptyServerResponse().copy(deletedProjects = setOf(id)))
-
-		createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
-
-		coVerify(exactly = 0) { projectsRepository.deleteProject(any()) }
 		assertEquals(setOf(id), readSyncData().deletedProjects)
-
-		val reminted = projectDef("Scratch", ProjectId.randomUUID())
-		exclude(reminted)
-		coEvery { projectsRepository.setProjectId(def, any()) } returns reminted
-		createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
-
-		coVerify(exactly = 0) { projectsRepository.deleteProject(any()) }
-		coVerify(exactly = 2) { projectsRepository.setProjectId(def, any()) }
+		assertTrue(strRes.calls.any { it.first == Res.string.sync_log_account_project_delete_kept_excluded })
 	}
 
 	@Test
@@ -1325,6 +1292,23 @@ class ClientAccountSynchronizerTest : BaseTest() {
 		createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
 
 		coVerify(exactly = 0) { projectsRepository.setProjectId(any(), any()) }
+	}
+
+	@Test
+	fun `a recorded deletion of an excluded project is left alone`() = runTest {
+		val id = ProjectId.randomUUID()
+		val def = projectDef("Scratch", id)
+		exclude(def)
+		writeSyncData(emptySyncData().copy(deletedProjects = setOf(id)))
+		stubLocalProjects(listOf(def))
+		coEvery { serverProjectsApi.beginProjectsSync() } returns
+			Result.success(emptyServerResponse().copy(deletedProjects = setOf(id)))
+
+		createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
+
+		coVerify(exactly = 0) { projectsRepository.setProjectId(any(), any()) }
+		coVerify(exactly = 0) { projectsRepository.deleteProject(any()) }
+		coVerify(exactly = 0) { serverProjectsApi.createProject(any(), any(), any(), any()) }
 	}
 
 	@Test

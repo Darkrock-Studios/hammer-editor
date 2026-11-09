@@ -5,6 +5,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.unit.height
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -26,6 +28,8 @@ import io.mockk.*
 import org.junit.Rule
 import org.junit.Test
 import kotlin.test.assertEquals
+
+private const val SyncItem = "Sync on this device"
 
 class ProjectCardTest {
 	@get:Rule
@@ -173,23 +177,77 @@ class ProjectCardTest {
 	private fun rowTag(isWide: Boolean, hasCover: Boolean) = "row-wide-$isWide-cover-$hasCover"
 
 	@Test
-	fun `Project Card shows the sync-off marker only when asked`() {
-		var syncOff by mutableStateOf(false)
+	fun `Project Card shows the sync-off marker for a project with sync off and a server`() {
+		val data = fakeProjectData()
+		var current by mutableStateOf(data)
+		var isServerSynced by mutableStateOf(true)
 		compose.setContent {
 			ProjectIndexRow(
 				isWide = true,
 				index = 0,
-				projectData = fakeProjectData(),
+				projectData = current,
 				onProjectClick = {},
 				onProjectAltClick = {},
 				onProjectRenameClick = {},
-				syncOff = syncOff,
+				isServerSynced = isServerSynced,
 			)
 		}
 
 		compose.onNodeWithTag(ProjectCardSyncOffTestTag, useUnmergedTree = true).assertDoesNotExist()
-		syncOff = true
+		current = data.copy(metadata = data.metadata.copy(info = data.metadata.info.copy(syncEnabled = false)))
 		compose.onNodeWithTag(ProjectCardSyncOffTestTag, useUnmergedTree = true).assertIsDisplayed()
+		isServerSynced = false
+		compose.onNodeWithTag(ProjectCardSyncOffTestTag, useUnmergedTree = true).assertDoesNotExist()
+	}
+
+	@Test
+	fun `Project Card switches sync on this device for an own project`() {
+		val data = fakeProjectData()
+		var current by mutableStateOf(data)
+		val clicks = mutableListOf<Pair<ProjectDef, Boolean>>()
+		compose.setContent {
+			ProjectIndexRow(
+				isWide = true,
+				index = 0,
+				projectData = current,
+				onProjectClick = {},
+				onProjectAltClick = {},
+				onProjectRenameClick = {},
+				onProjectSyncClick = { def, enabled -> clicks += def to enabled },
+			)
+		}
+
+		compose.onNodeWithTag("More").performClick()
+		compose.onNodeWithTag(SyncItem).assertIsOn().performClick()
+		current = data.copy(metadata = data.metadata.copy(info = data.metadata.info.copy(syncEnabled = false)))
+		compose.onNodeWithTag("More").performClick()
+		compose.onNodeWithTag(SyncItem).assertIsOff().performClick()
+
+		assertEquals(listOf(data.definition to false, data.definition to true), clicks)
+	}
+
+	@Test
+	fun `Project Card offers no sync switch for a shared project or without a server`() {
+		var data by mutableStateOf(fakeProjectData().shared(ownerName = "Alice"))
+		var isServerSynced by mutableStateOf(true)
+		compose.setContent {
+			ProjectIndexRow(
+				isWide = true,
+				index = 0,
+				projectData = data,
+				onProjectClick = {},
+				onProjectAltClick = {},
+				onProjectRenameClick = {},
+				isServerSynced = isServerSynced,
+			)
+		}
+
+		compose.onNodeWithTag("More").performClick()
+		compose.onNodeWithTag(SyncItem).assertDoesNotExist()
+		data = fakeProjectData()
+		isServerSynced = false
+		compose.onNodeWithTag("Delete").assertExists()
+		compose.onNodeWithTag(SyncItem).assertDoesNotExist()
 	}
 
 	@Test

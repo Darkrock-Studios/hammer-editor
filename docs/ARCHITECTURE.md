@@ -339,10 +339,10 @@ A corrupt `project.toml`, or a lost one once recreated, therefore comes back wit
 and with sync off (`ProjectMetadataDatasource.loadMetadata` for an unreadable file,
 `healUnmarkedProjectDirectories` for a lost one), and the rebuild is logged as a warning. Widgets
 and watch subscriptions no longer find the project, and it stays off the server until the user
-turns sync on in its settings. Nothing can tell whether the lost file had an owner, so this applies
-to every rebuilt project: a co-author's copy is never uploaded as the account's own. Once sync is
-on, the server sees the project as new unless account sync matches it by name to a server project
-and adopts that ID. A healed or adopted folder's surviving `sync.json` may be stale, so the folder
+turns sync on from its menu on the project list. Nothing can tell whether the lost file had an
+owner, so this applies to every rebuilt project: a co-author's copy is never uploaded as the
+account's own. Once sync is on, the server sees the project as new unless account sync matches it
+by name to a server project and adopts that ID. A healed or adopted folder's surviving `sync.json` may be stale, so the folder
 is flagged like a restored backup and its next sync conflict-checks every entity. That is the
 accepted cost of healing rather than failing.
 

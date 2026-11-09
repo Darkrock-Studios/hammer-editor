@@ -46,8 +46,8 @@ the account, and anything not tied to a device is "the same user on another devi
 3. **A server-side action never deletes a co-author's local data, and never uploads it somewhere
    new.** When the server stops listing a shared project, whatever the cause, the local copy
    stays in place with sync turned off for it. This uses a per-project sync flag in
-   `project.toml`. For the author's own projects it is a switch in project settings whenever a
-   sync server is configured, useful on its own: a scratch project, or one the author wants kept
+   `project.toml`. For the author's own projects it is a switch in the project's menu on the
+   project list whenever a sync server is configured, useful on its own: a scratch project, or one the author wants kept
    off the server. A shared project has no switch: it syncs while it is shared and not left, and
    a copy that stopped syncing stays local-only (uploading it as the author's own is deferred, see
    Later, optional).
@@ -309,10 +309,12 @@ the project list are untouched; `ProjectsRepository` exposes them as `getOwner`/
 
 ### Per-project sync toggle
 
-The project settings screen shows a *Sync this project* switch, only when `serverSettings` is
-set and the project is the user's own. For a shared project the Sync section shows a read-only
-line instead: who shared it, and either that leaving it from the project list stops it syncing or,
-once parked, that the copy stays on this device and syncs again on a re-invite.
+The project card's menu on the project list has a *Sync on this device* switch, only when
+`serverSettings` is set and the project is the user's own. The project is closed there by
+construction, so its id can always change. The Sync section of project settings is read-only: for
+an own project it says whether it syncs here and that the switch is on the project list; for a
+shared project, who shared it, and either that leaving it from the project list stops it syncing
+or, once parked, that the copy stays on this device and syncs again on a re-invite.
 `ProjectSyncToggle` refuses both directions for a project with `ownerId`. The project card shows a
 cloud-off marker for an excluded project.
 
@@ -329,13 +331,11 @@ refuses an excluded `--project`, and `sync.status` reports `syncEnabled`. Nothin
 entities are still marked dirty in the project journal, so turning sync back on resumes with the
 normal conflict detection, like a device that has not synced in a while.
 
-The account `sync.json` lists under `deletedProjects` only ids this device deleted, never another
-device's deletes. So when the server lists an excluded project's id as deleted, the delete phase
-keeps the folder and re-mints it on the spot; the fresh id joins the session's excluded set. Only
-when the project is open, and so cannot change id, is the id recorded under `deletedProjects`,
-which keeps the folder safe, and a later session re-mints it once it is closed while still
-excluded. A project that syncs and whose id is recorded there is still never re-minted: that is a
-folder a file-sync tool put back after this device deleted it, and tombstones stay dead.
+When the server lists an excluded project's id as deleted, the delete phase keeps the folder,
+records the id under the account `sync.json`'s `deletedProjects` and logs it once. Account sync
+never re-mints it; turning sync on does (below). A project that syncs and whose id is recorded
+there is never re-minted either: that is a folder a file-sync tool put back after this device
+deleted it, and tombstones stay dead.
 
 Turning sync **off** states two consequences in the dialog:
 
@@ -350,9 +350,8 @@ Turning sync **on**:
 
 - If the account `sync.json` lists the id under `deletedProjects`, the project was deleted on the
   server while excluded here; a fresh id is minted so the create path does not answer
-  `project_deleted`. The switch lives in the open project, which cannot change id, so in practice
-  this refuses and asks the user to close the project and sync from the project list (which
-  re-mints it, above), then turn sync on.
+  `project_deleted`. The project is closed on the project list; should it be open anyway (another
+  window), nothing changes and the attempt is logged.
 - Otherwise sync resumes. A parked shared project has no switch; account sync resumes it, with
   `verifyAllEntities` set, when it is listed again.
 
@@ -542,6 +541,10 @@ up with sync off (Parked projects), landed as `04b05e83b`.
 Review fixes: stale owner marks cleared, atomic project journals with no inferred deletions,
 parked projects renamable, `403 not_member` leaves dropped, wording, and purge clearing pen names
 in other owners' stats. Landed 2026-11-09 as `1631a9729` and `ecbe7e56f`.
+
+Simplifications: the sync switch moved from project settings to the project card's menu, where
+the project is closed, so account sync no longer re-mints an excluded id the server deleted and
+turning sync on never meets an open project.
 
 Protocol version 4 is the deployment gate (Decision 7), and server and clients ship together in
 4.0.0, so nothing in the order above is load-bearing for deployment; it is the order that keeps

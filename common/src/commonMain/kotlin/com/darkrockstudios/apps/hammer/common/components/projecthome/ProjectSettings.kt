@@ -45,21 +45,12 @@ interface ProjectSettings : HammerComponent {
 	/** Turns the installed plugin [pluginId] on or off for this project, on this device only. */
 	fun setPluginEnabled(pluginId: String, enabled: Boolean)
 
-	/** On takes effect at once; off first asks, see [SyncState.confirmingOff]. Ignored for a shared project. */
-	fun setSyncEnabled(enabled: Boolean)
-	fun confirmSyncOff()
-	fun dismissSyncDialog()
-
 	data class SyncState(
-		/** The switch is shown only when a sync server is set up. */
+		/** The section is shown only when a sync server is set up. */
 		val serverConfigured: Boolean = false,
 		val syncEnabled: Boolean = true,
-		/** Set for a project shared with this account, which has no switch: it syncs while shared and not left. */
+		/** Set for a project shared with this account: it syncs while shared and not left. */
 		val owner: ProjectOwner? = null,
-		/** The dialog stating what turning sync off means is open. */
-		val confirmingOff: Boolean = false,
-		/** Turning sync on was refused: the server deleted the project and it must close to take a new id. */
-		val deletedOnServer: Boolean = false,
 	)
 
 	data class LanguageOption(

@@ -167,6 +167,9 @@ fun fakeProjectsList(
 	override fun deleteProject(projectDef: ProjectDef, alsoDeleteOnServer: Boolean) {}
 	override fun leaveProject(projectDef: ProjectDef) {}
 	override fun renameProject(projectDef: ProjectDef, newName: String) {}
+	override fun setProjectSync(projectDef: ProjectDef, enabled: Boolean) {}
+	override fun confirmProjectSyncOff(projectDef: ProjectDef) {}
+	override fun dismissProjectSyncOff() {}
 	override fun syncProjects(callback: (Boolean) -> Unit) {}
 	override fun showProjectsSync() {}
 	override fun hideProjectsSync() {}

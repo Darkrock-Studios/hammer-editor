@@ -33,6 +33,7 @@ import com.darkrockstudios.apps.hammer.base.http.storyideas.StoryIdea
 import com.darkrockstudios.apps.hammer.common.data.protocolmismatch.ProtocolMismatchRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ClientAccountSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ProjectSyncOutcome
+import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ProjectSyncToggle
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.SyncAccountListener
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.SyncAccountUseCase
 import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.IdeaConflict
@@ -92,6 +93,7 @@ class ProjectsListComponent(
 	private val projectsRepository: ProjectsRepository by inject()
 	private val projectsSynchronizer: ClientAccountSynchronizer by inject()
 	private val projectsService: ProjectsService by inject()
+	private val syncToggle: ProjectSyncToggle by inject()
 	private val syncAccountUseCase: SyncAccountUseCase by inject()
 	private val protocolMismatchRepository: ProtocolMismatchRepository by inject()
 	private val networkConnectivity: NetworkConnectivity by inject()
@@ -334,6 +336,33 @@ class ProjectsListComponent(
 
 	override fun renameProject(projectDef: ProjectDef, newName: String) =
 		runTreeAction("rename project '${projectDef.name}'") { projectsService.renameProject(projectDef, newName) }
+
+	override fun setProjectSync(projectDef: ProjectDef, enabled: Boolean) {
+		if (enabled) {
+			changeProjectSync(projectDef, "on") { syncToggle.turnOn(it) }
+		} else {
+			modalRouter.showProjectSyncOff(projectDef)
+		}
+	}
+
+	override fun confirmProjectSyncOff(projectDef: ProjectDef) {
+		changeProjectSync(projectDef, "off") { syncToggle.turnOff(it) }
+	}
+
+	override fun dismissProjectSyncOff() = modalRouter.dismiss()
+
+	private fun changeProjectSync(
+		projectDef: ProjectDef,
+		description: String,
+		change: suspend (ProjectDef) -> ProjectSyncToggle.Result,
+	) {
+		scope.launch(dispatcherIo) {
+			if (change(projectDef) == ProjectSyncToggle.Result.Failed) {
+				Napier.w("Could not turn sync $description for '${projectDef.name}'")
+			}
+			loadProjectList()
+		}
+	}
 
 	override fun moveProject(projectDef: ProjectDef, target: GroupDef?) =
 		runTreeAction("move project '${projectDef.name}'") { projectsService.moveProject(projectDef, target) }

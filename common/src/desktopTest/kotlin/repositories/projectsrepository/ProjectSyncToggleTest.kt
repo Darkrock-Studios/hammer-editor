@@ -75,7 +75,7 @@ class ProjectSyncToggleTest : ProjectsRepositoryBaseTest() {
 			projectScope.close()
 		}
 
-		assertEquals(ProjectSyncToggle.Result.DeletedOnServer, result)
+		assertEquals(ProjectSyncToggle.Result.Failed, result)
 		assertFalse(repo.isSyncEnabled(def))
 		assertEquals(def.id, repo.listedProjectId(def))
 	}

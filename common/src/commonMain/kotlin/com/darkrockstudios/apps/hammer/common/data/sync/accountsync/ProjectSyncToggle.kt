@@ -6,8 +6,8 @@ import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectInU
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 
 /**
- * Turns sync on or off for one of the account's own projects on this device, the switch in its
- * settings. A shared project has no switch: it syncs while shared and not left.
+ * Turns sync on or off for one of the account's own projects on this device, from its menu on the
+ * project list. A shared project has no switch: it syncs while shared and not left.
  */
 class ProjectSyncToggle(
 	private val projectsRepository: ProjectsRepository,
@@ -16,14 +16,11 @@ class ProjectSyncToggle(
 	enum class Result {
 		Done,
 
-		/** Nothing changed: `project.toml` could not be read, or the project is shared with this account. */
-		Failed,
-
 		/**
-		 * The server deleted the project while it was excluded and it is open, so it cannot take the
-		 * fresh id it needs. Account sync re-mints it once it is closed; sync stays off until then.
+		 * Nothing changed: `project.toml` could not be read, the project is shared with this account,
+		 * or it is open and needs a fresh id.
 		 */
-		DeletedOnServer,
+		Failed,
 	}
 
 	fun turnOff(projectDef: ProjectDef): Result =
@@ -44,7 +41,7 @@ class ProjectSyncToggle(
 			try {
 				projectsRepository.setProjectId(projectDef, ProjectId.randomUUID())
 			} catch (_: ProjectInUseException) {
-				return Result.DeletedOnServer
+				return Result.Failed
 			}
 		}
 		return if (projectsRepository.setSyncEnabled(projectDef, true)) Result.Done else Result.Failed

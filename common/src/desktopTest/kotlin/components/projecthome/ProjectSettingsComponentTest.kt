@@ -23,7 +23,6 @@ import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectPlugins
 import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectPluginsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectOwner
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
-import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ProjectSyncToggle
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournalDatasource
 import com.darkrockstudios.apps.hammer.common.data.tagindex.AccountTagService
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineService
@@ -35,10 +34,8 @@ import com.darkrockstudios.apps.hammer.common.util.AvailableLocalesProvider
 import com.darkrockstudios.apps.hammer.common.util.Locale
 import com.darkrockstudios.libs.platformspellchecker.PlatformSpellCheckerFactory
 import io.mockk.coEvery
-import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -73,7 +70,6 @@ class ProjectSettingsComponentTest : ComponentTest() {
 	private lateinit var serverSettingsFlow: MutableSharedFlow<ServerSettings?>
 	private lateinit var projectSyncEnabled: MutableStateFlow<Boolean>
 	private var projectOwner: ProjectOwner? = null
-	private lateinit var syncToggle: ProjectSyncToggle
 
 	@BeforeEach
 	override fun setup() {
@@ -105,15 +101,6 @@ class ProjectSettingsComponentTest : ComponentTest() {
 		every { projectsRepository.syncEnabledUpdates(any()) } returns projectSyncEnabled
 		projectOwner = null
 		every { projectsRepository.getOwner(any()) } answers { projectOwner }
-		syncToggle = mockk()
-		every { syncToggle.turnOff(any()) } answers {
-			projectSyncEnabled.value = false
-			ProjectSyncToggle.Result.Done
-		}
-		coEvery { syncToggle.turnOn(any()) } answers {
-			projectSyncEnabled.value = true
-			ProjectSyncToggle.Result.Done
-		}
 		serverSettingsFlow = MutableSharedFlow(replay = 1)
 		serverSettingsFlow.tryEmit(null)
 
@@ -125,7 +112,6 @@ class ProjectSettingsComponentTest : ComponentTest() {
 		setupComponentKoin(module {
 			single { globalSettingsStore }
 			single { projectsRepository }
-			single { syncToggle }
 			single { AccountTagService(ideasRepository, projectsRepository, ffs, toml) }
 			single { ProjectPluginsRepository(ProjectPluginsDatasource(ffs, toml)) }
 			single<PlatformSpellCheckerFactory> {
@@ -204,76 +190,27 @@ class ProjectSettingsComponentTest : ComponentTest() {
 	}
 
 	@Test
-	fun `Turning sync off asks first and changes nothing until confirmed`() = runTest(mainTestDispatcher) {
-		val comp = newComponent()
-		context.resume()
-		advanceUntilIdle()
-
-		comp.setSyncEnabled(false)
-		advanceUntilIdle()
-		assertTrue(comp.syncState.value.confirmingOff)
-		assertTrue(comp.syncState.value.syncEnabled)
-		verify(exactly = 0) { syncToggle.turnOff(any()) }
-
-		comp.dismissSyncDialog()
-		assertFalse(comp.syncState.value.confirmingOff)
-
-		comp.setSyncEnabled(false)
-		comp.confirmSyncOff()
-		advanceUntilIdle()
-		assertFalse(comp.syncState.value.confirmingOff)
-		assertFalse(comp.syncState.value.syncEnabled)
-		verify(exactly = 1) { syncToggle.turnOff(projectDef) }
-	}
-
-	@Test
-	fun `Turning sync on takes effect at once`() = runTest(mainTestDispatcher) {
+	fun `The sync section follows the project's flag`() = runTest(mainTestDispatcher) {
 		projectSyncEnabled.value = false
 		val comp = newComponent()
 		context.resume()
 		advanceUntilIdle()
 		assertFalse(comp.syncState.value.syncEnabled)
+		assertNull(comp.syncState.value.owner)
 
-		comp.setSyncEnabled(true)
+		projectSyncEnabled.value = true
 		advanceUntilIdle()
-
 		assertTrue(comp.syncState.value.syncEnabled)
-		assertFalse(comp.syncState.value.deletedOnServer)
 	}
 
 	@Test
-	fun `A shared project offers no sync toggle`() = runTest(mainTestDispatcher) {
+	fun `A shared project reports its owner`() = runTest(mainTestDispatcher) {
 		projectOwner = ProjectOwner(7L, "Alice")
 		val comp = newComponent()
 		context.resume()
 		advanceUntilIdle()
+
 		assertEquals(ProjectOwner(7L, "Alice"), comp.syncState.value.owner)
-
-		comp.setSyncEnabled(false)
-		comp.setSyncEnabled(true)
-		advanceUntilIdle()
-
-		assertFalse(comp.syncState.value.confirmingOff)
-		assertTrue(comp.syncState.value.syncEnabled)
-		verify(exactly = 0) { syncToggle.turnOff(any()) }
-		coVerify(exactly = 0) { syncToggle.turnOn(any()) }
-	}
-
-	@Test
-	fun `Turning sync on for a project the server deleted explains it and leaves sync off`() = runTest(mainTestDispatcher) {
-		projectSyncEnabled.value = false
-		coEvery { syncToggle.turnOn(any()) } returns ProjectSyncToggle.Result.DeletedOnServer
-		val comp = newComponent()
-		context.resume()
-		advanceUntilIdle()
-
-		comp.setSyncEnabled(true)
-		advanceUntilIdle()
-		assertTrue(comp.syncState.value.deletedOnServer)
-		assertFalse(comp.syncState.value.syncEnabled)
-
-		comp.dismissSyncDialog()
-		assertFalse(comp.syncState.value.deletedOnServer)
 	}
 
 	@Test

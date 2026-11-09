@@ -69,30 +69,18 @@ import com.darkrockstudios.apps.hammer.project_settings_spellcheck_encyclopedia_
 import com.darkrockstudios.apps.hammer.project_settings_spellcheck_mismatch_caption
 import com.darkrockstudios.apps.hammer.project_settings_spellcheck_section_title
 import androidx.compose.ui.platform.testTag
-import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialog
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineDialogShell
-import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectOwner
 import com.darkrockstudios.apps.hammer.common.projectselection.sharedByLabel
-import com.darkrockstudios.apps.hammer.project_settings_sync_deleted_body
-import com.darkrockstudios.apps.hammer.project_settings_sync_deleted_ok
-import com.darkrockstudios.apps.hammer.project_settings_sync_deleted_title
-import com.darkrockstudios.apps.hammer.project_settings_sync_dialog_close
-import com.darkrockstudios.apps.hammer.project_settings_sync_off_cancel
-import com.darkrockstudios.apps.hammer.project_settings_sync_off_confirm
-import com.darkrockstudios.apps.hammer.project_settings_sync_off_delete
-import com.darkrockstudios.apps.hammer.project_settings_sync_off_title
-import com.darkrockstudios.apps.hammer.project_settings_sync_off_unaffected
 import com.darkrockstudios.apps.hammer.project_settings_sync_section_title
 import com.darkrockstudios.apps.hammer.project_settings_sync_shared_off
 import com.darkrockstudios.apps.hammer.project_settings_sync_shared_syncing
-import com.darkrockstudios.apps.hammer.project_settings_sync_toggle
-import com.darkrockstudios.apps.hammer.project_settings_sync_toggle_hint
+import com.darkrockstudios.apps.hammer.project_settings_sync_own_hint
+import com.darkrockstudios.apps.hammer.project_settings_sync_own_off
+import com.darkrockstudios.apps.hammer.project_settings_sync_own_on
 import org.koin.compose.koinInject
 
 private val MaxColumnWidth = 880.dp
 
-const val ProjectSyncToggleTestTag = "project-settings-sync-toggle"
+const val ProjectSyncOwnTestTag = "project-settings-sync-own"
 const val ProjectSyncSharedTestTag = "project-settings-sync-shared"
 
 @Composable
@@ -188,11 +176,7 @@ fun ProjectSettingsUi(
 							)
 
 							if (syncSection != null) {
-								ProjectSync(
-									section = syncSection,
-									state = syncState,
-									component = component,
-								)
+								ProjectSync(section = syncSection, state = syncState)
 							}
 						}
 
@@ -282,15 +266,11 @@ private fun ProjectPlugins(
 }
 
 /**
- * Whether this device syncs the project; turning it off first states what that means. A shared
- * project has no switch, only a line saying whose it is and how it stops syncing.
+ * Whether this device syncs the project. An own project's switch is in its menu on the project list,
+ * where it is closed; a shared project says whose it is and how it stops syncing.
  */
 @Composable
-internal fun ProjectSync(
-	section: Int,
-	state: ProjectSettings.SyncState,
-	component: ProjectSettings,
-) {
+internal fun ProjectSync(section: Int, state: ProjectSettings.SyncState) {
 	HdHairlineSection(
 		section = section,
 		title = Res.string.project_settings_sync_section_title.get(),
@@ -298,97 +278,42 @@ internal fun ProjectSync(
 	) {
 		val owner = state.owner
 		if (owner != null) {
-			SharedProjectSync(owner, state.syncEnabled)
+			SyncStatus(
+				title = sharedByLabel(owner.name),
+				hint = if (state.syncEnabled) {
+					Res.string.project_settings_sync_shared_syncing.get()
+				} else {
+					Res.string.project_settings_sync_shared_off.get()
+				},
+				modifier = Modifier.testTag(ProjectSyncSharedTestTag),
+			)
 		} else {
-			HdHairlineToggleRow(
-				checked = state.syncEnabled,
-				label = Res.string.project_settings_sync_toggle.get(),
-				hint = Res.string.project_settings_sync_toggle_hint.get(),
-				onCheckedChange = component::setSyncEnabled,
-				modifier = Modifier.testTag(ProjectSyncToggleTestTag),
+			SyncStatus(
+				title = if (state.syncEnabled) {
+					Res.string.project_settings_sync_own_on.get()
+				} else {
+					Res.string.project_settings_sync_own_off.get()
+				},
+				hint = Res.string.project_settings_sync_own_hint.get(),
+				modifier = Modifier.testTag(ProjectSyncOwnTestTag),
 			)
 		}
 	}
-
-	SyncNoticeDialog(
-		visible = state.confirmingOff,
-		title = Res.string.project_settings_sync_off_title.get(),
-		paragraphs = listOf(
-			Res.string.project_settings_sync_off_unaffected.get(),
-			Res.string.project_settings_sync_off_delete.get(),
-		),
-		confirmLabel = Res.string.project_settings_sync_off_confirm.get(),
-		onConfirm = component::confirmSyncOff,
-		cancelLabel = Res.string.project_settings_sync_off_cancel.get(),
-		onDismiss = component::dismissSyncDialog,
-	)
-
-	SyncNoticeDialog(
-		visible = state.deletedOnServer,
-		title = Res.string.project_settings_sync_deleted_title.get(),
-		paragraphs = listOf(Res.string.project_settings_sync_deleted_body.get()),
-		confirmLabel = Res.string.project_settings_sync_deleted_ok.get(),
-		onConfirm = component::dismissSyncDialog,
-		cancelLabel = null,
-		onDismiss = component::dismissSyncDialog,
-	)
 }
 
 @Composable
-private fun SharedProjectSync(owner: ProjectOwner, syncEnabled: Boolean) {
-	Column(modifier = Modifier.fillMaxWidth().testTag(ProjectSyncSharedTestTag)) {
+private fun SyncStatus(title: String, hint: String, modifier: Modifier) {
+	Column(modifier = modifier.fillMaxWidth()) {
 		Text(
-			text = sharedByLabel(owner.name),
+			text = title,
 			style = MaterialTheme.typography.bodyLarge,
 			color = MaterialTheme.colorScheme.onSurface,
 		)
 		Text(
-			text = if (syncEnabled) {
-				Res.string.project_settings_sync_shared_syncing.get()
-			} else {
-				Res.string.project_settings_sync_shared_off.get()
-			},
+			text = hint,
 			style = MaterialTheme.typography.bodySmall,
 			color = MaterialTheme.colorScheme.onSurfaceVariant,
 		)
-	}
-}
-
-@Composable
-private fun SyncNoticeDialog(
-	visible: Boolean,
-	title: String,
-	paragraphs: List<String>,
-	confirmLabel: String,
-	onConfirm: () -> Unit,
-	cancelLabel: String?,
-	onDismiss: () -> Unit,
-) {
-	AnimatedDialog(visible = visible, onCloseRequest = onDismiss) {
-		HdHairlineDialogShell(
-			title = title,
-			onClose = { requestDismiss() },
-			closeContentDescription = Res.string.project_settings_sync_dialog_close.get(),
-		) {
-			Column(verticalArrangement = Arrangement.spacedBy(Ui.Padding.L)) {
-				paragraphs.forEach { paragraph ->
-					Text(
-						text = paragraph,
-						style = MaterialTheme.typography.bodyMedium,
-						color = MaterialTheme.colorScheme.onSurfaceVariant,
-					)
-				}
-				Row(
-					modifier = Modifier.fillMaxWidth(),
-					horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M, Alignment.End),
-				) {
-					if (cancelLabel != null) {
-						HdHairlineButton(label = cancelLabel, onClick = { requestDismiss() })
-					}
-					HdHairlineButton(label = confirmLabel, onClick = onConfirm, emphasised = true)
-				}
-			}
-		}
 	}
 }
 

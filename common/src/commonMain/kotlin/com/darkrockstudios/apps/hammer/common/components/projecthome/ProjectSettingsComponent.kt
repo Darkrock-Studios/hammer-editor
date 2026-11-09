@@ -30,8 +30,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
-import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ProjectSyncToggle
-import io.github.aakira.napier.Napier
 import org.koin.core.component.inject
 
 class ProjectSettingsComponent(
@@ -48,7 +46,6 @@ class ProjectSettingsComponent(
 	private val imagesService: ImagesService by projectInject()
 	private val globalSettingsStore: GlobalSettingsStore by inject()
 	private val projectsRepository: ProjectsRepository by inject()
-	private val syncToggle: ProjectSyncToggle by inject()
 
 	override val projectName: String = projectDef.name
 
@@ -60,7 +57,7 @@ class ProjectSettingsComponent(
 	private val _projectInfoState = MutableValue(ProjectSettings.ProjectInfoState())
 	override val projectInfoState: Value<ProjectSettings.ProjectInfoState> = _projectInfoState
 
-	// Read up front so a shared project never shows the switch, even before the first flag emission.
+	// Read up front so a shared project never shows as the account's own, even before the first flag emission.
 	private val _syncState = MutableValue(ProjectSettings.SyncState(owner = projectsRepository.getOwner(projectDef)))
 	override val syncState: Value<ProjectSettings.SyncState> = _syncState
 
@@ -117,34 +114,6 @@ class ProjectSettingsComponent(
 			}
 		}
 		coverPick.restore(ImagePickTarget.ProjectCover, ::setCover)
-	}
-
-	override fun setSyncEnabled(enabled: Boolean) {
-		if (_syncState.value.owner != null) return
-		if (!enabled) {
-			_syncState.getAndUpdate { it.copy(confirmingOff = true) }
-			return
-		}
-		scope.launch {
-			val result = syncToggle.turnOn(projectDef)
-			if (result == ProjectSyncToggle.Result.Failed) Napier.w("Could not turn sync on for '${projectDef.name}'")
-			withContext(mainDispatcher) {
-				_syncState.getAndUpdate { it.copy(deletedOnServer = result == ProjectSyncToggle.Result.DeletedOnServer) }
-			}
-		}
-	}
-
-	override fun confirmSyncOff() {
-		_syncState.getAndUpdate { it.copy(confirmingOff = false) }
-		scope.launch {
-			if (syncToggle.turnOff(projectDef) == ProjectSyncToggle.Result.Failed) {
-				Napier.w("Could not turn sync off for '${projectDef.name}'")
-			}
-		}
-	}
-
-	override fun dismissSyncDialog() {
-		_syncState.getAndUpdate { it.copy(confirmingOff = false, deletedOnServer = false) }
 	}
 
 	override fun pickCoverImage() {

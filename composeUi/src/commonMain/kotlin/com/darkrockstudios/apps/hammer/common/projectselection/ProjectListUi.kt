@@ -306,9 +306,9 @@ fun ProjectListUi(
 							onProjectRenameClick = component::showProjectRename,
 							onTagClick = onTagClick,
 							onProjectMoveClick = { component.showMoveToGroup(MoveTarget.Project(it)) },
+							onProjectSyncClick = component::setProjectSync,
 							depth = row.depth,
 							groupPath = row.groupPath,
-							syncOff = state.isServerSynced && !row.data.metadata.info.syncEnabled,
 							isServerSynced = state.isServerSynced,
 						)
 					}
@@ -773,6 +773,14 @@ fun ModalContent(component: ProjectsList, rootSnackbar: RootSnackbarHostState) {
 				projectDef = overlay.projectDef,
 				ownerName = overlay.ownerName,
 				close = { component.dismissProjectDelete() }
+			)
+		}
+
+		is ProjectsList.ModalDestination.ProjectSyncOff -> {
+			ProjectSyncOffDialog(
+				component = component,
+				projectDef = overlay.projectDef,
+				close = { component.dismissProjectSyncOff() }
 			)
 		}
 

@@ -52,6 +52,7 @@ class ProjectListModalRouter(
 				config.deletesOnServer,
 			)
 			is Config.ProjectLeave -> ProjectsList.ModalDestination.ProjectLeave(config.projectDef, config.ownerName)
+			is Config.ProjectSyncOff -> ProjectsList.ModalDestination.ProjectSyncOff(config.projectDef)
 			is Config.GroupCreate -> ProjectsList.ModalDestination.GroupCreate(config.parent)
 			is Config.GroupRename -> ProjectsList.ModalDestination.GroupRename(config.groupDef)
 			is Config.GroupDelete -> ProjectsList.ModalDestination.GroupDelete(config.groupDef)
@@ -111,6 +112,10 @@ class ProjectListModalRouter(
 
 	fun dismissProjectDelete() {
 		navigation.activate(Config.None)
+	}
+
+	fun showProjectSyncOff(projectDef: ProjectDef) {
+		navigation.activate(Config.ProjectSyncOff(projectDef))
 	}
 
 	fun showGroupCreate(parent: GroupDef?) {
@@ -182,6 +187,9 @@ class ProjectListModalRouter(
 
 		@Serializable
 		data class ProjectLeave(val projectDef: ProjectDef, val ownerName: String?) : Config()
+
+		@Serializable
+		data class ProjectSyncOff(val projectDef: ProjectDef) : Config()
 
 		@Serializable
 		data class GroupCreate(val parent: GroupDef?) : Config()

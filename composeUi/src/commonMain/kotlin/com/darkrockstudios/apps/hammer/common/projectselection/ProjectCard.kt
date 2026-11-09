@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material3.DropdownMenu
@@ -41,6 +42,8 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.toggleableState
+import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -64,6 +67,7 @@ import com.darkrockstudios.apps.hammer.project_select_card_delete_button
 import com.darkrockstudios.apps.hammer.project_select_card_leave_button
 import com.darkrockstudios.apps.hammer.project_select_card_move_button
 import com.darkrockstudios.apps.hammer.project_select_card_rename_button
+import com.darkrockstudios.apps.hammer.project_select_card_sync_button
 import com.darkrockstudios.apps.hammer.projects_list_card_by_author
 import com.darkrockstudios.apps.hammer.projects_list_card_content_description
 import com.darkrockstudios.apps.hammer.projects_list_card_created
@@ -118,9 +122,9 @@ fun ProjectIndexRow(
 	modifier: Modifier = Modifier,
 	onTagClick: (tag: String) -> Unit = {},
 	onProjectMoveClick: (projectDef: ProjectDef) -> Unit = {},
+	onProjectSyncClick: (projectDef: ProjectDef, enabled: Boolean) -> Unit = { _, _ -> },
 	depth: Int = 0,
 	groupPath: List<String> = emptyList(),
-	syncOff: Boolean = false,
 	isServerSynced: Boolean = true,
 ) {
 	val storedData = projectData.storedData
@@ -154,6 +158,8 @@ fun ProjectIndexRow(
 
 	val breadcrumb = remember(groupPath) { groupPath.takeIf { it.isNotEmpty() }?.joinToString(" › ") }
 	val shared = projectData.metadata.info.ownerId != null
+	val syncEnabled = projectData.metadata.info.syncEnabled
+	val syncOff = isServerSynced && !syncEnabled
 	val sharedBy = if (shared) sharedByLabel(projectData.metadata.info.ownerName) else null
 
 	Column(
@@ -303,7 +309,8 @@ fun ProjectIndexRow(
 			}
 
 			ProjectOptionsMenu(
-				items = projectMenuItems(shared, projectData.metadata.info.syncEnabled, isServerSynced),
+				items = projectMenuItems(shared, syncEnabled, isServerSynced),
+				toggles = mapOf(Res.string.project_select_card_sync_button to syncEnabled),
 			) {
 				when (it) {
 					Res.string.project_select_card_delete_button, Res.string.project_select_card_leave_button ->
@@ -314,6 +321,9 @@ fun ProjectIndexRow(
 
 					Res.string.project_select_card_move_button ->
 						onProjectMoveClick(projectData.definition)
+
+					Res.string.project_select_card_sync_button ->
+						onProjectSyncClick(projectData.definition, !syncEnabled)
 				}
 			}
 		}
@@ -449,9 +459,11 @@ private fun formatStamp(instant: Instant): String =
 		.format("dd MMM `yy")
 		.uppercase()
 
+/** An item in [toggles] is a switch, checked when its value is true. */
 @Composable
 fun ProjectOptionsMenu(
 	items: List<StringResource>,
+	toggles: Map<StringResource, Boolean> = emptyMap(),
 	onItemClick: (StringResource) -> Unit
 ) {
 	var expanded by remember { mutableStateOf(false) }
@@ -473,9 +485,17 @@ fun ProjectOptionsMenu(
 			onDismissRequest = { expanded = false }
 		) {
 			items.forEach { item ->
+				val on = toggles[item]
 				DropdownMenuItem(
-					modifier = Modifier.testTag(item.get()),
+					modifier = Modifier
+						.testTag(item.get())
+						.then(if (on != null) Modifier.semantics { toggleableState = ToggleableState(on) } else Modifier),
 					text = { Text(text = item.get()) },
+					trailingIcon = if (on == true) {
+						{ Icon(Icons.Default.Check, contentDescription = null) }
+					} else {
+						null
+					},
 					onClick = {
 						onItemClick(item)
 						expanded = false
@@ -488,7 +508,8 @@ fun ProjectOptionsMenu(
 
 /**
  * While a shared project syncs, deleting it is leaving it, and with a server its owner names and
- * places it. Parked, it is this device's copy like any other.
+ * places it. Parked, it is this device's copy like any other. Only the account's own projects have
+ * a sync switch.
  */
 private fun projectMenuItems(shared: Boolean, syncEnabled: Boolean, isServerSynced: Boolean): List<StringResource> {
 	val leaves = shared && syncEnabled
@@ -497,6 +518,7 @@ private fun projectMenuItems(shared: Boolean, syncEnabled: Boolean, isServerSync
 		if (leaves) Res.string.project_select_card_leave_button else Res.string.project_select_card_delete_button,
 		Res.string.project_select_card_rename_button.takeUnless { ownerArranges },
 		Res.string.project_select_card_move_button.takeUnless { ownerArranges },
+		Res.string.project_select_card_sync_button.takeIf { !shared && isServerSynced },
 	)
 }
 
