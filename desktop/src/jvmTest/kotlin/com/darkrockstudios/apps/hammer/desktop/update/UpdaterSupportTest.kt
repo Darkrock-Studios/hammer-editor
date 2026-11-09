@@ -39,13 +39,14 @@ class UpdaterSupportTest {
 		assertEquals("appimage", nucleusExecutableType(PackageFormat.APPIMAGE))
 		assertEquals("dmg", nucleusExecutableType(PackageFormat.DMG))
 		assertEquals("dmg", nucleusExecutableType(PackageFormat.PKG))
+		assertEquals("tar.gz", nucleusExecutableType(PackageFormat.TARBALL))
 		for (format in listOf(PackageFormat.NONE, PackageFormat.MSIX, PackageFormat.SNAP, PackageFormat.FLATPAK)) {
 			assertNull(nucleusExecutableType(format), format.token)
 		}
 	}
 
 	@Test
-	fun `macOS installs are announced but not installed in place`() {
+	fun `macOS and tarball installs are announced but not installed in place`() {
 		assertTrue(canInstallInPlace(PackageFormat.MSI))
 		assertTrue(canInstallInPlace(PackageFormat.EXE))
 		assertTrue(canInstallInPlace(PackageFormat.DEB))
@@ -53,6 +54,7 @@ class UpdaterSupportTest {
 		assertTrue(canInstallInPlace(PackageFormat.APPIMAGE))
 		assertFalse(canInstallInPlace(PackageFormat.DMG))
 		assertFalse(canInstallInPlace(PackageFormat.PKG))
+		assertFalse(canInstallInPlace(PackageFormat.TARBALL))
 	}
 
 	@Test

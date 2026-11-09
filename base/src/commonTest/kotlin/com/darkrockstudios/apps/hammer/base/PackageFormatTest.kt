@@ -23,6 +23,7 @@ class PackageFormatTest {
 			"msix",
 			"snap",
 			"flatpak",
+			"tarball",
 		)
 		assertEquals(expected, PackageFormat.entries.map { it.token })
 	}

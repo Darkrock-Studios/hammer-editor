@@ -24,6 +24,14 @@ class HammerReleaseProviderTest {
 	}
 
 	@Test
+	fun `linux arm64 reads its own metadata, other arches the shared file`() {
+		assertEquals("latest-linux-arm64.yml", HammerReleaseProvider.metadataFileName(Platform.Linux, "aarch64"))
+		assertEquals("latest-linux.yml", HammerReleaseProvider.metadataFileName(Platform.Linux, "amd64"))
+		assertEquals("latest-mac.yml", HammerReleaseProvider.metadataFileName(Platform.MacOS, "aarch64"))
+		assertEquals("latest.yml", HammerReleaseProvider.metadataFileName(Platform.Windows, "aarch64"))
+	}
+
+	@Test
 	fun `downloads ignore the version and use the fixed asset name`() {
 		val provider = HammerReleaseProvider()
 

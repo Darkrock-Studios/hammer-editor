@@ -203,6 +203,50 @@ fun Project.registerBuildDistAppImageTask() {
 }
 
 /**
+ * The arch suffix Linux release assets carry beside the x64 ones, which have none. Nucleus's
+ * updater matches it in asset names, so it must be one of its tokens (`arm64`/`aarch64`).
+ */
+fun linuxArchSuffix(osArch: String = System.getProperty("os.arch")): String =
+	when (osArch.lowercase()) {
+		"aarch64", "arm64" -> "arm64"
+		"amd64", "x86_64" -> "x64"
+		else -> throw GradleException("No Linux release asset name for os.arch=$osArch")
+	}
+
+/**
+ * Registers the buildDistTarball task: the jpackage app image as a plain `.tar.gz`, for machines
+ * without dpkg or rpm and for running only the `hammer` CLI. The image bundles the build machine's
+ * JRE and Skiko, so it is for the arch Gradle runs on.
+ */
+fun Project.registerBuildDistTarballTask() {
+	tasks.register("buildDistTarball") {
+		group = "distribution"
+		description = "Builds a .tar.gz of the Linux app image for the current arch."
+
+		dependsOn(":desktop:createReleaseDistributable")
+
+		doFirst {
+			requireLinux("buildDistTarball")
+		}
+
+		doLast {
+			val installersDir = rootDir.resolve("desktop/build/installers/main-release")
+			val outputDir = installersDir.resolve("tarball")
+			val tarball = outputDir.resolve("hammer-${linuxArchSuffix()}.tar.gz")
+			outputDir.mkdirs()
+			tarball.delete()
+
+			// System tar keeps the runtime's symlinks and exec bits as jpackage left them.
+			providers.exec {
+				workingDir = installersDir.resolve("app")
+				commandLine("tar", "-czf", tarball.absolutePath, "hammer")
+			}.result.get()
+			println("Tarball created: $tarball")
+		}
+	}
+}
+
+/**
  * Registers the buildDistFlatpak task for building Flatpak packages.
  * Requires flatpak and flatpak-builder to be installed on Linux.
  */
@@ -307,5 +351,6 @@ fun Project.registerBuildDistFlatpakTask() {
 fun Project.registerLinuxDistributionTasks(appVersion: String) {
 	registerBuildDistSnapTask(appVersion)
 	registerBuildDistAppImageTask()
+	registerBuildDistTarballTask()
 	registerBuildDistFlatpakTask()
 }

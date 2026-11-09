@@ -19,6 +19,7 @@ private val UPDATE_METADATA_FILES: Map<String, List<String>> = mapOf(
 	"latest.yml" to listOf("hammer.msi", "hammer.exe"),
 	"latest-mac.yml" to listOf("hammer.zip", "hammer.dmg", "hammer.pkg"),
 	"latest-linux.yml" to listOf("hammer.deb", "hammer.rpm", "hammer.AppImage"),
+	"latest-linux-arm64.yml" to listOf("hammer-arm64.deb", "hammer-arm64.tar.gz"),
 )
 
 /** Assets a release may legitimately lack; every other listed name must have a digest. */

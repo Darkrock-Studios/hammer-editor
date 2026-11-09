@@ -53,7 +53,16 @@ modules:
         sources:
             -   type: dir
                 path: ..
+            # Both arches unpack to jdk-21.0.12+8, which JAVA_HOME above relies on.
             -   type: file
+                only-arches:
+                    - x86_64
                 url: https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.12%2B8/OpenJDK21U-jdk_x64_linux_hotspot_21.0.12_8.tar.gz
                 sha256: e4446ff06a276155697597cc0f1b15da004ff083f4964a35271ecee567177370
+                dest-filename: jdk.tar.gz
+            -   type: file
+                only-arches:
+                    - aarch64
+                url: https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.12%2B8/OpenJDK21U-jdk_aarch64_linux_hotspot_21.0.12_8.tar.gz
+                sha256: eba38e871b02d407897bfe017ea35352dfc1420ef6d2112425b0c67325ca509d
                 dest-filename: jdk.tar.gz

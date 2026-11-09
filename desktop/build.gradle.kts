@@ -83,9 +83,12 @@ kotlin {
 }
 
 // Pin jpackage's bundled runtime to the project's toolchain JDK rather than
-// whichever JVM happens to be running Gradle.
+// whichever JVM happens to be running Gradle. Temurin is built against an old
+// glibc; a distro's own JDK (Ubuntu 24.04's needs 2.38) would keep the Linux
+// packages off Debian 12 and the Raspberry Pi OS built on it.
 val packagingLauncher = javaToolchains.launcherFor {
 	languageVersion.set(JavaLanguageVersion.of(libs.versions.jvm.get().toInt()))
+	vendor.set(JvmVendorSpec.ADOPTIUM)
 }
 
 compose.desktop {

@@ -37,10 +37,18 @@ class HammerReleaseProvider(
 			(property ?: environment)?.trim()?.trimEnd('/')?.takeIf { it.isNotEmpty() }
 				?: "${GITHUB_URL}releases/latest/download"
 
-		fun metadataFileName(platform: Platform): String = when (platform) {
-			Platform.MacOS -> "latest-mac.yml"
-			Platform.Linux -> "latest-linux.yml"
-			Platform.Windows, Platform.Unknown -> "latest.yml"
-		}
+		/**
+		 * Nucleus falls back to the first file of the right format when none names its arch, so an
+		 * arm64 install reading the x64 list would fetch the x64 package. Linux arm64 gets its own
+		 * list, named as electron-builder names it.
+		 */
+		fun metadataFileName(platform: Platform, arch: String = System.getProperty("os.arch")): String =
+			when (platform) {
+				Platform.MacOS -> "latest-mac.yml"
+				Platform.Linux -> if (isArm64(arch)) "latest-linux-arm64.yml" else "latest-linux.yml"
+				Platform.Windows, Platform.Unknown -> "latest.yml"
+			}
+
+		private fun isArm64(arch: String): Boolean = arch.lowercase().let { it == "aarch64" || it == "arm64" }
 	}
 }
