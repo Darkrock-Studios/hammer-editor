@@ -90,6 +90,42 @@ class UserDataPurgeDaoTest : BaseTest() {
 	}
 
 	@Test
+	fun `purgeUserData - drops the pen name from writing activity in other owners' projects`() = runTest {
+		val owner = accountDao.createAccount("purge-activity-owner@example.com", "hash", "secret", isAdmin = false)
+		val coAuthor = accountDao.createAccount("purge-activity-coauthor@example.com", "hash", "secret", isAdmin = false)
+		val projectDao = ProjectDao(db)
+		val projectId = ProjectId.randomUUID()
+		projectDao.createProject(OwnerId.unchecked(owner), projectId, "Shared")
+		val projectRow = projectDao.getProjectId(OwnerId.unchecked(owner), projectId)
+		val activity = WritingActivityDao(db)
+		activity.upsert(
+			userId = owner,
+			projectId = projectRow,
+			authorId = coAuthor,
+			authorName = "Pen Name",
+			deviceId = "device-1",
+			content = """{"authorName":"Pen \"Quill\" Name","words":42}""",
+		)
+		activity.upsert(
+			userId = owner,
+			projectId = projectRow,
+			authorId = coAuthor,
+			authorName = "Pen Name",
+			deviceId = "device-2",
+			content = """not json "authorName": "Pen Name"""",
+		)
+		accountDao.markDeleted(coAuthor, Clock.System.now())
+
+		assertTrue(purgeDao.purgeUserData(coAuthor))
+
+		val rows = activity.getAllForProject(owner, projectRow).sortedBy { it.deviceId }
+		assertEquals(listOf(coAuthor, coAuthor), rows.map { it.authorId })
+		assertEquals(listOf(null, null), rows.map { it.authorName })
+		assertEquals("""{"authorName":null,"words":42}""", rows[0].content)
+		assertFalse("Pen" in rows[1].content)
+	}
+
+	@Test
 	fun `purgeUserData - missing account returns false`() = runTest {
 		assertFalse(purgeDao.purgeUserData(999_999L))
 	}

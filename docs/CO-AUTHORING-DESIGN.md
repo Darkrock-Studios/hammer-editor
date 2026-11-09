@@ -466,7 +466,10 @@ account's sessions simply do not appear in this account's local file.
 `authorName`, so "Words by Device" becomes "Words by Author" with devices nested, and
 `stats.sessions` in the MCP tools gains the author. Because the name is plain text on the row and
 in the local file, removing an author, or the author deleting their account, changes nothing in
-the stats of anyone who still has the project. Their devices simply stop adding sessions.
+the stats of anyone who still has the project. Their devices simply stop adding sessions. Purging
+the author's account is the exception: `purgeUserData` clears `author_name`, and the name inside
+the stored log, on their slots in other owners' projects. `author_id` and the sessions stay, so
+the owner's stats keep the words under "Unknown author" once a device next syncs.
 
 The project card shows "Shared by {ownerName}" for a co-author, read from `project.toml`. The
 owner's in-app view of who is on the project is deferred; the website lists members.

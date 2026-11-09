@@ -53,6 +53,7 @@ class UserDataPurgeDao(
 			db.projectGroupQueries.deleteAllForUser(userId)
 
 			// Account-scoped data.
+			db.writingActivityQueries.anonymizeAuthor(userId)
 			db.projectMemberQueries.deleteAllForUser(userId)
 			db.projectInviteQueries.deleteAllInvitedBy(userId)
 			// Addressed by email, so a later holder of the address does not inherit them.

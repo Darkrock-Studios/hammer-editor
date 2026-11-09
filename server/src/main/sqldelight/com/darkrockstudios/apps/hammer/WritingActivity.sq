@@ -29,3 +29,11 @@ ON CONFLICT (user_id, project_id, author_id, device_id) DO UPDATE SET
 
 deleteAllForUser:
 DELETE FROM writing_activity WHERE user_id = :userId;
+
+-- A purged author's slots in other owners' projects keep their numbers but lose the pen name.
+-- A text match rather than a JSONB cast, so a malformed log cannot fail the purge.
+anonymizeAuthor:
+UPDATE writing_activity
+SET author_name = NULL,
+    content = regexp_replace(content, '"authorName"\s*:\s*"(\\.|[^"\\])*"', '"authorName":null', 'g')
+WHERE author_id = :authorId AND user_id != :authorId;
