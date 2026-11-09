@@ -338,9 +338,11 @@ the folder and refreshed for every listed shared project at the start of each se
   out of every phase like any project with sync off. The journal is kept: it holds the co-author's
   unsynced work and the conflict baselines a rebuilt one lacks.
 - **Resumed.** A parked project that is listed again (a re-invite) still has the same ID. Account
-  sync turns its sync back on and flags its journal `verifyAllEntities`, so the next project sync
-  conflict-checks every entity against the owner's copy. A project in use at that moment stays
-  parked until a later session.
+  sync turns its sync back on and leaves the journal as it is: its baselines are the last state
+  agreed with the server, so the next project sync downloads what the owner's copy gained meanwhile,
+  uploads the co-author's parked edits, and conflicts only on an entity both sides changed. It is
+  not flagged `verifyAllEntities`, which would conflict on every entity the owner changed. A project
+  in use at that moment stays parked until a later session.
 - **Never deleted by the server.** The delete phase skips every folder whose `project.toml` has an
   `ownerId`, even when its ID is in `deletedProjects`; parking already covered it. No server state
   removes a co-author's local copy.

@@ -15,7 +15,6 @@ import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.groups.Group
 import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.ClientIdeasSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectBaseline
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectCreateResolver
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectSynchronizationData
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournalDatasource
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.sync_log_account_project_parked
@@ -132,9 +131,7 @@ class AccountSyncSharedProjectsTest : ProjectsDirSyncTest() {
 
 		assertTrue(repo.isSyncEnabled(def))
 		assertEquals(sharedId, shared().id)
-		val resumed = json.decodeFromString<ProjectSynchronizationData>(ffs.read(journal(def)) { readUtf8() })
-		assertTrue(resumed.verifyAllEntities)
-		assertEquals(listOf(3), resumed.newIds)
+		assertEquals(journalJson, ffs.read(journal(def)) { readUtf8() })
 		assertTrue(strRes.calls.any { it.first == Res.string.sync_log_account_project_resumed })
 	}
 

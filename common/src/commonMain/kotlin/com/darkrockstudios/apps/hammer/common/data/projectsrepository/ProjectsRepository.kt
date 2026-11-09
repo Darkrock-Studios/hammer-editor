@@ -322,12 +322,13 @@ class ProjectsRepository(
 		updateInfo(projectDef) { it.copy(ownerId = owner?.id, ownerName = owner?.name) }
 
 	/**
-	 * Turns sync back on for a shared project that is listed again. Its journal is flagged so the
-	 * next sync compares every entity: the server copy moved on while this one did not sync.
+	 * Turns sync back on for a shared project that is listed again. The journal is kept as it is: its
+	 * baselines are still the last state agreed with the server, so the next sync downloads what the
+	 * server changed meanwhile and conflicts only where both sides did. Flagging it for a restore
+	 * check would conflict on every entity the server changed.
 	 */
 	suspend fun resumeSync(projectDef: ProjectDef): Boolean {
 		if (isProjectInUse(projectDef)) throw ProjectInUseException(projectDef.name)
-		markProjectRestored(projectDef, fileSystem, json, serverKnowsProject = true)
 		return setSyncEnabled(projectDef, true)
 	}
 

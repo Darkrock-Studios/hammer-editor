@@ -61,7 +61,7 @@ class SharedProjectParkerTest : ProjectsRepositoryBaseTest() {
 	}
 
 	@Test
-	fun `Resuming turns sync on and flags the journal for a full check`() = scope.runTest {
+	fun `Resuming turns sync on and keeps the journal as it is`() = scope.runTest {
 		createProject(ffs, PROJECT_1_NAME)
 		val def = getProjectDef(PROJECT_1_NAME)
 		val repo = projectsRepository()
@@ -70,11 +70,14 @@ class SharedProjectParkerTest : ProjectsRepositoryBaseTest() {
 		ffs.write(journal) { writeUtf8(journalJson) }
 		SharedProjectParker(repo, accountSyncDatasource()).park(def)
 
+		val parked = ffs.read(journal) { readUtf8() }
+
 		assertTrue(repo.resumeSync(def))
 
 		assertTrue(repo.isSyncEnabled(def))
-		val data = json.decodeFromString<ProjectSynchronizationData>(ffs.read(journal) { readUtf8() })
-		assertTrue(data.verifyAllEntities)
+		assertEquals(parked, ffs.read(journal) { readUtf8() })
+		val data = json.decodeFromString<ProjectSynchronizationData>(parked)
+		assertFalse(data.verifyAllEntities)
 		assertEquals(listOf(3), data.newIds)
 	}
 

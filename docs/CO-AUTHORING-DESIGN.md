@@ -352,8 +352,8 @@ Turning sync **on**:
   server while excluded here; a fresh id is minted so the create path does not answer
   `project_deleted`. The project is closed on the project list; should it be open anyway (another
   window), nothing changes and the attempt is logged.
-- Otherwise sync resumes. A parked shared project has no switch; account sync resumes it, with
-  `verifyAllEntities` set, when it is listed again.
+- Otherwise sync resumes. A parked shared project has no switch; account sync resumes it when it
+  is listed again.
 
 ### Leave vs delete
 
@@ -414,9 +414,11 @@ joins the session's excluded set. Parking from project sync takes the account se
 since it rewrites the account `sync.json`.
 
 If a parked project is listed again later (re-invite), the folder is still there with the same id:
-account sync re-enables it with `verifyAllEntities` set and the normal full comparison brings the
-two copies back together. Only the journal is flagged; the project data's `lastSyncedHash` is
-kept. A project open at that moment stays parked for the session and resumes once closed.
+account sync re-enables it and the normal sync brings the two copies back together. The journal and
+the project data's `lastSyncedHash` are kept as they are, since their baselines are the last state
+agreed with the server. Flagging the journal `verifyAllEntities`, as a backup restore does, would
+upload every entity against its old baseline and conflict on each one the owner changed meanwhile.
+A project open at that moment stays parked for the session and resumes once closed.
 
 A `project.toml` that is lost or corrupt is rebuilt under a fresh id with no owner fields and
 with sync off, and the rebuild is logged, whether the metadata datasource heals an unreadable file
@@ -440,7 +442,7 @@ owner's entities on the server.
 - Turning sync on for an id under `deletedProjects` re-mints.
 - A shared project missing from the response is parked: folder and journal intact, baseline
   dropped, logged, nothing uploaded; a `403` from a project route does the same.
-- A parked project listed again resumes with `verifyAllEntities`.
+- A parked project listed again resumes with its journal unchanged.
 - Leave keeps the folder excluded and sends `/delete`; a left project listed again resumes.
 - Reconciler never emits `RenameOnServer` or `MoveOnServer` for a shared project.
 - `buildSyncData` sets `verifyAllEntities`.
