@@ -146,6 +146,12 @@ class PostgresMigrationDataCarryForwardTest {
 		assertEquals(1, rows.size)
 		assertEquals("device-A", rows.single().device_id)
 		assertEquals("{\"words\":1234}", rows.single().content)
+		assertEquals(2L, rows.single().author_id)
+		assertEquals("Ada Lovelace", rows.single().author_name)
+
+		val noPenName = sd.writingActivityQueries.getAllForProject(1, 2).executeAsList().single()
+		assertEquals(1L, noPenName.author_id)
+		assertEquals(null, noPenName.author_name)
 	}
 
 	/**
@@ -225,6 +231,11 @@ class PostgresMigrationDataCarryForwardTest {
 
 			INSERT INTO writing_activity (user_id, project_id, device_id, content)
 			VALUES (2, 1, 'device-A', '{"words":1234}');
+
+			INSERT INTO project (id, uuid, user_id, name, last_id, last_sync)
+			VALUES (2, '33333333-3333-3333-3333-333333333333', 1, 'Admin Draft', 0, '2024-06-01 12:00:00Z');
+			INSERT INTO writing_activity (user_id, project_id, device_id, content)
+			VALUES (1, 2, 'device-B', '{"words":7}');
 		""".trimIndent()
 	}
 }

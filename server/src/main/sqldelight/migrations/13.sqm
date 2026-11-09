@@ -1,0 +1,15 @@
+-- Migration 13 -> 14: writing activity slots keyed by author. Mirrors WritingActivity.sq.
+-- Every existing slot was uploaded by the project's owner.
+
+UPDATE writing_activity SET author_id = user_id WHERE author_id IS NULL;
+
+UPDATE writing_activity
+SET author_name = account.pen_name
+FROM account
+WHERE account.id = writing_activity.author_id AND writing_activity.author_name IS NULL;
+
+ALTER TABLE writing_activity ALTER COLUMN author_id SET NOT NULL;
+
+ALTER TABLE writing_activity DROP CONSTRAINT writing_activity_user_id_project_id_device_id_key;
+
+ALTER TABLE writing_activity ADD UNIQUE (user_id, project_id, author_id, device_id);

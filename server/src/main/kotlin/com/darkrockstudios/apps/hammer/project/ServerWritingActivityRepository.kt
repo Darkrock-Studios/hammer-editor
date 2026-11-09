@@ -56,7 +56,14 @@ class ServerWritingActivityRepository(
 		val projectId = projectDao.getProjectIdOrNull(owner, projectDef.uuid)
 			?: return SResult.failure(ProjectNotFound(projectDef))
 		val content = json.encodeToString(log)
-		writingActivityDao.upsert(owner.id, projectId, deviceId, content)
+		writingActivityDao.upsert(
+			userId = owner.id,
+			projectId = projectId,
+			authorId = owner.id,
+			authorName = null,
+			deviceId = deviceId,
+			content = content,
+		)
 		return SResult.success(Unit)
 	}
 }

@@ -15,22 +15,38 @@ class WritingActivityDao(
 		withContext(ioDispatcher) {
 			queries.getAllForProject(userId, projectId)
 				.executeAsList()
-				.map { DeviceLogRow(deviceId = it.device_id, content = it.content) }
+				.map {
+					DeviceLogRow(
+						deviceId = it.device_id,
+						content = it.content,
+						authorId = it.author_id,
+						authorName = it.author_name,
+					)
+				}
 		}
 
 	suspend fun upsert(
 		userId: Long,
 		projectId: Long,
+		authorId: Long,
+		authorName: String?,
 		deviceId: String,
 		content: String,
 	) = withContext(ioDispatcher) {
 		queries.upsertDeviceLog(
 			userId = userId,
 			projectId = projectId,
+			authorId = authorId,
 			deviceId = deviceId,
 			content = content,
+			authorName = authorName,
 		)
 	}
 }
 
-data class DeviceLogRow(val deviceId: String, val content: String)
+data class DeviceLogRow(
+	val deviceId: String,
+	val content: String,
+	val authorId: Long,
+	val authorName: String?,
+)
