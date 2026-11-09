@@ -880,9 +880,11 @@ a `HAMMER_PROTOCOL_VERSION` bump.
 
 ## Writing Activity Sync (per-device slots)
 
-After entity transfer, the client syncs **writing activity** — an auxiliary record of writing sessions used for stats and observability (words written, session start/end, sealed flag). Each device tracks its own sessions locally; the project's full activity is the union of every device's log, keyed by `deviceId`.
+After entity transfer, the client syncs **writing activity** — an auxiliary record of writing sessions used for stats and observability (words written, session start/end, sealed flag). Each device tracks its own sessions locally; the project's full activity is the union of every slot, keyed by author and `deviceId`.
 
-The model is intentionally conflict-free by construction: **only the owning device ever writes its own slot**. When the client pulls the server's view, it wholesale-overwrites its local copies of *foreign* device slots, and merges only its *own* slot before pushing it back. There is no hash-based conflict detection like entity sync or project_data — each device is the sole writer of its slot, so there is nothing to conflict on across devices.
+The model is intentionally conflict-free by construction: **only the owning device ever writes its own slot**. When the client pulls the server's view, it wholesale-overwrites its local copies of *foreign* slots, and merges only its *own* slot before pushing it back. There is no hash-based conflict detection like entity sync or project_data — each device is the sole writer of its slot, so there is nothing to conflict on across devices.
+
+**Authors.** The server stores every slot under the project's owner and stamps each with `authorId` (the uploading account) and `authorName` (its pen name at upload time), ignoring whatever the client sent; GET returns both on every slot. Two accounts signed in on one install share a `deviceId`, so a slot is `(author, deviceId)`: the own slot is the one for this `deviceId` whose author is the signed-in account (or null, before its first round trip). Another account's slot for this `deviceId` is kept as a separate local slot, never merged into the own file, and an own file stamped with another account is set aside under that account's slot. The client writes the returned author into its local copy of every slot, so stats work offline; a slot with no author is the owner's.
 
 For the device's own slot, `mergeOwnSlotSessions` (see [SessionMerge.kt](../common/src/commonMain/kotlin/com/darkrockstudios/apps/hammer/common/data/writingactivity/SessionMerge.kt)) unions sessions by `startedAt`. On collision it keeps the higher `wordsWritten`, the later `endedAt`, and `sealed = local || remote` (sealing is one-way).
 
@@ -895,7 +897,7 @@ sequenceDiagram
     activate Server
     Server -->> Client: 200 WritingActivityResponse
     deactivate Server
-    Note left of Server: { deviceId → DeviceLog }
+    Note left of Server: [ { deviceId, DeviceLog + author } ]
 
     Note right of Client: Overwrite local copies of<br/>foreign device slots.<br/>Merge own slot with server's copy.
 
@@ -908,10 +910,12 @@ sequenceDiagram
 
 Endpoints (the project is identified by `projectId` in the path):
 
-- `GET  /api/project/{userId}/{projectId}/writing_activity` → `WritingActivityResponse` (`Map<deviceId, DeviceLog>`)
+- `GET  /api/project/{userId}/{projectId}/writing_activity` → `WritingActivityResponse` (`slots: List<WritingActivitySlot(deviceId, DeviceLog)>`)
 - `POST /api/project/{userId}/{projectId}/writing_activity/{deviceId}` body: `DeviceLog`
 
-Data shapes (`WritingSession`, `DeviceLog`, `WritingActivityResponse`) live in [WritingSession.kt](../base/src/commonMain/kotlin/com/darkrockstudios/apps/hammer/base/http/writingactivity/WritingSession.kt).
+Locally, the own slot is `{project}/scenes/.activity/{deviceId}.toml` and a synced slot is `{deviceId}.{authorId}.toml`; a pre-author `{deviceId}.toml` of another device is dropped once its authored copy arrives.
+
+Data shapes (`WritingSession`, `DeviceLog`, `WritingActivitySlot`, `WritingActivityResponse`) live in [WritingSession.kt](../base/src/commonMain/kotlin/com/darkrockstudios/apps/hammer/base/http/writingactivity/WritingSession.kt).
 
 Both GET and POST failures are logged and swallowed: the writing-activity phase never fails the surrounding project sync. Activity data is auxiliary observability — a transient network or server error must not block the user's actual content from syncing. Local state is left untouched on a failed GET, so the next sync simply tries again.
 

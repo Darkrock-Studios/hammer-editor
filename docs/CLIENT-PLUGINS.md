@@ -342,7 +342,7 @@ its tool list from.
 | --- | --- | --- |
 | `stats.project` | Read | What the Home screen shows: word and scene totals, words by chapter, longest, shortest, and median scene, note, timeline, and encyclopedia counts, top entry appearances, word-count goal. Optional `recalculate` |
 | `stats.activity` | Read | Daily word totals over a date range, plus lifetime words per device |
-| `stats.sessions` | Read | Raw writing sessions over a date range, per device |
+| `stats.sessions` | Read | Raw writing sessions over a date range, per device, with the author |
 
 These read through `StatisticsService` and `WritingActivityRepository`, the
 same sources as the Home screen. `stats.project` serves the cached statistics

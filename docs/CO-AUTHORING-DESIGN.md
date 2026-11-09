@@ -469,6 +469,29 @@ the stats of anyone who still has the project. Their devices simply stop adding 
 The project card shows "Shared by {ownerName}" for a co-author, read from `project.toml`. The
 owner's in-app view of who is on the project is deferred; the website lists members.
 
+How stage 6 reads this:
+
+- The GET response is a list, `WritingActivityResponse(slots: List<WritingActivitySlot(deviceId,
+  DeviceLog)>)`, not the old `Map<deviceId, DeviceLog>`, which cannot hold two authors' slots for
+  one device. Protocol 4 is new with 4.0.0, so the shape change is free.
+- Locally the own slot stays `{deviceId}.toml`; every synced slot is `{deviceId}.{authorId}.toml`,
+  so two authors' slots for one device never share a file. A pre-author `{deviceId}.toml` of
+  another device is dropped once its authored copy arrives.
+- "Refuses to merge" keeps another account's slot for this device as its own local slot. Since
+  this device is the only writer of that slot, the local copy is merged with the server's rather
+  than overwritten, and when that account signs in here again its sessions return to the own
+  file. An own file already stamped with another account (an account switch on one install) is
+  set aside under that account's slot, so it is never uploaded as the signed-in account's.
+- "The owner" for a slot with no author is `Info.ownerId` for a shared project and the signed-in
+  account for an own one; with neither, the slot stays unattributed. The author's own slot gets
+  its author from the next GET after its first upload, so it reads as the owner's for one sync.
+- Grouping counts only authors with words, and an author's label is the name on their most
+  recently active slot (a pen name change shows once a device uploads again); an author with no
+  pen name shows as "Unknown author". `author_name` is the pen name at each upload, so it
+  follows renames until the author stops uploading.
+- Writing-activity sync marks the statistics cache dirty when it changes any slot, so a new
+  author shows without waiting for an edit.
+
 ## Work plan
 
 One branch, `4_0/coauthoring`, one pull request into `4.0.0` at the end. The work runs in the
@@ -500,8 +523,9 @@ stages below, in order, each landing as a series of checkpoint commits on the br
    `buildSyncData` hardening. The project card's "Shared by {owner}" label landed here rather than
    in stage 6. Landed 2026-11-08 as `57dad6b35`, `9c53873a6`, `1a86f0f94`, `d2ce70916`,
    `a50d05b49`.
-6. **Writing stats by author.** Server stamps, slot key, client merge rule, stats grouping, card
-   label.
+6. **Writing stats by author.** Server stamps, slot key, client merge rule, stats grouping. The
+   card label landed in stage 5. Landed 2026-11-08 as `01f17ed54`, `8ce0d85ac`, `ae234439a`,
+   `df24fa9aa`.
 7. **Docs:** `SYNCING-PROTOCOL.md` sections for membership, `403 not_member`, leave and the
    session rules; `ARCHITECTURE.md` on `project.toml`'s sync fields and parked projects.
 
