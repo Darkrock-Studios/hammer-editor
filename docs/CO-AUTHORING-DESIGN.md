@@ -285,21 +285,28 @@ project routes answer `403` or `410`. The client handles all four with one rule 
 
 ### What the client learns
 
-`project.toml` (`Info`) gains three fields:
+`project.toml` (`Info`) gains four fields:
 
 ```kotlin
 val syncEnabled: Boolean = true
 val ownerId: Long? = null
 val ownerName: String? = null
+/** Sync was turned off because the project stopped being shared, not by hand. */
+val parked: Boolean = false
 ```
+
+`parked` tells a project the server stopped sharing (or that the user left) from a shared project
+the user turned off by hand: only a parked one resumes when it is listed again, and only a parked
+one asks before uploading as the user's own.
 
 They live in `project.toml`, not the account `sync.json`, because every synchronous consumer of
 a project (project list, editor, Android widget worker, Wear, MCP sync operations, backups)
 already reads `project.toml`, and because the account file is replaced with defaults when it is
 missing or corrupt, which must never flip a project back into sync or make it adoptable.
 `ownerId` and `ownerName` are written when account sync creates the local folder for a shared
-project; `ownerName` is refreshed on every account sync. They are not on `ProjectDef`, so
-data-class equality and the project list are untouched; `ProjectsRepository` exposes them.
+project, in the same write as the rest of the file; both are refreshed on every account sync for
+every listed shared project held here. They are not on `ProjectDef`, so data-class equality and
+the project list are untouched; `ProjectsRepository` exposes them as `getOwner`/`setOwner`.
 
 ### Per-project sync toggle
 
@@ -338,26 +345,35 @@ Turning sync **off** states two consequences in the dialog:
 
 Turning sync **on**:
 
-- If `ownerId` is set, the project belonged to someone else. The dialog explains that turning
-  sync on uploads it as the user's own project, severed from the original. On confirm, `ownerId`
-  and `ownerName` are cleared, a fresh `ProjectId` is minted (the old one is held by the owner),
-  and the normal create path uploads everything.
+- If `ownerId` is set and the project is parked, it belonged to someone else. The dialog explains
+  that turning sync on uploads it as the user's own project, severed from the original. On
+  confirm, `ownerId`, `ownerName` and `parked` are cleared, a fresh `ProjectId` is minted (the old
+  one is held by the owner), and the normal create path uploads everything. The switch lives in
+  the open project, which cannot change id, so in practice the owner fields are cleared at once
+  with sync left off and the old id recorded under the account `deletedProjects` (recorded first,
+  so a crash never leaves the project ownerless and unrecorded); the user sees *Close to finish*:
+  close it, sync from the project list (which re-mints it, logged as "now has an identity of its
+  own"), then turn sync on. A shared project turned off by hand, not parked, simply resumes.
 - Otherwise, if the account `sync.json` lists the id under `deletedProjects`, the project was
   deleted on the server while excluded here; a fresh id is minted so the create path does not
   answer `project_deleted`. The switch lives in the open project, which cannot change id, so in
   practice this refuses and asks the user to close the project and sync from the project list
   (which re-mints it, above), then turn sync on.
-- Otherwise sync resumes. If the project was parked by the server (below) rather than by hand,
-  `verifyAllEntities` is set first, as `markProjectRestored` does today.
+- Otherwise sync resumes. Only a shared project is ever parked, so the switch never resumes a
+  parked one; account sync does that, with `verifyAllEntities` set, when it is listed again.
 
 ### Leave vs delete
 
-`ProjectsService.deleteProject` on a shared project (`ownerId != null`) shows a *Leave project*
-dialog instead: it explains that the owner's copy is untouched, sends `/delete` (which the
-server treats as leave), and sets `syncEnabled = false`. The folder is kept. There is no second
-flow: a user who wants the copy gone deletes it afterwards as an ordinary excluded project.
+Deleting a shared project (`ownerId != null`, not parked) shows a *Leave project* dialog
+instead: it names the owner, explains that the owner's copy is untouched, queues `/delete` (which
+the server treats as leave), and parks the project. The folder is kept. There is no second flow:
+a user who wants the copy gone deletes it afterwards as an ordinary excluded project, and the card
+offers *Delete* again once the project is parked. `ProjectsService.deleteProject` and the MCP
+`project.delete` refuse a shared project not yet left; account sync leaves a project with a queued
+leave alone until the leave is sent, so it is neither parked nor resumed meanwhile.
 
-A co-author cannot rename or move a shared project in the UI, and `ProjectAttributeReconciler`
+A co-author cannot rename or move a shared project in the UI (the card hides both, and
+`ProjectsService` and the MCP `project.rename` refuse them), and `ProjectAttributeReconciler`
 never emits `RenameOnServer` or `MoveOnServer` for one: a folder renamed outside the app is
 renamed back with `RenameLocally` to the server's name, and the server's null `groupId` is
 applied locally.
@@ -373,14 +389,17 @@ unrelated local story into it through a full conflict check. Rules:
   filesystem, not only the loaded project list, so an unmarked folder cannot wedge creation), the
   shared project is skipped for that session with the existing "name already taken" log line.
   The co-author renames their own project and the next sync brings the shared one down. No
-  folder-name rule, no reconciler special case.
+  folder-name rule, no reconciler special case. The log line's wording ("already syncs with a
+  different server project") is loose when the collision is an unmarked folder or a project not
+  yet uploaded.
 
 ### Parked projects
 
-A local project with `ownerId != null` that the server no longer lists (not in `projects`, not in
-`deletedProjects`) is **parked**: `syncEnabled` is set to false, its `ProjectBaseline` is
-dropped, and the sync log records `sync_log_account_project_parked` ("{name} is no longer shared
-with you. Your copy is kept on this device and no longer syncs. Turn sync on in its settings to
+A local project with `ownerId != null` that the server no longer lists (not in `projects`,
+whether or not it is in `deletedProjects`), or whose project routes answer `403 not_member` or
+`410`, is **parked**: `syncEnabled` is set to false, `parked` is set, its `ProjectBaseline` is
+dropped, and the sync log records `sync_log_account_project_parked` once ("{name} is no longer
+shared with you. Your copy is kept on this device and no longer syncs. Turn sync on in its settings to
 upload it as your own project."). The project journal is untouched: a rebuilt journal infers
 deletions from id gaps and marks nothing dirty, so clearing it would let a partial copy delete the
 owner's entities on re-invite and let the co-author's unsynced edits be downloaded over.
@@ -396,9 +415,14 @@ being soft-deleted (reversible for the retention window), the owner losing white
 a lost account `sync.json`. Without it, any of those would end in `project_id_taken`, a re-mint,
 and a forked upload of the owner's book under the co-author's account.
 
+Account sync parks at the start of the session, after refreshing owners, and a parked project
+joins the session's excluded set. Parking from project sync takes the account session lock,
+since it rewrites the account `sync.json`.
+
 If the project is listed again later (re-invite), the folder is still there with the same id:
 account sync re-enables it with `verifyAllEntities` set and the normal full comparison brings the
-two copies back together.
+two copies back together. Only the journal is flagged; the project data's `lastSyncedHash` is
+kept. A project open at that moment stays parked for the session and resumes once closed.
 
 `SyncJournal.buildSyncData`, which rebuilds a lost project journal, sets `verifyAllEntities` on
 the result regardless of co-authoring. A rebuilt journal is a guess and the next sync should
@@ -473,7 +497,9 @@ stages below, in order, each landing as a series of checkpoint commits on the br
    no-adoption and filesystem collision check, reconciler rules, parked projects (including
    never deleting a folder with `ownerId` from the delete phase), re-mint on `403 not_member`
    from `create` for a project without `ownerId`, the "upload as my own" turn-on path,
-   `buildSyncData` hardening.
+   `buildSyncData` hardening. The project card's "Shared by {owner}" label landed here rather than
+   in stage 6. Landed 2026-11-08 as `57dad6b35`, `9c53873a6`, `1a86f0f94`, `d2ce70916`,
+   `a50d05b49`.
 6. **Writing stats by author.** Server stamps, slot key, client merge rule, stats grouping, card
    label.
 7. **Docs:** `SYNCING-PROTOCOL.md` sections for membership, `403 not_member`, leave and the
@@ -518,3 +544,6 @@ skill loaded, so new partials match the existing Writer's Desk templates.
 
 - Should co-authors see the project's writing stats on the website story page, or only in-app?
 - Should the owner be able to purge a removed co-author's writing-activity slots?
+- A corrupt `project.toml` is recreated with a fresh id and no owner fields, so a shared copy
+  that loses it would upload as the co-author's own on the next sync. Keeping the owner somewhere
+  that survives the heal (or refusing to heal a folder holding a journal) would close it.
