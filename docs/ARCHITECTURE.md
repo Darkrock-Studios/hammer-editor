@@ -6,7 +6,7 @@ tracked per component: dependency direction and statefulness.
 
 Dependencies always point **downward** (a layer may reference only the layers below it), never
 upward
-and never sideways. Read the **Decision rules** section carefully — most mistakes come from adding
+and never sideways. Read the **Decision rules** section carefully: most mistakes come from adding
 layers that aren't needed, or putting logic in the wrong layer.
 
 ## Client Architecture
@@ -109,7 +109,7 @@ depend on it, you do not add to it casually.
 | Repository  | Stateful  | Scoped singleton      | Data Sources, Foundation                                                   | Yes       |
 | Service     | Stateful  | Scoped singleton      | Repositories, Foundation, Data Sources                                     | No        |
 | Use Case    | Stateless | Factory (new per use) | Services, Repositories, Foundation, Data Sources, other Use Cases (acyclic) | No        |
-| ViewModel   | —         | Per screen/owner      | Use Cases, Services, Repositories, Foundation                              | Yes       |
+| ViewModel   | none      | Per screen/owner      | Use Cases, Services, Repositories, Foundation                              | Yes       |
 
 > **ViewModel / Component naming.** This project calls the highest layer a **Component** (Decompose
 > component), which is the *ViewModel* in other architectures. The terms are used interchangeably
@@ -117,7 +117,7 @@ depend on it, you do not add to it casually.
 
 ## Layer definitions
 
-### Data Sources — stateless
+### Data Sources: stateless
 
 Raw I/O and nothing else: network calls, database/DAO access, file/disk access, platform APIs (
 camera, sensors, key
@@ -133,23 +133,23 @@ A Data Source gets the location it works in as a value, never by asking a higher
 project-scoped one takes a `ProjectDef`. An account-level one, which lives outside any project,
 takes a `ProjectsDirectory` and reads it on every use, because the user can change it at runtime.
 
-### Foundation primitives — stateful, cross-cutting
+### Foundation primitives: stateful, cross-cutting
 
 A small, **fixed** set of stateful primitives the entire data layer is built on. Unlike a
 Repository, a foundation
-primitive is not a domain area you "get/observe/save" — it is shared infrastructure (ID allocation,
+primitive is not a domain area you "get/observe/save"; it is shared infrastructure (ID allocation,
 sync bookkeeping,
 app settings) that nearly every repository needs. Scoped singleton, like a Repository.
 
 Current members:
 
-- **`IdAllocator`** — hands out the project-wide monotonic entity IDs.
-- **`SyncJournal`** — records dirty entities and created/deleted IDs awaiting server reconciliation.
-- **`GlobalSettingsStore`** — owns the app-global settings (and server settings).
+- **`IdAllocator`**: hands out the project-wide monotonic entity IDs.
+- **`SyncJournal`**: records dirty entities and created/deleted IDs awaiting server reconciliation.
+- **`GlobalSettingsStore`**: owns the app-global settings (and server settings).
 
 Rules:
 
-- **May reference:** Data Sources, and *other foundation primitives* — but the foundation set must
+- **May reference:** Data Sources, and *other foundation primitives*, but the foundation set must
   stay **acyclic**. It
   is a DAG: `GlobalSettingsStore ← SyncJournal ← IdAllocator`. This is the **only** place a stateful
   component may
@@ -160,14 +160,14 @@ Rules:
 - **Must never reference upward.** A foundation primitive may not depend on a Repository or anything
   above it; that is
   what keeps it a leaf and the whole graph acyclic.
-- **Not a default home.** Adding a class here is a deliberate, reviewed decision — not a way to
+- **Not a default home.** Adding a class here is a deliberate, reviewed decision, not a way to
   dodge the no-sibling
   rule. If a class is really a domain area, it is a Repository; if it coordinates repositories, it
   is a Service.
 
 > **Why this tier exists.** The no-sibling rule (below) exists for exactly one reason: to keep the
 > dependency graph
-> acyclic. A handful of primitives — ID allocation, sync bookkeeping, settings — are needed by
+> acyclic. A handful of primitives (ID allocation, sync bookkeeping, settings) are needed by
 > almost every repository,
 > and they are *already* acyclic leaves (nothing points back up into domain code). Forcing every
 > repository to receive
@@ -175,7 +175,7 @@ Rules:
 > protect. So we name the
 > tier honestly instead of pretending these dependencies are violations.
 
-### Repositories — stateful
+### Repositories: stateful
 
 Combine one or more **data sources** for a single domain area, and own the state for that area (
 caching, in-memory
@@ -183,9 +183,9 @@ flows, dedup, the source-of-truth for that domain). A repository is the default 
 get/observe/save this kind of
 data." May also depend *down* on **Foundation primitives** (e.g. `IdAllocator` for new entity IDs,
 `SyncJournal` to mark
-edits dirty) — but **never on another Repository**. Scoped singleton.
+edits dirty), but **never on another Repository**. Scoped singleton.
 
-### Services — stateful, **optional**
+### Services: stateful, **optional**
 
 The sanctioned home for **stateful coordination across multiple repositories**. Because repositories
 may not reference
@@ -197,9 +197,9 @@ here. Scoped singleton.
 > exposes what's
 > needed, skip this layer entirely.
 
-### Use Cases — stateless, **optional**
+### Use Cases: stateless, **optional**
 
-**Stateless** business logic and composition over lower layers — a single, named operation ("
+**Stateless** business logic and composition over lower layers: a single, named operation ("
 RefreshFeed", "
 SignInWithBiometrics"). Use cases hold no state. They may combine repositories, services, data
 accessed through those,
@@ -210,7 +210,7 @@ A Use Case implements one task. It may expose several operations when they all s
 
 > Only add a Use Case when there is real stateless logic or composition to hold. Do **not** create a
 > Use Case that
-> merely forwards one call to one repository — let the consumer call the repository directly
+> merely forwards one call to one repository; let the consumer call the repository directly
 > instead.
 
 ### ViewModels (Components)
@@ -232,7 +232,7 @@ ViewModels/Components and renders them.
 2. **No sibling references**, with one exception below. Components in the same layer must not depend
    on each other. This
    keeps the dependency graph acyclic by construction.
-3. **Sibling exception — stateless layers only.** Use Cases (stateless) *may* reference other Use
+3. **Sibling exception: stateless layers only.** Use Cases (stateless) *may* reference other Use
    Cases. Repositories
    and Services (stateful) **may not** reference siblings under any circumstances.
 4. **The Use Case graph is acyclic.** A Use Case may take another Use Case directly, as long as
@@ -243,7 +243,7 @@ ViewModels/Components and renders them.
    above it).
 6. **Foundation primitives are a shared lower tier, not siblings.** Depending on `IdAllocator`,
    `SyncJournal`, or
-   `GlobalSettingsStore` from any layer is *downward* and always allowed — they are not siblings of
+   `GlobalSettingsStore` from any layer is *downward* and always allowed; they are not siblings of
    the Repositories
    that use them. They are the only stateful components that may reference their own tier, and only
    acyclically (see
@@ -251,7 +251,7 @@ ViewModels/Components and renders them.
 7. **One owner per persisted format.** Every on-disk file format is owned by exactly one Data
    Source; only that file serializes or deserializes it. Code that cannot reach the datasource
    instance (no per-project Koin scope yet, wrong lifecycle) does not fall back to raw
-   `fileSystem.writeToml`/`readToml` — it uses or adds a **scope-less helper in the datasource's
+   `fileSystem.writeToml`/`readToml`: it uses or adds a **scope-less helper in the datasource's
    own file** (pattern: `loadStoredProjectData`/`saveStoredProjectData` in
    `ProjectDataDatasource.kt`). A second inline writer forks the format and clobbers sibling
    fields on write: two independent writers of the project settings file once each erased the
@@ -271,26 +271,37 @@ Hammer keeps its own metadata minimal and optional: nothing a writer wrote depen
 persisted file belongs to one of two tiers, and the tier decides what the app may do with a file it
 cannot read.
 
-- **Metadata** is what the app can regenerate: `project.toml` (`created`, `lastAccessed`,
-  `dataVersion`, `projectId`), each group's `group.toml` (`groupId`, `description`, `collapsed`),
-  each project's `sync.json`, and the account-level `sync.json` at the projects root. Any reader
-  may heal or recreate it, and a corrupt file is replaced with fresh state. Losing it costs at most
-  a project's or group's identity and sync state, never content.
+- - **Metadata** is what the app can regenerate: `project.toml` (`created`, `lastAccessed`,
+  `dataVersion`, `projectId`; its sync fields are the exception below), each group's `group.toml`
+  (`groupId`, `description`, `collapsed`), each project's `sync.json`, and the account-level
+  `sync.json` at the projects root. Any reader may heal or recreate it, and a corrupt file is
+  replaced with fresh state. Losing it costs at most a project's or group's identity and sync state,
+  never content.
 - **User data** is what the app cannot rebuild: `settings.toml`, scenes, notes, encyclopedia
   entries, timeline events, drafts, images and backups. The app tolerates any of it being missing but never
   destroys it. A `settings.toml` that cannot be parsed is moved aside to
   `settings.toml.corrupt-<epochMillis>` and the project opens with default settings; the bad copy
   is kept, not overwritten.
 
+**`project.toml`'s sync fields cannot be regenerated.** `syncEnabled` is the user's per-project sync
+switch, and `ownerId` and `ownerName` record that the project belongs to another account that shared
+it (see [SYNCING-PROTOCOL.md](SYNCING-PROTOCOL.md#shared-projects-on-the-client)). A heal cannot
+recover them, so it falls back to the safe values: sync off and no owner (below). They live in
+`project.toml` rather than the account `sync.json` because every reader of a project (the project
+list, the editor, the Android widget worker, Wear OS, MCP sync operations, backups) already reads
+it, and because the account file is replaced with defaults when it is missing or corrupt, which
+must never turn a project's sync back on or make a shared copy look like the account's own.
+
 **`project.toml` is the marker that makes a directory a project.** `ProjectsRepository.getProjects`
 lists only directories that hold one, and the project picker, the data migrator, both sync levels
 and the Wear OS project list all enumerate projects through it. A directory that loses the file is
-re-marked rather than hidden: at startup `ProjectsRepository.healUnmarkedProjectDirectories` gives
-a fresh `project.toml`, under a new ID, to every directory that holds Hammer content (scenes, notes,
-encyclopedia, timeline, images, `settings.toml`, a pre-4 `project_data.toml` or `sync.json`) but no marker,
-and account sync adopts an unmarked directory whose name matches a server project under that
-project's ID, if it is empty or holds such content. Any other directory stays ignored, since the
-projects directory may be shared with unrelated folders.
+re-marked rather than hidden: at startup `ProjectsRepository.healUnmarkedProjectDirectories` gives a
+fresh `project.toml`, under a new ID and with sync off, to every directory that holds Hammer content
+(scenes, notes, encyclopedia, timeline, images, `settings.toml`, a pre-4 `project_data.toml` or
+`sync.json`) but no marker, and account sync adopts an unmarked directory whose name matches a
+server project under that project's ID, if it is empty or holds such content and the server project
+is not shared with this account. Any other directory stays ignored, since the projects directory may
+be shared with unrelated folders.
 
 **`group.toml` marks a directory as a project group.** Projects may sit in plain directories
 nested up to `MAX_GROUP_NESTING_DEPTH` (8) levels below the projects directory.
@@ -324,11 +335,16 @@ use `def.id` instead of reading the file again. The ID heals rather than fails:
   instead of letting either copy silently win. Deletions made on the server after the backup still
   apply; a restore does not undo them.
 
-A corrupt `project.toml`, or a lost one once recreated, therefore comes back with a new identity:
-widgets and watch subscriptions no longer find the project, and the server sees it as new unless
-account sync matches it by name to a server project and adopts that ID. A healed or adopted
-folder's surviving `sync.json` may be stale, so the folder is flagged like a restored backup and its
-next sync conflict-checks every entity. That is the accepted cost of keeping the file regenerable.
+A corrupt `project.toml`, or a lost one once recreated, therefore comes back with a new identity
+and with sync off (`ProjectMetadataDatasource.loadMetadata` for an unreadable file,
+`healUnmarkedProjectDirectories` for a lost one), and the rebuild is logged as a warning. Widgets
+and watch subscriptions no longer find the project, and it stays off the server until the user
+turns sync on in its settings. Nothing can tell whether the lost file had an owner, so this applies
+to every rebuilt project: a co-author's copy is never uploaded as the account's own. Once sync is
+on, the server sees the project as new unless account sync matches it by name to a server project
+and adopts that ID. A healed or adopted folder's surviving `sync.json` may be stale, so the folder
+is flagged like a restored backup and its next sync conflict-checks every entity. That is the
+accepted cost of healing rather than failing.
 
 **A project in use keeps its identity.** While a project has a project scope open (an editor, or a
 temporary task such as a background sync or capture), its ID and name do not change: the scope
@@ -350,7 +366,9 @@ managed by Hammer and that edits may be overwritten or discarded. `settings.toml
 edit it but must keep it valid TOML, or Hammer will set it aside. Readers ignore comments.
 
 **Adding a file.** If the app can rebuild it, it is metadata and belongs in `project.toml` or a
-sibling cache the app owns. Otherwise it is user data: it gets its own file and its own owning Data
+sibling cache the app owns. A per-project value the app cannot rebuild but every reader of the
+project needs, like the sync fields, may also go in `project.toml`, provided its heal default is
+the safe one. Otherwise it is user data: it gets its own file and its own owning Data
 Source ([hard constraint 7](#dependency-rules-hard-constraints)), tolerates being missing, and is
 set aside rather than replaced when it cannot be parsed.
 
@@ -361,7 +379,7 @@ set aside rather than replaced when it cannot be parsed.
   requested.
 - **Stateful components** (Repositories, Services) are **scoped singletons**. The default scope is
   the application, but
-  choose a *narrower* scope when the state's natural lifetime is narrower — e.g. a user session or a
+  choose a *narrower* scope when the state's natural lifetime is narrower, e.g. a user session or a
   navigation graph.
   Do not park session-scoped or user-scoped state in an app-lifetime singleton.
 
@@ -392,7 +410,7 @@ Start from the minimal spine and add layers only when a concrete need appears.
   leaf (never depends
   upward). A domain area is a Repository; cross-repo coordination is a Service. "Two repositories
   both need it" is **not**
-  a reason — that is what a Service is for.
+  a reason; that is what a Service is for.
 
 **Inserting a layer later (minimizing churn):**
 
@@ -401,7 +419,7 @@ Start from the minimal spine and add layers only when a concrete need appears.
   site.
 - If the new layer only *wraps existing behavior behind the same surface* (caching, retry, dedup),
   implement the lower
-  layer's interface (**decorator**) and swap the binding in DI — zero call-site churn.
+  layer's interface (**decorator**) and swap the binding in DI, with zero call-site churn.
 - If the new layer exposes genuinely new orchestration methods, call sites must change. That's
   expected and is the
   honest signal you've crossed into a real coordination layer.
@@ -427,7 +445,7 @@ AuthRepository             (stateful: combines AuthApi + Token sources, holds se
 UserRepository             (stateful: combines a user API + local user cache)
 
 SessionService             (stateful, OPTIONAL: coordinates AuthRepository + UserRepository
-                            on login/logout — only exists because two repos must be orchestrated together)
+                            on login/logout; only exists because two repos must be orchestrated together)
 
 SignInUseCase              (stateless, OPTIONAL: orchestrates the sign-in flow via SessionService)
 
@@ -490,6 +508,12 @@ client, a Service may not reference another Service, and nothing below a Service
 
 ### Server Repositories
 These use stateful and responsible for transforming, validating, and caching data from the Datasources, and vending it to the layers above. A Repository may not reference another Repository.
+
+Project-scoped storage is keyed by the project's owner, not the caller, so an owner and their
+co-authors share one copy. A project route takes the owner from `requireProjectAccess()`, which also
+answers `403 not_member` and `410 Gone`, and project-scoped repositories and datasources take an
+`OwnerId` rather than a user id. `OwnerId` is built from a project row, or through the
+`@UncheckedOwner` opt-in in account-scoped code, so a route cannot pass the caller by mistake.
 
 ### Server Datasource
 Stateless classes for accessing Data.

@@ -6,7 +6,8 @@ uses.
 
 ## Two levels of syncing
 
-**Account Sync:** This synchronizes what projects the Account has, creating, deleting, renaming or
+**Account Sync:** This synchronizes what projects the Account has, its own and those other accounts
+share with it (see [Project membership](#project-membership)), creating, deleting, renaming or
 moving the project directories on the client, and the group directories they are nested in (see
 [Project groups phase](#project-groups-phase)). It also carries the account-level **Story Ideas**
 phase (see [Story Ideas Sync](#story-ideas-sync-account-level)).
@@ -42,10 +43,13 @@ each local ID against the `begin_sync` response:
 - **Listed in `projects`:** the server has the project; nothing to create.
 - **Listed in `deletedProjects`:** the ID is tombstoned. A tombstone records a real server-side
   delete and is permanent: the server refuses to create that ID again, and the delete phase removes
-  the local project.
+  the local project. It never removes a shared project's folder (one whose `project.toml` has an
+  `ownerId`), and it keeps a project with sync off under a fresh ID (see
+  [Per-project sync switch](#per-project-sync-switch)).
 - **In neither:** the server has never seen the ID. The project is new, or it last synced against a
   different server (or one whose database has since been reset). The client creates it on the
-  server under the same ID.
+  server under the same ID. A shared project is never created: it is parked instead (see
+  [Shared projects on the client](#shared-projects-on-the-client)).
 
 The classification uses the raw `begin_sync` response. A project the client has queued for
 deletion is filtered out of the working copy of that list, but it is still known to the server, and
@@ -59,7 +63,8 @@ for it, create it on the server or rename it, and logs that the user should clos
 again.
 
 - **Created, or already present under that ID:** the ID stands. The create is idempotent, so
-  repeating it after a lost response is safe.
+  repeating it after a lost response is safe. That includes a project the account co-authors, which
+  answers `alreadyExisted = true` with a null `groupId`.
 - **Same name, different ID:** the account already has a live project with that name, so the server
   answers with that project's ID (`alreadyExisted = true`) and the client adopts it. Adopting an ID
   clears the project's sync baseline, which described a different server project, except the entity
@@ -67,8 +72,10 @@ again.
   project already holds that ID (it was renamed away from this name and the rename has not reached
   the server), the client does not adopt it: the create counts as failed and is retried on a later
   sync, after the rename lands.
-- **`409` with `project_id_taken`:** another account holds the ID. The client mints a fresh one and
-  retries once.
+- **`403` with `not_member`:** another account's project holds the ID and has not been shared with
+  this one. The client mints a fresh one and retries once.
+- **`409` with `project_id_taken`:** another account created a project under the ID between the
+  server's checks and its insert. Handled like `not_member`.
 - **`409` with `project_deleted`:** the ID is tombstoned on this account. The client does not retry,
   and logs that the project was deleted elsewhere.
 
@@ -76,6 +83,12 @@ A server project with no local counterpart is created locally under its ID, befo
 project is uploaded. A local project with the same name adopts the server's ID instead, unless it is
 already bound to another live server project. So does a directory of that name with no
 `project.toml`, which is then treated like a restored backup.
+
+A shared project (the server lists it with an `ownerId`) is never adopted by name and never adopts
+an unmarked directory, since either would merge an unrelated local story into the owner's. It is
+created locally at the top level with `ownerId` and `ownerName` in its `project.toml`. When a local
+folder already holds its name, it is skipped for the session with the name-taken log and arrives
+once the user renames their own.
 
 Renames are not queued: a project's name is reconciled against its sync baseline like its placement
 (see [Project groups phase](#project-groups-phase)), so a project renamed outside the app syncs too.
@@ -160,14 +173,16 @@ sequenceDiagram
 				Server -->> Client: 400 Bad Request
 			else Invalid project name
 				Server -->> Client: 406 Not Acceptable
-			else ID tombstoned or held by another account
+			else ID held by a project not shared with this account
+				Server -->> Client: 403 Forbidden (errorCode not_member)
+			else ID tombstoned, or lost to a concurrent create
 				Server -->> Client: 409 Conflict (errorCode project_deleted or project_id_taken)
 			end
 		end
 	end
 
 	rect rgb(40, 30, 0)
-		Note over Client,Server: Story Ideas phase (same session — see Story Ideas Sync below)
+		Note over Client,Server: Story Ideas phase (same session, see Story Ideas Sync below)
 	end
 
 	rect rgb(0, 15, 6)
@@ -181,8 +196,8 @@ sequenceDiagram
 
 ```
 
-The `begin_sync` response also carries `ideasStateHash` — an account-wide hash of the server's
-live idea set — which lets the client skip the Story Ideas phase entirely when nothing changed
+The `begin_sync` response also carries `ideasStateHash` (an account-wide hash of the server's
+live idea set), which lets the client skip the Story Ideas phase entirely when nothing changed
 (see below).
 
 ### Project groups phase
@@ -208,7 +223,7 @@ The groups phase runs inside the account sync session, in this order:
 |---|---|---|---|
 | `POST /api/projects/{userId}/group/upsert` | JSON body `ApiGroupDefinition` | `UpsertGroupResponse(groupId, alreadyExisted)` | `400` malformed body or id; `406` invalid name or description over 2000 characters; `409` `group_name_taken`, `group_cycle`, `group_too_deep`, `group_id_taken` |
 | `POST /api/projects/{userId}/group/delete` | `?groupId=` | `200` (also for an unknown group) | `400` missing or malformed id; `409` `group_name_taken` |
-| `POST /api/projects/{userId}/move` | `?projectId=`, optional `?groupId=` (absent = top level) | `200` | `400` missing or malformed id; `404` unknown project |
+| `POST /api/projects/{userId}/move` | `?projectId=`, optional `?groupId=` (absent = top level) | `200` | `400` missing or malformed id; `403` `not_owner` (co-author) or `not_member`; `404` unknown project; `409` `project_sync_in_progress` |
 | `POST /api/projects/{userId}/create` | adds optional `?groupId=` | `CreateProjectResponse` gains `groupId` | as above |
 
 All of them require the session's `syncId` header, and every id is a UUID.
@@ -247,6 +262,125 @@ Because the comparison is against the files on disk, a folder renamed or dragged
 like an in-app change. A baseline is only written once an item fully agrees, so anything that failed
 or was in use is retried next session.
 
+### Project membership
+
+An owner can share a project with other accounts on the same server, up to five co-authors counting
+pending invites. Invites, acceptance and removal happen on the website; the sync protocol only sees
+the result. The owner stays `project.user_id`, and each co-author is a `project_member` row.
+
+**Storage is the owner's.** Every project-scoped route resolves the project by its ID alone
+(`requireProjectAccess`) and then runs as the owner: entities, entity tombstones, project data and
+writing activity are stored under the owner's account and encrypted with the owner's key. A
+co-author reads and writes the owner's copy, so every device of every member syncs one copy, the way
+an owner's own devices do. The `{userId}` in a URL is still the caller.
+
+**Listing.** The account `begin_sync` lists, after the caller's own projects, every project the
+caller co-authors whose owner's account is active. Each carries `ownerId` and `ownerName` (the
+owner's pen name, for display only) and a null `groupId`: a shared project sits at the top level of
+a co-author's tree, and the owner's placement stays private. Both fields are null for the caller's
+own projects. A shared project never appears in a co-author's `deletedProjects` through anything
+the owner does.
+
+| Request | Owner | Co-author | Other account | Unknown ID |
+|---|---|---|---|---|
+| Project routes (`/api/project/…`) | as usual | as usual, on the owner's data | `403` `not_member` | `410 Gone` |
+| `create` | as usual | `alreadyExisted = true`, `groupId` null | `403` `not_member` | creates it |
+| `rename`, `move` | as usual; `409` `project_sync_in_progress` while a co-author holds the project session | `403` `not_owner` | `403` `not_member` | `404` |
+| `delete` | deletes; `409` `project_sync_in_progress` while a co-author holds the project session | leave (below) | `403` `not_member` | tombstones the ID for the caller |
+
+`sync_probe` compares a shared project against the owner's rows, and leaves out any project the
+caller cannot access. A project whose owner's account is inactive or deleted answers co-authors as
+for another account, and is not listed.
+
+**Sessions.** There is one project session per project, whichever account holds it
+(`ProjectSyncKey(projectId)`), so a second account asking while it is live gets `400`, like another
+install of the same account. A co-author's project `begin_sync` also answers `409` with
+`project_sync_in_progress` while the owner's account session is live, since that session can
+rename or delete the project. The server checks again after claiming the slot, so the owner's
+delete cannot slip in between. In the other direction, the owner's `delete`, `rename` and `move`
+answer `409` with `project_sync_in_progress` while a co-author holds the project session. The
+requests within a project session check only the caller's own account session, not the owner's.
+On the client a `409` fails that project's sync, and the next sync retries it.
+
+### Leave and delete
+
+A co-author's `delete` is a **leave**: the server removes the membership, ends any project session
+the leaver holds on the project, and answers `200`. It writes no tombstone, so the leaver's
+`deletedProjects` does not list the project and the owner's copy is untouched.
+
+The owner's `delete` removes the project with its memberships and pending invites, and tombstones
+the ID for the owner only. A co-author never finds it under `deletedProjects`: it simply stops being
+listed, which parks the co-author's copy.
+
+A `delete` for an ID no project holds still tombstones it for the caller, so a leave that reaches the
+server after the owner deleted the project does list the ID in that co-author's `deletedProjects`.
+The client keeps the folder anyway (below).
+
+### Shared projects on the client
+
+A shared project's `project.toml` holds `ownerId` and `ownerName`, written when account sync creates
+the folder and refreshed for every listed shared project at the start of each session.
+
+- **Never created on the server.** `ProjectCreateResolver` refuses a project with an `ownerId`,
+  whatever the server would answer, in account sync and on project sync's `410` path alike: the
+  upload would fork the owner's book under this account.
+- **Name and placement are the owner's.** `ProjectAttributeReconciler` turns every push of a local
+  value into taking the server's for a shared project, so a folder renamed or moved outside the app
+  goes back to the server's name and the top level, and nothing is sent. The app's own rename and
+  move refuse a shared project.
+- **Parked.** A shared project the server stops listing, whatever the cause (the owner removed this
+  account, deleted the project or no longer has an active account, or this account left from
+  another device), is parked at the start of the session: sync is turned off in its `project.toml`,
+  its account baseline is dropped, its folder and project journal are kept, and the change is logged
+  once. Project sync parks it the same way on `403 not_member`, or on `410`, under the account
+  session lock. Parked is not stored: it is `ownerId` set with `syncEnabled` false, which only
+  parking and leaving produce, since a shared project has no sync switch. A parked project is left
+  out of every phase like any project with sync off. The journal is kept because a rebuilt one
+  marks nothing dirty: a partial copy could then delete the owner's entities on a re-invite.
+- **Resumed.** A parked project that is listed again (a re-invite) still has the same ID. Account
+  sync turns its sync back on and flags its journal `verifyAllEntities`, so the next project sync
+  conflict-checks every entity against the owner's copy. A project in use at that moment stays
+  parked until a later session.
+- **Never deleted by the server.** The delete phase skips every folder whose `project.toml` has an
+  `ownerId`, even when its ID is in `deletedProjects`; parking already covered it. No server state
+  removes a co-author's local copy.
+- **Leaving.** Deleting a shared project that still syncs leaves it instead: the client turns sync
+  off, which parks it, and queues the ID in `projectsToDelete`. The delete phase sends `/delete`,
+  which the server treats as a leave. A project with a leave still queued is neither parked nor
+  resumed until it is sent. The folder stays, and once parked it can be deleted locally like any
+  project with sync off.
+
+### Per-project sync switch
+
+Any local project can be kept off the server from one device with `syncEnabled` in its
+`project.toml` (default true). Project settings show the switch for the account's own projects when
+a sync server is configured; a shared project has none, as it syncs while shared and not left. The
+switch means "not from this device": other devices and the server are unaffected.
+
+`ProjectsRepository.isSyncEnabled` is the single check. Account sync collects the projects with
+sync off at the start of each session (the excluded set, which parked projects join) and every
+phase leaves them alone: delete, rename and move in either direction, adoption by name, and create
+on either side. They are also kept out of the change probe and project sync (`SyncAccountUseCase`
+reports them as `Skipped`), and `ClientProjectSynchronizer` refuses one as a backstop. Edits are
+still recorded in the project journal, so turning sync back on resumes with the normal conflict
+checks, like a device that has not synced in a while.
+
+- Deleting an excluded project locally does not delete it on the server. The delete dialog offers
+  *Also delete on the server* when the project has an account sync baseline; otherwise, if the
+  server still holds it, the next account sync creates it locally again.
+- When the server lists an excluded project's ID under `deletedProjects`, the delete phase keeps the
+  folder and re-mints its ID on the spot, so turning sync on later uploads it as new rather than
+  being refused as `project_deleted`. An open project cannot change ID: its ID is recorded in the
+  account `deletedProjects`, which keeps the folder safe, and a later session re-mints it once it
+  is closed.
+- Turning sync on for a project whose ID is in the account `deletedProjects` re-mints it first. An
+  open project cannot be re-minted, so the switch asks the user to close it and sync from the
+  project list.
+- A `project.toml` rebuilt because it was lost or corrupt comes up with sync off, under a fresh ID
+  and with no owner fields, and the rebuild is logged. Nothing can tell whether the lost file
+  belonged to a shared project, so the copy never uploads as this account's own until the user
+  turns sync on (see [Persisted data tiers](ARCHITECTURE.md#persisted-data-tiers)).
+
 ---
 
 ## Pairing another install
@@ -279,11 +413,11 @@ POST /api/account/pair_install/{userId}
 
 Story ideas are account-level content: markdown blobs with tags that live at the projects root
 (`.ideas/idea-<uuid>.md`), outside any project. They sync as an extra **phase inside the account
-sync session** — same `syncId`, same sliding expiry, no third session type. The full feature
+sync session**: same `syncId`, same sliding expiry, no third session type. The full feature
 design lives in [STORY-IDEAS.md](STORY-IDEAS.md); this section covers the protocol.
 
 Ideas are keyed by **client-generated UUIDs**, so they don't participate in the Entity Update
-Sequence and need none of the re-ID machinery — two devices can create ideas offline with zero
+Sequence and need none of the re-ID machinery; two devices can create ideas offline with zero
 coordination.
 
 ### Endpoints
@@ -298,7 +432,7 @@ All under `/api/ideas/{userId}/…`, all requiring the account session's `syncId
 | `/idea/{ideaId}/delete` | POST | Delete + write the permanent tombstone |
 
 Upload responses: `200` with the saved copy; `409` + `IdeaConflictDto { server, serverHash }` on a
-baseline mismatch; `410 Gone` if the idea is tombstoned (deletion wins — the client deletes its
+baseline mismatch; `410 Gone` if the idea is tombstoned (deletion wins: the client deletes its
 local copy); `413` over the server's 64 KiB blob cap.
 
 ### The phase
@@ -328,11 +462,11 @@ unresolved conflict simply leaves the idea dirty for next session.
 
 Only the **server** keeps tombstones (`deleted_idea` rows, permanent). The client keeps a
 transient `pendingDeletes` outbox in `.ideas/sync.json`, written at delete time and erased on
-ack — required because "the server has an idea the client doesn't" is otherwise ambiguous between
+ack, required because "the server has an idea the client doesn't" is otherwise ambiguous between
 *created elsewhere* and *deleted here*. Deletes are only recorded once the install has synced
 ideas before (the sidecar's existence is the marker); a never-synced install just deletes the
 file. Losing the sidecar degrades to baseline-less uploads and resurrected not-yet-pushed
-deletions — annoying but never content loss.
+deletions: annoying but never content loss.
 
 ### Skipping the phase (ideas state hash)
 
@@ -340,13 +474,13 @@ The `begin_sync` response carries `ideasStateHash`: an `IdeasStateHasher` hash o
 live `{uuid, hash}` pairs (sorted, size-prefixed; tombstones excluded). The client skips the
 whole phase when **both** hold:
 
-1. no pending local work — empty outbox, and every local idea hashes exactly to its locked
+1. no pending local work: empty outbox, and every local idea hashes exactly to its locked
    baseline (which also rules out local-only or missing ideas), and
 2. the hash of those baselines equals the server's `ideasStateHash`.
 
 Tombstones can be excluded safely: a tombstone only matters to a client still holding the idea,
 and that client's baseline set necessarily disagrees with the server's live set, forcing the
-phase to run. The field is optional — a server that predates ideas omits it and the client runs
+phase to run. The field is optional: a server that predates ideas omits it and the client runs
 the phase unconditionally; any doubt on the client (corrupt sidecar, dirty ideas) also falls
 back to running it. Same asymmetric-risk argument as the project probe: a false mismatch costs a
 redundant phase, and a "false match" cannot exist while rule 1 holds, because a client never
@@ -364,7 +498,7 @@ change.
 
 ## Pre-Sync Change Probe
 
-Between Account Sync and Project Sync sits an optional optimization. Account Sync brings the *set* of projects into parity; the probe then asks, in a single batched request, *which* of those projects actually have content changes — so the client can skip the per-project sync for every project that has none.
+Between Account Sync and Project Sync sits an optional optimization. Account Sync brings the *set* of projects into parity; the probe then asks, in a single batched request, *which* of those projects actually have content changes, so the client can skip the per-project sync for every project that has none.
 
 This matters because a full project sync costs ~4 round-trips (`begin_sync`, `project_data`, `writing_activity`, `end_sync`) even when nothing has changed, paid once per project on every app open. The probe collapses that to one request for the whole account.
 
@@ -375,15 +509,15 @@ The probe keeps no required state of its own: a client or server that ignores it
 Each project gets a single **project-wide content hash** computed over the two data sources whose divergence is unacceptable:
 
 - all of the project's **entities** (the same per-entity hashes already produced for `ClientEntityState`), and
-- the **project-data blob** (author, theme, word-count goal — hashed via `ProjectDataHasher`).
+- the **project-data blob** (author, theme, word-count goal, hashed via `ProjectDataHasher`).
 
 The aggregate is order-independent of enumeration: sort the entity `{id, hash}` pairs by id, fold `id:hash` pairs plus the project-data hash through the same MurmurHash3 used elsewhere. The function lives in the `base` module (alongside `EntityHasher` / `ProjectDataHasher`) so the **client and server run byte-identical code**.
 
-**Writing activity is deliberately excluded.** It is per-device, conflict-free, and the project's authoritative record is the *union* of every device's slot — so no single device ever holds the full set, and a symmetric content hash that included it would never match across devices. It is also explicitly auxiliary (its sync phase already swallows errors and retries next time), so a skipped opportunistic activity sync is consistent with the existing tolerance. The trade-off: a change that touches *only* another device's writing activity will not be detected by the probe, and is picked up on the next sync that runs for any other reason.
+**Writing activity is deliberately excluded.** It is per-device, conflict-free, and the project's authoritative record is the *union* of every device's slot, so no single device ever holds the full set, and a symmetric content hash that included it would never match across devices. It is also explicitly auxiliary (its sync phase already swallows errors and retries next time), so a skipped opportunistic activity sync is consistent with the existing tolerance. The trade-off: a change that touches *only* another device's writing activity will not be detected by the probe, and is picked up on the next sync that runs for any other reason.
 
 ### Symmetric Comparison
 
-The probe compares **the client's current hash against the server's current hash** — not "did the server change since I last synced." A local edit makes the client's hash differ; another device's push makes the server's hash differ; only when both currently agree is the project skipped. One comparison covers both directions, and the server recomputes its hash on demand from its stored state — no per-client bookkeeping, in keeping with the protocol's "no required book keeping data" principle.
+The probe compares **the client's current hash against the server's current hash**, not "did the server change since I last synced." A local edit makes the client's hash differ; another device's push makes the server's hash differ; only when both currently agree is the project skipped. One comparison covers both directions, and the server recomputes its hash on demand from its stored state, with no per-client bookkeeping, in keeping with the protocol's "no required book keeping data" principle.
 
 ### Network Protocol
 
@@ -407,24 +541,24 @@ sequenceDiagram
     deactivate Client
 ```
 
-- `POST /api/projects/{userId}/sync_probe` — read-only, no `syncId` required.
+- `POST /api/projects/{userId}/sync_probe`: read-only, no `syncId` required.
 - Request `ProjectsSyncProbeRequest { projects: List<ProjectHashItem> }`, where `ProjectHashItem { projectId, hash }`.
 - Response `ProjectsSyncProbeResponse { unchangedProjects: Set<ProjectId> }`.
 
-The server returns a project in `unchangedProjects` **only** when it is certain it is in sync — the project exists and its freshly recomputed hash matches. It omits anything it cannot certify, including any project with an **in-flight sync session** (whose stored hashes may be mid-update). A project the client never sends, or the server never returns, is simply synced the normal way.
+The server returns a project in `unchangedProjects` **only** when it is certain it is in sync: the project exists, the caller owns or co-authors it, and its freshly recomputed hash matches (against the owner's rows for a shared project). It omits anything it cannot certify, including any project with an **in-flight sync session** (whose stored hashes may be mid-update). A project the client never sends, or the server never returns, is simply synced the normal way.
 
-If the endpoint is unsupported (older server) or the request fails for any reason, the client silently falls back to a full per-project sync — no behavior change.
+If the endpoint is unsupported (older server) or the request fails for any reason, the client silently falls back to a full per-project sync, with no behavior change.
 
 ### Correctness
 
 The risk is asymmetric:
 
-- A **false mismatch** — the hashes differ but nothing needed syncing — is harmless: just a redundant full sync.
-- A **false match** — skipping a project that was actually divergent — loses no data: skipping is a no-op on both sides, and the next sync still reconciles through the normal dirty/conflict machinery. The only cost is that the two stay divergent longer than they should.
+- A **false mismatch** (the hashes differ but nothing needed syncing) is harmless: just a redundant full sync.
+- A **false match** (skipping a project that was actually divergent) loses no data: skipping is a no-op on both sides, and the next sync still reconciles through the normal dirty/conflict machinery. The only cost is that the two stay divergent longer than they should.
 
-So the one rule the client must uphold is: **never skip a project that has un-synced local changes.** As long as a local change is recorded before a project could be reported unchanged, the probe can only ever *defer* a sync, never hide one — it adds no divergence risk beyond what the existing change tracking already guards.
+So the one rule the client must uphold is: **never skip a project that has un-synced local changes.** As long as a local change is recorded before a project could be reported unchanged, the probe can only ever *defer* a sync, never hide one; it adds no divergence risk beyond what the existing change tracking already guards.
 
-How the client decides a project is eligible — and how it caches its own project-wide hash to avoid re-hashing every entity on each open — is a client implementation detail, not part of the wire protocol.
+How the client decides a project is eligible, and how it caches its own project-wide hash to avoid re-hashing every entity on each open, is a client implementation detail, not part of the wire protocol.
 
 ---
 
@@ -448,24 +582,26 @@ This is largely a client driven synchronization process.
 ### SyncIDs
 The client calls `begin_sync` to get a valid `syncID`. This `syncID` is provided to all subsequent calls, and is terminated with a call to `end_sync`.
 
-There can be only one valid `syncID` per project at any given time. This prevents race conditions with two clients syncing the same project at the same time.
+There can be only one valid `syncID` per project at any given time, whichever account holds it. This prevents race conditions with two clients syncing the same project at the same time.
 
 #### Reclaiming a session (same install only)
 
-A stale session would otherwise lock a user out of their own project until it expires — for example when a prior sync's `end_sync` never reached the server (the client was cancelled mid-sync, lost auth, or dropped its connection). To avoid this, `begin_sync` may **reclaim** an existing project session, but only when the request comes from the **same install** that owns it.
+A stale session would otherwise lock a user out of their own project until it expires, for example when a prior sync's `end_sync` never reached the server (the client was cancelled mid-sync, lost auth, or dropped its connection). To avoid this, `begin_sync` may **reclaim** an existing project session, but only when the request comes from the **same install** that owns it.
 
 The install is identified server-side from the authenticated bearer token (never a client-supplied value), so it cannot be spoofed. The rules are:
 
 - **Same install** as the active session → the old session is terminated and a fresh `syncID` is issued. The previous `syncID` immediately becomes invalid.
 - **Different install**, session still active → `400 Bad Request`; the original session keeps its claim, preserving the cross-device race protection above.
 - **Expired session** (any install) → treated as gone and reclaimable by anyone. Sessions expire
-  after 2 minutes without activity (sliding — refreshed each time the `syncID` is used).
+  after 2 minutes without activity (sliding, refreshed each time the `syncID` is used).
 
 The client also fires `end_sync` even when its sync is cancelled, so sessions are normally released cleanly; reclaim is the safety net for the cases where that request can't be delivered.
 
 #### Unknown project (`410 Gone`)
 
-A project endpoint called with a `projectId` the user doesn't own answers **`410 Gone`**, not `404`.
+A project endpoint called with a `projectId` no project holds answers **`410 Gone`**, not `404`.
+One that exists but that the caller neither owns nor co-authors answers `403` with `not_member`
+(see [Project membership](#project-membership)).
 The distinction matters: `download_entity` maps a `404` to "entity deleted on the server" and, for
 an entity it doesn't already hold, silently marks it deleted. A project-level `404` would therefore
 make a client abandon undownloaded entities when a project vanishes mid-sync.
@@ -482,11 +618,12 @@ project's sync baseline, since that described a server project which no longer h
 retries `begin_sync` once. If the create answers `project_deleted`, refuses to adopt an ID another
 local project holds, or fails, the sync fails with a log saying so instead. Without this repair the
 project would fail every sync, because account sync (above) is not run when syncing a single
-project from inside the project itself.
+project from inside the project itself. A shared project never takes this path: a `410` or a
+`403 not_member` parks it (see [Shared projects on the client](#shared-projects-on-the-client)).
 
 You may however have `syncID`s for multiple different projects simultaneously.
 
-These are Project level `syncID`s. Account syncing use separate Account level `syncID`s. There may only be one valid Account level `syncID` at a time, and if there is a valid Account `syncID`, then no Project level `syncID`s are allowed to be created. The Account level sync must finish before any Project level syncs may begin.
+These are Project level `syncID`s. Account syncing use separate Account level `syncID`s. There may only be one valid Account level `syncID` at a time, and if there is a valid Account `syncID`, then no Project level `syncID`s are allowed to be created. The Account level sync must finish before any Project level syncs may begin. For a co-author, the owner's Account level session blocks it too, with `409` and `project_sync_in_progress` (see [Project membership](#project-membership)).
 
 ### Entity Update Sequence
 The server will inspect the provided ClientState, and then return a sequence of Entity IDs: every server Entity the client is missing or holds a different version of (compared by hash). The client synchronizes those IDs in that order, then appends any local Entities the server doesn't know about yet (IDs above the server's `lastId`).
@@ -550,7 +687,7 @@ The client has determined that it needs to download the Server's copy of an Enti
 
 If the client has a local copy, it sends that copy's hash in the `X-Entity-Hash` header. When it matches the server's copy, the server answers `304 Not Modified` and the client records the Entity as synchronized without transferring the body. It also records that local hash as the Entity's conflict baseline (`EntityTransferOperation.downloadEntry`): the server just confirmed it, and a baseline left stale by a hasher change would otherwise raise a false conflict on the next edit.
 
-If the server answers `404 Not Found` (an ID in the sequence with no server entity — only possible through server-side data loss or an allocation gap), the client self-heals by whichever side still holds the truth: if it has no local copy either, it records the ID as deleted so it stops appearing in future syncs; if it does hold a copy, it re-uploads it with no conflict baseline to restore the server's. Known deletions are skipped before this point, so the restore can never resurrect an intentionally deleted Entity.
+If the server answers `404 Not Found` (an ID in the sequence with no server entity, only possible through server-side data loss or an allocation gap), the client self-heals by whichever side still holds the truth: if it has no local copy either, it records the ID as deleted so it stops appearing in future syncs; if it does hold a copy, it re-uploads it with no conflict baseline to restore the server's. Known deletions are skipped before this point, so the restore can never resurrect an intentionally deleted Entity.
 ```mermaid
 sequenceDiagram
     participant Client
@@ -572,7 +709,7 @@ sequenceDiagram
 
 #### Stale Hash Read-Repair (server-side)
 
-The server stores a per-entity hash alongside the entity content. That hash is derived metadata —
+The server stores a per-entity hash alongside the entity content. That hash is derived metadata;
 the content is the truth. If the hash algorithm or serialized shape changes between when a row was
 written and when it's next read (schema evolution, adding fields to entities), the stored hash goes
 stale.
@@ -601,7 +738,7 @@ hash. If they differ, it uploads the enriched copy back, using the server's just
 the conflict baseline
 (`original hash`). Because the sync session holds the project lock, the server's copy cannot change
 between the download
-and this upload, and the baseline is exactly what the server holds — so the heal always applies
+and this upload, and the baseline is exactly what the server holds, so the heal always applies
 cleanly, with no conflict
 and no `force`.
 
@@ -762,7 +899,7 @@ Both routes answer `404` for every failure. The image's stored hash is its weak 
 
 In addition to entity sync, each project has a single per-project blob holding user-authored settings (author name, theme colors, word-count goal, tags, language, spell-check dictionary, book cover, timeline settings). This blob is synced as its own phase, inserted into the pipeline *before* the entity phases (entity deletion, then entity transfer) so the project's identity is settled before any entity churn.
 
-The blob is a structured object — see `ProjectData` in the `base` module — but is treated as a single unit at the sync layer. Conflict detection is hash-based, mirroring entity sync: the client persists the `lastSyncedHash` it most recently agreed on with the server and replays it on the next upload.
+The blob is a structured object (see `ProjectData` in the `base` module) but is treated as a single unit at the sync layer. Conflict detection is hash-based, mirroring entity sync: the client persists the `lastSyncedHash` it most recently agreed on with the server and replays it on the next upload.
 
 ```mermaid
 sequenceDiagram
@@ -775,7 +912,7 @@ sequenceDiagram
     deactivate Server
 
     alt Local clean since last sync, server changed
-        Note right of Client: Fast-forward — adopt server state, save lastSyncedHash
+        Note right of Client: Fast-forward: adopt server state, save lastSyncedHash
     else Both sides changed
         Client->>Server: POST /project_data
         Note right of Client: { data, originalHash = lastSyncedHash }
@@ -816,9 +953,9 @@ by id, where a local add, change or removal wins, the other defs take the server
 tombstoned def is dropped). Those edits then differ from the recorded
 `lastSyncedHash`, so the next sync uploads them.
 
-Unlike writing-activity sync (which swallows errors and continues), a non-conflict failure on the project-data phase fails the whole sync — the data is user-authored and silent loss is unacceptable.
+Unlike writing-activity sync (which swallows errors and continues), a non-conflict failure on the project-data phase fails the whole sync: the data is user-authored and silent loss is unacceptable.
 
-Note: unlike the entity endpoints, the `project_data` and `writing_activity` endpoints are not gated on a `syncID` — they simply run inside the sync session window.
+Note: unlike the entity endpoints, the `project_data` and `writing_activity` endpoints are not gated on a `syncID`; they simply run inside the sync session window.
 
 ### Project data fields
 
@@ -846,8 +983,8 @@ same sync.
 
 ### Server storage is shape-agnostic
 
-Server storage never depends on client data shape: synced content — entities, project data, and
-story ideas alike — is stored as an opaque blob with a **client-supplied** hash. The server never decodes the
+Server storage never depends on client data shape: synced content (entities, project data, and
+story ideas alike) is stored as an opaque blob with a **client-supplied** hash. The server never decodes the
 blob into the typed model except to *validate* that it decodes at all (`ignoreUnknownKeys`, so
 fields it doesn't know still pass); on upload it stores the received JSON verbatim (`hash` field in
 the upload request), and on download/conflict it passes the stored bytes back untouched (
@@ -857,7 +994,7 @@ is treated as missing, so the next client upload heals it.
 This makes adding a field to a synced model a **client-only** change:
 
 1. Add the field to the model (in `base`) with a serialization default, so old data deserializes.
-2. Fold the field into its hasher such that the empty/absent value contributes **zero bytes** —
+2. Fold the field into its hasher such that the empty/absent value contributes **zero bytes**:
    existing hashes (stored `lastSyncedHash` baselines, server rows) must stay byte-identical. Hash
    collections in sorted order with a size prefix (see `tags` in `ProjectDataHasher`).
 3. Update the hash-sensitivity guard (`EntityHashSensitivityTest` fails automatically until the new
@@ -868,23 +1005,23 @@ The server needs no update, and no protocol bump is required.
 **Mixed app versions within one protocol version.** A not-yet-updated client's typed decode strips
 fields it doesn't know, so its stored copy of downloaded project data hashes differently from the
 server row. To keep that from destroying data, the fast-forward path records `lastSyncedHash` as the
-hash of **what it actually stored**, not the server row's hash — a passive out-of-date device then
+hash of **what it actually stored**, not the server row's hash, so a passive out-of-date device then
 just keeps fast-forwarding harmlessly instead of "detecting" a phantom local edit and re-uploading
 the stripped copy (which would delete the newer field server-side). The remaining caveat: if the
 out-of-date device *genuinely edits* project data during the mixed-version window, its upload
 surfaces as a 409 conflict (its baseline no longer matches the server row), and resolving that
-conflict uploads its stripped view — the newer field's value is lost (reset to its default) and
+conflict uploads its stripped view: the newer field's value is lost (reset to its default) and
 propagates that way to the newer device. Accepted as the cost of not forcing lockstep upgrades for
 additive changes; genuinely destructive shape changes (removing or re-typing a field) still warrant
 a `HAMMER_PROTOCOL_VERSION` bump.
 
 ## Writing Activity Sync (per-device slots)
 
-After entity transfer, the client syncs **writing activity** — an auxiliary record of writing sessions used for stats and observability (words written, session start/end, sealed flag). Each device tracks its own sessions locally; the project's full activity is the union of every slot, keyed by author and `deviceId`.
+After entity transfer, the client syncs **writing activity**, an auxiliary record of writing sessions used for stats and observability (words written, session start/end, sealed flag). Each device tracks its own sessions locally; the project's full activity is the union of every slot, keyed by author and `deviceId`.
 
-The model is intentionally conflict-free by construction: **only the owning device ever writes its own slot**. When the client pulls the server's view, it wholesale-overwrites its local copies of *foreign* slots, and merges only its *own* slot before pushing it back. There is no hash-based conflict detection like entity sync or project_data — each device is the sole writer of its slot, so there is nothing to conflict on across devices.
+The model is intentionally conflict-free by construction: **only the owning device ever writes its own slot**. When the client pulls the server's view, it wholesale-overwrites its local copies of *foreign* slots, and merges only its *own* slot before pushing it back. There is no hash-based conflict detection like entity sync or project_data: each device is the sole writer of its slot, so there is nothing to conflict on across devices.
 
-**Authors.** The server stores every slot under the project's owner and stamps each with `authorId` (the uploading account) and `authorName` (its pen name at upload time), ignoring whatever the client sent; GET returns both on every slot. Two accounts signed in on one install share a `deviceId`, so a slot is `(author, deviceId)`: the own slot is the one for this `deviceId` whose author is the signed-in account (or null, before its first round trip). Another account's slot for this `deviceId` is kept as a separate local slot, never merged into the own file, and an own file stamped with another account is set aside under that account's slot. The client writes the returned author into its local copy of every slot, so stats work offline; a slot with no author is the owner's.
+**Authors.** The server stores every slot under the project's owner and stamps each with `authorId` (the uploading account) and `authorName` (its pen name at upload time), ignoring whatever the client sent; GET returns both on every slot. Two accounts signed in on one install share a `deviceId`, so a slot is `(author, deviceId)`: the own slot is the one for this `deviceId` whose author is the signed-in account (or null, before its first round trip). Another account's slot for this `deviceId` is kept as a separate local slot, never merged into the own file. This device is that slot's only writer, so its local copy may hold sessions not yet uploaded, and it is merged with the server's copy (`mergeOwnSlotSessions`) instead of overwritten. An own file stamped with another account is set aside under that account's slot, and its sessions return to the own file when that account signs in here again. The client writes the returned author into its local copy of every slot, so stats work offline. A slot with no author is read as the owner's: `ownerId` for a shared project, the signed-in account for an own one.
 
 For the device's own slot, `mergeOwnSlotSessions` (see [SessionMerge.kt](../common/src/commonMain/kotlin/com/darkrockstudios/apps/hammer/common/data/writingactivity/SessionMerge.kt)) unions sessions by `startedAt`. On collision it keeps the higher `wordsWritten`, the later `endedAt`, and `sealed = local || remote` (sealing is one-way).
 
@@ -917,7 +1054,7 @@ Locally, the own slot is `{project}/scenes/.activity/{deviceId}.toml` and a sync
 
 Data shapes (`WritingSession`, `DeviceLog`, `WritingActivitySlot`, `WritingActivityResponse`) live in [WritingSession.kt](../base/src/commonMain/kotlin/com/darkrockstudios/apps/hammer/base/http/writingactivity/WritingSession.kt).
 
-Both GET and POST failures are logged and swallowed: the writing-activity phase never fails the surrounding project sync. Activity data is auxiliary observability — a transient network or server error must not block the user's actual content from syncing. Local state is left untouched on a failed GET, so the next sync simply tries again.
+Both GET and POST failures are logged and swallowed: the writing-activity phase never fails the surrounding project sync. Activity data is auxiliary observability; a transient network or server error must not block the user's actual content from syncing. Local state is left untouched on a failed GET, so the next sync simply tries again.
 
 ## Client Operations Sequence
 Beyond the network side of the Protocol, the Client is doing a bit of work to ensure data loss is not possible, and to work out what should be done with the minimal book keeping data it has.
@@ -975,7 +1112,7 @@ references to that ID in the process.
 The same file that has been edited in different ways on different devices, must allow the user to resolve the conflict in order to bring them back into sync with each other.
 
 **Dirty Entity** When a client edits a local Entity, it adds the **Entity ID** to a "dirty list"
-together with that Entity's **conflict baseline** — the hash the server last confirmed for it. At
+together with that Entity's **conflict baseline**, the hash the server last confirmed for it. At
 sync time the client sends this baseline as the upload's `original hash`; if another client edited
 the same Entity and synced first, the server's hash no longer matches the baseline and the conflict
 is detected.
@@ -984,7 +1121,7 @@ The baseline is the hash recorded the last time the client and server agreed on 
 successful upload or download), **not** a hash re-derived from the current local content at edit
 time. Re-deriving it is unsafe: an Entity's hash includes fields such as `lastEdited` that the
 autosave can stamp independently of a real content change, so a freshly computed baseline can
-disagree with the server even when nothing meaningful changed — forging a phantom conflict. This is
+disagree with the server even when nothing meaningful changed, forging a phantom conflict. This is
 the same locked-baseline scheme `project_data` uses with its `lastSyncedHash`.
 
 A baseline exists for every Entity the client and server have agreed on, set on each successful
@@ -1009,3 +1146,21 @@ gets an empty flagged one, so every Entity is baselined on its local hash.
 The flag covers edits, not deletions. An Entity deleted on the server after the backup was taken
 is still deleted locally by the next sync; a restore recovers content the server still knows about,
 it does not undo deletions made elsewhere.
+
+**Owner**
+The account that created a project on the server (`project.user_id`). The project's storage,
+encryption and tombstones are the owner's, and only the owner can rename, move, delete or share it.
+
+**Co-author**
+An account the owner invited to a project, which accepted on the website. Its devices sync the
+owner's copy; it can leave, but not rename, move or delete the project.
+
+**Member**
+An account that may sync a project: its owner or a co-author.
+
+**Shared project**
+On a co-author's device, a project whose `project.toml` has an `ownerId`.
+
+**Parked**
+A shared project with sync off, because the server stopped listing it or this account left it. Its
+folder and journal are kept, and it resumes if it is listed again.
