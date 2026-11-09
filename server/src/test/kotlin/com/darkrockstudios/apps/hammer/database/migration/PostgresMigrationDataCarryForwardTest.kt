@@ -5,6 +5,7 @@ import com.darkrockstudios.apps.hammer.database.buildServerDatabase
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
@@ -151,7 +152,7 @@ class PostgresMigrationDataCarryForwardTest {
 
 		val noPenName = sd.writingActivityQueries.getAllForProject(1, 2).executeAsList().single()
 		assertEquals(1L, noPenName.author_id)
-		assertEquals(null, noPenName.author_name)
+		assertNull(noPenName.author_name)
 	}
 
 	/**

@@ -1,15 +1,19 @@
 package com.darkrockstudios.apps.hammer.project
 
 import com.darkrockstudios.apps.hammer.base.ProjectId
+import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
+import com.darkrockstudios.apps.hammer.base.http.writingactivity.DeviceLog
 import com.darkrockstudios.apps.hammer.database.AccountDao
 import com.darkrockstudios.apps.hammer.database.ProjectDao
 import com.darkrockstudios.apps.hammer.database.ProjectInviteDao
 import com.darkrockstudios.apps.hammer.database.ProjectMemberDao
+import com.darkrockstudios.apps.hammer.database.WritingActivityDao
 import com.darkrockstudios.apps.hammer.e2e.util.SharedPostgresTestDatabase
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
 import com.darkrockstudios.apps.hammer.utilities.SResult
 import com.darkrockstudios.apps.hammer.utilities.ServerResult
 import com.darkrockstudios.apps.hammer.utils.BaseTest
+import io.ktor.util.logging.KtorSimpleLogger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -190,5 +194,27 @@ class ProjectMemberRepositoryTest : BaseTest() {
 
 		assertEquals(emptyList(), (repository.listMembers(owner, projectId) as ServerResult.Success).data)
 		assertNull(sessions.findSession(key))
+	}
+
+	@Test
+	fun `a removed member's writing activity keeps its author and name`() = runTest {
+		seed()
+		repository.createInvite(owner, projectId, "invitee@example.com")
+		repository.acceptInvite(invitee, repository.receivedInvites(invitee).single().id)
+		val activity = ServerWritingActivityRepository(
+			WritingActivityDao(db),
+			projectDao,
+			createJsonSerializer(),
+			KtorSimpleLogger("ProjectMemberRepositoryTest"),
+		)
+		val ownerId = OwnerId.unchecked(owner)
+		val projectDef = ProjectDefinition("Shared Story", projectId)
+		activity.saveDeviceLog(ownerId, projectDef, invitee, "Invitee Pen", "device-a", DeviceLog("Laptop"))
+
+		assertTrue(repository.removeMember(owner, projectId, invitee).isSuccess)
+
+		val slot = (activity.loadAll(ownerId, projectDef) as ServerResult.Success).data.slots.single()
+		assertEquals(invitee, slot.log.authorId)
+		assertEquals("Invitee Pen", slot.log.authorName)
 	}
 }

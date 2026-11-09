@@ -62,14 +62,14 @@ class WritingActivitySyncOperation(
 				return CResult.success(state)
 			}
 
-			for ((deviceId, log) in response.devices) {
-				if (deviceId != ownDeviceId) {
-					repository.replaceForeignDeviceLog(deviceId, log)
+			for (slot in response.slots) {
+				if (slot.deviceId != ownDeviceId) {
+					repository.replaceForeignDeviceLog(slot.deviceId, slot.log)
 				}
 			}
 
 			val localOwnLog = repository.loadOwnLog()
-			val remoteOwnSessions = response.devices[ownDeviceId]?.sessions ?: emptyList()
+			val remoteOwnSessions = response.slots.firstOrNull { it.deviceId == ownDeviceId }?.log?.sessions ?: emptyList()
 			val mergedSessions = mergeOwnSlotSessions(localOwnLog.sessions, remoteOwnSessions)
 			repository.saveOwnLog(mergedSessions)
 
@@ -89,7 +89,7 @@ class WritingActivitySyncOperation(
 			}
 
 			tracker.invalidateSessionCache()
-			onLog(syncLogI("Writing activity synced (${response.devices.size + 1} devices)", projectDef))
+			onLog(syncLogI("Writing activity synced (${response.slots.size + 1} devices)", projectDef))
 		} catch (e: Exception) {
 			Napier.w("Writing activity sync failed", e)
 			onLog(syncLogW("Writing activity sync error: ${e.message}", projectDef))

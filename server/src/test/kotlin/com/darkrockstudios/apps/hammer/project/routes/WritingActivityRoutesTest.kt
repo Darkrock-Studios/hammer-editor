@@ -15,6 +15,7 @@ import com.darkrockstudios.apps.hammer.base.http.ApiErrorCode
 import com.darkrockstudios.apps.hammer.base.http.HttpResponseError
 import com.darkrockstudios.apps.hammer.base.http.writingactivity.DeviceLog
 import com.darkrockstudios.apps.hammer.base.http.writingactivity.WritingActivityResponse
+import com.darkrockstudios.apps.hammer.base.http.writingactivity.WritingActivitySlot
 import com.darkrockstudios.apps.hammer.base.http.writingactivity.WritingSession
 import com.darkrockstudios.apps.hammer.plugins.configureLocalization
 import com.darkrockstudios.apps.hammer.plugins.configureRouting
@@ -169,10 +170,10 @@ class WritingActivityRoutesTest : BaseTest() {
 	}
 
 	@Test
-	fun `GET writing_activity returns devices map on success`() = testApplication {
+	fun `GET writing_activity returns slots on success`() = testApplication {
 		val expected = WritingActivityResponse(
-			devices = mapOf(
-				deviceId to DeviceLog(
+			slots = listOf(
+				WritingActivitySlot(deviceId, DeviceLog(
 					deviceLabel = "Desktop",
 					sessions = listOf(
 						WritingSession(
@@ -181,7 +182,9 @@ class WritingActivityRoutesTest : BaseTest() {
 							wordsWritten = 120,
 						)
 					),
-				)
+					authorId = 7,
+					authorName = "Co Pen",
+				))
 			)
 		)
 		coEvery { accountsRepository.checkToken(userId, bearerToken) } returns SResult.success(0L)
@@ -234,7 +237,7 @@ class WritingActivityRoutesTest : BaseTest() {
 	}
 
 	@Test
-	fun `POST writing_activity stores own slot`() = testApplication {
+	fun `POST writing_activity stores own slot stamped with the caller`() = testApplication {
 		val log = DeviceLog(
 			deviceLabel = "Desktop",
 			sessions = listOf(
@@ -244,16 +247,14 @@ class WritingActivityRoutesTest : BaseTest() {
 					wordsWritten = 120,
 				)
 			),
+			authorId = 99,
+			authorName = "Forged",
 		)
 		coEvery { accountsRepository.checkToken(userId, bearerToken) } returns SResult.success(0L)
+		coEvery { accountsRepository.getAccountOrNull(userId) } returns testAccount().copy(pen_name = "Desk Pen")
 		coEvery { whiteListRepository.isOnWhiteList(any()) } returns true
 		coEvery {
-			serverWritingActivityRepository.saveDeviceLog(
-				owner = OwnerId.unchecked(userId),
-				projectDef = ProjectDefinition(projectName, projectId),
-				deviceId = deviceId,
-				log = log,
-			)
+			serverWritingActivityRepository.saveDeviceLog(any(), any(), any(), any(), any(), any())
 		} returns SResult.success(Unit)
 
 		application {
@@ -276,8 +277,51 @@ class WritingActivityRoutesTest : BaseTest() {
 			serverWritingActivityRepository.saveDeviceLog(
 				owner = OwnerId.unchecked(userId),
 				projectDef = ProjectDefinition(projectName, projectId),
+				authorId = userId,
+				authorName = "Desk Pen",
 				deviceId = deviceId,
 				log = log,
+			)
+		}
+	}
+
+	@Test
+	fun `POST writing_activity by a co-author stores under the owner with the co-author as author`() = testApplication {
+		val ownerId = 5L
+		coEvery { accountsRepository.checkToken(userId, bearerToken) } returns SResult.success(0L)
+		coEvery { accountsRepository.getAccountOrNull(userId) } returns testAccount().copy(pen_name = "Co Pen")
+		coEvery { whiteListRepository.isOnWhiteList(any()) } returns true
+		coEvery { projectAccessResolver.resolve(userId, projectId) } returns ProjectAccessResult.Granted(
+			ProjectAccess(ProjectDefinition(projectName, projectId), OwnerId.unchecked(ownerId), isOwner = false)
+		)
+		coEvery {
+			serverWritingActivityRepository.saveDeviceLog(any(), any(), any(), any(), any(), any())
+		} returns SResult.success(Unit)
+
+		application {
+			setupKtorTestKoin(this@WritingActivityRoutesTest, testModule)
+			configureSerialization()
+			configureLocalization()
+			configureSecurity()
+			configureRouting()
+		}
+		val testClient = createClient { install(ContentNegotiation) { json(json) } }
+
+		val response = testClient.post("api/project/$userId/${projectId.id}/writing_activity/$deviceId") {
+			header("Authorization", "Bearer $bearerToken")
+			contentType(ContentType.Application.Json)
+			setBody(DeviceLog(deviceLabel = "Laptop"))
+		}
+
+		assertTrue(response.status.isSuccess())
+		coVerify {
+			serverWritingActivityRepository.saveDeviceLog(
+				owner = OwnerId.unchecked(ownerId),
+				projectDef = ProjectDefinition(projectName, projectId),
+				authorId = userId,
+				authorName = "Co Pen",
+				deviceId = deviceId,
+				log = DeviceLog(deviceLabel = "Laptop"),
 			)
 		}
 	}

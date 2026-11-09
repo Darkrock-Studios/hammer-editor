@@ -409,8 +409,10 @@ private fun Route.getWritingActivity() {
 
 private fun Route.uploadWritingActivity() {
 	val repository: ServerWritingActivityRepository = get()
+	val accountsRepository: AccountsRepository = get()
 
 	post("/writing_activity/{deviceId}") {
+		val principal = call.principal<ServerUserIdPrincipal>()!!
 		val access = call.requireProjectAccess() ?: return@post
 		val projectDef = access.projectDef
 		val deviceId = call.parameters["deviceId"]
@@ -420,7 +422,15 @@ private fun Route.uploadWritingActivity() {
 		}
 
 		val log = call.receive<DeviceLog>()
-		val result = repository.saveDeviceLog(access.owner, projectDef, deviceId, log)
+		val penName = accountsRepository.getAccountOrNull(principal.id)?.pen_name
+		val result = repository.saveDeviceLog(
+			owner = access.owner,
+			projectDef = projectDef,
+			authorId = principal.id,
+			authorName = penName,
+			deviceId = deviceId,
+			log = log,
+		)
 		if (isSuccess(result)) {
 			call.respond(HttpStatusCode.OK)
 		} else {
