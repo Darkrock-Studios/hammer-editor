@@ -10,6 +10,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectInUseException
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectOwner
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectRenameFailed
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectTree
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
@@ -169,6 +170,7 @@ class ClientAccountSynchronizerTest : BaseTest() {
 		globalSettingsStore = mockk(relaxed = true)
 		projectsRepository = mockk(relaxed = true)
 		every { projectsRepository.isSyncEnabled(any()) } returns true
+		every { projectsRepository.getOwner(any()) } returns null
 		serverProjectsApi = mockk()
 		ideasSynchronizer = mockk()
 		coEvery { ideasSynchronizer.syncIdeas(any(), any(), any(), any()) } returns true
@@ -1402,5 +1404,42 @@ class ClientAccountSynchronizerTest : BaseTest() {
 
 		coVerify(exactly = 0) { serverProjectsApi.moveProject(any(), any(), any()) }
 		assertEquals(ProjectBaseline("Novel", groupId), readSyncData().projectBaselines[id])
+	}
+
+	private val alice = ProjectOwner(7L, "Alice")
+
+	private fun sharedServerProject(name: String, id: ProjectId, owner: ProjectOwner = alice) =
+		ApiProjectDefinition(name = name, uuid = id, ownerId = owner.id, ownerName = owner.name)
+
+	@Test
+	fun `a shared server project is created locally at the top level with its owner`() = runTest {
+		writeSyncData(emptySyncData())
+		val serverId = ProjectId.randomUUID()
+		coEvery { serverProjectsApi.beginProjectsSync() } returns
+			Result.success(emptyServerResponse().copy(projects = setOf(sharedServerProject("Shared", serverId))))
+		stubLocalProjects(emptyList())
+		every { projectsRepository.createProject("Shared", any(), any(), any(), any()) } returns
+			CResult.success(projectDef("Shared", serverId))
+
+		val result = createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
+
+		assertTrue(result)
+		verify { projectsRepository.createProject("Shared", false, serverId, null, alice) }
+		assertEquals(ProjectBaseline("Shared"), readSyncData().projectBaselines[serverId])
+	}
+
+	@Test
+	fun `account sync records the owner's current name on a shared project`() = runTest {
+		writeSyncData(emptySyncData())
+		val id = ProjectId.randomUUID()
+		val def = projectDef("Shared", id)
+		stubLocalProjects(listOf(def))
+		every { projectsRepository.getOwner(def) } returns ProjectOwner(alice.id, "Old Pen Name")
+		coEvery { serverProjectsApi.beginProjectsSync() } returns
+			Result.success(emptyServerResponse().copy(projects = setOf(sharedServerProject("Shared", id))))
+
+		createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
+
+		verify { projectsRepository.setOwner(def, alice) }
 	}
 }

@@ -326,7 +326,7 @@ class ProjectsListComponent(
 		runTreeAction("rename project '${projectDef.name}'") { projectsService.renameProject(projectDef, newName) }
 
 	override fun moveProject(projectDef: ProjectDef, target: GroupDef?) =
-		runTreeAction("move project '${projectDef.name}'") { projectsRepository.moveProject(projectDef, target) }
+		runTreeAction("move project '${projectDef.name}'") { projectsService.moveProject(projectDef, target) }
 
 	override fun createGroup(name: String, parent: GroupDef?, description: String?) =
 		runTreeAction("create group '$name'") {

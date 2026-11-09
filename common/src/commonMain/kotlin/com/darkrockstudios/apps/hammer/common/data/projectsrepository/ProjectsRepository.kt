@@ -306,17 +306,34 @@ class ProjectsRepository(
 
 	/**
 	 * Only the flag changes: the journal keeps recording edits, so turning sync back on resumes.
-	 * False when `project.toml` cannot be read; it is not recreated here, as that would mint a new id.
+	 * False when `project.toml` cannot be read.
 	 */
-	fun setSyncEnabled(projectDef: ProjectDef, enabled: Boolean): Boolean {
-		metadataWriteLock.withLock {
-			val metadata = projectsMetadataDatasource.readMetadata(projectDef) ?: return false
-			projectsMetadataDatasource.saveMetadata(
-				metadata.copy(info = metadata.info.copy(syncEnabled = enabled)),
-				projectDef,
-			)
+	fun setSyncEnabled(projectDef: ProjectDef, enabled: Boolean): Boolean =
+		updateInfo(projectDef) { it.copy(syncEnabled = enabled) }
+
+	/** The owner of a project shared with this account, or null for the account's own. */
+	fun getOwner(projectDef: ProjectDef): ProjectOwner? =
+		projectsMetadataDatasource.readMetadata(projectDef)?.info?.let { info ->
+			info.ownerId?.let { ProjectOwner(it, info.ownerName) }
 		}
-		_syncEnabledChanges.tryEmit(projectDef.path)
+
+	/** Records the owner the server reports. False when `project.toml` cannot be read. */
+	fun setOwner(projectDef: ProjectDef, owner: ProjectOwner): Boolean =
+		updateInfo(projectDef) { it.copy(ownerId = owner.id, ownerName = owner.name) }
+
+	/**
+	 * Rewrites `project.toml`'s [Info] when [block] changes it. False when the file cannot be read;
+	 * it is not recreated here, as that would mint a new id.
+	 */
+	private fun updateInfo(projectDef: ProjectDef, block: (Info) -> Info): Boolean {
+		val changed = metadataWriteLock.withLock {
+			val metadata = projectsMetadataDatasource.readMetadata(projectDef) ?: return false
+			val info = block(metadata.info)
+			if (info == metadata.info) return true
+			projectsMetadataDatasource.saveMetadata(metadata.copy(info = info), projectDef)
+			info.syncEnabled != metadata.info.syncEnabled
+		}
+		if (changed) _syncEnabledChanges.tryEmit(projectDef.path)
 		return true
 	}
 
@@ -604,13 +621,15 @@ class ProjectsRepository(
 	 * the server project's [projectId].
 	 *
 	 * The project goes in [group], or the top level when null. Its name must be free in every group,
-	 * since project names are unique per account.
+	 * since project names are unique per account. [owner] is set for a project shared with this
+	 * account, and written with the rest so the folder never exists without it.
 	 */
 	fun createProject(
 		projectName: String,
 		seedDefaultLanguage: Boolean,
 		projectId: ProjectId = ProjectId.randomUUID(),
 		group: GroupDef? = null,
+		owner: ProjectOwner? = null,
 	): CResult<ProjectDef> {
 		val strippedName = projectName.trim()
 		val result = validateFileName(strippedName)
@@ -647,6 +666,8 @@ class ProjectsRepository(
 				lastAccessed = Clock.System.now(),
 				dataVersion = PROJECT_DATA_VERSION,
 				projectId = projectId,
+				ownerId = owner?.id,
+				ownerName = owner?.name,
 			)
 		)
 		projectsMetadataDatasource.saveMetadata(metadata, newDef)

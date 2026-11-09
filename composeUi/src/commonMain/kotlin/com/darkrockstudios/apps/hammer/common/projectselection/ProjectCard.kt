@@ -66,6 +66,8 @@ import com.darkrockstudios.apps.hammer.project_select_card_rename_button
 import com.darkrockstudios.apps.hammer.projects_list_card_by_author
 import com.darkrockstudios.apps.hammer.projects_list_card_content_description
 import com.darkrockstudios.apps.hammer.projects_list_card_created
+import com.darkrockstudios.apps.hammer.projects_list_card_shared
+import com.darkrockstudios.apps.hammer.projects_list_card_shared_by
 import com.darkrockstudios.apps.hammer.projects_list_card_sync_off
 import com.darkrockstudios.apps.hammer.projects_list_card_words
 import com.darkrockstudios.apps.hammer.projects_list_item_more_button
@@ -77,6 +79,7 @@ import kotlin.time.Instant
 val ProjectCardTestTag = "project-card"
 const val ProjectCardCoverTestTag = "project-card-cover"
 const val ProjectCardSyncOffTestTag = "project-card-sync-off"
+const val ProjectCardSharedByTestTag = "project-card-shared-by"
 
 private val StripeWidth: Dp = 4.dp
 private val NumberColumnWidth: Dp = 56.dp
@@ -148,6 +151,14 @@ fun ProjectIndexRow(
 	}
 
 	val breadcrumb = remember(groupPath) { groupPath.takeIf { it.isNotEmpty() }?.joinToString(" › ") }
+	val shared = projectData.metadata.info.ownerId != null
+	val sharedBy = if (shared) {
+		projectData.metadata.info.ownerName?.takeIf { it.isNotBlank() }
+			?.let { Res.string.projects_list_card_shared_by.get(it) }
+			?: Res.string.projects_list_card_shared.get()
+	} else {
+		null
+	}
 
 	Column(
 		modifier = modifier
@@ -236,6 +247,15 @@ fun ProjectIndexRow(
 						color = MaterialTheme.colorScheme.onSurfaceVariant,
 					)
 				}
+				if (sharedBy != null) {
+					// Not a mono label: that uppercases, and a pen name keeps its case.
+					Text(
+						text = sharedBy,
+						style = MaterialTheme.typography.labelMedium,
+						color = MaterialTheme.colorScheme.onSurfaceVariant,
+						modifier = Modifier.testTag(ProjectCardSharedByTestTag),
+					)
+				}
 				if (isWide) {
 					Text(
 						text = subline,
@@ -287,11 +307,16 @@ fun ProjectIndexRow(
 			}
 
 			ProjectOptionsMenu(
-				items = listOf(
-					Res.string.project_select_card_delete_button,
-					Res.string.project_select_card_rename_button,
-					Res.string.project_select_card_move_button,
-				),
+				// The owner names and places a shared project.
+				items = if (shared) {
+					listOf(Res.string.project_select_card_delete_button)
+				} else {
+					listOf(
+						Res.string.project_select_card_delete_button,
+						Res.string.project_select_card_rename_button,
+						Res.string.project_select_card_move_button,
+					)
+				},
 			) {
 				when (it) {
 					Res.string.project_select_card_delete_button ->

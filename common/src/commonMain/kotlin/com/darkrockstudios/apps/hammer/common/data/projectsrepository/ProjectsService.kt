@@ -14,7 +14,18 @@ class ProjectsService(
 		projectsRepository.createProject(name, seedDefaultLanguage = true, group = group)
 
 	fun renameProject(projectDef: ProjectDef, newName: String): CResult<ProjectDef> =
-		projectsRepository.renameProject(projectDef, newName)
+		refuseShared(projectDef) ?: projectsRepository.renameProject(projectDef, newName)
+
+	fun moveProject(projectDef: ProjectDef, target: GroupDef?): CResult<ProjectDef> =
+		refuseShared(projectDef) ?: projectsRepository.moveProject(projectDef, target)
+
+	/** The owner names and places a shared project; account sync would undo a local change. */
+	private fun refuseShared(projectDef: ProjectDef): CResult<ProjectDef>? =
+		if (projectsRepository.getOwner(projectDef) != null) {
+			CResult.failure("'${projectDef.name}' is shared with this account")
+		} else {
+			null
+		}
 
 	/**
 	 * A project with sync off on this device is deleted here only, so the server keeps its copy,

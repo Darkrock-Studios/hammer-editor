@@ -31,6 +31,7 @@ import com.darkrockstudios.apps.hammer.common.data.importer.StoryImporterRegistr
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.GroupDef
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectTree
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectOwner
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsService
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.ProjectStatisticsCacheReader
 import com.darkrockstudios.apps.hammer.common.data.protocolmismatch.ProtocolMismatchRepository
@@ -153,6 +154,7 @@ class ProjectsListComponentTest : ComponentTest() {
 		globalSettingsStore = mockk(relaxed = true)
 		projectsRepository = mockk(relaxed = true)
 		every { projectsRepository.isSyncEnabled(any()) } returns true
+		every { projectsRepository.getOwner(any()) } returns null
 		synchronizer = mockk(relaxed = true)
 		networkConnectivity = mockk(relaxed = true)
 		statsReader = mockk(relaxed = true)
@@ -865,6 +867,19 @@ class ProjectsListComponentTest : ComponentTest() {
 			verify(exactly = 0) { projectsRepository.getProjectTree(any()) }
 			assertIs<ProjectsList.ModalDestination.GroupRename>(comp.modalRouterState.value.child?.instance)
 		}
+
+	@Test
+	fun `a shared project is neither moved nor renamed`() = runTest(mainTestDispatcher) {
+		every { projectsRepository.getOwner(projectDefA) } returns ProjectOwner(7L, "Alice")
+		val comp = newComponent()
+
+		comp.moveProject(projectDefA, trilogy)
+		comp.renameProject(projectDefA, "Mine")
+		advanceUntilIdle()
+
+		verify(exactly = 0) { projectsRepository.moveProject(any(), any()) }
+		verify(exactly = 0) { projectsRepository.renameProject(any(), any()) }
+	}
 
 	@Test
 	fun `moveProject moves the project off the calling thread and reloads`() = runTest(mainTestDispatcher) {

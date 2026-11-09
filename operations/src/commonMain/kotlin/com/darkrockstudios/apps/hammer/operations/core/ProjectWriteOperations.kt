@@ -40,6 +40,9 @@ internal fun projectWriteOperations(): List<Operation<*, *>> = listOf(
 		scope = OperationScope.Content,
 	) { input ->
 		val def = requireClosed(projects.resolve(input.project))
+		if (koinGet<ProjectsRepository>().getOwner(def) != null) {
+			invalidInput("'${def.name}' is shared with you; only its owner can rename it")
+		}
 		val newName = input.name.trim()
 		when (val result = koinGet<ProjectsService>().renameProject(def, newName)) {
 			is ClientResult.Success -> ProjectName(result.data.name)

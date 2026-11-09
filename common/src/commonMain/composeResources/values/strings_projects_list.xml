@@ -12,6 +12,8 @@
 	<string name="projects_list_card_words">%1$s words</string>
 	<string name="projects_list_card_sync_off">Not synced on this device</string>
 	<string name="projects_list_card_by_author">by %1$s</string>
+	<string name="projects_list_card_shared_by">Shared by %1$s</string>
+	<string name="projects_list_card_shared">Shared with you</string>
 	<string name="projects_list_card_created">Created %1$s</string>
 	<string name="projects_list_card_content_description">Project %1$s</string>
 	<string name="projects_list_search_button">Search projects</string>

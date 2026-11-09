@@ -12,11 +12,13 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectData
 import com.darkrockstudios.apps.hammer.common.preview.fakeProjectData
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectCardCoverTestTag
+import com.darkrockstudios.apps.hammer.common.projectselection.ProjectCardSharedByTestTag
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectCardSyncOffTestTag
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectCardTestTag
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectIndexRow
@@ -189,4 +191,47 @@ class ProjectCardTest {
 		syncOff = true
 		compose.onNodeWithTag(ProjectCardSyncOffTestTag, useUnmergedTree = true).assertIsDisplayed()
 	}
+
+	@Test
+	fun `Project Card names the owner of a shared project`() {
+		var data by mutableStateOf(fakeProjectData())
+		compose.setContent {
+			ProjectIndexRow(
+				isWide = true,
+				index = 0,
+				projectData = data,
+				onProjectClick = {},
+				onProjectAltClick = {},
+				onProjectRenameClick = {},
+			)
+		}
+
+		compose.onNodeWithTag(ProjectCardSharedByTestTag, useUnmergedTree = true).assertDoesNotExist()
+		data = data.shared(ownerName = "Alice")
+		compose.onNodeWithText("Shared by Alice", useUnmergedTree = true).assertIsDisplayed()
+		data = data.shared(ownerName = null)
+		compose.onNodeWithText("Shared with you", useUnmergedTree = true).assertIsDisplayed()
+	}
+
+	@Test
+	fun `Project Card offers no rename or move for a shared project`() {
+		compose.setContent {
+			ProjectIndexRow(
+				isWide = true,
+				index = 0,
+				projectData = fakeProjectData().shared(ownerName = "Alice"),
+				onProjectClick = {},
+				onProjectAltClick = {},
+				onProjectRenameClick = {},
+			)
+		}
+
+		compose.onNodeWithTag("More").performClick()
+		compose.onNodeWithTag("Delete").assertExists()
+		compose.onNodeWithTag("Rename").assertDoesNotExist()
+		compose.onNodeWithTag("Move to…").assertDoesNotExist()
+	}
+
+	private fun ProjectData.shared(ownerName: String?) =
+		copy(metadata = metadata.copy(info = metadata.info.copy(ownerId = 7L, ownerName = ownerName)))
 }

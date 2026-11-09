@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.AccountSyncD
 import com.darkrockstudios.apps.hammer.operations.core.ProjectDeleteInput
 import com.darkrockstudios.apps.hammer.common.data.closeProjectScope
 import com.darkrockstudios.apps.hammer.common.data.openProjectScope
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectOwner
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.operations.NoInput
 import com.darkrockstudios.apps.hammer.operations.OperationException
@@ -64,6 +65,16 @@ class ProjectWriteOperationsTest : KoinOperationsTest() {
 		run<ProjectDeleteInput, ProjectName>("project.delete", ProjectDeleteInput("Gone", alsoDeleteOnServer = true))
 
 		assertEquals(setOf(gone.id), get<AccountSyncDatasource>().load().projectsToDelete)
+	}
+
+	@Test
+	fun `a shared project is not renamed`() = onTestThread {
+		run<ProjectCreateInput, ProjectName>("project.create", ProjectCreateInput("Shared"))
+		val repository = get<ProjectsRepository>()
+		repository.setOwner(repository.findProject("Shared")!!, ProjectOwner(7L, "Alice"))
+
+		invalid { run<ProjectRenameInput, ProjectName>("project.rename", ProjectRenameInput("Shared", "Mine")) }
+		assertEquals(listOf("Shared"), projectNames())
 	}
 
 	@Test

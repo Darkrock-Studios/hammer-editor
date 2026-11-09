@@ -16,6 +16,7 @@ import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
 import com.darkrockstudios.apps.hammer.common.data.projectdata.loadStoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectInUseException
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectOwner
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectTree
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.groups.GroupSyncPhase
@@ -107,6 +108,8 @@ class ClientAccountSynchronizer(
 				val excluded = localProjects
 					.filterNot(projectsRepository::isSyncEnabled)
 					.mapTo(mutableSetOf()) { it.id }
+
+				refreshOwners(localProjects, serverSyncData.projects)
 
 				yield()
 
@@ -315,6 +318,18 @@ class ClientAccountSynchronizer(
 				null
 			}
 		}
+
+	/** Records the owner, and the owner's current pen name, of every shared project held here. */
+	private fun refreshOwners(localProjects: List<ProjectDef>, serverProjects: Collection<ApiProjectDefinition>) {
+		val localById = localProjects.associateBy { it.id }
+		serverProjects.forEach { serverProject ->
+			val owner = serverProject.owner() ?: return@forEach
+			val local = localById[serverProject.uuid] ?: return@forEach
+			if (!projectsRepository.setOwner(local, owner)) {
+				Napier.w("Could not record the owner of '${local.name}'")
+			}
+		}
+	}
 
 	/**
 	 * Retries [remintExcluded] for an excluded project whose deletion an earlier session recorded
@@ -599,6 +614,7 @@ class ClientAccountSynchronizer(
 							seedDefaultLanguage = false,
 							projectId = serverProject.uuid,
 							group = target,
+							owner = serverProject.owner(),
 						)
 						if (isSuccess(createResult)) {
 							val projectDef = createResult.data
@@ -804,5 +820,7 @@ internal fun Throwable?.isAuthenticationFailure(): Boolean =
  * begin_sync response: `processProjectSyncData` drops projects this client has queued for
  * deletion, and a project missing for that reason is still known to the server, not dead.
  */
+private fun ApiProjectDefinition.owner(): ProjectOwner? = ownerId?.let { ProjectOwner(it, ownerName) }
+
 private fun BeginProjectsSyncResponse.knownProjectIds(): Set<ProjectId> =
 	projects.mapTo(mutableSetOf()) { it.uuid } + deletedProjects
