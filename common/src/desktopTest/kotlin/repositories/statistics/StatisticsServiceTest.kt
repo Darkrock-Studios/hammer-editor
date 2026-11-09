@@ -20,6 +20,7 @@ import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRe
 import com.darkrockstudios.apps.hammer.common.data.tree.ImmutableTree
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeValue
 import com.darkrockstudios.apps.hammer.base.http.writingactivity.DeviceLog
+import com.darkrockstudios.apps.hammer.base.http.writingactivity.WritingActivitySlot
 import com.darkrockstudios.apps.hammer.base.http.writingactivity.WritingSession
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingActivityRepository
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -83,7 +84,7 @@ class StatisticsServiceTest : BaseTest() {
 		every { encyclopediaRepository.entryListFlow } returns MutableStateFlow(emptyList())
 		every { notesRepository.notesListFlow } returns MutableStateFlow(emptyList())
 		coEvery { timeLineRepository.loadTimeline() } returns TimeLineContainer(emptyList())
-		coEvery { writingActivityRepository.loadAllLogs() } returns emptyMap()
+		coEvery { writingActivityRepository.loadAllLogs() } returns emptyList()
 		coEvery { referenceIndexService.loadIndex() } returns ReferenceIndex()
 		coEvery { projectDataRepository.load() } returns StoredProjectData()
 		coEvery { sceneMetadataDatasource.loadMetadata(any()) } returns null
@@ -246,15 +247,15 @@ class StatisticsServiceTest : BaseTest() {
 			val day1 = Instant.parse("2026-04-27T09:00:00Z")
 			val day2 = Instant.parse("2026-04-28T09:00:00Z")
 			val day3 = Instant.parse("2026-04-29T09:00:00Z")
-			coEvery { writingActivityRepository.loadAllLogs() } returns mapOf(
-				"device-1" to DeviceLog(
+			coEvery { writingActivityRepository.loadAllLogs() } returns listOf(
+				WritingActivitySlot("device-1", DeviceLog(
 					deviceLabel = "Laptop",
 					sessions = listOf(
 						WritingSession(startedAt = day1, endedAt = day1, wordsWritten = 100, sealed = true),
 						WritingSession(startedAt = day2, endedAt = day2, wordsWritten = 250, sealed = false),
 						WritingSession(startedAt = day3, endedAt = day3, wordsWritten = 0, sealed = false),
 					),
-				),
+				)),
 			)
 			coEvery { statisticsRepository.loadStatistics() } returns null
 

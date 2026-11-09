@@ -74,6 +74,7 @@ class WritingActivitySyncOperationTest : BaseTest() {
 		coEvery { globalSettingsStore.userIdOrThrow() } returns userId
 		every { globalSettingsStore.deviceLabelOrDefault() } returns deviceLabel
 		coEvery { repository.ownDeviceId() } returns ownDeviceId
+		coEvery { repository.takeSetAsideSessions(any()) } returns emptyList()
 	}
 
 	private fun createOperation(): WritingActivitySyncOperation = WritingActivitySyncOperation(
@@ -146,7 +147,7 @@ class WritingActivitySyncOperationTest : BaseTest() {
 
 		createOperation().execute(startState(), onProgress, onLog, onConflict, onComplete)
 
-		coVerify { repository.replaceForeignDeviceLog("device-other", foreignLog) }
+		coVerify { repository.replaceRemoteSlot(WritingActivitySlot("device-other", foreignLog)) }
 	}
 
 	@Test

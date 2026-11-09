@@ -2,10 +2,12 @@ package com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations
 
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.writingactivity.DeviceLog
+import com.darkrockstudios.apps.hammer.base.http.writingactivity.WritingActivitySlot
 import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
+import com.darkrockstudios.apps.hammer.common.data.writingactivity.SlotAuthor
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingActivityRepository
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingSessionTracker
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.mergeOwnSlotSessions
@@ -17,12 +19,12 @@ import io.github.aakira.napier.Napier
  * project sync pipeline after entity transfer and before finalization.
  *
  * Flow (all merge logic on the client; server is dumb storage):
- *  1. GET every device's slot from the server.
- *  2. Wholesale-overwrite local copies of *other* devices' slots — we
- *     never edit slots we don't own.
+ *  1. GET every slot from the server.
+ *  2. Wholesale-overwrite local copies of slots we don't own: other devices', and
+ *     another account's on this device (two accounts on one install share a device id).
  *  3. Merge the local copy of our own slot with the server's copy
  *     (deterministic union by `startedAt`), save the merged result both
- *     locally and back to the server.
+ *     locally, with the author the server stamped, and back to the server.
  *  4. Invalidate the tracker's session cache so subsequent saves see the
  *     merged state instead of continuing from a possibly stale snapshot.
  *
@@ -62,16 +64,28 @@ class WritingActivitySyncOperation(
 				return CResult.success(state)
 			}
 
-			for (slot in response.slots) {
-				if (slot.deviceId != ownDeviceId) {
-					repository.replaceForeignDeviceLog(slot.deviceId, slot.log)
-				}
+			var localOwnLog = repository.loadOwnLog()
+			val localAuthor = localOwnLog.authorId
+			if (localAuthor != null && localAuthor != userId) {
+				Napier.w("Writing activity: own slot belongs to account $localAuthor, setting it aside")
+				repository.setAsideOwnLog(localOwnLog)
+				localOwnLog = repository.loadOwnLog()
 			}
 
-			val localOwnLog = repository.loadOwnLog()
-			val remoteOwnSessions = response.slots.firstOrNull { it.deviceId == ownDeviceId }?.log?.sessions ?: emptyList()
-			val mergedSessions = mergeOwnSlotSessions(localOwnLog.sessions, remoteOwnSessions)
-			repository.saveOwnLog(mergedSessions)
+			val isOwnSlot = { slot: WritingActivitySlot ->
+				slot.deviceId == ownDeviceId && (slot.log.authorId == null || slot.log.authorId == userId)
+			}
+			val ownSlot = response.slots.firstOrNull(isOwnSlot)
+			for (slot in response.slots) {
+				if (!isOwnSlot(slot)) repository.replaceRemoteSlot(slot)
+			}
+
+			val returning = repository.takeSetAsideSessions(userId)
+			val localSessions = mergeOwnSlotSessions(localOwnLog.sessions, returning)
+			val remoteOwnSessions = ownSlot?.log?.sessions ?: emptyList()
+			val mergedSessions = mergeOwnSlotSessions(localSessions, remoteOwnSessions)
+			val ownAuthor = ownSlot?.log?.authorId?.let { SlotAuthor(it, ownSlot.log.authorName) }
+			repository.saveOwnLog(mergedSessions, ownAuthor)
 
 			val payload = DeviceLog(
 				deviceLabel = globalSettingsStore.deviceLabelOrDefault(),
@@ -89,7 +103,8 @@ class WritingActivitySyncOperation(
 			}
 
 			tracker.invalidateSessionCache()
-			onLog(syncLogI("Writing activity synced (${response.slots.size + 1} devices)", projectDef))
+			val slotCount = response.slots.count { !isOwnSlot(it) } + 1
+			onLog(syncLogI("Writing activity synced ($slotCount slots)", projectDef))
 		} catch (e: Exception) {
 			Napier.w("Writing activity sync failed", e)
 			onLog(syncLogW("Writing activity sync error: ${e.message}", projectDef))

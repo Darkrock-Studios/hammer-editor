@@ -171,7 +171,7 @@ class StatisticsService(
 			val timeZone = TimeZone.currentSystemDefault()
 			val dailyWordTotals = mutableMapOf<String, Int>()
 			val wordsPerDevice = mutableMapOf<String, Int>()
-			writingActivityRepository.loadAllLogs().values.forEach { deviceLog ->
+			writingActivityRepository.loadAllLogs().map { it.log }.forEach { deviceLog ->
 				var deviceTotal = 0
 				deviceLog.sessions.forEach { session ->
 					// Count every session with words, sealed or not.

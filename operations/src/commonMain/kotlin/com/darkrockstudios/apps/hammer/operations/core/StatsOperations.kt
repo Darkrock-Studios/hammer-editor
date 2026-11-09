@@ -94,7 +94,7 @@ internal fun statsOperations(): List<Operation<*, *>> = listOf(
 private suspend fun OperationContext.loadLogs(input: DateRangeInput): Collection<DeviceLog> {
 	if (input.from != null && input.to != null && input.from > input.to) invalidInput("from is after to")
 	return projects.withProject(input.project) { project ->
-		project.scope.get<WritingActivityRepository>().loadAllLogs().values
+		project.scope.get<WritingActivityRepository>().loadAllLogs().map { it.log }
 	}
 }
 
