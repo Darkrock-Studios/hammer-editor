@@ -343,6 +343,7 @@ class ClientAccountSynchronizer(
 	) {
 		localProjects
 			.filter { it.id in clientSyncData.deletedProjects && it.id in excluded }
+			.filter { projectsRepository.getOwner(it) == null }
 			.forEach { remintExcluded(it, excluded, onLog) }
 	}
 
@@ -393,21 +394,22 @@ class ClientAccountSynchronizer(
 		onLog: OnSyncLog
 	) {
 		serverSyncData.deletedProjects.forEach(ledger::retireProject)
-		val newlyDeletedProjects = serverSyncData.deletedProjects.filter { project ->
-			clientSyncData.deletedProjects.contains(project).not()
-		}
+		val newlyDeletedProjects = serverSyncData.deletedProjects
+			.filter { project -> clientSyncData.deletedProjects.contains(project).not() }
+			.map { it to projectsRepository.findProject(it) }
+			// The server never removes a co-author's copy, and a shared project keeps its id.
+			.filterNot { (_, projectDef) -> projectDef != null && projectsRepository.getOwner(projectDef) != null }
 
-		val (keptProjects, deletedProjects) = newlyDeletedProjects.partition { it in excluded }
+		val (keptProjects, deletedProjects) = newlyDeletedProjects.partition { (id, _) -> id in excluded }
 		// Recorded only when it could not be re-minted, which keeps its folder from being deleted.
-		val stillDeleted = keptProjects.filterNot { projectId ->
-			projectsRepository.findProject(projectId)?.let { remintExcluded(it, excluded, onLog) } ?: true
-		}
+		val stillDeleted = keptProjects
+			.filterNot { (_, projectDef) -> projectDef?.let { remintExcluded(it, excluded, onLog) } ?: true }
+			.map { (id, _) -> id }
 		if (stillDeleted.isNotEmpty()) {
 			accountSyncDatasource.update { it.copy(deletedProjects = it.deletedProjects + stillDeleted) }
 		}
 
-		deletedProjects.forEach { projectId ->
-			val projectDef = projectsRepository.findProject(projectId)
+		deletedProjects.forEach { (_, projectDef) ->
 			if (projectDef != null) {
 				onLog(
 					syncAccLogI(
@@ -552,6 +554,16 @@ class ClientAccountSynchronizer(
 			val placed = target?.id == serverProject.groupId
 			val baseline = ProjectBaseline(serverProject.name, serverProject.groupId)
 			val existingProject = localByName[localName]
+			// A shared project is never adopted by name and never adopts an unmarked folder: either
+			// would merge an unrelated local story into it.
+			if (serverProject.ownerId != null && (existingProject != null || isTopLevelNameTaken(localName))) {
+				onLog(
+					syncAccLogW(
+						strRes.get(Res.string.sync_log_account_project_create_client_name_taken, serverProject.name)
+					)
+				)
+				return@forEach
+			}
 			if (existingProject != null) {
 				if (existingProject.id in excluded) {
 					onLog(
@@ -646,6 +658,10 @@ class ClientAccountSynchronizer(
 		return claimedNames
 	}
 
+	/** Anything at all in the projects directory under [localName]: a folder, marked or not, or a file. */
+	private fun isTopLevelNameTaken(localName: String): Boolean =
+		fileSystem.metadataOrNull(projectsRepository.getProjectDirectory(localName).toOkioPath()) != null
+
 	/**
 	 * Adopts the directory named [localName] under [serverId] if it has no project.toml, treating
 	 * it like a restored backup. An I/O failure is logged and reported as [UnmarkedFolder.Failed]:
@@ -710,8 +726,10 @@ class ClientAccountSynchronizer(
 		onLog: OnSyncLog,
 		onUnauthorized: suspend () -> Unit = {},
 	) {
+		// A shared project is the owner's: uploading it would fork the owner's book under this account.
 		val localOnly = tree.projects.filter { def ->
-			def.id !in serverKnownIds && def.id !in excluded && def.name !in claimedNames
+			def.id !in serverKnownIds && def.id !in excluded && def.name !in claimedNames &&
+				projectsRepository.getOwner(def) == null
 		}
 
 		localOnly.forEach { projectDef ->
@@ -767,6 +785,8 @@ class ClientAccountSynchronizer(
 
 				ServerCreateOutcome.NeedsAccountSync ->
 					error("Account sync may change a project's id, so it never needs account sync")
+
+				ServerCreateOutcome.SharedProject -> Napier.w("'$projectName' is shared with this account, not created")
 
 				is ServerCreateOutcome.Failed -> {
 					Napier.e("Failed to create project on server: $projectName", outcome.error)

@@ -53,7 +53,8 @@ fun seedFromLegacyRenames(
 /**
  * Applies the three-way rule to the name and placement of every project on both sides, except the
  * [excluded] ones. A local placement is only pushed into a group in [confirmedGroupIds]: the server
- * would put a project in any other group at the top level.
+ * would put a project in any other group at the top level. A shared project takes the server's name
+ * and placement whatever changed here, since only its owner may change them.
  */
 fun reconcileProjectAttributes(
 	local: List<ProjectDef>,
@@ -71,8 +72,9 @@ fun reconcileProjectAttributes(
 			val baseline = baselines[remote.uuid]
 			val localGroup = placement[project.id]
 			val actions = mutableListOf<ProjectAttributeAction>()
+			val shared = remote.ownerId != null
 
-			val name = nameThreeWay(project.name, remote.name, baseline?.name)
+			val name = nameThreeWay(project.name, remote.name, baseline?.name).ownerDecides(shared)
 			when (name) {
 				Winner.TakeServer ->
 					actions += ProjectAttributeAction.RenameLocally(ProjectsRepository.toLocalSafeName(remote.name))
@@ -81,7 +83,7 @@ fun reconcileProjectAttributes(
 				Winner.Agree -> Unit
 			}
 
-			val place = threeWay(localGroup, remote.groupId, baseline?.groupId, baseline != null)
+			val place = threeWay(localGroup, remote.groupId, baseline?.groupId, baseline != null).ownerDecides(shared)
 			var settles = true
 			when (place) {
 				Winner.TakeServer -> actions += ProjectAttributeAction.MoveLocally(remote.groupId)
@@ -109,6 +111,9 @@ fun reconcileProjectAttributes(
 			)
 		}
 }
+
+private fun Winner.ownerDecides(shared: Boolean): Winner =
+	if (shared && this == Winner.PushLocal) Winner.TakeServer else this
 
 /**
  * The local group a project placed in the server group [serverGroupId] belongs in: that group, or its

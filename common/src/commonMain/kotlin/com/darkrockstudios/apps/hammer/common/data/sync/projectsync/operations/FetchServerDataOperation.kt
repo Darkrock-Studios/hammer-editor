@@ -126,6 +126,8 @@ internal suspend fun logCreateOutcome(
 		ProjectNeedsAccountSyncException(projectDef.name)
 	}
 
+	ServerCreateOutcome.SharedProject -> ProjectNoLongerSharedException(projectDef.name)
+
 	is ServerCreateOutcome.Failed -> {
 		onLog(
 			syncLogE(
@@ -142,6 +144,10 @@ class ProjectDeletedElsewhereException(projectName: String) :
 
 class ProjectAdoptConflictException(projectName: String, heldBy: String) :
 	SyncOperationException("Server project matching $projectName by name is held by $heldBy")
+
+/** The server no longer has a shared project for this account, which must not create it as its own. */
+class ProjectNoLongerSharedException(projectName: String) :
+	SyncOperationException("Project is no longer shared with this account: $projectName")
 
 class ProjectNeedsAccountSyncException(projectName: String) :
 	SyncOperationException("Project must be synced from the project list to settle its id: $projectName")
