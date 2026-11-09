@@ -45,7 +45,7 @@ import com.darkrockstudios.apps.hammer.sync_log_account_project_adopt_folder
 import com.darkrockstudios.apps.hammer.sync_log_account_project_create_local_failure
 import com.darkrockstudios.apps.hammer.sync_log_account_project_create_server_failure
 import com.darkrockstudios.apps.hammer.sync_log_account_project_create_client_name_excluded
-import com.darkrockstudios.apps.hammer.sync_log_account_project_create_client_name_taken
+import com.darkrockstudios.apps.hammer.sync_log_account_project_create_shared_name_taken
 import com.darkrockstudios.apps.hammer.sync_log_account_project_create_server_success
 import com.darkrockstudios.apps.hammer.sync_log_account_project_delete_kept_excluded
 import com.darkrockstudios.apps.hammer.sync_log_account_project_deleted_elsewhere
@@ -1466,7 +1466,7 @@ class ClientAccountSynchronizerTest : BaseTest() {
 		assertTrue(result)
 		coVerify(exactly = 0) { projectsRepository.setProjectId(any(), any()) }
 		verify(exactly = 0) { projectsRepository.createProject(any(), any(), any(), any(), any()) }
-		assertTrue(strRes.calls.any { it.first == Res.string.sync_log_account_project_create_client_name_taken })
+		assertTrue(strRes.calls.any { it.first == Res.string.sync_log_account_project_create_shared_name_taken })
 		// The local project is its own and still uploads under its own id.
 		coVerify { serverProjectsApi.createProject("Novel", local.id, "sync-1", null) }
 	}
@@ -1485,7 +1485,7 @@ class ClientAccountSynchronizerTest : BaseTest() {
 
 		coVerify(exactly = 0) { projectsRepository.adoptUnmarkedDirectory(any(), any(), any()) }
 		verify(exactly = 0) { projectsRepository.createProject(any(), any(), any(), any(), any()) }
-		assertTrue(strRes.calls.any { it.first == Res.string.sync_log_account_project_create_client_name_taken })
+		assertTrue(strRes.calls.any { it.first == Res.string.sync_log_account_project_create_shared_name_taken })
 	}
 
 	@Test

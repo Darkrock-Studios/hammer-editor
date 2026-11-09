@@ -335,8 +335,8 @@ the folder and refreshed for every listed shared project at the start of each se
   once. Project sync parks it the same way on `403 not_member`, or on `410`, under the account
   session lock. Parked is not stored: it is `ownerId` set with `syncEnabled` false, which only
   parking and leaving produce, since a shared project has no sync switch. A parked project is left
-  out of every phase like any project with sync off. The journal is kept because a rebuilt one
-  marks nothing dirty: a partial copy could then delete the owner's entities on a re-invite.
+  out of every phase like any project with sync off. The journal is kept: it holds the co-author's
+  unsynced work and the conflict baselines a rebuilt one lacks.
 - **Resumed.** A parked project that is listed again (a re-invite) still has the same ID. Account
   sync turns its sync back on and flags its journal `verifyAllEntities`, so the next project sync
   conflict-checks every entity against the owner's copy. A project in use at that moment stays
@@ -1146,6 +1146,12 @@ gets an empty flagged one, so every Entity is baselined on its local hash.
 The flag covers edits, not deletions. An Entity deleted on the server after the backup was taken
 is still deleted locally by the next sync; a restore recovers content the server still knows about,
 it does not undo deletions made elsewhere.
+
+A journal that is missing or unreadable is rebuilt from the Entities on disk and flagged the same
+way. It infers no deletions from gaps in the IDs: on a partial copy, a co-author's above all, each
+gap would delete an Entity on the server. A gap the server still holds downloads again, so an
+Entity whose deletion was lost with the journal comes back once. The journal is written to a temp
+file moved over `sync.json`, so a write cut short leaves the previous journal intact.
 
 **Owner**
 The account that created a project on the server (`project.user_id`). The project's storage,

@@ -34,6 +34,7 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 private val DialogMaxWidth = 480.dp
 
 const val DeleteOnServerToggleTestTag = "delete-project-on-server"
+const val DeleteCoauthorsNoteTestTag = "delete-project-coauthors"
 
 @Composable
 fun ProjectDeleteDialog(
@@ -41,6 +42,7 @@ fun ProjectDeleteDialog(
 	projectDef: ProjectDef,
 	close: () -> Unit,
 	offerServerDelete: Boolean = false,
+	deletesOnServer: Boolean = false,
 ) {
 	var isOpen by remember { mutableStateOf(true) }
 	var confirmationText by rememberSaveable { mutableStateOf("") }
@@ -105,6 +107,15 @@ fun ProjectDeleteDialog(
 						style = MaterialTheme.typography.bodyMedium,
 						color = MaterialTheme.colorScheme.error,
 					)
+
+					if (deletesOnServer || offerServerDelete) {
+						Text(
+							text = Res.string.delete_project_coauthors.get(),
+							style = MaterialTheme.typography.bodyMedium,
+							color = MaterialTheme.colorScheme.onSurfaceVariant,
+							modifier = Modifier.testTag(DeleteCoauthorsNoteTestTag),
+						)
+					}
 
 					HdHairlineField(
 						label = "CONFIRM NAME",

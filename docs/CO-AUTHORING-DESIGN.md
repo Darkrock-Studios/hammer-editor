@@ -396,9 +396,8 @@ whether or not it is in `deletedProjects`), or whose project routes answer `403 
 `ProjectBaseline` is dropped, and the sync log records `sync_log_account_project_parked` once
 ("{name} is no longer shared with you. Your copy is kept on this device and no longer syncs. It
 syncs again if you are invited back."). Parked is not a stored state: it is `ownerId != null &&
-!syncEnabled`, and since a shared project has no switch, only parking and leaving produce it. The project journal is untouched: a rebuilt journal infers
-deletions from id gaps and marks nothing dirty, so clearing it would let a partial copy delete the
-owner's entities on re-invite and let the co-author's unsynced edits be downloaded over.
+!syncEnabled`, and since a shared project has no switch, only parking and leaving produce it. The project journal is untouched: it holds the co-author's
+unsynced work and its conflict baselines, which a rebuilt journal lacks.
 
 The delete phase never deletes a folder whose `project.toml` has `ownerId` set, even when the id
 appears under `deletedProjects`; it parks it instead. This closes the one server-side path left
@@ -428,7 +427,8 @@ silently as the co-author's own, and the user turns sync back on deliberately fo
 
 `SyncJournal.buildSyncData`, which rebuilds a lost project journal, sets `verifyAllEntities` on
 the result regardless of co-authoring. A rebuilt journal is a guess and the next sync should
-check every entity.
+check every entity. It infers no deletions from id gaps, which on a partial copy would delete the
+owner's entities on the server.
 
 ### Tests
 

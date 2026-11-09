@@ -317,9 +317,9 @@ class ProjectsRepository(
 			info.ownerId?.let { ProjectOwner(it, info.ownerName) }
 		}
 
-	/** Records the owner the server reports. False when `project.toml` cannot be read. */
-	fun setOwner(projectDef: ProjectDef, owner: ProjectOwner): Boolean =
-		updateInfo(projectDef) { it.copy(ownerId = owner.id, ownerName = owner.name) }
+	/** Records the owner the server reports, null for this account's own. False when `project.toml` cannot be read. */
+	fun setOwner(projectDef: ProjectDef, owner: ProjectOwner?): Boolean =
+		updateInfo(projectDef) { it.copy(ownerId = owner?.id, ownerName = owner?.name) }
 
 	/**
 	 * Turns sync back on for a shared project that is listed again. Its journal is flagged so the

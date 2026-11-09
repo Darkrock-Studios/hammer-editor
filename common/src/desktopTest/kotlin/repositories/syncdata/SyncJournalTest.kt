@@ -24,7 +24,18 @@ import io.mockk.*
 import io.mockk.impl.annotations.MockK
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
+import com.darkrockstudios.apps.hammer.base.http.ClientEntityState
+import com.darkrockstudios.apps.hammer.base.http.ProjectSynchronizationBegan
+import com.darkrockstudios.apps.hammer.common.data.isSuccess
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.CollateIdsOperation
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.EntityDeleteOperation
+import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
+import okio.Buffer
+import okio.ForwardingFileSystem
+import okio.ForwardingSink
+import okio.IOException
 import okio.Path
+import okio.Sink
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.BeforeEach
@@ -34,7 +45,11 @@ import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
 import org.koin.dsl.module
 import utils.BaseTest
+import utils.TestStrRes
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertIs
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Instant
@@ -106,7 +121,7 @@ class SyncJournalTest : BaseTest() {
 	}
 
 	@Test
-	fun `Create new sync data with missing IDs`() = runTest {
+	fun `Create new sync data infers no deletions from missing IDs`() = runTest {
 		createProject(ffs, PROJECT_EMPTY_NAME)
 		val projectDef = getProjectDef(PROJECT_EMPTY_NAME)
 		writeNote(projectDef, 1)
@@ -131,7 +146,7 @@ class SyncJournalTest : BaseTest() {
 				newIds = emptyList(),
 				lastSync = Instant.DISTANT_PAST,
 				dirty = emptyList(),
-				deletedIds = setOf(2),
+				deletedIds = emptySet(),
 				verifyAllEntities = true,
 			),
 			loadedData
@@ -157,7 +172,7 @@ class SyncJournalTest : BaseTest() {
 	}
 
 	@Test
-	fun `Rebuilding counts archived scenes and reports real gaps`() = runTest {
+	fun `Rebuilding counts archived scenes`() = runTest {
 		createProject(ffs, PROJECT_2_NAME)
 		val projectDef = getProjectDef(PROJECT_2_NAME)
 		ffs.delete(syncPath(projectDef))
@@ -172,7 +187,7 @@ class SyncJournalTest : BaseTest() {
 
 		val loadedData = ffs.readJson<ProjectSynchronizationData>(syncPath(projectDef), json)!!
 		assertEquals(25, loadedData.lastId)
-		assertEquals(setOf(13, 24), loadedData.deletedIds)
+		assertEquals(emptySet(), loadedData.deletedIds)
 	}
 
 	@Test
@@ -242,7 +257,7 @@ class SyncJournalTest : BaseTest() {
 
 		val loadedData = ffs.readJson<ProjectSynchronizationData>(syncPath(projectDef), json)!!
 		assertEquals(5, loadedData.lastId)
-		assertEquals(setOf(2, 4, 5), loadedData.deletedIds)
+		assertEquals(setOf(5), loadedData.deletedIds)
 	}
 
 	@Test
@@ -261,7 +276,83 @@ class SyncJournalTest : BaseTest() {
 		val loadedData = ffs.readJson<ProjectSynchronizationData>(syncPath(projectDef), json)!!
 		assertEquals(5, loadedData.lastId)
 		assertEquals(listOf(6), loadedData.newIds)
-		assertEquals(setOf(2, 4, 5), loadedData.deletedIds)
+		assertEquals(emptySet(), loadedData.deletedIds)
+	}
+
+	@Test
+	fun `A corrupt journal on a partial copy sends no deletions to the server`() = runTest {
+		createProject(ffs, PROJECT_EMPTY_NAME)
+		val projectDef = getProjectDef(PROJECT_EMPTY_NAME)
+		// Downloaded 1 and 3 of the owner's 1 to 5 before the journal was cut short
+		writeNote(projectDef, 1)
+		writeNote(projectDef, 3)
+		ffs.write(syncPath(projectDef)) { writeUtf8("{\"lastId\":5,\"newI") }
+
+		val repo = createRepository(projectDef)
+		val clientSyncData = repo.loadSyncData()
+		val server = ProjectSynchronizationBegan(
+			syncId = "sync-id",
+			lastSync = Instant.fromEpochSeconds(1234567),
+			lastId = 5,
+			idSequence = listOf(1, 2, 3, 4, 5),
+			deletedIds = emptySet(),
+		)
+		val collated = CollateIdsOperation(projectDef, TestStrRes(), datasource).execute(
+			state = FetchServerDataState(
+				onlyNew = false,
+				clientSyncData = clientSyncData,
+				entityState = ClientEntityState(emptySet()),
+				serverSyncData = server,
+			),
+			onProgress = { _, _ -> },
+			onLog = {},
+			onConflict = mockk(relaxed = true),
+			onComplete = {},
+		)
+		assertTrue(isSuccess(collated))
+		val collatedIds = assertIs<CollateIdsState>(collated.data).collatedIds
+		val serverProjectApi = mockk<ServerProjectApi>(relaxed = true)
+		EntityDeleteOperation(projectDef, serverProjectApi, TestStrRes()).execute(
+			state = IdConflictResolutionState(
+				onlyNew = false,
+				clientSyncData = clientSyncData,
+				entityState = ClientEntityState(emptySet()),
+				serverSyncData = server,
+				collatedIds = collatedIds,
+				maxId = 5,
+				newClientIds = emptyList(),
+			),
+			onProgress = { _, _ -> },
+			onLog = {},
+			onConflict = mockk(relaxed = true),
+			onComplete = {},
+		)
+
+		assertEquals(emptySet(), collatedIds.newlyDeletedIds)
+		coVerify(exactly = 0) { serverProjectApi.deleteId(any(), any(), any()) }
+	}
+
+	@Test
+	fun `A journal write cut short leaves the previous journal intact`() = runTest {
+		createProject(ffs, PROJECT_2_NAME)
+		val projectDef = getProjectDef(PROJECT_2_NAME)
+		val before = ffs.read(syncPath(projectDef)) { readUtf8() }
+		val failingWrites = object : ForwardingFileSystem(ffs) {
+			override fun sink(file: Path, mustCreate: Boolean): Sink =
+				object : ForwardingSink(super.sink(file, mustCreate)) {
+					override fun write(source: Buffer, byteCount: Long) {
+						super.write(source, byteCount / 2)
+						throw IOException("disk full")
+					}
+				}
+		}
+		val failing = SyncJournalDatasource(projectDef, failingWrites, json)
+		val changed = assertNotNull(failing.loadSyncDataOrNull()).copy(lastId = 99)
+
+		assertFailsWith<IOException> { failing.saveSyncData(changed) }
+
+		assertEquals(before, ffs.read(syncPath(projectDef)) { readUtf8() })
+		assertEquals(listOf(SYNC_FILE_NAME), ffs.list(projectDef.path.toOkioPath()).map { it.name }.filter { "sync" in it })
 	}
 
 	@Test

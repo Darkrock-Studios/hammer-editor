@@ -492,12 +492,16 @@ class ProjectsListComponentTest : ComponentTest() {
 
 			comp.showProjectDelete(projectDefA)
 			advanceUntilIdle()
-			assertFalse(assertIs<ProjectsList.ModalDestination.ProjectDelete>(comp.modalRouterState.value.child?.instance).offerServerDelete)
+			val syncing = assertIs<ProjectsList.ModalDestination.ProjectDelete>(comp.modalRouterState.value.child?.instance)
+			assertFalse(syncing.offerServerDelete)
+			assertTrue(syncing.deletesOnServer)
 
 			every { projectsRepository.isSyncEnabled(projectDefA) } returns false
 			comp.showProjectDelete(projectDefA)
 			advanceUntilIdle()
-			assertTrue(assertIs<ProjectsList.ModalDestination.ProjectDelete>(comp.modalRouterState.value.child?.instance).offerServerDelete)
+			val syncOff = assertIs<ProjectsList.ModalDestination.ProjectDelete>(comp.modalRouterState.value.child?.instance)
+			assertTrue(syncOff.offerServerDelete)
+			assertFalse(syncOff.deletesOnServer)
 
 			coEvery { synchronizer.hasProjectBaseline(projectDefA) } returns false
 			comp.showProjectDelete(projectDefA)
@@ -904,6 +908,7 @@ class ProjectsListComponentTest : ComponentTest() {
 	@Test
 	fun `a shared project is neither moved nor renamed`() = runTest(mainTestDispatcher) {
 		every { projectsRepository.getOwner(projectDefA) } returns ProjectOwner(7L, "Alice")
+		every { synchronizer.isServerSynchronized() } returns true
 		val comp = newComponent()
 
 		comp.moveProject(projectDefA, trilogy)

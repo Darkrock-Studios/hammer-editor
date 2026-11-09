@@ -4,6 +4,8 @@ import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.AccountSyncD
 import com.darkrockstudios.apps.hammer.operations.core.ProjectDeleteInput
 import com.darkrockstudios.apps.hammer.common.data.closeProjectScope
 import com.darkrockstudios.apps.hammer.common.data.openProjectScope
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectOwner
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.operations.NoInput
@@ -69,6 +71,9 @@ class ProjectWriteOperationsTest : KoinOperationsTest() {
 
 	@Test
 	fun `a shared project is neither renamed nor deleted`() = onTestThread {
+		get<GlobalSettingsStore>().updateServerSettings(
+			ServerSettings(url = "example.test", email = "a@example.test", userId = 1, bearerToken = "t", refreshToken = "r")
+		)
 		run<ProjectCreateInput, ProjectName>("project.create", ProjectCreateInput("Shared"))
 		val repository = get<ProjectsRepository>()
 		repository.setOwner(repository.findProject("Shared")!!, ProjectOwner(7L, "Alice"))
@@ -76,6 +81,21 @@ class ProjectWriteOperationsTest : KoinOperationsTest() {
 		invalid { run<ProjectRenameInput, ProjectName>("project.rename", ProjectRenameInput("Shared", "Mine")) }
 		invalid { run<ProjectDeleteInput, ProjectName>("project.delete", ProjectDeleteInput("Shared")) }
 		assertEquals(listOf("Shared"), projectNames())
+	}
+
+	@Test
+	fun `a parked shared project is renamed, and deleted here only`() = onTestThread {
+		run<ProjectCreateInput, ProjectName>("project.create", ProjectCreateInput("Shared"))
+		val repository = get<ProjectsRepository>()
+		val def = repository.findProject("Shared")!!
+		repository.setOwner(def, ProjectOwner(7L, "Alice"))
+		repository.setSyncEnabled(def, false)
+
+		run<ProjectRenameInput, ProjectName>("project.rename", ProjectRenameInput("Shared", "Mine"))
+		run<ProjectDeleteInput, ProjectName>("project.delete", ProjectDeleteInput("Mine", alsoDeleteOnServer = true))
+
+		assertEquals(emptyList(), projectNames())
+		assertEquals(emptySet(), get<AccountSyncDatasource>().load().projectsToDelete)
 	}
 
 	@Test

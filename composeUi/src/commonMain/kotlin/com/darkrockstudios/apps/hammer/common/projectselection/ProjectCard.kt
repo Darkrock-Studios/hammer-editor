@@ -121,6 +121,7 @@ fun ProjectIndexRow(
 	depth: Int = 0,
 	groupPath: List<String> = emptyList(),
 	syncOff: Boolean = false,
+	isServerSynced: Boolean = true,
 ) {
 	val storedData = projectData.storedData
 	val author = storedData.authorName?.takeIf { it.isNotBlank() }
@@ -302,20 +303,7 @@ fun ProjectIndexRow(
 			}
 
 			ProjectOptionsMenu(
-				// The owner names and places a shared project. While it syncs, deleting it is leaving it.
-				items = if (shared) {
-					if (!projectData.metadata.info.syncEnabled) {
-						listOf(Res.string.project_select_card_delete_button)
-					} else {
-						listOf(Res.string.project_select_card_leave_button)
-					}
-				} else {
-					listOf(
-						Res.string.project_select_card_delete_button,
-						Res.string.project_select_card_rename_button,
-						Res.string.project_select_card_move_button,
-					)
-				},
+				items = projectMenuItems(shared, projectData.metadata.info.syncEnabled, isServerSynced),
 			) {
 				when (it) {
 					Res.string.project_select_card_delete_button, Res.string.project_select_card_leave_button ->
@@ -496,6 +484,20 @@ fun ProjectOptionsMenu(
 			}
 		}
 	}
+}
+
+/**
+ * While a shared project syncs, deleting it is leaving it, and with a server its owner names and
+ * places it. Parked, it is this device's copy like any other.
+ */
+private fun projectMenuItems(shared: Boolean, syncEnabled: Boolean, isServerSynced: Boolean): List<StringResource> {
+	val leaves = shared && syncEnabled
+	val ownerArranges = leaves && isServerSynced
+	return listOfNotNull(
+		if (leaves) Res.string.project_select_card_leave_button else Res.string.project_select_card_delete_button,
+		Res.string.project_select_card_rename_button.takeUnless { ownerArranges },
+		Res.string.project_select_card_move_button.takeUnless { ownerArranges },
+	)
 }
 
 /** "Shared by {owner}", or "Shared with you" when the owner has no pen name. */

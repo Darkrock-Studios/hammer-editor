@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.common.data.sync.accountsync
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.base.GroupId
 import com.darkrockstudios.apps.hammer.base.ProjectId
+import com.darkrockstudios.apps.hammer.base.http.ApiErrorCode
 import com.darkrockstudios.apps.hammer.base.http.ApiGroupDefinition
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectDefinition
 import com.darkrockstudios.apps.hammer.base.http.BeginProjectsSyncResponse
@@ -321,12 +322,16 @@ class ClientAccountSynchronizer(
 			}
 		}
 
-	/** Records the owner, and the owner's current pen name, of every shared project held here. */
+	/**
+	 * Records the owner, and the owner's current pen name, of every listed project held here, and
+	 * clears a stale owner from one the server lists as this account's own.
+	 */
 	private fun refreshOwners(localProjects: List<ProjectDef>, serverProjects: Collection<ApiProjectDefinition>) {
 		val localById = localProjects.associateBy { it.id }
 		serverProjects.forEach { serverProject ->
-			val owner = serverProject.owner() ?: return@forEach
 			val local = localById[serverProject.uuid] ?: return@forEach
+			val owner = serverProject.owner()
+			if (owner == null && projectsRepository.getOwner(local) == null) return@forEach
 			if (!projectsRepository.setOwner(local, owner)) {
 				Napier.w("Could not record the owner of '${local.name}'")
 			}
@@ -470,7 +475,8 @@ class ClientAccountSynchronizer(
 	/**
 	 * Delete projects on the server which this client deleted locally. An id the server never knew
 	 * belongs to a project deleted before it ever synced: there is nothing to delete, and a
-	 * tombstone for it would only refuse a later create of the same id.
+	 * tombstone for it would only refuse a later create of the same id. A leave this account is no
+	 * longer a member for has nothing left to do either.
 	 */
 	private suspend fun deleteServerProjects(
 		clientSyncData: ProjectsSynchronizationData,
@@ -504,6 +510,11 @@ class ClientAccountSynchronizer(
 						projectsToDelete = syncData.projectsToDelete - projectId,
 						deletedProjects = syncData.deletedProjects + projectId,
 					)
+				}
+			} else if (result.exceptionOrNull()?.apiErrorCode() == ApiErrorCode.NOT_MEMBER) {
+				Napier.i("Not a member of $projectId, dropping its queued delete")
+				accountSyncDatasource.update { syncData ->
+					syncData.copy(projectsToDelete = syncData.projectsToDelete - projectId)
 				}
 			} else {
 				val exception = result.exceptionOrNull()
@@ -601,7 +612,7 @@ class ClientAccountSynchronizer(
 			if (serverProject.ownerId != null && (existingProject != null || isTopLevelNameTaken(localName))) {
 				onLog(
 					syncAccLogW(
-						strRes.get(Res.string.sync_log_account_project_create_client_name_taken, serverProject.name)
+						strRes.get(Res.string.sync_log_account_project_create_shared_name_taken, serverProject.name)
 					)
 				)
 				return@forEach

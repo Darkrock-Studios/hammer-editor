@@ -46,7 +46,11 @@ class ProjectListModalRouter(
 			is Config.ProjectSync -> ProjectsList.ModalDestination.ProjectSync
 			is Config.ProjectRename -> ProjectsList.ModalDestination.ProjectRename(config.projectDef)
 			is Config.ProjectCreate -> ProjectsList.ModalDestination.ProjectCreate(config.parent)
-			is Config.ProjectDelete -> ProjectsList.ModalDestination.ProjectDelete(config.projectDef, config.offerServerDelete)
+			is Config.ProjectDelete -> ProjectsList.ModalDestination.ProjectDelete(
+				config.projectDef,
+				config.offerServerDelete,
+				config.deletesOnServer,
+			)
 			is Config.ProjectLeave -> ProjectsList.ModalDestination.ProjectLeave(config.projectDef, config.ownerName)
 			is Config.GroupCreate -> ProjectsList.ModalDestination.GroupCreate(config.parent)
 			is Config.GroupRename -> ProjectsList.ModalDestination.GroupRename(config.groupDef)
@@ -97,8 +101,8 @@ class ProjectListModalRouter(
 		navigation.activate(Config.None)
 	}
 
-	fun showProjectDelete(projectDef: ProjectDef, offerServerDelete: Boolean) {
-		navigation.activate(Config.ProjectDelete(projectDef, offerServerDelete))
+	fun showProjectDelete(projectDef: ProjectDef, offerServerDelete: Boolean, deletesOnServer: Boolean) {
+		navigation.activate(Config.ProjectDelete(projectDef, offerServerDelete, deletesOnServer))
 	}
 
 	fun showProjectLeave(projectDef: ProjectDef, ownerName: String?) {
@@ -170,7 +174,11 @@ class ProjectListModalRouter(
 		data class ProjectCreate(val parent: GroupDef? = null) : Config()
 
 		@Serializable
-		data class ProjectDelete(val projectDef: ProjectDef, val offerServerDelete: Boolean = false) : Config()
+		data class ProjectDelete(
+			val projectDef: ProjectDef,
+			val offerServerDelete: Boolean = false,
+			val deletesOnServer: Boolean = false,
+		) : Config()
 
 		@Serializable
 		data class ProjectLeave(val projectDef: ProjectDef, val ownerName: String?) : Config()

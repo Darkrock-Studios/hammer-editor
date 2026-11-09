@@ -130,8 +130,15 @@ interface ProjectsList : HammerComponent, ComponentToaster {
 		data object ProjectSync : ModalDestination()
 		data class ProjectRename(val projectDef: ProjectDef) : ModalDestination()
 		data class ProjectCreate(val parent: GroupDef? = null) : ModalDestination()
-		/** [offerServerDelete] for a project with sync off here that the server still holds. */
-		data class ProjectDelete(val projectDef: ProjectDef, val offerServerDelete: Boolean = false) : ModalDestination()
+		/**
+		 * [offerServerDelete] for a project with sync off here that the server still holds;
+		 * [deletesOnServer] for one whose delete goes to the server anyway.
+		 */
+		data class ProjectDelete(
+			val projectDef: ProjectDef,
+			val offerServerDelete: Boolean = false,
+			val deletesOnServer: Boolean = false,
+		) : ModalDestination()
 		/** Deleting a project shared with this account leaves it instead; closed by [dismissProjectDelete]. */
 		data class ProjectLeave(val projectDef: ProjectDef, val ownerName: String?) : ModalDestination()
 		data class GroupCreate(val parent: GroupDef?) : ModalDestination()

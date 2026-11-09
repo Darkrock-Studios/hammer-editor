@@ -234,6 +234,49 @@ class ProjectCardTest {
 	}
 
 	@Test
+	fun `Project Card renames and moves a parked shared project`() {
+		val data = fakeProjectData().shared(ownerName = "Alice")
+		val parked = data.copy(metadata = data.metadata.copy(info = data.metadata.info.copy(syncEnabled = false)))
+		val renamed = mutableListOf<ProjectDef>()
+		compose.setContent {
+			ProjectIndexRow(
+				isWide = true,
+				index = 0,
+				projectData = parked,
+				onProjectClick = {},
+				onProjectAltClick = {},
+				onProjectRenameClick = { renamed += it },
+			)
+		}
+
+		compose.onNodeWithTag("More").performClick()
+		compose.onNodeWithTag("Move to…").assertExists()
+		compose.onNodeWithTag("Rename").performClick()
+
+		assertEquals(listOf(parked.definition), renamed)
+	}
+
+	@Test
+	fun `Project Card renames and moves a shared project with no server`() {
+		compose.setContent {
+			ProjectIndexRow(
+				isWide = true,
+				index = 0,
+				projectData = fakeProjectData().shared(ownerName = "Alice"),
+				onProjectClick = {},
+				onProjectAltClick = {},
+				onProjectRenameClick = {},
+				isServerSynced = false,
+			)
+		}
+
+		compose.onNodeWithTag("More").performClick()
+		compose.onNodeWithTag("Leave").assertExists()
+		compose.onNodeWithTag("Rename").assertExists()
+		compose.onNodeWithTag("Move to…").assertExists()
+	}
+
+	@Test
 	fun `Project Card deletes a parked shared project`() {
 		val data = fakeProjectData().shared(ownerName = "Alice")
 		val parked = data.copy(metadata = data.metadata.copy(info = data.metadata.info.copy(syncEnabled = false)))

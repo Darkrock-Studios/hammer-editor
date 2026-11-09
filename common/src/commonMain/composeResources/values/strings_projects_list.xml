@@ -56,6 +56,7 @@
 	<string name="account_sync_dialog_status_canceled">Canceled</string>
 	<string name="delete_project_title">Delete Project</string>
 	<string name="delete_project_warning">This action cannot be undone. All project data will be permanently deleted.</string>
+	<string name="delete_project_coauthors">If you shared this project, co-authors keep their copies but stop syncing.</string>
 	<string name="delete_project_confirm_hint">Type "%1$s" to confirm</string>
 	<string name="delete_project_confirm">Delete</string>
 	<string name="delete_project_also_server">Also delete on the server</string>
@@ -65,7 +66,7 @@
 	<string name="leave_project_title">Leave Project</string>
 	<string name="leave_project_owner_untouched">%1$s's copy is not touched: the project stays on the server, and anyone else it is shared with keeps syncing it.</string>
 	<string name="leave_project_owner_untouched_unnamed">The owner's copy is not touched: the project stays on the server, and anyone else it is shared with keeps syncing it.</string>
-	<string name="leave_project_copy_kept">Your copy stays on this device and stops syncing. To upload it later as your own project, turn sync on in its settings. To remove it, delete it.</string>
+	<string name="leave_project_copy_kept">Your copy stays on this device and stops syncing. It syncs again if you are invited back. To remove it, delete it.</string>
 	<string name="leave_project_confirm">Leave</string>
 	<string name="rename_project_title">Rename Project</string>
 	<string name="rename_project_heading">New Project Name</string>

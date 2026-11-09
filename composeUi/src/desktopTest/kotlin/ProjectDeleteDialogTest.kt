@@ -6,6 +6,10 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsList
 import com.darkrockstudios.apps.hammer.common.preview.fakeProjectData
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import com.darkrockstudios.apps.hammer.common.projectselection.DeleteCoauthorsNoteTestTag
 import com.darkrockstudios.apps.hammer.common.projectselection.DeleteOnServerToggleTestTag
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectDeleteDialog
 import io.mockk.mockk
@@ -35,6 +39,28 @@ class ProjectDeleteDialogTest {
 
 		verify { component.deleteProject(projectDef, alsoDeleteOnServer = false) }
 	}
+
+	@Test
+	fun `Co-authors are mentioned only when the delete can reach the server`() {
+		var reach by mutableStateOf(Reach.Local)
+		compose.setContent {
+			ProjectDeleteDialog(
+				mockk(relaxed = true),
+				projectDef,
+				close = {},
+				offerServerDelete = reach == Reach.Offered,
+				deletesOnServer = reach == Reach.Always,
+			)
+		}
+
+		compose.onNodeWithTag(DeleteCoauthorsNoteTestTag).assertDoesNotExist()
+		reach = Reach.Offered
+		compose.onNodeWithTag(DeleteCoauthorsNoteTestTag).assertExists()
+		reach = Reach.Always
+		compose.onNodeWithTag(DeleteCoauthorsNoteTestTag).assertExists()
+	}
+
+	private enum class Reach { Local, Offered, Always }
 
 	@Test
 	fun `The offered server option is off by default and can be turned on`() {

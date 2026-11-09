@@ -19,21 +19,31 @@ class ProjectsService(
 	fun moveProject(projectDef: ProjectDef, target: GroupDef?): CResult<ProjectDef> =
 		refuseShared(projectDef) ?: projectsRepository.moveProject(projectDef, target)
 
-	/** The owner names and places a shared project; account sync would undo a local change. */
 	private fun refuseShared(projectDef: ProjectDef): CResult<ProjectDef>? =
-		if (projectsRepository.getOwner(projectDef) != null) {
+		if (ownerNamesAndPlaces(projectDef)) {
 			CResult.failure("'${projectDef.name}' is shared with this account")
 		} else {
 			null
 		}
 
 	/**
+	 * A shared project that syncs takes its name and place from its owner; account sync would undo a
+	 * local change. Parked, or with no server, it is this device's copy to arrange.
+	 */
+	fun ownerNamesAndPlaces(projectDef: ProjectDef): Boolean =
+		projectsRepository.getOwner(projectDef) != null &&
+			projectsRepository.isSyncEnabled(projectDef) &&
+			accountSynchronizer.isServerSynchronized()
+
+	/**
 	 * A project with sync off on this device is deleted here only, so the server keeps its copy,
-	 * unless [alsoDeleteOnServer]. A shared project not yet left is refused: see [leaveProject].
+	 * unless [alsoDeleteOnServer]. A shared project not yet left is refused: see [leaveProject]. A
+	 * parked one is deleted here only: this account is no longer a member to send the delete for.
 	 */
 	suspend fun deleteProject(projectDef: ProjectDef, alsoDeleteOnServer: Boolean = false): Boolean {
 		if (offersLeave(projectDef)) return false
-		val deleteOnServer = alsoDeleteOnServer || projectsRepository.isSyncEnabled(projectDef)
+		val deleteOnServer = projectsRepository.isSyncEnabled(projectDef) ||
+			(alsoDeleteOnServer && projectsRepository.getOwner(projectDef) == null)
 		val deleted = projectsRepository.deleteProject(projectDef)
 		if (deleted && deleteOnServer) {
 			// Queued even when it never synced: account sync drops ids the server never knew.
@@ -59,6 +69,10 @@ class ProjectsService(
 		accountSynchronizer.deleteProject(projectDef)
 		return true
 	}
+
+	/** True for a project that syncs with a server, so deleting it here deletes it there. */
+	fun deletesOnServer(projectDef: ProjectDef): Boolean =
+		accountSynchronizer.isServerSynchronized() && projectsRepository.isSyncEnabled(projectDef)
 
 	/** True for a project with sync off here that the server holds a copy of. */
 	suspend fun offersServerDelete(projectDef: ProjectDef): Boolean =

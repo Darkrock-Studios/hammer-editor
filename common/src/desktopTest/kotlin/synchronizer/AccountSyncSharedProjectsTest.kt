@@ -20,7 +20,17 @@ import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournalD
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.sync_log_account_project_parked
 import com.darkrockstudios.apps.hammer.sync_log_account_project_resumed
+import com.darkrockstudios.apps.hammer.base.http.ApiErrorCode
+import com.darkrockstudios.apps.hammer.base.http.HttpResponseError
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
+import com.darkrockstudios.apps.hammer.common.data.isFailure
+import com.darkrockstudios.apps.hammer.common.data.isSuccess
+import com.darkrockstudios.apps.hammer.common.server.HttpFailureException
+import com.darkrockstudios.apps.hammer.sync_log_account_project_create_client_name_taken
+import com.darkrockstudios.apps.hammer.sync_log_account_project_create_shared_name_taken
+import io.ktor.http.HttpStatusCode
 import io.mockk.coEvery
+import io.mockk.every
 import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
@@ -38,6 +48,7 @@ class AccountSyncSharedProjectsTest : ProjectsDirSyncTest() {
 	private val sharedId = ProjectId.randomUUID()
 	private val alice = ProjectOwner(7L, "Alice")
 	private val listing = ApiProjectDefinition("Shared", sharedId, ownerId = alice.id, ownerName = alice.name)
+	private val signedIn = ServerSettings(url = "example.test", email = "a@example.test", userId = 1, bearerToken = null, refreshToken = null)
 	private val journalJson =
 		"""{"lastId":3,"newIds":[3],"lastSync":"2025-01-01T00:00:00Z","dirty":[],"deletedIds":[]}"""
 
@@ -163,6 +174,31 @@ class AccountSyncSharedProjectsTest : ProjectsDirSyncTest() {
 	}
 
 	@Test
+	fun `a project marked shared that the server lists as this account's own is unmarked and keeps syncing`() = runTest {
+		val def = sharedAndSynced()
+
+		serverLists(ApiProjectDefinition("Shared", sharedId))
+		assertTrue(sync())
+
+		assertNull(repo.getOwner(def))
+		assertTrue(repo.isSyncEnabled(def))
+		assertFalse(ProjectsService(repo, synchronizer()).offersLeave(def))
+		assertTrue(sharedId in accountSyncDatasource.load().projectBaselines)
+		assertFalse(strRes.calls.any { it.first == Res.string.sync_log_account_project_parked })
+	}
+
+	@Test
+	fun `an own project the server lists as shared is marked with its owner`() = runTest {
+		val local = project("Shared")
+		serverLists(ApiProjectDefinition("Shared", local.id, ownerId = alice.id, ownerName = alice.name))
+
+		assertTrue(sync())
+
+		assertEquals(alice, repo.getOwner(local))
+		assertTrue(repo.isSyncEnabled(local))
+	}
+
+	@Test
 	fun `a shared project never takes the folder of a same-named local project`() = runTest {
 		val local = project("Shared")
 		coEvery { serverProjectsApi.createProject("Shared", local.id, "sync-1", null) } returns
@@ -173,5 +209,60 @@ class AccountSyncSharedProjectsTest : ProjectsDirSyncTest() {
 
 		assertEquals(listOf(local.id), tree().projects.map { it.id })
 		assertNull(repo.getOwner(local))
+		assertTrue(strRes.calls.any { it.first == Res.string.sync_log_account_project_create_shared_name_taken })
+		assertFalse(strRes.calls.any { it.first == Res.string.sync_log_account_project_create_client_name_taken })
+	}
+
+	@Test
+	fun `a syncing shared project is not renamed or moved, and a parked one is`() = runTest {
+		every { globalSettingsStore.serverSettings } returns signedIn
+		val def = sharedAndSynced()
+		val service = ProjectsService(repo, synchronizer())
+
+		assertTrue(isFailure(service.renameProject(def, "Mine")))
+		assertTrue(isFailure(service.moveProject(def, null)))
+
+		assertTrue(repo.setSyncEnabled(def, false))
+		val renamed = service.renameProject(def, "Mine")
+		assertTrue(isSuccess(renamed))
+		assertEquals("Mine", renamed.data.name)
+	}
+
+	@Test
+	fun `with no server a shared project is renamed`() = runTest {
+		val def = sharedAndSynced()
+		every { globalSettingsStore.serverSettings } returns null
+
+		assertTrue(isSuccess(ProjectsService(repo, synchronizer()).renameProject(def, "Mine")))
+	}
+
+	@Test
+	fun `a parked shared project is deleted here only, even when asked to delete it on the server`() = runTest {
+		val def = sharedAndSynced()
+		assertTrue(repo.setSyncEnabled(def, false))
+
+		assertTrue(ProjectsService(repo, synchronizer()).deleteProject(def, alsoDeleteOnServer = true))
+
+		assertFalse(ffs.exists(def.path.toOkioPath()))
+		assertTrue(accountSyncDatasource.load().projectsToDelete.isEmpty())
+	}
+
+	@Test
+	fun `a leave the server answers not_member is dropped from the queue`() = runTest {
+		val def = sharedAndSynced()
+		coEvery { serverProjectsApi.deleteProject(sharedId, "sync-1") } returns Result.failure(
+			HttpFailureException(
+				statusCode = HttpStatusCode.Forbidden,
+				error = HttpResponseError(error = "Forbidden", displayMessage = "nope", errorCode = ApiErrorCode.NOT_MEMBER),
+			)
+		)
+		assertTrue(ProjectsService(repo, synchronizer()).leaveProject(def))
+
+		assertTrue(sync())
+		serverLists()
+		assertTrue(sync())
+
+		coVerify(exactly = 1) { serverProjectsApi.deleteProject(sharedId, "sync-1") }
+		assertTrue(accountSyncDatasource.load().projectsToDelete.isEmpty())
 	}
 }

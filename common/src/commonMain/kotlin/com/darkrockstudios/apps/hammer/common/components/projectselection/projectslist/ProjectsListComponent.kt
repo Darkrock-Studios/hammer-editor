@@ -851,7 +851,8 @@ class ProjectsListComponent(
 				return@launch
 			}
 			val offerServerDelete = projectsService.offersServerDelete(projectDef)
-			withContext(mainDispatcher) { modalRouter.showProjectDelete(projectDef, offerServerDelete) }
+			val deletesOnServer = projectsService.deletesOnServer(projectDef)
+			withContext(mainDispatcher) { modalRouter.showProjectDelete(projectDef, offerServerDelete, deletesOnServer) }
 		}
 	}
 

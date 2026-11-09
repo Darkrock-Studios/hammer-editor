@@ -309,6 +309,7 @@ fun ProjectListUi(
 							depth = row.depth,
 							groupPath = row.groupPath,
 							syncOff = state.isServerSynced && !row.data.metadata.info.syncEnabled,
+							isServerSynced = state.isServerSynced,
 						)
 					}
 				}
@@ -761,6 +762,7 @@ fun ModalContent(component: ProjectsList, rootSnackbar: RootSnackbarHostState) {
 				component = component,
 				projectDef = overlay.projectDef,
 				offerServerDelete = overlay.offerServerDelete,
+				deletesOnServer = overlay.deletesOnServer,
 				close = { component.dismissProjectDelete() }
 			)
 		}
