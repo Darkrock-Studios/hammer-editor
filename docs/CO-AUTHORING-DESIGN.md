@@ -528,7 +528,8 @@ stages below, in order, each landing as a series of checkpoint commits on the br
    card label landed in stage 5. Landed 2026-11-08 as `01f17ed54`, `8ce0d85ac`, `ae234439a`,
    `df24fa9aa`, with `3cde7b23e` (a co-author's delete becomes a leave in `DeleteProjectUseCase`).
 7. **Docs:** `SYNCING-PROTOCOL.md` sections for membership, `403 not_member`, leave and the
-   session rules; `ARCHITECTURE.md` on `project.toml`'s sync fields and parked projects.
+   session rules; `ARCHITECTURE.md` on `project.toml`'s sync fields and parked projects. Landed
+   2026-11-08 as `a1eb58cde`.
 
 After stage 6, the client was simplified: a shared project has no sync switch, `Info.parked` and
 the "upload as my own" turn-on path were removed, and parked became `ownerId != null &&
