@@ -239,6 +239,8 @@
 	<string name="sync_log_account_project_create_client_name_taken">Skipped server project %1$s: a local project of that name already syncs with a different server project</string>
 	<string name="sync_log_project_sync_disabled">Project %1$s does not sync on this device; turn sync on in its settings</string>
 	<string name="sync_log_account_project_create_client_name_excluded">Skipped server project %1$s: a local project of that name does not sync on this device</string>
+	<string name="sync_log_account_project_parked">%1$s is no longer shared with you. Your copy is kept on this device and no longer syncs. Turn sync on in its settings to upload it as your own project.</string>
+	<string name="sync_log_account_project_resumed">%1$s is shared with you again and syncs once more. Every scene is checked against the server copy</string>
 	<string name="sync_log_account_project_delete_kept_excluded">Project %1$s was deleted on the server but does not sync on this device, so it is kept here. Turning sync on will upload it as a new project</string>
 
 	<string name="sync_log_account_project_move_server_success">Moved project on server: %1$s</string>

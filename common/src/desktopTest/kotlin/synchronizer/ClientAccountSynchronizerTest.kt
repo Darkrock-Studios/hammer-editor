@@ -51,6 +51,8 @@ import com.darkrockstudios.apps.hammer.sync_log_account_project_delete_kept_excl
 import com.darkrockstudios.apps.hammer.sync_log_account_project_deleted_elsewhere
 import com.darkrockstudios.apps.hammer.sync_log_account_project_id_reminted
 import com.darkrockstudios.apps.hammer.sync_log_account_project_in_use
+import com.darkrockstudios.apps.hammer.sync_log_account_project_parked
+import com.darkrockstudios.apps.hammer.sync_log_account_project_resumed
 import com.darkrockstudios.apps.hammer.sync_log_account_project_rename_client_from_server_failure
 import org.jetbrains.compose.resources.StringResource
 import io.ktor.http.*
@@ -1511,10 +1513,12 @@ class ClientAccountSynchronizerTest : BaseTest() {
 
 		createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
 		every { projectsRepository.isSyncEnabled(def) } returns false
+		every { projectsRepository.isParked(def) } returns true
 		createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
 
 		verify(exactly = 0) { projectsRepository.deleteProject(any()) }
 		coVerify(exactly = 0) { projectsRepository.setProjectId(any(), any()) }
+		verify { projectsRepository.park(def) }
 	}
 
 	@Test
@@ -1542,4 +1546,88 @@ class ClientAccountSynchronizerTest : BaseTest() {
 		statusCode = HttpStatusCode.Forbidden,
 		error = HttpResponseError(error = "Forbidden", displayMessage = "nope", errorCode = ApiErrorCode.NOT_MEMBER),
 	)
+
+	@Test
+	fun `a shared project the server no longer lists is parked, logged once, and left alone`() = runTest {
+		val id = ProjectId.randomUUID()
+		val def = projectDef("Shared", id)
+		writeSyncData(emptySyncData().copy(projectBaselines = mapOf(id to ProjectBaseline("Shared"))))
+		stubLocalProjects(listOf(def))
+		every { projectsRepository.getOwner(def) } returns alice
+		every { projectsRepository.isParked(def) } returns false
+		every { projectsRepository.park(def) } answers {
+			every { projectsRepository.isParked(def) } returns true
+			every { projectsRepository.isSyncEnabled(def) } returns false
+			true
+		}
+
+		val strRes = RecordingStrRes()
+		assertTrue(createSynchronizer(strRes).syncProjects(onLog = {}, onUnauthorized = {}))
+		createSynchronizer(strRes).syncProjects(onLog = {}, onUnauthorized = {})
+
+		verify(exactly = 1) { projectsRepository.park(def) }
+		assertEquals(1, strRes.calls.count { it.first == Res.string.sync_log_account_project_parked })
+		assertTrue(readSyncData().projectBaselines.isEmpty())
+		verify(exactly = 0) { projectsRepository.deleteProject(any()) }
+		coVerify(exactly = 0) { serverProjectsApi.createProject(any(), any(), any(), any()) }
+		coVerify(exactly = 0) { projectsRepository.clearSyncBaseline(any()) }
+	}
+
+	@Test
+	fun `a shared project with a leave queued is not parked before the leave is sent`() = runTest {
+		val id = ProjectId.randomUUID()
+		val def = projectDef("Shared", id)
+		writeSyncData(emptySyncData().copy(projectsToDelete = setOf(id)))
+		stubLocalProjects(listOf(def))
+		every { projectsRepository.getOwner(def) } returns alice
+		coEvery { serverProjectsApi.beginProjectsSync() } returns
+			Result.success(emptyServerResponse().copy(projects = setOf(sharedServerProject("Shared", id))))
+		coEvery { serverProjectsApi.deleteProject(id, "sync-1") } returns Result.success("ok")
+
+		createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
+
+		coVerify { serverProjectsApi.deleteProject(id, "sync-1") }
+		verify(exactly = 0) { projectsRepository.park(any()) }
+	}
+
+	@Test
+	fun `a parked project the server lists again resumes and syncs this session`() = runTest {
+		writeSyncData(emptySyncData())
+		val id = ProjectId.randomUUID()
+		val def = projectDef("Shared", id)
+		stubLocalProjects(listOf(def))
+		every { projectsRepository.getOwner(def) } returns alice
+		every { projectsRepository.isSyncEnabled(def) } returns false
+		every { projectsRepository.isParked(def) } returns true
+		coEvery { projectsRepository.unpark(def) } returns true
+		every { projectsRepository.renameProject(def, "Renamed") } returns CResult.success(def.copy(name = "Renamed"))
+		coEvery { serverProjectsApi.beginProjectsSync() } returns
+			Result.success(emptyServerResponse().copy(projects = setOf(sharedServerProject("Renamed", id))))
+
+		val strRes = RecordingStrRes()
+		createSynchronizer(strRes).syncProjects(onLog = {}, onUnauthorized = {})
+
+		coVerify { projectsRepository.unpark(def) }
+		assertTrue(strRes.calls.any { it.first == Res.string.sync_log_account_project_resumed })
+		// No longer excluded: the owner's rename is applied in the same session.
+		verify { projectsRepository.renameProject(def, "Renamed") }
+	}
+
+	@Test
+	fun `a project turned off by hand is not resumed when listed`() = runTest {
+		writeSyncData(emptySyncData())
+		val id = ProjectId.randomUUID()
+		val def = projectDef("Shared", id)
+		stubLocalProjects(listOf(def))
+		every { projectsRepository.getOwner(def) } returns alice
+		every { projectsRepository.isSyncEnabled(def) } returns false
+		every { projectsRepository.isParked(def) } returns false
+		coEvery { serverProjectsApi.beginProjectsSync() } returns
+			Result.success(emptyServerResponse().copy(projects = setOf(sharedServerProject("Shared", id))))
+
+		createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
+
+		coVerify(exactly = 0) { projectsRepository.unpark(any()) }
+		verify(exactly = 0) { projectsRepository.park(any()) }
+	}
 }

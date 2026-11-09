@@ -61,6 +61,7 @@ class ClientAccountSynchronizer(
 	var initialSync = false
 
 	private val placer = LocalProjectPlacer(projectsRepository, strRes)
+	private val parker = SharedProjectParker(projectsRepository, accountSyncDatasource)
 
 	fun isServerSynchronized(): Boolean {
 		return (globalSettingsStore.serverSettings?.userId ?: -1) > -1
@@ -110,6 +111,7 @@ class ClientAccountSynchronizer(
 					.mapTo(mutableSetOf()) { it.id }
 
 				refreshOwners(localProjects, serverSyncData.projects)
+				parkOrResumeSharedProjects(localProjects, serverSyncData, clientSyncData, excluded, ledger, onLog)
 
 				yield()
 
@@ -328,6 +330,49 @@ class ClientAccountSynchronizer(
 			if (!projectsRepository.setOwner(local, owner)) {
 				Napier.w("Could not record the owner of '${local.name}'")
 			}
+		}
+	}
+
+	/**
+	 * Parks every shared project the server no longer lists, whatever the reason: the owner removed
+	 * this account or deleted the project, this account left from another device, or the owner's
+	 * account went inactive. A parked project the server lists again is shared again and resumes.
+	 * A project with a leave still queued is left for the delete phase.
+	 */
+	private suspend fun parkOrResumeSharedProjects(
+		localProjects: List<ProjectDef>,
+		serverSyncData: BeginProjectsSyncResponse,
+		clientSyncData: ProjectsSynchronizationData,
+		excluded: MutableSet<ProjectId>,
+		ledger: BaselineLedger,
+		onLog: OnSyncLog,
+	) {
+		val listed = serverSyncData.projects.mapTo(mutableSetOf()) { it.uuid }
+		localProjects
+			.filter { it.id !in clientSyncData.projectsToDelete && projectsRepository.getOwner(it) != null }
+			.forEach { projectDef ->
+				if (projectDef.id !in listed) {
+					excluded += projectDef.id
+					ledger.retireProject(projectDef.id)
+					if (parker.park(projectDef)) {
+						onLog(syncAccLogW(strRes.get(Res.string.sync_log_account_project_parked, projectDef.name)))
+					}
+				} else if (projectsRepository.isParked(projectDef)) {
+					resumeShared(projectDef, excluded, onLog)
+				}
+			}
+	}
+
+	private suspend fun resumeShared(projectDef: ProjectDef, excluded: MutableSet<ProjectId>, onLog: OnSyncLog) {
+		val resumed = try {
+			projectsRepository.unpark(projectDef)
+		} catch (_: ProjectInUseException) {
+			placer.logInUse(projectDef, onLog)
+			return
+		}
+		if (resumed) {
+			excluded -= projectDef.id
+			onLog(syncAccLogI(strRes.get(Res.string.sync_log_account_project_resumed, projectDef.name)))
 		}
 	}
 

@@ -153,7 +153,9 @@ class SyncJournal(
 			newIds = emptyList(),
 			lastSync = Instant.DISTANT_PAST,
 			dirty = emptyList(),
-			deletedIds = deletedIds
+			deletedIds = deletedIds,
+			// A rebuilt journal is a guess: it marks nothing dirty, so the next sync checks everything.
+			verifyAllEntities = true,
 		)
 	}
 	fun saveSyncData(syncData: ProjectSynchronizationData) = datasource.saveSyncData(syncData)

@@ -131,7 +131,8 @@ class SyncJournalTest : BaseTest() {
 				newIds = emptyList(),
 				lastSync = Instant.DISTANT_PAST,
 				dirty = emptyList(),
-				deletedIds = setOf(2)
+				deletedIds = setOf(2),
+				verifyAllEntities = true,
 			),
 			loadedData
 		)

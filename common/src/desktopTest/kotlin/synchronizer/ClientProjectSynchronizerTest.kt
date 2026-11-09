@@ -1,12 +1,15 @@
 package synchronizer
 
 import PROJECT_2_NAME
+import com.darkrockstudios.apps.hammer.base.http.ApiErrorCode
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.HttpResponseError
 import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.AccountSessionLock
+import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.SharedProjectParker
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.*
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
@@ -56,6 +59,8 @@ class ClientProjectSynchronizerTest : BaseTest() {
 	private val projectsRepository = mockk<ProjectsRepository> {
 		every { isSyncEnabled(any()) } returns true
 	}
+
+	private val parker = mockk<SharedProjectParker>()
 
 	@MockK
 	private lateinit var prepareForSyncOperation: PrepareForSyncOperation
@@ -132,6 +137,8 @@ class ClientProjectSynchronizerTest : BaseTest() {
 			serverProjectApi = serverProjectApi,
 			syncGate = syncGate,
 			projectsRepository = projectsRepository,
+			parker = parker,
+			sessionLock = AccountSessionLock(),
 		)
 	}
 
@@ -173,6 +180,53 @@ class ClientProjectSynchronizerTest : BaseTest() {
 		assertFalse(syncer.syncQuietly())
 		coVerify(exactly = 0) { prepareForSyncOperation.execute(any(), any(), any(), any(), any()) }
 		coVerify(exactly = 0) { serverProjectApi.endProjectSync(any(), any(), any(), any(), any()) }
+	}
+
+	@Test
+	fun `A project route refusing a shared project parks it`() = runTest {
+		val projectDef = getProjectDef(PROJECT_2_NAME)
+		val syncer = createProjectSync(projectDef)
+		succeedEveryOperation()
+		coEvery { parker.park(projectDef) } returns true
+		val notMember = HttpFailureException(
+			HttpStatusCode.Forbidden,
+			HttpResponseError(error = "Forbidden", displayMessage = "nope", errorCode = ApiErrorCode.NOT_MEMBER),
+		)
+		coEvery { fetchServerDataOperation.execute(any(), any(), any(), any(), any()) } returns CResult.failure(notMember)
+		val logs = mutableListOf<SyncLogMessage>()
+
+		assertFalse(syncer.sync({ _, _ -> }, { logs += it }, mockk(relaxed = true), {}, onUnauthorized = {}))
+
+		coVerify { parker.park(projectDef) }
+		assertTrue(logs.any { it.level == SyncLogLevel.WARN })
+		coVerify(exactly = 0) { entityTransferOperation.execute(any(), any(), any(), any(), any()) }
+	}
+
+	@Test
+	fun `A shared project the server no longer knows is parked`() = runTest {
+		val projectDef = getProjectDef(PROJECT_2_NAME)
+		val syncer = createProjectSync(projectDef)
+		succeedEveryOperation()
+		coEvery { parker.park(projectDef) } returns true
+		coEvery { fetchServerDataOperation.execute(any(), any(), any(), any(), any()) } returns
+			CResult.failure(ProjectNoLongerSharedException(projectDef.name))
+
+		assertFalse(syncer.syncQuietly())
+
+		coVerify { parker.park(projectDef) }
+	}
+
+	@Test
+	fun `Other failures park nothing`() = runTest {
+		val projectDef = getProjectDef(PROJECT_2_NAME)
+		val syncer = createProjectSync(projectDef)
+		succeedEveryOperation()
+		coEvery { fetchServerDataOperation.execute(any(), any(), any(), any(), any()) } returns
+			CResult.failure(IllegalStateException("boom"))
+
+		assertFalse(syncer.syncQuietly())
+
+		coVerify(exactly = 0) { parker.park(any()) }
 	}
 
 	@Test

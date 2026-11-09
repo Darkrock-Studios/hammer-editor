@@ -321,6 +321,23 @@ class ProjectsRepository(
 	fun setOwner(projectDef: ProjectDef, owner: ProjectOwner): Boolean =
 		updateInfo(projectDef) { it.copy(ownerId = owner.id, ownerName = owner.name) }
 
+	fun isParked(projectDef: ProjectDef): Boolean =
+		projectsMetadataDatasource.readMetadata(projectDef)?.info?.parked ?: false
+
+	/** Turns sync off for a shared project its owner stopped sharing, see [Info.parked]. */
+	fun park(projectDef: ProjectDef): Boolean =
+		updateInfo(projectDef) { it.copy(syncEnabled = false, parked = true) }
+
+	/**
+	 * Turns sync back on for a parked project that is shared again. Its journal is flagged so the
+	 * next sync compares every entity: the server copy moved on while this one did not sync.
+	 */
+	suspend fun unpark(projectDef: ProjectDef): Boolean {
+		if (isProjectInUse(projectDef)) throw ProjectInUseException(projectDef.name)
+		markProjectRestored(projectDef, fileSystem, json, serverKnowsProject = true)
+		return updateInfo(projectDef) { it.copy(syncEnabled = true, parked = false) }
+	}
+
 	/**
 	 * Rewrites `project.toml`'s [Info] when [block] changes it. False when the file cannot be read;
 	 * it is not recreated here, as that would mint a new id.

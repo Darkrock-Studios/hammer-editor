@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.data.sync.projectsync
 
 import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.base.http.ApiErrorCode
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -8,6 +9,8 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.AccountSessionLock
+import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.SharedProjectParker
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.BackupOperation
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.CollateIdsOperation
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.EntityDeleteOperation
@@ -17,12 +20,14 @@ import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.F
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.FinalizeSyncOperation
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.IdConflictResolutionOperation
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.PrepareForSyncOperation
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.ProjectNoLongerSharedException
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.ProjectDataSyncOperation
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.WritingActivitySyncOperation
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.server.HttpFailureException
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import com.darkrockstudios.apps.hammer.common.util.StrRes
+import com.darkrockstudios.apps.hammer.sync_log_account_project_parked
 import com.darkrockstudios.apps.hammer.sync_log_entity_failed
 import com.darkrockstudios.apps.hammer.sync_log_project_sync_disabled
 import io.github.aakira.napier.Napier
@@ -45,6 +50,8 @@ class ClientProjectSynchronizer(
 	private val serverProjectApi: ServerProjectApi,
 	private val syncGate: ProjectSyncGateRepository,
 	private val projectsRepository: ProjectsRepository,
+	private val parker: SharedProjectParker,
+	private val sessionLock: AccountSessionLock,
 ) : ProjectScoped {
 
 	override val projectScope = ProjectDefScope(projectDef)
@@ -177,6 +184,10 @@ class ClientProjectSynchronizer(
 			)
 		)
 		endSync()
+		// Under the account session lock: parking rewrites sync.json, which account sync also writes.
+		if (e.isNoLongerShared() && sessionLock.withSession { parker.park(projectDef) }) {
+			onLog(syncLogW(strRes.get(Res.string.sync_log_account_project_parked, projectDef.name), projectDef))
+		}
 		onComplete(false)
 
 		// Check if the error is a 401 Unauthorized error
@@ -218,6 +229,10 @@ class ClientProjectSynchronizer(
 		const val ENTITY_END = ENTITY_START + ENTITY_TOTAL
 	}
 }
+
+/** A shared project's routes refuse this account, or the server has no record of it. */
+private fun Throwable.isNoLongerShared(): Boolean =
+	this is ProjectNoLongerSharedException || apiErrorCode() == ApiErrorCode.NOT_MEMBER
 
 class ProjectSyncDisabledException(projectName: String) :
 	IllegalStateException("Sync is off for '$projectName' on this device")

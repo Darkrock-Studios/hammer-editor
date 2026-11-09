@@ -28,4 +28,9 @@ data class Info(
 	/** The owner's account id for a project shared with this account; null for the account's own. */
 	val ownerId: Long? = null,
 	val ownerName: String? = null,
+	/**
+	 * Sync was turned off because the owner stopped sharing the project, not by hand: account sync
+	 * turns it back on if the project is shared again.
+	 */
+	val parked: Boolean = false,
 )
