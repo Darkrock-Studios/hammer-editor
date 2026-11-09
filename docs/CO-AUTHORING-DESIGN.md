@@ -206,7 +206,7 @@ listed, and `create` with their id answers `403`.
 
 A co-author's `delete` writes nothing to `deleted_project`. A tombstone for the caller would make
 `create` answer `project_deleted` for ever after, and the client never re-mints on that code, so
-the kept copy could never be uploaded as the co-author's own.
+the kept copy could never be uploaded as the co-author's own (deferred, see Later, optional).
 
 A co-author's `rename` and `move` answer `403` with `errorCode` `not_owner`
 (`ApiErrorCode.NOT_OWNER`), a stranger's `403 not_member`; an unknown id stays `404` as today.
@@ -526,7 +526,7 @@ stages below, in order, each landing as a series of checkpoint commits on the br
 
 After stage 6, the client was simplified: a shared project has no sync switch, `Info.parked` and
 the "upload as my own" turn-on path were removed, and parked became `ownerId != null &&
-!syncEnabled`.
+!syncEnabled`. Landed 2026-11-08 as `2cb1b2b04` and a review-fix commit.
 
 Protocol version 4 is the deployment gate (Decision 7), and server and clients ship together in
 4.0.0, so nothing in the order above is load-bearing for deployment; it is the order that keeps

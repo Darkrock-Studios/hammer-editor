@@ -153,13 +153,7 @@ fun ProjectIndexRow(
 
 	val breadcrumb = remember(groupPath) { groupPath.takeIf { it.isNotEmpty() }?.joinToString(" › ") }
 	val shared = projectData.metadata.info.ownerId != null
-	val sharedBy = if (shared) {
-		projectData.metadata.info.ownerName?.takeIf { it.isNotBlank() }
-			?.let { Res.string.projects_list_card_shared_by.get(it) }
-			?: Res.string.projects_list_card_shared.get()
-	} else {
-		null
-	}
+	val sharedBy = if (shared) sharedByLabel(projectData.metadata.info.ownerName) else null
 
 	Column(
 		modifier = modifier
@@ -503,3 +497,10 @@ fun ProjectOptionsMenu(
 		}
 	}
 }
+
+/** "Shared by {owner}", or "Shared with you" when the owner has no pen name. */
+@Composable
+fun sharedByLabel(ownerName: String?): String =
+	ownerName?.takeIf { it.isNotBlank() }
+		?.let { Res.string.projects_list_card_shared_by.get(it) }
+		?: Res.string.projects_list_card_shared.get()

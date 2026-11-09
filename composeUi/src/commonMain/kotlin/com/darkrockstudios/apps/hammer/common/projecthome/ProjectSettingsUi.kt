@@ -73,6 +73,7 @@ import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialog
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineDialogShell
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectOwner
+import com.darkrockstudios.apps.hammer.common.projectselection.sharedByLabel
 import com.darkrockstudios.apps.hammer.project_settings_sync_deleted_body
 import com.darkrockstudios.apps.hammer.project_settings_sync_deleted_ok
 import com.darkrockstudios.apps.hammer.project_settings_sync_deleted_title
@@ -85,8 +86,6 @@ import com.darkrockstudios.apps.hammer.project_settings_sync_off_unaffected
 import com.darkrockstudios.apps.hammer.project_settings_sync_section_title
 import com.darkrockstudios.apps.hammer.project_settings_sync_shared_off
 import com.darkrockstudios.apps.hammer.project_settings_sync_shared_syncing
-import com.darkrockstudios.apps.hammer.projects_list_card_shared
-import com.darkrockstudios.apps.hammer.projects_list_card_shared_by
 import com.darkrockstudios.apps.hammer.project_settings_sync_toggle
 import com.darkrockstudios.apps.hammer.project_settings_sync_toggle_hint
 import org.koin.compose.koinInject
@@ -339,9 +338,7 @@ internal fun ProjectSync(
 private fun SharedProjectSync(owner: ProjectOwner, syncEnabled: Boolean) {
 	Column(modifier = Modifier.fillMaxWidth().testTag(ProjectSyncSharedTestTag)) {
 		Text(
-			text = owner.name?.takeIf { it.isNotBlank() }
-				?.let { Res.string.projects_list_card_shared_by.get(it) }
-				?: Res.string.projects_list_card_shared.get(),
+			text = sharedByLabel(owner.name),
 			style = MaterialTheme.typography.bodyLarge,
 			color = MaterialTheme.colorScheme.onSurface,
 		)

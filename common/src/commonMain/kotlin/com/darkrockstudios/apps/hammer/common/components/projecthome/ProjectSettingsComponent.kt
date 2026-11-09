@@ -60,7 +60,8 @@ class ProjectSettingsComponent(
 	private val _projectInfoState = MutableValue(ProjectSettings.ProjectInfoState())
 	override val projectInfoState: Value<ProjectSettings.ProjectInfoState> = _projectInfoState
 
-	private val _syncState = MutableValue(ProjectSettings.SyncState())
+	// Read up front so a shared project never shows the switch, even before the first flag emission.
+	private val _syncState = MutableValue(ProjectSettings.SyncState(owner = projectsRepository.getOwner(projectDef)))
 	override val syncState: Value<ProjectSettings.SyncState> = _syncState
 
 	private val _disabledPlugins = MutableValue(emptySet<String>())
@@ -110,9 +111,8 @@ class ProjectSettingsComponent(
 		}
 		scope.launch {
 			projectsRepository.syncEnabledUpdates(projectDef).collect { enabled ->
-				val owner = projectsRepository.getOwner(projectDef)
 				withContext(mainDispatcher) {
-					_syncState.getAndUpdate { it.copy(syncEnabled = enabled, owner = owner) }
+					_syncState.getAndUpdate { it.copy(syncEnabled = enabled) }
 				}
 			}
 		}
