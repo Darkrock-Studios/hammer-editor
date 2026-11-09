@@ -533,7 +533,7 @@ stages below, in order, each landing as a series of checkpoint commits on the br
 After stage 6, the client was simplified: a shared project has no sync switch, `Info.parked` and
 the "upload as my own" turn-on path were removed, and parked became `ownerId != null &&
 !syncEnabled`. Landed 2026-11-08 as `2cb1b2b04` and `6dc9f5f4c`. A rebuilt `project.toml` comes
-up with sync off (Parked projects).
+up with sync off (Parked projects), landed as `04b05e83b`.
 
 Protocol version 4 is the deployment gate (Decision 7), and server and clients ship together in
 4.0.0, so nothing in the order above is load-bearing for deployment; it is the order that keeps
