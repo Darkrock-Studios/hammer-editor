@@ -14,10 +14,11 @@ import dev.nucleusframework.updater.provider.UpdateProvider
  */
 class HammerReleaseProvider(
 	private val baseUrl: String = defaultBaseUrl(),
+	private val arch: String = System.getProperty("os.arch"),
 ) : UpdateProvider {
 
 	override fun getUpdateMetadataUrl(channel: String, platform: Platform): String =
-		"$baseUrl/${metadataFileName(platform)}"
+		"$baseUrl/${metadataFileName(platform, arch)}"
 
 	override fun getDownloadUrl(fileName: String, version: String): String = "$baseUrl/$fileName"
 
@@ -42,7 +43,7 @@ class HammerReleaseProvider(
 		 * arm64 install reading the x64 list would fetch the x64 package. Linux arm64 gets its own
 		 * list, named as electron-builder names it.
 		 */
-		fun metadataFileName(platform: Platform, arch: String = System.getProperty("os.arch")): String =
+		fun metadataFileName(platform: Platform, arch: String): String =
 			when (platform) {
 				Platform.MacOS -> "latest-mac.yml"
 				Platform.Linux -> if (isArm64(arch)) "latest-linux-arm64.yml" else "latest-linux.yml"

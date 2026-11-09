@@ -225,6 +225,9 @@ jobs:
       - name: Make DEB installable on Debian
         run: .github/scripts/deb-make-portable.sh desktop/build/installers/main-release/deb/hammer.deb
 
+      - name: Smoke test the ".deb" CLI on Debian
+        run: .github/scripts/deb-debian-smoke-test.sh desktop/build/installers/main-release/deb/hammer.deb android/src/main/res/mipmap-mdpi/ic_launcher.webp
+
       - name: Package Linux ".rpm" distribution
         uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
         with:
@@ -256,14 +259,28 @@ jobs:
           max_attempts: 3
           command: ./gradlew buildDistAppImage -Pchannel=appimage -Pformat=appimage
 
+      - name: Build Linux ".tar.gz" distribution
+        uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
+          command: ./gradlew buildDistTarball -Pchannel=github -Pformat=tarball
+
+      - name: Smoke test the ".tar.gz" CLI without a display
+        run: |
+          unpacked="$RUNNER_TEMP/hammer-tarball"
+          mkdir -p "$unpacked"
+          tar -xzf desktop/build/installers/main-release/tarball/hammer-x64.tar.gz -C "$unpacked"
+          .github/scripts/cli-smoke-test.sh "$unpacked/hammer/bin/hammer" android/src/main/res/mipmap-mdpi/ic_launcher.webp
+
       - name: Write update digests
-        run: ./gradlew writeAssetDigests "-PassetFiles=desktop/build/installers/main-release/deb/hammer.deb,desktop/build/installers/main-release/rpm/hammer.rpm,desktop/build/installers/main-release/appimage/hammer.AppImage"
+        run: ./gradlew writeAssetDigests "-PassetFiles=desktop/build/installers/main-release/deb/hammer.deb,desktop/build/installers/main-release/rpm/hammer.rpm,desktop/build/installers/main-release/appimage/hammer.AppImage,desktop/build/installers/main-release/tarball/hammer-x64.tar.gz"
 
       - name: Upload update digests
         uses: actions/upload-artifact@v7
         with:
           name: update-digests-linux
-          path: desktop/build/installers/main-release/*/hammer.*.sha512
+          path: desktop/build/installers/main-release/*/hammer*.sha512
           if-no-files-found: error
 
       - name: Create Release
@@ -275,7 +292,7 @@ jobs:
           prerelease: true
           artifactErrorsFailBuild: true
           allowUpdates: true
-          artifacts: "${{ github.workspace }}/desktop/build/installers/main-release/deb/hammer.deb,${{ github.workspace }}/desktop/build/installers/main-release/rpm/hammer.rpm,${{ github.workspace }}/desktop/build/installers/main-release/appimage/hammer.AppImage,${{ github.workspace }}/desktop/build/installers/main-release/appimage/hammer.AppImage.zsync"
+          artifacts: "${{ github.workspace }}/desktop/build/installers/main-release/deb/hammer.deb,${{ github.workspace }}/desktop/build/installers/main-release/rpm/hammer.rpm,${{ github.workspace }}/desktop/build/installers/main-release/appimage/hammer.AppImage,${{ github.workspace }}/desktop/build/installers/main-release/appimage/hammer.AppImage.zsync,${{ github.workspace }}/desktop/build/installers/main-release/tarball/hammer-x64.tar.gz"
 
   # Raspberry Pi and other aarch64 boards. jpackage and the bundled JRE and Skiko all follow the
   # build machine, so this needs a native arm64 runner rather than a cross build.
@@ -304,15 +321,16 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-${{ runner.arch }}-gradle-
 
-      # jpackage's .deb step shells out to fakeroot, which the arm64 runner image may not carry.
-      - name: Install fakeroot
+      # jpackage's .deb step shells out to fakeroot, and the smoke tests use jq and unzip; the arm64
+      # runner image may not carry them.
+      - name: Install packaging and smoke test tools
         uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
         with:
           timeout_minutes: 10
           max_attempts: 3
           command: |
             sudo apt-get update
-            sudo apt-get install -y fakeroot
+            sudo apt-get install -y fakeroot jq unzip
 
       - name: Package Linux arm64 ".deb" distribution
         uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
@@ -341,18 +359,8 @@ jobs:
           sudo apt-get install -y ./desktop/build/installers/main-release/deb/hammer-arm64.deb
           .github/scripts/cli-smoke-test.sh /opt/hammer/bin/hammer android/src/main/res/mipmap-mdpi/ic_launcher.webp
 
-      # Raspberry Pi OS 12 and 13 are these Debian releases. Minimal images also have no menu
-      # directory, which a desktop runner cannot show.
       - name: Smoke test the ".deb" CLI on Debian
-        run: |
-          for image in debian:bookworm debian:trixie; do
-            echo "=== $image"
-            docker run --rm -v "$PWD:/src:ro" -w /src "$image" bash -euc '
-              apt-get update -qq
-              apt-get install -y -qq ./desktop/build/installers/main-release/deb/hammer-arm64.deb jq unzip
-              .github/scripts/cli-smoke-test.sh /opt/hammer/bin/hammer android/src/main/res/mipmap-mdpi/ic_launcher.webp
-              apt-get remove -y -qq hammer'
-          done
+        run: .github/scripts/deb-debian-smoke-test.sh desktop/build/installers/main-release/deb/hammer-arm64.deb android/src/main/res/mipmap-mdpi/ic_launcher.webp
 
       - name: Build Linux arm64 ".tar.gz" distribution
         uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
@@ -668,6 +676,8 @@ jobs:
     needs: tests
     # flatpak-builder builds for the arch it runs on, so each bundle needs its own runner.
     strategy:
+      # The arm64 leg failing should not cancel the x64 one.
+      fail-fast: false
       matrix:
         include:
           - runner: ubuntu-latest

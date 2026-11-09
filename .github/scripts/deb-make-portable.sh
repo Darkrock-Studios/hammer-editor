@@ -8,12 +8,18 @@
 # Usage: deb-make-portable.sh <file.deb>
 set -euo pipefail
 
-deb="$1"
+deb="$(realpath "$1")"
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 
-dpkg-deb -R "$deb" "$work/pkg"
-control="$work/pkg/DEBIAN/control"
+# Only the control archive changes. The payload member is copied as it is, so it is not
+# recompressed and its ownership and modes stay exactly as jpackage wrote them.
+cd "$work"
+ar x "$deb"
+data="$(ls data.tar*)"
+mkdir pkg
+dpkg-deb --ctrl-tarfile "$deb" | tar -x -C pkg
+control=pkg/control
 
 depends="$(sed -n 's/^Depends: //p' "$control")"
 portable="$(
@@ -28,9 +34,11 @@ portable="$(
 sed -i "s/^Depends: .*/Depends: $portable/" "$control"
 
 for script in postinst prerm; do
-	sed -i 's/^\(xdg-desktop-menu .*\)$/\1 || true/' "$work/pkg/DEBIAN/$script"
+	sed -i 's/^\(xdg-desktop-menu .*\)$/\1 || true/' "pkg/$script"
 done
 
-# jpackage builds under fakeroot, so every file in the package is root's.
-dpkg-deb --root-owner-group -b "$work/pkg" "$deb" > /dev/null
+# dpkg reads an uncompressed control.tar too, which needs no compressor on the build machine.
+tar -C pkg -cf control.tar --owner=0 --group=0 --numeric-owner .
+ar rc rebuilt.deb debian-binary control.tar "$data"
+mv rebuilt.deb "$deb"
 echo "Depends: $portable"

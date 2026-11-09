@@ -203,8 +203,8 @@ fun Project.registerBuildDistAppImageTask() {
 }
 
 /**
- * The arch suffix Linux release assets carry beside the x64 ones, which have none. Nucleus's
- * updater matches it in asset names, so it must be one of its tokens (`arm64`/`aarch64`).
+ * The arch in a Linux tarball's asset name, which Nucleus's updater matches, so it must be one of
+ * its tokens (`x64`, `arm64`). The x64 deb, rpm, and AppImage predate arm64 builds and carry none.
  */
 fun linuxArchSuffix(osArch: String = System.getProperty("os.arch")): String =
 	when (osArch.lowercase()) {

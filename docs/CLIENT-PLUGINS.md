@@ -741,7 +741,7 @@ a button that adds a `hammer` command to PATH, or updates or removes it:
 | Flatpak | A script in `~/.local/bin` running `flatpak run studio.darkrock.hammer`; `--filesystem=home` lets the app write it |
 | AppImage | A script in `~/.local/bin` running the `.AppImage` file (`$APPIMAGE`), since the mounted image moves each run |
 | deb, rpm | A script in `~/.local/bin` running `/opt/hammer/bin/hammer`. jpackage's post-install scripts are not reachable through Compose Desktop |
-| tarball (Linux arm64) | A script in `~/.local/bin` running `hammer/bin/hammer` wherever the archive was unpacked. Without a desktop, add that `bin` directory to PATH by hand |
+| tarball | A script in `~/.local/bin` running `hammer/bin/hammer` wherever the archive was unpacked. Without a desktop, add that `bin` directory to PATH by hand |
 | Mac DMG, pkg | A script in `/usr/local/bin`, written through macOS's own administrator prompt when that directory is not writable |
 | Mac App Store | The sandbox keeps the app from writing it, so Settings shows a command to paste into Terminal |
 | Windows MSI, EXE | `hammer.cmd` in `%LOCALAPPDATA%\Hammer\bin` running `hammer-cli.exe`, with that folder added to the user's own PATH |
@@ -954,6 +954,8 @@ On a Raspberry Pi (Zero 2 W or later, 64-bit Raspberry Pi OS 12 or later) or
 another aarch64 Linux machine with glibc 2.34 or later, install
 `hammer-arm64.deb`, or unpack `hammer-arm64.tar.gz` and run
 `hammer/bin/hammer`; both bundle their own arm64 JRE. 32-bit ARM is not built.
+On an x64 server, `hammer-x64.tar.gz` gives the CLI without installing the
+desktop packages' X11 and GL dependencies.
 
 - **Orchestration.** `sync.run` is a CLI listener on `SyncAccountUseCase`, the
   data layer's sync-all code, which reports through a `SyncAccountListener`,
