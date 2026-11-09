@@ -447,6 +447,9 @@ owner's entities on the server.
 - Reconciler never emits `RenameOnServer` or `MoveOnServer` for a shared project.
 - `buildSyncData` sets `verifyAllEntities`.
 - Component tests through the real `TestComponentContext` harness.
+- `CoAuthoringSyncTest` in `integrationTests` runs the real client as two accounts against a real
+  server: first sync, disjoint and same-scene edits, remove and re-invite, leave, owner delete,
+  stats by author, a co-author's two devices, and the owner's sync switch.
 
 ## Phase 3: Writing stats by author
 
