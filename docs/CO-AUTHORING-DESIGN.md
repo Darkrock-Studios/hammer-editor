@@ -562,6 +562,8 @@ synced slot and its unsynced sessions there are not restored.
 
 Two-account integration tests: `cc2b359ac`, with the resume fix `c0217a06c`.
 
+Turning sync on for a project another device deleted keeps it under a new id (`a8ef3de73`).
+
 Protocol version 4 is the deployment gate (Decision 7), and server and clients ship together in
 4.0.0, so nothing in the order above is load-bearing for deployment; it is the order that keeps
 each stage testable against the one before it.
