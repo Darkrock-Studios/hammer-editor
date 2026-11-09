@@ -321,27 +321,14 @@ class ProjectsRepository(
 	fun setOwner(projectDef: ProjectDef, owner: ProjectOwner): Boolean =
 		updateInfo(projectDef) { it.copy(ownerId = owner.id, ownerName = owner.name) }
 
-	fun isParked(projectDef: ProjectDef): Boolean =
-		projectsMetadataDatasource.readMetadata(projectDef)?.info?.parked ?: false
-
-	/** Turns sync off for a shared project its owner stopped sharing, see [Info.parked]. */
-	fun park(projectDef: ProjectDef): Boolean =
-		updateInfo(projectDef) { it.copy(syncEnabled = false, parked = true) }
-
-	/** Makes a shared project the account's own: no owner, not parked, sync on or off as given. */
-	fun detachFromOwner(projectDef: ProjectDef, syncEnabled: Boolean): Boolean =
-		updateInfo(projectDef) {
-			it.copy(ownerId = null, ownerName = null, parked = false, syncEnabled = syncEnabled)
-		}
-
 	/**
-	 * Turns sync back on for a parked project that is shared again. Its journal is flagged so the
+	 * Turns sync back on for a shared project that is listed again. Its journal is flagged so the
 	 * next sync compares every entity: the server copy moved on while this one did not sync.
 	 */
-	suspend fun unpark(projectDef: ProjectDef): Boolean {
+	suspend fun resumeSync(projectDef: ProjectDef): Boolean {
 		if (isProjectInUse(projectDef)) throw ProjectInUseException(projectDef.name)
 		markProjectRestored(projectDef, fileSystem, json, serverKnowsProject = true)
-		return updateInfo(projectDef) { it.copy(syncEnabled = true, parked = false) }
+		return setSyncEnabled(projectDef, true)
 	}
 
 	/**

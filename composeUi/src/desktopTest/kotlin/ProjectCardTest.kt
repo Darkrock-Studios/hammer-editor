@@ -236,7 +236,7 @@ class ProjectCardTest {
 	@Test
 	fun `Project Card deletes a parked shared project`() {
 		val data = fakeProjectData().shared(ownerName = "Alice")
-		val parked = data.copy(metadata = data.metadata.copy(info = data.metadata.info.copy(parked = true)))
+		val parked = data.copy(metadata = data.metadata.copy(info = data.metadata.info.copy(syncEnabled = false)))
 		val deleted = mutableListOf<ProjectDef>()
 		compose.setContent {
 			ProjectIndexRow(

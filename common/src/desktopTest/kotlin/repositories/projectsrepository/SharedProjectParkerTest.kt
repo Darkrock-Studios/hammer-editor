@@ -38,14 +38,15 @@ class SharedProjectParkerTest : ProjectsRepositoryBaseTest() {
 		val journal = def.path.toOkioPath() / SyncJournalDatasource.SYNC_FILE_NAME
 		ffs.write(journal) { writeUtf8(journalJson) }
 
+		val before = projectsMetaDatasource.readMetadata(def)!!.info
+
 		val parker = SharedProjectParker(repo, datasource)
 		assertTrue(parker.park(def))
 
-		assertFalse(repo.isSyncEnabled(def))
-		assertTrue(repo.isParked(def))
+		assertEquals(before.copy(syncEnabled = false), projectsMetaDatasource.readMetadata(def)!!.info)
 		assertTrue(datasource.load().projectBaselines.isEmpty())
 		assertEquals(journalJson, ffs.read(journal) { readUtf8() })
-		// Logged once: a second park finds it parked.
+		// Logged once: a second park finds sync already off.
 		assertFalse(parker.park(def))
 	}
 
@@ -60,7 +61,7 @@ class SharedProjectParkerTest : ProjectsRepositoryBaseTest() {
 	}
 
 	@Test
-	fun `Unparking turns sync on and flags the journal for a full check`() = scope.runTest {
+	fun `Resuming turns sync on and flags the journal for a full check`() = scope.runTest {
 		createProject(ffs, PROJECT_1_NAME)
 		val def = getProjectDef(PROJECT_1_NAME)
 		val repo = projectsRepository()
@@ -69,17 +70,16 @@ class SharedProjectParkerTest : ProjectsRepositoryBaseTest() {
 		ffs.write(journal) { writeUtf8(journalJson) }
 		SharedProjectParker(repo, accountSyncDatasource()).park(def)
 
-		assertTrue(repo.unpark(def))
+		assertTrue(repo.resumeSync(def))
 
 		assertTrue(repo.isSyncEnabled(def))
-		assertFalse(repo.isParked(def))
 		val data = json.decodeFromString<ProjectSynchronizationData>(ffs.read(journal) { readUtf8() })
 		assertTrue(data.verifyAllEntities)
 		assertEquals(listOf(3), data.newIds)
 	}
 
 	@Test
-	fun `An open parked project is not unparked`() = scope.runTest {
+	fun `An open parked project is not resumed`() = scope.runTest {
 		createProject(ffs, PROJECT_1_NAME)
 		val def = getProjectDef(PROJECT_1_NAME)
 		val repo = projectsRepository()
@@ -88,10 +88,10 @@ class SharedProjectParkerTest : ProjectsRepositoryBaseTest() {
 
 		val projectScope = createProjectScope(def)
 		try {
-			assertThrows<ProjectInUseException> { repo.unpark(def) }
+			assertThrows<ProjectInUseException> { repo.resumeSync(def) }
 		} finally {
 			projectScope.close()
 		}
-		assertTrue(repo.isParked(def))
+		assertFalse(repo.isSyncEnabled(def))
 	}
 }

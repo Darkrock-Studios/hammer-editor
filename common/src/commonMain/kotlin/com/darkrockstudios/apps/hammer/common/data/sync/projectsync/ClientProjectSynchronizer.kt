@@ -124,7 +124,12 @@ class ClientProjectSynchronizer(
 		onUnauthorized: suspend () -> Unit = {}
 	): CResult<SyncOperationState> {
 		if (!projectsRepository.isSyncEnabled(projectDef)) {
-			onLog(syncLogW(strRes.get(Res.string.sync_log_project_sync_disabled, projectDef.name), projectDef))
+			val reason = if (projectsRepository.getOwner(projectDef) != null) {
+				Res.string.sync_log_account_project_parked
+			} else {
+				Res.string.sync_log_project_sync_disabled
+			}
+			onLog(syncLogW(strRes.get(reason, projectDef.name), projectDef))
 			onComplete(false)
 			return CResult.failure(ProjectSyncDisabledException(projectDef.name))
 		}

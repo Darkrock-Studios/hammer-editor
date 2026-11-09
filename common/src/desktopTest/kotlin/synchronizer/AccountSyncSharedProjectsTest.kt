@@ -11,7 +11,6 @@ import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsSe
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.AccountSessionLock
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ClientAccountSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ProjectAttributeSyncPhase
-import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ProjectSyncToggle
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.groups.GroupSyncPhase
 import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.ClientIdeasSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectBaseline
@@ -29,7 +28,6 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
-import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -114,7 +112,6 @@ class AccountSyncSharedProjectsTest : ProjectsDirSyncTest() {
 
 		assertTrue(ffs.exists(def.path.toOkioPath()))
 		assertFalse(repo.isSyncEnabled(def))
-		assertTrue(repo.isParked(def))
 		assertEquals(journalJson, ffs.read(journal(def)) { readUtf8() })
 		assertFalse(sharedId in accountSyncDatasource.load().projectBaselines)
 		assertEquals(1, strRes.calls.count { it.first == Res.string.sync_log_account_project_parked })
@@ -123,7 +120,6 @@ class AccountSyncSharedProjectsTest : ProjectsDirSyncTest() {
 		assertTrue(sync())
 
 		assertTrue(repo.isSyncEnabled(def))
-		assertFalse(repo.isParked(def))
 		assertEquals(sharedId, shared().id)
 		val resumed = json.decodeFromString<ProjectSynchronizationData>(ffs.read(journal(def)) { readUtf8() })
 		assertTrue(resumed.verifyAllEntities)
@@ -150,24 +146,20 @@ class AccountSyncSharedProjectsTest : ProjectsDirSyncTest() {
 	}
 
 	@Test
-	fun `a parked project uploaded as one's own is created under a fresh id`() = runTest {
-		sharedAndSynced()
+	fun `a project left and then shared again resumes`() = runTest {
+		val def = sharedAndSynced()
+		coEvery { serverProjectsApi.deleteProject(sharedId, "sync-1") } returns Result.success("ok")
+		assertTrue(ProjectsService(repo, synchronizer()).leaveProject(def))
+		assertTrue(sync())
 		serverLists()
 		assertTrue(sync())
 
-		val toggle = ProjectSyncToggle(repo, accountSyncDatasource)
-		assertEquals(ProjectSyncToggle.Result.NeedsConfirmation, toggle.turnOn(shared()))
-		assertEquals(ProjectSyncToggle.Result.Done, toggle.turnOn(shared(), uploadAsOwn = true))
-		val own = shared()
-		assertNotEquals(sharedId, own.id)
-		assertNull(repo.getOwner(own))
-		coEvery { serverProjectsApi.createProject("Shared", own.id, "sync-1", null) } returns
-			Result.success(CreateProjectResponse(own.id, alreadyExisted = false))
-
+		serverLists(listing)
 		assertTrue(sync())
 
-		coVerify(exactly = 1) { serverProjectsApi.createProject("Shared", own.id, "sync-1", null) }
-		assertEquals(ProjectBaseline("Shared"), accountSyncDatasource.load().projectBaselines[own.id])
+		assertTrue(repo.isSyncEnabled(def))
+		assertEquals(sharedId, shared().id)
+		assertTrue(strRes.calls.any { it.first == Res.string.sync_log_account_project_resumed })
 	}
 
 	@Test

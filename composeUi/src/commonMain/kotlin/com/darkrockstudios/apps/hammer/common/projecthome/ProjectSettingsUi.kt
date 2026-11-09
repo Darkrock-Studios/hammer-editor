@@ -72,6 +72,7 @@ import androidx.compose.ui.platform.testTag
 import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialog
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineDialogShell
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectOwner
 import com.darkrockstudios.apps.hammer.project_settings_sync_deleted_body
 import com.darkrockstudios.apps.hammer.project_settings_sync_deleted_ok
 import com.darkrockstudios.apps.hammer.project_settings_sync_deleted_title
@@ -81,14 +82,11 @@ import com.darkrockstudios.apps.hammer.project_settings_sync_off_confirm
 import com.darkrockstudios.apps.hammer.project_settings_sync_off_delete
 import com.darkrockstudios.apps.hammer.project_settings_sync_off_title
 import com.darkrockstudios.apps.hammer.project_settings_sync_off_unaffected
-import com.darkrockstudios.apps.hammer.project_settings_sync_own_cancel
-import com.darkrockstudios.apps.hammer.project_settings_sync_own_close_body
-import com.darkrockstudios.apps.hammer.project_settings_sync_own_close_title
-import com.darkrockstudios.apps.hammer.project_settings_sync_own_confirm
-import com.darkrockstudios.apps.hammer.project_settings_sync_own_severed
-import com.darkrockstudios.apps.hammer.project_settings_sync_own_title
-import com.darkrockstudios.apps.hammer.project_settings_sync_own_upload
 import com.darkrockstudios.apps.hammer.project_settings_sync_section_title
+import com.darkrockstudios.apps.hammer.project_settings_sync_shared_off
+import com.darkrockstudios.apps.hammer.project_settings_sync_shared_syncing
+import com.darkrockstudios.apps.hammer.projects_list_card_shared
+import com.darkrockstudios.apps.hammer.projects_list_card_shared_by
 import com.darkrockstudios.apps.hammer.project_settings_sync_toggle
 import com.darkrockstudios.apps.hammer.project_settings_sync_toggle_hint
 import org.koin.compose.koinInject
@@ -96,6 +94,7 @@ import org.koin.compose.koinInject
 private val MaxColumnWidth = 880.dp
 
 const val ProjectSyncToggleTestTag = "project-settings-sync-toggle"
+const val ProjectSyncSharedTestTag = "project-settings-sync-shared"
 
 @Composable
 fun ProjectSettingsUi(
@@ -283,9 +282,12 @@ private fun ProjectPlugins(
 	}
 }
 
-/** Whether this device syncs the project; turning it off first states what that means. */
+/**
+ * Whether this device syncs the project; turning it off first states what that means. A shared
+ * project has no switch, only a line saying whose it is and how it stops syncing.
+ */
 @Composable
-private fun ProjectSync(
+internal fun ProjectSync(
 	section: Int,
 	state: ProjectSettings.SyncState,
 	component: ProjectSettings,
@@ -295,13 +297,18 @@ private fun ProjectSync(
 		title = Res.string.project_settings_sync_section_title.get(),
 		contentSpacing = 18.dp,
 	) {
-		HdHairlineToggleRow(
-			checked = state.syncEnabled,
-			label = Res.string.project_settings_sync_toggle.get(),
-			hint = Res.string.project_settings_sync_toggle_hint.get(),
-			onCheckedChange = component::setSyncEnabled,
-			modifier = Modifier.testTag(ProjectSyncToggleTestTag),
-		)
+		val owner = state.owner
+		if (owner != null) {
+			SharedProjectSync(owner, state.syncEnabled)
+		} else {
+			HdHairlineToggleRow(
+				checked = state.syncEnabled,
+				label = Res.string.project_settings_sync_toggle.get(),
+				hint = Res.string.project_settings_sync_toggle_hint.get(),
+				onCheckedChange = component::setSyncEnabled,
+				modifier = Modifier.testTag(ProjectSyncToggleTestTag),
+			)
+		}
 	}
 
 	SyncNoticeDialog(
@@ -318,29 +325,6 @@ private fun ProjectSync(
 	)
 
 	SyncNoticeDialog(
-		visible = state.confirmingUploadAsOwn,
-		title = Res.string.project_settings_sync_own_title.get(),
-		paragraphs = listOf(
-			Res.string.project_settings_sync_own_upload.get(),
-			Res.string.project_settings_sync_own_severed.get(),
-		),
-		confirmLabel = Res.string.project_settings_sync_own_confirm.get(),
-		onConfirm = component::confirmUploadAsOwn,
-		cancelLabel = Res.string.project_settings_sync_own_cancel.get(),
-		onDismiss = component::dismissSyncDialog,
-	)
-
-	SyncNoticeDialog(
-		visible = state.ownNeedsClose,
-		title = Res.string.project_settings_sync_own_close_title.get(),
-		paragraphs = listOf(Res.string.project_settings_sync_own_close_body.get()),
-		confirmLabel = Res.string.project_settings_sync_deleted_ok.get(),
-		onConfirm = component::dismissSyncDialog,
-		cancelLabel = null,
-		onDismiss = component::dismissSyncDialog,
-	)
-
-	SyncNoticeDialog(
 		visible = state.deletedOnServer,
 		title = Res.string.project_settings_sync_deleted_title.get(),
 		paragraphs = listOf(Res.string.project_settings_sync_deleted_body.get()),
@@ -349,6 +333,28 @@ private fun ProjectSync(
 		cancelLabel = null,
 		onDismiss = component::dismissSyncDialog,
 	)
+}
+
+@Composable
+private fun SharedProjectSync(owner: ProjectOwner, syncEnabled: Boolean) {
+	Column(modifier = Modifier.fillMaxWidth().testTag(ProjectSyncSharedTestTag)) {
+		Text(
+			text = owner.name?.takeIf { it.isNotBlank() }
+				?.let { Res.string.projects_list_card_shared_by.get(it) }
+				?: Res.string.projects_list_card_shared.get(),
+			style = MaterialTheme.typography.bodyLarge,
+			color = MaterialTheme.colorScheme.onSurface,
+		)
+		Text(
+			text = if (syncEnabled) {
+				Res.string.project_settings_sync_shared_syncing.get()
+			} else {
+				Res.string.project_settings_sync_shared_off.get()
+			},
+			style = MaterialTheme.typography.bodySmall,
+			color = MaterialTheme.colorScheme.onSurfaceVariant,
+		)
+	}
 }
 
 @Composable

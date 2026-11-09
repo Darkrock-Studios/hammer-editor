@@ -426,11 +426,10 @@ class ProjectsListComponentTest : ComponentTest() {
 		}
 
 	@Test
-	fun `Deleting a shared project opens the leave dialog, and leaving parks it and sends a leave`() =
+	fun `Deleting a shared project opens the leave dialog, and leaving turns sync off and sends a leave`() =
 		runTest(mainTestDispatcher) {
 			every { projectsRepository.getOwner(projectDefA) } returns ProjectOwner(7L, "Alice")
-			every { projectsRepository.isParked(projectDefA) } returns false
-			every { projectsRepository.park(projectDefA) } returns true
+			every { projectsRepository.setSyncEnabled(projectDefA, false) } returns true
 			val comp = newComponent()
 
 			comp.showProjectDelete(projectDefA)
@@ -442,7 +441,7 @@ class ProjectsListComponentTest : ComponentTest() {
 			comp.leaveProject(projectDefA)
 			advanceUntilIdle()
 
-			verify { projectsRepository.park(projectDefA) }
+			verify { projectsRepository.setSyncEnabled(projectDefA, false) }
 			coVerify { synchronizer.deleteProject(projectDefA) }
 			verify(exactly = 0) { projectsRepository.deleteProject(any()) }
 		}
@@ -450,7 +449,7 @@ class ProjectsListComponentTest : ComponentTest() {
 	@Test
 	fun `A parked shared project is deleted, not left`() = runTest(mainTestDispatcher) {
 		every { projectsRepository.getOwner(projectDefA) } returns ProjectOwner(7L, "Alice")
-		every { projectsRepository.isParked(projectDefA) } returns true
+		every { projectsRepository.isSyncEnabled(projectDefA) } returns false
 		val comp = newComponent()
 
 		comp.showProjectDelete(projectDefA)

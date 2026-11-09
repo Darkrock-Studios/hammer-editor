@@ -42,20 +42,20 @@ class ProjectsService(
 		return deleted
 	}
 
-	/** True for a project shared with this account that it has not left and that is still shared. */
+	/** True for a project shared with this account that still syncs: not left, and still shared. */
 	fun offersLeave(projectDef: ProjectDef): Boolean = leaveFrom(projectDef) != null
 
 	/** The owner to name when leaving [projectDef], or null when it is not a project to leave. */
 	fun leaveFrom(projectDef: ProjectDef): ProjectOwner? =
-		projectsRepository.getOwner(projectDef)?.takeUnless { projectsRepository.isParked(projectDef) }
+		projectsRepository.getOwner(projectDef)?.takeIf { projectsRepository.isSyncEnabled(projectDef) }
 
 	/**
 	 * Leaves a shared project: the delete it queues is a leave on the server, which keeps the owner's
-	 * copy. The folder stays, parked, as the owner stopping sharing it would leave it; deleting it
-	 * afterwards is an ordinary local delete.
+	 * copy. The folder stays with sync off, as the owner stopping sharing it would leave it; deleting
+	 * it afterwards is an ordinary local delete.
 	 */
 	suspend fun leaveProject(projectDef: ProjectDef): Boolean {
-		if (!projectsRepository.park(projectDef)) return false
+		if (!projectsRepository.setSyncEnabled(projectDef, false)) return false
 		accountSynchronizer.deleteProject(projectDef)
 		return true
 	}

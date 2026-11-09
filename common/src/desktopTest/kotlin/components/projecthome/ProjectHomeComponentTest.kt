@@ -104,6 +104,7 @@ class ProjectHomeComponentTest : ComponentTest() {
 	private val projectsRepository = mockk<ProjectsRepository> {
 		every { isSyncEnabled(any()) } answers { projectSyncEnabled.value }
 		every { syncEnabledUpdates(any()) } returns projectSyncEnabled
+		every { getOwner(any()) } returns null
 	}
 
 	private lateinit var globalSettingsStore: GlobalSettingsStore

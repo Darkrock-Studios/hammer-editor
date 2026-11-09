@@ -110,8 +110,9 @@ class ProjectSettingsComponent(
 		}
 		scope.launch {
 			projectsRepository.syncEnabledUpdates(projectDef).collect { enabled ->
+				val owner = projectsRepository.getOwner(projectDef)
 				withContext(mainDispatcher) {
-					_syncState.getAndUpdate { it.copy(syncEnabled = enabled) }
+					_syncState.getAndUpdate { it.copy(syncEnabled = enabled, owner = owner) }
 				}
 			}
 		}
@@ -119,30 +120,16 @@ class ProjectSettingsComponent(
 	}
 
 	override fun setSyncEnabled(enabled: Boolean) {
+		if (_syncState.value.owner != null) return
 		if (!enabled) {
 			_syncState.getAndUpdate { it.copy(confirmingOff = true) }
 			return
 		}
-		turnSyncOn(uploadAsOwn = false)
-	}
-
-	override fun confirmUploadAsOwn() {
-		_syncState.getAndUpdate { it.copy(confirmingUploadAsOwn = false) }
-		turnSyncOn(uploadAsOwn = true)
-	}
-
-	private fun turnSyncOn(uploadAsOwn: Boolean) {
 		scope.launch {
-			val result = syncToggle.turnOn(projectDef, uploadAsOwn)
+			val result = syncToggle.turnOn(projectDef)
 			if (result == ProjectSyncToggle.Result.Failed) Napier.w("Could not turn sync on for '${projectDef.name}'")
 			withContext(mainDispatcher) {
-				_syncState.getAndUpdate {
-					it.copy(
-						deletedOnServer = result == ProjectSyncToggle.Result.DeletedOnServer,
-						confirmingUploadAsOwn = result == ProjectSyncToggle.Result.NeedsConfirmation,
-						ownNeedsClose = result == ProjectSyncToggle.Result.OwnNeedsClose,
-					)
-				}
+				_syncState.getAndUpdate { it.copy(deletedOnServer = result == ProjectSyncToggle.Result.DeletedOnServer) }
 			}
 		}
 	}
@@ -157,9 +144,7 @@ class ProjectSettingsComponent(
 	}
 
 	override fun dismissSyncDialog() {
-		_syncState.getAndUpdate {
-			it.copy(confirmingOff = false, deletedOnServer = false, confirmingUploadAsOwn = false, ownNeedsClose = false)
-		}
+		_syncState.getAndUpdate { it.copy(confirmingOff = false, deletedOnServer = false) }
 	}
 
 	override fun pickCoverImage() {

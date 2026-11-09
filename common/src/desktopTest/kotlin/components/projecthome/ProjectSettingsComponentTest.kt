@@ -21,6 +21,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataReposi
 import com.darkrockstudios.apps.hammer.common.data.projectdata.StoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectPluginsDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectPluginsRepository
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectOwner
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ProjectSyncToggle
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournalDatasource
@@ -71,6 +72,7 @@ class ProjectSettingsComponentTest : ComponentTest() {
 	private val images = mutableMapOf<Int, ImageDef>()
 	private lateinit var serverSettingsFlow: MutableSharedFlow<ServerSettings?>
 	private lateinit var projectSyncEnabled: MutableStateFlow<Boolean>
+	private var projectOwner: ProjectOwner? = null
 	private lateinit var syncToggle: ProjectSyncToggle
 
 	@BeforeEach
@@ -101,6 +103,8 @@ class ProjectSettingsComponentTest : ComponentTest() {
 		val projectsRepository = mockk<ProjectsRepository>()
 		every { projectsRepository.getProjects() } returns emptyList()
 		every { projectsRepository.syncEnabledUpdates(any()) } returns projectSyncEnabled
+		projectOwner = null
+		every { projectsRepository.getOwner(any()) } answers { projectOwner }
 		syncToggle = mockk()
 		every { syncToggle.turnOff(any()) } answers {
 			projectSyncEnabled.value = false
@@ -238,46 +242,21 @@ class ProjectSettingsComponentTest : ComponentTest() {
 	}
 
 	@Test
-	fun `Turning sync on for a project no longer shared asks before uploading it as one's own`() =
-		runTest(mainTestDispatcher) {
-			projectSyncEnabled.value = false
-			coEvery { syncToggle.turnOn(any()) } returns ProjectSyncToggle.Result.NeedsConfirmation
-			coEvery { syncToggle.turnOn(any(), true) } answers {
-				projectSyncEnabled.value = true
-				ProjectSyncToggle.Result.Done
-			}
-			val comp = newComponent()
-			context.resume()
-			advanceUntilIdle()
-
-			comp.setSyncEnabled(true)
-			advanceUntilIdle()
-			assertTrue(comp.syncState.value.confirmingUploadAsOwn)
-			assertFalse(comp.syncState.value.syncEnabled)
-			coVerify(exactly = 0) { syncToggle.turnOn(any(), true) }
-
-			comp.confirmUploadAsOwn()
-			advanceUntilIdle()
-			assertFalse(comp.syncState.value.confirmingUploadAsOwn)
-			assertTrue(comp.syncState.value.syncEnabled)
-			coVerify(exactly = 1) { syncToggle.turnOn(projectDef, true) }
-		}
-
-	@Test
-	fun `Uploading an open project as one's own says to close it first`() = runTest(mainTestDispatcher) {
-		projectSyncEnabled.value = false
-		coEvery { syncToggle.turnOn(any(), true) } returns ProjectSyncToggle.Result.OwnNeedsClose
+	fun `A shared project offers no sync toggle`() = runTest(mainTestDispatcher) {
+		projectOwner = ProjectOwner(7L, "Alice")
 		val comp = newComponent()
 		context.resume()
 		advanceUntilIdle()
+		assertEquals(ProjectOwner(7L, "Alice"), comp.syncState.value.owner)
 
-		comp.confirmUploadAsOwn()
+		comp.setSyncEnabled(false)
+		comp.setSyncEnabled(true)
 		advanceUntilIdle()
-		assertTrue(comp.syncState.value.ownNeedsClose)
-		assertFalse(comp.syncState.value.syncEnabled)
 
-		comp.dismissSyncDialog()
-		assertFalse(comp.syncState.value.ownNeedsClose)
+		assertFalse(comp.syncState.value.confirmingOff)
+		assertTrue(comp.syncState.value.syncEnabled)
+		verify(exactly = 0) { syncToggle.turnOff(any()) }
+		coVerify(exactly = 0) { syncToggle.turnOn(any()) }
 	}
 
 	@Test

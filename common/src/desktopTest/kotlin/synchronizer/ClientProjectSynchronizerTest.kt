@@ -1,12 +1,14 @@
 package synchronizer
 
 import PROJECT_2_NAME
+import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.http.ApiErrorCode
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.HttpResponseError
 import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectOwner
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.AccountSessionLock
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.SharedProjectParker
@@ -16,6 +18,8 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScop
 import com.darkrockstudios.apps.hammer.common.server.HttpFailureException
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import com.darkrockstudios.apps.hammer.common.util.StrRes
+import com.darkrockstudios.apps.hammer.sync_log_account_project_parked
+import com.darkrockstudios.apps.hammer.sync_log_project_sync_disabled
 import getProjectDef
 import io.ktor.http.*
 import io.mockk.MockKAnnotations
@@ -31,6 +35,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.koin.dsl.module
 import utils.BaseTest
+import utils.RecordingStrRes
 import utils.TestStrRes
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -58,6 +63,7 @@ class ClientProjectSynchronizerTest : BaseTest() {
 
 	private val projectsRepository = mockk<ProjectsRepository> {
 		every { isSyncEnabled(any()) } returns true
+		every { getOwner(any()) } returns null
 	}
 
 	private val parker = mockk<SharedProjectParker>()
@@ -180,6 +186,20 @@ class ClientProjectSynchronizerTest : BaseTest() {
 		assertFalse(syncer.syncQuietly())
 		coVerify(exactly = 0) { prepareForSyncOperation.execute(any(), any(), any(), any(), any()) }
 		coVerify(exactly = 0) { serverProjectApi.endProjectSync(any(), any(), any(), any(), any()) }
+	}
+
+	@Test
+	fun `A parked shared project is refused as no longer shared, not as turned off`() = runTest {
+		val projectDef = getProjectDef(PROJECT_2_NAME)
+		val recording = RecordingStrRes()
+		strRes = recording
+		val syncer = createProjectSync(projectDef)
+		every { projectsRepository.isSyncEnabled(projectDef) } returns false
+		every { projectsRepository.getOwner(projectDef) } returns ProjectOwner(7L, "Alice")
+
+		assertFalse(syncer.syncQuietly())
+		assertTrue(Res.string.sync_log_account_project_parked in recording.requested)
+		assertFalse(Res.string.sync_log_project_sync_disabled in recording.requested)
 	}
 
 	@Test

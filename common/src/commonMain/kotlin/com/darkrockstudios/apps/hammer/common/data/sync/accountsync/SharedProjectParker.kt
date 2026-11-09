@@ -12,10 +12,10 @@ class SharedProjectParker(
 	private val projectsRepository: ProjectsRepository,
 	private val accountSyncDatasource: AccountSyncDatasource,
 ) {
-	/** True when [projectDef] is shared and was not parked yet, so the caller logs it once. */
+	/** True when [projectDef] is shared and still synced, so the caller logs it once. */
 	suspend fun park(projectDef: ProjectDef): Boolean {
-		if (projectsRepository.getOwner(projectDef) == null || projectsRepository.isParked(projectDef)) return false
-		if (!projectsRepository.park(projectDef)) return false
+		if (projectsRepository.getOwner(projectDef) == null || !projectsRepository.isSyncEnabled(projectDef)) return false
+		if (!projectsRepository.setSyncEnabled(projectDef, false)) return false
 		accountSyncDatasource.update { it.copy(projectBaselines = it.projectBaselines - projectDef.id) }
 		return true
 	}

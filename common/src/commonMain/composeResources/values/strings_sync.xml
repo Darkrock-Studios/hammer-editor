@@ -90,13 +90,8 @@
 	<string name="project_settings_sync_deleted_title">Deleted on the server</string>
 	<string name="project_settings_sync_deleted_body">This project was deleted on the server while it did not sync here. To upload it as a new project, close it, sync from the project list, then turn sync on again.</string>
 	<string name="project_settings_sync_deleted_ok">OK</string>
-	<string name="project_settings_sync_own_title">Upload as your own project?</string>
-	<string name="project_settings_sync_own_upload">This project is no longer shared with you. Turning sync on uploads your copy to the server as a new project of your own.</string>
-	<string name="project_settings_sync_own_severed">It is not connected to the original: your changes no longer reach the owner, and theirs no longer reach you.</string>
-	<string name="project_settings_sync_own_confirm">Upload as mine</string>
-	<string name="project_settings_sync_own_cancel">Keep it off</string>
-	<string name="project_settings_sync_own_close_title">Close to finish</string>
-	<string name="project_settings_sync_own_close_body">This copy is now your own project, but it needs a new identity before it can upload, and it can only take one while closed. Close it, sync from the project list, then turn sync on again.</string>
+	<string name="project_settings_sync_shared_syncing">It syncs while it is shared with you. To stop syncing it, leave it from the project list.</string>
+	<string name="project_settings_sync_shared_off">It is no longer shared with you, so this copy stays on this device and does not sync. It syncs again if you are invited back.</string>
 	<string name="project_settings_folio_caption">Project Settings · %1$s</string>
 	<string name="project_settings_folio_section_count">§§ %1$d</string>
 
@@ -246,9 +241,8 @@
 	<string name="sync_log_account_project_create_client_name_taken">Skipped server project %1$s: a local project of that name already syncs with a different server project</string>
 	<string name="sync_log_project_sync_disabled">Project %1$s does not sync on this device; turn sync on in its settings</string>
 	<string name="sync_log_account_project_create_client_name_excluded">Skipped server project %1$s: a local project of that name does not sync on this device</string>
-	<string name="sync_log_account_project_parked">%1$s is no longer shared with you. Your copy is kept on this device and no longer syncs. Turn sync on in its settings to upload it as your own project.</string>
+	<string name="sync_log_account_project_parked">%1$s is no longer shared with you. Your copy is kept on this device and no longer syncs. It syncs again if you are invited back.</string>
 	<string name="sync_log_account_project_resumed">%1$s is shared with you again and syncs once more. Every scene is checked against the server copy</string>
-	<string name="sync_log_account_project_detached">Project %1$s now has an identity of its own. Turn sync on in its settings to upload it</string>
 	<string name="sync_log_account_project_delete_kept_excluded">Project %1$s was deleted on the server but does not sync on this device, so it is kept here. Turning sync on will upload it as a new project</string>
 
 	<string name="sync_log_account_project_move_server_success">Moved project on server: %1$s</string>

@@ -308,9 +308,9 @@ fun ProjectIndexRow(
 			}
 
 			ProjectOptionsMenu(
-				// The owner names and places a shared project. Until it is parked, deleting it is leaving it.
+				// The owner names and places a shared project. While it syncs, deleting it is leaving it.
 				items = if (shared) {
-					if (projectData.metadata.info.parked) {
+					if (!projectData.metadata.info.syncEnabled) {
 						listOf(Res.string.project_select_card_delete_button)
 					} else {
 						listOf(Res.string.project_select_card_leave_button)

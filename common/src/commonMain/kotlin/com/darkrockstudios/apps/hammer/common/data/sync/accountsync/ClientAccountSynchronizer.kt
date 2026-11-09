@@ -38,7 +38,6 @@ import kotlinx.coroutines.yield
 import kotlinx.serialization.json.Json
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
-import org.jetbrains.compose.resources.StringResource
 import okio.IOException
 import kotlin.coroutines.cancellation.CancellationException
 
@@ -116,7 +115,7 @@ class ClientAccountSynchronizer(
 
 				yield()
 
-				remintDeletedProjects(localProjects, clientSyncData, serverSyncData, excluded, onLog)
+				remintDeletedProjects(localProjects, clientSyncData, excluded, onLog)
 
 				yield()
 
@@ -337,8 +336,8 @@ class ClientAccountSynchronizer(
 	/**
 	 * Parks every shared project the server no longer lists, whatever the reason: the owner removed
 	 * this account or deleted the project, this account left from another device, or the owner's
-	 * account went inactive. A parked project the server lists again is shared again and resumes.
-	 * A project with a leave still queued is left for the delete phase.
+	 * account went inactive. A parked project (shared, sync off) the server lists again is shared
+	 * again and resumes. A project with a leave still queued is left for the delete phase.
 	 */
 	private suspend fun parkOrResumeSharedProjects(
 		localProjects: List<ProjectDef>,
@@ -358,7 +357,7 @@ class ClientAccountSynchronizer(
 					if (parker.park(projectDef)) {
 						onLog(syncAccLogW(strRes.get(Res.string.sync_log_account_project_parked, projectDef.name)))
 					}
-				} else if (projectsRepository.isParked(projectDef)) {
+				} else if (!projectsRepository.isSyncEnabled(projectDef)) {
 					resumeShared(projectDef, excluded, onLog)
 				}
 			}
@@ -366,7 +365,7 @@ class ClientAccountSynchronizer(
 
 	private suspend fun resumeShared(projectDef: ProjectDef, excluded: MutableSet<ProjectId>, onLog: OnSyncLog) {
 		val resumed = try {
-			projectsRepository.unpark(projectDef)
+			projectsRepository.resumeSync(projectDef)
 		} catch (_: ProjectInUseException) {
 			placer.logInUse(projectDef, onLog)
 			return
@@ -377,29 +376,17 @@ class ClientAccountSynchronizer(
 		}
 	}
 
-	/**
-	 * Retries [remintExcluded] for an excluded project whose deletion an earlier session recorded
-	 * while it was open, or that was detached from its owner while open (see [ProjectSyncToggle]).
-	 * The server lists only its own deletions, which tells the two apart in the log.
-	 */
+	/** Retries [remintExcluded] for an excluded project whose deletion an earlier session recorded while it was open. */
 	private suspend fun remintDeletedProjects(
 		localProjects: List<ProjectDef>,
 		clientSyncData: ProjectsSynchronizationData,
-		serverSyncData: BeginProjectsSyncResponse,
 		excluded: MutableSet<ProjectId>,
 		onLog: OnSyncLog,
 	) {
 		localProjects
 			.filter { it.id in clientSyncData.deletedProjects && it.id in excluded }
 			.filter { projectsRepository.getOwner(it) == null }
-			.forEach { projectDef ->
-				val message = if (projectDef.id in serverSyncData.deletedProjects) {
-					Res.string.sync_log_account_project_delete_kept_excluded
-				} else {
-					Res.string.sync_log_account_project_detached
-				}
-				remintExcluded(projectDef, excluded, onLog, message)
-			}
+			.forEach { remintExcluded(it, excluded, onLog) }
 	}
 
 	/**
@@ -412,7 +399,6 @@ class ClientAccountSynchronizer(
 		projectDef: ProjectDef,
 		excluded: MutableSet<ProjectId>,
 		onLog: OnSyncLog,
-		message: StringResource = Res.string.sync_log_account_project_delete_kept_excluded,
 	): Boolean {
 		val reminted = try {
 			projectsRepository.setProjectId(projectDef, ProjectId.randomUUID())
@@ -421,7 +407,7 @@ class ClientAccountSynchronizer(
 			return false
 		}
 		excluded += reminted.id
-		onLog(syncAccLogW(strRes.get(message, projectDef.name)))
+		onLog(syncAccLogW(strRes.get(Res.string.sync_log_account_project_delete_kept_excluded, projectDef.name)))
 		return true
 	}
 
