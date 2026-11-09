@@ -51,6 +51,7 @@ import com.darkrockstudios.apps.hammer.common.util.lifecycleCoroutineScope
 import com.darkrockstudios.apps.hammer.project_home_action_import_toast_failure
 import com.darkrockstudios.apps.hammer.project_home_action_import_toast_success
 import com.darkrockstudios.apps.hammer.projects_list_toast_delete_failed
+import com.darkrockstudios.apps.hammer.projects_list_toast_leave_failed
 import com.darkrockstudios.apps.hammer.projects_list_toast_sync_complete
 import com.darkrockstudios.apps.hammer.projects_list_toast_sync_failed
 import com.darkrockstudios.apps.hammer.sync_log_account_failed
@@ -318,6 +319,15 @@ class ProjectsListComponent(
 			}
 
 			// A failed delete can still have removed part of the project.
+			loadProjectList()
+		}
+	}
+
+	override fun leaveProject(projectDef: ProjectDef) {
+		scope.launch(dispatcherIo) {
+			if (!projectsService.leaveProject(projectDef)) {
+				showToast(scope, Res.string.projects_list_toast_leave_failed)
+			}
 			loadProjectList()
 		}
 	}
@@ -835,6 +845,11 @@ class ProjectsListComponent(
 
 	override fun showProjectDelete(projectDef: ProjectDef) {
 		scope.launch(dispatcherIo) {
+			val owner = projectsService.leaveFrom(projectDef)
+			if (owner != null) {
+				withContext(mainDispatcher) { modalRouter.showProjectLeave(projectDef, owner.name) }
+				return@launch
+			}
 			val offerServerDelete = projectsService.offersServerDelete(projectDef)
 			withContext(mainDispatcher) { modalRouter.showProjectDelete(projectDef, offerServerDelete) }
 		}

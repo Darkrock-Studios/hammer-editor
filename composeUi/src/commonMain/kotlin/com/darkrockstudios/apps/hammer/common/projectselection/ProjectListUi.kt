@@ -765,6 +765,15 @@ fun ModalContent(component: ProjectsList, rootSnackbar: RootSnackbarHostState) {
 			)
 		}
 
+		is ProjectsList.ModalDestination.ProjectLeave -> {
+			ProjectLeaveDialog(
+				component = component,
+				projectDef = overlay.projectDef,
+				ownerName = overlay.ownerName,
+				close = { component.dismissProjectDelete() }
+			)
+		}
+
 		is ProjectsList.ModalDestination.GroupCreate -> {
 			val parent = overlay.parent?.let(::current)
 			GroupCreateDialog(

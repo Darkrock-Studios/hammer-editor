@@ -112,6 +112,7 @@ private fun fakeComponent(language: String?) = object : ProjectSettings {
 	override fun setPluginEnabled(pluginId: String, enabled: Boolean) {}
 	override fun setSyncEnabled(enabled: Boolean) {}
 	override fun confirmSyncOff() {}
+	override fun confirmUploadAsOwn() {}
 	override fun dismissSyncDialog() {}
 	override fun suggestProjectTags(prefix: String): List<String> =
 		listOf("fantasy", "sci-fi", "nanowrimo").filter { it.startsWith(prefix, ignoreCase = true) }

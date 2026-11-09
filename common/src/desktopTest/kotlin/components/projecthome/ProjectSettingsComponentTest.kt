@@ -34,6 +34,7 @@ import com.darkrockstudios.apps.hammer.common.util.AvailableLocalesProvider
 import com.darkrockstudios.apps.hammer.common.util.Locale
 import com.darkrockstudios.libs.platformspellchecker.PlatformSpellCheckerFactory
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -234,6 +235,49 @@ class ProjectSettingsComponentTest : ComponentTest() {
 
 		assertTrue(comp.syncState.value.syncEnabled)
 		assertFalse(comp.syncState.value.deletedOnServer)
+	}
+
+	@Test
+	fun `Turning sync on for a project no longer shared asks before uploading it as one's own`() =
+		runTest(mainTestDispatcher) {
+			projectSyncEnabled.value = false
+			coEvery { syncToggle.turnOn(any()) } returns ProjectSyncToggle.Result.NeedsConfirmation
+			coEvery { syncToggle.turnOn(any(), true) } answers {
+				projectSyncEnabled.value = true
+				ProjectSyncToggle.Result.Done
+			}
+			val comp = newComponent()
+			context.resume()
+			advanceUntilIdle()
+
+			comp.setSyncEnabled(true)
+			advanceUntilIdle()
+			assertTrue(comp.syncState.value.confirmingUploadAsOwn)
+			assertFalse(comp.syncState.value.syncEnabled)
+			coVerify(exactly = 0) { syncToggle.turnOn(any(), true) }
+
+			comp.confirmUploadAsOwn()
+			advanceUntilIdle()
+			assertFalse(comp.syncState.value.confirmingUploadAsOwn)
+			assertTrue(comp.syncState.value.syncEnabled)
+			coVerify(exactly = 1) { syncToggle.turnOn(projectDef, true) }
+		}
+
+	@Test
+	fun `Uploading an open project as one's own says to close it first`() = runTest(mainTestDispatcher) {
+		projectSyncEnabled.value = false
+		coEvery { syncToggle.turnOn(any(), true) } returns ProjectSyncToggle.Result.OwnNeedsClose
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		comp.confirmUploadAsOwn()
+		advanceUntilIdle()
+		assertTrue(comp.syncState.value.ownNeedsClose)
+		assertFalse(comp.syncState.value.syncEnabled)
+
+		comp.dismissSyncDialog()
+		assertFalse(comp.syncState.value.ownNeedsClose)
 	}
 
 	@Test

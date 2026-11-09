@@ -68,12 +68,13 @@ class ProjectWriteOperationsTest : KoinOperationsTest() {
 	}
 
 	@Test
-	fun `a shared project is not renamed`() = onTestThread {
+	fun `a shared project is neither renamed nor deleted`() = onTestThread {
 		run<ProjectCreateInput, ProjectName>("project.create", ProjectCreateInput("Shared"))
 		val repository = get<ProjectsRepository>()
 		repository.setOwner(repository.findProject("Shared")!!, ProjectOwner(7L, "Alice"))
 
 		invalid { run<ProjectRenameInput, ProjectName>("project.rename", ProjectRenameInput("Shared", "Mine")) }
+		invalid { run<ProjectDeleteInput, ProjectName>("project.delete", ProjectDeleteInput("Shared")) }
 		assertEquals(listOf("Shared"), projectNames())
 	}
 

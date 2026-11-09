@@ -426,6 +426,40 @@ class ProjectsListComponentTest : ComponentTest() {
 		}
 
 	@Test
+	fun `Deleting a shared project opens the leave dialog, and leaving parks it and sends a leave`() =
+		runTest(mainTestDispatcher) {
+			every { projectsRepository.getOwner(projectDefA) } returns ProjectOwner(7L, "Alice")
+			every { projectsRepository.isParked(projectDefA) } returns false
+			every { projectsRepository.park(projectDefA) } returns true
+			val comp = newComponent()
+
+			comp.showProjectDelete(projectDefA)
+			advanceUntilIdle()
+			val leave = assertIs<ProjectsList.ModalDestination.ProjectLeave>(comp.modalRouterState.value.child?.instance)
+			assertEquals("Alice", leave.ownerName)
+
+			comp.deleteProject(projectDefA)
+			comp.leaveProject(projectDefA)
+			advanceUntilIdle()
+
+			verify { projectsRepository.park(projectDefA) }
+			coVerify { synchronizer.deleteProject(projectDefA) }
+			verify(exactly = 0) { projectsRepository.deleteProject(any()) }
+		}
+
+	@Test
+	fun `A parked shared project is deleted, not left`() = runTest(mainTestDispatcher) {
+		every { projectsRepository.getOwner(projectDefA) } returns ProjectOwner(7L, "Alice")
+		every { projectsRepository.isParked(projectDefA) } returns true
+		val comp = newComponent()
+
+		comp.showProjectDelete(projectDefA)
+		advanceUntilIdle()
+
+		assertIs<ProjectsList.ModalDestination.ProjectDelete>(comp.modalRouterState.value.child?.instance)
+	}
+
+	@Test
 	fun `deleteProject of a project with sync off keeps the server copy`() = runTest(mainTestDispatcher) {
 		every { projectsRepository.deleteProject(projectDefA) } returns true
 		every { projectsRepository.isSyncEnabled(projectDefA) } returns false

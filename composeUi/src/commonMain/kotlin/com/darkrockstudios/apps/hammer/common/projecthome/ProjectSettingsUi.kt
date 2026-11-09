@@ -81,6 +81,13 @@ import com.darkrockstudios.apps.hammer.project_settings_sync_off_confirm
 import com.darkrockstudios.apps.hammer.project_settings_sync_off_delete
 import com.darkrockstudios.apps.hammer.project_settings_sync_off_title
 import com.darkrockstudios.apps.hammer.project_settings_sync_off_unaffected
+import com.darkrockstudios.apps.hammer.project_settings_sync_own_cancel
+import com.darkrockstudios.apps.hammer.project_settings_sync_own_close_body
+import com.darkrockstudios.apps.hammer.project_settings_sync_own_close_title
+import com.darkrockstudios.apps.hammer.project_settings_sync_own_confirm
+import com.darkrockstudios.apps.hammer.project_settings_sync_own_severed
+import com.darkrockstudios.apps.hammer.project_settings_sync_own_title
+import com.darkrockstudios.apps.hammer.project_settings_sync_own_upload
 import com.darkrockstudios.apps.hammer.project_settings_sync_section_title
 import com.darkrockstudios.apps.hammer.project_settings_sync_toggle
 import com.darkrockstudios.apps.hammer.project_settings_sync_toggle_hint
@@ -307,6 +314,29 @@ private fun ProjectSync(
 		confirmLabel = Res.string.project_settings_sync_off_confirm.get(),
 		onConfirm = component::confirmSyncOff,
 		cancelLabel = Res.string.project_settings_sync_off_cancel.get(),
+		onDismiss = component::dismissSyncDialog,
+	)
+
+	SyncNoticeDialog(
+		visible = state.confirmingUploadAsOwn,
+		title = Res.string.project_settings_sync_own_title.get(),
+		paragraphs = listOf(
+			Res.string.project_settings_sync_own_upload.get(),
+			Res.string.project_settings_sync_own_severed.get(),
+		),
+		confirmLabel = Res.string.project_settings_sync_own_confirm.get(),
+		onConfirm = component::confirmUploadAsOwn,
+		cancelLabel = Res.string.project_settings_sync_own_cancel.get(),
+		onDismiss = component::dismissSyncDialog,
+	)
+
+	SyncNoticeDialog(
+		visible = state.ownNeedsClose,
+		title = Res.string.project_settings_sync_own_close_title.get(),
+		paragraphs = listOf(Res.string.project_settings_sync_own_close_body.get()),
+		confirmLabel = Res.string.project_settings_sync_deleted_ok.get(),
+		onConfirm = component::dismissSyncDialog,
+		cancelLabel = null,
 		onDismiss = component::dismissSyncDialog,
 	)
 

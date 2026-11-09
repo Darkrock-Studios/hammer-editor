@@ -47,6 +47,7 @@ class ProjectListModalRouter(
 			is Config.ProjectRename -> ProjectsList.ModalDestination.ProjectRename(config.projectDef)
 			is Config.ProjectCreate -> ProjectsList.ModalDestination.ProjectCreate(config.parent)
 			is Config.ProjectDelete -> ProjectsList.ModalDestination.ProjectDelete(config.projectDef, config.offerServerDelete)
+			is Config.ProjectLeave -> ProjectsList.ModalDestination.ProjectLeave(config.projectDef, config.ownerName)
 			is Config.GroupCreate -> ProjectsList.ModalDestination.GroupCreate(config.parent)
 			is Config.GroupRename -> ProjectsList.ModalDestination.GroupRename(config.groupDef)
 			is Config.GroupDelete -> ProjectsList.ModalDestination.GroupDelete(config.groupDef)
@@ -98,6 +99,10 @@ class ProjectListModalRouter(
 
 	fun showProjectDelete(projectDef: ProjectDef, offerServerDelete: Boolean) {
 		navigation.activate(Config.ProjectDelete(projectDef, offerServerDelete))
+	}
+
+	fun showProjectLeave(projectDef: ProjectDef, ownerName: String?) {
+		navigation.activate(Config.ProjectLeave(projectDef, ownerName))
 	}
 
 	fun dismissProjectDelete() {
@@ -166,6 +171,9 @@ class ProjectListModalRouter(
 
 		@Serializable
 		data class ProjectDelete(val projectDef: ProjectDef, val offerServerDelete: Boolean = false) : Config()
+
+		@Serializable
+		data class ProjectLeave(val projectDef: ProjectDef, val ownerName: String?) : Config()
 
 		@Serializable
 		data class GroupCreate(val parent: GroupDef?) : Config()

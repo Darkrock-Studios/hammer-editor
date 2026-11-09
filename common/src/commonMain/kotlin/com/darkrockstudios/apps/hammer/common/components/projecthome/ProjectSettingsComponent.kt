@@ -123,12 +123,25 @@ class ProjectSettingsComponent(
 			_syncState.getAndUpdate { it.copy(confirmingOff = true) }
 			return
 		}
+		turnSyncOn(uploadAsOwn = false)
+	}
+
+	override fun confirmUploadAsOwn() {
+		_syncState.getAndUpdate { it.copy(confirmingUploadAsOwn = false) }
+		turnSyncOn(uploadAsOwn = true)
+	}
+
+	private fun turnSyncOn(uploadAsOwn: Boolean) {
 		scope.launch {
-			val result = syncToggle.turnOn(projectDef)
+			val result = syncToggle.turnOn(projectDef, uploadAsOwn)
 			if (result == ProjectSyncToggle.Result.Failed) Napier.w("Could not turn sync on for '${projectDef.name}'")
 			withContext(mainDispatcher) {
 				_syncState.getAndUpdate {
-					it.copy(deletedOnServer = result == ProjectSyncToggle.Result.DeletedOnServer)
+					it.copy(
+						deletedOnServer = result == ProjectSyncToggle.Result.DeletedOnServer,
+						confirmingUploadAsOwn = result == ProjectSyncToggle.Result.NeedsConfirmation,
+						ownNeedsClose = result == ProjectSyncToggle.Result.OwnNeedsClose,
+					)
 				}
 			}
 		}
@@ -144,7 +157,9 @@ class ProjectSettingsComponent(
 	}
 
 	override fun dismissSyncDialog() {
-		_syncState.getAndUpdate { it.copy(confirmingOff = false, deletedOnServer = false) }
+		_syncState.getAndUpdate {
+			it.copy(confirmingOff = false, deletedOnServer = false, confirmingUploadAsOwn = false, ownNeedsClose = false)
+		}
 	}
 
 	override fun pickCoverImage() {

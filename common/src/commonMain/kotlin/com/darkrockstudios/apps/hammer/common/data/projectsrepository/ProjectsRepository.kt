@@ -328,6 +328,12 @@ class ProjectsRepository(
 	fun park(projectDef: ProjectDef): Boolean =
 		updateInfo(projectDef) { it.copy(syncEnabled = false, parked = true) }
 
+	/** Makes a shared project the account's own: no owner, not parked, sync on or off as given. */
+	fun detachFromOwner(projectDef: ProjectDef, syncEnabled: Boolean): Boolean =
+		updateInfo(projectDef) {
+			it.copy(ownerId = null, ownerName = null, parked = false, syncEnabled = syncEnabled)
+		}
+
 	/**
 	 * Turns sync back on for a parked project that is shared again. Its journal is flagged so the
 	 * next sync compares every entity: the server copy moved on while this one did not sync.

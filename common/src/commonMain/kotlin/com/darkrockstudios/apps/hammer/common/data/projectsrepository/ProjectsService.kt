@@ -29,9 +29,10 @@ class ProjectsService(
 
 	/**
 	 * A project with sync off on this device is deleted here only, so the server keeps its copy,
-	 * unless [alsoDeleteOnServer].
+	 * unless [alsoDeleteOnServer]. A shared project not yet left is refused: see [leaveProject].
 	 */
 	suspend fun deleteProject(projectDef: ProjectDef, alsoDeleteOnServer: Boolean = false): Boolean {
+		if (offersLeave(projectDef)) return false
 		val deleteOnServer = alsoDeleteOnServer || projectsRepository.isSyncEnabled(projectDef)
 		val deleted = projectsRepository.deleteProject(projectDef)
 		if (deleted && deleteOnServer) {
@@ -39,6 +40,24 @@ class ProjectsService(
 			accountSynchronizer.deleteProject(projectDef)
 		}
 		return deleted
+	}
+
+	/** True for a project shared with this account that it has not left and that is still shared. */
+	fun offersLeave(projectDef: ProjectDef): Boolean = leaveFrom(projectDef) != null
+
+	/** The owner to name when leaving [projectDef], or null when it is not a project to leave. */
+	fun leaveFrom(projectDef: ProjectDef): ProjectOwner? =
+		projectsRepository.getOwner(projectDef)?.takeUnless { projectsRepository.isParked(projectDef) }
+
+	/**
+	 * Leaves a shared project: the delete it queues is a leave on the server, which keeps the owner's
+	 * copy. The folder stays, parked, as the owner stopping sharing it would leave it; deleting it
+	 * afterwards is an ordinary local delete.
+	 */
+	suspend fun leaveProject(projectDef: ProjectDef): Boolean {
+		if (!projectsRepository.park(projectDef)) return false
+		accountSynchronizer.deleteProject(projectDef)
+		return true
 	}
 
 	/** True for a project with sync off here that the server holds a copy of. */

@@ -61,7 +61,9 @@ internal fun projectWriteOperations(): List<Operation<*, *>> = listOf(
 		scope = OperationScope.Content,
 	) { input ->
 		val def = requireClosed(projects.resolve(input.project))
-		if (!koinGet<ProjectsService>().deleteProject(def, input.alsoDeleteOnServer)) error("Could not delete '${def.name}'")
+		val service = koinGet<ProjectsService>()
+		if (service.offersLeave(def)) invalidInput("'${def.name}' is shared with you; leave it in Hammer before deleting it")
+		if (!service.deleteProject(def, input.alsoDeleteOnServer)) error("Could not delete '${def.name}'")
 		ProjectName(def.name)
 	},
 	operation<ProjectImportInput, ProjectImported>(

@@ -38,6 +38,7 @@ import kotlinx.coroutines.yield
 import kotlinx.serialization.json.Json
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
+import org.jetbrains.compose.resources.StringResource
 import okio.IOException
 import kotlin.coroutines.cancellation.CancellationException
 
@@ -115,7 +116,7 @@ class ClientAccountSynchronizer(
 
 				yield()
 
-				remintDeletedProjects(localProjects, clientSyncData, excluded, onLog)
+				remintDeletedProjects(localProjects, clientSyncData, serverSyncData, excluded, onLog)
 
 				yield()
 
@@ -378,18 +379,27 @@ class ClientAccountSynchronizer(
 
 	/**
 	 * Retries [remintExcluded] for an excluded project whose deletion an earlier session recorded
-	 * while it was open.
+	 * while it was open, or that was detached from its owner while open (see [ProjectSyncToggle]).
+	 * The server lists only its own deletions, which tells the two apart in the log.
 	 */
 	private suspend fun remintDeletedProjects(
 		localProjects: List<ProjectDef>,
 		clientSyncData: ProjectsSynchronizationData,
+		serverSyncData: BeginProjectsSyncResponse,
 		excluded: MutableSet<ProjectId>,
 		onLog: OnSyncLog,
 	) {
 		localProjects
 			.filter { it.id in clientSyncData.deletedProjects && it.id in excluded }
 			.filter { projectsRepository.getOwner(it) == null }
-			.forEach { remintExcluded(it, excluded, onLog) }
+			.forEach { projectDef ->
+				val message = if (projectDef.id in serverSyncData.deletedProjects) {
+					Res.string.sync_log_account_project_delete_kept_excluded
+				} else {
+					Res.string.sync_log_account_project_detached
+				}
+				remintExcluded(projectDef, excluded, onLog, message)
+			}
 	}
 
 	/**
@@ -402,6 +412,7 @@ class ClientAccountSynchronizer(
 		projectDef: ProjectDef,
 		excluded: MutableSet<ProjectId>,
 		onLog: OnSyncLog,
+		message: StringResource = Res.string.sync_log_account_project_delete_kept_excluded,
 	): Boolean {
 		val reminted = try {
 			projectsRepository.setProjectId(projectDef, ProjectId.randomUUID())
@@ -410,7 +421,7 @@ class ClientAccountSynchronizer(
 			return false
 		}
 		excluded += reminted.id
-		onLog(syncAccLogW(strRes.get(Res.string.sync_log_account_project_delete_kept_excluded, projectDef.name)))
+		onLog(syncAccLogW(strRes.get(message, projectDef.name)))
 		return true
 	}
 

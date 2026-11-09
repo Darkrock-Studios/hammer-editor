@@ -47,6 +47,9 @@ interface ProjectSettings : HammerComponent {
 	/** On takes effect at once; off first asks, see [SyncState.confirmingOff]. */
 	fun setSyncEnabled(enabled: Boolean)
 	fun confirmSyncOff()
+
+	/** Confirms uploading a project no longer shared with this account as the user's own. */
+	fun confirmUploadAsOwn()
 	fun dismissSyncDialog()
 
 	data class SyncState(
@@ -57,6 +60,10 @@ interface ProjectSettings : HammerComponent {
 		val confirmingOff: Boolean = false,
 		/** Turning sync on was refused: the server deleted the project and it must close to take a new id. */
 		val deletedOnServer: Boolean = false,
+		/** The dialog asking to upload a project no longer shared with this account as the user's own is open. */
+		val confirmingUploadAsOwn: Boolean = false,
+		/** Uploading as the user's own was confirmed while open: it must close to take a new id. */
+		val ownNeedsClose: Boolean = false,
 	)
 
 	data class LanguageOption(

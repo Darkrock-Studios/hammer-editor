@@ -53,6 +53,7 @@ val projectListComponent = object : ProjectsList {
 	override fun cancelImportDialog() {}
 	override suspend fun confirmImportDialog() {}
 	override fun deleteProject(projectDef: ProjectDef, alsoDeleteOnServer: Boolean) {}
+	override fun leaveProject(projectDef: ProjectDef) {}
 	override fun renameProject(projectDef: ProjectDef, newName: String) {}
 	override fun syncProjects(callback: (Boolean) -> Unit) {}
 	override fun showProjectsSync() {}

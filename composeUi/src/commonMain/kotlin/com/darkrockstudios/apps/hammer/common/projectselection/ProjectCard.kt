@@ -61,6 +61,7 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.util.format
 import com.darkrockstudios.apps.hammer.common.util.formatDecimalSeparator
 import com.darkrockstudios.apps.hammer.project_select_card_delete_button
+import com.darkrockstudios.apps.hammer.project_select_card_leave_button
 import com.darkrockstudios.apps.hammer.project_select_card_move_button
 import com.darkrockstudios.apps.hammer.project_select_card_rename_button
 import com.darkrockstudios.apps.hammer.projects_list_card_by_author
@@ -307,9 +308,13 @@ fun ProjectIndexRow(
 			}
 
 			ProjectOptionsMenu(
-				// The owner names and places a shared project.
+				// The owner names and places a shared project. Until it is parked, deleting it is leaving it.
 				items = if (shared) {
-					listOf(Res.string.project_select_card_delete_button)
+					if (projectData.metadata.info.parked) {
+						listOf(Res.string.project_select_card_delete_button)
+					} else {
+						listOf(Res.string.project_select_card_leave_button)
+					}
 				} else {
 					listOf(
 						Res.string.project_select_card_delete_button,
@@ -319,7 +324,7 @@ fun ProjectIndexRow(
 				},
 			) {
 				when (it) {
-					Res.string.project_select_card_delete_button ->
+					Res.string.project_select_card_delete_button, Res.string.project_select_card_leave_button ->
 						onProjectAltClick(projectData.definition)
 
 					Res.string.project_select_card_rename_button ->

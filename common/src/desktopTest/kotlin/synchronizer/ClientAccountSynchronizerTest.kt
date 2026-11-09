@@ -50,6 +50,7 @@ import com.darkrockstudios.apps.hammer.sync_log_account_project_create_server_su
 import com.darkrockstudios.apps.hammer.sync_log_account_project_delete_kept_excluded
 import com.darkrockstudios.apps.hammer.sync_log_account_project_deleted_elsewhere
 import com.darkrockstudios.apps.hammer.sync_log_account_project_id_reminted
+import com.darkrockstudios.apps.hammer.sync_log_account_project_detached
 import com.darkrockstudios.apps.hammer.sync_log_account_project_in_use
 import com.darkrockstudios.apps.hammer.sync_log_account_project_parked
 import com.darkrockstudios.apps.hammer.sync_log_account_project_resumed
@@ -1629,5 +1630,25 @@ class ClientAccountSynchronizerTest : BaseTest() {
 
 		coVerify(exactly = 0) { projectsRepository.unpark(any()) }
 		verify(exactly = 0) { projectsRepository.park(any()) }
+	}
+
+	@Test
+	fun `a project detached from its owner while open is re-minted once closed`() = runTest {
+		val id = ProjectId.randomUUID()
+		val def = projectDef("Mine", id)
+		val reminted = projectDef("Mine", ProjectId.randomUUID())
+		writeSyncData(emptySyncData().copy(deletedProjects = setOf(id)))
+		exclude(def)
+		exclude(reminted)
+		stubLocalProjects(listOf(def))
+		coEvery { projectsRepository.setProjectId(def, any()) } returns reminted
+
+		val strRes = RecordingStrRes()
+		createSynchronizer(strRes).syncProjects(onLog = {}, onUnauthorized = {})
+
+		coVerify(exactly = 1) { projectsRepository.setProjectId(def, any()) }
+		assertTrue(strRes.calls.any { it.first == Res.string.sync_log_account_project_detached })
+		assertFalse(strRes.calls.any { it.first == Res.string.sync_log_account_project_delete_kept_excluded })
+		coVerify(exactly = 0) { serverProjectsApi.createProject(any(), any(), any(), any()) }
 	}
 }

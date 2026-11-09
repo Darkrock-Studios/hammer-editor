@@ -227,9 +227,33 @@ class ProjectCardTest {
 		}
 
 		compose.onNodeWithTag("More").performClick()
-		compose.onNodeWithTag("Delete").assertExists()
+		compose.onNodeWithTag("Leave").assertExists()
+		compose.onNodeWithTag("Delete").assertDoesNotExist()
 		compose.onNodeWithTag("Rename").assertDoesNotExist()
 		compose.onNodeWithTag("Move to…").assertDoesNotExist()
+	}
+
+	@Test
+	fun `Project Card deletes a parked shared project`() {
+		val data = fakeProjectData().shared(ownerName = "Alice")
+		val parked = data.copy(metadata = data.metadata.copy(info = data.metadata.info.copy(parked = true)))
+		val deleted = mutableListOf<ProjectDef>()
+		compose.setContent {
+			ProjectIndexRow(
+				isWide = true,
+				index = 0,
+				projectData = parked,
+				onProjectClick = {},
+				onProjectAltClick = { deleted += it },
+				onProjectRenameClick = {},
+			)
+		}
+
+		compose.onNodeWithTag("More").performClick()
+		compose.onNodeWithTag("Leave").assertDoesNotExist()
+		compose.onNodeWithTag("Delete").performClick()
+
+		assertEquals(listOf(parked.definition), deleted)
 	}
 
 	private fun ProjectData.shared(ownerName: String?) =
