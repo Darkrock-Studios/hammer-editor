@@ -63,18 +63,20 @@ class WritingActivityRepository(
 	 * devices' slots. The pre-author file of another device is dropped once its authored
 	 * copy arrives. Another account's slot for this device was written here, so the local
 	 * copy may hold sessions that account has not uploaded yet; it is merged instead.
+	 * Returns whether anything stored here changed.
 	 */
-	suspend fun replaceRemoteSlot(slot: WritingActivitySlot) {
+	suspend fun replaceRemoteSlot(slot: WritingActivitySlot): Boolean {
 		val authorId = slot.log.authorId
 		val ownDeviceId = ownDeviceId()
-		if (authorId != null && slot.deviceId == ownDeviceId) {
-			val local = datasource.loadSlot(ownDeviceId, authorId)?.sessions.orEmpty()
-			val merged = mergeOwnSlotSessions(local, slot.log.sessions)
-			datasource.saveSlot(slot.copy(log = slot.log.copy(sessions = merged)))
-			return
+		val local = datasource.loadSlot(slot.deviceId, authorId)
+		val incoming = if (authorId != null && slot.deviceId == ownDeviceId) {
+			slot.log.copy(sessions = mergeOwnSlotSessions(local?.sessions.orEmpty(), slot.log.sessions))
+		} else {
+			slot.log
 		}
-		datasource.saveSlot(slot)
-		if (authorId != null) datasource.deleteDeviceLog(slot.deviceId)
+		datasource.saveSlot(slot.copy(log = incoming))
+		val droppedLegacy = authorId != null && slot.deviceId != ownDeviceId && datasource.deleteDeviceLog(slot.deviceId)
+		return incoming != local || droppedLegacy
 	}
 
 	/**

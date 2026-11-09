@@ -10,6 +10,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.util.formatDecimalSeparator
 
@@ -26,6 +27,7 @@ fun HdAttributionBar(
 	fraction: Float,
 	color: Color,
 	modifier: Modifier = Modifier,
+	labelIndent: Dp = 0.dp,
 ) {
 	val safeFraction = fraction.coerceIn(0f, 1f)
 	Row(
@@ -37,7 +39,7 @@ fun HdAttributionBar(
 			text = label,
 			style = MaterialTheme.typography.bodySmall,
 			color = MaterialTheme.colorScheme.onSurface,
-			modifier = Modifier.fillMaxWidth(0.28f),
+			modifier = Modifier.fillMaxWidth(0.28f).padding(start = labelIndent),
 			maxLines = 1,
 		)
 		Box(
@@ -93,6 +95,7 @@ fun HdMiniBarChart(
 				fraction = item.value.toFloat() / effectiveMax,
 				color = item.color,
 				modifier = rowModifier,
+				labelIndent = item.labelIndent,
 			)
 		}
 	}
@@ -103,4 +106,5 @@ data class HdAttributionItem(
 	val value: Int,
 	val color: Color,
 	val onClick: (() -> Unit)? = null,
+	val labelIndent: Dp = 0.dp,
 )

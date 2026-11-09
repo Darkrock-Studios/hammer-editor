@@ -164,6 +164,8 @@ class ReadOperationsTest : KoinOperationsTest() {
 						session(DAY_TWO, 200),
 						session(DAY_TWO, 0),
 					),
+					authorId = 1,
+					authorName = "Ada",
 				),
 			)
 
@@ -488,6 +490,7 @@ class ReadOperationsTest : KoinOperationsTest() {
 
 		val sessions = run<DateRangeInput, Sessions>("stats.sessions", DateRangeInput(PROJECT, to = DAY_ONE))
 		assertEquals(listOf(120, 30), sessions.sessions.map { it.words })
+		assertEquals(listOf("Ada", "Ada"), sessions.sessions.map { it.author })
 	}
 
 	@Test

@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.base.http.writingactivity.WritingActivity
 import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.SlotAuthor
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingActivityRepository
@@ -39,6 +40,7 @@ class WritingActivitySyncOperation(
 	private val tracker: WritingSessionTracker,
 	private val api: WritingActivityApi,
 	private val globalSettingsStore: GlobalSettingsStore,
+	private val statisticsRepository: StatisticsRepository,
 ) : SyncOperation(projectDef) {
 
 	// Auxiliary sync; must-not-crash boundary, failure logged and passed through.
@@ -64,12 +66,14 @@ class WritingActivitySyncOperation(
 				return CResult.success(state)
 			}
 
+			var changed = false
 			var localOwnLog = repository.loadOwnLog()
 			val localAuthor = localOwnLog.authorId
 			if (localAuthor != null && localAuthor != userId) {
 				Napier.w("Writing activity: own slot belongs to account $localAuthor, setting it aside")
 				repository.setAsideOwnLog(localOwnLog)
 				localOwnLog = repository.loadOwnLog()
+				changed = true
 			}
 
 			val isOwnSlot = { slot: WritingActivitySlot ->
@@ -77,7 +81,7 @@ class WritingActivitySyncOperation(
 			}
 			val ownSlot = response.slots.firstOrNull(isOwnSlot)
 			for (slot in response.slots) {
-				if (!isOwnSlot(slot)) repository.replaceRemoteSlot(slot)
+				if (!isOwnSlot(slot) && repository.replaceRemoteSlot(slot)) changed = true
 			}
 
 			val returning = repository.takeSetAsideSessions(userId)
@@ -86,6 +90,11 @@ class WritingActivitySyncOperation(
 			val mergedSessions = mergeOwnSlotSessions(localSessions, remoteOwnSessions)
 			val ownAuthor = ownSlot?.log?.authorId?.let { SlotAuthor(it, ownSlot.log.authorName) }
 			repository.saveOwnLog(mergedSessions, ownAuthor)
+			val authorChanged = ownAuthor != null &&
+				(ownAuthor.id != localOwnLog.authorId || ownAuthor.name != localOwnLog.authorName)
+			if (changed || authorChanged || mergedSessions != localOwnLog.sessions) {
+				statisticsRepository.markDirty()
+			}
 
 			val payload = DeviceLog(
 				deviceLabel = globalSettingsStore.deviceLabelOrDefault(),

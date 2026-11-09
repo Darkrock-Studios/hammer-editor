@@ -126,7 +126,9 @@ fun ProjectStatsUi(
 				)
 			}
 
-			if (state.wordsPerDevice.size >= 2) {
+			if (state.wordsPerAuthor.size >= 2) {
+				AuthorsSection(state = state)
+			} else if (state.wordsPerDevice.size >= 2) {
 				DevicesSection(state = state)
 			}
 		}
@@ -1224,6 +1226,31 @@ private fun DevicesSection(state: ProjectHome.State) {
 			modifier = Modifier.fillMaxWidth(),
 			maxValue = maxValue,
 		)
+	}
+}
+
+@Composable
+private fun AuthorsSection(state: ProjectHome.State) {
+	HdHairlineSection(
+		section = 4,
+		title = Res.string.project_home_stat_words_per_author.get(),
+	) {
+		val authors = state.wordsPerAuthor
+		val palette = remember(authors.size) { generateHueColorPalette(authors.size) }
+		val maxValue = authors.first().words.coerceAtLeast(1)
+		val unknownAuthor = Res.string.project_home_stat_unknown_author.get()
+		Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+			authors.forEachIndexed { index, author ->
+				val color = palette[index]
+				val items = remember(author, color, unknownAuthor) {
+					val devices = author.devices.entries.sortedByDescending { it.value }.map { (label, words) ->
+						HdAttributionItem(label, words, color.copy(alpha = 0.55f), labelIndent = 16.dp)
+					}
+					listOf(HdAttributionItem(author.authorName ?: unknownAuthor, author.words, color)) + devices
+				}
+				HdMiniBarChart(items = items, modifier = Modifier.fillMaxWidth(), maxValue = maxValue)
+			}
+		}
 	}
 }
 

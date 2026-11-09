@@ -13,6 +13,7 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.export.ExportFileName
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupDef
+import com.darkrockstudios.apps.hammer.common.data.projectstatistics.AuthorWords
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.EntryAppearance
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.WritingActivityDerived
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TaggedEntityType
@@ -81,6 +82,7 @@ interface ProjectHome : Router, HammerComponent, BackHandlerOwner, ComponentToas
 		val numberOfTimelineEvents: Int = 0,
 		val dailyWordTotals: Map<LocalDate, Int> = emptyMap(),
 		val wordsPerDevice: Map<String, Int> = emptyMap(),
+		val wordsPerAuthor: List<AuthorWords> = emptyList(),
 		val topAppearances: List<EntryAppearance> = emptyList(),
 		val totalEntryConnections: Int = 0,
 		val tagBreakdowns: List<TagBreakdown> = emptyList(),

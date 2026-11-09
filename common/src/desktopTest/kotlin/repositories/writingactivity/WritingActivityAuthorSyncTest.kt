@@ -7,6 +7,7 @@ import com.darkrockstudios.apps.hammer.base.http.writingactivity.WritingActivity
 import com.darkrockstudios.apps.hammer.base.http.writingactivity.WritingSession
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityConflictHandler
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityTransferState
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.OnSyncLog
@@ -21,6 +22,7 @@ import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.server.WritingActivityApi
 import io.mockk.coEvery
 import io.mockk.every
+import io.mockk.verify
 import io.mockk.mockk
 import io.mockk.slot
 import kotlinx.coroutines.test.runTest
@@ -49,6 +51,7 @@ class WritingActivityAuthorSyncTest : BaseTest() {
 	private lateinit var repository: WritingActivityRepository
 	private val globalSettingsStore: GlobalSettingsStore = mockk(relaxed = true)
 	private val api: WritingActivityApi = mockk()
+	private val statisticsRepository: StatisticsRepository = mockk(relaxed = true)
 	private val uploaded = slot<DeviceLog>()
 
 	private val projectDef = ProjectDef(
@@ -90,6 +93,7 @@ class WritingActivityAuthorSyncTest : BaseTest() {
 			tracker = mockk<WritingSessionTracker>(relaxed = true),
 			api = api,
 			globalSettingsStore = globalSettingsStore,
+			statisticsRepository = statisticsRepository,
 		)
 		val onProgress: suspend (Float, SyncLogMessage?) -> Unit = { _, _ -> }
 		val onLog: OnSyncLog = { }
@@ -190,5 +194,16 @@ class WritingActivityAuthorSyncTest : BaseTest() {
 		assertEquals(listOf(session(9, 10), session(10, 20)), repository.loadOwnLog().sessions)
 		assertEquals(listOf(session(9, 10), session(10, 20)), uploaded.captured.sessions)
 		assertEquals(1, repository.loadAllLogs().size)
+	}
+
+	@Test
+	fun `stats are marked stale only when a sync changes the slots`() = runTest {
+		val theirs = WritingActivitySlot("device-x", DeviceLog("Phone", listOf(session(8, 40)), other, "Their Pen"))
+
+		sync(theirs)
+		verify(exactly = 1) { statisticsRepository.markDirty() }
+
+		sync(theirs)
+		verify(exactly = 1) { statisticsRepository.markDirty() }
 	}
 }

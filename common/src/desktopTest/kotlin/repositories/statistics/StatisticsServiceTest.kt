@@ -21,6 +21,7 @@ import com.darkrockstudios.apps.hammer.common.data.tree.ImmutableTree
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeValue
 import com.darkrockstudios.apps.hammer.base.http.writingactivity.DeviceLog
 import com.darkrockstudios.apps.hammer.base.http.writingactivity.WritingActivitySlot
+import com.darkrockstudios.apps.hammer.common.data.projectstatistics.AuthorWords
 import com.darkrockstudios.apps.hammer.base.http.writingactivity.WritingSession
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingActivityRepository
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -36,6 +37,7 @@ import utils.BaseTest
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertSame
+import kotlin.test.assertTrue
 import kotlin.time.Clock
 import kotlin.time.Instant
 
@@ -102,6 +104,8 @@ class StatisticsServiceTest : BaseTest() {
 		timeLineRepository = timeLineRepository,
 		writingActivityRepository = writingActivityRepository,
 		projectDataRepository = projectDataRepository,
+		projectsRepository = mockk { every { getOwner(any()) } returns null },
+		globalSettingsStore = mockk { every { serverSettings } returns null },
 		clock = Clock.System,
 	)
 
@@ -268,5 +272,33 @@ class StatisticsServiceTest : BaseTest() {
 			assertEquals(2, stats.dailyWordTotals.size)
 			assertEquals(350, stats.dailyWordTotals.values.sum())
 			assertEquals(350, stats.wordsPerDevice["Laptop"])
+			assertTrue(stats.wordsPerAuthor.isEmpty())
+		}
+
+	@Test
+	fun `two authors group their words, devices nested`() =
+		runTest(mainTestDispatcher) {
+			val day = Instant.parse("2026-04-27T09:00:00Z")
+			fun slot(device: String, label: String, author: Long, name: String, words: Int) = WritingActivitySlot(
+				device,
+				DeviceLog(label, listOf(WritingSession(day, day, words, sealed = true)), author, name),
+			)
+			coEvery { writingActivityRepository.loadAllLogs() } returns listOf(
+				slot("device-1", "Laptop", 1, "Ada", 100),
+				slot("device-2", "Phone", 1, "Ada", 50),
+				slot("device-1", "Laptop", 2, "Bo", 400),
+			)
+			coEvery { statisticsRepository.loadStatistics() } returns null
+
+			val stats = makeService().recalculateStatistics(::loadIndex)
+
+			assertEquals(
+				listOf(
+					AuthorWords(2, "Bo", 400, mapOf("Laptop" to 400)),
+					AuthorWords(1, "Ada", 150, mapOf("Laptop" to 100, "Phone" to 50)),
+				),
+				stats.wordsPerAuthor,
+			)
+			assertEquals(500, stats.wordsPerDevice["Laptop"])
 		}
 }

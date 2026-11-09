@@ -349,6 +349,7 @@ class ProjectHomeComponent(
 							numberOfTimelineEvents = stats.numberOfTimelineEvents,
 							dailyWordTotals = dailyTotals,
 							wordsPerDevice = stats.wordsPerDevice,
+							wordsPerAuthor = stats.wordsPerAuthor,
 							topAppearances = stats.topAppearances,
 							totalEntryConnections = stats.totalEntryConnections,
 							wordCountGoal = stats.wordCountGoal,

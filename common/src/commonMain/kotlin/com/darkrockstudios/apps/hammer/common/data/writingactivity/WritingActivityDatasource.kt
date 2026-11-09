@@ -68,7 +68,7 @@ class WritingActivityDatasource(
 		writeDeviceLog(projectDef.path.toOkioPath(), deviceId, log, fileSystem, toml)
 	}
 
-	suspend fun loadSlot(deviceId: String, authorId: Long): DeviceLog? = withContext(dispatcherIo) {
+	suspend fun loadSlot(deviceId: String, authorId: Long?): DeviceLog? = withContext(dispatcherIo) {
 		val path = getSlotPath(deviceId, authorId)
 		if (!fileSystem.exists(path)) return@withContext null
 		fileSystem.readTomlOrNull<DeviceLog>(path, toml) { e ->
@@ -85,8 +85,12 @@ class WritingActivityDatasource(
 		fileSystem.writeToml(getSlotPath(slot.deviceId, slot.log.authorId), toml, slot.log)
 	}
 
-	suspend fun deleteDeviceLog(deviceId: String): Unit = withContext(dispatcherIo) {
-		fileSystem.delete(getDeviceLogPath(deviceId), mustExist = false)
+	/** False when there was no file to delete. */
+	suspend fun deleteDeviceLog(deviceId: String): Boolean = withContext(dispatcherIo) {
+		val path = getDeviceLogPath(deviceId)
+		val existed = fileSystem.exists(path)
+		fileSystem.delete(path, mustExist = false)
+		existed
 	}
 
 	companion object {

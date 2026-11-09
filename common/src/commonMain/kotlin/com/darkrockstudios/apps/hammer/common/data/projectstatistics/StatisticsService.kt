@@ -12,7 +12,11 @@ import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndex
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingActivityRepository
+import com.darkrockstudios.apps.hammer.common.data.writingactivity.activityOwner
+import com.darkrockstudios.apps.hammer.common.data.writingactivity.attributeSlots
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import io.github.aakira.napier.Napier
@@ -36,7 +40,7 @@ import kotlin.time.Instant
  * Uses StatisticsRepository for persistence.
  */
 class StatisticsService(
-	projectDef: ProjectDef,
+	private val projectDef: ProjectDef,
 	private val statisticsRepository: StatisticsRepository,
 	private val sceneEditorRepository: SceneRepository,
 	private val sceneMetadataDatasource: SceneMetadataDatasource,
@@ -45,6 +49,8 @@ class StatisticsService(
 	private val timeLineRepository: TimeLineRepository,
 	private val writingActivityRepository: WritingActivityRepository,
 	private val projectDataRepository: ProjectDataRepository,
+	private val projectsRepository: ProjectsRepository,
+	private val globalSettingsStore: GlobalSettingsStore,
 	private val clock: Clock,
 ) : ScopeCallback, ProjectScoped {
 
@@ -171,7 +177,10 @@ class StatisticsService(
 			val timeZone = TimeZone.currentSystemDefault()
 			val dailyWordTotals = mutableMapOf<String, Int>()
 			val wordsPerDevice = mutableMapOf<String, Int>()
-			writingActivityRepository.loadAllLogs().map { it.log }.forEach { deviceLog ->
+			val owner = activityOwner(projectsRepository.getOwner(projectDef), globalSettingsStore.serverSettings)
+			val slots = attributeSlots(writingActivityRepository.loadAllLogs(), owner)
+			slots.forEach { slot ->
+				val deviceLog = slot.log
 				var deviceTotal = 0
 				deviceLog.sessions.forEach { session ->
 					// Count every session with words, sealed or not.
@@ -185,6 +194,7 @@ class StatisticsService(
 						(wordsPerDevice[deviceLog.deviceLabel] ?: 0) + deviceTotal
 				}
 			}
+			val wordsPerAuthor = wordsByAuthor(slots)
 
 			yield()
 
@@ -229,6 +239,7 @@ class StatisticsService(
 				numberOfTimelineEvents = timelineCount,
 				dailyWordTotals = dailyWordTotals,
 				wordsPerDevice = wordsPerDevice,
+				wordsPerAuthor = wordsPerAuthor,
 				topAppearances = topAppearances,
 				totalEntryConnections = totalEntryConnections,
 				wordCountGoal = wordCountGoal,
