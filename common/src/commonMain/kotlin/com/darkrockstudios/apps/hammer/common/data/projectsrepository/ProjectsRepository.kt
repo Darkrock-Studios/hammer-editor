@@ -575,7 +575,7 @@ class ProjectsRepository(
 		if (fileSystem.metadataOrNull(projectDir)?.isDirectory != true) return null
 		val entries = fileSystem.list(projectDir)
 		if (entries.isNotEmpty() && !hasProjectContent(projectDir, Listing(entries))) return null
-		return adoptUnmarkedDirectory(trimmedName, projectDir, projectId, serverKnowsProject)
+		return adoptUnmarkedDirectory(trimmedName, projectDir, projectId, serverKnowsProject, syncEnabled = true)
 	}
 
 	private suspend fun adoptUnmarkedDirectory(
@@ -583,24 +583,27 @@ class ProjectsRepository(
 		projectDir: Path,
 		projectId: ProjectId,
 		serverKnowsProject: Boolean,
+		syncEnabled: Boolean,
 	): ProjectDef? {
 		if (fileSystem.metadataOrNull(projectDir)?.isDirectory != true || !isUnmarked(projectDir)) return null
 		val projectDef = ProjectDef(projectId, projectName, projectDir.toHPath())
 
 		// Reset before marking, so a crash between the two leaves the folder unmarked and retried.
 		resetSyncStateAfterRestore(projectDef, serverKnowsProject)
-		projectsMetadataDatasource.createMetadata(projectDef, projectId)
-		Napier.w("Adopted unmarked project folder '${projectDef.name}' as ${projectId.id}")
+		projectsMetadataDatasource.createMetadata(projectDef, projectId, syncEnabled)
+		Napier.w("Adopted unmarked project folder '${projectDef.name}' as ${projectId.id}, sync ${if (syncEnabled) "on" else "off"}")
 		return projectDef
 	}
 
 	/**
 	 * Re-marks every directory, at any level, that lost its [ProjectMetadata.FILENAME] but still holds
-	 * Hammer content, each under a fresh id. Directories without such content stay ignored.
+	 * Hammer content, each under a fresh id with sync off, as [ProjectMetadataDatasource] rebuilds a
+	 * corrupt file. Directories without such content stay ignored.
 	 */
 	suspend fun healUnmarkedProjectDirectories(): List<ProjectDef> =
-		scan().unmarked
-			.mapNotNull { adoptUnmarkedDirectory(it.name, it.dir, ProjectId.randomUUID(), serverKnowsProject = false) }
+		scan().unmarked.mapNotNull {
+			adoptUnmarkedDirectory(it.name, it.dir, ProjectId.randomUUID(), serverKnowsProject = false, syncEnabled = false)
+		}
 
 	/** Returns up to [limit] projects ordered by `metadata.info.lastAccessed` descending, optionally excluding [excludeCurrent]. Projects with unreadable metadata sort last. */
 	fun getRecentProjects(limit: Int, excludeCurrent: ProjectDef? = null): List<ProjectDef> =

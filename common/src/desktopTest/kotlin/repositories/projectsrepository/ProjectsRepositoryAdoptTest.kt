@@ -78,6 +78,7 @@ class ProjectsRepositoryAdoptTest : ProjectsRepositoryBaseTest() {
 
 		assertHealed(lost, healed)
 		assertEquals(0, projectsMetaDatasource.loadMetadata(lost).info.dataVersion)
+		assertFalse(repo.isSyncEnabled(healed.single()))
 		assertTrue(healed.single() in repo.getProjects())
 	}
 
@@ -222,6 +223,7 @@ class ProjectsRepositoryAdoptTest : ProjectsRepositoryBaseTest() {
 
 		assertEquals(folder.copy(id = ProjectId("server-id")), adopted)
 		assertTrue(isMarked(folder))
+		assertTrue(repo.isSyncEnabled(folder))
 	}
 
 	@Test

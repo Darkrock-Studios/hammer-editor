@@ -198,6 +198,7 @@ class ProjectsRepositoryBasicTest : ProjectsRepositoryBaseTest() {
 			ffs.exists(metadataPath.toOkioPath()),
 			"createProject must write ${ProjectMetadata.FILENAME} immediately"
 		)
+		assertTrue(repo.isSyncEnabled(newDef))
 	}
 
 	@Test

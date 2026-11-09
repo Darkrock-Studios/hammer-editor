@@ -420,6 +420,12 @@ account sync re-enables it with `verifyAllEntities` set and the normal full comp
 two copies back together. Only the journal is flagged; the project data's `lastSyncedHash` is
 kept. A project open at that moment stays parked for the session and resumes once closed.
 
+A `project.toml` that is lost or corrupt is rebuilt under a fresh id with no owner fields and
+with sync off, and the rebuild is logged, whether the metadata datasource heals an unreadable file
+or startup re-marks a folder that lost it. Nothing can tell whether the lost file had an owner, so
+this applies to every rebuilt project: a shared copy that loses its metadata never uploads
+silently as the co-author's own, and the user turns sync back on deliberately for their own.
+
 `SyncJournal.buildSyncData`, which rebuilds a lost project journal, sets `verifyAllEntities` on
 the result regardless of co-authoring. A rebuilt journal is a guess and the next sync should
 check every entity.
@@ -526,7 +532,8 @@ stages below, in order, each landing as a series of checkpoint commits on the br
 
 After stage 6, the client was simplified: a shared project has no sync switch, `Info.parked` and
 the "upload as my own" turn-on path were removed, and parked became `ownerId != null &&
-!syncEnabled`. Landed 2026-11-08 as `2cb1b2b04` and a review-fix commit.
+!syncEnabled`. Landed 2026-11-08 as `2cb1b2b04` and `6dc9f5f4c`. A rebuilt `project.toml` comes
+up with sync off (Parked projects).
 
 Protocol version 4 is the deployment gate (Decision 7), and server and clients ship together in
 4.0.0, so nothing in the order above is load-bearing for deployment; it is the order that keeps
@@ -569,6 +576,3 @@ skill loaded, so new partials match the existing Writer's Desk templates.
 
 - Should co-authors see the project's writing stats on the website story page, or only in-app?
 - Should the owner be able to purge a removed co-author's writing-activity slots?
-- A corrupt `project.toml` is recreated with a fresh id and no owner fields, so a shared copy
-  that loses it would upload as the co-author's own on the next sync. Keeping the owner somewhere
-  that survives the heal (or refusing to heal a folder holding a journal) would close it.
