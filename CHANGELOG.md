@@ -1,9 +1,5 @@
 # Changelog
 
-## [Unreleased]
-
-- Server: health check endpoints for uptime monitors, reporting the database and each background job. See "Health checks" in docs/HOW-TO-RUN-A-SERVER.md
-
 ## [3.12.1] - 2026-10-24
 
 - Fix crash with syncthing conflict files

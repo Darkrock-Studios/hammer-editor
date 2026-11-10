@@ -1,7 +1,6 @@
-package com.darkrockstudios.apps.hammer.health
+package com.darkrockstudios.apps.hammer.database
 
 import app.cash.sqldelight.db.QueryResult
-import com.darkrockstudios.apps.hammer.database.Database
 import com.darkrockstudios.apps.hammer.utilities.injectIoDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
@@ -23,7 +22,8 @@ open class HealthCheckDao(
 	// checkout waiting on Hikari's 30s connectionTimeout) is still in flight. Cancelling
 	// can't interrupt that call, so a stuck ping is shared rather than repeated: at most
 	// one thread and one connection are ever tied up by health checks.
-	private val pingScope by lazy { CoroutineScope(SupervisorJob() + ioDispatcher) }
+	private val pingJob = SupervisorJob()
+	private val pingScope by lazy { CoroutineScope(pingJob + ioDispatcher) }
 	private val inFlightLock = Mutex()
 	private var inFlight: Deferred<Unit>? = null
 
@@ -36,6 +36,11 @@ open class HealthCheckDao(
 			inFlight?.takeIf { it.isActive } ?: pingScope.async { selectOne() }.also { inFlight = it }
 		}
 		return withTimeoutOrNull(timeout) { query.await() } != null
+	}
+
+	/** Abandons any ping still in flight; called when the DI container shuts down. */
+	fun close() {
+		pingJob.cancel()
 	}
 
 	private fun selectOne() {

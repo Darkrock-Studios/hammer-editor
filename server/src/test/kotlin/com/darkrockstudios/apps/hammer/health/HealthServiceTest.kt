@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.base.http.createTokenBase64
 import com.darkrockstudios.apps.hammer.database.Database
+import com.darkrockstudios.apps.hammer.database.HealthCheckDao
 import com.darkrockstudios.apps.hammer.database.ServerConfigDao
 import com.darkrockstudios.apps.hammer.e2e.util.SharedPostgresTestDatabase
 import com.darkrockstudios.apps.hammer.scheduling.RecurringTask
@@ -20,6 +21,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.slf4j.LoggerFactory
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
@@ -30,12 +32,14 @@ import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
+import kotlin.time.TestTimeSource
 
 class HealthServiceTest : BaseTest() {
 
 	private val logger = LoggerFactory.getLogger("test")
 	private val t0 = Instant.parse("2026-01-15T12:00:00Z")
 	private val clock = MutableClock(t0)
+	private val timeSource = TestTimeSource()
 
 	private lateinit var db: SharedPostgresTestDatabase
 	private lateinit var configRepository: ConfigRepository
@@ -51,12 +55,17 @@ class HealthServiceTest : BaseTest() {
 		registry = RecurringTaskRegistry()
 	}
 
-	private fun service(dao: HealthCheckDao = HealthCheckDao(db)) = HealthService(
+	private fun service(
+		dao: HealthCheckDao = HealthCheckDao(db),
+		config: ConfigRepository = configRepository,
+	) = HealthService(
 		registry = registry,
 		healthCheckDao = dao,
-		configRepository = configRepository,
+		configRepository = config,
 		base64 = createTokenBase64(),
 		clock = clock,
+		ioDispatcher = ioTestDispatcher,
+		timeSource = timeSource,
 	)
 
 	private fun task(
@@ -185,10 +194,10 @@ class HealthServiceTest : BaseTest() {
 		val service = service(dao)
 
 		service.report()
-		clock.now = t0 + 4.seconds
+		timeSource += 4.seconds
 		service.report()
 		val pingsWithinWindow = dao.pings
-		clock.now = t0 + 6.seconds
+		timeSource += 2.seconds
 		service.report()
 
 		assertEquals(1, pingsWithinWindow)
@@ -203,14 +212,17 @@ class HealthServiceTest : BaseTest() {
 	}
 
 	@Test
-	fun `colliding slugs get a numeric suffix`() {
-		val statuses = listOf("Sync job", "Sync", "sync!").map { name ->
-			RecurringTaskStatus(name, true, null, null, false, null)
-		}
+	fun `colliding slugs get a suffix that is stable as jobs come and go`() {
+		fun status(name: String) = RecurringTaskStatus(name, true, null, null, false, null)
 
-		val slugs = HealthService.jobsBySlug(statuses).keys.toList()
+		val pair = HealthService.jobsBySlug(listOf(status("Sync job"), status("Sync")))
+		val trio = HealthService.jobsBySlug(listOf(status("Sync job"), status("Sync"), status("sync!")))
+		val alone = HealthService.jobsBySlug(listOf(status("Sync"), status("Backup job")))
 
-		assertEquals(listOf("sync", "sync-2", "sync-3"), slugs)
+		assertEquals(2, pair.size)
+		assertTrue(pair.keys.all { it.matches(Regex("sync-[0-9a-f]{6}")) })
+		pair.forEach { (slug, s) -> assertEquals(s.name, trio.getValue(slug).name) }
+		assertEquals(setOf("sync", "backup"), alone.keys)
 	}
 
 	@Test
@@ -234,6 +246,33 @@ class HealthServiceTest : BaseTest() {
 
 		assertTrue(restarted.verifyToken(token))
 		assertEquals(t0, restarted.tokenCreatedAt())
+	}
+
+	@Test
+	fun `a token read that hangs gives up instead of blocking the probe`() = runTest {
+		val hanging = ConfigRepository(object : ServerConfigDao(db) {
+			override suspend fun getConfig(key: String): String? = awaitCancellation()
+		})
+		val service = service(config = hanging)
+
+		assertFailsWith<HealthService.TokenUnavailableException> { service.verifyToken("anything") }
+		service.close()
+	}
+
+	@Test
+	fun `a token read that fails surfaces the error and is retried next time`() = runTest {
+		var calls = 0
+		val flaky = ConfigRepository(object : ServerConfigDao(db) {
+			override suspend fun getConfig(key: String): String? {
+				if (++calls == 1) error("database down")
+				return null
+			}
+		})
+		val service = service(config = flaky)
+
+		assertFailsWith<IllegalStateException> { service.verifyToken("anything") }
+		assertFalse(service.verifyToken("anything"))
+		assertEquals(2, calls)
 	}
 
 	@Test

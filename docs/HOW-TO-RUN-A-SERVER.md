@@ -661,14 +661,15 @@ As long as that doesn't throw any errors, you can restart nginx. You should now 
 ## Health checks
 
 Uptime monitors (Uptime Kuma, Gatus, a cron'd `curl`) can poll these paths. Each one answers
-`200` when healthy and `503` when not, so a plain HTTP check is enough; the JSON body says why.
-They are exempt from the client protocol header, call logging and API metrics.
+`200` when what it reports is healthy and `503` when not, so a plain HTTP check is enough; the
+JSON body says why. They need no client protocol header and are left out of API metrics.
+Successful probes are not logged; failing ones and rejected tokens are.
 
 | Path | Token | Reports |
 |---|---|---|
-| `/api/health` | optional | Overall status. Anonymous callers get `{"status": "ok"}` or `{"status": "failing"}`. With a token it always returns `200` and a full report of the database and every job |
+| `/api/health` | optional | Overall status. Anonymous callers get `{"status": "ok"}` or `{"status": "failing"}`; with a token, a full report of the database and every job |
 | `/api/health/database` | required | A `SELECT 1` against the database (`ok`, `down` or `timeout`) |
-| `/api/health/jobs/{slug}` | required | One background job (`ok`, `failed`, `overdue` or `stopped`) |
+| `/api/health/jobs/{slug}` | required | One background job (`ok`, `failed`, `overdue` or `stopped`). If two job names reduce to the same slug, both get a short suffix |
 
 A job is `overdue` when it hasn't started within 10 minutes of its scheduled run, or a single
 run has lasted over an hour. Results are cached for 5 seconds, so many monitors polling at once
@@ -687,7 +688,8 @@ loudly. Regenerating or revoking the token takes effect immediately.
 In Uptime Kuma, create an **HTTP(s)** monitor per path and put the header in
 **Advanced, Headers** as `{"Authorization": "Bearer <token>"}`. To get the reason in the alert,
 use an **HTTP(s) - Json Query** monitor instead, with the expression `status` and the expected
-value `ok`.
+value `ok`, and add `503` to its **Accepted Status Codes** so Kuma reads the body rather than
+stopping at the status code.
 
 ## Allowed Users
 

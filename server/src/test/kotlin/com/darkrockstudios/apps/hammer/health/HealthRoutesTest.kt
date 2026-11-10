@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.health
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.base.http.API_ROUTE_PREFIX
 import com.darkrockstudios.apps.hammer.base.http.createTokenBase64
+import com.darkrockstudios.apps.hammer.database.HealthCheckDao
 import com.darkrockstudios.apps.hammer.database.ServerConfigDao
 import com.darkrockstudios.apps.hammer.e2e.util.SharedPostgresTestDatabase
 import com.darkrockstudios.apps.hammer.plugins.ApiProtocolEnforcerPlugin
@@ -67,6 +68,7 @@ class HealthRoutesTest : BaseTest() {
 			configRepository = ConfigRepository(ServerConfigDao(db)),
 			base64 = createTokenBase64(),
 			clock = kotlin.time.Clock.System,
+			ioDispatcher = kotlinx.coroutines.Dispatchers.IO,
 		)
 	}
 
@@ -142,14 +144,14 @@ class HealthRoutesTest : BaseTest() {
 	}
 
 	@Test
-	fun `a valid token gets the full report with 200 even when a job is failing`() = testApplication {
+	fun `a valid token gets the full report, 503 when anything is failing`() = testApplication {
 		application(appModule())
 		startJob("Account deletion job") { error("boom") }
 		val token = runBlocking { healthService.generateToken() }
 
 		val response = client.health(token = token)
 
-		assertEquals(HttpStatusCode.OK, response.status)
+		assertEquals(HttpStatusCode.ServiceUnavailable, response.status)
 		val body = response.json()
 		assertEquals("failing", body.getValue("status").jsonPrimitive.content)
 		val job = body.getValue("jobs").jsonObject.getValue("account-deletion").jsonObject
@@ -167,6 +169,18 @@ class HealthRoutesTest : BaseTest() {
 		val statuses = listOf("", "/database", "/jobs/token-maintenance").map { client.health(it, "wrong").status }
 
 		assertEquals(List(3) { HttpStatusCode.Unauthorized }, statuses)
+	}
+
+	@Test
+	fun `a valid token on a healthy server gets the full report with 200`() = testApplication {
+		application(appModule())
+		startJob("Token maintenance job")
+		val token = runBlocking { healthService.generateToken() }
+
+		val response = client.health(token = token)
+
+		assertEquals(HttpStatusCode.OK, response.status)
+		assertTrue("jobs" in response.json())
 	}
 
 	@Test
