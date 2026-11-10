@@ -45,6 +45,7 @@
 								<th>{{msg.admin_mon_jobs_col_status}}</th>
 								<th>{{msg.admin_mon_jobs_col_last_run}}</th>
 								<th>{{msg.admin_mon_jobs_col_next_run}}</th>
+								<th>{{msg.admin_mon_jobs_col_health_path}}</th>
 							</tr>
 							</thead>
 							<tbody>
@@ -58,10 +59,11 @@
 									</td>
 									<td>{{lastRun}}</td>
 									<td>{{nextRun}}</td>
+									<td class="mon-health__path">{{healthPath}}</td>
 								</tr>
 								{{#hasError}}
 									<tr class="mon-job-error-row">
-										<td colspan="4">
+										<td colspan="5">
 											<span class="mon-job-error__label">{{msg.admin_mon_jobs_error}}:</span>
 											<code class="mon-job-error__msg">{{lastError}}</code>
 										</td>
@@ -76,8 +78,72 @@
 					<div class="empty-state"><p>{{msg.admin_mon_jobs_none}}</p></div>
 				{{/hasJobs}}
 			</section>
+
+			<section class="paper-section">
+				<div class="section-header">
+					<h2 class="section-header__title">{{msg.admin_mon_health_title}}</h2>
+				</div>
+				<p class="section-description">{{msg.admin_mon_health_description}}</p>
+
+				<ul class="mon-health__paths">
+					<li>
+						<span class="mon-health__path">{{healthRoute}}</span>
+						<span class="mon-health__path-note">{{msg.admin_mon_health_path_overall}}</span>
+					</li>
+					<li>
+						<span class="mon-health__path">{{healthDatabasePath}}</span>
+						<span class="mon-health__path-note">{{msg.admin_mon_health_path_database}}</span>
+					</li>
+					<li>
+						<span class="mon-health__path">{{healthJobsPath}}</span>
+						<span class="mon-health__path-note">{{msg.admin_mon_health_path_jobs}}</span>
+					</li>
+				</ul>
+
+				{{> partials/health-token}}
+			</section>
 		</div>
 	</div>
 </main>
+
+<script>
+	// Delegated: the token block is swapped in by HTMX after the page loads.
+	document.addEventListener("click", function (event) {
+		var btn = event.target.closest("[data-copy-health]");
+		if (!btn) return;
+
+		var wrap = btn.closest(".mon-health__secret-wrap");
+		var pre = wrap && wrap.querySelector(".mon-health__secret");
+		if (!pre) return;
+
+		var text = pre.textContent;
+		var original = btn.innerHTML;
+		var showCopied = function () {
+			btn.classList.add("copied");
+			btn.innerHTML = '<i class="fa-solid fa-check"></i> ' + btn.dataset.copiedLabel;
+			setTimeout(function () {
+				btn.classList.remove("copied");
+				btn.innerHTML = original;
+			}, 2000);
+		};
+
+		// navigator.clipboard is undefined on insecure (plain HTTP) self-hosted origins.
+		var fallback = function () {
+			var range = document.createRange();
+			range.selectNodeContents(pre);
+			var sel = window.getSelection();
+			sel.removeAllRanges();
+			sel.addRange(range);
+			try { document.execCommand("copy"); showCopied(); } catch (err) { /* nothing to do */ }
+			sel.removeAllRanges();
+		};
+
+		if (navigator.clipboard && navigator.clipboard.writeText) {
+			navigator.clipboard.writeText(text).then(showCopied, fallback);
+		} else {
+			fallback();
+		}
+	});
+</script>
 
 {{> footer}}

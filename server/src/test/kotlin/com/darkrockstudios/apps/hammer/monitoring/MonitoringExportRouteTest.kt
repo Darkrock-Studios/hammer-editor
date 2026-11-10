@@ -60,6 +60,7 @@ class MonitoringExportRouteTest {
 				userActivityRepository = mockk(relaxed = true),
 				storyReaderRepository = mockk(relaxed = true),
 				recurringTaskRegistry = RecurringTaskRegistry(),
+				healthService = mockk(relaxed = true),
 				projectsSyncManager = mockk<SyncSessionManager<Long, ProjectsSynchronizationSession>>(relaxed = true),
 				projectSyncManager = mockk<SyncSessionManager<Long, ProjectSynchronizationSession>>(relaxed = true),
 				clock = clock,

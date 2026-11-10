@@ -452,8 +452,10 @@
 
 .mon-error__body { padding: 0.25rem 0.9rem 0.9rem; }
 .mon-error__message { font-family: 'Lora', Georgia, serif; color: var(--neutral-800); margin: 0.4rem 0; }
-.mon-error__stack-wrap { position: relative; }
-.mon-error__copy-btn {
+.mon-error__stack-wrap,
+.mon-health__secret-wrap { position: relative; }
+.mon-error__copy-btn,
+.mon-health__copy-btn {
 	position: absolute;
 	top: 0.5rem;
 	right: 0.5rem;
@@ -464,14 +466,17 @@
 	border-color: var(--neutral-600);
 	opacity: 0.85;
 }
-.mon-error__copy-btn:hover {
+.mon-error__copy-btn:hover,
+.mon-health__copy-btn:hover {
 	opacity: 1;
 	background: var(--neutral-700);
 	border-color: var(--neutral-500);
 	color: var(--neutral-100);
 }
-.mon-error__copy-btn.copied { color: #4ade80; border-color: #4ade80; }
-.mon-error__stack {
+.mon-error__copy-btn.copied,
+.mon-health__copy-btn.copied { color: #4ade80; border-color: #4ade80; }
+.mon-error__stack,
+.mon-health__secret {
 	margin: 0;
 	padding: 0.75rem;
 	background: var(--neutral-900);
@@ -679,4 +684,43 @@
 	font-family: ui-monospace, 'SF Mono', Menlo, monospace;
 	color: var(--neutral-300);
 	word-break: break-word;
+}
+
+/* --- Health check endpoint (Jobs page) --- */
+.mon-health__paths {
+	list-style: none;
+	padding: 0;
+	margin: 0 0 1.25rem;
+	display: grid;
+	gap: 0.4rem;
+}
+.mon-health__path {
+	font-family: 'Kingthings Typewriter', monospace;
+	color: var(--ink);
+	word-break: break-all;
+}
+.mon-health__path-note {
+	color: var(--neutral-600);
+	font-size: 0.85rem;
+	margin-left: 0.5rem;
+}
+.mon-health__token-state {
+	font-family: 'Lora', Georgia, serif;
+	color: var(--neutral-600);
+	margin: 0 0 0.85rem;
+}
+.mon-health__fresh { margin: 0 0 1rem; }
+.mon-health__warning {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	margin: 0 0 0.5rem;
+	font-weight: 600;
+	color: var(--warning);
+}
+.mon-health__secret { white-space: pre-wrap; word-break: break-all; padding-right: 7rem; }
+.mon-health__actions {
+	display: flex;
+	gap: 0.75rem;
+	flex-wrap: wrap;
 }
