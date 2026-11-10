@@ -48,7 +48,6 @@ const val READER_MODE_EDIT_TAG = "reader-mode-edit"
 const val READER_MODE_HEADINGS_TOGGLE_TAG = "reader-mode-headings-toggle"
 const val READER_MODE_INCREASE_FONT_TAG = "reader-mode-increase-font"
 const val READER_MODE_DECREASE_FONT_TAG = "reader-mode-decrease-font"
-const val READER_MODE_SCENE_BREAK_TAG = "reader-mode-scene-break"
 const val READER_MODE_NEXT_CHAPTER_TAG = "reader-mode-next-chapter"
 const val READER_MODE_PREVIOUS_CHAPTER_TAG = "reader-mode-previous-chapter"
 
@@ -66,10 +65,6 @@ private sealed interface ReaderRow {
 
 	data class SceneHeading(override val scene: SceneItem, val number: Int) : ReaderRow {
 		override val key = "heading-${scene.id}"
-	}
-
-	data class SceneBreak(override val scene: SceneItem) : ReaderRow {
-		override val key = "break-${scene.id}"
 	}
 
 	data class Body(override val scene: SceneItem, val markdown: String) : ReaderRow {
@@ -95,8 +90,6 @@ private fun buildReaderRows(
 	scenes.forEachIndexed { index, scene ->
 		if (showSceneHeadings) {
 			add(ReaderRow.SceneHeading(scene.sceneItem, number = index + 1))
-		} else if (index > 0) {
-			add(ReaderRow.SceneBreak(scene.sceneItem))
 		}
 		add(ReaderRow.Body(scene.sceneItem, scene.markdown))
 	}
@@ -361,12 +354,6 @@ private fun ReadingColumn(
 					row = row,
 					wide = wide,
 					onClick = { component.editScene(row.scene) },
-				)
-
-				is ReaderRow.SceneBreak -> HdSceneBreak(
-					modifier = Modifier
-						.testTag(READER_MODE_SCENE_BREAK_TAG)
-						.padding(vertical = Ui.Padding.XL),
 				)
 
 				is ReaderRow.Body -> MarkdownView(
