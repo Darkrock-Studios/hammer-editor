@@ -66,6 +66,8 @@ import com.darkrockstudios.apps.hammer.encryption.SimpleFileBasedAesGcmKeyProvid
 import com.darkrockstudios.apps.hammer.frontend.CommunityStatsProvider
 import com.darkrockstudios.apps.hammer.frontend.og.OgImageRenderer
 import com.darkrockstudios.apps.hammer.frontend.og.OgImageService
+import com.darkrockstudios.apps.hammer.health.HealthCheckDao
+import com.darkrockstudios.apps.hammer.health.HealthService
 import com.darkrockstudios.apps.hammer.kudos.StoryKudosRepository
 import com.darkrockstudios.apps.hammer.monitoring.ErrorRepository
 import com.darkrockstudios.apps.hammer.monitoring.MetricsCollector
@@ -182,6 +184,7 @@ fun mainModule(
 	single<PublishedStoryReaderDao>()
 	single<StoryKudosDao>()
 	single<UserDataPurgeDao>()
+	single<HealthCheckDao>()
 
 	single<AccountsRepository>()
 	single<TermsOfServiceRepository>()
@@ -213,6 +216,7 @@ fun mainModule(
 	single<StoryKudosRepository>()
 	single { MonitoringState() }
 	single { RecurringTaskRegistry() }
+	single<HealthService>()
 	single<MonitoringMaintenanceJob>()
 	single<TokenMaintenanceJob>()
 	single<WhitelistExpiryJob>()

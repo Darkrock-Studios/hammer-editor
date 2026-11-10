@@ -5,6 +5,7 @@ import com.darkrockstudios.apps.hammer.account.accountRoutes
 import com.darkrockstudios.apps.hammer.admin.adminRoutes
 import com.darkrockstudios.apps.hammer.base.http.API_ROUTE_PREFIX
 import com.darkrockstudios.apps.hammer.frontend.frontend
+import com.darkrockstudios.apps.hammer.health.healthRoutes
 import com.darkrockstudios.apps.hammer.plugin.installPluginRoutes
 import com.darkrockstudios.apps.hammer.project.projectRoutes
 import com.darkrockstudios.apps.hammer.projects.projectsRoutes
@@ -27,6 +28,7 @@ fun Application.configureRouting(serverConfig: ServerConfig = ServerConfig()) {
 			ideasRoutes()
 			projectRoutes(logger)
 			adminRoutes()
+			healthRoutes()
 			teapot()
 		}
 	}

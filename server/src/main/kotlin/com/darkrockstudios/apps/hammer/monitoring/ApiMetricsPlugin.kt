@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.monitoring
 
 import com.darkrockstudios.apps.hammer.base.http.API_ROUTE_PREFIX
+import com.darkrockstudios.apps.hammer.health.isHealthPath
 import io.ktor.server.application.*
 import io.ktor.server.application.hooks.*
 import io.ktor.server.request.*
@@ -35,6 +36,7 @@ fun apiMetricsPlugin(collector: MetricsCollector) = createApplicationPlugin("Api
 		val start = call.attributes.getOrNull(RequestStartKey) ?: return@on
 		val path = call.request.path()
 		if (path != "/$API_ROUTE_PREFIX" && !path.startsWith("/$API_ROUTE_PREFIX/")) return@on
+		if (isHealthPath(path)) return@on
 		val route = call.attributes.getOrNull(MatchedRouteTemplateKey) ?: return@on
 
 		val durationMs = start.elapsedNow().inWholeMilliseconds
