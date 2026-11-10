@@ -4,7 +4,9 @@ import com.darkrockstudios.apps.hammer.base.http.writingactivity.DeviceLog
 import com.darkrockstudios.apps.hammer.base.http.writingactivity.WritingSession
 import com.darkrockstudios.apps.hammer.common.data.ExampleProjectRepository.Companion.EXAMPLE_DAYS
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupService
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournalDatasource
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.writeDeviceLog
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
@@ -39,6 +41,7 @@ abstract class ExampleProjectRepository(
 	protected val dispatcherMain by injectMainDispatcher()
 	protected val dispatcherDefault by injectDefaultDispatcher()
 	private val projectMetadataDatasource: ProjectMetadataDatasource by inject()
+	private val projectBackupService: ProjectBackupService by inject()
 	private val scope = CoroutineScope(dispatcherDefault)
 
 	fun shouldInstallFirstTime(): Boolean =
@@ -66,13 +69,37 @@ abstract class ExampleProjectRepository(
 
 		scope.launch {
 			fabricateExampleActivity()
-			globalSettingsStore.updateSettings {
-				it.copy(
-					nux = globalSettingsStore.globalSettings.nux.copy(
-						exampleProjectCreated = true
-					)
-				)
+			recordInstalled()
+		}
+	}
+
+	/**
+	 * Replaces an example installed from an older bundle, [existing] if it is still there, with the
+	 * current one, backing it up first. A deleted example stays deleted. One that has synced is kept:
+	 * account sync would adopt a fresh copy onto the server's old one by name.
+	 */
+	suspend fun refreshIfOutdated(existing: ProjectDef?) {
+		val nux = globalSettingsStore.globalSettings.nux
+		if (!nux.exampleProjectCreated || nux.exampleProjectRevision >= BUNDLE_REVISION) return
+
+		if (existing != null && !hasSynced(existing)) {
+			if (projectBackupService.supportsBackup() && projectBackupService.createBackup(existing) == null) {
+				Napier.w("Could not back up the example project; leaving it as it is")
+				return
 			}
+			Napier.i("Replacing the example project with the current bundle")
+			install(existing.path)
+		} else {
+			recordInstalled()
+		}
+	}
+
+	private fun hasSynced(projectDef: ProjectDef): Boolean =
+		fileSystem.exists(projectDef.path.toOkioPath() / SyncJournalDatasource.SYNC_FILE_NAME)
+
+	private suspend fun recordInstalled() {
+		globalSettingsStore.updateSettings {
+			it.copy(nux = it.nux.copy(exampleProjectCreated = true, exampleProjectRevision = BUNDLE_REVISION))
 		}
 	}
 
@@ -99,6 +126,9 @@ abstract class ExampleProjectRepository(
 	companion object {
 		const val PROJECT_NAME = "Alice In Wonderland"
 		const val EXAMPLE_PROJECT_FILE_NAME = "alice_in_wonderland_zip"
+
+		/** Bump when the bundled project changes, so existing installs replace their copy on next start. */
+		const val BUNDLE_REVISION = 1
 
 		const val FABRICATED_DEVICE_ID = "example-author"
 		const val FABRICATED_DEVICE_LABEL = "Example Author"
