@@ -9,23 +9,16 @@ import com.darkrockstudios.apps.hammer.e2e.util.SharedPostgresTestDatabase
 import com.darkrockstudios.apps.hammer.scheduling.RecurringTask
 import com.darkrockstudios.apps.hammer.scheduling.RecurringTaskRegistry
 import com.darkrockstudios.apps.hammer.scheduling.RecurringTaskStatus
-import com.darkrockstudios.apps.hammer.secret.KeyringCodec
-import com.darkrockstudios.apps.hammer.secret.KeyringManager
-import com.darkrockstudios.apps.hammer.secret.ServerSecretProvider
-import com.darkrockstudios.apps.hammer.utilities.ServerSecretManager
-import com.darkrockstudios.apps.hammer.utilities.TokenHasher
 import com.darkrockstudios.apps.hammer.utils.BaseTest
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
-import okio.Path.Companion.toPath
-import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.slf4j.LoggerFactory
-import java.security.SecureRandom
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
@@ -34,6 +27,7 @@ import kotlin.test.assertTrue
 import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.hours
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
@@ -45,7 +39,6 @@ class HealthServiceTest : BaseTest() {
 
 	private lateinit var db: SharedPostgresTestDatabase
 	private lateinit var configRepository: ConfigRepository
-	private lateinit var tokenHasher: TokenHasher
 	private lateinit var registry: RecurringTaskRegistry
 
 	@BeforeEach
@@ -55,30 +48,13 @@ class HealthServiceTest : BaseTest() {
 		db.initialize()
 		setupKoin()
 		configRepository = ConfigRepository(ServerConfigDao(db))
-		tokenHasher = tokenHasher()
 		registry = RecurringTaskRegistry()
-	}
-
-	private fun tokenHasher(): TokenHasher {
-		val fileSystem = FakeFileSystem()
-		val secureRandom = SecureRandom()
-		val base64 = kotlin.io.encoding.Base64.Default
-		val manager = KeyringManager(
-			object : ServerSecretProvider {
-				override fun loadKeyring(): String? = null
-			},
-			KeyringCodec(secureRandom, base64),
-			fileSystem,
-			"/none".toPath(),
-		)
-		return TokenHasher(manager, ServerSecretManager(fileSystem, secureRandom), base64)
 	}
 
 	private fun service(dao: HealthCheckDao = HealthCheckDao(db)) = HealthService(
 		registry = registry,
 		healthCheckDao = dao,
 		configRepository = configRepository,
-		tokenHasher = tokenHasher,
 		base64 = createTokenBase64(),
 		clock = clock,
 	)
@@ -150,14 +126,38 @@ class HealthServiceTest : BaseTest() {
 	}
 
 	@Test
-	fun `a first tick that hangs becomes overdue`() = runTest {
+	fun `a first tick that hangs becomes overdue after the tick limit`() = runTest {
 		launch(task("Monitoring maintenance job") { awaitCancellation() })
 
-		clock.now = t0 + HealthService.OVERDUE_GRACE + 1.seconds
-		val job = service().report().jobs.getValue("monitoring-maintenance")
+		clock.now = t0 + HealthService.MAX_TICK_DURATION - 1.seconds
+		val stillRunning = service().report().jobs.getValue("monitoring-maintenance")
+		clock.now = t0 + HealthService.MAX_TICK_DURATION + 1.seconds
+		val hung = service().report().jobs.getValue("monitoring-maintenance")
 
-		assertNull(job.nextRun)
-		assertEquals(JobState.OVERDUE, job.status)
+		assertNull(hung.nextRun)
+		assertEquals(JobState.OK, stillRunning.status)
+		assertEquals(JobState.OVERDUE, hung.status)
+	}
+
+	@Test
+	fun `a slow later tick is not overdue until the tick limit`() = runTest {
+		var ticks = 0
+		launch(task("Disk cache prune job", interval = 1.hours) {
+			if (++ticks > 1) awaitCancellation()
+		})
+		val secondTickStart = t0 + 1.hours
+		clock.now = secondTickStart
+		advanceTimeBy(1.hours)
+		runCurrent()
+
+		clock.now = secondTickStart + HealthService.OVERDUE_GRACE + 1.minutes
+		val slow = service().report().jobs.getValue("disk-cache-prune").status
+		clock.now = secondTickStart + HealthService.MAX_TICK_DURATION + 1.seconds
+		val hung = service().report().jobs.getValue("disk-cache-prune").status
+
+		assertEquals(2, ticks)
+		assertEquals(JobState.OK, slow)
+		assertEquals(JobState.OVERDUE, hung)
 	}
 
 	@Test
@@ -224,6 +224,16 @@ class HealthServiceTest : BaseTest() {
 		val stored = configRepository.get(AdminServerConfig.HEALTH_TOKEN)!!
 		assertNotEquals(token, stored.hash)
 		assertEquals(t0, service.tokenCreatedAt())
+	}
+
+	@Test
+	fun `a token issued by an earlier instance still verifies`() = runTest {
+		val token = service().generateToken()
+
+		val restarted = service()
+
+		assertTrue(restarted.verifyToken(token))
+		assertEquals(t0, restarted.tokenCreatedAt())
 	}
 
 	@Test

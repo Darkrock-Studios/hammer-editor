@@ -10,11 +10,6 @@ import com.darkrockstudios.apps.hammer.plugins.HttpStatusException
 import com.darkrockstudios.apps.hammer.plugins.configureSerialization
 import com.darkrockstudios.apps.hammer.scheduling.RecurringTask
 import com.darkrockstudios.apps.hammer.scheduling.RecurringTaskRegistry
-import com.darkrockstudios.apps.hammer.secret.KeyringCodec
-import com.darkrockstudios.apps.hammer.secret.KeyringManager
-import com.darkrockstudios.apps.hammer.secret.ServerSecretProvider
-import com.darkrockstudios.apps.hammer.utilities.ServerSecretManager
-import com.darkrockstudios.apps.hammer.utilities.TokenHasher
 import com.darkrockstudios.apps.hammer.utils.BaseTest
 import com.darkrockstudios.apps.hammer.utils.setupKtorTestKoin
 import io.ktor.client.HttpClient
@@ -40,15 +35,11 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import okio.Path.Companion.toPath
-import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.koin.dsl.module
 import org.slf4j.LoggerFactory
-import java.security.SecureRandom
-import kotlin.io.encoding.Base64
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -70,21 +61,10 @@ class HealthRoutesTest : BaseTest() {
 		db.initialize()
 		setupKoin()
 		registry = RecurringTaskRegistry()
-		val fileSystem = FakeFileSystem()
-		val secureRandom = SecureRandom()
-		val keyring = KeyringManager(
-			object : ServerSecretProvider {
-				override fun loadKeyring(): String? = null
-			},
-			KeyringCodec(secureRandom, Base64.Default),
-			fileSystem,
-			"/none".toPath(),
-		)
 		healthService = HealthService(
 			registry = registry,
 			healthCheckDao = HealthCheckDao(db),
 			configRepository = ConfigRepository(ServerConfigDao(db)),
-			tokenHasher = TokenHasher(keyring, ServerSecretManager(fileSystem, secureRandom), Base64.Default),
 			base64 = createTokenBase64(),
 			clock = kotlin.time.Clock.System,
 		)
@@ -146,7 +126,7 @@ class HealthRoutesTest : BaseTest() {
 
 		assertEquals(HttpStatusCode.OK, response.status)
 		assertEquals("no-store", response.headers[HttpHeaders.CacheControl])
-		assertEquals(setOf("ok", "status"), response.json().keys)
+		assertEquals(setOf("status"), response.json().keys)
 	}
 
 	@Test
@@ -190,10 +170,20 @@ class HealthRoutesTest : BaseTest() {
 	}
 
 	@Test
-	fun `a non-bearer authorization header is rejected`() = testApplication {
+	fun `a non-bearer authorization header is treated as anonymous`() = testApplication {
 		application(appModule())
 
 		val response = client.get(HEALTH_ROUTE) { header(HttpHeaders.Authorization, "Basic dXNlcjpwYXNz") }
+
+		assertEquals(HttpStatusCode.OK, response.status)
+		assertEquals(setOf("status"), response.json().keys)
+	}
+
+	@Test
+	fun `an empty bearer token is rejected`() = testApplication {
+		application(appModule())
+
+		val response = client.get(HEALTH_ROUTE) { header(HttpHeaders.Authorization, "Bearer ") }
 
 		assertEquals(HttpStatusCode.Unauthorized, response.status)
 	}

@@ -48,19 +48,21 @@ enum class JobState {
 /** What an unauthenticated caller sees: overall state only. */
 @Serializable
 data class HealthSummary(
-	val ok: Boolean,
 	val status: OverallState,
-)
+) {
+	val ok: Boolean get() = status == OverallState.OK
+}
 
 @Serializable
 data class HealthReport(
-	val ok: Boolean,
 	val status: OverallState,
 	val checkedAt: String,
 	val database: DatabaseHealth,
 	val jobs: Map<String, JobHealth>,
 ) {
-	fun summary() = HealthSummary(ok, status)
+	val ok: Boolean get() = status == OverallState.OK
+
+	fun summary() = HealthSummary(status)
 }
 
 @Serializable

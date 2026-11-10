@@ -5,7 +5,7 @@ import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.scheduling.RecurringTaskRegistry
 import com.darkrockstudios.apps.hammer.scheduling.RecurringTaskStatus
 import com.darkrockstudios.apps.hammer.utilities.SecureTokenGenerator
-import com.darkrockstudios.apps.hammer.utilities.TokenHasher
+import com.darkrockstudios.apps.hammer.utilities.sha256Hex
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -14,12 +14,16 @@ import org.slf4j.LoggerFactory
 import java.security.MessageDigest
 import kotlin.io.encoding.Base64
 import kotlin.time.Clock
+import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 import kotlin.time.TimeSource
 
-/** The stored health token: only its HMAC, never the plaintext. */
+/**
+ * The stored health token: only its SHA-256, never the plaintext. The token is 256
+ * random bits, so an unkeyed hash is enough and it survives tokenHmac key rotation.
+ */
 @Serializable
 data class HealthToken(
 	val hash: String,
@@ -34,7 +38,6 @@ class HealthService(
 	private val registry: RecurringTaskRegistry,
 	private val healthCheckDao: HealthCheckDao,
 	private val configRepository: ConfigRepository,
-	private val tokenHasher: TokenHasher,
 	base64: Base64,
 	private val clock: Clock,
 ) {
@@ -46,6 +49,12 @@ class HealthService(
 	private val reportLock = Mutex()
 	private var cached: HealthReport? = null
 	private var cachedAt: Instant? = null
+
+	// This service is the only writer of the token, so after the first read it is served
+	// from memory. That keeps token checks off the database, which may be the thing that's down.
+	private val tokenLock = Mutex()
+	private var tokenLoaded = false
+	private var storedToken: HealthToken? = null
 
 	suspend fun report(): HealthReport = reportLock.withLock {
 		val now = clock.now()
@@ -64,7 +73,6 @@ class HealthService(
 		val jobs = jobsBySlug(registry.statuses()).mapValues { (_, status) -> status.health(now) }
 		val ok = database.ok && jobs.values.all { it.ok }
 		return HealthReport(
-			ok = ok,
 			status = if (ok) OverallState.OK else OverallState.FAILING,
 			checkedAt = now.toString(),
 			database = database,
@@ -90,28 +98,36 @@ class HealthService(
 
 	suspend fun generateToken(): String {
 		val token = tokenGenerator.generateToken()
-		configRepository.set(
-			AdminServerConfig.HEALTH_TOKEN,
-			HealthToken(tokenHasher.hashToken(token), clock.now().toEpochMilliseconds()),
-		)
+		saveToken(HealthToken(sha256Hex(token), clock.now().toEpochMilliseconds()))
 		return token
 	}
 
-	suspend fun revokeToken() {
-		configRepository.set(AdminServerConfig.HEALTH_TOKEN, null)
-	}
+	suspend fun revokeToken() = saveToken(null)
 
 	suspend fun tokenCreatedAt(): Instant? =
-		configRepository.get(AdminServerConfig.HEALTH_TOKEN)
-			?.let { Instant.fromEpochMilliseconds(it.createdAtMillis) }
+		loadToken()?.let { Instant.fromEpochMilliseconds(it.createdAtMillis) }
 
+	/** Throws if the token has never been read and the database can't be reached. */
 	suspend fun verifyToken(given: String): Boolean {
-		val stored = configRepository.get(AdminServerConfig.HEALTH_TOKEN) ?: return false
-		val givenHash = tokenHasher.hashToken(given)
+		val stored = loadToken() ?: return false
 		return MessageDigest.isEqual(
-			givenHash.toByteArray(Charsets.UTF_8),
+			sha256Hex(given).toByteArray(Charsets.UTF_8),
 			stored.hash.toByteArray(Charsets.UTF_8),
 		)
+	}
+
+	private suspend fun loadToken(): HealthToken? = tokenLock.withLock {
+		if (!tokenLoaded) {
+			storedToken = configRepository.get(AdminServerConfig.HEALTH_TOKEN)
+			tokenLoaded = true
+		}
+		storedToken
+	}
+
+	private suspend fun saveToken(token: HealthToken?) = tokenLock.withLock {
+		configRepository.set(AdminServerConfig.HEALTH_TOKEN, token)
+		storedToken = token
+		tokenLoaded = true
 	}
 
 	companion object {
@@ -121,6 +137,9 @@ class HealthService(
 
 		/** How far past its scheduled run a job may be before it counts as overdue. */
 		val OVERDUE_GRACE = 10.minutes
+
+		/** How long a single tick may run before it is assumed hung. */
+		val MAX_TICK_DURATION = 1.hours
 
 		/** "Account deletion job" -> "account-deletion". */
 		fun slugOf(taskName: String): String =
@@ -158,11 +177,17 @@ class HealthService(
 			)
 		}
 
-		// While a tick is in flight nextRun still holds the time that tick was due, and
-		// before the first tick finishes it is null, so fall back to when that tick started.
+		// lastRun is stamped when a tick starts and nextRun once it finishes, so a tick is in
+		// flight while nextRun is unset (first tick) or not later than lastRun. A tick in
+		// flight is allowed MAX_TICK_DURATION; an idle job must start within the grace period.
 		private fun RecurringTaskStatus.isOverdue(now: Instant): Boolean {
-			val due = nextRun ?: lastRun ?: return false
-			return now > due + OVERDUE_GRACE
+			val started = lastRun ?: return false
+			val due = nextRun
+			return if (due == null || due <= started) {
+				now > started + MAX_TICK_DURATION
+			} else {
+				now > due + OVERDUE_GRACE
+			}
 		}
 	}
 }
