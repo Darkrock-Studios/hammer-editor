@@ -58,7 +58,7 @@ class ProjectsRepositoryAdoptTest : ProjectsRepositoryBaseTest() {
 		ffs.read(journalPath(def)) { json.decodeFromString(readUtf8()) }
 
 	private fun migrator(repo: ProjectsRepository) =
-		object : DataMigrator(settingsRepo, repo, projectsMetaDatasource, mockk(relaxed = true), mockk(relaxed = true)) {
+		object : DataMigrator(settingsRepo, repo, projectsMetaDatasource, mockk(relaxed = true), lazy { mockk(relaxed = true) }) {
 			override val latestProjectDataVersion = 4
 			override fun getMigrators(): Map<Int, Migration> =
 				(1..3).associateWith { noOpMigration(it) } + (4 to Migration3_4(ffs, projectsMetaDatasource))

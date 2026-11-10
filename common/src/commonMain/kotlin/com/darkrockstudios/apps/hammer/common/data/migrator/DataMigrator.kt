@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.common.data.migrator
 
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.ExampleProjectRepository
+import com.darkrockstudios.apps.hammer.common.data.RefreshExampleProjectUseCase
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
@@ -17,7 +18,8 @@ open class DataMigrator(
 	private val projectsRepository: ProjectsRepository,
 	private val projectMetadataDatasource: ProjectMetadataDatasource,
 	private val entryImagePromoter: EntryImagePromoter,
-	private val exampleProjectRepository: ExampleProjectRepository,
+	// Lazy: ProjectBackupService, which the use case needs, is built with a DataMigrator.
+	private val refreshExampleProject: Lazy<RefreshExampleProjectUseCase>,
 ) {
 	protected open val latestProjectDataVersion: Int = PROJECT_DATA_VERSION
 	protected open fun getMigrators(): Map<Int, Migration> {
@@ -46,7 +48,7 @@ open class DataMigrator(
 		// Healed projects start at data version 0, so they are migrated below.
 		val healed = projectsRepository.healUnmarkedProjectDirectories()
 		// Before migrating, so an outdated example is replaced rather than migrated.
-		exampleProjectRepository.refreshIfOutdated(projectsRepository.findProject(ExampleProjectRepository.PROJECT_NAME))
+		refreshExampleProject.value(projectsRepository.findProject(ExampleProjectRepository.PROJECT_NAME))
 
 		if (checkIfMigrationNeeded()) {
 			doMigration()

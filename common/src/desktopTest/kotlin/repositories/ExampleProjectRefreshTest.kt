@@ -3,6 +3,7 @@ package repositories
 import com.darkrockstudios.apps.hammer.common.data.ExampleProjectRepository
 import com.darkrockstudios.apps.hammer.common.data.ExampleProjectRepositoryDesktop
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.RefreshExampleProjectUseCase
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.NewUserExperience
@@ -44,7 +45,7 @@ class ExampleProjectRefreshTest : BaseTest() {
 	private lateinit var ffs: FakeFileSystem
 	private lateinit var settings: GlobalSettings
 	private lateinit var backups: ProjectBackupService
-	private lateinit var repository: ExampleProjectRepository
+	private lateinit var refreshExample: RefreshExampleProjectUseCase
 
 	@BeforeEach
 	override fun setup() {
@@ -58,7 +59,6 @@ class ExampleProjectRefreshTest : BaseTest() {
 		coEvery { backups.createBackup(any()) } returns mockk<ProjectBackupDef>()
 		setupKoin(module {
 			single { ProjectMetadataDatasource(ffs, toml) }
-			single { backups }
 		})
 
 		val store = mockk<GlobalSettingsStore>()
@@ -66,7 +66,7 @@ class ExampleProjectRefreshTest : BaseTest() {
 		coEvery { store.updateSettings(any()) } answers {
 			settings = firstArg<(GlobalSettings) -> GlobalSettings>()(settings)
 		}
-		repository = ExampleProjectRepositoryDesktop(store, ffs, toml, Clock.System)
+		refreshExample = RefreshExampleProjectUseCase(ExampleProjectRepositoryDesktop(store, ffs, toml, Clock.System), backups)
 	}
 
 	private fun installed(revision: Int, created: Boolean = true) {
@@ -77,7 +77,7 @@ class ExampleProjectRefreshTest : BaseTest() {
 	}
 
 	private fun refresh(existing: ProjectDef?) = scope.runTest {
-		repository.refreshIfOutdated(existing)
+		refreshExample(existing)
 		testScheduler.advanceUntilIdle()
 	}
 
