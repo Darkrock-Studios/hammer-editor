@@ -9,7 +9,12 @@ document.addEventListener('click', function (event) {
 	if (!source) return;
 
 	// Captured once, so a click during the feedback window can't save the feedback as the label.
-	if (btn.dataset.originalHtml === undefined) btn.dataset.originalHtml = btn.innerHTML;
+	// Nodes rather than HTML strings, so no label text is ever parsed as markup.
+	if (!btn._copyOriginalNodes) {
+		btn._copyOriginalNodes = Array.prototype.map.call(btn.childNodes, function (node) {
+			return node.cloneNode(true);
+		});
+	}
 
 	var execCopy = function () {
 		var range = document.createRange();
@@ -28,11 +33,15 @@ document.addEventListener('click', function (event) {
 		clearTimeout(btn._copyResetTimer);
 		btn.classList.toggle('copied', ok);
 		btn.classList.toggle('copy-failed', !ok);
+		var icon = document.createElement('i');
+		icon.className = 'fa-solid ' + (ok ? 'fa-check' : 'fa-xmark');
 		var label = ok ? btn.dataset.copiedLabel : btn.dataset.copyFailedLabel;
-		btn.innerHTML = '<i class="fa-solid ' + (ok ? 'fa-check' : 'fa-xmark') + '"></i> ' + label;
+		btn.replaceChildren(icon, document.createTextNode(' ' + label));
 		btn._copyResetTimer = setTimeout(function () {
 			btn.classList.remove('copied', 'copy-failed');
-			btn.innerHTML = btn.dataset.originalHtml;
+			btn.replaceChildren.apply(btn, btn._copyOriginalNodes.map(function (node) {
+				return node.cloneNode(true);
+			}));
 		}, 2000);
 	});
 });
