@@ -658,6 +658,37 @@ sudo nginx -t
 
 As long as that doesn't throw any errors, you can restart nginx. You should now be able to access your Hammer server web page at your URL!
 
+## Health checks
+
+Uptime monitors (Uptime Kuma, Gatus, a cron'd `curl`) can poll these paths. Each one answers
+`200` when healthy and `503` when not, so a plain HTTP check is enough; the JSON body says why.
+They are exempt from the client protocol header, call logging and API metrics.
+
+| Path | Token | Reports |
+|---|---|---|
+| `/api/health` | optional | Overall status. Anonymous callers get `{"status": "ok"}` or `{"status": "failing"}`. With a token it always returns `200` and a full report of the database and every job |
+| `/api/health/database` | required | A `SELECT 1` against the database (`ok`, `down` or `timeout`) |
+| `/api/health/jobs/{slug}` | required | One background job (`ok`, `failed`, `overdue` or `stopped`) |
+
+A job is `overdue` when it hasn't started within 10 minutes of its scheduled run, or a single
+run has lasted over an hour. Results are cached for 5 seconds, so many monitors polling at once
+cost one database query.
+
+Generate the token under **Admin, Monitoring, Jobs**. It is shown once; only its hash is
+stored. That page also lists every job's path. Send the token as a header:
+
+```
+Authorization: Bearer <token>
+```
+
+A wrong token gets `401` rather than the anonymous summary, so a misconfigured monitor fails
+loudly. Regenerating or revoking the token takes effect immediately.
+
+In Uptime Kuma, create an **HTTP(s)** monitor per path and put the header in
+**Advanced, Headers** as `{"Authorization": "Bearer <token>"}`. To get the reason in the alert,
+use an **HTTP(s) - Json Query** monitor instead, with the expression `status` and the expected
+value `ok`.
+
 ## Allowed Users
 
 Account creation is restricted to allowed email addresses. This is always on and cannot be
