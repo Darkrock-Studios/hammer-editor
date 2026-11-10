@@ -1,0 +1,45 @@
+<div id="health-token">
+	{{#hasToken}}
+		<p class="mon-health__token-state">{{msg.admin_mon_health_token_active}} <strong>{{tokenCreated}}</strong></p>
+	{{/hasToken}}
+	{{^hasToken}}
+		<p class="mon-health__token-state">{{msg.admin_mon_health_token_none}}</p>
+	{{/hasToken}}
+
+	{{#hasFreshToken}}
+		<div class="mon-health__fresh">
+			<p class="mon-health__warning">
+				<i class="fa-solid fa-triangle-exclamation"></i> {{msg.admin_mon_health_token_once}}
+			</p>
+			<div class="mon-health__secret-wrap">
+				<button type="button" class="btn btn--ghost mon-health__copy-btn"
+				        data-copy=".mon-health__secret" data-copied-label="{{msg.admin_mon_errors_copied}}"
+				        data-copy-failed-label="{{msg.admin_mon_copy_failed}}">
+					<i class="fa-solid fa-copy"></i> {{msg.admin_mon_health_token_copy}}
+				</button>
+				<pre class="mon-health__secret">{{kumaHeader}}</pre>
+			</div>
+		</div>
+	{{/hasFreshToken}}
+
+	<div class="mon-health__actions">
+		{{^hasToken}}
+			<button type="button" class="btn btn--primary"
+			        hx-post="/admin/monitoring/jobs/health-token" hx-target="#health-token" hx-swap="outerHTML">
+				<i class="fa-solid fa-key"></i> {{msg.admin_mon_health_token_generate}}
+			</button>
+		{{/hasToken}}
+		{{#hasToken}}
+			<button type="button" class="btn btn--primary"
+			        hx-post="/admin/monitoring/jobs/health-token" hx-target="#health-token" hx-swap="outerHTML"
+			        hx-confirm="{{msg.admin_mon_health_token_regenerate_confirm}}">
+				<i class="fa-solid fa-rotate"></i> {{msg.admin_mon_health_token_regenerate}}
+			</button>
+			<button type="button" class="btn btn--danger"
+			        hx-post="/admin/monitoring/jobs/health-token/revoke" hx-target="#health-token" hx-swap="outerHTML"
+			        hx-confirm="{{msg.admin_mon_health_token_revoke_confirm}}">
+				{{msg.admin_mon_health_token_revoke}}
+			</button>
+		{{/hasToken}}
+	</div>
+</div>
