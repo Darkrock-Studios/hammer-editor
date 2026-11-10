@@ -10,6 +10,8 @@ import com.darkrockstudios.apps.hammer.frontend.utils.msg
 import com.darkrockstudios.apps.hammer.frontend.utils.respondTemplateWithToast
 import com.darkrockstudios.apps.hammer.health.HEALTH_ROUTE
 import com.darkrockstudios.apps.hammer.health.HealthService
+import com.darkrockstudios.apps.hammer.health.HealthService.Companion.health
+import com.darkrockstudios.apps.hammer.health.JobState
 import com.darkrockstudios.apps.hammer.monitoring.DailyActiveUsers
 import com.darkrockstudios.apps.hammer.monitoring.EndpointStat
 import com.darkrockstudios.apps.hammer.monitoring.ErrorRepository
@@ -31,6 +33,7 @@ import com.darkrockstudios.apps.hammer.scheduling.RecurringTaskRegistry
 import com.darkrockstudios.apps.hammer.scheduling.RecurringTaskStatus
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
 import io.ktor.htmx.HxResponseHeaders
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.htmx.hx
 import io.ktor.server.mustache.MustacheContent
@@ -318,8 +321,9 @@ fun Route.adminMonitoringPages(
 		}
 
 		get("/jobs") {
+			val now = clock.now()
 			val jobs = HealthService.jobsBySlug(recurringTaskRegistry.statuses())
-				.map { (slug, status) -> jobStatusModel(status, slug) }
+				.map { (slug, status) -> jobStatusModel(status, slug, now) }
 			val model = mutableMapOf<String, Any>(
 				"page_stylesheet" to "/assets/css/admin.css",
 				"activeMonitoring" to true,
@@ -337,6 +341,7 @@ fun Route.adminMonitoringPages(
 
 		// The plaintext token exists only in this response; just its hash is stored.
 		hx.post("/jobs/health-token") {
+			call.response.header(HttpHeaders.CacheControl, "no-store")
 			val token = healthService.generateToken()
 			respondTemplateWithToast(
 				templatePath = "partials/health-token.mustache",
@@ -346,6 +351,7 @@ fun Route.adminMonitoringPages(
 		}
 
 		hx.post("/jobs/health-token/revoke") {
+			call.response.header(HttpHeaders.CacheControl, "no-store")
 			healthService.revokeToken()
 			respondTemplateWithToast(
 				templatePath = "partials/health-token.mustache",
@@ -406,17 +412,24 @@ private fun healthTokenModel(createdAt: Instant?, freshToken: String?): Map<Stri
 	"kumaHeader" to (freshToken?.let { """{"Authorization": "Bearer $it"}""" } ?: ""),
 )
 
-private fun jobStatusModel(s: RecurringTaskStatus, slug: String): Map<String, Any> = mapOf(
-	"name" to s.name,
-	"healthPath" to "$HEALTH_ROUTE/jobs/$slug",
-	"running" to s.running,
-	"failing" to (s.running && s.lastTickFailed),
-	"lastRun" to (s.lastRun?.let { formatInstant(it, "MMM dd, HH:mm:ss") } ?: "—"),
-	// Next run is only meaningful while the loop is alive to honor it.
-	"nextRun" to (s.nextRun?.takeIf { s.running }?.let { formatInstant(it, "MMM dd, HH:mm:ss") } ?: "—"),
-	"hasError" to (s.lastError != null),
-	"lastError" to (s.lastError ?: ""),
-)
+// Status comes from the health check itself, so the page and /api/health never disagree.
+private fun jobStatusModel(s: RecurringTaskStatus, slug: String, now: Instant): Map<String, Any> {
+	val state = s.health(now).status
+	return mapOf(
+		"name" to s.name,
+		"healthPath" to "$HEALTH_ROUTE/jobs/$slug",
+		"failing" to (state != JobState.OK),
+		"stateOk" to (state == JobState.OK),
+		"stateStopped" to (state == JobState.STOPPED),
+		"stateFailed" to (state == JobState.FAILED),
+		"stateOverdue" to (state == JobState.OVERDUE),
+		"lastRun" to (s.lastRun?.let { formatInstant(it, "MMM dd, HH:mm:ss") } ?: "—"),
+		// Next run is only meaningful while the loop is alive to honor it.
+		"nextRun" to (s.nextRun?.takeIf { s.running }?.let { formatInstant(it, "MMM dd, HH:mm:ss") } ?: "—"),
+		"hasError" to (s.lastError != null),
+		"lastError" to (s.lastError ?: ""),
+	)
+}
 
 private fun errorRowModel(e: Error_log, canIgnore: Boolean): Map<String, Any> {
 	val severity = severityFor(e.status)

@@ -29,12 +29,22 @@ class AdminHealthTokenPageTest : EndToEndTest() {
 	private val password = "password123!@#"
 	private val bearerPattern = Regex("Bearer ([A-Za-z0-9_-]+)")
 
+	private val userEmail = "writer@test.com"
+
 	private fun seed() = runBlocking {
 		E2eTestData.createAccount(TestAccount(email, password, isAdmin = true), database())
-		database().serverDatabase.whiteListQueries.addToWhiteList(email, Clock.System.now(), "Test admin", null)
+		E2eTestData.createAccount(TestAccount(userEmail, password, isAdmin = false), database())
+		val whiteList = database().serverDatabase.whiteListQueries
+		whiteList.addToWhiteList(email, Clock.System.now(), "Test admin", null)
+		whiteList.addToWhiteList(userEmail, Clock.System.now(), "Test writer", null)
 	}
 
-	private suspend fun login(): HttpClient {
+	/** The stored token record, or null when none has been issued. */
+	private fun storedToken(): String? =
+		database().serverDatabase.serverConfigQueries.getConfig("health_token").executeAsOneOrNull()
+			?.takeIf { it != "null" }
+
+	private suspend fun login(email: String = this.email): HttpClient {
 		val authed = HttpClient {
 			install(HttpCookies)
 		}
@@ -100,13 +110,25 @@ class AdminHealthTokenPageTest : EndToEndTest() {
 	}
 
 	@Test
-	fun `token routes are admin only`(): Unit = runBlocking {
+	fun `anonymous and non-admin callers cannot issue or revoke a token`(): Unit = runBlocking {
 		doStartServer()
+		seed()
+		val issued = login().use { admin ->
+			admin.post(route("admin/monitoring/jobs/health-token")) { header("HX-Request", "true") }
+			storedToken()
+		}
+		assertNotNull(issued)
 
-		val response = client().post(route("admin/monitoring/jobs/health-token")) {
-			header("HX-Request", "true")
+		login(userEmail).use { writer ->
+			for (path in listOf("admin/monitoring/jobs/health-token", "admin/monitoring/jobs/health-token/revoke")) {
+				val asWriter = writer.post(route(path)) { header("HX-Request", "true") }
+				val anonymous = client().post(route(path)) { header("HX-Request", "true") }
+
+				assertFalse(bearerPattern.containsMatchIn(asWriter.bodyAsText()), "writer got a token from $path")
+				assertFalse(bearerPattern.containsMatchIn(anonymous.bodyAsText()), "anonymous got a token from $path")
+			}
 		}
 
-		assertFalse(response.status == HttpStatusCode.OK && bearerPattern.containsMatchIn(response.bodyAsText()))
+		assertEquals(issued, storedToken(), "the stored token must be untouched")
 	}
 }

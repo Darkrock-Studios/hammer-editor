@@ -360,7 +360,8 @@
 .mon-table__num { text-align: right; font-family: 'Kingthings Typewriter', monospace; }
 .mon-table__num--err { color: var(--error); }
 .mon-table__endpoint { display: flex; align-items: center; gap: 0.6rem; }
-.mon-table__route { word-break: break-all; font-family: 'Kingthings Typewriter', monospace; color: var(--ink); }
+.mon-table__route,
+.mon-health__path { word-break: break-all; font-family: 'Kingthings Typewriter', monospace; color: var(--ink); }
 
 /* --- Active filter chip (e.g. errors filtered to one endpoint) --- */
 .mon-filter-chip {
@@ -473,6 +474,8 @@
 	border-color: var(--neutral-500);
 	color: var(--neutral-100);
 }
+.mon-error__copy-btn.copy-failed,
+.mon-health__copy-btn.copy-failed { color: #f87171; border-color: #f87171; }
 .mon-error__copy-btn.copied,
 .mon-health__copy-btn.copied { color: #4ade80; border-color: #4ade80; }
 .mon-error__stack,
@@ -693,11 +696,6 @@
 	margin: 0 0 1.25rem;
 	display: grid;
 	gap: 0.4rem;
-}
-.mon-health__path {
-	font-family: 'Kingthings Typewriter', monospace;
-	color: var(--ink);
-	word-break: break-all;
 }
 .mon-health__path-note {
 	color: var(--neutral-600);

@@ -13,7 +13,8 @@
 			</p>
 			<div class="mon-health__secret-wrap">
 				<button type="button" class="btn btn--ghost mon-health__copy-btn"
-				        data-copy-health data-copied-label="{{msg.admin_mon_errors_copied}}">
+				        data-copy=".mon-health__secret" data-copied-label="{{msg.admin_mon_errors_copied}}"
+				        data-copy-failed-label="{{msg.admin_mon_copy_failed}}">
 					<i class="fa-solid fa-copy"></i> {{msg.admin_mon_health_token_copy}}
 				</button>
 				<pre class="mon-health__secret">{{kumaHeader}}</pre>

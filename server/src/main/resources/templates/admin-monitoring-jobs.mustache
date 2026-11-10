@@ -53,13 +53,14 @@
 								<tr>
 									<td class="mon-table__route">{{name}}</td>
 									<td>
-										{{#running}}<span class="mon-badge mon-badge--ok">{{msg.admin_mon_jobs_alive}}</span>{{/running}}
-										{{^running}}<span class="mon-badge mon-badge--fail">{{msg.admin_mon_jobs_stopped}}</span>{{/running}}
-										{{#failing}}<span class="mon-badge mon-badge--fail">{{msg.admin_mon_jobs_failing}}</span>{{/failing}}
+										{{#stateOk}}<span class="mon-badge mon-badge--ok">{{msg.admin_mon_jobs_alive}}</span>{{/stateOk}}
+										{{#stateStopped}}<span class="mon-badge mon-badge--fail">{{msg.admin_mon_jobs_stopped}}</span>{{/stateStopped}}
+										{{#stateFailed}}<span class="mon-badge mon-badge--fail">{{msg.admin_mon_jobs_failing}}</span>{{/stateFailed}}
+										{{#stateOverdue}}<span class="mon-badge mon-badge--fail">{{msg.admin_mon_jobs_overdue}}</span>{{/stateOverdue}}
 									</td>
 									<td>{{lastRun}}</td>
 									<td>{{nextRun}}</td>
-									<td class="mon-health__path">{{healthPath}}</td>
+									<td class="mon-table__route">{{healthPath}}</td>
 								</tr>
 								{{#hasError}}
 									<tr class="mon-job-error-row">
@@ -106,44 +107,7 @@
 	</div>
 </main>
 
-<script>
-	// Delegated: the token block is swapped in by HTMX after the page loads.
-	document.addEventListener("click", function (event) {
-		var btn = event.target.closest("[data-copy-health]");
-		if (!btn) return;
-
-		var wrap = btn.closest(".mon-health__secret-wrap");
-		var pre = wrap && wrap.querySelector(".mon-health__secret");
-		if (!pre) return;
-
-		var text = pre.textContent;
-		var original = btn.innerHTML;
-		var showCopied = function () {
-			btn.classList.add("copied");
-			btn.innerHTML = '<i class="fa-solid fa-check"></i> ' + btn.dataset.copiedLabel;
-			setTimeout(function () {
-				btn.classList.remove("copied");
-				btn.innerHTML = original;
-			}, 2000);
-		};
-
-		// navigator.clipboard is undefined on insecure (plain HTTP) self-hosted origins.
-		var fallback = function () {
-			var range = document.createRange();
-			range.selectNodeContents(pre);
-			var sel = window.getSelection();
-			sel.removeAllRanges();
-			sel.addRange(range);
-			try { document.execCommand("copy"); showCopied(); } catch (err) { /* nothing to do */ }
-			sel.removeAllRanges();
-		};
-
-		if (navigator.clipboard && navigator.clipboard.writeText) {
-			navigator.clipboard.writeText(text).then(showCopied, fallback);
-		} else {
-			fallback();
-		}
-	});
-</script>
+<script src="/assets/js/copy-button-logic.js?v={{version}}"></script>
+<script src="/assets/js/copy-button.js?v={{version}}"></script>
 
 {{> footer}}
