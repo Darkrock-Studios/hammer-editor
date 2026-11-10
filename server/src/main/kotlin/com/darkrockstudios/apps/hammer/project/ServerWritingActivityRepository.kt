@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.project
 
 import com.darkrockstudios.apps.hammer.base.http.writingactivity.DeviceLog
 import com.darkrockstudios.apps.hammer.base.http.writingactivity.WritingActivityResponse
+import com.darkrockstudios.apps.hammer.base.http.writingactivity.WritingActivitySlot
 import com.darkrockstudios.apps.hammer.database.ProjectDao
 import com.darkrockstudios.apps.hammer.database.WritingActivityDao
 import com.darkrockstudios.apps.hammer.utilities.SResult
@@ -11,8 +12,8 @@ import kotlinx.serialization.json.Json
 import org.koin.core.component.KoinComponent
 
 /**
- * Server-side dumb storage for per-(project, device) writing activity logs.
- * The server never inspects or merges contents — clients GET everyone's
+ * Server-side dumb storage for per-(project, author, device) writing activity logs.
+ * The server never inspects or merges sessions; clients GET everyone's
  * slot, merge their own slot locally, and POST back the merged result.
  */
 class ServerWritingActivityRepository(
@@ -23,40 +24,53 @@ class ServerWritingActivityRepository(
 ) : KoinComponent {
 
 	suspend fun loadAll(
-		userId: Long,
+		owner: OwnerId,
 		projectDef: ProjectDefinition,
 	): SResult<WritingActivityResponse> {
-		val projectId = projectDao.getProjectIdOrNull(userId, projectDef.uuid)
+		val projectId = projectDao.getProjectIdOrNull(owner, projectDef.uuid)
 			?: return SResult.failure(ProjectNotFound(projectDef))
-		val rows = writingActivityDao.getAllForProject(userId, projectId)
+		val rows = writingActivityDao.getAllForProject(owner.id, projectId)
 
-		val devices = buildMap {
+		val slots = buildList {
 			for (row in rows) {
 				val parsed = try {
 					json.decodeFromString<DeviceLog>(row.content)
 				} catch (e: SerializationException) {
 					log.warn(
-						"Skipping malformed writing activity log for user=$userId project=${projectDef.name} device=${row.deviceId}",
+						"Skipping malformed writing activity log for user=${owner.id} project=${projectDef.name} device=${row.deviceId}",
 						e,
 					)
 					null
 				}
-				if (parsed != null) put(row.deviceId, parsed)
+				if (parsed != null) {
+					val log = parsed.copy(authorId = row.authorId, authorName = row.authorName)
+					add(WritingActivitySlot(row.deviceId, log))
+				}
 			}
 		}
-		return SResult.success(WritingActivityResponse(devices = devices))
+		return SResult.success(WritingActivityResponse(slots = slots))
 	}
 
+	/** Stores [log] as [authorId]'s slot, replacing whatever author the client sent. */
 	suspend fun saveDeviceLog(
-		userId: Long,
+		owner: OwnerId,
 		projectDef: ProjectDefinition,
+		authorId: Long,
+		authorName: String?,
 		deviceId: String,
 		log: DeviceLog,
 	): SResult<Unit> {
-		val projectId = projectDao.getProjectIdOrNull(userId, projectDef.uuid)
+		val projectId = projectDao.getProjectIdOrNull(owner, projectDef.uuid)
 			?: return SResult.failure(ProjectNotFound(projectDef))
-		val content = json.encodeToString(log)
-		writingActivityDao.upsert(userId, projectId, deviceId, content)
+		val content = json.encodeToString(log.copy(authorId = authorId, authorName = authorName))
+		writingActivityDao.upsert(
+			userId = owner.id,
+			projectId = projectId,
+			authorId = authorId,
+			authorName = authorName,
+			deviceId = deviceId,
+			content = content,
+		)
 		return SResult.success(Unit)
 	}
 }

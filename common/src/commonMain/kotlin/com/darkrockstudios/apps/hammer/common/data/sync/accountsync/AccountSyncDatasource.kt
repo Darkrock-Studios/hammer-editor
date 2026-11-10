@@ -9,6 +9,8 @@ import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import okio.FileSystem
@@ -21,6 +23,9 @@ class AccountSyncDatasource(
 	private val projectsDirectory: ProjectsDirectory,
 ) : KoinComponent {
 	private val ioDispatcher by injectIoDispatcher()
+
+	// The project list writes here outside the account sync lock.
+	private val updateLock = Mutex()
 
 	fun getSyncDataPath(): HPath = (projectsDirectory.current().toOkioPath() / SYNC_FILE_NAME).toHPath()
 
@@ -46,10 +51,10 @@ class AccountSyncDatasource(
 
 	suspend fun update(
 		action: (ProjectsSynchronizationData) -> ProjectsSynchronizationData,
-	): ProjectsSynchronizationData {
+	): ProjectsSynchronizationData = updateLock.withLock {
 		val updated = action(load())
 		save(updated)
-		return updated
+		updated
 	}
 
 	suspend fun delete(): Unit = withContext(ioDispatcher) {

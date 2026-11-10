@@ -14,12 +14,14 @@ import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageD
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeasRepository
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
 import com.darkrockstudios.apps.hammer.common.data.projectdata.StoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectPluginsDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectPluginsRepository
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectOwner
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournalDatasource
 import com.darkrockstudios.apps.hammer.common.data.tagindex.AccountTagService
@@ -65,6 +67,9 @@ class ProjectSettingsComponentTest : ComponentTest() {
 	private lateinit var imagesService: ImagesService
 	private lateinit var pickRequests: ImagePickRequests
 	private val images = mutableMapOf<Int, ImageDef>()
+	private lateinit var serverSettingsFlow: MutableSharedFlow<ServerSettings?>
+	private lateinit var projectSyncEnabled: MutableStateFlow<Boolean>
+	private var projectOwner: ProjectOwner? = null
 
 	@BeforeEach
 	override fun setup() {
@@ -90,15 +95,23 @@ class ProjectSettingsComponentTest : ComponentTest() {
 		val ideasRepository = mockk<IdeasRepository>()
 		every { ideasRepository.ideasFlow } returns ideasFlow
 
+		projectSyncEnabled = MutableStateFlow(true)
 		val projectsRepository = mockk<ProjectsRepository>()
 		every { projectsRepository.getProjects() } returns emptyList()
+		every { projectsRepository.syncEnabledUpdates(any()) } returns projectSyncEnabled
+		projectOwner = null
+		every { projectsRepository.getOwner(any()) } answers { projectOwner }
+		serverSettingsFlow = MutableSharedFlow(replay = 1)
+		serverSettingsFlow.tryEmit(null)
 
 		val globalSettingsStore = mockk<GlobalSettingsStore>()
 		every { globalSettingsStore.globalSettings } returns GlobalSettings(projectsDirectory = "/projects")
 		every { globalSettingsStore.globalSettingsUpdates } returns MutableSharedFlow()
+		every { globalSettingsStore.serverSettingsUpdates } returns serverSettingsFlow
 
 		setupComponentKoin(module {
 			single { globalSettingsStore }
+			single { projectsRepository }
 			single { AccountTagService(ideasRepository, projectsRepository, ffs, toml) }
 			single { ProjectPluginsRepository(ProjectPluginsDatasource(ffs, toml)) }
 			single<PlatformSpellCheckerFactory> {
@@ -159,6 +172,45 @@ class ProjectSettingsComponentTest : ComponentTest() {
 		assertEquals("Jane", state.data.authorName)
 		assertEquals(setOf("gothic"), state.data.tags)
 		assertEquals("Test", comp.projectName)
+	}
+
+	@Test
+	fun `The sync switch is offered only with a sync server`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		assertFalse(comp.syncState.value.serverConfigured)
+
+		serverSettingsFlow.emit(
+			ServerSettings(url = "hammer.ink", email = "a@example.com", userId = 1, bearerToken = "t", refreshToken = "r")
+		)
+		advanceUntilIdle()
+		assertTrue(comp.syncState.value.serverConfigured)
+		assertTrue(comp.syncState.value.syncEnabled)
+	}
+
+	@Test
+	fun `The sync section follows the project's flag`() = runTest(mainTestDispatcher) {
+		projectSyncEnabled.value = false
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		assertFalse(comp.syncState.value.syncEnabled)
+		assertNull(comp.syncState.value.owner)
+
+		projectSyncEnabled.value = true
+		advanceUntilIdle()
+		assertTrue(comp.syncState.value.syncEnabled)
+	}
+
+	@Test
+	fun `A shared project reports its owner`() = runTest(mainTestDispatcher) {
+		projectOwner = ProjectOwner(7L, "Alice")
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		assertEquals(ProjectOwner(7L, "Alice"), comp.syncState.value.owner)
 	}
 
 	@Test

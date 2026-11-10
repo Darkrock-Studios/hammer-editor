@@ -15,6 +15,7 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectsDirectory
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectOwner
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.AccountSessionLock
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.AccountSyncDatasource
@@ -23,6 +24,7 @@ import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.F
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.ProjectAdoptConflictException
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.ProjectDeletedElsewhereException
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.ProjectNeedsAccountSyncException
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.ProjectNoLongerSharedException
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.server.HttpFailureException
@@ -84,6 +86,7 @@ class FetchServerDataOperationTest : BaseTest() {
 	override fun setup() {
 		super.setup()
 		MockKAnnotations.init(this)
+		every { projectsRepository.getOwner(any()) } returns null
 		every { syncJournal.clearSyncBaseline() } just Runs
 
 		strRes = TestStrRes()
@@ -414,6 +417,24 @@ class FetchServerDataOperationTest : BaseTest() {
 		coVerify(exactly = 0) { projectDataRepository.clearSyncBaseline() }
 		coVerify(exactly = 1) { serverProjectApi.beginProjectSync(any(), any(), any(), any()) }
 		coVerify { serverProjectsApi.endProjectsSync(SYNC_ID) }
+	}
+
+	@Test
+	fun `A 410 for a shared project never creates it`() = runTest {
+		val projectDef = getProjectDef(PROJECT_2_NAME)
+		val serverProjectsApi = stubResolverSession()
+		val op = createOperation(projectDef, ProjectCreateResolver(serverProjectsApi, projectsRepository, accountSyncDatasource(), AccountSessionLock()))
+		every { projectsRepository.getOwner(projectDef) } returns ProjectOwner(7L, "Alice")
+
+		stubSettings()
+		coEvery { serverProjectApi.beginProjectSync(any(), any(), any(), any()) } returns Result.failure(gone())
+
+		val result = execute(op) {}
+
+		assertFalse(isSuccess(result))
+		assertIs<ProjectNoLongerSharedException>(result.exception)
+		coVerify(exactly = 0) { serverProjectsApi.beginProjectsSync() }
+		coVerify(exactly = 0) { serverProjectsApi.createProject(any(), any(), any(), any()) }
 	}
 
 	@Test

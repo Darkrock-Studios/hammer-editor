@@ -6,6 +6,8 @@ import com.darkrockstudios.apps.hammer.base.http.HAMMER_PROTOCOL_VERSION
 import com.darkrockstudios.apps.hammer.base.http.HEADER_SYNC_ID
 import com.darkrockstudios.apps.hammer.project.InvalidProjectName
 import com.darkrockstudios.apps.hammer.project.InvalidSyncIdException
+import com.darkrockstudios.apps.hammer.project.NotMemberException
+import com.darkrockstudios.apps.hammer.project.NotOwnerException
 import com.darkrockstudios.apps.hammer.project.ProjectNameTaken
 import com.darkrockstudios.apps.hammer.project.ProjectNotFound
 import com.darkrockstudios.apps.hammer.utilities.SResult
@@ -117,6 +119,14 @@ class ProjectsRoutesRenameProjectTest : ProjectsRoutesBaseTest() {
 				Arguments.of(
 					SResult.failure<Unit>(ProjectNameTaken("What Ever")),
 					HttpStatusCode.Conflict
+				),
+				Arguments.of(
+					SResult.failure<Unit>(NotOwnerException(ProjectId("TestProjectId"))),
+					HttpStatusCode.Forbidden
+				),
+				Arguments.of(
+					SResult.failure<Unit>(NotMemberException(ProjectId("TestProjectId"))),
+					HttpStatusCode.Forbidden
 				),
 			)
 		}

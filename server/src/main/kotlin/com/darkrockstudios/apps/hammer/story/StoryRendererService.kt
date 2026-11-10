@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.story
 
+import com.darkrockstudios.apps.hammer.project.OwnerId
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.TreeChapter
 import com.darkrockstudios.apps.hammer.base.chapterScenes
@@ -39,16 +40,16 @@ class StoryRendererService(
 	 * one indexed hash query with no decryption. Null when the project doesn't exist.
 	 */
 	suspend fun prepareExport(
-		userId: Long,
+		owner: OwnerId,
 		projectId: ProjectId,
 		sceneFilter: Set<Int>? = null,
 	): PreparedExport? {
-		val projectDef = projectEntityDatasource.getProject(userId, projectId) ?: return null
-		val allHashes = sceneHashes(userId, projectDef)
+		val projectDef = projectEntityDatasource.getProject(owner, projectId) ?: return null
+		val allHashes = sceneHashes(owner, projectDef)
 
 		if (sceneFilter == null) {
 			return PreparedExport(
-				userId = userId,
+				owner = owner,
 				projectId = projectId,
 				projectDef = projectDef,
 				sceneHashes = allHashes,
@@ -63,10 +64,10 @@ class StoryRendererService(
 		// Where a selected scene falls in the reading order is decided by the groups above it, so
 		// the share's validator has to cover those too or a reordered chapter is answered 304 with
 		// the old order. A scene's path is its whole ancestor chain, so one more read settles it.
-		val selected = loadScenes(userId, projectDef, selectedIds)
+		val selected = loadScenes(owner, projectDef, selectedIds)
 		val ancestorIds = selected.flatMapTo(mutableSetOf()) { it.path }
 			.intersect(presentIds) - selectedIds
-		val ancestors = loadScenes(userId, projectDef, ancestorIds)
+		val ancestors = loadScenes(owner, projectDef, ancestorIds)
 
 		val coveredIds = selectedIds + ancestorIds
 		// Still only this share's scenes and the structure around them: an edit to a scene the
@@ -74,7 +75,7 @@ class StoryRendererService(
 		// never collide on one.
 		val sceneHashes = allHashes.filter { it.id in coveredIds }
 		return PreparedExport(
-			userId = userId,
+			owner = owner,
 			projectId = projectId,
 			projectDef = projectDef,
 			sceneHashes = sceneHashes,
@@ -88,12 +89,12 @@ class StoryRendererService(
 
 	/** Loads [ids], skipping any that fail; the caller compares sizes to detect a partial read. */
 	private suspend fun loadScenes(
-		userId: Long,
+		owner: OwnerId,
 		projectDef: ProjectDefinition,
 		ids: Collection<Int>,
 	): List<ApiProjectEntity.SceneEntity> = ids.mapNotNull { id ->
 		val result = projectEntityDatasource.loadEntity(
-			userId = userId,
+			owner = owner,
 			projectDef = projectDef,
 			entityId = id,
 			entityType = ApiProjectEntity.Type.SCENE,
@@ -108,15 +109,15 @@ class StoryRendererService(
 	 * harmless for a story anyone can already fetch over HTTP but not for a private share.
 	 */
 	suspend fun renderStoryAsHtmlPaginated(
-		userId: Long,
+		owner: OwnerId,
 		projectId: ProjectId,
 		page: Int = 1,
 		wordsPerPage: Int = DEFAULT_WORDS_PER_PAGE,
 		cacheable: Boolean = false,
-	): StoryResult<PaginatedStoryExportResult> = readProject(userId, projectId) { projectDef ->
+	): StoryResult<PaginatedStoryExportResult> = readProject(owner, projectId) { projectDef ->
 		// Hashes only identify a cache entry, so an uncached render never pays for them.
-		val sceneHashes = if (cacheable) sceneHashes(userId, projectDef) else emptyList()
-		renderOrCache(userId, projectId, projectDef, sceneHashes, page, wordsPerPage, cacheable)
+		val sceneHashes = if (cacheable) sceneHashes(owner, projectDef) else emptyList()
+		renderOrCache(owner, projectId, projectDef, sceneHashes, page, wordsPerPage, cacheable)
 	}
 
 	/** As [renderStoryAsHtmlPaginated], reusing a [PreparedExport] the caller already resolved. */
@@ -127,7 +128,7 @@ class StoryRendererService(
 		cacheable: Boolean = false,
 	): StoryResult<PaginatedStoryExportResult> = readSafely {
 		renderOrCache(
-			userId = prepared.userId,
+			owner = prepared.owner,
 			projectId = prepared.projectId,
 			projectDef = prepared.projectDef,
 			sceneHashes = prepared.sceneHashes,
@@ -140,7 +141,7 @@ class StoryRendererService(
 	}
 
 	private suspend fun renderOrCache(
-		userId: Long,
+		owner: OwnerId,
 		projectId: ProjectId,
 		projectDef: ProjectDefinition,
 		sceneHashes: List<EntityHash>,
@@ -158,19 +159,19 @@ class StoryRendererService(
 				page = page,
 				wordsPerPage = wordsPerPage,
 				sceneHashes = sceneHashes,
-			) { renderPaginated(userId, projectDef, page, wordsPerPage, sceneFilter, preloaded) }
+			) { renderPaginated(owner, projectDef, page, wordsPerPage, sceneFilter, preloaded) }
 		} else {
-			renderPaginated(userId, projectDef, page, wordsPerPage, sceneFilter, preloaded).result
+			renderPaginated(owner, projectDef, page, wordsPerPage, sceneFilter, preloaded).result
 		}
 	}
 
 	/** Runs [read] on the project, turning a missing project and any failure into results. */
 	private suspend fun <T> readProject(
-		userId: Long,
+		owner: OwnerId,
 		projectId: ProjectId,
 		read: suspend (ProjectDefinition) -> T,
 	): StoryResult<T> {
-		val projectDef = projectEntityDatasource.getProject(userId, projectId) ?: return StoryResult.ProjectNotFound
+		val projectDef = projectEntityDatasource.getProject(owner, projectId) ?: return StoryResult.ProjectNotFound
 		return readSafely { read(projectDef) }
 	}
 
@@ -183,15 +184,15 @@ class StoryRendererService(
 		StoryResult.Error(e.message ?: "Unknown error occurred")
 	}
 
-	private suspend fun sceneHashes(userId: Long, projectDef: ProjectDefinition): List<EntityHash> =
+	private suspend fun sceneHashes(owner: OwnerId, projectDef: ProjectDefinition): List<EntityHash> =
 		projectEntityDatasource.getEntityHashes(
-			userId = userId,
+			owner = owner,
 			projectDef = projectDef,
 			type = ApiProjectEntity.Type.SCENE,
 		)
 
 	private suspend fun renderPaginated(
-		userId: Long,
+		owner: OwnerId,
 		projectDef: ProjectDefinition,
 		page: Int,
 		wordsPerPage: Int,
@@ -207,7 +208,7 @@ class StoryRendererService(
 			scenes = preloaded.scenes
 			complete = preloaded.complete
 		} else {
-			val loaded = loadAllScenes(userId, projectDef)
+			val loaded = loadAllScenes(owner, projectDef)
 			scenes = loaded.scenes
 			complete = loaded.complete
 		}
@@ -345,13 +346,13 @@ class StoryRendererService(
 		}
 
 	/** Every scene entity in the project; [PreloadedScenes.complete] is false if any failed to load. */
-	private suspend fun loadAllScenes(userId: Long, projectDef: ProjectDefinition): PreloadedScenes {
+	private suspend fun loadAllScenes(owner: OwnerId, projectDef: ProjectDefinition): PreloadedScenes {
 		val sceneDefs = projectEntityDatasource.getEntityDefsByType(
-			userId = userId,
+			owner = owner,
 			projectDef = projectDef,
 			type = ApiProjectEntity.Type.SCENE
 		)
-		val scenes = loadScenes(userId, projectDef, sceneDefs.map { it.id })
+		val scenes = loadScenes(owner, projectDef, sceneDefs.map { it.id })
 		if (scenes.size != sceneDefs.size) {
 			logger.warn(
 				"{} of {} scenes failed to load for project {}",
@@ -364,9 +365,9 @@ class StoryRendererService(
 	}
 
 	/** The story's chapters and totals, without rendering any prose. */
-	suspend fun storyOverview(userId: Long, projectId: ProjectId): StoryResult<StoryOverview> =
-		readProject(userId, projectId) { projectDef ->
-			val loaded = loadAllScenes(userId, projectDef)
+	suspend fun storyOverview(owner: OwnerId, projectId: ProjectId): StoryResult<StoryOverview> =
+		readProject(owner, projectId) { projectDef ->
+			val loaded = loadAllScenes(owner, projectDef)
 			val chapters = collectChapters(loaded.scenes)
 			StoryOverview(
 				projectName = projectDef.name,
@@ -382,9 +383,9 @@ class StoryRendererService(
 	 * chapter names are left out of the HTML; the page renders them itself. Nothing is word
 	 * counted: the reader shows no counts, and counting a whole manuscript per page turn is costly.
 	 */
-	suspend fun renderChapter(userId: Long, projectId: ProjectId, chapterNumber: Int): StoryResult<ChapterRender> =
-		readProject(userId, projectId) { projectDef ->
-			val loaded = loadAllScenes(userId, projectDef)
+	suspend fun renderChapter(owner: OwnerId, projectId: ProjectId, chapterNumber: Int): StoryResult<ChapterRender> =
+		readProject(owner, projectId) { projectDef ->
+			val loaded = loadAllScenes(owner, projectDef)
 			val chapters = collectChapters(loaded.scenes)
 			val entries = chapterEntries(chapters)
 			if (chapters.isEmpty()) {
@@ -474,11 +475,11 @@ class StoryRendererService(
 	/**
 	 * Get the scene hierarchy for a project, suitable for populating a dropdown.
 	 */
-	suspend fun getSceneHierarchy(userId: Long, projectId: ProjectId): StoryResult<SceneHierarchy> =
-		readProject(userId, projectId) { projectDef ->
+	suspend fun getSceneHierarchy(owner: OwnerId, projectId: ProjectId): StoryResult<SceneHierarchy> =
+		readProject(owner, projectId) { projectDef ->
 			SceneHierarchy(
 				projectName = projectDef.name,
-				scenes = buildSceneHierarchy(loadAllScenes(userId, projectDef).scenes),
+				scenes = buildSceneHierarchy(loadAllScenes(owner, projectDef).scenes),
 			)
 		}
 
@@ -533,7 +534,7 @@ class StoryRendererService(
  * on changes, so it serves as both the cache identity and the page's HTTP validator.
  */
 class PreparedExport internal constructor(
-	internal val userId: Long,
+	internal val owner: OwnerId,
 	internal val projectId: ProjectId,
 	internal val projectDef: ProjectDefinition,
 	internal val sceneHashes: List<EntityHash>,

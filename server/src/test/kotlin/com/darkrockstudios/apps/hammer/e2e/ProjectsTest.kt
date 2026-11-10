@@ -513,8 +513,8 @@ class ProjectsTest : EndToEndTest() {
 			assertEquals(ApiErrorCode.PROJECT_DELETED, tombstoned.body<HttpResponseError>().errorCode)
 
 			val taken = create("Mine Now", otherProjectId.toString())
-			assertEquals(HttpStatusCode.Conflict, taken.status)
-			assertEquals(ApiErrorCode.PROJECT_ID_TAKEN, taken.body<HttpResponseError>().errorCode)
+			assertEquals(HttpStatusCode.Forbidden, taken.status)
+			assertEquals(ApiErrorCode.NOT_MEMBER, taken.body<HttpResponseError>().errorCode)
 
 			assertEquals(HttpStatusCode.BadRequest, create("No Id", null).status)
 			assertEquals(HttpStatusCode.BadRequest, create("Bad Id", "not-a-uuid").status)

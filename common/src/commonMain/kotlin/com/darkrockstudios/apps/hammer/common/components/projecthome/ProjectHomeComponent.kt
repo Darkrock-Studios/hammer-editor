@@ -44,6 +44,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.todayIn
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import org.koin.core.component.inject
 import kotlin.time.Clock
 
@@ -63,6 +64,7 @@ class ProjectHomeComponent(
 	private val mainDispatcher by injectMainDispatcher()
 
 	private val globalSettingsStore: GlobalSettingsStore by inject()
+	private val projectsRepository: ProjectsRepository by inject()
 	private val projectBackupService: ProjectBackupService by inject()
 	private val exporters: StoryExporterRegistry by inject()
 	private val sceneEditorRepository: SceneEditorService by projectInject()
@@ -347,6 +349,7 @@ class ProjectHomeComponent(
 							numberOfTimelineEvents = stats.numberOfTimelineEvents,
 							dailyWordTotals = dailyTotals,
 							wordsPerDevice = stats.wordsPerDevice,
+							wordsPerAuthor = stats.wordsPerAuthor,
 							topAppearances = stats.topAppearances,
 							totalEntryConnections = stats.totalEntryConnections,
 							wordCountGoal = stats.wordCountGoal,
@@ -389,6 +392,13 @@ class ProjectHomeComponent(
 	}
 
 	private fun listenForSyncEvents() {
+		scope.launch {
+			projectsRepository.syncEnabledUpdates(projectDef).collect { enabled ->
+				withContext(dispatcherMain) {
+					_state.getAndUpdate { it.copy(syncEnabled = enabled) }
+				}
+			}
+		}
 		scope.launch {
 			projectSynchronizer.syncCompleteEvent.receiveAsFlow().collect { success ->
 				if (success) {

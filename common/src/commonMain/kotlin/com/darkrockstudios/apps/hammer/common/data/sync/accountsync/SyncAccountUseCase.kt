@@ -39,7 +39,7 @@ enum class ProjectSyncOutcome {
 	NeedsResolution,
 	Failed,
 
-	/** Excluded by the caller's project filter. */
+	/** Excluded by the caller's project filter, or sync is off for the project on this device. */
 	Skipped,
 }
 
@@ -58,7 +58,10 @@ data class SyncAccountResult(
 interface SyncAccountListener {
 	suspend fun onLog(message: SyncLogMessage)
 
-	/** The full local project list, reported before account sync and again after it. */
+	/**
+	 * The local projects that sync, reported before account sync and again after it. A project
+	 * with sync off on this device is never reported to the listener.
+	 */
 	suspend fun onProjectsDiscovered(projects: List<ProjectDef>)
 
 	/** The project is syncing; [progress] is null until the synchronizer reports some. */
@@ -74,7 +77,8 @@ interface SyncAccountListener {
 
 /**
  * Syncs the account, then every synced project the filter admits, in parallel. Per-project
- * failures are reported as outcomes; failures outside a project propagate to the caller.
+ * failures are reported as outcomes; failures outside a project propagate to the caller. A project
+ * with sync off on this device is left out of every phase, see [ProjectsRepository.isSyncEnabled].
  */
 class SyncAccountUseCase(
 	private val projectsRepository: ProjectsRepository,
@@ -106,7 +110,7 @@ class SyncAccountUseCase(
 		listener: SyncAccountListener,
 		projectFilter: suspend (ProjectDef) -> Boolean,
 	): SyncAccountResult {
-		val initialProjects = projectsRepository.getProjects()
+		val (initialProjects, initialExcluded) = syncingProjects()
 		listener.onProjectsDiscovered(initialProjects)
 
 		listener.onLog(syncAccLogI(strRes.get(Res.string.sync_log_begin_account)))
@@ -126,17 +130,18 @@ class SyncAccountUseCase(
 			return SyncAccountResult(
 				accountSuccess = false,
 				ideasSuccess = ideasSuccess,
-				projects = initialProjects.associate { it.name to ProjectSyncOutcome.Failed },
+				projects = initialExcluded.associate { it.name to ProjectSyncOutcome.Skipped } +
+					initialProjects.associate { it.name to ProjectSyncOutcome.Failed },
 			)
 		}
 
 		listener.onLog(syncAccLogI(strRes.get(Res.string.sync_log_begin_projects)))
 
 		// Account sync may have created or removed local projects.
-		val projects = projectsRepository.getProjects()
+		val (projects, excluded) = syncingProjects()
 		listener.onProjectsDiscovered(projects)
 
-		val outcomes = mutableMapOf<String, ProjectSyncOutcome>()
+		val outcomes = excluded.associateTo(mutableMapOf()) { it.name to ProjectSyncOutcome.Skipped }
 		val (candidates, skipped) = projects.partition { projectFilter(it) }
 		skipped.forEach { projectDef ->
 			outcomes[projectDef.name] = ProjectSyncOutcome.Skipped
@@ -167,6 +172,10 @@ class SyncAccountUseCase(
 			projects = outcomes,
 		)
 	}
+
+	/** The local projects that sync, then those with sync off on this device. */
+	private fun syncingProjects(): Pair<List<ProjectDef>, List<ProjectDef>> =
+		projectsRepository.getProjects().partition(projectsRepository::isSyncEnabled)
 
 	private suspend fun syncProjectSafely(
 		projectDef: ProjectDef,

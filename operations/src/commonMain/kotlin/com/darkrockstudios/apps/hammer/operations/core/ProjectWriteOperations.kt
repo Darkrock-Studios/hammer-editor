@@ -40,8 +40,12 @@ internal fun projectWriteOperations(): List<Operation<*, *>> = listOf(
 		scope = OperationScope.Content,
 	) { input ->
 		val def = requireClosed(projects.resolve(input.project))
+		val service = koinGet<ProjectsService>()
+		if (service.ownerNamesAndPlaces(def)) {
+			invalidInput("'${def.name}' is shared with you; only its owner can rename it")
+		}
 		val newName = input.name.trim()
-		when (val result = koinGet<ProjectsService>().renameProject(def, newName)) {
+		when (val result = service.renameProject(def, newName)) {
 			is ClientResult.Success -> ProjectName(result.data.name)
 			is ClientResult.Failure -> when ((result.exception as? ProjectRenameFailed)?.reason) {
 				ProjectRenameFailed.Reason.AlreadyExists -> invalidInput("A project named '$newName' already exists")
@@ -50,14 +54,17 @@ internal fun projectWriteOperations(): List<Operation<*, *>> = listOf(
 			}
 		}
 	},
-	operation<ProjectInput, ProjectName>(
+	operation<ProjectDeleteInput, ProjectName>(
 		name = "project.delete",
-		description = "Delete a project, and everything in it, for good. It must not be open in Hammer.",
+		description = "Delete a project, and everything in it, for good. It must not be open in Hammer. " +
+			"A project with sync off on this device keeps its server copy unless alsoDeleteOnServer is set.",
 		access = Access.Destructive,
 		scope = OperationScope.Content,
 	) { input ->
 		val def = requireClosed(projects.resolve(input.project))
-		if (!koinGet<ProjectsService>().deleteProject(def)) error("Could not delete '${def.name}'")
+		val service = koinGet<ProjectsService>()
+		if (service.offersLeave(def)) invalidInput("'${def.name}' is shared with you; leave it in Hammer before deleting it")
+		if (!service.deleteProject(def, input.alsoDeleteOnServer)) error("Could not delete '${def.name}'")
 		ProjectName(def.name)
 	},
 	operation<ProjectImportInput, ProjectImported>(

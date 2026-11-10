@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.project.synchronizers
 
+import com.darkrockstudios.apps.hammer.project.OwnerId
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ClientEntityState
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
@@ -17,11 +18,11 @@ class ServerSceneSynchronizer(
 	override val pathStub = ApiProjectEntity.Type.SCENE.name.lowercase()
 
 	override suspend fun getUpdateSequence(
-		userId: Long,
+		owner: OwnerId,
 		projectDef: ProjectDefinition,
 		clientState: ClientEntityState?
 	): List<Int> {
-		val entities = datasource.getEntityDefsByType(userId, projectDef, entityType)
+		val entities = datasource.getEntityDefsByType(owner, projectDef, entityType)
 
 		// Sort by SceneType, we want directories first
 		val entityIds: List<Int>
@@ -30,7 +31,7 @@ class ServerSceneSynchronizer(
 				.filter { entifyDef ->
 					val clientEntityState = clientState?.entities?.find { it.id == entifyDef.id }
 					if (clientEntityState != null) {
-						val hashResult = datasource.loadEntityHash(userId, projectDef, entifyDef.id)
+						val hashResult = datasource.loadEntityHash(owner, projectDef, entifyDef.id)
 						if (isSuccess(hashResult)) {
 							val serverHash = hashResult.data
 							clientEntityState.hash != serverHash
@@ -42,7 +43,7 @@ class ServerSceneSynchronizer(
 					}
 				}
 				.mapNotNull { entity ->
-					val result = loadEntity(userId, projectDef, entity.id)
+					val result = loadEntity(owner, projectDef, entity.id)
 					if (isSuccess(result)) {
 						result.data
 					} else {

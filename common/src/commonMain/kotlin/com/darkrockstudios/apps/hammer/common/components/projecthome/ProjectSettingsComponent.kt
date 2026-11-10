@@ -28,6 +28,8 @@ import com.darkrockstudios.apps.hammer.common.util.AvailableLocalesProvider
 import com.darkrockstudios.apps.hammer.common.util.Locale
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import org.koin.core.component.inject
 
 class ProjectSettingsComponent(
@@ -42,6 +44,8 @@ class ProjectSettingsComponent(
 	private val availableLocalesProvider: AvailableLocalesProvider by inject()
 	private val projectPlugins: ProjectPluginsRepository by inject()
 	private val imagesService: ImagesService by projectInject()
+	private val globalSettingsStore: GlobalSettingsStore by inject()
+	private val projectsRepository: ProjectsRepository by inject()
 
 	override val projectName: String = projectDef.name
 
@@ -52,6 +56,10 @@ class ProjectSettingsComponent(
 
 	private val _projectInfoState = MutableValue(ProjectSettings.ProjectInfoState())
 	override val projectInfoState: Value<ProjectSettings.ProjectInfoState> = _projectInfoState
+
+	// Read up front so a shared project never shows as the account's own, even before the first flag emission.
+	private val _syncState = MutableValue(ProjectSettings.SyncState(owner = projectsRepository.getOwner(projectDef)))
+	override val syncState: Value<ProjectSettings.SyncState> = _syncState
 
 	private val _disabledPlugins = MutableValue(emptySet<String>())
 	override val disabledPlugins: Value<Set<String>> = _disabledPlugins
@@ -88,6 +96,20 @@ class ProjectSettingsComponent(
 			coverImageFlow(projectDataRepository, imagesService).collect { cover ->
 				withContext(mainDispatcher) {
 					_projectInfoState.getAndUpdate { it.copy(coverImage = cover) }
+				}
+			}
+		}
+		scope.launch {
+			globalSettingsStore.serverSettingsUpdates.collect { settings ->
+				withContext(mainDispatcher) {
+					_syncState.getAndUpdate { it.copy(serverConfigured = settings != null) }
+				}
+			}
+		}
+		scope.launch {
+			projectsRepository.syncEnabledUpdates(projectDef).collect { enabled ->
+				withContext(mainDispatcher) {
+					_syncState.getAndUpdate { it.copy(syncEnabled = enabled) }
 				}
 			}
 		}

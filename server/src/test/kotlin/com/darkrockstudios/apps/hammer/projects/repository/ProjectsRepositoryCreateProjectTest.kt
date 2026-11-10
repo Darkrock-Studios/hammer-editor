@@ -3,6 +3,10 @@ package com.darkrockstudios.apps.hammer.projects.repository
 import com.darkrockstudios.apps.hammer.base.GroupId
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.project.InvalidProjectName
+import com.darkrockstudios.apps.hammer.project.NotMemberException
+import com.darkrockstudios.apps.hammer.project.OwnerId
+import com.darkrockstudios.apps.hammer.project.ProjectAccess
+import com.darkrockstudios.apps.hammer.project.ProjectAccessResult
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.project.ProjectDeletedException
 import com.darkrockstudios.apps.hammer.project.ProjectIdTakenException
@@ -30,11 +34,11 @@ class ProjectsRepositoryCreateProjectTest : ProjectsRepositoryBaseTest() {
 	@BeforeEach
 	fun setupDefaults() {
 		coEvery { projectsSessionManager.validateSyncId(userId, syncId, any()) } returns true
-		coEvery { projectEntityDatasource.getProject(userId, projectId) } returns null
+		coEvery { projectEntityDatasource.getProject(OwnerId.unchecked(userId), projectId) } returns null
 		coEvery { projectsDatasource.loadSyncData(userId) } returns ProjectsSyncData(deletedProjects = emptySet())
-		coEvery { projectEntityDatasource.findProjectByName(userId, projectName) } returns null
+		coEvery { projectEntityDatasource.findProjectByName(OwnerId.unchecked(userId), projectName) } returns null
 		coEvery {
-			projectEntityDatasource.createProject(userId, projectName, projectId)
+			projectEntityDatasource.createProject(OwnerId.unchecked(userId), projectName, projectId)
 		} returns ProjectDefinition(projectName, projectId)
 		coEvery { projectsDatasource.getProjectGroupId(userId, any()) } returns null
 		coEvery { projectsDatasource.getGroup(userId, any()) } returns null
@@ -80,14 +84,14 @@ class ProjectsRepositoryCreateProjectTest : ProjectsRepositoryBaseTest() {
 			assertTrue(isSuccess(result))
 			assertEquals(ProjectDefinition(projectName, projectId), result.data.project)
 			assertFalse(result.data.alreadyExisted)
-			coVerify { projectEntityDatasource.createProject(userId, projectName, projectId) }
+			coVerify { projectEntityDatasource.createProject(OwnerId.unchecked(userId), projectName, projectId) }
 		}
 	}
 
 	@Test
 	fun `Create Project, existing id is idempotent`() = runTest {
 		val existing = ProjectDefinition("Older Name", projectId)
-		coEvery { projectEntityDatasource.getProject(userId, projectId) } returns existing
+		coEvery { projectEntityDatasource.getProject(OwnerId.unchecked(userId), projectId) } returns existing
 
 		createProjectsRepository().apply {
 			val result = createProject(userId, syncId, projectName, projectId)
@@ -115,7 +119,7 @@ class ProjectsRepositoryCreateProjectTest : ProjectsRepositoryBaseTest() {
 	@Test
 	fun `Create Project, same name under another id returns the existing id`() = runTest {
 		val existing = ProjectDefinition(projectName, ProjectId("9a8b7c6d-5e4f-4a3b-9c2d-1e0f9a8b7c6d"))
-		coEvery { projectEntityDatasource.findProjectByName(userId, projectName) } returns existing
+		coEvery { projectEntityDatasource.findProjectByName(OwnerId.unchecked(userId), projectName) } returns existing
 
 		createProjectsRepository().apply {
 			val result = createProject(userId, syncId, projectName, projectId)
@@ -129,7 +133,7 @@ class ProjectsRepositoryCreateProjectTest : ProjectsRepositoryBaseTest() {
 
 	@Test
 	fun `Create Project, id held by another account is refused`() = runTest {
-		coEvery { projectEntityDatasource.createProject(userId, projectName, projectId) } returns null
+		coEvery { projectEntityDatasource.createProject(OwnerId.unchecked(userId), projectName, projectId) } returns null
 
 		createProjectsRepository().apply {
 			val result = createProject(userId, syncId, projectName, projectId)
@@ -141,8 +145,8 @@ class ProjectsRepositoryCreateProjectTest : ProjectsRepositoryBaseTest() {
 	@Test
 	fun `Create Project, losing the insert to a concurrent retry of the same create is idempotent`() = runTest {
 		val created = ProjectDefinition(projectName, projectId)
-		coEvery { projectEntityDatasource.getProject(userId, projectId) } returnsMany listOf(null, created)
-		coEvery { projectEntityDatasource.createProject(userId, projectName, projectId) } returns null
+		coEvery { projectEntityDatasource.getProject(OwnerId.unchecked(userId), projectId) } returnsMany listOf(null, created)
+		coEvery { projectEntityDatasource.createProject(OwnerId.unchecked(userId), projectName, projectId) } returns null
 
 		createProjectsRepository().apply {
 			val result = createProject(userId, syncId, projectName, projectId)
@@ -181,7 +185,7 @@ class ProjectsRepositoryCreateProjectTest : ProjectsRepositoryBaseTest() {
 	fun `Create Project, adoption reports the existing placement and never moves it`() = runTest {
 		val existing = ProjectDefinition(projectName, ProjectId("9a8b7c6d-5e4f-4a3b-9c2d-1e0f9a8b7c6d"))
 		val existingGroup = GroupId("0f1e2d3c-4b5a-4987-8a6b-5c4d3e2f1a0b")
-		coEvery { projectEntityDatasource.findProjectByName(userId, projectName) } returns existing
+		coEvery { projectEntityDatasource.findProjectByName(OwnerId.unchecked(userId), projectName) } returns existing
 		coEvery { projectsDatasource.getProjectGroupId(userId, existing.uuid) } returns existingGroup
 
 		createProjectsRepository().apply {
@@ -196,7 +200,7 @@ class ProjectsRepositoryCreateProjectTest : ProjectsRepositoryBaseTest() {
 
 	@Test
 	fun `Create Project, existing id reports its placement`() = runTest {
-		coEvery { projectEntityDatasource.getProject(userId, projectId) } returns ProjectDefinition(projectName, projectId)
+		coEvery { projectEntityDatasource.getProject(OwnerId.unchecked(userId), projectId) } returns ProjectDefinition(projectName, projectId)
 		coEvery { projectsDatasource.getProjectGroupId(userId, projectId) } returns groupId
 
 		createProjectsRepository().apply {
@@ -204,6 +208,49 @@ class ProjectsRepositoryCreateProjectTest : ProjectsRepositoryBaseTest() {
 
 			assertTrue(isSuccess(result))
 			assertEquals(groupId, result.data.groupId)
+		}
+	}
+
+	@Test
+	fun `Create Project, a co-authored id is idempotent at the top level`() = runTest {
+		val shared = ProjectDefinition("Shared", projectId)
+		coEvery { projectAccessResolver.resolve(userId, projectId) } returns
+			ProjectAccessResult.Granted(ProjectAccess(shared, OwnerId.unchecked(userId + 1), isOwner = false))
+
+		createProjectsRepository().apply {
+			val result = createProject(userId, syncId, projectName, projectId, groupId)
+
+			assertTrue(isSuccess(result))
+			assertEquals(shared, result.data.project)
+			assertTrue(result.data.alreadyExisted)
+			assertNull(result.data.groupId)
+			coVerify(exactly = 0) { projectEntityDatasource.createProject(any(), any(), any()) }
+			coVerify(exactly = 0) { projectsDatasource.setProjectGroup(any(), any(), any()) }
+		}
+	}
+
+	@Test
+	fun `Create Project, an id held by an account the caller does not share with is not_member`() = runTest {
+		coEvery { projectAccessResolver.resolve(userId, projectId) } returns ProjectAccessResult.NotMember
+
+		createProjectsRepository().apply {
+			val result = createProject(userId, syncId, projectName, projectId)
+
+			assertIs<NotMemberException>((result as ServerResult.Failure).exception)
+			coVerify(exactly = 0) { projectEntityDatasource.createProject(any(), any(), any()) }
+		}
+	}
+
+	@Test
+	fun `Create Project, losing the insert to another account's project is not_member`() = runTest {
+		coEvery { projectEntityDatasource.createProject(OwnerId.unchecked(userId), projectName, projectId) } returns null
+		coEvery { projectAccessResolver.resolve(userId, projectId) } returnsMany
+			listOf(ProjectAccessResult.Unknown, ProjectAccessResult.NotMember)
+
+		createProjectsRepository().apply {
+			val result = createProject(userId, syncId, projectName, projectId)
+
+			assertIs<NotMemberException>((result as ServerResult.Failure).exception)
 		}
 	}
 }

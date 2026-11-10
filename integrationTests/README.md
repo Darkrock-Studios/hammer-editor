@@ -52,6 +52,7 @@ one of these:
 - `EntryImageUpgradeTest`: a migrated entry image uploads without conflict, with or without another device repairing the entry's server hash first
 - `ProjectCoverSyncTest`: a cover follows its image to another device and is cleared when the image is deleted
 - `SyncFuzzTest` — single-entity edit/rename fuzz (legacy; `MixedSyncFuzzTest` is the broader net)
+- `CoAuthoringSyncTest`: two accounts on one project: invite, edits, conflicts, park and resume, leave, owner delete, stats by author
 
 ## Adding tests
 
@@ -60,6 +61,9 @@ one of these:
 - **Two devices on one project**: `secondDeviceFor(primary, localName)`. The primary must have synced
   once. A second device that creates entities after adopting should re-open its editor
   (`initializeSceneEditor()`) first, mirroring a real session re-deriving its next id.
+- **Two accounts**: extend `CoAuthoringTestBase`. Each account's device is its own install
+  (`newDevice`); `on(device) { ... }` restarts the client as that install, closing every open client.
+  Membership goes through the server's `ProjectMemberRepository`.
 - **More fuzz coverage**: add seeds to `MixedSyncFuzzTest.SEEDS` (a failure prints the seed + iteration
   to replay).
 - **Scripted "other device" changes**: `seedServerEntity` / `mutateServerEntity` /

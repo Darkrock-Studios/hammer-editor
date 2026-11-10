@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.common.data.sync.accountsync
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.base.GroupId
 import com.darkrockstudios.apps.hammer.base.ProjectId
+import com.darkrockstudios.apps.hammer.base.http.ApiErrorCode
 import com.darkrockstudios.apps.hammer.base.http.ApiGroupDefinition
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectDefinition
 import com.darkrockstudios.apps.hammer.base.http.BeginProjectsSyncResponse
@@ -16,6 +17,7 @@ import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
 import com.darkrockstudios.apps.hammer.common.data.projectdata.loadStoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectInUseException
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectOwner
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectTree
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.groups.GroupSyncPhase
@@ -60,6 +62,7 @@ class ClientAccountSynchronizer(
 	var initialSync = false
 
 	private val placer = LocalProjectPlacer(projectsRepository, strRes)
+	private val parker = SharedProjectParker(projectsRepository, accountSyncDatasource)
 
 	fun isServerSynchronized(): Boolean {
 		return (globalSettingsStore.serverSettings?.userId ?: -1) > -1
@@ -103,12 +106,19 @@ class ClientAccountSynchronizer(
 				val clientSyncData = accountSyncDatasource.load()
 				val serverKnownIds = serverSyncData.knownProjectIds()
 				val ledger = BaselineLedger()
+				val localProjects = projectsRepository.getProjectTree().projects
+				val excluded = localProjects
+					.filterNot(projectsRepository::isSyncEnabled)
+					.mapTo(mutableSetOf()) { it.id }
+
+				refreshOwners(localProjects, serverSyncData.projects)
+				parkOrResumeSharedProjects(localProjects, serverSyncData, clientSyncData, excluded, ledger, onLog)
 
 				yield()
 
 				// Deletions go first: a project name is unique per account on the server, so a
 				// rename into a name still held by a project queued for deletion is rejected.
-				syncDeletedProjects(clientSyncData, serverSyncData, serverKnownIds, ledger, onLog, onUnauthorized)
+				syncDeletedProjects(clientSyncData, serverSyncData, serverKnownIds, excluded, ledger, onLog, onUnauthorized)
 
 				yield()
 
@@ -137,7 +147,7 @@ class ClientAccountSynchronizer(
 					serverProjects = liveServerProjects,
 					serverGroups = serverSyncData.groups,
 					baselines = clientSyncData.projectBaselines + legacySeeds,
-					excluded = clientSyncData.projectsToDelete,
+					excluded = clientSyncData.projectsToDelete + excluded,
 					ledger = ledger,
 					onLog = onLog,
 					onUnauthorized = onUnauthorized,
@@ -149,6 +159,7 @@ class ClientAccountSynchronizer(
 					serverSyncData,
 					liveServerProjects,
 					serverKnownIds,
+					excluded,
 					ledger,
 					onLog,
 					onUnauthorized,
@@ -173,8 +184,14 @@ class ClientAccountSynchronizer(
 
 				yield()
 
-				// The legacy rename queue is cleared only here, once its seeds are safely stored.
-				accountSyncDatasource.update { ledger.applyTo(it).copy(projectsToRename = emptySet()) }
+				// The legacy rename queue is cleared only here, once its seeds are safely stored. Ids
+				// turned on during this run stay resumed until the next one.
+				accountSyncDatasource.update {
+					ledger.applyTo(it).copy(
+						projectsToRename = emptySet(),
+						resumedProjects = it.resumedProjects - clientSyncData.resumedProjects,
+					)
+				}
 
 				serverProjectsApi.endProjectsSync(syncId)
 				onLog(syncAccLogI(strRes.get(Res.string.sync_log_account_complete)))
@@ -307,34 +324,118 @@ class ClientAccountSynchronizer(
 			}
 		}
 
+	/**
+	 * Records the owner, and the owner's current pen name, of every listed project held here, and
+	 * clears a stale owner from one the server lists as this account's own.
+	 */
+	private fun refreshOwners(localProjects: List<ProjectDef>, serverProjects: Collection<ApiProjectDefinition>) {
+		val localById = localProjects.associateBy { it.id }
+		serverProjects.forEach { serverProject ->
+			val local = localById[serverProject.uuid] ?: return@forEach
+			val owner = serverProject.owner()
+			if (owner == null && projectsRepository.getOwner(local) == null) return@forEach
+			if (!projectsRepository.setOwner(local, owner)) {
+				Napier.w("Could not record the owner of '${local.name}'")
+			}
+		}
+	}
+
+	/**
+	 * Parks every shared project the server no longer lists, whatever the reason: the owner removed
+	 * this account or deleted the project, this account left from another device, or the owner's
+	 * account went inactive. A parked project (shared, sync off) the server lists again is shared
+	 * again and resumes. A project with a leave still queued is left for the delete phase.
+	 */
+	private suspend fun parkOrResumeSharedProjects(
+		localProjects: List<ProjectDef>,
+		serverSyncData: BeginProjectsSyncResponse,
+		clientSyncData: ProjectsSynchronizationData,
+		excluded: MutableSet<ProjectId>,
+		ledger: BaselineLedger,
+		onLog: OnSyncLog,
+	) {
+		val listed = serverSyncData.projects.mapTo(mutableSetOf()) { it.uuid }
+		localProjects
+			.filter { it.id !in clientSyncData.projectsToDelete && projectsRepository.getOwner(it) != null }
+			.forEach { projectDef ->
+				if (projectDef.id !in listed) {
+					excluded += projectDef.id
+					ledger.retireProject(projectDef.id)
+					if (parker.park(projectDef)) {
+						onLog(syncAccLogW(strRes.get(Res.string.sync_log_account_project_parked, projectDef.name)))
+					}
+				} else if (!projectsRepository.isSyncEnabled(projectDef)) {
+					resumeShared(projectDef, excluded, onLog)
+				}
+			}
+	}
+
+	private suspend fun resumeShared(projectDef: ProjectDef, excluded: MutableSet<ProjectId>, onLog: OnSyncLog) {
+		val resumed = try {
+			projectsRepository.resumeSync(projectDef)
+		} catch (_: ProjectInUseException) {
+			placer.logInUse(projectDef, onLog)
+			return
+		}
+		if (resumed) {
+			excluded -= projectDef.id
+			onLog(syncAccLogI(strRes.get(Res.string.sync_log_account_project_resumed, projectDef.name)))
+		}
+	}
+
 	private suspend fun syncDeletedProjects(
 		clientSyncData: ProjectsSynchronizationData,
 		serverSyncData: BeginProjectsSyncResponse,
 		serverKnownIds: Set<ProjectId>,
+		excluded: MutableSet<ProjectId>,
 		ledger: BaselineLedger,
 		onLog: OnSyncLog,
 		onUnauthorized: suspend () -> Unit = {},
 	) {
 		deleteServerProjects(clientSyncData, serverSyncData, serverKnownIds, ledger, onLog, onUnauthorized)
-		deleteLocalProjects(clientSyncData, serverSyncData, ledger, onLog)
+		deleteLocalProjects(clientSyncData, serverSyncData, excluded, ledger, onLog)
 	}
 
 	/**
-	 * Delete local projects which the server has deleted
+	 * Delete local projects which the server has deleted. An excluded project keeps its folder and
+	 * its id is recorded deleted, so turning sync on re-mints it, see [ProjectSyncToggle.turnOn].
+	 * A resumed project is re-minted here instead, and the create phase uploads it as new.
 	 */
 	private suspend fun deleteLocalProjects(
 		clientSyncData: ProjectsSynchronizationData,
 		serverSyncData: BeginProjectsSyncResponse,
+		excluded: MutableSet<ProjectId>,
 		ledger: BaselineLedger,
 		onLog: OnSyncLog
 	) {
 		serverSyncData.deletedProjects.forEach(ledger::retireProject)
-		val newlyDeletedProjects = serverSyncData.deletedProjects.filter { project ->
-			clientSyncData.deletedProjects.contains(project).not()
+		// A recorded tombstone still counts for a project turned on while the sync recording it ran.
+		val newlyDeletedProjects = serverSyncData.deletedProjects
+			.filter { id ->
+				id !in clientSyncData.deletedProjects || (id in clientSyncData.resumedProjects && id !in excluded)
+			}
+			.map { it to projectsRepository.findProject(it) }
+			// The server never removes a co-author's copy, and a shared project keeps its id.
+			.filterNot { (_, projectDef) -> projectDef != null && projectsRepository.getOwner(projectDef) != null }
+
+		val (keptProjects, removedProjects) = newlyDeletedProjects.partition { (id, _) -> id in excluded }
+		val (resumedProjects, deletedProjects) = removedProjects.partition { (id, projectDef) ->
+			projectDef != null && id in clientSyncData.resumedProjects
+		}
+		keepExcluded(keptProjects, onLog)
+
+		resumedProjects.mapNotNull { (_, projectDef) -> projectDef }.forEach { projectDef ->
+			try {
+				projectsRepository.setProjectId(projectDef, ProjectId.randomUUID())
+				onLog(syncAccLogW(strRes.get(Res.string.sync_log_account_project_delete_reminted, projectDef.name)))
+			} catch (_: ProjectInUseException) {
+				projectsRepository.setSyncEnabled(projectDef, false)
+				excluded += projectDef.id
+				keepExcluded(listOf(projectDef.id to projectDef), onLog)
+			}
 		}
 
-		newlyDeletedProjects.forEach { projectId ->
-			val projectDef = projectsRepository.findProject(projectId)
+		deletedProjects.forEach { (_, projectDef) ->
 			if (projectDef != null) {
 				onLog(
 					syncAccLogI(
@@ -350,10 +451,21 @@ class ClientAccountSynchronizer(
 		}
 	}
 
+	private suspend fun keepExcluded(kept: List<Pair<ProjectId, ProjectDef?>>, onLog: OnSyncLog) {
+		if (kept.isEmpty()) return
+		accountSyncDatasource.update { it.copy(deletedProjects = it.deletedProjects + kept.map { (id, _) -> id }) }
+		kept.forEach { (_, projectDef) ->
+			projectDef?.let {
+				onLog(syncAccLogW(strRes.get(Res.string.sync_log_account_project_delete_kept_excluded, it.name)))
+			}
+		}
+	}
+
 	/**
 	 * Delete projects on the server which this client deleted locally. An id the server never knew
 	 * belongs to a project deleted before it ever synced: there is nothing to delete, and a
-	 * tombstone for it would only refuse a later create of the same id.
+	 * tombstone for it would only refuse a later create of the same id. A leave this account is no
+	 * longer a member for has nothing left to do either.
 	 */
 	private suspend fun deleteServerProjects(
 		clientSyncData: ProjectsSynchronizationData,
@@ -388,6 +500,11 @@ class ClientAccountSynchronizer(
 						deletedProjects = syncData.deletedProjects + projectId,
 					)
 				}
+			} else if (result.exceptionOrNull()?.apiErrorCode() == ApiErrorCode.NOT_MEMBER) {
+				Napier.i("Not a member of $projectId, dropping its queued delete")
+				accountSyncDatasource.update { syncData ->
+					syncData.copy(projectsToDelete = syncData.projectsToDelete - projectId)
+				}
 			} else {
 				val exception = result.exceptionOrNull()
 				Napier.e("Failed to delete project: $projectId", exception)
@@ -412,6 +529,7 @@ class ClientAccountSynchronizer(
 		serverSyncData: BeginProjectsSyncResponse,
 		liveServerProjects: List<ApiProjectDefinition>,
 		serverKnownIds: Set<ProjectId>,
+		excluded: Set<ProjectId>,
 		ledger: BaselineLedger,
 		onLog: OnSyncLog,
 		onUnauthorized: suspend () -> Unit = {},
@@ -428,6 +546,7 @@ class ClientAccountSynchronizer(
 		val claimedNames = createLocalProjectsFromServer(
 			newServerProjects,
 			liveServerIds,
+			excluded,
 			tree,
 			serverSyncData.groups.associateBy { it.uuid },
 			ledger,
@@ -439,6 +558,7 @@ class ClientAccountSynchronizer(
 			claimedNames,
 			serverSyncData,
 			serverKnownIds,
+			excluded,
 			ledger,
 			onLog,
 			onUnauthorized,
@@ -453,6 +573,7 @@ class ClientAccountSynchronizer(
 	 * [liveServerIds]: re-pointing it would abandon the server project holding its content, and
 	 * two server names can sanitize to a single local name. Tombstoned ids are absent from
 	 * [liveServerIds], so a project whose server copy was deleted elsewhere can still be claimed.
+	 * An [excluded] project is never claimed.
 	 *
 	 * Each project goes in its server group, or the nearest ancestor of it this device has. Its
 	 * baseline is recorded only when it lands in the server's group itself.
@@ -460,6 +581,7 @@ class ClientAccountSynchronizer(
 	private suspend fun createLocalProjectsFromServer(
 		newServerProjects: List<ApiProjectDefinition>,
 		liveServerIds: Set<ProjectId>,
+		excluded: Set<ProjectId>,
 		tree: ProjectTree,
 		serverGroups: Map<GroupId, ApiGroupDefinition>,
 		ledger: BaselineLedger,
@@ -474,7 +596,28 @@ class ClientAccountSynchronizer(
 			val placed = target?.id == serverProject.groupId
 			val baseline = ProjectBaseline(serverProject.name, serverProject.groupId)
 			val existingProject = localByName[localName]
+			// A shared project is never adopted by name and never adopts an unmarked folder: either
+			// would merge an unrelated local story into it.
+			if (serverProject.ownerId != null && (existingProject != null || isTopLevelNameTaken(localName))) {
+				onLog(
+					syncAccLogW(
+						strRes.get(Res.string.sync_log_account_project_create_shared_name_taken, serverProject.name)
+					)
+				)
+				return@forEach
+			}
 			if (existingProject != null) {
+				if (existingProject.id in excluded) {
+					onLog(
+						syncAccLogW(
+							strRes.get(
+								Res.string.sync_log_account_project_create_client_name_excluded,
+								serverProject.name
+							)
+						)
+					)
+					return@forEach
+				}
 				if (existingProject.id in liveServerIds) {
 					onLog(
 						syncAccLogW(
@@ -525,6 +668,7 @@ class ClientAccountSynchronizer(
 							seedDefaultLanguage = false,
 							projectId = serverProject.uuid,
 							group = target,
+							owner = serverProject.owner(),
 						)
 						if (isSuccess(createResult)) {
 							val projectDef = createResult.data
@@ -555,6 +699,10 @@ class ClientAccountSynchronizer(
 		}
 		return claimedNames
 	}
+
+	/** Anything at all in the projects directory under [localName]: a folder, marked or not, or a file. */
+	private fun isTopLevelNameTaken(localName: String): Boolean =
+		fileSystem.metadataOrNull(projectsRepository.getProjectDirectory(localName).toOkioPath()) != null
 
 	/**
 	 * Adopts the directory named [localName] under [serverId] if it has no project.toml, treating
@@ -615,12 +763,15 @@ class ClientAccountSynchronizer(
 		claimedNames: Set<String>,
 		serverSyncData: BeginProjectsSyncResponse,
 		serverKnownIds: Set<ProjectId>,
+		excluded: Set<ProjectId>,
 		ledger: BaselineLedger,
 		onLog: OnSyncLog,
 		onUnauthorized: suspend () -> Unit = {},
 	) {
+		// A shared project is the owner's: uploading it would fork the owner's book under this account.
 		val localOnly = tree.projects.filter { def ->
-			def.id !in serverKnownIds && def.name !in claimedNames
+			def.id !in serverKnownIds && def.id !in excluded && def.name !in claimedNames &&
+				projectsRepository.getOwner(def) == null
 		}
 
 		localOnly.forEach { projectDef ->
@@ -677,6 +828,8 @@ class ClientAccountSynchronizer(
 				ServerCreateOutcome.NeedsAccountSync ->
 					error("Account sync may change a project's id, so it never needs account sync")
 
+				ServerCreateOutcome.SharedProject -> Napier.w("'$projectName' is shared with this account, not created")
+
 				is ServerCreateOutcome.Failed -> {
 					Napier.e("Failed to create project on server: $projectName", outcome.error)
 					onLog(
@@ -695,6 +848,10 @@ class ClientAccountSynchronizer(
 			}
 		}
 	}
+
+	/** The account has synced this project's name and placement with the server, so the server holds it. */
+	suspend fun hasProjectBaseline(project: ProjectDef): Boolean =
+		project.id in accountSyncDatasource.load().projectBaselines
 
 	suspend fun deleteProject(project: ProjectDef) {
 		accountSyncDatasource.update { syncData ->
@@ -725,5 +882,7 @@ internal fun Throwable?.isAuthenticationFailure(): Boolean =
  * begin_sync response: `processProjectSyncData` drops projects this client has queued for
  * deletion, and a project missing for that reason is still known to the server, not dead.
  */
+private fun ApiProjectDefinition.owner(): ProjectOwner? = ownerId?.let { ProjectOwner(it, ownerName) }
+
 private fun BeginProjectsSyncResponse.knownProjectIds(): Set<ProjectId> =
 	projects.mapTo(mutableSetOf()) { it.uuid } + deletedProjects

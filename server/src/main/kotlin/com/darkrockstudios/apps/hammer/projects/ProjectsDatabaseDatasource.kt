@@ -5,6 +5,8 @@ import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.database.ProjectDao
 import com.darkrockstudios.apps.hammer.database.ProjectGroupDao
 import com.darkrockstudios.apps.hammer.database.ProjectsDao
+import com.darkrockstudios.apps.hammer.project.UncheckedOwner
+import com.darkrockstudios.apps.hammer.project.OwnerId
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.projects.ProjectsDatasource.Companion.defaultUserData
 
@@ -70,8 +72,9 @@ class ProjectsDatabaseDatasource(
 		}
 	}
 
+	@OptIn(UncheckedOwner::class)
 	override suspend fun getProject(userId: Long, projectId: ProjectId): ProjectDefinition? {
-		val project = projectDao.getProjectData(userId, projectId) ?: return null
+		val project = projectDao.getProjectData(OwnerId.unchecked(userId), projectId) ?: return null
 		return ProjectDefinition(name = project.name, uuid = ProjectId(project.uuid))
 	}
 

@@ -1,0 +1,25 @@
+<div class="dialog-overlay" id="coauthor-dialog-overlay" onclick="closeCoauthorDialog(event)">
+	<div class="dialog dialog--warning" role="alertdialog" aria-modal="true" aria-labelledby="coauthor-dialog-title">
+		<div class="dialog__header">
+			<h3 id="coauthor-dialog-title">{{leaveTitle}}</h3>
+			<button type="button" class="dialog__close" onclick="closeCoauthorDialog()" aria-label="{{msg.story_leave_cancel}}">
+				<i class="fas fa-times" aria-hidden="true"></i>
+			</button>
+		</div>
+		<div class="dialog__body">
+			<ul class="coauthor-leave__points">
+				<li><i class="fas fa-book" aria-hidden="true"></i> {{leaveOwnerCopy}}</li>
+				<li><i class="fas fa-laptop" aria-hidden="true"></i> {{msg.story_leave_dialog_devices}}</li>
+				<li><i class="fas fa-envelope-open-text" aria-hidden="true"></i> {{msg.story_leave_dialog_rejoin}}</li>
+			</ul>
+		</div>
+		<div class="dialog__actions">
+			<button type="button" class="btn btn--ghost" onclick="closeCoauthorDialog()">
+				{{msg.story_leave_cancel}}
+			</button>
+			<button type="button" class="btn btn--danger" hx-post="/story/{{projectNameForUrl}}/leave">
+				<i class="fas fa-right-from-bracket" aria-hidden="true"></i> {{msg.story_leave_confirm}}
+			</button>
+		</div>
+	</div>
+</div>

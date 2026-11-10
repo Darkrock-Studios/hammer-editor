@@ -9,6 +9,7 @@ import com.darkrockstudios.apps.hammer.database.ProjectAccessDao
 import com.darkrockstudios.apps.hammer.database.ProjectDao
 import com.darkrockstudios.apps.hammer.database.PublicProjectInfo
 import com.darkrockstudios.apps.hammer.project.EntityDefinition
+import com.darkrockstudios.apps.hammer.project.OwnerId
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.project.ProjectEntityDatasource
 import com.darkrockstudios.apps.hammer.utilities.SResult
@@ -44,6 +45,7 @@ class ProjectAccessRepositoryTest {
 	private lateinit var repository: ProjectAccessRepository
 
 	private val userId = 1L
+	private val owner = OwnerId.unchecked(userId)
 	private val projectUuid = ProjectId("test-uuid")
 	private val projectId = 100L
 	private val penName = "TestAuthor"
@@ -67,54 +69,54 @@ class ProjectAccessRepositoryTest {
 			published_at = Instant.parse("2025-12-25T23:51:32Z")
 		)
 
-		coEvery { projectDao.getProjectId(userId, projectUuid) } returns projectId
+		coEvery { projectDao.getProjectId(owner, projectUuid) } returns projectId
 		coEvery { projectAccessDao.getAccessForProject(projectId) } returns expectedAccess
 
 		val result = repository.getAccessForProject(userId, projectUuid)
 
 		assertEquals(expectedAccess, result)
-		coVerify { projectDao.getProjectId(userId, projectUuid) }
+		coVerify { projectDao.getProjectId(owner, projectUuid) }
 		coVerify { projectAccessDao.getAccessForProject(projectId) }
 	}
 
 	@Test
 	fun `setAccess - Success`() = runTest {
-		coEvery { projectDao.getProjectId(userId, projectUuid) } returns projectId
+		coEvery { projectDao.getProjectId(owner, projectUuid) } returns projectId
 		coEvery { projectAccessDao.updateAccess(any(), any(), any()) } returns Unit
 
 		repository.setAccess(userId, projectUuid, "password", Instant.parse("2023-12-31T23:59:59Z"))
 
-		coVerify { projectDao.getProjectId(userId, projectUuid) }
+		coVerify { projectDao.getProjectId(owner, projectUuid) }
 		coVerify { projectAccessDao.updateAccess(projectId, "password", Instant.parse("2023-12-31T23:59:59Z")) }
 	}
 
 	@Test
 	fun `deleteAccess - Success`() = runTest {
-		coEvery { projectDao.getProjectId(userId, projectUuid) } returns projectId
+		coEvery { projectDao.getProjectId(owner, projectUuid) } returns projectId
 
 		repository.deleteAccess(userId, projectUuid)
 
-		coVerify { projectDao.getProjectId(userId, projectUuid) }
+		coVerify { projectDao.getProjectId(owner, projectUuid) }
 		coVerify { projectAccessDao.deleteAccess(projectId) }
 	}
 
 	@Test
 	fun `deleteAccessById - scopes the delete to the resolved project`() = runTest {
 		val accessId = 5L
-		coEvery { projectDao.getProjectId(userId, projectUuid) } returns projectId
+		coEvery { projectDao.getProjectId(owner, projectUuid) } returns projectId
 		coEvery { projectAccessDao.deleteAccessById(accessId, projectId) } returns true
 
 		val result = repository.deleteAccessById(userId, projectUuid, accessId)
 
 		assertTrue(result)
-		coVerify { projectDao.getProjectId(userId, projectUuid) }
+		coVerify { projectDao.getProjectId(owner, projectUuid) }
 		coVerify { projectAccessDao.deleteAccessById(accessId, projectId) }
 	}
 
 	@Test
 	fun `deleteAccessById - returns false when the access row is not in the caller's project`() = runTest {
 		val foreignAccessId = 5L
-		coEvery { projectDao.getProjectId(userId, projectUuid) } returns projectId
+		coEvery { projectDao.getProjectId(owner, projectUuid) } returns projectId
 		coEvery { projectAccessDao.deleteAccessById(foreignAccessId, projectId) } returns false
 
 		val result = repository.deleteAccessById(userId, projectUuid, foreignAccessId)
@@ -132,7 +134,7 @@ class ProjectAccessRepositoryTest {
 			published_at = Instant.parse("2025-12-25T23:51:32Z"),
 		)
 
-		coEvery { projectDao.getProjectId(userId, projectUuid) } returns projectId
+		coEvery { projectDao.getProjectId(owner, projectUuid) } returns projectId
 		coEvery { projectAccessDao.getPublicAccessForProject(projectId) } returns publicAccess
 
 		val result = repository.isPublished(userId, projectUuid)
@@ -142,7 +144,7 @@ class ProjectAccessRepositoryTest {
 
 	@Test
 	fun `isPublished - returns false when no public access exists`() = runTest {
-		coEvery { projectDao.getProjectId(userId, projectUuid) } returns projectId
+		coEvery { projectDao.getProjectId(owner, projectUuid) } returns projectId
 		coEvery { projectAccessDao.getPublicAccessForProject(projectId) } returns null
 
 		val result = repository.isPublished(userId, projectUuid)
@@ -162,7 +164,7 @@ class ProjectAccessRepositoryTest {
 			)
 		)
 
-		coEvery { projectDao.getProjectId(userId, projectUuid) } returns projectId
+		coEvery { projectDao.getProjectId(owner, projectUuid) } returns projectId
 		coEvery { projectAccessDao.getAllAccessForProject(projectId) } returns accessList
 
 		val result = repository.hasAnyAccess(userId, projectUuid)
@@ -172,7 +174,7 @@ class ProjectAccessRepositoryTest {
 
 	@Test
 	fun `hasAnyAccess - returns false when no access entries exist`() = runTest {
-		coEvery { projectDao.getProjectId(userId, projectUuid) } returns projectId
+		coEvery { projectDao.getProjectId(owner, projectUuid) } returns projectId
 		coEvery { projectAccessDao.getAllAccessForProject(projectId) } returns emptyList()
 
 		val result = repository.hasAnyAccess(userId, projectUuid)
@@ -182,7 +184,7 @@ class ProjectAccessRepositoryTest {
 
 	@Test
 	fun `publish - creates public access when not already published`() = runTest {
-		coEvery { projectDao.getProjectId(userId, projectUuid) } returns projectId
+		coEvery { projectDao.getProjectId(owner, projectUuid) } returns projectId
 		coEvery { projectAccessDao.getPublicAccessForProject(projectId) } returns null
 
 		repository.publish(userId, projectUuid)
@@ -200,7 +202,7 @@ class ProjectAccessRepositoryTest {
 			published_at = Instant.parse("2025-12-25T23:51:32Z")
 		)
 
-		coEvery { projectDao.getProjectId(userId, projectUuid) } returns projectId
+		coEvery { projectDao.getProjectId(owner, projectUuid) } returns projectId
 		coEvery { projectAccessDao.getPublicAccessForProject(projectId) } returns existingAccess
 
 		repository.publish(userId, projectUuid)
@@ -210,7 +212,7 @@ class ProjectAccessRepositoryTest {
 
 	@Test
 	fun `unpublish - deletes public access`() = runTest {
-		coEvery { projectDao.getProjectId(userId, projectUuid) } returns projectId
+		coEvery { projectDao.getProjectId(owner, projectUuid) } returns projectId
 
 		repository.unpublish(userId, projectUuid)
 
@@ -306,21 +308,21 @@ class ProjectAccessRepositoryTest {
 	}
 
 	private fun mockCreatePrivateAccessCollaborators() {
-		coEvery { projectDao.getProjectId(userId, projectUuid) } returns projectId
-		coEvery { projectEntityDatasource.getProject(userId, projectUuid) } returns projectDef
+		coEvery { projectDao.getProjectId(owner, projectUuid) } returns projectId
+		coEvery { projectEntityDatasource.getProject(owner, projectUuid) } returns projectDef
 		coEvery { projectAccessDao.insertAccessWithScenes(any(), any(), any(), any(), any()) } returns 42L
 	}
 
 	private fun mockSceneDefs(vararg ids: Int) {
 		coEvery {
-			projectEntityDatasource.getEntityDefsByType(userId, projectDef, ApiProjectEntity.Type.SCENE)
+			projectEntityDatasource.getEntityDefsByType(owner, projectDef, ApiProjectEntity.Type.SCENE)
 		} returns ids.map { EntityDefinition(it, ApiProjectEntity.Type.SCENE) }
 	}
 
 	private fun mockLoadScene(id: Int, sceneType: ApiSceneType = ApiSceneType.Scene) {
 		coEvery {
 			projectEntityDatasource.loadEntity(
-				userId, projectDef, id,
+				owner, projectDef, id,
 				ApiProjectEntity.Type.SCENE,
 				ApiProjectEntity.SceneEntity.serializer(),
 			)
@@ -357,11 +359,11 @@ class ProjectAccessRepositoryTest {
 			)
 		)
 
-		coEvery { projectDao.getProjectId(userId, projectUuid) } returns projectId
+		coEvery { projectDao.getProjectId(owner, projectUuid) } returns projectId
 		coEvery { projectAccessDao.getPrivateAccessForProject(projectId) } returns entries
 		coEvery { projectAccessDao.getSceneIdsForAccessIds(listOf(1L, 2L)) } returns
 			mapOf(1L to setOf(10, 11, 12, 13, 14))
-		coEvery { projectEntityDatasource.getProject(userId, projectUuid) } returns projectDef
+		coEvery { projectEntityDatasource.getProject(owner, projectUuid) } returns projectDef
 		mockSceneDefs(10, 11, 12, 13, 14)
 
 		val result = repository.getPrivateAccessEntries(userId, projectUuid)
@@ -394,7 +396,7 @@ class ProjectAccessRepositoryTest {
 			)
 		)
 
-		coEvery { projectDao.getProjectId(userId, projectUuid) } returns projectId
+		coEvery { projectDao.getProjectId(owner, projectUuid) } returns projectId
 		coEvery { projectAccessDao.getPrivateAccessForProject(projectId) } returns entries
 		coEvery { projectAccessDao.getSceneIdsForAccessIds(any()) } returns emptyMap()
 
@@ -416,10 +418,10 @@ class ProjectAccessRepositoryTest {
 			)
 		)
 
-		coEvery { projectDao.getProjectId(userId, projectUuid) } returns projectId
+		coEvery { projectDao.getProjectId(owner, projectUuid) } returns projectId
 		coEvery { projectAccessDao.getPrivateAccessForProject(projectId) } returns entries
 		coEvery { projectAccessDao.getSceneIdsForAccessIds(listOf(1L)) } returns mapOf(1L to setOf(10, 11))
-		coEvery { projectEntityDatasource.getProject(userId, projectUuid) } returns projectDef
+		coEvery { projectEntityDatasource.getProject(owner, projectUuid) } returns projectDef
 		mockSceneDefs(20, 21)
 
 		val result = repository.getPrivateAccessEntries(userId, projectUuid)

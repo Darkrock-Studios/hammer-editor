@@ -23,4 +23,9 @@ data class Info(
 	 * `ProjectMetadataDatasource.loadProjectId`, which mints and saves one when it is missing.
 	 */
 	val projectId: ProjectId? = null,
+	/** False keeps the project off the sync server from this device; read via `ProjectsRepository.isSyncEnabled`. */
+	val syncEnabled: Boolean = true,
+	/** The owner's account id for a project shared with this account; null for the account's own. */
+	val ownerId: Long? = null,
+	val ownerName: String? = null,
 )

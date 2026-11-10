@@ -1,0 +1,72 @@
+<section class="story-info-panel story-info-panel--coauthors" id="coauthor-panel">
+	<div class="info-panel-header">
+		<span class="info-panel-icon info-panel-icon--coauthors"><i class="fas fa-user-group" aria-hidden="true"></i></span>
+		<h2 class="info-panel-title">{{msg.coauthor_panel_title}}</h2>
+		{{#hasCoauthorPeople}}<span class="coauthor-panel__count">{{coauthorCount}}</span>{{/hasCoauthorPeople}}
+	</div>
+	<div class="review-panel__content">
+		<p class="review-panel__description">{{msg.coauthor_panel_description}}</p>
+
+		{{#hasCoauthorPeople}}
+			<div class="review-card-list">
+				{{#coauthorMembers}}
+					<div class="review-card">
+						<div class="review-card__head">
+							<span class="review-card__label">{{penName}}</span>
+							<span class="review-card__status coauthor-status--member">{{msg.coauthor_status_member}}</span>
+						</div>
+						<span class="review-card__meta">{{meta}}</span>
+						<div class="review-card__actions">
+							<button type="button" class="review-card__revoke"
+									hx-delete="/story/{{projectNameForUrl}}/coauthors/members/{{userId}}"
+									hx-target="#coauthor-panel"
+									hx-swap="outerHTML"
+									hx-confirm="{{msg.coauthor_remove_confirm}}">
+								<i class="fa-solid fa-user-minus" aria-hidden="true"></i> {{msg.coauthor_remove}}
+							</button>
+						</div>
+					</div>
+				{{/coauthorMembers}}
+				{{#coauthorInvites}}
+					<div class="review-card">
+						<div class="review-card__head">
+							<span class="review-card__label">{{email}}</span>
+							<span class="review-card__status">{{msg.coauthor_status_pending}}</span>
+						</div>
+						<span class="review-card__meta">{{meta}}</span>
+						<div class="review-card__actions">
+							<button type="button" class="review-card__revoke"
+									hx-delete="/story/{{projectNameForUrl}}/coauthors/invites/{{id}}"
+									hx-target="#coauthor-panel"
+									hx-swap="outerHTML"
+									hx-confirm="{{msg.coauthor_revoke_confirm}}">
+								<i class="fa-solid fa-ban" aria-hidden="true"></i> {{msg.coauthor_revoke}}
+							</button>
+						</div>
+					</div>
+				{{/coauthorInvites}}
+			</div>
+		{{/hasCoauthorPeople}}
+
+		{{#coauthorNeedsPenName}}
+			<p class="coauthor-panel__note">
+				<i class="fas fa-feather-pointed" aria-hidden="true"></i>
+				<span>{{msg.coauthor_needs_pen_name}} <a href="/dashboard">{{msg.coauthor_dashboard_link}}</a></span>
+			</p>
+		{{/coauthorNeedsPenName}}
+		{{#coauthorAtCap}}
+			<p class="coauthor-panel__note">
+				<i class="fas fa-circle-info" aria-hidden="true"></i>
+				<span>{{coauthorCapNote}}</span>
+			</p>
+		{{/coauthorAtCap}}
+		{{#coauthorCanInvite}}
+			<button type="button" class="btn btn--accent btn--block review-panel__request-btn"
+					hx-get="/story/{{projectNameForUrl}}/coauthors/invite-dialog"
+					hx-target="#coauthor-dialog-container"
+					hx-swap="innerHTML">
+				<i class="fa-solid fa-user-plus" aria-hidden="true"></i> {{msg.coauthor_invite_button}}
+			</button>
+		{{/coauthorCanInvite}}
+	</div>
+</section>

@@ -2,7 +2,14 @@ package com.darkrockstudios.apps.hammer.projects.repository
 
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.validate.MAX_PROJECT_NAME_LENGTH
+import com.darkrockstudios.apps.hammer.project.NotMemberException
+import com.darkrockstudios.apps.hammer.project.NotOwnerException
+import com.darkrockstudios.apps.hammer.project.OwnerId
+import com.darkrockstudios.apps.hammer.project.ProjectAccess
+import com.darkrockstudios.apps.hammer.project.ProjectAccessResult
+import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.project.ProjectNameTaken
+import com.darkrockstudios.apps.hammer.utilities.ServerResult
 import com.darkrockstudios.apps.hammer.utilities.isFailure
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -28,7 +35,7 @@ class ProjectsRepositoryRenameEntityTest : ProjectsRepositoryBaseTest() {
 		createProjectsRepository().apply {
 			val result = renameProject(userId, syncId, projectId, newProjectName)
 			assertTrue(result.isSuccess)
-			coVerify { projectEntityDatasource.renameProject(userId, projectId, newProjectName) }
+			coVerify { projectEntityDatasource.renameProject(OwnerId.unchecked(userId), projectId, newProjectName) }
 		}
 	}
 
@@ -72,5 +79,32 @@ class ProjectsRepositoryRenameEntityTest : ProjectsRepositoryBaseTest() {
 			assertTrue(result.isFailure)
 			coVerify(exactly = 0) { projectEntityDatasource.renameProject(any(), any(), any()) }
 		}
+	}
+
+	@Test
+	fun `Rename Project - Failure - Co-author`() = runTest {
+		val projectId = ProjectId("ProjectId")
+		coEvery { projectsSessionManager.validateSyncId(any(), any(), any()) } returns true
+		coEvery { projectEntityDatasource.checkProjectExists(any(), projectId) } returns false
+		coEvery { projectAccessResolver.resolve(userId, projectId) } returns ProjectAccessResult.Granted(
+			ProjectAccess(ProjectDefinition("Shared", projectId), OwnerId.unchecked(userId + 1), isOwner = false)
+		)
+
+		val result = createProjectsRepository().renameProject(userId, "sync-id", projectId, "New Name")
+
+		assertIs<NotOwnerException>((result as ServerResult.Failure).exception)
+		coVerify(exactly = 0) { projectEntityDatasource.renameProject(any(), any(), any()) }
+	}
+
+	@Test
+	fun `Rename Project - Failure - Non-member`() = runTest {
+		val projectId = ProjectId("ProjectId")
+		coEvery { projectsSessionManager.validateSyncId(any(), any(), any()) } returns true
+		coEvery { projectEntityDatasource.checkProjectExists(any(), projectId) } returns false
+		coEvery { projectAccessResolver.resolve(userId, projectId) } returns ProjectAccessResult.NotMember
+
+		val result = createProjectsRepository().renameProject(userId, "sync-id", projectId, "New Name")
+
+		assertIs<NotMemberException>((result as ServerResult.Failure).exception)
 	}
 }

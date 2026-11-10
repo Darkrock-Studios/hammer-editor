@@ -30,16 +30,16 @@ class ServerProjectDataRepository(
 ) : KoinComponent {
 
 	suspend fun load(
-		userId: Long,
+		owner: OwnerId,
 		projectDef: ProjectDefinition,
 	): SResult<RawProjectDataDto?> {
-		val projectId = projectDao.getProjectIdOrNull(userId, projectDef.uuid)
+		val projectId = projectDao.getProjectIdOrNull(owner, projectDef.uuid)
 			?: return SResult.failure(ProjectNotFound(projectDef))
 
-		val row = projectDataDao.get(userId, projectId)
+		val row = projectDataDao.get(owner.id, projectId)
 			?: return SResult.success(null)
 
-		val data = parseContent(row.content, userId, projectDef)
+		val data = parseContent(row.content, owner, projectDef)
 			?: return SResult.success(null)
 		return SResult.success(RawProjectDataDto(data = data, hash = row.hash))
 	}
@@ -49,9 +49,9 @@ class ServerProjectDataRepository(
 	 * edit (including the declared language) without transferring or parsing the content.
 	 * Null when the project has no data row.
 	 */
-	suspend fun loadDataHash(userId: Long, projectDef: ProjectDefinition): String? {
-		val projectId = projectDao.getProjectIdOrNull(userId, projectDef.uuid) ?: return null
-		return projectDataDao.getHash(userId, projectId)
+	suspend fun loadDataHash(owner: OwnerId, projectDef: ProjectDefinition): String? {
+		val projectId = projectDao.getProjectIdOrNull(owner, projectDef.uuid) ?: return null
+		return projectDataDao.getHash(owner.id, projectId)
 	}
 
 	/**
@@ -59,16 +59,16 @@ class ServerProjectDataRepository(
 	 * there is no row, and null when the project is unknown or its row can't be decoded, so a
 	 * damaged row is never reported as in sync.
 	 */
-	suspend fun loadVerifiedDataHash(userId: Long, projectDef: ProjectDefinition): String? {
-		val projectId = projectDao.getProjectIdOrNull(userId, projectDef.uuid) ?: return null
-		val row = projectDataDao.get(userId, projectId) ?: return ProjectDataHasher.hash(ProjectData())
-		return row.hash.takeIf { parseContent(row.content, userId, projectDef) != null }
+	suspend fun loadVerifiedDataHash(owner: OwnerId, projectDef: ProjectDefinition): String? {
+		val projectId = projectDao.getProjectIdOrNull(owner, projectDef.uuid) ?: return null
+		val row = projectDataDao.get(owner.id, projectId) ?: return ProjectDataHasher.hash(ProjectData())
+		return row.hash.takeIf { parseContent(row.content, owner, projectDef) != null }
 	}
 
 	/** The project's declared BCP-47 language for public-page metadata; null when unset or unreadable. */
-	suspend fun loadProjectLanguage(userId: Long, projectDef: ProjectDefinition): String? {
-		val projectId = projectDao.getProjectIdOrNull(userId, projectDef.uuid) ?: return null
-		val row = projectDataDao.get(userId, projectId) ?: return null
+	suspend fun loadProjectLanguage(owner: OwnerId, projectDef: ProjectDefinition): String? {
+		val projectId = projectDao.getProjectIdOrNull(owner, projectDef.uuid) ?: return null
+		val row = projectDataDao.get(owner.id, projectId) ?: return null
 		val element = try {
 			json.parseToJsonElement(row.content)
 		} catch (e: SerializationException) {
@@ -78,9 +78,9 @@ class ServerProjectDataRepository(
 	}
 
 	/** The project's cover Image entity id; null when unset or unreadable. */
-	suspend fun loadCoverImageId(userId: Long, projectDef: ProjectDefinition): Int? {
-		val projectId = projectDao.getProjectIdOrNull(userId, projectDef.uuid) ?: return null
-		val row = projectDataDao.get(userId, projectId) ?: return null
+	suspend fun loadCoverImageId(owner: OwnerId, projectDef: ProjectDefinition): Int? {
+		val projectId = projectDao.getProjectIdOrNull(owner, projectDef.uuid) ?: return null
+		val row = projectDataDao.get(owner.id, projectId) ?: return null
 		val element = try {
 			json.parseToJsonElement(row.content)
 		} catch (e: SerializationException) {
@@ -90,18 +90,18 @@ class ServerProjectDataRepository(
 	}
 
 	suspend fun save(
-		userId: Long,
+		owner: OwnerId,
 		projectDef: ProjectDefinition,
 		data: JsonElement,
 		originalHash: String?,
 		clientHash: String,
 	): SResult<ProjectDataSaveResult> {
-		val projectId = projectDao.getProjectIdOrNull(userId, projectDef.uuid)
+		val projectId = projectDao.getProjectIdOrNull(owner, projectDef.uuid)
 			?: return SResult.failure(ProjectNotFound(projectDef))
 
-		val existingRow = projectDataDao.get(userId, projectId)
+		val existingRow = projectDataDao.get(owner.id, projectId)
 		if (existingRow != null && existingRow.hash != originalHash) {
-			val serverData = parseContent(existingRow.content, userId, projectDef)
+			val serverData = parseContent(existingRow.content, owner, projectDef)
 				?: JsonObject(emptyMap())
 			return SResult.success(
 				ProjectDataSaveResult.Conflict(
@@ -115,7 +115,7 @@ class ServerProjectDataRepository(
 		decodeAsProjectData(data)
 			?: return SResult.failure(IllegalArgumentException("Payload does not decode as ProjectData"))
 		projectDataDao.upsert(
-			userId = userId,
+			userId = owner.id,
 			projectId = projectId,
 			content = data.toString(),
 			hash = clientHash,
@@ -133,21 +133,21 @@ class ServerProjectDataRepository(
 	 */
 	private fun parseContent(
 		content: String,
-		userId: Long,
+		owner: OwnerId,
 		projectDef: ProjectDefinition
 	): JsonElement? {
 		val element = try {
 			json.parseToJsonElement(content)
 		} catch (e: SerializationException) {
 			log.warn(
-				"Malformed project_data row for user=$userId project=${projectDef.name}; treating as missing",
+				"Malformed project_data row for user=${owner.id} project=${projectDef.name}; treating as missing",
 				e,
 			)
 			null
 		} ?: return null
 
 		if (decodeAsProjectData(element) == null) {
-			log.warn("Undecodable project_data row for user=$userId project=${projectDef.name}; treating as missing")
+			log.warn("Undecodable project_data row for user=${owner.id} project=${projectDef.name}; treating as missing")
 			return null
 		}
 		return element

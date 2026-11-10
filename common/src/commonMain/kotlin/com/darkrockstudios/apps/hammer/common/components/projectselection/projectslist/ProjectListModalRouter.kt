@@ -46,7 +46,13 @@ class ProjectListModalRouter(
 			is Config.ProjectSync -> ProjectsList.ModalDestination.ProjectSync
 			is Config.ProjectRename -> ProjectsList.ModalDestination.ProjectRename(config.projectDef)
 			is Config.ProjectCreate -> ProjectsList.ModalDestination.ProjectCreate(config.parent)
-			is Config.ProjectDelete -> ProjectsList.ModalDestination.ProjectDelete(config.projectDef)
+			is Config.ProjectDelete -> ProjectsList.ModalDestination.ProjectDelete(
+				config.projectDef,
+				config.offerServerDelete,
+				config.deletesOnServer,
+			)
+			is Config.ProjectLeave -> ProjectsList.ModalDestination.ProjectLeave(config.projectDef, config.ownerName)
+			is Config.ProjectSyncOff -> ProjectsList.ModalDestination.ProjectSyncOff(config.projectDef)
 			is Config.GroupCreate -> ProjectsList.ModalDestination.GroupCreate(config.parent)
 			is Config.GroupRename -> ProjectsList.ModalDestination.GroupRename(config.groupDef)
 			is Config.GroupDelete -> ProjectsList.ModalDestination.GroupDelete(config.groupDef)
@@ -96,12 +102,20 @@ class ProjectListModalRouter(
 		navigation.activate(Config.None)
 	}
 
-	fun showProjectDelete(projectDef: ProjectDef) {
-		navigation.activate(Config.ProjectDelete(projectDef))
+	fun showProjectDelete(projectDef: ProjectDef, offerServerDelete: Boolean, deletesOnServer: Boolean) {
+		navigation.activate(Config.ProjectDelete(projectDef, offerServerDelete, deletesOnServer))
+	}
+
+	fun showProjectLeave(projectDef: ProjectDef, ownerName: String?) {
+		navigation.activate(Config.ProjectLeave(projectDef, ownerName))
 	}
 
 	fun dismissProjectDelete() {
 		navigation.activate(Config.None)
+	}
+
+	fun showProjectSyncOff(projectDef: ProjectDef) {
+		navigation.activate(Config.ProjectSyncOff(projectDef))
 	}
 
 	fun showGroupCreate(parent: GroupDef?) {
@@ -165,7 +179,17 @@ class ProjectListModalRouter(
 		data class ProjectCreate(val parent: GroupDef? = null) : Config()
 
 		@Serializable
-		data class ProjectDelete(val projectDef: ProjectDef) : Config()
+		data class ProjectDelete(
+			val projectDef: ProjectDef,
+			val offerServerDelete: Boolean = false,
+			val deletesOnServer: Boolean = false,
+		) : Config()
+
+		@Serializable
+		data class ProjectLeave(val projectDef: ProjectDef, val ownerName: String?) : Config()
+
+		@Serializable
+		data class ProjectSyncOff(val projectDef: ProjectDef) : Config()
 
 		@Serializable
 		data class GroupCreate(val parent: GroupDef?) : Config()

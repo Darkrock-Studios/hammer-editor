@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.integration
 
 import com.darkrockstudios.apps.hammer.base.http.Token
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.AuthTokenDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.GlobalSettingsDatasource
@@ -81,8 +82,33 @@ abstract class RoundTripTestBase : EndToEndTest(), KoinTest {
 	protected val userId: Long = 1
 
 	private var mainExecutor: java.util.concurrent.ExecutorService? = null
+	private lateinit var mainDispatcher: CoroutineDispatcher
 	private val loadedClientModules = mutableListOf<Module>()
 	private val openClients = mutableListOf<HeadlessClient>()
+
+	/** One app install: its projects root, install id and persisted settings. */
+	protected class ClientInstall(
+		val projectsRoot: Path,
+		val installId: String,
+		val serverSettings: ServerSettings,
+	) {
+		internal val globalSettings = InMemoryGlobalSettingsDatasource(
+			GlobalSettings(
+				projectsDirectory = projectsRoot.toString(),
+				installId = installId,
+				// Sync's BackupOperation tries to zip the project dir; zipping on a
+				// FakeFileSystem path doesn't work cleanly. The backup feature isn't
+				// what these tests are validating.
+				automaticBackups = false,
+			)
+		)
+		internal val serverSettingsStore = InMemoryServerSettingsDatasource()
+		internal val authTokens = InMemoryAuthTokenDatasource()
+	}
+
+	/** The install the client Koin context currently runs as. */
+	protected lateinit var currentInstall: ClientInstall
+		private set
 
 	@BeforeEach
 	override fun setup() {
@@ -117,14 +143,46 @@ abstract class RoundTripTestBase : EndToEndTest(), KoinTest {
 		// dispatcher under that name so `withContext(Main)` works.
 		val executor = Executors.newSingleThreadExecutor { r -> Thread(r, "RoundTrip-Main") }
 		mainExecutor = executor
-		val mainDispatcher = executor.asCoroutineDispatcher()
+		mainDispatcher = executor.asCoroutineDispatcher()
 		Dispatchers.setMain(mainDispatcher)
 
-		startClientKoin(mainDispatcher)
+		startClientKoin(
+			ClientInstall(
+				projectsRoot,
+				installId,
+				ServerSettings(
+					ssl = false,
+					url = "127.0.0.1:$serverPort",
+					email = account.email,
+					userId = userId,
+					bearerToken = authToken.auth,
+					refreshToken = authToken.refresh,
+				),
+			)
+		)
 	}
 
 	@AfterEach
 	fun tearDownClient() {
+		stopClientKoin()
+		Dispatchers.resetMain()
+		mainExecutor?.shutdownNow()
+		mainExecutor = null
+	}
+
+	/**
+	 * Restarts the client as [install], as quitting one app and launching another would: open
+	 * clients are closed and every client singleton is rebuilt. The install's settings persist.
+	 */
+	protected suspend fun switchInstall(install: ClientInstall) {
+		if (install === currentInstall) return
+		stopClientKoin()
+		startClientKoin(install)
+		val settings = get<GlobalSettingsStore>()
+		if (settings.serverSettings == null) settings.updateServerSettings(install.serverSettings)
+	}
+
+	private fun stopClientKoin() {
 		// Close tracked clients before the modules unload, so a test that throws before its own
 		// cleanup can't leak its project scope into the next test.
 		openClients.forEach { runCatching { it.close() } }
@@ -144,9 +202,6 @@ abstract class RoundTripTestBase : EndToEndTest(), KoinTest {
 			unloadKoinModules(loadedClientModules.toList())
 			loadedClientModules.clear()
 		}
-		Dispatchers.resetMain()
-		mainExecutor?.shutdownNow()
-		mainExecutor = null
 	}
 
 	/**
@@ -208,23 +263,17 @@ abstract class RoundTripTestBase : EndToEndTest(), KoinTest {
 		seedServerEntity(serverNumericProjectId, entity)
 	}
 
-	private fun startClientKoin(mainDispatcher: CoroutineDispatcher) {
-		val initialGlobalSettings = GlobalSettings(
-			projectsDirectory = projectsRoot.toString(),
-			installId = installId,
-			// Sync's BackupOperation tries to zip the project dir; zipping on a
-			// FakeFileSystem path doesn't work cleanly. The backup feature isn't
-			// what these tests are validating.
-			automaticBackups = false,
-		)
-
+	private fun startClientKoin(install: ClientInstall) {
+		fileSystem.createDirectories(install.projectsRoot)
+		currentInstall = install
+		val mainDispatcher = mainDispatcher
 		val sharedFileSystem = fileSystem  // EndToEndTest's FakeFileSystem
 		val testOverrides = module {
 			// In-memory settings datasources prevent the production filesystem ones from
 			// being instantiated, which would otherwise write to %APPDATA% via AppDirs.
-			single<GlobalSettingsDatasource> { InMemoryGlobalSettingsDatasource(initialGlobalSettings) }
-			single<ServerSettingsDatasource> { InMemoryServerSettingsDatasource() }
-			single<AuthTokenDatasource> { InMemoryAuthTokenDatasource() }
+			single<GlobalSettingsDatasource> { install.globalSettings }
+			single<ServerSettingsDatasource> { install.serverSettingsStore }
+			single<AuthTokenDatasource> { install.authTokens }
 
 			// Compose Resources isn't initialized in plain JVM tests; stub StrRes so any
 			// sync log path that interpolates a string doesn't blow up.
@@ -252,21 +301,18 @@ abstract class RoundTripTestBase : EndToEndTest(), KoinTest {
 	}
 
 	/**
-	 * Build the client-side [ServerSettings] pointing at the in-process Jetty
-	 * server, with this test's auth token preloaded.
+	 * The current install's [ServerSettings], pointing at the in-process Jetty server with its
+	 * auth token preloaded.
 	 */
-	protected fun makeServerSettings(): ServerSettings = ServerSettings(
-		ssl = false,
-		url = "127.0.0.1:$serverPort",
-		email = account.email,
-		userId = userId,
-		bearerToken = authToken.auth,
-		refreshToken = authToken.refresh,
-	)
+	protected fun makeServerSettings(): ServerSettings = currentInstall.serverSettings
 
 	/** Creates a client and registers it for teardown-close so it can't leak the project scope. */
 	protected suspend fun newClient(projectName: String): HeadlessClient =
 		HeadlessClient.create(projectName, makeServerSettings()).also { openClients += it }
+
+	/** Opens the local project named [projectName], which must exist, registered for teardown-close. */
+	protected suspend fun openClient(projectName: String): HeadlessClient =
+		HeadlessClient.open(projectName).also { openClients += it }
 
 	/** [HeadlessClient.reopen], registered for teardown-close like [newClient]. */
 	protected suspend fun reopen(client: HeadlessClient): HeadlessClient =

@@ -31,11 +31,13 @@ import com.darkrockstudios.apps.hammer.common.data.importer.StoryImporterRegistr
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.GroupDef
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectTree
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectOwner
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsService
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.ProjectStatisticsCacheReader
 import com.darkrockstudios.apps.hammer.common.data.protocolmismatch.ProtocolMismatchRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ClientAccountSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.AccountSyncLock
+import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ProjectSyncToggle
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.SyncAccountUseCase
 import com.darkrockstudios.apps.hammer.common.data.toMsg
 import com.darkrockstudios.apps.hammer.common.data.versioncheck.VersionCheckDatasource
@@ -96,6 +98,7 @@ class ProjectsListComponentTest : ComponentTest() {
 	private lateinit var networkConnectivity: NetworkConnectivity
 	private lateinit var statsReader: ProjectStatisticsCacheReader
 	private lateinit var reauthUseCase: AccountReauthUseCase
+	private lateinit var syncToggle: ProjectSyncToggle
 
 	private lateinit var globalSettings: GlobalSettings
 	private lateinit var settingsUpdates: MutableSharedFlow<GlobalSettings>
@@ -152,10 +155,15 @@ class ProjectsListComponentTest : ComponentTest() {
 
 		globalSettingsStore = mockk(relaxed = true)
 		projectsRepository = mockk(relaxed = true)
+		every { projectsRepository.isSyncEnabled(any()) } returns true
+		every { projectsRepository.getOwner(any()) } returns null
 		synchronizer = mockk(relaxed = true)
 		networkConnectivity = mockk(relaxed = true)
 		statsReader = mockk(relaxed = true)
 		reauthUseCase = mockk(relaxed = true)
+		syncToggle = mockk()
+		every { syncToggle.turnOff(any()) } returns ProjectSyncToggle.Result.Done
+		coEvery { syncToggle.turnOn(any()) } returns ProjectSyncToggle.Result.Done
 
 		globalSettings = GlobalSettings(
 			projectsDirectory = "/projects",
@@ -180,6 +188,7 @@ class ProjectsListComponentTest : ComponentTest() {
 			single { networkConnectivity }
 			single { statsReader }
 			single { reauthUseCase }
+			single { syncToggle }
 			factory { SyncAccountUseCase(get(), get(), AccountSyncLock(), get()) }
 			single<FileSystem> { FakeFileSystem() }
 			single<Toml> { createTomlSerializer() }
@@ -408,6 +417,52 @@ class ProjectsListComponentTest : ComponentTest() {
 			verify(exactly = 0) { projectsRepository.getProjectTree(any()) }
 		}
 
+	// --- project sync switch -------------------------------------------------
+
+	@Test
+	fun `Turning sync off from the menu asks first and changes nothing until confirmed`() =
+		runTest(mainTestDispatcher) {
+			val comp = newComponent()
+
+			comp.setProjectSync(projectDefA, enabled = false)
+			advanceUntilIdle()
+			val dialog = assertIs<ProjectsList.ModalDestination.ProjectSyncOff>(comp.modalRouterState.value.child?.instance)
+			assertEquals(projectDefA, dialog.projectDef)
+			verify(exactly = 0) { syncToggle.turnOff(any()) }
+
+			comp.confirmProjectSyncOff(projectDefA)
+			comp.dismissProjectSyncOff()
+			advanceUntilIdle()
+
+			verify(exactly = 1) { syncToggle.turnOff(projectDefA) }
+			assertIs<ProjectsList.ModalDestination.None>(comp.modalRouterState.value.child?.instance)
+			verify { projectsRepository.getProjectTree(any()) }
+		}
+
+	@Test
+	fun `Turning sync on from the menu takes effect at once`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+
+		comp.setProjectSync(projectDefA, enabled = true)
+		advanceUntilIdle()
+
+		coVerify(exactly = 1) { syncToggle.turnOn(projectDefA) }
+		assertIs<ProjectsList.ModalDestination.None>(comp.modalRouterState.value.child?.instance)
+		verify { projectsRepository.getProjectTree(any()) }
+	}
+
+	@Test
+	fun `A refused turn-on opens nothing and reloads the list`() = runTest(mainTestDispatcher) {
+		coEvery { syncToggle.turnOn(any()) } returns ProjectSyncToggle.Result.Failed
+		val comp = newComponent()
+
+		comp.setProjectSync(projectDefA, enabled = true)
+		advanceUntilIdle()
+
+		assertIs<ProjectsList.ModalDestination.None>(comp.modalRouterState.value.child?.instance)
+		verify { projectsRepository.getProjectTree(any()) }
+	}
+
 	// --- deleteProject -------------------------------------------------------
 
 	@Test
@@ -420,6 +475,90 @@ class ProjectsListComponentTest : ComponentTest() {
 			advanceUntilIdle()
 
 			coVerify { synchronizer.deleteProject(projectDefA) }
+		}
+
+	@Test
+	fun `Deleting a shared project opens the leave dialog, and leaving turns sync off and sends a leave`() =
+		runTest(mainTestDispatcher) {
+			every { projectsRepository.getOwner(projectDefA) } returns ProjectOwner(7L, "Alice")
+			every { projectsRepository.setSyncEnabled(projectDefA, false) } returns true
+			val comp = newComponent()
+
+			comp.showProjectDelete(projectDefA)
+			advanceUntilIdle()
+			val leave = assertIs<ProjectsList.ModalDestination.ProjectLeave>(comp.modalRouterState.value.child?.instance)
+			assertEquals("Alice", leave.ownerName)
+
+			comp.deleteProject(projectDefA)
+			comp.leaveProject(projectDefA)
+			advanceUntilIdle()
+
+			verify { projectsRepository.setSyncEnabled(projectDefA, false) }
+			coVerify { synchronizer.deleteProject(projectDefA) }
+			verify(exactly = 0) { projectsRepository.deleteProject(any()) }
+		}
+
+	@Test
+	fun `A parked shared project is deleted, not left`() = runTest(mainTestDispatcher) {
+		every { projectsRepository.getOwner(projectDefA) } returns ProjectOwner(7L, "Alice")
+		every { projectsRepository.isSyncEnabled(projectDefA) } returns false
+		val comp = newComponent()
+
+		comp.showProjectDelete(projectDefA)
+		advanceUntilIdle()
+
+		assertIs<ProjectsList.ModalDestination.ProjectDelete>(comp.modalRouterState.value.child?.instance)
+	}
+
+	@Test
+	fun `deleteProject of a project with sync off keeps the server copy`() = runTest(mainTestDispatcher) {
+		every { projectsRepository.deleteProject(projectDefA) } returns true
+		every { projectsRepository.isSyncEnabled(projectDefA) } returns false
+		val comp = newComponent()
+
+		comp.deleteProject(projectDefA)
+		advanceUntilIdle()
+
+		verify { projectsRepository.deleteProject(projectDefA) }
+		coVerify(exactly = 0) { synchronizer.deleteProject(any()) }
+	}
+
+	@Test
+	fun `deleteProject of a project with sync off can also delete it on the server`() = runTest(mainTestDispatcher) {
+		every { projectsRepository.deleteProject(projectDefA) } returns true
+		every { projectsRepository.isSyncEnabled(projectDefA) } returns false
+		val comp = newComponent()
+
+		comp.deleteProject(projectDefA, alsoDeleteOnServer = true)
+		advanceUntilIdle()
+
+		coVerify { synchronizer.deleteProject(projectDefA) }
+	}
+
+	@Test
+	fun `The delete dialog offers the server copy only for a project with sync off the server holds`() =
+		runTest(mainTestDispatcher) {
+			every { synchronizer.isServerSynchronized() } returns true
+			coEvery { synchronizer.hasProjectBaseline(projectDefA) } returns true
+			val comp = newComponent()
+
+			comp.showProjectDelete(projectDefA)
+			advanceUntilIdle()
+			val syncing = assertIs<ProjectsList.ModalDestination.ProjectDelete>(comp.modalRouterState.value.child?.instance)
+			assertFalse(syncing.offerServerDelete)
+			assertTrue(syncing.deletesOnServer)
+
+			every { projectsRepository.isSyncEnabled(projectDefA) } returns false
+			comp.showProjectDelete(projectDefA)
+			advanceUntilIdle()
+			val syncOff = assertIs<ProjectsList.ModalDestination.ProjectDelete>(comp.modalRouterState.value.child?.instance)
+			assertTrue(syncOff.offerServerDelete)
+			assertFalse(syncOff.deletesOnServer)
+
+			coEvery { synchronizer.hasProjectBaseline(projectDefA) } returns false
+			comp.showProjectDelete(projectDefA)
+			advanceUntilIdle()
+			assertFalse(assertIs<ProjectsList.ModalDestination.ProjectDelete>(comp.modalRouterState.value.child?.instance).offerServerDelete)
 		}
 
 	@Test
@@ -550,10 +689,12 @@ class ProjectsListComponentTest : ComponentTest() {
 		val comp = newComponent()
 
 		comp.showProjectDelete(projectDefA)
+		advanceUntilIdle()
 
 		val dest = comp.modalRouterState.value.child?.instance
 		assertIs<ProjectsList.ModalDestination.ProjectDelete>(dest)
 		assertEquals(projectDefA, dest.projectDef)
+		assertFalse(dest.offerServerDelete)
 
 		comp.dismissProjectDelete()
 		assertIs<ProjectsList.ModalDestination.None>(comp.modalRouterState.value.child?.instance)
@@ -815,6 +956,20 @@ class ProjectsListComponentTest : ComponentTest() {
 			verify(exactly = 0) { projectsRepository.getProjectTree(any()) }
 			assertIs<ProjectsList.ModalDestination.GroupRename>(comp.modalRouterState.value.child?.instance)
 		}
+
+	@Test
+	fun `a shared project is neither moved nor renamed`() = runTest(mainTestDispatcher) {
+		every { projectsRepository.getOwner(projectDefA) } returns ProjectOwner(7L, "Alice")
+		every { synchronizer.isServerSynchronized() } returns true
+		val comp = newComponent()
+
+		comp.moveProject(projectDefA, trilogy)
+		comp.renameProject(projectDefA, "Mine")
+		advanceUntilIdle()
+
+		verify(exactly = 0) { projectsRepository.moveProject(any(), any()) }
+		verify(exactly = 0) { projectsRepository.renameProject(any(), any()) }
+	}
 
 	@Test
 	fun `moveProject moves the project off the calling thread and reloads`() = runTest(mainTestDispatcher) {

@@ -1,0 +1,19 @@
+<div id="shared-projects"{{#sharedProjectsOob}} hx-swap-oob="true"{{/sharedProjectsOob}}>
+{{#hasSharedProjects}}
+	<h3 class="shared-projects__title">{{msg.dashboard_shared_title}}</h3>
+	<div class="card-list">
+		{{#sharedProjects}}
+			<a href="/story/{{nameForUrl}}" class="card card--interactive card--shared">
+				<div class="card__info">
+					<span class="card__title">{{name}}</span>
+					<span class="card__subtitle">
+						<span class="shared-badge"><i class="fa-solid fa-user-group" aria-hidden="true"></i> {{sharedBy}}</span>
+					</span>
+					<span class="card__subtitle">{{msg.dashboard_last_sync}}: {{lastSync}}</span>
+				</div>
+				<i class="fa-solid fa-chevron-right card__arrow" aria-hidden="true"></i>
+			</a>
+		{{/sharedProjects}}
+	</div>
+{{/hasSharedProjects}}
+</div>

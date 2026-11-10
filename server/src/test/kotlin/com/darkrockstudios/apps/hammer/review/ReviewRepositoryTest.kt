@@ -31,6 +31,7 @@ import com.darkrockstudios.apps.hammer.utilities.isSuccess
 import com.darkrockstudios.apps.hammer.utils.BaseTest
 import com.darkrockstudios.apps.hammer.utils.TestClock
 import com.darkrockstudios.apps.hammer.database.ReviewRequest as ReviewRequestRow
+import com.darkrockstudios.apps.hammer.project.OwnerId
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -52,10 +53,11 @@ import kotlin.time.Instant
 class ReviewRepositoryTest : BaseTest() {
 
 	private val userId = 1L
+	private val owner = OwnerId.unchecked(userId)
 	private val numericProjectId = 7L
 	private val projectId = ProjectId("test-uuid")
 	private val projectDef = ProjectDefinition("Test Project", projectId)
-	private val syncKey = ProjectSyncKey(userId, projectDef)
+	private val syncKey = ProjectSyncKey(projectDef.uuid)
 	private val cipherSecret = "cipher-secret"
 	private val testCipher = "AES/GCM/NoPadding"
 
@@ -162,18 +164,18 @@ class ReviewRepositoryTest : BaseTest() {
 	)
 
 	private fun mockHappyPathProject(sceneIds: List<Int>) {
-		coEvery { projectEntityDatasource.getProject(userId, projectId) } returns projectDef
-		coEvery { projectDao.getProjectIdOrNull(userId, projectId) } returns numericProjectId
+		coEvery { projectEntityDatasource.getProject(owner, projectId) } returns projectDef
+		coEvery { projectDao.getProjectIdOrNull(owner, projectId) } returns numericProjectId
 		coEvery { accountDao.getAccount(userId) } returns mockk {
 			coEvery { cipher_secret } returns cipherSecret
 		}
 		coEvery {
-			projectEntityDatasource.getEntityDefsByType(userId, projectDef, ApiProjectEntity.Type.SCENE)
+			projectEntityDatasource.getEntityDefsByType(owner, projectDef, ApiProjectEntity.Type.SCENE)
 		} returns sceneIds.map { EntityDefinition(it, ApiProjectEntity.Type.SCENE) }
 		for (sceneId in sceneIds) {
 			coEvery {
 				projectEntityDatasource.loadEntity(
-					userId, projectDef, sceneId,
+					owner, projectDef, sceneId,
 					ApiProjectEntity.Type.SCENE,
 					ApiProjectEntity.SceneEntity.serializer(),
 				)
@@ -185,18 +187,18 @@ class ReviewRepositoryTest : BaseTest() {
 	fun `create review request mints drafts above defensive max and stores hashed token`() = runTest {
 		mockHappyPathProject(listOf(1, 2))
 
-		coEvery { projectEntityDatasource.loadProjectSyncData(userId, projectDef) } returns
+		coEvery { projectEntityDatasource.loadProjectSyncData(owner, projectDef) } returns
 			ProjectSyncData(lastId = 5, deletedIds = setOf(3))
-		coEvery { projectEntityDatasource.findLastId(userId, projectDef) } returns 4
+		coEvery { projectEntityDatasource.findLastId(owner, projectDef) } returns 4
 
 		val syncDataUpdate = slot<(ProjectSyncData) -> ProjectSyncData>()
 		coEvery {
-			projectEntityDatasource.updateSyncData(userId, projectDef, capture(syncDataUpdate))
+			projectEntityDatasource.updateSyncData(owner, projectDef, capture(syncDataUpdate))
 		} returns Unit
 
 		val savedDrafts = mutableListOf<ApiProjectEntity.SceneDraftEntity>()
 		coEvery {
-			sceneDraftSynchronizer.saveEntity(userId, projectDef, capture(savedDrafts), null, true)
+			sceneDraftSynchronizer.saveEntity(owner, projectDef, capture(savedDrafts), null, true)
 		} answers {
 			assertTrue(projectSessions.hasActiveSyncSession(syncKey))
 			SResult.success()
@@ -245,8 +247,8 @@ class ReviewRepositoryTest : BaseTest() {
 	@Test
 	fun `create review request fails while a client sync session is active`() = runTest {
 		mockHappyPathProject(listOf(1))
-		projectSessions.createNewSession(syncKey) { key, syncId ->
-			ProjectSynchronizationSession(key.userId, key.projectDef, clock.now(), syncId, "client-install")
+		projectSessions.createNewSession(syncKey) { _, syncId ->
+			ProjectSynchronizationSession(userId, projectDef, clock.now(), syncId, "client-install")
 		}
 
 		val result = createRepository().createReviewRequest(
@@ -265,11 +267,11 @@ class ReviewRepositoryTest : BaseTest() {
 
 	@Test
 	fun `create review request rejects non-scene entity ids`() = runTest {
-		coEvery { projectEntityDatasource.getProject(userId, projectId) } returns projectDef
-		coEvery { projectDao.getProjectIdOrNull(userId, projectId) } returns numericProjectId
+		coEvery { projectEntityDatasource.getProject(owner, projectId) } returns projectDef
+		coEvery { projectDao.getProjectIdOrNull(owner, projectId) } returns numericProjectId
 		// Entity 9 exists but is not a scene, so the scene defs list does not contain it.
 		coEvery {
-			projectEntityDatasource.getEntityDefsByType(userId, projectDef, ApiProjectEntity.Type.SCENE)
+			projectEntityDatasource.getEntityDefsByType(owner, projectDef, ApiProjectEntity.Type.SCENE)
 		} returns emptyList()
 
 		val result = createRepository().createReviewRequest(
@@ -289,18 +291,18 @@ class ReviewRepositoryTest : BaseTest() {
 	@Test
 	fun `failed draft store cleans up already minted drafts`() = runTest {
 		mockHappyPathProject(listOf(1, 2))
-		coEvery { projectEntityDatasource.loadProjectSyncData(userId, projectDef) } returns
+		coEvery { projectEntityDatasource.loadProjectSyncData(owner, projectDef) } returns
 			ProjectSyncData(lastId = 5, deletedIds = emptySet())
-		coEvery { projectEntityDatasource.findLastId(userId, projectDef) } returns 5
-		coEvery { projectEntityDatasource.updateSyncData(userId, projectDef, any()) } returns Unit
+		coEvery { projectEntityDatasource.findLastId(owner, projectDef) } returns 5
+		coEvery { projectEntityDatasource.updateSyncData(owner, projectDef, any()) } returns Unit
 
 		coEvery {
-			sceneDraftSynchronizer.saveEntity(userId, projectDef, match { it.id == 6 }, null, true)
+			sceneDraftSynchronizer.saveEntity(owner, projectDef, match { it.id == 6 }, null, true)
 		} returns SResult.success()
 		coEvery {
-			sceneDraftSynchronizer.saveEntity(userId, projectDef, match { it.id == 7 }, null, true)
+			sceneDraftSynchronizer.saveEntity(owner, projectDef, match { it.id == 7 }, null, true)
 		} returns SResult.failure("boom")
-		coEvery { sceneDraftSynchronizer.deleteEntity(userId, projectDef, 6) } returns SResult.success()
+		coEvery { sceneDraftSynchronizer.deleteEntity(owner, projectDef, 6) } returns SResult.success()
 
 		val result = createRepository().createReviewRequest(
 			userId = userId,
@@ -313,7 +315,7 @@ class ReviewRepositoryTest : BaseTest() {
 		)
 
 		assertTrue(isFailure(result))
-		coVerify(exactly = 1) { sceneDraftSynchronizer.deleteEntity(userId, projectDef, 6) }
+		coVerify(exactly = 1) { sceneDraftSynchronizer.deleteEntity(owner, projectDef, 6) }
 		assertFalse(projectSessions.hasActiveSyncSession(syncKey))
 	}
 
@@ -519,17 +521,17 @@ class ReviewRepositoryTest : BaseTest() {
 				last_sync = clock.now(),
 				group_id = null,
 			)
-		coEvery { projectEntityDatasource.getProject(userId, projectId) } returns projectDef
+		coEvery { projectEntityDatasource.getProject(owner, projectId) } returns projectDef
 		coEvery { accountDao.getAccount(userId) } returns mockk {
 			coEvery { cipher_secret } returns cipherSecret
 		}
-		coEvery { projectEntityDatasource.loadProjectSyncData(userId, projectDef) } returns
+		coEvery { projectEntityDatasource.loadProjectSyncData(owner, projectDef) } returns
 			ProjectSyncData(lastId = 6, deletedIds = emptySet())
-		coEvery { projectEntityDatasource.findLastId(userId, projectDef) } returns 6
-		coEvery { projectEntityDatasource.updateSyncData(userId, projectDef, any()) } returns Unit
+		coEvery { projectEntityDatasource.findLastId(owner, projectDef) } returns 6
+		coEvery { projectEntityDatasource.updateSyncData(owner, projectDef, any()) } returns Unit
 		coEvery {
 			projectEntityDatasource.loadEntity(
-				userId, projectDef, 1,
+				owner, projectDef, 1,
 				ApiProjectEntity.Type.SCENE,
 				ApiProjectEntity.SceneEntity.serializer(),
 			)
@@ -548,14 +550,14 @@ class ReviewRepositoryTest : BaseTest() {
 
 		val savedDraft = slot<ApiProjectEntity.SceneDraftEntity>()
 		coEvery {
-			sceneDraftSynchronizer.saveEntity(userId, projectDef, capture(savedDraft), null, true)
+			sceneDraftSynchronizer.saveEntity(owner, projectDef, capture(savedDraft), null, true)
 		} answers {
 			assertTrue(projectSessions.hasActiveSyncSession(syncKey))
 			SResult.success()
 		}
 		val savedScene = slot<ApiProjectEntity.SceneEntity>()
 		coEvery {
-			sceneSynchronizer.saveEntity(userId, projectDef, capture(savedScene), null, true)
+			sceneSynchronizer.saveEntity(owner, projectDef, capture(savedScene), null, true)
 		} returns SResult.success()
 
 		val result = createRepository().commitReview(userId, 42L)
@@ -580,7 +582,7 @@ class ReviewRepositoryTest : BaseTest() {
 			suggestionRow(type = ReviewSuggestionType.DELETE, start = 4, end = 10),
 		)
 		coEvery {
-			sceneDraftSynchronizer.saveEntity(userId, projectDef, any(), null, true)
+			sceneDraftSynchronizer.saveEntity(owner, projectDef, any(), null, true)
 		} returns SResult.success()
 
 		val result = createRepository().commitReview(userId, 42L)

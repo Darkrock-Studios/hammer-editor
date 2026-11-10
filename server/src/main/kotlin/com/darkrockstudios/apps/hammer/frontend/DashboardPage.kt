@@ -7,19 +7,28 @@ import com.darkrockstudios.apps.hammer.account.BioService
 import com.darkrockstudios.apps.hammer.account.PenNameUseCase
 import com.darkrockstudios.apps.hammer.account.ReleasePenNameUseCase
 import com.darkrockstudios.apps.hammer.account.PenNameUseCase.PenNameResult
+import com.darkrockstudios.apps.hammer.account.isActive
+import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.frontend.data.UserSession
 import com.darkrockstudios.apps.hammer.frontend.utils.ProjectName
 import com.darkrockstudios.apps.hammer.frontend.utils.Toast
 import com.darkrockstudios.apps.hammer.frontend.utils.authenticatedOnly
 import com.darkrockstudios.apps.hammer.frontend.utils.formatSyncDate
+import com.darkrockstudios.apps.hammer.frontend.utils.getLocale
+import com.darkrockstudios.apps.hammer.frontend.utils.localizedMsg
 import com.darkrockstudios.apps.hammer.frontend.utils.msg
 import com.darkrockstudios.apps.hammer.frontend.utils.renderTemplate
 import com.darkrockstudios.apps.hammer.frontend.utils.requireUser
 import com.darkrockstudios.apps.hammer.frontend.utils.respondHtmlWithToast
+import com.darkrockstudios.apps.hammer.frontend.utils.respondInlineError
 import com.darkrockstudios.apps.hammer.frontend.utils.respondTemplateWithToast
 import com.darkrockstudios.apps.hammer.frontend.utils.respondToast
+import com.darkrockstudios.apps.hammer.project.ProjectAccessResolver
+import com.darkrockstudios.apps.hammer.project.ProjectMemberRepository
+import com.darkrockstudios.apps.hammer.project.ReceivedInvite
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.utilities.MarkdownRenderer
+import com.darkrockstudios.apps.hammer.utilities.ServerResult
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
 import io.ktor.htmx.HxResponseHeaders
 import io.ktor.http.ContentType
@@ -50,8 +59,20 @@ fun Route.dashboardPage(
 	bioService: BioService,
 	accountDeletionUseCase: AccountDeletionUseCase,
 	serverConfig: ServerConfig,
-	markdownRenderer: MarkdownRenderer
+	markdownRenderer: MarkdownRenderer,
+	projectMemberRepository: ProjectMemberRepository,
+	projectAccessResolver: ProjectAccessResolver,
+	whiteListRepository: WhiteListRepository,
 ) {
+	/** An inactive owner's membership grants nothing, so their invites are not offered. */
+	suspend fun visibleInvites(userId: Long): List<ReceivedInvite> {
+		val invites = projectMemberRepository.receivedInvites(userId)
+		val activeOwners = invites.map { it.ownerId }.distinct()
+			.filter { accountsRepository.getAccountOrNull(it)?.isActive(whiteListRepository) == true }
+			.toSet()
+		return invites.filter { it.ownerId in activeOwners }
+	}
+
 	authenticatedOnly {
 		route("/dashboard") {
 			get {
@@ -59,6 +80,9 @@ fun Route.dashboardPage(
 				val account = accountsRepository.getAccount(session.userId)
 				val projectsModel = getProjectsModel(call, projectsRepository, session.userId)
 				val projects = projectsModel["projects"] ?: error("Projects model not found")
+				val hasPenName = !account.pen_name.isNullOrBlank()
+				val invitesModel = call.invitesModel(visibleInvites(session.userId), hasPenName)
+				val sharedModel = call.sharedProjectsModel(projectAccessResolver, session.userId)
 
 				val penNameUrl = account.pen_name?.let { ProjectName.penNameForUrl(it) }
 
@@ -83,6 +107,8 @@ fun Route.dashboardPage(
 						"communityMember" to account.community_member,
 					)
 				)
+				model.putAll(invitesModel)
+				model.putAll(sharedModel)
 
 				call.respond(MustacheContent("dashboard.mustache", model))
 			}
@@ -91,6 +117,88 @@ fun Route.dashboardPage(
 				val session = call.sessions.requireUser()
 				val model = getProjectsModel(call, projectsRepository, session.userId)
 				call.respond(MustacheContent("partials/projects.mustache", model))
+			}
+
+			hx.post("/invites/{inviteId}/accept") {
+				val session = call.sessions.requireUser()
+				val inviteId = call.parameters["inviteId"]?.toLongOrNull()
+				val invites = visibleInvites(session.userId)
+				val invite = invites.find { it.id == inviteId }
+				if (invite == null) {
+					respondTemplateWithToast(
+						templatePath = INVITES_FRAGMENT,
+						model = call.withDefaults(call.invitesModel(invites, hasPenName(accountsRepository, session.userId))),
+						message = call.msg("dashboard_invite_gone"),
+						toast = Toast.Error,
+						status = HttpStatusCode.NotFound,
+					)
+					return@post
+				}
+
+				// Accepting needs a pen name, so an account without one sets it here first.
+				val setPenName = !hasPenName(accountsRepository, session.userId)
+				if (setPenName) {
+					val penName = call.receiveParameters()["penName"]?.trim().orEmpty()
+					val result = if (penName.isEmpty()) {
+						PenNameResult.TOO_SHORT
+					} else {
+						penNameUseCase.setPenName(session.userId, penName)
+					}
+					if (result != PenNameResult.VALID) {
+						val model = call.invitesModel(
+							invites,
+							hasPenName = false,
+							errorInviteId = invite.id,
+							error = penNameResultToMessage(call, result),
+							penNameDraft = penName,
+						)
+						respondInlineError(renderTemplate(INVITES_FRAGMENT, call.withDefaults(model)))
+						return@post
+					}
+				}
+
+				val accepted = projectMemberRepository.acceptInvite(session.userId, invite.id)
+				// A new pen name shows across the page (account section, bio, community), so reload it.
+				if (setPenName) {
+					call.response.header(HxResponseHeaders.Refresh, "true")
+					call.respond(HttpStatusCode.NoContent)
+					return@post
+				}
+				if (accepted !is ServerResult.Success) {
+					respondTemplateWithToast(
+						templatePath = INVITES_FRAGMENT,
+						model = call.withDefaults(
+							call.invitesModel(visibleInvites(session.userId), hasPenName(accountsRepository, session.userId))
+						),
+						message = call.msg("dashboard_invite_gone"),
+						toast = Toast.Error,
+						status = HttpStatusCode.NotFound,
+					)
+					return@post
+				}
+
+				val model = call.withDefaults(call.invitesModel(visibleInvites(session.userId), hasPenName = true))
+				model.putAll(call.sharedProjectsModel(projectAccessResolver, session.userId))
+				model["sharedProjectsOob"] = true
+				respondHtmlWithToast(
+					content = renderTemplate(INVITES_FRAGMENT, model) + renderTemplate(SHARED_PROJECTS_FRAGMENT, model),
+					message = call.msg("dashboard_invite_accepted", invite.projectName),
+				)
+			}
+
+			hx.post("/invites/{inviteId}/decline") {
+				val session = call.sessions.requireUser()
+				call.parameters["inviteId"]?.toLongOrNull()?.let {
+					projectMemberRepository.declineInvite(session.userId, it)
+				}
+				respondTemplateWithToast(
+					templatePath = INVITES_FRAGMENT,
+					model = call.withDefaults(
+						call.invitesModel(visibleInvites(session.userId), hasPenName(accountsRepository, session.userId))
+					),
+					message = call.msg("dashboard_invite_declined"),
+					toast = Toast.Info,
+				)
 			}
 
 			hx.post("/penname") {
@@ -422,6 +530,69 @@ private suspend fun getProjectsModel(
 	model["projects"] = projectsModel
 
 	return model
+}
+
+private const val INVITES_FRAGMENT = "partials/coauthor-invites.mustache"
+private const val SHARED_PROJECTS_FRAGMENT = "partials/shared-projects.mustache"
+
+private suspend fun hasPenName(accountsRepository: AccountsRepository, userId: Long): Boolean =
+	!accountsRepository.getAccount(userId).pen_name.isNullOrBlank()
+
+/** [error] shows under the invite [errorInviteId], whose pen name field keeps [penNameDraft]. */
+private suspend fun ApplicationCall.invitesModel(
+	invites: List<ReceivedInvite>,
+	hasPenName: Boolean,
+	errorInviteId: Long? = null,
+	error: String? = null,
+	penNameDraft: String = "",
+): Map<String, Any> {
+	val locale = getLocale()
+	return mapOf(
+		"hasInvites" to invites.isNotEmpty(),
+		"hasPenName" to hasPenName,
+		"invites" to invites.map { invite ->
+			val isErrored = invite.id == errorInviteId
+			buildMap {
+				put("id", invite.id)
+				put("projectName", invite.projectName)
+				put(
+					"ownerLine",
+					localizedMsg(
+						locale,
+						"dashboard_invite_from",
+						invite.ownerName ?: localizedMsg(locale, "dashboard_shared_by_unknown"),
+					),
+				)
+				put("penNameDraft", if (isErrored) penNameDraft else "")
+				put("hasError", isErrored && error != null)
+				put("error", if (isErrored) error.orEmpty() else "")
+			}
+		},
+	)
+}
+
+/** Projects the account co-authors, most recently synced first. */
+private suspend fun ApplicationCall.sharedProjectsModel(
+	projectAccessResolver: ProjectAccessResolver,
+	userId: Long,
+): Map<String, Any> {
+	val locale = getLocale()
+	val shared = projectAccessResolver.memberProjects(userId).sortedByDescending { it.lastSync }
+	return mapOf(
+		"hasSharedProjects" to shared.isNotEmpty(),
+		"sharedProjects" to shared.map {
+			mapOf(
+				"name" to it.projectDef.name,
+				"nameForUrl" to ProjectName.projectSegment(it.projectDef.name, it.projectDef.uuid.id),
+				"sharedBy" to localizedMsg(
+					locale,
+					"dashboard_shared_by",
+					it.ownerName ?: localizedMsg(locale, "dashboard_shared_by_unknown"),
+				),
+				"lastSync" to formatSyncDate(it.lastSync),
+			)
+		},
+	)
 }
 
 private suspend fun penNameResultToMessage(call: ApplicationCall, result: PenNameResult): String {

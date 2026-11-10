@@ -5,6 +5,7 @@ import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ApiSceneType
 import com.darkrockstudios.apps.hammer.base.http.EntityHash
 import com.darkrockstudios.apps.hammer.project.EntityDefinition
+import com.darkrockstudios.apps.hammer.project.OwnerId
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.project.ProjectEntityDatasource
 import com.darkrockstudios.apps.hammer.utilities.FakeTouchableFileSystem
@@ -38,6 +39,7 @@ class StoryRendererServiceTest {
 	private val cacheDir = "/cache/story-html".toPath()
 
 	private val userId = 1L
+	private val owner = OwnerId.unchecked(userId)
 	private val projectId = ProjectId("test-project-uuid")
 	private val projectDef = ProjectDefinition(name = "Test Story", uuid = projectId)
 
@@ -64,7 +66,7 @@ class StoryRendererServiceTest {
 			)
 		)
 
-		val result = service.renderStoryAsHtmlPaginated(userId, projectId)
+		val result = service.renderStoryAsHtmlPaginated(owner, projectId)
 
 		assertIs<StoryResult.Success<PaginatedStoryExportResult>>(result)
 		val html = result.value.pageHtml
@@ -82,7 +84,7 @@ class StoryRendererServiceTest {
 			)
 		)
 
-		val result = service.renderStoryAsHtmlPaginated(userId, projectId)
+		val result = service.renderStoryAsHtmlPaginated(owner, projectId)
 
 		assertIs<StoryResult.Success<PaginatedStoryExportResult>>(result)
 		assertTrue(result.value.pageHtml.contains("<h2>Prologue</h2>"), result.value.pageHtml)
@@ -101,18 +103,18 @@ class StoryRendererServiceTest {
 		)
 		stubSceneHashes(EntityHash(1, "hash-one"), EntityHash(2, "hash-two"))
 
-		val full = service.prepareExport(userId, projectId)!!
-		val filtered = service.prepareExport(userId, projectId, setOf(1))!!
+		val full = service.prepareExport(owner, projectId)!!
+		val filtered = service.prepareExport(owner, projectId, setOf(1))!!
 
 		assertNotEquals(full.version, filtered.version)
 
 		// An edit to an unselected scene must not invalidate the filtered share.
 		stubSceneHashes(EntityHash(1, "hash-one"), EntityHash(2, "hash-two-changed"))
-		assertEquals(filtered.version, service.prepareExport(userId, projectId, setOf(1))!!.version)
+		assertEquals(filtered.version, service.prepareExport(owner, projectId, setOf(1))!!.version)
 
 		// An edit to a selected scene must.
 		stubSceneHashes(EntityHash(1, "hash-one-changed"), EntityHash(2, "hash-two-changed"))
-		assertNotEquals(filtered.version, service.prepareExport(userId, projectId, setOf(1))!!.version)
+		assertNotEquals(filtered.version, service.prepareExport(owner, projectId, setOf(1))!!.version)
 	}
 
 	@Test
@@ -125,8 +127,8 @@ class StoryRendererServiceTest {
 		)
 		stubSceneHashes(EntityHash(1, "hash-one"), EntityHash(2, "hash-two"))
 
-		val shareOne = service.prepareExport(userId, projectId, setOf(1))!!
-		val shareTwo = service.prepareExport(userId, projectId, setOf(2))!!
+		val shareOne = service.prepareExport(owner, projectId, setOf(1))!!
+		val shareTwo = service.prepareExport(owner, projectId, setOf(2))!!
 
 		assertNotEquals(shareOne.version, shareTwo.version)
 	}
@@ -136,7 +138,7 @@ class StoryRendererServiceTest {
 		setupMocksForScenes(listOf(createScene(1, "First", "Content 1", 0)))
 		stubSceneHashes(EntityHash(1, "hash-one"))
 
-		assertNull(service.prepareExport(userId, projectId, setOf(99)))
+		assertNull(service.prepareExport(owner, projectId, setOf(99)))
 	}
 
 	@Test
@@ -149,7 +151,7 @@ class StoryRendererServiceTest {
 			)
 		)
 
-		val prepared = service.prepareExport(userId, projectId, setOf(1, 3))!!
+		val prepared = service.prepareExport(owner, projectId, setOf(1, 3))!!
 		val result = service.renderStoryAsHtmlPaginated(prepared)
 
 		assertIs<StoryResult.Success<PaginatedStoryExportResult>>(result)
@@ -171,7 +173,7 @@ class StoryRendererServiceTest {
 		)
 
 		// Scene 3 was selected when the share was created but no longer exists.
-		val prepared = service.prepareExport(userId, projectId, setOf(1, 3))!!
+		val prepared = service.prepareExport(owner, projectId, setOf(1, 3))!!
 		val result = service.renderStoryAsHtmlPaginated(prepared)
 
 		assertIs<StoryResult.Success<PaginatedStoryExportResult>>(result)
@@ -189,7 +191,7 @@ class StoryRendererServiceTest {
 			)
 		)
 
-		val prepared = service.prepareExport(userId, projectId)!!
+		val prepared = service.prepareExport(owner, projectId)!!
 		val result = service.renderStoryAsHtmlPaginated(prepared)
 
 		assertIs<StoryResult.Success<PaginatedStoryExportResult>>(result)
@@ -221,7 +223,7 @@ class StoryRendererServiceTest {
 	fun `paginated - scenes render in tree order, not entity id order`() = runTest {
 		setupMocksForScenes(interleavedChapters())
 
-		val result = service.renderStoryAsHtmlPaginated(userId, projectId)
+		val result = service.renderStoryAsHtmlPaginated(owner, projectId)
 
 		assertIs<StoryResult.Success<PaginatedStoryExportResult>>(result)
 		assertRendersInOrder(result.value.pageHtml, "Prologue francais", "Chapitre un", "English prologue")
@@ -231,7 +233,7 @@ class StoryRendererServiceTest {
 	fun `filtered - selected scenes render in tree order, not entity id order`() = runTest {
 		setupMocksForScenes(interleavedChapters())
 
-		val prepared = service.prepareExport(userId, projectId, setOf(2, 4, 5))!!
+		val prepared = service.prepareExport(owner, projectId, setOf(2, 4, 5))!!
 		val result = service.renderStoryAsHtmlPaginated(prepared)
 
 		assertIs<StoryResult.Success<PaginatedStoryExportResult>>(result)
@@ -242,7 +244,7 @@ class StoryRendererServiceTest {
 	fun `filtered - a subset spanning two chapters keeps tree order`() = runTest {
 		setupMocksForScenes(interleavedChapters())
 
-		val prepared = service.prepareExport(userId, projectId, setOf(4, 5))!!
+		val prepared = service.prepareExport(owner, projectId, setOf(4, 5))!!
 		val result = service.renderStoryAsHtmlPaginated(prepared)
 
 		assertIs<StoryResult.Success<PaginatedStoryExportResult>>(result)
@@ -256,7 +258,7 @@ class StoryRendererServiceTest {
 
 		// Three scenes of 2, 2, and 2 words: one per page, in tree order.
 		val pages = (1..3).map { page ->
-			val result = service.renderStoryAsHtmlPaginated(userId, projectId, page = page, wordsPerPage = 2)
+			val result = service.renderStoryAsHtmlPaginated(owner, projectId, page = page, wordsPerPage = 2)
 			assertIs<StoryResult.Success<PaginatedStoryExportResult>>(result)
 			result.value
 		}
@@ -278,7 +280,7 @@ class StoryRendererServiceTest {
 			)
 		)
 
-		val result = service.renderStoryAsHtmlPaginated(userId, projectId)
+		val result = service.renderStoryAsHtmlPaginated(owner, projectId)
 
 		assertIs<StoryResult.Success<PaginatedStoryExportResult>>(result)
 		assertTrue(result.value.pageHtml.contains("Attached content"))
@@ -297,11 +299,11 @@ class StoryRendererServiceTest {
 	@Test
 	fun `filtered - reordering the chapters around a share changes its version`() = runTest {
 		setupMocksForScenes(twoChapters(listOf(0, 1)))
-		val before = service.prepareExport(userId, projectId, setOf(2, 4))!!
+		val before = service.prepareExport(owner, projectId, setOf(2, 4))!!
 
 		// Neither selected scene is touched; only the groups that place them swap.
 		setupMocksForScenes(twoChapters(listOf(1, 0)))
-		val after = service.prepareExport(userId, projectId, setOf(2, 4))!!
+		val after = service.prepareExport(owner, projectId, setOf(2, 4))!!
 
 		assertNotEquals(
 			before.version,
@@ -314,7 +316,7 @@ class StoryRendererServiceTest {
 	fun `filtered - reordering the chapters around a share changes the rendered order`() = runTest {
 		setupMocksForScenes(twoChapters(listOf(1, 0)))
 
-		val prepared = service.prepareExport(userId, projectId, setOf(2, 4))!!
+		val prepared = service.prepareExport(owner, projectId, setOf(2, 4))!!
 		val result = service.renderStoryAsHtmlPaginated(prepared)
 
 		assertIs<StoryResult.Success<PaginatedStoryExportResult>>(result)
@@ -331,7 +333,7 @@ class StoryRendererServiceTest {
 			)
 		)
 
-		val prepared = service.prepareExport(userId, projectId, setOf(2))!!
+		val prepared = service.prepareExport(owner, projectId, setOf(2))!!
 		val result = service.renderStoryAsHtmlPaginated(prepared)
 
 		assertIs<StoryResult.Success<PaginatedStoryExportResult>>(result)
@@ -339,7 +341,7 @@ class StoryRendererServiceTest {
 		// Unshared prose is never decrypted, not merely dropped after the fact.
 		coVerify(exactly = 0) {
 			datasource.loadEntity(
-				userId,
+				owner,
 				projectDef,
 				3,
 				ApiProjectEntity.Type.SCENE,
@@ -359,7 +361,7 @@ class StoryRendererServiceTest {
 		// A scene the share doesn't show fails to decrypt; it cannot affect this render's output.
 		coEvery {
 			datasource.loadEntity(
-				userId,
+				owner,
 				projectDef,
 				2,
 				ApiProjectEntity.Type.SCENE,
@@ -367,7 +369,7 @@ class StoryRendererServiceTest {
 			)
 		} returns SResult.failure("boom")
 
-		val prepared = cachingService.prepareExport(userId, projectId, setOf(1))!!
+		val prepared = cachingService.prepareExport(owner, projectId, setOf(1))!!
 		val result = cachingService.renderStoryAsHtmlPaginated(prepared, cacheable = true)
 
 		assertIs<StoryResult.Success<PaginatedStoryExportResult>>(result)
@@ -385,7 +387,7 @@ class StoryRendererServiceTest {
 		)
 		setupMocksForScenes(listOf(scene))
 
-		val paginated = service.renderStoryAsHtmlPaginated(userId, projectId)
+		val paginated = service.renderStoryAsHtmlPaginated(owner, projectId)
 
 		assertIs<StoryResult.Success<PaginatedStoryExportResult>>(paginated)
 		assertTrue(paginated.value.pageHtml.contains("""<img src="hammer://image/7" alt="Map" />"""), paginated.value.pageHtml)
@@ -406,7 +408,7 @@ class StoryRendererServiceTest {
 			)
 		)
 
-		val result = service.storyOverview(userId, projectId)
+		val result = service.storyOverview(owner, projectId)
 
 		assertIs<StoryResult.Success<StoryOverview>>(result)
 		val overview = result.value
@@ -432,7 +434,7 @@ class StoryRendererServiceTest {
 			)
 		)
 
-		val result = service.renderChapter(userId, projectId, chapterNumber = 1)
+		val result = service.renderChapter(owner, projectId, chapterNumber = 1)
 
 		assertIs<StoryResult.Success<ChapterRender>>(result)
 		assertEquals(listOf(4, 2), result.value.scenes.map { it.id })
@@ -449,7 +451,7 @@ class StoryRendererServiceTest {
 			)
 		)
 
-		val result = service.renderChapter(userId, projectId, chapterNumber = 2)
+		val result = service.renderChapter(owner, projectId, chapterNumber = 2)
 
 		assertIs<StoryResult.Success<ChapterRender>>(result)
 		assertEquals("Two", result.value.chapter?.title)
@@ -463,7 +465,7 @@ class StoryRendererServiceTest {
 	fun `chapters - scene html leaves the scene name to the page`() = runTest {
 		setupMocksForScenes(listOf(createScene(id = 1, name = "The Name", content = "Prose only.", order = 0)))
 
-		val result = service.renderChapter(userId, projectId, chapterNumber = 1)
+		val result = service.renderChapter(owner, projectId, chapterNumber = 1)
 
 		assertIs<StoryResult.Success<ChapterRender>>(result)
 		val html = result.value.scenes.single().html
@@ -480,8 +482,8 @@ class StoryRendererServiceTest {
 			)
 		)
 
-		val high = service.renderChapter(userId, projectId, chapterNumber = 99)
-		val low = service.renderChapter(userId, projectId, chapterNumber = 0)
+		val high = service.renderChapter(owner, projectId, chapterNumber = 99)
+		val low = service.renderChapter(owner, projectId, chapterNumber = 0)
 
 		assertIs<StoryResult.Success<ChapterRender>>(high)
 		assertIs<StoryResult.Success<ChapterRender>>(low)
@@ -498,7 +500,7 @@ class StoryRendererServiceTest {
 			)
 		)
 
-		val result = service.renderChapter(userId, projectId, chapterNumber = 1)
+		val result = service.renderChapter(owner, projectId, chapterNumber = 1)
 
 		assertIs<StoryResult.Success<ChapterRender>>(result)
 		assertEquals(StoryChapter(1, "Empty Part", sceneCount = 0), result.value.chapter)
@@ -516,7 +518,7 @@ class StoryRendererServiceTest {
 			)
 		)
 
-		val result = service.renderChapter(userId, projectId, chapterNumber = 1)
+		val result = service.renderChapter(owner, projectId, chapterNumber = 1)
 
 		assertIs<StoryResult.Success<ChapterRender>>(result)
 		assertEquals(listOf("Drafted", "Not yet"), result.value.scenes.map { it.name })
@@ -534,7 +536,7 @@ class StoryRendererServiceTest {
 			)
 		)
 
-		val result = service.renderChapter(userId, projectId, chapterNumber = 2)
+		val result = service.renderChapter(owner, projectId, chapterNumber = 2)
 
 		assertIs<StoryResult.Success<ChapterRender>>(result)
 		assertEquals(listOf("Part", "Lost Scene"), result.value.chapters.map { it.title })
@@ -553,7 +555,7 @@ class StoryRendererServiceTest {
 			)
 		)
 
-		val result = service.storyOverview(userId, projectId)
+		val result = service.storyOverview(owner, projectId)
 
 		assertIs<StoryResult.Success<StoryOverview>>(result)
 		// The cycle's outermost group on the scene's path becomes its chapter.
@@ -574,7 +576,7 @@ class StoryRendererServiceTest {
 			)
 		)
 
-		val result = service.renderChapter(userId, projectId, chapterNumber = 2)
+		val result = service.renderChapter(owner, projectId, chapterNumber = 2)
 
 		assertIs<StoryResult.Success<ChapterRender>>(result)
 		assertEquals(listOf("Part", "Adrift"), result.value.chapters.map { it.title })
@@ -585,10 +587,10 @@ class StoryRendererServiceTest {
 	fun `chapters - a scene that fails to load marks the overview incomplete`() = runTest {
 		setupMocksForScenes(listOf(createScene(id = 1, name = "Loaded", content = "words", order = 0)))
 		// A second scene is listed but its entity cannot be read.
-		coEvery { datasource.getEntityDefsByType(userId, projectDef, ApiProjectEntity.Type.SCENE) } returns
+		coEvery { datasource.getEntityDefsByType(owner, projectDef, ApiProjectEntity.Type.SCENE) } returns
 			listOf(EntityDefinition(1, ApiProjectEntity.Type.SCENE), EntityDefinition(2, ApiProjectEntity.Type.SCENE))
 
-		val result = service.storyOverview(userId, projectId)
+		val result = service.storyOverview(owner, projectId)
 
 		assertIs<StoryResult.Success<StoryOverview>>(result)
 		assertFalse(result.value.complete)
@@ -599,7 +601,7 @@ class StoryRendererServiceTest {
 	fun `chapters - an empty story reads in zero minutes`() = runTest {
 		setupMocksForScenes(listOf(createScene(id = 1, name = "Blank", content = "", order = 0)))
 
-		val result = service.storyOverview(userId, projectId)
+		val result = service.storyOverview(owner, projectId)
 
 		assertIs<StoryResult.Success<StoryOverview>>(result)
 		assertTrue(result.value.complete)
@@ -608,10 +610,10 @@ class StoryRendererServiceTest {
 
 	@Test
 	fun `chapters - a story with no scenes has no chapter`() = runTest {
-		coEvery { datasource.getProject(userId, projectId) } returns projectDef
-		coEvery { datasource.getEntityDefsByType(userId, projectDef, ApiProjectEntity.Type.SCENE) } returns emptyList()
+		coEvery { datasource.getProject(owner, projectId) } returns projectDef
+		coEvery { datasource.getEntityDefsByType(owner, projectDef, ApiProjectEntity.Type.SCENE) } returns emptyList()
 
-		val result = service.renderChapter(userId, projectId, chapterNumber = 1)
+		val result = service.renderChapter(owner, projectId, chapterNumber = 1)
 
 		assertIs<StoryResult.Success<ChapterRender>>(result)
 		assertNull(result.value.chapter)
@@ -621,10 +623,10 @@ class StoryRendererServiceTest {
 
 	@Test
 	fun `chapters - returns ProjectNotFound when project does not exist`() = runTest {
-		coEvery { datasource.getProject(userId, projectId) } returns null
+		coEvery { datasource.getProject(owner, projectId) } returns null
 
-		assertIs<StoryResult.ProjectNotFound>(service.renderChapter(userId, projectId, 1))
-		assertIs<StoryResult.ProjectNotFound>(service.storyOverview(userId, projectId))
+		assertIs<StoryResult.ProjectNotFound>(service.renderChapter(owner, projectId, 1))
+		assertIs<StoryResult.ProjectNotFound>(service.storyOverview(owner, projectId))
 	}
 
 	@Test
@@ -632,7 +634,7 @@ class StoryRendererServiceTest {
 		val content = "A list follows:\n\n- one\n- two\n\nAnd **bold** prose after it."
 		setupMocksForScenes(listOf(createScene(id = 1, name = "Chapter One", content = content, order = 0)))
 
-		val result = service.renderChapter(userId, projectId, chapterNumber = 1)
+		val result = service.renderChapter(owner, projectId, chapterNumber = 1)
 
 		assertIs<StoryResult.Success<ChapterRender>>(result)
 		val html = result.value.scenes.single().html
@@ -651,7 +653,7 @@ class StoryRendererServiceTest {
 		)
 		setupMocksForScenes(listOf(scene))
 
-		val result = service.renderChapter(userId, projectId, chapterNumber = 1)
+		val result = service.renderChapter(owner, projectId, chapterNumber = 1)
 
 		assertIs<StoryResult.Success<ChapterRender>>(result)
 		val html = result.value.scenes.single().html
@@ -660,14 +662,14 @@ class StoryRendererServiceTest {
 
 	@Test
 	fun `a cancelled read propagates instead of becoming an error`() = runTest {
-		coEvery { datasource.getProject(userId, projectId) } returns projectDef
+		coEvery { datasource.getProject(owner, projectId) } returns projectDef
 		coEvery {
-			datasource.getEntityDefsByType(userId, projectDef, ApiProjectEntity.Type.SCENE)
+			datasource.getEntityDefsByType(owner, projectDef, ApiProjectEntity.Type.SCENE)
 		} throws CancellationException("request gone")
 
-		assertFailsWith<CancellationException> { service.getSceneHierarchy(userId, projectId) }
-		assertFailsWith<CancellationException> { service.renderStoryAsHtmlPaginated(userId, projectId) }
-		assertFailsWith<CancellationException> { service.storyOverview(userId, projectId) }
+		assertFailsWith<CancellationException> { service.getSceneHierarchy(owner, projectId) }
+		assertFailsWith<CancellationException> { service.renderStoryAsHtmlPaginated(owner, projectId) }
+		assertFailsWith<CancellationException> { service.storyOverview(owner, projectId) }
 	}
 
 	private fun createScene(
@@ -689,10 +691,10 @@ class StoryRendererServiceTest {
 	)
 
 	private fun setupMocksForScenes(scenes: List<ApiProjectEntity.SceneEntity>) {
-		coEvery { datasource.getProject(userId, projectId) } returns projectDef
+		coEvery { datasource.getProject(owner, projectId) } returns projectDef
 
 		val entityDefs = scenes.map { EntityDefinition(it.id, ApiProjectEntity.Type.SCENE) }
-		coEvery { datasource.getEntityDefsByType(userId, projectDef, ApiProjectEntity.Type.SCENE) } returns entityDefs
+		coEvery { datasource.getEntityDefsByType(owner, projectDef, ApiProjectEntity.Type.SCENE) } returns entityDefs
 
 		// Mirrors the real column: the stored hash covers the whole serialized entity, so editing a
 		// scene or moving it changes its hash the way a sync would.
@@ -704,7 +706,7 @@ class StoryRendererServiceTest {
 		val entityIdSlot = slot<Int>()
 		coEvery {
 			datasource.loadEntity(
-				userId,
+				owner,
 				projectDef,
 				capture(entityIdSlot),
 				ApiProjectEntity.Type.SCENE,
@@ -720,7 +722,7 @@ class StoryRendererServiceTest {
 
 	private fun stubSceneHashes(vararg hashes: EntityHash) {
 		coEvery {
-			datasource.getEntityHashes(userId, projectDef, ApiProjectEntity.Type.SCENE)
+			datasource.getEntityHashes(owner, projectDef, ApiProjectEntity.Type.SCENE)
 		} returns hashes.toList()
 	}
 
@@ -731,15 +733,15 @@ class StoryRendererServiceTest {
 		setupMocksForScenes(listOf(createScene(1, "Chapter One", "Hello world", 0)))
 		stubSceneHashes(EntityHash(1, "hash-one"))
 
-		val first = cachingService.renderStoryAsHtmlPaginated(userId, projectId, cacheable = true)
-		val second = cachingService.renderStoryAsHtmlPaginated(userId, projectId, cacheable = true)
+		val first = cachingService.renderStoryAsHtmlPaginated(owner, projectId, cacheable = true)
+		val second = cachingService.renderStoryAsHtmlPaginated(owner, projectId, cacheable = true)
 
 		assertIs<StoryResult.Success<PaginatedStoryExportResult>>(first)
 		assertIs<StoryResult.Success<PaginatedStoryExportResult>>(second)
 		assertEquals(first.value, second.value)
 		coVerify(exactly = 1) {
 			datasource.loadEntity(
-				userId,
+				owner,
 				projectDef,
 				1,
 				ApiProjectEntity.Type.SCENE,
@@ -752,11 +754,11 @@ class StoryRendererServiceTest {
 	fun `cached - a changed scene hash renders the new content`() = runTest {
 		setupMocksForScenes(listOf(createScene(1, "Chapter One", "Before the edit", 0)))
 		stubSceneHashes(EntityHash(1, "hash-before"))
-		cachingService.renderStoryAsHtmlPaginated(userId, projectId, cacheable = true)
+		cachingService.renderStoryAsHtmlPaginated(owner, projectId, cacheable = true)
 
 		setupMocksForScenes(listOf(createScene(1, "Chapter One", "After the edit", 0)))
 		stubSceneHashes(EntityHash(1, "hash-after"))
-		val result = cachingService.renderStoryAsHtmlPaginated(userId, projectId, cacheable = true)
+		val result = cachingService.renderStoryAsHtmlPaginated(owner, projectId, cacheable = true)
 
 		assertIs<StoryResult.Success<PaginatedStoryExportResult>>(result)
 		assertTrue(result.value.pageHtml.contains("After the edit"))
@@ -766,7 +768,7 @@ class StoryRendererServiceTest {
 	fun `cached - an added scene renders the new content`() = runTest {
 		setupMocksForScenes(listOf(createScene(1, "Chapter One", "First chapter", 0)))
 		stubSceneHashes(EntityHash(1, "hash-one"))
-		cachingService.renderStoryAsHtmlPaginated(userId, projectId, cacheable = true)
+		cachingService.renderStoryAsHtmlPaginated(owner, projectId, cacheable = true)
 
 		setupMocksForScenes(
 			listOf(
@@ -775,7 +777,7 @@ class StoryRendererServiceTest {
 			)
 		)
 		stubSceneHashes(EntityHash(1, "hash-one"), EntityHash(2, "hash-two"))
-		val result = cachingService.renderStoryAsHtmlPaginated(userId, projectId, cacheable = true)
+		val result = cachingService.renderStoryAsHtmlPaginated(owner, projectId, cacheable = true)
 
 		assertIs<StoryResult.Success<PaginatedStoryExportResult>>(result)
 		assertTrue(result.value.pageHtml.contains("Second chapter"))
@@ -786,8 +788,8 @@ class StoryRendererServiceTest {
 		setupMocksForScenes(listOf(createScene(1, "Chapter One", "Hello world", 0)))
 		stubSceneHashes(EntityHash(1, "hash-one"))
 
-		cachingService.renderStoryAsHtmlPaginated(userId, projectId, cacheable = false)
-		cachingService.renderStoryAsHtmlPaginated(userId, projectId, cacheable = false)
+		cachingService.renderStoryAsHtmlPaginated(owner, projectId, cacheable = false)
+		cachingService.renderStoryAsHtmlPaginated(owner, projectId, cacheable = false)
 
 		// The gate that keeps a password-protected story's decrypted prose off disk.
 		assertEquals(
@@ -797,7 +799,7 @@ class StoryRendererServiceTest {
 		)
 		coVerify(exactly = 2) {
 			datasource.loadEntity(
-				userId,
+				owner,
 				projectDef,
 				1,
 				ApiProjectEntity.Type.SCENE,
@@ -817,7 +819,7 @@ class StoryRendererServiceTest {
 		// Scene 2 fails to load, the way a transient decrypt or DB failure would present.
 		coEvery {
 			datasource.loadEntity(
-				userId,
+				owner,
 				projectDef,
 				2,
 				ApiProjectEntity.Type.SCENE,
@@ -825,7 +827,7 @@ class StoryRendererServiceTest {
 			)
 		} returns SResult.failure("boom")
 
-		val result = cachingService.renderStoryAsHtmlPaginated(userId, projectId, cacheable = true)
+		val result = cachingService.renderStoryAsHtmlPaginated(owner, projectId, cacheable = true)
 
 		assertIs<StoryResult.Success<PaginatedStoryExportResult>>(result)
 		assertTrue(result.value.pageHtml.contains("First chapter"), "the readable part is still served")
@@ -840,19 +842,19 @@ class StoryRendererServiceTest {
 
 	@Test
 	fun `paginated - returns ProjectNotFound when project does not exist`() = runTest {
-		coEvery { datasource.getProject(userId, projectId) } returns null
+		coEvery { datasource.getProject(owner, projectId) } returns null
 
-		val result = service.renderStoryAsHtmlPaginated(userId, projectId)
+		val result = service.renderStoryAsHtmlPaginated(owner, projectId)
 
 		assertIs<StoryResult.ProjectNotFound>(result)
 	}
 
 	@Test
 	fun `paginated - returns Success with empty content when project has no scenes`() = runTest {
-		coEvery { datasource.getProject(userId, projectId) } returns projectDef
-		coEvery { datasource.getEntityDefsByType(userId, projectDef, ApiProjectEntity.Type.SCENE) } returns emptyList()
+		coEvery { datasource.getProject(owner, projectId) } returns projectDef
+		coEvery { datasource.getEntityDefsByType(owner, projectDef, ApiProjectEntity.Type.SCENE) } returns emptyList()
 
-		val result = service.renderStoryAsHtmlPaginated(userId, projectId)
+		val result = service.renderStoryAsHtmlPaginated(owner, projectId)
 
 		assertIs<StoryResult.Success<PaginatedStoryExportResult>>(result)
 		val data = result.value
@@ -871,7 +873,7 @@ class StoryRendererServiceTest {
 		val scene = createScene(id = 1, name = "Chapter One", content = "This is the content.", order = 0)
 		setupMocksForScenes(listOf(scene))
 
-		val result = service.renderStoryAsHtmlPaginated(userId, projectId)
+		val result = service.renderStoryAsHtmlPaginated(owner, projectId)
 
 		assertIs<StoryResult.Success<PaginatedStoryExportResult>>(result)
 		val data = result.value
@@ -901,7 +903,7 @@ class StoryRendererServiceTest {
 		// With wordsPerPage=8, Scene 1 (5 words) + Scene 2 (5 words) = 10 words > 8
 		// So page 1 should have Scene 1, page 2 should have Scene 2+3
 		val result =
-			service.renderStoryAsHtmlPaginated(userId, projectId, page = 1, wordsPerPage = 8)
+			service.renderStoryAsHtmlPaginated(owner, projectId, page = 1, wordsPerPage = 8)
 
 		assertIs<StoryResult.Success<PaginatedStoryExportResult>>(result)
 		val data = result.value
@@ -923,7 +925,7 @@ class StoryRendererServiceTest {
 		setupMocksForScenes(scenes)
 
 		val result =
-			service.renderStoryAsHtmlPaginated(userId, projectId, page = 2, wordsPerPage = 5)
+			service.renderStoryAsHtmlPaginated(owner, projectId, page = 2, wordsPerPage = 5)
 
 		assertIs<StoryResult.Success<PaginatedStoryExportResult>>(result)
 		val data = result.value
@@ -942,7 +944,7 @@ class StoryRendererServiceTest {
 
 		// Request page 100 when there's only 1 page
 		val result =
-			service.renderStoryAsHtmlPaginated(userId, projectId, page = 100, wordsPerPage = 1000)
+			service.renderStoryAsHtmlPaginated(owner, projectId, page = 100, wordsPerPage = 1000)
 
 		assertIs<StoryResult.Success<PaginatedStoryExportResult>>(result)
 		val data = result.value
@@ -956,7 +958,7 @@ class StoryRendererServiceTest {
 		setupMocksForScenes(listOf(scene))
 
 		val result =
-			service.renderStoryAsHtmlPaginated(userId, projectId, page = 0, wordsPerPage = 1000)
+			service.renderStoryAsHtmlPaginated(owner, projectId, page = 0, wordsPerPage = 1000)
 
 		assertIs<StoryResult.Success<PaginatedStoryExportResult>>(result)
 		assertEquals(1, result.value.currentPage)
@@ -971,9 +973,9 @@ class StoryRendererServiceTest {
 		setupMocksForScenes(scenes)
 
 		val resultPage1 =
-			service.renderStoryAsHtmlPaginated(userId, projectId, page = 1, wordsPerPage = 5)
+			service.renderStoryAsHtmlPaginated(owner, projectId, page = 1, wordsPerPage = 5)
 		val resultPage2 =
-			service.renderStoryAsHtmlPaginated(userId, projectId, page = 2, wordsPerPage = 5)
+			service.renderStoryAsHtmlPaginated(owner, projectId, page = 2, wordsPerPage = 5)
 
 		assertIs<StoryResult.Success<PaginatedStoryExportResult>>(resultPage1)
 		assertIs<StoryResult.Success<PaginatedStoryExportResult>>(resultPage2)
@@ -993,7 +995,7 @@ class StoryRendererServiceTest {
 		)
 		setupMocksForScenes(scenes)
 
-		val result = service.renderStoryAsHtmlPaginated(userId, projectId)
+		val result = service.renderStoryAsHtmlPaginated(owner, projectId)
 
 		assertIs<StoryResult.Success<PaginatedStoryExportResult>>(result)
 		val data = result.value
@@ -1013,7 +1015,7 @@ class StoryRendererServiceTest {
 
 		// With wordsPerPage=2, each scene should be on its own page
 		val resultPage2 =
-			service.renderStoryAsHtmlPaginated(userId, projectId, page = 2, wordsPerPage = 2)
+			service.renderStoryAsHtmlPaginated(owner, projectId, page = 2, wordsPerPage = 2)
 
 		assertIs<StoryResult.Success<PaginatedStoryExportResult>>(resultPage2)
 		val data = resultPage2.value
@@ -1034,9 +1036,9 @@ class StoryRendererServiceTest {
 		setupMocksForScenes(scenes)
 
 		val resultPage1 =
-			service.renderStoryAsHtmlPaginated(userId, projectId, page = 1, wordsPerPage = 2)
+			service.renderStoryAsHtmlPaginated(owner, projectId, page = 1, wordsPerPage = 2)
 		val resultPage2 =
-			service.renderStoryAsHtmlPaginated(userId, projectId, page = 2, wordsPerPage = 2)
+			service.renderStoryAsHtmlPaginated(owner, projectId, page = 2, wordsPerPage = 2)
 
 		assertIs<StoryResult.Success<PaginatedStoryExportResult>>(resultPage1)
 		assertIs<StoryResult.Success<PaginatedStoryExportResult>>(resultPage2)
@@ -1053,7 +1055,7 @@ class StoryRendererServiceTest {
 		val scene = createScene(id = 1, name = "Long Scene", content = words, order = 0)
 		setupMocksForScenes(listOf(scene))
 
-		val result = service.renderStoryAsHtmlPaginated(userId, projectId)
+		val result = service.renderStoryAsHtmlPaginated(owner, projectId)
 
 		assertIs<StoryResult.Success<PaginatedStoryExportResult>>(result)
 		// 400 words at 225 wpm, rounded up
@@ -1072,7 +1074,7 @@ class StoryRendererServiceTest {
 		setupMocksForScenes(listOf(scene))
 
 		val result =
-			service.renderStoryAsHtmlPaginated(userId, projectId, page = 1, wordsPerPage = 5)
+			service.renderStoryAsHtmlPaginated(owner, projectId, page = 1, wordsPerPage = 5)
 
 		assertIs<StoryResult.Success<PaginatedStoryExportResult>>(result)
 		val data = result.value

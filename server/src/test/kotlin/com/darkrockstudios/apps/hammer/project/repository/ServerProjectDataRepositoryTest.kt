@@ -15,6 +15,7 @@ import com.darkrockstudios.apps.hammer.base.timeline.TimelineMode
 import com.darkrockstudios.apps.hammer.database.ProjectDao
 import com.darkrockstudios.apps.hammer.database.ProjectDataDao
 import com.darkrockstudios.apps.hammer.e2e.util.SharedPostgresTestDatabase
+import com.darkrockstudios.apps.hammer.project.OwnerId
 import com.darkrockstudios.apps.hammer.project.ProjectDataSaveResult
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.project.ProjectNotFound
@@ -45,6 +46,7 @@ class ServerProjectDataRepositoryTest : BaseTest() {
 	private val json = createJsonSerializer()
 
 	private val userId = 1L
+	private val owner = OwnerId.unchecked(userId)
 	private val projectDef = ProjectDefinition("Test Project", ProjectId("11111111-1111-1111-1111-111111111111"))
 	private val unknownProjectDef = ProjectDefinition("Other Project", ProjectId("22222222-2222-2222-2222-222222222222"))
 
@@ -81,7 +83,7 @@ class ServerProjectDataRepositoryTest : BaseTest() {
 
 	@Test
 	fun `load returns null when no row exists`() = runTest {
-		val result = repository.load(userId, projectDef)
+		val result = repository.load(owner, projectDef)
 		assertTrue(isSuccess(result))
 		assertNull(result.data)
 	}
@@ -89,7 +91,7 @@ class ServerProjectDataRepositoryTest : BaseTest() {
 	@Test
 	fun `save with null originalHash succeeds when no existing row`() = runTest {
 		val result = repository.save(
-			userId,
+			owner,
 			projectDef,
 			sampleJson,
 			originalHash = null,
@@ -104,14 +106,14 @@ class ServerProjectDataRepositoryTest : BaseTest() {
 	@Test
 	fun `save then load roundtrips`() = runTest {
 		repository.save(
-			userId,
+			owner,
 			projectDef,
 			sampleJson,
 			originalHash = null,
 			clientHash = sampleHash
 		)
 
-		val loaded = repository.load(userId, projectDef)
+		val loaded = repository.load(owner, projectDef)
 		assertTrue(isSuccess(loaded))
 		val dto = loaded.data!!
 		assertEquals(sampleJson, dto.data)
@@ -126,7 +128,7 @@ class ServerProjectDataRepositoryTest : BaseTest() {
 		val futureHash = "future-client-hash"
 
 		val saved = repository.save(
-			userId,
+			owner,
 			projectDef,
 			futuristic,
 			originalHash = null,
@@ -135,7 +137,7 @@ class ServerProjectDataRepositoryTest : BaseTest() {
 		assertTrue(isSuccess(saved))
 		assertEquals(futuristic, (saved.data as ProjectDataSaveResult.Saved).dto.data)
 
-		val loaded = repository.load(userId, projectDef)
+		val loaded = repository.load(owner, projectDef)
 		assertTrue(isSuccess(loaded))
 		assertEquals(
 			futuristic,
@@ -164,11 +166,11 @@ class ServerProjectDataRepositoryTest : BaseTest() {
 		val dataJson = json.encodeToJsonElement(ProjectData.serializer(), data)
 		val hash = ProjectDataHasher.hash(data)
 
-		val saved = repository.save(userId, projectDef, dataJson, originalHash = null, clientHash = hash)
+		val saved = repository.save(owner, projectDef, dataJson, originalHash = null, clientHash = hash)
 		assertTrue(isSuccess(saved))
 		assertIs<ProjectDataSaveResult.Saved>(saved.data)
 
-		val loaded = repository.load(userId, projectDef)
+		val loaded = repository.load(owner, projectDef)
 		assertTrue(isSuccess(loaded))
 		assertEquals(dataJson, loaded.data!!.data)
 		assertEquals(hash, loaded.data!!.hash)
@@ -184,11 +186,11 @@ class ServerProjectDataRepositoryTest : BaseTest() {
 		val dataJson = json.encodeToJsonElement(ProjectData.serializer(), data)
 		val hash = ProjectDataHasher.hash(data)
 
-		val saved = repository.save(userId, projectDef, dataJson, originalHash = null, clientHash = hash)
+		val saved = repository.save(owner, projectDef, dataJson, originalHash = null, clientHash = hash)
 		assertTrue(isSuccess(saved))
 		assertIs<ProjectDataSaveResult.Saved>(saved.data)
 
-		val loaded = repository.load(userId, projectDef)
+		val loaded = repository.load(owner, projectDef)
 		assertTrue(isSuccess(loaded))
 		assertEquals(hash, loaded.data!!.hash)
 		assertEquals(data, json.decodeFromJsonElement(ProjectData.serializer(), loaded.data!!.data))
@@ -200,7 +202,7 @@ class ServerProjectDataRepositoryTest : BaseTest() {
 		val wrongShape = JsonObject(mapOf("tags" to JsonPrimitive(5)))
 
 		val result = repository.save(
-			userId,
+			owner,
 			projectDef,
 			wrongShape,
 			originalHash = null,
@@ -211,7 +213,7 @@ class ServerProjectDataRepositoryTest : BaseTest() {
 			!isSuccess(result),
 			"structurally invalid project data must be rejected, not stored"
 		)
-		val loaded = repository.load(userId, projectDef)
+		val loaded = repository.load(owner, projectDef)
 		assertTrue(isSuccess(loaded))
 		assertNull(loaded.data, "the rejected payload must not have been persisted")
 	}
@@ -229,7 +231,7 @@ class ServerProjectDataRepositoryTest : BaseTest() {
 			updatedAt = Instant.parse("2026-04-28T09:00:00Z"),
 		)
 
-		val loaded = repository.load(userId, projectDef)
+		val loaded = repository.load(owner, projectDef)
 
 		assertTrue(isSuccess(loaded))
 		assertNull(
@@ -241,7 +243,7 @@ class ServerProjectDataRepositoryTest : BaseTest() {
 	@Test
 	fun `save with matching originalHash overwrites`() = runTest {
 		val first = repository.save(
-			userId,
+			owner,
 			projectDef,
 			sampleJson,
 			originalHash = null,
@@ -253,7 +255,7 @@ class ServerProjectDataRepositoryTest : BaseTest() {
 		val updated = sampleData.copy(authorName = "Sam")
 		val updatedJson = json.encodeToJsonElement(ProjectData.serializer(), updated)
 		val second = repository.save(
-			userId, projectDef, updatedJson,
+			owner, projectDef, updatedJson,
 			originalHash = firstHash,
 			clientHash = ProjectDataHasher.hash(updated),
 		)
@@ -265,7 +267,7 @@ class ServerProjectDataRepositoryTest : BaseTest() {
 	@Test
 	fun `save with mismatched originalHash returns Conflict`() = runTest {
 		repository.save(
-			userId,
+			owner,
 			projectDef,
 			sampleJson,
 			originalHash = null,
@@ -274,7 +276,7 @@ class ServerProjectDataRepositoryTest : BaseTest() {
 
 		val updated = sampleData.copy(authorName = "Sam")
 		val result = repository.save(
-			userId, projectDef,
+			owner, projectDef,
 			json.encodeToJsonElement(ProjectData.serializer(), updated),
 			originalHash = "wrong-hash",
 			clientHash = ProjectDataHasher.hash(updated),
@@ -288,7 +290,7 @@ class ServerProjectDataRepositoryTest : BaseTest() {
 	@Test
 	fun `save with null originalHash on existing row returns Conflict`() = runTest {
 		repository.save(
-			userId,
+			owner,
 			projectDef,
 			sampleJson,
 			originalHash = null,
@@ -297,7 +299,7 @@ class ServerProjectDataRepositoryTest : BaseTest() {
 
 		val updated = sampleData.copy(authorName = "Sam")
 		val result = repository.save(
-			userId, projectDef,
+			owner, projectDef,
 			json.encodeToJsonElement(ProjectData.serializer(), updated),
 			originalHash = null,
 			clientHash = ProjectDataHasher.hash(updated),
@@ -308,16 +310,16 @@ class ServerProjectDataRepositoryTest : BaseTest() {
 
 	@Test
 	fun `verified hash is the default data hash when no row exists`() = runTest {
-		assertEquals(ProjectDataHasher.hash(ProjectData()), repository.loadVerifiedDataHash(userId, projectDef))
+		assertEquals(ProjectDataHasher.hash(ProjectData()), repository.loadVerifiedDataHash(owner, projectDef))
 	}
 
 	@Test
 	fun `verified hash is the stored hash for a readable row`() = runTest {
 		val data = ProjectData(authorName = "Pat")
 		val hash = ProjectDataHasher.hash(data)
-		repository.save(userId, projectDef, json.encodeToJsonElement(ProjectData.serializer(), data), null, hash)
+		repository.save(owner, projectDef, json.encodeToJsonElement(ProjectData.serializer(), data), null, hash)
 
-		assertEquals(hash, repository.loadVerifiedDataHash(userId, projectDef))
+		assertEquals(hash, repository.loadVerifiedDataHash(owner, projectDef))
 	}
 
 	@Test
@@ -332,18 +334,18 @@ class ServerProjectDataRepositoryTest : BaseTest() {
 			updatedAt = Instant.parse("2026-04-28T09:00:00Z"),
 		)
 
-		assertNull(repository.loadVerifiedDataHash(userId, projectDef))
+		assertNull(repository.loadVerifiedDataHash(owner, projectDef))
 	}
 
 	@Test
 	fun `verified hash is null for an unknown project`() = runTest {
 		val unknown = projectDef.copy(uuid = ProjectId.randomUUID())
-		assertNull(repository.loadVerifiedDataHash(userId, unknown))
+		assertNull(repository.loadVerifiedDataHash(owner, unknown))
 	}
 
 	@Test
 	fun `load fails ProjectNotFound for unknown project`() = runTest {
-		val result = repository.load(userId, unknownProjectDef)
+		val result = repository.load(owner, unknownProjectDef)
 		assertTrue(!isSuccess(result))
 		assertTrue(result.exception is ProjectNotFound)
 	}
@@ -351,7 +353,7 @@ class ServerProjectDataRepositoryTest : BaseTest() {
 	@Test
 	fun `save fails ProjectNotFound for unknown project`() = runTest {
 		val result = repository.save(
-			userId,
+			owner,
 			unknownProjectDef,
 			sampleJson,
 			originalHash = null,
@@ -393,13 +395,13 @@ class ServerProjectDataRepositoryTest : BaseTest() {
 			updatedAt = Instant.parse("2026-04-28T09:00:00Z"),
 		)
 
-		assertEquals(7, repository.loadCoverImageId(userId, projectDef))
+		assertEquals(7, repository.loadCoverImageId(owner, projectDef))
 	}
 
 	@Test
 	fun `cover id is null without a row or a project`() = runTest {
-		assertNull(repository.loadCoverImageId(userId, projectDef))
-		assertNull(repository.loadCoverImageId(userId, unknownProjectDef))
+		assertNull(repository.loadCoverImageId(owner, projectDef))
+		assertNull(repository.loadCoverImageId(owner, unknownProjectDef))
 	}
 
 	private fun seedAccountAndProject() {

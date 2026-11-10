@@ -1,0 +1,64 @@
+<div id="coauthor-invites">
+{{#hasInvites}}
+	<section class="paper-section coauthor-invites" aria-labelledby="coauthor-invites-title">
+		<div class="section-header">
+			<h2 class="section-header__title" id="coauthor-invites-title">{{msg.dashboard_invites_title}}</h2>
+		</div>
+		<p class="section-description">{{msg.dashboard_invites_description}}</p>
+
+		<div class="card-list">
+			{{#invites}}
+				<div class="card coauthor-invite">
+					<div class="card__info">
+						<span class="card__title">{{projectName}}</span>
+						<span class="card__subtitle">
+							<i class="fa-solid fa-user-group" aria-hidden="true"></i> {{ownerLine}}
+						</span>
+						<form class="coauthor-invite__form"
+							  hx-post="/dashboard/invites/{{id}}/accept"
+							  hx-target="#coauthor-invites"
+							  hx-swap="outerHTML">
+							{{^hasPenName}}
+								<div class="form-field coauthor-invite__penname">
+									<label for="invite-penname-{{id}}" class="form-field__label form-field__label--small">
+										{{msg.dashboard_invite_penname_label}}
+									</label>
+									<input type="text"
+										   id="invite-penname-{{id}}"
+										   name="penName"
+										   class="form-input"
+										   required
+										   maxlength="32"
+										   autocomplete="off"
+										   value="{{penNameDraft}}"
+										   placeholder="{{msg.penname_edit_placeholder}}"
+										   {{#hasError}}aria-invalid="true" aria-describedby="invite-error-{{id}}" autofocus{{/hasError}}>
+									<p class="coauthor-invite__hint">{{msg.dashboard_invite_penname_hint}}</p>
+								</div>
+							{{/hasPenName}}
+							{{#hasError}}
+								<p class="coauthor-invite__error" id="invite-error-{{id}}" role="alert">
+									<i class="fas fa-circle-exclamation" aria-hidden="true"></i> {{error}}
+								</p>
+							{{/hasError}}
+							<div class="coauthor-invite__actions">
+								<button type="submit" class="btn btn--accent">
+									<i class="fa-solid fa-check" aria-hidden="true"></i>
+									{{#hasPenName}}{{msg.dashboard_invite_accept}}{{/hasPenName}}{{^hasPenName}}{{msg.dashboard_invite_accept_with_penname}}{{/hasPenName}}
+								</button>
+								<button type="button" class="btn btn--ghost"
+										hx-post="/dashboard/invites/{{id}}/decline"
+										hx-target="#coauthor-invites"
+										hx-swap="outerHTML"
+										hx-confirm="{{msg.dashboard_invite_decline_confirm}}">
+									{{msg.dashboard_invite_decline}}
+								</button>
+							</div>
+						</form>
+					</div>
+				</div>
+			{{/invites}}
+		</div>
+	</section>
+{{/hasInvites}}
+</div>

@@ -171,4 +171,26 @@ class ProjectAttributeReconcilerTest {
 		assertNull(tree.nearestLocalGroup(GroupId("unknown"), serverGroups))
 		assertNull(tree.nearestLocalGroup(null, serverGroups))
 	}
+
+	@Test
+	fun `a shared project renamed or moved here takes the owner's name and the top level back`() {
+		val local = project("Mine")
+		val server = ApiProjectDefinition("Theirs", local.id, ownerId = 7L, ownerName = "Alice")
+
+		val result = reconcile(local, group, server, ProjectBaseline("Theirs")).single()
+
+		assertEquals(listOf(RenameLocally("Theirs"), MoveLocally(null)), result.actions)
+		assertEquals(ProjectBaseline("Theirs"), result.baseline)
+	}
+
+	@Test
+	fun `a shared project never sends a rename or move, with or without a baseline`() {
+		val local = project("Mine")
+		val server = ApiProjectDefinition("Theirs", local.id, ownerId = 7L, ownerName = "Alice")
+
+		for (baseline in listOf(null, ProjectBaseline("Theirs"), ProjectBaseline("Mine", group))) {
+			val actions = reconcile(local, group, server, baseline).single().actions
+			assertTrue(actions.none { it is RenameOnServer || it is MoveOnServer }, "baseline=$baseline")
+		}
+	}
 }

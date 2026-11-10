@@ -1,0 +1,34 @@
+<!-- Success swaps the panel and closes the dialog out of band; a refusal retargets this form. -->
+<form id="coauthor-invite-form"
+	  hx-post="/story/{{projectNameForUrl}}/coauthors/invites"
+	  hx-target="#coauthor-panel"
+	  hx-swap="outerHTML">
+	<div class="dialog__body">
+		<p class="coauthor-dialog__explainer">{{msg.coauthor_dialog_explainer}}</p>
+		<div class="form-field">
+			<label for="coauthor-email" class="form-field__label">{{msg.coauthor_dialog_email}}</label>
+			<input type="email"
+				   id="coauthor-email"
+				   name="email"
+				   class="form-input"
+				   required
+				   autocomplete="off"
+				   value="{{inviteEmail}}"
+				   placeholder="{{msg.coauthor_dialog_email_placeholder}}"
+				   {{#inviteError}}aria-invalid="true" aria-describedby="coauthor-invite-error" autofocus{{/inviteError}}>
+		</div>
+		{{#inviteError}}
+			<p class="password-error coauthor-dialog__error" id="coauthor-invite-error" role="alert">
+				<i class="fas fa-circle-exclamation" aria-hidden="true"></i> {{inviteError}}
+			</p>
+		{{/inviteError}}
+	</div>
+	<div class="dialog__actions">
+		<button type="button" class="btn btn--ghost" onclick="closeCoauthorDialog()">
+			{{msg.coauthor_dialog_cancel}}
+		</button>
+		<button type="submit" class="btn btn--accent">
+			<i class="fa-solid fa-paper-plane" aria-hidden="true"></i> {{msg.coauthor_dialog_send}}
+		</button>
+	</div>
+</form>

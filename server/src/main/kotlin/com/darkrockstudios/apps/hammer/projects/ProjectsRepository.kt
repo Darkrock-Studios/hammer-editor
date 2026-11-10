@@ -9,6 +9,7 @@ import com.darkrockstudios.apps.hammer.base.http.MAX_GROUP_NESTING_DEPTH
 import com.darkrockstudios.apps.hammer.base.validate.validateProjectName
 import com.darkrockstudios.apps.hammer.database.ProjectDao
 import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECTS_SYNC_MANAGER
+import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECT_SYNC_MANAGER
 import com.darkrockstudios.apps.hammer.project.*
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
 import com.darkrockstudios.apps.hammer.utilities.Msg
@@ -22,17 +23,31 @@ class ProjectsRepository(
 	private val projectsDatasource: ProjectsDatasource,
 	private val projectEntityDatasource: ProjectEntityDatasource,
 	private val projectDao: ProjectDao,
+	private val projectAccessResolver: ProjectAccessResolver,
 ) {
 	private val syncSessionManager: SyncSessionManager<Long, ProjectsSynchronizationSession> by inject(
 		clazz = SyncSessionManager::class.java,
 		qualifier = named(PROJECTS_SYNC_MANAGER)
 	)
 
+	private val projectSessions: SyncSessionManager<ProjectSyncKey, ProjectSynchronizationSession> by inject(
+		clazz = SyncSessionManager::class.java,
+		qualifier = named(PROJECT_SYNC_MANAGER)
+	)
+
+	/**
+	 * Whether a co-author holds a live session on [projectId]. The owner's own sessions need no check:
+	 * they already fail while the owner's account session is live.
+	 */
+	private fun coAuthorSyncing(owner: OwnerId, projectId: ProjectId): Boolean =
+		projectSessions.getActiveSyncSession(ProjectSyncKey(projectId))?.let { it.userId != owner.id } == true
+
 	suspend fun createUserData(userId: Long) = projectsDatasource.createUserData(userId)
 
 	/** The project's database row ID, which reviews and kudos are keyed by. */
+	@OptIn(UncheckedOwner::class)
 	suspend fun findProjectRowId(userId: Long, projectId: ProjectId): Long? =
-		projectDao.getProjectIdOrNull(userId, projectId)
+		projectDao.getProjectIdOrNull(OwnerId.unchecked(userId), projectId)
 
 	suspend fun getProjectByRowId(rowId: Long): Project? = projectDao.getProjectByRowId(rowId)
 
@@ -87,6 +102,7 @@ class ProjectsRepository(
 		val data = ProjectsBeginSyncData(
 			syncId = newSyncId,
 			projects = projects,
+			sharedProjects = projectAccessResolver.memberProjects(userId).toSet(),
 			deletedProjects = deletedProjects,
 			groups = projectsDatasource.getGroups(userId).toSet(),
 			projectPlacements = projectsDatasource.getProjectPlacements(userId),
@@ -119,14 +135,24 @@ class ProjectsRepository(
 		return projectsDatasource.loadSyncData(userId).deletedProjects
 	}
 
+	/**
+	 * The owner's delete removes the project and tombstones it for the owner alone. An existing
+	 * project the caller does not own is [NotOwnerException] and writes nothing; see
+	 * [DeleteProjectUseCase] for a co-author's leave. An unknown id is tombstoned for the caller.
+	 */
+	@OptIn(UncheckedOwner::class)
 	suspend fun deleteProject(userId: Long, syncId: String, projectId: ProjectId): SResult<Unit> {
+		val owner = OwnerId.unchecked(userId)
 		if (syncSessionManager.validateSyncId(userId, syncId).not()) return SResult.failure(
 			InvalidSyncIdException()
 		)
 
 		val projectDef = projectsDatasource.getProject(userId, projectId)
+		if (projectDef != null && coAuthorSyncing(owner, projectDef.uuid))
+			return SResult.failure(ProjectSyncInProgressException(projectId))
+
 		return if (projectDef != null) {
-			val result = projectEntityDatasource.deleteProject(userId, projectDef.uuid)
+			val result = projectEntityDatasource.deleteProject(owner, projectDef.uuid)
 			if (result.isSuccess) {
 				projectsDatasource.updateSyncData(userId) { data ->
 					data.copy(
@@ -138,12 +164,16 @@ class ProjectsRepository(
 				SResult.failure(Exception("Server failed to delete project: $projectId"))
 			}
 		} else {
-			projectsDatasource.updateSyncData(userId) { data ->
-				data.copy(
-					deletedProjects = data.deletedProjects + projectId
-				)
+			if (projectDao.getProjectByUuid(projectId) == null) {
+				projectsDatasource.updateSyncData(userId) { data ->
+					data.copy(
+						deletedProjects = data.deletedProjects + projectId
+					)
+				}
+				SResult.success()
+			} else {
+				SResult.failure(NotOwnerException(projectId))
 			}
-			SResult.success()
 		}
 	}
 
@@ -154,6 +184,7 @@ class ProjectsRepository(
 	 * [groupId] places a newly created project; an unknown group places it at the top level. An
 	 * existing project is never moved, and the result reports where it actually lives.
 	 */
+	@OptIn(UncheckedOwner::class)
 	suspend fun createProject(
 		userId: Long,
 		syncId: String,
@@ -161,24 +192,26 @@ class ProjectsRepository(
 		projectId: ProjectId,
 		groupId: GroupId? = null,
 	): SResult<ProjectCreatedResult> {
+		val owner = OwnerId.unchecked(userId)
 		if (syncSessionManager.validateSyncId(userId, syncId).not())
 			return SResult.failure(InvalidSyncIdException())
 
 		if (validateProjectName(projectName).not())
 			return SResult.failure(InvalidProjectName(projectName))
 
-		projectEntityDatasource.getProject(userId, projectId)?.let { existing ->
+		projectEntityDatasource.getProject(owner, projectId)?.let { existing ->
 			return SResult.success(existingProjectResult(userId, existing))
 		}
+		createOnNotOwned(userId, projectId)?.let { return it }
 
 		if (projectId in getDeletedProjects(userId))
 			return SResult.failure(ProjectDeletedException(projectId))
 
-		projectEntityDatasource.findProjectByName(userId, projectName)?.let { sameName ->
+		projectEntityDatasource.findProjectByName(owner, projectName)?.let { sameName ->
 			return SResult.success(existingProjectResult(userId, sameName))
 		}
 
-		projectEntityDatasource.createProject(userId, projectName, projectId)?.let { created ->
+		projectEntityDatasource.createProject(owner, projectName, projectId)?.let { created ->
 			val group = groupId?.let { projectsDatasource.getGroup(userId, it) }
 			if (group != null) projectsDatasource.setProjectGroup(userId, created.uuid, group.rowId)
 			return SResult.success(
@@ -187,10 +220,39 @@ class ProjectsRepository(
 		}
 
 		// A concurrent retry of this same create can win the insert; that is still idempotent.
-		return projectEntityDatasource.getProject(userId, projectId)
+		return projectEntityDatasource.getProject(owner, projectId)
 			?.let { SResult.success(existingProjectResult(userId, it)) }
+			?: createOnNotOwned(userId, projectId)
 			?: SResult.failure(ProjectIdTakenException(projectId))
 	}
+
+	/**
+	 * The create result for a [projectId] the caller does not own: idempotent on a project they
+	 * co-author, refused on anyone else's, and null when no project holds it.
+	 */
+	private suspend fun createOnNotOwned(userId: Long, projectId: ProjectId): SResult<ProjectCreatedResult>? =
+		when (val access = projectAccessResolver.resolve(userId, projectId)) {
+			is ProjectAccessResult.Granted -> SResult.success(
+				if (access.access.isOwner) {
+					existingProjectResult(userId, access.access.projectDef)
+				} else {
+					ProjectCreatedResult(project = access.access.projectDef, alreadyExisted = true, groupId = null)
+				}
+			)
+
+			ProjectAccessResult.NotMember -> SResult.failure(NotMemberException(projectId))
+			ProjectAccessResult.Unknown -> null
+		}
+
+	/** Why the caller cannot rename or move [projectId], which they do not own. */
+	private suspend fun notOwnedFailure(userId: Long, projectId: ProjectId): Exception =
+		when (val access = projectAccessResolver.resolve(userId, projectId)) {
+			is ProjectAccessResult.Granted ->
+				if (access.access.isOwner) ProjectNotFound(projectId) else NotOwnerException(projectId)
+
+			ProjectAccessResult.NotMember -> NotMemberException(projectId)
+			ProjectAccessResult.Unknown -> ProjectNotFound(projectId)
+		}
 
 	private suspend fun existingProjectResult(userId: Long, project: ProjectDefinition) = ProjectCreatedResult(
 		project = project,
@@ -199,20 +261,25 @@ class ProjectsRepository(
 	)
 
 	/** An unknown [groupId] places the project at the top level. */
+	@OptIn(UncheckedOwner::class)
 	suspend fun moveProject(
 		userId: Long,
 		syncId: String,
 		projectId: ProjectId,
 		groupId: GroupId?,
 	): SResult<Unit> {
+		val owner = OwnerId.unchecked(userId)
 		if (syncSessionManager.validateSyncId(userId, syncId).not())
 			return SResult.failure(InvalidSyncIdException())
+
+		if (coAuthorSyncing(owner, projectId) && projectEntityDatasource.checkProjectExists(owner, projectId))
+			return SResult.failure(ProjectSyncInProgressException(projectId))
 
 		val group = groupId?.let { projectsDatasource.getGroup(userId, it) }
 		return if (projectsDatasource.setProjectGroup(userId, projectId, group?.rowId)) {
 			SResult.success()
 		} else {
-			SResult.failure(ProjectNotFound(projectId))
+			SResult.failure(notOwnedFailure(userId, projectId))
 		}
 	}
 
@@ -318,22 +385,25 @@ class ProjectsRepository(
 		}
 	}
 
+	@OptIn(UncheckedOwner::class)
 	suspend fun renameProject(
 		userId: Long,
 		syncId: String,
 		projectId: ProjectId,
 		newProjectName: String?,
 	): SResult<Unit> {
+		val owner = OwnerId.unchecked(userId)
 		if (syncSessionManager.validateSyncId(userId, syncId).not())
 			return SResult.failure(InvalidSyncIdException())
 
 		if (!validateProjectName(newProjectName))
 			return SResult.failure(InvalidProjectName(newProjectName ?: "null"))
 
-		val existingProject = projectEntityDatasource.checkProjectExists(userId, projectId)
-		if (existingProject.not()) return SResult.failure(ProjectNotFound(projectId))
+		val existingProject = projectEntityDatasource.checkProjectExists(owner, projectId)
+		if (existingProject.not()) return SResult.failure(notOwnedFailure(userId, projectId))
+		if (coAuthorSyncing(owner, projectId)) return SResult.failure(ProjectSyncInProgressException(projectId))
 
-		return if (projectEntityDatasource.renameProject(userId, projectId, newProjectName)) {
+		return if (projectEntityDatasource.renameProject(owner, projectId, newProjectName)) {
 			SResult.success()
 		} else {
 			SResult.failure(ProjectNameTaken(newProjectName))

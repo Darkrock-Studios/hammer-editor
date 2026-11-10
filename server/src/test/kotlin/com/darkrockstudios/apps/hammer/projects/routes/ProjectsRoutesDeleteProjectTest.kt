@@ -23,7 +23,7 @@ class ProjectsRoutesDeleteProjectTest : ProjectsRoutesBaseTest() {
 
 		coEvery { accountsRepository.checkToken(userId, BEARER_TOKEN) } returns SResult.success(0L)
 		coEvery {
-			projectsRepository.deleteProject(
+			deleteProjectUseCase(
 				userId = userId,
 				syncId = syncId,
 				projectId = projectId,
@@ -41,7 +41,7 @@ class ProjectsRoutesDeleteProjectTest : ProjectsRoutesBaseTest() {
 		}.apply {
 			assertEquals(HttpStatusCode.OK, status)
 			coVerify {
-				projectsRepository.deleteProject(
+				deleteProjectUseCase(
 					userId = userId,
 					syncId = syncId,
 					projectId = projectId,
@@ -74,7 +74,7 @@ class ProjectsRoutesDeleteProjectTest : ProjectsRoutesBaseTest() {
 
 		coEvery { accountsRepository.checkToken(userId, BEARER_TOKEN) } returns SResult.success(0L)
 		coEvery {
-			projectsRepository.deleteProject(
+			deleteProjectUseCase(
 				userId = userId,
 				syncId = syncId,
 				projectId = projectId,
@@ -92,7 +92,7 @@ class ProjectsRoutesDeleteProjectTest : ProjectsRoutesBaseTest() {
 		}.apply {
 			assertEquals(HttpStatusCode.InternalServerError, status)
 			coVerify {
-				projectsRepository.deleteProject(
+				deleteProjectUseCase(
 					userId = userId,
 					syncId = syncId,
 					projectId = projectId,

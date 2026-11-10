@@ -1,7 +1,9 @@
 package com.darkrockstudios.apps.hammer.database
 
 import com.darkrockstudios.apps.hammer.base.GroupId
+import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.e2e.util.SharedPostgresTestDatabase
+import com.darkrockstudios.apps.hammer.project.OwnerId
 import com.darkrockstudios.apps.hammer.utils.BaseTest
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
@@ -52,11 +54,75 @@ class UserDataPurgeDaoTest : BaseTest() {
 	}
 
 	@Test
+	fun `purgeUserData - deletes memberships and invites on both sides`() = runTest {
+		val owner = accountDao.createAccount("purge-owner@example.com", "hash", "secret", isAdmin = false)
+		val other = accountDao.createAccount("purge-other@example.com", "hash", "secret", isAdmin = false)
+		val projectDao = ProjectDao(db)
+		val ownedId = ProjectId.randomUUID()
+		val otherId = ProjectId.randomUUID()
+		projectDao.createProject(OwnerId.unchecked(owner), ownedId, "Owned")
+		projectDao.createProject(OwnerId.unchecked(other), otherId, "Other's")
+		val ownedRow = projectDao.getProjectId(OwnerId.unchecked(owner), ownedId)
+		val otherRow = projectDao.getProjectId(OwnerId.unchecked(other), otherId)
+
+		val members = db.serverDatabase.projectMemberQueries
+		val invites = db.serverDatabase.projectInviteQueries
+		members.insertMember(ownedRow, other)
+		members.insertMember(otherRow, owner)
+		invites.insertInvite(ownedRow, "someone@example.com", owner)
+		invites.insertInvite(otherRow, "someone-else@example.com", owner)
+		invites.insertInvite(otherRow, "Purge-Owner@example.com", other)
+		accountDao.markDeleted(owner, Clock.System.now())
+
+		assertTrue(purgeDao.purgeUserData(owner))
+		assertFalse(members.isMember(ownedRow, other).executeAsOne())
+		assertFalse(members.isMember(otherRow, owner).executeAsOne())
+		assertEquals(emptyList(), invites.getInvitesForProject(ownedRow).executeAsList())
+		assertEquals(emptyList(), invites.getInvitesForProject(otherRow).executeAsList())
+	}
+
+	@Test
 	fun `purgeUserData - refuses an account that is not soft-deleted`() = runTest {
 		val userId = accountDao.createAccount("keep-me@example.com", "hash", "secret", isAdmin = false)
 
 		assertFalse(purgeDao.purgeUserData(userId), "A restored account must never be purged")
 		assertNotNull(accountDao.getAccount(userId))
+	}
+
+	@Test
+	fun `purgeUserData - drops the pen name from writing activity in other owners' projects`() = runTest {
+		val owner = accountDao.createAccount("purge-activity-owner@example.com", "hash", "secret", isAdmin = false)
+		val coAuthor = accountDao.createAccount("purge-activity-coauthor@example.com", "hash", "secret", isAdmin = false)
+		val projectDao = ProjectDao(db)
+		val projectId = ProjectId.randomUUID()
+		projectDao.createProject(OwnerId.unchecked(owner), projectId, "Shared")
+		val projectRow = projectDao.getProjectId(OwnerId.unchecked(owner), projectId)
+		val activity = WritingActivityDao(db)
+		activity.upsert(
+			userId = owner,
+			projectId = projectRow,
+			authorId = coAuthor,
+			authorName = "Pen Name",
+			deviceId = "device-1",
+			content = """{"authorName":"Pen \"Quill\" Name","words":42}""",
+		)
+		activity.upsert(
+			userId = owner,
+			projectId = projectRow,
+			authorId = coAuthor,
+			authorName = "Pen Name",
+			deviceId = "device-2",
+			content = """not json "authorName": "Pen Name"""",
+		)
+		accountDao.markDeleted(coAuthor, Clock.System.now())
+
+		assertTrue(purgeDao.purgeUserData(coAuthor))
+
+		val rows = activity.getAllForProject(owner, projectRow).sortedBy { it.deviceId }
+		assertEquals(listOf(coAuthor, coAuthor), rows.map { it.authorId })
+		assertEquals(listOf(null, null), rows.map { it.authorName })
+		assertEquals("""{"authorName":null,"words":42}""", rows[0].content)
+		assertFalse("Pen" in rows[1].content)
 	}
 
 	@Test

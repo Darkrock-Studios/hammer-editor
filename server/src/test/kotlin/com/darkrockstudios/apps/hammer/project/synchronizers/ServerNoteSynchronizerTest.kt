@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ClientEntityState
 import com.darkrockstudios.apps.hammer.base.http.EntityHash
 import com.darkrockstudios.apps.hammer.project.EntityDefinition
+import com.darkrockstudios.apps.hammer.project.OwnerId
 import com.darkrockstudios.apps.hammer.utilities.SResult
 import io.mockk.coEvery
 import io.mockk.mockk
@@ -60,13 +61,13 @@ class ServerNoteSynchronizerTest :
 		val entityDefList = entityDefs()
 
 		coEvery {
-			datasource.getEntityDefsByType(userId, any(), any())
+			datasource.getEntityDefsByType(OwnerId.unchecked(userId), any(), any())
 		} returns entityDefList
 
 		val entityIdSlot = slot<Int>()
 		coEvery {
 			datasource.loadEntity(
-				userId,
+				OwnerId.unchecked(userId),
 				any(),
 				capture(entityIdSlot),
 				any(),
@@ -78,7 +79,7 @@ class ServerNoteSynchronizerTest :
 		val entityHashIdSlot = slot<Int>()
 		coEvery {
 			datasource.loadEntityHash(
-				userId,
+				OwnerId.unchecked(userId),
 				any(),
 				capture(entityHashIdSlot),
 			)
@@ -95,7 +96,7 @@ class ServerNoteSynchronizerTest :
 		)
 
 		val synchronizer = createSynchronizer()
-		val result = synchronizer.getUpdateSequence(userId, mockk(), clientState)
+		val result = synchronizer.getUpdateSequence(OwnerId.unchecked(userId), mockk(), clientState)
 
 		assertEquals(emptyList(), result)
 	}

@@ -5,6 +5,7 @@ import com.darkrockstudios.apps.hammer.base.http.ApiSceneType
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityConflictException
 import com.darkrockstudios.apps.hammer.project.EntityDefinition
 import com.darkrockstudios.apps.hammer.project.EntityNotFound
+import com.darkrockstudios.apps.hammer.project.OwnerId
 import com.darkrockstudios.apps.hammer.project.ProjectEntityDatasource
 import com.darkrockstudios.apps.hammer.utilities.SResult
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
@@ -69,10 +70,10 @@ abstract class ServerEntitySynchronizerTest<C : ApiProjectEntity, T : ServerEnti
 		} returns SResult.failure(EntityNotFound(entity.id))
 
 		val synchronizer = createSynchronizer()
-		val result = synchronizer.saveEntity(userId, mockk(), entity, "fake-hash", false)
+		val result = synchronizer.saveEntity(OwnerId.unchecked(userId), mockk(), entity, "fake-hash", false)
 
 		assertTrue(isSuccess(result))
-		coVerify { datasource.storeEntity(userId, any(), entity, any(), entityClazz.serializer()) }
+		coVerify { datasource.storeEntity(OwnerId.unchecked(userId), any(), entity, any(), entityClazz.serializer()) }
 	}
 
 	@Test
@@ -92,10 +93,10 @@ abstract class ServerEntitySynchronizerTest<C : ApiProjectEntity, T : ServerEnti
 		} returns SResult.failure(EntityNotFound(entity.id))
 
 		val synchronizer = createSynchronizer()
-		val result = synchronizer.saveEntity(userId, mockk(), entity, null, false)
+		val result = synchronizer.saveEntity(OwnerId.unchecked(userId), mockk(), entity, null, false)
 
 		assertTrue(isSuccess(result))
-		coVerify { datasource.storeEntity(userId, any(), entity, any(), entityClazz.serializer()) }
+		coVerify { datasource.storeEntity(OwnerId.unchecked(userId), any(), entity, any(), entityClazz.serializer()) }
 	}
 
 	@Test
@@ -117,12 +118,12 @@ abstract class ServerEntitySynchronizerTest<C : ApiProjectEntity, T : ServerEnti
 			datasource.loadEntityHash(any(), any(), any())
 		} returns SResult.success(originalHash)
 
-		val result = synchronizer.saveEntity(userId, mockk(), newEntity, originalHash, false)
+		val result = synchronizer.saveEntity(OwnerId.unchecked(userId), mockk(), newEntity, originalHash, false)
 
 		assertTrue(isSuccess(result))
 		coVerify {
 			datasource.storeEntity(
-				userId,
+				OwnerId.unchecked(userId),
 				any(),
 				newEntity,
 				any(),
@@ -150,13 +151,13 @@ abstract class ServerEntitySynchronizerTest<C : ApiProjectEntity, T : ServerEnti
 			datasource.loadEntityHash(any(), any(), any())
 		} returns SResult.success("miss-match-hash")
 
-		val result = synchronizer.saveEntity(userId, mockk(), newEntity, originalHash, false)
+		val result = synchronizer.saveEntity(OwnerId.unchecked(userId), mockk(), newEntity, originalHash, false)
 
 		assertFalse(isSuccess(result))
 		assertIs<EntityConflictException>(result.exception)
 		coVerify(exactly = 0) {
 			datasource.storeEntity(
-				userId,
+				OwnerId.unchecked(userId),
 				any(),
 				newEntity,
 				any(),
@@ -185,10 +186,10 @@ abstract class ServerEntitySynchronizerTest<C : ApiProjectEntity, T : ServerEnti
 			datasource.loadEntityHash(any(), any(), any())
 		} returns SResult.success("stale-column-hash")
 
-		val result = synchronizer.saveEntity(userId, mockk(), newEntity, originalHash, false)
+		val result = synchronizer.saveEntity(OwnerId.unchecked(userId), mockk(), newEntity, originalHash, false)
 
 		assertTrue(isSuccess(result))
-		coVerify { datasource.storeEntity(userId, any(), newEntity, any(), entityClazz.serializer()) }
+		coVerify { datasource.storeEntity(OwnerId.unchecked(userId), any(), newEntity, any(), entityClazz.serializer()) }
 	}
 
 	@Test
@@ -198,15 +199,15 @@ abstract class ServerEntitySynchronizerTest<C : ApiProjectEntity, T : ServerEnti
 		val entity = createExistingEntity()
 
 		coEvery {
-			datasource.loadEntity(userId, any(), entityId, any(), entityClazz.serializer())
+			datasource.loadEntity(OwnerId.unchecked(userId), any(), entityId, any(), entityClazz.serializer())
 		} returns SResult.success(entity)
 
 		val synchronizer = createSynchronizer()
-		val result = synchronizer.loadEntity(userId, mockk(), entityId)
+		val result = synchronizer.loadEntity(OwnerId.unchecked(userId), mockk(), entityId)
 
 		assertTrue(isSuccess(result))
 		assertEquals(entity, result.data)
-		coVerify { datasource.loadEntity(userId, any(), entityId, any(), entityClazz.serializer()) }
+		coVerify { datasource.loadEntity(OwnerId.unchecked(userId), any(), entityId, any(), entityClazz.serializer()) }
 	}
 
 	@Test
@@ -215,14 +216,14 @@ abstract class ServerEntitySynchronizerTest<C : ApiProjectEntity, T : ServerEnti
 		val entityId = 1
 
 		coEvery {
-			datasource.deleteEntity(userId, any(), any(), entityId)
+			datasource.deleteEntity(OwnerId.unchecked(userId), any(), any(), entityId)
 		} returns SResult.success(Unit)
 
 		val synchronizer = createSynchronizer()
-		val result = synchronizer.deleteEntity(userId, mockk(), entityId)
+		val result = synchronizer.deleteEntity(OwnerId.unchecked(userId), mockk(), entityId)
 
 		assertTrue(isSuccess(result))
-		coVerify { datasource.deleteEntity(userId, any(), any(), entityId) }
+		coVerify { datasource.deleteEntity(OwnerId.unchecked(userId), any(), any(), entityId) }
 	}
 
 	@Test
@@ -241,12 +242,12 @@ abstract class ServerEntitySynchronizerTest<C : ApiProjectEntity, T : ServerEnti
 		val entities = entityDefs().filter { it.type == entityType }
 
 		coEvery {
-			datasource.getEntityDefsByType(userId, any(), any())
+			datasource.getEntityDefsByType(OwnerId.unchecked(userId), any(), any())
 		} returns entities
 
 		coEvery {
 			datasource.loadEntityHash(
-				userId,
+				OwnerId.unchecked(userId),
 				any(),
 				any(),
 			)
@@ -255,7 +256,7 @@ abstract class ServerEntitySynchronizerTest<C : ApiProjectEntity, T : ServerEnti
 		}
 
 		val synchronizer = createSynchronizer()
-		val result = synchronizer.getUpdateSequence(userId, mockk(), null)
+		val result = synchronizer.getUpdateSequence(OwnerId.unchecked(userId), mockk(), null)
 
 		val entityIds = entities.map { it.id }
 		assertEquals(entityIds, result)

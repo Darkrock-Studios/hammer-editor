@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectTheme
 import com.darkrockstudios.apps.hammer.base.http.projectdata.WordCountGoal
 import com.darkrockstudios.apps.hammer.common.components.projecthome.timelinesettings.TimelineSettings
 import com.darkrockstudios.apps.hammer.common.components.spellchecksettings.SpellCheckSettings
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectOwner
 import com.darkrockstudios.apps.hammer.common.data.tagindex.cleanTags
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponent
 
@@ -14,6 +15,8 @@ interface ProjectSettings : HammerComponent {
 	val spellCheckSettings: SpellCheckSettings
 	val timelineSettings: TimelineSettings
 	val projectInfoState: Value<ProjectInfoState>
+
+	val syncState: Value<SyncState>
 
 	/** Ids of the plugins turned off for this project on this device. */
 	val disabledPlugins: Value<Set<String>>
@@ -41,6 +44,14 @@ interface ProjectSettings : HammerComponent {
 
 	/** Turns the installed plugin [pluginId] on or off for this project, on this device only. */
 	fun setPluginEnabled(pluginId: String, enabled: Boolean)
+
+	data class SyncState(
+		/** The section is shown only when a sync server is set up. */
+		val serverConfigured: Boolean = false,
+		val syncEnabled: Boolean = true,
+		/** Set for a project shared with this account: it syncs while shared and not left. */
+		val owner: ProjectOwner? = null,
+	)
 
 	data class LanguageOption(
 		val tag: String,

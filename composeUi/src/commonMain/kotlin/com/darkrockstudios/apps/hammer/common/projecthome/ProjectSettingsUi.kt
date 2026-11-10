@@ -68,9 +68,20 @@ import com.darkrockstudios.apps.hammer.project_settings_spellcheck_encyclopedia_
 import com.darkrockstudios.apps.hammer.project_settings_spellcheck_encyclopedia_enable_hint
 import com.darkrockstudios.apps.hammer.project_settings_spellcheck_mismatch_caption
 import com.darkrockstudios.apps.hammer.project_settings_spellcheck_section_title
+import androidx.compose.ui.platform.testTag
+import com.darkrockstudios.apps.hammer.common.projectselection.sharedByLabel
+import com.darkrockstudios.apps.hammer.project_settings_sync_section_title
+import com.darkrockstudios.apps.hammer.project_settings_sync_shared_off
+import com.darkrockstudios.apps.hammer.project_settings_sync_shared_syncing
+import com.darkrockstudios.apps.hammer.project_settings_sync_own_hint
+import com.darkrockstudios.apps.hammer.project_settings_sync_own_off
+import com.darkrockstudios.apps.hammer.project_settings_sync_own_on
 import org.koin.compose.koinInject
 
 private val MaxColumnWidth = 880.dp
+
+const val ProjectSyncOwnTestTag = "project-settings-sync-own"
+const val ProjectSyncSharedTestTag = "project-settings-sync-shared"
 
 @Composable
 fun ProjectSettingsUi(
@@ -81,7 +92,9 @@ fun ProjectSettingsUi(
 	val state by component.projectInfoState.subscribeAsState()
 	val plugins = koinInject<PluginUiRegistry>().plugins()
 	val disabledPlugins by component.disabledPlugins.subscribeAsState()
-	val sectionCount = if (plugins.isEmpty()) 6 else 7
+	val syncState by component.syncState.subscribeAsState()
+	val syncSection = if (syncState.serverConfigured) 8 else null
+	val sectionCount = syncSection ?: if (plugins.isEmpty()) 6 else 7
 	val screen = LocalScreenCharacteristic.current
 	val isCompact = screen.windowWidthClass == WindowWidthSizeClass.Compact
 
@@ -161,6 +174,10 @@ fun ProjectSettingsUi(
 								disabled = disabledPlugins,
 								component = component,
 							)
+
+							if (syncSection != null) {
+								ProjectSync(section = syncSection, state = syncState)
+							}
 						}
 
 						Spacer(Modifier.height(8.dp))
@@ -245,6 +262,58 @@ private fun ProjectPlugins(
 				onCheckedChange = { component.setPluginEnabled(plugin.id, it) },
 			)
 		}
+	}
+}
+
+/**
+ * Whether this device syncs the project. An own project's switch is in its menu on the project list,
+ * where it is closed; a shared project says whose it is and how it stops syncing.
+ */
+@Composable
+internal fun ProjectSync(section: Int, state: ProjectSettings.SyncState) {
+	HdHairlineSection(
+		section = section,
+		title = Res.string.project_settings_sync_section_title.get(),
+		contentSpacing = 18.dp,
+	) {
+		val owner = state.owner
+		if (owner != null) {
+			SyncStatus(
+				title = sharedByLabel(owner.name),
+				hint = if (state.syncEnabled) {
+					Res.string.project_settings_sync_shared_syncing.get()
+				} else {
+					Res.string.project_settings_sync_shared_off.get()
+				},
+				modifier = Modifier.testTag(ProjectSyncSharedTestTag),
+			)
+		} else {
+			SyncStatus(
+				title = if (state.syncEnabled) {
+					Res.string.project_settings_sync_own_on.get()
+				} else {
+					Res.string.project_settings_sync_own_off.get()
+				},
+				hint = Res.string.project_settings_sync_own_hint.get(),
+				modifier = Modifier.testTag(ProjectSyncOwnTestTag),
+			)
+		}
+	}
+}
+
+@Composable
+private fun SyncStatus(title: String, hint: String, modifier: Modifier) {
+	Column(modifier = modifier.fillMaxWidth()) {
+		Text(
+			text = title,
+			style = MaterialTheme.typography.bodyLarge,
+			color = MaterialTheme.colorScheme.onSurface,
+		)
+		Text(
+			text = hint,
+			style = MaterialTheme.typography.bodySmall,
+			color = MaterialTheme.colorScheme.onSurfaceVariant,
+		)
 	}
 }
 

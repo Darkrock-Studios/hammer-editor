@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.project.synchronizers
 
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.project.EntityNotFound
+import com.darkrockstudios.apps.hammer.project.OwnerId
 import com.darkrockstudios.apps.hammer.utilities.SResult
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
 import io.mockk.coEvery
@@ -69,8 +70,8 @@ class ServerTimelineEventSynchronizerTest :
 		} answers { SResult.success(stored.captured) }
 
 		val synchronizer = createSynchronizer()
-		assertTrue(isSuccess(synchronizer.saveEntity(1L, mockk(), entity, null, false)))
-		val loaded = synchronizer.loadEntity(1L, mockk(), entity.id)
+		assertTrue(isSuccess(synchronizer.saveEntity(OwnerId.unchecked(1L), mockk(), entity, null, false)))
+		val loaded = synchronizer.loadEntity(OwnerId.unchecked(1L), mockk(), entity.id)
 		assertTrue(isSuccess(loaded))
 
 		assertEquals("a3f09c1e", loaded.data.timeline)

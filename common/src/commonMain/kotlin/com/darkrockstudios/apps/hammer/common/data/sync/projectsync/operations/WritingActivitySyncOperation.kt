@@ -2,10 +2,13 @@ package com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations
 
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.writingactivity.DeviceLog
+import com.darkrockstudios.apps.hammer.base.http.writingactivity.WritingActivitySlot
 import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
+import com.darkrockstudios.apps.hammer.common.data.writingactivity.SlotAuthor
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingActivityRepository
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingSessionTracker
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.mergeOwnSlotSessions
@@ -17,12 +20,13 @@ import io.github.aakira.napier.Napier
  * project sync pipeline after entity transfer and before finalization.
  *
  * Flow (all merge logic on the client; server is dumb storage):
- *  1. GET every device's slot from the server.
- *  2. Wholesale-overwrite local copies of *other* devices' slots — we
- *     never edit slots we don't own.
+ *  1. GET every slot from the server.
+ *  2. Wholesale-overwrite local copies of slots we don't own: other devices', and
+ *     another account's on this device (two accounts on one install share a device id).
+ *     An own file stamped with another account becomes that account's slot first.
  *  3. Merge the local copy of our own slot with the server's copy
  *     (deterministic union by `startedAt`), save the merged result both
- *     locally and back to the server.
+ *     locally, with the author the server stamped, and back to the server.
  *  4. Invalidate the tracker's session cache so subsequent saves see the
  *     merged state instead of continuing from a possibly stale snapshot.
  *
@@ -37,6 +41,7 @@ class WritingActivitySyncOperation(
 	private val tracker: WritingSessionTracker,
 	private val api: WritingActivityApi,
 	private val globalSettingsStore: GlobalSettingsStore,
+	private val statisticsRepository: StatisticsRepository,
 ) : SyncOperation(projectDef) {
 
 	// Auxiliary sync; must-not-crash boundary, failure logged and passed through.
@@ -62,16 +67,26 @@ class WritingActivitySyncOperation(
 				return CResult.success(state)
 			}
 
-			for ((deviceId, log) in response.devices) {
-				if (deviceId != ownDeviceId) {
-					repository.replaceForeignDeviceLog(deviceId, log)
-				}
+			var changed = repository.claimOwnSlot(userId)
+			val localOwnLog = repository.loadOwnLog()
+
+			val isOwnSlot = { slot: WritingActivitySlot ->
+				slot.deviceId == ownDeviceId && (slot.log.authorId == null || slot.log.authorId == userId)
+			}
+			val ownSlot = response.slots.firstOrNull(isOwnSlot)
+			for (slot in response.slots) {
+				if (!isOwnSlot(slot) && repository.replaceRemoteSlot(slot)) changed = true
 			}
 
-			val localOwnLog = repository.loadOwnLog()
-			val remoteOwnSessions = response.devices[ownDeviceId]?.sessions ?: emptyList()
+			val remoteOwnSessions = ownSlot?.log?.sessions ?: emptyList()
 			val mergedSessions = mergeOwnSlotSessions(localOwnLog.sessions, remoteOwnSessions)
-			repository.saveOwnLog(mergedSessions)
+			val ownAuthor = ownSlot?.log?.authorId?.let { SlotAuthor(it, ownSlot.log.authorName) }
+			repository.saveOwnLog(mergedSessions, ownAuthor)
+			val authorChanged = ownAuthor != null &&
+				(ownAuthor.id != localOwnLog.authorId || ownAuthor.name != localOwnLog.authorName)
+			if (changed || authorChanged || mergedSessions != localOwnLog.sessions) {
+				statisticsRepository.markDirty()
+			}
 
 			val payload = DeviceLog(
 				deviceLabel = globalSettingsStore.deviceLabelOrDefault(),
@@ -89,7 +104,8 @@ class WritingActivitySyncOperation(
 			}
 
 			tracker.invalidateSessionCache()
-			onLog(syncLogI("Writing activity synced (${response.devices.size + 1} devices)", projectDef))
+			val slotCount = response.slots.count { !isOwnSlot(it) } + 1
+			onLog(syncLogI("Writing activity synced ($slotCount slots)", projectDef))
 		} catch (e: Exception) {
 			Napier.w("Writing activity sync failed", e)
 			onLog(syncLogW("Writing activity sync error: ${e.message}", projectDef))

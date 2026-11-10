@@ -13,6 +13,8 @@ import com.darkrockstudios.apps.hammer.encryption.ContentEncryptor
 import com.darkrockstudios.apps.hammer.encryption.ContentEncryptorRegistry
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.project.ProjectEntityDatasource
+import com.darkrockstudios.apps.hammer.project.UncheckedOwner
+import com.darkrockstudios.apps.hammer.project.OwnerId
 import com.darkrockstudios.apps.hammer.project.ProjectSyncKey
 import com.darkrockstudios.apps.hammer.project.SceneSetResult
 import com.darkrockstudios.apps.hammer.project.loadSceneSet
@@ -74,6 +76,7 @@ class ReviewRepository(
 		val token: String,
 	)
 
+	@OptIn(UncheckedOwner::class)
 	suspend fun createReviewRequest(
 		userId: Long,
 		projectId: ProjectId,
@@ -83,6 +86,7 @@ class ReviewRepository(
 		expiresIn: Duration?,
 		sceneIds: List<Int>,
 	): SResult<CreatedReviewRequest> {
+		val owner = OwnerId.unchecked(userId)
 		if (sceneIds.isEmpty()) {
 			return SResult.failure("No scenes selected", Msg.r("api_review_create_error_no_scenes"))
 		}
@@ -96,13 +100,13 @@ class ReviewRepository(
 			return SResult.failure("Label or note too long", Msg.r("api_review_create_error_too_long"))
 		}
 
-		val projectDef = projectEntityDatasource.getProject(userId, projectId)
+		val projectDef = projectEntityDatasource.getProject(owner, projectId)
 			?: return SResult.failure("Project not found", Msg.r("api_review_create_error_project_not_found"))
-		val numericProjectId = projectDao.getProjectIdOrNull(userId, projectId)
+		val numericProjectId = projectDao.getProjectIdOrNull(owner, projectId)
 			?: return SResult.failure("Project not found", Msg.r("api_review_create_error_project_not_found"))
 
 		// Load and validate every requested scene before minting anything.
-		val scenes = when (val loaded = projectEntityDatasource.loadSceneSet(userId, projectDef, sceneIds)) {
+		val scenes = when (val loaded = projectEntityDatasource.loadSceneSet(owner, projectDef, sceneIds)) {
 			is SceneSetResult.InvalidId -> return SResult.failure(
 				"Invalid scene ${loaded.id}",
 				Msg.r("api_review_create_error_invalid_scene"),
@@ -128,20 +132,20 @@ class ReviewRepository(
 		val draftIds = withInternalSyncSession(userId, projectDef) {
 			// Reserve the ID range first: a failure mid-store burns IDs (harmless gap)
 			// instead of leaving stored entities below last_id (future collision).
-			val syncData = projectEntityDatasource.loadProjectSyncData(userId, projectDef)
+			val syncData = projectEntityDatasource.loadProjectSyncData(owner, projectDef)
 			val maxKnownId = maxOf(
 				syncData.lastId,
-				projectEntityDatasource.findLastId(userId, projectDef) ?: -1,
+				projectEntityDatasource.findLastId(owner, projectDef) ?: -1,
 				syncData.deletedIds.maxOrNull() ?: -1,
 			)
 			val firstId = maxKnownId + 1
-			projectEntityDatasource.updateSyncData(userId, projectDef) {
+			projectEntityDatasource.updateSyncData(owner, projectDef) {
 				it.copy(lastId = maxKnownId + scenes.size)
 			}
 
 			val mintedIds = mutableListOf<Int>()
 			for ((index, scene) in scenes.withIndex()) {
-				touchInternalSession(userId, projectDef)
+				touchInternalSession(projectDef)
 				val draft = ApiProjectEntity.SceneDraftEntity(
 					id = firstId + index,
 					sceneId = scene.id,
@@ -150,13 +154,13 @@ class ReviewRepository(
 					content = scene.content,
 				)
 				val saveResult = sceneDraftSynchronizer.saveEntity(
-					userId, projectDef, draft,
+					owner, projectDef, draft,
 					originalHash = null,
 					force = true,
 				)
 				if (isFailure(saveResult)) {
 					mintedIds.forEach { mintedId ->
-						sceneDraftSynchronizer.deleteEntity(userId, projectDef, mintedId)
+						sceneDraftSynchronizer.deleteEntity(owner, projectDef, mintedId)
 					}
 					return@withInternalSyncSession SResult.failure(
 						"Failed to store for-edit draft",
@@ -267,8 +271,10 @@ class ReviewRepository(
 		}
 	}
 
+	@OptIn(UncheckedOwner::class)
 	suspend fun getReviewsForProject(userId: Long, projectId: ProjectId): SResult<List<ReviewRequest>> {
-		val numericProjectId = projectDao.getProjectIdOrNull(userId, projectId)
+		val owner = OwnerId.unchecked(userId)
+		val numericProjectId = projectDao.getProjectIdOrNull(owner, projectId)
 			?: return SResult.failure("Project not found", Msg.r("api_review_create_error_project_not_found"))
 		val rows = reviewRequestDao.getRequestsForProject(userId, numericProjectId)
 		return SResult.success(rows.map { it.toDomain() })
@@ -540,14 +546,16 @@ class ReviewRepository(
 	 * the draft only; the author merges in-app via Draft Compare. Marks the
 	 * request resolved.
 	 */
+	@OptIn(UncheckedOwner::class)
 	suspend fun commitReview(userId: Long, reviewRequestId: Long): SResult<ReviewCommitResult> {
+		val owner = OwnerId.unchecked(userId)
 		val request = when (val r = resolveSubmittedReview(userId, reviewRequestId)) {
 			is ServerResult.Failure -> return SResult.failure(r.error, r.displayMessage, r.exception)
 			is ServerResult.Success -> r.data
 		}
 		val projectRow = projectDao.getProjectByRowId(request.projectId)
 			?: return SResult.failure("Project not found", Msg.r("api_review_create_error_project_not_found"))
-		val projectDef = projectEntityDatasource.getProject(userId, ProjectId(projectRow.uuid))
+		val projectDef = projectEntityDatasource.getProject(owner, ProjectId(projectRow.uuid))
 			?: return SResult.failure("Project not found", Msg.r("api_review_create_error_project_not_found"))
 
 		val scenes = getReviewScenes(request).sortedBy { it.sceneOrder }
@@ -580,14 +588,14 @@ class ReviewRepository(
 			if (changed.isNotEmpty()) {
 				// Reserve the full ID range up front; a mid-commit failure burns IDs
 				// (harmless gap) instead of risking stored entities above last_id.
-				val syncData = projectEntityDatasource.loadProjectSyncData(userId, projectDef)
+				val syncData = projectEntityDatasource.loadProjectSyncData(owner, projectDef)
 				val maxKnownId = maxOf(
 					syncData.lastId,
-					projectEntityDatasource.findLastId(userId, projectDef) ?: -1,
+					projectEntityDatasource.findLastId(owner, projectDef) ?: -1,
 					syncData.deletedIds.maxOrNull() ?: -1,
 				)
 				val firstId = maxKnownId + 1
-				projectEntityDatasource.updateSyncData(userId, projectDef) {
+				projectEntityDatasource.updateSyncData(owner, projectDef) {
 					it.copy(lastId = maxKnownId + changed.size)
 				}
 
@@ -595,9 +603,9 @@ class ReviewRepository(
 				// failure here rolls back cleanly while the scenes are still untouched.
 				val minted = mutableListOf<Minted>()
 				for ((index, plan) in changed.withIndex()) {
-					touchInternalSession(userId, projectDef)
+					touchInternalSession(projectDef)
 					val currentResult = projectEntityDatasource.loadEntity(
-						userId, projectDef, plan.scene.sceneId,
+						owner, projectDef, plan.scene.sceneId,
 						ApiProjectEntity.Type.SCENE,
 						ApiProjectEntity.SceneEntity.serializer(),
 					)
@@ -614,13 +622,13 @@ class ReviewRepository(
 						content = plan.revised,
 					)
 					val draftResult = sceneDraftSynchronizer.saveEntity(
-						userId, projectDef, draft,
+						owner, projectDef, draft,
 						originalHash = null,
 						force = true,
 					)
 					if (isFailure(draftResult)) {
 						minted.forEach { m ->
-							sceneDraftSynchronizer.deleteEntity(userId, projectDef, m.draftId)
+							sceneDraftSynchronizer.deleteEntity(owner, projectDef, m.draftId)
 						}
 						return@withInternalSyncSession SResult.failure(
 							"Failed to store reviewed draft",
@@ -634,10 +642,10 @@ class ReviewRepository(
 				// Phase 2: overwrite clean working scenes. Every draft already exists,
 				// so a failure here needs no rollback — Draft Compare is the recovery.
 				for (m in minted) {
-					touchInternalSession(userId, projectDef)
+					touchInternalSession(projectDef)
 					results[m.plan.scene.id] = if (m.current.content == m.plan.scene.snapshotContent) {
 						val sceneResult = sceneSynchronizer.saveEntity(
-							userId, projectDef, m.current.copy(content = m.plan.revised),
+							owner, projectDef, m.current.copy(content = m.plan.revised),
 							originalHash = null,
 							force = true,
 						)
@@ -715,16 +723,16 @@ class ReviewRepository(
 		projectDef: ProjectDefinition,
 		block: suspend () -> SResult<T>,
 	): SResult<T> {
-		val syncKey = ProjectSyncKey(userId, projectDef)
+		val syncKey = ProjectSyncKey(projectDef.uuid)
 		if (projectsSessions.hasActiveSyncSession(userId)) {
 			return SResult.failure("Project sync in progress", Msg.r("api_review_create_error_sync_busy"))
 		}
 
 		// Atomic claim; unique installId so a client's begin-sync can never reclaim this session.
-		projectSessions.claimSession(syncKey) { key, syncId ->
+		projectSessions.claimSession(syncKey) { _, syncId ->
 			ProjectSynchronizationSession(
-				userId = key.userId,
-				projectDef = key.projectDef,
+				userId = userId,
+				projectDef = projectDef,
 				started = clock.now(),
 				syncId = syncId,
 				installId = "$INTERNAL_INSTALL_PREFIX${UUID.randomUUID()}",
@@ -739,8 +747,8 @@ class ReviewRepository(
 	}
 
 	/** Keep the internal session from expiring during long per-scene mint/encrypt loops. */
-	private fun touchInternalSession(userId: Long, projectDef: ProjectDefinition) {
-		projectSessions.findSession(ProjectSyncKey(userId, projectDef))?.updateLastAccessed(clock)
+	private fun touchInternalSession(projectDef: ProjectDefinition) {
+		projectSessions.findSession(ProjectSyncKey(projectDef.uuid))?.updateLastAccessed(clock)
 	}
 
 	private fun ReviewRequestRow.toDomain() = ReviewRequest(

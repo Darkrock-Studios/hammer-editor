@@ -97,6 +97,15 @@ private suspend fun RoutingContext.respondSwap(
 }
 
 /**
+ * Answers an error with [content] swapped in place and no toast, for a refusal shown inline next to
+ * the input that caused it.
+ */
+suspend fun RoutingContext.respondInlineError(content: String, status: HttpStatusCode = HttpStatusCode.BadRequest) {
+	call.response.header(SWAP_ERROR_HEADER, "true")
+	call.respondText(text = content, contentType = ContentType.Text.Html, status = status)
+}
+
+/**
  * Mustache factory for rendering templates to strings.
  */
 private val mustacheFactory = DefaultMustacheFactory("templates")

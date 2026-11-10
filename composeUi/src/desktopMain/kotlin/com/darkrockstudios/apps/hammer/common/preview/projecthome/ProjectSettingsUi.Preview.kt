@@ -16,6 +16,7 @@ import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectSett
 import com.darkrockstudios.apps.hammer.common.components.projecthome.timelinesettings.TimelineSettings
 import com.darkrockstudios.apps.hammer.common.components.spellchecksettings.SpellCheckSettings
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectOwner
 import com.darkrockstudios.apps.hammer.common.preview.KoinApplicationPreview
 import com.darkrockstudios.apps.hammer.common.preview.TABLET_HEIGHT_DP
 import com.darkrockstudios.apps.hammer.common.preview.TABLET_WIDTH_DP
@@ -74,7 +75,10 @@ private val fakeSpellCheckSettings = object : SpellCheckSettings {
 	override suspend fun setSpellCheckLanguage(language: Locale) {}
 }
 
-private fun fakeComponent(language: String?) = object : ProjectSettings {
+private fun fakeComponent(
+	language: String?,
+	sync: ProjectSettings.SyncState = ProjectSettings.SyncState(serverConfigured = true, syncEnabled = false),
+) = object : ProjectSettings {
 	override val projectName: String = "The Lighthouse"
 	override val spellCheckSettings: SpellCheckSettings = fakeSpellCheckSettings
 	override val timelineSettings: TimelineSettings =
@@ -91,6 +95,7 @@ private fun fakeComponent(language: String?) = object : ProjectSettings {
 		)
 	)
 	override val disabledPlugins: Value<Set<String>> = MutableValue(emptySet())
+	override val syncState: Value<ProjectSettings.SyncState> = MutableValue(sync)
 	override val availableLanguages: List<ProjectSettings.LanguageOption> = listOf(
 		ProjectSettings.LanguageOption("en-US", "English (United States)"),
 		ProjectSettings.LanguageOption("fr-FR", "French (France)"),
@@ -123,6 +128,24 @@ fun ScreenProjectSettingsUiLanguageMismatchPreview() {
 			ProjectSettingsUi(
 				modifier = Modifier,
 				component = fakeComponent(language = "fr-FR"),
+				onClose = {},
+			)
+		}
+	}
+}
+
+/** A project shared with this account: the Sync section has no switch. */
+@Preview(widthDp = TABLET_WIDTH_DP, heightDp = 2600)
+@Composable
+fun ScreenProjectSettingsUiSharedPreview() {
+	KoinApplicationPreview {
+		TabletPreviewSurface {
+			ProjectSettingsUi(
+				modifier = Modifier,
+				component = fakeComponent(
+					language = "en-US",
+					sync = ProjectSettings.SyncState(serverConfigured = true, owner = ProjectOwner(7, "Ada")),
+				),
 				onClose = {},
 			)
 		}

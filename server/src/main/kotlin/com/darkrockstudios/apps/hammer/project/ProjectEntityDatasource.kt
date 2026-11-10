@@ -7,29 +7,29 @@ import com.darkrockstudios.apps.hammer.utilities.SResult
 import kotlinx.serialization.KSerializer
 
 interface ProjectEntityDatasource {
-	suspend fun loadProjectSyncData(userId: Long, projectDef: ProjectDefinition): ProjectSyncData
+	suspend fun loadProjectSyncData(owner: OwnerId, projectDef: ProjectDefinition): ProjectSyncData
 	/** Null when [projectId] is already in use, by this account or another. */
-	suspend fun createProject(userId: Long, projectName: String, projectId: ProjectId): ProjectDefinition?
-	suspend fun deleteProject(userId: Long, projectId: ProjectId): SResult<Unit>
-	suspend fun checkProjectExists(userId: Long, projectDef: ProjectDefinition): Boolean
-	suspend fun checkProjectExists(userId: Long, projectId: ProjectId): Boolean
-	suspend fun findProjectByName(userId: Long, projectName: String): ProjectDefinition?
-	suspend fun getProject(userId: Long, projectId: ProjectId): ProjectDefinition?
+	suspend fun createProject(owner: OwnerId, projectName: String, projectId: ProjectId): ProjectDefinition?
+	suspend fun deleteProject(owner: OwnerId, projectId: ProjectId): SResult<Unit>
+	suspend fun checkProjectExists(owner: OwnerId, projectDef: ProjectDefinition): Boolean
+	suspend fun checkProjectExists(owner: OwnerId, projectId: ProjectId): Boolean
+	suspend fun findProjectByName(owner: OwnerId, projectName: String): ProjectDefinition?
+	suspend fun getProject(owner: OwnerId, projectId: ProjectId): ProjectDefinition?
 	suspend fun updateSyncData(
-		userId: Long,
+		owner: OwnerId,
 		projectDef: ProjectDefinition,
 		action: (ProjectSyncData) -> ProjectSyncData
 	)
 
-	suspend fun findLastId(userId: Long, projectDef: ProjectDefinition): Int?
+	suspend fun findLastId(owner: OwnerId, projectDef: ProjectDefinition): Int?
 	suspend fun findEntityType(
 		entityId: Int,
-		userId: Long,
+		owner: OwnerId,
 		projectDef: ProjectDefinition
 	): ApiProjectEntity.Type?
 
 	suspend fun <T : ApiProjectEntity> storeEntity(
-		userId: Long,
+		owner: OwnerId,
 		projectDef: ProjectDefinition,
 		entity: T,
 		entityType: ApiProjectEntity.Type,
@@ -37,7 +37,7 @@ interface ProjectEntityDatasource {
 	): SResult<Unit>
 
 	suspend fun <T : ApiProjectEntity> loadEntity(
-		userId: Long,
+		owner: OwnerId,
 		projectDef: ProjectDefinition,
 		entityId: Int,
 		entityType: ApiProjectEntity.Type,
@@ -45,50 +45,50 @@ interface ProjectEntityDatasource {
 	): SResult<T>
 
 	suspend fun loadEntityHash(
-		userId: Long,
+		owner: OwnerId,
 		projectDef: ProjectDefinition,
 		entityId: Int,
 	): SResult<String>
 
 	/** Like the untyped lookup, but an entity of any other type is [EntityNotFound]. */
 	suspend fun loadEntityHash(
-		userId: Long,
+		owner: OwnerId,
 		projectDef: ProjectDefinition,
 		entityId: Int,
 		entityType: ApiProjectEntity.Type,
 	): SResult<String>
 
 	suspend fun deleteEntity(
-		userId: Long,
+		owner: OwnerId,
 		entityType: ApiProjectEntity.Type,
 		projectDef: ProjectDefinition,
 		entityId: Int
 	): SResult<Unit>
 
 	suspend fun getEntityDefs(
-		userId: Long,
+		owner: OwnerId,
 		projectDef: ProjectDefinition,
 		filter: (EntityDefinition) -> Boolean = { true }
 	): List<EntityDefinition>
 
 	suspend fun getEntityDefsByType(
-		userId: Long,
+		owner: OwnerId,
 		projectDef: ProjectDefinition,
 		type: ApiProjectEntity.Type
 	): List<EntityDefinition>
 
 	/** False when the account already holds another project under [newProjectName]. */
-	suspend fun renameProject(userId: Long, projectId: ProjectId, newProjectName: String): Boolean
+	suspend fun renameProject(owner: OwnerId, projectId: ProjectId, newProjectName: String): Boolean
 
 	/** All of a project's entity ids paired with their cached hashes, in one query, sorted by id. */
 	suspend fun getEntityHashes(
-		userId: Long,
+		owner: OwnerId,
 		projectDef: ProjectDefinition,
 	): List<EntityHash>
 
 	/** As [getEntityHashes], but limited to a single entity type. */
 	suspend fun getEntityHashes(
-		userId: Long,
+		owner: OwnerId,
 		projectDef: ProjectDefinition,
 		type: ApiProjectEntity.Type,
 	): List<EntityHash>

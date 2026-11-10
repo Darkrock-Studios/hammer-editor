@@ -13,6 +13,11 @@
 			{{/coverImageUrl}}
 			<div class="story-hero__body">
 				<h1 class="story-title">{{projectName}}</h1>
+				{{^isOwner}}
+					<p class="story-hero__byline">
+						<i class="fa-solid fa-user-group" aria-hidden="true"></i> {{sharedBy}}
+					</p>
+				{{/isOwner}}
 				{{#hasChapters}}
 					<div class="story-hero__actions" id="story-read-actions" data-project-key="{{projectKey}}"
 						 data-chapter-count="{{chapterCount}}"{{#coverImageUrl}} data-has-cover="true"{{/coverImageUrl}}>
@@ -65,6 +70,25 @@
 			</div>
 		{{/hasChapters}}
 
+		{{^isOwner}}
+			<section class="story-info-panel story-info-panel--coauthoring">
+				<div class="info-panel-header">
+					<span class="info-panel-icon info-panel-icon--coauthors"><i class="fas fa-user-group" aria-hidden="true"></i></span>
+					<h2 class="info-panel-title">{{msg.story_coauthor_panel_title}}</h2>
+				</div>
+				<div class="info-panel-content story-coauthoring">
+					<p class="story-coauthoring__text">{{msg.story_coauthor_panel_description}}</p>
+					<button type="button" class="btn btn--danger story-coauthoring__leave"
+							hx-get="/story/{{projectNameForUrl}}/leave-dialog"
+							hx-target="#coauthor-dialog-container"
+							hx-swap="innerHTML">
+						<i class="fas fa-right-from-bracket" aria-hidden="true"></i> {{msg.story_leave_button}}
+					</button>
+				</div>
+			</section>
+		{{/isOwner}}
+
+		{{#isOwner}}
 		<!-- Panels -->
 		<div class="story-panels">
 			<div class="story-panels__column">
@@ -91,6 +115,8 @@
 			</div>
 
 			<div class="story-panels__column">
+				{{> partials/coauthor-panel}}
+
 				{{#hasAnyAccess}}
 					<!-- Readers Panel: all-time total + 30-day trend -->
 					<section class="story-info-panel story-info-panel--readers">
@@ -118,13 +144,17 @@
 				{{> partials/story-kudos-panel}}
 			</div>
 		</div>
+		{{/isOwner}}
 	</div>
 </main>
 
 <!-- Outside the panels: a positioned ancestor makes a stacking context the
      overlay's z-index can't escape, which paints it under the site header. -->
-<div id="review-dialog-container"></div>
-<div id="share-dialog-container"></div>
-<div id="publish-warning-container"></div>
+{{#isOwner}}
+	<div id="review-dialog-container"></div>
+	<div id="share-dialog-container"></div>
+	<div id="publish-warning-container"></div>
+{{/isOwner}}
+<div id="coauthor-dialog-container"></div>
 
 {{> footer}}
