@@ -62,6 +62,15 @@ class SharedTimedCallTest {
 	}
 
 	@Test
+	fun `a block cancelling itself is a failure, not a closed call`() = runTest {
+		val call = SharedTimedCall(StandardTestDispatcher(testScheduler)) {
+			throw kotlinx.coroutines.CancellationException("inner timeout")
+		}
+
+		assertFailsWith<IllegalStateException> { call.get(3.seconds) }
+	}
+
+	@Test
 	fun `after close callers fail fast as unavailable`() = runTest {
 		val call = SharedTimedCall(StandardTestDispatcher(testScheduler)) { awaitCancellation() }
 		val waiting = async { runCatching { call.get(3.seconds) } }

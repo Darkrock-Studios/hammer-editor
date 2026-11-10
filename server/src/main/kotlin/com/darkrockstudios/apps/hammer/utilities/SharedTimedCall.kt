@@ -38,8 +38,13 @@ class SharedTimedCall<T>(
 			inFlight?.takeIf { it.isActive } ?: scope.async { block() }.also { inFlight = it }
 		}
 		withTimeoutOrNull(timeout) { call.join() } ?: throw UnavailableException("timed out after $timeout")
-		// join() returns normally however the call ended; tell a close() apart from a real failure.
-		if (call.getCompletionExceptionOrNull() is CancellationException) throw UnavailableException("closed")
+		// join() returns normally however the call ended. Rethrowing a CancellationException would
+		// look like the caller itself was cancelled, so report it as unavailable or as a failure.
+		val failure = call.getCompletionExceptionOrNull()
+		if (failure is CancellationException) {
+			if (!job.isActive) throw UnavailableException("closed")
+			throw IllegalStateException("Shared call was cancelled", failure)
+		}
 		return call.await()
 	}
 

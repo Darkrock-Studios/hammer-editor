@@ -7,6 +7,7 @@ import io.ktor.http.auth.HttpAuthHeader
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.auth.parseAuthorizationHeader
 import io.ktor.server.plugins.origin
+import io.ktor.server.request.path
 import io.ktor.server.response.header
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
@@ -32,97 +33,123 @@ fun Route.healthRoutes() {
 	route("/health") {
 		get {
 			call.noStore()
-			when (call.caller(healthService)) {
-				Caller.ANONYMOUS -> {
+			when (val caller = call.caller(healthService)) {
+				Caller.Anonymous -> {
 					val summary = healthService.report().summary()
-					call.respond(summary.ok.toStatus(), summary)
+					call.respondHealth(summary.ok.toStatus(), summary, "failing")
 				}
 
-				Caller.AUTHORIZED -> {
+				Caller.Authorized -> {
 					val report = healthService.report()
-					call.respond(report.ok.toStatus(), report)
+					call.respondHealth(report.ok.toStatus(), report, report.failureReason())
 				}
 
-				Caller.REJECTED -> call.respond(HttpStatusCode.Unauthorized)
-				Caller.UNVERIFIABLE -> call.respondUnverifiable()
+				else -> call.respondUnauthorized(caller)
 			}
 		}
 
 		get("/database") {
 			call.noStore()
-			if (!call.requireAuthorized(healthService)) return@get
+			val caller = call.caller(healthService)
+			if (caller != Caller.Authorized) return@get call.respondUnauthorized(caller)
 			val database = healthService.report().database
-			call.respond(database.ok.toStatus(), database)
+			call.respondHealth(database.ok.toStatus(), database, database.status.name.lowercase())
 		}
 
 		get("/jobs/{slug}") {
 			call.noStore()
-			if (!call.requireAuthorized(healthService)) return@get
+			val caller = call.caller(healthService)
+			if (caller != Caller.Authorized) return@get call.respondUnauthorized(caller)
 			val job = healthService.report().jobs[call.parameters["slug"]]
 			if (job == null) {
+				call.logOutcome(HttpStatusCode.NotFound, "unknown job")
 				call.respond(HttpStatusCode.NotFound)
 			} else {
-				call.respond(job.ok.toStatus(), job)
+				call.respondHealth(job.ok.toStatus(), job, job.status.name.lowercase())
 			}
 		}
 	}
 }
 
-private enum class Caller { ANONYMOUS, AUTHORIZED, REJECTED, UNVERIFIABLE }
+private sealed interface Caller {
+	data object Anonymous : Caller
+	data object Authorized : Caller
+	data class Rejected(val reason: String) : Caller
+
+	/** The token couldn't be checked, almost always because the database is unreachable. */
+	data object Unverifiable : Caller
+}
 
 private val logger = LoggerFactory.getLogger("HealthRoutes")
-private val rejectionLog = LogThrottle(1.minutes)
+
+// Health paths are left out of call logging since probes repeat every few seconds, so this is
+// the record of failing checks and misconfigured monitors: once a minute per path and outcome.
+private val outcomeLog = LogThrottle(1.minutes)
 
 /**
  * Only a Bearer credential is ours; any other scheme (e.g. Basic auth meant for a
- * reverse proxy) is treated as anonymous. A wrong or empty Bearer token is REJECTED
+ * reverse proxy) is treated as anonymous. A wrong or empty Bearer token is rejected
  * rather than downgraded, so a misconfigured monitor fails loudly.
  */
 private suspend fun ApplicationCall.caller(healthService: HealthService): Caller {
-	val raw = request.headers[HttpHeaders.Authorization] ?: return Caller.ANONYMOUS
+	val raw = request.headers[HttpHeaders.Authorization] ?: return Caller.Anonymous
 	val isBearer = raw.trimStart().startsWith(AuthScheme.Bearer, ignoreCase = true)
 	val header = runCatching { request.parseAuthorizationHeader() }.getOrNull()
-	if (header == null) return if (isBearer) rejected("malformed bearer header") else Caller.ANONYMOUS
-	if (!header.authScheme.equals(AuthScheme.Bearer, ignoreCase = true)) return Caller.ANONYMOUS
+	if (header == null) return if (isBearer) Caller.Rejected("malformed bearer header") else Caller.Anonymous
+	if (!header.authScheme.equals(AuthScheme.Bearer, ignoreCase = true)) return Caller.Anonymous
 	val token = (header as? HttpAuthHeader.Single)?.blob?.takeIf { it.isNotBlank() }
-		?: return rejected("empty bearer token")
+		?: return Caller.Rejected("empty bearer token")
 	return try {
-		if (healthService.verifyToken(token)) Caller.AUTHORIZED else rejected("wrong token")
+		if (healthService.verifyToken(token)) Caller.Authorized else Caller.Rejected("wrong token")
 	} catch (e: CancellationException) {
 		throw e
 	} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-		logger.warn("Could not verify health token", e)
-		Caller.UNVERIFIABLE
+		if (outcomeLog.shouldLog("token-read")) logger.warn("Could not verify a health token", e)
+		Caller.Unverifiable
 	}
 }
 
-// Health paths are left out of call logging, so this is the only record of a monitor sending a
-// stale token. Throttled per client, since a misconfigured monitor repeats every poll.
-private fun ApplicationCall.rejected(reason: String): Caller {
-	val client = request.origin.remoteAddress
-	if (rejectionLog.shouldLog(client)) logger.warn("Rejected health check from {}: {}", client, reason)
-	return Caller.REJECTED
-}
-
-/** The token couldn't be checked, almost always because the database is unreachable. */
-private suspend fun ApplicationCall.respondUnverifiable() {
-	respond(HttpStatusCode.ServiceUnavailable, HealthUnavailable())
-}
-
-/** Responds with the failure and returns false unless the caller presented a valid token. */
-private suspend fun ApplicationCall.requireAuthorized(healthService: HealthService): Boolean =
-	when (caller(healthService)) {
-		Caller.AUTHORIZED -> true
-		Caller.UNVERIFIABLE -> {
-			respondUnverifiable()
-			false
-		}
-
-		Caller.ANONYMOUS, Caller.REJECTED -> {
+private suspend fun ApplicationCall.respondUnauthorized(caller: Caller) {
+	when (caller) {
+		Caller.Unverifiable -> respondHealth(HttpStatusCode.ServiceUnavailable, HealthUnavailable(), "token unavailable")
+		is Caller.Rejected -> {
+			logOutcome(HttpStatusCode.Unauthorized, caller.reason)
 			respond(HttpStatusCode.Unauthorized)
-			false
+		}
+
+		else -> {
+			logOutcome(HttpStatusCode.Unauthorized, "no token")
+			respond(HttpStatusCode.Unauthorized)
 		}
 	}
+}
+
+/** Sends [body] with [status], logging a non-200 with [reason]. */
+private suspend inline fun <reified T : Any> ApplicationCall.respondHealth(
+	status: HttpStatusCode,
+	body: T,
+	reason: String,
+) {
+	if (status != HttpStatusCode.OK) logOutcome(status, reason)
+	respond(status, body)
+}
+
+// The client is origin.remoteAddress, which is the proxy's address unless trustProxyForwarding
+// is on; the key leaves it out so that case still throttles per path and outcome.
+private fun ApplicationCall.logOutcome(status: HttpStatusCode, reason: String) {
+	val path = request.path()
+	if (outcomeLog.shouldLog("${status.value} $path $reason")) {
+		logger.warn("Health check {} answered {} ({}) to {}", path, status.value, reason, request.origin.remoteAddress)
+	}
+}
+
+private fun HealthReport.failureReason(): String {
+	val failing = buildList {
+		if (!database.ok) add("database ${database.status.name.lowercase()}")
+		jobs.filterValues { !it.ok }.forEach { (slug, job) -> add("$slug ${job.status.name.lowercase()}") }
+	}
+	return failing.joinToString(", ").ifEmpty { "ok" }
+}
 
 private fun ApplicationCall.noStore() {
 	response.header(HttpHeaders.CacheControl, "no-store")

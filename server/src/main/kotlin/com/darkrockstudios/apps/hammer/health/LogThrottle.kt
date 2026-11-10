@@ -17,8 +17,12 @@ class LogThrottle(
 	private val lastLogged = ConcurrentHashMap<String, ComparableTimeMark>()
 
 	fun shouldLog(key: String): Boolean {
-		// Keys can come from client addresses; bound the map rather than let them pile up.
-		if (lastLogged.size >= maxKeys && !lastLogged.containsKey(key)) lastLogged.clear()
+		// Keys can come from request paths; bound the map. Expired keys go first, and if it is
+		// still full a new key is suppressed rather than resetting everyone's throttle.
+		if (lastLogged.size >= maxKeys && !lastLogged.containsKey(key)) {
+			lastLogged.entries.removeIf { it.value.elapsedNow() >= interval }
+			if (lastLogged.size >= maxKeys) return false
+		}
 		var allowed = false
 		lastLogged.compute(key) { _, last ->
 			if (last == null || last.elapsedNow() >= interval) {

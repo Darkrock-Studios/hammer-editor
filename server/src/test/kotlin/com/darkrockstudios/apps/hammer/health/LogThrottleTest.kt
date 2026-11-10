@@ -36,14 +36,25 @@ class LogThrottleTest {
 	}
 
 	@Test
-	fun `the key map is bounded`() {
+	fun `a full map suppresses new keys without resetting existing ones`() {
 		val throttle = LogThrottle(1.minutes, time, maxKeys = 2)
 		throttle.shouldLog("a")
 		throttle.shouldLog("b")
 
-		throttle.shouldLog("c")
+		val newKeyWhileFull = throttle.shouldLog("c")
+		val existingKey = throttle.shouldLog("a")
 
-		// Hitting the bound forgets earlier keys, so "a" may log again.
-		assertTrue(throttle.shouldLog("a"))
+		assertFalse(newKeyWhileFull)
+		assertFalse(existingKey)
+	}
+
+	@Test
+	fun `expired keys make room for new ones`() {
+		val throttle = LogThrottle(1.minutes, time, maxKeys = 2)
+		throttle.shouldLog("a")
+		throttle.shouldLog("b")
+		time += 1.minutes
+
+		assertTrue(throttle.shouldLog("c"))
 	}
 }

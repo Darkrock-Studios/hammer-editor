@@ -224,6 +224,28 @@ class HealthServiceTest : BaseTest() {
 	}
 
 	@Test
+	fun `slugs do not depend on the order jobs are listed in`() {
+		fun status(name: String) = RecurringTaskStatus(name, true, null, null, false, null)
+		val suffixed = "sync-" + com.darkrockstudios.apps.hammer.utilities.sha256Hex("Sync job").take(6)
+		val names = listOf("Sync job", "Sync", suffixed, "Backup job")
+
+		val forward = HealthService.jobsBySlug(names.map(::status)).mapValues { it.value.name }
+		val backward = HealthService.jobsBySlug(names.reversed().map(::status)).mapValues { it.value.name }
+
+		assertEquals(forward, backward)
+		assertEquals(4, forward.size)
+	}
+
+	@Test
+	fun `a closed dao reports no ping without touching the database`() = runTest {
+		val dao = HealthCheckDao(db)
+
+		dao.close()
+
+		assertFalse(dao.ping(5.seconds))
+	}
+
+	@Test
 	fun `colliding slugs get a suffix that is stable as jobs come and go`() {
 		fun status(name: String) = RecurringTaskStatus(name, true, null, null, false, null)
 

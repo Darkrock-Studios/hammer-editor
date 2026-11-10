@@ -14,6 +14,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.Serializable
 import org.slf4j.LoggerFactory
 import java.security.MessageDigest
+import java.util.concurrent.atomic.AtomicReference
 import kotlin.coroutines.CoroutineContext
 import kotlin.io.encoding.Base64
 import kotlin.time.Clock
@@ -61,11 +62,9 @@ class HealthService(
 	// from memory without locking. That keeps token checks off the database, which may be the
 	// thing that's down. The first read is shared and bounded, so while the database hangs
 	// every probe gives up after TOKEN_READ_TIMEOUT instead of queueing behind one read.
-	@Volatile
-	private var knownToken: KnownToken? = null
+	private val knownToken = AtomicReference<KnownToken?>(null)
 	private val tokenRead = SharedTimedCall(ioDispatcher) { configRepository.get(AdminServerConfig.HEALTH_TOKEN) }
 	private val tokenWriteLock = Mutex()
-	private val tokenCacheLock = Any()
 
 	/** Distinguishes "no token issued" (token = null) from "not read yet" (no KnownToken). */
 	private class KnownToken(val token: HealthToken?)
@@ -101,6 +100,7 @@ class HealthService(
 			if (healthCheckDao.ping(DB_TIMEOUT)) {
 				DatabaseHealth(DatabaseState.OK, start.elapsedNow().inWholeMilliseconds)
 			} else {
+				if (dbFailureLog.shouldLog("ping-timeout")) logger.warn("Health check database ping timed out after {}", DB_TIMEOUT)
 				DatabaseHealth(DatabaseState.TIMEOUT, null)
 			}
 		} catch (e: CancellationException) {
@@ -133,23 +133,22 @@ class HealthService(
 	}
 
 	private suspend fun loadToken(timeout: Duration): HealthToken? {
-		knownToken?.let { return it.token }
+		knownToken.get()?.let { return it.token }
 		val read = try {
 			tokenRead.get(timeout)
 		} catch (e: SharedTimedCall.UnavailableException) {
 			throw TokenUnavailableException(e)
 		}
 		// Only the first answer is cached: a token saved while this read was in flight is newer.
-		return synchronized(tokenCacheLock) {
-			knownToken ?: KnownToken(read).also { knownToken = it }
-		}.token
+		knownToken.compareAndSet(null, KnownToken(read))
+		return knownToken.get()!!.token
 	}
 
 	// Probes never wait on tokenWriteLock, so a hung write can't stall token checks; it only
-	// orders concurrent admin saves. The cache lock is held for the swap alone.
+	// orders concurrent admin saves.
 	private suspend fun saveToken(token: HealthToken?) = tokenWriteLock.withLock {
 		configRepository.set(AdminServerConfig.HEALTH_TOKEN, token)
-		synchronized(tokenCacheLock) { knownToken = KnownToken(token) }
+		knownToken.set(KnownToken(token))
 	}
 
 	/** Abandons a token read still in flight; called when the DI container shuts down. */
@@ -182,35 +181,40 @@ class HealthService(
 				.trim('-')
 
 		/**
-		 * Keys each status by its slug. Names that slug alike all get a suffix derived from
-		 * their full name, so registering or removing a job never moves another job's slug
-		 * onto a different job: at worst an old monitor URL starts returning 404.
+		 * Keys each status by its slug. Names that slug alike get a suffix derived from their
+		 * full name, lengthened until no two jobs share a slug. A contested slug goes to none of
+		 * its claimants, so the result depends only on the set of names, never on their order.
 		 */
-		fun jobsBySlug(statuses: List<RecurringTaskStatus>): Map<String, RecurringTaskStatus> =
-			buildMap {
-				statuses.groupBy { slugOf(it.name).ifEmpty { "job" } }.forEach { (base, group) ->
-					if (group.size == 1) {
-						putUnique(base, group.single())
-					} else {
-						group.forEach { putUnique("$base-${sha256Hex(it.name).take(SLUG_SUFFIX_LENGTH)}", it) }
-					}
+		fun jobsBySlug(statuses: List<RecurringTaskStatus>): Map<String, RecurringTaskStatus> {
+			val bases = statuses.associateWith { slugOf(it.name).ifEmpty { "job" } }
+			val shared = bases.values.groupingBy { it }.eachCount().filterValues { it > 1 }.keys
+			var slugs = bases.mapValues { (status, base) ->
+				if (base in shared) suffixed(base, status, SLUG_SUFFIX_LENGTH) else base
+			}
+			var length = SLUG_SUFFIX_LENGTH
+			while (length < SHA256_HEX_LENGTH) {
+				val contested = slugs.values.groupingBy { it }.eachCount().filterValues { it > 1 }.keys
+				if (contested.isEmpty()) break
+				length += SLUG_SUFFIX_LENGTH
+				slugs = slugs.mapValues { (status, slug) ->
+					if (slug in contested) suffixed(bases.getValue(status), status, length) else slug
 				}
 			}
+			// Only contrived names survive a full-length hash; number them by name to stay unique.
+			return slugs.entries
+				.groupBy({ it.value }, { it.key })
+				.flatMap { (slug, group) ->
+					if (group.size == 1) listOf(slug to group.single())
+					else group.sortedBy { it.name }.mapIndexed { i, status -> "$slug-${i + 1}" to status }
+				}
+				.toMap()
+		}
+
+		private fun suffixed(base: String, status: RecurringTaskStatus, length: Int) =
+			"$base-${sha256Hex(status.name).take(length)}"
 
 		private const val SLUG_SUFFIX_LENGTH = 6
-
-		// A suffixed slug could equal another job's plain slug; lengthen the hash rather than
-		// let one job silently replace another.
-		private fun MutableMap<String, RecurringTaskStatus>.putUnique(slug: String, status: RecurringTaskStatus) {
-			var key = slug
-			var length = SLUG_SUFFIX_LENGTH
-			val hash = sha256Hex(status.name)
-			while (key in this) {
-				length += SLUG_SUFFIX_LENGTH
-				key = "$slug-${hash.take(length)}"
-			}
-			put(key, status)
-		}
+		private const val SHA256_HEX_LENGTH = 64
 
 		fun RecurringTaskStatus.health(now: Instant): JobHealth {
 			val state = when {

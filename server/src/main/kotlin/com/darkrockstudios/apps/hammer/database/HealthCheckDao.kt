@@ -12,9 +12,15 @@ open class HealthCheckDao(
 
 	private val ioDispatcher by injectIoDispatcher()
 
-	// Lazy so close() during DI shutdown never resolves the dispatcher.
-	private val selectOne = lazy {
-		SharedTimedCall(ioDispatcher) {
+	// Built on first use so close() during DI shutdown never resolves the dispatcher. The lock
+	// makes "closed" and "built" mutually exclusive, so nothing is built after close().
+	private val lock = Any()
+	private var closed = false
+	private var selectOne: SharedTimedCall<Unit>? = null
+
+	private fun selectOne(): SharedTimedCall<Unit>? = synchronized(lock) {
+		if (closed) return null
+		selectOne ?: SharedTimedCall(ioDispatcher) {
 			database.driver.executeQuery(
 				identifier = null,
 				sql = "SELECT 1",
@@ -22,23 +28,29 @@ open class HealthCheckDao(
 				parameters = 0,
 				binders = null,
 			)
-		}
+			Unit
+		}.also { selectOne = it }
 	}
 
 	/**
-	 * Runs `SELECT 1`. Returns false if it didn't finish within [timeout] (or health checks
-	 * are shutting down); throws if the query itself failed.
+	 * Runs `SELECT 1`. Returns false if it didn't finish within [timeout] or health checks
+	 * are shutting down; throws if the query itself failed.
 	 */
-	open suspend fun ping(timeout: Duration): Boolean =
-		try {
-			selectOne.value.get(timeout)
+	open suspend fun ping(timeout: Duration): Boolean {
+		val call = selectOne() ?: return false
+		return try {
+			call.get(timeout)
 			true
 		} catch (_: SharedTimedCall.UnavailableException) {
 			false
 		}
+	}
 
 	/** Abandons any ping still in flight; called when the DI container shuts down. */
 	fun close() {
-		if (selectOne.isInitialized()) selectOne.value.close()
+		synchronized(lock) {
+			closed = true
+			selectOne?.close()
+		}
 	}
 }
