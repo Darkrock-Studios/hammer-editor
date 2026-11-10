@@ -29,6 +29,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import testProjectId
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -69,15 +70,18 @@ class ExampleProjectFormatTest {
 		return decoded
 	}
 
-	private fun sceneIdsOnDisk(): List<Int> {
+	/** Scene files and group directories, without the dot directories. */
+	private fun sceneEntries(): List<Path> {
 		val scenesDir = projectDir / SceneDatasource.SCENE_DIRECTORY
 		return ffs.listRecursively(scenesDir)
 			.filter { path -> path.relativeTo(scenesDir).segments.none { it.startsWith(".") } }
-			.mapNotNull { SceneDatasource.SCENE_FILENAME_PATTERN.matchEntire(it.name) }
-			.filter { it.groupValues[4] == ".md" }
-			.map { it.groupValues[3].toInt() }
 			.toList()
 	}
+
+	private fun sceneIdsOnDisk(): List<Int> = sceneEntries()
+		.mapNotNull { SceneDatasource.SCENE_FILENAME_PATTERN.matchEntire(it.name) }
+		.filter { it.groupValues[4] == ".md" }
+		.map { it.groupValues[3].toInt() }
 
 	@Test
 	fun `project metadata is current and leaves only the id to be minted`() {
@@ -146,15 +150,24 @@ class ExampleProjectFormatTest {
 
 	@Test
 	fun `scene and group names are stored in their filename encoding`() {
-		val scenesDir = projectDir / SceneDatasource.SCENE_DIRECTORY
-		val names = ffs.listRecursively(scenesDir)
-			.filter { path -> path.relativeTo(scenesDir).segments.none { it.startsWith(".") } }
+		val names = sceneEntries()
 			.mapNotNull { SceneDatasource.SCENE_FILENAME_PATTERN.matchEntire(it.name)?.groupValues?.get(2) }
-			.toList()
 
 		assertTrue(names.isNotEmpty())
 		names.forEach { raw ->
 			assertEquals(raw, ProjectsRepository.encodeForFilename(ProjectsRepository.decodeFromFilename(raw)))
+		}
+	}
+
+	@Test
+	fun `scene text uses plain quotes`() {
+		val scenes = sceneEntries().filter { it.name.endsWith(".md") }
+
+		assertTrue(scenes.isNotEmpty())
+		scenes.forEach { path ->
+			val body = text(path)
+			assertFalse(body.contains('`'), "$path: Gutenberg backtick quote")
+			assertFalse(body.contains("\"*") || body.contains("*\""), "$path: asterisk-wrapped dialogue")
 		}
 	}
 
