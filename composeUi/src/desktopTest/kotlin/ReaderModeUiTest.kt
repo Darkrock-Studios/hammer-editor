@@ -8,7 +8,10 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.onChildren
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.update
@@ -75,6 +78,17 @@ class ReaderModeUiTest : BaseTest() {
 		compose.onNodeWithTag(readerSceneBodyTag(harbour.id)).assertTextEquals("The keeper stepped off the ferry.")
 		compose.onNodeWithTag(readerSceneBodyTag(lampRoom.id)).assertTextEquals("One hundred and nine steps.")
 		compose.onNodeWithTag(readerSceneHeadingTag(harbour.id)).assertDoesNotExist()
+	}
+
+	@Test
+	fun `Nothing sits between scenes when headings are off`() {
+		showReader()
+
+		val rowTags = compose.onNodeWithTag(READER_MODE_LIST_TAG).onChildren().fetchSemanticsNodes()
+			.map { it.config.getOrNull(SemanticsProperties.TestTag) }
+		val harbourIndex = rowTags.indexOf(readerSceneBodyTag(harbour.id))
+
+		assertEquals(readerSceneBodyTag(lampRoom.id), rowTags[harbourIndex + 1])
 	}
 
 	@Test
