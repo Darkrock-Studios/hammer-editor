@@ -120,7 +120,7 @@
 	<string name="projects_list_group_menu_edit_description">Edit description</string>
 	<string name="projects_list_group_menu_delete">Delete group</string>
 	<string name="project_select_card_move_button">Move to…</string>
-	<string name="project_select_card_sync_button">Sync on this device</string>
+	<string name="project_select_card_sync_button">Sync this project</string>
 	<string name="create_project_meta_in_group">In %1$s</string>
 	<string name="create_group_title">Create Group</string>
 	<string name="create_group_marker">New</string>

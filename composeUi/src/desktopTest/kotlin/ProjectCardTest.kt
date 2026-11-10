@@ -29,7 +29,7 @@ import org.junit.Rule
 import org.junit.Test
 import kotlin.test.assertEquals
 
-private const val SyncItem = "Sync on this device"
+private const val SyncItem = "Sync this project"
 
 class ProjectCardTest {
 	@get:Rule
