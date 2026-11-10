@@ -8,6 +8,8 @@ import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
 
 class SharedTimedCallTest {
@@ -44,7 +46,9 @@ class SharedTimedCallTest {
 		assertFailsWith<SharedTimedCall.UnavailableException> { call.get(3.seconds) }
 
 		assertEquals(1, runs)
+		assertFalse(call.isClosed, "a timeout is not a close")
 		call.close()
+		assertTrue(call.isClosed)
 	}
 
 	@Test

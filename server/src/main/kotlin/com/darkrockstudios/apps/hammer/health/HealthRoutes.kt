@@ -12,7 +12,6 @@ import io.ktor.server.response.header
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
-import io.ktor.server.routing.route
 import kotlinx.coroutines.CancellationException
 import org.koin.ktor.ext.get
 import org.slf4j.LoggerFactory
@@ -27,46 +26,51 @@ import kotlin.time.Duration.Companion.minutes
  * Jobs page unlocks the full report and the per-check paths, whose status code
  * reflects that one check alone.
  */
+// Relative to the API prefix. Also the log throttle keys, so they always match the routes.
+private const val ROOT = "/health"
+private const val DATABASE = "$ROOT/database"
+private const val JOB = "$ROOT/jobs/{slug}"
+
 fun Route.healthRoutes() {
 	val healthService: HealthService = get()
 
-	route("/health") {
-		get {
-			call.noStore()
-			when (val caller = call.caller(healthService)) {
-				Caller.Anonymous -> {
-					val summary = healthService.report().summary()
-					call.respondHealth(summary.ok.toStatus(), summary, "failing")
-				}
-
-				Caller.Authorized -> {
-					val report = healthService.report()
-					call.respondHealth(report.ok.toStatus(), report, report.failureReason())
-				}
-
-				else -> call.respondUnauthorized(caller)
+	get(ROOT) {
+		call.noStore()
+		when (val caller = call.caller(healthService)) {
+			Caller.Anonymous -> {
+				val report = healthService.report()
+				call.respondHealth(report.ok.toStatus(), report.summary(), ROOT, report.failureReason())
 			}
-		}
 
-		get("/database") {
-			call.noStore()
-			val caller = call.caller(healthService)
-			if (caller != Caller.Authorized) return@get call.respondUnauthorized(caller)
-			val database = healthService.report().database
-			call.respondHealth(database.ok.toStatus(), database, database.status.name.lowercase())
-		}
-
-		get("/jobs/{slug}") {
-			call.noStore()
-			val caller = call.caller(healthService)
-			if (caller != Caller.Authorized) return@get call.respondUnauthorized(caller)
-			val job = healthService.report().jobs[call.parameters["slug"]]
-			if (job == null) {
-				call.logOutcome(HttpStatusCode.NotFound, "unknown job")
-				call.respond(HttpStatusCode.NotFound)
-			} else {
-				call.respondHealth(job.ok.toStatus(), job, job.status.name.lowercase())
+			Caller.Authorized -> {
+				val report = healthService.report()
+				call.respondHealth(report.ok.toStatus(), report, ROOT, report.failureReason())
 			}
+
+			is Caller.Rejected, Caller.Unverifiable -> call.respondUnauthorized(caller, ROOT)
+		}
+	}
+
+	get(DATABASE) {
+		call.noStore()
+		val caller = call.caller(healthService)
+		if (caller != Caller.Authorized) return@get call.respondUnauthorized(caller, DATABASE)
+		val database = healthService.report().database
+		call.respondHealth(database.ok.toStatus(), database, DATABASE, database.status.name.lowercase())
+	}
+
+	get(JOB) {
+		call.noStore()
+		val caller = call.caller(healthService)
+		if (caller != Caller.Authorized) return@get call.respondUnauthorized(caller, JOB)
+		val slug = call.parameters["slug"]
+		val job = healthService.report().jobs[slug]
+		if (job == null) {
+			call.logOutcome(HttpStatusCode.NotFound, JOB, "unknown job")
+			call.respond(HttpStatusCode.NotFound)
+		} else {
+			// A registered slug, so still a bounded throttle key.
+			call.respondHealth(job.ok.toStatus(), job, "$ROOT/jobs/$slug", job.status.name.lowercase())
 		}
 	}
 }
@@ -83,7 +87,9 @@ private sealed interface Caller {
 private val logger = LoggerFactory.getLogger("HealthRoutes")
 
 // Health paths are left out of call logging since probes repeat every few seconds, so this is
-// the record of failing checks and misconfigured monitors: once a minute per path and outcome.
+// the record of failing checks and misconfigured monitors: once a minute per route and outcome.
+// Keys use route templates and registered slugs, never the raw path, so a client scanning
+// made-up paths can't multiply the log lines.
 private val outcomeLog = LogThrottle(1.minutes)
 
 /**
@@ -109,37 +115,44 @@ private suspend fun ApplicationCall.caller(healthService: HealthService): Caller
 	}
 }
 
-private suspend fun ApplicationCall.respondUnauthorized(caller: Caller) {
+private suspend fun ApplicationCall.respondUnauthorized(caller: Caller, route: String) {
 	when (caller) {
-		Caller.Unverifiable -> respondHealth(HttpStatusCode.ServiceUnavailable, HealthUnavailable(), "token unavailable")
+		Caller.Unverifiable ->
+			respondHealth(HttpStatusCode.ServiceUnavailable, HealthUnavailable(), route, "token unavailable")
+
 		is Caller.Rejected -> {
-			logOutcome(HttpStatusCode.Unauthorized, caller.reason)
+			logOutcome(HttpStatusCode.Unauthorized, route, caller.reason)
 			respond(HttpStatusCode.Unauthorized)
 		}
 
-		else -> {
-			logOutcome(HttpStatusCode.Unauthorized, "no token")
+		Caller.Anonymous -> {
+			logOutcome(HttpStatusCode.Unauthorized, route, "no token")
 			respond(HttpStatusCode.Unauthorized)
 		}
+
+		Caller.Authorized -> error("An authorized caller reached respondUnauthorized")
 	}
 }
 
-/** Sends [body] with [status], logging a non-200 with [reason]. */
+/** Sends [body] with [status], logging a non-200 with [reason] under [route]. */
 private suspend inline fun <reified T : Any> ApplicationCall.respondHealth(
 	status: HttpStatusCode,
 	body: T,
+	route: String,
 	reason: String,
 ) {
-	if (status != HttpStatusCode.OK) logOutcome(status, reason)
+	if (status != HttpStatusCode.OK) logOutcome(status, route, reason)
 	respond(status, body)
 }
 
 // The client is origin.remoteAddress, which is the proxy's address unless trustProxyForwarding
-// is on; the key leaves it out so that case still throttles per path and outcome.
-private fun ApplicationCall.logOutcome(status: HttpStatusCode, reason: String) {
-	val path = request.path()
-	if (outcomeLog.shouldLog("${status.value} $path $reason")) {
-		logger.warn("Health check {} answered {} ({}) to {}", path, status.value, reason, request.origin.remoteAddress)
+// is on; the key leaves it out so that case still throttles per route and outcome.
+private fun ApplicationCall.logOutcome(status: HttpStatusCode, route: String, reason: String) {
+	if (outcomeLog.shouldLog("${status.value} $route $reason")) {
+		logger.warn(
+			"Health check {} answered {} ({}) to {}",
+			request.path(), status.value, reason, request.origin.remoteAddress,
+		)
 	}
 }
 

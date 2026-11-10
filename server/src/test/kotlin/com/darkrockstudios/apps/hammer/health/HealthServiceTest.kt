@@ -5,6 +5,7 @@ import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.base.http.createTokenBase64
 import com.darkrockstudios.apps.hammer.database.Database
 import com.darkrockstudios.apps.hammer.database.HealthCheckDao
+import com.darkrockstudios.apps.hammer.database.HealthCheckDao.PingResult
 import com.darkrockstudios.apps.hammer.database.ServerConfigDao
 import com.darkrockstudios.apps.hammer.e2e.util.SharedPostgresTestDatabase
 import com.darkrockstudios.apps.hammer.scheduling.RecurringTask
@@ -182,8 +183,16 @@ class HealthServiceTest : BaseTest() {
 	}
 
 	@Test
+	fun `a closed ping during shutdown is unavailable, not a database fault`() = runTest {
+		val report = service(FakeHealthCheckDao(db) { PingResult.CLOSED }).report()
+
+		assertEquals(DatabaseState.UNAVAILABLE, report.database.status)
+		assertFalse(report.ok)
+	}
+
+	@Test
 	fun `a database ping that times out is reported as timeout`() = runTest {
-		val report = service(FakeHealthCheckDao(db) { false }).report()
+		val report = service(FakeHealthCheckDao(db) { PingResult.TIMED_OUT }).report()
 
 		assertEquals(DatabaseState.TIMEOUT, report.database.status)
 		assertFalse(report.ok)
@@ -191,7 +200,7 @@ class HealthServiceTest : BaseTest() {
 
 	@Test
 	fun `reports are cached briefly so concurrent probes share one ping`() = runTest {
-		val dao = FakeHealthCheckDao(db) { true }
+		val dao = FakeHealthCheckDao(db) { PingResult.OK }
 		val service = service(dao)
 
 		service.report()
@@ -242,7 +251,7 @@ class HealthServiceTest : BaseTest() {
 
 		dao.close()
 
-		assertFalse(dao.ping(5.seconds))
+		assertEquals(PingResult.CLOSED, dao.ping(5.seconds))
 	}
 
 	@Test
@@ -353,7 +362,7 @@ class HealthServiceTest : BaseTest() {
 
 	@Test
 	fun `the real ping succeeds against the database`() = runTest {
-		assertTrue(HealthCheckDao(db).ping(5.seconds))
+		assertEquals(PingResult.OK, HealthCheckDao(db).ping(5.seconds))
 	}
 
 	private class MutableClock(var now: Instant) : Clock {
@@ -362,12 +371,12 @@ class HealthServiceTest : BaseTest() {
 
 	private class FakeHealthCheckDao(
 		database: Database,
-		private val result: () -> Boolean,
+		private val result: () -> PingResult,
 	) : HealthCheckDao(database) {
 		var pings = 0
 			private set
 
-		override suspend fun ping(timeout: Duration): Boolean {
+		override suspend fun ping(timeout: Duration): PingResult {
 			pings++
 			return result()
 		}

@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.health
 import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.database.HealthCheckDao
+import com.darkrockstudios.apps.hammer.database.HealthCheckDao.PingResult
 import com.darkrockstudios.apps.hammer.scheduling.RecurringTaskRegistry
 import com.darkrockstudios.apps.hammer.scheduling.RecurringTaskStatus
 import com.darkrockstudios.apps.hammer.utilities.SecureTokenGenerator
@@ -97,11 +98,17 @@ class HealthService(
 	private suspend fun checkDatabase(): DatabaseHealth {
 		val start = TimeSource.Monotonic.markNow()
 		return try {
-			if (healthCheckDao.ping(DB_TIMEOUT)) {
-				DatabaseHealth(DatabaseState.OK, start.elapsedNow().inWholeMilliseconds)
-			} else {
-				if (dbFailureLog.shouldLog("ping-timeout")) logger.warn("Health check database ping timed out after {}", DB_TIMEOUT)
-				DatabaseHealth(DatabaseState.TIMEOUT, null)
+			when (healthCheckDao.ping(DB_TIMEOUT)) {
+				PingResult.OK -> DatabaseHealth(DatabaseState.OK, start.elapsedNow().inWholeMilliseconds)
+				PingResult.TIMED_OUT -> {
+					if (dbFailureLog.shouldLog("ping-timeout")) {
+						logger.warn("Health check database ping timed out after {}", DB_TIMEOUT)
+					}
+					DatabaseHealth(DatabaseState.TIMEOUT, null)
+				}
+
+				// Shutting down: reported as unavailable, not as a database fault.
+				PingResult.CLOSED -> DatabaseHealth(DatabaseState.UNAVAILABLE, null)
 			}
 		} catch (e: CancellationException) {
 			throw e
@@ -187,31 +194,20 @@ class HealthService(
 		 */
 		fun jobsBySlug(statuses: List<RecurringTaskStatus>): Map<String, RecurringTaskStatus> {
 			val bases = statuses.associateWith { slugOf(it.name).ifEmpty { "job" } }
-			val shared = bases.values.groupingBy { it }.eachCount().filterValues { it > 1 }.keys
-			var slugs = bases.mapValues { (status, base) ->
-				if (base in shared) suffixed(base, status, SLUG_SUFFIX_LENGTH) else base
-			}
-			var length = SLUG_SUFFIX_LENGTH
-			while (length < SHA256_HEX_LENGTH) {
+			var slugs = bases
+			var length = 0
+			while (true) {
 				val contested = slugs.values.groupingBy { it }.eachCount().filterValues { it > 1 }.keys
 				if (contested.isEmpty()) break
+				// Registered names are unique, so a full-length hash always separates them.
+				check(length < SHA256_HEX_LENGTH) { "Job names $contested could not be given distinct slugs" }
 				length += SLUG_SUFFIX_LENGTH
 				slugs = slugs.mapValues { (status, slug) ->
-					if (slug in contested) suffixed(bases.getValue(status), status, length) else slug
+					if (slug in contested) "${bases.getValue(status)}-${sha256Hex(status.name).take(length)}" else slug
 				}
 			}
-			// Only contrived names survive a full-length hash; number them by name to stay unique.
-			return slugs.entries
-				.groupBy({ it.value }, { it.key })
-				.flatMap { (slug, group) ->
-					if (group.size == 1) listOf(slug to group.single())
-					else group.sortedBy { it.name }.mapIndexed { i, status -> "$slug-${i + 1}" to status }
-				}
-				.toMap()
+			return slugs.entries.associate { (status, slug) -> slug to status }
 		}
-
-		private fun suffixed(base: String, status: RecurringTaskStatus, length: Int) =
-			"$base-${sha256Hex(status.name).take(length)}"
 
 		private const val SLUG_SUFFIX_LENGTH = 6
 		private const val SHA256_HEX_LENGTH = 64

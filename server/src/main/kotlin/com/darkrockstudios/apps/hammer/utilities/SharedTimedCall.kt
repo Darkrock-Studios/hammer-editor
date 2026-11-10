@@ -48,6 +48,8 @@ class SharedTimedCall<T>(
 		return call.await()
 	}
 
+	val isClosed: Boolean get() = !job.isActive
+
 	/** Abandons the call in flight; later [get]s fail fast with [UnavailableException]. */
 	fun close() {
 		job.cancel()

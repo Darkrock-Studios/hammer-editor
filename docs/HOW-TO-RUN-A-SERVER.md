@@ -664,12 +664,12 @@ Uptime monitors (Uptime Kuma, Gatus, a cron'd `curl`) can poll these paths. Each
 `200` when what it reports is healthy and `503` when not, so a plain HTTP check is enough; the
 JSON body says why. They need no client protocol header and are left out of call logging
 and API metrics. Instead, every failing answer is logged as a warning with its reason, at most
-once a minute per path and outcome.
+once a minute per check and outcome.
 
 | Path | Token | Reports |
 |---|---|---|
 | `/api/health` | optional | Overall status. Anonymous callers get `{"status": "ok"}` or `{"status": "failing"}`; with a token, a full report of the database and every job |
-| `/api/health/database` | required | A `SELECT 1` against the database (`ok`, `down` or `timeout`) |
+| `/api/health/database` | required | A `SELECT 1` against the database (`ok`, `down` or `timeout`; `unavailable` while the server shuts down) |
 | `/api/health/jobs/{slug}` | required | One background job (`ok`, `failed`, `overdue` or `stopped`). If two job names reduce to the same slug, both get a short suffix |
 
 A job is `overdue` when it hasn't started within 10 minutes of its scheduled run, or a single

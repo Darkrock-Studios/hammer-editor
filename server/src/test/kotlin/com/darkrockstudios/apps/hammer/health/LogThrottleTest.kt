@@ -16,11 +16,11 @@ class LogThrottleTest {
 	fun `a key logs once per interval`() {
 		val throttle = LogThrottle(1.minutes, time)
 
-		val first = throttle.shouldLog("10.0.0.1")
+		val first = throttle.shouldLog("503 /health database down")
 		time += 59.seconds
-		val tooSoon = throttle.shouldLog("10.0.0.1")
+		val tooSoon = throttle.shouldLog("503 /health database down")
 		time += 1.seconds
-		val again = throttle.shouldLog("10.0.0.1")
+		val again = throttle.shouldLog("503 /health database down")
 
 		assertEquals(listOf(true, false, true), listOf(first, tooSoon, again))
 	}
@@ -29,32 +29,9 @@ class LogThrottleTest {
 	fun `keys are throttled independently`() {
 		val throttle = LogThrottle(1.minutes, time)
 
-		throttle.shouldLog("10.0.0.1")
+		throttle.shouldLog("503 /health database down")
 
-		assertTrue(throttle.shouldLog("10.0.0.2"))
-		assertFalse(throttle.shouldLog("10.0.0.1"))
-	}
-
-	@Test
-	fun `a full map suppresses new keys without resetting existing ones`() {
-		val throttle = LogThrottle(1.minutes, time, maxKeys = 2)
-		throttle.shouldLog("a")
-		throttle.shouldLog("b")
-
-		val newKeyWhileFull = throttle.shouldLog("c")
-		val existingKey = throttle.shouldLog("a")
-
-		assertFalse(newKeyWhileFull)
-		assertFalse(existingKey)
-	}
-
-	@Test
-	fun `expired keys make room for new ones`() {
-		val throttle = LogThrottle(1.minutes, time, maxKeys = 2)
-		throttle.shouldLog("a")
-		throttle.shouldLog("b")
-		time += 1.minutes
-
-		assertTrue(throttle.shouldLog("c"))
+		assertTrue(throttle.shouldLog("401 /health/database no token"))
+		assertFalse(throttle.shouldLog("503 /health database down"))
 	}
 }

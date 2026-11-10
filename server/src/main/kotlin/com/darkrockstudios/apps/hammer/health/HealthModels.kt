@@ -28,6 +28,10 @@ enum class DatabaseState {
 
 	@SerialName("timeout")
 	TIMEOUT,
+
+	/** The server is shutting down; not a database fault. */
+	@SerialName("unavailable")
+	UNAVAILABLE,
 }
 
 @Serializable

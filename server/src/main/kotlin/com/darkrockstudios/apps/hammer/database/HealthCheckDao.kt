@@ -32,17 +32,16 @@ open class HealthCheckDao(
 		}.also { selectOne = it }
 	}
 
-	/**
-	 * Runs `SELECT 1`. Returns false if it didn't finish within [timeout] or health checks
-	 * are shutting down; throws if the query itself failed.
-	 */
-	open suspend fun ping(timeout: Duration): Boolean {
-		val call = selectOne() ?: return false
+	enum class PingResult { OK, TIMED_OUT, CLOSED }
+
+	/** Runs `SELECT 1` within [timeout]; throws if the query itself failed. */
+	open suspend fun ping(timeout: Duration): PingResult {
+		val call = selectOne() ?: return PingResult.CLOSED
 		return try {
 			call.get(timeout)
-			true
+			PingResult.OK
 		} catch (_: SharedTimedCall.UnavailableException) {
-			false
+			if (call.isClosed) PingResult.CLOSED else PingResult.TIMED_OUT
 		}
 	}
 
