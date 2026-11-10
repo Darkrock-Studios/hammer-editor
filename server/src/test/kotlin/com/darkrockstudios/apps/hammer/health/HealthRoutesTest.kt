@@ -246,6 +246,29 @@ class HealthRoutesTest : BaseTest() {
 	}
 
 	@Test
+	fun `an unreadable token gets a 503 with a reason`() = testApplication {
+		healthService = HealthService(
+			registry = registry,
+			healthCheckDao = HealthCheckDao(db),
+			configRepository = ConfigRepository(object : ServerConfigDao(db) {
+				override suspend fun getConfig(key: String): String? = error("database down")
+			}),
+			base64 = createTokenBase64(),
+			clock = kotlin.time.Clock.System,
+			ioDispatcher = kotlinx.coroutines.Dispatchers.IO,
+		)
+		application(appModule())
+
+		val report = client.health(token = "anything")
+		val database = client.health("/database", "anything")
+
+		assertEquals(HttpStatusCode.ServiceUnavailable, report.status)
+		assertEquals("unavailable", report.json().getValue("status").jsonPrimitive.content)
+		assertEquals(HttpStatusCode.ServiceUnavailable, database.status)
+		assertEquals("unavailable", database.json().getValue("status").jsonPrimitive.content)
+	}
+
+	@Test
 	fun `a revoked token no longer unlocks detail`() = testApplication {
 		application(appModule())
 		val token = runBlocking { healthService.generateToken() }

@@ -662,8 +662,8 @@ As long as that doesn't throw any errors, you can restart nginx. You should now 
 
 Uptime monitors (Uptime Kuma, Gatus, a cron'd `curl`) can poll these paths. Each one answers
 `200` when what it reports is healthy and `503` when not, so a plain HTTP check is enough; the
-JSON body says why. They need no client protocol header and are left out of API metrics.
-Successful probes are not logged; failing ones and rejected tokens are.
+JSON body says why. They need no client protocol header and are left out of call logging
+and API metrics. Database failures and rejected tokens are logged, at most once a minute each.
 
 | Path | Token | Reports |
 |---|---|---|

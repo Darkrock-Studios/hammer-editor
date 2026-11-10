@@ -1,7 +1,6 @@
 package com.darkrockstudios.apps.hammer.plugins
 
 import com.darkrockstudios.apps.hammer.health.isHealthPath
-import io.ktor.http.isSuccess
 import io.ktor.server.application.*
 import io.ktor.server.plugins.calllogging.*
 import io.ktor.server.request.*
@@ -12,11 +11,8 @@ fun Application.configureMonitoring(passedLogLevel: Level? = null) {
 
 	install(CallLogging) {
 		level = logLevel
-		// Healthy probes would flood the log; failing ones and rejected tokens are worth seeing.
-		filter { call ->
-			val path = call.request.path()
-			path.startsWith("/") && !(isHealthPath(path) && call.response.status()?.isSuccess() == true)
-		}
+		// Probes repeat every few seconds; the health code logs its own failures, throttled.
+		filter { call -> call.request.path().let { it.startsWith("/") && !isHealthPath(it) } }
 	}
 	log.info("Monitoring enabled - Level Level: $logLevel")
 }

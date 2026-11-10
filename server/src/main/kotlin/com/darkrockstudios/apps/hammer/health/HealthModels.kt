@@ -53,6 +53,13 @@ data class HealthSummary(
 	val ok: Boolean get() = status == OverallState.OK
 }
 
+/** Served with a 503 when the token can't be checked, so a JSON monitor still has a reason. */
+@Serializable
+data class HealthUnavailable(
+	val status: String = "unavailable",
+	val reason: String = "could not verify the health token; the database may be unreachable",
+)
+
 @Serializable
 data class HealthReport(
 	val status: OverallState,

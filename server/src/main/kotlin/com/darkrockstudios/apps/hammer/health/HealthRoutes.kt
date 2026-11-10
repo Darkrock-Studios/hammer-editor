@@ -15,6 +15,7 @@ import io.ktor.server.routing.route
 import kotlinx.coroutines.CancellationException
 import org.koin.ktor.ext.get
 import org.slf4j.LoggerFactory
+import kotlin.time.Duration.Companion.minutes
 
 /**
  * Health checks for uptime monitors. Mounted under the API prefix, so the full
@@ -43,7 +44,7 @@ fun Route.healthRoutes() {
 				}
 
 				Caller.REJECTED -> call.respond(HttpStatusCode.Unauthorized)
-				Caller.UNVERIFIABLE -> call.respond(HttpStatusCode.ServiceUnavailable)
+				Caller.UNVERIFIABLE -> call.respondUnverifiable()
 			}
 		}
 
@@ -70,6 +71,7 @@ fun Route.healthRoutes() {
 private enum class Caller { ANONYMOUS, AUTHORIZED, REJECTED, UNVERIFIABLE }
 
 private val logger = LoggerFactory.getLogger("HealthRoutes")
+private val rejectionLog = LogThrottle(1.minutes)
 
 /**
  * Only a Bearer credential is ours; any other scheme (e.g. Basic auth meant for a
@@ -94,11 +96,17 @@ private suspend fun ApplicationCall.caller(healthService: HealthService): Caller
 	}
 }
 
-// Health probes are left out of call logging, so a monitor sending a stale token would
-// otherwise leave no trace on the server.
+// Health paths are left out of call logging, so this is the only record of a monitor sending a
+// stale token. Throttled per client, since a misconfigured monitor repeats every poll.
 private fun ApplicationCall.rejected(reason: String): Caller {
-	logger.warn("Rejected health check from {}: {}", request.origin.remoteHost, reason)
+	val client = request.origin.remoteAddress
+	if (rejectionLog.shouldLog(client)) logger.warn("Rejected health check from {}: {}", client, reason)
 	return Caller.REJECTED
+}
+
+/** The token couldn't be checked, almost always because the database is unreachable. */
+private suspend fun ApplicationCall.respondUnverifiable() {
+	respond(HttpStatusCode.ServiceUnavailable, HealthUnavailable())
 }
 
 /** Responds with the failure and returns false unless the caller presented a valid token. */
@@ -106,7 +114,7 @@ private suspend fun ApplicationCall.requireAuthorized(healthService: HealthServi
 	when (caller(healthService)) {
 		Caller.AUTHORIZED -> true
 		Caller.UNVERIFIABLE -> {
-			respond(HttpStatusCode.ServiceUnavailable)
+			respondUnverifiable()
 			false
 		}
 

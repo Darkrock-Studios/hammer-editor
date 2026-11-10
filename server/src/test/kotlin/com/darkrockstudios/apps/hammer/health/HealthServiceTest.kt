@@ -13,6 +13,7 @@ import com.darkrockstudios.apps.hammer.scheduling.RecurringTaskStatus
 import com.darkrockstudios.apps.hammer.utils.BaseTest
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
@@ -212,6 +213,17 @@ class HealthServiceTest : BaseTest() {
 	}
 
 	@Test
+	fun `a suffixed slug never replaces another job with the same slug`() {
+		fun status(name: String) = RecurringTaskStatus(name, true, null, null, false, null)
+		val suffixed = "sync-" + com.darkrockstudios.apps.hammer.utilities.sha256Hex("Sync job").take(6)
+
+		val jobs = HealthService.jobsBySlug(listOf(status("Sync job"), status("Sync"), status(suffixed)))
+
+		assertEquals(3, jobs.size)
+		assertEquals(setOf("Sync job", "Sync", suffixed), jobs.values.map { it.name }.toSet())
+	}
+
+	@Test
 	fun `colliding slugs get a suffix that is stable as jobs come and go`() {
 		fun status(name: String) = RecurringTaskStatus(name, true, null, null, false, null)
 
@@ -257,6 +269,24 @@ class HealthServiceTest : BaseTest() {
 
 		assertFailsWith<HealthService.TokenUnavailableException> { service.verifyToken("anything") }
 		service.close()
+	}
+
+	@Test
+	fun `a cached token keeps verifying while a token save hangs`() = runTest {
+		var hangWrites = false
+		val config = ConfigRepository(object : ServerConfigDao(db) {
+			override suspend fun upsertConfig(key: String, value: String) {
+				if (hangWrites) awaitCancellation() else super.upsertConfig(key, value)
+			}
+		})
+		val service = service(config = config)
+		val token = service.generateToken()
+		hangWrites = true
+
+		backgroundScope.launch { service.revokeToken() }
+		runCurrent()
+
+		assertTrue(service.verifyToken(token))
 	}
 
 	@Test

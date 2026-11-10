@@ -6,26 +6,22 @@ import com.darkrockstudios.apps.hammer.database.HealthCheckDao
 import com.darkrockstudios.apps.hammer.scheduling.RecurringTaskRegistry
 import com.darkrockstudios.apps.hammer.scheduling.RecurringTaskStatus
 import com.darkrockstudios.apps.hammer.utilities.SecureTokenGenerator
+import com.darkrockstudios.apps.hammer.utilities.SharedTimedCall
 import com.darkrockstudios.apps.hammer.utilities.sha256Hex
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.async
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.Serializable
 import org.slf4j.LoggerFactory
 import java.security.MessageDigest
 import kotlin.coroutines.CoroutineContext
 import kotlin.io.encoding.Base64
 import kotlin.time.Clock
+import kotlin.time.ComparableTimeMark
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
-import kotlin.time.ComparableTimeMark
 import kotlin.time.Instant
 import kotlin.time.TimeSource
 
@@ -62,14 +58,19 @@ class HealthService(
 	private var cachedAt: ComparableTimeMark? = null
 
 	// This service is the only writer of the token, so after the first read it is served
-	// from memory. That keeps token checks off the database, which may be the thing that's down.
-	// The first read runs detached and is shared, so while the database hangs every probe
-	// gives up after TOKEN_READ_TIMEOUT instead of queueing behind one blocked read.
-	private val tokenLock = Mutex()
-	private var tokenLoaded = false
-	private var storedToken: HealthToken? = null
-	private var tokenRead: Deferred<HealthToken?>? = null
-	private val tokenReadScope = CoroutineScope(SupervisorJob() + ioDispatcher)
+	// from memory without locking. That keeps token checks off the database, which may be the
+	// thing that's down. The first read is shared and bounded, so while the database hangs
+	// every probe gives up after TOKEN_READ_TIMEOUT instead of queueing behind one read.
+	@Volatile
+	private var knownToken: KnownToken? = null
+	private val tokenRead = SharedTimedCall(ioDispatcher) { configRepository.get(AdminServerConfig.HEALTH_TOKEN) }
+	private val tokenWriteLock = Mutex()
+	private val tokenCacheLock = Any()
+
+	/** Distinguishes "no token issued" (token = null) from "not read yet" (no KnownToken). */
+	private class KnownToken(val token: HealthToken?)
+
+	private val dbFailureLog = LogThrottle(LOG_INTERVAL)
 
 	suspend fun report(): HealthReport = reportLock.withLock {
 		val last = cached
@@ -105,7 +106,7 @@ class HealthService(
 		} catch (e: CancellationException) {
 			throw e
 		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-			logger.warn("Health check database ping failed", e)
+			if (dbFailureLog.shouldLog("ping")) logger.warn("Health check database ping failed", e)
 			DatabaseHealth(DatabaseState.DOWN, null)
 		}
 	}
@@ -118,55 +119,53 @@ class HealthService(
 
 	suspend fun revokeToken() = saveToken(null)
 
+	/** Waits longer than a probe would: this is for the admin page, not a monitor. */
 	suspend fun tokenCreatedAt(): Instant? =
-		loadToken()?.let { Instant.fromEpochMilliseconds(it.createdAtMillis) }
+		loadToken(ADMIN_TOKEN_READ_TIMEOUT)?.let { Instant.fromEpochMilliseconds(it.createdAtMillis) }
 
 	/** Throws [TokenUnavailableException] or the read's own error if the token can't be read. */
 	suspend fun verifyToken(given: String): Boolean {
-		val stored = loadToken() ?: return false
+		val stored = loadToken(TOKEN_READ_TIMEOUT) ?: return false
 		return MessageDigest.isEqual(
 			sha256Hex(given).toByteArray(Charsets.UTF_8),
 			stored.hash.toByteArray(Charsets.UTF_8),
 		)
 	}
 
-	private suspend fun loadToken(): HealthToken? {
-		val read = tokenLock.withLock {
-			if (tokenLoaded) return storedToken
-			tokenRead?.takeIf { it.isActive }
-				?: tokenReadScope.async { configRepository.get(AdminServerConfig.HEALTH_TOKEN) }
-					.also { tokenRead = it }
+	private suspend fun loadToken(timeout: Duration): HealthToken? {
+		knownToken?.let { return it.token }
+		val read = try {
+			tokenRead.get(timeout)
+		} catch (e: SharedTimedCall.UnavailableException) {
+			throw TokenUnavailableException(e)
 		}
-		val result = withTimeoutOrNull(TOKEN_READ_TIMEOUT) { Result.success(read.await()) }
-			?: throw TokenUnavailableException()
-		return tokenLock.withLock {
-			// A token saved while the read was in flight is newer than what the read returned.
-			if (!tokenLoaded) {
-				storedToken = result.getOrThrow()
-				tokenLoaded = true
-			}
-			storedToken
-		}
+		// Only the first answer is cached: a token saved while this read was in flight is newer.
+		return synchronized(tokenCacheLock) {
+			knownToken ?: KnownToken(read).also { knownToken = it }
+		}.token
 	}
 
-	private suspend fun saveToken(token: HealthToken?) = tokenLock.withLock {
+	// Probes never wait on tokenWriteLock, so a hung write can't stall token checks; it only
+	// orders concurrent admin saves. The cache lock is held for the swap alone.
+	private suspend fun saveToken(token: HealthToken?) = tokenWriteLock.withLock {
 		configRepository.set(AdminServerConfig.HEALTH_TOKEN, token)
-		storedToken = token
-		tokenLoaded = true
+		synchronized(tokenCacheLock) { knownToken = KnownToken(token) }
 	}
 
 	/** Abandons a token read still in flight; called when the DI container shuts down. */
 	fun close() {
-		tokenReadScope.cancel()
+		tokenRead.close()
 	}
 
-	class TokenUnavailableException : Exception("Timed out reading the health token")
+	class TokenUnavailableException(cause: Throwable) : Exception("Could not read the health token in time", cause)
 
 	companion object {
 		private const val TOKEN_BYTES = 32
 		private val CACHE_TTL = 5.seconds
 		private val DB_TIMEOUT = 3.seconds
 		private val TOKEN_READ_TIMEOUT = 3.seconds
+		private val ADMIN_TOKEN_READ_TIMEOUT = 30.seconds
+		private val LOG_INTERVAL = 1.minutes
 
 		/** How far past its scheduled run a job may be before it counts as overdue. */
 		val OVERDUE_GRACE = 10.minutes
@@ -191,14 +190,27 @@ class HealthService(
 			buildMap {
 				statuses.groupBy { slugOf(it.name).ifEmpty { "job" } }.forEach { (base, group) ->
 					if (group.size == 1) {
-						put(base, group.single())
+						putUnique(base, group.single())
 					} else {
-						group.forEach { put("$base-${sha256Hex(it.name).take(SLUG_SUFFIX_LENGTH)}", it) }
+						group.forEach { putUnique("$base-${sha256Hex(it.name).take(SLUG_SUFFIX_LENGTH)}", it) }
 					}
 				}
 			}
 
 		private const val SLUG_SUFFIX_LENGTH = 6
+
+		// A suffixed slug could equal another job's plain slug; lengthen the hash rather than
+		// let one job silently replace another.
+		private fun MutableMap<String, RecurringTaskStatus>.putUnique(slug: String, status: RecurringTaskStatus) {
+			var key = slug
+			var length = SLUG_SUFFIX_LENGTH
+			val hash = sha256Hex(status.name)
+			while (key in this) {
+				length += SLUG_SUFFIX_LENGTH
+				key = "$slug-${hash.take(length)}"
+			}
+			put(key, status)
+		}
 
 		fun RecurringTaskStatus.health(now: Instant): JobHealth {
 			val state = when {
