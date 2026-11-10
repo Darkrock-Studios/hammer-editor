@@ -150,7 +150,7 @@ class ExampleProjectTimelineTest : BaseTest() {
 		val stored = TimeLineDatasource(ffs, toml).loadTimeline(projDef).events
 
 		assertEquals(events, stored)
-		assertEquals(16, events.count { it.kind == TimelineKind.SCENE })
+		assertEquals(44, events.count { it.kind == TimelineKind.SCENE })
 		assertEquals(listOf(34), events.filter { it.kind == TimelineKind.ENTRY }.mapNotNull { it.subject })
 		assertEquals(
 			setOf("Down the rabbit hole", "Alice wakes on the bank"),

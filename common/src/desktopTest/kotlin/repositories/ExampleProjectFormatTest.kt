@@ -12,6 +12,7 @@ import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteCont
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectdata.StoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
@@ -108,7 +109,7 @@ class ExampleProjectFormatTest {
 			ffs.readTomlOrNull<ProjectMetadata>(projectDir / ProjectMetadata.FILENAME, toml)
 		).info.created
 
-		assertEquals(17, sceneIds.size)
+		assertEquals(45, sceneIds.size)
 		assertEquals(
 			sceneIds.mapTo(HashSet()) { SceneMetadataDatasource.getMetadataFilenameFromId(it) },
 			ffs.list(metadataDir).mapTo(HashSet()) { it.name },
@@ -122,6 +123,38 @@ class ExampleProjectFormatTest {
 			val lastEdited = assertNotNull(metadata.lastEdited, "scene $sceneId has no lastEdited")
 			assertTrue(created >= projectCreated, "scene $sceneId was created before the project")
 			assertTrue(lastEdited >= created, "scene $sceneId was edited before it was created")
+		}
+	}
+
+	@Test
+	fun `every scene is outlined, annotated, tagged and references real entries`() {
+		val entryIds = ffs.listRecursively(projectDir / EncyclopediaDatasource.ENCYCLOPEDIA_DIRECTORY)
+			.mapNotNull { EncyclopediaDatasource.ENTRY_FILENAME_PATTERN.matchEntire(it.name) }
+			.map { it.groupValues[2].toInt() }
+			.toSet()
+		val metadataDir = SceneMetadataDatasource.getMetadataDirectory(projDef, ffs).toOkioPath()
+
+		sceneIdsOnDisk().forEach { sceneId ->
+			val path = metadataDir / SceneMetadataDatasource.getMetadataFilenameFromId(sceneId)
+			val metadata = assertNotNull(ffs.readTomlOrNull<SceneMetadata>(path, toml))
+			assertTrue(metadata.outline.isNotBlank(), "scene $sceneId has no outline")
+			assertTrue(metadata.notes.isNotBlank(), "scene $sceneId has no notes")
+			assertTrue(metadata.tags.isNotEmpty(), "scene $sceneId has no tags")
+			assertTrue(entryIds.containsAll(metadata.confirmedReferences), "scene $sceneId: ${metadata.confirmedReferences - entryIds}")
+		}
+	}
+
+	@Test
+	fun `scene and group names are stored in their filename encoding`() {
+		val scenesDir = projectDir / SceneDatasource.SCENE_DIRECTORY
+		val names = ffs.listRecursively(scenesDir)
+			.filter { path -> path.relativeTo(scenesDir).segments.none { it.startsWith(".") } }
+			.mapNotNull { SceneDatasource.SCENE_FILENAME_PATTERN.matchEntire(it.name)?.groupValues?.get(2) }
+			.toList()
+
+		assertTrue(names.isNotEmpty())
+		names.forEach { raw ->
+			assertEquals(raw, ProjectsRepository.encodeForFilename(ProjectsRepository.decodeFromFilename(raw)))
 		}
 	}
 
