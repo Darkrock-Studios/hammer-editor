@@ -63,6 +63,11 @@
 	<string name="markdown_format_bar_table_delete_column">Delete column</string>
 	<string name="markdown_format_bar_table_to_text">Convert to text</string>
 	<string name="markdown_format_bar_table_delete">Delete table</string>
+	<string name="markdown_format_bar_alignment">Alignment</string>
+	<string name="markdown_format_bar_align_left">Align left</string>
+	<string name="markdown_format_bar_align_center">Center</string>
+	<string name="markdown_format_bar_align_right">Align right</string>
+	<string name="markdown_format_bar_justify">Justify</string>
 	<string name="markdown_format_bar_undo">Undo</string>
 	<string name="markdown_format_bar_redo">Redo</string>
 	<string name="engraving_placeholder_label">[Engraving · %1$s]</string>

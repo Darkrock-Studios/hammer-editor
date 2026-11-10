@@ -11,6 +11,7 @@ import kotlinx.html.*
 import kotlinx.html.stream.appendHTML
 import okio.BufferedSink
 import com.darkrockstudios.apps.hammer.base.markdown.ProseHtml
+import com.darkrockstudios.apps.hammer.base.markdown.stripAlignmentWrappers
 import com.darkrockstudios.apps.hammer.common.data.references.ImageReferenceSyntax
 import org.intellij.markdown.MarkdownElementTypes
 import org.intellij.markdown.ast.ASTNode
@@ -129,6 +130,10 @@ private fun buildStylesheet(theme: ProjectTheme?, font: ExportFont): Stylesheet 
 		div.toc li.toc-item a { text-decoration: none; }
 		.user-del { text-decoration: line-through; }
 		img { display: block; max-width: 100%; height: auto; margin: 1em auto; }
+		.align-left { text-align: left; }
+		.align-center { text-align: center; }
+		.align-right { text-align: right; }
+		.align-justify { text-align: justify; }
 		""".trimIndent(),
 	)
 
@@ -245,10 +250,11 @@ private fun BODY.chapterBody(
 ) {
 	h1(classes = "chapter-title") { +chapterTitle }
 	val flavour = GFMFlavourDescriptor()
-	val source = ProseHtml.normalizeLineEndings(markdown)
+	val aligned = stripAlignmentWrappers(ProseHtml.normalizeLineEndings(markdown))
+	val source = aligned.markdown
 	val parsed = MarkdownParser(flavour).buildMarkdownTreeFromString(source)
 	val linkMap = LinkMap.buildLinkMap(parsed, source)
-	val providers = ProseHtml.providers(flavour, linkMap, keepBlankLines) +
+	val providers = ProseHtml.providers(flavour, linkMap, keepBlankLines, aligned) +
 		(MarkdownElementTypes.IMAGE to EpubImageProvider(linkMap, images, imageNames))
 	val htmlBody = HtmlGenerator(source, parsed, providers).generateHtml()
 	val xhtmlBody = htmlBody.selfCloseHtmlVoidTags()

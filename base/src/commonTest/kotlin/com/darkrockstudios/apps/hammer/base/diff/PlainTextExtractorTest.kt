@@ -82,4 +82,12 @@ class PlainTextExtractorTest {
 			prevSourceEnd = seg.sourceEnd
 		}
 	}
+
+	@Test
+	fun `an aligned paragraph's text survives its wrapper`() {
+		val result = extractPlainText("before\n<div align=\"center\">\n\nCentred line\n\n</div>\n\nafter")
+		assertTrue("Centred line" in result.plain, result.plain)
+		assertTrue("before" in result.plain && "after" in result.plain, result.plain)
+		assertTrue("div" !in result.plain, result.plain)
+	}
 }

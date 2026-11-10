@@ -524,4 +524,23 @@ class MarkdownRendererTest {
 	private fun countBreaks(html: String) = Regex("<br\\s*/?>").findAll(html).count()
 
 	private fun countTag(html: String, tag: String) = Regex("<$tag[\\s>]").findAll(html).count()
+
+	@Test
+	fun `markdownToSafeHtml gives aligned story prose its alignment class`() {
+		val markdown = "before\n<div align=\"center\">\n\n# Title\n\ncentred\n\n</div>\n\nafter"
+		val result = markdownRenderer.markdownToSafeHtml(markdown, preserveLineBreaks = true)
+
+		assertTrue(result.contains("<h1 class=\"align-center\">Title</h1>"), result)
+		assertTrue(result.contains("<p class=\"align-center\">centred</p>"), result)
+		assertTrue(result.contains("<p>before</p>"), result)
+		assertTrue(result.contains("<p>after</p>"), result)
+		assertFalse(result.contains("div"), result)
+	}
+
+	@Test
+	fun `markdownToSafeHtml keeps no other class an author writes`() {
+		val result = markdownRenderer.markdownToSafeHtml("<p class=\"evil\">x</p>", preserveLineBreaks = true)
+
+		assertFalse(result.contains("evil"), result)
+	}
 }

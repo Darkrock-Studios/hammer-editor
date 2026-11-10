@@ -1131,4 +1131,15 @@ class DocxStoryRendererTest {
 		/** 914400 EMUs per inch over 1440 twips per inch. */
 		const val EMU_PER_TWIP = 635L
 	}
+
+	@Test
+	fun `an aligned paragraph is justified as written`() {
+		val markdown = "plain\n<div align=\"center\">\n\ncentred\n\n</div>\n\n<div align=\"justify\">\n\njustified\n\n</div>"
+		val byText = render(listOf(StoryChapter("Alpha", markdown))).bodyParagraphs().associateBy { it.text }
+
+		assertEquals(ParagraphAlignment.LEFT, assertNotNull(byText["plain"]).alignment)
+		assertEquals(ParagraphAlignment.CENTER, assertNotNull(byText["centred"]).alignment)
+		assertEquals(ParagraphAlignment.BOTH, assertNotNull(byText["justified"]).alignment)
+		assertTrue(byText.keys.none { "div" in it }, byText.keys.toString())
+	}
 }

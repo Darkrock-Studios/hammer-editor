@@ -1,9 +1,13 @@
 package com.darkrockstudios.apps.hammer.common.compose.markdowneditor
 
+import kotlin.math.abs
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
@@ -13,8 +17,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.FormatAlignLeft
+import androidx.compose.material.icons.automirrored.filled.FormatAlignRight
 import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Checklist
+import androidx.compose.material.icons.filled.FormatAlignCenter
+import androidx.compose.material.icons.filled.FormatAlignJustify
 import androidx.compose.material.icons.filled.FormatListNumbered
 import androidx.compose.material.icons.filled.FormatQuote
 import androidx.compose.material.icons.filled.Highlight
@@ -45,6 +54,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.PopupProperties
@@ -71,9 +81,14 @@ import com.darkrockstudios.apps.hammer.markdown_format_bar_bullet_list
 import com.darkrockstudios.apps.hammer.markdown_format_bar_decrease_text_size
 import com.darkrockstudios.apps.hammer.markdown_format_bar_find_replace
 import com.darkrockstudios.apps.hammer.markdown_format_bar_heading
+import com.darkrockstudios.apps.hammer.markdown_format_bar_align_center
+import com.darkrockstudios.apps.hammer.markdown_format_bar_align_left
+import com.darkrockstudios.apps.hammer.markdown_format_bar_align_right
+import com.darkrockstudios.apps.hammer.markdown_format_bar_alignment
 import com.darkrockstudios.apps.hammer.markdown_format_bar_highlight
 import com.darkrockstudios.apps.hammer.markdown_format_bar_horizontal_rule
 import com.darkrockstudios.apps.hammer.markdown_format_bar_image
+import com.darkrockstudios.apps.hammer.markdown_format_bar_justify
 import com.darkrockstudios.apps.hammer.markdown_format_bar_increase_text_size
 import com.darkrockstudios.apps.hammer.markdown_format_bar_italic
 import com.darkrockstudios.apps.hammer.markdown_format_bar_numbered_list
@@ -99,6 +114,7 @@ import com.darkrockstudios.apps.hammer.markdown_format_bar_undo
 import com.darkrockstudios.apps.hammer.more_menu_button
 import com.darkrockstudios.texteditor.TextEditorRange
 import com.darkrockstudios.texteditor.markdown.MarkdownExtension
+import com.darkrockstudios.texteditor.markdown.markdownKeepsAlignment
 import com.darkrockstudios.texteditor.richstyle.BlockquoteSpanStyle
 import com.darkrockstudios.texteditor.richstyle.BulletListSpanStyle
 import com.darkrockstudios.texteditor.richstyle.OrderedListSpanStyle
@@ -118,6 +134,8 @@ import com.darkrockstudios.texteditor.state.insertTableRow
 import com.darkrockstudios.texteditor.state.isInlineOnlyLine
 import com.darkrockstudios.texteditor.state.isTask
 import com.darkrockstudios.texteditor.state.isTableCell
+import com.darkrockstudios.texteditor.state.paragraphFormat
+import com.darkrockstudios.texteditor.state.setParagraphAlignment
 import com.darkrockstudios.texteditor.state.setTableColumnAlignment
 import com.darkrockstudios.texteditor.state.tableCellAt
 import com.darkrockstudios.texteditor.state.toggleSpanStyle
@@ -152,6 +170,8 @@ fun MarkdownFormatBar(
 	var tableLine by remember { mutableStateOf<Int?>(null) }
 	var blocksRefused by remember { mutableStateOf(false) }
 	var ruleRefused by remember { mutableStateOf(false) }
+	var currentAlignment by remember { mutableStateOf<TextAlign?>(null) }
+	var alignmentRefused by remember { mutableStateOf(false) }
 
 	val state = remember(markdownState) { markdownState.editorState }
 
@@ -162,6 +182,9 @@ fun MarkdownFormatBar(
 		isTaskActive = state.isTask(line)
 		blocksRefused = state.isInlineOnlyLine(line)
 		ruleRefused = blocksRefused || selection != null && (state.isTableCell(selection.start.line) || state.isTableCell(selection.end.line))
+		// Markdown saves the alignment of paragraphs and headings alone; a table cell aligns by its column.
+		alignmentRefused = alignableLines(state, line, selection).isEmpty()
+		currentAlignment = state.paragraphFormat(line)?.textAlign
 	}
 
 	LaunchedEffect(Unit) {
@@ -203,14 +226,10 @@ fun MarkdownFormatBar(
 	val showOverflow = decreaseTextSize != null || increaseTextSize != null ||
 		resetTextSize != null || onFindReplace != null
 
-	BoxWithConstraints(modifier = modifier.background(MaterialTheme.colorScheme.surfaceContainerLow)) {
-		val compact = maxWidth < TOOLBAR_COMPACT_THRESHOLD
-		val rowModifier = if (compact) {
-			Modifier.horizontalScroll(rememberScrollState())
-		} else {
-			Modifier.fillMaxWidth()
-		}
-		Row(modifier = rowModifier) {
+	Row(modifier = modifier.background(MaterialTheme.colorScheme.surfaceContainerLow).fillMaxWidth()) {
+		// The format buttons scroll in the space left; history and the overflow menu stay in reach.
+		val scroll = rememberScrollState()
+		Row(modifier = Modifier.weight(1f).wheelScrollsSideways(scroll).horizontalScroll(scroll)) {
 			FormatButtons(
 				state = state,
 				isBoldActive = isBoldActive,
@@ -227,27 +246,46 @@ fun MarkdownFormatBar(
 				blocksRefused = blocksRefused,
 				ruleRefused = ruleRefused,
 				onInsertImage = onInsertImage,
+				currentAlignment = currentAlignment,
+				alignmentRefused = alignmentRefused,
+				onAlign = { align ->
+					alignParagraphs(state, align)
+					currentAlignment = align
+				},
 			)
+		}
 
-			if (compact) {
-				Spacer(modifier = Modifier.width(8.dp))
-			} else {
-				Spacer(modifier = Modifier.weight(1f))
-			}
+		Spacer(modifier = Modifier.width(8.dp))
 
-			HistoryAndOverflow(
-				state = state,
-				decreaseTextSize = decreaseTextSize,
-				increaseTextSize = increaseTextSize,
-				resetTextSize = resetTextSize,
-				onFindReplace = onFindReplace,
-				showOverflow = showOverflow,
-			)
+		HistoryAndOverflow(
+			state = state,
+			decreaseTextSize = decreaseTextSize,
+			increaseTextSize = increaseTextSize,
+			resetTextSize = resetTextSize,
+			onFindReplace = onFindReplace,
+			showOverflow = showOverflow,
+		)
+	}
+}
+
+/**
+ * A mouse wheel turned up or down scrolls [state] sideways: a horizontal scroll alone takes only a
+ * sideways wheel or trackpad swipe, which most mice don't have.
+ */
+private fun Modifier.wheelScrollsSideways(state: ScrollState): Modifier = pointerInput(state) {
+	awaitPointerEventScope {
+		while (true) {
+			val event = awaitPointerEvent(PointerEventPass.Initial)
+			if (event.type != PointerEventType.Scroll) continue
+			val change = event.changes.firstOrNull() ?: continue
+			val delta = change.scrollDelta
+			if (abs(delta.y) <= abs(delta.x)) continue
+			if (state.dispatchRawDelta(delta.y * WHEEL_STEP.toPx()) != 0f) change.consume()
 		}
 	}
 }
 
-private val TOOLBAR_COMPACT_THRESHOLD = 520.dp
+private val WHEEL_STEP = 64.dp
 
 @Composable
 private fun RowScope.FormatButtons(
@@ -266,6 +304,9 @@ private fun RowScope.FormatButtons(
 	blocksRefused: Boolean,
 	ruleRefused: Boolean,
 	onInsertImage: (() -> Unit)?,
+	currentAlignment: TextAlign?,
+	alignmentRefused: Boolean,
+	onAlign: (TextAlign?) -> Unit,
 ) {
 	EditorTooltip("${Res.string.markdown_format_bar_bold.get()} (${shortcutHint("B")})") {
 		EditorAction(
@@ -355,6 +396,7 @@ private fun RowScope.FormatButtons(
 			}
 		}
 	}
+	AlignmentMenu(currentAlignment, enabled = !alignmentRefused, onAlign = onAlign)
 	EditorTooltip(Res.string.markdown_format_bar_horizontal_rule.get()) {
 		EditorAction(
 			icon = Icons.Default.HorizontalRule,
@@ -425,6 +467,78 @@ private fun TableMenu(state: TextEditorState, tableLine: Int?) {
 				item(Res.string.markdown_format_bar_table_delete.get()) { state.deleteTable(line) }
 			}
 		}
+	}
+}
+
+/** The alignments the menu offers; left is the default, so choosing it clears the line's own. */
+private val ALIGNMENTS: List<TextAlign?> = listOf(null, TextAlign.Center, TextAlign.Right, TextAlign.Justify)
+
+private val TextAlign?.icon: ImageVector
+	get() = when (this) {
+		TextAlign.Center -> Icons.Default.FormatAlignCenter
+		TextAlign.Right -> Icons.AutoMirrored.Filled.FormatAlignRight
+		TextAlign.Justify -> Icons.Default.FormatAlignJustify
+		else -> Icons.AutoMirrored.Filled.FormatAlignLeft
+	}
+
+@Composable
+private fun TextAlign?.label(): String = when (this) {
+	TextAlign.Center -> Res.string.markdown_format_bar_align_center.get()
+	TextAlign.Right -> Res.string.markdown_format_bar_align_right.get()
+	TextAlign.Justify -> Res.string.markdown_format_bar_justify.get()
+	else -> Res.string.markdown_format_bar_align_left.get()
+}
+
+/** Shows the caret line's alignment and opens a menu of all four, the current one checked. */
+@Composable
+private fun AlignmentMenu(
+	current: TextAlign?,
+	enabled: Boolean,
+	onAlign: (TextAlign?) -> Unit,
+) {
+	var expanded by remember { mutableStateOf(false) }
+	Box {
+		EditorTooltip(Res.string.markdown_format_bar_alignment.get()) {
+			EditorAction(
+				icon = current.icon,
+				active = current != null,
+				enabled = enabled,
+			) {
+				expanded = true
+			}
+		}
+		DropdownMenu(
+			expanded = expanded,
+			onDismissRequest = { expanded = false },
+		) {
+			ALIGNMENTS.forEach { align ->
+				DropdownMenuItem(
+					text = { Text(align.label()) },
+					leadingIcon = { Icon(imageVector = align.icon, contentDescription = null) },
+					trailingIcon = if (align == current) {
+						{ Icon(imageVector = Icons.Default.Check, contentDescription = null) }
+					} else null,
+					onClick = {
+						onAlign(align)
+						expanded = false
+					},
+				)
+			}
+		}
+	}
+}
+
+/** The lines of [selection], or the caret's [line], whose alignment markdown saves. */
+private fun alignableLines(state: TextEditorState, line: Int, selection: TextEditorRange?): List<Int> {
+	val lines = selection?.let { it.start.line..it.end.line } ?: line..line
+	return lines.filter { state.markdownKeepsAlignment(it) }
+}
+
+/** Gives the alignable lines under the caret or selection [align], as one undo step. */
+internal fun alignParagraphs(state: TextEditorState, align: TextAlign?) {
+	val lines = alignableLines(state, state.cursorPosition.line, state.selector.selection)
+	state.editGroup {
+		lines.forEach { state.setParagraphAlignment(it..it, align) }
 	}
 }
 

@@ -18,11 +18,13 @@ import com.conamobile.pdfkmp.style.FontWeight
 import com.conamobile.pdfkmp.style.PdfColor
 import com.conamobile.pdfkmp.style.TableBorder
 import com.conamobile.pdfkmp.style.TableColumn
+import com.conamobile.pdfkmp.style.TextAlign
 import com.conamobile.pdfkmp.style.TextStyle
 import com.conamobile.pdfkmp.unit.Dp
 import com.conamobile.pdfkmp.unit.Sp
 import com.conamobile.pdfkmp.vector.VectorImage
 import com.darkrockstudios.apps.hammer.base.image.ImageFormat
+import com.darkrockstudios.apps.hammer.base.markdown.ProseAlign
 
 /** Theme accents for prose rendering; null falls back to neutral defaults. */
 internal data class ProseColors(
@@ -150,7 +152,7 @@ internal fun prepareProse(
 		when (block) {
 			is ProseBlock.Paragraph ->
 				if (block.isStandaloneLink) null
-				else ProseLayout.Paragraph(wrap(block.spans, BODY_STYLE, width, indent = true))
+				else ProseLayout.Paragraph(wrap(block.spans, BODY_STYLE.copy(align = block.align.pdfAlign), width, indent = true))
 
 			is ProseBlock.Listing -> {
 				val textWidth = width - block.markerWidth.value
@@ -332,13 +334,14 @@ private fun ContainerScope.breakableLines(count: Int, line: ContainerScope.(Int)
 }
 
 /** One already-wrapped line. */
-private fun ContainerScope.proseLine(line: RichLine, lineHeight: Sp = BODY_STYLE.lineHeight) {
+private fun ContainerScope.proseLine(line: RichLine, lineHeight: Sp = BODY_STYLE.lineHeight, align: TextAlign = TextAlign.Start) {
 	if (line.segments.isEmpty()) {
 		spacer(height = Dp(line.height))
 		return
 	}
 	richText {
 		this.lineHeight = lineHeight
+		this.align = align
 		for (segment in line.segments) {
 			defaultSpanStyle = segment.style
 			span(segment.text)
@@ -364,7 +367,7 @@ private fun ContainerScope.renderParagraph(
 		}
 		return
 	}
-	breakableLines(layout.lines.size) { proseLine(layout.lines[it]) }
+	breakableLines(layout.lines.size) { proseLine(layout.lines[it], align = block.align.pdfAlign) }
 }
 
 private fun ContainerScope.renderHeading(block: ProseBlock.Heading, base: TextStyle, colors: ProseColors) {
@@ -382,6 +385,7 @@ private fun ContainerScope.renderHeading(block: ProseBlock.Heading, base: TextSt
 			color = accent ?: base.color,
 		)
 		lineHeight = Sp(size * HEADING_LEADING)
+		align = block.align.pdfAlign
 		for (s in block.spans) span(s.text) { applyFlags(s, colors) }
 	}
 }
@@ -531,3 +535,15 @@ private fun TextScope.applyFlags(s: ProseSpan, colors: ProseColors) {
 		underline = true
 	}
 }
+
+/**
+ * The PDF alignment of a paragraph's or heading's [ProseAlign]; prose is laid out left to right.
+ * Each wrapped line is drawn on its own, which leaves no line to justify, so a justified paragraph
+ * lies flush at the start.
+ */
+private val ProseAlign?.pdfAlign: TextAlign
+	get() = when (this) {
+		null, ProseAlign.LEFT, ProseAlign.JUSTIFY -> TextAlign.Start
+		ProseAlign.CENTER -> TextAlign.Center
+		ProseAlign.RIGHT -> TextAlign.End
+	}

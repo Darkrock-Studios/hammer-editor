@@ -279,6 +279,23 @@
 	text-align: justify;
 }
 
+/* An aligned paragraph or heading, as the scene editor sets it. */
+.story-content .align-left {
+	text-align: left;
+}
+
+.story-content .align-center {
+	text-align: center;
+}
+
+.story-content .align-right {
+	text-align: right;
+}
+
+.story-content .align-justify {
+	text-align: justify;
+}
+
 /* ----------------------------------------
    Lists
    ---------------------------------------- */
