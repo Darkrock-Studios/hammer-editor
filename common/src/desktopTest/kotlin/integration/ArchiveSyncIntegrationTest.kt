@@ -43,7 +43,6 @@ class ArchiveSyncIntegrationTest : BaseIntegrationTest() {
 			sceneEditorService = sceneEditorService,
 			draftRepository = draftRepository,
 			serverProjectApi = serverProjectApi,
-			projectMetadataDatasource = projectMetadataDatasource,
 			timelineReferenceRemapper = TimelineReferenceRemapper(mockk(relaxed = true)),
 			strRes = strRes,
 		)
