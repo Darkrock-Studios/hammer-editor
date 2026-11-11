@@ -23,7 +23,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -156,9 +156,11 @@ fun HdDonutChart(
 						val change = event.changes.firstOrNull() ?: continue
 						if (change.type != PointerType.Mouse) continue
 						val hit = if (event.type == PointerEventType.Exit) null else hitTest(change.position)
-						pointer = change.position
 						hovered = hit
-						if (hit != null) lastHovered = hit
+						if (hit != null) {
+							lastHovered = hit
+							pointer = change.position
+						}
 					}
 				}
 			}
@@ -168,45 +170,39 @@ fun HdDonutChart(
 					if (hit != null) currentOnSliceClick(hit) else currentOnBackgroundClick()
 				}
 			}
-			.drawBehind {
-				val g = geometry ?: return@drawBehind
-				val half = g.diameter / 2f
-				val inner = half * holeSize
-				val sweeps = sliceSweeps(slices, progress.value)
-				var start = START_ANGLE
-				sweeps.forEachIndexed { index, sweep ->
-					if (sweep > 0f) {
-						val outer = half * OUTER_RADIUS * (expansion.getOrNull(index)?.value ?: 1f)
-						val thickness = outer - inner
-						val radius = inner + thickness / 2f
-						drawArc(
-							color = slices[index].color,
-							startAngle = start,
-							sweepAngle = sweep,
-							useCenter = false,
-							topLeft = g.center - Offset(radius, radius),
-							size = Size(radius * 2f, radius * 2f),
-							style = Stroke(width = thickness),
-						)
-					}
-					start += sweep
-				}
-
-				val alpha = labelAlpha.value
-				if (alpha > 0f) {
-					val stroke = Stroke(width = connectorWidth.toPx())
-					g.labels.forEachIndexed { index, placement ->
-						val midAngle = g.midAngles[index]
-						val from = g.center + polar(half * OUTER_RADIUS, midAngle)
-						val to = g.center + placement.anchor
-						val reach = (to - from).getDistance() / 2f
-						val c1 = from + polar(reach, midAngle)
-						val c2 = to + polar(reach, if (placement.isLeft) 0f else 180f)
-						val path = Path().apply {
-							moveTo(from.x, from.y)
-							cubicTo(c1.x, c1.y, c2.x, c2.y, to.x, to.y)
+			.drawWithCache {
+				val g = geometry
+				val connectors = g?.let { connectorPaths(it) }.orEmpty()
+				val connectorStroke = Stroke(width = connectorWidth.toPx())
+				onDrawBehind {
+					if (g == null) return@onDrawBehind
+					val half = g.diameter / 2f
+					val inner = half * holeSize
+					val sweeps = sliceSweeps(slices, progress.value)
+					var start = START_ANGLE
+					sweeps.forEachIndexed { index, sweep ->
+						if (sweep > 0f) {
+							val outer = half * OUTER_RADIUS * (expansion.getOrNull(index)?.value ?: 1f)
+							val thickness = outer - inner
+							val radius = inner + thickness / 2f
+							drawArc(
+								color = slices[index].color,
+								startAngle = start,
+								sweepAngle = sweep,
+								useCenter = false,
+								topLeft = g.center - Offset(radius, radius),
+								size = Size(radius * 2f, radius * 2f),
+								style = Stroke(width = thickness),
+							)
 						}
-						drawPath(path, color = slices[index].color, alpha = alpha, style = stroke)
+						start += sweep
+					}
+
+					val alpha = labelAlpha.value
+					if (alpha > 0f) {
+						connectors.forEachIndexed { index, path ->
+							drawPath(path, color = slices[index].color, alpha = alpha, style = connectorStroke)
+						}
 					}
 				}
 			},
@@ -245,8 +241,10 @@ fun HdDonutChart(
 			(width - bounds.width) / 2f - bounds.minX,
 			(height - bounds.height) / 2f - bounds.minY,
 		)
-		val newGeometry = DonutGeometry(center, arrangement.diameter, midAngles, arrangement.labels)
-		if (newGeometry != geometry) geometry = newGeometry
+		// Written without reading it, so measuring does not invalidate itself. An
+		// equal value is not a change, so draw and hit testing only update on a
+		// real layout change.
+		geometry = DonutGeometry(center, arrangement.diameter, midAngles, arrangement.labels)
 
 		val holeDiameter = floor(arrangement.diameter * holeSize).toInt()
 		val holePlaceable = holeMeasurables.firstOrNull()?.measure(Constraints.fixed(holeDiameter, holeDiameter))
@@ -261,10 +259,14 @@ fun HdDonutChart(
 				(center.x - holeDiameter / 2f).toInt(),
 				(center.y - holeDiameter / 2f).toInt(),
 			)
+			// The pointer is read in the layer block so following it only moves the
+			// tooltip's layer, without placing or redrawing the rest of the chart.
 			tooltipPlaceable?.let {
-				val x = (pointer.x.toInt() - it.width / 2).coerceAtMost(width - it.width).coerceAtLeast(0)
-				val y = (pointer.y.toInt() - it.height).coerceAtLeast(0)
-				it.place(x, y, zIndex = 1f)
+				val maxX = (width - it.width).coerceAtLeast(0).toFloat()
+				it.placeWithLayer(0, 0, zIndex = 1f) {
+					translationX = (pointer.x - it.width / 2f).coerceIn(0f, maxX)
+					translationY = (pointer.y - it.height).coerceAtLeast(0f)
+				}
 			}
 		}
 	}
@@ -297,6 +299,22 @@ private data class DonutGeometry(
 	val midAngles: List<Float>,
 	val labels: List<LabelPlacement>,
 )
+
+private fun connectorPaths(geometry: DonutGeometry): List<Path> {
+	val half = geometry.diameter / 2f
+	return geometry.labels.mapIndexed { index, placement ->
+		val midAngle = geometry.midAngles[index]
+		val from = geometry.center + polar(half * OUTER_RADIUS, midAngle)
+		val to = geometry.center + placement.anchor
+		val reach = (to - from).getDistance() / 2f
+		val c1 = from + polar(reach, midAngle)
+		val c2 = to + polar(reach, if (placement.isLeft) 0f else 180f)
+		Path().apply {
+			moveTo(from.x, from.y)
+			cubicTo(c1.x, c1.y, c2.x, c2.y, to.x, to.y)
+		}
+	}
+}
 
 private fun sliceSweeps(slices: List<HdDonutSlice>, progress: Float): List<Float> {
 	val total = slices.sumOf { it.value.coerceAtLeast(0f).toDouble() }.toFloat()
