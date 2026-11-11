@@ -8,7 +8,7 @@ flatlaf = "3.8"
 jvm = "21"
 kache = "2.1.1"
 kotlin = "2.4.21"
-serialization = "1.11.0"
+serialization = "1.12.0"
 
 # Android
 android_gradle_plugin = "9.5.1"
