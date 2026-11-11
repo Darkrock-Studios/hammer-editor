@@ -77,7 +77,7 @@ powerAssert {
 	)
 	compilationFilter = object : PowerAssertCompilationFilter {
 		override fun check(compilation: KotlinCompilation<*>) =
-			compilation.defaultSourceSet.name in setOf("commonTest", "desktopTest")
+			compilation.defaultSourceSet.name == "desktopTest"
 	}
 }
 
