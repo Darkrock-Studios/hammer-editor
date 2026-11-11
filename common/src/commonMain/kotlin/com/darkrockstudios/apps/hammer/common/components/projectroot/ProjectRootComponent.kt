@@ -76,7 +76,7 @@ class ProjectRootComponent(
 	// and config changes; stateKeeper carries the query/filter slice across process death.
 	private val globalSearchState: GlobalSearchState = run {
 		val saved = stateKeeper.consume(GLOBAL_SEARCH_STATE_KEY, GlobalSearchSavedState.serializer())
-		retainedInstance {
+		retainedInstance(key = GLOBAL_SEARCH_STATE_KEY) {
 			GlobalSearchState(
 				searchProjectUseCase = searchProjectUseCase,
 				mainContext = dispatcherMain,
