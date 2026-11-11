@@ -169,6 +169,13 @@ class PdfProseMarkdownTest {
 	}
 
 	@Test
+	fun `a numbered line inside a passage stays prose unless it numbers from 1`() {
+		val blocks = parseProseMarkdown("The flood came.\n2026. It rained.")
+
+		assertEquals(listOf("The flood came.", "2026. It rained."), blocks.map { paragraph(it).spans.plain() })
+	}
+
+	@Test
 	fun `nested list items carry their nesting level in reading order`() {
 		val blocks = parseProseMarkdown("- parent\n    - child\n- sibling")
 
