@@ -1221,8 +1221,9 @@ corrupts live Kotlin/Wasm objects in chasm 2.0.0; it is not used on 2.4.0, the
 version Hammer pins. The desktop JVM's default heap is a quarter of the machine's
 memory, so an 8 GB machine allows about 1 GiB; Android's app heap, 192 to 512 MB,
 allows 96 to 256 MiB. The heap never gives pages back, so a plugin left holding more than 64 MiB
-after a call is dropped and loaded afresh when next used. The cap needs the JVM:
-on iOS the heap is uncapped.
+after a call is dropped and loaded afresh when next used. On iOS chasm keeps the
+heap and caps it at 1 GiB itself, but the host cannot measure it, so a plugin is
+never dropped for what it holds there.
 
 Rust has a kit of its own in `hammer-plugin-sdk` (`rust/hammer`): Hammer's
 imports, operations, and the cache, the `diagnose` request and reply types,
@@ -1970,8 +1971,8 @@ cannot load, the command exits with an error rather than reading input.
   of memory, and a text check it provides leaves the text unmarked. It is
   untried on Android's app heap.
 - **iOS.** Kotlin/Native has no heap limit to read, so the kernel's cap is a fixed
-  256 MiB there, and chasm cannot be given a capped guest heap on native, so a
-  Kotlin/Wasm plugin's is uncapped. Most failed allocations abort the process
+  256 MiB there, and chasm caps a Kotlin/Wasm plugin's guest heap at a fixed
+  1 GiB, which the host cannot measure. Most failed allocations abort the process
   rather than throw, so running out of memory there is contained only in the
   few cases Kotlin/Native throws `OutOfMemoryError`. The variable and log caps
   apply on every platform.

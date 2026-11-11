@@ -83,6 +83,20 @@ class ExtismPluginTest {
 	}
 
 	@Test
+	fun `a module that recurses without end runs out of stack`() {
+		val plugin = ExtismPlugin(testPlugin("recurse"), maxStackBytes = 64L * 1024)
+
+		val error = assertThrows<PluginException> { plugin.call("run", ByteArray(0), 10_000_000) }
+		assertEquals("Plugin ran out of stack in run", error.message)
+	}
+
+	@Test
+	fun `a start function that recurses without end runs out of stack`() {
+		val error = assertThrows<PluginException> { ExtismPlugin(testPlugin("start_recurse"), maxStackBytes = 64L * 1024) }
+		assertEquals("Plugin ran out of stack starting up", error.message)
+	}
+
+	@Test
 	fun `fuel is counted per loop iteration and call`() {
 		val plugin = ExtismPlugin(testPlugin("count"))
 

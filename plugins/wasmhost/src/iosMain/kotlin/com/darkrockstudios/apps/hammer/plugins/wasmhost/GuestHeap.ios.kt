@@ -11,5 +11,5 @@ internal actual val hostHeapBytes: Long? = null
 internal actual fun Throwable.isOutOfMemory(): Boolean = this is OutOfMemoryError
 
 // chasm offers no public way to build a store around a heap, and native code cannot reach the
-// internal constructors the JVM does, so a plugin's guest heap is uncapped here.
+// internal constructors the JVM does, so chasm keeps a plugin's guest heap here.
 internal actual fun storeWith(heap: GarbageCollectedHeap, config: StoreConfig): Store? = null

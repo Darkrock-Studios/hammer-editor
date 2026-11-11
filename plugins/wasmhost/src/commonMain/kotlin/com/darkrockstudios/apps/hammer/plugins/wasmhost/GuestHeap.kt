@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.plugins.wasmhost
 
 import io.github.charlietap.chasm.config.StoreConfig
 import io.github.charlietap.chasm.embedding.shapes.Store
+import io.github.charlietap.chasm.embedding.store
 import io.github.charlietap.chasm.gc.GarbageCollectedHeap
 
 /**
@@ -11,18 +12,21 @@ import io.github.charlietap.chasm.gc.GarbageCollectedHeap
  * this fails the plugin, not the app.
  */
 internal class GuestHeap(maxBytes: Long, config: StoreConfig) {
+	private val capBytes = hostHeapShare(maxBytes, HOST_HEAP_SHARE)
 	private val heap = GarbageCollectedHeap(
-		GarbageCollectedHeap.Configuration(
-			maximumPageCount = maxOf(1, (hostHeapShare(maxBytes, HOST_HEAP_SHARE) / PAGE_BYTES).toInt())
-		)
+		GarbageCollectedHeap.Configuration(maximumPageCount = maxOf(1, (capBytes / PAGE_BYTES).toInt()))
 	)
+	private val hostStore = storeWith(heap, config)
 
-	/** A store using this heap, or null where the host cannot build one, which then needs an uncapped store. */
-	val store: Store? = storeWith(heap, config)
+	/** A store around this heap, or where the host cannot build one, a store whose heap chasm caps the same. */
+	val store: Store = hostStore ?: store(config.copy(limits = config.limits.copy(gcHeapBytes = capBytes)))
 
-	/** What the heap holds from the host, pages it keeps for reuse included: it never gives them back. */
+	/**
+	 * What the heap holds from the host, pages it keeps for reuse included: it never gives them back.
+	 * 0 where chasm keeps the heap, which the host cannot measure.
+	 */
 	val committedBytes: Long
-		get() = heap.snapshotStatistics().let { (it.committedWords + it.dedicatedPayloadWords) * WORD_BYTES }
+		get() = if (hostStore == null) 0 else heap.snapshotStatistics().let { (it.committedWords + it.dedicatedPayloadWords) * WORD_BYTES }
 
 	private companion object {
 		const val HOST_HEAP_SHARE = 2
@@ -45,4 +49,5 @@ internal fun hostHeapShare(maxBytes: Long, share: Int): Long = minOf(maxBytes, (
  */
 internal expect fun Throwable.isOutOfMemory(): Boolean
 
+/** A store around [heap], or null where the host cannot build one. */
 internal expect fun storeWith(heap: GarbageCollectedHeap, config: StoreConfig): Store?
