@@ -1,10 +1,10 @@
 package com.darkrockstudios.apps.hammer.common
 
-import io.github.aakira.napier.Napier
+import co.touchlab.kermit.Logger
 import java.io.File
 
 /**
- * Catch, log, and hand off any otherwise-unhandled exception. The async [FileLogger] can't be
+ * Catch, log, and hand off any otherwise-unhandled exception. The async [com.darkrockstudios.apps.hammer.common.logging.FileLogWriter] can't be
  * relied on to flush before the process dies, so we also write a synchronous crash dump straight
  * to disk, then chain to the platform default handler so Android still terminates and reports.
  */
@@ -12,7 +12,7 @@ fun installGlobalExceptionHandler() {
 	val previous = Thread.getDefaultUncaughtExceptionHandler()
 	Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
 		runCatching {
-			Napier.e(
+			Logger.e(
 				"Uncaught exception on thread '${thread.name}', terminating",
 				throwable
 			)

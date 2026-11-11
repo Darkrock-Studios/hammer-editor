@@ -10,12 +10,12 @@ import androidx.wear.watchface.complications.data.PlainComplicationText
 import androidx.wear.watchface.complications.data.ShortTextComplicationData
 import androidx.wear.watchface.complications.datasource.ComplicationRequest
 import androidx.wear.watchface.complications.datasource.SuspendingComplicationDataSourceService
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.wear.CaptureActivity
 import com.darkrockstudios.apps.hammer.wear.R
 import com.darkrockstudios.apps.hammer.wear.components.capture.Capture
 import com.darkrockstudios.apps.hammer.wear.data.CaptureTileState
 import com.darkrockstudios.apps.hammer.wear.data.CaptureTileStateUseCase
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CancellationException
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -34,7 +34,7 @@ class CaptureComplicationService : SuspendingComplicationDataSourceService(), Ko
 		} catch (e: CancellationException) {
 			throw e
 		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-			Napier.e("Failed to read the capture complication's state", e)
+			Logger.e("Failed to read the capture complication's state", e)
 			CaptureTileState()
 		}
 		return complicationData(request.complicationType, state)

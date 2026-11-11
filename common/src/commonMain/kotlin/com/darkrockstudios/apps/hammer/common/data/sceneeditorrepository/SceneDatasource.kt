@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneBuffer
 import com.darkrockstudios.apps.hammer.common.data.SceneContent
@@ -12,7 +13,6 @@ import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.util.ScanBuffers
 import com.darkrockstudios.apps.hammer.common.util.readUtf8Into
-import io.github.aakira.napier.Napier
 import okio.FileSystem
 import okio.IOException
 import okio.Path
@@ -89,7 +89,7 @@ class SceneDatasource(
 				// File sync tools leave their own files here, such as Syncthing conflict copies.
 				val sceneId = getSceneIdFromBufferFilename(path.name)
 				if (sceneId == null) {
-					Napier.w("Ignoring non-buffer file in scene buffers: ${path.name}")
+					Logger.w("Ignoring non-buffer file in scene buffers: ${path.name}")
 					return@mapNotNull null
 				}
 				resolveScenePathFromFilesystem(sceneId)?.let { scenePath ->
@@ -103,7 +103,7 @@ class SceneDatasource(
 						readUtf8()
 					}
 				} catch (e: IOException) {
-					Napier.e("Failed to load Scene (${sceneDef.name})")
+					Logger.e("Failed to load Scene (${sceneDef.name})")
 					""
 				}
 				SceneContent(sceneDef, content)
@@ -263,7 +263,7 @@ class SceneDatasource(
 					readUtf8()
 				}
 			} catch (e: IOException) {
-				Napier.e("Failed to load Scene markdown raw (${sceneItem.name})")
+				Logger.e("Failed to load Scene markdown raw (${sceneItem.name})")
 				""
 			}
 		} else {
@@ -290,7 +290,7 @@ class SceneDatasource(
 			if (byteCount <= 0L || byteCount > Int.MAX_VALUE) return 0
 			fileSystem.read(path) { readUtf8Into(sink, byteCount.toInt()) }
 		} catch (e: IOException) {
-			Napier.e("Failed to read Scene markdown (${sceneItem.name})")
+			Logger.e("Failed to read Scene markdown (${sceneItem.name})")
 			0
 		}
 	}
@@ -305,7 +305,7 @@ class SceneDatasource(
 
 			true
 		} catch (e: IOException) {
-			Napier.e("Failed to store Scene markdown raw (${sceneItem.scene.id} - ${sceneItem.scene.name}) because: ${e.message}")
+			Logger.e("Failed to store Scene markdown raw (${sceneItem.scene.id} - ${sceneItem.scene.name}) because: ${e.message}")
 			false
 		}
 	}
@@ -316,7 +316,7 @@ class SceneDatasource(
 				readUtf8()
 			}
 		} catch (e: IOException) {
-			Napier.e("Failed to load Scene at: $scenePath")
+			Logger.e("Failed to load Scene at: $scenePath")
 			""
 		}
 	}
@@ -341,11 +341,11 @@ class SceneDatasource(
 				writeUtf8(markdown)
 			}
 
-			Napier.d("Stored temp scene: (${buffer.content.scene.name})")
+			Logger.d("Stored temp scene: (${buffer.content.scene.name})")
 
 			true
 		} catch (e: IOException) {
-			Napier.e("Failed to store temp scene: (${buffer.content.scene.name}) with error: ${e.message}")
+			Logger.e("Failed to store temp scene: (${buffer.content.scene.name}) with error: ${e.message}")
 			false
 		}
 	}
@@ -361,7 +361,7 @@ class SceneDatasource(
 
 			true
 		} catch (e: IOException) {
-			Napier.e("Failed to store scene: (${buffer.content.scene.name}) with error: ${e.message}")
+			Logger.e("Failed to store scene: (${buffer.content.scene.name}) with error: ${e.message}")
 			false
 		}
 	}
@@ -383,10 +383,10 @@ class SceneDatasource(
 
 		return try {
 			if (!fileSystem.exists(scenePath)) {
-				Napier.e("Tried to delete Scene, but file did not exist")
+				Logger.e("Tried to delete Scene, but file did not exist")
 				false
 			} else if (!fileSystem.metadata(scenePath).isRegularFile) {
-				Napier.e("Tried to delete Scene, but file was not File")
+				Logger.e("Tried to delete Scene, but file was not File")
 				false
 			} else {
 				fileSystem.delete(scenePath)
@@ -394,7 +394,7 @@ class SceneDatasource(
 				true
 			}
 		} catch (e: IOException) {
-			Napier.e("Failed to delete Group ID ${scene.id}: ${e.message}")
+			Logger.e("Failed to delete Group ID ${scene.id}: ${e.message}")
 			false
 		}
 	}
@@ -403,13 +403,13 @@ class SceneDatasource(
 		val scenePath = resolveScenePathFromFilesystem(scene.id)?.toOkioPath() ?: return false
 		return try {
 			if (!fileSystem.exists(scenePath)) {
-				Napier.e("Tried to delete Group, but file did not exist")
+				Logger.e("Tried to delete Group, but file did not exist")
 				false
 			} else if (!fileSystem.metadata(scenePath).isDirectory) {
-				Napier.e("Tried to delete Group, but file was not Directory")
+				Logger.e("Tried to delete Group, but file was not Directory")
 				false
 			} else if (fileSystem.list(scenePath).isNotEmpty()) {
-				Napier.w("Tried to delete Group, but was not empty")
+				Logger.w("Tried to delete Group, but was not empty")
 				false
 			} else {
 				fileSystem.delete(scenePath)
@@ -417,7 +417,7 @@ class SceneDatasource(
 				true
 			}
 		} catch (e: IOException) {
-			Napier.e("Failed to delete Group ID ${scene.id}: ${e.message}")
+			Logger.e("Failed to delete Group ID ${scene.id}: ${e.message}")
 			false
 		}
 	}
@@ -631,7 +631,7 @@ fun Collection<HPath>.validateScenePaths(): List<HPath> {
 		if (existing == null) {
 			seen[id] = path
 		} else {
-			Napier.e("Duplicate scene id $id on disk: keeping ${existing.name}, refusing ${path.name}")
+			Logger.e("Duplicate scene id $id on disk: keeping ${existing.name}, refusing ${path.name}")
 		}
 	}
 	return seen.values.toList()

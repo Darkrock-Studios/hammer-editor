@@ -1,7 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.data.secrets
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.common.getConfigDirectory
-import io.github.aakira.napier.Napier
 import kotlinx.atomicfu.locks.reentrantLock
 import kotlinx.atomicfu.locks.withLock
 import kotlinx.serialization.json.Json
@@ -37,7 +37,7 @@ class EncryptedFileSecretDatasource(
 			Json.decodeFromString<Map<String, String>>(decrypted.decodeToString())
 			// Wrong machine or user, corruption, or tampering: the secrets have to be entered again.
 		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-			Napier.w("Failed to decrypt the secret store; treating it as empty", e)
+			Logger.w("Failed to decrypt the secret store; treating it as empty", e)
 			emptyMap()
 		}
 	}

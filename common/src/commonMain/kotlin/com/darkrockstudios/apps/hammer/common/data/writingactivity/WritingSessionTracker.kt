@@ -1,11 +1,11 @@
 package com.darkrockstudios.apps.hammer.common.data.writingactivity
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.base.http.writingactivity.WritingSession
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.UpdateSource
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
-import io.github.aakira.napier.Napier
 import kotlinx.atomicfu.locks.reentrantLock
 import kotlinx.atomicfu.locks.withLock as withReentrantLock
 import kotlinx.coroutines.sync.Mutex
@@ -108,7 +108,7 @@ class WritingSessionTracker(
 		try {
 			repository.saveOwnLog(updated)
 		} catch (e: Exception) {
-			Napier.e("Failed to persist writing activity", e)
+			Logger.e("Failed to persist writing activity", e)
 			// Keep the in-memory state — we'll retry on the next delta.
 		}
 	}

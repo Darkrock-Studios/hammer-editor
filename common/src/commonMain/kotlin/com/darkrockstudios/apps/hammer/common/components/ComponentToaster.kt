@@ -1,10 +1,10 @@
 package com.darkrockstudios.apps.hammer.common.components
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.common.data.ClientMessage
 import com.darkrockstudios.apps.hammer.common.data.Msg
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.util.StrRes
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -55,7 +55,7 @@ class ComponentToasterImpl : ComponentToaster, KoinComponent {
 	}
 
 	override suspend fun showToast(message: String) {
-		Napier.d { "ABROWN: showToast Literal: $message" }
+		Logger.d { "ABROWN: showToast Literal: $message" }
 		_toast.emit(ToastMessage.Literal(message))
 	}
 

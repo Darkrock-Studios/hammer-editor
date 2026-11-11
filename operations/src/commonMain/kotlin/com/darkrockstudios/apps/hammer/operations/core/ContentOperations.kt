@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.operations.core
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.base.http.storyideas.StoryIdea
 import com.darkrockstudios.apps.hammer.base.image.ImageFormat
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
@@ -25,7 +26,6 @@ import com.darkrockstudios.apps.hammer.operations.OperationScope
 import com.darkrockstudios.apps.hammer.operations.invalidInput
 import com.darkrockstudios.apps.hammer.operations.notFound
 import com.darkrockstudios.apps.hammer.operations.operation
-import io.github.aakira.napier.Napier
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlin.time.Instant
@@ -209,7 +209,7 @@ internal fun aliasesOf(def: EntryDef, load: (EntryDef) -> EntryContainer): List<
 	try {
 		load(def).entry.aliases
 	} catch (e: EntryLoadError) {
-		Napier.w(e) { "Entry ${def.id} could not be read for its aliases" }
+		Logger.w(e) { "Entry ${def.id} could not be read for its aliases" }
 		emptyList()
 	}
 

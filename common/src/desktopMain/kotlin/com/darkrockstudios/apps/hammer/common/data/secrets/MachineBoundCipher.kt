@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.secrets
 
-import io.github.aakira.napier.Napier
+import co.touchlab.kermit.Logger
 import okio.Path
 import java.nio.file.attribute.PosixFilePermission
 import java.security.SecureRandom
@@ -65,7 +65,7 @@ class MachineBoundCipher(
 					)
 				}
 			} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-				Napier.d("Could not restrict permissions of $path", e)
+				Logger.d("Could not restrict permissions of $path", e)
 			}
 		}
 	}

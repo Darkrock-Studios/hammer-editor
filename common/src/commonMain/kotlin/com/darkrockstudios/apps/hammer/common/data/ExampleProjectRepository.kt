@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.base.http.writingactivity.DeviceLog
 import com.darkrockstudios.apps.hammer.base.http.writingactivity.WritingSession
 import com.darkrockstudios.apps.hammer.common.data.ExampleProjectRepository.Companion.EXAMPLE_DAYS
@@ -11,7 +12,6 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDisp
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.datetime.*
@@ -92,7 +92,7 @@ abstract class ExampleProjectRepository(
 			val log = DeviceLog(deviceLabel = FABRICATED_DEVICE_LABEL, sessions = sessions)
 			writeDeviceLog(projectsDir() / PROJECT_NAME, FABRICATED_DEVICE_ID, log, fileSystem, toml)
 		} catch (e: Exception) {
-			Napier.e("Failed to fabricate example writing activity", e)
+			Logger.e("Failed to fabricate example writing activity", e)
 		}
 	}
 

@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.duplicateids
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.base.http.EntityType
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineDatasource
@@ -7,7 +8,6 @@ import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.isWithin
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
-import io.github.aakira.napier.Napier
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
 
@@ -80,7 +80,7 @@ class ProjectFileRationalizer(
 					remaining += sets
 					break
 				}
-				Napier.i("Resolving identical copies of ${safe.kind} ${safe.id}: ${safe.copies.map { it.relativePath }}")
+				Logger.i("Resolving identical copies of ${safe.kind} ${safe.id}: ${safe.copies.map { it.relativePath }}")
 				markDirty += apply(safe, owner = safe.inUse, newIds = emptyMap())
 			}
 		}
@@ -103,7 +103,7 @@ class ProjectFileRationalizer(
 
 		val owner = keptCopies.first()
 		val newIds = keptCopies.drop(1).associate { it.path to claimId() }
-		Napier.i("Resolving ${set.kind} ${set.id}: keeping ${owner.relativePath}, new ids $newIds")
+		Logger.i("Resolving ${set.kind} ${set.id}: keeping ${owner.relativePath}, new ids $newIds")
 		return apply(set, owner, newIds)
 	}
 

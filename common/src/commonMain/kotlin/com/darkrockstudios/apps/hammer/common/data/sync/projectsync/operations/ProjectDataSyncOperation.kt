@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
@@ -23,7 +24,6 @@ import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogE
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogI
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogW
 import com.darkrockstudios.apps.hammer.common.server.ProjectDataApi
-import io.github.aakira.napier.Napier
 
 /**
  * A non-conflict server error fails the whole sync — unlike writing-activity sync,
@@ -117,7 +117,7 @@ class ProjectDataSyncOperation(
 		val error = result.exceptionOrNull()
 		val conflict = error as? ProjectDataConflictException
 		if (conflict == null) {
-			Napier.e("Project data upload failed", error)
+			Logger.e("Project data upload failed", error)
 			onLog(syncLogE("Project data upload failed: ${error?.message}", projectDef))
 			return null
 		}
@@ -147,7 +147,7 @@ class ProjectDataSyncOperation(
 		val resolvedDto = resolveResult.getOrNull()
 		if (resolvedDto == null) {
 			val resolveError = resolveResult.exceptionOrNull()
-			Napier.e("Project data conflict resolution failed", resolveError)
+			Logger.e("Project data conflict resolution failed", resolveError)
 			onLog(syncLogE("Project data conflict resolution failed: ${resolveError?.message}", projectDef))
 			return null
 		}

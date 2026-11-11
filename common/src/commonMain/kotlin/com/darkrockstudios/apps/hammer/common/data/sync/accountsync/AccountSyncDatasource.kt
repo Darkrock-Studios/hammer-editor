@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.sync.accountsync
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.base.http.readJson
 import com.darkrockstudios.apps.hammer.base.http.writeJson
 import com.darkrockstudios.apps.hammer.common.data.ProjectsDirectory
@@ -8,7 +9,6 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispat
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -36,7 +36,7 @@ class AccountSyncDatasource(
 			try {
 				fileSystem.readJson<ProjectsSynchronizationData>(path, json)
 			} catch (e: IllegalArgumentException) {
-				Napier.w("Corrupt account sync.json; starting fresh (${e.message})")
+				Logger.w("Corrupt account sync.json; starting fresh (${e.message})")
 				null
 			}
 		} else {

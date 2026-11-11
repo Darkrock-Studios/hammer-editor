@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.duplicateids
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.base.http.EntityType
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
@@ -14,7 +15,6 @@ import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -59,12 +59,12 @@ class DuplicateIdService(
 			val resolution = try {
 				rationalizer.resolveSafeDuplicates()
 			} catch (e: IOException) {
-				Napier.e("Duplicate id scan failed for ${projectDef.name}", e)
+				Logger.e("Duplicate id scan failed for ${projectDef.name}", e)
 				return@withContext
 			}
 			resolution.markDirty.forEach { syncJournal.markEntityAsDirty(it) }
 			if (resolution.remaining.isNotEmpty()) {
-				Napier.w("${projectDef.name} has ${resolution.remaining.size} unresolved duplicate ids")
+				Logger.w("${projectDef.name} has ${resolution.remaining.size} unresolved duplicate ids")
 			}
 			_unresolved.value = resolution.remaining
 		}
@@ -82,7 +82,7 @@ class DuplicateIdService(
 		val collisions = try {
 			rationalizer.findCrossTypeIds()
 		} catch (e: IOException) {
-			Napier.e("Cross-type id scan failed for ${projectDef.name}", e)
+			Logger.e("Cross-type id scan failed for ${projectDef.name}", e)
 			return
 		}
 		if (collisions.isEmpty()) return
@@ -94,7 +94,7 @@ class DuplicateIdService(
 				val keeper = keeperOf(id, types)
 				for (type in types - keeper) {
 					val newId = idAllocator.claimNextId()
-					Napier.i("$type $id shares its id with $keeper $id; renumbering it to $newId")
+					Logger.i("$type $id shares its id with $keeper $id; renumbering it to $newId")
 					// Rewritten referrers must upload, or the next sync downloads the server copy over them.
 					entitySynchronizers[type].reIdEntity(oldId = id, newId = newId)
 						.forEach { syncJournal.markEntityAsDirty(it) }
@@ -119,7 +119,7 @@ class DuplicateIdService(
 		} catch (e: CancellationException) {
 			throw e
 		} catch (e: Exception) {
-			Napier.e("$what failed for ${projectDef.name}", e)
+			Logger.e("$what failed for ${projectDef.name}", e)
 			null
 		}
 
@@ -136,7 +136,7 @@ class DuplicateIdService(
 					.forEach { syncJournal.markEntityAsDirty(it) }
 				ResolveResult.Resolved
 			} catch (e: StaleDuplicateIdSet) {
-				Napier.w("Duplicate set changed before it was resolved", e)
+				Logger.w("Duplicate set changed before it was resolved", e)
 				ResolveResult.Stale
 			}
 

@@ -23,13 +23,13 @@ import androidx.wear.protolayout.types.LayoutString
 import androidx.wear.tiles.RequestBuilders
 import androidx.wear.tiles.TileBuilders
 import androidx.wear.tiles.TileService
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.wear.CaptureActivity
 import com.darkrockstudios.apps.hammer.wear.R
 import com.darkrockstudios.apps.hammer.wear.components.capture.Capture
 import com.darkrockstudios.apps.hammer.wear.data.CaptureTileState
 import com.darkrockstudios.apps.hammer.wear.data.CaptureTileStateUseCase
 import com.google.common.util.concurrent.ListenableFuture
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -60,7 +60,7 @@ class CaptureTileService : TileService(), KoinComponent {
 			} catch (e: CancellationException) {
 				throw e
 			} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-				Napier.e("Failed to read the capture tile's state", e)
+				Logger.e("Failed to read the capture tile's state", e)
 				CaptureTileState()
 			}
 			completer.set(buildTile(state, requestParams.deviceConfiguration))

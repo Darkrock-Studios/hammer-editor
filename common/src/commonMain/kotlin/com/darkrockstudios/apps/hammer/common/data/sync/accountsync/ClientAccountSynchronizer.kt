@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.sync.accountsync
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.base.GroupId
 import com.darkrockstudios.apps.hammer.base.ProjectId
@@ -29,7 +30,6 @@ import com.darkrockstudios.apps.hammer.common.server.HttpFailureException
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectsApi
 import com.darkrockstudios.apps.hammer.common.util.NetworkConnectivity
 import com.darkrockstudios.apps.hammer.common.util.StrRes
-import io.github.aakira.napier.Napier
 import io.ktor.http.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
@@ -213,7 +213,7 @@ class ClientAccountSynchronizer(
 				false
 			}
 		} catch (e: CancellationException) {
-			Napier.i("Projects sync canceled: ${e.message}")
+			Logger.i("Projects sync canceled: ${e.message}")
 
 			// End the session even while cancelling, or it leaks server-side and blocks the
 			// next begin until it expires.
@@ -222,7 +222,7 @@ class ClientAccountSynchronizer(
 			}
 			throw e
 		} catch (e: Exception) {
-			Napier.e("Projects sync failed", e)
+			Logger.e("Projects sync failed", e)
 
 			syncId?.let {
 				withContext(NonCancellable) { serverProjectsApi.endProjectsSync(it) }
@@ -267,7 +267,7 @@ class ClientAccountSynchronizer(
 				val projectDataDirty = isProjectDataDirty(projectDef)
 				if (entityWorkPending || projectDataDirty) {
 					val kind = if (projectDataDirty) "project-data" else "journal"
-					Napier.e(
+					Logger.e(
 						"Cache/journal inconsistency for project '${projectDef.name}': cached hash " +
 							"present despite pending $kind work. A write path likely bypassed the " +
 							"invalidation hook. Forcing full sync."
@@ -284,13 +284,13 @@ class ClientAccountSynchronizer(
 			if (result.isSuccess) {
 				result.getOrThrow().unchangedProjects
 			} else {
-				Napier.w("Sync probe failed; syncing all projects", result.exceptionOrNull())
+				Logger.w("Sync probe failed; syncing all projects", result.exceptionOrNull())
 				emptySet()
 			}
 		} catch (e: CancellationException) {
 			throw e
 		} catch (e: Exception) {
-			Napier.w("Sync probe failed; syncing all projects", e)
+			Logger.w("Sync probe failed; syncing all projects", e)
 			emptySet()
 		}
 	}
@@ -319,7 +319,7 @@ class ClientAccountSynchronizer(
 			try {
 				fileSystem.read(path) { json.decodeFromString<ProjectSynchronizationData>(readUtf8()) }
 			} catch (e: Exception) {
-				Napier.d("Unreadable sync journal for '${projectDef.name}', will full-sync: ${e.message}")
+				Logger.d("Unreadable sync journal for '${projectDef.name}', will full-sync: ${e.message}")
 				null
 			}
 		}
@@ -335,7 +335,7 @@ class ClientAccountSynchronizer(
 			val owner = serverProject.owner()
 			if (owner == null && projectsRepository.getOwner(local) == null) return@forEach
 			if (!projectsRepository.setOwner(local, owner)) {
-				Napier.w("Could not record the owner of '${local.name}'")
+				Logger.w("Could not record the owner of '${local.name}'")
 			}
 		}
 	}
@@ -501,13 +501,13 @@ class ClientAccountSynchronizer(
 					)
 				}
 			} else if (result.exceptionOrNull()?.apiErrorCode() == ApiErrorCode.NOT_MEMBER) {
-				Napier.i("Not a member of $projectId, dropping its queued delete")
+				Logger.i("Not a member of $projectId, dropping its queued delete")
 				accountSyncDatasource.update { syncData ->
 					syncData.copy(projectsToDelete = syncData.projectsToDelete - projectId)
 				}
 			} else {
 				val exception = result.exceptionOrNull()
-				Napier.e("Failed to delete project: $projectId", exception)
+				Logger.e("Failed to delete project: $projectId", exception)
 
 				onLog(
 					syncAccLogE(
@@ -719,7 +719,7 @@ class ClientAccountSynchronizer(
 		val adopted = try {
 			projectsRepository.adoptUnmarkedDirectory(localName, serverId, serverKnowsProject = true)
 		} catch (e: IOException) {
-			Napier.e("Failed to adopt the folder of '$localName'", e)
+			Logger.e("Failed to adopt the folder of '$localName'", e)
 			onLog(syncAccLogE(strRes.get(Res.string.sync_log_account_project_create_local_failure, localName)))
 			return UnmarkedFolder.Failed
 		} ?: return UnmarkedFolder.None
@@ -729,14 +729,14 @@ class ClientAccountSynchronizer(
 		} catch (e: CancellationException) {
 			throw e
 		} catch (e: Exception) {
-			Napier.e("Adopted '${adopted.name}' but failed to migrate it", e)
+			Logger.e("Adopted '${adopted.name}' but failed to migrate it", e)
 		}
 		// Migration3_4 can move a pre-4 settings file, stale sync baseline included, into place.
 		// The journal was already flagged when the folder was adopted, so a failure here is logged.
 		try {
 			projectsRepository.resetSyncStateAfterRestore(adopted, serverKnowsProject = true)
 		} catch (e: IOException) {
-			Napier.e("Adopted '${adopted.name}' but failed to reset its sync state", e)
+			Logger.e("Adopted '${adopted.name}' but failed to reset its sync state", e)
 		}
 
 		onLog(syncAccLogI(strRes.get(Res.string.sync_log_account_project_adopt_folder, localName)))
@@ -828,10 +828,10 @@ class ClientAccountSynchronizer(
 				ServerCreateOutcome.NeedsAccountSync ->
 					error("Account sync may change a project's id, so it never needs account sync")
 
-				ServerCreateOutcome.SharedProject -> Napier.w("'$projectName' is shared with this account, not created")
+				ServerCreateOutcome.SharedProject -> Logger.w("'$projectName' is shared with this account, not created")
 
 				is ServerCreateOutcome.Failed -> {
-					Napier.e("Failed to create project on server: $projectName", outcome.error)
+					Logger.e("Failed to create project on server: $projectName", outcome.error)
 					onLog(
 						syncAccLogE(
 							strRes.get(

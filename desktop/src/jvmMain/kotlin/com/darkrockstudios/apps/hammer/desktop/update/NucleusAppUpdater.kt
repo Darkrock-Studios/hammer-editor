@@ -1,11 +1,11 @@
 package com.darkrockstudios.apps.hammer.desktop.update
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.common.data.appupdate.AppUpdateState
 import com.darkrockstudios.apps.hammer.common.data.appupdate.AppUpdater
 import dev.nucleusframework.updater.NucleusUpdater
 import dev.nucleusframework.updater.UpdateInfo
 import dev.nucleusframework.updater.UpdateResult
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -87,7 +87,7 @@ class NucleusAppUpdater(
 				}
 
 				is UpdateResult.Error -> {
-					Napier.w("Update check failed", result.exception)
+					Logger.w("Update check failed", result.exception)
 					available?.let(::availableState) ?: AppUpdateState.Idle
 				}
 			}
@@ -121,7 +121,7 @@ class NucleusAppUpdater(
 			} catch (e: CancellationException) {
 				throw e
 			} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-				Napier.w("Update to ${info.version} failed", e)
+				Logger.w("Update to ${info.version} failed", e)
 				_state.value = AppUpdateState.Failed(info.version, e.message ?: e::class.simpleName.orEmpty())
 			}
 		}

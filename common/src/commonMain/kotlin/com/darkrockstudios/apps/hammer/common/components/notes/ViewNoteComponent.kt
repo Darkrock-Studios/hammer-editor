@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.components.notes
 
+import co.touchlab.kermit.Logger
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
@@ -22,7 +23,6 @@ import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteCont
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.notes_menu_delete
 import com.darkrockstudios.apps.hammer.notes_menu_group
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
@@ -162,7 +162,7 @@ class ViewNoteComponent(
 
 			updateShouldClose()
 		} else {
-			Napier.w("Failed to update note content! Not was null")
+			Logger.w("Failed to update note content! Not was null")
 		}
 	}
 

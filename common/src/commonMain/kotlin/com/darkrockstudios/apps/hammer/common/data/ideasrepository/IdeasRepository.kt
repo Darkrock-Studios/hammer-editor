@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.ideasrepository
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.base.IdeaId
 import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.base.http.storyideas.StoryIdea
@@ -7,7 +8,6 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.IdeasSyncDatasource
 import com.darkrockstudios.apps.hammer.common.data.tagindex.cleanTags
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.BufferOverflow
@@ -84,7 +84,7 @@ class IdeasRepository(
 				} catch (e: CancellationException) {
 					throw e
 				} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-					Napier.e("Failed to load ideas", e)
+					Logger.e("Failed to load ideas", e)
 					null
 				}
 				// A failed reload keeps the ideas already shown, but never those of another directory.

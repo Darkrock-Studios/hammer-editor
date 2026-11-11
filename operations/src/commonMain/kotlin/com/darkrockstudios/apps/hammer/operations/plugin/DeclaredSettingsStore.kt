@@ -1,7 +1,7 @@
 package com.darkrockstudios.apps.hammer.operations.plugin
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.operations.OperationJson
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -50,7 +50,7 @@ class DeclaredSettingsStore internal constructor(
 				try {
 					datasource.storeDeclared(pluginId, declarations, chosen.value)
 				} catch (e: IOException) {
-					Napier.e(e) { "Failed to save settings for plugin '$pluginId'" }
+					Logger.e(e) { "Failed to save settings for plugin '$pluginId'" }
 				}
 			}
 		}

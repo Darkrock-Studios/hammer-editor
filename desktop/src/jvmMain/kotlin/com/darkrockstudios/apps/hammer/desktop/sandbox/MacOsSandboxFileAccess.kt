@@ -1,7 +1,7 @@
 package com.darkrockstudios.apps.hammer.desktop.sandbox
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.common.sandbox.SandboxFileAccess
-import io.github.aakira.napier.Napier
 
 internal class MacOsSandboxFileAccess(private val bookmarkStore: SandboxBookmarkStore) : SandboxFileAccess {
 	override val isSandboxed: Boolean = true
@@ -9,7 +9,7 @@ internal class MacOsSandboxFileAccess(private val bookmarkStore: SandboxBookmark
 	override fun establishAccessForNewDirectory(path: String): Boolean {
 		val newBookmark = MacOsBookmarks.createBookmark(path)
 		if (newBookmark == null) {
-			Napier.w("Sandbox bookmark creation failed for $path")
+			Logger.w("Sandbox bookmark creation failed for $path")
 			return false
 		}
 
@@ -18,7 +18,7 @@ internal class MacOsSandboxFileAccess(private val bookmarkStore: SandboxBookmark
 
 		val resolved = MacOsBookmarks.resolveAndStartAccess(newBookmark)
 		if (resolved == null) {
-			Napier.w("Resolved-and-start failed on freshly-created bookmark for $path")
+			Logger.w("Resolved-and-start failed on freshly-created bookmark for $path")
 			return false
 		}
 

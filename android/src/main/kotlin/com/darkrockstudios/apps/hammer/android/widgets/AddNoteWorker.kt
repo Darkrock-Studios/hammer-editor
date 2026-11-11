@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.android.widgets
 import android.content.Context
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.android.isInternetConnected
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
@@ -10,7 +11,6 @@ import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRe
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.data.temporaryProjectTask
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.koin.core.component.KoinComponent
@@ -32,10 +32,10 @@ class AddNoteWorker(
 		val projectDef = findWidgetProject(projectId)
 
 		if (projectDef == null) {
-			Napier.e("Project not found: $projectId")
+			Logger.e("Project not found: $projectId")
 			return Result.failure()
 		} else if (noteText == null || noteText.isBlank()) {
-			Napier.e("Note Text cannot be blank")
+			Logger.e("Note Text cannot be blank")
 			return Result.failure()
 		}
 
@@ -45,7 +45,7 @@ class AddNoteWorker(
 				val notesRepository: NotesRepository = projectScope.get { parametersOf(projectDef) }
 				val result = notesRepository.createNote(noteText)
 
-				Napier.d { "Note create in proj: ${projectDef.name} result: $result" }
+				Logger.d { "Note create in proj: ${projectDef.name} result: $result" }
 
 				if (isSuccess(result) && isInternetConnected(context)) {
 					val syncJournal: SyncJournal = projectScope.get()
@@ -54,8 +54,8 @@ class AddNoteWorker(
 						val success = synchronizer.sync(
 							onProgress = { _, log ->
 								log?.let {
-									Napier.log(
-										log.level.toNapierLevel(),
+									Logger.log(
+										log.level.toSeverity(),
 										"ProjectSync",
 										null,
 										"${log.projectName} - ${log.message}"
@@ -63,22 +63,22 @@ class AddNoteWorker(
 								}
 							},
 							onLog = { log ->
-								Napier.log(
-									log.level.toNapierLevel(),
+								Logger.log(
+									log.level.toSeverity(),
 									"ProjectSync",
 									null,
 									"${log.projectName} - ${log.message}"
 								)
 							},
-							onConflict = { _ -> Napier.e { "Error: Conflict on new only sync" } },
-							onComplete = { Napier.d { "Sync Complete for Project: ${projectDef.name}" } },
-							onUnauthorized = { Napier.e { "Error: Must reauthenticate with server." } },
+							onConflict = { _ -> Logger.e { "Error: Conflict on new only sync" } },
+							onComplete = { Logger.d { "Sync Complete for Project: ${projectDef.name}" } },
+							onUnauthorized = { Logger.e { "Error: Must reauthenticate with server." } },
 							onlyNew = true
 						)
-						Napier.i { "Sync Success: $success" }
+						Logger.i { "Sync Success: $success" }
 					}
 				} else {
-					Napier.i { "No internet connection, won't sync right now." }
+					Logger.i { "No internet connection, won't sync right now." }
 				}
 			}
 		}

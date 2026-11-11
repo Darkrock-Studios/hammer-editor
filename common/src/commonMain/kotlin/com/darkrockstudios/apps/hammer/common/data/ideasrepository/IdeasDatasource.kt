@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.ideasrepository
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.base.IdeaId
 import com.darkrockstudios.apps.hammer.common.data.ProjectsDirectory
 import com.darkrockstudios.apps.hammer.base.http.storyideas.StoryIdea
@@ -7,7 +8,6 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispat
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.withContext
 import okio.FileSystem
 import okio.IOException
@@ -44,11 +44,11 @@ class IdeasDatasource(
 		val text = try {
 			fileSystem.read(path) { readUtf8() }
 		} catch (e: IOException) {
-			Napier.e("Failed to read idea file: ${path.toHPath().path}", e)
+			Logger.e("Failed to read idea file: ${path.toHPath().path}", e)
 			return null
 		}
 		return codec.decodeOrNull(text) { e ->
-			Napier.e("Skipping malformed idea file: ${path.toHPath().path}", e)
+			Logger.e("Skipping malformed idea file: ${path.toHPath().path}", e)
 		}
 	}
 

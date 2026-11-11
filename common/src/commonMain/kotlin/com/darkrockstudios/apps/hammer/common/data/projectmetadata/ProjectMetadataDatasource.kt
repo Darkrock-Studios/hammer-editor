@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.projectmetadata
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.readTomlOrNull
 import com.darkrockstudios.apps.hammer.base.http.writeToml
@@ -9,7 +10,6 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
-import io.github.aakira.napier.Napier
 import kotlinx.serialization.Serializable
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
@@ -34,7 +34,7 @@ class ProjectMetadataDatasource(
 	fun readMetadata(projectDef: ProjectDef): ProjectMetadata? {
 		val path = metadataPath(projectDef.path)
 		val metadata = fileSystem.readTomlOrNull<ProjectMetadata>(path, toml) { e ->
-			Napier.e("Failed to load project metadata: ${path.toHPath().path}", e)
+			Logger.e("Failed to load project metadata: ${path.toHPath().path}", e)
 		} ?: return null
 		return if (metadata.info.projectId == null) withLegacyServerId(metadata, path) else metadata
 	}
@@ -49,13 +49,13 @@ class ProjectMetadataDatasource(
 		val path = metadataPath(projectDir)
 
 		val metadata = fileSystem.readTomlOrNull<ProjectMetadata>(path, toml) { e ->
-			Napier.e("Failed to load project metadata: ${path.toHPath().path}", e)
+			Logger.e("Failed to load project metadata: ${path.toHPath().path}", e)
 		} ?: run {
 			// Missing or corrupt (tomlkt throws beyond SerializationException): drop the
 			// bad file and start fresh so migrators re-run instead of crashing the load.
 			fileSystem.delete(path, false)
 			val rebuilt = createMetadata(projectDir, ProjectId.randomUUID(), syncEnabled = false)
-			Napier.w("Rebuilt the metadata of project '${projectDir.name}'; sync is left off for it")
+			Logger.w("Rebuilt the metadata of project '${projectDir.name}'; sync is left off for it")
 			return rebuilt
 		}
 
@@ -119,7 +119,7 @@ class ProjectMetadataDatasource(
 		metadata.info.projectId?.let { return it }
 
 		val minted = ProjectId.randomUUID()
-		Napier.w("Project '${projectDir.name}' had no project id, assigned ${minted.id}")
+		Logger.w("Project '${projectDir.name}' had no project id, assigned ${minted.id}")
 		saveMetadata(metadata.copy(info = metadata.info.copy(projectId = minted)), projectDir)
 		return minted
 	}

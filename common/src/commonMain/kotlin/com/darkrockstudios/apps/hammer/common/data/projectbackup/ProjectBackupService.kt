@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.projectbackup
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.validate.validateProjectName
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -14,7 +15,6 @@ import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.util.format
 import com.darkrockstudios.apps.hammer.common.util.zip.unzipToDirectory
 import com.darkrockstudios.apps.hammer.common.util.zip.zipDirectory
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.datetime.*
@@ -98,12 +98,12 @@ open class ProjectBackupService(
 			val path = backup.path.toOkioPath()
 			if (fileSystem.exists(path)) {
 				fileSystem.delete(path)
-				Napier.i("Deleted backup: ${backup.path.name}")
+				Logger.i("Deleted backup: ${backup.path.name}")
 			} else {
-				Napier.w("Backup file not found: ${backup.path.name}")
+				Logger.w("Backup file not found: ${backup.path.name}")
 			}
 		} catch (e: IOException) {
-			Napier.e("Failed to delete backup: ${backup.path.name}", e)
+			Logger.e("Failed to delete backup: ${backup.path.name}", e)
 			throw e
 		}
 	}
@@ -119,11 +119,11 @@ open class ProjectBackupService(
 		// Delete the oldest backups to get under budget
 		if (backups.size > settings.maxBackups) {
 			val overBudget = backups.size - settings.maxBackups
-			Napier.i("Project '${project.name}' is over it's backup budget by $overBudget backups.")
+			Logger.i("Project '${project.name}' is over it's backup budget by $overBudget backups.")
 			for (ii in 0 until overBudget) {
 				val oldBackup = backups[ii]
 				fileSystem.delete(oldBackup.path.toOkioPath())
-				Napier.i("Deleted backup: ${oldBackup.path.name}")
+				Logger.i("Deleted backup: ${oldBackup.path.name}")
 			}
 		}
 	}
@@ -178,7 +178,7 @@ open class ProjectBackupService(
 
 			newBackupDef
 		} catch (e: Exception) {
-			Napier.e("Failed to make backup for project: ${projectDef.name}", e)
+			Logger.e("Failed to make backup for project: ${projectDef.name}", e)
 			null
 		}
 	}
@@ -206,7 +206,7 @@ open class ProjectBackupService(
 
 		return restoreLock.withLock {
 			if (projectsRepository.isProjectInUse(targetDir)) {
-				Napier.w("Did not restore '${backupDef.path.name}': '${backupDef.projectName}' is in use")
+				Logger.w("Did not restore '${backupDef.path.name}': '${backupDef.projectName}' is in use")
 				return@withLock BackupRestoreResult.ProjectInUse
 			}
 
@@ -232,13 +232,13 @@ open class ProjectBackupService(
 				adoptIdentity(backupDef.projectName, targetDir, liveId, liveSynced)
 				BackupRestoreResult.Restored
 			} catch (e: Exception) {
-				Napier.e("Failed to restore backup: ${backupDef.path.name}", e)
+				Logger.e("Failed to restore backup: ${backupDef.path.name}", e)
 				BackupRestoreResult.Failed
 			} finally {
 				try {
 					fileSystem.deleteRecursively(staging)
 				} catch (e: IOException) {
-					Napier.w("Failed to clean up restore staging directory", e)
+					Logger.w("Failed to clean up restore staging directory", e)
 				}
 			}
 		}
@@ -261,24 +261,24 @@ open class ProjectBackupService(
 		val restoredDef = try {
 			ProjectDef(projectMetadataDatasource.loadProjectId(projectDir), name, projectDir)
 		} catch (e: Exception) {
-			Napier.e("Restored '$name' but failed to read its project id", e)
+			Logger.e("Restored '$name' but failed to read its project id", e)
 			return
 		}
 		try {
 			dataMigrator.migrateProject(restoredDef)
 		} catch (e: Exception) {
-			Napier.e("Restored '${restoredDef.name}' but failed to migrate it", e)
+			Logger.e("Restored '${restoredDef.name}' but failed to migrate it", e)
 		}
 		// Flagged before the id is set, so an id change keeps the backup's conflict baselines.
 		try {
 			projectsRepository.resetSyncStateAfterRestore(restoredDef, serverKnowsProject = liveSynced)
 		} catch (e: Exception) {
-			Napier.e("Restored '${restoredDef.name}' but failed to reset its sync state", e)
+			Logger.e("Restored '${restoredDef.name}' but failed to reset its sync state", e)
 		}
 		try {
 			projectsRepository.setProjectId(restoredDef, liveId ?: ProjectId.randomUUID())
 		} catch (e: Exception) {
-			Napier.e("Restored '${restoredDef.name}' but failed to set its project id", e)
+			Logger.e("Restored '${restoredDef.name}' but failed to set its project id", e)
 		}
 	}
 

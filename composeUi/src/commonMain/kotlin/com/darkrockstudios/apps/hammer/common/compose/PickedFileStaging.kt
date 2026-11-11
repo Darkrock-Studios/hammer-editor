@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.compose
 
-import io.github.aakira.napier.Napier
+import co.touchlab.kermit.Logger
 import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.PlatformFile
 import io.github.vinceglb.filekit.cacheDir
@@ -25,7 +25,7 @@ suspend fun PlatformFile.stageIntoCache(): PlatformFile? {
 	} catch (e: CancellationException) {
 		throw e
 	} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-		Napier.e("Failed to stage picked file into cache", e)
+		Logger.e("Failed to stage picked file into cache", e)
 		null
 	}
 }

@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.components.timeline
 
+import co.touchlab.kermit.Logger
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
@@ -23,7 +24,6 @@ import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRe
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineEventDraft
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineResult
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineService
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
@@ -247,7 +247,7 @@ class CreateTimeLineEventComponent(
 			is TimelineResult.Invalid -> return result.error
 			is TimelineResult.Ok -> result.event
 		}
-		Napier.i { "Time Line event created! ${created?.id}" }
+		Logger.i { "Time Line event created! ${created?.id}" }
 
 		withContext(dispatcherMain) {
 			_contentText.update { "" }

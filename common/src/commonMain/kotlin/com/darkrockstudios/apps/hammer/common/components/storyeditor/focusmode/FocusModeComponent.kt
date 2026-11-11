@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.components.storyeditor.focusmode
 
+import co.touchlab.kermit.Logger
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.getAndUpdate
@@ -14,7 +15,6 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectDictionaryUseCase
 import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectSpellCheckService
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -143,7 +143,7 @@ class FocusModeComponent(
 	}
 
 	private fun subscribeToBufferUpdates() {
-		Napier.d { "FocusModeComponent start collecting buffer updates" }
+		Logger.d { "FocusModeComponent start collecting buffer updates" }
 
 		bufferUpdateSubscription?.cancel()
 		bufferUpdateSubscription =

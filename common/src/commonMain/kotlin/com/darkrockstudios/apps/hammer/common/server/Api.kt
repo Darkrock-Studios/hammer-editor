@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.server
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.http.HAMMER_PROTOCOL_HEADER
 import com.darkrockstudios.apps.hammer.base.http.HAMMER_PROTOCOL_VERSION
@@ -21,7 +22,6 @@ import com.darkrockstudios.apps.hammer.server_error_timeout
 import com.darkrockstudios.apps.hammer.server_error_tls
 import com.darkrockstudios.apps.hammer.sync_general_error
 import com.darkrockstudios.apps.hammer.sync_unauthorized
-import io.github.aakira.napier.Napier
 import io.ktor.client.HttpClient
 import io.ktor.client.call.NoTransformationFoundException
 import io.ktor.client.call.body
@@ -95,7 +95,7 @@ abstract class Api(
 				)
 			}
 		} catch (e: NoTransformationFoundException) {
-			Napier.e("Failed to parse error response", e)
+			Logger.e("Failed to parse error response", e)
 			Result.failure(
 				HttpFailureException(
 					statusCode = outerResponse?.status ?: HttpStatusCode.ExpectationFailed,
@@ -107,7 +107,7 @@ abstract class Api(
 			)
 		} catch (e: ConnectTimeoutException) {
 			// Connection timeout - server not responding when connecting
-			Napier.e("Connection timeout", e)
+			Logger.e("Connection timeout", e)
 			Result.failure(
 				HttpFailureException(
 					statusCode = HttpStatusCode.RequestTimeout,
@@ -119,7 +119,7 @@ abstract class Api(
 			)
 		} catch (e: SocketTimeoutException) {
 			// Socket timeout - server stopped responding during data transfer
-			Napier.e("Socket timeout", e)
+			Logger.e("Socket timeout", e)
 			Result.failure(
 				HttpFailureException(
 					statusCode = HttpStatusCode.RequestTimeout,
@@ -131,7 +131,7 @@ abstract class Api(
 			)
 		} catch (e: HttpRequestTimeoutException) {
 			// Overall request timeout
-			Napier.e("Request timeout", e)
+			Logger.e("Request timeout", e)
 			Result.failure(
 				HttpFailureException(
 					statusCode = HttpStatusCode.RequestTimeout,
@@ -143,7 +143,7 @@ abstract class Api(
 			)
 		} catch (e: UnresolvedAddressException) {
 			// DNS resolution failure
-			Napier.e("Unresolved address", e)
+			Logger.e("Unresolved address", e)
 			Result.failure(
 				HttpFailureException(
 					statusCode = HttpStatusCode.BadGateway,
@@ -170,7 +170,7 @@ abstract class Api(
 		local: Boolean = false,
 	): Result<T> = when {
 		e.isTlsFailure() -> {
-			Napier.e("TLS Error", e)
+			Logger.e("TLS Error", e)
 			Result.failure(
 				HttpFailureException(
 					statusCode = outerResponse?.status ?: HttpStatusCode.BadGateway,
@@ -183,7 +183,7 @@ abstract class Api(
 		}
 
 		local -> {
-			Napier.e("Network Unavailable", e)
+			Logger.e("Network Unavailable", e)
 			Result.failure(
 				HttpFailureException(
 					statusCode = outerResponse?.status ?: HttpStatusCode.ServiceUnavailable,
@@ -197,7 +197,7 @@ abstract class Api(
 
 		else -> {
 			// Generic network error (connection refused, etc.)
-			Napier.e("Network Error", e)
+			Logger.e("Network Error", e)
 			Result.failure(
 				HttpFailureException(
 					statusCode = outerResponse?.status ?: HttpStatusCode.RequestTimeout,
@@ -342,9 +342,9 @@ suspend fun defaultFailureHandler(response: HttpResponse, strRes: StrRes): Throw
 	val error = try {
 		response.body<HttpResponseError>()
 	} catch (e: NoTransformationFoundException) {
-		null.also { Napier.w("Error response body unable to be parsed", e) }
+		null.also { Logger.w("Error response body unable to be parsed", e) }
 	} catch (e: ContentConvertException) {
-		null.also { Napier.w("Error response body unable to be parsed", e) }
+		null.also { Logger.w("Error response body unable to be parsed", e) }
 	}
 
 	if (error != null) return HttpFailureException(statusCode = response.status, error = error)

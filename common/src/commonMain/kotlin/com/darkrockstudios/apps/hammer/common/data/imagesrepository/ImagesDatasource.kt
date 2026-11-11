@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.imagesrepository
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.base.image.ImageFormat
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageDef
@@ -8,7 +9,6 @@ import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.isWithin
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
-import io.github.aakira.napier.Napier
 import okio.FileSystem
 import okio.IOException
 import okio.Path
@@ -52,7 +52,7 @@ class ImagesDatasource(
 		return try {
 			fileSystem.read(path) { readByteArray() }
 		} catch (e: IOException) {
-			Napier.e("Failed to read image ${def.id}: $path", e)
+			Logger.e("Failed to read image ${def.id}: $path", e)
 			null
 		}
 	}
@@ -98,7 +98,7 @@ class ImagesDatasource(
 		try {
 			fileSystem.delete(tempPath, mustExist = false)
 		} catch (e: IOException) {
-			Napier.w("Failed to delete temp image file $tempPath", e)
+			Logger.w("Failed to delete temp image file $tempPath", e)
 		}
 	}
 

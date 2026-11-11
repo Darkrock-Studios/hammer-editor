@@ -4,10 +4,10 @@ import android.content.Context
 import androidx.core.content.pm.ShortcutInfoCompat
 import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.core.graphics.drawable.IconCompat
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.android.ProjectRootActivity
 import com.darkrockstudios.apps.hammer.android.R
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.withContext
 import kotlin.coroutines.CoroutineContext
 
@@ -33,7 +33,7 @@ class ProjectShortcutsManager(
 
 			ShortcutManagerCompat.setDynamicShortcuts(context, shortcuts)
 		}.onFailure {
-			Napier.e("Failed to refresh project shortcuts", it)
+			Logger.e("Failed to refresh project shortcuts", it)
 		}
 	}
 

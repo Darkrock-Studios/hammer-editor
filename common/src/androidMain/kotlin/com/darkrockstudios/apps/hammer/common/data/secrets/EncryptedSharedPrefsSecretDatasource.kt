@@ -4,7 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
-import io.github.aakira.napier.Napier
+import co.touchlab.kermit.Logger
 import java.io.IOException
 import java.security.GeneralSecurityException
 import java.security.KeyStore
@@ -35,7 +35,7 @@ class EncryptedSharedPrefsSecretDatasource internal constructor(
 
 	// A restored or orphaned keyset cannot be decrypted without its Keystore key, which is never backed up.
 	private fun recreatePrefs(cause: Exception): SharedPreferences {
-		Napier.w("Secret store keyset is unreadable; recreating it", cause)
+		Logger.w("Secret store keyset is unreadable; recreating it", cause)
 		resetPrefs()
 		return openPrefs()
 	}
@@ -43,7 +43,7 @@ class EncryptedSharedPrefsSecretDatasource internal constructor(
 	override fun get(key: String): String? = try {
 		prefs.getString(key, null)
 	} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-		Napier.w("Failed to read secret '$key'", e)
+		Logger.w("Failed to read secret '$key'", e)
 		null
 	}
 

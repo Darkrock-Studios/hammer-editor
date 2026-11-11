@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.components.projectroot
 
+import co.touchlab.kermit.Logger
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.router.stack.*
 import com.arkivanov.decompose.value.Value
@@ -18,7 +19,6 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.InitialProjectScreen
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -115,7 +115,7 @@ internal class ProjectRootRouter(
 	}
 
 	private fun notes(config: Config.NotesConfig, componentContext: ComponentContext): Notes {
-		Napier.d("create notes")
+		Logger.d("create notes")
 		return NotesComponent(
 			componentContext = componentContext,
 			projectDef = config.projectDef,
@@ -174,7 +174,7 @@ internal class ProjectRootRouter(
 
 	fun showNotes() {
 		navigation.bringToFront(Config.NotesConfig(projectDef = projectDef))
-		Napier.d("notes brought to front")
+		Logger.d("notes brought to front")
 	}
 
 	fun showEncyclopedia() {

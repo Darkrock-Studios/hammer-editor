@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.components.timeline
 
+import co.touchlab.kermit.Logger
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
@@ -32,7 +33,6 @@ import com.darkrockstudios.apps.hammer.common.timeline.layout.TimelineView as Dr
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.apps.hammer.timeline_menu_group
 import com.darkrockstudios.apps.hammer.timeline_switcher_new
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -309,7 +309,7 @@ class TimeLineOverviewComponent(
 				throw e
 			} catch (e: Exception) {
 				// The card keeps the row's basic preview, and a later request reads again.
-				Napier.w("Failed to read the preview of timeline event $eventId", e)
+				Logger.w("Failed to read the preview of timeline event $eventId", e)
 			} finally {
 				if (readingPreviews[eventId] == row) readingPreviews -= eventId
 			}

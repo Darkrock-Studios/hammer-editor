@@ -1,11 +1,11 @@
 package com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.base.http.readJsonOrNull
 import com.darkrockstudios.apps.hammer.base.http.writeJson
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
-import io.github.aakira.napier.Napier
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import okio.FileSystem
@@ -21,7 +21,7 @@ class ServerSettingsFilesystemDatasource(
 
 	override fun loadServerSettings(projectsDir: HPath): PersistedServerSettings? {
 		val path = getServerSettingsPath(projectsDir).toOkioPath()
-		Napier.i { "Loading Server Settings from: $path" }
+		Logger.i { "Loading Server Settings from: $path" }
 
 		if (!fileSystem.exists(path)) return null
 
@@ -30,7 +30,7 @@ class ServerSettingsFilesystemDatasource(
 		return try {
 			json.decodeFromString(settingsText)
 		} catch (e: SerializationException) {
-			Napier.e("Failed to load Server Settings.", e)
+			Logger.e("Failed to load Server Settings.", e)
 			null
 		}
 	}

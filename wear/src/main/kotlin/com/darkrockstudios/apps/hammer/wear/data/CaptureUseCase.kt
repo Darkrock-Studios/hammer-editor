@@ -1,9 +1,9 @@
 package com.darkrockstudios.apps.hammer.wear.data
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.wear.sync.CaptureSyncScheduler
 import com.darkrockstudios.apps.hammer.wear.tile.CaptureSurfaceUpdater
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CancellationException
 
 sealed interface CaptureTarget {
@@ -49,7 +49,7 @@ class CaptureUseCase(
 		} catch (e: CancellationException) {
 			throw e
 		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-			Napier.e("Failed to save a capture", e)
+			Logger.e("Failed to save a capture", e)
 			false
 		}
 
@@ -66,7 +66,7 @@ class CaptureUseCase(
 	} catch (e: CancellationException) {
 		throw e
 	} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-		Napier.e("Failed to count what is waiting to sync", e)
+		Logger.e("Failed to count what is waiting to sync", e)
 		null
 	}
 }

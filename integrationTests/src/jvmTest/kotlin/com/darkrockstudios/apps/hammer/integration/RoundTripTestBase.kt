@@ -1,5 +1,7 @@
 package com.darkrockstudios.apps.hammer.integration
 
+import co.touchlab.kermit.Logger
+import co.touchlab.kermit.platformLogWriter
 import com.darkrockstudios.apps.hammer.base.http.Token
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
@@ -21,8 +23,6 @@ import com.darkrockstudios.apps.hammer.common.data.projectdata.mergeTimelinesByC
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.apps.hammer.e2e.util.E2eTestData
 import com.darkrockstudios.apps.hammer.encryption.ContentEncryptor
-import io.github.aakira.napier.DebugAntilog
-import io.github.aakira.napier.Napier
 import com.darkrockstudios.apps.hammer.e2e.util.EndToEndTest
 import com.darkrockstudios.apps.hammer.e2e.util.TestAccount
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ClientAccountSynchronizer
@@ -114,10 +114,9 @@ abstract class RoundTripTestBase : EndToEndTest(), KoinTest {
 	override fun setup() {
 		super.setup()
 
-		// Route client (Napier) logs to stdout so test failures show what the
+		// Route client logs to stdout so test failures show what the
 		// sync pipeline actually did.
-		Napier.takeLogarithm()
-		Napier.base(DebugAntilog())
+		Logger.setLogWriters(platformLogWriter())
 
 		// FakeFileSystem won't auto-create parent dirs on first write the way
 		// FileSystem.SYSTEM does on a JUnit @TempDir — materialize the path first.
@@ -194,7 +193,7 @@ abstract class RoundTripTestBase : EndToEndTest(), KoinTest {
 		} catch (e: Throwable) {
 			// HttpClient.close() failing here leaks the Ktor engine's executor
 			// threads into subsequent tests — surface it instead of swallowing.
-			Napier.w("Failed to close HttpClient during test teardown", e)
+			Logger.w("Failed to close HttpClient during test teardown", e)
 		}
 		// Unload only the modules we added — server's modules stay so EndToEndTest's
 		// tearDown can still stop the server cleanly via its own Koin.

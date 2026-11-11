@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.components.storyeditor.drafts
 
+import co.touchlab.kermit.Logger
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
@@ -12,7 +13,6 @@ import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.drafts.DraftDef
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -114,13 +114,13 @@ class DraftCompareComponent(
 		val originalMarkdown = state.value.sceneContent?.markdown
 
 		val content = if (state.value.mergedContent != null) {
-			Napier.i { "Picking merged content" }
+			Logger.i { "Picking merged content" }
 			SceneContent(
 				scene = sceneItem,
 				platformRepresentation = state.value.mergedContent
 			)
 		} else if (originalMarkdown != null) {
-			Napier.i { "Picking merged content, but with no changes" }
+			Logger.i { "Picking merged content, but with no changes" }
 			SceneContent(
 				scene = sceneItem,
 				markdown = originalMarkdown
@@ -139,7 +139,7 @@ class DraftCompareComponent(
 			projectEditor.onContentChanged(content, UpdateSource.Drafts)
 			backToEditor()
 		} else {
-			Napier.e { "Cannot pick draft, draft content was NULL" }
+			Logger.e { "Cannot pick draft, draft content was NULL" }
 		}
 	}
 

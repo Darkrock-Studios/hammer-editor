@@ -1,11 +1,11 @@
 package com.darkrockstudios.apps.hammer.desktop.shortcuts
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.desktop.PROJECT_FLAG
 import com.darkrockstudios.apps.hammer.jump_list_recent_projects
-import io.github.aakira.napier.Napier
 import dev.nucleusframework.launcher.windows.*
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -25,7 +25,7 @@ class WindowsJumpList(
 	override fun init() {
 		if (!WindowsJumpListManager.isAvailable) return
 		runCatching { WindowsJumpListManager.setProcessAppId() }
-			.onFailure { Napier.w("WindowsJumpListManager.setProcessAppId failed", it) }
+			.onFailure { Logger.w("WindowsJumpListManager.setProcessAppId failed", it) }
 	}
 
 	override suspend fun refresh(excludeCurrent: ProjectDef?) {
@@ -49,7 +49,7 @@ class WindowsJumpList(
 					tasks = emptyList(),
 				)
 			}.onFailure {
-				Napier.w("Failed to refresh Windows jump list", it)
+				Logger.w("Failed to refresh Windows jump list", it)
 			}
 		}
 	}

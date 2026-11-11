@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.spellcheck
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectDefaultDispatcher
@@ -7,7 +8,6 @@ import com.darkrockstudios.apps.hammer.common.util.Locale
 import com.darkrockstudios.libs.platformspellchecker.PlatformSpellChecker
 import com.darkrockstudios.libs.platformspellchecker.PlatformSpellCheckerFactory
 import com.darkrockstudios.libs.platformspellchecker.SpLocale
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.BufferOverflow
@@ -78,7 +78,7 @@ class SpellCheckRepository(
 			applySessionWords(checker)
 			_dictionaryFlow.tryEmit(checker)
 		} catch (e: Exception) {
-			Napier.e("Spell Check: failed to apply session words", e)
+			Logger.e("Spell Check: failed to apply session words", e)
 		}
 	}
 
@@ -92,7 +92,7 @@ class SpellCheckRepository(
 		val toAdd = union.filterNot { checker.isWordCorrect(it) }
 		if (toAdd.isNotEmpty()) {
 			checker.setUserDictionary(toAdd)
-			Napier.i("Spell Check: applied ${toAdd.size} session words")
+			Logger.i("Spell Check: applied ${toAdd.size} session words")
 		}
 		appliedCandidates = union
 	}
@@ -104,7 +104,7 @@ class SpellCheckRepository(
 				currentLanguage = null
 				appliedCandidates = emptySet()
 				_dictionaryFlow.tryEmit(null)
-				Napier.i("Spell Check disabled: dictionary cleared")
+				Logger.i("Spell Check disabled: dictionary cleared")
 			}
 			return@withLock
 		}
@@ -113,7 +113,7 @@ class SpellCheckRepository(
 
 		val spLocale = language.toSpLocale()
 		if (spellCheckFactory.hasLanguage(spLocale).not()) {
-			Napier.w("Unsupported Locale type: $language")
+			Logger.w("Unsupported Locale type: $language")
 		} else {
 			val checker = spellCheckFactory.createSpellChecker(spLocale)
 			currentLanguage = language
@@ -123,11 +123,11 @@ class SpellCheckRepository(
 			} catch (e: Exception) {
 				// The checker still ships without session words; the stale
 				// appliedCandidates means the next push retries the apply.
-				Napier.e("Spell Check: failed to apply session words", e)
+				Logger.e("Spell Check: failed to apply session words", e)
 			}
 			_dictionaryFlow.tryEmit(checker)
 
-			Napier.i("Spell Checker loaded for: ${language.toLanguageTag()}")
+			Logger.i("Spell Checker loaded for: ${language.toLanguageTag()}")
 		}
 	}
 
@@ -135,7 +135,7 @@ class SpellCheckRepository(
 		scope.launch {
 			val initial = globalSettingsStore.globalSettings.spellCheckSettings
 			applySpellCheckSettings(initial.enabled, initial.locale)
-			Napier.i("Spell Check: Initial settings applied: enabled=${initial.enabled}, locale=${initial.locale}")
+			Logger.i("Spell Check: Initial settings applied: enabled=${initial.enabled}, locale=${initial.locale}")
 
 			globalSettingsStore.globalSettingsUpdates.collect { settings ->
 				applySpellCheckSettings(

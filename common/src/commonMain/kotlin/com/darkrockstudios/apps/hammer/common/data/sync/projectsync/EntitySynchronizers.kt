@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.sync.projectsync
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.EntityType
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -7,7 +8,6 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.*
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CancellationException
 
 class EntitySynchronizers(private val projectDef: ProjectDef) : ProjectScoped {
@@ -78,7 +78,7 @@ class EntitySynchronizers(private val projectDef: ProjectDef) : ProjectScoped {
 			// Phantom newId with no backing entity (created then deleted before a
 			// successful sync). Skip it so the sync can finish and clear newIds,
 			// instead of wedging every future sync.
-			Napier.w("reId skipped: no local entity owns $oldId")
+			Logger.w("reId skipped: no local entity owns $oldId")
 			return null
 		}
 		val rewrittenReferrers = when (type) {
@@ -110,7 +110,7 @@ class EntitySynchronizers(private val projectDef: ProjectDef) : ProjectScoped {
 			} catch (e: CancellationException) {
 				throw e
 			} catch (e: Exception) {
-				Napier.e("Entity id change listener failed for $changes", e)
+				Logger.e("Entity id change listener failed for $changes", e)
 			}
 		}
 	}

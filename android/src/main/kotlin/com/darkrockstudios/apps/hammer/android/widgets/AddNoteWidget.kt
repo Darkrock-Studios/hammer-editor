@@ -36,8 +36,8 @@ import androidx.glance.layout.width
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.base.ProjectId
-import io.github.aakira.napier.Napier
 
 class AddNoteWidget : GlanceAppWidget() {
 
@@ -175,7 +175,7 @@ class AddNoteClickAction : ActionCallback {
 	) {
 		val projectId = parameters[AddNoteActionParameterKey]
 
-		Napier.d { "Add Note widget tapped for project: `$projectId`" }
+		Logger.d { "Add Note widget tapped for project: `$projectId`" }
 
 		val intent = Intent(context, AddNoteActivity::class.java)
 			.setFlags(FLAG_ACTIVITY_NEW_TASK)

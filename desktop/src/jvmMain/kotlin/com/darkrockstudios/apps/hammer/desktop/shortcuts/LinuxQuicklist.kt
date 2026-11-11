@@ -1,8 +1,8 @@
 package com.darkrockstudios.apps.hammer.desktop.shortcuts
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
-import io.github.aakira.napier.Napier
 import dev.nucleusframework.freedesktop.icons.FreedesktopIcon
 import dev.nucleusframework.launcher.linux.DbusmenuItem
 import dev.nucleusframework.launcher.linux.LauncherProperties
@@ -36,7 +36,7 @@ class LinuxQuicklist(
 			}
 			LinuxLauncherEntry.update(uri, LauncherProperties(quicklist = ql.objectPath))
 			quicklist = ql
-		}.onFailure { Napier.w("Failed to initialize Linux quicklist", it) }
+		}.onFailure { Logger.w("Failed to initialize Linux quicklist", it) }
 	}
 
 	override suspend fun refresh(excludeCurrent: ProjectDef?) {
@@ -58,7 +58,7 @@ class LinuxQuicklist(
 				}
 
 				ql.setMenu(items)
-			}.onFailure { Napier.w("Failed to refresh Linux quicklist", it) }
+			}.onFailure { Logger.w("Failed to refresh Linux quicklist", it) }
 		}
 	}
 

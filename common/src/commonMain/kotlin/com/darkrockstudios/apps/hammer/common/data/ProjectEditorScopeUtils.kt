@@ -1,11 +1,11 @@
 package com.darkrockstudios.apps.hammer.common.data
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.common.data.duplicateids.DuplicateIdService
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectSpellCheckService
-import io.github.aakira.napier.Napier
 import kotlinx.atomicfu.atomic
 import kotlinx.atomicfu.getAndUpdate
 import kotlinx.atomicfu.locks.reentrantLock
@@ -140,7 +140,7 @@ private fun markOpenedForEditing(scopeId: ScopeID): Boolean {
 
 /** Releases one editor's hold on the scope, closing it once no editor has it open. */
 fun closeProjectScope(projectScope: Scope, projectDef: ProjectDef) {
-	Napier.d { "closeProjectScope: ${projectDef.name}" }
+	Logger.d { "closeProjectScope: ${projectDef.name}" }
 	val scopeId = ProjectDefScope(projectDef).scopeId
 	val editors = editorScopes.getAndUpdate { open ->
 		val remaining = (open[scopeId] ?: 0) - 1

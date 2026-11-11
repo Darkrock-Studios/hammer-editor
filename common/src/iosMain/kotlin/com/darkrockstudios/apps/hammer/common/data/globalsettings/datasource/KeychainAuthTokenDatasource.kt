@@ -1,10 +1,10 @@
 package com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.AuthTokenDatasource.Companion.accountKey
 import com.russhwolf.settings.ExperimentalSettingsImplementation
 import com.russhwolf.settings.KeychainSettings
 import com.russhwolf.settings.Settings
-import io.github.aakira.napier.Napier
 import kotlinx.atomicfu.locks.reentrantLock
 import kotlinx.atomicfu.locks.withLock
 import kotlinx.serialization.json.Json
@@ -46,7 +46,7 @@ class KeychainAuthTokenDatasource(
 			json.decodeFromString<Map<String, AuthTokens>>(stored)
 			// Corruption or tampering: treat as no tokens (forces re-login).
 		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-			Napier.w("Failed to parse Keychain auth tokens; treating as empty", e)
+			Logger.w("Failed to parse Keychain auth tokens; treating as empty", e)
 			emptyMap()
 		}
 	}

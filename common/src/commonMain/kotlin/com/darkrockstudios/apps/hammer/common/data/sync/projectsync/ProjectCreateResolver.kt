@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.sync.projectsync
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.base.GroupId
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.ApiErrorCode
@@ -9,7 +10,6 @@ import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.AccountSessi
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.AccountSyncDatasource
 import com.darkrockstudios.apps.hammer.common.server.HttpFailureException
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectsApi
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
 
@@ -94,20 +94,20 @@ class ProjectCreateResolver(
 						// Adopting would leave two local projects sharing an id.
 						val holder = projectsRepository.findProject(response.projectId)
 						if (holder != null && holder.name != def.name) {
-							Napier.w(
+							Logger.w(
 								"'${def.name}' not adopting server project ${response.projectId.id}: " +
 									"'${holder.name}' holds it"
 							)
 							return ServerCreateOutcome.AdoptConflict(holder)
 						}
 						if (!mayChangeId) {
-							Napier.w(
+							Logger.w(
 								"'${def.name}' matches server project ${response.projectId.id}: " +
 									"needs account sync"
 							)
 							return ServerCreateOutcome.NeedsAccountSync
 						}
-						Napier.i("'${def.name}' adopted server project ${response.projectId.id}")
+						Logger.i("'${def.name}' adopted server project ${response.projectId.id}")
 						projectsRepository.setProjectId(def, response.projectId)
 					}
 					return ServerCreateOutcome.Created(
@@ -121,11 +121,11 @@ class ProjectCreateResolver(
 
 				error.isIdHeldElsewhere() && !reminted -> {
 					if (!mayChangeId) {
-						Napier.w("'${def.name}' id ${def.id.id} is taken on the server: needs account sync")
+						Logger.w("'${def.name}' id ${def.id.id} is taken on the server: needs account sync")
 						return ServerCreateOutcome.NeedsAccountSync
 					}
 					val newId = ProjectId.randomUUID()
-					Napier.w("'${def.name}' id ${def.id.id} is taken on the server, re-minted ${newId.id}")
+					Logger.w("'${def.name}' id ${def.id.id} is taken on the server, re-minted ${newId.id}")
 					def = projectsRepository.setProjectId(def, newId)
 					reminted = true
 				}

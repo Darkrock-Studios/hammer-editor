@@ -8,6 +8,7 @@ import android.os.Build
 import androidx.collection.intSetOf
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
+import co.touchlab.kermit.Logger
 import coil3.ImageLoader
 import coil3.SingletonImageLoader
 import com.darkrockstudios.apps.hammer.android.aboutlibraries.aboutLibrariesModule
@@ -19,20 +20,19 @@ import com.darkrockstudios.apps.hammer.android.widgets.AddNoteWidgetReceiver
 import com.darkrockstudios.apps.hammer.android.widgets.StoriesListWidgetReceiver
 import com.darkrockstudios.apps.hammer.android.widgets.StoryInfoWidgetReceiver
 import com.darkrockstudios.apps.hammer.common.BuildConfig
-import com.darkrockstudios.apps.hammer.common.FileLogger
 import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
 import com.darkrockstudios.apps.hammer.common.data.secrets.EncryptedSharedPrefsSecretDatasource
-import com.darkrockstudios.apps.hammer.common.dependencyinjection.NapierLogger
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.KermitKoinLogger
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.appModule
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.imageLoadingModule
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.mainModule
 import com.darkrockstudios.apps.hammer.common.installGlobalExceptionHandler
 import com.darkrockstudios.apps.hammer.common.logStartupBanner
+import com.darkrockstudios.apps.hammer.common.logging.installAndroidLogging
 import com.darkrockstudios.apps.hammer.common.setExternalDirectories
 import com.darkrockstudios.apps.hammer.common.setInternalDirectories
 import com.darkrockstudios.apps.hammer.common.util.AndroidSettingsKeys
 import com.russhwolf.settings.Settings
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -56,7 +56,7 @@ class HammerApplication : Application(), SingletonImageLoader.Factory {
 		super.onCreate()
 
 		initializeDirectories()
-		Napier.base(FileLogger(scope = applicationScope))
+		installAndroidLogging(applicationScope)
 		installGlobalExceptionHandler()
 		logStartupBanner()
 
@@ -64,7 +64,7 @@ class HammerApplication : Application(), SingletonImageLoader.Factory {
 		val pluginRegistry = PluginRegistry().also(runtimePlugins::activate)
 
 		startKoin {
-			logger(NapierLogger())
+			logger(KermitKoinLogger())
 			androidContext(this@HammerApplication)
 			modules(
 				listOf(
@@ -107,7 +107,7 @@ class HammerApplication : Application(), SingletonImageLoader.Factory {
 				.forEach { receiver ->
 					runCatching {
 						glanceManager.setWidgetPreviews(receiver, intSetOf(WIDGET_CATEGORY_HOME_SCREEN))
-					}.onFailure { Napier.w(it) { "Failed to publish previews for $receiver" } }
+					}.onFailure { Logger.w(it) { "Failed to publish previews for $receiver" } }
 				}
 		}
 	}

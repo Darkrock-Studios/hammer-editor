@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.common.compose.plugin
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.operations.plugin.TextDiagnosticSeverity
 import com.darkrockstudios.apps.hammer.operations.plugin.TextDiagnosticsProvider
 import com.darkrockstudios.apps.hammer.operations.plugin.TextDiagnosticsRequest
@@ -12,7 +13,6 @@ import com.darkrockstudios.texteditor.spellcheck.diagnostics.TextDiagnosticsChec
 import com.darkrockstudios.texteditor.spellcheck.diagnostics.TextDiagnosticsState
 import com.darkrockstudios.texteditor.spellcheck.diagnostics.rememberTextDiagnosticsState
 import com.darkrockstudios.texteditor.state.TextEditorState
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CancellationException
 import org.koin.compose.koinInject
 
@@ -56,7 +56,7 @@ internal class PluginChecker(
 			} catch (e: CancellationException) {
 				throw e
 			} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-				Napier.w(e) { "Text check '${provider.label}' failed" }
+				Logger.w(e) { "Text check '${provider.label}' failed" }
 				emptyList()
 			}
 			found.forEachIndexed { index, diagnostics ->

@@ -1,11 +1,11 @@
 package com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore.Companion.createDefault
 import com.darkrockstudios.apps.hammer.common.getConfigDirectory
 import com.darkrockstudios.apps.hammer.common.spellcheck.LanguageUtil
 import com.darkrockstudios.libs.platformspellchecker.PlatformSpellCheckerFactory
-import io.github.aakira.napier.Napier
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
@@ -21,7 +21,7 @@ class GlobalSettingsFilesystemDatasource(
 ) : GlobalSettingsDatasource {
 
 	override fun loadSettings(): GlobalSettings {
-		Napier.i { "Loading Global Settings from: $CONFIG_PATH" }
+		Logger.i { "Loading Global Settings from: $CONFIG_PATH" }
 
 		if (!fileSystem.exists(CONFIG_PATH)) {
 			return createDefault(languageUtil, platformSpellCheckerFactory)
@@ -36,10 +36,10 @@ class GlobalSettingsFilesystemDatasource(
 		return try {
 			toml.decodeFromString(settingsText)
 		} catch (e: NumberFormatException) {
-			Napier.e("Failed to load Global Settings, Reverting to defaults.", e)
+			Logger.e("Failed to load Global Settings, Reverting to defaults.", e)
 			createDefault(languageUtil, platformSpellCheckerFactory)
 		} catch (e: SerializationException) {
-			Napier.e("Failed to load Global Settings, Reverting to defaults.", e)
+			Logger.e("Failed to load Global Settings, Reverting to defaults.", e)
 			createDefault(languageUtil, platformSpellCheckerFactory)
 		}
 	}

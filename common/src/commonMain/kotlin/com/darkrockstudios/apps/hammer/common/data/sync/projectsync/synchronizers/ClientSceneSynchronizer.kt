@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ApiSceneType
@@ -21,7 +22,6 @@ import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.sceneme
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import com.darkrockstudios.apps.hammer.common.util.StrRes
-import io.github.aakira.napier.Napier
 
 class ClientSceneSynchronizer(
 	projectDef: ProjectDef,
@@ -137,7 +137,7 @@ class ClientSceneSynchronizer(
 		syncId: String,
 		onLog: OnSyncLog
 	): Boolean {
-		Napier.d("Storing Entity ${serverEntity.id}")
+		Logger.d("Storing Entity ${serverEntity.id}")
 		val id = serverEntity.id
 		val tree = sceneEditorRepository.rawTree
 
@@ -162,7 +162,7 @@ class ClientSceneSynchronizer(
 		}
 
 		return if (serverEntity.sceneType == ApiSceneType.Scene) {
-			Napier.d("Entity $id is a Scene")
+			Logger.d("Entity $id is a Scene")
 
 			val existingScene = sceneEditorRepository.getSceneItemFromId(id)
 			val sceneItem = if (existingScene != null) {
@@ -228,7 +228,7 @@ class ClientSceneSynchronizer(
 				false
 			}
 		} else {
-			Napier.d("Entity $id is a Scene Group")
+			Logger.d("Entity $id is a Scene Group")
 
 			val existingGroup = sceneEditorRepository.getSceneItemFromId(id)
 			val sceneItem = if (existingGroup != null) {
@@ -280,7 +280,7 @@ class ClientSceneSynchronizer(
 		onLog: OnSyncLog
 	): Boolean {
 		val id = serverEntity.id
-		Napier.d("Server says scene $id is archived")
+		Logger.d("Server says scene $id is archived")
 
 		// Check if scene exists in active tree
 		val existingActive = sceneEditorRepository.getSceneItemFromId(id)
@@ -350,7 +350,7 @@ class ClientSceneSynchronizer(
 	}
 
 	override suspend fun reIdEntity(oldId: Int, newId: Int): Set<Int> {
-		Napier.d("Re-Id Scene $oldId to $newId")
+		Logger.d("Re-Id Scene $oldId to $newId")
 
 		sceneEditorService.reIdScene(oldId, newId)
 

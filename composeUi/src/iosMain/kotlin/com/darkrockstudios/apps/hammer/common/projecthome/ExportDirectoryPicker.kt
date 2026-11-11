@@ -6,13 +6,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectHome
 import com.darkrockstudios.apps.hammer.common.compose.rememberDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.data.ExportOptions
 import com.darkrockstudios.apps.hammer.project_home_action_export_toast_failure
 import com.darkrockstudios.apps.hammer.project_home_action_export_toast_success
-import io.github.aakira.napier.Napier
 import io.github.vinceglb.filekit.dialogs.compose.rememberDirectoryPickerLauncher
 import io.github.vinceglb.filekit.path
 import io.github.vinceglb.filekit.startAccessingSecurityScopedResource
@@ -47,7 +47,7 @@ actual fun ExportDirectoryPicker(
 				} catch (e: CancellationException) {
 					throw e
 				} catch (@Suppress("TooGenericExceptionCaught") e: Throwable) {
-					Napier.e("Story export failed", e)
+					Logger.e("Story export failed", e)
 					component.showToast(Res.string.project_home_action_export_toast_failure)
 				} finally {
 					if (accessGranted) directory.stopAccessingSecurityScopedResource()

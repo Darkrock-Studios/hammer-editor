@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.sync.projectsync
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.http.ApiErrorCode
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
@@ -30,7 +31,6 @@ import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.apps.hammer.sync_log_account_project_parked
 import com.darkrockstudios.apps.hammer.sync_log_entity_failed
 import com.darkrockstudios.apps.hammer.sync_log_project_sync_disabled
-import io.github.aakira.napier.Napier
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.channels.Channel
@@ -95,10 +95,10 @@ class ClientProjectSynchronizer(
 			syncCompleteEvent.trySend(isSuccess(result))
 
 			if (isSuccess(result)) {
-				Napier.i("Sync completed successfully.")
+				Logger.i("Sync completed successfully.")
 				true
 			} else {
-				Napier.e("Sync failed with error: ${result.exception?.message}", result.exception)
+				Logger.e("Sync failed with error: ${result.exception?.message}", result.exception)
 				false
 			}
 		} finally {
@@ -180,7 +180,7 @@ class ClientProjectSynchronizer(
 		onComplete: suspend (success: Boolean) -> Unit,
 		onUnauthorized: suspend () -> Unit = {}
 	) {
-		Napier.e("Sync failed: ${e.message}", e)
+		Logger.e("Sync failed: ${e.message}", e)
 
 		onLog(
 			syncLogE(
@@ -216,15 +216,15 @@ class ClientProjectSynchronizer(
 			)
 
 			if (endSyncResult.isFailure) {
-				Napier.e("Failed to end sync", endSyncResult.exceptionOrNull())
+				Logger.e("Failed to end sync", endSyncResult.exceptionOrNull())
 			} else {
 				val finalSyncData = syncJournal.loadSyncData().copy(currentSyncId = null)
 				syncJournal.saveSyncData(finalSyncData)
 			}
 		} catch (e: IOException) {
-			Napier.e("Sync failed", e)
+			Logger.e("Sync failed", e)
 		} catch (e: IllegalStateException) {
-			Napier.e("Sync failed", e)
+			Logger.e("Sync failed", e)
 		}
 	}
 

@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.imagesrepository
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageDef
 import com.darkrockstudios.apps.hammer.common.data.references.ImageReferenceRewriter
 import com.darkrockstudios.apps.hammer.common.data.references.ImageReferrer
@@ -7,7 +8,6 @@ import com.darkrockstudios.apps.hammer.common.data.references.ImageUsages
 import com.darkrockstudios.apps.hammer.common.data.references.TouchedEntity
 import com.darkrockstudios.apps.hammer.common.fileio.ExternalFileIo
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.flow.SharedFlow
 import okio.IOException
 
@@ -101,7 +101,7 @@ class ImagesService(
 	private fun readExternal(path: String): ByteArray? = try {
 		externalFileIo.readExternalFile(path)
 	} catch (e: IOException) {
-		Napier.w("Failed to read image file: $path", e)
+		Logger.w("Failed to read image file: $path", e)
 		null
 	}
 

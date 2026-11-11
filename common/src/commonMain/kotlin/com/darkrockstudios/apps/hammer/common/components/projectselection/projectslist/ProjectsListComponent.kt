@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist
 
+import co.touchlab.kermit.Logger
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
@@ -57,7 +58,6 @@ import com.darkrockstudios.apps.hammer.projects_list_toast_sync_complete
 import com.darkrockstudios.apps.hammer.projects_list_toast_sync_failed
 import com.darkrockstudios.apps.hammer.sync_log_account_failed
 import com.darkrockstudios.apps.hammer.sync_log_end_projects
-import io.github.aakira.napier.Napier
 import korlibs.datastructure.iterators.parallelMap
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
@@ -243,7 +243,7 @@ class ProjectsListComponent(
 						coverImageVersion = cover?.second,
 					)
 				} else {
-					Napier.d { "Failed to load metadata for project: ${projectDef.name}" }
+					Logger.d { "Failed to load metadata for project: ${projectDef.name}" }
 					null
 				}
 			}.filterNotNull().sortedByDescending { it.metadata.info.lastAccessed }
@@ -315,7 +315,7 @@ class ProjectsListComponent(
 			val deleted = projectsService.deleteProject(projectDef, alsoDeleteOnServer)
 
 			if (deleted) {
-				Napier.i("Project deleted: ${projectDef.name}")
+				Logger.i("Project deleted: ${projectDef.name}")
 			} else {
 				showToast(scope, Res.string.projects_list_toast_delete_failed)
 			}
@@ -358,7 +358,7 @@ class ProjectsListComponent(
 	) {
 		scope.launch(dispatcherIo) {
 			if (change(projectDef) == ProjectSyncToggle.Result.Failed) {
-				Napier.w("Could not turn sync $description for '${projectDef.name}'")
+				Logger.w("Could not turn sync $description for '${projectDef.name}'")
 			}
 			loadProjectList()
 		}
@@ -406,7 +406,7 @@ class ProjectsListComponent(
 			when (result) {
 				is ClientResult.Success -> loadProjectList()
 				is ClientResult.Failure -> {
-					Napier.w("Failed to $description: ${result.error}")
+					Logger.w("Failed to $description: ${result.error}")
 					result.displayMessage?.let { msg -> showToast(scope, msg) }
 				}
 			}
@@ -539,7 +539,7 @@ class ProjectsListComponent(
 					throw e
 					// Import can fail many ways (parse, malformed file); report and show failure toast.
 				} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-					Napier.e("Import: failed to parse '$sourceName'", e)
+					Logger.e("Import: failed to parse '$sourceName'", e)
 					null
 				}
 			}
@@ -576,14 +576,14 @@ class ProjectsListComponent(
 		val previewToImport = _state.value.importPreview
 		// That re-parse may have emptied the preview, and the button was enabled against the old one.
 		if (previewToImport.isEmpty) {
-			Napier.w("Import: nothing to import for '$projectName'")
+			Logger.w("Import: nothing to import for '$projectName'")
 			return
 		}
 
 		val result = projectsService.createProject(projectName)
 		if (!isSuccess(result)) {
 			result.displayMessage?.let { msg -> showToast(scope, msg) }
-			Napier.e("Import: failed to create project '$projectName'")
+			Logger.e("Import: failed to create project '$projectName'")
 			return
 		}
 		val newDef = result.data
@@ -611,7 +611,7 @@ class ProjectsListComponent(
 			}
 			// Import can fail many ways (parse, IO); report and show failure toast.
 		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-			Napier.e("Import failed", e)
+			Logger.e("Import failed", e)
 			withContext(mainDispatcher) {
 				showToast(scope, Res.string.project_home_action_import_toast_failure)
 			}
@@ -762,7 +762,7 @@ class ProjectsListComponent(
 			} catch (e: CancellationException) {
 				throw e
 			} catch (e: Exception) {
-				Napier.e("Projects sync failed", e)
+				Logger.e("Projects sync failed", e)
 				onSyncLog(
 					syncAccLogE(strRes.get(Res.string.sync_log_account_failed, e.message ?: "Unknown error"))
 				)
@@ -844,7 +844,7 @@ class ProjectsListComponent(
 	}
 
 	private suspend fun onSyncLog(syncLog: SyncLogMessage) {
-		Napier.i(syncLog.message)
+		Logger.i(syncLog.message)
 		withContext(mainDispatcher) {
 			_state.getAndUpdate {
 				it.copy(

@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.plugins.wasmhost
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.base.image.ImageFormat
 import com.darkrockstudios.apps.hammer.common.data.export.ExportImage
 import com.darkrockstudios.apps.hammer.common.data.export.ExportInput
@@ -34,7 +35,6 @@ import com.darkrockstudios.apps.hammer.operations.plugin.TextDiagnosticSeverity
 import com.darkrockstudios.apps.hammer.operations.plugin.TextDiagnosticsProvider
 import com.darkrockstudios.apps.hammer.operations.plugin.TextFix
 import com.darkrockstudios.apps.hammer.operations.plugin.toActionFields
-import io.github.aakira.napier.Napier
 import kotlinx.atomicfu.locks.reentrantLock
 import kotlinx.atomicfu.locks.withLock
 import kotlinx.coroutines.CancellationException
@@ -217,9 +217,9 @@ class WasmPlugin(
 					}
 				}
 			} catch (e: PluginException) {
-				Napier.w(e) { "Plugin '$id' could not check text" }
+				Logger.w(e) { "Plugin '$id' could not check text" }
 			} catch (e: SerializationException) {
-				Napier.w(e) { "Plugin '$id' sent a malformed diagnose reply" }
+				Logger.w(e) { "Plugin '$id' sent a malformed diagnose reply" }
 			}
 			found
 		}
@@ -247,7 +247,7 @@ class WasmPlugin(
 					block()
 				} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
 					// A call interrupted because its caller was cancelled ends as that cancellation, not a failure.
-					if (!isActive) Napier.d(e) { "Plugin '$id' call ended after its caller was cancelled" }
+					if (!isActive) Logger.d(e) { "Plugin '$id' call ended after its caller was cancelled" }
 					ensureActive()
 					throw e
 				} finally {
@@ -373,7 +373,7 @@ class WasmPlugin(
 			throw e
 		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
 			// Such as a CLI command finding Hammer busy: the module can say so, where a trap would end it.
-			Napier.e(e) { "Plugin '$id' dispatch of ${request.operation} failed" }
+			Logger.e(e) { "Plugin '$id' dispatch of ${request.operation} failed" }
 			DispatchReply.failed(FAILED, e.message ?: "Failed")
 		}
 	}
@@ -413,10 +413,10 @@ class WasmPlugin(
 	private fun log(level: ExtismPlugin.LogLevel, message: String) {
 		val line = "Plugin '$id': $message"
 		when (level) {
-			ExtismPlugin.LogLevel.Error -> Napier.e(line)
-			ExtismPlugin.LogLevel.Warn -> Napier.w(line)
-			ExtismPlugin.LogLevel.Info -> Napier.i(line)
-			else -> Napier.d(line)
+			ExtismPlugin.LogLevel.Error -> Logger.e(line)
+			ExtismPlugin.LogLevel.Warn -> Logger.w(line)
+			ExtismPlugin.LogLevel.Info -> Logger.i(line)
+			else -> Logger.d(line)
 		}
 	}
 

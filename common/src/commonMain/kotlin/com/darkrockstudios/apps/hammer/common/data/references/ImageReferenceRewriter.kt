@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.references
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.base.http.EntityType
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
@@ -20,7 +21,6 @@ import com.darkrockstudios.apps.hammer.common.data.search.markdownTitle
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CancellationException
 
 /** An entity whose content refers to an image, or was rewritten because it did. */
@@ -376,7 +376,7 @@ class ImageReferenceRewriter(private val projectDef: ProjectDef) : ProjectScoped
 		} catch (e: CancellationException) {
 			throw e
 		} catch (e: Exception) {
-			Napier.e("Image reference rewrite failed for $what", e)
+			Logger.e("Image reference rewrite failed for $what", e)
 			fallback
 		}
 

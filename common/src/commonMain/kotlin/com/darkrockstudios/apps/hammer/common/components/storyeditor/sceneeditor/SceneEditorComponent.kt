@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor
 
+import co.touchlab.kermit.Logger
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.childContext
 import com.arkivanov.decompose.value.MutableValue
@@ -28,7 +29,6 @@ import com.darkrockstudios.apps.hammer.common.data.references.AutoConfirmReferen
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectDictionaryUseCase
 import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectSpellCheckService
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -142,7 +142,7 @@ class SceneEditorComponent(
 			}
 			sceneMetadataComponent.onSceneItemChanged(newSceneItem.value)
 		} else {
-			Napier.e("Scene ${sceneDef.id} no longer exists in the tree, this are probably going to break.")
+			Logger.e("Scene ${sceneDef.id} no longer exists in the tree, this are probably going to break.")
 		}
 	}
 
@@ -163,7 +163,7 @@ class SceneEditorComponent(
 	}
 
 	private fun subscribeToBufferUpdates() {
-		Napier.d { "SceneEditorComponent start collecting buffer updates" }
+		Logger.d { "SceneEditorComponent start collecting buffer updates" }
 
 		bufferUpdateSubscription?.cancel()
 		bufferUpdateSubscription =
@@ -221,7 +221,7 @@ class SceneEditorComponent(
 			Res.string.scene_editor_menu_item_close,
 			""
 		) {
-			Napier.d("Scene close selected")
+			Logger.d("Scene close selected")
 			closeSceneEditor()
 		}
 
@@ -231,7 +231,7 @@ class SceneEditorComponent(
 			"",
 			KeyShortcut(83, ctrl = true)
 		) {
-			Napier.d("Scene save selected")
+			Logger.d("Scene save selected")
 			scope.launch { storeSceneContent() }
 		}
 
@@ -240,7 +240,7 @@ class SceneEditorComponent(
 			Res.string.scene_editor_menu_item_discard,
 			""
 		) {
-			Napier.d("Scene buffer discard selected")
+			Logger.d("Scene buffer discard selected")
 			beginDiscard()
 		}
 
@@ -249,7 +249,7 @@ class SceneEditorComponent(
 			Res.string.scene_editor_menu_item_rename,
 			""
 		) {
-			Napier.d("Scene rename selected")
+			Logger.d("Scene rename selected")
 			beginSceneNameEdit()
 		}
 
@@ -258,7 +258,7 @@ class SceneEditorComponent(
 			Res.string.scene_editor_menu_item_delete,
 			""
 		) {
-			Napier.i("Scene delete selected")
+			Logger.i("Scene delete selected")
 			beginDelete()
 		}
 
@@ -267,7 +267,7 @@ class SceneEditorComponent(
 			Res.string.scene_editor_menu_item_archive,
 			""
 		) {
-			Napier.i("Scene archive selected")
+			Logger.i("Scene archive selected")
 			beginArchive()
 		}
 
@@ -276,7 +276,7 @@ class SceneEditorComponent(
 			Res.string.scene_editor_menu_item_view_drafts,
 			""
 		) {
-			Napier.i("View drafts")
+			Logger.i("View drafts")
 			showDraftsList(sceneDef)
 		}
 
@@ -285,7 +285,7 @@ class SceneEditorComponent(
 			Res.string.scene_editor_menu_item_save_draft,
 			""
 		) {
-			Napier.i("Save draft")
+			Logger.i("Save draft")
 			beginSaveDraft()
 		}
 
@@ -294,7 +294,7 @@ class SceneEditorComponent(
 			Res.string.scene_editor_metadata_button,
 			""
 		) {
-			Napier.i("Toggle Metadata")
+			Logger.i("Toggle Metadata")
 			toggleMetadata()
 		}
 
@@ -303,7 +303,7 @@ class SceneEditorComponent(
 			Res.string.scene_editor_focus_mode_button,
 			""
 		) {
-			Napier.i("Enter Focus Mode")
+			Logger.i("Enter Focus Mode")
 			enterFocusMode()
 		}
 
@@ -312,7 +312,7 @@ class SceneEditorComponent(
 			Res.string.scene_editor_menu_item_read,
 			""
 		) {
-			Napier.i("Read scene")
+			Logger.i("Read scene")
 			readScene()
 		}
 
@@ -450,14 +450,14 @@ class SceneEditorComponent(
 				// Update to the new draft name
 				sceneMetadataComponent.updateDraftName(newDraftName)
 
-				Napier.i { "Draft Saved: ${draftDef.draftTimestamp}" }
+				Logger.i { "Draft Saved: ${draftDef.draftTimestamp}" }
 				true
 			} else {
-				Napier.e { "Failed to save Draft!" }
+				Logger.e { "Failed to save Draft!" }
 				false
 			}
 		} else {
-			Napier.w { "Failed to save Draft, invalid name: $draftName" }
+			Logger.w { "Failed to save Draft, invalid name: $draftName" }
 			false
 		}
 	}

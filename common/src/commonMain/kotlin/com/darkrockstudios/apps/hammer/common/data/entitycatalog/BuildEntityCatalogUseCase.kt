@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.entitycatalog
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesRepository
@@ -12,7 +13,6 @@ import com.darkrockstudios.apps.hammer.common.data.tagindex.normalizeTagNeedle
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeValue
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_IO
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -99,7 +99,7 @@ class BuildEntityCatalogUseCase(
 						throw e
 					} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
 						// Still pickable by name; it only goes without its aliases and tags.
-						Napier.w(e) { "Could not read entry ${def.id} for the entity catalog" }
+						Logger.w(e) { "Could not read entry ${def.id} for the entity catalog" }
 						null
 					}
 					CatalogItem(

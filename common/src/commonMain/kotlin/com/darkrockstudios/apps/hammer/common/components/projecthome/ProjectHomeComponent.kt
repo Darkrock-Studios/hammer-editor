@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.components.projecthome
 
+import co.touchlab.kermit.Logger
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.value.MutableValue
@@ -34,7 +35,6 @@ import com.darkrockstudios.apps.hammer.common.data.export.exportFileName
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.util.formatLocal
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.combine
@@ -183,7 +183,7 @@ class ProjectHomeComponent(
 				throw e
 			} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
 				// An unwritable settings file must not block the export, which keeps the previously saved contact.
-				Napier.e("Failed to save the manuscript contact", e)
+				Logger.e("Failed to save the manuscript contact", e)
 				showToast(scope, Res.string.project_home_action_export_toast_contact_failure)
 			}
 		}

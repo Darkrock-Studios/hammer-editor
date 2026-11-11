@@ -1,8 +1,8 @@
 package com.darkrockstudios.apps.hammer.common.data.references
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CancellationException
 
 /**
@@ -18,7 +18,7 @@ class TimelineReferenceRemapper(private val timeLineRepository: TimeLineReposito
 		} catch (e: CancellationException) {
 			throw e
 		} catch (e: Exception) {
-			Napier.e("Timeline reference remap failed for $oldId -> $newId", e)
+			Logger.e("Timeline reference remap failed for $oldId -> $newId", e)
 			emptySet()
 		}
 }

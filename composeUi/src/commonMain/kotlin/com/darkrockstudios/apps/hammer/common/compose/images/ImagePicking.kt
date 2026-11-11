@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.compose.images
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.image.ImageFormat
 import com.darkrockstudios.apps.hammer.common.compose.stageIntoCache
@@ -9,7 +10,6 @@ import com.darkrockstudios.apps.hammer.images_toast_load_failed
 import com.darkrockstudios.apps.hammer.images_toast_name_invalid
 import com.darkrockstudios.apps.hammer.images_toast_too_large
 import com.darkrockstudios.apps.hammer.images_toast_unsupported
-import io.github.aakira.napier.Napier
 import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.PlatformFile
 import io.github.vinceglb.filekit.dialogs.FileKitPickerException
@@ -33,7 +33,7 @@ sealed interface StagedImage {
 suspend fun pickImageFile(onFailed: suspend (ImageAddResult) -> Unit): PlatformFile? = try {
 	FileKit.openFilePicker(type = FileKitType.File(ImageFormat.ALLOWED_EXTENSIONS))
 } catch (e: FileKitPickerException) {
-	Napier.e("Image picker failed", e)
+	Logger.e("Image picker failed", e)
 	onFailed(ImageAddResult.ReadFailed)
 	null
 }

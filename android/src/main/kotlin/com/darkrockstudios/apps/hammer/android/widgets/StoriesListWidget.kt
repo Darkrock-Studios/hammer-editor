@@ -37,6 +37,7 @@ import androidx.glance.text.FontFamily
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.android.ProjectRootActivity
 import com.darkrockstudios.apps.hammer.android.ProjectSelectActivity
 import com.darkrockstudios.apps.hammer.base.ProjectId
@@ -44,7 +45,6 @@ import com.darkrockstudios.apps.hammer.common.data.projectdata.loadStoredProject
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.ProjectStatisticsCacheReader
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlin.time.Instant
@@ -263,7 +263,7 @@ class OpenProjectClickAction : ActionCallback {
 	) {
 		val def = findWidgetProject(parameters[OpenProjectIdKey]) ?: return
 
-		Napier.d { "Stories list widget tapped: `${def.name}`" }
+		Logger.d { "Stories list widget tapped: `${def.name}`" }
 
 		val intent = ProjectRootActivity.createIntent(context, def)
 			.setFlags(FLAG_ACTIVITY_NEW_TASK)

@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.wear.sync
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.base.http.storyideas.StoryIdea
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
@@ -12,7 +13,6 @@ import com.darkrockstudios.apps.hammer.common.util.NetworkConnectivity
 import com.darkrockstudios.apps.hammer.wear.data.SubscribedProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.isSignedIn
 import com.darkrockstudios.apps.hammer.wear.tile.CaptureSurfaceUpdater
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -101,7 +101,7 @@ class DefaultSyncCoordinator(
 			_status.update { it.copy(running = false) }
 			throw e
 		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-			Napier.e("Watch sync failed", e)
+			Logger.e("Watch sync failed", e)
 			_status.update { it.copy(running = false, lastRunFailed = true) }
 			return SyncRunResult.Failed
 		} finally {
@@ -119,7 +119,7 @@ class DefaultSyncCoordinator(
 
 	private val listener = object : SyncAccountListener {
 		override suspend fun onLog(message: SyncLogMessage) {
-			Napier.i(message.message)
+			Logger.i(message.message)
 			_status.update { it.copy(log = (it.log + message).takeLast(MAX_LOG_ENTRIES)) }
 		}
 

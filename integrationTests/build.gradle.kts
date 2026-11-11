@@ -46,7 +46,7 @@ kotlin {
 				implementation(libs.koin.test)
 				implementation(libs.koin.test.junit5)
 
-				implementation(libs.napier)
+				implementation(libs.kermit)
 				implementation(libs.slf4j.simple)
 				// Brings in skiko native libs needed by transitively loaded Compose
 				// runtime classes when SceneEditorRepository is constructed.

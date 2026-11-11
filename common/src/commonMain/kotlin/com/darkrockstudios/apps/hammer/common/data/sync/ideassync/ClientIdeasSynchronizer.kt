@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.sync.ideassync
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.IdeaId
 import com.darkrockstudios.apps.hammer.base.http.storyideas.StoryIdea
@@ -31,7 +32,6 @@ import com.darkrockstudios.apps.hammer.sync_log_ideas_state_failed
 import com.darkrockstudios.apps.hammer.sync_log_ideas_unchanged
 import com.darkrockstudios.apps.hammer.sync_log_ideas_upload_failed
 import com.darkrockstudios.apps.hammer.sync_log_ideas_uploaded
-import io.github.aakira.napier.Napier
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.yield
 
@@ -303,7 +303,7 @@ class ClientIdeasSynchronizer(
 			onLog(syncAccLogI(strRes.get(Res.string.sync_log_ideas_conflict_resolved, label(resolved))))
 			UploadOutcome(success = true, syncedIdea = resolved, syncedHash = resolvedHash)
 		} else {
-			Napier.e("Failed to upload conflict resolution for idea ${local.id.id}")
+			Logger.e("Failed to upload conflict resolution for idea ${local.id.id}")
 			onLog(
 				syncAccLogE(
 					strRes.get(

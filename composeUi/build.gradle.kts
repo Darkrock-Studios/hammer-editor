@@ -49,7 +49,7 @@ kotlin {
 			export(libs.decompose)
 			export(libs.essenty.lifecycle)
 			export(libs.coroutines.core)
-			export(libs.napier)
+			export(libs.kermit)
 		}
 	}
 

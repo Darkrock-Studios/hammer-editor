@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.compose.plugin
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.common.data.ExportableScene
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.entitycatalog.CatalogItem
@@ -46,7 +47,6 @@ import com.darkrockstudios.apps.hammer.operations.plugin.SettingDeclaration
 import com.darkrockstudios.apps.hammer.operations.plugin.UnreadableSessionException
 import com.darkrockstudios.apps.hammer.operations.plugin.entityRefs
 import com.darkrockstudios.apps.hammer.operations.plugin.toCatalogRef
-import io.github.aakira.napier.Napier
 import kotlin.concurrent.Volatile
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
@@ -449,7 +449,7 @@ class PluginActionRunner(
 		} catch (e: CancellationException) {
 			throw e
 		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-			Napier.e(e) { "Could not save an action's page as a note" }
+			Logger.e(e) { "Could not save an action's page as a note" }
 			false
 		}
 		message(
@@ -488,7 +488,7 @@ class PluginActionRunner(
 				return@launch
 			} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
 				// A plugin's failure must not take the screen down with it.
-				Napier.e(e) { "Plugin action '${run.action.name}' failed" }
+				Logger.e(e) { "Plugin action '${run.action.name}' failed" }
 				calling(stop)?.let { working ->
 					back(working)
 					message(Res.string.plugin_action_failed)
@@ -561,7 +561,7 @@ class PluginActionRunner(
 	} catch (e: CancellationException) {
 		throw e
 	} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-		Napier.e(e) { "Could not open ${target.place.id} ${target.id} for a plugin action" }
+		Logger.e(e) { "Could not open ${target.place.id} ${target.id} for a plugin action" }
 		false
 	}
 
@@ -658,7 +658,7 @@ class PluginActionRunner(
 	}
 
 	private fun saveFailed(run: ActionRun, e: ActionSessionException) {
-		Napier.e(e) { "Could not save a run of plugin action '${run.action.name}'" }
+		Logger.e(e) { "Could not save a run of plugin action '${run.action.name}'" }
 		if (run.saveFailureShown) return
 		run.saveFailureShown = true
 		message(Res.string.plugin_action_keep_failed)
@@ -719,7 +719,7 @@ class PluginActionRunner(
 			} catch (e: CancellationException) {
 				throw e
 			} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-				Napier.e(e) { "Could not list the scenes to choose from" }
+				Logger.e(e) { "Could not list the scenes to choose from" }
 				emptyList()
 			}
 		}
@@ -755,7 +755,7 @@ class PluginActionRunner(
 		} catch (e: CancellationException) {
 			throw e
 		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-			Napier.e(e) { "Could not list the project's items to choose from" }
+			Logger.e(e) { "Could not list the project's items to choose from" }
 			null
 		}
 	}

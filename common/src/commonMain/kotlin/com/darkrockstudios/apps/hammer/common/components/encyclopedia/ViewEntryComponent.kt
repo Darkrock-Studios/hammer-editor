@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.components.encyclopedia
 
+import co.touchlab.kermit.Logger
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.router.slot.ChildSlot
 import com.arkivanov.decompose.router.slot.SlotNavigation
@@ -39,7 +40,6 @@ import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexServ
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.tagindex.parseTagInput
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineService
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -169,9 +169,9 @@ class ViewEntryComponent(
 			encyclopediaService.addEntryImage(state.value.entryDef, imageId)
 			loadEntryState(showImageId = imageId)
 		} catch (e: EntryLoadError) {
-			Napier.w("Failed to add a library image to entry ${state.value.entryDef.id}", e)
+			Logger.w("Failed to add a library image to entry ${state.value.entryDef.id}", e)
 		} catch (e: IOException) {
-			Napier.w("Failed to add a library image to entry ${state.value.entryDef.id}", e)
+			Logger.w("Failed to add a library image to entry ${state.value.entryDef.id}", e)
 		}
 	}
 
@@ -189,9 +189,9 @@ class ViewEntryComponent(
 					}
 					loadEntryState()
 				} catch (e: EntryLoadError) {
-					Napier.w("Failed to refresh entry $entryId", e)
+					Logger.w("Failed to refresh entry $entryId", e)
 				} catch (e: IOException) {
-					Napier.w("Failed to refresh entry $entryId", e)
+					Logger.w("Failed to refresh entry $entryId", e)
 				}
 			}
 		}
@@ -217,9 +217,9 @@ class ViewEntryComponent(
 					try {
 						loadEntryState()
 					} catch (e: EntryLoadError) {
-						Napier.w("Failed to refresh the images of entry ${state.value.entryDef.id}", e)
+						Logger.w("Failed to refresh the images of entry ${state.value.entryDef.id}", e)
 					} catch (e: IOException) {
-						Napier.w("Failed to refresh the images of entry ${state.value.entryDef.id}", e)
+						Logger.w("Failed to refresh the images of entry ${state.value.entryDef.id}", e)
 					}
 				}
 		}

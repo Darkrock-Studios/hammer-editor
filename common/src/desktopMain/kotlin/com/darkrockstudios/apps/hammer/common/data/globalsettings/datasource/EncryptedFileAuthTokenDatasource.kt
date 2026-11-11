@@ -1,9 +1,9 @@
 package com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.AuthTokenDatasource.Companion.accountKey
 import com.darkrockstudios.apps.hammer.common.data.secrets.MachineBoundCipher
 import com.darkrockstudios.apps.hammer.common.getConfigDirectory
-import io.github.aakira.napier.Napier
 import kotlinx.atomicfu.locks.reentrantLock
 import kotlinx.atomicfu.locks.withLock
 import kotlinx.serialization.json.Json
@@ -53,7 +53,7 @@ class EncryptedFileAuthTokenDatasource(
 			json.decodeFromString<Map<String, AuthTokens>>(cipher.decrypt(encrypted).decodeToString())
 			// Wrong machine/user, corruption, or tampering: treat as no tokens (forces re-login).
 		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-			Napier.w("Failed to decrypt auth token store; treating as empty", e)
+			Logger.w("Failed to decrypt auth token store; treating as empty", e)
 			emptyMap()
 		}
 	}

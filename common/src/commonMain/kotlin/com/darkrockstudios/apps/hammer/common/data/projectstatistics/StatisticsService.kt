@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.projectstatistics
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.base.markdown.countWords
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
@@ -19,7 +20,6 @@ import com.darkrockstudios.apps.hammer.common.data.writingactivity.activityOwner
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.attributeSlots
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.*
@@ -81,17 +81,17 @@ class StatisticsService(
 		val cached = statisticsRepository.loadStatistics()
 		val isCurrentSchema = cached?.schemaVersion == ProjectStatistics.CURRENT_SCHEMA_VERSION
 		return if (cached != null && isCurrentSchema && !cached.isDirty) {
-			Napier.d("Loaded statistics from cache")
+			Logger.d("Loaded statistics from cache")
 			cached
 		} else {
 			when {
-				cached == null -> Napier.d("Cache missing, calculating statistics")
-				!isCurrentSchema -> Napier.i(
+				cached == null -> Logger.d("Cache missing, calculating statistics")
+				!isCurrentSchema -> Logger.i(
 					"Statistics cache schema is outdated (was ${cached.schemaVersion}, " +
 						"expected ${ProjectStatistics.CURRENT_SCHEMA_VERSION}); recalculating"
 				)
 
-				else -> Napier.d("Cache is dirty, will recalculate")
+				else -> Logger.d("Cache is dirty, will recalculate")
 			}
 			recalculateStatistics(loadReferenceIndex)
 		}
@@ -103,7 +103,7 @@ class StatisticsService(
 	suspend fun recalculateStatistics(loadReferenceIndex: suspend () -> ReferenceIndex): ProjectStatistics {
 		_isCalculating.value = true
 		val startTime = clock.now()
-		Napier.d("Recalculating project statistics...")
+		Logger.d("Recalculating project statistics...")
 
 		try {
 			val tree = sceneEditorRepository.sceneTreeUpdates.first().root
@@ -251,7 +251,7 @@ class StatisticsService(
 			statisticsRepository.saveStatistics(stats)
 
 			val duration = clock.now() - startTime
-			Napier.i("Statistics calculated in ${duration.inWholeMilliseconds}ms: $numScenes scenes, $totalWords words")
+			Logger.i("Statistics calculated in ${duration.inWholeMilliseconds}ms: $numScenes scenes, $totalWords words")
 			return stats
 		} finally {
 			_isCalculating.value = false

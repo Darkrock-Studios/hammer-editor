@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.migrator
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.base.image.ImageFormat
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaDatasource
@@ -23,7 +24,6 @@ import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.readProjectS
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.writeProjectSyncData
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
-import io.github.aakira.napier.Napier
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -55,12 +55,12 @@ class EntryImagePromoter(
 		try {
 			val result = promoteEntryImages(projectDef) ?: return
 			recordInSyncJournal(projectDef, result)
-			Napier.i(
+			Logger.i(
 				"Promoted ${result.imageIds.size} entry image(s) in '${projectDef.name}', " +
 					"updated ${result.baselines.size} entry(ies), skipped ${result.skipped}."
 			)
 		} catch (e: Exception) {
-			Napier.e("Entry image promotion failed for '${projectDef.name}'", e)
+			Logger.e("Entry image promotion failed for '${projectDef.name}'", e)
 		}
 	}
 
@@ -87,7 +87,7 @@ class EntryImagePromoter(
 			val entry = try {
 				findEntry(projectDef, image)
 			} catch (e: Exception) {
-				Napier.w("Entry image promotion: cannot read the entry for ${image.path}, leaving the image in place", e)
+				Logger.w("Entry image promotion: cannot read the entry for ${image.path}, leaving the image in place", e)
 				skipped++
 				continue
 			}
@@ -101,13 +101,13 @@ class EntryImagePromoter(
 			try {
 				fileSystem.createDirectories(imagesDir)
 				if (fileSystem.exists(target)) {
-					Napier.w("Entry image promotion: $target already exists, leaving ${image.path} in place")
+					Logger.w("Entry image promotion: $target already exists, leaving ${image.path} in place")
 					skipped++
 					continue
 				}
 				fileSystem.atomicMove(image.path, target)
 			} catch (e: Exception) {
-				Napier.w("Entry image promotion: failed to move ${image.path}", e)
+				Logger.w("Entry image promotion: failed to move ${image.path}", e)
 				skipped++
 				continue
 			}
@@ -122,7 +122,7 @@ class EntryImagePromoter(
 					fileSystem.write(entryPath) { writeUtf8(toml.encodeToString(EntryContainer(updated))) }
 					baselines.getOrPut(updated.id) { hashOf(current) }
 				} catch (e: Exception) {
-					Napier.w("Entry image promotion: failed to list image ${def.id} in $entryPath; it stays unattached", e)
+					Logger.w("Entry image promotion: failed to list image ${def.id} in $entryPath; it stays unattached", e)
 				}
 			}
 		}
@@ -137,7 +137,7 @@ class EntryImagePromoter(
 			val files = try {
 				fileSystem.listOrNull(typeDir).orEmpty()
 			} catch (e: Exception) {
-				Napier.w("Entry image promotion: cannot list $typeDir", e)
+				Logger.w("Entry image promotion: cannot list $typeDir", e)
 				emptyList()
 			}
 			files.mapNotNull { path -> parseEntryImage(path, typeDir, type) }
@@ -187,7 +187,7 @@ class EntryImagePromoter(
 
 		val onDisk = IdAllocator.findEntityIds(projectDef, sources)
 		if (!onDisk.complete) {
-			Napier.w("Entry image promotion: some ids for '${projectDef.name}' could not be read")
+			Logger.w("Entry image promotion: some ids for '${projectDef.name}' could not be read")
 		}
 
 		val sync = readProjectSyncData(projectDef, fileSystem, json)
@@ -234,7 +234,7 @@ class EntryImagePromoter(
 		override fun findIds(projectDef: ProjectDef): Set<Int>? = try {
 			source.findIds(projectDef)
 		} catch (e: Exception) {
-			Napier.w("Entry image promotion: failed to read ids from ${source::class.simpleName}", e)
+			Logger.w("Entry image promotion: failed to read ids from ${source::class.simpleName}", e)
 			null
 		}
 	}

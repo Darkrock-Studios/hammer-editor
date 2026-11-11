@@ -1,9 +1,9 @@
 package com.darkrockstudios.apps.hammer.common.data.migrator
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
-import io.github.aakira.napier.Napier
 import okio.FileSystem
 import okio.Path
 
@@ -20,11 +20,11 @@ class Migration1_2(
 	override val toVersion: Int = 2
 
 	override fun migrate(projectDef: ProjectDef) {
-		Napier.i("Begin Migration1_2 for '${projectDef.name}'...")
+		Logger.i("Begin Migration1_2 for '${projectDef.name}'...")
 
 		val sceneDir = SceneDatasource.getSceneDirectory(projectDef, fileSystem).toOkioPath()
 		if (!fileSystem.exists(sceneDir)) {
-			Napier.i("No scenes directory for '${projectDef.name}', skipping Migration1_2.")
+			Logger.i("No scenes directory for '${projectDef.name}', skipping Migration1_2.")
 			return
 		}
 
@@ -39,14 +39,14 @@ class Migration1_2(
 				val newName = nextName(path.name) ?: return@forEach
 				val target = path.parent?.div(newName) ?: return@forEach
 				if (fileSystem.exists(target)) {
-					Napier.w("Migration1_2: target already exists, skipping rename of $path")
+					Logger.w("Migration1_2: target already exists, skipping rename of $path")
 					return@forEach
 				}
 				fileSystem.atomicMove(path, target)
 				renamed++
 			}
 
-		Napier.i("Migration1_2 for '${projectDef.name}' complete — renamed $renamed file(s).")
+		Logger.i("Migration1_2 for '${projectDef.name}' complete — renamed $renamed file(s).")
 	}
 
 	/**

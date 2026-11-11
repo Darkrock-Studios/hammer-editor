@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.components.projectroot
 
+import co.touchlab.kermit.Logger
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.router.slot.ChildSlot
 import com.arkivanov.decompose.router.stack.ChildStack
@@ -35,7 +36,6 @@ import com.darkrockstudios.apps.hammer.sync_menu_group
 import com.darkrockstudios.apps.hammer.sync_menu_item
 import com.arkivanov.essenty.lifecycle.Lifecycle
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.core.component.inject
@@ -359,7 +359,7 @@ class ProjectRootComponent(
 			is ProjectDeepLink.Scene -> {
 				val sceneItem = sceneEditor.getSceneItemFromId(link.sceneId)
 				if (sceneItem == null) {
-					Napier.w("Deep link skipped: no scene for id ${link.sceneId}")
+					Logger.w("Deep link skipped: no scene for id ${link.sceneId}")
 					return false
 				}
 				withContext(dispatcherMain) { showEditorScene(sceneItem) }
@@ -367,7 +367,7 @@ class ProjectRootComponent(
 
 			is ProjectDeepLink.Note -> {
 				if (notesRepository.getNoteById(link.noteId) == null) {
-					Napier.w("Deep link skipped: no note for id ${link.noteId}")
+					Logger.w("Deep link skipped: no note for id ${link.noteId}")
 					return false
 				}
 				withContext(dispatcherMain) {
@@ -380,7 +380,7 @@ class ProjectRootComponent(
 			is ProjectDeepLink.EncyclopediaEntry -> {
 				val entryDef = encyclopediaService.findEntryDef(link.entryId)
 				if (entryDef == null) {
-					Napier.w("Deep link skipped: no encyclopedia entry for id ${link.entryId}")
+					Logger.w("Deep link skipped: no encyclopedia entry for id ${link.entryId}")
 					return false
 				}
 				withContext(dispatcherMain) { showEncyclopediaEntry(entryDef) }
@@ -388,7 +388,7 @@ class ProjectRootComponent(
 
 			is ProjectDeepLink.TimelineEvent -> {
 				if (timeLineRepository.getTimelineEvent(link.eventId) == null) {
-					Napier.w("Deep link skipped: no timeline event for id ${link.eventId}")
+					Logger.w("Deep link skipped: no timeline event for id ${link.eventId}")
 					return false
 				}
 				withContext(dispatcherMain) {

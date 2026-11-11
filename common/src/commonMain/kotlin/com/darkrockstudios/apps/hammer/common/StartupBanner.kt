@@ -1,9 +1,9 @@
 package com.darkrockstudios.apps.hammer.common
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.base.BuildMetadata
 import com.darkrockstudios.apps.hammer.base.DistributionChannel
 import com.darkrockstudios.apps.hammer.base.PackageFormat
-import io.github.aakira.napier.Napier
 
 /**
  * Logs a single identifying line as early as possible in startup: the build version plus
@@ -11,7 +11,7 @@ import io.github.aakira.napier.Napier
  * self-describing (version, channel, OS, display server, …) without a round-trip to ask.
  */
 fun logStartupBanner() {
-	Napier.i(startupBanner())
+	Logger.i(startupBanner())
 }
 
 /** The identifying line itself, shared by the startup banner and the crash dumps. */

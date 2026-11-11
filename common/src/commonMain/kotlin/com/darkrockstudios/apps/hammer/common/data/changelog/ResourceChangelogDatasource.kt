@@ -1,7 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.data.changelog
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.Res
-import io.github.aakira.napier.Napier
 import org.jetbrains.compose.resources.ExperimentalResourceApi
 
 /** Reads the release notes baked in by `prepareForRelease`. No network, ever. */
@@ -13,7 +13,7 @@ class ResourceChangelogDatasource : ChangelogDatasource {
 		return try {
 			parseChangelog(Res.readBytes(RESOURCE_PATH).decodeToString())
 		} catch (e: Exception) {
-			Napier.w("Failed to read baked changelog", e)
+			Logger.w("Failed to read baked changelog", e)
 			null
 		}
 	}

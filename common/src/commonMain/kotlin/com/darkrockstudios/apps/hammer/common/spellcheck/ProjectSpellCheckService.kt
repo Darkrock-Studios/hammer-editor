@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.spellcheck
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
@@ -9,7 +10,6 @@ import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataReposi
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectDefaultDispatcher
 import com.darkrockstudios.libs.platformspellchecker.PlatformSpellChecker
-import io.github.aakira.napier.Napier
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -170,7 +170,7 @@ class ProjectSpellCheckService(
 		} catch (e: CancellationException) {
 			throw e
 		} catch (t: Throwable) {
-			Napier.e("ProjectSpellCheckService encyclopedia reload failed", t)
+			Logger.e("ProjectSpellCheckService encyclopedia reload failed", t)
 			return emptySet()
 		}
 	}

@@ -1,5 +1,6 @@
 package cli
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectSyncGateRepository
 import com.darkrockstudios.apps.hammer.desktop.cli.AppInstance
@@ -21,6 +22,8 @@ object AppProcess {
 
 	@JvmStatic
 	fun main(args: Array<String>) {
+		// Kermit logs to stdout by default, and READY must be the first line there.
+		Logger.setLogWriters(emptyList())
 		val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 		val registry = OperationRegistry(
 			listOf(

@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.timelinerepository
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineDef
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineEntityRules
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
@@ -13,7 +14,6 @@ import com.darkrockstudios.apps.hammer.common.data.tagindex.cleanTags
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcherNow
-import io.github.aakira.napier.Napier
 import korlibs.io.async.asyncImmediately
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.BufferOverflow
@@ -338,10 +338,10 @@ class TimeLineRepository(
 		val fromIndex = events.indexOfFirst { it.id == event.id }
 
 		if (fromIndex <= -1) {
-			Napier.e { "moveEvent from event not found!" }
+			Logger.e { "moveEvent from event not found!" }
 			false
 		} else if (toIndex >= events.size) {
-			Napier.e { "moveEvent to invalid index: $toIndex" }
+			Logger.e { "moveEvent to invalid index: $toIndex" }
 			false
 		} else {
 			val computedToIndex = if (after) {
@@ -358,7 +358,7 @@ class TimeLineRepository(
 				events.removeAt(fromIndex)
 				true
 			} else {
-				Napier.d { "Can't move" }
+				Logger.d { "Can't move" }
 				false
 			}
 

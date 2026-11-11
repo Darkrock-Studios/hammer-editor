@@ -1,8 +1,8 @@
 package com.darkrockstudios.apps.hammer.desktop.shortcuts
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
-import io.github.aakira.napier.Napier
 import dev.nucleusframework.launcher.macos.DockMenuItem
 import dev.nucleusframework.launcher.macos.DockMenuListener
 import dev.nucleusframework.launcher.macos.MacOsDockMenu
@@ -57,7 +57,7 @@ class MacOsDockShortcuts(
 				// javax.swing.SwingUtilities.invokeLater {
 				//     MacOsDockMenu.setDockMenu(items)
 				// }
-			}.onFailure { Napier.w("Failed to refresh macOS dock menu", it) }
+			}.onFailure { Logger.w("Failed to refresh macOS dock menu", it) }
 		}
 	}
 
@@ -66,7 +66,7 @@ class MacOsDockShortcuts(
 		runCatching {
 			MacOsDockMenu.clearDockMenu()
 			MacOsDockMenu.listener = null
-		}.onFailure { Napier.w("Failed to clear macOS dock menu", it) }
+		}.onFailure { Logger.w("Failed to clear macOS dock menu", it) }
 		idToProject.clear()
 	}
 

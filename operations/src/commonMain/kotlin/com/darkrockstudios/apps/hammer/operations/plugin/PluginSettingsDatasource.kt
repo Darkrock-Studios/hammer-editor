@@ -1,8 +1,8 @@
 package com.darkrockstudios.apps.hammer.operations.plugin
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.common.data.secrets.SecretDatasource
 import com.darkrockstudios.apps.hammer.common.getConfigDirectory
-import io.github.aakira.napier.Napier
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.JsonObject
@@ -79,7 +79,7 @@ class PluginSettingsDatasource(
 			try {
 				store(pluginId, TomlTable.serializer(), TomlTable(table - plaintext.toSet()))
 			} catch (e: IOException) {
-				Napier.e(e) { "Failed to remove secrets from the settings file of plugin '$pluginId'" }
+				Logger.e(e) { "Failed to remove secrets from the settings file of plugin '$pluginId'" }
 			}
 		}
 		val all = stored + found
@@ -106,7 +106,7 @@ class PluginSettingsDatasource(
 	private fun settingsPath(pluginId: String): Path = pluginsDirectory / "$pluginId.toml"
 
 	private fun logLoadFailure(pluginId: String, e: Exception) {
-		Napier.e(e) { "Failed to load settings for plugin '$pluginId', using defaults" }
+		Logger.e(e) { "Failed to load settings for plugin '$pluginId', using defaults" }
 	}
 
 	companion object {

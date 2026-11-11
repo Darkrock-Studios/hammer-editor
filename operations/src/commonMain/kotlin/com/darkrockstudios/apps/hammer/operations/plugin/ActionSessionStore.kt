@@ -1,12 +1,12 @@
 package com.darkrockstudios.apps.hammer.operations.plugin
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectIdChangeListener
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityIdChange
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityIdChangeListener
 import com.darkrockstudios.apps.hammer.common.getConfigDirectory
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.serialization.Serializable
@@ -118,7 +118,7 @@ class ActionSessionStore(
 		val page = try {
 			(file.page as? JsonObject)?.let { json.decodeFromJsonElement(PageTable.serializer(), it).toActionPage() }
 		} catch (e: IllegalArgumentException) {
-			Napier.e(e) { "The page of the action session at $path cannot be read" }
+			Logger.e(e) { "The page of the action session at $path cannot be read" }
 			null
 		}
 		return ActionSession(file.pluginVersion, page, file.values, file.first, file.answers, file.renumbered)
@@ -225,21 +225,21 @@ class ActionSessionStore(
 		val plugins = try {
 			fileSystem.listOrNull(directory).orEmpty()
 		} catch (e: IOException) {
-			Napier.e(e) { "Could not list the action sessions to follow the ids sync changed" }
+			Logger.e(e) { "Could not list the action sessions to follow the ids sync changed" }
 			return
 		}
 		for (plugin in plugins) {
 			val sessions = try {
 				fileSystem.listOrNull(plugin / projectId.id).orEmpty()
 			} catch (e: IOException) {
-				Napier.e(e) { "Could not list the action sessions in $plugin to follow the ids sync changed" }
+				Logger.e(e) { "Could not list the action sessions in $plugin to follow the ids sync changed" }
 				continue
 			}
 			for (path in sessions.filter { it.name.endsWith(".json") }) {
 				try {
 					renumber(path, plugin.name, projectId, renumberings)
 				} catch (e: IOException) {
-					Napier.e(e) { "Could not follow the ids sync changed in the action session at $path" }
+					Logger.e(e) { "Could not follow the ids sync changed in the action session at $path" }
 				}
 			}
 		}
@@ -250,7 +250,7 @@ class ActionSessionStore(
 			json.decodeFromString(SessionFile.serializer(), fileSystem.read(path) { readUtf8() })
 		} catch (e: IllegalArgumentException) {
 			// One that cannot be read is set aside when its run is opened, and nothing is resumed from it.
-			Napier.w(e) { "The action session at $path cannot be read to follow the ids sync changed" }
+			Logger.w(e) { "The action session at $path cannot be read to follow the ids sync changed" }
 			return
 		}
 		if (file.format != FORMAT) return
@@ -275,7 +275,7 @@ class ActionSessionStore(
 	private fun sessionPath(key: ActionSessionKey): Path? {
 		val parts = listOf(key.pluginId, key.projectId.id, key.action)
 		if (parts.any { !SAFE_NAME.matches(it) }) {
-			Napier.w { "No session can be kept for $key: not every part of it is a safe file name" }
+			Logger.w { "No session can be kept for $key: not every part of it is a safe file name" }
 			return null
 		}
 		return directory / key.pluginId / key.projectId.id / "${fileName(key.action, key.place, key.itemId)}.json"
@@ -294,10 +294,10 @@ class ActionSessionStore(
 		try {
 			fileSystem.atomicMove(path, aside)
 		} catch (moveFailed: IOException) {
-			Napier.e(moveFailed) { "The action session at $path cannot be read, nor moved aside" }
+			Logger.e(moveFailed) { "The action session at $path cannot be read, nor moved aside" }
 			throw UnreadableSessionException("The action session at $path cannot be read", setAside = null, cause = e ?: moveFailed)
 		}
-		Napier.e(e) { "The action session at $path cannot be read; it is kept at $aside" }
+		Logger.e(e) { "The action session at $path cannot be read; it is kept at $aside" }
 		throw UnreadableSessionException("The action session at $path cannot be read; it is kept at $aside", aside, e)
 	}
 

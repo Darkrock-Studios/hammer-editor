@@ -1,8 +1,8 @@
 package com.darkrockstudios.apps.hammer.desktop.sandbox
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.base.DistributionChannel
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.GlobalSettingsDatasource
-import io.github.aakira.napier.Napier
 import org.koin.java.KoinJavaComponent.getKoin
 import kotlin.system.exitProcess
 
@@ -35,7 +35,7 @@ object SandboxStartup {
 	fun ensureProjectsDirAccess() {
 		if (!DistributionChannel.isMacAppStore) return
 		if (!MacOsBookmarks.isAvailable) {
-			Napier.w("App Store flavor but bookmark dylib unavailable — projects-dir access likely to fail")
+			Logger.w("App Store flavor but bookmark dylib unavailable — projects-dir access likely to fail")
 			return
 		}
 
@@ -50,7 +50,7 @@ object SandboxStartup {
 				refreshIfNeeded(bookmarkStore, datasource, resolved)
 				return
 			}
-			Napier.w("Stored projects-dir bookmark failed to resolve — prompting user to pick again")
+			Logger.w("Stored projects-dir bookmark failed to resolve — prompting user to pick again")
 			bookmarkStore.clearProjectsDirBookmark()
 		}
 
@@ -58,7 +58,7 @@ object SandboxStartup {
 		val (path, bookmark) = pickDirectoryUntilSuccessfulOrQuit()
 		bookmarkStore.saveProjectsDirBookmark(bookmark)
 		datasource.storeSettings(datasource.loadSettings().copy(projectsDirectory = path))
-		Napier.i("Projects directory set to picked path: $path")
+		Logger.i("Projects directory set to picked path: $path")
 	}
 
 	private fun refreshIfNeeded(
@@ -79,27 +79,27 @@ object SandboxStartup {
 
 	private fun pickDirectoryUntilSuccessfulOrQuit(): Pair<String, String> {
 		if (!confirmIntroOrQuit()) {
-			Napier.i("User dismissed the projects-directory intro — exiting")
+			Logger.i("User dismissed the projects-directory intro — exiting")
 			exitProcess(0)
 		}
 		while (true) {
 			val picked = showNativeDirectoryPicker()
 			if (picked != null) {
-				Napier.i("User picked projects directory: $picked")
+				Logger.i("User picked projects directory: $picked")
 				val bookmark = MacOsBookmarks.createBookmark(picked)
 				if (bookmark != null) {
 					val resolved = MacOsBookmarks.resolveAndStartAccess(bookmark)
 					if (resolved != null) {
-						Napier.i("Bookmark for picked directory resolved to: ${resolved.path}")
+						Logger.i("Bookmark for picked directory resolved to: ${resolved.path}")
 						return resolved.path to bookmark
 					}
-					Napier.w("Could not start access on a freshly-created bookmark; retrying")
+					Logger.w("Could not start access on a freshly-created bookmark; retrying")
 				} else {
-					Napier.w("Could not create bookmark for picked directory; retrying")
+					Logger.w("Could not create bookmark for picked directory; retrying")
 				}
 			}
 			if (!confirmRetryOrQuit()) {
-				Napier.i("User declined to pick a projects directory — exiting")
+				Logger.i("User declined to pick a projects directory — exiting")
 				exitProcess(0)
 			}
 		}

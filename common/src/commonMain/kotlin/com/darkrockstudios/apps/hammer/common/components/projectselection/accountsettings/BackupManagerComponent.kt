@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings
 
+import co.touchlab.kermit.Logger
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
@@ -17,7 +18,6 @@ import com.darkrockstudios.apps.hammer.common.data.projectbackup.BackupRestoreRe
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupDef
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupService
 import com.darkrockstudios.apps.hammer.common.util.StrRes
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.core.component.KoinComponent
@@ -65,7 +65,7 @@ class BackupManagerComponent(
 				}
 				// Loading backups can fail many ways (IO, parse); report and surface error to UI.
 			} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-				Napier.e("Failed to load backups", e)
+				Logger.e("Failed to load backups", e)
 				val errorMsg = ClientMessage.Resource(Res.string.backup_manager_error_load_backups, e.message ?: "")
 				val errorText = errorMsg.text(strRes)
 				withContext(dispatcherMain) {

@@ -49,7 +49,7 @@ kmpZip = "2.1.0"
 
 coroutines = "1.11.0"
 datetime = "0.8.0"
-napier = "2.7.1"
+kermit = "2.2.0"
 jetbrains_compose = "1.12.2"
 compose_compiler_report_generator = "1.5.0"
 composeai_preview = "2.89.0"
@@ -203,7 +203,7 @@ pdfkmp = { module = "io.github.conamobiledev:pdfkmp", version.ref = "pdfkmp" }
 kotlinx_html = { module = "org.jetbrains.kotlinx:kotlinx-html", version.ref = "kotlinx_html" }
 material = { module = "com.google.android.material:material", version.ref = "material" }
 filekit_dialogs_compose = { module = "io.github.vinceglb:filekit-dialogs-compose", version.ref = "filekit" }
-napier = { group = "io.github.aakira", name = "napier", version.ref = "napier" }
+kermit = { group = "co.touchlab", name = "kermit", version.ref = "kermit" }
 
 decompose = { group = "com.arkivanov.decompose", name = "decompose", version.ref = "decompose" }
 decompose_compose = { group = "com.arkivanov.decompose", name = "extensions-compose", version.ref = "decompose" }

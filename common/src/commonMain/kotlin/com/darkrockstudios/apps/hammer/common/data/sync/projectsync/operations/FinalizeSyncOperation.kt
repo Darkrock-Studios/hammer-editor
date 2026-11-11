@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectContentHasher
@@ -12,7 +13,6 @@ import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDataso
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import com.darkrockstudios.apps.hammer.common.util.StrRes
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.yield
 import kotlin.time.Clock
@@ -56,7 +56,7 @@ class FinalizeSyncOperation(
 		val syncFinishedAt: Instant?
 		// If we failed, send up nulls
 		if (allSuccess) {
-			Napier.d("All success! new maxId: ${state.maxId}")
+			Logger.d("All success! new maxId: ${state.maxId}")
 			newLastId = state.maxId
 			syncFinishedAt = clock.now()
 		} else {
@@ -75,7 +75,7 @@ class FinalizeSyncOperation(
 		yield()
 
 		if (endSyncResult.isFailure) {
-			Napier.e(strRes.get(Res.string.sync_log_failed), endSyncResult.exceptionOrNull())
+			Logger.e(strRes.get(Res.string.sync_log_failed), endSyncResult.exceptionOrNull())
 			allSuccess = false
 		} else {
 			if (allSuccess) {

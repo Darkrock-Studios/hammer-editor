@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.desktop.sandbox
 
-import io.github.aakira.napier.Napier
+import co.touchlab.kermit.Logger
 import java.util.Base64
 import java.util.Locale
 
@@ -69,7 +69,7 @@ internal object SandboxStrings {
 		val path = "$RESOURCE_DIR/$valuesDir/$FILE_NAME"
 		val text = runCatching {
 			javaClass.classLoader.getResourceAsStream(path)?.use { it.readBytes().decodeToString() }
-		}.onFailure { Napier.w("Could not read sandbox strings from $path", it) }.getOrNull() ?: return null
+		}.onFailure { Logger.w("Could not read sandbox strings from $path", it) }.getOrNull() ?: return null
 
 		return parse(text, path)
 	}
@@ -77,7 +77,7 @@ internal object SandboxStrings {
 	internal fun parse(text: String, path: String = FILE_NAME): Map<String, String>? {
 		val lines = text.lineSequence().filter { it.isNotBlank() }.toList()
 		if (lines.firstOrNull()?.trim() != SUPPORTED_VERSION) {
-			Napier.w("Unexpected Compose Resources value-file version in $path — ignoring it")
+			Logger.w("Unexpected Compose Resources value-file version in $path — ignoring it")
 			return null
 		}
 

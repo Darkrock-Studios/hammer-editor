@@ -1,7 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.fileio
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.RAW_FILESYSTEM
-import io.github.aakira.napier.Napier
 import okio.FileSystem
 import okio.Path.Companion.toPath
 import org.koin.core.qualifier.named
@@ -28,7 +28,7 @@ private class DesktopExternalFileIo(private val fileSystem: FileSystem) : Extern
 			true
 			// Writing an external file can fail many ways (IO, permissions); report and return false.
 		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-			Napier.e("Failed to write external file: $path", e)
+			Logger.e("Failed to write external file: $path", e)
 			false
 		}
 	}

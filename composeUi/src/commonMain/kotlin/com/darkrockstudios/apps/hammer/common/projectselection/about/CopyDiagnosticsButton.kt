@@ -7,6 +7,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.about_logs_copy_diagnostics_button
 import com.darkrockstudios.apps.hammer.about_logs_copy_diagnostics_failed
@@ -15,7 +16,6 @@ import com.darkrockstudios.apps.hammer.common.buildDiagnosticsReport
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
 import com.darkrockstudios.apps.hammer.common.compose.rememberClipboardCopier
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
@@ -49,7 +49,7 @@ fun CopyDiagnosticsButton(
 				} catch (e: CancellationException) {
 					throw e
 				} catch (@Suppress("TooGenericExceptionCaught") e: Throwable) {
-					Napier.e("Failed to copy diagnostics", e)
+					Logger.e("Failed to copy diagnostics", e)
 					failedMessage
 				}
 				copying = false

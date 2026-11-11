@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -9,7 +10,6 @@ import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.sync_log_duplicate_ids
-import io.github.aakira.napier.Napier
 
 class PrepareForSyncOperation(
 	projectDef: ProjectDef,
@@ -37,7 +37,7 @@ class PrepareForSyncOperation(
 
 		// Create the sync data if it doesnt exist yet
 		if (syncJournal.createSyncData()) {
-			Napier.i("New sync data file created.")
+			Logger.i("New sync data file created.")
 		}
 
 		return CResult.success(state)

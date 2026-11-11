@@ -1,10 +1,10 @@
 package com.darkrockstudios.apps.hammer.desktop.sandbox
 
+import co.touchlab.kermit.Logger
 import com.sun.jna.Library
 import com.sun.jna.Native
 import com.sun.jna.Pointer
 import com.sun.jna.ptr.IntByReference
-import io.github.aakira.napier.Napier
 
 /**
  * JNA bridge over libhammer_bookmarks.dylib — the small Objective-C helper
@@ -104,7 +104,7 @@ internal object MacOsBookmarks {
 		return try {
 			Native.load(LIB_NAME, HammerBookmarksLib::class.java)
 		} catch (@Suppress("TooGenericExceptionCaught") t: Throwable) { // native load failure is a graceful no-op fallback
-			Napier.w("Could not load libhammer_bookmarks.dylib — sandbox bookmarks disabled", t)
+			Logger.w("Could not load libhammer_bookmarks.dylib — sandbox bookmarks disabled", t)
 			null
 		}
 	}

@@ -17,6 +17,7 @@ import androidx.glance.text.FontStyle
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.android.ProjectRootActivity
 import com.darkrockstudios.apps.hammer.android.R
 import com.darkrockstudios.apps.hammer.base.ProjectId
@@ -25,7 +26,6 @@ import com.darkrockstudios.apps.hammer.common.data.projectdata.loadStoredProject
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.ProjectStatisticsCacheReader
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.deriveWritingStats
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.parseDailyWordTotals
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.DateTimeUnit
@@ -652,7 +652,7 @@ class OpenStoryClickAction : ActionCallback {
 	) {
 		val def = findWidgetProject(parameters[StoryProjectIdKey]) ?: return
 
-		Napier.d { "Story Info widget tapped: `${def.name}`" }
+		Logger.d { "Story Info widget tapped: `${def.name}`" }
 
 		val intent = ProjectRootActivity.createIntent(context, def)
 			.setFlags(FLAG_ACTIVITY_NEW_TASK)
@@ -669,7 +669,7 @@ class ContinueSceneClickAction : ActionCallback {
 		val sceneId = parameters[StorySceneIdKey] ?: return
 		val def = findWidgetProject(parameters[StoryProjectIdKey]) ?: return
 
-		Napier.d { "Story Info widget continue tapped: `${def.name}` scene $sceneId" }
+		Logger.d { "Story Info widget continue tapped: `${def.name}` scene $sceneId" }
 
 		val intent = ProjectRootActivity.createIntent(context, def, deepLinkSceneId = sceneId)
 			.setFlags(FLAG_ACTIVITY_NEW_TASK)
@@ -685,7 +685,7 @@ class AddStoryNoteClickAction : ActionCallback {
 	) {
 		val projectId = parameters[StoryProjectIdKey].orEmpty()
 
-		Napier.d { "Story Info widget add-note tapped: `$projectId`" }
+		Logger.d { "Story Info widget add-note tapped: `$projectId`" }
 
 		val intent = Intent(context, AddNoteActivity::class.java)
 			.setFlags(FLAG_ACTIVITY_NEW_TASK)

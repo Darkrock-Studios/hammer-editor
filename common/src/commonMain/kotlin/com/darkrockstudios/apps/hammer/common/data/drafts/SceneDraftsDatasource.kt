@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.drafts
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.validate.ProjectNameValidationResult
 import com.darkrockstudios.apps.hammer.base.validate.ProjectNameValidator
@@ -12,7 +13,6 @@ import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.isWithin
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
-import io.github.aakira.napier.Napier
 import okio.FileSystem
 import okio.IOException
 import okio.Path
@@ -43,7 +43,7 @@ class SceneDraftsDatasource(
 			if (possibleSceneId != null && possibleSceneId > 0) {
 				possibleSceneId
 			} else {
-				Napier.w("Found non-numeric directory in Drafts directory: $path")
+				Logger.w("Found non-numeric directory in Drafts directory: $path")
 				null
 			}
 		}
@@ -116,7 +116,7 @@ class SceneDraftsDatasource(
 			writeUtf8(draftEntity.content)
 		}
 
-		Napier.i { "Draft Saved: $path" }
+		Logger.i { "Draft Saved: $path" }
 
 		return draftDef
 	}
@@ -125,7 +125,7 @@ class SceneDraftsDatasource(
 		val path = getDraftPath(draftDef).toOkioPath()
 
 		if (!fileSystem.exists(path)) {
-			Napier.e("loadDraft failed: Draft file already exists: $path")
+			Logger.e("loadDraft failed: Draft file already exists: $path")
 			return null
 		}
 
@@ -138,7 +138,7 @@ class SceneDraftsDatasource(
 				)
 			}
 		} catch (e: IOException) {
-			Napier.e("Failed to load Draft ${draftDef.id} for scene Scene (${sceneItem.id})")
+			Logger.e("Failed to load Draft ${draftDef.id} for scene Scene (${sceneItem.id})")
 			null
 		}
 
@@ -149,7 +149,7 @@ class SceneDraftsDatasource(
 		val path = getDraftPath(draftDef).toOkioPath()
 
 		if (!fileSystem.exists(path)) {
-			Napier.e("loadDraft failed: Draft file already exists: $path")
+			Logger.e("loadDraft failed: Draft file already exists: $path")
 			return null
 		}
 
@@ -158,7 +158,7 @@ class SceneDraftsDatasource(
 				readUtf8()
 			}
 		} catch (e: IOException) {
-			Napier.e("Failed to load draft (${draftDef.id})")
+			Logger.e("Failed to load draft (${draftDef.id})")
 			null
 		}
 
@@ -171,7 +171,7 @@ class SceneDraftsDatasource(
 		fileSystem.createDirectories(parentPath)
 
 		if (fileSystem.exists(path)) {
-			Napier.e("saveDraft failed: Draft file already exists: $path")
+			Logger.e("saveDraft failed: Draft file already exists: $path")
 			return null
 		}
 
@@ -179,7 +179,7 @@ class SceneDraftsDatasource(
 			writeUtf8(content)
 		}
 
-		Napier.i { "Draft Saved: $path" }
+		Logger.i { "Draft Saved: $path" }
 		return draftDef
 	}
 

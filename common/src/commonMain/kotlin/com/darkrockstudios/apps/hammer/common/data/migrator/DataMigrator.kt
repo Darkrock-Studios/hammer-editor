@@ -1,12 +1,12 @@
 package com.darkrockstudios.apps.hammer.common.data.migrator
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
-import io.github.aakira.napier.Napier
 import okio.Path.Companion.toPath
 import org.koin.mp.KoinPlatform.getKoin
 
@@ -47,7 +47,7 @@ open class DataMigrator(
 		if (checkIfMigrationNeeded()) {
 			doMigration()
 		} else {
-			Napier.d("No projects need migration. Skipping.")
+			Logger.d("No projects need migration. Skipping.")
 		}
 		repairMigratedProjects()
 
@@ -66,7 +66,7 @@ open class DataMigrator(
 	}
 
 	private fun doMigration() {
-		Napier.i("Migrating projects to version: $latestProjectDataVersion")
+		Logger.i("Migrating projects to version: $latestProjectDataVersion")
 		val projects = getProjects()
 		val migrators = getMigrators()
 
@@ -96,7 +96,7 @@ open class DataMigrator(
 			for (version in projectDataVersion + 1..latestProjectDataVersion) {
 				val migrator =
 					migrators[version] ?: error("Migrator not found for data version: $version")
-				Napier.i("Migrating project: '${projectData.projectDef.name}' From: $projectDataVersion To: $version")
+				Logger.i("Migrating project: '${projectData.projectDef.name}' From: $projectDataVersion To: $version")
 				migrator.migrate(projectData.projectDef)
 
 				// Mark that this version migration was successful
@@ -108,7 +108,7 @@ open class DataMigrator(
 					)
 				}
 
-				Napier.i("'${projectData.projectDef.name}' migration complete.")
+				Logger.i("'${projectData.projectDef.name}' migration complete.")
 			}
 		}
 	}

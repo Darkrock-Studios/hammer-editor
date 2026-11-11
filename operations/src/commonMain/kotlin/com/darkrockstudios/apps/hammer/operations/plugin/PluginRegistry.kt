@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.operations.plugin
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.common.data.export.ExporterSource
 import com.darkrockstudios.apps.hammer.common.data.export.StoryExporter
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectIdChangeListener
@@ -10,7 +11,6 @@ import com.darkrockstudios.apps.hammer.operations.KoinProjectResolver
 import com.darkrockstudios.apps.hammer.operations.OperationRegistry
 import com.darkrockstudios.apps.hammer.operations.cli.CliCommand
 import com.darkrockstudios.apps.hammer.operations.core.coreOperations
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -60,7 +60,7 @@ class PluginRegistry : ExporterSource, KoinComponent {
 	fun add(plugin: ClientPlugin) {
 		_active.update { current -> validated(plugin, current) + plugin }
 		settingsStores.update { it - plugin.id }
-		Napier.i { "Client plugin '${plugin.id}' added" }
+		Logger.i { "Client plugin '${plugin.id}' added" }
 	}
 
 	/** Throws [IllegalArgumentException] if [add] would. */

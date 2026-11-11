@@ -46,6 +46,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
+import co.touchlab.kermit.Logger
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.archived_scenes_restored_snackbar
@@ -91,7 +92,6 @@ import com.darkrockstudios.apps.hammer.scene_list_header
 import com.darkrockstudios.apps.hammer.scene_list_outline_button
 import com.darkrockstudios.apps.hammer.scene_list_reader_button
 import com.darkrockstudios.apps.hammer.view_archived_scenes_button
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -320,7 +320,7 @@ fun SceneListUi(
 		},
 	) { groupName ->
 		scope.launch {
-			Napier.d { "Create dialog close" }
+			Logger.d { "Create dialog close" }
 			if (groupName != null) {
 				component.createGroup(showCreateGroupDialog, groupName)
 			}
@@ -344,7 +344,7 @@ fun SceneListUi(
 		},
 	) { sceneName ->
 		scope.launch {
-			Napier.d { "Create dialog close" }
+			Logger.d { "Create dialog close" }
 			if (sceneName != null) {
 				component.createScene(showCreateSceneDialog, sceneName)
 			}

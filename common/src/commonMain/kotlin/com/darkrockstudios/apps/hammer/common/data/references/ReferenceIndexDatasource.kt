@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.references
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.base.http.readTomlOrNull
 import com.darkrockstudios.apps.hammer.base.http.writeToml
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -9,7 +10,6 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScop
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.okio.isWithin
 import com.darkrockstudios.apps.hammer.common.getCacheDirectory
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.withContext
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
@@ -29,7 +29,7 @@ class ReferenceIndexDatasource(
 		val file = getIndexPath()
 		return@withContext if (fileSystem.exists(file)) {
 			fileSystem.readTomlOrNull<ReferenceIndex>(file, toml) { e ->
-				Napier.e("Failed to load reference index cache", e)
+				Logger.e("Failed to load reference index cache", e)
 			}
 		} else {
 			null
@@ -41,7 +41,7 @@ class ReferenceIndexDatasource(
 		val file = getIndexPath()
 		requireWithinCacheRoot(file)
 		fileSystem.writeToml(file, toml, index)
-		Napier.d("Reference index saved to cache")
+		Logger.d("Reference index saved to cache")
 	}
 
 	fun exists(): Boolean = fileSystem.exists(getIndexPath())
@@ -51,7 +51,7 @@ class ReferenceIndexDatasource(
 		requireWithinCacheRoot(file)
 		if (fileSystem.exists(file)) {
 			fileSystem.delete(file)
-			Napier.d("Reference index cache deleted")
+			Logger.d("Reference index cache deleted")
 		}
 	}
 

@@ -1,7 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.data.versioncheck
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.base.VERSION_CHECK_URL
-import io.github.aakira.napier.Napier
 import io.ktor.client.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
@@ -26,7 +26,7 @@ class GithubVersionCheckDatasource(
 		return try {
 			val response = http.get(VERSION_CHECK_URL)
 			if (!response.status.isSuccess()) {
-				Napier.w("Version check returned ${response.status} (likely GitHub rate limit)")
+				Logger.w("Version check returned ${response.status} (likely GitHub rate limit)")
 				return null
 			}
 			val release = json.decodeFromString<GithubReleaseInfo>(response.bodyAsText())
@@ -36,7 +36,7 @@ class GithubVersionCheckDatasource(
 				release
 			}
 		} catch (e: Exception) {
-			Napier.w("Failed to fetch latest app version", e)
+			Logger.w("Failed to fetch latest app version", e)
 			null
 		}
 	}
@@ -50,7 +50,7 @@ class GithubVersionCheckDatasource(
 			val tagResponse = http.get("$apiBase/git/tags/${ref.gitObject.sha}")
 			json.decodeFromString<GitTag>(tagResponse.bodyAsText()).message
 		} catch (e: Exception) {
-			Napier.d("No annotated tag message available for $tagName", e)
+			Logger.d("No annotated tag message available for $tagName", e)
 			null
 		}
 	}

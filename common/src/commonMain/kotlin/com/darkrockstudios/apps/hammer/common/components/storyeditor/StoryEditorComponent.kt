@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.components.storyeditor
 
+import co.touchlab.kermit.Logger
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.router.slot.ChildSlot
 import com.arkivanov.decompose.router.slot.SlotNavigation
@@ -16,7 +17,6 @@ import com.darkrockstudios.apps.hammer.common.components.storyeditor.outlineover
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 
@@ -237,7 +237,7 @@ class StoryEditorComponent(
 			if (sceneItem != null) {
 				val foundNode = sceneSummary.sceneTree.findBy { it.id == sceneItem.id }
 				if (foundNode == null) {
-					Napier.i { "Scene was deleted, closing Scene detail" }
+					Logger.i { "Scene was deleted, closing Scene detail" }
 					closeDetails()
 				}
 			}

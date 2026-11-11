@@ -8,6 +8,8 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import co.touchlab.kermit.Logger
+import co.touchlab.kermit.Severity
 import coil3.ImageLoader
 import coil3.compose.setSingletonImageLoaderFactory
 import com.arkivanov.decompose.DecomposeSettings
@@ -28,7 +30,7 @@ import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.secrets.EncryptedFileSecretDatasource
-import com.darkrockstudios.apps.hammer.common.dependencyinjection.NapierLogger
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.KermitKoinLogger
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.appModule
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.imageLoadingModule
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.mainModule
@@ -36,6 +38,8 @@ import com.darkrockstudios.apps.hammer.common.getConfigDirectory
 import com.darkrockstudios.apps.hammer.common.getInDevelopmentMode
 import com.darkrockstudios.apps.hammer.common.getLogDirectory
 import com.darkrockstudios.apps.hammer.common.logStartupBanner
+import com.darkrockstudios.apps.hammer.common.logging.CallerTagWriter
+import com.darkrockstudios.apps.hammer.common.logging.FileLogWriter
 import com.darkrockstudios.apps.hammer.common.setInDevelopmentMode
 import com.darkrockstudios.apps.hammer.common.startupBanner
 import com.darkrockstudios.apps.hammer.desktop.aboutlibraries.aboutLibrariesModule
@@ -52,12 +56,8 @@ import dev.nucleusframework.application.NucleusBackend
 import dev.nucleusframework.application.nucleusApplication
 import dev.nucleusframework.darkmodedetector.isSystemInDarkMode
 import dev.nucleusframework.window.NucleusDecoratedWindowTheme
-import io.github.aakira.napier.DebugAntilog
-import io.github.aakira.napier.Napier
 import io.github.vinceglb.filekit.FileKit
 import java.io.File
-import java.util.logging.ConsoleHandler
-import java.util.logging.Level
 import kotlin.system.exitProcess
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.seconds
@@ -73,6 +73,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import okio.FileSystem
+import okio.Path.Companion.toPath
 import org.koin.core.context.GlobalContext
 import org.koin.java.KoinJavaComponent.getKoin
 
@@ -89,25 +90,32 @@ private fun handleArguments(args: Array<String>): DesktopLaunchArgs {
 }
 
 private fun setupLogging(appScope: CoroutineScope) {
-	val consoleHandler = ConsoleHandler()
-	consoleHandler.level = if(getInDevelopmentMode()) {
-		Level.ALL
-	} else {
-		Level.INFO
-	}
-
-	Napier.base(DebugAntilog(handler = listOf(consoleHandler, FileLogger(scope = appScope))))
+	val consoleSeverity = if (getInDevelopmentMode()) Severity.Verbose else Severity.Info
+	Logger.setLogWriters(
+		CallerTagWriter(StderrLogWriter(consoleSeverity)),
+		CallerTagWriter(fileLogWriter(appScope)),
+	)
 }
 
+private const val MAX_LOGS = 50
+
+/** Info and above, to a per-run file in the config directory's "logs". */
+private fun fileLogWriter(scope: CoroutineScope) = FileLogWriter(
+	logsDir = getConfigDirectory().toPath() / "logs",
+	maxLogs = MAX_LOGS,
+	minSeverity = Severity.Info,
+	scope = scope,
+)
+
 /**
- * Catch, log, and die on any otherwise-unhandled exception. The async [FileLogger] can't be
+ * Catch, log, and die on any otherwise-unhandled exception. The async [FileLogWriter] can't be
  * relied on to flush before the process exits (and packaged builds have no visible stderr), so
  * we also write a synchronous crash dump straight to disk before terminating.
  */
 private fun installGlobalExceptionHandler() {
 	val previous = Thread.getDefaultUncaughtExceptionHandler()
 	Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
-		runCatching { Napier.e("Uncaught exception on thread '${thread.name}', terminating", throwable) }
+		runCatching { Logger.e("Uncaught exception on thread '${thread.name}', terminating", throwable) }
 		runCatching { writeCrashDump(thread, throwable) }
 		runCatching { previous?.uncaughtException(thread, throwable) }
 		exitProcess(1)
@@ -146,8 +154,8 @@ private fun runCli(args: List<String>): Int {
 	// Libraries logging through SLF4J must not write to stdout either; MCP speaks on it.
 	System.setProperty("org.slf4j.simpleLogger.logFile", "System.err")
 	val logScope = CoroutineScope(Dispatchers.IO)
-	val logger = FileLogger(scope = logScope)
-	Napier.base(DebugAntilog(handler = listOf(logger)))
+	val logger = fileLogWriter(logScope)
+	Logger.setLogWriters(CallerTagWriter(logger))
 	val code = Cli.run(args)
 	logger.close()
 	runBlocking { withTimeoutOrNull(2.seconds) { logScope.coroutineContext.job.children.forEach { it.join() } } }
@@ -164,12 +172,12 @@ private fun openAppInstance(appScope: CoroutineScope, args: Array<String>, launc
 		registry = { getKoin().get<OperationRegistry>() },
 		onLaunch = { handedOff ->
 			val launch = parseHandedOffLaunchArgs(handedOff)
-			if (launch == null) Napier.w { "A handed-over launch had arguments that do not parse" }
+			if (launch == null) Logger.w { "A handed-over launch had arguments that do not parse" }
 			launches.trySend(launch ?: DesktopLaunchArgs(devMode = false, projectName = null, deepLink = null))
 		},
 	)
 	if (!instance.open(appScope, args.toList())) {
-		Napier.i { "Hammer is already running; handed this launch to it" }
+		Logger.i { "Hammer is already running; handed this launch to it" }
 		exitProcess(0)
 	}
 	return instance
@@ -179,6 +187,8 @@ private fun openAppInstance(appScope: CoroutineScope, args: Array<String>, launc
 @ExperimentalMaterialApi
 @ExperimentalComposeApi
 fun main(args: Array<String>) {
+	// Kermit logs to stdout until told otherwise, and a CLI call's JSON goes there: log nowhere until set up.
+	Logger.setLogWriters(emptyList())
 	if (Cli.isInvocation(args)) {
 		setInDevelopmentMode(Cli.isDevInvocation(args))
 		exitProcess(runCli(Cli.commandArgs(args)))
@@ -198,13 +208,13 @@ fun main(args: Array<String>) {
 	val runtimePlugins = RuntimePlugins.inConfigDirectory(FileSystem.SYSTEM, EncryptedFileSecretDatasource(FileSystem.SYSTEM))
 	val pluginRegistry = PluginRegistry()
 	if (launchArgs.noPlugins) {
-		Napier.i("Startup: runtime plugins are off for this run (--no-plugins)")
+		Logger.i("Startup: runtime plugins are off for this run (--no-plugins)")
 	} else {
 		runtimePlugins.activate(pluginRegistry)
 	}
 
 	GlobalContext.startKoin {
-		logger(NapierLogger())
+		logger(KermitKoinLogger())
 		modules(
 			listOf(
 				mainModule,
@@ -221,13 +231,13 @@ fun main(args: Array<String>) {
 
 	SandboxStartup.ensureProjectsDirAccess()
 
-	Napier.i("Startup: running data migration")
+	Logger.i("Startup: running data migration")
 	runBlocking { getKoin().get<DataMigrator>(DataMigrator::class).handleDataMigration() }
 	appInstance.started()
 
 	val initialProject: ProjectDef? = launchArgs.projectName?.let { name ->
 		val match = getKoin().get<ProjectsRepository>().findProject(name)
-		if (match == null) Napier.w("Launch arg --project requested missing project: $name")
+		if (match == null) Logger.w("Launch arg --project requested missing project: $name")
 		match
 	}
 
@@ -236,10 +246,10 @@ fun main(args: Array<String>) {
 			getKoin().get<ProjectMetadataDatasource>().updateMetadata(initialProject) { metadata ->
 				metadata.copy(info = metadata.info.copy(lastAccessed = Clock.System.now()))
 			}
-		}.onFailure { Napier.w("Failed to bump lastAccessed for --project launch", it) }
+		}.onFailure { Logger.w("Failed to bump lastAccessed for --project launch", it) }
 	}
 
-	Napier.i("Startup: initializing quick shortcuts")
+	Logger.i("Startup: initializing quick shortcuts")
 	val quickShortcuts = getKoin().get<QuickShortcuts>()
 	quickShortcuts.init()
 
@@ -261,14 +271,14 @@ fun main(args: Array<String>) {
 	// Tao backend drives the UI (and Dispatchers.Main) from Tao's own main thread.
 	DecomposeSettings.update { it.copy(mainThreadCheckEnabled = false) }
 
-	Napier.i("Startup: entering Compose application")
+	Logger.i("Startup: entering Compose application")
 	nucleusApplication(
 		args = args,
 		backend = NucleusBackend.Tao,
 		enableSingleInstance = false,
 	) {
 		LaunchedEffect(Unit) {
-			Napier.i("Startup: first composition")
+			Logger.i("Startup: first composition")
 			// Refreshed from inside composition, never from a coroutine racing
 			// the launch: an implementation that touches AWT (the macOS dock
 			// menu does) must not get there before the Tao backend has claimed
@@ -297,7 +307,7 @@ fun main(args: Array<String>) {
 				val name = launch.projectName ?: continue
 				val project = getKoin().get<ProjectsRepository>().findProject(name)
 				if (project == null) {
-					Napier.w("Handed-over launch requested missing project: $name")
+					Logger.w("Handed-over launch requested missing project: $name")
 				} else {
 					applicationState.requestOpen(project, launch.deepLink)
 				}

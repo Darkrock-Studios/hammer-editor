@@ -1,12 +1,12 @@
 package com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.util.debounceUntilQuiescentBy
-import io.github.aakira.napier.Napier
 import kotlinx.atomicfu.atomic
 import kotlinx.atomicfu.locks.reentrantLock
 import kotlinx.atomicfu.locks.withLock
@@ -355,7 +355,7 @@ class SceneContentRepository(
 	private suspend fun storeTempSceneBuffer(sceneItem: SceneItem): Boolean {
 		val buffer = getSceneBuffer(sceneItem)
 		if (buffer == null) {
-			Napier.e { "Failed to store scene: ${sceneItem.id} - ${sceneItem.name}, no buffer present" }
+			Logger.e { "Failed to store scene: ${sceneItem.id} - ${sceneItem.name}, no buffer present" }
 			return false
 		}
 		// Saved or replaced by synced content since this job was launched.
@@ -383,7 +383,7 @@ class SceneContentRepository(
 		runBlocking {
 			withTimeoutOrNull(SHUTDOWN_SAVE_TIMEOUT) {
 				sceneBuffersLock.withLock { storeTempJobs.values.toList() }.joinAll()
-			} ?: Napier.w("Timed out waiting for temp scene saves on close; forcing shutdown.")
+			} ?: Logger.w("Timed out waiting for temp scene saves on close; forcing shutdown.")
 		}
 		editorScope.cancel("Editor Closed")
 		// Thar be dragons: a scope can close without the user choosing Save or Discard, and a dirty
@@ -396,10 +396,10 @@ class SceneContentRepository(
 					.filterNot { it.scene.id in dirtyIds }
 					.forEach { clearTempScene(it.scene) }
 			} catch (e: IOException) {
-				Napier.w("Could not clear saved scenes' temp buffers on close", e)
+				Logger.w("Could not clear saved scenes' temp buffers on close", e)
 			}
 		}
-		Napier.i("SceneContentRepository Closed.")
+		Logger.i("SceneContentRepository Closed.")
 	}
 
 	companion object {

@@ -51,7 +51,8 @@
 -dontwarn org.codehaus.mojo.animal_sniffer.*
 
 # Logging
--keep class io.github.aakira.napier.** { *; }
+# CallerTagWriter finds the calling class by skipping Kermit's frames by package name.
+-keep class co.touchlab.kermit.** { *; }
 -dontwarn org.slf4j.**
 -assumenosideeffects class org.slf4j.Logger {
     public void trace(...);

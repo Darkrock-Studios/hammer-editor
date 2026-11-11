@@ -1,12 +1,12 @@
 package com.darkrockstudios.apps.hammer.common.data.migrator
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftsDatasource
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
-import io.github.aakira.napier.Napier
 import okio.FileSystem
 import okio.Path
 
@@ -23,18 +23,18 @@ class Migration2_3(
 	override val toVersion: Int = 3
 
 	override fun migrate(projectDef: ProjectDef) {
-		Napier.i("Begin Migration2_3 for '${projectDef.name}'...")
+		Logger.i("Begin Migration2_3 for '${projectDef.name}'...")
 
 		val renamed = migrateEncyclopedia(projectDef) + migrateDrafts(projectDef)
 
-		Napier.i("Migration2_3 for '${projectDef.name}' complete, renamed $renamed file(s).")
+		Logger.i("Migration2_3 for '${projectDef.name}' complete, renamed $renamed file(s).")
 	}
 
 	private fun migrateEncyclopedia(projectDef: ProjectDef): Int {
 		val projectDir = projectDef.path.toOkioPath()
 		val encyclopediaDir = projectDir / EncyclopediaDatasource.ENCYCLOPEDIA_DIRECTORY
 		if (!fileSystem.exists(encyclopediaDir)) {
-			Napier.i("No encyclopedia directory for '${projectDef.name}', skipping.")
+			Logger.i("No encyclopedia directory for '${projectDef.name}', skipping.")
 			return 0
 		}
 
@@ -45,7 +45,7 @@ class Migration2_3(
 		val sceneDir = SceneDatasource.getSceneDirectory(projectDef, fileSystem).toOkioPath()
 		val draftsDir = sceneDir / SceneDraftsDatasource.DRAFTS_DIR
 		if (!fileSystem.exists(draftsDir)) {
-			Napier.i("No drafts directory for '${projectDef.name}', skipping.")
+			Logger.i("No drafts directory for '${projectDef.name}', skipping.")
 			return 0
 		}
 
@@ -63,7 +63,7 @@ class Migration2_3(
 				val newName = nextName(path.name) ?: return@forEach
 				val target = path.parent?.div(newName) ?: return@forEach
 				if (fileSystem.exists(target)) {
-					Napier.w("Migration2_3: target already exists, skipping rename of $path")
+					Logger.w("Migration2_3: target already exists, skipping rename of $path")
 					return@forEach
 				}
 				fileSystem.atomicMove(path, target)

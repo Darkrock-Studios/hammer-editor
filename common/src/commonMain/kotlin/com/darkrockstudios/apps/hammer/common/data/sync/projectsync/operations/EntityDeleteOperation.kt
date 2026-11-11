@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.common.data.CResult
@@ -9,7 +10,6 @@ import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.apps.hammer.sync_log_entity_delete_failed
 import com.darkrockstudios.apps.hammer.sync_log_entity_delete_success
-import io.github.aakira.napier.Napier
 
 class EntityDeleteOperation(
 	projectDef: ProjectDef,
@@ -36,7 +36,7 @@ class EntityDeleteOperation(
 			.filter { successfullyDeletedIds.contains(it).not() }
 			.toSet()
 		if (failedDeletes.isNotEmpty()) {
-			Napier.d("Failed to Delete IDs: ${failedDeletes.joinToString(",")}")
+			Logger.d("Failed to Delete IDs: ${failedDeletes.joinToString(",")}")
 		}
 
 		// Remove any dirty that were deleted

@@ -1,10 +1,10 @@
 package com.darkrockstudios.apps.hammer.common.data.references
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
-import io.github.aakira.napier.Napier
 import kotlinx.atomicfu.locks.reentrantLock
 import kotlinx.atomicfu.locks.withLock
 import kotlinx.coroutines.CoroutineScope
@@ -76,7 +76,7 @@ class ReferenceIndexRepository(
 				datasource.saveIndex(updated)
 				mutex.withLock { current = updated }
 				_indexFlow.emit(updated)
-				Napier.d("Reference index marked as dirty")
+				Logger.d("Reference index marked as dirty")
 			}
 		}
 	}

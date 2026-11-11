@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.encyclopediarepository
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContainer
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
@@ -15,7 +16,6 @@ import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsR
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexRepository
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.fileio.ExternalFileIo
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.flow.SharedFlow
 import okio.IOException
 
@@ -72,7 +72,7 @@ class EncyclopediaService(
 		val attached = try {
 			repository.addPrimaryImage(repository.getEntryDef(entry.id), image.id)
 		} catch (e: IOException) {
-			Napier.w("Failed to list image ${image.id} in new entry ${entry.id}", e)
+			Logger.w("Failed to list image ${image.id} in new entry ${entry.id}", e)
 			false
 		}
 		if (!attached) return result
@@ -150,7 +150,7 @@ class EncyclopediaService(
 		val bytes = try {
 			externalFileIo.readExternalFile(imagePath)
 		} catch (e: IOException) {
-			Napier.w("Failed to read entry image: $imagePath", e)
+			Logger.w("Failed to read entry image: $imagePath", e)
 			return ImageAddOutcome(ImageAddResult.ReadFailed)
 		}
 		val outcome = imagesRepository.create(
@@ -159,7 +159,7 @@ class EncyclopediaService(
 			fileExtension = imagePath.substringAfterLast('.', ""),
 		)
 		if (outcome.result != ImageAddResult.Ok) {
-			Napier.w("Ignoring entry image $imagePath: ${outcome.result}")
+			Logger.w("Ignoring entry image $imagePath: ${outcome.result}")
 		}
 		return outcome
 	}

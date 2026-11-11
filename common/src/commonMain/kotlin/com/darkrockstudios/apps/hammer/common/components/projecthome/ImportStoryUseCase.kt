@@ -1,11 +1,11 @@
 package com.darkrockstudios.apps.hammer.common.components.projecthome
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.common.data.SceneContent
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.importer.ImportPreview
 import com.darkrockstudios.apps.hammer.common.data.importer.PreviewItem
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
-import io.github.aakira.napier.Napier
 
 class ImportStoryUseCase(
 	private val sceneEditorRepository: SceneEditorService,
@@ -25,7 +25,7 @@ class ImportStoryUseCase(
 				is PreviewItem.Group -> {
 					val group = sceneEditorRepository.createGroup(parent = null, groupName = item.name)
 					if (group == null) {
-						Napier.w("Import: failed to create group '${item.name}'")
+						Logger.w("Import: failed to create group '${item.name}'")
 						continue
 					}
 					for (childScene in item.scenes) {
@@ -43,14 +43,14 @@ class ImportStoryUseCase(
 	): Boolean {
 		val sceneItem = sceneEditorRepository.createScene(parent = parent, sceneName = scene.name)
 		if (sceneItem == null) {
-			Napier.w("Import: failed to create scene '${scene.name}'")
+			Logger.w("Import: failed to create scene '${scene.name}'")
 			return false
 		}
 		if (scene.markdown.isEmpty()) return true
 
 		val scenePath = sceneEditorRepository.resolveScenePathFromFilesystem(sceneItem.id)
 		if (scenePath == null) {
-			Napier.w("Import: scene '${scene.name}' has no filesystem path after creation")
+			Logger.w("Import: scene '${scene.name}' has no filesystem path after creation")
 			return false
 		}
 		val content = SceneContent(sceneItem, markdown = scene.markdown)

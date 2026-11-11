@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.sync.accountsync.groups
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.base.GroupId
 import com.darkrockstudios.apps.hammer.base.http.ApiErrorCode
@@ -22,7 +23,6 @@ import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogLevel
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncAccLog
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectsApi
 import com.darkrockstudios.apps.hammer.common.util.StrRes
-import io.github.aakira.napier.Napier
 import okio.IOException
 import org.jetbrains.compose.resources.StringResource
 
@@ -116,7 +116,7 @@ class GroupSyncPhase(
 					ledger.rekeyGroup(adoption.local.id, adoption.serverId)
 					onLog.log(SyncLogLevel.INFO, Res.string.sync_log_account_group_adopt_server, adoption.local.name)
 				} catch (e: IOException) {
-					Napier.e("Failed to adopt server group for '${adoption.local.name}'", e)
+					Logger.e("Failed to adopt server group for '${adoption.local.name}'", e)
 					failedAdoptions += adoption.local.id
 				}
 			}
@@ -174,7 +174,7 @@ class GroupSyncPhase(
 	 */
 	private suspend fun adoptServerGroup(def: GroupDef, originalId: GroupId, serverId: GroupId, session: Session) {
 		if (serverId in session.localIds) {
-			Napier.w("'${def.name}' not adopting server group ${serverId.id}: another local group holds it")
+			Logger.w("'${def.name}' not adopting server group ${serverId.id}: another local group holds it")
 			return failCreate(def, session, null)
 		}
 		rekey(def, originalId, serverId, session) ?: return failCreate(def, session, null)
@@ -192,13 +192,13 @@ class GroupSyncPhase(
 				session.remap[originalId] = newId
 			}
 		} catch (e: IOException) {
-			Napier.e("Failed to change the id of group '${def.name}'", e)
+			Logger.e("Failed to change the id of group '${def.name}'", e)
 			null
 		}
 
 	private suspend fun failCreate(group: GroupDef, session: Session, error: Throwable?) {
 		session.failed += group.id
-		error?.let { Napier.e("Failed to create group on server: ${group.name}", it) }
+		error?.let { Logger.e("Failed to create group on server: ${group.name}", it) }
 		session.onLog.log(SyncLogLevel.ERROR, Res.string.sync_log_account_group_create_server_failure, group.name)
 		if (error.isAuthenticationFailure()) session.onUnauthorized()
 	}
@@ -334,7 +334,7 @@ class GroupSyncPhase(
 			return true
 		}
 
-		Napier.e("Failed to update group on server: ${group.name}", error)
+		Logger.e("Failed to update group on server: ${group.name}", error)
 		val message = when (error.apiErrorCode()) {
 			ApiErrorCode.GROUP_CYCLE -> Res.string.sync_log_account_group_update_server_cycle
 			ApiErrorCode.GROUP_TOO_DEEP -> Res.string.sync_log_account_group_update_server_too_deep
@@ -363,7 +363,7 @@ class GroupSyncPhase(
 				ledger.retireGroup(group.uuid)
 				onLog.log(SyncLogLevel.INFO, Res.string.sync_log_account_group_delete_server_success, group.name)
 			} else {
-				Napier.e("Failed to delete group on server: ${group.name}", error)
+				Logger.e("Failed to delete group on server: ${group.name}", error)
 				onLog.log(SyncLogLevel.ERROR, Res.string.sync_log_account_group_delete_server_failure, group.name)
 				if (error.isAuthenticationFailure()) onUnauthorized()
 			}

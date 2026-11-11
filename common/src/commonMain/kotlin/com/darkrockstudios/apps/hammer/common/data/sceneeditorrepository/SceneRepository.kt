@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
@@ -15,7 +16,6 @@ import com.darkrockstudios.apps.hammer.common.util.ScanBuffers
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.util.numDigits
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -87,7 +87,7 @@ class SceneRepository(
 			try {
 				updateSceneOrder(node.value.id)
 			} catch (e: IOException) {
-				Napier.e("Failed to clean up scene order for group ${node.value.id}", e)
+				Logger.e("Failed to clean up scene order for group ${node.value.id}", e)
 			}
 		}
 	}
@@ -384,7 +384,7 @@ class SceneRepository(
 	}
 
 	private suspend fun updateSceneOrderMagnitudeOnly(parentId: Int) {
-		Napier.d("updateSceneOrderMagnitudeOnly for parentId: $parentId")
+		Logger.d("updateSceneOrderMagnitudeOnly for parentId: $parentId")
 
 		val parent = sceneTree.find { it.id == parentId }
 		if (parent.value.type == SceneItem.Type.Scene) throw IllegalArgumentException("SceneItem must be Root or Group")
@@ -407,7 +407,7 @@ class SceneRepository(
 
 			if (existingPath != newPath) {
 				try {
-					Napier.d("Renaming from: \"${existingPath.name}\" to: \"${newPath.name}\"")
+					Logger.d("Renaming from: \"${existingPath.name}\" to: \"${newPath.name}\"")
 
 					sceneDatasource.moveScene(sourcePath = existingPath, targetPath = newPath)
 				} catch (e: IOException) {
@@ -471,7 +471,7 @@ class SceneRepository(
 		val toParentNode = sceneTree[moveRequest.toPosition.coords.parentIndex]
 		val insertIndex = moveRequest.toPosition.coords.childLocalIndex
 
-		Napier.d("Move Scene Item: $moveRequest")
+		Logger.d("Move Scene Item: $moveRequest")
 
 		val fromParent = fromNode.parent
 		val fromIndex = fromParent?.localIndexOf(fromNode) ?: -1
@@ -632,7 +632,7 @@ class SceneRepository(
 				?: sceneDatasource.resolveScenePathFromFilesystem(node.value.id)
 			if (realPath != null) {
 				if (realPath != intendedPath) {
-					Napier.i { "Moving scene to new path: ${intendedPath.path} from old path: ${realPath.path}" }
+					Logger.i { "Moving scene to new path: ${intendedPath.path} from old path: ${realPath.path}" }
 					sceneDatasource.moveScene(realPath, intendedPath)
 				}
 
@@ -640,7 +640,7 @@ class SceneRepository(
 					rationalizeChildren(node, intendedPath)
 				}
 			} else {
-				Napier.e { "Scene ${node.value.id} is missing from the filesystem" }
+				Logger.e { "Scene ${node.value.id} is missing from the filesystem" }
 			}
 		}
 	}
@@ -673,7 +673,7 @@ class SceneRepository(
 		val cleanedNamed = name.trim()
 
 		return if (validateSceneName(cleanedNamed).isFailure) {
-			Napier.d("Invalid scene name")
+			Logger.d("Invalid scene name")
 			null
 		} else {
 			val lastOrder = getLastOrderNumber(parent?.id)
@@ -729,7 +729,7 @@ class SceneRepository(
 				updateSceneOrder(parent?.id ?: SceneItem.ROOT_ID)
 			}
 
-			Napier.i("createScene: $cleanedNamed")
+			Logger.i("createScene: $cleanedNamed")
 
 			reloadScenes()
 
@@ -749,14 +749,14 @@ class SceneRepository(
 				if (syncJournal.isServerSynchronized()) {
 					syncJournal.recordIdDeletion(scene.id)
 				}
-				Napier.w("Archived scene ${scene.id} deleted")
+				Logger.w("Archived scene ${scene.id} deleted")
 				true
 			} else if (parent != null) {
 				val parentId: Int = parent.value.id
 				parent.removeChild(sceneNode)
 
 				updateSceneOrder(parentId)
-				Napier.w("Scene ${scene.id} deleted")
+				Logger.w("Scene ${scene.id} deleted")
 
 				if (syncJournal.isServerSynchronized()) {
 					syncJournal.recordIdDeletion(scene.id)
@@ -766,7 +766,7 @@ class SceneRepository(
 
 				true
 			} else {
-				Napier.w("Partially failed to delete scene ${scene.id}")
+				Logger.w("Partially failed to delete scene ${scene.id}")
 				false
 			}
 		} else {
@@ -790,13 +790,13 @@ class SceneRepository(
 				parent.removeChild(sceneNode)
 
 				updateSceneOrder(parentId)
-				Napier.w("Group ${scene.id} deleted")
+				Logger.w("Group ${scene.id} deleted")
 
 				reloadScenes()
 
 				true
 			} else {
-				Napier.w("Failed to delete group ${scene.id}")
+				Logger.w("Failed to delete group ${scene.id}")
 				false
 			}
 		} else {
@@ -880,7 +880,7 @@ class SceneRepository(
 	 */
 	suspend fun archiveScene(scene: SceneItem): Boolean {
 		if (scene.type != SceneItem.Type.Scene) {
-			Napier.w("Cannot archive non-scene: ${scene.id}")
+			Logger.w("Cannot archive non-scene: ${scene.id}")
 			return false
 		}
 
@@ -900,7 +900,7 @@ class SceneRepository(
 
 		reloadScenes()
 
-		Napier.i("Scene ${scene.id} archived")
+		Logger.i("Scene ${scene.id} archived")
 		return true
 	}
 
@@ -910,7 +910,7 @@ class SceneRepository(
 	 */
 	suspend fun unarchiveScene(scene: SceneItem): SceneItem? {
 		if (!scene.archived) {
-			Napier.w("Scene ${scene.id} is not archived")
+			Logger.w("Scene ${scene.id} is not archived")
 			return null
 		}
 
@@ -938,7 +938,7 @@ class SceneRepository(
 
 		reloadScenes()
 
-		Napier.i("Scene ${scene.id} unarchived")
+		Logger.i("Scene ${scene.id} unarchived")
 		return unarchivedScene
 	}
 

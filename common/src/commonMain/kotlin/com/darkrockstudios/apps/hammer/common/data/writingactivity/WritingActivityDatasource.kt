@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.writingactivity
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.base.http.readTomlOrNull
 import com.darkrockstudios.apps.hammer.base.http.writeToml
 import com.darkrockstudios.apps.hammer.base.http.writingactivity.DeviceLog
@@ -10,7 +11,6 @@ import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDa
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.withContext
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
@@ -41,7 +41,7 @@ class WritingActivityDatasource(
 		val path = getDeviceLogPath(deviceId)
 		if (!fileSystem.exists(path)) return@withContext null
 		fileSystem.readTomlOrNull<DeviceLog>(path, toml) { e ->
-			Napier.e("Failed to load writing activity log: $path", e)
+			Logger.e("Failed to load writing activity log: $path", e)
 		}
 	}
 
@@ -58,7 +58,7 @@ class WritingActivityDatasource(
 				val deviceId = DEVICE_LOG_FILENAME_PATTERN.matchEntire(path.name)?.groupValues?.get(1)
 					?: return@mapNotNull null
 				val log = fileSystem.readTomlOrNull<DeviceLog>(path, toml) { e ->
-					Napier.e("Failed to load writing activity log: $path", e)
+					Logger.e("Failed to load writing activity log: $path", e)
 				}
 				log?.let { WritingActivitySlot(deviceId, it) }
 			}
@@ -72,7 +72,7 @@ class WritingActivityDatasource(
 		val path = getSlotPath(deviceId, authorId)
 		if (!fileSystem.exists(path)) return@withContext null
 		fileSystem.readTomlOrNull<DeviceLog>(path, toml) { e ->
-			Napier.e("Failed to load writing activity log: $path", e)
+			Logger.e("Failed to load writing activity log: $path", e)
 		}
 	}
 

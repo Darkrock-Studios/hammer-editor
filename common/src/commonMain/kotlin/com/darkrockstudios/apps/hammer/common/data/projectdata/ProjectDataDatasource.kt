@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.projectdata
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.base.http.readTomlOrNull
 import com.darkrockstudios.apps.hammer.base.http.writeToml
@@ -8,7 +9,6 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
@@ -92,7 +92,7 @@ fun readStoredProjectData(
 	if (stored != null) return stored
 
 	if (failure is IOException) {
-		Napier.e("Failed to read ${ProjectDataDatasource.FILENAME}: $path", failure)
+		Logger.e("Failed to read ${ProjectDataDatasource.FILENAME}: $path", failure)
 	} else {
 		setAsideUnreadable(projectDef, fileSystem, path, failure)
 	}
@@ -113,9 +113,9 @@ private fun setAsideUnreadable(
 	while (fileSystem.exists(target)) target = dir / "$baseName-${suffix++}"
 	try {
 		fileSystem.atomicMove(path, target)
-		Napier.e("Unreadable ${ProjectDataDatasource.FILENAME} moved aside: $path -> $target", cause)
+		Logger.e("Unreadable ${ProjectDataDatasource.FILENAME} moved aside: $path -> $target", cause)
 	} catch (e: IOException) {
-		Napier.e("Unreadable ${ProjectDataDatasource.FILENAME} could not be moved aside: $path", e)
+		Logger.e("Unreadable ${ProjectDataDatasource.FILENAME} could not be moved aside: $path", e)
 	}
 }
 

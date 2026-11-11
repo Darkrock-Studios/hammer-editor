@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.projectbackup
 
-import io.github.aakira.napier.Napier
+import co.touchlab.kermit.Logger
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.useContents
 import platform.CoreGraphics.CGRectMake
@@ -22,7 +22,7 @@ actual class BackupManagerService {
 		dispatch_async(dispatch_get_main_queue()) {
 			val presenter = topViewController()
 			if (presenter == null) {
-				Napier.w("No view controller available to present backup share sheet")
+				Logger.w("No view controller available to present backup share sheet")
 				return@dispatch_async
 			}
 

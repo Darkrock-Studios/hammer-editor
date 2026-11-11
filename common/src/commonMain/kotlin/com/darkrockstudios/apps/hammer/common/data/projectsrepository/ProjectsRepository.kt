@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.projectsrepository
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.GroupId
 import com.darkrockstudios.apps.hammer.base.ProjectId
@@ -52,7 +53,6 @@ import com.darkrockstudios.apps.hammer.create_project_error_group_missing
 import com.darkrockstudios.apps.hammer.create_project_error_invalid_characters
 import com.darkrockstudios.apps.hammer.create_project_error_null_filename
 import com.darkrockstudios.apps.hammer.create_project_error_too_long
-import io.github.aakira.napier.Napier
 import kotlinx.atomicfu.locks.reentrantLock
 import kotlinx.atomicfu.locks.withLock
 import kotlinx.coroutines.CancellationException
@@ -188,7 +188,7 @@ class ProjectsRepository(
 			} catch (e: CancellationException) {
 				throw e
 			} catch (e: Exception) {
-				Napier.e("Project id change listener failed for '${projectDef.name}'", e)
+				Logger.e("Project id change listener failed for '${projectDef.name}'", e)
 			}
 		}
 	}
@@ -206,7 +206,7 @@ class ProjectsRepository(
 			try {
 				listener.onProjectDeleted(projectDef)
 			} catch (e: Exception) {
-				Napier.e("Project deleted listener failed for '${projectDef.name}'", e)
+				Logger.e("Project deleted listener failed for '${projectDef.name}'", e)
 			}
 		}
 	}
@@ -240,10 +240,10 @@ class ProjectsRepository(
 					setProjectId(duplicate, newId)
 				} catch (_: ProjectInUseException) {
 					// Left for the next start, which runs before anything can open it.
-					Napier.w("Project '${duplicate.name}' shares id ${projectId.id} with '${keeper.name}' but is in use")
+					Logger.w("Project '${duplicate.name}' shares id ${projectId.id} with '${keeper.name}' but is in use")
 					return@forEach
 				}
-				Napier.w(
+				Logger.w(
 					"Project '${duplicate.name}' shared id ${projectId.id} with '${keeper.name}', " +
 						"assigned ${newId.id}"
 				)
@@ -425,7 +425,7 @@ class ProjectsRepository(
 		try {
 			ProjectDef(projectsMetadataDatasource.loadProjectId(dir.toHPath()), name, dir.toHPath())
 		} catch (e: IOException) {
-			Napier.w("Skipped project '$name': could not read its ${ProjectMetadata.FILENAME}", e)
+			Logger.w("Skipped project '$name': could not read its ${ProjectMetadata.FILENAME}", e)
 			null
 		}
 
@@ -439,7 +439,7 @@ class ProjectsRepository(
 			val loadedId = checkNotNull(metadata.info.groupId)
 			val groupId = if (loadedId in taken) {
 				GroupId.randomUUID().also { newId ->
-					Napier.w("Group '${scanned.name}' shared id ${loadedId.id} with another group, assigned ${newId.id}")
+					Logger.w("Group '${scanned.name}' shared id ${loadedId.id} with another group, assigned ${newId.id}")
 					groupMetadataDatasource.updateMetadata(dir) { it.copy(info = it.info.copy(groupId = newId)) }
 				}
 			} else {
@@ -450,7 +450,7 @@ class ProjectsRepository(
 				collapsed = metadata.info.collapsed,
 			)
 		} catch (e: IOException) {
-			Napier.w("Skipped group '${scanned.name}': could not read its ${GroupMetadata.FILENAME}", e)
+			Logger.w("Skipped group '${scanned.name}': could not read its ${GroupMetadata.FILENAME}", e)
 			null
 		}
 
@@ -592,7 +592,7 @@ class ProjectsRepository(
 		// Reset before marking, so a crash between the two leaves the folder unmarked and retried.
 		resetSyncStateAfterRestore(projectDef, serverKnowsProject)
 		projectsMetadataDatasource.createMetadata(projectDef, projectId, syncEnabled)
-		Napier.w("Adopted unmarked project folder '${projectDef.name}' as ${projectId.id}, sync ${if (syncEnabled) "on" else "off"}")
+		Logger.w("Adopted unmarked project folder '${projectDef.name}' as ${projectId.id}, sync ${if (syncEnabled) "on" else "off"}")
 		return projectDef
 	}
 
@@ -773,7 +773,7 @@ class ProjectsRepository(
 			notifyProjectDeleted(projectDef)
 			true
 		} catch (e: IOException) {
-			Napier.e("Failed to delete project: ${projectDef.name}", e)
+			Logger.e("Failed to delete project: ${projectDef.name}", e)
 			false
 		}
 	}
@@ -891,7 +891,7 @@ class ProjectsRepository(
 			fileSystem.delete(groupDir, mustExist = false)
 			CResult.success()
 		} catch (e: IOException) {
-			Napier.e("Failed to delete group '${groupDef.name}'", e)
+			Logger.e("Failed to delete group '${groupDef.name}'", e)
 			if (moved.size < contents.size) moveBack(moved, parentDir)
 			groupFailure(GroupOperationFailed.Reason.MoveFailed)
 		}
@@ -903,7 +903,7 @@ class ProjectsRepository(
 			try {
 				fileSystem.atomicMove(source = parentDir / original.name, target = original)
 			} catch (e: IOException) {
-				Napier.e("Could not move '${original.name}' back into its group", e)
+				Logger.e("Could not move '${original.name}' back into its group", e)
 			}
 		}
 	}
@@ -931,7 +931,7 @@ class ProjectsRepository(
 			}
 			CResult.success(groupDef.copy(description = updated.info.description))
 		} catch (e: IOException) {
-			Napier.e("Failed to update the description of group '${groupDef.name}'", e)
+			Logger.e("Failed to update the description of group '${groupDef.name}'", e)
 			groupFailure(GroupOperationFailed.Reason.SourceDoesNotExist)
 		}
 
@@ -942,7 +942,7 @@ class ProjectsRepository(
 				it.copy(info = it.info.copy(collapsed = collapsed))
 			}
 		} catch (e: IOException) {
-			Napier.w("Failed to save collapsed state of group '${groupDef.name}'", e)
+			Logger.w("Failed to save collapsed state of group '${groupDef.name}'", e)
 		}
 	}
 
@@ -965,7 +965,7 @@ class ProjectsRepository(
 				try {
 					fileSystem.deleteRecursively(entry)
 				} catch (e: IOException) {
-					Napier.e("Failed to delete $entry while removing project content", e)
+					Logger.e("Failed to delete $entry while removing project content", e)
 				}
 			}
 	}
@@ -982,7 +982,7 @@ class ProjectsRepository(
 			try {
 				fileSystem.deleteRecursively(child)
 			} catch (e: IOException) {
-				Napier.e("Failed to delete $child while discarding local data", e)
+				Logger.e("Failed to delete $child while discarding local data", e)
 			}
 		}
 	}
@@ -1056,7 +1056,7 @@ class ProjectsRepository(
 		fun validateFileName(fileName: String?, usedAsRawFilename: Boolean = true): CResult<Unit> {
 			return when (ProjectNameValidator.validate(fileName, usedAsRawFilename)) {
 				ProjectNameValidationResult.VALID -> {
-					Napier.i("$fileName was valid")
+					Logger.i("$fileName was valid")
 					CResult.success()
 				}
 
@@ -1078,7 +1078,7 @@ class ProjectsRepository(
 		}
 
 		private fun invalidFileName(fileName: String?, message: StringResource): CResult<Unit> {
-			Napier.i("$fileName was invalid: $message")
+			Logger.i("$fileName was invalid: $message")
 			return CResult.failure(ValidationFailedException(message))
 		}
 	}

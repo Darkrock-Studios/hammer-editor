@@ -1,12 +1,12 @@
 package com.darkrockstudios.apps.hammer.common.data.sync.projectsync
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.EntityHash
 import com.darkrockstudios.apps.hammer.base.http.EntityType
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityConflictException
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.channels.Channel
 
 typealias EntityConflictHandler<T> = suspend (T) -> Unit
@@ -37,7 +37,7 @@ abstract class EntitySynchronizer<T : ApiProjectEntity>(
 		// rather than re-derived later (local state may have already drifted).
 		onSynced: suspend (id: Int, hash: String) -> Unit = { _, _ -> },
 	): Boolean {
-		Napier.d("Uploading Scene $id")
+		Logger.d("Uploading Scene $id")
 
 		val entity = createEntityForId(id)
 		val result = serverProjectApi.uploadEntity(

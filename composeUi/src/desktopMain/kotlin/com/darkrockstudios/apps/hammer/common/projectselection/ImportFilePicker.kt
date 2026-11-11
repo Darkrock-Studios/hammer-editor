@@ -2,8 +2,8 @@ package com.darkrockstudios.apps.hammer.common.projectselection
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.common.compose.rememberDefaultDispatcher
-import io.github.aakira.napier.Napier
 import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.dialogs.FileKitType
 import io.github.vinceglb.filekit.dialogs.openFilePicker
@@ -32,7 +32,7 @@ actual fun ImportFilePicker(
 						try {
 							file.readBytes()
 						} catch (@Suppress("TooGenericExceptionCaught") e: Exception) { // file read can fail many ways
-							Napier.e("Failed to read import file", e)
+							Logger.e("Failed to read import file", e)
 							null
 						}
 					}

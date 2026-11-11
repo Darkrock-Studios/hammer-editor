@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.references
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
@@ -9,7 +10,6 @@ import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRe
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
-import io.github.aakira.napier.Napier
 import kotlinx.atomicfu.locks.reentrantLock
 import kotlinx.atomicfu.locks.withLock
 import kotlinx.coroutines.*
@@ -66,13 +66,13 @@ class ReferenceIndexService(
 			cached
 		} else {
 			when {
-				cached == null -> Napier.d("Reference index cache missing, recalculating")
-				!isCurrentSchema -> Napier.i(
+				cached == null -> Logger.d("Reference index cache missing, recalculating")
+				!isCurrentSchema -> Logger.i(
 					"Reference index schema is outdated (was ${cached.schemaVersion}, " +
 						"expected ${ReferenceIndex.CURRENT_SCHEMA_VERSION}); recalculating"
 				)
 
-				else -> Napier.d("Reference index dirty, recalculating")
+				else -> Logger.d("Reference index dirty, recalculating")
 			}
 			recalculate()
 		}
@@ -110,7 +110,7 @@ class ReferenceIndexService(
 			repository.clearDirty()
 
 			val duration = clock.now() - startTime
-			Napier.i("Reference index calculated in ${duration.inWholeMilliseconds}ms: ${index.entryToScenes.size} entries")
+			Logger.i("Reference index calculated in ${duration.inWholeMilliseconds}ms: ${index.entryToScenes.size} entries")
 			return index
 		} finally {
 			_isCalculating.value = false
@@ -213,7 +213,7 @@ class ReferenceIndexService(
 		val entries = allEntries.filter { it.type in config.enabledEntryTypes }
 		if (entries.isEmpty()) {
 			if (allEntries.isNotEmpty()) {
-				Napier.w(
+				Logger.w(
 					"matchableEntries: filter dropped all ${allEntries.size} entries — " +
 						"none matched enabledEntryTypes=${config.enabledEntryTypes}. " +
 						"Available types: ${allEntries.map { it.type }.toSet()}"

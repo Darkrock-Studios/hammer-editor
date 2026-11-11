@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.rename
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneContent
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
@@ -19,7 +20,6 @@ import com.darkrockstudios.apps.hammer.common.data.references.NameMatcher
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneContentRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.yield
 
@@ -106,7 +106,7 @@ class RenameEntryUseCase(
 			if (node.type == SceneItem.Type.Scene) {
 				val metadata = sceneEditor.loadSceneMetadata(node.id)
 				val text = runCatching { sceneContentRepository.getCurrentSceneContent(node) }
-					.onFailure { Napier.w("Rename: could not read scene ${node.id}", it) }
+					.onFailure { Logger.w("Rename: could not read scene ${node.id}", it) }
 					.getOrNull()
 				if (text != null) {
 					scan(RenameItemKey(RenamePlace.SCENE_TEXT, node.id), node.name, text, entryId in metadata.dismissedReferences)
@@ -269,7 +269,7 @@ class RenameEntryUseCase(
 	private suspend fun loadAllEntries(): List<EntryContent> =
 		encyclopediaRepository.loadEntriesImperative().mapNotNull { def ->
 			runCatching { encyclopediaRepository.loadEntry(def.id).entry }
-				.onFailure { Napier.w("Rename: could not load entry ${def.id}", it) }
+				.onFailure { Logger.w("Rename: could not load entry ${def.id}", it) }
 				.getOrNull()
 		}
 
@@ -328,7 +328,7 @@ class RenameEntryUseCase(
 	private fun readArchivedText(scene: SceneItem): String? {
 		val path = sceneEditor.resolveScenePathFromFilesystemIncludingArchived(scene.id) ?: return null
 		return runCatching { sceneEditor.loadSceneMarkdownRaw(scene, path) }
-			.onFailure { Napier.w("Rename: could not read archived scene ${scene.id}", it) }
+			.onFailure { Logger.w("Rename: could not read archived scene ${scene.id}", it) }
 			.getOrNull()
 	}
 

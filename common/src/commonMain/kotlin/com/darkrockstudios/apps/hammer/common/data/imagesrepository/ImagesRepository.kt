@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.imagesrepository
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import com.darkrockstudios.apps.hammer.base.image.ImageFormat
 import com.darkrockstudios.apps.hammer.base.image.ImageProblem
@@ -12,7 +13,6 @@ import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
-import io.github.aakira.napier.Napier
 import kotlinx.atomicfu.locks.reentrantLock
 import kotlinx.atomicfu.locks.withLock
 import kotlinx.coroutines.CoroutineScope
@@ -181,7 +181,7 @@ class ImagesRepository(
 		val renamed = try {
 			imagesDatasource.renameImage(existing, cleanName)
 		} catch (e: IOException) {
-			Napier.e("Failed to rename image $id", e)
+			Logger.e("Failed to rename image $id", e)
 			return ImageAddOutcome(ImageAddResult.ReadFailed)
 		}
 
@@ -235,7 +235,7 @@ class ImagesRepository(
 			imagesDatasource.writeImage(def, bytes)
 			true
 		} catch (e: IOException) {
-			Napier.e("Failed to write image ${def.id}", e)
+			Logger.e("Failed to write image ${def.id}", e)
 			false
 		}
 	}

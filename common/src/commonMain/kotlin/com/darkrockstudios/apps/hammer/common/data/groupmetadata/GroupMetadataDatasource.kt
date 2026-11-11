@@ -1,12 +1,12 @@
 package com.darkrockstudios.apps.hammer.common.data.groupmetadata
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.base.GroupId
 import com.darkrockstudios.apps.hammer.base.http.readTomlOrNull
 import com.darkrockstudios.apps.hammer.base.http.writeToml
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
-import io.github.aakira.napier.Napier
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
 import okio.Path
@@ -34,7 +34,7 @@ class GroupMetadataDatasource(
 		val path = metadataPath(groupDir)
 
 		val metadata = fileSystem.readTomlOrNull<GroupMetadata>(path, toml) { e ->
-			Napier.e("Failed to load group metadata: ${path.toHPath().path}", e)
+			Logger.e("Failed to load group metadata: ${path.toHPath().path}", e)
 		} ?: run {
 			fileSystem.delete(path, false)
 			return createMetadata(groupDir, GroupId.randomUUID())
@@ -43,7 +43,7 @@ class GroupMetadataDatasource(
 		if (metadata.info.groupId != null) return metadata.normalized()
 
 		val minted = GroupId.randomUUID()
-		Napier.w("Group '${groupDir.name}' had no group id, assigned ${minted.id}")
+		Logger.w("Group '${groupDir.name}' had no group id, assigned ${minted.id}")
 		return metadata.copy(info = metadata.info.copy(groupId = minted)).normalized().also { saveMetadata(groupDir, it) }
 	}
 

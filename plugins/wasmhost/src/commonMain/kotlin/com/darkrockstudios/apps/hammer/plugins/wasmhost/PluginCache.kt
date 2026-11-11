@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.plugins.wasmhost
 
-import io.github.aakira.napier.Napier
+import co.touchlab.kermit.Logger
 import okio.ByteString.Companion.toByteString
 import okio.FileMetadata
 import okio.FileNotFoundException
@@ -29,7 +29,7 @@ class PluginCache(
 		} catch (_: FileNotFoundException) {
 			null
 		} catch (e: IOException) {
-			Napier.w(e) { "Plugin cache read failed" }
+			Logger.w(e) { "Plugin cache read failed" }
 			null
 		}
 	}
@@ -53,7 +53,7 @@ class PluginCache(
 			fileSystem.atomicMove(staging, path)
 			held = (total - replaced + value.size).let { if (it > maxBytes) evict() else it }
 		} catch (e: IOException) {
-			Napier.w(e) { "Plugin cache write failed" }
+			Logger.w(e) { "Plugin cache write failed" }
 			held = null
 		}
 	}
@@ -62,7 +62,7 @@ class PluginCache(
 		try {
 			fileSystem.deleteRecursively(directory)
 		} catch (e: IOException) {
-			Napier.w(e) { "Plugin cache could not be cleared" }
+			Logger.w(e) { "Plugin cache could not be cleared" }
 		}
 		held = null
 	}

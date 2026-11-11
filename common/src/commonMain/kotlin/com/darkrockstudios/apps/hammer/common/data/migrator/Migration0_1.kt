@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.migrator
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.base.http.writeToml
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineContainer
@@ -7,7 +8,6 @@ import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineDa
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
-import io.github.aakira.napier.Napier
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
@@ -27,7 +27,7 @@ class Migration0_1(
 ) : Migration {
 	override val toVersion: Int = 1
 	override fun migrate(projectDef: ProjectDef) {
-		Napier.i("Begin Migration0_1 for '${projectDef.name}'...")
+		Logger.i("Begin Migration0_1 for '${projectDef.name}'...")
 
 		val path = TimeLineDatasource.getTimelineFilePath(projectDef)
 		try {
@@ -40,14 +40,14 @@ class Migration0_1(
 			if (timeline != null) {
 				fileSystem.writeToml<TimeLineContainer>(path.toOkioPath(), toml, timeline)
 			} else {
-				Napier.i("No timeline content found for Migration0_1, skipping.")
+				Logger.i("No timeline content found for Migration0_1, skipping.")
 			}
 		} catch (e: FileNotFoundException) {
-			Napier.i("No timeline found for Migration0_1, skipping.", e)
+			Logger.i("No timeline found for Migration0_1, skipping.", e)
 		} catch (e: SerializationException) {
-			Napier.w("Failed to deserialize Timeline, it's likely it is already migrated", e)
+			Logger.w("Failed to deserialize Timeline, it's likely it is already migrated", e)
 		} catch (e: IllegalArgumentException) {
-			Napier.w("Failed to deserialize Timeline, it's likely it is already migrated", e)
+			Logger.w("Failed to deserialize Timeline, it's likely it is already migrated", e)
 		}
 	}
 

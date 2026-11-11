@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.writingactivity.DeviceLog
 import com.darkrockstudios.apps.hammer.base.http.writingactivity.WritingActivitySlot
@@ -13,7 +14,6 @@ import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingActivi
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingSessionTracker
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.mergeOwnSlotSessions
 import com.darkrockstudios.apps.hammer.common.server.WritingActivityApi
-import io.github.aakira.napier.Napier
 
 /**
  * Syncs the project's per-device writing-activity logs. Inserted into the
@@ -62,7 +62,7 @@ class WritingActivitySyncOperation(
 
 			val getResult = api.getWritingActivity(userId, projectId)
 			val response = getResult.getOrElse { error ->
-				Napier.w("Writing activity sync: GET failed, skipping", error)
+				Logger.w("Writing activity sync: GET failed, skipping", error)
 				onLog(syncLogW("Writing activity sync skipped: ${error.message}", projectDef))
 				return CResult.success(state)
 			}
@@ -99,7 +99,7 @@ class WritingActivitySyncOperation(
 				log = payload,
 			)
 			postResult.exceptionOrNull()?.let { error ->
-				Napier.w("Writing activity sync: POST failed", error)
+				Logger.w("Writing activity sync: POST failed", error)
 				onLog(syncLogW("Writing activity upload failed: ${error.message}", projectDef))
 			}
 
@@ -107,7 +107,7 @@ class WritingActivitySyncOperation(
 			val slotCount = response.slots.count { !isOwnSlot(it) } + 1
 			onLog(syncLogI("Writing activity synced ($slotCount slots)", projectDef))
 		} catch (e: Exception) {
-			Napier.w("Writing activity sync failed", e)
+			Logger.w("Writing activity sync failed", e)
 			onLog(syncLogW("Writing activity sync error: ${e.message}", projectDef))
 		}
 

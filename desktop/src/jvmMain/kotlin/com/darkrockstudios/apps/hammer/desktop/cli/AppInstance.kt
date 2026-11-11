@@ -1,7 +1,7 @@
 package com.darkrockstudios.apps.hammer.desktop.cli
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.operations.OperationRegistry
-import io.github.aakira.napier.Napier
 import java.io.File
 import java.io.IOException
 import java.nio.channels.FileChannel
@@ -70,11 +70,11 @@ class AppInstance(
 				Thread.sleep(retry.inWholeMilliseconds)
 			}
 		} catch (e: IOException) {
-			Napier.w(e) { "Could not take the app lock; running without it" }
+			Logger.w(e) { "Could not take the app lock; running without it" }
 			markWindow()
 			return true
 		}
-		Napier.w { "Hammer is already running but did not take this launch; opening a second window" }
+		Logger.w { "Hammer is already running but did not take this launch; opening a second window" }
 		markWindow()
 		inBackground(scope) {
 			while (true) {
@@ -100,11 +100,11 @@ class AppInstance(
 		val lock = try {
 			lockWindow(directory)
 		} catch (e: IOException) {
-			Napier.w(e) { UNMARKED_MESSAGE }
+			Logger.w(e) { UNMARKED_MESSAGE }
 			return
 		}
 		if (lock == null) {
-			Napier.w { UNMARKED_MESSAGE }
+			Logger.w { UNMARKED_MESSAGE }
 			return
 		}
 		synchronized(this) {
@@ -122,7 +122,7 @@ class AppInstance(
 			server = startServer(scope)
 		}
 		if (!takeWriterLock()) {
-			Napier.i { "A CLI call is using Hammer's data; taking the writer lock when it finishes" }
+			Logger.i { "A CLI call is using Hammer's data; taking the writer lock when it finishes" }
 			inBackground(scope) {
 				while (!takeWriterLock()) delay(retry)
 			}
@@ -136,11 +136,11 @@ class AppInstance(
 				withTimeoutOrNull(readyWait) { ready.await() } == true
 			}).also { server = it }.also { it.start(scope) }
 		} catch (e: IOException) {
-			Napier.w(e) { "Could not open the CLI socket; CLI calls will refuse while Hammer runs" }
+			Logger.w(e) { "Could not open the CLI socket; CLI calls will refuse while Hammer runs" }
 			server?.close()
 			null
 		} catch (e: UnsupportedOperationException) {
-			Napier.w(e) { "This system has no Unix domain sockets; CLI calls will refuse while Hammer runs" }
+			Logger.w(e) { "This system has no Unix domain sockets; CLI calls will refuse while Hammer runs" }
 			null
 		}
 	}
@@ -150,7 +150,7 @@ class AppInstance(
 			WriterLock.acquire(directory, WriterLock.Holder.App)
 		} catch (e: IOException) {
 			// No CLI call can take it either, and the window lock already keeps them from running headless.
-			Napier.w(e) { "Could not take the writer lock; serving CLI calls without it" }
+			Logger.w(e) { "Could not take the writer lock; serving CLI calls without it" }
 			null
 		}
 		if (result is WriterLock.Result.Busy) return false
@@ -174,7 +174,7 @@ class AppInstance(
 				try {
 					block()
 				} catch (e: IOException) {
-					Napier.w(e) { "Could not take Hammer's locks; running without them" }
+					Logger.w(e) { "Could not take Hammer's locks; running without them" }
 				}
 			}
 		}

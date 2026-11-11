@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.desktop.cli
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.common.getConfigDirectory
 import com.darkrockstudios.apps.hammer.operations.Access
 import com.darkrockstudios.apps.hammer.operations.Operation
@@ -13,7 +14,6 @@ import com.darkrockstudios.apps.hammer.operations.core.OperationDescriptor
 import com.darkrockstudios.apps.hammer.operations.core.descriptor
 import com.darkrockstudios.apps.hammer.operations.jsonSchema
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
-import io.github.aakira.napier.Napier
 import java.io.File
 import kotlin.io.encoding.Base64
 import kotlinx.coroutines.Dispatchers
@@ -90,7 +90,7 @@ object Cli {
 			io.stderr.writeUtf8("${e.message}\n")
 			EXIT_BUSY
 		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-			Napier.e(e) { "CLI call failed: $args" }
+			Logger.e(e) { "CLI call failed: $args" }
 			io.stderr.writeUtf8("Failed: ${e.message}\n")
 			EXIT_FAILURE
 		} finally {

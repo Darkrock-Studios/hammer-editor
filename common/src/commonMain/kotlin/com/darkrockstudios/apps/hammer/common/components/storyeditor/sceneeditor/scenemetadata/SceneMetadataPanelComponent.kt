@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.scenemetadata
 
+import co.touchlab.kermit.Logger
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
@@ -24,7 +25,6 @@ import com.darkrockstudios.apps.hammer.common.data.tagindex.parseTagInput
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineService
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.APP_SCOPE
 import com.darkrockstudios.apps.hammer.common.util.debounceUntilQuiescent
-import io.github.aakira.napier.Napier
 import kotlinx.atomicfu.atomic
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -151,7 +151,7 @@ class SceneMetadataPanelComponent(
 					if (storePending || merged != external) {
 						storePending = true
 						if (_metadataUpdateFlow.tryEmit(merged).not()) {
-							Napier.w { "Failed to re-emit merged metadata after external update" }
+							Logger.w { "Failed to re-emit merged metadata after external update" }
 						}
 					}
 					refreshReferences()
@@ -223,7 +223,7 @@ class SceneMetadataPanelComponent(
 	}
 
 	private fun subscribeToBufferUpdates() {
-		Napier.d { "SceneMetadataComponent start collecting buffer updates" }
+		Logger.d { "SceneMetadataComponent start collecting buffer updates" }
 
 		bufferUpdateSubscription?.cancel()
 
@@ -239,7 +239,7 @@ class SceneMetadataPanelComponent(
 				try {
 					sceneEditor.storeMetadata(scrubbed, originalSceneItem.id)
 				} catch (e: IOException) {
-					Napier.e("Failed to store metadata for scene ${originalSceneItem.id}", e)
+					Logger.e("Failed to store metadata for scene ${originalSceneItem.id}", e)
 					return@collect
 				}
 				persistedMetadata.value = scrubbed
@@ -270,7 +270,7 @@ class SceneMetadataPanelComponent(
 		_state.getAndUpdate {
 			val updated = it.metadata.copy(outline = text)
 			if (_metadataUpdateFlow.tryEmit(updated).not()) {
-				Napier.w { "Failed to emit metadataUpdate for Outline" }
+				Logger.w { "Failed to emit metadataUpdate for Outline" }
 			}
 			it.copy(
 				metadata = updated
@@ -283,7 +283,7 @@ class SceneMetadataPanelComponent(
 		_state.getAndUpdate {
 			val updated = it.metadata.copy(notes = text)
 			if (_metadataUpdateFlow.tryEmit(updated).not()) {
-				Napier.w { "Failed to emit metadataUpdate for Notes" }
+				Logger.w { "Failed to emit metadataUpdate for Notes" }
 			}
 			it.copy(
 				metadata = it.metadata.copy(notes = text)
@@ -296,7 +296,7 @@ class SceneMetadataPanelComponent(
 		_state.getAndUpdate {
 			val updated = it.metadata.copy(currentDraftName = text)
 			if (_metadataUpdateFlow.tryEmit(updated).not()) {
-				Napier.w { "Failed to emit metadataUpdate for Draft Name" }
+				Logger.w { "Failed to emit metadataUpdate for Draft Name" }
 			}
 			it.copy(
 				metadata = it.metadata.copy(currentDraftName = text)
@@ -364,7 +364,7 @@ class SceneMetadataPanelComponent(
 		_state.getAndUpdate {
 			val updated = transform(it.metadata)
 			if (_metadataUpdateFlow.tryEmit(updated).not()) {
-				Napier.w { "Failed to emit metadataUpdate for reference change" }
+				Logger.w { "Failed to emit metadataUpdate for reference change" }
 			}
 			it.copy(metadata = updated)
 		}
@@ -386,7 +386,7 @@ class SceneMetadataPanelComponent(
 			try {
 				sceneEditor.storeMetadata(scrubInvalidReferences(metadata), originalSceneItem.id)
 			} catch (e: IOException) {
-				Napier.e("Failed to flush metadata for scene ${originalSceneItem.id}", e)
+				Logger.e("Failed to flush metadata for scene ${originalSceneItem.id}", e)
 			}
 		}
 	}

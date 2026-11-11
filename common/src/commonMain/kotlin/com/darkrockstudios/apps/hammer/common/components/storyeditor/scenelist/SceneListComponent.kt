@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.components.storyeditor.scenelist
 
+import co.touchlab.kermit.Logger
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
@@ -7,7 +8,6 @@ import com.arkivanov.decompose.value.getAndUpdate
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
-import io.github.aakira.napier.Napier
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.launch
@@ -29,7 +29,7 @@ class SceneListComponent(
 	override val state: Value<SceneList.State> = _state
 
 	init {
-		Napier.d { "Project editor: " + projectEditor.projectDef.name }
+		Logger.d { "Project editor: " + projectEditor.projectDef.name }
 
 		loadScenes()
 
@@ -43,7 +43,7 @@ class SceneListComponent(
 		scope.launch {
 			selectedSceneItem.collect { scene ->
 				withContext(dispatcherMain) {
-					Napier.d("Scene Selected: $scene")
+					Logger.d("Scene Selected: $scene")
 					_state.getAndUpdate { it.copy(selectedSceneItem = scene) }
 				}
 			}
@@ -77,10 +77,10 @@ class SceneListComponent(
 
 		val newSceneItem = projectEditor.createScene(foundParent, sceneName)
 		if (newSceneItem != null) {
-			Napier.i("Scene created: $sceneName")
+			Logger.i("Scene created: $sceneName")
 			openSceneEditor(newSceneItem)
 		} else {
-			Napier.w("Failed to create Scene: $sceneName")
+			Logger.w("Failed to create Scene: $sceneName")
 		}
 	}
 
@@ -93,9 +93,9 @@ class SceneListComponent(
 
 		val newSceneItem = projectEditor.createGroup(foundParent, groupName)
 		if (newSceneItem != null) {
-			Napier.i("Group created: $groupName")
+			Logger.i("Group created: $groupName")
 		} else {
-			Napier.w("Failed to create Group: $groupName")
+			Logger.w("Failed to create Group: $groupName")
 		}
 	}
 
@@ -103,13 +103,13 @@ class SceneListComponent(
 		when (scene.type) {
 			SceneItem.Type.Scene -> {
 				if (!projectEditor.deleteScene(scene)) {
-					Napier.e("Failed to delete Scene: ${scene.id} - ${scene.name}")
+					Logger.e("Failed to delete Scene: ${scene.id} - ${scene.name}")
 				}
 			}
 
 			SceneItem.Type.Group -> {
 				if (!projectEditor.deleteGroup(scene)) {
-					Napier.e("Failed to delete Scene: ${scene.id} - ${scene.name}")
+					Logger.e("Failed to delete Scene: ${scene.id} - ${scene.name}")
 				}
 			}
 
@@ -119,7 +119,7 @@ class SceneListComponent(
 
 	override suspend fun renameScene(scene: SceneItem, newName: String): Boolean {
 		return if (!projectEditor.renameScene(scene, newName)) {
-			Napier.e("Failed to rename Scene: ${scene.id} - ${scene.name} to $newName")
+			Logger.e("Failed to rename Scene: ${scene.id} - ${scene.name} to $newName")
 			false
 		} else {
 			true
@@ -161,20 +161,20 @@ class SceneListComponent(
 
 	override suspend fun archiveScene(scene: SceneItem) {
 		if (projectEditor.archiveScene(scene)) {
-			Napier.i("Scene archived: ${scene.name}")
+			Logger.i("Scene archived: ${scene.name}")
 		} else {
-			Napier.w("Failed to archive scene: ${scene.name}")
+			Logger.w("Failed to archive scene: ${scene.name}")
 		}
 	}
 
 	override suspend fun unarchiveScene(scene: SceneItem) {
 		val unarchived = projectEditor.unarchiveScene(scene)
 		if (unarchived != null) {
-			Napier.i("Scene unarchived: ${unarchived.name}")
+			Logger.i("Scene unarchived: ${unarchived.name}")
 			openSceneEditor(unarchived)
 			dismissArchivedDialog()
 		} else {
-			Napier.w("Failed to unarchive scene: ${scene.name}")
+			Logger.w("Failed to unarchive scene: ${scene.name}")
 		}
 	}
 

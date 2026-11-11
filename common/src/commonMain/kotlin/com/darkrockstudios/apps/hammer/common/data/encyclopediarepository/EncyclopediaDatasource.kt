@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.encyclopediarepository
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContainer
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
@@ -10,7 +11,6 @@ import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.Invalid
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
-import io.github.aakira.napier.Napier
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
@@ -69,7 +69,7 @@ class EncyclopediaDatasource(
 			if (existing == null) {
 				byId[id] = path
 			} else {
-				Napier.e("Duplicate entry id $id on disk: keeping ${existing.name}, refusing ${path.name}")
+				Logger.e("Duplicate entry id $id on disk: keeping ${existing.name}, refusing ${path.name}")
 			}
 		}
 		return byId.values.map { getEntryDef(it.toHPath()) }
@@ -112,7 +112,7 @@ class EncyclopediaDatasource(
 		val content = try {
 			loadEntry(oldPath.toHPath()).entry
 		} catch (e: EntryLoadError) {
-			Napier.w("Re-id of entry $oldId moves it without updating its unreadable content", e)
+			Logger.w("Re-id of entry $oldId moves it without updating its unreadable content", e)
 			null
 		}
 		fileSystem.atomicMove(oldPath, newPath)

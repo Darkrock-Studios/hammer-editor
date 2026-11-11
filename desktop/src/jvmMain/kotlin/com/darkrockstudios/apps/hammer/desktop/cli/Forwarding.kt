@@ -1,8 +1,8 @@
 package com.darkrockstudios.apps.hammer.desktop.cli
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.operations.OperationException
 import com.darkrockstudios.apps.hammer.operations.OperationRegistry
-import io.github.aakira.napier.Napier
 import java.io.File
 import java.io.IOException
 import java.net.StandardProtocolFamily
@@ -102,7 +102,7 @@ object Forwarding {
 			val serverScope = scope + supervisor + Dispatchers.IO + CoroutineExceptionHandler { _, e ->
 				// Errors still crash the app, as they do everywhere else in it.
 				if (e is Exception) {
-					Napier.e(e) { "Forwarded CLI connection failed" }
+					Logger.e(e) { "Forwarded CLI connection failed" }
 				} else {
 					Thread.currentThread().run { uncaughtExceptionHandler.uncaughtException(this, e) }
 				}
@@ -116,7 +116,7 @@ object Forwarding {
 					} catch (e: ClosedChannelException) {
 						break
 					} catch (e: IOException) {
-						Napier.e(e) { "Could not accept a forwarded CLI call" }
+						Logger.e(e) { "Could not accept a forwarded CLI call" }
 						delay(ACCEPT_RETRY_DELAY)
 						continue
 					}
@@ -162,7 +162,7 @@ object Forwarding {
 			} catch (e: OperationException) {
 				Reply(error = Reply.Error(e.kind.name, e.message.orEmpty()))
 			} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-				Napier.e(e) { "Forwarded CLI call failed" }
+				Logger.e(e) { "Forwarded CLI call failed" }
 				Reply(error = Reply.Error(FAILED, e.message ?: "Failed"))
 			}
 			try {
@@ -170,7 +170,7 @@ object Forwarding {
 				writer.newLine()
 				writer.flush()
 			} catch (e: IOException) {
-				Napier.d(e) { "Forwarded CLI caller left before its reply" }
+				Logger.d(e) { "Forwarded CLI caller left before its reply" }
 			}
 		}
 
@@ -257,7 +257,7 @@ object Forwarding {
 				try {
 					return headless()
 				} catch (e: HeadlessSession.AppOpen) {
-					Napier.d { "Hammer opened as this call started; trying its socket" }
+					Logger.d { "Hammer opened as this call started; trying its socket" }
 				}
 			}
 			if (deadline.hasPassedNow()) throw Unanswered(UNANSWERED_MESSAGE)
@@ -287,7 +287,7 @@ object Forwarding {
 				if (json.decodeFromString(Reply.serializer(), line).error == null) HandOff.Taken else HandOff.Failed
 			}
 		} catch (e: IOException) {
-			Napier.w(e) { "Could not hand this launch to the running app" }
+			Logger.w(e) { "Could not hand this launch to the running app" }
 			HandOff.Failed
 		} finally {
 			timeout.cancel()

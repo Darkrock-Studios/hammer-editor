@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.EntityHash
@@ -19,7 +20,6 @@ import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.apps.hammer.sync_draft_deleted
 import com.darkrockstudios.apps.hammer.sync_draft_rejected_invalid_name
-import io.github.aakira.napier.Napier
 
 class ClientSceneDraftSynchronizer(
 	projectDef: ProjectDef,
@@ -46,7 +46,7 @@ class ClientSceneDraftSynchronizer(
 		return if (draftDef != null) {
 			val content: String? = sceneDraftRepository.loadDraftContent(draftDef)
 			if (content == null) {
-				Napier.e("Failed to load draft content for draft ${draftDef.id}")
+				Logger.e("Failed to load draft content for draft ${draftDef.id}")
 			}
 
 			EntityHasher.hashSceneDraft(
@@ -66,7 +66,7 @@ class ClientSceneDraftSynchronizer(
 		return if (draftDef != null) {
 			val content: String? = sceneDraftRepository.loadDraftContent(draftDef)
 			if (content == null) {
-				Napier.e("Failed to load draft content for draft ${draftDef.id}")
+				Logger.e("Failed to load draft content for draft ${draftDef.id}")
 			}
 
 			ApiProjectEntity.SceneDraftEntity(
@@ -92,7 +92,7 @@ class ClientSceneDraftSynchronizer(
 		onLog: OnSyncLog
 	): Boolean {
 		if (!SceneDraftsDatasource.validDraftName(serverEntity.name)) {
-			Napier.w("Rejected synced draft ${serverEntity.id}: invalid draft name")
+			Logger.w("Rejected synced draft ${serverEntity.id}: invalid draft name")
 			onLog(
 				syncLogW(
 					strRes.get(Res.string.sync_draft_rejected_invalid_name, serverEntity.id),

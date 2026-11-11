@@ -1,7 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.data.export
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.common.data.ExportOptions
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.merge
 
@@ -59,7 +59,7 @@ class StoryExporterRegistry(
 		try {
 			source.exporters(disabledPlugins)
 		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-			Napier.e("Export format source failed", e)
+			Logger.e("Export format source failed", e)
 			emptyList()
 		}
 	}

@@ -1,11 +1,11 @@
 package com.darkrockstudios.apps.hammer.common.compose.plugin
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionSession
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionSessionException
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionSessionKey
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionSessionStore
 import com.darkrockstudios.apps.hammer.operations.plugin.EntityRenumbering
-import io.github.aakira.napier.Napier
 import kotlinx.atomicfu.locks.reentrantLock
 import kotlinx.atomicfu.locks.withLock
 import kotlinx.coroutines.CoroutineScope
@@ -91,7 +91,7 @@ internal class ActionSessionWriter(
 					onSaveFailed(change.run, e)
 				} else {
 					// Start over offers a way out of a session that outlived its run.
-					Napier.e(e) { "Could not remove a finished run of '${key.action}'" }
+					Logger.e(e) { "Could not remove a finished run of '${key.action}'" }
 				}
 			}
 		}

@@ -1,9 +1,9 @@
 package com.darkrockstudios.apps.hammer.common.data.references
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.UpdateSource
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
-import io.github.aakira.napier.Napier
 
 /**
  * Runs the reference matcher against a scene's current buffer text and adds any
@@ -38,7 +38,7 @@ class AutoConfirmReferencesUseCase(
 		)
 		if (newRefs.isEmpty()) return
 
-		Napier.i(
+		Logger.i(
 			"AutoConfirm: scene ${sceneItem.id} adding ${newRefs.size} new reference(s): " +
 				newRefs.joinToString(", ") { "${it.entryId} via '${it.matchedAlias}'" }
 		)

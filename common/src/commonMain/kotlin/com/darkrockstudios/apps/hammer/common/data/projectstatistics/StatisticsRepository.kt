@@ -1,10 +1,10 @@
 package com.darkrockstudios.apps.hammer.common.data.projectstatistics
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.BufferOverflow
@@ -64,7 +64,7 @@ class StatisticsRepository(
 		statisticsDatasource.saveStatistics(stats)
 		_isDirty.value = stats.isDirty
 		_statsFlow.emit(stats)
-		Napier.d("Statistics saved to cache")
+		Logger.d("Statistics saved to cache")
 	}
 
 	/**
@@ -79,7 +79,7 @@ class StatisticsRepository(
 			val currentStats = statisticsDatasource.loadStatistics()
 			if (currentStats != null && !currentStats.isDirty) {
 				statisticsDatasource.saveStatistics(currentStats.copy(isDirty = true))
-				Napier.d("Statistics marked as dirty")
+				Logger.d("Statistics marked as dirty")
 			}
 		}
 	}

@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.android.wear
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
@@ -7,7 +8,6 @@ import com.darkrockstudios.apps.hammer.common.data.pairing.PairErrorCode
 import com.darkrockstudios.apps.hammer.common.data.pairing.PairRequest
 import com.darkrockstudios.apps.hammer.common.data.pairing.PairResponse
 import com.darkrockstudios.apps.hammer.common.data.pairing.PairingProtocol
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CancellationException
 
 /** Answers a watch's pairing request once the user has approved or declined it on the phone. */
@@ -69,7 +69,7 @@ class WearPairingHandler(
 			throw e
 		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
 			// The watch may have gone out of range; it can retry from its own screen.
-			Napier.w("Failed to reply to the watch", e)
+			Logger.w("Failed to reply to the watch", e)
 		}
 	}
 }

@@ -1,9 +1,9 @@
 package com.darkrockstudios.apps.hammer.common
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.common.util.crashDumpMillis
 import com.darkrockstudios.apps.hammer.common.util.isCrashDump
 import com.darkrockstudios.apps.hammer.common.util.readLatestCrash
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.withContext
 import okio.Buffer
 import okio.FileSystem
@@ -57,7 +57,7 @@ private fun readLatestCrashSection(fileSystem: FileSystem, logDir: Path): String
 			if (omitted > 0) append("\n($omitted more lines)")
 		}
 	} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-		Napier.e("Failed to read the latest crash dump", e)
+		Logger.e("Failed to read the latest crash dump", e)
 		null
 	}
 }
@@ -77,7 +77,7 @@ private fun readCurrentLogTail(fileSystem: FileSystem, logDir: Path): String? {
 			lines.takeLast(DIAGNOSTICS_LOG_LINES).joinToString("\n").trim().ifEmpty { null }
 		}
 	} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-		Napier.e("Failed to read the current log file", e)
+		Logger.e("Failed to read the current log file", e)
 		null
 	}
 }

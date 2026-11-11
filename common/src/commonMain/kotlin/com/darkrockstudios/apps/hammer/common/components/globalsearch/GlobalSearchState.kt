@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.components.globalsearch
 
+import co.touchlab.kermit.Logger
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
@@ -7,7 +8,6 @@ import com.arkivanov.essenty.instancekeeper.InstanceKeeper
 import com.darkrockstudios.apps.hammer.common.data.globalsearch.SearchProjectUseCase
 import com.darkrockstudios.apps.hammer.common.data.search.ParsedQuery
 import com.darkrockstudios.apps.hammer.common.data.search.parseQuery
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -95,7 +95,7 @@ class GlobalSearchState(
 				throw e
 				// Search backend can fail many ways; report and clear searching state.
 			} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-				Napier.e("Global search failed", e)
+				Logger.e("Global search failed", e)
 				_state.getAndUpdate { it.copy(isSearching = false) }
 			}
 		}

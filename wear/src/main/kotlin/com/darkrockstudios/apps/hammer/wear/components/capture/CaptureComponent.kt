@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.wear.components.capture
 
+import co.touchlab.kermit.Logger
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
@@ -12,7 +13,6 @@ import com.darkrockstudios.apps.hammer.wear.data.CaptureTargetsUseCase
 import com.darkrockstudios.apps.hammer.wear.data.CaptureUseCase
 import com.darkrockstudios.apps.hammer.wear.data.SubscribedProjectsRepository
 import com.darkrockstudios.apps.hammer.wear.data.WatchProject
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -121,7 +121,7 @@ class CaptureComponent(
 		} catch (e: CancellationException) {
 			throw e
 		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-			Napier.e("Failed to list the projects a note could go to", e)
+			Logger.e("Failed to list the projects a note could go to", e)
 			CaptureTargets()
 		}
 

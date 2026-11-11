@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.timelinerepository
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.base.timeline.CalendarDef
 import com.darkrockstudios.apps.hammer.base.timeline.CalendarPreset
@@ -25,7 +26,6 @@ import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRe
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository.Companion.normalizeLane
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository.Companion.normalizeTimeline
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcher
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -991,7 +991,7 @@ class TimelineService(
 		val content = try {
 			encyclopediaRepository.loadEntry(def).entry
 		} catch (e: EntryLoadError) {
-			Napier.w(e) { "Could not read entry $entryId for the timeline" }
+			Logger.w(e) { "Could not read entry $entryId for the timeline" }
 			null
 		}
 		SubjectSummary.Entry(def, content?.images?.firstOrNull(), markdownExcerpt(content?.text.orEmpty(), EXCERPT_CHARS))

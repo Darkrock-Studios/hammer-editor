@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.projectstatistics
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.base.http.readTomlOrNull
 import com.darkrockstudios.apps.hammer.base.http.writeToml
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -7,7 +8,6 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.okio.isWithin
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.withContext
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
@@ -30,7 +30,7 @@ class StatisticsDatasource(
 		val file = StatisticsCachePaths.statsFile(projectDef)
 		requireWithinCacheRoot(file)
 		fileSystem.writeToml(file, toml, stats)
-		Napier.d("Statistics saved to cache")
+		Logger.d("Statistics saved to cache")
 	}
 
 	fun exists(): Boolean {
@@ -42,7 +42,7 @@ class StatisticsDatasource(
 		requireWithinCacheRoot(file)
 		if (fileSystem.exists(file)) {
 			fileSystem.delete(file)
-			Napier.d("Statistics cache deleted")
+			Logger.d("Statistics cache deleted")
 		}
 	}
 
@@ -75,6 +75,6 @@ fun readProjectStatistics(
 	val file = StatisticsCachePaths.statsFile(projectDef)
 	if (!fileSystem.exists(file)) return null
 	return fileSystem.readTomlOrNull<ProjectStatistics>(file, toml) { e ->
-		Napier.d("Failed to read statistics cache for ${projectDef.name}", e)
+		Logger.d("Failed to read statistics cache for ${projectDef.name}", e)
 	}
 }

@@ -3,7 +3,7 @@ package com.darkrockstudios.apps.hammer.common.util
 import android.content.Context
 import android.content.Intent
 import androidx.core.content.FileProvider
-import io.github.aakira.napier.Napier
+import co.touchlab.kermit.Logger
 import java.io.File
 
 /**
@@ -27,7 +27,7 @@ class AndroidShareDatasource(private val context: Context) {
 	): Boolean {
 		return try {
 			if (!file.exists()) {
-				Napier.w("File does not exist: ${file.path}")
+				Logger.w("File does not exist: ${file.path}")
 				return false
 			}
 
@@ -48,11 +48,11 @@ class AndroidShareDatasource(private val context: Context) {
 
 			context.startActivity(chooser)
 
-			Napier.i("Started file share: ${file.name}")
+			Logger.i("Started file share: ${file.name}")
 			true
 			// Share can fail for many reasons (no app, security, IO); report and return false.
 		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-			Napier.e("Failed to share file: ${file.name}", e)
+			Logger.e("Failed to share file: ${file.name}", e)
 			false
 		}
 	}

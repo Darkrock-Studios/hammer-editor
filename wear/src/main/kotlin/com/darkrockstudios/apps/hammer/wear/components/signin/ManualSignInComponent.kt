@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.wear.components.signin
 
+import co.touchlab.kermit.Logger
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
@@ -11,7 +12,6 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.isInsecureServ
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.parseServerUrl
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.apps.hammer.wear.data.LocalNetworkAccess
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -106,7 +106,7 @@ class ManualSignInComponent(
 	} catch (e: CancellationException) {
 		throw e
 	} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-		Napier.e("Failed to check whether the server needs local network access", e)
+		Logger.e("Failed to check whether the server needs local network access", e)
 		false
 	}
 }

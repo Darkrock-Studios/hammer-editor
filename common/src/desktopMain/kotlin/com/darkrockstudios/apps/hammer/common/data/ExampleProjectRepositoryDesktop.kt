@@ -1,8 +1,8 @@
 package com.darkrockstudios.apps.hammer.common.data
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.util.zip.unzipBytesToDirectory
-import io.github.aakira.napier.Napier
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
 import org.koin.dsl.bind
@@ -33,7 +33,7 @@ class ExampleProjectRepositoryDesktop(
 	override fun platformInstall() {
 		val projectPath = projectsDir() / PROJECT_NAME
 		if (!fileSystem.exists(projectPath)) {
-			Napier.i("Creating example project")
+			Logger.i("Creating example project")
 
 			val zipBytes = loadExampleProjectZip()
 			unzipBytesToDirectory(
@@ -42,7 +42,7 @@ class ExampleProjectRepositoryDesktop(
 				destinationDirectory = projectsDir()
 			)
 		} else {
-			Napier.i("Skipping example project creation")
+			Logger.i("Skipping example project creation")
 		}
 	}
 }

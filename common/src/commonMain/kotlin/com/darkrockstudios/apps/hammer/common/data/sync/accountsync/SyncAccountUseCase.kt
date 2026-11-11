@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.sync.accountsync
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.http.storyideas.StoryIdea
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -20,7 +21,6 @@ import com.darkrockstudios.apps.hammer.sync_log_begin_projects
 import com.darkrockstudios.apps.hammer.sync_log_project_conflict
 import com.darkrockstudios.apps.hammer.sync_log_project_failed
 import com.darkrockstudios.apps.hammer.sync_log_project_unchanged
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -187,7 +187,7 @@ class SyncAccountUseCase(
 		} catch (e: CancellationException) {
 			throw e
 		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-			Napier.e("Project sync failed for ${projectDef.name}", e)
+			Logger.e("Project sync failed for ${projectDef.name}", e)
 			listener.onLog(
 				syncLogE(
 					strRes.get(Res.string.sync_log_project_failed, e.message ?: "Unknown error"),

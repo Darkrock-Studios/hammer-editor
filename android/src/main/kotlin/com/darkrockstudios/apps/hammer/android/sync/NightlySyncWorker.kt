@@ -7,6 +7,7 @@ import android.os.Build
 import androidx.work.CoroutineWorker
 import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.isSignedIn
@@ -18,7 +19,6 @@ import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ProjectSyncO
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.SyncAccountListener
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.SyncAccountUseCase
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessage
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
@@ -53,7 +53,7 @@ class NightlySyncWorker(
 
 		// Constraints can hold the run back until morning; leave the sync to the next night then.
 		if (!NightlySyncWindow.contains(clock.now(), TimeZone.currentSystemDefault())) {
-			Napier.i { "Nightly sync missed its window, waiting for the next night" }
+			Logger.i { "Nightly sync missed its window, waiting for the next night" }
 			return finishNight()
 		}
 
@@ -70,7 +70,7 @@ class NightlySyncWorker(
 		} catch (e: CancellationException) {
 			throw e
 		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-			Napier.e("Nightly sync failed", e)
+			Logger.e("Nightly sync failed", e)
 			return Result.retry()
 		} finally {
 			// A foreground notification goes away with the service; one posted directly does not.
@@ -79,7 +79,7 @@ class NightlySyncWorker(
 
 		return when {
 			result == null -> {
-				Napier.i { "Nightly sync skipped, an account sync is already running" }
+				Logger.i { "Nightly sync skipped, an account sync is already running" }
 				finishNight()
 			}
 
@@ -112,7 +112,7 @@ class NightlySyncWorker(
 			} catch (e: IllegalStateException) {
 				// Android refuses a foreground service started from the background unless the app is
 				// exempt from battery optimisation. The sync still runs, within the usual job time limit.
-				Napier.i { "Nightly sync running without a foreground service: ${e.message}" }
+				Logger.i { "Nightly sync running without a foreground service: ${e.message}" }
 				foreground = false
 			}
 		}
@@ -139,7 +139,7 @@ class NightlySyncWorker(
 
 		override suspend fun onLog(message: SyncLogMessage) {
 			val text = message.projectName?.let { "$it - ${message.message}" } ?: message.message
-			Napier.log(message.level.toNapierLevel(), TAG, null, text)
+			Logger.log(message.level.toSeverity(), TAG, null, text)
 		}
 
 		override suspend fun onProjectsDiscovered(projects: List<ProjectDef>) {
@@ -149,13 +149,13 @@ class NightlySyncWorker(
 		override suspend fun onProjectProgress(projectDef: ProjectDef, progress: Float?) {}
 
 		override suspend fun onProjectOutcome(projectDef: ProjectDef, outcome: ProjectSyncOutcome) {
-			Napier.i(tag = TAG) { "${projectDef.name}: $outcome" }
+			Logger.i(tag = TAG) { "${projectDef.name}: $outcome" }
 			tracker.onProjectFinished()
 		}
 
 		override suspend fun onUnauthorized() {
 			unauthorized = true
-			Napier.w(tag = TAG) { "Server rejected the session, sign in again to resume nightly sync" }
+			Logger.w(tag = TAG) { "Server rejected the session, sign in again to resume nightly sync" }
 		}
 	}
 

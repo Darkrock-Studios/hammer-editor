@@ -1,11 +1,11 @@
 package com.darkrockstudios.apps.hammer.common.data.drafts
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
-import io.github.aakira.napier.Napier
 import kotlin.time.Clock
 
 class SceneDraftRepository(
@@ -52,7 +52,7 @@ class SceneDraftRepository(
 
 	suspend fun saveDraft(sceneItem: SceneItem, draftName: String, content: String): DraftDef? {
 		if (!SceneDraftsDatasource.validDraftName(draftName)) {
-			Napier.w { "saveDraft failed, draftName failed validation" }
+			Logger.w { "saveDraft failed, draftName failed validation" }
 			return null
 		}
 

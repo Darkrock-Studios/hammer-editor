@@ -1,7 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.data.sync.projectsync
 
+import co.touchlab.kermit.Severity
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import io.github.aakira.napier.LogLevel
 import kotlinx.serialization.Serializable
 import kotlin.time.Clock
 import kotlin.time.Instant
@@ -43,12 +43,12 @@ private fun syncLog(message: String, projectName: String?, level: SyncLogLevel):
 enum class SyncLogLevel {
 	DEBUG, INFO, WARN, ERROR;
 
-	fun toNapierLevel(): LogLevel {
+	fun toSeverity(): Severity {
 		return when (this) {
-			DEBUG -> LogLevel.DEBUG
-			INFO -> LogLevel.INFO
-			WARN -> LogLevel.WARNING
-			ERROR -> LogLevel.ERROR
+			DEBUG -> Severity.Debug
+			INFO -> Severity.Info
+			WARN -> Severity.Warn
+			ERROR -> Severity.Error
 		}
 	}
 }

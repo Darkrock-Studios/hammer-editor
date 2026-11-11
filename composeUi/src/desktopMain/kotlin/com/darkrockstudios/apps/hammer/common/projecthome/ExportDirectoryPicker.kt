@@ -2,12 +2,12 @@ package com.darkrockstudios.apps.hammer.common.projecthome
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectHome
 import com.darkrockstudios.apps.hammer.common.compose.rememberDefaultDispatcher
 import com.darkrockstudios.apps.hammer.project_home_action_export_toast_failure
 import com.darkrockstudios.apps.hammer.project_home_action_export_toast_success
-import io.github.aakira.napier.Napier
 import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.absolutePath
 import io.github.vinceglb.filekit.dialogs.openFileSaver
@@ -39,7 +39,7 @@ actual fun ExportDirectoryPicker(
 					} catch (e: CancellationException) {
 						throw e
 					} catch (@Suppress("TooGenericExceptionCaught") e: Throwable) {
-						Napier.e("Story export failed", e)
+						Logger.e("Story export failed", e)
 						component.showToast(Res.string.project_home_action_export_toast_failure)
 					}
 				}

@@ -1,11 +1,11 @@
 package com.darkrockstudios.apps.hammer.common.data.migrator
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
-import io.github.aakira.napier.Napier
 import okio.FileSystem
 
 /**
@@ -20,14 +20,14 @@ class Migration3_4(
 	override val toVersion: Int = 4
 
 	override fun migrate(projectDef: ProjectDef) {
-		Napier.i("Begin Migration3_4 for '${projectDef.name}'...")
+		Logger.i("Begin Migration3_4 for '${projectDef.name}'...")
 
 		// A legacy serverProjectId reads as the projectId, and DataMigrator's version stamp persists
 		// it under that name; only a project with no id at all needs one minted here.
 		projectMetadataDatasource.loadProjectId(projectDef.path)
 		renameProjectSettings(projectDef)
 
-		Napier.i("Migration3_4 for '${projectDef.name}' complete.")
+		Logger.i("Migration3_4 for '${projectDef.name}' complete.")
 	}
 
 	private fun renameProjectSettings(projectDef: ProjectDef) {
@@ -39,7 +39,7 @@ class Migration3_4(
 
 		if (fileSystem.exists(current)) {
 			// Never pick a winner between two copies of user data; both stay for the user to reconcile.
-			Napier.w(
+			Logger.w(
 				"Migration3_4: both $LEGACY_PROJECT_SETTINGS_FILENAME and " +
 					"${ProjectDataDatasource.FILENAME} exist in '${projectDef.name}', leaving both"
 			)

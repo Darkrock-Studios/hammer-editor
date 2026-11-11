@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.base.http.readTomlOrNull
 import com.darkrockstudios.apps.hammer.base.http.writeToml
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -10,7 +11,6 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispat
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.withContext
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
@@ -28,7 +28,7 @@ class SceneMetadataDatasource(
 		val file = getMetadataPath(sceneId).toOkioPath()
 		return@withContext if (fileSystem.exists(file)) {
 			fileSystem.readTomlOrNull<SceneMetadata>(file, toml) { e ->
-				Napier.e("Failed to load scene metadata for SceneId: $sceneId", e)
+				Logger.e("Failed to load scene metadata for SceneId: $sceneId", e)
 			}
 		} else {
 			null
@@ -38,7 +38,7 @@ class SceneMetadataDatasource(
 	suspend fun storeMetadata(metadata: SceneMetadata, sceneId: Int) {
 		val file = getMetadataPath(sceneId).toOkioPath()
 		fileSystem.writeToml(file, toml, metadata)
-		Napier.d("Metadata stored for SceneId: $sceneId")
+		Logger.d("Metadata stored for SceneId: $sceneId")
 	}
 
 	private fun getMetadataDirectory() = Companion.getMetadataDirectory(projectDef, fileSystem)
@@ -54,7 +54,7 @@ class SceneMetadataDatasource(
 		val newPath = getMetadataPath(newId).toOkioPath()
 
 		if (fileSystem.exists(oldPath)) {
-			Napier.i("Re-ID of Scene Metadata. Old ID: $oldId New ID: $newId")
+			Logger.i("Re-ID of Scene Metadata. Old ID: $oldId New ID: $newId")
 			fileSystem.atomicMove(oldPath, newPath)
 		}
 	}

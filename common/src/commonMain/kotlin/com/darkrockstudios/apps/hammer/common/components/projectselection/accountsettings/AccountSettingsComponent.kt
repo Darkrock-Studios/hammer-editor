@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings
 
+import co.touchlab.kermit.Logger
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.router.slot.ChildSlot
 import com.arkivanov.decompose.router.slot.SlotNavigation
@@ -44,7 +45,6 @@ import com.darkrockstudios.apps.hammer.settings_server_setup_toast_failure_unkno
 import com.darkrockstudios.apps.hammer.settings_server_change_project_open
 import com.darkrockstudios.apps.hammer.settings_server_setup_toast_success
 import com.darkrockstudios.apps.hammer.settings_server_tos_declined
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
@@ -230,7 +230,7 @@ class AccountSettingsComponent(
 	 */
 	private suspend fun refuseServerChangeWhileProjectOpen(): Boolean {
 		val open = projectsRepository.findProjectInUse() ?: return false
-		Napier.w("Refusing to change servers while '${open.name}' is open")
+		Logger.w("Refusing to change servers while '${open.name}' is open")
 		showToast(Res.string.settings_server_change_project_open)
 		return true
 	}
@@ -637,7 +637,7 @@ class AccountSettingsComponent(
 	private fun removeLocalContent() {
 		projectsRepository.getProjects().forEach { projectDef ->
 			if (projectsRepository.deleteProject(projectDef).not()) {
-				Napier.w("Failed to delete local project '${projectDef.name}' during server setup")
+				Logger.w("Failed to delete local project '${projectDef.name}' during server setup")
 			}
 		}
 	}

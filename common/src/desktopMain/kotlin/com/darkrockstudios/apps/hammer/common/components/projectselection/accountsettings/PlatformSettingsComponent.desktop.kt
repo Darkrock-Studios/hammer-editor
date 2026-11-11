@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings
 
+import co.touchlab.kermit.Logger
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
@@ -14,7 +15,6 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDisp
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.sandbox.SandboxFileAccess
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okio.Path.Companion.toPath
@@ -72,7 +72,7 @@ class DesktopPlatformSettingsComponent(componentContext: ComponentContext) : Des
 
 		scope.launch {
 			if (!sandboxFileAccess.establishAccessForNewDirectory(path)) {
-				Napier.e("Failed to establish sandbox access for $path; aborting directory change")
+				Logger.e("Failed to establish sandbox access for $path; aborting directory change")
 				return@launch
 			}
 

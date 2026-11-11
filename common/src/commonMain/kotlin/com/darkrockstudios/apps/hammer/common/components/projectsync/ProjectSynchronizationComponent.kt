@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.components.projectsync
 
+import co.touchlab.kermit.Logger
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
@@ -36,7 +37,6 @@ import com.darkrockstudios.apps.hammer.common.data.timelinerepository.timelineId
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.toApiEntity
 import com.darkrockstudios.apps.hammer.common.data.toMsg
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
-import io.github.aakira.napier.Napier
 import korlibs.crypto.encoding.Base64
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -100,7 +100,7 @@ class ProjectSynchronizationComponent(
 
 	private suspend fun updateSyncLog(log: SyncLogMessage?) {
 		if (log != null) {
-			Napier.log(log.level.toNapierLevel(), "ProjectSync", null, "${log.projectName} - ${log.message}")
+			Logger.log(log.level.toSeverity(), "ProjectSync", null, "${log.projectName} - ${log.message}")
 			withContext(mainDispatcher) {
 				_state.getAndUpdate {
 					val existingLog = it.syncLog
@@ -275,12 +275,12 @@ class ProjectSynchronizationComponent(
 	override fun resolveEntryRef(id: Int) = encyclopediaService.findEntryDef(id)
 
 	private suspend fun onSyncProgress(progress: Float, log: SyncLogMessage? = null) {
-		Napier.d("Sync progress: $progress")
+		Logger.d("Sync progress: $progress")
 		updateSync(true, progress, log)
 	}
 
 	private suspend fun onConflict(serverEntity: ApiProjectEntity) {
-		Napier.d("Sync conflict")
+		Logger.d("Sync conflict")
 
 		when (serverEntity) {
 			is ApiProjectEntity.SceneEntity -> onSceneConflict(serverEntity)

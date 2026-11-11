@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.tagindex
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
@@ -11,7 +12,6 @@ import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRe
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_IO
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import org.koin.core.component.KoinComponent
@@ -105,7 +105,7 @@ class TagIndexService(
 		try {
 			_tagIndex.value = buildTagIndex()
 		} catch (t: Throwable) {
-			Napier.e("TagIndexService rebuild failed", t)
+			Logger.e("TagIndexService rebuild failed", t)
 		} finally {
 			_isCalculating.value = false
 			firstBuild.complete(Unit)

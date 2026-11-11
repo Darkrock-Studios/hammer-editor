@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.migrator
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.base.timeline.StoryDate
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -7,7 +8,6 @@ import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineCo
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineDatasource
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
-import io.github.aakira.napier.Napier
 import kotlinx.serialization.Serializable
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
@@ -25,13 +25,13 @@ class Migration5_6(
 	// Runs during startup, where a throw would fail every launch.
 	@Suppress("TooGenericExceptionCaught")
 	override fun migrate(projectDef: ProjectDef) {
-		Napier.i("Begin Migration5_6 for '${projectDef.name}'...")
+		Logger.i("Begin Migration5_6 for '${projectDef.name}'...")
 		try {
 			renameDateToLabel(projectDef)
 		} catch (e: Exception) {
-			Napier.e("Migration5_6 failed to migrate the timeline of '${projectDef.name}', leaving it as is", e)
+			Logger.e("Migration5_6 failed to migrate the timeline of '${projectDef.name}', leaving it as is", e)
 		}
-		Napier.i("Migration5_6 for '${projectDef.name}' complete.")
+		Logger.i("Migration5_6 for '${projectDef.name}' complete.")
 	}
 
 	private fun renameDateToLabel(projectDef: ProjectDef) {

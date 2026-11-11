@@ -1,8 +1,8 @@
 package com.darkrockstudios.apps.hammer.common.fileio
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.common.util.toByteArray
 import com.darkrockstudios.apps.hammer.common.util.toNSData
-import io.github.aakira.napier.Napier
 import kotlinx.cinterop.*
 import org.koin.core.module.dsl.singleOf
 import org.koin.dsl.bind
@@ -33,13 +33,13 @@ private class IosExternalFileIo : ExternalFileIo {
 		} else {
 			NSURL.fileURLWithPath(path)
 		} ?: run {
-			Napier.e("Failed to parse external file path: $path")
+			Logger.e("Failed to parse external file path: $path")
 			return@memScoped false
 		}
 		val errorVar = alloc<ObjCObjectVar<NSError?>>()
 		val ok = data.writeToURL(url, options = NSDataWritingAtomic, error = errorVar.ptr)
 		if (!ok) {
-			Napier.e("Failed to write external file $path: ${errorVar.value?.localizedDescription}")
+			Logger.e("Failed to write external file $path: ${errorVar.value?.localizedDescription}")
 		}
 		ok
 	}

@@ -4,8 +4,8 @@ import android.content.ComponentName
 import android.content.Context
 import androidx.wear.tiles.TileService
 import androidx.wear.watchface.complications.datasource.ComplicationDataSourceUpdateRequester
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.wear.complication.CaptureComplicationService
-import io.github.aakira.napier.Napier
 
 /**
  * The tile and complication are cached by the system and only re-read on their own slow cadence, so
@@ -25,7 +25,7 @@ class WearCaptureSurfaceUpdater(private val context: Context) : CaptureSurfaceUp
 				.create(context, ComponentName(context, CaptureComplicationService::class.java))
 				.requestUpdateAll()
 		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-			Napier.w("Could not refresh the watch face surfaces", e)
+			Logger.w("Could not refresh the watch face surfaces", e)
 		}
 	}
 }

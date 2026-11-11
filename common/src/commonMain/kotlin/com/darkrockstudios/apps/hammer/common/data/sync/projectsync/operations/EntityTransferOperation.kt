@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.EntityType
@@ -39,7 +40,6 @@ import com.darkrockstudios.apps.hammer.sync_log_entity_download_rejected_mismatc
 import com.darkrockstudios.apps.hammer.sync_log_entity_download_skipped_unsaved
 import com.darkrockstudios.apps.hammer.sync_log_entity_download_success
 import com.darkrockstudios.apps.hammer.sync_log_entity_upload_entity_not_owned
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.yield
 
 class EntityTransferOperation(
@@ -154,10 +154,10 @@ class EntityTransferOperation(
 		for (thisId in combinedSequence) {
 			++currentIndex
 			if (thisId in state.combinedDeletions) {
-				Napier.d("Skipping deleted ID $thisId")
+				Logger.d("Skipping deleted ID $thisId")
 				continue
 			}
-			//Napier.d("Syncing ID $thisId")
+			//Logger.d("Syncing ID $thisId")
 
 			val localIsDirty = state.resolvedClientSyncData.dirty.find { it.id == thisId }
 			val isNewlyCreated = state.newClientIds.contains(thisId)
@@ -166,7 +166,7 @@ class EntityTransferOperation(
 			// If our copy is dirty, or this ID hasn't been seen by the server yet
 			allSuccess =
 				if (clientHasEntity && (isNewlyCreated || (localIsDirty != null || thisId > state.serverSyncData.lastId))) {
-					Napier.d("Upload ID $thisId (clientHasEntity: $clientHasEntity isNewlyCreated: $isNewlyCreated localIsDirty: $localIsDirty thisId: $thisId Server Last ID: ${state.serverSyncData.lastId})")
+					Logger.d("Upload ID $thisId (clientHasEntity: $clientHasEntity isNewlyCreated: $isNewlyCreated localIsDirty: $localIsDirty thisId: $thisId Server Last ID: ${state.serverSyncData.lastId})")
 					// Source the conflict baseline from the server-confirmed hash, not the dirty
 					// entry's frozen copy: a partial sync (this entity uploaded, a later one failed,
 					// so finalize never ran to clear the dirty list) advances syncedHashes but leaves
@@ -186,14 +186,14 @@ class EntityTransferOperation(
 							state.dirtyEntities.remove(dirty)
 						}
 					} else {
-						Napier.d("Upload failed for ID $thisId")
+						Logger.d("Upload failed for ID $thisId")
 					}
 
 					allSuccess && success
 				}
 				// Otherwise download the server's copy
 				else {
-					Napier.d("Download ID $thisId")
+					Logger.d("Download ID $thisId")
 					val downloadSuccess = downloadEntry(
 						thisId,
 						state.serverSyncData.syncId,
@@ -205,7 +205,7 @@ class EntityTransferOperation(
 							val entityExistsLocally =
 								(entitySynchronizers.findEntityType(entityId) != null)
 							if (entityExistsLocally.not()) {
-								Napier.i("Entity ID $entityId missing from both client and server, marking it as deleted")
+								Logger.i("Entity ID $entityId missing from both client and server, marking it as deleted")
 								deleteEntityRemote(thisId, state.serverSyncData.syncId, onLog)
 								state.combinedDeletions += entityId
 								true
@@ -214,7 +214,7 @@ class EntityTransferOperation(
 								// skipped earlier in the loop, so no deletion record exists on
 								// either side: preserve the content by re-uploading it. No
 								// baseline — the server has nothing to conflict with.
-								Napier.w("Entity ID $entityId missing from server but present locally, re-uploading it to heal")
+								Logger.w("Entity ID $entityId missing from server but present locally, re-uploading it to heal")
 								uploadEntity(
 									thisId,
 									state.serverSyncData.syncId,
@@ -224,7 +224,7 @@ class EntityTransferOperation(
 								)
 							}
 						} else {
-							Napier.d("Download failed for ID $thisId")
+							Logger.d("Download failed for ID $thisId")
 							false
 						}
 					} else {
@@ -379,7 +379,7 @@ class EntityTransferOperation(
 
 				else -> {
 					val message = strRes.get(Res.string.sync_log_entity_download_failed_general, id)
-					Napier.e(message, exception)
+					Logger.e(message, exception)
 					onLog(syncLogE(message, projectDef))
 					CResult.failure(
 						exception ?: IllegalStateException("Unknown error")
@@ -404,12 +404,12 @@ class EntityTransferOperation(
 		val localHash = entitySynchronizers.getLocalEntityHash(id) ?: return
 		if (localHash == serverEntity.hash()) return
 
-		Napier.d("Healing server entity $id: local copy is enriched beyond the server's")
+		Logger.d("Healing server entity $id: local copy is enriched beyond the server's")
 		suspend fun abortOnConflict(entity: ApiProjectEntity): Unit = throw HealConflictException(entity.id)
 		try {
 			uploadEntity(id, syncId, originalHash = serverEntity.hash(), ::abortOnConflict, onLog)
 		} catch (e: HealConflictException) {
-			Napier.w("Heal upload for entity ${e.entityId} hit a conflict; deferring to a later sync")
+			Logger.w("Heal upload for entity ${e.entityId} hit a conflict; deferring to a later sync")
 		}
 	}
 

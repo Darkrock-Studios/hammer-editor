@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.wear.components.projects
 
+import co.touchlab.kermit.Logger
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
@@ -16,7 +17,6 @@ import com.darkrockstudios.apps.hammer.wear.data.WatchProject
 import com.darkrockstudios.apps.hammer.wear.sync.SyncCoordinator
 import com.darkrockstudios.apps.hammer.wear.sync.SyncStatus
 import com.darkrockstudios.apps.hammer.wear.sync.SyncTrigger
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -91,7 +91,7 @@ class WearProjectsComponent(
 		} catch (e: CancellationException) {
 			throw e
 		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-			Napier.e("Failed to check whether the server needs local network access", e)
+			Logger.e("Failed to check whether the server needs local network access", e)
 			false
 		}
 	}
@@ -136,7 +136,7 @@ class WearProjectsComponent(
 			} catch (e: CancellationException) {
 				throw e
 			} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-				Napier.e("Failed to count unsynced captures before signing out", e)
+				Logger.e("Failed to count unsynced captures before signing out", e)
 				null
 			}
 
@@ -196,7 +196,7 @@ class WearProjectsComponent(
 		} catch (e: CancellationException) {
 			throw e
 		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-			Napier.e("Failed to unsubscribe from $name", e)
+			Logger.e("Failed to unsubscribe from $name", e)
 		} finally {
 			withContext(dispatcherMain) {
 				unsubscribing = unsubscribing - name
@@ -212,7 +212,7 @@ class WearProjectsComponent(
 	} catch (e: CancellationException) {
 		throw e
 	} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-		Napier.e("Failed to count unsynced writing in ${project.projectDef.name}", e)
+		Logger.e("Failed to count unsynced writing in ${project.projectDef.name}", e)
 		1
 	}
 
@@ -223,7 +223,7 @@ class WearProjectsComponent(
 			} catch (e: CancellationException) {
 				throw e
 			} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-				Napier.e("Sign out failed", e)
+				Logger.e("Sign out failed", e)
 			}
 		}
 	}
@@ -235,7 +235,7 @@ class WearProjectsComponent(
 		} catch (e: CancellationException) {
 			throw e
 		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-			Napier.e("Failed to list the watch's projects", e)
+			Logger.e("Failed to list the watch's projects", e)
 			return
 		}
 		withContext(dispatcherMain) {

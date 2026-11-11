@@ -13,6 +13,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.unit.dp
+import co.touchlab.kermit.Logger
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.about_logs_export_button
@@ -25,7 +26,6 @@ import com.darkrockstudios.apps.hammer.common.getCacheDirectory
 import com.darkrockstudios.apps.hammer.common.getPlatformFilesystem
 import com.darkrockstudios.apps.hammer.common.platformIoDispatcher
 import com.darkrockstudios.apps.hammer.common.util.zip.zipDirectory
-import io.github.aakira.napier.Napier
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.useContents
 import kotlinx.coroutines.launch
@@ -95,12 +95,12 @@ private suspend fun exportAndShareLogs(logDirPath: String) {
 		val hasLogs = try {
 			fileSystem.exists(logsDir) && fileSystem.list(logsDir).any { it.name.endsWith(".txt") }
 		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-			Napier.e("Failed to list log files", e)
+			Logger.e("Failed to list log files", e)
 			false
 		}
 
 		if (!hasLogs) {
-			Napier.i("No log files to share")
+			Logger.i("No log files to share")
 			return@withContext null
 		}
 
@@ -110,7 +110,7 @@ private suspend fun exportAndShareLogs(logDirPath: String) {
 			zipDirectory(fileSystem, logsDir, zipPath)
 			zipPath
 		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-			Napier.e("Failed to zip logs for sharing", e)
+			Logger.e("Failed to zip logs for sharing", e)
 			null
 		}
 	} ?: return
@@ -125,7 +125,7 @@ private fun presentShareSheet(zipPath: Path) {
 	dispatch_async(dispatch_get_main_queue()) {
 		val presenter = topViewController()
 		if (presenter == null) {
-			Napier.w("No view controller available to present log share sheet")
+			Logger.w("No view controller available to present log share sheet")
 			return@dispatch_async
 		}
 

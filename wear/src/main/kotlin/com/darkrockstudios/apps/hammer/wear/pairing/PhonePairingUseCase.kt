@@ -1,12 +1,12 @@
 package com.darkrockstudios.apps.hammer.wear.pairing
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.common.data.account.AccountUseCase
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.pairing.PairErrorCode
 import com.darkrockstudios.apps.hammer.common.data.pairing.PairRequest
 import com.darkrockstudios.apps.hammer.common.data.pairing.PairResponse
 import com.darkrockstudios.apps.hammer.common.data.pairing.PairingProtocol
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -52,7 +52,7 @@ class PhonePairingUseCase(
 			throw e
 		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
 			// Play services throws ApiException when the Wearable API is unavailable.
-			Napier.w("Phone lookup failed", e)
+			Logger.w("Phone lookup failed", e)
 			null
 		}
 		if (nodeId == null) {
@@ -75,7 +75,7 @@ class PhonePairingUseCase(
 		} catch (e: CancellationException) {
 			throw e
 		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-			Napier.w("Failed to send the pairing request", e)
+			Logger.w("Failed to send the pairing request", e)
 			pendingRequestId = null
 			_state.value = PairingState.Failed(reason = null)
 		}
@@ -84,13 +84,13 @@ class PhonePairingUseCase(
 	fun onResponse(payload: ByteArray) {
 		val response = PairingProtocol.decodeResponse(payload)
 		if (response == null) {
-			Napier.w("Ignoring an unreadable pairing response")
+			Logger.w("Ignoring an unreadable pairing response")
 			return
 		}
 		val pending = pendingRequestId
 		// A blank id is the phone answering a request it could not decode well enough to quote back.
 		if (pending == null || (response.requestId.isNotEmpty() && response.requestId != pending)) {
-			Napier.w("Ignoring a pairing response for a request that is no longer pending")
+			Logger.w("Ignoring a pairing response for a request that is no longer pending")
 			return
 		}
 		pendingRequestId = null

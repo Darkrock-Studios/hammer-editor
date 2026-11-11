@@ -1,10 +1,10 @@
 package com.darkrockstudios.apps.hammer.common.data.projectplugins
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.readTomlOrNull
 import com.darkrockstudios.apps.hammer.base.http.writeToml
 import com.darkrockstudios.apps.hammer.common.getConfigDirectory
-import io.github.aakira.napier.Napier
 import kotlinx.serialization.Serializable
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
@@ -22,7 +22,7 @@ class ProjectPluginsDatasource(
 	fun load(): Map<ProjectId, Set<String>> {
 		if (!fileSystem.exists(FILE_PATH)) return emptyMap()
 		val stored = fileSystem.readTomlOrNull<StoredProjectPlugins>(FILE_PATH, toml) { e ->
-			Napier.e("Failed to read $FILE_NAME", e)
+			Logger.e("Failed to read $FILE_NAME", e)
 		} ?: return emptyMap()
 		return stored.projects.entries.associate { (id, project) -> ProjectId(id) to project.disabled }
 	}

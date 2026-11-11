@@ -20,6 +20,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.lifecycleScope
+import co.touchlab.kermit.Logger
 import coil3.ImageLoader
 import coil3.compose.setSingletonImageLoaderFactory
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
@@ -44,7 +45,6 @@ import com.darkrockstudios.apps.hammer.common.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRootScaffold
 import com.darkrockstudios.apps.hammer.common.util.AndroidSettingsKeys
 import com.russhwolf.settings.Settings
-import io.github.aakira.napier.Napier
 import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.dialogs.init
 import kotlinx.coroutines.Dispatchers
@@ -136,7 +136,7 @@ class ProjectRootActivity : AppCompatActivity() {
 	private fun resolveProjectDef(intent: Intent): ProjectDef? {
 		val name = intent.getStringExtra(EXTRA_PROJECT_NAME)?.takeIf { it.isNotBlank() } ?: return null
 		val match = projectsRepository.getProjects().firstOrNull { it.name == name }
-		if (match == null) Napier.w("Project intent for missing project: $name")
+		if (match == null) Logger.w("Project intent for missing project: $name")
 		return match
 	}
 
@@ -150,7 +150,7 @@ class ProjectRootActivity : AppCompatActivity() {
 			projectMetadataDatasource.updateMetadata(projectDef) { metadata ->
 				metadata.copy(info = metadata.info.copy(lastAccessed = Clock.System.now()))
 			}
-		}.onFailure { Napier.w("Failed to bump lastAccessed for shortcut launch: ${projectDef.name}", it) }
+		}.onFailure { Logger.w("Failed to bump lastAccessed for shortcut launch: ${projectDef.name}", it) }
 	}
 
 	override fun onStart() {

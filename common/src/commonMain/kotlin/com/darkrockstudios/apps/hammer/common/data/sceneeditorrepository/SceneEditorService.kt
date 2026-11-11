@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.base.timeline.TimelineKind
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.*
@@ -14,7 +15,6 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectDefaultD
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcher
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -218,7 +218,7 @@ class SceneEditorService(
 	suspend fun storeSceneBuffer(sceneItem: SceneItem): Boolean {
 		val buffer = sceneContentRepository.getSceneBuffer(sceneItem)
 		if (buffer == null) {
-			Napier.e { "Failed to store scene: ${sceneItem.id} - ${sceneItem.name}, no buffer present" }
+			Logger.e { "Failed to store scene: ${sceneItem.id} - ${sceneItem.name}, no buffer present" }
 			return false
 		}
 
@@ -229,7 +229,7 @@ class SceneEditorService(
 			sceneEditorRepository.resolveScenePathFromFilesystemIncludingArchived(sceneItem.id)
 		}
 		if (scenePath == null) {
-			Napier.w { "Dropping buffer for scene ${sceneItem.id}, it no longer exists" }
+			Logger.w { "Dropping buffer for scene ${sceneItem.id}, it no longer exists" }
 			sceneContentRepository.dropBuffer(sceneItem)
 			writingSessionTracker.forgetBaseline(sceneItem.id)
 			return false
@@ -420,7 +420,7 @@ class SceneEditorService(
 	 */
 	fun getCurrentSceneContentOrNull(sceneItem: SceneItem): String? =
 		runCatching { sceneContentRepository.getCurrentSceneContent(sceneItem) }
-			.onFailure { Napier.w(it) { "Failed to read content for scene: ${sceneItem.id}" } }
+			.onFailure { Logger.w(it) { "Failed to read content for scene: ${sceneItem.id}" } }
 			.getOrNull()
 
 	fun loadSceneMarkdownRaw(sceneItem: SceneItem, scenePath: HPath? = null): String =

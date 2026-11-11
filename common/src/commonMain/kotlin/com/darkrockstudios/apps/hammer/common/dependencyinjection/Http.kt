@@ -1,10 +1,10 @@
 package com.darkrockstudios.apps.hammer.common.dependencyinjection
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.base.BuildMetadata
 import com.darkrockstudios.apps.hammer.base.http.*
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
-import io.github.aakira.napier.Napier
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.engine.*
@@ -31,7 +31,7 @@ fun createHttpClient(
 	val client = HttpClient(getHttpPlatformEngine()) {
 
 		install(Logging) {
-			logger = NapierHttpLogger()
+			logger = KermitHttpLogger()
 			level = LogLevel.INFO
 		}
 
@@ -73,7 +73,7 @@ fun createHttpClient(
 private fun loadTokens(globalSettingsStore: GlobalSettingsStore): BearerTokens? {
 	val accessToken = globalSettingsStore.serverSettings?.bearerToken
 	val refreshToken = globalSettingsStore.serverSettings?.refreshToken
-	Napier.d { "loadTokens" }
+	Logger.d { "loadTokens" }
 	return if (accessToken != null && refreshToken != null) {
 		BearerTokens(
 			accessToken = accessToken,
@@ -87,7 +87,7 @@ private fun loadTokens(globalSettingsStore: GlobalSettingsStore): BearerTokens? 
 private fun createRefreshClient(networkJson: Json): HttpClient {
 	return HttpClient(getHttpPlatformEngine()) {
 		install(Logging) {
-			logger = NapierHttpLogger()
+			logger = KermitHttpLogger()
 			level = LogLevel.HEADERS
 		}
 
@@ -200,11 +200,11 @@ private suspend fun refreshTokenRequest(
 			val token: Token = response.body()
 			Result.success(token)
 		} else {
-			Napier.e("Token Refresh failed!")
+			Logger.e("Token Refresh failed!")
 			Result.failure(TokenRefreshFailed())
 		}
 	} catch (e: IOException) {
-		Napier.e("Token Refresh failed!", e)
+		Logger.e("Token Refresh failed!", e)
 		Result.failure(TokenRefreshFailed())
 	}
 }
@@ -212,9 +212,10 @@ private suspend fun refreshTokenRequest(
 class TokenRefreshFailed : IllegalStateException()
 
 
-private class NapierHttpLogger : Logger {
+// Named in full: the Kermit Logger import shadows the one from io.ktor.client.plugins.logging.*
+private class KermitHttpLogger : io.ktor.client.plugins.logging.Logger {
 	override fun log(message: String) {
-		Napier.i(tag = "Http", message = message)
+		Logger.i(tag = "Http", messageString = message)
 	}
 }
 
@@ -234,7 +235,7 @@ fun HttpClient.updateCredentials(credentials: BearerTokens) {
 		// This clears the internal cache, forcing `loadTokens` to run again on the next request.
 		authProvider<BearerAuthProvider>()?.clearToken()
 	} else {
-		Napier.e("Failed to update credentials: GlobalSettingsStore not attached to HttpClient")
+		Logger.e("Failed to update credentials: GlobalSettingsStore not attached to HttpClient")
 	}
 }
 

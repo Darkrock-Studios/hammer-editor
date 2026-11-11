@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.components.timeline
 
+import co.touchlab.kermit.Logger
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
@@ -39,7 +40,6 @@ import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.apps.hammer.timeline_view_menu_delete
 import com.darkrockstudios.apps.hammer.timeline_view_menu_group
 import com.darkrockstudios.apps.hammer.timeline_view_menu_move
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -415,7 +415,7 @@ class ViewTimeLineEventComponent(
 		val result = timelineService.deleteEvent(eventId)
 		val error = (result as? TimelineResult.Invalid)?.error
 		val gone = error == null || error == TimeLineEventError.EVENT_NOT_FOUND
-		if (!gone) Napier.w("Failed to delete event $eventId: $error")
+		if (!gone) Logger.w("Failed to delete event $eventId: $error")
 		withContext(dispatcherMain) {
 			endDeleteEvent()
 			if (gone) closeEvent()

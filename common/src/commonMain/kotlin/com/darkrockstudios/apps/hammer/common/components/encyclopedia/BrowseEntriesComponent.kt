@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.components.encyclopedia
 
+import co.touchlab.kermit.Logger
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
@@ -19,7 +20,6 @@ import com.darkrockstudios.apps.hammer.common.data.search.parseQuery
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndex
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndexService
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TaggedEntityType
-import io.github.aakira.napier.Napier
 import io.github.reactivecircus.cache4k.Cache
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -154,7 +154,7 @@ class BrowseEntriesComponent(
 				entryContentCache.put(entryDef.id, container)
 				container.entry
 			} catch (e: EntryLoadError) {
-				Napier.w("Failed to load encyclopedia entry: ${entryDef.id} - ${entryDef.name}", e)
+				Logger.w("Failed to load encyclopedia entry: ${entryDef.id} - ${entryDef.name}", e)
 				EntryContent(
 					id = entryDef.id,
 					name = entryDef.name,

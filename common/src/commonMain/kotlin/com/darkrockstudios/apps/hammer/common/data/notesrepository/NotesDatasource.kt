@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.notesrepository
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.base.http.readTomlOrNull
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContainer
@@ -9,7 +10,6 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispat
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
@@ -39,7 +39,7 @@ class NotesDatasource(
 
 	private fun loadNoteOrNull(path: Path): NoteContainer? =
 		fileSystem.readTomlOrNull<NoteContainer>(path, toml) { e ->
-			Napier.e("Skipping malformed note file: ${path.toHPath().path}", e)
+			Logger.e("Skipping malformed note file: ${path.toHPath().path}", e)
 		}
 
 	private fun loadNote(path: Path): NoteContainer {

@@ -4,11 +4,11 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.graphics.ImageBitmap
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesService
 import com.darkrockstudios.apps.hammer.common.data.references.ImageReferenceSyntax
 import com.darkrockstudios.texteditor.richstyle.ImageBlockResource
 import com.darkrockstudios.texteditor.richstyle.ImageProvider
-import io.github.aakira.napier.Napier
 import kotlinx.atomicfu.locks.reentrantLock
 import kotlinx.atomicfu.locks.withLock
 import kotlinx.coroutines.CancellationException
@@ -103,7 +103,7 @@ class HammerImageProvider(
 		} catch (e: CancellationException) {
 			throw e
 		} catch (e: Exception) {
-			Napier.w("Failed to load image $id for the editor", e)
+			Logger.w("Failed to load image $id for the editor", e)
 			null to ImageBlockResource.Failed("could not load image $id")
 		}
 		lock.withLock {

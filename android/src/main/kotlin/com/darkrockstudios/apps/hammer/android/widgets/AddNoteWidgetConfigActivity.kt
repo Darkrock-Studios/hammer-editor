@@ -25,6 +25,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.lifecycle.lifecycleScope
+import co.touchlab.kermit.Logger
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.arkivanov.decompose.value.MutableValue
 import com.darkrockstudios.apps.hammer.android.R
@@ -40,7 +41,6 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
 import com.darkrockstudios.apps.hammer.common.data.projectdata.loadStoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
@@ -60,7 +60,7 @@ class AddNoteWidgetConfigActivity : ComponentActivity() {
 		enableEdgeToEdge()
 
 		if (intent.action != "android.appwidget.action.APPWIDGET_CONFIGURE") {
-			Napier.e("AddNoteWidgetConfigActivity launched with bad Intent")
+			Logger.e("AddNoteWidgetConfigActivity launched with bad Intent")
 			finish()
 		}
 
@@ -69,7 +69,7 @@ class AddNoteWidgetConfigActivity : ComponentActivity() {
 			AppWidgetManager.INVALID_APPWIDGET_ID
 		) ?: AppWidgetManager.INVALID_APPWIDGET_ID
 		if (appWidgetId == AppWidgetManager.INVALID_APPWIDGET_ID) {
-			Napier.e("AddNoteWidgetConfigActivity launched with invalid widget ID")
+			Logger.e("AddNoteWidgetConfigActivity launched with invalid widget ID")
 			finish()
 		} else {
 			// Set early so any non-save() exit is treated as cancelled.

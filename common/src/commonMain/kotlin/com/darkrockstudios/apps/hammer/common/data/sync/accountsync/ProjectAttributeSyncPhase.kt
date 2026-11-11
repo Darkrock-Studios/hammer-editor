@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.sync.accountsync
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.base.GroupId
 import com.darkrockstudios.apps.hammer.base.ProjectId
@@ -17,7 +18,6 @@ import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncAccLogE
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncAccLogI
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectsApi
 import com.darkrockstudios.apps.hammer.common.util.StrRes
-import io.github.aakira.napier.Napier
 
 /**
  * The names and placements of the projects both sides hold, reconciled by the three-way rule of
@@ -106,7 +106,7 @@ class ProjectAttributeSyncPhase(
 			onLog(syncAccLogI(strRes.get(Res.string.sync_log_account_project_rename_server_success, name)))
 			return true
 		}
-		Napier.e("Failed to rename project on server: ${id.id}", error)
+		Logger.e("Failed to rename project on server: ${id.id}", error)
 		onLog(syncAccLogE(strRes.get(Res.string.sync_log_account_project_rename_server_failure, name)))
 		if (error.isAuthenticationFailure()) onUnauthorized()
 		return false
@@ -139,7 +139,7 @@ class ProjectAttributeSyncPhase(
 			onLog(syncAccLogI(strRes.get(Res.string.sync_log_account_project_move_server_success, def.name)))
 			return true
 		}
-		Napier.e("Failed to move project on server: ${def.name}", error)
+		Logger.e("Failed to move project on server: ${def.name}", error)
 		onLog(syncAccLogE(strRes.get(Res.string.sync_log_account_project_move_server_failure, def.name)))
 		if (error.isAuthenticationFailure()) onUnauthorized()
 		return false

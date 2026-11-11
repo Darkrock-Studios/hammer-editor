@@ -13,6 +13,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.unit.dp
+import co.touchlab.kermit.Logger
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.about_logs_directory_label
@@ -31,7 +32,6 @@ import com.darkrockstudios.apps.hammer.common.getPlatformFilesystem
 import com.darkrockstudios.apps.hammer.common.platformIoDispatcher
 import com.darkrockstudios.apps.hammer.common.shellPath
 import com.darkrockstudios.apps.hammer.common.util.zip.zipDirectory
-import io.github.aakira.napier.Napier
 import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.absolutePath
 import io.github.vinceglb.filekit.dialogs.openFileSaver
@@ -118,7 +118,7 @@ private suspend fun exportLogs(logDirPath: String): ExportResult {
 		try {
 			fileSystem.exists(logsDir) && fileSystem.list(logsDir).any { it.name.endsWith(".txt") }
 		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-			Napier.e("Failed to list log files", e)
+			Logger.e("Failed to list log files", e)
 			false
 		}
 	}
@@ -138,7 +138,7 @@ private suspend fun exportLogs(logDirPath: String): ExportResult {
 		} catch (e: CancellationException) {
 			throw e
 		} catch (@Suppress("TooGenericExceptionCaught") e: Throwable) {
-			Napier.e("Failed to export logs", e)
+			Logger.e("Failed to export logs", e)
 			ExportResult.FAILED
 		}
 	}
@@ -156,6 +156,6 @@ private fun openLogDirectory(logDir: String) {
 			.firstOrNull { it.isDirectory } ?: return
 		Desktop.getDesktop().open(target)
 	} catch (@Suppress("TooGenericExceptionCaught") e: Exception) { // Desktop.open can throw varied IO/security errors
-		Napier.e("Failed to open log directory", e)
+		Logger.e("Failed to open log directory", e)
 	}
 }

@@ -11,12 +11,12 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ProcessLifecycleOwner
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.android.R
 import com.darkrockstudios.apps.hammer.common.data.pairing.PairingProtocol
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.APP_SCOPE
 import com.google.android.gms.wearable.MessageEvent
 import com.google.android.gms.wearable.WearableListenerService
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.koin.core.component.KoinComponent
@@ -59,7 +59,7 @@ class WearPairingListenerService : WearableListenerService(), KoinComponent {
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
 			checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
 		) {
-			Napier.w("Cannot show the watch pairing prompt: notification permission not granted")
+			Logger.w("Cannot show the watch pairing prompt: notification permission not granted")
 			return false
 		}
 
@@ -89,7 +89,7 @@ class WearPairingListenerService : WearableListenerService(), KoinComponent {
 			manager.notify(notificationId, notification)
 			true
 		} catch (@Suppress("SwallowedException") e: SecurityException) {
-			Napier.w("Cannot show the watch pairing prompt", e)
+			Logger.w("Cannot show the watch pairing prompt", e)
 			false
 		}
 	}

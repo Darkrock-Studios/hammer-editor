@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.EntityHash
@@ -20,7 +21,6 @@ import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.apps.hammer.sync_image_deleted
 import com.darkrockstudios.apps.hammer.sync_image_rejected_invalid
-import io.github.aakira.napier.Napier
 import korlibs.crypto.encoding.Base64
 
 class ClientImageSynchronizer(
@@ -65,7 +65,7 @@ class ClientImageSynchronizer(
 	): Boolean {
 		val bytes = decodeValid(serverEntity)
 		if (bytes == null) {
-			Napier.w("Rejected synced image ${serverEntity.id}: invalid name, extension or content")
+			Logger.w("Rejected synced image ${serverEntity.id}: invalid name, extension or content")
 			onLog(syncLogW(strRes.get(Res.string.sync_image_rejected_invalid, serverEntity.id), projectDef))
 			return false
 		}

@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.plugins.wasmhost
 
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.common.data.secrets.SecretDatasource
 import com.darkrockstudios.apps.hammer.common.util.DeviceLocaleResolver
 import com.darkrockstudios.apps.hammer.common.getCacheDirectory
@@ -10,7 +11,6 @@ import com.darkrockstudios.apps.hammer.operations.plugin.PluginInstaller
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginSettingsDatasource
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginSummary
-import io.github.aakira.napier.Napier
 import kotlinx.atomicfu.locks.reentrantLock
 import kotlinx.atomicfu.locks.withLock
 import kotlinx.serialization.Serializable
@@ -74,9 +74,9 @@ class RuntimePlugins(
 			try {
 				registry.add(plugin)
 			} catch (e: IllegalArgumentException) {
-				Napier.e { "Runtime plugin '${plugin.id}' was not added: ${e.message}" }
+				Logger.e { "Runtime plugin '${plugin.id}' was not added: ${e.message}" }
 			} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-				Napier.e(e) { "Runtime plugin '${plugin.id}' was not added" }
+				Logger.e(e) { "Runtime plugin '${plugin.id}' was not added" }
 			}
 		}
 	}
@@ -87,17 +87,17 @@ class RuntimePlugins(
 			if (!fileSystem.exists(loadingMark)) return null
 			fileSystem.read(loadingMark) { readUtf8() }.trim()
 		} catch (e: IOException) {
-			Napier.e(e) { "Could not read the runtime plugins loading mark" }
+			Logger.e(e) { "Could not read the runtime plugins loading mark" }
 			return null
 		}
 		val state = readState().plugins[id]
 		if (state != null) {
-			Napier.w { "Hammer closed while loading runtime plugin '$id', so it is turned off" }
+			Logger.w { "Hammer closed while loading runtime plugin '$id', so it is turned off" }
 			try {
 				updateState { it + (id to state.copy(enabled = false, turnedOffAfterCrash = true)) }
 			} catch (e: IOException) {
 				// The mark stays, so the next launch tries again; this one still skips the plugin.
-				Napier.e(e) { "Could not turn off runtime plugin '$id'" }
+				Logger.e(e) { "Could not turn off runtime plugin '$id'" }
 				return id
 			}
 		}
@@ -110,7 +110,7 @@ class RuntimePlugins(
 		try {
 			if (id != null) fileSystem.write(loadingMark) { writeUtf8(id) } else fileSystem.delete(loadingMark, mustExist = false)
 		} catch (e: IOException) {
-			Napier.e(e) { "Could not update the runtime plugins loading mark" }
+			Logger.e(e) { "Could not update the runtime plugins loading mark" }
 		}
 	}
 
@@ -123,11 +123,11 @@ class RuntimePlugins(
 			if (read.manifest.id != id) throw PluginPackageException("Package id changed to '${read.manifest.id}'")
 			read.toWasmPlugin(state.granted.toSet())
 		} catch (e: PluginPackageException) {
-			Napier.e { "Runtime plugin '$id' could not load: ${e.message}" }
+			Logger.e { "Runtime plugin '$id' could not load: ${e.message}" }
 			null
 		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
 			// A malformed package can make the zip or TOML readers throw anything.
-			Napier.e(e) { "Runtime plugin '$id' could not load" }
+			Logger.e(e) { "Runtime plugin '$id' could not load" }
 			null
 		}
 		if (guarded) setMark(null)
@@ -273,7 +273,7 @@ class RuntimePlugins(
 			requireShallowToml(text)
 			toml.decodeFromString(StateFile.serializer(), text)
 		} catch (e: IOException) {
-			Napier.e(e) { "Could not read runtime plugin state" }
+			Logger.e(e) { "Could not read runtime plugin state" }
 			StateFile()
 		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
 			setAside(e)
@@ -287,9 +287,9 @@ class RuntimePlugins(
 				.map { n -> directory / (if (n == 1) "$STATE_FILE.$UNREADABLE" else "$STATE_FILE.$UNREADABLE-$n") }
 				.first { !fileSystem.exists(it) }
 			fileSystem.atomicMove(stateFile, aside)
-			Napier.e(e) { "Could not read runtime plugin state; it is kept at $aside" }
+			Logger.e(e) { "Could not read runtime plugin state; it is kept at $aside" }
 		} catch (moveFailed: IOException) {
-			Napier.e(e) { "Could not read runtime plugin state, nor move it aside: ${moveFailed.message}" }
+			Logger.e(e) { "Could not read runtime plugin state, nor move it aside: ${moveFailed.message}" }
 		}
 	}
 

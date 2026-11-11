@@ -12,6 +12,7 @@ import android.provider.Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS
 import androidx.core.content.ContextCompat
 import androidx.core.content.ContextCompat.startActivity
 import androidx.core.net.toUri
+import co.touchlab.kermit.Logger
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
@@ -35,7 +36,6 @@ import com.russhwolf.settings.set
 import dev.icerock.moko.permissions.*
 import dev.icerock.moko.permissions.storage.STORAGE
 import dev.icerock.moko.permissions.storage.WRITE_STORAGE
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
@@ -193,14 +193,14 @@ class AndroidPlatformSettingsComponent(
 					val readState = permissionsController.getPermissionState(Permission.STORAGE)
 
 					if (writeState != PermissionState.Granted || readState != PermissionState.Granted) {
-						Napier.w("External Storage permissions were not successfully granted")
+						Logger.w("External Storage permissions were not successfully granted")
 					} else {
-						Napier.i("External Storage permissions have been granted successfully.")
+						Logger.i("External Storage permissions have been granted successfully.")
 					}
 				} catch (deniedAlways: DeniedAlwaysException) {
-					Napier.w("External Storage permission always denied", deniedAlways)
+					Logger.w("External Storage permission always denied", deniedAlways)
 				} catch (denied: DeniedException) {
-					Napier.w("External Storage permission denied", denied)
+					Logger.w("External Storage permission denied", denied)
 				}
 			}
 		}
@@ -235,7 +235,7 @@ class AndroidPlatformSettingsComponent(
 					fileSystem.moveDirectory(source = oldPath, destination = newOkioPath)
 				}
 			} catch (e: IOException) {
-				Napier.e("Failed to move projects from $oldPath to $newOkioPath", e)
+				Logger.e("Failed to move projects from $oldPath to $newOkioPath", e)
 			}
 
 			settings[AndroidSettingsKeys.KEY_USE_INTERNAL_STORAGE] = internal

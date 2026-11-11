@@ -4,8 +4,8 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
+import co.touchlab.kermit.Logger
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.AuthTokenDatasource.Companion.accountKey
-import io.github.aakira.napier.Napier
 import kotlinx.atomicfu.locks.reentrantLock
 import kotlinx.atomicfu.locks.withLock
 import kotlinx.serialization.json.Json
@@ -46,7 +46,7 @@ class EncryptedSharedPrefsAuthTokenDatasource internal constructor(
 	// never backed up, so a restored or orphaned file is undecryptable, and some keystores
 	// leave the master key itself unusable. Start over with both (forces re-login).
 	private fun recreatePrefs(cause: Exception): SharedPreferences {
-		Napier.w("Auth token keyset is unreadable; recreating the store", cause)
+		Logger.w("Auth token keyset is unreadable; recreating the store", cause)
 		resetPrefs()
 		return openPrefs()
 	}
@@ -73,7 +73,7 @@ class EncryptedSharedPrefsAuthTokenDatasource internal constructor(
 			val stored = prefs.getString(TOKENS_KEY, null) ?: return emptyMap()
 			json.decodeFromString<Map<String, AuthTokens>>(stored)
 		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-			Napier.w("Failed to read encrypted auth tokens; treating as empty", e)
+			Logger.w("Failed to read encrypted auth tokens; treating as empty", e)
 			emptyMap()
 		}
 	}
