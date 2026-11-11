@@ -5,8 +5,6 @@ import com.darkrockstudios.build.registerLinuxDistributionTasks
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import java.util.zip.ZipFile
 
-val data_version: String by extra
-
 plugins {
 	alias(libs.plugins.kotlin.multiplatform)
 	alias(libs.plugins.kotlin.serialization)
@@ -45,14 +43,14 @@ kotlin {
 			}
 		}
 
-		val commonMain by getting {
+		getByName("commonMain") {
 			resources.srcDirs("resources")
 			dependencies {
 				implementation(libs.aboutlibraries.core)
 				implementation(libs.multiplatform.settings)
 			}
 		}
-		val jvmMain by getting {
+		getByName("jvmMain") {
 			dependencies {
 				implementation(project(":base"))
 				implementation(project(":common"))
@@ -73,7 +71,7 @@ kotlin {
 				implementation(libs.nucleus.updater.runtime)
 			}
 		}
-		val jvmTest by getting {
+		getByName("jvmTest") {
 			dependencies {
 				implementation(kotlin("test"))
 				implementation(libs.bundles.junit.jupiter)

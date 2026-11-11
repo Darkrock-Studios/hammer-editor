@@ -1,7 +1,5 @@
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 
-val app_version: String by extra
-
 plugins {
 	alias(libs.plugins.kotlin.jvm)
 	alias(libs.plugins.kotlin.powerassert)
@@ -172,7 +170,7 @@ dependencies {
 // Runs the reviewer-editor JavaScript unit tests with Node's built-in test runner.
 // Kept separate from the Kotlin `test` task so contributors without Node can still
 // build; CI runs it as its own explicit gate (see .github/workflows/build.yml).
-val jsTest by tasks.registering(Exec::class) {
+tasks.register<Exec>("jsTest") {
 	group = "verification"
 	description = "Runs the reviewer-editor JavaScript unit tests (requires Node)."
 	workingDir = projectDir
@@ -192,5 +190,4 @@ powerAssert {
 		"kotlin.test.assertNull",
 		"kotlin.test.assertContains",
 	)
-	includedSourceSets = listOf("test")
 }
