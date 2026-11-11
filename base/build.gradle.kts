@@ -30,6 +30,8 @@ kotlin {
 	jvm("desktop")
 	iosArm64()
 	iosSimulatorArm64()
+	linuxX64()
+	linuxArm64()
 
 	jvmToolchain(libs.versions.jvm.get().toInt())
 
