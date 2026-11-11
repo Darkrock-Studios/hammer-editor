@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.plugins.wasmhost
 
+import io.github.charlietap.chasm.config.StoreConfig
 import io.github.charlietap.chasm.embedding.shapes.Store
 import io.github.charlietap.chasm.gc.GarbageCollectedHeap
 
@@ -9,7 +10,7 @@ import io.github.charlietap.chasm.gc.GarbageCollectedHeap
  * A smaller share would leave a phone unable to report on a novel; running the host out of memory past
  * this fails the plugin, not the app.
  */
-internal class GuestHeap(maxBytes: Long) {
+internal class GuestHeap(maxBytes: Long, config: StoreConfig) {
 	private val heap = GarbageCollectedHeap(
 		GarbageCollectedHeap.Configuration(
 			maximumPageCount = maxOf(1, (hostHeapShare(maxBytes, HOST_HEAP_SHARE) / PAGE_BYTES).toInt())
@@ -17,7 +18,7 @@ internal class GuestHeap(maxBytes: Long) {
 	)
 
 	/** A store using this heap, or null where the host cannot build one, which then needs an uncapped store. */
-	val store: Store? = storeWith(heap)
+	val store: Store? = storeWith(heap, config)
 
 	/** What the heap holds from the host, pages it keeps for reuse included: it never gives them back. */
 	val committedBytes: Long
@@ -44,4 +45,4 @@ internal fun hostHeapShare(maxBytes: Long, share: Int): Long = minOf(maxBytes, (
  */
 internal expect fun Throwable.isOutOfMemory(): Boolean
 
-internal expect fun storeWith(heap: GarbageCollectedHeap): Store?
+internal expect fun storeWith(heap: GarbageCollectedHeap, config: StoreConfig): Store?

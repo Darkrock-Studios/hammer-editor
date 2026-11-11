@@ -1,7 +1,6 @@
 package com.darkrockstudios.apps.hammer.plugins.wasmhost
 
 import io.github.charlietap.chasm.config.GCStrategy
-import io.github.charlietap.chasm.config.RuntimeConfig
 import io.github.charlietap.chasm.config.StoreConfig
 import io.github.charlietap.chasm.embedding.addFuel
 import io.github.charlietap.chasm.embedding.dsl.FunctionTypeBuilder
@@ -89,8 +88,8 @@ class ExtismPlugin(
 		private set
 
 	// A module using Wasm GC keeps its objects in chasm's heap, not its capped linear memory.
-	private val guestHeap = GuestHeap(maxGuestHeapBytes)
-	private val store = guestHeap.store ?: store(StoreConfig(meterFuel = true, interruptible = true))
+	private val guestHeap = GuestHeap(maxGuestHeapBytes, STORE_CONFIG)
+	private val store = guestHeap.store ?: store(STORE_CONFIG)
 	private val instance: Instance = failingOutOfMemory("Plugin ran out of memory starting up") {
 		start(loadWasm, userFunctions, limiter)
 	}
@@ -107,7 +106,7 @@ class ExtismPlugin(
 		}
 		// The start function, data initialization, and the initializer share this, as Extism hosts do for reactor modules.
 		setFuel(INSTANTIATION_FUEL)
-		val instance = instance(store, module, imports, RUNTIME_CONFIG).orThrowStarting("Plugin failed to start")
+		val instance = instance(store, module, imports).orThrowStarting("Plugin failed to start")
 		INITIALIZERS.firstOrNull { name -> module.exports.any { it.name == name } }?.let { initializer ->
 			invoke(store, instance, initializer).orThrowStarting("Plugin failed to initialize")
 		}
@@ -166,6 +165,9 @@ class ExtismPlugin(
 			}
 			if ((result.error as? ChasmError.ExecutionError)?.error == GUEST_HEAP_EXHAUSTED) {
 				throw PluginException("Plugin ran out of memory in $function")
+			}
+			if ((result.error as? ChasmError.ExecutionError)?.error == STACK_EXHAUSTED) {
+				throw PluginException("Plugin ran out of stack in $function")
 			}
 			// A module may set an error and then trap, as AssemblyScript's abort does.
 			val reason = reportedError()?.let { "$it (${result.error})" } ?: result.error
@@ -436,10 +438,13 @@ class ExtismPlugin(
 
 		// ARENA frees a call's garbage when the call returns. chasm 2.0.0's TRADITIONAL, which collects while
 		// a call runs, corrupts live Kotlin/Wasm objects.
-		val RUNTIME_CONFIG = RuntimeConfig(gcStrategy = GCStrategy.ARENA)
+		val STORE_CONFIG = StoreConfig(meterFuel = true, interruptible = true, gcStrategy = GCStrategy.ARENA)
 
 		/** chasm's error when a module's guest heap is at its cap and collecting frees too little. */
 		const val GUEST_HEAP_EXHAUSTED = "GuestHeapOutOfMemory"
+
+		/** chasm's error when a call's stack reaches its cap, 16 MiB on Android. */
+		const val STACK_EXHAUSTED = "CallStackExhausted"
 
 		/** chasm's error when a metered store's fuel runs out. */
 		const val FUEL_EXHAUSTED = "FuelExhausted"
