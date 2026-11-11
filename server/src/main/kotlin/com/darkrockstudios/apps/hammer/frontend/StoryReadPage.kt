@@ -177,7 +177,6 @@ private suspend fun ApplicationCall.addReaderModel(
 			"marker" to "§ $roman.${index + 1}",
 			"html" to resolveAuthorImages(scene.html, projectSegment),
 			"hasProse" to scene.html.isNotEmpty(),
-			"isFirst" to (index == 0),
 		)
 	}
 	val currentScenes = scenes.map { mapOf("id" to it.getValue("id"), "name" to it.getValue("name")) }

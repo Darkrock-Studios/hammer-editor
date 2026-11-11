@@ -225,6 +225,19 @@ class StoryReadPageTest : WebEndToEndTest() {
 	}
 
 	@Test
+	fun `scenes are not separated by an ornament`(): Unit = runBlocking {
+		doStartServer()
+		seedStory()
+
+		login(email, password).use { author ->
+			val body = author.get(readPath()).unescapedBody()
+
+			val sceneSeam = Regex("""</section>\s*<section class="reader-scene" id="scene-\d+">\s*<h2 class="reader-scene__heading">""")
+			assertTrue(sceneSeam.containsMatchIn(body))
+		}
+	}
+
+	@Test
 	fun `a later chapter shows only its own scenes and ends the story`(): Unit = runBlocking {
 		doStartServer()
 		seedStory()

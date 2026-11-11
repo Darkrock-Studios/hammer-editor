@@ -2918,16 +2918,7 @@
 	text-align: center;
 }
 
-.reader-scene__break {
-	margin: 2rem 0;
-	text-align: center;
-	letter-spacing: 0.5em;
-	color: var(--neutral-400);
-	user-select: none;
-}
-
-.reader[data-headings="off"] .reader-scene__heading,
-.reader[data-headings="on"] .reader-scene__break {
+.reader[data-headings="off"] .reader-scene__heading {
 	display: none;
 }
 
