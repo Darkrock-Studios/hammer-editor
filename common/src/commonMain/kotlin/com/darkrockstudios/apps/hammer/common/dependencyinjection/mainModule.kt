@@ -13,6 +13,7 @@ import com.darkrockstudios.apps.hammer.common.data.account.AccountUseCase
 import com.darkrockstudios.apps.hammer.common.data.changelog.ChangelogDatasource
 import com.darkrockstudios.apps.hammer.common.data.changelog.ChangelogRepository
 import com.darkrockstudios.apps.hammer.common.data.changelog.ResourceChangelogDatasource
+import com.darkrockstudios.apps.hammer.common.data.defaultSettings
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftsDatasource
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaDatasource
@@ -311,7 +312,7 @@ val mainModule = module {
 
 	single<ProjectStatisticsCacheReader>()
 
-	single { create(::Settings) } bind Settings::class
+	single<Settings> { defaultSettings() }
 	single<TimelineSelectionSetting>()
 
 	includes(migratorModule)

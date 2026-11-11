@@ -1,6 +1,5 @@
 package com.darkrockstudios.apps.hammer.common.data.export
 
-import com.conamobile.pdfkmp.image.readImageInfo
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.base.image.ImageFormat
 
@@ -52,8 +51,8 @@ internal fun <T : Any> exportCover(
 
 /**
  * The widest or tallest raster an export embeds: JPEG's limit. A PNG header can claim any u32 side,
- * and `RtfPicture` throws on one over `Int.MAX_VALUE / 15`. The lower bound repeats pdfkmp's own
- * rejection of a zero side, so a size of nothing never reaches a renderer either way.
+ * and `RtfPicture` throws on one over `Int.MAX_VALUE / 15`. The lower bound repeats [readRasterSize]'s
+ * rejection of a zero side, as pdfkmp also rejects one, so a size of nothing never reaches a renderer.
  */
 internal const val MAX_RASTER_SIDE = 65535
 
@@ -64,7 +63,7 @@ private fun uprightRaster(bytes: ByteArray): ExportRaster? {
 	val orientation = jpegExifOrientation(bytes)
 	val upright = if (orientation == 1) bytes else transcodeToPng(bytes, orientation) ?: return null
 	// Only PNG and JPEG headers read, so the format follows from the first byte.
-	val info = readImageInfo(upright)
+	val info = readRasterSize(upright)
 		?.takeIf { it.widthPx in RASTER_SIDES && it.heightPx in RASTER_SIDES }
 		?: return null
 	val format = if (upright[0] == 0xFF.toByte()) ExportRaster.Format.Jpeg else ExportRaster.Format.Png

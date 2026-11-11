@@ -89,7 +89,8 @@ kotlin {
 				implementation(libs.jetbrains.compose.components.resources)
 				implementation(libs.kotlinx.atomicfu)
 				implementation(libs.aboutlibraries.core)
-				implementation(libs.multiplatform.settings)
+				// Settings, the interface only: the no-arg factory is in jvmAndIosMain.
+				implementation(libs.multiplatform.settings.core)
 				implementation(libs.platform.spellcheckerkt)
 				implementation(libs.kmp.zip)
 				implementation(libs.kmp.zip.okio)
@@ -98,7 +99,6 @@ kotlin {
 				implementation(libs.rtf.writer)
 				implementation(libs.xmlutil.core)
 				implementation(libs.epub4kmp.core)
-				implementation(libs.pdfkmp)
 				implementation(libs.kotlinx.html)
 			}
 		}
@@ -109,8 +109,17 @@ kotlin {
 				implementation(libs.kotlin.reflect)
 			}
 		}
-		val jvmMain = create("jvmMain") {
+		// Libraries with no Linux native build, for every target but Linux: each has an
+		// expect in commonMain that a later linuxMain answers on its own.
+		val jvmAndIosMain = create("jvmAndIosMain") {
 			dependsOn(commonMain)
+			dependencies {
+				implementation(libs.multiplatform.settings)
+				implementation(libs.pdfkmp)
+			}
+		}
+		val jvmMain = create("jvmMain") {
+			dependsOn(jvmAndIosMain)
 		}
 		val jvmTest = create("jvmTest") {
 			dependsOn(commonTest)
@@ -134,6 +143,7 @@ kotlin {
 			}
 		}
 		getByName("iosMain") {
+			dependsOn(jvmAndIosMain)
 			dependencies {
 				api(libs.decompose)
 				api(libs.bundles.essenty)

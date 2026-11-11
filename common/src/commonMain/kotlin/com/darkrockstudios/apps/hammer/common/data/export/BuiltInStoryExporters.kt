@@ -10,13 +10,16 @@ object BuiltInExportFormat {
 	const val MARKDOWN = "markdown"
 }
 
-internal val builtInStoryExporters: List<StoryExporter> = listOf(
+internal val builtInStoryExporters: List<StoryExporter> = listOfNotNull(
 	EpubStoryExporter,
 	DocxStoryExporter,
 	RtfStoryExporter,
-	PdfStoryExporter,
+	pdfStoryExporter,
 	MarkdownStoryExporter,
 )
+
+/** The PDF exporter, or null where pdfkmp, its renderer, is not available. */
+internal expect val pdfStoryExporter: StoryExporter?
 
 private object EpubStoryExporter : StoryExporter {
 	override val formatId = BuiltInExportFormat.EPUB
@@ -66,25 +69,6 @@ private object RtfStoryExporter : StoryExporter {
 	override val embedsCover = true
 
 	override fun render(sink: BufferedSink, input: ExportInput) = writeStoryAsRtf(
-		sink = sink,
-		projectName = input.projectName,
-		projectData = input.requireProjectData(),
-		chapters = input.bookChapters(),
-		strings = input.strings,
-		options = input.options,
-		imageNames = input.imageNames,
-		images = input.images,
-	)
-}
-
-private object PdfStoryExporter : StoryExporter {
-	override val formatId = BuiltInExportFormat.PDF
-	override val fileExtension = "pdf"
-	override val mimeType = "application/pdf"
-	override val embedsImages = true
-	override val embedsCover = true
-
-	override fun render(sink: BufferedSink, input: ExportInput) = writeStoryAsPdf(
 		sink = sink,
 		projectName = input.projectName,
 		projectData = input.requireProjectData(),
