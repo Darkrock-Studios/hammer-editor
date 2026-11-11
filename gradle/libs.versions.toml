@@ -61,7 +61,6 @@ decompose = "3.6.2"
 essenty = "2.7.1" # This should match whatever decompose is referncing internally
 
 filekit = "0.17.0"
-koalaplot-core = "0.11.2"
 coil = "3.6.3"
 telephoto = "0.19.0"
 kmpalette = "3.1.0"
@@ -179,7 +178,6 @@ junit-jupiter-params = { module = "org.junit.jupiter:junit-jupiter-params", vers
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
 
 kache = { module = "com.mayakapps.kache:kache", version.ref = "kache" }
-koalaplot-core = { module = "io.github.koalaplot:koalaplot-core", version.ref = "koalaplot-core" }
 
 kmp-zip = { module = "no.synth:kmp-zip", version.ref = "kmpZip" }
 kmp-zip-okio = { module = "no.synth:kmp-zip-okio", version.ref = "kmpZip" }

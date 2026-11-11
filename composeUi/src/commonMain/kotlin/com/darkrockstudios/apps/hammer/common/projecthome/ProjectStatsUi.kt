@@ -1,12 +1,9 @@
 package com.darkrockstudios.apps.hammer.common.projecthome
 
 import androidx.compose.animation.core.LinearOutSlowInEasing
-import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.focusable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -23,7 +20,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
@@ -56,12 +52,6 @@ import com.darkrockstudios.apps.hammer.common.data.tagindex.TaggedEntityType
 import com.darkrockstudios.apps.hammer.common.images.ImageViewerDialog
 import com.darkrockstudios.apps.hammer.common.images.ImageViewerItem
 import com.darkrockstudios.apps.hammer.common.util.formatDecimalSeparator
-import io.github.koalaplot.core.pie.BezierLabelConnector
-import io.github.koalaplot.core.pie.DefaultSlice
-import io.github.koalaplot.core.pie.PieChart
-import io.github.koalaplot.core.style.KoalaPlotTheme
-import io.github.koalaplot.core.util.ExperimentalKoalaPlotApi
-import io.github.koalaplot.core.util.generateHueColorPalette
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.todayIn
@@ -1214,7 +1204,7 @@ private fun DevicesSection(state: ProjectHome.State) {
 		val sorted = remember(state.wordsPerDevice) {
 			state.wordsPerDevice.entries.sortedByDescending { it.value }
 		}
-		val palette = remember(sorted.size) { generateHueColorPalette(sorted.size.coerceAtLeast(1)) }
+		val palette = remember(sorted.size) { hdHuePalette(sorted.size) }
 		val items = remember(sorted, palette) {
 			sorted.mapIndexed { index, (label, words) ->
 				HdAttributionItem(label = label, value = words, color = palette[index])
@@ -1236,7 +1226,7 @@ private fun AuthorsSection(state: ProjectHome.State) {
 		title = Res.string.project_home_stat_words_per_author.get(),
 	) {
 		val authors = state.wordsPerAuthor
-		val palette = remember(authors.size) { generateHueColorPalette(authors.size) }
+		val palette = remember(authors.size) { hdHuePalette(authors.size) }
 		val maxValue = authors.first().words.coerceAtLeast(1)
 		val unknownAuthor = Res.string.project_home_stat_unknown_author.get()
 		Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -1254,18 +1244,15 @@ private fun AuthorsSection(state: ProjectHome.State) {
 	}
 }
 
-@OptIn(ExperimentalKoalaPlotApi::class)
 @Composable
 private fun EncyclopediaDonut(
 	typeCounts: Map<EntryType, Int>,
 	totalEntries: Int,
 	modifier: Modifier = Modifier,
 ) {
-	// KoalaPlot crashes on zero values, so add 0.01f.
-	val values = remember(typeCounts) { typeCounts.map { it.value.toFloat() + .01f } }
 	val keys = remember(typeCounts) { typeCounts.keys.toList() }
 	val counts = remember(typeCounts) { typeCounts.values.toList() }
-	if (values.isEmpty() || values.sum() <= 0f) {
+	if (counts.sum() <= 0) {
 		Spacer(modifier = modifier.height(180.dp))
 		return
 	}
@@ -1273,95 +1260,67 @@ private fun EncyclopediaDonut(
 	var hasAnimated by rememberSaveable { mutableStateOf(false) }
 	val animationDelay = remember { Random.nextInt(300, 1000) }
 	val hammerColors = LocalHammerColors.current
+	val slices = remember(keys, counts, hammerColors) {
+		keys.mapIndexed { index, type -> HdDonutSlice(counts[index].toFloat(), hammerColors.colorFor(type)) }
+	}
 
 	// Touch has no hover, so a tap selects a slice and reveals its count in
 	// the donut hole; tapping the slice again or empty space clears it.
 	var selectedIndex by remember(keys) { mutableStateOf<Int?>(null) }
 
-	KoalaPlotTheme(
-		animationSpec = if (!hasAnimated) {
-			tween(
-				durationMillis = 800,
-				delayMillis = animationDelay,
-				easing = LinearOutSlowInEasing,
+	HdDonutChart(
+		slices = slices,
+		modifier = modifier,
+		holeSize = 0.55f,
+		animate = !hasAnimated,
+		sweepAnimation = tween(
+			durationMillis = 800,
+			delayMillis = animationDelay,
+			easing = LinearOutSlowInEasing,
+		),
+		onSliceClick = { index -> selectedIndex = if (selectedIndex == index) null else index },
+		onBackgroundClick = { selectedIndex = null },
+		tooltip = { index ->
+			EncyclopediaSliceTooltip(
+				type = keys[index],
+				count = counts[index],
+				color = hammerColors.colorFor(keys[index]),
 			)
-		} else {
-			snap()
+		},
+		label = { index ->
+			HdMonoLabel(
+				text = keys[index].text,
+				color = MaterialTheme.colorScheme.onSurface,
+			)
 		},
 	) {
-		Box(modifier = modifier) {
-			if (selectedIndex != null) {
-				Box(
-					modifier = Modifier
-						.matchParentSize()
-						.clickable(
-							interactionSource = remember { MutableInteractionSource() },
-							indication = null,
-						) { selectedIndex = null },
+		val selected = selectedIndex
+		Column(
+			modifier = Modifier.fillMaxSize(),
+			verticalArrangement = Arrangement.Center,
+			horizontalAlignment = Alignment.CenterHorizontally,
+		) {
+			if (selected != null) {
+				Text(
+					counts[selected].formatDecimalSeparator(),
+					style = MaterialTheme.typography.headlineMedium,
+					color = hammerColors.colorFor(keys[selected]),
+				)
+				HdMonoLabel(
+					text = (keys[selected].toStringResource()).get(),
+					color = MaterialTheme.colorScheme.onSurfaceVariant,
+				)
+			} else {
+				Text(
+					totalEntries.formatDecimalSeparator(),
+					style = MaterialTheme.typography.headlineMedium,
+					color = MaterialTheme.colorScheme.onSurface,
+				)
+				HdMonoLabel(
+					text = Res.string.project_home_stat_donut_entries.get(),
+					color = MaterialTheme.colorScheme.onSurfaceVariant,
 				)
 			}
-			PieChart(
-				modifier = Modifier.fillMaxSize().focusable(false),
-				values = values,
-				holeSize = 0.55f,
-				slice = { index ->
-					DefaultSlice(
-						color = hammerColors.colorFor(keys[index]),
-						hoverExpandFactor = 1.05f,
-						clickable = true,
-						onClick = { selectedIndex = if (selectedIndex == index) null else index },
-						hoverElement = {
-							EncyclopediaSliceTooltip(
-								type = keys[index],
-								count = counts[index],
-								color = hammerColors.colorFor(keys[index]),
-							)
-						},
-					)
-				},
-				holeContent = {
-					val selected = selectedIndex
-					Column(
-						modifier = Modifier.fillMaxSize(),
-						verticalArrangement = Arrangement.Center,
-						horizontalAlignment = Alignment.CenterHorizontally,
-					) {
-						if (selected != null) {
-							Text(
-								counts[selected].formatDecimalSeparator(),
-								style = MaterialTheme.typography.headlineMedium,
-								color = hammerColors.colorFor(keys[selected]),
-							)
-							HdMonoLabel(
-								text = (keys[selected].toStringResource()).get(),
-								color = MaterialTheme.colorScheme.onSurfaceVariant,
-							)
-						} else {
-							Text(
-								totalEntries.formatDecimalSeparator(),
-								style = MaterialTheme.typography.headlineMedium,
-								color = MaterialTheme.colorScheme.onSurface,
-							)
-							HdMonoLabel(
-								text = Res.string.project_home_stat_donut_entries.get(),
-								color = MaterialTheme.colorScheme.onSurfaceVariant,
-							)
-						}
-					}
-				},
-				label = { index ->
-					HdMonoLabel(
-						text = keys[index].text,
-						color = MaterialTheme.colorScheme.onSurface,
-					)
-				},
-				labelConnector = { i ->
-					BezierLabelConnector(
-						connectorColor = hammerColors.colorFor(keys[i]),
-						connectorStroke = Stroke(width = 3f),
-					)
-				},
-			)
 		}
 	}
 

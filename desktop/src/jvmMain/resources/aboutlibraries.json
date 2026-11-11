@@ -2004,29 +2004,6 @@
             ]
         },
         {
-            "uniqueId": "io.github.koalaplot:koalaplot-core-desktop",
-            "artifactVersion": "0.11.2",
-            "name": "koalaplot-core",
-            "description": "Koala Plot is a Compose Multiplatform based charting and plotting library written in Kotlin",
-            "website": "https://github.com/KoalaPlot/koalaplot-core",
-            "developers": [
-                {
-                    "name": "Greg Steckman"
-                }
-            ],
-            "scm": {
-                "connection": "scm:git:github.com/KoalaPlot/koalaplot-core.git",
-                "developerConnection": "scm:git:ssf://github.com/KoalaPlot/koalaplot-core.git",
-                "url": "https://github.com/KoalaPlot/koalaplot-core"
-            },
-            "licenses": [
-                "MIT"
-            ],
-            "funding": [
-                
-            ]
-        },
-        {
             "uniqueId": "io.github.pdvrieze.xmlutil:core-jvm",
 			"artifactVersion": "1.0.2",
             "name": "core",
