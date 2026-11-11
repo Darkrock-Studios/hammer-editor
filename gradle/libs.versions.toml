@@ -90,7 +90,7 @@ mockk = "1.14.12"
 konsist = "0.18.1"
 
 tomlkt = "0.5.0"
-chasm = "2.1.0"
+chasm = "2.4.0"
 
 krypto = "4.0.10"
 owasp_html_sanitizer = "20261107.1"

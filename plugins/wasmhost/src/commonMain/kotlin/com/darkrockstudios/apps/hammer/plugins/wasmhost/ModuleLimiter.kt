@@ -1,8 +1,8 @@
 package com.darkrockstudios.apps.hammer.plugins.wasmhost
 
 /**
- * Rewrites a module so growing its memory or tables cannot exhaust the host's heap, which chasm does not
- * bound: linear memories are capped at [maxMemoryPages] and tables at [maxTableElements].
+ * Rewrites a module so growing its memory or tables cannot exhaust the host's heap: linear memories are
+ * capped at [maxMemoryPages] and tables at [maxTableElements].
  */
 class ModuleLimiter(
 	private val maxMemoryPages: Int = DEFAULT_MAX_MEMORY_PAGES,

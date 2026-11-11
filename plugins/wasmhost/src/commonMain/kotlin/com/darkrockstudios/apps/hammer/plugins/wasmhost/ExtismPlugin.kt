@@ -1,8 +1,8 @@
 package com.darkrockstudios.apps.hammer.plugins.wasmhost
 
 import io.github.charlietap.chasm.config.GCStrategy
-import io.github.charlietap.chasm.config.RuntimeConfig
 import io.github.charlietap.chasm.config.StoreConfig
+import io.github.charlietap.chasm.config.StoreLimits
 import io.github.charlietap.chasm.embedding.addFuel
 import io.github.charlietap.chasm.embedding.dsl.FunctionTypeBuilder
 import io.github.charlietap.chasm.embedding.dsl.ValueTypeListBuilder
@@ -17,7 +17,6 @@ import io.github.charlietap.chasm.embedding.resetFuel
 import io.github.charlietap.chasm.embedding.shapes.ChasmResult
 import io.github.charlietap.chasm.embedding.shapes.Import
 import io.github.charlietap.chasm.embedding.shapes.Instance
-import io.github.charlietap.chasm.embedding.store
 import io.github.charlietap.chasm.host.HostFunction
 import io.github.charlietap.chasm.host.HostFunctionException
 import io.github.charlietap.chasm.host.HostModuleInstance
@@ -44,7 +43,8 @@ import kotlin.time.TimeSource
  * WASI file or socket import, fails the load. HTTP goes through [http]; without one, an HTTP import fails the call.
  *
  * What a plugin can make the host hold is capped: its kernel at [maxKernelBytes], its guest heap at
- * [maxGuestHeapBytes], both lower on a small host heap, and its variables and log output at fixed sizes.
+ * [maxGuestHeapBytes], both lower on a small host heap, a call's stack at [maxStackBytes], and its variables
+ * and log output at fixed sizes.
  */
 class ExtismPlugin(
 	/**
@@ -60,6 +60,7 @@ class ExtismPlugin(
 	/** Sends `http_request`s, deciding for itself which it allows. */
 	private val http: PluginHttp? = null,
 	maxKernelBytes: Long = DEFAULT_MAX_KERNEL_BYTES,
+	maxStackBytes: Long? = DEFAULT_MAX_STACK_BYTES,
 ) {
 	constructor(
 		wasm: ByteArray,
@@ -70,7 +71,8 @@ class ExtismPlugin(
 		maxGuestHeapBytes: Long = DEFAULT_MAX_GUEST_HEAP_BYTES,
 		http: PluginHttp? = null,
 		maxKernelBytes: Long = DEFAULT_MAX_KERNEL_BYTES,
-	) : this({ wasm }, userFunctions, config, log, limiter, maxGuestHeapBytes, http, maxKernelBytes)
+		maxStackBytes: Long? = DEFAULT_MAX_STACK_BYTES,
+	) : this({ wasm }, userFunctions, config, log, limiter, maxGuestHeapBytes, http, maxKernelBytes, maxStackBytes)
 
 	private val kernel = ExtismKernel(maxKernelBytes)
 	private val vars = mutableMapOf<String, ByteArray>()
@@ -89,8 +91,8 @@ class ExtismPlugin(
 		private set
 
 	// A module using Wasm GC keeps its objects in chasm's heap, not its capped linear memory.
-	private val guestHeap = GuestHeap(maxGuestHeapBytes)
-	private val store = guestHeap.store ?: store(StoreConfig(meterFuel = true, interruptible = true))
+	private val guestHeap = GuestHeap(maxGuestHeapBytes, STORE_CONFIG.copy(limits = StoreLimits(stackBytes = maxStackBytes)))
+	private val store = guestHeap.store
 	private val instance: Instance = failingOutOfMemory("Plugin ran out of memory starting up") {
 		start(loadWasm, userFunctions, limiter)
 	}
@@ -107,7 +109,7 @@ class ExtismPlugin(
 		}
 		// The start function, data initialization, and the initializer share this, as Extism hosts do for reactor modules.
 		setFuel(INSTANTIATION_FUEL)
-		val instance = instance(store, module, imports, RUNTIME_CONFIG).orThrowStarting("Plugin failed to start")
+		val instance = instance(store, module, imports).orThrowStarting("Plugin failed to start")
 		INITIALIZERS.firstOrNull { name -> module.exports.any { it.name == name } }?.let { initializer ->
 			invoke(store, instance, initializer).orThrowStarting("Plugin failed to initialize")
 		}
@@ -161,12 +163,7 @@ class ExtismPlugin(
 		val result = invoke(store, instance, function)
 		if (result is ChasmResult.Error) {
 			if (outOfFuel(result.error)) throw PluginException("Plugin ran out of fuel in $function")
-			if ((result.error as? ChasmError.ExecutionError)?.error == INTERRUPTED) {
-				throw PluginException("Plugin was interrupted in $function")
-			}
-			if ((result.error as? ChasmError.ExecutionError)?.error == GUEST_HEAP_EXHAUSTED) {
-				throw PluginException("Plugin ran out of memory in $function")
-			}
+			stopReason(result.error)?.let { throw PluginException("Plugin $it in $function") }
 			// A module may set an error and then trap, as AssemblyScript's abort does.
 			val reason = reportedError()?.let { "$it (${result.error})" } ?: result.error
 			throw PluginException("Plugin failed in $function: $reason")
@@ -183,7 +180,7 @@ class ExtismPlugin(
 	 * keeps the pages for reuse. 0 where the heap is not the host's to measure.
 	 */
 	val guestHeapBytes: Long
-		get() = if (guestHeap.store != null) guestHeap.committedBytes else 0
+		get() = guestHeap.committedBytes
 
 	fun remainingFuel(): Long = remainingFuel(store).orThrow("Could not read fuel")
 
@@ -196,8 +193,19 @@ class ExtismPlugin(
 	private fun outOfFuel(error: ChasmError): Boolean =
 		(error as? ChasmError.ExecutionError)?.error == FUEL_EXHAUSTED || remainingFuel() == 0L
 
+	/** Why chasm stopped the module, when a limit or [interrupt] did, or null when the module failed. */
+	private fun stopReason(error: ChasmError): String? = when ((error as? ChasmError.ExecutionError)?.error) {
+		INTERRUPTED -> "was interrupted"
+		GUEST_HEAP_EXHAUSTED -> "ran out of memory"
+		STACK_EXHAUSTED -> "ran out of stack"
+		else -> null
+	}
+
 	private fun <S> ChasmResult<S, ChasmError>.orThrowStarting(context: String): S {
-		if (this is ChasmResult.Error && outOfFuel(error)) throw PluginException("Plugin ran out of fuel starting up")
+		if (this is ChasmResult.Error) {
+			if (outOfFuel(error)) throw PluginException("Plugin ran out of fuel starting up")
+			stopReason(error)?.let { throw PluginException("Plugin $it starting up") }
+		}
 		return orThrow(context)
 	}
 
@@ -436,10 +444,13 @@ class ExtismPlugin(
 
 		// ARENA frees a call's garbage when the call returns. chasm 2.0.0's TRADITIONAL, which collects while
 		// a call runs, corrupts live Kotlin/Wasm objects.
-		val RUNTIME_CONFIG = RuntimeConfig(gcStrategy = GCStrategy.ARENA)
+		val STORE_CONFIG = StoreConfig(meterFuel = true, interruptible = true, gcStrategy = GCStrategy.ARENA)
 
 		/** chasm's error when a module's guest heap is at its cap and collecting frees too little. */
 		const val GUEST_HEAP_EXHAUSTED = "GuestHeapOutOfMemory"
+
+		/** chasm's error when a call's stack reaches its cap. */
+		const val STACK_EXHAUSTED = "CallStackExhausted"
 
 		/** chasm's error when a metered store's fuel runs out. */
 		const val FUEL_EXHAUSTED = "FuelExhausted"
@@ -475,6 +486,9 @@ const val DEFAULT_MAX_GUEST_HEAP_BYTES = 1024L * 1024 * 1024
  * output, and host function results live. Lower on a small host heap; see [ExtismKernel].
  */
 const val DEFAULT_MAX_KERNEL_BYTES = 256L * 1024 * 1024
+
+/** How much a call's stack may take: chasm's own default, 16 MiB on Android and its 256 MiB ceiling elsewhere. */
+val DEFAULT_MAX_STACK_BYTES: Long? = StoreLimits().stackBytes
 
 private fun <S> ChasmResult<S, *>.orThrow(context: String): S = when (this) {
 	is ChasmResult.Success -> result

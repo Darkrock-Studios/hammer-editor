@@ -1217,12 +1217,13 @@ reading level report needs 192 MiB on a 100,000-word novel and 384 MiB on a
 300,000-word one, and hammer-plugin-development's Kotlin style report on the
 longer needs 768 MiB with a 22-word vocabulary and over 1 GiB with an
 8,000-word one. chasm's `TRADITIONAL` collector, which runs during a call,
-corrupts live Kotlin/Wasm objects in chasm 2.0.0; it is not used on 2.1.0, the
+corrupts live Kotlin/Wasm objects in chasm 2.0.0; it is not used on 2.4.0, the
 version Hammer pins. The desktop JVM's default heap is a quarter of the machine's
 memory, so an 8 GB machine allows about 1 GiB; Android's app heap, 192 to 512 MB,
 allows 96 to 256 MiB. The heap never gives pages back, so a plugin left holding more than 64 MiB
-after a call is dropped and loaded afresh when next used. The cap needs the JVM:
-on iOS the heap is uncapped.
+after a call is dropped and loaded afresh when next used. On iOS chasm keeps the
+heap and caps it at 1 GiB itself, but the host cannot measure it, so a plugin is
+never dropped for what it holds there.
 
 Rust has a kit of its own in `hammer-plugin-sdk` (`rust/hammer`): Hammer's
 imports, operations, and the cache, the `diagnose` request and reply types,
@@ -1932,11 +1933,13 @@ cannot load, the command exits with an error rather than reading input.
 - **Stopping a runaway module.** Each module runs in a chasm store that meters
   fuel: a check at every function entry and loop iteration takes a unit, and
   the call traps when none are left. The host sets the budget before each call;
-  instantiation and the module's initializer get one of their own. chasm does
-  not bound memory, so the host rewrites the binary before loading it
+  instantiation and the module's initializer get one of their own. The host
+  rewrites the binary before loading it
   (`ModuleLimiter`) to cap linear memory (the manifest's `limits.memory`,
   64 MiB by default) and tables (100,000 entries), and rejects shared or 64-bit
-  memories. A module cannot call itself again from inside a call. The store is
+  memories. A module cannot call itself again from inside a call. On Android
+  chasm caps each call's stack at 16 MiB, past which the call fails with "ran
+  out of stack". The store is
   interruptible too: cancelling the coroutine waiting on a call, such as a
   stopped action or a text check the editor no longer wants, interrupts the
   module at its next function entry or loop iteration, or once the host
@@ -1968,8 +1971,8 @@ cannot load, the command exits with an error rather than reading input.
   of memory, and a text check it provides leaves the text unmarked. It is
   untried on Android's app heap.
 - **iOS.** Kotlin/Native has no heap limit to read, so the kernel's cap is a fixed
-  256 MiB there, and chasm cannot be given a capped guest heap on native, so a
-  Kotlin/Wasm plugin's is uncapped. Most failed allocations abort the process
+  256 MiB there, and chasm caps a Kotlin/Wasm plugin's guest heap at a fixed
+  1 GiB, which the host cannot measure. Most failed allocations abort the process
   rather than throw, so running out of memory there is contained only in the
   few cases Kotlin/Native throws `OutOfMemoryError`. The variable and log caps
   apply on every platform.
