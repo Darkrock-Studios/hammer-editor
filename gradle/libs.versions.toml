@@ -52,6 +52,7 @@ datetime = "0.8.0"
 napier = "2.7.1"
 jetbrains_compose = "1.12.2"
 compose_compiler_report_generator = "1.5.0"
+composeai_preview = "2.89.0"
 jetbrains_kover = "0.9.11"
 
 moko_permissions = "0.20.1"
@@ -385,6 +386,7 @@ android_kotlin_multiplatform_library = { id = "com.android.kotlin.multiplatform.
 jetbrains_compose = { id = "org.jetbrains.compose", version.ref = "jetbrains_compose" }
 compose_compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 compose_report_generator = { id = "dev.shreyaspatil.compose-compiler-report-generator", version.ref = "compose_compiler_report_generator" }
+composeai_preview = { id = "ee.schimke.composeai.preview", version.ref = "composeai_preview" }
 jetbrains_kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "jetbrains_kover" }
 ktor = { id = "io.ktor.plugin", version.ref = "ktor_plugin" }
 sqldelight = { id = "app.cash.sqldelight", version.ref = "sqldelight" }
