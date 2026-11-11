@@ -34,6 +34,7 @@ import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineDa
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimelineService
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.displayOrder
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.timelineId
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.util.zip.unzipBytesToDirectory
@@ -126,7 +127,7 @@ class ExampleProjectTimelineTest : BaseTest() {
 	}
 
 	@Test
-	fun `settings define the dated main timeline and keep the project data`() = runTest(mainTestDispatcher) {
+	fun `settings define the dated main timeline, a manual backstory, and keep the project data`() = runTest(mainTestDispatcher) {
 		val data = ProjectDataDatasource(ffs, toml, projDef).load().data
 
 		val expected = TimelineDef(
@@ -136,7 +137,16 @@ class ExampleProjectTimelineTest : BaseTest() {
 			calendar = CalendarDef(CalendarPreset.STORY, epochName = "The Fall", coarsestUnit = StoryCalendar.HOUR),
 			laneOrder = listOf("Alice", "Alice's size", "The Queen"),
 		)
-		assertEquals(listOf(expected), data.timelines)
+		assertEquals(2, data.timelines.size)
+		assertEquals(expected, data.timelines.first())
+		val backstory = data.timelines[1]
+		assertEquals("Backstory", backstory.name)
+		assertEquals(TimelineMode.MANUAL, backstory.mode)
+		assertNull(backstory.calendar)
+		assertEquals(
+			listOf("Alice at home", "The Mock Turtle", "The Hatter", "Tales told", "The Queen's court"),
+			backstory.laneOrder,
+		)
 		assertEquals("Lewis Carroll", data.authorName)
 		assertEquals("en-US", data.language)
 		assertNotNull(data.theme)
@@ -148,17 +158,40 @@ class ExampleProjectTimelineTest : BaseTest() {
 	fun `timeline has the expected shape`() = runTest(mainTestDispatcher) {
 		val events = loadTimeline().events
 		val stored = TimeLineDatasource(ffs, toml).loadTimeline(projDef).events
+		val main = events.filter { it.timelineId == TimelineDef.MAIN_ID }
 
 		assertEquals(events, stored)
-		assertEquals(16, events.count { it.kind == TimelineKind.SCENE })
-		assertEquals(listOf(34), events.filter { it.kind == TimelineKind.ENTRY }.mapNotNull { it.subject })
+		assertEquals(44, main.count { it.kind == TimelineKind.SCENE })
+		assertEquals(listOf(34), main.filter { it.kind == TimelineKind.ENTRY }.mapNotNull { it.subject })
 		assertEquals(
 			setOf("Down the rabbit hole", "Alice wakes on the bank"),
-			events.filter { it.milestone }.mapNotNullTo(HashSet()) { it.title },
+			main.filter { it.milestone }.mapNotNullTo(HashSet()) { it.title },
 		)
 		assertEquals(events.size, events.map { it.id }.toSet().size)
 		assertTrue(events.all { it.id > 72 }, "ids must be above the legacy events and every other entity")
-		assertEquals(events.indices.toList(), events.map { it.order })
+		events.groupBy { it.timelineId }.forEach { (timeline, onIt) ->
+			assertEquals(onIt.indices.toList(), onIt.map { it.order }, "order on $timeline")
+		}
+	}
+
+	@Test
+	fun `backstory holds plain undated events in its own lanes`() = runTest(mainTestDispatcher) {
+		val backstory = ProjectDataDatasource(ffs, toml, projDef).load().data.timelines
+			.single { it.id != TimelineDef.MAIN_ID }
+		val events = loadTimeline().events.filter { it.timelineId == backstory.id }
+
+		assertEquals(17, events.size)
+		assertEquals(
+			setOf("Always six o'clock", "The Knave steals the tarts"),
+			events.filter { it.milestone }.mapNotNullTo(HashSet()) { it.title },
+		)
+		assertEquals(backstory.laneOrder.toSet(), events.mapNotNullTo(HashSet()) { it.lane })
+		events.forEach { event ->
+			assertEquals(TimelineKind.EVENT, event.kind, "event ${event.id}")
+			assertNull(event.start, "event ${event.id} is undated")
+			assertTrue(!event.title.isNullOrBlank() && !event.label.isNullOrBlank(), "event ${event.id}")
+			assertTrue(event.content.isNotBlank() && event.references.isNotEmpty(), "event ${event.id}")
+		}
 	}
 
 	@Test
@@ -180,8 +213,9 @@ class ExampleProjectTimelineTest : BaseTest() {
 
 	@Test
 	fun `dates are valid hour and minute dates in story order`() = runTest(mainTestDispatcher) {
-		val calendar = ProjectDataDatasource(ffs, toml, projDef).load().data.timelines.single().calendar!!
-		val events = loadTimeline().events
+		val calendar = ProjectDataDatasource(ffs, toml, projDef).load().data.timelines
+			.single { it.id == TimelineDef.MAIN_ID }.calendar!!
+		val events = loadTimeline().events.filter { it.timelineId == TimelineDef.MAIN_ID }
 		val rungs = setOf(StoryCalendar.HOUR, StoryCalendar.MINUTE)
 
 		events.forEach { event ->
@@ -229,10 +263,14 @@ class ExampleProjectTimelineTest : BaseTest() {
 	@Test
 	fun `lanes follow the lane order`() = runTest(mainTestDispatcher) {
 		val service = createService()
-		val laneOrder = service.definition(TimelineDef.MAIN_ID)!!.laneOrder
+		val events = loadTimeline().events
+		val timelines = ProjectDataDatasource(ffs, toml, projDef).load().data.timelines
 
-		assertEquals(laneOrder, service.lanes(TimelineDef.MAIN_ID))
-		assertEquals(laneOrder.toSet(), loadTimeline().events.mapNotNullTo(HashSet()) { it.lane })
+		timelines.forEach { def ->
+			val laneOrder = service.definition(def.id)!!.laneOrder
+			assertEquals(laneOrder, service.lanes(def.id))
+			assertEquals(laneOrder.toSet(), events.filter { it.timelineId == def.id }.mapNotNullTo(HashSet()) { it.lane })
+		}
 	}
 
 	private suspend fun createService(): TimelineService {

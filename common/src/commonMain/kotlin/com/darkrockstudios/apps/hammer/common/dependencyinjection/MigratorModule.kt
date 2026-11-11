@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.dependencyinjection
 
+import com.darkrockstudios.apps.hammer.common.data.RefreshExampleProjectUseCase
 import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
 import com.darkrockstudios.apps.hammer.common.data.migrator.EntryImagePromoter
 import com.darkrockstudios.apps.hammer.common.data.migrator.Migration0_1
@@ -12,7 +13,8 @@ import org.koin.dsl.module
 import org.koin.plugin.module.dsl.factory
 
 val migratorModule = module {
-	factory<DataMigrator>()
+	factory { DataMigrator(get(), get(), get(), get(), lazy { get<RefreshExampleProjectUseCase>() }) }
+	factory<RefreshExampleProjectUseCase>()
 	factory<Migration0_1>()
 	factory<Migration1_2>()
 	factory<Migration2_3>()
