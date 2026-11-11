@@ -86,7 +86,7 @@ play_services_wearable = "20.0.1"
 lifecycle_process = "2.11.0"
 core_splashscreen = "1.2.0"
 
-mockk = "1.14.11"
+mockk = "1.14.12"
 konsist = "0.18.1"
 
 tomlkt = "0.5.0"
