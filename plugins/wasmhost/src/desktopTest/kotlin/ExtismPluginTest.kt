@@ -1,5 +1,4 @@
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.ExtismPlugin
-import com.darkrockstudios.apps.hammer.plugins.wasmhost.ModuleLimiter
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.PluginException
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -144,8 +143,8 @@ class ExtismPluginTest {
 	}
 
 	@Test
-	fun `linear memory cannot grow past the cap`() {
-		val plugin = ExtismPlugin(testPlugin("count"), limiter = ModuleLimiter(maxMemoryPages = 16))
+	fun `linear memory declaring no maximum cannot grow past the cap`() {
+		val plugin = ExtismPlugin(testPlugin("count"), maxMemoryPages = 16)
 
 		// memory.grow answers -1 when refused; the export returns it as a failure code.
 		val error = assertThrows<PluginException> { plugin.call("grow", ByteArray(0), FUEL) }
@@ -153,11 +152,36 @@ class ExtismPluginTest {
 	}
 
 	@Test
-	fun `tables cannot grow past the cap`() {
+	fun `tables declaring no maximum cannot grow past the cap`() {
 		val plugin = ExtismPlugin(testPlugin("table"))
 
 		val error = assertThrows<PluginException> { plugin.call("grow", ByteArray(0), FUEL) }
 		assertTrue("code -1" in error.message!!)
+	}
+
+	@Test
+	fun `a module whose memory starts past the cap does not start`() {
+		val error = assertThrows<PluginException> { ExtismPlugin(testPlugin("big_memory")) }
+
+		assertEquals("Plugin needs more memory than its limit of 64 MiB", error.message)
+		ExtismPlugin(testPlugin("big_memory"), maxMemoryPages = 1100)
+	}
+
+	@Test
+	fun `a module whose table starts past the cap does not start`() {
+		val error = assertThrows<PluginException> { ExtismPlugin(testPlugin("big_table")) }
+
+		assertEquals("Plugin needs a table larger than its limit of 100000 elements", error.message)
+		ExtismPlugin(testPlugin("big_table"), maxTableElements = 100_001)
+	}
+
+	@Test
+	fun `a malformed module is refused`() {
+		// A table section claiming one table but holding only its count.
+		val truncated = MODULE_HEADER + byteArrayOf(0x04, 0x01, 0x01)
+
+		val error = assertThrows<PluginException> { ExtismPlugin(truncated) }
+		assertTrue(error.message!!.startsWith("Invalid plugin module"), error.message)
 	}
 
 	@Test

@@ -435,13 +435,14 @@ class RuntimePluginsTest {
 	}
 
 	@Test
-	fun `a module the limiter or the runtime cannot handle is refused at install`() {
+	fun `a module the runtime cannot handle is refused at install`() {
 		// A last section declaring more bytes than follow it.
 		val overrun = testPlugin("export_echo") + byteArrayOf(0x00, 0x10, 0x01)
-		// A table whose minimum, 2^31, does not fit an Int.
+		// A table and a memory whose minimum, 2^31, does not fit an Int.
 		val hugeTable = MODULE_HEADER + byteArrayOf(0x04, 0x08, 0x01, 0x70, 0x00) + U32_2_POW_31
+		val hugeMemory = MODULE_HEADER + byteArrayOf(0x05, 0x07, 0x01, 0x00) + U32_2_POW_31
 
-		listOf(overrun, hugeTable).forEachIndexed { i, wasm ->
+		listOf(overrun, hugeTable, hugeMemory).forEachIndexed { i, wasm ->
 			assertThrows<PluginPackageException> { runtimePlugins().inspect(pack("bad-$i", wasm = wasm)) }
 		}
 	}

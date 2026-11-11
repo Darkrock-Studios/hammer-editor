@@ -1933,11 +1933,11 @@ cannot load, the command exits with an error rather than reading input.
 - **Stopping a runaway module.** Each module runs in a chasm store that meters
   fuel: a check at every function entry and loop iteration takes a unit, and
   the call traps when none are left. The host sets the budget before each call;
-  instantiation and the module's initializer get one of their own. The host
-  rewrites the binary before loading it
-  (`ModuleLimiter`) to cap linear memory (the manifest's `limits.memory`,
-  64 MiB by default) and tables (100,000 entries), and rejects shared or 64-bit
-  memories. A module cannot call itself again from inside a call. On Android
+  instantiation and the module's initializer get one of their own. The store
+  also caps each linear memory (the manifest's `limits.memory`, 64 MiB by
+  default) and table (100,000 entries), whatever maximum the module declares: a
+  module whose memory or table starts larger fails to load, and growing one past
+  the cap answers -1. chasm rejects shared or 64-bit memories. A module cannot call itself again from inside a call. On Android
   chasm caps each call's stack at 16 MiB, past which the call fails with "ran
   out of stack". The store is
   interruptible too: cancelling the coroutine waiting on a call, such as a
@@ -1961,13 +1961,12 @@ cannot load, the command exits with an error rather than reading input.
   that call or load as a plugin failure ("ran out of memory"), never the app. The
   instance is dropped, freeing what it held, and the next call loads the module
   afresh. Only the plugin path catches it; anywhere else it still ends the app.
-- **Loading a large module.** Each load reads the module from the package.
-  `ModuleLimiter` writes its rewrite into one array sized exactly, copying the
-  sections it leaves alone straight from the original, which is let go once
-  that is done; chasm's decoded module and the module's linear memory remain.
+- **Loading a large module.** Each load reads the module from the package and
+  hands the bytes to chasm, which keeps them until the module has started; then
+  they are let go, and the decoded module and the module's linear memory remain.
   So a pre-initialized module needs a JVM heap several times its size while it
-  loads: the 104 MB `harper-grammar` module loads in a 352 MB heap but not in
-  320, and holds about 90 MB once loaded. Short of that, the load fails as out
+  loads: the 104 MB `harper-grammar` module loads in a 400 MB heap but not in
+  392, and holds about 90 MB once loaded. Short of that, the load fails as out
   of memory, and a text check it provides leaves the text unmarked. It is
   untried on Android's app heap.
 - **iOS.** Kotlin/Native has no heap limit to read, so the kernel's cap is a fixed
