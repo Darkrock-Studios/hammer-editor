@@ -67,7 +67,7 @@ telephoto = "0.19.0"
 kmpalette = "3.1.0"
 
 koin_bom = "4.2.2"
-koin_plugin = "1.2.1"
+koin_plugin = "1.2.3"
 
 ktor = "3.6.1"
 ktor_plugin = "3.6.1"
