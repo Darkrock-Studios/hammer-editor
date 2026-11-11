@@ -18,6 +18,7 @@ class UpdateMetadataTest {
 
 	private val installers = listOf(
 		"hammer.msi", "hammer.exe", "hammer.dmg", "hammer.pkg", "hammer.deb", "hammer.rpm", "hammer.AppImage",
+		"hammer-x64.tar.gz", "hammer-arm64.deb", "hammer-arm64.tar.gz",
 	)
 
 	@Test
@@ -77,12 +78,16 @@ class UpdateMetadataTest {
 
 		val files = updateMetadataFiles(dir, "3.12.0", "2026-10-20T18:04:11Z")
 
-		assertEquals(setOf("latest.yml", "latest-mac.yml", "latest-linux.yml"), files.keys)
+		assertEquals(setOf("latest.yml", "latest-mac.yml", "latest-linux.yml", "latest-linux-arm64.yml"), files.keys)
 		assertEquals(listOf("hammer.msi", "hammer.exe"), urlsIn(files.getValue("latest.yml")))
 		assertEquals(listOf("hammer.dmg", "hammer.pkg"), urlsIn(files.getValue("latest-mac.yml")))
 		assertEquals(
-			listOf("hammer.deb", "hammer.rpm", "hammer.AppImage"),
+			listOf("hammer.deb", "hammer.rpm", "hammer.AppImage", "hammer-x64.tar.gz"),
 			urlsIn(files.getValue("latest-linux.yml")),
+		)
+		assertEquals(
+			listOf("hammer-arm64.deb", "hammer-arm64.tar.gz"),
+			urlsIn(files.getValue("latest-linux-arm64.yml")),
 		)
 		assertEquals("    sha512: digest0=", files.getValue("latest.yml").lines()[4])
 		assertEquals("    size: 100", files.getValue("latest.yml").lines()[5])
@@ -96,7 +101,10 @@ class UpdateMetadataTest {
 		val files = updateMetadataFiles(dir, "1", "d")
 
 		assertEquals(listOf("hammer.msi", "hammer.exe"), urlsIn(files.getValue("latest.yml")))
-		assertEquals(listOf("hammer.deb", "hammer.rpm", "hammer.AppImage"), urlsIn(files.getValue("latest-linux.yml")))
+		assertEquals(
+			listOf("hammer.deb", "hammer.rpm", "hammer.AppImage", "hammer-x64.tar.gz"),
+			urlsIn(files.getValue("latest-linux.yml")),
+		)
 	}
 
 	@Test
