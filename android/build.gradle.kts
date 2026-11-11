@@ -82,11 +82,11 @@ android {
 	}
 	// Wear OS pairing needs Google Play services, which F-Droid builds may not ship.
 	if (isFDroidBuild) {
-		sourceSets.getByName("main").kotlin.srcDir("src/nogms/kotlin")
+		sourceSets.getByName("main").kotlin.directories.add("src/nogms/kotlin")
 	} else {
-		sourceSets.getByName("main").kotlin.srcDir("src/gms/kotlin")
-		sourceSets.getByName("main").res.srcDir("src/gms/res")
-		sourceSets.getByName("test").kotlin.srcDir("src/testGms/kotlin")
+		sourceSets.getByName("main").kotlin.directories.add("src/gms/kotlin")
+		sourceSets.getByName("main").res.directories.add("src/gms/res")
+		sourceSets.getByName("test").kotlin.directories.add("src/testGms/kotlin")
 	}
 	if (isFDroidBuild) {
 		// Swap in the manifest that also declares the public-storage permissions.

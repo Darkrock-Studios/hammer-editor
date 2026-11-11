@@ -18,7 +18,7 @@ repositories {
 }
 
 kotlin {
-	androidLibrary {
+	android {
 		namespace = "com.darkrockstudios.apps.hammer.base"
 		compileSdk = libs.versions.android.sdk.compile.get().toInt()
 		minSdk = libs.versions.android.sdk.min.get().toInt()
@@ -43,7 +43,7 @@ kotlin {
 			}
 		}
 
-		val commonMain by getting {
+		getByName("commonMain") {
 			dependencies {
 				api(project.dependencies.platform(libs.koin.bom.get()))
 				api(libs.koin.core)
@@ -62,7 +62,7 @@ kotlin {
 				implementation(libs.kotlin.multiplatform.diff)
 			}
 		}
-		val commonTest by getting {
+		getByName("commonTest") {
 			dependencies {
 				implementation(kotlin("test"))
 				implementation(libs.kotlin.reflect)

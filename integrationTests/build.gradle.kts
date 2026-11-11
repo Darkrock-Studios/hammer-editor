@@ -26,7 +26,7 @@ kotlin {
 			}
 		}
 
-		val jvmTest by getting {
+		val jvmTest = getByName("jvmTest") {
 			dependencies {
 				implementation(project(":base"))
 				implementation(project(":common"))
