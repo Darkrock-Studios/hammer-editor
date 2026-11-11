@@ -17,8 +17,8 @@ import androidx.compose.ui.unit.dp
  *
  * The bracket is drawn via [drawBehind] rather than a child [VerticalDivider]
  * with IntrinsicSize.Min — that approach forces intrinsic measurement of
- * descendants, which crashes when any child is a SubcomposeLayout (KoalaPlot
- * PieChart, lazy lists, BoxWithConstraints, etc.).
+ * descendants, which crashes when any child is a SubcomposeLayout (lazy
+ * lists, BoxWithConstraints, etc.).
  */
 @Composable
 fun HdHairlineSection(

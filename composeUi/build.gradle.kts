@@ -94,7 +94,6 @@ kotlin {
 				api(libs.kmpalette.extensions.file)
 				implementation(libs.colorpicker.compose)
 				implementation(libs.material.kolor)
-				implementation(libs.koalaplot.core)
 				implementation(libs.cairn)
 				implementation(libs.aboutlibraries.core)
 				implementation(libs.aboutlibraries.compose)
