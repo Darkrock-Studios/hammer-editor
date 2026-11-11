@@ -106,7 +106,7 @@ class WasmPlugin(
 			loadModule,
 			listOf(dispatchFunction(), progressFunction(), resourceFunction()) + cacheFunctions(),
 			log = ::log,
-			limiter = ModuleLimiter(maxMemoryPages = manifest.limits.memory * PAGES_PER_MIB),
+			maxMemoryPages = manifest.limits.memory * PAGES_PER_MIB,
 			http = pluginHttp(),
 			maxKernelBytes = maxKernelBytes,
 		).also { loaded = it }
@@ -716,8 +716,6 @@ class WasmPlugin(
 		const val FAILED = "Failed"
 
 		private const val COMMAND_FAILED = 1
-
-		private const val PAGES_PER_MIB = 16
 
 		/** Function calls plus loop iterations allowed per call before the module is stopped. */
 		const val DEFAULT_FUEL_PER_CALL = 2_000_000_000L
