@@ -1,5 +1,7 @@
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.plugin.KotlinCompilation
+import org.jetbrains.kotlin.powerassert.gradle.PowerAssertCompilationFilter
 
 plugins {
 	alias(libs.plugins.kotlin.multiplatform)
@@ -16,7 +18,7 @@ kotlin {
 	jvmToolchain {
 		languageVersion.set(JavaLanguageVersion.of(libs.versions.jvm.get().toInt()))
 	}
-	androidLibrary {
+	android {
 		namespace = "com.darkrockstudios.apps.hammer.operations"
 		compileSdk = libs.versions.android.sdk.compile.get().toInt()
 		minSdk = libs.versions.android.sdk.min.get().toInt()
@@ -37,18 +39,18 @@ kotlin {
 	applyDefaultHierarchyTemplate()
 
 	sourceSets {
-		val commonMain by getting {
+		getByName("commonMain") {
 			dependencies {
 				api(project(":common"))
 				implementation(libs.tomlkt)
 			}
 		}
-		val commonTest by getting {
+		getByName("commonTest") {
 			dependencies {
 				implementation(kotlin("test"))
 			}
 		}
-		val desktopTest by getting {
+		getByName("desktopTest") {
 			dependencies {
 				implementation(libs.bundles.junit.jupiter)
 				implementation(libs.coroutines.test)
@@ -68,5 +70,8 @@ powerAssert {
 		"kotlin.test.assertEquals",
 		"kotlin.test.assertNull"
 	)
-	includedSourceSets = listOf("commonTest", "desktopTest")
+	compilationFilter = object : PowerAssertCompilationFilter {
+		override fun check(compilation: KotlinCompilation<*>) =
+			compilation.defaultSourceSet.name == "desktopTest"
+	}
 }

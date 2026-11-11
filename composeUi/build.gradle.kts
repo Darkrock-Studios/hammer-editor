@@ -8,7 +8,7 @@ plugins {
 	alias(libs.plugins.android.kotlin.multiplatform.library)
 	alias(libs.plugins.jetbrains.kover)
 	//alias(libs.plugins.compose.report.generator)
-	id("ee.schimke.composeai.preview") version "2.34.0"
+	alias(libs.plugins.composeai.preview)
 }
 
 group = "com.darkrockstudios.apps.hammer.composeui"
@@ -18,7 +18,7 @@ kotlin {
 	jvmToolchain {
 		languageVersion.set(JavaLanguageVersion.of(libs.versions.jvm.get().toInt()))
 	}
-	androidLibrary {
+	android {
 		namespace = "com.darkrockstudios.apps.hammer.composeui"
 		compileSdk = libs.versions.android.sdk.compile.get().toInt()
 		minSdk = libs.versions.android.sdk.min.get().toInt()
@@ -45,7 +45,7 @@ kotlin {
 			baseName = "Hammer"
 			// libbacktrace gives Kotlin/Native crashes file/line numbers in stack traces.
 			binaryOption("sourceInfoType", "libbacktrace")
-			export(project(":common"))
+			export(project.dependencies.project(":common"))
 			export(libs.decompose)
 			export(libs.essenty.lifecycle)
 			export(libs.coroutines.core)
@@ -65,7 +65,7 @@ kotlin {
 			}
 		}
 
-		val commonMain by getting {
+		getByName("commonMain") {
 			dependencies {
 				api(project(":common"))
 				api(project(":operations"))
@@ -104,14 +104,14 @@ kotlin {
 				implementation(libs.platform.spellcheckerkt)
 			}
 		}
-		val commonTest by getting {
+		getByName("commonTest") {
 			dependencies {
 				implementation(kotlin("test"))
 				implementation(libs.okio.fakefilesystem)
 				implementation(libs.kotlin.reflect)
 			}
 		}
-		val androidMain by getting {
+		getByName("androidMain") {
 			dependencies {
 				api(libs.jetbrains.compose.ui.tooling)
 				implementation(libs.androidx.window)
@@ -119,15 +119,14 @@ kotlin {
 				implementation(libs.moko.permissions.compose)
 			}
 		}
-		val desktopMain by getting {
+		getByName("desktopMain") {
 			dependencies {
 				api(libs.jetbrains.compose.ui.tooling)
 				implementation(compose.desktop.currentOs)
 			}
 		}
-		val iosMain by getting
 
-		val desktopTest by getting {
+		getByName("desktopTest") {
 			dependencies {
 				implementation(libs.junit.jupiter)
 				runtimeOnly(libs.junit.vintage.engine)

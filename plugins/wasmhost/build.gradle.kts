@@ -1,5 +1,7 @@
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.plugin.KotlinCompilation
+import org.jetbrains.kotlin.powerassert.gradle.PowerAssertCompilationFilter
 
 plugins {
 	alias(libs.plugins.kotlin.multiplatform)
@@ -16,7 +18,7 @@ kotlin {
 	jvmToolchain {
 		languageVersion.set(JavaLanguageVersion.of(libs.versions.jvm.get().toInt()))
 	}
-	androidLibrary {
+	android {
 		namespace = "com.darkrockstudios.apps.hammer.plugins.wasmhost"
 		compileSdk = libs.versions.android.sdk.compile.get().toInt()
 		minSdk = libs.versions.android.sdk.min.get().toInt()
@@ -37,7 +39,7 @@ kotlin {
 	applyDefaultHierarchyTemplate()
 
 	sourceSets {
-		val commonMain by getting {
+		getByName("commonMain") {
 			dependencies {
 				api(project(":operations"))
 				implementation(libs.chasm)
@@ -48,14 +50,14 @@ kotlin {
 			}
 		}
 		// One file for both JVM targets, which the default hierarchy gives no source set of their own.
-		val desktopMain by getting { kotlin.srcDir("src/jvmSharedMain/kotlin") }
-		val androidMain by getting { kotlin.srcDir("src/jvmSharedMain/kotlin") }
-		val commonTest by getting {
+		getByName("desktopMain") { kotlin.srcDir("src/jvmSharedMain/kotlin") }
+		getByName("androidMain") { kotlin.srcDir("src/jvmSharedMain/kotlin") }
+		getByName("commonTest") {
 			dependencies {
 				implementation(kotlin("test"))
 			}
 		}
-		val desktopTest by getting {
+		getByName("desktopTest") {
 			dependencies {
 				implementation(libs.bundles.junit.jupiter)
 				implementation(libs.coroutines.test)
@@ -73,7 +75,10 @@ powerAssert {
 		"kotlin.test.assertEquals",
 		"kotlin.test.assertNull"
 	)
-	includedSourceSets = listOf("commonTest", "desktopTest")
+	compilationFilter = object : PowerAssertCompilationFilter {
+		override fun check(compilation: KotlinCompilation<*>) =
+			compilation.defaultSourceSet.name == "desktopTest"
+	}
 }
 
 // A Kotlin/Wasm plugin holds everything a call allocates until the call returns, and may take up to half

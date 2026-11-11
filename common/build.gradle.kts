@@ -1,5 +1,7 @@
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.plugin.KotlinCompilation
+import org.jetbrains.kotlin.powerassert.gradle.PowerAssertCompilationFilter
 
 plugins {
 	alias(libs.plugins.kotlin.multiplatform)
@@ -25,7 +27,7 @@ kotlin {
 	jvmToolchain {
 		languageVersion.set(JavaLanguageVersion.of(libs.versions.jvm.get().toInt()))
 	}
-	androidLibrary {
+	android {
 		namespace = "com.darkrockstudios.apps.hammer.common"
 		compileSdk = libs.versions.android.sdk.compile.get().toInt()
 		minSdk = libs.versions.android.sdk.min.get().toInt()
@@ -59,7 +61,7 @@ kotlin {
 			}
 		}
 
-		val commonMain by getting {
+		val commonMain = getByName("commonMain") {
 			resources.srcDirs("resources")
 
 			dependencies {
@@ -100,17 +102,17 @@ kotlin {
 				implementation(libs.kotlinx.html)
 			}
 		}
-		val commonTest by getting {
+		val commonTest = getByName("commonTest") {
 			dependencies {
 				implementation(kotlin("test"))
 				implementation(libs.koin.test)
 				implementation(libs.kotlin.reflect)
 			}
 		}
-		val jvmMain by creating {
+		val jvmMain = create("jvmMain") {
 			dependsOn(commonMain)
 		}
-		val jvmTest by creating {
+		val jvmTest = create("jvmTest") {
 			dependsOn(commonTest)
 			dependencies {
 				// okio-fakefilesystem references the deprecated kotlinx.datetime.Clock typealias,
@@ -119,7 +121,7 @@ kotlin {
 				implementation(libs.okio.fakefilesystem)
 			}
 		}
-		val androidMain by getting {
+		getByName("androidMain") {
 			dependsOn(jvmMain)
 			dependencies {
 				api(libs.androidx.core.ktx)
@@ -131,24 +133,24 @@ kotlin {
 				implementation(libs.androidx.security.crypto)
 			}
 		}
-		val iosMain by getting {
+		getByName("iosMain") {
 			dependencies {
 				api(libs.decompose)
 				api(libs.bundles.essenty)
 				api(libs.ktor.client.darwin)
 			}
 		}
-		val iosTest by getting {
+		getByName("iosTest") {
 			dependencies {
 				implementation(libs.multiplatform.settings.test)
 			}
 		}
-		val androidHostTest by getting {
+		getByName("androidHostTest") {
 			dependencies {
 				implementation(kotlin("test"))
 			}
 		}
-		val desktopMain by getting {
+		getByName("desktopMain") {
 			dependsOn(jvmMain)
 			dependencies {
 				implementation(libs.slf4j.simple)
@@ -161,7 +163,7 @@ kotlin {
 				implementation(libs.jetbrains.compose.ui.graphics)
 			}
 		}
-		val desktopTest by getting {
+		getByName("desktopTest") {
 			dependsOn(jvmTest)
 			dependencies {
 				implementation(libs.bundles.junit.jupiter)
@@ -221,5 +223,8 @@ powerAssert {
 		"kotlin.test.assertEquals",
 		"kotlin.test.assertNull"
 	)
-	includedSourceSets = listOf("commonTest", "desktopTest")
+	compilationFilter = object : PowerAssertCompilationFilter {
+		override fun check(compilation: KotlinCompilation<*>) =
+			compilation.defaultSourceSet.name == "desktopTest"
+	}
 }
