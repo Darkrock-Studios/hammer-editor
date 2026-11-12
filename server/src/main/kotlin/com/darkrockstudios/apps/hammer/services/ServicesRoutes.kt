@@ -88,7 +88,7 @@ private suspend fun ApplicationCall.languageToolCheck(proxy: LanguageToolProxy) 
 		respondError(HttpStatusCode.PayloadTooLarge, ERR_KEY_TOO_LARGE)
 		return
 	}
-	val body = receiveChannel().readRemaining(limit + 1).readByteArray()
+	val body = receiveChannel().readBuffer(limit + 1).readByteArray()
 	if (body.size > limit) {
 		respondError(HttpStatusCode.PayloadTooLarge, ERR_KEY_TOO_LARGE)
 		return

@@ -59,7 +59,7 @@ class LanguageToolProxy(
 
 	private suspend fun upstream(what: String, send: suspend () -> HttpResponse): Result = try {
 		val response = send()
-		val body = response.bodyAsChannel().readRemaining(MAX_REPLY_BYTES + 1).readByteArray()
+		val body = response.bodyAsChannel().readBuffer(MAX_REPLY_BYTES + 1).readByteArray()
 		if (body.size > MAX_REPLY_BYTES) {
 			log.warn("LanguageTool $what reply over $MAX_REPLY_BYTES bytes")
 			Result.Failed("reply too large")
