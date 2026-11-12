@@ -22,17 +22,17 @@ class PluginChoicesTest {
 	private val names = plugin("names", null)
 
 	@Test
-	fun `plugins of a kind that work in the project's language make one choice`() {
+	fun `every plugin of a kind is in its choice, those for the project's language first`() {
 		val english = pluginChoices(listOf(harper, languageTool, simple, names), "en-GB").single()
 		assertEquals(listOf("harper", "languagetool", "simple"), english.plugins.map { it.id })
 
 		val french = pluginChoices(listOf(harper, languageTool, simple, names), "fr").single()
-		assertEquals(listOf("languagetool", "simple"), french.plugins.map { it.id })
+		assertEquals(listOf("languagetool", "simple", "harper"), french.plugins.map { it.id })
 	}
 
 	@Test
-	fun `a kind with one plugin for the language is no choice`() {
-		assertEquals(emptyList(), pluginChoices(listOf(harper, languageTool, simple), "de"))
+	fun `a kind with one plugin is no choice`() {
+		assertEquals(emptyList(), pluginChoices(listOf(harper, names), "en"))
 	}
 
 	@Test
@@ -45,25 +45,13 @@ class PluginChoicesTest {
 	}
 
 	@Test
-	fun `the pick follows which plugins are on, and picking one turns the rest off`() {
+	fun `the pick is the plugin on, and picking one turns the rest off`() {
 		val choice = pluginChoices(listOf(harper, languageTool, simple), "en").single()
 
-		assertEquals(PluginPick.Several, choice.picked(emptySet()))
 		assertEquals(PluginPick.One(simple), choice.picked(setOf("harper", "languagetool")))
 		assertEquals(PluginPick.None, choice.picked(setOf("harper", "languagetool", "simple")))
 
 		assertEquals(mapOf("harper" to false, "languagetool" to true, "simple" to false), choice.changesFor(PluginPick.One(languageTool)))
 		assertEquals(mapOf("harper" to false, "languagetool" to false, "simple" to false), choice.changesFor(PluginPick.None))
-		assertEquals(emptyMap(), choice.changesFor(PluginPick.Several))
-	}
-
-	@Test
-	fun `a plugin of the kind not offered for the language is turned off by a pick, and shows as one more on`() {
-		val french = pluginChoices(listOf(harper, languageTool, simple), "fr").single()
-
-		assertEquals(PluginPick.Several, french.picked(setOf("simple")))
-		assertEquals(PluginPick.One(languageTool), french.picked(setOf("harper", "simple")))
-		assertEquals(mapOf("languagetool" to true, "simple" to false, "harper" to false), french.changesFor(PluginPick.One(languageTool)))
-		assertEquals(mapOf("languagetool" to false, "simple" to false, "harper" to false), french.changesFor(PluginPick.None))
 	}
 }

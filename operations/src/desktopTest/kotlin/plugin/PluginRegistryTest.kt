@@ -3,6 +3,7 @@ package plugin
 import com.darkrockstudios.apps.hammer.common.data.export.ExportInput
 import com.darkrockstudios.apps.hammer.common.data.export.StoryExporter
 import com.darkrockstudios.apps.hammer.common.data.export.StoryExporterRegistry
+import com.darkrockstudios.apps.hammer.common.data.projectplugins.KindedPlugin
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.APP_SCOPE
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_IO
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
@@ -10,10 +11,13 @@ import com.darkrockstudios.apps.hammer.operations.cli.CliCommand
 import com.darkrockstudios.apps.hammer.operations.cli.CliIo
 import com.darkrockstudios.apps.hammer.operations.cli.Dispatcher
 import com.darkrockstudios.apps.hammer.operations.plugin.ClientPlugin
+import com.darkrockstudios.apps.hammer.operations.plugin.PluginKind
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
 import com.darkrockstudios.apps.hammer.operations.plugin.SettingDeclaration
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import net.peanuuutz.tomlkt.Toml
 import okio.BufferedSink
 import okio.FileSystem
@@ -112,6 +116,30 @@ class PluginRegistryTest : KoinComponent {
 	}
 
 	@Test
+	fun `a plugin replaced, or removed and added again, keeps its place`() {
+		val registry = PluginRegistry()
+		listOf("harper", "languagetool", "simple").forEach { registry.add(FakePlugin(it)) }
+		registry.add(FakePlugin("harper"))
+		registry.remove("languagetool")
+		registry.add(FakePlugin("languagetool"))
+
+		assertEquals(listOf("harper", "languagetool", "simple"), registry.plugins.map { it.id })
+	}
+
+	@Test
+	fun `the plugins with a kind are offered in their order, with their languages`() = runBlocking {
+		val registry = PluginRegistry()
+		registry.add(FakePlugin("harper", kind = PluginKind("grammar", "Grammar"), languages = listOf("en")))
+		registry.add(FakePlugin("names"))
+		registry.add(FakePlugin("languagetool", kind = PluginKind("grammar", "Grammar")))
+
+		assertEquals(
+			listOf(KindedPlugin("harper", "grammar", listOf("en")), KindedPlugin("languagetool", "grammar")),
+			registry.kindedPlugins.first(),
+		)
+	}
+
+	@Test
 	fun `refuses a command another plugin has, or one that shadows operations`() {
 		val registry = PluginRegistry()
 		registry.add(FakePlugin("one", commands = listOf(FakeCommand("echo"))))
@@ -142,6 +170,8 @@ class PluginRegistryTest : KoinComponent {
 		private val exporters: List<StoryExporter> = emptyList(),
 		private val settings: List<SettingDeclaration> = emptyList(),
 		private val commands: List<CliCommand> = emptyList(),
+		override val kind: PluginKind? = null,
+		override val languages: List<String> = emptyList(),
 	) : ClientPlugin {
 		override fun exporters() = exporters
 		override fun settings() = settings

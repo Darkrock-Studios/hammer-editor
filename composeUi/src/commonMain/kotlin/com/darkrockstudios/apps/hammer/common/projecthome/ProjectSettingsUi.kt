@@ -65,7 +65,6 @@ import com.darkrockstudios.apps.hammer.project_settings_hero_marker
 import com.darkrockstudios.apps.hammer.project_settings_hero_no_author
 import com.darkrockstudios.apps.hammer.project_settings_plugins_caption
 import com.darkrockstudios.apps.hammer.project_settings_plugins_pick_none
-import com.darkrockstudios.apps.hammer.project_settings_plugins_pick_several
 import com.darkrockstudios.apps.hammer.project_settings_plugins_section_title
 import com.darkrockstudios.apps.hammer.project_settings_spellcheck_encyclopedia_enable
 import com.darkrockstudios.apps.hammer.project_settings_spellcheck_encyclopedia_enable_hint
@@ -241,8 +240,8 @@ private fun ProjectDictionaryWords(
 }
 
 /**
- * Manage plugins, a dropdown for each kind with several plugins for the project's [language], then a
- * toggle for each other active plugin, turning it off for this project alone.
+ * Manage plugins, a dropdown for each kind with several plugins, those for the project's [language]
+ * first, then a toggle for each other active plugin, turning it off for this project alone.
  */
 @Composable
 private fun ProjectPlugins(
@@ -268,17 +267,13 @@ private fun ProjectPlugins(
 		)
 		ManagePluginsButton()
 		choices.forEach { choice ->
-			val picked = choice.picked(disabled)
-			val picks = listOf<PluginPick>(PluginPick.None) + choice.plugins.map(PluginPick::One) +
-				listOfNotNull(PluginPick.Several.takeIf { picked == PluginPick.Several })
 			HdHairlineDropdown(
-				options = picks,
-				selected = picked,
+				options = listOf<PluginPick>(PluginPick.None) + choice.plugins.map(PluginPick::One),
+				selected = choice.picked(disabled),
 				onSelect = { component.setPluginsEnabled(choice.changesFor(it)) },
 				label = { pick ->
 					when (pick) {
 						PluginPick.None -> Res.string.project_settings_plugins_pick_none.get()
-						PluginPick.Several -> Res.string.project_settings_plugins_pick_several.get()
 						is PluginPick.One -> pick.plugin.name ?: pick.plugin.id
 					}
 				},

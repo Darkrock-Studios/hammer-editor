@@ -18,8 +18,8 @@ data class PluginManifest(
 	val description: String? = null,
 	/**
 	 * BCP 47 tags of the project languages the plugin works with, such as `en` or `fr`; empty when it
-	 * does not depend on the language. Projects in others still call it; a project picking one plugin
-	 * of a [kind] is offered only those for its language.
+	 * does not depend on the language. Projects in others still call it; of the plugins of a [kind],
+	 * a project runs the first installed for its language until the writer picks one.
 	 */
 	val languages: List<String> = emptyList(),
 	val kind: Kind? = null,

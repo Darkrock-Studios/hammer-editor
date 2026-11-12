@@ -1,5 +1,6 @@
 package components.projectroot
 
+import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectDisabledPluginsUseCase
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.components.images.ImageGalleryMode
 import com.darkrockstudios.apps.hammer.common.components.images.ImagePickRequests
@@ -193,6 +194,7 @@ class ProjectRootComponentTest : ComponentTest() {
 				mockk { every { availableLocales() } returns emptyList() }
 			}
 			scope<ProjectDefScope> {
+				scoped { ProjectDisabledPluginsUseCase(projectDef, get(), get(), getAll()) }
 				scoped { ProjectDataConflictBroker(projectDef) }
 				scoped<AutoConfirmReferencesUseCase> { mockk(relaxed = true) }
 				scoped<ScrubInvalidReferencesUseCase> { mockk(relaxed = true) }

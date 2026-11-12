@@ -1,62 +1,42 @@
 package com.darkrockstudios.apps.hammer.common.projecthome
 
+import com.darkrockstudios.apps.hammer.common.data.projectplugins.pluginWorksIn
 import com.darkrockstudios.apps.hammer.operations.plugin.ClientPlugin
 
 /**
- * Plugins of one kind that work in the project's language, of which the project uses one. [label]
- * is the first translated kind label among them by plugin id, or the first label when none is.
- * [others] are the kind's plugins for other languages, which still run while on, so a pick turns
- * them off too.
+ * The plugins of one kind, of which a project runs at most one: those that work in its language
+ * first. [label] is the first translated kind label among them by plugin id, or the first label when
+ * none is.
  */
-internal data class PluginChoice(
-	val kindId: String,
-	val label: String,
-	val plugins: List<ClientPlugin>,
-	val others: List<ClientPlugin> = emptyList(),
-)
+internal data class PluginChoice(val kindId: String, val label: String, val plugins: List<ClientPlugin>)
 
-/** What a [PluginChoice]'s dropdown shows as picked, from which of its plugins are on. */
+/** What a [PluginChoice]'s dropdown shows as picked. */
 internal sealed interface PluginPick {
 	data object None : PluginPick
-	data object Several : PluginPick
 	data class One(val plugin: ClientPlugin) : PluginPick
 }
 
-/** The kinds with two or more of [plugins] working in [language], by label. */
+/** The kinds with two or more of [plugins], by label. */
 internal fun pluginChoices(plugins: List<ClientPlugin>, language: String?): List<PluginChoice> =
 	plugins.filter { it.kind != null }
 		.groupBy { it.kind!!.id }
-		.mapNotNull { (kindId, ofKind) ->
-			val (offered, others) = ofKind.partition { worksIn(it, language) }
-			if (offered.size < 2) return@mapNotNull null
-			val kinds = offered.sortedBy { it.id }.mapNotNull { it.kind }
+		.filterValues { it.size > 1 }
+		.map { (kindId, ofKind) ->
+			val kinds = ofKind.sortedBy { it.id }.mapNotNull { it.kind }
 			val label = (kinds.firstOrNull { it.localized } ?: kinds.first()).label
-			PluginChoice(kindId, label, offered.sortedBy { (it.name ?: it.id).lowercase() }, others)
+			val ordered = ofKind.sortedWith(
+				compareBy<ClientPlugin> { !pluginWorksIn(it.languages, language) }.thenBy { (it.name ?: it.id).lowercase() }
+			)
+			PluginChoice(kindId, label, ordered)
 		}
 		.sortedBy { it.label.lowercase() }
 
-internal fun PluginChoice.picked(disabled: Set<String>): PluginPick {
-	val on = plugins.filter { it.id !in disabled }
-	if (others.any { it.id !in disabled }) return PluginPick.Several
-	return when (on.size) {
-		0 -> PluginPick.None
-		1 -> PluginPick.One(on.single())
-		else -> PluginPick.Several
-	}
-}
+/** From the project's turned-off plugins, in which at most one plugin of a kind is on. */
+internal fun PluginChoice.picked(disabled: Set<String>): PluginPick =
+	plugins.firstOrNull { it.id !in disabled }?.let(PluginPick::One) ?: PluginPick.None
 
-/** The plugins to turn on and off for [pick]; nothing for [PluginPick.Several], which is not a choice. */
+/** The plugins to turn on and off for [pick]. */
 internal fun PluginChoice.changesFor(pick: PluginPick): Map<String, Boolean> = when (pick) {
-	PluginPick.Several -> emptyMap()
-	PluginPick.None -> (plugins + others).associate { it.id to false }
-	is PluginPick.One -> (plugins + others).associate { it.id to (it.id == pick.plugin.id) }
+	PluginPick.None -> plugins.associate { it.id to false }
+	is PluginPick.One -> plugins.associate { it.id to (it.id == pick.plugin.id) }
 }
-
-// Matched on the primary language subtag, so an `en` plugin serves an `en-GB` project.
-private fun worksIn(plugin: ClientPlugin, language: String?): Boolean {
-	if (plugin.languages.isEmpty() || language.isNullOrBlank()) return true
-	val wanted = primaryLanguage(language)
-	return plugin.languages.any { primaryLanguage(it) == wanted }
-}
-
-private fun primaryLanguage(tag: String) = tag.substringBefore('-').substringBefore('_').lowercase()
