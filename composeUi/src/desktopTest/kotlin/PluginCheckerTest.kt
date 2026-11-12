@@ -3,6 +3,7 @@ import com.darkrockstudios.apps.hammer.operations.plugin.TextDiagnostic
 import com.darkrockstudios.apps.hammer.operations.plugin.TextDiagnosticSeverity
 import com.darkrockstudios.apps.hammer.operations.plugin.TextDiagnosticsProvider
 import com.darkrockstudios.apps.hammer.operations.plugin.TextDiagnosticsRequest
+import com.darkrockstudios.apps.hammer.operations.plugin.TextFix
 import com.darkrockstudios.texteditor.spellcheck.diagnostics.DiagnosticSeverity
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
@@ -35,6 +36,49 @@ class PluginCheckerTest {
 		assertEquals(listOf("Grammar"), byLine.single().map { it.message })
 		assertEquals(listOf(1, 0, 1), byText.map { it.size })
 		assertEquals(DiagnosticSeverity.Suggestion, byText.first().single().severity)
+	}
+
+	private fun flagging(label: String, severity: TextDiagnosticSeverity, vararg fixes: String, end: Int = 3, wholeScene: Boolean = false) =
+		TextDiagnosticsProvider(label, wholeScene) { request ->
+			request.paragraphs.map { listOf(TextDiagnostic(0, end, label, fixes.map(::TextFix), severity)) }
+		}
+
+	@Test
+	fun `checks flagging the same text share one underline, worded by the strongest`() = runBlocking {
+		val checker = PluginChecker(
+			listOf(
+				flagging("Harper", TextDiagnosticSeverity.Suggestion, "the", "a"),
+				flagging("LanguageTool", TextDiagnosticSeverity.Error, "a", "an"),
+				flagging("Simple", TextDiagnosticSeverity.Error, "x", end = 2),
+			),
+			project = "Storm",
+			language = "en",
+		)
+
+		val found = checker.check(listOf("teh cat")).single()
+
+		assertEquals(listOf(0 to 3, 0 to 2), found.map { it.start to it.end })
+		val shared = found.first()
+		assertEquals("LanguageTool", shared.message)
+		assertEquals(listOf("the", "a", "an"), shared.fixes.map { it.replacement })
+		assertEquals(DiagnosticSeverity.Error, shared.severity)
+	}
+
+	@Test
+	fun `scene checks flagging the same text share one underline too`() = runBlocking {
+		val checker = PluginChecker(
+			listOf(
+				flagging("Echoes", TextDiagnosticSeverity.Suggestion, "very", wholeScene = true),
+				flagging("Style", TextDiagnosticSeverity.Suggestion, "quite", wholeScene = true),
+			),
+			project = "Storm",
+			language = "en",
+		)
+
+		val shared = checker.checkText(listOf("very very"))!!.single().single()
+
+		assertEquals("Echoes", shared.message)
+		assertEquals(listOf("very", "quite"), shared.fixes.map { it.replacement })
 	}
 
 	@Test
