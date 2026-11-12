@@ -71,6 +71,8 @@ import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsR
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.ProjectStatisticsUseCase
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsService
 import com.darkrockstudios.apps.hammer.common.data.protocolmismatch.ProtocolMismatchRepository
+import com.darkrockstudios.apps.hammer.common.server.HammerServiceClient
+import com.darkrockstudios.apps.hammer.common.server.ServicesApi
 import com.darkrockstudios.apps.hammer.common.data.references.AutoConfirmReferencesUseCase
 import com.darkrockstudios.apps.hammer.common.data.references.BackfillEntryReferencesUseCase
 import com.darkrockstudios.apps.hammer.common.data.references.CleanupReferencesOnEntryDeleteUseCase
@@ -212,6 +214,7 @@ val mainModule = module {
 	single<ProtocolMismatchRepository>()
 	single { createHttpClient(get(), get(NetworkJsonQualifier)) } bind HttpClient::class
 	single<ServerAccountApi>()
+	single<HammerServiceClient> { ServicesApi(get(), get(), get()) }
 	single<ServerProjectApi> {
 		ServerProjectApi(
 			httpClient = get(),

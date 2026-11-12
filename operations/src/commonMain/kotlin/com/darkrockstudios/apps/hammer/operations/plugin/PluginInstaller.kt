@@ -31,4 +31,6 @@ data class PluginSummary(
 	val http: List<String> = emptyList(),
 	/** The setting holding an address it may also send what the user writes to. */
 	val userHostSetting: String? = null,
+	/** Services on the user's sync server it may send what the user writes to. */
+	val hammerServer: List<String> = emptyList(),
 )

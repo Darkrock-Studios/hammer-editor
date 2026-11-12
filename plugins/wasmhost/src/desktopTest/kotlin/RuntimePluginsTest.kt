@@ -1083,6 +1083,18 @@ class RuntimePluginsTest {
 	}
 
 	@Test
+	fun `hammer server services are listed in the summary, and a name that is not one is refused`() {
+		val plugins = runtimePlugins()
+		fun withServices(id: String, services: String) =
+			"id = \"$id\"\nname = \"Server\"\nversion = \"1.0.0\"\napi = 1\n\n[permissions]\nhammerServer = [$services]"
+
+		assertThrows<PluginPackageException> { plugins.install(pack("bad", withServices("bad", "\"../account\""))) }
+		plugins.install(pack("good", withServices("good", "\"languagetool\"")))
+
+		assertEquals(listOf("languagetool"), plugins.summaries().single().hammerServer)
+	}
+
+	@Test
 	fun `a broken translation, or one not named for a language, is refused`() {
 		val plugins = runtimePlugins()
 		assertThrows<PluginPackageException> { plugins.install(pack("echo", files = mapOf("locales/fr.toml" to "name = [1, 2"))) }

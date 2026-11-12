@@ -204,6 +204,9 @@ class PluginPackage(
 			manifest.permissions.http.firstOrNull { !HOST_NAME.matches(it) }?.let {
 				throw PluginPackageException("'$it' in permissions.http is not a host name")
 			}
+			manifest.permissions.hammerServer.firstOrNull { !PluginRegistry.isValidId(it) }?.let {
+				throw PluginPackageException("'$it' in permissions.hammerServer is not a service name")
+			}
 			checkCommands(manifest)
 			val actions = manifest.actions.map { it.name }
 			actions.groupBy { it }.filterValues { it.size > 1 }.keys.takeIf { it.isNotEmpty() }?.let {

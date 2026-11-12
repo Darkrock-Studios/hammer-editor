@@ -5,10 +5,13 @@ import org.koin.core.component.KoinComponent
 
 class ConfigRepository(private val dao: ServerConfigDao) : KoinComponent {
 
-	suspend fun <T> get(key: ServerConfigKey<T>): T {
+	suspend fun <T> get(key: ServerConfigKey<T>): T = getStored(key) ?: key.default
+
+	/** The saved value, or null when none is saved or it no longer parses. */
+	suspend fun <T> getStored(key: ServerConfigKey<T>): T? {
 		return dao.getConfig(key.key)?.let { value ->
 			runCatching { key.parse(value) }.getOrNull()
-		} ?: key.default
+		}
 	}
 
 	suspend fun <T> set(key: ServerConfigKey<T>, value: T) {

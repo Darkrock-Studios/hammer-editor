@@ -38,6 +38,11 @@ data class PluginManifest(
 		val http: List<String> = emptyList(),
 		/** A host the user enters in a setting, which the plugin may also reach, while a toggle is on if it names one. */
 		val userHosts: UserHosts? = null,
+		/**
+		 * Services on the user's own sync server the plugin may reach as the signed-in user, such as
+		 * `languagetool`. The host attaches the user's credentials; the plugin never sees them.
+		 */
+		val hammerServer: List<String> = emptyList(),
 	)
 
 	@Serializable

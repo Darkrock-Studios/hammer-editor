@@ -24,6 +24,14 @@
 				<span>{{msg.admin_nav_monitoring}}</span>
 			</a>
 		</li>
+		{{#languageToolFeatureEnabled}}
+			<li class="admin-nav-item">
+				<a href="/admin/grammar" class="admin-nav-link {{#activeGrammar}}active{{/activeGrammar}}">
+					<i class="fa-solid fa-spell-check"></i>
+					<span>{{msg.admin_nav_grammar}}</span>
+				</a>
+			</li>
+		{{/languageToolFeatureEnabled}}
 		{{#pluginNavEntries}}
 			<li class="admin-nav-item">
 				<a href="{{href}}" class="admin-nav-link {{#active}}active{{/active}}">
