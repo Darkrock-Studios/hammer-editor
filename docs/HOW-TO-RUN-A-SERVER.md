@@ -718,6 +718,20 @@ This will enable several new pages on the website found at: `/community`
 
 Users will now be able to opt-in to the community if they have already selected a **Pen Name**.
 
+## Enable Grammar Checking (_Optional_)
+
+The server can forward grammar checks from signed-in users' LanguageTool plugin to a
+[LanguageTool](https://languagetool.org) server only it can reach. It is off by default; to turn it
+on, add this line to your server config:
+
+```toml
+languageToolEnabled = true
+```
+
+Then set the LanguageTool server's address on **Admin → Grammar**, or with the
+`HAMMER_LANGUAGETOOL_URL` environment variable until an admin saves one. With Docker, see
+[Grammar checking](HOW-TO-RUN-A-SERVER-DOCKER.md#grammar-checking-languagetool).
+
 ## Setup Email Sending (_Optional_)
 
 Currently, we mainly use Email for password reset. Eventually we maybe have account verification,

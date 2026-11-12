@@ -96,3 +96,7 @@ fastlane/README.md
 
 # Local working area: marketing renders, one-off scripts, anything not shipped
 /scratch/
+
+# LanguageTool n-gram data fetched by docker/download-ngrams.sh
+docker/ngrams/*
+!docker/ngrams/.gitkeep

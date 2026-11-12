@@ -166,6 +166,57 @@ zone is logged at startup as `Server time zone: ...`. Stored data is unaffected,
 is persisted as an absolute instant. See [Time zone](HOW-TO-RUN-A-SERVER.md#time-zone) for the
 full rundown, including the one caveat when changing the zone on a server already in use.
 
+## Grammar checking (LanguageTool)
+
+The server can check grammar for signed-in writers who choose "Your Hammer server" in the
+LanguageTool plugin. It forwards their checks to a [LanguageTool](https://languagetool.org) server
+that only it can reach, so it never becomes an open LanguageTool server for anyone else.
+
+It is off by default. Turn it on in `config.toml` (see [Configuration](#configuration)):
+
+```toml
+languageToolEnabled = true
+```
+
+`docker-compose.yml` has an optional `languagetool` service to check against. Start it from the
+`.env` file next to the compose file, which also points the server at it:
+
+```
+COMPOSE_PROFILES=languagetool
+HAMMER_LANGUAGETOOL_URL=http://languagetool:8010
+```
+
+Then `docker compose up -d`. The address is the default until an admin saves the settings on
+**Admin → Grammar**, which also has a **Test connection** button, per-writer rate limit, and
+request size cap. Clearing the address there stops offering grammar checks.
+
+### n-gram data
+
+With n-gram data, LanguageTool catches commonly confused words (their/there, affect/effect). The
+service reads it from `docker/ngrams`; a language without data is still checked, just without
+those rules. Download it per language:
+
+```bash
+cd docker
+./download-ngrams.sh en
+docker compose restart languagetool
+```
+
+English is about 8.5 GB unzipped; other languages are smaller. The data is read from disk, so it
+needs disk space more than memory. Download before the first `docker compose up` if you can:
+Docker creates a missing `docker/ngrams` as root, and the script then asks you to `chown` it.
+
+### Resources
+
+The service is a separate JVM capped at a 2 GB heap (`Java_Xmx`), so plan for about 2.5 GB of RAM on
+top of the sync server. Lower `Java_Xmx` on a small host if you check only a language or two.
+
+### Privacy
+
+Writers using this option send the text they check through your server, including projects they
+never sync. The sync server neither stores nor logs that text, but LanguageTool may include parts of
+it in its own logs when a check fails. Say so in your privacy policy.
+
 ## TLS in the container
 
 If you want Hammer itself to terminate TLS, mount the certificate directory and

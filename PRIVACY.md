@@ -34,6 +34,10 @@ counts. Your other projects stay private to you. You can remove a co-author at a
 co-author can leave; either way their copy stops syncing but remains on their device until they
 delete it.
 
+If your sync server offers grammar checking and you choose it in a grammar plugin, the text being
+checked is sent to that server, which passes it to its grammar checker and returns the suggestions.
+This includes projects you don't sync. Hammer's sync server doesn't store that text.
+
 ## 4. Bug reports are yours to send
 
 If something breaks and you want to report it, the app can gather recent logs to help us understand
