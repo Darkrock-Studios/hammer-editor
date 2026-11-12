@@ -24,7 +24,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsearch.SearchProjectUse
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
-import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectPluginsRepository
+import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectDisabledPluginsUseCase
 import com.darkrockstudios.apps.hammer.common.data.protocolmismatch.ProtocolMismatchRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
@@ -54,7 +54,7 @@ class ProjectRootComponent(
 	private val syncJournal: SyncJournal = projectGet()
 	private val sceneEditor: SceneEditorService by projectInject()
 	private val projectDataRepository: ProjectDataRepository by projectInject()
-	private val projectPlugins: ProjectPluginsRepository by inject()
+	private val projectDisabledPlugins: ProjectDisabledPluginsUseCase by projectInject()
 	private val encyclopediaService: EncyclopediaService by projectInject()
 	private val notesRepository: NotesRepository by projectInject()
 	private val timeLineRepository: TimeLineRepository by projectInject()
@@ -181,7 +181,7 @@ class ProjectRootComponent(
 		}
 
 		scope.launch {
-			projectPlugins.disabledPlugins(projectDef.id).collect { disabled ->
+			projectDisabledPlugins.disabledPlugins.collect { disabled ->
 				withContext(dispatcherMain) { _disabledPlugins.value = disabled }
 			}
 		}

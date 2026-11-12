@@ -11,6 +11,9 @@ import com.darkrockstudios.apps.hammer.common.components.projecthome.CoverImage
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectSettingsComponent
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesService
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.image.ImageDef
+import com.darkrockstudios.apps.hammer.common.data.projectplugins.KindedPlugin
+import com.darkrockstudios.apps.hammer.common.data.projectplugins.PluginKindSource
+import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectDisabledPluginsUseCase
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
@@ -59,6 +62,10 @@ import kotlin.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ProjectSettingsComponentTest : ComponentTest() {
+	private val kindSource = object : PluginKindSource {
+		override val kindedPlugins = MutableStateFlow<List<KindedPlugin>>(emptyList())
+	}
+
 
 	private lateinit var ffs: FakeFileSystem
 	private lateinit var toml: Toml
@@ -114,6 +121,7 @@ class ProjectSettingsComponentTest : ComponentTest() {
 			single { projectsRepository }
 			single { AccountTagService(ideasRepository, projectsRepository, ffs, toml) }
 			single { ProjectPluginsRepository(ProjectPluginsDatasource(ffs, toml)) }
+			single<PluginKindSource> { kindSource }
 			single<PlatformSpellCheckerFactory> {
 				mockk { every { availableLocales() } returns emptyList() }
 			}
@@ -126,6 +134,7 @@ class ProjectSettingsComponentTest : ComponentTest() {
 				}
 			}
 			scope<ProjectDefScope> {
+				scoped { ProjectDisabledPluginsUseCase(projectDef, get(), get(), getAll()) }
 				scoped { ProjectDataRepository(datasource, projectDef) }
 				scoped { ProjectDictionaryUseCase(get()) }
 				scoped<SyncJournalDatasource> { mockk(relaxed = true) }
@@ -349,6 +358,40 @@ class ProjectSettingsComponentTest : ComponentTest() {
 			assertEquals(setOf("style"), comp.disabledPlugins.value)
 			assertEquals(setOf("style"), ProjectPluginsDatasource(ffs, toml).load()[projectDef.id])
 			assertEquals(ProjectData(), datasource.load().data)
+		}
+
+	@Test
+	fun `setPluginsEnabled turns several plugins on and off at once`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		comp.setPluginEnabled("harper", false)
+		comp.setPluginsEnabled(mapOf("harper" to true, "languagetool" to false))
+		advanceUntilIdle()
+
+		assertEquals(setOf("languagetool"), comp.disabledPlugins.value)
+	}
+
+	@Test
+	fun `a project runs one plugin of a kind, the first for its language until one is picked`() =
+		runTest(mainTestDispatcher) {
+			kindSource.kindedPlugins.value = listOf(
+				KindedPlugin("harper", "grammar", listOf("en")),
+				KindedPlugin("languagetool", "grammar"),
+			)
+			val comp = newComponent()
+			context.resume()
+			advanceUntilIdle()
+			assertEquals(setOf("languagetool"), comp.disabledPlugins.value)
+
+			comp.setProjectLanguage("fr")
+			advanceUntilIdle()
+			assertEquals(setOf("harper"), comp.disabledPlugins.value)
+
+			comp.setPluginsEnabled(mapOf("harper" to true, "languagetool" to false))
+			advanceUntilIdle()
+			assertEquals(setOf("languagetool"), comp.disabledPlugins.value)
 		}
 
 	@Test

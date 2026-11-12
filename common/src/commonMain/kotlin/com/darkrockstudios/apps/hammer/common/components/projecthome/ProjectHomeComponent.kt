@@ -19,7 +19,7 @@ import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesServic
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupDef
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupService
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
-import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectPluginsRepository
+import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectDisabledPluginsUseCase
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.EntryAppearance
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.ProjectStatisticsUseCase
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsService
@@ -74,7 +74,7 @@ class ProjectHomeComponent(
 	private val statisticsService: StatisticsService by projectInject()
 	private val projectStatistics: ProjectStatisticsUseCase by projectInject()
 	private val tagIndexService: TagIndexService by projectInject()
-	private val projectPlugins: ProjectPluginsRepository by inject()
+	private val projectDisabledPlugins: ProjectDisabledPluginsUseCase by projectInject()
 	private val projectDataRepository: ProjectDataRepository by projectInject()
 	private val imagesService: ImagesService by projectInject()
 
@@ -304,7 +304,7 @@ class ProjectHomeComponent(
 		}
 		scope.launch {
 			// The registry's changes never emit when it has no sources.
-			combine(exporters.changes.onStart { emit(Unit) }, projectPlugins.disabledPlugins(projectDef.id)) { _, disabled ->
+			combine(exporters.changes.onStart { emit(Unit) }, projectDisabledPlugins.disabledPlugins) { _, disabled ->
 				disabled
 			}.collect { disabled ->
 				withContext(dispatcherMain) {

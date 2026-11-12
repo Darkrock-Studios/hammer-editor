@@ -1,5 +1,6 @@
 package components.projecthome
 
+import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectDisabledPluginsUseCase
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.http.projectdata.WordCountGoal
@@ -224,6 +225,7 @@ class ProjectHomeComponentTest : ComponentTest() {
 				mockk { every { availableLocales() } returns emptyList() }
 			}
 			scope<ProjectDefScope> {
+				scoped { ProjectDisabledPluginsUseCase(projectDef, get(), get(), getAll()) }
 				scoped { sceneEditor }
 				scoped { exportStoryUseCase }
 				scoped { encyclopediaService }

@@ -27,6 +27,7 @@ import com.darkrockstudios.apps.hammer.operations.plugin.ActionTarget
 import com.darkrockstudios.apps.hammer.operations.plugin.ClientPlugin
 import com.darkrockstudios.apps.hammer.operations.plugin.PageTable
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginAction
+import com.darkrockstudios.apps.hammer.operations.plugin.PluginKind
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
 import com.darkrockstudios.apps.hammer.operations.plugin.SettingDeclaration
 import com.darkrockstudios.apps.hammer.operations.plugin.TextDiagnostic
@@ -90,6 +91,8 @@ class WasmPlugin(
 
 	override val id: String = manifest.id
 	override val name: String = manifest.name
+	override val kind: PluginKind? = manifest.kind?.let { PluginKind(it.id, it.label, it.localized) }
+	override val languages: List<String> = manifest.languages
 
 	private val grants: List<OperationGrant> =
 		manifest.permissions.operations.filter { it in granted }.mapNotNull(OperationGrant::parse)

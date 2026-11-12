@@ -45,9 +45,13 @@ class ProjectPluginsRepository(
 		read[project].orEmpty()
 	}
 
-	suspend fun setPluginEnabled(project: ProjectId, pluginId: String, enabled: Boolean) = update { current ->
+	suspend fun setPluginEnabled(project: ProjectId, pluginId: String, enabled: Boolean) =
+		setPluginsEnabled(project, mapOf(pluginId to enabled))
+
+	/** Turns each plugin of [changes] on or off for [project], in one write. */
+	suspend fun setPluginsEnabled(project: ProjectId, changes: Map<String, Boolean>) = update { current ->
 		val plugins = current[project].orEmpty()
-		current + (project to if (enabled) plugins - pluginId else plugins + pluginId)
+		current + (project to plugins - changes.filterValues { it }.keys + changes.filterValues { !it }.keys)
 	}
 
 	/**

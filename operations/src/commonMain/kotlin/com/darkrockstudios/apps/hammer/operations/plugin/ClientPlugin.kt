@@ -14,6 +14,12 @@ interface ClientPlugin {
 	/** Shown to the user. */
 	val name: String? get() = null
 
+	/** The job it does, shared with plugins that do the same one, so a project can pick one of them. */
+	val kind: PluginKind? get() = null
+
+	/** BCP 47 tags of the project languages it works with; empty when it does not depend on the language. */
+	val languages: List<String> get() = emptyList()
+
 	/** Export formats this plugin adds. Each format id must start with `<id>.`, e.g. `smf.docx`. */
 	fun exporters(): List<StoryExporter> = emptyList()
 
@@ -29,6 +35,12 @@ interface ClientPlugin {
 	/** Checks the editor runs over the text being written, such as grammar, and underlines what they find. */
 	fun textDiagnostics(): List<TextDiagnosticsProvider> = emptyList()
 }
+
+/**
+ * A plugin's [ClientPlugin.kind]: [id] is agreed on by the plugins of the kind, and [label] names it,
+ * from a translation into the UI's language when [localized].
+ */
+data class PluginKind(val id: String, val label: String, val localized: Boolean = false)
 
 /** Finds issues in paragraphs of prose, for the editor to underline. */
 class TextDiagnosticsProvider(

@@ -25,6 +25,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsearch.SearchProjectUse
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.GlobalSettingsDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.GlobalSettingsFilesystemDatasource
+import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectDisabledPluginsUseCase
 import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectPluginsDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectPluginsRepository
 import com.darkrockstudios.apps.hammer.common.data.references.ImageReferenceRewriter
@@ -386,6 +387,7 @@ val mainModule = module {
 
 		scoped<ProjectDataDatasource>()
 		scoped<ProjectDataRepository>()
+		scoped { ProjectDisabledPluginsUseCase(get(), get(), get(), getAll()) }
 		scoped<ProjectDataConflictBroker>()
 		scoped<ProjectSpellCheckService>()
 		factory<ProjectDictionaryUseCase>()
