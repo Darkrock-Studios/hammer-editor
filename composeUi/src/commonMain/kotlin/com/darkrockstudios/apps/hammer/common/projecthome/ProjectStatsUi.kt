@@ -14,7 +14,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
@@ -198,20 +197,6 @@ private fun DashboardHeader(
 					Spacer(Modifier.width(4.dp))
 				}
 				IconButton(
-					onClick = { component.refreshStatistics() },
-					enabled = !state.isLoadingStats,
-				) {
-					Icon(
-						Icons.Default.Refresh,
-						contentDescription = Res.string.project_home_refresh_stats_button.get(),
-						tint = if (state.isLoadingStats) {
-							MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-						} else {
-							MaterialTheme.colorScheme.primary
-						},
-					)
-				}
-				IconButton(
 					onClick = { component.showImageGallery() },
 					modifier = Modifier.testTag(PROJECT_HOME_IMAGES_TAG),
 				) {
@@ -228,7 +213,11 @@ private fun DashboardHeader(
 						tint = MaterialTheme.colorScheme.primary,
 					)
 				}
-				ProjectHomeMenu(component = component, hasServer = state.hasServer)
+				ProjectHomeMenu(
+					component = component,
+					hasServer = state.hasServer,
+					isLoadingStats = state.isLoadingStats,
+				)
 			}
 		}
 		HdMonoLabel(
@@ -1374,6 +1363,7 @@ private fun EncyclopediaSliceTooltip(
 private fun ProjectHomeMenu(
 	component: ProjectHome,
 	hasServer: Boolean,
+	isLoadingStats: Boolean,
 ) {
 	var expanded by remember { mutableStateOf(false) }
 
@@ -1423,6 +1413,15 @@ private fun ProjectHomeMenu(
 					},
 				)
 			}
+
+			DropdownMenuItem(
+				text = { Text(Res.string.project_home_refresh_stats_button.get()) },
+				enabled = !isLoadingStats,
+				onClick = {
+					component.refreshStatistics()
+					expanded = false
+				},
+			)
 
 			if (component.supportsBackup()) {
 				DropdownMenuItem(
