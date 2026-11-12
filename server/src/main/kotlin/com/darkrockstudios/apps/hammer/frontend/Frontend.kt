@@ -434,6 +434,7 @@ suspend fun ApplicationCall.withDefaults(data: Map<String, Any> = emptyMap()): M
 		// Not putIfAbsent: the argument would compute the nav even when the key is present.
 		if ("pluginNavEntries" !in model) model["pluginNavEntries"] = pluginAdminNav()
 		model.putIfAbsent("emailFeatureEnabled", serverConfig.emailProviderType != null)
+		model.putIfAbsent("languageToolFeatureEnabled", serverConfig.languageToolEnabled)
 	}
 
 	val configRepository = get<ConfigRepository>()

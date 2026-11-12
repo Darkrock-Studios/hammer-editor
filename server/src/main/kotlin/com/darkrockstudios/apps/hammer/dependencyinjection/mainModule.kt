@@ -17,6 +17,9 @@ import com.darkrockstudios.apps.hammer.account.TermsOfServiceRepository
 import com.darkrockstudios.apps.hammer.account.TokenMaintenanceJob
 import com.darkrockstudios.apps.hammer.admin.AdminComponent
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
+import com.darkrockstudios.apps.hammer.services.PerUserRateLimiter
+import com.darkrockstudios.apps.hammer.services.languagetool.LanguageToolDefaults
+import com.darkrockstudios.apps.hammer.services.languagetool.LanguageToolProxy
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.admin.WhitelistExpiryJob
 import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
@@ -222,6 +225,8 @@ fun mainModule(
 	single { ServerIdeasRepository(get(), get(), get(), get(), get(), get(), get()) }
 	single<WhiteListRepository>()
 	single<ConfigRepository>()
+	single { LanguageToolDefaults.fromEnvironment() }
+	single { LanguageToolProxy(get(), get(), PerUserRateLimiter(get())) }
 	single {
 		DataMigrator(get()).apply {
 			addMigration(

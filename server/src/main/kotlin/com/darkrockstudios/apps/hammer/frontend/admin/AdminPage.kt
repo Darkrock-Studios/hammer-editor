@@ -66,6 +66,7 @@ fun Route.adminPage(
 			adminUsersPage()
 			whiteListRoutes(whiteListRepository, clock)
 			serverSettingsRoutes(configRepository)
+			if (serverConfig.languageToolEnabled) adminGrammarPage(configRepository)
 			usersRoutes(accountsRepository, projectsRepository, accountDeletionUseCase, mfaRepository)
 			if (emailFeatureEnabled && emailService != null) {
 				adminEmailPage(configRepository, emailService, serverConfig)
