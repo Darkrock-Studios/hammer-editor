@@ -14,7 +14,9 @@ import io.ktor.client.engine.mock.toByteArray
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.request.HttpRequestData
 import io.ktor.client.request.HttpResponseData
+import com.darkrockstudios.apps.hammer.base.http.HAMMER_PROTOCOL_HEADER
 import io.ktor.http.ContentType
+import io.ktor.http.headersOf
 import io.ktor.http.HttpStatusCode
 import io.ktor.utils.io.errors.IOException
 import io.mockk.every
@@ -92,6 +94,20 @@ class ServicesApiTest {
 
 		assertEquals(ServiceReply.Reason.Unavailable, (missing as ServiceReply.Failed).reason)
 		assertEquals(429, (limited as ServiceReply.Response).status)
+	}
+
+	@Test
+	fun `A server on another protocol is unavailable and raises the mismatch`() = runTest {
+		val mismatches = ProtocolMismatchRepository()
+		val store = mockk<GlobalSettingsStore> { every { serverSettings } returns signedIn }
+		val client = HttpClient(MockEngine { respond("", HttpStatusCode.UpgradeRequired, headersOf(HAMMER_PROTOCOL_HEADER, "5")) }) {
+			install(HttpTimeout)
+		}
+
+		val reply = ServicesApi(client, store, mismatches).request(check)
+
+		assertEquals(ServiceReply.Reason.Unavailable, (reply as ServiceReply.Failed).reason)
+		assertEquals(5, mismatches.mismatches.replayCache.single().serverProtocolVersion)
 	}
 
 	@Test
