@@ -166,11 +166,11 @@ class LanguageToolProxyTest : EndToEndTest() {
 	@Test
 	fun `A body over the cap is refused before it reaches the upstream`(): Unit = runBlocking {
 		startUpstream()
-		configure(upstreamConfig(maxRequestBytes = 1_000))
+		configure(upstreamConfig(maxRequestBytes = 100_000))
 		val token = account("a@test.com", userId)
 		doStartServer()
 
-		val response = check(token, form = parameters { append("text", "x".repeat(2_000)) })
+		val response = check(token, form = parameters { append("text", "x".repeat(200_000)) })
 
 		assertEquals(HttpStatusCode.PayloadTooLarge, response.status)
 		assertTrue(receivedForms.isEmpty())
@@ -211,11 +211,11 @@ class LanguageToolProxyTest : EndToEndTest() {
 	@Test
 	fun `A refused request does not spend the caller's limit`(): Unit = runBlocking {
 		startUpstream()
-		configure(upstreamConfig(requestsPerMinute = 1, maxRequestBytes = 1_000))
+		configure(upstreamConfig(requestsPerMinute = 1, maxRequestBytes = 100_000))
 		val token = account("a@test.com", userId)
 		doStartServer()
 
-		val tooLarge = check(token, form = parameters { append("text", "x".repeat(2_000)) })
+		val tooLarge = check(token, form = parameters { append("text", "x".repeat(200_000)) })
 
 		assertEquals(HttpStatusCode.PayloadTooLarge, tooLarge.status)
 		assertEquals(HttpStatusCode.OK, check(token).status)

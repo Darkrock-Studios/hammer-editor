@@ -30,7 +30,8 @@ data class LanguageToolConfig(
 
 		const val DEFAULT_REQUESTS_PER_MINUTE = 60
 		const val DEFAULT_MAX_REQUEST_BYTES = 100_000
-		const val MIN_MAX_REQUEST_BYTES = 1_000
+		/** The LanguageTool plugin's batches, form-encoded, stay under this, so a lower cap would refuse them all. */
+		const val MIN_MAX_REQUEST_BYTES = 100_000
 	}
 }
 
