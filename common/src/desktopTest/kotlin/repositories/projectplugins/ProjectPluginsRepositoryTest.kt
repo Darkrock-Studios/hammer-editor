@@ -57,6 +57,15 @@ class ProjectPluginsRepositoryTest : BaseTest() {
 	}
 
 	@Test
+	fun `several plugins turn on and off together`() = runTest(mainTestDispatcher) {
+		val repository = repository()
+		repository.setPluginEnabled(alpha, "harper", false)
+		repository.setPluginsEnabled(alpha, mapOf("harper" to true, "languagetool" to false, "simple" to false))
+
+		assertEquals(setOf("languagetool", "simple"), repository().disabledPlugins(alpha).first())
+	}
+
+	@Test
 	fun `a fresh read sees a change another process made`() = runTest(mainTestDispatcher) {
 		val reader = repository()
 		assertEquals(emptySet(), reader.readDisabledPlugins(alpha))

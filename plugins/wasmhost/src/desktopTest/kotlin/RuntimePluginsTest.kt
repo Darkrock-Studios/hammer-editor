@@ -29,6 +29,7 @@ import com.darkrockstudios.apps.hammer.operations.plugin.ActionCancelledExceptio
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionField
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionPlace
 import com.darkrockstudios.apps.hammer.operations.plugin.TextFormat
+import com.darkrockstudios.apps.hammer.operations.plugin.PluginKind
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
 import com.darkrockstudios.apps.hammer.operations.plugin.SettingDeclaration
 import com.darkrockstudios.apps.hammer.operations.plugin.TextDiagnosticSeverity
@@ -1037,6 +1038,30 @@ class RuntimePluginsTest {
 		assertEquals(listOf("en", "fr-CA"), installed.manifest?.languages)
 		assertEquals(setOf("fr", "de"), installed.translations)
 		assertEquals(fileSystem.metadata(directory / "packages" / "echo.hammerplugin").size, installed.size)
+	}
+
+	private fun kinded(id: String = "grammar", label: String = "Grammar checker") =
+		described("Checks grammar.") + "\n\n[kind]\nid = \"$id\"\nlabel = \"$label\"\n"
+
+	@Test
+	fun `a plugin's kind is labeled in the UI's language where a translation has it`() {
+		val french = mapOf("locales/fr.toml" to "[kind]\nlabel = \"Correcteur grammatical\"")
+		val inFrench = runtimePlugins(locale = "fr").also { it.install(pack("echo", kinded(), files = french)) }
+		val plugin = startKoin(inFrench).plugins.single()
+		assertEquals(PluginKind("grammar", "Correcteur grammatical", localized = true), plugin.kind)
+		assertEquals(listOf("en", "fr-CA"), plugin.languages)
+		GlobalContext.stopKoin()
+
+		val inGerman = runtimePlugins(locale = "de")
+		assertEquals(PluginKind("grammar", "Grammar checker", localized = false), startKoin(inGerman).plugins.single().kind)
+	}
+
+	@Test
+	fun `a kind without a valid id or a label is refused`() {
+		val plugins = runtimePlugins()
+		assertThrows<PluginPackageException> { plugins.install(pack("spaced", kinded(id = "Grammar checker"))) }
+		assertThrows<PluginPackageException> { plugins.install(pack("blank", kinded(label = " "))) }
+		assertTrue(plugins.installed().isEmpty())
 	}
 
 	@Test

@@ -29,6 +29,7 @@ class PluginTranslation(
 	val diagnostics: Map<String, Text> = emptyMap(),
 	val commands: Map<String, Text> = emptyMap(),
 	val settings: Map<String, Text> = emptyMap(),
+	val kind: Text? = null,
 ) {
 	/** A label, hint, command help, or choice's option labels by value; whichever the thing has. */
 	@Serializable
@@ -70,6 +71,9 @@ internal fun translate(manifest: PluginManifest, translations: List<PluginTransl
 	return manifest.copy(
 		name = first { it.name } ?: manifest.name,
 		description = first { it.description } ?: manifest.description,
+		kind = manifest.kind?.let { kind ->
+			first { it.kind?.label?.takeIf(String::isNotBlank) }?.let { kind.copy(label = it, localized = true) } ?: kind
+		},
 		exporters = manifest.exporters.map { exporter ->
 			exporter.copy(label = first { it.exporters[exporter.format]?.label } ?: exporter.label)
 		},

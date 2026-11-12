@@ -352,6 +352,19 @@ class ProjectSettingsComponentTest : ComponentTest() {
 		}
 
 	@Test
+	fun `setPluginsEnabled turns several plugins on and off at once`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		comp.setPluginEnabled("harper", false)
+		comp.setPluginsEnabled(mapOf("harper" to true, "languagetool" to false))
+		advanceUntilIdle()
+
+		assertEquals(setOf("languagetool"), comp.disabledPlugins.value)
+	}
+
+	@Test
 	fun `setTags normalizes tags before persisting`() = runTest(mainTestDispatcher) {
 		val comp = newComponent()
 		context.resume()

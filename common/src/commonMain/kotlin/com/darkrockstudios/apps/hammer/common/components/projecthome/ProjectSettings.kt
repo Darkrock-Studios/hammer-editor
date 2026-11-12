@@ -45,6 +45,9 @@ interface ProjectSettings : HammerComponent {
 	/** Turns the installed plugin [pluginId] on or off for this project, on this device only. */
 	fun setPluginEnabled(pluginId: String, enabled: Boolean)
 
+	/** [setPluginEnabled] for each plugin of [changes] at once, such as picking one of a kind. */
+	fun setPluginsEnabled(changes: Map<String, Boolean>)
+
 	data class SyncState(
 		/** The section is shown only when a sync server is set up. */
 		val serverConfigured: Boolean = false,

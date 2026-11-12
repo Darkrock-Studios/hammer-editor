@@ -36,6 +36,7 @@ import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarColumn
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdCrumbBackLink
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineDropdown
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineSection
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineToggleRow
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineWordListField
@@ -63,6 +64,8 @@ import com.darkrockstudios.apps.hammer.project_settings_hero_by
 import com.darkrockstudios.apps.hammer.project_settings_hero_marker
 import com.darkrockstudios.apps.hammer.project_settings_hero_no_author
 import com.darkrockstudios.apps.hammer.project_settings_plugins_caption
+import com.darkrockstudios.apps.hammer.project_settings_plugins_pick_none
+import com.darkrockstudios.apps.hammer.project_settings_plugins_pick_several
 import com.darkrockstudios.apps.hammer.project_settings_plugins_section_title
 import com.darkrockstudios.apps.hammer.project_settings_spellcheck_encyclopedia_enable
 import com.darkrockstudios.apps.hammer.project_settings_spellcheck_encyclopedia_enable_hint
@@ -172,6 +175,7 @@ fun ProjectSettingsUi(
 							ProjectPlugins(
 								plugins = plugins,
 								disabled = disabledPlugins,
+								language = state.data.language,
 								component = component,
 							)
 
@@ -236,14 +240,22 @@ private fun ProjectDictionaryWords(
 	)
 }
 
-/** Manage plugins, then a toggle for each active plugin, turning it off for this project alone. */
+/**
+ * Manage plugins, a dropdown for each kind with several plugins for the project's [language], then a
+ * toggle for each other active plugin, turning it off for this project alone.
+ */
 @Composable
 private fun ProjectPlugins(
 	plugins: List<ClientPlugin>,
 	disabled: Set<String>,
+	language: String?,
 	component: ProjectSettings,
 ) {
-	val sorted = remember(plugins) { plugins.sortedBy { (it.name ?: it.id).lowercase() } }
+	val choices = remember(plugins, language) { pluginChoices(plugins, language) }
+	val sorted = remember(plugins, choices) {
+		val chosen = choices.flatMap { choice -> choice.plugins.map { it.id } }.toSet()
+		plugins.filter { it.id !in chosen }.sortedBy { (it.name ?: it.id).lowercase() }
+	}
 	HdHairlineSection(
 		section = 7,
 		title = Res.string.project_settings_plugins_section_title.get(),
@@ -255,6 +267,24 @@ private fun ProjectPlugins(
 			color = MaterialTheme.colorScheme.onSurfaceVariant,
 		)
 		ManagePluginsButton()
+		choices.forEach { choice ->
+			val picked = choice.picked(disabled)
+			val picks = listOf<PluginPick>(PluginPick.None) + choice.plugins.map(PluginPick::One) +
+				listOfNotNull(PluginPick.Several.takeIf { picked == PluginPick.Several })
+			HdHairlineDropdown(
+				options = picks,
+				selected = picked,
+				onSelect = { component.setPluginsEnabled(choice.changesFor(it)) },
+				label = { pick ->
+					when (pick) {
+						PluginPick.None -> Res.string.project_settings_plugins_pick_none.get()
+						PluginPick.Several -> Res.string.project_settings_plugins_pick_several.get()
+						is PluginPick.One -> pick.plugin.name ?: pick.plugin.id
+					}
+				},
+				title = choice.label,
+			)
+		}
 		sorted.forEach { plugin ->
 			HdHairlineToggleRow(
 				checked = plugin.id !in disabled,

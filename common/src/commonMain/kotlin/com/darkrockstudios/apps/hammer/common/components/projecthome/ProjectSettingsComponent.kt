@@ -190,6 +190,10 @@ class ProjectSettingsComponent(
 		scope.launch { projectPlugins.setPluginEnabled(projectDef.id, pluginId, enabled) }
 	}
 
+	override fun setPluginsEnabled(changes: Map<String, Boolean>) {
+		scope.launch { projectPlugins.setPluginsEnabled(projectDef.id, changes) }
+	}
+
 	override fun suggestProjectTags(prefix: String): List<String> {
 		// Exclude this project's own tags so it suggests from the *other* projects' / ideas'
 		// vocabulary, rather than offering back tags already applied here.
