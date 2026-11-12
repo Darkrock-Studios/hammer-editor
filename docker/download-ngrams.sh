@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Downloads LanguageTool n-gram data into ./ngrams for the languagetool service.
-# Usage: ./download-ngrams.sh en [de fr ...]   (English is about 8.5 GB unzipped)
+# Usage: ./download-ngrams.sh en [de fr ...]   (English is a 9 GB download)
 set -euo pipefail
 
 BASE_URL="https://languagetool.org/download/ngram-data"

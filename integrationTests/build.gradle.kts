@@ -30,6 +30,7 @@ kotlin {
 			dependencies {
 				implementation(project(":base"))
 				implementation(project(":common"))
+				implementation(project(":plugins:wasmhost"))
 
 				implementation(libs.bundles.junit.jupiter)
 				implementation(libs.coroutines.test)

@@ -202,7 +202,7 @@ cd docker
 docker compose restart languagetool
 ```
 
-English is about 8.5 GB unzipped; other languages are smaller. The data is read from disk, so it
+English is a 9 GB download, and about as much on disk; other languages are smaller. The data is read from disk, so it
 needs disk space more than memory. Download before the first `docker compose up` if you can:
 Docker creates a missing `docker/ngrams` as root, and the script then asks you to `chown` it.
 
