@@ -40,7 +40,8 @@ class TextDiagnosticsProvider(
 	val wholeScene: Boolean = false,
 	/**
 	 * The issues in each of the request's paragraphs, in the same order. Runs off the main thread, and
-	 * returns nothing for paragraphs it cannot check rather than throwing.
+	 * throws when it could not check them, such as when a service it calls is unreachable, so they are
+	 * checked again later rather than taken as having no issues.
 	 */
 	val diagnose: suspend (TextDiagnosticsRequest) -> List<List<TextDiagnostic>>,
 )

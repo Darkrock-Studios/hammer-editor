@@ -1259,13 +1259,13 @@ class RuntimePluginsTest {
 	}
 
 	@Test
-	fun `a module that cannot check leaves the text unmarked`() {
+	fun `a module that cannot check fails the check, rather than finding nothing`() {
 		val plugins = runtimePlugins()
 		plugins.install(pack("echo", manifest() + diagnostics("grammar")))
 
 		val check = startKoin(plugins).plugins.single().textDiagnostics().single()
 
-		assertEquals(listOf(emptyList(), emptyList()), runBlocking { check.diagnose(TextDiagnosticsRequest(listOf("One.", "Two."), null, "Project")) }.map { it.toList() })
+		assertThrows<PluginException> { runBlocking { check.diagnose(TextDiagnosticsRequest(listOf("One.", "Two."), null, "Project")) } }
 	}
 
 	private fun userHostsManifest(id: String, toggle: String? = null) = """

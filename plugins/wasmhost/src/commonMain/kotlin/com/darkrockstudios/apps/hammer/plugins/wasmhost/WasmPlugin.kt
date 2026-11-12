@@ -205,21 +205,20 @@ class WasmPlugin(
 			val paragraphs = text.paragraphs
 			val request = DiagnoseRequest(check.name, paragraphs, text.language, text.project, settingsValues(), locale)
 			val found = List(paragraphs.size) { mutableListOf<TextDiagnostic>() }
-			try {
-				val reply = call(DIAGNOSE, OperationJson.encodeToString(request).encodeToByteArray()).decodeToString()
-				if (reply.isBlank()) return@TextDiagnosticsProvider found
-				ReplyJson.decodeFromString<DiagnoseReply>(reply).diagnostics.forEach { item ->
-					val paragraph = paragraphs.getOrNull(item.paragraph) ?: return@forEach
-					val start = utf16Offset(paragraph, item.start) ?: return@forEach
-					val end = utf16Offset(paragraph, item.end) ?: return@forEach
-					if (start < end) {
-						found[item.paragraph] += TextDiagnostic(start, end, item.message, item.fixes.mapNotNull(::textFix), severity(item.severity))
-					}
-				}
-			} catch (e: PluginException) {
-				Napier.w(e) { "Plugin '$id' could not check text" }
+			val reply = call(DIAGNOSE, OperationJson.encodeToString(request).encodeToByteArray()).decodeToString()
+			if (reply.isBlank()) return@TextDiagnosticsProvider found
+			val diagnostics = try {
+				ReplyJson.decodeFromString<DiagnoseReply>(reply).diagnostics
 			} catch (e: SerializationException) {
-				Napier.w(e) { "Plugin '$id' sent a malformed diagnose reply" }
+				throw PluginException("Plugin '$id' sent a malformed diagnose reply: ${e.message}")
+			}
+			diagnostics.forEach { item ->
+				val paragraph = paragraphs.getOrNull(item.paragraph) ?: return@forEach
+				val start = utf16Offset(paragraph, item.start) ?: return@forEach
+				val end = utf16Offset(paragraph, item.end) ?: return@forEach
+				if (start < end) {
+					found[item.paragraph] += TextDiagnostic(start, end, item.message, item.fixes.mapNotNull(::textFix), severity(item.severity))
+				}
 			}
 			found
 		}
