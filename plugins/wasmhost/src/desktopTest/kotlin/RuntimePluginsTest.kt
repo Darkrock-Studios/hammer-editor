@@ -1259,6 +1259,19 @@ class RuntimePluginsTest {
 	}
 
 	@Test
+	fun `a malformed reply fails the check, and an empty one finds nothing`() {
+		val plugins = runtimePlugins()
+		val reply = mapOf("resources/reply.json" to "{\"diagnostics\": [{")
+		plugins.install(pack("echo", manifest() + diagnostics("grammar"), module = "reply", files = reply))
+		plugins.install(pack("quiet", manifest(id = "quiet") + diagnostics("grammar"), module = "reply"))
+		val (echo, quiet) = startKoin(plugins).plugins.sortedBy { it.id }.map { it.textDiagnostics().single() }
+		val request = TextDiagnosticsRequest(listOf("One."), null, "Project")
+
+		assertThrows<PluginException> { runBlocking { echo.diagnose(request) } }
+		assertEquals(listOf(emptyList()), runBlocking { quiet.diagnose(request) }.map { it.toList() })
+	}
+
+	@Test
 	fun `a module that cannot check fails the check, rather than finding nothing`() {
 		val plugins = runtimePlugins()
 		plugins.install(pack("echo", manifest() + diagnostics("grammar")))
