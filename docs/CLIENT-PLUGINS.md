@@ -1328,6 +1328,7 @@ languages = ["en"]            # optional: the project languages it works with
 [permissions]
 operations = ["project.info", "scene.tree", "scene.read"]
 http = ["api.example.com"]    # optional: hosts it may reach, over https only; see HTTP
+hammerServer = ["languagetool"]  # optional: services on the user's sync server; see Hammer server
 
 [permissions.userHosts]       # optional: an address the user enters; see HTTP
 setting = "server"            # a string or secret setting, with no default
@@ -1505,6 +1506,9 @@ The Hammer-specific parts:
 - `extism:host/user` `hammer_cache_get(key) -> value` and
   `hammer_cache_set(key, value)`: the plugin's [cache](#cache). A get returns
   0 for a key with no value; a set with 0, or an empty value, removes the key.
+- `extism:host/user` `hammer_server_request(request, body) -> reply`: a
+  request to a service on the user's sync server; see
+  [Hammer server](#hammer-server).
 - `extism:host/user` `hammer_resource(name) -> bytes`: a file from the
   package's [resources](#resources), by its path under `resources/`, or 0
   when there is none by that name.
@@ -2007,6 +2011,34 @@ names:
   Android, and an ephemeral `NSURLSession` on iOS (untested).
 - **Shown at install.** The install prompt and details list the declared hosts,
   and the entered host's setting, as sending what the user writes.
+
+### Hammer server
+
+A plugin can reach a service the user's own sync server offers, such as
+LanguageTool, as the signed-in user, without ever holding their credentials:
+
+- **Declared services.** `permissions.hammerServer` lists service names. The
+  install prompt and details list them as sending what the user writes to their
+  sync server.
+- **The call.** `hammer_server_request` takes JSON `{"service", "method",
+  "path", "headers"}` and the body (or 0). `method` is `GET` (the default) or
+  `POST`; `path` is under the service, such as `/v2/check`, made of plain
+  segments, with no `.` or `..` and no query. Only `Content-Type` and `Accept`
+  headers are sent.
+- **The host.** `ServicesApi` (`:common`) sends it to
+  `/api/services/{userId}/<service><path>` on the workspace's sync server
+  through the sync client, which attaches the bearer token, refreshes it, and
+  adds the protocol header. 30 seconds in all, and never retried. A 401 left
+  after the refresh is `not_signed_in`.
+- **The reply.** JSON `{"status", "body"}`, the body as text (a reply that
+  is not UTF-8 is an `invalid` error); or `{"error",
+  "message"}` with `error` one of `not_signed_in`, `unavailable` (the server
+  doesn't offer the service, or predates services), `network`,
+  `not_permitted` (a service the manifest doesn't list), or `invalid` (a
+  refused method or path, or a malformed request). Errors come back in the
+  reply rather than trapping, so the plugin can say what to do.
+- **The server.** Services are off unless the server's config turns them on;
+  see `languageToolEnabled` in [HOW-TO-RUN-A-SERVER.md](HOW-TO-RUN-A-SERVER.md).
 
 ### Secrets
 

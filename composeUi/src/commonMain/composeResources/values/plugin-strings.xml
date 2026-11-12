@@ -31,6 +31,7 @@
 	<string name="plugin_install_deletes">Delete, which cannot be undone</string>
 	<string name="plugin_install_http">Send what you write over the internet</string>
 	<string name="plugin_install_user_host">To the address you enter in “%1$s”</string>
+	<string name="plugin_install_hammer_server">Send what you write to these services on your sync server, signed in as you</string>
 	<string name="plugin_install_user_hosts">With “%1$s” on in its settings, to the address you enter in “%2$s”</string>
 	<string name="plugin_setting_danger">Risky: this lets the plugin send what you write somewhere Hammer cannot vouch for.</string>
 	<string name="plugin_install_no_access">It asks for no access to your projects.</string>

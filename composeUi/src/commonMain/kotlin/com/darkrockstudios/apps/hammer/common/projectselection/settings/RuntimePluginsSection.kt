@@ -657,6 +657,12 @@ private fun PluginAccess(
 				}
 			}
 		}
+		val hammerServer = manifest.permissions.hammerServer
+		if (hammerServer.isNotEmpty()) {
+			AccessFrame(Res.string.plugin_install_hammer_server.get(), colors.warning) {
+				hammerServer.forEach { Text(it, style = MaterialTheme.typography.bodyMedium) }
+			}
+		}
 	}
 }
 

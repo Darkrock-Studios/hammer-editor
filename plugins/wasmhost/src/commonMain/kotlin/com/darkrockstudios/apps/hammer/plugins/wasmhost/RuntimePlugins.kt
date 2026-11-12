@@ -206,6 +206,7 @@ class RuntimePlugins(
 		operations = granted,
 		http = manifest?.permissions?.http.orEmpty(),
 		userHostSetting = manifest?.permissions?.userHosts?.setting,
+		hammerServer = manifest?.permissions?.hammerServer.orEmpty(),
 	)
 
 	/** Throws [PluginPackageException], leaving the plugin disabled, when the registry refuses it. */
