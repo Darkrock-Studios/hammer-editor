@@ -76,6 +76,16 @@ internal class PluginChecker(
 				)
 			}
 		}
-		return merged
+		return merged.map(::sharingUnderlines)
 	}
 }
+
+/**
+ * One underline per range, so checks that overlap, such as two grammar plugins, don't stack: the
+ * first of the strongest severity's message, with every check's fixes.
+ */
+private fun sharingUnderlines(line: List<LineDiagnostic>): List<LineDiagnostic> =
+	line.groupBy { it.start to it.end }.values.map { same ->
+		val lead = same.firstOrNull { it.severity == DiagnosticSeverity.Error } ?: same.first()
+		if (same.size == 1) lead else lead.copy(fixes = same.flatMap { it.fixes }.distinctBy { it.replacement })
+	}
