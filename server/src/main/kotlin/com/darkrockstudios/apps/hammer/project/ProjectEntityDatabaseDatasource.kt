@@ -33,12 +33,12 @@ class ProjectEntityDatabaseDatasource(
 	}
 
 	override suspend fun loadProjectSyncData(
-		userId: Long,
+		owner: OwnerId,
 		projectDef: ProjectDefinition
 	): ProjectSyncData {
-		val project = projectDao.getProjectData(userId, projectDef.uuid)
-			?: error("Project not found $userId : $projectDef")
-		val deletedIds = deletedEntityDao.getDeletedEntities(userId, project.id)
+		val project = projectDao.getProjectData(owner, projectDef.uuid)
+			?: error("Project not found ${owner.id} : $projectDef")
+		val deletedIds = deletedEntityDao.getDeletedEntities(owner.id, project.id)
 			.map { it.entity_id.toInt() }
 			.toSet()
 
@@ -50,51 +50,51 @@ class ProjectEntityDatabaseDatasource(
 	}
 
 	override suspend fun createProject(
-		userId: Long,
+		owner: OwnerId,
 		projectName: String,
 		projectId: ProjectId,
 	): ProjectDefinition? {
 		val inserted = projectDao.createProject(
-			userId = userId,
+			owner = owner,
 			uuid = projectId,
 			projectName = projectName,
 		)
 		return if (inserted) ProjectDefinition(name = projectName, uuid = projectId) else null
 	}
 
-	override suspend fun deleteProject(userId: Long, projectId: ProjectId): SResult<Unit> {
+	override suspend fun deleteProject(owner: OwnerId, projectId: ProjectId): SResult<Unit> {
 		// Look up the numeric project id before deleting the project row so we
 		// can scrub the dependent story_entity rows explicitly. We avoid relying
 		// on `ON DELETE CASCADE` here so the behavior is the same in tests
 		// (which disable FK enforcement) as it is in production.
-		val internalId = projectDao.getProjectIdOrNull(userId, projectId)
+		val internalId = projectDao.getProjectIdOrNull(owner, projectId)
 		if (internalId != null) {
-			storyEntityDao.deleteAllForProject(userId, internalId)
+			storyEntityDao.deleteAllForProject(owner.id, internalId)
 		}
 
 		projectDao.deleteProject(
-			userId = userId,
+			owner = owner,
 			projectId = projectId,
 		)
 
 		deletedProjectDao.recordProjectDeleted(
-			userId = userId,
+			userId = owner.id,
 			projectId = projectId,
 		)
 
 		return SResult.success(Unit)
 	}
 
-	override suspend fun checkProjectExists(userId: Long, projectDef: ProjectDefinition): Boolean {
-		return checkProjectExists(userId, projectDef.uuid)
+	override suspend fun checkProjectExists(owner: OwnerId, projectDef: ProjectDefinition): Boolean {
+		return checkProjectExists(owner, projectDef.uuid)
 	}
 
-	override suspend fun checkProjectExists(userId: Long, projectId: ProjectId): Boolean {
-		return projectDao.hasProject(userId, projectId)
+	override suspend fun checkProjectExists(owner: OwnerId, projectId: ProjectId): Boolean {
+		return projectDao.hasProject(owner, projectId)
 	}
 
-	override suspend fun findProjectByName(userId: Long, projectName: String): ProjectDefinition? {
-		val project = projectDao.findProjectData(userId, projectName)
+	override suspend fun findProjectByName(owner: OwnerId, projectName: String): ProjectDefinition? {
+		val project = projectDao.findProjectData(owner.id, projectName)
 		return if (project != null) {
 			ProjectDefinition.wrap(
 				name = project.name,
@@ -106,39 +106,39 @@ class ProjectEntityDatabaseDatasource(
 	}
 
 	override suspend fun updateSyncData(
-		userId: Long,
+		owner: OwnerId,
 		projectDef: ProjectDefinition,
 		action: (ProjectSyncData) -> ProjectSyncData
 	) {
-		val updated = action(loadProjectSyncData(userId, projectDef))
+		val updated = action(loadProjectSyncData(owner, projectDef))
 
 		projectDao.updateSyncData(
 			lastId = updated.lastId.toLong(),
 			lastSync = updated.lastSync,
-			userId = userId,
-			projectName = projectDef.name,
+			owner = owner,
+			projectUuid = projectDef.uuid,
 		)
 
-		val projectId = projectDao.getProjectId(userId, projectDef.uuid)
+		val projectId = projectDao.getProjectId(owner, projectDef.uuid)
 		updated.deletedIds.forEach { entityId ->
 			// If it exists, or isn't already deleted, delete it
 			if (storyEntityDao.checkExists(
-					userId = userId,
+					userId = owner.id,
 					projectId = projectId,
 					id = entityId.toLong()
 				) || deletedEntityDao.isDeleted(
-					userId = userId,
+					userId = owner.id,
 					projectId = projectId,
 					id = entityId.toLong(),
 				).not()
 			) {
 				storyEntityDao.deleteEntity(
-					userId = userId,
+					userId = owner.id,
 					projectId = projectId,
 					id = entityId.toLong(),
 				)
 				deletedEntityDao.markEntityDeleted(
-					userId = userId,
+					userId = owner.id,
 					projectId = projectId,
 					id = entityId.toLong(),
 				)
@@ -146,33 +146,33 @@ class ProjectEntityDatabaseDatasource(
 		}
 	}
 
-	override suspend fun findLastId(userId: Long, projectDef: ProjectDefinition): Int? {
-		val projectId = projectDao.getProjectId(userId, projectDef.uuid)
-		return storyEntityDao.findMaxId(userId, projectId)?.toInt()
+	override suspend fun findLastId(owner: OwnerId, projectDef: ProjectDefinition): Int? {
+		val projectId = projectDao.getProjectId(owner, projectDef.uuid)
+		return storyEntityDao.findMaxId(owner.id, projectId)?.toInt()
 	}
 
 	override suspend fun findEntityType(
 		entityId: Int,
-		userId: Long,
+		owner: OwnerId,
 		projectDef: ProjectDefinition
 	): ApiProjectEntity.Type? {
-		val projectId = projectDao.getProjectId(userId, projectDef.uuid)
-		val typeId = storyEntityDao.getType(userId, projectId, entityId.toLong())
+		val projectId = projectDao.getProjectId(owner, projectDef.uuid)
+		val typeId = storyEntityDao.getType(owner.id, projectId, entityId.toLong())
 		return ApiProjectEntity.Type.fromString(typeId)
 	}
 
 	override suspend fun <T : ApiProjectEntity> storeEntity(
-		userId: Long,
+		owner: OwnerId,
 		projectDef: ProjectDefinition,
 		entity: T,
 		entityType: ApiProjectEntity.Type,
 		serializer: KSerializer<T>
 	): SResult<Unit> {
-		val projectId = projectDao.getProjectId(userId, projectDef.uuid)
+		val projectId = projectDao.getProjectId(owner, projectDef.uuid)
 		val hash = entity.hash()
 		val jsonString: String = json.encodeToString(serializer, entity)
 
-		val account = accountDao.getAccount(userId) ?: error("User not found $userId")
+		val account = accountDao.getAccount(owner.id) ?: error("User not found ${owner.id}")
 		val encrypted = encryptor.encrypt(jsonString, account.cipher_secret)
 
 		if (encrypted.length > maxContentLength) {
@@ -182,7 +182,7 @@ class ProjectEntityDatabaseDatasource(
 		}
 
 		val result = storyEntityDao.upsert(
-			userId = userId,
+			userId = owner.id,
 			projectId = projectId,
 			id = entity.id.toLong(),
 			type = entityType.toStringId(),
@@ -194,27 +194,27 @@ class ProjectEntityDatabaseDatasource(
 	}
 
 	override suspend fun <T : ApiProjectEntity> loadEntity(
-		userId: Long,
+		owner: OwnerId,
 		projectDef: ProjectDefinition,
 		entityId: Int,
 		entityType: ApiProjectEntity.Type,
 		serializer: KSerializer<T>
 	): SResult<T> {
-		val projectId = projectDao.getProjectId(userId, projectDef.uuid)
+		val projectId = projectDao.getProjectId(owner, projectDef.uuid)
 		val dbEntity = storyEntityDao.getEntity(
-			userId = userId,
+			userId = owner.id,
 			projectId = projectId,
 			id = entityId.toLong(),
 		)
 
 		return if (dbEntity == null) {
 			SResult.failure(
-				error = "Entity not found. userId=$userId projectId=$projectId entityId=$entityId",
+				error = "Entity not found. owner=${owner.id} projectId=$projectId entityId=$entityId",
 				exception = EntityNotFound(entityId)
 			)
 		} else if (dbEntity.type.compareTo(entityType.toStringId(), ignoreCase = true) != 0) {
 			SResult.failure(
-				"Invalid entity type. userId=$userId projectId=$projectId entityId=$entityId entityType=$entityType",
+				"Invalid entity type. owner=${owner.id} projectId=$projectId entityId=$entityId entityType=$entityType",
 				exception = EntityTypeConflictException(
 					id = entityId,
 					existingType = dbEntity.type,
@@ -223,11 +223,11 @@ class ProjectEntityDatabaseDatasource(
 			)
 		} else {
 			try {
-				val account = accountDao.getAccount(userId) ?: error("User not found $userId")
+				val account = accountDao.getAccount(owner.id) ?: error("User not found ${owner.id}")
 				val rowEncryptor = encryptorRegistry.resolve(dbEntity.cipher)
 				val decrypted = rowEncryptor.decrypt(dbEntity.content, account.cipher_secret)
 				val entity = json.decodeFromString(serializer, decrypted)
-				repairStaleHash(userId, projectId, entityId, dbEntity.hash, entity)
+				repairStaleHash(owner, projectId, entityId, dbEntity.hash, entity)
 				SResult.success(entity)
 			} catch (e: SerializationException) {
 				SResult.failure(e)
@@ -247,7 +247,7 @@ class ProjectEntityDatabaseDatasource(
 	 * downloads and update-sequence checks converge instead of flagging the entity forever.
 	 */
 	private suspend fun repairStaleHash(
-		userId: Long,
+		owner: OwnerId,
 		projectId: Long,
 		entityId: Int,
 		cachedHash: String,
@@ -256,17 +256,17 @@ class ProjectEntityDatabaseDatasource(
 		val computedHash = entity.hash()
 		if (cachedHash != computedHash) {
 			logger.warn("Repairing stale hash for entity $entityId. Cached: $cachedHash, Computed: $computedHash")
-			storyEntityDao.updateEntityHash(userId, projectId, entityId.toLong(), computedHash)
+			storyEntityDao.updateEntityHash(owner.id, projectId, entityId.toLong(), computedHash)
 		}
 	}
 
 	override suspend fun loadEntityHash(
-		userId: Long,
+		owner: OwnerId,
 		projectDef: ProjectDefinition,
 		entityId: Int
 	): SResult<String> {
-		val projectId = projectDao.getProjectId(userId, projectDef.uuid)
-		val hash = storyEntityDao.getEntityHash(userId, projectId, entityId.toLong())
+		val projectId = projectDao.getProjectId(owner, projectDef.uuid)
+		val hash = storyEntityDao.getEntityHash(owner.id, projectId, entityId.toLong())
 		return if (hash != null) {
 			SResult.success(hash)
 		} else {
@@ -275,13 +275,13 @@ class ProjectEntityDatabaseDatasource(
 	}
 
 	override suspend fun loadEntityHash(
-		userId: Long,
+		owner: OwnerId,
 		projectDef: ProjectDefinition,
 		entityId: Int,
 		entityType: ApiProjectEntity.Type,
 	): SResult<String> {
-		val projectId = projectDao.getProjectId(userId, projectDef.uuid)
-		val hash = storyEntityDao.getEntityHash(userId, projectId, entityId.toLong(), entityType)
+		val projectId = projectDao.getProjectId(owner, projectDef.uuid)
+		val hash = storyEntityDao.getEntityHash(owner.id, projectId, entityId.toLong(), entityType)
 		return if (hash != null) {
 			SResult.success(hash)
 		} else {
@@ -290,19 +290,19 @@ class ProjectEntityDatabaseDatasource(
 	}
 
 	override suspend fun deleteEntity(
-		userId: Long,
+		owner: OwnerId,
 		entityType: ApiProjectEntity.Type,
 		projectDef: ProjectDefinition,
 		entityId: Int
 	): SResult<Unit> {
-		val projectId = projectDao.getProjectId(userId, projectDef.uuid)
+		val projectId = projectDao.getProjectId(owner, projectDef.uuid)
 		storyEntityDao.deleteEntity(
-			userId = userId,
+			userId = owner.id,
 			projectId = projectId,
 			id = entityId.toLong(),
 		)
 		deletedEntityDao.markEntityDeleted(
-			userId = userId,
+			userId = owner.id,
 			projectId = projectId,
 			id = entityId.toLong(),
 		)
@@ -310,42 +310,42 @@ class ProjectEntityDatabaseDatasource(
 	}
 
 	override suspend fun getEntityDefs(
-		userId: Long,
+		owner: OwnerId,
 		projectDef: ProjectDefinition,
 		filter: (EntityDefinition) -> Boolean
 	): List<EntityDefinition> {
-		val projectId = projectDao.getProjectId(userId, projectDef.uuid)
+		val projectId = projectDao.getProjectId(owner, projectDef.uuid)
 		return storyEntityDao.getEntityDefs(
-			userId = userId,
+			userId = owner.id,
 			projectId = projectId,
 		).filter { filter(it) }
 	}
 
 	override suspend fun getEntityDefsByType(
-		userId: Long,
+		owner: OwnerId,
 		projectDef: ProjectDefinition,
 		type: ApiProjectEntity.Type,
 	): List<EntityDefinition> {
-		val projectId = projectDao.getProjectId(userId, projectDef.uuid)
+		val projectId = projectDao.getProjectId(owner, projectDef.uuid)
 		return storyEntityDao.getEntityDefs(
-			userId = userId,
+			userId = owner.id,
 			projectId = projectId,
 			type = type,
 		)
 	}
 
 	override suspend fun renameProject(
-		userId: Long,
+		owner: OwnerId,
 		projectId: ProjectId,
 		newProjectName: String
 	): Boolean = projectDao.updateProjectName(
-		userId = userId,
+		owner = owner,
 		projectUuid = projectId,
 		newName = newProjectName,
 	)
 
-	override suspend fun getProject(userId: Long, projectId: ProjectId): ProjectDefinition? {
-		val projectData = projectDao.getProjectData(userId, projectId)
+	override suspend fun getProject(owner: OwnerId, projectId: ProjectId): ProjectDefinition? {
+		val projectData = projectDao.getProjectData(owner, projectId)
 		return if (projectData != null) {
 			ProjectDefinition.wrap(
 				name = projectData.name,
@@ -357,19 +357,19 @@ class ProjectEntityDatabaseDatasource(
 	}
 
 	override suspend fun getEntityHashes(
-		userId: Long,
+		owner: OwnerId,
 		projectDef: ProjectDefinition,
 	): List<EntityHash> {
-		val projectId = projectDao.getProjectId(userId, projectDef.uuid)
-		return storyEntityDao.getEntityHashes(userId, projectId)
+		val projectId = projectDao.getProjectId(owner, projectDef.uuid)
+		return storyEntityDao.getEntityHashes(owner.id, projectId)
 	}
 
 	override suspend fun getEntityHashes(
-		userId: Long,
+		owner: OwnerId,
 		projectDef: ProjectDefinition,
 		type: ApiProjectEntity.Type,
 	): List<EntityHash> {
-		val projectId = projectDao.getProjectId(userId, projectDef.uuid)
-		return storyEntityDao.getEntityHashes(userId, projectId, type)
+		val projectId = projectDao.getProjectId(owner, projectDef.uuid)
+		return storyEntityDao.getEntityHashes(owner.id, projectId, type)
 	}
 }

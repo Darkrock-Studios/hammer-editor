@@ -19,6 +19,7 @@ enum class PackageFormat(val token: String) {
 	MSIX("msix"),
 	SNAP("snap"),
 	FLATPAK("flatpak"),
+	TARBALL("tarball"),
 	;
 
 	companion object {

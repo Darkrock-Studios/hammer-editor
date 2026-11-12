@@ -14,6 +14,7 @@ import com.darkrockstudios.apps.hammer.encryption.ContentEncryptorRegistry
 import com.darkrockstudios.apps.hammer.encryption.PlaintextContentEncryptor
 import com.darkrockstudios.apps.hammer.encryption.SimpleFileBasedAesGcmKeyProvider
 import com.darkrockstudios.apps.hammer.project.*
+import com.darkrockstudios.apps.hammer.project.OwnerId
 import com.darkrockstudios.apps.hammer.secret.KeyringCodec
 import com.darkrockstudios.apps.hammer.secret.KeyringManager
 import com.darkrockstudios.apps.hammer.secret.ServerSecretProvider
@@ -49,6 +50,7 @@ class ProjectEntityDatabaseDatasourceTest : BaseTest() {
 	private lateinit var base64: Base64
 
 	private val userId = 1L
+	private val owner = OwnerId.unchecked(userId)
 	private val projectDef = ProjectDefinition("Test Project", ProjectId("11111111-1111-1111-1111-111111111111"))
 
 	@BeforeEach
@@ -102,7 +104,7 @@ class ProjectEntityDatabaseDatasourceTest : BaseTest() {
 	fun `Check Project Exists`() = runTest {
 		setupEntities(testDatabase, contentEncryptor)
 		val datasource = createDatasource()
-		val result = datasource.checkProjectExists(userId, projectDef)
+		val result = datasource.checkProjectExists(owner, projectDef)
 		assertTrue(result)
 	}
 
@@ -110,7 +112,7 @@ class ProjectEntityDatabaseDatasourceTest : BaseTest() {
 	fun `Check Project Exists - No Project`() = runTest {
 		setupAccount(testDatabase)
 		val datasource = createDatasource()
-		val result = datasource.checkProjectExists(userId, projectDef)
+		val result = datasource.checkProjectExists(owner, projectDef)
 		assertFalse(result)
 	}
 
@@ -124,7 +126,7 @@ class ProjectEntityDatabaseDatasourceTest : BaseTest() {
 			.executeAsOneOrNull()
 		assertNull(result)
 
-		val created = datasource.createProject(userId, projectDef.name, projectDef.uuid)
+		val created = datasource.createProject(owner, projectDef.name, projectDef.uuid)
 		assertEquals(projectDef, created)
 
 		result = testDatabase.serverDatabase.projectQueries
@@ -146,30 +148,30 @@ class ProjectEntityDatabaseDatasourceTest : BaseTest() {
 		val otherUserId = testDatabase.serverDatabase.accountQueries
 			.findAccount("other@test.com").executeAsOne().id
 		val datasource = createDatasource()
-		datasource.createProject(otherUserId, "Their Project", projectDef.uuid)
+		datasource.createProject(OwnerId.unchecked(otherUserId), "Their Project", projectDef.uuid)
 
-		assertNull(datasource.createProject(userId, projectDef.name, projectDef.uuid))
-		assertNull(datasource.findProjectByName(userId, projectDef.name))
+		assertNull(datasource.createProject(owner, projectDef.name, projectDef.uuid))
+		assertNull(datasource.findProjectByName(owner, projectDef.name))
 	}
 
 	@Test
 	fun `Create Project - repeating a create inserts nothing`() = runTest {
 		setupAccount(testDatabase)
 		val datasource = createDatasource()
-		datasource.createProject(userId, projectDef.name, projectDef.uuid)
+		datasource.createProject(owner, projectDef.name, projectDef.uuid)
 
-		assertNull(datasource.createProject(userId, projectDef.name, projectDef.uuid))
-		assertEquals(projectDef, datasource.getProject(userId, projectDef.uuid))
+		assertNull(datasource.createProject(owner, projectDef.name, projectDef.uuid))
+		assertEquals(projectDef, datasource.getProject(owner, projectDef.uuid))
 	}
 
 	@Test
 	fun `Create Project - duplicate name is not an id clash`() = runTest {
 		setupAccount(testDatabase)
 		val datasource = createDatasource()
-		datasource.createProject(userId, projectDef.name, projectDef.uuid)
+		datasource.createProject(owner, projectDef.name, projectDef.uuid)
 
 		val failure = assertFails {
-			datasource.createProject(userId, projectDef.name, ProjectId("22222222-2222-2222-2222-222222222222"))
+			datasource.createProject(owner, projectDef.name, ProjectId("22222222-2222-2222-2222-222222222222"))
 		}
 		assertFalse(failure is ProjectIdTakenException)
 	}
@@ -179,7 +181,7 @@ class ProjectEntityDatabaseDatasourceTest : BaseTest() {
 		setupEntities(testDatabase, contentEncryptor)
 		val datasource = createDatasource()
 
-		val result = datasource.deleteProject(userId, projectDef.uuid)
+		val result = datasource.deleteProject(owner, projectDef.uuid)
 		assertTrue(isSuccess(result))
 
 		val projectExists = testDatabase.serverDatabase.projectQueries
@@ -204,7 +206,7 @@ class ProjectEntityDatabaseDatasourceTest : BaseTest() {
 		setupEntities(testDatabase, contentEncryptor)
 		val datasource = createDatasource()
 
-		val result = datasource.loadProjectSyncData(userId, projectDef)
+		val result = datasource.loadProjectSyncData(owner, projectDef)
 		assertEquals(syncData, result)
 	}
 
@@ -213,7 +215,7 @@ class ProjectEntityDatabaseDatasourceTest : BaseTest() {
 		setupEntities(testDatabase, contentEncryptor)
 		val datasource = createDatasource()
 
-		val lastId = datasource.findLastId(userId, projectDef)
+		val lastId = datasource.findLastId(owner, projectDef)
 		assertEquals(20, lastId)
 	}
 
@@ -222,19 +224,19 @@ class ProjectEntityDatabaseDatasourceTest : BaseTest() {
 		setupEntities(testDatabase, contentEncryptor)
 		val datasource = createDatasource()
 
-		var entityType = datasource.findEntityType(1, userId, projectDef)
+		var entityType = datasource.findEntityType(1, owner, projectDef)
 		assertEquals(ApiProjectEntity.Type.SCENE, entityType)
 
-		entityType = datasource.findEntityType(6, userId, projectDef)
+		entityType = datasource.findEntityType(6, owner, projectDef)
 		assertEquals(ApiProjectEntity.Type.SCENE_DRAFT, entityType)
 
-		entityType = datasource.findEntityType(10, userId, projectDef)
+		entityType = datasource.findEntityType(10, owner, projectDef)
 		assertEquals(ApiProjectEntity.Type.TIMELINE_EVENT, entityType)
 
-		entityType = datasource.findEntityType(14, userId, projectDef)
+		entityType = datasource.findEntityType(14, owner, projectDef)
 		assertEquals(ApiProjectEntity.Type.ENCYCLOPEDIA_ENTRY, entityType)
 
-		entityType = datasource.findEntityType(16, userId, projectDef)
+		entityType = datasource.findEntityType(16, owner, projectDef)
 		assertEquals(ApiProjectEntity.Type.NOTE, entityType)
 	}
 
@@ -243,16 +245,16 @@ class ProjectEntityDatabaseDatasourceTest : BaseTest() {
 		setupEntities(testDatabase, contentEncryptor)
 		val datasource = createDatasource()
 
-		val untyped = assertIs<ServerResult.Success<String>>(datasource.loadEntityHash(userId, projectDef, 1))
+		val untyped = assertIs<ServerResult.Success<String>>(datasource.loadEntityHash(owner, projectDef, 1))
 		val typed = assertIs<ServerResult.Success<String>>(
-			datasource.loadEntityHash(userId, projectDef, 1, ApiProjectEntity.Type.SCENE)
+			datasource.loadEntityHash(owner, projectDef, 1, ApiProjectEntity.Type.SCENE)
 		)
 		assertEquals(untyped.data, typed.data)
 
-		val wrongType = datasource.loadEntityHash(userId, projectDef, 1, ApiProjectEntity.Type.IMAGE)
+		val wrongType = datasource.loadEntityHash(owner, projectDef, 1, ApiProjectEntity.Type.IMAGE)
 		assertIs<EntityNotFound>(assertIs<ServerResult.Failure<String>>(wrongType).exception)
 
-		val missing = datasource.loadEntityHash(userId, projectDef, 999, ApiProjectEntity.Type.SCENE)
+		val missing = datasource.loadEntityHash(owner, projectDef, 999, ApiProjectEntity.Type.SCENE)
 		assertIs<EntityNotFound>(assertIs<ServerResult.Failure<String>>(missing).exception)
 	}
 
@@ -261,7 +263,7 @@ class ProjectEntityDatabaseDatasourceTest : BaseTest() {
 		setupEntities(testDatabase, contentEncryptor)
 		val datasource = createDatasource()
 
-		val entityDefs = datasource.getEntityDefs(userId, projectDef) { true }
+		val entityDefs = datasource.getEntityDefs(owner, projectDef) { true }
 		val expectedDefs = listOf(
 			EntityDefinition(1, ApiProjectEntity.Type.SCENE),
 			EntityDefinition(2, ApiProjectEntity.Type.SCENE),
@@ -296,7 +298,7 @@ class ProjectEntityDatabaseDatasourceTest : BaseTest() {
 		val datasource = createDatasource()
 
 		val result = datasource.loadEntity(
-			userId,
+			owner,
 			projectDef,
 			entityId,
 			ApiProjectEntity.Type.SCENE,
@@ -316,7 +318,7 @@ class ProjectEntityDatabaseDatasourceTest : BaseTest() {
 		val datasource = createDatasource()
 
 		val result = datasource.loadEntity(
-			userId,
+			owner,
 			projectDef,
 			entityId,
 			ApiProjectEntity.Type.SCENE,
@@ -337,7 +339,7 @@ class ProjectEntityDatabaseDatasourceTest : BaseTest() {
 
 		val result =
 			datasource.deleteEntity(
-				userId,
+				owner,
 				ApiProjectEntity.Type.SCENE,
 				projectDef,
 				entityId.toInt()
@@ -368,7 +370,7 @@ class ProjectEntityDatabaseDatasourceTest : BaseTest() {
 
 		val result =
 			datasource.deleteEntity(
-				userId,
+				owner,
 				ApiProjectEntity.Type.NOTE,
 				projectDef,
 				entityId.toInt()
@@ -402,7 +404,7 @@ class ProjectEntityDatabaseDatasourceTest : BaseTest() {
 			.createProject(userId, projectDef.name, projectDef.uuid.id)
 
 		val result = datasource.storeEntity(
-			userId,
+			owner,
 			projectDef,
 			entity,
 			ApiProjectEntity.Type.SCENE,
@@ -437,7 +439,7 @@ class ProjectEntityDatabaseDatasourceTest : BaseTest() {
 			.createProject(userId, projectDef.name, projectDef.uuid.id)
 
 		val result = datasource.storeEntity(
-			userId,
+			owner,
 			projectDef,
 			entity,
 			ApiProjectEntity.Type.SCENE,
@@ -461,7 +463,7 @@ class ProjectEntityDatabaseDatasourceTest : BaseTest() {
 	fun `Get Project`() = runTest {
 		setupEntities(testDatabase, contentEncryptor)
 		val datasource = createDatasource()
-		val project = datasource.getProject(userId, projectDef.uuid)
+		val project = datasource.getProject(owner, projectDef.uuid)
 		assertEquals(projectDef, project)
 	}
 
@@ -470,10 +472,10 @@ class ProjectEntityDatabaseDatasourceTest : BaseTest() {
 		val newProjectName = "New Project Name"
 		setupEntities(testDatabase, contentEncryptor)
 		val datasource = createDatasource()
-		val success = datasource.renameProject(userId, projectDef.uuid, newProjectName)
+		val success = datasource.renameProject(owner, projectDef.uuid, newProjectName)
 		assertTrue(success)
 
-		val renamed = datasource.getProject(userId, projectDef.uuid)
+		val renamed = datasource.getProject(owner, projectDef.uuid)
 		assertEquals(newProjectName, renamed?.name)
 	}
 
@@ -506,7 +508,7 @@ class ProjectEntityDatabaseDatasourceTest : BaseTest() {
 
 		assertFailsWith<IllegalStateException> {
 			datasource.loadEntity(
-				userId, projectDef, 1,
+				owner, projectDef, 1,
 				ApiProjectEntity.Type.SCENE,
 				ApiProjectEntity.SceneEntity.serializer(),
 			)
@@ -524,7 +526,7 @@ class ProjectEntityDatabaseDatasourceTest : BaseTest() {
 		insertSceneEntityRaw(1, "content", plaintextEncryptor, cipherTag = contentEncryptor.cipherName())
 
 		val result = createDatasource().loadEntity(
-			userId, projectDef, 1,
+			owner, projectDef, 1,
 			ApiProjectEntity.Type.SCENE,
 			ApiProjectEntity.SceneEntity.serializer(),
 		)
@@ -571,7 +573,7 @@ class ProjectEntityDatabaseDatasourceTest : BaseTest() {
 		val aesDatasource = createDatasource(activeEncryptor = contentEncryptor)
 		assertTrue(
 			aesDatasource.storeEntity(
-				userId, projectDef, entity,
+				owner, projectDef, entity,
 				ApiProjectEntity.Type.SCENE,
 				ApiProjectEntity.SceneEntity.serializer(),
 			).isSuccess
@@ -582,7 +584,7 @@ class ProjectEntityDatabaseDatasourceTest : BaseTest() {
 		val plainDatasource = createDatasource(activeEncryptor = plaintextEncryptor)
 		assertTrue(
 			plainDatasource.storeEntity(
-				userId, projectDef, entity,
+				owner, projectDef, entity,
 				ApiProjectEntity.Type.SCENE,
 				ApiProjectEntity.SceneEntity.serializer(),
 			).isSuccess
@@ -599,7 +601,7 @@ class ProjectEntityDatabaseDatasourceTest : BaseTest() {
 		entityId: Int,
 	): ApiProjectEntity.SceneEntity {
 		val result = datasource.loadEntity(
-			userId, projectDef, entityId,
+			owner, projectDef, entityId,
 			ApiProjectEntity.Type.SCENE,
 			ApiProjectEntity.SceneEntity.serializer(),
 		)

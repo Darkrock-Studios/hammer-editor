@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.plugins.wasmhost
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionPlace
 import com.darkrockstudios.apps.hammer.operations.plugin.FieldTable
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import net.peanuuutz.tomlkt.Toml
 
 /** A runtime plugin's `manifest.toml`. */
@@ -17,9 +18,11 @@ data class PluginManifest(
 	val description: String? = null,
 	/**
 	 * BCP 47 tags of the project languages the plugin works with, such as `en` or `fr`; empty when it
-	 * does not depend on the language. Only shown to the user: projects in others still call it.
+	 * does not depend on the language. Projects in others still call it; of the plugins of a [kind],
+	 * a project runs the first installed for its language until the writer picks one.
 	 */
 	val languages: List<String> = emptyList(),
+	val kind: Kind? = null,
 	val permissions: Permissions = Permissions(),
 	val exporters: List<Exporter> = emptyList(),
 	val commands: List<Command> = emptyList(),
@@ -35,6 +38,11 @@ data class PluginManifest(
 		val http: List<String> = emptyList(),
 		/** A host the user enters in a setting, which the plugin may also reach, while a toggle is on if it names one. */
 		val userHosts: UserHosts? = null,
+		/**
+		 * Services on the user's own sync server the plugin may reach as the signed-in user, such as
+		 * `languagetool`. The host attaches the user's credentials; the plugin never sees them.
+		 */
+		val hammerServer: List<String> = emptyList(),
 	)
 
 	@Serializable
@@ -105,6 +113,20 @@ data class PluginManifest(
 		 * of the scene each time, for issues that depend on other paragraphs.
 		 */
 		val scope: String = SCOPE_PARAGRAPH,
+	)
+
+	/**
+	 * The job the plugin does, shared by plugins that do the same one, such as grammar checkers, so a
+	 * project can pick one of them.
+	 */
+	@Serializable
+	data class Kind(
+		/** Agreed on by the plugins of the kind, such as `grammar`. */
+		val id: String,
+		/** Names the kind, such as "Grammar checker", where a project picks one of its plugins. */
+		val label: String,
+		/** Not part of the format: whether [label] came from a translation. */
+		@Transient val localized: Boolean = false,
 	)
 
 	@Serializable

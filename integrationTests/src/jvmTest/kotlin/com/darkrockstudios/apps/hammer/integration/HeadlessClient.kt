@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
+import com.darkrockstudios.apps.hammer.common.data.closeProjectScope
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.openProjectScope
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
@@ -63,8 +64,13 @@ class HeadlessClient private constructor(
 		)
 	}
 
+	private var closed = false
+
+	/** Releases this editor's hold on the project scope, as closing the editor does. Idempotent. */
 	fun close() {
-		scope.close()
+		if (closed) return
+		closed = true
+		closeProjectScope(scope, projectDef)
 	}
 
 	/**
@@ -76,12 +82,25 @@ class HeadlessClient private constructor(
 		val reread = checkNotNull(get<ProjectsRepository>().getProjects().find { it.path == projectDef.path }) {
 			"Project '${projectDef.name}' is gone"
 		}
-		val anchor = object : KoinComponent {}
-		val scope = with(anchor) { openProjectScope(reread) }
-		return HeadlessClient(reread, scope)
+		return opened(reread)
 	}
 
 	companion object {
+		/** Opens the existing local project named [projectName], as the project list would. */
+		suspend fun open(projectName: String): HeadlessClient {
+			val projectDef = checkNotNull(getKoin().get<ProjectsRepository>().getProjects().find { it.name == projectName }) {
+				"No local project '$projectName'"
+			}
+			return opened(projectDef)
+		}
+
+		/** Opens [projectDef]'s scope as an editor would. */
+		private suspend fun opened(projectDef: ProjectDef): HeadlessClient {
+			// `openProjectScope` is a suspend extension on KoinComponent; use a throwaway anchor.
+			val anchor = object : KoinComponent {}
+			return HeadlessClient(projectDef, with(anchor) { openProjectScope(projectDef) })
+		}
+
 		/**
 		 * @param serverProjectId when set, the local project is created with this existing server
 		 * project's id instead of a freshly minted one, i.e. a second device opening a project
@@ -111,11 +130,7 @@ class HeadlessClient private constructor(
 			// resolves an HttpClient that points at the test server.
 			globalSettings.updateServerSettings(serverSettings)
 
-			// `openProjectScope` is a suspend extension on KoinComponent; use a
-			// throwaway anchor so the companion can invoke it.
-			val anchor = object : KoinComponent {}
-			val scope = with(anchor) { openProjectScope(projectDef) }
-			return HeadlessClient(projectDef, scope)
+			return opened(projectDef)
 		}
 	}
 }

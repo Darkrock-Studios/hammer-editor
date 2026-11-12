@@ -35,6 +35,11 @@ data class ProjectsSynchronizationData(
 	val projectsToRename: Set<RenamedProject> = emptySet(),
 	val groupBaselines: Map<GroupId, GroupBaseline> = emptyMap(),
 	val projectBaselines: Map<ProjectId, ProjectBaseline> = emptyMap(),
+	/**
+	 * Projects whose sync was turned on here since the last completed account sync. One of them the
+	 * server deleted meanwhile is re-minted instead of deleted, as the tombstone may predate the switch.
+	 */
+	val resumedProjects: Set<ProjectId> = emptySet(),
 )
 
 @Serializable

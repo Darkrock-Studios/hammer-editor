@@ -1,0 +1,60 @@
+import kotlin.time.Instant;
+
+-- Co-authors. The owner is project.user_id and never has a row here.
+CREATE TABLE project_member (
+    project_id BIGINT NOT NULL,
+    user_id BIGINT NOT NULL,
+    joined_at TIMESTAMPTZ AS Instant NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (project_id, user_id),
+    FOREIGN KEY(project_id) REFERENCES project(id) ON DELETE CASCADE,
+    FOREIGN KEY(user_id) REFERENCES account(id) ON DELETE CASCADE
+);
+
+CREATE INDEX project_member_user_id_idx ON project_member (user_id);
+
+isMember:
+SELECT EXISTS(SELECT 1 FROM project_member WHERE project_id = :projectId AND user_id = :userId);
+
+insertMember:
+INSERT INTO project_member(project_id, user_id)
+VALUES (:projectId, :userId)
+ON CONFLICT DO NOTHING;
+
+deleteAllForProject:
+DELETE FROM project_member WHERE project_id = :projectId;
+
+deleteAllForUser:
+DELETE FROM project_member WHERE user_id = :userId;
+
+deleteAllOnUserProjects:
+DELETE FROM project_member
+WHERE project_id IN (SELECT id FROM project WHERE user_id = :userId);
+
+-- Projects the user is a co-author on.
+getMemberProjects:
+SELECT *
+FROM project
+WHERE id IN (SELECT project_id FROM project_member WHERE user_id = :userId)
+  AND user_id != :userId;
+
+deleteMember:
+DELETE FROM project_member
+WHERE project_id = :projectId AND user_id = :userId;
+
+getMembers:
+SELECT pm.user_id, a.pen_name, pm.joined_at
+FROM project_member pm
+JOIN account a ON a.id = pm.user_id
+WHERE pm.project_id = :projectId
+ORDER BY pm.joined_at;
+
+countMembers:
+SELECT count(*) FROM project_member WHERE project_id = :projectId;
+
+isMemberEmail:
+SELECT EXISTS(
+    SELECT 1
+    FROM project_member pm
+    JOIN account a ON a.id = pm.user_id
+    WHERE pm.project_id = :projectId AND a.email = CAST(:email AS CITEXT)
+);

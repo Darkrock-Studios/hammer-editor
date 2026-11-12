@@ -14,9 +14,12 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
@@ -39,6 +42,8 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.toggleableState
+import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -59,11 +64,16 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.util.format
 import com.darkrockstudios.apps.hammer.common.util.formatDecimalSeparator
 import com.darkrockstudios.apps.hammer.project_select_card_delete_button
+import com.darkrockstudios.apps.hammer.project_select_card_leave_button
 import com.darkrockstudios.apps.hammer.project_select_card_move_button
 import com.darkrockstudios.apps.hammer.project_select_card_rename_button
+import com.darkrockstudios.apps.hammer.project_select_card_sync_button
 import com.darkrockstudios.apps.hammer.projects_list_card_by_author
 import com.darkrockstudios.apps.hammer.projects_list_card_content_description
 import com.darkrockstudios.apps.hammer.projects_list_card_created
+import com.darkrockstudios.apps.hammer.projects_list_card_shared
+import com.darkrockstudios.apps.hammer.projects_list_card_shared_by
+import com.darkrockstudios.apps.hammer.projects_list_card_sync_off
 import com.darkrockstudios.apps.hammer.projects_list_card_words
 import com.darkrockstudios.apps.hammer.projects_list_item_more_button
 import kotlinx.datetime.TimeZone
@@ -73,6 +83,8 @@ import kotlin.time.Instant
 
 val ProjectCardTestTag = "project-card"
 const val ProjectCardCoverTestTag = "project-card-cover"
+const val ProjectCardSyncOffTestTag = "project-card-sync-off"
+const val ProjectCardSharedByTestTag = "project-card-shared-by"
 
 private val StripeWidth: Dp = 4.dp
 private val NumberColumnWidth: Dp = 56.dp
@@ -110,8 +122,10 @@ fun ProjectIndexRow(
 	modifier: Modifier = Modifier,
 	onTagClick: (tag: String) -> Unit = {},
 	onProjectMoveClick: (projectDef: ProjectDef) -> Unit = {},
+	onProjectSyncClick: (projectDef: ProjectDef, enabled: Boolean) -> Unit = { _, _ -> },
 	depth: Int = 0,
 	groupPath: List<String> = emptyList(),
+	isServerSynced: Boolean = true,
 ) {
 	val storedData = projectData.storedData
 	val author = storedData.authorName?.takeIf { it.isNotBlank() }
@@ -143,6 +157,10 @@ fun ProjectIndexRow(
 	}
 
 	val breadcrumb = remember(groupPath) { groupPath.takeIf { it.isNotEmpty() }?.joinToString(" › ") }
+	val shared = projectData.metadata.info.ownerId != null
+	val syncEnabled = projectData.metadata.info.syncEnabled
+	val syncOff = isServerSynced && !syncEnabled
+	val sharedBy = if (shared) sharedByLabel(projectData.metadata.info.ownerName) else null
 
 	Column(
 		modifier = modifier
@@ -200,19 +218,44 @@ fun ProjectIndexRow(
 					.padding(vertical = Ui.Padding.XL),
 				verticalArrangement = Arrangement.spacedBy(2.dp),
 			) {
-				Text(
-					text = projectData.definition.name,
-					style = if (isWide) {
-						MaterialTheme.typography.headlineSmall
-					} else {
-						MaterialTheme.typography.titleMedium
-					},
-					color = MaterialTheme.colorScheme.onSurface,
-				)
+				Row(
+					verticalAlignment = Alignment.CenterVertically,
+					horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M),
+				) {
+					Text(
+						text = projectData.definition.name,
+						style = if (isWide) {
+							MaterialTheme.typography.headlineSmall
+						} else {
+							MaterialTheme.typography.titleMedium
+						},
+						color = MaterialTheme.colorScheme.onSurface,
+						modifier = Modifier.weight(1f, fill = false),
+					)
+					if (syncOff) {
+						Icon(
+							imageVector = Icons.Outlined.CloudOff,
+							contentDescription = Res.string.projects_list_card_sync_off.get(),
+							tint = MaterialTheme.colorScheme.onSurfaceVariant,
+							modifier = Modifier
+								.size(16.dp)
+								.testTag(ProjectCardSyncOffTestTag),
+						)
+					}
+				}
 				if (breadcrumb != null) {
 					HdMonoLabel(
 						text = breadcrumb,
 						color = MaterialTheme.colorScheme.onSurfaceVariant,
+					)
+				}
+				if (sharedBy != null) {
+					// Not a mono label: that uppercases, and a pen name keeps its case.
+					Text(
+						text = sharedBy,
+						style = MaterialTheme.typography.labelMedium,
+						color = MaterialTheme.colorScheme.onSurfaceVariant,
+						modifier = Modifier.testTag(ProjectCardSharedByTestTag),
 					)
 				}
 				if (isWide) {
@@ -266,14 +309,11 @@ fun ProjectIndexRow(
 			}
 
 			ProjectOptionsMenu(
-				items = listOf(
-					Res.string.project_select_card_delete_button,
-					Res.string.project_select_card_rename_button,
-					Res.string.project_select_card_move_button,
-				),
+				items = projectMenuItems(shared, syncEnabled, isServerSynced),
+				toggles = mapOf(Res.string.project_select_card_sync_button to syncEnabled),
 			) {
 				when (it) {
-					Res.string.project_select_card_delete_button ->
+					Res.string.project_select_card_delete_button, Res.string.project_select_card_leave_button ->
 						onProjectAltClick(projectData.definition)
 
 					Res.string.project_select_card_rename_button ->
@@ -281,6 +321,9 @@ fun ProjectIndexRow(
 
 					Res.string.project_select_card_move_button ->
 						onProjectMoveClick(projectData.definition)
+
+					Res.string.project_select_card_sync_button ->
+						onProjectSyncClick(projectData.definition, !syncEnabled)
 				}
 			}
 		}
@@ -416,9 +459,11 @@ private fun formatStamp(instant: Instant): String =
 		.format("dd MMM `yy")
 		.uppercase()
 
+/** An item in [toggles] is a switch, checked when its value is true. */
 @Composable
 fun ProjectOptionsMenu(
 	items: List<StringResource>,
+	toggles: Map<StringResource, Boolean> = emptyMap(),
 	onItemClick: (StringResource) -> Unit
 ) {
 	var expanded by remember { mutableStateOf(false) }
@@ -440,9 +485,17 @@ fun ProjectOptionsMenu(
 			onDismissRequest = { expanded = false }
 		) {
 			items.forEach { item ->
+				val on = toggles[item]
 				DropdownMenuItem(
-					modifier = Modifier.testTag(item.get()),
+					modifier = Modifier
+						.testTag(item.get())
+						.then(if (on != null) Modifier.semantics { toggleableState = ToggleableState(on) } else Modifier),
 					text = { Text(text = item.get()) },
+					trailingIcon = if (on == true) {
+						{ Icon(Icons.Default.Check, contentDescription = null) }
+					} else {
+						null
+					},
 					onClick = {
 						onItemClick(item)
 						expanded = false
@@ -452,3 +505,26 @@ fun ProjectOptionsMenu(
 		}
 	}
 }
+
+/**
+ * While a shared project syncs, deleting it is leaving it, and with a server its owner names and
+ * places it. Parked, it is this device's copy like any other. Only the account's own projects have
+ * a sync switch.
+ */
+private fun projectMenuItems(shared: Boolean, syncEnabled: Boolean, isServerSynced: Boolean): List<StringResource> {
+	val leaves = shared && syncEnabled
+	val ownerArranges = leaves && isServerSynced
+	return listOfNotNull(
+		if (leaves) Res.string.project_select_card_leave_button else Res.string.project_select_card_delete_button,
+		Res.string.project_select_card_rename_button.takeUnless { ownerArranges },
+		Res.string.project_select_card_move_button.takeUnless { ownerArranges },
+		Res.string.project_select_card_sync_button.takeIf { !shared && isServerSynced },
+	)
+}
+
+/** "Shared by {owner}", or "Shared with you" when the owner has no pen name. */
+@Composable
+fun sharedByLabel(ownerName: String?): String =
+	ownerName?.takeIf { it.isNotBlank() }
+		?.let { Res.string.projects_list_card_shared_by.get(it) }
+		?: Res.string.projects_list_card_shared.get()

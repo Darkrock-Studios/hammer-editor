@@ -19,7 +19,7 @@ import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesServic
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupDef
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupService
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
-import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectPluginsRepository
+import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectDisabledPluginsUseCase
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.EntryAppearance
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.ProjectStatisticsUseCase
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsService
@@ -44,6 +44,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.todayIn
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import org.koin.core.component.inject
 import kotlin.time.Clock
 
@@ -63,6 +64,7 @@ class ProjectHomeComponent(
 	private val mainDispatcher by injectMainDispatcher()
 
 	private val globalSettingsStore: GlobalSettingsStore by inject()
+	private val projectsRepository: ProjectsRepository by inject()
 	private val projectBackupService: ProjectBackupService by inject()
 	private val exporters: StoryExporterRegistry by inject()
 	private val sceneEditorRepository: SceneEditorService by projectInject()
@@ -72,7 +74,7 @@ class ProjectHomeComponent(
 	private val statisticsService: StatisticsService by projectInject()
 	private val projectStatistics: ProjectStatisticsUseCase by projectInject()
 	private val tagIndexService: TagIndexService by projectInject()
-	private val projectPlugins: ProjectPluginsRepository by inject()
+	private val projectDisabledPlugins: ProjectDisabledPluginsUseCase by projectInject()
 	private val projectDataRepository: ProjectDataRepository by projectInject()
 	private val imagesService: ImagesService by projectInject()
 
@@ -302,7 +304,7 @@ class ProjectHomeComponent(
 		}
 		scope.launch {
 			// The registry's changes never emit when it has no sources.
-			combine(exporters.changes.onStart { emit(Unit) }, projectPlugins.disabledPlugins(projectDef.id)) { _, disabled ->
+			combine(exporters.changes.onStart { emit(Unit) }, projectDisabledPlugins.disabledPlugins) { _, disabled ->
 				disabled
 			}.collect { disabled ->
 				withContext(dispatcherMain) {
@@ -347,6 +349,7 @@ class ProjectHomeComponent(
 							numberOfTimelineEvents = stats.numberOfTimelineEvents,
 							dailyWordTotals = dailyTotals,
 							wordsPerDevice = stats.wordsPerDevice,
+							wordsPerAuthor = stats.wordsPerAuthor,
 							topAppearances = stats.topAppearances,
 							totalEntryConnections = stats.totalEntryConnections,
 							wordCountGoal = stats.wordCountGoal,
@@ -389,6 +392,13 @@ class ProjectHomeComponent(
 	}
 
 	private fun listenForSyncEvents() {
+		scope.launch {
+			projectsRepository.syncEnabledUpdates(projectDef).collect { enabled ->
+				withContext(dispatcherMain) {
+					_state.getAndUpdate { it.copy(syncEnabled = enabled) }
+				}
+			}
+		}
 		scope.launch {
 			projectSynchronizer.syncCompleteEvent.receiveAsFlow().collect { success ->
 				if (success) {

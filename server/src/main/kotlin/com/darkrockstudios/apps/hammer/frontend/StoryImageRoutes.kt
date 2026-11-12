@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.frontend
 
 import com.darkrockstudios.apps.hammer.frontend.utils.applyRevalidationHeaders
 import com.darkrockstudios.apps.hammer.frontend.utils.matchesETag
+import com.darkrockstudios.apps.hammer.project.OwnerId
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.project.ServerProjectDataRepository
 import com.darkrockstudios.apps.hammer.story.StoryImageService
@@ -27,11 +28,11 @@ internal const val STORY_IMAGE_CSP = "default-src 'none'; style-src 'unsafe-inli
  */
 internal suspend fun ApplicationCall.respondStoryImage(
 	storyImageService: StoryImageService,
-	userId: Long,
+	owner: OwnerId,
 	projectDef: ProjectDefinition,
 	imageId: Int,
 ) {
-	val hash = storyImageService.imageHash(userId, projectDef, imageId)
+	val hash = storyImageService.imageHash(owner, projectDef, imageId)
 	if (hash == null) {
 		respond(HttpStatusCode.NotFound)
 		return
@@ -44,7 +45,7 @@ internal suspend fun ApplicationCall.respondStoryImage(
 		return
 	}
 
-	val image = storyImageService.loadImage(userId, projectDef, imageId)
+	val image = storyImageService.loadImage(owner, projectDef, imageId)
 	if (image == null) {
 		respond(HttpStatusCode.NotFound)
 		return
@@ -61,11 +62,11 @@ internal suspend fun ApplicationCall.respondStoryImage(
 internal suspend fun storyCoverImageId(
 	serverProjectDataRepository: ServerProjectDataRepository,
 	storyImageService: StoryImageService,
-	userId: Long,
+	owner: OwnerId,
 	projectDef: ProjectDefinition,
 ): Int? {
-	val coverId = serverProjectDataRepository.loadCoverImageId(userId, projectDef) ?: return null
-	return coverId.takeIf { storyImageService.imageHash(userId, projectDef, it) != null }
+	val coverId = serverProjectDataRepository.loadCoverImageId(owner, projectDef) ?: return null
+	return coverId.takeIf { storyImageService.imageHash(owner, projectDef, it) != null }
 }
 
 private fun ApplicationCall.applyImageHeaders(etag: String) {

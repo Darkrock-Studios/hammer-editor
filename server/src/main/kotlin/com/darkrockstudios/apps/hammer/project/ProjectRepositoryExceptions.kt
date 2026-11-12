@@ -29,10 +29,34 @@ class EntityValidationException(
 	val reason: String,
 ) : Exception("Entity $id rejected: $reason")
 
+/** A project session cannot start while the owner's account session (which can rename or delete it) is live. */
+class OwnerSyncInProgressException(val projectId: ProjectId) :
+	Exception("The owner of project $projectId is syncing their account")
+
+/** The owner cannot delete, rename or move a project while a co-author holds a session on it. */
+class ProjectSyncInProgressException(val projectId: ProjectId) :
+	Exception("Project $projectId has a sync in progress")
+
 class ProjectNotFound(val projectId: ProjectId) :
 	Exception("Project $projectId not found on server") {
 	constructor(projectDef: ProjectDefinition) : this(projectDef.uuid)
 }
+
+/** The project exists, but the caller neither owns it nor co-authors it. */
+class NotMemberException(val projectId: ProjectId) :
+	Exception("Project $projectId is not shared with this account")
+
+/** Only the owner may rename, move or delete the project; a co-author's delete is a leave. */
+class NotOwnerException(val projectId: ProjectId) :
+	Exception("Project $projectId belongs to another account")
+
+enum class InviteRefusal { INVALID_EMAIL, OWNER_PEN_NAME_REQUIRED, OWN_ADDRESS, ALREADY_MEMBER, LIMIT_REACHED }
+
+class InviteRefusedException(val reason: InviteRefusal) : Exception("Invite refused: $reason")
+
+class InviteNotFoundException(val inviteId: Long) : Exception("No invite $inviteId for this account")
+
+class PenNameRequiredException : Exception("A pen name is required to join a project")
 
 class InvalidProjectName(val name: String) :
 	Exception("Invalid project name: $name")

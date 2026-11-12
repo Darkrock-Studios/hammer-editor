@@ -3,23 +3,37 @@ CREATE TABLE writing_activity (
     project_id BIGINT NOT NULL,
     device_id TEXT NOT NULL CHECK (device_id != ''),
     content TEXT NOT NULL,
+    -- user_id is the project's owner; author_id uploaded the slot. Two accounts on one install
+    -- share a device_id, so the author is part of the key. author_name is the pen name at
+    -- upload time, kept without a foreign key so a removed or deleted author keeps their label.
+    author_id BIGINT NOT NULL,
+    author_name TEXT,
     FOREIGN KEY(user_id) REFERENCES account(id) ON DELETE CASCADE,
     FOREIGN KEY(project_id) REFERENCES project(id) ON DELETE CASCADE,
-    UNIQUE(user_id, project_id, device_id)
+    UNIQUE(user_id, project_id, author_id, device_id)
 );
 
 CREATE INDEX writing_activity_user_project_idx ON writing_activity (user_id, project_id);
 
 getAllForProject:
-SELECT device_id, content
+SELECT device_id, content, author_id, author_name
 FROM writing_activity
 WHERE user_id = :userId AND project_id = :projectId;
 
 upsertDeviceLog:
-INSERT INTO writing_activity(user_id, project_id, device_id, content)
-VALUES (:userId, :projectId, :deviceId, :content)
-ON CONFLICT (user_id, project_id, device_id) DO UPDATE SET
-    content = EXCLUDED.content;
+INSERT INTO writing_activity(user_id, project_id, author_id, device_id, content, author_name)
+VALUES (:userId, :projectId, :authorId, :deviceId, :content, :authorName)
+ON CONFLICT (user_id, project_id, author_id, device_id) DO UPDATE SET
+    content = EXCLUDED.content,
+    author_name = EXCLUDED.author_name;
 
 deleteAllForUser:
 DELETE FROM writing_activity WHERE user_id = :userId;
+
+-- A purged author's slots in other owners' projects keep their numbers but lose the pen name.
+-- A text match rather than a JSONB cast, so a malformed log cannot fail the purge.
+anonymizeAuthor:
+UPDATE writing_activity
+SET author_name = NULL,
+    content = regexp_replace(content, '"authorName"\s*:\s*"(\\.|[^"\\])*"', '"authorName":null', 'g')
+WHERE author_id = :authorId AND user_id != :authorId;

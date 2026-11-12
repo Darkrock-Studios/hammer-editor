@@ -1,5 +1,6 @@
 package synchronizer
 
+import com.darkrockstudios.apps.hammer.base.GroupId
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.*
 import com.darkrockstudios.apps.hammer.common.data.CResult
@@ -9,6 +10,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectInUseException
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectOwner
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectRenameFailed
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectTree
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
@@ -42,10 +44,16 @@ import com.darkrockstudios.apps.hammer.sync_log_account_project_adopt_conflict
 import com.darkrockstudios.apps.hammer.sync_log_account_project_adopt_folder
 import com.darkrockstudios.apps.hammer.sync_log_account_project_create_local_failure
 import com.darkrockstudios.apps.hammer.sync_log_account_project_create_server_failure
+import com.darkrockstudios.apps.hammer.sync_log_account_project_create_client_name_excluded
+import com.darkrockstudios.apps.hammer.sync_log_account_project_create_shared_name_taken
 import com.darkrockstudios.apps.hammer.sync_log_account_project_create_server_success
+import com.darkrockstudios.apps.hammer.sync_log_account_project_delete_kept_excluded
+import com.darkrockstudios.apps.hammer.sync_log_account_project_delete_reminted
 import com.darkrockstudios.apps.hammer.sync_log_account_project_deleted_elsewhere
 import com.darkrockstudios.apps.hammer.sync_log_account_project_id_reminted
 import com.darkrockstudios.apps.hammer.sync_log_account_project_in_use
+import com.darkrockstudios.apps.hammer.sync_log_account_project_parked
+import com.darkrockstudios.apps.hammer.sync_log_account_project_resumed
 import com.darkrockstudios.apps.hammer.sync_log_account_project_rename_client_from_server_failure
 import org.jetbrains.compose.resources.StringResource
 import io.ktor.http.*
@@ -165,6 +173,8 @@ class ClientAccountSynchronizerTest : BaseTest() {
 
 		globalSettingsStore = mockk(relaxed = true)
 		projectsRepository = mockk(relaxed = true)
+		every { projectsRepository.isSyncEnabled(any()) } returns true
+		every { projectsRepository.getOwner(any()) } returns null
 		serverProjectsApi = mockk()
 		ideasSynchronizer = mockk()
 		coEvery { ideasSynchronizer.syncIdeas(any(), any(), any(), any()) } returns true
@@ -174,6 +184,9 @@ class ClientAccountSynchronizerTest : BaseTest() {
 		every { globalSettingsStore.globalSettings } returns GlobalSettings(projectsDirectory = "/projects")
 		every { globalSettingsStore.serverSettings } returns serverSettings(userId = 1)
 		every { projectsRepository.getProjectsDirectory() } returns HPath("/projects", "projects", true)
+		every { projectsRepository.getProjectDirectory(any()) } answers {
+			HPath("$projectsDirPath/${firstArg<String>()}", firstArg(), true)
+		}
 		every { projectsRepository.getProjectTree(any()) } returns ProjectTree.EMPTY
 		every { projectsRepository.findProject(any<ProjectId>()) } returns null
 		coEvery { projectsRepository.adoptUnmarkedDirectory(any(), any(), any()) } returns null
@@ -1240,5 +1253,456 @@ class ClientAccountSynchronizerTest : BaseTest() {
 		val logged = strRes.calls.single { it.first == Res.string.sync_log_account_project_in_use }
 		assertEquals(listOf<Any>("OldName"), logged.second)
 		assertTrue(strRes.calls.none { it.first == Res.string.sync_log_account_project_rename_client_from_server_failure })
+	}
+
+	private fun exclude(def: ProjectDef) {
+		every { projectsRepository.isSyncEnabled(def) } returns false
+	}
+
+	@Test
+	fun `an excluded project the server deleted keeps its folder and id and is recorded deleted`() = runTest {
+		writeSyncData(emptySyncData())
+		val id = ProjectId.randomUUID()
+		val def = projectDef("Scratch", id)
+		exclude(def)
+		stubLocalProjects(listOf(def))
+		every { projectsRepository.findProject(id) } returns def
+		coEvery { serverProjectsApi.beginProjectsSync() } returns
+			Result.success(emptyServerResponse().copy(deletedProjects = setOf(id)))
+
+		val strRes = RecordingStrRes()
+		val result = createSynchronizer(strRes).syncProjects(onLog = {}, onUnauthorized = {})
+
+		assertTrue(result)
+		coVerify(exactly = 0) { projectsRepository.deleteProject(any()) }
+		coVerify(exactly = 0) { projectsRepository.setProjectId(any(), any()) }
+		coVerify(exactly = 0) { serverProjectsApi.createProject(any(), any(), any(), any()) }
+		assertEquals(setOf(id), readSyncData().deletedProjects)
+		assertTrue(strRes.calls.any { it.first == Res.string.sync_log_account_project_delete_kept_excluded })
+	}
+
+	@Test
+	fun `a recorded deletion is not re-minted for a project that syncs`() = runTest {
+		val id = ProjectId.randomUUID()
+		val def = projectDef("Scratch", id)
+		writeSyncData(emptySyncData().copy(deletedProjects = setOf(id)))
+		stubLocalProjects(listOf(def))
+		coEvery { serverProjectsApi.beginProjectsSync() } returns
+			Result.success(emptyServerResponse().copy(deletedProjects = setOf(id)))
+
+		createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
+
+		coVerify(exactly = 0) { projectsRepository.setProjectId(any(), any()) }
+	}
+
+	@Test
+	fun `a recorded deletion of an excluded project is left alone`() = runTest {
+		val id = ProjectId.randomUUID()
+		val def = projectDef("Scratch", id)
+		exclude(def)
+		writeSyncData(emptySyncData().copy(deletedProjects = setOf(id)))
+		stubLocalProjects(listOf(def))
+		coEvery { serverProjectsApi.beginProjectsSync() } returns
+			Result.success(emptyServerResponse().copy(deletedProjects = setOf(id)))
+
+		createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
+
+		coVerify(exactly = 0) { projectsRepository.setProjectId(any(), any()) }
+		coVerify(exactly = 0) { projectsRepository.deleteProject(any()) }
+		coVerify(exactly = 0) { serverProjectsApi.createProject(any(), any(), any(), any()) }
+	}
+
+	@Test
+	fun `a resumed project the server deleted is re-minted and created instead of deleted`() = runTest {
+		val id = ProjectId.randomUUID()
+		val def = projectDef("Scratch", id)
+		writeSyncData(emptySyncData().copy(resumedProjects = setOf(id)))
+		var local = def
+		every { projectsRepository.getProjectTree(any()) } answers {
+			ProjectTree(emptyList(), listOf(local), mapOf(local.id to null))
+		}
+		every { projectsRepository.findProject(id) } returns def
+		val newId = slot<ProjectId>()
+		coEvery { projectsRepository.setProjectId(def, capture(newId)) } answers {
+			def.copy(id = newId.captured).also { local = it }
+		}
+		coEvery { serverProjectsApi.beginProjectsSync() } returns
+			Result.success(emptyServerResponse().copy(deletedProjects = setOf(id)))
+		coEvery { serverProjectsApi.createProject("Scratch", any(), "sync-1") } answers {
+			Result.success(CreateProjectResponse(newId.captured, alreadyExisted = false))
+		}
+
+		val strRes = RecordingStrRes()
+		val result = createSynchronizer(strRes).syncProjects(onLog = {}, onUnauthorized = {})
+
+		assertTrue(result)
+		coVerify(exactly = 0) { projectsRepository.deleteProject(any()) }
+		assertNotEquals(id, newId.captured)
+		coVerify { serverProjectsApi.createProject("Scratch", newId.captured, "sync-1") }
+		assertTrue(strRes.calls.any { it.first == Res.string.sync_log_account_project_delete_reminted })
+		assertTrue(readSyncData().resumedProjects.isEmpty())
+	}
+
+	@Test
+	fun `a resumed project in use that the server deleted is kept with sync off`() = runTest {
+		val id = ProjectId.randomUUID()
+		val def = projectDef("Scratch", id)
+		writeSyncData(emptySyncData().copy(resumedProjects = setOf(id)))
+		stubLocalProjects(listOf(def))
+		every { projectsRepository.findProject(id) } returns def
+		coEvery { projectsRepository.setProjectId(def, any()) } throws ProjectInUseException("Scratch")
+		coEvery { serverProjectsApi.beginProjectsSync() } returns
+			Result.success(emptyServerResponse().copy(deletedProjects = setOf(id)))
+
+		val strRes = RecordingStrRes()
+		val result = createSynchronizer(strRes).syncProjects(onLog = {}, onUnauthorized = {})
+
+		assertTrue(result)
+		coVerify(exactly = 0) { projectsRepository.deleteProject(any()) }
+		verify { projectsRepository.setSyncEnabled(def, false) }
+		coVerify(exactly = 0) { serverProjectsApi.createProject(any(), any(), any(), any()) }
+		val sync = readSyncData()
+		assertEquals(setOf(id), sync.deletedProjects)
+		assertTrue(sync.resumedProjects.isEmpty())
+		assertTrue(strRes.calls.any { it.first == Res.string.sync_log_account_project_delete_kept_excluded })
+	}
+
+	@Test
+	fun `a resumed project whose tombstone a running sync recorded is re-minted next sync`() = runTest {
+		val id = ProjectId.randomUUID()
+		val def = projectDef("Scratch", id)
+		writeSyncData(emptySyncData().copy(deletedProjects = setOf(id), resumedProjects = setOf(id)))
+		stubLocalProjects(listOf(def))
+		every { projectsRepository.findProject(id) } returns def
+		val newId = slot<ProjectId>()
+		coEvery { projectsRepository.setProjectId(def, capture(newId)) } answers { def.copy(id = newId.captured) }
+		coEvery { serverProjectsApi.beginProjectsSync() } returns
+			Result.success(emptyServerResponse().copy(deletedProjects = setOf(id)))
+
+		val result = createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
+
+		assertTrue(result)
+		coVerify(exactly = 1) { projectsRepository.setProjectId(def, any()) }
+		coVerify(exactly = 0) { projectsRepository.deleteProject(any()) }
+	}
+
+	@Test
+	fun `a completed sync clears the resumed ids it started with`() = runTest {
+		val id = ProjectId.randomUUID()
+		val goneId = ProjectId.randomUUID()
+		val def = projectDef("Scratch", id)
+		writeSyncData(emptySyncData().copy(resumedProjects = setOf(id, goneId)))
+		stubLocalProjects(listOf(def))
+		coEvery { serverProjectsApi.beginProjectsSync() } returns Result.success(
+			emptyServerResponse().copy(projects = setOf(ApiProjectDefinition("Scratch", id)))
+		)
+
+		val result = createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
+
+		assertTrue(result)
+		assertTrue(readSyncData().resumedProjects.isEmpty())
+	}
+
+	@Test
+	fun `a project the server deleted after a resume was cleared is deleted`() = runTest {
+		val id = ProjectId.randomUUID()
+		val def = projectDef("Scratch", id)
+		writeSyncData(emptySyncData().copy(resumedProjects = setOf(id)))
+		stubLocalProjects(listOf(def))
+		coEvery { serverProjectsApi.beginProjectsSync() } returns Result.success(
+			emptyServerResponse().copy(projects = setOf(ApiProjectDefinition("Scratch", id)))
+		)
+		createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
+
+		every { projectsRepository.findProject(id) } returns def
+		coEvery { serverProjectsApi.beginProjectsSync() } returns
+			Result.success(emptyServerResponse("sync-2").copy(deletedProjects = setOf(id)))
+		val result = createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
+
+		assertTrue(result)
+		coVerify { projectsRepository.deleteProject(def) }
+		coVerify(exactly = 0) { projectsRepository.setProjectId(any(), any()) }
+	}
+
+	@Test
+	fun `an excluded local-only project is not created on the server`() = runTest {
+		writeSyncData(emptySyncData())
+		val def = projectDef("Scratch")
+		exclude(def)
+		stubLocalProjects(listOf(def))
+
+		val result = createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
+
+		assertTrue(result)
+		coVerify(exactly = 0) { serverProjectsApi.createProject(any(), any(), any(), any()) }
+	}
+
+	@Test
+	fun `a server rename of an excluded project is not applied`() = runTest {
+		val id = ProjectId.randomUUID()
+		val def = projectDef("OldName", id)
+		writeSyncData(emptySyncData().copy(projectBaselines = mapOf(id to ProjectBaseline("OldName"))))
+		exclude(def)
+		stubLocalProjects(listOf(def))
+		coEvery { serverProjectsApi.beginProjectsSync() } returns Result.success(
+			emptyServerResponse().copy(projects = setOf(ApiProjectDefinition("NewName", id)))
+		)
+
+		createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
+
+		verify(exactly = 0) { projectsRepository.renameProject(any(), any()) }
+		assertEquals(ProjectBaseline("OldName"), readSyncData().projectBaselines[id])
+	}
+
+	@Test
+	fun `a local rename of an excluded project is not sent`() = runTest {
+		val id = ProjectId.randomUUID()
+		val def = projectDef("NewName", id)
+		writeSyncData(emptySyncData().copy(projectBaselines = mapOf(id to ProjectBaseline("OldName"))))
+		exclude(def)
+		stubLocalProjects(listOf(def))
+		coEvery { serverProjectsApi.beginProjectsSync() } returns Result.success(
+			emptyServerResponse().copy(projects = setOf(ApiProjectDefinition("OldName", id)))
+		)
+
+		createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
+
+		coVerify(exactly = 0) { serverProjectsApi.renameProject(any(), any(), any()) }
+		assertEquals(ProjectBaseline("OldName"), readSyncData().projectBaselines[id])
+	}
+
+	@Test
+	fun `a same-named server project is not adopted onto an excluded project`() = runTest {
+		writeSyncData(emptySyncData())
+		val def = projectDef("Novel")
+		val serverId = ProjectId.randomUUID()
+		exclude(def)
+		stubLocalProjects(listOf(def))
+		coEvery { serverProjectsApi.beginProjectsSync() } returns Result.success(
+			emptyServerResponse().copy(projects = setOf(ApiProjectDefinition("Novel", serverId)))
+		)
+
+		val strRes = RecordingStrRes()
+		createSynchronizer(strRes).syncProjects(onLog = {}, onUnauthorized = {})
+
+		coVerify(exactly = 0) { projectsRepository.setProjectId(any(), any()) }
+		verify(exactly = 0) { projectsRepository.createProject(any(), any(), any(), any()) }
+		assertTrue(strRes.calls.any { it.first == Res.string.sync_log_account_project_create_client_name_excluded })
+	}
+
+	@Test
+	fun `a local move of an excluded project is not sent`() = runTest {
+		val id = ProjectId.randomUUID()
+		val groupId = GroupId.randomUUID()
+		val def = projectDef("Novel", id)
+		// Moved out of the group locally: the three-way rule would push the top level.
+		writeSyncData(emptySyncData().copy(projectBaselines = mapOf(id to ProjectBaseline("Novel", groupId))))
+		exclude(def)
+		stubLocalProjects(listOf(def))
+		coEvery { serverProjectsApi.beginProjectsSync() } returns Result.success(
+			emptyServerResponse().copy(projects = setOf(ApiProjectDefinition("Novel", id, groupId)))
+		)
+
+		createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
+
+		coVerify(exactly = 0) { serverProjectsApi.moveProject(any(), any(), any()) }
+		assertEquals(ProjectBaseline("Novel", groupId), readSyncData().projectBaselines[id])
+	}
+
+	private val alice = ProjectOwner(7L, "Alice")
+
+	private fun sharedServerProject(name: String, id: ProjectId, owner: ProjectOwner = alice) =
+		ApiProjectDefinition(name = name, uuid = id, ownerId = owner.id, ownerName = owner.name)
+
+	@Test
+	fun `a shared server project is created locally at the top level with its owner`() = runTest {
+		writeSyncData(emptySyncData())
+		val serverId = ProjectId.randomUUID()
+		coEvery { serverProjectsApi.beginProjectsSync() } returns
+			Result.success(emptyServerResponse().copy(projects = setOf(sharedServerProject("Shared", serverId))))
+		stubLocalProjects(emptyList())
+		every { projectsRepository.createProject("Shared", any(), any(), any(), any()) } returns
+			CResult.success(projectDef("Shared", serverId))
+
+		val result = createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
+
+		assertTrue(result)
+		verify { projectsRepository.createProject("Shared", false, serverId, null, alice) }
+		assertEquals(ProjectBaseline("Shared"), readSyncData().projectBaselines[serverId])
+	}
+
+	@Test
+	fun `account sync records the owner's current name on a shared project`() = runTest {
+		writeSyncData(emptySyncData())
+		val id = ProjectId.randomUUID()
+		val def = projectDef("Shared", id)
+		stubLocalProjects(listOf(def))
+		every { projectsRepository.getOwner(def) } returns ProjectOwner(alice.id, "Old Pen Name")
+		coEvery { serverProjectsApi.beginProjectsSync() } returns
+			Result.success(emptyServerResponse().copy(projects = setOf(sharedServerProject("Shared", id))))
+
+		createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
+
+		verify { projectsRepository.setOwner(def, alice) }
+	}
+
+	@Test
+	fun `a shared project is not adopted onto a same-named local project and is skipped`() = runTest {
+		writeSyncData(emptySyncData())
+		val local = projectDef("Novel")
+		stubLocalProjects(listOf(local))
+		coEvery { serverProjectsApi.beginProjectsSync() } returns Result.success(
+			emptyServerResponse().copy(projects = setOf(sharedServerProject("Novel", ProjectId.randomUUID())))
+		)
+		coEvery { serverProjectsApi.createProject(any(), any(), any(), any()) } returns
+			Result.success(CreateProjectResponse(local.id, alreadyExisted = false))
+
+		val strRes = RecordingStrRes()
+		val result = createSynchronizer(strRes).syncProjects(onLog = {}, onUnauthorized = {})
+
+		assertTrue(result)
+		coVerify(exactly = 0) { projectsRepository.setProjectId(any(), any()) }
+		verify(exactly = 0) { projectsRepository.createProject(any(), any(), any(), any(), any()) }
+		assertTrue(strRes.calls.any { it.first == Res.string.sync_log_account_project_create_shared_name_taken })
+		// The local project is its own and still uploads under its own id.
+		coVerify { serverProjectsApi.createProject("Novel", local.id, "sync-1", null) }
+	}
+
+	@Test
+	fun `a shared project does not adopt an unmarked folder of its name`() = runTest {
+		writeSyncData(emptySyncData())
+		ffs.createDirectories(projectsDirPath / "Novel")
+		stubLocalProjects(emptyList())
+		coEvery { serverProjectsApi.beginProjectsSync() } returns Result.success(
+			emptyServerResponse().copy(projects = setOf(sharedServerProject("Novel", ProjectId.randomUUID())))
+		)
+
+		val strRes = RecordingStrRes()
+		createSynchronizer(strRes).syncProjects(onLog = {}, onUnauthorized = {})
+
+		coVerify(exactly = 0) { projectsRepository.adoptUnmarkedDirectory(any(), any(), any()) }
+		verify(exactly = 0) { projectsRepository.createProject(any(), any(), any(), any(), any()) }
+		assertTrue(strRes.calls.any { it.first == Res.string.sync_log_account_project_create_shared_name_taken })
+	}
+
+	@Test
+	fun `a shared project the server does not list is never created on the server`() = runTest {
+		writeSyncData(emptySyncData())
+		val def = projectDef("Shared")
+		stubLocalProjects(listOf(def))
+		every { projectsRepository.getOwner(def) } returns alice
+
+		createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
+
+		coVerify(exactly = 0) { serverProjectsApi.createProject(any(), any(), any(), any()) }
+	}
+
+	@Test
+	fun `a shared project under the server's deleted projects keeps its folder and its id`() = runTest {
+		writeSyncData(emptySyncData())
+		val id = ProjectId.randomUUID()
+		val def = projectDef("Shared", id)
+		stubLocalProjects(listOf(def))
+		every { projectsRepository.findProject(id) } returns def
+		every { projectsRepository.getOwner(def) } returns alice
+		coEvery { serverProjectsApi.beginProjectsSync() } returns
+			Result.success(emptyServerResponse().copy(deletedProjects = setOf(id)))
+
+		createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
+		every { projectsRepository.isSyncEnabled(def) } returns false
+		createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
+
+		verify(exactly = 0) { projectsRepository.deleteProject(any()) }
+		coVerify(exactly = 0) { projectsRepository.setProjectId(any(), any()) }
+		verify { projectsRepository.setSyncEnabled(def, false) }
+	}
+
+	@Test
+	fun `an own project whose id is a stranger's project is re-minted and created`() = runTest {
+		writeSyncData(emptySyncData())
+		val takenId = ProjectId.randomUUID()
+		val def = projectDef("LocalNovel", takenId)
+		val reminted = slot<ProjectId>()
+		stubLocalProjects(listOf(def))
+		coEvery { projectsRepository.setProjectId(def, capture(reminted)) } answers { def.copy(id = reminted.captured) }
+		coEvery { serverProjectsApi.createProject("LocalNovel", takenId, "sync-1") } returns
+			Result.failure(notMember())
+		coEvery { serverProjectsApi.createProject("LocalNovel", neq(takenId), "sync-1") } answers {
+			Result.success(CreateProjectResponse(reminted.captured, alreadyExisted = false))
+		}
+
+		val result = createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
+
+		assertTrue(result)
+		coVerify { serverProjectsApi.createProject("LocalNovel", reminted.captured, "sync-1") }
+		assertEquals(ProjectBaseline("LocalNovel"), readSyncData().projectBaselines[reminted.captured])
+	}
+
+	private fun notMember() = HttpFailureException(
+		statusCode = HttpStatusCode.Forbidden,
+		error = HttpResponseError(error = "Forbidden", displayMessage = "nope", errorCode = ApiErrorCode.NOT_MEMBER),
+	)
+
+	@Test
+	fun `a shared project the server no longer lists is parked, logged once, and left alone`() = runTest {
+		val id = ProjectId.randomUUID()
+		val def = projectDef("Shared", id)
+		writeSyncData(emptySyncData().copy(projectBaselines = mapOf(id to ProjectBaseline("Shared"))))
+		stubLocalProjects(listOf(def))
+		every { projectsRepository.getOwner(def) } returns alice
+		every { projectsRepository.setSyncEnabled(def, false) } answers {
+			every { projectsRepository.isSyncEnabled(def) } returns false
+			true
+		}
+
+		val strRes = RecordingStrRes()
+		assertTrue(createSynchronizer(strRes).syncProjects(onLog = {}, onUnauthorized = {}))
+		createSynchronizer(strRes).syncProjects(onLog = {}, onUnauthorized = {})
+
+		verify(exactly = 1) { projectsRepository.setSyncEnabled(def, false) }
+		assertEquals(1, strRes.calls.count { it.first == Res.string.sync_log_account_project_parked })
+		assertTrue(readSyncData().projectBaselines.isEmpty())
+		verify(exactly = 0) { projectsRepository.deleteProject(any()) }
+		coVerify(exactly = 0) { serverProjectsApi.createProject(any(), any(), any(), any()) }
+		coVerify(exactly = 0) { projectsRepository.clearSyncBaseline(any()) }
+	}
+
+	@Test
+	fun `a shared project with a leave queued is not parked before the leave is sent`() = runTest {
+		val id = ProjectId.randomUUID()
+		val def = projectDef("Shared", id)
+		writeSyncData(emptySyncData().copy(projectsToDelete = setOf(id)))
+		stubLocalProjects(listOf(def))
+		every { projectsRepository.getOwner(def) } returns alice
+		coEvery { serverProjectsApi.beginProjectsSync() } returns
+			Result.success(emptyServerResponse().copy(projects = setOf(sharedServerProject("Shared", id))))
+		coEvery { serverProjectsApi.deleteProject(id, "sync-1") } returns Result.success("ok")
+
+		createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
+
+		coVerify { serverProjectsApi.deleteProject(id, "sync-1") }
+		verify(exactly = 0) { projectsRepository.setSyncEnabled(any(), any()) }
+	}
+
+	@Test
+	fun `a parked project the server lists again resumes and syncs this session`() = runTest {
+		writeSyncData(emptySyncData())
+		val id = ProjectId.randomUUID()
+		val def = projectDef("Shared", id)
+		stubLocalProjects(listOf(def))
+		every { projectsRepository.getOwner(def) } returns alice
+		every { projectsRepository.isSyncEnabled(def) } returns false
+		coEvery { projectsRepository.resumeSync(def) } returns true
+		every { projectsRepository.renameProject(def, "Renamed") } returns CResult.success(def.copy(name = "Renamed"))
+		coEvery { serverProjectsApi.beginProjectsSync() } returns
+			Result.success(emptyServerResponse().copy(projects = setOf(sharedServerProject("Renamed", id))))
+
+		val strRes = RecordingStrRes()
+		createSynchronizer(strRes).syncProjects(onLog = {}, onUnauthorized = {})
+
+		coVerify { projectsRepository.resumeSync(def) }
+		assertTrue(strRes.calls.any { it.first == Res.string.sync_log_account_project_resumed })
+		// No longer excluded: the owner's rename is applied in the same session.
+		verify { projectsRepository.renameProject(def, "Renamed") }
 	}
 }

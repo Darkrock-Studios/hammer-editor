@@ -5,8 +5,6 @@ import com.darkrockstudios.build.registerLinuxDistributionTasks
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import java.util.zip.ZipFile
 
-val data_version: String by extra
-
 plugins {
 	alias(libs.plugins.kotlin.multiplatform)
 	alias(libs.plugins.kotlin.serialization)
@@ -45,14 +43,14 @@ kotlin {
 			}
 		}
 
-		val commonMain by getting {
+		getByName("commonMain") {
 			resources.srcDirs("resources")
 			dependencies {
 				implementation(libs.aboutlibraries.core)
 				implementation(libs.multiplatform.settings)
 			}
 		}
-		val jvmMain by getting {
+		getByName("jvmMain") {
 			dependencies {
 				implementation(project(":base"))
 				implementation(project(":common"))
@@ -73,7 +71,7 @@ kotlin {
 				implementation(libs.nucleus.updater.runtime)
 			}
 		}
-		val jvmTest by getting {
+		getByName("jvmTest") {
 			dependencies {
 				implementation(kotlin("test"))
 				implementation(libs.bundles.junit.jupiter)
@@ -83,14 +81,27 @@ kotlin {
 }
 
 // Pin jpackage's bundled runtime to the project's toolchain JDK rather than
-// whichever JVM happens to be running Gradle.
-val packagingLauncher = javaToolchains.launcherFor {
-	languageVersion.set(JavaLanguageVersion.of(libs.versions.jvm.get().toInt()))
+// whichever JVM happens to be running Gradle. Temurin is built against an old
+// glibc; a distro's own JDK (Ubuntu 24.04's needs 2.38) would keep the Linux
+// packages off Debian 12 and the Raspberry Pi OS built on it. This resolves at
+// configuration, so a machine that can neither find nor download Temurin falls
+// back to any JDK rather than failing every build that touches :desktop.
+val packagingJavaHome: String = run {
+	val jvm = JavaLanguageVersion.of(libs.versions.jvm.get().toInt())
+	val temurin = javaToolchains.launcherFor {
+		languageVersion.set(jvm)
+		vendor.set(JvmVendorSpec.ADOPTIUM)
+	}
+	val launcher = runCatching { temurin.get() }.getOrElse { e ->
+		logger.warn("No Temurin $jvm toolchain (${e.message}); packages will bundle another JDK and may not run on older glibc.")
+		javaToolchains.launcherFor { languageVersion.set(jvm) }.get()
+	}
+	launcher.metadata.installationPath.asFile.absolutePath
 }
 
 compose.desktop {
 	application {
-		javaHome = packagingLauncher.get().metadata.installationPath.asFile.absolutePath
+		javaHome = packagingJavaHome
 		mainClass = "com.darkrockstudios.apps.hammer.desktop.MainKt"
 		nativeDistributions {
 			targetFormats(
@@ -278,6 +289,11 @@ val compileMacosBookmarksLib = tasks.register("compileMacosBookmarksLib") {
 		}.result.get()
 		logger.lifecycle("Compiled ${outFile.name}")
 	}
+}
+// Compose does not rerun these when javaHome moves to another JDK of the same version, so an
+// existing build would keep bundling the old runtime.
+tasks.matching { it.name == "checkRuntime" || it.name == "createRuntimeImage" }.configureEach {
+	inputs.property("packagingJavaHome", packagingJavaHome)
 }
 tasks.matching { it.name == "prepareAppResources" }.configureEach {
 	dependsOn(extractMacosNativeLibs, compileMacosBookmarksLib)

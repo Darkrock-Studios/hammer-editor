@@ -315,9 +315,9 @@ In `common/src/commonMain/kotlin/com/darkrockstudios/apps/hammer/common/data/`.
   return null, never an empty set.
 - `id/IdAllocator.getIdSources()`: **Forced**, but each branch resolves from Koin, so also
   **Runtime**: `factory<XIdDatasource>()` in `mainModule.kt`.
-- Why null matters: `SyncJournal` rebuilds itself from the same id sources, and any id missing
-  from **every** source is inferred as **deleted** and removed from the server at the next sync. An
-  incomplete id datasource causes server-side deletes.
+- Why null matters: `IdAllocator.findEntityIds` reports a scan with a null source as incomplete,
+  and `EntryImagePromoter` warns rather than trusting an absent id. `SyncJournal` rebuilds its
+  `lastId` from the same sources.
 
 ### 4.3 Duplicate and cross-type ids
 
@@ -355,7 +355,7 @@ type with new folders needs none of this.
   launch for projects already at version 5, so whatever a failed step left behind is finished
   later. A second run over migrated data must change nothing.
 - **Ship `XIdDatasource` with the migration** that creates the type's files: a journal rebuilt
-  without it infers the new ids as deleted (4.2).
+  without it does not count the new ids (4.2).
 - Record in `sync.json` only when it exists: new ids in `newIds`, touched entities in `dirty`,
   `cachedProjectHash = null`, and baselines as in 2.4.
 - Two devices migrating offline both mint entities for the same old data. Decide whether that is

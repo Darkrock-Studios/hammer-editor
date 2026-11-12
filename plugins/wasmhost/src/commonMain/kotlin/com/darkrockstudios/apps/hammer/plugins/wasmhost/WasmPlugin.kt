@@ -5,6 +5,9 @@ import com.darkrockstudios.apps.hammer.common.data.export.ExportImage
 import com.darkrockstudios.apps.hammer.common.data.export.ExportInput
 import com.darkrockstudios.apps.hammer.common.data.export.StoryExporter
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcher
+import com.darkrockstudios.apps.hammer.common.server.HammerServiceClient
+import com.darkrockstudios.apps.hammer.common.server.ServiceReply
+import com.darkrockstudios.apps.hammer.common.server.ServiceRequest
 import com.darkrockstudios.apps.hammer.common.util.zip.writeZip
 import com.darkrockstudios.apps.hammer.operations.Base64Bytes
 import com.darkrockstudios.apps.hammer.operations.OperationException
@@ -27,6 +30,7 @@ import com.darkrockstudios.apps.hammer.operations.plugin.ActionTarget
 import com.darkrockstudios.apps.hammer.operations.plugin.ClientPlugin
 import com.darkrockstudios.apps.hammer.operations.plugin.PageTable
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginAction
+import com.darkrockstudios.apps.hammer.operations.plugin.PluginKind
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
 import com.darkrockstudios.apps.hammer.operations.plugin.SettingDeclaration
 import com.darkrockstudios.apps.hammer.operations.plugin.TextDiagnostic
@@ -84,12 +88,16 @@ class WasmPlugin(
 	/** The UI's BCP 47 tag, sent with every call so a plugin can reply in it. */
 	private val locale: String? = null,
 	private val httpClient: PluginHttp? = platformPluginHttp,
+	/** Reaches the user's sync server for [SERVER_REQUEST]; null resolves Hammer's own at call time. */
+	private val hammerServer: HammerServiceClient? = null,
 	/** What the module's kernel may hold, which a small host heap lowers; see [kernelCapacity]. */
 	private val maxKernelBytes: Long = DEFAULT_MAX_KERNEL_BYTES,
 ) : ClientPlugin, KoinComponent {
 
 	override val id: String = manifest.id
 	override val name: String = manifest.name
+	override val kind: PluginKind? = manifest.kind?.let { PluginKind(it.id, it.label, it.localized) }
+	override val languages: List<String> = manifest.languages
 
 	private val grants: List<OperationGrant> =
 		manifest.permissions.operations.filter { it in granted }.mapNotNull(OperationGrant::parse)
@@ -104,9 +112,9 @@ class WasmPlugin(
 	private val module: ExtismPlugin
 		get() = loaded ?: ExtismPlugin(
 			loadModule,
-			listOf(dispatchFunction(), progressFunction(), resourceFunction()) + cacheFunctions(),
+			listOf(dispatchFunction(), progressFunction(), resourceFunction(), serverRequestFunction()) + cacheFunctions(),
 			log = ::log,
-			limiter = ModuleLimiter(maxMemoryPages = manifest.limits.memory * PAGES_PER_MIB),
+			maxMemoryPages = manifest.limits.memory * PAGES_PER_MIB,
 			http = pluginHttp(),
 			maxKernelBytes = maxKernelBytes,
 		).also { loaded = it }
@@ -205,21 +213,20 @@ class WasmPlugin(
 			val paragraphs = text.paragraphs
 			val request = DiagnoseRequest(check.name, paragraphs, text.language, text.project, settingsValues(), locale)
 			val found = List(paragraphs.size) { mutableListOf<TextDiagnostic>() }
-			try {
-				val reply = call(DIAGNOSE, OperationJson.encodeToString(request).encodeToByteArray()).decodeToString()
-				if (reply.isBlank()) return@TextDiagnosticsProvider found
-				ReplyJson.decodeFromString<DiagnoseReply>(reply).diagnostics.forEach { item ->
-					val paragraph = paragraphs.getOrNull(item.paragraph) ?: return@forEach
-					val start = utf16Offset(paragraph, item.start) ?: return@forEach
-					val end = utf16Offset(paragraph, item.end) ?: return@forEach
-					if (start < end) {
-						found[item.paragraph] += TextDiagnostic(start, end, item.message, item.fixes.mapNotNull(::textFix), severity(item.severity))
-					}
-				}
-			} catch (e: PluginException) {
-				Napier.w(e) { "Plugin '$id' could not check text" }
+			val reply = call(DIAGNOSE, OperationJson.encodeToString(request).encodeToByteArray()).decodeToString()
+			if (reply.isBlank()) return@TextDiagnosticsProvider found
+			val diagnostics = try {
+				ReplyJson.decodeFromString<DiagnoseReply>(reply).diagnostics
 			} catch (e: SerializationException) {
-				Napier.w(e) { "Plugin '$id' sent a malformed diagnose reply" }
+				throw PluginException("Plugin '$id' sent a malformed diagnose reply: ${e.message}")
+			}
+			diagnostics.forEach { item ->
+				val paragraph = paragraphs.getOrNull(item.paragraph) ?: return@forEach
+				val start = utf16Offset(paragraph, item.start) ?: return@forEach
+				val end = utf16Offset(paragraph, item.end) ?: return@forEach
+				if (start < end) {
+					found[item.paragraph] += TextDiagnostic(start, end, item.message, item.fixes.mapNotNull(::textFix), severity(item.severity))
+				}
 			}
 			found
 		}
@@ -344,6 +351,46 @@ class WasmPlugin(
 			0
 		},
 	)
+
+	private fun serverRequestFunction() = ExtismPlugin.UserFunction(SERVER_REQUEST, params = 2, returnsValue = true) { args ->
+		val reply = try {
+			val request = ReplyJson.decodeFromString<ServerRequest>(read(args[0]).decodeToString())
+			serverRequest(request, if (args[1] == 0L) null else read(args[1]))
+		} catch (e: SerializationException) {
+			ServerReply(error = ServerReply.INVALID, message = "Malformed request: ${e.message}")
+		}
+		write(ReplyJson.encodeToString(reply).encodeToByteArray())
+	}
+
+	// Called from inside the module, so it blocks this call's thread; ServicesApi's timeout bounds it.
+	private fun serverRequest(request: ServerRequest, body: ByteArray?): ServerReply {
+		if (request.service !in manifest.permissions.hammerServer) {
+			return ServerReply(error = ServerReply.NOT_PERMITTED, message = "Plugin '$id' has no permission for service '${request.service}'")
+		}
+		val method = request.method.uppercase()
+		val dotSegment = request.path.split('/').any { it == "." || it == ".." }
+		if (method !in SERVER_METHODS || !SERVER_PATH.matches(request.path) || dotSegment) {
+			return ServerReply(error = ServerReply.INVALID, message = "Refused $method ${request.path}")
+		}
+		val client = hammerServer ?: runCatching { getKoin().getOrNull<HammerServiceClient>() }.getOrNull()
+			?: return ServerReply(error = ServerReply.UNAVAILABLE, message = "No sync server here")
+		val headers = request.headers.filterKeys { name -> SERVER_HEADERS.any { it.equals(name, ignoreCase = true) } }
+		val reply = runBlocking { client.request(ServiceRequest(request.service, method, request.path, headers.toList(), body)) }
+		return when (reply) {
+			is ServiceReply.Response -> runCatching { reply.body.decodeToString(throwOnInvalidSequence = true) }.fold(
+				onSuccess = { ServerReply(status = reply.status, body = it) },
+				onFailure = { ServerReply(error = ServerReply.INVALID, message = "The ${request.service} reply is not text") },
+			)
+			is ServiceReply.Failed -> ServerReply(
+				error = when (reply.reason) {
+					ServiceReply.Reason.NotSignedIn -> ServerReply.NOT_SIGNED_IN
+					ServiceReply.Reason.Unavailable -> ServerReply.UNAVAILABLE
+					ServiceReply.Reason.Network -> ServerReply.NETWORK
+				},
+				message = reply.message,
+			)
+		}
+	}
 
 	private fun resourceFunction() = ExtismPlugin.UserFunction(RESOURCE, params = 1, returnsValue = true) { args ->
 		readResource(read(args[0]).decodeToString())?.let(::write) ?: 0
@@ -625,6 +672,32 @@ class WasmPlugin(
 	}
 
 	@Serializable
+	private class ServerRequest(
+		val service: String,
+		val method: String = "GET",
+		val path: String,
+		val headers: Map<String, String> = emptyMap(),
+	)
+
+	/** A [status] and [body] from the server, or an [error] from [ServerReply]'s constants. */
+	@OptIn(ExperimentalSerializationApi::class)
+	@Serializable
+	private class ServerReply(
+		@EncodeDefault(EncodeDefault.Mode.NEVER) val status: Int? = null,
+		@EncodeDefault(EncodeDefault.Mode.NEVER) val body: String? = null,
+		@EncodeDefault(EncodeDefault.Mode.NEVER) val error: String? = null,
+		@EncodeDefault(EncodeDefault.Mode.NEVER) val message: String? = null,
+	) {
+		companion object {
+			const val NOT_SIGNED_IN = "not_signed_in"
+			const val NOT_PERMITTED = "not_permitted"
+			const val INVALID = "invalid"
+			const val UNAVAILABLE = "unavailable"
+			const val NETWORK = "network"
+		}
+	}
+
+	@Serializable
 	private class ExportRequest(
 		val format: String,
 		val projectName: String,
@@ -691,6 +764,19 @@ class WasmPlugin(
 		 */
 		const val RESOURCE = "hammer_resource"
 
+		/**
+		 * The import that sends a request to a service on the user's sync server, which the manifest's
+		 * `permissions.hammerServer` names: a JSON request and its body (or 0), answered with JSON holding
+		 * the status and body, or an error such as `not_signed_in`.
+		 */
+		const val SERVER_REQUEST = "hammer_server_request"
+
+		private val SERVER_METHODS = setOf("GET", "POST")
+		private val SERVER_PATH = Regex("(/[A-Za-z0-9._-]+)+")
+
+		/** Headers a plugin may set; the host owns the rest, Authorization above all. */
+		private val SERVER_HEADERS = listOf("Content-Type", "Accept")
+
 		/** The export that renders every export format the manifest declares. */
 		const val EXPORT = "export"
 
@@ -716,8 +802,6 @@ class WasmPlugin(
 		const val FAILED = "Failed"
 
 		private const val COMMAND_FAILED = 1
-
-		private const val PAGES_PER_MIB = 16
 
 		/** Function calls plus loop iterations allowed per call before the module is stopped. */
 		const val DEFAULT_FUEL_PER_CALL = 2_000_000_000L

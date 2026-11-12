@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.kudos
 
 import com.darkrockstudios.apps.hammer.database.AccountDao
 import com.darkrockstudios.apps.hammer.database.ProjectDao
+import com.darkrockstudios.apps.hammer.database.ProjectMemberDao
 import com.darkrockstudios.apps.hammer.database.StoryKudosDao
 import com.darkrockstudios.apps.hammer.database.UserDataPurgeDao
 import com.darkrockstudios.apps.hammer.e2e.util.SharedPostgresTestDatabase
@@ -42,7 +43,7 @@ class StoryKudosRepositoryTest : BaseTest() {
 		setupKoin()
 
 		accountDao = AccountDao(db)
-		repo = StoryKudosRepository(StoryKudosDao(db), ProjectDao(db))
+		repo = StoryKudosRepository(StoryKudosDao(db), ProjectDao(db), ProjectMemberDao(db))
 
 		readers.clear()
 		authorId = createAccount("author@example.com")
@@ -102,6 +103,13 @@ class StoryKudosRepositoryTest : BaseTest() {
 	@Test
 	fun `an author cannot give kudos to their own story`() = runTest {
 		assertEquals(SetPicksResult.OwnStory, repo.setPicks(projectId, authorId, authorId, setOf(PROSE)))
+		assertEquals(0L, repo.tally(projectId).givers)
+	}
+
+	@Test
+	fun `a co-author cannot give kudos to the story they co-author`() = runTest {
+		db.serverDatabase.projectMemberQueries.insertMember(projectId, readers[0])
+		assertEquals(SetPicksResult.OwnStory, pick(readers[0], PROSE))
 		assertEquals(0L, repo.tally(projectId).givers)
 	}
 

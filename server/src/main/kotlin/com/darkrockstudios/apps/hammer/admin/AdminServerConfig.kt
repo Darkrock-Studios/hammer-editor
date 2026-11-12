@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.email.SendGridConfig
 import com.darkrockstudios.apps.hammer.email.SmtpConfig
 import com.darkrockstudios.apps.hammer.monitoring.IgnoredErrorRule
 import com.darkrockstudios.apps.hammer.monitoring.MonitoringConfig
+import com.darkrockstudios.apps.hammer.services.languagetool.LanguageToolConfig
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 
@@ -57,6 +58,16 @@ object AdminServerConfig {
 		default = MonitoringConfig(),
 		parse = { Json.decodeFromString<MonitoringConfig>(it) },
 		serialize = { Json.encodeToString(MonitoringConfig.serializer(), it) }
+	)
+
+	private val languageToolJson = Json { ignoreUnknownKeys = true }
+
+	/** Read with [ConfigRepository.getStored]: until an admin saves one, the deployment's default applies. */
+	val LANGUAGETOOL_CONFIG = ServerConfigKey(
+		key = "languagetool_config",
+		default = LanguageToolConfig(),
+		parse = { languageToolJson.decodeFromString<LanguageToolConfig>(it) },
+		serialize = { languageToolJson.encodeToString(LanguageToolConfig.serializer(), it) }
 	)
 
 	// Lenient so an unknown field (e.g. after a version rollback) can't silently

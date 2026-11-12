@@ -1,6 +1,6 @@
 # Privacy Policy
 
-_Last updated: 15 September 2026_
+_Last updated: 9 November 2026_
 
 This is a plain-language explanation of how Hammer handles your data, from Dark Rock Studios, the
 makers of Hammer. The short version: Hammer is offline-first, your writing lives on your own
@@ -8,7 +8,7 @@ devices, and we don't collect anything about you automatically. The longer versi
 
 ## 1. Your writing stays on your devices
 
-Everything you create in Hammer — your stories, notes, encyclopedia entries, and settings — is saved
+Everything you create in Hammer (your stories, notes, encyclopedia entries, and settings) is saved
 as ordinary files on your own device. We can't see any of it. It isn't sent to us or to anyone else,
 and you don't need an account to use the app.
 
@@ -20,11 +20,23 @@ on its own is to check whether a newer version is available.
 
 ## 3. Sync is optional
 
-Hammer can sync your work between your devices, but only if you turn it on — it's off by default.
+Hammer can sync your work between your devices, but only if you turn it on; it's off by default.
 When you do, you connect the app to a sync server, and the content you choose to sync, along with
 your account details, is sent to that server so your devices can stay in step. How that server
 handles your data is up to whoever operates it; if it's a server someone else runs, their privacy
 policy applies, not this one.
+
+You can also invite other people with an account on the same server to co-author a project with
+you. You invite them by email address, which the server uses only to match the invitation to their
+account. A co-author gets a copy of that project on their own devices and can see everything in it,
+including the writing statistics for the project, which show each author's pen name and word
+counts. Your other projects stay private to you. You can remove a co-author at any time, and a
+co-author can leave; either way their copy stops syncing but remains on their device until they
+delete it.
+
+If your sync server offers grammar checking and you choose it in a grammar plugin, the text being
+checked is sent to that server, which passes it to its grammar checker and returns the suggestions.
+This includes projects you don't sync. Hammer's sync server doesn't store that text.
 
 ## 4. Bug reports are yours to send
 

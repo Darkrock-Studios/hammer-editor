@@ -19,7 +19,8 @@ import kotlin.time.Clock
 /**
  * Owns `project.toml`, the file that marks a directory as a project. It holds only regenerable
  * metadata, so any reader may heal or recreate it: losing it costs the project its identity (a
- * fresh [ProjectId]), never its content.
+ * fresh [ProjectId]) and its sync, never its content. A rebuilt file has sync off, since it may have
+ * been a shared copy whose owner was lost with it.
  */
 class ProjectMetadataDatasource(
 	private val fileSystem: FileSystem,
@@ -53,7 +54,9 @@ class ProjectMetadataDatasource(
 			// Missing or corrupt (tomlkt throws beyond SerializationException): drop the
 			// bad file and start fresh so migrators re-run instead of crashing the load.
 			fileSystem.delete(path, false)
-			return createMetadata(projectDir, ProjectId.randomUUID())
+			val rebuilt = createMetadata(projectDir, ProjectId.randomUUID(), syncEnabled = false)
+			Napier.w("Rebuilt the metadata of project '${projectDir.name}'; sync is left off for it")
+			return rebuilt
 		}
 
 		return if (metadata.info.projectId == null) withLegacyServerId(metadata, path) else metadata
@@ -90,10 +93,10 @@ class ProjectMetadataDatasource(
 	 * Writes a fresh file for a directory whose content is of unknown age. `dataVersion = 0` makes
 	 * every migrator run over it; each one skips content that is already current.
 	 */
-	fun createMetadata(projectDef: ProjectDef, projectId: ProjectId): ProjectMetadata =
-		createMetadata(projectDef.path, projectId)
+	fun createMetadata(projectDef: ProjectDef, projectId: ProjectId, syncEnabled: Boolean = true): ProjectMetadata =
+		createMetadata(projectDef.path, projectId, syncEnabled)
 
-	private fun createMetadata(projectDir: HPath, projectId: ProjectId): ProjectMetadata {
+	private fun createMetadata(projectDir: HPath, projectId: ProjectId, syncEnabled: Boolean): ProjectMetadata {
 		val now = Clock.System.now()
 		val newMetadata = ProjectMetadata(
 			info = Info(
@@ -101,6 +104,7 @@ class ProjectMetadataDatasource(
 				lastAccessed = now,
 				dataVersion = 0,
 				projectId = projectId,
+				syncEnabled = syncEnabled,
 			)
 		)
 

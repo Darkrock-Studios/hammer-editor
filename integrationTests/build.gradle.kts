@@ -26,10 +26,11 @@ kotlin {
 			}
 		}
 
-		val jvmTest by getting {
+		getByName("jvmTest") {
 			dependencies {
 				implementation(project(":base"))
 				implementation(project(":common"))
+				implementation(project(":plugins:wasmhost"))
 
 				implementation(libs.bundles.junit.jupiter)
 				implementation(libs.coroutines.test)

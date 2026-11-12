@@ -44,6 +44,9 @@ sealed interface ServerCreateOutcome {
 	 */
 	data object NeedsAccountSync : ServerCreateOutcome
 
+	/** The project belongs to another account that shared it with this one; nothing was sent. */
+	data object SharedProject : ServerCreateOutcome
+
 	/** This account deleted the project; its id is tombstoned and can never be created again. */
 	data object DeletedElsewhere : ServerCreateOutcome
 
@@ -54,8 +57,9 @@ sealed interface ServerCreateOutcome {
  * Creates a local project on the server under its own id, shared by account sync and project sync
  * so both resolve the server's answers the same way: a same-name project on the account is adopted
  * unless another local project already holds its id, an id held by another account is re-minted
- * once, and a tombstoned id is reported, not retried. Within account sync the caller records the
- * created project's baseline; [createInOwnSession] stores it itself.
+ * once, and a tombstoned id is reported, not retried. A project shared with this account is never
+ * created, whatever the server would answer: that would fork the owner's book. Within account sync
+ * the caller records the created project's baseline; [createInOwnSession] stores it itself.
  */
 class ProjectCreateResolver(
 	private val serverProjectsApi: ServerProjectsApi,
@@ -67,8 +71,10 @@ class ProjectCreateResolver(
 	 * Creates [projectDef] within the open account sync session [syncId], in [groupId] or the top
 	 * level. [groupId] must be a group the server holds.
 	 */
-	suspend fun create(projectDef: ProjectDef, syncId: String, groupId: GroupId? = null): ServerCreateOutcome =
-		create(projectDef, syncId, groupId, mayChangeId = true)
+	suspend fun create(projectDef: ProjectDef, syncId: String, groupId: GroupId? = null): ServerCreateOutcome {
+		if (isShared(projectDef)) return ServerCreateOutcome.SharedProject
+		return create(projectDef, syncId, groupId, mayChangeId = true)
+	}
 
 	private suspend fun create(
 		projectDef: ProjectDef,
@@ -113,7 +119,7 @@ class ProjectCreateResolver(
 					)
 				}
 
-				error.apiErrorCode() == ApiErrorCode.PROJECT_ID_TAKEN && !reminted -> {
+				error.isIdHeldElsewhere() && !reminted -> {
 					if (!mayChangeId) {
 						Napier.w("'${def.name}' id ${def.id.id} is taken on the server: needs account sync")
 						return ServerCreateOutcome.NeedsAccountSync
@@ -133,7 +139,12 @@ class ProjectCreateResolver(
 	}
 
 	/** Creates [projectDef] in an account sync session of its own, never changing its id. */
-	suspend fun createInOwnSession(projectDef: ProjectDef): ServerCreateOutcome = sessionLock.withSession {
+	suspend fun createInOwnSession(projectDef: ProjectDef): ServerCreateOutcome {
+		if (isShared(projectDef)) return ServerCreateOutcome.SharedProject
+		return createInNewSession(projectDef)
+	}
+
+	private suspend fun createInNewSession(projectDef: ProjectDef): ServerCreateOutcome = sessionLock.withSession {
 		val begin = serverProjectsApi.beginProjectsSync()
 		val syncId = begin.getOrElse { return ServerCreateOutcome.Failed(it) }.syncId
 		try {
@@ -145,6 +156,8 @@ class ProjectCreateResolver(
 		}
 	}
 
+	private fun isShared(projectDef: ProjectDef): Boolean = projectsRepository.getOwner(projectDef) != null
+
 	private suspend fun recordBaseline(created: ServerCreateOutcome.Created) {
 		accountSyncDatasource.update {
 			it.copy(projectBaselines = it.projectBaselines + (created.projectId to created.baseline))
@@ -153,3 +166,10 @@ class ProjectCreateResolver(
 }
 
 internal fun Throwable.apiErrorCode(): String? = (this as? HttpFailureException)?.error?.errorCode
+
+/**
+ * Another account's project holds the id. The server answers `not_member` for it; `project_id_taken`
+ * is left only for an insert lost to a concurrent delete.
+ */
+private fun Throwable.isIdHeldElsewhere(): Boolean =
+	apiErrorCode() == ApiErrorCode.PROJECT_ID_TAKEN || apiErrorCode() == ApiErrorCode.NOT_MEMBER

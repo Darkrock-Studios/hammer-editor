@@ -13,6 +13,15 @@ data class EntryAppearance(
 	val sceneCount: Int,
 )
 
+/** One author's lifetime words, with their devices' shares keyed by device label. */
+@Serializable
+data class AuthorWords(
+	val authorId: Long?,
+	val authorName: String?,
+	val words: Int,
+	val devices: Map<String, Int>,
+)
+
 @Serializable
 data class ProjectStatistics(
 	val numberOfScenes: Int,
@@ -35,6 +44,8 @@ data class ProjectStatistics(
 	val dailyWordTotals: Map<String, Int> = emptyMap(),
 	// Lifetime totals keyed by friendly device label.
 	val wordsPerDevice: Map<String, Int> = emptyMap(),
+	// Empty unless more than one author has written in this project.
+	val wordsPerAuthor: List<AuthorWords> = emptyList(),
 	// Top-N pre-sorted, view-ready ranking of encyclopedia entries by scene reference count.
 	val topAppearances: List<EntryAppearance> = emptyList(),
 	// Sum of all entry->scene references across the project.
@@ -48,6 +59,6 @@ data class ProjectStatistics(
 	val schemaVersion: Int = 0,
 ) {
 	companion object {
-		const val CURRENT_SCHEMA_VERSION = 6
+		const val CURRENT_SCHEMA_VERSION = 7
 	}
 }

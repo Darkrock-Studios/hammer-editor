@@ -57,6 +57,13 @@ import kotlinx.atomicfu.locks.reentrantLock
 import kotlinx.atomicfu.locks.withLock
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import net.peanuuutz.tomlkt.Toml
@@ -103,6 +110,11 @@ class ProjectsRepository(
 	private var idChangeListeners: List<ProjectIdChangeListener> = emptyList()
 	private val deletedListenersLock = reentrantLock()
 	private var deletedListeners: List<ProjectDeletedListener> = emptyList()
+	private val metadataWriteLock = reentrantLock()
+
+	// Collectors re-read the flag, so a dropped path loses nothing.
+	private val _syncEnabledChanges =
+		MutableSharedFlow<HPath>(extraBufferCapacity = 16, onBufferOverflow = BufferOverflow.DROP_OLDEST)
 
 	init {
 		watchSettings(globalSettingsStore)
@@ -283,7 +295,66 @@ class ProjectsRepository(
 		projectsMetadataDatasource.loadMetadata(projectDef)
 
 	fun updateProjectMetadata(projectDef: ProjectDef, block: (ProjectMetadata) -> ProjectMetadata) =
-		projectsMetadataDatasource.updateMetadata(projectDef, block)
+		metadataWriteLock.withLock { projectsMetadataDatasource.updateMetadata(projectDef, block) }
+
+	/**
+	 * The single check every sync entry point makes before touching a project. A missing or
+	 * unreadable `project.toml` reads as enabled, the default it would be recreated with.
+	 */
+	fun isSyncEnabled(projectDef: ProjectDef): Boolean =
+		projectsMetadataDatasource.readMetadata(projectDef)?.info?.syncEnabled ?: true
+
+	/**
+	 * Only the flag changes: the journal keeps recording edits, so turning sync back on resumes.
+	 * False when `project.toml` cannot be read.
+	 */
+	fun setSyncEnabled(projectDef: ProjectDef, enabled: Boolean): Boolean =
+		updateInfo(projectDef) { it.copy(syncEnabled = enabled) }
+
+	/** The owner of a project shared with this account, or null for the account's own. */
+	fun getOwner(projectDef: ProjectDef): ProjectOwner? =
+		projectsMetadataDatasource.readMetadata(projectDef)?.info?.let { info ->
+			info.ownerId?.let { ProjectOwner(it, info.ownerName) }
+		}
+
+	/** Records the owner the server reports, null for this account's own. False when `project.toml` cannot be read. */
+	fun setOwner(projectDef: ProjectDef, owner: ProjectOwner?): Boolean =
+		updateInfo(projectDef) { it.copy(ownerId = owner?.id, ownerName = owner?.name) }
+
+	/**
+	 * Turns sync back on for a shared project that is listed again. The journal is kept as it is: its
+	 * baselines are still the last state agreed with the server, so the next sync downloads what the
+	 * server changed meanwhile and conflicts only where both sides did. Flagging it for a restore
+	 * check would conflict on every entity the server changed.
+	 */
+	suspend fun resumeSync(projectDef: ProjectDef): Boolean {
+		if (isProjectInUse(projectDef)) throw ProjectInUseException(projectDef.name)
+		return setSyncEnabled(projectDef, true)
+	}
+
+	/**
+	 * Rewrites `project.toml`'s [Info] when [block] changes it. False when the file cannot be read;
+	 * it is not recreated here, as that would mint a new id.
+	 */
+	private fun updateInfo(projectDef: ProjectDef, block: (Info) -> Info): Boolean {
+		val changed = metadataWriteLock.withLock {
+			val metadata = projectsMetadataDatasource.readMetadata(projectDef) ?: return false
+			val info = block(metadata.info)
+			if (info == metadata.info) return true
+			projectsMetadataDatasource.saveMetadata(metadata.copy(info = info), projectDef)
+			info.syncEnabled != metadata.info.syncEnabled
+		}
+		if (changed) _syncEnabledChanges.tryEmit(projectDef.path)
+		return true
+	}
+
+	/** The current [isSyncEnabled] of the project at [projectDef]'s path, then each change to it. */
+	fun syncEnabledUpdates(projectDef: ProjectDef): Flow<Boolean> =
+		_syncEnabledChanges
+			.filter { it == projectDef.path }
+			.map { isSyncEnabled(projectDef) }
+			.onStart { emit(isSyncEnabled(projectDef)) }
+			.distinctUntilChanged()
 
 	/** True while the project is open in an editor or a temporary task; its id and name are then fixed. */
 	fun isProjectInUse(projectDir: HPath): Boolean =
@@ -505,7 +576,7 @@ class ProjectsRepository(
 		if (fileSystem.metadataOrNull(projectDir)?.isDirectory != true) return null
 		val entries = fileSystem.list(projectDir)
 		if (entries.isNotEmpty() && !hasProjectContent(projectDir, Listing(entries))) return null
-		return adoptUnmarkedDirectory(trimmedName, projectDir, projectId, serverKnowsProject)
+		return adoptUnmarkedDirectory(trimmedName, projectDir, projectId, serverKnowsProject, syncEnabled = true)
 	}
 
 	private suspend fun adoptUnmarkedDirectory(
@@ -513,24 +584,27 @@ class ProjectsRepository(
 		projectDir: Path,
 		projectId: ProjectId,
 		serverKnowsProject: Boolean,
+		syncEnabled: Boolean,
 	): ProjectDef? {
 		if (fileSystem.metadataOrNull(projectDir)?.isDirectory != true || !isUnmarked(projectDir)) return null
 		val projectDef = ProjectDef(projectId, projectName, projectDir.toHPath())
 
 		// Reset before marking, so a crash between the two leaves the folder unmarked and retried.
 		resetSyncStateAfterRestore(projectDef, serverKnowsProject)
-		projectsMetadataDatasource.createMetadata(projectDef, projectId)
-		Napier.w("Adopted unmarked project folder '${projectDef.name}' as ${projectId.id}")
+		projectsMetadataDatasource.createMetadata(projectDef, projectId, syncEnabled)
+		Napier.w("Adopted unmarked project folder '${projectDef.name}' as ${projectId.id}, sync ${if (syncEnabled) "on" else "off"}")
 		return projectDef
 	}
 
 	/**
 	 * Re-marks every directory, at any level, that lost its [ProjectMetadata.FILENAME] but still holds
-	 * Hammer content, each under a fresh id. Directories without such content stay ignored.
+	 * Hammer content, each under a fresh id with sync off, as [ProjectMetadataDatasource] rebuilds a
+	 * corrupt file. Directories without such content stay ignored.
 	 */
 	suspend fun healUnmarkedProjectDirectories(): List<ProjectDef> =
-		scan().unmarked
-			.mapNotNull { adoptUnmarkedDirectory(it.name, it.dir, ProjectId.randomUUID(), serverKnowsProject = false) }
+		scan().unmarked.mapNotNull {
+			adoptUnmarkedDirectory(it.name, it.dir, ProjectId.randomUUID(), serverKnowsProject = false, syncEnabled = false)
+		}
 
 	/** Returns up to [limit] projects ordered by `metadata.info.lastAccessed` descending, optionally excluding [excludeCurrent]. Projects with unreadable metadata sort last. */
 	fun getRecentProjects(limit: Int, excludeCurrent: ProjectDef? = null): List<ProjectDef> =
@@ -561,13 +635,15 @@ class ProjectsRepository(
 	 * the server project's [projectId].
 	 *
 	 * The project goes in [group], or the top level when null. Its name must be free in every group,
-	 * since project names are unique per account.
+	 * since project names are unique per account. [owner] is set for a project shared with this
+	 * account, and written with the rest so the folder never exists without it.
 	 */
 	fun createProject(
 		projectName: String,
 		seedDefaultLanguage: Boolean,
 		projectId: ProjectId = ProjectId.randomUUID(),
 		group: GroupDef? = null,
+		owner: ProjectOwner? = null,
 	): CResult<ProjectDef> {
 		val strippedName = projectName.trim()
 		val result = validateFileName(strippedName)
@@ -604,6 +680,8 @@ class ProjectsRepository(
 				lastAccessed = Clock.System.now(),
 				dataVersion = PROJECT_DATA_VERSION,
 				projectId = projectId,
+				ownerId = owner?.id,
+				ownerName = owner?.name,
 			)
 		)
 		projectsMetadataDatasource.saveMetadata(metadata, newDef)

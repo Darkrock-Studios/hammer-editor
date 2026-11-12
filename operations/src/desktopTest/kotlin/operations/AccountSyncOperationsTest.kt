@@ -63,7 +63,9 @@ class AccountSyncOperationsTest {
 	private val settings = mockk<GlobalSettingsStore>(relaxed = true)
 	private val account = mockk<AccountUseCase>()
 	private val sync = mockk<SyncAccountUseCase>()
-	private val projects = mockk<ProjectsRepository>(relaxed = true)
+	private val projects = mockk<ProjectsRepository>(relaxed = true) {
+		every { isSyncEnabled(any()) } returns true
+	}
 	private val metadata = mockk<ProjectMetadataDatasource>()
 	private val accountSynchronizer = mockk<ClientAccountSynchronizer>(relaxed = true)
 

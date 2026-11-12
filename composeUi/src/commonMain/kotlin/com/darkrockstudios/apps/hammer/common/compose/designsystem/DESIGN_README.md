@@ -492,8 +492,12 @@ screen that surfaces them.
   trailing value); stacked into a mini bar chart.
 - **[`HdBarChart`](HdBarChart.kt)** — flat vertical bar chart for
   per-chapter / per-scene tallies. No axes, no grid, no animation.
-  For richer interactive charts, use KoalaPlot directly — this is
-  the manuscript treatment.
+  This is the manuscript treatment.
+- **[`HdDonutChart`](HdDonutChart.kt)**: Canvas-drawn donut with
+  outside labels on curved connectors, hole content, an entry sweep
+  animation, a desktop hover tooltip and tap-to-select slices.
+- **[`hdHuePalette`](HdHuePalette.kt)**: evenly spaced hues for
+  series with no semantic colour (devices, authors).
 
 ### Navigation
 

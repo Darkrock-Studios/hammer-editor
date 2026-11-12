@@ -1,0 +1,11 @@
+<div class="dialog-overlay" id="coauthor-dialog-overlay" onclick="closeCoauthorDialog(event)">
+	<div class="dialog" role="dialog" aria-modal="true" aria-labelledby="coauthor-dialog-title">
+		<div class="dialog__header">
+			<h3 id="coauthor-dialog-title">{{msg.coauthor_dialog_title}}</h3>
+			<button type="button" class="dialog__close" onclick="closeCoauthorDialog()" aria-label="{{msg.coauthor_dialog_cancel}}">
+				<i class="fas fa-times" aria-hidden="true"></i>
+			</button>
+		</div>
+		{{> coauthor-invite-form}}
+	</div>
+</div>

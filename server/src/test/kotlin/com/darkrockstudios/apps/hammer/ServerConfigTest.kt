@@ -55,9 +55,29 @@ class ServerConfigTest {
 	fun `resolve falls back to defaults when no config file present`() {
 		val fs = FakeFileSystem()
 
-		val config = resolveServerConfig(configPath = null, fileSystem = fs)
+		val config = resolveServerConfig(configPath = null, fileSystem = fs) { null }
 
 		assertEquals(ServerConfig(), config)
+	}
+
+	@Test
+	fun `A LanguageTool address in the environment turns grammar checking on`() {
+		val fs = FakeFileSystem()
+
+		val withAddress = resolveServerConfig(configPath = null, fileSystem = fs) { "http://languagetool:8010" }
+		val blank = resolveServerConfig(configPath = null, fileSystem = fs) { " " }
+
+		assertTrue(withAddress.languageToolEnabled)
+		assertEquals(false, blank.languageToolEnabled)
+	}
+
+	@Test
+	fun `A malformed LanguageTool address in the environment aborts startup`() {
+		val fs = FakeFileSystem()
+
+		assertFailsWith<IllegalArgumentException> {
+			resolveServerConfig(configPath = null, fileSystem = fs) { "languagetool:8010" }
+		}
 	}
 
 	@Test

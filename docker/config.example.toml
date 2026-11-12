@@ -26,6 +26,11 @@ port = 8080
 # running behind a reverse proxy so generated links use the right scheme/host.
 # publicUrl = "https://hammer.example.com"
 
+# Grammar checking for signed-in writers. Off by default. With docker-compose.yml,
+# turn it on from .env instead (see HOW-TO-RUN-A-SERVER-DOCKER.md); this flag is
+# for a LanguageTool server you set on Admin -> Grammar.
+# languageToolEnabled = true
+
 # TLS: the recommended Docker setup terminates TLS at a reverse proxy in front of
 # the container and forwards plain HTTP here. In that case leave sslCert unset.
 #

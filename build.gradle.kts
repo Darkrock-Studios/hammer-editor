@@ -578,7 +578,7 @@ tasks.register("revertLastRelease") {
 			val repoSlug = "Darkrock-Studios/hammer-editor"
 
 			fun githubApi(method: String, path: String): Pair<Int, String> {
-				val conn = java.net.URL("https://api.github.com/repos/$repoSlug/$path")
+				val conn = java.net.URI("https://api.github.com/repos/$repoSlug/$path").toURL()
 					.openConnection() as java.net.HttpURLConnection
 				conn.requestMethod = method
 				conn.setRequestProperty("Authorization", "Bearer $ghToken")

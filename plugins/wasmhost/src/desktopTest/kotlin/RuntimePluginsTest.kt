@@ -29,6 +29,7 @@ import com.darkrockstudios.apps.hammer.operations.plugin.ActionCancelledExceptio
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionField
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionPlace
 import com.darkrockstudios.apps.hammer.operations.plugin.TextFormat
+import com.darkrockstudios.apps.hammer.operations.plugin.PluginKind
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
 import com.darkrockstudios.apps.hammer.operations.plugin.SettingDeclaration
 import com.darkrockstudios.apps.hammer.operations.plugin.TextDiagnosticSeverity
@@ -435,13 +436,14 @@ class RuntimePluginsTest {
 	}
 
 	@Test
-	fun `a module the limiter or the runtime cannot handle is refused at install`() {
+	fun `a module the runtime cannot handle is refused at install`() {
 		// A last section declaring more bytes than follow it.
 		val overrun = testPlugin("export_echo") + byteArrayOf(0x00, 0x10, 0x01)
-		// A table whose minimum, 2^31, does not fit an Int.
+		// A table and a memory whose minimum, 2^31, does not fit an Int.
 		val hugeTable = MODULE_HEADER + byteArrayOf(0x04, 0x08, 0x01, 0x70, 0x00) + U32_2_POW_31
+		val hugeMemory = MODULE_HEADER + byteArrayOf(0x05, 0x07, 0x01, 0x00) + U32_2_POW_31
 
-		listOf(overrun, hugeTable).forEachIndexed { i, wasm ->
+		listOf(overrun, hugeTable, hugeMemory).forEachIndexed { i, wasm ->
 			assertThrows<PluginPackageException> { runtimePlugins().inspect(pack("bad-$i", wasm = wasm)) }
 		}
 	}
@@ -1038,6 +1040,38 @@ class RuntimePluginsTest {
 		assertEquals(fileSystem.metadata(directory / "packages" / "echo.hammerplugin").size, installed.size)
 	}
 
+	private fun kinded(id: String = "grammar", label: String = "Grammar checker") =
+		described("Checks grammar.") + "\n\n[kind]\nid = \"$id\"\nlabel = \"$label\"\n"
+
+	@Test
+	fun `a plugin's kind is labeled in the UI's language where a translation has it`() {
+		val french = mapOf("locales/fr.toml" to "[kind]\nlabel = \"Correcteur grammatical\"")
+		val inFrench = runtimePlugins(locale = "fr").also { it.install(pack("echo", kinded(), files = french)) }
+		val plugin = startKoin(inFrench).plugins.single()
+		assertEquals(PluginKind("grammar", "Correcteur grammatical", localized = true), plugin.kind)
+		assertEquals(listOf("en", "fr-CA"), plugin.languages)
+		GlobalContext.stopKoin()
+
+		val inGerman = runtimePlugins(locale = "de")
+		assertEquals(PluginKind("grammar", "Grammar checker", localized = false), startKoin(inGerman).plugins.single().kind)
+	}
+
+	@Test
+	fun `a blank translated kind label keeps the manifest's`() {
+		val german = mapOf("locales/de.toml" to "[kind]\nlabel = \" \"")
+		val plugins = runtimePlugins(locale = "de").also { it.install(pack("echo", kinded(), files = german)) }
+
+		assertEquals(PluginKind("grammar", "Grammar checker", localized = false), startKoin(plugins).plugins.single().kind)
+	}
+
+	@Test
+	fun `a kind without a valid id or a label is refused`() {
+		val plugins = runtimePlugins()
+		assertThrows<PluginPackageException> { plugins.install(pack("spaced", kinded(id = "Grammar checker"))) }
+		assertThrows<PluginPackageException> { plugins.install(pack("blank", kinded(label = " "))) }
+		assertTrue(plugins.installed().isEmpty())
+	}
+
 	@Test
 	fun `a description too long, or a language that is not a tag, is refused`() {
 		val plugins = runtimePlugins()
@@ -1046,6 +1080,18 @@ class RuntimePluginsTest {
 		val longFrench = mapOf("locales/fr.toml" to "description = \"${"x".repeat(1001)}\"")
 		assertThrows<PluginPackageException> { plugins.install(pack("long-french", described("Fine."), files = longFrench)) }
 		assertTrue(plugins.installed().isEmpty())
+	}
+
+	@Test
+	fun `hammer server services are listed in the summary, and a name that is not one is refused`() {
+		val plugins = runtimePlugins()
+		fun withServices(id: String, services: String) =
+			"id = \"$id\"\nname = \"Server\"\nversion = \"1.0.0\"\napi = 1\n\n[permissions]\nhammerServer = [$services]"
+
+		assertThrows<PluginPackageException> { plugins.install(pack("bad", withServices("bad", "\"../account\""))) }
+		plugins.install(pack("good", withServices("good", "\"languagetool\"")))
+
+		assertEquals(listOf("languagetool"), plugins.summaries().single().hammerServer)
 	}
 
 	@Test
@@ -1258,13 +1304,26 @@ class RuntimePluginsTest {
 	}
 
 	@Test
-	fun `a module that cannot check leaves the text unmarked`() {
+	fun `a malformed reply fails the check, and an empty one finds nothing`() {
+		val plugins = runtimePlugins()
+		val reply = mapOf("resources/reply.json" to "{\"diagnostics\": [{")
+		plugins.install(pack("echo", manifest() + diagnostics("grammar"), module = "reply", files = reply))
+		plugins.install(pack("quiet", manifest(id = "quiet") + diagnostics("grammar"), module = "reply"))
+		val (echo, quiet) = startKoin(plugins).plugins.sortedBy { it.id }.map { it.textDiagnostics().single() }
+		val request = TextDiagnosticsRequest(listOf("One."), null, "Project")
+
+		assertThrows<PluginException> { runBlocking { echo.diagnose(request) } }
+		assertEquals(listOf(emptyList()), runBlocking { quiet.diagnose(request) }.map { it.toList() })
+	}
+
+	@Test
+	fun `a module that cannot check fails the check, rather than finding nothing`() {
 		val plugins = runtimePlugins()
 		plugins.install(pack("echo", manifest() + diagnostics("grammar")))
 
 		val check = startKoin(plugins).plugins.single().textDiagnostics().single()
 
-		assertEquals(listOf(emptyList(), emptyList()), runBlocking { check.diagnose(TextDiagnosticsRequest(listOf("One.", "Two."), null, "Project")) }.map { it.toList() })
+		assertThrows<PluginException> { runBlocking { check.diagnose(TextDiagnosticsRequest(listOf("One.", "Two."), null, "Project")) } }
 	}
 
 	private fun userHostsManifest(id: String, toggle: String? = null) = """

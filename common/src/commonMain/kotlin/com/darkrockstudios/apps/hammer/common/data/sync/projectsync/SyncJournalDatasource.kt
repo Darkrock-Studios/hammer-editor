@@ -5,7 +5,9 @@ import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import okio.FileSystem
+import okio.IOException
 import okio.Path
+import kotlin.random.Random
 import kotlin.time.Instant
 
 /**
@@ -35,11 +37,7 @@ class SyncJournalDatasource(
 	private fun getSyncDataPath(): Path = projectDef.path.toOkioPath() / SYNC_FILE_NAME
 
 	fun saveSyncData(data: ProjectSynchronizationData) {
-		val path = getSyncDataPath()
-		fileSystem.write(path) {
-			val syncDataJson = json.encodeToString(data)
-			writeUtf8(syncDataJson)
-		}
+		writeSyncJournal(getSyncDataPath(), fileSystem, json.encodeToString(data))
 	}
 
 	/**
@@ -90,7 +88,27 @@ fun writeProjectSyncData(
 	data: ProjectSynchronizationData,
 ) {
 	val path = projectDef.path.toOkioPath() / SyncJournalDatasource.SYNC_FILE_NAME
-	fileSystem.write(path) { writeUtf8(json.encodeToString(data)) }
+	writeSyncJournal(path, fileSystem, json.encodeToString(data))
+}
+
+/**
+ * Writes a journal through a sibling temp file moved over it, so a write cut short leaves the
+ * previous journal intact: a corrupt one would be rebuilt as a guess.
+ */
+internal fun writeSyncJournal(path: Path, fileSystem: FileSystem, text: String) {
+	// Unique, so overlapping writers never move each other's half-written file into place.
+	val staging = path.parent!! / ".${path.name}.${Random.nextLong().toULong().toString(16)}.tmp"
+	try {
+		fileSystem.write(staging) { writeUtf8(text) }
+		fileSystem.atomicMove(staging, path)
+	} catch (e: IOException) {
+		try {
+			fileSystem.delete(staging, mustExist = false)
+		} catch (cleanup: IOException) {
+			e.addSuppressed(cleanup)
+		}
+		throw e
+	}
 }
 
 /**
@@ -133,7 +151,7 @@ fun clearProjectSyncBaseline(projectDef: ProjectDef, fileSystem: FileSystem, jso
 	)
 	if (cleared == current) return
 
-	fileSystem.write(path) { writeUtf8(json.encodeToString(cleared)) }
+	writeSyncJournal(path, fileSystem, json.encodeToString(cleared))
 }
 
 /**
@@ -188,7 +206,7 @@ fun markProjectRestored(
 	)
 	if (marked == existing) return
 
-	fileSystem.write(path) { writeUtf8(json.encodeToString(marked)) }
+	writeSyncJournal(path, fileSystem, json.encodeToString(marked))
 }
 
 /**

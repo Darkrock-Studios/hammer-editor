@@ -66,6 +66,12 @@ data class ServerConfig(
 	val privacyPolicy: String? = null,
 	val emailProvider: String? = null,
 	val communityEnabled: Boolean = false,
+	/**
+	 * Offer LanguageTool grammar checks to signed-in users, forwarded to the server set on
+	 * Admin → Grammar. Off, its routes and admin page don't exist. `HAMMER_LANGUAGETOOL_URL` also
+	 * turns it on.
+	 */
+	val languageToolEnabled: Boolean = false,
 	val extraLinks: List<ExtraLink> = emptyList(),
 	val accountDeletion: AccountDeletionConfig = AccountDeletionConfig(),
 	val storage: StorageConfig = StorageConfig(),

@@ -36,6 +36,7 @@ import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarColumn
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdCrumbBackLink
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineDropdown
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineSection
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineToggleRow
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineWordListField
@@ -63,14 +64,26 @@ import com.darkrockstudios.apps.hammer.project_settings_hero_by
 import com.darkrockstudios.apps.hammer.project_settings_hero_marker
 import com.darkrockstudios.apps.hammer.project_settings_hero_no_author
 import com.darkrockstudios.apps.hammer.project_settings_plugins_caption
+import com.darkrockstudios.apps.hammer.project_settings_plugins_pick_none
 import com.darkrockstudios.apps.hammer.project_settings_plugins_section_title
 import com.darkrockstudios.apps.hammer.project_settings_spellcheck_encyclopedia_enable
 import com.darkrockstudios.apps.hammer.project_settings_spellcheck_encyclopedia_enable_hint
 import com.darkrockstudios.apps.hammer.project_settings_spellcheck_mismatch_caption
 import com.darkrockstudios.apps.hammer.project_settings_spellcheck_section_title
+import androidx.compose.ui.platform.testTag
+import com.darkrockstudios.apps.hammer.common.projectselection.sharedByLabel
+import com.darkrockstudios.apps.hammer.project_settings_sync_section_title
+import com.darkrockstudios.apps.hammer.project_settings_sync_shared_off
+import com.darkrockstudios.apps.hammer.project_settings_sync_shared_syncing
+import com.darkrockstudios.apps.hammer.project_settings_sync_own_hint
+import com.darkrockstudios.apps.hammer.project_settings_sync_own_off
+import com.darkrockstudios.apps.hammer.project_settings_sync_own_on
 import org.koin.compose.koinInject
 
 private val MaxColumnWidth = 880.dp
+
+const val ProjectSyncOwnTestTag = "project-settings-sync-own"
+const val ProjectSyncSharedTestTag = "project-settings-sync-shared"
 
 @Composable
 fun ProjectSettingsUi(
@@ -81,7 +94,9 @@ fun ProjectSettingsUi(
 	val state by component.projectInfoState.subscribeAsState()
 	val plugins = koinInject<PluginUiRegistry>().plugins()
 	val disabledPlugins by component.disabledPlugins.subscribeAsState()
-	val sectionCount = if (plugins.isEmpty()) 6 else 7
+	val syncState by component.syncState.subscribeAsState()
+	val syncSection = if (syncState.serverConfigured) 8 else null
+	val sectionCount = syncSection ?: if (plugins.isEmpty()) 6 else 7
 	val screen = LocalScreenCharacteristic.current
 	val isCompact = screen.windowWidthClass == WindowWidthSizeClass.Compact
 
@@ -159,8 +174,13 @@ fun ProjectSettingsUi(
 							ProjectPlugins(
 								plugins = plugins,
 								disabled = disabledPlugins,
+								language = state.data.language,
 								component = component,
 							)
+
+							if (syncSection != null) {
+								ProjectSync(section = syncSection, state = syncState)
+							}
 						}
 
 						Spacer(Modifier.height(8.dp))
@@ -219,14 +239,22 @@ private fun ProjectDictionaryWords(
 	)
 }
 
-/** Manage plugins, then a toggle for each active plugin, turning it off for this project alone. */
+/**
+ * Manage plugins, a dropdown for each kind with several plugins, those for the project's [language]
+ * first, then a toggle for each other active plugin, turning it off for this project alone.
+ */
 @Composable
 private fun ProjectPlugins(
 	plugins: List<ClientPlugin>,
 	disabled: Set<String>,
+	language: String?,
 	component: ProjectSettings,
 ) {
-	val sorted = remember(plugins) { plugins.sortedBy { (it.name ?: it.id).lowercase() } }
+	val choices = remember(plugins, language) { pluginChoices(plugins, language) }
+	val sorted = remember(plugins, choices) {
+		val chosen = choices.flatMap { choice -> choice.plugins.map { it.id } }.toSet()
+		plugins.filter { it.id !in chosen }.sortedBy { (it.name ?: it.id).lowercase() }
+	}
 	HdHairlineSection(
 		section = 7,
 		title = Res.string.project_settings_plugins_section_title.get(),
@@ -238,6 +266,20 @@ private fun ProjectPlugins(
 			color = MaterialTheme.colorScheme.onSurfaceVariant,
 		)
 		ManagePluginsButton()
+		choices.forEach { choice ->
+			HdHairlineDropdown(
+				options = listOf<PluginPick>(PluginPick.None) + choice.plugins.map(PluginPick::One),
+				selected = choice.picked(disabled),
+				onSelect = { component.setPluginsEnabled(choice.changesFor(it)) },
+				label = { pick ->
+					when (pick) {
+						PluginPick.None -> Res.string.project_settings_plugins_pick_none.get()
+						is PluginPick.One -> pick.plugin.name ?: pick.plugin.id
+					}
+				},
+				title = choice.label,
+			)
+		}
 		sorted.forEach { plugin ->
 			HdHairlineToggleRow(
 				checked = plugin.id !in disabled,
@@ -245,6 +287,58 @@ private fun ProjectPlugins(
 				onCheckedChange = { component.setPluginEnabled(plugin.id, it) },
 			)
 		}
+	}
+}
+
+/**
+ * Whether this device syncs the project. An own project's switch is in its menu on the project list,
+ * where it is closed; a shared project says whose it is and how it stops syncing.
+ */
+@Composable
+internal fun ProjectSync(section: Int, state: ProjectSettings.SyncState) {
+	HdHairlineSection(
+		section = section,
+		title = Res.string.project_settings_sync_section_title.get(),
+		contentSpacing = 18.dp,
+	) {
+		val owner = state.owner
+		if (owner != null) {
+			SyncStatus(
+				title = sharedByLabel(owner.name),
+				hint = if (state.syncEnabled) {
+					Res.string.project_settings_sync_shared_syncing.get()
+				} else {
+					Res.string.project_settings_sync_shared_off.get()
+				},
+				modifier = Modifier.testTag(ProjectSyncSharedTestTag),
+			)
+		} else {
+			SyncStatus(
+				title = if (state.syncEnabled) {
+					Res.string.project_settings_sync_own_on.get()
+				} else {
+					Res.string.project_settings_sync_own_off.get()
+				},
+				hint = Res.string.project_settings_sync_own_hint.get(),
+				modifier = Modifier.testTag(ProjectSyncOwnTestTag),
+			)
+		}
+	}
+}
+
+@Composable
+private fun SyncStatus(title: String, hint: String, modifier: Modifier) {
+	Column(modifier = modifier.fillMaxWidth()) {
+		Text(
+			text = title,
+			style = MaterialTheme.typography.bodyLarge,
+			color = MaterialTheme.colorScheme.onSurface,
+		)
+		Text(
+			text = hint,
+			style = MaterialTheme.typography.bodySmall,
+			color = MaterialTheme.colorScheme.onSurfaceVariant,
+		)
 	}
 }
 

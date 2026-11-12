@@ -73,6 +73,7 @@ class DataMigratorTest : BaseTest() {
 			projectsRepository = projectsRepository,
 			projectMetadataDatasource = projectMetadataDatasource,
 			entryImagePromoter = entryImagePromoter,
+			refreshExampleProject = lazy { mockk(relaxed = true) },
 		)
 
 		val migrationNeeded = migrator.checkIfMigrationNeeded()
@@ -110,6 +111,7 @@ class DataMigratorTest : BaseTest() {
 			projectsRepository = projectsRepository,
 			projectMetadataDatasource = projectMetadataDatasource,
 			entryImagePromoter = entryImagePromoter,
+			refreshExampleProject = lazy { mockk(relaxed = true) },
 		)
 
 		val migrationNeeded = migrator.checkIfMigrationNeeded()
@@ -158,6 +160,7 @@ class DataMigratorTest : BaseTest() {
 			projectsRepository = projectsRepository,
 			projectMetadataDatasource = projectMetadataDatasource,
 			entryImagePromoter = entryImagePromoter,
+			refreshExampleProject = lazy { mockk(relaxed = true) },
 		)
 
 		runBlocking { migrator.handleDataMigration() }
@@ -202,6 +205,7 @@ class DataMigratorTest : BaseTest() {
 			projectsRepository = projectsRepository,
 			projectMetadataDatasource = projectMetadataDatasource,
 			entryImagePromoter = entryImagePromoter,
+			refreshExampleProject = lazy { mockk(relaxed = true) },
 		) {
 			override val latestProjectDataVersion = 1
 			override fun getMigrators(): Map<Int, Migration> = mapOf(1 to migration)
@@ -275,6 +279,7 @@ class DataMigratorTest : BaseTest() {
 			projectsRepository = projectsRepository,
 			projectMetadataDatasource = projectMetadataDatasource,
 			entryImagePromoter = entryImagePromoter,
+			refreshExampleProject = lazy { mockk(relaxed = true) },
 		) {
 			override val latestProjectDataVersion = 1
 		}
@@ -353,6 +358,7 @@ class DataMigratorTest : BaseTest() {
 			projectsRepository = projectsRepository,
 			projectMetadataDatasource = projectMetadataDatasource,
 			entryImagePromoter = entryImagePromoter,
+			refreshExampleProject = lazy { mockk(relaxed = true) },
 		) {
 			override val latestProjectDataVersion = maxVersion
 			override fun getMigrators(): Map<Int, Migration> {
@@ -441,6 +447,7 @@ class DataMigratorTest : BaseTest() {
 			projectsRepository = projectsRepository,
 			projectMetadataDatasource = projectMetadataDatasource,
 			entryImagePromoter = entryImagePromoter,
+			refreshExampleProject = lazy { mockk(relaxed = true) },
 		) {
 			override val latestProjectDataVersion = maxVersion
 			override fun getMigrators(): Map<Int, Migration> {

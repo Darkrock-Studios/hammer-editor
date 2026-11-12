@@ -1,6 +1,7 @@
 package repositories.writingactivity
 
 import com.darkrockstudios.apps.hammer.base.http.writingactivity.DeviceLog
+import com.darkrockstudios.apps.hammer.base.http.writingactivity.WritingActivitySlot
 import com.darkrockstudios.apps.hammer.base.http.writingactivity.WritingSession
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingActivityDatasource
@@ -113,9 +114,9 @@ class WritingActivityDatasourceTest : BaseTest() {
 		)
 
 		val all = datasource.loadAllDeviceLogs()
-		assertEquals(setOf("device-a", "device-b"), all.keys)
-		assertEquals(100, all.getValue("device-a").sessions.single().wordsWritten)
-		assertEquals(50, all.getValue("device-b").sessions.single().wordsWritten)
+		assertEquals(setOf("device-a", "device-b"), all.map { it.deviceId }.toSet())
+		assertEquals(100, all.single { it.deviceId == "device-a" }.log.sessions.single().wordsWritten)
+		assertEquals(50, all.single { it.deviceId == "device-b" }.log.sessions.single().wordsWritten)
 	}
 
 	@Test
@@ -138,7 +139,7 @@ class WritingActivityDatasourceTest : BaseTest() {
 
 		val all = datasource.loadAllDeviceLogs()
 
-		assertEquals(setOf("device-a"), all.keys)
+		assertEquals(listOf("device-a"), all.map { it.deviceId })
 	}
 
 	@Test
@@ -150,5 +151,36 @@ class WritingActivityDatasourceTest : BaseTest() {
 			"/projects/Test Project/scenes/.activity/abc-123.toml",
 			deviceFile.toString().replace('\\', '/'),
 		)
+	}
+
+	@Test
+	fun `an authored slot round trips its author under its own file`() = runTest {
+		val log = DeviceLog(deviceLabel = "Laptop", authorId = 42, authorName = "Co Pen")
+		datasource.saveSlot(WritingActivitySlot("device-a", log))
+
+		assertTrue(fileSystem.exists(datasource.getDirectory() / "device-a.42.toml"))
+		assertEquals(listOf(WritingActivitySlot("device-a", log)), datasource.loadAllDeviceLogs())
+	}
+
+	@Test
+	fun `a slot written before authors existed loads with no author`() = runTest {
+		fileSystem.createDirectories(datasource.getDirectory())
+		fileSystem.write(datasource.getDeviceLogPath("device-a")) {
+			writeUtf8("deviceLabel = \"Desktop\"\nsessions = []\n")
+		}
+
+		val slot = datasource.loadAllDeviceLogs().single()
+		assertEquals("device-a", slot.deviceId)
+		assertNull(slot.log.authorId)
+		assertNull(slot.log.authorName)
+	}
+
+	@Test
+	fun `two authors on one device load as two slots`() = runTest {
+		datasource.saveDeviceLog("device-a", DeviceLog(deviceLabel = "Desktop", authorId = 1))
+		datasource.saveSlot(WritingActivitySlot("device-a", DeviceLog(deviceLabel = "Desktop", authorId = 2)))
+
+		val authors = datasource.loadAllDeviceLogs().map { it.deviceId to it.log.authorId }
+		assertEquals(setOf("device-a" to 1L, "device-a" to 2L), authors.toSet())
 	}
 }

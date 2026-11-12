@@ -13,6 +13,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -24,6 +25,7 @@ import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineToggleRow
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMasthead
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMastheadAction
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
@@ -31,14 +33,20 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 
 private val DialogMaxWidth = 480.dp
 
+const val DeleteOnServerToggleTestTag = "delete-project-on-server"
+const val DeleteCoauthorsNoteTestTag = "delete-project-coauthors"
+
 @Composable
 fun ProjectDeleteDialog(
 	component: ProjectsList,
 	projectDef: ProjectDef,
-	close: () -> Unit
+	close: () -> Unit,
+	offerServerDelete: Boolean = false,
+	deletesOnServer: Boolean = false,
 ) {
 	var isOpen by remember { mutableStateOf(true) }
 	var confirmationText by rememberSaveable { mutableStateOf("") }
+	var alsoDeleteOnServer by rememberSaveable { mutableStateOf(false) }
 	val isConfirmed = confirmationText.trim().equals(projectDef.name, ignoreCase = true)
 	val showMismatch = confirmationText.isNotBlank() && !isConfirmed
 
@@ -100,6 +108,15 @@ fun ProjectDeleteDialog(
 						color = MaterialTheme.colorScheme.error,
 					)
 
+					if (deletesOnServer || offerServerDelete) {
+						Text(
+							text = Res.string.delete_project_coauthors.get(),
+							style = MaterialTheme.typography.bodyMedium,
+							color = MaterialTheme.colorScheme.onSurfaceVariant,
+							modifier = Modifier.testTag(DeleteCoauthorsNoteTestTag),
+						)
+					}
+
 					HdHairlineField(
 						label = "CONFIRM NAME",
 						value = confirmationText,
@@ -113,6 +130,16 @@ fun ProjectDeleteDialog(
 						autoCorrectEnabled = false,
 						error = if (showMismatch) "Does not match" else null,
 					)
+
+					if (offerServerDelete) {
+						HdHairlineToggleRow(
+							checked = alsoDeleteOnServer,
+							onCheckedChange = { alsoDeleteOnServer = it },
+							label = Res.string.delete_project_also_server.get(),
+							hint = Res.string.delete_project_also_server_hint.get(),
+							modifier = Modifier.testTag(DeleteOnServerToggleTestTag),
+						)
+					}
 				}
 
 				HorizontalDivider(
@@ -124,7 +151,7 @@ fun ProjectDeleteDialog(
 					confirmEnabled = isConfirmed,
 					onCancel = { isOpen = false },
 					onConfirm = {
-						component.deleteProject(projectDef)
+						component.deleteProject(projectDef, alsoDeleteOnServer)
 						isOpen = false
 					},
 				)

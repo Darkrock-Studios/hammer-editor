@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.story
 
+import com.darkrockstudios.apps.hammer.project.OwnerId
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.image.ImageFormat
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
@@ -11,18 +12,18 @@ class StoryImageService(
 	private val projectEntityDatasource: ProjectEntityDatasource,
 ) {
 	/** The stored hash of Image entity [imageId], or null when [imageId] is not an image of [projectDef]. */
-	suspend fun imageHash(userId: Long, projectDef: ProjectDefinition, imageId: Int): String? =
+	suspend fun imageHash(owner: OwnerId, projectDef: ProjectDefinition, imageId: Int): String? =
 		(projectEntityDatasource.loadEntityHash(
-			userId = userId,
+			owner = owner,
 			projectDef = projectDef,
 			entityId = imageId,
 			entityType = ApiProjectEntity.Type.IMAGE,
 		) as? ServerResult.Success)?.data
 
 	/** Image entity [imageId] ready to serve, or null when it is missing or can't be served. */
-	suspend fun loadImage(userId: Long, projectDef: ProjectDefinition, imageId: Int): StoryImage? {
+	suspend fun loadImage(owner: OwnerId, projectDef: ProjectDefinition, imageId: Int): StoryImage? {
 		val image = (projectEntityDatasource.loadEntity(
-			userId = userId,
+			owner = owner,
 			projectDef = projectDef,
 			entityId = imageId,
 			entityType = ApiProjectEntity.Type.IMAGE,

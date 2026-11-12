@@ -31,6 +31,10 @@ services:
       # to UTC; set TZ in your shell or a .env file next to this compose file to
       # change it. `timezone` in config.toml overrides this.
       TZ: ${TZ:-UTC}
+      # Grammar checking for signed-in writers: setting this turns it on. Set it
+      # to http://languagetool:8010 alongside COMPOSE_PROFILES=languagetool to
+      # use the service below.
+      HAMMER_LANGUAGETOOL_URL: ${HAMMER_LANGUAGETOOL_URL:-}
 
     # Uncomment alongside the postgres service below.
     # depends_on:
@@ -41,6 +45,24 @@ services:
       - hammer-data:/data
       # Optional: manage the config on the host. Copy config.example.toml first.
       # - ./config.toml:/data/hammer_data/config.toml:ro
+
+  # Grammar checking, behind the `languagetool` profile: set
+  # COMPOSE_PROFILES=languagetool in .env to start it. Not published on the
+  # host; only the hammer service reaches it.
+  languagetool:
+    image: erikvl87/languagetool:6.8
+    container_name: hammer-languagetool
+    profiles: ["languagetool"]
+    restart: unless-stopped
+    environment:
+      Java_Xms: 512m
+      # Enough for a handful of languages; 3g for many in use at once.
+      Java_Xmx: ${LANGUAGETOOL_HEAP:-2g}
+      # n-gram data catches confused words (their/there, affect/effect). Fetch
+      # it with ./download-ngrams.sh; languages without data are still checked.
+      langtool_languageModel: /ngrams
+    volumes:
+      - ./ngrams:/ngrams:ro
 
   # Only needed for `[storage] type = "remote"`; storage defaults to an
   # in-process PostgreSQL. Uncomment the `depends_on` above alongside it.

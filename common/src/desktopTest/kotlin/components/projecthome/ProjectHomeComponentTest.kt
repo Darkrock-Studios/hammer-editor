@@ -1,5 +1,7 @@
 package components.projecthome
 
+import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectDisabledPluginsUseCase
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.http.projectdata.WordCountGoal
 import com.darkrockstudios.apps.hammer.common.components.ToastMessage
@@ -99,6 +101,13 @@ import kotlin.time.Instant
 @OptIn(ExperimentalCoroutinesApi::class)
 class ProjectHomeComponentTest : ComponentTest() {
 
+	private val projectSyncEnabled = MutableStateFlow(true)
+	private val projectsRepository = mockk<ProjectsRepository> {
+		every { isSyncEnabled(any()) } answers { projectSyncEnabled.value }
+		every { syncEnabledUpdates(any()) } returns projectSyncEnabled
+		every { getOwner(any()) } returns null
+	}
+
 	private lateinit var globalSettingsStore: GlobalSettingsStore
 	private lateinit var projectBackupService: ProjectBackupService
 	private lateinit var sceneEditor: SceneEditorService
@@ -147,6 +156,7 @@ class ProjectHomeComponentTest : ComponentTest() {
 		projectClosed = false
 
 		globalSettingsStore = mockk(relaxed = true)
+		every { globalSettingsStore.serverSettingsUpdates } returns MutableStateFlow(null)
 		every { globalSettingsStore.globalSettings } returns GlobalSettings(projectsDirectory = "/projects")
 		every { globalSettingsStore.globalSettingsUpdates } returns MutableSharedFlow()
 		every { globalSettingsStore.serverSettings } returns null
@@ -205,6 +215,7 @@ class ProjectHomeComponentTest : ComponentTest() {
 
 		setupComponentKoin(module {
 			single { globalSettingsStore }
+			single { projectsRepository }
 			single { StoryExporterRegistry(emptyList(), listOf(pluginFormats)) }
 			single { projectPlugins }
 			single { projectBackupService }
@@ -214,6 +225,7 @@ class ProjectHomeComponentTest : ComponentTest() {
 				mockk { every { availableLocales() } returns emptyList() }
 			}
 			scope<ProjectDefScope> {
+				scoped { ProjectDisabledPluginsUseCase(projectDef, get(), get(), getAll()) }
 				scoped { sceneEditor }
 				scoped { exportStoryUseCase }
 				scoped { encyclopediaService }
@@ -346,6 +358,19 @@ class ProjectHomeComponentTest : ComponentTest() {
 		advanceUntilIdle()
 
 		assertTrue(comp.state.value.hasServer)
+	}
+
+
+	@Test
+	fun `Project sync toggles are reflected as syncEnabled`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		assertTrue(comp.state.value.syncEnabled)
+
+		projectSyncEnabled.value = false
+		advanceUntilIdle()
+		assertFalse(comp.state.value.syncEnabled)
 	}
 
 	@Test

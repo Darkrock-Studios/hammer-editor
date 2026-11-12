@@ -40,6 +40,15 @@ object ApiErrorCode {
 	const val PROJECT_DELETED = "project_deleted"
 	/** Create refused: another account already owns a project with that id. */
 	const val PROJECT_ID_TAKEN = "project_id_taken"
+	/** The project exists, but the caller neither owns it nor is a co-author on it. */
+	const val NOT_MEMBER = "not_member"
+	/** A co-author asked for something only the owner may do: rename or move the project. */
+	const val NOT_OWNER = "not_owner"
+	/**
+	 * Refused while another account's session on the same project is live: a project sync while the
+	 * owner syncs their account, or the owner's delete, rename or move while a co-author syncs it.
+	 */
+	const val PROJECT_SYNC_IN_PROGRESS = "project_sync_in_progress"
 	/** Upsert refused: a sibling group already has that name. Also on delete, when a child would collide. */
 	const val GROUP_NAME_TAKEN = "group_name_taken"
 	/** Upsert refused: the new parent is the group itself or one of its descendants. */

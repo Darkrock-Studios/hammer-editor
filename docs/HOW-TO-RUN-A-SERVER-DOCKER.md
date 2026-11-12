@@ -166,6 +166,67 @@ zone is logged at startup as `Server time zone: ...`. Stored data is unaffected,
 is persisted as an absolute instant. See [Time zone](HOW-TO-RUN-A-SERVER.md#time-zone) for the
 full rundown, including the one caveat when changing the zone on a server already in use.
 
+## Grammar checking (LanguageTool)
+
+The server can check grammar for signed-in writers who choose "Your Hammer server" in the
+LanguageTool plugin. It forwards their checks to a [LanguageTool](https://languagetool.org) server
+that only it can reach, so it never becomes an open LanguageTool server for anyone else.
+
+It is off by default. `docker-compose.yml` has an optional `languagetool` service for it; to turn
+both on, add these lines to the `.env` file next to the compose file and run
+`docker compose up -d`:
+
+```
+COMPOSE_PROFILES=languagetool
+HAMMER_LANGUAGETOOL_URL=http://languagetool:8010
+```
+
+The first starts the service, the second turns the feature on and points the server at it. To use a
+LanguageTool server you already run, set only `HAMMER_LANGUAGETOOL_URL` to its address.
+
+The address is the default until an admin saves the settings on **Admin → Grammar**, which also has
+a **Test connection** button, per-writer rate limit, and request size cap. Clearing the address
+there stops offering grammar checks.
+
+### Languages
+
+LanguageTool checks over 30 languages out of the box, with no extra setup, among them English,
+German, Spanish, French, Italian, Portuguese, Dutch, Ukrainian, Polish, and Russian. The plugin
+checks each project in the project's language, and guesses when a project has none.
+
+### n-gram data
+
+With n-gram data, LanguageTool catches commonly confused words (their/there, affect/effect). The
+data exists only for English (9 GB download), German, Spanish, French (about 1.7 GB each), and
+Dutch (1.2 GB), and takes about as much space unpacked. Every other language is still checked, just
+without those rules. The service reads it from `docker/ngrams`:
+
+```bash
+cd docker
+./download-ngrams.sh en de es fr nl
+docker compose restart languagetool
+```
+
+The data is read from disk, so it needs disk space more than memory. Download before the first
+`docker compose up` if you can: Docker creates a missing `docker/ngrams` as root, and the script
+then asks you to `chown` it.
+
+### Resources
+
+The service is a separate JVM, and each language loads its rules the first time it is checked, so
+memory grows with the languages writers use. Measured on 6.8: about 0.6 GB idle, 2.1 GB after ten
+languages, 2.5 GB after all of them. The heap is capped at 2 GB; set `LANGUAGETOOL_HEAP=3g` in
+`.env` if writers use many languages, or `1g` if they use one or two.
+
+Spare RAM also speeds up n-gram checks, which read their data through the OS file cache, but they
+work without it.
+
+### Privacy
+
+Writers using this option send the text they check through your server, including projects they
+never sync. The sync server neither stores nor logs that text, but LanguageTool may include parts of
+it in its own logs when a check fails. Say so in your privacy policy.
+
 ## TLS in the container
 
 If you want Hammer itself to terminate TLS, mount the certificate directory and

@@ -5,6 +5,7 @@ import com.darkrockstudios.apps.hammer.base.http.writingactivity.WritingSession
 import com.darkrockstudios.apps.hammer.common.data.ExampleProjectRepository.Companion.EXAMPLE_DAYS
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournalDatasource
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.writeDeviceLog
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
@@ -66,13 +67,23 @@ abstract class ExampleProjectRepository(
 
 		scope.launch {
 			fabricateExampleActivity()
-			globalSettingsStore.updateSettings {
-				it.copy(
-					nux = globalSettingsStore.globalSettings.nux.copy(
-						exampleProjectCreated = true
-					)
-				)
-			}
+			recordInstalled()
+		}
+	}
+
+	/** Whether the example was installed from an older [BUNDLE_REVISION] than this one. */
+	fun isOutdated(): Boolean {
+		val nux = globalSettingsStore.globalSettings.nux
+		return nux.exampleProjectCreated && nux.exampleProjectRevision < BUNDLE_REVISION
+	}
+
+	fun hasSynced(projectDef: ProjectDef): Boolean =
+		fileSystem.exists(projectDef.path.toOkioPath() / SyncJournalDatasource.SYNC_FILE_NAME)
+
+	/** Records the example as installed from this [BUNDLE_REVISION]. */
+	suspend fun recordInstalled() {
+		globalSettingsStore.updateSettings {
+			it.copy(nux = it.nux.copy(exampleProjectCreated = true, exampleProjectRevision = BUNDLE_REVISION))
 		}
 	}
 
@@ -99,6 +110,9 @@ abstract class ExampleProjectRepository(
 	companion object {
 		const val PROJECT_NAME = "Alice In Wonderland"
 		const val EXAMPLE_PROJECT_FILE_NAME = "alice_in_wonderland_zip"
+
+		/** Bump when the bundled project changes, so existing installs replace their copy on next start. */
+		const val BUNDLE_REVISION = 1
 
 		const val FABRICATED_DEVICE_ID = "example-author"
 		const val FABRICATED_DEVICE_LABEL = "Example Author"

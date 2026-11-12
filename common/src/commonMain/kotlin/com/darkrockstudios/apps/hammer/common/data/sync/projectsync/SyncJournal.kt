@@ -129,33 +129,32 @@ class SyncJournal(
 
 	/**
 	 * [atLeastLastId] is an ID the caller knows has been claimed. The entities on disk can't
-	 * show it when the newest entity has already been deleted, and without it that ID would
-	 * be missing from a rebuilt journal's deleted IDs.
+	 * show it when the newest entity has already been deleted.
 	 */
 	private suspend fun loadOrCreate(atLeastLastId: Int): ProjectSynchronizationData =
 		datasource.loadSyncDataOrNull()
 			?: buildSyncData(atLeastLastId).also { datasource.saveSyncData(it) }
 
+	/**
+	 * A rebuilt journal infers no deletions from id gaps: on a partial copy every gap would be
+	 * deleted on the server. A gap the server still holds downloads again instead.
+	 */
 	private suspend fun buildSyncData(atLeastLastId: Int): ProjectSynchronizationData {
 		// Scans every entity's storage, and callers include the UI's close check
 		val entityIds = withContext(ioDispatcher) { IdAllocator.findEntityIds(projectDef, idDatasources) }
 		val lastId = max(entityIds.ids.maxOrNull() ?: 0, atLeastLastId)
-		// Recording a live entity as deleted would delete it on the server at the next sync,
-		// so with unreadable storage no deletions are inferred at all.
-		val deletedIds = if (entityIds.complete) {
-			(1..lastId).filterNot { it in entityIds.ids }.toSet()
-		} else {
-			emptySet()
-		}
 
 		return ProjectSynchronizationData(
 			lastId = lastId,
 			newIds = emptyList(),
 			lastSync = Instant.DISTANT_PAST,
 			dirty = emptyList(),
-			deletedIds = deletedIds
+			deletedIds = emptySet(),
+			// A rebuilt journal is a guess: it marks nothing dirty, so the next sync checks everything.
+			verifyAllEntities = true,
 		)
 	}
+
 	fun saveSyncData(syncData: ProjectSynchronizationData) = datasource.saveSyncData(syncData)
 
 	/** Drops what one specific server confirmed, keeping local work it hasn't seen. */

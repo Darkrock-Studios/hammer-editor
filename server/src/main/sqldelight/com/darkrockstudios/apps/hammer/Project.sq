@@ -71,12 +71,10 @@ UPDATE project
 SET name = :name
 WHERE user_id = :userId AND uuid = CAST(:uuid AS UUID);
 
--- name is CITEXT at runtime; CAST(:name AS CITEXT) so comparison resolves to
--- the citext-equality operator (case-insensitive).
 updateSyncData:
 UPDATE project
 SET last_id = :lastId, last_sync = :lastSync
-WHERE user_id = :userId AND name = CAST(:name AS CITEXT);
+WHERE user_id = :userId AND uuid = CAST(:uuid AS UUID);
 
 findProjectByName:
 SELECT *
@@ -87,6 +85,12 @@ getProject:
 SELECT *
 FROM project
 WHERE user_id = :userId AND uuid = CAST(:uuid AS UUID);
+
+-- Any account's project; uuid is globally unique.
+getProjectByUuid:
+SELECT *
+FROM project
+WHERE uuid = CAST(:uuid AS UUID);
 
 getProjectId:
 SELECT id

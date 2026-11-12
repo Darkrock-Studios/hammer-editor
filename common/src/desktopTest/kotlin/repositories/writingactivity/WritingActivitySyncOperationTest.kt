@@ -3,9 +3,11 @@ package repositories.writingactivity
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.writingactivity.DeviceLog
 import com.darkrockstudios.apps.hammer.base.http.writingactivity.WritingActivityResponse
+import com.darkrockstudios.apps.hammer.base.http.writingactivity.WritingActivitySlot
 import com.darkrockstudios.apps.hammer.base.http.writingactivity.WritingSession
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityConflictHandler
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityTransferState
@@ -45,6 +47,9 @@ class WritingActivitySyncOperationTest : BaseTest() {
 	@MockK(relaxed = true)
 	private lateinit var globalSettingsStore: GlobalSettingsStore
 
+	@MockK(relaxed = true)
+	private lateinit var statisticsRepository: StatisticsRepository
+
 	private val projectDef = ProjectDef(
 		id = testProjectId("Test Project"),
 		name = "Test Project",
@@ -81,6 +86,7 @@ class WritingActivitySyncOperationTest : BaseTest() {
 		tracker = tracker,
 		api = api,
 		globalSettingsStore = globalSettingsStore,
+		statisticsRepository = statisticsRepository,
 	)
 
 	private fun startState() = EntityTransferState(
@@ -107,7 +113,7 @@ class WritingActivitySyncOperationTest : BaseTest() {
 			sessions = listOf(localOnlySession()),
 		)
 		coEvery { api.getWritingActivity(any(), any()) } returns
-			Result.success(WritingActivityResponse(devices = emptyMap()))
+			Result.success(WritingActivityResponse(slots = emptyList()))
 		coEvery { api.uploadDeviceLog(any(), any(), any(), any()) } returns
 			Result.success("ok")
 
@@ -139,13 +145,13 @@ class WritingActivitySyncOperationTest : BaseTest() {
 
 		coEvery { repository.loadOwnLog() } returns DeviceLog(deviceLabel, emptyList())
 		coEvery { api.getWritingActivity(any(), any()) } returns Result.success(
-			WritingActivityResponse(devices = mapOf("device-other" to foreignLog))
+			WritingActivityResponse(slots = listOf(WritingActivitySlot("device-other", foreignLog)))
 		)
 		coEvery { api.uploadDeviceLog(any(), any(), any(), any()) } returns Result.success("ok")
 
 		createOperation().execute(startState(), onProgress, onLog, onConflict, onComplete)
 
-		coVerify { repository.replaceForeignDeviceLog("device-other", foreignLog) }
+		coVerify { repository.replaceRemoteSlot(WritingActivitySlot("device-other", foreignLog)) }
 	}
 
 	@Test
@@ -165,7 +171,7 @@ class WritingActivitySyncOperationTest : BaseTest() {
 
 		coEvery { repository.loadOwnLog() } returns DeviceLog(deviceLabel, listOf(localCopy))
 		coEvery { api.getWritingActivity(any(), any()) } returns Result.success(
-			WritingActivityResponse(devices = mapOf(ownDeviceId to DeviceLog(deviceLabel, listOf(serverCopy))))
+			WritingActivityResponse(slots = listOf(WritingActivitySlot(ownDeviceId, DeviceLog(deviceLabel, listOf(serverCopy)))))
 		)
 		val uploadedLog = slot<DeviceLog>()
 		coEvery {

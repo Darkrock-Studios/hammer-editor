@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.frontend.utils.Toast
 import com.darkrockstudios.apps.hammer.frontend.utils.applyRevalidationHeaders
 import com.darkrockstudios.apps.hammer.frontend.utils.authenticatedOnly
 import com.darkrockstudios.apps.hammer.frontend.utils.findProjectByUrlSegment
+import com.darkrockstudios.apps.hammer.frontend.utils.findStoryProject
 import com.darkrockstudios.apps.hammer.frontend.utils.formatInstant
 import com.darkrockstudios.apps.hammer.frontend.utils.formatSyncDate
 import com.darkrockstudios.apps.hammer.frontend.utils.getLocale
@@ -22,8 +23,10 @@ import com.darkrockstudios.apps.hammer.frontend.utils.respondTemplateWithToast
 import com.darkrockstudios.apps.hammer.frontend.utils.sceneTreeModel
 import com.darkrockstudios.apps.hammer.kudos.StoryKudosRepository
 import com.darkrockstudios.apps.hammer.monitoring.StoryReaderRepository
-import com.darkrockstudios.apps.hammer.project.ProjectDefinition
+import com.darkrockstudios.apps.hammer.project.ProjectAccessResolver
+import com.darkrockstudios.apps.hammer.project.ProjectMemberRepository
 import com.darkrockstudios.apps.hammer.project.ServerProjectDataRepository
+import com.darkrockstudios.apps.hammer.project.UncheckedOwner
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.story.StoryImageLinks
@@ -54,6 +57,7 @@ import java.util.Locale
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Instant
 
+@OptIn(UncheckedOwner::class)
 fun Route.storyPage(
 	storyRendererService: StoryRendererService,
 	projectAccessRepository: ProjectAccessRepository,
@@ -64,16 +68,18 @@ fun Route.storyPage(
 	storyKudosRepository: StoryKudosRepository,
 	serverProjectDataRepository: ServerProjectDataRepository,
 	storyImageService: StoryImageService,
+	projectMemberRepository: ProjectMemberRepository,
+	projectAccessResolver: ProjectAccessResolver,
 	clock: kotlin.time.Clock,
 ) {
 	authenticatedOnly {
 		route("/story/{projectName}") {
-			// The author may see every image in their own project, so these links are unsigned.
+			// The owner and co-authors may see every image in the project, so these links are unsigned.
 			get("/image/{imageId}") {
 				val session = call.sessions.requireUser()
 				val imageId = call.parameters["imageId"]?.toIntOrNull()
 				val project = call.parameters["projectName"]
-					?.let { projectsRepository.findProjectByUrlSegment(session.userId, it) }
+					?.let { findStoryProject(projectsRepository, projectAccessResolver, session.userId, it) }
 				if (imageId == null || project == null) {
 					call.respond(HttpStatusCode.NotFound)
 					return@get
@@ -81,8 +87,8 @@ fun Route.storyPage(
 
 				call.respondStoryImage(
 					storyImageService = storyImageService,
-					userId = session.userId,
-					projectDef = ProjectDefinition(name = project.name, uuid = ProjectId(project.uuid)),
+					owner = project.owner,
+					projectDef = project.projectDef,
 					imageId = imageId,
 				)
 			}
@@ -96,42 +102,16 @@ fun Route.storyPage(
 					return@get
 				}
 
-				val project = projectsRepository.findProjectByUrlSegment(session.userId, projectNameParam)
+				val project = findStoryProject(projectsRepository, projectAccessResolver, session.userId, projectNameParam)
 				if (project == null) {
 					call.respond(HttpStatusCode.NotFound)
 					return@get
 				}
 
-				val projectId = ProjectId(project.uuid)
-				val projectNameForUrl = ProjectName.projectSegment(project.name, project.uuid)
-
-				val account = accountsRepository.getAccount(session.userId)
-				val hasPenName = !account.pen_name.isNullOrBlank()
-
-				val isPublished = projectAccessRepository.isPublished(session.userId, projectId)
-				val hasAnyAccess = projectAccessRepository.hasAnyAccess(session.userId, projectId)
-				val accessEntries = projectAccessRepository.getPrivateAccessEntries(session.userId, projectId)
-
-				val numericProjectId = projectsRepository.findProjectRowId(session.userId, projectId)
-				val totalReaders = numericProjectId
-					?.let { storyReaderRepository.totalReadersForProject(it) } ?: 0L
-				val readerBars = numericProjectId
-					?.let { storyReaderRepository.dailyReadersForProject(it, clock.now() - 30.days) }
-					?.let { buildReaderBars(it, clock.now()) }
-					?: emptyList()
-				val publicUrl = if (hasAnyAccess && hasPenName) {
-					call.constructPublicUrl(account.pen_name, project.name, project.uuid)
-				} else {
-					""
-				}
-
-				val reviewModels = call.reviewCards(reviewRepository, session.userId, projectId)
-				val coverImageId = storyCoverImageId(
-					serverProjectDataRepository,
-					storyImageService,
-					session.userId,
-					ProjectDefinition(name = project.name, uuid = projectId),
-				)
+				val projectId = project.projectId
+				val projectNameForUrl = project.segment
+				val coverImageId =
+					storyCoverImageId(serverProjectDataRepository, storyImageService, project.owner, project.projectDef)
 
 				val locale = call.getLocale()
 				// Everything but the story's own numbers, which the story version below stands in for.
@@ -139,38 +119,77 @@ fun Route.storyPage(
 					mapOf(
 						"page_stylesheet" to "/assets/css/story.css",
 						"page_script" to "/assets/js/story.js",
-						"page_pre_scripts" to listOf(
-							"/assets/js/review-form-logic.js",
+						"page_pre_scripts" to listOfNotNull(
+							"/assets/js/review-form-logic.js".takeIf { project.isOwner },
 							"/assets/js/story-read-logic.js",
 						),
-						"reviews" to reviewModels,
-						"hasReviews" to reviewModels.isNotEmpty(),
 						"projectName" to project.name,
 						"projectNameForUrl" to projectNameForUrl,
 						"projectKey" to project.uuid,
 						"readUrl" to "/story/$projectNameForUrl/read",
-						"hasPenName" to hasPenName,
-						"isPublished" to isPublished,
-						"hasAnyAccess" to hasAnyAccess,
-						"publicUrl" to publicUrl,
 						"lastSync" to formatSyncDate(project.lastSync),
-						"accessEntries" to accessEntries,
-						"hasAccessEntries" to accessEntries.isNotEmpty(),
-						"hasReaderStats" to (numericProjectId != null),
-						"totalReaders" to formatCount(locale, totalReaders),
-						"readerBars" to readerBars,
-						"hasReaderBars" to readerBars.any { (it["height"] as Int) > 0 },
+						"isOwner" to project.isOwner,
 					)
 				)
 				if (coverImageId != null) {
 					model["coverImageUrl"] = authorImageUrl(projectNameForUrl, coverImageId)
 				}
-				if (numericProjectId != null) {
-					model.putAll(call.kudosPanelModel(storyKudosRepository, numericProjectId, isPublished, model))
+
+				// A co-author's page is the story and a way to leave; every owner control is absent.
+				if (project.isOwner) {
+					val account = accountsRepository.getAccount(session.userId)
+					val hasPenName = !account.pen_name.isNullOrBlank()
+
+					val isPublished = projectAccessRepository.isPublished(session.userId, projectId)
+					val hasAnyAccess = projectAccessRepository.hasAnyAccess(session.userId, projectId)
+					val accessEntries = projectAccessRepository.getPrivateAccessEntries(session.userId, projectId)
+
+					val numericProjectId = projectsRepository.findProjectRowId(session.userId, projectId)
+					val totalReaders = numericProjectId
+						?.let { storyReaderRepository.totalReadersForProject(it) } ?: 0L
+					val readerBars = numericProjectId
+						?.let { storyReaderRepository.dailyReadersForProject(it, clock.now() - 30.days) }
+						?.let { buildReaderBars(it, clock.now()) }
+						?: emptyList()
+					val publicUrl = if (hasAnyAccess && hasPenName) {
+						call.constructPublicUrl(account.pen_name, project.name, project.uuid)
+					} else {
+						""
+					}
+
+					val reviewModels = call.reviewCards(reviewRepository, session.userId, projectId)
+					model.putAll(
+						mapOf(
+							"reviews" to reviewModels,
+							"hasReviews" to reviewModels.isNotEmpty(),
+							"hasPenName" to hasPenName,
+							"isPublished" to isPublished,
+							"hasAnyAccess" to hasAnyAccess,
+							"publicUrl" to publicUrl,
+							"accessEntries" to accessEntries,
+							"hasAccessEntries" to accessEntries.isNotEmpty(),
+							"hasReaderStats" to (numericProjectId != null),
+							"totalReaders" to formatCount(locale, totalReaders),
+							"readerBars" to readerBars,
+							"hasReaderBars" to readerBars.any { (it["height"] as Int) > 0 },
+						)
+					)
+					model.putAll(
+						call.coAuthorPanelModel(projectMemberRepository, session.userId, projectId, projectNameForUrl, hasPenName)
+					)
+					if (numericProjectId != null) {
+						model.putAll(call.kudosPanelModel(storyKudosRepository, numericProjectId, isPublished, model))
+					}
+				} else {
+					model["sharedBy"] = localizedMsg(
+						locale,
+						"story_shared_by",
+						project.ownerName ?: localizedMsg(locale, "dashboard_shared_by_unknown"),
+					)
 				}
 
 				// An unchanged story is answered without reading or counting its scenes.
-				val etag = storyRendererService.prepareExport(session.userId, projectId)
+				val etag = storyRendererService.prepareExport(project.owner, projectId)
 					?.let { pageETag(model, it.version) }
 				if (etag != null && call.matchesETag(etag)) {
 					call.applyRevalidationHeaders(etag)
@@ -179,7 +198,7 @@ fun Route.storyPage(
 				}
 
 				val (status, content) = when (
-					val result = storyRendererService.storyOverview(session.userId, projectId)
+					val result = storyRendererService.storyOverview(project.owner, projectId)
 				) {
 					is StoryResult.Success -> {
 						val overview = result.value
@@ -326,7 +345,7 @@ fun Route.storyPage(
 				}
 
 				val hierarchyResult =
-					storyRendererService.getSceneHierarchy(session.userId, ProjectId(project.uuid))
+					storyRendererService.getSceneHierarchy(session.asOwner, ProjectId(project.uuid))
 				// A failed tree load must not render as an innocent empty tree: with the limit
 				// toggle on, an empty tree pins the submit button disabled with no explanation.
 				val scenes = when (hierarchyResult) {

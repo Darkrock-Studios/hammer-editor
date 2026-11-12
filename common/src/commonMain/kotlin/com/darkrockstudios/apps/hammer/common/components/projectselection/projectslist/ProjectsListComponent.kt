@@ -33,6 +33,7 @@ import com.darkrockstudios.apps.hammer.base.http.storyideas.StoryIdea
 import com.darkrockstudios.apps.hammer.common.data.protocolmismatch.ProtocolMismatchRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ClientAccountSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ProjectSyncOutcome
+import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ProjectSyncToggle
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.SyncAccountListener
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.SyncAccountUseCase
 import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.IdeaConflict
@@ -51,6 +52,7 @@ import com.darkrockstudios.apps.hammer.common.util.lifecycleCoroutineScope
 import com.darkrockstudios.apps.hammer.project_home_action_import_toast_failure
 import com.darkrockstudios.apps.hammer.project_home_action_import_toast_success
 import com.darkrockstudios.apps.hammer.projects_list_toast_delete_failed
+import com.darkrockstudios.apps.hammer.projects_list_toast_leave_failed
 import com.darkrockstudios.apps.hammer.projects_list_toast_sync_complete
 import com.darkrockstudios.apps.hammer.projects_list_toast_sync_failed
 import com.darkrockstudios.apps.hammer.sync_log_account_failed
@@ -91,6 +93,7 @@ class ProjectsListComponent(
 	private val projectsRepository: ProjectsRepository by inject()
 	private val projectsSynchronizer: ClientAccountSynchronizer by inject()
 	private val projectsService: ProjectsService by inject()
+	private val syncToggle: ProjectSyncToggle by inject()
 	private val syncAccountUseCase: SyncAccountUseCase by inject()
 	private val protocolMismatchRepository: ProtocolMismatchRepository by inject()
 	private val networkConnectivity: NetworkConnectivity by inject()
@@ -307,9 +310,9 @@ class ProjectsListComponent(
 			projectsService.createProject(projectName, group = parent)
 		}
 
-	override fun deleteProject(projectDef: ProjectDef) {
+	override fun deleteProject(projectDef: ProjectDef, alsoDeleteOnServer: Boolean) {
 		scope.launch(dispatcherIo) {
-			val deleted = projectsService.deleteProject(projectDef)
+			val deleted = projectsService.deleteProject(projectDef, alsoDeleteOnServer)
 
 			if (deleted) {
 				Napier.i("Project deleted: ${projectDef.name}")
@@ -322,11 +325,47 @@ class ProjectsListComponent(
 		}
 	}
 
+	override fun leaveProject(projectDef: ProjectDef) {
+		scope.launch(dispatcherIo) {
+			if (!projectsService.leaveProject(projectDef)) {
+				showToast(scope, Res.string.projects_list_toast_leave_failed)
+			}
+			loadProjectList()
+		}
+	}
+
 	override fun renameProject(projectDef: ProjectDef, newName: String) =
 		runTreeAction("rename project '${projectDef.name}'") { projectsService.renameProject(projectDef, newName) }
 
+	override fun setProjectSync(projectDef: ProjectDef, enabled: Boolean) {
+		if (enabled) {
+			changeProjectSync(projectDef, "on") { syncToggle.turnOn(it) }
+		} else {
+			modalRouter.showProjectSyncOff(projectDef)
+		}
+	}
+
+	override fun confirmProjectSyncOff(projectDef: ProjectDef) {
+		changeProjectSync(projectDef, "off") { syncToggle.turnOff(it) }
+	}
+
+	override fun dismissProjectSyncOff() = modalRouter.dismiss()
+
+	private fun changeProjectSync(
+		projectDef: ProjectDef,
+		description: String,
+		change: suspend (ProjectDef) -> ProjectSyncToggle.Result,
+	) {
+		scope.launch(dispatcherIo) {
+			if (change(projectDef) == ProjectSyncToggle.Result.Failed) {
+				Napier.w("Could not turn sync $description for '${projectDef.name}'")
+			}
+			loadProjectList()
+		}
+	}
+
 	override fun moveProject(projectDef: ProjectDef, target: GroupDef?) =
-		runTreeAction("move project '${projectDef.name}'") { projectsRepository.moveProject(projectDef, target) }
+		runTreeAction("move project '${projectDef.name}'") { projectsService.moveProject(projectDef, target) }
 
 	override fun createGroup(name: String, parent: GroupDef?, description: String?) =
 		runTreeAction("create group '$name'") {
@@ -834,7 +873,16 @@ class ProjectsListComponent(
 	}
 
 	override fun showProjectDelete(projectDef: ProjectDef) {
-		modalRouter.showProjectDelete(projectDef)
+		scope.launch(dispatcherIo) {
+			val owner = projectsService.leaveFrom(projectDef)
+			if (owner != null) {
+				withContext(mainDispatcher) { modalRouter.showProjectLeave(projectDef, owner.name) }
+				return@launch
+			}
+			val offerServerDelete = projectsService.offersServerDelete(projectDef)
+			val deletesOnServer = projectsService.deletesOnServer(projectDef)
+			withContext(mainDispatcher) { modalRouter.showProjectDelete(projectDef, offerServerDelete, deletesOnServer) }
+		}
 	}
 
 	override fun dismissProjectDelete() {

@@ -17,6 +17,9 @@ import com.darkrockstudios.apps.hammer.account.TermsOfServiceRepository
 import com.darkrockstudios.apps.hammer.account.TokenMaintenanceJob
 import com.darkrockstudios.apps.hammer.admin.AdminComponent
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
+import com.darkrockstudios.apps.hammer.services.PerUserRateLimiter
+import com.darkrockstudios.apps.hammer.services.languagetool.LanguageToolDefaults
+import com.darkrockstudios.apps.hammer.services.languagetool.LanguageToolProxy
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.admin.WhitelistExpiryJob
 import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
@@ -37,6 +40,8 @@ import com.darkrockstudios.apps.hammer.database.AccountRecoveryCodeDao
 import com.darkrockstudios.apps.hammer.database.MfaLoginChallengeDao
 import com.darkrockstudios.apps.hammer.database.ProjectAccessDao
 import com.darkrockstudios.apps.hammer.database.ProjectDao
+import com.darkrockstudios.apps.hammer.database.ProjectInviteDao
+import com.darkrockstudios.apps.hammer.database.ProjectMemberDao
 import com.darkrockstudios.apps.hammer.database.ProjectDataDao
 import com.darkrockstudios.apps.hammer.database.ProjectGroupDao
 import com.darkrockstudios.apps.hammer.database.ProjectsDao
@@ -86,6 +91,8 @@ import com.darkrockstudios.apps.hammer.monitoring.UserActivityCollector
 import com.darkrockstudios.apps.hammer.monitoring.UserActivityRepository
 import com.darkrockstudios.apps.hammer.project.ProjectEntityDatabaseDatasource
 import com.darkrockstudios.apps.hammer.project.ProjectEntityDatasource
+import com.darkrockstudios.apps.hammer.project.ProjectAccessResolver
+import com.darkrockstudios.apps.hammer.project.ProjectMemberRepository
 import com.darkrockstudios.apps.hammer.project.ProjectEntityRepository
 import com.darkrockstudios.apps.hammer.project.ProjectSyncKey
 import com.darkrockstudios.apps.hammer.project.ProjectSynchronizationSession
@@ -98,6 +105,7 @@ import com.darkrockstudios.apps.hammer.project.synchronizers.ServerImageSynchron
 import com.darkrockstudios.apps.hammer.project.synchronizers.ServerSceneDraftSynchronizer
 import com.darkrockstudios.apps.hammer.project.synchronizers.ServerSceneSynchronizer
 import com.darkrockstudios.apps.hammer.project.synchronizers.ServerTimelineSynchronizer
+import com.darkrockstudios.apps.hammer.projects.DeleteProjectUseCase
 import com.darkrockstudios.apps.hammer.projects.ProjectsDatabaseDatasource
 import com.darkrockstudios.apps.hammer.projects.ProjectsDatasource
 import com.darkrockstudios.apps.hammer.projects.ProbeProjectChangesUseCase
@@ -174,6 +182,8 @@ fun mainModule(
 	single<StoryEntityDao>()
 	single<ProjectsDao>()
 	single<ProjectDao>()
+	single<ProjectMemberDao>()
+	single<ProjectInviteDao>()
 	single<ProjectGroupDao>()
 	single<DeletedProjectDao>()
 	single<DeletedEntityDao>()
@@ -205,13 +215,18 @@ fun mainModule(
 	factory {
 		ProbeProjectChangesUseCase(get(), get(), get(), get(named(PROJECT_SYNC_MANAGER)))
 	}
+	factory<DeleteProjectUseCase>()
 	single<ProjectEntityRepository>()
+	single<ProjectAccessResolver>()
+	single { ProjectMemberRepository(get(), get(), get(), get(), get(named(PROJECT_SYNC_MANAGER))) }
 	single<ProjectAccessRepository>()
 	single<ServerWritingActivityRepository>()
 	single<ServerProjectDataRepository>()
 	single { ServerIdeasRepository(get(), get(), get(), get(), get(), get(), get()) }
 	single<WhiteListRepository>()
 	single<ConfigRepository>()
+	single { LanguageToolDefaults.fromEnvironment() }
+	single { LanguageToolProxy(get(), get(), PerUserRateLimiter(get())) }
 	single {
 		DataMigrator(get()).apply {
 			addMigration(

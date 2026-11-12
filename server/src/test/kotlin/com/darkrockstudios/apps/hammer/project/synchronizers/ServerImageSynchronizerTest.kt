@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.image.ImageFormat
 import com.darkrockstudios.apps.hammer.project.EntityTooLargeException
 import com.darkrockstudios.apps.hammer.project.EntityValidationException
+import com.darkrockstudios.apps.hammer.project.OwnerId
 import com.darkrockstudios.apps.hammer.utilities.SResult
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
 import io.mockk.coEvery
@@ -52,7 +53,7 @@ class ServerImageSynchronizerTest :
 		coEvery {
 			datasource.storeEntity(any(), any(), any(), any(), entityClazz.serializer())
 		} returns SResult.success(Unit)
-		return createSynchronizer().saveEntity(1L, mockk(), entity, null, false)
+		return createSynchronizer().saveEntity(OwnerId.unchecked(1L), mockk(), entity, null, false)
 	}
 
 	private fun assertNotStored() {

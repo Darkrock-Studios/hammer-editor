@@ -39,8 +39,19 @@ interface ProjectsList : HammerComponent, ComponentToaster {
 	fun updateImportOptions(options: ImportOptions)
 	fun cancelImportDialog()
 	suspend fun confirmImportDialog()
-	fun deleteProject(projectDef: ProjectDef)
+	/** [alsoDeleteOnServer] matters only for a project with sync off, see [ModalDestination.ProjectDelete]. */
+	fun deleteProject(projectDef: ProjectDef, alsoDeleteOnServer: Boolean = false)
+
+	/** Leaves a project shared with this account, keeping the local copy; see [ModalDestination.ProjectLeave]. */
+	fun leaveProject(projectDef: ProjectDef)
 	fun renameProject(projectDef: ProjectDef, newName: String)
+
+	/** For the account's own projects: on takes effect at once, off first asks, see [ModalDestination.ProjectSyncOff]. */
+	fun setProjectSync(projectDef: ProjectDef, enabled: Boolean)
+	fun confirmProjectSyncOff(projectDef: ProjectDef)
+
+	/** Closes [ModalDestination.ProjectSyncOff], after a confirm too. */
+	fun dismissProjectSyncOff()
 	fun syncProjects(callback: (Boolean) -> Unit)
 	fun showProjectsSync()
 	fun hideProjectsSync()
@@ -52,6 +63,7 @@ interface ProjectsList : HammerComponent, ComponentToaster {
 	fun onProjectNameUpdate(newProjectName: String)
 	fun showProjectRename(projectDef: ProjectDef)
 	fun dismissProjectRename()
+	/** Opens the delete dialog, or for a project shared with this account the leave dialog. */
 	fun showProjectDelete(projectDef: ProjectDef)
 	fun dismissProjectDelete()
 
@@ -125,7 +137,19 @@ interface ProjectsList : HammerComponent, ComponentToaster {
 		data object ProjectSync : ModalDestination()
 		data class ProjectRename(val projectDef: ProjectDef) : ModalDestination()
 		data class ProjectCreate(val parent: GroupDef? = null) : ModalDestination()
-		data class ProjectDelete(val projectDef: ProjectDef) : ModalDestination()
+		/**
+		 * [offerServerDelete] for a project with sync off here that the server still holds;
+		 * [deletesOnServer] for one whose delete goes to the server anyway.
+		 */
+		data class ProjectDelete(
+			val projectDef: ProjectDef,
+			val offerServerDelete: Boolean = false,
+			val deletesOnServer: Boolean = false,
+		) : ModalDestination()
+		/** Deleting a project shared with this account leaves it instead; closed by [dismissProjectDelete]. */
+		data class ProjectLeave(val projectDef: ProjectDef, val ownerName: String?) : ModalDestination()
+		/** States what turning sync off on this device means before it does. */
+		data class ProjectSyncOff(val projectDef: ProjectDef) : ModalDestination()
 		data class GroupCreate(val parent: GroupDef?) : ModalDestination()
 		data class GroupRename(val groupDef: GroupDef) : ModalDestination()
 		data class GroupDelete(val groupDef: GroupDef) : ModalDestination()

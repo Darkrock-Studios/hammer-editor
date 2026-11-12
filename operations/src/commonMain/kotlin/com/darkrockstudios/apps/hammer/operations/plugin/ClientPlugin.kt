@@ -14,6 +14,12 @@ interface ClientPlugin {
 	/** Shown to the user. */
 	val name: String? get() = null
 
+	/** The job it does, shared with plugins that do the same one, so a project can pick one of them. */
+	val kind: PluginKind? get() = null
+
+	/** BCP 47 tags of the project languages it works with; empty when it does not depend on the language. */
+	val languages: List<String> get() = emptyList()
+
 	/** Export formats this plugin adds. Each format id must start with `<id>.`, e.g. `smf.docx`. */
 	fun exporters(): List<StoryExporter> = emptyList()
 
@@ -30,6 +36,12 @@ interface ClientPlugin {
 	fun textDiagnostics(): List<TextDiagnosticsProvider> = emptyList()
 }
 
+/**
+ * A plugin's [ClientPlugin.kind]: [id] is agreed on by the plugins of the kind, and [label] names it,
+ * from a translation into the UI's language when [localized].
+ */
+data class PluginKind(val id: String, val label: String, val localized: Boolean = false)
+
 /** Finds issues in paragraphs of prose, for the editor to underline. */
 class TextDiagnosticsProvider(
 	val label: String,
@@ -40,7 +52,8 @@ class TextDiagnosticsProvider(
 	val wholeScene: Boolean = false,
 	/**
 	 * The issues in each of the request's paragraphs, in the same order. Runs off the main thread, and
-	 * returns nothing for paragraphs it cannot check rather than throwing.
+	 * throws when it could not check them, such as when a service it calls is unreachable, so they are
+	 * checked again later rather than taken as having no issues.
 	 */
 	val diagnose: suspend (TextDiagnosticsRequest) -> List<List<TextDiagnostic>>,
 )

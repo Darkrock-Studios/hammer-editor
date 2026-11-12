@@ -2,6 +2,8 @@ package com.darkrockstudios.apps.hammer.operations.plugin
 
 import com.darkrockstudios.apps.hammer.common.data.export.ExporterSource
 import com.darkrockstudios.apps.hammer.common.data.export.StoryExporter
+import com.darkrockstudios.apps.hammer.common.data.projectplugins.KindedPlugin
+import com.darkrockstudios.apps.hammer.common.data.projectplugins.PluginKindSource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectIdChangeListener
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityIdChangeListener
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.APP_SCOPE
@@ -15,8 +17,10 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.updateAndGet
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
 import org.koin.core.module.Module
@@ -30,7 +34,7 @@ import org.koin.dsl.module
  * formats, settings, CLI commands, and project actions are looked up live. Also provides the
  * operation registry, which plugins do not add to.
  */
-class PluginRegistry : ExporterSource, KoinComponent {
+class PluginRegistry : ExporterSource, PluginKindSource, KoinComponent {
 
 	val operationRegistry = OperationRegistry(coreOperations(), KoinProjectResolver(), syncGate = { get() })
 
@@ -41,6 +45,10 @@ class PluginRegistry : ExporterSource, KoinComponent {
 	val active: StateFlow<List<ClientPlugin>> = _active.asStateFlow()
 
 	val plugins: List<ClientPlugin> get() = active.value
+
+	override val kindedPlugins: Flow<List<KindedPlugin>> = active.map { plugins ->
+		plugins.mapNotNull { plugin -> plugin.kind?.let { KindedPlugin(plugin.id, it.id, plugin.languages) } }
+	}.distinctUntilChanged()
 
 	/** Every active plugin's CLI commands. */
 	val cliCommands: List<CliCommand> get() = plugins.flatMap { it.cliCommands() }
@@ -53,12 +61,18 @@ class PluginRegistry : ExporterSource, KoinComponent {
 	/** The active plugins a project with [disabledPlugins] turned off uses. CLI commands ignore this. */
 	fun forProject(disabledPlugins: Set<String>): List<ClientPlugin> = plugins.filterNot { it.id in disabledPlugins }
 
+	// Ids in the order first added, kept through removal, so a plugin turned off and on again keeps the
+	// place it loads in at startup; that order picks a project's default plugin of a kind.
+	private val addOrder = MutableStateFlow<List<String>>(emptyList())
+
 	/**
-	 * Adds [plugin], replacing one with its id. Throws [IllegalArgumentException], changing nothing,
+	 * Adds [plugin] in the order plugins were first added, replacing one with its id. Throws [IllegalArgumentException], changing nothing,
 	 * when it is invalid or clashes with another plugin; [validate] finds that out beforehand.
 	 */
 	fun add(plugin: ClientPlugin) {
-		_active.update { current -> validated(plugin, current) + plugin }
+		validated(plugin, plugins)
+		val order = addOrder.updateAndGet { if (plugin.id in it) it else it + plugin.id }
+		_active.update { current -> (current.filterNot { it.id == plugin.id } + plugin).sortedBy { order.indexOf(it.id) } }
 		settingsStores.update { it - plugin.id }
 		Napier.i { "Client plugin '${plugin.id}' added" }
 	}
@@ -117,7 +131,7 @@ class PluginRegistry : ExporterSource, KoinComponent {
 	fun koinModule(): Module {
 		val registry = this
 		return module {
-			single { registry } bind ExporterSource::class
+			single { registry } binds arrayOf(ExporterSource::class, PluginKindSource::class)
 			single { PluginSettingsDatasource(get(), get(), secrets = getOrNull()) }
 			single { ActionSessionStore(get()) } binds arrayOf(ProjectIdChangeListener::class, EntityIdChangeListener::class)
 			single { operationRegistry }

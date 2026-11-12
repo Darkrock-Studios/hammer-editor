@@ -32,6 +32,14 @@ data class ProjectInput(
 )
 
 @Serializable
+data class ProjectDeleteInput(
+	/** The project's name, or its server project id. */
+	val project: String,
+	/** Only matters for a project with sync off on this device, which otherwise keeps its server copy. */
+	val alsoDeleteOnServer: Boolean = false,
+)
+
+@Serializable
 data class ProjectItemInput(
 	val project: String,
 	val id: Int,

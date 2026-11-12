@@ -78,6 +78,19 @@
 	<string name="project_settings_dictionary_placeholder">Words the spell checker should accept in this project</string>
 	<string name="project_settings_plugins_section_title">Plugins</string>
 	<string name="project_settings_plugins_caption">A plugin turned off here shows no actions, checks, or export formats in this project. It stays on in your other projects, and on your other devices. Installing, removing, and setting up a plugin changes it for every project.</string>
+	<string name="project_settings_plugins_pick_none">None</string>
+	<string name="project_settings_sync_section_title">Sync</string>
+	<string name="project_settings_sync_own_on">Syncs on this device</string>
+	<string name="project_settings_sync_own_off">Kept on this device only</string>
+	<string name="project_settings_sync_own_hint">Change this from the project's menu on the project list.</string>
+	<string name="project_settings_sync_off_title">Stop syncing this project?</string>
+	<string name="project_settings_sync_off_unaffected">Only this device stops syncing it. Your other devices and the server keep their copies and go on syncing as before.</string>
+	<string name="project_settings_sync_off_delete">Deleting it on this device will not delete it on the server, and while the server still has it, the next sync brings it back here. When you delete it, you can choose to delete the server copy too.</string>
+	<string name="project_settings_sync_off_confirm">Stop syncing</string>
+	<string name="project_settings_sync_off_cancel">Keep syncing</string>
+	<string name="project_settings_sync_dialog_close">Close</string>
+	<string name="project_settings_sync_shared_syncing">It syncs while it is shared with you. To stop syncing it, leave it from the project list.</string>
+	<string name="project_settings_sync_shared_off">It is no longer shared with you, so this copy stays on this device and does not sync. It syncs again if you are invited back.</string>
 	<string name="project_settings_folio_caption">Project Settings · %1$s</string>
 	<string name="project_settings_folio_section_count">§§ %1$d</string>
 
@@ -224,7 +237,14 @@
 	<string name="sync_log_account_project_create_client">Created local project: %1$s</string>
 	<string name="sync_log_account_project_create_local_failure">Failed to create local project from server: %1$s</string>
 	<string name="sync_log_account_project_adopt_folder">Recovered local folder for server project: %1$s</string>
+	<string name="sync_log_account_project_create_shared_name_taken">%1$s is shared with you, but a project of that name is already on this device. Rename yours to receive it.</string>
 	<string name="sync_log_account_project_create_client_name_taken">Skipped server project %1$s: a local project of that name already syncs with a different server project</string>
+	<string name="sync_log_project_sync_disabled">Project %1$s does not sync on this device; turn sync on from its menu on the project list</string>
+	<string name="sync_log_account_project_create_client_name_excluded">Skipped server project %1$s: a local project of that name does not sync on this device</string>
+	<string name="sync_log_account_project_parked">%1$s is no longer shared with you. Your copy is kept on this device and no longer syncs. It syncs again if you are invited back.</string>
+	<string name="sync_log_account_project_resumed">%1$s is shared with you again and syncs once more. Every scene is checked against the server copy</string>
+	<string name="sync_log_account_project_delete_kept_excluded">Project %1$s was deleted on the server but does not sync on this device, so it is kept here. Turning sync on will upload it as a new project</string>
+	<string name="sync_log_account_project_delete_reminted">Project %1$s was deleted on the server, but sync was just turned on here, so it is kept and uploaded as a new project</string>
 
 	<string name="sync_log_account_project_move_server_success">Moved project on server: %1$s</string>
 	<string name="sync_log_account_project_move_server_failure">Failed to move project on server: %1$s</string>

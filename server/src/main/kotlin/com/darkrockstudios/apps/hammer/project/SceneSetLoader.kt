@@ -18,12 +18,12 @@ sealed class SceneSetResult {
  * [ApiProjectEntity.Type.SCENE] with leaf scenes, so a type check alone cannot tell them apart.
  */
 suspend fun ProjectEntityDatasource.loadSceneSet(
-	userId: Long,
+	owner: OwnerId,
 	projectDef: ProjectDefinition,
 	sceneIds: Collection<Int>,
 ): SceneSetResult {
 	val validIds = getEntityDefsByType(
-		userId = userId,
+		owner = owner,
 		projectDef = projectDef,
 		type = ApiProjectEntity.Type.SCENE,
 	).map { it.id }.toSet()
@@ -32,7 +32,7 @@ suspend fun ProjectEntityDatasource.loadSceneSet(
 	for (sceneId in sceneIds) {
 		if (sceneId !in validIds) return SceneSetResult.InvalidId(sceneId)
 		val result = loadEntity(
-			userId, projectDef, sceneId,
+			owner, projectDef, sceneId,
 			ApiProjectEntity.Type.SCENE,
 			ApiProjectEntity.SceneEntity.serializer(),
 		)

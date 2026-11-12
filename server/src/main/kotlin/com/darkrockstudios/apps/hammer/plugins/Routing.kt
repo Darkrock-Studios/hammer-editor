@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.frontend.frontend
 import com.darkrockstudios.apps.hammer.plugin.installPluginRoutes
 import com.darkrockstudios.apps.hammer.project.projectRoutes
 import com.darkrockstudios.apps.hammer.projects.projectsRoutes
+import com.darkrockstudios.apps.hammer.services.servicesRoutes
 import com.darkrockstudios.apps.hammer.storyideas.ideasRoutes
 import com.github.aymanizz.ktori18n.R
 import com.github.aymanizz.ktori18n.t
@@ -27,6 +28,7 @@ fun Application.configureRouting(serverConfig: ServerConfig = ServerConfig()) {
 			ideasRoutes()
 			projectRoutes(logger)
 			adminRoutes()
+			servicesRoutes(serverConfig.languageToolEnabled)
 			teapot()
 		}
 	}

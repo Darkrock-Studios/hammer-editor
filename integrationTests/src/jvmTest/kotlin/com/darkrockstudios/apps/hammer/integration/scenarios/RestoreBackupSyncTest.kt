@@ -9,6 +9,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupDe
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupService
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ProjectSyncToggle
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.InitialSyncOperationState
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournalDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.ProjectNeedsAccountSyncException
@@ -22,6 +23,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Timeout
 import org.koin.test.get
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
@@ -51,11 +53,18 @@ class RestoreBackupSyncTest : RoundTripTestBase() {
 		return conflicted
 	}
 
-	/** Loses the project's `project.toml` and heals the folder at startup, under an id the server never saw. */
+	/**
+	 * Loses the project's `project.toml` and heals the folder at startup, under an id the server never
+	 * saw. A rebuilt project comes up with sync off, so the user turns it back on.
+	 */
 	private suspend fun healUnderFreshId(client: HeadlessClient) {
 		client.close()
 		get<FileSystem>().delete(client.projectPath / ProjectMetadata.FILENAME)
-		get<ProjectsRepository>().healUnmarkedProjectDirectories()
+		val repository = get<ProjectsRepository>()
+		repository.healUnmarkedProjectDirectories()
+		val healed = requireNotNull(repository.getProjects().find { it.path == client.projectDef.path })
+		assertFalse(repository.isSyncEnabled(healed), "a healed folder should come up with sync off")
+		assertEquals(ProjectSyncToggle.Result.Done, get<ProjectSyncToggle>().turnOn(healed))
 	}
 
 	/** Account sync adopts the same-named server project's id for the closed [client], which then reopens. */

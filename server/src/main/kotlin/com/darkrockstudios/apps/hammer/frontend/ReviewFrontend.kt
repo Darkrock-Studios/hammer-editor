@@ -16,6 +16,7 @@ import com.darkrockstudios.apps.hammer.frontend.utils.requireUser
 import com.darkrockstudios.apps.hammer.frontend.utils.respondHtmlWithToast
 import com.darkrockstudios.apps.hammer.frontend.utils.respondTemplateWithToast
 import com.darkrockstudios.apps.hammer.frontend.utils.sceneTreeModel
+import com.darkrockstudios.apps.hammer.project.UncheckedOwner
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.review.ReviewInviteMailer
 import com.darkrockstudios.apps.hammer.review.ReviewParagraphs
@@ -55,6 +56,7 @@ import kotlin.time.Duration.Companion.days
 import kotlin.time.Instant
 import kotlin.time.toJavaInstant
 
+@OptIn(UncheckedOwner::class)
 fun Route.reviewFrontend(
 	reviewRepository: ReviewRepository,
 	projectsRepository: ProjectsRepository,
@@ -73,7 +75,7 @@ fun Route.reviewFrontend(
 				val project = call.resolveProject(projectsRepository, session.userId) ?: return@get
 
 				val hierarchyResult =
-					storyRendererService.getSceneHierarchy(session.userId, ProjectId(project.uuid))
+					storyRendererService.getSceneHierarchy(session.asOwner, ProjectId(project.uuid))
 				val scenes = when (hierarchyResult) {
 					is StoryResult.Success -> hierarchyResult.value.scenes
 					else -> emptyList()

@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.base.http.ClientEntityState
 import com.darkrockstudios.apps.hammer.base.http.EntityHash
 import com.darkrockstudios.apps.hammer.project.EntityDefinition
 import com.darkrockstudios.apps.hammer.project.EntityNotFound
+import com.darkrockstudios.apps.hammer.project.OwnerId
 import com.darkrockstudios.apps.hammer.utilities.SResult
 import io.mockk.coEvery
 import io.mockk.mockk
@@ -92,11 +93,11 @@ class ServerSceneSynchronizerTest :
 		val entities = entityDefs(entities1.size).filter { it.type == entityType }
 
 		coEvery {
-			datasource.getEntityDefsByType(userId, any(), any())
+			datasource.getEntityDefsByType(OwnerId.unchecked(userId), any(), any())
 		} answers { entities.filter { it.type == entityType } }
 
 		val synchronizer = createSynchronizer()
-		val result = synchronizer.getUpdateSequence(userId, mockk(), null)
+		val result = synchronizer.getUpdateSequence(OwnerId.unchecked(userId), mockk(), null)
 
 		val entityIds = entities.map { it.id }
 		assertEquals(entityIds, result)
@@ -111,13 +112,13 @@ class ServerSceneSynchronizerTest :
 
 		val entityTypeSlot = slot<ApiProjectEntity.Type>()
 		coEvery {
-			datasource.getEntityDefsByType(userId, any(), capture(entityTypeSlot))
+			datasource.getEntityDefsByType(OwnerId.unchecked(userId), any(), capture(entityTypeSlot))
 		} answers { entityDefList.filter { it.type == entityTypeSlot.captured } }
 
 		val entityIdSlot = slot<Int>()
 		coEvery {
 			datasource.loadEntity(
-				userId,
+				OwnerId.unchecked(userId),
 				any(),
 				capture(entityIdSlot),
 				any(),
@@ -130,7 +131,7 @@ class ServerSceneSynchronizerTest :
 		val entityHashIdSlot = slot<Int>()
 		coEvery {
 			datasource.loadEntityHash(
-				userId,
+				OwnerId.unchecked(userId),
 				any(),
 				capture(entityHashIdSlot),
 			)
@@ -145,7 +146,7 @@ class ServerSceneSynchronizerTest :
 		)
 
 		val synchronizer = createSynchronizer()
-		val result = synchronizer.getUpdateSequence(userId, mockk(), clientState)
+		val result = synchronizer.getUpdateSequence(OwnerId.unchecked(userId), mockk(), clientState)
 
 		assertEquals(emptyList(), result)
 	}
@@ -158,13 +159,13 @@ class ServerSceneSynchronizerTest :
 		val entityDefList = entityDefs(entities2.size)
 
 		coEvery {
-			datasource.getEntityDefsByType(userId, any(), any())
+			datasource.getEntityDefsByType(OwnerId.unchecked(userId), any(), any())
 		} returns entityDefList.filter { it.type == entityType }
 
 		val entityIdSlot = slot<Int>()
 		coEvery {
 			datasource.loadEntity(
-				userId,
+				OwnerId.unchecked(userId),
 				any(),
 				capture(entityIdSlot),
 				any(),
@@ -179,7 +180,7 @@ class ServerSceneSynchronizerTest :
 		)
 
 		val synchronizer = createSynchronizer()
-		val result = synchronizer.getUpdateSequence(userId, mockk(), clientState)
+		val result = synchronizer.getUpdateSequence(OwnerId.unchecked(userId), mockk(), clientState)
 
 		assertEquals(listOf(3, 1, 2, 4), result)
 	}
@@ -192,13 +193,13 @@ class ServerSceneSynchronizerTest :
 		val entityDefList = entityDefs(entities1.size)
 
 		coEvery {
-			datasource.getEntityDefs(userId, any(), any())
+			datasource.getEntityDefs(OwnerId.unchecked(userId), any(), any())
 		} returns entityDefList
 
 		val entityIdSlot = slot<Int>()
 		coEvery {
 			datasource.loadEntity(
-				userId,
+				OwnerId.unchecked(userId),
 				any(),
 				capture(entityIdSlot),
 				any(),
@@ -209,7 +210,7 @@ class ServerSceneSynchronizerTest :
 		}
 
 		coEvery {
-			datasource.getEntityDefsByType(userId, any(), any())
+			datasource.getEntityDefsByType(OwnerId.unchecked(userId), any(), any())
 		} returns entityDefList.filter { it.type == entityType }
 
 		val entityHashIdSlot = slot<Int>()
@@ -226,7 +227,7 @@ class ServerSceneSynchronizerTest :
 		)
 
 		val synchronizer = createSynchronizer()
-		val result = synchronizer.getUpdateSequence(userId, mockk(), clientState)
+		val result = synchronizer.getUpdateSequence(OwnerId.unchecked(userId), mockk(), clientState)
 
 		assertEquals(entities1.map { it.id }, result)
 	}

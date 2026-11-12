@@ -342,7 +342,7 @@ its tool list from.
 | --- | --- | --- |
 | `stats.project` | Read | What the Home screen shows: word and scene totals, words by chapter, longest, shortest, and median scene, note, timeline, and encyclopedia counts, top entry appearances, word-count goal. Optional `recalculate` |
 | `stats.activity` | Read | Daily word totals over a date range, plus lifetime words per device |
-| `stats.sessions` | Read | Raw writing sessions over a date range, per device |
+| `stats.sessions` | Read | Raw writing sessions over a date range, per device, with the author |
 
 These read through `StatisticsService` and `WritingActivityRepository`, the
 same sources as the Home screen. `stats.project` serves the cached statistics
@@ -741,6 +741,7 @@ a button that adds a `hammer` command to PATH, or updates or removes it:
 | Flatpak | A script in `~/.local/bin` running `flatpak run studio.darkrock.hammer`; `--filesystem=home` lets the app write it |
 | AppImage | A script in `~/.local/bin` running the `.AppImage` file (`$APPIMAGE`), since the mounted image moves each run |
 | deb, rpm | A script in `~/.local/bin` running `/opt/hammer/bin/hammer`. jpackage's post-install scripts are not reachable through Compose Desktop |
+| tarball | A script in `~/.local/bin` running `hammer/bin/hammer` wherever the archive was unpacked. Without a desktop, add that `bin` directory to PATH by hand |
 | Mac DMG, pkg | A script in `/usr/local/bin`, written through macOS's own administrator prompt when that directory is not writable |
 | Mac App Store | The sandbox keeps the app from writing it, so Settings shows a command to paste into Terminal |
 | Windows MSI, EXE | `hammer.cmd` in `%LOCALAPPDATA%\Hammer\bin` running `hammer-cli.exe`, with that folder added to the user's own PATH |
@@ -949,6 +950,13 @@ hammer sync run
 hammer sync run --project "My Novel" --on-conflict server
 ```
 
+On a Raspberry Pi (Zero 2 W or later, 64-bit Raspberry Pi OS 12 or later) or
+another aarch64 Linux machine with glibc 2.34 or later, install
+`hammer-arm64.deb`, or unpack `hammer-arm64.tar.gz` and run
+`hammer/bin/hammer`; both bundle their own arm64 JRE. 32-bit ARM is not built.
+On an x64 server, `hammer-x64.tar.gz` gives the CLI without installing the
+desktop packages' X11 and GL dependencies.
+
 - **Orchestration.** `sync.run` is a CLI listener on `SyncAccountUseCase`, the
   data layer's sync-all code, which reports through a `SyncAccountListener`,
   takes a project filter, and returns a per-project `ProjectSyncOutcome`.
@@ -1086,6 +1094,9 @@ two kinds, each translated by the plugin's author:
 
   [exporters."names.txt"]
   label = "Noms (TXT)"
+
+  [kind]
+  label = "Générateur de noms"
   ```
 
   Hammer reads them when it loads the plugin, and for the install dialog, and
@@ -1209,12 +1220,13 @@ reading level report needs 192 MiB on a 100,000-word novel and 384 MiB on a
 300,000-word one, and hammer-plugin-development's Kotlin style report on the
 longer needs 768 MiB with a 22-word vocabulary and over 1 GiB with an
 8,000-word one. chasm's `TRADITIONAL` collector, which runs during a call,
-corrupts live Kotlin/Wasm objects in chasm 2.0.0; it is not used on 2.1.0, the
+corrupts live Kotlin/Wasm objects in chasm 2.0.0; it is not used on 2.4.0, the
 version Hammer pins. The desktop JVM's default heap is a quarter of the machine's
 memory, so an 8 GB machine allows about 1 GiB; Android's app heap, 192 to 512 MB,
 allows 96 to 256 MiB. The heap never gives pages back, so a plugin left holding more than 64 MiB
-after a call is dropped and loaded afresh when next used. The cap needs the JVM:
-on iOS the heap is uncapped.
+after a call is dropped and loaded afresh when next used. On iOS chasm keeps the
+heap and caps it at 1 GiB itself, but the host cannot measure it, so a plugin is
+never dropped for what it holds there.
 
 Rust has a kit of its own in `hammer-plugin-sdk` (`rust/hammer`): Hammer's
 imports, operations, and the cache, the `diagnose` request and reply types,
@@ -1316,9 +1328,14 @@ api = 1                       # host API version the plugin was built against
 description = "Counts how often each word appears, as a spreadsheet."  # optional, up to 1,000 characters; links are clickable
 languages = ["en"]            # optional: the project languages it works with
 
+[kind]                        # optional: a project runs one plugin of each kind; see below
+id = "wordstats"              # shared by the plugins that do the same job
+label = "Word statistics"
+
 [permissions]
 operations = ["project.info", "scene.tree", "scene.read"]
 http = ["api.example.com"]    # optional: hosts it may reach, over https only; see HTTP
+hammerServer = ["languagetool"]  # optional: services on the user's sync server; see Hammer server
 
 [permissions.userHosts]       # optional: an address the user enters; see HTTP
 setting = "server"            # a string or secret setting, with no default
@@ -1356,11 +1373,23 @@ memory = 64                   # MiB of linear memory, 1 to 1024; 64 by default
 
 The install dialog, and the Info button beside each installed plugin, show its
 description, version, package size, `languages`, the languages its
-`locales/` translate it into, what it may use, and what it adds. `languages`
-is only shown: a project in another language still gets the plugin's checks
-and actions, which decide for themselves what to do with it. A description's links, bare
+`locales/` translate it into, what it may use, and what it adds. Apart from
+choosing among plugins of a kind, `languages` is only shown: a project in another
+language still gets the plugin's checks and actions, which decide for themselves
+what to do with it. A description's links, bare
 `https://` URLs or `[label](https://...)`, can be clicked; nothing else in it
 is formatted.
+
+Plugins that do the same job, such as grammar checkers, declare the same
+`[kind]` `id` (lowercase and directory-safe) with a non-blank `label`, and a
+project runs at most one plugin of each kind. Of the plugins of a kind that are
+on for a project, Hammer runs the first installed that works in the project's
+language, else the first installed, and turns the rest off for that project. A
+plugin works in a language when it has no `languages`, the project has none, or
+one of its `languages` has the same primary subtag (`en` serves `en-GB`). When
+two or more installed plugins share a kind, the project's settings show a
+dropdown for it, where the user picks one or none. The dropdown shows the first
+translated label among the kind's plugins by plugin id, else the first label.
 
 A module may be as large as its memory limit plus 32 MiB, since a
 pre-initialized module carries its memory's data. The install dialog says when
@@ -1496,6 +1525,9 @@ The Hammer-specific parts:
 - `extism:host/user` `hammer_cache_get(key) -> value` and
   `hammer_cache_set(key, value)`: the plugin's [cache](#cache). A get returns
   0 for a key with no value; a set with 0, or an empty value, removes the key.
+- `extism:host/user` `hammer_server_request(request, body) -> reply`: a
+  request to a service on the user's sync server; see
+  [Hammer server](#hammer-server).
 - `extism:host/user` `hammer_resource(name) -> bytes`: a file from the
   package's [resources](#resources), by its path under `resources/`, or 0
   when there is none by that name.
@@ -1924,11 +1956,13 @@ cannot load, the command exits with an error rather than reading input.
 - **Stopping a runaway module.** Each module runs in a chasm store that meters
   fuel: a check at every function entry and loop iteration takes a unit, and
   the call traps when none are left. The host sets the budget before each call;
-  instantiation and the module's initializer get one of their own. chasm does
-  not bound memory, so the host rewrites the binary before loading it
-  (`ModuleLimiter`) to cap linear memory (the manifest's `limits.memory`,
-  64 MiB by default) and tables (100,000 entries), and rejects shared or 64-bit
-  memories. A module cannot call itself again from inside a call. The store is
+  instantiation and the module's initializer get one of their own. The store
+  also caps each linear memory (the manifest's `limits.memory`, 64 MiB by
+  default) and table (100,000 entries), whatever maximum the module declares: a
+  module whose memory or table starts larger fails to load, and growing one past
+  the cap answers -1. chasm rejects shared or 64-bit memories. A module cannot call itself again from inside a call. On Android
+  chasm caps each call's stack at 16 MiB, past which the call fails with "ran
+  out of stack". The store is
   interruptible too: cancelling the coroutine waiting on a call, such as a
   stopped action or a text check the editor no longer wants, interrupts the
   module at its next function entry or loop iteration, or once the host
@@ -1950,18 +1984,17 @@ cannot load, the command exits with an error rather than reading input.
   that call or load as a plugin failure ("ran out of memory"), never the app. The
   instance is dropped, freeing what it held, and the next call loads the module
   afresh. Only the plugin path catches it; anywhere else it still ends the app.
-- **Loading a large module.** Each load reads the module from the package.
-  `ModuleLimiter` writes its rewrite into one array sized exactly, copying the
-  sections it leaves alone straight from the original, which is let go once
-  that is done; chasm's decoded module and the module's linear memory remain.
+- **Loading a large module.** Each load reads the module from the package and
+  hands the bytes to chasm, which keeps them until the module has started; then
+  they are let go, and the decoded module and the module's linear memory remain.
   So a pre-initialized module needs a JVM heap several times its size while it
-  loads: the 104 MB `harper-grammar` module loads in a 352 MB heap but not in
-  320, and holds about 90 MB once loaded. Short of that, the load fails as out
+  loads: the 104 MB `harper-grammar` module loads in a 400 MB heap but not in
+  392, and holds about 90 MB once loaded. Short of that, the load fails as out
   of memory, and a text check it provides leaves the text unmarked. It is
   untried on Android's app heap.
 - **iOS.** Kotlin/Native has no heap limit to read, so the kernel's cap is a fixed
-  256 MiB there, and chasm cannot be given a capped guest heap on native, so a
-  Kotlin/Wasm plugin's is uncapped. Most failed allocations abort the process
+  256 MiB there, and chasm caps a Kotlin/Wasm plugin's guest heap at a fixed
+  1 GiB, which the host cannot measure. Most failed allocations abort the process
   rather than throw, so running out of memory there is contained only in the
   few cases Kotlin/Native throws `OutOfMemoryError`. The variable and log caps
   apply on every platform.
@@ -1997,6 +2030,34 @@ names:
   Android, and an ephemeral `NSURLSession` on iOS (untested).
 - **Shown at install.** The install prompt and details list the declared hosts,
   and the entered host's setting, as sending what the user writes.
+
+### Hammer server
+
+A plugin can reach a service the user's own sync server offers, such as
+LanguageTool, as the signed-in user, without ever holding their credentials:
+
+- **Declared services.** `permissions.hammerServer` lists service names. The
+  install prompt and details list them as sending what the user writes to their
+  sync server.
+- **The call.** `hammer_server_request` takes JSON `{"service", "method",
+  "path", "headers"}` and the body (or 0). `method` is `GET` (the default) or
+  `POST`; `path` is under the service, such as `/v2/check`, made of plain
+  segments, with no `.` or `..` and no query. Only `Content-Type` and `Accept`
+  headers are sent.
+- **The host.** `ServicesApi` (`:common`) sends it to
+  `/api/services/{userId}/<service><path>` on the workspace's sync server
+  through the sync client, which attaches the bearer token, refreshes it, and
+  adds the protocol header. 30 seconds in all, and never retried. A 401 left
+  after the refresh is `not_signed_in`.
+- **The reply.** JSON `{"status", "body"}`, the body as text (a reply that
+  is not UTF-8 is an `invalid` error); or `{"error",
+  "message"}` with `error` one of `not_signed_in`, `unavailable` (the server
+  doesn't offer the service, or predates services), `network`,
+  `not_permitted` (a service the manifest doesn't list), or `invalid` (a
+  refused method or path, or a malformed request). Errors come back in the
+  reply rather than trapping, so the plugin can say what to do.
+- **The server.** Services are off unless the server's config turns them on;
+  see `languageToolEnabled` in [HOW-TO-RUN-A-SERVER.md](HOW-TO-RUN-A-SERVER.md).
 
 ### Secrets
 

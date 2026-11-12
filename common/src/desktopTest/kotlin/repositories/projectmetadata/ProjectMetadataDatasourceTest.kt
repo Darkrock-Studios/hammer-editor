@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test
 import utils.BaseTest
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlin.time.Instant
@@ -109,9 +110,11 @@ class ProjectMetadataDatasourceTest : BaseTest() {
 	}
 
 	@Test
-	fun `Corrupt project metadata recovers instead of throwing`() {
-		createProject(fileSystem, PROJECT_1_NAME)
-		val path = projectMetadataDatasource.getMetadataPath(getProject1Def().path).toOkioPath()
+	fun `Corrupt project metadata recovers with a fresh id and sync off`() {
+		createProject(fileSystem, PROJECT_2_NAME)
+		val def = getProjectDef(PROJECT_2_NAME)
+		val originalId = projectMetadataDatasource.loadProjectId(def.path)
+		val path = projectMetadataDatasource.getMetadataPath(def.path).toOkioPath()
 		// dataVersion is an Int; a non-numeric value throws NumberFormatException on decode,
 		// which is not a SerializationException. Loading must recover, not crash the project load.
 		fileSystem.write(path) {
@@ -124,12 +127,15 @@ class ProjectMetadataDatasourceTest : BaseTest() {
 			)
 		}
 
-		val metadata = projectMetadataDatasource.loadMetadata(getProject1Def())
+		val metadata = projectMetadataDatasource.loadMetadata(def)
 
 		// Recreated fresh (dataVersion 0 so migrators re-run) rather than throwing.
 		assertEquals(0, metadata.info.dataVersion)
 		assertNotNull(metadata.info.projectId)
-		assertEquals(metadata.info.projectId, projectMetadataDatasource.loadProjectId(getProject1Def().path))
+		assertNotEquals(originalId, metadata.info.projectId)
+		assertFalse(metadata.info.syncEnabled)
+		assertEquals(metadata, projectMetadataDatasource.readMetadata(def))
+		assertEquals(metadata.info.projectId, projectMetadataDatasource.loadProjectId(def.path))
 	}
 
 	@Test
@@ -142,6 +148,7 @@ class ProjectMetadataDatasourceTest : BaseTest() {
 
 		assertTrue(fileSystem.exists(path))
 		assertEquals(projectId, projectMetadataDatasource.loadProjectId(getProject1Def().path))
+		assertFalse(projectMetadataDatasource.loadMetadata(getProject1Def()).info.syncEnabled)
 	}
 
 	@Test
@@ -212,6 +219,7 @@ class ProjectMetadataDatasourceTest : BaseTest() {
 		assertTrue(text.startsWith(ProjectMetadataDatasource.FILE_HEADER + "\n"))
 		assertEquals(projectId, created.info.projectId)
 		assertEquals(0, created.info.dataVersion)
+		assertTrue(created.info.syncEnabled)
 		assertEquals(created, projectMetadataDatasource.loadMetadata(getProject1Def()))
 	}
 

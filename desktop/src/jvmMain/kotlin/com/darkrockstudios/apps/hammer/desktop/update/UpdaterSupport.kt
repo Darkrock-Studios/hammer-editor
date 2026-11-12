@@ -17,7 +17,8 @@ fun channelMayUpdate(channel: DistributionChannel): Boolean =
  * The Nucleus executable type whose release asset this install updates from, or null when the
  * format has no self-update path at all. The EXE is a wrapped MSI, so the MSI upgrades either.
  * The DMG and PKG both leave a bundle that only a signed, notarized zip could swap, and the
- * release has no such zip yet, so they are told about releases without downloading them.
+ * release has no such zip yet, so they are told about releases without downloading them. A
+ * tarball was unpacked wherever the user chose, so it is told too.
  */
 fun nucleusExecutableType(format: PackageFormat): String? = when (format) {
 	PackageFormat.MSI, PackageFormat.EXE -> "msi"
@@ -25,6 +26,7 @@ fun nucleusExecutableType(format: PackageFormat): String? = when (format) {
 	PackageFormat.RPM -> "rpm"
 	PackageFormat.APPIMAGE -> "appimage"
 	PackageFormat.DMG, PackageFormat.PKG -> "dmg"
+	PackageFormat.TARBALL -> "tar.gz"
 	PackageFormat.NONE, PackageFormat.MSIX, PackageFormat.SNAP, PackageFormat.FLATPAK -> null
 }
 
@@ -32,7 +34,7 @@ fun nucleusExecutableType(format: PackageFormat): String? = when (format) {
 fun canInstallInPlace(format: PackageFormat): Boolean = when (format) {
 	PackageFormat.MSI, PackageFormat.EXE, PackageFormat.DEB, PackageFormat.RPM, PackageFormat.APPIMAGE -> true
 	PackageFormat.NONE, PackageFormat.DMG, PackageFormat.PKG, PackageFormat.MSIX,
-	PackageFormat.SNAP, PackageFormat.FLATPAK -> false
+	PackageFormat.SNAP, PackageFormat.FLATPAK, PackageFormat.TARBALL -> false
 }
 
 /**

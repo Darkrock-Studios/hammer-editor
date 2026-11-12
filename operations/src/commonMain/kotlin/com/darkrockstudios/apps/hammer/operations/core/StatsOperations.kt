@@ -1,10 +1,14 @@
 package com.darkrockstudios.apps.hammer.operations.core
 
-import com.darkrockstudios.apps.hammer.base.http.writingactivity.DeviceLog
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.ProjectStatisticsUseCase
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
+import com.darkrockstudios.apps.hammer.common.data.writingactivity.AttributedSlot
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingActivityRepository
+import com.darkrockstudios.apps.hammer.common.data.writingactivity.activityOwner
+import com.darkrockstudios.apps.hammer.common.data.writingactivity.attributeSlots
 import com.darkrockstudios.apps.hammer.operations.Access
 import com.darkrockstudios.apps.hammer.operations.OperationContext
 import com.darkrockstudios.apps.hammer.operations.OperationScope
@@ -59,7 +63,7 @@ internal fun statsOperations(): List<Operation<*, *>> = listOf(
 		access = Access.Read,
 		scope = OperationScope.Content,
 	) { input ->
-		val logs = loadLogs(input)
+		val logs = loadLogs(input).map { it.log }
 		val timeZone = TimeZone.currentSystemDefault()
 		val days = logs.flatMap { it.sessions }
 			.filter { it.wordsWritten > 0 }
@@ -77,24 +81,28 @@ internal fun statsOperations(): List<Operation<*, *>> = listOf(
 	},
 	operation<DateRangeInput, Sessions>(
 		name = "stats.sessions",
-		description = "Writing sessions over a date range, from every device.",
+		description = "Writing sessions over a date range, from every device, with the author's pen name.",
 		access = Access.Read,
 		scope = OperationScope.Content,
 	) { input ->
 		val timeZone = TimeZone.currentSystemDefault()
-		val sessions = loadLogs(input).flatMap { log ->
-			log.sessions
+		val sessions = loadLogs(input).flatMap { slot ->
+			slot.log.sessions
 				.filter { input.contains(it.startedAt.toLocalDateTime(timeZone).date) }
-				.map { Session(log.deviceLabel, it.startedAt, it.endedAt, it.wordsWritten) }
+				.map { Session(slot.log.deviceLabel, it.startedAt, it.endedAt, it.wordsWritten, slot.authorName) }
 		}
 		Sessions(sessions.sortedBy { it.startedAt })
 	},
 )
 
-private suspend fun OperationContext.loadLogs(input: DateRangeInput): Collection<DeviceLog> {
+private suspend fun OperationContext.loadLogs(input: DateRangeInput): List<AttributedSlot> {
 	if (input.from != null && input.to != null && input.from > input.to) invalidInput("from is after to")
 	return projects.withProject(input.project) { project ->
-		project.scope.get<WritingActivityRepository>().loadAllLogs().values
+		val owner = activityOwner(
+			project.scope.get<ProjectsRepository>().getOwner(project.def),
+			project.scope.get<GlobalSettingsStore>().serverSettings,
+		)
+		attributeSlots(project.scope.get<WritingActivityRepository>().loadAllLogs(), owner)
 	}
 }
 
@@ -168,4 +176,11 @@ data class DeviceWords(val device: String, val words: Int)
 data class Sessions(val sessions: List<Session>)
 
 @Serializable
-data class Session(val device: String, val startedAt: Instant, val endedAt: Instant, val words: Int)
+data class Session(
+	val device: String,
+	val startedAt: Instant,
+	val endedAt: Instant,
+	val words: Int,
+	/** Pen name of whoever wrote it; null when unknown. */
+	val author: String? = null,
+)

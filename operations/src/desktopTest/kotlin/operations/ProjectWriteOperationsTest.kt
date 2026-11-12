@@ -1,7 +1,12 @@
 package operations
 
+import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.AccountSyncDatasource
+import com.darkrockstudios.apps.hammer.operations.core.ProjectDeleteInput
 import com.darkrockstudios.apps.hammer.common.data.closeProjectScope
 import com.darkrockstudios.apps.hammer.common.data.openProjectScope
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectOwner
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.operations.NoInput
 import com.darkrockstudios.apps.hammer.operations.OperationException
@@ -44,8 +49,53 @@ class ProjectWriteOperationsTest : KoinOperationsTest() {
 		run<ProjectRenameInput, ProjectName>("project.rename", ProjectRenameInput("Storm Novel", "Calm Novel"))
 		assertEquals(listOf("Calm Novel"), projectNames())
 
-		run<ProjectInput, ProjectName>("project.delete", ProjectInput("Calm Novel"))
+		run<ProjectDeleteInput, ProjectName>("project.delete", ProjectDeleteInput("Calm Novel"))
 		assertEquals(emptyList(), projectNames())
+	}
+
+	@Test
+	fun `a project with sync off keeps its server copy unless asked`() = onTestThread {
+		run<ProjectCreateInput, ProjectName>("project.create", ProjectCreateInput("Kept"))
+		run<ProjectCreateInput, ProjectName>("project.create", ProjectCreateInput("Gone"))
+		val repository = get<ProjectsRepository>()
+		val kept = repository.findProject("Kept")!!
+		val gone = repository.findProject("Gone")!!
+		repository.setSyncEnabled(kept, false)
+		repository.setSyncEnabled(gone, false)
+
+		run<ProjectDeleteInput, ProjectName>("project.delete", ProjectDeleteInput("Kept"))
+		run<ProjectDeleteInput, ProjectName>("project.delete", ProjectDeleteInput("Gone", alsoDeleteOnServer = true))
+
+		assertEquals(setOf(gone.id), get<AccountSyncDatasource>().load().projectsToDelete)
+	}
+
+	@Test
+	fun `a shared project is neither renamed nor deleted`() = onTestThread {
+		get<GlobalSettingsStore>().updateServerSettings(
+			ServerSettings(url = "example.test", email = "a@example.test", userId = 1, bearerToken = "t", refreshToken = "r")
+		)
+		run<ProjectCreateInput, ProjectName>("project.create", ProjectCreateInput("Shared"))
+		val repository = get<ProjectsRepository>()
+		repository.setOwner(repository.findProject("Shared")!!, ProjectOwner(7L, "Alice"))
+
+		invalid { run<ProjectRenameInput, ProjectName>("project.rename", ProjectRenameInput("Shared", "Mine")) }
+		invalid { run<ProjectDeleteInput, ProjectName>("project.delete", ProjectDeleteInput("Shared")) }
+		assertEquals(listOf("Shared"), projectNames())
+	}
+
+	@Test
+	fun `a parked shared project is renamed, and deleted here only`() = onTestThread {
+		run<ProjectCreateInput, ProjectName>("project.create", ProjectCreateInput("Shared"))
+		val repository = get<ProjectsRepository>()
+		val def = repository.findProject("Shared")!!
+		repository.setOwner(def, ProjectOwner(7L, "Alice"))
+		repository.setSyncEnabled(def, false)
+
+		run<ProjectRenameInput, ProjectName>("project.rename", ProjectRenameInput("Shared", "Mine"))
+		run<ProjectDeleteInput, ProjectName>("project.delete", ProjectDeleteInput("Mine", alsoDeleteOnServer = true))
+
+		assertEquals(emptyList(), projectNames())
+		assertEquals(emptySet(), get<AccountSyncDatasource>().load().projectsToDelete)
 	}
 
 	@Test
@@ -55,7 +105,7 @@ class ProjectWriteOperationsTest : KoinOperationsTest() {
 		val scope = openProjectScope(def)
 
 		invalid { run<ProjectRenameInput, ProjectName>("project.rename", ProjectRenameInput("Storm Novel", "Calm Novel")) }
-		invalid { run<ProjectInput, ProjectName>("project.delete", ProjectInput("Storm Novel")) }
+		invalid { run<ProjectDeleteInput, ProjectName>("project.delete", ProjectDeleteInput("Storm Novel")) }
 
 		closeProjectScope(scope, def)
 		assertEquals(listOf("Storm Novel"), projectNames())

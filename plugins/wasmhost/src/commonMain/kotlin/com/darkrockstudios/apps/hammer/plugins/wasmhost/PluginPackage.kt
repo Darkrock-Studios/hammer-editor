@@ -204,6 +204,9 @@ class PluginPackage(
 			manifest.permissions.http.firstOrNull { !HOST_NAME.matches(it) }?.let {
 				throw PluginPackageException("'$it' in permissions.http is not a host name")
 			}
+			manifest.permissions.hammerServer.firstOrNull { !PluginRegistry.isValidId(it) }?.let {
+				throw PluginPackageException("'$it' in permissions.hammerServer is not a service name")
+			}
 			checkCommands(manifest)
 			val actions = manifest.actions.map { it.name }
 			actions.groupBy { it }.filterValues { it.size > 1 }.keys.takeIf { it.isNotEmpty() }?.let {
@@ -211,6 +214,10 @@ class PluginPackage(
 			}
 			actions.firstOrNull { !PluginRegistry.isValidId(it) }?.let { throw PluginPackageException("Invalid action name '$it'") }
 			manifest.actions.forEach(::checkAction)
+			manifest.kind?.let { kind ->
+				if (!PluginRegistry.isValidId(kind.id)) throw PluginPackageException("Invalid kind id '${kind.id}'")
+				if (kind.label.isBlank()) throw PluginPackageException("Kind '${kind.id}' has no label")
+			}
 			if ((manifest.description?.length ?: 0) > PluginManifest.MAX_DESCRIPTION_LENGTH) {
 				throw PluginPackageException("The description is longer than ${PluginManifest.MAX_DESCRIPTION_LENGTH} characters")
 			}

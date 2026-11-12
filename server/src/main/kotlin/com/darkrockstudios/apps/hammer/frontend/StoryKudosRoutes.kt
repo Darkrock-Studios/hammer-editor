@@ -182,7 +182,7 @@ private suspend fun ApplicationCall.kudosFragmentModel(
 	closed: Boolean = false,
 ): MutableMap<String, Any> {
 	val viewerId = sessions.get<UserSession>()?.userId
-	val isAuthor = viewerId == story.authorId
+	val isAuthor = viewerId != null && storyKudosRepository.isStoryAuthor(story.projectId, story.authorId, viewerId)
 	val canGive = viewerId != null && !isAuthor && !closed
 	val picks = when {
 		savedPicks != null -> savedPicks

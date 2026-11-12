@@ -47,10 +47,17 @@ class UserDataPurgeDao(
 			db.storyEntityQueries.deleteAllForUser(userId)
 			db.projectDataQueries.deleteAllForUser(userId)
 			db.writingActivityQueries.deleteAllForUser(userId)
+			db.projectMemberQueries.deleteAllOnUserProjects(userId)
+			db.projectInviteQueries.deleteAllOnUserProjects(userId)
 			db.projectQueries.deleteAllForUser(userId)
 			db.projectGroupQueries.deleteAllForUser(userId)
 
 			// Account-scoped data.
+			db.writingActivityQueries.anonymizeAuthor(userId)
+			db.projectMemberQueries.deleteAllForUser(userId)
+			db.projectInviteQueries.deleteAllInvitedBy(userId)
+			// Addressed by email, so a later holder of the address does not inherit them.
+			db.projectInviteQueries.deleteAllForEmail(account.email)
 			db.storyIdeaQueries.deleteAllForUser(userId)
 			db.deletedIdeaQueries.deleteAllForUser(userId)
 			db.deletedProjectQueries.deleteAllForUser(userId)

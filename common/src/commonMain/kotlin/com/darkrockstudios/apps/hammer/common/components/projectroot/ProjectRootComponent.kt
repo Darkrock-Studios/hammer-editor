@@ -24,7 +24,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsearch.SearchProjectUse
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
-import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectPluginsRepository
+import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectDisabledPluginsUseCase
 import com.darkrockstudios.apps.hammer.common.data.protocolmismatch.ProtocolMismatchRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
@@ -33,6 +33,8 @@ import com.darkrockstudios.apps.hammer.images_menu_group
 import com.darkrockstudios.apps.hammer.images_menu_item
 import com.darkrockstudios.apps.hammer.sync_menu_group
 import com.darkrockstudios.apps.hammer.sync_menu_item
+import com.arkivanov.essenty.lifecycle.Lifecycle
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -52,7 +54,7 @@ class ProjectRootComponent(
 	private val syncJournal: SyncJournal = projectGet()
 	private val sceneEditor: SceneEditorService by projectInject()
 	private val projectDataRepository: ProjectDataRepository by projectInject()
-	private val projectPlugins: ProjectPluginsRepository by inject()
+	private val projectDisabledPlugins: ProjectDisabledPluginsUseCase by projectInject()
 	private val encyclopediaService: EncyclopediaService by projectInject()
 	private val notesRepository: NotesRepository by projectInject()
 	private val timeLineRepository: TimeLineRepository by projectInject()
@@ -61,12 +63,20 @@ class ProjectRootComponent(
 	private val protocolMismatchRepository: ProtocolMismatchRepository by inject()
 	private val duplicateIdService: DuplicateIdService by projectInject()
 	private val imagePickRequests: ImagePickRequests by projectInject()
+	private val projectsRepository: ProjectsRepository by inject()
+
+	/** Sync is set up and turned on for this project on this device. */
+	private val canSync: Boolean
+		get() = syncJournal.isServerSynchronized() && projectSyncEnabled
+	// Set by the first syncEnabledUpdates emission, which is read off the main thread.
+	private var projectSyncEnabled = false
+	private var syncMenuAdded = false
 
 	// Retained on this long-lived parent so search state survives the modal being dismissed/reopened
 	// and config changes; stateKeeper carries the query/filter slice across process death.
 	private val globalSearchState: GlobalSearchState = run {
 		val saved = stateKeeper.consume(GLOBAL_SEARCH_STATE_KEY, GlobalSearchSavedState.serializer())
-		retainedInstance {
+		retainedInstance(key = GLOBAL_SEARCH_STATE_KEY) {
 			GlobalSearchState(
 				searchProjectUseCase = searchProjectUseCase,
 				mainContext = dispatcherMain,
@@ -153,6 +163,15 @@ class ProjectRootComponent(
 		handleSyncDialogCompletion()
 
 		scope.launch {
+			projectsRepository.syncEnabledUpdates(projectDef).collect { enabled ->
+				withContext(dispatcherMain) {
+					projectSyncEnabled = enabled
+					if (lifecycle.state >= Lifecycle.State.STARTED) updateSyncMenu()
+				}
+			}
+		}
+
+		scope.launch {
 			projectDataRepository.load()
 			projectDataRepository.state.collect { stored ->
 				withContext(dispatcherMain) {
@@ -162,7 +181,7 @@ class ProjectRootComponent(
 		}
 
 		scope.launch {
-			projectPlugins.disabledPlugins(projectDef.id).collect { disabled ->
+			projectDisabledPlugins.disabledPlugins.collect { disabled ->
 				withContext(dispatcherMain) { _disabledPlugins.value = disabled }
 			}
 		}
@@ -287,7 +306,7 @@ class ProjectRootComponent(
 	override fun showProjectSync() = modalRouter.showProjectSync()
 
 	override fun startProjectSync() {
-		if (!syncJournal.isServerSynchronized()) return
+		if (!canSync) return
 		if (_closeRequestHandlers.value.isNotEmpty()) return
 		val list = unsavedConfirmations()
 		list.add(CloseConfirm.Sync)
@@ -398,7 +417,11 @@ class ProjectRootComponent(
 		scope.launch {
 			val list = unsavedConfirmations()
 
-			if (syncJournal.shouldAutoSync() && duplicateIdService.unresolved.value.isEmpty()) {
+			if (
+				projectsRepository.isSyncEnabled(projectDef) &&
+				syncJournal.shouldAutoSync() &&
+				duplicateIdService.unresolved.value.isEmpty()
+			) {
 				list.add(CloseConfirm.Sync)
 			}
 
@@ -461,7 +484,15 @@ class ProjectRootComponent(
 			)
 		)
 
-		if (syncJournal.isServerSynchronized()) {
+		updateSyncMenu()
+	}
+
+	private fun updateSyncMenu() {
+		if (canSync == syncMenuAdded) return
+		if (syncMenuAdded) {
+			removeMenu(SYNC_MENU_ID)
+			syncMenuAdded = false
+		} else {
 			addMenu(
 				MenuDescriptor(
 					id = SYNC_MENU_ID,
@@ -477,13 +508,15 @@ class ProjectRootComponent(
 					)
 				)
 			)
+			syncMenuAdded = true
 		}
 	}
 
 	private fun removeMenuItems() {
 		removeMenu(IMAGES_MENU_ID)
-		if (syncJournal.isServerSynchronized()) {
+		if (syncMenuAdded) {
 			removeMenu(SYNC_MENU_ID)
+			syncMenuAdded = false
 		}
 	}
 

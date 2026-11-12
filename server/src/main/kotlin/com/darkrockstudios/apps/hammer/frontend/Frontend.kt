@@ -5,6 +5,7 @@ import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.account.AccountDeletionUseCase
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.account.BioService
+import com.darkrockstudios.apps.hammer.account.isActive
 import com.darkrockstudios.apps.hammer.account.PasswordResetRepository
 import com.darkrockstudios.apps.hammer.account.RequestPasswordResetUseCase
 import com.darkrockstudios.apps.hammer.account.PenNameUseCase
@@ -43,6 +44,8 @@ import com.darkrockstudios.apps.hammer.plugin.NoticeSlot
 import com.darkrockstudios.apps.hammer.plugin.pluginAdminNav
 import com.darkrockstudios.apps.hammer.plugin.putAllowedUsersNotice
 import com.darkrockstudios.apps.hammer.plugins.configureTemplating
+import com.darkrockstudios.apps.hammer.project.ProjectAccessResolver
+import com.darkrockstudios.apps.hammer.project.ProjectMemberRepository
 import com.darkrockstudios.apps.hammer.project.ProjectSyncKey
 import com.darkrockstudios.apps.hammer.project.ProjectSynchronizationSession
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
@@ -113,6 +116,8 @@ fun Route.frontend() {
 	val storyKudosRepository: StoryKudosRepository by inject()
 	val serverProjectDataRepository: com.darkrockstudios.apps.hammer.project.ServerProjectDataRepository by inject()
 	val storyImageService: StoryImageService by inject()
+	val projectAccessResolver: ProjectAccessResolver by inject()
+	val projectMemberRepository: ProjectMemberRepository by inject()
 	val storyImageSigner: StoryImageSigner by inject()
 	val recurringTaskRegistry: com.darkrockstudios.apps.hammer.scheduling.RecurringTaskRegistry by inject()
 	val clock: kotlin.time.Clock by inject()
@@ -159,6 +164,9 @@ fun Route.frontend() {
 		accountDeletionUseCase,
 		serverConfig,
 		markdownRenderer,
+		projectMemberRepository,
+		projectAccessResolver,
+		whiteListRepository,
 	)
 	storyPage(
 		storyRendererService,
@@ -166,9 +174,17 @@ fun Route.frontend() {
 		projectsRepository,
 		accountsRepository,
 		reviewRepository,
-		storyReaderRepository, storyKudosRepository, serverProjectDataRepository, storyImageService, clock,
+		storyReaderRepository, storyKudosRepository, serverProjectDataRepository, storyImageService,
+		projectMemberRepository, projectAccessResolver, clock,
 	)
-	storyReadPage(storyRendererService, projectsRepository, serverProjectDataRepository, storyImageService)
+	coAuthorRoutes(projectsRepository, projectAccessResolver, projectMemberRepository, accountsRepository)
+	storyReadPage(
+		storyRendererService,
+		projectsRepository,
+		projectAccessResolver,
+		serverProjectDataRepository,
+		storyImageService,
+	)
 	reviewFrontend(
 		reviewRepository = reviewRepository,
 		projectsRepository = projectsRepository,
@@ -377,12 +393,7 @@ suspend fun sessionIsAuthorized(
 	whitelistRepo: WhiteListRepository,
 ): Boolean {
 	val account = runCatching { accountRepo.getAccount(session.userId) }.getOrNull()
-	return when {
-		account == null -> false
-		account.deleted_at != null -> false
-		account.is_admin -> true
-		else -> whitelistRepo.isOnWhiteList(account.email)
-	}
+	return account?.isActive(whitelistRepo) == true
 }
 
 private fun ExtraLink.toModel(locale: Locale): Map<String, Any> = mapOf(
@@ -423,6 +434,7 @@ suspend fun ApplicationCall.withDefaults(data: Map<String, Any> = emptyMap()): M
 		// Not putIfAbsent: the argument would compute the nav even when the key is present.
 		if ("pluginNavEntries" !in model) model["pluginNavEntries"] = pluginAdminNav()
 		model.putIfAbsent("emailFeatureEnabled", serverConfig.emailProviderType != null)
+		model.putIfAbsent("languageToolFeatureEnabled", serverConfig.languageToolEnabled)
 	}
 
 	val configRepository = get<ConfigRepository>()

@@ -8,7 +8,10 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.onChildren
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.update
@@ -21,7 +24,6 @@ import com.darkrockstudios.apps.hammer.common.storyeditor.readermode.READER_MODE
 import com.darkrockstudios.apps.hammer.common.storyeditor.readermode.READER_MODE_INCREASE_FONT_TAG
 import com.darkrockstudios.apps.hammer.common.storyeditor.readermode.READER_MODE_LIST_TAG
 import com.darkrockstudios.apps.hammer.common.storyeditor.readermode.READER_MODE_NEXT_CHAPTER_TAG
-import com.darkrockstudios.apps.hammer.common.storyeditor.readermode.READER_MODE_SCENE_BREAK_TAG
 import com.darkrockstudios.apps.hammer.common.storyeditor.readermode.ReaderModeUi
 import com.darkrockstudios.apps.hammer.common.storyeditor.readermode.readerSceneBodyTag
 import com.darkrockstudios.apps.hammer.common.storyeditor.readermode.readerSceneHeadingTag
@@ -70,17 +72,27 @@ class ReaderModeUiTest : BaseTest() {
 	}
 
 	@Test
-	fun `Scenes are stitched with an ornament and no headings by default`() {
+	fun `Scenes are stitched with no headings by default`() {
 		showReader()
 
 		compose.onNodeWithTag(readerSceneBodyTag(harbour.id)).assertTextEquals("The keeper stepped off the ferry.")
 		compose.onNodeWithTag(readerSceneBodyTag(lampRoom.id)).assertTextEquals("One hundred and nine steps.")
-		compose.onNodeWithTag(READER_MODE_SCENE_BREAK_TAG).assertIsDisplayed()
 		compose.onNodeWithTag(readerSceneHeadingTag(harbour.id)).assertDoesNotExist()
 	}
 
 	@Test
-	fun `Scene headings replace the ornament when enabled`() {
+	fun `Nothing sits between scenes when headings are off`() {
+		showReader()
+
+		val rowTags = compose.onNodeWithTag(READER_MODE_LIST_TAG).onChildren().fetchSemanticsNodes()
+			.map { it.config.getOrNull(SemanticsProperties.TestTag) }
+		val harbourIndex = rowTags.indexOf(readerSceneBodyTag(harbour.id))
+
+		assertEquals(readerSceneBodyTag(lampRoom.id), rowTags[harbourIndex + 1])
+	}
+
+	@Test
+	fun `Scene headings show when enabled`() {
 		showReader()
 
 		compose.onNodeWithTag(READER_MODE_HEADINGS_TOGGLE_TAG).performClick()
@@ -88,7 +100,6 @@ class ReaderModeUiTest : BaseTest() {
 
 		compose.onNodeWithTag(readerSceneHeadingTag(harbour.id)).assertIsDisplayed()
 		compose.onNodeWithTag(readerSceneHeadingTag(lampRoom.id)).assertIsDisplayed()
-		compose.onNodeWithTag(READER_MODE_SCENE_BREAK_TAG).assertDoesNotExist()
 	}
 
 	@Test

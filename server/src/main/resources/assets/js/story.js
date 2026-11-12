@@ -284,6 +284,33 @@ document.addEventListener('keydown', function (e) {
 	if (e.key === 'Escape') closeReviewDialog();
 });
 
+/* ===== Co-author dialogs ===== */
+
+/**
+ * Close the open co-author dialog (invite or leave) with animation
+ * @param {Event} event - Optional click event (for overlay clicks)
+ */
+function closeCoauthorDialog(event) {
+	if (event && event.target !== event.currentTarget) {
+		return;
+	}
+
+	const overlay = document.getElementById('coauthor-dialog-overlay');
+	if (overlay) {
+		overlay.classList.add('closing');
+		setTimeout(function () {
+			const container = document.getElementById('coauthor-dialog-container');
+			if (container) {
+				container.innerHTML = '';
+			}
+		}, 200);
+	}
+}
+
+document.addEventListener('keydown', function (e) {
+	if (e.key === 'Escape') closeCoauthorDialog();
+});
+
 // Scene checkbox changes: update the count and gate the submit button.
 // Both the review dialog and the share dialog mark their form data-scene-select.
 document.addEventListener('change', function (e) {

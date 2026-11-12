@@ -78,7 +78,9 @@ data class GlobalSettings(
 @Immutable
 @Serializable
 data class NewUserExperience(
-	val exampleProjectCreated: Boolean = false
+	val exampleProjectCreated: Boolean = false,
+	/** The [ExampleProjectRepository.BUNDLE_REVISION] last installed; 0 for one installed before revisions. */
+	val exampleProjectRevision: Int = 0,
 )
 
 @Immutable

@@ -25,6 +25,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsearch.SearchProjectUse
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.GlobalSettingsDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.GlobalSettingsFilesystemDatasource
+import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectDisabledPluginsUseCase
 import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectPluginsDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectPluginsRepository
 import com.darkrockstudios.apps.hammer.common.data.references.ImageReferenceRewriter
@@ -70,6 +71,8 @@ import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsR
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.ProjectStatisticsUseCase
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsService
 import com.darkrockstudios.apps.hammer.common.data.protocolmismatch.ProtocolMismatchRepository
+import com.darkrockstudios.apps.hammer.common.server.HammerServiceClient
+import com.darkrockstudios.apps.hammer.common.server.ServicesApi
 import com.darkrockstudios.apps.hammer.common.data.references.AutoConfirmReferencesUseCase
 import com.darkrockstudios.apps.hammer.common.data.references.BackfillEntryReferencesUseCase
 import com.darkrockstudios.apps.hammer.common.data.references.CleanupReferencesOnEntryDeleteUseCase
@@ -96,6 +99,8 @@ import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ProjectAttri
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.groups.GroupSyncPhase
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.AccountSessionLock
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.AccountSyncLock
+import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ProjectSyncToggle
+import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.SharedProjectParker
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.SyncAccountUseCase
 import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.ClientIdeasSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.IdeasSyncDatasource
@@ -209,6 +214,7 @@ val mainModule = module {
 	single<ProtocolMismatchRepository>()
 	single { createHttpClient(get(), get(NetworkJsonQualifier)) } bind HttpClient::class
 	single<ServerAccountApi>()
+	single<HammerServiceClient> { ServicesApi(get(), get(), get()) }
 	single<ServerProjectApi> {
 		ServerProjectApi(
 			httpClient = get(),
@@ -258,6 +264,8 @@ val mainModule = module {
 	single<AccountSyncLock>()
 	single<AccountSessionLock>()
 	factory<SyncAccountUseCase>()
+	factory<ProjectSyncToggle>()
+	factory<SharedProjectParker>()
 	single<ProjectSyncGateRepository>()
 
 	single(named(RAW_FILESYSTEM)) { getPlatformFilesystem() } bind FileSystem::class
@@ -382,6 +390,7 @@ val mainModule = module {
 
 		scoped<ProjectDataDatasource>()
 		scoped<ProjectDataRepository>()
+		scoped { ProjectDisabledPluginsUseCase(get(), get(), get(), getAll()) }
 		scoped<ProjectDataConflictBroker>()
 		scoped<ProjectSpellCheckService>()
 		factory<ProjectDictionaryUseCase>()

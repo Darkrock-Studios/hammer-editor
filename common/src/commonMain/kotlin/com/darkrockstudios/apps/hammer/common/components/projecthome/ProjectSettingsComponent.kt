@@ -19,6 +19,7 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.imagesrepository.ImagesService
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
+import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectDisabledPluginsUseCase
 import com.darkrockstudios.apps.hammer.common.data.projectplugins.ProjectPluginsRepository
 import com.darkrockstudios.apps.hammer.common.data.tagindex.AccountTagService
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
@@ -28,6 +29,8 @@ import com.darkrockstudios.apps.hammer.common.util.AvailableLocalesProvider
 import com.darkrockstudios.apps.hammer.common.util.Locale
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import org.koin.core.component.inject
 
 class ProjectSettingsComponent(
@@ -41,7 +44,10 @@ class ProjectSettingsComponent(
 	private val accountTagService: AccountTagService by inject()
 	private val availableLocalesProvider: AvailableLocalesProvider by inject()
 	private val projectPlugins: ProjectPluginsRepository by inject()
+	private val projectDisabledPlugins: ProjectDisabledPluginsUseCase by projectInject()
 	private val imagesService: ImagesService by projectInject()
+	private val globalSettingsStore: GlobalSettingsStore by inject()
+	private val projectsRepository: ProjectsRepository by inject()
 
 	override val projectName: String = projectDef.name
 
@@ -52,6 +58,10 @@ class ProjectSettingsComponent(
 
 	private val _projectInfoState = MutableValue(ProjectSettings.ProjectInfoState())
 	override val projectInfoState: Value<ProjectSettings.ProjectInfoState> = _projectInfoState
+
+	// Read up front so a shared project never shows as the account's own, even before the first flag emission.
+	private val _syncState = MutableValue(ProjectSettings.SyncState(owner = projectsRepository.getOwner(projectDef)))
+	override val syncState: Value<ProjectSettings.SyncState> = _syncState
 
 	private val _disabledPlugins = MutableValue(emptySet<String>())
 	override val disabledPlugins: Value<Set<String>> = _disabledPlugins
@@ -68,7 +78,7 @@ class ProjectSettingsComponent(
 	init {
 		scope.launch { accountTagService.refreshProjectTags() }
 		scope.launch {
-			projectPlugins.disabledPlugins(projectDef.id).collect { disabled ->
+			projectDisabledPlugins.disabledPlugins.collect { disabled ->
 				withContext(mainDispatcher) { _disabledPlugins.value = disabled }
 			}
 		}
@@ -88,6 +98,20 @@ class ProjectSettingsComponent(
 			coverImageFlow(projectDataRepository, imagesService).collect { cover ->
 				withContext(mainDispatcher) {
 					_projectInfoState.getAndUpdate { it.copy(coverImage = cover) }
+				}
+			}
+		}
+		scope.launch {
+			globalSettingsStore.serverSettingsUpdates.collect { settings ->
+				withContext(mainDispatcher) {
+					_syncState.getAndUpdate { it.copy(serverConfigured = settings != null) }
+				}
+			}
+		}
+		scope.launch {
+			projectsRepository.syncEnabledUpdates(projectDef).collect { enabled ->
+				withContext(mainDispatcher) {
+					_syncState.getAndUpdate { it.copy(syncEnabled = enabled) }
 				}
 			}
 		}
@@ -166,6 +190,10 @@ class ProjectSettingsComponent(
 
 	override fun setPluginEnabled(pluginId: String, enabled: Boolean) {
 		scope.launch { projectPlugins.setPluginEnabled(projectDef.id, pluginId, enabled) }
+	}
+
+	override fun setPluginsEnabled(changes: Map<String, Boolean>) {
+		scope.launch { projectPlugins.setPluginsEnabled(projectDef.id, changes) }
 	}
 
 	override fun suggestProjectTags(prefix: String): List<String> {

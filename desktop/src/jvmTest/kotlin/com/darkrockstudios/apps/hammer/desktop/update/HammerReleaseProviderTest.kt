@@ -14,13 +14,25 @@ class HammerReleaseProviderTest {
 
 	@Test
 	fun `metadata lives on the latest release, one file per platform`() {
-		val provider = HammerReleaseProvider()
+		val provider = HammerReleaseProvider(arch = "amd64")
 		val base = "https://github.com/Darkrock-Studios/hammer-editor/releases/latest/download"
 
 		assertEquals("$base/latest.yml", provider.getUpdateMetadataUrl("latest", Platform.Windows))
 		assertEquals("$base/latest-mac.yml", provider.getUpdateMetadataUrl("latest", Platform.MacOS))
 		assertEquals("$base/latest-linux.yml", provider.getUpdateMetadataUrl("latest", Platform.Linux))
 		assertEquals("$base/latest.yml", provider.getUpdateMetadataUrl("latest", Platform.Unknown))
+	}
+
+	@Test
+	fun `linux arm64 reads its own metadata, other arches the shared file`() {
+		assertEquals("latest-linux-arm64.yml", HammerReleaseProvider.metadataFileName(Platform.Linux, "aarch64"))
+		assertEquals("latest-linux.yml", HammerReleaseProvider.metadataFileName(Platform.Linux, "amd64"))
+		assertEquals("latest-mac.yml", HammerReleaseProvider.metadataFileName(Platform.MacOS, "aarch64"))
+		assertEquals("latest.yml", HammerReleaseProvider.metadataFileName(Platform.Windows, "aarch64"))
+		assertEquals(
+			"https://github.com/Darkrock-Studios/hammer-editor/releases/latest/download/latest-linux-arm64.yml",
+			HammerReleaseProvider(arch = "aarch64").getUpdateMetadataUrl("latest", Platform.Linux),
+		)
 	}
 
 	@Test
