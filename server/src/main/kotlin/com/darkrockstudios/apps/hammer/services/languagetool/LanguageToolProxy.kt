@@ -11,7 +11,8 @@ import io.ktor.client.request.forms.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.utils.io.*
-import kotlinx.coroutines.CancellationException
+import java.io.IOException
+import java.nio.channels.UnresolvedAddressException
 import kotlinx.io.readByteArray
 import org.slf4j.LoggerFactory
 import kotlin.time.Duration
@@ -65,11 +66,15 @@ class LanguageToolProxy(
 		} else {
 			Result.Reply(response.status, response.contentType(), body)
 		}
-	} catch (e: CancellationException) {
-		throw e
-	} catch (e: Exception) {
+	} catch (e: IOException) {
+		failed(what, e)
+	} catch (e: UnresolvedAddressException) {
+		failed(what, e)
+	}
+
+	private fun failed(what: String, e: Throwable): Result.Failed {
 		log.warn("LanguageTool $what failed: ${e::class.simpleName}: ${e.message}")
-		Result.Failed(e.message ?: e::class.simpleName.orEmpty())
+		return Result.Failed(e.message ?: e::class.simpleName.orEmpty())
 	}
 
 	companion object {

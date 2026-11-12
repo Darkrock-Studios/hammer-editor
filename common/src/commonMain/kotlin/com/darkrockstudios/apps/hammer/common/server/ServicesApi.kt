@@ -20,7 +20,8 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.ByteArrayContent
-import kotlinx.coroutines.CancellationException
+import io.ktor.util.network.UnresolvedAddressException
+import okio.IOException
 
 /** A service the user's sync server offers, such as LanguageTool, reached as the signed-in user. */
 fun interface HammerServiceClient {
@@ -100,12 +101,16 @@ class ServicesApi(
 
 				else -> ServiceReply.Response(response.status.value, response.bodyAsBytes())
 			}
-		} catch (e: CancellationException) {
-			throw e
-		} catch (e: Exception) {
-			Napier.w("Service ${request.service} request failed: ${e::class.simpleName}")
-			ServiceReply.Failed(ServiceReply.Reason.Network, e.message ?: "Couldn't reach the sync server")
+		} catch (e: IOException) {
+			networkFailure(request, e)
+		} catch (e: UnresolvedAddressException) {
+			networkFailure(request, e)
 		}
+	}
+
+	private fun networkFailure(request: ServiceRequest, e: Throwable): ServiceReply {
+		Napier.w("Service ${request.service} request failed: ${e::class.simpleName}")
+		return ServiceReply.Failed(ServiceReply.Reason.Network, e.message ?: "Couldn't reach the sync server")
 	}
 
 	companion object {

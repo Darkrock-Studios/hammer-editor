@@ -38,10 +38,10 @@ for lang in "$@"; do
 	curl -fL --continue-at - -o "$TARGET/$file" "$BASE_URL/$file"
 	# Unzip beside the target and move into place, so an interrupted run leaves no partial language.
 	staging="$TARGET/.unzip-$lang"
-	rm -rf "$staging"
+	rm -rf "${staging:?}"
 	unzip -q "$TARGET/$file" -d "$staging"
 	mv "$staging/$lang" "$TARGET/$lang"
-	rm -rf "$staging" "$TARGET/$file"
+	rm -rf "${staging:?}" "${TARGET:?}/${file:?}"
 done
 
 # The container runs as a non-root user that must be able to read the data.
