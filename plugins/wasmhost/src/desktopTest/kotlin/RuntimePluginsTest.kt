@@ -1057,6 +1057,14 @@ class RuntimePluginsTest {
 	}
 
 	@Test
+	fun `a blank translated kind label keeps the manifest's`() {
+		val german = mapOf("locales/de.toml" to "[kind]\nlabel = \" \"")
+		val plugins = runtimePlugins(locale = "de").also { it.install(pack("echo", kinded(), files = german)) }
+
+		assertEquals(PluginKind("grammar", "Grammar checker", localized = false), startKoin(plugins).plugins.single().kind)
+	}
+
+	@Test
 	fun `a kind without a valid id or a label is refused`() {
 		val plugins = runtimePlugins()
 		assertThrows<PluginPackageException> { plugins.install(pack("spaced", kinded(id = "Grammar checker"))) }
