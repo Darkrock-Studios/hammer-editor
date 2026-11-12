@@ -31,8 +31,9 @@ services:
       # to UTC; set TZ in your shell or a .env file next to this compose file to
       # change it. `timezone` in config.toml overrides this.
       TZ: ${TZ:-UTC}
-      # Grammar checking for signed-in writers. Set to http://languagetool:8010
-      # alongside COMPOSE_PROFILES=languagetool to use the service below.
+      # Grammar checking for signed-in writers: setting this turns it on. Set it
+      # to http://languagetool:8010 alongside COMPOSE_PROFILES=languagetool to
+      # use the service below.
       HAMMER_LANGUAGETOOL_URL: ${HAMMER_LANGUAGETOOL_URL:-}
 
     # Uncomment alongside the postgres service below.
@@ -55,7 +56,8 @@ services:
     restart: unless-stopped
     environment:
       Java_Xms: 512m
-      Java_Xmx: 2g
+      # Enough for a handful of languages; 3g for many in use at once.
+      Java_Xmx: ${LANGUAGETOOL_HEAP:-2g}
       # n-gram data catches confused words (their/there, affect/effect). Fetch
       # it with ./download-ngrams.sh; languages without data are still checked.
       langtool_languageModel: /ngrams

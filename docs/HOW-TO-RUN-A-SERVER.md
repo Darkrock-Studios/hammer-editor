@@ -728,8 +728,9 @@ on, add this line to your server config:
 languageToolEnabled = true
 ```
 
-Then set the LanguageTool server's address on **Admin → Grammar**, or with the
-`HAMMER_LANGUAGETOOL_URL` environment variable until an admin saves one. With Docker, see
+Then set the LanguageTool server's address on **Admin → Grammar**. Setting the
+`HAMMER_LANGUAGETOOL_URL` environment variable instead does both: it turns the feature on and is
+the address until an admin saves one. With Docker, see
 [Grammar checking](HOW-TO-RUN-A-SERVER-DOCKER.md#grammar-checking-languagetool).
 
 ## Setup Email Sending (_Optional_)

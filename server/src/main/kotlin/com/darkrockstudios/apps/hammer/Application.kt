@@ -25,6 +25,8 @@ import com.darkrockstudios.apps.hammer.plugins.configureRouting
 import com.darkrockstudios.apps.hammer.plugins.configureSecurity
 import com.darkrockstudios.apps.hammer.plugins.configureSerialization
 import com.darkrockstudios.apps.hammer.secret.KeyringCodec
+import com.darkrockstudios.apps.hammer.services.languagetool.LanguageToolConfig
+import com.darkrockstudios.apps.hammer.services.languagetool.LanguageToolDefaults
 import com.darkrockstudios.apps.hammer.utilities.DevSelfSignedCert
 import com.darkrockstudios.apps.hammer.utilities.DiskCache
 import com.darkrockstudios.apps.hammer.utilities.applyServerTimeZone
@@ -164,9 +166,11 @@ private val configLogger = KtorSimpleLogger("HammerServer")
 internal fun resolveServerConfig(
 	configPath: String?,
 	fileSystem: FileSystem = FileSystem.SYSTEM,
+	environment: (String) -> String? = System::getenv,
 ): ServerConfig {
 	val configFile = findConfigFile(configPath, fileSystem)
-	val config = configFile?.let { loadConfig(fileSystem, it) } ?: ServerConfig()
+	val loaded = configFile?.let { loadConfig(fileSystem, it) } ?: ServerConfig()
+	val config = applyLanguageToolEnvironment(loaded, environment)
 	// Validated before resolution: a blank directory resolves to the config file's own directory,
 	// which would look valid and quietly put the caches next to the database.
 	config.cache.validate()
@@ -177,6 +181,16 @@ internal fun resolveServerConfig(
 	resolved.extraLinks.forEach { it.validate() }
 	resolved.accountDeletion.validate()
 	return resolved
+}
+
+/** A LanguageTool address in the environment turns the feature on, so a compose deployment opts in from `.env` alone. */
+private fun applyLanguageToolEnvironment(config: ServerConfig, environment: (String) -> String?): ServerConfig {
+	val url = environment(LanguageToolDefaults.URL_ENV)
+	if (url.isNullOrBlank()) return config
+	requireNotNull(LanguageToolConfig.validUrl(url)) {
+		"${LanguageToolDefaults.URL_ENV} must be an http or https address, such as http://languagetool:8010, not \"$url\""
+	}
+	return config.copy(languageToolEnabled = true)
 }
 
 /** [CacheConfig.directory] follows the same relative-to-the-config-file rule as the file settings. */
