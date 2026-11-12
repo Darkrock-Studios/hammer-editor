@@ -1094,6 +1094,9 @@ two kinds, each translated by the plugin's author:
 
   [exporters."names.txt"]
   label = "Noms (TXT)"
+
+  [kind]
+  label = "Générateur de noms"
   ```
 
   Hammer reads them when it loads the plugin, and for the install dialog, and
@@ -1325,6 +1328,10 @@ api = 1                       # host API version the plugin was built against
 description = "Counts how often each word appears, as a spreadsheet."  # optional, up to 1,000 characters; links are clickable
 languages = ["en"]            # optional: the project languages it works with
 
+[kind]                        # optional: a project runs one plugin of each kind; see below
+id = "wordstats"              # shared by the plugins that do the same job
+label = "Word statistics"
+
 [permissions]
 operations = ["project.info", "scene.tree", "scene.read"]
 http = ["api.example.com"]    # optional: hosts it may reach, over https only; see HTTP
@@ -1366,11 +1373,23 @@ memory = 64                   # MiB of linear memory, 1 to 1024; 64 by default
 
 The install dialog, and the Info button beside each installed plugin, show its
 description, version, package size, `languages`, the languages its
-`locales/` translate it into, what it may use, and what it adds. `languages`
-is only shown: a project in another language still gets the plugin's checks
-and actions, which decide for themselves what to do with it. A description's links, bare
+`locales/` translate it into, what it may use, and what it adds. Apart from
+choosing among plugins of a kind, `languages` is only shown: a project in another
+language still gets the plugin's checks and actions, which decide for themselves
+what to do with it. A description's links, bare
 `https://` URLs or `[label](https://...)`, can be clicked; nothing else in it
 is formatted.
+
+Plugins that do the same job, such as grammar checkers, declare the same
+`[kind]` `id` (lowercase and directory-safe) with a non-blank `label`, and a
+project runs at most one plugin of each kind. Of the plugins of a kind that are
+on for a project, Hammer runs the first installed that works in the project's
+language, else the first installed, and turns the rest off for that project. A
+plugin works in a language when it has no `languages`, the project has none, or
+one of its `languages` has the same primary subtag (`en` serves `en-GB`). When
+two or more installed plugins share a kind, the project's settings show a
+dropdown for it, where the user picks one or none. The dropdown shows the first
+translated label among the kind's plugins by plugin id, else the first label.
 
 A module may be as large as its memory limit plus 32 MiB, since a
 pre-initialized module carries its memory's data. The install dialog says when
