@@ -5,8 +5,15 @@ import com.darkrockstudios.apps.hammer.operations.plugin.ClientPlugin
 /**
  * Plugins of one kind that work in the project's language, of which the project uses one. [label]
  * is the first translated kind label among them by plugin id, or the first label when none is.
+ * [others] are the kind's plugins for other languages, which still run while on, so a pick turns
+ * them off too.
  */
-internal data class PluginChoice(val kindId: String, val label: String, val plugins: List<ClientPlugin>)
+internal data class PluginChoice(
+	val kindId: String,
+	val label: String,
+	val plugins: List<ClientPlugin>,
+	val others: List<ClientPlugin> = emptyList(),
+)
 
 /** What a [PluginChoice]'s dropdown shows as picked, from which of its plugins are on. */
 internal sealed interface PluginPick {
@@ -17,18 +24,20 @@ internal sealed interface PluginPick {
 
 /** The kinds with two or more of [plugins] working in [language], by label. */
 internal fun pluginChoices(plugins: List<ClientPlugin>, language: String?): List<PluginChoice> =
-	plugins.filter { it.kind != null && worksIn(it, language) }
+	plugins.filter { it.kind != null }
 		.groupBy { it.kind!!.id }
-		.filterValues { it.size > 1 }
-		.map { (kindId, group) ->
-			val kinds = group.sortedBy { it.id }.mapNotNull { it.kind }
+		.mapNotNull { (kindId, ofKind) ->
+			val (offered, others) = ofKind.partition { worksIn(it, language) }
+			if (offered.size < 2) return@mapNotNull null
+			val kinds = offered.sortedBy { it.id }.mapNotNull { it.kind }
 			val label = (kinds.firstOrNull { it.localized } ?: kinds.first()).label
-			PluginChoice(kindId, label, group.sortedBy { (it.name ?: it.id).lowercase() })
+			PluginChoice(kindId, label, offered.sortedBy { (it.name ?: it.id).lowercase() }, others)
 		}
 		.sortedBy { it.label.lowercase() }
 
 internal fun PluginChoice.picked(disabled: Set<String>): PluginPick {
 	val on = plugins.filter { it.id !in disabled }
+	if (others.any { it.id !in disabled }) return PluginPick.Several
 	return when (on.size) {
 		0 -> PluginPick.None
 		1 -> PluginPick.One(on.single())
@@ -39,8 +48,8 @@ internal fun PluginChoice.picked(disabled: Set<String>): PluginPick {
 /** The plugins to turn on and off for [pick]; nothing for [PluginPick.Several], which is not a choice. */
 internal fun PluginChoice.changesFor(pick: PluginPick): Map<String, Boolean> = when (pick) {
 	PluginPick.Several -> emptyMap()
-	PluginPick.None -> plugins.associate { it.id to false }
-	is PluginPick.One -> plugins.associate { it.id to (it.id == pick.plugin.id) }
+	PluginPick.None -> (plugins + others).associate { it.id to false }
+	is PluginPick.One -> (plugins + others).associate { it.id to (it.id == pick.plugin.id) }
 }
 
 // Matched on the primary language subtag, so an `en` plugin serves an `en-GB` project.

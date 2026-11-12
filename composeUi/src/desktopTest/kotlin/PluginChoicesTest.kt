@@ -56,4 +56,14 @@ class PluginChoicesTest {
 		assertEquals(mapOf("harper" to false, "languagetool" to false, "simple" to false), choice.changesFor(PluginPick.None))
 		assertEquals(emptyMap(), choice.changesFor(PluginPick.Several))
 	}
+
+	@Test
+	fun `a plugin of the kind not offered for the language is turned off by a pick, and shows as one more on`() {
+		val french = pluginChoices(listOf(harper, languageTool, simple), "fr").single()
+
+		assertEquals(PluginPick.Several, french.picked(setOf("simple")))
+		assertEquals(PluginPick.One(languageTool), french.picked(setOf("harper", "simple")))
+		assertEquals(mapOf("languagetool" to true, "simple" to false, "harper" to false), french.changesFor(PluginPick.One(languageTool)))
+		assertEquals(mapOf("languagetool" to false, "simple" to false, "harper" to false), french.changesFor(PluginPick.None))
+	}
 }
