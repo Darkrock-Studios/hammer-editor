@@ -179,6 +179,7 @@ private fun openAppInstance(appScope: CoroutineScope, args: Array<String>, launc
 @ExperimentalMaterialApi
 @ExperimentalComposeApi
 fun main(args: Array<String>) {
+	relaunchUnderUtf8LocaleIfNeeded()
 	if (Cli.isInvocation(args)) {
 		setInDevelopmentMode(Cli.isDevInvocation(args))
 		exitProcess(runCli(Cli.commandArgs(args)))
