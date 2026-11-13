@@ -47,6 +47,7 @@ class SceneDatasourceBufferForeignFileTest : BaseTest() {
 		val bufferDir = datasource.getSceneBufferDirectory().toOkioPath()
 		ffs.write(bufferDir / "3.sync-conflict-20261024-173944-53PQXWR.md") { writeUtf8("other copy") }
 		ffs.write(bufferDir / ".syncthing.3.md.tmp") { writeUtf8("partial") }
+		ffs.write(bufferDir / "3 (# Name clash 2026-10-27 09cwcrC #).md") { writeUtf8("proton copy") }
 
 		val contents = datasource.getSceneTempBufferContents()
 
