@@ -1,5 +1,17 @@
 package com.darkrockstudios.apps.hammer.common.projecthome
 
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMetaText
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSettingGroup
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSettingRow
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.LocalHdSettingRowStacked
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.width
+import com.darkrockstudios.apps.hammer.project_settings_edit_ellipsis
+import com.darkrockstudios.apps.hammer.project_settings_enter_to_add_tag
+import com.darkrockstudios.apps.hammer.project_settings_goal_per_day
+import com.darkrockstudios.apps.hammer.project_settings_goal_row
+import com.darkrockstudios.apps.hammer.project_settings_goal_words_per
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdRegion
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdSectionGap
 import androidx.compose.foundation.background
@@ -95,11 +107,12 @@ internal fun AuthorField(
 	initial: String,
 	onChange: (String?) -> Unit,
 	modifier: Modifier = Modifier,
+	label: String = Res.string.project_info_author_label.get(),
 ) {
 	var text by remember(initial) { mutableStateOf(initial) }
 	HdHairlineField(
 		modifier = modifier,
-		label = Res.string.project_info_author_label.get(),
+		label = label,
 		value = text,
 		onValueChange = {
 			text = it
@@ -116,6 +129,7 @@ internal fun LanguageField(
 	options: List<ProjectSettings.LanguageOption>,
 	onChange: (String?) -> Unit,
 	modifier: Modifier = Modifier,
+	showLabel: Boolean = true,
 ) {
 	var showPicker by remember { mutableStateOf(false) }
 	val selected = options.firstOrNull { it.tag == languageTag }
@@ -125,7 +139,7 @@ internal fun LanguageField(
 		modifier = modifier,
 		verticalArrangement = Arrangement.spacedBy(8.dp),
 	) {
-		HdMonoLabel(text = Res.string.project_info_language_label.get())
+		if (showLabel) HdMonoLabel(text = Res.string.project_info_language_label.get())
 		Row(
 			modifier = Modifier
 				.fillMaxWidth()
@@ -153,15 +167,9 @@ internal fun LanguageField(
 				modifier = Modifier.weight(1f),
 			)
 			if (languageTag != null) {
-				HdMonoLabel(
-					text = languageTag.uppercase(),
-					color = MaterialTheme.colorScheme.onSurfaceVariant,
-				)
+				HdMetaText(text = languageTag)
 			}
-			HdMonoLabel(
-				text = "▾",
-				color = MaterialTheme.colorScheme.onSurfaceVariant,
-			)
+			Text(text = "▾", color = MaterialTheme.colorScheme.onSurfaceVariant)
 		}
 	}
 
@@ -182,9 +190,47 @@ internal fun LanguageField(
 	)
 }
 
+/** A row control's width beside its title; the full row when stacked under it. */
 @Composable
-internal fun CustomThemeSection(
-	section: Int,
+private fun rowControlWidth(): Modifier =
+	if (LocalHdSettingRowStacked.current) Modifier.fillMaxWidth() else Modifier.width(260.dp)
+
+/**
+ * The project's own facts, under its name: the one place the name shows on the screen.
+ * [extra] adds rows such as the read-only sync status.
+ */
+@Composable
+internal fun ProjectDetailsGroup(
+	component: ProjectSettings,
+	projectName: String,
+	extra: @Composable ColumnScope.() -> Unit = {},
+) {
+	val state by component.projectInfoState.subscribeAsState()
+	if (!state.isLoaded) return
+	HdSettingGroup(title = projectName) {
+		HdSettingRow(title = Res.string.project_info_author_label.get()) {
+			AuthorField(
+				initial = state.data.authorName.orEmpty(),
+				onChange = component::setAuthorName,
+				label = "",
+				modifier = rowControlWidth(),
+			)
+		}
+		HdSettingRow(title = Res.string.project_info_language_label.get()) {
+			LanguageField(
+				languageTag = state.data.language,
+				options = component.availableLanguages,
+				onChange = component::setProjectLanguage,
+				showLabel = false,
+				modifier = rowControlWidth(),
+			)
+		}
+		extra()
+	}
+}
+
+@Composable
+internal fun CustomThemeGroup(
 	theme: ProjectTheme?,
 	onChange: (ProjectTheme?) -> Unit,
 	modifier: Modifier = Modifier,
@@ -197,44 +243,30 @@ internal fun CustomThemeSection(
 		onChange(if (enabled) ProjectTheme(primary = primary, secondary = secondary) else null)
 	}
 
-	HdHairlineSection(
-		modifier = modifier,
-		section = section,
-		title = Res.string.project_info_theme_section_title.get(),
-		headerTrailing = {
-			HdMonoLabel(text = if (enabled) "ON" else "OFF · SYSTEM")
-		},
-		contentSpacing = 18.dp,
-	) {
+	HdSettingGroup(title = Res.string.project_info_theme_section_title.get(), modifier = modifier) {
 		HdHairlineToggleRow(
 			checked = enabled,
 			onCheckedChange = { enabled = it },
 			label = Res.string.project_info_theme_enable_label.get(),
 		)
-		val gateAlpha = if (enabled) 1f else 0.45f
-		Column(
-			modifier = Modifier
-				.fillMaxWidth()
-				.alpha(gateAlpha),
-			verticalArrangement = Arrangement.spacedBy(14.dp),
-		) {
+		// The colours only matter with the theme on, so they appear with it rather than dimmed.
+		if (enabled) {
 			ColorRow(
 				label = Res.string.project_info_theme_primary_label.get(),
 				hex = primary,
-				onChange = { if (enabled) primary = it },
+				onChange = { primary = it },
 			)
 			ColorRow(
 				label = Res.string.project_info_theme_secondary_label.get(),
 				hex = secondary,
-				onChange = { if (enabled) secondary = it },
+				onChange = { secondary = it },
 			)
 		}
 	}
 }
 
 @Composable
-internal fun WordCountGoalSection(
-	section: Int,
+internal fun WordCountGoalGroup(
 	goal: WordCountGoal?,
 	onChange: (WordCountGoal?) -> Unit,
 	modifier: Modifier = Modifier,
@@ -252,78 +284,53 @@ internal fun WordCountGoalSection(
 		}
 	}
 
-	val effectivePerDay = remember(count, cadence) {
-		val n = count.toIntOrNull() ?: 0
-		when (cadence) {
-			WordCountGoal.Cadence.DAY -> n
-			WordCountGoal.Cadence.WEEK -> if (n > 0) (n + 6) / 7 else 0
-		}
-	}
-	val meta = if (enabled) {
-		val cadenceLabel = when (cadence) {
-			WordCountGoal.Cadence.DAY -> Res.string.project_info_word_goal_cadence_day.get()
-			WordCountGoal.Cadence.WEEK -> Res.string.project_info_word_goal_cadence_week.get()
-		}
-		"${count.ifBlank { "0" }} W / ${cadenceLabel.uppercase()}"
-	} else "OFF"
-
-	HdHairlineSection(
-		modifier = modifier,
-		section = section,
-		title = Res.string.project_info_word_goal_section_title.get(),
-		headerTrailing = { HdMonoLabel(text = meta) },
-		contentSpacing = 18.dp,
-	) {
+	HdSettingGroup(title = Res.string.project_info_word_goal_section_title.get(), modifier = modifier) {
 		HdHairlineToggleRow(
 			checked = enabled,
 			onCheckedChange = { enabled = it },
 			label = Res.string.project_info_word_goal_enable_label.get(),
 		)
-		Column(
-			modifier = Modifier
-				.fillMaxWidth()
-				.alpha(if (enabled) 1f else 0.45f),
-			verticalArrangement = Arrangement.spacedBy(16.dp),
-		) {
-			Row(
-				modifier = Modifier.fillMaxWidth(),
-				horizontalArrangement = Arrangement.spacedBy(28.dp),
-				verticalAlignment = Alignment.Bottom,
+		if (enabled) {
+			// Only a weekly goal says something new as a daily figure.
+			val perDay = count.toIntOrNull()?.takeIf { it > 0 && cadence == WordCountGoal.Cadence.WEEK }?.let { (it + 6) / 7 }
+			HdSettingRow(
+				title = Res.string.project_settings_goal_row.get(),
+				description = perDay?.let { Res.string.project_settings_goal_per_day.get(it) },
 			) {
-				HdHairlineField(
-					modifier = Modifier.widthIn(min = 140.dp, max = 220.dp),
-					label = Res.string.project_info_word_goal_count_label.get(),
-					value = count,
-					onValueChange = { input -> if (enabled) count = input.filter(Char::isDigit) },
-					counter = "W",
-					imeAction = ImeAction.Done,
-					keyboardType = KeyboardType.Number,
-				)
-				HdHairlineSegmentedPicker(
-					options = WordCountGoal.Cadence.entries,
-					selected = cadence,
-					onSelect = { if (enabled) cadence = it },
-					label = { c ->
-						when (c) {
-							WordCountGoal.Cadence.DAY ->
-								Res.string.project_info_word_goal_cadence_day.get()
-
-							WordCountGoal.Cadence.WEEK ->
-								Res.string.project_info_word_goal_cadence_week.get()
-						}
-					},
-					title = Res.string.project_info_word_goal_cadence_label.get(),
-					modifier = Modifier.weight(1f),
-				)
+				Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+					HdHairlineField(
+						modifier = Modifier.width(90.dp),
+						label = "",
+						value = count,
+						onValueChange = { input -> count = input.filter(Char::isDigit) },
+						imeAction = ImeAction.Done,
+						keyboardType = KeyboardType.Number,
+					)
+					Text(
+						text = Res.string.project_settings_goal_words_per.get(),
+						style = MaterialTheme.typography.bodyMedium,
+						color = MaterialTheme.colorScheme.onSurfaceVariant,
+					)
+					HdHairlineSegmentedPicker(
+						options = WordCountGoal.Cadence.entries,
+						selected = cadence,
+						onSelect = { cadence = it },
+						label = { c ->
+							when (c) {
+								WordCountGoal.Cadence.DAY -> Res.string.project_info_word_goal_cadence_day.get()
+								WordCountGoal.Cadence.WEEK -> Res.string.project_info_word_goal_cadence_week.get()
+							}
+						},
+						compact = true,
+					)
+				}
 			}
-			EffectivePerDay(perDay = effectivePerDay)
 		}
 	}
 }
 
 @Composable
-internal fun ProjectTagsSection(
-	section: Int,
+internal fun ProjectTagsGroup(
 	tags: Set<String>,
 	onChange: (Set<String>) -> Unit,
 	suggest: (prefix: String) -> List<String>,
@@ -331,47 +338,28 @@ internal fun ProjectTagsSection(
 ) {
 	var localTags by remember(tags) { mutableStateOf(tags.toList()) }
 
-	HdHairlineSection(
-		modifier = modifier,
-		section = section,
-		title = Res.string.project_info_tags_section_title.get(),
-		headerTrailing = {
-			HdMonoLabel(text = if (localTags.isEmpty()) "NONE" else localTags.size.toString())
-		},
-		contentSpacing = 18.dp,
-	) {
-		HdHairlineTagField(
-			label = Res.string.project_info_tags_label.get(),
-			tags = localTags,
-			onTagsChange = { updated ->
-				// Same rule the component persists with — a chip that won't survive
-				// setTags must not render, or it lingers as a phantom all session.
-				val cleaned = ProjectSettings.cleanProjectTags(updated.toSet())
-				localTags = updated.filter { it in cleaned }
-				onChange(cleaned)
-			},
-			hint = Res.string.project_info_tags_hint.get(),
-			placeholder = Res.string.project_info_tags_placeholder.get(),
-			suggestTags = suggest,
-			testTag = "project-settings-tags",
-		)
-	}
-}
-
-@Composable
-private fun EffectivePerDay(perDay: Int) {
-	Row(
-		modifier = Modifier.fillMaxWidth(),
-		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M),
-		verticalAlignment = Alignment.Bottom,
-	) {
-		HdMonoLabel(text = Res.string.project_info_word_goal_effective_label.get())
-		Text(
-			text = perDay.toString(),
-			style = MaterialTheme.typography.headlineMedium,
-			color = MaterialTheme.colorScheme.onSurface,
-		)
-		HdMonoLabel(text = Res.string.project_info_word_goal_effective_unit.get())
+	HdSettingGroup(title = Res.string.project_info_tags_section_title.get(), modifier = modifier) {
+		Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+			HdHairlineTagField(
+				label = "",
+				tags = localTags,
+				onTagsChange = { updated ->
+					// Same rule the component persists with: a chip that won't survive
+					// setTags must not render, or it lingers as a phantom all session.
+					val cleaned = ProjectSettings.cleanProjectTags(updated.toSet())
+					localTags = updated.filter { it in cleaned }
+					onChange(cleaned)
+				},
+				placeholder = Res.string.project_info_tags_placeholder.get(),
+				suggestTags = suggest,
+				testTag = "project-settings-tags",
+			)
+			Text(
+				text = Res.string.project_settings_enter_to_add_tag.get(),
+				style = MaterialTheme.typography.bodySmall,
+				color = MaterialTheme.colorScheme.onSurfaceVariant,
+			)
+		}
 	}
 }
 
@@ -385,33 +373,17 @@ private fun ColorRow(
 	var pickerOpen by remember { mutableStateOf(false) }
 	val color = parseHexColor(hex) ?: MaterialTheme.colorScheme.surfaceVariant
 
-	Row(
-		modifier = modifier
-			.fillMaxWidth()
-			.clickable { pickerOpen = true }
-			.padding(vertical = 4.dp),
-		verticalAlignment = Alignment.CenterVertically,
-		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
-	) {
+	Row(modifier = modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
 		Box(
 			modifier = Modifier
+				.padding(end = Ui.Padding.L)
 				.size(34.dp)
 				.background(color, RectangleShape)
-				.border(
-					width = Dp.Hairline,
-					color = MaterialTheme.colorScheme.outline,
-					shape = RectangleShape,
-				),
+				.border(width = Dp.Hairline, color = MaterialTheme.colorScheme.outline, shape = RectangleShape),
 		)
-		Column(modifier = Modifier.weight(1f)) {
-			HdMonoLabel(text = label)
-			Text(
-				text = hex.uppercase(),
-				style = MaterialTheme.typography.titleMedium,
-				color = MaterialTheme.colorScheme.onSurface,
-			)
+		HdSettingRow(title = label, meta = hex.uppercase(), modifier = Modifier.weight(1f)) {
+			HdHairlineButton(label = Res.string.project_settings_edit_ellipsis.get(), onClick = { pickerOpen = true })
 		}
-		HdMonoLabel(text = Res.string.project_info_color_picker_edit.get())
 	}
 
 	ColorPickerDialog(
@@ -503,49 +475,5 @@ private fun ColorPickerDialog(
 				)
 			}
 		}
-	}
-}
-
-@Composable
-fun ProjectInfoSettingsUi(component: ProjectSettings) {
-	val state by component.projectInfoState.subscribeAsState()
-	if (!state.isLoaded) return
-
-	Column(verticalArrangement = Arrangement.spacedBy(hdSectionGap(40.dp))) {
-		HdRegion(contentSpacing = 40.dp) {
-			AuthorField(
-				initial = state.data.authorName.orEmpty(),
-				onChange = component::setAuthorName,
-			)
-			LanguageField(
-				languageTag = state.data.language,
-				options = component.availableLanguages,
-				onChange = component::setProjectLanguage,
-			)
-		}
-		CoverImageSection(
-			section = 1,
-			coverImageId = state.data.coverImageId,
-			coverImage = state.coverImage,
-			pickPending = state.pendingCoverPick,
-			onPick = component::pickCoverImage,
-			onClear = component::clearCoverImage,
-		)
-		CustomThemeSection(
-			section = 2,
-			theme = state.data.theme,
-			onChange = component::setTheme,
-		)
-		WordCountGoalSection(
-			section = 3,
-			goal = state.data.wordCountGoal,
-			onChange = component::setWordCountGoal,
-		)
-		ProjectTagsSection(
-			section = 4,
-			tags = state.data.tags,
-			onChange = component::setTags,
-			suggest = component::suggestProjectTags,
-		)
 	}
 }

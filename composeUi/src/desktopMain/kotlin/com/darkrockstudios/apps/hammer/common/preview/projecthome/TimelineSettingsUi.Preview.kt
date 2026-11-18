@@ -120,7 +120,7 @@ private fun SettingsPreview(state: TimelineSettings.State) {
 					.width(720.dp)
 					.padding(24.dp),
 			) {
-				TimelineSettingsUi(component = PreviewTimelineSettings(state), section = 6)
+				TimelineSettingsUi(component = PreviewTimelineSettings(state))
 			}
 		}
 	}

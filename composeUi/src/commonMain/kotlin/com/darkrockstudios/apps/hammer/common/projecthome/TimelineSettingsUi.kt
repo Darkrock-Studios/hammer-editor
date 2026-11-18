@@ -47,8 +47,8 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineBut
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineDialogShell
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineDropdown
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineSection
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineSegmentedPicker
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMetaText
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdWarningNotice
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.storyUnitName
@@ -94,7 +94,6 @@ import com.darkrockstudios.apps.hammer.timeline_settings_preset_label
 import com.darkrockstudios.apps.hammer.timeline_settings_rename
 import com.darkrockstudios.apps.hammer.timeline_settings_section_title
 import com.darkrockstudios.apps.hammer.timeline_settings_timeline_meta
-import com.darkrockstudios.apps.hammer.timeline_settings_timelines_label
 import org.jetbrains.compose.resources.pluralStringResource
 
 const val TIMELINE_SETTINGS_MODE_TAG = "timeline-settings-mode"
@@ -126,19 +125,13 @@ private const val MAX_VISIBLE_LANES = 8
 @Composable
 fun TimelineSettingsUi(
 	component: TimelineSettings,
-	section: Int,
 	modifier: Modifier = Modifier,
 ) {
 	val state by component.state.subscribeAsState()
 	// Timelines go by name once there is more than one; until then the prompts say "the timeline".
 	val named = state.timelines.size >= 2
 
-	HdHairlineSection(
-		modifier = modifier,
-		section = section,
-		title = Res.string.timeline_settings_section_title.get(),
-		contentSpacing = 18.dp,
-	) {
+	Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(18.dp)) {
 		if (state.timelines.isNotEmpty()) {
 			TimelineList(
 				timelines = state.timelines,
@@ -269,8 +262,8 @@ private fun TimelineList(
 	onRename: (TimelineSummary) -> Unit,
 	onDelete: (TimelineSummary) -> Unit,
 ) {
+	// No "Timelines" label: the tab already says it.
 	Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-		HdMonoLabel(text = Res.string.timeline_settings_timelines_label.get())
 		Column(
 			modifier = Modifier
 				.fillMaxWidth()
@@ -307,7 +300,7 @@ private fun TimelineRow(summary: TimelineSummary, onEdit: () -> Unit, onRename: 
 				maxLines = 1,
 				overflow = TextOverflow.Ellipsis,
 			)
-			HdMonoLabel(
+			HdMetaText(
 				text = pluralStringResource(
 					Res.plurals.timeline_settings_timeline_meta,
 					summary.eventCount,

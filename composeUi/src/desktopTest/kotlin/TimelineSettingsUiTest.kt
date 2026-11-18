@@ -198,7 +198,7 @@ class TimelineSettingsUiTest : BaseTest() {
 			// The real strings, so a refusal's reason can be read.
 			KoinApplication(application = { modules(module { single<StrRes> { StrResImpl() } }) }) {
 				Box(modifier = Modifier.width(width)) {
-					TimelineSettingsUi(component = component, section = 6)
+					TimelineSettingsUi(component = component)
 				}
 			}
 		}
@@ -268,11 +268,10 @@ class TimelineSettingsUiTest : BaseTest() {
 	fun `Lists every timeline with its mode and event count and main cannot be deleted`() {
 		show(threeTimelines())
 
-		compose.onNodeWithText("TIMELINES").assertIsDisplayed()
 		compose.onNodeWithTag(timelineSettingsRowTag("main")).assertIsDisplayed()
-		compose.onNodeWithText("MANUAL · 4 EVENTS").assertIsDisplayed()
-		compose.onNodeWithText("DATED · 13 EVENTS").assertIsDisplayed()
-		compose.onNodeWithText("MANUAL · 1 EVENT").assertIsDisplayed()
+		compose.onNodeWithText("Manual · 4 events").assertIsDisplayed()
+		compose.onNodeWithText("Dated · 13 events").assertIsDisplayed()
+		compose.onNodeWithText("Manual · 1 event").assertIsDisplayed()
 		compose.onNodeWithTag(timelineSettingsRenameTag("main")).assertIsDisplayed()
 		compose.onNodeWithTag(timelineSettingsDeleteTag("main")).assertDoesNotExist()
 		compose.onNodeWithTag(timelineSettingsDeleteTag("backstory")).assertIsDisplayed()
@@ -365,7 +364,7 @@ class TimelineSettingsUiTest : BaseTest() {
 
 		assertEquals(listOf("Aftermath"), component.created)
 		compose.onNodeWithTag(TIME_LINE_NEW_NAME_TAG).assertDoesNotExist()
-		compose.onNodeWithText("MANUAL · 0 EVENTS").assertIsDisplayed()
+		compose.onNodeWithText("Manual · 0 events").assertIsDisplayed()
 	}
 
 	@Test

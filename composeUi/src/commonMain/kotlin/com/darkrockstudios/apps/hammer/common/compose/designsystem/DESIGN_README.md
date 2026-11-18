@@ -560,6 +560,12 @@ screen that surfaces them.
   zone for entry cards: 6dp accent stripe + low-opacity glyph
   backdrop + the entry name in display weight. Use when no cover
   image is set so the card never feels half-formed.
+- **[`HdEmptyState`](HdEmptyState.kt)**: "nothing here yet" for a
+  list or tab: a dashed hairline frame (dashes mean "a place for
+  something") around a light icon, what's missing in `titleLarge`, and
+  one or two sentences on what it's for and where to get some. Name
+  the place in the app's own words ("Settings, on the Plugins tab").
+  Optional `action` for when the fix is right here.
 - **[`HdEngravingPlaceholder`](HdEngravingPlaceholder.kt)** — 45°
   hatched stripes + `[ENGRAVING · NAME]`. The "no image" placeholder
   inside detail layouts. `compact = true` shows a centred `[NAME]` for

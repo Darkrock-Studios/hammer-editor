@@ -64,7 +64,7 @@
 	<string name="project_info_color_picker_cancel">Cancel</string>
 	<string name="project_info_color_picker_confirm">OK</string>
 	<string name="project_settings_breadcrumb_home">Home</string>
-	<string name="project_settings_breadcrumb_root">Project Settings</string>
+	<string name="project_settings_breadcrumb_root">Project settings</string>
 	<string name="project_settings_autosaved">Autosaved</string>
 	<string name="project_settings_hero_marker">§ 0 · Project</string>
 	<string name="project_settings_hero_by">by %1$s</string>
@@ -379,4 +379,19 @@
 		name="server_setup_help_note_body">Syncing in Hammer is different from online-first applications like Google Docs. The syncing is not real-time. It usually happens when you open or close the app. Make sure you're synced with the latest versions of your projects before going offline. Hammer does automatic syncing, but it's always good to check if you're going to be offline for a while.
 	</string>
 	<string name="server_setup_help_dismiss_button">Got It</string>
+	<string name="project_settings_tab_project">Project</string>
+	<string name="project_settings_tab_writing">Writing</string>
+	<string name="project_settings_tab_timelines">Timelines</string>
+	<string name="project_settings_tab_plugins">Plugins</string>
+	<string name="project_settings_enter_to_add_tag">Press Enter to add a tag.</string>
+	<string name="project_settings_enter_to_add_word">Press Enter to add a word.</string>
+	<string name="project_settings_goal_row">Goal</string>
+	<string name="project_settings_goal_words_per">words per</string>
+	<string name="project_settings_goal_per_day">About %1$d words a day.</string>
+	<string name="project_settings_edit_ellipsis">Edit…</string>
+	<string name="project_settings_pick_ellipsis">Pick…</string>
+	<string name="project_settings_dictionary_title">Project dictionary</string>
+	<string name="project_settings_plugins_empty_title">No plugins installed</string>
+	<string name="project_settings_plugins_empty_body">Plugins add actions, spelling and grammar checks, and export formats. Install them in Settings, on the Plugins tab, from the project list. Then you can turn each one on or off for this project here.</string>
+	<string name="project_settings_plugins_empty_body_here">Plugins add actions, spelling and grammar checks, and export formats. Install them here or in Settings, on the Plugins tab. Then you can turn each one on or off for this project.</string>
 </resources>

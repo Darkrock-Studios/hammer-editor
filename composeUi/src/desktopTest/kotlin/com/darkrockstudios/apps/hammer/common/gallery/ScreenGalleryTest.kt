@@ -44,6 +44,9 @@ import com.darkrockstudios.apps.hammer.common.preview.images.ImageGalleryBrowseP
 import com.darkrockstudios.apps.hammer.common.preview.images.ImageGalleryPickTabletPreview
 import com.darkrockstudios.apps.hammer.common.preview.timeline.MoveToTimelineDialogPreview
 import com.darkrockstudios.apps.hammer.common.preview.projecthome.ScreenProjectSettingsUiSharedPreview
+import com.darkrockstudios.apps.hammer.common.preview.projecthome.ScreenProjectSettingsUiWritingTabletPreview
+import com.darkrockstudios.apps.hammer.common.preview.projecthome.ScreenProjectSettingsUiTimelinesTabletPreview
+import com.darkrockstudios.apps.hammer.common.preview.projecthome.ScreenProjectSettingsUiPluginsTabletPreview
 import com.darkrockstudios.apps.hammer.common.preview.projecthome.TimelineSettingsUiThreeTimelinesPreview
 import com.darkrockstudios.apps.hammer.common.preview.duplicateids.DuplicateIdsDialogDarkPreview
 import com.darkrockstudios.apps.hammer.common.preview.duplicateids.DuplicateIdsDialogPreview
@@ -165,6 +168,9 @@ class ScreenGalleryTest {
 		screen("Project stats") { ScreenProjectStatsUiTabletPreview() },
 		screen("Project settings") { ScreenProjectSettingsUiTabletPreview() },
 		screen("Project settings, shared") { ScreenProjectSettingsUiSharedPreview() },
+		screen("Project settings, writing") { ScreenProjectSettingsUiWritingTabletPreview() },
+		screen("Project settings, timelines") { ScreenProjectSettingsUiTimelinesTabletPreview() },
+		screen("Project settings, plugins") { ScreenProjectSettingsUiPluginsTabletPreview() },
 		surfaced("Timeline settings") { TimelineSettingsUiThreeTimelinesPreview() },
 		surfaced("Export options dialog") { ExportOptionsDialogPreview() },
 		screen("Duplicate IDs dialog") {

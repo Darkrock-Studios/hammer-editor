@@ -1,5 +1,29 @@
 package com.darkrockstudios.apps.hammer.common.projecthome
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdEmptyState
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMetaText
+import androidx.compose.material.icons.outlined.Extension
+import com.darkrockstudios.apps.hammer.project_settings_plugins_empty_body
+import com.darkrockstudios.apps.hammer.project_settings_plugins_empty_body_here
+import com.darkrockstudios.apps.hammer.plugins.wasmhost.RuntimePlugins
+import org.koin.mp.KoinPlatform.getKoin
+import com.darkrockstudios.apps.hammer.project_settings_plugins_empty_title
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdQuietButton
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSettingGroup
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSettingRow
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTabPill
+import com.darkrockstudios.apps.hammer.project_settings_dictionary_title
+import com.darkrockstudios.apps.hammer.project_settings_enter_to_add_word
+import com.darkrockstudios.apps.hammer.project_settings_tab_plugins
+import com.darkrockstudios.apps.hammer.project_settings_tab_project
+import com.darkrockstudios.apps.hammer.project_settings_tab_timelines
+import com.darkrockstudios.apps.hammer.project_settings_tab_writing
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdColumnMaxWidth
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdSectionGap
 import androidx.compose.foundation.background
@@ -67,7 +91,6 @@ import com.darkrockstudios.apps.hammer.project_settings_hero_marker
 import com.darkrockstudios.apps.hammer.project_settings_hero_no_author
 import com.darkrockstudios.apps.hammer.project_settings_plugins_caption
 import com.darkrockstudios.apps.hammer.project_settings_plugins_pick_none
-import com.darkrockstudios.apps.hammer.project_settings_plugins_section_title
 import com.darkrockstudios.apps.hammer.project_settings_spellcheck_encyclopedia_enable
 import com.darkrockstudios.apps.hammer.project_settings_spellcheck_encyclopedia_enable_hint
 import com.darkrockstudios.apps.hammer.project_settings_spellcheck_mismatch_caption
@@ -87,121 +110,132 @@ private val MaxColumnWidth = 880.dp
 const val ProjectSyncOwnTestTag = "project-settings-sync-own"
 const val ProjectSyncSharedTestTag = "project-settings-sync-shared"
 
+/** The tabs of project Settings. */
+enum class ProjectSettingsTab { Project, Writing, Timelines, Plugins }
+
+/**
+ * Project settings as four tabs of setting rows. The project's name shows once, as the title of
+ * its details group; the masthead names the screen.
+ */
 @Composable
 fun ProjectSettingsUi(
 	modifier: Modifier,
 	component: ProjectSettings,
 	onClose: () -> Unit,
+	initialTab: ProjectSettingsTab = ProjectSettingsTab.Project,
 ) {
 	val state by component.projectInfoState.subscribeAsState()
 	val plugins = koinInject<PluginUiRegistry>().plugins()
 	val disabledPlugins by component.disabledPlugins.subscribeAsState()
 	val syncState by component.syncState.subscribeAsState()
-	val syncSection = if (syncState.serverConfigured) 8 else null
-	val sectionCount = syncSection ?: if (plugins.isEmpty()) 6 else 7
 	val screen = LocalScreenCharacteristic.current
 	val isCompact = screen.windowWidthClass == WindowWidthSizeClass.Compact
-
-	val outerHorizontal: Dp = if (isCompact) Ui.Padding.XL else 56.dp
-	val outerVertical: Dp = if (isCompact) Ui.Padding.L else 28.dp
+	val horizontal: Dp = if (isCompact) Ui.Padding.XL else 56.dp
+	val tabs = ProjectSettingsTab.entries
+	var tab by rememberSaveable { mutableStateOf(initialTab) }
 
 	Column(
 		modifier = modifier
 			.fillMaxSize()
 			.background(MaterialTheme.colorScheme.surface),
 	) {
-		Breadcrumb(
-			projectName = component.projectName,
-			isCompact = isCompact,
-			onClose = onClose,
-		)
+		Masthead(horizontal = horizontal, onClose = onClose)
 		HdFolioDivider()
 
-		val scrollState = rememberScrollState()
-		Box(
-			modifier = Modifier
-				.weight(1f)
-				.fillMaxWidth(),
-		) {
-			Column(
+		Box(modifier = Modifier.fillMaxWidth().padding(horizontal = horizontal)) {
+			Row(
 				modifier = Modifier
-					.fillMaxSize()
-					.verticalScroll(scrollState)
-					.padding(horizontal = outerHorizontal, vertical = outerVertical),
+					.widthIn(max = hdColumnMaxWidth(MaxColumnWidth))
+					.fillMaxWidth()
+					.align(Alignment.TopCenter),
 			) {
-				Box(
+				tabs.forEach { option ->
+					HdTabPill(
+						label = tabLabel(option),
+						active = option == tab,
+						onClick = { tab = option },
+						modifier = Modifier.weight(1f),
+					)
+				}
+			}
+		}
+
+		key(tab) {
+			val scrollState = rememberScrollState()
+			Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+				Column(
 					modifier = Modifier
-						.widthIn(max = hdColumnMaxWidth(MaxColumnWidth))
-						.fillMaxWidth()
-						.align(Alignment.CenterHorizontally),
+						.fillMaxSize()
+						.verticalScroll(scrollState)
+						.padding(horizontal = horizontal, vertical = if (isCompact) Ui.Padding.XL else 32.dp),
 				) {
-					Column(verticalArrangement = Arrangement.spacedBy(hdSectionGap(64.dp))) {
-						Hero(
-							projectName = component.projectName,
-							authorName = state.data.authorName,
-							isCompact = isCompact,
-						)
-
+					Column(
+						modifier = Modifier
+							.widthIn(max = hdColumnMaxWidth(MaxColumnWidth))
+							.fillMaxWidth()
+							.align(Alignment.CenterHorizontally),
+						verticalArrangement = Arrangement.spacedBy(56.dp),
+					) {
 						if (state.isLoaded) {
-							ProjectInfoSettingsUi(component)
+							when (tab) {
+								ProjectSettingsTab.Project -> {
+									ProjectDetailsGroup(component, component.projectName) {
+										if (syncState.serverConfigured) ProjectSyncRow(syncState)
+									}
+									CoverImageSection(
+										coverImageId = state.data.coverImageId,
+										coverImage = state.coverImage,
+										pickPending = state.pendingCoverPick,
+										onPick = component::pickCoverImage,
+										onClear = component::clearCoverImage,
+									)
+									ProjectTagsGroup(
+										tags = state.data.tags,
+										onChange = component::setTags,
+										suggest = component::suggestProjectTags,
+									)
+									CustomThemeGroup(theme = state.data.theme, onChange = component::setTheme)
+								}
 
-							HdHairlineSection(
-								section = 5,
-								title = Res.string.project_settings_spellcheck_section_title.get(),
-								contentSpacing = 18.dp,
-							) {
-								SpellCheckSettingsContent(
-									component.spellCheckSettings,
-									showEncyclopediaToggle = false,
-								)
-								ProjectDictionaryToggle(
-									enabled = state.data.encyclopediaDictionary,
+								ProjectSettingsTab.Writing -> {
+									WordCountGoalGroup(goal = state.data.wordCountGoal, onChange = component::setWordCountGoal)
+									HdSettingGroup(title = Res.string.project_settings_spellcheck_section_title.get()) {
+										SpellCheckSettingsContent(component.spellCheckSettings, showEncyclopediaToggle = false)
+										ProjectDictionaryToggle(enabled = state.data.encyclopediaDictionary, component = component)
+										SpellCheckMismatchCaption(
+											projectLanguageTag = state.data.language,
+											spellCheckSettings = component.spellCheckSettings,
+										)
+									}
+									HdSettingGroup(title = Res.string.project_settings_dictionary_title.get()) {
+										ProjectDictionaryWords(words = state.data.dictionaryWords, component = component)
+									}
+								}
+
+								ProjectSettingsTab.Timelines -> TimelineSettingsUi(component = component.timelineSettings)
+								ProjectSettingsTab.Plugins -> ProjectPlugins(
+									plugins = plugins,
+									disabled = disabledPlugins,
+									language = state.data.language,
 									component = component,
 								)
-								ProjectDictionaryWords(
-									words = state.data.dictionaryWords,
-									component = component,
-								)
-								SpellCheckMismatchCaption(
-									projectLanguageTag = state.data.language,
-									spellCheckSettings = component.spellCheckSettings,
-								)
-							}
-
-							TimelineSettingsUi(
-								component = component.timelineSettings,
-								section = 6,
-							)
-
-							ProjectPlugins(
-								plugins = plugins,
-								disabled = disabledPlugins,
-								language = state.data.language,
-								component = component,
-							)
-
-							if (syncSection != null) {
-								ProjectSync(section = syncSection, state = syncState)
 							}
 						}
-
 						Spacer(Modifier.height(8.dp))
 					}
 				}
+				MpScrollBarColumn(modifier = scrollBarOverlay(), state = scrollState)
 			}
-
-			MpScrollBarColumn(
-				modifier = scrollBarOverlay(),
-				state = scrollState,
-			)
 		}
-
-		FolioCaption(
-			projectName = component.projectName,
-			sectionCount = sectionCount,
-			horizontalPadding = outerHorizontal,
-		)
 	}
+}
+
+@Composable
+private fun tabLabel(tab: ProjectSettingsTab): String = when (tab) {
+	ProjectSettingsTab.Project -> Res.string.project_settings_tab_project.get()
+	ProjectSettingsTab.Writing -> Res.string.project_settings_tab_writing.get()
+	ProjectSettingsTab.Timelines -> Res.string.project_settings_tab_timelines.get()
+	ProjectSettingsTab.Plugins -> Res.string.project_settings_tab_plugins.get()
 }
 
 /** Per-project override for the global "learn encyclopedia names" feature. */
@@ -229,16 +263,22 @@ private fun ProjectDictionaryWords(
 	component: ProjectSettings,
 ) {
 	val sorted = remember(words) { words.sortedBy { it.lowercase() } }
-	HdHairlineWordListField(
-		label = Res.string.project_settings_dictionary_label.get(),
-		words = sorted,
-		onAdd = component::addDictionaryWord,
-		onRemove = component::removeDictionaryWord,
-		parseInput = ::normalizeDictionaryWord,
-		hint = Res.string.project_settings_dictionary_hint.get(),
-		placeholder = Res.string.project_settings_dictionary_placeholder.get(),
-		testTag = "project-settings-dictionary",
-	)
+	Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+		HdHairlineWordListField(
+			label = "",
+			words = sorted,
+			onAdd = component::addDictionaryWord,
+			onRemove = component::removeDictionaryWord,
+			parseInput = ::normalizeDictionaryWord,
+			placeholder = Res.string.project_settings_dictionary_placeholder.get(),
+			testTag = "project-settings-dictionary",
+		)
+		Text(
+			text = Res.string.project_settings_enter_to_add_word.get(),
+			style = MaterialTheme.typography.bodySmall,
+			color = MaterialTheme.colorScheme.onSurfaceVariant,
+		)
+	}
 }
 
 /**
@@ -257,11 +297,23 @@ private fun ProjectPlugins(
 		val chosen = choices.flatMap { choice -> choice.plugins.map { it.id } }.toSet()
 		plugins.filter { it.id !in chosen }.sortedBy { (it.name ?: it.id).lowercase() }
 	}
-	HdHairlineSection(
-		section = 7,
-		title = Res.string.project_settings_plugins_section_title.get(),
-		contentSpacing = 18.dp,
-	) {
+	if (plugins.isEmpty()) {
+		// The button is missing where plugins can't be installed, so the text only points to it when it's there.
+		val canInstall = remember { getKoin().getOrNull<RuntimePlugins>() != null }
+		HdEmptyState(
+			icon = Icons.Outlined.Extension,
+			title = Res.string.project_settings_plugins_empty_title.get(),
+			body = if (canInstall) {
+				Res.string.project_settings_plugins_empty_body_here.get()
+			} else {
+				Res.string.project_settings_plugins_empty_body.get()
+			},
+			action = { ManagePluginsButton() },
+		)
+		return
+	}
+	// Untitled: the tab already says "Plugins".
+	HdSettingGroup(title = null) {
 		Text(
 			text = Res.string.project_settings_plugins_caption.get(),
 			style = MaterialTheme.typography.bodySmall,
@@ -293,54 +345,32 @@ private fun ProjectPlugins(
 }
 
 /**
- * Whether this device syncs the project. An own project's switch is in its menu on the project list,
- * where it is closed; a shared project says whose it is and how it stops syncing.
+ * Whether this device syncs the project, read-only: an own project's switch is in its menu on the
+ * project list, where it is closed; a shared project says whose it is and how it stops syncing.
  */
 @Composable
-internal fun ProjectSync(section: Int, state: ProjectSettings.SyncState) {
-	HdHairlineSection(
-		section = section,
-		title = Res.string.project_settings_sync_section_title.get(),
-		contentSpacing = 18.dp,
-	) {
-		val owner = state.owner
-		if (owner != null) {
-			SyncStatus(
-				title = sharedByLabel(owner.name),
-				hint = if (state.syncEnabled) {
-					Res.string.project_settings_sync_shared_syncing.get()
-				} else {
-					Res.string.project_settings_sync_shared_off.get()
-				},
-				modifier = Modifier.testTag(ProjectSyncSharedTestTag),
-			)
-		} else {
-			SyncStatus(
-				title = if (state.syncEnabled) {
-					Res.string.project_settings_sync_own_on.get()
-				} else {
-					Res.string.project_settings_sync_own_off.get()
-				},
-				hint = Res.string.project_settings_sync_own_hint.get(),
-				modifier = Modifier.testTag(ProjectSyncOwnTestTag),
-			)
-		}
-	}
-}
-
-@Composable
-private fun SyncStatus(title: String, hint: String, modifier: Modifier) {
-	Column(modifier = modifier.fillMaxWidth()) {
-		Text(
-			text = title,
-			style = MaterialTheme.typography.bodyLarge,
-			color = MaterialTheme.colorScheme.onSurface,
-		)
-		Text(
-			text = hint,
-			style = MaterialTheme.typography.bodySmall,
-			color = MaterialTheme.colorScheme.onSurfaceVariant,
-		)
+internal fun ProjectSyncRow(state: ProjectSettings.SyncState) {
+	val owner = state.owner
+	if (owner != null) {
+		HdSettingRow(
+			title = sharedByLabel(owner.name),
+			description = if (state.syncEnabled) {
+				Res.string.project_settings_sync_shared_syncing.get()
+			} else {
+				Res.string.project_settings_sync_shared_off.get()
+			},
+			modifier = Modifier.testTag(ProjectSyncSharedTestTag),
+		) {}
+	} else {
+		HdSettingRow(
+			title = if (state.syncEnabled) {
+				Res.string.project_settings_sync_own_on.get()
+			} else {
+				Res.string.project_settings_sync_own_off.get()
+			},
+			description = Res.string.project_settings_sync_own_hint.get(),
+			modifier = Modifier.testTag(ProjectSyncOwnTestTag),
+		) {}
 	}
 }
 
@@ -366,123 +396,38 @@ private fun SpellCheckMismatchCaption(
 }
 
 @Composable
-private fun Breadcrumb(
-	projectName: String,
-	isCompact: Boolean,
-	onClose: () -> Unit,
-) {
-	val horizontal: Dp = if (isCompact) Ui.Padding.XL else 56.dp
+private fun Masthead(horizontal: Dp, onClose: () -> Unit) {
 	Row(
 		modifier = Modifier
 			.fillMaxWidth()
-			.padding(horizontal = horizontal, vertical = 14.dp),
+			.height(Ui.TOP_BAR_HEIGHT)
+			.padding(horizontal = horizontal),
 		verticalAlignment = Alignment.CenterVertically,
-		horizontalArrangement = Arrangement.spacedBy(12.dp),
+		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 	) {
-		HdCrumbBackLink(
-			label = Res.string.project_settings_breadcrumb_home.get(),
+		HdQuietButton(
 			onClick = onClose,
-			color = MaterialTheme.colorScheme.onSurfaceVariant,
+			icon = Icons.AutoMirrored.Filled.ArrowBack,
+			label = Res.string.project_settings_breadcrumb_home.get(),
 		)
-		HdMonoLabel(
-			text = "/",
-			color = MaterialTheme.colorScheme.outlineVariant,
-		)
-		HdMonoLabel(
+		Text(
 			text = Res.string.project_settings_breadcrumb_root.get(),
+			style = MaterialTheme.typography.headlineSmall,
 			color = MaterialTheme.colorScheme.onSurface,
+			maxLines = 1,
+			overflow = TextOverflow.Ellipsis,
+			modifier = Modifier.weight(1f),
 		)
-		if (!isCompact) {
-			HdMonoLabel(
-				text = "/",
-				color = MaterialTheme.colorScheme.outlineVariant,
-			)
-			HdMonoLabel(
-				modifier = Modifier.weight(1f, fill = false),
-				text = projectName,
-				color = MaterialTheme.colorScheme.onSurface,
-			)
-		}
-		Spacer(Modifier.weight(1f))
 		AutosaveBadge()
 	}
 }
 
+/** Says there is no Save button: every change applies as it's made. */
 @Composable
 private fun AutosaveBadge() {
 	val success = LocalHammerColors.current.success
-	Row(
-		verticalAlignment = Alignment.CenterVertically,
-		horizontalArrangement = Arrangement.spacedBy(8.dp),
-	) {
-		Box(
-			modifier = Modifier
-				.size(6.dp)
-				.background(success, RectangleShape),
-		)
-		HdMonoLabel(
-			text = Res.string.project_settings_autosaved.get(),
-			color = MaterialTheme.colorScheme.onSurfaceVariant,
-		)
+	Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+		Box(modifier = Modifier.size(6.dp).background(success, RectangleShape))
+		HdMetaText(text = Res.string.project_settings_autosaved.get())
 	}
 }
-
-@Composable
-private fun Hero(
-	projectName: String,
-	authorName: String?,
-	isCompact: Boolean,
-) {
-	Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-		HdMonoLabel(text = Res.string.project_settings_hero_marker.get())
-		Text(
-			text = projectName,
-			style = if (isCompact) MaterialTheme.typography.displaySmall
-			else MaterialTheme.typography.displayMedium,
-			color = MaterialTheme.colorScheme.onSurface,
-			maxLines = 2,
-			overflow = TextOverflow.Ellipsis,
-		)
-		val by = if (authorName.isNullOrBlank()) {
-			Res.string.project_settings_hero_no_author.get()
-		} else {
-			Res.string.project_settings_hero_by.get(authorName)
-		}
-		Text(
-			text = by,
-			style = MaterialTheme.typography.bodyLarge,
-			color = MaterialTheme.colorScheme.onSurfaceVariant,
-		)
-	}
-}
-
-@Composable
-private fun FolioCaption(
-	projectName: String,
-	sectionCount: Int,
-	horizontalPadding: Dp,
-) {
-	HorizontalDivider(
-		thickness = Dp.Hairline,
-		color = MaterialTheme.colorScheme.outlineVariant,
-	)
-	Row(
-		modifier = Modifier
-			.fillMaxWidth()
-			.padding(horizontal = horizontalPadding, vertical = 10.dp),
-		verticalAlignment = Alignment.CenterVertically,
-		horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
-	) {
-		HdMonoLabel(
-			text = Res.string.project_settings_folio_caption.get(projectName),
-		)
-		HdMonoLabel(
-			text = "·",
-			color = MaterialTheme.colorScheme.outlineVariant,
-		)
-		HdMonoLabel(
-			text = Res.string.project_settings_folio_section_count.get(sectionCount),
-		)
-	}
-}
-

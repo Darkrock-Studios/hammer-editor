@@ -21,7 +21,8 @@ import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.projecthome.CoverImage
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdEngravingPlaceholder
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineSection
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSettingGroup
+import com.darkrockstudios.apps.hammer.project_settings_pick_ellipsis
 import com.darkrockstudios.apps.hammer.common.compose.images.COVER_ASPECT_RATIO
 import com.darkrockstudios.apps.hammer.common.compose.images.CoverThumbnail
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
@@ -44,7 +45,6 @@ const val PROJECT_SETTINGS_COVER_THUMB_TAG = "project-settings-cover-thumb"
  */
 @Composable
 internal fun CoverImageSection(
-	section: Int,
 	coverImageId: Int?,
 	coverImage: CoverImage?,
 	pickPending: Boolean,
@@ -54,12 +54,7 @@ internal fun CoverImageSection(
 ) {
 	var viewing by remember { mutableStateOf(false) }
 
-	HdHairlineSection(
-		modifier = modifier,
-		section = section,
-		title = Res.string.project_info_cover_section_title.get(),
-		contentSpacing = 18.dp,
-	) {
+	HdSettingGroup(title = Res.string.project_info_cover_section_title.get(), modifier = modifier) {
 		Row(
 			modifier = Modifier.fillMaxWidth(),
 			horizontalArrangement = Arrangement.spacedBy(24.dp),
@@ -91,7 +86,7 @@ internal fun CoverImageSection(
 					color = MaterialTheme.colorScheme.onSurfaceVariant,
 				)
 				HdHairlineButton(
-					label = Res.string.project_info_cover_pick.get().uppercase(),
+					label = Res.string.project_settings_pick_ellipsis.get(),
 					onClick = onPick,
 					enabled = !pickPending,
 					emphasised = true,
@@ -99,7 +94,7 @@ internal fun CoverImageSection(
 				)
 				if (coverImageId != null) {
 					HdHairlineButton(
-						label = Res.string.project_info_cover_clear.get().uppercase(),
+						label = Res.string.project_info_cover_clear.get(),
 						onClick = onClear,
 						modifier = Modifier.testTag(PROJECT_SETTINGS_COVER_CLEAR_TAG),
 					)
