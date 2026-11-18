@@ -1,0 +1,525 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Screenshot Markup</title>
+<style>
+:root {
+	--bg: #f4f3f0; --panel: #ffffff; --ink: #1d1c1a; --muted: #6b6862; --rule: #d9d6cf;
+	--accent: #d93636; --accent-ink: #ffffff; --sel: #ebe8e1; --stage: #c9c6bf;
+}
+@media (prefers-color-scheme: dark) {
+	:root:not([data-theme="light"]) {
+		--bg: #161616; --panel: #1f1f1f; --ink: #ecebe8; --muted: #9b988f; --rule: #34332f;
+		--accent: #ff5a52; --accent-ink: #1a0b0a; --sel: #2b2a27; --stage: #0c0c0c;
+	}
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.4 system-ui, sans-serif; height: 100vh; display: grid; grid-template-columns: 240px 1fr 320px; }
+aside, section { overflow: auto; }
+#shots { border-right: 1px solid var(--rule); padding: 12px; }
+#shots h2, #side h2 { font-size: 12px; font-weight: 600; color: var(--muted); margin: 14px 0 6px; }
+#shots h2:first-child { margin-top: 0; }
+#shots h3 { font-size: 12px; font-weight: 500; color: var(--muted); margin: 8px 0 2px; }
+#shots button { display: block; width: 100%; text-align: left; border: 0; background: none; color: var(--ink); padding: 3px 6px; cursor: pointer; font: inherit; }
+#shots button:hover { background: var(--sel); }
+#shots button.on { background: var(--sel); font-weight: 600; }
+#shots .badge { color: var(--accent); font-size: 11px; margin-left: 4px; }
+#drop { border: 1px dashed var(--rule); padding: 10px; color: var(--muted); font-size: 12px; margin-bottom: 12px; }
+/* Only the stage scrolls, so the toolbars stay put whatever size the image is. */
+main { display: flex; flex-direction: column; min-width: 0; min-height: 0; height: 100vh; overflow: hidden; }
+#bar, #viewbar { flex: none; }
+#bar { display: flex; gap: 6px; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--rule); background: var(--panel); flex-wrap: wrap; }
+#bar button { border: 1px solid var(--rule); background: var(--panel); color: var(--ink); padding: 5px 10px; cursor: pointer; font: inherit; }
+#bar button.on { background: var(--ink); color: var(--panel); border-color: var(--ink); }
+#viewbar { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; padding: 10px 12px; border-bottom: 1px solid var(--rule); background: var(--panel); }
+#viewbar[hidden] { display: none; }
+#viewbar label[hidden] { display: none; }
+#viewbar select { font: inherit; font-size: 13px; color: var(--ink); background: var(--panel); border: 1px solid var(--rule); padding: 5px 6px; }
+#pair { display: flex; gap: 16px; align-items: flex-start; }
+#cmpBox { margin: 0; line-height: 0; position: relative; }
+#cmpBox[hidden] { display: none; }
+#cmpBox figcaption { position: absolute; top: 0; left: 0; line-height: 1.4; font-size: 11px; background: var(--panel); color: var(--muted); padding: 2px 6px; }
+#cmp { display: block; max-width: none; opacity: .92; }
+#live.flash { color: var(--accent); }
+#viewbar strong { font-size: 16px; margin-right: 6px; }
+#viewbar label { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; }
+#viewbar .seg { display: inline-flex; }
+#viewbar .seg button { border: 1px solid var(--rule); background: var(--panel); color: var(--ink); padding: 6px 12px; cursor: pointer; font: inherit; font-size: 13px; }
+#viewbar .seg button + button { border-left: 0; }
+#viewbar .seg button.on { background: var(--ink); color: var(--panel); border-color: var(--ink); }
+#viewbar .seg button:disabled { opacity: .35; cursor: default; }
+#bar .seg { display: inline-flex; }
+#bar .seg button + button { border-left: 0; }
+#zoomLabel { min-width: 58px; font-variant-numeric: tabular-nums; }
+#bar .title { margin-left: auto; color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 40%; }
+#stage { flex: 1; min-height: 0; overflow: auto; background: var(--stage); padding: 16px; }
+#wrap { position: relative; display: inline-block; line-height: 0; user-select: none; -webkit-user-select: none; }
+#wrap[hidden] { display: none; }
+#wrap img { display: block; max-width: none; }
+#wrap svg { position: absolute; inset: 0; width: 100%; height: 100%; cursor: crosshair; touch-action: none; }
+#empty { color: var(--muted); padding: 40px; line-height: 1.6; }
+#side { border-left: 1px solid var(--rule); padding: 12px; background: var(--panel); display: flex; flex-direction: column; gap: 8px; }
+.mark { display: grid; grid-template-columns: 26px 1fr 22px; gap: 6px; align-items: start; padding: 6px; border: 1px solid var(--rule); }
+.mark.sel { border-color: var(--accent); }
+.mark .n { background: var(--accent); color: var(--accent-ink); font-weight: 700; text-align: center; padding: 2px 0; font-size: 12px; }
+.mark .kind { font-size: 11px; color: var(--muted); }
+.mark button { border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 16px; line-height: 1; }
+textarea { width: 100%; font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--rule); padding: 6px; resize: vertical; min-height: 44px; }
+#save { background: var(--accent); color: var(--accent-ink); border: 0; padding: 10px; font: inherit; font-weight: 600; cursor: pointer; }
+#save:disabled { opacity: .5; cursor: default; }
+#status { font-size: 12px; color: var(--muted); word-break: break-all; }
+.hint { font-size: 12px; color: var(--muted); }
+kbd { font: 11px ui-monospace, monospace; border: 1px solid var(--rule); padding: 0 3px; }
+@media (max-width: 900px) { body { grid-template-columns: 1fr; grid-template-rows: auto 1fr auto; } #shots { max-height: 30vh; border-right: 0; } }
+</style>
+</head>
+<body>
+<aside id="shots">
+	<div id="drop">Paste (<kbd>Ctrl</kbd>+<kbd>V</kbd>) or drop any screenshot here, or pick a look book shot below.</div>
+	<div id="list"></div>
+</aside>
+<main>
+	<div id="bar">
+		<button data-tool="pin" class="on" title="Pin (P)">● Pin</button>
+		<button data-tool="circle" title="Circle (C)">◯ Circle</button>
+		<button data-tool="box" title="Box (B)">▭ Box</button>
+		<span class="seg">
+			<button id="zoomOut" title="Zoom out (−)">−</button><button id="zoomLabel" title="Actual pixels">Fit</button><button id="zoomIn" title="Zoom in (+)">+</button>
+		</span>
+		<button id="fit" title="Fit to width (F)">Fit</button>
+		<button id="undo" title="Undo (Ctrl+Z)">Undo</button>
+		<button id="copy" title="Copy the screenshot, with any marks, to the clipboard (Ctrl+Shift+C)">Copy image</button>
+		<span class="title" id="title"></span>
+	</div>
+	<div id="viewbar" hidden>
+		<strong id="screenName"></strong>
+		<label id="verLabel" hidden>Version <span class="seg">
+			<button data-ver="live" title="X toggles">Live</button><button data-ver="baseline" title="X toggles">Baseline</button>
+		</span></label>
+		<label>Size <span class="seg">
+			<button data-ff="phone" title="V toggles">Phone</button><button data-ff="tablet" title="V toggles">Tablet / desktop</button>
+		</span></label>
+		<label>Theme <span class="seg">
+			<button data-theme="light" title="T toggles">Light</button><button data-theme="dark" title="T toggles">Dark</button>
+		</span></label>
+		<label>Capture <span class="seg">
+			<button data-whole="1" title="W toggles">Whole screen</button><button data-whole="0" title="W toggles">First view</button>
+		</span></label>
+		<label>Compare with <select id="compare"><option value="">Nothing</option></select></label>
+		<span id="live" class="hint"></span>
+	</div>
+	<div id="stage"><div id="empty">Pick a screenshot on the left. Then click to drop a pin, or drag to circle or box something. Each mark gets a number and a note on the right. Save writes the marked-up image and the notes to <code>ui-research/markup/reviews/</code>.</div><div id="pair"><div id="wrap" hidden><img id="img" alt="" draggable="false"><svg id="svg"></svg></div><figure id="cmpBox" hidden><figcaption id="cmpCap"></figcaption><img id="cmp" alt=""></figure></div></div>
+</main>
+<aside id="side">
+	<h2>Marks</h2>
+	<div id="marks"><p class="hint">No marks yet.</p></div>
+	<h2>Overall</h2>
+	<textarea id="general" placeholder="Anything about the whole screen"></textarea>
+	<button id="save" disabled>Save review</button>
+	<div id="status"></div>
+	<p class="hint"><kbd>P</kbd> pin, <kbd>C</kbd> circle, <kbd>B</kbd> box, <kbd>V</kbd> phone/tablet, <kbd>T</kbd> light/dark, <kbd>W</kbd> whole screen, <kbd>X</kbd> live/baseline, <kbd>+</kbd>/<kbd>−</kbd> or <kbd>Ctrl</kbd>+scroll zoom, <kbd>F</kbd> fit, <kbd>Ctrl</kbd>+<kbd>Z</kbd> undo. Marks are kept per shot in this browser until you save.</p>
+</aside>
+<script>
+const $ = (s) => document.querySelector(s);
+const img = $('#img'), svg = $('#svg'), wrap = $('#wrap');
+let tool = 'pin', current = null, marks = [], selected = null, drag = null;
+// null fits the image to the pane; a number scales natural pixels.
+let zoom = null;
+
+function storeKey() { return current && current.path ? 'markup:' + current.path : null; }
+function persist() {
+	const k = storeKey(); if (!k) return;
+	try { localStorage.setItem(k, JSON.stringify({ marks, general: $('#general').value })); } catch (e) {}
+}
+function restore() {
+	const k = storeKey(); marks = []; $('#general').value = '';
+	if (!k) return;
+	try { const v = JSON.parse(localStorage.getItem(k) || 'null'); if (v) { marks = v.marks || []; $('#general').value = v.general || ''; } } catch (e) {}
+}
+function hasStored(path) { try { const v = JSON.parse(localStorage.getItem('markup:' + path) || 'null'); return v && v.marks && v.marks.length; } catch (e) { return false; } }
+
+let screens = {}, pick = null, mtimes = {}, shotsSig = '';
+// The look book set captured before any UI 2.1 changes.
+const BASELINE = '2026-11-17-4.0.0';
+function counterpart(scr) {
+	if (!scr) return null;
+	const other = scr.set === BASELINE ? 'live' : BASELINE;
+	return screens[other + '/' + scr.base] || null;
+}
+function flipVersion(target) {
+	const other = counterpart(pick);
+	if (!other || (target && other.set !== (target === 'live' ? 'live' : BASELINE))) return;
+	pick = other;
+	document.querySelectorAll('#shots button.on').forEach(x => x.classList.remove('on'));
+	const b = [...document.querySelectorAll('#list button')].find(x => x.dataset.key === pick.set + '/' + pick.base);
+	if (b) { b.classList.add('on'); b.scrollIntoView({ block: 'nearest' }); }
+	showPick();
+}
+const src = (path) => '/' + path + '?v=' + (mtimes[path] || 0);
+const prefs = { ff: 'tablet', theme: 'dark', whole: true };
+try { Object.assign(prefs, JSON.parse(localStorage.getItem('markup:prefs') || '{}')); } catch (e) {}
+function savePrefs() { try { localStorage.setItem('markup:prefs', JSON.stringify(prefs)); } catch (e) {} }
+
+async function loadShots() {
+	const list = $('#list');
+	let shots = [];
+	try { shots = await (await fetch('/api/shots')).json(); } catch (e) { list.textContent = 'Could not list shots (is serve.py running?)'; return; }
+	screens = {};
+	mtimes = {};
+	shots.forEach(s => {
+		mtimes[s.path] = s.mtime;
+		const full = s.name.endsWith('.full'), base = full ? s.name.slice(0, -5) : s.name;
+		const scr = screens[s.set + '/' + base] ||= { set: s.set, base, files: {} };
+		(scr.files[s.variant] ||= {})[full ? 'full' : 'view'] = s.path;
+	});
+	const sets = {};
+	Object.values(screens).forEach(scr => (sets[scr.set] ||= []).push(scr));
+	list.innerHTML = '';
+	Object.keys(sets).sort((a, b) => a === 'live' ? -1 : b === 'live' ? 1 : b.localeCompare(a)).forEach(set => {
+		const h = document.createElement('h2'); h.textContent = set; list.append(h);
+		sets[set].sort((a, b) => a.base.localeCompare(b.base)).forEach(scr => {
+			const b = document.createElement('button');
+			b.textContent = scr.base;
+			b.dataset.key = scr.set + '/' + scr.base;
+			const stored = Object.values(scr.files).some(f => (f.view && hasStored(f.view)) || (f.full && hasStored(f.full)));
+			if (stored) { const badge = document.createElement('span'); badge.className = 'badge'; badge.textContent = '●'; b.append(badge); }
+			if (pick && pick.set === scr.set && pick.base === scr.base) { b.classList.add('on'); pick = scr; }
+			b.onclick = () => { pick = scr; document.querySelectorAll('#shots button.on').forEach(x => x.classList.remove('on')); b.classList.add('on'); showPick(); };
+			list.append(b);
+		});
+	});
+}
+
+function variantPath(scr, ff, theme, whole) {
+	const f = scr.files[ff + '-' + theme];
+	if (!f) return null;
+	return whole ? (f.full || f.view) : (f.view || f.full);
+}
+function showPick() {
+	if (!pick) return;
+	let { ff, theme } = prefs;
+	if (!variantPath(pick, ff, theme, true)) {
+		const any = Object.keys(pick.files)[0].split('-'); ff = any[0]; theme = any[1];
+	}
+	const path = variantPath(pick, ff, theme, prefs.whole);
+	const hasFull = !!(pick.files[ff + '-' + theme] || {}).full;
+	if (!current || current.path !== path) open({ path, src: src(path), title: `${pick.set} / ${ff}-${theme} / ${pick.base}${path.includes('.full.') ? ' (whole)' : ''}` });
+	syncBar(ff, theme, hasFull);
+	showCompare(ff, theme);
+}
+function showCompare(ff, theme) {
+	const sel = $('#compare'), want = sel.value || prefs.compare || '';
+	const others = Object.values(screens).filter(s => s.base === pick.base && s.set !== pick.set);
+	sel.innerHTML = '<option value="">Nothing</option>' + others.map(s => `<option value="${s.set}">${s.set}</option>`).join('');
+	sel.value = others.some(s => s.set === want) ? want : '';
+	const other = others.find(s => s.set === sel.value);
+	const path = other && (variantPath(other, ff, theme, prefs.whole) || variantPath(other, ff, theme, false));
+	$('#cmpBox').hidden = !path;
+	if (path) {
+		const next = src(path);
+		if (!$('#cmp').src.endsWith(next)) { $('#cmp').onload = applyFit; $('#cmp').src = next; }
+		$('#cmpCap').textContent = other.set;
+	}
+	applyFit();
+}
+$('#compare').onchange = () => { prefs.compare = $('#compare').value; savePrefs(); if (pick) showPick(); };
+function syncBar(ff, theme, hasFull) {
+	$('#viewbar').hidden = !pick;
+	if (pick) $('#screenName').textContent = pick.base.replace(/-/g, ' ');
+	const hasPair = !!pick && (pick.set === 'live' || pick.set === BASELINE) && !!counterpart(pick);
+	$('#verLabel').hidden = !hasPair;
+	document.querySelectorAll('#viewbar [data-ver]').forEach(b =>
+		b.classList.toggle('on', hasPair && (b.dataset.ver === 'live' ? pick.set === 'live' : pick.set === BASELINE)));
+	document.querySelectorAll('#viewbar [data-ff]').forEach(b => {
+		b.classList.toggle('on', b.dataset.ff === ff);
+		b.disabled = !!pick && !variantPath(pick, b.dataset.ff, theme, true);
+	});
+	document.querySelectorAll('#viewbar [data-theme]').forEach(b => {
+		b.classList.toggle('on', b.dataset.theme === theme);
+		b.disabled = !!pick && !variantPath(pick, ff, b.dataset.theme, true);
+	});
+	document.querySelectorAll('#viewbar [data-whole]').forEach(b => {
+		const whole = b.dataset.whole === '1';
+		b.classList.toggle('on', hasFull ? prefs.whole === whole : !whole);
+		b.disabled = !hasFull;
+		b.title = hasFull ? 'W toggles' : 'This screen fits without scrolling';
+	});
+}
+function setPref(k, v) { prefs[k] = v; savePrefs(); if (pick) showPick(); else syncBar(prefs.ff, prefs.theme, false); }
+document.querySelectorAll('#viewbar [data-ff]').forEach(b => b.onclick = () => setPref('ff', b.dataset.ff));
+document.querySelectorAll('#viewbar [data-theme]').forEach(b => b.onclick = () => setPref('theme', b.dataset.theme));
+document.querySelectorAll('#viewbar [data-whole]').forEach(b => b.onclick = () => setPref('whole', b.dataset.whole === '1'));
+document.querySelectorAll('#viewbar [data-ver]').forEach(b => b.onclick = () => flipVersion(b.dataset.ver));
+syncBar(prefs.ff, prefs.theme, false);
+
+function open(shot) {
+	persist();
+	current = shot; selected = null;
+	restore();
+	img.onload = () => {
+		$('#empty').hidden = true; wrap.hidden = false;
+		svg.setAttribute('viewBox', `0 0 ${img.naturalWidth} ${img.naturalHeight}`);
+		applyFit(); render();
+	};
+	img.src = shot.src;
+	$('#title').textContent = shot.title;
+	$('#save').disabled = false; $('#status').textContent = '';
+}
+
+function fitZoom() {
+	const comparing = !$('#cmpBox').hidden;
+	const avail = ($('#stage').clientWidth - 32 - (comparing ? 16 : 0)) / (comparing ? 2 : 1);
+	return Math.min(1, avail / img.naturalWidth);
+}
+function currentZoom() { return zoom ?? fitZoom(); }
+function applyFit() {
+	if (!img.naturalWidth) return;
+	const z = currentZoom();
+	img.style.width = img.naturalWidth * z + 'px';
+	// Both images share one scale so the compare stays lined up.
+	if (!$('#cmpBox').hidden) $('#cmp').style.width = ($('#cmp').naturalWidth || img.naturalWidth) * z + 'px';
+	$('#fit').classList.toggle('on', zoom === null);
+	$('#zoomLabel').textContent = Math.round(z * 100) + '%';
+}
+function setZoom(z, anchor) {
+	if (!img.naturalWidth) return;
+	const stage = $('#stage'), old = currentZoom();
+	z = Math.max(0.1, Math.min(4, z));
+	const r = stage.getBoundingClientRect();
+	const ax = anchor ? anchor.x - r.left : stage.clientWidth / 2, ay = anchor ? anchor.y - r.top : stage.clientHeight / 2;
+	const cx = stage.scrollLeft + ax, cy = stage.scrollTop + ay;
+	zoom = z; applyFit();
+	const k = z / old;
+	stage.scrollLeft = cx * k - ax; stage.scrollTop = cy * k - ay;
+}
+const STEP = 1.25;
+$('#zoomIn').onclick = () => setZoom(currentZoom() * STEP);
+$('#zoomOut').onclick = () => setZoom(currentZoom() / STEP);
+$('#zoomLabel').onclick = () => setZoom(1);
+$('#stage').addEventListener('wheel', ev => {
+	if (!(ev.ctrlKey || ev.metaKey) || !img.naturalWidth) return;
+	ev.preventDefault();
+	setZoom(currentZoom() * Math.exp(-ev.deltaY * 0.0025), { x: ev.clientX, y: ev.clientY });
+}, { passive: false });
+
+function stroke() { return Math.max(3, img.naturalWidth / 450); }
+function toImage(ev) {
+	const r = svg.getBoundingClientRect();
+	return { x: (ev.clientX - r.left) * img.naturalWidth / r.width, y: (ev.clientY - r.top) * img.naturalHeight / r.height };
+}
+// Pins put their number up and to the side, so it never covers what it points at.
+function badgePos(m, r) {
+	if (m.kind !== 'pin') return { x: m.x, y: m.y };
+	const dx = m.x + r * 4 > img.naturalWidth ? -r * 2.6 : r * 2.6;
+	const dy = m.y - r * 4 < 0 ? r * 2.6 : -r * 2.6;
+	return { x: m.x + dx, y: m.y + dy };
+}
+function renumber() { marks.forEach((m, i) => m.n = i + 1); }
+
+function draw() {
+	const sw = stroke(), r = sw * 5;
+	svg.innerHTML = '';
+	const ns = 'http://www.w3.org/2000/svg';
+	const add = (tag, attrs, parent = svg) => { const el = document.createElementNS(ns, tag); for (const k in attrs) el.setAttribute(k, attrs[k]); parent.append(el); return el; };
+	const all = drag && drag.preview ? [...marks, drag.preview] : marks;
+	all.forEach(m => {
+		const g = add('g', {});
+		const sel = m === selected;
+		const color = 'var(--accent)';
+		if (m.kind === 'pin') {
+			const b = badgePos(m, r);
+			add('line', { x1: m.x, y1: m.y, x2: b.x, y2: b.y, stroke: color, 'stroke-width': sw }, g);
+			add('circle', { cx: m.x, cy: m.y, r: sw * 1.4, fill: color, stroke: '#fff', 'stroke-width': sw / 2 }, g);
+		} else if (m.kind === 'circle') {
+			add('ellipse', { cx: m.x + m.w / 2, cy: m.y + m.h / 2, rx: Math.max(1, m.w / 2), ry: Math.max(1, m.h / 2), fill: 'none', stroke: color, 'stroke-width': sel ? sw * 1.6 : sw }, g);
+		} else {
+			add('rect', { x: m.x, y: m.y, width: Math.max(1, m.w), height: Math.max(1, m.h), fill: 'none', stroke: color, 'stroke-width': sel ? sw * 1.6 : sw }, g);
+		}
+		if (m.n) {
+			const b = badgePos(m, r), lx = b.x, ly = b.y;
+			add('circle', { cx: lx, cy: ly, r, fill: color, stroke: '#fff', 'stroke-width': sw / 1.5 }, g);
+			const t = add('text', { x: lx, y: ly, 'text-anchor': 'middle', 'dominant-baseline': 'central', fill: '#fff', 'font-size': r * 1.2, 'font-weight': 700, 'font-family': 'system-ui, sans-serif' }, g);
+			t.textContent = m.n;
+		}
+	});
+}
+function render() { draw(); renderList(); }
+function select(m) {
+	selected = m; draw();
+	document.querySelectorAll('.mark').forEach((row, i) => row.classList.toggle('sel', marks[i] === m));
+}
+
+function renderList() {
+	const box = $('#marks');
+	if (!marks.length) { box.innerHTML = '<p class="hint">No marks yet.</p>'; return; }
+	box.innerHTML = '';
+	marks.forEach(m => {
+		const row = document.createElement('div'); row.className = 'mark' + (m === selected ? ' sel' : '');
+		const n = document.createElement('div'); n.className = 'n'; n.textContent = m.n;
+		const body = document.createElement('div');
+		const kind = document.createElement('div'); kind.className = 'kind'; kind.textContent = m.kind;
+		const ta = document.createElement('textarea'); ta.value = m.note || ''; ta.placeholder = 'What is wrong here?';
+		ta.oninput = () => { m.note = ta.value; persist(); };
+		ta.onfocus = () => select(m);
+		body.append(kind, ta);
+		const del = document.createElement('button'); del.textContent = '×'; del.title = 'Remove mark';
+		del.onclick = () => { marks = marks.filter(x => x !== m); renumber(); selected = null; persist(); render(); };
+		row.append(n, body, del); box.append(row);
+		m._ta = ta;
+	});
+}
+function focusNote(m, focus = true) {
+	const ta = m && m._ta; if (!ta) return;
+	if (focus) ta.focus({ preventScroll: true });
+	ta.closest('.mark').scrollIntoView({ block: 'nearest' });
+}
+
+svg.addEventListener('pointercancel', () => { drag = null; draw(); });
+wrap.addEventListener('dragstart', ev => ev.preventDefault());
+svg.addEventListener('pointerdown', ev => {
+	if (!current) return;
+	ev.preventDefault();
+	svg.setPointerCapture(ev.pointerId);
+	drag = { start: toImage(ev), preview: null };
+});
+svg.addEventListener('pointermove', ev => {
+	if (!drag) return;
+	const p = toImage(ev), s = drag.start;
+	if (Math.hypot(p.x - s.x, p.y - s.y) < 6 && !drag.preview) return;
+	const kind = tool === 'pin' ? 'circle' : tool;
+	drag.preview = { kind, x: Math.min(s.x, p.x), y: Math.min(s.y, p.y), w: Math.abs(p.x - s.x), h: Math.abs(p.y - s.y) };
+	draw();
+});
+svg.addEventListener('pointerup', ev => {
+	if (!drag) return;
+	const s = drag.start;
+	let m;
+	if (drag.preview) m = drag.preview;
+	else if (tool === 'pin') m = { kind: 'pin', x: s.x, y: s.y, w: 0, h: 0 };
+	else { const d = img.naturalWidth / 20; m = { kind: tool, x: s.x - d, y: s.y - d / 2, w: d * 2, h: d }; }
+	drag = null;
+	m.note = ''; marks.push(m); renumber(); selected = m; persist(); render(); focusNote(m);
+});
+
+document.querySelectorAll('#bar [data-tool]').forEach(b => b.onclick = () => setTool(b.dataset.tool));
+function setTool(t) { tool = t; document.querySelectorAll('#bar [data-tool]').forEach(b => b.classList.toggle('on', b.dataset.tool === t)); }
+$('#fit').onclick = () => { zoom = null; applyFit(); };
+$('#undo').onclick = undo;
+function undo() { if (!marks.length) return; marks.pop(); selected = null; persist(); render(); }
+$('#general').oninput = persist;
+window.addEventListener('resize', applyFit);
+
+document.addEventListener('keydown', ev => {
+	if (ev.target.tagName === 'TEXTAREA') { if (ev.key === 'Escape') ev.target.blur(); return; }
+	if ((ev.ctrlKey || ev.metaKey) && ev.key === 'z') { ev.preventDefault(); undo(); return; }
+	if ((ev.ctrlKey || ev.metaKey) && ev.shiftKey && ev.key.toLowerCase() === 'c') { ev.preventDefault(); copyImage(); return; }
+	const k = ev.key.toLowerCase();
+	if (k === 'p') setTool('pin'); else if (k === 'c') setTool('circle'); else if (k === 'b') setTool('box');
+	else if (k === 'f') { zoom = null; applyFit(); }
+	else if (k === '+' || k === '=') setZoom(currentZoom() * STEP);
+	else if (k === '-' || k === '_') setZoom(currentZoom() / STEP);
+	else if (k === 'v') setPref('ff', prefs.ff === 'phone' ? 'tablet' : 'phone');
+	else if (k === 't') setPref('theme', prefs.theme === 'dark' ? 'light' : 'dark');
+	else if (k === 'w') setPref('whole', !prefs.whole);
+	else if (k === 'x') flipVersion();
+	else if ((k === 'delete' || k === 'backspace') && selected) { marks = marks.filter(x => x !== selected); renumber(); selected = null; persist(); render(); }
+});
+
+function openBlob(blob, name) {
+	const reader = new FileReader();
+	reader.onload = () => { pick = null; syncBar(prefs.ff, prefs.theme, false); document.querySelectorAll('#shots button.on').forEach(x => x.classList.remove('on')); open({ path: null, src: reader.result, title: name || 'pasted screenshot' }); };
+	reader.readAsDataURL(blob);
+}
+document.addEventListener('paste', ev => {
+	const item = [...(ev.clipboardData?.items || [])].find(i => i.type.startsWith('image/'));
+	if (item) { ev.preventDefault(); openBlob(item.getAsFile(), 'pasted ' + new Date().toLocaleTimeString()); }
+});
+document.addEventListener('dragover', ev => ev.preventDefault());
+document.addEventListener('drop', ev => {
+	ev.preventDefault();
+	const f = [...(ev.dataTransfer?.files || [])].find(f => f.type.startsWith('image/'));
+	if (f) openBlob(f, f.name);
+});
+
+function bake() {
+	const c = document.createElement('canvas');
+	c.width = img.naturalWidth; c.height = img.naturalHeight;
+	const g = c.getContext('2d');
+	g.drawImage(img, 0, 0);
+	const sw = stroke(), r = sw * 5, color = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#d93636';
+	marks.forEach(m => {
+		g.lineWidth = sw; g.strokeStyle = color; g.fillStyle = color;
+		if (m.kind === 'circle') { g.beginPath(); g.ellipse(m.x + m.w / 2, m.y + m.h / 2, Math.max(1, m.w / 2), Math.max(1, m.h / 2), 0, 0, Math.PI * 2); g.stroke(); }
+		else if (m.kind === 'box') g.strokeRect(m.x, m.y, m.w, m.h);
+		const b = badgePos(m, r);
+		if (m.kind === 'pin') {
+			g.beginPath(); g.moveTo(m.x, m.y); g.lineTo(b.x, b.y); g.stroke();
+			g.beginPath(); g.arc(m.x, m.y, sw * 1.4, 0, Math.PI * 2); g.fill();
+		}
+		g.fillStyle = color;
+		g.beginPath(); g.arc(b.x, b.y, r, 0, Math.PI * 2); g.fill();
+		g.lineWidth = sw / 1.5; g.strokeStyle = '#fff'; g.stroke();
+		g.fillStyle = '#fff'; g.font = `700 ${r * 1.2}px system-ui, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
+		g.fillText(String(m.n), b.x, b.y);
+	});
+	return c.toDataURL('image/png');
+}
+
+// Copies what's on screen: the shot with its marks baked in.
+async function copyImage() {
+	if (!current || !img.naturalWidth) return;
+	const btn = $('#copy'), was = btn.textContent;
+	try {
+		const blob = await (await fetch(bake())).blob();
+		await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+		btn.textContent = 'Copied';
+	} catch (e) {
+		btn.textContent = 'Copy failed';
+		$('#status').textContent = 'Copy failed: ' + e.message;
+	}
+	setTimeout(() => { btn.textContent = was; }, 1500);
+}
+$('#copy').onclick = copyImage;
+
+$('#save').onclick = async () => {
+	if (!current) return;
+	$('#save').disabled = true; $('#status').textContent = 'Saving…';
+	try {
+		const body = { source: current.path, title: current.title, png: bake(), general: $('#general').value,
+			marks: marks.map(({ n, kind, x, y, w, h, note }) => ({ n, kind, x, y, w, h, note })) };
+		const res = await fetch('/api/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+		const out = await res.json();
+		if (!res.ok) throw new Error(out.error || res.status);
+		$('#status').textContent = 'Saved to ui-research/' + out.saved;
+		const k = storeKey(); if (k) try { localStorage.removeItem(k); } catch (e) {}
+		loadShots();
+	} catch (e) { $('#status').textContent = 'Save failed: ' + e.message; }
+	$('#save').disabled = false;
+};
+
+// New renders show up on their own: re-list every 2s and reload the open shot if its file changed.
+async function poll() {
+	try {
+		const shots = await (await fetch('/api/shots')).json();
+		const sig = shots.map(s => s.path + ':' + s.mtime).join('|');
+		if (sig !== shotsSig) {
+			const before = current && current.path ? mtimes[current.path] : null;
+			const first = !shotsSig;
+			shotsSig = sig;
+			await loadShots();
+			if (!first && current && current.path && mtimes[current.path] && mtimes[current.path] !== before) {
+				img.src = src(current.path);
+				const note = $('#live'); note.textContent = 'Updated ' + new Date().toLocaleTimeString();
+				note.classList.add('flash'); setTimeout(() => note.classList.remove('flash'), 2500);
+			}
+			if (pick) showCompare(...(current.title.split(' / ')[1] || 'tablet-dark').split('-'));
+		}
+	} catch (e) {}
+	setTimeout(poll, 2000);
+}
+poll();
+</script>
+</body>
+</html>

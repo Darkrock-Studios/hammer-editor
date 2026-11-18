@@ -56,3 +56,8 @@ Each source sits in its own folder; PDFs have a `pdftotext -layout` `.txt` along
 - Tidwell, Brewer & Valencia, *Designing Interfaces*, 3rd ed. (O'Reilly, 2020). Free precursor: https://www.mit.edu/~jtidwell/common_ground.html
 - Card, Moran & Newell, *The Psychology of Human-Computer Interaction* (1983)
 - Bringhurst, *The Elements of Typographic Style*, v4.0 (Hartley & Marks, 2012)
+
+## Tools
+
+- `markup/`: screenshot markup tool. `python3 -I ui-research/markup/serve.py 8766 <gallery output dir>` serves the look book plus a live set from the gallery output (it refreshes on re-render). Pin, circle or box things, add notes, flip Live/Baseline, compare sets, zoom. Saved reviews (marked-up PNG + Markdown with the on-screen text under each mark) go to `markup/reviews/`.
+- `UI-2.1-NOTES.md`: the scaled-back 4.0 refresh: library changes, candidate rules, design system changes, decisions.
