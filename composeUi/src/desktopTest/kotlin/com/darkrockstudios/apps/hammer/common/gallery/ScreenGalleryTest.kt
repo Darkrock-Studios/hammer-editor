@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.gallery
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.InternalComposeUiApi
@@ -30,6 +31,8 @@ import com.darkrockstudios.apps.hammer.common.preview.SceneConflictPreview
 import com.darkrockstudios.apps.hammer.common.preview.ScreenCreateEntryPreview
 import com.darkrockstudios.apps.hammer.common.preview.ScreenSceneListUiTabletPreview
 import com.darkrockstudios.apps.hammer.common.preview.TabletPreviewSurface
+import com.darkrockstudios.apps.hammer.common.preview.duplicateids.DuplicateIdsDialogDarkPreview
+import com.darkrockstudios.apps.hammer.common.preview.duplicateids.DuplicateIdsDialogPreview
 import com.darkrockstudios.apps.hammer.common.preview.encyclopedia.ScreenBrowseEntriesUiTabletPreview
 import com.darkrockstudios.apps.hammer.common.preview.encyclopedia.ScreenViewEntryUiTabletPreview
 import com.darkrockstudios.apps.hammer.common.preview.notes.ScreenBrowseNotesUiTabletPreview
@@ -128,6 +131,9 @@ class ScreenGalleryTest {
 		screen("Project stats") { ScreenProjectStatsUiTabletPreview() },
 		screen("Project settings") { ScreenProjectSettingsUiTabletPreview() },
 		surfaced("Export options dialog") { ExportOptionsDialogPreview() },
+		screen("Duplicate IDs dialog") {
+			if (isSystemInDarkTheme()) DuplicateIdsDialogDarkPreview() else DuplicateIdsDialogPreview()
+		},
 		Screen("Sync conflict", note = "Preview hardcodes a white backdrop and its own size class.") { formFactor ->
 			TabletPreviewSurface {
 				if (formFactor == FormFactor.Phone) SceneConflictCompactPreview() else SceneConflictPreview()
