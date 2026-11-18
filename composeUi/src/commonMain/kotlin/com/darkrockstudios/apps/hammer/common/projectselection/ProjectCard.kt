@@ -53,6 +53,7 @@ import com.darkrockstudios.apps.hammer.common.components.projectselection.Projec
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdIndentStep
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdMetaStyle
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagChip
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdIndentFor
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdIndentRails
@@ -152,9 +153,7 @@ fun ProjectIndexRow(
 	val rowNumber = remember(index) { (index + 1).toString().padStart(2, '0') }
 	// Wide keeps the single italic subline; Compact reflows the same facts into
 	// the aligned greeble grid below, so the subline is wide-only now.
-	val subline = remember(byAuthor, createdText) {
-		listOfNotNull(byAuthor, createdText).joinToString(" · ")
-	}
+	val subline = byAuthor
 
 	val breadcrumb = remember(groupPath) { groupPath.takeIf { it.isNotEmpty() }?.joinToString(" › ") }
 	val shared = projectData.metadata.info.ownerId != null
@@ -185,19 +184,8 @@ fun ProjectIndexRow(
 				unsetColor = unsetStripeColor.takeIf { depth == 0 },
 			)
 
-			Text(
-				text = rowNumber,
-				modifier = Modifier
-					.width(if (isWide) NumberColumnWidth else CompactNumberColumnWidth)
-					.padding(start = Ui.Padding.XL),
-				style = if (isWide) {
-					MaterialTheme.typography.headlineMedium
-				} else {
-					MaterialTheme.typography.titleLarge
-				},
-				fontWeight = FontWeight.Light,
-				color = MaterialTheme.colorScheme.onSurfaceVariant,
-			)
+			// UI 2.1: row position numbers dropped; they restate list order and are not stable IDs.
+			Spacer(modifier = Modifier.width(Ui.Padding.XL))
 
 			val coverPath = projectData.coverImagePath
 			if (coverPath != null) {
@@ -259,12 +247,14 @@ fun ProjectIndexRow(
 					)
 				}
 				if (isWide) {
-					Text(
-						text = subline,
-						style = MaterialTheme.typography.bodyMedium,
-						fontStyle = FontStyle.Italic,
-						color = MaterialTheme.colorScheme.onSurfaceVariant,
-					)
+					if (subline != null) {
+						Text(
+							text = subline,
+							style = MaterialTheme.typography.bodyMedium,
+							fontStyle = FontStyle.Italic,
+							color = MaterialTheme.colorScheme.onSurfaceVariant,
+						)
+					}
 					TagChipRow(tags = tags, onTagClick = onTagClick)
 				} else {
 					if (byAuthor != null) {
@@ -276,12 +266,14 @@ fun ProjectIndexRow(
 						)
 					}
 					TagChipRow(tags = tags, onTagClick = onTagClick)
-					Spacer(modifier = Modifier.height(8.dp))
-					CompactMetaGrid(
-						createdValue = createdDate,
-						openedValue = lastAccessedDate,
-						wordsValue = wordsValue,
-					)
+					val meta = listOfNotNull(wordsLabel, lastAccessedDate?.let { "opened $it" }).joinToString(" · ")
+					if (meta.isNotEmpty()) {
+						Text(
+							text = meta,
+							style = hdMetaStyle(),
+							color = MaterialTheme.colorScheme.onSurfaceVariant,
+						)
+					}
 				}
 			}
 
@@ -291,17 +283,18 @@ fun ProjectIndexRow(
 					horizontalAlignment = Alignment.End,
 					verticalArrangement = Arrangement.spacedBy(2.dp),
 				) {
-					HdMonoLabel(
-						text = lastAccessedDate ?: "—",
-						color = if (lastAccessedDate != null) {
-							MaterialTheme.colorScheme.onSurfaceVariant
-						} else {
-							MaterialTheme.colorScheme.outline
-						},
-					)
+					// Self-labelled, so the list needs no column header.
+					if (lastAccessedDate != null) {
+						Text(
+							text = "Opened $lastAccessedDate",
+							style = hdMetaStyle(),
+							color = MaterialTheme.colorScheme.onSurfaceVariant,
+						)
+					}
 					if (wordsLabel != null) {
-						HdMonoLabel(
+						Text(
 							text = wordsLabel,
+							style = hdMetaStyle(),
 							color = MaterialTheme.colorScheme.onSurfaceVariant,
 						)
 					}
@@ -456,8 +449,7 @@ private fun ProjectStripe(themePrimary: Color?, unsetColor: Color?) {
 
 private fun formatStamp(instant: Instant): String =
 	instant.toLocalDateTime(TimeZone.currentSystemDefault())
-		.format("dd MMM `yy")
-		.uppercase()
+		.format("d MMM yyyy")
 
 /** An item in [toggles] is a switch, checked when its value is true. */
 @Composable

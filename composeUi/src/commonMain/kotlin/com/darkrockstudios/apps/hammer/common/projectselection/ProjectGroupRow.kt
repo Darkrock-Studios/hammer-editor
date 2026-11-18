@@ -32,6 +32,7 @@ import com.darkrockstudios.apps.hammer.base.http.MAX_GROUP_NESTING_DEPTH
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdIndentStep
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdMetaStyle
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdIndentFor
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdIndentRails
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
@@ -160,11 +161,15 @@ fun ProjectGroupRow(
 					}
 				}
 
-				HdMonoLabel(
-					text = projectCountLabel(row.projectCount),
-					color = MaterialTheme.colorScheme.onSurfaceVariant,
-					modifier = Modifier.padding(start = Ui.Padding.M),
-				)
+				// UI 2.1: an open group shows its projects, so the count only earns a place when collapsed.
+				if (collapsed) {
+					Text(
+						text = projectCountLabel(row.projectCount),
+						style = hdMetaStyle(),
+						color = MaterialTheme.colorScheme.onSurfaceVariant,
+						modifier = Modifier.padding(start = Ui.Padding.M),
+					)
+				}
 
 				ProjectOptionsMenu(items = menuItems.map { it.label }) { clicked ->
 					menuItems.first { it.label == clicked }.onClick()

@@ -26,12 +26,16 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.LocalHdGroupi
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.LocalHdTexture
 import com.darkrockstudios.apps.hammer.common.compose.theme.hammerMonoFontFamily
 import com.darkrockstudios.apps.hammer.common.preview.ScreenAccountSettingsUiTabletPreview
+import com.darkrockstudios.apps.hammer.common.preview.ScreenAccountSettingsUiWritingTabletPreview
+import com.darkrockstudios.apps.hammer.common.preview.ScreenAccountSettingsUiSyncTabletPreview
+import com.darkrockstudios.apps.hammer.common.preview.ScreenAccountSettingsUiSyncNotSetUpTabletPreview
 import com.darkrockstudios.apps.hammer.common.preview.SceneConflictCompactPreview
 import com.darkrockstudios.apps.hammer.common.preview.SceneConflictPreview
 import com.darkrockstudios.apps.hammer.common.preview.ScreenCreateEntryPreview
 import com.darkrockstudios.apps.hammer.common.preview.ScreenSceneListUiTabletPreview
 import com.darkrockstudios.apps.hammer.common.preview.TabletPreviewSurface
 import com.darkrockstudios.apps.hammer.common.preview.projectselection.ScreenProjectListUiGroupedTabletPreview
+import com.darkrockstudios.apps.hammer.common.preview.projectselection.ScreenProjectListUiSearchingTabletPreview
 import com.darkrockstudios.apps.hammer.common.preview.projectselection.ImportStoryDialogPreview
 import com.darkrockstudios.apps.hammer.common.preview.sceneeditor.SceneMetadataPanelUiTimelinesPreview
 import com.darkrockstudios.apps.hammer.common.preview.encyclopedia.ScreenViewEntryUiImagesPreview
@@ -126,10 +130,14 @@ class ScreenGalleryTest {
 	private val screens = listOf(
 		screen("Project list") { ScreenProjectListUiTabletPreview() },
 		screen("Project list, grouped") { ScreenProjectListUiGroupedTabletPreview() },
+		screen("Project list, searching") { ScreenProjectListUiSearchingTabletPreview() },
 		screen("Import story dialog", note = "Preview hardcodes the dark theme.") { ImportStoryDialogPreview() },
 		screen("Create project dialog", note = "Preview hardcodes the dark theme.") { ScreenProjectCreateDialogPreview() },
 		screen("About") { ScreenAboutAppUiTabletPreview() },
 		screen("Account settings") { ScreenAccountSettingsUiTabletPreview() },
+		screen("Account settings, writing") { ScreenAccountSettingsUiWritingTabletPreview() },
+		screen("Account settings, sync") { ScreenAccountSettingsUiSyncTabletPreview() },
+		screen("Account settings, sync not set up") { ScreenAccountSettingsUiSyncNotSetUpTabletPreview() },
 		screen("Scene list") { ScreenSceneListUiTabletPreview() },
 		screen("Scene editor") { ScreenSceneEditorUiTabletPreview() },
 		surfaced("Scene metadata, timelines") { SceneMetadataPanelUiTimelinesPreview() },
@@ -177,10 +185,13 @@ class ScreenGalleryTest {
 	fun renderGallery() {
 		assumeTrue(System.getProperty(ENABLED_PROPERTY) == "true", "Run via :composeUi:renderScreenGallery")
 		val outDir = File(System.getProperty(OUT_DIR_PROPERTY) ?: "build/screen-gallery")
-		outDir.deleteRecursively()
+		val only = System.getProperty(ONLY_PROPERTY)?.split('|')?.map { it.trim() }?.filter { it.isNotEmpty() }
+		// A partial render updates its screens in place, so the rest of the gallery stays viewable.
+		if (only.isNullOrEmpty()) outDir.deleteRecursively()
 
 		val failures = mutableListOf<String>()
 		val rendered = mutableMapOf<Pair<String, String>, Shot>()
+		val screens = if (only.isNullOrEmpty()) screens else screens.filter { it.name in only }
 		for (screen in screens) {
 			for (variant in variants) {
 				runCatching { renderShot(screen, variant, outDir) }
@@ -190,7 +201,7 @@ class ScreenGalleryTest {
 		}
 
 		val study = mutableMapOf<Triple<String, String, StudyStyle>, Shot>()
-		for (screen in screens.filter { GROUPING_STUDY?.contains(it.name) ?: true }) {
+		for (screen in screens.filter { only.isNullOrEmpty() && (GROUPING_STUDY?.contains(it.name) ?: true) }) {
 			for (variant in variants) {
 				rendered[screen.name to variant.dir]?.let { study[Triple(screen.name, variant.dir, STUDY_STYLES.first())] = it }
 				for (style in STUDY_STYLES.drop(1)) {
@@ -253,6 +264,8 @@ class ScreenGalleryTest {
 		}
 
 		val full = fullCapture?.let { "$base.full.png".also { path -> write(it.image, File(outDir, path)) } }
+		// A partial render keeps old files, so drop a whole-screen shot this screen no longer needs.
+		if (fullCapture == null) File(outDir, "$base.full.png").delete()
 		File(outDir, "$base.text.tsv").writeText((fullCapture ?: viewport).textInventory)
 		return Shot("$base.png", full, hiddenPx = maxOf(overflow, 0))
 	}
@@ -352,6 +365,7 @@ class ScreenGalleryTest {
 			failures.forEach { appendLine("<li>${esc(it)}</li>") }
 			appendLine("</ul>")
 		}
+		val screens = screens.filter { s -> rendered.keys.any { it.first == s.name } }
 		appendLine("<nav>")
 		screens.forEach { appendLine("<a href=\"#${slug(it.name)}\">${esc(it.name)}</a>") }
 		appendLine("</nav>")
@@ -434,6 +448,7 @@ class ScreenGalleryTest {
 	companion object {
 		const val ENABLED_PROPERTY = "hammer.screenGallery"
 		const val OUT_DIR_PROPERTY = "hammer.screenGallery.outDir"
+		const val ONLY_PROPERTY = "hammer.screenGallery.only"
 		private const val SCALE = 2
 		/** The first entry is the baseline, reused from the main gallery renders. */
 		private val STUDY_STYLES = listOf(

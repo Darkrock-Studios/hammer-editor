@@ -14,6 +14,7 @@ import com.darkrockstudios.apps.hammer.base.http.storyideas.StoryIdea
 import com.darkrockstudios.apps.hammer.common.components.projectselection.GroupData
 import com.darkrockstudios.apps.hammer.common.components.projectselection.MoveTarget
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectData
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.Info
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.compose.rememberRootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.data.ImportOptions
@@ -32,6 +33,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import org.jetbrains.compose.resources.StringResource
+import kotlin.time.Duration.Companion.days
+import kotlin.time.Instant
 import kotlin.uuid.Uuid
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData as StoredData
 
@@ -75,6 +78,17 @@ fun ScreenProjectListUiGroupedTabletPreview() {
 	}
 }
 
+@Preview(widthDp = TABLET_WIDTH_DP, heightDp = TABLET_HEIGHT_DP)
+@Composable
+fun ScreenProjectListUiSearchingTabletPreview() {
+	val rootSnackbar = rememberRootSnackbarHostState()
+	KoinApplicationPreview {
+		TabletPreviewSurface {
+			ProjectListUi(groupedPreviewComponent, rootSnackbar, initialSearchOpen = true)
+		}
+	}
+}
+
 fun previewProject(
 	name: String,
 	tags: Set<String> = setOf("fantasy", "draft"),
@@ -85,8 +99,14 @@ fun previewProject(
 		name = name,
 		path = HPath(name = name, path = "${parent?.path?.path ?: ""}/$name", isAbsolute = true),
 	),
-	metadata = fakeProjectMetadata(),
+	metadata = ProjectMetadata(
+		info = Info(
+			created = Instant.parse("2024-02-03T10:00:00Z") + (name.length * 9).days,
+			lastAccessed = Instant.parse("2026-11-16T10:00:00Z") - (name.length * 3).days,
+		),
+	),
 	storedData = StoredData(authorName = "A. Writer", tags = tags),
+	totalWords = name.length * 4_381,
 )
 
 fun previewGroup(name: String, parent: GroupDef? = null, description: String? = null) = GroupDef(

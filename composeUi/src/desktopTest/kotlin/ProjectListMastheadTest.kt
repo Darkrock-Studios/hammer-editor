@@ -99,9 +99,9 @@ class ProjectListMastheadTest : BaseTest() {
 		val group = bounds(CreateGroupButtonTestTag)
 
 		assertEquals(fullCreate, create.width, 0.5f, "Create Project is squeezed at $width")
-		assertEquals(fullGroup, group.width, 0.5f, "New Group is squeezed at $width")
-		assertTrue(create.right <= pane.right + 0.5f, "Create Project runs past the pane at $width")
-		assertTrue(group.right <= create.left, "New Group overlaps Create Project at $width")
+		assertEquals(fullGroup, group.width, 0.5f, "The create menu is squeezed at $width")
+		assertTrue(group.right <= pane.right + 0.5f, "The create menu runs past the pane at $width")
+		assertTrue(create.right <= group.left + 0.5f, "The create menu overlaps New project at $width")
 	}
 
 	@Test

@@ -173,6 +173,7 @@ tasks.register<Test>("renderScreenGallery") {
 	filter.includeTestsMatching("*.ScreenGalleryTest")
 	systemProperty("hammer.screenGallery", "true")
 	systemProperty("hammer.screenGallery.outDir", layout.buildDirectory.dir("screen-gallery").get().asFile.absolutePath)
+	providers.gradleProperty("galleryOnly").orNull?.let { systemProperty("hammer.screenGallery.only", it) }
 	testLogging.showStandardStreams = true
 	outputs.upToDateWhen { false }
 }

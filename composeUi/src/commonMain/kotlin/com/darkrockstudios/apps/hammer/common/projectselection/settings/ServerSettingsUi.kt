@@ -1,9 +1,16 @@
 package com.darkrockstudios.apps.hammer.common.projectselection.settings
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.HelpOutline
+import androidx.compose.material.icons.outlined.Cloud
+import androidx.compose.material.icons.outlined.CloudOff
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -13,207 +20,203 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdMetaStyle
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import com.darkrockstudios.apps.hammer.*
+import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.AccountSettings
-import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.SimpleConfirm
-import com.darkrockstudios.apps.hammer.common.compose.Toaster
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdCatalogueCard
+import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineToggleRow
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdQuietButton
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSettingGroup
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSettingRow
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdControlFrame
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.settings_group_sync_options
+import com.darkrockstudios.apps.hammer.settings_remove_server_dialog_message
+import com.darkrockstudios.apps.hammer.settings_remove_server_dialog_title
+import com.darkrockstudios.apps.hammer.settings_row_remove_server
+import com.darkrockstudios.apps.hammer.settings_row_remove_server_button
+import com.darkrockstudios.apps.hammer.settings_row_remove_server_desc
+import com.darkrockstudios.apps.hammer.settings_server_auto_sync
+import com.darkrockstudios.apps.hammer.settings_server_enable_sync_backup_desc
+import com.darkrockstudios.apps.hammer.settings_server_log_in_again_button
+import com.darkrockstudios.apps.hammer.settings_server_setup_button
+import com.darkrockstudios.apps.hammer.settings_server_signed_out_message
+import com.darkrockstudios.apps.hammer.settings_server_sync_auto_close
+import com.darkrockstudios.apps.hammer.settings_server_sync_backup
+import com.darkrockstudios.apps.hammer.settings_sync_help
+import com.darkrockstudios.apps.hammer.settings_sync_status_connected
+import com.darkrockstudios.apps.hammer.settings_sync_status_connected_as
+import com.darkrockstudios.apps.hammer.settings_sync_status_not_set_up
+import com.darkrockstudios.apps.hammer.settings_sync_status_signed_out
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
-private const val EMAIL_GREEBLE_MAX = 28
-
+/**
+ * The top of the Sync tab: one framed status block (connected, signed out, or not set up) with
+ * the action that state needs, then the sync options once a server is configured.
+ */
 @Composable
-fun ServerSettingsUi(
-	component: AccountSettings,
-	scope: CoroutineScope,
-	rootSnackbar: RootSnackbarHostState,
-	modifier: Modifier = Modifier,
-) {
+internal fun SyncSettingsContent(component: AccountSettings, scope: CoroutineScope) {
 	val state by component.state.subscribeAsState()
-	var showConfirmRemoveServer by rememberSaveable { mutableStateOf(false) }
 	var showHelpDialog by rememberSaveable { mutableStateOf(false) }
+	val host = state.currentUrl?.let(::hostOf)?.takeIf { it.isNotBlank() }
 
-	val connectedLabel = Res.string.settings_server_status_connected.get()
-	val notConnectedLabel = Res.string.settings_server_status_not_connected.get()
-	val signedOutLabel = Res.string.settings_server_status_signed_out.get()
-	val urlGreebleLabel = Res.string.settings_server_url_greeble.get()
-	val topEnd = if (state.serverIsLoggedIn) {
-		val email = state.currentEmail
-		if (!email.isNullOrBlank()) {
-			"$connectedLabel · ${truncate(email, EMAIL_GREEBLE_MAX)}"
-		} else {
-			connectedLabel
-		}
-	} else if (state.serverIsConfigured) {
-		signedOutLabel
-	} else {
-		notConnectedLabel
-	}
-	val bottomStart = state.currentUrl
-		?.takeIf { state.serverIsConfigured && it.isNotBlank() }
-		?.let { "$urlGreebleLabel · ${truncate(it, EMAIL_GREEBLE_MAX)}" }
-
-	HdCatalogueCard(
-		modifier = modifier,
-		topStart = "§ IV · SYNC",
-		topEnd = topEnd,
-		bottomStart = bottomStart,
+	Column(
+		modifier = Modifier
+			.fillMaxWidth()
+			.hdControlFrame(MaterialTheme.colorScheme.outlineVariant)
+			.padding(Ui.Padding.XL),
+		verticalArrangement = Arrangement.spacedBy(14.dp),
 	) {
-		Row(
-			modifier = Modifier.fillMaxWidth(),
-			verticalAlignment = Alignment.CenterVertically,
-		) {
+		val connected = state.serverIsConfigured && state.serverIsLoggedIn
+		val status = when {
+			connected && !state.currentEmail.isNullOrBlank() && host != null ->
+				Res.string.settings_sync_status_connected_as.get(host, state.currentEmail!!)
+
+			connected && host != null -> Res.string.settings_sync_status_connected.get(host)
+			state.serverIsConfigured && host != null -> Res.string.settings_sync_status_signed_out.get(host)
+			else -> Res.string.settings_sync_status_not_set_up.get()
+		}
+		Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+			Icon(
+				imageVector = if (connected) Icons.Outlined.Cloud else Icons.Outlined.CloudOff,
+				contentDescription = null,
+				tint = if (connected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+				modifier = Modifier.size(20.dp),
+			)
 			Text(
-				text = Res.string.settings_server_description.get(),
-				style = MaterialTheme.typography.bodyMedium,
+				text = styledStatus(status, host, state.currentUrl, state.currentEmail),
+				style = MaterialTheme.typography.titleMedium,
 				color = MaterialTheme.colorScheme.onSurface,
 				modifier = Modifier.weight(1f),
 			)
-			Spacer(Modifier.size(12.dp))
-			HdMonoLabel(
-				text = Res.string.settings_server_help_link.get(),
-				modifier = Modifier.clickable { showHelpDialog = true },
-				color = MaterialTheme.colorScheme.onSurfaceVariant,
-			)
 		}
-
-		Spacer(Modifier.size(20.dp))
-
-		AnimatedContent(targetState = state.serverIsConfigured) { configured ->
-			if (configured) {
-				ConfiguredBody(
-					loggedIn = state.serverIsLoggedIn,
-					autoSync = state.syncAutomaticSync,
-					autoCloseDialog = state.syncAutoCloseDialog,
-					autoBackups = state.syncAutomaticBackups,
-					onAutoSyncChange = { scope.launch { component.setAutoSyncing(it) } },
-					onAutoCloseChange = { scope.launch { component.setAutoCloseDialogs(it) } },
-					onAutoBackupsChange = { scope.launch { component.setAutomaticBackups(it) } },
-					onLogInAgain = { component.reauthenticate() },
-					onRemoveServer = { showConfirmRemoveServer = true },
+		when {
+			!state.serverIsConfigured -> {
+				Text(
+					text = Res.string.settings_server_enable_sync_backup_desc.get(),
+					style = MaterialTheme.typography.bodyMedium,
+					color = MaterialTheme.colorScheme.onSurfaceVariant,
 				)
-			} else {
-				LoggedOutBody(
-					onSetupServer = { scope.launch { component.beginSetupServer() } },
+				HdHairlineButton(
+					label = Res.string.settings_server_setup_button.get(),
+					onClick = { scope.launch { component.beginSetupServer() } },
+					emphasised = true,
+				)
+			}
+
+			!state.serverIsLoggedIn -> {
+				Text(
+					text = Res.string.settings_server_signed_out_message.get(),
+					style = MaterialTheme.typography.bodyMedium,
+					color = MaterialTheme.colorScheme.onSurfaceVariant,
+				)
+				HdHairlineButton(
+					label = Res.string.settings_server_log_in_again_button.get(),
+					onClick = { component.reauthenticate() },
+					emphasised = true,
 				)
 			}
 		}
-	}
-
-	if (showConfirmRemoveServer) {
-		SimpleConfirm(
-			title = Res.string.settings_remove_server_dialog_title.get(),
-			message = Res.string.settings_remove_server_dialog_message.get(),
-			onDismiss = { showConfirmRemoveServer = false },
-			onConfirm = {
-				scope.launch {
-					component.removeServer()
-					showConfirmRemoveServer = false
-				}
-			},
+		HdQuietButton(
+			onClick = { showHelpDialog = true },
+			icon = Icons.AutoMirrored.Outlined.HelpOutline,
+			label = Res.string.settings_sync_help.get(),
 		)
 	}
 
-	Toaster(component, rootSnackbar)
-	ServerSetupDialog(component, scope)
-	MergeProjectsDialog(component)
-	TermsOfServiceDialog(component)
+	if (state.serverIsConfigured) {
+		HdSettingGroup(title = Res.string.settings_group_sync_options.get()) {
+			HdHairlineToggleRow(
+				checked = state.syncAutomaticSync,
+				onCheckedChange = { scope.launch { component.setAutoSyncing(it) } },
+				label = Res.string.settings_server_auto_sync.get(),
+			)
+			HdHairlineToggleRow(
+				checked = state.syncAutoCloseDialog,
+				onCheckedChange = { scope.launch { component.setAutoCloseDialogs(it) } },
+				label = Res.string.settings_server_sync_auto_close.get(),
+			)
+			HdHairlineToggleRow(
+				checked = state.syncAutomaticBackups,
+				onCheckedChange = { scope.launch { component.setAutomaticBackups(it) } },
+				label = Res.string.settings_server_sync_backup.get(),
+			)
+		}
+	}
 
 	if (showHelpDialog) {
 		ServerSetupHelpDialog(onDismiss = { showHelpDialog = false })
 	}
 }
 
+/** Last on the Sync tab, alone, in the error colour; nothing when no server is configured. */
 @Composable
-private fun LoggedOutBody(
-	onSetupServer: () -> Unit,
-) {
-	Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-		Text(
-			text = Res.string.settings_server_enable_sync_backup_desc.get(),
-			style = MaterialTheme.typography.bodyMedium,
-			color = MaterialTheme.colorScheme.onSurface,
-		)
-		HdHairlineButton(
-			label = Res.string.settings_server_setup_button.get(),
-			onClick = onSetupServer,
-			emphasised = true,
-		)
-	}
-}
+internal fun RemoveServerRow(component: AccountSettings, scope: CoroutineScope) {
+	val state by component.state.subscribeAsState()
+	if (!state.serverIsConfigured) return
+	var confirm by rememberSaveable { mutableStateOf(false) }
 
-@Composable
-private fun ConfiguredBody(
-	loggedIn: Boolean,
-	autoSync: Boolean,
-	autoCloseDialog: Boolean,
-	autoBackups: Boolean,
-	onAutoSyncChange: (Boolean) -> Unit,
-	onAutoCloseChange: (Boolean) -> Unit,
-	onAutoBackupsChange: (Boolean) -> Unit,
-	onLogInAgain: () -> Unit,
-	onRemoveServer: () -> Unit,
-) {
-	Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-		if (!loggedIn) {
-			Text(
-				text = Res.string.settings_server_signed_out_message.get(),
-				style = MaterialTheme.typography.bodyMedium,
-				color = MaterialTheme.colorScheme.onSurface,
-			)
+	HdSettingGroup(title = null) {
+		HdSettingRow(
+			title = Res.string.settings_row_remove_server.get(),
+			description = Res.string.settings_row_remove_server_desc.get(),
+			titleColor = MaterialTheme.colorScheme.error,
+		) {
 			HdHairlineButton(
-				label = Res.string.settings_server_log_in_again_button.get(),
-				onClick = onLogInAgain,
-				emphasised = true,
+				label = Res.string.settings_row_remove_server_button.get(),
+				onClick = { confirm = true },
+				danger = true,
 			)
-			Spacer(Modifier.size(8.dp))
 		}
+	}
 
-		HdMonoLabel(text = Res.string.settings_server_sync_backup_preferences.get())
-
-		HdHairlineToggleRow(
-			checked = autoSync,
-			onCheckedChange = onAutoSyncChange,
-			label = Res.string.settings_server_auto_sync.get(),
-		)
-		HdHairlineToggleRow(
-			checked = autoCloseDialog,
-			onCheckedChange = onAutoCloseChange,
-			label = Res.string.settings_server_sync_auto_close.get(),
-		)
-		HdHairlineToggleRow(
-			checked = autoBackups,
-			onCheckedChange = onAutoBackupsChange,
-			label = Res.string.settings_server_sync_backup.get(),
-		)
-
-		Spacer(Modifier.size(8.dp))
-		HorizontalDivider(
-			thickness = Dp.Hairline,
-			color = MaterialTheme.colorScheme.outlineVariant,
-		)
-		Spacer(Modifier.size(4.dp))
-
-		HdMonoLabel(
-			text = Res.string.settings_server_danger_zone.get(),
-			color = MaterialTheme.colorScheme.error,
-		)
-		HdHairlineButton(
-			label = Res.string.settings_server_remove_server_button.get(),
-			onClick = onRemoveServer,
-			danger = true,
+	if (confirm) {
+		SimpleConfirm(
+			title = Res.string.settings_remove_server_dialog_title.get(),
+			message = Res.string.settings_remove_server_dialog_message.get(),
+			onDismiss = { confirm = false },
+			onConfirm = {
+				scope.launch {
+					component.removeServer()
+					confirm = false
+				}
+			},
 		)
 	}
 }
 
-private fun truncate(text: String, max: Int): String =
-	if (text.length <= max) text else text.take(max - 1) + "…"
+/**
+ * Sets the host and email in the status line apart as identifiers (mono). The host links to the
+ * server, which serves its own pages; the email isn't a link, so it doesn't look like one.
+ */
+@Composable
+private fun styledStatus(status: String, host: String?, url: String?, email: String?): AnnotatedString {
+	val mono = hdMetaStyle().fontFamily
+	val primary = MaterialTheme.colorScheme.primary
+	return buildAnnotatedString {
+		append(status)
+		if (host != null && url != null) {
+			val start = status.indexOf(host)
+			if (start >= 0) {
+				addStyle(SpanStyle(fontFamily = mono, color = primary, textDecoration = TextDecoration.Underline), start, start + host.length)
+				addLink(LinkAnnotation.Url(url), start, start + host.length)
+			}
+		}
+		if (!email.isNullOrBlank()) {
+			val start = status.lastIndexOf(email)
+			if (start >= 0) addStyle(SpanStyle(fontFamily = mono), start, start + email.length)
+		}
+	}
+}
+
+private fun hostOf(url: String): String = url.substringAfter("://").substringBefore('/')

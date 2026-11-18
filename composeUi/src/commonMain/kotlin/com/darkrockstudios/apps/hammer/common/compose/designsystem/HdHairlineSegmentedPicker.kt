@@ -24,6 +24,9 @@ import com.darkrockstudios.apps.hammer.common.compose.Ui
  * The optional [title] renders as an [HdMonoLabel] above the row, with
  * 8dp spacing. A disabled picker dims and ignores clicks, as
  * [HdHairlineDropdown] does.
+ *
+ * [compact] is the settings-row form: cells as wide as the widest label instead of the full
+ * row, labels in sentence case body type. Stacked under an [HdSettingRow]'s title it spans the width.
  */
 @Composable
 fun <T> HdHairlineSegmentedPicker(
@@ -34,6 +37,7 @@ fun <T> HdHairlineSegmentedPicker(
 	modifier: Modifier = Modifier,
 	title: String? = null,
 	enabled: Boolean = true,
+	compact: Boolean = false,
 ) {
 	Column(
 		modifier = modifier.alpha(if (enabled) 1f else 0.45f),
@@ -42,13 +46,15 @@ fun <T> HdHairlineSegmentedPicker(
 		if (title != null) {
 			HdMonoLabel(text = title)
 		}
-		Row(modifier = Modifier.fillMaxWidth()) {
+		val hugContent = compact && !LocalHdSettingRowStacked.current
+		Row(modifier = if (hugContent) Modifier.width(IntrinsicSize.Max) else Modifier.fillMaxWidth()) {
 			options.forEachIndexed { index, option ->
 				HdSegmentedCell(
 					label = label(option),
 					selected = option == selected,
 					onClick = { onSelect(option) },
 					enabled = enabled,
+					compact = compact,
 					modifier = Modifier
 						.weight(1f)
 						.offset(x = if (index == 0) 0.dp else (-1).dp),
@@ -65,6 +71,7 @@ private fun HdSegmentedCell(
 	onClick: () -> Unit,
 	enabled: Boolean,
 	modifier: Modifier = Modifier,
+	compact: Boolean = false,
 ) {
 	val borderColor = if (selected) MaterialTheme.colorScheme.onSurface
 	else MaterialTheme.colorScheme.outlineVariant
@@ -79,8 +86,8 @@ private fun HdSegmentedCell(
 		contentAlignment = Alignment.Center,
 	) {
 		Text(
-			text = label.uppercase(),
-			style = MaterialTheme.typography.labelMedium,
+			text = if (compact) label else label.uppercase(),
+			style = if (compact) MaterialTheme.typography.labelLarge else MaterialTheme.typography.labelMedium,
 			color = labelColor,
 			maxLines = 1,
 			softWrap = false,

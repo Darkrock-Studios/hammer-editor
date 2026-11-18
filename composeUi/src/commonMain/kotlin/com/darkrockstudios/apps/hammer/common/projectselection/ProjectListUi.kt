@@ -53,6 +53,7 @@ import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.BuildMetadata
 import com.darkrockstudios.apps.hammer.common.components.projectselection.MoveTarget
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectData
+import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsList
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.filterProjects
 import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarGutter
@@ -66,7 +67,10 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdScrollAwayFooter
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdScrollAwayFooterState
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSearchRow
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSortMenu
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdQuietButton
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdQuietSortMenu
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSplitButton
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSplitButtonItem
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSortOption
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagChip
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdToolButton
@@ -90,6 +94,9 @@ import com.darkrockstudios.apps.hammer.projects_list_footer_library
 import com.darkrockstudios.apps.hammer.projects_list_footer_local
 import com.darkrockstudios.apps.hammer.projects_list_footer_sync_on
 import com.darkrockstudios.apps.hammer.projects_list_masthead_title
+import com.darkrockstudios.apps.hammer.projects_list_create_menu
+import com.darkrockstudios.apps.hammer.projects_list_new_group
+import com.darkrockstudios.apps.hammer.projects_list_new_project
 import com.darkrockstudios.apps.hammer.projects_list_no_matches
 import com.darkrockstudios.apps.hammer.projects_list_search_button
 import com.darkrockstudios.apps.hammer.projects_list_search_clear
@@ -176,6 +183,7 @@ fun ProjectListUi(
 	modifier: Modifier = Modifier,
 	/** A slip laid under the masthead, given the page's inset; composes nothing when there is no notice. */
 	notice: @Composable (Modifier) -> Unit = {},
+	initialSearchOpen: Boolean = false,
 ) = BoxWithConstraints(modifier = modifier.fillMaxSize()) {
 	// Measured on the list's own pane: a window of any size can leave it narrow beside the nav rail.
 	val isWide = maxWidth >= ProjectListWideMinWidth
@@ -187,7 +195,7 @@ fun ProjectListUi(
 	val horizontalPadding = if (isWide) WideContentPadding else NarrowContentPadding
 
 	var sortMode by remember { mutableStateOf(ProjectsSortMode.LastAccessedDesc) }
-	var showSearchBar by rememberSaveable { mutableStateOf(false) }
+	var showSearchBar by rememberSaveable { mutableStateOf(initialSearchOpen) }
 	var query by rememberSaveable { mutableStateOf("") }
 	val parsed = remember(query) { parseQuery(query) }
 	// Every input is a remember key, so derivedStateOf would add nothing here.
@@ -240,6 +248,7 @@ fun ProjectListUi(
 			onSortChange = { sortMode = it },
 			showSort = isWide,
 			searchActive = showSearchBar,
+			syncing = state.syncState.projectsStatus.isNotEmpty() && !state.syncState.syncComplete,
 			onToggleSearch = {
 				if (showSearchBar) {
 					showSearchBar = false
@@ -269,8 +278,6 @@ fun ProjectListUi(
 				onSortChange = { sortMode = it },
 			)
 		}
-
-		ColumnHeader(showLastOpen = isWide)
 
 		Box(modifier = Modifier.weight(1f).clipToBounds()) {
 			LazyColumn(
@@ -327,11 +334,6 @@ fun ProjectListUi(
 				horizontalPadding = horizontalPadding,
 			)
 		}
-
-		FooterFolio(
-			horizontalPadding = horizontalPadding,
-			isServerSynced = state.isServerSynced,
-		)
 	}
 
 	ModalContent(component, rootSnackbar)
@@ -370,6 +372,7 @@ internal fun Masthead(
 	showSort: Boolean,
 	searchActive: Boolean,
 	onToggleSearch: () -> Unit,
+	syncing: Boolean = false,
 ) {
 	Row(
 		modifier = Modifier
@@ -385,44 +388,37 @@ internal fun Masthead(
 			verticalAlignment = Alignment.CenterVertically,
 			horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 		) {
-			HdMonoLabel(
-				text = Res.string.projects_list_masthead_title.get(),
-				color = MaterialTheme.colorScheme.onSurfaceVariant,
+			// UI 2.1: the page title names the rail destination; the window title already names the app.
+			Text(
+				text = ProjectSelection.Locations.Projects.text.get(),
+				style = MaterialTheme.typography.headlineSmall,
+				color = MaterialTheme.colorScheme.onSurface,
 				maxLines = 1,
 				softWrap = false,
 				overflow = TextOverflow.Ellipsis,
 			)
 			Spacer(modifier = Modifier.weight(1f))
-			if (showEntryCount) {
-				HdMonoLabel(
-					text = entrySummary(entryCount),
-					color = MaterialTheme.colorScheme.onSurfaceVariant,
-					maxLines = 1,
-					softWrap = false,
-					overflow = TextOverflow.Ellipsis,
-				)
-			}
 		}
-		SearchAffordance(active = searchActive, onClick = onToggleSearch)
+		HdQuietButton(
+			onClick = onToggleSearch,
+			icon = Icons.Default.Search,
+			contentDescription = Res.string.projects_list_search_button.get(),
+			active = searchActive,
+			modifier = Modifier.testTag("projects-list-search-toggle"),
+		)
 		if (showSort) {
-			HdSortMenu(
-				label = Res.string.projects_list_sort_label,
+			HdQuietSortMenu(
 				options = ProjectsSortMode.entries,
 				selected = sortMode,
 				onSelect = onSortChange,
+				contentDescription = Res.string.projects_list_sort_label.get(),
 			)
 		}
 		if (isServerSynced) {
-			RefreshAffordance(onClick = onSync)
+			SyncStatusButton(syncing = syncing, onClick = onSync)
 		}
 		if (showCreate) {
-			NewGroupAffordance(onClick = onCreateGroup)
-			HdHairlineButton(
-				label = "＋  ${Res.string.projects_list_create_button.get()}",
-				onClick = onCreate,
-				emphasised = true,
-				modifier = Modifier.testTag(CreateProjectButtonTestTag),
-			)
+			NewProjectButton(onCreate = onCreate, onCreateGroup = onCreateGroup)
 		}
 	}
 }
@@ -502,17 +498,32 @@ internal fun SearchStrip(
 			.padding(horizontal = horizontalPadding, vertical = Ui.Padding.L),
 		verticalArrangement = Arrangement.spacedBy(Ui.Padding.M),
 	) {
-		HdSearchRow(
-			query = query,
-			onQueryChange = onQueryChange,
-			placeholder = Res.string.projects_list_search_placeholder.get(),
-			clearContentDescription = Res.string.projects_list_search_clear.get(),
-			onCollapse = onClose,
-			collapseContentDescription = Res.string.projects_list_search_close.get(),
+		Row(
 			modifier = Modifier.fillMaxWidth(),
-			testTag = "projects-list-search",
-		)
-		if (showSort || parsedTags.isNotEmpty()) {
+			verticalAlignment = Alignment.CenterVertically,
+			horizontalArrangement = Arrangement.spacedBy(Ui.Padding.S),
+		) {
+			HdSearchRow(
+				query = query,
+				onQueryChange = onQueryChange,
+				placeholder = Res.string.projects_list_search_placeholder.get(),
+				clearContentDescription = Res.string.projects_list_search_clear.get(),
+				onCollapse = onClose,
+				collapseContentDescription = Res.string.projects_list_search_close.get(),
+				modifier = Modifier.weight(1f),
+				testTag = "projects-list-search",
+			)
+			if (showSort) {
+				HdQuietSortMenu(
+					options = ProjectsSortMode.entries,
+					selected = sortMode,
+					onSelect = onSortChange,
+					contentDescription = Res.string.projects_list_sort_label.get(),
+					iconOnly = true,
+				)
+			}
+		}
+		if (parsedTags.isNotEmpty()) {
 			Row(
 				modifier = Modifier.fillMaxWidth(),
 				verticalAlignment = Alignment.CenterVertically,
@@ -520,15 +531,6 @@ internal fun SearchStrip(
 			) {
 				parsedTags.forEach { tag ->
 					HdTagChip(label = tag, active = true)
-				}
-				if (showSort) {
-					Spacer(modifier = Modifier.weight(1f))
-					HdSortMenu(
-						label = Res.string.projects_list_sort_label,
-						options = ProjectsSortMode.entries,
-						selected = sortMode,
-						onSelect = onSortChange,
-					)
 				}
 			}
 		}
@@ -677,48 +679,39 @@ private fun BoxScope.BottomCreateBar(
 			vertical = Ui.Padding.L,
 		),
 	) {
-		Box(
-			modifier = Modifier
-				.weight(1f)
-				.height(44.dp)
-				.testTag(CreateProjectButtonTestTag)
-				.background(MaterialTheme.colorScheme.primary)
-				.border(
-					width = Dp.Hairline,
-					color = MaterialTheme.colorScheme.outline,
-					shape = RectangleShape,
-				)
-				.clickable(onClick = onCreate),
-			contentAlignment = Alignment.Center,
-		) {
-			Text(
-				text = "＋  ${Res.string.projects_list_create_button.get()}",
-				style = MaterialTheme.typography.labelLarge,
-				fontWeight = FontWeight.Medium,
-				color = MaterialTheme.colorScheme.onPrimary,
-			)
-		}
-		Spacer(modifier = Modifier.width(Ui.Padding.M))
-		Box(
-			modifier = Modifier
-				.size(44.dp)
-				.testTag(CreateGroupButtonTestTag)
-				.border(
-					width = Dp.Hairline,
-					color = MaterialTheme.colorScheme.outline,
-					shape = RectangleShape,
-				)
-				.clickable(onClick = onCreateGroup),
-			contentAlignment = Alignment.Center,
-		) {
-			Icon(
-				imageVector = Icons.Outlined.Folder,
-				contentDescription = Res.string.projects_list_create_group_button.get(),
-				tint = MaterialTheme.colorScheme.onSurfaceVariant,
-				modifier = Modifier.size(20.dp),
-			)
-		}
+		NewProjectButton(
+			onCreate = onCreate,
+			onCreateGroup = onCreateGroup,
+			filled = true,
+			height = 44.dp,
+			modifier = Modifier.weight(1f),
+		)
 	}
+}
+
+/** "+ New project ▾": the menu holds New group, which used to be a separate folder icon. */
+@Composable
+private fun NewProjectButton(
+	onCreate: () -> Unit,
+	onCreateGroup: () -> Unit,
+	modifier: Modifier = Modifier,
+	filled: Boolean = false,
+	height: Dp = 32.dp,
+) {
+	HdSplitButton(
+		label = "＋  ${Res.string.projects_list_new_project.get()}",
+		onClick = onCreate,
+		menuItems = listOf(
+			HdSplitButtonItem(Res.string.projects_list_new_project.get(), onCreate),
+			HdSplitButtonItem(Res.string.projects_list_new_group.get(), onCreateGroup),
+		),
+		menuContentDescription = Res.string.projects_list_create_menu.get(),
+		modifier = modifier,
+		mainModifier = Modifier.testTag(CreateProjectButtonTestTag),
+		menuModifier = Modifier.testTag(CreateGroupButtonTestTag),
+		filled = filled,
+		height = height,
+	)
 }
 
 @Composable

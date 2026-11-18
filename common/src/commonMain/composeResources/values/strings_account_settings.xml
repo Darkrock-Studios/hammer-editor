@@ -9,13 +9,13 @@
 	</string>
 	<string name="settings_backups_manage_button">Manage Backups</string>
 	<string name="settings_theme_label">UI Theme</string>
-	<string name="settings_theme_light">LIGHT</string>
-	<string name="settings_theme_dark">DARK</string>
+	<string name="settings_theme_light">Light</string>
+	<string name="settings_theme_dark">Dark</string>
 	<string name="settings_theme_oled_black">OLED</string>
-	<string name="settings_theme_followsystem">SYSTEM</string>
+	<string name="settings_theme_followsystem">System</string>
 	<string name="settings_initial_screen_label">Initial Project Screen</string>
 	<string name="settings_initial_screen_home">Home</string>
-	<string name="settings_initial_screen_editor">Scene Editor</string>
+	<string name="settings_initial_screen_editor">Scene editor</string>
 	<string name="settings_projects_directory">Projects Directory</string>
 	<string name="settings_projects_directory_description">Set the directory Hammer will use to store project data in.
 	</string>
@@ -32,14 +32,14 @@
 	<string name="settings_server_status_not_connected">NOT CONNECTED</string>
 	<string name="settings_server_status_signed_out">SIGNED OUT</string>
 	<string name="settings_server_signed_out_message">Your session with this server has ended. Log in again to resume syncing.</string>
-	<string name="settings_server_log_in_again_button">Log In Again</string>
+	<string name="settings_server_log_in_again_button">Log in again</string>
 	<string name="settings_server_url_greeble">URL</string>
 	<string name="settings_server_help_link">HELP ↗</string>
 	<string name="settings_server_description">Configure data syncing</string>
-	<string name="settings_server_setup_button">Set Up</string>
-	<string name="settings_server_auto_sync">Auto-Sync</string>
-	<string name="settings_server_sync_backup">Backup on sync</string>
-	<string name="settings_server_sync_auto_close">Close Sync Dialogs on Success</string>
+	<string name="settings_server_setup_button">Set up</string>
+	<string name="settings_server_auto_sync">Auto-sync</string>
+	<string name="settings_server_sync_backup">Back up on sync</string>
+	<string name="settings_server_sync_auto_close">Close sync dialogs on success</string>
 	<string name="settings_server_max_backups">Max Backups per Project</string>
 	<string name="settings_server_max_backups_error">Must be between 1 and %1$d</string>
 	<string name="settings_server_remove_server_button">Remove Server</string>
@@ -183,4 +183,34 @@
 	</string>
 	<string name="server_error_tls">Could not make a secure connection to %1$s. Hammer only connects over HTTPS, so the server needs a valid TLS certificate of its own or a reverse proxy that provides one.</string>
 	<string name="server_error_network_unavailable">Hammer could not open a network connection on this device, so the request never reached the server. Security software, a VPN, or a firewall may be blocking it.</string>
+	<string name="settings_tab_general">General</string>
+	<string name="settings_tab_writing">Writing</string>
+	<string name="settings_tab_sync">Sync</string>
+	<string name="settings_tab_plugins">Plugins</string>
+	<string name="settings_group_appearance">Appearance</string>
+	<string name="settings_group_projects">Projects</string>
+	<string name="settings_group_device">This device</string>
+	<string name="settings_group_spellcheck">Spell checking</string>
+	<string name="settings_group_sync_options">While syncing</string>
+	<string name="settings_group_backups">Backups</string>
+	<string name="settings_row_theme">Theme</string>
+	<string name="settings_row_initial_screen">Open projects to</string>
+	<string name="settings_row_example_project">Example project</string>
+	<string name="settings_row_example_project_desc">Install an example to see how features are used.</string>
+	<string name="settings_row_projects_folder">Projects folder</string>
+	<string name="settings_row_projects_folder_button">Change…</string>
+	<string name="settings_row_max_backups">Backups per project</string>
+	<string name="settings_row_max_backups_desc">Backups protect against data loss. For older versions of a story, use Drafts.</string>
+	<string name="settings_row_manage_backups">Manage backups</string>
+	<string name="settings_row_manage_backups_button">Open…</string>
+	<string name="settings_row_remove_server">Remove server</string>
+	<string name="settings_row_remove_server_desc">Stops syncing on this device. Your projects stay here.</string>
+	<string name="settings_row_remove_server_button">Remove…</string>
+	<string name="settings_sync_status_connected">Connected to %1$s</string>
+	<string name="settings_sync_status_connected_as">Connected to %1$s as %2$s</string>
+	<string name="settings_sync_status_signed_out">Signed out of %1$s</string>
+	<string name="settings_sync_status_not_set_up">Sync is not set up</string>
+	<string name="settings_sync_help">How syncing works</string>
+	<string name="settings_backups_decrease">Fewer backups</string>
+	<string name="settings_backups_increase">More backups</string>
 </resources>

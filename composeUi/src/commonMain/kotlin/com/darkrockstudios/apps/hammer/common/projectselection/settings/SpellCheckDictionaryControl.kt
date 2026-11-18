@@ -3,6 +3,11 @@ package com.darkrockstudios.apps.hammer.common.projectselection.settings
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.width
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.LocalHdSettingRowStacked
+import androidx.compose.ui.unit.dp
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSettingRow
 import androidx.compose.ui.draw.alpha
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineDropdown
@@ -34,13 +39,15 @@ internal fun DictionaryDropdown(
 	onSelect: (Locale) -> Unit,
 	modifier: Modifier = Modifier,
 ) {
-	Box(modifier = modifier.alpha(if (enabled) 1f else 0.45f)) {
-		HdHairlineDropdown(
-			title = Res.string.settings_spellcheck_dictionary.get(),
-			options = available,
-			selected = selected,
-			onSelect = { if (enabled) onSelect(it) },
-			label = { it.displayName() },
-		)
+	HdSettingRow(title = Res.string.settings_spellcheck_dictionary.get(), modifier = modifier) {
+		val width = if (LocalHdSettingRowStacked.current) Modifier.fillMaxWidth() else Modifier.width(240.dp)
+		Box(modifier = width.alpha(if (enabled) 1f else 0.45f)) {
+			HdHairlineDropdown(
+				options = available,
+				selected = selected,
+				onSelect = { if (enabled) onSelect(it) },
+				label = { it.displayName() },
+			)
+		}
 	}
 }

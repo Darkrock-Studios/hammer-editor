@@ -37,12 +37,19 @@ class ProjectGroupRowTest {
 	}
 
 	@Test
-	fun `shows the name, description and transitive project count`() {
-		show()
+	fun `a collapsed group shows its name, description and transitive project count`() {
+		show(collapsed = true)
 
 		compose.onNodeWithText("The Salt Trilogy").assertIsDisplayed()
 		compose.onNodeWithText("Three books about the drowned coast").assertIsDisplayed()
-		compose.onNodeWithText("3 PROJECTS").assertIsDisplayed()
+		compose.onNodeWithText("3 projects").assertIsDisplayed()
+	}
+
+	@Test
+	fun `an open group leaves the count out, its projects are in view`() {
+		show(collapsed = false)
+
+		compose.onNodeWithText("3 projects").assertDoesNotExist()
 	}
 
 	@Test
